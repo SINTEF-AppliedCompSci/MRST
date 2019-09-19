@@ -19,6 +19,7 @@ classdef TransportModelDG < TransportModel
             model.parentModel.operators = setupOperatorsDG(model.disc, model.parentModel.G, model.parentModel.rock);
             model.parentModel.outputFluxes = false;
             
+            
         end
         
         %-----------------------------------------------------------------%
@@ -44,6 +45,12 @@ classdef TransportModelDG < TransportModel
                 case {'stdof'}
                     index = ':';
                     fn = 'sTdof';
+                case {'rsdof'}
+                    index = ':';
+                    fn = 'rsdof';
+                case {'rvdof'}
+                    index = ':';
+                    fn = 'rvdof';
                 case {'pressuredof'}
                     index = ':';
                     fn = 'pressuredof';
@@ -55,6 +62,11 @@ classdef TransportModelDG < TransportModel
         %-----------------------------------------------------------------%
         function index = satVarIndex(model, name)
             index = model.parentModel.satVarIndex(name);
+        end
+        
+        %-----------------------------------------------------------------%
+        function groupings = getStateFunctionGroupings(model)
+            groupings = model.parentModel.getStateFunctionGroupings();
         end
         
         %-----------------------------------------------------------------%
@@ -78,10 +90,27 @@ classdef TransportModelDG < TransportModel
             dofnames = cellfun(@(bn) [bn, 'dof'], names, 'UniformOutput', false);
             origin = origin(isParent);
             dofvars = cell(1, numel(vars));
+            isBO = strcmpi(origin, 'GenericBlackOilModel');
             for i = 1:numel(dofnames)
                 [fn, ~] = model.getVariableField(dofnames{i}, false);
                 if ~isempty(fn)
                     dofvars{i} = model.getProp(state, dofnames{i});
+                elseif strcmpi(names{i}, 'x') && isBO(i)
+                    if model.parentModel.water
+                        sW = model.getProp(state, 'sW');
+                    else
+                        sW = deal(0);
+                    end
+                    [sG, sGdof] = model.getProps(state, 'sG', 'sGdof');
+                    st = model.parentModel.getCellStatusVO(state,  1-sW-sG, sW, sG);
+                    for j = 1:numel(st)
+                        if numel(st{j}) == model.G.cells.num
+                            st{j} = rldecode(st{j}, state.nDof, 1);
+                        end
+                    end
+                    [rsdof, rvdof] = model.getProps(state, 'rsdof', 'rvdof');
+                    xdof = st{1}.*rsdof + st{2}.*rvdof + st{3}.*sGdof;
+                    dofvars{i} = xdof;
                 end
             end
         end
@@ -99,19 +128,20 @@ classdef TransportModelDG < TransportModel
             nph = parent.getNumberOfPhases();
             phase_variable_index = zeros(nph, 1);
             for i = 1:numel(basevars)
-                [f, ix] = model.getVariableField(dofbasenames{i});
-                if strcmp(f, 'sdof')
+                [f, ix] = model.getVariableField(dofbasenames{i}, false);
+                if strcmp(f, 'sdof') || strcmpi(dofbasenames{i}, 'xdof')
                     isS(i) = true;
                     phase_variable_index(ix) = i;
                 end
             end
             % Figure out saturation logic
-            isP = strcmp(dofbasenames, 'pressuredof');
-            vars = basevars;
-            names = dofbasenames;
+            isP    = strcmp(dofbasenames, 'pressuredof');
+            vars   = basevars;
+            names  = dofbasenames;
+            origin = baseorigin;
             useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
                                     && sum(isS) == nph - 1;
-            assert(useTotalSaturation, 'DG currently only supports total saturation formulation!');
+%             assert(useTotalSaturation, 'DG currently only supports total saturation formulation!');
             if useTotalSaturation
                 % Replace pressure with total saturation
                 replacement = 'sTdof';
@@ -136,14 +166,17 @@ classdef TransportModelDG < TransportModel
             end
             % Let parent model handle state initialization
             state = model.initStateAD(state, basevars, basenames, baseorigin);
-            
+            fixedSat = false;
             for i = 1:numel(dofbasenames)
-                if any(strcmpi(basenames{i}, {'sw', 'so', 'sg'}))
-                   basenames{i} = 's';
-                   dofbasenames{i}  = 'sdof';
+                if any(strcmpi(basenames{i}, {'sw', 'so', 'sg', 'x'}))
+                    if fixedSat
+                        continue
+                    end
+                    basenames{i} = 's';
+                    dofbasenames{i}  = 'sdof';
+                    fixedSat = true;
                 end
-                v     = model.getProp(state, basenames{i});
-                state = model.setProp(state, dofbasenames{i}, v);
+                v     = model.getProp(state, dofbasenames{i});
                 vm    = model.disc.getCellMean(state, value(v));
                 state = model.setProp(state, basenames{i}, vm); 
             end
@@ -167,32 +200,108 @@ classdef TransportModelDG < TransportModel
         
         function state = initStateAD(model, state, vars, names, origin)
               
-            model.parentModel.G.cells.num = sum(state.nDof);
-            state = initStateAD@TransportModel(model, state, vars, names, origin);
-            state.sdof = state.s;
+            pmodel = model.parentModel;
+            isBO = strcmpi(class(pmodel), 'GenericBlackOilModel');
+            if isBO && (pmodel.disgas || pmodel.vapoil)
+                removed = false(size(vars));
+                if pmodel.water
+                    isw     = strcmpi(names, 'sw');
+                    sWdof   = vars{isw};
+                    sW      = model.getProp(state, 'sW');
+                    removed = removed | isw;
+                else
+                    sW = 0;
+                end
+
+                isx  = strcmpi(names, 'x');
+                xdof = vars{isx};
+                sG   = model.getProps(state, 'sG');
+                st   = pmodel.getCellStatusVO(state, 1-sW-sG, sW, sG);
+                cells = rldecode((1:model.G.cells.num)', state.nDof, 1);
+                for j = 1:numel(st)
+                    if numel(st{j}) == model.G.cells.num
+                        st{j} = st{j}(cells);
+                    end
+                end
+                sGdof = st{2}.*(1-sWdof) + st{3}.*xdof;
+                fill = model.disc.getFillSat(state);
+                sOdof = st{1}.*(fill-sWdof) + ~st{1}.*(fill - sWdof - sGdof);
+                if pmodel.water
+                    sat = {sWdof, sOdof, sGdof};
+                else
+                    sat = {sOdof, sGdof};
+                end
+                removed(isx) = true;
+                state = model.setProp(state, 'sdof', sat);
+                names = names(~removed);
+                vars  = vars(~removed);
+                for i = 1:numel(names)
+                    state = model.setProp(state, [names{i}, 'dof'], vars{i});
+                end
+                state = model.initStateFunctionContainers(state);
+                
+                if not(isempty(pmodel.FacilityModel))
+                    % Select facility model variables and pass them off to attached
+                    % class.
+                    fm = class(pmodel.FacilityModel);
+                    isF = strcmp(origin, fm);
+                    state = pmodel.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
+                    removed = removed | isF;
+                end
+                if pmodel.disgas
+                    rsSat = pmodel.getProp(state, 'RsMax');
+                    rsSat = rsSat(cells);
+                    rsdof = ~st{1}.*rsSat + st{1}.*xdof;
+                    % rs = rs.*(value(sO) > 0);
+                    state = model.setProp(state, 'rsdof', rsdof);
+                end
+
+                if pmodel.vapoil
+                    rvSat = pmodel.getProp(state, 'RvMax');
+                    rvSat = rvSat(cells);
+                    rvdof = ~st{2}.*rvSat + st{2}.*xdof;
+                    % rv = rv.*(value(sG) > 0);
+                    state = model.setProp(state, 'rvdof', rvdof);
+                    % No rv, no so -> zero on diagonal in matrix
+                    rv = model.disc.getCellMean(state, value(rvdof));
+                    sO = model.disc.getCellMean(state, value(sOdof));
+                    bad_oil = value(sO) == 0 & value(rv) == 0;
+                    
+                    if any(bad_oil)
+                        sOdof(bad_oil) = 1 - sWdof(bad_oil) - value(sGdof(bad_oil));
+                        state = model.setProp(state, 'sOdof', sOdof);
+                    end
+                end
+            else
+                state = initStateAD@TransportModel(model, state, vars, names, origin);
+                v     = model.getProp(state, 's');
+                state = model.setProp(state, 'sdof', v);
+            end
+            
             state = model.evaluateBaseVariables(state);
             
         end
         
         function state = evaluateBaseVariables(model, state)
-            
+             
             [cellStateDG, faceStateDG, wellStateDG] = deal(state);
-            
-            names = {'pressure', 's'};
+%             names = {'pressure', 's'};
+            names = fieldnames(state);
             for k = 1:numel(names)
                 name = names{k};
-                if isfield(state, name)
+                if numel(name) > 3 && strcmp(name(end-2:end), 'dof')
                     % Get dofs
-                    dof = model.getProp(state, [name, 'dof']);
+                    dof = model.getProp(state, name);
+                    n = name(1:end-3);
                     % Evaluate at cell cubature points
                     cellValue = model.disc.evaluateProp(state, dof, 'cell');
-                    cellStateDG = model.setProp(cellStateDG, name, cellValue);
+                    cellStateDG = model.setProp(cellStateDG, n, cellValue);
                     % Get cell mean
                     cellMean = model.disc.getCellMean(state, dof);
-                    wellStateDG = model.setProp(wellStateDG, name, cellMean);
+                    wellStateDG = model.setProp(wellStateDG, n, cellMean);
                     % Evaluate at face cubature points
                     faceValue = model.disc.evaluateProp(state, dof, 'face');
-                    faceStateDG = model.setProp(faceStateDG, name, faceValue);
+                    faceStateDG = model.setProp(faceStateDG, n, faceValue);
                 end
             end
             
@@ -203,6 +312,7 @@ classdef TransportModelDG < TransportModel
             [~, ~, cells] = model.disc.getCubature((1:model.G.cells.num)', 'volume');
             [~, ~, ~, faces] = model.disc.getCubature(find(model.parentModel.operators.internalConn), 'face');
             fcells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
+            
             cellStateDG.type  = 'cell';
             cellStateDG.cells = cells;
             cellStateDG.fcells = fcells;
@@ -287,7 +397,8 @@ classdef TransportModelDG < TransportModel
                 end
                 if ~model.useCNVConvergence
                     pv     = model.operators.pv(cells);
-                    eqs{i} = eqs{i}.*(dt./pv);
+                    v      = model.G.cells.volumes(cells);
+                    eqs{i} = eqs{i}.*(dt./(pv.*v));
                 end    
             end
         end
@@ -312,40 +423,195 @@ classdef TransportModelDG < TransportModel
             state = rmfield(state, 'cellStateDG');
             state = rmfield(state, 'faceStateDG');
             state = rmfield(state, 'wellStateDG');
-            s = state;
-            [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
-            % Update saturation dofs
-            state = model.updateSaturations(state, dx, problem, satVars);
-            % Update non-saturation dofs
-            state = model.updateDofs(state, dx, problem, restVars);
-            % Update cell averages from dofs
-            state0 = state;
-            state  = model.assignBaseVariables(state);
+            
+            if strcmpi(class(model.parentModel), 'GenericBlackOilModel') ...
+                    && model.parentModel.disgas || model.parentModel.vapoil
+                [state, report] = model.updateStateBO(state, problem, dx, drivingForces);
+            else
+                s = state;
+                [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
+                % Update saturation dofs
+                state = model.updateSaturations(state, dx, problem, satVars);
+                % Update non-saturation dofs
+                state = model.updateDofs(state, dx, problem, restVars);
+                % Update cell averages from dofs
+                state0 = state;
+                state  = model.assignBaseVariables(state);
+                report = [];
+
+                if 1
+                % Compute dx for cell averages
+                dx0 = model.getMeanIncrement(state, state0, problem);
+                % Let parent model do its thing
+                problem0 = problem;
+                problem0.primaryVariables = cellfun(@(n) n(1:end-3), problem0.primaryVariables, 'UniformOutput', false);
+                [state0_corr, report] = updateState@TransportModel(model, state0, problem0, dx0, drivingForces);
+                % Correct updates in dofs according to parent model
+                dx0_corr = model.getMeanIncrement(state0_corr, state0, problem);
+                
+                cells    = rldecode((1:model.G.cells.num)', state.nDof, 1);
+                frac     = cellfun(@(x,y) x(cells)./y(cells), dx0_corr, dx0, 'UniformOutput', false);
+                for i = 1:numel(frac)
+                    frac{i}(~isfinite((frac{i}))) = 0;
+                end
+                dx_corr  = cellfun(@(dx, f) dx.*f, dx, frac, 'UniformOutput', false);
+                % Update saturation dofs
+                state = model.updateSaturations(s, dx_corr, problem, satVars);
+                % Update non-saturation dofs
+                state = model.updateDofs(state, dx_corr, problem, restVars);
+                % Update cell averages from dofs
+                state = model.assignBaseVariables(state);
+                end
+            
+            end
+            
+        end
+        
+        % --------------------------------------------------------------------%
+        function [state, report] = updateStateBO(model, state, problem, dx, drivingForces)
+            vars = problem.primaryVariables;
+            removed = false(size(vars));
+            pmodel = model.parentModel;
+            cells = rldecode((1:model.G.cells.num)', state.nDof, 1);
+            if pmodel.disgas || pmodel.vapoil
+                % The VO model is a bit complicated, handle this part
+                % explicitly.
+                state0 = state;
+                state = model.initStateFunctionContainers(state);
+
+                state = pmodel.updateStateFromIncrement(state, dx, problem, 'pressure', pmodel.dpMaxRel, pmodel.dpMaxAbs);
+                state = pmodel.capProperty(state, 'pressure', pmodel.minimumPressure, pmodel.maximumPressure);
+
+                [vars, ix] = model.stripVars(vars, 'pressure');
+                removed(~removed) = removed(~removed) | ix;
+
+                % Black oil with dissolution
+                [so, sg, sodof, sgdof] = model.getProps(state, 'so', 'sg', 'sodof', 'sgdof');
+                if pmodel.water
+                    sw = model.getProp(state, 'sw');
+                    dsw = model.getIncrement(dx, problem, 'swdof');
+                else
+                    sw = 0;
+                    dsw = 0;
+                end
+                % Magic status flag, see inside for doc
+                st0 = pmodel.getCellStatusVO(state0, so, sw, sg);
+                st = st0;
+                for j = 1:numel(st)
+                    if numel(st{j}) == model.G.cells.num
+                        st{j} = st{j}(cells);
+                    end
+                end
+                dr = model.getIncrement(dx, problem, 'xdof');
+                % Interpretation of "gas" phase varies from cell to cell, remove
+                % everything that isn't sG updates
+                dsg = st{3}.*dr - st{2}.*dsw;
+
+                if pmodel.disgas
+                    rsMax = pmodel.getProp(state, 'rsMax');
+                    rsMax = rsMax(cells);
+                    drs_rel = rsMax.*pmodel.drsMaxRel;
+                    drs = min(pmodel.drsMaxAbs, drs_rel);
+                    state = model.updateStateFromIncrement(state, st{1}.*dr, problem, ...
+                                                           'rsdof', inf, drs);
+                end
+
+                if pmodel.vapoil
+                    rvMax = pmodel.getProp(state, 'rvMax');
+                    drv_rel = rvMax.*pmodel.drsMaxRel;
+                    drs = min(pmodel.drsMaxAbs, drv_rel);
+                    state = model.updateStateFromIncrement(state, st{2}.*dr, problem, ...
+                                                           'rvdof', inf, drs);
+                end
+
+                dso = -(dsg + dsw);
+                nPh = nnz(pmodel.getActivePhases());
+
+                ds = zeros(numel(dso), nPh);
+                phIndices = pmodel.getPhaseIndices();
+                if pmodel.water
+                    ds(:, phIndices(1)) = dsw;
+                end
+                if pmodel.oil
+                    ds(:, phIndices(2)) = dso;
+                end
+                if pmodel.gas
+                    ds(:, phIndices(3)) = dsg;
+                end
+
+                state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, pmodel.dsMaxAbs);
+                state.s = model.disc.getCellMean(state, state.sdof);
+                if pmodel.vapoil
+                    state.rs = model.disc.getCellMean(state, state.rsdof);
+                end
+                if pmodel.disgas
+                    state.rv = model.disc.getCellMean(state, state.rvdof);
+                end
+                kr = pmodel.FlowPropertyFunctions.RelativePermeability;
+                state = kr.applyImmobileChop(model, state, state0);
+
+                % We should *NOT* be solving for oil saturation for this to make sense
+                assert(~any(strcmpi(vars, 'sodof')));
+                
+                problem0 = problem;
+                problem0.primaryVariables = {'swdof', 'sodof', 'sgdof'};
+                if pmodel.disgas
+                    problem0.primaryVariables{end+1} = 'rsdof';
+                end
+                if pmodel.vapoil
+                    problem0.primaryVariables{end+1} = 'rvdof';
+                end
+                dx0 = model.getMeanIncrement(state, state0, problem0);
+                
+                state_corr = computeFlashBlackOil(state, state0, pmodel, st0);
+                state_corr.s  = bsxfun(@rdivide, state_corr.s, sum(state_corr.s, 2));
+
+                dx0_corr = model.getMeanIncrement(state_corr, state0, problem0);
+                
+                frac = cell(1, numel(dx0));
+                dx_corr = cell(1, 3);
+                dx{1} = dsw; dx{2} = dso; dx{3} = dsg;
+                if pmodel.disgas
+                    dx{end+1} = st{1}.*dr;
+                end
+                if pmodel.vapoil
+                    dx{end+1} = st{2}.*dr;
+                end
+                for i = 1:numel(frac)
+                    if  ~isempty(dx0{i})
+                        f = dx0_corr{i}(cells)./dx0{i}(cells);
+                        f(~isfinite(f)) = 0;
+                        dx_corr{i} = dx{i}.*f;
+                    end
+                end
+                % Update saturation dofs
+                state = model.updateSaturations(state0, dx_corr, problem0, {'swdof', 'sodof', 'sgdof'});
+                % Update non-saturation dofs
+                restVars = {};
+                if pmodel.disgas
+                    restVars{end+1} = 'rsdof';
+                end
+                if pmodel.vapoil
+                    restVars{end+1} = 'rvDof';
+                end
+                state = model.updateDofs(state, dx_corr, problem0, restVars);
+                % Update cell averages from dofs
+                state = model.assignBaseVariables(state);
+                
+                %  We have explicitly dealt with rs/rv properties, remove from list
+                %  meant for autoupdate.
+                [vars, ix] = model.stripVars(vars, {'sw', 'so', 'sg', 'rs', 'rv', 'x'});
+                removed(~removed) = removed(~removed) | ix;
+            end
+
+            % We may have solved for a bunch of variables already if we had
+            % disgas / vapoil enabled, so we remove these from the
+            % increment and the linearized problem before passing them onto
+            % the generic reservoir update function.
+            problem.primaryVariables = vars;
+            dx(removed) = [];
+
             report = [];
-            
-            if 1
-            % Compute dx for cell averages
-            dx0 = model.getMeanIncrement(state, state0, problem);
-            % Let parent model do its thing
-            problem0 = problem;
-            problem0.primaryVariables = cellfun(@(n) n(1:end-3), problem0.primaryVariables, 'UniformOutput', false);
-            [state0_corr, report] = updateState@TransportModel(model, state0, problem0, dx0, drivingForces);
-            % Correct updates in dofs according to parent model
-            dx0_corr = model.getMeanIncrement(state0_corr, state0, problem);
-            cells    = rldecode((1:model.G.cells.num)', state.nDof, 1);
-            frac     = cellfun(@(x,y) x(cells)./y(cells), dx0_corr, dx0, 'UniformOutput', false);
-            for i = 1:numel(frac)
-                frac{i}(~isfinite((frac{i}))) = 0;
-            end
-            dx_corr  = cellfun(@(dx, f) dx.*f, dx, frac, 'UniformOutput', false);
-            % Update saturation dofs
-            state = model.updateSaturations(s, dx_corr, problem, satVars);
-            % Update non-saturation dofs
-            state = model.updateDofs(state, dx_corr, problem, restVars);
-            % Update cell averages from dofs
-            state = model.assignBaseVariables(state);
-            end
-            
         end
         
         %-----------------------------------------------------------------%
