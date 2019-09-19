@@ -29,9 +29,10 @@ function plotLimiter(disc, state, state0, type)
         figure(1);
     end
     clf; hold on
-    plotSaturationDG(disc, state0, 'n', 500, 'plot1d', true, 'color', 'b', 'linew', 2);
-    plotSaturationDG(disc, state, 'n', 500, 'plot1d', true, 'color', 'r', 'linew', 4, 'LineStyle', '--'); hold off
+    plotSaturationDG(disc, state0, 'n', 500, 'plot1d', true, 'color', 'k', 'linew', 2);
+    plotSaturationDG(disc, state, 'n', 500, 'plot1d', true, 'color', 'k', 'linew', 4, 'LineStyle', '--'); hold off
     legend({['Before ', type], ['After ', type]});
+    box on;
     drawnow
 end
 %-------------------------------------------------------------------------%
