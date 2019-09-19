@@ -19,19 +19,22 @@ function state = assignDofFromState(disc, state, names)
     except = exceptions();
     for fNo = 1:numel(names)
         f = names{fNo};
-        if isfield(state, f)                ...
-                && ~any(strcmpi(f, except)) ...
-                && size(state.(f),1) == disc.G.cells.num
-            dof       = zeros(sum(state.nDof), size(state.(f),2));
-            dof(ix,:) = state.(f);
-            state.([f, 'dof']) = dof;
+        if isfield(state, f) && ~any(strcmpi(f, except))
+            if size(state.(f),1) == disc.G.cells.num
+                dof       = zeros(sum(state.nDof), size(state.(f),2));
+                dof(ix,:) = state.(f);
+                state.([f, 'dof']) = dof;
+            else
+                v = repmat(state.(f), sum(state.nDof),1);
+                state.([f, 'dof']) = v;
+            end
         end
     end
 
 end
 
 function flds = exceptions()
-    flds = {'nDof', 'degree', 'wellSol', 'flux'};
+    flds = {'nDof', 'degree', 'wellSol', 'flux', 'sMax', 'dofPos'};
 end
 
 % function flds = getDofFields()
