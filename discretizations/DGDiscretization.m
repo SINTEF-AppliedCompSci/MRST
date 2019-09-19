@@ -537,14 +537,14 @@ classdef DGDiscretization < SpatialDiscretization
                 cellNo = N(faceNo,side);
                 f2c = sparse(cells, (1:numel(faces))', 1, disc.G.cells.num, numel(faces));
                 [xf, ~, ~] = disc.transformCoords(x, cellNo);
+                c = unique(cells);
                 % Evaluate integrals
-    %             I = dof*0;
                 sgn = (-1).^(side-1);
                 for dofNo = 1:nDofMax                
                     keepCells = disc.nDof(cells) >= dofNo;
                     kc = f2c*keepCells > 0;
                     if any(keepCells)
-                        ix = disc.getDofIx(disc, dofNo, cells(keepCells)');
+                        ix = disc.getDofIx(disc, dofNo, kc');
                         i  = f2c*(sgn.*W*(u.*v{dofNo}(xf)));
                         I(ix) = I(ix) + i(kc);
                     elseif numel(faces) == disc.G.cells.num
