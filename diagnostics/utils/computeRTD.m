@@ -55,7 +55,8 @@ opt = struct('injectorIx', [], ...
              'nsteps',     50, ...
              'nbase',       5, ...
              'computeSaturation', true, ...
-             'wbHandle',   []);
+             'wbHandle',   [], ...
+             'showWaitbar',  true);
 
 opt = merge_options(opt, varargin{:});
 
@@ -149,10 +150,12 @@ vals = cell(1, numel(iix));
 for k = 1:numel(vals)
     vals{k} = zeros((n+1)*opt.nsteps+1, numel(pix));
 end
-if isempty (opt.wbHandle)
-   h = waitbar(0, 'Computing distribution(s) ...');
-else
-   h = waitbar(0, opt.wbHandle, 'Computing distribution(s) ...');
+if opt.showWaitbar
+    if isempty (opt.wbHandle)
+        h = waitbar(0, 'Computing distribution(s) ...');
+    else
+        h = waitbar(0, opt.wbHandle, 'Computing distribution(s) ...');
+    end
 end
 cnt = 0;
 for ti = 1:numel(dt)
@@ -164,11 +167,13 @@ for ti = 1:numel(dt)
             curvals  = -(tr(:, tn)'*qp_well);
             curvals(~isfinite(curvals)) = 0;
             vals{tn}(cnt+1,:) = curvals;
-            waitbar(cnt/((n+1)*opt.nsteps), h);
+            if opt.showWaitbar
+                waitbar(cnt/((n+1)*opt.nsteps), h);
+            end
         end
     end
 end
-if isempty(opt.wbHandle), close(h); end
+if isempty(opt.wbHandle)&&opt.showWaitbar, close(h); end
 
 t = arrayfun(@(x)repmat(x, [opt.nsteps, 1]), dt, 'UniformOutput', false);
 t = cumsum([0; vertcat(t{:})]);
