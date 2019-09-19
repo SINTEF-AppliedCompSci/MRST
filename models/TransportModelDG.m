@@ -14,6 +14,7 @@ classdef TransportModelDG < TransportModel
             if isempty(model.disc)
                 model.disc = DGDiscretization(model, discArgs{:});
             end
+            model.disc.limiter = getLimiter(model, 'tvb', 1e-3);
             model.parentModel.disc = model.disc;
             
             model.parentModel.operators = setupOperatorsDG(model.disc, model.parentModel.G, model.parentModel.rock);
