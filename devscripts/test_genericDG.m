@@ -1,10 +1,11 @@
 mrstModule add dg ad-props ad-core ad-blackoil blackoil-sequential ...
-    mrst-gui matlab_bgl vemmech vista
+    mrst-gui matlab_bgl vem vemmech vista
 mrstVerbose on
 
 %%
 
-setup   = getDGTestCase('simple1d', 'n', 20);
+setup    = getDGTestCase('simple1d', 'n', 20, 'nkr', 3, 'degree', 0:5, 'useUnstructCubature', false);
+setupRef = getDGTestCase('simple1d', 'n', 1000, 'nkr', 3, 'degree', 0:5, 'useUnstructCubature', false);
 
 %%
 
@@ -13,12 +14,14 @@ setup   = getDGTestCase('simple1d', 'n', 20);
 
 %%
 
-[wsDG, stDG, repDG] = deal(cell(numel(setup.modelDG),1));
+% [wsDG, stDG, repDG] = deal(cell(numel(setup.modelDG),1));
 
 %%
 
-ix = 1:3;
+ix = 2;
 for i = ix
+    setup.modelDG{i}.transportModel.disc.limiter = getLimiter(setup.modelDG{i}.transportModel, 'tvb', 1e-3, 'plot', true);
+%     setup.modelDG{i}.transportModel.formulation = 'missingPhase';
     [wsDG{i}, stDG{i}, repDG{i}] = simulateScheduleAD(setup.state0, setup.modelDG{i}, setup.schedule);
 end
 
@@ -31,7 +34,6 @@ plotWellSols(ws, setup.schedule.step.val, 'datasetnames', datasetNames)
 %%
 
 close all
-
 t = 50;
 figure, hold on
 for i = ix
@@ -39,3 +41,11 @@ for i = ix
 end
 
 %%
+
+[wsRef, stRef, repRef] = simulateScheduleAD(setupRef.state0, setupRef.modelFV, setupRef.schedule);
+
+%%
+
+ws = vertcat({wsRef}, {wsFV}, wsDG(ix));
+datasetNames = horzcat({'Ref', 'FV'}, cellfun(@(ix) ['dG(', num2str(ix-1), ')'], num2cell(ix), 'UniformOutput', false));
+plotWellSols(ws, setup.schedule.step.val, 'datasetnames', datasetNames)
