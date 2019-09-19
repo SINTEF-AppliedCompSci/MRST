@@ -1,7 +1,6 @@
 classdef FluxDiscretizationDG < FluxDiscretization
    
     properties
-        parent
         ComponentTotalVelocity
         ComponentPhaseVelocity
         TotalVelocity
@@ -52,18 +51,59 @@ classdef FluxDiscretizationDG < FluxDiscretization
             [acc, types] = deal(cell(1, ncomp));
             names = model.getComponentNames();
             [types{:}] = deal('cell');
-            mass = model.getProps(state.cellStateDG, 'ComponentTotalMass');
+            % Get mass terms
+            model = fd.expandRegions(model, 'cells');
+            mass  = model.getProps(state.cellStateDG, 'ComponentTotalMass');
             mass0 = model.getProps(state0.cellStateDG, 'ComponentTotalMass');
+            % Get boundary flux term
             flowState = fd.buildFlowState(model, state, state0, dt);
-            v  = model.getProps(flowState, 'ComponentTotalFlux');
-            flowState.FlowProps = state.cellStateDG.FlowProps;
-            flowState.cells = state.cellStateDG.cells;
-            vc = model.getProps(flowState, 'ComponentTotalVelocity');
+            model     = fd.expandRegions(model, 'faces');
+            v         = model.getProps(flowState, 'ComponentTotalFlux');
+            % Get cell flux term
+            state.cellStateDG;
+            state.cellStateDG.FluxProps = state.faceStateDG.FluxProps;
+%             flowState.FlowProps = state.cellStateDG.FlowProps;
+%             flowState.cells = state.cellStateDG.cells;
+            model = fd.expandRegions(model, 'cells');
+            vc = model.getProps(state.cellStateDG, 'ComponentTotalVelocity');
             for c = 1:ncomp
                 acc{c} = (mass{c} - mass0{c})./dt;
             end
         end
         
+        function model = expandRegions(fd, model, type)
+            
+            switch type
+                case 'cells'
+                    [~, ~, cells] = model.disc.getCubature((1:model.G.cells.num)', 'volume');
+                case 'faces'
+                    [~, ~, ~, faces] = model.disc.getCubature(find(model.operators.internalConn), 'face');
+                    cells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
+            end
+            
+            fpprops = model.FlowPropertyFunctions;
+            fpprops = expandPropsRegions(fpprops, cells);
+            model.FlowPropertyFunctions = fpprops;
+            
+            fdprops = model.FluxDiscretization;
+            fdprops = expandPropsRegions(fdprops, cells);
+            model.FluxDiscretization = fdprops;
+            
+        end
+        
     end
     
+end
+
+function props = expandPropsRegions(props, cells)
+    names = props.getNamesOfStateFunctions();
+    for j = 1:numel(names)
+        if isprop(props, names{j})
+            p = props.(names{j});
+            if isprop(p, 'regions') && ~isempty(p.regions)
+                p.regions = p.regions(cells);
+                props.(names{j}) = p;
+            end
+        end
+    end
 end
