@@ -80,7 +80,7 @@ caseno         = caseno + 1;
 
 
 
-% ntpfa kobaisi
+%% ntpfa kobaisi
 tol = 1e-15;
 mrstVerbose on
 interpFace=findHAP(G,rock,bc);
