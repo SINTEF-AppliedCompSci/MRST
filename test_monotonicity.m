@@ -1,4 +1,18 @@
-% Test from Danilov Vassilevski 5.1
+% Test from Danilov Vassilevski 5.1 for testing the monotonicity.
+% There is a monotonicity test in the Zhang Kobaisi paper, and the
+% NTPFA fails.
+%{
+
+Summary
+-------
+Cart grid
+k1=100,k2=10,k3=1
+tpfa: monotone
+ntpfa: not (strange because we don't do any correctHAPs)
+mfd: not
+However, all are monotone using k1=k2=k3=1
+
+%}
 
 clear all
 close all
@@ -6,7 +20,7 @@ close all
 mrstModule add ad-core ad-props incomp mrst-gui postprocessing ...
     ntpfa-kobaisi mimetic
 
-refine = 2;
+refine = 1;
 n = 10;
 N = [n,n,n]*refine;
 G = cartGrid(N,[1,1,1]);
@@ -59,7 +73,7 @@ titles{end+1} = 'tpfa';
 states{end+1} = state;
 
 %% ntpfa kobaisi
-tol = 1e-7;
+tol = 1e-14;
 mrstVerbose on
 interpFace=findHAP(G,rock,bcntpfa);
 OSflux=findOSflux(G,rock,bcntpfa,interpFace);
@@ -77,7 +91,7 @@ states{end+1} = state;
 close all
 for i = 1 : numel(states)
     disp(titles{i})
-    disp([min(state.pressure), max(state.pressure)])
+    disp([min(states{i}.pressure), max(states{i}.pressure)])
     figure
     plotToolbar(G, states{i}),view(3),colorbar
     title(titles{i})
