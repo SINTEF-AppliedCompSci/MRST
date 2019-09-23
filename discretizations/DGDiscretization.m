@@ -478,6 +478,7 @@ classdef DGDiscretization < SpatialDiscretization
             end
             % Get cubature for all cells, transform coordinates to ref space
             [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
+            W = bsxfun(@rdivide, W, disc.G.cells.volumes(cells));
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
             % Evaluate integrals
 %             I = dof*0;
@@ -526,6 +527,7 @@ classdef DGDiscretization < SpatialDiscretization
             % Get cubature for all cells, transform coordinates to ref space
             
             [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
+            W = bsxfun(@rdivide, W, disc.G.faces.areas(faces));
             N = disc.G.faces.neighbors;
             if isempty(faceNo)
                 I = 0;
@@ -826,7 +828,7 @@ classdef DGDiscretization < SpatialDiscretization
                                  'excludeBoundary', opt.excludeBoundary    , ...
                                  'internalConn'   , opt.internalConn       , ...
                                  'outwardNormal'  , opt.outwardNormal      );
-            
+                
             if useMap
                 % Map elements back to new numbering
                 cellNo = maps.cellMap.old2new(cellNo);
