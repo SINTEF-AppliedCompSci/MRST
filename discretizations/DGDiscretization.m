@@ -111,11 +111,8 @@ classdef DGDiscretization < SpatialDiscretization
                     end
                 else
                     if disc.degree == 0 || disc.useUnstructCubature
-%                         volCub = Unstruct3DCubature(G, prescision, disc.internalConn);
-%                         surfCub = Unstruct2DCubature(G, prescision, disc.internalConn);
                         volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
                         surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
-%                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
                     else
                         volCub  = TetrahedronCubature(G, prescision, disc.internalConn);
                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
@@ -229,6 +226,9 @@ classdef DGDiscretization < SpatialDiscretization
                 G = G.parent;
             end
             
+            [xhat, translation, scaling] = disc.volumeCubature.transformCoords(x, cells, inverse);
+            
+            if 0
             % Coordinates are centered in cell center
             if any(strcmpi(G.type, 'generateCoarseGrid'))
                 translation = -G.cells.centers(cells,:);
@@ -242,7 +242,7 @@ classdef DGDiscretization < SpatialDiscretization
             else
                 % If it G.cells.dx is not computed, we use approximation
                 dx = G.cells.volumes(cells).^(1/G.griddim);
-                scaling = repmat(1./(dx/2), 1, disc.dim)
+                scaling = repmat(1./(dx/2), 1, disc.dim);
             end
             
             if ~inverse
@@ -255,6 +255,7 @@ classdef DGDiscretization < SpatialDiscretization
                 xhat = x./scaling - translation;
             end
                
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -497,7 +498,7 @@ classdef DGDiscretization < SpatialDiscretization
                     warning('No cells with %d dofs', dofNo);
                 end
             end
-            %I = disc.trimValues(I);
+            I = disc.trimValues(I);
         end
         
         %-----------------------------------------------------------------%
@@ -553,7 +554,7 @@ classdef DGDiscretization < SpatialDiscretization
                         warning('No cells with %d dofs', dofNo);
                     end
                 end
-                %I = disc.trimValues(I);
+                I = disc.trimValues(I);
             end
         end
         
@@ -976,7 +977,7 @@ classdef DGDiscretization < SpatialDiscretization
         %-----------------------------------------------------------------%
         function v = trimValues(disc, v)
             tol = eps(mean(disc.G.cells.volumes));
-            tol = -inf;
+%             tol = -inf;
 %             tol = 1e-7;
             ix = abs(v) < tol;
             if isa(v, 'ADI')
