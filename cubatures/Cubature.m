@@ -88,7 +88,7 @@ classdef Cubature
                         case 'volume'
                             % Index of cubature points and weights
                             ix = mcolon(cubature.pos(elements), ...
-                                         cubature.pos(elements+1)-1);
+                                        cubature.pos(elements+1)-1);
                             % Number of cubature points for each cell
                             nq = diff(cubature.pos);
                             nq = nq(elements);
@@ -108,7 +108,7 @@ classdef Cubature
                         case 'face'
                             % Index of cubature points and weights
                             ix = mcolon(cubature.pos(elements), ...
-                                         cubature.pos(elements+1)-1);
+                                        cubature.pos(elements+1)-1);
                             % Number of points per face
                             nq = nqf(elements);
                             % Decode face numbers so we know what cubature
@@ -122,7 +122,7 @@ classdef Cubature
                             
                             % Get all faces of cells
                             fPos = mcolon(cubature.G.cells.facePos(elements), ...
-                                         cubature.G.cells.facePos(elements+1)-1);
+                                          cubature.G.cells.facePos(elements+1)-1);
                             faces = cubature.G.cells.faces(fPos);
                             % Number of cell faces
                             ncf = diff(cubature.G.cells.facePos);
@@ -188,7 +188,11 @@ classdef Cubature
             if nargin < 4, inverse   = false; end
             
             % Coordinates are centered in cell center
-            translation = -cub.G.cells.centroids(cells,:);
+            if isfield(cub.G.cells, 'basisCenters')
+                translation = -cub.G.cells.basisCenters(cells,:);
+            else
+                translation = -cub.G.cells.centroids(cells,:);
+            end
             if isfield(cub.G.cells, 'dx')
                 % Scaling found from dimensions of minimum bounding box
                 % aligned with coordinate axes that contains the cell
@@ -204,7 +208,7 @@ classdef Cubature
                 xhat = xhat(:, 1:cub.dim);
                 scaling     = scaling(:, 1:cub.dim);
                 translation = translation(:, 1:cub.dim);
-%                 assert(all(all(abs(xhat)<=1)))
+                assert(all(all(abs(xhat)<=1)))
             else
                 xhat = x./scaling - translation;
             end
