@@ -193,7 +193,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 state = model.parentModel.reduceState(state, false);
                 [converged, values, resnames] = model.parentModel.checkConvergence(problem);
             else
-                [converged, values, resnames] = deal({});
+                resnames = {};
+                [converged, values] = deal([]);
             end
             % Check volume discrepancy
             tol_vol = model.volumeDiscrepancyTolerance;
