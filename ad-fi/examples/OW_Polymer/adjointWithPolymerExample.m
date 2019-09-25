@@ -311,7 +311,7 @@ databar = rldecode(data, 2*ones(size(data, 1), 1));
 
 plot(convertTo(cumtbar, year), convertTo(databar, stb));
 legend('Water without polymer', 'Water with polymer', ...
-       'Oil without polymer', 'Oil with polymer', 2)
+       'Oil without polymer', 'Oil with polymer', 'NorthWest')
 title('Production rates')
 ylabel('stb')
 xlabel('Years')
