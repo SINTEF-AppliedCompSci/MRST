@@ -173,9 +173,9 @@ sol = repmat(struct('time', [], 'pressure', [], 'bhp', [], 'qS', []), ...
              [numSteps + 1, 1]);
 
 sol(1).time     = 0;
-sol(1).pressure = double(p_ad);
-sol(1).bhp      = double(bhp_ad);
-sol(1).qS       = double(qS_ad);
+sol(1).pressure = value(p_ad);
+sol(1).bhp      = value(bhp_ad);
+sol(1).qS       = value(qS_ad);
 
 % Set up plot
 set(0, 'CurrentFigure', f(2));
@@ -201,7 +201,7 @@ hold on
 t = 0; 
 step = 0;
 nDigits = floor(log10(maxits)) + 1;
-while t < totTime,
+while t < totTime
     t = t + dt;
     step = step + 1;
     fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
@@ -209,7 +209,7 @@ while t < totTime,
 
     % Newton loop
     resNorm = 1e99;
-    p0  = double(p_ad); % Previous step pressure
+    p0  = value(p_ad); % Previous step pressure
     nit = 0;
     while (resNorm > tol) && (nit < maxits)
         % Create equations:
@@ -241,13 +241,13 @@ while t < totTime,
         fprintf('  Iteration %*d:  Res = %.4e\n', nDigits, nit, resNorm);
     end
 
-    if nit > maxits,
+    if nit > maxits
         error('Newton solves did not converge')
     else
         sol(step+1).time     = t;
-        sol(step+1).pressure = double(p_ad);
-        sol(step+1).bhp      = double(bhp_ad);
-        sol(step+1).qS       = double(qS_ad);
+        sol(step+1).pressure = value(p_ad);
+        sol(step+1).bhp      = value(bhp_ad);
+        sol(step+1).qS       = value(qS_ad);
 
         % Plot evolution
         set(0, 'CurrentFigure', f(2));
