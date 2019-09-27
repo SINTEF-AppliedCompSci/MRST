@@ -101,11 +101,7 @@ classdef MomentFitting2DCubature < Cubature
                 % Map cubature points to reference coordinates
                 if G.griddim == 3
                     % Map to face reference coordinates
-                    vec1  = G.faces.coordSys{1}(faceNo,:);
-                    vec2  = G.faces.coordSys{2}(faceNo,:);
-                    xq    = xq - G.faces.centroids(faceNo,:);
-                    xq    = [sum(xq.*vec1,2), sum(xq.*vec2, 2)];
-                    xq    = xq./(G.faces.dx(faceNo,:)/2);
+                    xq = G.faces.phys2ref(xq, faceNo);
                     count = faceNo;
                     num   = G.faces.num;
                 else
@@ -131,12 +127,7 @@ classdef MomentFitting2DCubature < Cubature
             if strcmp(type, 'face')
                 % Face coordinates
                 faceNo = rldecode((1:G.faces.num)', n, 1);
-                vec1   = G.faces.coordSys{1}(faceNo,:);
-                vec2   = G.faces.coordSys{2}(faceNo,:);
-                dx     = G.faces.dx;
-                x = x.*dx(faceNo,:)/2;                
-                x = x(:,1).*vec1 + x(:,2).*vec2;
-                x = x + G.faces.centroids(faceNo,:);
+                x = G.faces.ref2phys(x, faceNo);
                 w = w.*G.faces.areas(faceNo);
             else
                 % Cell coordinates
