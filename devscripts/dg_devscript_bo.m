@@ -8,7 +8,11 @@ setup = getDGTestCase('spe1');
 
 %%
 
-sim = @(model, inx) simulateScheduleAD(setup.state0, setup.(model){inx}, setup.schedule);
+ix = 1:7;
+schdl = setup.schedule;
+schdl.step.val = schdl.step.val(ix);
+schdl.step.control= schdl.step.control(ix);
+sim = @(model, inx) simulateScheduleAD(setup.state0, setup.(model){inx}, schdl);
 
 %%
 

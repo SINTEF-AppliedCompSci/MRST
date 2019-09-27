@@ -4,8 +4,7 @@ mrstVerbose on
 
 %%
 
-setup    = getDGTestCase('simple1d', 'n', 20, 'nkr', 3, 'degree', 0:5, 'useUnstructCubature', false);
-setupRef = getDGTestCase('simple1d', 'n', 1000, 'nkr', 3, 'degree', 0:5, 'useUnstructCubature', false);
+setup    = getDGTestCase('simple1d', 'n', 20, 'nkr', 1, 'degree', 0:2, 'useUnstructCubature', true);
 
 %%
 
@@ -14,14 +13,13 @@ setupRef = getDGTestCase('simple1d', 'n', 1000, 'nkr', 3, 'degree', 0:5, 'useUns
 
 %%
 
-% [wsDG, stDG, repDG] = deal(cell(numel(setup.modelDG),1));
+[wsDG, stDG, repDG] = deal(cell(numel(setup.modelDG),1));
 
 %%
 
-ix = 2;
+ix = 3;
 for i = ix
     setup.modelDG{i}.transportModel.disc.limiter = getLimiter(setup.modelDG{i}.transportModel, 'tvb', 1e-3, 'plot', true);
-%     setup.modelDG{i}.transportModel.formulation = 'missingPhase';
     [wsDG{i}, stDG{i}, repDG{i}] = simulateScheduleAD(setup.state0, setup.modelDG{i}, setup.schedule);
 end
 
@@ -42,6 +40,7 @@ end
 
 %%
 
+setupRef = getDGTestCase('simple1d', 'n', 1000, 'nkr', 3, 'degree', 0:5, 'useUnstructCubature', false);
 [wsRef, stRef, repRef] = simulateScheduleAD(setupRef.state0, setupRef.modelFV, setupRef.schedule);
 
 %%
