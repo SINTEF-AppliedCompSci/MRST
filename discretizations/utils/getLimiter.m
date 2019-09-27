@@ -147,15 +147,32 @@ function dofbar = approximatGradient(model, interpSetup, state, dof)
     cellNo = rldecode((1:G.cells.num)', interpSetup.cell_support_count, 1);
     colNo = mcolon(ones(G.cells.num, 1), interpSetup.cell_support_count);
     dofbar = zeros(G.cells.num,G.griddim);
+    db     = nan(sum(interpSetup.cell_support_count+1),1);
+    
+    a   = [0;cumsum(interpSetup.cell_support_count+1)]+1;
+    six = mcolon(a(1:end-1), a(2:end)-2);
+    dix = cumsum(interpSetup.cell_support_count+1);
     for dNo = 1:G.griddim
-        ix = vertcat(interpSetup.cell_support{:});
-        Sigma = sparse(cellNo, colNo, sigma{dNo}(ix));
+        
+        
         ix = disc.getDofIx(state, 1+dNo, Inf, true);
-        dd = nan(G.cells.num,1);
-        dd(isLin) = dof(ix(ix>0));
-        Sigma = full([Sigma, dd]);
-        Sigma(Sigma==0) = nan;
-        dofbar(:,dNo) = minmod(Sigma);
+        d = zeros(G.cells.num,1);
+        d(isLin) = dof(ix(ix>0));
+        
+        s = sigma{dNo}(vertcat(interpSetup.cell_support{:}));
+        
+        db(six) = s;
+        db(dix) = d;
+        [dbmin, dbmax, ~, ~, neg, pos] = getMinMax(db, interpSetup.cell_support_count+1);
+        dofbar(:, dNo) = neg.*dbmax + pos.*dbmin;
+%         ix = vertcat(interpSetup.cell_support{:});
+%         Sigma = sparse(cellNo, colNo, sigma{dNo}(ix));
+%         ix = disc.getDofIx(state, 1+dNo, Inf, true);
+%         dd = nan(G.cells.num,1);
+%         dd(isLin) = dof(ix(ix>0));
+%         Sigma = full([Sigma, dd]);
+%         Sigma(Sigma==0) = nan;
+%         dofbar(:,dNo) = minmod(Sigma);
     end
     
     if useMap
