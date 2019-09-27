@@ -14,7 +14,7 @@ classdef TransportModelDG < TransportModel
             if isempty(model.disc)
                 model.disc = DGDiscretization(model, discArgs{:});
             end
-            model.disc.limiter = getLimiter(model, 'tvb', 1e-3);
+            model.disc.limiter = getLimiter(model, 'tvb', 0);
             model.parentModel.disc = model.disc;
             
             model.parentModel.operators = setupOperatorsDG(model.disc, model.parentModel.G, model.parentModel.rock);
@@ -332,7 +332,7 @@ classdef TransportModelDG < TransportModel
         
         function state = assignBaseVariables(model, state)
             
-            names = {'s'};
+            names = {'s', 'rs', 'rv'};
             for name = names
                 if isfield(state, name{1}) && isfield(state, [name{1}, 'dof'])
                     dof = model.getProp(state, [name{1}, 'dof']);
@@ -389,6 +389,9 @@ classdef TransportModelDG < TransportModel
             cells = rldecode((1:model.G.cells.num)', d.nDof, 1);
             d.sample = acc{1}(d.getDofIx(state, Inf));
             eqs = cell(1, numel(acc));
+            state.wellStateDG.cells = (1:model.G.cells.num)';
+            
+            rhoS = model.getSurfaceDensities();
             for i = 1:numel(acc)
                 eqs{i} = d.inner(acc{i}     , psi     , 'dV') ...
                        - d.inner(cellflux{i}, grad_psi, 'dV') ...
@@ -398,8 +401,8 @@ classdef TransportModelDG < TransportModel
                 end
                 if ~model.useCNVConvergence
                     pv     = model.operators.pv(cells);
-                    v      = model.G.cells.volumes(cells);
-                    eqs{i} = eqs{i}.*(dt./(pv.*v));
+%                     v      = model.G.cells.volumes(cells);
+                    eqs{i} = eqs{i}.*(dt./pv);
                 end    
             end
         end
@@ -429,14 +432,13 @@ classdef TransportModelDG < TransportModel
                     && model.parentModel.disgas || model.parentModel.vapoil
                 [state, report] = model.updateStateBO(state, problem, dx, drivingForces);
             else
-                s = state;
+                state0 = state;
                 [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
                 % Update saturation dofs
                 state = model.updateSaturations(state, dx, problem, satVars);
                 % Update non-saturation dofs
                 state = model.updateDofs(state, dx, problem, restVars);
                 % Update cell averages from dofs
-                state0 = state;
                 state  = model.assignBaseVariables(state);
                 report = [];
 
@@ -453,11 +455,11 @@ classdef TransportModelDG < TransportModel
                 cells    = rldecode((1:model.G.cells.num)', state.nDof, 1);
                 frac     = cellfun(@(x,y) x(cells)./y(cells), dx0_corr, dx0, 'UniformOutput', false);
                 for i = 1:numel(frac)
-                    frac{i}(~isfinite((frac{i}))) = 0;
+                    frac{i}(~isfinite((frac{i}))) = 1;
                 end
                 dx_corr  = cellfun(@(dx, f) dx.*f, dx, frac, 'UniformOutput', false);
                 % Update saturation dofs
-                state = model.updateSaturations(s, dx_corr, problem, satVars);
+                state = model.updateSaturations(state0, dx_corr, problem, satVars);
                 % Update non-saturation dofs
                 state = model.updateDofs(state, dx_corr, problem, restVars);
                 % Update cell averages from dofs
@@ -581,7 +583,7 @@ classdef TransportModelDG < TransportModel
                 for i = 1:numel(frac)
                     if  ~isempty(dx0{i})
                         f = dx0_corr{i}(cells)./dx0{i}(cells);
-                        f(~isfinite(f)) = 0;
+                        f(~isfinite(f)) = 1;
                         dx_corr{i} = dx{i}.*f;
                     end
                 end
@@ -593,7 +595,7 @@ classdef TransportModelDG < TransportModel
                     restVars{end+1} = 'rsdof';
                 end
                 if pmodel.vapoil
-                    restVars{end+1} = 'rvDof';
+                    restVars{end+1} = 'rvdof';
                 end
                 state = model.updateDofs(state, dx_corr, problem0, restVars);
                 % Update cell averages from dofs
@@ -633,7 +635,7 @@ classdef TransportModelDG < TransportModel
         function state = updateDofs(model, state, dx, problem, dofVars)
             
             for i = 1:numel(dofVars)
-                state = updateStateFromIncrement(model, state, dx{i}, problem, dofVars{i}, inf, inf);
+                state = updateStateFromIncrement(model, state, dx, problem, dofVars{i}, inf, inf);
             end
             
         end
@@ -724,27 +726,8 @@ classdef TransportModelDG < TransportModel
                 end
             end
             
-            if 1
+            if ~isempty(model.disc.limiter)
                  state = model.disc.limiter(state, 's');
-            else
-                d = model.disc;
-                d.jumpTolerance = 1e-3;
-                d.jumpLimiter = 'tvb';
-                d.plotLimiterProgress = true;
-                w = WENOUpwindDiscretization(model.parentModel, model.G.griddim);
-                [C, pts, cells, basis, supports, linear_weights, scaling] = w.getTriangulation(model.parentModel);
-
-                interp_setup.tri_cells = cells;
-                interp_setup.tri_basis = basis;
-                interp_setup.tri_points = pts;
-                interp_setup.linear_weights = linear_weights;
-                interp_setup.cell_support = supports;
-                interp_setup.scaling = scaling;
-                interp_setup.C = C;
-                interp_setup.cell_support_count = cellfun(@numel, interp_setup.cell_support);
-
-                d.interp_setup = interp_setup;
-                state = d.limiters(model, state, state, false);
             end
 
         end
