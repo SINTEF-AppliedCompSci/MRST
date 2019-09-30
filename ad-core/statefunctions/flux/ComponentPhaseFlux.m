@@ -4,8 +4,8 @@ classdef ComponentPhaseFlux < StateFunction
     end
 
     methods
-        function cf = ComponentPhaseFlux(backend, mob_name)
-            cf@StateFunction(backend);
+        function cf = ComponentPhaseFlux(model, mob_name)
+            cf@StateFunction(model);
             if nargin < 2
                 mob_name = 'FaceComponentMobility'; 
             end
