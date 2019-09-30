@@ -179,6 +179,7 @@ classdef EquationOfStateModel < PhysicalModel
         function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, iteration, varargin) %#ok
             % Compute a single step of the solution process for a given
             % equation of state (thermodynamic flash calculation);
+
             T = state.T;
             P = state.pressure;
             nc = numel(P);
@@ -363,7 +364,7 @@ classdef EquationOfStateModel < PhysicalModel
             end
             K = cellfun(@(fn) fn(P, T, z), model.equilibriumConstantFunctions, 'UniformOutput', false);
             
-            mv = 1e16;
+            mv = 1e8;
             for i = 1:numel(K)
                 K{i}(K{i} > mv) = mv;
                 K{i}(K{i} < 1/mv) = 1/mv;
