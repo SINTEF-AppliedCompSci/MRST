@@ -1,6 +1,6 @@
 function [points,weights,nPts] = fitMoments3(x, basis, moments, varargin)
 
-    opt = struct('reduce', true, 'tol', 1e-10, 'chunkSize', 5);
+    opt = struct('reduce', true, 'tol', 1e-10, 'chunkSize', 10);
     opt = merge_options(opt, varargin{:});
 
     psi  = basis.psi;
@@ -60,14 +60,8 @@ function [points,weights,nPts] = fitMoments3(x, basis, moments, varargin)
                 n = size(x,1);
                 
                 P = computeBasisMatrix(psi, x, ne_loc, n, nDof);
-                
-                if 0
-                    w = P'*((P*P')\M);
-                    flag = all(w > 0);
-                else
-                    [w, ~, residual, flag] = lsqnonneg(P, M);
-                    flag = flag && all(abs(residual)<tol);
-                end
+                [w, ~, residual, flag] = lsqnonneg(P, M);
+                flag = flag && all(abs(residual)<tol);
                 if flag > 0
                     k       = k-1;
                     reduced = true;
