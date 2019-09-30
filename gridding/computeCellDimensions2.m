@@ -51,7 +51,7 @@ function G = computeCellDimensions2(G)
     G.faces.phys2ref = @(x,faces) phys2ref(x,G,faces);
     G.faces.ref2phys = @(x,faces) ref2phys(x,G,faces);
         
-    if 1
+    if 0
         for f = 1:G.faces.num
             clf;
             plotFaces(G, f);
