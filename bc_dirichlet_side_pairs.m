@@ -23,4 +23,4 @@ bc_std = addBC(bc_std, dirichlet_ix_max, 'pressure', dirichlet_val_max);
 
 % Set the rest as homogeneous Neumann
 bc_std = addBC(bc_std, setdiff(bf, [dirichlet_ix_min, dirichlet_ix_max]), ...
-               'flux', 0.0);
+               'flux', 0.0, 'sat', [1, 0]);
