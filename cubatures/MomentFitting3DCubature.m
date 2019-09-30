@@ -55,7 +55,7 @@ classdef MomentFitting3DCubature < Cubature
                 
                 % The starting point is a quadrature for a reference square
                 % with more than nDof points
-                if 1
+                if 0
                     G1 = computeGeometry(cartGrid([1,1,1], [2,2,2]));
                     G1.nodes.coords = G1.nodes.coords - 1;
                     G1 = computeVEMGeometry(G1);
