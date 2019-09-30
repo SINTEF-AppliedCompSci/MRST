@@ -1,4 +1,4 @@
-%% The use of regins: Different functions in different parts of the domain
+%% The use of regions: Different functions in different parts of the domain
 % In many applications there is a need for varying functions in different
 % parts of the domain. A typical example of this is the problem of varying
 % rock types, where multiphase flow happens in a medium where the surface
