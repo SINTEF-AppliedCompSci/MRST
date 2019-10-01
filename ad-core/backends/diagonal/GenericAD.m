@@ -488,13 +488,19 @@ classdef GenericAD < ADI
         function J = timesJac(v1, v2, J1, J2)
             D1 = [];
             D2 = [];
+%             J = J1;
             nj = numel(J1);
-            J = cell(1, nj);
-            anyPair1 = any(v1);
-            anyPair2 = any(v2);
-            
+%             J = cell(1, nj);
+%             anyPair1 = any(v1);
+%             anyPair2 = any(v2);
+            for k = 1:nj
+                [J1{k}, D1, D2] = diagProductMult(v1, v2, J1{k}, J2{k}, D1, D2);
+            end
+            J = J1;
+            return;
             if anyPair1 && anyPair2
                 for k = 1:nj
+%                     [J{k}, D1, D2] = diagProductMult(v1, v2, J1{k}, J2{k}, D1, D2);
                     [J{k}, D1] = diagMult(v1, J2{k}, D1);
                     [tmp2, D2] = diagMult(v2, J1{k}, D2);
                     J{k} = J{k} + tmp2;

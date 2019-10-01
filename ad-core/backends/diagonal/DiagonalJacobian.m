@@ -445,8 +445,20 @@ classdef DiagonalJacobian
                 varargout = {dims(1), dims(2)};
             end
         end
+
         function [x, D] = diagMult(v, x, D)
             x.diagonal = bsxfun(@times, x.diagonal, v);
+        end
+        
+        function [x, D1, D2] = diagProductMult(v1, v2, x, y, D1, D2)
+            if isnumeric(x) || isnumeric(y)
+                [x, D2] = diagMult(v2, x, D2);
+                [y, D1] = diagMult(v1, y, D1);
+                x = x + y;
+            else
+                % Both are diagonal
+                x.diagonal = bsxfun(@times, x.diagonal, v2) + bsxfun(@times, y.diagonal, v1);
+            end
         end
         
         function x = sum(D, n)
