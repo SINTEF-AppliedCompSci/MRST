@@ -7,7 +7,7 @@ end
 %-------------------------------------------------------------------------%
 function setup = simple1d(args) %#ok
 
-    opt = struct('n', 100, 'nkr', 1, 'degree', [0,1,2]);
+    opt = struct('n', 100, 'nkr', 1, 'degree', [0,1,2]');
     [opt, discArgs] = merge_options(opt, args{:});
 
     G = computeGeometry(cartGrid([opt.n,1], [opt.n,1]*meter));
@@ -32,8 +32,9 @@ function setup = simple1d(args) %#ok
     modelDG = cell(numel(opt.degree), 1);
     for dNo = 1:numel(opt.degree)
         disc         = DGDiscretization(modelFV, ...
-                                   'degree', opt.degree(dNo), discArgs{:});
+                                   'degree', opt.degree(dNo,:), discArgs{:});
         tmodelDG     = TransportModelDG(model, 'disc', disc);
+        tmodelDG.disc.limiter = getLimiter(tmodelDG, 'tvb', 0, 'plot', true);
         tmodelDG.parentModel.useCNVConvergence = false;
         tmodelDG.parentModel.nonlinearTolerance = 1e-3;
         tmodelDG.parentModel.OutputStateFunctions = {};
@@ -52,12 +53,14 @@ function setup = simple1d(args) %#ok
 
     sW     = 0.0;
     state0 = initResSol(G, 1, [sW,1-sW]);
-    setup = packSetup(state0, schedule, [], {modelFV}, {modelDG});
+    setup = packSetup(state0, schedule, [], {{modelFV}}, {modelDG});
    
 end
+%-------------------------------------------------------------------------%
 
+%-------------------------------------------------------------------------%
 function setup = qfs_wo_2d(args) %#ok
-    opt = struct('n', 50, 'nkr', 1, 'degree', [0,1,2]);
+    opt = struct('n', 20, 'nkr', 1, 'degree', [0,1]');
     [opt, discArgs] = merge_options(opt, args{:});
 
     G = computeGeometry(cartGrid([1,1]*opt.n, [500,500]*meter));
@@ -89,10 +92,8 @@ function setup = qfs_wo_2d(args) %#ok
     
     modelDG = cell(numel(opt.degree), 1);
     for dNo = 1:numel(opt.degree)
-%         disc         = DGDiscretization(modelFV.transportModel, ...
-%                                    'degree', opt.degree(dNo), discArgs{:});
         tmodelDG = TransportModelDG(model, 'formulation', 'totalSaturation' , ...
-                                           'degree'     , opt.degree(dNo), ...
+                                           'degree'     , opt.degree(dNo,:), ...
                                            discArgs{:});
         tmodelDG.parentModel.useCNVConvergence = false;
         tmodelDG.parentModel.nonlinearTolerance = 1e-3;
@@ -102,7 +103,7 @@ function setup = qfs_wo_2d(args) %#ok
 
     time  = 2*year;
     rate  = sum(poreVolume(G, rock))/time;
-    dt    = 10*day;
+    dt    = 30*day;
     dtvec = rampupTimesteps(time, dt);
     
     W = [];
@@ -114,23 +115,26 @@ function setup = qfs_wo_2d(args) %#ok
     sW     = 0.0;
     state0 = initResSol(G, 100*barsa, [sW,1-sW]);
     setup = packSetup(state0, schedule, {{model}}, {{modelFV}}, {modelDG});
-   
+    
 end
+%-------------------------------------------------------------------------%
 
+%-------------------------------------------------------------------------%
 function setup = qfs_wog_3d(args) %#ok
     
     gravity reset on
 
-    opt = struct('n', 5, 'nkr', 2, 'degree', [0,1], 'pebi', true);
+    opt = struct('n', 5, 'nkr', 2, 'degree', [0,1]', 'pebi', true);
     [opt, discArgs] = merge_options(opt, args{:});
 
     n = opt.n;
     l = 500*meter;
     d = 0;
     h = 100*meter;
-    nl = 2;
+    nl = 5;
     
     if opt.pebi
+        rng(2019);
         G = pebiGrid(l/n, [1,1]*l, 'wellLines', {[d,d], [l-d, l-d]}, 'wellRefinement', false, 'wellGridFactor', 0.15);
     else
         G = cartGrid([n,n], [1,1]*l);
@@ -164,10 +168,10 @@ function setup = qfs_wog_3d(args) %#ok
     
     modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
     
-    modelDG = cell(numel(opt.degree), 1);
-    for dNo = 1:numel(opt.degree)
+    modelDG = cell(size(opt.degree,1), 1);
+    for dNo = 1:size(opt.degree,1)
         tmodelDG = TransportModelDG(model, 'formulation', 'totalSaturation' , ...
-                                           'degree'     , opt.degree(dNo), ...
+                                           'degree'     , opt.degree(dNo,:), ...
                                            discArgs{:});
         tmodelDG.parentModel.useCNVConvergence = false;
         tmodelDG.parentModel.nonlinearTolerance = 1e-3;
@@ -192,6 +196,68 @@ function setup = qfs_wog_3d(args) %#ok
     setup = packSetup(state0, schedule, {{model}}, {{modelFV}}, {modelDG});
    
 end
+%-------------------------------------------------------------------------%
+
+%-------------------------------------------------------------------------%
+function setup = qfs_co2_small(args) %#ok
+    % Model
+    opt = struct('n', 20, 'degree', [0,1]);
+    [opt, discArgs] = merge_options(opt, args{:});
+    n = opt.n;
+    G = cartGrid([n, n, 1], [1000, 1000, 10]);
+    G = computeGeometry(G);
+    G = createAugmentedGrid(G);
+    G = computeCellDimensions2(G);
+    K = 0.1*darcy;
+    rock = makeRock(G, K, 0.25);
+
+    fluid = initSimpleADIFluid('n', [2, 3],...
+                               'phases', 'OG', ...
+                               'rho', [100, 100]);
+    [cf, info] = getCompositionalFluidCase('simple');
+
+    model = GenericOverallCompositionModel(G, rock, fluid, cf, 'water', false);
+    pmodel = PressureModel(model);
+    tmodel = TransportModel(model);
+    tmodel.parentModel.useCNVConvergence = false;
+    tmodel.parentModel.nonlinearTolerance = 1e-3;
+    
+    modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
+    
+    modelDG = cell(numel(opt.degree), 1);
+    for dNo = 1:numel(opt.degree)
+        tmodelDG = TransportModelDG(model, 'formulation', 'totalSaturation' , ...
+                                           'degree'     , opt.degree(dNo), ...
+                                           discArgs{:});
+        tmodelDG.parentModel.useCNVConvergence = false;
+        tmodelDG.parentModel.nonlinearTolerance = 1e-3;
+        tmodelDG.parentModel.OutputStateFunctions = {};
+        modelDG{dNo} = SequentialPressureTransportModel(pmodel, tmodelDG, 'parentModel', model);
+    end
+    
+    
+    % Schedule
+    time = 5*year;
+    nstep = 100;
+
+    irate = sum(model.operators.pv)/time;
+
+    W = [];
+    W = addWell(W, G, rock, 1, 'type', 'rate', 'val', irate, 'comp_i', [1, 0]);
+    W = addWell(W, G, rock, G.cells.num, 'type', 'bhp', 'val', 25*barsa, 'comp_i', [1, 0]);
+
+    for i = 1:numel(W)
+        W(i).components = info.injection;
+    end
+    dt = rampupTimesteps(time, time/nstep);
+    schedule = simpleSchedule(dt, 'W', W);
+    %
+    state0 = initCompositionalState(G, 50*barsa, info.temp, [1, 0], info.initial, model.EOSModel);
+    
+    setup = packSetup(state0, schedule, [], {{modelFV}}, {modelDG});
+    
+end
+%-------------------------------------------------------------------------%
 
 %-------------------------------------------------------------------------%
 function setup = spe1(args) %#ok
