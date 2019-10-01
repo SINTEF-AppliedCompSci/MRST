@@ -8,8 +8,14 @@ function state = assignDofFromState(disc, state, names)
     end
 
     % Create vector dofPos for position of dofs in state.sdof
-    state       = disc.updateDofPos(state);
-    state.nDof  = disc.getnDof(state);
+    if 0
+        state = disc.updateDofPos(state);
+        state.nDof  = disc.getnDof(state);
+    else
+        state.nDof = repmat(disc.basis.nDof, disc.G.cells.num, 1);
+        state.nDof(all(state.degree == 0,2)) = 1;
+        state = disc.updateDofPos(state);
+    end
     ix          = disc.getDofIx(state, 1);
     % Loop trough possible fields and initialise constant dof
 %     flds = getDofFields();

@@ -43,7 +43,7 @@ end
 function state = tvb(state, model, interpSetup, name, tol, opt)
 
     dof = model.getProp(state, [name, 'dof']);
-    dim = model.parentModel.G.griddim;
+    dim = min(model.parentModel.G.griddim, model.disc.basis.nDof-1);
     state0 = state;
     
     nc = size(dof,2);
@@ -53,8 +53,8 @@ function state = tvb(state, model, interpSetup, name, tol, opt)
         j = accumarray(cells(:), repmat(jumpVal,2,1) > tol) > 0;
         jump = false(model.parentModel.G.cells.num,1);
         jump(cells(:))          = j(cells(:));
-        jump(state.degree == 0) = false;
-        bad = bad | (jump & state.degree > 0);
+        jump(all(state.degree == 0,2)) = false;
+        bad = bad | jump;
     end
 
     if any(bad)
@@ -143,17 +143,16 @@ function dofbar = approximatGradient(model, interpSetup, state, dof)
     end
 
     isLin = false(G.cells.num,1);
-    isLin(map.keep) = state.degree > 0;
-    cellNo = rldecode((1:G.cells.num)', interpSetup.cell_support_count, 1);
-    colNo = mcolon(ones(G.cells.num, 1), interpSetup.cell_support_count);
-    dofbar = zeros(G.cells.num,G.griddim);
+    isLin(map.keep) = any(state.degree > 0,2);
+
+    nLin = min(G.griddim, model.disc.basis.nDof-1);
+    dofbar = zeros(G.cells.num, nLin);
     db     = nan(sum(interpSetup.cell_support_count+1),1);
     
     a   = [0;cumsum(interpSetup.cell_support_count+1)]+1;
     six = mcolon(a(1:end-1), a(2:end)-2);
     dix = cumsum(interpSetup.cell_support_count+1);
-    for dNo = 1:G.griddim
-        
+    for dNo = 1:nLin
         
         ix = disc.getDofIx(state, 1+dNo, Inf, true);
         d = zeros(G.cells.num,1);

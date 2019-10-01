@@ -78,6 +78,7 @@ classdef DGDiscretization < SpatialDiscretization
             
             disc = merge_options(disc, varargin{:});
             
+            
             % Replace basis string by dG basis object
             disc.basis  = dgBasis(disc.dim, disc.degree, disc.basis);
             
@@ -86,14 +87,13 @@ classdef DGDiscretization < SpatialDiscretization
             disc.upwindType     = 'potential';
             
             % Create cubatures
-            prescision = 2*disc.degree;
+            prescision = 2*max(disc.degree);
             isCoarse   = isfield(G, 'parent');
             if G.griddim == 2
                 if isCoarse %&& ~disc.useUnstructCubature
                     volCub  = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
                     if disc.degree == 0 || disc.useUnstructCubature
-%                         volCub = Unstruct2DCubature(G, prescision, disc.internalConn);
                         volCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
                     else
                         volCub = TriangleCubature(G, prescision, disc.internalConn);
@@ -103,16 +103,17 @@ classdef DGDiscretization < SpatialDiscretization
             else
                 if isCoarse 
                     if ~disc.useUnstructCubature
-                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
                         volCub  = CoarseGrid3DCubature(G, prescision, disc.internalConn);
+                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
                     else
                         volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
                     end
                 else
-                    if disc.degree == 0 || disc.useUnstructCubature
+                    if all(disc.degree == 0) || disc.useUnstructCubature
                         volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
                         surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+%                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
                     else
                         volCub  = TetrahedronCubature(G, prescision, disc.internalConn);
                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
@@ -137,8 +138,11 @@ classdef DGDiscretization < SpatialDiscretization
             % the next.
 
             dp = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);
-            
-            nd = disc.getnDof(state);
+            if isfield(state, 'nDof')
+                nd = state.nDof;
+            else
+                nd = disc.getnDof(state);
+            end
             subt = cumsum([0; disc.basis.nDof - nd(1:end-1)]);
             [ii, jj, v] = find(dp);
 
@@ -421,8 +425,6 @@ classdef DGDiscretization < SpatialDiscretization
                 end
                 val{i} = v;
             end
-%             [val{:}] = disc.evaluateDGVariable(x, cellNo, state, varargin{:});
-%             val = cellfun(@(v) W*v./disc.G.cells.volumes, val, 'unif', false);
             varargout = val;
             
         end

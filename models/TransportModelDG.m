@@ -76,7 +76,7 @@ classdef TransportModelDG < TransportModel
             state.degree = repmat(model.disc.degree, model.G.cells.num, 1);
             wm = model.parentModel.FacilityModel.WellModels;
             for i = 1:numel(wm)
-                state.degree(wm{i}.W.cells) = 0;
+                state.degree(wm{i}.W.cells,:) = 0;
             end
             state = validateState@TransportModel(model, state);
             state = assignDofFromState(model.disc, state);
@@ -384,7 +384,7 @@ classdef TransportModelDG < TransportModel
             d.nDof   = state.nDof;
             d.dofPos = state.dofPos;
             psi = d.basis.psi;
-            grad_psi = d.basis.grad_psi;
+            gradPsi = d.basis.gradPsi;
             ix    = d.getDofIx(state, 1, src.cells);
             cells = rldecode((1:model.G.cells.num)', d.nDof, 1);
             d.sample = acc{1}(d.getDofIx(state, Inf));
@@ -394,7 +394,7 @@ classdef TransportModelDG < TransportModel
             rhoS = model.getSurfaceDensities();
             for i = 1:numel(acc)
                 eqs{i} = d.inner(acc{i}     , psi     , 'dV') ...
-                       - d.inner(cellflux{i}, grad_psi, 'dV') ...
+                       - d.inner(cellflux{i}, gradPsi, 'dV') ...
                        + d.inner(flux{i}    , psi     , 'dS');
                 if ~isempty(src.cells)
                     eqs{i}(ix) = eqs{i}(ix) - src.value{i};

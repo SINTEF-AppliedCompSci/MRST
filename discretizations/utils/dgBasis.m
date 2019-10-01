@@ -1,67 +1,68 @@
 function basis = dgBasis(dim, degree, type)
 
-    nDof = polyDim(degree, dim); 
-        [psi, grad_psi] = deal(cell(nDof,1));
+    perDim = true;
+    if numel(degree) == 1
+        perDim = false;
+        degree = repmat(degree,1,dim);
+    end
+    assert(numel(degree) == dim);
+    maxDegree = max(degree);
+
     if degree < 0
         nDof = 0;
         k    = [];
     else
-        k = zeros(polyDim(degree, 1).^dim, dim);
+        k = zeros(polyDim(maxDegree, 1).^dim, dim);
         for dNo = 1:dim   
-            kk = repmat(0:degree, polyDim(degree, 1).^(dNo-1)    , ...
-                      polyDim(degree, 1).^(dim - dNo));
+            kk = repmat(0:maxDegree, polyDim(maxDegree, 1).^(dNo-1), ...
+                      polyDim(maxDegree, 1).^(dim - dNo));
             k(:,dNo) = kk(:);
         end
-        k = k(sum(k,2) <= degree,:);
+        k = k(sum(k,2) <= maxDegree,:);
         
         kn = [];
-        for dd = 0:degree
-            kk = k(sum(k,2) == dd,:);
+        for d = 0:maxDegree
+            kk = k(sum(k,2) == d,:);
             kn = [kn; kk];
         end
         k = kn;
         
+        if perDim
+            for d = 1:dim
+                ix      = k(:,d) > degree(d);
+                k(ix,:) = [];
+            end
+        end
+        nDof = size(k,1);
+        
         switch type
             case 'poly'
-                for dofNo = 1:nDof
-                    psi{dofNo}      = DGBasisFunction(k(dofNo,:), 1);
-%                     Polynomial(k(dofNo,:), 1);
-                    grad_psi{dofNo} = grad(psi{dofNo});
-                end
-
+                poly = simplePolynomials(maxDegree);
             case 'legendre'
-                leg = legendrePolynomials(degree);
-                for dofNo = 1:nDof
-                    l = cell(dim, 1);
-                    for dNo = 1:dim
-                        l{dNo} = leg{k(dofNo,dNo)+1};
-                    end
-                    psi{dofNo} = combine(l{:});
-%                     p = combine(l{:});
-%                     psi{dofNo} = DGBasisFunction(G, p.k, p.w);
-                    grad_psi{dofNo} = grad(psi{dofNo});
-                end
-                
+                poly = legendrePolynomials(maxDegree);
+            case 'chebyshev'
+                poly = chebyshevPolynomials(maxDegree);                
             otherwise
                 error('Unknown basis function class');
+        end
+        
+        [psi, gradPsi] = deal(cell(nDof,1));
+        for dofNo = 1:nDof
+            p = cell(dim, 1);
+            for dNo = 1:dim
+                p{dNo} = poly{k(dofNo,dNo)+1};
+            end
+            psi{dofNo} = combine(p{:});
+            gradPsi{dofNo} = grad(psi{dofNo});
         end
 
     end
     
-%     for dofNo = 1:nDof
-%         p = psi{dofNo};
-%         q = @(x) 0;
-%         for kNo = 1:size(p.k)
-%             q = @(x) q(x) + p.w(kNo).*prod(x.^p.k(kNo, :),2);
-%         end
-%         psi{dofNo} = q;
-%     end
-    
-    basis = struct('psi'         , {psi}     , ...
-                   'grad_psi'    , {grad_psi}, ...
-                   'k'           , k         , ...
-                   'nDof'        , nDof      , ...
-                   'type'        , type      );
+    basis = struct('psi'    , {psi}    , ...
+                   'gradPsi', {gradPsi}, ...
+                   'k'      , k        , ...
+                   'nDof'   , nDof     , ...
+                   'type'   , type     );
     
 end
 
