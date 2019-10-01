@@ -1024,9 +1024,10 @@ classdef EquationOfStateModel < PhysicalModel
 
         function state = setFlag(model, state, pureLiquid, pureVapor)
             if nargin < 4
-                pureVapor = state.L == 0;
+                L = value(state.L);
+                pureVapor = L == 0;
                 if nargin < 3
-                    pureLiquid = state.L == 1;
+                    pureLiquid = L == 1;
                 end
             end
             if size(state, 2) > 2
