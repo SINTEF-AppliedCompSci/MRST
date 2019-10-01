@@ -52,7 +52,7 @@ function basis = dgBasis(dim, degree, type)
             for dNo = 1:dim
                 p{dNo} = poly{k(dofNo,dNo)+1};
             end
-            psi{dofNo} = combine(p{:});
+            psi{dofNo} = tensorProduct(p{:});
             gradPsi{dofNo} = grad(psi{dofNo});
         end
 

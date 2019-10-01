@@ -105,7 +105,7 @@ classdef Polynomial
             end
         end
         
-        function r = combine(varargin)
+        function r = tensorProduct(varargin)
             pdim = nargin;
             r = Polynomial(zeros(1,pdim),1);
             
