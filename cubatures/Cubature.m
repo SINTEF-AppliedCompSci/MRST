@@ -208,7 +208,7 @@ classdef Cubature
                 xhat = xhat(:, 1:cub.dim);
                 scaling     = scaling(:, 1:cub.dim);
                 translation = translation(:, 1:cub.dim);
-                assert(all(all(abs(xhat)<=1)))
+%                 assert(all(all(abs(xhat)<=1)))
             else
                 xhat = x./scaling - translation;
             end
