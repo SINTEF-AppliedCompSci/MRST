@@ -421,10 +421,12 @@ classdef EquationOfStateModel < PhysicalModel
                 n = model.fluid.getNumberOfComponents();
                 Tr = cell(1, n);
                 Pr = cell(1, n);
-
+                
+                Ti = 1./model.fluid.Tcrit;
+                Pi = 1./model.fluid.Pcrit;
                 for i = 1:n
-                    Tr{i} = T./model.fluid.Tcrit(i);
-                    Pr{i} = P./model.fluid.Pcrit(i);
+                    Tr{i} = T.*Ti(i);
+                    Pr{i} = P.*Pi(i);
                 end
             else
                 Tr = bsxfun(@rdivide, T, model.fluid.Tcrit);
