@@ -19,7 +19,7 @@ function phi = basisOW(states, varargin)%, efrac_p, efrac_s, n_p, n_s)
     n_p = opt.maxno_pressure;
     n_s = opt.maxno_saturation;
 
-    nw = size(states{end}.wellSol,2);
+    nw = numel(states{end}.wellSol);
     nc = numel(states{end}.pressure);
 
     % Ignore initial state as it has no well solution

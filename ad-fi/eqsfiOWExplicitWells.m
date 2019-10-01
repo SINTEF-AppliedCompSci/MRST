@@ -133,7 +133,7 @@ mobW   = trMult.*krW./f.muW(p);
 % mobW   = trMult.*krW./f.muW(p-pcOW);
 dpW     = s.grad(p-pcOW) - g*(rhoWf.*s.grad(G.cells.centroids(:,3)));
 % water upstream-index
-upc = (double(dpW)>=0);
+upc = (value(dpW)>=0);
 bWvW = s.faceUpstr(upc, bW.*mobW).*s.T.*dpW;
 
 
@@ -143,7 +143,7 @@ rhoO   = bO.*f.rhoOS;
 rhoOf  = s.faceAvg(rhoO);
 dpO    = s.grad(p) - g*(rhoOf.*s.grad(G.cells.centroids(:,3)));
 % oil upstream-index
-upc = (double(dpO)>=0);
+upc = (value(dpO)>=0);
 if isfield(f, 'BOxmuO')
     % mob0 is already multplied with b0
     mobO   = trMult.*krO./f.BOxmuO(p);

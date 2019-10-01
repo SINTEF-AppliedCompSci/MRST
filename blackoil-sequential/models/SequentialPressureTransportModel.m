@@ -22,8 +22,6 @@ classdef SequentialPressureTransportModel < ReservoirModel
         % transport has been solved, in order to converge to the fully
         % implicit solution.
         outerTolerance
-        % Indicates if we check well values when outer loop is enabled
-        outerCheckWellConvergence
         % Maximum outer loops for a given step. When maxOuterIterations is
         % reached, the solver will act as if the step converged and
         % continue.
@@ -31,6 +29,10 @@ classdef SequentialPressureTransportModel < ReservoirModel
         % Update pressure based on new mobilities before proceeding to next
         % step
         reupdatePressure
+        
+        volumeDiscrepancyTolerance = 1e-3;
+        incTolSaturation = 1e-3;
+        outerCheckParentConvergence = true;
     end
     
     methods
@@ -40,7 +42,6 @@ classdef SequentialPressureTransportModel < ReservoirModel
             model.pressureModel  = pressureModel;
             model.transportModel = transportModel;
             model.outerTolerance = 1e-3;
-            model.outerCheckWellConvergence = false;
             model.maxOuterIterations = 2;
             % Default: We do not use outer loop.
             model.stepFunctionIsLinear = true;
@@ -186,54 +187,42 @@ classdef SequentialPressureTransportModel < ReservoirModel
             % converged after the transport step. This check ensures
             % that the assumption of fixed total velocity is reasonable
             % up to some tolerance.
-            if ~isempty(model.parentModel)
+            if ~isempty(model.parentModel) && model.outerCheckParentConvergence
                 state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
                 [problem, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
                 state = model.parentModel.reduceState(state, false);
                 [converged, values, resnames] = model.parentModel.checkConvergence(problem);
-                if model.verbose
-                    printConvergenceReport(resnames, values, converged, iteration);
-                end
             else
-                if isa(model.pressureModel, 'ThreePhaseCompositionalModel')
-                    values = max(abs(sum(state.s, 2) - 1));
-                    if ~model.transportModel.useIncTolComposition
-                        % Make a normalization of saturations and check if
-                        % the equations are still converged.
-                        state_normalized = state;
-                        state_normalized.s = bsxfun(@rdivide, state_normalized.s, sum(state_normalized.s, 2));
-                        
-                        [problem, state_normalized] = model.transportModel.getEquations(state0, state_normalized, dt, drivingForces, 'resOnly', true, 'iteration', inf);
-                        conv_t = model.transportModel.checkConvergence(problem);
-                        if all(conv_t)
-                            state = model.parentModel.reduceState(state_normalized, false);
-                            values = 0;
-                        end
-                    end
+                resnames = {};
+                [converged, values] = deal([]);
+            end
+            % Check volume discrepancy
+            tol_vol = model.volumeDiscrepancyTolerance;
+            if isfinite(tol_vol)
+                if isfield(state, 'sT')
+                    sT = state.sT;
                 else
-                    problem = model.pressureModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
-                    % Is the pressure still converged when accounting for the
-                    % updated quantities after transport (mobility, density
-                    % and so on?)
-                    [~, values] = model.pressureModel.checkConvergence(problem);
+                    sT = sum(state.s, 2);
                 end
-                if model.outerCheckWellConvergence
-                    lv = max(values);
-                else
-                    values = values(1);
-                    lv = values(1);
-                end
-                converged = all(values < model.outerTolerance);
-                converged = converged || iteration > model.maxOuterIterations;
-                if model.verbose
-                    if converged
-                        s = 'Converged.';
-                    else
-                        s = 'Not converged.';
-                    end
-                    fprintf('OUTER LOOP step #%d with tolerance %1.4e: Largest value %1.4e -> %s \n', ...
-                        iteration, model.outerTolerance, lv, s);
-                end
+                v = norm(sT - 1, inf);
+                values(end+1) = v;
+                converged(end+1) = v <= tol_vol;
+                resnames{end+1} = 'Volume error';
+            end
+            % Check increment tolerance
+            tol_inc = model.incTolSaturation;
+            if isfinite(tol_inc)
+                assert(isfield(state, 'statePressure'));
+                s0 = state.statePressure.s;
+                s = state.s;
+                ds = max(max(abs(s-s0), [], 2));
+                values(end+1) = ds;
+                converged(end+1)  = ds <= tol_inc;
+                resnames{end+1} = 'Saturation increment';
+            end
+            converged = converged | iteration > model.maxOuterIterations;
+            if model.verbose
+                printConvergenceReport(resnames, values, converged, iteration);
             end
         end
         

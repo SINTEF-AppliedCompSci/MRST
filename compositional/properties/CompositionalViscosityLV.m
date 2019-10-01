@@ -25,7 +25,7 @@ classdef CompositionalViscosityLV < StateFunction
             end
             pm = model.EOSModel.PropertyModel;
             oix = phInd == 2;
-            mu{oix} = pm.computeViscosity(p, x, Z{oix}, T, nan);
+            mu{oix} = pm.computeViscosity(p, x, Z{oix}, T, true);
             gix = phInd == 3;
             
             twoPhase = model.getTwoPhaseFlag(state);
@@ -37,10 +37,10 @@ classdef CompositionalViscosityLV < StateFunction
                     else
                         y = y(twoPhase, :);
                     end
-                    muV(twoPhase) = pm.computeViscosity(p(twoPhase), y, Z{gix}(twoPhase), T(twoPhase), nan);
+                    muV(twoPhase) = pm.computeViscosity(p(twoPhase), y, Z{gix}(twoPhase), T(twoPhase), false);
                 end
             else
-                muV = pm.computeViscosity(p, y, Z{gix}, T, nan);
+                muV = pm.computeViscosity(p, y, Z{gix}, T, false);
             end
             mu{gix} = muV;
         end

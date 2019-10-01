@@ -72,7 +72,11 @@ classdef BlackOilCapillaryPressure < StateFunction
             prop.pcOWMin = zeros(nreg, 1);
             prop.pcOWMax = zeros(nreg, 1);
             for i = 1:nreg
-                pc = model.fluid.pcOW{i};
+                if isa(model.fluid.pcOW, 'function_handle')
+                    pc = model.fluid.pcOW;
+                else
+                    pc = model.fluid.pcOW{i};
+                end
                 v = pc([0; 1]);
                 prop.pcOWMin(i) = min(v);
                 prop.pcOWMax(i) = max(v);
