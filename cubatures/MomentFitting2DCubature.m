@@ -44,15 +44,15 @@ classdef MomentFitting2DCubature < Cubature
                 % Precision is 1, use midpoint rule
                 [x, ~, n] = getSquareCubaturePointsAndWeights(cubature.prescision);
                 if G.griddim == 2
-                    w = G.cells.volumes;
+                    w = ones(G.cells.num,1);
                     x = repmat(x, G.cells.num, 1);
                     n = repmat(n, G.cells.num, 1);
                     type = 'volume';
                 else
-                    w = G.faces.areas;
-                    type = 'face';
+                    w = ones(G.faces.num,1);
                     x = repmat(x, G.faces.num, 1);
                     n = repmat(n, G.faces.num, 1);
+                    type = 'face';
                 end
             else
                 % If precision is higher than one, we must calculate
@@ -73,7 +73,7 @@ classdef MomentFitting2DCubature < Cubature
                     k = 0;
                     nS = 0;
                     while nS < 2*nDof
-                        [x, ww, nS] = getSquareCubaturePointsAndWeights(cubature.prescision + k);
+                        [x, ~, nS] = getSquareCubaturePointsAndWeights(cubature.prescision + k);
                         k = k+1;
                     end
                 end
