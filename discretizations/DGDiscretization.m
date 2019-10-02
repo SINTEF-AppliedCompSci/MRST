@@ -354,14 +354,17 @@ classdef DGDiscretization < SpatialDiscretization
                         psi = state.psi_f;
                     end
             end
-                if iscell(dof)
-                    p = cell(numel(dof),1);
-                    for i = 1:numel(dof)
-                        p{i} = disc.evaluateDGVariable(x, cNo, state, dof{i}, psi);
-                    end
-                else
-                    p = disc.evaluateDGVariable(x, cNo, state, dof, psi);
+            if ~iscell(psi)
+                psi = mat2cell(psi, size(psi,1), ones(1,disc.basis.nDof));
+            end
+            if iscell(dof)
+                p = cell(numel(dof),1);
+                for i = 1:numel(dof)
+                    p{i} = disc.evaluateDGVariable(x, cNo, state, dof{i}, psi);
                 end
+            else
+                p = disc.evaluateDGVariable(x, cNo, state, dof, psi);
+            end
         end
         
         function fill = getFillSat(disc, state)
