@@ -28,8 +28,8 @@ sim = @(model, inx) simulateScheduleAD(setup.state0, setup.(model){inx}, schdl);
 
 %%
 
-[wsFI, stFI, repFI] = simulateScheduleAD(setup.state0, setup.modelFV{1}.parentModel, setup.schedule);
+[wsFI, stFI, repFI] = sim('modelFI', 1);
 
 %%
 
-plotWellSols({wsFI, wsFV})
+plotWellSols({wsFI, wsDG{:}})
