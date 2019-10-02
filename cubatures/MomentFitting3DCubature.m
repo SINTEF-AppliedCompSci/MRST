@@ -67,7 +67,6 @@ classdef MomentFitting3DCubature < Cubature
                     knownCub = TetrahedronCubature(G, cubature.prescision, cubature.internalConn);
                 end
                 [~, xq, wq, cellNo] = knownCub.getCubature((1:G.cells.num)', 'volume');
-                wq = wq./G.cells.volumes(cellNo);
                 xq     = cubature.transformCoords(xq, cellNo);
                 % Moments
                 M = cellfun(@(p) accumarray(cellNo, wq.*p(xq)), psi, 'unif', false);

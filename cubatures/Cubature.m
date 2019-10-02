@@ -51,6 +51,12 @@ classdef Cubature
         %-----------------------------------------------------------------%
         function cubature = assignCubaturePointsAndWeights(cubature, x, w, n)
             % Assign points and weights
+            switch cubature.G.griddim - cubature.dim
+                case 0
+                    w = w./rldecode(cubature.G.cells.volumes, n, 1);
+                case 1
+                    w = w./rldecode(cubature.G.faces.areas, n, 1);
+            end
             cubature.points    = x;
             cubature.weights   = w;
             cubature.numPoints = n;

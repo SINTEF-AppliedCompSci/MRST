@@ -80,12 +80,6 @@ classdef MomentFitting2DCubature < Cubature
                     knownCub = TriangleCubature(G, cubature.prescision, cubature.internalConn);
                 end
                 [~, xq, wq, cellNo, faceNo] = knownCub.getCubature(elements, type);
-                switch type
-                    case 'face'
-                        wq = wq./G.faces.areas(faceNo);
-                    case 'volume'
-                        wq = wq./G.cells.volumes(cellNo);
-                end
                 % Map cubature points to reference coordinates
                 if G.griddim == 3
                     % Map to face reference coordinates
