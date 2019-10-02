@@ -390,7 +390,7 @@ classdef DGDiscretization < SpatialDiscretization
             % Get average cell value from dofs
 
             % Get cubature for all cells
-            [W, x, cellNo, ~] = disc.getCubature((1:disc.G.cells.num)', 'volume');
+            [W, x, cellNo, ~] = disc.getCubature(Inf, 'volume');
             val = cell(numel(varargin),1);
             
             for i = 1:nargin-2
