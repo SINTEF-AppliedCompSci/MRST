@@ -67,7 +67,7 @@ function state = tvb(state, model, interpSetup, name, tol, opt)
             ix = model.disc.getDofIx(state, (1:dim)+1, bad);
             dof(ix,i) = dofbar;
         end
-        if model.disc.degree > 1
+        if any(model.disc.degree > 1)
             ix = model.disc.getDofIx(state, (dim+2):model.disc.basis.nDof, bad);
             dof(ix,:) = 0;
         end
