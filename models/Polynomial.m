@@ -26,7 +26,7 @@ classdef Polynomial
 %             for i = 1:numel(poly)
 %                 p      = poly(i);
 %                 K      = p.k;
-%                 Kl     = p.k;
+%                 Kc     = p.k;
 %                 nterms = size(p.k,1);
 %                 for j = 1:nterms
 %                     k  = K(j,:);
@@ -52,15 +52,13 @@ classdef Polynomial
                         v = 0;
                         for j = 1:nterms
                             v = v + p.w(j).*prod(x.^p.k(j,:),2);
-%                             tmp = pw.*prod(repmat(x, numel(p.w), 1).^pk,2);
-%                             val(:, i) = accumarray(repmat((1:size(x,1))', numel(p(i).w), 1), tmp);
                         end
                         val(:,i) = v;
                     end
                     [varargout{1:nargout}] = val;
                     return
                 otherwise
-                    [varargout{1:nargout}] = builtin('subsref', p, x);
+                    [varargout{1:nargout}] = builtin('subsref', poly, x);
                     return
             end
         end
