@@ -286,8 +286,22 @@ classdef TransportModelDG < TransportModel
         function state = evaluateBaseVariables(model, state)
              
             [cellStateDG, faceStateDG, wellStateDG] = deal(state);
-%             names = {'pressure', 's'};
             names = fieldnames(state);
+            
+            [~ , xc, cNo     ] = model.disc.getCubature(Inf, 'volume');
+            [~ , xf, ~  , fNo] = model.disc.getCubature(Inf, 'face');
+            xf   = repmat(xf, 2, 1);
+            N    = model.disc.G.faces.neighbors;
+            fcNo = [N(fNo,1); N(fNo,2)];
+            xc = model.disc.transformCoords(xc, cNo );
+            xf = model.disc.transformCoords(xf, fcNo);
+            [psi_c, psi_f] = deal(model.disc.basis.psi);
+            for dofNo = 1:model.disc.basis.nDof
+                psi_c{dofNo} = psi_c{dofNo}(xc);
+                psi_f{dofNo} = psi_f{dofNo}(xf);
+            end
+            state.psi_c = psi_c;
+            state.psi_f = psi_f;
             for k = 1:numel(names)
                 name = names{k};
                 if numel(name) > 3 && strcmp(name(end-2:end), 'dof')
@@ -393,9 +407,9 @@ classdef TransportModelDG < TransportModel
             
             rhoS = model.getSurfaceDensities();
             for i = 1:numel(acc)
-                eqs{i} = d.inner(acc{i}     , psi     , 'dV') ...
+                eqs{i} = d.inner(acc{i}     , psi    , 'dV') ...
                        - d.inner(cellflux{i}, gradPsi, 'dV') ...
-                       + d.inner(flux{i}    , psi     , 'dS');
+                       + d.inner(flux{i}    , psi    , 'dS');
                 if ~isempty(src.cells)
                     eqs{i}(ix) = eqs{i}(ix) - src.value{i};
                 end
@@ -442,7 +456,7 @@ classdef TransportModelDG < TransportModel
                 state  = model.assignBaseVariables(state);
                 report = [];
 
-                if 1
+                if 0
                 % Compute dx for cell averages
                 dx0 = model.getMeanIncrement(state, state0, problem);
                 % Let parent model do its thing
