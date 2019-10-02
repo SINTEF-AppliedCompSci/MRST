@@ -29,8 +29,8 @@ function setup = simple1d(args) %#ok
     
     modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
     
-    modelDG = cell(numel(opt.degree), 1);
-    for dNo = 1:numel(opt.degree)
+    modelDG = cell(size(opt.degree,1), 1);
+    for dNo = 1:size(opt.degree,1)
         disc         = DGDiscretization(modelFV, ...
                                    'degree', opt.degree(dNo,:), discArgs{:});
         tmodelDG     = TransportModelDG(model, 'disc', disc);
@@ -90,7 +90,7 @@ function setup = qfs_wo_2d(args) %#ok
     
     modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
     
-    modelDG = cell(numel(opt.degree), 1);
+    modelDG = cell(size(opt.degree,1), 1);
     for dNo = 1:numel(opt.degree)
         tmodelDG = TransportModelDG(model, 'formulation', 'totalSaturation' , ...
                                            'degree'     , opt.degree(dNo,:), ...
