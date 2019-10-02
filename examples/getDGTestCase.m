@@ -53,7 +53,7 @@ function setup = simple1d(args) %#ok
 
     sW     = 0.0;
     state0 = initResSol(G, 1, [sW,1-sW]);
-    setup = packSetup(state0, schedule, [], {{modelFV}}, {modelDG});
+    setup = packSetup(state0, schedule, {{model}}, {{modelFV}}, {modelDG});
    
 end
 %-------------------------------------------------------------------------%
@@ -292,7 +292,7 @@ function setup = spe1(args) %#ok
     % Convert the deck schedule into a MRST schedule by parsing the wells
     schedule = convertDeckScheduleToMRST(model, deck);
     
-    setup = packSetup(state0, schedule, [], {{modelFV}}, {modelDG});
+    setup = packSetup(state0, schedule, {{model}}, {{modelFV}}, {modelDG});
     
 end
 
