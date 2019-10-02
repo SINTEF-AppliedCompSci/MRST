@@ -295,7 +295,7 @@ classdef TransportModelDG < TransportModel
             fcNo = [N(fNo,1); N(fNo,2)];
             xc = model.disc.transformCoords(xc, cNo );
             xf = model.disc.transformCoords(xf, fcNo);
-            [psi_c, psi_f] = deal(model.disc.basis.psi);
+            [psi_c, psi_f] = deal(model.disc.basis.psi');
             for dofNo = 1:model.disc.basis.nDof
                 psi_c{dofNo} = psi_c{dofNo}(xc);
                 psi_f{dofNo} = psi_f{dofNo}(xf);
@@ -437,6 +437,7 @@ classdef TransportModelDG < TransportModel
         
         %-----------------------------------------------------------------%
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
+                        
             % Remove DG states
             state = rmfield(state, 'cellStateDG');
             state = rmfield(state, 'faceStateDG');
@@ -456,7 +457,7 @@ classdef TransportModelDG < TransportModel
                 state  = model.assignBaseVariables(state);
                 report = [];
 
-                if 0
+                if 1
                 % Compute dx for cell averages
                 dx0 = model.getMeanIncrement(state, state0, problem);
                 % Let parent model do its thing
