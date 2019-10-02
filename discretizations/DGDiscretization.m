@@ -335,18 +335,15 @@ classdef DGDiscretization < SpatialDiscretization
         function p = evaluateProp(disc, state, dof, type)
             switch type
                 case 'cell'
-                    elements = (1:disc.G.cells.num)';
-                    [W , x, cNo] = disc.getCubature(elements, 'volume');
+%                     elements = (1:disc.G.cells.num)';
+                    [W , x, cNo] = disc.getCubature(Inf, 'volume');
                 case 'face'
-                    elements = find(disc.internalConn);
-                    [W , x, ~, fNo] = disc.getCubature(elements, 'face'); %#ok
+%                     elements = find(disc.internalConn);
+                    [W , x, ~, fNo] = disc.getCubature(Inf, 'face'); %#ok
                     x = repmat(x, 2, 1);
                     N = disc.G.faces.neighbors;
                     cNo = [N(fNo,1); N(fNo,2)];
             end
-                
-%             if isfield(state, dname)
-%                 dof  = state.(dname);
                 if iscell(dof)
                     p = cell(numel(dof),1);
                     for i = 1:numel(dof)
@@ -355,21 +352,6 @@ classdef DGDiscretization < SpatialDiscretization
                 else
                     p = disc.evaluateDGVariable(x, cNo, state, dof);
                 end
-%             else
-% %                 dof = state.(name);
-%                 if iscell(dof)
-%                     p = cell(numel(dof),1);
-%                     for i = 1:numel(dof)
-%                         p{i} = dof{i}(eNo,:);
-%                     end
-%                 else
-%                     if size(dof, 1) == 1
-%                         p = dof;
-%                     else
-%                         p = dof(eNo,:);
-%                     end
-%                 end
-%             end
         end
         
         function fill = getFillSat(disc, state)
@@ -438,8 +420,7 @@ classdef DGDiscretization < SpatialDiscretization
         function ip = inner(disc, u, v, differential, cells, bc)
             
             if nargin < 5
-                cells = (1:disc.G.cells.num)';
-                faces = find(disc.internalConn);
+                [cells, faces] = deal(Inf);
             end
                 
             switch differential
@@ -481,6 +462,9 @@ classdef DGDiscretization < SpatialDiscretization
             end
             % Get cubature for all cells, transform coordinates to ref space
             [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
+            if isinf(cells)
+                cells = (1:disc.G.cells.num)';
+            end
             W = bsxfun(@rdivide, W, disc.G.cells.volumes(cells));
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
             % Evaluate integrals
@@ -525,11 +509,14 @@ classdef DGDiscretization < SpatialDiscretization
             nDofMax = disc.basis.nDof; % maximum number of dofs
             % Empty cells means all cells in grid
             if isempty(faces)
-                faces = find(disc.operators.internalConn)';
+                faces = find(disc.internalConn)';
             end
             % Get cubature for all cells, transform coordinates to ref space
             
             [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
+            if isinf(faces)
+                faces = find(disc.internalConn)';
+            end
             W = bsxfun(@rdivide, W, disc.G.faces.areas(faces));
             N = disc.G.faces.neighbors;
             if isempty(faceNo)
