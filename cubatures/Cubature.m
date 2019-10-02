@@ -2,7 +2,6 @@ classdef Cubature
     % Cubature class for cubatures on MRST grids
     
     properties
-        
         G            % Grid the cubature is defined on
         prescision   % Prescision of cubature
         points       % Cubature points
@@ -12,25 +11,53 @@ classdef Cubature
                      % in ix = cubature.pos(e):cubature.pos(e+1)-1
         dim          % Dimension of cubature
         internalConn % Boolean indicating if face is internal connection
-        
+    end
+    
+    properties (Access = protected)
+        fullCubature
     end
     
     methods
         
-        function cubature = Cubature(G, prescision, internalConn)
+        %-----------------------------------------------------------------%
+        function cubature = Cubature(G, prescision, internalConn, dim)
             % Setup up cubature properties. Acutual construction of
             % cubature is handled by children class.
-            
-            cubature.G            = G;
-            cubature.prescision   = prescision;
-            cubature.points       = [];
-            cubature.weights      = [];
-            cubature.pos          = [];
-            cubature.dim          = G.griddim;
+            cubature.G          = G;
+            cubature.prescision = prescision;
+            cubature.dim          = dim;
             cubature.internalConn = internalConn;
-            
+            % Make cubature points and weights
+            cubature = cubature.makeCubature();
+            % Get cubature for entire domain for quick access
+            switch G.griddim - cubature.dim
+                case 0
+                    elements = (1:G.cells.num)';
+                    type     = 'volume';
+                case 1
+                    elements = find(cubature.internalConn);
+                    type     = 'face';
+            end
+            [W, x, w, cellNo, faceNo] = cubature.getCubature(elements, type);
+            cubature.fullCubature = struct('W', W, 'x', x, 'w', w, ...
+                                       'cellNo', cellNo, 'faceNo', faceNo);
         end
         
+        %-----------------------------------------------------------------%
+        function cubature = makeCubature(cubature) %#ok
+            error('Base class not meant for direct use!');
+        end
+        
+        %-----------------------------------------------------------------%
+        function cubature = assignCubaturePointsAndWeights(cubature, x, w, n)
+            % Assign points and weights
+            cubature.points    = x;
+            cubature.weights   = w;
+            cubature.numPoints = n;
+            % Construct cubature position vector
+            cubature.pos = [0; cumsum(n)] + 1;
+        end
+            
         %-----------------------------------------------------------------%
         function [W, x, w, cellNo, faceNo] = getCubature(cubature, elements, type, varargin)
             % Get cubature for given elements (either a set of cells or a
@@ -65,6 +92,15 @@ classdef Cubature
             %   x - Integration points
             %   cellNo, faceNo - cell/face number telling what cubature
             %       point goes where
+            
+            if isinf(elements)
+                W      = cubature.fullCubature.W;
+                x      = cubature.fullCubature.x;
+                w      = cubature.fullCubature.w;
+                cellNo = cubature.fullCubature.cellNo;
+                faceNo = cubature.fullCubature.faceNo;
+                return
+            end
             
             opt = struct('excludeBoundary', false, ...
                          'internalConn'   , []   , ...

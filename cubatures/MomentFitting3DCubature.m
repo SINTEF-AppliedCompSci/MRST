@@ -14,24 +14,11 @@ classdef MomentFitting3DCubature < Cubature
             % Set up cubatureature
             
             % Basic properties handled by parent class
-            cubature = cubature@Cubature(G, prescision, internalConn);
-            cubature.reduce = false;
-            % Make cubature points and weights
-            [x, w, n] = cubature.makeCubature();
-            % Assing properties
-            cubature.points    = x;
-            cubature.weights   = w;
-            cubature.numPoints = n;
-            cubature.dim = 3;
-            cubature.pos = [0; cumsum(n)] + 1;
-            % Construct cubature position vector
-%             cubature.pos = cumsum(
-%             cubature.pos = (0:cubature.numPoints:G.cells.num*cubature.numPoints)' + 1;
-            
+            cubature = cubature@Cubature(G, prescision, internalConn, 3);
         end
            
         %-----------------------------------------------------------------%
-        function [x, w, n] = makeCubature(cubature)
+        function cubature = makeCubature(cubature)
             
             % Dimension of cubature
             dim = 3;
@@ -100,6 +87,7 @@ classdef MomentFitting3DCubature < Cubature
             
             % Map from reference to physical coordinates
             x = cubature.transformCoords(x, cellNo, true);
+            cubature = cubature.assignCubaturePointsAndWeights(x,w,n);
             
         end        
     end

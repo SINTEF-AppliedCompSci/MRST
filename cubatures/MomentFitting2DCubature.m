@@ -2,9 +2,7 @@ classdef MomentFitting2DCubature < Cubature
     % Cubature based on moment-fitting for MRST grids
     
     properties
-        
         reduce
-        
     end
     
     methods
@@ -13,24 +11,14 @@ classdef MomentFitting2DCubature < Cubature
         function cubature = MomentFitting2DCubature(G, prescision, internalConn, varargin)
             % Set up cubature
             
-            % Basic properties handled by parent class
-            cubature = cubature@Cubature(G, prescision, internalConn);
+            % Most of the construction is handled by parent class
+            cubature        = cubature@Cubature(G, prescision, internalConn, 2);
             cubature.reduce = true;
-            cubature.dim       = 2;
-            cubature = merge_options(cubature, varargin{:});
-            % Make cubature points and weights
-            [x, w, n] = cubature.makeCubature();
-            % Assing properties
-            cubature.points    = x;
-            cubature.weights   = w;
-            cubature.numPoints = n;
-            % Construct cubature position vector
-            cubature.pos = [0; cumsum(n)] + 1;
-            
+            cubature        = merge_options(cubature, varargin{:});
         end
            
         %-----------------------------------------------------------------%
-        function [x, w, n] = makeCubature(cubature)
+        function cubature = makeCubature(cubature)
             
             % Dimension of cubature
             dim = 2;
@@ -135,6 +123,7 @@ classdef MomentFitting2DCubature < Cubature
                 x = cubature.transformCoords(x, cellNo, true);
                 w = w.*G.cells.volumes(cellNo);
             end
+            cubature = cubature.assignCubaturePointsAndWeights(x,w,n);
         end
         
     end
