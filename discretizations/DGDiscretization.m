@@ -93,7 +93,7 @@ classdef DGDiscretization < SpatialDiscretization
                 if isCoarse %&& ~disc.useUnstructCubature
                     volCub  = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
-                    if disc.degree == 0 || disc.useUnstructCubature
+                    if all(disc.degree == 0) || disc.useUnstructCubature
                         volCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
                     else
                         volCub = TriangleCubature(G, prescision, disc.internalConn);
@@ -307,24 +307,29 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function p = evaluateDGVariable(disc, x, cells, state, pdof)
+        function p = evaluateDGVariable(disc, x, cells, state, pdof, psi)
             
-            psi     = disc.basis.psi;
             nDof    = state.nDof; %#ok
             nDofMax = disc.basis.nDof;
             
-            x = disc.transformCoords(x, cells);
             if isempty(pdof)
                 return
-            else                
+            else
+                if nargin < 6 || isempty(psi)
+                    x    = disc.transformCoords(x, cells);
+                    psi  = disc.basis.psi;
+                    getx = @(keep) x(keep,:);
+                else
+                    getx = @(keep) keep;
+                end
                 p = pdof(cells)*0;
                 for dofNo = 1:nDofMax
                     keep = nDof(cells) >= dofNo; %#ok
                     ix = disc.getDofIx(state, dofNo, cells(keep));
                     if all(keep)
-                        p = p + pdof(ix,:).*psi{dofNo}(x(keep,:));
+                        p = p + pdof(ix,:).*psi{dofNo}(getx(keep));
                     else
-                        p(keep, :) = p(keep, :) + pdof(ix,:).*psi{dofNo}(x(keep,:));
+                        p(keep, :) = p(keep, :) + pdof(ix,:).*psi{dofNo}(getx(keep));
                     end
                 end
             end
@@ -333,24 +338,29 @@ classdef DGDiscretization < SpatialDiscretization
         
         %-----------------------------------------------------------------%
         function p = evaluateProp(disc, state, dof, type)
+            psi = [];
             switch type
                 case 'cell'
-%                     elements = (1:disc.G.cells.num)';
-                    [W , x, cNo] = disc.getCubature(Inf, 'volume');
+                    [~ , x, cNo] = disc.getCubature(Inf, 'volume');
+                    if isfield(state, 'psi_c')
+                        psi = state.psi_c;
+                    end
                 case 'face'
-%                     elements = find(disc.internalConn);
-                    [W , x, ~, fNo] = disc.getCubature(Inf, 'face'); %#ok
-                    x = repmat(x, 2, 1);
-                    N = disc.G.faces.neighbors;
+                    [~ , x, ~, fNo] = disc.getCubature(Inf, 'face');
+                    x   = repmat(x, 2, 1);
+                    N   = disc.G.faces.neighbors;
                     cNo = [N(fNo,1); N(fNo,2)];
+                    if isfield(state, 'psi_f')
+                        psi = state.psi_f;
+                    end
             end
                 if iscell(dof)
                     p = cell(numel(dof),1);
                     for i = 1:numel(dof)
-                        p{i} = disc.evaluateDGVariable(x, cNo, state, dof{i});
+                        p{i} = disc.evaluateDGVariable(x, cNo, state, dof{i}, psi);
                     end
                 else
-                    p = disc.evaluateDGVariable(x, cNo, state, dof);
+                    p = disc.evaluateDGVariable(x, cNo, state, dof, psi);
                 end
         end
         
@@ -367,43 +377,22 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function sat = getCellSaturation(disc, state)
-            % Get average cell saturaion, typically assigned to state.s
-
-            % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, ~] = disc.getCubature((1:disc.G.cells.num)', 'volume');
-            
-            sdof = state.sdof;
-            nPh  = size(sdof,2);
-            s    = zeros(disc.G.cells.num, nPh);
-            for phNo = 1:nPh
-                s(:,phNo) = W*disc.evaluateDGVariable(x, cellNo, state, sdof(:,phNo));
-            end
-            s = s./disc.G.cells.volumes;
-            
-            sat = s;
-            
-        end
-        
-        %-----------------------------------------------------------------%
         function varargout = getCellMean(disc, state, varargin)
             % Get average cell value from dofs
 
             % Get cubature for all cells
-            [W, x, cellNo, ~] = disc.getCubature(Inf, 'volume');
+            W = disc.getCubature(Inf, 'volume');
             val = cell(numel(varargin),1);
             
             for i = 1:nargin-2
                 dof = varargin{i};
+                v = disc.evaluateProp(state, dof, 'cell');
                 if iscell(dof)
-                    v = cell(1,numel(dof));
                     for j = 1:numel(dof)
-                        v{j} = disc.evaluateDGVariable(x, cellNo, state, dof{j});
-                        v{j} = W*v{j}./disc.G.cells.volumes;
+                        v{j} = W*v{j};
                     end
                 else
-                    v = disc.evaluateDGVariable(x, cellNo, state, dof);
-                    v = W*v./disc.G.cells.volumes;
+                    v = W*v;
                 end
                 val{i} = v;
             end
@@ -425,9 +414,9 @@ classdef DGDiscretization < SpatialDiscretization
                 
             switch differential
                 case 'dV'
-                    ip = disc.cellInt2(u, v, cells);
+                    ip = disc.cellInt(u, v, cells);
                 case 'dS'
-                    ip = disc.faceFluxInt2(u, v, faces); %#ok
+                    ip = disc.faceInt(u, v, faces);
                 case 'dSbc'
                     ip = disc.faceFluxIntBC2(u, v, bc);
             end
@@ -435,7 +424,7 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = cellInt2(disc, u, v, cells)
+        function I = cellInt(disc, u, v, cells)
             % Integrate integrand over cells
             %
             % PARAMETERS:
@@ -453,8 +442,6 @@ classdef DGDiscretization < SpatialDiscretization
             %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
             %       all cells
             
-%             psi      = disc.basis.psi;      % Basis functions
-%             gradPsi  = disc.basis.grad_psi; % Gradient of basis functions
             nDofMax  = numel(v);     % Maximum number of dofs
             % Empty cells means all cells in grid
             if isempty(cells)
@@ -465,7 +452,6 @@ classdef DGDiscretization < SpatialDiscretization
             if isinf(cells)
                 cells = (1:disc.G.cells.num)';
             end
-            W = bsxfun(@rdivide, W, disc.G.cells.volumes(cells));
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
             % Evaluate integrals
 %             I = dof*0;
@@ -488,7 +474,7 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = faceFluxInt2(disc, u, v, faces)
+        function I = faceInt(disc, u, v, faces)
             % Integrate integrand over all internal faces of each cell in
             % cells
             %
@@ -517,7 +503,6 @@ classdef DGDiscretization < SpatialDiscretization
             if isinf(faces)
                 faces = find(disc.internalConn)';
             end
-            W = bsxfun(@rdivide, W, disc.G.faces.areas(faces));
             N = disc.G.faces.neighbors;
             if isempty(faceNo)
                 I = 0;
@@ -529,7 +514,7 @@ classdef DGDiscretization < SpatialDiscretization
                 cellNo = N(faceNo,side);
                 f2c = sparse(cells, (1:numel(faces))', 1, disc.G.cells.num, numel(faces));
                 [xf, ~, ~] = disc.transformCoords(x, cellNo);
-                c = unique(cells);
+%                 c = unique(cells);
                 % Evaluate integrals
                 sgn = (-1).^(side-1);
                 for dofNo = 1:nDofMax                
@@ -595,101 +580,6 @@ classdef DGDiscretization < SpatialDiscretization
             end
             %I = disc.trimValues(I);
             
-        end
-        
-        %-----------------------------------------------------------------%
-        function I = cellInt(disc, fun, cells, state, dof)
-            % Integrate integrand over cells
-            %
-            % PARAMETERS:
-            %   model    - Model, which contains information on how the
-            %              integrand looks like
-            %   fun      - Integrand function handle
-            %   cells    - Cells over which we will integrate fun
-            %   state, state0 - States from current and prev timestep,
-            %              to be used for dofPos
-            %   varargin - Variables passed to model for integrand
-            %              evalauation. varargin{1} MUST be an AD object of
-            %              dofs for all cells in the grid.
-            %
-            % RETURNS:
-            %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
-            %       all cells
-            
-            psi      = disc.basis.psi;      % Basis functions
-            gradPsi  = disc.basis.grad_psi; % Gradient of basis functions
-            nDof     = state.nDof;          % Number of dofs per cell
-            nDofMax  = disc.basis.nDof;     % Maximum number of dofs
-            % Empty cells means all cells in grid
-            if isempty(cells)
-                cells = (1:disc.G.cells.num)';
-            end
-            % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
-            [x, ~, scaling]   = disc.transformCoords(x, cellNo);
-            % Evaluate integrals
-%             I = dof*0;
-            I = dof;
-            for dofNo = 1:nDofMax
-                keepCells = nDof(cells) >= dofNo;
-                if any(keepCells)
-                    ix = disc.getDofIx(state, dofNo, cells(keepCells));
-                    i = W*fun(psi{dofNo}(x), gradPsi{dofNo}(x).*scaling);
-                    I(ix) = i(keepCells);
-                elseif numel(cells) == disc.G.cells.num
-                    warning('No cells with %d dofs', dofNo);
-                end
-            end
-            I = disc.trimValues(I);
-        end
-        
-        %-----------------------------------------------------------------%
-        function I = faceFluxInt(disc, fun, cells, state, dof)
-            % Integrate integrand over all internal faces of each cell in
-            % cells
-            %
-            % PARAMETERS:
-            %   model    - Model, which contains information on how the
-            %              integrand looks like
-            %   fun      - Integrand function handle
-            %   cells    - Cells over which we will integrate fun
-            %   state    - State to be used for dofPos
-            %   varargin - Variables passed to model for integrand
-            %              evalauation. varargin{1} MUST be an AD object of
-            %              dofs for all cells in the grid.
-            %
-            % RETURNS:
-            %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
-            %       all cell surfaces of all cells
-            
-            psi     = disc.basis.psi;  % Basis functions
-            nDof    = state.nDof;      % Number of dofs per cell
-            nDofMax = disc.basis.nDof; % maximum number of dofs
-            % Empty cells means all cells in grid
-            if isempty(cells)
-                cells = (1:disc.G.cells.num)';
-            end
-            % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
-            [xc, ~, ~] = disc.transformCoords(x, cellNo);
-            if isempty(faceNo)
-                I = 0;
-                return
-            end
-            % Evaluate integrals
-%             I = dof*0;
-            I = dof;
-            for dofNo = 1:nDofMax                
-                keepCells = nDof(cells) >= dofNo;
-                if any(keepCells)
-                    ix = disc.getDofIx(state, dofNo, cells(keepCells)');
-                    i  = W*fun(psi{dofNo}(xc));
-                    I(ix) = i(keepCells);
-                elseif numel(cells) == disc.G.cells.num
-                    warning('No cells with %d dofs', dofNo);
-                end
-            end
-            I = disc.trimValues(I);
         end
         
         %-----------------------------------------------------------------%
