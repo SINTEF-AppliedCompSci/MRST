@@ -7,17 +7,17 @@ mrstVerbose on
 setup = getDGTestCase('simple1d', ...
                       'n'                  , 20        , ...
                       'nkr'                , 2         , ...
-                      'degree'             , (0:3)'    , ...
+                      'degree'             , [0,0; 1,0; 2,0; 3,0], ...
                       'basis'              , 'legendre', ...
                       'useUnstructCubature', false     ); %#ok
 
 %%
 
-setup = getDGTestCase('qfs_wo_2d', 'useUnstructCubature', false, 'useUnstructCubature', true); %#ok
+setup = getDGTestCase('qfs_wo_2d', 'useUnstructCubature', true); %#ok
 
 %%
 
-setup = getDGTestCase('qfs_wog_3d', 'useUnstructCubature', false, 'degree', [2,2,0]);
+setup = getDGTestCase('qfs_wog_3d', 'useUnstructCubature', true, 'degree', [1,1,0]);
 
 %%
 
@@ -30,7 +30,7 @@ sim = @(model,inx) simulateScheduleAD(setup.state0, setup.(model){inx}, setup.sc
 
 %%
 
-ix = 1;
+ix = 4;
 for i = ix
     [wsDG{i}, stDG{i}, repDG{i}] = sim('modelDG', i);
 end
@@ -41,7 +41,7 @@ plotWellSols(vertcat({wsFV}, wsDG(ix)));
 
 %%
 
-ix = 2;
+ix = 1:2;
 
 close all
 for t = 1:numel(stDG{ix(1)})

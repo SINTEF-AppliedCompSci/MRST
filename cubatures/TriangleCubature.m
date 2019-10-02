@@ -12,21 +12,7 @@ classdef TriangleCubature < Cubature
         %-----------------------------------------------------------------%
         function cubature = TriangleCubature(G, prescision, internalConn)
             % Set up triangle cubature
-            
-            % Basic properties handled by parent class
-            cubature = cubature@Cubature(G, prescision, internalConn);
-            % Get triangluation of all cells
-            cubature.triangulation = cubature.getTriangulation(G);
-            % Make cubature points and weights
-            [x, w, n] = cubature.makeCubature();
-            % Assign properties
-            cubature.points    = x;
-            cubature.weights   = w;
-            cubature.numPoints = n;
-            cubature.dim       = 2;
-            % Construct cubature position vector
-            cubature.pos = [0; cumsum(cubature.triangulation.nTri*cubature.numPoints)] + 1;
-            
+            cubature = cubature@Cubature(G, prescision, internalConn, 2);
         end
         
         %-----------------------------------------------------------------%
@@ -167,21 +153,23 @@ classdef TriangleCubature < Cubature
         end
         
         %-----------------------------------------------------------------%
-        function [x, w, n, triNo] = makeCubature(cubature)
+        function cubature = makeCubature(cubature)
             % Make cubature
             
+            % Get triangluation of all cells
+            cubature.triangulation = cubature.getTriangulation(cubature.G);
             % Number of triangles per cell/face
             nTri = sum(cubature.triangulation.nTri);
             % Cubature points and weights
             [x, w, n, xR] = getTriangleCubaturePointsAndWeights(cubature.prescision);
             % Map to physical coords
             x = cubature.mapCoords(x, xR);
-%             [x, w, n] = getTriangleCubaturePointsAndWeightsBary(cubature.prescision);
-%             x = cubature.mapCoordsBary(x);
             % Multiply weights by triangle areas
             triNo = reshape(repmat(1:sum(cubature.triangulation.nTri), n, 1), [], 1);
             areas = cubature.getTriAreas();
             w = repmat(w, nTri, 1).*areas(triNo);
+            n = cubature.triangulation.nTri.*n;
+            cubature = cubature.assignCubaturePointsAndWeights(x,w,n);
             
         end 
             
