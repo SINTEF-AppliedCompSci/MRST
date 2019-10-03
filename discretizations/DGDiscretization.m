@@ -9,7 +9,7 @@ classdef DGDiscretization < SpatialDiscretization
                             % simulations on horizontal slice of 3D
                             % reservoir
         
-        useUnstructCubature % Bool to tell the method to use experimental 
+        useMomentFitting    % Bool to tell the method to use experimental 
                             % unstructured cubature class
         volumeCubature      % Cubature for volume integrals
         surfaceCubature     % Cubature for surface integrals
@@ -70,7 +70,7 @@ classdef DGDiscretization < SpatialDiscretization
             disc.plotLimiterProgress   = false;
             
             % Cubature
-            disc.useUnstructCubature = false;
+            disc.useMomentFitting = false;
             
             % Specifics for reordering
             disc.internalConnParent  = disc.internalConn;
@@ -93,7 +93,7 @@ classdef DGDiscretization < SpatialDiscretization
                 if isCoarse %&& ~disc.useUnstructCubature
                     volCub  = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
-                    if all(disc.degree == 0) || disc.useUnstructCubature
+                    if all(disc.degree == 0) || disc.useMomentFitting
                         volCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
                     else
                         volCub = TriangleCubature(G, prescision, disc.internalConn);
@@ -102,7 +102,7 @@ classdef DGDiscretization < SpatialDiscretization
                 surfCub = LineCubature(G, prescision, disc.internalConn);
             else
                 if isCoarse 
-                    if ~disc.useUnstructCubature
+                    if ~disc.useMomentFitting
                         volCub  = CoarseGrid3DCubature(G, prescision, disc.internalConn);
                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
                     else
@@ -110,10 +110,10 @@ classdef DGDiscretization < SpatialDiscretization
                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
                     end
                 else
-                    if all(disc.degree == 0) || disc.useUnstructCubature
+                    if all(disc.degree == 0) || disc.useMomentFitting
                         volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
-                        surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
-%                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
+%                         surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
                     else
                         volCub  = TetrahedronCubature(G, prescision, disc.internalConn);
                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
