@@ -6,6 +6,8 @@ function limiter = getLimiter(model, type, tol, varargin)
         case 'tvb'
             interpSetup = getInterpolationSetup(model);
             limiter = @(state, name) tvb(state, model, interpSetup, name, tol, opt);
+        case 'scale'
+            limiter = @(state, name) scale(state, model, name);
     end
     
 end
@@ -115,8 +117,6 @@ end
 %-------------------------------------------------------------------------%
 function dofbar = approximatGradient(model, interpSetup, state, dof)
 
-%     ind  = 1:disc.basis.nDof:disc.G.cells.num*disc.basis.nDof
-
     G    = model.parentModel.G;
     disc = model.disc;
     useMap = isfield(G, 'mappings');
@@ -165,29 +165,12 @@ function dofbar = approximatGradient(model, interpSetup, state, dof)
         db(dix) = d;
         [dbmin, dbmax, ~, ~, neg, pos] = getMinMax(db, interpSetup.cell_support_count+1);
         dofbar(:, dNo) = neg.*dbmax + pos.*dbmin;
-%         ix = vertcat(interpSetup.cell_support{:});
-%         Sigma = sparse(cellNo, colNo, sigma{dNo}(ix));
-%         ix = disc.getDofIx(state, 1+dNo, Inf, true);
-%         dd = nan(G.cells.num,1);
-%         dd(isLin) = dof(ix(ix>0));
-%         Sigma = full([Sigma, dd]);
-%         Sigma(Sigma==0) = nan;
-%         dofbar(:,dNo) = minmod(Sigma);
     end
     
     if useMap
         dofbar = dofbar(map.keep, :);
     end
 
-end
-
-%-------------------------------------------------------------------------%
-function v = minmod(val)
-    valmin = val;
-    valmin(isnan(val)) = -1;
-    valmax = val;
-    valmax(isnan(val)) = 1;
-    v = max(val,[],2).*all(valmin < 0,2) + min(val,[],2).*all(valmax > 0,2);
 end
 
 %-------------------------------------------------------------------------%
@@ -207,4 +190,50 @@ function interpSetup = getInterpolationSetup(model)
     interpSetup.C = C;
     interpSetup.cell_support_count = cellfun(@numel, interpSetup.cell_support);
     
+end
+
+%-------------------------------------------------------------------------%
+% Scale limiter
+%-------------------------------------------------------------------------%
+function state = scale(state, model, name)
+
+    G = model.G;
+    disc = model.disc;
+
+    dof = model.getProp(state, [name, 'dof']);
+    v   = model.getProp(state, name);
+    
+    nc = size(dof,2);
+    
+    for i = 1:nc
+        [vMin, vMax] = disc.getMinMax(state, dof(:,nc));
+        theta = [(v(:,nc) - 0)./(v(:,nc) - vMin), ...
+                 (1 - v(:,nc))./(vMax - v(:,nc)), ...
+                 ones(G.cells.num,1)          ];
+        theta(~isfinite(theta) | abs(theta) > 1) = 1;
+        %             theta(abs(theta) > 1) = 1;
+        theta = min(theta, [], 2);
+
+        for dofNo = 2:disc.basis.nDof
+            ix = disc.getDofIx(state, dofNo, (1:G.cells.num)', true);
+            dof(ix(ix>0),nc) = dof(ix(ix>0),nc).*theta(ix>0);
+        end
+
+        vix = any(state.degree > 0);
+        dix = disc.getDofIx(state, 1, vix);
+        dof(dix,nc) = (dof(dix,nc) - v(vix,nc)).*theta(vix) + v(vix,nc);
+    end
+    
+    state = update(model, state, name, dof);
+    [vMin, vMax] = disc.getMinMax(state, dof);
+    if any(any(vMin < 0 - eps | vMax > 1 + eps,2)) && 0
+        warning('Some values still outside [0,1]')
+    end
+
+%     ind = theta < 1;
+%     if disc.degree > 1 && 0
+%         ix = disc.getDofIx(state, (G.griddim+2):nDofMax, ind);
+%         dof(ix,:) = 0;
+%     end
+
 end

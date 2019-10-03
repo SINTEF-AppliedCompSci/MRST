@@ -745,6 +745,33 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
+        function [vMin, vMax] = getMinMax(disc, state, dof)
+            % Get maximum and minimum saturaiton for each cell
+            
+            G = disc.G;
+            
+            % Get all quadrature points for all cells
+            [~, xF, ~, fF] = disc.getCubature(Inf, 'face');
+            xF = repmat(xF, 2, 1);
+            cF = [G.faces.neighbors(fF,1); G.faces.neighbors(fF,2)];
+            [cF, ix] = sort(cF);
+            xF = xF(ix,:);
+            [~, xC, cC, ~] = disc.getCubature(Inf, 'volume');
+            % Evaluate saturation at faces
+            vF = disc.evaluateDGVariable(xF, cF, state, dof);
+            [~, nF] = rlencode(cF);
+            [vMinF, vMaxF] = getMinMax(vF, nF);
+            % Evaluate saturation at cells
+            vC = disc.evaluateDGVariable(xC, cC, state, dof);
+            [~, nC] = rlencode(cC);
+            % Find min/max saturation
+            [vMinC, vMaxC] = getMinMax(vC, nC);
+            vMin = min(vMinF, vMinC);
+            vMax = max(vMaxF, vMaxC);
+            
+        end
+        
+        %-----------------------------------------------------------------%
         function [jumpVal, faces, cells] = getInterfaceJumps(disc, dof, state)
             % Get interface jumps for all internal connections in grid
             
