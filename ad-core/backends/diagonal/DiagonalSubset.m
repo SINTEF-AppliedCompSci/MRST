@@ -34,9 +34,19 @@ classdef DiagonalSubset < DiagonalJacobian
         end
         
         function [x, D1, D2] = diagProductMult(v1, v2, x, y, D1, D2)
-            [x, D2] = diagMult(v2, x, D2);
-            [y, D1] = diagMult(v1, y, D1);
-            x = x + y;
+            numx = isnumeric(x);
+            if numx || isnumeric(y)
+                [x, D2] = diagMult(v2, x, D2);
+                [y, D1] = diagMult(v1, y, D1);
+                x = x + y;
+            else
+                if numx
+                    n = size(y.map, 2);
+                else
+                    n = size(x.map, 2);
+                end
+                x.diagonal = x.diagonal.*repmat(v2, n, 1) + y.diagonal.*repmat(v1, n, 1);
+            end
         end
 
         function out = matrixDims(D, n)
