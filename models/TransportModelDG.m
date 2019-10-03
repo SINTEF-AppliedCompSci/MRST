@@ -457,7 +457,7 @@ classdef TransportModelDG < TransportModel
                 state  = model.assignBaseVariables(state);
                 report = [];
 
-                if 1
+                if 0
                 % Compute dx for cell averages
                 dx0 = model.getMeanIncrement(state, state0, problem);
                 % Let parent model do its thing
