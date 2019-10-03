@@ -421,10 +421,12 @@ classdef EquationOfStateModel < PhysicalModel
                 n = model.fluid.getNumberOfComponents();
                 Tr = cell(1, n);
                 Pr = cell(1, n);
-
+                
+                Ti = 1./model.fluid.Tcrit;
+                Pi = 1./model.fluid.Pcrit;
                 for i = 1:n
-                    Tr{i} = T./model.fluid.Tcrit(i);
-                    Pr{i} = P./model.fluid.Pcrit(i);
+                    Tr{i} = T.*Ti(i);
+                    Pr{i} = P.*Pi(i);
                 end
             else
                 Tr = bsxfun(@rdivide, T, model.fluid.Tcrit);
@@ -453,10 +455,11 @@ classdef EquationOfStateModel < PhysicalModel
                     % PR
                     if useCell
                         for i = 1:ncomp
-                            if model.eosType == 5 && acf(i) > 0.49
-                                oA{i} = model.omegaA.*(1 + (0.379642 + 1.48503.*acf(i) - 0.164423.*acf(i).^2 + 0.016666.*acf(i).^3).*(1-Tr{i}.^(1/2))).^2;
+                            ai = acf(i);
+                            if model.eosType == 5 && ai > 0.49
+                                oA{i} = model.omegaA.*(1 + (0.379642 + 1.48503.*ai - 0.164423.*ai.^2 + 0.016666.*ai.^3).*(1-Tr{i}.^(1/2))).^2;
                             else
-                                oA{i} = model.omegaA.*(1 + (0.37464 + 1.54226.*acf(i) - 0.26992.*acf(i).^2).*(1-Tr{i}.^(1/2))).^2;
+                                oA{i} = model.omegaA.*(1 + (0.37464 + 1.54226.*ai - 0.26992.*ai.^2).*(1-Tr{i}.^(1/2))).^2;
                             end
                         end
                     else
@@ -549,12 +552,27 @@ classdef EquationOfStateModel < PhysicalModel
                 ncomp = numel(x);
                 Si = cell(1, ncomp);
                 [Si{:}] = deal(0);
+                % A = sum_ij x_i A_ij x_j
+                % S_i = sum_j A_ij x_j
+                % Note: A_ij is symmetric and we exploit that when we
+                % evaluate the sums
+                xjAij = cell(ncomp, ncomp);
                 for i = 1:ncomp
                     B = B + x{i}.*Bi{i};
                     for j = 1:ncomp
-                        A_ijx_j = A_ij{i, j}.*x{j};
-                        A = A + x{i}.*A_ijx_j;
-                        Si{i} = Si{i} + A_ijx_j;
+                        result = A_ij{i, j}.*x{j};
+                        xjAij{i, j} = result;
+                        Si{i} = Si{i} + result;
+                    end
+                end
+                for i = 1:ncomp
+                    for j = i:ncomp
+                        tmp = x{j}.*xjAij{j, i};
+                        if i == j
+                            A = A + tmp;
+                        else
+                            A = A + 2*tmp;
+                        end
                     end
                 end
             else
@@ -1024,9 +1042,10 @@ classdef EquationOfStateModel < PhysicalModel
 
         function state = setFlag(model, state, pureLiquid, pureVapor)
             if nargin < 4
-                pureVapor = state.L == 0;
+                L = value(state.L);
+                pureVapor = L == 0;
                 if nargin < 3
-                    pureLiquid = state.L == 1;
+                    pureLiquid = L == 1;
                 end
             end
             if size(state, 2) > 2

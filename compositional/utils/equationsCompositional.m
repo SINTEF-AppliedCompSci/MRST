@@ -233,18 +233,6 @@ for i = conservationindices
     end
 end
 
-if ~opt.pressure
-    if model.water
-        wscale = dt./(s.pv*mean(value(bW)));
-        eqs{1} = eqs{1}.*wscale;
-    end
-    massT = model.getComponentScaling(state0);
-    scale = (dt./s.pv)./massT;
-    for i = 1:ncomp
-        eqs{i+woffset} = eqs{i+woffset}.*scale;
-    end
-end
-
 if opt.pressure
     wat = model.water;
     if opt.resOnly

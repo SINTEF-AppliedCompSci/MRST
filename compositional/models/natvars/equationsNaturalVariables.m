@@ -415,15 +415,6 @@ if opt.reduceToPressure
     problem.wellvars = wellvars;
     problem.wellvarNames = wellVarNames;
 else
-    massT = model.getComponentScaling(state0);
-    scale = (dt./s.pv)./massT;
-    for i = 1:ncomp
-        eqs{i} = eqs{i}.*scale;
-    end
-    
-    if model.water
-        eqs{ncomp+1} = eqs{ncomp+1}.*(dt./(s.pv.*model.fluid.rhoWS.*value(bW)));
-    end
     if model.reduceLinearSystem
         problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);
     else
