@@ -452,7 +452,7 @@ classdef DiagonalJacobian
                 allow_implicit = ~verLessThan('matlab','9.1');
             end
             if allow_implicit
-                x = x.*v;
+                x.diagonal = x.diagonal.*v;
             else
                 x.diagonal = bsxfun(@times, x.diagonal, v);
             end
@@ -469,7 +469,13 @@ classdef DiagonalJacobian
                 x = x + y;
             elseif allow_implicit
                 % Both are diagonal, new Matlab
-                x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
+                if isempty(x.diagonal)
+                    x.diagonal = y.diagonal.*v1;
+                elseif isempty(y.diagonal)
+                    x.diagonal = x.diagonal.*v2;
+                else
+                    x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
+                end
             else
                 % Both are diagonal, old Matlab
                 x.diagonal = bsxfun(@times, x.diagonal, v2) + bsxfun(@times, y.diagonal, v1);
