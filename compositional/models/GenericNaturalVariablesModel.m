@@ -38,12 +38,6 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 end
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
             end
-            % Apply scaling for convergence testing
-            massT = model.getComponentScaling(state0);
-            scale = (dt./model.operators.pv)./massT;
-            for i = 1:ncomp
-                eqs{i} = eqs{i}.*scale;
-            end
             % Natural variables part
             twoPhase = model.getTwoPhaseFlag(state);
             cnames = model.EOSModel.fluid.names;

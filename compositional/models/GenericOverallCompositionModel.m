@@ -38,20 +38,6 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 end
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
             end
-            if false
-                cMass = value(model.getProp(state0, 'ComponentTotalMass')');
-                massT = sum(cMass, 2);
-                scale = (dt./massT);
-                for i = 1:ncomp
-                    eqs{i} = eqs{i}.*scale;
-                end
-            else
-                massT = model.getComponentScaling(state0);
-                scale = (dt./model.operators.pv)./massT;
-                for i = 1:ncomp
-                    eqs{i} = eqs{i}.*scale;
-                end
-            end
             % Get facility equations
             [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
             % Finally assemble

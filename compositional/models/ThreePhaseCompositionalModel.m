@@ -74,35 +74,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             names = horzcat(names, model.EOSModel.fluid.names);
         end
         
-        function scaling = getComponentScaling(model, state)
-            oix = model.getPhaseIndex('O');
-            gix = model.getPhaseIndex('G');
-            wL = state.s(:, oix);
-            wV = state.s(:, gix);
-            wT = wL + wV;
-
-            wL = wL./wT;
-            wV = wV./wT;
-            
-            if isa(model, 'ExtendedReservoirModel')
-                rho = model.getProp(state, 'Density');
-                rho = value(rho);
-            elseif isfield(state, 'rho')
-                rho = state.rho;
-            else
-                rho = model.getSurfaceDensities();
-                % Take first region
-                rho = rho(1, :);
-            end
-            rhoO = rho(:, oix);
-            rhoG = rho(:, gix);
-            wL(wT == 0) = state.L(wT == 0);
-            wV(wT == 0) = 1 - state.L(wT == 0);
-
-            scaling = wL.*value(rhoO) + wV.*value(rhoG);
-            scaling(wT  < 1e-3) = 1e6;
-        end
-
         function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))
                 case {'z', 'components'}
@@ -315,8 +286,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 % Account for both phases.
                 q_i = (cqLs.*injO + cqVs.*injG).*Z_well ...
                        + ~injO.*X_res.*cqLs + ~injG.*Y_res.*cqVs;
-
-
                 compSrc{N+cNo} = q_i;
                 wellSol.components(:, cNo) = value(q_i);
             end
@@ -367,7 +336,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 [eq, src] = addComponentContributions@ReservoirModel(model, cname, eq, component, src, force);
             end
         end
-
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
@@ -431,16 +399,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             % SEE ALSO
             %   `CPRSolverAD`
             scaling = getScalingFactorsCPR@ReservoirModel(model, problem, names, solver);
-%             state = problem.state;
-%             rhos = state.rho.*state.s;
-%             
-%             for i = 1:numel(names)
-%                 if strcmpi(names{i}, 'water')
-%                     scaling{i} = 1./state.rho(:, 1);
-%                 elseif any(strcmpi(names{i}, model.EOSModel.fluid.names))
-%                     scaling{i} = 1./max(sum(rhos(:, (1+model.water):end), 2), 1);
-%                 end
-%             end
         end
 
         function [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid)
@@ -484,6 +442,16 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             cnames = model.getComponentNames();
             names = problem.equationNames;
             
+            % Get state, timestep length
+            state = problem.state;
+            dt = problem.dt;
+            rho = value(model.getProp(state, 'Density'));
+            s = value(model.getProp(state, 's'));
+            pv = value(model.getProp(state, 'PoreVolume'));
+            mass = pv.*rho.*s;
+            if model.water
+                cnames = cnames(~strcmpi(cnames, 'water'));
+            end
             ncomp = numel(cnames);
             for i = 1:ncomp
                 f = strcmpi(names, cnames{i});
@@ -494,7 +462,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     end
                 end
             end
-
             if model.useIncTolComposition
                 if problem.iterationNo == 1
                     v_comp = inf(1, ncomp);
@@ -504,9 +471,22 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 tol_comp = model.incTolComposition;
             else
                 tol_comp = model.nonlinearTolerance;
-                v_comp = cellfun(@(x) norm(value(x), inf), problem.equations(isComponent));
+                massT = sum(mass(:, model.water+1:end), 2);
+                scale = dt./max(massT, 1);
+                v_comp = cellfun(@(x) norm(scale.*value(x), inf), problem.equations(isComponent));
             end
             tol_comp = repmat(tol_comp, size(v_comp));
+            if model.water
+                isWater = strcmpi(names, 'water');
+                if any(isWater)
+                    rhoW = rho(:, 1);
+                    scale_w = dt./(pv.*rhoW);                
+                    v_water = value(problem.equations{isWater})./scale_w;
+                    v_comp = [norm(v_water, inf), v_comp];
+                    tol_comp = [model.toleranceCNV, tol_comp];
+                    isComponent(isWater) = true;
+                end
+            end
             names_comp = names(isComponent);
        end
        
