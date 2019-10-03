@@ -572,7 +572,7 @@ classdef DiagonalJacobian
         end
 
         function isZ = isAllZeros(v)
-            isZ = isnumeric(v) && ~any(v(:));
+            isZ = isnumeric(v) && ~any(any(v));
             %     isZ = nnz(v) == 0;
         end
 
