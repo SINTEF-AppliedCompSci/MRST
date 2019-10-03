@@ -14,7 +14,8 @@ classdef TransportModelDG < TransportModel
             if isempty(model.disc)
                 model.disc = DGDiscretization(model, discArgs{:});
             end
-            model.disc.limiter = getLimiter(model, 'tvb', 0);
+            model.disc.limiter{1} = getLimiter(model, 'tvb', 0);
+            model.disc.limiter{2} = getLimiter(model, 'scale');
             model.parentModel.disc = model.disc;
             
             model.parentModel.operators = setupOperatorsDG(model.disc, model.parentModel.G, model.parentModel.rock);
@@ -30,33 +31,15 @@ classdef TransportModelDG < TransportModel
         
         %-----------------------------------------------------------------%
         function [fn, index] = getVariableField(model, name, varargin)
-            switch(lower(name))
-                case {'swdof'}
-                    index = model.satVarIndex('sw');
-                    fn = 'sdof';
-                case {'sodof'}
-                    index = model.satVarIndex('so');
-                    fn = 'sdof';
-                case {'sgdof'}
-                    index = model.satVarIndex('sg');
-                    fn = 'sdof';
-                case {'sdof'}
-                    index = ':';
-                    fn = 'sdof';
-                case {'stdof'}
-                    index = ':';
-                    fn = 'sTdof';
-                case {'rsdof'}
-                    index = ':';
-                    fn = 'rsdof';
-                case {'rvdof'}
-                    index = ':';
-                    fn = 'rvdof';
-                case {'pressuredof'}
-                    index = ':';
-                    fn = 'pressuredof';
-                otherwise
-                    [fn, index] = getVariableField@TransportModel(model, name, varargin{:});
+            isDof = numel(name) > 3 && strcmpi(name(end-2:end), 'dof');
+            if isDof
+                lookup = name(1:end-3);
+            else
+                lookup = name;
+            end
+            [fn, index] = getVariableField@TransportModel(model, lookup, varargin{:});
+            if isDof && ~isempty(fn)
+                fn = [fn, 'dof'];
             end
         end
         
@@ -142,6 +125,7 @@ classdef TransportModelDG < TransportModel
             origin = baseorigin;
             useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
                                     && sum(isS) == nph - 1;
+            useTotalSaturation  = useTotalSaturation || strcmpi(class(parent), 'GenericOverallCompositionModel');
 %             assert(useTotalSaturation, 'DG currently only supports total saturation formulation!');
             if useTotalSaturation
                 % Replace pressure with total saturation
@@ -400,12 +384,10 @@ classdef TransportModelDG < TransportModel
             psi = d.basis.psi;
             gradPsi = d.basis.gradPsi;
             ix    = d.getDofIx(state, 1, src.cells);
-            cells = rldecode((1:model.G.cells.num)', d.nDof, 1);
             d.sample = acc{1}(d.getDofIx(state, Inf));
             eqs = cell(1, numel(acc));
             state.wellStateDG.cells = (1:model.G.cells.num)';
             
-            rhoS = model.getSurfaceDensities();
             for i = 1:numel(acc)
                 eqs{i} = d.inner(acc{i}     , psi    , 'dV') ...
                        - d.inner(cellflux{i}, gradPsi, 'dV') ...
@@ -413,11 +395,6 @@ classdef TransportModelDG < TransportModel
                 if ~isempty(src.cells)
                     eqs{i}(ix) = eqs{i}(ix) - src.value{i};
                 end
-                if ~model.useCNVConvergence
-                    pv     = model.operators.pv(cells);
-%                     v      = model.G.cells.volumes(cells);
-                    eqs{i} = eqs{i}.*(dt./pv);
-                end    
             end
         end
         
@@ -443,8 +420,8 @@ classdef TransportModelDG < TransportModel
             state = rmfield(state, 'faceStateDG');
             state = rmfield(state, 'wellStateDG');
             
-            if strcmpi(class(model.parentModel), 'GenericBlackOilModel') ...
-                    && model.parentModel.disgas || model.parentModel.vapoil
+            if 0 %&& strcmpi(class(model.parentModel), 'GenericBlackOilModel') && ...
+                 %   && model.parentModel.disgas || model.parentModel.vapoil
                 [state, report] = model.updateStateBO(state, problem, dx, drivingForces);
             else
                 state0 = state;
@@ -742,7 +719,8 @@ classdef TransportModelDG < TransportModel
             end
             
             if ~isempty(model.disc.limiter)
-                 state = model.disc.limiter(state, 's');
+                state = model.disc.limiter{2}(state, 's');
+                state = model.disc.limiter{1}(state, 's');
             end
 
         end
