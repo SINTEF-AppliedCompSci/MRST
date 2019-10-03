@@ -447,16 +447,31 @@ classdef DiagonalJacobian
         end
 
         function [x, D] = diagMult(v, x, D)
-            x.diagonal = bsxfun(@times, x.diagonal, v);
+            persistent allow_implicit;
+            if isempty(allow_implicit)
+                allow_implicit = ~verLessThan('matlab','9.1');
+            end
+            if allow_implicit
+                x = x.*v;
+            else
+                x.diagonal = bsxfun(@times, x.diagonal, v);
+            end
         end
         
         function [x, D1, D2] = diagProductMult(v1, v2, x, y, D1, D2)
+            persistent allow_implicit;
+            if isempty(allow_implicit)
+                allow_implicit = ~verLessThan('matlab','9.1');
+            end
             if isnumeric(x) || isnumeric(y)
                 [x, D2] = diagMult(v2, x, D2);
                 [y, D1] = diagMult(v1, y, D1);
                 x = x + y;
+            elseif allow_implicit
+                % Both are diagonal, new Matlab
+                x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
             else
-                % Both are diagonal
+                % Both are diagonal, old Matlab
                 x.diagonal = bsxfun(@times, x.diagonal, v2) + bsxfun(@times, y.diagonal, v1);
             end
         end
