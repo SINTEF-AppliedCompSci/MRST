@@ -7,7 +7,7 @@ end
 %-------------------------------------------------------------------------%
 function setup = simple1d(args) %#ok
 
-    opt = struct('n', 100, 'nkr', 1, 'degree', [0,1,2]');
+    opt = struct('n', 100, 'nkr', 1, 'degree', [0,0; 1,0; 2,0; 3,0]);
     [opt, discArgs] = merge_options(opt, args{:});
 
     G = computeGeometry(cartGrid([opt.n,1], [opt.n,1]*meter));
@@ -20,6 +20,7 @@ function setup = simple1d(args) %#ok
                                'rho'   , [1,1], ...
                                'mu'    , [1,1], ...
                                'n'     , [1,1].*opt.nkr);
+    fluid = restrictRelperms(fluid);
     
     model  = GenericBlackOilModel(G, rock, fluid, 'gas', false);
     pmodel = PressureModel(model);
@@ -81,6 +82,7 @@ function setup = qfs_wo_2d(args) %#ok
                                'rho'   , [1000,800]*kilogram/meter^3, ...
                                'mu'    , [0.5,1]*centi*poise        , ...
                                'n'     , [1,1]*opt.nkr              );
+    fluid = restrictRelperms(fluid);
     
     model  = GenericBlackOilModel(G, rock, fluid, 'gas', false);
     pmodel = PressureModel(model);
@@ -124,7 +126,7 @@ function setup = qfs_wog_3d(args) %#ok
     
     gravity reset on
 
-    opt = struct('n', 5, 'nkr', 2, 'degree', [0,1]', 'pebi', true);
+    opt = struct('n', 7, 'nkr', 2, 'degree', [0,1]', 'pebi', true);
     [opt, discArgs] = merge_options(opt, args{:});
 
     n = opt.n;
@@ -159,6 +161,7 @@ function setup = qfs_wog_3d(args) %#ok
                                'rho'   , [1000,800,500]*kilogram/meter^3, ...
                                'mu'    , [0.5,1,0.1]*centi*poise        , ...
                                'n'     , [1,1,1]*opt.nkr              );
+    fluid = restrictRelperms(fluid);
     
     model  = GenericBlackOilModel(G, rock, fluid);
     pmodel = PressureModel(model);
@@ -214,6 +217,7 @@ function setup = qfs_co2_small(args) %#ok
     fluid = initSimpleADIFluid('n', [2, 3],...
                                'phases', 'OG', ...
                                'rho', [100, 100]);
+    fluid = restrictRelPerms(fluid);
     [cf, info] = getCompositionalFluidCase('simple');
 
     model = GenericOverallCompositionModel(G, rock, fluid, cf, 'water', false);
@@ -306,4 +310,14 @@ function setup = packSetup(state0, schedule, modelFI, modelFV, modelDG, varargin
                    'modelDG'     , modelDG );      
     setup = merge_options(setup, varargin{:});
     
+end
+
+%-------------------------------------------------------------------------%
+function fluid = restrictRelperms(fluid)
+    names   = fieldnames(fluid)';
+    for n = names
+        if strcmpi(n{1}(1:2), 'kr')
+            fluid.(n{1}) = @(s) fluid.(n{1})(min(max(s,0),1));
+        end
+    end
 end
