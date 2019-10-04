@@ -36,9 +36,9 @@ function h = plotSaturationDG(disc, state, varargin)
     else
         s(~keep) = nan;
         s        = reshape(s, n);
-        p = patch(isosurface(xs{1}, xs{2}, xs{3}, s, 0.2));
-        p.FaceColor = 'blue';
-        p.EdgeColor = 'none';
+        h = patch(isosurface(xs{1}, xs{2}, xs{3}, s, 0.6));
+        h.FaceColor = 'blue';
+        h.EdgeColor = 'none';
         lighting gouraud
         axis equal
         axis([min(x(:,1)), max(x(:,1)), min(x(:,2)), max(x(:,2)), min(x(:,3)), max(x(:,3))]);
