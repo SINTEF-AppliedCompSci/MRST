@@ -18,6 +18,7 @@ function coords = getPlotCoordinates(G, varargin)
         x{1} = linspace(xmin(1), xmax(1), n(1))';
         for d = 2:G.griddim
             x{d} = (xmin(d) + xmax(d))/2;
+            n(d) = 1;
         end
     else
         for d = 1:G.griddim
