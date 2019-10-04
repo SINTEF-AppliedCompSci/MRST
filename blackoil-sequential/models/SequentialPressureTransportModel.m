@@ -86,13 +86,13 @@ classdef SequentialPressureTransportModel < ReservoirModel
         function [state, report] = stepFunction(model, state, state0, dt,...
                                                 drivingForces, linsolve, nonlinsolve,...
                                                 iteration, varargin)
-            
-            [state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] =...
+            state.iteration = iteration;
+            [state, pressure_state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] =...
                 model.solvePressureTransport(state, state0, dt, drivingForces, iteration);
 
             converged = pressure_ok && transport_ok;
             if converged && ~model.stepFunctionIsLinear
-                [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration);
+                [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration, pressure_state);
                 if transportReport.Iterations == 0
                     % If the transport did not do anything, we are
                     % effectively converged, even if the values of the
@@ -129,9 +129,12 @@ classdef SequentialPressureTransportModel < ReservoirModel
                             forceArg{:});
                 [~, state] = model.transportModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
             end
+            if isfield(state, 'iteration')
+                state = rmfield(state, 'iteration');
+            end
         end
         
-        function [state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] = solvePressureTransport(model, state, state0, dt, drivingForces, iteration)
+        function [state, pressure_state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] = solvePressureTransport(model, state, state0, dt, drivingForces, iteration)
            % Solve pressure and transport sequentially
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
@@ -149,6 +152,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 psolver.solveTimestep(state0, dt, model.pressureModel,...
                             'initialGuess', state, ...
                             forceArg{:});
+            pressure_state = state;
             pressure_ok = pressureReport.Converged || psolver.continueOnFailure;
             
             if pressure_ok
@@ -181,7 +185,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end 
         end
         
-        function [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration)
+        function [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration, pressure_state)
             % Alternate mode: If outer loop is enabled, we will revisit
             % the pressue equation to verify that the equation remains
             % converged after the transport step. This check ensures
@@ -212,8 +216,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             % Check increment tolerance
             tol_inc = model.incTolSaturation;
             if isfinite(tol_inc)
-                assert(isfield(state, 'statePressure'));
-                s0 = state.statePressure.s;
+                s0 = pressure_state.s;
                 s = state.s;
                 ds = max(max(abs(s-s0), [], 2));
                 values(end+1) = ds;
