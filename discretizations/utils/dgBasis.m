@@ -1,5 +1,5 @@
 function basis = dgBasis(dim, degree, type)
-
+    
     perDim = true;
     if numel(degree) == 1
         perDim = false;
@@ -8,7 +8,7 @@ function basis = dgBasis(dim, degree, type)
     assert(numel(degree) == dim);
     maxDegree = max(degree);
 
-    if degree < 0
+    if maxDegree < 0
         nDof = 0;
         k    = [];
     else
@@ -19,13 +19,8 @@ function basis = dgBasis(dim, degree, type)
             k(:,dNo) = kk(:);
         end
         k = k(sum(k,2) <= maxDegree,:);
-        
-        kn = [];
-        for d = 0:maxDegree
-            kk = k(sum(k,2) == d,:);
-            kn = [kn; kk];
-        end
-        k = kn;
+        [~, ix] = sort(sum(k,2));
+        k       = k(ix,:);
         
         if perDim
             for d = 1:dim
@@ -33,6 +28,7 @@ function basis = dgBasis(dim, degree, type)
                 k(ix,:) = [];
             end
         end
+        
         nDof = size(k,1);
         
         switch type
