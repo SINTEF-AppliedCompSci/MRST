@@ -1,21 +1,25 @@
 function [points,weights,nPts] = fitMoments3(x, basis, moments, varargin)
 
-    opt = struct('reduce', true, 'tol', 1e-10, 'chunkSize', 10);
+    opt = struct('reduce', true, 'tol', 1e-10, 'chunkSize', 10, 'equal', false);
     opt = merge_options(opt, varargin{:});
 
     psi  = basis.psi;
     nDof = basis.nDof;
     n0 = size(x,1);
-    
-    ne = numel(moments{1});
 
+    ne = numel(moments{1});
+    if opt.equal
+        ne = 1;
+        ePos = 1:2;
+    else
+        nc = ceil(ne/opt.chunkSize);
+        ePos   = round(linspace(0, ne, nc))+1;
+    end
     nPts   = zeros(ne,1);
     [points, weights] = deal([]);
 
     x0     = x;
-    reduce = opt.reduce;
-    nc = floor(ne/opt.chunkSize);
-    ePos   = round(linspace(0, ne, nc))+1;
+
     for i = 1:numel(ePos)-1
         
         elements = ePos(i):ePos(i+1)-1;
@@ -45,11 +49,7 @@ function [points,weights,nPts] = fitMoments3(x, basis, moments, varargin)
             P = computeBasisMatrix(psi, x, ne_loc, n, nDof);
             
             s = sum(full(P(1:nDof, 1:n)).^2,1);
-            if reduce
-                [~, ix] = sort(s);
-            else
-                ix = 1;
-            end
+            [~, ix] = sort(s);
             reduced = false;
             xPrev = x;
             wPrev = w;
@@ -73,10 +73,6 @@ function [points,weights,nPts] = fitMoments3(x, basis, moments, varargin)
                 end    
             end
             
-            if ~opt.reduce
-                break
-            end
-            
         end
         
         nPts(elements) = n;
@@ -87,7 +83,13 @@ function [points,weights,nPts] = fitMoments3(x, basis, moments, varargin)
         fprintf('Compressed from %d to %d points in %f second\n', n0, n, time);
               
     end
-
+    
+    if opt.equal
+        ne = numel(moments{1});
+        nPts    = repmat(n, ne, 1);
+        points  = repmat(points, ne, 1);
+        weights = repmat(weights, ne, 1);
+    end
     
 end
 
