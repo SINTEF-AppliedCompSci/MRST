@@ -48,7 +48,7 @@ classdef MomentFitting2DCubature < Cubature
                 
                 % The starting point is a quadrature for a reference square
                 % with more than nDof points
-                if 0
+                if 1
                     G1 = computeGeometry(cartGrid([1,1], [2,2]));
                     G1.nodes.coords = G1.nodes.coords - 1;
                     G1 = computeVEMGeometry(G1);
@@ -69,9 +69,17 @@ classdef MomentFitting2DCubature < Cubature
                 if G.griddim > cubature.dim
                     type = 'face';
                     elements = 1:G.faces.num;
+                    equal = false;
+                    if isfield(G.faces, 'equal')
+                        equal = G.faces.equal;
+                    end
                 else
                     type = 'volume';
                     elements = 1:G.cells.num;
+                    equal = false;
+                    if isfield(G.cells, 'equal')
+                        equal = G.cells.equal;
+                    end
                 end
                 % We use known cubature to calculate the moments
                 if isfield(G, 'parent')
@@ -93,16 +101,10 @@ classdef MomentFitting2DCubature < Cubature
                     num   = G.cells.num;
                 end
                 % Moments
+                tol = eps(10);
                 M = cellfun(@(p) accumarray(count, wq.*p(xq)), psi, 'unif', false);
-                % Compute right-hand side
-                rhs = zeros(nDof, num);
-                tol = eps(mean(G.cells.volumes));
-                for dofNo = 1:nDof
-                    m = M{dofNo};
-                    m(abs(m) < tol) = 0;
-                    rhs(dofNo, :) = m;
-                end
-                [x,w,n] = fitMoments3(x, basis, M, 'reduce', cubature.reduce);
+                M = cellfun(@(m) m.*(abs(m) > tol), M, 'unif', false);
+                [x,w,n] = fitMoments3(x, basis, M, 'equal', equal);
             end
             
             % Map from reference to physical coordinates
