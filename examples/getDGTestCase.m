@@ -35,7 +35,7 @@ function setup = simple1d(args) %#ok
         disc         = DGDiscretization(modelFV, ...
                                    'degree', opt.degree(dNo,:), discArgs{:});
         tmodelDG     = TransportModelDG(model, 'disc', disc);
-        tmodelDG.disc.limiter = getLimiter(tmodelDG, 'tvb', 0, 'plot', true);
+        tmodelDG.disc.limiter{1} = getLimiter(tmodelDG, 'tvb', 0, 'plot', true);
         tmodelDG.parentModel.useCNVConvergence = false;
         tmodelDG.parentModel.nonlinearTolerance = 1e-3;
         tmodelDG.parentModel.OutputStateFunctions = {};
@@ -61,13 +61,14 @@ end
 
 %-------------------------------------------------------------------------%
 function setup = qfs_wo_2d(args) %#ok
-    opt = struct('n', 20, 'nkr', 1, 'degree', [0,1]');
+    opt = struct('n', 20, 'nkr', 1, 'degree', [0,1,2]', 'useGenericFV', true);
     [opt, discArgs] = merge_options(opt, args{:});
 
     G = computeGeometry(cartGrid([1,1]*opt.n, [500,500]*meter));
     G = createAugmentedGrid(G);
 %     G = computeCellDimensions(G);
     G = computeCellDimensions2(G);
+    G.cells.equal = true;
     
     if 0
         rng(2019)
@@ -84,17 +85,27 @@ function setup = qfs_wo_2d(args) %#ok
                                'n'     , [1,1]*opt.nkr              );
     fluid = restrictRelperms(fluid);
     
-    model  = GenericBlackOilModel(G, rock, fluid, 'gas', false);
-    pmodel = PressureModel(model);
-    tmodel = TransportModel(model);
-    tmodel.parentModel.useCNVConvergence = false;
-    tmodel.parentModel.nonlinearTolerance = 1e-3;
+    mg = GenericBlackOilModel(G, rock, fluid, 'gas', false);
+    if opt.useGenericFV
+        model  = mg;
+        pmodel = PressureModel(model);
+%         tmodel = TransportModel(model, 'formulation', 'missingPhase');
+        tmodel = TransportModel(model);
+        tmodel.parentModel.useCNVConvergence = false;
+        tmodel.parentModel.nonlinearTolerance = 1e-3;
+    else
+        model  = TwoPhaseOilWaterModel(G, rock, fluid);
+        pmodel = PressureOilWaterModel(G, rock, fluid);
+        tmodel = TransportOilWaterModel(G, rock, fluid);
+        tmodel.useCNVConvergence = false;
+        tmodel.nonlinearTolerance = 1e-3;
+    end
     
     modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
     
     modelDG = cell(size(opt.degree,1), 1);
     for dNo = 1:numel(opt.degree)
-        tmodelDG = TransportModelDG(model, 'formulation', 'totalSaturation' , ...
+        tmodelDG = TransportModelDG(mg, 'formulation', 'totalSaturation' , ...
                                            'degree'     , opt.degree(dNo,:), ...
                                            discArgs{:});
         tmodelDG.parentModel.useCNVConvergence = false;
@@ -105,8 +116,9 @@ function setup = qfs_wo_2d(args) %#ok
 
     time  = 2*year;
     rate  = sum(poreVolume(G, rock))/time;
-    dt    = 30*day;
-    dtvec = rampupTimesteps(time, dt);
+    dt    = 10*day;
+%     dtvec = rampupTimesteps(time, dt);
+    dtvec = rampupTimesteps(time, dt, 0);
     
     W = [];
     W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate     , 'compi', [1,0]);
@@ -157,7 +169,7 @@ function setup = qfs_wog_3d(args) %#ok
     poro = 0.4;
     
     rock  = makeRock(G, perm, poro);
-    fluid = initSimpleADIFluid('phases', 'WOG'                       , ...
+    fluid = initSimpleADIFluid('phases', 'WOG'                          , ...
                                'rho'   , [1000,800,500]*kilogram/meter^3, ...
                                'mu'    , [0.5,1,0.1]*centi*poise        , ...
                                'n'     , [1,1,1]*opt.nkr              );
@@ -202,9 +214,49 @@ end
 %-------------------------------------------------------------------------%
 
 %-------------------------------------------------------------------------%
-function setup = qfs_co2_small(args) %#ok
+function setup = spe10_wo(args) %#ok
+    
+    opt = struct('layers', 10, 'dt', 15*day, 'T', 2000*day, 'I', 1:60, 'J', 1:220, 'degree', (0:1)');
+    [opt, discArgs] = merge_options(opt, args{:});
+    
+    [state0, model, schedule] = setupSPE10_AD('layers', opt.layers);
+
+    fluid = restrictRelperms(model.fluid);
+    
+    G = model.G;
+    G = computeGeometry(G);
+    G = createAugmentedGrid(G);
+    G = computeCellDimensions2(G);
+    
+    model  = GenericBlackOilModel(G, model.rock, fluid, 'gas', false);
+    pmodel = PressureModel(model);
+    tmodel = TransportModel(model);
+    tmodel.formulation = 'totalSaturation';
+    tmodel.parentModel.useCNVConvergence = false;
+    tmodel.parentModel.nonlinearTolerance = 1e-3;
+    
+    modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
+    
+    modelDG = cell(size(opt.degree,1), 1);
+    for dNo = 1:size(opt.degree,1)
+        tmodelDG = TransportModelDG(model, 'formulation', 'totalSaturation' , ...
+                                           'degree'     , opt.degree(dNo,:), ...
+                                           discArgs{:});
+        tmodelDG.parentModel.useCNVConvergence = false;
+        tmodelDG.parentModel.nonlinearTolerance = 1e-3;
+        tmodelDG.parentModel.OutputStateFunctions = {};
+        modelDG{dNo} = SequentialPressureTransportModel(pmodel, tmodelDG, 'parentModel', model);
+    end
+
+    setup = packSetup(state0, schedule, {{model}}, {{modelFV}}, {modelDG});
+   
+end
+%-------------------------------------------------------------------------%
+
+%-------------------------------------------------------------------------%
+function setup = qfs_co2_2d(args) %#ok
     % Model
-    opt = struct('n', 20, 'degree', [0,1]);
+    opt = struct('n', 20, 'degree', [0,1], 'useOverall', true);
     [opt, discArgs] = merge_options(opt, args{:});
     n = opt.n;
     G = cartGrid([n, n, 1], [1000, 1000, 10]);
@@ -214,17 +266,28 @@ function setup = qfs_co2_small(args) %#ok
     K = 0.1*darcy;
     rock = makeRock(G, K, 0.25);
 
-    fluid = initSimpleADIFluid('n', [2, 3],...
-                               'phases', 'OG', ...
-                               'rho', [100, 100]);
-    fluid = restrictRelPerms(fluid);
+    fluid = initSimpleADIFluid('n'     , [2, 3]    ,...
+                               'phases', 'OG'      , ...
+                               'rho'   , [100, 100]);
+    fluid = restrictRelperms(fluid);
     [cf, info] = getCompositionalFluidCase('simple');
 
-    model = GenericOverallCompositionModel(G, rock, fluid, cf, 'water', false);
-    pmodel = PressureModel(model);
-    tmodel = TransportModel(model);
-    tmodel.parentModel.useCNVConvergence = false;
-    tmodel.parentModel.nonlinearTolerance = 1e-3;
+    if opt.useOverall
+        model  = GenericOverallCompositionModel(G, rock, fluid, cf, 'water', false);
+        pmodel = PressureOverallCompositionModel(G, rock, fluid, cf, 'water', false);
+    else
+        model  = GenericNaturalVariablesModel(G, rock, fluid, cf, 'water', false);
+        pmodel = PressureNaturalVariablesModel(G, rock, fluid, cf, 'water', false);
+    end
+    if 0
+        if opt.useOverall
+            tmodel = TransportOverallCompositionModel(G, rock, fluid, cf, 'water', false);
+        else
+            tmodel = TransportNaturalVariablesModel(G, rock, fluid, cf, 'water', false);
+        end
+    else
+        tmodel = TransportModel(model);
+    end
     
     modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
     
@@ -233,6 +296,11 @@ function setup = qfs_co2_small(args) %#ok
         tmodelDG = TransportModelDG(model, 'formulation', 'totalSaturation' , ...
                                            'degree'     , opt.degree(dNo), ...
                                            discArgs{:});
+        if 1
+            tmodelDG = TransportModelCompositionalDG(model, 'formulation', 'totalSaturation' , ...
+                                               'degree'     , opt.degree(dNo), ...
+                                               discArgs{:});
+        end
         tmodelDG.parentModel.useCNVConvergence = false;
         tmodelDG.parentModel.nonlinearTolerance = 1e-3;
         tmodelDG.parentModel.OutputStateFunctions = {};
@@ -258,7 +326,7 @@ function setup = qfs_co2_small(args) %#ok
     %
     state0 = initCompositionalState(G, 50*barsa, info.temp, [1, 0], info.initial, model.EOSModel);
     
-    setup = packSetup(state0, schedule, [], {{modelFV}}, {modelDG});
+    setup = packSetup(state0, schedule, {{model}}, {{modelFV}}, {modelDG});
     
 end
 %-------------------------------------------------------------------------%
