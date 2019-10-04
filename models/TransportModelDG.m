@@ -330,9 +330,11 @@ classdef TransportModelDG < TransportModel
         
         function state = assignBaseVariables(model, state)
             
-            names = {'s', 'rs', 'rv'};
+%             names = {'s', 'rs', 'rv'};
+            names = fieldnames(state)';
             for name = names
-                if isfield(state, name{1}) && isfield(state, [name{1}, 'dof'])
+%                 if isfield(state, name{1}) && isfield(state, [name{1}, 'dof'])
+                if isfield(state, [name{1}, 'dof'])
                     dof = model.getProp(state, [name{1}, 'dof']);
                     v   = model.disc.getCellMean(state, dof);
                     state.(name{1}) = v;
@@ -434,15 +436,15 @@ classdef TransportModelDG < TransportModel
                 state  = model.assignBaseVariables(state);
                 report = [];
 
-                if 0
+                if 1
                 % Compute dx for cell averages
-                dx0 = model.getMeanIncrement(state, state0, problem);
+                dx0 = model.getMeanIncrement(state, state0, problem.primaryVariables);
                 % Let parent model do its thing
                 problem0 = problem;
                 problem0.primaryVariables = cellfun(@(n) n(1:end-3), problem0.primaryVariables, 'UniformOutput', false);
                 [state0_corr, report] = updateState@TransportModel(model, state0, problem0, dx0, drivingForces);
                 % Correct updates in dofs according to parent model
-                dx0_corr = model.getMeanIncrement(state0_corr, state0, problem);
+                dx0_corr = model.getMeanIncrement(state0_corr, state0, problem.primaryVariables);
                 
                 cells    = rldecode((1:model.G.cells.num)', state.nDof, 1);
                 frac     = cellfun(@(x,y) x(cells)./y(cells), dx0_corr, dx0, 'UniformOutput', false);
@@ -454,6 +456,18 @@ classdef TransportModelDG < TransportModel
                 state = model.updateSaturations(state0, dx_corr, problem, satVars);
                 % Update non-saturation dofs
                 state = model.updateDofs(state, dx_corr, problem, restVars);
+                % Compositional models
+                if isfield(state0_corr, 'eos')
+                    state.eos = state0_corr.eos;
+                    varsEOS = {'Kdof', 'Ldof', 'xdof', 'ydof', 'Z_Ldof', 'Z_Vdof', 'sodof', 'sgdof'};
+                    dxEOS   = model.getMeanIncrement(state0_corr, state, varsEOS);
+                    for i = 1:numel(varsEOS)
+                        [fn, index] = model.getVariableField(varsEOS{i});
+                        ix = model.disc.getDofIx(state, 1);
+                        state.(fn)(ix,index) = state.(fn)(ix,index) + dxEOS{i};
+                    end
+%                     state   = model.updateDofs(state, dxEOS, problem, varsEOS);
+                end
                 % Update cell averages from dofs
                 state = model.assignBaseVariables(state);
                 end
@@ -610,9 +624,9 @@ classdef TransportModelDG < TransportModel
         end
         
         %-----------------------------------------------------------------%
-        function dx = getMeanIncrement(model, state, state0, problem)
+        function dx = getMeanIncrement(model, state, state0, vars)
             
-            vars = problem.primaryVariables;
+%             vars = problem.primaryVariables;
             dx   = cell(numel(vars),1);
             for i = 1:numel(vars)
                 vn = vars{i}(1:end-3);
@@ -627,7 +641,11 @@ classdef TransportModelDG < TransportModel
         function state = updateDofs(model, state, dx, problem, dofVars)
             
             for i = 1:numel(dofVars)
-                state = updateStateFromIncrement(model, state, dx, problem, dofVars{i}, inf, inf);
+                dvMaxAbs = inf;
+                if strcmpi(dofVars{i}, 'sTdof') && 0
+                    dvMaxAbs = 0.2;
+                end
+                state = updateStateFromIncrement(model, state, dx, problem, dofVars{i}, inf, dvMaxAbs);
             end
             
         end
@@ -681,7 +699,11 @@ classdef TransportModelDG < TransportModel
             ds(ix, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, Inf);
+            dsMaxAbs = inf;
+            if 0
+                dsMaxAbs = 0.2;
+            end
+            state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, dsMaxAbs);
             
         end
         
