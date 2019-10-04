@@ -390,7 +390,7 @@ classdef SimpleWell < PhysicalModel
             wbVolumeFlux  = abs(C\qVol); % solve to get well-bore volume flux
             
             rhoMix = sum(wbMassFlux, 2)./sum(wbVolumeFlux, 2);
-
+            rhoMix(isnan(rhoMix)) = 0;
             % get dz between segment nodes and bh-node1. This is a simple
             % hydrostatic distribution.
             dpt = [0; w.dZ];
