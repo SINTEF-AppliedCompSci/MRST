@@ -53,9 +53,13 @@ classdef DiagonalSubset < DiagonalJacobian
                 v2 = repmat(v2, n, 1);
                 if allow_implicit
                     if isempty(x.diagonal)
-                        x.diagonal = y.diagonal.*v1;
+                        if ~isempty(y.diagonal)
+                            x.diagonal = y.diagonal.*v1;
+                        end
                     elseif isempty(y.diagonal)
-                        x.diagonal = x.diagonal.*v2;
+                        if ~isempty(x.diagonal)
+                            x.diagonal = x.diagonal.*v2;
+                        end
                     else
                         x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
                     end
