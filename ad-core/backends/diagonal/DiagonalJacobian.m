@@ -445,8 +445,41 @@ classdef DiagonalJacobian
                 varargout = {dims(1), dims(2)};
             end
         end
+
         function [x, D] = diagMult(v, x, D)
-            x.diagonal = bsxfun(@times, x.diagonal, v);
+            persistent allow_implicit;
+            if isempty(allow_implicit)
+                allow_implicit = ~verLessThan('matlab','9.1');
+            end
+            if allow_implicit
+                x.diagonal = x.diagonal.*v;
+            else
+                x.diagonal = bsxfun(@times, x.diagonal, v);
+            end
+        end
+        
+        function [x, D1, D2] = diagProductMult(v1, v2, x, y, D1, D2)
+            persistent allow_implicit;
+            if isempty(allow_implicit)
+                allow_implicit = ~verLessThan('matlab','9.1');
+            end
+            if isnumeric(x) || isnumeric(y)
+                [x, D2] = diagMult(v2, x, D2);
+                [y, D1] = diagMult(v1, y, D1);
+                x = x + y;
+            elseif allow_implicit
+                % Both are diagonal, new Matlab
+                if isempty(x.diagonal)
+                    x.diagonal = y.diagonal.*v1;
+                elseif isempty(y.diagonal)
+                    x.diagonal = x.diagonal.*v2;
+                else
+                    x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
+                end
+            else
+                % Both are diagonal, old Matlab
+                x.diagonal = bsxfun(@times, x.diagonal, v2) + bsxfun(@times, y.diagonal, v1);
+            end
         end
         
         function x = sum(D, n)
@@ -539,7 +572,7 @@ classdef DiagonalJacobian
         end
 
         function isZ = isAllZeros(v)
-            isZ = isnumeric(v) && ~any(v(:));
+            isZ = isnumeric(v) && ~any(any(v));
             %     isZ = nnz(v) == 0;
         end
 
