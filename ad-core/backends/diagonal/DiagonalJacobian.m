@@ -470,13 +470,9 @@ classdef DiagonalJacobian
             elseif allow_implicit
                 % Both are diagonal, new Matlab
                 if isempty(x.diagonal)
-                    if ~isempty(y.diagonal)
-                        x.diagonal = y.diagonal.*v1;
-                    end
+                    [x, D1] = diagMult(v1, y, D1);
                 elseif isempty(y.diagonal)
-                    if ~isempty(x.diagonal)
-                        x.diagonal = x.diagonal.*v2;
-                    end
+                    [x, D2] = diagMult(v2, x, D2);
                 else
                     x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
                 end
