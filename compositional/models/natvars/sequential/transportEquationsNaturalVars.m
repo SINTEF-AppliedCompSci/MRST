@@ -253,7 +253,6 @@ upstr = model.operators.faceUpstr;
 pv = pvMult.*model.operators.pv;
 pv0 = pvMult0.*model.operators.pv;
 
-compFlux = zeros(model.G.faces.num, ncomp);
 
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, 2*ncomp + model.water));
@@ -263,10 +262,7 @@ for i = 1:ncomp
     eqs{i} = (1/dt).*( ...
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
                     pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i});
-      
-   compFlux(model.operators.internalConn, i) = value(vi);
 end
-state.componentFluxes = compFlux;
 if isfield(state, 'massFlux')
     state = rmfield(state, 'massFlux');
 end
@@ -384,19 +380,14 @@ for i = 1:ncomp
         eqs{ix}.val(absent) = 0;
     end    
 end
-% Apply scaling and assemble transport equations
-massT = model.getComponentScaling(state0);
-scale = (dt./s.pv)./massT;
+% Assemble transport equations
 for i = 1:(ncomp + model.water)
     vi = q_components{i};
     eqs{i} = s.AccDiv(eqs{i}, vi);
-    if i <= ncomp
-        eqs{i} = eqs{i}.*scale;
-    else
-        wscale = dt./(s.pv*mean(value(rhoW0)));
-        eqs{i} = eqs{i}.*wscale;
-    end
 end
+compFlux = zeros(model.G.faces.num, ncomp);
+compFlux(model.operators.internalConn, :) = value(q_components');
+state.componentFluxes = compFlux;
 
 if model.reduceLinearSystem
     problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);

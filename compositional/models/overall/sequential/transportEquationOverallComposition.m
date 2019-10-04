@@ -250,17 +250,9 @@ if ~isempty(W)
     end
 end
 % Apply scaling and assemble transport equations
-massT = model.getComponentScaling(state0);
-scale = (dt./s.pv)./massT;
 for i = 1:(ncomp + model.water)
     vi = q_components{i};
     eqs{i} = s.AccDiv(eqs{i}, vi);
-    if i <= ncomp
-        eqs{i} = eqs{i}.*scale;
-    else
-        wscale = dt./(s.pv*mean(value(rhoW0)));
-        eqs{i} = eqs{i}.*wscale;
-    end
 end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
