@@ -36,7 +36,9 @@ function varargout = amgcl_matlab(varargin)
 % NOTE:
 %   For first-time use, this gateway will attempt to build a MEX-file using
 %   the configured C++ compiler. In order to do this, the paths to the
-%   dependencies AMGCL and BOOST must be specified via global variables.
+%   dependencies AMGCL and BOOST can be specified via global variables, or
+%   the dependencies can be automatically downloaded by MRST if Internet
+%   access is available.
 %
 %   For instance, this can be done by executing the following:
 %   global BOOSTPATH AMGCLPATH
@@ -50,7 +52,7 @@ function varargout = amgcl_matlab(varargin)
 %
 %   This gateway was last tested with commit
 %
-%      91348b025144b61a2d3b7417988373d0dc8c8d00
+%      a551614040f0a7b793b41a4a63386675ca61d8da
 %
 %   of the AMGCL software (from GitHub: https://github.com/ddemidov/amgcl).
 %
@@ -89,8 +91,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              'Supported in MATLABs prior to 8.3.0 (R2014a)']);
    end
 
-   global AMGCLPATH
-   global BOOSTPATH
+   [AMGCLPATH, BOOSTPATH] = getAMGCLDependencyPaths();
    if ~valid_global_path(AMGCLPATH)
       error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
              '''AMGCLPATH'' Variable is Set in Current MATLAB Session.', ...
