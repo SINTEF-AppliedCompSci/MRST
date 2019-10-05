@@ -6,8 +6,9 @@ function [amgclpath, boostpath] = getAMGCLDependencyPaths(varargin)
     amgclpath = AMGCLPATH;
     boostpath = BOOSTPATH;
     dep_path = getDependencyFolder();
+    amgcl_folder = ['amgcl-', opt.amgcl_rev];
     if isempty(amgclpath)
-        amgclpath = fullfile(dep_path, 'amgcl');
+        amgclpath = fullfile(dep_path, amgcl_folder);
     end
     if isempty(boostpath)
         boostpath = fullfile(dep_path, 'boost-1_65_1_subset');
@@ -16,7 +17,7 @@ function [amgclpath, boostpath] = getAMGCLDependencyPaths(varargin)
     boost_missing = ~valid_global_path(boostpath);
 
     if amgcl_missing
-        s = sprintf('Did not find AMGCL repository path in default location "%s" or AMGCLPATH global variable. Would you like to download the files (approximately 1 MB download)?', amgclpath);
+        s = sprintf('Did not find AMGCL repository path in default location "%s" or in AMGCLPATH global variable. Would you like to download the files (approximately 1 MB download)?', amgclpath);
         do_download = queryDownload(s);
         if do_download
             if ~isdir(dep_path) %#ok
@@ -27,7 +28,7 @@ function [amgclpath, boostpath] = getAMGCLDependencyPaths(varargin)
             fprintf('Downloading AMGCL...')
             githubDownload(repo, 'All', true, 'Base', mrstOutputDirectory, ...
                                  'Dest', dep_path, 'Revision', opt.amgcl_rev);
-            [ok, msg] = movefile(fullfile(dep_path, ['amgcl-', opt.amgcl_rev]), amgclpath);
+            [ok, msg] = movefile(fullfile(dep_path, amgcl_folder), amgclpath);
             fprintf('Ok!');
             if ~ok
                 error(msg);
@@ -36,7 +37,7 @@ function [amgclpath, boostpath] = getAMGCLDependencyPaths(varargin)
     end
     
     if boost_missing
-        s = sprintf('Did not find boost repository path in default location "%s" or BOOSTPATH global variable. Would you like to download the the requisite boost subset (approximately 1.8 MB download, may take about one minute to unzip)?', boostpath);
+        s = sprintf('Did not find boost path in default location "%s" or in BOOSTPATH global variable. Would you like to download the the requisite boost subset (approximately 1.8 MB download, may take about one minute to unzip)?', boostpath);
         do_download = queryDownload(s);
         boost_url = 'https://www.sintef.no/contentassets/124f261f170947a6bc51dd76aea66129/boost-1_65_1_subset.zip';
         if do_download
