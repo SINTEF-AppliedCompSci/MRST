@@ -383,7 +383,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    flux(~i) = -sgn.*ft(~i).*( fpress(~i) - p(c) - fg(~i) );
    %flux = -sgn.*ft((fpress(~i)-p(c)-grav));
    state.pressure(1 : nc) = p(1 : nc);
-   state.flux(:)          = flux;
+   state.flux             = flux;
    state.facePressure     = fpress;
 
    for k = 1 : nw

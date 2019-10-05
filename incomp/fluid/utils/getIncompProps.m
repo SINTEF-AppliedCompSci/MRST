@@ -20,11 +20,13 @@ end
 function [rho, kr, mu, dkr] = getPropsAD(state, fluid)
     if isfield(state, 'pressure')
         p = state.pressure;
+        p_avg = mean(p);
     else
-        p = repmat(1*atm, size(state.s, 1), 1);
+        p_avg = 1*atm;
     end
-    rho = [fluid.rhoWS.*fluid.bW(p), ...
-           fluid.rhoOS.*fluid.bO(p)];
+    
+    rho = [fluid.rhoWS*fluid.bW(p_avg), ...
+           fluid.rhoOS*fluid.bO(p_avg)];
     mu = [fluid.muW(p), ...
            fluid.muO(p)];
     getDer = nargout > 3;

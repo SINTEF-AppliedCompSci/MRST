@@ -56,13 +56,17 @@ function varargout = amgcl_matlab(varargin)
 %
 %   of the AMGCL software (from GitHub: https://github.com/ddemidov/amgcl).
 %
+%   * Linux (Ubuntu 18.04.2 LTS):
+%       GCC   7.4.0
+%       Boost 1.70.0
+%
 %   * Linux (Mint 17.2):
 %       GCC   4.9.4
 %       Boost 1.63.0
 %
-%   * MS Windows 10 (1607):
-%       MSVC  19.16.27024.1 (Visual Studio 15.9)
-%       Boost 1.68.0
+%   * MS Windows 10 (1809):
+%       MSVC 19.16.27032.1  (Visual Studio 2017 15.9.15)
+%       Boost 1.70.0
 %
 % SEE ALSO:
 %   `callAMGCL`, `getAMGCLMexStruct`.
