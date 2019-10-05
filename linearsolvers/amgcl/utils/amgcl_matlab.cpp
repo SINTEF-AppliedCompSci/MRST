@@ -35,7 +35,6 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/cat.hpp>
-#include <boost/range/iterator_range_core.hpp>
 
 /* MEX interfaces */
 #include "amgcl_mex_utils.cpp"
