@@ -7,7 +7,7 @@ end
 %-------------------------------------------------------------------------%
 function setup = simple1d(args) %#ok
 
-    opt = struct('n', 100, 'nkr', 1, 'degree', [0,0; 1,0; 2,0; 3,0]);
+    opt = struct('n', 100, 'nkr', 1, 'degree', {{[0,0], [1,0], [2,0], [3,0]}});
     [opt, discArgs] = merge_options(opt, args{:});
 
     G = computeGeometry(cartGrid([opt.n,1], [opt.n,1]*meter));
@@ -30,10 +30,10 @@ function setup = simple1d(args) %#ok
     
     modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
     
-    modelDG = cell(size(opt.degree,1), 1);
-    for dNo = 1:size(opt.degree,1)
+    modelDG = cell(numel(opt.degree), 1);
+    for dNo = 1:numel(opt.degree)
         disc         = DGDiscretization(modelFV, ...
-                                   'degree', opt.degree(dNo,:), discArgs{:});
+                                   'degree', opt.degree{dNo}, discArgs{:});
         tmodelDG     = TransportModelDG(model, 'disc', disc);
         tmodelDG.disc.limiter{1} = getLimiter(tmodelDG, 'tvb', 0, 'plot', true);
         tmodelDG.parentModel.useCNVConvergence = false;
@@ -42,7 +42,7 @@ function setup = simple1d(args) %#ok
         modelDG{dNo} = SequentialPressureTransportModel(pmodel, tmodelDG, 'parentModel', model);
     end
 
-    time  = 2*opt.n;
+    time  = 1.5*opt.n;
     dt    = opt.n/100;
     dtvec = rampupTimesteps(time, dt, 0);
     
@@ -61,12 +61,19 @@ end
 
 %-------------------------------------------------------------------------%
 function setup = qfs_wo_2d(args) %#ok
-    opt = struct('n', 20, 'nkr', 1, 'degree', [0,1,2]', 'useGenericFV', true);
+    opt = struct('n', 20, 'nkr', 1, 'degree', {{0,1,2}}, 'k', {{[]}}, 'useGenericFV', true);
     [opt, discArgs] = merge_options(opt, args{:});
+
+    if isempty(opt.k)
+        k = cell(numel(degree),1);
+        [k{:}] = deal([]);
+        opt.k = k;
+    else
+        opt.degree = cellfun(@(k) max(sum(k,2)), opt.k, 'UniformOutput', false);
+    end
 
     G = computeGeometry(cartGrid([1,1]*opt.n, [500,500]*meter));
     G = createAugmentedGrid(G);
-%     G = computeCellDimensions(G);
     G = computeCellDimensions2(G);
     G.cells.equal = true;
     
@@ -103,11 +110,12 @@ function setup = qfs_wo_2d(args) %#ok
     
     modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
     
-    modelDG = cell(size(opt.degree,1), 1);
+    modelDG = cell(numel(opt.degree), 1);
     for dNo = 1:numel(opt.degree)
-        tmodelDG = TransportModelDG(mg, 'formulation', 'totalSaturation' , ...
-                                           'degree'     , opt.degree(dNo,:), ...
-                                           discArgs{:});
+        tmodelDG = TransportModelDG(mg, 'formulation', 'totalSaturation', ...
+                                        'degree'     , opt.degree{dNo}  , ...
+                                        'k'          , opt.k{dNo}       , ...
+                                        discArgs{:}                     );
         tmodelDG.parentModel.useCNVConvergence = false;
         tmodelDG.parentModel.nonlinearTolerance = 1e-3;
         tmodelDG.parentModel.OutputStateFunctions = {};

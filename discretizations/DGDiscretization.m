@@ -76,11 +76,12 @@ classdef DGDiscretization < SpatialDiscretization
             disc.internalConnParent  = disc.internalConn;
             disc.G.parent            = G;
             
-            disc = merge_options(disc, varargin{:});
+            [disc, basisArgs] = merge_options(disc, varargin{:});
             
             
             % Replace basis string by dG basis object
-            disc.basis  = dgBasis(disc.dim, disc.degree, disc.basis);
+            disc.basis  = dgBasis(disc.dim, disc.degree, disc.basis, basisArgs{:});
+            disc.degree = disc.basis.degree;
             
             % Set up velocity interpolation
             disc.velocityInterp = velocityInterpolation(G, 'mimetic');

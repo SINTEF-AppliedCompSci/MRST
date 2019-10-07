@@ -1,17 +1,15 @@
-function basis = dgBasis(dim, degree, type)
-    
-    perDim = true;
-    if numel(degree) == 1
-        perDim = false;
-        degree = repmat(degree,1,dim);
-    end
-    assert(numel(degree) == dim);
-    maxDegree = max(degree);
+function basis = dgBasis(dim, degree, type, varargin)
 
-    if maxDegree < 0
-        nDof = 0;
-        k    = [];
-    else
+    opt = struct('k', []);
+    opt = merge_options(opt, varargin{:});
+    
+    sz = size(degree);
+    assert(all(sz == 1) || sz(2) == dim);
+    
+    perDim    = numel(degree) > 1;
+
+    if isempty(opt.k)
+        maxDegree = max(degree);
         k = zeros(polyDim(maxDegree, 1).^dim, dim);
         for dNo = 1:dim   
             kk = repmat(0:maxDegree, polyDim(maxDegree, 1).^(dNo-1), ...
@@ -19,43 +17,45 @@ function basis = dgBasis(dim, degree, type)
             k(:,dNo) = kk(:);
         end
         k = k(sum(k,2) <= maxDegree,:);
-        [~, ix] = sort(sum(k,2));
-        k       = k(ix,:);
-        
-        if perDim
-            for d = 1:dim
-                ix      = k(:,d) > degree(d);
-                k(ix,:) = [];
-            end
+    else
+        k = opt.k;
+        maxDegree = max(sum(k,2));
+    end
+    [~, ix] = sort(sum(k,2));
+    k       = k(ix,:);
+    
+    if perDim
+        for d = 1:dim
+            ix      = k(:,d) > degree(d);
+            k(ix,:) = [];
         end
-        
-        nDof = size(k,1);
-        
-        switch type
-            case 'poly'
-                poly = simplePolynomials(maxDegree);
-            case 'legendre'
-                poly = legendrePolynomials(maxDegree);
-            case 'chebyshev'
-                poly = chebyshevPolynomials(maxDegree);                
-            otherwise
-                error('Unknown basis function class');
-        end
-        
-        [psi, gradPsi] = deal(cell(nDof,1));
-        for dofNo = 1:nDof
-            p = cell(dim, 1);
-            for dNo = 1:dim
-                p{dNo} = poly{k(dofNo,dNo)+1};
-            end
-            psi{dofNo} = tensorProduct(p{:});
-            gradPsi{dofNo} = grad(psi{dofNo});
-        end
+    end
+    nDof = size(k,1);
 
+    switch type
+        case 'poly'
+            poly = simplePolynomials(maxDegree);
+        case 'legendre'
+            poly = legendrePolynomials(maxDegree);
+        case 'chebyshev'
+            poly = chebyshevPolynomials(maxDegree);                
+        otherwise
+            error('Unknown basis function class');
+    end
+
+    [psi, gradPsi] = deal(cell(nDof,1));
+    for dofNo = 1:nDof
+        p = cell(dim, 1);
+        for dNo = 1:dim
+            p{dNo} = poly{k(dofNo,dNo)+1};
+        end
+        psi{dofNo} = tensorProduct(p{:});
+        gradPsi{dofNo} = grad(psi{dofNo});
     end
     
     basis = struct('psi'    , {psi}    , ...
                    'gradPsi', {gradPsi}, ...
+                   'degree' , maxDegree, ...
                    'k'      , k        , ...
                    'nDof'   , nDof     , ...
                    'type'   , type     );
