@@ -405,12 +405,21 @@ classdef TransportModelDG < TransportModel
             eqs = cell(1, numel(acc));
             state.wellStateDG.cells = (1:model.G.cells.num)';
             
+            cells  = rldecode((1:model.G.cells.num)', state.nDof, 1);
+            pv     = model.operators.pv(cells);
+            rhoS   = model.getSurfaceDensities();
+            cnames = model.getComponentNames();
+            
             for i = 1:numel(acc)
                 eqs{i} = d.inner(acc{i}     , psi    , 'dV') ...
                        - d.inner(cellflux{i}, gradPsi, 'dV') ...
                        + d.inner(flux{i}    , psi    , 'dS');
                 if ~isempty(src.cells)
                     eqs{i}(ix) = eqs{i}(ix) - src.value{i};
+                end
+                if ~model.useCNVConvergence
+                    sub = strcmpi(names{i}, cnames);
+                    eqs{i} = eqs{i}.*(dt./(pv.*rhoS(sub)));
                 end
             end
         end
