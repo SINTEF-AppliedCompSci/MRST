@@ -105,17 +105,9 @@ end
 
 function [out, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, shortname, name, opt, results)
     its = opt.iterations;
-    timer = tic();
-    for i = 1:its
-        matlab = fn_mat();
-    end
-    t_m = toc(timer);
+    [matlab, t_m] = perform_benchmark(fn_mat, its);
+    [mex, t_c] = perform_benchmark(fn_mex, its);
     
-    timer = tic();
-    for i = 1:its
-        mex = fn_mex();
-    end
-    t_c = toc(timer);
     out = matlab;
     v_error = norm(value(matlab) - value(mex))./norm(value(matlab));
     if ~issparse(mex.jac{1})
@@ -127,11 +119,7 @@ function [out, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, sh
     j_error = norm(matlab.jac{1} - mex.jac{1}, inf)./norm(matlab.jac{1}, inf);
     
     if opt.testSparse
-        timer = tic();
-        for i = 1:its
-            out_sparse = fn_sparse();
-        end
-        t_s = toc(timer);
+        [out_sparse, t_s] = perform_benchmark(fn_sparse, its);
     else
         out_sparse = nan;
         t_s = nan;
@@ -147,6 +135,23 @@ function [out, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, sh
     end
     if nargout > 1
         results.(shortname) = struct('t_matlab', t_m/its, 't_mex', t_c/its, 't_sparse', t_s/its, 'description', name);
+    end
+end
+
+function [out, t] = perform_benchmark(fn, its)
+    timer = tic();
+    bad = false;
+    try
+        for i = 1:its
+            out = fn();
+        end
+    catch
+        bad = true;
+    end
+    t = toc(timer);
+    if bad
+        t = nan;
+        out = nan;
     end
 end
 
