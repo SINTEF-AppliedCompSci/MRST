@@ -1,6 +1,7 @@
 classdef TransportModelDG < TransportModel
     
     properties
+        disc
     end
     
     methods
@@ -106,22 +107,22 @@ classdef TransportModelDG < TransportModel
             end
             parent = model.parentModel;
             % Get the AD state for this model
-            [basevars, dofbasenames, basenames, baseorigin] = model.getPrimaryVariables(state);
+            [basevars, basedofnames, basenames, baseorigin] = model.getPrimaryVariables(state);
             % Find saturations
             isS = false(size(basevars));
             nph = parent.getNumberOfPhases();
             phase_variable_index = zeros(nph, 1);
             for i = 1:numel(basevars)
-                [f, ix] = model.getVariableField(dofbasenames{i}, false);
-                if strcmp(f, 'sdof') || strcmpi(dofbasenames{i}, 'xdof')
+                [f, ix] = model.getVariableField(basedofnames{i}, false);
+                if strcmp(f, 'sdof') || strcmpi(basedofnames{i}, 'xdof')
                     isS(i) = true;
                     phase_variable_index(ix) = i;
                 end
             end
             % Figure out saturation logic
-            isP    = strcmp(dofbasenames, 'pressuredof');
+            isP    = strcmp(basedofnames, 'pressuredof');
             vars   = basevars;
-            names  = dofbasenames;
+            names  = basedofnames;
             origin = baseorigin;
             useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
                                     && sum(isS) == nph - 1;
@@ -150,18 +151,19 @@ classdef TransportModelDG < TransportModel
                 basevars(~isP) = vars;
             end
             % Let parent model handle state initialization
-            state = model.initStateAD(state, basevars, basenames, baseorigin);
+            state = model.initStateAD(state, basevars, basedofnames, baseorigin);
+            state = model.evaluateBaseVariables(state);
             fixedSat = false;
-            for i = 1:numel(dofbasenames)
+            for i = 1:numel(basedofnames)
                 if any(strcmpi(basenames{i}, {'sw', 'so', 'sg', 'x'}))
                     if fixedSat
                         continue
                     end
-                    basenames{i} = 's';
-                    dofbasenames{i}  = 'sdof';
-                    fixedSat = true;
+                    basenames{i}    = 's';
+                    basedofnames{i} = 'sdof';
+                    fixedSat        = true;
                 end
-                v     = model.getProp(state, dofbasenames{i});
+                v     = model.getProp(state, basedofnames{i});
                 vm    = model.disc.getCellMean(state, value(v));
                 state = model.setProp(state, basenames{i}, vm); 
             end
@@ -185,46 +187,62 @@ classdef TransportModelDG < TransportModel
         
         function state = initStateAD(model, state, vars, names, origin)
               
-            pmodel = model.parentModel;
-            isBO = strcmpi(class(pmodel), 'GenericBlackOilModel');
-            if isBO && (pmodel.disgas || pmodel.vapoil)
-                removed = false(size(vars));
-                if pmodel.water
-                    isw     = strcmpi(names, 'sw');
-                    sWdof   = vars{isw};
-                    sW      = model.getProp(state, 'sW');
-                    removed = removed | isw;
-                else
-                    sW = 0;
-                end
+            pmodel  = model.parentModel;
+            removed = false(size(vars));
+            isBO    = strcmpi(class(pmodel), 'GenericBlackOilModel');
+            if isBO
+                if pmodel.disgas || pmodel.vapoil
+                    if pmodel.water
+                        isw     = strcmpi(names, 'swdof');
+                        sWdof   = vars{isw};
+                        sW      = model.getProp(state, 'sw');
+                        removed = removed | isw;
+                    else
+                        sW = 0;
+                    end
 
-                isx  = strcmpi(names, 'x');
-                xdof = vars{isx};
-                sG   = model.getProps(state, 'sG');
-                st   = pmodel.getCellStatusVO(state, 1-sW-sG, sW, sG);
-                cells = rldecode((1:model.G.cells.num)', state.nDof, 1);
-                for j = 1:numel(st)
-                    if numel(st{j}) == model.G.cells.num
-                        st{j} = st{j}(cells);
+                    isx  = strcmpi(names, 'xdof');
+                    xdof = vars{isx};
+                    sG   = model.getProps(state, 'sg');
+                    st   = pmodel.getCellStatusVO(state, 1-sW-sG, sW, sG);
+                    cells = rldecode((1:model.G.cells.num)', state.nDof, 1);
+                    for j = 1:numel(st)
+                        if numel(st{j}) == model.G.cells.num
+                            st{j} = st{j}(cells);
+                        end
+                    end
+                    sGdof = st{2}.*(1-sWdof) + st{3}.*xdof;
+                    fill = model.disc.getFillSat(state);
+                    sOdof = st{1}.*(fill-sWdof) + ~st{1}.*(fill - sWdof - sGdof);
+                    if pmodel.water
+                        sat = {sWdof, sOdof, sGdof};
+                    else
+                        sat = {sOdof, sGdof};
+                    end
+                    removed(isx) = true;
+                else
+                    % Without variable switching
+                    phases = pmodel.getPhaseNames();
+                    nph = numel(phases);
+                    sat = cell(1, nph);
+                    fill = model.disc.getFillSat(state);
+                    removed_sat = false(1, nph);
+                    for i = 1:numel(phases)
+                        sub = strcmpi(names, ['s', phases(i), 'dof']);
+                        if any(sub)
+                            fill = fill - vars{sub};
+                            removed = removed | sub;
+                            removed_sat(i) = true;
+                            sat{i} = vars{sub};
+                        end
+                    end
+                    if any(~removed_sat)
+                        sat{~removed_sat} = fill;
                     end
                 end
-                sGdof = st{2}.*(1-sWdof) + st{3}.*xdof;
-                fill = model.disc.getFillSat(state);
-                sOdof = st{1}.*(fill-sWdof) + ~st{1}.*(fill - sWdof - sGdof);
-                if pmodel.water
-                    sat = {sWdof, sOdof, sGdof};
-                else
-                    sat = {sOdof, sGdof};
-                end
-                removed(isx) = true;
                 state = model.setProp(state, 'sdof', sat);
-                names = names(~removed);
-                vars  = vars(~removed);
-                for i = 1:numel(names)
-                    state = model.setProp(state, [names{i}, 'dof'], vars{i});
-                end
                 state = model.initStateFunctionContainers(state);
-                
+
                 if not(isempty(pmodel.FacilityModel))
                     % Select facility model variables and pass them off to attached
                     % class.
@@ -251,16 +269,13 @@ classdef TransportModelDG < TransportModel
                     rv = model.disc.getCellMean(state, value(rvdof));
                     sO = model.disc.getCellMean(state, value(sOdof));
                     bad_oil = value(sO) == 0 & value(rv) == 0;
-                    
+
                     if any(bad_oil)
                         sOdof(bad_oil) = 1 - sWdof(bad_oil) - value(sGdof(bad_oil));
                         state = model.setProp(state, 'sOdof', sOdof);
                     end
                 end
-            else
-                state = initStateAD@TransportModel(model, state, vars, names, origin);
-                v     = model.getProp(state, 's');
-                state = model.setProp(state, 'sdof', v);
+                
             end
             
             state = model.evaluateBaseVariables(state);
