@@ -49,19 +49,19 @@ classdef DiagonalSubset < DiagonalJacobian
                 else
                     n = size(x.map, 2);
                 end
-                v1 = repmat(v1, n, 1);
-                v2 = repmat(v2, n, 1);
-                if allow_implicit
-                    if isempty(x.diagonal)
-                        x.diagonal = y.diagonal.*v1;
-                    elseif isempty(y.diagonal)
-                        x.diagonal = x.diagonal.*v2;
-                    else
-                        x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
-                    end
+                if isempty(x.diagonal)
+                    [x, D1] = diagMult(v1, y, D1);
+                elseif isempty(y.diagonal)
+                    [x, D2] = diagMult(v2, x, D2);
                 else
-                    x.diagonal = bsxfun(@times, x.diagonal, v2) + ...
-                                 bsxfun(@times, y.diagonal, v1);
+                    v1 = repmat(v1, n, 1);
+                    v2 = repmat(v2, n, 1);
+                    if allow_implicit
+                        x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
+                    else
+                        x.diagonal = bsxfun(@times, x.diagonal, v2) + ...
+                                     bsxfun(@times, y.diagonal, v1);
+                    end
                 end
             end
         end
