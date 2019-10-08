@@ -30,7 +30,11 @@ classdef Tensor
            for fn = fnames(:)'
               t.tbl.(fn{:}) = reshape(t.tbl.(fn{:}), [], 1);
            end
-           t.tbl.num = numel(t.tbl.(fnames{1}));
+           if isempty(fnames)
+              t.tbl.num = 1;
+           else
+              t.tbl.num = numel(t.tbl.(fnames{1}));
+           end
         end
      end
      
@@ -53,7 +57,8 @@ classdef Tensor
                intersect(Tensor.index_fields(self.tbl), ...
                          Tensor.index_fields(other.tbl));
            if ~isempty(contract_along)
-              contract_along = {contract_along};
+              contract_along = cellfun(@(x) {x, x}, contract_along, ...
+                                       'UniformOutput', false);
            end
         end
         
@@ -62,8 +67,8 @@ classdef Tensor
        fields1 = {}; fields2 = {}; tmpnames = {};
        for i = 1:numel(contract_along)
           tmpnames{i} = [bname, num2str(i)]; %#ok
-          fields1 = [fields1, {contract_along{i}{1}, tmpnames{i}}]; %#ok
-          fields2 = [fields2, {contract_along{i}{end}, tmpnames{i}}]; %#ok
+          fields1 = {fields1{:}, {contract_along{i}{1}, tmpnames{i}}}; %#ok
+          fields2 = {fields2{:}, {contract_along{i}{end}, tmpnames{i}}}; %#ok
        end
        
        if ~isempty(fields1)
