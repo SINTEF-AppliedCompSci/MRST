@@ -215,16 +215,16 @@ classdef TransportModelDG < TransportModel
                     fill = model.disc.getFillSat(state);
                     sOdof = st{1}.*(fill-sWdof) + ~st{1}.*(fill - sWdof - sGdof);
                     if pmodel.water
-                        sat = {sWdof, sOdof, sGdof};
+                        satdof = {sWdof, sOdof, sGdof};
                     else
-                        sat = {sOdof, sGdof};
+                        satdof = {sOdof, sGdof};
                     end
                     removed(isx) = true;
                 else
                     % Without variable switching
                     phases = pmodel.getPhaseNames();
                     nph = numel(phases);
-                    sat = cell(1, nph);
+                    satdof = cell(1, nph);
                     fill = model.disc.getFillSat(state);
                     removed_sat = false(1, nph);
                     for i = 1:numel(phases)
@@ -233,15 +233,16 @@ classdef TransportModelDG < TransportModel
                             fill = fill - vars{sub};
                             removed = removed | sub;
                             removed_sat(i) = true;
-                            sat{i} = vars{sub};
+                            satdof{i} = vars{sub};
                         end
                     end
                     if any(~removed_sat)
-                        sat{~removed_sat} = fill;
+                        satdof{~removed_sat} = fill;
                     end
                 end
-                state = model.setProp(state, 'sdof', sat);
-                state = model.initStateFunctionContainers(state);
+                state = model.setProp(state, 'sdof', satdof);
+                sat   = model.disc.getCellMean(state, satdof);
+                state = model.setProp(state, 's', sat);
 
                 if not(isempty(pmodel.FacilityModel))
                     % Select facility model variables and pass them off to attached
@@ -251,12 +252,23 @@ classdef TransportModelDG < TransportModel
                     state = pmodel.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
                     removed = removed | isF;
                 end
+                
+                vars   = vars(~removed);
+                names  = names(~removed);
+                origin = origin(~removed);
+                for i = 1:numel(names)
+                    state = model.setProp(state, names{i}, vars{i});
+                end
+                state = model.initStateFunctionContainers(state);
+
                 if pmodel.disgas
                     rsSat = pmodel.getProp(state, 'RsMax');
                     rsSat = rsSat(cells);
                     rsdof = ~st{1}.*rsSat + st{1}.*xdof;
                     % rs = rs.*(value(sO) > 0);
                     state = model.setProp(state, 'rsdof', rsdof);
+                    rs    = model.disc.getCellMean(state, rsdof);
+                    state = model.setProp(state, 'rs', rs);
                 end
 
                 if pmodel.vapoil
@@ -265,19 +277,20 @@ classdef TransportModelDG < TransportModel
                     rvdof = ~st{2}.*rvSat + st{2}.*xdof;
                     % rv = rv.*(value(sG) > 0);
                     state = model.setProp(state, 'rvdof', rvdof);
+                    rv    = model.disc.getCellMean(state, rvdof);
+                    state = model.setProp(state, 'rv', rv);
                     % No rv, no so -> zero on diagonal in matrix
-                    rv = model.disc.getCellMean(state, value(rvdof));
                     sO = model.disc.getCellMean(state, value(sOdof));
                     bad_oil = value(sO) == 0 & value(rv) == 0;
-
                     if any(bad_oil)
-                        sOdof(bad_oil) = 1 - sWdof(bad_oil) - value(sGdof(bad_oil));
+                        sOdof(bad_oil) = fill - sWdof(bad_oil) - value(sGdof(bad_oil));
                         state = model.setProp(state, 'sOdof', sOdof);
+                        sO    = model.disc.getCellMean(state, sOdof);
+                        state = model.setProp(state, 'sO', sO);
                     end
                 end
                 
             end
-            
             state = model.evaluateBaseVariables(state);
             
         end
@@ -446,8 +459,8 @@ classdef TransportModelDG < TransportModel
             state = rmfield(state, 'faceStateDG');
             state = rmfield(state, 'wellStateDG');
             
-            if 0 %&& strcmpi(class(model.parentModel), 'GenericBlackOilModel') && ...
-                 %   && model.parentModel.disgas || model.parentModel.vapoil
+            if strcmpi(class(model.parentModel), 'GenericBlackOilModel') ...
+                 && model.parentModel.disgas || model.parentModel.vapoil
                 [state, report] = model.updateStateBO(state, problem, dx, drivingForces);
             else
                 state0 = state;
@@ -502,10 +515,10 @@ classdef TransportModelDG < TransportModel
         
         % --------------------------------------------------------------------%
         function [state, report] = updateStateBO(model, state, problem, dx, drivingForces)
-            vars = problem.primaryVariables;
+            vars    = problem.primaryVariables;
             removed = false(size(vars));
-            pmodel = model.parentModel;
-            cells = rldecode((1:model.G.cells.num)', state.nDof, 1);
+            pmodel  = model.parentModel;
+            cells   = rldecode((1:model.G.cells.num)', state.nDof, 1);
             if pmodel.disgas || pmodel.vapoil
                 % The VO model is a bit complicated, handle this part
                 % explicitly.
@@ -519,12 +532,12 @@ classdef TransportModelDG < TransportModel
                 removed(~removed) = removed(~removed) | ix;
 
                 % Black oil with dissolution
-                [so, sg, sodof, sgdof] = model.getProps(state, 'so', 'sg', 'sodof', 'sgdof');
+                [so, sg] = model.getProps(state, 'so', 'sg');
                 if pmodel.water
-                    sw = model.getProp(state, 'sw');
+                    sw  = model.getProp(state, 'sw');
                     dsw = model.getIncrement(dx, problem, 'swdof');
                 else
-                    sw = 0;
+                    sw  = 0;
                     dsw = 0;
                 end
                 % Magic status flag, see inside for doc
@@ -573,33 +586,30 @@ classdef TransportModelDG < TransportModel
                 end
 
                 state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, pmodel.dsMaxAbs);
-                state.s = model.disc.getCellMean(state, state.sdof);
-                if pmodel.vapoil
-                    state.rs = model.disc.getCellMean(state, state.rsdof);
-                end
-                if pmodel.disgas
-                    state.rv = model.disc.getCellMean(state, state.rvdof);
-                end
+                state = model.assignBaseVariables(state);
+                
                 kr = pmodel.FlowPropertyFunctions.RelativePermeability;
                 state = kr.applyImmobileChop(model, state, state0);
 
                 % We should *NOT* be solving for oil saturation for this to make sense
                 assert(~any(strcmpi(vars, 'sodof')));
                 
-                problem0 = problem;
-                problem0.primaryVariables = {'swdof', 'sodof', 'sgdof'};
+%                 problem0 = problem;
+                names = {'swdof', 'sodof', 'sgdof'};
                 if pmodel.disgas
-                    problem0.primaryVariables{end+1} = 'rsdof';
+                    names{end+1} = 'rsdof';
                 end
                 if pmodel.vapoil
-                    problem0.primaryVariables{end+1} = 'rvdof';
+                    names{end+1} = 'rvdof';
                 end
-                dx0 = model.getMeanIncrement(state, state0, problem0);
+                dx0 = model.getMeanIncrement(state, state0, names);
                 
                 state_corr = computeFlashBlackOil(state, state0, pmodel, st0);
                 state_corr.s  = bsxfun(@rdivide, state_corr.s, sum(state_corr.s, 2));
 
-                dx0_corr = model.getMeanIncrement(state_corr, state0, problem0);
+                problem0 = problem;
+                problem0.primaryVariables = names;
+                dx0_corr = model.getMeanIncrement(state_corr, state0, names);
                 
                 frac = cell(1, numel(dx0));
                 dx_corr = cell(1, 3);
@@ -619,6 +629,7 @@ classdef TransportModelDG < TransportModel
                 end
                 % Update saturation dofs
                 state = model.updateSaturations(state0, dx_corr, problem0, {'swdof', 'sodof', 'sgdof'});
+                state.status = state_corr.status;
                 % Update non-saturation dofs
                 restVars = {};
                 if pmodel.disgas
@@ -633,7 +644,7 @@ classdef TransportModelDG < TransportModel
                 
                 %  We have explicitly dealt with rs/rv properties, remove from list
                 %  meant for autoupdate.
-                [vars, ix] = model.stripVars(vars, {'sw', 'so', 'sg', 'rs', 'rv', 'x'});
+                [vars, ix] = model.stripVars(vars, {'swdof', 'sodof', 'sgdof', 'rsdof', 'rvdof', 'xdof'});
                 removed(~removed) = removed(~removed) | ix;
             end
 
@@ -643,8 +654,8 @@ classdef TransportModelDG < TransportModel
             % the generic reservoir update function.
             problem.primaryVariables = vars;
             dx(removed) = [];
-
             report = [];
+%             [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
         end
         
         %-----------------------------------------------------------------%
@@ -723,11 +734,8 @@ classdef TransportModelDG < TransportModel
             ds(ix, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            dsMaxAbs = inf;
-            if 0
-                dsMaxAbs = 0.2;
-            end
-            state   = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, dsMaxAbs);
+            dsAbsMax = model.parentModel.dsMaxAbs/model.disc.basis.nDof;
+            state = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, dsAbsMax);
             
         end
         
@@ -767,6 +775,14 @@ classdef TransportModelDG < TransportModel
             if ~isempty(model.disc.limiter)
                 state = model.disc.limiter{2}(state, 's');
                 state = model.disc.limiter{1}(state, 's');
+                if isa(model, 'GenericBlackOilModel')
+                    if model.disgas
+                        state = model.disc.limiter{1}(state, 'rs');
+                    end
+                    if model.vapoil
+                        state = model.disc.limiter{1}(state, 'rv');
+                    end
+                end
             end
 
         end
