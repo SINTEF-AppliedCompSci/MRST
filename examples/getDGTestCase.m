@@ -42,8 +42,8 @@ function setup = simple1d(args) %#ok
         modelDG{dNo} = SequentialPressureTransportModel(pmodel, tmodelDG, 'parentModel', model);
     end
 
-    time  = 1.5*opt.n;
-    dt    = opt.n/100;
+    time  = 2*opt.n;
+    dt    = opt.n/50;
     dtvec = rampupTimesteps(time, dt, 0);
     
     W = [];
@@ -64,8 +64,8 @@ function setup = qfs_wo_2d(args) %#ok
     opt = struct('n', 20, 'nkr', 1, 'degree', {{0,1,2}}, 'k', {{[]}}, 'useGenericFV', true);
     [opt, discArgs] = merge_options(opt, args{:});
 
-    if isempty(opt.k)
-        k = cell(numel(degree),1);
+    if isempty(opt.k{1})
+        k = cell(numel(opt.degree),1);
         [k{:}] = deal([]);
         opt.k = k;
     else
@@ -123,7 +123,7 @@ function setup = qfs_wo_2d(args) %#ok
     end
 
     time  = 2*year;
-    rate  = sum(poreVolume(G, rock))/time;
+    rate  = 1.5*sum(poreVolume(G, rock))/time;
     dt    = 10*day;
 %     dtvec = rampupTimesteps(time, dt);
     dtvec = rampupTimesteps(time, dt, 0);
@@ -227,7 +227,8 @@ function setup = spe10_wo(args) %#ok
     opt = struct('layers', 10, 'dt', 15*day, 'T', 2000*day, 'I', 1:60, 'J', 1:220, 'degree', (0:1)');
     [opt, discArgs] = merge_options(opt, args{:});
     
-    [state0, model, schedule] = setupSPE10_AD('layers', opt.layers);
+    make2d = numel(opt.layers) == 1;
+    [state0, model, schedule] = setupSPE10_AD('layers', opt.layers, 'I', opt.I, 'J', opt.J, 'make2d', make2d);
 
     fluid = restrictRelperms(model.fluid);
     
@@ -235,6 +236,7 @@ function setup = spe10_wo(args) %#ok
     G = computeGeometry(G);
     G = createAugmentedGrid(G);
     G = computeCellDimensions2(G);
+    [G.cells.equal, G.faces.equal] = deal(true);
     
     model  = GenericBlackOilModel(G, model.rock, fluid, 'gas', false);
     pmodel = PressureModel(model);
@@ -242,6 +244,8 @@ function setup = spe10_wo(args) %#ok
     tmodel.formulation = 'totalSaturation';
     tmodel.parentModel.useCNVConvergence = false;
     tmodel.parentModel.nonlinearTolerance = 1e-3;
+    
+    nls = NonLinearSolver('useLineSearch', true);
     
     modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
     
@@ -342,20 +346,40 @@ end
 %-------------------------------------------------------------------------%
 function setup = spe1(args) %#ok
 
-    opt = struct('degree', 0:2);
+    opt = struct('degree', 0:1, 'useGenericFV', true, 'subset', false);
     [opt, discArgs] = merge_options(opt, args{:});
     
     [G, rock, fluid, deck, state0] = setupSPE1();
+    
+    G = computeGeometry(G);
     G = computeCellDimensions2(G);
-
+    G.cells.equal = false;
+    
     model = selectModelFromDeck(G, rock, fluid, deck);
-
+    fluid = restrictRelperms(fluid);
+    schedule = convertDeckScheduleToMRST(model, deck);
+    if opt.subset
+        pv0 = sum(poreVolume(G, rock));
+        [ii, jj, kk] = gridLogicalIndices(G);
+        keep = ii <= 3 & jj <= 3 & kk == 1;
+        G = extractSubgrid(G, keep);
+        rock = extractSubrock(rock, keep);
+        G = computeGeometry(G);
+        G = computeCellDimensions2(G);
+        model = selectModelFromDeck(G, rock, fluid, deck);
+    end
     pmodel = PressureModel(model);
-    tmodel = TransportModel(model);
-    tmodel.formulation = 'missingPhase';
-    tmodel.parentModel.useCNVConvergence = false;
-    tmodel.parentModel.nonlinearTolerance = 1e-3;
-    modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
+    if opt.useGenericFV    
+        tmodel = TransportModel(model);
+        tmodel.formulation = 'missingPhase';
+        tmodel.parentModel.useCNVConvergence = false;
+        tmodel.parentModel.nonlinearTolerance = 1e-3;
+        modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
+    else
+        m       = ThreePhaseBlackOilModel(G, rock, fluid, 'vapoil', model.vapoil, 'disgas', model.disgas);
+        modelFV = getSequentialModelFromFI(m);
+    end
+        
 
     modelDG = cell(numel(opt.degree), 1);
     for dNo = 1:numel(opt.degree)
@@ -370,8 +394,21 @@ function setup = spe1(args) %#ok
     end
     
     % Convert the deck schedule into a MRST schedule by parsing the wells
-    schedule = convertDeckScheduleToMRST(model, deck);
+    if opt.subset
+        pv = sum(poreVolume(G, rock));
+        schedule.control(1).W(2).cells = G.cells.num;
+        schedule.control(1).W(1).val = schedule.control(1).W(1).val.*pv/pv0;
+        schedule.control(1).W(2).val = schedule.control(1).W(2).val.*pv/pv0;
+        state0.pressure = state0.pressure(G.cells.indexMap);
+        state0.s        = state0.s(G.cells.indexMap,:);
+        state0.rs       = state0.rs(G.cells.indexMap);
+    end
     
+    if 0
+        ix = 1:11;
+        schedule.step.val     = schedule.step.val(ix);
+        schedule.step.control = schedule.step.control(ix);
+    end
     setup = packSetup(state0, schedule, {{model}}, {{modelFV}}, {modelDG});
     
 end
