@@ -7,12 +7,23 @@ classdef Tensor
   
   methods
      function t = Tensor(nzv, ind_tbl)
+        if nargin == 1 && isstruct(nzv)
+           % special case: user wants an indicator tensor, and nzv is really a
+           % table struct here.  Let all cofficients be ones
+           flds = Tensor.index_fields(nzv);
+           t = Tensor(ones(numel(nzv.(flds{1})), 1), nzv);
+           return 
+        end
+        
         assert(isvector(nzv)) % should not be a matrix!
         t.nzvals = nzv(:);
         if nargin < 2
            % if no index set is provided, create a default one
            t.tbl = struct('ix', (1:numel(nzv))', 'num', numel(nzv));
            return 
+        elseif ischar(ind_tbl)
+           t.tbl = struct(ind_tbl, (1:numel(nzv))', 'num', numel(nzv));
+           return
         elseif iscell(ind_tbl)
            % make a non-sparse, cartesian index table
            indices = cellfun(@(x) 1:x, ind_tbl(2:2:end), 'UniformOutput', false);
@@ -38,63 +49,39 @@ classdef Tensor
         end
      end
      
-     function self = contractIn(self, contract_ixs)
+     
+     function self = project(self, other)
+        common_indexsets = Tensor.find_common_indices(self, other);
+        
+        [~, combined_tbl] = ...
+            setupTableMapping(self.tbl, other.tbl, common_indexsets);
+        
+        m1 = setupTableMapping(self.tbl, combined_tbl, ...
+                               Tensor.index_fields(self.tbl));
+        m2 = setupTableMapping(other.tbl, combined_tbl, ...
+                               Tensor.index_fields(other.tbl));
+        self.nzvals = (m1 * self.nzvals) .* (m2 * other.nzvals);
+        self.tbl = combined_tbl;
+        
+     end
+
+     function self = contract(self, contract_ixs)
         if ~iscell(contract_ixs)
            contract_ixs = {contract_ixs};
         end
         keep_ixs = setdiff(Tensor.index_fields(self.tbl), contract_ixs);
-        tbl = projTable(self.tbl, keep_ixs);
-        map = setupTableMapping(self.tbl, tbl, Tensor.index_fields(tbl));
-        self.tbl = tbl;
+        projtbl = projTable(self.tbl, keep_ixs); 
+        map = setupTableMapping(self.tbl, projtbl, Tensor.index_fields(projtbl));
+        self.tbl = projtbl;
         self.nzvals = map * self.nzvals;
      end
      
-     
-     function res = combineWith(self, other, contract_along)
 
-        if nargin < 3
-           contract_along = ...
-               intersect(Tensor.index_fields(self.tbl), ...
-                         Tensor.index_fields(other.tbl));
-           if ~isempty(contract_along)
-              contract_along = cellfun(@(x) {x, x}, contract_along, ...
-                                       'UniformOutput', false);
-           end
-        end
-        
-       % setting identifying names of index fields to contract
-       bname = 'contract_me___'; % hopefully an unique name
-       fields1 = {}; fields2 = {}; tmpnames = {};
-       for i = 1:numel(contract_along)
-          tmpnames{i} = [bname, num2str(i)]; %#ok
-          fields1 = {fields1{:}, {contract_along{i}{1}, tmpnames{i}}}; %#ok
-          fields2 = {fields2{:}, {contract_along{i}{end}, tmpnames{i}}}; %#ok
-       end
-       
-       if ~isempty(fields1)
-          tbl_1 = replacefield(self.tbl, fields1);
-       else
-          tbl_1 = self.tbl;
-       end
-       
-       if ~isempty(fields2)
-          tbl_2 = replacefield(other.tbl, fields2);
-       else
-          tbl_2 = other.tbl;
-       end
-
-       fds = ...
-           {setdiff(Tensor.index_fields(tbl_1), tmpnames),
-            setdiff(Tensor.index_fields(tbl_2), tmpnames),
-            tmpnames};
-       
-       [res_vals, res_tbl] = ...
-           contractTable({self.nzvals, tbl_1}, ...
-                         {other.nzvals, tbl_2}, ...
-                         fds);
-       res = Tensor(res_vals, res_tbl);
-    end
-    
+     function self = formalProduct(self, other)
+        common_indexsets = Tensor.find_common_indices(self, other);
+        self = self.project(other).contract(common_indexsets);
+     end
+          
     function self = changeIndexName(self, oldname, newname)
        cur_fields = fields(self.tbl);
        if ~any(strcmp(cur_fields, oldname))
@@ -107,32 +94,32 @@ classdef Tensor
        self.tbl = rmfield(self.tbl, oldname);
     end
 
-    function self = add(self, other)
-    % check for compatibility
-       if ~Tensor.compatible_tables(self, other)
-          error('Tried to add incompatible tensors')
-       end
-       ifields = Tensor.index_fields(self.tbl);
-       self = self.sortIndices(ifields);
-       other_sorted = other.sortIndices(ifields);
-       
-       self.nzvals = self.nzvals + other_sorted.nzvals;
+    function self = plus(self, other)
+       self = Tensor.apply_binary_operator(self, other, @plus);
     end
+
+    function self = minus(self, other)
+       self = Tensor.apply_binary_operator(self, other, @minus);
+    end
+
+    function self = rdivide(self, other)
+       self = Tensor.apply_binary_operator(self, other, @rdivide);
+    end
+
+    function self = times(self, other)
+       self = Tensor.apply_binary_operator(self, other, @times);
+    end       
     
     function t = mtimes(self, other)
-       t = self.combineWith(other);
-    end
-    
-    function t = plus(self, other)
-       t = self.add(other);
+       t = self.formalProduct(other);
     end
     
     function self = sortIndices(self, ixset_order)
        num = self.tbl.num;
-       [tbl, I] = Tensor.sort_table(self.tbl, ixset_order);
-       tbl.num = num;
+       [new_tbl, I] = Tensor.sort_table(self.tbl, ixset_order);
+       new_tbl.num = num;
        self.nzvals = self.nzvals(I);
-       self.tbl = tbl;
+       self.tbl = new_tbl;
     end
     
     function M = asSparseMatrix(self, dims)
@@ -142,7 +129,7 @@ classdef Tensor
           error('Input ''dims'' must be a permutation of the index sets')
        end
        if numel(dims) == 1
-          M = sparse(max(self.tbl.(dims{1})), 1)
+          M = sparse(max(self.tbl.(dims{1})), 1);
           M(self.tbl.(dims{1})) = self.nzvals;
           return
        end
@@ -152,6 +139,12 @@ classdef Tensor
   end  
   
   methods(Static)
+          
+     function tensor = toInd(tensor)
+        tensor.nzvals = ones(numel(tensor.nzvals), 1);
+     end
+
+     
      function flds = index_fields(tbl)
         flds = setdiff(fields(tbl), {'num', 'ind'});
      end
@@ -194,6 +187,72 @@ classdef Tensor
         % all tests passed, index sets are equal
         iscompat = true;
      end
+     
+     function res = apply_binary_operator(t1, t2, op)   
+     % check for compatibility
+        if ~Tensor.compatible_tables(t1, t2)
+           error('Tried to apply binary operator to incompatible tensors')
+        end
+        ifields = Tensor.index_fields(t1.tbl);
+        res = t1.sortIndices(ifields);
+        t2_sorted = t2.sortIndices(ifields);
+        
+        res.nzvals = op(res.nzvals,  t2_sorted.nzvals);
+     end
+     
+     function isetlist = find_common_indices(t1, t2)
+        isetlist = intersect(Tensor.index_fields(t1.tbl), ...
+                             Tensor.index_fields(t2.tbl));
+     end
+
+     
   end
   
 end
+
+
+    %  function res = combineWith(self, other, contract_along)
+
+    %     if nargin < 3
+    %        contract_along = ...
+    %            intersect(Tensor.index_fields(self.tbl), ...
+    %                      Tensor.index_fields(other.tbl));
+    %        if ~isempty(contract_along)
+    %           contract_along = cellfun(@(x) {x, x}, contract_along, ...
+    %                                    'UniformOutput', false);
+    %        end
+    %     end
+        
+    %    % setting identifying names of index fields to contract
+    %    bname = 'contract_me___'; % hopefully an unique name
+    %    fields1 = {}; fields2 = {}; tmpnames = {};
+    %    for i = 1:numel(contract_along)
+    %       tmpnames{i} = [bname, num2str(i)]; %#ok
+    %       fields1 = {fields1{:}, {contract_along{i}{1}, tmpnames{i}}}; %#ok
+    %       fields2 = {fields2{:}, {contract_along{i}{end}, tmpnames{i}}}; %#ok
+    %    end
+       
+    %    if ~isempty(fields1)
+    %       tbl_1 = replacefield(self.tbl, fields1);
+    %    else
+    %       tbl_1 = self.tbl;
+    %    end
+       
+    %    if ~isempty(fields2)
+    %       tbl_2 = replacefield(other.tbl, fields2);
+    %    else
+    %       tbl_2 = other.tbl;
+    %    end
+
+    %    fds = ...
+    %        {setdiff(Tensor.index_fields(tbl_1), tmpnames), ...
+    %         setdiff(Tensor.index_fields(tbl_2), tmpnames), ...
+    %         tmpnames};
+       
+    %    [res_vals, res_tbl] = ...
+    %        contractTable({self.nzvals, tbl_1}, ...
+    %                      {other.nzvals, tbl_2}, ...
+    %                      fds);
+    %    res = Tensor(res_vals, res_tbl);
+    % end
+    
