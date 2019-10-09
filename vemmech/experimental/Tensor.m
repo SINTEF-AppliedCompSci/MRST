@@ -72,14 +72,8 @@ classdef Tensor
         self.nzvals = map * self.nzvals;
      end
      
-
-     function self = formalProduct(self, other, iset)
-        if nargin > 2
-           common_indexsets = iset;
-        else
-           common_indexsets = Tensor.find_common_indices(self, other);
-        end
-        % @@ TODO: make this work when 'iset' refers to two separate index sets
+     function self = formalProduct(self, other)
+        common_indexsets = Tensor.find_common_indices(self, other);
         self = self.project(other).contract(common_indexsets);
      end
           
