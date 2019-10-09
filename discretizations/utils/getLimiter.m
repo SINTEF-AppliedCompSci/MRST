@@ -7,7 +7,7 @@ function limiter = getLimiter(model, type, tol, varargin)
             interpSetup = getInterpolationSetup(model);
             limiter = @(state, name) tvb(state, model, interpSetup, name, tol, opt);
         case 'scale'
-            limiter = @(state, name) scale(state, model, name);
+            limiter = @(state, name, limits) scale(state, model, name, limits);
     end
     
 end
@@ -195,7 +195,7 @@ end
 %-------------------------------------------------------------------------%
 % Scale limiter
 %-------------------------------------------------------------------------%
-function state = scale(state, model, name)
+function state = scale(state, model, name, limits)
 
     G = model.G;
     disc = model.disc;
@@ -207,8 +207,8 @@ function state = scale(state, model, name)
     
     for i = 1:nc
         [vMin, vMax] = disc.getMinMax(state, dof(:,nc));
-        theta = [(v(:,nc) - 0)./(v(:,nc) - vMin), ...
-                 (1 - v(:,nc))./(vMax - v(:,nc)), ...
+        theta = [(v(:,nc) - limits(:,1))./(v(:,nc) - vMin), ...
+                 (limits(:,2) - v(:,nc))./(vMax - v(:,nc)), ...
                  ones(G.cells.num,1)          ];
         theta(~isfinite(theta) | abs(theta) > 1) = 1;
         %             theta(abs(theta) > 1) = 1;
