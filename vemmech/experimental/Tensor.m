@@ -6,49 +6,45 @@ classdef Tensor
   end
   
   methods
-     function t = Tensor(nzv, ind_tbl)
-        if nargin == 1 && isstruct(nzv)
-           % special case: user wants an indicator tensor, and nzv is really a
-           % table struct here.  Let all cofficients be ones
-           flds = Tensor.index_fields(nzv);
-           t = Tensor(ones(numel(nzv.(flds{1})), 1), nzv);
-           return 
+
+     function self = Tensor(varargin)
+     % dispatch constructor based on argument
+        tt = [];
+        switch nargin
+          case 1
+            a = varargin{1};
+            if Tensor.isTable(a)
+               tt = Tensor.make_indicator_tensor(a);
+            elseif isvector(a)
+               tt = Tensor.make_vector_tensor(a);
+            elseif ismatrix(a)
+               tt = Tensor.make_matrix_tensor(a);
+            end
+          case 2
+            [a, b] = deal(varargin{:});
+            if isvector(a)
+               if ischar(b)
+                  tt = Tensor.make_vector_tensor(a, b);
+               elseif Tensor.isLabelDimList(b)
+                  tt = Tensor.make_full_tensor(a, b);
+               elseif Tensor.isTable(b)
+                  tt = Tensor.make_generic_tensor(a, b);
+               end
+            elseif ismatrix(a) && Tensor.isLabelList(b)
+               tt = Tensor.make_matrix_tensor(a, b);
+            end
+          otherwise
+            % do nothing, we'll report the error further down
         end
-        
-        assert(isvector(nzv)) % should not be a matrix!
-        t.nzvals = nzv(:);
-        if nargin < 2
-           % if no index set is provided, create a default one
-           t.tbl = struct('ix', (1:numel(nzv))', 'num', numel(nzv));
-           return 
-        elseif ischar(ind_tbl)
-           t.tbl = struct(ind_tbl, (1:numel(nzv))', 'num', numel(nzv));
+        if ~isempty(tt)
+           self.nzvals = tt.nzvals;
+           self.tbl = tt.tbl;
            return
-        elseif iscell(ind_tbl)
-           % make a non-sparse, cartesian index table
-           indices = cellfun(@(x) 1:x, ind_tbl(2:2:end), 'UniformOutput', false);
-           isets = cell(1, numel(indices));
-           [isets{:}] = ndgrid(indices{:});
-           t.tbl = struct();
-           for i = 1:numel(isets)
-              t.tbl.(ind_tbl{2*i-1}) = isets{i}(:);
-           end
-           t.tbl.num = prod([ind_tbl{2:2:end}]);
-        else
-           assert(isstruct(ind_tbl))
-           t.tbl = ind_tbl;
-           fnames = Tensor.index_fields(ind_tbl);
-           for fn = fnames(:)'
-              t.tbl.(fn{:}) = reshape(t.tbl.(fn{:}), [], 1);
-           end
-           if isempty(fnames)
-              t.tbl.num = 1;
-           else
-              t.tbl.num = numel(t.tbl.(fnames{1}));
-           end
         end
+        % we'll only get here if no valid argument combination was recognized
+        error('Unrecognized argument list for Tensor constructor.')
      end
-     
+
      
      function self = project(self, other)
         common_indexsets = Tensor.find_common_indices(self, other);
@@ -77,8 +73,13 @@ classdef Tensor
      end
      
 
-     function self = formalProduct(self, other)
-        common_indexsets = Tensor.find_common_indices(self, other);
+     function self = formalProduct(self, other, iset)
+        if nargin > 2
+           common_indexsets = iset;
+        else
+           common_indexsets = Tensor.find_common_indices(self, other);
+        end
+        % @@ TODO: make this work when 'iset' refers to two separate index sets
         self = self.project(other).contract(common_indexsets);
      end
           
@@ -136,7 +137,7 @@ classdef Tensor
        assert(numel(dims) == 2)
        M = sparse(self.tbl.(dims{1}), self.tbl.(dims{2}), self.nzvals);
     end
-  end  
+  end % end regular, public methods
   
   methods(Static)
           
@@ -205,10 +206,75 @@ classdef Tensor
                              Tensor.index_fields(t2.tbl));
      end
 
+     function res = isTable(var)
+        res = isstruct(var); % @ a more rigorous test could be applied here
+     end
      
-  end
-  
-end
+     function res = isLabelList(var)
+        % check that 'var' is a cell array of labels
+        res = iscell(var) && all(cellfun(@ischar, var));
+     end
+     
+     function res = isLabelDimList(var)
+     % check that 'var' is a cell array of alternating labels and numbers
+        res = iscell(var) && ...
+              Tensor.isLabelList(var(1:2:end)) && ...
+              all(cellfun(@isscalar, var(2:2:end)));
+     end
+
+     function t = make_indicator_tensor(tbl)
+        flds = Tensor.index_fields(tbl);
+        t = Tensor.make_generic_tensor(ones(numel(tbl.(flds{1})), 1), tbl);
+     end
+     
+     function t = make_vector_tensor(vec, label)
+        if nargin < 2
+           label = 'i';
+        end
+        t.nzvals = vec(:);
+        t.tbl = struct(label, (1:numel(vec))', 'num', numel(vec));
+     end
+     
+     function t = make_matrix_tensor(mat, labels)
+        if nargin < 2
+           labels = {'row', 'column'};
+        end
+        ixs = find(mat);
+        t.nzvals = mat(ixs);
+        [r, c] = ind2sub(size(mat), ixs);
+        t.tbl = struct(labels{1}, r, labels{2}, c, 'num', numel(ixs));
+     end
+     
+     function t = make_full_tensor(coefs, label_dims)
+     % make a non-sparse, cartesian index table
+        t.nzvals = coefs(:);
+        indices = cellfun(@(x) 1:x, label_dims(2:2:end), 'UniformOutput', false);
+        isets = cell(1, numel(indices));
+        [isets{:}] = ndgrid(indices{:});
+        t.tbl = struct();
+        for i = 1:numel(isets)
+           t.tbl.(label_dims{2*i-1}) = isets{i}(:);
+        end
+        t.tbl.num = prod([label_dims{2:2:end}]);
+     end
+     
+     function t = make_generic_tensor(coefs, tbl)
+        assert(Tensor.isTable(tbl))
+        t.nzvals = coefs(:);
+        t.tbl = tbl;
+        fnames = Tensor.index_fields(tbl);
+        for fn = fnames(:)'
+           t.tbl.(fn{:}) = reshape(t.tbl.(fn{:}), [], 1);
+        end
+        if isempty(fnames)
+           t.tbl.num = 1;
+        else
+           t.tbl.num = numel(t.tbl.(fnames{1}));
+        end
+     end
+  end % end static methods
+end 
+
 
 
     %  function res = combineWith(self, other, contract_along)
@@ -256,3 +322,45 @@ end
     %    res = Tensor(res_vals, res_tbl);
     % end
     
+     % function t = Tensor(nzv, ind_tbl)
+     %    if nargin == 1 && isstruct(nzv)
+     %       % special case: user wants an indicator tensor, and nzv is really a
+     %       % table struct here.  Let all cofficients be ones
+     %       flds = Tensor.index_fields(nzv);
+     %       t = Tensor(ones(numel(nzv.(flds{1})), 1), nzv);
+     %       return 
+     %    end
+        
+     %    assert(isvector(nzv)) % should not be a matrix!
+     %    t.nzvals = nzv(:);
+     %    if nargin < 2
+     %       % if no index set is provided, create a default one
+     %       t.tbl = struct('ix', (1:numel(nzv))', 'num', numel(nzv));
+     %       return 
+     %    elseif ischar(ind_tbl)
+     %       t.tbl = struct(ind_tbl, (1:numel(nzv))', 'num', numel(nzv));
+     %       return
+     %    elseif iscell(ind_tbl)
+     %       % make a non-sparse, cartesian index table
+     %       indices = cellfun(@(x) 1:x, ind_tbl(2:2:end), 'UniformOutput', false);
+     %       isets = cell(1, numel(indices));
+     %       [isets{:}] = ndgrid(indices{:});
+     %       t.tbl = struct();
+     %       for i = 1:numel(isets)
+     %          t.tbl.(ind_tbl{2*i-1}) = isets{i}(:);
+     %       end
+     %       t.tbl.num = prod([ind_tbl{2:2:end}]);
+     %    else
+     %       assert(isstruct(ind_tbl))
+     %       t.tbl = ind_tbl;
+     %       fnames = Tensor.index_fields(ind_tbl);
+     %       for fn = fnames(:)'
+     %          t.tbl.(fn{:}) = reshape(t.tbl.(fn{:}), [], 1);
+     %       end
+     %       if isempty(fnames)
+     %          t.tbl.num = 1;
+     %       else
+     %          t.tbl.num = numel(t.tbl.(fnames{1}));
+     %       end
+     %    end
+     % end
