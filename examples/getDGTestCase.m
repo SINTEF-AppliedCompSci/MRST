@@ -346,26 +346,38 @@ end
 %-------------------------------------------------------------------------%
 function setup = spe1(args) %#ok
 
-    opt = struct('degree', 0:1, 'useGenericFV', true, 'subset', false);
+    opt = struct('degree', {{0, 1}}, 'k', {{[]}}, 'useGenericFV', true, 'ijk', [Inf, Inf, Inf]);
     [opt, discArgs] = merge_options(opt, args{:});
     
+     if isempty(opt.k{1})
+        k = cell(numel(opt.degree),1);
+        [k{:}] = deal([]);
+        opt.k = k;
+    else
+        opt.degree = cellfun(@(k) max(sum(k,2)), opt.k, 'UniformOutput', false);
+    end
+    
     [G, rock, fluid, deck, state0] = setupSPE1();
+    gravity reset off
     
     G = computeGeometry(G);
     G = computeCellDimensions2(G);
     G.cells.equal = false;
     
     model = selectModelFromDeck(G, rock, fluid, deck);
-    fluid = restrictRelperms(fluid);
+%     fluid = restrictRelperms(fluid);
     schedule = convertDeckScheduleToMRST(model, deck);
-    if opt.subset
+    if any(opt.ijk < Inf)
         pv0 = sum(poreVolume(G, rock));
         [ii, jj, kk] = gridLogicalIndices(G);
-        keep = ii <= 3 & jj <= 3 & kk == 1;
+        opt.ijk = min([opt.ijk; G.cartDims], [],  1);
+        keep = ii <= opt.ijk(1) & jj <= opt.ijk(2) & kk <= opt.ijk(3);
+%         keep = ii <= 3 & jj <= 3 & kk == 1;
         G = extractSubgrid(G, keep);
         rock = extractSubrock(rock, keep);
         G = computeGeometry(G);
         G = computeCellDimensions2(G);
+        G.cells.equal = false;
         model = selectModelFromDeck(G, rock, fluid, deck);
     end
     pmodel = PressureModel(model);
@@ -381,20 +393,23 @@ function setup = spe1(args) %#ok
     end
         
 
+    nls = NonLinearSolver('useLineSearch', true, 'enforceResidualDecrease', true, 'continueOnFailure', true, 'errorOnFailure', false);
     modelDG = cell(numel(opt.degree), 1);
     for dNo = 1:numel(opt.degree)
         disc         = DGDiscretization(modelFV, ...
-                                   'degree', opt.degree(dNo), discArgs{:});
+                                   'degree', opt.degree{dNo}, 'k', opt.k{dNo}, discArgs{:});
         tmodelDG     = TransportModelDG(model, 'disc', disc);
+        tmodelDG.parentModel.drsMaxAbs = 200;
         tmodelDG.parentModel.useCNVConvergence = false;
         tmodelDG.parentModel.nonlinearTolerance = 1e-3;
         tmodelDG.parentModel.OutputStateFunctions = {};
         tmodelDG.formulation = 'missingPhase';
         modelDG{dNo} = SequentialPressureTransportModel(pmodel, tmodelDG, 'parentModel', model);
+%         modelDG{dNo}.transportNonLinearSolver = nls;
     end
     
     % Convert the deck schedule into a MRST schedule by parsing the wells
-    if opt.subset
+    if any(opt.ijk < Inf)
         pv = sum(poreVolume(G, rock));
         schedule.control(1).W(2).cells = G.cells.num;
         schedule.control(1).W(1).val = schedule.control(1).W(1).val.*pv/pv0;
@@ -404,10 +419,13 @@ function setup = spe1(args) %#ok
         state0.rs       = state0.rs(G.cells.indexMap);
     end
     
-    if 0
-        ix = 1:11;
-        schedule.step.val     = schedule.step.val(ix);
-        schedule.step.control = schedule.step.control(ix);
+    if 1
+%         ix = 1:11;
+        dt = 5*day;
+        schedule.step.val = rampupTimesteps(sum(schedule.step.val), dt);
+        schedule.step.control = ones(numel(schedule.step.val),1);
+%         schedule.step.val     = schedule.step.val(ix);
+%         schedule.step.control = schedule.step.control(ix);
     end
     setup = packSetup(state0, schedule, {{model}}, {{modelFV}}, {modelDG});
     
