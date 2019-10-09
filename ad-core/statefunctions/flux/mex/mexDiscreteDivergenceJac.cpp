@@ -119,24 +119,21 @@ void mexFunction( int nlhs, mxArray *plhs[],
             int f = faces[f_offset + fl - passed];
             // Global cell index
             int c = cells[f_offset + fl- passed];
-            double other_val;
+            double other_val, v;
             int diag_index, sgn;
             if(c >= 0){
                 // High entry, corresponding to N(f, 2)
-                diag_index = der*2*nf + f + nf;
-                sgn = 1;
+                v = diagonal[der*2*nf + f + nf];
             }else{
                 // Low entry, corresponding to N(f, 1)
-                diag_index = der*2*nf + f;
-                sgn = -1;
+                v = -diagonal[der*2*nf + f];
             }
-            double v = diagonal[diag_index];
             // Set row entry
             ir[sparse_offset + i] = abs(c);
-            pr[sparse_offset + i] = sgn*v;
+            pr[sparse_offset + i] = v;
             // Set corresponding diagonal entry
             #pragma omp atomic
-            pr[sparse_offset + diag] -= sgn*v;
+            pr[sparse_offset + diag] -= v;
         }
     }
 }
