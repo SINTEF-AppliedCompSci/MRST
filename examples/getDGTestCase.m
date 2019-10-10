@@ -268,7 +268,7 @@ end
 %-------------------------------------------------------------------------%
 function setup = qfs_co2_2d(args) %#ok
     % Model
-    opt = struct('n', 20, 'degree', [0,1], 'useOverall', true);
+    opt = struct('n', 20, 'degree', [0,1], 'useOverall', true, 'useGeneric', true);
     [opt, discArgs] = merge_options(opt, args{:});
     n = opt.n;
     G = cartGrid([n, n, 1], [1000, 1000, 10]);
@@ -285,26 +285,29 @@ function setup = qfs_co2_2d(args) %#ok
     [cf, info] = getCompositionalFluidCase('simple');
 
     if opt.useOverall
-        model  = GenericOverallCompositionModel(G, rock, fluid, cf, 'water', false);
-        pmodel = PressureOverallCompositionModel(G, rock, fluid, cf, 'water', false);
-    else
-        model  = GenericNaturalVariablesModel(G, rock, fluid, cf, 'water', false);
-        pmodel = PressureNaturalVariablesModel(G, rock, fluid, cf, 'water', false);
-    end
-    if 0
-        if opt.useOverall
-            tmodel = TransportOverallCompositionModel(G, rock, fluid, cf, 'water', false);
+        if opt.useGeneric
+            model  = GenericOverallCompositionModel(G, rock, fluid, cf, 'water', false);
+            pmodel = PressureOverallCompositionModel(G, rock, fluid, cf, 'water', false);
+            tmodel = TransportModel(model);
+            modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
         else
-            tmodel = TransportNaturalVariablesModel(G, rock, fluid, cf, 'water', false);
+            model = OverallCompositionCompositionalModel(G, rock, fluid, cf, 'water', false);
+            modelFV = getSequentialModelFromFI(model);
         end
     else
-        tmodel = TransportModel(model);
+        if opt.useGeneric
+            model  = GenericNaturalVariablesModel(G, rock, fluid, cf, 'water', false);
+            pmodel = PressureNaturalVariablesModel(G, rock, fluid, cf, 'water', false);
+            tmodel = TransportModel(model);
+            modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
+        else
+            model = NaturalVariablesCompositionalModel(G, rock, fluid, cf, 'water', false);
+            modelFV = getSequentialModelFromFI(model);
+        end
     end
     
-    modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
-    
     modelDG = cell(numel(opt.degree), 1);
-    for dNo = 1:numel(opt.degree)
+    for dNo = 1:0%numel(opt.degree)
         tmodelDG = TransportModelDG(model, 'formulation', 'totalSaturation' , ...
                                            'degree'     , opt.degree(dNo), ...
                                            discArgs{:});
@@ -419,7 +422,118 @@ function setup = spe1(args) %#ok
         state0.rs       = state0.rs(G.cells.indexMap);
     end
     
-    if 1
+    if 0
+%         ix = 1:11;
+        dt = 5*day;
+        schedule.step.val = rampupTimesteps(sum(schedule.step.val), dt);
+        schedule.step.control = ones(numel(schedule.step.val),1);
+%         schedule.step.val     = schedule.step.val(ix);
+%         schedule.step.control = schedule.step.control(ix);
+    end
+    setup = packSetup(state0, schedule, {{model}}, {{modelFV}}, {modelDG});
+    
+end
+
+%-------------------------------------------------------------------------%
+function setup = spe9(args) %#ok
+
+    opt = struct('degree', {{0, 1}}, 'k', {{[]}}, 'useGenericFV', true, 'ijk', [Inf, Inf, Inf]);
+    [opt, discArgs] = merge_options(opt, args{:});
+    
+     if isempty(opt.k{1})
+        k = cell(numel(opt.degree),1);
+        [k{:}] = deal([]);
+        opt.k = k;
+    else
+        opt.degree = cellfun(@(k) max(sum(k,2)), opt.k, 'UniformOutput', false);
+    end
+    
+    [G, rock, fluid, deck, state0] = setupSPE9();
+    gravity reset off
+    
+    G = computeGeometry(G);
+    G = computeCellDimensions2(G);
+    G.cells.equal = false;
+    
+    model = selectModelFromDeck(G, rock, fluid, deck);
+%     fluid = restrictRelperms(fluid);
+    schedule = convertDeckScheduleToMRST(model, deck);
+    if any(opt.ijk < Inf)
+        [ii, jj, kk] = gridLogicalIndices(G);
+        opt.ijk = min([opt.ijk; G.cartDims], [],  1);
+        keep = ii >= G.cartDims(1) - opt.ijk(1) & jj >= G.cartDims(2) - opt.ijk(2) & kk <= opt.ijk(3);
+%         keep = ii <= 3 & jj <= 3 & kk == 1;
+        map = nan(G.cells.num,1);
+        G = extractSubgrid(G, keep);
+        map(G.cells.indexMap) = 1:G.cells.num;
+        rock = extractSubrock(rock, keep);
+        G = computeGeometry(G);
+        G = computeCellDimensions2(G);
+        G.cells.equal = false;
+        model = selectModelFromDeck(G, rock, fluid, deck);
+    end
+    pmodel = PressureModel(model);
+    if opt.useGenericFV    
+        tmodel = TransportModel(model);
+        tmodel.formulation = 'missingPhase';
+        tmodel.parentModel.useCNVConvergence = false;
+        tmodel.parentModel.nonlinearTolerance = 1e-3;
+        modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
+    else
+        m       = ThreePhaseBlackOilModel(G, rock, fluid, 'vapoil', model.vapoil, 'disgas', model.disgas);
+        modelFV = getSequentialModelFromFI(m);
+    end
+        
+
+    nls = NonLinearSolver('useLineSearch', true, 'enforceResidualDecrease', true, 'continueOnFailure', true, 'errorOnFailure', false);
+    modelDG = cell(numel(opt.degree), 1);
+    for dNo = 1:numel(opt.degree)
+        disc         = DGDiscretization(modelFV, ...
+                                   'degree', opt.degree{dNo}, 'k', opt.k{dNo}, discArgs{:});
+        tmodelDG     = TransportModelDG(model, 'disc', disc);
+        tmodelDG.parentModel.drsMaxAbs = 200;
+        tmodelDG.parentModel.useCNVConvergence = false;
+        tmodelDG.parentModel.nonlinearTolerance = 1e-3;
+        tmodelDG.parentModel.OutputStateFunctions = {};
+        tmodelDG.formulation = 'missingPhase';
+        modelDG{dNo} = SequentialPressureTransportModel(pmodel, tmodelDG, 'parentModel', model);
+%         modelDG{dNo}.transportNonLinearSolver = nls;
+    end
+    
+    % Convert the deck schedule into a MRST schedule by parsing the wells
+    if any(opt.ijk < Inf)
+        pv = sum(poreVolume(G, rock));
+        ctrl = schedule.control;
+        for cNo = 1:numel(ctrl)
+            isp = vertcat(ctrl(cNo).W.sign) < 0;
+            prate0 = sum(vertcat(ctrl(cNo).W(isp).val));
+            W = ctrl(cNo).W;
+            keep = false(numel(W),1);
+            for wNo = 1:numel(W)
+                cells = map(W(wNo).cells);
+                cells(isnan(cells)) = [];
+                if ~isempty(cells)
+                    keep(wNo) = true;
+                    W(wNo).cells = cells;
+%                     if any(strcmpi(W(wNo).type, {'rate', 'orat'}))
+%                         W(wNo).val = W(wNo).val.*pv/pv0;
+%                     end
+                end
+            end
+            W = W(keep);
+            ctrl(cNo).W = W;
+            isp = vertcat(ctrl(cNo).W.sign) < 0;
+            prate = sum(vertcat(ctrl(cNo).W(isp).val));
+            isi = vertcat(ctrl(cNo).W.sign) > 0;
+            ctrl(cNo).W(isi).val = ctrl(cNo).W(isi).val.*prate/prate0;
+        end
+        schedule.control = ctrl;
+        state0.pressure = state0.pressure(G.cells.indexMap);
+        state0.s        = state0.s(G.cells.indexMap,:);
+        state0.rs       = state0.rs(G.cells.indexMap);
+    end
+    
+    if 0
 %         ix = 1:11;
         dt = 5*day;
         schedule.step.val = rampupTimesteps(sum(schedule.step.val), dt);
