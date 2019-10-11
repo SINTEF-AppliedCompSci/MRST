@@ -40,7 +40,7 @@ function state = assignDofFromState(disc, state, names)
 end
 
 function flds = exceptions()
-    flds = {'nDof', 'degree', 'wellSol', 'flux', 'sMax', 'dofPos', 'eos', 'flag'};
+    flds = {'nDof', 'degree', 'wellSol', 'flux', 'sMax', 'dofPos', 'eos', 'flag', 'FlowProps'};
 end
 
 % function flds = getDofFields()
