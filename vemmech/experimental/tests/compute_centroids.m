@@ -1,4 +1,5 @@
-G = cartGrid([2,3,4]);
+%G = cartGrid([2,3,4]);
+G = cartGrid([2,1, 1]);
 
 T_dim_ind = Tensor(ones(G.griddim, 1), 'd');
 T_node_coords = Tensor(G.nodes.coords(:), {'node', G.nodes.num, 'd', G.griddim});
@@ -60,4 +61,54 @@ T_cell_node_d_qc.nzvals = qc(:);
 WcInd = NcInd; % they have exactly the same structure
 T_cell_node_Wc = ...
     Tensor([2, 1, 1, 2, 1, 1, 2, 1, 1], WcInd) * ...
-    T_cell_node_d_qc.changeIndexName({'d', 'k'});
+    T_cell_node_d_qc.changeIndexName('d', 'k');
+
+% ================================ Compute Nr ================================
+
+% Nr = [_1  0  0 2 0 -3;
+%        0 _1  0 -1 3 0;
+%        0  0 _1 0 -2 1]
+
+NrIndRot = Tensor([0 1 -1 0 -1 1 0 -1 1], NcInd); % zero coefs for translation part
+NrIndTrans = Tensor([1 0 0 1 0 0 1 0 0], rmfield(NcInd, 'k'));
+
+T_cell_node_Nr = ...
+    NrIndRot   * T_cell_node_distance.changeIndexName('d', 'k') + ...
+    NrIndTrans * T_cell_node_ind;
+
+% ================================ Compute Wr ================================
+
+% Wr = 1/n   0   0   q2   0 -q3
+%        0 1/n   0  -q1  q3   0 
+%        0   0 1/n    0 -q2  q1
+
+T_cell_node_d_lform_ind = T_cell_node_Nr.toInd(); % create indicator function
+
+WrIndRot = NrIndRot; % identical to Nr
+WrIndTrans = NrIndTrans; % identical to Nr
+
+T_cell_node_Wr = ...
+    WrIndRot * T_cell_node_d_qc.changeIndexName('d', 'k') + ...
+    ((WrIndTrans * T_cell_node_ind) ./ ...
+     (T_cell_numnodes.project(T_cell_node_d_lform_ind)))
+
+
+% ================================= Compute P =================================
+
+krull = T_cell_node_Wr.project(...
+       T_cell_node_Nr.changeIndexName({'d', 'lform'}, {'d2', 'lform2'}) ...
+    ).__need_to_contract_d_with_d2_here...
+
+T_Pr = T_cell_node_Wr * T_cell_node_Nr.changeIndexName({'d', 'node', 'cell'},...
+                                                       {'d2', 'node2', 'cell2'});
+T_Pc = T_cell_node_Wc * T_cell_node_Nc.changeIndexName({'d', 'node', 'cell'},...
+                                                       {'d2', 'node2', 'cell2'});
+Pp = T_Pr + T_Pc;
+
+% ============================== Compute (I - P) ==============================
+
+% identity tensor in dxd
+Id = Tensor(struct('d', [1,2,3], 'd2', [1,2,3]));
+
+% identity tensor in d x d x cell x cell x node x node
+Id.project(Pp.toInd());

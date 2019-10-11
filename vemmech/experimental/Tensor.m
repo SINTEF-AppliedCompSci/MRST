@@ -77,17 +77,27 @@ classdef Tensor
         self = self.project(other).contract(common_indexsets);
      end
           
-    function self = changeIndexName(self, oldname, newname)
-       cur_fields = fields(self.tbl);
-       if ~any(strcmp(cur_fields, oldname))
-          error('No index with that name.')
-       end
-       if any(strcmp(cur_fields, newname))
-          error('Already an index with the proposed new name.')
-       end
-       self.tbl.(newname) = self.tbl.(oldname);
-       self.tbl = rmfield(self.tbl, oldname);
-    end
+     function self = changeIndexName(self, oldname, newname)
+        if ~iscell(oldname)
+           oldname = {oldname}; newname = {newname};
+        end
+        cur_fields = fields(self.tbl);
+        
+        for i = 1:numel(oldname)
+           cur_oldname = oldname{i};
+           cur_newname = newname{i};
+           
+           if ~any(strcmp(cur_fields, cur_oldname))
+              error('No index with that name.')
+           end
+           if any(strcmp(cur_fields, cur_newname))
+              error('Already an index with the proposed new name.')
+           end
+           
+           self.tbl.(cur_newname) = self.tbl.(cur_oldname);
+           self.tbl = rmfield(self.tbl, cur_oldname);
+        end
+     end
 
     function self = plus(self, other)
        self = Tensor.apply_binary_operator(self, other, @plus);
@@ -117,28 +127,58 @@ classdef Tensor
        self.tbl = new_tbl;
     end
     
-    function M = asSparseMatrix(self, dims)
+    function M = asMatrix(self, dims)
+       SPARSE_THRESHOLD = 200;
        if numel(Tensor.index_fields(self.tbl)) > 2
           error('Cannot show a higher dimensional tensor as a matrix.')
        elseif ~Tensor.is_permutation(dims, Tensor.index_fields(self.tbl))
           error('Input ''dims'' must be a permutation of the index sets')
        end
        if numel(dims) == 1
-          M = sparse(max(self.tbl.(dims{1})), 1);
+          M = zeros(max(self.tbl.(dims{1})), 1);
+          % M = sparse(max(self.tbl.(dims{1})), 1);
           M(self.tbl.(dims{1})) = self.nzvals;
           return
        end
        assert(numel(dims) == 2)
        M = sparse(self.tbl.(dims{1}), self.tbl.(dims{2}), self.nzvals);
+       if prod(size(M)) < SPARSE_THRESHOLD
+          M = full(M); % we return a full matrix when reasonable
+       end
+       
     end
+    
+    function self = lockIndex(self, ixname, ixval)    
+       if ~any(strcmp(ixname, Tensor.index_fields(self.tbl)))
+          error('Tensor has no index with that name.')
+       end
+       keep_ixs = self.tbl.(ixname) == ixval;
+       self.nzvals = self.nzvals(keep_ixs);
+       tbl = struct();
+       for field = Tensor.index_fields(self.tbl)'
+          tbl.(field{:}) = self.tbl.(field{:})(keep_ixs);
+       end
+       tbl = rmfield(tbl, ixname);
+       self.tbl = tbl;
+    end
+
+     function self = toInd(self)
+        self.nzvals = ones(numel(self.nzvals), 1);
+     end
+    
+     function self = pruneZeros(self)
+        prune_ix = self.nzvals==0;
+        self.nzvals = self.nzvals(~prune_ix);
+        for field = Tensor.index_fields(self.tbl)'
+           self.tbl.(field{:}) = self.tbl.(field{:})(~prune_ix);
+        end
+        self.tbl.num = self.tbl.num - sum(prune_ix);
+     end
+     
   end % end regular, public methods
-  
+     
   methods(Static)
           
-     function tensor = toInd(tensor)
-        tensor.nzvals = ones(numel(tensor.nzvals), 1);
-     end
-
      
      function flds = index_fields(tbl)
         flds = setdiff(fields(tbl), {'num', 'ind'});
