@@ -242,7 +242,7 @@ classdef Cubature
             else
                 % If G.cells.dx is not computed, we use approximation
                 dx = cub.G.cells.volumes(cells).^(1/cub.G.griddim);
-                scaling = 1./(dx/2);
+                scaling = repmat(1./(dx/2), 1, cum.dim);
             end
             
             if ~inverse
