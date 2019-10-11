@@ -50,12 +50,15 @@ classdef Tensor
         common_indexsets = Tensor.find_common_indices(self, other);
         
         [~, combined_tbl] = ...
-            setupTableMapping(self.tbl, other.tbl, common_indexsets);
+            setupTableMapping(self.tbl, other.tbl, common_indexsets, ...
+                              'fastunstable', false);
         
         m1 = setupTableMapping(self.tbl, combined_tbl, ...
-                               Tensor.index_fields(self.tbl));
+                               Tensor.index_fields(self.tbl), 'fastunstable', ...
+                               false);
         m2 = setupTableMapping(other.tbl, combined_tbl, ...
-                               Tensor.index_fields(other.tbl));
+                               Tensor.index_fields(other.tbl), 'fastunstable', ...
+                               false);
         self.nzvals = (m1 * self.nzvals) .* (m2 * other.nzvals);
         self.tbl = combined_tbl;
         
@@ -67,7 +70,8 @@ classdef Tensor
         end
         keep_ixs = setdiff(Tensor.index_fields(self.tbl), contract_ixs);
         projtbl = projTable(self.tbl, keep_ixs); 
-        map = setupTableMapping(self.tbl, projtbl, Tensor.index_fields(projtbl));
+        map = setupTableMapping(self.tbl, projtbl, Tensor.index_fields(projtbl), ...
+                                'fastunstable', false);
         self.tbl = projtbl;
         self.nzvals = map * self.nzvals;
      end
@@ -129,23 +133,34 @@ classdef Tensor
     
     function M = asMatrix(self, dims)
        SPARSE_THRESHOLD = 200;
-       if numel(Tensor.index_fields(self.tbl)) > 2
-          error('Cannot show a higher dimensional tensor as a matrix.')
-       elseif ~Tensor.is_permutation(dims, Tensor.index_fields(self.tbl))
-          error('Input ''dims'' must be a permutation of the index sets')
+       % put input variable 'dims' on "standard" form
+       if ischar(dims)
+          dims = {{dims}};
+       else
+          assert(iscell(dims) && numel(dims) <= 2)
+          for i = 1:numel(dims)
+             if ~iscell(dims{i})
+                dims{i} = {dims{i}};
+             else 
+                assert(numel(dims{i}) <= 2);
+             end
+          end
        end
+       % check that all index names are covered
+       assert(Tensor.is_permutation(horzcat(dims{:}), ...
+              Tensor.index_fields(self.tbl)));
        if numel(dims) == 1
-          M = zeros(max(self.tbl.(dims{1})), 1);
-          % M = sparse(max(self.tbl.(dims{1})), 1);
-          M(self.tbl.(dims{1})) = self.nzvals;
-          return
+          ix1 = Tensor.compute_tensor_index(dims{1}, self.tbl);
+          M = zeros(max(ix1), 1);
+          M(ix1) = self.nzvals;
+       elseif numel(dims) == 2
+          ix1 = Tensor.compute_tensor_index(dims{1}, self.tbl);
+          ix2 = Tensor.compute_tensor_index(dims{2}, self.tbl);
+          M = sparse(ix1, ix2, self.nzvals);
+          if prod(size(M)) < SPARSE_THRESHOLD
+             M = full(M); % convenient, for small matrices
+          end
        end
-       assert(numel(dims) == 2)
-       M = sparse(self.tbl.(dims{1}), self.tbl.(dims{2}), self.nzvals);
-       if prod(size(M)) < SPARSE_THRESHOLD
-          M = full(M); % we return a full matrix when reasonable
-       end
-       
     end
     
     function self = lockIndex(self, ixname, ixval)    
@@ -178,7 +193,20 @@ classdef Tensor
   end % end regular, public methods
      
   methods(Static)
+     
+     function ix = compute_tensor_index(dims, tbl)
+        if numel(dims) == 1
+           ix = tbl.(dims{:});
+        else
+           assert(numel(dims) == 2)
+           stride = max(tbl.(dims{1}));
+           ix = tbl.(dims{2}) * stride + tbl.(dims{1});
+        end
+     end
           
+     function tensor = ind(tensor)
+        tensor = tensor.toInd();
+     end
      
      function flds = index_fields(tbl)
         flds = setdiff(fields(tbl), {'num', 'ind'});
@@ -215,7 +243,11 @@ classdef Tensor
         t2_tbl_sort = Tensor.sort_table(t2.tbl, fields1); 
         
         for f = fields1'
-           if any(t1_tbl_sort.(f{:}) ~= t2_tbl_sort.(f{:}))
+           m1 = t1_tbl_sort.(f{:});
+           m2 = t2_tbl_sort.(f{:});
+           if numel(m1) ~= numel(m2)
+              return % iscompat = false
+           elseif any(m1 ~= m2)
               return % iscompat = false
            end
         end
@@ -223,11 +255,41 @@ classdef Tensor
         iscompat = true;
      end
      
-     function res = apply_binary_operator(t1, t2, op)   
-     % check for compatibility
-        if ~Tensor.compatible_tables(t1, t2)
-           error('Tried to apply binary operator to incompatible tensors')
+     function [t1, t2] = make_tables_compatible(t1, t2)
+        fields1 = Tensor.index_fields(t1.tbl);
+        fields2 = Tensor.index_fields(t2.tbl);
+        
+        if Tensor.compatible_tables(t1, t2)
+           % already compatible
+           return
+        elseif ~(Tensor.is_permutation(fields1, fields2))
+           error('Index tables cannot be made compatible.')
         end
+        % tables are not compatible, but can be made so
+        
+        t1_entries = cellfun(@(x) t1.tbl.(x)(:), fields1, 'uniformoutput', false);
+        t1_entries = [t1_entries{:}];
+        t2_entries = cellfun(@(x) t2.tbl.(x)(:), fields1, 'uniformoutput', false);
+        t2_entries = [t2_entries{:}];
+
+        t2_missing = setdiff(t1_entries, t2_entries, 'rows');
+        t1_missing = setdiff(t2_entries, t1_entries, 'rows');
+        
+        for i = 1:numel(fields1)
+           fld = fields1{i};
+           t1.tbl.(fld) = [t1.tbl.(fld); t1_missing(:, i)];
+           t2.tbl.(fld) = [t2.tbl.(fld); t2_missing(:, i)];
+        end
+        t1.nzvals = [t1.nzvals; zeros(size(t1_missing, 1), 1)];
+        t2.nzvals = [t2.nzvals; zeros(size(t2_missing, 1), 1)];
+        assert(numel(t1.nzvals) == numel(t2.nzvals));
+     end
+     
+     
+     function res = apply_binary_operator(t1, t2, op)   
+     
+        [t1, t2] = Tensor.make_tables_compatible(t1, t2);
+     
         ifields = Tensor.index_fields(t1.tbl);
         res = t1.sortIndices(ifields);
         t2_sorted = t2.sortIndices(ifields);
@@ -398,3 +460,25 @@ end
      %       end
      %    end
      % end
+     
+    % function M = asMatrix(self, dims)
+    %    SPARSE_THRESHOLD = 200;
+    %    if numel(Tensor.index_fields(self.tbl)) > 2
+    %       error('Cannot show a higher dimensional tensor as a matrix.')
+    %    elseif ~Tensor.is_permutation(dims, Tensor.index_fields(self.tbl))
+    %       error('Input ''dims'' must be a permutation of the index sets')
+    %    end
+    %    if numel(dims) == 1
+    %       M = zeros(max(self.tbl.(dims{1})), 1);
+    %       % M = sparse(max(self.tbl.(dims{1})), 1);
+    %       M(self.tbl.(dims{1})) = self.nzvals;
+    %       return
+    %    end
+    %    assert(numel(dims) == 2)
+    %    M = sparse(self.tbl.(dims{1}), self.tbl.(dims{2}), self.nzvals);
+    %    if prod(size(M)) < SPARSE_THRESHOLD
+    %       M = full(M); % we return a full matrix when reasonable
+    %    end
+       
+    % end
+    

@@ -1,5 +1,7 @@
+%G = cartGrid([20,30,10]);
+G = cartGrid([10, 10, 10]);
 %G = cartGrid([2,3,4]);
-G = cartGrid([2,1, 1]);
+%G = cartGrid([2,1, 1]);
 
 T_dim_ind = Tensor(ones(G.griddim, 1), 'd');
 T_node_coords = Tensor(G.nodes.coords(:), {'node', G.nodes.num, 'd', G.griddim});
@@ -11,7 +13,7 @@ T_cell_face_ind = ...
     Tensor(struct('cell', rldecode((1:G.cells.num)', diff(G.cells.facePos)),...
                   'face', G.cells.faces(:,1)));
 
-T_cell_node_ind = Tensor.toInd(T_face_node_ind * T_cell_face_ind);
+T_cell_node_ind = Tensor.ind(T_face_node_ind * T_cell_face_ind);
 
 T_cell_numnodes = T_cell_node_ind.contract('node');
 
@@ -90,19 +92,14 @@ WrIndTrans = NrIndTrans; % identical to Nr
 T_cell_node_Wr = ...
     WrIndRot * T_cell_node_d_qc.changeIndexName('d', 'k') + ...
     ((WrIndTrans * T_cell_node_ind) ./ ...
-     (T_cell_numnodes.project(T_cell_node_d_lform_ind)))
+     (T_cell_numnodes.project(T_cell_node_d_lform_ind)));
 
 
 % ================================= Compute P =================================
 
-krull = T_cell_node_Wr.project(...
-       T_cell_node_Nr.changeIndexName({'d', 'lform'}, {'d2', 'lform2'}) ...
-    ).__need_to_contract_d_with_d2_here...
+T_Pr = T_cell_node_Wr * T_cell_node_Nr.changeIndexName({'d', 'node'}, {'d2', 'node2'});
+T_Pc = T_cell_node_Wc * T_cell_node_Nc.changeIndexName({'d', 'node'}, {'d2', 'node2'});
 
-T_Pr = T_cell_node_Wr * T_cell_node_Nr.changeIndexName({'d', 'node', 'cell'},...
-                                                       {'d2', 'node2', 'cell2'});
-T_Pc = T_cell_node_Wc * T_cell_node_Nc.changeIndexName({'d', 'node', 'cell'},...
-                                                       {'d2', 'node2', 'cell2'});
 Pp = T_Pr + T_Pc;
 
 % ============================== Compute (I - P) ==============================
@@ -111,4 +108,49 @@ Pp = T_Pr + T_Pc;
 Id = Tensor(struct('d', [1,2,3], 'd2', [1,2,3]));
 
 % identity tensor in d x d x cell x cell x node x node
-Id.project(Pp.toInd());
+Id_node_d = Id.project(Pp.toInd());
+
+%spy(Id_node_d.asMatrix({{'d', 'node'}, {'d2', 'node2'}}))
+
+IminusP = Pp - Id_node_d;
+
+%spy(IminusP.pruneZeros().asMatrix({{'d', 'node'}, {'d2', 'node2'}}))
+
+
+% ================================= Compute D =================================
+
+E = 0.51e9;
+nu = 0.15;
+
+Ev  = repmat(E, G.cells.num, 1);
+nuv = repmat(nu, G.cells.num, 1);
+C   = Enu2C(Ev, nuv, G);
+D   = C2D(C, G);
+
+T_D = Tensor(D(:), {'cell', G.cells.num, 'lform1', 6, 'lform2', 6});
+
+% ============================== Compute Wc D Wc ==============================
+
+tmp = ...
+    T_cell_node_Wc.project(T_cell_node_Wc.changeIndexName({'d', 'lform', 'node'}, ...
+                                                          {'d2', 'lform2', 'node2'}));
+
+WDW = tmp * T_D.changeIndexName('lform1', 'lform');
+
+spy(WDW.asMatrix({{'d', 'node'}, {'d2', 'node2'}}))
+
+
+% ================================= Compute S =================================
+
+% compute alpha
+%T_alpha = ;
+
+
+% ======================== Compute full system matrix ========================
+
+
+% Compute system matrix
+% M = |E| WDW + IminusP S IminusP
+
+
+% compute alpha
