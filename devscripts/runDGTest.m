@@ -4,7 +4,7 @@ mrstVerbose on
 
 %%
 
-setup = getDGTestCase('simple1d', 'n', 40, 'nkr', 1); %#ok
+setup = getDGTestCase('simple1d', 'n', 40, 'nkr', 2); %#ok
 
 %%
 
@@ -45,10 +45,18 @@ sim = @(model,inx) simulateScheduleAD(setup.state0, setup.(model){inx}, setup.sc
 
 %%
 
-ix = 1:2;
+ix = 2;
 for i = ix
     [wsDG{i}, stDG{i}, repDG{i}] = sim('modelDG', i);
 end
+
+%%
+
+inx = 2;
+po = {'edgecolor', 'none'};
+fn = plotLimiter(setup.modelDG{inx}.transportModel, po{:});
+setup.modelDG{inx}.transportModel.storeUnlimited = true;
+[ws, st, rep] = simulateScheduleAD(setup.state0, setup.modelDG{inx}, setup.schedule, 'afterStepFn', fn);
 
 %%
 
@@ -89,7 +97,7 @@ close all
 figure('Position', [0,0,1000,500]);
 azel = [64,-10];
 view(azel);
-disc = setup.modelDG{ix(1)}.transportModel.disc;
+disc = setup.modelDG{ix(1)}.transportModel.discretization;
 h = plotSaturationDG(disc, stDG{ix(1)}{1}, 'edgecolor', 'k', 'edgealpha', 0.2, 'coords', coords, 'phaseNo', 3);
 for t = 1:numel(stDG{ix(1)})
     for i = 1:numel(ix)
@@ -123,7 +131,7 @@ for t = 1:numel(stDG{ix(1)})
 %     clf
     for i = 1:numel(ix)
         subplot(1, numel(ix), i)
-        disc = setup.modelDG{ix(i)}.transportModel.disc;
+        disc = setup.modelDG{ix(i)}.transportModel.discretization;
         h = plotSaturationDG(disc, stDG{ix(i)}{t}, 'edgecolor', 'none', 'edgealpha', 0.2, 'coords', coords, 'phaseNo', 1);
         axis tight
         zlim([0,1])

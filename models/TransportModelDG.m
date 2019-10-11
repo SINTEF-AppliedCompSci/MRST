@@ -2,6 +2,8 @@ classdef TransportModelDG < TransportModel
     
     properties
         discretization
+        limiters
+        storeUnlimited
     end
     
     methods
@@ -10,25 +12,41 @@ classdef TransportModelDG < TransportModel
            
             model = model@TransportModel(parent);
             model.discretization = [];
+            
+            % Default limiters
+            names    = {'s'};
+            limits   = {[0,1]};
+            tol      = 0;
+            limiters = [];
+            limiters = addLimiter(limiters, ...
+                                  'type'     , 'tvb' , ...
+                                  'variables', names , ...
+                                  'limits'   , limits, ...
+                                  'tol'      , tol   );
+            limiters = addLimiter(limiters, ...
+                                  'type'     , 'scale', ...
+                                  'variables', names  , ...
+                                  'limits'   , limits , ...
+                                  'tol'      , tol    );
+            model.limiters       = limiters;
+            model.storeUnlimited = false;
+            
             [model, discretizationArgs] = merge_options(model, varargin{:});
             % Construct discretization
             if isempty(model.discretization)
                 model.discretization = DGDiscretization(model, discretizationArgs{:});
             end
-            model.discretization.limiter{1} = getLimiter(model, 'tvb', 'operators', model.parentModel.operators);
-            model.discretization.limiter{2} = getLimiter(model, 'scale');
+            
+            for l = 1:numel(model.limiters)
+                limiter = model.limiters(l);
+                model.limiters(l).function = getLimiter(model, limiter.type);
+            end
             model.parentModel.discretization = model.discretization;
             
             model.parentModel.operators = setupOperatorsDG(model.discretization, model.parentModel.G, model.parentModel.rock);
             model.parentModel.outputFluxes = false;
             model.parentModel.OutputStateFunctions = {};
             
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function id = isDof(model, name)
-            id = numel(name) > 3 && strcmp(name(end-2:end), 'dof');
         end
         
         %-----------------------------------------------------------------%
@@ -790,22 +808,37 @@ classdef TransportModelDG < TransportModel
                 end
             end
             
-            if ~isempty(model.discretization.limiter)
-                state = model.discretization.limiter{2}(state, 's', [0,1]);
-                state = model.discretization.limiter{1}(state, 's');
-                if isa(model.parentModel, 'GenericBlackOilModel')
-                    if model.parentModel.disgas
-                        rsSat = model.parentModel.getProp(state, 'RsMax');
-                        rs    = model.getProp(state, 'rs');
-                        rsdof = model.getProp(state, 'rsdof');
-                        [rsMin, rsMax] = model.discretization.getMinMax(state, rsdof);
-                        rsMin(rs > rsSat) = rsSat(rs > rsSat);
-                        rsMax(rs < rsSat) = rsSat(rs < rsSat);
-                        state = model.discretization.limiter{2}(state, 'rs', [rsMin, rsMax]);
-                        state = model.discretization.limiter{1}(state, 'rs');
+            if ~isempty(model.limiters)
+                
+                if model.storeUnlimited
+                    state.ul = state;
+                    if isfield(state.ul, 'ul')
+                        state.ul = rmfield(state.ul, 'ul');
                     end
-                    if model.parentModel.vapoil
-                        state = model.discretization.limiter{1}(state, 'rv');
+                end
+                
+                for l = 1:numel(model.limiters)
+                    limiter = model.limiters(l);
+                    for v = 1:numel(limiter.variables)
+                        state = limiter.function(state, limiter.variables{v}, limiter.tol, limiter.limits{v});
+                    end
+                end
+                
+                if 0
+                    if isa(model.parentModel, 'GenericBlackOilModel')
+                        if model.parentModel.disgas
+                            rsSat = model.parentModel.getProp(state, 'RsMax');
+                            rs    = model.getProp(state, 'rs');
+                            rsdof = model.getProp(state, 'rsdof');
+                            [rsMin, rsMax] = model.discretization.getMinMax(state, rsdof);
+                            rsMin(rs > rsSat) = rsSat(rs > rsSat);
+                            rsMax(rs < rsSat) = rsSat(rs < rsSat);
+                            state = model.discretization.limiter{2}(state, 'rs', [rsMin, rsMax]);
+                            state = model.discretization.limiter{1}(state, 'rs');
+                        end
+                        if model.parentModel.vapoil
+                            state = model.discretization.limiter{1}(state, 'rv');
+                        end
                     end
                 end
             end
