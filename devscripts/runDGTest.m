@@ -4,7 +4,7 @@ mrstVerbose on
 
 %%
 
-setup = getDGTestCase('simple1d', 'n', 20, 'nkr', 3); %#ok
+setup = getDGTestCase('simple1d', 'n', 40, 'nkr', 1); %#ok
 
 %%
 
@@ -16,15 +16,19 @@ setup = getDGTestCase('qfs_wog_3d', 'useMomentFitting', true, 'degree', [0,0,0; 
 
 %%
 
-setup = getDGTestCase('spe10_wo', 'useMomentFitting', true, 'I', 1:30, 'J', 1:110); %#ok
+setup = getDGTestCase('spe10_wo', 'useMomentFitting', true, 'I', 1:30, 'J', 1:110, 'k', {[0,0], [0,0; 1,0; 0,1; 1,1]}); %#ok
 
 %%
 
-setup = getDGTestCase('spe1', 'ijk', [5, 5, 1], 'useMomentFitting', false, 'k', {[0,0,0], [0,0,0; 1,0,0; 0,1,0]}); %#ok
+setup = getDGTestCase('spe1', 'ijk', [5, 5, 1], 'useMomentFitting', false, 'degree', {0,1}); %#ok
 
 %%
 
-setup = getDGTestCase('qfs_co2_2d', 'n', 3, 'useOverall', false);
+setup = getDGTestCase('spe9', 'ijk', [Inf, Inf, Inf], 'useMomentFitting', false, 'k', {[0,0,0], [0,0,0; 1,0,0; 0,1,0]}); %#ok
+
+%%
+
+setup = getDGTestCase('qfs_co2_2d', 'n', 3, 'useOverall', true);
 
 %%
 
@@ -41,7 +45,7 @@ sim = @(model,inx) simulateScheduleAD(setup.state0, setup.(model){inx}, setup.sc
 
 %%
 
-ix = 2;
+ix = 1:2;
 for i = ix
     [wsDG{i}, stDG{i}, repDG{i}] = sim('modelDG', i);
 end
@@ -61,29 +65,21 @@ hf = figure('Position', [0,0,2000,500]);
 
 %%
 
-vo = VideoWriter(fullfile(mrstPath('dg'), 'animations', 'spe10-subset.avi'));
-vo.FrameRate = 5;
-vo.open();
-
 set(gca,'nextplot','replacechildren');
 for t = 1:numel(stDG{ix(1)})
-%     clf
     for i = 1:numel(ix)
         subplot(1, numel(ix), i)
-        disc = setup.modelDG{ix(i)}.transportModel.disc;
+        disc = setup.modelDG{ix(i)}.transportModel.discretization;
         h = plotSaturationDG(disc, stDG{ix(i)}{t}, 'edgecolor', 'none', 'edgealpha', 0.2, 'coords', coords, 'phaseNo', 1);
         axis tight
         zlim([0,1])
-        pbaspect([1,2,0.25]);
+        pbaspect([1,1,0.25]);
         view([100,50]);
         camlight
         lighting gouraud
     end
     pause(0.2);
-    M = getframe(hf);
-    vo.writeVideo(M);
 end
-vo.close();
 
 
 %%
@@ -115,3 +111,29 @@ for t = 1:numel(stDG{ix(1)})
     end
     pause(0.1);
 end
+
+%%
+
+vo = VideoWriter(fullfile(mrstPath('dg'), 'animations', 'spe10-subset.avi'));
+vo.FrameRate = 5;
+vo.open();
+
+set(gca,'nextplot','replacechildren');
+for t = 1:numel(stDG{ix(1)})
+%     clf
+    for i = 1:numel(ix)
+        subplot(1, numel(ix), i)
+        disc = setup.modelDG{ix(i)}.transportModel.disc;
+        h = plotSaturationDG(disc, stDG{ix(i)}{t}, 'edgecolor', 'none', 'edgealpha', 0.2, 'coords', coords, 'phaseNo', 1);
+        axis tight
+        zlim([0,1])
+        pbaspect([1,2,0.25]);
+        view([100,50]);
+        camlight
+        lighting gouraud
+    end
+    pause(0.2);
+    M = getframe(hf);
+    vo.writeVideo(M);
+end
+vo.close();
