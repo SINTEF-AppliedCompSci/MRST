@@ -1,11 +1,11 @@
-function limiter = getLimiter(model, type, tol, varargin)
+function limiter = getLimiter(model, type, varargin)
     
-    opt = struct('plot', false);
+    opt = struct('plot', false, 'tol', 0, 'operators', []);
     opt = merge_options(opt, varargin{:});
     switch type
         case 'tvb'
-            interpSetup = getInterpolationSetup(model);
-            limiter = @(state, name) tvb(state, model, interpSetup, name, tol, opt);
+            interpSetup = getInterpolationSetup(model, opt);
+            limiter = @(state, name) tvb(state, model, interpSetup, name, opt);
         case 'scale'
             limiter = @(state, name, limits) scale(state, model, name, limits);
     end
@@ -18,7 +18,7 @@ end
 function state = update(model, state, name, dof)
 
     state = model.setProp(state, [name, 'dof'], dof);
-    m     = model.disc.getCellMean(state, dof);
+    m     = model.discretization.getCellMean(state, dof);
     state = model.setProp(state, name, m);
     
 end
@@ -43,18 +43,19 @@ end
 %-------------------------------------------------------------------------%
 % TVB limiter
 %-------------------------------------------------------------------------%
-function state = tvb(state, model, interpSetup, name, tol, opt)
+function state = tvb(state, model, interpSetup, name, opt)
 
     dof = model.getProp(state, [name, 'dof']);
-    dim = min(model.parentModel.G.griddim, model.disc.basis.nDof-1);
+    disc = model.discretization;
+    dim = min(disc.G.griddim, disc.basis.nDof-1);
     state0 = state;
     
     nc = size(dof,2);
     bad = false;
     for i = 1:nc
-        [jumpVal, ~, cells] = getInterfaceJumps(model.disc, dof(:, i), state);
-        j = accumarray(cells(:), repmat(jumpVal,2,1) > tol) > 0;
-        jump = false(model.parentModel.G.cells.num,1);
+        [jumpVal, ~, cells] = getInterfaceJumps(disc, dof(:, i), state);
+        j = accumarray(cells(:), repmat(jumpVal,2,1) > opt.tol) > 0;
+        jump = false(disc.G.cells.num,1);
         jump(cells(:))          = j(cells(:));
         jump(all(state.degree == 0,2)) = false;
         bad = bad | jump;
@@ -66,18 +67,18 @@ function state = tvb(state, model, interpSetup, name, tol, opt)
             dofbar = dofbar(bad,:)';
             dofbar = dofbar(:);
             dofbar(isnan(dofbar)) = 0;
-            ix = model.disc.getDofIx(state, (1:dim)+1, bad);
+            ix = disc.getDofIx(state, (1:dim)+1, bad);
             dof(ix,i) = dofbar;
         end
-        if any(model.disc.degree > 1)
-            ix = model.disc.getDofIx(state, (dim+2):model.disc.basis.nDof, bad);
+        if any(disc.degree > 1)
+            ix = disc.getDofIx(state, (dim+2):disc.basis.nDof, bad);
             dof(ix,:) = 0;
         end
         state = update(model, state, name, dof);
     end
     
     if opt.plot
-        plotLimiter(model.disc, state, state0, 'TVB');
+        plotLimiter(disc, state, state0, 'TVB');
     end
     
     
@@ -118,7 +119,7 @@ end
 function dofbar = approximatGradient(model, interpSetup, state, dof)
 
     G    = model.parentModel.G;
-    disc = model.disc;
+    disc = model.discretization;
     useMap = isfield(G, 'mappings');
     if useMap
         map = G.mappings.cellMap;
@@ -146,7 +147,7 @@ function dofbar = approximatGradient(model, interpSetup, state, dof)
     isLin = false(G.cells.num,1);
     isLin(map.keep) = any(state.degree > 0,2);
 
-    nLin = min(G.griddim, model.disc.basis.nDof-1);
+    nLin = min(G.griddim, disc.basis.nDof-1);
     dofbar = zeros(G.cells.num, nLin);
     db     = nan(sum(interpSetup.cell_support_count+1),1);
     
@@ -174,10 +175,12 @@ function dofbar = approximatGradient(model, interpSetup, state, dof)
 end
 
 %-------------------------------------------------------------------------%
-function interpSetup = getInterpolationSetup(model)
+function interpSetup = getInterpolationSetup(model, opt)
 
-    w = WENOUpwindDiscretization(model.parentModel, model.G.griddim);
-    [C, pts, cells, basis, supports, linear_weights, scaling] = w.getTriangulation(model.parentModel);
+    model.G = model.discretization.G;
+    model.operators = opt.operators;
+    w = WENOUpwindDiscretization(model, model.G.griddim);
+    [C, pts, cells, basis, supports, linear_weights, scaling] = w.getTriangulation(model);
 
     interpSetup = struct();
     
@@ -198,7 +201,7 @@ end
 function state = scale(state, model, name, limits)
 
     G = model.G;
-    disc = model.disc;
+    disc = model.discretization;
 
     dof = model.getProp(state, [name, 'dof']);
     v   = model.getProp(state, name);

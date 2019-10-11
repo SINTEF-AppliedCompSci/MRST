@@ -34,11 +34,12 @@ function setup = simple1d(args) %#ok
     for dNo = 1:numel(opt.degree)
         disc         = DGDiscretization(modelFV, ...
                                    'degree', opt.degree{dNo}, discArgs{:});
-        tmodelDG     = TransportModelDG(model, 'disc', disc);
-        tmodelDG.disc.limiter{1} = getLimiter(tmodelDG, 'tvb', 0, 'plot', true);
+%         tmodelDG     = DGModel(tmodel, 'discretization', disc);
+        tmodelDG     = TransportModelDG(model, 'discretization', disc);
+        tmodelDG.discretization.limiter{1} = getLimiter(tmodelDG, 'tvb', 'operators', model.operators, 'plot', true);
         tmodelDG.parentModel.useCNVConvergence = false;
         tmodelDG.parentModel.nonlinearTolerance = 1e-3;
-        tmodelDG.parentModel.OutputStateFunctions = {};
+%         tmodelDG.parentModel.OutputStateFunctions = {};
         modelDG{dNo} = SequentialPressureTransportModel(pmodel, tmodelDG, 'parentModel', model);
     end
 

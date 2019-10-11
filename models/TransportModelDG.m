@@ -1,7 +1,7 @@
 classdef TransportModelDG < TransportModel
     
     properties
-        disc
+        discretization
     end
     
     methods
@@ -9,18 +9,19 @@ classdef TransportModelDG < TransportModel
         function model = TransportModelDG(parent, varargin)
            
             model = model@TransportModel(parent);
-            model.disc = [];
-            [model, discArgs] = merge_options(model, varargin{:});
+            model.discretization = [];
+            [model, discretizationArgs] = merge_options(model, varargin{:});
             % Construct discretization
-            if isempty(model.disc)
-                model.disc = DGDiscretization(model, discArgs{:});
+            if isempty(model.discretization)
+                model.discretization = DGDiscretization(model, discretizationArgs{:});
             end
-            model.disc.limiter{1} = getLimiter(model, 'tvb', 0);
-            model.disc.limiter{2} = getLimiter(model, 'scale');
-            model.parentModel.disc = model.disc;
+            model.discretization.limiter{1} = getLimiter(model, 'tvb', 'operators', model.parentModel.operators);
+            model.discretization.limiter{2} = getLimiter(model, 'scale');
+            model.parentModel.discretization = model.discretization;
             
-            model.parentModel.operators = setupOperatorsDG(model.disc, model.parentModel.G, model.parentModel.rock);
+            model.parentModel.operators = setupOperatorsDG(model.discretization, model.parentModel.G, model.parentModel.rock);
             model.parentModel.outputFluxes = false;
+            model.parentModel.OutputStateFunctions = {};
             
             
         end
@@ -57,13 +58,13 @@ classdef TransportModelDG < TransportModel
         %-----------------------------------------------------------------%
         function state = validateState(model, state)
             
-            state.degree = repmat(model.disc.degree, model.G.cells.num, 1);
+            state.degree = repmat(model.discretization.degree, model.G.cells.num, 1);
             wm = model.parentModel.FacilityModel.WellModels;
             for i = 1:numel(wm)
                 state.degree(wm{i}.W.cells,:) = 0;
             end
             state = validateState@TransportModel(model, state);
-            state = assignDofFromState(model.disc, state);
+            state = assignDofFromState(model.discretization, state);
         end
         
         %-----------------------------------------------------------------%
@@ -108,13 +109,18 @@ classdef TransportModelDG < TransportModel
             parent = model.parentModel;
             % Get the AD state for this model
             [basevars, basedofnames, basenames, baseorigin] = model.getPrimaryVariables(state);
+            isParent = strcmp(baseorigin, class(parent));
+            basevars = basevars(isParent);
+            basedofnames = basedofnames(isParent);
+            basenames = basenames(isParent);
+            baseorigin = baseorigin(isParent);
             % Find saturations
             isS = false(size(basevars));
             nph = parent.getNumberOfPhases();
             phase_variable_index = zeros(nph, 1);
             for i = 1:numel(basevars)
                 [f, ix] = model.getVariableField(basedofnames{i}, false);
-                if strcmp(f, 'sdof') || strcmpi(basedofnames{i}, 'xdof')
+                if strcmp(f, 'sdof')% || strcmpi(basedofnames{i}, 'xdof')
                     isS(i) = true;
                     phase_variable_index(ix) = i;
                 end
@@ -164,7 +170,7 @@ classdef TransportModelDG < TransportModel
                     fixedSat        = true;
                 end
                 v     = model.getProp(state, basedofnames{i});
-                vm    = model.disc.getCellMean(state, value(v));
+                vm    = model.discretization.getCellMean(state, value(v));
                 state = model.setProp(state, basenames{i}, vm); 
             end
             if useTotalSaturation
@@ -172,13 +178,13 @@ classdef TransportModelDG < TransportModel
                 sTdof       = vars{isP};
                 state.sTdof = sTdof;
                 % Evaluate at cell cubature points
-                cellValue         = model.disc.evaluateProp(state, sTdof, 'cell');
+                cellValue         = model.discretization.evaluateProp(state, sTdof, 'cell');
                 state.cellStateDG = model.setProp(state.cellStateDG, 'sT', cellValue);
                 % Evaluate mean
-                cellMean          = model.disc.getCellMean(state, sTdof);
+                cellMean          = model.discretization.getCellMean(state, sTdof);
                 state.wellStateDG = model.setProp(state.wellStateDG, 'sT', cellMean);
                 % Evaluate at face cubature points
-                faceValue         = model.disc.evaluateProp(state, sTdof, 'face');
+                faceValue         = model.discretization.evaluateProp(state, sTdof, 'face');
                 state.faceStateDG = model.setProp(state.faceStateDG, 'sT', faceValue);
                 % Set mean in state
                 state = model.setProp(state, 'sT', cellMean);
@@ -211,7 +217,7 @@ classdef TransportModelDG < TransportModel
                             st{j} = st{j}(cells);
                         end
                     end
-                    fillSat = model.disc.getFillSat(state);
+                    fillSat = model.discretization.getFillSat(state);
                     sGdof = st{2}.*(fillSat-sWdof) + st{3}.*xdof;
                     sOdof = st{1}.*(fillSat-sWdof) + ~st{1}.*(fillSat - sWdof - sGdof);
                     if pmodel.water
@@ -225,7 +231,7 @@ classdef TransportModelDG < TransportModel
                     phases = pmodel.getPhaseNames();
                     nph = numel(phases);
                     satdof = cell(1, nph);
-                    fillSat = model.disc.getFillSat(state);
+                    fillSat = model.discretization.getFillSat(state);
                     removed_sat = false(1, nph);
                     for i = 1:numel(phases)
                         sub = strcmpi(names, ['s', phases(i), 'dof']);
@@ -241,7 +247,7 @@ classdef TransportModelDG < TransportModel
                     end
                 end
                 state = model.setProp(state, 'sdof', satdof);
-                sat   = model.disc.getCellMean(state, satdof);
+                sat   = model.discretization.getCellMean(state, satdof);
                 state = model.setProp(state, 's', sat);
 
                 if not(isempty(pmodel.FacilityModel))
@@ -267,7 +273,7 @@ classdef TransportModelDG < TransportModel
                     rsdof = ~st{1}.*rsSat + st{1}.*xdof;
                     % rs = rs.*(value(sO) > 0);
                     state = model.setProp(state, 'rsdof', rsdof);
-                    rs    = model.disc.getCellMean(state, rsdof);
+                    rs    = model.discretization.getCellMean(state, rsdof);
                     state = model.setProp(state, 'rs', rs);
                 end
 
@@ -277,15 +283,15 @@ classdef TransportModelDG < TransportModel
                     rvdof = ~st{2}.*rvSat + st{2}.*xdof;
                     % rv = rv.*(value(sG) > 0);
                     state = model.setProp(state, 'rvdof', rvdof);
-                    rv    = model.disc.getCellMean(state, rvdof);
+                    rv    = model.discretization.getCellMean(state, rvdof);
                     state = model.setProp(state, 'rv', rv);
                     % No rv, no so -> zero on diagonal in matrix
-                    sO = model.disc.getCellMean(state, value(sOdof));
+                    sO = model.discretization.getCellMean(state, value(sOdof));
                     bad_oil = value(sO) == 0 & value(rv) == 0;
                     if any(bad_oil)
                         sOdof(bad_oil) = fillSat - sWdof(bad_oil) - value(sGdof(bad_oil));
                         state = model.setProp(state, 'sOdof', sOdof);
-                        sO    = model.disc.getCellMean(state, sOdof);
+                        sO    = model.discretization.getCellMean(state, sOdof);
                         state = model.setProp(state, 'sO', sO);
                     end
                 end
@@ -300,15 +306,15 @@ classdef TransportModelDG < TransportModel
             [cellStateDG, faceStateDG, wellStateDG] = deal(state);
             names = fieldnames(state);
             
-            [~ , xc, cNo     ] = model.disc.getCubature(Inf, 'volume');
-            [~ , xf, ~  , fNo] = model.disc.getCubature(Inf, 'face');
+            [~ , xc, cNo     ] = model.discretization.getCubature(Inf, 'volume');
+            [~ , xf, ~  , fNo] = model.discretization.getCubature(Inf, 'face');
             xf   = repmat(xf, 2, 1);
-            N    = model.disc.G.faces.neighbors;
+            N    = model.discretization.G.faces.neighbors;
             fcNo = [N(fNo,1); N(fNo,2)];
-            xc = model.disc.transformCoords(xc, cNo );
-            xf = model.disc.transformCoords(xf, fcNo);
-            [psi_c, psi_f] = deal(model.disc.basis.psi');
-            for dofNo = 1:model.disc.basis.nDof
+            xc = model.discretization.transformCoords(xc, cNo );
+            xf = model.discretization.transformCoords(xf, fcNo);
+            [psi_c, psi_f] = deal(model.discretization.basis.psi');
+            for dofNo = 1:model.discretization.basis.nDof
                 psi_c{dofNo} = psi_c{dofNo}(xc);
                 psi_f{dofNo} = psi_f{dofNo}(xf);
             end
@@ -321,13 +327,13 @@ classdef TransportModelDG < TransportModel
                     dof = model.getProp(state, name);
                     n = name(1:end-3);
                     % Evaluate at cell cubature points
-                    cellValue = model.disc.evaluateProp(state, dof, 'cell');
+                    cellValue = model.discretization.evaluateProp(state, dof, 'cell');
                     cellStateDG = model.setProp(cellStateDG, n, cellValue);
                     % Get cell mean
-                    cellMean = model.disc.getCellMean(state, dof);
+                    cellMean = model.discretization.getCellMean(state, dof);
                     wellStateDG = model.setProp(wellStateDG, n, cellMean);
                     % Evaluate at face cubature points
-                    faceValue = model.disc.evaluateProp(state, dof, 'face');
+                    faceValue = model.discretization.evaluateProp(state, dof, 'face');
                     faceStateDG = model.setProp(faceStateDG, n, faceValue);
                 end
             end
@@ -336,8 +342,8 @@ classdef TransportModelDG < TransportModel
             wellStateDG.sT = getTotalSaturation(wellStateDG.s);
             faceStateDG.sT = getTotalSaturation(faceStateDG.s);
             
-            [~, ~, cells] = model.disc.getCubature((1:model.G.cells.num)', 'volume');
-            [~, ~, ~, faces] = model.disc.getCubature(find(model.parentModel.operators.internalConn), 'face');
+            [~, ~, cells] = model.discretization.getCubature((1:model.G.cells.num)', 'volume');
+            [~, ~, ~, faces] = model.discretization.getCubature(find(model.parentModel.operators.internalConn), 'face');
             fcells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
             
             cellStateDG.type  = 'cell';
@@ -364,7 +370,7 @@ classdef TransportModelDG < TransportModel
 %                 if isfield(state, name{1}) && isfield(state, [name{1}, 'dof'])
                 if isfield(state, [name{1}, 'dof'])
                     dof = model.getProp(state, [name{1}, 'dof']);
-                    v   = model.disc.getCellMean(state, dof);
+                    v   = model.discretization.getCellMean(state, dof);
                     state.(name{1}) = v;
                 end
             end
@@ -372,7 +378,7 @@ classdef TransportModelDG < TransportModel
             if strcmpi(model.formulation, 'totalSaturation')
                 if isfield(state, 'sT') && isfield(state, 'sTdof')
                     dof = model.getProp(state, 'stdof');
-                    v   = model.disc.getCellMean(state, dof);
+                    v   = model.discretization.getCellMean(state, dof);
                     state.sT = v;
                 end
             end
@@ -408,7 +414,7 @@ classdef TransportModelDG < TransportModel
                 names = names(1:end-1);
                 types = types(1:end-1);
             end
-            d        = tmodel.disc;
+            d        = tmodel.discretization;
             d.nDof   = state.nDof;
             d.dofPos = state.dofPos;
             psi = d.basis.psi;
@@ -440,7 +446,7 @@ classdef TransportModelDG < TransportModel
         %-----------------------------------------------------------------%
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
             [model, state] = prepareTimestep@TransportModel(model, state, state0, dt, drivingForces);
-            state = assignDofFromState(model.disc, state, {'pressure'});
+            state = assignDofFromState(model.discretization, state, {'pressure'});
         end
         
         %-----------------------------------------------------------------%
@@ -500,7 +506,7 @@ classdef TransportModelDG < TransportModel
                     dxEOS   = model.getMeanIncrement(state0_corr, state, varsEOS);
                     for i = 1:numel(varsEOS)
                         [fn, index] = model.getVariableField(varsEOS{i});
-                        ix = model.disc.getDofIx(state, 1);
+                        ix = model.discretization.getDofIx(state, 1);
                         state.(fn)(ix,index) = state.(fn)(ix,index) + dxEOS{i};
                     end
 %                     state   = model.updateDofs(state, dxEOS, problem, varsEOS);
@@ -553,30 +559,30 @@ classdef TransportModelDG < TransportModel
                 % everything that isn't sG updates
                 dsg = st{3}.*dr - st{2}.*dsw;
 
-                drsMaxAbs = pmodel.drsMaxAbs/model.disc.basis.nDof;
+                drsMaxAbs = pmodel.drsMaxAbs/model.discretization.basis.nDof;
                 if pmodel.disgas
                     rsMax = pmodel.getProp(state, 'rsMax');
                     rsMax = rsMax(cells);
-                    drs_rel = rsMax.*pmodel.drsMaxRel/model.disc.basis.nDof;
+                    drs_rel = rsMax.*pmodel.drsMaxRel/model.discretization.basis.nDof;
                     drs = min(drsMaxAbs, drs_rel);
                     state = model.updateStateFromIncrement(state, st{1}.*dr, problem, ...
                                                            'rsdof', inf, drs);
-                    state.rs = model.disc.getCellMean(state, state.rsdof);
+                    state.rs = model.discretization.getCellMean(state, state.rsdof);
                 end
                 
                 if 0
                     rs    = model.getProp(state, 'rs');
                     rsSat = model.parentModel.getProp(state, 'rsMax');
                     rsdof = model.getProp(state, 'rsdof');
-                    [rsMin, rsMax] = model.disc.getMinMax(state, rsdof);
+                    [rsMin, rsMax] = model.discretization.getMinMax(state, rsdof);
                     rsMin(rs > rsSat) = rsSat(rs > rsSat);
                     rsMax(rs < rsSat) = rsSat(rs < rsSat);
-                    state = model.disc.limiter{2}(state, 'rs', [rsMin, rsMax]);
+                    state = model.discretization.limiter{2}(state, 'rs', [rsMin, rsMax]);
                 end
 
                 if pmodel.vapoil
                     rvMax = pmodel.getProp(state, 'rvMax');
-                    drv_rel = rvMax.*pmodel.drsMaxRel/model.disc.basis.nDof;
+                    drv_rel = rvMax.*pmodel.drsMaxRel/model.discretization.basis.nDof;
                     drs = min(drsMaxAbs, drv_rel);
                     state = model.updateStateFromIncrement(state, st{2}.*dr, problem, ...
                                                            'rvdof', inf, drs);
@@ -597,7 +603,7 @@ classdef TransportModelDG < TransportModel
                     ds(:, phIndices(3)) = dsg;
                 end
 
-                dsMaxAbs = pmodel.dsMaxAbs/model.disc.basis.nDof;
+                dsMaxAbs = pmodel.dsMaxAbs/model.discretization.basis.nDof;
                 state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, dsMaxAbs);
                 state = model.assignBaseVariables(state);
                 
@@ -639,17 +645,8 @@ classdef TransportModelDG < TransportModel
                     end
                 end
                 % Update saturation dofs
-                state = model.updateSaturations(state0, dx_corr, problem0, {'swdof', 'sodof', 'sgdof'});
+                state = model.updateDofs(state0, dx_corr, problem0, names);
                 state.status = state_corr.status;
-                % Update non-saturation dofs
-                restVars = {};
-                if pmodel.disgas
-                    restVars{end+1} = 'rsdof';
-                end
-                if pmodel.vapoil
-                    restVars{end+1} = 'rvdof';
-                end
-                state = model.updateDofs(state, dx_corr, problem0, restVars);
                 % Update cell averages from dofs
                 state = model.assignBaseVariables(state);
                 
@@ -657,10 +654,10 @@ classdef TransportModelDG < TransportModel
                     rsSat = model.parentModel.getProp(state, 'RsMax');
                     rs    = model.getProp(state, 'rs');
                     rsdof = model.getProp(state, 'rsdof');
-                    [rsMin, rsMax] = model.disc.getMinMax(state, rsdof);
+                    [rsMin, rsMax] = model.discretization.getMinMax(state, rsdof);
                     rsMin(rs > rsSat) = rsSat(rs > rsSat);
                     rsMax(rs < rsSat) = rsSat(rs < rsSat);
-                    state = model.disc.limiter{2}(state, 'rs', [rsMin, rsMax]);
+                    state = model.discretization.limiter{2}(state, 'rs', [rsMin, rsMax]);
                 end
                 
                 %  We have explicitly dealt with rs/rv properties, remove from list
@@ -740,7 +737,7 @@ classdef TransportModelDG < TransportModel
             ds = zeros(sum(state.nDof), numel(saturations));
             
             tmp = 0;
-            ix = model.disc.getDofIx(state, Inf);
+            ix = model.discretization.getDofIx(state, Inf);
             for phNo = 1:numel(saturations)
                 if solvedFor(phNo)
                     v = model.getIncrement(dx, problem, saturations{phNo});
@@ -755,7 +752,7 @@ classdef TransportModelDG < TransportModel
             ds(ix, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            dsAbsMax = model.parentModel.dsMaxAbs/model.disc.basis.nDof;
+            dsAbsMax = model.parentModel.dsMaxAbs/model.discretization.basis.nDof;
             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, dsAbsMax);
             
         end
@@ -767,11 +764,11 @@ classdef TransportModelDG < TransportModel
             state = rmfield(state, 'wellStateDG');
             
             propfn = model.parentModel.getStateFunctionGroupings();
-            d = model.disc;
+            d = model.discretization;
             d.nDof = state.nDof;
             d.dofPos = state.dofPos;
             ix = d.getDofIx(state, 1, Inf);
-            psi    = model.disc.basis.psi(1);
+            psi    = model.discretization.basis.psi(1);
             d.sample = state.sdof(:,1);
             for i = 1:numel(propfn)
                 p = propfn{i};
@@ -793,22 +790,22 @@ classdef TransportModelDG < TransportModel
                 end
             end
             
-            if ~isempty(model.disc.limiter)
-                state = model.disc.limiter{2}(state, 's', [0,1]);
-                state = model.disc.limiter{1}(state, 's');
+            if ~isempty(model.discretization.limiter)
+                state = model.discretization.limiter{2}(state, 's', [0,1]);
+                state = model.discretization.limiter{1}(state, 's');
                 if isa(model.parentModel, 'GenericBlackOilModel')
                     if model.parentModel.disgas
                         rsSat = model.parentModel.getProp(state, 'RsMax');
                         rs    = model.getProp(state, 'rs');
                         rsdof = model.getProp(state, 'rsdof');
-                        [rsMin, rsMax] = model.disc.getMinMax(state, rsdof);
+                        [rsMin, rsMax] = model.discretization.getMinMax(state, rsdof);
                         rsMin(rs > rsSat) = rsSat(rs > rsSat);
                         rsMax(rs < rsSat) = rsSat(rs < rsSat);
-                        state = model.disc.limiter{2}(state, 'rs', [rsMin, rsMax]);
-                        state = model.disc.limiter{1}(state, 'rs');
+                        state = model.discretization.limiter{2}(state, 'rs', [rsMin, rsMax]);
+                        state = model.discretization.limiter{1}(state, 'rs');
                     end
                     if model.parentModel.vapoil
-                        state = model.disc.limiter{1}(state, 'rv');
+                        state = model.discretization.limiter{1}(state, 'rv');
                     end
                 end
             end
