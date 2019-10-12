@@ -1,5 +1,6 @@
 %G = cartGrid([20,30,10]);
 G = cartGrid([10, 10, 10]);
+%G = cartGrid([7, 7, 7]);
 %G = cartGrid([2,3,4]);
 %G = cartGrid([2,1, 1]);
 
@@ -21,6 +22,8 @@ T_cell_node_coords = T_node_coords.project(T_cell_node_ind);
 
 % ========================== Compute cell centroids ==========================
 
+fprintf('Computing cell centroids\n');
+
 T_cell_centroids = T_cell_node_coords.contract('node') ./ ...
                    T_cell_numnodes.project(T_dim_ind);
 
@@ -31,6 +34,7 @@ T_cell_node_distance = ...
 
 % =============================== Computing Nc ===============================
 
+fprintf('Computing Nc.\n');
 % Nc = [1 0 0 2 0 3;
 %       0 2 0 1 3 0;
 %       0 0 3 0 2 1];
@@ -42,6 +46,8 @@ NcInd.k     = [1, 2, 3, 2, 1, 3, 3, 2, 1];
 T_cell_node_Nc = Tensor(NcInd) * T_cell_node_distance.changeIndexName('d', 'k');
 
 % ================================ Compute q_i ================================
+
+fprintf('Computing q_i.\n');
 
 G = createAugmentedGrid(computeGeometry(G));
 [qc, qf, qcvol] = calculateQC(G);
@@ -60,6 +66,8 @@ T_cell_node_d_qc.nzvals = qc(:);
 
 % ================================ Compute Wc ================================
 
+fprintf('Computing Nc.\n');
+
 WcInd = NcInd; % they have exactly the same structure
 T_cell_node_Wc = ...
     Tensor([2, 1, 1, 2, 1, 1, 2, 1, 1], WcInd) * ...
@@ -67,6 +75,8 @@ T_cell_node_Wc = ...
 
 % ================================ Compute Nr ================================
 
+
+fprintf('Compute Nr.\n');
 % Nr = [_1  0  0 2 0 -3;
 %        0 _1  0 -1 3 0;
 %        0  0 _1 0 -2 1]
@@ -79,6 +89,8 @@ T_cell_node_Nr = ...
     NrIndTrans * T_cell_node_ind;
 
 % ================================ Compute Wr ================================
+
+fprintf('Compute Wr.\n');
 
 % Wr = 1/n   0   0   q2   0 -q3
 %        0 1/n   0  -q1  q3   0 
@@ -97,12 +109,16 @@ T_cell_node_Wr = ...
 
 % ================================= Compute P =================================
 
+fprintf('Compute P.\n');
+
 T_Pr = T_cell_node_Wr * T_cell_node_Nr.changeIndexName({'d', 'node'}, {'d2', 'node2'});
 T_Pc = T_cell_node_Wc * T_cell_node_Nc.changeIndexName({'d', 'node'}, {'d2', 'node2'});
 
 Pp = T_Pr + T_Pc;
 
 % ============================== Compute (I - P) ==============================
+
+fprintf('Compute I-P.\n');
 
 % identity tensor in dxd
 Id = Tensor(struct('d', [1,2,3], 'd2', [1,2,3]));
@@ -119,6 +135,8 @@ IminusP = Pp - Id_node_d;
 
 % ================================= Compute D =================================
 
+fprintf('Compute D.\n');
+
 E = 0.51e9;
 nu = 0.15;
 
@@ -131,11 +149,15 @@ T_D = Tensor(D(:), {'cell', G.cells.num, 'lform1', 6, 'lform2', 6});
 
 % ============================== Compute Wc D Wc ==============================
 
+fprintf('Compute Wc D Wc.\n');
+
 tmp = ...
     T_cell_node_Wc.project(T_cell_node_Wc.changeIndexName({'d', 'lform', 'node'}, ...
                                                           {'d2', 'lform2', 'node2'}));
 
+fprintf('Compute WDW\n');
 WDW = tmp * T_D.changeIndexName('lform1', 'lform');
+
 
 spy(WDW.asMatrix({{'d', 'node'}, {'d2', 'node2'}}))
 

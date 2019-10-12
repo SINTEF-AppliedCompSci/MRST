@@ -49,6 +49,9 @@ classdef Tensor
      function self = project(self, other)
         common_indexsets = Tensor.find_common_indices(self, other);
         
+        % @ temporary fix
+        self.tbl.num = numel(self.nzvals);
+        other.tbl.num = numel(other.nzvals);
         [~, combined_tbl] = ...
             setupTableMapping(self.tbl, other.tbl, common_indexsets, ...
                               'fastunstable', false);
@@ -65,15 +68,33 @@ classdef Tensor
      end
 
      function self = contract(self, contract_ixs)
+        
         if ~iscell(contract_ixs)
            contract_ixs = {contract_ixs};
         end
-        keep_ixs = setdiff(Tensor.index_fields(self.tbl), contract_ixs);
-        projtbl = projTable(self.tbl, keep_ixs); 
-        map = setupTableMapping(self.tbl, projtbl, Tensor.index_fields(projtbl), ...
-                                'fastunstable', false);
-        self.tbl = projtbl;
-        self.nzvals = map * self.nzvals;
+        
+        self.tbl = rmfield(self.tbl, contract_ixs);
+        [ix1D, dims] = Tensor.compute_1D_index(self.tbl);
+        map = sparse(ix1D, 1:numel(self.nzvals), 1);
+        
+        % @@the following line has been known to cause memory issues, so it has
+        % been replaced with the equivalent (but slightly more complex) code below
+        numel(self.nzvals)
+        nzvals_sparse = map * self.nzvals;
+        
+        % @@ this code replaces the line above
+        %nzvals_sparse = sum(bsxfun(@times, map, self.nzvals'), 2);
+        
+        
+        [ix,~, self.nzvals] = find(nzvals_sparse);
+        subs = cell(numel(dims), 1); 
+        [subs{:}] = ind2sub(dims, ix);
+        subs = horzcat(subs{:});
+        
+        fields = Tensor.index_fields(self.tbl);
+        for f = 1:numel(fields)
+           self.tbl.(fields{f}) = subs(:, f);
+        end
      end
      
      function self = formalProduct(self, other)
@@ -124,9 +145,8 @@ classdef Tensor
     end
     
     function self = sortIndices(self, ixset_order)
-       num = self.tbl.num;
+       num = numel(self.nzvals);
        [new_tbl, I] = Tensor.sort_table(self.tbl, ixset_order);
-       new_tbl.num = num;
        self.nzvals = self.nzvals(I);
        self.tbl = new_tbl;
     end
@@ -141,8 +161,6 @@ classdef Tensor
           for i = 1:numel(dims)
              if ~iscell(dims{i})
                 dims{i} = {dims{i}};
-             else 
-                assert(numel(dims{i}) <= 2);
              end
           end
        end
@@ -150,12 +168,12 @@ classdef Tensor
        assert(Tensor.is_permutation(horzcat(dims{:}), ...
               Tensor.index_fields(self.tbl)));
        if numel(dims) == 1
-          ix1 = Tensor.compute_tensor_index(dims{1}, self.tbl);
+          ix1 = Tensor.compute_1D_index(self.tbl, dims{1});
           M = zeros(max(ix1), 1);
           M(ix1) = self.nzvals;
        elseif numel(dims) == 2
-          ix1 = Tensor.compute_tensor_index(dims{1}, self.tbl);
-          ix2 = Tensor.compute_tensor_index(dims{2}, self.tbl);
+          ix1 = Tensor.compute_1D_index(self.tbl, dims{1});
+          ix2 = Tensor.compute_1D_index(self.tbl, dims{2});
           M = sparse(ix1, ix2, self.nzvals);
           if prod(size(M)) < SPARSE_THRESHOLD
              M = full(M); % convenient, for small matrices
@@ -187,23 +205,29 @@ classdef Tensor
         for field = Tensor.index_fields(self.tbl)'
            self.tbl.(field{:}) = self.tbl.(field{:})(~prune_ix);
         end
-        self.tbl.num = self.tbl.num - sum(prune_ix);
      end
      
   end % end regular, public methods
      
   methods(Static)
      
-     function ix = compute_tensor_index(dims, tbl)
-        if numel(dims) == 1
-           ix = tbl.(dims{:});
-        else
-           assert(numel(dims) == 2)
-           stride = max(tbl.(dims{1}));
-           ix = tbl.(dims{2}) * stride + tbl.(dims{1});
+     function [ix, dims] = compute_1D_index(tbl, dims)
+        if nargin > 1
+           % keep only the requested dimensions
+           remove = setdiff(Tensor.index_fields(tbl), dims);
+           tbl = rmfield(tbl, remove);
         end
+        
+        tbl_ix = cellfun(@(f) tbl.(f), Tensor.index_fields(tbl), ...
+                          'uniformoutput', false);
+        tbl_ix = [tbl_ix{:}];
+        dims = max(tbl_ix);
+        stride = cumprod([1, dims(1:end-1)]);
+        
+        ix = sum(bsxfun(@times, tbl_ix-1, stride), 2) + 1;
+        % (could also have used sub2ind to do this)
      end
-          
+     
      function tensor = ind(tensor)
         tensor = tensor.toInd();
      end
@@ -351,7 +375,6 @@ classdef Tensor
         for i = 1:numel(isets)
            t.tbl.(label_dims{2*i-1}) = isets{i}(:);
         end
-        t.tbl.num = prod([label_dims{2:2:end}]);
      end
      
      function t = make_generic_tensor(coefs, tbl)
@@ -361,11 +384,6 @@ classdef Tensor
         fnames = Tensor.index_fields(tbl);
         for fn = fnames(:)'
            t.tbl.(fn{:}) = reshape(t.tbl.(fn{:}), [], 1);
-        end
-        if isempty(fnames)
-           t.tbl.num = 1;
-        else
-           t.tbl.num = numel(t.tbl.(fnames{1}));
         end
      end
   end % end static methods
@@ -482,3 +500,20 @@ end
        
     % end
     
+     % function self = contract_old(self, contract_ixs)
+     %    if ~iscell(contract_ixs)
+     %       contract_ixs = {contract_ixs};
+     %    end
+     %    keep_ixs = setdiff(Tensor.index_fields(self.tbl), contract_ixs);
+     %    projtbl = projTable(self.tbl, keep_ixs); 
+     %    map = setupTableMapping(self.tbl, projtbl, Tensor.index_fields(projtbl), ...
+     %                            'fastunstable', false);
+     %    %@@ NB: The following line is wrong!  The number of entries is equal
+     %    %to the number of entries in the original, uncontracted tensor, so
+     %    %there will be dupplication.  Function unusable, and kept for future
+     %    %reference only.
+     %    self.tbl = projtbl;
+     %    self.nzvals = map * self.nzvals;
+     % end
+    
+ 
