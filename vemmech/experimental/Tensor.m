@@ -95,6 +95,17 @@ classdef Tensor
      end
      
      function self = formalProduct(self, other)
+        
+     %  what we must implement here:
+     %  - the common index set should be converted to a single index for each
+     %    tensor
+     %  - each tensor should be sorted with respect to this new index
+     %  - then call 'tsparsemul' using the values of the two tensors, and the
+     %  remaining index sets for the two tensors, supplemented with the new
+     %  index set (across which summation will happen)
+     %  - 'tsparsemul' will return the value and the multiindices of the new
+     %  tensor, which can then be constructed and returned directly
+        
         common_indexsets = Tensor.find_common_indices(self, other);
         fprintf('A\n');
         self = self.project(other);
