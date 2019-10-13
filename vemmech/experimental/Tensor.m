@@ -53,15 +53,12 @@ classdef Tensor
         self.tbl.num = numel(self.nzvals);
         other.tbl.num = numel(other.nzvals);
         [~, combined_tbl] = ...
-            setupTableMapping(self.tbl, other.tbl, common_indexsets, ...
-                              'fastunstable', false);
+            setupTableMapping(self.tbl, other.tbl, common_indexsets);
         
         m1 = setupTableMapping(self.tbl, combined_tbl, ...
-                               Tensor.index_fields(self.tbl), 'fastunstable', ...
-                               false);
+                               Tensor.index_fields(self.tbl));
         m2 = setupTableMapping(other.tbl, combined_tbl, ...
-                               Tensor.index_fields(other.tbl), 'fastunstable', ...
-                               false);
+                               Tensor.index_fields(other.tbl));
         self.nzvals = (m1 * self.nzvals) .* (m2 * other.nzvals);
         self.tbl = combined_tbl;
         
@@ -79,7 +76,7 @@ classdef Tensor
         
         % @@the following line has been known to cause memory issues, so it has
         % been replaced with the equivalent (but slightly more complex) code below
-        numel(self.nzvals)
+        
         nzvals_sparse = map * self.nzvals;
         
         % @@ this code replaces the line above
@@ -99,7 +96,12 @@ classdef Tensor
      
      function self = formalProduct(self, other)
         common_indexsets = Tensor.find_common_indices(self, other);
-        self = self.project(other).contract(common_indexsets);
+        fprintf('A\n');
+        self = self.project(other);
+        fprintf('Finished A.  Now B\n');
+        self = self.contract(common_indexsets);
+        fprintf('Finished B.\n');
+        %self = self.project(other).contract(common_indexsets);
      end
           
      function self = changeIndexName(self, oldname, newname)

@@ -112,10 +112,11 @@ T_cell_node_Wr = ...
 fprintf('Compute P.\n');
 
 T_Pr = T_cell_node_Wr * T_cell_node_Nr.changeIndexName({'d', 'node'}, {'d2', 'node2'});
+fprintf('.\n');
 T_Pc = T_cell_node_Wc * T_cell_node_Nc.changeIndexName({'d', 'node'}, {'d2', 'node2'});
-
+fprintf('.\n');
 Pp = T_Pr + T_Pc;
-
+fprintf('.\n');
 % ============================== Compute (I - P) ==============================
 
 fprintf('Compute I-P.\n');
@@ -157,7 +158,7 @@ tmp = ...
 
 fprintf('Compute WDW\n');
 WDW = tmp * T_D.changeIndexName('lform1', 'lform');
-
+fprintf('.\n');
 
 spy(WDW.asMatrix({{'d', 'node'}, {'d2', 'node2'}}))
 
