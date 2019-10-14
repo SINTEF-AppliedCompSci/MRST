@@ -4,7 +4,7 @@ classdef DGDiscretization < SpatialDiscretization
 
         degree              % Degree of discretization, dG(degree)
         degree0
-        basis               % Type of basis functions. Standard is tensor 
+        basis   = 'legendre' % Type of basis functions. Standard is tensor 
                             % products of Legendre polynomials.
         dim                 % Dimension of disc to facilitate e.g. 2D 
                             % simulations on horizontal slice of 3D
@@ -56,19 +56,9 @@ classdef DGDiscretization < SpatialDiscretization
             
             % Standard dG properties
             disc.degree = 1;
-            disc.degree0 = [];
+%             disc.degree0 = [];
             disc.basis  = 'legendre';
             disc.dim    = G.griddim;
-            
-            % Limiter tolerances
-            disc.jumpTolerance = 0.2;
-            disc.jumpLimiter   = 'kill';
-            disc.outTolerance  = Inf;
-            disc.outLimiter    = 'kill';
-            disc.meanTolerance = Inf;
-            disc.limitAfterNewtonStep  = true;
-            disc.limitAfterConvergence = false;
-            disc.plotLimiterProgress   = false;
             
             % Cubature
             disc.useMomentFitting = false;
@@ -79,10 +69,13 @@ classdef DGDiscretization < SpatialDiscretization
             
             [disc, basisArgs] = merge_options(disc, varargin{:});
             
-            
             % Replace basis string by dG basis object
-            disc.basis  = dgBasis(disc.dim, disc.degree, disc.basis, basisArgs{:});
+            if ~isfield(disc.basis, 'psi')
+                disc.basis  = dgBasis(disc.dim, disc.degree, disc.basis, basisArgs{:});
+            end
             disc.degree = disc.basis.degree;
+%             disc.nDof   = disc.getnDof();
+%             [~, disc] = disc.updateDofPos(disc);
             
             % Set up velocity interpolation
             disc.velocityInterp = velocityInterpolation(G, 'mimetic');
@@ -93,32 +86,32 @@ classdef DGDiscretization < SpatialDiscretization
             isCoarse   = isfield(G, 'parent');
             if G.griddim == 2
                 if isCoarse %&& ~disc.useUnstructCubature
-                    volCub  = CoarseGrid2DCubature(G, prescision, disc.internalConn);
+                    volCub  = CoarseGrid2DCubature(G, prescision);
                 else
                     if all(disc.degree == 0) || disc.useMomentFitting
-                        volCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+                        volCub = MomentFitting2DCubature(G, prescision);
                     else
-                        volCub = TriangleCubature(G, prescision, disc.internalConn);
+                        volCub = TriangleCubature(G, prescision);
                     end
                 end
-                surfCub = LineCubature(G, prescision, disc.internalConn);
+                surfCub = LineCubature(G, prescision);
             else
                 if isCoarse 
                     if ~disc.useMomentFitting
-                        volCub  = CoarseGrid3DCubature(G, prescision, disc.internalConn);
-                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
+                        volCub  = CoarseGrid3DCubature(G, prescision);
+                        surfCub = TriangleCubature(G, prescision);
                     else
-                        volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
-                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
+                        volCub  = MomentFitting3DCubature(G, prescision);
+                        surfCub = TriangleCubature(G, prescision);
                     end
                 else
                     if all(disc.degree == 0) || disc.useMomentFitting
-                        volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
+                        volCub  = MomentFitting3DCubature(G, prescision);
 %                         surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
-                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
+                        surfCub = TriangleCubature(G, prescision);
                     else
-                        volCub  = TetrahedronCubature(G, prescision, disc.internalConn);
-                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
+                        volCub  = TetrahedronCubature(G, prescision);
+                        surfCub = TriangleCubature(G, prescision);
                     end
                 end
             end
@@ -267,12 +260,16 @@ classdef DGDiscretization < SpatialDiscretization
         %-----------------------------------------------------------------%
         function nDof = getnDof(disc, state)
             % Get number of dofs for each cell from degree.
-            
+            if nargin == 1
+                deg = repmat(disc.degree, disc.G.cells.num, 1);
+            else
+                deg = state.degree;
+            end
             if disc.degree < 0
                 nDof = 0;
             else
-                nDof = factorial(state.degree + disc.dim)...
-                       ./(factorial(disc.dim).*factorial(state.degree));
+                nDof = factorial(deg + disc.dim)...
+                       ./(factorial(disc.dim).*factorial(deg));
             end
             
         end
@@ -343,7 +340,7 @@ classdef DGDiscretization < SpatialDiscretization
             psi = [];
             switch type
                 case 'cell'
-                    [~ , x, cNo] = disc.getCubature(Inf, 'volume');
+                    [~ , x, cNo] = disc.getCubature(Inf, 'cell');
                     if isfield(state, 'psi_c')
                         psi = state.psi_c;
                     end
@@ -386,7 +383,7 @@ classdef DGDiscretization < SpatialDiscretization
             % Get average cell value from dofs
 
             % Get cubature for all cells
-            W = disc.getCubature(Inf, 'volume');
+            W = disc.getCubature(Inf, 'cell');
             val = cell(numel(varargin),1);
             
             for i = 1:nargin-2
@@ -453,7 +450,7 @@ classdef DGDiscretization < SpatialDiscretization
                 cells = (1:disc.G.cells.num)';
             end
             % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
+            [W, x, cellNo, ~] = disc.getCubature(cells, 'cell');
             if isinf(cells)
                 cells = (1:disc.G.cells.num)';
             end
@@ -688,7 +685,7 @@ classdef DGDiscretization < SpatialDiscretization
                 % Map elements to old numbering
                 maps = disc.G.mappings; 
                 switch type 
-                    case {'volume', 'surface'}
+                    case {'cell', 'surface'}
                         elements = maps.cellMap.new2old(elements);
                     case 'face'
                         elements = maps.faceMap.new2old(elements);
@@ -697,7 +694,7 @@ classdef DGDiscretization < SpatialDiscretization
             
             % Get correct cubature type
             switch type 
-                case 'volume'
+                case 'cell'
                     cubature = disc.volumeCubature; 
                 case {'surface', 'face'}
                     cubature = disc.surfaceCubature;
@@ -758,7 +755,7 @@ classdef DGDiscretization < SpatialDiscretization
             cF = [G.faces.neighbors(fF,1); G.faces.neighbors(fF,2)];
             [cF, ix] = sort(cF);
             xF = xF(ix,:);
-            [~, xC, cC, ~] = disc.getCubature(Inf, 'volume');
+            [~, xC, cC, ~] = disc.getCubature(Inf, 'cell');
             % Evaluate saturation at faces
             vF = disc.evaluateDGVariable(xF, cF, state, dof);
             [~, nF] = rlencode(cF);
