@@ -9,6 +9,9 @@ function facility = selectFacilityFromDeck(deck, model)
     else
         facility = model.FacilityModel;
     end
+    if numel(deck.SCHEDULE.control) == 0
+        return;
+    end
     % Vertical lift tables
     if isfield(deck.RUNSPEC, 'VFPIDIMS') || ...
        isfield(deck.SCHEDULE.control(1), 'VFPPROD') || ...

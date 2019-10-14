@@ -47,7 +47,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'fixSign',           true);
 
     opt = merge_options(opt, varargin{:});
-    
+    if isempty(schedule.control)
+        return
+    end
 
     % First, we loop over all controls, adding any wells we haven't seen
     % before to the superset of all wells. If there are mismatches in the

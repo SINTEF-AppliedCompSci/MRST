@@ -16,18 +16,25 @@ classdef TransportModel < WrapperModel
             end
             parent = model.parentModel;
             % Get the AD state for this model
-            [basevars, basenames, origin] = model.getPrimaryVariables(state);
-            isParent = strcmp(origin, class(parent));
+            [basevars, basenames, baseorigin] = model.getPrimaryVariables(state);
+            isParent = strcmp(baseorigin, class(parent));
             basevars = basevars(isParent);
             basenames = basenames(isParent);
-            origin = origin(isParent);
+            baseorigin = baseorigin(isParent);
             % Find saturations
             isS = false(size(basevars));
             nph = parent.getNumberOfPhases();
             phase_variable_index = zeros(nph, 1);
             for i = 1:numel(basevars)
-                [f, ix] = model.getVariableField(basenames{i});
-                if strcmp(f, 's')
+                bn = basenames{i};
+                if strcmp(bn, 'x')
+                    % Hack for blackoil-models
+                    ss = true;
+                else
+                    [f, ix] = model.getVariableField(basenames{i});
+                    ss = strcmp(f, 's');
+                end
+                if ss
                     isS(i) = true;
                     phase_variable_index(ix) = i;
                 end
@@ -36,6 +43,7 @@ classdef TransportModel < WrapperModel
             isP = strcmp(basenames, 'pressure');
             vars = basevars;
             names = basenames;
+            origin = baseorigin;
             useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
                                     && sum(isS) == nph - 1;
             if useTotalSaturation
@@ -60,7 +68,7 @@ classdef TransportModel < WrapperModel
             else
                 basevars(~isP) = vars;
             end
-            state = model.initStateAD(state, basevars, basenames, origin);
+            state = model.initStateAD(state, basevars, basenames, baseorigin);
             if useTotalSaturation
                 % Set total saturation as well
                 sT = vars{isP};
