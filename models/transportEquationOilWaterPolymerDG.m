@@ -32,6 +32,9 @@ function [problem, state] = transportEquationOilWaterPolymerDG(state0, state, mo
             % maximum degree in all cells
             state.degree(~G.cells.ghost) = disc.degree;
         end
+        if ~isempty(disc.degree0)
+            state.degree = disc.degree0;
+        end
         if ~isempty(W)
             state.degree(vertcat(W.cells)) = 0;
         end

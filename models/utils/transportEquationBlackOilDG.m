@@ -33,14 +33,21 @@ function [problem, state] = transportEquationBlackOilDG(state0, state, model, dt
             % maximum degree in all cells
             state.degree(~G.cells.ghost) = disc.degree;
         end
+        if ~isempty(disc.degree0)
+            state.degree = disc.degree0;
+        end
         if ~isempty(W)
             state.degree(vertcat(W.cells)) = 0;
         end
         % For cells that previously had less than nDof unknowns, we must
         % map old dofs to new
         state = disc.mapDofs(state, state0, 's');
-        state = disc.mapDofs(state, state0, 'rs');
-        state = disc.mapDofs(state, state0, 'rv');
+        if disgas
+            state = disc.mapDofs(state, state0, 'rs');
+        end
+        if vapoil
+            state = disc.mapDofs(state, state0, 'rv');
+        end
         
     end
     % Update discretizaiton information. This is carried by the state

@@ -186,6 +186,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     bO0_c = bO0(c, sO0_c);
     %----------------------------------------------------------------------
     
+    [eqs, names, types] = deal(cell(opt.solveForWater + opt.solveForOil,1));
+    [types{:}] = deal('cell');
     eqNo = 1;
     % Water equation-------------------------------------------------------
     if opt.solveForWater
@@ -221,12 +223,16 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
             ix = disc.getDofIx(state, Inf, wc);
             oil(ix) = oil(ix) - srcO_w(ix);
         end
+        if disc.weakJumpLimiter
+            oil = oil + disc.getJump([], state, sOdof);
+        end
         eqs{eqNo}   = oil;
         names{eqNo} = 'oil';
     end
     %----------------------------------------------------------------------
 
     % Add BCs--------------------------------------------------------------
+    eqNo = 1;
     if ~isempty(bc)
         if opt.solveForWater
             % Add water bc flux to water equation
@@ -268,20 +274,6 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     %----------------------------------------------------------------------
     
     % Make Linearized problem----------------------------------------------
-    % Define equations, names and types
-    if solveAllPhases
-        eqs = {water, oil};
-        names = {'water', 'oil'};    
-        types = {'cell', 'cell'};
-    elseif opt.solveForWater
-        eqs   = {water  };
-        names = {'water'};
-        types = {'cell' };
-    elseif opt.solveForOil
-        eqs   = {oil   };
-        names = {'oil' };
-        types = {'cell'};
-    end
     % Scale equations
     if ~model.useCNVConvergence
         pv = rldecode(op.pv, state.nDof, 1);
@@ -291,8 +283,8 @@ function [problem, state] = transportEquationOilWaterDG(state0, state, model, dt
     end
     % Extra state output
     if model.extraStateOutput
-        state     = model.storeDensity(state, rhoW, rhoO, []);
-        state.cfl = dt.*sum(abs(vTc)./G.cells.dx,2);
+%         state     = model.storeDensity(state, rhoW_c, rhoO_c, []);
+%         state.cfl = dt.*sum(abs(vTc)./G.cells.dx,2);
     end
     % Linearize
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);

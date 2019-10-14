@@ -83,6 +83,13 @@ classdef TransportOilWaterPolymerModelDG < TransportOilWaterModelDG
                 ds(:, phIndices(2)) = dsO;
             end
             state = model.updateStateFromIncrement(state, ds, problem, 'sDof', inf, model.dsMaxAbs);
+            if 1
+                s = model.disc.getCellMean(state, state.sdof);
+                assert(norm(state.s - s) == 0);
+                c = model.disc.getCellMean(state, state.cdof);
+                assert(norm(state.c - c) == 0);
+            end
+            
             bad = any((state.s > 1 + model.disc.meanTolerance) ...
                     | (state.s < 0 - model.disc.meanTolerance), 2);
             
@@ -143,8 +150,7 @@ classdef TransportOilWaterPolymerModelDG < TransportOilWaterModelDG
             
             if model.polymer && 0
                 
-                tol = 1e-3;
-                state = model.capProperty(state, 'c', -tol, model.fluid.cmax + tol);
+                state = model.capProperty(state, 'c', 0, model.fluid.cmax);
                 state.c_prev = cdof_prev;
 
                 % Shear Thinning Report
