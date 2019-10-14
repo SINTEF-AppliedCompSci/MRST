@@ -41,7 +41,6 @@ function [vals, ixs] = tsparsemul(avals, aind, bvals, bind)
    % produce corresponding permutations also for the value vectors (which may
    % be ADI, so we must be a bit more careful)
    
-   
    avalarr = arrayfun(@(ix) repmat(avalsplit{ix}, numelem(bvalsplit{ix}), 1), ...
                       1:num_unique_ix, 'uniformoutput', false);
    avalarr = vertcat(avalarr{:});
@@ -57,7 +56,25 @@ function [vals, ixs] = tsparsemul(avals, aind, bvals, bind)
    ixs = ixarr;
    ixs(:, end) = [];
    ixs(:, size(aind,2)) = [];
-      
+   
+   if isempty(ixs)
+      % the result is an intrinsic scalar
+      vals = sum(vals);
+      ixs = [];
+      return
+   end
+   
+   % here we must do the assembly
+   tmp = mat2cell(ixs, size(ixs, 1), ones(size(ixs,2), 1));
+   ix_expanded = sub2ind(max(ixs), tmp{:});
+   
+   map = accumarray([ix_expanded(:), (1:numel(ix_expanded))'], 1);
+   kk = find(sum(map, 2));
+   vals = map * vals;
+   vals = vals(kk);
+   [tmp{:}] = ind2sub(max(ixs), kk);
+   ixs = [tmp{:}];
+   
 end
 
 

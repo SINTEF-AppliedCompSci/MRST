@@ -50,8 +50,11 @@ spy(result);
 
 % ============================== test tsparsemul ==============================
 
-A = double(rand(5) > 0.7);
-B = (rand(5) > 0.7);
+A = double(rand(7) > 0.7);
+B = (rand(7) > 0.5);
+% A = rand(4);
+% B = rand(4);
+
 
 A(find(A)) = rand(nnz(A), 1);
 B(find(B)) = rand(nnz(B), 1);

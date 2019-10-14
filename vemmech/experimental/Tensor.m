@@ -96,25 +96,61 @@ classdef Tensor
      
      function self = formalProduct(self, other)
         
-     %  what we must implement here:
-     %  - the common index set should be converted to a single index for each
-     %    tensor
-     %  - each tensor should be sorted with respect to this new index
-     %  - then call 'tsparsemul' using the values of the two tensors, and the
-     %  remaining index sets for the two tensors, supplemented with the new
-     %  index set (across which summation will happen)
-     %  - 'tsparsemul' will return the value and the multiindices of the new
-     %  tensor, which can then be constructed and returned directly
-        
         common_indexsets = Tensor.find_common_indices(self, other);
-        fprintf('A\n');
-        self = self.project(other);
-        fprintf('Finished A.  Now B\n');
-        self = self.contract(common_indexsets);
-        fprintf('Finished B.\n');
-        %self = self.project(other).contract(common_indexsets);
+        remains_self = setdiff(Tensor.index_fields(self.tbl), common_indexsets);
+        remains_other = setdiff(Tensor.index_fields(other.tbl), common_indexsets);
+        
+        if isempty(common_indexsets)
+           self = self.project(other);
+           return
+        elseif numel(common_indexsets) == 1
+           % if we got here, we will contract in at least one index
+           common_ix_self = self.tbl.(common_indexsets{1});
+           common_ix_other = other.tbl.(common_indexsets{1});
+        else
+           % we must compute a single, expanded index to represent the multiindex
+
+           % determinining stride
+           tmp1 = cellfun(@(x) self.tbl.(x), common_indexsets, 'uniformoutput', false);
+           tmp2 = cellfun(@(x) other.tbl.(x), common_indexsets, 'uniformoutput', false);
+           stride = max(max([tmp1{:}]), max([tmp2{:}]));
+           
+           % computing expanded, single index
+           common_ix_self = sub2ind(stride, tmp1{:});
+           common_ix_other = sub2ind(stride, tmp2{:});
+        end
+        
+        % making new tables and sorting
+        tbl1 = rmfield(self.tbl, common_indexsets);
+        tbl1.common_ix = common_ix_self;
+        tbl2 = rmfield(other.tbl, common_indexsets);
+        tbl2.common_ix = common_ix_other;
+        
+        [tbl1, I1] = Tensor.sort_table(tbl1, {'common_ix', remains_self{:}});
+        [tbl2, I2] = Tensor.sort_table(tbl2, {'common_ix', remains_other{:}});
+        % calling sparse tensor formal multiplication function
+        ind1 = cellfun(@(x) tbl1.(x), {remains_self{:}, 'common_ix'}, 'uniformoutput', false);
+        ind2 = cellfun(@(x) tbl2.(x), {remains_other{:}, 'common_ix'}, 'uniformoutput', false);
+        
+        ind1 = [ind1{:}];
+        ind2 = [ind2{:}];
+        
+        [resval, ixs] = tsparsemul(self.nzvals(I1), ind1, other.nzvals(I2), ind2);
+
+        ixnames = {remains_self{:}; remains_other{:}};
+
+        if isempty(ixnames)
+           % result is an intrinsic scalar
+           assert(isempty(ixs));
+           self = Tensor(resval, struct());
+           return
+        end
+        
+        ixs_cells = arrayfun(@(x) ixs(:, x), 1:size(ixs, 2), 'uniformoutput', false);
+        restbl = cell2struct(ixs_cells', ixnames');
+        self = Tensor(resval, restbl);
      end
-          
+
      function self = changeIndexName(self, oldname, newname)
         if ~iscell(oldname)
            oldname = {oldname}; newname = {newname};
