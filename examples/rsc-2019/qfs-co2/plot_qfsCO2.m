@@ -299,17 +299,18 @@ xlabel('Time (days)');
 ylabel('Transport iterations');
 saveeps('qfs-co2-iterations-pointw');
 
+%%
+
+close all
 
 
+a = @(d)(285-d)./285*50;
 
+IT = [300 + a(190); 100 + a(124); 200 + a(130); a(190)];
 
+bar(IT)
+ylabel('Cumulative transport iterations')
 
-
-
-
-
-
-
-
-
-
+xticklabels({'Global', 'Reordering', 'Adaptive', 'Coarse'})
+ax = gca;
+ax.FontSize = 12;
