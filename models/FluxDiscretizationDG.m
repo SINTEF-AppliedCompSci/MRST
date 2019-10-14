@@ -75,7 +75,7 @@ classdef FluxDiscretizationDG < FluxDiscretization
             
             switch type
                 case 'cells'
-                    [~, ~, cells] = model.discretization.getCubature((1:model.G.cells.num)', 'volume');
+                    [~, ~, cells] = model.discretization.getCubature((1:model.G.cells.num)', 'cell');
                 case 'faces'
                     [~, ~, ~, faces] = model.discretization.getCubature(find(model.operators.internalConn), 'face');
                     cells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
