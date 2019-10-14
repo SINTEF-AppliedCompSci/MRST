@@ -1,4 +1,4 @@
-function G = computeCellDimensions2(G)
+function G = computeCellDimensions(G)
 
     % Get extra grid topology
     G = createAugmentedGrid(G);
@@ -10,8 +10,9 @@ function G = computeCellDimensions2(G)
     % Get minimum and maximum cell coordinates
     [G.cells.xMin, G.cells.xMax] = getMinMax(xn, ncn);
 
+    dx = max(G.cells.xMax - G.cells.centroids, G.cells.centroids - G.cells.xMin)*2;
     % Compute cell bounding box dimensions
-    G.cells.dx = G.cells.xMax - G.cells.xMin;
+    G.cells.dx = dx;%G.cells.xMax - G.cells.xMin;
     G.cells.basisCenters = G.cells.xMin + G.cells.dx/2;
     
     % Get face coordinates
