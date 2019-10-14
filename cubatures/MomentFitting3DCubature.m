@@ -10,11 +10,11 @@ classdef MomentFitting3DCubature < Cubature
     methods
         
         %-----------------------------------------------------------------%
-        function cubature = MomentFitting3DCubature(G, prescision, internalConn)
+        function cubature = MomentFitting3DCubature(G, prescision)
             % Set up cubatureature
             
             % Basic properties handled by parent class
-            cubature = cubature@Cubature(G, prescision, internalConn, 3);
+            cubature = cubature@Cubature(G, prescision, 3);
         end
            
         %-----------------------------------------------------------------%
@@ -46,9 +46,9 @@ classdef MomentFitting3DCubature < Cubature
                     G1 = computeGeometry(cartGrid([1,1,1], [2,2,2]));
                     G1.nodes.coords = G1.nodes.coords - 1;
                     G1 = computeVEMGeometry(G1);
-                    G1 = computeCellDimensions2(G1);
-                    cubTet = TetrahedronCubature(G1, cubature.prescision, cubature.internalConn);
-                    [~, x, ~, cellNo, ~] = cubTet.getCubature(1, 'volume');
+                    G1 = computeCellDimensions(G1);
+                    cubTet = TetrahedronCubature(G1, cubature.prescision);
+                    [~, x, ~, cellNo, ~] = cubTet.getCubature(1, 'cell');
                     x = cubTet.transformCoords(x, cellNo);
                     x = unique(x, 'rows');
                  else
@@ -62,11 +62,11 @@ classdef MomentFitting3DCubature < Cubature
                 
                 % We use known cubature to calculate the moments
                 if isfield(G, 'parent')
-                    knownCub = CoarseGrid3DCubature(G, cubature.prescision, cubature.internalConn);
+                    knownCub = CoarseGrid3DCubature(G, cubature.prescision);
                 else
-                    knownCub = TetrahedronCubature(G, cubature.prescision, cubature.internalConn);
+                    knownCub = TetrahedronCubature(G, cubature.prescision);
                 end
-                [~, xq, wq, cellNo] = knownCub.getCubature((1:G.cells.num)', 'volume');
+                [~, xq, wq, cellNo] = knownCub.getCubature((1:G.cells.num)', 'cell');
                 xq     = cubature.transformCoords(xq, cellNo);
                 % Moments
                 M = cellfun(@(p) accumarray(cellNo, wq.*p(xq)), psi, 'unif', false);

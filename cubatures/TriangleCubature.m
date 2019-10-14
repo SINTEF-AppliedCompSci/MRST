@@ -10,9 +10,9 @@ classdef TriangleCubature < Cubature
     methods
         
         %-----------------------------------------------------------------%
-        function cubature = TriangleCubature(G, prescision, internalConn)
+        function cubature = TriangleCubature(G, prescision)
             % Set up triangle cubature
-            cubature = cubature@Cubature(G, prescision, internalConn, 2);
+            cubature = cubature@Cubature(G, prescision, 2);
         end
         
         %-----------------------------------------------------------------%

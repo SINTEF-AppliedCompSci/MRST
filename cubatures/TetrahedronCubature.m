@@ -7,11 +7,11 @@ classdef TetrahedronCubature < Cubature
     methods
         
         %-----------------------------------------------------------------%
-        function cubature = TetrahedronCubature(G, prescision, internalConn)
+        function cubature = TetrahedronCubature(G, prescision)
             % Set up tetrahedron cubatureature
             
             % Construction handled by base class
-            cubature = cubature@Cubature(G, prescision, internalConn, 3);            
+            cubature = cubature@Cubature(G, prescision, 3);
         end
         
         %-----------------------------------------------------------------%

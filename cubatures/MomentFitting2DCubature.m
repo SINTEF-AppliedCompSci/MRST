@@ -2,18 +2,18 @@ classdef MomentFitting2DCubature < Cubature
     % Cubature based on moment-fitting for MRST grids
     
     properties
-        reduce
+        reduce = true;
+        chunkSize = 10;
     end
     
     methods
         
         %-----------------------------------------------------------------%
-        function cubature = MomentFitting2DCubature(G, prescision, internalConn, varargin)
+        function cubature = MomentFitting2DCubature(G, prescision, varargin)
             % Set up cubature
             
             % Most of the construction is handled by parent class
-            cubature        = cubature@Cubature(G, prescision, internalConn, 2);
-            cubature.reduce = true;
+            cubature        = cubature@Cubature(G, prescision, 2, varargin{:});
             cubature        = merge_options(cubature, varargin{:});
         end
            
@@ -35,7 +35,7 @@ classdef MomentFitting2DCubature < Cubature
                     w = ones(G.cells.num,1);
                     x = repmat(x, G.cells.num, 1);
                     n = repmat(n, G.cells.num, 1);
-                    type = 'volume';
+                    type = 'cell';
                 else
                     w = ones(G.faces.num,1);
                     x = repmat(x, G.faces.num, 1);
@@ -52,9 +52,9 @@ classdef MomentFitting2DCubature < Cubature
                     G1 = computeGeometry(cartGrid([1,1], [2,2]));
                     G1.nodes.coords = G1.nodes.coords - 1;
                     G1 = computeVEMGeometry(G1);
-                    G1 = computeCellDimensions2(G1);
-                    cubTri = TriangleCubature(G1, cubature.prescision, cubature.internalConn);
-                    [~, x, ~, cellNo, ~] = cubTri.getCubature(1, 'volume');
+                    G1 = computeCellDimensions(G1);
+                    cubTri = TriangleCubature(G1, cubature.prescision+1);
+                    [~, x, ~, cellNo, ~] = cubTri.getCubature(1, 'cell');
                     x = cubTri.transformCoords(x, cellNo);
                     x = unique(x, 'rows');
                 else
@@ -74,7 +74,7 @@ classdef MomentFitting2DCubature < Cubature
                         equal = G.faces.equal;
                     end
                 else
-                    type = 'volume';
+                    type = 'cell';
                     elements = 1:G.cells.num;
                     equal = false;
                     if isfield(G.cells, 'equal')
@@ -83,9 +83,9 @@ classdef MomentFitting2DCubature < Cubature
                 end
                 % We use known cubature to calculate the moments
                 if isfield(G, 'parent')
-                    knownCub = CoarseGrid2DCubature(G, cubature.prescision, cubature.internalConn);
+                    knownCub = CoarseGrid2DCubature(G, cubature.prescision);
                 else
-                    knownCub = TriangleCubature(G, cubature.prescision, cubature.internalConn);
+                    knownCub = TriangleCubature(G, cubature.prescision);
                 end
                 [~, xq, wq, cellNo, faceNo] = knownCub.getCubature(elements, type);
                 % Map cubature points to reference coordinates
@@ -104,7 +104,7 @@ classdef MomentFitting2DCubature < Cubature
                 tol = eps(10);
                 M = cellfun(@(p) accumarray(count, wq.*p(xq)), psi, 'unif', false);
                 M = cellfun(@(m) m.*(abs(m) > tol), M, 'unif', false);
-                [x,w,n] = fitMoments3(x, basis, M, 'equal', equal);
+                [x,w,n] = fitMoments3(x, basis, M, 'equal', equal, 'reduce', cubature.reduce, 'chunkSize', cubature.chunkSize);
             end
             
             % Map from reference to physical coordinates

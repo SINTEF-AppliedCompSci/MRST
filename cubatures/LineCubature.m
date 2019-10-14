@@ -4,13 +4,13 @@ classdef LineCubature < Cubature
     methods
         
         %-----------------------------------------------------------------%
-        function cubature = LineCubature(G, prescision, internalConn)
+        function cubature = LineCubature(G, prescision)
             % Set up line cubatureature
             
             % Make sure we have a 2D grid structure
             assert(G.griddim == 2, 'LineCubature only supported for 2D grids')
             % Most of the construction is handled by parent class
-            cubature     = cubature@Cubature(G, prescision, internalConn, 1);
+            cubature     = cubature@Cubature(G, prescision, 1);
             cubature.dim = 1;
             
         end

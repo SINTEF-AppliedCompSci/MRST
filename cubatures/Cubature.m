@@ -20,20 +20,22 @@ classdef Cubature
     methods
         
         %-----------------------------------------------------------------%
-        function cubature = Cubature(G, prescision, internalConn, dim)
+        function cubature = Cubature(G, prescision, dim, varargin)
             % Setup up cubature properties. Acutual construction of
             % cubature is handled by children class.
             cubature.G          = G;
             cubature.prescision = prescision;
             cubature.dim          = dim;
+            internalConn = all(G.faces.neighbors > 0, 2);
             cubature.internalConn = internalConn;
+            cubature = merge_options(cubature, varargin{:});
             % Make cubature points and weights
             cubature = cubature.makeCubature();
             % Get cubature for entire domain for quick access
             switch G.griddim - cubature.dim
                 case 0
                     elements = (1:G.cells.num)';
-                    type     = 'volume';
+                    type     = 'cell';
                 case 1
                     elements = find(cubature.internalConn);
                     type     = 'face';
@@ -127,7 +129,7 @@ classdef Cubature
                     % If cubature and grid dims are equal, we are dealing
                     % with a volume cubature
                     switch type
-                        case 'volume'
+                        case 'cell'
                             % Index of cubature points and weights
                             ix = mcolon(cubature.pos(elements), ...
                                         cubature.pos(elements+1)-1);
@@ -230,7 +232,7 @@ classdef Cubature
             if nargin < 4, inverse   = false; end
             
             % Coordinates are centered in cell center
-            if isfield(cub.G.cells, 'basisCenters')
+            if isfield(cub.G.cells, 'basisCenters') && 0
                 translation = -cub.G.cells.basisCenters(cells,:);
             else
                 translation = -cub.G.cells.centroids(cells,:);
