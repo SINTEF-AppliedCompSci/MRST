@@ -57,7 +57,7 @@ opt = struct('injectorIx', [], ...
              'computeSaturations', true, ...
              'wbHandle',   [], ...
              'showWaitbar',  true, ...
-             'reverse',    true);
+             'reverse',    false);
 
 opt = merge_options(opt, varargin{:});
 
@@ -226,11 +226,7 @@ end
 
 % rearrage saturation values and store interaction region water volumes
 if opt.computeSaturations
-    snm = 'sw';
-    if opt.reverse
-        snm = 'swr';
-    end
-    dist.(snm) = nan(nStepsTot+1, nreg);   
+    dist.sw0      = nan(nStepsTot+1, nreg);   
     dist.volumesW = nan(size(dist.volumes));
     ix = 0;
     for ik = 1:numel(iix)
@@ -239,15 +235,16 @@ if opt.computeSaturations
             V_ip  = D.itracer(sub,ik).*D.ptracer(sub,pk).*pv;
             Vw_ip = V_ip.*state.s(sub, 1);
             if ~opt.reverse
-                dist.(snm)(:, ix)    = sats{ik}(:, pk);
+                dist.sw0(:, ix)    = sats{ik}(:, pk);
             else
-                dist.(snm)(:, ix)    = sats{pk}(:, ik);
+                dist.sw0(:, ix)    = sats{pk}(:, ik);
             end
             dist.volumesW(ix) = sum(Vw_ip);
         end
     end
 end
 dist.creator = mfilename;
+dist.reverse = opt.reverse;
 end
 
 % ------------------------------------------------------------------------
