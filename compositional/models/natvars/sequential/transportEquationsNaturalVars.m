@@ -84,8 +84,8 @@ else
          X, x{1:ncomp-1}, w{1:ncomp-1}, so);
     end
     primaryVars = {'sGsO', xnames{1:end-1}, ynames{1:end-1}, 'sato'};
-
 end
+z = expandMatrixToCell(z);
 
 sample = x{1};
 
@@ -221,7 +221,7 @@ if model.water
         pcOW  = fluid.pcOW(sW);
         Gw = Gw + s.Grad(pcOW);
     end
-    sWt = sW.*sT;
+    sat{1} = sat{1}.*sT;
     gg = {Gw, Go, Gg};
     mob = {mobW, mobO, mobG};
     rho = {rhoW, rhoO, rhoG};
@@ -385,7 +385,7 @@ for i = 1:(ncomp + model.water)
     vi = q_components{i};
     eqs{i} = s.AccDiv(eqs{i}, vi);
 end
-compFlux = zeros(model.G.faces.num, ncomp);
+compFlux = zeros(model.G.faces.num, ncomp+model.water);
 compFlux(model.operators.internalConn, :) = value(q_components');
 state.componentFluxes = compFlux;
 

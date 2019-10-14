@@ -253,7 +253,7 @@ if opt.pressure
             'twoPhaseDifferentiation',    model.twoPhaseDifferentiation);
 
         weights = cell(ncomp+wat, 1);
-        for i = 1:ncomp+wat
+        for i = 1:(ncomp+wat)
             wi = w(:, i);
             if any(dwdp)
                 Wp = double2ADI(wi, p);
@@ -263,12 +263,13 @@ if opt.pressure
             end
             weights{i} = Wp;
         end
+        state.w = w;
+        state.w_p = state.pressure;
     end
-    state.w = w;
-    state.w_p = state.pressure;
+
     
     peq = 0;
-    for i = 1:ncomp
+    for i = 1:(ncomp+wat)
         peq = peq + weights{i}.*eqs{i};
     end
     active = false(numel(eqs), 1);

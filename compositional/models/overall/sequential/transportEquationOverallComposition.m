@@ -48,6 +48,8 @@ end
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
 
 if model.water
+    sO = (1-sW).*sO;
+    sG = (1-sW).*sG;
     sat = {sW, sO, sG};
 else
     sat = {sO, sG};
@@ -98,14 +100,14 @@ if model.water
         pcOW  = fluid.pcOW(sW);
         Gw = Gw + s.Grad(pcOW);
     end
-    sWt = sW.*sT;
+    sat{1} = sat{1}.*sT;
     gg = {Gw, Go, Gg};
     mob = {mobW, mobO, mobG};
     rho = {rhoW, rhoO, rhoG};
     pressures = {pW, p, p};
 
 else
-    [rhoW, rhoW0, mobW, bW, sWt] = deal([]);
+    [rhoW, rhoW0, mobW, bW] = deal([]);
     gg = {Go, Gg};
     mob = {mobO, mobG};
     rho = {rhoO, rhoG};
@@ -150,7 +152,7 @@ for i = 1:ncomp
 end
 if model.water
     wix = ncomp+1;
-    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sW);
+    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0);
     names{wix} = 'water';
     types{wix} = 'cell';
     state = model.storeFluxes(state, q_phase{:});

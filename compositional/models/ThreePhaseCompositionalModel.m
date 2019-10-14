@@ -476,7 +476,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 v_comp = cellfun(@(x) norm(scale.*value(x), inf), problem.equations(isComponent));
             end
             tol_comp = repmat(tol_comp, size(v_comp));
-            if model.water
+            names_comp = names(isComponent);
+            if model.water && ~model.useIncTolComposition
                 isWater = strcmpi(names, 'water');
                 if any(isWater)
                     rhoW = rho(:, 1);
@@ -485,9 +486,9 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     v_comp = [norm(v_water, inf), v_comp];
                     tol_comp = [model.toleranceCNV, tol_comp];
                     isComponent(isWater) = true;
+                    names_comp = [names_comp, 'water'];
                 end
             end
-            names_comp = names(isComponent);
        end
        
        function [v_f, tol_f, names_f, isFugacity] = getFugacityConvergenceValues(model, problem)
