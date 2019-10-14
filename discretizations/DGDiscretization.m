@@ -47,10 +47,10 @@ classdef DGDiscretization < SpatialDiscretization
     methods
         
         %-----------------------------------------------------------------%
-        function disc = DGDiscretization(model, varargin)
+        function disc = DGDiscretization(G, varargin)
             
 %             disc = disc@WENODiscretization(model, model.G.griddim, 'includeBoundary', true);
-            disc = disc@SpatialDiscretization(model);
+            disc = disc@SpatialDiscretization(G, varargin{:});
             
             G = disc.G;
             
@@ -59,7 +59,6 @@ classdef DGDiscretization < SpatialDiscretization
             disc.degree0 = [];
             disc.basis  = 'legendre';
             disc.dim    = G.griddim;
-            disc.suffix = 'dof';
             
             % Limiter tolerances
             disc.jumpTolerance = 0.2;
