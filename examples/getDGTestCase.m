@@ -32,7 +32,7 @@ function setup = simple1d(args) %#ok
     
     modelDG = cell(numel(opt.degree), 1);
     for dNo = 1:numel(opt.degree)
-        disc         = DGDiscretization(modelFV, ...
+        disc         = DGDiscretization(G, ...
                                    'degree'  , opt.degree{dNo}, discArgs{:});
         tmodelDG     = TransportModelDG(model, 'discretization', disc);
         tmodelDG.parentModel.useCNVConvergence = false;
