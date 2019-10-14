@@ -14,12 +14,15 @@ pw = @(G,W) plot3(G.cells.centroids([W.cells], 1), ...
 
 baseName = 'spe10';
 % location = 'home';
-location = 'work';
+% location = 'work';
+location = 'hdd';
 switch location
     case 'work'
         dataDir  = fullfile('/media/strene/806AB4786AB46C92/mrst-dg/rsc-2019', baseName);
     case 'home'
         dataDir  = fullfile('/home/oysteskl/Documents/phd/repositories/mrst-dg/simulation-output/rsc-2019', baseName);
+    case 'hdd'
+        dataDir  = fullfile('/media/oysteskl/streneHDD/rsc-2019', baseName);
 end
             
 %% Set up base model
@@ -101,9 +104,8 @@ axis equal tight; ax = gca;
 degree = [0,1];
 jt = 0.1; ot = 1e-2; mt = 1e-6;
 G.cells.equal = true;
-G.faces.equal = false;
-GC.cells.equal = false;
-GC.faces.equal = false;
+G.faces.equal = true;
+GC.cells.refined = false(GC.cells.num,1);
 
 %%
 
@@ -139,19 +141,19 @@ for dNo = 1:numel(degree)
     % Regular model
     modelDG{dNo}.transportModel = tmodel;
     
-    % Reordering model
-    modelDGreorder{dNo}.transportModel = tmodelReorder;
-    modelDGreorderStrict{dNo}.transportModel = tmodelReorder;
-    modelDGreorderStrict{dNo}.transportModel.parent.nonlinearTolerance = 1e-5;
-    modelDGreorderStrict{dNo}.transportModel.chunkSize = 500;
-    
+%     % Reordering model
+%     modelDGreorder{dNo}.transportModel = tmodelReorder;
+%     modelDGreorderStrict{dNo}.transportModel = tmodelReorder;
+%     modelDGreorderStrict{dNo}.transportModel.parent.nonlinearTolerance = 1e-5;
+%     modelDGreorderStrict{dNo}.transportModel.chunkSize = 500;
+%     
     % Adaptive model
     modelDGadapt{dNo} ...
         = AdaptiveSequentialPressureTransportModel(modelDG{dNo}.pressureModel, tmodel, GC);
-                    
-    % Adaptive reordering mdoel
-    modelDGadaptReorder{dNo} ...
-        = AdaptiveSequentialPressureTransportModel(modelDG{dNo}.pressureModel, tmodelReorder, GC);
+%                     
+%     % Adaptive reordering mdoel
+%     modelDGadaptReorder{dNo} ...
+%         = AdaptiveSequentialPressureTransportModel(modelDG{dNo}.pressureModel, tmodelReorder, GC);
     
 end
 
@@ -171,14 +173,16 @@ for dNo = 1:numel(degree)
     state0         = assignDofFromState(tmodel.disc, state0);
     state0.bfactor = [fluid.bW(state0.pressure), fluid.bO(state0.pressure)];
     [state0.posFlux, state0.negFlux] = deal(false);
-    
+%     
     tmodel = modelDGadapt{dNo}.transportModel;
-    state0C = assignDofFromState(tmodel.disc, state0C);
+%     state0C = assignDofFromState(tmodel.disc, state0C);
     pv = tmodel.operators.pv;
     d = fullfile(dataDir, ['dg', num2str(degree(dNo))]);
-%     modelDGreorderStrict{dNo}.transportModel.parent.nonlinearTolerance = 1e-5;
-%     modelDGreorderStrict{dNo}.transportModel.chunkSize = 500;
-    mdls = {modelDG{dNo}, modelDGreorder{dNo}, modelDGadapt{dNo}, modelDGadaptReorder{dNo}, modelDGreorderStrict{dNo}};
+% %     modelDGreorderStrict{dNo}.transportModel.parent.nonlinearTolerance = 1e-5;
+% %     modelDGreorderStrict{dNo}.transportModel.chunkSize = 500;
+%     mdls = {modelDG{dNo}, modelDGreorder{dNo}, modelDGadapt{dNo}, modelDGadaptReorder{dNo}, modelDGreorderStrict{dNo}};
+%     
+    mdls = repmat({modelDG{dNo}}, 1,5);
     
     for mNo = 1:numel(mdls)
         

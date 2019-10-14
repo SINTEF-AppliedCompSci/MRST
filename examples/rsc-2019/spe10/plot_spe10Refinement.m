@@ -2,7 +2,7 @@
 
 [ws, states, r] = deal(cell(numel(degree), 5));
 
-mdlIx = 1:5;
+mdlIx = 1:3;
 for dNo = 1:numel(degree)
     for mNo = mdlIx
         [ws{dNo, mNo}, states{dNo, mNo}, r{dNo, mNo}] ...
@@ -59,7 +59,7 @@ pos  = [-1000, 0, 800, 500];
 posv = [-1000, 0, 500, 800];
 fontSize = 12;
 pth = fullfile(mrstPath('dg'), 'examples', 'rsc-2019', 'spe10', 'fig');
-if 0
+if 1
     savepng = @(name) print(fullfile(pth, name), '-dpng', '-r300');
     saveeps = @(name) print(fullfile(pth, name), '-depsc');
 else
@@ -190,7 +190,7 @@ aIx = find(contains(names, 'adapt')); aIx = aIx(1);
 st  = states(:, aIx);
 % rep = reports(:, aIx);
 % its = iterations(:, aIx);
-timeSteps = [15, 30, 43];
+timeSteps = [15, 20, 30, 43];
 
 for tNo = timeSteps
     for dNo = 1:2
@@ -210,6 +210,8 @@ for tNo = timeSteps
             ax = gca;
             [ax.XTickLabel, ax.YTickLabel] = deal({});
             colormap(cmap)
+            drawnow()
+            pause(0.1)
             savepng(['spe10-ref-', num2str(tNo), '-dg', num2str(degree(dNo))]);
 
             
@@ -347,11 +349,30 @@ for dNo = dIx
 end
 
 
+%%
 
 
+close all
 
+figure('pos', [0,0,1100, 400])
 
+IT0 = [250 + 150/250*50;
+      415/515*50;
+      (515-170)/515*50];
+IT1 = [600 + 105/350*200;
+       70/350*200;
+       225/350*200;
+       400+15/350*200];
+   
+x = [1,2,3,5,6,7,9];
+bar(x, [IT0; IT1]);
 
+xticklabels({'Global', 'Reordered', 'Adaptive', 'Global', 'Reordered', 'Adaptive', 'WENO'})
+box on
+grid on
+ax = gca;
+ax.FontSize = 11;
+saveeps('spe10-itbar')
 
 
 
