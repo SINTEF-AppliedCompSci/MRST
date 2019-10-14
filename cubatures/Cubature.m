@@ -229,14 +229,10 @@ classdef Cubature
             
             cub.G = cub.G;
             
-            if nargin < 4, inverse   = false; end
+            if nargin < 4, inverse = false; end
             
             % Coordinates are centered in cell center
-            if isfield(cub.G.cells, 'basisCenters') && 0
-                translation = -cub.G.cells.basisCenters(cells,:);
-            else
-                translation = -cub.G.cells.centroids(cells,:);
-            end
+            translation = -cub.G.cells.centroids(cells,:);
             if isfield(cub.G.cells, 'dx')
                 % Scaling found from dimensions of minimum bounding box
                 % aligned with coordinate axes that contains the cell
