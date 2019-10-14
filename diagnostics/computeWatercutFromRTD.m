@@ -29,11 +29,13 @@ function [wcuts, allocations] = computeWatercutFromRTD(rtd, fluid, varargin)
 %              at times corresponding to rtd.t
 % allocations- corresponding allocations
 opt = struct('pairIx',                    [], ...
-             'allocationThreshold',     1e-3, ...
+             'allocationTol',     1e-3, ...
+             'waterCutTol', .995, ...
              'referencePressure',  200*barsa);        
 opt = merge_options(opt, varargin{:});
 
-assert(isfield(rtd, 'swr'), 'Function computeWatercutFromRTD requires rtd including satuaration along backward TOFS (rtd.swr)')
+assert(isfield(rtd, 'sw0')&&rtd.reverse, ...
+       'Function computeWatercutFromRTD requires rtd including satuaration along backward TOFS (rtd.swr)');
 
 if isempty(opt.pairIx)
     opt.pairIx = 1:size(rtd.values,2);
@@ -74,8 +76,8 @@ allocations = rtd.allocations(ix);
 t        = rtd.t(:, 1);
 totAlloc = sum(allocations);
 for reg = 1:numel(ix)
-    if allocations(reg) >= opt.allocationThreshold*totAlloc
-        sw = rtd.swr(1:end-1,ix(reg));
+    if allocations(reg) >= opt.allocationTol*totAlloc
+        sw = rtd.sw0(1:end-1,ix(reg));
         % scale rtd such that integral to infinity equals 1
         q   = rtd.values(:,ix(reg))*( (rtd.injectorFlux(rtd.pairIx(ix(reg),1))/rtd.allocations(ix(reg))) );
         % don't solve for possible zero fluxes at high tofs 
@@ -88,8 +90,6 @@ for reg = 1:numel(ix)
         src(end) = src(end) + adjust;
         flux = max(0, cumsum( src , 'reverse'));
        
-
-        
         [ts(1), vals(1)] = deal(0, fw(sw(1)));
         cnt = 0;
         for k_period = 1:numel(dtscur)
@@ -112,7 +112,7 @@ for reg = 1:numel(ix)
                 cnt = cnt+1;
                 wc = fw(sw(1));
                 [ts(cnt+1), vals(cnt+1)] = deal(ts(cnt)+step, wc);
-                if wc > 1-sqrt(eps)
+                if wc > opt.waterCutTol
                     break
                 end
             end
@@ -158,15 +158,16 @@ function [t, sw, flux, src] = resample(t, sw, flux, src, dtMin)
         end
         % dt-weghted saturation average 
         %sw = accumarray(ix, sw.*dt)./accumarray(ix, dt);
-        %sw = accumarray(ix, sw.*flux.*dt)./accumarray(ix, flux.*dt);
+        % sum sources
+        src = accumarray(ix, src);
+        %poro = [flux(2:end); src(end)];
+        %sw = accumarray(ix, sw.*poro.*dt)./accumarray(ix, poro.*dt);
         [~, n] = rlencode(ix);
         lastIx = cumsum(n);
         sw = [sw(1); sw(lastIx(1:end-1)+1)];
         t = [t(1); t(lastIx+1)];
         % flux at new t-values 
         flux = [flux(1); flux(lastIx(1:end-1)+1)];
-        % sum sources
-        src = accumarray(ix, src);
     end
 end
 % -------------------------------------------------------------------------
