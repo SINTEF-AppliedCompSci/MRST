@@ -2,63 +2,45 @@ classdef MomentFitting2DCubature < Cubature
     % Cubature based on moment-fitting for MRST grids
     
     properties
-        
         reduce
-        
     end
     
     methods
         
         %-----------------------------------------------------------------%
         function cubature = MomentFitting2DCubature(G, prescision, internalConn, varargin)
-            % Set up cubatureature
+            % Set up cubature
             
-            % Basic properties handled by parent class
-            cubature = cubature@Cubature(G, prescision, internalConn);
+            % Most of the construction is handled by parent class
+            cubature        = cubature@Cubature(G, prescision, internalConn, 2);
             cubature.reduce = true;
-            cubature.dim       = 2;
-            cubature = merge_options(cubature, varargin{:});
-            % Make cubature points and weights
-            [x, w, n] = cubature.makeCubature();
-            % Assing properties
-            cubature.points    = x;
-            cubature.weights   = w;
-            cubature.numPoints = n;
-            % Construct cubature position vector
-            if G.griddim == 2
-                numParents = G.cells.num;
-            else
-                numParents = G.faces.num;
-            end
-            cubature.pos = [0; cumsum(n)] + 1;
-%             cubature.pos = (0:cubature.numPoints:numParents*cubature.numPoints)' + 1;
-            
+            cubature        = merge_options(cubature, varargin{:});
         end
            
         %-----------------------------------------------------------------%
-        function [x, w, n] = makeCubature(cubature)
+        function cubature = makeCubature(cubature)
             
             % Dimension of cubature
-            dim    = 2;
-            G      = cubature.G;
+            dim = 2;
+            G   = cubature.G;
             % Basis functions used in moment-fitting
-            basis  = dgBasis(dim, cubature.prescision, 'legendre');
-            psi    = basis.psi;
-            nDof   = basis.nDof;
+            basis = dgBasis(dim, cubature.prescision, 'legendre');
+            psi   = basis.psi;
+            nDof  = basis.nDof;
             
             if cubature.prescision <= 1
-                [x, ~, n] = getSquareCubaturePointsAndWeights(cubature.prescision);
                 % Precision is 1, use midpoint rule
+                [x, ~, n] = getSquareCubaturePointsAndWeights(cubature.prescision);
                 if G.griddim == 2
-                    w = G.cells.volumes;
+                    w = ones(G.cells.num,1);
                     x = repmat(x, G.cells.num, 1);
                     n = repmat(n, G.cells.num, 1);
                     type = 'volume';
                 else
-                    w = G.faces.areas;
-                    type = 'face';
+                    w = ones(G.faces.num,1);
                     x = repmat(x, G.faces.num, 1);
                     n = repmat(n, G.faces.num, 1);
+                    type = 'face';
                 end
             else
                 % If precision is higher than one, we must calculate
@@ -78,30 +60,30 @@ classdef MomentFitting2DCubature < Cubature
                 else
                     k = 0;
                     nS = 0;
-                    while nS < nDof
+                    while nS < 2*nDof
                         [x, ~, nS] = getSquareCubaturePointsAndWeights(cubature.prescision + k);
                         k = k+1;
                     end
                 end
-                n = size(x,1);
                 % Cubature is either for faces or cells
                 if G.griddim > cubature.dim
                     type = 'face';
                     elements = 1:G.faces.num;
-%                     vol = G.faces.areas;
+                    equal = false;
+                    if isfield(G.faces, 'equal')
+                        equal = G.faces.equal;
+                    end
                 else
                     type = 'volume';
                     elements = 1:G.cells.num;
-%                     vol = G.cells.volumes;
-                end
-
-                % We use known cubature to calculate the moments
-                if 1
-                    if isfield(G, 'parent')
-                        knownCub = CoarseGrid2DCubature(G, cubature.prescision, cubature.internalConn);
-                    else
-                        knownCub = TriangleCubature(G, cubature.prescision, cubature.internalConn);
+                    equal = false;
+                    if isfield(G.cells, 'equal')
+                        equal = G.cells.equal;
                     end
+                end
+                % We use known cubature to calculate the moments
+                if isfield(G, 'parent')
+                    knownCub = CoarseGrid2DCubature(G, cubature.prescision, cubature.internalConn);
                 else
                     knownCub = TriangleCubature(G, cubature.prescision, cubature.internalConn);
                 end
@@ -109,11 +91,7 @@ classdef MomentFitting2DCubature < Cubature
                 % Map cubature points to reference coordinates
                 if G.griddim == 3
                     % Map to face reference coordinates
-                    vec1  = G.faces.coordSys{1}(faceNo,:);
-                    vec2  = G.faces.coordSys{2}(faceNo,:);
-                    xq    = xq - G.faces.centroids(faceNo,:);
-                    xq    = [sum(xq.*vec1,2), sum(xq.*vec2, 2)];
-                    xq    = xq./(G.faces.dx(faceNo,:)/2);
+                    xq = G.faces.phys2ref(xq, faceNo);
                     count = faceNo;
                     num   = G.faces.num;
                 else
@@ -123,76 +101,25 @@ classdef MomentFitting2DCubature < Cubature
                     num   = G.cells.num;
                 end
                 % Moments
+                tol = eps(10);
                 M = cellfun(@(p) accumarray(count, wq.*p(xq)), psi, 'unif', false);
-                % Compute right-hand side
-                rhs = zeros(nDof, num);
-                tol = eps(mean(G.cells.volumes));
-                for dofNo = 1:nDof
-                    m = M{dofNo};
-                    m(abs(m) < tol) = 0;
-                    rhs(dofNo, :) = m;
-                end
-                if G.griddim == 3
-                    equal = G.faces.equal;
-                else
-                    equal = G.cells.equal;
-                end
-                [x,w,n] = fitMoments2(x,basis, M, 'equal', equal, 'reduce', cubature.reduce);
-                if numel(w) == 1
-                    w = repmat(w{:}, num, 1);
-                    x = repmat(x{:}, num, 1);
-                    n = n*ones(num,1);
-                else
-                    w = vertcat(w{:});
-                    x = vertcat(x{:});
-                end
-%                 moments = rhs(:);
-%                 moments = moments./rldecode(vol, nDof, 1);
-%                 [x,w,n] = fitMoments(x, basis, moments, num);
-%                 w = w.*rldecode(vol, n, 1);
+                M = cellfun(@(m) m.*(abs(m) > tol), M, 'unif', false);
+                [x,w,n] = fitMoments3(x, basis, M, 'equal', equal);
             end
             
             % Map from reference to physical coordinates
             if strcmp(type, 'face')
                 % Face coordinates
-%                 faceNo = reshape(repmat((1:G.faces.num), n, 1), [], 1);
                 faceNo = rldecode((1:G.faces.num)', n, 1);
-                vec1   = G.faces.coordSys{1}(faceNo,:);
-                vec2   = G.faces.coordSys{2}(faceNo,:);
-%                 x = x.*(G.faces.dx(faceNo,:)/2);
-%                 x = repmat(x, G.faces.num, 1).*(G.faces.dx(faceNo,:)/2);
-                x = x(:,1).*vec1 + x(:,2).*vec2;
-                [xMin, xMax] = getMinMax(G.nodes.coords(G.faces.nodes,:), diff(G.faces.nodePos));
-                dx = xMax - xMin;
-                x = x.*dx(faceNo,:)/2;
-                x = x + G.faces.centroids(faceNo,:);
+                x = G.faces.ref2phys(x, faceNo);
+                w = w.*G.faces.areas(faceNo);
             else
                 % Cell coordinates
-%                 cellNo = reshape(repmat((1:G.cells.num), n, 1), [], 1);
                 cellNo = rldecode((1:G.cells.num)', n, 1);
-%                 x = repmat(x, G.cells.num, 1);
                 x = cubature.transformCoords(x, cellNo, true);
+                w = w.*G.cells.volumes(cellNo);
             end
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function [xhat, translation, scaling] = transformCoords(cubature, x, cells, inverse)
-            % Transform to/from reference coordinates
-            G = cubature.G;
-            translation = -G.cells.centroids(cells,:);
-            if isfield(G.cells, 'dx')
-                scaling = 1./(G.cells.dx(cells,:)/2);
-            else
-                scaling = 1./(G.cells.diameters(cells)/(2*sqrt(G.griddim)));
-            end
-            
-            if nargin < 4 || ~inverse
-                xhat = (x + translation).*scaling;
-            else
-                xhat = x./scaling - translation;
-            end
-               
+            cubature = cubature.assignCubaturePointsAndWeights(x,w,n);
         end
         
     end

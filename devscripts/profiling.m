@@ -1,0 +1,1 @@
+[wsDG, stDG, repDG] = sim('modelDG', 2);

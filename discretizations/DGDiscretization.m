@@ -1,4 +1,4 @@
-classdef DGDiscretization < HyperbolicDiscretization
+classdef DGDiscretization < SpatialDiscretization
     
     properties
 
@@ -10,7 +10,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                             % simulations on horizontal slice of 3D
                             % reservoir
         
-        useUnstructCubature % Bool to tell the method to use experimental 
+        useMomentFitting    % Bool to tell the method to use experimental 
                             % unstructured cubature class
         volumeCubature      % Cubature for volume integrals
         surfaceCubature     % Cubature for surface integrals
@@ -34,9 +34,13 @@ classdef DGDiscretization < HyperbolicDiscretization
                             % must keep tract of internal connections in 
                             % the full grid.
                             
+        limiter
+                            
         nDof
         dofPos
         sample
+        
+        interp_setup
         
     end
     
@@ -46,7 +50,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         function disc = DGDiscretization(model, varargin)
             
 %             disc = disc@WENODiscretization(model, model.G.griddim, 'includeBoundary', true);
-            disc = disc@HyperbolicDiscretization(model);
+            disc = disc@SpatialDiscretization(model);
             
             G = disc.G;
             
@@ -55,42 +59,44 @@ classdef DGDiscretization < HyperbolicDiscretization
             disc.degree0 = [];
             disc.basis  = 'legendre';
             disc.dim    = G.griddim;
+            disc.suffix = 'dof';
             
             % Limiter tolerances
             disc.jumpTolerance = 0.2;
             disc.jumpLimiter   = 'kill';
-            disc.outTolerance  = 0.0;
+            disc.outTolerance  = Inf;
             disc.outLimiter    = 'kill';
-            disc.meanTolerance = 0.0;
+            disc.meanTolerance = Inf;
             disc.limitAfterNewtonStep  = true;
             disc.limitAfterConvergence = false;
             disc.plotLimiterProgress   = false;
             
             % Cubature
-            disc.useUnstructCubature = false;
+            disc.useMomentFitting = false;
             
             % Specifics for reordering
             disc.internalConnParent  = disc.internalConn;
             disc.G.parent            = G;
             
-            disc = merge_options(disc, varargin{:});
+            [disc, basisArgs] = merge_options(disc, varargin{:});
+            
             
             % Replace basis string by dG basis object
-            disc.basis  = dgBasis(disc.dim, disc.degree, disc.basis);
+            disc.basis  = dgBasis(disc.dim, disc.degree, disc.basis, basisArgs{:});
+            disc.degree = disc.basis.degree;
             
             % Set up velocity interpolation
             disc.velocityInterp = velocityInterpolation(G, 'mimetic');
             disc.upwindType     = 'potential';
             
             % Create cubatures
-            prescision = 2*disc.degree;
+            prescision = 2*max(disc.degree);
             isCoarse   = isfield(G, 'parent');
             if G.griddim == 2
                 if isCoarse %&& ~disc.useUnstructCubature
                     volCub  = CoarseGrid2DCubature(G, prescision, disc.internalConn);
                 else
-                    if disc.degree == 0 || disc.useUnstructCubature
-%                         volCub = Unstruct2DCubature(G, prescision, disc.internalConn);
+                    if all(disc.degree == 0) || disc.useMomentFitting
                         volCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
                     else
                         volCub = TriangleCubature(G, prescision, disc.internalConn);
@@ -99,20 +105,18 @@ classdef DGDiscretization < HyperbolicDiscretization
                 surfCub = LineCubature(G, prescision, disc.internalConn);
             else
                 if isCoarse 
-                    if ~disc.useUnstructCubature
-                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
+                    if ~disc.useMomentFitting
                         volCub  = CoarseGrid3DCubature(G, prescision, disc.internalConn);
+                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
                     else
                         volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
                     end
                 else
-                    if disc.degree == 0 || disc.useUnstructCubature
-%                         volCub = Unstruct3DCubature(G, prescision, disc.internalConn);
-%                         surfCub = Unstruct2DCubature(G, prescision, disc.internalConn);
+                    if all(disc.degree == 0) || disc.useMomentFitting
                         volCub  = MomentFitting3DCubature(G, prescision, disc.internalConn);
-                        surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
-%                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
+%                         surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+                        surfCub = TriangleCubature(G, prescision, disc.internalConn);
                     else
                         volCub  = TetrahedronCubature(G, prescision, disc.internalConn);
                         surfCub = TriangleCubature(G, prescision, disc.internalConn);
@@ -137,8 +141,11 @@ classdef DGDiscretization < HyperbolicDiscretization
             % the next.
 
             dp = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);
-            
-            nd = disc.getnDof(state);
+            if isfield(state, 'nDof')
+                nd = state.nDof;
+            else
+                nd = disc.getnDof(state);
+            end
             subt = cumsum([0; disc.basis.nDof - nd(1:end-1)]);
             [ii, jj, v] = find(dp);
 
@@ -180,6 +187,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             if nargin < 3 || (numel(dofNo) == 1 && dofNo == Inf)
                 % dofNo not given, return ix for all dofs
                 dofNo = 1:disc.basis.nDof;
+                cells = 1:G.cells.num;
             elseif nargin < 4 || (numel(cells) == 1 && cells == Inf)
                 % Cells not given, return ix for all cells
                 cells = 1:G.cells.num;
@@ -225,6 +233,9 @@ classdef DGDiscretization < HyperbolicDiscretization
                 G = G.parent;
             end
             
+            [xhat, translation, scaling] = disc.volumeCubature.transformCoords(x, cells, inverse);
+            
+            if 0
             % Coordinates are centered in cell center
             if any(strcmpi(G.type, 'generateCoarseGrid'))
                 translation = -G.cells.centers(cells,:);
@@ -238,7 +249,7 @@ classdef DGDiscretization < HyperbolicDiscretization
             else
                 % If it G.cells.dx is not computed, we use approximation
                 dx = G.cells.volumes(cells).^(1/G.griddim);
-                scaling = repmat(1./(dx/2), 1, disc.dim)
+                scaling = repmat(1./(dx/2), 1, disc.dim);
             end
             
             if ~inverse
@@ -251,6 +262,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                 xhat = x./scaling - translation;
             end
                
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -298,51 +310,76 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function varargout = evaluateDGVariable(disc, x, cells, state, varargin)
+        function p = evaluateDGVariable(disc, x, cells, state, pdof, psi)
             
-            psi     = disc.basis.psi;
-            nDof    = state.nDof;
+            nDof    = state.nDof; %#ok
             nDofMax = disc.basis.nDof;
             
-            x = disc.transformCoords(x, cells);
-            n = nargout;
-            varargout = cell([1,n]);
-            for vNo = 1:n
-                val = varargin{vNo};
-                if ~isempty(val)
-                val = val(cells)*0;
-                
+            if isempty(pdof)
+                return
+            else
+                if nargin < 6 || isempty(psi)
+                    x    = disc.transformCoords(x, cells);
+                    psi  = disc.basis.psi;
+                    getx = @(keep) x(keep,:);
+                else
+                    getx = @(keep) keep;
+                end
+                p = pdof(cells)*0;
                 for dofNo = 1:nDofMax
-                    keep = nDof(cells) >= dofNo;
+                    keep = nDof(cells) >= dofNo; %#ok
                     ix = disc.getDofIx(state, dofNo, cells(keep));
                     if all(keep)
-                        val = val + varargin{vNo}(ix,:).*psi{dofNo}(x(keep,:));
+                        p = p + pdof(ix,:).*psi{dofNo}(getx(keep));
                     else
-                        val(keep, :) = val(keep, :) + varargin{vNo}(ix,:).*psi{dofNo}(x(keep,:));
+                        p(keep, :) = p(keep, :) + pdof(ix,:).*psi{dofNo}(getx(keep));
                     end
                 end
-                end
-                varargout{vNo} = val;
             end
+
         end
         
         %-----------------------------------------------------------------%
-        function sat = getCellSaturation(disc, state)
-            % Get average cell saturaion, typically assigned to state.s
-
-            % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, ~] = disc.getCubature((1:disc.G.cells.num)', 'volume');
-            
-            sdof = state.sdof;
-            nPh  = size(sdof,2);
-            s    = zeros(disc.G.cells.num, nPh);
-            for phNo = 1:nPh
-                s(:,phNo) = W*disc.evaluateDGVariable(x, cellNo, state, sdof(:,phNo));
+        function p = evaluateProp(disc, state, dof, type)
+            psi = [];
+            switch type
+                case 'cell'
+                    [~ , x, cNo] = disc.getCubature(Inf, 'volume');
+                    if isfield(state, 'psi_c')
+                        psi = state.psi_c;
+                    end
+                case 'face'
+                    [~ , x, ~, fNo] = disc.getCubature(Inf, 'face');
+                    x   = repmat(x, 2, 1);
+                    N   = disc.G.faces.neighbors;
+                    cNo = [N(fNo,1); N(fNo,2)];
+                    if isfield(state, 'psi_f')
+                        psi = state.psi_f;
+                    end
             end
-            s = s./disc.G.cells.volumes;
-            
-            sat = s;
-            
+            if ~isempty(psi) && ~iscell(psi)
+                psi = mat2cell(psi, size(psi,1), ones(1,disc.basis.nDof));
+            end
+            if iscell(dof)
+                p = cell(1,numel(dof));
+                for i = 1:numel(dof)
+                    p{i} = disc.evaluateDGVariable(x, cNo, state, dof{i}, psi);
+                end
+            else
+                p = disc.evaluateDGVariable(x, cNo, state, dof, psi);
+            end
+        end
+        
+        function fill = getFillSat(disc, state)
+            fill = zeros(sum(state.nDof),1);
+            ix   = disc.getDofIx(state, 1);
+            fill(ix) = 1;
+        end
+        
+        %-----------------------------------------------------------------%
+        function varargout = evaluateDGVariables(disc, x, cells, state, varargin)
+            varargout = cellfun(@(v) disc.evaluateDGVariable(x, cells, state, v), ...
+                                               varargin, 'UniformOutput', false);
         end
         
         %-----------------------------------------------------------------%
@@ -350,10 +387,21 @@ classdef DGDiscretization < HyperbolicDiscretization
             % Get average cell value from dofs
 
             % Get cubature for all cells
-            [W, x, cellNo, ~] = disc.getCubature((1:disc.G.cells.num)', 'volume');
+            W = disc.getCubature(Inf, 'volume');
             val = cell(numel(varargin),1);
-            [val{:}] = disc.evaluateDGVariable(x, cellNo, state, varargin{:});
-            val = cellfun(@(v) W*v./disc.G.cells.volumes, val, 'unif', false);
+            
+            for i = 1:nargin-2
+                dof = varargin{i};
+                v = disc.evaluateProp(state, dof, 'cell');
+                if iscell(dof)
+                    for j = 1:numel(dof)
+                        v{j} = W*v{j};
+                    end
+                else
+                    v = W*v;
+                end
+                val{i} = v;
+            end
             varargout = val;
             
         end
@@ -367,14 +415,14 @@ classdef DGDiscretization < HyperbolicDiscretization
         function ip = inner(disc, u, v, differential, cells, bc)
             
             if nargin < 5
-                cells = (1:disc.G.cells.num)';
+                [cells, faces] = deal(Inf);
             end
                 
             switch differential
                 case 'dV'
-                    ip = disc.cellInt2(u, v, cells);
+                    ip = disc.cellInt(u, v, cells);
                 case 'dS'
-                    ip = disc.faceFluxInt2(u, v, cells);
+                    ip = disc.faceInt(u, v, faces);
                 case 'dSbc'
                     ip = disc.faceFluxIntBC2(u, v, bc);
             end
@@ -382,7 +430,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function I = cellInt2(disc, u, v, cells)
+        function I = cellInt(disc, u, v, cells)
             % Integrate integrand over cells
             %
             % PARAMETERS:
@@ -400,15 +448,16 @@ classdef DGDiscretization < HyperbolicDiscretization
             %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
             %       all cells
             
-%             psi      = disc.basis.psi;      % Basis functions
-%             gradPsi  = disc.basis.grad_psi; % Gradient of basis functions
-            nDofMax  = disc.basis.nDof;     % Maximum number of dofs
+            nDofMax  = numel(v);     % Maximum number of dofs
             % Empty cells means all cells in grid
             if isempty(cells)
                 cells = (1:disc.G.cells.num)';
             end
             % Get cubature for all cells, transform coordinates to ref space
             [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
+            if isinf(cells)
+                cells = (1:disc.G.cells.num)';
+            end
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
             % Evaluate integrals
 %             I = dof*0;
@@ -430,8 +479,8 @@ classdef DGDiscretization < HyperbolicDiscretization
             I = disc.trimValues(I);
         end
         
-                %-----------------------------------------------------------------%
-        function I = faceFluxInt2(disc, u, v, cells)
+        %-----------------------------------------------------------------%
+        function I = faceInt(disc, u, v, faces)
             % Integrate integrand over all internal faces of each cell in
             % cells
             %
@@ -451,30 +500,42 @@ classdef DGDiscretization < HyperbolicDiscretization
             
             nDofMax = disc.basis.nDof; % maximum number of dofs
             % Empty cells means all cells in grid
-            if isempty(cells)
-                cells = (1:disc.G.cells.num)';
+            if isempty(faces)
+                faces = find(disc.internalConn)';
             end
             % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
-            [xc, ~, ~] = disc.transformCoords(x, cellNo);
+            
+            [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
+            if isinf(faces)
+                faces = find(disc.internalConn)';
+            end
+            N = disc.G.faces.neighbors;
             if isempty(faceNo)
                 I = 0;
                 return
             end
-            % Evaluate integrals
-%             I = dof*0;
-            I = disc.sample;
-            for dofNo = 1:nDofMax                
-                keepCells = disc.nDof(cells) >= dofNo;
-                if any(keepCells)
-                    ix = disc.getDofIx(disc, dofNo, cells(keepCells)');
-                    i  = W*(u.*v{dofNo}(xc));
-                    I(ix) = i(keepCells);
-                elseif numel(cells) == disc.G.cells.num
-                    warning('No cells with %d dofs', dofNo);
+            I = disc.sample*0;
+            for side = 1:2
+                cells  = N(faces,side);
+                cellNo = N(faceNo,side);
+                f2c = sparse(cells, (1:numel(faces))', 1, disc.G.cells.num, numel(faces));
+                [xf, ~, ~] = disc.transformCoords(x, cellNo);
+%                 c = unique(cells);
+                % Evaluate integrals
+                sgn = (-1).^(side-1);
+                for dofNo = 1:nDofMax                
+                    keepCells = disc.nDof(cells) >= dofNo;
+                    kc = f2c*keepCells > 0;
+                    if any(keepCells)
+                        ix = disc.getDofIx(disc, dofNo, kc');
+                        i  = f2c*(sgn.*W*(u.*v{dofNo}(xf)));
+                        I(ix) = I(ix) + i(kc);
+                    elseif numel(faces) == disc.G.cells.num
+                        warning('No cells with %d dofs', dofNo);
+                    end
                 end
+                I = disc.trimValues(I);
             end
-            I = disc.trimValues(I);
         end
         
          %-----------------------------------------------------------------%
@@ -523,103 +584,8 @@ classdef DGDiscretization < HyperbolicDiscretization
                     I(ix) = i(keepCells);
                 end
             end
-            I = disc.trimValues(I);
+            %I = disc.trimValues(I);
             
-        end
-        
-        %-----------------------------------------------------------------%
-        function I = cellInt(disc, fun, cells, state, dof)
-            % Integrate integrand over cells
-            %
-            % PARAMETERS:
-            %   model    - Model, which contains information on how the
-            %              integrand looks like
-            %   fun      - Integrand function handle
-            %   cells    - Cells over which we will integrate fun
-            %   state, state0 - States from current and prev timestep,
-            %              to be used for dofPos
-            %   varargin - Variables passed to model for integrand
-            %              evalauation. varargin{1} MUST be an AD object of
-            %              dofs for all cells in the grid.
-            %
-            % RETURNS:
-            %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
-            %       all cells
-            
-            psi      = disc.basis.psi;      % Basis functions
-            gradPsi  = disc.basis.grad_psi; % Gradient of basis functions
-            nDof     = state.nDof;          % Number of dofs per cell
-            nDofMax  = disc.basis.nDof;     % Maximum number of dofs
-            % Empty cells means all cells in grid
-            if isempty(cells)
-                cells = (1:disc.G.cells.num)';
-            end
-            % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, ~] = disc.getCubature(cells, 'volume');
-            [x, ~, scaling]   = disc.transformCoords(x, cellNo);
-            % Evaluate integrals
-%             I = dof*0;
-            I = dof;
-            for dofNo = 1:nDofMax
-                keepCells = nDof(cells) >= dofNo;
-                if any(keepCells)
-                    ix = disc.getDofIx(state, dofNo, cells(keepCells));
-                    i = W*fun(psi{dofNo}(x), gradPsi{dofNo}(x).*scaling);
-                    I(ix) = i(keepCells);
-                elseif numel(cells) == disc.G.cells.num
-                    warning('No cells with %d dofs', dofNo);
-                end
-            end
-            I = disc.trimValues(I);
-        end
-        
-        %-----------------------------------------------------------------%
-        function I = faceFluxInt(disc, fun, cells, state, dof)
-            % Integrate integrand over all internal faces of each cell in
-            % cells
-            %
-            % PARAMETERS:
-            %   model    - Model, which contains information on how the
-            %              integrand looks like
-            %   fun      - Integrand function handle
-            %   cells    - Cells over which we will integrate fun
-            %   state    - State to be used for dofPos
-            %   varargin - Variables passed to model for integrand
-            %              evalauation. varargin{1} MUST be an AD object of
-            %              dofs for all cells in the grid.
-            %
-            % RETURNS:
-            %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
-            %       all cell surfaces of all cells
-            
-            psi     = disc.basis.psi;  % Basis functions
-            nDof    = state.nDof;      % Number of dofs per cell
-            nDofMax = disc.basis.nDof; % maximum number of dofs
-            % Empty cells means all cells in grid
-            if isempty(cells)
-                cells = (1:disc.G.cells.num)';
-            end
-            % Get cubature for all cells, transform coordinates to ref space
-            [W, x, cellNo, faceNo] = disc.getCubature(cells, 'surface');
-            [xc, ~, ~] = disc.transformCoords(x, cellNo);
-            if isempty(faceNo)
-                I = 0;
-                return
-            end
-            % Evaluate integrals
-%             I = dof*0;
-            I = dof;
-            for dofNo = 1:nDofMax                
-                keepCells = nDof(cells) >= dofNo;
-                if any(keepCells)
-                    ix = disc.getDofIx(state, dofNo, cells(keepCells)');
-                    i  = W*fun(psi{dofNo}(xc));
-                    I(ix) = i(keepCells);
-                elseif numel(cells) == disc.G.cells.num
-                    warning('No cells with %d dofs', dofNo);
-                end
-            end
-            I = disc.trimValues(I);
         end
         
         %-----------------------------------------------------------------%
@@ -684,6 +650,35 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
+        function flag = multiphaseUpwindIndices(disc, G, v, T, mob, upstr)
+            % Explicit calculation of upstream cells. See getSaturationUpwindDG
+            
+            [~, ~, ~, faces] = disc.getCubature(find(disc.internalConn), 'face');
+            nf = numel(faces);
+            % Mapping from all faces to internal connections
+            all2int = zeros(disc.G.faces.num,1);
+            all2int(disc.internalConn) = 1:nnz(disc.internalConn);
+            ix = all2int(faces);
+            
+            T  = T(ix);
+            v  = v(ix);
+            
+            % Make fake faceUpstr function
+            upw = @(flag, x)faceUpstr(flag, x, [1:nf; nf+1:2*nf]', [nf, 2*nf]);
+
+            flag = multiphaseUpwindIndices(G, v, T, mob, upw);
+        end
+        
+        % --------------------------------------------------------------------%
+        function gdxyz = getGravityGradient(disc, model)
+            
+            x = model.G.cells.centroids;
+            [~, ~, ~, faces] = disc.getCubature(find(model.operators.internalConn), 'face');
+            cells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
+            gdxyz = model.operators.Grad(model.G.cells.centroids) * g';
+        end
+        
+        %-----------------------------------------------------------------%
         function [W, x, cellNo, faceNo] = getCubature(disc, elements, type, varargin)
             % Get cubature for elements. Wrapper for cubature class
             % function getCubature, with mapping of elements before and
@@ -719,7 +714,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                                  'excludeBoundary', opt.excludeBoundary    , ...
                                  'internalConn'   , opt.internalConn       , ...
                                  'outwardNormal'  , opt.outwardNormal      );
-            
+                
             if useMap
                 % Map elements back to new numbering
                 cellNo = maps.cellMap.old2new(cellNo);
@@ -749,6 +744,33 @@ classdef DGDiscretization < HyperbolicDiscretization
             [sMinc, sMaxc] = getMinMax(sCell, nCell);
             sMin = min(sMins, sMinc);
             sMax = max(sMaxs, sMaxc);
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function [vMin, vMax] = getMinMax(disc, state, dof)
+            % Get maximum and minimum saturaiton for each cell
+            
+            G = disc.G;
+            
+            % Get all quadrature points for all cells
+            [~, xF, ~, fF] = disc.getCubature(Inf, 'face');
+            xF = repmat(xF, 2, 1);
+            cF = [G.faces.neighbors(fF,1); G.faces.neighbors(fF,2)];
+            [cF, ix] = sort(cF);
+            xF = xF(ix,:);
+            [~, xC, cC, ~] = disc.getCubature(Inf, 'volume');
+            % Evaluate saturation at faces
+            vF = disc.evaluateDGVariable(xF, cF, state, dof);
+            [~, nF] = rlencode(cF);
+            [vMinF, vMaxF] = getMinMax(vF, nF);
+            % Evaluate saturation at cells
+            vC = disc.evaluateDGVariable(xC, cC, state, dof);
+            [~, nC] = rlencode(cC);
+            % Find min/max saturation
+            [vMinC, vMaxC] = getMinMax(vC, nC);
+            vMin = min(vMinF, vMinC);
+            vMax = max(vMaxF, vMaxC);
             
         end
         
@@ -784,7 +806,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function state = limiter(disc, model, state, state0, before)
+        function state = limiters(disc, model, state, state0, before)
             % Limiters applied after each Newton iteration if
             % disc.limitAfterNewtonStep = true and before = true, and after
             % convergence if disc.limitAfterConvergence = true and before =
@@ -845,7 +867,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                 % Limiters to be applied after convergence
                 if disc.degree > 0
                     % Scale solutions so that 0 <= s <= 1
-                    state = dgLimiter(disc, state, check, 's', 'scale', 'plot', disc.plotLimiterProgress);
+%                     state = dgLimiter(disc, state, check, 's', 'scale', 'plot', disc.plotLimiterProgress);
                     if disc.jumpTolerance < Inf
                         % Limit saturation slope in cells with interface jumps
                         % larger than threshold
@@ -856,7 +878,7 @@ classdef DGDiscretization < HyperbolicDiscretization
                         jump(state.degree == 0) = false;
                         bad = jump & check & state.degree > 0;
                         if any(bad)
-                            state = dgLimiter(disc, state, bad, 'tvb', 'plot', disc.plotLimiterProgress);
+                            state = dgLimiter(disc, state, bad, 's', 'tvb', 'plot', disc.plotLimiterProgress);
                         end
                     end
                 end
@@ -867,7 +889,7 @@ classdef DGDiscretization < HyperbolicDiscretization
         %-----------------------------------------------------------------%
         function v = trimValues(disc, v)
             tol = eps(mean(disc.G.cells.volumes));
-            tol = -inf;
+%             tol = -inf;
 %             tol = 1e-7;
             ix = abs(v) < tol;
             if isa(v, 'ADI')

@@ -17,9 +17,8 @@ function [q_bc, g] = computeBoundaryFluxesDG(model, state, bc, T_all, g, mob, b,
     globFace2BCface(faces) = 1:numel(faces);        
     locFaceNo = globFace2BCface(face_bc);
     % Determine injection boundaries
-    in = G.faces.neighbors(faces, 1) == 0;
-    isInj = (vT(faces) > 0 & in) | (vT(faces) < 0 & ~in);
-%     isInj = vT(faces) > 0 & sgn < 0;
+    sgn   = 1 - 2*(G.faces.neighbors(faces, 1) == 0);
+    isInj = vT(faces) > 0 & sgn < 0;
     nPh = numel(sdof);
     [s_bc, mob_bc] = deal(cell(nPh, 1));
     sT_bc = 0;

@@ -8,7 +8,12 @@ function state = dgLimiter(disc, state, bad, var, type, varargin)
     dof    = state.([var, 'dof']);
     
     if opt.plot
-        figure(1); clf; hold on
+        if ishandle(1)
+            set(0, 'CurrentFigure', 1);
+        else
+            figure(1);
+        end
+        clf; hold on
         plotSaturationDG(disc, state, 'n', 500, 'plot1d', true, 'color', 'b', 'linew', 2);
     end
 
@@ -42,8 +47,8 @@ function state = dgLimiter(disc, state, bad, var, type, varargin)
             
             if disc.degree > 1
                 ix = disc.getDofIx(state, (G.griddim+2):nDofMax, bad);
-                dof(ix,:) = [];
-                state.degree(bad) = 1;
+                dof(ix,:) = 0;
+%                 state.degree(bad) = 1;
             end
             state.([var, 'dof']) = dof;
             

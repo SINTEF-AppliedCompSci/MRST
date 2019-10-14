@@ -1,9 +1,7 @@
 classdef TetrahedronCubature < Cubature
     
     properties
-        
         triangulation   % Struct containing triangulation information
-        
     end
     
     methods
@@ -12,20 +10,8 @@ classdef TetrahedronCubature < Cubature
         function cubature = TetrahedronCubature(G, prescision, internalConn)
             % Set up tetrahedron cubatureature
             
-            % Basic properties handled by parent class
-            cubature = cubature@Cubature(G, prescision, internalConn);
-            % Get triangulation of all cells
-            cubature.triangulation = cubature.getTriangulation(G);
-            % make cubature points and weights
-            [x, w, n] = cubature.makeCubature();
-            % Assing porperties
-            cubature.points    = x;
-            cubature.weights   = w;
-            cubature.numPoints = n;
-            cubature.dim       = 3;
-            % Construct cubature position vector
-            cubature.pos = [0; cumsum(cubature.triangulation.nTet*cubature.numPoints)] + 1;
-            
+            % Construction handled by base class
+            cubature = cubature@Cubature(G, prescision, internalConn, 3);            
         end
         
         %-----------------------------------------------------------------%
@@ -157,23 +143,23 @@ classdef TetrahedronCubature < Cubature
         end
         
         %-----------------------------------------------------------------%
-        function [x, w, n, tetNo] = makeCubature(cubature)
+        function cubature = makeCubature(cubature)
             % Make cubature
             
+            % Get triangulation of all cells
+            cubature.triangulation = cubature.getTriangulation(cubature.G);
             % Numbe of tetrahedrons per cell
-            nTri      = sum(cubature.triangulation.nTet);
+            nTri = sum(cubature.triangulation.nTet);
             % Cubature points and weights
             [x, w, n, xR] = getTetrahedronCubaturePointsAndWeights(cubature.prescision);
             % Map to physical coords
             x = cubature.mapCoords(x, xR);
-%             [x, w, n] = getTriangleCubaturePointsAndWeightsBary(cubature.prescision);
-%             x = cubature.mapCoordsBary(x);
-            % Map to physical coordinates
-%             x         = cubature.mapCoords(x);
             % Multiply weights by tetrahedron volumes
             tetNo     = reshape(repmat(1:sum(cubature.triangulation.nTet), n, 1), [], 1);
             volumes   = cubature.getTetVolumes();
             w = repmat(w, nTri, 1).*volumes(tetNo);
+            n = cubature.triangulation.nTet.*n;
+            cubature = cubature.assignCubaturePointsAndWeights(x,w,n);
             
         end 
         

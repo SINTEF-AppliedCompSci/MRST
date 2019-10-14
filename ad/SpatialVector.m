@@ -72,7 +72,7 @@ classdef SpatialVector
         end
         
         function sz = size(v,dim)
-            sz = [numel(double(v.vals{1})), numel(v.vals)];
+            sz = [numel(value(v.vals{1})), numel(v.vals)];
             if nargin == 2
                 sz = sz(dim);
             end

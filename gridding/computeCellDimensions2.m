@@ -12,10 +12,12 @@ function G = computeCellDimensions2(G)
 
     % Compute cell bounding box dimensions
     G.cells.dx = G.cells.xMax - G.cells.xMin;
+    G.cells.basisCenters = G.cells.xMin + G.cells.dx/2;
     
     % Get face coordinates
     xn  = G.nodes.coords(G.faces.nodes,:);
     nfn = diff(G.faces.nodePos);
+    xn = xn - rldecode(G.faces.centroids, nfn, 1);
     if G.griddim == 3
         % Create local coordinate systems on each face
         G.faces.coordSys = faceCoordSys(G);
@@ -34,8 +36,32 @@ function G = computeCellDimensions2(G)
     % Get minimum and maximum cell coordinates
     [G.faces.xMin, G.faces.xMax] = getMinMax(xn, nfn);
     G.faces.dx = G.faces.xMax - G.faces.xMin;
+    
+    xbr = G.faces.xMin + G.faces.dx/2;
+    xb = 0;
+    if G.griddim == 3
+        for dNo = 1:2
+            vec = G.faces.coordSys{dNo};
+            xb = xb + xbr(:,dNo).*vec;
+        end
+    end
+    xb = xb + G.faces.centroids;
+    G.faces.basisCenters = xb;
+    
+    G.faces.phys2ref = @(x,faces) phys2ref(x,G,faces);
+    G.faces.ref2phys = @(x,faces) ref2phys(x,G,faces);
         
-     
+    if 0
+        for f = 1:G.faces.num
+            clf;
+            plotFaces(G, f);
+            hold on
+            x = G.faces.basisCenters(f,:);
+            plot3(x(:,1), x(:,2), x(:,3), '.');
+            axis equal tight
+        end
+    end
+        
 end
 
 function coordSys = faceCoordSys(G)
@@ -59,3 +85,24 @@ function coordSys = faceCoordSys(G)
 
 end
 
+function xr = phys2ref(x, G, faces)
+
+    x  = x - G.faces.basisCenters(faces,:);
+    xr = zeros(numel(faces),2);
+    for dNo = 1:2
+        xr(:,dNo) = sum(x.*G.faces.coordSys{dNo}(faces,:),2);
+    end
+    xr = xr./(G.faces.dx(faces,:)/2);
+
+end
+
+function x = ref2phys(xr, G, faces)
+
+    xr = xr.*G.faces.dx(faces,:)/2;
+    x  = 0;
+    for dNo = 1:2
+        x = x + G.faces.coordSys{dNo}(faces,:).*xr(:,dNo);
+    end
+    x = x + G.faces.basisCenters(faces,:);
+
+end
