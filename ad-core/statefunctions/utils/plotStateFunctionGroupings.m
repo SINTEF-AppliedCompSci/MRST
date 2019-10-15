@@ -5,6 +5,7 @@ function varargout = plotStateFunctionGroupings(props, varargin)
                  'Start', {{}}, ...
                  'Stop', {{}}, ...
                  'Center', {{}}, ...
+                 'Label', 'name', ...
                  'Layout', 'layered', ...
                  'includeState', true);
     [opt, arg] = merge_options(opt, varargin{:});
@@ -12,16 +13,20 @@ function varargout = plotStateFunctionGroupings(props, varargin)
         props = {props};
     end
     assert(exist('digraph', 'file') > 0, 'Plotting dependency graphs requires Matlab R2015b or newer.');
-    graph = getStateFunctionGroupingDependencyGraph(props{:});
-    category = graph.GroupIndex;
-    C = graph.C;
-    names = graph.FunctionNames;
+    depgraph = getStateFunctionGroupingDependencyGraph(props{:});
+    category = depgraph.GroupIndex;
+    C = depgraph.C;
+    fnames = depgraph.FunctionNames;
+    impl = depgraph.Implementation;
+    
+    names = fnames;
     if opt.includeState
         n = size(C, 1);
         left = zeros(n+1, 1);
         isState = reshape(category == 0, 1, []);
         
         names = ['state'; names];
+        impl = ['state'; impl];
         C = [left, [isState; C]];
         category = [-1; category];
         src = 1;
@@ -29,10 +34,25 @@ function varargout = plotStateFunctionGroupings(props, varargin)
         src = names(category == min(category));
     end
     clear graph
-    [G, names, category] = buildStateFunctionDigraph(C, names, category, ...
+    [G, ~, category, keep] = buildStateFunctionDigraph(C, names, category, ...
                     'Start', opt.Start, 'Stop', opt.Stop, 'Center', opt.Center);
     
-    
+    switch lower(opt.Label)
+        case 'name'
+            % Do nothing
+        case 'implementation'
+            G.Nodes = impl(keep);
+        case 'all'
+            local_names = names;
+            for i = 1:numel(local_names)
+                if ~isempty(impl{i})
+                    local_names{i} = sprintf('%s (%s)', local_names{i}, impl{i});
+                end
+            end
+            G.Nodes = local_names(keep);
+        otherwise
+            error('Bad label %s', opt.Label);
+    end
     if strcmpi(opt.Layout, 'layered')
         p = plot(G, 'layout', opt.Layout, 'Sources', src, arg{:});
     else
@@ -43,7 +63,11 @@ function varargout = plotStateFunctionGroupings(props, varargin)
     p.EdgeColor = opt.EdgeColor;
     colormap(lines(max(category) - min(category) + 1))
     
-    if nargout
-        varargout = {p};
+    varargout = cell(1, nargout);
+    if nargout > 0
+        varargout{1} = p;
+        if nargout > 1
+            varargout{2} = G;
+        end
     end
 end

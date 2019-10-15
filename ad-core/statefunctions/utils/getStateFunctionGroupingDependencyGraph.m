@@ -3,17 +3,24 @@ function graph = getStateFunctionGroupingDependencyGraph(varargin)
     props = varargin;
     np = numel(props);
     names = cell(np, 1);
+    implementation = cell(np, 1);
     observed = cell(np, 1);
     origin = cell(np, 1);
     group_names = cell(np, 1);
     for i = 1:np
         group = props{i};
-        [names{i}, observed{i}] = getNames(group);
+        [names{i}, observed{i}, implementation{i}] = getNames(group);
         origin{i} = i*ones(numel(names{i}), 1);
         group_names{i} = class(group);
     end
     
-    all_names = unique(vertcat(names{:}, observed{:}));
+    [all_names, uniquePos] = unique(vertcat(names{:}, observed{:}));
+    observed_impl = observed;
+%     for i = 1:numel(observed_impl)
+%         [observed_impl{i}{:}] = deal('???');
+%     end
+    all_impl = vertcat(implementation{:}, observed_impl{:});
+    all_impl = all_impl(uniquePos);
     n = numel(all_names);
     A = zeros(n, n);
     category = zeros(n, 1);
@@ -34,13 +41,17 @@ function graph = getStateFunctionGroupingDependencyGraph(varargin)
         A(:, i) = getActive(all_names, props{category(i)}, name);
     end
     graph = struct('C', A,... % Dependency graph
+                   'Implementation', {all_impl}, ...
                    'FunctionNames', {all_names}, ... %Names of functions (ordered)
                    'GroupIndex', category, ...% Index of group (with zero for state)
                    'GroupNames', {group_names});% Names of groups (class name)
 end
 
-function [names, observed] = getNames(group)
-    names = group.getNamesOfStateFunctions();
+function [names, observed, impl] = getNames(group)
+    if isempty(group)
+        error('Empty state function. Did you forget to set it up?');
+    end
+    [names, ~, impl] = group.getNamesOfStateFunctions();
     observed = {};
     for i = 1:numel(names)
         prop = group.getStateFunction(names{i});

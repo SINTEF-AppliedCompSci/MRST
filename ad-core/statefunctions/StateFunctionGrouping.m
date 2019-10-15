@@ -29,14 +29,24 @@ classdef StateFunctionGrouping
             props.propertyTypes = zeros(size(props.propertyNames));
         end
         % ----------------------- Getters --------------------------------%
-        function [names, types] = getNamesOfStateFunctions(props)
+        function [names, types, implementation] = getNamesOfStateFunctions(props)
             % Get the names of all properties in collection. If a second
             % output argument is requested, it will give the internal
             % indicators if a property is intrinsic to the class (and will
             % always be present) or if it has been added (and cannot be
-            % depended upon).
+            % depended upon). If a third argument is requested, the class
+            % name of the currently set implementation will be output as
+            % well.
             names = props.propertyNames;
             types = props.propertyTypes;
+            if nargout > 2
+                n = numel(names);
+                implementation = cell(n, 1);
+                for i = 1:n
+                    p = props.getStateFunction(names{i});
+                    implementation{i} = class(p);
+                end
+            end
         end
 
         function prop = getStateFunction(props, name)
