@@ -68,7 +68,8 @@ function [vals, ixs] = tsparsemul(avals, aind, bvals, bind)
    tmp = mat2cell(ixs, size(ixs, 1), ones(size(ixs,2), 1));
    ix_expanded = sub2ind(max(ixs), tmp{:});
    
-   map = accumarray([ix_expanded(:), (1:numel(ix_expanded))'], 1);
+   map = accumarray([ix_expanded(:), (1:numel(ix_expanded))'], 1, [], [], [], ...
+                    true);
    kk = find(sum(map, 2));
    vals = map * vals;
    vals = vals(kk);
