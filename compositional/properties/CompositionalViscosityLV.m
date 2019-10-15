@@ -7,6 +7,7 @@ classdef CompositionalViscosityLV < StateFunction
         function gp = CompositionalViscosityLV(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors'});
+            gp = gp.dependsOn({'pressure', 'temperature', 'x', 'y'}, 'state');
         end
         
         function mu = evaluateOnDomain(prop, model, state)

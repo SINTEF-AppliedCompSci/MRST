@@ -6,6 +6,7 @@ classdef PhaseMixingCoefficientsLV < StateFunction
     methods
         function gp = PhaseMixingCoefficientsLV(model, varargin)
             gp@StateFunction(model, varargin{:});
+            gp = gp.dependsOn({'pressure', 'temperature', 'x', 'y'}, 'state');
         end
 
         function v = evaluateOnDomain(prop, model, state)
