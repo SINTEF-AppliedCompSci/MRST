@@ -1,7 +1,8 @@
 function [G, names, category, keep] = buildStateFunctionDigraph(C, names, category, varargin)
     opt = struct('Start', {{}}, ...
                  'Stop', {{}}, ...
-                 'Center', {{}});
+                 'Center', {{}}, ...
+                 'FilterNames', {names});
     opt = merge_options(opt, varargin{:});
 
     n = numel(names);
@@ -22,15 +23,16 @@ function [G, names, category, keep] = buildStateFunctionDigraph(C, names, catego
     end
     
     if hasStart
-        keep = keep & filter(Dr, names, opt.Start);
+        keep = keep & filter(Dr, opt.FilterNames, opt.Start);
     end
     
     if hasStop
-        keep = keep & filter(D, names, opt.Stop);
+        keep = keep & filter(D, opt.FilterNames, opt.Stop);
     end
     
     if hasCenter
-        keep = keep & (filter(D, names, opt.Center) | filter(Dr, names, opt.Center));
+        keep = keep & (filter(D,  opt.FilterNames, opt.Center) | ...
+                       filter(Dr, opt.FilterNames, opt.Center));
     end
     
     G = G.subgraph(keep);

@@ -17,10 +17,10 @@ function varargout = plotStateFunctionGroupings(props, varargin)
     depgraph = getStateFunctionGroupingDependencyGraph(props{:});
     category = depgraph.GroupIndex;
     C = depgraph.C;
-    fnames = depgraph.FunctionNames;
+    names = depgraph.FunctionNames;
+    groupnames = depgraph.GroupNames;
     impl = depgraph.Implementation;
-    
-    names = fnames;
+    full_names = cellfun(@(x, y) sprintf('%s.%s', x, y), groupnames(category), names, 'UniformOutput', false); 
     if opt.includeState
         n = size(C, 1);
         left = zeros(n+1, 1);
@@ -28,32 +28,17 @@ function varargout = plotStateFunctionGroupings(props, varargin)
         
         names = ['state'; names];
         impl = ['state'; impl];
+        full_names = ['state'; full_names];
         C = [left, [isState; C]];
-        category = [-1; category];
+        category = [1; category+1];
         src = 1;
     else
         src = names(category == min(category));
     end
     clear graph
-    [G, ~, category, keep] = buildStateFunctionDigraph(C, names, category, ...
-                    'Start', opt.Start, 'Stop', opt.Stop, 'Center', opt.Center);
-    
-    switch lower(opt.Label)
-        case 'name'
-            % Do nothing
-        case 'implementation'
-            G.Nodes = impl(keep);
-        case 'all'
-            local_names = names;
-            for i = 1:numel(local_names)
-                if ~isempty(impl{i})
-                    local_names{i} = sprintf('%s (%s)', local_names{i}, impl{i});
-                end
-            end
-            G.Nodes = local_names(keep);
-        otherwise
-            error('Bad label %s', opt.Label);
-    end
+    [G, ~, category, keep] = buildStateFunctionDigraph(C, full_names, category, ...
+                    'Start', opt.Start, 'Stop', opt.Stop, 'Center', opt.Center, 'FilterNames', names);
+    % Set layout
     if strcmpi(opt.Layout, 'layered')
         p = plot(G, 'layout', opt.Layout, 'Sources', src, ...
             'AssignLayers', 'asap', ...
@@ -61,6 +46,26 @@ function varargout = plotStateFunctionGroupings(props, varargin)
     else
         p = plot(G, 'layout', opt.Layout, arg{:});
     end
+    % Set labels
+    switch lower(opt.Label)
+        case 'name'
+            p.NodeLabel = names(keep);
+        case 'implementation'
+            p.NodeLabel = impl(keep);
+        case 'all'
+            local_names = names;
+            for i = 1:numel(local_names)
+                if ~isempty(impl{i})
+                    local_names{i} = sprintf('%s (%s)', local_names{i}, impl{i});
+                end
+            end
+            p.NodeLabel = local_names(keep);
+        case 'debug'
+            % Do nothing, show actual node names
+        otherwise
+            error('Bad label %s', opt.Label);
+    end
+
     ce = lower(opt.ColorizeEdges);
     switch ce
         case {'in', 'out', 'avg'}

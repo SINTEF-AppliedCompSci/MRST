@@ -70,11 +70,14 @@ function graph = getStateFunctionGroupingDependencyGraph(varargin)
     assert(numel(I) == numel(N));
     assert(numel(I) == numel(C));
 
-    graph = struct('C', A,... % Dependency graph
-                   'Implementation', {I}, ...% Implementation of specific functions (ordered)
-                   'FunctionNames', {N}, ... % Names of functions (ordered)
-                   'GroupIndex', C, ...% Index of group (with zero for state and negative values for unknown categories)
-                   'GroupTypes', group_types, ... % 1 for connections inside the groups provided, -1 for outside, 0 for state
+    combined = cellfun(@(x, y) sprintf('%s.%s', x, y), group_names(C), N, 'UniformOutput', false);
+    [~, pos] = uniqueStable(combined);
+    
+    graph = struct('C', A(pos, pos),... % Dependency graph
+                   'Implementation', {I(pos)}, ...% Implementation of specific functions (ordered)
+                   'FunctionNames', {N(pos)}, ... % Names of functions (ordered)
+                   'GroupIndex', C(pos), ...% Index into GroupNames
+                   'GroupTypes', group_types(pos), ... % 1 for connections inside the groups provided, -1 for outside, 0 for state
                    'GroupNames', {group_names});% Names of groups (class name)
 end
 
