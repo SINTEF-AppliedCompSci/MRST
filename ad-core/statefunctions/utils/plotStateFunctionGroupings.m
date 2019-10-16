@@ -24,7 +24,7 @@ function varargout = plotStateFunctionGroupings(props, varargin)
     if opt.includeState
         n = size(C, 1);
         left = zeros(n+1, 1);
-        isState = reshape(category == 0, 1, []);
+        isState = reshape(depgraph.GroupTypes <= 0, 1, []);
         
         names = ['state'; names];
         impl = ['state'; impl];
@@ -99,6 +99,9 @@ function varargout = plotStateFunctionGroupings(props, varargin)
         varargout{1} = p;
         if nargout > 1
             varargout{2} = G;
+            if nargout > 2
+                varargout{3} = depgraph;
+            end
         end
     end
 end
