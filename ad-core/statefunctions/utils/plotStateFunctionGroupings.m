@@ -6,6 +6,7 @@ function varargout = plotStateFunctionGroupings(props, varargin)
                  'Stop', {{}}, ...
                  'Center', {{}}, ...
                  'Label', 'name', ...
+                 'ColorizeEdges', 'in', ...
                  'Layout', 'layered', ...
                  'includeState', true);
     [opt, arg] = merge_options(opt, varargin{:});
@@ -54,13 +55,43 @@ function varargout = plotStateFunctionGroupings(props, varargin)
             error('Bad label %s', opt.Label);
     end
     if strcmpi(opt.Layout, 'layered')
-        p = plot(G, 'layout', opt.Layout, 'Sources', src, arg{:});
+        p = plot(G, 'layout', opt.Layout, 'Sources', src, ...
+            'AssignLayers', 'asap', ...
+            'direction', 'right', arg{:});
     else
         p = plot(G, 'layout', opt.Layout, arg{:});
     end
+    ce = lower(opt.ColorizeEdges);
+    switch ce
+        case {'in', 'out', 'avg'}
+            w = category;
+            switch ce
+                case 'in'
+                    w_fn = @(in, out) w(in);
+                case 'out'
+                    w_fn = @(in, out) w(out);
+                case 'avg'
+                    w_fn = @(in, out) 0.5*(w(in) + w(out));
+            end
+            edges = G.Edges;
+            ne = size(edges, 1);
+            cData = zeros(ne, 1);
+            for edgeNo = 1:ne
+                e = edges{edgeNo, 1};
+                in = strcmp(G.Nodes.Name, e{1});
+                out = strcmp(G.Nodes.Name, e{2});
+                cData(edgeNo) = w_fn(in, out);
+            end
+            set(p, 'EdgeCData', cData);
+        case 'none'
+            p.EdgeColor = opt.EdgeColor;
+        otherwise
+            error('Unknown ColorizeEdges option %s. Valid choices: in, out, avg, none', ce);
+    end
+    
     p.NodeCData = category;
     p.LineWidth = opt.LineWidth;
-    p.EdgeColor = opt.EdgeColor;
+    
     colormap(lines(max(category) - min(category) + 1))
     
     varargout = cell(1, nargout);
