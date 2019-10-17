@@ -25,7 +25,6 @@ function graph = getStateFunctionGroupingDependencyGraph(varargin)
     clear observed
     % External dependencies
     dep_full = arrayfun(@(x) [x.grouping, '.', x.name], all_dependencies, 'UniformOutput', false);
-%     [observed_deps, keep_dep] = unique(dep_full);
     [observed_deps, keep_dep] = setdiff(dep_full, names_full);
 
     all_dependencies = all_dependencies(keep_dep);
@@ -46,9 +45,11 @@ function graph = getStateFunctionGroupingDependencyGraph(varargin)
         externals = fixSubclassDependencies(function_groupings, sf.externals);
         for j = 1:numel(sf.externals)
             d = externals(j);
+            % Match to dependencies we have not observed
             isExt = arrayfun(@(x) strcmp(x.name, d.name) && strcmp(x.grouping, d.grouping), all_dependencies);
             A((nnames+1):end, i) = A((nnames+1):end, i) | isExt;
-            
+            % Match to dependencies which are known as a part of the set of
+            % state function groupings provided for this function
             groupMatch = strcmp(group_names, d.grouping);
             if any(groupMatch)
                 isNor = ismember(all_names, d.name) & category == find(groupMatch);

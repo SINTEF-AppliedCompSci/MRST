@@ -39,12 +39,26 @@ function varargout = plotStateFunctionGroupings(props, varargin)
     [G, ~, category, keep] = buildStateFunctionDigraph(C, full_names, category, ...
                     'Start', opt.Start, 'Stop', opt.Stop, 'Center', opt.Center, 'FilterNames', names);
     % Set layout
-    if strcmpi(opt.Layout, 'layered')
-        p = plot(G, 'layout', opt.Layout, 'Sources', src, ...
-            'AssignLayers', 'asap', ...
-            'direction', 'right', arg{:});
-    else
-        p = plot(G, 'layout', opt.Layout, arg{:});
+    plot_defaults = {'EdgeAlpha', 1};
+    switch lower(opt.Layout)
+        case 'layered'
+            p = plot(G, 'layout', opt.Layout, 'Sources', src, ...
+                'AssignLayers', 'asap', ...
+                'direction', 'right', plot_defaults{:}, arg{:});
+        case 'mrst'
+            p = plot(G, 'layout', 'layered', plot_defaults{:}, arg{:});
+            p.XData = category;
+            d = ones(numel(category), 1);
+            cts = accumarray(category, 1);
+            for i = 1:max(category)
+                local = category == i;
+                d(local) = linspace(1, max(cts), sum(local))';
+                dx = (1:sum(local))/sum(local);
+                p.XData(local) = p.XData(local) + 2*dx;
+            end
+            p.YData = d;
+        otherwise
+            p = plot(G, 'layout', opt.Layout, plot_defaults{:}, arg{:});
     end
     % Set labels
     switch lower(opt.Label)
