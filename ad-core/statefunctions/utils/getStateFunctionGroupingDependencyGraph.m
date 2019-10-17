@@ -1,42 +1,59 @@
 function graph = getStateFunctionGroupingDependencyGraph(varargin)
 % Get dependency graph for one or more StateFunctionGrouping instances
-    props = varargin;
-    np = numel(props);
+    function_groupings = varargin;
+    np = numel(function_groupings);
     names = cell(np, 1);
     implementation = cell(np, 1);
     observed = cell(np, 1);
     origin = cell(np, 1);
     group_names = cell(np, 1);
     for i = 1:np
-        group = props{i};
+        group = function_groupings{i};
         [names{i}, observed{i}, implementation{i}] = getNames(group);
         origin{i} = i*ones(numel(names{i}), 1);
         group_names{i} = class(group);
     end
-    all_dependencies = vertcat(observed{:});
     category = rldecode((1:np)', cellfun(@numel, names));
+    all_dependencies = vertcat(observed{:});
+    all_names = vertcat(names{:});
+    all_implementation = vertcat(implementation{:});
+    names_full = cellfun(@(x, y) sprintf('%s.%s', x, y),...
+                    group_names(category), all_names, 'UniformOutput', false);
+    % Strip away subclass relationships. The dependencies are documented
+    % via base classes while we may be dealing with a superclass.
+    all_dependencies = fixSubclassDependencies(function_groupings, all_dependencies);
+    clear observed
     % External dependencies
-    dep = arrayfun(@(x) [x.grouping, '.', x.name], all_dependencies, 'UniformOutput', false);
-    [observed_deps, keep_dep] = unique(dep);
+    dep_full = arrayfun(@(x) [x.grouping, '.', x.name], all_dependencies, 'UniformOutput', false);
+%     [observed_deps, keep_dep] = unique(dep_full);
+    [observed_deps, keep_dep] = setdiff(dep_full, names_full);
+
     all_dependencies = all_dependencies(keep_dep);
     nobs = numel(observed_deps);
     
-    all_names = vertcat(names{:});
-    all_implementation = vertcat(implementation{:});
     nnames = numel(all_names);
     n = nnames + nobs;
     A = zeros(n, n);
     for i = 1:nnames
         name = all_names{i};
         c = category(i);
-        sf = props{c}.getStateFunction(name);
+        sf = function_groupings{c}.getStateFunction(name);
+        
         % Handle same-group dependencies
-        A(1:nnames, i) = ismember(all_names, sf.dependencies);
+        local = category == c;
+        A(1:nnames, i) = ismember(all_names, sf.dependencies) & local;
         % Handle externals
+        externals = fixSubclassDependencies(function_groupings, sf.externals);
         for j = 1:numel(sf.externals)
-            d = sf.externals(j);
+            d = externals(j);
             isExt = arrayfun(@(x) strcmp(x.name, d.name) && strcmp(x.grouping, d.grouping), all_dependencies);
-            A((nnames+1):end, i) = isExt;
+            A((nnames+1):end, i) = A((nnames+1):end, i) | isExt;
+            
+            groupMatch = strcmp(group_names, d.grouping);
+            if any(groupMatch)
+                isNor = ismember(all_names, d.name) & category == find(groupMatch);
+                A(1:nnames, i) = A(1:nnames, i) | isNor;
+            end
         end
     end
     % Figure out internal and external dependencies
@@ -56,7 +73,11 @@ function graph = getStateFunctionGroupingDependencyGraph(varargin)
         d = all_dependencies(i);
         dep_names{i} = d.name;
         dep_cat(i) = find(strcmp(group_names, d.grouping));
-        dep_impl{i} = '?';
+        if strcmpi(d.grouping, 'state')
+            dep_impl{i} = 'state';
+        else
+            dep_impl{i} = '?';
+        end
     end
     I = [all_implementation; dep_impl];
     N = [all_names; dep_names];
@@ -70,15 +91,23 @@ function graph = getStateFunctionGroupingDependencyGraph(varargin)
     assert(numel(I) == numel(N));
     assert(numel(I) == numel(C));
 
-    combined = cellfun(@(x, y) sprintf('%s.%s', x, y), group_names(C), N, 'UniformOutput', false);
-    [~, pos] = uniqueStable(combined);
-    
-    graph = struct('C', A(pos, pos),... % Dependency graph
-                   'Implementation', {I(pos)}, ...% Implementation of specific functions (ordered)
-                   'FunctionNames', {N(pos)}, ... % Names of functions (ordered)
-                   'GroupIndex', C(pos), ...% Index into GroupNames
-                   'GroupTypes', group_types(pos), ... % 1 for connections inside the groups provided, -1 for outside, 0 for state
-                   'GroupNames', {group_names});% Names of groups (class name)
+    graph = struct('C', A,                     ... % Dependency graph
+                   'Implementation', {I},      ... % Implementation of specific functions (ordered)
+                   'FunctionNames', {N},       ... % Names of functions (ordered)
+                   'GroupIndex', C,            ... % Index into GroupNames
+                   'GroupTypes', group_types,  ... % 1 for connections inside the groups provided, -1 for outside, 0 for state
+                   'GroupNames', {group_names});   % Names of groups (class name)
+end
+
+function deps = fixSubclassDependencies(groups, deps)
+    for i = 1:numel(deps)
+        for j = 1:numel(groups)
+            if isa(groups{j}, deps(i).grouping)
+                deps(i).grouping = class(groups{j});
+                break
+            end
+        end
+    end
 end
 
 function [names, observed, impl] = getNames(group)
@@ -95,15 +124,3 @@ function [names, observed, impl] = getNames(group)
         end
     end
 end
-
-function act = getActive(all_names, group, name)
-    property = group.getStateFunction(name);
-    dep = ismember(all_names, property.dependencies);
-    if not(isempty(property.externals))
-        ext = ismember(all_names, {property.externals.name});
-    else
-        ext = false;
-    end
-    act = dep | ext;
-end
-
