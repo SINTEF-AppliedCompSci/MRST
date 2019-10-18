@@ -3,8 +3,8 @@ classdef Mobility < StateFunction
     end
     
     methods
-        function gp = Mobility(varargin)
-            gp@StateFunction(varargin{:});
+        function gp = Mobility(model, varargin)
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'RelativePermeability', 'Viscosity'});
         end
         function mob = evaluateOnDomain(prop, model, state)
@@ -16,9 +16,12 @@ classdef Mobility < StateFunction
                 mult = model.fluid.tranMultR(p);
                 mob = cellfun(@(x) x.*mult, mob, 'UniformOutput', false);
             end
+            % Check for negative values
             mv = cellfun(@(x) min(value(x)), mob);
-            if model.verbose > 1 && any(mv < 0)
-            	warning('Negative mobilities detected! Capping to zero.')
+            if any(mv < 0)
+                if model.verbose > 1
+                    warning('Negative mobilities detected! Capping to zero.')
+                end
                 mob = cellfun(@(x) max(x, 0), mob, 'UniformOutput', false);
             end
         end
