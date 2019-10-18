@@ -336,20 +336,26 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function p = evaluateProp(disc, state, dof, type)
+        function p = evaluateProp(disc, state, dof, type, elements)
             psi = [];
+            if nargin < 5
+                elements = Inf;
+            end
             switch type
                 case 'cell'
-                    [~ , x, cNo] = disc.getCubature(Inf, 'cell');
-                    if isfield(state, 'psi_c')
+                    [~ , x, cNo] = disc.getCubature(elements, 'cell');
+                    if isfield(state, 'psi_c') && all(elements < Inf)
                         psi = state.psi_c;
                     end
                 case 'face'
-                    [~ , x, ~, fNo] = disc.getCubature(Inf, 'face');
+                    [~ , x, ~, fNo] = disc.getCubature(elements, 'face');
                     x   = repmat(x, 2, 1);
                     N   = disc.G.faces.neighbors;
                     cNo = [N(fNo,1); N(fNo,2)];
-                    if isfield(state, 'psi_f')
+                    keep = cNo ~= 0;
+                    cNo = cNo(keep);
+                    x = x(keep,:);
+                    if isfield(state, 'psi_f') && all(elements < Inf)
                         psi = state.psi_f;
                     end
             end
