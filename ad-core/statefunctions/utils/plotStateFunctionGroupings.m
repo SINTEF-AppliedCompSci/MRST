@@ -10,6 +10,11 @@ function varargout = plotStateFunctionGroupings(props, varargin)
                  'Layout', 'layered', ...
                  'includeState', true);
     [opt, arg] = merge_options(opt, varargin{:});
+    if isa(props, 'PhysicalModel')
+        % We got a model! Validate it and output the groupåings
+        props = props.validateModel();
+        props = props.getStateFunctionGroupings();
+    end
     if ~iscell(props)
         props = {props};
     end
