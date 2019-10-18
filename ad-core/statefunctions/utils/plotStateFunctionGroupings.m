@@ -5,6 +5,7 @@ function varargout = plotStateFunctionGroupings(props, varargin)
                  'Start', {{}}, ...
                  'Stop', {{}}, ...
                  'Center', {{}}, ...
+                 'TextArg', {{}}, ...
                  'Label', 'name', ...
                  'ColorizeEdges', 'in', ...
                  'Layout', 'layered', ...
@@ -38,11 +39,18 @@ function varargout = plotStateFunctionGroupings(props, varargin)
         category = [1; category+1];
         src = 1;
     else
-        src = names(category == min(category));
+        types = depgraph.GroupTypes;
+        src = full_names(types == min(types));
     end
     clear graph
     [G, ~, category, keep] = buildStateFunctionDigraph(C, full_names, category, ...
                     'Start', opt.Start, 'Stop', opt.Stop, 'Center', opt.Center, 'FilterNames', names);
+    if iscell(src)
+        src = setdiff(src, full_names(~keep));
+        if isempty(src)
+            src = 1;
+        end
+    end
     % Set layout
     plot_defaults = {'EdgeAlpha', 1};
     switch lower(opt.Layout)
@@ -117,7 +125,20 @@ function varargout = plotStateFunctionGroupings(props, varargin)
     p.LineWidth = opt.LineWidth;
     
     colormap(lines(max(category) - min(category) + 1))
-    
+    if ~isempty(opt.TextArg)
+        % Replace labels with custom text
+        x = get(p, 'XData');
+        y = get(p, 'YData');
+        labels = get(p, 'NodeLabel');
+        th = text(x, y, labels);
+        for j = 1:numel(th)
+            set(th(j), opt.TextArg{:})
+        end
+        % Remove existing labels
+        set(p, 'NodeLabel', {});
+        % Store text handles in UserData
+        set(p, 'UserData', th);
+    end
     varargout = cell(1, nargout);
     if nargout > 0
         varargout{1} = p;
