@@ -34,7 +34,7 @@ classdef TransportModelDG < TransportModel
             [model, discretizationArgs] = merge_options(model, varargin{:});
             % Construct discretization
             if isempty(model.discretization)
-                model.discretization = DGDiscretization(model, discretizationArgs{:});
+                model.discretization = DGDiscretization(model.G, discretizationArgs{:});
             end
             
             for l = 1:numel(model.limiters)
@@ -324,7 +324,7 @@ classdef TransportModelDG < TransportModel
             [cellStateDG, faceStateDG, wellStateDG] = deal(state);
             names = fieldnames(state);
             
-            [~ , xc, cNo     ] = model.discretization.getCubature(Inf, 'volume');
+            [~ , xc, cNo     ] = model.discretization.getCubature(Inf, 'cell');
             [~ , xf, ~  , fNo] = model.discretization.getCubature(Inf, 'face');
             xf   = repmat(xf, 2, 1);
             N    = model.discretization.G.faces.neighbors;
@@ -360,7 +360,7 @@ classdef TransportModelDG < TransportModel
             wellStateDG.sT = getTotalSaturation(wellStateDG.s);
             faceStateDG.sT = getTotalSaturation(faceStateDG.s);
             
-            [~, ~, cells] = model.discretization.getCubature((1:model.G.cells.num)', 'volume');
+            [~, ~, cells] = model.discretization.getCubature((1:model.G.cells.num)', 'cell');
             [~, ~, ~, faces] = model.discretization.getCubature(find(model.parentModel.operators.internalConn), 'face');
             fcells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
             

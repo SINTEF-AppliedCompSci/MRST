@@ -12,8 +12,8 @@ classdef DGDiscretization < SpatialDiscretization
         
         useMomentFitting    % Bool to tell the method to use experimental 
                             % unstructured cubature class
-        volumeCubature      % Cubature for volume integrals
-        surfaceCubature     % Cubature for surface integrals
+        cellCubature        % Cubature for cell integrals
+        faceCubature        % Cubature for face integrals
         
         jumpTolerance         % Tolerance for sat jumps across interfaces
         jumpLimiter
@@ -116,8 +116,8 @@ classdef DGDiscretization < SpatialDiscretization
                 end
             end
             
-            disc.volumeCubature  = volCub;
-            disc.surfaceCubature = surfCub;
+            disc.cellCubature  = volCub;
+            disc.faceCubature = surfCub;
             
         end
         
@@ -225,7 +225,7 @@ classdef DGDiscretization < SpatialDiscretization
                 G = G.parent;
             end
             
-            [xhat, translation, scaling] = disc.volumeCubature.transformCoords(x, cells, inverse);
+            [xhat, translation, scaling] = disc.cellCubature.transformCoords(x, cells, inverse);
             
             if 0
             % Coordinates are centered in cell center
@@ -695,9 +695,9 @@ classdef DGDiscretization < SpatialDiscretization
             % Get correct cubature type
             switch type 
                 case 'cell'
-                    cubature = disc.volumeCubature; 
+                    cubature = disc.cellCubature; 
                 case {'surface', 'face'}
-                    cubature = disc.surfaceCubature;
+                    cubature = disc.faceCubature;
             end
             
             opt = struct('excludeBoundary', true                   , ...
