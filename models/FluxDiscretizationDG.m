@@ -60,10 +60,7 @@ classdef FluxDiscretizationDG < FluxDiscretization
             model     = fd.expandRegions(model, 'faces');
             v         = model.getProps(flowState, 'ComponentTotalFlux');
             % Get cell flux term
-            state.cellStateDG;
             state.cellStateDG.FluxProps = state.faceStateDG.FluxProps;
-%             flowState.FlowProps = state.cellStateDG.FlowProps;
-%             flowState.cells = state.cellStateDG.cells;
             model = fd.expandRegions(model, 'cells');
             vc = model.getProps(state.cellStateDG, 'ComponentTotalVelocity');
             for c = 1:ncomp
