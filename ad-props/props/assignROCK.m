@@ -13,7 +13,8 @@ function f = assignROCK(f, rock, reg)
 end
 
 function v = pvMult(p, cR, pRef)
-    v = 1 + cR.*(p-pRef);
+    x = cR.*(p-pRef);
+    v = 1 + x + 0.5*(x.^2);
 end
 
 %{

@@ -9,11 +9,15 @@ classdef BlackOilDensity < StateFunction
             gp@StateFunction(model, varargin{:});
             if isprop(model, 'disgas')
                 gp.disgas = model.disgas;
-                gp = gp.dependsOn({'rs'}, 'state');
+                if gp.disgas
+                    gp = gp.dependsOn({'rs'}, 'state');
+                end
             end
             if isprop(model, 'vapoil')
                 gp.vapoil = model.vapoil;
-                gp = gp.dependsOn({'rv'}, 'state');
+                if gp.vapoil
+                    gp = gp.dependsOn({'rv'}, 'state');
+                end
             end
             gp = gp.dependsOn({'ShrinkageFactors'});
         end
