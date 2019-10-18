@@ -1,6 +1,6 @@
-function plotDGBasis(G, basis, cellNo, varargin)
+function h = plotDGBasis(G, basis, cellNo, varargin)
 
-    opt          = struct('n', 20);
+    opt          = struct('n', 15);
     [opt, extra] = merge_options(opt, varargin{:});
     
     nodes = G.cells.nodes(G.cells.nodePos(cellNo):G.cells.nodePos(cellNo+1)-1);
@@ -23,7 +23,7 @@ function plotDGBasis(G, basis, cellNo, varargin)
     
     faces = boundaryFaces(g);
     for p = 1:basis.nDof
-        figure()
+        h(p) = figure();
         plotFaces(g, faces);
         z{p} = basis.psi{p}(x);
         unstructuredCarpetPlot(g, z{p}, 'nodeval', true, extra{:});

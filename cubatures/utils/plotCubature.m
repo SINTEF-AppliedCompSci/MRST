@@ -1,6 +1,6 @@
 function plotCubature(G, cubature, elements, varargin)
 
-    opt = struct('plotBoundingBox', true, 'plotTri', true, 'smin', 10, 'smax', [], 'markerStyle', 'ok');
+    opt = struct('plotBoundingBox', true, 'plotTri', true, 'smin', 5, 'smax', 20, 'markerStyle', 'ok');
     [opt, extra] = merge_options(opt, varargin{:});
     
     if G.griddim - cubature.dim == 1
@@ -16,7 +16,7 @@ function plotCubature(G, cubature, elements, varargin)
     plotGrid(G, cells, extra{:}); axis equal off
     if opt.plotBoundingBox
         for i = 1:numel(cells)
-            rectangle('Position', [G.cells.xMin(cells(i),:), G.cells.dx(cells(i),:);]);
+            rectangle('Position', [G.cells.centroids(cells(i),:) - G.cells.dx(cells(i),:)/2, G.cells.dx(cells(i),:);]);
         end
     end
     
