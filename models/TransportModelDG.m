@@ -176,7 +176,7 @@ classdef TransportModelDG < TransportModel
             end
             % Let parent model handle state initialization
             state = model.initStateAD(state, basevars, basedofnames, baseorigin);
-            state = model.evaluateBaseVariables(state);
+%             state = model.evaluateBaseVariables(state);
             fixedSat = false;
             for i = 1:numel(basedofnames)
                 if any(strcmpi(basenames{i}, {'sw', 'so', 'sg', 'x'}))
@@ -416,15 +416,20 @@ classdef TransportModelDG < TransportModel
         end
         
         %-----------------------------------------------------------------%
-        function [eqs, names, types, state] = getModelEquations(tmodel, state0, state, dt, drivingForces)
-            state0 = tmodel.evaluateBaseVariables(state0);
-            model = tmodel.parentModel;
-            [acc, flux, cellflux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
+        function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
+            state0 = model.evaluateBaseVariables(state0);
+            pmodel = model.parentModel;
+            [acc, flux, cellflux, names, types] = pmodel.FluxDiscretization.componentConservationEquations(pmodel, state, state0, dt);
             state.wellStateDG = rmfield(state.wellStateDG, 'FlowProps');
             state.wellStateDG = rmfield(state.wellStateDG, 'FluxProps');
-            src = model.FacilityModel.getComponentSources(state.wellStateDG);
+            src = pmodel.FacilityModel.getComponentSources(state.wellStateDG);
+            % Treat source or bc terms
+            if ~isempty(drivingForces.bc) || ~isempty(drivingForces.src)
+                acc = model.addBoundaryConditions(acc, state, state0, dt, drivingForces.bc);
+              
+            end
             % Assemble equations and add in sources
-            if strcmpi(tmodel.formulation, 'missingPhase')
+            if strcmpi(model.formulation, 'missingPhase')
                 % Skip the last phase! Only mass-conservative for
                 % incompressible problems
                 acc   = acc(1:end-1);
@@ -432,7 +437,7 @@ classdef TransportModelDG < TransportModel
                 names = names(1:end-1);
                 types = types(1:end-1);
             end
-            d        = tmodel.discretization;
+            d        = model.discretization;
             d.nDof   = state.nDof;
             d.dofPos = state.dofPos;
             psi = d.basis.psi;
@@ -440,12 +445,12 @@ classdef TransportModelDG < TransportModel
             ix    = d.getDofIx(state, 1, src.cells);
             d.sample = acc{1}(d.getDofIx(state, Inf));
             eqs = cell(1, numel(acc));
-            state.wellStateDG.cells = (1:model.G.cells.num)';
+            state.wellStateDG.cells = (1:pmodel.G.cells.num)';
             
-            cells  = rldecode((1:model.G.cells.num)', state.nDof, 1);
-            pv     = model.operators.pv(cells);
-            rhoS   = model.getSurfaceDensities();
-            cnames = model.getComponentNames();
+            cells  = rldecode((1:pmodel.G.cells.num)', state.nDof, 1);
+            pv     = pmodel.operators.pv(cells);
+            rhoS   = pmodel.getSurfaceDensities();
+            cnames = pmodel.getComponentNames();
             
             for i = 1:numel(acc)
                 eqs{i} = d.inner(acc{i}     , psi    , 'dV') ...
@@ -454,11 +459,41 @@ classdef TransportModelDG < TransportModel
                 if ~isempty(src.cells)
                     eqs{i}(ix) = eqs{i}(ix) - src.value{i};
                 end
-                if ~model.useCNVConvergence
+                if ~pmodel.useCNVConvergence
                     sub = strcmpi(names{i}, cnames);
                     eqs{i} = eqs{i}.*(dt./(pv.*rhoS(sub)));
                 end
             end
+        end
+        
+        %-----------------------------------------------------------------%
+        function eqs = addBoundaryConditions(model, eqs, state, state0, dt, bc)
+            
+            bcState = model.parentModel.FluxDiscretization.buildFlowState(model, state, state0, dt);
+
+            f = bc.face;
+            [~, x, ~, fNo] = model.discretization.getCubature(f, 'face');
+            fcNo = sum(model.G.faces.neighbors(fNo,:),2);
+            names = fieldnames(bcState);
+            for k = 1:numel(names)
+                name = names{k};
+                if numel(name) > 3 && strcmp(name(end-2:end), 'dof')
+                    % Get dofs
+                    dof = model.getProp(bcState, name);
+                    v = model.discretization.evaluateProp(bcState, dof, 'face', f);
+                    n = name(1:end-3);
+                    % Evaluate at boundary face cubature points
+                    bcState = model.setProp(bcState, n, v);
+                end
+            end
+            
+
+            [pressures, sat, mob, rho, rs, rv] = model.getProps(bcState, 'PhasePressures', 's', 'Mobility', 'Density', 'Rs', 'Rv');
+            dissolved = model.getDissolutionMatrix(rs, rv);
+            acc = model.addBoundaryConditionsAndSources(acc, names, types, state, ...
+                                     pressures, sat, mob, rho, ...
+                                     dissolved, {}, ...
+                                     drivingForces);
         end
         
         %-----------------------------------------------------------------%
