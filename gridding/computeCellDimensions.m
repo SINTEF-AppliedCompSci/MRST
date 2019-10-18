@@ -12,8 +12,7 @@ function G = computeCellDimensions(G)
 
     dx = max(G.cells.xMax - G.cells.centroids, G.cells.centroids - G.cells.xMin)*2;
     % Compute cell bounding box dimensions
-    G.cells.dx = dx;%G.cells.xMax - G.cells.xMin;
-    G.cells.basisCenters = G.cells.xMin + G.cells.dx/2;
+    G.cells.dx = dx;
     
     % Get face coordinates
     xn  = G.nodes.coords(G.faces.nodes,:);
