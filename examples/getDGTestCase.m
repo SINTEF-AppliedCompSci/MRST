@@ -73,7 +73,7 @@ function setup = qfs_wo_2d(args) %#ok
 
     G = computeGeometry(cartGrid([1,1]*opt.n, [500,500]*meter));
     G = createAugmentedGrid(G);
-    G = computeCellDimensions2(G);
+    G = computeCellDimensions(G);
     G.cells.equal = true;
     
     if 0
@@ -169,7 +169,7 @@ function setup = qfs_wog_3d(args) %#ok
     
     G = computeGeometry(G);
     G = createAugmentedGrid(G);
-    G = computeCellDimensions2(G);
+    G = computeCellDimensions(G);
     [G.cells.equal, G.faces.equal] = deal(false);
     
     perm = 100*milli*darcy;
