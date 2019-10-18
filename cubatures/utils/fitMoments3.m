@@ -47,9 +47,14 @@ function [points,weights,nPts] = fitMoments3(x, basis, moments, varargin)
         
             % Matrix of basis functions evalauted at current quadrature points            
             P = computeBasisMatrix(psi, x, ne_loc, n, nDof);
+            [w, ~, residual, flag] = lsqnonneg(P, M);
             
             s = sum(full(P(1:nDof, 1:n)).^2,1);
-            [~, ix] = sort(s);
+            if opt.reduce                
+                [~, ix] = sort(s);
+            else
+                ix = [];
+            end
             reduced = false;
             xPrev = x;
             wPrev = w;
