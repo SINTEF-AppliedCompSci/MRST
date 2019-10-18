@@ -23,16 +23,16 @@ function [G, names, category, keep] = buildStateFunctionDigraph(C, names, catego
     end
     
     if hasStart
-        keep = keep & filter(Dr, opt.FilterNames, opt.Start);
+        keep = keep & filter(Dr, names, opt.FilterNames, opt.Start);
     end
     
     if hasStop
-        keep = keep & filter(D, opt.FilterNames, opt.Stop);
+        keep = keep & filter(D, names, opt.FilterNames, opt.Stop);
     end
     
     if hasCenter
-        keep = keep & (filter(D,  opt.FilterNames, opt.Center) | ...
-                       filter(Dr, opt.FilterNames, opt.Center));
+        keep = keep & (filter(D,  names, opt.FilterNames, opt.Center) | ...
+                       filter(Dr, names, opt.FilterNames, opt.Center));
     end
     
     G = G.subgraph(keep);
@@ -40,7 +40,7 @@ function [G, names, category, keep] = buildStateFunctionDigraph(C, names, catego
     category = category(keep);
 end
 
-function keep = filter(D, names, targets)
+function keep = filter(D, names, shortnames, targets)
     keep = false(numel(names), 1);
     if ischar(targets)
         targets = {targets};
@@ -48,6 +48,16 @@ function keep = filter(D, names, targets)
     for i = 1:numel(targets)
         name = targets{i};
         pos = strcmpi(names, name);
+        if ~any(pos)
+            pos = strcmpi(shortnames, name);
+            if sum(pos) > 1
+                % Multiple matches - uh oh. Pick the first one.
+                pos = find(pos);
+                pos = pos(1);
+                warning(['Multiple entries found for %s. Arbitrarily taking %s. ', ...
+                         'Does it exist in multiple StateGrouping instances?'], name, names{pos});
+            end
+        end
         keep = keep | isfinite(D(:, pos));
     end
 end
