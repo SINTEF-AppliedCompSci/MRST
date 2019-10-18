@@ -54,7 +54,7 @@ end
 
 inx = 2;
 po = {'edgecolor', 'none'};
-fn = plotLimiter(setup.modelDG{inx}.transportModel, po{:});
+fn = plotLimiter(setup.modelDG{inx}.transportModel, 'plot1d', false, po{:}, 'n', 500);
 setup.modelDG{inx}.transportModel.storeUnlimited = true;
 [ws, st, rep] = simulateScheduleAD(setup.state0, setup.modelDG{inx}, setup.schedule, 'afterStepFn', fn);
 
