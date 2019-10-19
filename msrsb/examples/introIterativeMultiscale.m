@@ -116,7 +116,7 @@ title('Regular multiscale solution');
 % $$ |A \mathbf{p} - b| $$
 % for the multiscale solver. We observe that the error is highly localized
 % around the support of each basis function, forming what is essentially
-% the countours of a dual grid. This residual error is highly localized and
+% the contours of a dual grid. This residual error is highly localized and
 % is the result of the limited support of the basis functions, which are
 % imposed to ensure that the coarse-scale system is sparse in nature.
 subplot(1, 2, 2); cla
@@ -131,7 +131,7 @@ title('Residual error, MS');
 % widely studied for multi-level solvers. The central idea is to use the
 % inexpensive smoother to remove local errors, and the coarse scale solver
 % to remove low-frequency errors. Together, the two solvers can fairly
-% efficiently remove error modes from elliptic or near-elliptic problems-
+% efficiently remove error modes from elliptic or near-elliptic problems.
 %
 % We use the low-level solveMultiscaleIteratively interface here.
 % When useGMRES is false, a simple preconditioned Richardson iteration is
