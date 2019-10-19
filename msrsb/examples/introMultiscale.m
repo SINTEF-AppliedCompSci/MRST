@@ -273,30 +273,32 @@ title('Multiscale system');
 p_upscaled = cstate.pressure;
 p_fine = state.pressure;
 p_prolongated = basis.B*p_ms;
-ca = [min(p_fine), max(p_fine)];
+ca = [min(p_fine), max(p_fine)]/barsa;
 
 clf;
 colormap default
 subplot(2, 2, 1);
-plotCellData(CG, p_upscaled);
+plotCellData(CG, p_upscaled/barsa,'EdgeColor','none'); 
+plotFaces(CG,1:CG.faces.num)
 axis equal tight;
 caxis(ca);
 title('Upscaled')
 
 subplot(2, 2, 2);
-plotCellData(G, p_fine);
+plotCellData(G, p_fine/barsa);
 axis equal tight;
 caxis(ca);
 title('Fine-scale')
 
 subplot(2, 2, 3);
-plotCellData(CG, p_ms);
+plotCellData(CG, p_ms/barsa,'EdgeColor','none'); 
+plotFaces(CG,1:CG.faces.num)
 axis equal tight;
 caxis(ca);
 title('Coarse MS');
 
 subplot(2, 2, 4);
-plotCellData(G, p_prolongated);
+plotCellData(G, p_prolongated/barsa);
 axis equal tight;
 caxis(ca);
 title('Fine MS');
@@ -378,15 +380,15 @@ title('Divergence (only multiscale)')
 clf
 colormap default
 subplot(1, 2, 1);
-plotCellData(G, p_fine);
+plotCellData(G, p_fine,'EdgeColor','none');
 axis equal tight;
 h = streamline(trace(state));
-set(h, 'Color', 'w');
+set(h, 'Color', 'k','linewidth',.5);
 title('Fine-scale');
 
 subplot(1, 2, 2);
-plotCellData(G, p_prolongated);
+plotCellData(G, p_prolongated,'EdgeColor','none');
 axis equal tight;
 h = streamline(trace(state_ms));
-set(h, 'Color', 'w');
+set(h, 'Color', 'k','linewidth',.5);
 title('Multiscale');
