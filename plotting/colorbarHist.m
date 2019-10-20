@@ -44,7 +44,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 mrstNargInCheck(2,5,nargin);
 
-if nargin==4,
+if nargin==4
    nbins = varargin{2}+1;
 else
    nbins = 51;
