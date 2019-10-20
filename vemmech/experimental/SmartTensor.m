@@ -263,10 +263,10 @@ classdef SmartTensor
          % (i.e. they are repeated twice)
          cixs = {};
          for c = self.components
-            c = c{:}
+            c = c{:};
             for name = c.indexnames
                name = name{:};
-               found = strcmp(name, regular_indices)
+               found = strcmp(name, regular_indices);
                if ~any(found)
                   % this is not a regular index.  It must be a contracting
                   % index
@@ -328,10 +328,23 @@ classdef SmartTensor
       
       function comp = tensor_product(comp1, comp2)
          
-         comp.indexnames = {comp1.indexnames{:}, comp2.indexnames{:}};
-         comp.coefs = kron(comp1.coefs, comp2.coefs);
-         comp.ixs = [repelem(comp1.ixs, size(comp2.ixs, 1), 1); ...
-                     repmat(comp2.ixs, size(comp1.ixs, 1), 1)];
+         if numel(comp1.indexnames) == 0
+            % comp1 is an intrinsic scalar
+            comp = comp2;
+            comp.coefs = comp1.coefs(1) * comp.coefs;
+            return 
+         elseif numel(comp2.indexnames) == 0
+            % comp2 is an intrinsic scalar
+            comp = comp1;
+            comp.coefs = comp2.coefs(1) * comp.coefs;
+            return
+         else
+            % both components were nontrivial tensors.  Expand tensor product
+            comp.indexnames = {comp1.indexnames{:}, comp2.indexnames{:}};
+            comp.coefs = kron(comp1.coefs, comp2.coefs);
+            comp.ixs = [repelem(comp1.ixs, size(comp2.ixs, 1), 1), ...
+                        repmat(comp2.ixs, size(comp1.ixs, 1), 1)];
+         end
       end
                                                                         
       function comp = semi_contract_two_indices_two_components(comp1, comp2, ...
@@ -354,10 +367,10 @@ classdef SmartTensor
          [comp1.ixs, I1] = sortrows(comp1.ixs, ix1); comp1.coefs = comp1.coefs(I1);
          [comp2.ixs, I2] = sortrows(comp2.ixs, ix2); comp2.coefs = comp2.coefs(I2);
          
-         start1 = [1, find(diff(comp1.ixs(:, ix1))) + 1];
+         start1 = [1; find(diff(comp1.ixs(:, ix1))) + 1];
          end1   = [start1(2:end)-1; size(comp1.ixs, 1)];
 
-         start2 = [1, find(diff(comp2.ixs(:, ix2))) + 1];
+         start2 = [1; find(diff(comp2.ixs(:, ix2))) + 1];
          end2   = [start2(2:end)-1; size(comp2.ixs, 1)];
          
          % split up matrices
@@ -367,7 +380,7 @@ classdef SmartTensor
                              'uniformoutput', false);
          coefsplit1 = arrayfun(@(x) comp1.coefs(start1(x):end1(x)), 1:num_unique_ix, ...
                                'uniformoutput', false);
-         coefsplit2 = arrayfun(@(x) comp2.coefs(start2(x):end2(x)), 1:num_unique_ix< ...
+         coefsplit2 = arrayfun(@(x) comp2.coefs(start2(x):end2(x)), 1:num_unique_ix, ...
                                'uniformoutput', false);
          
          % function producing all permutation of rows in matrices u and v
@@ -381,13 +394,13 @@ classdef SmartTensor
          % produce corresponding permutation also for the coefficient vectors
          % (which may be ADI, so we must be a bit careful)
          
-         cfarr1 = arrayfun(@(x) repmat(coefsplit1{x}, numelem(coefsplit2{x}),1), ...
+         cfarr1 = arrayfun(@(x) repmat(coefsplit1{x}, numel(coefsplit2{x}),1), ...
                            1:num_unique_ix, 'uniformoutput', false);
          cfarr1 = vertcat(cfarr1{:});
          
-         cfarr2 = arrayfun(@(x) coefsplit2{x}(reshape(repmat(1:numelem(coefsplit2{x}),...
-                                                           numelem(coefsplit1{x}), 1), ...
-                                              [], 1)) ...
+         cfarr2 = arrayfun(@(x) coefsplit2{x}(reshape(repmat(1:numel(coefsplit2{x}),...
+                                                           numel(coefsplit1{x}), 1), ...
+                                              [], 1)), ...
                            1:num_unique_ix, 'uniformoutput', false);
          cfarr2 = vertcat(cfarr2{:});
 
@@ -525,7 +538,7 @@ classdef SmartTensor
             component.ixs = [];
             assert(numel(indexnames) == 0);
          elseif isvector(coefs)
-            component.coefs = coefs;
+            component.coefs = coefs(:);
             component.ixs = (1:numel(coefs))';
             assert(numel(indexnames) == 1);
          else
