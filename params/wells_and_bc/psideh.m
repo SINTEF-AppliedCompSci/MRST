@@ -88,7 +88,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 mrstNargInCheck(4, 14, nargin);
 
-if ~isfield(G, 'cartDims'),
+if ~isfield(G, 'cartDims')
    error('psideh:NotImplemented', ...
          'psideh is not implemented for this grid type');
 end

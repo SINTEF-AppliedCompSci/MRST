@@ -84,14 +84,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-if ~isfield(G, 'cartDims'),
+if ~isfield(G, 'cartDims')
    error(msgid('NotImplemented'), ...
          'PSIDE is not implemented for this grid type.');
 end
 
 mrstNargInCheck(4, 10, nargin);
 
-if nargin == 4 || ischar(varargin{1}),
+if nargin == 4 || ischar(varargin{1})
    % pside(bc, G, side, p, ['pn1', pv1, ...]).  Use entire face.
    I1 = []; I2 = [];
 else
