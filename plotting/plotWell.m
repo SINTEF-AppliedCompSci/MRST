@@ -115,7 +115,7 @@ else
     zcoord = G.nodes.coords(:, 3);
 end
 ztop =  min(zcoord) - prm.height;
-for w = 1 : nW,
+for w = 1 : nW
    if W(w).sign < 0 && ~isempty(prm.color2)
        color = prm.color2;
    else
@@ -125,7 +125,7 @@ for w = 1 : nW,
    c = G.cells.centroids(W(w).cells, :);
 
    dir = W(w).dir;
-   if numel(W(w).cells) == 1,
+   if numel(W(w).cells) == 1
       dir = 's';
    end
 
@@ -155,19 +155,19 @@ for w = 1 : nW,
       rl = prm.radius*0.25*sqrt(area);
       rv = prm.radius*0.25*G.cells.volumes(cno)/area;
       switch lower(dir(i))
-         case 'x',
+         case 'x'
             R = [rv; rv];
             [zw, yw, xw] = cylinder(R, prm.cylpts);
             xw = 0*xw;
-         case 'y',
+         case 'y'
             R = [rv; rv];
             [xw, zw, yw] = cylinder(R, prm.cylpts);
             yw = 0*yw;
-         case 'z',
+         case 'z'
             R = [rl; rl];
             [xw, yw, zw] = cylinder(R, prm.cylpts);
             zw = 0*zw;
-         case 's',
+         case 's'
             continue;
          otherwise
             R = [rl; rl];
@@ -196,7 +196,7 @@ for w = 1 : nW,
                      'FaceColor', color,         ...
                      'AmbientStrength', prm.ambstr);
 
-   if isfield(W(w), 'name') && ischar(W(w).name),
+   if isfield(W(w), 'name') && ischar(W(w).name)
       name = escape_for_LaTeX_interpreter(W(w).name);
    else
       name = sprintf('W$_{%0*d}$', nWd, w);
@@ -240,7 +240,7 @@ for w = 1 : nW,
   end
 end
 
-if dohold,
+if dohold
    hold on;
 else
    hold off;
