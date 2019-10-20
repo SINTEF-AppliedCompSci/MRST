@@ -46,8 +46,18 @@ classdef SmartTensor
       end
       
       function self = semi_contract(self, ixname1, ixname2)
-         comp_ix_1 = self.component_with_ix(ixname1);
-         comp_ix_2 = self.component_with_ix(ixname2);
+         
+         if nargin == 2
+            % this should only happen as part of a call to expandall; it is
+            % not something a user should do
+            comp_ixs = self.component_with_ix(ixname1);
+            assert(numel(comp_ixs) == 2);
+            comp_ix_1 = comp_ixs(1);
+            comp_ix_2 = comp_ixs(2);
+         else
+            comp_ix_1 = self.component_with_ix(ixname1);
+            comp_ix_2 = self.component_with_ix(ixname2);
+         end
          
          if comp_ix_1 == comp_ix_2
             self.components{comp_ix_1} = ...
@@ -65,6 +75,7 @@ classdef SmartTensor
             keep_ix(comp_ix_2) = false;
             self.components = self.components(keep_ix);
          end
+         
       end
       
       function self = contract_one(self, ixname)
@@ -74,19 +85,51 @@ classdef SmartTensor
       end
       
       function self = contract_two(self, ixname1, ixname2)
-         self = self.semi_contract(ixname1, ixname2);
+         if nargin == 2
+            % usually, the function should be called with two indices.  The
+            % present case should only be called from 'expandall', as part of
+            % contracting tensors in indices marked for contaction.
+            self = self.semi_contract(ixname1);
+         else
+            self = self.semi_contract(ixname1, ixname2);
+         end
+         
          self = contract_one(self, ixname1);
       end
 
-      function self = expandall(self)
+      function self = expandall(self, expand_tensor)
+         if nargin < 2
+            expand_tensor = true; % default is true
+         end
+         
          if numel(self.components) == 1
             return
          end
-         error('expandall currently unimplemented for multicomponent case.');
-         % first, we carry out all the contractions in the most
-         % computationally friendly order
          
-         % then we compute the actual tensor product of the components
+         cixs = contracting_indices(self); 
+         
+         while ~isempty(cixs)
+            
+            % identidy the contraction that requires the least effort
+            costs = cellfun(@(x) contraction_cost_estimate(x), cixs, ...
+                            'uniformoutput', true);
+            [~, ix] = find(min(costs)); 
+            
+            % carry out the contraction
+            self = self.contract_two(cixs{ix}); 
+                           
+            % remove processed entry
+            cixs = cixs(~strcmp(cixs{ix}, cixs));
+         end
+         
+         if expand_tensor
+            expanded_comp = self.components{1};
+            for i = 2:numel(self.components)
+               expanded_comp = SmartTensor.tensor_product(expanded_comp, ...
+                                                          self.components{i});
+               self = SmartTensor(expanded_comp);
+            end
+         end
       end
       
       function self = plus(self, other)
@@ -119,9 +162,7 @@ classdef SmartTensor
             cur_oldname = oldnames{i};
             cur_newname = newnames{i};
             
-            for c = numel(self.components):-1:1
-               % search for last appearance of name (previous appearances
-               % should cancel out pairwise)
+            for c = 1:numel(self.components)
                found = strcmp(cur_oldname, self.components{c}.indexnames);
                if any(found)
                   self.components{c}.indexnames{find(found)} = cur_newname;
@@ -187,6 +228,8 @@ classdef SmartTensor
                name = name{:};
                found = strcmp(name, ixnames);
                if any(found)
+                  % this procedure ensures cancellation of indice names meant
+                  % for summation
                   ixnames = ixnames(~found);
                else
                   ixnames = {ixnames{:}, name};
@@ -198,6 +241,42 @@ classdef SmartTensor
       % ---- The following methods represent implementation details, and are not ----
       % -------------------- intended to be directly run by user --------------------
 
+      function cost = contraction_cost_estimate(self, cix)
+
+         comps = self.components;
+         comp_ixs = component_with_ix(self, cix, true);
+         assert(numel(comps) == 2);
+         
+         cost = 0;
+         for i = comp_ixs
+            % we consider the cost to be proportional to the size of the
+            % tensor, were it to be fully expanded
+            cost = cost + size(comps{i}.ixs, 1) ^ size(comps{i}.ixs, 2);
+         end         
+         
+      end
+      
+      function cixs = contracting_indices(self)
+         regular_indices = indexNames(self);
+         
+         % contracting indices are those that are not regular indices
+         % (i.e. they are repeated twice)
+         cixs = {};
+         for c = self.components
+            c = c{:}
+            for name = c.indexnames
+               name = name{:};
+               found = strcmp(name, regular_indices)
+               if ~any(found)
+                  % this is not a regular index.  It must be a contracting
+                  % index
+                  cixs = {cixs{:}, name};
+               end
+            end
+         end
+         cixs = unique(cixs);
+      end
+      
       function dummy_name = next_unused_dummy_name(self)
          
          current_index_names = self.indexNames();
@@ -217,33 +296,109 @@ classdef SmartTensor
          end
       end
       
-      
       function check_valid_ix(self, ixname)
          if ~any(strcmp(ixname, self.indexNames()))
             error('Unknown index.');
          end
       end
       
-      function comp_ix = component_with_ix(self, ixname)
+      function comp_ix = component_with_ix(self, ixname, allow_multiple)
+         if nargin < 3
+            allow_multiple = false; % the usual case
+         end
          self.check_valid_ix(ixname);
+
+         res = [];
+         
          for comp_ix = numel(self.components):-1:1
             if any(strcmp(ixname, self.components{comp_ix}.indexnames))
-               return;
+               if allow_multiple
+                  res = [res, comp_ix];
+               else
+                  return;
+               end
             end
          end
-         error('No component had the requested index.')
+         comp_ix = res; % multiple compoents (or zero)
       end
       
    end % end methods
 
    methods(Static)
       
-      function comp = semi_contract_two_indices_two_components(comp1, comp2, ...
-                                                               ixname1, ixname2)
-      
-         error('unimplemented')
+      function comp = tensor_product(comp1, comp2)
+         
+         comp.indexnames = {comp1.indexnames{:}, comp2.indexnames{:}};
+         comp.coefs = kron(comp1.coefs, comp2.coefs);
+         comp.ixs = [repelem(comp1.ixs, size(comp2.ixs, 1), 1); ...
+                     repmat(comp2.ixs, size(comp1.ixs, 1), 1)];
       end
-            
+                                                                        
+      function comp = semi_contract_two_indices_two_components(comp1, comp2, ...
+                                                           ixname1, ixname2)
+      % carry out semi-contraction, involving two components
+         
+         % eliminate entries that do not contribute
+         ix1 = find(strcmp(ixname1, comp1.indexnames));
+         ix2 = find(strcmp(ixname2, comp2.indexnames));
+         
+         common_indices = intersect(comp1.ixs(:, ix1), comp2.ixs(:, ix2));
+         num_unique_ix = numel(common_indices);
+         keep1 = ismember(comp1.ixs(:, ix1), common_indices);
+         keep2 = ismember(comp2.ixs(:, ix2), common_indices);
+         
+         comp1.ixs = comp1.ixs(keep1, :);  comp1.coefs = comp1.coefs(keep1);
+         comp2.ixs = comp2.ixs(keep2, :);  comp2.coefs = comp2.coefs(keep2);
+         
+         % identify location of each relevant index (after sorting entries)
+         [comp1.ixs, I1] = sortrows(comp1.ixs, ix1); comp1.coefs = comp1.coefs(I1);
+         [comp2.ixs, I2] = sortrows(comp2.ixs, ix2); comp2.coefs = comp2.coefs(I2);
+         
+         start1 = [1, find(diff(comp1.ixs(:, ix1))) + 1];
+         end1   = [start1(2:end)-1; size(comp1.ixs, 1)];
+
+         start2 = [1, find(diff(comp2.ixs(:, ix2))) + 1];
+         end2   = [start2(2:end)-1; size(comp2.ixs, 1)];
+         
+         % split up matrices
+         ixsplit1 = arrayfun(@(x) comp1.ixs(start1(x):end1(x), :), 1:num_unique_ix, ...
+                             'uniformoutput', false);
+         ixsplit2 = arrayfun(@(x) comp2.ixs(start2(x):end2(x), :), 1:num_unique_ix, ...
+                             'uniformoutput', false);
+         coefsplit1 = arrayfun(@(x) comp1.coefs(start1(x):end1(x)), 1:num_unique_ix, ...
+                               'uniformoutput', false);
+         coefsplit2 = arrayfun(@(x) comp2.coefs(start2(x):end2(x)), 1:num_unique_ix< ...
+                               'uniformoutput', false);
+         
+         % function producing all permutation of rows in matrices u and v
+         loc_kron = @(u, v) [repmat(u, size(v,1), 1), repelem(v, size(u, 1), 1)];
+         
+         % make array with all indices that are to be multiplied together
+         ixarr = arrayfun(@(x) loc_kron(ixsplit1{x}, ixsplit2{x}), 1:num_unique_ix, ...
+                          'uniformoutput', false);
+         ixarr = vertcat(ixarr{:});
+         
+         % produce corresponding permutation also for the coefficient vectors
+         % (which may be ADI, so we must be a bit careful)
+         
+         cfarr1 = arrayfun(@(x) repmat(coefsplit1{x}, numelem(coefsplit2{x}),1), ...
+                           1:num_unique_ix, 'uniformoutput', false);
+         cfarr1 = vertcat(cfarr1{:});
+         
+         cfarr2 = arrayfun(@(x) coefsplit2{x}(reshape(repmat(1:numelem(coefsplit2{x}),...
+                                                           numelem(coefsplit1{x}), 1), ...
+                                              [], 1)) ...
+                           1:num_unique_ix, 'uniformoutput', false);
+         cfarr2 = vertcat(cfarr2{:});
+
+         % constructing result
+         
+         comp = comp1;
+         comp.coefs = cfarr1 .* cfarr2;
+         comp.ixs = ixarr;
+
+      end
+      
       function comp = semi_contract_two_indices(comp, ixname1, ixname2)
 
          local_ind_1 = strcmp(ixname1, comp.indexnames);
@@ -269,6 +424,7 @@ classdef SmartTensor
          comp.indexnames = comp.indexnames(~local_ind);
          comp.ixs = comp.ixs(:, ~local_ind);
          if isempty(comp.ixs)
+            % result is an intrinsic scalar
             comp.coefs = sum(comp.coefs);
             comp.ixs = []; % get rid of "ghost" dimensions
             return
@@ -384,5 +540,3 @@ classdef SmartTensor
    end
    
 end % end classdef
-      
-   
