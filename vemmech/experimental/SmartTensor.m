@@ -16,7 +16,7 @@ classdef SmartTensor
            case 1
              % input is directly in the form of a component
              assert(isstruct(varargin{1}));
-             self.components = {varargin{1}};
+             self.components = varargin(1);
            case 2
              % input is in form of a matrix (or vector) and a list of (one or
              % two) index names
@@ -42,7 +42,7 @@ classdef SmartTensor
             other = other.changeIndexName(common_names{nix}, dummy_name);
          end
          
-         self.components = {self.components{:}, other.components{:}};
+         self.components = [self.components, other.components];
       end
       
       function self = semi_contract(self, ixname1, ixname2)
@@ -156,7 +156,6 @@ classdef SmartTensor
          if ~iscell(oldnames)
             oldnames = {oldnames}; newnames = {newnames};
          end
-         ixnames = self.indexNames(); % verify that it exist before changing it
 
          for i = 1:numel(oldnames)
             cur_oldname = oldnames{i};
@@ -165,12 +164,12 @@ classdef SmartTensor
             for c = 1:numel(self.components)
                found = strcmp(cur_oldname, self.components{c}.indexnames);
                if any(found)
-                  self.components{c}.indexnames{find(found)} = cur_newname;
+                  self.components{c}.indexnames{found} = cur_newname;
                   break;
                end
             end
             if ~any(found)
-               error(['Could not change index name because it was not found.']);
+               error('Could not change index name because it was not found.');
             end
          end
       end
@@ -192,7 +191,7 @@ classdef SmartTensor
             assert(iscell(ixnames) && numel(ixnames) <= 2)
             for i = 1:numel(ixnames)
                if ~iscell(ixnames{i})
-                  ixnames{i} = {ixnames{i}};
+                  ixnames{i} = {ixnames(i)};
                end
             end
          end
@@ -209,30 +208,30 @@ classdef SmartTensor
             ix1 = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm(1:nix1)));
             ix2 = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm(nix1+1:end)));
             M = sparse(ix1, ix2, self.components{1}.coefs);
-            if prod(size(M)) < SPARSE_THRESHOLD
+            if numel(M) < SPARSE_THRESHOLD
                M = full(M); % convenient, for small matrices
             end
          end
       end
       
       function self = toInd(self)
-         self = self.expandall()
+         self = self.expandall();
          self.components{1}.coefs = self.components{1}.coefs * 0 + 1;
       end
       
       function ixnames = indexNames(self)
          ixnames = {};
          for c = self.components
-            c = c{:};
+            c = c{:};  %#ok
             for name = c.indexnames
-               name = name{:};
+               name = name{:}; %#ok
                found = strcmp(name, ixnames);
                if any(found)
                   % this procedure ensures cancellation of indice names meant
                   % for summation
                   ixnames = ixnames(~found);
                else
-                  ixnames = {ixnames{:}, name};
+                  ixnames = [ixnames, name]; %#ok
                end
             end
          end
@@ -263,14 +262,14 @@ classdef SmartTensor
          % (i.e. they are repeated twice)
          cixs = {};
          for c = self.components
-            c = c{:};
+            c = c{:}; %#ok
             for name = c.indexnames
-               name = name{:};
+               name = name{:}; %#ok
                found = strcmp(name, regular_indices);
                if ~any(found)
                   % this is not a regular index.  It must be a contracting
                   % index
-                  cixs = {cixs{:}, name};
+                  cixs = [cixs, name]; %#ok
                end
             end
          end
@@ -313,7 +312,7 @@ classdef SmartTensor
          for comp_ix = numel(self.components):-1:1
             if any(strcmp(ixname, self.components{comp_ix}.indexnames))
                if allow_multiple
-                  res = [res, comp_ix];
+                  res = [res, comp_ix]; %#ok
                else
                   return;
                end
@@ -340,7 +339,7 @@ classdef SmartTensor
             return
          else
             % both components were nontrivial tensors.  Expand tensor product
-            comp.indexnames = {comp1.indexnames{:}, comp2.indexnames{:}};
+            comp.indexnames = [comp1.indexnames, comp2.indexnames];
             comp.coefs = kron(comp1.coefs, comp2.coefs);
             comp.ixs = [repelem(comp1.ixs, size(comp2.ixs, 1), 1), ...
                         repmat(comp2.ixs, size(comp1.ixs, 1), 1)];
@@ -517,7 +516,7 @@ classdef SmartTensor
       
       function perm = get_permutation(cells1, cells2)
          % check that this actually is a permutation
-         if ~SmartTensor.is_permutation(cells1, cells2);
+         if ~SmartTensor.is_permutation(cells1, cells2)
             error('provided indices not a permutation of tensor indices.');
          end
          perm = zeros(1, numel(cells1));
