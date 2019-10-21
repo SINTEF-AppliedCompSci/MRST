@@ -237,12 +237,16 @@ classdef StateFunctionGrouping
             len = max(cellfun(@numel, names))+1;
             
             for type = 0:1
-                if type == 0
-                    fprintf('\n  Intrinsic properties (Class properties for %s):\n\n', class(props));
-                else
-                    fprintf('\n  Extra properties (Added to class instance):\n\n');
-                end
                 typeIndices = find(types == type);
+                if type == 0
+                    fprintf('\n  Intrinsic properties (Class properties for %s, always present):\n\n', class(props));
+                else
+                    if isempty(typeIndices)
+                        fprintf('\n  No extra properties have been added to this class instance.\n\n');
+                    else
+                        fprintf('\n  Extra properties (Added to class instance):\n\n');
+                    end
+                end
                 for i = 1:numel(typeIndices)
                     index = typeIndices(i);
                     fn = props.getStateFunction(names{index});
