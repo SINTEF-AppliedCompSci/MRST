@@ -16,13 +16,23 @@ classdef SmartTensor
            case 1
              % input is directly in the form of a component
              assert(isstruct(varargin{1}));
-             self.components = varargin(1);
+             self.components = {varargin{1}}; %#ok
            case 2
              % input is in form of a matrix (or vector) and a list of (one or
              % two) index names
              coefs = varargin{1};
              indexnames = varargin{2}';
              self.components = SmartTensor.make_matrix_tensor(coefs, indexnames);
+           case 3
+             % input is in the form of coefs, ixs and indexnames.  Coefs may
+             % be empty, for indicator tensors
+             comp.indexnames = varargin{3};
+             comp.ixs = varargin{2};
+             comp.coefs = varargin{1};
+             if isempty(comp.coefs)
+                comp.coefs = ones(size(comp.ixixs, 1), 1);
+             end
+             self = SmartTensor(comp);
            otherwise
              error('Unsupported arguments to constructor.');
          end
@@ -50,7 +60,8 @@ classdef SmartTensor
          if nargin == 2
             % this should only happen as part of a call to expandall; it is
             % not something a user should do
-            comp_ixs = self.component_with_ix(ixname1);
+            comp_ixs = self.component_with_ix(ixname1, true);
+            ixname2 = ixname1;
             assert(numel(comp_ixs) == 2);
             comp_ix_1 = comp_ixs(1);
             comp_ix_2 = comp_ixs(2);
@@ -77,6 +88,50 @@ classdef SmartTensor
          end
          
       end
+      
+      function self = semi_contract_with(self, other)
+         
+         common_ixs = intersect(self.indexNames(), other.indexNames());
+         common_ixs_dnames = cell(size(common_ixs));
+         for i = 1:numel(common_ixs)
+            name = common_ixs{i};
+            
+            dname1 = self.next_unused_dummy_name();
+            dname2 = other.next_unused_dummy_name();
+            
+            if strcmp(dname1, dname2) 
+               dname = dname1;
+            else
+               % choose the highest one
+               choice = {dname1, dname2};
+               [~, res] = sort(choice);
+               dname = choice{res(end)};
+            end
+            
+            self.changeIndexName(name, dname);
+            other.changeIndexName(name, dname);
+            common_ixs_dnames{i} = dname;
+         end
+         self = self * other;
+
+         while ~isempty(common_ixs_dnames)
+            % identify contraction requiring least effort
+            costs = cellfun(@(x) self.contraction_cost_estimate(x), ...
+                            common_ixs_dnames, 'uniformoutput', true);
+            [~, ix] = find(min(costs));
+            
+            % carry out semi-contraction
+            self = self.semi_contract(common_ixs_dnames{ix});
+            self = self.changeIndexName(common_ixs_dnames{ix}, ...
+                                        common_ixs{ix});
+            
+            % remove processed entry
+            remove_ind = ~strcmp(common_ixs_dnames{ix}, common_ixs_dnames);
+            common_ixs_dnames = common_ixs_dnames(remove_ind);
+            common_ixs = common_ixs(remove_ind);
+         end
+      end
+      
       
       function self = contract_one(self, ixname)
          comp_ix = self.component_with_ix(ixname);
@@ -111,7 +166,7 @@ classdef SmartTensor
          while ~isempty(cixs)
             
             % identidy the contraction that requires the least effort
-            costs = cellfun(@(x) contraction_cost_estimate(x), cixs, ...
+            costs = cellfun(@(x) self.contraction_cost_estimate(x), cixs, ...
                             'uniformoutput', true);
             [~, ix] = find(min(costs)); 
             
@@ -191,14 +246,15 @@ classdef SmartTensor
             assert(iscell(ixnames) && numel(ixnames) <= 2)
             for i = 1:numel(ixnames)
                if ~iscell(ixnames{i})
-                  ixnames{i} = {ixnames(i)};
+                  ixnames{i} = {ixnames{i}}; %#ok
                end
             end
          end
          % check that all index names are covered, and compute the
          % permutation
-         perm = SmartTensor.get_permutation(horzcat(ixnames{:}), ...
-                                            self.indexNames());
+         perm = SmartTensor.get_permutation(self.indexNames(),...
+                                            horzcat(ixnames{:}));
+                                            
          if numel(ixnames) == 1
             ix = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm));
             M = zeros(max(ix), 1);
@@ -305,7 +361,9 @@ classdef SmartTensor
          if nargin < 3
             allow_multiple = false; % the usual case
          end
-         self.check_valid_ix(ixname);
+         if ~allow_multiple
+            self.check_valid_ix(ixname);
+         end
 
          res = [];
          
@@ -325,6 +383,10 @@ classdef SmartTensor
 
    methods(Static)
       
+      function tensor = ind(tensor)
+         tensor = tensor.toInd();
+      end
+         
       function comp = tensor_product(comp1, comp2)
          
          if numel(comp1.indexnames) == 0
@@ -404,10 +466,13 @@ classdef SmartTensor
          cfarr2 = vertcat(cfarr2{:});
 
          % constructing result
+         remove_ix = find(strcmp(ixname2, comp2.indexnames)) + numel(comp1.indexnames);
          
-         comp = comp1;
+         comp.indexnames = [comp1.indexnames, ...
+                            comp2.indexnames(~strcmp(ixname2, comp2.indexnames))];
          comp.coefs = cfarr1 .* cfarr2;
          comp.ixs = ixarr;
+         comp.ixs(:, remove_ix) = [];
 
       end
       
@@ -447,6 +512,17 @@ classdef SmartTensor
                            (1:size(comp.ixs,1))'], ...
                           1, [], [], [], true);
          comp.coefs = map * comp.coefs;
+         
+         % extract nonzeros and recompute indices
+         nz = find(comp.coefs);
+         comp.coefs = comp.coefs(nz);
+         
+         logical_size = max(comp.ixs);
+         reindex = cell(size(comp.ixs, 2), 1);
+         
+         [reindex{:}] = ind2sub(logical_size, nz);
+         
+         comp.ixs = [reindex{:}];
       end
       
       function [t1, t2] = make_tensors_compatible(t1, t2)
@@ -467,8 +543,8 @@ classdef SmartTensor
          t2.components{1}.ixs = t2.components{1}.ixs(:, perm);
          
          % fill in missing indices
-         [~, I1] = setdiff(t1.components{1}.ixs, t2.components{1}.ixs);
-         [~, I2] = setdiff(t2.components{1}.ixs, t1.components{1}.ixs);
+         [~, I1] = setdiff(t1.components{1}.ixs, t2.components{1}.ixs, 'rows');
+         [~, I2] = setdiff(t2.components{1}.ixs, t1.components{1}.ixs, 'rows');
          
          t2.components{1}.ixs = [t2.components{1}.ixs; ...
                                  t1.components{1}.ixs(I1,:)];
@@ -542,8 +618,10 @@ classdef SmartTensor
             assert(numel(indexnames) == 1);
          else
             assert(ismatrix(coefs));
-            component.coefs = coefs(:);
-            [i, j] = ind2sub(size(coefs), find(coefs));
+            nz = find(coefs); % only keep nonzeros
+            %nz = (1:numel(coefs))';
+            [i, j] = ind2sub(size(coefs), nz);
+            component.coefs = coefs(nz);
             component.ixs = [i, j];
          end
          component.indexnames = indexnames(:)';         
