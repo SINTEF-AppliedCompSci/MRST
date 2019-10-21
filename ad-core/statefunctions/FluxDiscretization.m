@@ -8,7 +8,6 @@ classdef FluxDiscretization < StateFunctionGrouping
         GravityPotentialDifference % rho * g * dz term
         PhasePotentialDifference % (grad p_alpha + dpdz)
         PhaseFlux % Phase volumetric fluxes
-        FaceMobility % Phase mobility on face
         FaceComponentMobility % Composition * mobility on face
         PhaseUpwindFlag % Upwind flag for each phase
         ComponentTotalFlux % Total mass flux for each component
@@ -27,27 +26,28 @@ classdef FluxDiscretization < StateFunctionGrouping
 
             props@StateFunctionGrouping();
             % Darcy flux
-            props.Transmissibility = Transmissibility(model);
-            props.PermeabilityPotentialGradient = PermeabilityPotentialGradient(model, tpfa);
+            props = props.setStateFunction('Transmissibility', Transmissibility(model));
+            props = props.setStateFunction('PermeabilityPotentialGradient', PermeabilityPotentialGradient(model, tpfa));
             if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
                 pgrad = PressureGradientWithThresholdPressure(model, model);
             else
                 pgrad = PressureGradient(model);
             end
-            props.PressureGradient = pgrad;
-            props.GravityPotentialDifference = GravityPotentialDifference(model);
+            props = props.setStateFunction('PressureGradient', pgrad);
+            props = props.setStateFunction('GravityPotentialDifference', GravityPotentialDifference(model));
             
             % Phase flux
-            props.PhasePotentialDifference = PhasePotentialDifference(model);
-            props.PhaseUpwindFlag = PhaseUpwindFlag(model);
+            props = props.setStateFunction('PhasePotentialDifference', PhasePotentialDifference(model));
+            props = props.setStateFunction('PhaseUpwindFlag', PhaseUpwindFlag(model));
             
             % Face values - typically upwinded
-            props.FaceComponentMobility = FaceComponentMobility(model, upstr);
-            props.FaceMobility = FaceMobility(model, upstr);
+            props = props.setStateFunction('FaceComponentMobility', FaceComponentMobility(model, upstr));
+            % Phase mobility on face
+            props = props.setStateFunction('FaceMobility', FaceMobility(model, upstr));
             % 
-            props.ComponentPhaseFlux = ComponentPhaseFlux(model);
-            props.ComponentTotalFlux = ComponentTotalFlux(model);
-            props.PhaseFlux = PhaseFlux(model);
+            props = props.setStateFunction('ComponentPhaseFlux', ComponentPhaseFlux(model));
+            props = props.setStateFunction('ComponentTotalFlux', ComponentTotalFlux(model));
+            props = props.setStateFunction('PhaseFlux', PhaseFlux(model));
 
             % Flow discretizer
             props.FlowStateBuilder = ImplicitFlowStateBuilder();
