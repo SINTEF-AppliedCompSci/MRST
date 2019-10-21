@@ -26,7 +26,7 @@ classdef BlackOilDensity < StateFunction
             rho = cell(1, nph);
             b = prop.getEvaluatedDependencies(state, 'ShrinkageFactors');
             for i = 1:nph
-                rho{i} = rhoS(i).*b{i};
+                rho{i} = rhoS(prop.regions, i).*b{i};
             end
             if (prop.disgas || prop.vapoil) && model.gas && model.oil
                 names = model.getPhaseNames();
