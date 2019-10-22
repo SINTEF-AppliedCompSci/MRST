@@ -44,35 +44,36 @@ classdef SmartTensor
             only_semiproduct = false;
          end
          
-         % find common index names, and give them new values (since they should
-         % be considered to be summed)
-         common_names = intersect(self.indexNames(), other.indexNames());
+         if ~only_semiproduct
+            % we will mark duplicated indices for contraction
+            
+            % find common index names, and give them new values (since they should
+            % be considered to be summed)
+            common_names = intersect(self.indexNames(), other.indexNames());
          
-         % give new names to the common indices, to mark them for summation
-         for nix = 1:numel(common_names)
-            % choose an index name that does not overlap with any already
-            % used in either of the involved tensors
-            flagged_name1 = self.next_unused_contr_ix_name(only_semiproduct);
-            flagged_name2 = other.next_unused_contr_ix_name(only_semiproduct);
-            % in case the two suggested names are different, make sure we
-            % pick the 'largest' one.
-            choice = {flagged_name1, flagged_name2};
-            [~, res] = sort(choice);
-            flagged_name = choice{res(end)};
-            
-            % if this is a semicontracting index, attach the actual name to
-            % the semicontracting name (so that it can be restored later)
-            % @@ Slight hack, but OK as long as index names do not contain '|'.
-            if only_semiproduct
-               flagged_name = [flagged_name, '|', common_names{nix}]; %#ok
+            % give new names to the common indices, to mark them for summation
+            for nix = 1:numel(common_names)
+               % choose an index name that does not overlap with any already
+               % used in either of the involved tensors
+               flagged_name1 = self.next_unused_contr_ix_name();
+               flagged_name2 = other.next_unused_contr_ix_name();
+               % in case the two suggested names are different, make sure we
+               % pick the 'largest' one.
+               choice = {flagged_name1, flagged_name2};
+               [~, res] = sort(choice);
+               flagged_name = choice{res(end)};
+               
+               self = self.changeIndexName(common_names{nix}, flagged_name);
+               other = other.changeIndexName(common_names{nix}, flagged_name);
             end
-            
-            self = self.changeIndexName(common_names{nix}, flagged_name);
-            other = other.changeIndexName(common_names{nix}, flagged_name);
          end
          
          self.components = [self.components, other.components];
       end
+      
+      % @@ PICK UP FROM HERE
+      % contract neeed to check the multiplicity of the indices involved, and
+      % make decisions accordingly
       
       function self = contract(self, ixname1, ixname2, only_semicontract)
       % can be called with one index (contraction) or two indices
@@ -194,7 +195,8 @@ classdef SmartTensor
       
       function [ixnames, cixnames, scixnames] = indexNames(self)
       % return tensor index names.  Contracting and semi-contracting index
-      % names are returned as second and third return value
+      % names are returned as second and third return value.  Note that
+      % semi-contracting indices are also valid tensor indices.
          ixnames = {};
          cixnames = {};
          scixnames = {};
@@ -204,17 +206,17 @@ classdef SmartTensor
                name = name{:}; %#ok
                if SmartTensor.is_contracting_ix(name)
                   cixnames = [cixnames, name]; %#ok
-               elseif SmartTensor.is_semicontracting_ix(name)
-                  scixnames = [scixnames, name]; %#ok
                else
                   % regular index name
                   ixnames = [ixnames, name]; %#ok
                end
             end
          end
-         ixnames = unique(ixnames);
+         % determine semi-contracting indices. These are the indices repeated
+         % more than once
+         [ixnames, ~, ic] = unique(ixnames);
+         scixnames = ixnames(find(accumarray(ic, 1) > 1));
          cixnames = unique(cixnames);
-         scixnames = unique(scixnames);
       end
       
       function M = asMatrix(self, ixnames)
@@ -350,21 +352,17 @@ classdef SmartTensor
          
       end
       
-      function ixname = next_unused_contr_ix_name(self, only_semicontract)
+      function ixname = next_unused_contr_ix_name(self)
          
-         if only_semicontract
-            basename = SmartTensor.semicontracting_name_base();
-            [~, ~, current_index_names] = self.indexNames();
-         else
-            basename = SmartTensor.contracting_name_base();
-            [~, current_index_names] = self.indexNames();
-         end
+         basename = SmartTensor.contracting_name_base();
+         [~, current_contr_names] = self.indexNames();
+         
          count = 1;
          
          while true
             % search until we find an unused name
             ixname = [ basename, num2str(count)];
-            if ~any(strcmp(ixname, current_index_names))
+            if ~any(strcmp(ixname, current_contr_names))
                % we found a unique name
                return
             else
@@ -401,23 +399,12 @@ classdef SmartTensor
          ixname = 'contracting_ix__';
       end
       
-      function ixname = semicontracting_name_base()
-         ixname = 'semicontracting_ix__';
-      end
-
       function yesno = is_contracting_ix(ixname)
          % returns true if ixname starts with the contracting name root
          cname = SmartTensor.contracting_name_base();
          yesno = (numel(cname) < numel(ixname)) && ...
                  strcmp(cname, ixname(1:numel(cname)));
       end
-      
-      function yesno = is_semicontracting_ix(ixname)
-         % returns true if ixname starts with the semicontracting name root
-         cname = SmartTensor.semicontracting_name_base();
-         yesno = (numel(cname) < numel(ixname)) && ...
-                 strcmp(cname, ixname(1:numel(cname)));
-      end      
       
       function tensor = ind(tensor)
          tensor = tensor.toInd();
