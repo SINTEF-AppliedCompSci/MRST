@@ -9,8 +9,8 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
     methods
         function builder = AdaptiveImplicitFlowStateBuilder(varargin)
             builder@ExplicitFlowStateBuilder(varargin{:});
-            builder.explicitFlowProps = {'Mobility', 'ComponentMobility'};
-            builder.implicitFlowProps = {};
+            builder.explicitFluxProps = {'Mobility', 'ComponentMobility'};
+            builder.implicitFluxProps = {};
         end
         
         function dt_max = getMaximumTimestep(fsb, fd, model, state, state0, dt, forces)
@@ -26,7 +26,7 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
                 return
             end
             explicit = ~implicit;
-            props = builder.explicitFlowProps;
+            props = builder.explicitFluxProps;
             
             fp = model.FlowPropertyFunctions;
             name = fp.getStateFunctionContainerName();
