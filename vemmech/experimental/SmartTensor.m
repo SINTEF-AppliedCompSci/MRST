@@ -16,7 +16,7 @@ classdef SmartTensor
            case 1
              % input is directly in the form of a component
              assert(isstruct(varargin{1}));
-             self.components = {varargin{1}}; %#ok
+             self.components = {varargin{1}};
            case 2
              % input is in form of a matrix (or vector) and a list of (one or
              % two) index names
@@ -30,7 +30,7 @@ classdef SmartTensor
              comp.ixs = varargin{2};
              comp.coefs = varargin{1};
              if isempty(comp.coefs)
-                comp.coefs = ones(size(comp.ixixs, 1), 1);
+                comp.coefs = ones(size(comp.ixs, 1), 1);
              end
              self = SmartTensor(comp);
            otherwise
@@ -203,8 +203,26 @@ classdef SmartTensor
          self = SmartTensor.apply_binary_operator(self, other, @times);
       end
       
+      function self = mpower(self, other)
+         self = self.semi_contract_with(other);
+      end
+      
       function t = mtimes(self, other)
          t = self.product(other);
+      end
+
+      function self = sortIndices(self, ixset_order)
+      
+         self = self.expandall();
+
+         assert(SmartTensor.is_permutation(ixset_order, self.indexNames()));
+
+         perm = SmartTensor.get_permutation(self.indexNames(), ixset_order);
+
+         [self.components{1}.ixs, I] = sortrows(self.components{1}.ixs, perm);
+
+         self.components{1}.coefs = self.components{1}.coefs(I);
+         
       end
       
       function self = changeIndexName(self, oldnames, newnames)
@@ -231,7 +249,7 @@ classdef SmartTensor
       
       function M = asMatrix(self, ixnames)
          SPARSE_THRESHOLD = 200;
-         self = expandall(self);
+         self = self.expandall();
          
          % if the tensor is an intrinsic scalar, print its value
          if numel(self.indexNames()) == 0
@@ -538,7 +556,7 @@ classdef SmartTensor
          t2 = t2.expandall();
 
          % make sure the order of indices is the same in both tensors
-         perm = SmartTensor.get_permutation(t1.indexNames(), t2.indexNames());
+         perm = SmartTensor.get_permutation(t2.indexNames(), t1.indexNames());
          t2.components{1}.indexnames = t1.components{1}.indexnames;
          t2.components{1}.ixs = t2.components{1}.ixs(:, perm);
          
@@ -613,8 +631,9 @@ classdef SmartTensor
             component.ixs = [];
             assert(numel(indexnames) == 0);
          elseif isvector(coefs)
-            component.coefs = coefs(:);
-            component.ixs = (1:numel(coefs))';
+            nz = find(coefs);
+            component.coefs = coefs(nz);
+            component.ixs = nz(:);
             assert(numel(indexnames) == 1);
          else
             assert(ismatrix(coefs));
