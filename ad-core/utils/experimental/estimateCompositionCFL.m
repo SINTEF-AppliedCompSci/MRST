@@ -13,38 +13,25 @@ function cfl = estimateCompositionCFL(model, state, dt, varargin)
     r = model.operators.N(:, 2);
     
     flag = vT > 0;
-    
-    oix = 1+model.water;
-    gix = oix+1;
-    
-    model = model.validateModel();
-    [q, so, sg, rho] = model.getProps(state, 'ComponentTotalFlux', 'sO', 'sG', 'Density');
-    q = value(reshape(q, 1, []));
-    
-    rhoo = rho{oix};
-    rhog = rho{gix};
-    
-    X = model.EOSModel.getMassFraction(state.x);
-    Y = model.EOSModel.getMassFraction(state.y);
-    
-    compMass = X.*rhoo.*so + Y.*rhog.*sg;
-    totMass = rhoo.*so + rhog.*sg;
+    q = value(model.getProp(state,'ComponentTotalFlux')');
+    compMass = value(model.getProp(state, 'ComponentTotalMass')');
+    totMass = sum(compMass, 2);
     % Ignore small masses 
     bad = compMass./totMass < 1e-7;
     compMass(bad) = 1;
-    compMass(so + sg == 0, :) = 0;
     massFace = upstream(model, compMass, flag, xflow, l, r);
     
     rate_face = abs(q)./massFace;    
     % Accumulate into cell if flow is outgoing, or we have any kind of
     % cross-flow.
-    [nc, ncomp] = size(state.components);
+    nc = model.G.cells.num;
+    ncomp = model.getNumberOfComponents();
     cfl = zeros(nc, ncomp);
     
     for i = 1:ncomp
         rate_cell = accumarray(l, rate_face(:, i).*( flag | xflow), [nc, 1]) +...
                     accumarray(r, rate_face(:, i).*(~flag | xflow), [nc, 1]);
-        cfl(:, i) = (dt./pv).*rate_cell;
+        cfl(:, i) = dt.*rate_cell;
     end
     % Guard against cells without inflow
     cfl(~isfinite(cfl)) = 0;

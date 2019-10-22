@@ -1,7 +1,7 @@
 classdef ExplicitFlowStateBuilder < FlowStateBuilder
     properties
-        saturationCFL = 1;
-        compositionCFL = 1;
+        saturationCFL = 0.9;
+        compositionCFL = 0.9;
         explicitFlowProps = {'FaceMobility', 'FaceComponentMobility',...
                              'CapillaryPressure', 'GravityPotentialDifference'};
         implicitFlowProps = {'PressureGradient'};
@@ -18,8 +18,10 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
             if isa(model, 'ThreePhaseCompositionalModel') && isfinite(fsb.compositionCFL)
                 
             end
-            cfl_s = estimateSaturationCFL(model, state, 1, 'forces', forces);
-            dt_max = 1./max(cfl_s);
+            cfl_s = estimateSaturationCFL(model, state, 1/fsb.saturationCFL, 'forces', forces);
+            cfl_c = estimateCompositionCFL(model, state, 1/fsb.compositionCFL, 'forces', forces);
+
+            dt_max = 1./max([cfl_s, cfl_c], [], 2);
         end
         
         function flowState = build(builder, fd, model, state, state0, dt)
