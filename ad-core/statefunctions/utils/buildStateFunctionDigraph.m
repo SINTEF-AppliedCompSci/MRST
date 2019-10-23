@@ -34,8 +34,8 @@ function [G, names, category, keep] = buildStateFunctionDigraph(C, names, catego
         keep = keep & (filter(D,  names, opt.FilterNames, opt.Center) | ...
                        filter(Dr, names, opt.FilterNames, opt.Center));
     end
-    
-    G = G.subgraph(keep);
+    keep_ix = find(keep);
+    G = G.subgraph(keep_ix); %#ok MATLAB backwards compatibility
     names = names(keep);
     category = category(keep);
 end
