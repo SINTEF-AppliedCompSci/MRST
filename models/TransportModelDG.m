@@ -22,7 +22,7 @@ classdef TransportModelDG < TransportModel
                                   'type'     , 'tvb' , ...
                                   'variables', names , ...
                                   'limits'   , limits, ...
-                                  'tol'      , tol   );
+                                  'tol'      , 1e-10   );
             limiters = addLimiter(limiters, ...
                                   'type'     , 'scale', ...
                                   'variables', names  , ...
@@ -425,8 +425,7 @@ classdef TransportModelDG < TransportModel
             src = pmodel.FacilityModel.getComponentSources(state.wellStateDG);
             % Treat source or bc terms
             if ~isempty(drivingForces.bc) || ~isempty(drivingForces.src)
-                acc = model.addBoundaryConditions(acc, state, state0, dt, drivingForces.bc);
-              
+                fluxBC  = model.computeBoundaryConditions(state, state0, dt, drivingForces.bc);
             end
             % Assemble equations and add in sources
             if strcmpi(model.formulation, 'missingPhase')
@@ -456,6 +455,9 @@ classdef TransportModelDG < TransportModel
                 eqs{i} = d.inner(acc{i}     , psi    , 'dV') ...
                        - d.inner(cellflux{i}, gradPsi, 'dV') ...
                        + d.inner(flux{i}    , psi    , 'dS');
+                if ~isempty(drivingForces.bc)
+                    eqs{i} = eqs{i} + d.inner(fluxBC{i}, psi, 'dS', drivingForces.bc.face);
+                end
                 if ~isempty(src.cells)
                     eqs{i}(ix) = eqs{i}(ix) - src.value{i};
                 end
@@ -467,33 +469,36 @@ classdef TransportModelDG < TransportModel
         end
         
         %-----------------------------------------------------------------%
-        function eqs = addBoundaryConditions(model, eqs, state, state0, dt, bc)
+        function q = computeBoundaryConditions(model, state, state0, dt, bc)
             
             bcState = model.parentModel.FluxDiscretization.buildFlowState(model, state, state0, dt);
-
-            f = bc.face;
-            [~, x, ~, fNo] = model.discretization.getCubature(f, 'face');
-            fcNo = sum(model.G.faces.neighbors(fNo,:),2);
+            faces = bc.face;
+            [~, x, ~, fNo] = model.discretization.getCubature(faces, 'face');
+            cNo = sum(model.parentModel.G.faces.neighbors(fNo,:),2);
             names = fieldnames(bcState);
             for k = 1:numel(names)
                 name = names{k};
                 if numel(name) > 3 && strcmp(name(end-2:end), 'dof')
                     % Get dofs
                     dof = model.getProp(bcState, name);
-                    v = model.discretization.evaluateProp(bcState, dof, 'face', f);
+                    if iscell(dof)
+                        v = cell(1,numel(dof));
+                        for i = 1:numel(dof)
+                            v{i} = model.discretization.evaluateDGVariable(x, cNo, state, dof{i});
+                        end
+                    else
+                        v = model.discretization.evaluateDGVariable(x, cNo, state, dof);
+                    end
                     n = name(1:end-3);
                     % Evaluate at boundary face cubature points
                     bcState = model.setProp(bcState, n, v);
                 end
             end
+            bcState.cells = sum(model.G.faces.neighbors(fNo,:), 2);
+            bcState.faces = fNo;
             
-
-            [pressures, sat, mob, rho, rs, rv] = model.getProps(bcState, 'PhasePressures', 's', 'Mobility', 'Density', 'Rs', 'Rv');
-            dissolved = model.getDissolutionMatrix(rs, rv);
-            acc = model.addBoundaryConditionsAndSources(acc, names, types, state, ...
-                                     pressures, sat, mob, rho, ...
-                                     dissolved, {}, ...
-                                     drivingForces);
+            q = computeBoundaryFluxesDG(model.parentModel, bcState, bc);
+            
         end
         
         %-----------------------------------------------------------------%
