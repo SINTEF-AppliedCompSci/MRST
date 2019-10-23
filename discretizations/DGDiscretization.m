@@ -414,17 +414,17 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function ip = inner(disc, u, v, differential, cells, bc)
+        function ip = inner(disc, u, v, differential, elements, bc)
             
             if nargin < 5
-                [cells, faces] = deal(Inf);
+                elements = Inf;
             end
                 
             switch differential
                 case 'dV'
-                    ip = disc.cellInt(u, v, cells);
+                    ip = disc.cellInt(u, v, elements);
                 case 'dS'
-                    ip = disc.faceInt(u, v, faces);
+                    ip = disc.faceInt(u, v, elements);
                 case 'dSbc'
                     ip = disc.faceFluxIntBC2(u, v, bc);
             end
@@ -501,14 +501,10 @@ classdef DGDiscretization < SpatialDiscretization
             %       all cell surfaces of all cells
             
             nDofMax = disc.basis.nDof; % maximum number of dofs
-            % Empty cells means all cells in grid
-            if isempty(faces)
-                faces = find(disc.internalConn)';
-            end
-            % Get cubature for all cells, transform coordinates to ref space
-            
+            % Get cubature
             [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
             if isinf(faces)
+                % faces = inf means all internal faces in the grid
                 faces = find(disc.internalConn)';
             end
             N = disc.G.faces.neighbors;
@@ -517,22 +513,35 @@ classdef DGDiscretization < SpatialDiscretization
                 return
             end
             I = disc.sample*0;
+            facesSide = faces;
+            xSide     = x;
+            uSide     = u;
+            WSide     = W;
             for side = 1:2
-                cells  = N(faces,side);
-                cellNo = N(faceNo,side);
-                f2c = sparse(cells, (1:numel(faces))', 1, disc.G.cells.num, numel(faces));
-                [xf, ~, ~] = disc.transformCoords(x, cellNo);
-%                 c = unique(cells);
+                cells  = N(faces , side);
+                cellNo = N(faceNo, side);
+                ix_c   = cells > 0;
+                if ~all(ix_c)
+                    cells     = cells(ix_c);
+                    facesSide = faces(ix_c);
+                    ix_cNo    = cellNo > 0;
+                    cellNo    = cellNo(ix_cNo);
+                    xSide     = x(ix_cNo,:);
+                    uSide     = u(ix_cNo);
+                    WSide     = W(ix_c,ix_cNo);
+                end
+                f2c = sparse(cells, (1:numel(facesSide))', 1, disc.G.cells.num, numel(facesSide));
+                [xf, ~, ~] = disc.transformCoords(xSide, cellNo);
                 % Evaluate integrals
                 sgn = (-1).^(side-1);
-                for dofNo = 1:nDofMax                
+                for dofNo = 1:nDofMax
                     keepCells = disc.nDof(cells) >= dofNo;
                     kc = f2c*keepCells > 0;
                     if any(keepCells)
                         ix = disc.getDofIx(disc, dofNo, kc');
-                        i  = f2c*(sgn.*W*(u.*v{dofNo}(xf)));
+                        i  = f2c*(sgn.*WSide*(uSide.*v{dofNo}(xf)));
                         I(ix) = I(ix) + i(kc);
-                    elseif numel(faces) == disc.G.cells.num
+                    elseif numel(facesSide) == nnz(disc.internalConn)
                         warning('No cells with %d dofs', dofNo);
                     end
                 end
@@ -756,9 +765,12 @@ classdef DGDiscretization < SpatialDiscretization
             G = disc.G;
             
             % Get all quadrature points for all cells
-            [~, xF, ~, fF] = disc.getCubature(Inf, 'face');
+            [~, xF, ~, fF] = disc.getCubature((1:G.faces.num), 'face');
             xF = repmat(xF, 2, 1);
             cF = [G.faces.neighbors(fF,1); G.faces.neighbors(fF,2)];
+            ix = cF == 0;
+            cF(ix) = [];
+            xF(ix,:) = [];
             [cF, ix] = sort(cF);
             xF = xF(ix,:);
             [~, xC, cC, ~] = disc.getCubature(Inf, 'cell');
