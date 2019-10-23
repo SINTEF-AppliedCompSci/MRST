@@ -19,7 +19,7 @@ T_cell_node_ind = SmartTensor.ind(T_face_node_ind * T_cell_face_ind);
 T_cell_node_coords = T_node_coords ^ T_cell_node_ind;
 
 
-T_cell_numnodes = T_cell_node_ind.contract_one('node');
+T_cell_numnodes = T_cell_node_ind.contract('node');
 
 % ----------------------------- compute centroids -----------------------------
 fprintf('Compute centroids\n');
@@ -31,11 +31,11 @@ T_cell_centroids = (T_node_coords * T_cell_node_ind) ./ (T_cell_numnodes * T_dim
 % ---------------------- compute node-centroid distances ----------------------
 fprintf('Compute node-centroid distances\n');
 T_cell_node_distance = ...
-    T_cell_node_coords - T_cell_centroids.semi_contract_with(T_cell_node_ind);
+    T_cell_node_coords - (T_cell_centroids ^ T_cell_node_ind);
 
 % change to homogeneous coordinates (to allow translation)
 T_hom = SmartTensor([0,0,0,1], {'dim'}); % fourth component of homogeneous coord.
-T_cell_node_distance_hom = T_cell_node_distance + T_hom ^ T_cell_node_ind;
+T_cell_node_distance_hom = T_cell_node_distance + (T_hom ^ T_cell_node_ind);
 
 % -------------------------------- compute Nc --------------------------------
 fprintf('Compute Nc\n');
