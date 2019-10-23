@@ -172,7 +172,7 @@ opt = struct('CheckGrid'        , true       , ...
 opt = merge_options(opt, varargin{:});
 
 
-if opt.Tolerance > 0,
+if opt.Tolerance > 0
    grdecl.ZCORN = opt.Tolerance * round(grdecl.ZCORN / opt.Tolerance);
 end
 
@@ -276,7 +276,7 @@ G.faces = rmfield(G.faces, 'cellTags');
 
 % ------------------------------------------------------------------------
 % A sane grid cell has at least four faces
-if opt.CheckGrid,
+if opt.CheckGrid
    assert(all(diff(G.cells.facePos)>3));
    assert(all(diff(G.faces.nodePos)>2));
    assert(all(all(~isinf(G.nodes.coords))));
@@ -286,7 +286,7 @@ end
 % If coordinate axes have been reversed, restore original directions
 
 G.nodes.coords(:, reverseaxis) = -G.nodes.coords(:, reverseaxis);
-if mod(sum(reverseaxis), 2),
+if mod(sum(reverseaxis), 2)
    G = reverseFaceNodes(G, 1:G.faces.num);
 end
 
@@ -299,7 +299,7 @@ if isfield(grdecl, 'PINCH')
 end
 
 % Check if grid is connected
-if opt.SplitDisconnected,
+if opt.SplitDisconnected
    G = splitDisconnectedGrid(G, 'verbose', opt.Verbose);
 end
 
@@ -316,10 +316,10 @@ end
 function [X, Y, Z, reverseaxis, actnum, numAuxillaryCells] = ...
       build_coordinates(grdecl, repair)
 
-   if repair,
+   if repair
       args = {};
 
-      if isfield(grdecl, 'ACTNUM'),
+      if isfield(grdecl, 'ACTNUM')
          args = [ args, { 'Active', grdecl.ACTNUM } ];
       end
 
@@ -334,7 +334,7 @@ function [X, Y, Z, reverseaxis, actnum, numAuxillaryCells] = ...
 
    % Check that ZCORN increases along each pillar.
    % Expand ACTNUM by 2 in each grid dimension
-   if isfield(grdecl, 'ACTNUM'),
+   if isfield(grdecl, 'ACTNUM')
       a = reshape(grdecl.ACTNUM ~= 0, grdecl.cartDims);
    else
       % No ACTNUM.  Assume all cells active.
@@ -346,7 +346,7 @@ function [X, Y, Z, reverseaxis, actnum, numAuxillaryCells] = ...
    a  = rldecode(a, 2, 3);
    z  = Z; z(~a) = nan;
    dz = diff(z, 1, 3);
-   if ~any(dz(:) > 0),
+   if ~any(dz(:) > 0)
       Z     = -Z;
       z     = Z;
       z(~a) = nan;
@@ -354,8 +354,8 @@ function [X, Y, Z, reverseaxis, actnum, numAuxillaryCells] = ...
       reverseaxis(3) = true;
    end
 
-   if any(dz(:) < 0),
-      if ~ repair,
+   if any(dz(:) < 0)
+      if ~ repair
          warning('processGRDECL:ZCORN', ...
                 ['Non-monotonous corner-point depths detected.\n', ...
                  'Possibly wrong results/geometry in grid.\n',     ...
@@ -367,7 +367,7 @@ function [X, Y, Z, reverseaxis, actnum, numAuxillaryCells] = ...
    end
 
    % Check if we have a right handed system
-   if is_lefthanded(X, Y, Z),
+   if is_lefthanded(X, Y, Z)
       Y              = -Y;
       reverseaxis(2) = true;
    end
@@ -387,7 +387,7 @@ function [X, Y, Z, reverseaxis, actnum, numAuxillaryCells] = ...
    Y      = Y(:, :, [1, 1, 1:end, end, end]);
 
    % Mark auxillary layers as active
-   if ~isfield(grdecl, 'ACTNUM'),
+   if ~isfield(grdecl, 'ACTNUM')
       grdecl.ACTNUM = ones([prod(grdecl.cartDims), 1]);
    end
    actnum   = reshape(double(grdecl.ACTNUM), grdecl.cartDims);
@@ -1232,7 +1232,7 @@ for i = 1:numel(za(:,1))-1
      while any(zb(j,:) < za(i+1,:), 2)
 
         % Precise check to avoid adding pinched layers
-       if  doIntersect(za(i,:), za(i+1,:), zb(j,:), zb(j+1,:)),
+       if  doIntersect(za(i,:), za(i+1,:), zb(j,:), zb(j+1,:))
            C = [C; i, j]; %#ok
 
        end
