@@ -120,7 +120,7 @@ set(h, 'Color', 'k','linewidth',.5); title('Multiscale');
 %% Compare MsFV and MsRSB
 figure('Position',[300 340 1000 420]);
 subplot(1,2,1)
-err = @(ms) (ms.pressure - state.pressure)./state.pressure;
+err = @(ms) (ms.pressure - state.pressure)/(max(state.pressure)-min(state.pressure));
 plotCellData(G, err(rec),'EdgeColor','none'); axis equal tight
 plotFaces(og,1:og.faces.num,'LineWidth',1);
 caxis([-.151 .151]), title('MsRSB');
