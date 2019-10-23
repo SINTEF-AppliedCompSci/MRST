@@ -72,7 +72,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    % Other properties.
-   rockprop = {'PORO', 'NTG'};
+   rockprop = {'PORO', 'NTG', 'ROCKTYPE'};
    for i = 1 : numel(rockprop)
       prop = regexprep(rockprop{i}, '\W', '_');
       if isfield(grdecl, prop)
