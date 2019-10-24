@@ -57,14 +57,15 @@ classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
 
         end
         % --------------------------------------------------------------------%
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))
               case {'aquiferpressures', 'aquifervolumes'}
                 fn = lower(name);
                 index = 1;
               otherwise
                 % Basic phases are known to the base class
-                [fn, index] = getVariableField@ThreePhaseBlackOilModel(model, name);
+                [fn, index] = getVariableField@ThreePhaseBlackOilModel(model, ...
+                                                                  name, varargin{:});
             end
         end
         
