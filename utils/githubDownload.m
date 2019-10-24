@@ -92,7 +92,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    assert (opt.all || ~isempty(opt.file), ...
            'Must either specify file list or all files');
 
-   if opt.all,
+   if opt.all
       download = @download_zip;
    else
       download = @download_files;
@@ -100,7 +100,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    files = download(repository, object_url(repository, opt), opt);
 
-   if ~ isempty(opt.dest),
+   if ~ isempty(opt.dest)
       files = move_to_dest(files, opt.dest);
    end
 end
@@ -124,7 +124,7 @@ function files = download_files(repo, url, opt)
 
    [ok, msg, id] = ensure_dir_exists(odir);
 
-   if ~ ok,
+   if ~ ok
       error(id, ['Unable to ensure existence of writable ', ...
                  'output directory ''%s'': %s'], odir, msg);
    end
@@ -141,7 +141,7 @@ function files = download_files(repo, url, opt)
 
    wsave = mrstWebSave();
 
-   for i = 1 : numel(url),
+   for i = 1 : numel(url)
       files = wget(files, odir, url{i}, wsave);
 
       pause(wait(i));
@@ -153,13 +153,13 @@ end
 function files = move_to_dest(files, dest)
    [ok, msg, id] = ensure_dir_exists(dest);
 
-   if ok,
+   if ok
       [ok, msg] = cellfun(@(f) movefile(f, dest), files, ...
                           'UniformOutput', false);
 
       ok = [ ok{:} ];
 
-      if ~ all(ok),
+      if ~ all(ok)
          args  = [ reshape(files(~ok), 1, []) ; ...
                    reshape(msg(~ok)  , 1, []) ];
 
@@ -186,7 +186,7 @@ end
 function url = object_url(repo, opt)
    url = ['https://github.com/', strtrim(repo), '/'];
 
-   if opt.all,
+   if opt.all
       url = all_zip(url, opt.revision);
    else
       url = fileset(url, opt);
@@ -202,14 +202,14 @@ end
 %--------------------------------------------------------------------------
 
 function url = fileset(url, opt)
-   if isempty(opt.file),
+   if isempty(opt.file)
       url = '';
       return
    end
 
    url = strcat([url, 'blob/', opt.revision, '/'], opt.file);
 
-   if numel(url) == 1,
+   if numel(url) == 1
       url = url{1};
    end
 end
@@ -223,11 +223,11 @@ function [ok, msg, id] = ensure_dir_exists(d)
 
    [ok, attr, id] = fileattrib(d);
 
-   if ~ ok,
+   if ~ ok
       msg = sprintf(['Failed to obtain meta-data about ', ...
                      'directory (%s)'], attr);
 
-   elseif ~ attr.UserWrite,
+   elseif ~ attr.UserWrite
       id  = 'Directory:NotWritable';
       msg = 'Directory not user writable';
    end
@@ -238,10 +238,10 @@ end
 function [ok, msg, id] = create_if_not_exists(odir)
    [ok, msg, id] = deal(true, '', '');
 
-   if ~ isdir(odir),
+   if ~ isdir(odir)
       [ok, msg, id] = mkdir(odir);
 
-      if ~ ok,
+      if ~ ok
          msg = sprintf('Failed to create directory (%s)', msg);
          return
       end
@@ -257,7 +257,7 @@ function files = wget(files, odir, url, wsave)
 
    f = wsave(fullfile(odir, cmp{end}), url, 'raw', true);
 
-   if ~ isempty(f),
+   if ~ isempty(f)
       files = [ files, { f } ];
    end
 end

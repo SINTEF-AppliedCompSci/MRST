@@ -47,7 +47,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = struct('spline', false);
    opt = merge_options(opt, varargin{:});
 
-   if opt.spline,
+   if opt.spline
       method = 'spline';
    else
       method = 'linear';

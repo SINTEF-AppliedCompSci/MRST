@@ -49,7 +49,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-if ispc,
+if ispc
 
    e = mexext('all');
    a = e(strcmp({ e.ext }, mexext)).arch;
@@ -58,7 +58,7 @@ if ispc,
       fullfile(matlabroot, 'extern', 'lib', a, 'microsoft', ...
                ['libmw', lib, '.lib']);
 
-elseif isunix,
+elseif isunix
 
    mwlib = @(lib) ['-lmw', lib];
 

@@ -78,7 +78,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-if isempty(f),
+if isempty(f)
    warning('MRST:addBC', 'Empty list of boundary faces.');
    return;
 end
@@ -87,14 +87,14 @@ opt = struct('sat', []);
 opt = merge_options(opt, varargin{:});
 s   = opt.sat;
 
-if isempty(bc),
+if isempty(bc)
    bc = struct('face', [], 'type', {{}}, 'value', [], 'sat', []);
 end
 
 % Validate boundary condition type.
 % Convert to (one-element) cell array if valid.
 %
-if ischar(t),
+if ischar(t)
    t = repmat({ t }, [1, numel(f)]);
 else
    assert(iscellstr(t) && numel(t) == numel(f), ...
