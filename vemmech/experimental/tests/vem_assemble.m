@@ -1,4 +1,5 @@
-G = cartGrid([2, 3, 4]);
+%G = cartGrid([2, 3, 4]);
+G = cartGrid([20, 20, 10]);
 
 T_dim_ind = SmartTensor(ones(G.griddim, 1), {'dim'});
 T_node_coords = SmartTensor(G.nodes.coords, {'node', 'dim'});
@@ -15,9 +16,7 @@ T_cell_face_ind = ...
 
 T_cell_node_ind = SmartTensor.ind(T_face_node_ind * T_cell_face_ind);
 
-
 T_cell_node_coords = T_node_coords ^ T_cell_node_ind;
-
 
 T_cell_numnodes = T_cell_node_ind.contract('node');
 
@@ -25,7 +24,6 @@ T_cell_numnodes = T_cell_node_ind.contract('node');
 fprintf('Compute centroids\n');
 
 T_cell_centroids = (T_node_coords * T_cell_node_ind) ./ (T_cell_numnodes * T_dim_ind);
-
 
 
 % ---------------------- compute node-centroid distances ----------------------
@@ -47,7 +45,9 @@ NcInd.d     = [1, 1, 1, 2, 2, 2, 3, 3, 3];
 NcInd.lform = [1, 4, 6, 2, 4, 5, 3, 5, 6];
 NcInd.k     = [1, 2, 3, 2, 1, 3, 3, 2, 1];
 
-T_Nc = SmartTensor([], [NcInd.d', NcInd.lform', NcInd.k'], {'dim', 'lform', 'kc'});
+T_Nc = SmartTensor([], [NcInd.d', NcInd.lform', NcInd.k'], {'dim', 'lform', 'k'});
+
+T_Nc = T_Nc * T_cell_node_distance_hom.changeIndexName('dim', 'k');
 
 % -------------------------------- compute q_i --------------------------------
 fprintf('Compute q_i\n');
@@ -64,7 +64,9 @@ T_cell_node_d_qc_hom = T_cell_node_d_qc + T_hom ^ T_cell_node_ind;
 fprintf('Compute Wc.\n');
 
 T_Wc = SmartTensor([2, 1, 1, 2, 1, 1, 2, 1, 1], ...
-                   [NcInd.d', NcInd.lform', NcInd.k'], {'dim', 'lform', 'kc'});
+                   [NcInd.d', NcInd.lform', NcInd.k'], {'dim', 'lform', 'k'});
+
+T_Wc = T_Wc * T_cell_node_d_qc_hom.changeIndexName('dim', 'k');
 
 % -------------------------------- compute Nr --------------------------------
 fprintf('Compute Nr.\n');
@@ -76,9 +78,30 @@ NrInd = NcInd;
 NrInd.k(1:3:8) = 4; % translation represented by 4. component of hom. coord
 
 T_Nr = SmartTensor([1, 1, -1, 1, -1, 1, 1, -1, 1], ...
-                   [NrInd.d', NrInd.lform', NrInd.k'], {'dim', 'lform', 'kr'});
+                   [NrInd.d', NrInd.lform', NrInd.k'], {'dim', 'lform', 'k'});
+
+T_Nr = T_Nr * T_cell_node_distance_hom.changeIndexName('dim', 'k');
 
 % -------------------------------- Compute Wr --------------------------------
 fprintf('Compute Wr.\n');
 
+% Wr = 1/n   0   0   q2   0 -q3
+%        0 1/n   0  -q1  q3   0 
+%        0   0 1/n    0 -q2  q1
 
+T_Wr = SmartTensor([1, 1, -1, 1, -1, 1, 1, -1, 1], ...
+                   [NrInd.d', NrInd.lform', NrInd.k'], ...
+                   {'dim', 'lform', 'k'});
+
+T_cell_numnodes_inv = T_cell_numnodes.toInd() ./ T_cell_numnodes;
+T_cell_node_numnodes_inv_hom = (T_hom * T_cell_numnodes_inv) ^ T_cell_node_ind;
+
+T_cell_node_d_qc_numnodes_inv_hom = (T_cell_node_d_qc + T_cell_node_numnodes_inv_hom);
+
+T_Wr = T_Wr * T_cell_node_d_qc_numnodes_inv_hom.changeIndexName('dim', 'k');
+
+% --------------------------------- compute P ---------------------------------
+
+T_Pr = T_Wr * T_Nr.changeIndexName({'dim', 'node'}, {'dim2', 'node2'});
+T_Pc = T_Wc * T_Nc.changeIndexName({'dim', 'node'}, {'dim2', 'node2'});
+tic; T_Pp = T_Pr + T_Pc; toc
