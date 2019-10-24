@@ -46,12 +46,12 @@ if ~isfield(G, 'cartDims')
          ['Grid must be be logically Cartiesian to use partitionUI.'...
          ' Missing field ''cartDims''.']);
 end
-if ~grid_ok(G),
+if ~grid_ok(G)
    error(msgid('grid_structure:Invalid'), ...
          'Grid is not a valid grid_structure structure');
 end
 
-if ~any(numel(coarseDim) == [2, 3]) || any(coarseDim < 1),
+if ~any(numel(coarseDim) == [2, 3]) || any(coarseDim < 1)
    error(msgid('coarseDim:Invalid'), ...
         ['Parameter ''coarseDim'' must be a two or three component ', ...
          'vector\ncontaining strictly positive integers.']);
@@ -68,7 +68,7 @@ i = [ i{:} ];
 M = max(i) - min(i) + 1;
 
 blockIx = zeros([G.cells.num, 1]);
-for d = numel(coarseDim) : -1 : 1,
+for d = numel(coarseDim) : -1 : 1
    B = double(coarseDim(d));
    blockIx = lbLinDist(i(:,d) - min(i(:,d)), M(d), B) + B*blockIx;
 end
