@@ -24,12 +24,12 @@ for icase = 1 : 2
     plotToolbar(G, states);
     view([2, 2]);
     colorbar
-    title(sprintf('MRST computation - Case', icase));
+    title(sprintf('MRST computation - Case %d', icase));
     figure
     plotToolbar(G, statesEcl);
     view([2, 2]);
     colorbar
-    title(sprintf('Eclipse computation - Case', icase));
+    title(sprintf('Eclipse computation - Case %d', icase));
     
     p = states{end}.pressure;
     pecl = statesEcl{end}.pressure;
@@ -39,6 +39,6 @@ for icase = 1 : 2
     plotCellData(G, err);
     view([2, 2]);
     colorbar
-    title(sprintf('Relative difference - Case', icase));
+    title(sprintf('Relative difference - Case %d', icase));
     
 end

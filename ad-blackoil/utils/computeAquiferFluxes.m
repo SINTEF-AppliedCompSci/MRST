@@ -1,5 +1,9 @@
-function q = computeAquiferFluxes(model, p, sW, p_aq, V_aq, dt)
+function q = computeAquiferFluxes(model, state, dt)
     
+    [p, sW] = model.getProps(state, 'pressure', 'water');
+    p_aq = model.getProp(state, 'aquiferpressures');
+    V_aq = model.getProp(state, 'aquifervolumes');
+
     aquifers  = model.aquifers;
     aquind  = model.aquind;
     
@@ -23,12 +27,16 @@ function q = computeAquiferFluxes(model, p, sW, p_aq, V_aq, dt)
     
     fluid = model.fluid;
     pcOW = 0;
+    ph = model.getPhaseNames();
+    isw = (ph == 'W');
     if isfield(fluid, 'pcOW') && ~isempty(sW)
-        pcOW  = fluid.pcOW(sW, 'cellInx', conn);
+        pcOW = model.getProps(state, 'CapillaryPressure');
+        pcOW = pcOW{isw}(conn);
     end
 
-    bW     = fluid.bW(p_aq, 'cellInx', conn);
-    rhoW   = bW.*fluid.rhoWS;
+    b = model.getProps(state, 'ShrinkageFactors');
+    bW = b{isw}(conn);
+    rhoW = bW.*fluid.rhoWS;
     
     Tc = C.*V_aq./J;
     if dt == 0

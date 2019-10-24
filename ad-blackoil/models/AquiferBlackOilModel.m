@@ -75,12 +75,10 @@ classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
                                                               state0, state, ...
                                                               dt, ...
                                                               drivingForces);
-            sW   = model.getProp(state, 'sW');
-            p    = model.getProp(state, 'pressure');
             p_aq = model.getProp(state, 'aquiferpressures');
             V_aq = model.getProp(state, 'aquifervolumes');
             
-            q = computeAquiferFluxes(model, p, sW, p_aq, V_aq, dt);
+            q = computeAquiferFluxes(model, state, dt);
             
             aquifers     = model.aquifers;
             aquind       = model.aquind;
@@ -101,11 +99,9 @@ classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
             state = model.setProp(state, 'aquifervolumes'  , V_aq);
         end
         
-        function eqs = addAquifersContribution(model, eqs, names, state, p, sW, dt)
+        function eqs = addAquifersContribution(model, eqs, names, state,  dt)
             
-            p_aq = model.getProp(state, 'aquiferpressures');
-            V_aq = model.getProp(state, 'aquifervolumes');
-            q = computeAquiferFluxes(model, p, sW, p_aq, V_aq, dt);
+            q = computeAquiferFluxes(model, state, dt);
             
             wind = strcmpi('water', names);
             aquifers = model.aquifers;
