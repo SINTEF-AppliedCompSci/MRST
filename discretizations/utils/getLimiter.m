@@ -24,28 +24,12 @@ function state = update(model, state, name, dof)
 end
 
 %-------------------------------------------------------------------------%
-function plotLimiter(disc, state, state0, type)
-    if ishandle(1)
-        set(0, 'CurrentFigure', 1);
-    else
-        figure(1);
-    end
-    clf; hold on
-    plotSaturationDG(disc, state0, 'n', 500, 'plot1d', true, 'color', 'k', 'linew', 2);
-    plotSaturationDG(disc, state, 'n', 500, 'plot1d', true, 'color', 'k', 'linew', 4, 'LineStyle', '--'); hold off
-    ylim([-0.2, 1.2]);
-    legend({['Before ', type], ['After ', type]});
-    box on;
-    drawnow
-end
-%-------------------------------------------------------------------------%
-
-%-------------------------------------------------------------------------%
 % TVB limiter
 %-------------------------------------------------------------------------%
 function state = tvb(state, model, interpSetup, name, tol, limits)
 
     dof = model.getProp(state, [name, 'dof']);
+    v   = model.getProp(state, name);
     disc = model.discretization;
     nLin = nnz(sum(disc.basis.k,2) == 1);
     dim = min(disc.G.griddim, nLin);
@@ -63,12 +47,14 @@ function state = tvb(state, model, interpSetup, name, tol, limits)
 
     if any(bad)
         for i = 1:nc
-            dofbar = approximatGradient(model, interpSetup, state, dof(:,i));
+            dofbar = approximatGradient(model, interpSetup, state, dof(:,i), v(:,i));
             dofbar = dofbar(bad,:)';
             dofbar = dofbar(:);
             dofbar(isnan(dofbar)) = 0;
             ix = disc.getDofIx(state, (1:dim)+1, bad);
             dof(ix,i) = dofbar;
+            ix = disc.getDofIx(state, 1, bad);
+            dof(ix,i) = v(bad,i);
         end
         if any(disc.degree > 1)
             ix = disc.getDofIx(state, (dim+2):disc.basis.nDof, bad);
@@ -111,7 +97,7 @@ function [jumpVal, faces, cells] = getInterfaceJumps(disc, dof, state)
 end
 
 %-------------------------------------------------------------------------%
-function dofbar = approximatGradient(model, interpSetup, state, dof)
+function dofbar = approximatGradient(model, interpSetup, state, dof, v)
 
     G    = model.parentModel.G;
     disc = model.discretization;
@@ -124,7 +110,7 @@ function dofbar = approximatGradient(model, interpSetup, state, dof)
     end
     ix   = disc.getDofIx(state, 1);
     q    = nan(G.cells.num,1);
-    q(map.keep) = dof(ix);
+    q(map.keep) = v;
 
     sigma = cell(1, disc.dim);
     [sigma{:}] = deal(0);
@@ -186,12 +172,10 @@ end
 %-------------------------------------------------------------------------%
 function interpSetup = getInterpolationSetup(model, opt)
 
-%     model.G = model.discretization.G;
     m = model;
     while isempty(m.operators)
         m = model.parentModel;
     end
-%     model.operators = opt.operators;
     w = WENOUpwindDiscretization(m, m.G.griddim);
     [C, pts, cells, basis, supports, linear_weights, scaling] = w.getTriangulation(m);
 
@@ -234,7 +218,7 @@ function state = scale(state, model, name, tol, limits)
             dof(ix(ix>0),i) = dof(ix(ix>0),i).*theta(ix>0);
         end
 
-        vix = any(state.degree > 0);
+        vix = state.degree > 0;
         dix = disc.getDofIx(state, 1, vix);
         dof(dix,i) = (dof(dix,i) - v(vix,i)).*theta(vix) + v(vix,i);
     end
