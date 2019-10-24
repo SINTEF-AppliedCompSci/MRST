@@ -15,8 +15,8 @@ function [xMin, xMax, ixMin, ixMax, neg, pos] = getMinMax(x, nn)
         xMat = sparse(ii, jj, v, num, max(nn));
         [xMin(:,dNo), ixMin(:,dNo)] = min(xMat, [], 2);
         [xMax(:,dNo), ixMax(:,dNo)] = max(xMat, [], 2);
-        neg(:,dNo) = all(xMat < 0,2);
-        pos(:,dNo) = all(xMat > 0,2);
+        neg(:,dNo) = all(xMat < 0 | isnan(xMat),2);
+        pos(:,dNo) = all(xMat > 0 | isnan(xMat),2);
     end
     
 end
