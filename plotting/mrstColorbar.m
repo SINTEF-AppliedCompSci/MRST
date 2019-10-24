@@ -79,7 +79,7 @@ else
     h=get(ha,'Children');
     CData = [];
     for i=1:numel(h)
-        if ~isempty(h(i).CData)
+        if isfield(h(i),'CData') && ~isempty(h(i).CData)
             CData=[CData; h(i).CData]; %#ok<AGROW>
         end
     end
