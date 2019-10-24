@@ -80,17 +80,18 @@ opt = struct('sat', []);
 opt = merge_options(opt, varargin{:});
 s   = opt.sat;
 
-if ~isempty(s) && size(s,1) == 1,
+nc = numel(c);
+if ~isempty(s) && size(s,1) == 1
    % Support single sat in all affected cells.
-   s = s(ones(numel(r), 1), :);
+   s = repmat(s, nc, 1);
 end
 
-if isempty(src),
+if isempty(src)
    src = struct('cell', [], 'rate', [], 'sat', []);
 end
 
 if numel(r) == 1
-    r = repmat(r, numel(c), 1);
+    r = repmat(r, nc, 1);
 end
 
 assert (numel(c) == numel(r), ['The number of rates should equal the number', ...
