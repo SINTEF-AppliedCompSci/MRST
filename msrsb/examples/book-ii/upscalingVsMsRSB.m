@@ -126,14 +126,14 @@ for method=1:4
 
    %% Solve coarse-scale flow problem and compute flow diagnostics
    if method<4
-       fprintf(1,'Solving coarse-scale problem ...');
+       fprintf(1,'Solving coarse-scale problem and computing flow diagnostics...');
        rSc = initState(Gc, Wc, 0);
        rSc = incompTPFA(rSc, Gc, Tc, fluid, 'wells', Wc, 'use_trans', true);
        Dc  = computeTOFandTracer(rSc, Gc, crock, 'wells', Wc);
        WPc = computeWellPairs(rSc, Gc, crock, Wc, Dc);
        fprintf(1,'done\n');
    else
-       fprintf(1,'Solving multiscale problem ...');
+       fprintf(1,'Solving multiscale problem and computing flow diagnostics...');
        rSc = initState(G, W, 0);
        rSc = incompMultiscale(rSc, Gc, hT, fluid, basis, 'wells', W);
        Dc  = computeTOFandTracer(rSc, G, rock, 'wells', W);
@@ -142,9 +142,9 @@ for method=1:4
    end
    
    %% Compare allocation factors
-   subplot(3,2,pos(method));
+   subplot(3,2,pos(method),'FontSize',12);
    amax=myPlotAllocation(WP, WPc, {W(D.prod).name}, amax);
-   title(tittel);
+   title(tittel,'FontWeight','normal'); drawnow
 end
 
 
@@ -153,27 +153,31 @@ fn   = getSmootherFunction('type', 'ilu0');
 rSc0 = initState(G, W, 0);
 
 subplot(3,2,pos(5));
+fprintf(1,'Solving iterative multiscale problem and computing flow diagnostics ..');
 rSc = incompMultiscale(rSc, Gc, hT, fluid, basis, 'wells', W, ...
     'getSmoother',fn,'iterations', 3, 'useGMRES', true);
 Di   = computeTOFandTracer(rSc, G, rock, 'wells', W);
 WPi  = computeWellPairs(rSc, G, rock, W, Di);
 amax = myPlotAllocation(WP, WPi, {W(D.prod).name}, amax);
-title('Multiscale: 3 iterations');
+title('Multiscale: 3 iterations','FontWeight','normal'); drawnow
+fprintf(1,'done\n');
 
 subplot(3,2,pos(6));
+fprintf(1,'Solving iterative multiscale problem and computing flow diagnostics ..');
 rSc = incompMultiscale(rSc, Gc, hT, fluid, basis, 'wells', W, ...
     'getSmoother',fn,'iterations', 7, 'useGMRES', true);
 Di   = computeTOFandTracer(rSc, G, rock, 'wells', W);
 WPi  = computeWellPairs(rSc, G, rock, W, Di);
 amax = myPlotAllocation(WP, WPi, {W(D.prod).name}, amax);
-title('Multiscale: 7 iterations');
+title('Multiscale: 7 iterations','FontWeight','normal');
+fprintf(1,'done\n');
 
 for i=1:6, subplot(3,2,i), set(gca,'XLim',[0 amax]); end
 
 
 %% Plot model
 K = convertTo(rock.perm(:,1),milli*darcy);
-figure, plotCellData(G,log10(K),'EdgeAlpha',.1); view(3);
+figure, plotCellData(G,log10(K),'EdgeColor','none'); view(3);
 set(gca,'DataAspectRatio',[15 15 1])
 plotWell(G,W,'FontSize',12);
 outlineCoarseGrid(G, p, 'EdgeColor','k');
