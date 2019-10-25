@@ -93,6 +93,9 @@ classdef PressureModel < WrapperModel
             if isfield(state, 'statePressure')
                 state = rmfield(state, 'statePressure');
             end
+            if isfield(state, 'sT')
+                state.sT = sum(value(state.s), 2);
+            end
             state.statePressure = state;
         end
         
