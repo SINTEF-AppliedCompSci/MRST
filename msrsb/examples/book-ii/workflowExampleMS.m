@@ -1,60 +1,50 @@
-%% Upscaling workflow
+%% MsRSB as a CPR preconditioner
+% This example uses the simulation model from the workflow example
+% discussed in Section 15.6.4 of the MRST book (upscalingExample3.m in the
+% book module) to demonstrates how we can use MsRSB in MRST's fully
+% implicit framework. That is, we use the iterative method as the elliptic
+% solver in a CPR preconditioner.
+
 mrstModule add ad-core ad-blackoil ad-props mrst-gui msrsb
-close all;
 
 %% Build simulation model
-% Define areal mesh
+% The simulation model is built manually. Here, we only give the necessary
+% statements and refer to the original example for discussion and plots.
+rng(0);
 [xmax,ymax, n]  = deal(1000*meter, 1000*meter, 30);
-[x, y] = meshgrid(linspace(0,xmax,n+1), linspace(0,ymax,n+1));
-[x, y] = deal(x',y');
-
-% Basic dome structure
-dome = 1-exp(sqrt((x - xmax/2).^2 + (y - ymax/2).^2)*1e-3);
-
-% Periodic perturbation
+[x, y]  = meshgrid(linspace(0,xmax,n+1), linspace(0,ymax,n+1));
+[x, y]  = deal(x',y');
+dome    = 1-exp(sqrt((x - xmax/2).^2 + (y - ymax/2).^2)*1e-3);
 [xn,yn] = deal(pi*x/xmax,pi*y/ymax);
 perturb = sin(5*xn) + .5*sin(4*xn+6*yn) + cos(.25*xn*yn./pi^2) + cos(3*yn);
 perturb = perturb/3.5;
-
-% Random small-scale perturbation
-rng(0);
 [h, hr] = deal(8,1);
-zt = 50 + h*perturb + rand(size(x))*hr - 20*dome;
-zb = zt + 30;
-zmb = min(zb + 4 + 0.01*x - 0.020*y + hr*rand(size(x)), zb);
-zmt = max(zb -15 + 0.01*x - 0.025*y + hr*rand(size(x)), zt);
+zt      = 50 + h*perturb + rand(size(x))*hr - 20*dome;
+zb      = zt + 30;
+zmb     = min(zb + 4 + 0.01*x - 0.020*y + hr*rand(size(x)), zb);
+zmt     = max(zb -15 + 0.01*x - 0.025*y + hr*rand(size(x)), zt);
+
 horizons = {struct('x', x, 'y', y, 'z', zt), ...
-    struct('x', x, 'y', y, 'z', zmt), ...
-    struct('x', x, 'y', y, 'z', zmb), ...
-    struct('x', x, 'y', y, 'z', zb)};
-
-
-% Interpolate to build unfaulted corner-point grid
-dims = [40, 40]; layers = [3 6 3];
-grdecl = convertHorizonsToGrid(horizons, 'dims', dims, 'layers', layers);
-
-% Insert faults
+            struct('x', x, 'y', y, 'z', zmt), ...
+            struct('x', x, 'y', y, 'z', zmb), ...
+            struct('x', x, 'y', y, 'z', zb)};
+grdecl   = convertHorizonsToGrid(horizons, 'dims', [40 40], 'layers', [3 6 3]);
 [X,Y,Z]  = buildCornerPtNodes(grdecl);
-
 i=47:80; Z(i,:,:) = Z(i,:,:) + .022*min(0,Y(i,:,:)-550);
 j= 1:30; Z(:,j,:) = Z(:,j,:) + .021*min(0,X(:,j,:)-400);
 j=57:80; Z(:,j,:) = Z(:,j,:) + .023*min(0,X(:,j,:)-750);
 grdecl.ZCORN = Z(:);
 
-G = processGRDECL(grdecl);
-G = computeGeometry(G);
+G = computeGeometry(processGRDECL(grdecl));
 
 % Petrophysics
-% Set up permeability based on K-indices and introduce anisotropy by
-% setting K_z = .1*K_x
 rng(357371);
 [K,L] = logNormLayers(G.cartDims, [100 400 10 50]*milli*darcy);
-K = K(G.cells.indexMap);
-perm = [K, K, 0.1*K];
-rock = makeRock(G, perm, 0.3);
+K     = K(G.cells.indexMap);
+perm  = [K, K, 0.1*K];
+rock  = makeRock(G, perm, 0.3);
 
 % Define wells
-% Producers
 simTime = 10*year;
 pv      = poreVolume(G, rock);
 injRate = 1*sum(pv)/simTime;
@@ -68,48 +58,31 @@ W = verticalWell(W, G, rock,  offset, floor(G.cartDims(1)/2)+3, [],...
 W = verticalWell(W, G, rock, offset, G.cartDims(2) - offset/2, [], ...
                 'Name', 'P3', 'comp_i', [1 0], ...
                 'Val', 250*barsa, 'Type', 'bhp', 'refDepth', 50);
-
-% Injectors
 W = verticalWell(W, G, rock, G.cartDims(1)-5, offset, [],...
                 'Name', 'I1', 'comp_i', [1 0], ...
                 'Val', injRate, 'Type', 'rate', 'refDepth', 50);
 
-
-% Define fluid behavior and instantiate model
-% Three-phase template model
+% Three-phase template model with constant oil compressibility
 fluid = initSimpleADIFluid('mu',    [1, 5, 0]*centi*poise, ...
                            'rho',   [1000, 700, 0]*kilogram/meter^3, ...
                            'n',     [2, 2, 0]);
-
-% Constant oil compressibility
 c        = 0.001/barsa;
 p_ref    = 300*barsa;
 fluid.bO = @(p, varargin) exp((p - p_ref)*c);
 
-% Construct reservoir model
+% Construct reservoir model and initial state
 gravity reset on
-model = TwoPhaseOilWaterModel(G, rock, fluid);
-
-
-% Define initial state
-depthOW = 85*meter;
-depthD  = 10*meter;
-region = getInitializationRegionsBlackOil(model, depthOW, ...
-            'datum_depth', depthD, 'datum_pressure', p_ref);
+model  = TwoPhaseOilWaterModel(G, rock, fluid);
+region = getInitializationRegionsBlackOil(model, 85*meter, ...
+            'datum_depth', 10*meter, 'datum_pressure', p_ref);
 state0 = initStateBlackOilAD(model, region);
 
-
-%% Define simulation schedule and set solver parameters
-
-% Compute the timestep
-nstep   = 25;
-refine  = 5;
-startSteps = repmat((simTime/(nstep + 1))/refine, refine, 1);
-restSteps=  repmat(simTime/(nstep + 1), nstep, 1);
-timesteps = [startSteps; restSteps];
-
-% Set up the schedule containing both the wells and the timestep
-schedule = simpleSchedule(timesteps, 'W', W);
+% Define simulation schedule and set solver parameters
+nstep      = 25;
+startSteps = repmat((simTime/(nstep + 1))/5, 5, 1);
+restSteps  = repmat(simTime/(nstep + 1), nstep, 1);
+timesteps  = [startSteps; restSteps];
+schedule   = simpleSchedule(timesteps, 'W', W);
 
 % Tighten tolerences
 model.drsMaxRel = inf;
@@ -125,32 +98,42 @@ catch
 end
 linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'relativeTolerance', 1e-3);
 
+%%
+figure(1)
+K = convertTo(rock.perm(:,1),milli*darcy);
+plotCellData(G, log10(K),'EdgeAlpha',.1);
+mrstColorbar(K,'east',true);
+plotWell(G,W,'FontSize',12);
+view(115,50); axis tight off
 
 %% Simulate base case
-fn = getPlotAfterStep(state0, model, schedule,'view',[50 50], ...
-                     'field','s:1','wells',W);
 [wellSols, states, report] = ...
-   simulateScheduleAD(state0, model, schedule, ...
-                       'LinearSolver', linsolve, 'afterStepFn',fn);
+   simulateScheduleAD(state0, model, schedule, 'LinearSolver', linsolve);
 
 %% Simulate with multiscale solver
-cdims  = [10, 10, 3];
-p0     = partitionUI(G, cdims);
-Gf     = makeInternalBoundary(G, find(G.faces.tag > 0));
-p      = processPartition(Gf, p0);
-CG     = coarsenGeometry(generateCoarseGrid(G, p));
-CG     = storeInteractionRegion(CG, 'edgeBoundaryCenters', true, 'adjustCenters', true);
-msSolver = MultiscaleVolumeSolverAD(CG, 'tolerance', 1e-6, ...
-    'maxIterations', 100, 'useGMRES', true, ...
-    'getSmoother', getSmootherFunction('type', 'ilu0', 'iterations', 1));
+% Make coarse grid
+p  = processPartition(G, partitionUI(G, [10 10 3]));
+CG = coarsenGeometry(generateCoarseGrid(G, p));
+CG = storeInteractionRegion(CG);
+figure(1); 
+plotFaces(CG,1:CG.faces.num,'FaceColor','none','EdgeColor','k');
 
+% Set up multiscale solver as CPR preconditioner
+msSolver = MultiscaleVolumeSolverAD(CG, 'tolerance', 1e-4, ...
+            'maxIterations', 100, 'useGMRES', true, ...
+            'getSmoother', getSmootherFunction('type', 'ilu0', 'iterations', 1));
 linsolve = CPRSolverAD('ellipticSolver', msSolver, 'relativeTolerance', 1e-3);
 
-fn = getPlotAfterStep(state0, model, schedule,'view',[50 50], ...
-                     'field','s:1','wells',W);
+% Solve problem
 [wellSolsMS, statesMS, reportMS] = ...
-   simulateScheduleAD(state0, model, schedule, ...
-                       'LinearSolver', linsolve, 'afterStepFn',fn);
+   simulateScheduleAD(state0, model, schedule, 'LinearSolver', linsolve);
 
 %% Plot comparison
 plotWellSols({wellSols, wellSolsMS}, cumsum(schedule.step.val),'datasetnames',{'agmg','msrsb'});
+
+%% Plot time consumption
+figure, hold all
+bar(cellfun(@(x) x.WallTime, reportMS.ControlstepReports))
+bar(cellfun(@(x) x.WallTime, report.ControlstepReports))
+legend('msrsb','agmg');
+xlabel('Time step'), ylabel('Runtime [s]');
