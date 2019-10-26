@@ -16,8 +16,9 @@
 % The model not only has a difficult geometry, but also has a large number
 % of low-permeable shale layers pinched between the other high-permeable
 % layers. Impermeable regions like this are known to pose monotonicity
-% problems for the MsFV method. Here, we demonstrate that this is not the
-% case for the MsRSB method.
+% problems for the MsFV method. Hereine, we demonstrate various partition
+% strategies and show that MsRSB may also suffer from severe monotonicity
+% violations in special cases.
 
 mrstModule add mrst-gui incomp coarsegrid msrsb
 gravity off
@@ -94,28 +95,31 @@ A  = getIncomp1PhMatrix(G, hT, state, fluid);
 % This model is challenging to partition because of the many eroded and
 % semi-eroded layers, which we already have seen give large variations in
 % cell sizes as well as in the number of cells and the rock volume in each
-% layer. However, more important, many of the thin cells are strongly
-% curved (and degenerate) so that the centroids fall outside the cell
-% volume. Altogether, this means that straightforward approaches, like a
-% load-balanced partition in index space or using cell coordinates
-% (centroids or vertices) to partition the cells into rectangular boxes in
-% physical space only work well for certain coarsening parameters. A better
-% approach would be to start by merging layers vertically so that each of
-% the merged layers have a certain "thickness" measured in cell count or
-% bulk/pore volume. The bar charts to the right in the first plot indicate
-% that the layers consist of nine natural groups we can use as a starting
-% point. Once we have obtained a satisfactory vertical partition, we can
-% use a "cookie cutter" approach, in index or physical space, to partition
-% in the horizontal direction.
+% layer. Many of the thin cells are strongly curved (and degenerate) so
+% that the centroids fall outside the cell volume. Straightforward
+% approaches, like a load-balanced partition in index space or using cell
+% coordinates (centroids or vertices) to partition the cells into
+% rectangular boxes in physical space can in some cases lead to grid blocks
+% that give strong monotonicity violations. 
+%
+% We thereofre investigate an alternative approach in which we merge layers
+% vertically so that each of the merged layers have a certain "thickness"
+% measured in cell count or bulk/pore volume. The bar charts to the right
+% in the first plot indicate that the layers consist of nine natural groups
+% we can use as a starting point. Once we have obtained a satisfactory
+% vertical partition, we can use a "cookie cutter" approach, in index or
+% physical space, to partition in the horizontal direction.
 n = 6;
 [ms,part] = deal(cell(n,1));
 for i=1:n
     switch i
-        case 1    % 6x6x5 in physical space
-            part{i} = sampleFromBox(G,reshape(1:6*6*5,[6,6,5]));
+        case 1    % 6x6x9 in physical space
+            part{i} = sampleFromBox(G,reshape(1:6*6*9,[6,6,9]));
+            part{i} = processPartition(G, compressPartition(part{i}));
 
-        case 2    % 6x6x5 in index space
-            part{i} = partitionUI(G,[6 6 5]);
+        case 2    % 6x6x9 in index space
+            part{i} = partitionUI(G,[6 6 9]);
+            part{i} = processPartition(G, compressPartition(part{i}));
 
         case 3    % vertical by cell count + 6x6 horizontal
             cl = discretize(cumsum(ncell),linspace(0,G.cells.num+1,10));
@@ -146,49 +150,91 @@ for i=1:n
     % Compute multiscale solution
     ms{i} = incompMultiscale(state, CG, hT, fluid, basis, 'bc', bc);
 end
-sols = [{ref}; ms(:)];
-part = [{ones(G.cells.num,1)}; part(:)];
 
-%% Visualize the solutions
-figure('Position',[300 200 1000 420])
-pos = [1 2 3 5 6];
-titles = {'fine scale', '6x6x5 physical space', '6x6x5 index space', ...
-    'vertical by cell count', 'vertical by pore volume'};
-for i=1:4
-    subplot(2,3,pos(i),'FontSize',12)
-    plotCellData(G, sols{i}.pressure, 'EdgeAlpha',.1);
+%% Visualize two of the solutions
+figure('Position',[300 200 1000 280])
+titles = {'physical space', 'index space', ...
+    'cell count', 'pore volume', 'bulk volume', 'manual'};
+selection = [1 3];
+for i=1:2
+    subplot(1,3,i)
+    plotCellData(G, ms{selection(i)}.pressure, 'EdgeAlpha',.1);
     view(30,30), axis tight off
-    if i>1, outlineCoarseGrid(G, part{i}); end
-    title(titles{i},'FontWeight','normal')
+    outlineCoarseGrid(G, part{selection(i)},'FaceColor','none');
+    title(titles{selection(i)},'FontWeight','normal','FontSize',12)
+    caxis([-1/32 33/32]);
 end
-subplot(2,3,4,'FontSize',12)
+colormap([1 1 1; parula(32); .7 .7 .7]);
+
+% show the cell count partition
+subplot(1,3,3) 
 cl = discretize(cumsum(ncell),linspace(0,G.cells.num+1,10));
 [~,edges] = rlencode(cl);
 L = [1; cumsum(edges)+1];
-bar(cumsum(ncell));
+area(cumsum(ncell));
 hold on, 
 for i=1:numel(L)
     plot(L([i i]),[1 G.cells.num],'r--','LineWidth',1);
 end
-axis tight
+axis tight, set(gca,'FontSize',12);
 
-%% Compute discrepancies
+%% Compute discrepancies and monotonicity violations
 pv      = poreVolume(G,rock);
 errinf  = @(x) abs(x.pressure - ref.pressure)/(max(ref.pressure) - min(ref.pressure));
 err2    = @(x) sum((x.pressure - ref.pressure).^2.*pv)./sum(pv);
-fprintf(1,'\n%-8s\t%-8s\t%-8s\t%-8s\n','L2','mean','max','std');
-l2err = zeros(n,1);
+labels = {'physical','index','cell count','pore vol','volume','manual'};
+fprintf(1,'\n%-10s%-8s\t%-8s\t%-8s\t%-8s\n','method','L2','mean','max','std');
+l2err   = zeros(n,1);
+linf    = zeros(n,1);
+violate = zeros(n,2);
+range   = zeros(n,2);
 for i=1:n
     l2err(i) = err2(ms{i});
     err      = errinf(ms{i});
-    fprintf(1,'%.2e\t%.2e\t%.2e\t%.2e\n',...
+    linf(i)  = max(err);
+    violate(i,1) = sum(ms{i}.pressure<0);
+    violate(i,2) = sum(ms{i}.pressure>1);
+    range(i,1)   = min(ms{i}.pressure);
+    range(i,2)   = max(ms{i}.pressure);
+    fprintf(1,'%-10s%.2e\t%.2e\t%.2e\t%.2e\n', labels{i},...
         err2(ms{i}), mean(err), max(err), std(err));
 end
-subplot(2,3,6,'FontSize',12)
-labels = {'physical','index','cells','pore vol','volume','manual'};
+figure('Position',[300 200 1000 340])
+subplot(1,3,1)
+semilogy(linf,'-o','LineWidth',1,'MarkerFaceColor',[.6 .6 .6]);
+set(gca,'XTick',1:n,'XTickLabel',labels,'XTickLabelRotation',45, ...
+    'FontSize',12,'Xlim',[.5 n+.5]);
+title('L^\infty error', 'FontWeight','normal'), 
+
+subplot(1,3,2)
 semilogy(l2err,'-o','LineWidth',1,'MarkerFaceColor',[.6 .6 .6]);
-set(gca,'XTick',1:n,'XTickLabel',labels,'XTickLabelRotation',45);
-title('L^2 error', 'FontWeight','normal')
+set(gca,'XTick',1:n,'XTickLabel',labels,'XTickLabelRotation',45, ...
+    'FontSize',12,'Xlim',[.5 n+.5]);
+title('L^2 error', 'FontWeight','normal'), 
+
+subplot(1,3,3)
+barh(violate,'stacked');
+set(gca,'YTick',1:n,'YTickLabel',labels, 'YDir', 'reverse',...
+    'FontSize',12,'Ylim',[.25 n+.75]);
+legend('<0','>1','location','southoutside','orientation','horizontal');
+for i=1:n
+    h=text(min(sum(violate(i,:))+10,220),i,...
+        sprintf('[%.3f,%.3f]',range(i,1),range(i,2)));
+end
+title('# out-of-bound cells', 'FontSize', 12, 'FontWeight','normal');
+
+%% Show the worst monotonicity violation
+figure
+sol   = ms{2}.pressure;
+ind   = unique(p(sol>1.1));
+neigh = getCellNeighbors(CG,ind(1));
+plotGrid(CG,ind(2),'FaceAlpha',.2,'FaceColor',[.8 .3 .3]);
+plotGrid(CG,ind(1),'FaceAlpha',.1,'FaceColor',[.3 .3 .8]);
+plotCellData(G,sol,sol>1.1);
+plotGrid(CG,neig,'FaceAlpha',.1);
+view(3); axis tight off
+
+
 %% Copyright notice
 
 % <html>
