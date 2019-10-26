@@ -148,7 +148,7 @@ if logflag
     ticks = get(hcb, 'XTick');
     ticks = ceil(min(ticks)):floor(max(ticks));
     newticks = arrayfun(@(x) ['1e', num2str(x)], ticks, 'UniformOutput', false);
-    set(hcb, 'XTickLabel', newticks)
+    set(hcb, 'XTick', ticks, 'XTickLabel', newticks)
 end
 set(ha,'Position',apos)
 hax = axes('Position', hhpos);
