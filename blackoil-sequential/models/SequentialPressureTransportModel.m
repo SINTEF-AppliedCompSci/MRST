@@ -12,11 +12,6 @@ classdef SequentialPressureTransportModel < ReservoirModel
         pressureNonLinearSolver
         % NonLinearSolver instance used for saturation/mole fraction updates
         transportNonLinearSolver
-        % Utility prop for setting pressure linear solver
-        pressureLinearSolver
-        % Utility prop for setting transport linear solver
-        transportLinearSolver
-        
         % Outer tolerance, which, if stepFunctionIsLinear is set to false,
         % is used to check if the pressure must be recomputed after
         % transport has been solved, in order to converge to the fully
@@ -46,18 +41,25 @@ classdef SequentialPressureTransportModel < ReservoirModel
             % Default: We do not use outer loop.
             model.stepFunctionIsLinear = true;
             model.reupdatePressure = false;
-            model = merge_options(model, varargin{:});
-            
+            [model, extra] = merge_options(model, varargin{:});
+            solver_prm = struct('transportLinearSolver', [], ...
+                                'pressureLinearSolver', []);
+            solver_prm = merge_options(solver_prm, extra{:});
             % Transport model determines the active phases
             if isempty(model.parentModel)
-                model.water = model.transportModel.water;
-                model.oil   = model.transportModel.oil;
-                model.gas   = model.transportModel.gas;
+                if isa(model.transportModel, 'WrapperModel')
+                    % Wrapper model
+                    transportModel = transportModel.parentModel;
+                end
+                model.water = transportModel.water;
+                model.oil   = transportModel.oil;
+                model.gas   = transportModel.gas;
             else
                 model.water = model.parentModel.water;
                 model.oil   = model.parentModel.oil;
                 model.gas   = model.parentModel.gas;
             end
+            clear transportModel
             if isempty(model.pressureNonLinearSolver)
                 model.pressureNonLinearSolver = NonLinearSolver();
             end
@@ -68,16 +70,16 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
             model.transportNonLinearSolver.identifier = 'TRANSPORT';
             
-            if ~isempty(model.pressureLinearSolver)
+            if ~isempty(solver_prm.pressureLinearSolver)
                 model.pressureNonLinearSolver.LinearSolver = ...
-                                model.pressureLinearSolver;
+                                solver_prm.pressureLinearSolver;
             end
             model.pressureNonLinearSolver.maxTimestepCuts = 0;
             model.pressureNonLinearSolver.errorOnFailure = false;
 
-            if ~isempty(model.transportLinearSolver)
+            if ~isempty(solver_prm.transportLinearSolver)
                 model.transportNonLinearSolver.LinearSolver = ...
-                                model.transportLinearSolver;
+                                solver_prm.transportLinearSolver;
             end
             
             model.transportNonLinearSolver.errorOnFailure = false;
