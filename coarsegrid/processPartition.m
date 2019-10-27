@@ -70,7 +70,7 @@ if nargin>=3
 end
 
 partition2 = repmat(-1, size(partition));
-for k = 1 : numel(non_empty),
+for k = 1 : numel(non_empty)
    b = non_empty(k);
 
    %  1) Identify cells and block-internal connections for block 'b'.
