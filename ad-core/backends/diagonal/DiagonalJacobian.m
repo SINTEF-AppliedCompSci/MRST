@@ -467,6 +467,8 @@ classdef DiagonalJacobian
                 [x, D2] = diagMult(v2, x, D2);
                 [y, D1] = diagMult(v1, y, D1);
                 x = x + y;
+                % Early return
+                return
             elseif allow_implicit
                 % Both are diagonal, new Matlab
                 if isempty(x.diagonal)
@@ -479,6 +481,14 @@ classdef DiagonalJacobian
             else
                 % Both are diagonal, old Matlab
                 x.diagonal = bsxfun(@times, x.diagonal, v2) + bsxfun(@times, y.diagonal, v1);
+            end
+            sx = x.subset;
+            sy = y.subset;
+            if isempty(sx)
+                x.subset = [];
+            elseif ~isempty(sy)
+                % Remove zero entries not present in either.
+                x.subset = max(sx, sy);
             end
         end
         
