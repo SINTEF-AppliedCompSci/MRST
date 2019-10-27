@@ -112,7 +112,8 @@ view(115,50); axis tight off
 
 %% Simulate with multiscale solver
 % Make coarse grid
-p  = processPartition(G, partitionUI(G, [10 10 3]));
+p  = partitionUI(G, [10 10 3]);
+p  = processPartition(G, compressPartition(p));
 CG = coarsenGeometry(generateCoarseGrid(G, p));
 CG = storeInteractionRegion(CG);
 figure(1); 
