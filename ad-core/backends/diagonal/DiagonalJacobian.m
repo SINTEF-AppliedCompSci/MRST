@@ -484,9 +484,9 @@ classdef DiagonalJacobian
             end
             sx = x.subset;
             sy = y.subset;
-            if isempty(sx)
+            if isempty(sy)
                 x.subset = [];
-            elseif ~isempty(sy)
+            elseif ~isempty(sx)
                 % Remove zero entries not present in either.
                 x.subset = max(sx, sy);
             end
