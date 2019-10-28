@@ -1,6 +1,6 @@
 %% Injection of a highly mobile fluid into a fractured medium
 % This example is a simple incompressible, two-phase analogue of the
-% examples studied in Section 5.2 of Møyner & Tchelepi, SPE J, 23(6), 2018,
+% examples studied in Section 5.2 of Moyner & Tchelepi, SPE J, 23(6), 2018,
 % doi: 10.2118/182679-PA. We inject a fluid of density 300 kg/m^3 and
 % viscosity 0.3 cP into another fluid of density 1000 kg/m^3 and viscosity
 % 1 cP that fills a layered medium containing thirteen high-permeability
@@ -13,7 +13,7 @@ rdim = [1000 500];
 load setup_fracture.mat;
 G.nodes.coords = bsxfun(@times, G.nodes.coords, rdim);
 G = computeGeometry(G);
-perm(G.cells.tag)=5000;
+perm(G.cells.tag)=10000;
 rock = makeRock(G, perm*milli*darcy, 0.3);
 hT   = computeTrans(G, rock);
 
@@ -26,8 +26,8 @@ fluid = initSimpleFluid('mu', [.3, 1]*centi*poise, ...
 
 state0 = initResSol(G, 300*barsa, [0, 1]);
 
-icell = findEnclosingCell(G, [0.1, 0.1].*rdim);
-pcell = findEnclosingCell(G, [0.9, 0.9].*rdim);
+icell = findEnclosingCell(G, [0.025, 0.05].*rdim);
+pcell = findEnclosingCell(G, [0.975, 0.95].*rdim);
 pv    = sum(poreVolume(G, rock));
 time  = 10*year;
 
@@ -37,54 +37,79 @@ W  = addWell(W, G, rock, pcell, 'type', 'rate', ...
              'val', -pv/time, 'compi', [1 0], 'Name', 'P');
 plotGrid(G,[icell pcell],'FaceColor','w');
 
-%% Set up multiscale problem
-ps    = sampleFromBox(G, reshape(1:8*7,[7 8]));
-p     = processPartition(G, compressPartition(ps));
-%pf    = zeros(G.cells.num,1); pf(G.cells.tag>0)=1;
-%p     = processPartition(G, compressPartition(pf*8*7 + ps));
-CG    = generateCoarseGrid(G, compressPartition(p));
-CG    = coarsenGeometry(CG);
-CG    = storeInteractionRegion(CG);
-basis = getMultiscaleBasis(CG, getIncomp1PhMatrix(G, hT), 'type', 'msrsb');
+%% Set up two different multiscale configurations
+% Rectangular partition
+pr     = sampleFromBox(G, reshape(1:100,[10 10]));
+pr     = processPartition(G, compressPartition(pr));
+CG1    = generateCoarseGrid(G, compressPartition(pr));
+CG1    = coarsenGeometry(CG1);
+CG1    = storeInteractionRegion(CG1);
+basis1 = getMultiscaleBasis(CG1, getIncomp1PhMatrix(G, hT), 'type', 'msrsb');
+
+% METIS partition adapting to fractures
+T   = 1 ./ accumarray(G.cells.faces(:,1), 1 ./ hT, [G.faces.num, 1]);
+tag = [0; G.cells.tag];
+N   = G.faces.neighbors + 1;
+T(tag(N(:, 1)) ~= tag(N(:, 2))) = 0;
+pa     = partitionMETIS(G, T, 90);
+CG2    = generateCoarseGrid(G, compressPartition(pa));
+CG2    = coarsenGeometry(CG2);
+CG2    = storeInteractionRegion(CG2);
+basis2 = getMultiscaleBasis(CG2, getIncomp1PhMatrix(G, hT), 'type', 'msrsb');
 
 %% Set up solvers
 dt = rampupTimesteps(time, time/100, 5);
 
 psolver  = @(u)     incompTPFA(u, G, hT, fluid, 'W', W);
 tsolver  = @(u, dt) implicitTransport(u, G, dt, rock, fluid, 'W', W);
-mssolve  = @(u)     incompMultiscale(u, CG, hT, fluid, basis, 'W', W);
+mssolve1 = @(u)     incompMultiscale(u, CG1, hT, fluid, basis1, 'W', W);
+mssolve2 = @(u)     incompMultiscale(u, CG2, hT, fluid, basis2, 'W', W);
 
-[rstates, rws, mstates, mws] = deal(cell(numel(dt)+1,1));
-rstates{1} = psolver(state0); rws{1} = getWellSol(W, rstates{1}, fluid);
-mstates{1} = mssolve(state0); mws{1} = getWellSol(W, mstates{1}, fluid);
+[rstates, rws, mstates1, mws1, mstates2, mws2] = deal(cell(numel(dt)+1,1));
+rstates{1}  = psolver (state0);  rws{1} = getWellSol(W, rstates{1},  fluid);
+mstates1{1} = mssolve1(state0); mws1{1} = getWellSol(W, mstates1{1}, fluid);
+mstates2{1} = mssolve2(state0); mws2{1} = getWellSol(W, mstates2{1}, fluid);
 
 %% Plot the initial saturation distribution
-figure('position', [580, 540, 950, 230])
-subplot(1,2,1)
+figure
+subplot(1,3,1)
 hp(1) = plotCellData(G, rstates{1}.s(:,1),'EdgeAlpha',.1); 
+view(-90,90), axis tight, caxis([0 1]), colormap(flipud(winter))
 plotGrid(G,[icell pcell],'FaceColor','w');
-axis tight, caxis([0 1]), colormap(flipud(winter))
 title('Fine scale','FontSize',12,'FontWeight','normal');
 
-subplot(1,2,2)
-hp(2) = plotCellData(G, mstates{1}.s(:,1),'EdgeAlpha',.1); 
-axis tight, caxis([0 1]), colormap(flipud(winter(10).^1.5))
+subplot(1,3,2)
+hp(2) = plotCellData(G, mstates2{1}.s(:,1),'EdgeAlpha',.1); 
+view(-90,90), axis tight, caxis([0 1]), colormap(flipud(winter(10).^1.5))
 plotGrid(G,[icell pcell],'FaceColor','w');
-plotFaces(CG,1:CG.faces.num,'EdgeColor','k','FaceColor','none');
-title('MsRSB: no iterations','FontSize',12,'FontWeight','normal');
+plotFaces(CG1,1:CG1.faces.num,'EdgeColor','k','FaceColor','none');
+title('MsRSB','FontSize',12,'FontWeight','normal');
+
+subplot(1,3,3)
+hp(3) = plotCellData(G, mstates2{1}.s(:,1),'EdgeAlpha',.1); 
+view(-90,90), axis tight, caxis([0 1]), colormap(flipud(winter(10).^1.5))
+plotGrid(G,[icell pcell],'FaceColor','w');
+plotFaces(CG2,1:CG2.faces.num,'EdgeColor','k','FaceColor','none');
+title('MsRSB','FontSize',12,'FontWeight','normal');
 
 %% Run the simulation
 for i = 1:numel(dt)
-    state        = psolver(rstates{i});
-    rstates{i+1} = tsolver(state, dt(i));
-    rws{i+1}     = getWellSol(W, rstates{i+1}, fluid);
-    hp(1).CData  = rstates{i+1}.s(:,1);
+    state         = psolver(rstates{i});
+    rstates{i+1}  = tsolver(state, dt(i));
+    rws{i+1}      = getWellSol(W, rstates{i+1}, fluid);
+    hp(1).CData   = rstates{i+1}.s(:,1);
     
-    state        = mssolve(mstates{i});
-    mstates{i+1} = tsolver(state, dt(i));
-    mws{i+1}     = getWellSol(W, mstates{i+1}, fluid);
-    hp(2).CData  = mstates{i+1}.s(:,1);
-    
+    state         = mssolve1(mstates1{i});
+    mstates1{i+1} = tsolver(state, dt(i));
+    mws1{i+1}     = getWellSol(W, mstates1{i+1}, fluid);
+    hp(2).CData   = mstates1{i+1}.s(:,1);
+
+    state         = mssolve2(mstates2{i});
+    mstates2{i+1} = tsolver(state, dt(i));
+    mws2{i+1}     = getWellSol(W, mstates2{i+1}, fluid);
+    hp(3).CData   = mstates2{i+1}.s(:,1);
+
     drawnow
 end
-plotWellSols({rws, mws}, [0; cumsum(dt)], 'datasetnames', {'fine scale','msrsb'});
+plotWellSols({rws, mws1, mws2}, [0; cumsum(dt)], ...
+    'datasetnames', {'fine scale','rectangular','metis'});
