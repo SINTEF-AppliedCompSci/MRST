@@ -19,6 +19,10 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
        getSmoother
        useGMRES
    end
+   
+   properties (Access = private)
+       smoother_fn = [];
+   end
    methods
        function solver = MultiscaleVolumeSolverAD(coarsegrid, varargin)
            solver = solver@LinearSolverAD();
@@ -46,17 +50,21 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            solver.setupTime = 0;
            solver.coarsegrid = coarsegrid;
        end
-       
+
        function [x, report] = solveLinearSystem(solver, A, b)
            CG = solver.coarsegrid;
            nc = CG.parent.cells.num;
            if isempty(solver.basis)
               solver.setupSolver(A(1:nc, 1:nc), b(1:nc));
            end
-           
+           if isempty(solver.smoother_fn)
+               fn = solver.getSmoother;
+           else
+               fn = solver.smoother_fn;
+           end
            [x, report] = solveMultiscaleIteratively(A, b, [], ...
                                                           solver.basis, ...
-                                                          solver.getSmoother, ...
+                                                          fn, ...
                                                           solver.tolerance,...
                                                           solver.maxIterations, ...
                                                           @(A, b) mldivide(A, b), ...
@@ -64,13 +72,15 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                                                           solver.verbose);
        end
               
-       function solver = setupSolver(solver, A, b, varargin) %#ok 
+       function solver = setupSolver(solver, A, b, varargin)
            % Run setup on a solver for a given system
            solver = solver.createBasis(A);
+           solver.smoother_fn = solver.getSmoother(A, b);
        end
        
        function  solver = cleanupSolver(solver, A, b, varargin) %#ok 
            % Clean up solver after use (if needed)
+           solver.smoother_fn = [];
        end
        
        function [dx, result, report] = solveLinearProblem(solver, problem0, model)
