@@ -29,11 +29,12 @@ z0 = expandMatrixToCell(z0);
 ncomp = numel(z);
 cnames = model.EOSModel.fluid.names;
 
+init = @(varargin) model.AutoDiffBackend.initVariablesAD(varargin{:});
 if model.water
-    [sT, z{1:ncomp-1}, sW] = initVariablesADI(sT, z{1:ncomp-1}, sW);
+    [sT, z{1:ncomp-1}, sW] = init(sT, z{1:ncomp-1}, sW);
     primaryVars = {'sT', cnames{1:end-1}, 'sW'};
 else
-    [sT, z{1:ncomp-1}] = initVariablesADI(sT, z{1:ncomp-1});
+    [sT, z{1:ncomp-1}] = init(sT, z{1:ncomp-1});
     primaryVars = {'sT', cnames{1:end-1}};
 end
 z{end} = 1;
