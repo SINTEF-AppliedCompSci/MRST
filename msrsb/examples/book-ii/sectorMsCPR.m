@@ -5,7 +5,7 @@
 % implicit framework. That is, we use the iterative method as the elliptic
 % solver in a CPR preconditioner.
 
-mrstModule add ad-core ad-blackoil ad-props mrst-gui msrsb
+mrstModule add ad-core ad-blackoil ad-props mrst-gui msrsb coarsegrid
 
 %% Build simulation model
 % The simulation model is built manually. Here, we only give the necessary
@@ -112,16 +112,18 @@ view(115,50); axis tight off
 
 %% Simulate with multiscale solver
 % Make coarse grid
-p  = partitionUI(G, [10 10 3]);
+p  = partitionUI(G, [8 8 3]);
 p  = processPartition(G, compressPartition(p));
 CG = coarsenGeometry(generateCoarseGrid(G, p));
 CG = storeInteractionRegion(CG);
+CG = setupMexInteractionMapping(CG);
 figure(1); 
-plotFaces(CG,1:CG.faces.num,'FaceColor','none','EdgeColor','k');
-
+plotFaces(CG, 1:CG.faces.num,'FaceColor','none','EdgeColor','k');
+%%
 % Set up multiscale solver as CPR preconditioner
 msSolver = MultiscaleVolumeSolverAD(CG, 'tolerance', 1e-4, ...
-            'maxIterations', 100, 'useGMRES', true, ...
+            'maxIterations', 1, 'useGMRES', false, ...
+            'verbose', false, ...
             'getSmoother', getSmootherFunction('type', 'ilu0', 'iterations', 1));
 linsolve = CPRSolverAD('ellipticSolver', msSolver, 'relativeTolerance', 1e-3);
 
@@ -133,8 +135,23 @@ linsolve = CPRSolverAD('ellipticSolver', msSolver, 'relativeTolerance', 1e-3);
 plotWellSols({wellSols, wellSolsMS}, cumsum(schedule.step.val),'datasetnames',{'agmg','msrsb'});
 
 %% Plot time consumption
+% Get total runtime
+timeMS = cellfun(@(x) x.WallTime, reportMS.ControlstepReports);
+timeBase = cellfun(@(x) x.WallTime, report.ControlstepReports);
+
+% Get detailed timining
+solveMS = getReportTimings(reportMS);
+solveBase = getReportTimings(report);
+
+solveTiming = [vertcat(solveMS.LinearSolve), vertcat(solveBase.LinearSolve)];
+solveTotal = [timeMS, timeBase];
+
 figure, hold all
-bar(cellfun(@(x) x.WallTime, reportMS.ControlstepReports))
-bar(cellfun(@(x) x.WallTime, report.ControlstepReports))
+bar(solveTiming)
 legend('msrsb','agmg');
 xlabel('Time step'), ylabel('Runtime [s]');
+
+figure, hold all
+bar(solveTotal)
+legend('msrsb','agmg');
+xlabel('Time step'), ylabel('Linear solver time [s]');
