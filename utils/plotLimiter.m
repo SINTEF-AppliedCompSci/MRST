@@ -4,16 +4,17 @@ function fn = plotLimiter(model, varargin)
                  'plot1d'  , false    , ...
                  'view'    , [100, 20], ...
                  'position', []       , ...
-                 'n'       , 200      );
+                 'n'       , 200      , ...
+                 'zlim'    , [0,1]    , ...
+                 'pbaspect', [1,1,1]  );
     [opt, patchOpt] = merge_options(opt, varargin{:});
     % Get coordinates for plotting
-    coords = getPlotCoordinates(model.G, 'n', opt.n, 'plot1d', opt.plot1d);
+    coords = getPlotCoordinates2(model.G, 'n', opt.n, 'plot1d', opt.plot1d);
     % Set figure position
-    df = get(0, 'DefaultFigurePosition');
     if opt.plot1d
-        opt.position = [df(1:2), 800,400];
+        opt.position = [0,0,800,400];
     else
-        opt.position = [df(1:2), 800,800];
+        opt.position = [0,0,800,800];
     end
     % Make figure handle
     fig = figure('Position', opt.position);
@@ -60,17 +61,22 @@ function [model, states, reports, solver, ok] ...
             l(1).YData = sl;
         end
     else
+        clf
         subplot(1,2,1)
         plotSaturationDG(disc, st.ul, patchOpt{:}, 'coords', coords);
         view(opt.view)
         camlight
         lighting gouraud
-        zlim([-0.2, 1.2])
+        axis tight
+        zlim(opt.zlim)
+        pbaspect(opt.pbaspect);
         subplot(1,2,2)
         plotSaturationDG(disc, st, patchOpt{:}, 'coords', coords);
         view(opt.view)
         camlight
-        zlim([-0.2, 1.2])
+        axis tight
+        zlim(opt.zlim)
+        pbaspect(opt.pbaspect);
         lighting gouraud
     end
     ok = true;

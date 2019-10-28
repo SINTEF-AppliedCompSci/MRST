@@ -5,22 +5,23 @@ function [h, saturation] = plotSaturationDG(disc, state, varargin)
                  'plot1d' , false, ...
                  'coords' , []   , ...
                  'contour', false, ...
-                 'makePlot', true);
+                 'makePlot', true, ...
+                 'pbaspect', [1,1,1]);
     [opt, extra] = merge_options(opt, varargin{:});
     
     coords = opt.coords;
     if isempty(coords)
-        coords = getPlotCoordinates(disc.G, varargin{:});
+        coords = getPlotCoordinates2(disc.G, varargin{:});
     end
     
     x     = coords.points;
-    keep  = coords.keep;
+%     keep  = coords.keep;
     cells = coords.cells;
-    n     = coords.n;
+%     n     = coords.n;
     xs    = cell(1, disc.G.griddim);
-    for d = 1:disc.G.griddim
-        xs{d} = reshape(x(:,d), n);
-    end
+%     for d = 1:disc.G.griddim
+%         xs{d} = reshape(x(:,d), n);
+%     end
     saturation = @(state) disc.evaluateDGVariable(x, cells, state, state.sdof(:,opt.phaseNo));
     h = [];
     if opt.makePlot && ~isempty(state)
@@ -28,12 +29,17 @@ function [h, saturation] = plotSaturationDG(disc, state, varargin)
         if opt.plot1d
             h = plot(x(:,1), s, extra{:});
         elseif disc.G.griddim == 2
-            s(~keep) = nan;
-            s        = reshape(s, n);
+            
+            
+%             s(~keep) = nan;
+%             s        = reshape(s, n);
             if opt.contour
                 h = contourf(xs{1}, xs{2}, s, extra{:});
             else
-                h = surf(xs{1}, xs{2}, s, extra{:});
+                x = [coords.points, s];
+                h = patch('faces', coords.faces, 'vertices', x, 'FaceVertexCData', s, 'FaceColor','interp', extra{:});
+                zlim([0,1]);
+                pbaspect(opt.pbaspect);
             end
         else
             s(~keep) = nan;

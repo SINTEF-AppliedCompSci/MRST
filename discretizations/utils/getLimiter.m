@@ -108,10 +108,10 @@ function dofbar = approximatGradient(model, interpSetup, state, dof, v)
     else
         map = struct('keep', true(G.cells.num,1));
     end
-    ix   = disc.getDofIx(state, 1);
-    q    = nan(G.cells.num,1);
+    q = nan(G.cells.num,1);
     q(map.keep) = v;
 
+    
     sigma = cell(1, disc.dim);
     [sigma{:}] = deal(0);
      
