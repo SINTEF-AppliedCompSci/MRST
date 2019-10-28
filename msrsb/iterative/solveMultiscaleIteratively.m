@@ -72,7 +72,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         assert(~isempty(getSmootherFn), 'Need smoother function if iterations are to be used');
         
         % smoother is now fn handle of type @(defect)
-        smoother = getSmootherFn(A, q);
+        if nargin(getSmootherFn) == 1
+            % We already have the smoother
+            smoother = getSmootherFn;
+        else
+            % We have a setup phase
+            smoother = getSmootherFn(A, q);
+        end
+        
         
         prec = @(b) twoStepMultiscalePreconditioner(A, b, mssolver, smoother);
         residuals = inf(iterations + 1, 1);
