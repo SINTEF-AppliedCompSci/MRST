@@ -23,7 +23,7 @@ function timings = getReportTimings(report)
                         prep = prep + ls.preparationTime;
                         prep = prep + ls.postprocessTime;
                         lsolve = lsolve + ls.LinearSolutionTime;
-                    else
+                    elseif isfield(ls, 'SolverTime')
                         lsolve = lsolve + ls.SolverTime;
                     end
                     lsolve_prep = lsolve_prep + prep;
