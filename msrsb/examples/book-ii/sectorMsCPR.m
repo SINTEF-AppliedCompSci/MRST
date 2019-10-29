@@ -156,3 +156,22 @@ bar(timeBase)
 bar(timeMS,'BarWidth',.3)
 legend('agmg','msrsb'); set(gca,'FontSize',12);
 xlabel('Time step'), ylabel('Runtime [s]');
+
+%% Solve using sequential multiscale solver
+% We can also use the multiscale method in a sequential framework. We build
+% a sequential model and set parameters to get exact mass conservation for
+% a single pass of pressure and transport with the same convergence
+% criterion as the fully-implicit solver
+mrstModule add blackoil-sequential
+msmodel = getSequentialModelFromFI(model);
+
+msmodel.transportModel.conserveOil = true;
+msmodel.transportModel.conserveWater = true;
+msmodel.transportModel.useCNVConvergence = true;
+%% Perform solve
+msmodel = addMultiscaleSolverComp(msmodel, CG, 'maxIterations', 50,...
+                                               'useGMRES', true, ...
+                                               'tolerance', 0.01);
+
+[wellSolsSeqMS, statesSeqMS, reportSeqMS] = ...
+   simulateScheduleAD(state0, msmodel, schedule);
