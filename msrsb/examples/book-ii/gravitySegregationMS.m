@@ -58,23 +58,23 @@ figure('position', [50, 50, 1000, 500])
 subplot(1,3,1)
 hp(1) = plotCellData(G, rstates{1}.s(:,1),'EdgeAlpha',.1); 
 view(0,0); axis tight, caxis([0 1]), colormap(flipud(winter))
-title('Fine scale');
+title('Fine scale','FontSize',12,'FontWeight','normal');
 
 subplot(1,3,2)
 hp(2) = plotCellData(G, mstates{1}.s(:,1),'EdgeAlpha',.1); 
 view(0,0); axis tight, caxis([0 1]), colormap(flipud(winter(10).^1.5))
 plotFaces(CG,1:CG.faces.num,'EdgeColor','k','FaceColor','none');
-title('MsRSB: no iterations');
+title('MsRSB: no iterations','FontSize',12,'FontWeight','normal');
 
 subplot(1,3,3)
 hp(3) = plotCellData(G, istates{1}.s(:,1),'EdgeAlpha',.1); 
 view(0,0); axis tight, caxis([0 1]), colormap(flipud(winter(10).^1.5))
 plotFaces(CG,1:CG.faces.num,'EdgeColor','k','FaceColor','none');
-title('MsRSB: iterative GMRES');
+title('MsRSB: iterative GMRES','FontSize',12,'FontWeight','normal');
 [~,c] = boundaryFaces(G);
 
 %% Run the simulation
-for i = 1:Nt    
+for i = 1:Nt
     state        = psolver(rstates{i});
     rstates{i+1} = tsolver(state);
     hp(1).CData  = rstates{i+1}.s(c,1);
