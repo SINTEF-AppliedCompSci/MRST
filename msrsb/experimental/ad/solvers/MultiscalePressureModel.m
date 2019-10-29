@@ -1,5 +1,4 @@
 classdef MultiscalePressureModel < ReservoirModel
-    % Two phase oil/water system without dissolution
     properties
         pressureModel
         multiscaleSolver
