@@ -3,7 +3,7 @@ classdef ComponentPhaseVelocityFractionalFlowDG < StateFunction
     end
     
     methods
-        function cf = ComponentPhaseVelocityFractionalFlowDG(backend, upwinding)
+        function cf = ComponentPhaseVelocityFractionalFlowDG(backend)
             cf@StateFunction(backend);
             cf = cf.dependsOn({'TotalVelocity'});
             cf = cf.dependsOn({'ComponentMobility', 'Mobility', 'TotalMobility', 'GravityPermeabilityGradient'}, 'FlowPropertyFunctions');
