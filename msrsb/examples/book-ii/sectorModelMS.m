@@ -163,15 +163,29 @@ xlabel('Time step'), ylabel('Runtime [s]');
 % a single pass of pressure and transport with the same convergence
 % criterion as the fully-implicit solver
 mrstModule add blackoil-sequential
-msmodel = getSequentialModelFromFI(model);
+seqmodel = getSequentialModelFromFI(model);
 
-msmodel.transportModel.conserveOil = true;
-msmodel.transportModel.conserveWater = true;
-msmodel.transportModel.useCNVConvergence = true;
-%% Perform solve
-msmodel = addMultiscaleSolverComp(msmodel, CG, 'maxIterations', 50,...
+seqmodel.transportModel.conserveOil = true;
+seqmodel.transportModel.conserveWater = true;
+seqmodel.transportModel.useCNVConvergence = true;
+seqmodel = addMultiscaleSolverComp(seqmodel, CG, 'maxIterations', 50,...
                                                'useGMRES', true, ...
                                                'tolerance', 0.01);
 
-[wellSolsSeqMS, statesSeqMS, reportSeqMS] = ...
-   simulateScheduleAD(state0, msmodel, schedule);
+% Run sequentially implicit
+wsFIms = simulateScheduleAD(state0, seqmodel, schedule);
+
+%% Run sequentially fully implicit
+% Here, we configure the algorithm to only check the volume discrepancy and
+% not the fully implicit residual or the increments in saturations from one
+% transport step to the next within the outer iteration. The first line
+% tells the simulator that the time step should be iterated upon.
+seqmodel.stepFunctionIsLinear        = false;
+seqmodel.outerCheckParentConvergence = false;
+seqmodel.volumeDiscrepancyTolerance  = 5e-3;
+seqmodel.incTolSaturation            = inf;
+wsSFIms = simulateScheduleAD(state0, seqmodel, schedule);
+
+%% Compare the solutions
+plotWellSols({wellSols,wsSFIms,wsFIms}, cumsum(schedule.step.val), ...
+    'datasetnames',{'FI','SFI','SI'});
