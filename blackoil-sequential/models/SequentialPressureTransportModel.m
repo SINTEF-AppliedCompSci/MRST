@@ -1,43 +1,31 @@
 classdef SequentialPressureTransportModel < ReservoirModel
-    % Sequential meta-model which solves pressure and transport using a fixed
-    % flux splitting
+    % Sequential meta-model which solves pressure and transport 
     properties
-        % Model for computing the pressure
-        pressureModel
-        % Model for the transport subproblem after pressure is found
-        transportModel
-        parentModel
+        pressureModel % Model for computing the pressure
+        transportModel % Model for the transport subproblem after pressure is found
+        parentModel % Parent class. Used for outer loop convergence if present
+        pressureNonLinearSolver % NonLinearSolver instance used for pressure updates
+        transportNonLinearSolver % NonLinearSolver instance used for saturation/mole fraction updates
+
+
+        reupdatePressure % Update pressure based on new mobilities before proceeding to next step
         
-        % NonLinearSolver instance used for pressure updates
-        pressureNonLinearSolver
-        % NonLinearSolver instance used for saturation/mole fraction updates
-        transportNonLinearSolver
-        % Outer tolerance, which, if stepFunctionIsLinear is set to false,
-        % is used to check if the pressure must be recomputed after
-        % transport has been solved, in order to converge to the fully
-        % implicit solution.
-        outerTolerance
-        % Maximum outer loops for a given step. When maxOuterIterations is
-        % reached, the solver will act as if the step converged and
-        % continue.
-        maxOuterIterations
-        % Update pressure based on new mobilities before proceeding to next
-        % step
-        reupdatePressure
-        
-        volumeDiscrepancyTolerance = 1e-3;
-        incTolSaturation = 1e-3;
-        outerCheckParentConvergence = true;
+        % The following are convergence criteria for the outer loop. To
+        % enable outer iterations, set stepFunctionIsLinear = false.
+        % Otherwise a single step will be performed. Note that when
+        % maxOuterIterations is reached, the solver will act as if the step
+        % converged and proceed to the next step.
+        maxOuterIterations = inf % Maximum outer loops for a given step before assuming convergence.
+        volumeDiscrepancyTolerance = 1e-3; % Tolerance for volume error (|sum of saturations - 1|)
+        incTolSaturation = 1e-3; % Tolerance for change in saturations in transport for convergence. 
+        outerCheckParentConvergence = true; % Use parentModel, if present, to check convergence
     end
     
     methods
         function model = SequentialPressureTransportModel(pressureModel, transportModel, varargin)
             model = model@ReservoirModel(transportModel.G);
-            % Set up defaults
             model.pressureModel  = pressureModel;
             model.transportModel = transportModel;
-            model.outerTolerance = 1e-3;
-            model.maxOuterIterations = 2;
             % Default: We do not use outer loop.
             model.stepFunctionIsLinear = true;
             model.reupdatePressure = false;
