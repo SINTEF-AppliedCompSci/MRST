@@ -104,7 +104,7 @@ K = convertTo(rock.perm(:,1),milli*darcy);
 plotCellData(G, log10(K),'EdgeAlpha',.1);
 mrstColorbar(K,'east',true);
 plotWell(G,W,'FontSize',12);
-view(115,50); axis tight off
+view(-75,50); axis tight off
 
 %% Simulate base case
 [wellSols, states, report] = ...
@@ -119,11 +119,10 @@ CG = storeInteractionRegion(CG);
 CG = setupMexInteractionMapping(CG);
 figure(1); 
 plotFaces(CG, 1:CG.faces.num,'FaceColor','none','EdgeColor','k');
-%%
+
 % Set up multiscale solver as CPR preconditioner
 msSolver = MultiscaleVolumeSolverAD(CG, 'tolerance', 1e-4, ...
-            'maxIterations', 1, 'useGMRES', false, ...
-            'verbose', false, ...
+            'maxIterations', 1, 'useGMRES', false, 'verbose', false, ...
             'getSmoother', getSmootherFunction('type', 'ilu0', 'iterations', 1));
 linsolve = CPRSolverAD('ellipticSolver', msSolver, 'relativeTolerance', 1e-3);
 
@@ -136,22 +135,24 @@ plotWellSols({wellSols, wellSolsMS}, cumsum(schedule.step.val),'datasetnames',{'
 
 %% Plot time consumption
 % Get total runtime
-timeMS = cellfun(@(x) x.WallTime, reportMS.ControlstepReports);
+timeMS   = cellfun(@(x) x.WallTime, reportMS.ControlstepReports);
 timeBase = cellfun(@(x) x.WallTime, report.ControlstepReports);
 
 % Get detailed timining
-solveMS = getReportTimings(reportMS);
+solveMS   = getReportTimings(reportMS);
 solveBase = getReportTimings(report);
 
 solveTiming = [vertcat(solveMS.LinearSolve), vertcat(solveBase.LinearSolve)];
 solveTotal = [timeMS, timeBase];
 
 figure, hold all
-bar(solveTiming)
-legend('msrsb','agmg');
-xlabel('Time step'), ylabel('Runtime [s]');
+bar(vertcat(solveBase.LinearSolve))
+bar(vertcat(solveMS.LinearSolve),'BarWidth',.3)
+legend('agmg','msrsb'); set(gca,'FontSize',12);
+xlabel('Time step'), ylabel('Linear solver time [s]');
 
 figure, hold all
-bar(solveTotal)
-legend('msrsb','agmg');
-xlabel('Time step'), ylabel('Linear solver time [s]');
+bar(timeBase)
+bar(timeMS,'BarWidth',.3)
+legend('agmg','msrsb'); set(gca,'FontSize',12);
+xlabel('Time step'), ylabel('Runtime [s]');
