@@ -155,21 +155,27 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                end
                timer = tic();
                [ii, jj, vv] = find(A);
-               keep = ii ~= jj;
+               % Pick out the diagonal
+               d = vv(ii == jj);
+               % Take the positive off-diagonal entries, following the sign
+               % convention of the diagonal
+               keep = ii ~= jj & sign(d(ii)) == -sign(vv);
                n = size(A, 1);
-               
-               
+               % Strip down the sparse structure to the kept elements
                ii = ii(keep);
                jj = jj(keep);
                vv = vv(keep);
-               vv = abs(vv);
-               
-               dd = accumarray(jj, vv);
-               
+               % Take the row sum to be the diagonal (with opposite sign)
+               dd = accumarray(ii, vv);
+               dd(dd == 0) = mean(dd);
+               % Build sparse matrix format
                ii = [ii; (1:n)'];
                jj = [jj; (1:n)'];
                vv = [vv; -dd];
-               
+               % This is the regularized matrix used to get
+               % partition-of-unity basis functions. Note that there is an
+               % alternative reguarlization in getMultiscaleBasis, which we
+               % explicitly disable here since it is already fixed.
                A = sparse(ii, jj, vv, n, n);               
                [solver.basis, solver.coarsegrid] =...
                    getMultiscaleBasis(solver.coarsegrid, A, 'useMEX', solver.useMEX, ...
