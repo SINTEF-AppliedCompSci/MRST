@@ -57,38 +57,44 @@ CG2    = coarsenGeometry(CG2);
 CG2    = storeInteractionRegion(CG2);
 basis2 = getMultiscaleBasis(CG2, getIncomp1PhMatrix(G, hT), 'type', 'msrsb');
 
+% Alternative adapted approach
+% pr = sampleFromBox(G, reshape(1:64,[8 8]));
+% pf = zeros(G.cells.num,1); pf(G.cells.tag>0)=1;
+% pa = processPartition(G, compressPartition(pf*64+pr));
+% pa = mergeBlocks(pa, G, ones(G.cells.num,1), ones(G.cells.num,1), 10);
+
 %% Set up solvers
 dt = rampupTimesteps(time, time/100, 5);
 
-psolver  = @(u)     incompTPFA(u, G, hT, fluid, 'W', W);
-tsolver  = @(u, dt) implicitTransport(u, G, dt, rock, fluid, 'W', W);
-mssolve1 = @(u)     incompMultiscale(u, CG1, hT, fluid, basis1, 'W', W);
-mssolve2 = @(u)     incompMultiscale(u, CG2, hT, fluid, basis2, 'W', W);
+psolver   = @(u)     incompTPFA(u, G, hT, fluid, 'W', W);
+tsolver   = @(u, dt) implicitTransport(u, G, dt, rock, fluid, 'W', W);
+mssolver1 = @(u)     incompMultiscale(u, CG1, hT, fluid, basis1, 'W', W);
+mssolver2 = @(u)     incompMultiscale(u, CG2, hT, fluid, basis2, 'W', W);
 
 [rstates, rws, mstates1, mws1, mstates2, mws2] = deal(cell(numel(dt)+1,1));
-rstates{1}  = psolver (state0);  rws{1} = getWellSol(W, rstates{1},  fluid);
-mstates1{1} = mssolve1(state0); mws1{1} = getWellSol(W, mstates1{1}, fluid);
-mstates2{1} = mssolve2(state0); mws2{1} = getWellSol(W, mstates2{1}, fluid);
+rstates{1}  = psolver(state0);    rws{1} = getWellSol(W, rstates{1},  fluid);
+mstates1{1} = mssolver1(state0); mws1{1} = getWellSol(W, mstates1{1}, fluid);
+mstates2{1} = mssolver2(state0); mws2{1} = getWellSol(W, mstates2{1}, fluid);
 
 %% Plot the initial saturation distribution
-figure
+%figure
 subplot(1,3,1)
-hp(1) = plotCellData(G, rstates{1}.s(:,1),'EdgeAlpha',.1); 
+hp(1) = plotCellData(G, rstates{1}.s(:,1),'EdgeColor','none'); 
 view(-90,90), axis tight, caxis([0 1]), colormap(flipud(winter))
-plotGrid(G,[icell pcell],'FaceColor','w');
+plotGrid(G,[icell pcell],'FaceColor','r','EdgeColor','r');
 title('Fine scale','FontSize',12,'FontWeight','normal');
 
 subplot(1,3,2)
-hp(2) = plotCellData(G, mstates2{1}.s(:,1),'EdgeAlpha',.1); 
+hp(2) = plotCellData(G, mstates2{1}.s(:,1),'EdgeColor','none'); 
 view(-90,90), axis tight, caxis([0 1]), colormap(flipud(winter(10).^1.5))
-plotGrid(G,[icell pcell],'FaceColor','w');
+plotGrid(G,[icell pcell],'FaceColor','r','EdgeColor','r');
 plotFaces(CG1,1:CG1.faces.num,'EdgeColor','k','FaceColor','none');
 title('MsRSB','FontSize',12,'FontWeight','normal');
 
 subplot(1,3,3)
-hp(3) = plotCellData(G, mstates2{1}.s(:,1),'EdgeAlpha',.1); 
+hp(3) = plotCellData(G, mstates2{1}.s(:,1),'EdgeColor','none'); 
 view(-90,90), axis tight, caxis([0 1]), colormap(flipud(winter(10).^1.5))
-plotGrid(G,[icell pcell],'FaceColor','w');
+plotGrid(G,[icell pcell],'FaceColor','r','EdgeColor','r');
 plotFaces(CG2,1:CG2.faces.num,'EdgeColor','k','FaceColor','none');
 title('MsRSB','FontSize',12,'FontWeight','normal');
 
@@ -99,12 +105,12 @@ for i = 1:numel(dt)
     rws{i+1}      = getWellSol(W, rstates{i+1}, fluid);
     hp(1).CData   = rstates{i+1}.s(:,1);
     
-    state         = mssolve1(mstates1{i});
+    state         = mssolver1(mstates1{i});
     mstates1{i+1} = tsolver(state, dt(i));
     mws1{i+1}     = getWellSol(W, mstates1{i+1}, fluid);
     hp(2).CData   = mstates1{i+1}.s(:,1);
 
-    state         = mssolve2(mstates2{i});
+    state         = mssolver2(mstates2{i});
     mstates2{i+1} = tsolver(state, dt(i));
     mws2{i+1}     = getWellSol(W, mstates2{i+1}, fluid);
     hp(3).CData   = mstates2{i+1}.s(:,1);
@@ -112,4 +118,4 @@ for i = 1:numel(dt)
     drawnow
 end
 plotWellSols({rws, mws1, mws2}, [0; cumsum(dt)], ...
-    'datasetnames', {'fine scale','rectangular','metis'});
+    'datasetnames', {'fine scale','MsRSB rectangular','MsRSB adapted'});
