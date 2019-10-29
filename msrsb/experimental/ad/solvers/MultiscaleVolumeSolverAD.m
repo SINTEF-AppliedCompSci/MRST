@@ -138,7 +138,9 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                timer = tic();
                [ii, jj, vv] = find(A);
                % Pick out the diagonal
-               d = vv(ii == jj);
+               d = zeros(size(A, 1), 1);
+               isDiag = ii == jj;
+               d(ii(isDiag)) = vv(isDiag);
                % Take the positive off-diagonal entries, following the sign
                % convention of the diagonal
                keep = ii ~= jj & sign(d(ii)) == -sign(vv);
@@ -148,7 +150,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                jj = jj(keep);
                vv = vv(keep);
                % Take the row sum to be the diagonal (with opposite sign)
-               dd = accumarray(ii, vv);
+               dd = accumarray(ii, vv, [size(A, 1), 1]);
                dd(dd == 0) = mean(dd);
                % Build sparse matrix format
                ii = [ii; (1:n)'];
