@@ -6,7 +6,7 @@ function fn = plotLimiter(model, varargin)
                  'position', []       , ...
                  'n'       , 200      , ...
                  'zlim'    , [0,1]    , ...
-                 'pbaspect', [1,1,1]  );
+                 'pbaspect', [1,1,0.3]  );
     [opt, patchOpt] = merge_options(opt, varargin{:});
     % Get coordinates for plotting
     coords = getPlotCoordinates2(model.G, 'n', opt.n, 'plot1d', opt.plot1d);
@@ -39,7 +39,8 @@ function [model, states, reports, solver, ok] ...
     if ishandle(fig)
         set(0, 'CurrentFigure', fig);
     else
-        error('Figure handle deleted');
+        figure();
+%         error('Figure handle deleted');
     end
     if current == 1
         clf;
