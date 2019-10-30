@@ -26,17 +26,18 @@ classdef NonLinearSolver < handle
     %   `simulateScheduleAD`, `LinearSolverAD`, `SimpleTimeStepSelector`
 
     properties
-        maxIterations % The max number of iterations during a ministep.
-        minIterations % The minimum number of solves during a ministep.
-        maxTimestepCuts  % The maximum number of times the timestep can be halved before it is counted as a failed attempt
+        maxIterations = 25 % The max number of iterations during a ministep.
+        minIterations = 1 % The minimum number of solves during a ministep.
+        maxTimestepCuts = 6 % The maximum number of times the timestep can be halved before it is counted as a failed attempt
         LinearSolver % The solver used to solve the linearized problems during the simulation.
-        verbose % Verbose flag used to get extra output during simulation.
-        identifier % String identifier for the nonlinear solver
+        verbose = mrstVerbose(); % Verbose flag used to get extra output during simulation.
+        reportLevel = 0 % Amount of data to be output in report. Higher numbers may give more output.
+        identifier = '' % String identifier for the nonlinear solver
         timeStepSelector % Subclass of SimpleTimeStepSelector used to select timesteps
         % during simulation. By default no dynamic timestepping will be
         % enabled.
-        useRelaxation % Boolean indicating if Newton increments should be relaxed.
-        relaxationParameter % Relaxation parameter between 0 and 1.
+        useRelaxation = false % Boolean indicating if Newton increments should be relaxed.
+        relaxationParameter = 1 % Relaxation parameter between 0 and 1.
         % This is modified dynamically if useRelaxation is on, and should 
         % in general not be modified unless you know what you are doing.
         % Either 'dampen', 'sor' or 'none'
@@ -44,72 +45,39 @@ classdef NonLinearSolver < handle
         %       x_new = x_old + dx*w
         % For successive over-relaxation (SOR)
         %       x_new = x_old + dx*w + dx_prev*(1-w)
-        relaxationType % Relaxation is reduced by this when stagnation occurs
-        relaxationIncrement 
-        minRelaxation % Lowest possible relaxation factor
-        maxRelaxation % Largest possible relaxation factor
+        relaxationType = 'dampen' % Relaxation is reduced by this when stagnation occurs
+        relaxationIncrement = 0.1 % Change in relaxation on stagnation/oscillation
+        minRelaxation = 0.5 % Lowest possible relaxation factor
+        maxRelaxation = 1.0 % Largest possible relaxation factor
         
-        useLinesearch % True to enable line-search in residual
-        alwaysUseLinesearch % Debug option to always use line search
-        linesearchReductionFactor % Reduction factor for each step in LS
-        linesearchDecreaseFactor % Required reduction factor in residual (default 1)
-        linesearchMaxIterations % Max iterations in linesearch
-        linesearchConvergenceNames % Residual names to be checked in linesearch
-        linesearchResidualScaling % Residual scaling for each equation
-        linesearchReductionFn % Function for combining multiple residuals into value used by linesearch
-        convergenceIssues
-        enforceResidualDecrease % Abort a solution if no reduction is residual is happening.
-        acceptanceFactor % If we run out of iterations, this factor used for a relaxed tolerance check.
-        stagnateTol % Stagnation tolerance - used in relaxation to determine of a residual value is no longer decreasing
-        errorOnFailure % If error on failure is not enabled, the solver will return even though it did not converge. May be useful for debugging. Results should not be relied upon if this is enabled. If errorOnFailure is disabled, the solver will continue after a failed timestep, treating it as a simply non-converged result with the maximum number of iterations
-        continueOnFailure % Continue even if failure is reported by the model. Results are most likely not useful. Intended for nested nonlinear solvers.
+        useLinesearch = false % True to enable line-search in residual
+        alwaysUseLinesearch = false % Debug option to always use line search
+        linesearchReductionFactor = 1/2 % Reduction factor for each step in LS
+        linesearchDecreaseFactor = 1 % Required reduction factor in residual (default 1)
+        linesearchMaxIterations = 10 % Max iterations in linesearch
+        linesearchConvergenceNames = {} % Residual names to be checked in linesearch
+        linesearchResidualScaling = [] % Residual scaling for each equation
+        linesearchReductionFn = [] % Function for combining multiple residuals into value used by linesearch
+        enforceResidualDecrease = false % Abort a solution if no reduction is residual is happening.
+        acceptanceFactor = 1% If we run out of iterations, this factor used for a relaxed tolerance check.
+        stagnateTol = 1e-2 % Stagnation tolerance - used in relaxation to determine of a residual value is no longer decreasing
+        errorOnFailure = true % If error on failure is not enabled, the solver will return even though it did not converge. May be useful for debugging. Results should not be relied upon if this is enabled. If errorOnFailure is disabled, the solver will continue after a failed timestep, treating it as a simply non-converged result with the maximum number of iterations
+        continueOnFailure = false % Continue even if failure is reported by the model. Results are most likely not useful. Intended for nested nonlinear solvers.
     end
     
     properties (Access=private)
         % Internal bookkeeping.
         previousIncrement
         previousStepReport
+        convergenceIssues = false;
     end
 
     methods
         function solver = NonLinearSolver(varargin)
-            solver.maxIterations   = 25;
-            solver.minIterations   = 1;
-            solver.identifier      = '';
-            solver.verbose         = mrstVerbose();
-            solver.maxTimestepCuts = 6;
-            solver.LinearSolver    = [];
-
-            solver.relaxationParameter = 1;
-            solver.relaxationType = 'dampen';
-            solver.useRelaxation = false;
-            solver.relaxationIncrement = 0.1;
-            solver.minRelaxation = 0.5;
-            solver.maxRelaxation = 1;
-            
-            solver.useLinesearch = false;
-            solver.alwaysUseLinesearch = false;
-            solver.linesearchReductionFactor = 1/2;
-            solver.linesearchDecreaseFactor = 1;
-            solver.linesearchMaxIterations = 10;
-            solver.linesearchConvergenceNames = {};
-            solver.linesearchResidualScaling = [];
-            solver.linesearchReductionFn = [];
-            
-            solver.enforceResidualDecrease = false;
-            solver.acceptanceFactor = 1;
-            solver.stagnateTol = 1e-2;
-            solver.convergenceIssues = false;
-
-            solver.errorOnFailure = true;
-            solver.continueOnFailure = false;
-
             solver = merge_options(solver, varargin{:});
-
             if isempty(solver.LinearSolver)
                 solver.LinearSolver = BackslashSolverAD();
             end
-
             if isempty(solver.timeStepSelector)
                 solver.timeStepSelector = SimpleTimeStepSelector();
             end
@@ -361,6 +329,7 @@ classdef NonLinearSolver < handle
             % since we do not return model here, any changes to model are
             % not persistent.
             [model, state] = model.prepareTimestep(state, state0, dt, drivingForces);
+            storeIntermediateStates = solver.reportLevel > 2;
             for i = 1:(maxIts + 1)
                 % If we are past maximum number of iterations, step function will
                 % just check convergence and return
@@ -371,6 +340,11 @@ classdef NonLinearSolver < handle
                 converged  = stepReport.Converged;
                 failure    = stepReport.Failure;
                 reports{i} = stepReport;
+                if storeIntermediateStates
+                    % We store the output of the nonlinear solve. Can be
+                    % very expensive in terms of memory!
+                    reports{i}.state = state;
+                end
                 if converged
                     break
                 end
