@@ -6,17 +6,20 @@ classdef CompositionalMSPressureModel < MultiscalePressureModel
         regularizeReconstructionUpdate
         reconstructWellFlux
         reduceWellSystem
+        useGetEquationsForFlux = true;
     end
     
     methods
         
         function model = CompositionalMSPressureModel(G, rock, fluid, pmodel, mssolver, varargin)
-            model = model@MultiscalePressureModel(G, rock, fluid, pmodel, mssolver, varargin{:});
+            model = model@MultiscalePressureModel(G, rock, fluid, pmodel, mssolver);
             model.resetBasisAfterConvergence = false;
             model.regularizeReconstructionUpdate = false;
+            model.useGetEquationsForFlux = ~isa(pmodel, 'PressureModel');
             model.dpMaxRel = inf;
             model.reconstructWellFlux = false;
             model.reduceWellSystem = false;
+            model = merge_options(model, varargin{:});
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
@@ -150,7 +153,8 @@ classdef CompositionalMSPressureModel < MultiscalePressureModel
                 end
             end
             if model.reduceWellSystem
-                [A, b] = reduceSystem(A, b, nc);
+                solver = model.multiscaleSolver;
+                [A, b, lsys] = solver.reduceLinearSystem(A, b);
             else
                 A = A(1:nc, 1:nc);
                 b = b(1:nc);
@@ -163,80 +167,74 @@ classdef CompositionalMSPressureModel < MultiscalePressureModel
             if model.regularizeReconstructionUpdate
                 [dpReconstruct, t_solve] = reconstructPressureNormalized(CG, dpMS, A, b);
             else
-                [dpReconstruct, t_solve] = reconstructPressure(CG.partition, dpMS, A, b);
+                [dpReconstruct, t_solve] = reconstructPressure(CG.partition, dpMS, A, b, false);
             end
             % Update the internal domain pressure with the reconstructed
             % increment.
-            stateFlux.pressure =  p0 + dpReconstruct(1:nc);
-            
+            if model.reduceWellSystem
+                pmodel = model.pressureModel;
+                pmodel.dpMaxRel = inf;
+                pmodel.dpMaxAbs = inf;
+                dpReconstruct = solver.recoverLinearSystem(dpReconstruct, lsys);
+                dx = solver.storeIncrements(problem, dpReconstruct);
+                [stateFlux, report] = pmodel.updateState(stateFlux, problem, dx, forces);
+            else
+                stateFlux.pressure =  p0 + dpReconstruct(1:nc);
+            end
             % Store fluxes and use it the corect places
-            stateFlux   = setFluxes(model, state0, stateFlux,   dt, forces, propPressure, false);
-            stateCoarse = setFluxes(model, state0, stateCoarse, dt, forces, propPressure, false);
+            stateFlux   = setFluxes(model, state0, stateFlux,   dt, forces, propPressure);
+            stateCoarse = setFluxes(model, state0, stateCoarse, dt, forces, propPressure);
 
             flux = stateFlux.flux;
             flux(CG.faces.fconn, :) = stateCoarse.flux(CG.faces.fconn, :);
-            state = stateCoarse;
+            state = stateConverged;
             state.flux = flux;
-            state.wellSol = stateFlux.wellSol;
+            if model.reconstructWellFlux
+                for i = 1:numel(state.wellSol)
+                    state.wellSol(i).flux = stateFlux.wellSol(i).flux;
+                end
+            end            
             % Use property pressure for transport
-            state.pressure = stateConverged.pressure;
+            state.pressure = propPressure;
 
             report.reconstructionTime = toc(timer);
             report.reconstructionSolver = t_solve;
         end
-        function state = setFluxes(model, state0, state, dt, forces, propsPressure, staticWells)
-            f = model.pressureModel.getProp(state, 'PhaseFlux');
-            nph = numel(f);
-            state.flux = zeros(model.G.faces.num, nph);
-            state.flux(model.operators.internalConn, :) = value(f);
+        function state = setFluxes(model, state0, state, dt, forces, propsPressure)
+            m = model.pressureModel;
+            if model.useGetEquationsForFlux
+                [~, state] = m.getEquations(state0, state, dt, forces, ...
+                    'propsPressure', propsPressure, 'resOnly', true, 'iteration', inf);
+            else
+                p_flux = state.pressure;
+                evalstate = m.initStateFunctionContainers(state);
+                m.getProp(evalstate, 'PressureGradient'); % Trigger evaluation
+                evalstate.pressure = propsPressure;
+                f = model.pressureModel.getProp(evalstate, 'PhaseFlux');
+                nph = numel(f);
+                state.flux = zeros(model.G.faces.num, nph);
+                state.flux(model.operators.internalConn, :) = value(f);
 
-            if ~isempty(forces.W) && model.reconstructWellFlux
-                m = model.pressureModel;
-                fm = m.FacilityModel;
-                [p, mob] = m.getProps(state, 'pressure', 'Mobility');
-                tmp = fm.FacilityFluxDiscretization.getStateFunction('FacilityWellMapping');
-                map = tmp.evaluateOnDomain(fm, state);
-                cdp = vertcat(state.wellSol.cdp);
-                pw = vertcat(state.wellSol(map.active).bhp);
+                if ~isempty(forces.W) && model.reconstructWellFlux
+                    fm = m.FacilityModel;
+                    [mob] = m.getProps(evalstate, 'Mobility');
+                    p = p_flux;
+                    tmp = fm.FacilityFluxDiscretization.getStateFunction('FacilityWellMapping');
+                    map = tmp.evaluateOnDomain(fm, state);
+                    cdp = vertcat(state.wellSol.cdp);
+                    pw = vertcat(state.wellSol(map.active).bhp);
 
-                dp = pw(map.perf2well) + cdp - p(map.cells);
+                    dp = pw(map.perf2well) + cdp - p(map.cells);
 
-                T = vertcat(map.W.WI);
-                mobt = value(mob);
-                qw = T.*dp.*sum(mobt(map.cells, :), 2);
-                for i = 1:numel(map.active)
-                    ix = map.active(i);
-                    state.wellSol(ix).flux = qw(map.perf2well == ix);
+                    T = vertcat(map.W.WI);
+                    mobt = value(mob);
+                    qw = T.*dp.*sum(mobt(map.cells, :), 2);
+                    for i = 1:numel(map.active)
+                        ix = map.active(i);
+                        state.wellSol(ix).flux = qw(map.perf2well == ix);
+                    end
                 end
             end
         end
     end
-end
-
-function  [A, b, B, C, D, E, f, h] = reduceSystem(A, b, keepNum)
-   [ix, jx, vx] = find(A);
-   n = size(A, 2);
-   keep = false(n, 1);
-   keep(1:keepNum) = true;
-   nk = keepNum;
-
-   keepRow = keep(ix);
-   keepCol = keep(jx);
-   kb = keepRow & keepCol;
-   B = sparse(ix(kb), jx(kb), vx(kb), nk, nk);
-
-   kc = keepRow & ~keepCol;
-   C = sparse(ix(kc), jx(kc) - nk, vx(kc), nk, n - nk);
-
-   kd = ~keepRow & keepCol;
-   D = sparse(ix(kd) - nk, jx(kd), vx(kd), n - nk, nk);
-
-   ke = ~keepRow & ~keepCol;
-   E = sparse(ix(ke) - nk, jx(ke) - nk, vx(ke), n - nk, n - nk);
-   f = b(keep);
-   h = b(~keep);
-   
-   [L, U] = lu(E);
-   A = B - C*(U\(L\D));
-   b = f - C*(U\(L\h));
 end
