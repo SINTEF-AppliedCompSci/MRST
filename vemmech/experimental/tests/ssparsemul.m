@@ -10,7 +10,7 @@ function res = ssparsemul(m1, m2)
    M = size(m1, 1);
    N = size(m2, 2);
    
-   ALLOC_SIZE = max(nnz(m1), nnz(m2));
+   ALLOC_SIZE = 100 * max(nnz(m1), nnz(m2));
    next_entry = 1;
    final_m = zeros(ALLOC_SIZE, 1);
    final_n = zeros(ALLOC_SIZE, 1);
