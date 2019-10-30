@@ -19,7 +19,7 @@ function res = ssparsemul(m1, m2)
    M = size(m1, 1);
    N = size(m2, 2);
    
-   ALLOC_SIZE = 100000;
+   ALLOC_SIZE = max(nnz(m1), nnz(m2));
    next_entry = 1;
    final_m = zeros(ALLOC_SIZE, 1);
    final_n = zeros(ALLOC_SIZE, 1);
@@ -32,12 +32,14 @@ function res = ssparsemul(m1, m2)
       n = in(el);
       k = ik2(el);
       
-      %m_ix = m_for_k(k):m_for_k(k+1)-1;
-      m = im(m_for_k(k):m_for_k(k+1)-1);
-      mval = v1(m_for_k(k):m_for_k(k+1)-1);
+      mix0 = m_for_k(k);
+      mix1 = m_for_k(k+1);
+      num_new = mix1-mix0;
+      
+      %num_new = m_for_k(k+1) - m_for_k(k);
       
       % check if reallocation is needed (if so, double array size)
-      if next_entry + m > size(final_m, 1)
+      if next_entry + num_new > size(final_m, 1)
          cur_size = size(final_m);
          final_m = [final_m; zeros(cur_size)]; %#ok
          final_n = [final_n; zeros(cur_size)]; %#ok
@@ -45,14 +47,32 @@ function res = ssparsemul(m1, m2)
          %entries = [entries; zeros(size(entries))]; %#ok
       end
 
-      final_m(next_entry:next_entry+numel(m)-1) = m;
-      final_n(next_entry:next_entry+numel(m)-1) = n;
-      final_v(next_entry:next_entry+numel(m)-1) = mval * val;
+      % m = im(m_for_k(k):m_for_k(k+1)-1);
+      % mval = v1(m_for_k(k):m_for_k(k+1)-1);
+
+      % final_m(next_entry:next_entry+numel(m)-1) = m;
+      % final_n(next_entry:next_entry+numel(m)-1) = n;
+      % final_v(next_entry:next_entry+numel(m)-1) = mval * val;
+      
+      % final_m(next_entry:next_entry+num_new-1) = im(m_for_k(k) + (1:num_new)-1);
+      % final_n(next_entry:next_entry+num_new-1) = n;
+      % final_v(next_entry:next_entry+num_new-1) = val * v1(m_for_k(k) + (1:num_new)-1);
+
+      final_m(next_entry:next_entry+num_new-1) = im(mix0:mix1-1);
+      final_n(next_entry:next_entry+num_new-1) = n;
+      final_v(next_entry:next_entry+num_new-1) = val * v1(mix0:mix1-1);
+      
+      
+      
+      % final_m(next_entry:next_entry+num_new-1) = im(m_for_k(k):m_for_k(k+1)-1);
+      % final_n(next_entry:next_entry+num_new-1) = n;
+      % final_v(next_entry:next_entry+num_new-1) = val * v1(m_for_k(k):m_for_k(k+1)-1);
+
       
       % entries(next_entry:next_entry+numel(m)-1,:) = ...
       %     [m, n * ones(size(m)), mval * val];
       
-      next_entry = next_entry + numel(m);
+      next_entry = next_entry + num_new;
       
    end
    
