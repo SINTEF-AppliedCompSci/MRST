@@ -1,4 +1,4 @@
-function [p, solvetime] = reconstructPressure(partition, pressure, A, rhs)
+function [p, solvetime] = reconstructPressure(partition, pressure, A, rhs, addNoise)
 % Solve reconstruction problem for multiscale methods
 
 %{
@@ -19,12 +19,17 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    if nargin < 5
+        addNoise = true;
+    end
     D = formReconstructionMatrix(A, partition);
     n = size(A, 1);
     % Add a tiny bit of noise to overcome a Matlab UMFPACK issue in MATLAB
     % 2018b and onwards
-    d = diag(A);
-    D = D - sparse(1:n, 1:n, min(d)*1e-8, n, n);
+    if addNoise
+        d = diag(A);
+        D = D - sparse(1:n, 1:n, min(d)*1e-8, n, n);
+    end
     tmp1 = warning('query','MATLAB:nearlySingularMatrix');
     tmp2 = warning('query','MATLAB:singularMatrix');
     warning('off','MATLAB:nearlySingularMatrix')
