@@ -199,8 +199,13 @@ classdef SmartTensor
          end
       end
       
-      function M = asMatrix(self, ixnames)
+      function M = asMatrix(self, ixnames, force_sparse)
          SPARSE_THRESHOLD = 200;
+         
+         if ~exist('force_sparse', 'var')
+            force_sparse = false;
+         end
+
          self = self.expandall();
          
          % if the tensor is an intrinsic scalar, print its value
@@ -235,7 +240,7 @@ classdef SmartTensor
             ix1 = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm(1:nix1)));
             ix2 = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm(nix1+1:end)));
             M = sparse(ix1, ix2, self.components{1}.coefs);
-            if numel(M) < SPARSE_THRESHOLD
+            if ~force_sparse && (numel(M) < SPARSE_THRESHOLD)
                M = full(M); % convenient, for small matrices
             end
          end
@@ -329,16 +334,13 @@ classdef SmartTensor
          
          ind1 = strcmp(ixname, comps{1}.indexnames);
          rownames = comps{1}.indexnames(~ind1);
-         m1 = SmartTensor(comps{1}).asMatrix({rownames,{ixname}});
+         m1 = SmartTensor(comps{1}).asMatrix({rownames,{ixname}}, true);
          
          ind2 = strcmp(ixname, comps{2}.indexnames);
          colnames = comps{2}.indexnames(~ind2);
-         m2 = SmartTensor(comps{2}).asMatrix({{ixname}, colnames});
-         
+         m2 = SmartTensor(comps{2}).asMatrix({{ixname}, colnames}, true);
+         assert(issparse(m1) && issparse(m2));
          mprod = m1 * m2;
-         if ~issparse(mprod)
-            mprod = sparse(mprod);
-         end
          [i, j, v] = find(mprod);
          
          logical_size1 = max(comps{1}.ixs(:, ~ind1));
@@ -601,8 +603,11 @@ classdef SmartTensor
             assert(numel(indexnames) == 1);
          else
             assert(ismatrix(coefs));
-            nz = find(coefs); % only keep nonzeros
-            %nz = (1:numel(coefs))';
+            if issparse(coefs)
+               nz = find(coefs); % only keep nonzeros
+            else
+               nz = (1:numel(coefs))';
+            end
             [i, j] = ind2sub(size(coefs), nz);
             component.coefs = coefs(nz);
             component.coefs = component.coefs(:); % ensure column vec
