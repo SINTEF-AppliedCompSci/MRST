@@ -179,3 +179,64 @@ for stepNo = 1:5:numel(schedule.step.val)
     end
     drawnow
 end
+%% Compute and plot the volume error for all solvers
+% Exact mass conservation in transport often implies a volume discrepancy.
+% We plot this error to verify that it is within acceptable ranges.
+pv = model.operators.pv;
+s_err = nan(numel(schedule.step.val), numel(states));
+for step = 1:numel(schedule.step.val)
+    for i = 1:numel(states)
+        state = states{i}{step};
+        e = abs(1 - sum(state.s, 2));
+        s_err(step, i) = sum(e.*pv)/sum(pv);
+    end
+end
+
+figure;
+plot(T{1}/day, s_err)
+set(gca, 'YScale', 'log')
+xlabel('Time [days]')
+axis tight
+legend(names)
+%% Plot component production
+styles = {'-', '--', '.', ':'};
+colors = lines(3);
+figure; hold on
+start = 20;
+for c = 1:3
+    for i = 1:numel(names)
+        cprod = -cellfun(@(x) x(2).components(c),  ws{i});
+        plot(T{i}(start:end)/day, cprod(start:end)*day, styles{i}, 'color', colors(c, :));
+    end
+end
+axis tight
+ylabel('kg/day')
+legend(names)
+xlabel('Time [days]')
+%% Estimate CFL
+m = GenericOverallCompositionModel(G, rock, fluid, eos, 'water', false);
+m = m.validateModel();
+cfl_s = zeros(G.cells.num, 1);
+cfl_z = zeros(G.cells.num, 1);
+for i = 1:numel(schedule.step.val)
+    s = states{1}{i};
+    dt = schedule.step.val(i);
+    cs = estimateSaturationCFL(m, s, dt);
+    cz = estimateCompositionCFL(m, s, dt);
+    cfl_s = max(cfl_s, cs);
+    cfl_z = max(cfl_z, cz);
+end
+%% Plot saturation CFL
+figure; 
+plotCellData(G, log10(cfl_s))
+ch = colorbar;
+axis tight off
+yt = get(ch, 'YTick');
+set(ch, 'YTickLabel', arrayfun(@(x) sprintf('10^{%1.1f}', x), yt, 'Unif', false));
+%% Plot composition CFL
+figure; 
+plotCellData(G, log10(max(cfl_z, [], 2)))
+ch = colorbar;
+axis tight off
+yt = get(ch, 'YTick');
+set(ch, 'YTickLabel', arrayfun(@(x) sprintf('10^{%1.1f}', x), yt, 'Unif', false));
