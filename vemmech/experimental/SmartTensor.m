@@ -499,6 +499,18 @@ classdef SmartTensor
          
          % sum up other elements at the correct place
          index1d = SmartTensor.compute_1D_index(comp.ixs);
+         
+         % tmp = accumarray(index1d(:), comp.coefs, [], [], [], true);
+         % [uindex, ~, v] = find(tmp);
+         % comp.coefs = v;
+         
+         % logical_size = max(comp.ixs);
+         % reindex = cell(size(comp.ixs, 2), 1);
+         
+         % [reindex{:}] = ind2sub(logical_size, uindex);
+         
+         % comp.ixs = [reindex{:}];
+         
          [uindex, ~, ic] = unique(index1d);
 
          map = accumarray([ic, (1:size(comp.ixs, 1))'], 1, [], [], [], true);
@@ -513,7 +525,7 @@ classdef SmartTensor
          [reindex{:}] = ind2sub(logical_size, uindex);
          
          comp.ixs = [reindex{:}];
-         %comp.ixs = cell2mat(reindex');
+         % %comp.ixs = cell2mat(reindex');
       end
       
       function [t1, t2] = make_tensors_compatible(t1, t2)

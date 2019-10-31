@@ -1,6 +1,6 @@
 %G = cartGrid([1, 1, 2]);
-G = cartGrid([20, 20, 10]);
-%G = cartGrid([30 30 30]);
+%G = cartGrid([20, 20, 10]);
+G = cartGrid([30 30 30]);
 
 T_dim_ind = SmartTensor(ones(G.griddim, 1), {'dim'});
 T_node_coords = SmartTensor(G.nodes.coords, {'node', 'dim'});
