@@ -199,7 +199,7 @@ classdef SmartTensor
          end
       end
       
-      function M = asMatrix(self, ixnames, force_sparse)
+      function M = asMatrix(self, ixnames, force_sparse, shape)
          SPARSE_THRESHOLD = 200;
          
          if ~exist('force_sparse', 'var')
@@ -207,6 +207,10 @@ classdef SmartTensor
          end
 
          self = self.expandall();
+
+         if ~exist('shape', 'var')
+            shape = max(self.components{1}.ixs);
+         end
          
          % if the tensor is an intrinsic scalar, print its value
          if numel(self.indexNames()) == 0
@@ -232,17 +236,23 @@ classdef SmartTensor
          % perm = SmartTensor.get_permutation(self.indexNames(),...
          %                                    horzcat(ixnames{:}));
          if numel(ixnames) == 1
-            ix = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm));
-            M = zeros(max(ix), 1);
-            M(ix) = full(self.components{1}.coefs);
+            ix = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm), ...
+                                              shape(perm));
+            M = sparse(ix, 1, self.components{1}.coefs, prod(shape), 1);
+            %M = zeros(max(ix), 1);
+            %M(ix) = full(self.components{1}.coefs);
          elseif numel(ixnames) == 2
             nix1 = numel(ixnames{1});
-            ix1 = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm(1:nix1)));
-            ix2 = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm(nix1+1:end)));
-            M = sparse(ix1, ix2, self.components{1}.coefs);
-            if ~force_sparse && (numel(M) < SPARSE_THRESHOLD)
-               M = full(M); % convenient, for small matrices
-            end
+            shape1 = shape(perm(1:nix1));
+            shape2 = shape(perm(nix1+1:end));
+            ix1 = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm(1:nix1)), ...
+                                               shape1);
+            ix2 = SmartTensor.compute_1D_index(self.components{1}.ixs(:,perm(nix1+1:end)),...
+                                               shape2);
+            M = sparse(ix1, ix2, self.components{1}.coefs, prod(shape1), prod(shape2));
+         end
+         if ~force_sparse && (numel(M) < SPARSE_THRESHOLD)
+            M = full(M); % convenient, for small matrices/vectors
          end
       end
 
@@ -354,6 +364,7 @@ classdef SmartTensor
          comp.coefs = v;
          comp.indexnames = [rownames, colnames];
          comp.ixs = [reindex1{:}, reindex2{:}];
+         %comp.ixs = [cell2mat(reindex1'), cell2mat(reindex2')];
          
          keep = true(size(self.components));
          keep(comp_ixs) = false;
@@ -502,6 +513,7 @@ classdef SmartTensor
          [reindex{:}] = ind2sub(logical_size, uindex);
          
          comp.ixs = [reindex{:}];
+         %comp.ixs = cell2mat(reindex');
       end
       
       function [t1, t2] = make_tensors_compatible(t1, t2)
@@ -521,20 +533,20 @@ classdef SmartTensor
          t2.components{1}.indexnames = t1.components{1}.indexnames;
          t2.components{1}.ixs = t2.components{1}.ixs(:, perm);
          
-         % fill in missing indices
-         [~, I1] = setdiff(t1.components{1}.ixs, t2.components{1}.ixs, 'rows');
-         [~, I2] = setdiff(t2.components{1}.ixs, t1.components{1}.ixs, 'rows');
+         % % fill in missing indices
+         % [~, I1] = setdiff(t1.components{1}.ixs, t2.components{1}.ixs, 'rows');
+         % [~, I2] = setdiff(t2.components{1}.ixs, t1.components{1}.ixs, 'rows');
          
-         t2.components{1}.ixs = [t2.components{1}.ixs; ...
-                                 t1.components{1}.ixs(I1,:)];
-         t1.components{1}.ixs = [t1.components{1}.ixs; ...
-                                 t2.components{1}.ixs(I2,:)];
-         t1.components{1}.coefs = [t1.components{1}.coefs; zeros(size(I2))];
-         t2.components{1}.coefs = [t2.components{1}.coefs; zeros(size(I1))];
+         % t2.components{1}.ixs = [t2.components{1}.ixs; ...
+         %                         t1.components{1}.ixs(I1,:)];
+         % t1.components{1}.ixs = [t1.components{1}.ixs; ...
+         %                         t2.components{1}.ixs(I2,:)];
+         % t1.components{1}.coefs = [t1.components{1}.coefs; zeros(size(I2))];
+         % t2.components{1}.coefs = [t2.components{1}.coefs; zeros(size(I1))];
          
-         % sort all indices
-         t1.components{1} = SmartTensor.sort_indices(t1.components{1});
-         t2.components{1} = SmartTensor.sort_indices(t2.components{1});
+         % % sort all indices
+         % t1.components{1} = SmartTensor.sort_indices(t1.components{1});
+         % t2.components{1} = SmartTensor.sort_indices(t2.components{1});
          
          % tensors should now have exactly the same indices and thus be compatible
       end
@@ -548,17 +560,48 @@ classdef SmartTensor
          [t1, t2] = SmartTensor.make_tensors_compatible(t1, t2);
          assert(numel(t1.components) == 1); % should also be the case for t2 by now
          
+         % determine common tensor shape
+         shape = max(max(t1.components{1}.ixs), max(t2.components{1}.ixs));
+         
+         indices = t1.indexNames();
+
+         m1 = t1.asMatrix({indices}, true, shape); % make 1D sparse vec of it
+         m2 = t2.asMatrix({indices}, true, shape); % ditto
+         
+         if isequal(op, @rdivide)
+            % special treatment, to avoid dividing by zeros
+            [i, ~, v] = find(m2);
+            m2(i) = 1./v;
+            tmp = times(m1, m2);
+         else
+            tmp = op(m1, m2);
+         end
+
+         [ix, ~, val] = find(tmp);
+         reindex = cell(numel(shape), 1);
+         [reindex{:}] = ind2sub(shape, ix);
+         
          res = t1.components{1};
-         res.coefs = op(t1.components{1}.coefs, t2.components{1}.coefs);
+         res.coefs = val(:);
+         res.ixs = [reindex{:}];
+         %res.ixs = cell2mat(reindex');
          tensor = SmartTensor(res);
+         % res = t1.components{1};
+         % res.coefs = op(t1.components{1}.coefs, t2.components{1}.coefs);
+         % tensor = SmartTensor(res);
       end
       
-      function ix = compute_1D_index(multiix)
+      function ix = compute_1D_index(multiix, shape)
          if size(multiix, 2) == 1
             ix = multiix;
             return
          end
-         stride = max(multiix);
+         
+         if exist('shape', 'var')
+            stride = shape;
+         else
+            stride = max(multiix);
+         end
          stride = cumprod([1, stride(1:end-1)]);
          ix = sum((multiix-1) .* stride, 2) + 1;
          

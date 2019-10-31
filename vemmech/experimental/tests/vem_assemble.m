@@ -1,6 +1,6 @@
 %G = cartGrid([1, 1, 2]);
-%G = cartGrid([20, 20, 10]);
-G = cartGrid([30 30 30]);
+G = cartGrid([20, 20, 10]);
+%G = cartGrid([30 30 30]);
 
 T_dim_ind = SmartTensor(ones(G.griddim, 1), {'dim'});
 T_node_coords = SmartTensor(G.nodes.coords, {'node', 'dim'});
@@ -106,5 +106,6 @@ T_Wr = T_Wr * T_cell_node_d_qc_numnodes_inv_hom.changeIndexName('dim', 'k');
 
 % --------------------------------- compute P ---------------------------------
 
+T_Pr = T_Wr * T_Nr.changeIndexName({'dim', 'node'}, {'dim2', 'node2'});
 T_Pc = T_Wc * T_Nc.changeIndexName({'dim', 'node'}, {'dim2', 'node2'});
 tic; T_Pp = T_Pr + T_Pc; toc
