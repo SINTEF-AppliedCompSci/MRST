@@ -54,69 +54,54 @@ classdef SmartTensor
             other = other.changeIndexName(common_cixs{cix}, new_cix);
          end
          
-         if ~only_semiproduct
-            % we will mark duplicated indices for contraction
-
-            
-            % find common index names, and give them new values (since they should
-            % be considered to be summed)
-            common_names = intersect(self.indexNames(), other.indexNames());
-         
-            % give new names to the common indices, to mark them for summation
-            for nix = 1:numel(common_names)
-               % choose an index name that does not overlap with any already
-               % used in either of the involved tensors
-               flagged_name = self.next_unused_contr_ix_name(other);
+         % find common index names, and give them new values (since they should be
+         % considered to be summed)
+         common_names = intersect(self.indexNames(), other.indexNames());
+         for nix = 1:numel(common_names)
+            % choose an index name that does not overlap with any already
+            % used in either of the involved tensors
+            flagged_name = self.next_unused_contr_ix_name(other);
+            if only_semiproduct
+               self = self.duplicateIndex(common_names{nix}, flagged_name);
+            else
                self = self.changeIndexName(common_names{nix}, flagged_name);
-               other = other.changeIndexName(common_names{nix}, flagged_name);
             end
-            
+            other = other.changeIndexName(common_names{nix}, flagged_name);
          end
-         
          self.components = [self.components, other.components];
       end
-      
       
       function self = contract(self, ixname1, ixname2, only_semicontract)
       % can be called with one index (contraction) or two indices
       % (contraction or semicontraction)
          if nargin < 3
-            % Simple contraction in one index.  Check if index is already
-            % marked for semi-contraction.  If so, mark it for contraction,
-            % otherwise, contract it directly.
-            if numel(self.component_with_ix(ixname1, true)) > 1
-               % mark this index for complete contraction
-               newname = self.next_unused_contr_ix_name();
-               self = self.changeIndexName(ixname1, newname);
-               self = self.complete_simple_contractions();
-            else
-               % a simple contraction in one index.  Go ahead and do it
-               % directly.
-               comp_ix = self.component_with_ix(ixname1);
-               self.components{comp_ix} = ...
-                   SmartTensor.contract_one_index(self.components{comp_ix}, ...
-                                                  ixname1);
-            end
+            % Simple contraction in one index.  
+            comp_ix = self.component_with_ix(ixname1);
+            self.components{comp_ix} = ...
+                SmartTensor.single_component_contraction(self.components{comp_ix}, ...
+                                                         ixname1);
             return
+         
+         elseif nargin < 4
+            % unless requested otherwise, do a full contraction            
+            only_semicontract = false;
          end
-
-         if nargin < 4
-            % unless requested otherwise, do a full contraction
-            only_semicontract = false; 
-         end            
+         
+         % contraction (or semicontraction) involving two indices
+         newname = self.next_unused_contr_ix_name();
          
          if only_semicontract
-            % setting both indexnames equal flags them for semicontraction
-            self = self.changeIndexName(ixname2, ixname1);
-         else % full contration
-            newname = self.next_unused_contr_ix_name();
+            self = self.duplicateIndex(ixname1, newname);
+         else
             self = self.changeIndexName(ixname1, newname);
-            self = self.changeIndexName(ixname2, newname);
          end
-         
-         % check for immediate (semi)contractions (contractions involving
-         % only a single component), and carry them out immediately
-         self = self.complete_simple_contractions();
+         self = self.changeIndexName(ixname2, newname);
+            
+         % carry out the contraction (which involves only a single component)
+         comp_ix = self.component_with_ix(newname, false);         
+         comp = self.components{comp_ix};
+         comp = SmartTensor.single_component_contraction(comp, newname);
+         self.components{comp_ix} = comp;
       end
       
       function self = plus(self, other)
@@ -157,7 +142,21 @@ classdef SmartTensor
          
       end
       
-      
+      function self = duplicateIndex(self, name, newname)
+
+         comp_ix = self.component_with_ix(name, false);
+         comp = self.components{comp_ix};
+         
+         ind = strcmp(name, comp.indexnames);
+         assert(sum(ind)==1);
+
+         % Add new index values (new column to 'ixs')
+         comp.ixs = [comp.ixs, comp.ixs(:,ind)];
+         comp.indexnames = [comp.indexnames, newname];
+         
+         self.components{comp_ix} = comp;
+      end
+            
       function self = changeIndexName(self, oldnames, newnames)
          if ~iscell(oldnames)
             oldnames = {oldnames}; newnames = {newnames};
@@ -181,10 +180,9 @@ classdef SmartTensor
          self.components{1}.coefs = self.components{1}.coefs * 0 + 1;
       end
       
-      function [ixnames, cixnames, scixnames] = indexNames(self)
-      % return tensor index names.  Contracting and semi-contracting index
-      % names are returned as second and third return value.  Note that
-      % semi-contracting indices are also valid tensor indices.
+      function [ixnames, cixnames] = indexNames(self)
+      % return tensor index names.  Contracting indices are returned as
+      % second value.
          ixnames = {};
          cixnames = {};
          for c = self.components
@@ -199,23 +197,6 @@ classdef SmartTensor
                end
             end
          end
-         % determine semi-contracting indices. These are the indices repeated
-         % more than once
-         [tmp, i_order, ic] = unique(ixnames);
-         scixnames = tmp(accumarray(ic, 1) > 1);
-         cixnames = unique(cixnames);
-         % get rid of possible cell arrays of size 0 x 1
-         if isempty(scixnames)
-            scixnames = {};
-         end
-         if isempty(cixnames)
-            cixnames = {};
-         end
-         
-         % restore original order of index names
-         tmp = false(numel(i_order), 0);
-         tmp(i_order) = true;
-         ixnames = ixnames(tmp); 
       end
       
       function M = asMatrix(self, ixnames)
@@ -235,14 +216,16 @@ classdef SmartTensor
             assert(iscell(ixnames) && numel(ixnames) <= 2)
             for i = 1:numel(ixnames)
                if ~iscell(ixnames{i})
-                  ixnames{i} = {ixnames{i}};  %#ok
+                  ixnames{i} = {ixnames{i}};
                end
             end
          end
          % check that all index names are covered, and compute the
          % permutation
-         perm = SmartTensor.get_permutation(self.indexNames(),...
+         perm = SmartTensor.get_permutation(self.components{1}.indexnames,...
                                             horzcat(ixnames{:}));
+         % perm = SmartTensor.get_permutation(self.indexNames(),...
+         %                                    horzcat(ixnames{:}));
          if numel(ixnames) == 1
             ix = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm));
             M = zeros(max(ix), 1);
@@ -270,16 +253,16 @@ classdef SmartTensor
          % do all contractions, start with the cheapest
          while true
             
-            cur = self.get_cheapest_pending_contraction();
-            if isempty(cur)
+            ixname = self.get_cheapest_pending_contraction();
+            if isempty(ixname)
                % no more work to be done
                break
             end
-            % do the semicontraction
-            self = self.execute_semicontraction(cur.ixname, ...
-                                                cur.comp_1_ix, ...
-                                                cur.comp_2_ix);
-            % check if other simple contractions need to be done
+            % do the contraction
+            self = self.two_component_contraction(ixname);
+            
+            % if contraction led to additional contractions now being
+            % associated with the same single component, carry out those too
             self = self.complete_simple_contractions();
          end
          
@@ -298,93 +281,93 @@ classdef SmartTensor
       % ---- The following methods represent implementation details, and are not ----
       % -------------------- intended to be directly run by user --------------------
       
-      function cur = get_cheapest_pending_contraction(self)
       
-         cur = [];
+      function self = complete_simple_contractions(self)
          
+         [~, cixs] = self.indexNames();
+         
+         for cname = cixs
+            comp_ixs = self.component_with_ix(cname, true);
+            if numel(comp_ixs) == 1
+               % this is a contraction involving one component.
+               self.components{comp_ixs(1)} = ...
+                   SmartTensor.single_component_contraction(...
+                       self.components{comp_ixs(1)}, cname);
+            end
+         end
+      end
+      
+      function ixname = get_cheapest_pending_contraction(self)
+      
          % get all index names for which there are pending contractions
-         [~, cixs, scixs] = self.indexNames();
-         
-         cixs = [cixs, scixs];
+         [~, cixs] = self.indexNames();
          
          if isempty(cixs)
+            ixname = [];
             return
          end
          
          % make list of all pending contractions
          cur_lowest_cost = inf;
-         for ixname = cixs
-            ixname = ixname{:}; %#ok
-            % determine possible contraction combinations
-            comp_ixs = self.component_with_ix(ixname, true);
-            contr = nchoosek(comp_ixs, 2);
-
-            % check for the least costly combination
-            for c = contr'
-               cost = self.contraction_cost_estimate(c(1), c(2), ixname);
-               if cost < cur_lowest_cost
-                  cur_lowest_cost = cost;
-                  cur = struct('ixname', ixname, ...
-                               'comp_1_ix', c(1), ...
-                               'comp_2_ix', c(2));
-               end
-            end
-         end
-      end
-      
-      function self = complete_simple_contractions(self)
-         
-         for cix = 1:numel(self.components)
-            comp = self.components{cix};
-            % check for index names that occur more than once 
-            [repnames, ~, ic] = unique(comp.indexnames);
-            repnames = repnames(accumarray(ic, 1) > 1);
+         for cur_name = cixs
             
-            % check if these names occur in any other component; if so, we
-            % leave them be, otherwise we contract or semicontract them
-            ixnames = unique(comp.indexnames);
-            for rname = ixnames
-               rname = rname{:}; %#ok
-               found_elsewhere = false;
-               for cix2 = 1:numel(self.components)
-                  if (cix2 ~= cix) && ...
-                     any(strcmp(rname, self.components{cix2}.indexnames))
-                     found_elsewhere = true;
-                  end
-               end
-               if ~found_elsewhere 
-                  if strcmp(rname, repnames)
-                     % semi-contract
-                     comp = SmartTensor.semi_contract_index(comp, rname);
-                  end
-                  if SmartTensor.is_contracting_ix(rname)
-                     % complete the contraction
-                     comp = SmartTensor.contract_one_index(comp, rname);
-                  end
-               end
+            cur_name = cur_name{:}; %#ok
+            cost = self.contraction_cost_estimate(cur_name);
+            if cost < cur_lowest_cost
+               cur_lowest_cost = cost;
+               ixname = cur_name;
             end
-            self.components{cix} = comp;
          end
       end
-      
-      function self = execute_semicontraction(self, ixname, comp_ix_1, comp_ix_2)
+
+      function self = two_component_contraction(self, ixname)
          
-         self.components{comp_ix_1} = ...
-             SmartTensor.semi_contract_two_indices_two_components( ...
-                 self.components{comp_ix_1}, ...
-                 self.components{comp_ix_2}, ...
-                 ixname, ixname);
-         % remove second component from array of components 
-         keep_ix = true(1, numel(self.components));
-         keep_ix(comp_ix_2) = false;
-         self.components = self.components(keep_ix);
+         comp_ixs = self.component_with_ix(ixname, true);
+         assert(numel(comp_ixs) == 2);
+         
+         comps = self.components(comp_ixs);
+         
+         ind1 = strcmp(ixname, comps{1}.indexnames);
+         rownames = comps{1}.indexnames(~ind1);
+         m1 = SmartTensor(comps{1}).asMatrix({rownames,{ixname}});
+         
+         ind2 = strcmp(ixname, comps{2}.indexnames);
+         colnames = comps{2}.indexnames(~ind2);
+         m2 = SmartTensor(comps{2}).asMatrix({{ixname}, colnames});
+         
+         mprod = m1 * m2;
+         if ~issparse(mprod)
+            mprod = sparse(mprod);
+         end
+         [i, j, v] = find(mprod);
+         
+         logical_size1 = max(comps{1}.ixs(:, ~ind1));
+         reindex1 = cell(size(comps{1}.ixs, 2) - 1, 1);
+         [reindex1{:}] = ind2sub(logical_size1, i);
+
+         logical_size2 = max(comps{2}.ixs(:, ~ind2));
+         reindex2 = cell(size(comps{2}.ixs,2)-1, 1);
+         [reindex2{:}] = ind2sub(logical_size2, j);
+         
+         comp.coefs = v;
+         comp.indexnames = [rownames, colnames];
+         comp.ixs = [reindex1{:}, reindex2{:}];
+         
+         keep = true(size(self.components));
+         keep(comp_ixs) = false;
+         self.components = [self.components(keep), comp];
       end
       
-      function cost = contraction_cost_estimate(self, comp_ix_1, comp_ix_2, ixname)
+      function cost = contraction_cost_estimate(self, ixname)
 
+         comp_ixs = self.component_with_ix(ixname, true);
+         assert(numel(comp_ixs) == 2) % otherwise, contraction should already
+                                      % have been carried out, since cost
+                                      % estimates are only interesting for
+                                      % contracting two different components
          comps = self.components;
          cost = 0;
-         for i = [comp_ix_1, comp_ix_2]
+         for i = comp_ixs
             entries = size(comps{i}.ixs, 1);
             ixind = strcmp(ixname,comps{i}.indexnames);
             numdiff = numel(unique(comps{i}.ixs(:, ixind)));
@@ -487,91 +470,8 @@ classdef SmartTensor
          end
       end
       
-      function comp = semi_contract_two_indices_two_components(comp1, comp2, ...
-                                                           ixname1, ixname2)
-      % carry out semi-contraction, involving two components
-         
-         % eliminate entries that do not contribute
-         ix1 = find(strcmp(ixname1, comp1.indexnames));
-         ix2 = find(strcmp(ixname2, comp2.indexnames));
-         
-         common_indices = intersect(comp1.ixs(:, ix1), comp2.ixs(:, ix2));
-         num_unique_ix = numel(common_indices);
-         keep1 = ismember(comp1.ixs(:, ix1), common_indices);
-         keep2 = ismember(comp2.ixs(:, ix2), common_indices);
-         
-         comp1.ixs = comp1.ixs(keep1, :);  comp1.coefs = comp1.coefs(keep1);
-         comp2.ixs = comp2.ixs(keep2, :);  comp2.coefs = comp2.coefs(keep2);
-         
-         % identify location of each relevant index (after sorting entries)
-         [comp1.ixs, I1] = sortrows(comp1.ixs, ix1); comp1.coefs = comp1.coefs(I1);
-         [comp2.ixs, I2] = sortrows(comp2.ixs, ix2); comp2.coefs = comp2.coefs(I2);
-         
-         start1 = [1; find(diff(comp1.ixs(:, ix1))) + 1];
-         end1   = [start1(2:end)-1; size(comp1.ixs, 1)];
-
-         start2 = [1; find(diff(comp2.ixs(:, ix2))) + 1];
-         end2   = [start2(2:end)-1; size(comp2.ixs, 1)];
-         
-         % split up matrices
-         ixsplit1 = arrayfun(@(x) comp1.ixs(start1(x):end1(x), :), 1:num_unique_ix, ...
-                             'uniformoutput', false);
-         ixsplit2 = arrayfun(@(x) comp2.ixs(start2(x):end2(x), :), 1:num_unique_ix, ...
-                             'uniformoutput', false);
-         coefsplit1 = arrayfun(@(x) comp1.coefs(start1(x):end1(x)), 1:num_unique_ix, ...
-                               'uniformoutput', false);
-         coefsplit2 = arrayfun(@(x) comp2.coefs(start2(x):end2(x)), 1:num_unique_ix, ...
-                               'uniformoutput', false);
-         
-         % function producing all permutation of rows in matrices u and v
-         loc_kron = @(u, v) [repmat(u, size(v,1), 1), repelem(v, size(u, 1), 1)];
-         
-         % make array with all indices that are to be multiplied together
-         ixarr = arrayfun(@(x) loc_kron(ixsplit1{x}, ixsplit2{x}), 1:num_unique_ix, ...
-                          'uniformoutput', false);
-         ixarr = vertcat(ixarr{:});
-         
-         % produce corresponding permutation also for the coefficient vectors
-         % (which may be ADI, so we must be a bit careful)
-         
-         cfarr1 = arrayfun(@(x) repmat(coefsplit1{x}, numel(coefsplit2{x}),1), ...
-                           1:num_unique_ix, 'uniformoutput', false);
-         cfarr1 = vertcat(cfarr1{:});
-         
-         cfarr2 = arrayfun(@(x) coefsplit2{x}(reshape(repmat(1:numel(coefsplit2{x}),...
-                                                           numel(coefsplit1{x}), 1), ...
-                                              [], 1)), ...
-                           1:num_unique_ix, 'uniformoutput', false);
-         cfarr2 = vertcat(cfarr2{:});
-
-         % constructing result
-         remove_ix = find(strcmp(ixname2, comp2.indexnames)) + numel(comp1.indexnames);
-         keep = true(size(ixarr, 2), 1);
-         keep(remove_ix) = false;
-         
-         comp.indexnames = [comp1.indexnames, ...
-                            comp2.indexnames(~strcmp(ixname2, comp2.indexnames))];
-         comp.coefs = cfarr1 .* cfarr2;
-         comp.ixs = ixarr(:, keep);
-         %comp.ixs(:, remove_ix) = [];
-      end
-      
-      function comp = semi_contract_index(comp, ixname) 
-         
-         local_ind = strcmp(ixname, comp.indexnames);
-         ixrows = comp.ixs(:, local_ind);
-         % keep all entries where the semi-contracted indices have the same value
-         keep_ind = sum(abs(diff(ixrows, [], 2)), 2) == 0;
-         
-         keep_ixvals = ixrows(keep_ind, 1);
-         comp.ixs = comp.ixs(keep_ind,:);
-         comp.ixs = comp.ixs(:, ~local_ind);
-         comp.ixs = [comp.ixs, keep_ixvals];
-         comp.coefs = comp.coefs(keep_ind);
-         comp.indexnames = [comp.indexnames(~local_ind), ixname];
-      end
-      
-      function comp = contract_one_index(comp, ixname)
+      function comp = single_component_contraction(comp, ixname)
+      % contract one component in one index
          local_ind = strcmp(ixname, comp.indexnames);
 
          % get rid of contracting index
@@ -590,20 +490,13 @@ classdef SmartTensor
 
          map = accumarray([ic, (1:size(comp.ixs, 1))'], 1, [], [], [], true);
          
-         % map = accumarray([SmartTensor.compute_1D_index(comp.ixs), ...
-         %                   (1:size(comp.ixs,1))'], ...
-         %                  1, [], [], [], true);
-
          comp.coefs = map * comp.coefs;
          
          % % extract nonzeros and recompute indices
-         % nz = find(comp.coefs);
-         % comp.coefs = comp.coefs(nz);
          
          logical_size = max(comp.ixs);
          reindex = cell(size(comp.ixs, 2), 1);
          
-         %[reindex{:}] = ind2sub(logical_size, nz);
          [reindex{:}] = ind2sub(logical_size, uindex);
          
          comp.ixs = [reindex{:}];
@@ -681,7 +574,7 @@ classdef SmartTensor
       function perm = get_permutation(cells1, cells2)
          % check that this actually is a permutation
          if ~SmartTensor.is_permutation(cells1, cells2)
-            error('provided indices not a permutation of tensor indices.');
+            error('provided indices do not constitute a permutation of tensor indices.');
          end
          perm = zeros(1, numel(cells1));
          for ix = 1:numel(cells1)

@@ -1,5 +1,5 @@
-%G = cartGrid([2, 3, 4]);
-G = cartGrid([20, 20, 10]);
+G = cartGrid([2, 3, 4]);
+%G = cartGrid([20, 20, 10]);
 
 T_dim_ind = SmartTensor(ones(G.griddim, 1), {'dim'});
 T_node_coords = SmartTensor(G.nodes.coords, {'node', 'dim'});
@@ -47,7 +47,7 @@ NcInd.k     = [1, 2, 3, 2, 1, 3, 3, 2, 1];
 
 T_Nc = SmartTensor([], [NcInd.d', NcInd.lform', NcInd.k'], {'dim', 'lform', 'k'});
 
-T_Nc = T_Nc * T_cell_node_distance_hom.changeIndexName('dim', 'k');
+T_Nc = T_Nc * T_cell_node_distance.changeIndexName('dim', 'k');
 
 % -------------------------------- compute q_i --------------------------------
 fprintf('Compute q_i\n');
@@ -66,7 +66,7 @@ fprintf('Compute Wc.\n');
 T_Wc = SmartTensor([2, 1, 1, 2, 1, 1, 2, 1, 1], ...
                    [NcInd.d', NcInd.lform', NcInd.k'], {'dim', 'lform', 'k'});
 
-T_Wc = T_Wc * T_cell_node_d_qc_hom.changeIndexName('dim', 'k');
+T_Wc = T_Wc * T_cell_node_d_qc.changeIndexName('dim', 'k');
 
 % -------------------------------- compute Nr --------------------------------
 fprintf('Compute Nr.\n');
