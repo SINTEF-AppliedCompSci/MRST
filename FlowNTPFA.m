@@ -19,8 +19,15 @@ dispif(mrstVerbose, ['FlowNTPFA problem is well posed ', num2str(well_posed),'\n
 
 % Expand u0 if there are rate wells
 u0 = [u0; ones(num_W_rate, 1)];
-T=TransNTPFA(u0);
-[A,b]=AssemAb(T,opt.src,well_posed); 
+T = TransNTPFA(G,bc,mu,u0,OSflux);
+[A,b] = AssemAb(G,bc,mu,rho,T,W,opt.src,well_posed); 
+
+if opt.MatrixOutput
+    state.A = A;
+    state.jac = jacobian(G,bc,mu,rho,u0,OSflux,W, opt, well_posed);
+    return;
+end
+
 iter=0;
 res=zeros(maxiter+1,1);
 bnorm=norm(b,inf);
@@ -30,8 +37,8 @@ u=u0;
 while(res(iter+1)>tol && iter<maxiter)
     dispif(mrstVerbose & mod(iter,1)==0, ['iter=',num2str(iter), ' res=', num2str(res(iter+1)), '\n'])
     u=A\b;
-    T=TransNTPFA(u);
-    [A,b]=AssemAb(T,opt.src,well_posed);
+    T=TransNTPFA(G,bc,mu,u,OSflux);
+    [A,b]=AssemAb(G,bc,mu,rho,T,W,opt.src,well_posed);
     iter=iter+1;
     res(iter+1)=norm(A*u-b,inf)/bnorm;
 end
@@ -41,21 +48,26 @@ if iter==maxiter
              ' reached. Residual=', num2str(res(end))]);
 end
 
-[flux,wellsol]=computeFlux(u,T);
+[flux,wellsol]=computeFlux(G,u,T,W,mu,rho);
 state.pressure=u(1:G.cells.num);
 state.flux=flux;
 state.wellSol=wellsol;
 state.iter=iter;
 state.res=res(1:iter+1);
 
-if opt.MatrixOutput
-    state.A = A;
+% if opt.MatrixOutput
+%     state.A = A;
+%     state.jac = jacobian(G, bc, mu, rho, u0, OSflux, opt, well_posed);
+% end
+
 end
-    
+
 %--------------------------------------------------------------------------
-function T=TransNTPFA(u)
+function T=TransNTPFA(G,bc,mu,u,OSflux)
     dispif(mrstVerbose, 'TransNTPFA\n');
-    T=zeros(G.faces.num,2);
+    T = cell(2,1);
+    T{1} = 0*repmat(u(1), G.faces.num, 1);
+    T{2} = 0*repmat(u(1), G.faces.num, 1);
     for i_face=1:G.faces.num
         if(all(G.faces.neighbors(i_face,:)~=0))
             t1=OSflux{i_face,1};
@@ -63,18 +75,26 @@ function T=TransNTPFA(u)
             r1=t1(3:end-1,2)'*u(t1(3:end-1,1))+t1(end,2);
             r2=t2(3:end-1,2)'*u(t2(3:end-1,1))+t2(end,2);
             eps=1e-12*max(abs([t1(:,end);t2(:,end)]));
-            if(abs(r1)<=eps),r1=0;end
-            if(abs(r2)<=eps),r2=0;end
+            if(abs(r1)<=eps)
+                %r1=0;
+                r1 = 0*r1; 
+            end
+            if(abs(r2)<=eps)
+                r2 = 0*r2;
+            end
             
             if(abs(r1+r2)>eps)
-                mu1=r2/(r1+r2);
+                mu1=r2./(r1+r2); % ./ for AD
                 mu2=1-mu1;
             else
-                mu1=0.5; 
-                mu2=0.5;
+                mu1=0*r1 + 0.5; 
+                mu2=0*r2 + 0.5;
             end
-            T(i_face,1)=(mu1*t1(1,2)+mu2*t2(2,2))/mu;
-            T(i_face,2)=(mu1*t1(2,2)+mu2*t2(1,2))/mu;
+            % if isa(u,'ADI')
+            %     keyboard
+            % end
+            T{1}(i_face)=(mu1*t1(1,2)+mu2*t2(2,2))./mu; 
+            T{2}(i_face)=(mu1*t1(2,2)+mu2*t2(1,2))./mu;
         else
             ind=find(bc.face==i_face,1);
             if(strcmpi(bc.type{ind},'pressure'))
@@ -93,18 +113,26 @@ function T=TransNTPFA(u)
                     mu1=0.5;
                     mu2=0.5;
                 end
-                T(i_face,1)=mu1*t11+mu2*t21; % Divide my mu as above?
-                T(i_face,2)=(mu1*t12+mu2*t22)*bc.value{ind}(G.faces.centroids(i_face,:));
+                T{1}(i_face)=mu1*t11+mu2*t21; % Divide by mu as above?
+                T{2}(i_face)=(mu1*t12+mu2*t22)*bc.value{ind}(G.faces.centroids(i_face,:));
             else
                 %T(i_face,2)=-G.faces.areas(i_face)*...
                 %    bc.value{ind}(G.faces.centroids(i_face,:));
-                T(i_face,2) = bc.value{ind}(G.faces.centroids(i_face,:));
+                T{2}(i_face) = bc.value{ind}(G.faces.centroids(i_face,:));
             end
         end
     end
+    %if isa(u,'ADI')
+    %    keyboard
+    % else
+    %     TT=zeros(G.faces.num,2);
+    %     TT(:,1) = T{1};
+    %     TT(:,2) = T{2};
+    %     T = TT;
+    %end
 end
 %--------------------------------------------------------------------------
-function [A,b]=AssemAb(T, src, well_posed)
+function [A,b,I,J,V]=AssemAb(G,bc,mu,rho,T,W, src, well_posed)
     dispif(mrstVerbose, 'AssemAb\n');
     ncf=max(diff(G.cells.facePos));
     nc=G.cells.num;
@@ -112,19 +140,32 @@ function [A,b]=AssemAb(T, src, well_posed)
     num_W_rate = getNoRateWells(W);
     nc = nc + num_W_rate;
     b=zeros(nc,1);
-    [I,J,V]=deal(zeros(ncf*nc,1));k=1;
+    k = 1;
+    %[I,J,V]=deal(zeros(ncf*nc,1));k=1;
+    [I,J]=deal(zeros(ncf*nc,1));
+    V = 0*repmat(T{1}(1), ncf*nc, 1);
+    
     for i_face=1:G.faces.num
         c1=G.faces.neighbors(i_face,1);
         c2=G.faces.neighbors(i_face,2);
         if(all([c1 c2]~=0))
-            I(k)=c1;J(k)=c1;V(k)=T(i_face,1);k=k+1;
-            I(k)=c1;J(k)=c2;V(k)=-T(i_face,2);k=k+1;
-            I(k)=c2;J(k)=c2;V(k)=T(i_face,2);k=k+1;
-            I(k)=c2;J(k)=c1;V(k)=-T(i_face,1);k=k+1;
+            I(k)=c1;J(k)=c1;V(k)=T{1}(i_face);k=k+1;
+            I(k)=c1;J(k)=c2;V(k)=-T{2}(i_face);k=k+1;
+            I(k)=c2;J(k)=c2;V(k)=T{2}(i_face);k=k+1;
+            I(k)=c2;J(k)=c1;V(k)=-T{1}(i_face);k=k+1;
+            % I(k)=c1;J(k)=c1;V(k)=value(T{1}(i_face));k=k+1;
+            % I(k)=c1;J(k)=c2;V(k)=value(-T{2}(i_face));k=k+1;
+            % I(k)=c2;J(k)=c2;V(k)=value(T{2}(i_face));k=k+1;
+            % I(k)=c2;J(k)=c1;V(k)=value(-T{1}(i_face));k=k+1;
         else
             c1=max(c1,c2);
-            I(k)=c1;J(k)=c1;V(k)=T(i_face,1);k=k+1;
-            b(c1)=b(c1)+T(i_face,2);
+            I(k)=c1;
+            J(k)=c1;
+            V(k)=T{1}(i_face);
+            %V(k)=value(T{1}(i_face));
+            k=k+1;
+            b(c1)=b(c1)+T{2}(i_face);
+            %b(c1)=b(c1)+value(T{2}(i_face));
         end
     end
     
@@ -159,7 +200,15 @@ function [A,b]=AssemAb(T, src, well_posed)
     end
     %-------------------------------------------------------
     I(k:end)=[];J(k:end)=[];V(k:end)=[];
-    A=sparse(I,J,V,nc,nc);
+  
+    if isa(V, 'ADI')
+        A = [];
+        b = [];
+        return;
+    else
+        A=sparse(I,J,V,nc,nc);
+    end
+    
     if ~isempty(src)
         b(src.cell(:))=b(src.cell(:))+src.rate(:);
     end
@@ -172,16 +221,18 @@ function [A,b]=AssemAb(T, src, well_posed)
             keyboard
         end
     end
+
+    %keyboard
 end
 %--------------------------------------------------------------------------
-function [flux,wellsol]=computeFlux(u,T)
+function [flux,wellsol]=computeFlux(G,u,T,W,mu,rho)
     dispif(mrstVerbose, 'computeFlux\n');
     flux=zeros(G.faces.num,1);
     ind=all(G.faces.neighbors~=0,2);
     c1=G.faces.neighbors(ind,1);c2=G.faces.neighbors(ind,2);
-    flux(ind)=T(ind,1).*u(c1)-T(ind,2).*u(c2);
+    flux(ind)=T{1}(ind).*u(c1)-T{2}(ind).*u(c2);
     c1=max(G.faces.neighbors(~ind,:),[],2);
-    flux(~ind)=T(~ind,1).*u(c1)-T(~ind,2);
+    flux(~ind)=T{1}(~ind).*u(c1)-T{2}(~ind);
     ind=G.faces.neighbors(:,1)==0;
     flux(ind)=-flux(ind);
     
@@ -204,7 +255,6 @@ function [flux,wellsol]=computeFlux(u,T)
         end
     end
 end
-end 
 
 function num_W_rate = getNoRateWells(W)
     num_W_rate = 0;
@@ -214,3 +264,42 @@ function num_W_rate = getNoRateWells(W)
         end
     end
 end
+
+function jac = jacobian(G,bc,mu,rho,u0,OSflux,W, opt, well_posed)
+     dispif(mrstVerbose, 'jacobian\n');
+ 
+    u0 = initVariablesADI(u0);
+    T = TransNTPFA(G,bc,mu,u0,OSflux); 
+
+    [A,b,I,J,V] = AssemAb(G,bc,mu,rho,T,W, opt.src, well_posed); 
+        
+    % Each entry i in Au is A(i,:)*u
+    Au = cell(numel(u0.val), 1);
+    for k = 1:numel(u0.val)
+        ii = find(I == k);
+        jj = J(ii);
+        Avals = V(ii);
+        uvals = u0(jj);
+        Au{k} = sum(Avals.*uvals);
+    end
+
+    eqs = combineEquations(Au{:});
+    jac = eqs.jac{1};
+    
+    % figure
+    % spy(A)
+    % title('A')
+    % figure
+    % spy(jac)
+    % title('jacobian')
+    % figure
+    % r = symrcm(jac);
+    % spy(jac(r,r))
+    % title('symrcm jacobian')
+    
+    % keyboard
+    
+    % solve
+    %x = -eqs.jac{1} \ eqs.val;
+end
+
