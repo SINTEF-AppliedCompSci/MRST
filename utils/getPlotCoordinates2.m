@@ -1,34 +1,47 @@
 function coords = getPlotCoordinates2(G, varargin)
 
-    opt = struct('n'      , 100  , ...
-                 'phaseNo', 1    , ...
-                 'plot'   , true , ...
-                 'plot1d' , false);
+    opt = struct('n'     , 1000  , ...
+                 'plot1d', false);
     
     [opt, ~] = merge_options(opt, varargin{:});
 
-    xmax = max(G.nodes.coords, [], 1);
-    xmin = min(G.nodes.coords, [], 1);
-    
     n0 = sortNodes(G);
-    faces = find(all(G.faces.neighbors > 0, 2));
-    n1 = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1),1);
-    n1 = repmat(reshape(n1,2,[]), 2, 1);
-    n1 = reshape(n1([1,2,4,3], :), [], 1);
-    n = [n0; n1];
-    x = G.nodes.coords(n,:);
-    cells0 = rldecode((1:G.cells.num)', diff(G.cells.nodePos), 1);
     
+    if opt.plot1d
+        xmax = max(G.nodes.coords, [], 1);
+        xmin = min(G.nodes.coords, [], 1);
+        x      = linspace(xmin(1), xmax(1), opt.n)';
+        y      = repmat((xmin(2) + xmax(2))/2, opt.n, 1);
+        points = [x,y];
+        cells  = nan(size(points, 1), 1);
+        for i = 1:G.cells.num
+            xv = G.nodes.coords(G.cells.nodes(G.cells.nodePos(i):G.cells.nodePos(i+1)-1),:);
+            ix = inpolygon(points(:,1), points(:,2), xv(:,1), xv(:,2));
+            cells(ix) = i;
+        end
+        faces = [];
+    else
     
-    cells1 = repmat(G.faces.neighbors(faces,:)', 2, 1);
-    cells1 = reshape(cells1([1,3,2,4], :), [], 1);
-    cells = [cells0; cells1];
+        faces = find(all(G.faces.neighbors > 0, 2));
+        n1 = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1),1);
+        n1 = repmat(reshape(n1,2,[]), 2, 1);
+        n1 = reshape(n1([1,2,4,3], :), [], 1);
+        n = [n0; n1];
+        x = G.nodes.coords(n,:);
+        cells0 = rldecode((1:G.cells.num)', diff(G.cells.nodePos), 1);
 
-    f = 1:size(x,1);
-    ii = [cells0; rldecode((1:numel(faces))' + max(cells0), 4, 1)];
-    jj = [mcolon(ones(G.cells.num,1), diff(G.cells.nodePos)), repmat(1:4, 1, numel(faces))];
-    faces = full(sparse(ii, jj, f));
-    faces(faces == 0) = nan;
+
+        cells1 = repmat(G.faces.neighbors(faces,:)', 2, 1);
+        cells1 = reshape(cells1([1,3,2,4], :), [], 1);
+        cells = [cells0; cells1];
+
+        f = 1:size(x,1);
+        ii = [cells0; rldecode((1:numel(faces))' + max(cells0), 4, 1)];
+        jj = [mcolon(ones(G.cells.num,1), diff(G.cells.nodePos)), repmat(1:4, 1, numel(faces))];
+        faces = full(sparse(ii, jj, f));
+        faces(faces == 0) = nan;
+        
+    end
     coords = struct('points', x, 'cells', cells, 'faces', faces);
 
 end
