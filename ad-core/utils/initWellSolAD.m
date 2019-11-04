@@ -138,7 +138,7 @@ for k = 1:nw
          ws(k).cs = W(k).cs*ws(k).qWs;
     end
     if isprop(model, 'thermal') && model.thermal
-         ws(k).cs = W(k).T;
+         ws(k).T = W(k).T;
     end
 
     ws(k).mixs = W(k).compi;
