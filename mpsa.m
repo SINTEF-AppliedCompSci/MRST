@@ -350,7 +350,7 @@ neuCol_eq = reshape(bsxfun(@plus,neuCol_eq * ones(1,Nd),nNeuCond/Nd*((1:Nd)-1))'
 
 % Values for implementation of Neumann boundary conditions. Refers to
 % global field to get the signs correct
-neuVal = reshape(repmat(sgn(neuCol_glob),1,Nd)',[],1) .*G.faces.areas(fnoLoc(neuCol_eq))...
+neuVal = reshape(repmat(sgn(neuCol_glob),1,Nd)',[],1) ...
     ./nFaceNodes(fnoLoc(neuCol_eq));
 ccNeu = sparse(neuCol_eq, 1:numel(neuCol_eq), neuVal, nNeuCond, nbnd);
 dirCol_eq = find(excludeNeumann * isDirichlet(fnoGlob));
