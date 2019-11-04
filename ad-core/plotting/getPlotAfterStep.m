@@ -72,7 +72,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('plotWell',        true, ...
                  'plotReservoir',   true, ...
                  'view',            [],   ...
-                 'wells',           []);
+                 'wells',           [],   ...
+                 'useTimesteps',    false);
     [opt, extra] = merge_options(opt, varargin{:});
     
     G = model.G;
@@ -91,8 +92,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         ws = model.FacilityModel.setWellSolStatistics(ws, sources);
 
         ws0 = {ws; ws};
-        
-        [hwell, injectWell] = plotWellSols(ws0);
+        if opt.useTimesteps
+            [hwell, injectWell] = plotWellSols(ws0, schedule.step.val([1,1]));
+        else
+            [hwell, injectWell] = plotWellSols(ws0);
+        end
     else
         [hwell, injectWell] = deal(nan);
     end
