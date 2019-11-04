@@ -1165,13 +1165,21 @@ methods
         % dissolution (rs/rv).
         %
         % For fully compositional problems, this branch will not execute.
+        isMass = isa(model, 'ExtendedReservoirModel');
         for i = 1:numel(s)
             sub = strcmpi(names, longNames{i});
             if any(sub)
                 assert(strcmpi(types{sub}, 'cell'), 'Unable to add source terms to equation that is not per cell.');
                 sc = src_terms.sourceCells;
+                if isMass
+                    % Equations are written in terms of mass
+                    scale = 1;
+                else
+                    % Equations are written in terms of source volumes
+                    scale = rhoS(i);
+                end
                 if ~isempty(sc)
-                    eqs{sub}(sc) = eqs{sub}(sc) - src_terms.phaseMass{i}./rhoS(i);
+                    eqs{sub}(sc) = eqs{sub}(sc) - src_terms.phaseMass{i}./scale;
                 end
 
                 if isfield(forces.bc, 'phaseMass')
@@ -1181,9 +1189,9 @@ methods
                 bc = bnd_cond.sourceCells;
                 if ~isempty(bc)
                     if isempty(bnd_cond.mapping)
-                        q = bnd_cond.phaseMass{i}./rhoS(i);
+                        q = bnd_cond.phaseMass{i}./scale;
                     else
-                        q = (bnd_cond.mapping*bnd_cond.phaseMass{i})./rhoS(i);
+                        q = (bnd_cond.mapping*bnd_cond.phaseMass{i})./scale;
                     end
                     eqs{sub}(bc) = eqs{sub}(bc) - q;
                 end
@@ -1202,6 +1210,11 @@ methods
         for i = 1:numel(cnames)
             % Iterate over individual components
             name = cnames{i};
+            if any(strcmpi(longNames, name))
+                % Component corresponds to pseudocomponent and has already
+                % been dealt with
+                continue
+            end
             sub = strcmpi(name, names);
             if any(sub)
                 eq = eqs{sub};

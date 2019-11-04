@@ -15,6 +15,7 @@ classdef Transmissibility < StateFunction
             T = model.operators.T;
             if isfield(model.fluid, 'transMult')
                 p = model.getProps(state, 'pressure');
+                p = model.operators.faceAvg(p);
                 T = model.fluid.transMult(p).*T;
             end
         end

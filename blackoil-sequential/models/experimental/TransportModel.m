@@ -16,18 +16,25 @@ classdef TransportModel < WrapperModel
             end
             parent = model.parentModel;
             % Get the AD state for this model
-            [basevars, basenames, origin] = model.getPrimaryVariables(state);
-            isParent = strcmp(origin, class(parent));
+            [basevars, basenames, baseorigin] = model.getPrimaryVariables(state);
+            isParent = strcmp(baseorigin, class(parent));
             basevars = basevars(isParent);
             basenames = basenames(isParent);
-            origin = origin(isParent);
+            baseorigin = baseorigin(isParent);
             % Find saturations
             isS = false(size(basevars));
             nph = parent.getNumberOfPhases();
             phase_variable_index = zeros(nph, 1);
             for i = 1:numel(basevars)
-                [f, ix] = model.getVariableField(basenames{i});
-                if strcmp(f, 's')
+                bn = basenames{i};
+                if strcmp(bn, 'x')
+                    % Hack for blackoil-models
+                    ss = true;
+                else
+                    [f, ix] = model.getVariableField(basenames{i});
+                    ss = strcmp(f, 's');
+                end
+                if ss
                     isS(i) = true;
                     phase_variable_index(ix) = i;
                 end
@@ -36,6 +43,7 @@ classdef TransportModel < WrapperModel
             isP = strcmp(basenames, 'pressure');
             vars = basevars;
             names = basenames;
+            origin = baseorigin;
             useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
                                     && sum(isS) == nph - 1;
             if useTotalSaturation
@@ -60,7 +68,7 @@ classdef TransportModel < WrapperModel
             else
                 basevars(~isP) = vars;
             end
-            state = model.initStateAD(state, basevars, basenames, origin);
+            state = model.initStateAD(state, basevars, basenames, baseorigin);
             if useTotalSaturation
                 % Set total saturation as well
                 sT = vars{isP};
@@ -71,22 +79,17 @@ classdef TransportModel < WrapperModel
 
         function [eqs, names, types, state] = getModelEquations(tmodel, state0, state, dt, drivingForces)
             model = tmodel.parentModel;
-            [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
-            src = model.FacilityModel.getComponentSources(state);
-            % Assemble equations and add in sources
+            [eqs, names, types, state] = model.getModelEquations(state0, state, dt, drivingForces);
             if strcmpi(tmodel.formulation, 'missingPhase')
-                % Skip the last phase! Only mass-conservative for
-                % incompressible problems
-                eqs = eqs(1:end-1);
-                flux = flux(1:end-1);
-                names = names(1:end-1);
-                types = types(1:end-1);
-            end
-            for i = 1:numel(eqs)
-                if ~isempty(src.cells)
-                    eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
-                end
-                eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
+                % Skip the last pseudocomponent/phase! Only
+                % mass-conservative for incompressible problems or with
+                % outer loop enabled
+                cnames = model.getComponentNames();
+                subs = true(size(names));
+                subs(strcmpi(names, cnames{end})) = false;
+                eqs = eqs(subs);
+                names = names(subs);
+                types = types(subs);
             end
         end
 

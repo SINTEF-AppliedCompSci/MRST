@@ -71,6 +71,11 @@ oil = (1/dt).*( pv.*bO.*sO - pv.*bO0.*sO0);
 water = (1/dt).*( pv.*bW.*sW - pv0.*bW0.*sW0);
 
 eqs = {water, oil};
+for i = 1:numel(eqs)
+    if isnumeric(eqs{i})
+        eqs{i} = model.AutoDiffBackend.convertToAD(eqs{i}, p);
+    end
+end
 sat = {sW, sO};
 
 names = {'water', 'oil'};

@@ -24,23 +24,23 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
             sat = props.getRegionSaturation(model);
             pvt = props.getRegionPVT(model);
             % Saturation properties
-            props.CapillaryPressure = BlackOilCapillaryPressure(model, sat);
-            props.RelativePermeability = BaseRelativePermeability(model, sat);
-            props.Mobility = Mobility(model, sat);
+            props = props.setStateFunction('CapillaryPressure', BlackOilCapillaryPressure(model, sat));
+            props = props.setStateFunction('RelativePermeability', BaseRelativePermeability(model, sat));
+            props = props.setStateFunction('Mobility', Mobility(model, sat));
 
             % PVT properties
-            props.ShrinkageFactors = BlackOilShrinkageFactors(model, pvt);
-            props.Density = BlackOilDensity(model, pvt);
-            props.Viscosity = BlackOilViscosity(model, pvt);
-            props.PoreVolume = MultipliedPoreVolume(model, pvt);
-            props.PhasePressures = PhasePressures(model, pvt);
-            props.PressureReductionFactors = BlackOilPressureReductionFactors(model);
+            props = props.setStateFunction('ShrinkageFactors', BlackOilShrinkageFactors(model, pvt));
+            props = props.setStateFunction('Density', BlackOilDensity(model, pvt));
+            props = props.setStateFunction('Viscosity', BlackOilViscosity(model, pvt));
+            props = props.setStateFunction('PoreVolume', MultipliedPoreVolume(model, pvt));
+            props = props.setStateFunction('PhasePressures', PhasePressures(model, pvt));
+            props = props.setStateFunction('PressureReductionFactors', BlackOilPressureReductionFactors(model));
             
             % Components
-            props.ComponentPhaseMass = ComponentPhaseMass(model);
-            props.ComponentTotalMass = ComponentTotalMass(model);
-            props.ComponentMobility = ComponentMobility(model);
-            props.ComponentPhaseDensity = ComponentPhaseDensity(model);
+            props = props.setStateFunction('ComponentPhaseMass', ComponentPhaseMass(model));
+            props = props.setStateFunction('ComponentTotalMass', ComponentTotalMass(model));
+            props = props.setStateFunction('ComponentMobility', ComponentMobility(model));
+            props = props.setStateFunction('ComponentPhaseDensity', ComponentPhaseDensity(model));
 
             if ~isempty(model.inputdata)
                 % We may have recieved a deck. Check for endpoint scaling
@@ -52,9 +52,9 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
                 props.RelativePermeability.relpermPoints = 2 + three_point;
                 if isfield(model.rock, 'sw')
                     % Endpoint capillary pressure is defined
-                    props.CapillaryPressure =...
-                        props.CapillaryPressure.setWaterEndpointScaling...
-                                                (model, model.rock.sw, 1);
+                    pc = props.getStateFunction('CapillaryPressure');
+                    pc = pc.setWaterEndpointScaling(model, model.rock.sw, 1);
+                    props = props.setStateFunction('CapillaryPressure', pc);
                 end
             end
             % Black-oil specific features follow

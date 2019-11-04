@@ -64,13 +64,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     W     = drivingForces.W;
 
     % Properties at current timestep
-    [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
+    [p, sW, cs, csmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
                                                       'surfactant', ...
                                                       'surfactantmax', ...
                                                       'wellsol');
 
     % Properties at previous timestep
-    [p0, sW0, c0, cmax0, wellSol0] = model.getProps(state0, 'pressure', 'water', ...
+    [p0, sW0, cs0, csmax0, wellSol0] = model.getProps(state0, 'pressure', 'water', ...
                                                             'surfactant', ...
                                                             'surfactantmax', ...
                                                             'wellsol');
@@ -86,10 +86,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~opt.resOnly,
         % ADI variables needed since we are not only computing residuals.
         if ~opt.reverseMode,
-            [p, sW, c, wellVars{:}] = initVariablesADI(p, sW, c, wellVars{:});
+            [p, sW, cs, wellVars{:}] = initVariablesADI(p, sW, cs, wellVars{:});
         else
             wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
-            [p0, sW0, c0, wellVars0{:}] = initVariablesADI(p0, sW0, c0, wellVars0{:}); %#ok
+            [p0, sW0, cs0, wellVars0{:}] = initVariablesADI(p0, sW0, cs0, wellVars0{:}); %#ok
         end
     end
 
@@ -104,14 +104,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     sat0 = {sW0, sO0};
     
     % Update state with AD-variables
-    state = model.setProps(state  , {'s', 'pressure', 'surfactant'}, {sat , p , c});
-    state0 = model.setProps(state0, {'s', 'pressure', 'surfactant'}, {sat0, p0, c0});
+    state = model.setProps(state  , {'s', 'pressure', 'surfactant'}, {sat , p , cs});
+    state0 = model.setProps(state0, {'s', 'pressure', 'surfactant'}, {sat0, p0, cs0});
     % Set up properties
     state = model.initStateFunctionContainers(state);
     
     % EQUATIONS ---------------------------------------------------------------
     pBH = wellVars{wellMap.isBHP};
-    Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, op, 'velocCompMethod', ...
+    Nc = computeCapillaryNumber(p, cs, pBH, W, fluid, G, op, 'velocCompMethod', ...
                                 opt.velocCompMethod);
     state.CapillaryNumber = Nc;
 
@@ -157,21 +157,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     ads_term = fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0);
 
     % Conservation of surfactant in water:
-    vSft   = op.faceUpstr(upcw, c).*vW;
+    vSft   = op.faceUpstr(upcw, cs).*vW;
     bWvSft = op.faceUpstr(upcw, bW).*vSft;
-    surfactant    = (1/dt).*(pv.*bW.*sW.*c - pv0.*bW0.*sW0.*c0) + (op.pv/dt).*ads_term;
+    surfactant    = (1/dt).*(pv.*bW.*sW.*cs - pv0.*bW0.*sW0.*cs0) + (op.pv/dt).*ads_term;
     divSurfactant = op.Div(bWvSft);
     surfactant = surfactant + divSurfactant;
     
+    if ~opt.resOnly
+        epsilon = 1.e-8;
+        % the first way is based on the diagonal values of the resulting
+        % Jacobian matrix
+        eps = sqrt(epsilon)*mean(abs(diag(surfactant.jac{3})));
+        % sometimes there is no water in the whole domain
+        if (eps == 0.)
+            eps = epsilon;
+        end
+        % bad marks the cells prolematic in evaluating Jacobian
+        bad = abs(diag(surfactant.jac{3})) < eps;
+        % the other way is to choose based on the water saturation
+        surfactant(bad) = cs(bad);
+    end
+    
     if model.extraStateOutput
-        sigma = fluid.ift(c);
+        sigma = fluid.ift(cs);
         CapillaryNumber = Nc;
     end
 
     eqs      = {water   , oil   , surfactant};
     names    = {'water' , 'oil' , 'surfactant'};
     types    = {'cell'  , 'cell', 'cell'};
-    components = {c};
+    components = {cs};
     
     [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, ...
                                                    state, pressures, sat, mob, ...

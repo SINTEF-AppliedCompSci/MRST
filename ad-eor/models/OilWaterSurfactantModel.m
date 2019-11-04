@@ -56,8 +56,8 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
                                                               drivingForces);
             % cap the concentration (only if implicit solver for concentration)
             if model.surfactant
-                c = model.getProp(state, 'surfactant');
-                state = model.setProp(state, 'surfactant', max(c, 0) );
+                cs = model.getProp(state, 'surfactant');
+                state = model.setProp(state, 'surfactant', max(cs, 0) );
             end
         end
 
@@ -65,9 +65,9 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
             [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, ...
                                                               drivingForces);
               if model.surfactant
-                  c     = model.getProp(state, 'surfactant');
-                  cmax  = model.getProp(state, 'surfactantmax');
-                  state = model.setProp(state, 'surfactantmax', max(cmax, c));
+                  cs     = model.getProp(state, 'surfactant');
+                  csmax  = model.getProp(state, 'surfactantmax');
+                  state = model.setProp(state, 'surfactantmax', max(csmax, cs));
               end
         end
 
@@ -115,12 +115,11 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
         end
 
 
-        function state = storeSurfData(model, state, s, c, Nc, sigma)
+        function state = storeSurfData(model, state, s, cs, Nc, sigma)
             state.SWAT    = double(s);
-            state.SURFACT = double(c);
+            state.SURFACT = double(cs);
             state.SURFCNM = log(double(Nc))/log(10);
             state.SURFST  = double(sigma);
-            % state.SURFADS = double(ads);
         end
 
         function [names, types] = getExtraWellEquationNames(model)

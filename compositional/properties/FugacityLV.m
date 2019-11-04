@@ -7,6 +7,7 @@ classdef FugacityLV < StateFunction
         function gp = FugacityLV(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions', 'PhaseCompressibilityFactors'});
+            gp = gp.dependsOn({'pressure'}, 'state');
         end
 
         function f = evaluateOnDomain(prop, model, state)

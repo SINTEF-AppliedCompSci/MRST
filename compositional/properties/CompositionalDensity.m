@@ -7,6 +7,7 @@ classdef CompositionalDensity < StateFunction
         function gp = CompositionalDensity(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
+            gp = gp.dependsOn({'pressure', 'temperature'}, 'state');
         end
 
         function rho = evaluateOnDomain(prop, model, state)

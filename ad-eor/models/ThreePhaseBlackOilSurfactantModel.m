@@ -1,38 +1,38 @@
 classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
-    %
-    %
-    % SYNOPSIS:
-    %   model = ThreePhaseBlackOilSurfactantModel(G, rock, fluid, varargin)
-    %
-    % DESCRIPTION: 
-    %   Fully implicit model for an oil water system with surfactant. All
-    %   the equations are solved implicitly. A description of the surfactant model
-    %   that is implemented can be found in the directory ad-eor/docs .
-    %
-    % PARAMETERS:
-    %   G        - Grid
-    %   rock     - Rock structure
-    %   fluid    - Fluid structure
-    %   varargin - optional parameter
-    %
-    % RETURNS:
-    %   class instance
-    %
-    % EXAMPLE:
-    %
-    % SEE ALSO: equationsOilWaterSurfactant, ImplicitExplicitOilWaterSurfactantModel
-    %
-
+%
+%
+% SYNOPSIS:
+%   model = ThreePhaseBlackOilSurfactantModel(G, rock, fluid, varargin)
+%
+% DESCRIPTION: 
+%   Fully implicit model for an black-oil system with surfactant. All
+%   the equations are solved implicitly. A description of the surfactant model
+%   that is implemented can be found in the directory ad-eor/docs .
+%
+% PARAMETERS:
+%   G        - Grid
+%   rock     - Rock structure
+%   fluid    - Fluid structure
+%   varargin - optional parameter
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO: equationsThreePhaseBlackOilPolymer
+%
+    
     properties
         surfactant
     end
-
+    
     methods
-
+    
         function model = ThreePhaseBlackOilSurfactantModel(G, rock, fluid, varargin)
-
-            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:}); 
-%           Add veloc calculation
+            
+            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
+            % Add veloc calculation
             model = model.setupOperators(G, rock, varargin{:});
             model.surfactant = true;
             model = merge_options(model, varargin{:});
@@ -46,28 +46,29 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             [problem, state] = equationsThreePhaseBlackOilSurfactant(state0, state,...
-                model, dt, drivingForces, varargin{:});
+                                                              model, dt, drivingForces, varargin{:});
         end
 
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             [state, report] = updateState@ThreePhaseBlackOilModel(model,...
-                state, problem,  dx, drivingForces);
+                                                              state, problem,  dx, drivingForces);
             % cap the concentration (only if implicit solver for concentration)
             if model.surfactant
-                c = model.getProp(state, 'surfactant');
-                state = model.setProp(state, 'surfactant', max(c, 0) );
+                cs = model.getProp(state, 'surfactant');
+                state = model.setProp(state, 'surfactant', max(cs, 0) );
             end
         end
 
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@ThreePhaseBlackOilModel(model,...
-                state0, state, dt, drivingForces);
-              if model.surfactant
-                  c     = model.getProp(state, 'surfactant');
-                  cmax  = model.getProp(state, 'surfactantmax');
-                  state = model.setProp(state, 'surfactantmax', max(cmax, c));
-              end
+                                                              state0, state, dt, drivingForces);
+            if model.surfactant
+                cs     = model.getProp(state, 'surfactant');
+                csmax  = model.getProp(state, 'surfactantmax');
+                state = model.setProp(state, 'surfactantmax', max(csmax, cs));
+            end
         end
+        
 
         function state = validateState(model, state)
             state = validateState@ThreePhaseBlackOilModel(model, state);
@@ -75,21 +76,28 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
             model.checkProperty(state, 'Surfactant', [nc, 1], [1, 2]);
             model.checkProperty(state, 'SurfactantMax', [nc, 1], [1, 2]);
         end
+        
+        function model = validateModel(model, varargin)
+            if isempty(model.FlowPropertyFunctions)
+                model.FlowPropertyFunctions = SurfactantFlowPropertyFunctions(model);
+            end
+            model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
+        end 
 
-        function [fn, index] = getVariableField(model, name)
+        function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))
-                case {'surfactant'}
-                    index = 1;
-                    fn = 'c';
-                case {'surfactantmax'}
-                    index = 1;
-                    fn = 'cmax';
-                case 'qwsft'
-                    index = 1;
-                    fn = 'qWSft';
-                otherwise
-                    [fn, index] = getVariableField@ThreePhaseBlackOilModel(...
-                        model, name);
+              case {'surfactant'}
+                index = 1;
+                fn = 'cs';
+              case {'surfactantmax'}
+                index = 1;
+                fn = 'csmax';
+              case 'qwsft'
+                index = 1;
+                fn = 'qWSft';
+              otherwise
+                [fn, index] = getVariableField@ThreePhaseBlackOilModel(...
+                    model, name, varargin{:});
             end
         end
 
@@ -101,9 +109,9 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
         end
 
 
-        function state = storeSurfData(model, state, s, c, Nc, sigma)
+        function state = storeSurfData(model, state, s, cs, Nc, sigma)
             state.SWAT    = double(s);
-            state.SURFACT = double(c);
+            state.SURFACT = double(cs);
             state.SURFCNM = log(double(Nc))/log(10);
             state.SURFST  = double(sigma);
             % state.SURFADS = double(ads);
@@ -190,7 +198,7 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
                                             % surface condition.
                 cqS = concWell.*cqWs;
 
-                compEqs{end+1} = qwsft - sum(cqWs);
+                compEqs{end+1} = qwsft - sum(concWell.*cqWs);
                 compSrc{end+1} = cqS;
                 compNames{end+1} = 'surfactantWells';
             end
@@ -214,7 +222,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+    You should have received a copy of the GNU General Public License
+    along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+    %}
 

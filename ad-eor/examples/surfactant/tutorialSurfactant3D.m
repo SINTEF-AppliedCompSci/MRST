@@ -45,8 +45,8 @@ state0.s(ijk{3} == 2, 2) = .8;
 % Enforce s_w + s_o = 1;
 state0.s(:,1) = 1 - state0.s(:,2);
 
-state0.c    = zeros(G.cells.num, 1);
-state0.cmax = state0.c;
+state0.cs    = zeros(G.cells.num, 1);
+state0.csmax = state0.cs;
 
 clf
 plotCellData(G, state0.s(:,2));
@@ -70,16 +70,6 @@ model = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
 % MRST schedule is set up.
 
 schedule = convertDeckScheduleToMRST(model, deck);
-
-
-%% Visualize some properties of the model we have setup
-%
-
-% We gathered visualizing command for this tutorial in the following script
-example_name = '2D';
-% vizSurfactantModel;
-
-
 
 %% Run the schedule
 %

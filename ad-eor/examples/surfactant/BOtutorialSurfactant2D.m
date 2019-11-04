@@ -1,6 +1,6 @@
-%% 2D Tutorial For ad BlackOil-Surfactant system
+%% 2D Tutorial For ad Black-Oil-Surfactant system
 % The input data is read from a deck using Eclipse format
-% (BOSURFACTANT2D.DATA). The surfactant property (see file surfact.inc) are taken
+% (BOSURFACTANT2D.DATA). The surfactant properties (see file surfact.inc) are taken
 % from SPE paper 145036.
 %
 % Surfactant is added to water in order to decrease the surface tension so that,
@@ -22,7 +22,8 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 %% We load the input data and setup the grid, rock and fluid structures
 
 current_dir = fileparts(mfilename('fullpath'));
-fn = fullfile(current_dir, 'BOSURFACTANT2D.DATA');
+fn = fullfile(current_dir, 'Test_BOSURFACTANT2D.DATA');
+
 gravity on
 
 deck = readEclipseDeck(fn);
@@ -47,16 +48,8 @@ model = ThreePhaseBlackOilSurfactantModel(G, rock, fluid, ...
 
 schedule = convertDeckScheduleToMRST(model, deck);
 state0 = initStateDeck(model,deck);
-state0.c    = zeros(G.cells.num, 1);
-state0.cmax = state0.c;
-
-%% Visualize some properties of the model we have setup
-%
-% We gathered visualizing command for this tutorial in the following script
-
-example_name = '2D';
-vizSurfactantModel;
-% close all;
+state0.cs    = zeros(G.cells.num, 1);
+state0.csmax = state0.cs;
 
 %% Run the schedule and set up the initial state
 %
@@ -64,53 +57,60 @@ vizSurfactantModel;
 % Options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true, ...
-                      'plotReservoir', false);
+                      'plotReservoir', true, 'view', [20, 8], ...
+                      'field', 's:2');
 
 [wellSolsSurfactant, statesSurfactant, reportSurfactant] = simulateScheduleAD(state0, model, schedule, 'afterStepFn', fn);
 
 % we use schedulew to run the three phase black oil water flooding simulation.
 scheduleW = schedule;
-scheduleW.control(2).W(1).c = 0;
-scheduleW.control(2).W(2).c = 0;
-[wellSols, states, report] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);
-                                       
-%% Plot cell oil saturation in different tsteps of surfactant flooding and water flooding
+scheduleW.control(1).W(1).cs = 0;
+scheduleW.control(1).W(2).cs = 0;
+scheduleW.control(2).W(1).cs = 0;
+scheduleW.control(2).W(2).cs = 0;
+scheduleW.control(3).W(1).cs = 0;
+scheduleW.control(3).W(2).cs = 0;
+[wellSolsW, statesW, reportW] = simulateScheduleAD(state0, model, scheduleW, 'afterStepFn', fn);    
 
-T = (60:30:300);
+%% Plot cell oil saturation in different tsteps of water flooding and surfactant flooding
+T = (80:23:268);
 
-min( cellfun(@(x)min(x.s(:,2)), statesSurfactant) );
-max( cellfun(@(x)max(x.s(:,2)), statesSurfactant) );
-
+% Plot cell oil saturation in different tsteps of pure water flooding
+sOmin = min( cellfun(@(x)min(x.s(:,2)), statesW) );
+sOmax = max( cellfun(@(x)max(x.s(:,2)), statesW) );
 figure
 for i = 1 : length(T)
     subplot(3,3,i)
-    plotCellData(G, statesSurfactant{T(i)}.s(:,2))
-    plotWell(G, schedule.control(1).W)
+    plotCellData(model.G, statesW{T(i)}.s(:,2))
+    plotWell(model.G, schedule.control(1).W, 'fontsize', 10)
     axis tight
     colormap(jet)
     view(3)
-    caxis([0, 0.79])
+    caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
+sgtitle('Oil saturation for water flooding')
 
-min( cellfun(@(x)min(x.s(:,2)), states) );
-max( cellfun(@(x)max(x.s(:,2)), states) );
-
+% Plot cell oil saturation in different tsteps of surfactant flooding
+sOmin = min( cellfun(@(x)min(x.s(:,2)), statesSurfactant) );
+sOmax = max( cellfun(@(x)max(x.s(:,2)), statesSurfactant) );
 figure
 for i = 1 : length(T)
     subplot(3,3,i)
-    plotCellData(G, states{T(i)}.s(:,2))
-    plotWell(G, schedule.control(1).W)
+    plotCellData(model.G, statesSurfactant{T(i)}.s(:,2))
+    plotWell(model.G, schedule.control(1).W, 'fontsize', 10)
     axis tight
     colormap(jet)
     view(3)
-    caxis([0, 0.79])
+    caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
+sgtitle('Oil saturation for surfactant flooding')
 
 %% Plot well solutions
-
-plotWellSols({wellSolsSurfactant, wellSols})
+% The orange line denotes pure water flooding while the blue line denotes
+% surfactant flooing
+plotWellSols({wellSolsSurfactant, wellSolsW}, cumsum(schedule.step.val))
 
 %% Copyright notice
 

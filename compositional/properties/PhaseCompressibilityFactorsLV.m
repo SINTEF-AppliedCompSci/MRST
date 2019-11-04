@@ -7,6 +7,7 @@ classdef PhaseCompressibilityFactorsLV < StateFunction
         function gp = PhaseCompressibilityFactorsLV(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions'});
+            gp = gp.dependsOn({'pressure'}, 'state');
         end
 
         function v = evaluateOnDomain(prop, model, state)

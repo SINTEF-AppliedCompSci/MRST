@@ -16,6 +16,15 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
             [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
+            % Treat source or bc terms
+            if ~isempty(drivingForces.bc) || ~isempty(drivingForces.src)
+                [pressures, sat, mob, rho, rs, rv] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'Rs', 'Rv');
+                dissolved = model.getDissolutionMatrix(rs, rv);
+                eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+                                                                 pressures, sat, mob, rho, ...
+                                                                 dissolved, {}, ...
+                                                                 drivingForces);
+            end
             % Assemble equations and add in sources
             for i = 1:numel(eqs)
                 if ~isempty(src.cells)
@@ -83,7 +92,8 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
             if model.outputFluxes
-                f = model.getProp(state, 'PhaseFlux');
+                state_flow = model.FluxDiscretization.buildFlowState(model, state, state0, dt);
+                f = model.getProp(state_flow, 'PhaseFlux');
                 nph = numel(f);
                 state.flux = zeros(model.G.faces.num, nph);
                 state.flux(model.operators.internalConn, :) = [f{:}];

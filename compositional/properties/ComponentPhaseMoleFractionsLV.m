@@ -5,6 +5,7 @@ classdef ComponentPhaseMoleFractionsLV < StateFunction
     methods
         function gp = ComponentPhaseMoleFractionsLV(model, varargin)
             gp@StateFunction(model, varargin{:});
+            gp = gp.dependsOn({'x', 'y'}, 'state');
         end
 
         function v = evaluateOnDomain(prop, model, state)

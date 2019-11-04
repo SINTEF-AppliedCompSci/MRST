@@ -50,22 +50,10 @@ classdef ExtendedFacilityModel < FacilityModel
                     end
                 end
             end
-            W = map.W;
-            rhoS = model.getSurfaceDensities();
-            % We take the surface density for the first well cell,
-            % regardless of active or inactive status for that
-            % perforation.
-            topcell = arrayfun(@(x) x.cells(1), W);
-            reg = model.FlowPropertyFunctions.Density.regions;
-            rhoS = rhoS(reg(topcell), :);
-            if isfield(W, 'rhoS')
-                % Surface density is given on a per-well-basis for the
-                % injectors
-                rhoS(map.isInjector, :) = vertcat(W(map.isInjector).rhoS);
-            end
+            rhoS = facility.getProp(state, 'InjectionSurfaceDensity');
             surfaceRates = cell(1, nph);
             for ph = 1:nph
-                rhoPhase = rhoS(:, ph);
+                rhoPhase = rhoS{ph};
                 surfaceRates{ph} = phaseMassRates{ph}./rhoPhase;
                 rhoPhase = model.AutoDiffBackend.convertToAD(rhoPhase, cflux{1});
                 surfaceDensity{ph} = rhoPhase;
@@ -277,13 +265,26 @@ classdef ExtendedFacilityModel < FacilityModel
                 rho = [rho{:}];
                 [wc, perf2well] = model.getActiveWellCells(wellSol);
                 rho = rho(wc, :);
+                % Use mobility in well-cells if no connection fluxes are
+                % available (typically first step for well)
+                if ~isfield(wellSol(1), 'ComponentTotalFlux') || any(arrayfun(@(x)isempty(x.ComponentTotalFlux), wellSol))
+                    mob = model.ReservoirModel.getProps(state, 'Mobility');
+                    mob = [mob{:}];
+                    mob = mob(wc,:);
+                else
+                    [mob, mob_i] = deal([]); % not used
+                end
+                    
                 for i = 1:nw
                     wellNo = actWellIx(i);
                     wm = model.WellModels{wellNo};
                     % Possible index error for i here - should it be
                     % wellno?
                     rho_i = rho(perf2well == wellNo, :);
-                    wellSol(wellNo) = wm.updateConnectionPressureDropState(model.ReservoirModel, wellSol(wellNo), rho_i, rho_i);
+                    if ~isempty(mob)
+                        mob_i = mob(perf2well == wellNo, :);
+                    end
+                    wellSol(wellNo) = wm.updateConnectionPressureDropState(model.ReservoirModel, wellSol(wellNo), rho_i, rho_i, mob_i);
                 end
             end
             state.wellSol = wellSol;

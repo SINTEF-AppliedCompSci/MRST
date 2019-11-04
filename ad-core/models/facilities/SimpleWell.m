@@ -353,7 +353,7 @@ classdef SimpleWell < PhysicalModel
             wellSol.cdp = cdp;
         end
         
-        function wellSol = updateConnectionPressureDropState(well, model, wellSol, rho_res, rho_well)
+        function wellSol = updateConnectionPressureDropState(well, model, wellSol, rho_res, rho_well, mob_res)
             % Simpler version
             if ~well.doUpdatePressureDrop
                 return
@@ -374,20 +374,23 @@ classdef SimpleWell < PhysicalModel
 %                     qVol = qVol.*w.compi;
                 end
             else
+                % typically initial step, assume uniform drawdown and use compi/mobility accordingly
                 sgn = w.sign;
                 if sgn == 0
                     sgn = 1;
                 end
-                qVol = sgn*ones(size(rho_res));
-                in = qVol > 0;
-                qMass = bsxfun(@times, qVol, rho_well).*in + bsxfun(@times, qVol, rho_res).*~in;
+                qVol  = w.WI*w.compi;
+                if sgn == -1 && nargin == 6 && ~isempty(mob_res)
+                    qVol  = bsxfun(@times, w.WI,  mob_res);
+                end
+                qMass = qVol.*rho_res; 
             end
             C = well.wb2in(w);      % mapping wb-flux to in-flux
             wbMassFlux  = abs(C\qMass);  % solve to get well-bore mass flux
             wbVolumeFlux  = abs(C\qVol); % solve to get well-bore volume flux
             
             rhoMix = sum(wbMassFlux, 2)./sum(wbVolumeFlux, 2);
-
+            rhoMix(isnan(rhoMix)) = 0;
             % get dz between segment nodes and bh-node1. This is a simple
             % hydrostatic distribution.
             dpt = [0; w.dZ];

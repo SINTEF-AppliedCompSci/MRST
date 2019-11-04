@@ -6,7 +6,8 @@ classdef CompositionalViscosityLV < StateFunction
     methods
         function gp = CompositionalViscosityLV(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors'});
+            gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
+            gp = gp.dependsOn({'pressure', 'temperature'}, 'state');
         end
         
         function mu = evaluateOnDomain(prop, model, state)
@@ -14,8 +15,15 @@ classdef CompositionalViscosityLV < StateFunction
             nph = sum(act);
             mu = cell(1, nph);
             
-            [p, T, x, y] = model.getProps(state, 'pressure', 'T', 'x', 'y');
-            Z = prop.getEvaluatedDependencies(state, 'PhaseCompressibilityFactors');
+            [p, T] = model.getProps(state, 'pressure', 'T');
+            [Z, mf] = prop.getEvaluatedDependencies(state, 'PhaseCompressibilityFactors',...
+                                                           'ComponentPhaseMoleFractions');
+            oix = phInd == 2;
+            gix = phInd == 3;
+            
+            x = mf((1+model.water):end, oix);
+            y = mf((1+model.water):end, gix);
+
             if model.water
                 p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
                 f = model.fluid;
@@ -24,9 +32,7 @@ classdef CompositionalViscosityLV < StateFunction
                 mu{wix} = prop.evaluateFunctionOnDomainWithArguments(f.muW, pw);
             end
             pm = model.EOSModel.PropertyModel;
-            oix = phInd == 2;
-            mu{oix} = pm.computeViscosity(p, x, Z{oix}, T, nan);
-            gix = phInd == 3;
+            mu{oix} = pm.computeViscosity(p, x, Z{oix}, T, true);
             
             twoPhase = model.getTwoPhaseFlag(state);
             if prop.useCompactEvaluation && ~all(twoPhase)
@@ -37,10 +43,10 @@ classdef CompositionalViscosityLV < StateFunction
                     else
                         y = y(twoPhase, :);
                     end
-                    muV(twoPhase) = pm.computeViscosity(p(twoPhase), y, Z{gix}(twoPhase), T(twoPhase), nan);
+                    muV(twoPhase) = pm.computeViscosity(p(twoPhase), y, Z{gix}(twoPhase), T(twoPhase), false);
                 end
             else
-                muV = pm.computeViscosity(p, y, Z{gix}, T, nan);
+                muV = pm.computeViscosity(p, y, Z{gix}, T, false);
             end
             mu{gix} = muV;
         end

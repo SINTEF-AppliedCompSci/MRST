@@ -32,6 +32,39 @@ classdef DiagonalSubset < DiagonalJacobian
                 x = x.toZero();
             end
         end
+        
+        function [x, D1, D2] = diagProductMult(v1, v2, x, y, D1, D2)
+            persistent allow_implicit;
+            if isempty(allow_implicit)
+                allow_implicit = ~verLessThan('matlab','9.1');
+            end
+            numx = isnumeric(x);
+            if numx || isnumeric(y)
+                [x, D2] = diagMult(v2, x, D2);
+                [y, D1] = diagMult(v1, y, D1);
+                x = x + y;
+            else
+                if numx
+                    n = size(y.map, 2);
+                else
+                    n = size(x.map, 2);
+                end
+                if isempty(x.diagonal)
+                    [x, D1] = diagMult(v1, y, D1);
+                elseif isempty(y.diagonal)
+                    [x, D2] = diagMult(v2, x, D2);
+                else
+                    v1 = repmat(v1, n, 1);
+                    v2 = repmat(v2, n, 1);
+                    if allow_implicit
+                        x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
+                    else
+                        x.diagonal = bsxfun(@times, x.diagonal, v2) + ...
+                                     bsxfun(@times, y.diagonal, v1);
+                    end
+                end
+            end
+        end
 
         function out = matrixDims(D, n)
             if isempty(D.subset)

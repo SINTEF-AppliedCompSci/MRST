@@ -407,7 +407,19 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                   xM0, yM0, rhoO0, rhoG0] = ...
                   getTimestepPropertiesEoS(model, state, state0, p, temp, x, y, z, sO, sG, cellJacMap)
             eos = model.EOSModel;
-            [Z_L, Z_V, f_L, f_V] = eos.getCompressibilityAndFugacity(p, temp, x, y, z, state.Z_L, state.Z_V, cellJacMap);
+            if isempty(eos.equilibriumConstantFunctions)
+                [Z_L, Z_V, f_L, f_V] = eos.getCompressibilityAndFugacity(p, temp, x, y, z, state.Z_L, state.Z_V, cellJacMap);
+            else
+                [Z_L, Z_V] = eos.getCompressibilityAndFugacity(p, temp, x, y, z, state.Z_L, state.Z_V, cellJacMap);
+                ncomp = numel(x);
+                f_L = cell(1, ncomp);
+                f_V = cell(1, ncomp);
+                for i = 1:ncomp
+                    K = eos.equilibriumConstantFunctions{i}(p, temp, z);
+                    f_L{i} = K.*x{i};
+                    f_V{i} = y{i};
+                end
+            end
 
             [xM, rhoO, muO] = model.getFlowPropsNatural(p, x, Z_L, temp, true);
             [yM, rhoG, muG] = model.getFlowPropsNatural(p, y, Z_V, temp, false);

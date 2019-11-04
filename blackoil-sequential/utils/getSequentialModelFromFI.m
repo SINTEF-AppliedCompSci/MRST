@@ -57,16 +57,6 @@ function model = getSequentialModelFromFI(fimodel, varargin)
                                                     'disgas', fimodel.disgas, ...
                                                     'vapoil', fimodel.vapoil ...
                                                     );
-        case 'threephasecompositionalmodel'
-            eos = fimodel.EOSModel;
-            pressureModel = PressureCompositionalModel(G, rock, fimodel.fluid, eos.fluid, ...
-                'water', fimodel.water);
-            transportModel = TransportCompositionalModel(G, rock, fimodel.fluid, eos.fluid, ...
-                'water', fimodel.water);
-
-            pressureModel.EOSModel = eos;
-            transportModel.EOSModel = eos;
-            
         case 'oilwaterpolymermodel'
             pressureModel  = PressureOilWaterPolymerModel(G, rock, fluid, ...
                                                     'oil',     fimodel.oil, ...
@@ -94,11 +84,11 @@ function model = getSequentialModelFromFI(fimodel, varargin)
                                                     'vapoil', fimodel.vapoil, ...
                                                     'oil',     fimodel.oil, ...
                                                     'polymer', fimodel.polymer);
-        case 'naturalvariablescompositionalmodel'
+        case {'naturalvariablescompositionalmodel', 'genericnaturalvariablesmodel'}
             carg = {G, rock, fluid, fimodel.EOSModel, 'water', fimodel.water};
             pressureModel = PressureNaturalVariablesModel(carg{:});
             transportModel = TransportNaturalVariablesModel(carg{:});
-        case 'overallcompositioncompositionalmodel'
+        case {'overallcompositioncompositionalmodel', 'genericoverallcompositionmodel'}
             carg = {G, rock, fluid, fimodel.EOSModel, 'water', fimodel.water};
             pressureModel = PressureOverallCompositionModel(carg{:});
             transportModel = TransportOverallCompositionModel(carg{:});

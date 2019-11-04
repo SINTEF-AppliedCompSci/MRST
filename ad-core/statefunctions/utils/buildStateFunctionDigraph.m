@@ -1,7 +1,8 @@
-function [G, names, category] = buildStateFunctionDigraph(C, names, category, varargin)
+function [G, names, category, keep] = buildStateFunctionDigraph(C, names, category, varargin)
     opt = struct('Start', {{}}, ...
                  'Stop', {{}}, ...
-                 'Center', {{}});
+                 'Center', {{}}, ...
+                 'FilterNames', {names});
     opt = merge_options(opt, varargin{:});
 
     n = numel(names);
@@ -22,23 +23,24 @@ function [G, names, category] = buildStateFunctionDigraph(C, names, category, va
     end
     
     if hasStart
-        keep = keep & filter(Dr, names, opt.Start);
+        keep = keep & filter(Dr, names, opt.FilterNames, opt.Start);
     end
     
     if hasStop
-        keep = keep & filter(D, names, opt.Stop);
+        keep = keep & filter(D, names, opt.FilterNames, opt.Stop);
     end
     
     if hasCenter
-        keep = keep & (filter(D, names, opt.Center) | filter(Dr, names, opt.Center));
+        keep = keep & (filter(D,  names, opt.FilterNames, opt.Center) | ...
+                       filter(Dr, names, opt.FilterNames, opt.Center));
     end
-    
-    G = G.subgraph(keep);
+    keep_ix = find(keep);
+    G = G.subgraph(keep_ix); %#ok MATLAB backwards compatibility
     names = names(keep);
     category = category(keep);
 end
 
-function keep = filter(D, names, targets)
+function keep = filter(D, names, shortnames, targets)
     keep = false(numel(names), 1);
     if ischar(targets)
         targets = {targets};
@@ -46,6 +48,16 @@ function keep = filter(D, names, targets)
     for i = 1:numel(targets)
         name = targets{i};
         pos = strcmpi(names, name);
+        if ~any(pos)
+            pos = strcmpi(shortnames, name);
+            if sum(pos) > 1
+                % Multiple matches - uh oh. Pick the first one.
+                pos = find(pos);
+                pos = pos(1);
+                warning(['Multiple entries found for %s. Arbitrarily taking %s. ', ...
+                         'Does it exist in multiple StateGrouping instances?'], name, names{pos});
+            end
+        end
         keep = keep | isfinite(D(:, pos));
     end
 end

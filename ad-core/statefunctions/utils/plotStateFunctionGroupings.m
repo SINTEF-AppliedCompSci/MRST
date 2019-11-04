@@ -5,45 +5,148 @@ function varargout = plotStateFunctionGroupings(props, varargin)
                  'Start', {{}}, ...
                  'Stop', {{}}, ...
                  'Center', {{}}, ...
+                 'TextArg', {{}}, ...
+                 'Label', 'name', ...
+                 'ColorizeEdges', 'in', ...
                  'Layout', 'layered', ...
                  'includeState', true);
     [opt, arg] = merge_options(opt, varargin{:});
+    if isa(props, 'PhysicalModel')
+        % We got a model! Validate it and output the groupåings
+        props = props.validateModel();
+        props = props.getStateFunctionGroupings();
+    end
     if ~iscell(props)
         props = {props};
     end
     assert(exist('digraph', 'file') > 0, 'Plotting dependency graphs requires Matlab R2015b or newer.');
-    graph = getStateFunctionGroupingDependencyGraph(props{:});
-    category = graph.GroupIndex;
-    C = graph.C;
-    names = graph.FunctionNames;
+    depgraph = getStateFunctionGroupingDependencyGraph(props{:});
+    category = depgraph.GroupIndex;
+    C = depgraph.C;
+    names = depgraph.FunctionNames;
+    groupnames = depgraph.GroupNames;
+    impl = depgraph.Implementation;
+    full_names = cellfun(@(x, y) sprintf('%s.%s', x, y), groupnames(category), names, 'UniformOutput', false); 
     if opt.includeState
         n = size(C, 1);
         left = zeros(n+1, 1);
-        isState = reshape(category == 0, 1, []);
+        isState = reshape(depgraph.GroupTypes <= 0, 1, []);
         
         names = ['state'; names];
+        impl = ['state'; impl];
+        full_names = ['state'; full_names];
         C = [left, [isState; C]];
-        category = [-1; category];
+        category = [1; category+1];
         src = 1;
     else
-        src = names(category == min(category));
+        types = depgraph.GroupTypes;
+        src = full_names(types == min(types));
     end
     clear graph
-    [G, names, category] = buildStateFunctionDigraph(C, names, category, ...
-                    'Start', opt.Start, 'Stop', opt.Stop, 'Center', opt.Center);
-    
-    
-    if strcmpi(opt.Layout, 'layered')
-        p = plot(G, 'layout', opt.Layout, 'Sources', src, arg{:});
-    else
-        p = plot(G, 'layout', opt.Layout, arg{:});
+    [G, ~, category, keep] = buildStateFunctionDigraph(C, full_names, category, ...
+                    'Start', opt.Start, 'Stop', opt.Stop, 'Center', opt.Center, 'FilterNames', names);
+    if iscell(src)
+        src = setdiff(src, full_names(~keep));
+        if isempty(src)
+            src = 1;
+        end
     end
+    % Set layout
+    plot_defaults = {'EdgeAlpha', 1};
+    switch lower(opt.Layout)
+        case 'layered'
+            p = plot(G, 'layout', opt.Layout, 'Sources', src, ...
+                'AssignLayers', 'asap', ...
+                'direction', 'right', plot_defaults{:}, arg{:});
+        case 'mrst'
+            p = plot(G, 'layout', 'layered', plot_defaults{:}, arg{:});
+            p.XData = category;
+            d = ones(numel(category), 1);
+            cts = accumarray(category, 1);
+            for i = 1:max(category)
+                local = category == i;
+                d(local) = linspace(1, max(cts), sum(local))';
+                dx = (1:sum(local))/sum(local);
+                p.XData(local) = p.XData(local) + 2*dx;
+            end
+            p.YData = d;
+        otherwise
+            p = plot(G, 'layout', opt.Layout, plot_defaults{:}, arg{:});
+    end
+    % Set labels
+    switch lower(opt.Label)
+        case 'name'
+            p.NodeLabel = names(keep);
+        case 'implementation'
+            p.NodeLabel = impl(keep);
+        case 'all'
+            local_names = names;
+            for i = 1:numel(local_names)
+                if ~isempty(impl{i})
+                    local_names{i} = sprintf('%s (%s)', local_names{i}, impl{i});
+                end
+            end
+            p.NodeLabel = local_names(keep);
+        case 'debug'
+            % Do nothing, show actual node names
+        otherwise
+            error('Bad label %s', opt.Label);
+    end
+
+    ce = lower(opt.ColorizeEdges);
+    switch ce
+        case {'in', 'out', 'avg'}
+            w = category;
+            switch ce
+                case 'in'
+                    w_fn = @(in, out) w(in);
+                case 'out'
+                    w_fn = @(in, out) w(out);
+                case 'avg'
+                    w_fn = @(in, out) 0.5*(w(in) + w(out));
+            end
+            edges = G.Edges;
+            ne = size(edges, 1);
+            cData = zeros(ne, 1);
+            for edgeNo = 1:ne
+                e = edges{edgeNo, 1};
+                in = strcmp(G.Nodes.Name, e{1});
+                out = strcmp(G.Nodes.Name, e{2});
+                cData(edgeNo) = w_fn(in, out);
+            end
+            set(p, 'EdgeCData', cData);
+        case 'none'
+            p.EdgeColor = opt.EdgeColor;
+        otherwise
+            error('Unknown ColorizeEdges option %s. Valid choices: in, out, avg, none', ce);
+    end
+    
     p.NodeCData = category;
     p.LineWidth = opt.LineWidth;
-    p.EdgeColor = opt.EdgeColor;
-    colormap(lines(max(category) - min(category) + 1))
     
-    if nargout
-        varargout = {p};
+    colormap(lines(max(category) - min(category) + 1))
+    if ~isempty(opt.TextArg)
+        % Replace labels with custom text
+        x = get(p, 'XData');
+        y = get(p, 'YData');
+        labels = get(p, 'NodeLabel');
+        th = text(x, y, labels);
+        for j = 1:numel(th)
+            set(th(j), opt.TextArg{:})
+        end
+        % Remove existing labels
+        set(p, 'NodeLabel', {});
+        % Store text handles in UserData
+        set(p, 'UserData', th);
+    end
+    varargout = cell(1, nargout);
+    if nargout > 0
+        varargout{1} = p;
+        if nargout > 1
+            varargout{2} = G;
+            if nargout > 2
+                varargout{3} = depgraph;
+            end
+        end
     end
 end

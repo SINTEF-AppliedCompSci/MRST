@@ -233,18 +233,6 @@ for i = conservationindices
     end
 end
 
-if ~opt.pressure
-    if model.water
-        wscale = dt./(s.pv*mean(value(bW)));
-        eqs{1} = eqs{1}.*wscale;
-    end
-    massT = model.getComponentScaling(state0);
-    scale = (dt./s.pv)./massT;
-    for i = 1:ncomp
-        eqs{i+woffset} = eqs{i+woffset}.*scale;
-    end
-end
-
 if opt.pressure
     wat = model.water;
     if opt.resOnly
@@ -265,7 +253,7 @@ if opt.pressure
             'twoPhaseDifferentiation',    model.twoPhaseDifferentiation);
 
         weights = cell(ncomp+wat, 1);
-        for i = 1:ncomp+wat
+        for i = 1:(ncomp+wat)
             wi = w(:, i);
             if any(dwdp)
                 Wp = double2ADI(wi, p);
@@ -275,12 +263,13 @@ if opt.pressure
             end
             weights{i} = Wp;
         end
+        state.w = w;
+        state.w_p = state.pressure;
     end
-    state.w = w;
-    state.w_p = state.pressure;
+
     
     peq = 0;
-    for i = 1:ncomp
+    for i = 1:(ncomp+wat)
         peq = peq + weights{i}.*eqs{i};
     end
     active = false(numel(eqs), 1);

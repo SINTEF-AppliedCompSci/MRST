@@ -398,15 +398,7 @@ if opt.reduceToPressure
     if model.water
         C{ncomp+1} = C{ncomp+1}.*model.fluid.rhoWS;
     end
-    
-%     for i = 1:ncomp
-%         eqs{i}(pureLiquid) = eqs{i}(pureLiquid)./rhoO(pureLiquid);
-%         eqs{i}(pureVapor) = eqs{i}(pureVapor)./rhoG(pureVapor);
-%     end
-%     if model.water
-%         eqs{ncomp+1}(~twoPhase) = eqs{ncomp+1}(~twoPhase)./rhoW(~twoPhase);
-%     end
-    
+
     problem = PressureReducedLinearSystem(eqs, types, names, primaryVars, state, dt);
     problem.accumulationTerms = C;
     problem.model = model;
@@ -415,15 +407,6 @@ if opt.reduceToPressure
     problem.wellvars = wellvars;
     problem.wellvarNames = wellVarNames;
 else
-    massT = model.getComponentScaling(state0);
-    scale = (dt./s.pv)./massT;
-    for i = 1:ncomp
-        eqs{i} = eqs{i}.*scale;
-    end
-    
-    if model.water
-        eqs{ncomp+1} = eqs{ncomp+1}.*(dt./(s.pv.*model.fluid.rhoWS.*value(bW)));
-    end
     if model.reduceLinearSystem
         problem = ReducedLinearizedSystem(eqs, types, names, primaryVars, state, dt);
     else

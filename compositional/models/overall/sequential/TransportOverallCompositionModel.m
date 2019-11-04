@@ -34,7 +34,7 @@ classdef TransportOverallCompositionModel < OverallCompositionCompositionalModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             isS = strcmpi(problem.primaryVariables, 'sT');
             ds = dx{isS};
-            state = model.updateStateFromIncrement(state, ds, problem, 'sT', inf, model.dsMaxAbs);
+            state = model.updateStateFromIncrement(state, ds, problem, 'sT', inf, inf);
             problem.primaryVariables = problem.primaryVariables(~isS);
             dx = dx(~isS);
             

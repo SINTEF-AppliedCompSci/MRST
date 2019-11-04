@@ -29,11 +29,12 @@ z0 = expandMatrixToCell(z0);
 ncomp = numel(z);
 cnames = model.EOSModel.fluid.names;
 
+init = @(varargin) model.AutoDiffBackend.initVariablesAD(varargin{:});
 if model.water
-    [sT, z{1:ncomp-1}, sW] = initVariablesADI(sT, z{1:ncomp-1}, sW);
+    [sT, z{1:ncomp-1}, sW] = init(sT, z{1:ncomp-1}, sW);
     primaryVars = {'sT', cnames{1:end-1}, 'sW'};
 else
-    [sT, z{1:ncomp-1}] = initVariablesADI(sT, z{1:ncomp-1});
+    [sT, z{1:ncomp-1}] = init(sT, z{1:ncomp-1});
     primaryVars = {'sT', cnames{1:end-1}};
 end
 z{end} = 1;
@@ -48,6 +49,8 @@ end
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
 
 if model.water
+    sO = (1-sW).*sO;
+    sG = (1-sW).*sG;
     sat = {sW, sO, sG};
 else
     sat = {sO, sG};
@@ -98,14 +101,14 @@ if model.water
         pcOW  = fluid.pcOW(sW);
         Gw = Gw + s.Grad(pcOW);
     end
-    sWt = sW.*sT;
+    sat{1} = sat{1}.*sT;
     gg = {Gw, Go, Gg};
     mob = {mobW, mobO, mobG};
     rho = {rhoW, rhoO, rhoG};
     pressures = {pW, p, p};
 
 else
-    [rhoW, rhoW0, mobW, bW, sWt] = deal([]);
+    [rhoW, rhoW0, mobW, bW] = deal([]);
     gg = {Go, Gg};
     mob = {mobO, mobG};
     rho = {rhoO, rhoG};
@@ -150,7 +153,7 @@ for i = 1:ncomp
 end
 if model.water
     wix = ncomp+1;
-    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0.*sW);
+    eqs{wix} = (1/dt).*(pv.*rhoW.*sW.*sT - pv0.*rhoW0.*sW0);
     names{wix} = 'water';
     types{wix} = 'cell';
     state = model.storeFluxes(state, q_phase{:});
@@ -250,17 +253,9 @@ if ~isempty(W)
     end
 end
 % Apply scaling and assemble transport equations
-massT = model.getComponentScaling(state0);
-scale = (dt./s.pv)./massT;
 for i = 1:(ncomp + model.water)
     vi = q_components{i};
     eqs{i} = s.AccDiv(eqs{i}, vi);
-    if i <= ncomp
-        eqs{i} = eqs{i}.*scale;
-    else
-        wscale = dt./(s.pv*mean(value(rhoW0)));
-        eqs{i} = eqs{i}.*wscale;
-    end
 end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);

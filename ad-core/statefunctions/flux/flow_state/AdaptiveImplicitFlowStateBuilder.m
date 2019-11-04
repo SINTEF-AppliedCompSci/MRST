@@ -2,17 +2,19 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
     % AIM - adaptive implicit flow state builder. Takes certain cells to be
     % implicit based on estimated CFl.
     properties
-        
+        firstStepImplicit = true; % The first step is taken implicit if fluxes are missing
+        implicitWells = true; % Well cells are always implicit
     end
     
     methods
         function builder = AdaptiveImplicitFlowStateBuilder(varargin)
             builder@ExplicitFlowStateBuilder(varargin{:});
-            builder.explicitFlowProps = {'Mobility', 'ComponentMobility'};
-            builder.implicitFlowProps = {};
+            builder.explicitFluxProps = {'Mobility', 'ComponentMobility'};
+            builder.implicitFluxProps = {};
         end
         
         function dt_max = getMaximumTimestep(fsb, fd, model, state, state0, dt, forces)
+            % No time-step limit for AIM
             dt_max = inf;
         end
         
@@ -24,7 +26,7 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
                 return
             end
             explicit = ~implicit;
-            props = builder.explicitFlowProps;
+            props = builder.explicitFluxProps;
             
             fp = model.FlowPropertyFunctions;
             name = fp.getStateFunctionContainerName();
@@ -57,13 +59,25 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
             [builder, state] = prepareTimestep@ExplicitFlowStateBuilder(builder, fd, model, state, state0, dt, drivingForces);
             if isfield(state, 'flux')
                 cfl = estimateSaturationCFL(model, state, dt, 'forces', drivingForces);
-                implicit = cfl >= builder.saturationCFL;
+                impl_sat = cfl >= builder.saturationCFL;
+                
+                cfl_c = estimateCompositionCFL(model, state, dt, 'forces', drivingForces);
+                impl_comp = max(cfl_c, [], 2) >= builder.compositionCFL;
             else
-                implicit = true(model.G.cells.num, 1);
+                fs = builder.firstStepImplicit;
+                [impl_sat, impl_comp] = deal(repmat(fs, model.G.cells.num, 1));
+            end
+            implicit = impl_sat | impl_comp;
+            if builder.implicitWells && ~isempty(drivingForces.W)
+                % Well cells are taken implicitly
+                wc = vertcat(drivingForces.W.cells);
+                implicit(wc) = true;
             end
             nc = numel(implicit);
+            ni_s = sum(impl_sat);
+            ni_c = sum(impl_comp);
             ni = sum(implicit);
-            dispif(builder.verbose, 'Adaptive implicit: %d of %d cells are implicit (%2.2f%%)\n', ni, nc, 100*ni/nc);
+            dispif(builder.verbose, 'Adaptive implicit: %d of %d cells are implicit. %d limited by composition, %d limited by saturation (%2.2f%%)\n', ni, nc, ni_c, ni_s, 100*ni/nc);
             state.implicit = implicit;
         end
     end

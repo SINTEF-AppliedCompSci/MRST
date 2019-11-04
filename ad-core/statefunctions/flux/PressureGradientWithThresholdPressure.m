@@ -1,14 +1,11 @@
-classdef ThresholdedTransmissibility < Transmissibility
+classdef PressureGradientWithThresholdPressure < PressureGradient
     properties
         pressureThreshold
     end
     
     methods
-        function pp = ThresholdedTransmissibility(backend, model)
-            pp@Transmissibility(backend);
-            if isempty(pp.externals)
-                pp = pp.dependsOn('pressure', 'state');
-            end
+        function gp = PressureGradientWithThresholdPressure(model, varargin)
+            gp@PressureGradient(model, varargin{:});
             equil = model.inputdata.REGIONS.EQLNUM(model.G.cells.indexMap);
             thpres = model.inputdata.SOLUTION.THPRES;
             N = model.operators.N;
@@ -27,22 +24,27 @@ classdef ThresholdedTransmissibility < Transmissibility
                 right = right_equil == thpres(i, 1);
                 threshold(left & right, 2) = thpres(i, 3);
             end
-            pp.pressureThreshold = threshold;
+            gp.pressureThreshold = threshold;
         end
-        
-        function v = evaluateOnDomain(prop, model, state)
-            v = model.operators.T;
+        function dp = evaluateOnDomain(prop, model, state)
+            dp = evaluateOnDomain@PressureGradient(prop, model, state);
             p = model.getProps(state, 'pressure');
-            if isfield(model.fluid, 'transMult')
-                v = model.fluid.transMult(p).*T;
-            end
             pv = value(p);
             left = model.operators.N(:, 1);
             right = model.operators.N(:, 2);
-            dp = pv(left) - pv(right);
+            pL = pv(left);
+            pR = pv(right);
+            
+            dpv = pL - pR;
+            % Flow from left to right
+            posFlow = pL > pR;
             thres = prop.pressureThreshold;
-            act = dp > thres(:, 1) | dp < thres(:, 2);
-            v = v.*act;
+            act = dpv > thres(:, 1) | dpv < thres(:, 2);
+            delta = thres(:, 2);
+            delta(posFlow) = thres(posFlow, 1);
+            for i = 1:numel(dp)
+                dp{i} = act.*(dp{i} - delta);
+            end
         end
     end
 end

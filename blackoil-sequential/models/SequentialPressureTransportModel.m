@@ -1,62 +1,53 @@
 classdef SequentialPressureTransportModel < ReservoirModel
-    % Sequential meta-model which solves pressure and transport using a fixed
-    % flux splitting
+    % Sequential meta-model which solves pressure and transport 
     properties
-        % Model for computing the pressure
-        pressureModel
-        % Model for the transport subproblem after pressure is found
-        transportModel
-        parentModel
+        pressureModel % Model for computing the pressure
+        transportModel % Model for the transport subproblem after pressure is found
+        parentModel % Parent class. Used for outer loop convergence if present
+        pressureNonLinearSolver % NonLinearSolver instance used for pressure updates
+        transportNonLinearSolver % NonLinearSolver instance used for saturation/mole fraction updates
+
+
+        reupdatePressure % Update pressure based on new mobilities before proceeding to next step
         
-        % NonLinearSolver instance used for pressure updates
-        pressureNonLinearSolver
-        % NonLinearSolver instance used for saturation/mole fraction updates
-        transportNonLinearSolver
-        % Utility prop for setting pressure linear solver
-        pressureLinearSolver
-        % Utility prop for setting transport linear solver
-        transportLinearSolver
-        
-        % Outer tolerance, which, if stepFunctionIsLinear is set to false,
-        % is used to check if the pressure must be recomputed after
-        % transport has been solved, in order to converge to the fully
-        % implicit solution.
-        outerTolerance
-        % Indicates if we check well values when outer loop is enabled
-        outerCheckWellConvergence
-        % Maximum outer loops for a given step. When maxOuterIterations is
-        % reached, the solver will act as if the step converged and
-        % continue.
-        maxOuterIterations
-        % Update pressure based on new mobilities before proceeding to next
-        % step
-        reupdatePressure
+        % The following are convergence criteria for the outer loop. To
+        % enable outer iterations, set stepFunctionIsLinear = false.
+        % Otherwise a single step will be performed. Note that when
+        % maxOuterIterations is reached, the solver will act as if the step
+        % converged and proceed to the next step.
+        maxOuterIterations = inf % Maximum outer loops for a given step before assuming convergence.
+        volumeDiscrepancyTolerance = 1e-3; % Tolerance for volume error (|sum of saturations - 1|)
+        incTolSaturation = 1e-3; % Tolerance for change in saturations in transport for convergence. 
+        outerCheckParentConvergence = true; % Use parentModel, if present, to check convergence
     end
     
     methods
         function model = SequentialPressureTransportModel(pressureModel, transportModel, varargin)
             model = model@ReservoirModel(transportModel.G);
-            % Set up defaults
             model.pressureModel  = pressureModel;
             model.transportModel = transportModel;
-            model.outerTolerance = 1e-3;
-            model.outerCheckWellConvergence = false;
-            model.maxOuterIterations = 2;
             % Default: We do not use outer loop.
             model.stepFunctionIsLinear = true;
             model.reupdatePressure = false;
-            model = merge_options(model, varargin{:});
-            
+            [model, extra] = merge_options(model, varargin{:});
+            solver_prm = struct('transportLinearSolver', [], ...
+                                'pressureLinearSolver', []);
+            solver_prm = merge_options(solver_prm, extra{:});
             % Transport model determines the active phases
             if isempty(model.parentModel)
-                model.water = model.transportModel.water;
-                model.oil   = model.transportModel.oil;
-                model.gas   = model.transportModel.gas;
+                if isa(model.transportModel, 'WrapperModel')
+                    % Wrapper model
+                    transportModel = transportModel.parentModel;
+                end
+                model.water = transportModel.water;
+                model.oil   = transportModel.oil;
+                model.gas   = transportModel.gas;
             else
                 model.water = model.parentModel.water;
                 model.oil   = model.parentModel.oil;
                 model.gas   = model.parentModel.gas;
             end
+            clear transportModel
             if isempty(model.pressureNonLinearSolver)
                 model.pressureNonLinearSolver = NonLinearSolver();
             end
@@ -67,16 +58,16 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
             model.transportNonLinearSolver.identifier = 'TRANSPORT';
             
-            if ~isempty(model.pressureLinearSolver)
+            if ~isempty(solver_prm.pressureLinearSolver)
                 model.pressureNonLinearSolver.LinearSolver = ...
-                                model.pressureLinearSolver;
+                                solver_prm.pressureLinearSolver;
             end
             model.pressureNonLinearSolver.maxTimestepCuts = 0;
             model.pressureNonLinearSolver.errorOnFailure = false;
 
-            if ~isempty(model.transportLinearSolver)
+            if ~isempty(solver_prm.transportLinearSolver)
                 model.transportNonLinearSolver.LinearSolver = ...
-                                model.transportLinearSolver;
+                                solver_prm.transportLinearSolver;
             end
             
             model.transportNonLinearSolver.errorOnFailure = false;
@@ -85,13 +76,22 @@ classdef SequentialPressureTransportModel < ReservoirModel
         function [state, report] = stepFunction(model, state, state0, dt,...
                                                 drivingForces, linsolve, nonlinsolve,...
                                                 iteration, varargin)
-            
-            [state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] =...
+            state.iteration = iteration;
+            [state, pressure_state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] =...
                 model.solvePressureTransport(state, state0, dt, drivingForces, iteration);
 
             converged = pressure_ok && transport_ok;
             if converged && ~model.stepFunctionIsLinear
-                [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration);
+                [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration, pressure_state);
+                if transportReport.Iterations == 0
+                    % If the transport did not do anything, we are
+                    % effectively converged, even if the values of the
+                    % outer residual are not converged. This must be
+                    % specifically enabled by allowing zero iterations for
+                    % the transport solver and is primarily useful when
+                    % there is no reasonable outer convergence criterion.
+                    converged = converged | true;
+                end
             else
                 % Need to have some value in the report
                 values = pressureReport.StepReports{end}.NonlinearReport{end}.Residuals(1);
@@ -119,13 +119,17 @@ classdef SequentialPressureTransportModel < ReservoirModel
                             forceArg{:});
                 [~, state] = model.transportModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
             end
+            if isfield(state, 'iteration')
+                state = rmfield(state, 'iteration');
+            end
         end
         
-        function [state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] = solvePressureTransport(model, state, state0, dt, drivingForces, iteration)
+        function [state, pressure_state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] = solvePressureTransport(model, state, state0, dt, drivingForces, iteration)
            % Solve pressure and transport sequentially
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
-            if iteration > 1 && isprop(model.pressureModel, 'FacilityModel')
+            if iteration > 1 && isprop(model.pressureModel, 'FacilityModel') ...
+                             && ~isempty(model.pressureModel.FacilityModel)
                 for i = 1:numel(model.pressureModel.FacilityModel.WellModels)
                     model.pressureModel.FacilityModel.WellModels{i}.doUpdatePressureDrop = false;
                 end
@@ -139,6 +143,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 psolver.solveTimestep(state0, dt, model.pressureModel,...
                             'initialGuess', state, ...
                             forceArg{:});
+            pressure_state = state;
             pressure_ok = pressureReport.Converged || psolver.continueOnFailure;
             
             if pressure_ok
@@ -171,60 +176,47 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end 
         end
         
-        function [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration)
+        function [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration, pressure_state)
             % Alternate mode: If outer loop is enabled, we will revisit
             % the pressue equation to verify that the equation remains
             % converged after the transport step. This check ensures
             % that the assumption of fixed total velocity is reasonable
             % up to some tolerance.
-            if ~isempty(model.parentModel)
+            if ~isempty(model.parentModel) && model.outerCheckParentConvergence
                 state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
                 [problem, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
                 state = model.parentModel.reduceState(state, false);
                 [converged, values, resnames] = model.parentModel.checkConvergence(problem);
-                if model.verbose
-                    printConvergenceReport(resnames, values, converged, iteration);
-                end
             else
-                if isa(model.pressureModel, 'ThreePhaseCompositionalModel')
-                    values = max(abs(sum(state.s, 2) - 1));
-                    if ~model.transportModel.useIncTolComposition
-                        % Make a normalization of saturations and check if
-                        % the equations are still converged.
-                        state_normalized = state;
-                        state_normalized.s = bsxfun(@rdivide, state_normalized.s, sum(state_normalized.s, 2));
-                        
-                        [problem, state_normalized] = model.transportModel.getEquations(state0, state_normalized, dt, drivingForces, 'resOnly', true, 'iteration', inf);
-                        conv_t = model.transportModel.checkConvergence(problem);
-                        if all(conv_t)
-                            state = model.parentModel.reduceState(state_normalized, false);
-                            values = 0;
-                        end
-                    end
+                resnames = {};
+                [converged, values] = deal([]);
+            end
+            % Check volume discrepancy
+            tol_vol = model.volumeDiscrepancyTolerance;
+            if isfinite(tol_vol)
+                if isfield(state, 'sT')
+                    sT = state.sT;
                 else
-                    problem = model.pressureModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
-                    % Is the pressure still converged when accounting for the
-                    % updated quantities after transport (mobility, density
-                    % and so on?)
-                    [~, values] = model.pressureModel.checkConvergence(problem);
+                    sT = sum(state.s, 2);
                 end
-                if model.outerCheckWellConvergence
-                    lv = max(values);
-                else
-                    values = values(1);
-                    lv = values(1);
-                end
-                converged = all(values < model.outerTolerance);
-                converged = converged || iteration > model.maxOuterIterations;
-                if model.verbose
-                    if converged
-                        s = 'Converged.';
-                    else
-                        s = 'Not converged.';
-                    end
-                    fprintf('OUTER LOOP step #%d with tolerance %1.4e: Largest value %1.4e -> %s \n', ...
-                        iteration, model.outerTolerance, lv, s);
-                end
+                v = norm(sT - 1, inf);
+                values(end+1) = v;
+                converged(end+1) = v <= tol_vol;
+                resnames{end+1} = 'Volume error';
+            end
+            % Check increment tolerance
+            tol_inc = model.incTolSaturation;
+            if isfinite(tol_inc)
+                s0 = pressure_state.s;
+                s = state.s;
+                ds = max(max(abs(s-s0), [], 2));
+                values(end+1) = ds;
+                converged(end+1)  = ds <= tol_inc;
+                resnames{end+1} = 'Saturation increment';
+            end
+            converged = converged | iteration > model.maxOuterIterations;
+            if model.verbose
+                printConvergenceReport(resnames, values, converged, iteration);
             end
         end
         

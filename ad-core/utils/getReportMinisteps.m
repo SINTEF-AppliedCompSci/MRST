@@ -38,6 +38,9 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     timesteps = [];
+    if iscell(report)
+        report = struct('ControlstepReports', {report});
+    end
     for i = 1:numel(report.ControlstepReports)
         cr = report.ControlstepReports{i};
         steprep = cr.StepReports(cellfun(@(x) x.Converged, cr.StepReports));

@@ -1,18 +1,22 @@
 classdef FaceMobility < StateFunction & UpwindProperty
-    properties
-        
+    properties (Access = protected)
+        upwind_name; % Name of state function where upwind flag comes from
     end
     
     methods
-        function fm = FaceMobility(backend, upwinding)
-            fm@StateFunction(backend);
+        function fm = FaceMobility(model, upwinding, upwind_name)
+            if nargin < 3
+                upwind_name = 'PhaseUpwindFlag';
+            end
+            fm@StateFunction(model);
             fm@UpwindProperty(upwinding)
-            fm = fm.dependsOn('PhaseUpwindFlag');
+            fm.upwind_name = upwind_name;
+            fm = fm.dependsOn(upwind_name);
             fm = fm.dependsOn('Mobility', 'FlowPropertyFunctions');
         end
         
         function fmob = evaluateOnDomain(prop, model, state)
-            flag = prop.getEvaluatedDependencies(state, 'PhaseUpwindFlag');
+            flag = prop.getEvaluatedDependencies(state, prop.upwind_name);
             mob = model.getProp(state, 'Mobility');
             nph = numel(mob);
             fmob = cell(1, nph);

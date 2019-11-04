@@ -11,14 +11,12 @@ classdef BlackOilShrinkageFactors < StateFunction
             if isprop(model, 'disgas')
                 gp.disgas = model.disgas;
                 if gp.disgas
-                    gp = gp.dependsOn({'RsMax'});
                     gp = gp.dependsOn({'rs'}, 'state');
                 end
             end
             if isprop(model, 'vapoil')
                 gp.vapoil = model.vapoil;
                 if gp.vapoil
-                    gp = gp.dependsOn({'RvMax'});
                     gp = gp.dependsOn({'rv'}, 'state');
                 end
             end

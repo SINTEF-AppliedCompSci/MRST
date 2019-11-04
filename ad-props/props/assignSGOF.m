@@ -44,6 +44,11 @@ function [pts, pts_o] = getPoints(sgof, swcon)
     pts_o(4) = sgof(1,3);
 end
 
+function v = selectSubset(v, varargin)
+if ~isempty(varargin)
+    v = v(varargin{2});
+end
+end
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 

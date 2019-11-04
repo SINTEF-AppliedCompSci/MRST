@@ -41,7 +41,7 @@ for k = 1:ns
 
     sw  = states{k}.s(:,1);
     krw = fluid.krW(sw);
-    kro = fluid.krO(0*sw);
+    kro = fluid.krO(1-sw);
 
     muw = fluid.muW(states{k}.pressure);
     muo = fluid.muO(states{k}.pressure);
