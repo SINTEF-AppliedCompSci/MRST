@@ -463,7 +463,7 @@ classdef DGDiscretization < SpatialDiscretization
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
             % Evaluate integrals
 %             I = dof*0;
-            I = disc.sample;
+            I = disc.sample*0;
             for dofNo = 1:nDofMax
                 keepCells = disc.nDof(cells) >= dofNo;
                 if any(keepCells)
@@ -903,7 +903,7 @@ classdef DGDiscretization < SpatialDiscretization
         %-----------------------------------------------------------------%
         function v = trimValues(disc, v)
             tol = eps(mean(disc.G.cells.volumes));
-%             tol = -inf;
+            tol = -inf;
 %             tol = 1e-7;
             ix = abs(v) < tol;
             if isa(v, 'ADI')
