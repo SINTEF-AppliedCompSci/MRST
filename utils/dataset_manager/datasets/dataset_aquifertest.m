@@ -1,5 +1,5 @@
 function [info, present] = dataset_aquifertest()
-% Info function for the dataset of a 2D black-oil polymer example. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+% Info function for the dataset of a 2D oil-water two phase cases with Fetkovich aquifers. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 
 %{
 Copyright 2015-2018 SINTEF Digital, Mathematics & Cybernetics.
