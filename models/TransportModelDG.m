@@ -145,6 +145,7 @@ classdef TransportModelDG < TransportModel
                     phase_variable_index(ix) = i;
                 end
             end
+            
             % Figure out saturation logic
             isP    = strcmp(basedofnames, 'pressuredof');
             vars   = basevars;
@@ -152,8 +153,8 @@ classdef TransportModelDG < TransportModel
             origin = baseorigin;
             useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
                                     && sum(isS) == nph - 1;
-            useTotalSaturation  = useTotalSaturation || strcmpi(class(parent), 'GenericOverallCompositionModel');
-%             assert(useTotalSaturation, 'DG currently only supports total saturation formulation!');
+            useTotalSaturation = useTotalSaturation ...
+                || strcmpi(class(parent), 'GenericOverallCompositionModel');
             if useTotalSaturation
                 % Replace pressure with total saturation
                 replacement = 'sTdof';
@@ -176,23 +177,26 @@ classdef TransportModelDG < TransportModel
             else
                 basevars(~isP) = vars;
             end
-            % Let parent model handle state initialization
-            state = model.initStateAD(state, basevars, basedofnames, baseorigin);
-%             state = model.evaluateBaseVariables(state);
-            fixedSat = false;
-            for i = 1:numel(basedofnames)
-                if any(strcmpi(basenames{i}, {'sw', 'so', 'sg', 'x'}))
-                    if fixedSat
-                        continue
-                    end
-                    basenames{i}    = 's';
-                    basedofnames{i} = 'sdof';
-                    fixedSat        = true;
-                end
-                v     = model.getProp(state, basedofnames{i});
-                vm    = model.discretization.getCellMean(state, value(v));
-                state = model.setProp(state, basenames{i}, vm); 
+            
+            [cellMean, cellVars, faceVars] = deal(cell(size(vars)));
+            for i = 1:numel(vars)
+                cellMean{i} = model.discretization.getCellMean(state, basevars{i});
+                cellVars{i} = model.discretization.evaluateProp(state, basevars{i}, 'cell');
+                faceVars{i} = model.discretization.evaluateProp(state, basevars{i}, 'face');
             end
+            
+            state = parent.initStateAD(state, cellMean, basenames, baseorigin);
+            state = model.evaluateBaseVariables(state);
+            
+            state.wellStateDG = parent.initStateAD(state.wellStateDG, cellMean, basenames, baseorigin);
+            
+            parent.G.cells.num = numel(value(cellVars{1}));
+            state.cellStateDG = parent.initStateAD(state.cellStateDG, cellVars, basenames, baseorigin);
+            
+            parent.G.cells.num = numel(value(faceVars{1}));
+            state.faceStateDG = parent.initStateAD(state.faceStateDG, faceVars, basenames, baseorigin);
+            
+
             if useTotalSaturation
                 % Set total saturation as well
                 sTdof       = vars{isP};
@@ -441,11 +445,12 @@ classdef TransportModelDG < TransportModel
             d        = model.discretization;
             d.nDof   = state.nDof;
             d.dofPos = state.dofPos;
-            psi = d.basis.psi;
-            gradPsi = d.basis.gradPsi;
-            ix    = d.getDofIx(state, 1, src.cells);
-            d.sample = acc{1}(d.getDofIx(state, Inf));
-            eqs = cell(1, numel(acc));
+            psi      = d.basis.psi;
+            gradPsi  = d.basis.gradPsi;
+            ixw      = d.getDofIx(state, 1, src.cells);
+            ix       = d.getDofIx(state, Inf);
+            d.sample = state.cellStateDG.s{1}(ix)*0;
+            eqs      = cell(1, numel(acc));
             state.wellStateDG.cells = (1:pmodel.G.cells.num)';
             
             cells  = rldecode((1:pmodel.G.cells.num)', state.nDof, 1);
@@ -461,7 +466,7 @@ classdef TransportModelDG < TransportModel
                     eqs{i} = eqs{i} + d.inner(fluxBC{i}, psi, 'dS', drivingForces.bc.face);
                 end
                 if ~isempty(src.cells)
-                    eqs{i}(ix) = eqs{i}(ix) - src.value{i};
+                    eqs{i}(ixw) = eqs{i}(ixw) - src.value{i};
                 end
                 if ~pmodel.useCNVConvergence
                     sub = strcmpi(names{i}, cnames);
@@ -662,7 +667,7 @@ classdef TransportModelDG < TransportModel
                 if pmodel.gas
                     ds(:, phIndices(3)) = dsg;
                 end
-
+                
                 dsMaxAbs = pmodel.dsMaxAbs/model.discretization.basis.nDof;
                 state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, dsMaxAbs);
                 state = model.assignBaseVariables(state);
@@ -812,12 +817,17 @@ classdef TransportModelDG < TransportModel
             ds(ix, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            dsAbsMax = model.parentModel.dsMaxAbs/model.discretization.basis.nDof;
+            if 1
+                dsAbsMax = model.parentModel.dsMaxAbs/model.discretization.basis.nDof;
+            else
+                dsAbsMax = model.parentModel.dsMaxAbs/min(model.discretization.basis.nDof, 3);
+            end
             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, dsAbsMax);
             
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            state.FacilityFluxProps = state.wellStateDG.FacilityFluxProps;
             [state, report] = updateAfterConvergence@TransportModel(model, state0, state, dt, drivingForces);
             state = rmfield(state, 'cellStateDG');
             state = rmfield(state, 'faceStateDG');
