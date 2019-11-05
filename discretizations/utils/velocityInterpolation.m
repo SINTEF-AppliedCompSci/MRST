@@ -5,14 +5,12 @@ function vi = velocityInterpolation(G, type)
 
             cellNo    = rldecode((1:G.cells.num)', diff(G.cells.facePos), 1);
             faceNo = G.cells.faces(:,1);
-            X = G.faces.centroids(faceNo, :) - ...
-            G.cells.centroids(cellNo   , :);
+            C = G.faces.centroids(faceNo, :) - G.cells.centroids(cellNo, :);
             sgn = 1 - 2*(cellNo ~= G.faces.neighbors(faceNo,1));
 
             D = cell(1,G.griddim);
             for dNo = 1:G.griddim
-%                 D{dNo} = sparse(cellNo, faceNo, X(:,dNo).*sgn, G.cells.num, G.faces.num)./G.cells.volumes;
-                D{dNo} = sparse(cellNo, faceNo, X(:,dNo).*sgn, G.cells.num, G.faces.num);
+                D{dNo} = sparse(cellNo, faceNo, C(:,dNo).*sgn, G.cells.num, G.faces.num);
             end
 
             f2c = @(v) faceFlux2cellVelocity(D,v);
