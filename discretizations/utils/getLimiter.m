@@ -35,6 +35,11 @@ function state = tvb(state, model, interpSetup, name, tol, limits)
     dim = min(disc.G.griddim, nLin);
     
     nc = size(dof,2);
+    isSat = false;
+    if strcmpi(name, 's')
+        isSat = true;
+        nc = nc-1;
+    end
     bad = false;
     for i = 1:nc
         [jumpVal, ~, cells] = getInterfaceJumps(disc, dof(:, i), state);
@@ -59,6 +64,10 @@ function state = tvb(state, model, interpSetup, name, tol, limits)
         if any(disc.degree > 1)
             ix = disc.getDofIx(state, (dim+2):disc.basis.nDof, bad);
             dof(ix,:) = 0;
+        end
+        if isSat
+            fill = disc.getFillSat(state);
+            dof(:,end) = fill - sum(dof(:,1:end-1),2);
         end
         state = update(model, state, name, dof);
     end
@@ -156,9 +165,12 @@ function dofbar = approximatGradient(model, interpSetup, state, dof, v)
             s = sigma{dNo}(vertcat(interpSetup.cell_support{:}));
             db(six) = s;
             db(dix) = d;
-            % Assume approximated graidents == 0 is due to boundary effects
-            dd = rldecode(d, interpSetup.cell_support_count+1, 1);
-            db(db==0) = dd(db==0);
+            if 1
+                % Assume approximated gradients == 0 is due to boundary
+                % effects
+                dd = rldecode(d, interpSetup.cell_support_count+1, 1);
+                db(db==0) = dd(db==0);
+            end
             [dbmin, dbmax, ~, ~, neg, pos] = getMinMax(db, interpSetup.cell_support_count+1);
             dofbar(:, dofNo-1) = neg.*dbmax + pos.*dbmin;
         end
