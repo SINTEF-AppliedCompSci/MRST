@@ -13,7 +13,7 @@ function plotCubature(G, cubature, elements, varargin)
     end
 
     hold on
-    plotGrid(G, cells, extra{:}); axis equal off
+    plotGrid(G, cells, extra{:}); axis off
     if opt.plotBoundingBox
         for i = 1:numel(cells)
             rectangle('Position', [G.cells.centroids(cells(i),:) - G.cells.dx(cells(i),:)/2, G.cells.dx(cells(i),:);]);
@@ -32,7 +32,7 @@ function plotCubature(G, cubature, elements, varargin)
                     cubature.triangulation.Points(:,1), ...
                     cubature.triangulation.Points(:,2), ...
                     cubature.triangulation.Points(:,3), ...
-                    'linestyle', '-', 'color', 'k')
+                    'linestyle', '-', 'edgecolor', 'k')
         end
     end
 
@@ -42,8 +42,14 @@ function plotCubature(G, cubature, elements, varargin)
         opt.smax = opt.smin*max(w)/min(w);
     end
     scaling = opt.smin*(1-alpha) + opt.smax*alpha;
+    if G.griddim == 2
+        plotPoint = @(x, varargin) plot(x(:,1), x(:,2), varargin{:});
+    else
+        plotPoint = @(x, varargin) plot3(x(:,1), x(:,2), x(:,3), varargin{:});
+    end
     for i = 1:numel(w)
-        plot(x(i,1), x(i,2), opt.markerStyle, 'markerSize', scaling(i), 'markerFaceColor', 'k')
+        plotPoint(x, opt.markerStyle, 'markerSize', scaling(i), 'markerFaceColor', 'k')
+%         plot(x(i,1), x(i,2), opt.markerStyle, 'markerSize', scaling(i), 'markerFaceColor', 'k')
     end
 
 end
