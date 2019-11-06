@@ -105,9 +105,11 @@ classdef DGDiscretization < SpatialDiscretization
                         surfCub = TriangleCubature(G, prescision);
                     end
                 else
-                    if all(disc.degree == 0) || disc.useMomentFitting
+                    if all(disc.degree == 0)
                         volCub  = MomentFitting3DCubature(G, prescision);
-%                         surfCub = MomentFitting2DCubature(G, prescision, disc.internalConn);
+                        surfCub = MomentFitting2DCubature(G, prescision);
+                    elseif disc.useMomentFitting
+                        volCub  = MomentFitting3DCubature(G, prescision);
                         surfCub = TriangleCubature(G, prescision);
                     else
                         volCub  = TetrahedronCubature(G, prescision);
