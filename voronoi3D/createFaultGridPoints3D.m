@@ -73,8 +73,7 @@ F.l.cPos =  1;
 
 for i = 1:numel(faultTri)
   dF        = faultTri{i};
-  rFun      = rho{i};
-  R         = rFun(dF.Points);
+  R         = rho(dF.Points);
 
   CC        = reshape(dF.Points(dF.ConnectivityList',:)',9,[])';
   R         = reshape(R(dF.ConnectivityList',:),3,[])';
