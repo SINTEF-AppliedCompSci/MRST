@@ -35,9 +35,9 @@ function coords = getPlotCoordinates2(G, varargin)
         cells1 = reshape(cells1([1,3,2,4], :), [], 1);
         cells = [cells0; cells1];
 
-        f = 1:size(x,1);
+        f = (1:size(x,1))';
         ii = [cells0; rldecode((1:numel(faces))' + max(cells0), 4, 1)];
-        jj = [mcolon(ones(G.cells.num,1), diff(G.cells.nodePos)), repmat(1:4, 1, numel(faces))];
+        jj = [mcolon(ones(G.cells.num,1), diff(G.cells.nodePos)), repmat(1:4, 1, numel(faces))]';
         faces = full(sparse(ii, jj, f));
         faces(faces == 0) = nan;
         
