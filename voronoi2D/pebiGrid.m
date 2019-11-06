@@ -164,10 +164,10 @@ faultGridSize   = resGridSize*faultGridFactor;
 faultRho = opt.faultRho;
 
 if wellEps<0
-    wellEps = 0.25/max(pdims);
+    wellEps = 0.25 * max(pdims);
 end
 if faultEps<0
-    faultEps = 0.25/max(pdims);
+    faultEps = 0.25 * max(pdims);
 end
 
 % Test input
@@ -336,4 +336,3 @@ else
   G.cells.tag = false(G.cells.num,1);
 end
 end
-
