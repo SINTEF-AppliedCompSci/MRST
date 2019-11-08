@@ -105,7 +105,7 @@ bc.logElements = log(initfluidpart);  % (will not be used if outflow)
 % it is recommened to ramp up the time stepping
 
 % ten time steps of 0.01 days followed by 100 steps of 1 day
-schedule.step.val = [0.01*day*ones(10, 1); 1*day*ones(10, 1);];
+schedule.step.val = [0.01*day*ones(10, 1); 0.1*day*ones(10, 1); 1*day*ones(10, 1);];
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('bc', bc, 'src', src, 'W', []);
 
