@@ -95,6 +95,10 @@ if isprop(model, 'surfactant') && model.surfactant % surfactant model
 	 [ws(:).qWSft] = deal(0);
 end
 
+if isprop(model, 'thermal') && model.thermal
+     [ws(:).T] = deal(0); % Thermal model
+end
+
 if isprop(model, 'compositionalFluid') % Compositional model
      ncomp = model.compositionalFluid.getNumberOfComponents();
 	 [ws(:).components] = deal(zeros(1, ncomp));
@@ -132,6 +136,9 @@ for k = 1:nw
     end
     if isprop(model, 'surfactant') && model.surfactant
          ws(k).cs = W(k).cs*ws(k).qWs;
+    end
+    if isprop(model, 'thermal') && model.thermal
+         ws(k).T = W(k).T;
     end
 
     ws(k).mixs = W(k).compi;
@@ -177,6 +184,9 @@ for k = 1:numel(W)
             end
             if isprop(model, 'surfactant') && model.surfactant
                 ws(k).cs = W(k).cs*ws(k).qWs;
+            end
+            if isprop(model, 'thermal') && model.thermal
+                ws(k).T = W(k).T;
             end
         case 'orat'
             ws(k).qOs = v;
