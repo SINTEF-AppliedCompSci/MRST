@@ -21,7 +21,6 @@ function [state, model] = aqueousConcentrations(model, state)
     
     model.aqueousConcentrationNames  = cellfun(@(name) [name '(aq)'], model.elementNames(indS), ...
                                          'uniformoutput', false);
-
     totals = cell(1, nC);
                                      
     for i = 1 : nC
@@ -30,7 +29,13 @@ function [state, model] = aqueousConcentrations(model, state)
             totals{i} = totals{i} + CM(i,j)*comps{j};
         end
     end
-
+    % create surfacepotential field, if not existing, and assign default values
+    if ~isfield(state, 'aqueousConcentrations')
+        species = model.getProp(state, 'species');
+        ncells = size(species, 1);
+        state.aqueousConcentrations = ones(ncells, nC);
+    end
+    
     for i = 1 : nC
         state = model.setProp(state, model.aqueousConcentrationNames{i}, totals{i});
     end

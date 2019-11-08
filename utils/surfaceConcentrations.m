@@ -25,6 +25,13 @@ function [state, model] = surfaceConcentrations(model, state)
         end
     end
 
+    % create surfacepotential field, if not existing, and assign default values
+    if ~isfield(state, 'surfaceConcentrations')
+        species = model.getProp(state, 'species');
+        ncells = size(species, 1);
+        state.surfaceConcentrations = ones(ncells, nC);
+    end
+    
     for i = 1 : nC
         state = model.setProp(state, model.surfaceConcentrationNames{i}, totals{i});
     end

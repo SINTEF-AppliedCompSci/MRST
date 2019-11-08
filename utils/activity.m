@@ -35,6 +35,13 @@ function [state, model] = activity(model, state)
         end
     end
 
+    % we check if activity field exits, if not we create it
+    if ~isfield(state, 'activities')
+        species = model.getProp(state, 'species');
+        ncells = size(species, 1);
+        state.activities = ones(ncells, model.nC);
+    end
+        
     % Reaction matrix, activities only apply to laws of mass action
     for k = 1 : nC
         activity = (exp(pg{k}) .* components{k});
