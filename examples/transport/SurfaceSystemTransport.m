@@ -87,18 +87,18 @@ initfluidpart = initchemstate.species(end,:)*model.fluidMat';
 pv = poreVolume(G,rock);
 
 % define source term at cell 1 for inflow boundary condition
-src                	= [];
-src               	= addSource(src, 1, pv(1)/day, 'sat', 1);
+src = [];
+src = addSource(src, 1, pv(1)/day, 'sat', 1);
 
 % give the fluid concentration at the inlet
-src.elements        = injfluidpart;
-src.logElements   	= log(injfluidpart);
+src.elements = injfluidpart;
+src.logElements = log(injfluidpart);
 
 % give dirchlet boundary condition at outlet
-bc                  = [];
-bc                  = pside(bc, G, 'east', 0*barsa, 'sat', 1);
-bc.elements         = initfluidpart;        % (will not be used if outflow)
-bc.logElements      = log(initfluidpart);  % (will not be used if outflow)
+bc             = [];
+bc             = pside(bc, G, 'east', 0*barsa, 'sat', 1);
+bc.elements    = initfluidpart;        % (will not be used if outflow)
+bc.logElements = log(initfluidpart);  % (will not be used if outflow)
 
 
 %% Define the schedule
@@ -116,7 +116,7 @@ schedule.control = struct('bc', bc, 'src', src, 'W', []);
 
 %% visualize the simulation
 mrstModule add mrst-gui
-plotToolbar(G, states, 'field', 'species:1','startplayback', true,'plot1D', true)
+plotToolbar(G, states, 'field', 'species:1','startplayback', true, 'plot1D', true)
 
 %% Copyright notice
 %
