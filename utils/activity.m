@@ -39,7 +39,7 @@ function [state, model] = activity(model, state)
 
     activities = cell(1, nC);
     for k = 1 : nC
-        activities{k} =  (exp(pg{k}) .* components{k});
+        activities{k} = (exp(pg{k}) .* components{k});
     end
     state = model.setProp(state, 'activities', activities);
 

@@ -1,5 +1,5 @@
 function [eqs, names, types] = equationsChemicalLog(model, state, logComponents, logMasterComponents, combinationComponents, ...
-                                                       logPartialPressures, logSaturationIndicies,logSurfaceAcitivityCoefficients)
+                                                       logPartialPressures, logSaturationIndicies,logSurfaceActivityCoefficients)
 
 
     T = model.getProp(state, 'temperature');
@@ -19,7 +19,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
     SPM = model.surfacePotentialMatrix;
     
     
-    logSurfAct = logSurfaceAcitivityCoefficients;
+    logSurfAct = logSurfaceActivityCoefficients;
     
     components = cellfun(@(x) exp(x), logComponents, 'UniformOutput', false);
     masterComponents = cellfun(@(x) exp(x), logMasterComponents,'UniformOutput', false);

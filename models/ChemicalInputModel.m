@@ -60,7 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %%
         function [unknowns, logComponents, logMasterComponents, combinationComponents,...
                  logPartialPressures, logSaturationIndicies,...
-                 logSurfaceAcitivityCoefficients] = prepStateForEquations(model, ...
+                 logSurfaceActivityCoefficients] = prepStateForEquations(model, ...
                                                               state)
             CNames = model.logSpeciesNames;
             MCNames = model.logElementNames;
@@ -93,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             combinationComponents   = distributeVariable( LCNames, knowns, unknowns, knownVal, unknownVal );
             logPartialPressures   = distributeVariable( GNames, knowns, unknowns, knownVal, unknownVal );
             logSaturationIndicies = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
-            logSurfaceAcitivityCoefficients = distributeVariable( SPNames, knowns, unknowns, knownVal, unknownVal );
+            logSurfaceActivityCoefficients = distributeVariable( SPNames, knowns, unknowns, knownVal, unknownVal );
 
             
         end

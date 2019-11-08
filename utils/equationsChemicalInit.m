@@ -1,9 +1,9 @@
 function [eqs, names, types] = equationsChemicalInit(model, state, logFluidVolumeFraction, logComponents, logMasterComponents, combinationComponents, ...
-                                                       logGasVolumeFraction, logSolidVolumeFraction,logSurfaceAcitivityCoefficients)
+                                                       logGasVolumeFraction, logSolidVolumeFraction,logSurfaceActivityCoefficients)
 
 
     [eqs, names, types] = equationsChemicalLog(model, state, logFluidVolumeFraction, logComponents, logMasterComponents, combinationComponents, ...
-                                                       logGasVolumeFraction, logSolidVolumeFraction,logSurfaceAcitivityCoefficients);
+                                                       logGasVolumeFraction, logSolidVolumeFraction,logSurfaceActivityCoefficients);
 
     components = cellfun(@(x) exp(x), logComponents, 'UniformOutput', false);
 

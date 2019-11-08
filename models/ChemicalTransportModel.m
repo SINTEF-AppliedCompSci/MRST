@@ -139,13 +139,13 @@ classdef ChemicalTransportModel < WaterModel
 
             [pVars, pressure, logComponents, logMasterComponents, combinations,...
                    logSaturationIndicies, logPartialPressures,...
-                   logSurfaceAcitivityCoefficients] = prepStateForEquations(model, state);
+                   logSurfaceActivityCoefficients] = prepStateForEquations(model, state);
                
             components = cellfun(@(x) exp(x), logComponents, 'UniformOutput',false);
             masterComponentss = cellfun(@(x) exp(x), logMasterComponents, 'UniformOutput',false);
 
             [chem_eqs, chem_names, chem_types] = equationsChemicalLog(model.chemicalModel, state, logComponents, logMasterComponents, combinations, ...
-                                                       logPartialPressures, logSaturationIndicies,logSurfaceAcitivityCoefficients);
+                                                       logPartialPressures, logSaturationIndicies,logSurfaceActivityCoefficients);
 
 
             [tr_eqs, tr_names, tr_types] = equationsTransportComponents(state0, ...

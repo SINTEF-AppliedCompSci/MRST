@@ -1,8 +1,8 @@
 function [eqs, names, types] = equationsChargeBalance(model, state, logComponents, logMasterComponents, combinationComponents,...
-                 logPartialPressures, logSaturationIndicies, logSurfaceAcitivityCoefficients)
+                 logPartialPressures, logSaturationIndicies, logSurfaceActivityCoefficients)
 
     [eqs, names, types] = equationsChemicalLog(model, state, logComponents, logMasterComponents, combinationComponents, ...
-                                                       logPartialPressures, logSaturationIndicies,logSurfaceAcitivityCoefficients);
+                                                       logPartialPressures, logSaturationIndicies,logSurfaceActivityCoefficients);
 
     components = cellfun(@(x) exp(x), logComponents, 'UniformOutput', false);
     
