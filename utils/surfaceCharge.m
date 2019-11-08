@@ -15,6 +15,14 @@ function [state, model] = surfaceCharge(model, state)
     
     if ~isempty(model.surfInfo)
         
+        % Create surfaceCharge field for variable state, if not existing, and assign default values
+        if ~isfield(state, 'surfaceCharges')
+            species = model.getProp(state, 'species');
+            ncells = size(species, 1);
+            ncomp = numel(model.surfaceChargeNames);
+            state.surfaceCharges = ones(ncells, ncomp);
+        end
+        
         for i = 1 : numel(model.surfInfo.master)
 
             % grab the correct info

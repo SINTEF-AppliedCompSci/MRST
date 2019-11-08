@@ -2,10 +2,18 @@ function [state, model] = surfacePotential(model, state)
 
     T = model.getProp(state, 'temperature');
 
-    F   = 9.64853399e4;             % Faraday's Constant [C/mol]
-    R   = 8.3144621;             	% Gas Constant [J/(K mol)]
+    F = 9.64853399e4; % Faraday's Constant [C/mol]
+    R = 8.3144621; % Gas Constant [J/(K mol)]
     
     if ~isempty(model.surfInfo)
+        
+        % Create surfacepotential field for variable state, if not existing, and assign default values
+        if ~isfield(state, 'surfacePotentials')
+            species = model.getProp(state, 'species');
+            ncells = size(species, 1);
+            ncomp = numel(model.surfacePotentialNames);
+            state.surfacePotentials = ones(ncells, ncomp);
+        end
         
         for i = 1 : numel(model.surfInfo.master)
             
