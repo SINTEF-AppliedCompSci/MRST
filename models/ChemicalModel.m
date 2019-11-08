@@ -1849,22 +1849,55 @@ classdef ChemicalModel < PhysicalModel
         %%
         function state = validateState(model, state)
             state = validateState@PhysicalModel(model, state);
+            
+            prop = 'species';
+            fn = model.getVariableField(prop);
+            assert(isfield(state, fn), ['property ', prop, ' must be supplied']);
+            
+            prop = 'elements';
+            fn = model.getVariableField(prop);
+            assert(isfield(state, fn), ['property ', prop, ' must be supplied']);
+            
+            prop = 'combinationComponents';
+            if model.nLC > 0
+                fn = model.getVariableField(prop);
+                assert(isfield(state, fn), ['property ', prop, ' must be supplied']);
+            end 
+            
+            prop = 'partialPressures';
+            if model.nG > 0
+                fn = model.getVariableField(prop);
+                assert(isfield(state, fn), ['property ', prop, ' must be supplied']);
+            end 
+            
+            prop = 'saturationIndicies';
+            if model.nS > 0
+                fn = model.getVariableField(prop);
+                assert(isfield(state, fn), ['property ', prop, ' must be supplied']);
+            end 
+            
+            prop = 'surfaceActivityCoefficients';
+            if model.nP > 0
+                fn = model.getVariableField(prop);
+                assert(isfield(state, fn), ['property ', prop, ' must be supplied']);
+            end 
+
             state = model.syncLog(state);
         end
 
         %%
         function state = syncLog(model, state)
             state.logElements = log(state.elements);
-            state.logSpecies       = log(state.species);
+            state.logSpecies  = log(state.species);
             
             if isfield(state, 'saturationIndicies');
-                state.logSaturationIndicies     = log(state.saturationIndicies);
+                state.logSaturationIndicies = log(state.saturationIndicies);
             end
             if isfield(state, 'partialPressures');
-                state.logPartialPressures       = log(state.partialPressures);
+                state.logPartialPressures = log(state.partialPressures);
             end
             if isfield(state, 'surfaceActivityCoefficients');
-                state.logSurfaceActivityCoefficients       = log(state.surfaceActivityCoefficients);
+                state.logSurfaceActivityCoefficients = log(state.surfaceActivityCoefficients);
             end
         end
 
