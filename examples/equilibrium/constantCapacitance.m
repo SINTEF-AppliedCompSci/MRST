@@ -50,6 +50,7 @@ userInput = [Na Cl B H H2O]*mol/litre;
 %% solve the chemical system
 [state, report, model] = chem.initState(userInput, 'charge', 'Cl');
 
+
 %% calculate auxillary information
 % surface charge, potential, aqueous and surface concentrations can be
 % calculated with tools built into ChemicalModel
@@ -59,6 +60,7 @@ userInput = [Na Cl B H H2O]*mol/litre;
 [state, chem] = chem.computeSurfacePotentials(state);
 [state, chem] = chem.computeAqueousConcentrations(state);
 [state, chem] = chem.computeSurfaceConcentrations(state);
+
 
 state = changeUnits(state, {'species','activities','elements','surfaceConcentrations'}, mol/litre);
 pH = -log10(getProp(chem, state, 'aH+'));
