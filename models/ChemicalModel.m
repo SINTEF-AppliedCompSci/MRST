@@ -1001,18 +1001,30 @@ classdef ChemicalModel < PhysicalModel
             assert(inSize(2) == model.nMC-k, ['For the specified chemical system the input constraint must have ' ...
                                 num2str(model.nMC-k) ' columns.']);
             
-            state.elements      = mol/litre*ones(size(userInput,1), model.nMC);
-            state.species            = mol/litre*ones(size(userInput,1), model.nC);
+            ncells = size(userInput,1);
+            state.elements = mol/litre*ones(ncells, model.nMC);
+            state.species  = mol/litre*ones(ncells, model.nC);
             
-            state.combinationComponents = ones(size(userInput,1), model.nLC);
+            if ~isfield(state, 'combinationComponents') && model.nLC > 0
+                state.combinationComponents = ones(ncells, model.nLC);
+            end 
             
-            state.partialPressures         = 0.1*ones(size(userInput,1), model.nG);
-            state.logPartialPressures      = log(state.partialPressures);
+            if ~isfield(state, 'partialPressures') && model.nG > 0
+                state.partialPressures = 0.1*ones(ncells, model.nG);
+            end 
             
-            state.saturationIndicies       = 0.1*ones(size(userInput,1), model.nS);            
-            state.logSaturationIndicies    = log(state.saturationIndicies);
-    
- 
+            if ~isfield(state, 'saturationIndicies') && model.nS > 0
+                state.saturationIndicies = 0.1*ones(ncells, model.nS);
+            end 
+
+            if ~isfield(state, 'surfaceActivityCoefficients') && model.nP > 0
+                state.surfaceActivityCoefficients = 0.1*ones(ncells, model.nP);
+            end 
+
+            state = model.syncLog(state);
+            
+            state = model.validateState(state);
+
             % put the value of the surface functional groups into the input
             % vector
             call = 0;
