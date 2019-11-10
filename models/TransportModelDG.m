@@ -126,6 +126,23 @@ classdef TransportModelDG < TransportModel
             if nargin < 3
                 init = true;
             end
+            
+            names = fieldnames(state);
+            cells = rldecode((1:model.G.cells.num)', state.nDof, 1);
+            for k = 1:numel(names)
+                name = names{k};
+                if numel(name) > 3 && strcmp(name(end-2:end), 'dof')
+                    v   = model.getProp(state, name(1:end-3));
+                    dof = model.getProp(state, name);
+                    vm  = model.discretization.getCellMean(state, dof);
+                    frac = v./vm;
+                    frac(~isfinite(frac)) = 1;
+                    dof = dof.*frac(cells,:);
+                    state = model.setProp(state, name, dof);
+                end
+            end
+            
+            
             parent = model.parentModel;
             % Get the AD state for this model
             [basevars, basedofnames, basenames, baseorigin] = model.getPrimaryVariables(state);
@@ -186,6 +203,7 @@ classdef TransportModelDG < TransportModel
             end
             
             state = parent.initStateAD(state, cellMean, basenames, baseorigin);
+            state.cells = (1:model.G.cells.num)';
             state = model.evaluateBaseVariables(state);
             
             state.wellStateDG = parent.initStateAD(state.wellStateDG, cellMean, basenames, baseorigin);
@@ -380,6 +398,11 @@ classdef TransportModelDG < TransportModel
             faceStateDG.cells = fcells;
             faceStateDG.faces = faces;
             
+            if isfield(faceStateDG, 'flag')
+                faceStateDG.flag = faceStateDG.flag(fcells);
+            end
+            
+            
             state.cellStateDG = cellStateDG;
             state.wellStateDG = wellStateDG;
             state.faceStateDG = faceStateDG;
@@ -530,9 +553,9 @@ classdef TransportModelDG < TransportModel
             state = rmfield(state, 'faceStateDG');
             state = rmfield(state, 'wellStateDG');
             
-            if strcmpi(class(model.parentModel), 'GenericBlackOilModel') ...
-                 && model.parentModel.disgas || model.parentModel.vapoil
-                [state, report] = model.updateStateBO(state, problem, dx, drivingForces);
+            if 0% strcmpi(class(model.parentModel), 'GenericBlackOilModel') ...
+%                  && model.parentModel.disgas || model.parentModel.vapoil
+%                 [state, report] = model.updateStateBO(state, problem, dx, drivingForces);
             else
                 state0 = state;
                 [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
@@ -553,7 +576,6 @@ classdef TransportModelDG < TransportModel
                 [state0_corr, report] = updateState@TransportModel(model, state0, problem0, dx0, drivingForces);
                 % Correct updates in dofs according to parent model
                 dx0_corr = model.getMeanIncrement(state0_corr, state0, problem.primaryVariables);
-                
                 cells    = rldecode((1:model.G.cells.num)', state.nDof, 1);
                 frac     = cellfun(@(x,y) x(cells)./y(cells), dx0_corr, dx0, 'UniformOutput', false);
                 for i = 1:numel(frac)
