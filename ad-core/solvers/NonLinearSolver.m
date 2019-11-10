@@ -63,13 +63,13 @@ classdef NonLinearSolver < handle
         stagnateTol = 1e-2 % Stagnation tolerance - used in relaxation to determine of a residual value is no longer decreasing
         errorOnFailure = true % If error on failure is not enabled, the solver will return even though it did not converge. May be useful for debugging. Results should not be relied upon if this is enabled. If errorOnFailure is disabled, the solver will continue after a failed timestep, treating it as a simply non-converged result with the maximum number of iterations
         continueOnFailure = false % Continue even if failure is reported by the model. Results are most likely not useful. Intended for nested nonlinear solvers.
+        convergenceIssues = false;
     end
     
     properties (Access=private)
         % Internal bookkeeping.
         previousIncrement
         previousStepReport
-        convergenceIssues = false;
     end
 
     methods
