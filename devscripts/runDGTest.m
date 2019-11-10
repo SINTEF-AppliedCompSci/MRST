@@ -4,15 +4,15 @@ mrstVerbose on
 
 %%
 
-setup = getDGTestCase('simple1d', 'n', 40, 'nkr', 2); %#ok
+setup  = getDGTestCase('simple1d', 'n', 20, 'nkr', 2); %#ok
 
 %%
 
-setup = getDGTestCase('qfs_wo_2d', 'useMomentFitting', true, 'nkr', 1, 'k', {[0,0], [0,0; 1,0; 0,1; 1,1]}, 'degree', 1); %#ok
+setup  = getDGTestCase('qfs_wo_2d', 'useMomentFitting', false, 'nkr', 2, 'k', {[0,0], [0,0; 1,0; 0,1; 1,1]}, 'degree', 1, 'rotate', true, 'n', 20); %#ok
 
 %%
 
-setup = getDGTestCase('qfs_wog_3d', 'useMomentFitting', true, 'degree', [0,0,0; 1,1,0; 1,1,1]); %#ok
+setup = getDGTestCase('qfs_wog_3d', 'useMomentFitting', false, 'degree', [0,0,0; 1,1,0; 1,1,1]); %#ok
 
 %%
 
@@ -28,7 +28,11 @@ setup = getDGTestCase('spe9', 'ijk', [Inf, Inf, Inf], 'useMomentFitting', false,
 
 %%
 
-setup = getDGTestCase('qfs_co2_2d', 'n', 3, 'useOverall', true);
+setup = getDGTestCase('qfs_co2_2d', 'n', 3, 'useOverall', true); %#ok
+
+%%
+
+setup = getDGTestCase('viscous_fingers', 'rotate', true, 'k', {[0,0], [0,0; 1,0; 0,1], [0,0; 1,0; 0,1; 1,1]}, 'n', 20);
 
 %%
 
@@ -52,15 +56,48 @@ end
 
 %%
 
-inx = 2;
-po = {'edgecolor', 'none'};
-fn = plotLimiter(setup.modelDG{inx}.transportModel, 'plot1d', false, po{:}, 'n', 500);
+six = 1:40;
+schedule = setup.schedule;
+schedule.step.val = schedule.step.val(six);
+schedule.step.control = schedule.step.control(six);
+[wsDG0, stDG0, repDG0] = simulateScheduleAD(setup.state0, setup.modelDG{1}, schedule);
+[wsDG1, stDG1, repDG1] = simulateScheduleAD(setup.state0, setup.modelDG{2}, schedule);
+[wsFV, stFV, repFV] = simulateScheduleAD(setup.state0, setup.modelFV{1}, schedule);
+
+%%
+
+inx = 1;
+po = {'edgecolor', 'k'};
+fn = plotLimiter(setup.modelDG{inx}.transportModel, 'plot1d', setup.plot1d, po{:}, 'n', 500, 'zlim', [-0.2, 1.2]);
 setup.modelDG{inx}.transportModel.storeUnlimited = true;
 [ws, st, rep] = simulateScheduleAD(setup.state0, setup.modelDG{inx}, setup.schedule, 'afterStepFn', fn);
 
 %%
 
-plotWellSols(vertcat(wsDG(ix)), setup.schedule.step.val);
+inx = 2;
+po = {'edgecolor', 'k'};
+fn = plotLimiter(setup.modelDG{inx}.transportModel, 'plot1d', false, po{:}, 'n', 100, 'zlim', [-0.2, 1.2]);
+setup.modelDG{inx}.transportModel.storeUnlimited = true;
+st0 = setup.state0;
+st0.flux = stFV{2}.flux;
+st0.wellSol = stFV{2}.wellSol;
+[ws, st, rep] = simulateScheduleAD(st0, setup.modelDG{inx}.transportModel, setup.schedule, 'afterStepFn', fn);
+
+%%
+
+inx = 2;
+po = {'edgecolor', 'none'};
+fn = plotLimiter(setup.modelDG{inx}.transportModel, 'plot1d', true, po{:}, 'n', 100);
+setup.modelDG{inx}.transportModel.storeUnlimited = true;
+[ws, st, rep] = simulateScheduleAD(setup.state0, setup.modelDG{inx}, setup.schedule, 'afterStepFn', fn);
+
+%%
+
+plotToolbar(setup.modelFV{1}.G, stDG{2});
+
+%%
+
+plotWellSols({wsDG0, wsDG1, wsFV}, schedule.step.val);
 
 %%
 
@@ -145,3 +182,35 @@ for t = 1:numel(stDG{ix(1)})
     vo.writeVideo(M);
 end
 vo.close();
+
+%% Test the triangle cubature
+disc = setup.modelDG{1}.transportModel.discretization;
+cubature = disc.cellCubature;
+basis = disc.basis;
+c = 5;
+[W, x, w, cells] = cubature.getCubature(c, 'cell'); % Get points/weights
+xr = cubature.transformCoords(x, cells); % Transform to reference coords
+% The integral is easily evalauted using the matrix W, which has the
+% cubature weights w placed so that int(psi)dx = W*psi(x). The weights sum
+% to one, so that by construction, the integral of the first basis function
+% (which is constant) should equal one, whereas the linear basis functions
+% (1 and 2) should be zero
+I = cellfun(@(psi) full(W*psi(xr)), basis.psi);
+disp(I);
+
+I = zeros(basis.nDof);
+for i = 1:basis.nDof
+    for j = 1:basis.nDof
+        I(i,j) = W*(basis.psi{i}(xr).*basis.psi{j}(xr));
+    end
+end
+
+%% Plot basis
+
+% close all
+disc = setup.modelDG{1}.transportModel.discretization;
+plotDGBasis(disc.G, disc.basis, 5);
+
+%%
+
+plotCubature(disc.G, disc.faceCubature, 20, 'plotBoundingBox', false, 'facecolor', 'none')
