@@ -14,7 +14,6 @@ classdef Polynomial
                 poly.w = 1;
             elseif nargin == 1
                 poly.k = k;
-                poly.w = cell(size(k,1),1);
                 poly.w = ones(size(k,1),1);
             elseif nargin == 2
                 poly.k = k;
