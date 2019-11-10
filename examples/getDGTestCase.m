@@ -54,13 +54,14 @@ function setup = simple1d(args) %#ok
     sW     = 0.0;
     state0 = initResSol(G, 1, [sW,1-sW]);
     setup = packSetup(state0, schedule, {{model}}, {{modelFV}}, {modelDG});
-   
+    setup.plot1d = true;
+    
 end
 %-------------------------------------------------------------------------%
 
 %-------------------------------------------------------------------------%
 function setup = qfs_wo_2d(args) %#ok
-    opt = struct('n', 20, 'nkr', 1, 'degree', {{0,1,2}}, 'k', {{[]}}, 'useGenericFV', true);
+    opt = struct('n', 20, 'nkr', 1, 'degree', {{0,1,2}}, 'k', {{[]}}, 'useGenericFV', true, 'rotate', false);
     [opt, discArgs] = merge_options(opt, args{:});
 
     if isempty(opt.k{1})
@@ -71,7 +72,12 @@ function setup = qfs_wo_2d(args) %#ok
         opt.degree = cellfun(@(k) max(sum(k,2)), opt.k, 'UniformOutput', false);
     end
 
-    G = computeGeometry(cartGrid([1,1]*opt.n, [500,500]*meter));
+    G = cartGrid([1,1]*opt.n, [500,500]*meter);
+    if opt.rotate
+        R = @(t) [cos(t), -sin(t); sin(t), cos(t)];
+        G.nodes.coords = (R(pi/4)*(G.nodes.coords - 500/2)' + 500/2)';
+    end
+    G = computeGeometry(G);
     G = createAugmentedGrid(G);
     G = computeCellDimensions(G);
     G.cells.equal = true;
@@ -87,7 +93,7 @@ function setup = qfs_wo_2d(args) %#ok
     rock  = makeRock(G, perm, poro);
     fluid = initSimpleADIFluid('phases', 'WO'                       , ...
                                'rho'   , [1000,800]*kilogram/meter^3, ...
-                               'mu'    , [0.5,1]*centi*poise        , ...
+                               'mu'    , [1,1]*centi*poise        , ...
                                'n'     , [1,1]*opt.nkr              );
     fluid = restrictRelperms(fluid);
     
@@ -95,7 +101,7 @@ function setup = qfs_wo_2d(args) %#ok
     if opt.useGenericFV
         model  = mg;
         pmodel = PressureModel(model);
-%         tmodel = TransportModel(model, 'formulation', 'missingPhase');
+        tmodel = TransportModel(model, 'formulation', 'missingPhase');
         tmodel = TransportModel(model);
         tmodel.parentModel.useCNVConvergence = false;
         tmodel.parentModel.nonlinearTolerance = 1e-3;
@@ -132,6 +138,93 @@ function setup = qfs_wo_2d(args) %#ok
     W = addWell(W, G, rock, G.cells.num, 'type', 'bhp' , 'val', 100*barsa, 'compi', [1,0]);
     
     schedule = simpleSchedule(dtvec, 'W', W);
+
+    sW     = 0.0;
+    state0 = initResSol(G, 100*barsa, [sW,1-sW]);
+    setup = packSetup(state0, schedule, {{model}}, {{modelFV}}, {modelDG});
+    
+end
+%-------------------------------------------------------------------------%
+
+%-------------------------------------------------------------------------%
+function setup = viscous_fingers(args) %#ok
+    opt = struct('n', 50, 'nkr', 1, 'degree', {{0,1,2}}, 'k', {{[]}}, 'rotate', false);
+    [opt, discArgs] = merge_options(opt, args{:});
+
+    if isempty(opt.k{1})
+        k = cell(numel(opt.degree),1);
+        [k{:}] = deal([]);
+        opt.k = k;
+    else
+        opt.degree = cellfun(@(k) max(sum(k,2)), opt.k, 'UniformOutput', false);
+    end
+
+    G = cartGrid([1,1/5]*opt.n, [500,100]*meter);
+    if opt.rotate
+        R = @(t) [cos(t), -sin(t); sin(t), cos(t)];
+        G.nodes.coords = (R(pi/4)*(G.nodes.coords - 500/2)' + 500/2)';
+    end
+    G = computeGeometry(G);
+    G = createAugmentedGrid(G);
+    G = computeCellDimensions(G);
+    G.cells.equal = true;
+    
+    if 0
+        rng(2019)
+        perm = logNormLayers(G.cartDims)*10*milli*darcy;
+        poro = perm./max(perm)*0.8;
+    else
+        perm = 100*milli*darcy;
+        poro = 0.4;
+    end
+    rock  = makeRock(G, perm, poro);
+    fluid = initSimpleADIFluid('phases', 'WO'                       , ...
+                               'rho'   , [1000,800]*kilogram/meter^3, ...
+                               'mu'    , [0.5,1]*centi*poise        , ...
+                               'n'     , [1,1]*opt.nkr              );
+    fluid = restrictRelperms(fluid);
+    
+    model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
+    pmodel = PressureModel(model);
+    pmodel = PressureOilWaterModel(G, rock, fluid);
+    tmodel = TransportModel(model);
+    tmodel.parentModel.useCNVConvergence = false;
+    tmodel.parentModel.nonlinearTolerance = 1e-3;
+    
+    modelFV = SequentialPressureTransportModel(pmodel, tmodel, 'parentModel', model);
+    
+    modelDG = cell(numel(opt.degree), 1);
+    for dNo = 1:numel(opt.degree)
+        tmodelDG = TransportModelDG(model, 'formulation', 'totalSaturation', ...
+                                        'degree'     , opt.degree{dNo}  , ...
+                                        'k'          , opt.k{dNo}       , ...
+                                        discArgs{:}                     );
+        tmodelDG.parentModel.useCNVConvergence = false;
+        tmodelDG.parentModel.nonlinearTolerance = 1e-3;
+        tmodelDG.parentModel.OutputStateFunctions = {};
+        modelDG{dNo} = SequentialPressureTransportModel(pmodel, tmodelDG, 'parentModel', model);
+    end
+
+    time  = 2*year;
+    rate  = sum(poreVolume(G, rock))/time;
+    dt    = 10*day;
+    dtvec = rampupTimesteps(time, dt, 0);
+    
+    
+    bc = [];
+    
+    if 1
+        bc = fluxside(bc, G, 'left', rate, 'sat', [1,0]);
+        bc = pside(bc, G, 'right', 10*barsa, 'sat', [0,1]);
+    else
+        bc = fluxside(bc, G, 'left', rate, 'sat', [1,0]);
+        f = bc.face(G.faces.centroids(bc.face,2) > -68);
+        bc = addBC([], f, 'flux', rate/2, 'sat', [1,0]);
+        bcp = pside([], G, 'right', 10*barsa, 'sat', [0,1]);
+        f = bcp.face(G.faces.centroids(bcp.face,2) > 285);
+        bc = addBC(bc, f, 'pressure', 10*barsa, 'sat', [1,0]);
+    end
+    schedule = simpleSchedule(dtvec, 'bc', bc);
 
     sW     = 0.0;
     state0 = initResSol(G, 100*barsa, [sW,1-sW]);
@@ -273,7 +366,7 @@ function setup = qfs_co2_2d(args) %#ok
     G = cartGrid([n, n, 1], [1000, 1000, 10]);
     G = computeGeometry(G);
     G = createAugmentedGrid(G);
-    G = computeCellDimensions2(G);
+    G = computeCellDimensions(G);
     K = 0.1*darcy;
     rock = makeRock(G, K, 0.25);
 
@@ -306,15 +399,15 @@ function setup = qfs_co2_2d(args) %#ok
     end
     
     modelDG = cell(numel(opt.degree), 1);
-    for dNo = 1:0%numel(opt.degree)
+    for dNo = 1:numel(opt.degree)
         tmodelDG = TransportModelDG(model, 'formulation', 'totalSaturation' , ...
                                            'degree'     , opt.degree(dNo), ...
                                            discArgs{:});
-        if 1
-            tmodelDG = TransportModelCompositionalDG(model, 'formulation', 'totalSaturation' , ...
-                                               'degree'     , opt.degree(dNo), ...
-                                               discArgs{:});
-        end
+%         if 1
+%             tmodelDG = TransportModelCompositionalDG(model, 'formulation', 'totalSaturation' , ...
+%                                                'degree'     , opt.degree(dNo), ...
+%                                                discArgs{:});
+%         end
         tmodelDG.parentModel.useCNVConvergence = false;
         tmodelDG.parentModel.nonlinearTolerance = 1e-3;
         tmodelDG.parentModel.OutputStateFunctions = {};
@@ -363,7 +456,7 @@ function setup = spe1(args) %#ok
     gravity reset off
     
     G = computeGeometry(G);
-    G = computeCellDimensions2(G);
+    G = computeCellDimensions(G);
     G.cells.equal = false;
     
     model = selectModelFromDeck(G, rock, fluid, deck);
@@ -378,7 +471,7 @@ function setup = spe1(args) %#ok
         G = extractSubgrid(G, keep);
         rock = extractSubrock(rock, keep);
         G = computeGeometry(G);
-        G = computeCellDimensions2(G);
+        G = computeCellDimensions(G);
         G.cells.equal = false;
         model = selectModelFromDeck(G, rock, fluid, deck);
     end
@@ -397,10 +490,9 @@ function setup = spe1(args) %#ok
 
     nls = NonLinearSolver('useLineSearch', true, 'enforceResidualDecrease', true, 'continueOnFailure', true, 'errorOnFailure', false);
     modelDG = cell(numel(opt.degree), 1);
-    for dNo = 1:numel(opt.degree)
-        disc         = DGDiscretization(modelFV, ...
-                                   'degree', opt.degree{dNo}, 'k', opt.k{dNo}, discArgs{:});
-        tmodelDG     = TransportModelDG(model, 'disc', disc);
+    for dNo = 1:numel(opt.degree)                           
+        tmodelDG     = TransportModelDG(model, ...
+            'degree', opt.degree{dNo}, 'k', opt.k{dNo}, discArgs{:});
         tmodelDG.parentModel.drsMaxAbs = 200;
         tmodelDG.parentModel.useCNVConvergence = false;
         tmodelDG.parentModel.nonlinearTolerance = 1e-3;
@@ -551,7 +643,8 @@ function setup = packSetup(state0, schedule, modelFI, modelFV, modelDG, varargin
                    'schedule'    , schedule, ...
                    'modelFI'     , modelFI , ...
                    'modelFV'     , modelFV , ...
-                   'modelDG'     , modelDG );      
+                   'modelDG'     , modelDG , ...
+                   'plot1d'      , false   );
     setup = merge_options(setup, varargin{:});
     
 end
