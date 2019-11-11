@@ -26,6 +26,7 @@ function [F, Q] = getFractionalFlowMagnitudeInternal(model, state)
     if isempty(model.FlowPropertyFunctions)
         model = model.validateModel();
     end
+    state = model.reduceState(state, true);
     mob = model.getProps(state, 'Mobility');
 
     mobT = 0;
