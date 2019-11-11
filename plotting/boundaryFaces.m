@@ -56,9 +56,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   if (nargin > 1) && isnumeric(varargin{1}),
+   if (nargin > 1) && isnumeric(varargin{1})
       sub = varargin{1};
-      if any(sub == 0),
+      if any(sub == 0)
          warning(msgid('Outside:InCellSubset'), ...
             'Cell zero (outside) included in subset. Ignored.');
       end
@@ -85,7 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    tmp = present(g.faces.neighbors + 1);
    f = find(xor(tmp(:,1), tmp(:,2)));
 
-   if nargout > 1,
+   if nargout > 1
       % User requested list of cells connected to the faces in 'f'.
 
       % We construct a column vector 'c' such that c(i) is the cell within
