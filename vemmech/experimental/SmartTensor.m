@@ -96,11 +96,11 @@ classdef SmartTensor
             self = self.changeIndexName(ixname1, newname);
          end
          self = self.changeIndexName(ixname2, newname);
-            
-         % carry out the contraction (which involves only a single component)
+         
+         % if the contraction only involves a single component, carry it out
          comp_ix = self.component_with_ix(newname, false);         
          comp = self.components{comp_ix};
-         comp = SmartTensor.single_component_contraction(comp, newname);
+         comp = SmartTensor.single_component_contraction(comp);
          self.components{comp_ix} = comp;
       end
       
@@ -299,16 +299,8 @@ classdef SmartTensor
       
       function self = complete_simple_contractions(self)
          
-         [~, cixs] = self.indexNames();
-         
-         for cname = cixs
-            comp_ixs = self.component_with_ix(cname, true);
-            if numel(comp_ixs) == 1
-               % this is a contraction involving one component.
-               self.components{comp_ixs(1)} = ...
-                   SmartTensor.single_component_contraction(...
-                       self.components{comp_ixs(1)}, cname);
-            end
+         for i = 1:numel(self.components)
+            self.components{i} = SmartTensor.single_component_contraction(self.components{i});
          end
       end
       
@@ -345,13 +337,26 @@ classdef SmartTensor
          ind1 = strcmp(ixname, comps{1}.indexnames);
          rownames = comps{1}.indexnames(~ind1);
          m1 = SmartTensor(comps{1}).asMatrix({rownames,{ixname}}, true);
+         m1rix = find(sum(abs(m1), 2));
+         m1reduced = m1(m1rix,:);
          
          ind2 = strcmp(ixname, comps{2}.indexnames);
          colnames = comps{2}.indexnames(~ind2);
          m2 = SmartTensor(comps{2}).asMatrix({{ixname}, colnames}, true);
+         m2cix = (find(sum(abs(m2), 1)))';
+         m2reduced = m2(:, m2cix);
+         
          assert(issparse(m1) && issparse(m2));
-         mprod = m1 * m2;
+         % mprod = m1 * m2;
+         % size(m1reduced)
+         % size(m2reduced)
+
+         mprod = m1reduced * m2reduced;
          [i, j, v] = find(mprod);
+         
+         i = m1rix(i);
+         j = m2cix(j);
+         
          
          logical_size1 = max(comps{1}.ixs(:, ~ind1));
          reindex1 = cell(size(comps{1}.ixs, 2) - 1, 1);
@@ -484,12 +489,22 @@ classdef SmartTensor
       end
       
       function comp = single_component_contraction(comp, ixname)
-      % contract one component in one index
-         local_ind = strcmp(ixname, comp.indexnames);
+         if nargin < 2
+            % contract all duplicated indices
+            keep = cellfun(@(x) sum(strcmp(x, comp.indexnames)), ...
+                           comp.indexnames) == 1;
+         
+            comp.indexnames = comp.indexnames(keep);
+            comp.ixs = comp.ixs(:, keep);
+         else 
+            % contract one component in one index
+            local_ind = strcmp(ixname, comp.indexnames);
 
-         % get rid of contracting index
-         comp.indexnames = comp.indexnames(~local_ind);
-         comp.ixs = comp.ixs(:, ~local_ind);
+            % get rid of contracting index
+            comp.indexnames = comp.indexnames(~local_ind);
+            comp.ixs = comp.ixs(:, ~local_ind);
+         end
+         
          if isempty(comp.ixs)
             % result is an intrinsic scalar
             comp.coefs = sum(comp.coefs);
@@ -510,13 +525,23 @@ classdef SmartTensor
          % [reindex{:}] = ind2sub(logical_size, uindex);
          
          % comp.ixs = [reindex{:}];
+
+         % keyboard
+         % map = accumarray([index1d, (1:size(comp.ixs,1))'], 1, [], [], [], true);
+         % keep = sum(map, 2) > 0;
+         % keep_ix = find(keep);
+         % elim_rows = accumarray([(1:numel(keep_ix))', keep_ix], 1, [], [], [], true);
+         % map = elim_rows * map;
+         % % map = map(keep,:);
+         % comp.coefs = map * comp.coefs;
+         % uindex = find(keep);
          
          [uindex, ~, ic] = unique(index1d);
 
          map = accumarray([ic, (1:size(comp.ixs, 1))'], 1, [], [], [], true);
          
          comp.coefs = map * comp.coefs;
-         
+                  
          % % extract nonzeros and recompute indices
          
          logical_size = max(comp.ixs);
