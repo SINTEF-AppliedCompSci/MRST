@@ -1,10 +1,16 @@
-function [eqs, names, types] = equationsChargeBalance(model, state, logComponents, logMasterComponents, combinationComponents,...
-                 logPartialPressures, logSaturationIndicies, logSurfaceActivityCoefficients)
+function [eqs, names, types] = equationsChargeBalance(model, state)
+    
+    logSpecies                     = model.getProp(state, 'logSpecies');
+    logElements                    = model.getProp(state, 'logElements');
+    combinationComponents          = model.getProp(state, 'combinationComponents');
+    logPartialPressures            = model.getProp(state, 'logPartialPressures');
+    logSaturationIndicies          = model.getProp(state, 'logSaturationIndicies');
+    logSurfaceActivityCoefficients = model.getProp(state, 'logSurfaceActivityCoefficients');
 
-    [eqs, names, types] = equationsChemicalLog(model, state, logComponents, logMasterComponents, combinationComponents, ...
-                                                       logPartialPressures, logSaturationIndicies,logSurfaceActivityCoefficients);
+    
+    [eqs, names, types] = equationsChemicalLog(model, state);
 
-    components = cellfun(@(x) exp(x), logComponents, 'UniformOutput', false);
+    species = cellfun(@(x) exp(x), logSpecies, 'UniformOutput', false);
     
     CVCind = strcmpi(model.CVC, model.elementNames)';
 
@@ -13,11 +19,11 @@ function [eqs, names, types] = equationsChargeBalance(model, state, logComponent
 % 
 %     masssum = 0;
 %     for k = 1 : model.nC
-%         masssum = masssum + model.compositionMatrix(CVCind,k).*components{k};
+%         masssum = masssum + model.compositionMatrix(CVCind,k).*species{k};
 %     end
 %     masssum = masssum - CVC;
 % 
-%     eqs{eqInd} = log(masssum) - logMasterComponents{CVCind};
+%     eqs{eqInd} = log(masssum) - logElements{CVCind};
 
 
     %% charge balance
@@ -33,8 +39,8 @@ function [eqs, names, types] = equationsChargeBalance(model, state, logComponent
     neg = 0;
     
     for k = 1 : model.nC
-        pos = pos + CVp(1,k).*components{k};
-        neg = neg + CVn(1,k).*components{k};
+        pos = pos + CVp(1,k).*species{k};
+        neg = neg + CVn(1,k).*species{k};
     end
 
     eqs{end+1} = log(pos) - log(neg);

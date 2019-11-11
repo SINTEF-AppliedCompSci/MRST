@@ -42,7 +42,7 @@ state = chem.initState([Na, Cl, Ca, H, H2O, CO2], 'charge','H+');
 %% process data
 state = changeUnits(state, {'elements','species','partialPressures'}, [mol/litre, mol/litre, atm] );
 
-[state, chem] = chem.computeActivities(state);
+[state, chem] = chem.updateActivities(state);
 
 %% plot the results
 figure; hold on; box on;

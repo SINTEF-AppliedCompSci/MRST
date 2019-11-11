@@ -54,12 +54,12 @@ userInput = [Na Cl H H2O]*mol/litre;
 %% post processing
 % to add the surface potentials and charges to the state structure we must
 % call on functions within ChemicalModel
-[state, chem] = chem.computeActivities(state);
-[state, chem] = chem.computeChargeBalance(state);
-[state, chem] = chem.computeSurfaceCharges(state);
-[state, chem] = chem.computeSurfacePotentials(state);
-[state, chem] = chem.computeAqueousConcentrations(state);
-[state, chem] = chem.computeSurfaceConcentrations(state);
+[state, chem] = chem.updateActivities(state);
+[state, chem] = chem.updateChargeBalance(state);
+[state, chem] = chem.updateSurfaceCharges(state);
+[state, chem] = chem.updateSurfacePotentials(state);
+[state, chem] = chem.updateAqueousConcentrations(state);
+[state, chem] = chem.updateSurfaceConcentrations(state);
 
 state = changeUnits(state, {'elements', 'species', 'activities'}, mol/litre);
 

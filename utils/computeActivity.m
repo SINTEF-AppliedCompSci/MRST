@@ -1,4 +1,4 @@
-function [state, model] = activity(model, state)
+function [state, model] = computeActivity(model, state)
 
     components = cell(1, model.nC);
 

@@ -242,92 +242,112 @@ classdef ChemicalModel < PhysicalModel
 
  
     properties
-        elementNames      % Names of the master components as first master component.
-        logElementNames   % Names of the log master components (= 'log' in
-                             % front of elementNames).
-
-        MCind                % index vector of each master component
-        nMC                  % number of master components
-
-        speciesNames            % Names of the components.
-        logSpeciesNames         % Names of the log components (= 'log' in
-                             % front of speciesNames).
-
-        compositionMatrix    % Composition for each components, in term of the
-                             % master components.
-        Cind                 % index vector of species
-        nC                   % Number of components
         
-        maxMatrices          % cells of matrices, one per components. Used to
-                             % compute the upper bound when updating a component.
-
-        chargeVector         % coefficients of charged species.
-        reactionMatrix       % Coefficients for the reaction.
-        reactionConstants    % Contains the K_i.
-        logReactionConstants % Contains the log K_i.
-
-
-        nR                   % Number of reactions
-        rxns                 % string of reactions
-
-
-        surfChargeMatrix     % matrix of surface charge contributions
-        surfMaster           % index vector of master components that are surfaces
-
-        surfFlag             % are there surface species 1 or 0
-        surfaces             % surface groups for electrostatic calculations
+        % Structures describing master components and the species.
         
-        nSurf                % number of surface components
-        nP                   % number of surface potential terms
-        
-        compositionReactionModel % model for computing the mas conservation and reaction equations together
-        chargeBalanceModel   % model for computing the solution when charge balance is required
-        
-        chemicalInputModel   % Model to solve chemical equilibrium state from user
-                              % input. see initState member function. variable
-                              % is initialized in initSecondaryComponents.
+        elementNames             % Names of the master components as first master component.
+        logElementNames          % Names of the log master components (= 'log' in
+                                 % front of elementNames).
 
-        surfInfo            % information regarding the surfaces
-        activityNames   % name of activity of species
+        MCind                    % Index vector of each master component
+        nMC                      % Number of master components
 
-        surfaceChargeNames         % name of surface charge variables
-        surfacePotentialNames         % name of potentials
+        speciesNames             % Names of the components.
+        logSpeciesNames          % Names of the log components (= 'log' in
+                                 % front of speciesNames).
+
+        compositionMatrix        % Composition for each components, in term of the
+                                 % master components.
+        Cind                     % Index vector of species
+        nC                       % Number of components (i.e. species)
         
-        surfaceActivityCoefficientNames % surface potential multipliers
-        logSurfaceActivityCoefficientNames %  log surface potential multipliers
+        maxMatrices              % cells of matrices, one per components. Used to
+                                 % compute the upper bound when updating a component.
+
+        activityNames            % name of activity of species
         
-        allCharge           % vector for ensuring each reaciton is charge balanced
+        CVC                      % charge variation component
+        chargeVector             % Coefficients of charged species.
         
-        inputs              % names of inputs the user must provide
+        aqueousConcentrationNames % name of total aqueous concentration variables
+
+        % Structures encoding the chemical reactions
+        
+        reactionMatrix           % Coefficients for the reaction.
+        reactionConstants        % Contains the chemical constants K_i for
+                                 % the reactions.
+        logReactionConstants     % Contains the log K_i.
+
+        nR                       % Number of reactions
+        rxns                     % String of reactions
+
+        % Structures encoding surface chemistry data
+        
+        surfInfo                 % Information regarding the surfaces
+
+        surfaceChargeNames       % Name of surface charge variables
+        surfacePotentialNames    % Name of potentials
+        
+        surfChargeMatrix         % Matrix of surface charge contributions
+        surfMaster               % Index vector of master components that are surfaces
+
+        surfFlag                 % Flag for presence of surface species
+        surfaces                 % Surface groups for electrostatic calculations
+        
+        nSurf                    % Number of surface components
+        nP                       % Number of surface potential terms
+        
+        surfaceActivityCoefficientNames    % Surface potential multipliers
+        logSurfaceActivityCoefficientNames % Log surface potential multipliers
+        
+        surfaceConcentrationNames % name of total surface concentration
+                                  % variables
+        surfacePotentialMatrix  % matrix for surface potential contributions to reactions
+                                  
+        % Structures in case linear combinations of component are used as
+        % input (for example alkalinity, see alkalinity example)
         
         combinationNames    % names of linear combinations
         combinationMatrix   % combination for each linear combination in terms of species
         nLC                 % number of linear combinations
+                            
+        % Helper models and structures to solve chemical equilibrium
         
-        aqueousConcentrationNames % name of total aqueous concentration variables
-        surfaceConcentrationNames % name of total surface concentration variables
+        compositionReactionModel % Model for computing the mass conservation and reaction equations together
+        chargeBalanceModel       % Model for computing the solution when charge balance is required
         
-        solidNames          % name of species in the solid phase
-        gasNames            % name of species in the gas phase
+        chemicalInputModel       % Model to solve chemical equilibrium state from user
+                                 % input. see initState member function. The
+                                 % variable is initialized in
+                                 % initSecondaryComponents.
+        
+        allCharge % vector for ensuring each reaciton is charge balanced
+        inputs    % names of inputs the user must provide        
+        
+        % Multiphase (solid and gas)
+        
+        solidNames    % name of species in the solid phase
+        gasNames      % name of species in the gas phase
 
-        logSolidNames          % log name of species in the solid phase
-        logGasNames            % log name of species in the gas phase
+        logSolidNames % log name of species in the solid phase
+        logGasNames   % log name of species in the gas phase
         
-        nG                  % number of gas components
-        nS                  % number of solid components
+        phaseInd          % index of phase names in component names
+        gasInd            % index of gas phase in comp names
+        solidInd          % indexof solid phase in comp names        
+        
+        partialPressureNames % names of partial pressures of gasses
+        solidDensityNames    % names of solid densities        
+        
+        nG            % number of gas components
+        nS            % number of solid components
+        
+        % Helper structures (for multiphase)
         
         allContributionMatrix % matrix to check if all reactions are balanced
-        
-        allComponentNames        % name of all components, in all phases
-        phaseInd            % index of phase names in component names
-        gasInd              % index of gas phase in comp names
-        solidInd            % indexof solid phase in comp names
-        
-        allReactionMatrix   % matrix of contribution of all components in all phases in a reaction
-        partialPressureNames % names of partial pressures of gasses
-        solidDensityNames % names of solid densities
-        
-        allCombinationMatrix   % combination matrix for printing the chemical system
+        allComponentNames     % name of all components, in all phases
+        allReactionMatrix     % matrix of contribution of all components in all phases in a reaction
+        allCombinationMatrix  % combination matrix for printing the chemical system
 
         gasContributionMatrix       % composition matrix of gas phase
         solidContributionMatrix     % composition matrix of solid phase
@@ -335,8 +355,7 @@ classdef ChemicalModel < PhysicalModel
         gasReactionMatrix   % reaction matrix of gas phase
         solidReactionMatrix % reaction matrix of solid phase
                 
-        surfacePotentialMatrix  % matrix for surface potential contributions to reactions
-        
+        % Solver parameters
         plotIterations            % toggle plotting of iteration information true or false
         nonLinearMinIterations    % minimum number of iterations for the nonlinear solver
         nonLinearMaxIterations    % maximum number of iterations for the nonlinear solver  
@@ -344,7 +363,6 @@ classdef ChemicalModel < PhysicalModel
         linearTolerance           % tolerance of the residual of the linear system, for backslash
         linearMaxIterations       % maximum number of iterations for the linear solver
         
-        CVC                     % charge variation component
     end
 
 
@@ -1065,7 +1083,7 @@ classdef ChemicalModel < PhysicalModel
                 fprintf('Solving the chemical system with strict charge balance...\n');
                 state0 = state;
                 if isempty(model.chargeBalanceModel)
-                    model.chargeBalanceModel = chargeBalanceModel();
+                    model.chargeBalanceModel = ChargeBalanceModel();
                 end
                 for i = 1 : numel(props);
                     model.chargeBalanceModel.(props{i}) = model.chemicalInputModel.(props{i});
@@ -1963,13 +1981,13 @@ classdef ChemicalModel < PhysicalModel
         end
 
         %%
-        function [state, model] = computeActivities(model, state)
-        % computeAcitivities computes the acitivity of each aqueous species
+        function [state, model] = updateActivities(model, state)
+        % updateAcitivities updates the acitivity of each aqueous species
         % using the extended Davies equaiton and adds the values to the 
         % field state.activities.
         %
         % SYNOPSIS:
-        %  [state, chem] = computeActivities(chem, state)
+        %  [state, chem] = updateActivities(chem, state)
         %
         %
         % REQUIRED PARAMETERS:
@@ -1986,12 +2004,12 @@ classdef ChemicalModel < PhysicalModel
         %          for use in calling the activities using getProp/s.
         %
         % EXAMPLE:
-        %   [state, chem] = chem.computeActivities(state);
+        %   [state, chem] = chem.updateActivities(state);
         %   aH2O = chem.getProp(state, 'aH2O');
         %   pH = -log10(chem.getProp, 'aH+');
         %
         % SEE ALSO:
-        %   'computeChargeBalance'
+        %   'updateChargeBalance'
         
         %{
         Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
@@ -2012,18 +2030,18 @@ classdef ChemicalModel < PhysicalModel
         along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %}
         
-            assert( nargout == 2, ['Output argument to computeActivities must include the state variable and the chemical model object']);
-            [state, model] = activity(model, state);
+            assert( nargout == 2, ['Output argument to updateActivities must include the state variable and the chemical model object']);
+            [state, model] = computeActivity(model, state);
             
         end
         
         %%
-        function [state, model] = computeChargeBalance(model, state)
-        % computeChargeBalance computes the residual of the aqueous charge
+        function [state, model] = updateChargeBalance(model, state)
+        % updateChargeBalance updates the residual of the aqueous charge
         % balance equation and adds the values to the field state.chargeBalance.
         %
         % SYNOPSIS:
-        %  [state, chem] = computeChargeBalance(chem, state)
+        %  [state, chem] = updateChargeBalance(chem, state)
         %
         %
         % REQUIRED PARAMETERS:
@@ -2039,11 +2057,11 @@ classdef ChemicalModel < PhysicalModel
         %           charge balance residual using getProp/s.
         %
         % EXAMPLE:
-        %   [state, chem] = chem.computeChargeBalance(state);
+        %   [state, chem] = chem.updateChargeBalance(state);
         %   charge = chem.getProp(state, 'chargeBalance');
         %
         % SEE ALSO:
-        %   'computeActivities'
+        %   'updateActivities'
         
         %{
         Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
@@ -2064,18 +2082,18 @@ classdef ChemicalModel < PhysicalModel
         along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %}
 
-            assert( nargout == 2, ['Output argument to computeChargeBalance must include the state variable and the chemical model object']);
-            [state, model] = chargeBalance(model, state);
+            assert( nargout == 2, ['Output argument to updateChargeBalance must include the state variable and the chemical model object']);
+            [state, model] = computeChargeBalance(model, state);
             
         end
         
         %%
-        function [state, model] = computeSurfacePotentials(model, state)
-        % computeSurfacePotentials computes the potential of each layer of each
+        function [state, model] = updateSurfacePotentials(model, state)
+        % updateSurfacePotentials updates the potential of each layer of each
         % surface and adds the values to the field state.surfacePotentials.
         %
         % SYNOPSIS:
-        %  [state, chem] = computeSurfacePotentials(chem, state)
+        %  [state, chem] = updateSurfacePotentials(chem, state)
         %
         % REQUIRED PARAMETERS:
         %   state - the state variable produced by model.initState.
@@ -2093,11 +2111,11 @@ classdef ChemicalModel < PhysicalModel
         %           for use in calling the surface potentials using getProp/s.
         %
         % EXAMPLE:
-        %   [state, chem] = chem.computeSurfacePotentials(state);
+        %   [state, chem] = chem.updateSurfacePotentials(state);
         %   [pot1, pot2] = chem.getProps(state, '>SiO_Psi_0', '>SiO_Psi_1');
         %
         % SEE ALSO:
-        %   'computeSurfaceCharges'
+        %   'updateSurfaceCharges'
         
         %{
         Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
@@ -2118,18 +2136,18 @@ classdef ChemicalModel < PhysicalModel
         along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %}
         
-            assert( nargout == 2, ['Output argument to computeSurfacePotentials must include the state variable and the chemical model object']);
-            [state, model] = surfacePotential(model, state);
+            assert( nargout == 2, ['Output argument to updateSurfacePotentials must include the state variable and the chemical model object']);
+            [state, model] = computeSurfacePotential(model, state);
             
         end
         
         %%
-        function [state, model] = computeSurfaceCharges(model, state)
-        % computeSurfaceCharges computes the charge of each layer of each
+        function [state, model] = updateSurfaceCharges(model, state)
+        % updateSurfaceCharges updates the charge of each layer of each
         % surface and adds the values to the field state.surfaceCharges.
         %
         % SYNOPSIS:
-        %  [state, chem] = computeSurfaceCharges(chem, state)
+        %  [state, chem] = updateSurfaceCharges(chem, state)
         %
         % REQUIRED PARAMETERS:
         %   state - the state variable produced by chem.initState.
@@ -2147,11 +2165,11 @@ classdef ChemicalModel < PhysicalModel
         %           for use in calling the surface charges using getProp/s.
         %
         % EXAMPLE:
-        %   [state, chem] = chem.computeSurfaceCharges(state);
+        %   [state, chem] = chem.updateSurfaceCharges(state);
         %   charge0 = chem.getProp(state, '>SiO_sig_0');
         %
         % SEE ALSO:
-        %   'computeSurfacePotentials'
+        %   'updateSurfacePotentials'
         
         %{
         Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
@@ -2171,18 +2189,18 @@ classdef ChemicalModel < PhysicalModel
         You should have received a copy of the GNU General Public License
         along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %}
-            assert( nargout == 2, ['Output argument to computeSurfaceCharges must include the state variable and the chemical model object']);                
-            [state, model] = surfaceCharge(model, state);
+            assert( nargout == 2, ['Output argument to updateSurfaceCharges must include the state variable and the chemical model object']);                
+            [state, model] = computeSurfaceCharge(model, state);
         end
         
         %%
-        function [state, model] = computeAqueousConcentrations(model, state)
-        % computeAqueousConcentrations computes the total concentration of each 
+        function [state, model] = updateAqueousConcentrations(model, state)
+        % updateAqueousConcentrations updates the total concentration of each 
         % element in the aqueous phase. This excludes, gas, solid and
         % surface bound species. 
         %
         % SYNOPSIS:
-        %  [state, chem] = computeAqueousConcentrations(chem, state)
+        %  [state, chem] = updateAqueousConcentrations(chem, state)
         %
         % REQUIRED PARAMETERS:
         %   state - the state variable produced by chem.initState.
@@ -2198,12 +2216,12 @@ classdef ChemicalModel < PhysicalModel
         %          for use in calling the surface charges using getProp/s.
         %
         % EXAMPLE:
-        %   [state, chem] = chem.computeAqueousConcentrations(state);
+        %   [state, chem] = chem.updateAqueousConcentrations(state);
         %   Na = chem.getProp(state, 'Na(aq)');
         %   H = chem.getProp(state, 'H(aq)');
         %
         % SEE ALSO:
-        %   'computeSurfaceConcentrations'
+        %   'updateSurfaceConcentrations'
         
         %{
         Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
@@ -2224,18 +2242,18 @@ classdef ChemicalModel < PhysicalModel
         along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %}
         
-            assert( nargout == 2, ['Output argument to computeAqueousConcentrations must include the state variable and the chemical model object']);
-            [state, model] = aqueousConcentrations(model, state);
+            assert( nargout == 2, ['Output argument to updateAqueousConcentrations must include the state variable and the chemical model object']);
+            [state, model] = computeAqueousConcentrations(model, state);
             
         end
         
         %%
-        function [state, model] = computeSurfaceConcentrations(model, state)
-        % computeSurfaceConcentrations computes the total concentration of each 
+        function [state, model] = updateSurfaceConcentrations(model, state)
+        % updateSurfaceConcentrations updates the total concentration of each 
         % element bound to surfaces.
         %
         % SYNOPSIS:
-        %  [state, chem] = computeAqueousConcentrations(chem, state)
+        %  [state, chem] = updateAqueousConcentrations(chem, state)
         %
         % REQUIRED PARAMETERS:
         %   state - the state variable produced by model.initState.
@@ -2252,11 +2270,11 @@ classdef ChemicalModel < PhysicalModel
         %           surface concetrations using getProp/s. 
         %
         % EXAMPLE:
-        %   [state, chem] = chem.computeSurfaceConcentrations(state);
+        %   [state, chem] = chem.updateSurfaceConcentrations(state);
         %   [Na, H] = chem.getProps(state, 'Na(surf)', 'H(surf)');
         %
         % SEE ALSO:
-        %   'computeSurfaceConcentrations'
+        %   'updateSurfaceConcentrations'
         
         %{
         Copyright 2009-2017 SINTEF Digital, Mathematics & Cybernetics.
@@ -2277,8 +2295,8 @@ classdef ChemicalModel < PhysicalModel
         along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %}
         
-            assert( nargout == 2, ['Output argument to computeSurfaceConcentrations must include the state variable and the chemical model object']);
-            [state, model] = surfaceConcentrations(model, state);
+            assert( nargout == 2, ['Output argument to updateSurfaceConcentrations must include the state variable and the chemical model object']);
+            [state, model] = computeSurfaceConcentrations(model, state);
             
         end
     end

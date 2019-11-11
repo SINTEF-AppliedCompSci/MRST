@@ -1,28 +1,34 @@
-function [eqs, names, types] = equationsChemicalLog(model, state, logComponents, logMasterComponents, combinationComponents, ...
-                                                       logPartialPressures, logSaturationIndicies,logSurfaceActivityCoefficients)
+function [eqs, names, types] = equationsChemicalLog(model, state)
 
 
+    logSpecies                     = model.getProp(state, 'logSpecies');
+    logElements                    = model.getProp(state, 'logElements');
+    combinationComponents          = model.getProp(state, 'combinationComponents');
+    logPartialPressures            = model.getProp(state, 'logPartialPressures');
+    logSaturationIndicies          = model.getProp(state, 'logSaturationIndicies');
+    logSurfaceActivityCoefficients = model.getProp(state, 'logSurfaceActivityCoefficients');
+     
     T = model.getProp(state, 'temperature');
     
     
-    An  = 6.0221413*10^23;       	% avagadros number [#/mol]
-    F   = 9.64853399e4;             % Faraday's Constant [C/mol]
-    R   = 8.3144621;             	% Gas Constant [J/(K mol)]
-    e_o = 8.854187817620e-12;       % permitivity of free space [C/Vm]
+    An  = 6.0221413*10^23;    % avagadros number [#/mol]
+    F   = 9.64853399e4;       % Faraday's Constant [C/mol]
+    R   = 8.3144621;          % Gas Constant [J/(K mol)]
+    e_o = 8.854187817620e-12; % permitivity of free space [C/Vm]
     e_w = 87.740 - 0.4008.*(T-273.15) + 9.398e-4.*(T-273.15).^2 - 1.410e-6*(T-273.15).^3;% Dielectric constant of water
     A   = 1.82e6*(e_w.*T).^(-3/2);
 
-    CM = model.compositionMatrix;
-    RM = model.reactionMatrix;
-    GM =  model.gasReactionMatrix;
-    SM = model.solidReactionMatrix;
+    CM  = model.compositionMatrix;
+    RM  = model.reactionMatrix;
+    GM  = model.gasReactionMatrix;
+    SM  = model.solidReactionMatrix;
     SPM = model.surfacePotentialMatrix;
     
     
     logSurfAct = logSurfaceActivityCoefficients;
     
-    components = cellfun(@(x) exp(x), logComponents, 'UniformOutput', false);
-    masterComponents = cellfun(@(x) exp(x), logMasterComponents,'UniformOutput', false);
+    species = cellfun(@(x) exp(x), logSpecies, 'UniformOutput', false);
+    elements = cellfun(@(x) exp(x), logElements,'UniformOutput', false);
 
     logK = model.logReactionConstants;
 
@@ -39,7 +45,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
     CV(1,eInd) = 0;
     
     for i = 1 : model.nC
-        ionDum = ionDum + (CV(1,i).^2.*components{i}).*litre/mol;
+        ionDum = ionDum + (CV(1,i).^2.*species{i}).*litre/mol;
     end
     ion = cell(1,model.nC);
     [ion{:}] = deal((1/2)*abs(ionDum));
@@ -57,7 +63,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
     surfMat = repmat(model.surfMaster, 1, model.nC).*CM;
     surfTest = logical(sum(surfMat));
     
-    moleFraction = components;
+    moleFraction = species;
     
     for i = 1 : model.nC
         if surfTest(i)
@@ -65,9 +71,9 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
             surfNum = 0;
             for j = 1 : model.nMC
                 surfNum = surfNum + CM(j,i).*model.surfMaster(j);
-                surfDen = surfDen + double(logical(CM(j,i).*model.surfMaster(j)))*masterComponents{j};
+                surfDen = surfDen + double(logical(CM(j,i).*model.surfMaster(j)))*elements{j};
             end
-            moleFraction{i} = (surfNum./surfDen).*components{i};
+            moleFraction{i} = (surfNum./surfDen).*species{i};
         end
 
     end
@@ -112,11 +118,11 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
         
         % now using units of moles
         for k = 1 : model.nC
-            masssum = masssum + CM(i,k).*components{k};
+            masssum = masssum + CM(i,k).*species{k};
         end
      
         
-        eqs{j} = log(masssum) - logMasterComponents{i};
+        eqs{j} = log(masssum) - logElements{i};
 
         names{j} = ['Conservation of ', model.elementNames{i}] ;
     end
@@ -158,16 +164,16 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
                         % calculate surface charges
                         for k = 1 : nSp
                             SpInd = strcmpi(SpNames{k}, model.speciesNames);
-                            sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*components{SpInd};
-                            sig_1 = sig_1 + (F./(S.*a)).*charge{k}(2).*components{SpInd};
-                            sig_2 = sig_2 + (F./(S.*a)).*charge{k}(3).*components{SpInd};
+                            sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*species{SpInd};
+                            sig_1 = sig_1 + (F./(S.*a)).*charge{k}(2).*species{SpInd};
+                            sig_2 = sig_2 + (F./(S.*a)).*charge{k}(3).*species{SpInd};
                         end
 
                     case 'ccm'
                         % calculate surface charge
                         for k = 1 : nSp
                             SpInd = strcmpi(SpNames{k}, model.speciesNames);
-                            sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*components{SpInd};
+                            sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*species{SpInd};
                         end
                 end
             end
@@ -212,7 +218,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state, logComponents,
     for i = 1 : model.nLC
         combSum = 0;
         for k = 1 : model.nC
-            combSum = combSum + model.combinationMatrix(i,k).*components{k};
+            combSum = combSum + model.combinationMatrix(i,k).*species{k};
         end
         if any(combSum<=0) || any(combinationComponents{i}<=0)
             eqs{end+1} = (combSum - combinationComponents{i});

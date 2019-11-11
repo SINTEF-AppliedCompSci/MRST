@@ -42,7 +42,7 @@ inputs = [Na, Cl, H, H2O]*mol/litre;
 %% process the data
 state = changeUnits(state, {'elements','species'}, mol/litre );
 
-[state, chem] = chem.computeActivities(state);
+[state, chem] = chem.updateActivities(state);
 
 pH = -log10(getProp(chem, state, 'aH+'));
 

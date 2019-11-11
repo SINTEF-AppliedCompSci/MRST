@@ -1,4 +1,4 @@
-function [state, model] = surfaceConcentrations(model, state)
+function [state, model] = computeSurfaceConcentrations(model, state)
 
     comps = cell(1, model.nC);
 

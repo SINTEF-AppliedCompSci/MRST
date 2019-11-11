@@ -1,5 +1,6 @@
 classdef ChemicalInputModel < ChemicalModel
-% model for initializing and solving the chemical system based on user chosen input
+% Model for initializing and solving the chemical system based on user chosen
+% input. See function initState of ChemicalModel.
 
 %{
 Copyright 2009-2016 SINTEF DIGITAL, Applied Mathematics and Cybernetics.
@@ -45,28 +46,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %%
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
-            [pVars, logComponents, logMasterComponents, combinationComponents,...
-                 logPartialPressures, logSaturationIndicies,...
-                  logSurfaceActivityCoefficients]...
-                = prepStateForEquations(model, state);
-
-            [eqs, names, types] = equationsChemicalLog(model, state, logComponents, logMasterComponents, combinationComponents, ...
-                                                       logPartialPressures, logSaturationIndicies,logSurfaceActivityCoefficients);
-
+            [pVars, state] = prepStateForEquations(model, state);
+            [eqs, names, types] = equationsChemicalLog(model, state);
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
 
         end
 
         %%
-        function [unknowns, logComponents, logMasterComponents, combinationComponents,...
-                 logPartialPressures, logSaturationIndicies,...
-                 logSurfaceActivityCoefficients] = prepStateForEquations(model, ...
-                                                              state)
-            CNames = model.logSpeciesNames;
+        function [unknowns, state] = prepStateForEquations(model, state)
+            
+            CNames  = model.logSpeciesNames;
             MCNames = model.logElementNames;
             LCNames = model.combinationNames;
-            GNames = model.logGasNames;
-            SNames = model.logSolidNames;
+            GNames  = model.logGasNames;
+            SNames  = model.logSolidNames;
             SPNames = model.logSurfaceActivityCoefficientNames;
             
             unknowns = model.unknownNames;
@@ -87,26 +80,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             knownVal = cell(1,numel(knowns));
             [knownVal{:}] = model.getProps(state, knowns{:});
             
+            logSpecies                     = distributeVariable(CNames , knowns, unknowns, knownVal, unknownVal);
+            logElements                    = distributeVariable(MCNames, knowns, unknowns, knownVal, unknownVal);
+            combinationComponents          = distributeVariable(LCNames, knowns, unknowns, knownVal, unknownVal);
+            logPartialPressures            = distributeVariable(GNames , knowns, unknowns, knownVal, unknownVal);
+            logSaturationIndicies          = distributeVariable(SNames , knowns, unknowns, knownVal, unknownVal);
+            logSurfaceActivityCoefficients = distributeVariable(SPNames, knowns, unknowns, knownVal, unknownVal);
 
-            logComponents           = distributeVariable( CNames, knowns, unknowns, knownVal, unknownVal );
-            logMasterComponents     = distributeVariable( MCNames, knowns, unknowns, knownVal, unknownVal );
-            combinationComponents   = distributeVariable( LCNames, knowns, unknowns, knownVal, unknownVal );
-            logPartialPressures   = distributeVariable( GNames, knowns, unknowns, knownVal, unknownVal );
-            logSaturationIndicies = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
-            logSurfaceActivityCoefficients = distributeVariable( SPNames, knowns, unknowns, knownVal, unknownVal );
-
+            state = model.setProp(state, 'logSpecies', logSpecies);
+            state = model.setProp(state, 'logElements', logElements);
+            state = model.setProp(state, 'combinationComponents', combinationComponents);
+            state = model.setProp(state, 'logPartialPressures', logPartialPressures);
+            state = model.setProp(state, 'logSaturationIndicies', logSaturationIndicies);
+            state = model.setProp(state, 'logSurfaceActivityCoefficients', logSurfaceActivityCoefficients);
             
         end
+
         
-        %%
-        function [state, report] = updateState(model, state, problem, dx, ...
-                                               drivingForces)
-
-            [state, report] = updateState@ChemicalModel(model, state, problem, ...
-                                                        dx, drivingForces);
-            
-        end
-
         %%
         function [state, failure, report] = solveChemicalState(model, inputstate)
         % inputstate contains the input and the initial guess.

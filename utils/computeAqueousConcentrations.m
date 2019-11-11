@@ -1,4 +1,4 @@
-function [state, model] = aqueousConcentrations(model, state)
+function [state, model] = computeAqueousConcentrations(model, state)
 
     comps = cell(1, model.nC);
 

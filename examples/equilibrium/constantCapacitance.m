@@ -55,11 +55,11 @@ userInput = [Na Cl B H H2O]*mol/litre;
 % surface charge, potential, aqueous and surface concentrations can be
 % calculated with tools built into ChemicalModel
 
-[state, chem] = chem.computeActivities(state);
-[state, chem] = chem.computeChargeBalance(state);
-[state, chem] = chem.computeSurfacePotentials(state);
-[state, chem] = chem.computeAqueousConcentrations(state);
-[state, chem] = chem.computeSurfaceConcentrations(state);
+[state, chem] = chem.updateActivities(state);
+[state, chem] = chem.updateChargeBalance(state);
+[state, chem] = chem.updateSurfacePotentials(state);
+[state, chem] = chem.updateAqueousConcentrations(state);
+[state, chem] = chem.updateSurfaceConcentrations(state);
 
 
 state = changeUnits(state, {'species','activities','elements','surfaceConcentrations'}, mol/litre);

@@ -39,8 +39,8 @@ Na = 1e-2*ones(n,1);
 [state, report] = chem.initState([N e Na H H2O]*mol/litre,'charge','H+');
 
 %% calculate acitivities and charge balance
-[state, chem] = chem.computeActivities(state);
-[state, chem] = chem.computeChargeBalance(state);
+[state, chem] = chem.updateActivities(state);
+[state, chem] = chem.updateChargeBalance(state);
 
 state = changeUnits(state, {'species', 'activities'}, mol/litre);
 

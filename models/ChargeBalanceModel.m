@@ -1,4 +1,4 @@
-classdef chargeBalanceModel < ChemicalInputModel
+classdef ChargeBalanceModel < ChemicalInputModel
     
     
     properties
@@ -6,34 +6,26 @@ classdef chargeBalanceModel < ChemicalInputModel
     
     methods
 
-        function model = chargeBalanceModel()
+        function model = ChargeBalanceModel()
             model = model@ChemicalInputModel();
         end
         
 
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             
-            
-        [unknowns, components, masterComponents, combinationComponents,...
-                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients] = prepStateForEquations(model, state);
-             
-            [eqs, names, types] = equationsChargeBalance(model, state, components, masterComponents, combinationComponents,...
-                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients);
-            
+            [unknowns, state] = prepStateForEquations(model, state);
+            [eqs, names, types] = equationsChargeBalance(model, state);
             problem = LinearizedProblem(eqs, types, names, unknowns, state, dt);
-
-        end
-        
-        
-        function [unknowns, components, masterComponents, combinationComponents,...
-                 partialPressures, saturationIndiciess, surfaceAcitivityCoefficients] = prepStateForEquations(model, ...
-                                                              state)
             
-            CNames = model.logSpeciesNames;
+        end
+
+        function [unknowns, state] = prepStateForEquations(model, state)
+                
+            CNames  = model.logSpeciesNames;
             MCNames = model.logElementNames;
             LCNames = model.combinationNames;
-            GNames = model.logGasNames;
-            SNames = model.logSolidNames;
+            GNames  = model.logGasNames;
+            SNames  = model.logSolidNames;
             SPNames = model.logSurfaceActivityCoefficientNames;
             
             unknowns = model.unknownNames;
@@ -55,13 +47,19 @@ classdef chargeBalanceModel < ChemicalInputModel
             [knownVal{:}] = model.getProps(state, knowns{:});
             
 
-            components           = distributeVariable( CNames, knowns, unknowns, knownVal, unknownVal );
-            masterComponents     = distributeVariable( MCNames, knowns, unknowns, knownVal, unknownVal );
-            combinationComponents   = distributeVariable( LCNames, knowns, unknowns, knownVal, unknownVal );
-            partialPressures   = distributeVariable( GNames, knowns, unknowns, knownVal, unknownVal );
-            saturationIndiciess = distributeVariable( SNames, knowns, unknowns, knownVal, unknownVal );
-            surfaceAcitivityCoefficients = distributeVariable( SPNames, knowns, unknowns, knownVal, unknownVal );
+            logSpecies                      = distributeVariable(CNames , knowns, unknowns, knownVal, unknownVal);
+            logElements                     = distributeVariable(MCNames, knowns, unknowns, knownVal, unknownVal);
+            combinationComponents        = distributeVariable(LCNames, knowns, unknowns, knownVal, unknownVal);
+            logPartialPressures             = distributeVariable(GNames , knowns, unknowns, knownVal, unknownVal);
+            logSaturationIndicies          = distributeVariable(SNames , knowns, unknowns, knownVal, unknownVal);
+            logSurfaceActivityCoefficients = distributeVariable(SPNames, knowns, unknowns, knownVal, unknownVal);
 
+            state = model.setProp(state, 'logSpecies', logSpecies);
+            state = model.setProp(state, 'logElements', logElements);
+            state = model.setProp(state, 'combinationComponents', combinationComponents);
+            state = model.setProp(state, 'logPartialPressures', logPartialPressures);
+            state = model.setProp(state, 'logSaturationIndicies', logSaturationIndicies);
+            state = model.setProp(state, 'logSurfaceActivityCoefficients', logSurfaceActivityCoefficients);
             
         end
         
@@ -69,7 +67,12 @@ classdef chargeBalanceModel < ChemicalInputModel
         % inputstate contains the input and the initial guess.
 
             % grab the names of unknowns                                              
-            unknownNames = horzcat(model.speciesNames, model.elementNames,model.combinationNames, model.solidNames, model.gasNames, model.surfaceActivityCoefficientNames);
+            unknownNames = horzcat(model.speciesNames, ...
+                                   model.elementNames, ...
+                                   model.combinationNames, ...
+                                   model.solidNames, ...
+                                   model.gasNames, ...
+                                   model.surfaceActivityCoefficientNames);
             
             ind = ismember(unknownNames, model.inputNames(~strcmpi(model.inputNames, model.CVC)));
             model.unknownNames = unknownNames(~ind);
@@ -84,7 +87,6 @@ classdef chargeBalanceModel < ChemicalInputModel
             dt = 0; % dummy timestep
             drivingForces = []; % drivingForces;
             inputstate0 = inputstate;
-
             
             [state, failure, report] = solveMinistep(solver, model, inputstate, ...
                                                      inputstate0, dt, ...
@@ -101,7 +103,6 @@ classdef chargeBalanceModel < ChemicalInputModel
             state = model.syncFromLog(state);                                       
             state = updateChemicalModel(model, problem, state, state0 );
             state = model.syncLog(state);
-             
                                                    
         end
         

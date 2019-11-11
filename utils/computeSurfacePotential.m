@@ -1,4 +1,4 @@
-function [state, model] = surfacePotential(model, state)
+function [state, model] = computeSurfacePotential(model, state)
 
     T = model.getProp(state, 'temperature');
 
