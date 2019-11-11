@@ -1,4 +1,4 @@
-function [eqs, names, types] = equationsCompositionReactionGuess(model, state, logComponents, logMasterComponents, combinationComponents, logPartialPressures, logSaturationIndicies)
+function [eqs, names, types] = equationsCompositionReactionGuess(model, state, logSpecies, logElements, combinationComponents, logPartialPressures, logSaturationIndicies)
     
    
     CM = model.compositionMatrix;
@@ -8,8 +8,8 @@ function [eqs, names, types] = equationsCompositionReactionGuess(model, state, l
     
     nC = size(CM,2);
     
-    components       = cellfun(@(x) exp(x), logComponents, 'UniformOutput', false);
-    masterComponents = cellfun(@(x) exp(x), logMasterComponents,'UniformOutput', false);
+    species       = cellfun(@(x) exp(x), logSpecies, 'UniformOutput', false);
+    elements = cellfun(@(x) exp(x), logElements,'UniformOutput', false);
 
     logK = model.logReactionConstants;
     
@@ -21,7 +21,7 @@ function [eqs, names, types] = equationsCompositionReactionGuess(model, state, l
     surfMat = repmat(model.surfMaster, 1, model.nC).*CM;
     surfTest = logical(sum(surfMat));
     
-    moleFraction = components;
+    moleFraction = species;
     
     for i = 1 : model.nC
         if surfTest(i)
@@ -29,9 +29,9 @@ function [eqs, names, types] = equationsCompositionReactionGuess(model, state, l
             surfNum = 0;
             for j = 1 : model.nMC
                 surfNum = surfNum + CM(j,i).*model.surfMaster(j);
-                surfDen = surfDen + double(logical(CM(j,i).*model.surfMaster(j)))*masterComponents{j};
+                surfDen = surfDen + double(logical(CM(j,i).*model.surfMaster(j)))*elements{j};
             end
-            moleFraction{i} = (surfNum./surfDen).*components{i};
+            moleFraction{i} = (surfNum./surfDen).*species{i};
         end
 
     end
@@ -66,10 +66,10 @@ function [eqs, names, types] = equationsCompositionReactionGuess(model, state, l
         masssum = 0;
         
         for k = 1 : nC
-            masssum = masssum + CM(i,k).*components{k};
+            masssum = masssum + CM(i,k).*species{k};
         end
 
-        eqs{j} = logMasterComponents{i} - log(masssum);
+        eqs{j} = logElements{i} - log(masssum);
                 
         names{j} = ['Conservation of ', model.elementNames{i}] ;
     end
@@ -79,7 +79,7 @@ function [eqs, names, types] = equationsCompositionReactionGuess(model, state, l
         j = model.nR + model.nMC + i;
         combSum = 0;
         for k = 1 : model.nC
-            combSum = combSum + model.combinationMatrix(i,k).*components{k};
+            combSum = combSum + model.combinationMatrix(i,k).*species{k};
         end
         if any(combSum<=0) || any(combinationComponents{i}<=0)
             eqs{j} = combSum - combinationComponents{i};

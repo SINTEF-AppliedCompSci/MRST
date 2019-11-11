@@ -1,8 +1,8 @@
 function [state, model] = computeActivity(model, state)
 
-    components = cell(1, model.nC);
+    species = cell(1, model.nC);
 
-    [components{:}] = model.getProps(state, model.speciesNames{:});
+    [species{:}] = model.getProps(state, model.speciesNames{:});
             
     T = model.getProp(state, 'temperature');
     e_w = 87.740 - 0.4008*(T-273.15) + 9.398e-4*(T-273.15).^2 - 1.410e-6*(T-273.15).^3;% Dielectric constant of water
@@ -15,19 +15,19 @@ function [state, model] = computeActivity(model, state)
     nC = sum(indS);    
 
     model.activityNames  = cellfun(@(name) ['a', name], model.speciesNames(indS), ...
-                                         'uniformoutput', false);
+                                   'uniformoutput', false);
     
     CV = model.chargeVector;
     eInd = strcmpi('e-', model.speciesNames);
     CV(1,eInd) = 0;
     
     for i = 1 : nC
-        ionDum = ionDum + (CV(1,i).^2.*components{i}).*litre/mol;
+        ionDum = ionDum + (CV(1,i).^2.*species{i}).*litre/mol;
     end
     ion = cell(1,model.nC);
     [ion{:}] = deal((1/2)*ionDum);
     
-    pg = cell(1,nC);
+    pg = cell(1, nC);
     for i = 1 : nC
         pg{i} = log(10).*-A.*CV(1,i)'.^2 .* (ion{i}.^(1/2)./(1 + ion{i}.^(1/2)) - 0.3.*ion{i});
         if CV(1,i) == 0
@@ -37,15 +37,15 @@ function [state, model] = computeActivity(model, state)
 
     % we check if activity field exits, if not we create it
     if ~isfield(state, 'activities')
-        species = model.getProp(state, 'species');
-        ncells = size(species, 1);
+        elements = model.getProp(state, 'elements');
+        ncells = size(elements, 1);
         ncomp = numel(model.activityNames);
         state.activities = ones(ncells, ncomp);
     end
         
     % Reaction matrix, activities only apply to laws of mass action
     for k = 1 : nC
-        activity = (exp(pg{k}) .* components{k});
+        activity = (exp(pg{k}) .* species{k});
         state = model.setProp(state, model.activityNames{k}, activity);
     end
 

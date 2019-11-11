@@ -369,8 +369,6 @@ classdef ChemicalModel < PhysicalModel
     methods
 
         function model = ChemicalModel(varargin)
- 
-            
     
             model = model@PhysicalModel([]);
             if nargin >= 3

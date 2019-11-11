@@ -10,8 +10,8 @@ function [state, model] = computeSurfaceCharge(model, state)
     A   = 1.82e6*(e_w.*T).^(-3/2);
     
     nC =model.nC;
-    components = cell(1, nC);
-    [components{:}] = model.chemicalInputModel.getProps(state,model.speciesNames{:}); 
+    species = cell(1, nC);
+    [species{:}] = model.chemicalInputModel.getProps(state,model.speciesNames{:}); 
     
     if ~isempty(model.surfInfo)
         
@@ -47,9 +47,9 @@ function [state, model] = computeSurfaceCharge(model, state)
                     sig_2 = 0;
                     for j = 1 : nSp
                         SpInd = strcmpi(SpNames{j}, model.speciesNames);
-                        sig_0 = sig_0 + charge{j}(1).*components{SpInd};
-                        sig_1 = sig_1 + charge{j}(2).*components{SpInd};
-                        sig_2 = sig_2 + charge{j}(3).*components{SpInd};
+                        sig_0 = sig_0 + charge{j}(1).*species{SpInd};
+                        sig_1 = sig_1 + charge{j}(2).*species{SpInd};
+                        sig_2 = sig_2 + charge{j}(3).*species{SpInd};
                     end
                     sig_0 = (F./(S.*a)).*sig_0;
                     state = model.setProp(state, [surfName '_sig_0'], sig_0);
@@ -72,7 +72,7 @@ function [state, model] = computeSurfaceCharge(model, state)
                     sig = 0;
                     for j = 1 : nSp
                         SpInd = strcmpi(model.surfInfo.species{i}{j}, model.speciesNames);
-                        sig = sig + model.surfInfo.charge{i}{j}.*components{SpInd};
+                        sig = sig + model.surfInfo.charge{i}{j}.*species{SpInd};
                     end
                     sig = (F./(S.*a)).*sig;
 

@@ -1,4 +1,4 @@
-function [eqs, names, types] = equationsTransportComponents(state0, p, masterComponents, components, state, ...
+function [eqs, names, types] = equationsTransportComponents(state0, p, elements, species, state, ...
                                                       model, dt, drivingForces, ...
                                                       varargin)
 
@@ -84,13 +84,13 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, masterCom
     
     for i = 1 : nMC
         if surfMaster(i)
-            eqs{end + 1} = (s.pv/dt).*(masterComponents{i} - mastercomps0{i});
+            eqs{end + 1} = (s.pv/dt).*(elements{i} - mastercomps0{i});
         else
             fluidConc{i} = 0;
             for j = 1 : nC
-                fluidConc{i} = fluidConc{i} + fluidMat(i,j)*components{j};
+                fluidConc{i} = fluidConc{i} + fluidMat(i,j)*species{j};
             end
-            eqs{end + 1} = (s.pv/dt).*(masterComponents{i}.*pvMult.*bW - mastercomps0{i}.* ...
+            eqs{end + 1} = (s.pv/dt).*(elements{i}.*pvMult.*bW - mastercomps0{i}.* ...
                                        pvMult0.*f.bW(p0)) + s.Div(s.faceUpstr(upcw, fluidConc{i}).* bWvW);
         end
     end
