@@ -37,7 +37,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    % Sort edges in each cell:
-   for c = 1 : G.cells.num,
+   for c = 1 : G.cells.num
       ind = G.cells.facePos(c) : G.cells.facePos(c + 1) - 1;
       cellEdges(ind, :) = sortEdges(cellEdges(ind,:));
    end
@@ -51,11 +51,11 @@ function edges = sortEdges(edges)
    % Sort edges such that they are back-to-back.
    % Then cellNodes are edges(:,1).
 
-   for i = 1 : size(edges, 1) - 1,
-      for j = i + 1 : size(edges,1),
+   for i = 1 : size(edges, 1) - 1
+      for j = i + 1 : size(edges,1)
 
          % Check if j follows edges(i)
-         if any(edges(i, 2) == edges(j, :), 2),
+         if any(edges(i, 2) == edges(j, :), 2)
             if edges(i,2) == edges(j,2), edges(j,:) = edges(j,[2,1]);end
             % Add j to end of list by swapping edges i+1 and j
             tmp = edges(i+1,:);
@@ -65,7 +65,7 @@ function edges = sortEdges(edges)
          end
 
          % Check if j precedes edges(1)
-         if any(edges(1, 1) == edges(j, :), 2),
+         if any(edges(1, 1) == edges(j, :), 2)
             if edges(1,1) == edges(j,1), edges(j,:) = edges(j,[2,1]);end
             % Add j to front of list
             edges = edges([j,1:j-1,j+1:end],:);
