@@ -1,6 +1,7 @@
 classdef TransportModel < WrapperModel
     properties
         formulation = 'totalSaturation'
+        dsMaxTotal = inf;
     end
     
     methods
@@ -135,7 +136,7 @@ classdef TransportModel < WrapperModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             isS = strcmpi(problem.primaryVariables, 'sT');
             if any(isS)
-                state = model.updateStateFromIncrement(state, dx, problem, 'sT', inf, inf);
+                state = model.updateStateFromIncrement(state, dx, problem, 'sT', inf, model.dsMaxTotal);
                 state = model.capProperty(state, 'sT', 1e-8);
                 dx = dx(~isS);
             end
