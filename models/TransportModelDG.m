@@ -130,9 +130,15 @@ classdef TransportModelDG < TransportModel
                 end
             end
         end
-        
         %-----------------------------------------------------------------%
         function [state, names, origin] = getStateAD(model, state, init)
+            % TODO: rewrite getStateADDG to only return state for a subset
+            % of the cells/faces
+            [cells, faces] = deal([]);
+            [state, names, origin] = model.getStateADDG(state, cells, faces, init);
+        end
+        %-----------------------------------------------------------------%
+        function [state, names, origin] = getStateADDG(model, state, cells, faces, init)
             if nargin < 3
                 init = true;
             end            
@@ -225,6 +231,7 @@ classdef TransportModelDG < TransportModel
         
         %-----------------------------------------------------------------%
         function state = assignDofsToState(model, state, vars, names)
+            % Assign dofs to state for e.g., BC evaluation
             fill = zeros(sum(state.nDof), 1);
             ix   = model.discretization.getDofIx(state, 1);
             fill(ix) = 1;
@@ -408,7 +415,7 @@ classdef TransportModelDG < TransportModel
         
         %-----------------------------------------------------------------%
         function q = computeBoundaryConditions(model, state, state0, dt, bc)
-            
+            % Compute values at boundary faces with prescribed BCs
             bcState = model.parentModel.FluxDiscretization.buildFlowState(model, state, state0, dt);
             faces = bc.face;
             [~, x, ~, fNo] = model.discretization.getCubature(faces, 'face');
@@ -446,8 +453,8 @@ classdef TransportModelDG < TransportModel
             end
             bcState.cells = sum(model.G.faces.neighbors(fNo,:), 2);
             bcState.faces = fNo;
+            % Compute fluxes
             q = computeBoundaryFluxesDG(model.parentModel, bcState, bc);
-            
         end
         
         %-----------------------------------------------------------------%
