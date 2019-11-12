@@ -74,11 +74,11 @@ classdef SequentialPressureTransportModel < ReservoirModel
         end
         
         function [state, report] = stepFunction(model, state, state0, dt,...
-                                                drivingForces, linsolve, nonlinsolve,...
+                                                drivingForces, linsolve, nls,...
                                                 iteration, varargin)
             state.iteration = iteration;
             [state, pressure_state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] =...
-                model.solvePressureTransport(state, state0, dt, drivingForces, iteration);
+                model.solvePressureTransport(state, state0, dt, drivingForces, nls, iteration);
             converged_step = pressure_ok && transport_ok;
             converged = converged_step;
             if converged && ~model.stepFunctionIsLinear
@@ -130,7 +130,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
         end
         
-        function [state, pressure_state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] = solvePressureTransport(model, state, state0, dt, drivingForces, iteration)
+        function [state, pressure_state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] = solvePressureTransport(model, state, state0, dt, drivingForces, nls, iteration)
            % Solve pressure and transport sequentially
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
@@ -175,6 +175,16 @@ classdef SequentialPressureTransportModel < ReservoirModel
                     tsolver.solveTimestep(state0, dt, model.transportModel,...
                                 'initialGuess', state, ...
                                 forceArg{:});
+                w = nls.relaxationParameter;
+                if ~model.stepFunctionIsLinear && ... % Outer loop enabled
+                    nls.relaxationParameter ~= 1 % And we should relax
+                    % Apply relaxation to global increment if outer solver
+                    % requires it
+                    state.s = (1-w).*state.s + w.*pressure_state.s;
+                    if isfield(state, 'sT')
+                        state.sT = (1-w).*state.sT + w;
+                    end
+                end
                 transport_ok = transportReport.Converged;
             else
                 transport_ok = false;
