@@ -127,21 +127,22 @@ classdef TransportModelDG < TransportModel
                 init = true;
             end
             
-            names = fieldnames(state);
-            cells = rldecode((1:model.G.cells.num)', state.nDof, 1);
-            for k = 1:numel(names)
-                name = names{k};
-                if numel(name) > 3 && strcmp(name(end-2:end), 'dof')
-                    v   = model.getProp(state, name(1:end-3));
-                    dof = model.getProp(state, name);
-                    vm  = model.discretization.getCellMean(state, dof);
-                    frac = v./vm;
-                    frac(~isfinite(frac)) = 1;
-                    dof = dof.*frac(cells,:);
-                    state = model.setProp(state, name, dof);
+            if 0
+                names = fieldnames(state);
+                cells = rldecode((1:model.G.cells.num)', state.nDof, 1);
+                for k = 1:numel(names)
+                    name = names{k};
+                    if numel(name) > 3 && strcmp(name(end-2:end), 'dof')
+                        v   = model.getProp(state, name(1:end-3));
+                        dof = model.getProp(state, name);
+                        vm  = model.discretization.getCellMean(state, dof);
+                        frac = v./vm;
+                        frac(~isfinite(frac)) = 1;
+                        dof = dof.*frac(cells,:);
+                        state = model.setProp(state, name, dof);
+                    end
                 end
             end
-            
             
             parent = model.parentModel;
             % Get the AD state for this model
@@ -195,6 +196,21 @@ classdef TransportModelDG < TransportModel
                 basevars(~isP) = vars;
             end
             
+            [~ , xc, cNo     ] = model.discretization.getCubature(Inf, 'cell');
+            [~ , xf, ~  , fNo] = model.discretization.getCubature(Inf, 'face');
+            xf   = repmat(xf, 2, 1);
+            N    = model.discretization.G.faces.neighbors;
+            fcNo = [N(fNo,1); N(fNo,2)];
+            xc = model.discretization.transformCoords(xc, cNo );
+            xf = model.discretization.transformCoords(xf, fcNo);
+            [psi_c, psi_f] = deal(model.discretization.basis.psi');
+            for dofNo = 1:model.discretization.basis.nDof
+                psi_c{dofNo} = psi_c{dofNo}(xc);
+                psi_f{dofNo} = psi_f{dofNo}(xf);
+            end
+            state.psi_c = psi_c;
+            state.psi_f = psi_f;
+            
             [cellMean, cellVars, faceVars] = deal(cell(size(vars)));
             for i = 1:numel(vars)
                 cellMean{i} = model.discretization.getCellMean(state, basevars{i});
@@ -213,7 +229,6 @@ classdef TransportModelDG < TransportModel
             
             parent.G.cells.num = numel(value(faceVars{1}));
             state.faceStateDG = parent.initStateAD(state.faceStateDG, faceVars, basenames, baseorigin);
-            
 
             if useTotalSaturation
                 % Set total saturation as well
@@ -292,14 +307,14 @@ classdef TransportModelDG < TransportModel
                 sat   = model.discretization.getCellMean(state, satdof);
                 state = model.setProp(state, 's', sat);
 
-                if not(isempty(pmodel.FacilityModel))
-                    % Select facility model variables and pass them off to attached
-                    % class.
-                    fm = class(pmodel.FacilityModel);
-                    isF = strcmp(origin, fm);
-                    state = pmodel.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
-                    removed = removed | isF;
-                end
+%                 if not(isempty(pmodel.FacilityModel))
+%                     % Select facility model variables and pass them off to attached
+%                     % class.
+%                     fm = class(pmodel.FacilityModel);
+%                     isF = strcmp(origin, fm);
+%                     state = pmodel.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
+%                     removed = removed | isF;
+%                 end
                 
                 vars   = vars(~removed);
                 names  = names(~removed);
@@ -307,7 +322,7 @@ classdef TransportModelDG < TransportModel
                 for i = 1:numel(names)
                     state = model.setProp(state, names{i}, vars{i});
                 end
-                state = model.initStateFunctionContainers(state);
+%                 state = model.initStateFunctionContainers(state);
 
                 if pmodel.disgas
                     rsSat = pmodel.getProp(state, 'RsMax');
@@ -339,7 +354,7 @@ classdef TransportModelDG < TransportModel
                 end
                 
             end
-            state = model.evaluateBaseVariables(state);
+%             state = model.evaluateBaseVariables(state);
             
         end
         
