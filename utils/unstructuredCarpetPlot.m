@@ -25,7 +25,7 @@ function unstructuredCarpetPlot(G,val,varargin)
     end
     
     gcf;
-    patch('faces', faces, 'vertices', vertices, 'facevertexCdata', val, 'facecolor', 'flat', extra{:});
+    patch('faces', faces, 'vertices', vertices, 'facevertexCdata', val, 'facecolor', 'interp', extra{:});
 %     patch('faces', faces, 'vertices', vertices, 'facecolor', 'flat', extra{:});
     colormap(parula);
     
