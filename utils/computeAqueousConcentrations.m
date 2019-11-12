@@ -31,8 +31,9 @@ function [state, model] = computeAqueousConcentrations(model, state)
     end
     % create aqueousConcentrations field, if not existing, and assign default values
     if ~isfield(state, 'aqueousConcentrations')
-        species = model.getProp(state, 'species');
-        ncells = size(species, 1);
+        elementsforsize = model.getProp(state, 'elements');
+        ncells = size(elementsforsize, 1);
+        clear elementsforsize
         state.aqueousConcentrations = ones(ncells, nC);
     end
     

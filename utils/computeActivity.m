@@ -37,8 +37,10 @@ function [state, model] = computeActivity(model, state)
 
     % we check if activity field exits, if not we create it
     if ~isfield(state, 'activities')
-        elements = model.getProp(state, 'elements');
-        ncells = size(elements, 1);
+        % get number of rows (number of evaluated cells) from element
+        elementsforsize = model.getProp(state, 'elements');
+        ncells = size(elementsforsize, 1);
+        clear elementsforsize
         ncomp = numel(model.activityNames);
         state.activities = ones(ncells, ncomp);
     end
