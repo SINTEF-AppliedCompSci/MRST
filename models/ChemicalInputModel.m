@@ -81,19 +81,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             knownVal = cell(1,numel(knowns));
             [knownVal{:}] = model.getProps(state, knowns{:});
             
-            logSpecies                     = distributeVariable(CNames , knowns, unknowns, knownVal, unknownVal);
-            logElements                    = distributeVariable(MCNames, knowns, unknowns, knownVal, unknownVal);
-            combinationComponents          = distributeVariable(LCNames, knowns, unknowns, knownVal, unknownVal);
-            logPartialPressures            = distributeVariable(GNames , knowns, unknowns, knownVal, unknownVal);
-            logSaturationIndicies          = distributeVariable(SNames , knowns, unknowns, knownVal, unknownVal);
-            logSurfaceActivityCoefficients = distributeVariable(SPNames, knowns, unknowns, knownVal, unknownVal);
+            names = {unknowns{:}, knowns{:}};
+            vals  = {unknownVal{:}, knownVal{:}};
 
-            state = model.setProp(state, 'logSpecies', logSpecies);
-            state = model.setProp(state, 'logElements', logElements);
-            state = model.setProp(state, 'combinationComponents', combinationComponents);
-            state = model.setProp(state, 'logPartialPressures', logPartialPressures);
-            state = model.setProp(state, 'logSaturationIndicies', logSaturationIndicies);
-            state = model.setProp(state, 'logSurfaceActivityCoefficients', logSurfaceActivityCoefficients);
+            state = model.setProps(state, names, vals);
             
         end
 

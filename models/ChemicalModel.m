@@ -196,13 +196,6 @@ classdef ChemicalModel < PhysicalModel
                     break
                 end
 
-               if strcmpi(name, 'partialPressures')
-                    varfound = true;
-                    fn = 'partialPressures';
-                    index = ':';
-                    break
-                end
-
                 ind = strcmpi(name, chemsys.gasNames);
                 if any(ind)
                     varfound = true;
@@ -700,6 +693,15 @@ classdef ChemicalModel < PhysicalModel
             [logComps{:}] = initVariablesADI(logComps{:});
 
         end
+        
+        function p = getPropAsCell(model, state, fd)
+            p = model.getProp(state, fd);
+            if ~iscell(p)
+                nrow = size(p, 2);
+                p = arrayfun(@(i) p(:, i), 1 : nrow, 'uniformoutput', false);
+            end
+        end
+        
 
         %%
         function [state, failure, report] = solveChemicalState(model, inputstate)

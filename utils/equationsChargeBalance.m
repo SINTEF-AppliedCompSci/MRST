@@ -2,13 +2,20 @@ function [eqs, names, types] = equationsChargeBalance(model, state)
     
     chemsys = model.chemicalSystem;
     
-    logSpecies                     = model.getProp(state, 'logSpecies');
-    logElements                    = model.getProp(state, 'logElements');
-    combinationComponents          = model.getProp(state, 'combinationComponents');
-    logPartialPressures            = model.getProp(state, 'logPartialPressures');
-    logSaturationIndicies          = model.getProp(state, 'logSaturationIndicies');
-    logSurfaceActivityCoefficients = model.getProp(state, 'logSurfaceActivityCoefficients');
-
+    logSpecies  = model.getPropAsCell(state, 'logSpecies');
+    logElements = model.getPropAsCell(state, 'logElements');
+    if chemsys.nLC > 0
+        combinationComponents = model.getPropAsCell(state, 'combinationComponents');
+    end
+    if chemsys.nG > 0
+        logPartialPressures = model.getPropAsCell(state, 'logPartialPressures');
+    end
+    if chemsys.nS > 0    
+        logSaturationIndicies = model.getPropAsCell(state, 'logSaturationIndicies');
+    end
+    if chemsys.nP > 0    
+        logSurfaceActivityCoefficients = model.getPropAsCell(state, 'logSurfaceActivityCoefficients');
+    end
     
     [eqs, names, types] = equationsChemicalLog(model, state);
 

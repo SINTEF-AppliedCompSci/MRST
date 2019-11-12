@@ -2,12 +2,21 @@ function [eqs, names, types] = equationsChemicalLog(model, state)
 
     chemsys = model.chemicalSystem;
 
-    logSpecies                     = model.getProp(state, 'logSpecies');
-    logElements                    = model.getProp(state, 'logElements');
-    combinationComponents          = model.getProp(state, 'combinationComponents');
-    logPartialPressures            = model.getProp(state, 'logPartialPressures');
-    logSaturationIndicies          = model.getProp(state, 'logSaturationIndicies');
-    logSurfaceActivityCoefficients = model.getProp(state, 'logSurfaceActivityCoefficients');
+    logSpecies  = model.getPropAsCell(state, 'logSpecies');
+    logElements = model.getPropAsCell(state, 'logElements');
+    if chemsys.nLC > 0
+        combinationComponents = model.getPropAsCell(state, 'combinationComponents');
+    end
+    if chemsys.nG > 0
+        logPartialPressures = model.getPropAsCell(state, 'logPartialPressures');
+    end
+    if chemsys.nS > 0    
+        logSaturationIndicies = model.getPropAsCell(state, 'logSaturationIndicies');
+    end
+    if chemsys.nP > 0    
+        logSurfaceActivityCoefficients = model.getPropAsCell(state, 'logSurfaceActivityCoefficients');
+        logSurfAct = logSurfaceActivityCoefficients; % shortcut
+    end
      
     T = model.getProp(state, 'temperature');
     
@@ -24,9 +33,6 @@ function [eqs, names, types] = equationsChemicalLog(model, state)
     GM  = chemsys.gasReactionMatrix;
     SM  = chemsys.solidReactionMatrix;
     SPM = chemsys.surfacePotentialMatrix;
-    
-    
-    logSurfAct = logSurfaceActivityCoefficients;
     
     species = cellfun(@(x) exp(x), logSpecies, 'UniformOutput', false);
     elements = cellfun(@(x) exp(x), logElements,'UniformOutput', false);
@@ -93,7 +99,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state)
         
         % potential contribution
         for k = 1 : chemsys.nP
-            eqs{i} = eqs{i} + SPM(i, k).*logSurfAct{k};
+            eqs{i} = eqs{i} + SPM(i, k).*logSurfaceActivityCoefficients{k};
         end
         
         % gas reactions

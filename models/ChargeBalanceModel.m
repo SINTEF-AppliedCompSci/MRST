@@ -23,13 +23,6 @@ classdef ChargeBalanceModel < ChemicalInputModel
                 
             chemsys = model.chemicalSystem;
             
-            CNames  = chemsys.logSpeciesNames;
-            MCNames = chemsys.logElementNames;
-            LCNames = chemsys.combinationNames;
-            GNames  = chemsys.logGasNames;
-            SNames  = chemsys.logSolidNames;
-            SPNames = chemsys.logSurfaceActivityCoefficientNames;
-            
             unknowns = model.unknownNames;
             knowns = model.inputNames(~strcmpi(model.inputNames, model.CVC));
             
@@ -48,21 +41,11 @@ classdef ChargeBalanceModel < ChemicalInputModel
             knownVal = cell(1,numel(knowns));
             [knownVal{:}] = model.getProps(state, knowns{:});
             
+            names = {unknowns{:}, knowns{:}};
+            vals  = {unknownVal{:}, knownVal{:}};
 
-            logSpecies                     = distributeVariable(CNames , knowns, unknowns, knownVal, unknownVal);
-            logElements                    = distributeVariable(MCNames, knowns, unknowns, knownVal, unknownVal);
-            combinationComponents          = distributeVariable(LCNames, knowns, unknowns, knownVal, unknownVal);
-            logPartialPressures            = distributeVariable(GNames , knowns, unknowns, knownVal, unknownVal);
-            logSaturationIndicies          = distributeVariable(SNames , knowns, unknowns, knownVal, unknownVal);
-            logSurfaceActivityCoefficients = distributeVariable(SPNames, knowns, unknowns, knownVal, unknownVal);
+            state = model.setProps(state, names, vals);
 
-            state = model.setProp(state, 'logSpecies', logSpecies);
-            state = model.setProp(state, 'logElements', logElements);
-            state = model.setProp(state, 'combinationComponents', combinationComponents);
-            state = model.setProp(state, 'logPartialPressures', logPartialPressures);
-            state = model.setProp(state, 'logSaturationIndicies', logSaturationIndicies);
-            state = model.setProp(state, 'logSurfaceActivityCoefficients', logSurfaceActivityCoefficients);
-            
         end
         
         function [state, failure, report] = solveChemicalState(model, inputstate)
