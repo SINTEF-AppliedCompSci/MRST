@@ -47,6 +47,9 @@ classdef CompositionReactionModel < ChemicalModel
             knowns = addLogToNames(knowns);
 
             for i = 1 : chemsys.nLC
+                % we do not use the logarithmic variables for the linear
+                % combinations (they do not have necessarily a positive sign)
+                LCNames = chemsys.combinationNames;
                 unknowns = regexprep(unknowns, ['log'  LCNames{i}],  LCNames{i});
                 knowns = regexprep(knowns, ['log'  LCNames{i}],  LCNames{i});
             end
