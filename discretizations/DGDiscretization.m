@@ -323,7 +323,7 @@ classdef DGDiscretization < SpatialDiscretization
                 else
                     getx = @(keep) keep;
                 end
-                p = pdof(cells)*0;
+                p = pdof(cells,:)*0;
                 for dofNo = 1:nDofMax
                     keep = nDof(cells) >= dofNo; %#ok
                     ix = disc.getDofIx(state, dofNo, cells(keep));
@@ -346,7 +346,7 @@ classdef DGDiscretization < SpatialDiscretization
             switch type
                 case 'cell'
                     [~ , x, cNo] = disc.getCubature(elements, 'cell');
-                    if isfield(state, 'psi_c') && all(elements < Inf)
+                    if isfield(state, 'psi_c') && isinf(elements)
                         psi = state.psi_c;
                     end
                 case 'face'
@@ -357,7 +357,7 @@ classdef DGDiscretization < SpatialDiscretization
                     keep = cNo ~= 0;
                     cNo = cNo(keep);
                     x = x(keep,:);
-                    if isfield(state, 'psi_f') && all(elements < Inf)
+                    if isfield(state, 'psi_f') && isinf(elements)
                         psi = state.psi_f;
                     end
             end
@@ -464,7 +464,6 @@ classdef DGDiscretization < SpatialDiscretization
             end
             [x, ~, scaling]   = disc.transformCoords(x, cellNo);
             % Evaluate integrals
-%             I = dof*0;
             I = disc.sample*0;
             for dofNo = 1:nDofMax
                 keepCells = disc.nDof(cells) >= dofNo;
