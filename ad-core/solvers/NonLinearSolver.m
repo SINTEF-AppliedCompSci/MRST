@@ -47,6 +47,7 @@ classdef NonLinearSolver < handle
         %       x_new = x_old + dx*w + dx_prev*(1-w)
         relaxationType = 'dampen' % Relaxation is reduced by this when stagnation occurs
         relaxationIncrement = 0.1 % Change in relaxation on stagnation/oscillation
+        relaxationDecrement = [] % Change in relaxation on stagnation/oscillation
         minRelaxation = 0.5 % Lowest possible relaxation factor
         maxRelaxation = 1.0 % Largest possible relaxation factor
         
@@ -392,9 +393,15 @@ classdef NonLinearSolver < handle
                             end
                         end
                         solver.convergenceIssues = true;
-                        solver.relaxationParameter = max(solver.relaxationParameter - solver.relaxationIncrement, solver.minRelaxation);
+                        if isempty(solver.relaxationDecrement)
+                            dw = solver.relaxationIncrement;
+                        else
+                            dw = solver.relaxationDecrement;
+                        end
+                        solver.relaxationParameter = max(solver.relaxationParameter - dw, solver.minRelaxation);
                     else
-                        solver.relaxationParameter = min(solver.relaxationParameter + solver.relaxationIncrement, solver.maxRelaxation);
+                        dw = solver.relaxationIncrement;
+                        solver.relaxationParameter = min(solver.relaxationParameter + dw, solver.maxRelaxation);
                     end
                 end
             end
