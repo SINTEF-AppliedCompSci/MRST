@@ -1,5 +1,7 @@
 function [state] = potentialGuess(model, state)
     
+    chemsys = model.chemicalSystem;
+    
     T = model.getProp(state, 'temperature');
 
     An  = 6.0221413*10^23;       	% avagadros number [#/mol]
@@ -9,57 +11,57 @@ function [state] = potentialGuess(model, state)
     e_w = 87.740 - 0.4008.*(T-273.15) + 9.398e-4.*(T-273.15).^2 - 1.410e-6.*(T-273.15).^3;% Dielectric constant of water
     A   = 1.82e6*(e_w.*T).^(-3/2);
     
-    nC = model.nC;
+    nC = chemsys.nC;
     species = cell(1, nC);
-    [species{:}] = model.chemicalInputModel.getProps(state,model.speciesNames{:}); 
+    [species{:}] = model.getProps(state, chemsys.speciesNames{:}); 
     
-    CV = model.chargeVector;
-    eInd = strcmpi('e-', model.speciesNames);
+    CV = chemsys.chargeVector;
+    eInd = strcmpi('e-', chemsys.speciesNames);
     CV(1,eInd) = 0;
     
     ionDum = 0;
     for i = 1 : nC
         ionDum = ionDum + (CV(1,i).^2.*species{i}).*litre/mol;
     end
-    ion = cell(1,model.nC);
+    ion = cell(1,chemsys.nC);
     [ion{:}] = deal((1/2)*abs(ionDum));
     
     %%
-    if ~isempty(model.surfInfo)
+    if ~isempty(chemsys.surfInfo)
         call = 0;
-        for i = 1 : numel(model.surfaces.groupNames)
+        for i = 1 : numel(chemsys.surfaces.groupNames)
             
-            groupName = model.surfaces.groupNames{i};
+            groupName = chemsys.surfaces.groupNames{i};
             
-            if ismember(model.surfaces.scm{i},{'langmuir','ie'})
+            if ismember(chemsys.surfaces.scm{i},{'langmuir','ie'})
                 call = call + 1;
                 continue
             end
             
-            funcNames = model.surfaces.masterNames{i};
+            funcNames = chemsys.surfaces.masterNames{i};
             
             sig_0 = 0;
             sig_1 = 0;
             sig_2 = 0;
                         
             for j = 1 : numel(funcNames)
-                mInd = ismember(funcNames{j}, model.surfInfo.master);
+                mInd = ismember(funcNames{j}, chemsys.surfInfo.master);
                                         
                 % grab the correct info
-                S = model.surfInfo.s{mInd};
-                a = model.surfInfo.a{mInd};
-                C = model.surfaces.c{i-call};
+                S = chemsys.surfInfo.s{mInd};
+                a = chemsys.surfInfo.a{mInd};
+                C = chemsys.surfaces.c{i-call};
 
                 % number of species associated with the surface
-                nSp = numel(model.surfInfo.species{mInd});
-                SpNames = model.surfInfo.species{mInd};
-                charge = model.surfInfo.charge{mInd};
+                nSp = numel(chemsys.surfInfo.species{mInd});
+                SpNames = chemsys.surfInfo.species{mInd};
+                charge = chemsys.surfInfo.charge{mInd};
 
-                switch model.surfaces.scm{i}
+                switch chemsys.surfaces.scm{i}
                     case 'tlm'
 
                         for k = 1 : nSp
-                            SpInd = strcmpi(SpNames{k}, model.speciesNames);
+                            SpInd = strcmpi(SpNames{k}, chemsys.speciesNames);
                             sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*species{SpInd};
                             sig_1 = sig_1 + (F./(S.*a)).*charge{k}(2).*species{SpInd};
                             sig_2 = sig_2 + (F./(S.*a)).*charge{k}(3).*species{SpInd};
@@ -68,14 +70,14 @@ function [state] = potentialGuess(model, state)
                     case 'ccm'
 
                         for k = 1 : nSp
-                            SpInd = strcmpi(SpNames{k}, model.speciesNames);
+                            SpInd = strcmpi(SpNames{k}, chemsys.speciesNames);
                             sig_0 = sig_0 + (F./(S.*a)).*charge{k}(1).*species{SpInd};
                         end
 
                 end
             end
             
-            switch model.surfaces.scm{i}
+            switch chemsys.surfaces.scm{i}
                 case 'tlm'
                     
                         % diffuse layer charge

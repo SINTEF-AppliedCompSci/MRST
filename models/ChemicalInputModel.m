@@ -29,20 +29,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     methods
         
         %%
-        function model = ChemicalInputModel()
-            model = model@ChemicalModel();
-            model.inputNames = {};
-        end
-        
-        %%
-        function model = validateModel(model)
-            model = validateModel@ChemicalModel(model);
-            unknownNames = horzcat(model.speciesNames, model.elementNames, model.combinationNames, model.solidNames, model.gasNames, model.surfaceActivityCoefficientNames);
+        function model = ChemicalInputModel(chemsys)
+            model = model@ChemicalModel(chemsys);
+            model.inputNames = chemsys.inputs;
+            unknownNames = horzcat(chemsys.speciesNames, ...
+                                   chemsys.elementNames, ...
+                                   chemsys.combinationNames, ...
+                                   chemsys.solidNames, ...
+                                   chemsys.gasNames, ...
+                                   chemsys.surfaceActivityCoefficientNames);
             ind = ismember(unknownNames, model.inputNames);
             model.unknownNames = unknownNames(~ind);
-
         end
-        
+
         %%
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
 
@@ -54,16 +53,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         %%
         function [unknowns, state] = prepStateForEquations(model, state)
-            
-            CNames  = model.logSpeciesNames;
-            MCNames = model.logElementNames;
-            LCNames = model.combinationNames;
-            GNames  = model.logGasNames;
-            SNames  = model.logSolidNames;
-            SPNames = model.logSurfaceActivityCoefficientNames;
+
+            chemsys = model.chemicalSystem;
+
+            CNames  = chemsys.logSpeciesNames;
+            MCNames = chemsys.logElementNames;
+            LCNames = chemsys.combinationNames;
+            GNames  = chemsys.logGasNames;
+            SNames  = chemsys.logSolidNames;
+            SPNames = chemsys.logSurfaceActivityCoefficientNames;
             
             unknowns = model.unknownNames;
-            knowns = model.inputNames;
+            knowns   = model.inputNames;
             
             unknowns = addLogToNames(unknowns);
             knowns = addLogToNames(knowns);

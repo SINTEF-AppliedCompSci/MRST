@@ -1,8 +1,10 @@
 function [state, model] = computeActivity(model, state)
 
-    species = cell(1, model.nC);
+    chemsys = model.chemicalSystem;
+    
+    species = cell(1, chemsys.nC);
 
-    [species{:}] = model.getProps(state, model.speciesNames{:});
+    [species{:}] = model.getProps(state, chemsys.speciesNames{:});
             
     T = model.getProp(state, 'temperature');
     e_w = 87.740 - 0.4008*(T-273.15) + 9.398e-4*(T-273.15).^2 - 1.410e-6*(T-273.15).^3;% Dielectric constant of water
@@ -11,20 +13,21 @@ function [state, model] = computeActivity(model, state)
 
     % calculate activity
     ionDum = 0;
-    indS = cellfun(@(x) isempty(x), regexpi(model.speciesNames, '>'));
+    indS = cellfun(@(x) isempty(x), regexpi(chemsys.speciesNames, '>'));
     nC = sum(indS);    
 
-    model.activityNames  = cellfun(@(name) ['a', name], model.speciesNames(indS), ...
+    chemsys.activityNames  = cellfun(@(name) ['a', name], chemsys.speciesNames(indS), ...
                                    'uniformoutput', false);
+    model.chemicalSystem = chemsys;
     
-    CV = model.chargeVector;
-    eInd = strcmpi('e-', model.speciesNames);
+    CV = chemsys.chargeVector;
+    eInd = strcmpi('e-', chemsys.speciesNames);
     CV(1,eInd) = 0;
     
     for i = 1 : nC
         ionDum = ionDum + (CV(1,i).^2.*species{i}).*litre/mol;
     end
-    ion = cell(1,model.nC);
+    ion = cell(1,chemsys.nC);
     [ion{:}] = deal((1/2)*ionDum);
     
     pg = cell(1, nC);
@@ -48,7 +51,7 @@ function [state, model] = computeActivity(model, state)
     % Reaction matrix, activities only apply to laws of mass action
     for k = 1 : nC
         activity = (exp(pg{k}) .* species{k});
-        state = model.setProp(state, model.activityNames{k}, activity);
+        state = model.setProp(state, chemsys.activityNames{k}, activity);
     end
 
 end

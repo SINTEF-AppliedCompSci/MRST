@@ -16,9 +16,9 @@ species = {'H+*', 'OH-', 'Na+', 'Cl-', 'NaCl', 'H2O*'};
 reactions = {'H2O  = H+  + OH- ', 10^-14*mol/litre, ...
              'NaCl = Na+ + Cl-',  10^1*mol/litre};
 
-chem = ChemicalModel(elements, species, reactions);
+chemsys = ChemicalSystem(elements, species, reactions);
 
-chem.printChemicalSystem;
+chemsys.printChemicalSystem;
 
 %% define the input 
 n = 100;
@@ -30,13 +30,15 @@ H   = logspace(-4, -10, n)'*mol/litre;
 
 inputs = [Na, Cl, H, H2O];
 
+
 %% solve the chemical system
-[state, report, chem] = chem.initState(inputs, 'chargeBalance', 'Na');
+chemmodel = ChemicalModel(chemsys);
+[state, report, chem] = chemmodel.initState(inputs, 'chargeBalance', 'Na');
 
 %% process the data
 state = changeUnits(state, {'elements','species'}, mol/litre );
 
-[state, chem] = chem.updateActivities(state);
+[state, chem] = chemmodel.updateActivities(state);
 
 pH = -log10(getProp(chem, state, 'aH+'));
 
@@ -47,7 +49,7 @@ plot(pH, state.species, 'linewidth',2)
 xlabel('pH')
 ylabel('concentration [mol/L]');
 set(gca, 'yscale', 'log');
-legend(chem.speciesNames)
+legend(chemsys.speciesNames)
 
 %% Copyright notice
 %

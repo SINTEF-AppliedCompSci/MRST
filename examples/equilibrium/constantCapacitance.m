@@ -30,36 +30,39 @@ sInfo = {geometry, 'ccm', 1.06};
 surfaces ={ '>SO', sInfo};
 
 % instantiate chemical model
-chem = ChemicalModel(elements, species, reactions, 'surf', surfaces);
+chemsys = ChemicalSystem(elements, species, reactions, 'surf', surfaces);
 
 % print the chemical system
-chem.printChemicalSystem;
+chemsys.printChemicalSystem;
+
+% Setup model
+chemmodel = ChemicalModel(chemsys);
 
 %% define input parameters
 % here we vary the pH of the system
 n = 200;
 
-Na = 1e-1.*ones(n,1);
-Cl = 1e-1.*ones(n,1);
-B = 4.63e-4.*ones(n,1);
+Na  = 1e-1.*ones(n,1);
+Cl  = 1e-1.*ones(n,1);
+B   = 4.63e-4.*ones(n,1);
 H2O = ones(n,1);
-H = logspace(-7,-11, n)';
+H   = logspace(-7,-11, n)';
 
 userInput = [Na Cl B H H2O]*mol/litre;
 
 %% solve the chemical system
-[state, report, model] = chem.initState(userInput, 'charge', 'Cl');
+[state, report, model] = chemmodel.initState(userInput, 'charge', 'Cl');
 
 
 %% calculate auxillary information
 % surface charge, potential, aqueous and surface concentrations can be
 % calculated with tools built into ChemicalModel
 
-[state, chem] = chem.updateActivities(state);
-[state, chem] = chem.updateChargeBalance(state);
-[state, chem] = chem.updateSurfacePotentials(state);
-[state, chem] = chem.updateAqueousConcentrations(state);
-[state, chem] = chem.updateSurfaceConcentrations(state);
+[state, chem] = chemmodel.updateActivities(state);
+[state, chem] = chemmodel.updateChargeBalance(state);
+[state, chem] = chemmodel.updateSurfacePotentials(state);
+[state, chem] = chemmodel.updateAqueousConcentrations(state);
+[state, chem] = chemmodel.updateSurfaceConcentrations(state);
 
 
 state = changeUnits(state, {'species','activities','elements','surfaceConcentrations'}, mol/litre);

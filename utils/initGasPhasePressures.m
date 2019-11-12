@@ -4,15 +4,15 @@ function state = initGasPhasePressures(model, state, partialPressures, nI);
 givenNames = partialPressures(1:2:end);
 givenValues = partialPressures(2:2:end);
 
-assert(numel(givenNames) == model.nG, 'Number of gas phase pressures given does not match number of gas phases in the system.');
+assert(numel(givenNames) == chemsys.nG, 'Number of gas phase pressures given does not match number of gas phases in the system.');
 
-ind = zeros(1, model.nG);
-for i = 1 : model.nG
-    ind = ind + strcmpi(model.gasNames{i}, givenNames);
+ind = zeros(1, chemsys.nG);
+for i = 1 : chemsys.nG
+    ind = ind + strcmpi(chemsys.gasNames{i}, givenNames);
 end
 ind = logical(ind);
 
-missingNames = model.gasNames(~ind);
+missingNames = chemsys.gasNames(~ind);
 nMN = numel(missingNames);
 
 if nMN > 0
@@ -28,10 +28,10 @@ if nMN > 0
     error( ['The partial pressure of ' iwant ' are missing from partialPressures.'] );
 end
 
-state.partialPressures = zeros(1, model.nS);
+state.partialPressures = zeros(1, chemsys.nS);
 
-for i = 1 : model.nG
-    ind = strcmpi(model.gasNames{i}, givenNames);
+for i = 1 : chemsys.nG
+    ind = strcmpi(chemsys.gasNames{i}, givenNames);
     state.partialPressures(i) = givenValues{ind};
 end
 

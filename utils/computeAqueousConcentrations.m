@@ -1,12 +1,12 @@
 function [state, model] = computeAqueousConcentrations(model, state)
 
-    comps = cell(1, model.nC);
+    comps = cell(1, chemsys.nC);
 
-    [comps{:}] = model.getProps(state, model.speciesNames{:});
+    [comps{:}] = model.getProps(state, chemsys.speciesNames{:});
     
-    CM = model.compositionMatrix;
+    CM = chemsys.compositionMatrix;
     
-    surfInd = cellfun(@(x) ~isempty(x), regexpi(model.speciesNames, '>'));
+    surfInd = cellfun(@(x) ~isempty(x), regexpi(chemsys.speciesNames, '>'));
     
     CM(:,surfInd) = 0;
     
@@ -16,10 +16,10 @@ function [state, model] = computeAqueousConcentrations(model, state)
                                      
 
     % calculate activity
-    indS = cellfun(@(x) isempty(x), regexpi(model.elementNames, '>'));
+    indS = cellfun(@(x) isempty(x), regexpi(chemsys.elementNames, '>'));
     nC = sum(indS);    
     
-    model.aqueousConcentrationNames  = cellfun(@(name) [name '(aq)'], model.elementNames(indS), ...
+    chemsys.aqueousConcentrationNames  = cellfun(@(name) [name '(aq)'], chemsys.elementNames(indS), ...
                                          'uniformoutput', false);
     totals = cell(1, nC);
                                      

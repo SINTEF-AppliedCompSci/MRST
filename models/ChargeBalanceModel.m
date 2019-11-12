@@ -1,13 +1,13 @@
 classdef ChargeBalanceModel < ChemicalInputModel
     
-    
     properties
+        CVC % Charge variation component
     end
     
     methods
 
-        function model = ChargeBalanceModel()
-            model = model@ChemicalInputModel();
+        function model = ChargeBalanceModel(chemsys)
+            model = model@ChemicalInputModel(chemsys);
         end
         
 
@@ -21,20 +21,22 @@ classdef ChargeBalanceModel < ChemicalInputModel
 
         function [unknowns, state] = prepStateForEquations(model, state)
                 
-            CNames  = model.logSpeciesNames;
-            MCNames = model.logElementNames;
-            LCNames = model.combinationNames;
-            GNames  = model.logGasNames;
-            SNames  = model.logSolidNames;
-            SPNames = model.logSurfaceActivityCoefficientNames;
+            chemsys = model.chemicalSystem;
+            
+            CNames  = chemsys.logSpeciesNames;
+            MCNames = chemsys.logElementNames;
+            LCNames = chemsys.combinationNames;
+            GNames  = chemsys.logGasNames;
+            SNames  = chemsys.logSolidNames;
+            SPNames = chemsys.logSurfaceActivityCoefficientNames;
             
             unknowns = model.unknownNames;
-            knowns = model.inputNames(~strcmpi(model.inputNames,model.CVC));
+            knowns = model.inputNames(~strcmpi(model.inputNames, model.CVC));
             
             unknowns = addLogToNames(unknowns);
             knowns = addLogToNames(knowns);
             
-            for i = 1 : model.nLC
+            for i = 1 : chemsys.nLC
                 unknowns = regexprep(unknowns, ['log'  LCNames{i}],  LCNames{i});
                 knowns = regexprep(knowns, ['log'  LCNames{i}],  LCNames{i});
             end
@@ -47,10 +49,10 @@ classdef ChargeBalanceModel < ChemicalInputModel
             [knownVal{:}] = model.getProps(state, knowns{:});
             
 
-            logSpecies                      = distributeVariable(CNames , knowns, unknowns, knownVal, unknownVal);
-            logElements                     = distributeVariable(MCNames, knowns, unknowns, knownVal, unknownVal);
-            combinationComponents        = distributeVariable(LCNames, knowns, unknowns, knownVal, unknownVal);
-            logPartialPressures             = distributeVariable(GNames , knowns, unknowns, knownVal, unknownVal);
+            logSpecies                     = distributeVariable(CNames , knowns, unknowns, knownVal, unknownVal);
+            logElements                    = distributeVariable(MCNames, knowns, unknowns, knownVal, unknownVal);
+            combinationComponents          = distributeVariable(LCNames, knowns, unknowns, knownVal, unknownVal);
+            logPartialPressures            = distributeVariable(GNames , knowns, unknowns, knownVal, unknownVal);
             logSaturationIndicies          = distributeVariable(SNames , knowns, unknowns, knownVal, unknownVal);
             logSurfaceActivityCoefficients = distributeVariable(SPNames, knowns, unknowns, knownVal, unknownVal);
 
@@ -66,13 +68,14 @@ classdef ChargeBalanceModel < ChemicalInputModel
         function [state, failure, report] = solveChemicalState(model, inputstate)
         % inputstate contains the input and the initial guess.
 
+            chemsys = model.chemicalSystem;
             % grab the names of unknowns                                              
-            unknownNames = horzcat(model.speciesNames, ...
-                                   model.elementNames, ...
-                                   model.combinationNames, ...
-                                   model.solidNames, ...
-                                   model.gasNames, ...
-                                   model.surfaceActivityCoefficientNames);
+            unknownNames = horzcat(chemsys.speciesNames, ...
+                                   chemsys.elementNames, ...
+                                   chemsys.combinationNames, ...
+                                   chemsys.solidNames, ...
+                                   chemsys.gasNames, ...
+                                   chemsys.surfaceActivityCoefficientNames);
             
             ind = ismember(unknownNames, model.inputNames(~strcmpi(model.inputNames, model.CVC)));
             model.unknownNames = unknownNames(~ind);

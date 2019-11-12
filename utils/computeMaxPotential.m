@@ -1,5 +1,7 @@
 function [names, mins, maxs] = computeMaxPotential(model, state)
     
+    chemsys = model.chemicalSystem;
+    
     T = model.getProp(state, 'temperature');
     
     An  = 6.0221413*10^23;       	% avagadros number [#/mol]
@@ -8,20 +10,20 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
     e_o = 8.854187817620e-12;       % permitivity of free space [C/Vm]
     e_w = 87.740 - 0.4008.*(T-273.15) + 9.398e-4.*(T-273.15).^2 - 1.410e-6.*(T-273.15).^3;% Dielectric constant of water
     
-    nC = numel(model.speciesNames);
+    nC = numel(chemsys.speciesNames);
     
-    CV = model.chargeVector;
-    eInd = strcmpi('e-', model.speciesNames);
+    CV = chemsys.chargeVector;
+    eInd = strcmpi('e-', chemsys.speciesNames);
     CV(1,eInd) = 0;
     
     comps = cell(1, nC);
-    [comps{:}] = model.getProps(state,model.speciesNames{:}); 
+    [comps{:}] = model.getProps(state,chemsys.speciesNames{:}); 
     
     ionDum = 0;
     for i = 1 : nC
         ionDum = ionDum + (CV(1,i).^2.*comps{i}).*litre/mol;
     end
-    ion = cell(1,model.nC);
+    ion = cell(1,chemsys.nC);
     [ion{:}] = deal((1/2)*ionDum);
     
     names ={};
@@ -30,28 +32,28 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
    
     myarcsinh = @(x) log(x + (x.^2 + 1).^(1/2));
     
-    if ~isempty(model.surfInfo)
+    if ~isempty(chemsys.surfInfo)
               
-        for i = 1 : numel(model.surfaces.groupNames)
+        for i = 1 : numel(chemsys.surfaces.groupNames)
             
-            groupName = model.surfaces.groupNames{i};
+            groupName = chemsys.surfaces.groupNames{i};
             
-            SPNames = model.surfaces.masterNames{i};
+            SPNames = chemsys.surfaces.masterNames{i};
             
             sig_0 = 0;
             sig_1 = 0;
             sig_2 = 0;
                         
             for j = 1 : numel(SPNames)
-                mInd = strcmpi(SPNames{j}, model.surfInfo.master);
+                mInd = strcmpi(SPNames{j}, chemsys.surfInfo.master);
                                         
                 % grab the correct info
-                S = model.surfInfo.s{mInd};
-                a = model.surfInfo.a{mInd};
-                C = model.surfaces.c{i};
+                S = chemsys.surfInfo.s{mInd};
+                a = chemsys.surfInfo.a{mInd};
+                C = chemsys.surfaces.c{i};
 
 
-                switch model.surfaces.scm{i}
+                switch chemsys.surfaces.scm{i}
                     case 'tlm'
 
                         % calculate surface charges
@@ -68,7 +70,7 @@ function [names, mins, maxs] = computeMaxPotential(model, state)
 
             lim = log(realmax)-10;
             
-            switch model.surfaces.scm{i}
+            switch chemsys.surfaces.scm{i}
                 case 'tlm'
                     
                     % diffuse layer charge

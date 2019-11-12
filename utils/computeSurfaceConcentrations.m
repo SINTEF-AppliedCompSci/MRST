@@ -1,19 +1,19 @@
 function [state, model] = computeSurfaceConcentrations(model, state)
 
-    comps = cell(1, model.nC);
+    comps = cell(1, chemsys.nC);
 
-    [comps{:}] = model.getProps(state, model.speciesNames{:});
+    [comps{:}] = model.getProps(state, chemsys.speciesNames{:});
     
-    CM = model.compositionMatrix;
+    CM = chemsys.compositionMatrix;
     
-    surfInd = cellfun(@(x) isempty(x), regexpi(model.speciesNames, '>'));
+    surfInd = cellfun(@(x) isempty(x), regexpi(chemsys.speciesNames, '>'));
     
     CM(:,surfInd) = 0;
                                          
-    indS = cellfun(@(x) isempty(x), regexpi(model.elementNames, '>'));
+    indS = cellfun(@(x) isempty(x), regexpi(chemsys.elementNames, '>'));
     nC = sum(indS);    
     
-    model.surfaceConcentrationNames  = cellfun(@(name) [name '(surf)'], model.elementNames(indS), ...
+    chemsys.surfaceConcentrationNames  = cellfun(@(name) [name '(surf)'], chemsys.elementNames(indS), ...
                                          'uniformoutput', false);
 
     totals = cell(1, nC);
@@ -34,7 +34,7 @@ function [state, model] = computeSurfaceConcentrations(model, state)
     end
     
     for i = 1 : nC
-        state = model.setProp(state, model.surfaceConcentrationNames{i}, totals{i});
+        state = model.setProp(state, chemsys.surfaceConcentrationNames{i}, totals{i});
     end
 
 end

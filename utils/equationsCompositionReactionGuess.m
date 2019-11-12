@@ -1,35 +1,42 @@
-function [eqs, names, types] = equationsCompositionReactionGuess(model, state, logSpecies, logElements, combinationComponents, logPartialPressures, logSaturationIndicies)
+function [eqs, names, types] = equationsCompositionReactionGuess(model, state)
     
-   
-    CM = model.compositionMatrix;
-    RM = model.reactionMatrix;
-    GM =  model.gasReactionMatrix;
-    SM = model.solidReactionMatrix;
+    chemsys = model.chemicalSystem;
+    
+    logSpecies                     = model.getProp(state, 'logSpecies');
+    logElements                    = model.getProp(state, 'logElements');
+    combinationComponents          = model.getProp(state, 'combinationComponents');
+    logPartialPressures            = model.getProp(state, 'logPartialPressures');
+    logSaturationIndicies          = model.getProp(state, 'logSaturationIndicies');
+    
+    CM = chemsys.compositionMatrix;
+    RM = chemsys.reactionMatrix;
+    GM = chemsys.gasReactionMatrix;
+    SM = chemsys.solidReactionMatrix;
     
     nC = size(CM,2);
     
-    species       = cellfun(@(x) exp(x), logSpecies, 'UniformOutput', false);
+    species  = cellfun(@(x) exp(x), logSpecies, 'UniformOutput', false);
     elements = cellfun(@(x) exp(x), logElements,'UniformOutput', false);
 
-    logK = model.logReactionConstants;
+    logK = chemsys.logReactionConstants;
     
-    eqs   = cell(1, model.nMC + model.nR + model.nLC);
-    names = cell(1, model.nMC + model.nR + model.nLC);
-    types = cell(1, model.nMC + model.nR + model.nLC);
+    eqs   = cell(1, chemsys.nMC + chemsys.nR + chemsys.nLC);
+    names = cell(1, chemsys.nMC + chemsys.nR + chemsys.nLC);
+    types = cell(1, chemsys.nMC + chemsys.nR + chemsys.nLC);
 
     %% mol fractions
-    surfMat = repmat(model.surfMaster, 1, model.nC).*CM;
+    surfMat = repmat(chemsys.surfMaster, 1, chemsys.nC).*CM;
     surfTest = logical(sum(surfMat));
     
     moleFraction = species;
     
-    for i = 1 : model.nC
+    for i = 1 : chemsys.nC
         if surfTest(i)
             surfDen = 0;
             surfNum = 0;
-            for j = 1 : model.nMC
-                surfNum = surfNum + CM(j,i).*model.surfMaster(j);
-                surfDen = surfDen + double(logical(CM(j,i).*model.surfMaster(j)))*elements{j};
+            for j = 1 : chemsys.nMC
+                surfNum = surfNum + CM(j,i).*chemsys.surfMaster(j);
+                surfDen = surfDen + double(logical(CM(j,i).*chemsys.surfMaster(j)))*elements{j};
             end
             moleFraction{i} = (surfNum./surfDen).*species{i};
         end
@@ -38,7 +45,7 @@ function [eqs, names, types] = equationsCompositionReactionGuess(model, state, l
     logMoleFraction = cellfun(@(x) log(x), moleFraction, 'UniformOutput', false);
     
     %% reaction matrix
-    for i = 1 : model.nR
+    for i = 1 : chemsys.nR
 
         eqs{i} = -logK{i}(:);
         
@@ -47,22 +54,22 @@ function [eqs, names, types] = equationsCompositionReactionGuess(model, state, l
         end
         
         % gas reactions
-        for k = 1 : model.nG
+        for k = 1 : chemsys.nG
             eqs{i} = eqs{i} + GM(i,k).*logPartialPressures{k};
         end
         
         % solid reactions
-        for k = 1 : model.nS
+        for k = 1 : chemsys.nS
             eqs{i} = eqs{i} + SM(i,k).*logSaturationIndicies{k};
         end
         
-        names{i} = model.rxns{i};
+        names{i} = chemsys.rxns{i};
     end
     
     %% composition matrix
-    for i = 1 : model.nMC
+    for i = 1 : chemsys.nMC
         
-        j = model.nR + i;
+        j = chemsys.nR + i;
         masssum = 0;
         
         for k = 1 : nC
@@ -71,15 +78,15 @@ function [eqs, names, types] = equationsCompositionReactionGuess(model, state, l
 
         eqs{j} = logElements{i} - log(masssum);
                 
-        names{j} = ['Conservation of ', model.elementNames{i}] ;
+        names{j} = ['Conservation of ', chemsys.elementNames{i}] ;
     end
 
     %% combination matrix
-    for i = 1 : model.nLC
-        j = model.nR + model.nMC + i;
+    for i = 1 : chemsys.nLC
+        j = chemsys.nR + chemsys.nMC + i;
         combSum = 0;
-        for k = 1 : model.nC
-            combSum = combSum + model.combinationMatrix(i,k).*species{k};
+        for k = 1 : chemsys.nC
+            combSum = combSum + chemsys.combinationMatrix(i,k).*species{k};
         end
         if any(combSum<=0) || any(combinationComponents{i}<=0)
             eqs{j} = combSum - combinationComponents{i};
@@ -87,7 +94,7 @@ function [eqs, names, types] = equationsCompositionReactionGuess(model, state, l
             eqs{j} = log(combSum) - log(combinationComponents{i});
         end
         
-        names{j} = [model.combinationNames{i}] ;
+        names{j} = [chemsys.combinationNames{i}] ;
     end
     
     [types{:}] = deal('cell');

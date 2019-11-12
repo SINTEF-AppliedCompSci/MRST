@@ -1,5 +1,7 @@
 function [eqs, names, types] = equationsChargeBalance(model, state)
     
+    chemsys = model.chemicalSystem;
+    
     logSpecies                     = model.getProp(state, 'logSpecies');
     logElements                    = model.getProp(state, 'logElements');
     combinationComponents          = model.getProp(state, 'combinationComponents');
@@ -12,14 +14,14 @@ function [eqs, names, types] = equationsChargeBalance(model, state)
 
     species = cellfun(@(x) exp(x), logSpecies, 'UniformOutput', false);
     
-    CVCind = strcmpi(model.CVC, model.elementNames)';
+    CVCind = strcmpi(model.CVC, chemsys.elementNames)';
 
 %     %% recalculate mass balance on CVC
 %     eqInd = strcmpi(names, ['Conservation of ' model.CVC]);
 % 
 %     masssum = 0;
-%     for k = 1 : model.nC
-%         masssum = masssum + model.compositionMatrix(CVCind,k).*species{k};
+%     for k = 1 : chemsys.nC
+%         masssum = masssum + chemsys.compositionMatrix(CVCind,k).*species{k};
 %     end
 %     masssum = masssum - CVC;
 % 
@@ -28,8 +30,8 @@ function [eqs, names, types] = equationsChargeBalance(model, state)
 
     %% charge balance
 
-    CV = model.chargeVector;
-    eInd = strcmpi('e-', model.speciesNames);
+    CV = chemsys.chargeVector;
+    eInd = strcmpi('e-', chemsys.speciesNames);
     CV(1,eInd) = 0;
 
     CVp = max(CV, 0);
@@ -38,7 +40,7 @@ function [eqs, names, types] = equationsChargeBalance(model, state)
     pos = 0;
     neg = 0;
     
-    for k = 1 : model.nC
+    for k = 1 : chemsys.nC
         pos = pos + CVp(1,k).*species{k};
         neg = neg + CVn(1,k).*species{k};
     end
