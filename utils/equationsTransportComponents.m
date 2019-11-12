@@ -1,11 +1,16 @@
-function [eqs, names, types] = equationsTransportComponents(state0, p, elements, species, state, ...
-                                                      model, dt, drivingForces, ...
-                                                      varargin)
+function [eqs, names, types] = equationsTransportComponents(model, state0, state, dt, drivingForces, varargin)
 
     opt = struct('Verbose', mrstVerbose, ...
                  'reverseMode', false,...
                  'resOnly', false,...
                  'iteration', -1);  % Compatibility only
+
+    chemmodel = model.chemicalModel;
+    chemsys = chemmodel.chemicalSystem;
+    p = model.getProp(state, 'pressure');
+    species = chemmodel.getProp(state, 'species');
+    elements = chemmodel.getProp(state, 'elements');
+    
 
     opt = merge_options(opt, varargin{:});
 
@@ -16,12 +21,13 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, elements,
     s = model.operators;
     f = model.fluid;
 
-    chemModel = model.chemicalModel;
-    nMC = chemModel.nMC;
-    nC = chemModel.nC;
-    mastercomps0 = cell(1, nMC);
-    comps0 = cell(1, nC);
-    [p0, mastercomps0{:}, comps0{:}] = model.getProps(state0, 'pressure', chemModel.elementNames{:}, chemModel.speciesNames{:});
+    nMC = chemsys.nMC;
+    nC  = chemsys.nC;
+    
+    % Retrieve values from previous time step.
+    p0        = model.getProp(state0, 'pressure');
+    elements0 = cell(1, nMC);
+    [elements0{:}] = chemmodel.getProps(state0, chemsys.elementNames{:});
 
     %Initialization of independent variables ----------------------------------
 
@@ -45,7 +51,7 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, elements,
         transMult=f.transMult(p); 
     end
 
-    trans=s.T.*transMult;
+    trans = s.T.*transMult;
     % -------------------------------------------------------------------------
     % water props (calculated at oil pressure OK?)
     bW     = f.bW(p);
@@ -75,27 +81,26 @@ function [eqs, names, types] = equationsTransportComponents(state0, p, elements,
     % water:
     eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*f.bW(p0) ) + s.Div(bWvW);
 
-    chemModel  = model.chemicalModel;
     fluidMat   = model.fluidMat;
-    nMC        = chemModel.nMC;
-    surfMaster = chemModel.surfMaster;
+    nMC        = chemsys.nMC;
+    surfMaster = chemsys.surfMaster;
 
     fluidConc = cell(1, nMC);
     
     for i = 1 : nMC
         if surfMaster(i)
-            eqs{end + 1} = (s.pv/dt).*(elements{i} - mastercomps0{i});
+            eqs{end + 1} = (s.pv/dt).*(elements{i} - elements0{i});
         else
             fluidConc{i} = 0;
             for j = 1 : nC
                 fluidConc{i} = fluidConc{i} + fluidMat(i,j)*species{j};
             end
-            eqs{end + 1} = (s.pv/dt).*(elements{i}.*pvMult.*bW - mastercomps0{i}.* ...
+            eqs{end + 1} = (s.pv/dt).*(elements{i}.*pvMult.*bW - elements0{i}.* ...
                                        pvMult0.*f.bW(p0)) + s.Div(s.faceUpstr(upcw, fluidConc{i}).* bWvW);
         end
     end
                    
-    names = {'water', chemModel.elementNames{:}};
+    names = {'water', chemsys.elementNames{:}};
 
     types = cell(1, nMC+1);
     [types{:}] = deal('cell');

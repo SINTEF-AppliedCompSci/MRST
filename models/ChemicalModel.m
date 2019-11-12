@@ -473,7 +473,7 @@ classdef ChemicalModel < PhysicalModel
             
             chargeBalance = ~strcmpi(p.Results.chargeBalance,'nochargebalance');
 
-            chemicalInputModel       = ChemicalInputModel(chemsys)
+            chemicalInputModel       = ChemicalInputModel(chemsys);
             compositionReactionModel = CompositionReactionModel(chemsys);
             
             inputNames = chemicalInputModel.inputNames;

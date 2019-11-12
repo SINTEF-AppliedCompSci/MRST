@@ -88,13 +88,8 @@ classdef ChemicalTransportModel < WaterModel
     properties
         
         chemicalModel % Chemical model for the chemistry
-        chemical_fds % List of all the variable names for the chemistry
-        transport_fds % List of all the variable names for the transport
-        fluidMat % Matrix to compute, for a given component, the amount that is attached to the surface 
-        surfMat % Matrix to compute, for a given component, the amount that is contained in the fluid (water) 
-        plotIter % plot each iteration of the netwon solver
-        plotFinal % plot final iteration of the newton solver
-        currentTime % current time step in seconds
+        fluidMat      % Matrix to compute, for a given component, the amount that is attached to the surface 
+        surfMat       % Matrix to compute, for a given component, the amount that is contained in the fluid (water) 
 
     end
 
@@ -105,16 +100,15 @@ classdef ChemicalTransportModel < WaterModel
 
             model = model@WaterModel(G, rock, fluid, varargin{:});
             model.chemicalModel = chemicalLogModel;
-            model.chemical_fds = model.chemicalModel.getAllVarsNames();
-            model.transport_fds = {'p', 'wellSol'};
 
             % Create a matrix of the components that are on surfaces
-            chemModel = model.chemicalModel;
-            nC        = chemModel.nC;
-            nMC       = chemModel.nMC;
-            CM        = chemModel.compositionMatrix;
+            chemmodel = model.chemicalModel;
+            chemsys = chemmodel.chemicalSystem;
+            nC        = chemsys.nC;
+            nMC       = chemsys.nMC;
+            CM        = chemsys.compositionMatrix;
 
-            surfMaster  = logical(model.chemicalModel.surfMaster);
+            surfMaster  = logical(chemsys.surfMaster);
             surfComp    = sum(logical(CM(surfMaster, :)), 1);
             surfMult    = repmat(surfComp, nMC, 1);
             surfMatFlag = logical(CM.*surfMult);
@@ -127,9 +121,6 @@ classdef ChemicalTransportModel < WaterModel
             fluidMat(~surfMatFlag) = CM(~surfMatFlag);
             model.fluidMat = fluidMat;
             
-            model.plotIter = false;
-            model.plotFinal = false;
-
 
         end
 
@@ -137,114 +128,76 @@ classdef ChemicalTransportModel < WaterModel
                                                         drivingForces, ...
                                                         varargin)
 
-            [pVars, pressure, logComponents, logMasterComponents, combinations,...
-                   logSaturationIndicies, logPartialPressures,...
-                   logSurfaceActivityCoefficients] = prepStateForEquations(model, state);
+            chemmodel = model.chemicalModel;
+            
+            [pVars, state] = prepStateForEquations(model, state);
                
-            components = cellfun(@(x) exp(x), logComponents, 'UniformOutput',false);
-            masterComponentss = cellfun(@(x) exp(x), logMasterComponents, 'UniformOutput',false);
+            logSpecies  = chemmodel.getProp(state, 'logSpecies');
+            logElements = chemmodel.getProp(state, 'logElements');
+            
+            species  = cellfun(@(x) exp(x), logSpecies, 'UniformOutput',false);
+            elements = cellfun(@(x) exp(x), logElements, 'UniformOutput',false);
 
-            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(model.chemicalModel, state, logComponents, logMasterComponents, combinations, ...
-                                                       logPartialPressures, logSaturationIndicies,logSurfaceActivityCoefficients);
+            state = chemmodel.setProp(state, 'species', species);
+            state = chemmodel.setProp(state, 'elements', elements);
+            
+            [chem_eqs, chem_names, chem_types] = equationsChemicalLog(chemmodel, state);
 
-
-            [tr_eqs, tr_names, tr_types] = equationsTransportComponents(state0, ...
-                                                              pressure, masterComponentss, ...
-                                                              components,...
-                                                              state, model, ...
+            [tr_eqs, tr_names, tr_types] = equationsTransportComponents(model, ...
+                                                              state0, state, ...
                                                               dt, ...
                                                               drivingForces);
-            eqs = horzcat(tr_eqs, chem_eqs );
-            names = { tr_names{:},chem_names{:}};
-            types = { tr_types{:},chem_types{:}};
+            eqs = horzcat(tr_eqs, chem_eqs);
+            names = {tr_names{:}, chem_names{:}};
+            types = {tr_types{:}, chem_types{:}};
 
             problem = LinearizedProblem(eqs, types, names, pVars, state, dt);
 
         end
 
-        function [variableNames, pressure, logComponents, logMasterComponents, combinations,...
-                   logSaturationIndicies, logPartialPressures,...
-                   logSurfaceActivityCoefficients] = prepStateForEquations(model, state)
+        function [variableNames, state] = prepStateForEquations(model, state)
             
-            chemModel = model.chemicalModel;
-
-            logComponentNames       = chemModel.logSpeciesNames;
-            logMasterComponentNames = chemModel.logElementNames;
-            logSolidNames           = chemModel.logSolidNames;
-            logGasNames             = chemModel.logGasNames;
-            combinationNames        = chemModel.combinationNames;
-            logSurfActNames         = chemModel.logSurfaceActivityCoefficientNames;
+            chemmodel = model.chemicalModel;
+            chemsys = chemmodel.chemicalSystem;
             
+            logSpeciesNames  = chemsys.logSpeciesNames;
+            logElementNames  = chemsys.logElementNames;
+            logSolidNames    = chemsys.logSolidNames;
+            logGasNames      = chemsys.logGasNames;
+            combinationNames = chemsys.combinationNames;
+            logSurfActNames  = chemsys.logSurfaceActivityCoefficientNames;
             
-            variableNames = ['pressure', logComponentNames, logMasterComponentNames, logGasNames, logSolidNames, logSurfActNames, combinationNames];
-            variableValues = cell(1, numel(variableNames));
-            variableValues{1} = model.getProps(state, 'pressure');
-            [variableValues{2:end}] = chemModel.getProps(state, variableNames{2:end});
+            chemVariableNames = [ logSpeciesNames, logElementNames, logGasNames, logSolidNames, logSurfActNames, combinationNames];
+            variableNames = {'pressure', chemVariableNames{:}};
             
+            pressure = model.getProps(state, 'pressure');
+            chemVariableValues = cell(1, numel(chemVariableNames));
+            [chemVariableValues{:}] = chemmodel.getProps(state, chemVariableNames{:});
+            variableValues = {pressure, chemVariableValues{:}};
+            
+            % initiate AD variables
             [variableValues{:}] = initVariablesADI(variableValues{:});
+            chemVariableValues = {variableValues{2 : end}};
             
-            logComponents        = cell(1, numel(logComponentNames));
-            logMasterComponents  = cell(1, numel(logMasterComponentNames));
-            logPartialPressures     = cell(1, numel(logGasNames));
-            logSaturationIndicies   = cell(1, numel(logSolidNames));
-            combinations   = cell(1, numel(combinationNames));
-            logSurfaceActivityCoefficients = cell(1, numel(logSurfActNames));
+            % assign AD variables back to state.
+            state = model.setProp(state, 'pressure', variableValues{1});
+            state = chemmodel.setProps(state, chemVariableNames, chemVariableValues);            
             
-            for i = 1 : numel(combinationNames)
-                ind = strcmpi(combinationNames{i}, variableNames);
-                combinations{i} = variableValues{ind};
-            end
-
-            for i = 1 : numel(logComponentNames)
-                ind = strcmpi(logComponentNames{i}, variableNames);
-                logComponents{i} = variableValues{ind};
-            end
-
-            for i = 1 : numel(logComponentNames)
-                ind = strcmpi(logComponentNames{i}, variableNames);
-                logComponents{i} = variableValues{ind};
-            end
-            
-            for i = 1 : numel(logMasterComponentNames)
-                ind = strcmpi(logMasterComponentNames{i}, variableNames);
-                logMasterComponents{i} = variableValues{ind};
-            end
-            
-            for i = 1 : numel(logGasNames)
-                ind = strcmpi(logGasNames{i}, variableNames);
-                logPartialPressures{i} = variableValues{ind};
-            end
-            
-            for i = 1 : numel(logSolidNames)
-                ind = strcmpi(logSolidNames{i}, variableNames);
-                logSaturationIndicies{i} = variableValues{ind};
-            end
-            
-            for i = 1 : numel(logSurfActNames)
-                ind = strcmpi(logSurfActNames{i}, variableNames);
-                logSurfaceActivityCoefficients{i} = variableValues{ind};
-            end
-            
-            
-            ind = strcmpi('pressure', variableNames);
-            pressure = variableValues{ind};
-      
-               
-               
         end
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
         % Update state based on Newton increments
 
-            chemModel = model.chemicalModel;
-
+            chemmodel = model.chemicalModel;
+            chemsys   = chemmodel.chemicalSystem;
+            
             vars = problem.primaryVariables;
 
             ind = false(size(vars));
-            chemvars = {chemModel.logSpeciesNames{:}, chemModel.logElementNames{:},...
-                        chemModel.logGasNames{:}, chemModel.logSolidNames{:},...
-                        chemModel.logSurfaceActivityCoefficientNames{:},...
-                        chemModel.combinationNames{:}}; % the chemical primary variables, see getEquations
+            chemvars = {chemsys.logSpeciesNames{:}, chemsys.logElementNames{:},...
+                        chemsys.logGasNames{:}, chemsys.logSolidNames{:},...
+                        chemsys.logSurfaceActivityCoefficientNames{:},...
+                        chemsys.combinationNames{:}}; % the chemical primary variables, see getEquations
             [lia, loc] = ismember(chemvars, vars);
             assert(all(lia), 'The primary variables are not set correctly.');
             ind(loc) = true;
@@ -253,9 +206,10 @@ classdef ChemicalTransportModel < WaterModel
             chem_problem.primaryVariables = vars(ind);
             chem_dx                       = dx(ind);
             
-%             state = chemModel.synclog(state);
-            [state, chem_report] = chemModel.updateState(state, chem_problem, ...
-                                                    chem_dx, drivingForces);
+%             state = chemmodel.synclog(state);
+            [state, chem_report] = chemmodel.updateState(state, chem_problem, ...
+                                                         chem_dx, ...
+                                                         drivingForces);
 
 
             ind = false(size(vars));
@@ -274,92 +228,19 @@ classdef ChemicalTransportModel < WaterModel
                                                            drivingForces);
             report = []; % no report for the moment.
             
-            if model.plotIter
-                h = findobj('tag', 'updateSpeciesfig');
-                if isempty(h)
-                    figure
-                    set(gcf, 'tag', 'updateSpeciesfig');
-                    h = findobj('tag', 'updateSpeciesfig');
-                end
-                set(0, 'currentfigure', h)
-                clf
-                plot(state.logSpecies);
-                title('species - iteration');
-                xlabel('cell index');
-                ylabel('log_e species concentrations')
-                legend(model.chemicalModel.speciesNames);
-                drawnow;
-                
-                h = findobj('tag', 'updateMasterfig');
-                if isempty(h)
-                    figure
-                    set(gcf, 'tag', 'updateMasterfig');
-                    h = findobj('tag', 'updateMasterfig');
-                end
-                set(0, 'currentfigure', h)
-                clf
-                plot(state.logElements);
-                title('elements - iteration');
-                xlabel('cell index');
-                ylabel('log_e element concentrations')
-                legend(model.chemicalModel.elementNames);
-                drawnow;
-                
-                
-            end
-
         end
 
-        function [state, report] = updateAfterConvergence(model, state0, state, ...
-                                                          dt, drivingForces) %#ok
-            [state, report] = updateAfterConvergence@WaterModel(model, state0, ...
-                                                              state, dt, drivingForces);
-           
-            
-            if model.plotFinal 
-                h = findobj('tag', 'convergedfig');
-                if isempty(h)
-                    figure
-                    set(gcf, 'tag', 'convergedfig');
-                    h = findobj('tag', 'convergedfig');
-                end
-                set(0, 'currentfigure', h)
-                clf
-                plot(state.logSpecies);
-                title('components - converged');
-                xlabel('cell index');
-                ylabel('log_e species concentrations')
-                legend(model.chemicalModel.speciesNames);
-
-                h = findobj('tag', 'convergedmasterfig');
-                if isempty(h)
-                    figure
-                    set(gcf, 'tag', 'convergedmasterfig');
-                    h = findobj('tag', 'convergedmasterfig');
-                end
-                set(0, 'currentfigure', h)
-                clf
-                plot(state.logElements);
-                xlabel('cell index');
-                ylabel('log_e element concentrations')
-                title('master components - converged');
-                legend(model.chemicalModel.elementNames);
-                drawnow;
-            end
-            
-        end
-
-
-        function [eq, src] = addComponentContributions(model, cname, eq, ...
-                                                       component, src, force)
+        function [eq, src] = addComponentContributions(model, cname, eq, component, src, force)
             % Note: Here component denotes in fact the fluid part of the master component.
             if isempty(force)
                 return
             end
 
-            chemModel = model.chemicalModel;
-            ind = strcmpi(cname, chemModel.elementNames);
-            if chemModel.surfMaster(ind)
+            chemmodel = model.chemicalModel;
+            chemsys = chemmodel.chemicalSystem;
+            
+            ind = strcmpi(cname, chemsys.elementNames);
+            if chemsys.surfMaster(ind)
                 return
             end
 
@@ -376,16 +257,8 @@ classdef ChemicalTransportModel < WaterModel
             src.components{end+1} = qC;
         end
 
-        function names = getComponentNames(model)
-            names = model.chemicalModel.elementNames;
-        end
-
         function [fn, index] = getVariableField(model, name, varargin)
-            if ismember(name, model.chemical_fds)
-                [fn, index] = model.chemicalModel.getVariableField(name, varargin{:});
-            else
                 [fn, index] = getVariableField@WaterModel(model, name, varargin{:});
-            end
         end
 
         function forces = getValidDrivingForces(model)

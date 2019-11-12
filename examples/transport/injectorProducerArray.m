@@ -44,7 +44,9 @@ reactions ={'H2O  = H+  + OH- ',      10^-14*mol/litre, ...
 
 
 % instantiate chemical model
-chemModel = ChemicalModel(elements, species, reactions);
+chemsys = ChemicalSystem(elements, species, reactions);
+
+chemmodel = ChemicalModel(chemsys);
 
 %% solve the chemistry for the initial and injected compositions
 % we will be injected a low slainity fluid into a high salinity aquifer. we
@@ -61,10 +63,10 @@ initial = [Nai Cli Hi H2Oi]*mol/litre;
 % we must repeat the initial chemistry for each cell of the system. This
 % can be done by passing a vector to initState, or repmatting the state
 % variable produced
-[initChemState, initreport]= chemModel.initState(repmat(initial, nc,1), 'charge', 'Cl');
+[initChemState, initreport]= chemmodel.initState(repmat(initial, nc,1), 'charge', 'Cl');
 
 % the initial state must also contain a pressure field 
-initChemState.pressure          = pRef*ones(nc,1);
+initChemState.pressure = pRef*ones(nc,1);
 
 % injected chemistry
 Naf = 1e-3;
@@ -72,10 +74,11 @@ Clf = Naf;
 Hf = 1e-10;
 H2Of = 1;
 injected = [Naf Clf Hf H2Of]*mol/litre;
-[injChemState, injreport]= chemModel.initState(injected, 'charge', 'Cl');
+[injChemState, injreport]= chemmodel.initState(injected, 'charge', 'Cl');
+
 
 %% Define the transport model
-model = ChemicalTransportModel(G, rock, fluid, chemModel);
+model = ChemicalTransportModel(G, rock, fluid, chemmodel);
 
 %% Define the boundary conditions
 % here we have two source cells in the southwest and northeast corners.
