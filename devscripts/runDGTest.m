@@ -66,7 +66,7 @@ schedule.step.control = schedule.step.control(six);
 
 %%
 
-inx = 1;
+inx = 2;
 po = {'edgecolor', 'k'};
 fn = plotLimiter(setup.modelDG{inx}.transportModel, 'plot1d', setup.plot1d, po{:}, 'n', 500, 'zlim', [-0.2, 1.2]);
 setup.modelDG{inx}.transportModel.storeUnlimited = true;

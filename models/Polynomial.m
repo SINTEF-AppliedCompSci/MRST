@@ -1,5 +1,5 @@
 classdef Polynomial
-    
+    % Polynomial class for basis functions in MRST
     properties
         k
         w
@@ -20,20 +20,7 @@ classdef Polynomial
                 poly.w = w;
             else
                 error('Contructor requires 1 or 2 inputs');
-            end
-            
-%             for i = 1:numel(poly)
-%                 p      = poly(i);
-%                 K      = p.k;
-%                 Kc     = p.k;
-%                 nterms = size(p.k,1);
-%                 for j = 1:nterms
-%                     k  = K(j,:);
-%                     ix = all(K == k,2);
-%                     
-%                 end
-%             end
-            
+            end 
             poly.dim = size(k,2);
         end
         
@@ -149,7 +136,7 @@ classdef Polynomial
                 r.k = r.k*q;
                 r.w = cellfun(@(w) w.^q, r.w, 'unif', false);
             else
-                error();
+                error('Not supported');
             end
         end
         

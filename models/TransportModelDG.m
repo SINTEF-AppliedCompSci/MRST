@@ -1,59 +1,71 @@
 classdef TransportModelDG < TransportModel
     
     properties
-        discretization
-        limiters
-        storeUnlimited
+        discretization = []    % Discretization
+        dgVariables    = {'s'} % Transport variables we discretize with dG
+        limiters               % Limiters
+        storeUnlimited = false % Store unlimited state for plotting/debug
     end
     
     methods
         %-----------------------------------------------------------------%
         function model = TransportModelDG(parent, varargin)
-           
-            model = model@TransportModel(parent);
-            model.discretization = [];
-            
+            % Parent model initialization
+            model = model@TransportModel(parent); 
             % Default limiters
-            names    = {'s'};
-            limits   = {[0,1]};
-            tol      = 0;
-            limiters = [];
-            limiters = addLimiter(limiters, ...
+            names    = model.dgVariables;
+            limits   = {[0,1]}; % Limiter limits
+            tol      = 0;       % Limiter tolerances
+            limiters = [];      % Add limiters
+            limiters = addLimiter(limiters           , ... % TVB limiter
                                   'type'     , 'tvb' , ...
                                   'variables', names , ...
                                   'limits'   , limits, ...
                                   'tol'      , tol   );
-            limiters = addLimiter(limiters, ...
+            limiters = addLimiter(limiters            , ... % Scale limiter
                                   'type'     , 'scale', ...
                                   'variables', names  , ...
                                   'limits'   , limits , ...
                                   'tol'      , tol    );
             model.limiters       = limiters;
             model.storeUnlimited = false;
-            
+            % Merge options
             [model, discretizationArgs] = merge_options(model, varargin{:});
             % Construct discretization
             if isempty(model.discretization)
                 model.discretization = DGDiscretization(model.G, discretizationArgs{:});
             end
-            
+            % Assign discretization to parentModel
+            model.parentModel.discretization = model.discretization;
+            % Add phase saturations as dgVariables
+            if any(strcmpi(model.dgVariables, 's'))
+                phNames = model.parentModel.getPhaseNames();
+                for ph = phNames
+                    model.dgVariables{end+1} = ['s', ph];
+                end
+                if strcmpi(model.formulation, 'totalSaturation')
+                    model.dgVariables{end+1} = 'sT';
+                end
+            end
+            % Get limiters
             for l = 1:numel(model.limiters)
                 limiter = model.limiters(l);
                 model.limiters(l).function = getLimiter(model, limiter.type);
             end
-            model.parentModel.discretization = model.discretization;
-            
-            model.parentModel.operators = setupOperatorsDG(model.discretization, model.parentModel.G, model.parentModel.rock);
-            model.parentModel.outputFluxes = false;
+            % Set up DG operators
+            model.parentModel.operators = setupOperatorsDG(model.discretization  , ...
+                                                           model.parentModel.G   , ...
+                                                           model.parentModel.rock);
+            % Pressure is not solved with DG, make sure to don't store
+            % things to state that should be recomputed in pressure step
+            model.parentModel.outputFluxes         = false;
             model.parentModel.OutputStateFunctions = {};
-            model.parentModel.useCNVConvergence  = false;
-            model.parentModel.nonlinearTolerance = 1e-3;
-            
         end
         
         %-----------------------------------------------------------------%
         function [fn, index] = getVariableField(model, name, varargin)
-            isDof = numel(name) > 3 && strcmpi(name(end-2:end), 'dof');
+            % Get variable fiels, check if it is dof
+            isDof = any(strcmpi(name(1:end-3), model.dgVariables));
             if isDof
                 lookup = name(1:end-3);
             else
@@ -66,124 +78,111 @@ classdef TransportModelDG < TransportModel
         end
         
         %-----------------------------------------------------------------%
-        function index = satVarIndex(model, name)
-            index = model.parentModel.satVarIndex(name);
-        end
-        
-        %-----------------------------------------------------------------%
         function groupings = getStateFunctionGroupings(model)
             groupings = model.parentModel.getStateFunctionGroupings();
         end
         
         %-----------------------------------------------------------------%
         function state = validateState(model, state)
-            
+            % Set degree in each cell
             state.degree = repmat(model.discretization.degree, model.G.cells.num, 1);
+            % Well are treated as dG(0)
             wm = model.parentModel.FacilityModel.WellModels;
             for i = 1:numel(wm)
                 state.degree(wm{i}.W.cells,:) = 0;
             end
+            % Let parent model do its thing
             state = validateState@TransportModel(model, state);
-            state = assignDofFromState(model.discretization, state);
+            % Assign dofs
+            state = assignDofFromState(model.discretization, state, model.dgVariables);
         end
         
         %-----------------------------------------------------------------%
-        function [dofvars, dofnames, names, origin] = getPrimaryVariables(model, state)
+        function [vars, names, origin] = getPrimaryVariables(model, state)
+            % Get primary variables
             [vars, names, origin] = model.parentModel.getPrimaryVariables(state);
             isParent = strcmp(origin, class(model.parentModel));
-            vars = vars(isParent);
-            names = names(isParent);
-            dofnames = cellfun(@(bn) [bn, 'dof'], names, 'UniformOutput', false);
+            vars     = vars(isParent);
+            names    = names(isParent);
+            % If saturation is a dG variable, we relace 's' by 'sW', etc
+            isSat = strcmpi(model.dgVariables, 's');
+            if any(isSat)
+                model.dgVariables(isSat) = [];
+                phNames = model.parentModel.getPhaseNames();
+                for ph = phNames
+                    model.dgVariables{end+1} = ['s', ph];
+                end
+            end
+            % Add dof to ending dG variable names
+            isDof        = ismember(names, model.dgVariables);
+            names(isDof) = cellfun(@(bn) [bn, 'dof'], names(isDof), 'UniformOutput', false);
+            % Replace variables with dofs
             origin = origin(isParent);
-            dofvars = cell(1, numel(vars));
-            isBO = strcmpi(origin, 'GenericBlackOilModel');
-            for i = 1:numel(dofnames)
-                [fn, ~] = model.getVariableField(dofnames{i}, false);
-                if ~isempty(fn)
-                    dofvars{i} = model.getProp(state, dofnames{i});
-                elseif strcmpi(names{i}, 'x') && isBO(i)
-                    if model.parentModel.water
-                        sW = model.getProp(state, 'sW');
-                    else
-                        sW = deal(0);
+            isBO   = strcmpi(origin, 'GenericBlackOilModel');
+            for i = 1:numel(names)
+                if isDof(i)
+                    [fn, ~] = model.getVariableField(names{i}, false);
+                    if ~isempty(fn)
+                        vars{i} = model.getProp(state, names{i});
+                    elseif any(strcmpi(names{i}, {'x', 'xdof'})) && isBO(i)
+                        error('dG currently does not support disgas/vapoil')
                     end
-                    [sG, sGdof] = model.getProps(state, 'sG', 'sGdof');
-                    st = model.parentModel.getCellStatusVO(state,  1-sW-sG, sW, sG);
-                    for j = 1:numel(st)
-                        if numel(st{j}) == model.G.cells.num
-                            st{j} = rldecode(st{j}, state.nDof, 1);
-                        end
-                    end
-                    [rsdof, rvdof] = model.getProps(state, 'rsdof', 'rvdof');
-                    xdof = st{1}.*rsdof + st{2}.*rvdof + st{3}.*sGdof;
-                    dofvars{i} = xdof;
                 end
             end
         end
-        
         %-----------------------------------------------------------------%
         function [state, names, origin] = getStateAD(model, state, init)
+            % TODO: rewrite getStateADDG to only return state for a subset
+            % of the cells/faces
+            [cells, faces] = deal([]);
+            [state, names, origin] = model.getStateADDG(state, cells, faces, init);
+        end
+        %-----------------------------------------------------------------%
+        function [state, names, origin] = getStateADDG(model, state, cells, faces, init)
             if nargin < 3
                 init = true;
-            end
-            
-            names = fieldnames(state);
-            cells = rldecode((1:model.G.cells.num)', state.nDof, 1);
-            for k = 1:numel(names)
-                name = names{k};
-                if numel(name) > 3 && strcmp(name(end-2:end), 'dof')
-                    v   = model.getProp(state, name(1:end-3));
-                    dof = model.getProp(state, name);
-                    vm  = model.discretization.getCellMean(state, dof);
-                    frac = v./vm;
-                    frac(~isfinite(frac)) = 1;
-                    dof = dof.*frac(cells,:);
-                    state = model.setProp(state, name, dof);
-                end
-            end
-            
-            
+            end            
             parent = model.parentModel;
             % Get the AD state for this model
-            [basevars, basedofnames, basenames, baseorigin] = model.getPrimaryVariables(state);
-            isParent = strcmp(baseorigin, class(parent));
-            basevars = basevars(isParent);
-            basedofnames = basedofnames(isParent);
-            basenames = basenames(isParent);
+            [basevars, basenames, baseorigin] = model.getPrimaryVariables(state);
+            isParent   = strcmp(baseorigin, class(parent));
+            basevars   = basevars(isParent);
+            basenames  = basenames(isParent);
             baseorigin = baseorigin(isParent);
             % Find saturations
             isS = false(size(basevars));
             nph = parent.getNumberOfPhases();
             phase_variable_index = zeros(nph, 1);
             for i = 1:numel(basevars)
-                [f, ix] = model.getVariableField(basedofnames{i}, false);
-                if strcmp(f, 'sdof')% || strcmpi(basedofnames{i}, 'xdof')
+                [f, ix] = model.getVariableField(basenames{i}, false);
+                if any(strcmpi(f, {'s', 'sdof'}))
                     isS(i) = true;
                     phase_variable_index(ix) = i;
                 end
             end
-            
             % Figure out saturation logic
-            isP    = strcmp(basedofnames, 'pressuredof');
+            isP    = strcmp(basenames, 'pressure');
             vars   = basevars;
-            names  = basedofnames;
+            names  = basenames;
             origin = baseorigin;
-            useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
-                                    && sum(isS) == nph - 1;
-            useTotalSaturation = useTotalSaturation ...
-                || strcmpi(class(parent), 'GenericOverallCompositionModel');
+            useTotalSaturation = ....
+                strcmpi(model.formulation, 'totalSaturation') && sum(isS) == nph - 1;
             if useTotalSaturation
                 % Replace pressure with total saturation
-                replacement = 'sTdof';
-                sTdof = model.getProp(state, replacement);
+                if any(strcmpi('sT',model.dgVariables))
+                    replacement = 'sTdof';
+                else
+                    replacement = 'sT';
+                end
+                sTdof       = model.getProp(state, replacement);
                 % Replacing
-                vars{isP} = sTdof;
-                names{isP} = replacement;
+                vars{isP}   = sTdof;
+                names{isP}  = replacement;
                 origin{isP} = class(model);
             else
                 % Remove pressure and skip saturation closure
-                vars = vars(~isP);
-                names = names(~isP);
+                vars   = vars(~isP);
+                names  = names(~isP);
                 origin = origin(~isP);
             end
             if init
@@ -194,258 +193,177 @@ classdef TransportModelDG < TransportModel
             else
                 basevars(~isP) = vars;
             end
-            
+            % Evluate basis functions for use later
+            state = model.discretization.evaluateBasisFunctions(state);
+            isDof = false(size(names));
             [cellMean, cellVars, faceVars] = deal(cell(size(vars)));
             for i = 1:numel(vars)
-                cellMean{i} = model.discretization.getCellMean(state, basevars{i});
-                cellVars{i} = model.discretization.evaluateProp(state, basevars{i}, 'cell');
-                faceVars{i} = model.discretization.evaluateProp(state, basevars{i}, 'face');
+                [cellMean{i}, cellVars{i}, faceVars{i}, isDof(i)] ...
+                    = model.evaluateBaseVariable(state, basevars{i}, basenames{i});
             end
-            
+            % Let parent model handle initStateAD
+            basenames(isDof) = cellfun(@(bn) bn(1:end-3), basenames(isDof), 'UniformOutput', false);
+            % Initialize cell mean state
             state = parent.initStateAD(state, cellMean, basenames, baseorigin);
-            state.cells = (1:model.G.cells.num)';
+            % First, store dofs to state (only used in case we have BCs)
+            state = model.assignDofsToState(state, vars, names);
+            % Evaluate non-dg and non-ad variables in cubature points
             state = model.evaluateBaseVariables(state);
-            
+            % Initialize well state
             state.wellStateDG = parent.initStateAD(state.wellStateDG, cellMean, basenames, baseorigin);
-            
+            % Initialize cell state
             parent.G.cells.num = numel(value(cellVars{1}));
             state.cellStateDG = parent.initStateAD(state.cellStateDG, cellVars, basenames, baseorigin);
-            
+            % Initialize face state
             parent.G.cells.num = numel(value(faceVars{1}));
             state.faceStateDG = parent.initStateAD(state.faceStateDG, faceVars, basenames, baseorigin);
-            
-
             if useTotalSaturation
                 % Set total saturation as well
                 sTdof       = vars{isP};
                 state.sTdof = sTdof;
-                % Evaluate at cell cubature points
-                cellValue         = model.discretization.evaluateProp(state, sTdof, 'cell');
+                [meanValue, cellValue, faceValue] = model.evaluateBaseVariable(state, sTdof, 'sTdof');
+                state.wellStateDG = model.setProp(state.wellStateDG, 'sT', meanValue);
                 state.cellStateDG = model.setProp(state.cellStateDG, 'sT', cellValue);
-                % Evaluate mean
-                cellMean          = model.discretization.getCellMean(state, sTdof);
-                state.wellStateDG = model.setProp(state.wellStateDG, 'sT', cellMean);
-                % Evaluate at face cubature points
-                faceValue         = model.discretization.evaluateProp(state, sTdof, 'face');
                 state.faceStateDG = model.setProp(state.faceStateDG, 'sT', faceValue);
-                % Set mean in state
-                state = model.setProp(state, 'sT', cellMean);
+                state             = model.setProp(state, 'sT', meanValue);
             end
         end
         
-        function state = initStateAD(model, state, vars, names, origin)
-              
-            pmodel  = model.parentModel;
-            removed = false(size(vars));
-            isBO    = strcmpi(class(pmodel), 'GenericBlackOilModel');
-            if isBO
-                if pmodel.disgas || pmodel.vapoil
-                    if pmodel.water
-                        isw     = strcmpi(names, 'swdof');
-                        sWdof   = vars{isw};
-                        sW      = model.getProp(state, 'sw');
-                        removed = removed | isw;
-                    else
-                        sW = 0;
-                    end
-
-                    isx  = strcmpi(names, 'xdof');
-                    xdof = vars{isx};
-                    sG   = model.getProps(state, 'sg');
-                    st   = pmodel.getCellStatusVO(state, 1-sW-sG, sW, sG);
-                    cells = rldecode((1:model.G.cells.num)', state.nDof, 1);
-                    for j = 1:numel(st)
-                        if numel(st{j}) == model.G.cells.num
-                            st{j} = st{j}(cells);
-                        end
-                    end
-                    fillSat = model.discretization.getFillSat(state);
-                    sGdof = st{2}.*(fillSat-sWdof) + st{3}.*xdof;
-                    sOdof = st{1}.*(fillSat-sWdof) + ~st{1}.*(fillSat - sWdof - sGdof);
-                    if pmodel.water
-                        satdof = {sWdof, sOdof, sGdof};
-                    else
-                        satdof = {sOdof, sGdof};
-                    end
-                    removed(isx) = true;
-                else
-                    % Without variable switching
-                    phases = pmodel.getPhaseNames();
-                    nph = numel(phases);
-                    satdof = cell(1, nph);
-                    fillSat = model.discretization.getFillSat(state);
-                    removed_sat = false(1, nph);
-                    for i = 1:numel(phases)
-                        sub = strcmpi(names, ['s', phases(i), 'dof']);
-                        if any(sub)
-                            fillSat = fillSat - vars{sub};
-                            removed = removed | sub;
-                            removed_sat(i) = true;
-                            satdof{i} = vars{sub};
-                        end
-                    end
-                    if any(~removed_sat)
-                        satdof{~removed_sat} = fillSat;
-                    end
+        %-----------------------------------------------------------------%
+        function state = assignDofsToState(model, state, vars, names)
+            % Assign dofs to state for e.g., BC evaluation
+            fill = zeros(sum(state.nDof), 1);
+            ix   = model.discretization.getDofIx(state, 1);
+            fill(ix) = 1;
+            snames = model.parentModel.getSaturationVarNames();
+            snames = cellfun(@(sn) [sn, 'dof'], snames, 'UniformOutput', false);
+            sdof   = cell(1, numel(snames));
+            removed  = false(size(vars));
+            for i = 1:numel(vars)
+                ix = strcmpi(names{i}, snames);
+                if any(ix)
+                    sdof{ix} = vars{i};
+                    fill = fill - vars{i};
+                    removed(i) = true;
                 end
-                state = model.setProp(state, 'sdof', satdof);
-                sat   = model.discretization.getCellMean(state, satdof);
-                state = model.setProp(state, 's', sat);
-
-                if not(isempty(pmodel.FacilityModel))
-                    % Select facility model variables and pass them off to attached
-                    % class.
-                    fm = class(pmodel.FacilityModel);
-                    isF = strcmp(origin, fm);
-                    state = pmodel.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
-                    removed = removed | isF;
-                end
-                
-                vars   = vars(~removed);
-                names  = names(~removed);
-                origin = origin(~removed);
-                for i = 1:numel(names)
-                    state = model.setProp(state, names{i}, vars{i});
-                end
-                state = model.initStateFunctionContainers(state);
-
-                if pmodel.disgas
-                    rsSat = pmodel.getProp(state, 'RsMax');
-                    rsSat = rsSat(cells);
-                    rsdof = ~st{1}.*rsSat + st{1}.*xdof;
-                    % rs = rs.*(value(sO) > 0);
-                    state = model.setProp(state, 'rsdof', rsdof);
-                    rs    = model.discretization.getCellMean(state, rsdof);
-                    state = model.setProp(state, 'rs', rs);
-                end
-
-                if pmodel.vapoil
-                    rvSat = pmodel.getProp(state, 'RvMax');
-                    rvSat = rvSat(cells);
-                    rvdof = ~st{2}.*rvSat + st{2}.*xdof;
-                    % rv = rv.*(value(sG) > 0);
-                    state = model.setProp(state, 'rvdof', rvdof);
-                    rv    = model.discretization.getCellMean(state, rvdof);
-                    state = model.setProp(state, 'rv', rv);
-                    % No rv, no so -> zero on diagonal in matrix
-                    sO = model.discretization.getCellMean(state, value(sOdof));
-                    bad_oil = value(sO) == 0 & value(rv) == 0;
-                    if any(bad_oil)
-                        sOdof(bad_oil) = fillSat - sWdof(bad_oil) - value(sGdof(bad_oil));
-                        state = model.setProp(state, 'sOdof', sOdof);
-                        sO    = model.discretization.getCellMean(state, sOdof);
-                        state = model.setProp(state, 'sO', sO);
-                    end
-                end
-                
             end
-            state = model.evaluateBaseVariables(state);
+            ix = strcmpi(setdiff(snames, lower(names)), snames);
+            sdof{ix} = fill;
+            state = model.setProp(state, 'sdof', sdof);
+            
+            vars  = vars(~removed);
+            names = names(~removed);
+            for i = 1:numel(vars)
+                state = model.setProp(state, names{i}, vars{i});
+            end
             
         end
         
+        %-----------------------------------------------------------------%
+        function [meanVal, cellVal, faceVal, isDof] = evaluateBaseVariable(model, state, var, name)
+            assert(isfield(state, 'psi_c') && isfield(state, 'psi_c'));
+            isDof = false;
+            if any(strcmpi(name(1:end-3), model.dgVariables)) && strcmpi(name(end-2:end), 'dof')
+                % dG - do evaluation at cubature points
+                isDof   = true;
+                meanVal = model.discretization.getCellMean(state, var);
+                cellVal = model.discretization.evaluateProp(state, var, 'cell');
+                faceVal = model.discretization.evaluateProp(state, var, 'face');
+            else
+                % Not dG - repeat to match number of cubature points
+                meanVal = var;
+                cellVal = meanVal(state.cells,:);
+                faceVal = meanVal(state.fcells,:);
+            end
+        end
+        
+        %-----------------------------------------------------------------%
         function state = evaluateBaseVariables(model, state)
-             
+            % Evaluate all non-dG and non-primary variables at all cubature
+            % points
             [cellStateDG, faceStateDG, wellStateDG] = deal(state);
-            names = fieldnames(state);
-            
-            [~ , xc, cNo     ] = model.discretization.getCubature(Inf, 'cell');
-            [~ , xf, ~  , fNo] = model.discretization.getCubature(Inf, 'face');
-            xf   = repmat(xf, 2, 1);
-            N    = model.discretization.G.faces.neighbors;
-            fcNo = [N(fNo,1); N(fNo,2)];
-            xc = model.discretization.transformCoords(xc, cNo );
-            xf = model.discretization.transformCoords(xf, fcNo);
-            [psi_c, psi_f] = deal(model.discretization.basis.psi');
-            for dofNo = 1:model.discretization.basis.nDof
-                psi_c{dofNo} = psi_c{dofNo}(xc);
-                psi_f{dofNo} = psi_f{dofNo}(xf);
+            if ~(isfield(state, 'psi_c') && isfield(state, 'psi_f'))
+                % Evaluate basis functions at cubature points
+                state = model.discretization.evaluateBasisFunctions(state);
             end
-            state.psi_c = psi_c;
-            state.psi_f = psi_f;
+            % Assign type and cells/faces
+            cellStateDG.type   = 'cell';
+            cellStateDG.cells  = state.cells;
+            cellStateDG.fcells = state.fcells;
+            cellStateDG.faces  = state.faces;
+            wellStateDG.type   = 'cell';
+            wellStateDG.cells  = state.cells;
+            faceStateDG.type   = 'face';
+            faceStateDG.cells  = state.fcells;
+            faceStateDG.faces  = state.faces;
+            % Evaluate valriables
+            names = fieldnames(state);
             for k = 1:numel(names)
                 name = names{k};
-                if numel(name) > 3 && strcmp(name(end-2:end), 'dof')
-                    % Get dofs
-                    dof = model.getProp(state, name);
-                    n = name(1:end-3);
-                    % Evaluate at cell cubature points
-                    cellValue = model.discretization.evaluateProp(state, dof, 'cell');
-                    cellStateDG = model.setProp(cellStateDG, n, cellValue);
-                    % Get cell mean
-                    cellMean = model.discretization.getCellMean(state, dof);
-                    wellStateDG = model.setProp(wellStateDG, n, cellMean);
-                    % Evaluate at face cubature points
-                    faceValue = model.discretization.evaluateProp(state, dof, 'face');
-                    faceStateDG = model.setProp(faceStateDG, n, faceValue);
+                [fn , index] = model.getVariableField(name, false);
+                if ~isempty(fn) && isa(state.(fn), 'double') && ... % Only doubles
+                        ~any(strcmpi(name, model.dgVariables))        % ... dG variables are set from dofs
+                    % ... and only variables of correct dimension
+                    n = size(double(state.(fn)),1);
+                    if (n ~= model.G.cells.num && n ~= sum(state.nDof))
+                        continue
+                    else
+                        % Evaluate
+                        [meanVal, cellVal, faceVal] ...
+                            = model.evaluateBaseVariable(state, state.(name)(:,index), name);
+                        if strcmpi(name(end-2:end), 'dof')
+                            name = name(1:end-3);
+                        end
+                        % Assign to state
+                        cellStateDG = model.setProp(cellStateDG, name, cellVal);
+                        wellStateDG = model.setProp(wellStateDG, name, meanVal);
+                        faceStateDG = model.setProp(faceStateDG, name, faceVal);
+                    end
                 end
             end
-            
-            cellStateDG.sT = getTotalSaturation(cellStateDG.s);
-            wellStateDG.sT = getTotalSaturation(wellStateDG.s);
-            faceStateDG.sT = getTotalSaturation(faceStateDG.s);
-            
-            [~, ~, cells] = model.discretization.getCubature((1:model.G.cells.num)', 'cell');
-            [~, ~, ~, faces] = model.discretization.getCubature(find(model.parentModel.operators.internalConn), 'face');
-            fcells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
-            
-            cellStateDG.type  = 'cell';
-            cellStateDG.cells = cells;
-            cellStateDG.fcells = fcells;
-            cellStateDG.faces = faces;
-            wellStateDG.type  = 'cell';
-            cellStateDG.cells = cells;
-            faceStateDG.type  = 'face';
-            faceStateDG.cells = fcells;
-            faceStateDG.faces = faces;
-            
+            % Set flag (compositional models)
             if isfield(faceStateDG, 'flag')
                 faceStateDG.flag = faceStateDG.flag(fcells);
             end
-            
-            
+            % Store cell/well/face states to state
             state.cellStateDG = cellStateDG;
             state.wellStateDG = wellStateDG;
             state.faceStateDG = faceStateDG;
-            
         end
         
-        function state = assignBaseVariables(model, state)
-            
-%             names = {'s', 'rs', 'rv'};
-            names = fieldnames(state)';
+        %-----------------------------------------------------------------%
+        function state = assignCellMean(model, state)
+            % Assign cell mean for all dg variables
+            names = model.dgVariables;
             for name = names
-%                 if isfield(state, name{1}) && isfield(state, [name{1}, 'dof'])
                 if isfield(state, [name{1}, 'dof'])
                     dof = model.getProp(state, [name{1}, 'dof']);
                     v   = model.discretization.getCellMean(state, dof);
                     state.(name{1}) = v;
                 end
             end
-             
-            if strcmpi(model.formulation, 'totalSaturation')
-                if isfield(state, 'sT') && isfield(state, 'sTdof')
-                    dof = model.getProp(state, 'stdof');
-                    v   = model.discretization.getCellMean(state, dof);
-                    state.sT = v;
-                end
-            end
-             
         end
         
+        %-----------------------------------------------------------------%
         function model = validateModel(model, varargin)
+            % Validate model before simulation
+            assert(any(strcmpi('s', model.dgVariables)), ...
+                'dG currently requires that saturation is a dG variable');
+            % Transport model handles most of the validation
             model = validateModel@TransportModel(model, varargin{:});
-                        
+            % Set flux discretization
             model.parentModel.FluxDiscretization = FluxDiscretizationDG(model.parentModel);
-            fp = model.parentModel.FlowPropertyFunctions;
+            % Set flow property functions
+            fp  = model.parentModel.FlowPropertyFunctions;
             pvt = fp.getRegionPVT(model.parentModel);
-            fp = fp.setStateFunction('PoreVolume', MultipliedPoreVolumeDG(model.parentModel, pvt));
-            fp = fp.setStateFunction('GravityPermeabilityGradient', GravityPermeabilityGradientDG(model.parentModel));
+            fp  = fp.setStateFunction('PoreVolume', MultipliedPoreVolumeDG(model.parentModel, pvt));
+            fp  = fp.setStateFunction('GravityPermeabilityGradient', GravityPermeabilityGradientDG(model.parentModel));
             model.parentModel.FlowPropertyFunctions = fp;
-            
         end
         
         %-----------------------------------------------------------------%
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
+            % Get model equations
             state0 = model.evaluateBaseVariables(state0);
             pmodel = model.parentModel;
             [acc, flux, cellflux, names, types] = pmodel.FluxDiscretization.componentConservationEquations(pmodel, state, state0, dt);
@@ -500,7 +418,7 @@ classdef TransportModelDG < TransportModel
         
         %-----------------------------------------------------------------%
         function q = computeBoundaryConditions(model, state, state0, dt, bc)
-            
+            % Compute values at boundary faces with prescribed BCs
             bcState = model.parentModel.FluxDiscretization.buildFlowState(model, state, state0, dt);
             faces = bc.face;
             [~, x, ~, fNo] = model.discretization.getCubature(faces, 'face');
@@ -522,19 +440,29 @@ classdef TransportModelDG < TransportModel
                     n = name(1:end-3);
                     % Evaluate at boundary face cubature points
                     bcState = model.setProp(bcState, n, v);
+                else
+                    [fn , index] = model.getVariableField(name, false);
+                    if ~isempty(fn) && isa(state.(fn), 'double')% Only doubles
+                        % ... and only variables of correct dimension
+                        n = size(double(state.(fn)),1);
+                        if (n ~= model.G.cells.num && n ~= sum(state.nDof))
+                            continue
+                        else
+                            v = bcState.(fn)(cNo,index);
+                            bcState = model.setProp(bcState, name, v);
+                        end
+                    end
                 end
             end
             bcState.cells = sum(model.G.faces.neighbors(fNo,:), 2);
             bcState.faces = fNo;
-            
+            % Compute fluxes
             q = computeBoundaryFluxesDG(model.parentModel, bcState, bc);
-            
         end
         
         %-----------------------------------------------------------------%
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
             [model, state] = prepareTimestep@TransportModel(model, state, state0, dt, drivingForces);
-            state = assignDofFromState(model.discretization, state, {'pressure'});
         end
         
         %-----------------------------------------------------------------%
@@ -542,257 +470,72 @@ classdef TransportModelDG < TransportModel
             vars = cellfun(@(n) n(1:end-3), vars, 'UniformOutput', false);
             [restVars, satVars, wellVars] = model.parentModel.splitPrimaryVariables(vars);
             restVars = cellfun(@(n) [n, 'dof'], restVars, 'UniformOutput', false);
-            satVars = cellfun(@(n) [n, 'dof'], satVars, 'UniformOutput', false);
+            satVars  = cellfun(@(n) [n, 'dof'], satVars , 'UniformOutput', false);
         end
         
         %-----------------------------------------------------------------%
-        function [state, report] = updateState(model, state, problem, dx, drivingForces)
-                        
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)  
             % Remove DG states
             state = rmfield(state, 'cellStateDG');
             state = rmfield(state, 'faceStateDG');
             state = rmfield(state, 'wellStateDG');
-            
-            if 0% strcmpi(class(model.parentModel), 'GenericBlackOilModel') ...
-%                  && model.parentModel.disgas || model.parentModel.vapoil
-%                 [state, report] = model.updateStateBO(state, problem, dx, drivingForces);
-            else
-                state0 = state;
-                [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
-                % Update saturation dofs
-                state = model.updateSaturations(state, dx, problem, satVars);
-                % Update non-saturation dofs
-                state = model.updateDofs(state, dx, problem, restVars);
-                % Update cell averages from dofs
-                state  = model.assignBaseVariables(state);
-                report = [];
-
-                if 1
-                % Compute dx for cell averages
-                dx0 = model.getMeanIncrement(state, state0, problem.primaryVariables);
-                % Let parent model do its thing
-                problem0 = problem;
-                problem0.primaryVariables = cellfun(@(n) n(1:end-3), problem0.primaryVariables, 'UniformOutput', false);
-                [state0_corr, report] = updateState@TransportModel(model, state0, problem0, dx0, drivingForces);
-                % Correct updates in dofs according to parent model
-                dx0_corr = model.getMeanIncrement(state0_corr, state0, problem.primaryVariables);
-                cells    = rldecode((1:model.G.cells.num)', state.nDof, 1);
-                frac     = cellfun(@(x,y) x(cells)./y(cells), dx0_corr, dx0, 'UniformOutput', false);
-                for i = 1:numel(frac)
-                    frac{i}(~isfinite((frac{i}))) = 1;
-                end
-                dx_corr  = cellfun(@(dx, f) dx.*f, dx, frac, 'UniformOutput', false);
-                % Update saturation dofs
-                state = model.updateSaturations(state0, dx_corr, problem, satVars);
-                % Update non-saturation dofs
-                state = model.updateDofs(state, dx_corr, problem, restVars);
-                % Compositional models
-                if isfield(state0_corr, 'eos')
-                    state.eos = state0_corr.eos;
-                    varsEOS = {'Kdof', 'Ldof', 'xdof', 'ydof', 'Z_Ldof', 'Z_Vdof', 'sodof', 'sgdof'};
-                    dxEOS   = model.getMeanIncrement(state0_corr, state, varsEOS);
-                    for i = 1:numel(varsEOS)
-                        [fn, index] = model.getVariableField(varsEOS{i});
-                        ix = model.discretization.getDofIx(state, 1);
-                        state.(fn)(ix,index) = state.(fn)(ix,index) + dxEOS{i};
-                    end
-%                     state   = model.updateDofs(state, dxEOS, problem, varsEOS);
-                end
-                % Update cell averages from dofs
-                state = model.assignBaseVariables(state);
-                end
-            
+            % Store state before update
+            state0 = state;
+            [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
+            % Update saturation dofs
+            state = model.updateSaturations(state, dx, problem, satVars);
+            % Update non-saturation dofs
+            state = model.updateDofs(state, dx, problem, restVars);
+            % Update cell averages from dofs
+            state = model.assignCellMean(state);
+            % Compute dx for cell averages
+            dx0 = model.getMeanIncrement(state, state0, problem.primaryVariables);
+            % Let parent model do its thing
+            problem0 = problem;
+            problem0.primaryVariables = cellfun(@(n) n(1:end-3), problem0.primaryVariables, 'UniformOutput', false);
+            [state0_corr, report] = updateState@TransportModel(model, state0, problem0, dx0, drivingForces);
+            % Correct updates in dofs according to parent model
+            dx0_corr = model.getMeanIncrement(state0_corr, state0, problem.primaryVariables);
+            cells    = rldecode((1:model.G.cells.num)', state.nDof, 1);
+            frac     = cellfun(@(x,y) x(cells)./y(cells), dx0_corr, dx0, 'UniformOutput', false);
+            for i = 1:numel(frac)
+                frac{i}(~isfinite((frac{i}))) = 1;
             end
-            
-        end
-        
-        % --------------------------------------------------------------------%
-        function [state, report] = updateStateBO(model, state, problem, dx, drivingForces)
-            vars    = problem.primaryVariables;
-            removed = false(size(vars));
-            pmodel  = model.parentModel;
-            cells   = rldecode((1:model.G.cells.num)', state.nDof, 1);
-            if pmodel.disgas || pmodel.vapoil
-                % The VO model is a bit complicated, handle this part
-                % explicitly.
-                state0 = state;
-                state = model.initStateFunctionContainers(state);
-
-                state = pmodel.updateStateFromIncrement(state, dx, problem, 'pressure', pmodel.dpMaxRel, pmodel.dpMaxAbs);
-                state = pmodel.capProperty(state, 'pressure', pmodel.minimumPressure, pmodel.maximumPressure);
-
-                [vars, ix] = model.stripVars(vars, 'pressure');
-                removed(~removed) = removed(~removed) | ix;
-
-                % Black oil with dissolution
-                [so, sg] = model.getProps(state, 'so', 'sg');
-                if pmodel.water
-                    sw  = model.getProp(state, 'sw');
-                    dsw = model.getIncrement(dx, problem, 'swdof');
-                else
-                    sw  = 0;
-                    dsw = 0;
-                end
-                % Magic status flag, see inside for doc
-                st0 = pmodel.getCellStatusVO(state0, so, sw, sg);
-                st = st0;
-                for j = 1:numel(st)
-                    if numel(st{j}) == model.G.cells.num
-                        st{j} = st{j}(cells);
-                    end
-                end
-                dr = model.getIncrement(dx, problem, 'xdof');
-                % Interpretation of "gas" phase varies from cell to cell, remove
-                % everything that isn't sG updates
-                dsg = st{3}.*dr - st{2}.*dsw;
-
-                drsMaxAbs = pmodel.drsMaxAbs/model.discretization.basis.nDof;
-                if pmodel.disgas
-                    rsMax = pmodel.getProp(state, 'rsMax');
-                    rsMax = rsMax(cells);
-                    drs_rel = rsMax.*pmodel.drsMaxRel/model.discretization.basis.nDof;
-                    drs = min(drsMaxAbs, drs_rel);
-                    state = model.updateStateFromIncrement(state, st{1}.*dr, problem, ...
-                                                           'rsdof', inf, drs);
-                    state.rs = model.discretization.getCellMean(state, state.rsdof);
-                end
-                
-                if 0
-                    rs    = model.getProp(state, 'rs');
-                    rsSat = model.parentModel.getProp(state, 'rsMax');
-                    rsdof = model.getProp(state, 'rsdof');
-                    [rsMin, rsMax] = model.discretization.getMinMax(state, rsdof);
-                    rsMin(rs > rsSat) = rsSat(rs > rsSat);
-                    rsMax(rs < rsSat) = rsSat(rs < rsSat);
-                    state = model.discretization.limiter{2}(state, 'rs', [rsMin, rsMax]);
-                end
-
-                if pmodel.vapoil
-                    rvMax = pmodel.getProp(state, 'rvMax');
-                    drv_rel = rvMax.*pmodel.drsMaxRel/model.discretization.basis.nDof;
-                    drs = min(drsMaxAbs, drv_rel);
-                    state = model.updateStateFromIncrement(state, st{2}.*dr, problem, ...
-                                                           'rvdof', inf, drs);
-                end
-
-                dso = -(dsg + dsw);
-                nPh = nnz(pmodel.getActivePhases());
-
-                ds = zeros(numel(dso), nPh);
-                phIndices = pmodel.getPhaseIndices();
-                if pmodel.water
-                    ds(:, phIndices(1)) = dsw;
-                end
-                if pmodel.oil
-                    ds(:, phIndices(2)) = dso;
-                end
-                if pmodel.gas
-                    ds(:, phIndices(3)) = dsg;
-                end
-                
-                dsMaxAbs = pmodel.dsMaxAbs/model.discretization.basis.nDof;
-                state = model.updateStateFromIncrement(state, ds, problem, 'sdof', inf, dsMaxAbs);
-                state = model.assignBaseVariables(state);
-                
-                kr = pmodel.FlowPropertyFunctions.RelativePermeability;
-                state = kr.applyImmobileChop(model, state, state0);
-
-                % We should *NOT* be solving for oil saturation for this to make sense
-                assert(~any(strcmpi(vars, 'sodof')));
-                
-%                 problem0 = problem;
-                names = {'swdof', 'sodof', 'sgdof'};
-                if pmodel.disgas
-                    names{end+1} = 'rsdof';
-                end
-                if pmodel.vapoil
-                    names{end+1} = 'rvdof';
-                end
-                dx0 = model.getMeanIncrement(state, state0, names);
-                
-                state_corr = computeFlashBlackOil(state, state0, pmodel, st0);
-                state_corr.s = bsxfun(@rdivide, state_corr.s, sum(state_corr.s, 2));
-
-                problem0 = problem;
-                problem0.primaryVariables = names;
-                dx0_corr = model.getMeanIncrement(state_corr, state0, names);
-                
-                frac = cell(1, numel(dx0));
-                [dx_corr, dx] = deal(cell(numel(names),1));
-                for i = 1:numel(names)
-                    v0 = model.getProp(state0, names{i});
-                    v  = model.getProp(state , names{i});
-                    dx{i} = v - v0;
-                end
-                for i = 1:numel(frac)
-                    if  ~isempty(dx0{i})
-                        f = dx0_corr{i}(cells)./dx0{i}(cells);
-                        f(~isfinite(f)) = 1;
-                        dx_corr{i} = dx{i}.*f;
-                    end
-                end
-                % Update saturation dofs
-                state = model.updateDofs(state0, dx_corr, problem0, names);
-                state.status = state_corr.status;
-                % Update cell averages from dofs
-                state = model.assignBaseVariables(state);
-                
-                if 0
-                    rsSat = model.parentModel.getProp(state, 'RsMax');
-                    rs    = model.getProp(state, 'rs');
-                    rsdof = model.getProp(state, 'rsdof');
-                    [rsMin, rsMax] = model.discretization.getMinMax(state, rsdof);
-                    rsMin(rs > rsSat) = rsSat(rs > rsSat);
-                    rsMax(rs < rsSat) = rsSat(rs < rsSat);
-                    state = model.discretization.limiter{2}(state, 'rs', [rsMin, rsMax]);
-                end
-                
-                %  We have explicitly dealt with rs/rv properties, remove from list
-                %  meant for autoupdate.
-                [vars, ix] = model.stripVars(vars, {'swdof', 'sodof', 'sgdof', 'rsdof', 'rvdof', 'xdof'});
-                removed(~removed) = removed(~removed) | ix;
-            end
-
-            % We may have solved for a bunch of variables already if we had
-            % disgas / vapoil enabled, so we remove these from the
-            % increment and the linearized problem before passing them onto
-            % the generic reservoir update function.
-            problem.primaryVariables = vars;
-            dx(removed) = [];
-            report = [];
-%             [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
+            dx_corr  = cellfun(@(dx, f) dx.*f, dx, frac, 'UniformOutput', false);
+            % Update saturation dofs
+            state = model.updateSaturations(state0, dx_corr, problem, satVars);
+            % Update non-saturation dofs
+            state = model.updateDofs(state, dx_corr, problem, restVars);
+            % Update cell averages from dofs
+            state = model.assignCellMean(state);
         end
         
         %-----------------------------------------------------------------%
         function dx = getMeanIncrement(model, state, state0, vars)
-            
-%             vars = problem.primaryVariables;
-            dx   = cell(numel(vars),1);
+            % Get the increment in the mean value of a set of variables
+            dx = cell(numel(vars),1);
             for i = 1:numel(vars)
-                vn = vars{i}(1:end-3);
-                v  = model.getProp(state, vn);
-                v0 = model.getProp(state0, vn);
+                vn    = vars{i}(1:end-3);
+                v     = model.getProp(state, vn);
+                v0    = model.getProp(state0, vn);
                 dx{i} = v - v0;
             end
-
         end
         
         % ----------------------------------------------------------------%
-        function state = updateDofs(model, state, dx, problem, dofVars, dvMaxAbs)
-            
+        function state = updateDofs(model, state, dx, problem, dofVars)
             for i = 1:numel(dofVars)
                 dvMaxAbs = inf;
-                if strcmpi(dofVars{i}, 'sTdof') && 0
-                    dvMaxAbs = 0.2;
+                if strcmpi(dofVars{i}, 'sTdof')
+                    dvMaxAbs = model.parentModel.dsMaxAbs./min(model.discretization.basis.nDof,4);
                 end
                 state = updateStateFromIncrement(model, state, dx, problem, dofVars{i}, inf, dvMaxAbs);
             end
-            
         end
         
         % ----------------------------------------------------------------%
         function state = updateSaturations(model, state, dx, problem, satVars)
-
+            % Update dG saturation variables
             if nargin < 5
                 % Get the saturation names directly from the problem
                 [~, satVars] = ...
@@ -837,82 +580,38 @@ classdef TransportModelDG < TransportModel
                 end
             end
             ds(ix, ~solvedFor) = tmp;
+            % Use a more restrictive dsMaxAbs based on number of dofs
+            dsAbsMax = model.parentModel.dsMaxAbs/min(model.discretization.basis.nDof, 4);
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            if 1
-                dsAbsMax = model.parentModel.dsMaxAbs/model.discretization.basis.nDof;
-            else
-                dsAbsMax = model.parentModel.dsMaxAbs/min(model.discretization.basis.nDof, 3);
-            end
             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, dsAbsMax);
             
         end
         
+        % ----------------------------------------------------------------%
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            % Update state after convergence
             state.FacilityFluxProps = state.wellStateDG.FacilityFluxProps;
+            % Let transport model do it's thing
             [state, report] = updateAfterConvergence@TransportModel(model, state0, state, dt, drivingForces);
+            % Remove cell/face/well state
             state = rmfield(state, 'cellStateDG');
             state = rmfield(state, 'faceStateDG');
             state = rmfield(state, 'wellStateDG');
-            
-            propfn = model.parentModel.getStateFunctionGroupings();
-            d = model.discretization;
-            d.nDof = state.nDof;
-            d.dofPos = state.dofPos;
-            ix = d.getDofIx(state, 1, Inf);
-            psi    = model.discretization.basis.psi(1);
-            d.sample = state.sdof(:,1);
-            for i = 1:numel(propfn)
-                p = propfn{i};
-                struct_name = p.getStateFunctionContainerName();
-                names = p.getNamesOfStateFunctions();
-                if isfield(state, struct_name)
-                    for j = 1:numel(names)
-                        name = names{j};
-                        if ~isempty(state.(struct_name).(name))
-                            v = state.(struct_name).(name);
-                            nph = numel(v);
-                            for ph = 1:nph
-                                v{ph} = d.inner(v{ph}, psi, 'dV');
-                                v{ph} = v{ph}(ix);
-                            end
-                            state.(struct_name).(name) = v;
-                        end
-                    end
-                end
-            end
-            
+            % Limit solution
             if ~isempty(model.limiters)
-                
                 if model.storeUnlimited
+                    % Store unlimited state if requested
                     state.ul = state;
                     if isfield(state.ul, 'ul')
                         state.ul = rmfield(state.ul, 'ul');
                     end
                 end
-                
+                % Apply limiters
                 for l = 1:numel(model.limiters)
                     limiter = model.limiters(l);
                     for v = 1:numel(limiter.variables)
                         state = limiter.function(state, limiter.variables{v}, limiter.tol, limiter.limits{v});
-                    end
-                end
-                
-                if 0
-                    if isa(model.parentModel, 'GenericBlackOilModel')
-                        if model.parentModel.disgas
-                            rsSat = model.parentModel.getProp(state, 'RsMax');
-                            rs    = model.getProp(state, 'rs');
-                            rsdof = model.getProp(state, 'rsdof');
-                            [rsMin, rsMax] = model.discretization.getMinMax(state, rsdof);
-                            rsMin(rs > rsSat) = rsSat(rs > rsSat);
-                            rsMax(rs < rsSat) = rsSat(rs < rsSat);
-                            state = model.discretization.limiter{2}(state, 'rs', [rsMin, rsMax]);
-                            state = model.discretization.limiter{1}(state, 'rs');
-                        end
-                        if model.parentModel.vapoil
-                            state = model.discretization.limiter{1}(state, 'rv');
-                        end
                     end
                 end
             end
@@ -921,16 +620,4 @@ classdef TransportModelDG < TransportModel
         
     end
     
-end
-
-function sT = getTotalSaturation(s)
-    if iscell(s)
-        sT  = 0;
-        nph = numel(s);
-        for i = 1:nph
-            sT = sT + s{i};
-        end
-    else
-        sT = sum(s,2);
-    end
 end

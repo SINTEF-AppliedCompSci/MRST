@@ -227,8 +227,6 @@ classdef Cubature
             %   translation - Translation applied to x
             %   scaling     - Scaling applied to x
             
-            cub.G = cub.G;
-            
             if nargin < 4, inverse = false; end
             
             % Coordinates are centered in cell center
