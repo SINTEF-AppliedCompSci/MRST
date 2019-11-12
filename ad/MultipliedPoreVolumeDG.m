@@ -16,6 +16,7 @@ classdef MultipliedPoreVolumeDG < MultipliedPoreVolume
             if isfield(f, 'pvMultR')
                 p = model.getProp(state, 'pressure');
                 pvMult = prop.evaluateFunctionOnDomainWithArguments(f.pvMultR, p);
+                pvMult = pvMult(state.cells);
                 pv = pv.*pvMult;
             end
         end
