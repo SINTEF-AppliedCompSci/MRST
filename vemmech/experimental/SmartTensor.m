@@ -213,7 +213,7 @@ classdef SmartTensor
          end
          
          % if the tensor is an intrinsic scalar, print its value
-         if numel(self.indexNames()) == 0
+         if numel(self.components{1}.indexnames) == 0
             M = self.components{1}.coefs;
             return
          end
@@ -393,13 +393,14 @@ classdef SmartTensor
          m2cix = (find(sum(abs(m2), 1)))';
          m2reduced = m2(:, m2cix);
          
-         assert(issparse(m1) && issparse(m2));
+         %assert(issparse(m1) && issparse(m2));
          % mprod = m1 * m2;
          % size(m1reduced)
          % size(m2reduced)
 
          mprod = m1reduced * m2reduced;
          [i, j, v] = find(mprod);
+         i = i(:); j = j(:); v = v(:);
          
          i = m1rix(i);
          j = m2cix(j);
@@ -562,6 +563,10 @@ classdef SmartTensor
             keep = cellfun(@(x) sum(strcmp(x, comp.indexnames)), ...
                            comp.indexnames) == 1;
          
+            if sum(keep) == numel(comp.indexnames)
+               % no index to contract
+               return
+            end
             comp.indexnames = comp.indexnames(keep);
             comp.ixs = comp.ixs(:, keep);
          else 
