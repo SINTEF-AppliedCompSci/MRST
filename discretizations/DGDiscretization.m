@@ -310,9 +310,6 @@ classdef DGDiscretization < SpatialDiscretization
         %-----------------------------------------------------------------%
         function p = evaluateDGVariable(disc, x, cells, state, pdof, psi)
             
-            nDof    = state.nDof; %#ok
-            nDofMax = disc.basis.nDof;
-            
             if isempty(pdof)
                 return
             else
@@ -324,8 +321,8 @@ classdef DGDiscretization < SpatialDiscretization
                     getx = @(keep) keep;
                 end
                 p = pdof(cells,:)*0;
-                for dofNo = 1:nDofMax
-                    keep = nDof(cells) >= dofNo; %#ok
+                for dofNo = 1:disc.basis.nDof
+                    keep = state.nDof(cells) >= dofNo;
                     ix = disc.getDofIx(state, dofNo, cells(keep));
                     if all(keep)
                         p = p + pdof(ix,:).*psi{dofNo}(getx(keep));
@@ -372,6 +369,26 @@ classdef DGDiscretization < SpatialDiscretization
             else
                 p = disc.evaluateDGVariable(x, cNo, state, dof, psi);
             end
+        end
+        
+        function state = evaluateBasisFunctions(disc, state)
+            [~ , xc, cNo     ] = disc.getCubature(Inf, 'cell');
+            [~ , xf, ~  , fNo] = disc.getCubature(Inf, 'face');
+            xf   = repmat(xf, 2, 1);
+            N    = disc.G.faces.neighbors;
+            fcNo = [N(fNo,1); N(fNo,2)];
+            xc = disc.transformCoords(xc, cNo );
+            xf = disc.transformCoords(xf, fcNo);
+            [psi_c, psi_f] = deal(disc.basis.psi');
+            for dofNo = 1:disc.basis.nDof
+                psi_c{dofNo} = psi_c{dofNo}(xc);
+                psi_f{dofNo} = psi_f{dofNo}(xf);
+            end
+            state.psi_c = psi_c;
+            state.psi_f = psi_f;
+            state.cells = cNo;
+            state.fcells = fcNo;
+            state.faces = fNo;
         end
         
         function fill = getFillSat(disc, state)
