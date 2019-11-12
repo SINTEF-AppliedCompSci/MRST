@@ -23,7 +23,14 @@ reactions ={'H2O  = H+  + OH- ',            10^-14*mol/litre, ...
             'CO3-2 + 2*H+ = CO2 + H2O',     10^16.681/(mol/litre),...
             'CO2 = CO2(g)',                 10^1.468*atm/(mol/litre)};
 
-chem = ChemicalModel(elements, species, reactions);
+chemsys = ChemicalSystem(elements, species, reactions);
+
+% print the chemical system
+chemsys.printChemicalSystem;
+
+% Setup model
+chemmodel = ChemicalModel(chemsys);
+
 
 %% specify inputs
 % here we vary the partial pressure of CO2 from 1e-3 atm to 3 atm
@@ -37,12 +44,12 @@ Ca = 1e-2*ones(n,1)*mol/litre;
 CO2 = logspace(-3, 1, n)'*atm;
 
 %% solve chemical system given inputs
-state = chem.initState([Na, Cl, Ca, H, H2O, CO2], 'charge','H+');
+state = chemmodel.initState([Na, Cl, Ca, H, H2O, CO2], 'charge','H+');
 
 %% process data
 state = changeUnits(state, {'elements','species','partialPressures'}, [mol/litre, mol/litre, atm] );
 
-[state, chem] = chem.updateActivities(state);
+[state, chemmodel] = chemmodel.updateActivities(state);
 
 %% plot the results
 figure; hold on; box on;
@@ -52,7 +59,7 @@ set(gca, 'xscale','log');
 xlabel('CO_2(g) [atm]')
 ylabel('concentration [mol/L]');
 set(gca, 'yscale', 'log');
-legend(chem.speciesNames)
+legend(chemsys.speciesNames)
 
 figure; hold on; box on;
 plot(CO2/atm, state.saturationIndicies, 'linewidth', 2)
@@ -61,7 +68,7 @@ set(gca, 'xscale','log');
 xlabel('CO_2(g) [atm]')
 ylabel('saturation indicies [-]');
 set(gca, 'yscale', 'log');
-legend(chem.solidNames)
+legend(chemsys.solidNames)
 
 %% Copyright notice
 %

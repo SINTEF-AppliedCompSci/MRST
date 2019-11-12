@@ -69,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             unknowns = addLogToNames(unknowns);
             knowns = addLogToNames(knowns);
 
-            for i = 1 : model.nLC
+            for i = 1 : chemsys.nLC
                 unknowns = regexprep(unknowns, ['log'  LCNames{i}],  LCNames{i});
                 knowns = regexprep(knowns, ['log'  LCNames{i}],  LCNames{i});
             end

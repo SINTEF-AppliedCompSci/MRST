@@ -23,10 +23,14 @@ reactions ={'H2CO3  = H+ + HCO3- ',         10^2*mol/litre,...
 combinations = {'Alk*', 'HCO3- + 2*CO3-2 + OH- - H+' };
 
 % instantiate the chemical model
-chem = ChemicalModel(elements, species, reactions, 'comb', combinations);
+chemsys = ChemicalSystem(elements, species, reactions, 'comb', combinations);
 
 % print the chemical system
-chem.printChemicalSystem;
+chemsys.printChemicalSystem;
+
+% Setup model
+chemmodel = ChemicalModel(chemsys);
+
 
 %% solve the chemical system given inputs
 % here we vary alkalinity and keep carbon and water content constant
@@ -39,7 +43,7 @@ Alk = linspace(-10^-3, 10^-3,n)';
 userInput = [C H2O Alk]*mol/litre;
 
 tic
-[state, report, model] = chem.initState(userInput);
+[state, report, model] = chemmodel.initState(userInput);
 toc;
 
 state = changeUnits(state, {'species'}, mol/litre);
@@ -51,7 +55,7 @@ set(gca,'yscale', 'log')
 xlabel('Alkalinity [mol/litre]');
 ylabel('concentration [mol/litre]');
 
-legend(chem.speciesNames)
+legend(chemsys.speciesNames)
 
 %% Copyright notice
 %

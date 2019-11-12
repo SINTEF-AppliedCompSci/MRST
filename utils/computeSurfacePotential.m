@@ -14,7 +14,7 @@ function [state, model] = computeSurfacePotential(model, state)
             elementsforsize = model.getProp(state, 'elements');
             ncells = size(elementsforsize, 1);
             clear elementsforsize;       
-            ncomp = numel(model.surfacePotentialNames);
+            ncomp = numel(chemsys.surfacePotentialNames);
             state.surfacePotentials = ones(ncells, ncomp);
         end
         

@@ -22,7 +22,7 @@ function [state, model] = computeSurfaceCharge(model, state)
             elementsforsize = model.getProp(state, 'elements');
             ncells = size(elementsforsize, 1);
             clear elementsforsize
-            ncomp = numel(model.surfaceChargeNames);
+            ncomp = numel(chemsys.surfaceChargeNames);
             state.surfaceCharges = ones(ncells, ncomp);
         end
         

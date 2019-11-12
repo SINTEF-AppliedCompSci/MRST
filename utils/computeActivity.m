@@ -44,7 +44,7 @@ function [state, model] = computeActivity(model, state)
         elementsforsize = model.getProp(state, 'elements');
         ncells = size(elementsforsize, 1);
         clear elementsforsize
-        ncomp = numel(model.activityNames);
+        ncomp = numel(chemsys.activityNames);
         state.activities = ones(ncells, ncomp);
     end
         
