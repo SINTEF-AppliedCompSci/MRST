@@ -1,5 +1,7 @@
 function [state, model] = computeSurfaceCharge(model, state)
 
+    chemsys = model.chemicalSystem;
+
     T = model.getProp(state, 'temperature');
 
     An  = 6.0221413*10^23;       	% avagadros number [#/mol]
@@ -9,11 +11,11 @@ function [state, model] = computeSurfaceCharge(model, state)
     e_w = 87.740 - 0.4008.*(T-273.15) + 9.398e-4.*(T-273.15).^2 - 1.410e-6.*(T-273.15).^3;% Dielectric constant of water
     A   = 1.82e6*(e_w.*T).^(-3/2);
     
-    nC =model.nC;
+    nC = chemsys.nC;
     species = cell(1, nC);
-    [species{:}] = model.chemicalInputModel.getProps(state,model.speciesNames{:}); 
+    [species{:}] = model.getProps(state, chemsys.speciesNames{:}); 
     
-    if ~isempty(model.surfInfo)
+    if ~isempty(chemsys.surfInfo)
         
         % Create surfaceCharge field for variable state, if not existing, and assign default values
         if ~isfield(state, 'surfaceCharges')
@@ -24,22 +26,22 @@ function [state, model] = computeSurfaceCharge(model, state)
             state.surfaceCharges = ones(ncells, ncomp);
         end
         
-        for i = 1 : numel(model.surfInfo.master)
+        for i = 1 : numel(chemsys.surfInfo.master)
 
             % grab the correct info
-            S = model.surfInfo.s{i};
-            a = model.surfInfo.a{i};
+            S = chemsys.surfInfo.s{i};
+            a = chemsys.surfInfo.a{i};
 
             % surface funcitonal group name
-            surfName = model.surfInfo.master{i}; 
+            surfName = chemsys.surfInfo.master{i}; 
 
             % number of species associated with surface
-            nSp = numel(model.surfInfo.species{i});
-            SpNames = model.surfInfo.species{i};
-            charge = model.surfInfo.charge{i};
+            nSp = numel(chemsys.surfInfo.species{i});
+            SpNames = chemsys.surfInfo.species{i};
+            charge = chemsys.surfInfo.charge{i};
 
 
-            switch model.surfInfo.scm{i}
+            switch chemsys.surfInfo.scm{i}
                 case 'tlm'
 
                     % calculate surface and IHP charge
@@ -47,7 +49,7 @@ function [state, model] = computeSurfaceCharge(model, state)
                     sig_1 = 0;
                     sig_2 = 0;
                     for j = 1 : nSp
-                        SpInd = strcmpi(SpNames{j}, model.speciesNames);
+                        SpInd = strcmpi(SpNames{j}, chemsys.speciesNames);
                         sig_0 = sig_0 + charge{j}(1).*species{SpInd};
                         sig_1 = sig_1 + charge{j}(2).*species{SpInd};
                         sig_2 = sig_2 + charge{j}(3).*species{SpInd};
@@ -72,8 +74,8 @@ function [state, model] = computeSurfaceCharge(model, state)
                     % calculate surface charge
                     sig = 0;
                     for j = 1 : nSp
-                        SpInd = strcmpi(model.surfInfo.species{i}{j}, model.speciesNames);
-                        sig = sig + model.surfInfo.charge{i}{j}.*species{SpInd};
+                        SpInd = strcmpi(chemsys.surfInfo.species{i}{j}, chemsys.speciesNames);
+                        sig = sig + chemsys.surfInfo.charge{i}{j}.*species{SpInd};
                     end
                     sig = (F./(S.*a)).*sig;
 

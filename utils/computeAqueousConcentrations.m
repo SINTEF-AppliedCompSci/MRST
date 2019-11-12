@@ -1,5 +1,7 @@
 function [state, model] = computeAqueousConcentrations(model, state)
 
+    chemsys = model.chemicalSystem;
+
     comps = cell(1, chemsys.nC);
 
     [comps{:}] = model.getProps(state, chemsys.speciesNames{:});
@@ -13,14 +15,15 @@ function [state, model] = computeAqueousConcentrations(model, state)
     T = 298;
     e_w = 87.740 - 0.4008*(T-273.15) + 9.398e-4*(T-273.15)^2 - 1.410e-6*(T-273.15)^3;% Dielectric constant of water
     A   = 1.82e6*(e_w.*T)^(-3/2);
-                                     
 
-    % calculate activity
+    % Calculate activity
     indS = cellfun(@(x) isempty(x), regexpi(chemsys.elementNames, '>'));
     nC = sum(indS);    
     
     chemsys.aqueousConcentrationNames  = cellfun(@(name) [name '(aq)'], chemsys.elementNames(indS), ...
                                          'uniformoutput', false);
+    model.chemicalSystem = chemsys;
+    
     totals = cell(1, nC);
                                      
     for i = 1 : nC
@@ -38,7 +41,7 @@ function [state, model] = computeAqueousConcentrations(model, state)
     end
     
     for i = 1 : nC
-        state = model.setProp(state, model.aqueousConcentrationNames{i}, totals{i});
+        state = model.setProp(state, chemsys.aqueousConcentrationNames{i}, totals{i});
     end
 
 end

@@ -58,15 +58,15 @@ userInput = [Na Cl B H H2O]*mol/litre;
 % surface charge, potential, aqueous and surface concentrations can be
 % calculated with tools built into ChemicalModel
 
-[state, chem] = chemmodel.updateActivities(state);
-[state, chem] = chemmodel.updateChargeBalance(state);
-[state, chem] = chemmodel.updateSurfacePotentials(state);
-[state, chem] = chemmodel.updateAqueousConcentrations(state);
-[state, chem] = chemmodel.updateSurfaceConcentrations(state);
+[state, chemmodel] = chemmodel.updateActivities(state);
+[state, chemmodel] = chemmodel.updateChargeBalance(state);
+[state, chemmodel] = chemmodel.updateSurfacePotentials(state);
+[state, chemmodel] = chemmodel.updateAqueousConcentrations(state);
+[state, chemmodel] = chemmodel.updateSurfaceConcentrations(state);
 
 
 state = changeUnits(state, {'species','activities','elements','surfaceConcentrations'}, mol/litre);
-pH = -log10(getProp(chem, state, 'aH+'));
+pH = -log10(getProp(chemmodel, state, 'aH+'));
 
 %% data from Goldberg
 % data is from Goldberg et al. Soil Sci. Soc. Am. J. 64:1356-1363 (2000)
@@ -96,8 +96,8 @@ ylabel('charge [% of total ion concentration]');
 
 % aqueous components
 figure; hold on; box on;
-plot(pH, chem.getProp(state, 'H3BO3'));
-plot(pH,  chem.getProp(state, 'H4BO4-'));
+plot(pH, chemmodel.getProp(state, 'H3BO3'));
+plot(pH,  chemmodel.getProp(state, 'H4BO4-'));
 legend('H_3BO_3','H_4BO_4^-');
 
 xlabel('pH');
@@ -105,7 +105,7 @@ ylabel('concentration [mol/L]');
 
 % surface components
 figure; hold on; box on;
-plot(pH, chem.getProp(state, '>SOH3BO3-')/200*1e6, '-k')
+plot(pH, chemmodel.getProp(state, '>SOH3BO3-')/200*1e6, '-k')
 plot(GB(:,1), GB(:,2), 'ok');
 legend('mrst', 'data')
    

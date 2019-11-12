@@ -1,5 +1,7 @@
 function [state, model] = computeSurfaceConcentrations(model, state)
 
+    chemsys = model.chemicalSystem;
+
     comps = cell(1, chemsys.nC);
 
     [comps{:}] = model.getProps(state, chemsys.speciesNames{:});
@@ -15,6 +17,7 @@ function [state, model] = computeSurfaceConcentrations(model, state)
     
     chemsys.surfaceConcentrationNames  = cellfun(@(name) [name '(surf)'], chemsys.elementNames(indS), ...
                                          'uniformoutput', false);
+    model.chemicalSystem = chemsys;
 
     totals = cell(1, nC);
                                      

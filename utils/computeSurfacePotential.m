@@ -1,11 +1,13 @@
 function [state, model] = computeSurfacePotential(model, state)
 
+    chemsys = model.chemicalSystem;
+
     T = model.getProp(state, 'temperature');
 
     F = 9.64853399e4; % Faraday's Constant [C/mol]
     R = 8.3144621; % Gas Constant [J/(K mol)]
     
-    if ~isempty(model.surfInfo)
+    if ~isempty(chemsys.surfInfo)
         
         % Create surfacepotential field for variable state, if not existing, and assign default values
         if ~isfield(state, 'surfacePotentials')
@@ -16,16 +18,16 @@ function [state, model] = computeSurfacePotential(model, state)
             state.surfacePotentials = ones(ncells, ncomp);
         end
         
-        for i = 1 : numel(model.surfInfo.master)
+        for i = 1 : numel(chemsys.surfInfo.master)
             
             % surface funcitonal group name
-            surfName = model.surfInfo.master{i}; 
+            surfName = chemsys.surfInfo.master{i}; 
             
-            if ismember(model.surfInfo.scm{i},{'langmuir','ie'})
+            if ismember(chemsys.surfInfo.scm{i},{'langmuir','ie'})
                 continue
             end
 
-            switch model.surfInfo.scm{i}
+            switch chemsys.surfInfo.scm{i}
                 case 'tlm'
 
                     preP0 = model.getProp(state, ['log' surfName '_ePsi_0']); 

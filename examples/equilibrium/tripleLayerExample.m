@@ -32,10 +32,15 @@ sioInfo = {geometry, 'tlm', [1 0.2]/meter^2,      '>SONa',   [-1 1], '>SOH2Cl',[
 surfaces ={ '>SO', sioInfo };
 
 % instantiate the chemical model
-chem = ChemicalModel(elements, species, reactions, 'surf', surfaces);
+chemsys = ChemicalSystem(elements, species, reactions, 'surf', surfaces);
+
 
 % print the chemical system
-chem.printChemicalSystem;
+chemsys.printChemicalSystem;
+
+% Setup model
+chemmodel = ChemicalModel(chemsys);
+
 
 %% define the inputs
 % here we vary pH from 4 to 10
@@ -49,21 +54,21 @@ H = logspace(-4, -10, n)';
 userInput = [Na Cl H H2O]*mol/litre;
 
 
-[state, report, model] = chem.initState(userInput, 'chargeBalance', 'Na');
+[state, report, model] = chemmodel.initState(userInput, 'chargeBalance', 'Na');
 
 %% post processing
 % to add the surface potentials and charges to the state structure we must
 % call on functions within ChemicalModel
-[state, chem] = chem.updateActivities(state);
-[state, chem] = chem.updateChargeBalance(state);
-[state, chem] = chem.updateSurfaceCharges(state);
-[state, chem] = chem.updateSurfacePotentials(state);
-[state, chem] = chem.updateAqueousConcentrations(state);
-[state, chem] = chem.updateSurfaceConcentrations(state);
+[state, chemmodel] = chemmodel.updateActivities(state);
+[state, chemmodel] = chemmodel.updateChargeBalance(state);
+[state, chemmodel] = chemmodel.updateSurfaceCharges(state);
+[state, chemmodel] = chemmodel.updateSurfacePotentials(state);
+[state, chemmodel] = chemmodel.updateAqueousConcentrations(state);
+[state, chemmodel] = chemmodel.updateSurfaceConcentrations(state);
 
 state = changeUnits(state, {'elements', 'species', 'activities'}, mol/litre);
 
-pH = -log10(getProp(chem, state, 'aH+'));
+pH = -log10(getProp(chemmodel, state, 'aH+'));
 
 %% plot the results
 
@@ -79,7 +84,7 @@ plot(pH, state.surfaceConcentrations, 'linewidth',2)
 xlabel('pH')
 ylabel('concentration [mol/L]');
 set(gca, 'yscale', 'log');
-legend(chem.surfaceConcentrationNames);
+legend(chemsys.surfaceConcentrationNames);
 
 % plot the surface potentials, there are three surfaces in the triple layer
 % model
@@ -87,14 +92,14 @@ figure; hold on; box on;
 plot(pH, state.surfacePotentials, 'linewidth',2)
 xlabel('pH')
 ylabel('potential [volts]');
-legend(chem.surfacePotentialNames);
+legend(chemsys.surfacePotentialNames);
 
 % plot the surface charges, they will sum to zero
 figure; hold on; box on;
 plot(pH, state.surfaceCharges, 'linewidth',2)
 xlabel('pH')
 ylabel('charge density [C/m^2]');
-legend(chem.surfaceChargeNames);
+legend(chemsys.surfaceChargeNames);
 
 %% Copyright notice
 %

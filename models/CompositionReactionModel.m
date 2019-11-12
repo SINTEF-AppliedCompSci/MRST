@@ -13,17 +13,6 @@ classdef CompositionReactionModel < ChemicalModel
             model = model@ChemicalModel(chemsys);
             inputNames = chemsys.inputs;
             
-            
-            % in the CompositionReactionModel we do not solve for the
-            % surface. The input values from the surface are now removed
-            if chemsys.surfFlag
-                inInd = zeros(1, numel(chemsys.inputs));
-                for i = 1 : numel(chemsys.surfInfo.master)
-                    inInd = inInd + strcmpi(chemsys.inputs, chemsys.surfInfo.master{i});
-                end
-                inputNames = chemsys.inputs(~inInd);
-            end
-            
             unknownNames = horzcat(chemsys.speciesNames, ...
                                    chemsys.elementNames, ...
                                    chemsys.combinationNames, ...

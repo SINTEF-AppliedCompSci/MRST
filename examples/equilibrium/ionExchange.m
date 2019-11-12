@@ -19,7 +19,13 @@ reactions = {'H2O  = H+  + OH- ',           10^-14*mol/litre, ...
 
 surfInfo = {'>Y', {[1*site/(nano*meter)^2 1*meter^2/gram 1*gram/litre], 'ie'}};
 
-chem = ChemicalModel(elements, species, reactions, 'surfaces', surfInfo);
+chemsys = ChemicalSystem(elements, species, reactions, 'surfaces', surfInfo);
+
+% print the chemical system
+chemsys.printChemicalSystem;
+
+% Setup model
+chemmodel = ChemicalModel(chemsys);
 
 %% specify inputs
 % here we vary pH
@@ -37,14 +43,14 @@ inputs = [Na, Cl, H, H2O]*mol/litre;
 % name/value pair. The total amount of sodium will be varied in order for
 % the charge balance equation to be satisfied
 
-[state, report, chem] = chem.initState(inputs, 'chargeBalance', 'Na');
+[state, report, chemmodel] = chemmodel.initState(inputs, 'chargeBalance', 'Na');
 
 %% process the data
 state = changeUnits(state, {'elements','species'}, mol/litre );
 
-[state, chem] = chem.updateActivities(state);
+[state, chemmodel] = chemmodel.updateActivities(state);
 
-pH = -log10(getProp(chem, state, 'aH+'));
+pH = -log10(getProp(chemmodel, state, 'aH+'));
 
 %% plot the results
 figure; hold on; box on;
@@ -53,7 +59,7 @@ plot(pH, state.species, 'linewidth', 2)
 xlabel('pH')
 ylabel('concentration [mol/L]');
 set(gca, 'yscale', 'log');
-legend(chem.speciesNames)
+legend(chemsys.speciesNames)
 xlim([3 11])
 
 %% Copyright notice

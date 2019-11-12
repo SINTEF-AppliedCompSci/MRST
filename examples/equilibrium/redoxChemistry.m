@@ -19,10 +19,14 @@ reactions ={'H2O  = H+  + OH-',                       10^-14*mol/litre,...
             'NO3- + 2*H+ + 2*e- = NO2- + H2O',        10^28./(mol/litre)^3,...
             '2*NO3- + 12*H+ + 10*e- = N2 + 6*H2O',    10^(2*103)./(mol/litre)^17};
         
-chem = ChemicalModel(elements, species, reactions);
+chemsys = ChemicalSystem(elements, species, reactions);
 
-% print the system to the workspace
-chem.printChemicalSystem;
+% print the chemical system
+chemsys.printChemicalSystem;
+
+% Setup model
+chemmodel = ChemicalModel(chemsys);
+
 
 %% define input values
 % here we look at the speciation as a function of a range in electron
@@ -36,15 +40,15 @@ H2O = ones(n,1);
 Na = 1e-2*ones(n,1);
 
 %% solve the chemical system
-[state, report] = chem.initState([N e Na H H2O]*mol/litre,'charge','H+');
+[state, report] = chemmodel.initState([N e Na H H2O]*mol/litre,'charge','H+');
 
 %% calculate acitivities and charge balance
-[state, chem] = chem.updateActivities(state);
-[state, chem] = chem.updateChargeBalance(state);
+[state, chemmodel] = chemmodel.updateActivities(state);
+[state, chemmodel] = chemmodel.updateChargeBalance(state);
 
 state = changeUnits(state, {'species', 'activities'}, mol/litre);
 
-pe = -log10(chem.getProp(state, 'ae-'));
+pe = -log10(chemmodel.getProp(state, 'ae-'));
 
 %% visualize the results
 figure;
@@ -52,7 +56,7 @@ plot(pe, state.species, 'linewidth', 2);
 set(gca, 'yscale', 'log');
 ylabel('concentration [mol/litre]');
 xlabel('pe');
-legend(chem.speciesNames, 'location', 'southeast');
+legend(chemsys.speciesNames, 'location', 'southeast');
 
 figure;
 plot(pe, state.chargeBalance, 'linewidth', 2);
