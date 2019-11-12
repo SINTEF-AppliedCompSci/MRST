@@ -273,6 +273,8 @@ classdef NonLinearSolver < handle
                                 % Unless this was a failure and a special
                                 % option was set, we are all done here.
                                 break;
+                            else
+                                timestepFailure = true;
                             end
                         end
                     else
