@@ -47,10 +47,14 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   % Unless we're defining a new set of wells (or a well group hierarchy),
-   % there had better be some previously defined wells.
+   % Unless we're defining a new set of wells, a well group hierarchy, or
+   % are affecting the report settings there had better be some previously
+   % defined wells.
    %
-   no_well_ok = { 'GRUPTREE', 'WELSPECS', 'RPTSCHED' };
+   no_well_ok = { ...
+      'GRUPTREE', 'WELSPECS', ...
+      'RPTSCHED', 'RPTRST', 'OUTSOL' ...
+      };
 
    assert (any(strcmp(kw, no_well_ok)) || ...
            ~isempty(w.WELSPECS), ...
@@ -87,11 +91,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'GRUPTREE', w = readGrupTree(fid, w);
       case 'WGRUPCON', w = readWGrupCon(fid, w);
 
-
       % -------------------------------------------------------------------
 
       % Miscellaneous keywords (report &c)
-      case 'RPTSCHED', w = readRptSched(fid, w);
+      case {'RPTSCHED', 'RPTRST', 'OUTSOL'}
+         w.(kw) = readReportControl(fid);
 
       otherwise
          fclose(fid);
@@ -777,8 +781,11 @@ end
 
 %--------------------------------------------------------------------------
 
-function w = readRptSched(fid, w)
-   ignore = readRecordString(fid);                              %#ok<NASGU>
+function rptctrl = readReportControl(fid)
+   rptctrl = regexprep(readRecordString(fid), ...
+                       {'\s*=\s*', ''''}, {'=', ''});
+   rptctrl = textscan(rptctrl, '%s');
+   rptctrl = rptctrl{1};
 end
 
 %--------------------------------------------------------------------------

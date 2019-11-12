@@ -717,9 +717,11 @@ function soln = convertSOLUTION(soln, u)
          case {'SGAS', 'SOIL', 'SWAT', 'XMF', 'YMF', 'ZMF'}
             continue;  % Dimensionless
 
+         case {'RPTRST', 'RPTSOL', 'OUTSOL'}
+            continue;  % Reporting controls.  No units.
+
          case 'TEMPI'
             soln.(key) = convertFrom(soln.(key), u.temp);
-
 
          case 'THPRES'
             unt = [1, 1, u.press];
@@ -826,7 +828,8 @@ function ctrl = convertControl(ctrl, u)
                ctrl.(key) = convertWellSegs(ctrl.(key), u);
             end
 
-         case {'GRUPTREE', 'WGRUPCON', 'RPTSCHED', 'VAPPARS'}
+         case {'GRUPTREE', 'WGRUPCON', 'VAPPARS', ...
+               'RPTSCHED', 'RPTRST', 'OUTSOL'}
             continue; % No conversion necessary
 
          case 'GRUPNET'

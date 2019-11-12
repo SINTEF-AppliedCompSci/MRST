@@ -106,6 +106,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                'MINVALUE', 'MULTIPLY'}
             sln = applyOperator(sln, fid, kw);
 
+         case { 'RPTRST', 'RPTSOL', 'OUTSOL' }
+            sln.(kw) = readReportControl(fid);
+
           case 'THPRES'
             templ = {'NaN', 'NaN', 'NaN'};
             sln.(kw) = readDefaultedKW(fid, templ);
@@ -202,4 +205,13 @@ end
 function deck = set_state(deck, sln, miss_kw)
    deck.SOLUTION                   = sln;
    deck.UnhandledKeywords.SOLUTION = unique(miss_kw);
+end
+
+%--------------------------------------------------------------------------
+
+function rptctrl = readReportControl(fid)
+   rptctrl = regexprep(readRecordString(fid), ...
+                       {'\s*=\s*', ''''}, {'=', ''});
+   rptctrl = textscan(rptctrl, '%s');
+   rptctrl = rptctrl{1};
 end
