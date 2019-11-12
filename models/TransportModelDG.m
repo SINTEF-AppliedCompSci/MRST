@@ -1,38 +1,35 @@
 classdef TransportModelDG < TransportModel
     
     properties
-        discretization
-        limiters
-        storeUnlimited
-        dgVariables
+        discretization = []    % Discretization
+        dgVariables    = {'s'} % Transport variables we discretize with dG
+        limiters               % Limiters
+        storeUnlimited = false % Store unlimited state for plotting/debug
     end
     
     methods
         %-----------------------------------------------------------------%
         function model = TransportModelDG(parent, varargin)
-           
-            model = model@TransportModel(parent);
-            model.discretization = [];
-            model.dgVariables = {'s'};
-            
+            % Parent model initialization
+            model = model@TransportModel(parent); 
             % Default limiters
             names    = model.dgVariables;
-            limits   = {[0,1]};
-            tol      = 0;
-            limiters = [];
-            limiters = addLimiter(limiters, ...
+            limits   = {[0,1]}; % Limiter limits
+            tol      = 0;       % Limiter tolerances
+            limiters = [];      % Add limiters
+            limiters = addLimiter(limiters           , ... % TVB limiter
                                   'type'     , 'tvb' , ...
                                   'variables', names , ...
                                   'limits'   , limits, ...
                                   'tol'      , tol   );
-            limiters = addLimiter(limiters, ...
+            limiters = addLimiter(limiters            , ... % Scale limiter
                                   'type'     , 'scale', ...
                                   'variables', names  , ...
                                   'limits'   , limits , ...
                                   'tol'      , tol    );
             model.limiters       = limiters;
             model.storeUnlimited = false;
-            
+            % Merge options
             [model, discretizationArgs] = merge_options(model, varargin{:});
             % Construct discretization
             if isempty(model.discretization)
@@ -142,9 +139,9 @@ classdef TransportModelDG < TransportModel
             parent = model.parentModel;
             % Get the AD state for this model
             [basevars, basenames, baseorigin] = model.getPrimaryVariables(state);
-            isParent = strcmp(baseorigin, class(parent));
-            basevars = basevars(isParent);
-            basenames = basenames(isParent);
+            isParent   = strcmp(baseorigin, class(parent));
+            basevars   = basevars(isParent);
+            basenames  = basenames(isParent);
             baseorigin = baseorigin(isParent);
             % Find saturations
             isS = false(size(basevars));
@@ -166,7 +163,11 @@ classdef TransportModelDG < TransportModel
                 strcmpi(model.formulation, 'totalSaturation') && sum(isS) == nph - 1;
             if useTotalSaturation
                 % Replace pressure with total saturation
-                replacement = 'sTdof';
+                if any(strcmpi('sT',model.dgVariables))
+                    replacement = 'sTdof';
+                else
+                    replacement = 'sT';
+                end
                 sTdof       = model.getProp(state, replacement);
                 % Replacing
                 vars{isP}   = sTdof;
@@ -186,51 +187,72 @@ classdef TransportModelDG < TransportModel
             else
                 basevars(~isP) = vars;
             end
-            
+            % Evluate basis functions for use later
             state = model.discretization.evaluateBasisFunctions(state);
-            dgv = cellfun(@(dgv) [dgv, 'dof'], model.dgVariables, 'uniformOutput', false);
+            dgv   = cellfun(@(dgv) [dgv, 'dof'], model.dgVariables, 'uniformOutput', false);
             isDof = false(size(names));
             [cellMean, cellVars, faceVars] = deal(cell(size(vars)));
             for i = 1:numel(vars)
+                if 0
                 if any(strcmpi(basenames{i}, dgv))
-                    isDof(i) = true;
+                    % dG - do evaluation
+                    isDof(i)    = true;
                     cellMean{i} = model.discretization.getCellMean(state, basevars{i});
                     cellVars{i} = model.discretization.evaluateProp(state, basevars{i}, 'cell');
                     faceVars{i} = model.discretization.evaluateProp(state, basevars{i}, 'face');
                 else
+                    % Not dG - repeat to match number of cubature points
                     cellMean{i} = basevars{i};
                     cellVars{i} = basevars{i}(state.cells);
                     faceVars{i} = basevars{i}(state.fcells);
                 end
+                else
+                    [cellMean{i}, cellVars{i}, faceVars{i}, isDof(i)] = model.evaluateBaseVariable(state, basevars{i}, basenames{i});
+                end
             end
             
+            % Let parent model handle initStateAD
             basenames(isDof) = cellfun(@(bn) bn(1:end-3), basenames(isDof), 'UniformOutput', false);
+            % Initialize cell mean state
             state = parent.initStateAD(state, cellMean, basenames, baseorigin);
             state = model.evaluateBaseVariables(state);
-            
+            % Initialize well state
             state.wellStateDG = parent.initStateAD(state.wellStateDG, cellMean, basenames, baseorigin);
-            
+            % Initialize cell state
             parent.G.cells.num = numel(value(cellVars{1}));
             state.cellStateDG = parent.initStateAD(state.cellStateDG, cellVars, basenames, baseorigin);
-            
+            % Initialize face state
             parent.G.cells.num = numel(value(faceVars{1}));
             state.faceStateDG = parent.initStateAD(state.faceStateDG, faceVars, basenames, baseorigin);
-
             if useTotalSaturation
                 % Set total saturation as well
+%                 if any(strcmpi(basenames{i}, dgv))
                 sTdof       = vars{isP};
                 state.sTdof = sTdof;
-                % Evaluate at cell cubature points
-                cellValue         = model.discretization.evaluateProp(state, sTdof, 'cell');
+                cellValue   = model.discretization.evaluateProp(state, sTdof, 'cell');
+                cellMean    = model.discretization.getCellMean(state, sTdof);
+                faceValue   = model.discretization.evaluateProp(state, sTdof, 'face');                
                 state.cellStateDG = model.setProp(state.cellStateDG, 'sT', cellValue);
-                % Evaluate mean
-                cellMean          = model.discretization.getCellMean(state, sTdof);
                 state.wellStateDG = model.setProp(state.wellStateDG, 'sT', cellMean);
-                % Evaluate at face cubature points
-                faceValue         = model.discretization.evaluateProp(state, sTdof, 'face');
                 state.faceStateDG = model.setProp(state.faceStateDG, 'sT', faceValue);
-                % Set mean in state
-                state = model.setProp(state, 'sT', cellMean);
+                state             = model.setProp(state, 'sT', cellMean);
+            end
+        end
+        
+        function [meanVal, cellVal, faceVal, isDof] = evaluateBaseVariable(model, state, var, name)
+            assert(isfield(state, 'psi_c') && isfield(state, 'psi_c'));
+            isDof = false;
+            if any(strcmpi(name(1:end-3), model.dgVariables)) && strcmpi(name(end-2:end), 'dof')
+                % dG - do evaluation at cubature points
+                isDof   = true;
+                meanVal = model.discretization.getCellMean(state, var);
+                cellVal = model.discretization.evaluateProp(state, var, 'cell');
+                faceVal = model.discretization.evaluateProp(state, var, 'face');
+            else
+                % Not dG - repeat to match number of cubature points
+                meanVal = var;
+                cellVal = meanVal(state.cells,:);
+                faceVal = meanVal(state.fcells,:);
             end
         end
         
@@ -251,52 +273,57 @@ classdef TransportModelDG < TransportModel
             faceStateDG.type   = 'face';
             faceStateDG.cells  = state.fcells;
             faceStateDG.faces  = state.faces;
+            
             % Evaluate all variables at all cell/face quadrature points 
             names = fieldnames(state);
             for k = 1:numel(names)
                 name = names{k};
-                [cellValue, cellMean, faceValue] = deal([]);
-                if isa(state.(name), 'double')
-                    if any(strcmpi(name, model.dgVariables))
-                        % dG varaible - get dofs and evaluate
-                        dof = model.getProp(state, [name, 'dof']);
-                        % Evaluate at cell cubature points
-                        cellValue = model.discretization.evaluateProp(state, dof, 'cell');
-                        % Get cell mean
-                        cellMean = model.discretization.getCellMean(state, dof);
-                        % Evaluate at face cubature points
-                        faceValue = model.discretization.evaluateProp(state, dof, 'face');
-                    elseif size(double(state.(name)), 1) == model.G.cells.num
-                        [fn , index] = model.getVariableField(name, false);
-                        if isempty(fn)
-                            continue
-                        end
-                        % Get values
-                        v = state.(fn)(:, index);
-                        % Repeat to match number cell cubature points
-                        cellValue = v(cellStateDG.cells,:);
-                        % Get cell mean
-                        cellMean = v;
-                        % Repeat to match number of face cubature points
-                        faceValue = v(faceStateDG.cells,:);
-                    end
-                    if ~isempty(cellValue)
-                        % Assign values to the respecive states
-                        cellStateDG = model.setProp(cellStateDG, name, cellValue);
-                        wellStateDG = model.setProp(wellStateDG, name, cellMean);
-                        faceStateDG = model.setProp(faceStateDG, name, faceValue);
-                    end
+%                 [cellValue, cellMean, faceValue] = deal([]);
+                [fn , index] = model.getVariableField(name, false);
+                if ~isempty(fn) && isa(state.(name), 'double') && ...
+                        size(double(state.(name)), 1) == model.G.cells.num
+                    [meanVal, cellVal, faceVal] = model.evaluateBaseVariable(state, state.(name)(index,:), name);
+%                     if any(strcmpi(name, model.dgVariables))
+%                         % dG varaible - get dofs and evaluate
+%                         dof = model.getProp(state, [name, 'dof']);
+%                         % Evaluate at cell cubature points
+%                         cellValue = model.discretization.evaluateProp(state, dof, 'cell');
+%                         % Get cell mean
+%                         cellMean = model.discretization.getCellMean(state, dof);
+%                         % Evaluate at face cubature points
+%                         faceValue = model.discretization.evaluateProp(state, dof, 'face');
+%                     elseif size(double(state.(name)), 1) == model.G.cells.num
+%                         [fn , index] = model.getVariableField(name, false);
+%                         if isempty(fn)
+%                             continue
+%                         end
+%                         % Get values
+%                         v = state.(fn)(:, index);
+%                         % Repeat to match number cell cubature points
+%                         cellValue = v(cellStateDG.cells,:);
+%                         % Get cell mean
+%                         cellMean = v;
+%                         % Repeat to match number of face cubature points
+%                         faceValue = v(faceStateDG.cells,:);
+%                     end
+%                     if ~isempty(cellValue)
+%                         % Assign values to the respecive states
+                        cellStateDG = model.setProp(cellStateDG, name, cellVal);
+                        wellStateDG = model.setProp(wellStateDG, name, meanVal);
+                        faceStateDG = model.setProp(faceStateDG, name, faceVal);
+%                     end
                 end
             end
+%             state.cellStateDG = 
             % Set total saturation
-            cellStateDG.sT = getTotalSaturation(cellStateDG.s);
-            wellStateDG.sT = getTotalSaturation(wellStateDG.s);
-            faceStateDG.sT = getTotalSaturation(faceStateDG.s);
+%             state.cellStateDG.sT = getTotalSaturation(state.cellStateDG.s);
+%             state.wellStateDG.sT = getTotalSaturation(state.wellStateDG.s);
+%             state.faceStateDG.sT = getTotalSaturation(state.faceStateDG.s);
             % Set flag (compositional models)
             if isfield(faceStateDG, 'flag')
                 faceStateDG.flag = faceStateDG.flag(fcells);
             end
-            % Store cell/well/face states to state
+%             % Store cell/well/face states to state
             state.cellStateDG = cellStateDG;
             state.wellStateDG = wellStateDG;
             state.faceStateDG = faceStateDG;
@@ -438,64 +465,40 @@ classdef TransportModelDG < TransportModel
         end
         
         %-----------------------------------------------------------------%
-        function [state, report] = updateState(model, state, problem, dx, drivingForces)
-                        
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)  
             % Remove DG states
             state = rmfield(state, 'cellStateDG');
             state = rmfield(state, 'faceStateDG');
             state = rmfield(state, 'wellStateDG');
-            
-            if 0% strcmpi(class(model.parentModel), 'GenericBlackOilModel') ...
-%                  && model.parentModel.disgas || model.parentModel.vapoil
-%                 [state, report] = model.updateStateBO(state, problem, dx, drivingForces);
-            else
-                state0 = state;
-                [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
-                % Update saturation dofs
-                state = model.updateSaturations(state, dx, problem, satVars);
-                % Update non-saturation dofs
-                state = model.updateDofs(state, dx, problem, restVars);
-                % Update cell averages from dofs
-                state  = model.assignBaseVariables(state);
-                report = [];
-
-                if 1
-                % Compute dx for cell averages
-                dx0 = model.getMeanIncrement(state, state0, problem.primaryVariables);
-                % Let parent model do its thing
-                problem0 = problem;
-                problem0.primaryVariables = cellfun(@(n) n(1:end-3), problem0.primaryVariables, 'UniformOutput', false);
-                [state0_corr, report] = updateState@TransportModel(model, state0, problem0, dx0, drivingForces);
-                % Correct updates in dofs according to parent model
-                dx0_corr = model.getMeanIncrement(state0_corr, state0, problem.primaryVariables);
-                cells    = rldecode((1:model.G.cells.num)', state.nDof, 1);
-                frac     = cellfun(@(x,y) x(cells)./y(cells), dx0_corr, dx0, 'UniformOutput', false);
-                for i = 1:numel(frac)
-                    frac{i}(~isfinite((frac{i}))) = 1;
-                end
-                dx_corr  = cellfun(@(dx, f) dx.*f, dx, frac, 'UniformOutput', false);
-                % Update saturation dofs
-                state = model.updateSaturations(state0, dx_corr, problem, satVars);
-                % Update non-saturation dofs
-                state = model.updateDofs(state, dx_corr, problem, restVars);
-                % Compositional models
-                if isfield(state0_corr, 'eos')
-                    state.eos = state0_corr.eos;
-                    varsEOS = {'Kdof', 'Ldof', 'xdof', 'ydof', 'Z_Ldof', 'Z_Vdof', 'sodof', 'sgdof'};
-                    dxEOS   = model.getMeanIncrement(state0_corr, state, varsEOS);
-                    for i = 1:numel(varsEOS)
-                        [fn, index] = model.getVariableField(varsEOS{i});
-                        ix = model.discretization.getDofIx(state, 1);
-                        state.(fn)(ix,index) = state.(fn)(ix,index) + dxEOS{i};
-                    end
-%                     state   = model.updateDofs(state, dxEOS, problem, varsEOS);
-                end
-                % Update cell averages from dofs
-                state = model.assignBaseVariables(state);
-                end
-            
+            % Store state before update
+            state0 = state;
+            [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
+            % Update saturation dofs
+            state = model.updateSaturations(state, dx, problem, satVars);
+            % Update non-saturation dofs
+            state = model.updateDofs(state, dx, problem, restVars);
+            % Update cell averages from dofs
+            state = model.assignBaseVariables(state);
+            % Compute dx for cell averages
+            dx0 = model.getMeanIncrement(state, state0, problem.primaryVariables);
+            % Let parent model do its thing
+            problem0 = problem;
+            problem0.primaryVariables = cellfun(@(n) n(1:end-3), problem0.primaryVariables, 'UniformOutput', false);
+            [state0_corr, report] = updateState@TransportModel(model, state0, problem0, dx0, drivingForces);
+            % Correct updates in dofs according to parent model
+            dx0_corr = model.getMeanIncrement(state0_corr, state0, problem.primaryVariables);
+            cells    = rldecode((1:model.G.cells.num)', state.nDof, 1);
+            frac     = cellfun(@(x,y) x(cells)./y(cells), dx0_corr, dx0, 'UniformOutput', false);
+            for i = 1:numel(frac)
+                frac{i}(~isfinite((frac{i}))) = 1;
             end
-            
+            dx_corr  = cellfun(@(dx, f) dx.*f, dx, frac, 'UniformOutput', false);
+            % Update saturation dofs
+            state = model.updateSaturations(state0, dx_corr, problem, satVars);
+            % Update non-saturation dofs
+            state = model.updateDofs(state, dx_corr, problem, restVars);
+            % Update cell averages from dofs
+            state = model.assignBaseVariables(state);
         end
         
         % --------------------------------------------------------------------%
