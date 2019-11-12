@@ -41,10 +41,12 @@ sioInfo = {geometry, 'tlm', [1 1e3], '>SiO-', [-1 0 0], '>SiOH', [0 0 0]};
 surfaces = {'>SiO', sioInfo};
 
 % instantiate chemical model object
-chemModel = ChemicalModel(elements, species, reactions, 'surf', surfaces);
+chemsys = ChemicalSystem(elements, species, reactions, 'surf', surfaces);
 
 % print the chemical model to the screen
-chemModel.printChemicalSystem;
+chemsys.printChemicalSystem;
+
+chemmodel = ChemicalModel(chemsys);
 
 %% solve for the initial state
 % the column is originally saturated with a basic solution, an acidic
@@ -57,7 +59,7 @@ Hi = 1e-9;
 H2Oi = 1;
 
 inputConstraints = [Nai Cli Hi H2Oi]*mol/litre;
-[initchemstate, initreport]= chemModel.initState(repmat(inputConstraints, nc,1), 'charge', 'Cl');
+[initchemstate, initreport]= chemmodel.initState(repmat(inputConstraints, nc,1), 'charge', 'Cl');
 
 initState = initchemstate;
 initState.pressure = pRef*ones(nc,1);
@@ -69,10 +71,10 @@ Hf = 1e-9;
 H2Of = 1;
 
 inputConstraints = [Naf Clf Hf H2Of]*mol/litre;
-[injchemstate, injreport] = chemModel.initState(inputConstraints, 'charge', 'Cl');
+[injchemstate, injreport] = chemmodel.initState(inputConstraints, 'charge', 'Cl');
 
 %% Define the transport model
-model = ChemicalTransportModel(G, rock, fluid, chemModel);
+model = ChemicalTransportModel(G, rock, fluid, chemmodel);
 
 %% Define the boundary conditions
 % here we specify a dirchlet boundary condition for pressure on the right
@@ -81,7 +83,7 @@ model = ChemicalTransportModel(G, rock, fluid, chemModel);
 
 % use model.fluidMat to pull the fluid concentrations from the injected
 % state
-injfluidpart = injchemstate.species*model.fluidMat';
+injfluidpart  = injchemstate.species*model.fluidMat';
 initfluidpart = initchemstate.species(end,:)*model.fluidMat';
 
 pv = poreVolume(G,rock);
@@ -105,9 +107,9 @@ bc.logElements = log(initfluidpart);  % (will not be used if outflow)
 % it is recommened to ramp up the time stepping
 
 % ten time steps of 0.01 days followed by 100 steps of 1 day
-schedule.step.val = [0.01*day*ones(10, 1); 0.1*day*ones(10, 1); 1*day*ones(10, 1);];
+schedule.step.val     = [0.01*day*ones(10, 1); 0.1*day*ones(10, 1); 1*day*ones(10, 1);];
 schedule.step.control = ones(numel(schedule.step.val), 1);
-schedule.control = struct('bc', bc, 'src', src, 'W', []);
+schedule.control      = struct('bc', bc, 'src', src, 'W', []);
 
 
 %% Run the simulation
