@@ -1,8 +1,7 @@
 function [eqs, names, types] = equationsChemicalLog(model, state)
 
-
     chemsys = model.chemicalSystem;
-    
+
     logSpecies                     = model.getProp(state, 'logSpecies');
     logElements                    = model.getProp(state, 'logElements');
     combinationComponents          = model.getProp(state, 'combinationComponents');
