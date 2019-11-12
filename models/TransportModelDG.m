@@ -38,23 +38,30 @@ classdef TransportModelDG < TransportModel
             if isempty(model.discretization)
                 model.discretization = DGDiscretization(model.G, discretizationArgs{:});
             end
-            
+            % Assign discretization to parentModel
+            model.parentModel.discretization = model.discretization;
+            if strcmpi(model.formulation, 'totalSaturation') && ...
+                    any(strcmpi(model.dgVariables, 's'))
+                model.dgVariables{end+1} = 'sT';
+            end
+            % Get limiters
             for l = 1:numel(model.limiters)
                 limiter = model.limiters(l);
                 model.limiters(l).function = getLimiter(model, limiter.type);
             end
-            model.parentModel.discretization = model.discretization;
-            
-            model.parentModel.operators = setupOperatorsDG(model.discretization, model.parentModel.G, model.parentModel.rock);
-            model.parentModel.outputFluxes = false;
+            % Set up DG operators
+            model.parentModel.operators = setupOperatorsDG(model.discretization  , ...
+                                                           model.parentModel.G   , ...
+                                                           model.parentModel.rock);
+            % Pressure is not solved with DG, make sure to don't store
+            % things to state that should be recomputed in pressure step
+            model.parentModel.outputFluxes         = false;
             model.parentModel.OutputStateFunctions = {};
-            model.parentModel.useCNVConvergence  = false;
-            model.parentModel.nonlinearTolerance = 1e-3;
-            
         end
         
         %-----------------------------------------------------------------%
         function [fn, index] = getVariableField(model, name, varargin)
+            % Get variable fiels, check if it is dof
             isDof = numel(name) > 3 && strcmpi(name(end-2:end), 'dof');
             if isDof
                 lookup = name(1:end-3);
