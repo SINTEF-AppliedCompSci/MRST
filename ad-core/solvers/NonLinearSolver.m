@@ -30,7 +30,7 @@ classdef NonLinearSolver < handle
         minIterations = 1 % The minimum number of solves during a ministep.
         maxTimestepCuts = 6 % The maximum number of times the timestep can be halved before it is counted as a failed attempt
         LinearSolver % The solver used to solve the linearized problems during the simulation.
-        verbose = mrstVerbose(); % Verbose flag used to get extra output during simulation.
+        verbose = []; % Verbose flag used to get extra output during simulation.
         reportLevel = 0 % Amount of data to be output in report. Higher numbers may give more output.
         identifier = '' % String identifier for the nonlinear solver
         timeStepSelector % Subclass of SimpleTimeStepSelector used to select timesteps
@@ -80,6 +80,9 @@ classdef NonLinearSolver < handle
             end
             if isempty(solver.timeStepSelector)
                 solver.timeStepSelector = SimpleTimeStepSelector();
+            end
+            if isempty(solver.verbose)
+                solver.verbose = mrstVerbose();
             end
         end
 
