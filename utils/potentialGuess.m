@@ -4,10 +4,10 @@ function [state] = potentialGuess(model, state)
     
     T = model.getProp(state, 'temperature');
 
-    An  = 6.0221413*10^23;       	% avagadros number [#/mol]
-    F   = 9.64853399e4;             % Faraday's Constant [C/mol]
-    R   = 8.3144621;             	% Gas Constant [J/(K mol)]
-    e_o = 8.854187817620e-12;       % permitivity of free space [C/Vm]
+    An  = 6.0221413*10^23;    % avagadros number [#/mol]
+    F   = 9.64853399e4;       % Faraday's Constant [C/mol]
+    R   = 8.3144621;          % Gas Constant [J/(K mol)]
+    e_o = 8.854187817620e-12; % permitivity of free space [C/Vm]
     e_w = 87.740 - 0.4008.*(T-273.15) + 9.398e-4.*(T-273.15).^2 - 1.410e-6.*(T-273.15).^3;% Dielectric constant of water
     A   = 1.82e6*(e_w.*T).^(-3/2);
     
@@ -106,7 +106,5 @@ function [state] = potentialGuess(model, state)
         end
     end
         
-
-    
 end
 
