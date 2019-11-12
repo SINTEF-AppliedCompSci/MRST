@@ -1,29 +1,53 @@
-function res = ssparsemul(m1, m2)
+function [rows, cols, vals] = ssparsemul(ixs1, v1, ixs2, v2)
 
-   [im, ik1, v1] = find(m1);
-   [ik2, in, v2] = find(m2);
+   im = ixs1(:,1); ik1 = ixs1(:,2);
+   in = ixs2(:,2); ik2 = ixs2(:,1);
+
+   M = max(im);
+   N = max(in);
+
+   % [im, ik1, v1] = find(m1);
+   % [ik2, in, v2] = find(m2);
+   % M = size(m1, 1);
+   % N = size(m2, 2);
    
    tmp = diff(in);
    tmp_ix = find(tmp);
    
-   k_for_n = [1; 1+rldecode(tmp_ix, tmp(tmp_ix)); numel(in)+1];
+   k_for_n = [ones(in(1), 1); 1+rldecode(tmp_ix, tmp(tmp_ix)); numel(in)+1];
    
    tmp = diff(ik1);
    tmp_ix = find(tmp);
-   m_for_k = [1; 1+rldecode(tmp_ix, tmp(tmp_ix)); numel(ik1)+1];
+   m_for_k = [ones(ik1(1), 1); 1+rldecode(tmp_ix, tmp(tmp_ix)); numel(ik1)+1];
 
-   M = size(m1, 1);
-   N = size(m2, 2);
    
-   ALLOC_SIZE = 100 * max(nnz(m1), nnz(m2));
-   final_m = zeros(ALLOC_SIZE, 1);
-   final_n = zeros(ALLOC_SIZE, 1);
-   final_v = zeros(ALLOC_SIZE, 1);
-   
-   ALLOC_SIZE_LOC = 1000;
-   tmp_m = zeros(ALLOC_SIZE_LOC, 1);
-   tmp_v = zeros(ALLOC_SIZE_LOC, 1);
-   
+   if isa(v1, 'ADI') || isa(v2, 'ADI')
+      % temporal storage arrays must be ADI too
+      ALLOC_MULT = 5;
+      model = v1;
+      if ~isa(model, 'ADI')
+         model = v2;
+      elseif (numel(in) > numel(im)) && isa(v2, 'ADI')
+         model = v2;
+      end
+      final_m = zeros(ALLOC_MULT * numel(model), 1);
+      final_n = zeros(ALLOC_MULT * numel(model), 1);
+      final_v = repmat(model, ALLOC_MULT, 1) * 0; % zero, in ADI sense
+      
+      tmp_v = model * 0;
+      tmp_m = value(tmp_v);
+   else
+      ALLOC_SIZE = 100 * max(numel(im), numel(in));
+      final_m = zeros(ALLOC_SIZE, 1);
+      final_n = zeros(ALLOC_SIZE, 1);
+      final_v = zeros(ALLOC_SIZE, 1);
+      
+      %ALLOC_SIZE_LOC = 1000;
+      ALLOC_SIZE_LOC = numel(im); % likely overkill, but ok
+      tmp_m = zeros(ALLOC_SIZE_LOC, 1);
+      tmp_v = zeros(ALLOC_SIZE_LOC, 1);
+   end
+      
    count = 1;
    next_entry = 1;
 
@@ -69,7 +93,10 @@ function res = ssparsemul(m1, m2)
       next_entry = next_entry + nu;
    end
    
-   res = sparse(final_m(1:next_entry-1), ...
-                final_n(1:next_entry-1), ...
-                final_v(1:next_entry-1), M, N);
+   rows = final_m(1:next_entry-1);
+   cols = final_n(1:next_entry-1);
+   vals = final_v(1:next_entry-1);
+   % res = sparse(final_m(1:next_entry-1), ...
+   %              final_n(1:next_entry-1), ...
+   %              final_v(1:next_entry-1), M, N);
 end

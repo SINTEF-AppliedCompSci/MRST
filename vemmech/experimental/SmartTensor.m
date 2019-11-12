@@ -235,10 +235,16 @@ classdef SmartTensor
                                             horzcat(ixnames{:}));
          % perm = SmartTensor.get_permutation(self.indexNames(),...
          %                                    horzcat(ixnames{:}));
+         vals = self.components{1}.coefs;
+         if isa(vals, 'ADI')
+            % 'vals' will lose ADI status
+            vals = value(vals);
+         end
+         
          if numel(ixnames) == 1
             ix = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm), ...
                                               shape(perm));
-            M = sparse(ix, 1, self.components{1}.coefs, prod(shape), 1);
+            M = sparse(ix, 1, vals, prod(shape), 1);
             %M = zeros(max(ix), 1);
             %M(ix) = full(self.components{1}.coefs);
          elseif numel(ixnames) == 2
@@ -249,7 +255,7 @@ classdef SmartTensor
                                                shape1);
             ix2 = SmartTensor.compute_1D_index(self.components{1}.ixs(:,perm(nix1+1:end)),...
                                                shape2);
-            M = sparse(ix1, ix2, self.components{1}.coefs, prod(shape1), prod(shape2));
+            M = sparse(ix1, ix2, vals, prod(shape1), prod(shape2));
          end
          if ~force_sparse && (numel(M) < SPARSE_THRESHOLD)
             M = full(M); % convenient, for small matrices/vectors
@@ -326,8 +332,49 @@ classdef SmartTensor
             end
          end
       end
+      
 
       function self = two_component_contraction(self, ixname)
+         
+         comp_ixs = self.component_with_ix(ixname, true);
+         assert(numel(comp_ixs) == 2);
+         comps = self.components(comp_ixs);
+         if isa(comps{1}.coefs, 'ADI') || isa(comps{2}.coefs, 'ADI')
+            self = two_component_contraction_adi(self, ixname);
+         else
+            self = two_component_contraction_float(self, ixname);
+         end
+      end
+         
+      
+      function self = two_component_contraction_adi(self, ixname)
+      
+         comp_ixs = self.component_with_ix(ixname, true);
+         assert(numel(comp_ixs) == 2);
+         comps = self.components(comp_ixs);
+         
+         [c1_keep_ix, stride1, c1_contract_ix, c1_vals, c1_keep_ixnames] = ...
+             SmartTensor.prepare_for_contraction(comps{1}, ixname, true);
+         [c2_keep_ix, stride2, c2_contract_ix, c2_vals, c2_keep_ixnames] = ...
+             SmartTensor.prepare_for_contraction(comps{2}, ixname, false);
+         
+         [row, col, vals] = ssparsemul([c1_keep_ix, c1_contract_ix], c1_vals,...
+                                       [c2_contract_ix, c2_keep_ix], c2_vals);
+         
+         row = SmartTensor.compute_subs(row, stride1);
+         col = SmartTensor.compute_subs(col, stride2);
+          
+         comp.coefs = vals;
+         comp.indexnames = [c1_keep_ixnames, c2_keep_ixnames];
+         comp.ixs = [row, col];
+         
+         keep = true(size(self.components));
+         keep(comp_ixs) = false;
+         self.components = [self.components(keep), comp];
+      end
+            
+      % works well for doubles, but does not support ADI
+      function self = two_component_contraction_float(self, ixname)
          
          comp_ixs = self.component_with_ix(ixname, true);
          assert(numel(comp_ixs) == 2);
@@ -357,7 +404,6 @@ classdef SmartTensor
          i = m1rix(i);
          j = m2cix(j);
          
-         
          logical_size1 = max(comps{1}.ixs(:, ~ind1));
          reindex1 = cell(size(comps{1}.ixs, 2) - 1, 1);
          [reindex1{:}] = ind2sub(logical_size1, i);
@@ -375,6 +421,7 @@ classdef SmartTensor
          keep(comp_ixs) = false;
          self.components = [self.components(keep), comp];
       end
+      
       
       function cost = contraction_cost_estimate(self, ixname)
 
@@ -452,6 +499,27 @@ classdef SmartTensor
 
    methods(Static)
       
+      function [keep_ix, keep_stride, contract_ix, vals, ixnames] = ...
+             prepare_for_contraction(comp, ixname, sort_contract)
+         
+         keep_indices = ~strcmp(ixname, comp.indexnames);
+         ixnames = comp.indexnames(keep_indices);
+
+         keep_ix = SmartTensor.compute_1D_index(comp.ixs(:, keep_indices));
+         keep_stride = max(comp.ixs(:, keep_indices));
+         contract_ix = comp.ixs(:,~keep_indices);
+
+         if sort_contract
+            [contract_ix, reindex] = sort(contract_ix);
+            keep_ix = keep_ix(reindex);
+         else
+            [keep_ix, reindex] = sort(keep_ix);
+            contract_ix = contract_ix(reindex);
+         end
+         vals = comp.coefs(reindex);
+      end
+      
+                                                                 
       function ixname = contracting_name_base()
          ixname = 'contracting_ix__';
       end
@@ -545,11 +613,11 @@ classdef SmartTensor
          % % extract nonzeros and recompute indices
          
          logical_size = max(comp.ixs);
-         reindex = cell(size(comp.ixs, 2), 1);
+         % reindex = cell(size(comp.ixs, 2), 1);
+         % [reindex{:}] = ind2sub(logical_size, uindex);
+         %comp.ixs = [reindex{:}];
          
-         [reindex{:}] = ind2sub(logical_size, uindex);
-         
-         comp.ixs = [reindex{:}];
+         comp.ixs = SmartTensor.compute_subs(uindex, logical_size);
          % %comp.ixs = cell2mat(reindex');
       end
       
@@ -592,7 +660,7 @@ classdef SmartTensor
          [component.ixs, I] = sortrows(component.ixs);
          component.coefs = component.coefs(I);
       end
-      
+
       function tensor = apply_binary_operator(t1, t2, op)
          [t1, t2] = SmartTensor.make_tensors_compatible(t1, t2);
          assert(numel(t1.components) == 1); % should also be the case for t2 by now
@@ -600,33 +668,63 @@ classdef SmartTensor
          % determine common tensor shape
          shape = max(max(t1.components{1}.ixs), max(t2.components{1}.ixs));
          
-         indices = t1.indexNames();
-
-         m1 = t1.asMatrix({indices}, true, shape); % make 1D sparse vec of it
-         m2 = t2.asMatrix({indices}, true, shape); % ditto
+         m1_ix1D = SmartTensor.compute_1D_index(t1.components{1}.ixs, shape);
+         m2_ix1D = SmartTensor.compute_1D_index(t2.components{1}.ixs, shape);
          
-         if isequal(op, @rdivide)
-            % special treatment, to avoid dividing by zeros
-            [i, ~, v] = find(m2);
-            m2(i) = 1./v;
-            tmp = times(m1, m2);
-         else
-            tmp = op(m1, m2);
-         end
-
-         [ix, ~, val] = find(tmp);
-         reindex = cell(numel(shape), 1);
-         [reindex{:}] = ind2sub(shape, ix);
+         [all_ixs, ~, ic] = unique([m1_ix1D; m2_ix1D]);
+         m1_ic = ic(1:numel(m1_ix1D));
+         m2_ic = ic(numel(m1_ix1D)+1:end);
+         n = numel(all_ixs);
+         m1 = numel(m1_ix1D);
+         m2 = numel(m2_ix1D);
+         mat1 = accumarray([m1_ic, (1:m1)'], 1, [n, m1], [], [], true);
+         mat2 = accumarray([m2_ic, (1:m2)'], 1, [n, m2], [], [], true);         
+         
+         v1 = mat1 * t1.components{1}.coefs;
+         v2 = mat2 * t2.components{1}.coefs;
          
          res = t1.components{1};
-         res.coefs = val(:);
-         res.ixs = [reindex{:}];
-         %res.ixs = cell2mat(reindex');
+         res.coefs = op(v1, v2);
+         res.ixs = SmartTensor.compute_subs(all_ixs, shape);
+         
          tensor = SmartTensor(res);
-         % res = t1.components{1};
-         % res.coefs = op(t1.components{1}.coefs, t2.components{1}.coefs);
-         % tensor = SmartTensor(res);
-      end
+      end      
+      
+      % % The following function works well for doubles, but not for ADI
+      % function tensor = apply_binary_operator(t1, t2, op)
+      %    [t1, t2] = SmartTensor.make_tensors_compatible(t1, t2);
+      %    assert(numel(t1.components) == 1); % should also be the case for t2 by now
+         
+      %    % determine common tensor shape
+      %    shape = max(max(t1.components{1}.ixs), max(t2.components{1}.ixs));
+         
+      %    indices = t1.indexNames();
+
+      %    m1 = t1.asMatrix({indices}, true, shape); % make 1D sparse vec of it
+      %    m2 = t2.asMatrix({indices}, true, shape); % ditto
+         
+      %    if isequal(op, @rdivide)
+      %       % special treatment, to avoid dividing by zeros
+      %       [i, ~, v] = find(m2);
+      %       m2(i) = 1./v;
+      %       tmp = times(m1, m2);
+      %    else
+      %       tmp = op(m1, m2);
+      %    end
+
+      %    [ix, ~, val] = find(tmp);
+      %    reindex = cell(numel(shape), 1);
+      %    [reindex{:}] = ind2sub(shape, ix);
+         
+      %    res = t1.components{1};
+      %    res.coefs = val(:);
+      %    res.ixs = [reindex{:}];
+      %    %res.ixs = cell2mat(reindex');
+      %    tensor = SmartTensor(res);
+      %    % res = t1.components{1};
+      %    % res.coefs = op(t1.components{1}.coefs, t2.components{1}.coefs);
+      %    % tensor = SmartTensor(res);
+      % end
       
       function ix = compute_1D_index(multiix, shape)
          if size(multiix, 2) == 1
@@ -645,7 +743,16 @@ classdef SmartTensor
          % tmp = mat2cell(multiix, size(multiix, 1), ones(1, size(multiix, 2)));
          % ix = sub2ind(max(multiix), tmp{:});
       end
-
+      
+      function ixs = compute_subs(ix1d, shape)
+         
+         stride = cumprod([1, shape(1:end-1)]);
+                  
+         tmp = bsxfun(@(x,y) ceil(x/y), ix1d, stride);
+         ixs = bsxfun(@mod, tmp-1, shape)+1;
+      end
+      
+      
       function isperm = is_permutation(cells1, cells2)
          isperm = ...
              (numel(cells1) == numel(cells2)) && ...
