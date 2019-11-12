@@ -27,8 +27,9 @@ function [state, model] = computeSurfaceConcentrations(model, state)
 
     % create surfaceConcentrations field, if not existing, and assign default values
     if ~isfield(state, 'surfaceConcentrations')
-        species = model.getProp(state, 'species');
-        ncells = size(species, 1);
+        elementsforsize = model.getProp(state, 'elements');
+        ncells = size(elementsforsize, 1);
+        clear elementsforsize;
         state.surfaceConcentrations = ones(ncells, nC);
     end
     

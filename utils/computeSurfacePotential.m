@@ -9,8 +9,9 @@ function [state, model] = computeSurfacePotential(model, state)
         
         % Create surfacepotential field for variable state, if not existing, and assign default values
         if ~isfield(state, 'surfacePotentials')
-            species = model.getProp(state, 'species');
-            ncells = size(species, 1);
+            elementsforsize = model.getProp(state, 'elements');
+            ncells = size(elementsforsize, 1);
+            clear elementsforsize;       
             ncomp = numel(model.surfacePotentialNames);
             state.surfacePotentials = ones(ncells, ncomp);
         end

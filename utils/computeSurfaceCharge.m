@@ -17,8 +17,9 @@ function [state, model] = computeSurfaceCharge(model, state)
         
         % Create surfaceCharge field for variable state, if not existing, and assign default values
         if ~isfield(state, 'surfaceCharges')
-            species = model.getProp(state, 'species');
-            ncells = size(species, 1);
+            elementsforsize = model.getProp(state, 'elements');
+            ncells = size(elementsforsize, 1);
+            clear elementsforsize
             ncomp = numel(model.surfaceChargeNames);
             state.surfaceCharges = ones(ncells, ncomp);
         end
