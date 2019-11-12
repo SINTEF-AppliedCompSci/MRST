@@ -346,7 +346,10 @@ classdef TransportModelDG < TransportModel
         
         %-----------------------------------------------------------------%
         function model = validateModel(model, varargin)
-            % Validate model
+            % Validate model before simulation
+            assert(any(strcmpi('s', model.dgVariables)), ...
+                'dG currently requires that saturation is a dG variable');
+            % Transport model handles most of the validation
             model = validateModel@TransportModel(model, varargin{:});
             % Set flux discretization
             model.parentModel.FluxDiscretization = FluxDiscretizationDG(model.parentModel);
@@ -520,21 +523,19 @@ classdef TransportModelDG < TransportModel
         end
         
         % ----------------------------------------------------------------%
-        function state = updateDofs(model, state, dx, problem, dofVars, dvMaxAbs)
-            
+        function state = updateDofs(model, state, dx, problem, dofVars)
             for i = 1:numel(dofVars)
                 dvMaxAbs = inf;
-                if strcmpi(dofVars{i}, 'sTdof') && 0
-                    dvMaxAbs = 0.2;
+                if strcmpi(dofVars{i}, 'sTdof')
+                    dvMaxAbs = model.parentModel.dsMaxAbs./min(model.discretization.basis.nDof,4);
                 end
                 state = updateStateFromIncrement(model, state, dx, problem, dofVars{i}, inf, dvMaxAbs);
             end
-            
         end
         
         % ----------------------------------------------------------------%
         function state = updateSaturations(model, state, dx, problem, satVars)
-
+            % Update dG saturation variables
             if nargin < 5
                 % Get the saturation names directly from the problem
                 [~, satVars] = ...
@@ -579,82 +580,38 @@ classdef TransportModelDG < TransportModel
                 end
             end
             ds(ix, ~solvedFor) = tmp;
+            % Use a more restrictive dsMaxAbs based on number of dofs
+            dsAbsMax = model.parentModel.dsMaxAbs/min(model.discretization.basis.nDof, 4);
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            if 0
-                dsAbsMax = model.parentModel.dsMaxAbs/model.discretization.basis.nDof;
-            else
-                dsAbsMax = model.parentModel.dsMaxAbs/min(model.discretization.basis.nDof, 4);
-            end
             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, dsAbsMax);
             
         end
         
+        % ----------------------------------------------------------------%
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            % Update state after convergence
             state.FacilityFluxProps = state.wellStateDG.FacilityFluxProps;
+            % Let transport model do it's thing
             [state, report] = updateAfterConvergence@TransportModel(model, state0, state, dt, drivingForces);
+            % Remove cell/face/well state
             state = rmfield(state, 'cellStateDG');
             state = rmfield(state, 'faceStateDG');
             state = rmfield(state, 'wellStateDG');
-            
-            propfn = model.parentModel.getStateFunctionGroupings();
-            d = model.discretization;
-            d.nDof = state.nDof;
-            d.dofPos = state.dofPos;
-            ix = d.getDofIx(state, 1, Inf);
-            psi    = model.discretization.basis.psi(1);
-            d.sample = state.sdof(:,1);
-            for i = 1:numel(propfn)
-                p = propfn{i};
-                struct_name = p.getStateFunctionContainerName();
-                names = p.getNamesOfStateFunctions();
-                if isfield(state, struct_name)
-                    for j = 1:numel(names)
-                        name = names{j};
-                        if ~isempty(state.(struct_name).(name))
-                            v = state.(struct_name).(name);
-                            nph = numel(v);
-                            for ph = 1:nph
-                                v{ph} = d.inner(v{ph}, psi, 'dV');
-                                v{ph} = v{ph}(ix);
-                            end
-                            state.(struct_name).(name) = v;
-                        end
-                    end
-                end
-            end
-            
+            % Limit solution
             if ~isempty(model.limiters)
-                
                 if model.storeUnlimited
+                    % Store unlimited state if requested
                     state.ul = state;
                     if isfield(state.ul, 'ul')
                         state.ul = rmfield(state.ul, 'ul');
                     end
                 end
-                
+                % Apply limiters
                 for l = 1:numel(model.limiters)
                     limiter = model.limiters(l);
                     for v = 1:numel(limiter.variables)
                         state = limiter.function(state, limiter.variables{v}, limiter.tol, limiter.limits{v});
-                    end
-                end
-                
-                if 0
-                    if isa(model.parentModel, 'GenericBlackOilModel')
-                        if model.parentModel.disgas
-                            rsSat = model.parentModel.getProp(state, 'RsMax');
-                            rs    = model.getProp(state, 'rs');
-                            rsdof = model.getProp(state, 'rsdof');
-                            [rsMin, rsMax] = model.discretization.getMinMax(state, rsdof);
-                            rsMin(rs > rsSat) = rsSat(rs > rsSat);
-                            rsMax(rs < rsSat) = rsSat(rs < rsSat);
-                            state = model.discretization.limiter{2}(state, 'rs', [rsMin, rsMax]);
-                            state = model.discretization.limiter{1}(state, 'rs');
-                        end
-                        if model.parentModel.vapoil
-                            state = model.discretization.limiter{1}(state, 'rv');
-                        end
                     end
                 end
             end
@@ -663,16 +620,4 @@ classdef TransportModelDG < TransportModel
         
     end
     
-end
-
-function sT = getTotalSaturation(s)
-    if iscell(s)
-        sT  = 0;
-        nph = numel(s);
-        for i = 1:nph
-            sT = sT + s{i};
-        end
-    else
-        sT = sum(s,2);
-    end
 end
