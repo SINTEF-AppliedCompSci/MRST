@@ -72,8 +72,10 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    dbdu = extra.rhs.jac{1};
    dsys_du = dAdu_dd - dbdu;
    
-   grad = oval_du + lambda' * dsys_du;
-   %grad = oval_du - lambda' * dsys_du;
+   grad = oval_du + dsys_du' * lambda;
+   %grad = grad';
+   %grad = oval_du + lambda' * dsys_du;
+   
       
 end
 

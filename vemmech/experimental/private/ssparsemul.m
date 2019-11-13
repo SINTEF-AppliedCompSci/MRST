@@ -51,7 +51,8 @@ function [rows, cols, vals] = ssparsemul(ixs1, v1, ixs2, v2)
    count = 1;
    next_entry = 1;
 
-   for n = 1:N
+   %for n = 1:N
+   for n = unique(in(:))'
       next_entry_loc = 1;
       for k = ik2(k_for_n(n):k_for_n(n+1)-1)'
          val = v2(count); count = count + 1;
@@ -81,10 +82,9 @@ function [rows, cols, vals] = ssparsemul(ixs1, v1, ixs2, v2)
             
       % check if reallocation is needed (if so, double array size)
       if next_entry + nu > size(final_m, 1)
-         cur_size = size(final_m);
-         final_m = [final_m; zeros(cur_size)]; %#ok
-         final_n = [final_n; zeros(cur_size)]; %#ok
-         final_v = [final_v; zeros(cur_size)]; %#ok
+         final_m = [final_m; 0 * final_m]; %#ok
+         final_n = [final_n; 0 * final_n]; %#ok
+         final_v = [final_v; 0 * final_v]; %#ok
       end
       
       final_m(next_entry:next_entry+nu-1) = um;

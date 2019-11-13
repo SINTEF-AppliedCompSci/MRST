@@ -168,13 +168,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        else
           % qf_all is already in face-node space, but we need to convert
           % it to a tensor
-          QF = face_node_tensor(G, 'f', 'n', qf_all);
+          QF = face_node_tensor(G, 'f', 'n', 'values', qf_all);
        end
        % extend weight tensor to face-node-dim space ('f', 'n', 'd')
        QF = QF * SparseTensor([1, 1], 'd');
        
-       % expand face forces tensor to face-node-dim space
-       F = el_bc.force_bc ^ face_node_tensor(G, 'f', 'n');
+       % expand face forces tensor to face-node-dim space (only boundary)
+       F = el_bc.force_bc ^ face_node_tensor(G, 'f', 'n', 'boundary_only', true);
 
        % Contract in faces to get weighted forces in node-dim space
        FQF = QF .* F;
