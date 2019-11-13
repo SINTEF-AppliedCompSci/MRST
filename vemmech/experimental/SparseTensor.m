@@ -35,6 +35,9 @@ classdef SparseTensor
              % input is in the form of coefs, ixs and indexnames.  Coefs may
              % be empty, for indicator tensors
              comp.indexnames = varargin{3};
+             if ~iscell(comp.indexnames)
+                comp.indexnames = {comp.indexnames};
+             end
              comp.ixs = varargin{2};
              comp.coefs = varargin{1};
              comp.coefs = comp.coefs(:); % ensure column vector
@@ -205,6 +208,28 @@ classdef SparseTensor
                end
             end
          end
+      end
+      
+      function v = asVector(self, ixnames, shape)
+         
+         % ensure the user has actually provided a permutation of all index names
+         assert(SparseTensor.is_permutation(self.indexNames(), ixnames));
+         
+         % fully expand tensor
+         self = self.expandall();
+
+         % determine size of vector
+         if ~exist('shape', 'var')
+            shape = max(self.components{1}.ixs);
+         end
+         num_entries = size(self.components{1}.ixs, 1);
+         perm = SparseTensor.get_permutation(self.components{1}.indexnames,...
+                                             ixnames);
+         ix = SparseTensor.compute_1D_index(self.components{1}.ixs(:,perm), ...
+                                            shape(perm));
+         M = sparse(ix, (1:num_entries)', 1, prod(shape), num_entries);
+         
+         v = M * self.components{1}.coefs;
       end
       
       function M = asMatrix(self, ixnames, force_sparse, shape)
@@ -559,7 +584,8 @@ classdef SparseTensor
          else
             % both components were nontrivial tensors.  Expand tensor product
             comp.indexnames = [comp1.indexnames, comp2.indexnames];
-            comp.coefs = kron(comp1.coefs, comp2.coefs);
+            %comp.coefs = kron(comp1.coefs, comp2.coefs);
+            comp.coefs = kron_ADI(comp1.coefs, comp2.coefs);
             comp.ixs = [repelem(comp1.ixs, size(comp2.ixs, 1), 1), ...
                         repmat(comp2.ixs, size(comp1.ixs, 1), 1)];
          end

@@ -5,20 +5,20 @@ G = cartGrid([20, 20, 20]);
 %G = cartGrid([30 30 30]);
 %G = cartGrid([40, 40, 40]);
 
-T_dim_ind = SmartTensor(ones(G.griddim, 1), {'dim'});
-T_node_coords = SmartTensor(G.nodes.coords, {'node', 'dim'});
+T_dim_ind = SparseTensor(ones(G.griddim, 1), {'dim'});
+T_node_coords = SparseTensor(G.nodes.coords, {'node', 'dim'});
 
 T_face_node_ind = ...
-    SmartTensor([], ...
+    SparseTensor([], ...
             [rldecode((1:G.faces.num)', diff(G.faces.nodePos)), G.faces.nodes], ...
                 {'face', 'node'});
 
 T_cell_face_ind = ...
-    SmartTensor([], [rldecode((1:G.cells.num)', diff(G.cells.facePos)), ...
+    SparseTensor([], [rldecode((1:G.cells.num)', diff(G.cells.facePos)), ...
                      G.cells.faces(:,1)], ...
                 {'cell', 'face'});
 
-T_cell_node_ind = SmartTensor.ind(T_face_node_ind * T_cell_face_ind);
+T_cell_node_ind = SparseTensor.ind(T_face_node_ind * T_cell_face_ind);
 
 T_cell_node_coords = T_node_coords ^ T_cell_node_ind;
 
@@ -36,7 +36,7 @@ T_cell_node_distance = ...
     T_cell_node_coords - (T_cell_centroids ^ T_cell_node_ind);
 
 % change to homogeneous coordinates (to allow translation)
-T_hom = SmartTensor([0,0,0,1], {'dim'}); % fourth component of homogeneous coord.
+T_hom = SparseTensor([0,0,0,1], {'dim'}); % fourth component of homogeneous coord.
 T_cell_node_distance_hom = T_cell_node_distance + (T_hom ^ T_cell_node_ind);
 
 % -------------------------------- compute Nc --------------------------------
@@ -49,7 +49,7 @@ NcInd.d     = [1, 1, 1, 2, 2, 2, 3, 3, 3];
 NcInd.lform = [1, 4, 6, 2, 4, 5, 3, 5, 6];
 NcInd.k     = [1, 2, 3, 2, 1, 3, 3, 2, 1];
 
-T_Nc = SmartTensor([], [NcInd.d', NcInd.lform', NcInd.k'], {'dim', 'lform', 'k'});
+T_Nc = SparseTensor([], [NcInd.d', NcInd.lform', NcInd.k'], {'dim', 'lform', 'k'});
 
 T_Nc = T_Nc * T_cell_node_distance.changeIndexName('dim', 'k');
 
@@ -70,7 +70,7 @@ T_cell_node_d_qc_hom = T_cell_node_d_qc + T_hom ^ T_cell_node_ind;
 % -------------------------------- compute Wc --------------------------------
 fprintf('Compute Wc.\n');
 
-T_Wc = SmartTensor([2, 1, 1, 2, 1, 1, 2, 1, 1], ...
+T_Wc = SparseTensor([2, 1, 1, 2, 1, 1, 2, 1, 1], ...
                    [NcInd.d', NcInd.lform', NcInd.k'], {'dim', 'lform', 'k'});
 
 T_Wc = T_Wc * T_cell_node_d_qc.changeIndexName('dim', 'k');
@@ -84,7 +84,7 @@ fprintf('Compute Nr.\n');
 NrInd = NcInd;
 NrInd.k(1:3:8) = 4; % translation represented by 4. component of hom. coord
 
-T_Nr = SmartTensor([1, 1, -1, 1, -1, 1, 1, -1, 1], ...
+T_Nr = SparseTensor([1, 1, -1, 1, -1, 1, 1, -1, 1], ...
                    [NrInd.d', NrInd.lform', NrInd.k'], {'dim', 'lform', 'k'});
 
 T_Nr = T_Nr * T_cell_node_distance_hom.changeIndexName('dim', 'k');
@@ -96,7 +96,7 @@ fprintf('Compute Wr.\n');
 %        0 1/n   0  -q1  q3   0 
 %        0   0 1/n    0 -q2  q1
 
-T_Wr = SmartTensor([1, 1, -1, 1, -1, 1, 1, -1, 1], ...
+T_Wr = SparseTensor([1, 1, -1, 1, -1, 1, 1, -1, 1], ...
                    [NrInd.d', NrInd.lform', NrInd.k'], ...
                    {'dim', 'lform', 'k'});
 
