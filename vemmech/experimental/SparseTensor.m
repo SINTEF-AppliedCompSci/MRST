@@ -1,4 +1,4 @@
-classdef SmartTensor
+classdef SparseTensor
    
    properties
       % Cell array of components.  Each component should be a struct with 
@@ -11,7 +11,7 @@ classdef SmartTensor
    
    methods
       
-      function self = SmartTensor(varargin)
+      function self = SparseTensor(varargin)
          switch nargin
            case 1
              % input is directly in the form of a component
@@ -22,7 +22,7 @@ classdef SmartTensor
              % two) index names
              coefs = varargin{1};
              indexnames = varargin{2}';
-             self.components = SmartTensor.make_matrix_tensor(coefs, indexnames);
+             self.components = SparseTensor.make_matrix_tensor(coefs, indexnames);
            case 3
              % input is in the form of coefs, ixs and indexnames.  Coefs may
              % be empty, for indicator tensors
@@ -33,7 +33,7 @@ classdef SmartTensor
              if isempty(comp.coefs)
                 comp.coefs = ones(size(comp.ixs, 1), 1);
              end
-             self = SmartTensor(comp);
+             self = SparseTensor(comp);
            otherwise
              error('Unsupported arguments to constructor.');
          end
@@ -78,7 +78,7 @@ classdef SmartTensor
             % Simple contraction in one index.  
             comp_ix = self.component_with_ix(ixname1);
             self.components{comp_ix} = ...
-                SmartTensor.single_component_contraction(self.components{comp_ix}, ...
+                SparseTensor.single_component_contraction(self.components{comp_ix}, ...
                                                          ixname1);
             return
          
@@ -100,24 +100,24 @@ classdef SmartTensor
          % if the contraction only involves a single component, carry it out
          comp_ix = self.component_with_ix(newname, false);         
          comp = self.components{comp_ix};
-         comp = SmartTensor.single_component_contraction(comp);
+         comp = SparseTensor.single_component_contraction(comp);
          self.components{comp_ix} = comp;
       end
       
       function self = plus(self, other)
-         self = SmartTensor.apply_binary_operator(self, other, @plus);
+         self = SparseTensor.apply_binary_operator(self, other, @plus);
       end
       
       function self = minus(self, other)
-         self = SmartTensor.apply_binary_operator(self, other, @minus);
+         self = SparseTensor.apply_binary_operator(self, other, @minus);
       end
       
       function self = rdivide(self, other)
-         self = SmartTensor.apply_binary_operator(self, other, @rdivide);
+         self = SparseTensor.apply_binary_operator(self, other, @rdivide);
       end
       
       function self = times(self, other)
-         self = SmartTensor.apply_binary_operator(self, other, @times);
+         self = SparseTensor.apply_binary_operator(self, other, @times);
       end
       
       function self = mpower(self, other)
@@ -132,9 +132,9 @@ classdef SmartTensor
       
          self = self.expandall();
 
-         assert(SmartTensor.is_permutation(ixset_order, self.indexNames()));
+         assert(SparseTensor.is_permutation(ixset_order, self.indexNames()));
 
-         perm = SmartTensor.get_permutation(self.indexNames(), ixset_order);
+         perm = SparseTensor.get_permutation(self.indexNames(), ixset_order);
 
          [self.components{1}.ixs, I] = sortrows(self.components{1}.ixs, perm);
 
@@ -189,7 +189,7 @@ classdef SmartTensor
             c = c{:};  %#ok
             for name = c.indexnames
                name = name{:}; %#ok
-               if SmartTensor.is_contracting_ix(name)
+               if SparseTensor.is_contracting_ix(name)
                   cixnames = [cixnames, name]; %#ok
                else
                   % regular index name
@@ -231,9 +231,9 @@ classdef SmartTensor
          end
          % check that all index names are covered, and compute the
          % permutation
-         perm = SmartTensor.get_permutation(self.components{1}.indexnames,...
+         perm = SparseTensor.get_permutation(self.components{1}.indexnames,...
                                             horzcat(ixnames{:}));
-         % perm = SmartTensor.get_permutation(self.indexNames(),...
+         % perm = SparseTensor.get_permutation(self.indexNames(),...
          %                                    horzcat(ixnames{:}));
          vals = self.components{1}.coefs;
          if isa(vals, 'ADI')
@@ -242,7 +242,7 @@ classdef SmartTensor
          end
          
          if numel(ixnames) == 1
-            ix = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm), ...
+            ix = SparseTensor.compute_1D_index(self.components{1}.ixs(:, perm), ...
                                               shape(perm));
             M = sparse(ix, 1, vals, prod(shape), 1);
             %M = zeros(max(ix), 1);
@@ -251,9 +251,9 @@ classdef SmartTensor
             nix1 = numel(ixnames{1});
             shape1 = shape(perm(1:nix1));
             shape2 = shape(perm(nix1+1:end));
-            ix1 = SmartTensor.compute_1D_index(self.components{1}.ixs(:, perm(1:nix1)), ...
+            ix1 = SparseTensor.compute_1D_index(self.components{1}.ixs(:, perm(1:nix1)), ...
                                                shape1);
-            ix2 = SmartTensor.compute_1D_index(self.components{1}.ixs(:,perm(nix1+1:end)),...
+            ix2 = SparseTensor.compute_1D_index(self.components{1}.ixs(:,perm(nix1+1:end)),...
                                                shape2);
             M = sparse(ix1, ix2, vals, prod(shape1), prod(shape2));
          end
@@ -292,9 +292,9 @@ classdef SmartTensor
          if expand_tensor
             expanded_comp = self.components{1};
             for i = 2:numel(self.components)
-               expanded_comp = SmartTensor.tensor_product(expanded_comp, ...
+               expanded_comp = SparseTensor.tensor_product(expanded_comp, ...
                                                           self.components{i});
-               self = SmartTensor(expanded_comp);
+               self = SparseTensor(expanded_comp);
             end
          end
       end
@@ -306,7 +306,7 @@ classdef SmartTensor
       function self = complete_simple_contractions(self)
          
          for i = 1:numel(self.components)
-            self.components{i} = SmartTensor.single_component_contraction(self.components{i});
+            self.components{i} = SparseTensor.single_component_contraction(self.components{i});
          end
       end
       
@@ -354,15 +354,15 @@ classdef SmartTensor
          comps = self.components(comp_ixs);
          
          [c1_keep_ix, stride1, c1_contract_ix, c1_vals, c1_keep_ixnames] = ...
-             SmartTensor.prepare_for_contraction(comps{1}, ixname, true);
+             SparseTensor.prepare_for_contraction(comps{1}, ixname, true);
          [c2_keep_ix, stride2, c2_contract_ix, c2_vals, c2_keep_ixnames] = ...
-             SmartTensor.prepare_for_contraction(comps{2}, ixname, false);
+             SparseTensor.prepare_for_contraction(comps{2}, ixname, false);
          
          [row, col, vals] = ssparsemul([c1_keep_ix, c1_contract_ix], c1_vals,...
                                        [c2_contract_ix, c2_keep_ix], c2_vals);
          
-         row = SmartTensor.compute_subs(row, stride1);
-         col = SmartTensor.compute_subs(col, stride2);
+         row = SparseTensor.compute_subs(row, stride1);
+         col = SparseTensor.compute_subs(col, stride2);
           
          comp.coefs = vals;
          comp.indexnames = [c1_keep_ixnames, c2_keep_ixnames];
@@ -383,13 +383,13 @@ classdef SmartTensor
          
          ind1 = strcmp(ixname, comps{1}.indexnames);
          rownames = comps{1}.indexnames(~ind1);
-         m1 = SmartTensor(comps{1}).asMatrix({rownames,{ixname}}, true);
+         m1 = SparseTensor(comps{1}).asMatrix({rownames,{ixname}}, true);
          m1rix = find(sum(abs(m1), 2));
          m1reduced = m1(m1rix,:);
          
          ind2 = strcmp(ixname, comps{2}.indexnames);
          colnames = comps{2}.indexnames(~ind2);
-         m2 = SmartTensor(comps{2}).asMatrix({{ixname}, colnames}, true);
+         m2 = SparseTensor(comps{2}).asMatrix({{ixname}, colnames}, true);
          m2cix = (find(sum(abs(m2), 1)))';
          m2reduced = m2(:, m2cix);
          
@@ -454,7 +454,7 @@ classdef SmartTensor
       % 'other' is an optional argument.  If provided, the produced ixname
       % should not be an existing contracting index of 'other' either.
 
-         basename = SmartTensor.contracting_name_base();
+         basename = SparseTensor.contracting_name_base();
          [~, current_contr_names] = self.indexNames();
          
          if nargin > 1
@@ -506,7 +506,7 @@ classdef SmartTensor
          keep_indices = ~strcmp(ixname, comp.indexnames);
          ixnames = comp.indexnames(keep_indices);
 
-         keep_ix = SmartTensor.compute_1D_index(comp.ixs(:, keep_indices));
+         keep_ix = SparseTensor.compute_1D_index(comp.ixs(:, keep_indices));
          keep_stride = max(comp.ixs(:, keep_indices));
          contract_ix = comp.ixs(:,~keep_indices);
 
@@ -527,7 +527,7 @@ classdef SmartTensor
       
       function yesno = is_contracting_ix(ixname)
          % returns true if ixname starts with the contracting name root
-         cname = SmartTensor.contracting_name_base();
+         cname = SparseTensor.contracting_name_base();
          yesno = (numel(cname) < numel(ixname)) && ...
                  strcmp(cname, ixname(1:numel(cname)));
       end
@@ -586,7 +586,7 @@ classdef SmartTensor
          end
          
          % sum up other elements at the correct place
-         index1d = SmartTensor.compute_1D_index(comp.ixs);
+         index1d = SparseTensor.compute_1D_index(comp.ixs);
          
          % tmp = accumarray(index1d(:), comp.coefs, [], [], [], true);
          % [uindex, ~, v] = find(tmp);
@@ -622,14 +622,14 @@ classdef SmartTensor
          % [reindex{:}] = ind2sub(logical_size, uindex);
          %comp.ixs = [reindex{:}];
          
-         comp.ixs = SmartTensor.compute_subs(uindex, logical_size);
+         comp.ixs = SparseTensor.compute_subs(uindex, logical_size);
          % %comp.ixs = cell2mat(reindex');
       end
       
       function [t1, t2] = make_tensors_compatible(t1, t2)
 
          % verify that they have the same index sets
-         if ~SmartTensor.is_permutation(t1.indexNames(), t2.indexNames())
+         if ~SparseTensor.is_permutation(t1.indexNames(), t2.indexNames())
             error(['Tensors cannot be made compatible as they have different ' ...
                    'index sets.']);
          end
@@ -639,7 +639,7 @@ classdef SmartTensor
          t2 = t2.expandall();
 
          % make sure the order of indices is the same in both tensors
-         perm = SmartTensor.get_permutation(t2.indexNames(), t1.indexNames());
+         perm = SparseTensor.get_permutation(t2.indexNames(), t1.indexNames());
          t2.components{1}.indexnames = t1.components{1}.indexnames;
          t2.components{1}.ixs = t2.components{1}.ixs(:, perm);
          
@@ -655,8 +655,8 @@ classdef SmartTensor
          % t2.components{1}.coefs = [t2.components{1}.coefs; zeros(size(I1))];
          
          % % sort all indices
-         % t1.components{1} = SmartTensor.sort_indices(t1.components{1});
-         % t2.components{1} = SmartTensor.sort_indices(t2.components{1});
+         % t1.components{1} = SparseTensor.sort_indices(t1.components{1});
+         % t2.components{1} = SparseTensor.sort_indices(t2.components{1});
          
          % tensors should now have exactly the same indices and thus be compatible
       end
@@ -667,14 +667,14 @@ classdef SmartTensor
       end
 
       function tensor = apply_binary_operator(t1, t2, op)
-         [t1, t2] = SmartTensor.make_tensors_compatible(t1, t2);
+         [t1, t2] = SparseTensor.make_tensors_compatible(t1, t2);
          assert(numel(t1.components) == 1); % should also be the case for t2 by now
          
          % determine common tensor shape
          shape = max(max(t1.components{1}.ixs), max(t2.components{1}.ixs));
          
-         m1_ix1D = SmartTensor.compute_1D_index(t1.components{1}.ixs, shape);
-         m2_ix1D = SmartTensor.compute_1D_index(t2.components{1}.ixs, shape);
+         m1_ix1D = SparseTensor.compute_1D_index(t1.components{1}.ixs, shape);
+         m2_ix1D = SparseTensor.compute_1D_index(t2.components{1}.ixs, shape);
          
          [all_ixs, ~, ic] = unique([m1_ix1D; m2_ix1D]);
          m1_ic = ic(1:numel(m1_ix1D));
@@ -690,14 +690,14 @@ classdef SmartTensor
          
          res = t1.components{1};
          res.coefs = op(v1, v2);
-         res.ixs = SmartTensor.compute_subs(all_ixs, shape);
+         res.ixs = SparseTensor.compute_subs(all_ixs, shape);
          
-         tensor = SmartTensor(res);
+         tensor = SparseTensor(res);
       end      
       
       % % The following function works well for doubles, but not for ADI
       % function tensor = apply_binary_operator(t1, t2, op)
-      %    [t1, t2] = SmartTensor.make_tensors_compatible(t1, t2);
+      %    [t1, t2] = SparseTensor.make_tensors_compatible(t1, t2);
       %    assert(numel(t1.components) == 1); % should also be the case for t2 by now
          
       %    % determine common tensor shape
@@ -725,10 +725,10 @@ classdef SmartTensor
       %    res.coefs = val(:);
       %    res.ixs = [reindex{:}];
       %    %res.ixs = cell2mat(reindex');
-      %    tensor = SmartTensor(res);
+      %    tensor = SparseTensor(res);
       %    % res = t1.components{1};
       %    % res.coefs = op(t1.components{1}.coefs, t2.components{1}.coefs);
-      %    % tensor = SmartTensor(res);
+      %    % tensor = SparseTensor(res);
       % end
       
       function ix = compute_1D_index(multiix, shape)
@@ -767,7 +767,7 @@ classdef SmartTensor
       
       function perm = get_permutation(cells1, cells2)
          % check that this actually is a permutation
-         if ~SmartTensor.is_permutation(cells1, cells2)
+         if ~SparseTensor.is_permutation(cells1, cells2)
             error('provided indices do not constitute a permutation of tensor indices.');
          end
          perm = zeros(1, numel(cells1));
