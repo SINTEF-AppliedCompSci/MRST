@@ -320,10 +320,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                  % initSecondaryComponents.
         
         allCharge % vector for ensuring each reaciton is charge balanced
-        inputs    % names of inputs the user must provide        
+        inputNames    % names of inputs the user must provide        
         
         % Multiphase (solid and gas)
         
+        nG            % number of gas components
+        nS            % number of solid components
+
         solidNames    % name of species in the solid phase
         gasNames      % name of species in the gas phase
 
@@ -336,9 +339,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         partialPressureNames % names of partial pressures of gasses
         solidDensityNames    % names of solid densities        
-        
-        nG            % number of gas components
-        nS            % number of solid components
+
+        maxSolidMatrices % cells of matrices, one per solid components. Used to 
+                         % compute the upper bound when updating a solid component.
         
         % Helper structures (for multiphase)
         
@@ -526,7 +529,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             InInd = cellfun(@(x) ~isempty(x), regexp(names, '*'));
             names = regexprep(names, '*','');
 
-            model.inputs = horzcat(model.inputs, names(InInd));
+            model.inputNames = horzcat(model.inputNames, names(InInd));
 
             % look for surface species
             model.surfMaster = double(cellfun(@(x) ~isempty(x), regexp(names, '^>'))');
@@ -590,9 +593,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.gasInd = gasInd;
             model.solidInd = solidInd;
             
-            model.inputs = horzcat(model.inputs, names(InInd));
+            model.inputNames = horzcat(model.inputNames, names(InInd));
 
-            nI = numel(model.inputs);
+            nI = numel(model.inputNames);
             namesO = names;
             
             % unwrap master component vectors
@@ -748,6 +751,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             model.logSolidNames = cellfun(@(name) ['log', name], model.solidNames, ...
                                           'uniformoutput', false);
+
 
             model.nC = numel(model.speciesNames);
             model.nG = sum(gasInd);
@@ -909,7 +913,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             assert(model.nR + model.nMC == model.nC + model.nG + model.nS, ['The given chemical system is rank deficient. The number of species must be equal to the sum of the number elements, surface functional groups, and reactions.'])
             
-            nI = numel(model.inputs);
+            nI = numel(model.inputNames);
             
             assert(nI == model.nMC , ['For the defined chemical system ' num2str(model.nMC) ' species, elements or species, must be designated as inputs. Use an "*" to designated a component as an input.']);
 
@@ -943,6 +947,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 maxMatrices{i} = diag(1./C(:, i));
             end
             chemsys.maxMatrices = maxMatrices;
+
+            SC = chemsys.solidContributionMatrix;
+            nS = chemsys.nS;
+            maxSolidMatrices = cell(nS, 1);
+            for i = 1 : nS
+                maxSolidMatrices{i} = diag(1./SC(:, i));
+            end
+            chemsys.maxSolidMatrices = maxSolidMatrices;
+            
         end
 
 
@@ -968,7 +981,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             InInd = cellfun(@(x) ~isempty(x), regexp(newVar, '*'));
             names = regexprep(newVar, '*','');
 
-            model.inputs = horzcat(model.inputs, names(InInd));
+            model.inputNames = horzcat(model.inputNames, names(InInd));
             
             % unwrap master component vectors
             nS = numel(model.allComponentNames);

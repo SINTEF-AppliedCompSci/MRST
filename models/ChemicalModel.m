@@ -442,7 +442,7 @@ classdef ChemicalModel < PhysicalModel
                 error('Electron concentration, e or e-, can not be used for charge balance.')
                 
             elseif sum(ismember(chemsys.elementNames,p.Results.chargeBalance))==0
-                warning('Using any quantitiy other than a total element concentration as a charge balance can yield unexpected results.')
+                warning('Using any quantity other than a total element concentration as a charge balance can yield unexpected results.')
                 
             end
             
@@ -459,7 +459,7 @@ classdef ChemicalModel < PhysicalModel
             end
 
             
-            givenTest = any(strcmpi(p.Results.chargeBalance, horzcat(chemsys.inputs,'nochargebalance')));
+            givenTest = any(strcmpi(p.Results.chargeBalance, horzcat(chemsys.inputNames,'nochargebalance')));
             if ~givenTest
                 warning 'Using a total element concentration whos values are not given (marked with "*") for charge balance may result in unexpected results.';
             end

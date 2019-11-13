@@ -11,7 +11,7 @@ classdef CompositionReactionModel < ChemicalModel
         %%
         function model = CompositionReactionModel(chemsys)
             model = model@ChemicalModel(chemsys);
-            inputNames = chemsys.inputs;
+            inputNames = chemsys.inputNames;
             
             unknownNames = horzcat(chemsys.speciesNames, ...
                                    chemsys.elementNames, ...
