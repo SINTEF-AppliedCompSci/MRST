@@ -5,7 +5,7 @@ classdef TransportModelDG < TransportModel
         dgVariables    = {'s'} % Transport variables we discretize with dG
         limiters               % Limiters
         storeUnlimited = false % Store unlimited state for plotting/debug
-        maxCutDs       = 4     % Control reduction of parentModel.dsMaxAbs
+        dsMaxAbsDiv    = 4     % Control reduction of parentModel.dsMaxAbs
     end
     
     methods
@@ -508,7 +508,7 @@ classdef TransportModelDG < TransportModel
             for i = 1:numel(dofVars)
                 dvMaxAbs = inf;
                 if strcmpi(dofVars{i}, 'sTdof')
-                    dvMaxAbs = model.parentModel.dsMaxAbs./min(model.discretization.basis.nDof,model.maxCutDs);
+                    dvMaxAbs = model.parentModel.dsMaxAbs./min(model.discretization.basis.nDof,model.dsMaxAbsDiv);
                 end
                 state = updateStateFromIncrement(model, state, dx, problem, dofVars{i}, inf, dvMaxAbs);
             end
@@ -562,7 +562,7 @@ classdef TransportModelDG < TransportModel
             end
             ds(ix, ~solvedFor) = tmp;
             % Use a more restrictive dsMaxAbs based on number of dofs
-            dsAbsMax = model.parentModel.dsMaxAbs/min(model.discretization.basis.nDof, model.maxCutDs);
+            dsAbsMax = model.parentModel.dsMaxAbs/min(model.discretization.basis.nDof, model.dsMaxAbsDiv);
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
             state = model.updateStateFromIncrement(state, ds, problem, 'sdof', Inf, dsAbsMax);
