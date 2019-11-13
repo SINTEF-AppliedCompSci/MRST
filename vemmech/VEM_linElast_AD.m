@@ -164,7 +164,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        if G.griddim == 2
           % qf_all has only been computed for faces, so we expand it to
           % face-node space
-          QF = SparseTensor(qf_all, 'f') ^ face_node_tensor(G, 'f', 'n');
+          QF = SparseTensor(qf_all, 'f') ^ ...
+               face_node_tensor(G, 'f', 'n', 'boundary_only', true);
        else
           % qf_all is already in face-node space, but we need to convert
           % it to a tensor
