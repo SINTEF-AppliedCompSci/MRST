@@ -14,9 +14,17 @@ classdef SparseTensor
       function self = SparseTensor(varargin)
          switch nargin
            case 1
-             % input is directly in the form of a component
-             assert(isstruct(varargin{1}));
-             self.components = {varargin{1}};
+             if isstruct(varargin{1})
+                % input is directly in the form of a component
+                self.components = {varargin{1}};
+             else
+                % intrinsic scalar
+                assert(isscalar(varargin{1}));
+                comp.coefs = varargin{1};
+                comp.ixs = [];
+                comp.indexnames = {};
+                self.components = {comp};
+             end
            case 2
              % input is in form of a matrix (or vector) and a list of (one or
              % two) index names
@@ -294,8 +302,8 @@ classdef SparseTensor
             for i = 2:numel(self.components)
                expanded_comp = SparseTensor.tensor_product(expanded_comp, ...
                                                           self.components{i});
-               self = SparseTensor(expanded_comp);
             end
+            self = SparseTensor(expanded_comp);
          end
       end
       
