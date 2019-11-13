@@ -113,7 +113,7 @@ classdef TransportModelDG < TransportModel
                     model.dgVariables{end+1} = ['s', ph];
                 end
             end
-            % Add dof to ending dG variable names
+            % Add dof to ending of dG variable names
             isDof        = ismember(names, model.dgVariables);
             names(isDof) = cellfun(@(bn) [bn, 'dof'], names(isDof), 'UniformOutput', false);
             % Replace variables with dofs
@@ -132,14 +132,13 @@ classdef TransportModelDG < TransportModel
         end
         %-----------------------------------------------------------------%
         function [state, names, origin] = getStateAD(model, state, init)
-            % TODO: rewrite getStateADDG to only return state for a subset
-            % of the cells/faces
-            [cells, faces] = deal([]);
-            [state, names, origin] = model.getStateADDG(state, cells, faces, init);
+            % Get AD state (handled by getStateDG)
+            [cells, faces] = deal(Inf);
+            [state, names, origin] = model.getStateDG(state, cells, faces, init);
         end
         %-----------------------------------------------------------------%
-        function [state, names, origin] = getStateADDG(model, state, cells, faces, init)
-            if nargin < 3
+        function [state, names, origin] = getStateDG(model, state, cells, faces, init)
+            if nargin < 5
                 init = true;
             end            
             parent = model.parentModel;
@@ -194,7 +193,7 @@ classdef TransportModelDG < TransportModel
                 basevars(~isP) = vars;
             end
             % Evluate basis functions for use later
-            state = model.discretization.evaluateBasisFunctions(state);
+            state = model.discretization.evaluateBasisFunctions(state, cells, faces);
             isDof = false(size(names));
             [cellMean, cellVars, faceVars] = deal(cell(size(vars)));
             for i = 1:numel(vars)
@@ -204,6 +203,9 @@ classdef TransportModelDG < TransportModel
             % Let parent model handle initStateAD
             basenames(isDof) = cellfun(@(bn) bn(1:end-3), basenames(isDof), 'UniformOutput', false);
             % Initialize cell mean state
+            if ~all(isinf(state.mcells))
+                parent.G.cells.num = numel(state.mcells);
+            end
             state = parent.initStateAD(state, cellMean, basenames, baseorigin);
             % First, store dofs to state (only used in case we have BCs)
             state = model.assignDofsToState(state, vars, names);
@@ -266,14 +268,16 @@ classdef TransportModelDG < TransportModel
             if any(strcmpi(name(1:end-3), model.dgVariables)) && strcmpi(name(end-2:end), 'dof')
                 % dG - do evaluation at cubature points
                 isDof   = true;
-                meanVal = model.discretization.getCellMean(state, var);
-                cellVal = model.discretization.evaluateProp(state, var, 'cell');
-                faceVal = model.discretization.evaluateProp(state, var, 'face');
+                meanVal = model.discretization.getCellMean(state, state.mcells, var);
+                cellVal = model.discretization.evaluateProp(state, var, 'cell', state.mcells);
+                faceVal = model.discretization.evaluateProp(state, var, 'face', state.mfaces);
             else
                 % Not dG - repeat to match number of cubature points
-                meanVal = var;
-                cellVal = meanVal(state.cells,:);
-                faceVal = meanVal(state.fcells,:);
+                c = state.mcells;
+                if isinf(state.mcells), c = ':'; end
+                meanVal = var(c,:);
+                cellVal = var(state.cells,:);
+                faceVal = var(state.fcells,:);
             end
         end
         
@@ -284,7 +288,7 @@ classdef TransportModelDG < TransportModel
             [cellStateDG, faceStateDG, wellStateDG] = deal(state);
             if ~(isfield(state, 'psi_c') && isfield(state, 'psi_f'))
                 % Evaluate basis functions at cubature points
-                state = model.discretization.evaluateBasisFunctions(state);
+                state = model.discretization.evaluateBasisFunctions(state, Inf, Inf);
             end
             % Assign type and cells/faces
             cellStateDG.type   = 'cell';
@@ -338,7 +342,7 @@ classdef TransportModelDG < TransportModel
             for name = names
                 if isfield(state, [name{1}, 'dof'])
                     dof = model.getProp(state, [name{1}, 'dof']);
-                    v   = model.discretization.getCellMean(state, dof);
+                    v   = model.discretization.getCellMean(state, Inf, dof);
                     state.(name{1}) = v;
                 end
             end
@@ -419,54 +423,29 @@ classdef TransportModelDG < TransportModel
         %-----------------------------------------------------------------%
         function q = computeBoundaryConditions(model, state, state0, dt, bc)
             % Compute values at boundary faces with prescribed BCs
-            bcState = model.parentModel.FluxDiscretization.buildFlowState(model, state, state0, dt);
+            % Set cells/faces where we need to compute properties
             faces = bc.face;
-            [~, x, ~, fNo] = model.discretization.getCubature(faces, 'face');
-            cNo = sum(model.parentModel.G.faces.neighbors(fNo,:),2);
-            names = fieldnames(bcState);
-            for k = 1:numel(names)
-                name = names{k};
-                if numel(name) > 3 && strcmp(name(end-2:end), 'dof')
-                    % Get dofs
-                    dof = model.getProp(bcState, name);
-                    if iscell(dof)
-                        v = cell(1,numel(dof));
-                        for i = 1:numel(dof)
-                            v{i} = model.discretization.evaluateDGVariable(x, cNo, state, dof{i});
-                        end
-                    else
-                        v = model.discretization.evaluateDGVariable(x, cNo, state, dof);
-                    end
-                    n = name(1:end-3);
-                    % Evaluate at boundary face cubature points
-                    bcState = model.setProp(bcState, n, v);
-                else
-                    [fn , index] = model.getVariableField(name, false);
-                    if ~isempty(fn) && isa(state.(fn), 'double')% Only doubles
-                        % ... and only variables of correct dimension
-                        n = size(double(state.(fn)),1);
-                        if (n ~= model.G.cells.num && n ~= sum(state.nDof))
-                            continue
-                        else
-                            v = bcState.(fn)(cNo,index);
-                            bcState = model.setProp(bcState, name, v);
-                        end
-                    end
-                end
-            end
-            bcState.cells = sum(model.G.faces.neighbors(fNo,:), 2);
-            bcState.faces = fNo;
-            % Compute fluxes
-            q = computeBoundaryFluxesDG(model.parentModel, bcState, bc);
+            cells = sum(model.G.faces.neighbors(faces,:),2);
+            % Compute preoperites with AD
+            bcStateDG  = model.getStateDG(state , cells, faces, false);
+            % Compute preoperites without AD (using getStateADDG ensures
+            % that properties are evaluated consistently)
+            bcStateDG0 = model.getStateDG(state0, cells, faces, false);
+            % Get flow state (either bcStateDG or bcStateDG0)
+            bcStateDG  = model.parentModel.FluxDiscretization.buildFlowState(model.parentModel, bcStateDG, bcStateDG0, dt);
+            % Compute boundary condition fluxes
+            q = computeBoundaryFluxesDG(model.parentModel, bcStateDG, bc);
         end
         
         %-----------------------------------------------------------------%
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+            % TransportModel handles prepareTimestep
             [model, state] = prepareTimestep@TransportModel(model, state, state0, dt, drivingForces);
         end
         
         %-----------------------------------------------------------------%
         function [restVars, satVars, wellVars] = splitPrimaryVariables(model, vars)
+            % Split variables
             vars = cellfun(@(n) n(1:end-3), vars, 'UniformOutput', false);
             [restVars, satVars, wellVars] = model.parentModel.splitPrimaryVariables(vars);
             restVars = cellfun(@(n) [n, 'dof'], restVars, 'UniformOutput', false);
@@ -524,6 +503,7 @@ classdef TransportModelDG < TransportModel
         
         % ----------------------------------------------------------------%
         function state = updateDofs(model, state, dx, problem, dofVars)
+            % Update non-saturation dofs
             for i = 1:numel(dofVars)
                 dvMaxAbs = inf;
                 if strcmpi(dofVars{i}, 'sTdof')

@@ -342,20 +342,23 @@ classdef DGDiscretization < SpatialDiscretization
             end
             switch type
                 case 'cell'
-                    [~ , x, cNo] = disc.getCubature(elements, 'cell');
-                    if isfield(state, 'psi_c') && isinf(elements)
+                    if isfield(state, 'psi_c')% && all(isinf(elements))
                         psi = state.psi_c;
+                        cNo = state.cells;
+                        x   = [];
+                    else
+                        [~ , x, cNo] = disc.getCubature(elements, 'cell');
                     end
                 case 'face'
-                    [~ , x, ~, fNo] = disc.getCubature(elements, 'face');
-                    x   = repmat(x, 2, 1);
-                    N   = disc.G.faces.neighbors;
-                    cNo = [N(fNo,1); N(fNo,2)];
-                    keep = cNo ~= 0;
-                    cNo = cNo(keep);
-                    x = x(keep,:);
-                    if isfield(state, 'psi_f') && isinf(elements)
+                    if isfield(state, 'psi_f')% && all(isinf(elements))
                         psi = state.psi_f;
+                        cNo = state.fcells;
+                        x   = [];
+                    else
+                        [~ , x, ~, fNo] = disc.getCubature(elements, 'face');
+                        x   = repmat(x, 2, 1);
+                        N   = disc.G.faces.neighbors;
+                        cNo = [N(fNo,1); N(fNo,2)];
                     end
             end
             if ~isempty(psi) && ~iscell(psi)
@@ -371,12 +374,17 @@ classdef DGDiscretization < SpatialDiscretization
             end
         end
         
-        function state = evaluateBasisFunctions(disc, state)
-            [~ , xc, cNo     ] = disc.getCubature(Inf, 'cell');
-            [~ , xf, ~  , fNo] = disc.getCubature(Inf, 'face');
-            xf   = repmat(xf, 2, 1);
+        %-----------------------------------------------------------------%
+        function state = evaluateBasisFunctions(disc, state, cells, faces)
+            [~ , xc, cNo     ] = disc.getCubature(cells, 'cell');
+            [~ , xf, ~  , fNo] = disc.getCubature(faces, 'face');
             N    = disc.G.faces.neighbors;
-            fcNo = [N(fNo,1); N(fNo,2)];
+            if all(any(N(fNo,:) == 0,2))
+                fcNo = sum(N(fNo,:),2);
+            else
+                xf   = repmat(xf, 2, 1);
+                fcNo = [N(fNo,1); N(fNo,2)];
+            end
             xc = disc.transformCoords(xc, cNo );
             xf = disc.transformCoords(xf, fcNo);
             [psi_c, psi_f] = deal(disc.basis.psi');
@@ -384,11 +392,13 @@ classdef DGDiscretization < SpatialDiscretization
                 psi_c{dofNo} = psi_c{dofNo}(xc);
                 psi_f{dofNo} = psi_f{dofNo}(xf);
             end
-            state.psi_c = psi_c;
-            state.psi_f = psi_f;
-            state.cells = cNo;
+            state.psi_c  = psi_c;
+            state.psi_f  = psi_f;
+            state.cells  = cNo;
             state.fcells = fcNo;
-            state.faces = fNo;
+            state.faces  = fNo;
+            state.mcells = cells;
+            state.mfaces = faces;
         end
         
         function fill = getFillSat(disc, state)
@@ -404,16 +414,16 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function varargout = getCellMean(disc, state, varargin)
+        function varargout = getCellMean(disc, state, cells, varargin)
             % Get average cell value from dofs
 
             % Get cubature for all cells
-            W = disc.getCubature(Inf, 'cell');
+            W = disc.getCubature(cells, 'cell');
             val = cell(numel(varargin),1);
             
-            for i = 1:nargin-2
+            for i = 1:nargin-3
                 dof = varargin{i};
-                v = disc.evaluateProp(state, dof, 'cell');
+                v = disc.evaluateProp(state, dof, 'cell', cells);
                 if iscell(dof)
                     for j = 1:numel(dof)
                         v{j} = W*v{j};

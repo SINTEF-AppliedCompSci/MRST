@@ -18,7 +18,7 @@ end
 function state = update(model, state, name, dof)
 
     state = model.setProp(state, [name, 'dof'], dof);
-    m     = model.discretization.getCellMean(state, dof);
+    m     = model.discretization.getCellMean(state, Inf, dof);
     state = model.setProp(state, name, m);
     
 end
