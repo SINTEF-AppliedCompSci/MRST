@@ -14,7 +14,13 @@ classdef ChargeBalanceModel < ChemicalInputModel
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             
             [unknowns, state] = prepStateForEquations(model, state);
-            [eqs, names, types] = equationsChargeBalance(model, state);
+            [chem_eqs, chem_names, chem_types]       = equationsChemicalLog(model, state);
+            [charge_eqs, charge_names, charge_types] = equationsChargeBalance(model, state);
+            % we concatenate the equations
+            eqs   = horzcat(chem_eqs, charge_eqs);
+            names = {chem_names{:}, charge_names{:}};
+            types = {chem_types{:}, charge_types{:}};
+            
             problem = LinearizedProblem(eqs, types, names, unknowns, state, dt);
             
         end
