@@ -32,7 +32,7 @@ function [rows, cols, vals] = ssparsemul(ixs1, v1, ixs2, v2)
       end
       final_m = zeros(ALLOC_MULT * numel(model), 1);
       final_n = zeros(ALLOC_MULT * numel(model), 1);
-      final_v = repmat(model, ALLOC_MULT, 1) * 0; % zero, in ADI sense
+      %final_v = repmat(model, ALLOC_MULT, 1) * 0; % zero, in ADI sense
       
       tmp_v = model * 0;
       tmp_m = value(tmp_v);
@@ -40,7 +40,7 @@ function [rows, cols, vals] = ssparsemul(ixs1, v1, ixs2, v2)
       ALLOC_SIZE = 100 * max(numel(im), numel(in));
       final_m = zeros(ALLOC_SIZE, 1);
       final_n = zeros(ALLOC_SIZE, 1);
-      final_v = zeros(ALLOC_SIZE, 1);
+      %final_v = zeros(ALLOC_SIZE, 1);
       
       %ALLOC_SIZE_LOC = 1000;
       ALLOC_SIZE_LOC = numel(im); % likely overkill, but ok
@@ -52,7 +52,10 @@ function [rows, cols, vals] = ssparsemul(ixs1, v1, ixs2, v2)
    next_entry = 1;
 
    %for n = 1:N
-   for n = unique(in(:))'
+   n_unique = unique(in(:))';
+   accum_v = cell(numel(n_unique), 1);
+   accum_counter = 1;
+   for n = n_unique
       next_entry_loc = 1;
       for k = ik2(k_for_n(n):k_for_n(n+1)-1)'
          val = v2(count); count = count + 1;
@@ -84,18 +87,25 @@ function [rows, cols, vals] = ssparsemul(ixs1, v1, ixs2, v2)
       if next_entry + nu > size(final_m, 1)
          final_m = [final_m; 0 * final_m]; %#ok
          final_n = [final_n; 0 * final_n]; %#ok
-         final_v = [final_v; 0 * final_v]; %#ok
+         %final_v = [final_v; 0 * final_v]; %#ok
       end
       
       final_m(next_entry:next_entry+nu-1) = um;
       final_n(next_entry:next_entry+nu-1) = n;
-      final_v(next_entry:next_entry+nu-1) = tot;
+      %final_v(next_entry:next_entry+nu-1) = tot;
+      accum_v{accum_counter} = tot;
+      accum_counter = accum_counter + 1;
+      
       next_entry = next_entry + nu;
    end
    
+   %keyboard;
    rows = final_m(1:next_entry-1);
    cols = final_n(1:next_entry-1);
-   vals = final_v(1:next_entry-1);
+   %vals = final_v(1:next_entry-1);
+   vals = vertcat(accum_v{:});
+   
+   
    % res = sparse(final_m(1:next_entry-1), ...
    %              final_n(1:next_entry-1), ...
    %              final_v(1:next_entry-1), M, N);
