@@ -95,7 +95,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         % Use cell array for line breaks in edit box
         txt = {txt, getContents(I), I.description};
-        
+        if ~isempty(I.note)
+           txt = [ txt, {''}, reshape(I.note, 1, []) ];
+        end
+
         uicontrol(ph, 'units', 'normalized', ...
                        'horizontalAlignment', 'left', ...
                        'Max', 1000, 'Min', 0, ...

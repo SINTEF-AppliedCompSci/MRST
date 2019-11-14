@@ -46,7 +46,13 @@ function [info, present] = datasetInfoStruct(varargin)
 %                     that takes no input parameters and returns a status
 %                     code signifying whether or not the file data was
 %                     successfully downloaded.  If specified, this value
-%                     takes presedence over the `fileurl` parameter.
+%                     takes precedence over the `fileurl` parameter.
+%
+%   'note'          - Additional notes concerning the dataset, e.g.
+%                     special actions to take before using the datafiles.
+%                     Character vector or cell array of character vectors
+%                     ('cellstring').  Default value: `note = ''` (no
+%                     additional notes).
 %
 % RETURNS:
 %   info            - Struct with info fields as listed above.
@@ -75,7 +81,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
     info =   struct('name',                '', ...
                     'description',         '', ...
                     'cells',               [], ...
@@ -90,14 +95,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     'image',               '', ...
                     'examples',            {{}}, ...
                     'modelType',           'Unknown', ...
-                    'downloadFcn',         {{}} ...
+                    'downloadFcn',         {{}}, ...
+                    'note',                {{}} ...
                     );
     info = merge_options(info, varargin{:});
     info.name = info.name(~isspace(info.name));
     
     present = isdir(fullfile(mrstDataDirectory(), info.name));
 
-    
     % Work out if a image is attached to the dataset
     pth = fileparts(mfilename('fullpath'));
     imgdir = fullfile(pth, '..', 'datasets', 'img');
