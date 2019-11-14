@@ -210,7 +210,10 @@ classdef SparseTensor
          end
       end
       
-      function v = asVector(self, ixnames, shape)
+      % since there may be some zeroes in the coefs that are eliminated by
+      % the call to sparse, we also return the 1D indices, to let the user
+      % know which elements were present (even if zero)
+      function [v, ix] = asVector(self, ixnames, shape)
          
          % ensure the user has actually provided a permutation of all index names
          assert(SparseTensor.is_permutation(self.indexNames(), ixnames));
@@ -218,15 +221,19 @@ classdef SparseTensor
          % fully expand tensor
          self = self.expandall();
 
-         % determine size of vector
-         if ~exist('shape', 'var')
-            shape = max(self.components{1}.ixs);
-         end
+         % compute index order
          num_entries = size(self.components{1}.ixs, 1);
          perm = SparseTensor.get_permutation(self.components{1}.indexnames,...
                                              ixnames);
+         
+         % determine size of vector
+         if ~exist('shape', 'var')
+            shape = max(self.components{1}.ixs);
+            shape = shape(perm);
+         end
+         
          ix = SparseTensor.compute_1D_index(self.components{1}.ixs(:,perm), ...
-                                            shape(perm));
+                                            shape);
          M = sparse(ix, (1:num_entries)', 1, prod(shape), num_entries);
          
          v = M * self.components{1}.coefs;
@@ -375,7 +382,9 @@ classdef SparseTensor
          if isa(comps{1}.coefs, 'ADI') || isa(comps{2}.coefs, 'ADI')
             self = two_component_contraction_adi(self, ixname);
          else
-            self = two_component_contraction_float(self, ixname);
+            % @@ Use the adi version until the float version is fixed
+            self = two_component_contraction_adi(self, ixname); 
+            %self = two_component_contraction_float(self, ixname);
          end
       end
          
@@ -406,55 +415,57 @@ classdef SparseTensor
          self.components = [self.components(keep), comp];
       end
             
-      % works well for doubles, but does not support ADI
-      function self = two_component_contraction_float(self, ixname)
+      % % works well for doubles, but does not support ADI
+      % % @@ NO, does not work well, as it eliminates zero entries, which we
+      % % often want to keep
+      % function self = two_component_contraction_float(self, ixname)
          
-         comp_ixs = self.component_with_ix(ixname, true);
-         assert(numel(comp_ixs) == 2);
+      %    comp_ixs = self.component_with_ix(ixname, true);
+      %    assert(numel(comp_ixs) == 2);
          
-         comps = self.components(comp_ixs);
+      %    comps = self.components(comp_ixs);
          
-         ind1 = strcmp(ixname, comps{1}.indexnames);
-         rownames = comps{1}.indexnames(~ind1);
-         m1 = SparseTensor(comps{1}).asMatrix({rownames,{ixname}}, true);
-         m1rix = find(sum(abs(m1), 2));
-         m1reduced = m1(m1rix,:);
+      %    ind1 = strcmp(ixname, comps{1}.indexnames);
+      %    rownames = comps{1}.indexnames(~ind1);
+      %    m1 = SparseTensor(comps{1}).asMatrix({rownames,{ixname}}, true);
+      %    m1rix = find(sum(abs(m1), 2));
+      %    m1reduced = m1(m1rix,:);
          
-         ind2 = strcmp(ixname, comps{2}.indexnames);
-         colnames = comps{2}.indexnames(~ind2);
-         m2 = SparseTensor(comps{2}).asMatrix({{ixname}, colnames}, true);
-         m2cix = (find(sum(abs(m2), 1)))';
-         m2reduced = m2(:, m2cix);
+      %    ind2 = strcmp(ixname, comps{2}.indexnames);
+      %    colnames = comps{2}.indexnames(~ind2);
+      %    m2 = SparseTensor(comps{2}).asMatrix({{ixname}, colnames}, true);
+      %    m2cix = (find(sum(abs(m2), 1)))';
+      %    m2reduced = m2(:, m2cix);
          
-         %assert(issparse(m1) && issparse(m2));
-         % mprod = m1 * m2;
-         % size(m1reduced)
-         % size(m2reduced)
+      %    %assert(issparse(m1) && issparse(m2));
+      %    % mprod = m1 * m2;
+      %    % size(m1reduced)
+      %    % size(m2reduced)
 
-         mprod = m1reduced * m2reduced;
-         [i, j, v] = find(mprod);
-         i = i(:); j = j(:); v = v(:);
+      %    mprod = m1reduced * m2reduced;
+      %    [i, j, v] = find(mprod);
+      %    i = i(:); j = j(:); v = v(:);
          
-         i = m1rix(i);
-         j = m2cix(j);
+      %    i = m1rix(i);
+      %    j = m2cix(j);
          
-         logical_size1 = max(comps{1}.ixs(:, ~ind1));
-         reindex1 = cell(size(comps{1}.ixs, 2) - 1, 1);
-         [reindex1{:}] = ind2sub(logical_size1, i);
+      %    logical_size1 = max(comps{1}.ixs(:, ~ind1));
+      %    reindex1 = cell(size(comps{1}.ixs, 2) - 1, 1);
+      %    [reindex1{:}] = ind2sub(logical_size1, i);
 
-         logical_size2 = max(comps{2}.ixs(:, ~ind2));
-         reindex2 = cell(size(comps{2}.ixs,2)-1, 1);
-         [reindex2{:}] = ind2sub(logical_size2, j);
+      %    logical_size2 = max(comps{2}.ixs(:, ~ind2));
+      %    reindex2 = cell(size(comps{2}.ixs,2)-1, 1);
+      %    [reindex2{:}] = ind2sub(logical_size2, j);
          
-         comp.coefs = v;
-         comp.indexnames = [rownames, colnames];
-         comp.ixs = [reindex1{:}, reindex2{:}];
-         %comp.ixs = [cell2mat(reindex1'), cell2mat(reindex2')];
+      %    comp.coefs = v;
+      %    comp.indexnames = [rownames, colnames];
+      %    comp.ixs = [reindex1{:}, reindex2{:}];
+      %    %comp.ixs = [cell2mat(reindex1'), cell2mat(reindex2')];
          
-         keep = true(size(self.components));
-         keep(comp_ixs) = false;
-         self.components = [self.components(keep), comp];
-      end
+      %    keep = true(size(self.components));
+      %    keep(comp_ixs) = false;
+      %    self.components = [self.components(keep), comp];
+      % end
       
       
       function cost = contraction_cost_estimate(self, ixname)
@@ -822,10 +833,15 @@ classdef SparseTensor
             component.ixs = [];
             assert(numel(indexnames) == 0);
          elseif isvector(coefs)
-            nz = find(coefs);
-            component.coefs = coefs(nz);
-            component.coefs = component.coefs(:); % ensure column vec
-            component.ixs = nz(:);
+            if issparse(coefs)
+               nz = find(coefs);
+               component.coefs = coefs(nz);
+               component.coefs = component.coefs(:); % ensure column vec
+               component.ixs = nz(:);
+            else
+               component.coefs = coefs(:);
+               component.ixs = (1:numel(coefs))';
+            end
             assert(numel(indexnames) == 1);
          else
             assert(ismatrix(coefs));

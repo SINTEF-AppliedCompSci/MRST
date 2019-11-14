@@ -105,45 +105,53 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     % Apply Diriclet boundary conditions
-    % NB: Only rolling conditions in the Cartesian directions is allowed for now.
-    % If duplicated  values exist, remove them.
-    bc = el_bc.disp_bc;
-    [bcnodes, j, i] = unique(bc.nodes);
-    if(numel(bcnodes) ~= numel(bc.nodes))
-        %  warning('boundary conditions have mulitiple definitions')
-    end
-    u_bc = bc.uu(j, :);
-    mask = zeros(numel(bcnodes), G.griddim);
-    % use the mask form or
-    for k = 1:G.griddim
-        mask(:, k) = accumarray(i, bc.mask(:, k), [numel(bcnodes), 1]);
-    end
-    mask = mask > 0;
-
-    % Find the logical vector to remove Diriclet boundary conditions
+    [u_bc, dirdofs] = el_bc.disp_bc.asVector({'d', 'n'}, [G.griddim, G.nodes.num]);
     ndof = G.griddim * G.nodes.num;
-    if(all(mask(:) == true))
-        dirdofs = mcolon(G.griddim * (bcnodes - 1) + 1, G.griddim * (bcnodes - 1) + G.griddim)';
-        u_bc = reshape(u_bc', [], 1);
-    else
-        dirdofs = mcolon(G.griddim * (bcnodes - 1) + 1, G.griddim * (bcnodes - 1) + G.griddim)';
-        dirdofs = reshape(dirdofs, G.griddim, []);
-        mm = mask';
-        ind = find(mm);
-        u_bc = reshape(u_bc', [], 1);
-        dirdofs = reshape(dirdofs, [], 1);
-        dirdofs = dirdofs(ind);
-        u_bc = u_bc(ind);
-    end
     isdirdofs = false(ndof, 1);
     isdirdofs(dirdofs) = true;
 
+    rhso = - S * u_bc;
+    
+    
+%     % % NB: Only rolling conditions in the Cartesian directions is allowed for now.
+    % % If duplicated  values exist, remove them.
+    % bc = el_bc.disp_bc;
+    % [bcnodes, j, i] = unique(bc.nodes);
+    % if(numel(bcnodes) ~= numel(bc.nodes))
+    %     %  warning('boundary conditions have mulitiple definitions')
+    % end
+    % u_bc = bc.uu(j, :);
+    % mask = zeros(numel(bcnodes), G.griddim);
+    % % use the mask form or
+    % for k = 1:G.griddim
+    %     mask(:, k) = accumarray(i, bc.mask(:, k), [numel(bcnodes), 1]);
+    % end
+    % mask = mask > 0;
 
-    % Calculate the boundary conditions
-    V_dir = nan(ndof, 1);
-    V_dir(isdirdofs) = u_bc(:);
-    V_dir(~isdirdofs) = 0;
-    rhso = -S * V_dir;
+    % % Find the logical vector to remove Diriclet boundary conditions
+    % ndof = G.griddim * G.nodes.num;
+    % if(all(mask(:) == true))
+    %     dirdofs = mcolon(G.griddim * (bcnodes - 1) + 1, G.griddim * (bcnodes - 1) + G.griddim)';
+    %     u_bc = reshape(u_bc', [], 1);
+    % else
+    %     dirdofs = mcolon(G.griddim * (bcnodes - 1) + 1, G.griddim * (bcnodes - 1) + G.griddim)';
+    %     dirdofs = reshape(dirdofs, G.griddim, []);
+    %     mm = mask';
+    %     ind = find(mm);
+    %     u_bc = reshape(u_bc', [], 1);
+    %     dirdofs = reshape(dirdofs, [], 1);
+    %     dirdofs = dirdofs(ind);
+    %     u_bc = u_bc(ind);
+    % end
+    % isdirdofs = false(ndof, 1);
+    % isdirdofs(dirdofs) = true;
+
+
+    % % Calculate the boundary conditions
+    % V_dir = nan(ndof, 1);
+    % V_dir(isdirdofs) = u_bc(:);
+    % V_dir(~isdirdofs) = 0;
+    % rhso = -S * V_dir;
 
     % Calculate load terms
     % There are several alternatives, which may lead to different errors in particular for thin
@@ -203,7 +211,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     u   = nan(ndof, 1);
 
-    u(isdirdofs)  = V_dir(isdirdofs);
+    u(isdirdofs)  = u_bc(isdirdofs);
     u(~isdirdofs) = x;
     uu = reshape(u, G.griddim, [])';
 
@@ -215,11 +223,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         extra.disc = struct('A'         , A                        , ...
                             'isdirdofs' , isdirdofs                , ...
                             'rhs'       , rhs                      , ...
-                            'V_dir'     , V_dir                    , ...
+                            'V_dir'     , u_bc                     , ...
                             'ovol_div'  , vdiv                     , ...
                             'gradP'     , vdiv(:    , ~isdirdofs)' , ...
                             'div'       , vdiv(:    , ~isdirdofs)  , ...
-                            'divrhs'    , vdiv * V_dir);
+                            'divrhs'    , vdiv * u_bc);
 
     end
 
