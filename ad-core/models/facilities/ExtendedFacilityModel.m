@@ -74,7 +74,8 @@ classdef ExtendedFacilityModel < FacilityModel
         function [eqs, names, types, state] = getModelEquations(facility, state0, state, dt, drivingForces)
             model = facility.ReservoirModel;
             map = facility.getProps(state, 'FacilityWellMapping');
-            if isempty(map.W)
+            varNone = strcmpi(facility.primaryVariableSet, 'none');
+            if isempty(map.W) || varNone
                 [eqs, names, types] = deal({});
                 return
             end
@@ -105,7 +106,7 @@ classdef ExtendedFacilityModel < FacilityModel
             else
                 varBHP = strcmpi(facility.primaryVariableSet, 'bhp');
                 varMF = strcmpi(facility.primaryVariableSet, 'bhp_massfractions');
-                assert(varBHP || varMF);
+                assert(varBHP || varMF || varNone);
                 % We need to actually store the surface rates in wellSol
                 % here, since there are no corresponding primary variables
                 if varMF
@@ -124,7 +125,8 @@ classdef ExtendedFacilityModel < FacilityModel
                         names{i+1} = ['well_', cnames{i}];
                         types{i+1} = 'wellcomposition';
                     end
-                else
+                elseif varBHP
+                    % Just BHP
                     [eqs, names, types] = deal(cell(1, 1));
                 end
                 ctrl_index = 1;
@@ -141,7 +143,13 @@ classdef ExtendedFacilityModel < FacilityModel
             end
             % Set up AD for control equations
             nact = numel(map.active);
-            bhp = state.FacilityState.primaryVariables{strcmpi(state.FacilityState.names, 'bhp')};
+            is_bhpPrimaryVar = strcmpi(state.FacilityState.names, 'bhp');
+            if any(is_bhpPrimaryVar)
+                bhp = state.FacilityState.primaryVariables{is_bhpPrimaryVar};
+            else
+                wsa = state.wellSol(map.active);
+                bhp = vertcat(wsa.bhp);
+            end
             backend = model.AutoDiffBackend;
             % Equation for well matching correct control
             ctrl_eq = backend.convertToAD(zeros(nact, 1), bhp);
