@@ -27,8 +27,8 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
                     else
                         s = 'saturation';
                     end
-                    fprintf('Time-step limited by %s CFL condition: %s reduced to %s (%1.2f%% reduction)\n', ...
-                        s, formatTimeRange(dt, 2), formatTimeRange(dt_max, 2), 100*(dt - dt_max)/dt);
+                    fprintf('Time-step limited by %s CFL: %s reduced to %s (%1.2f%% reduction)\n', ...
+                        s, formatTimeRange(dt, 0), formatTimeRange(dt_max, 0), 100*(dt - dt_max)/dt);
                 end
             end
         end
