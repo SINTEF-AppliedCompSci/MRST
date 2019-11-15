@@ -111,8 +111,9 @@ classdef TransportModel < WrapperModel
         function model = validateModel(model, varargin)
             defaultedDiscretization = isempty(model.parentModel.FluxDiscretization);
             model = validateModel@WrapperModel(model, varargin{:});
+            pmodel = model.parentModel;
+            hasFacility = isprop(pmodel, 'FacilityModel') && ~isempty(pmodel);
             if defaultedDiscretization
-                pmodel = model.parentModel;
                 fd = pmodel.FluxDiscretization;
                 fp = pmodel.FlowPropertyFunctions;
                 % Replace existing properties with total flux variants
@@ -132,6 +133,10 @@ classdef TransportModel < WrapperModel
                 % Replace object
                 model.parentModel.FluxDiscretization = fd;
                 model.parentModel.FlowPropertyFunctions = fp;
+            end
+            if hasFacility
+                % Disable primary variables in transport!
+                model.parentModel.FacilityModel.primaryVariableSet = 'none';
             end
         end
         
