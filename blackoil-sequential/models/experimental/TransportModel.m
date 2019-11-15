@@ -19,14 +19,15 @@ classdef TransportModel < WrapperModel
             % Get the AD state for this model
             [basevars, basenames, baseorigin] = model.getPrimaryVariables(state);
             isParent = strcmp(baseorigin, class(parent));
-            basevars = basevars(isParent);
-            basenames = basenames(isParent);
-            baseorigin = baseorigin(isParent);
             % Find saturations
             isS = false(size(basevars));
             nph = parent.getNumberOfPhases();
             phase_variable_index = zeros(nph, 1);
             for i = 1:numel(basevars)
+                if ~isParent(i)
+                    % Skip wells etc
+                    continue
+                end
                 bn = basenames{i};
                 if strcmp(bn, 'x')
                     % Hack for blackoil-models
