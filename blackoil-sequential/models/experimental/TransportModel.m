@@ -19,6 +19,7 @@ classdef TransportModel < WrapperModel
             % Get the AD state for this model
             [basevars, basenames, baseorigin] = model.getPrimaryVariables(state);
             isParent = strcmp(baseorigin, class(parent));
+            isPrimaryVariable = isParent;
             % Find saturations
             isS = false(size(basevars));
             nph = parent.getNumberOfPhases();
@@ -61,9 +62,10 @@ classdef TransportModel < WrapperModel
                 vars = vars(~isP);
                 names = names(~isP);
                 origin = origin(~isP);
+                isPrimaryVariable(isP) = false;
             end
             if init
-                [vars{:}] = model.AutoDiffBackend.initVariablesAD(vars{:});
+                [vars{isPrimaryVariable}] = model.AutoDiffBackend.initVariablesAD(vars{isPrimaryVariable});
             end
             if useTotalSaturation
                 basevars(~isP) = vars(~isP);
@@ -76,6 +78,9 @@ classdef TransportModel < WrapperModel
                 sT = vars{isP};
                 state = model.setProp(state, replacement, sT);
             end
+            % Finally remove the non-primary values from the list
+            names = names(isPrimaryVariable);
+            origin = origin(isPrimaryVariable);
         end
         
 
