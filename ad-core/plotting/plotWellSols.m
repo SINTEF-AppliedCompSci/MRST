@@ -287,6 +287,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Figure -> jpg/png/eps
     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
                 'String','Save as image', 'Callback', @savePlotAsFigure, ...
+                'ButtonDownFcn', @savePlotAsFigure, ...
                 'Position',[.01 .01 .485 .08]);
     % Save the plotted data as variables in the workspace.
     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
@@ -488,25 +489,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function savePlotAsFigure(src, event)
-        plotname = fld;
-        if numel(wells) > 0
-            plotname = [plotname, sprintf('_%s', wells{:})];
+        if isempty(event)
+            doSave = true;
+        else
+            doSave = strcmp(event.EventName, 'Action');
         end
-        ext = '*.jpg; *.tif; *.png; *.gif; *.eps; *.pdf';
-        [file, path] = ...
-        uiputfile({ext, ['Images (', ext ,')']; ...
-                  '*.*', 'All Files'} ,...
-                  'Save Image', [plotname, '.jpg']);
-       
-       if isnumeric(file) && file == 0
-           % User aborted action
-           return
-       end
+        
+        if doSave
+            plotname = fld;
+            if numel(wells) > 0
+                plotname = [plotname, sprintf('_%s', wells{:})];
+            end
+            ext = '*.jpg; *.tif; *.png; *.gif; *.eps; *.pdf';
+            [file, path] = ...
+            uiputfile({ext, ['Images (', ext ,')']; ...
+                      '*.*', 'All Files'} ,...
+                      'Save Image', [plotname, '.jpg']);
+
+           if isnumeric(file) && file == 0
+               % User aborted action
+               return
+           end
+        end
        % Need this to make a copy of the axis
        dap = get(0, 'DefaultAxesPosition');
-       
        dims = get(fh, 'Position');
-       newdims = dims.*[1, 1, pw + dap(1), 1];
+       newdims = dims.*[1, 1, pw + 2*.75*lm, 1];
        tmpfig = figure('Position', newdims);
        set(tmpfig,'PaperPositionMode','auto');
        if isnan(double(legh))
@@ -515,36 +523,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            ax = copyobj([legh, plotaxis], tmpfig);
            ax = ax(2);
        end
+       % Refresh new axes
+       drawnow
        % Approx same dimensions as the gui reference
        set(ax, 'Position', dap)
-       
-       if exist('export_fig', 'file') == 2
-           % Export fig is installed and we can call it
-           export_fig([path, file], '-transparent');
+       if doSave
+           [fileext, fileext, fileext] = fileparts(file); %#ok
+           fileext = fileext(2:end);
+
+           switch(lower(fileext))
+               case {'jpg', 'jpeg'}
+                   popt = '-djpeg';
+               case {'tif', 'tiff'}
+                   popt = '-dtiff';
+               case 'png'
+                   popt = '-dpng';
+               case 'pdf'
+                   popt = '-dpdf';
+               case 'eps'
+                   popt = '-depsc';
+               otherwise
+                   close(tmpfig);
+                   error(['Unable to save file. Unknown file extension ', fileext]); 
+           end
+           print(tmpfig, popt, [path, file]);
            close(tmpfig);
-           return
        end
-       
-       [fileext, fileext, fileext] = fileparts(file); %#ok
-       fileext = fileext(2:end);
-       
-       switch(lower(fileext))
-           case {'jpg', 'jpeg'}
-               popt = '-djpeg';
-           case {'tif', 'tiff'}
-               popt = '-dtiff';
-           case 'png'
-               popt = '-dpng';
-           case 'pdf'
-               popt = '-dpdf';
-           case 'eps'
-               popt = '-depsc';
-           otherwise
-               error(['Unable to save file. Unknown file extension ', fileext]); 
-               close(tmpfig);
-       end
-       print(tmpfig, popt, [path, file]);
-       close(tmpfig);
     end
 
     function saveDataToWorkSpace(src, event)
