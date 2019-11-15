@@ -16,9 +16,21 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
             end
             cfl_s = estimateSaturationCFL(model, state, 1/fsb.saturationCFL, 'forces', forces);
             cfl_c = estimateCompositionCFL(model, state, 1/fsb.compositionCFL, 'forces', forces);
-
-            dt_max = 1./max([cfl_s, cfl_c], [], 2);
-            dt_max = min(dt_max);
+            
+            dt_max_z = min(1./max(cfl_c, [], 2));
+            dt_max_s = min(1./max(cfl_s, [], 2));
+            dt_max = min(dt_max_z, dt_max_s);
+            if fsb.verbose
+                if dt_max < dt
+                    if dt_max_z > dt_max_s
+                        s = 'composition';
+                    else
+                        s = 'saturation';
+                    end
+                    fprintf('Time-step limited by %s CFL condition: %s reduced to %s (%1.2f%% reduction)\n', ...
+                        s, formatTimeRange(dt, 2), formatTimeRange(dt_max, 2), 100*(dt - dt_max)/dt);
+                end
+            end
         end
         
         function flowState = build(builder, fd, model, state, state0, dt)
