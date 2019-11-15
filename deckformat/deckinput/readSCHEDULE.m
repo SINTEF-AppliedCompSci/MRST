@@ -144,6 +144,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Handle 'INCLUDE' (recursion).
             deck = set_state(deck, schd, miss_kw);
 
+            save_cno = cno;
             [deck, def_ctrl, cno] = ...
                readEclipseIncludeFile(@readSCHEDULE, fid, dirname, ...
                                       deck.RUNSPEC,                ...
@@ -154,8 +155,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Prepare for additional reading.
             [schd, miss_kw] = get_state(deck);
 
+            if def_ctrl || (cno > save_cno)
+               ctrl = schd.control(end);
+            end
+
             if def_ctrl
-               ctrl         = schd.control(end);
                schd.control = schd.control(1:end-1);
             end
 
