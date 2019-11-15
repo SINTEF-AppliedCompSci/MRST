@@ -193,14 +193,16 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
                 
                 % Water is always first
                 wix = 1;
-                cqWs = qMass{wix}./f.rhoWS; % get volume rate, at
-                                            % surface condition.
+                % compute water volume rate at surface condition at each well connection
+                cqWs = qMass{wix}./f.rhoWS; % get volume rate, at surface condition.
                 if well.isInjector()
                     concWell = model.getProp(well.W, 'surfactant');
+                    % compute surfactant mass injected at each well connection
                     cqS = concWell.*cqWs;
                 else
                     pix = strcmpi(model.getComponentNames(), 'surfactant');
                     concWell = packed.components{pix};
+                    % compute surfactant mass produced at each well connection
                     cqS = concWell.*cqWs;
                 end
                 qwsft = packed.extravars{strcmpi(packed.extravars_names, 'qwsft')};
