@@ -59,10 +59,11 @@ classdef TransportModel < WrapperModel
                 origin{isP} = class(model);
             else
                 % Remove pressure and skip saturation closure
-                vars = vars(~isP);
-                names = names(~isP);
-                origin = origin(~isP);
-                isPrimaryVariable(isP) = false;
+                keep = ~isP;
+                vars = vars(keep);
+                names = names(keep);
+                origin = origin(keep);
+                isPrimaryVariable = isPrimaryVariable(keep);
             end
             if init
                 [vars{isPrimaryVariable}] = model.AutoDiffBackend.initVariablesAD(vars{isPrimaryVariable});
