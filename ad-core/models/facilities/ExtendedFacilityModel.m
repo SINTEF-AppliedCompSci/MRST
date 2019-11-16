@@ -307,14 +307,16 @@ classdef ExtendedFacilityModel < FacilityModel
 
             [state, report] = updateAfterConvergence@FacilityModel(model, state0, state, dt, drivingForces);
             map = state.FacilityFluxProps.FacilityWellMapping;
-            cf = state.FacilityFluxProps.ComponentTotalFlux;
+            phaseq = value(model.getProp(state, 'PhaseFlux'));
+            cf = model.getProp(state, 'ComponentTotalFlux');
             if iscell(cf)
-                cf = [cf{:}];
+                cf = reshape(cf, 1, []);
             end
+            cf = value(cf);
             for i = 1:numel(map.active)
                 wi = map.active(i);
                 act = map.perf2well == i;
-                state.wellSol(wi).flux = state.FacilityFluxProps.PhaseFlux(act, :);
+                state.wellSol(wi).flux = phaseq(act, :);
                 state.wellSol(wi).ComponentTotalFlux = cf(act, :);
             end
         end
