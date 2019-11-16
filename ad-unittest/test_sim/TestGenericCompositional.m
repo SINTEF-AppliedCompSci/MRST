@@ -95,6 +95,16 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                 case 'overall-legacy-si'
                     model = OverallCompositionCompositionalModel(arg{:});
                     model = getSequentialModelFromFI(model);
+                case 'natural-si'
+                    parent = GenericNaturalVariablesModel(arg{:});
+                    pmodel = PressureModel(parent);
+                    tmodel = TransportModel(parent);
+                    model = SequentialPressureTransportModel(pmodel, tmodel);
+                case 'overall-si'
+                    parent = GenericOverallCompositionModel(arg{:});
+                    pmodel = PressureModel(parent);
+                    tmodel = TransportModel(parent);
+                    model = SequentialPressureTransportModel(pmodel, tmodel);
                 otherwise
                     error('%s is unknown', modelType);
             end
