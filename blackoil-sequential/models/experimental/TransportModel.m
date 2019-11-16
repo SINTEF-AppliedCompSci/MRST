@@ -113,6 +113,7 @@ classdef TransportModel < WrapperModel
             model = validateModel@WrapperModel(model, varargin{:});
             pmodel = model.parentModel;
             hasFacility = isprop(pmodel, 'FacilityModel') && ~isempty(pmodel);
+            isTotalSat = strcmpi(model.formulation, 'totalSaturation');
             if defaultedDiscretization
                 fd = pmodel.FluxDiscretization;
                 fp = pmodel.FlowPropertyFunctions;
@@ -125,7 +126,7 @@ classdef TransportModel < WrapperModel
                 fd = fd.setStateFunction('TotalFlux', FixedTotalFlux(pmodel));
                 fd = fd.setStateFunction('FaceTotalMobility', FaceTotalMobility(pmodel));
                 % Set flow properties
-                if strcmpi(model.formulation, 'totalSaturation')
+                if isTotalSat
                     fp = fp.setStateFunction('TotalSaturation', TotalSaturation(pmodel));
                     fp = fp.setStateFunction('ComponentMobility', ComponentMobilityTotalSaturation(pmodel));
                     fp = fp.setStateFunction('ComponentPhaseMass', ComponentPhaseMassTotalSaturation(pmodel));
@@ -137,6 +138,12 @@ classdef TransportModel < WrapperModel
             if hasFacility
                 % Disable primary variables in transport!
                 model.parentModel.FacilityModel.primaryVariableSet = 'none';
+                if defaultedDiscretization
+                    fdp = model.parentModel.FacilityModel.FacilityFluxDiscretization;
+                    qf = WellPhaseFluxTotalFixed(model.parentModel);
+                    fdp = fdp.setStateFunction('ComponentTotalFlux', qf);
+                    model.parentModel.FacilityModel.FacilityFluxDiscretization = fdp;
+                end
             end
         end
         
