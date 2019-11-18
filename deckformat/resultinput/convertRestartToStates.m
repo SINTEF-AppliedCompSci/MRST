@@ -26,6 +26,7 @@ opt     = struct('additionalFields',    {{}}, ...
                  'includeWellSols',     true, ...
                  'includeFluxes',       true, ...
                  'includeMobilities',   true, ...
+                 'includeAquifers',     false, ...
                  'neighbors',           [],   ...
                  'wellSolsFromRestart', true, ...
                  'consistentWellSols',  true,...
@@ -262,18 +263,22 @@ for k = 1:numel(tr)
             f(~isfinite(f)) = 0;
         end
         states{k}.flux = convertFrom(f, unit.qr);
-        end
-
+    end
+    
     % wellSols
     if opt.includeWellSols
         if opt.wellSolsFromRestart
-            states{k}.wellSol = createWellSol(rstrt, k, ijk2act);
-            %aq = createAquiSol(rstrt, k, ijk2act);
-            %if ~isempty(aq)
-            %   states{k}.wellSol = [states{k}.wellSol; aq];
-            %end
+            states{k}.wellSol = createWellSol(rstrt, k, ijk2act);   
         else
             states{k}.wellSol = wellSols{k};
+        end
+    end
+    
+    % aquifers
+    if opt.includeAquifers
+        aq = createAquiSol(rstrt, k, ijk2act);
+        if ~isempty(aq)
+            states{k}.aquiSol= aq;
         end
     end
 end
