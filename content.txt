@@ -1,0 +1,29 @@
+fv-unsat consists of the following folders:
+
+* conv_tests
+* data
+* examples
+* utility
+
+The conv_tests folder contains two functions: convergence_re.m (needed for the first numerical example) and convergence_re_biot.m (needed for the second numerical example).
+
+The data folder contains three .mat files (coarseGrid.mat, middleGrid.mat and fineGrid.mat) and the function getHydraulicProperties.m. The .mat files are necessary for grid generation for the last example and the function is a mini-catalog of hydraulic properties.
+
+The examples folder contains the examples that you will find in the chapter:
+
+* convAnalysisRe.m
+* convAnalysisUnsatBiot.m
+* waterInfiltrationRE.m
+* desiccationUnsatBiot.m
+
+Finally, in the utility folder, you will find the following auxiliary functions
+
+* arithmeticAverageMPFA.m
+* computeCriticalPressure.m
+* computeTopPressure.m
+* solverRE.m
+* solverUnsatBiot.m
+* timeStepping.
+* upstreamWeightingMPFA.m
+* vanGenuchtenMualemSw.m
+* vanGenuchtenMualemTheta.m
