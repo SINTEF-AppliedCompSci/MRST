@@ -10,6 +10,10 @@ classdef FlowStateBuilder
     end
     
     methods
+        function fsb = FlowStateBuilder(varargin)
+            fsb = merge_options(fsb, varargin{:});
+        end
+
         function dt = getMaximumTimestep(fsb, fd, model, state, state0, dt, forces)
             % Maximum time-step for discretization (required for stability
             % when dealing with explicit methods). The default is implicit

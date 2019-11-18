@@ -341,6 +341,11 @@ classdef FacilityModel < PhysicalModel
                     names = {'bhp'};
                 case 'bhp_massfractions'
                     names = {'bhp', 'well_massfractions'};
+                case 'none'
+                    names = {};
+                otherwise
+                    error('Invalid primary variable set %s for FacilityModel',...
+                                                        model.primaryVariableSet);
             end
         end
 
@@ -381,7 +386,8 @@ classdef FacilityModel < PhysicalModel
                 active = model.getWellStatusMask(wellSol);
                 wellSol = wellSol(active);
                 names = model.getBasicPrimaryVariableNames();
-                variables = cell(size(names));
+                nvar = numel(names);
+                variables = cell(1, nvar);
                 isCOMP = false(size(variables));
                 for i = 1:numel(variables)
                     if strcmp(names{i}, 'well_massfractions')
@@ -393,9 +399,11 @@ classdef FacilityModel < PhysicalModel
                     end
                 end
                 
-                isBHP = false(size(variables));
-                isBHP(end) = true;
-                isRate = ~isBHP;% & ~isCOMP;
+                isBHP = false(1, nvar);
+                if nvar > 0
+                    isBHP(end) = true;
+                end
+                isRate = ~isBHP;
             end
             map = struct('isBHP', isBHP, 'isRate', isRate);
         end

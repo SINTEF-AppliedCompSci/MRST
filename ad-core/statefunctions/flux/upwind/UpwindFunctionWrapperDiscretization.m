@@ -23,5 +23,9 @@ classdef UpwindFunctionWrapperDiscretization < UpwindDiscretization
         function v = faceUpstream(wrapper, model, state, flag, cellvalue)
             v = wrapper.function_handle(flag, cellvalue);
         end
+        
+        function ufn = setFunctionHandle(ufn, up)
+            ufn.function_handle = up;
+        end
     end
 end

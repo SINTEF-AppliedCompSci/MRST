@@ -19,14 +19,16 @@ classdef TransportModel < WrapperModel
             % Get the AD state for this model
             [basevars, basenames, baseorigin] = model.getPrimaryVariables(state);
             isParent = strcmp(baseorigin, class(parent));
-            basevars = basevars(isParent);
-            basenames = basenames(isParent);
-            baseorigin = baseorigin(isParent);
+            isPrimaryVariable = isParent;
             % Find saturations
             isS = false(size(basevars));
             nph = parent.getNumberOfPhases();
             phase_variable_index = zeros(nph, 1);
             for i = 1:numel(basevars)
+                if ~isParent(i)
+                    % Skip wells etc
+                    continue
+                end
                 bn = basenames{i};
                 if strcmp(bn, 'x')
                     % Hack for blackoil-models
@@ -57,12 +59,14 @@ classdef TransportModel < WrapperModel
                 origin{isP} = class(model);
             else
                 % Remove pressure and skip saturation closure
-                vars = vars(~isP);
-                names = names(~isP);
-                origin = origin(~isP);
+                keep = ~isP;
+                vars = vars(keep);
+                names = names(keep);
+                origin = origin(keep);
+                isPrimaryVariable = isPrimaryVariable(keep);
             end
             if init
-                [vars{:}] = model.AutoDiffBackend.initVariablesAD(vars{:});
+                [vars{isPrimaryVariable}] = model.AutoDiffBackend.initVariablesAD(vars{isPrimaryVariable});
             end
             if useTotalSaturation
                 basevars(~isP) = vars(~isP);
@@ -75,6 +79,9 @@ classdef TransportModel < WrapperModel
                 sT = vars{isP};
                 state = model.setProp(state, replacement, sT);
             end
+            % Finally remove the non-primary values from the list
+            names = names(isPrimaryVariable);
+            origin = origin(isPrimaryVariable);
         end
         
 
@@ -105,8 +112,10 @@ classdef TransportModel < WrapperModel
         function model = validateModel(model, varargin)
             defaultedDiscretization = isempty(model.parentModel.FluxDiscretization);
             model = validateModel@WrapperModel(model, varargin{:});
+            pmodel = model.parentModel;
+            hasFacility = isprop(pmodel, 'FacilityModel') && ~isempty(pmodel);
+            isTotalSat = strcmpi(model.formulation, 'totalSaturation');
             if defaultedDiscretization
-                pmodel = model.parentModel;
                 fd = pmodel.FluxDiscretization;
                 fp = pmodel.FlowPropertyFunctions;
                 % Replace existing properties with total flux variants
@@ -118,7 +127,7 @@ classdef TransportModel < WrapperModel
                 fd = fd.setStateFunction('TotalFlux', FixedTotalFlux(pmodel));
                 fd = fd.setStateFunction('FaceTotalMobility', FaceTotalMobility(pmodel));
                 % Set flow properties
-                if strcmpi(model.formulation, 'totalSaturation')
+                if isTotalSat
                     fp = fp.setStateFunction('TotalSaturation', TotalSaturation(pmodel));
                     fp = fp.setStateFunction('ComponentMobility', ComponentMobilityTotalSaturation(pmodel));
                     fp = fp.setStateFunction('ComponentPhaseMass', ComponentPhaseMassTotalSaturation(pmodel));
@@ -126,6 +135,16 @@ classdef TransportModel < WrapperModel
                 % Replace object
                 model.parentModel.FluxDiscretization = fd;
                 model.parentModel.FlowPropertyFunctions = fp;
+            end
+            if hasFacility
+                % Disable primary variables in transport!
+                model.parentModel.FacilityModel.primaryVariableSet = 'none';
+                if defaultedDiscretization
+                    fdp = model.parentModel.FacilityModel.FacilityFluxDiscretization;
+                    qf = WellPhaseFluxTotalFixed(model.parentModel);
+                    fdp = fdp.setStateFunction('ComponentTotalFlux', qf);
+                    model.parentModel.FacilityModel.FacilityFluxDiscretization = fdp;
+                end
             end
         end
         

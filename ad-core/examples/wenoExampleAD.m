@@ -32,9 +32,8 @@ weno = WENOUpwindDiscretization(model_weno);
 model_weno = model_weno.validateModel();
 props = model_weno.FluxDiscretization;
 disp(props)
-props.FaceComponentMobility = FaceComponentMobility(model_weno, weno);
-props.FaceMobility = FaceMobility(model_weno, weno);
-
+props = props.setStateFunction('FaceMobility', FaceMobility(model_weno, weno));
+props = props.setStateFunction('FaceComponentMobility', FaceComponentMobility(model_weno, weno));
 model_weno.FluxDiscretization = props;
 
 [ws_weno, states_weno, report_weno] = simulateScheduleAD(state0, model_weno, schedule);

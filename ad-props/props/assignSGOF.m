@@ -1,11 +1,15 @@
 function f = assignSGOF(f, sgof, reg)
-    [f.krG, f.krOG, f.pcOG, f.krPts.g, f.krPts.og] = getFunctions(f, sgof, reg);
+    [f.krG, f.krOG, pcOG, f.krPts.g, f.krPts.og, hasPC] = getFunctions(f, sgof, reg);
+    if hasPC
+        f.f.pcOG = f.pcOG;
+    end
 end
 
-function [krG, krOG, pcOG, pts, pts_o] = getFunctions(f, SGOF, reg)
+function [krG, krOG, pcOG, pts, pts_o, hasPC] = getFunctions(f, SGOF, reg)
     [krG, krOG, pcOG] = deal(cell(1, reg.sat));
     
     [pts, pts_o] = deal(zeros(reg.sat, 4));
+    hasPC = false;
     for i = 1:reg.sat
         if isfield(f, 'krPts')
             swcon = f.krPts.w(i, 1);
@@ -16,10 +20,11 @@ function [krG, krOG, pcOG, pts, pts_o] = getFunctions(f, SGOF, reg)
         [pts(i, :), pts_o(i, :)] = getPoints(SGOF{i}, swcon);
         sgof = extendTab(SGOF{i});
         SG = sgof(:, 1);
+        pc = sgof(:, 4);
+        hasPC = hasPC || any(pc ~= 0);
         krG{i} = @(sg) interpTable(SG, sgof(:, 2), sg);
-
         krOG{i} = @(so) interpTable(SG, sgof(:, 3), 1-so-swcon);
-        pcOG{i} = @(sg) interpTable(SG, sgof(:, 4), sg);
+        pcOG{i} = @(sg) interpTable(SG, pc, sg);
     end
 end
 

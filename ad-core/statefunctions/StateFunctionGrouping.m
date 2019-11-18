@@ -140,15 +140,7 @@ classdef StateFunctionGrouping
                 state = props.evaluateStateFunctionWithDependencies(model, state, name);
             end
             v = state.(props.structName).(name);
-
-            if isnumeric(v) && size(v, 2) > 1
-                n = size(v, 2);
-                out = cell(1, n);
-                for i = 1:n
-                    out{i} = v(:, i);
-                end
-                v = out;
-            end
+            v = expandIfUniform(v);
         end
 
         function state = evaluateStateFunction(props, model, state, name)

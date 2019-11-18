@@ -72,12 +72,18 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
                 % Well cells are taken implicitly
                 wc = vertcat(drivingForces.W.cells);
                 implicit(wc) = true;
+            else
+                wc = [];
             end
             nc = numel(implicit);
             ni_s = sum(impl_sat);
             ni_c = sum(impl_comp);
+            ni_w = numel(wc);
             ni = sum(implicit);
-            dispif(builder.verbose, 'Adaptive implicit: %d of %d cells are implicit. %d limited by composition, %d limited by saturation (%2.2f%%)\n', ni, nc, ni_c, ni_s, 100*ni/nc);
+            dispif(builder.verbose, ...
+                ['Adaptive implicit: %d of %d cells are implicit (%2.2f%%).\n', ...
+                '%d limited by composition, %d limited by saturation, %d belong to wells.\n'], ...
+                ni, nc, 100*ni/nc, ni_c, ni_s, ni_w);
             state.implicit = implicit;
         end
     end
