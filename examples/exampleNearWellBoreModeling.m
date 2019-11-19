@@ -1,15 +1,16 @@
 %% Near-wellbore modeling (NWM) example
 % 
-% Typically, the horizontal well (HW) is built by the standard well model 
-% (Peaceman's model) that inserts the virtual well into coarse reservoir 
-% grid. However, the standard model gives a grid-based well trajectory,
-% which will be rather unrigorous when the real well trajectory fails to 
-% follows the grid orientation. For another, some field operations require
-% high-resolution flow descriptions in the well vicinity. The coarse well 
-% cells always unable to provide such descriptions due to the linear flow
-% approxmation and low-resolution rock properties. To this end, this 
-% example demonstrates the local grid reconstruction in the near-wellbore 
-% region of horizontal well. 
+% Typically, the horizontal well (HW) is built in the Corner-point grid 
+% (CPG) or Cartesian grid by the standard well model (Peaceman's model) 
+% that inserts the virtual well into coarse reservoir grid. However, the 
+% standard model gives a grid-based well trajectory, which will be rather 
+% unrigorous when the real well trajectory fails to follow the grid 
+% orientation. For another, some field operations require high-resolution 
+% flow descriptions in the well vicinity. The coarse well cells always 
+% unable to provide such descriptions due to the linear flow approxmation 
+% and low-resolution rock properties. To this end, this example 
+% demonstrates the local grid reconstruction in the near-wellbore region of
+% horizontal well. 
 %
 % The global grid will consist of three subgrids that adopt different
 % gridding strategies and transmissibility calculations:
