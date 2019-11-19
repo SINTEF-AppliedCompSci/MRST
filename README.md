@@ -7,7 +7,7 @@ cell-centered finite volume methods, specifically MPFA-O and MPSA-W. Note that i
 There are four numerical examples accompanying this module:
 * convAnalysisRE.m
 * convAnalysisUnsatBiot.m
-* waterInfiltration.m
+* waterInfiltrationRE.m
 * desiccationUnsatBiot.m
 
 The first two are convergence tests and the last two are practical applications. Even though the numerical tests are well documented, they are not meant as tutorials, but are rather included for demonstrative purposes. To learn the basics regardign the module usage, we recommend waterInfiltration.m.
