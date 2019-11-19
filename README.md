@@ -1,4 +1,4 @@
-# fv-unsat: An MRST module for the equations of unsaturated poroelasticity
+# fv-unsat
 
 ## Description
 This module implements a discretization of the (three-dimensional) equations of unsaturated poroelasticity using
