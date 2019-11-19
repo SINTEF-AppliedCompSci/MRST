@@ -13,6 +13,10 @@ function [F, Q] = getFractionalFlowMagnitude(model, state)
 end
 
 function [F, Q] = getFractionalFlowMagnitudeInternal(model, state)
+    if isempty(model.FlowPropertyFunctions)
+        model = model.validateModel();
+    end
+    state = model.reduceState(state, true);
     s = model.getProp(state, 'saturation');
     nph = size(s, 2);
     s = arrayfun(@(x) s(:, x), 1:nph, 'UniformOutput', false);
@@ -23,9 +27,7 @@ function [F, Q] = getFractionalFlowMagnitudeInternal(model, state)
         s{end} = s{end} - s{i};
     end
     state = model.setProp(state, 'saturation', s);
-    if isempty(model.FlowPropertyFunctions)
-        model = model.validateModel();
-    end
+
     mob = model.getProps(state, 'Mobility');
 
     mobT = 0;

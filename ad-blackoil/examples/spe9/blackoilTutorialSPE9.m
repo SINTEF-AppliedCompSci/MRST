@@ -418,7 +418,7 @@ fn = getPlotAfterStep(state0, model, schedule, ...
 % The interactive viewer can be used to visualize the wells and is the best
 % choice for interactive viewing.
 
-plotWellSols(wellsols, cumsum(schedule.step.val), 'field', 'qTr')
+plotWellSols(wellsols, cumsum(schedule.step.val))
 h = gcf;
 
 %% Load comparison data from commercial solver

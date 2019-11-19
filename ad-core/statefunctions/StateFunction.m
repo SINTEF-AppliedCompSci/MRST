@@ -93,7 +93,9 @@ classdef StateFunction
             varargout = cell(nargout, 1);
             s = struct(state.(prop.structName));
             for i = 1:nargout
-                varargout{i} = s.(varargin{i});
+                v = s.(varargin{i});
+                v = expandIfUniform(v);
+                varargout{i} = v;
             end
         end
     end

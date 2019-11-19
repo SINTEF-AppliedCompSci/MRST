@@ -1,22 +1,26 @@
 function f = assignSWOF(f, swof, reg)
-    [f.krW, f.krOW, f.pcOW, f.krPts.w, f.krPts.ow] = getFunctions(swof, reg);
-
+    [f.krW, f.krOW, pcOW, f.krPts.w, f.krPts.ow, hasPC] = getFunctions(swof, reg);
+    if hasPC
+        f.pcOW = pcOW;
+    end
 end
 
-function [krW, krOW, pcOW, pts_w, pts_ow] = getFunctions(SWOF, reg)
+function [krW, krOW, pcOW, pts_w, pts_ow, hasPC] = getFunctions(SWOF, reg)
     pts_w = zeros(reg.sat, 4);
     pts_ow = zeros(reg.sat, 4);
     
     [krW, krOW, pcOW] = deal(cell(1, reg.sat));
-    
+    hasPC = false;
     for i = 1:reg.sat
         [pts_w(i, :), pts_ow(i, :)] = getPoints(SWOF{i});
         
         swof = extendTab(SWOF{i});
         SW = swof(:, 1);
+        pc = swof(:, 4);
+        hasPC = hasPC || any(pc ~= 0);
         krW{i} = @(sw) interpTable(SW, swof(:, 2), sw);
         krOW{i} = @(so) interpTable(SW, swof(:, 3), 1-so);
-        pcOW{i} = @(sw) interpTable(SW, swof(:, 4), sw);
+        pcOW{i} = @(sw) interpTable(SW, pc, sw);
     end
 end
 

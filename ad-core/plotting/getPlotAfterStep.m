@@ -102,6 +102,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     if opt.plotReservoir
+        mrstModule add mrst-gui
         hdata = figure;
         [~, injData] = plotToolbar(G, {state0; state0}, extra{:});
         axis tight

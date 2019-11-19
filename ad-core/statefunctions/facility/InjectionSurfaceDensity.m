@@ -1,6 +1,5 @@
 classdef InjectionSurfaceDensity < StateFunction
-    % Generate a struct containing a bunch of useful mappings for a given
-    % set of active wells
+    % Get injection surface density
     properties
 
     end
@@ -26,6 +25,12 @@ classdef InjectionSurfaceDensity < StateFunction
                 % injectors
                 rhoS(map.isInjector, :) = vertcat(W(map.isInjector).rhoS);
             end
+            nph = size(rhoS, 2);
+            tmp = cell(1, nph);
+            for i = 1:nph
+                tmp{i} = rhoS(:, i);
+            end
+            rhoS = tmp;
         end
     end
 end

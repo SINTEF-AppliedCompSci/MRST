@@ -3,13 +3,18 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
         includeWater = {true, false};
         backend = {'diagonal', 'diagonal-mex', 'sparse'};
         fluidSystem = {'simple'};
-        modelType = {'natural','natural-legacy','overall','overall-legacy'};
+        modelType = {'natural',...
+                     'natural-legacy',...
+                     'overall',...
+                     'overall-legacy',...
+                     'natural-legacy-si', ...
+                     'overall-legacy-si'};
     end
     
     methods
         function test = TestGenericCompositional()
             mrstModule reset
-            mrstModule add ad-unittest ad-core ad-blackoil ad-props compositional
+            mrstModule add ad-unittest ad-core ad-blackoil ad-props compositional blackoil-sequential
         end
 
         function [state0, model, schedule] = buildTestCase(test, modelType, includeWater, fluidSystem, backend, varargin)
@@ -84,12 +89,29 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                     model = GenericOverallCompositionModel(arg{:});
                 case 'overall-legacy'
                     model = OverallCompositionCompositionalModel(arg{:});
+                case 'natural-legacy-si'
+                    model = NaturalVariablesCompositionalModel(arg{:});
+                    model = getSequentialModelFromFI(model);
+                case 'overall-legacy-si'
+                    model = OverallCompositionCompositionalModel(arg{:});
+                    model = getSequentialModelFromFI(model);
+                case 'natural-si'
+                    parent = GenericNaturalVariablesModel(arg{:});
+                    pmodel = PressureModel(parent);
+                    tmodel = TransportModel(parent);
+                    model = SequentialPressureTransportModel(pmodel, tmodel);
+                case 'overall-si'
+                    parent = GenericOverallCompositionModel(arg{:});
+                    pmodel = PressureModel(parent);
+                    tmodel = TransportModel(parent);
+                    model = SequentialPressureTransportModel(pmodel, tmodel);
                 otherwise
                     error('%s is unknown', modelType);
             end
 
             time = 1*year;
-            irate = 0.1*sum(model.operators.pv)/time;
+            pv = poreVolume(G, rock);
+            irate = 0.1*sum(pv)/time;
 
             W = [];
             W = verticalWell(W, G, rock, 1, 1, [], 'comp_i', inj, ...

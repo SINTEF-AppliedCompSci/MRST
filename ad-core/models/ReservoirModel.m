@@ -140,12 +140,13 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function dt = getMaximumTimestep(model, state, state0, dt, drivingForces)
+    function dt = getMaximumTimestep(model, state, state0, dt0, drivingForces)
         % Define the maximum allowable time-step based on physics or
         % discretization choice
-        dt = getMaximumTimestep@PhysicalModel(model, state, state0, dt, drivingForces);
+        dt = getMaximumTimestep@PhysicalModel(model, state, state0, dt0, drivingForces);
         if ~isempty(model.FluxDiscretization)
-            dt = model.FluxDiscretization.getMaximumTimestep(model, state, state0, dt, drivingForces);
+            dt_f = model.FluxDiscretization.getMaximumTimestep(model, state, state0, dt0, drivingForces);
+            dt = min(dt, dt_f);
         end
     end
 

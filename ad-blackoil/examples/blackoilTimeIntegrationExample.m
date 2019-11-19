@@ -1,20 +1,7 @@
 mrstModule add ad-core ad-blackoil deckformat ad-props linearsolvers
-
-% name = 'spe9_mrst'
 mrstVerbose on
-name = 'spe1'
-% name = 'qfs';
-% name = 'spe9'
-% name = 'linear';
 [G, rock, fluid, deck, state] = setupSPE1();
 [state0, model, schedule] = initEclipseProblemAD(deck);
-
-% [state0, model, schedule, nls, opm] = setupAssemblyTestCase(name);
-G = model.G;
-
-
-
-
 
 %% Fully-implicit
 % The default discretization in MRST is fully-implicit. Consequently, we

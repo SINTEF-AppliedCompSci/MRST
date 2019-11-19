@@ -30,7 +30,7 @@ classdef NonLinearSolver < handle
         minIterations = 1 % The minimum number of solves during a ministep.
         maxTimestepCuts = 6 % The maximum number of times the timestep can be halved before it is counted as a failed attempt
         LinearSolver % The solver used to solve the linearized problems during the simulation.
-        verbose = mrstVerbose(); % Verbose flag used to get extra output during simulation.
+        verbose = []; % Verbose flag used to get extra output during simulation.
         reportLevel = 0 % Amount of data to be output in report. Higher numbers may give more output.
         identifier = '' % String identifier for the nonlinear solver
         timeStepSelector % Subclass of SimpleTimeStepSelector used to select timesteps
@@ -47,6 +47,7 @@ classdef NonLinearSolver < handle
         %       x_new = x_old + dx*w + dx_prev*(1-w)
         relaxationType = 'dampen' % Relaxation is reduced by this when stagnation occurs
         relaxationIncrement = 0.1 % Change in relaxation on stagnation/oscillation
+        relaxationDecrement = [] % Change in relaxation on stagnation/oscillation
         minRelaxation = 0.5 % Lowest possible relaxation factor
         maxRelaxation = 1.0 % Largest possible relaxation factor
         
@@ -63,13 +64,13 @@ classdef NonLinearSolver < handle
         stagnateTol = 1e-2 % Stagnation tolerance - used in relaxation to determine of a residual value is no longer decreasing
         errorOnFailure = true % If error on failure is not enabled, the solver will return even though it did not converge. May be useful for debugging. Results should not be relied upon if this is enabled. If errorOnFailure is disabled, the solver will continue after a failed timestep, treating it as a simply non-converged result with the maximum number of iterations
         continueOnFailure = false % Continue even if failure is reported by the model. Results are most likely not useful. Intended for nested nonlinear solvers.
+        convergenceIssues = false;
     end
     
     properties (Access=private)
         % Internal bookkeeping.
         previousIncrement
         previousStepReport
-        convergenceIssues = false;
     end
 
     methods
@@ -80,6 +81,9 @@ classdef NonLinearSolver < handle
             end
             if isempty(solver.timeStepSelector)
                 solver.timeStepSelector = SimpleTimeStepSelector();
+            end
+            if isempty(solver.verbose)
+                solver.verbose = mrstVerbose();
             end
         end
 
@@ -273,6 +277,8 @@ classdef NonLinearSolver < handle
                                 % Unless this was a failure and a special
                                 % option was set, we are all done here.
                                 break;
+                            else
+                                timestepFailure = true;
                             end
                         end
                     else
@@ -387,9 +393,15 @@ classdef NonLinearSolver < handle
                             end
                         end
                         solver.convergenceIssues = true;
-                        solver.relaxationParameter = max(solver.relaxationParameter - solver.relaxationIncrement, solver.minRelaxation);
+                        if isempty(solver.relaxationDecrement)
+                            dw = solver.relaxationIncrement;
+                        else
+                            dw = solver.relaxationDecrement;
+                        end
+                        solver.relaxationParameter = max(solver.relaxationParameter - dw, solver.minRelaxation);
                     else
-                        solver.relaxationParameter = min(solver.relaxationParameter + solver.relaxationIncrement, solver.maxRelaxation);
+                        dw = solver.relaxationIncrement;
+                        solver.relaxationParameter = min(solver.relaxationParameter + dw, solver.maxRelaxation);
                     end
                 end
             end

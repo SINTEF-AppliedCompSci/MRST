@@ -1,4 +1,4 @@
-function  [model, initState, schedule] = setup_aquifertest(fn)
+function  [model, initState, schedule] = setupAquifertest(fn)
 
     deck = readEclipseDeck(fn);
     deck = convertDeckUnits(deck);
