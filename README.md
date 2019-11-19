@@ -29,7 +29,7 @@ For an introduction to MPSA:
 
 ## MRST dependencies
 * incomp
-* fvbiot
+* [fvbiot](https://github.com/pmgbergen/fvbiot)
 
 ## Cite
 If you use fv-unsat, please cite:
