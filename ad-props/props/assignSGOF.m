@@ -1,7 +1,7 @@
 function f = assignSGOF(f, sgof, reg)
     [f.krG, f.krOG, pcOG, f.krPts.g, f.krPts.og, hasPC] = getFunctions(f, sgof, reg);
     if hasPC
-        f.f.pcOG = f.pcOG;
+        f.pcOG = pcOG;
     end
 end
 
