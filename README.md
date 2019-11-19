@@ -1,6 +1,7 @@
 # fv-unsat: An MRST module for unsaturated poroelasticity
 
 <img src="u.gif" width="500" height="400">
+
 *Desiccation of clayey sample in a Petri-dish under atmospheric evaporation*
 
 ## Description
