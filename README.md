@@ -1,4 +1,4 @@
-# fv-unsat
+# fv-unsat: An MRST module for unsaturated poroelasticity
 
 <img src="u.gif" width="500" height="400">
 
