@@ -54,7 +54,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             model.pressureNonLinearSolver.identifier = 'PRESSURE';
             
             if isempty(model.transportNonLinearSolver)
-                model.transportNonLinearSolver = NonLinearSolver();
+                model.transportNonLinearSolver = NonLinearSolver('useRelaxation', true);
             end
             model.transportNonLinearSolver.identifier = 'TRANSPORT';
             
