@@ -1,11 +1,10 @@
 %% Near-wellbore model (NWM) coupling with the Multi-Segment well (MSW) model 
-% This model shows how to couple the NWM with MSW. The 'MultiSegWellNWM'
+% This example shows how to couple the NWM with MSW. The 'MultiSegWellNWM'
 % will automatically generate the nodes and segments for the MSW simulation
-% through building a 'wellbore grid'. The nodes of MSW correspond to the
-% cells of wellbore grid, and the segments of MSW correspond to the faces
-% of wellbore grid. The geometrical information can be obtained by grid
-% geometries, e.g. 'cells.centroids', 'cells.volumes'. The topology of the
-% segments is 'faces.neighbors'.
+% through building a 'wellbore grid'. The nodes/segments of MSW correspond 
+% to the cells/faces of wellbore grid. The geometrical information can be 
+% obtained by grid geometries, e.g. 'cells.centroids', 'cells.volumes'. The
+% topology of the segments is 'faces.neighbors'.
 
 clear
 % Load necessary modules
@@ -43,7 +42,7 @@ well = struct(...
     'skinFactor'   , zeros(ns,1), ...
     'openedSegs'   , 1:ns, ...
     'isMS'         , true, ...
-    'roughness'    , 0 * ones(ns,1));
+    'roughness'    , 1e-4 * ones(ns,1));
 %% Define the volume of interest (VOI)
 % Define the 2D boundary of VOI. The well should be located inside this 
 % boundary in xy plane.
@@ -182,17 +181,22 @@ nnc = MSW.generateNonNeighborConn(intXn, rock, T);
 close all
 %% Setup simultaion model
 model = MSW.setupSimModel(rock, T_all, N_all);
-
 %% Get the simulation schedule
 % The nodes and segments for the MSW simulation are generated through 
-% building a 'wellbore grid'. The nodes of MSW correspond to the cells of
-% wellbore grid, and the segments of MSW correspond to the faces of 
-% wellbore grid. The geometrical information can be obtained by grid 
-% geometries, e.g. 'cells.centroids', 'cells.volumes'. The topology of the
-% segments is 'faces.neighbors'.
+% building a 'wellbore grid'. .
+
 gW  = MSW.wellboreGrid;
+figure, hold on, axis equal off, view([-53, 15]),
+plotGrid(gW, gW.cells.layers==1);
+plotGrid(G, G.cells.grdID==3 & G.cells.layers==1, 'facecolor', 'none');
+
+% The nodes/segments of MSW correspond to the cells/faces of wellbore grid.
+% The geometrical information can be obtained by grid geometries, e.g. 
+% 'cells.centroids', 'cells.volumes'. The topology of the segments is 
+% 'faces.neighbors'
 nodes = MSW.generateNodes()
-segs = MSW.generateSegments()
+segs  = MSW.generateSegments()
+
 
 % Plot the reservoir cells connected to node 2
 MSW.plotCell2Node(nodes, 2)
@@ -232,9 +236,10 @@ plotWellSols(wellSols, report.ReservoirTime)
 ws = wellSols{end}(3);
 nPres = [ws.bhp; ws.nodePressure];
 
-figure, axis equal tight off, view([-85, 9])
+figure, axis equal off, view([-85, 9])
 plotCellData(G, state.pressure, G.cells.grdID==3 & G.cells.layers==1)
 plotCellData(gW, nPres, gW.cells.layers==1)
+title('Pressure of the near-wellbore grid and wellbore grid')
 
 W = schedule.control(1).W(3);
 L = cumsum([0; W.segments.length]);
