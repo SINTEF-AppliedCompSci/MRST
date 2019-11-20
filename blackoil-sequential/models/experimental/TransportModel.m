@@ -142,7 +142,7 @@ classdef TransportModel < WrapperModel
                 if defaultedDiscretization
                     fdp = model.parentModel.FacilityModel.FacilityFluxDiscretization;
                     qf = WellPhaseFluxTotalFixed(model.parentModel);
-                    fdp = fdp.setStateFunction('ComponentTotalFlux', qf);
+                    fdp = fdp.setStateFunction('PhaseFlux', qf);
                     model.parentModel.FacilityModel.FacilityFluxDiscretization = fdp;
                 end
             end
