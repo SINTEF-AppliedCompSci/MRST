@@ -2,7 +2,7 @@
 
 <img src="u.gif" width="500" height="400">
 
-*Desiccation of clayey sample in a Petri-dish under atmospheric evaporation*
+*Desiccation of a clayey sample in a Petri-dish under atmospheric evaporation*
 
 ## Description
 This module implements a discretization of the (three-dimensional) equations of unsaturated poroelasticity using
