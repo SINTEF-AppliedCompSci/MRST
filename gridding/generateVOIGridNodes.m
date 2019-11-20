@@ -213,7 +213,9 @@ function [pIn, pOut, R] = computeAuxPts(p, bn, m0)
     do = true;
     m  = m0;
     while do
-        assert(m < 0.5)
+        if m > 0.5
+            throwError(L)
+        end
         try
             m = m + 0.02;
             R = ( [L(1);L(1:n-1)] + [L(n);L(2:n)] ) * m;
@@ -382,3 +384,11 @@ end
 % %     [p, t] = repairNodes(p, t);
 %     [p, t] = addEmpCells(p, t, bnW);
 % end
+
+function throwError(L)
+    error(['Cannot generate appropriate Voronoi sites, please \n',...
+        '   (1) Increase the resolution of well trajectory (add more well points) \n', ...
+        'Or (2) Use the grid type ''triangular'' instead \n', ...
+        'Or (3) Increase the value of ''WR.ny'', ',...
+        'the suggested value is %.0f (may require to enlarge the VOI boundary)\n'], 1.1*max(L));
+end

@@ -5,7 +5,9 @@ function [pdis, fd] = passToDistmesh(pIB, pOB, multiplier, maxIter, varargin)
     pIB = [pIB; pIB(1,:)];
     pOB = [pOB; pOB(1,:)];
     
-    assert( all(inpolygon(pIB(:,1), pIB(:,2), pOB(:,1), pOB(:,2))) ) 
+    assert( all(inpolygon(pIB(:,1), pIB(:,2), pOB(:,1), pOB(:,2))), ...
+        ['The well region boundary is outside the VOI region, ' ...
+        'please enlarge the VOI boundary']) 
     
     fdI = @(p)dpoly(p, pIB);
     fdO = @(p)dpoly(p, pOB);

@@ -17,7 +17,6 @@ classdef VolumeOfInterest
             % nextra(1): Layer numbers above the layers that HW occupies
             % nextra(2): Layer numbers below the layers that HW occupies
             volume.extraLayers = nextra;
-            
             volume.plotVolumeBoundaries(1, 'plotClippedBoundary',false)
             % All well points should be located inside the boundary
             pW = volume.well.trajectory;
@@ -272,21 +271,9 @@ classdef VolumeOfInterest
             end
             
             % Generate nodes for the unstructured grid
-            switch opt.gridType
-                case 'triangular'
-                    [players, t, bdyID] = ...
-                        generateVOIGridNodes(volume.CPG, packed, WR, layerRf, opt);
-                case 'Voronoi'
-                    try
-                        [players, t, bdyID] = ...
-                            generateVOIGridNodes(volume.CPG, packed, WR, layerRf, opt);
-                    catch
-                        volume.throwError(WR);
-                    end
-                otherwise
-                    error([mfilename, ': Unknown grid type'])
-            end
-            
+            [players, t, bdyID] = ...
+                generateVOIGridNodes(volume.CPG, packed, WR, layerRf, opt);
+   
             % Construct the 2D grid
             p = players{1}(:, [1,2]);
             t = sortPtsCounterClockWise(p, t);
@@ -357,20 +344,6 @@ classdef VolumeOfInterest
             title('2D well reigon subgrid')
         end
         
-        function throwError(volume, WR)
-            % Throw errors received from Voronoi sites generation
-            p   = [vertcat(WR.points.cart); vertcat(WR.points.rad)];
-            bn  = WR.bdnodes;
-            edges = [bn, [bn(2:end); bn(1)]];
-            L  = p(edges(:,1),:) - p(edges(:,2),:);
-            L  = sqrt(sum(L.^2,2));
-            error(['Cannot generate appropriate Voronoi sites, please \n',...
-                '   (1) Increase the resolution of well trajectory (add more well points) \n', ...
-                'Or (2) Use the grid type ''triangular'' instead \n', ...
-                'Or (3) Increase the value of ''WR.ny'', ',...
-                'the suggested value is %.0f (may require to enlarge the VOI boundary)\n'], 1.2*max(L));
-        end
-        
         function maxWellSegLength2D(volume)
             % Compute maximum lengths of well segments
             pW = volume.well.trajectory(:, [1,2]);
@@ -378,10 +351,6 @@ classdef VolumeOfInterest
             L = sqrt(sum(L.^2,2));
             fprintf('    Info : The maximum well-segment length in 2D is %.2f\n', max(L))
         end
-        
-    end
-    
-    methods (Access = protected)
         
         function boxc = boxCellsOfVolume(volume, varargin)
             % Get all box cells of the volume

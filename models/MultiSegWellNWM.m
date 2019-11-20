@@ -117,12 +117,17 @@ classdef MultiSegWellNWM < NearWellboreModel
             % multi-segment well
             gW = msw.wellboreGrid;
             % Topology
-            f   = all(gW.faces.neighbors,2);
+            f   = find( all(gW.faces.neighbors,2) );
             t   = gW.faces.neighbors(f,:);
             t   = sort(t, 2);
             % Length
-            dxyz = gW.cells.centroids(t(:,1), :) - gW.cells.centroids(t(:,2), :);
-            L  = sqrt( sum(dxyz.^2, 2) );
+%             dxyz = gW.cells.centroids(t(:,1), :) - gW.cells.centroids(t(:,2), :);
+%             L    = sqrt( sum(dxyz.^2, 2) );
+            dxyz1 = gW.cells.centroids(t(:,1), :) - gW.faces.centroids(f, :);
+            L1    = sqrt( sum(dxyz1.^2, 2) );
+            dxyz2 = gW.cells.centroids(t(:,2), :) - gW.faces.centroids(f, :);
+            L2    = sqrt( sum(dxyz2.^2, 2) );
+            L     = L1 + L2;
             % Roughness
             roughness = msw.well.roughness;
             roughness = (roughness(1:end-1)+roughness(2:end))/2;
