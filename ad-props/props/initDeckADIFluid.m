@@ -78,7 +78,7 @@ fluid = struct();
 % Properties
 props = deck.PROPS;
 
-for fld = assignable_fields(fieldnames(props))
+for fld = assignable_fields(prioritise(fieldnames(props)))
    try
       fluid = feval(['assign', fld{1}], fluid, props.(fld{1}), reg);
 
@@ -98,6 +98,8 @@ for i = 1:numel(fn)
 end
 end
 
+%--------------------------------------------------------------------------
+
 function reg = getRegions(deck, opt)
     % Legacy regions
     reg = handleRegions(deck, opt.G);
@@ -109,6 +111,26 @@ function reg = getRegions(deck, opt)
         reg.sat = tab(1);
         reg.pvt = tab(2);
     end
+end
+
+%--------------------------------------------------------------------------
+
+function fnames = prioritise(fnames)
+% Pull saturation functions for water to front of list to ensure that SWCON
+% exists when processing saturation functions for gas.
+
+   sfunc_wat = { 'SWFN', 'SWOF' };
+   [in, pos] = ismember(sfunc_wat, fnames);
+
+   if any(in)
+      shape = size(fnames);
+
+      fnames(pos(in)) = [];
+      fnames = [reshape(sfunc_wat(in), [], 1) ; ...
+                reshape(fnames       , [], 1)];
+
+      fnames = reshape(fnames, shape);
+   end
 end
 
 %--------------------------------------------------------------------------
@@ -142,5 +164,3 @@ function excpt = exclude_properties()
             'SCALECRS', 'SWATINIT', ...
             };
 end
-
-%--------------------------------------------------------------------------
