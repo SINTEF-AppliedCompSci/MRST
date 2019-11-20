@@ -15,9 +15,9 @@ classdef MultiSegWellNWM < NearWellboreModel
         end
         
         function model = setupSimModel(nwm, rock, T_all, N_all)
-            % Setup simulation model passed to ad-blackoil solver for the
-            % global grid (the multi-segment well model now only support
-            % 'ThreePhaseBlackOilModel')
+            % Setup simulation model passed to ad-blackoil simulator for 
+            % the global grid (the multi-segment well model now only
+            % support 'ThreePhaseBlackOilModel')
             % rock:  Rock of global grid
             % T_all: Full transmissibility
             % N_all: Neighbor ship

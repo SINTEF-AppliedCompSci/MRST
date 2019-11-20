@@ -223,6 +223,25 @@ classdef NearWellboreModel
             end
         end
 
+        function varargout = assignSubRocks(nwm, rock)
+            % Assign the rocks for updated subgrids from the global rock
+            mapc = nwm.cellMapFromSubGrdsToGloGrd();
+            fn = fieldnames(rock);
+            subRocks = cell(numel(mapc),1);
+            for i = 1 : numel(subRocks)
+                for j = 1 : numel(fn)
+                    subRocks{i}.(fn{j})(mapc{i}(:, 1), :) = ...
+                        rock.(fn{j})(mapc{i}(:, 2), :);
+                end
+            end
+            assert(nargout <= numel(nwm.subGrids))
+            if nargout == 1
+                varargout = {subRocks};
+            else
+                varargout = subRocks(1:nargout);
+            end
+        end
+
         function [T_all, N_all] = assembleTransNeighbors(nwm, T, nnc)
             % Assemble transmissibility and neighbors for the simulation
             % model
@@ -344,25 +363,6 @@ classdef NearWellboreModel
                 ft{k} = tmp;
             end
             ft = cell2mat(ft);
-        end
-        
-        function varargout = assignSubRocks(nwm, rock)
-            % Assign the rocks for updated subgrids from the global rock
-            mapc = nwm.cellMapFromSubGrdsToGloGrd();
-            fn = fieldnames(rock);
-            subRocks = cell(numel(mapc),1);
-            for i = 1 : numel(subRocks)
-                for j = 1 : numel(fn)
-                    subRocks{i}.(fn{j})(mapc{i}(:, 1), :) = ...
-                        rock.(fn{j})(mapc{i}(:, 2), :);
-                end
-            end
-            assert(nargout <= numel(nwm.subGrids))
-            if nargout == 1
-                varargout = {subRocks};
-            else
-                varargout = subRocks(1:nargout);
-            end
         end
         
         function nnc = generateNonNeighborConn(nwm, intXn, rock, T)
@@ -513,8 +513,8 @@ classdef NearWellboreModel
         end
 
         function model = setupSimModel(nwm, rock, T_all, N_all)
-            % Setup simulation model passed to ad-blackoil solver for the
-            % global grid
+            % Setup simulation model passed to ad-blackoil simulator for 
+            % the global grid
             % rock:  Rock of global grid
             % T_all: Full transmissibility
             % N_all: Neighbor ship
@@ -594,7 +594,8 @@ classdef NearWellboreModel
         end
         
         function model = setupCPGSimModel(nwm)
-            % Setup simulation model for the input CPG
+            % Setup simulation model passed to ad-blackoil simulator for
+            % the input CPG grid
             f    = nwm.fluid;
             [GC, ~] = nwm.assignInputSubGrds();
             rockC = nwm.getCPGRockFromDeck();
@@ -625,7 +626,7 @@ classdef NearWellboreModel
         end
         
         function wc = getWellCells(nwm)
-            %  Get well cell indices
+            % Get well cell indices
             G = nwm.gloGrid;
             [~, ~, GW] = nwm.assignSubGrds();
             nA = GW.radDims(1);
