@@ -1,4 +1,4 @@
-function [bdNodes, bdCells] = demo_getBdyNodesCells(G, CI)
+function [bdNodes, bdCells] = demoGetBdyNodesCells(G, CI)
 % An excerpt from 'VolumeOfInterest.getBoundaryInfoSingleSurface' to show
 % how to get the sorted boundary nodes and cells (counterclockwise) of a
 % inner continuous region what we name 'volume of interest (VOI)' specified
@@ -58,13 +58,17 @@ function [bdNodes, bdCells] = demo_getBdyNodesCells(G, CI)
     
     % 4. Get boundary cells of G in VOI -----------------------------------
     bdCells = CI(bc);
+    if numel(bc) ~= unique(numel(bc))
+        error(['Isolate boundary cells are detected, please redefine the', ...
+            ' boundary polygon'])
+    end
     
     % Plot the results
     figure, hold on, axis equal off
     plotGrid(G, 'facecolor', 'none')
-    demo_plotPoly(G.nodes.coords(bdNodes,:), 'b^-', 'b', 4)
-    demo_plotPoly(G.cells.centroids(bdCells,:), 'rs-', 'r', 4)
-    demo_plotPoly(g.faces.centroids(bf,:), 'mp-', 'k', 4)
+    demoPlotPoly(G.nodes.coords(bdNodes,:), 'b^-', 'b', 4)
+    demoPlotPoly(G.cells.centroids(bdCells,:), 'rs-', 'r', 4)
+    demoPlotPoly(g.faces.centroids(bf,:), 'mp-', 'k', 4)
     legend('G', 'Boundary node polygon', 'Boundary cell polygon', ...
         'Boundary faces polygon')
 end

@@ -55,7 +55,7 @@ function [p, t, bdyID] = triangularPts(G, packed, WR, layer, opt)
     delTri  = delaunayTriangulation(pdis);
     
     % Remove cells indise the WR
-    tol = 0.5;
+    tol = 0.1;
     tV    = delTri.ConnectivityList;
     pVmid = ( pdis(tV(:,1),:) + pdis(tV(:,2),:) + pdis(tV(:,3),:) ) / 3; 
     in = fd(pVmid) < -tol;
@@ -401,6 +401,6 @@ function throwError(L)
     error(['Cannot generate appropriate Voronoi sites, please \n',...
         '   (1) Increase the resolution of well trajectory (add more well points) \n', ...
         'Or (2) Use the grid type ''triangular'' instead \n', ...
-        'Or (3) Increase the value of ''WR.ny'', ',...
+        'Or (3) Increase the value of ''WR.ly'', ',...
         'the suggested value is %.0f (may require to enlarge the VOI boundary)\n'], 1.1*max(L));
 end
