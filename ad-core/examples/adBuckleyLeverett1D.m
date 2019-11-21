@@ -33,7 +33,6 @@ fluid = initSimpleADIFluid('phases', 'WO', 'n', [2 2]);
 % Set up model and initial state.
 model = TwoPhaseOilWaterModel(G, rock, fluid);
 state0 = initResSol(G, 50*barsa, [0, 1]);
-state0.wellSol = initWellSolAD([], model, state0);
 
 % Set up drive mechanism: constant rate at x=0, constant pressure at x=L
 pv = poreVolume(G, rock);
@@ -48,6 +47,8 @@ bc = pside(bc, G, 'xmax', 0*barsa, 'sat', [0, 1]);
 solver = NonLinearSolver();
 % Validate the model to prepare for simulation
 model = model.validateModel();
+% Validate the initial state
+state0 = model.validateState(state0);
 
 n  = 25;
 dT = (500/n)*day;
@@ -73,7 +74,7 @@ plotToolbar(G, states, 'field', 's:1', 'plot1d', true, ...
 % conditions, and source terms) that are active in each time step. In
 % addition, one can specify various forms of time-step control. Here,
 % however, we simply rely on the default setup
-schedule = simpleSchedule(repmat(dT,1,25), 'bc', bc);
+schedule = simpleSchedule(repmat(dT,1,n), 'bc', bc);
 [~,sstates] = simulateScheduleAD(state0, model, schedule);
 
 close all
