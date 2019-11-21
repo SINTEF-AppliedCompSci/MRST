@@ -101,8 +101,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'datasetnames', {{}});
     [opt, plotvararg] = merge_options(opt, varargin{:});
     
-    % Grab first wellSol and assume it is representative 
-    samplews = wellsols{1}{1}(1);
+    % Grab first wellSol and assume it is representative
+    if isempty(wellsols{1}{1})
+        disp('No wellSols present in input.');
+        return
+    else
+        samplews = wellsols{1}{1}(1);
+    end
     fn = getNamesFromWS(samplews);
     % Check that default field actually exists
     fnIndex = find(strcmpi(fn, opt.field));
