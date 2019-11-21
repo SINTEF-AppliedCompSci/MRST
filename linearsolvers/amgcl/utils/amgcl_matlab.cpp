@@ -191,7 +191,9 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
           switch(block_size){
             BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_CPR_SOLVER, cpr_drs_block_solve_ptr, AMGCL_BLOCK_SIZES)
             default:
-                mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
+                mexErrMsgIdAndTxt("AMGCL:UndefBlockSize",
+                                  "Failure: Block size %d not supported.",
+                                  block_size);
           }
         }
     }else{
@@ -206,7 +208,9 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
           switch(block_size){
             BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_CPR_SOLVER, cpr_block_solve_ptr, AMGCL_BLOCK_SIZES)
             default:
-                mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
+                mexErrMsgIdAndTxt("AMGCL:UndefBlockSize",
+                                  "Failure: Block size %d not supported.",
+                                  block_size);
           }
         }
     }
@@ -282,7 +286,9 @@ void solve_regular(int n, const M matrix, const mxArray * pa,
       } break;
       BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, block_solve_ptr, AMGCL_BLOCK_SIZES)
         default:
-            mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
+            mexErrMsgIdAndTxt("AMGCL:UndefBlockSize",
+                              "Failure: Block size %d not supported.",
+                              block_size);
     }
 }
 
