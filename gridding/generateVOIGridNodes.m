@@ -113,7 +113,13 @@ function [p, t, bdyID] = VoionoiPts_New(G, packed, WR, layer, opt)
     pVor = pVor(map(:,2), :);
     
     % Remove conflict points (point too close to each other)
-    D = pdist2(pVor, pVor, 'euclidean'); 
+    try
+        % Require Statistics and Machine Learning Toolbox
+        D = pdist2(pVor, pVor, 'euclidean');
+    catch
+        % An alternative to 'pdist2'
+        D = euclideanDistance(pVor, pVor);
+    end
     D = triu(D);
     tol2 = 0.1;
     [removed, reserved] = find(D < tol2);
@@ -130,7 +136,13 @@ function [p, t, bdyID] = VoionoiPts_New(G, packed, WR, layer, opt)
     tVor = tVor( cellfun(@length, tVor) > 3 );
     
     % Add WR points, and map the connectivity list again
-    D2 = pdist2(pVor, pib, 'euclidean'); 
+    try
+        % Require Statistics and Machine Learning Toolbox
+        D2 = pdist2(pVor, pib, 'euclidean');
+    catch
+        % An alternative to 'pdist2'
+        D2 = euclideanDistance(pVor, pib);
+    end
     [IBID, ~] = find( bsxfun(@eq, D2, min(D2)) );
     map1 = find( ~ismember((1:size(pVor,1))', IBID) );
     pVor = pVor(map1, :);
