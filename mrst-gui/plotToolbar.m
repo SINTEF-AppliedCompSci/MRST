@@ -183,7 +183,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         try
             G = createAugmentedGrid(G);
         catch
-            disp('Unable to augmented grid, node filtering not available');
+            disp('Unable to create augmented grid, node filtering not available');
         end
     end
     ni = min(opt.step_index, N);
@@ -718,7 +718,7 @@ function replotPatch(varargin)
 
     plotAsVector = any(ishandle(vecToggle)) && strcmpi(get(vecToggle, 'State'), 'on');
     plotAsLine = any(ishandle(linePlotToggle)) && strcmpi(get(linePlotToggle, 'State'), 'on');
-
+    plotAsLine = plotAsLine || G.griddim == 1;
     if strcmpi(get(caxisToggle, 'State'), 'on')
         cx = caxis();
         yscale = ylim();
