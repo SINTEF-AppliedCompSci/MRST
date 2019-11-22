@@ -113,11 +113,11 @@ function reg = getRegions(deck, opt)
     else
         if ~isempty(reg.PVTNUM)
             reg.pvt = numel(reg.PVTINX);
-            warning('RUNSPEC does not incude TABDIMS, number of PVT-tables set to %d', reg.pvt)
+            warning('RUNSPEC does not include TABDIMS, number of PVT-tables set to %d', reg.pvt)
         end
-        if ~isempty(reg.SATNUM) > 1
+        if ~isempty(reg.SATNUM)
             reg.sat = numel(reg.SATINX);
-            warning('RUNSPEC does not incude TABDIMS, number of saturation-tables set to %d', reg.sat)
+            warning('RUNSPEC does not include TABDIMS, number of saturation-tables set to %d', reg.sat)
         end
     end
 end
