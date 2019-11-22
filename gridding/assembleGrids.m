@@ -133,8 +133,10 @@ function G = assembleGrids(Gs)
 
     % G.griddim -----------------------------------------------------------
 
-    % G.Parents -----------------------------------------------------------
-    G.griddim  = 3;
+    % G.otherFields -------------------------------------------------------
+    griddim = unique( cellfun(@(g)g.griddim, Gs) );
+    assert(numel(griddim)==1, 'The grid dimensions are not consistent')
+    G.griddim  = griddim;
     G.subGrids = Gs;
 
     % G.type --------------------------------------------------------------

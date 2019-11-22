@@ -41,6 +41,8 @@ function [pIn, pOut, R] = demoComputeAuxPts(p, bn, m0)
         demoPlotLine(pCri, 'r-', 'r', 1)
         demoPlotLine([pIn(i, :); pOut(i, :)], 'bs-', 'g', 5)
     end
+    legend('WR boundary points','Designed circumcircles of boundary points',....
+        'Intersection points of neighboring circles')
 end
     
 

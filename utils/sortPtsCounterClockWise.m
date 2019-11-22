@@ -2,7 +2,7 @@ function t = sortPtsCounterClockWise(p, t)
 % Sort the points in counter clockwise order for each element specified by
 % the connectivity list t
 %   p - 2D point set
-%   t - Connectivity list, cell x 1
+%   t - Connectivity list, n x 1, cell array
 %
     fTheta = @(x,y)2*pi*double(sign(atan2(y,x))<0) + atan2(y,x);
     for k = 1 : length(t)
