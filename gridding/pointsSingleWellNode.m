@@ -1,6 +1,6 @@
 function p0 = pointsSingleWellNode(pW, ly, ny, na, ii)
-% Generate the 2D points corresponding to single well node ii
-% The parameter represeation can be found in 'prepareWellRegionNodes2D'
+% Generate the 2D points corresponding to single well node ii.
+% The parameter represeation can be found in 'prepareWellRegionNodes2D'.
     
     % Compute the angle
     y0 = linspace(ly/2, 0, ny/2+1)';

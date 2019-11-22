@@ -1,13 +1,20 @@
 function [t, tC, bn, bnC] = getConnListAndBdyNodeWR2D(p, ny, na)
-% Get connectivity list and boundary nodes of 2D well region nodes
-% The parameter represeation can be found in 'prepareWellRegionNodes2D'
+% Get connectivity list and boundary nodes of 2D well region (WR). The WR 
+% is composed of a Cartesian region and two half-radial regions.
+% 
 
-    % Cartesian nodes number
+
+%    t  - Connectivity list of the whole well region
+%    tC - Connectivity list of the Cartesian region
+%
+%
+
+    % Number of Cartesian nodes 
     nny  = ny + 1;
     nnx  = length(p);
     nnxy = nnx*nny;
 
-    % Cartesian nodes number
+    % Number of radial nodes 
     nr   = ny/2;
     nnra = nr*(na-1);
 

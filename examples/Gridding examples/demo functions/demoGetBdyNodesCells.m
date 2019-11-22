@@ -1,6 +1,6 @@
 function [bdNodes, bdCells] = demoGetBdyNodesCells(G, CI)
 % An excerpt from 'VolumeOfInterest.getBoundaryInfoSingleSurface' to show
-% how to get the sorted boundary nodes and cells (counterclockwise) of a
+% how to get the sorted boundary nodes and cells (in counterclockwise) of a
 % inner continuous region what we name 'volume of interest (VOI)' specified
 % by cells 'CI'.
 
@@ -69,6 +69,6 @@ function [bdNodes, bdCells] = demoGetBdyNodesCells(G, CI)
     demoPlotPoly(G.nodes.coords(bdNodes,:), 'b^-', 'b', 4)
     demoPlotPoly(G.cells.centroids(bdCells,:), 'rs-', 'r', 4)
     demoPlotPoly(g.faces.centroids(bf,:), 'mp-', 'k', 4)
-    legend('G', 'Boundary node polygon', 'Boundary cell polygon', ...
-        'Boundary faces polygon')
+    legend('G', 'Boundary-node polygon', 'Boundary-cell polygon', ...
+        'Boundary-face polygon')
 end
