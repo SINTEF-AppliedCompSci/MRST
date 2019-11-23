@@ -6,18 +6,15 @@
 #include <array>
 
 #include <iostream>
-
-/* MEX gateway */
+/* Templated function for main operation */
 
 template <int m>
 void gradientJac(const int nf, const int nc, const double * diagonal, const double * N, double * result){
-    /*
     #ifdef _WIN32
         #pragma omp parallel for
     #else
         #pragma omp parallel for collapse(2)
     #endif
-    */
     for(int j=0;j<m;j++){
         for(int i=0;i<2*nf;i++){
             int sgn;
@@ -32,7 +29,7 @@ void gradientJac(const int nf, const int nc, const double * diagonal, const doub
     }
     return;
 }
-
+/* MEX gateway */
 void mexFunction( int nlhs, mxArray *plhs[], 
 		  int nrhs, const mxArray *prhs[] )
      
@@ -51,7 +48,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int m = mxGetN(prhs[0]);
     int nf = mxGetM(prhs[1]);
     
-    mexPrintf("%d cells with %d faces and %d derivatives \n", nc, nf, m);
+    // mexPrintf("%d cells with %d faces and %d derivatives \n", nc, nf, m);
     
     plhs[0] = mxCreateDoubleMatrix(2*nf, m, mxREAL);
     double * result = mxGetPr(plhs[0]);
