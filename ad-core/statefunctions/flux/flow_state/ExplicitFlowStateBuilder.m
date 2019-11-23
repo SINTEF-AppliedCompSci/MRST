@@ -10,7 +10,7 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
     
     methods
         function dt_max = getMaximumTimestep(fsb, fd, model, state, state0, dt, forces)
-            if ~isfield(state, 'flux')
+            if fsb.isFirstTimeStep(state)
                 dt_max = fsb.initialStep;
                 return;
             end
@@ -57,6 +57,10 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
                 f = model.getProps(state0, prop);
                 flowState.(name).(prop) = f;
             end
+        end
+        
+        function isFirst = isFirstTimeStep(builder, state)
+            isFirst = ~isfield(state, 'flux') || ~any(max(abs(state.flux)));
         end
         
         function [builder, state] = prepareTimestep(builder, fd, model, state, state0, dt, drivingForces)

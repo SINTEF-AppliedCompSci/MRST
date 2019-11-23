@@ -57,15 +57,16 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
         
         function [builder, state] = prepareTimestep(builder, fd, model, state, state0, dt, drivingForces)
             [builder, state] = prepareTimestep@ExplicitFlowStateBuilder(builder, fd, model, state, state0, dt, drivingForces);
-            if isfield(state, 'flux')
+            isFirst = builder.isFirstTimeStep(state);
+            if isFirst
+                fs = builder.firstStepImplicit;
+                [impl_sat, impl_comp] = deal(repmat(fs, model.G.cells.num, 1));
+            else
                 cfl = estimateSaturationCFL(model, state, dt, 'forces', drivingForces);
                 impl_sat = cfl >= builder.saturationCFL;
                 
                 cfl_c = estimateCompositionCFL(model, state, dt, 'forces', drivingForces);
                 impl_comp = max(cfl_c, [], 2) >= builder.compositionCFL;
-            else
-                fs = builder.firstStepImplicit;
-                [impl_sat, impl_comp] = deal(repmat(fs, model.G.cells.num, 1));
             end
             implicit = impl_sat | impl_comp;
             if builder.implicitWells && ~isempty(drivingForces.W)
