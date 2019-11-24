@@ -52,7 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     bn = join(basenames, ',');
     fn = sprintf('Simulating: %s', bn{1});
     h = opt.handle;
-    if isempty(opt.useFigure) || opt.useFigure
+    if isnan(opt.useFigure) || opt.useFigure
         if isempty(h.figure)
             h.figure = figure('Name', fn, 'ToolBar', 'none',...
                               'NumberTitle', 'off', 'MenuBar', 'none');
