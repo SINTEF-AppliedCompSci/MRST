@@ -1,6 +1,6 @@
 mrstModule add ad-core ad-blackoil ad-props
 %% Set up scenario
-dims = [15, 15];
+dims = [50, 50];
 pdims = [100, 100];
 
 G = cartGrid(dims, pdims);
@@ -17,7 +17,7 @@ W = [];
 W = addWell(W, G, rock, 1, 'comp_i', [1, 0], 'val', irate, 'type', 'rate');
 W = addWell(W, G, rock, G.cells.num, 'comp_i', [1, 0], 'val', 50*barsa, 'type', 'bhp');
 
-n = 100;
+n = 300;
 dt = repmat(time/n, n, 1);
 schedule = simpleSchedule(dt, 'W', W);
 
@@ -37,15 +37,41 @@ props = props.setStateFunction('FaceComponentMobility', FaceComponentMobility(mo
 model_weno.FluxDiscretization = props;
 
 [ws_weno, states_weno, report_weno] = simulateScheduleAD(state0, model_weno, schedule);
+%%
+model_e = model.validateModel();
+fd = model_e.FluxDiscretization;
+fd = fd.setFlowStateBuilder(AdaptiveImplicitFlowStateBuilder('initialStep', 0.02*day, 'verbose', true));
+model_e.FluxDiscretization = fd;
+[ws_e, states_e, report_e] = simulateScheduleAD(state0, model_e, schedule);
+
+%%
+model_weno_expl = model_weno;
+fd = model_weno_expl.FluxDiscretization;
+fd = fd.setFlowStateBuilder(AdaptiveImplicitFlowStateBuilder('initialStep', 0.02*day, 'verbose', true));
+model_weno_expl.FluxDiscretization = fd;
+[ws_weno_ex, states_weno_ex, report_weno_ex] = simulateScheduleAD(state0, model_weno_expl, schedule);
+
 %% Plot saturations
+G.cells.sortedCellNodes = getSortedCellNodes(G);
 for i = 1:numel(states)
     figure(1); clf;
-    subplot(1, 2, 1)
-    plotCellData(G, states{i}.s(:, 1));
-    title('SPU');
-    subplot(1, 2, 2)
-    plotCellData(G, states_weno{i}.s(:, 1));
-    title('WENO')
+    subplot(2, 2, 1)
+    plotCellData(G, states{i}.s(:, 1), 'edgecolor', 'none');
+    axis equal tight
+    title('FIM SPU');
+    subplot(2, 2, 2)
+    plotCellData(G, states_weno{i}.s(:, 1), 'edgecolor', 'none');
+    axis equal tight
+    title('FIM WENO')
+    subplot(2, 2, 3)
+    plotCellData(G, states_e{i}.s(:, 1), 'edgecolor', 'none');
+    title('AIM SPU')
+    axis equal tight
+    
+    subplot(2, 2, 4)
+    plotCellData(G, states_weno_ex{i}.s(:, 1), 'edgecolor', 'none');
+    title('AIM WENO')
+    axis equal tight
 end
 %% Plot wells
 plotWellSols({ws, ws_weno}, report.SimulationTime, 'datasetnames', {'SPU', 'WENO'}, 'field', 'qWs', 'SelectedWells', 2)
