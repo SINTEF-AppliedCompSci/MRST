@@ -85,7 +85,7 @@ classdef PackedProblemManager < handle
             indices = (1:ppm.N)';
             if ppm.showOnlyActive
                 active = ppm.problem_is_executing(index);
-                if any(active)
+                if any(active) || ishandle(ppm.handle.figure)
                     isDone = ppm.getNumberOfCompleteSteps(false) >= ppm.nsteps;
                     alreadyDone = sum(isDone(~active));
                 else
