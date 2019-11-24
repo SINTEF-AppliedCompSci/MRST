@@ -62,6 +62,17 @@ classdef PackedProblemManager < handle
             end
         end
         
+        function simulateProblem(ppm, varargin)
+            % Simulate one or more problems (directly in current session)
+            if mod(nargin - 1, 2) == 1
+                index = varargin{1};
+                varargin = varargin(2:end);
+            else
+                index = ':';
+            end
+            simulatePackedProblem(ppm.packedProblems(index), varargin{:});
+        end
+        % --- Utilities
         function monitorProgress(ppm, single_update, index)
             % Show progress indicator for background simulation of problems
             if nargin < 3
@@ -74,20 +85,27 @@ classdef PackedProblemManager < handle
             indices = (1:ppm.N)';
             if ppm.showOnlyActive
                 active = ppm.problem_is_executing(index);
-                if ~any(active)
+                if any(active)
+                    isDone = ppm.getNumberOfCompleteSteps(false) >= ppm.nsteps;
+                    alreadyDone = sum(isDone(~active));
+                else
                     % Display everything, for an overview
                     active = ':';
+                    alreadyDone = 0;
                 end
             else
                 active = ':';
+                alreadyDone = 0;
             end
             indices = indices(active);
+            activeProblems = problems(active);
             switch lower(ppm.displayProgressType)
                 case {'graphical', 'text', 'text-scrolling'}
                     useFigure = strcmpi(ppm.displayProgressType, 'graphical');
-                    ppm.handle = monitorBackgroundSimulations(problems(active), ...
+                    ppm.handle = monitorBackgroundSimulations(activeProblems, ...
                         'useFigure', useFigure, 'handle', ppm.handle, ...
                         'dynamicText', ~strcmpi(ppm.displayProgressType, 'text-scrolling'), ...
+                        'totalNumberOfCases', numel(problems), 'totalProgress', alreadyDone, ...
                         'singleUpdate', single_update, 'indices', indices);
                 otherwise
 
@@ -150,17 +168,6 @@ classdef PackedProblemManager < handle
             % the currently running simulations have completed)
             n = ppm.getNumberOfCompleteSteps(true);
             ppm.problem_is_executing = ppm.problem_is_executing & ~(n >= ppm.nsteps);
-        end
-        
-        function simulateProblem(ppm, varargin)
-            % Simulate a problem (directly in current session)
-            if mod(nargin - 1, 2) == 1
-                index = varargin{1};
-                varargin = varargin(2:end);
-            else
-                index = ':';
-            end
-            simulatePackedProblem(ppm.packedProblems(index), varargin{:});
         end
 
         function simulateProblemBackground(ppm, varargin)
