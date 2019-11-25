@@ -678,6 +678,7 @@ methods
                                    'ResOnly', true, ...
                                    'iteration', iteration+1, ...
                                    varargin{:});
+           state = model.reduceState(state, true);
         end
         if model.verbose
             printConvergenceReport(resnames, values, convergence, iteration, isConverged);

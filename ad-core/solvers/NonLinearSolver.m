@@ -149,8 +149,6 @@ classdef NonLinearSolver < handle
             converged = false;
             done = false;
 
-            dt = dT;
-
             % Number of nonlinear iterations total
             itCount = 0;
             % Number of ministeps due to cutting
@@ -179,6 +177,8 @@ classdef NonLinearSolver < handle
             dtMin = dT/(2^solver.maxTimestepCuts);
             timestepFailure = false;
             while ~done
+                % Try to complete the time-step
+                dt = dT - t_local;
                 if timestepFailure
                     dt_selector = stepsel.cutTimestep(dt_prev, dt, model, solver, state_prev, state0_inner, drivingForces);
                 else
