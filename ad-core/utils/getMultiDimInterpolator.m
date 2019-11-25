@@ -1,4 +1,4 @@
-function [fn, F, dFdx] = getMultiDimInterpolator(x, Fx, extrap)
+function [fn, F, epsilons] = getMultiDimInterpolator(x, Fx, extrap)
 % Get a multidimensional interpolator (with support for ADI varibles)
 %
 % SYNOPSIS:
@@ -15,6 +15,13 @@ function [fn, F, dFdx] = getMultiDimInterpolator(x, Fx, extrap)
 % RETURNS:
 %   fn      - A function for interpolation with variable arguments equal to
 %             the length of x.
+%
+%   F       - griddedInterpolant class instace
+%
+%   epsilons- Epsilon values for each input argument representing one half
+%             of the minimum distance between elements. Useful for
+%             computing numerical derivatives of the interpolant since
+%             Matlab does not expose the slopes.
 %
 % SEE ALSO:
 %   `interpTable`
@@ -40,34 +47,15 @@ function [fn, F, dFdx] = getMultiDimInterpolator(x, Fx, extrap)
     end
     
     F = griddedInterpolant(x, Fx, 'linear', extrap);
-    for i = 1:nvar
-        dyi = diff(Fx, 1, i);
-        dxi = diff(x{i});
-        % delta y / delta x
-        if nvar > 1
-            % Permute to allow for use of bsxfun
-            p = 1:nvar;
-            p(i) = 1;
-            p(1) = i;
-            dyidx = bsxfun(@rdivide, permute(dyi, p), dxi);
-            % Permute back
-            dyidx = ipermute(dyidx, p);
-        else
-            dyidx = dyi./dxi;
-        end
-
-        % Evaluate using midpoints
-        xi = x;
-        xi{i} = xi{i}(1:end-1) + dxi/2;
-        dFdx{i} = griddedInterpolant(xi, dyidx, 'nearest', 'nearest');
-    end
+    epsilons = cellfun(@(x) min(abs(diff(x))), x)./2;
+    assert(min(epsilons) > 1e-18, 'Difference between points must be larger than 2e-18');
     
-    fn = @(varargin) interpTableND(F, dFdx, varargin{:});
+    fn = @(varargin) interpTableND(F, epsilons, varargin{:});
 end
 
-function Ye = interpTableND(Y, dY, varargin)
+function Ye = interpTableND(Y, epsilon, varargin)
     Yq = varargin;
-    nvar = numel(dY);
+    nvar = numel(epsilon);
     assert(numel(Yq) == nvar);
     
     isad = cellfun(@(x) isa(x, 'ADI'), Yq);
@@ -76,10 +64,12 @@ function Ye = interpTableND(Y, dY, varargin)
         % Get a sample variable
         ad = Yq(isad);
         ad = ad{1};
+        Y.ExtrapolationMethod = 'linear';
         
         % Create double as input for the function evaluation
         Yqd = cellfun(@value, Yq, 'UniformOutput', false);
         Ye = Y(Yqd{:});
+        Yev = Ye;
         % Cast to ADI
         if any(isnewad)
             Ye = double2GenericAD(Ye, ad);
@@ -89,7 +79,12 @@ function Ye = interpTableND(Y, dY, varargin)
         for i = 1:nvar
             if isad(i)
                 % If it is AD, compute derivative using chain rule
-                dydx = dY{i}(Yqd{:});
+                permuted = Yqd;
+                e = epsilon(i);
+                permuted{i} = permuted{i} + e;
+                Yd = Y(permuted{:});
+                dydx = (Yd - Yev)./e;
+                
                 ix = (1:numel(dydx))';
                 d = sparse(ix, ix, dydx);
                 for j = 1:numel(Ye.jac)
