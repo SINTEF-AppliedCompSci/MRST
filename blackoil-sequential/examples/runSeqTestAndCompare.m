@@ -39,8 +39,6 @@ t_fi = toc(timer);
 
 %% Run schedule with outer loop enabled
 seqModel.stepFunctionIsLinear = false;
-seqModel.outerTolerance = 1e-5;
-seqModel.outerCheckWellConvergence = false;
 timer = tic();
 [ws_outer, states_outer, report_outer] = simulateScheduleAD(state, seqModel, schedule, 'NonLinearSolver', solver);
 t_outer = toc(timer);
@@ -49,7 +47,6 @@ t_outer = toc(timer);
 %% Plot the well solutions and simulator states
 % We setup interactive viewers for both well solutions and the reservoir
 % states.
-
 time = {report_fi.ReservoirTime, report_split.ReservoirTime, report_outer.ReservoirTime}; 
 ws = {ws_fi, ws_split, ws_outer};
 
