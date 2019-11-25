@@ -62,6 +62,9 @@ classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
               case {'aquiferpressures', 'aquifervolumes'}
                 fn = lower(name);
                 index = 1;
+              case 'aquiferfluxes'
+                fn = lower(name);
+                index = 1;
               otherwise
                 % Basic phases are known to the base class
                 [fn, index] = getVariableField@ThreePhaseBlackOilModel(model, ...
@@ -97,6 +100,7 @@ classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
         
             state = model.setProp(state, 'aquiferpressures', p_aq);
             state = model.setProp(state, 'aquifervolumes'  , V_aq);
+            state = model.setProp(state, 'aquiferfluxes'  , q);
         end
         
         function eqs = addAquifersContribution(model, eqs, names, state,  dt)
