@@ -242,7 +242,7 @@ dissolved = model.getDissolutionMatrix(rs, rv);
                                                  drivingForces);
 % Add aquifer contributions if any.
 if isfield(drivingForces, 'aquifer') && (drivingForces.aquifer==true)
-    eqs = addAquifersContribution(model, eqs, names, state, p, sW, dt);
+    eqs = addAquifersContribution(model, eqs, names, state, dt);
 end
 
 % Add in and setup well equations
