@@ -1,4 +1,4 @@
-function fn = getMultiDimInterpolator(x, Y, extrap)
+function [fn, F, dFdx] = getMultiDimInterpolator(x, Fx, extrap)
 % Get a multidimensional interpolator (with support for ADI varibles)
 %
 % SYNOPSIS:
@@ -22,7 +22,7 @@ function fn = getMultiDimInterpolator(x, Y, extrap)
         extrap = 'linear';
     end
     
-    sz = size(Y);
+    sz = size(Fx);
     assert(iscell(x));
     if numel(x) > 1
         assert(numel(sz) == numel(x));
@@ -30,18 +30,18 @@ function fn = getMultiDimInterpolator(x, Y, extrap)
     end
     
     nvar = numel(x);
-    dY = cell(nvar, 1);
+    dFdx = cell(nvar, 1);
     
     for i = 1:nvar
         if diff(x{i}(1:2)) < 0
             x{i} = x{i}(end:-1:1);
-            Y = flip(Y, i);
+            Fx = flip(Fx, i);
         end
     end
     
-    T = griddedInterpolant(x, Y, 'linear', extrap);
+    F = griddedInterpolant(x, Fx, 'linear', extrap);
     for i = 1:nvar
-        dyi = diff(Y, 1, i);
+        dyi = diff(Fx, 1, i);
         dxi = diff(x{i});
         % delta y / delta x
         if nvar > 1
@@ -59,10 +59,10 @@ function fn = getMultiDimInterpolator(x, Y, extrap)
         % Evaluate using midpoints
         xi = x;
         xi{i} = xi{i}(1:end-1) + dxi/2;
-        dY{i} = griddedInterpolant(xi, dyidx, 'nearest', 'nearest');
+        dFdx{i} = griddedInterpolant(xi, dyidx, 'nearest', 'nearest');
     end
     
-    fn = @(varargin) interpTableND(T, dY, varargin{:});
+    fn = @(varargin) interpTableND(F, dFdx, varargin{:});
 end
 
 function Ye = interpTableND(Y, dY, varargin)
