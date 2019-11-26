@@ -1,5 +1,7 @@
 %% Square domain with circular cutout, uniform mesh
-mrstModule add distmesh;
+% Use distmesh as included in the upr module. If you have your own distmesh
+% module, use "mrstModule add distmesh" instead
+mrstModule add upr;
 fd=@(p) ddiff(drectangle(p,-1,1,-1,1),dcircle(p,0,0,0.5));
 [p,t]=distmesh2d(fd,@huniform,0.2,[-1,-1;1,1],[-1,-1;-1,1;1,-1;1,1]);
 G = triangleGrid(p, t);
