@@ -8,6 +8,7 @@ Gs = computeGeometry(Gs);
 plotGrid(Gs,pltarg{:});
 set(gca,'dataa',[15 20 1])
 axis tight off, view(150,30), zoom(1.2)
+set(gca,'Clipping','off')
 
 %%
 cut_grdecl = cutGrdecl(grdecl, [12 20; 13 23; 1 12]);
@@ -16,6 +17,7 @@ g = processGRDECL(cut_grdecl);
 clf
 plotGrid(g, pltarg{:}),
 axis tight off, view(150,50), zoom(1.2)
+set(gca,'Clipping','off')
 
 %% Corner-point grid
 clf
@@ -25,6 +27,7 @@ Gp = computeGeometry(Gp);
 plotGrid(Gp, pltarg{:}); 
 set(gca,'dataa',[15 20 1])
 axis tight off, view(150,30), zoom(1.2)
+set(gca,'Clipping','off')
 
 %%
 cut_grdecl = cutGrdecl(grdecl, [12 20; 13 23; 1 12]);
@@ -33,6 +36,7 @@ g = processGRDECL(cut_grdecl);
 clf
 plotGrid(g, pltarg{:}),
 axis tight off, view(150,50), zoom(1.2)
+set(gca,'Clipping','off')
 
 %% Visualize results
 clf

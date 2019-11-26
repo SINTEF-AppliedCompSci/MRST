@@ -26,7 +26,7 @@ mrstModule add deckformat
 % the correct order.  We refer to example |showSAIGUP| for a more in-depth
 % discussion of how to read and process such input data.
 
-if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
+if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL())
    error('Unable to obtain simulation model subset');
 end
 
@@ -50,7 +50,8 @@ pargs = {'EdgeAlpha'; 0.1; 'EdgeColor'; 'k'};
 plotGrid(G,'FaceColor','none', pargs{:});
 plotFaces(G,find(G.faces.tag>0), ...
    'FaceColor','red','EdgeColor','none');
-axis off tight; view(-170,80); zoom(1.7); camdolly(0,-.05,0); 
+axis off tight; view(-170,80); zoom(1.3); camdolly(0,-.05,0); 
+set(gca,'Clipping','off')
 
 %%
 % We then distinguish the active and inactive cells
@@ -87,6 +88,7 @@ figure
 plotCellData(g,g.cells.volumes, pargs{:});
 colormap(jet), brighten(.5)
 axis tight off, view(210,15); zoom(1.2);
+set(gca,'Clipping','off')
 
 %%
 cut_grdecl = cutGrdecl(grdecl, [9 11; 65 67; 1 22]);
@@ -106,8 +108,8 @@ g = processGRDECL(cut_grdecl);
 figure,
 plotGrid(g);
 plotFaces(g,find(g.faces.tag>0),'FaceColor','b','EdgeColor','b','FaceAlpha',.5);
-axis tight off, view(180,27); zoom(1.7); camdolly(0,-0.2,0)
-
+axis tight off, view(180,27); zoom(1.2); camdolly(0,-0.2,0)
+set(gca,'Clipping','off')
 
 %% Extract the active part of the model
 % To get the whole grid, we need to reprocess the input data. This gives a
@@ -118,6 +120,7 @@ clf
 plotGrid(G(1),pargs{:});
 plotGrid(G(2),pargs{:},'FaceColor','r');
 view(-110,50), axis tight off, set(gca,'DataAspect',[20 11 1]); zoom(1.7);
+set(gca,'Clipping','off')
 
 %% Outline petrophysical properties
 % The petrophysical properties are included in the simulation model subset
@@ -146,6 +149,7 @@ plotCellData(G,rock.poro, pargs{:});
 axis tight off; set(gca,'DataAspect',[2 1 0.1]); 
 view(-110,55); zoom(1.8);
 colorbarHist(rock.poro, [.05 .35],'South',100);
+set(gca,'Clipping','off')
 
 %%
 % show also the net-to-gross
@@ -154,7 +158,7 @@ plotCellData(G,rock.ntg, pargs{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
 view(-110,55); zoom(1.8);
 colorbarHist(rock.ntg,[.05 1],'South',100);
-
+set(gca,'Clipping','off')
 
 %%
 % Permeability
@@ -166,7 +170,8 @@ p = log10(rock.perm(:,3));
 plotCellData(G,p, pargs{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]);
 view(-110,55); zoom(1.8);
-    
+set(gca,'Clipping','off')
+
 % Manipulate the colorbar to get the ticks we want
 cs = [1 10 100 1000 10000];
 caxis(log10([min(cs) max(cs)]*milli*darcy));
@@ -180,7 +185,8 @@ p = log10(rock.perm(:,3));
 plotCellData(G,p, pargs{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]);
 view(-110,55); zoom(1.8);
-    
+set(gca,'Clipping','off')
+
 % Manipulate the colorbar to get the ticks we want
 cs = [0.1 1 10 100 1000];
 caxis(log10([.1 2500]*milli*darcy));

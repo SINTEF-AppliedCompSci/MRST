@@ -55,6 +55,7 @@ G = computeGeometry(G);
 clf,
 plotCellData(G,G.cells.centroids(:,3),'EdgeColor','k','EdgeAlpha',0.1);
 colorbar, view(3), axis tight off, view(-20,40), zoom(1.2)
+set(gca,'Clipping','off')
 
 %% Porosity
 % The porosity data are given with one value for each cell in the model. We
@@ -65,6 +66,7 @@ p = reshape(load([sector, '_Porosity.txt'])', prod(G.cartDims), []);
 poro = p(G.cells.indexMap); clear p
 plotCellData(G, poro,'EdgeColor','k','EdgeAlpha',0.1);
 colorbarHist(poro,[0.09 0.31],'West',50); view(-45,15), axis tight off, zoom(1.2)
+set(gca,'Clipping','off')
 
 %%
 % From the plot, it seems like the formation has been pinched out and only
@@ -77,6 +79,7 @@ plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
 plotCellData(G, poro, poro>0.1, 'EdgeColor','k','EdgeAlpha',0.1);
 colorbarHist(poro(poro>.1),[0.09 0.31],'West',50);
 axis tight off, zoom(1.45), camdolly(0,.2,0);
+set(gca,'Clipping','off')
 
 %% Permeability
 % The permeability is given as a scalar field (Kx) similarly as the
@@ -89,6 +92,7 @@ rock = makeRock(G, perm, poro);
 p  = log10(rock.perm(:,1));
 plotCellData(G,p,'EdgeColor','k','EdgeAlpha',0.1);
 view(-45,15), axis tight off, zoom(1.2)
+set(gca,'Clipping','off')
 
 % Manipulate the colorbar to get the ticks we want
 cs = [0.01 0.1 1 10 100 1000];
@@ -105,6 +109,7 @@ idx = p>log10(0.01*milli*darcy);
 plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
 plotCellData(G, p, idx, 'EdgeColor','k', 'EdgeAlpha', 0.1);
 view(-20,35), axis tight off, zoom(1.45), camdolly(0,.12,0);
+set(gca,'Clipping','off')
 
 cs = [0.1 1 10 100 1000];
 cx = log10([.05 1010]*milli*darcy); caxis(cx);
@@ -120,6 +125,7 @@ idx = p>log10(0.1*milli*darcy);
 plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
 plotCellData(G, p, idx, 'EdgeColor','k', 'EdgeAlpha', 0.1);
 view(-20,35), axis tight off, zoom(1.45), camdolly(0,.12,0);
+set(gca,'Clipping','off')
 
 cs = [10 100 1000];
 cx = log10([9 1010]*milli*darcy); caxis(cx);
