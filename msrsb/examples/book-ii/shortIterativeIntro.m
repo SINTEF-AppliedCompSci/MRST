@@ -2,6 +2,9 @@
 % This example continues from the shortMultiscaleIntro.m script and
 % contains the code necessary to produce the plots presented in Section 2.6
 % of the multiscale tutorial chapter.
+if exist('ranShortMultiscaleIntro','var')~=1
+    shortMultiscaleIntro;
+end
 
 %% Set up global multiscale stage and smoother stage
 [A,b]    = deal(state.A, state.rhs);
