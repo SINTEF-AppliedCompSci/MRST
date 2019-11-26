@@ -46,7 +46,7 @@ explosionView(G, p, 'EdgeAlpha', .1);
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
 view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
 colormap(.3*(2*colorcube(max(p))+ones(max(p),3)));
-
+set(gca,'Clipping','off')
 
 %%
 % Build the coarse-grid and inspect the distribution of block volumes. The
@@ -78,6 +78,7 @@ plotCellData(CG,bcol, show);
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
 view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
 colormap(lines);
+set(gca,'Clipping','off')
 
 %%
 % The merging algorithm is quite simple: we compute the block volumes,
@@ -133,6 +134,7 @@ explosionView(G, CG.partition, 'EdgeAlpha', .1);
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
 view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
 colormap(.3*(2*colorcube(CG.cells.num)+ones(CG.cells.num,3)));
+set(gca,'Clipping','off')
 
 axes('Position',[.75 .12 .18 .8]);
 h = barh(CG.cells.volumes,'b');
@@ -191,6 +193,7 @@ explosionView(G, CG1.partition, 'EdgeAlpha', .1);
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
 view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
 colormap(.3*(2*colorcube(CG1.cells.num)+ones(CG1.cells.num,3)));
+set(gca,'Clipping','off')
 
 axes('Position',[.75 .12 .18 .8]);
 h = barh(CG1.cells.volumes,'b');

@@ -84,7 +84,7 @@ for i=1:6
    subplot(2,4,ind(i));
    plotGrid(G,p==block(i),'FaceColor',col(i,:));
    plotGrid(CG,block(i),'FaceColor','none','LineWidth',2);
-   view(3); axis tight off 
+   view(3); set(gca,'Clipping','off'), axis tight off 
    zoom(1.3)
 end
 

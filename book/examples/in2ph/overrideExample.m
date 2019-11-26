@@ -28,7 +28,8 @@ pargs = {'EdgeAlpha',.1,'EdgeColor','k'};
 hs = plotCellData(G,rock.perm,pargs{:});
 view(3), axis tight
 set(hs,'FaceAlpha',.35);
-zoom(1.4); set(gca,'dataasp',[2 2 1]); view(27,-12);
+% zoom(1.4); 
+set(gca,'dataasp',[2 2 1]); view(27,-12);
 
 %% Setup wells
 % Both wells are perforated in the lower zone only.

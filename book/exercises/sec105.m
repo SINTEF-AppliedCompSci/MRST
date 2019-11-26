@@ -114,7 +114,7 @@ sol(1)  = struct('time', 0, 'pressure', state(model.pIx), ...
 
 %% Main loop
 t = 0; step = 0;
-while t < totTime,
+while t < totTime
    t = t + model.dt;
    step = step + 1;
    fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
@@ -136,7 +136,7 @@ while t < totTime,
       fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
    end
 
-   if nit > maxits,
+   if nit > maxits
       error('Newton solves did not converge')
    else % store solution
       sol(step+1)  = struct('time', t, 'pressure', state(model.pIx), ...
@@ -162,7 +162,7 @@ for i=1:4
    plotWell(G, W, 'FontSize',12);
    view(-125,20), camproj perspective
    caxis(cax);
-   axis tight off; zoom(1.4)
+   axis tight off; zoom(1.2), set(gca,'Clipping','off')
    text(200,170,-8,[num2str(round(steps(i)*model.dt/day)) ' days'],'FontSize',12);
 end
 colorbar('horiz','Position',[.1 .05 .8 .025]);
@@ -179,7 +179,7 @@ for i=1:numel(steps)
    plotWell(G, W, 'FontSize',12);
    view(-125,20), camproj perspective
    caxis(cax);
-   axis tight off; zoom(1.4)
+   axis tight off; zoom(1.2), set(gca,'Clipping','off')
    text(200,170,-8,[num2str(round(steps(i)*dt/day)) ' days'],'FontSize',12);
 end
 colorbar('horiz','Position',[.1 .05 .8 .025]);

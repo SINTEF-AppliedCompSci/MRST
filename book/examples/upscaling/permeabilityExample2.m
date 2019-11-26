@@ -18,7 +18,7 @@ fr = {'West', 'South', 'Bottom'};
 d = G.griddim;
 [bcl,bcr,Dp]=deal(cell(d,1));
 bcsides = {'XMin', 'XMax'; 'YMin', 'YMax'; 'ZMin', 'ZMax'};
-for j = 1:d;
+for j = 1:d
    bcl{j} = pside([], G, bcsides{j, 1}, 0);
    bcr{j} = pside([], G, bcsides{j, 2}, 0);
    Dp{j}  = 0;
@@ -50,6 +50,7 @@ for n=1:3
 
    subplot(1,3,n);
    plotCellData(G,log10(rock.perm(:,1)/(milli*darcy))); view(3); axis off; zoom(1.3);
+   set(gca,'Clipping','off')
    
    %% Upscale values
    crock = cell(3,1);

@@ -45,6 +45,7 @@ plotGrid(G,'FaceColor','none', args{:});
 plotFaces(G,find(G.faces.tag>0),'FaceColor','r', args{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
 view(-65,60); zoom(1.1); camdolly(0,-0.2,0)
+set(gca,'Clipping','off')
 
 % The media (rock) properties can be extracted by means of the
 % <matlab:doc('grdecl2Rock') grdecl2Rock> function.  
@@ -76,6 +77,7 @@ clf
 plotCellData(G,rock.poro, args{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
 view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
+set(gca,'Clipping','off')
 colorbar('horiz'); caxis([0.1 0.3])
 
 %%
@@ -84,6 +86,7 @@ clf
 plotCellData(G,rock.ntg, args{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
 view(-65,60); zoom(1.4); camdolly(0,-0.2,0)
+set(gca,'Clipping','off')
 colorbar('horiz'); %caxis([0.1 0.3])
 
 %% 
@@ -93,6 +96,7 @@ SN = grdecl.SATNUM(G.cells.indexMap); j = jet(60);
 plotCellData(G,SN, args{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
 view(-65,60); zoom(1.4); camdolly(0,-0.2,0)
+set(gca,'Clipping','off')
 colorbar('horiz'); caxis([0.5 6.5]), colormap(j(1:10:end,:))
 
 %% 
@@ -101,6 +105,7 @@ clf
 plotGrid(G,'FaceColor','none', args{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]);
 view(-65,60); zoom(1.4); camdolly(0,-0.2,0)
+set(gca,'Clipping','off')
 caxis([0.5 6.5]), colormap(j(1:10:end,:))
 
 h1 = plotCellData(G,SN, find(SN==1), args{:});
@@ -124,7 +129,8 @@ figure;
 h = plotCellData(G,log10(rock.perm(:,1)), args{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]);
 view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
-    
+set(gca,'Clipping','off')
+
 % Manipulate the colorbar to get the ticks we want
 hc = colorbar('horiz');
 cs = [0.001 0.01 0.1 1 10 100 1000 10000];
@@ -155,7 +161,7 @@ h = legend('Horizontal','Vertical'); set(h,'FontSize',16);
 % and one histogram per rock type
 figure('Position',[0 60 900 350]);
 col = jet(60); col=col(1:10:end,:);
-for i=1:6, 
+for i=1:6 
    subplot(2,3,i); 
    hist(log10(Kx(SN==i)), 100);
    h = findobj(gca,'Type','patch');
@@ -172,6 +178,7 @@ plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
 plotCellData(G,Mz,find(Mz<1),args{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]);
 view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
+set(gca,'Clipping','off')
 colorbar('horiz');
 
 %{

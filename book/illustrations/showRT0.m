@@ -11,6 +11,7 @@ hold on
 plot3([0 1 1 0 0], [0 0 1 1 0], [0 0 0 0 0],'k-', 'LineWidth',2);
 surf(x,y,z); hold off; axis equal tight off
 view(-45,60); zoom(1.3); set(gca,'Projection','perspective')
+set(gca,'Clipping','off');
 %
 subplot(1,4,2);
 [x,y]=meshgrid(0:.1:2,0:.1:1);
@@ -20,6 +21,7 @@ hold on
 plot3([0 1 1 0 0], [0 0 1 1 0], [0 0 0 0 0],'k-', 'LineWidth',2);
 surf(x,y,z); hold off; axis equal tight off
 view(-45,60); zoom(1.3); set(gca,'Projection','perspective')
+set(gca,'Clipping','off');
 %
 subplot(1,4,3);
 [x,y]=meshgrid(0:0.1:1,-1:.1:1);
@@ -29,6 +31,7 @@ hold on
 plot3([0 1 1 0 0], [0 0 1 1 0], [0 0 0 0 0],'k-', 'LineWidth',2);
 surf(x,y,z); hold off; axis equal tight off
 view(-45,60); zoom(1.3); set(gca,'Projection','perspective')
+set(gca,'Clipping','off');
 %
 subplot(1,4,4);
 [x,y]=meshgrid(0:0.1:1,0:.1:2);
@@ -38,7 +41,7 @@ hold on
 plot3([0 1 1 0 0], [0 0 1 1 0], [0 0 0 0 0],'k-', 'LineWidth',2);
 surf(x,y,z); hold off; axis equal tight off
 view(-45,60); zoom(1.3); set(gca,'Projection','perspective')
-
+set(gca,'Clipping','off');
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 

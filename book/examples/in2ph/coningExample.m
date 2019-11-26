@@ -39,7 +39,8 @@ CG = generateCoarseGrid(G,(flt(G.cells.centroids)>0)+1);
 plotFaces(CG,1:CG.faces.num,'FaceColor','none','LineWidth',1);
 plotFaces(CG,11,'FaceColor','y','FaceAlpha',.3);
 set(hs,'FaceAlpha',.35);
-zoom(1.4); set(gca,'dataasp',[2 2 1]); view(25,30);
+% zoom(1.4); 
+set(gca,'dataasp',[2 2 1]); view(25,30);
 
 %% Fluid model
 fluid = initSimpleFluid('mu' , [   1,  10] .* centi*poise     , ...

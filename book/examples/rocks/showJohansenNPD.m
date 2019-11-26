@@ -24,6 +24,7 @@ args = {'EdgeAlpha'; 0.1; 'EdgeColor'; 'k'};
 p    = load([sector, '_Porosity.txt'])'; p = p(G.cells.indexMap);
 h    = plotCellData(G, p, args{:}); view(-45,15),
 axis tight off, zoom(1.15), caxis([0.1 0.3]), colorbar; 
+set(gca,'Clipping','off')
 
 %%
 % From the plot, it seems like the formation has been pinched out and only
@@ -42,6 +43,7 @@ clf
 K = load([sector '_Permeability.txt'])'; K=K(G.cells.indexMap);
 plotCellData(G, log10(K), args{:});
 view(-45,15), axis tight off, zoom(1.15)
+set(gca,'Clipping','off')
 
 [hc,hh] = colorbarHist(K, [0.001 1000], 'East', 100, true);
 p = get(hh,'Position'); set(hh,'Position',p.*[1 1 1.5 1]);
@@ -56,6 +58,7 @@ clf,
 plotGrid(G,'FaceColor','none',args{:});
 plotCellData(G, log10(K), find(K>0.01), args{:});
 view(-60,40), axis tight off, zoom(1.15)
+set(gca,'Clipping','off')
 
 [hc,hh] = colorbarHist(K(K>0.01), [0.01 1000], 'East', 100, true);
 set(get(hh,'Children'),'FaceColor',[.6 .6 .6]);
@@ -68,6 +71,7 @@ set(hc,'Fontsize',16,'FontWeight','bold', 'XTick', 0.5, 'XTickLabel','mD', ...
 clf; plotGrid(G,'FaceColor','none',args{:});
 h = plotCellData(G, K, find(K>0.1), args{:});
 view(-60,40), axis tight off, zoom(1.15)
+set(gca,'Clipping','off')
 
 [hc,hh] = colorbarHist(K(K>0.1), [0 900], 'East', 100, false);
 set(get(hh,'Children'),'FaceColor',[.6 .6 .6]);

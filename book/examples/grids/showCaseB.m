@@ -9,6 +9,7 @@ Kx = logNormLayers(Gs.cartDims, [10 50 400 50 10], ...
 plotCellData(Gs,Kx(Gs.cells.indexMap),'EdgeColor','k');
 set(gca,'dataa',[15 20 1])
 axis tight off, view(150,30), zoom(1.2)
+set(gca,'Clipping','off')
 
 %%
 cut_grdecl = cutGrdecl(grdecl, [12 20; 13 23; 1 12]);
@@ -19,6 +20,7 @@ g = processGRDECL(cut_grdecl);
 clf
 plotCellData(g,kx(g.cells.indexMap)','EdgeColor','k'),
 axis tight off, view(150,50), zoom(1.2)
+set(gca,'Clipping','off')
 
 %% Corner-point grid
 clf
@@ -28,6 +30,7 @@ Gp = computeGeometry(Gp);
 plotCellData(Gp,Kx(Gp.cells.indexMap),'EdgeColor','k'); 
 set(gca,'dataa',[15 20 1])
 axis tight off, view(150,30), zoom(1.2)
+set(gca,'Clipping','off')
 
 %%
 cut_grdecl = cutGrdecl(grdecl, [12 20; 13 23; 1 12]);
@@ -36,6 +39,7 @@ g = processGRDECL(cut_grdecl);
 clf
 plotCellData(g,kx(g.cells.indexMap)','EdgeColor','k'),
 axis tight off, view(150,50), zoom(1.2)
+set(gca,'Clipping','off')
 
 %% Visualize results
 clf

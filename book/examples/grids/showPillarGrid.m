@@ -6,6 +6,7 @@ grdecl = simpleGrdecl([4, 2, 3], .12, 'flat', true);
 plot3(X',Y',Z','k'); drawAxisCross(.15); axis tight;
 set(gca,'zdir','reverse'), view(35,35), axis off, zoom(1.2);
 set(gca,'dataaspectRatio',[1.8,1.8,1])
+set(gca,'Clipping','off')
 % print -deps2 showCPgrid-pillars.eps;
 
 %% Plot points on pillars, mark pillars with faults red

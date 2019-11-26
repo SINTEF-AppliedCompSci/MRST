@@ -57,6 +57,7 @@ end
 clf;
 % First a regular subdivision
 subplot('position',[0.025 0.525 0.45 0.45]);
+set(gca,'Clipping','off');
 grdecl = simpleGrdecl([2, 1, 3], 0.12);
 G  = processGRDECL(grdecl);
 cellNo = rldecode(1:G.cells.num,diff(G.cells.facePos),2).';
@@ -71,12 +72,13 @@ plotFaces(G,G.cells.faces(i&j,1), 'FaceColor','b', 'FaceAlpha', 0.3);
 % 
 plotGrid(G,'FaceColor','k','EdgeColor','k','FaceAlpha',0.025);
 set(gca,'DataA',[1 1 0.5]);
-set(gca,'zdir','reverse'), view(60,35), axis off, zoom(1.5);
+set(gca,'zdir','reverse'), view(60,35), axis off, zoom(1.2);
 %
 subplot('position',[0.025 0.025 0.45 0.45]);
+set(gca,'Clipping','off');
 plotCellData(G,(1:6)',1:2:6,'EdgeColor','k','FaceAlpha',0.8);
 set(gca,'DataA',[1 1 0.5]);
-set(gca,'zdir','reverse'), view(60,35), axis off, zoom(1.5);
+set(gca,'zdir','reverse'), view(60,35), axis off, zoom(1.2);
 camdolly(0,-0.3,0);
 colormap(jet)
 
@@ -85,6 +87,7 @@ colormap(jet)
 % Use same model, but perturbe some of the coordinates so that the
 % intersections are no longer rectangular
 subplot('position',[0.525 0.525 0.45 0.45]);
+set(gca,'Clipping','off');
 grdecl.ZCORN( 7:8:end) = grdecl.ZCORN( 7:8:end) - 0.1;
 grdecl.ZCORN( 8:8:end) = grdecl.ZCORN( 8:8:end) - 0.04;
 grdecl.ZCORN(11:8:end) = grdecl.ZCORN(11:8:end) - 0.05;
@@ -102,12 +105,13 @@ plotFaces(G,G.cells.faces(i&j,1), 'FaceColor','b', 'FaceAlpha', 0.3);
 % 
 plotGrid(G,'FaceColor','k','EdgeColor','k','FaceAlpha',0.025);
 set(gca,'DataA',[1 1 0.5]);
-set(gca,'zdir','reverse'), view(60,35), axis off, zoom(1.5);
+set(gca,'zdir','reverse'), view(60,35), axis off, zoom(1.2);
 %
 subplot('position',[0.525 0.025 0.45 0.45]);
+set(gca,'Clipping','off');
 plotCellData(G,(1:6)',1:2:6,'EdgeColor','k','FaceAlpha',0.8);
 set(gca,'DataA',[1 1 0.5]);
-set(gca,'zdir','reverse'), view(60,35), axis off, zoom(1.5);
+set(gca,'zdir','reverse'), view(60,35), axis off, zoom(1.2);
 camdolly(0,-0.3,0);
 %
 if doprint

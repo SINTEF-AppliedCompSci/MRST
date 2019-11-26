@@ -34,6 +34,7 @@ for n=1:3
 
    subplot(1,3,n);
    plotCellData(G,log10(rock.perm(:,1)/(milli*darcy))); view(3); axis off; zoom(1.3);
+   set(gca,'Clipping','off')
    
    %% Upscale values
    q   = ones(G.cells.num,1);

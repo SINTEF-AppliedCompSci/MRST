@@ -100,8 +100,9 @@ subplot(1,3,1)
 h = outlineCoarseGrid(G, p,'FaceColor','none','EdgeColor','k');
 
 %%
-for i=1:3,
-    subplot(1,3,i)
-    set(gca,'Position',get(gca,'Position')+[-.025 -.025 .05 .05]); zoom(1.3*1.1);
+for i=1:3
+    subplot(1,3,i),
+    set(gca,'Clipping', 'off', ...
+        'Position',get(gca,'Position')+[-.025 -.025 .05 .05]); zoom(1.3*1.1);
 end
 colormap(.8*jet(128)+.2*ones(128,3));

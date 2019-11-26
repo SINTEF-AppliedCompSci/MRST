@@ -61,6 +61,7 @@ quiver3(pt1(i,1),pt1(i,2),pt1(i,3),sN(i,1),sN(i,2),sN(i,3),'LineWidth',2);
 plot3(sC(i,1)+.01,sC(i,2),sC(i,3),'or');
 hold off;
 view(50,25), axis tight off, zoom(1.2), set(gca,'zdir','reverse');
+set(gca,'Clipping','off')
 
 %%
 cla,
@@ -95,7 +96,7 @@ quiver3(sC(i,1),sC(i,2),sC(i,3),...
    relSubC(i,1),relSubC(i,2),relSubC(i,3),'LineWidth',2);
 hold off;
 view(75,30), axis tight off, zoom(1.3), set(gca,'zdir','reverse');
-
+set(gca,'Clipping','off')
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 

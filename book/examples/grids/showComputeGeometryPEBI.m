@@ -21,6 +21,7 @@ text(G.nodes.coords(:,1),G.nodes.coords(:,2),G.nodes.coords(:,3),...
    'Color','b', 'FontWeight','demi','FontSize',24);
 hold off
 view(20,15), axis tight off, zoom(1.2)
+set(gca,'Clipping','off')
 
 %% Computation of face areas, normals, and centroids
 % 
@@ -58,6 +59,7 @@ quiver3(pt1(i,1),pt1(i,2),pt1(i,3),sN(i,1),sN(i,2),sN(i,3),.003,'LineWidth',2);
 plot3(sC(i,1)+.01,sC(i,2),sC(i,3),'or');
 hold off;
 view(20,15), axis tight off, zoom(1.3)
+set(gca,'Clipping','off')
 
 %%
 cla,
@@ -85,7 +87,8 @@ T = [G.faces.nodes, G.faces.nodes(n), faceNo+G.nodes.num, ...
    repmat(G.nodes.num+G.faces.num+1,numel(faceNo),1)];
 h=tetramesh(T,X); set(h,'FaceColor',[.7 .7 .7],'facealpha',.15);
 set(gca,'dataasp',[1 1 8e-3])
-view(20,15), axis tight off, zoom(1.5), %set(gca,'zdir','reverse');
+view(20,15), axis tight off, zoom(1.3), %set(gca,'zdir','reverse');
+set(gca,'Clipping','off')
 hold on;
 ix = [2 18 19 20 21 27]
 col = 'ywmrcgb';
