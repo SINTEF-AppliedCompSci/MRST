@@ -11,7 +11,7 @@
 % indicated by lines on top of those of the coarse scale.
 
 %% Set up fine-scale problem
-mrstModule add diagnostics spe10 coarsegrid upscaling agmg incomp libgeometry
+mrstModule add agmg book coarsegrid diagnostics incomp libgeometry spe10 upscaling 
 
 if ~exist('agmg', 'file') || ...
       norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8
