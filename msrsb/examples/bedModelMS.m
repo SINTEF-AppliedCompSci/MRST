@@ -226,12 +226,13 @@ title('# out-of-bound cells', 'FontSize', 12, 'FontWeight','normal');
 %% Show the worst monotonicity violation
 figure
 sol   = ms{2}.pressure;
+p     = part{2};
 ind   = unique(p(sol>1.1));
 neigh = getCellNeighbors(CG,ind(1));
 plotGrid(CG,ind(2),'FaceAlpha',.2,'FaceColor',[.8 .3 .3]);
 plotGrid(CG,ind(1),'FaceAlpha',.1,'FaceColor',[.3 .3 .8]);
 plotCellData(G,sol,sol>1.1);
-plotGrid(CG,neig,'FaceAlpha',.1);
+plotGrid(CG,neigh,'FaceAlpha',.1);
 view(3); axis tight off
 
 
