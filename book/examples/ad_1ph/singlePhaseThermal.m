@@ -6,7 +6,7 @@
 % a second conservation equation for energy. Except for this, the
 % computational setup is the same with a single horizontal well draining
 % fluids from a simple box-geometry reservoir.
-
+mrstModule add ad-core
 
 %% Set up model: grid, perm and poro
 [nx,ny,nz] = deal( 10,  10, 10);
