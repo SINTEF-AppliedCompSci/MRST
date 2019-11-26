@@ -26,7 +26,10 @@ for i=1:3
     decks{i} = readEclipseDeck(fn);
     decks{i} = convertDeckUnits(decks{i});
     fo{i}    = initDeckADIFluid(decks{i});
-    fo{i} = assignRelPerm(fo{i});
+    if ~isfield(fo{i},'sWcon')
+        fo{i}.sWcon = 0.0;
+    end
+    fo{i}    = assignRelPerm(fo{i});
 end
 
 %% Plot two-phase relative permeability curves
@@ -196,7 +199,7 @@ colormap(repmat([linspace(.25,.5,20) linspace(.7,.95,20)]',1,3));
 
 % =========================================================================
 %% Dead oil and gas with vaporized oil (SPE3)
-% The SPE 3 benchmark was designed to study gas cycling in a rich‚Äêgas
+% The SPE 3 benchmark was designed to study gas cycling in a rich‚Ä?gas
 % reservoir with retrograde condensation. The original setup was for
 % compositional simulation. The current input file describes a black-oil
 % translation of the compositional model.
