@@ -373,8 +373,7 @@ function plotMain(Gt, res, bf, atlasdata)
     
     if showLight
         % Account for lighting bug in Matlab due to reversed Z-axis
-        v = ver();
-        if str2double(v.Version) >= 9.0
+        if exist('verLessThan', 'file') && ~verLessThan('matlab', '9.0')
             sgn = -1;
         else
             sgn = 1;
