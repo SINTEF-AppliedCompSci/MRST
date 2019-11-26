@@ -298,10 +298,10 @@ classdef ADI
                           end
                       end
                       subs  = s(1).subs{1};
-                      if ischar(s) && strcmp(subs, ':'),
+                      if ischar(s) && strcmp(subs, ':')
                           h = u;
                       else
-                          if islogical(subs),
+                          if islogical(subs)
                               subs = find(subs);
                           end
                           h = u;
@@ -385,7 +385,7 @@ classdef ADI
               return;
           end
           assert(nargin==2, 'Max function implemented for up to 2 variables only.');
-          if ~isa(u, 'ADI'), % u is a DOUBLE
+          if ~isa(u, 'ADI') % u is a DOUBLE
               value =  bsxfun(@max, u, v.val);
               inx   = ~bsxfun(@gt,  u, v.val) + 1; % Pick 'v' if u <= v
               h  = v;
