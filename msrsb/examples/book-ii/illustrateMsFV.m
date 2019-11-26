@@ -6,7 +6,7 @@
 % show their sparsity pattern along with that of the reduced coarse-scale
 % system.
 
-mrstModule add incomp
+mrstModule add incomp spe10
 
 %% Set up model
 % The mesh is designed to have k*k coarse blocks, that each consists of
