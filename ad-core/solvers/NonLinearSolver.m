@@ -157,7 +157,6 @@ classdef NonLinearSolver < handle
             stepCount = 0;
             % Number of accepted steps
             acceptCount = 0;
-
             t_local = 0;
 
             isFinalMinistep = false;
@@ -176,15 +175,17 @@ classdef NonLinearSolver < handle
 
             dtMin = dT/(2^solver.maxTimestepCuts);
             timestepFailure = false;
+            % Start with control-step
+            dt = dT;
             while ~done
-                % Try to complete the time-step
-                dt = dT - t_local;
                 if timestepFailure
                     dt_selector = stepsel.cutTimestep(dt_prev, dt, model, solver, state_prev, state0_inner, drivingForces);
                 else
                     dt_selector = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner, drivingForces);
                 end
-                dt_model = model.getMaximumTimestep(state, state0_inner, dt_selector, drivingForces);
+                % Find maximum time-step with the rest of current control
+                % step as bound
+                dt_model = model.getMaximumTimestep(state, state0_inner, dT - t_local, drivingForces);
                 dt_choice = min(dt_selector, dt_model);
                 if t_local + dt_choice >= dT
                     % Ensure that we hit report time
