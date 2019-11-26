@@ -1,6 +1,6 @@
 function ft = computeRadTransFactor(G, pW, skin, varargin)
 % Compute the radial half transmissibility factor (ft) for the 2D radial grid
-% (halfTrans = perm .* ft)
+% (halfTrans = perm .* ft .* dZ)
 %
 % SYNOPSIS:
 %    ft = computeRadTransFactor(G, pW, skin)

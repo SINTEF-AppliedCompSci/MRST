@@ -1,5 +1,9 @@
 function [p, t, bdyID] = demoHandleVoronoiDiag(pVor, tVor, pib, pob, pW, tW, bnW)
-% Remove points outside the region
+% An excerpt from 'generateVOIGridNodes' to show how to handle the infinite
+% Voronoi diagram. This includes (1) clip the Voronoi diagram, (2) remove
+% the conflicting points, and (3) connect with the WR grid.
+
+    % Clip the infinite Voronoi diagram: remove points outside the region
     fdI = @(p)dpoly(p, [pib; pib(1,:)]);
     fdO = @(p)dpoly(p, [pob; pob(1,:)]);
     fd  = @(p)ddiff(fdO(p), fdI(p));
@@ -31,7 +35,8 @@ function [p, t, bdyID] = demoHandleVoronoiDiag(pVor, tVor, pib, pob, pW, tW, bnW
     tVor = cellfunUniOut(@(x)unique( map(ismember(map(:,2), x), 1)' ), tVor);
     tVor = tVor( cellfun(@length, tVor) > 3 );
     
-    % Add WR points, and map the connectivity list again
+    % Connect with the WR grid: add WR points, and map the connectivity 
+    % list again
     try
         % Require Statistics and Machine Learning Toolbox
         D2 = pdist2(pVor, pib, 'euclidean');

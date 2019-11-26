@@ -32,7 +32,6 @@ function [pIn, pOut, R] = demoComputeAuxPts(p, bn, m0)
         end
     end
     
-    
     figure, hold on, axis equal tight off
     demoPlotPoly(p(bn, :), 'ko-', 'y', 5)
     th = linspace(0, 2*pi, 100)';

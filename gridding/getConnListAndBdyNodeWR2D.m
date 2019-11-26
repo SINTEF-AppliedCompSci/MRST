@@ -39,12 +39,8 @@ function [t, tC, bn, bnC] = getConnListAndBdyNodeWR2D(p, ny, na)
 
     % Combine the Connectivity lists
     t = [tC; tR1; tR2];
-    t = mat2cell(t, ones(size(t,1), 1));
     idxTri = cellfun(@(x)length(x) ~= length(unique(x)), t);
     t(idxTri) = cellfunUniOut(@unique, t(idxTri));
-
-    % Store the Cartesian Connectivity list
-    tC = mat2cell(tC, ones(size(tC,1), 1));
 
     % Get boundary nodes, with radial region
     bn = [ndC(1,:)'; ndR2(1, 2:end-1)'; ndC(end,end:-1:1)'; ...

@@ -14,10 +14,14 @@ function [G, t] = buildRadialGrid(p, nA, nR)
 %  G - The 2D radial grid. The cells and nodes obey logical numbering 
 %      (angularly cycle fastest, then radially). Each cell has four faces. 
 %      The face types are:
-%        faces(1): Radial- face
-%        faces(3): Radial+ face
-%        faces(2) and faces(4): Angular faces. The direction depends on the
-%        cycle direction of input point p.
+%       Face 1:  Radial  -
+%       Face 2:  Angular + 
+%       Face 3:  Radial  +
+%       Face 4:  Angular - 
+%       If the points are geneated from R+ to R-, the direction of face 1 
+%       and 3 will be R+ and R-
+%       If the points are geneated in clockwise direction, the direction of
+%       face 2 and 4 will be A- and A+
 %  t - Connectivity list
 %
 % EXAMPLE:
@@ -32,7 +36,7 @@ function [G, t] = buildRadialGrid(p, nA, nR)
 %   title('Cell array indices of the radial grid')
 %  
 % SEE ALSO:
-%  `tessellationGrid`
+%  `tessellationGrid` `pebi` `makeConnListFromMat`
 
     np = size(p,1);
     nd = reshape((1:np)', nA, nR+1);
@@ -40,5 +44,7 @@ function [G, t] = buildRadialGrid(p, nA, nR)
     t  = makeConnListFromMat(nd);
     G  = tessellationGrid(p, t);
     G.radDims = [nA, nR];
+    [a, r] = ind2sub([nA, nR], (1:G.cells.num)');
+    G.radIndices = [a, r];
     G.type = [G.type, { mfilename }];
 end
