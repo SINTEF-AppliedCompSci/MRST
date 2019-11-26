@@ -14,7 +14,9 @@
 % twice with compressible/incompressible model, the plots of pressures,
 % condition numbers, and oil production will be added to the same plots.
 
-%isCompr = false;
+if exist('isCompr','var')~=1
+    isCompr = false;
+end
 
 %% Set up model geometry
 [nx,ny,nz] = deal(  11,  11,  3);
@@ -114,7 +116,7 @@ nstep = numel(dt);
 pargs = {};% {'EdgeColor','k','EdgeAlpha',.1};
 
 sol = repmat(struct('time',[],'pressure',[], 's', []),[nstep+1,1]);
-sol(1) = struct('time', 0, 'pressure', double(p),'s', double(sW));
+sol(1) = struct('time', 0, 'pressure', value(p),'s', value(sW));
 
 %% Main loop
 t = 0;
@@ -129,7 +131,7 @@ for n=1:nstep
     
     % Newton loop
     resNorm   = 1e99;
-    [p0, sW0] = deal(double(p), double(sW));
+    [p0, sW0] = deal(value(p), value(sW));
     nit = 0;
     while (resNorm > tol) && (nit <= maxits)
         
@@ -151,8 +153,8 @@ for n=1:nstep
         % defined as taken from the cell from which the phase flow is
         % currently coming from). This gives more physical solutions than
         % averaging or downwinding.
-        vW  = -upw(double(dpW) <= 0, rW.*mobW).*T.*dpW;
-        vO  = -upw(double(dpO) <= 0, rO.*mobO).*T.*dpO;
+        vW  = -upw(value(dpW) <= 0, rW.*mobW).*T.*dpW;
+        vO  = -upw(value(dpO) <= 0, rO.*mobO).*T.*dpO;
         
         % Conservation of water and oil
         water = (1/dt(n)).*(vol.*rW.*sW - vol0.*rW0.*sW0) + div(vW);
@@ -195,17 +197,17 @@ for n=1:nstep
         
         figure(1); clf
         subplot(2,1,1)
-        plotCellData(G, double(p)/barsa, pargs{:});
+        plotCellData(G, value(p)/barsa, pargs{:});
         title('Pressure'), view(30, 40); caxis([100 250]);
         
         subplot(2,1,2)
-        plotCellData(G, 1-double(sW), pargs{:});
+        plotCellData(G, 1-value(sW), pargs{:});
         caxis([0, 1]), view(30, 40); title('Saturation')
         drawnow
         
         sol(n+1) = struct('time', t, ...
-                          'pressure', double(p), ...
-                          's', double(sW));
+                          'pressure', value(p), ...
+                          's', value(sW));
         waitbar(t/Tf,hwb);
         pause(.1);
     end

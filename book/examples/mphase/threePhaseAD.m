@@ -16,6 +16,9 @@
 % twice with or without water injection, the plots of pressures and oil and
 % gas production will be added to the same plots.
 
+if exist('pvi','var')~=1
+    pvi = .5;
+end
 useInj = (pvi>0);
 
 %% Set up model geometry
@@ -113,7 +116,7 @@ nstep = numel(dt);
 pargs = {};% {'EdgeColor','k','EdgeAlpha',.1};
 
 sol = repmat(struct('time',[],'pressure',[], 'sW', [], 'sG', []),[nstep+1,1]);
-sol(1) = struct('time', 0, 'pressure', double(p),'sW', double(sW), 'sG', double(sG));
+sol(1) = struct('time', 0, 'pressure', value(p),'sW', value(sW), 'sG', value(sG));
 
 %% Main loop
 t = 0;
@@ -128,7 +131,7 @@ for n=1:nstep
     
     % Newton loop
     resNorm   = 1e99;
-    [p0, sW0, sG0] = deal(double(p), double(sW),double(sG));
+    [p0, sW0, sG0] = deal(value(p), value(sW),value(sG));
     nit = 0;
     while (resNorm > tol) && (nit <= maxits)
         
@@ -154,9 +157,9 @@ for n=1:nstep
         % defined as taken from the cell from which the phase flow is
         % currently coming from). This gives more physical solutions than
         % averaging or downwinding.
-        vW = -upw(double(dpW) <= 0, rW.*mobW).*T.*dpW;
-        vO = -upw(double(dpO) <= 0, rO.*mobO).*T.*dpO;
-        vG = -upw(double(dpG) <= 0, rG.*mobG).*T.*dpG;
+        vW = -upw(value(dpW) <= 0, rW.*mobW).*T.*dpW;
+        vO = -upw(value(dpO) <= 0, rO.*mobO).*T.*dpO;
+        vG = -upw(value(dpG) <= 0, rG.*mobG).*T.*dpG;
         
         % Conservation of water and oil
         water = (1/dt(n)).*(vol.*rW.*sW - vol0.*rW0.*sW0) + div(vW);
@@ -192,26 +195,26 @@ for n=1:nstep
         nit     = nit + 1;
         fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
     end
-    if nit > maxits,
+    if nit > maxits
         error('Newton solves did not converge')
     else % plot
         nits(n) = nit;
         
         figure(1); clf
         subplot(2,1,1)
-        plotCellData(G, double(p)/barsa, pargs{:});
+        plotCellData(G, value(p)/barsa, pargs{:});
         title('Pressure'), view(30, 40);
         
         subplot(2,1,2)
-        sg = double(sG); sw = double(sW);
+        sg = value(sG); sw = value(sW);
         plotCellData(G,[sg, 1-sg-sw, sw]/1.001+1e-4,pargs{:});             % Avoid color artifacts
         caxis([0, 1]), view(30, 40); title('Saturation')
         drawnow
         
         sol(n+1) = struct('time', t, ...
-                          'pressure', double(p), ...
-                          'sW', double(sW), ...
-                          'sG', double(sG));
+                          'pressure', value(p), ...
+                          'sW', value(sW), ...
+                          'sG', value(sG));
         waitbar(t/Tf,hwb);
         pause(.1);
     end
@@ -220,7 +223,7 @@ close(hwb);
 
 %%
 figure(2),
-subplot(2,1,2-double(useInj));
+subplot(2,1,2-value(useInj));
 bar(nits,1,'EdgeColor','r','FaceColor',[.6 .6 1]);
 axis tight, set(gca,'YLim',[0 10]);
 
