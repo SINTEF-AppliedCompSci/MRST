@@ -60,8 +60,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % For each collection of faces f(pos(i):pos(i+1)-1), plot edges on
    % boundary of collection
-   if isfield(G, 'parent'),
-      if G.griddim == 3,
+   if isfield(G, 'parent')
+      if G.griddim == 3
          pos     = cumsum(double([1; G.faces.connPos(f+1)-G.faces.connPos(f)]));
          ix      = mcolon(G.faces.connPos(f), G.faces.connPos(f+1)-1);
          f       = G.faces.fconn(ix);
@@ -75,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       G       = G.parent;
    end
 
-   if G.griddim == 3,
+   if G.griddim == 3
       cno    = rldecode(cno, ...
                         G.faces.nodePos(f+1)-G.faces.nodePos(f));
       ix     = mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1);
@@ -85,7 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       pos    = cumsum(double([1; G.faces.nodePos(f+1) - G.faces.nodePos(f)]));
       e(pos(2:end)-1, 2) = e(pos(1:end-1), 1);
 
-   elseif G.griddim ==2,
+   elseif G.griddim ==2
       cno = rldecode(cno, G.cells.facePos(f+1)-G.cells.facePos(f));
       ix  = mcolon(G.cells.facePos(f), G.cells.facePos(f+1)-1);
       f   = G.cells.faces(ix);
@@ -99,8 +99,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % The standard phrase to build a new topological map...
    E      = [sort(e,2), cno];
    E      = sortrows(E, [3,1,2]);
-   [n, n] = rlencode(E);
-   N      = rldecode(n, n); %#ok
+   [~, n] = rlencode(E);
+   N      = rldecode(n, n); 
 
    h      = plotLineSegments(G, E(N==1, 1:2), varargin{:});
 end
