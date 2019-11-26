@@ -1,7 +1,7 @@
 %% Plotting for Sector Model Example
 % This script contains plotting of results from blackoilSectorModelExample
 % from the ad-blackoil module
-
+mrstModule add ad-blackoil
 blackoilSectorModelExample;
 
 t = convertTo(cumsum(schedule.step.val),year);
@@ -10,7 +10,7 @@ lw = {'LineWidth', 2};
 ms = {'MarkerSize', 5};
 
 %% Bottom-hole pressure and field-average pressure
-clf, set(gcf,'Position',[800 400 640 420],'PaperPositionMode','auto');
+clf, set(gcf,'Position',[800 200 640 420],'PaperPositionMode','auto');
 set(gca,'FontSize',20);
 bhp   = convertTo(cellfun(@(x) x.bhp, ws  ), barsa);
 bhpc  = convertTo(cellfun(@(x) x.bhp, ws_c), barsa);
@@ -25,7 +25,7 @@ xlabel('Time [years]');
 title('Bottom-hole pressure [bar]');
 legend('Pressure','Closed','Location','Best');
 box off
-print -depsc2 sector-bhp.eps;
+% print -depsc2 sector-bhp.eps;
 
 %% Surface oil rate
 clf
@@ -41,7 +41,7 @@ xlabel('Time [years]');
 title('Surface oil rate [10^3 m^3/day]');
 legend('Pressure','Closed','Location','Best');
 box off
-print -depsc2 sector-qOs.eps;
+% print -depsc2 sector-qOs.eps;
 
 %% Cumulative surface rates
 field = {'qOs','qWs','qGs'};
@@ -62,7 +62,7 @@ for i=1:numel(field)
     box off
     disp(' ---- Press any key ----');
     pause
-    print('-depsc2',['sector-',field{i},'-cum.eps']);
+%    print('-depsc2',['sector-',field{i},'-cum.eps']);
 end
 
 %% Instantaneous reservoir rates
@@ -84,11 +84,11 @@ for i=1:numel(field)
     box off
     disp(' ---- Press any key ----');
     pause
-    print('-depsc2',['sector-',field{i},'.eps']);
+%    print('-depsc2',['sector-',field{i},'.eps']);
 end
 
 %% Plot liberation of free gas
-clf, set(gcf,'Position',[200 560 1200 260],'PaperPositionMode','auto');
+clf, set(gcf,'Position',[200 360 1200 260],'PaperPositionMode','auto');
 g = cartGrid([1 1 1], [1000, 1000, 100]);
 for i=1:3
     subplot(1,3,i)
@@ -104,7 +104,7 @@ pos = get(gca,'Position');
 cb=colorbar('Location','EastOutside');
 set(cb,'Position',[0.92 0.25 0.02 0.6],'FontSize',14);
 set(gca,'Position',pos)
-for i=2:-1:1,
+for i=2:-1:1
     subplot(1,3,i),
     set(gca,'Position',get(gca,'Position')+[.1/i 0 0 0]);
 end
