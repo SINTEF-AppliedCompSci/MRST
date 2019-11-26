@@ -223,7 +223,7 @@ fn = getPlotAfterStep(state0, model, schedule,'view',[50 50], ...
 %% Plot reservoir states
 % We launch a plotting tool for the reservoir quantities (pressures
 % and saturations, located in states).
-plotToolbar(G, states)
+figure, plotToolbar(G, states)
 view(50, 50);
 plotWell(G,W);
 
