@@ -117,5 +117,5 @@ for i = 1:numel(dt)
 
     drawnow
 end
-plotWellSols({rws, mws1, mws2}, [0; cumsum(dt)], ...
+plotWellSols({rws, mws1, mws2}, [0; cumsum(dt)], 'field', 'wcut', ...
     'datasetnames', {'fine scale','MsRSB rectangular','MsRSB adapted'});
