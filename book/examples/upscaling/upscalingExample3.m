@@ -12,7 +12,7 @@
 % Note that this example features a simple conceptual model designed to
 % show the workflow rather than a problem representing a realistic scenario
 % in terms of well locations and fluid physics.
-mrstModule add ad-core ad-blackoil ad-props mrst-gui
+mrstModule add ad-core ad-blackoil ad-props diagnostics mrst-gui
 close all;
 
 %% Horizons for internal and external geology

@@ -15,6 +15,7 @@
 % purposes. The last plots use 'hold all' so that if you run the function
 % twice with or without water injection, the plots of pressures and oil and
 % gas production will be added to the same plots.
+mrstModule add ad-core ad-props deckformat
 
 if exist('pvi','var')~=1
     pvi = .5;
