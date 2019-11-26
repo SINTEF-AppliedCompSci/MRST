@@ -23,7 +23,7 @@
 mrstModule add diagnostics spe10 coarsegrid upscaling agmg incomp libgeometry
 
 if ~exist('agmg', 'file') || ...
-      norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8,
+      norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8
    error('This example requires the AGMG linear solver package');
 end
 
@@ -41,7 +41,7 @@ wloc     = [  1,   60,     1,   60,  20, 40;
               1,    1,   220,  220, 130, 90];
 wname    = {'P1', 'P2', 'P3', 'P4', 'I1', 'I2'};
 W = [];
-for w = 1 : numel(wtype),
+for w = 1 : numel(wtype)
    W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), 1 : cartDims(end), ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
                     'Radius', wrad(w), 'Name', wname{w}, ...
@@ -71,13 +71,13 @@ for method=1:4
    switch method
       case 1  % harmonic averaging
          tittel = 'Harmonic';
-         for i=1:3;
+         for i=1:3
             crock.perm(:,i) = accumarray(p,1)./accumarray(p,1./rock.perm(:,i));
          end
       
       case 2  % harmonic-arithmetic
          tittel = 'Harmonic-arithmetic';
-         for i=1:3;
+         for i=1:3
             coarse = cartDims./cfac;
             dims = G.cartDims; dims(i)=coarse(i);
             qq = partitionUI(G,dims);
@@ -113,7 +113,7 @@ for method=1:4
       cwloc(1,:) = ceil(wloc(1,:)/cfac(1));
       cwloc(2,:) = ceil(wloc(2,:)/cfac(2));
       Wc = [];
-      for w = 1 : numel(wtype),
+      for w = 1 : numel(wtype)
          Wc = verticalWell(Wc, Gc, crock, cwloc(1,w), cwloc(2,w), ...
             1 : (cartDims(end)/cfac(end)), ...
             'Type', wtype{w}, 'Val', wtarget(w), ...
@@ -134,8 +134,7 @@ for method=1:4
    %% Compare allocation factors
    subplot(2,2,method); colormap(.6*jet+.4*ones(size(jet)));
    cwp = cumsum(WPc.inj(2).alloc,1); amax = max([sum(cwp,2); amax]);
-   barh(WPc.inj(2).z, cwp, 'stacked', 'BarWidth', .98, 'EdgeColor','none');
-   lh=legend(W(D.prod).name,'Location','SouthEast');
+   h=barh(WPc.inj(2).z, cwp, 'stacked', 'BarWidth', .98, 'EdgeColor','none');
    hold on
    cwp = cumsum(WP.inj(2).alloc,1);  amax = max([sum(cwp,2); amax]);
    if size(cwp,1)<20
@@ -147,6 +146,7 @@ for method=1:4
       stairs([zeros(1,n); c], repmat(z([1:end end]),1,n), '-k','LineWidth',1);
    end
    hold off, axis tight
+   lh=legend(W(D.prod).name,'Location','SouthEast');
    set(lh,'units','pixels','FontSize',8);
    title(tittel);
 end
