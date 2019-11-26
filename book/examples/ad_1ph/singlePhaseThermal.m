@@ -138,13 +138,13 @@ maxits   = 10;                  % max number of Newton its
 
 sol = repmat(struct('time',[], 'pressure',[], 'bhp',[], 'qS',[], ...
     'T',[], 'qH',[]),[numSteps+1,1]);
-sol(1)  = struct('time', 0, 'pressure', double(p_ad), ...
-    'bhp', double(bhp_ad), 'qS', double(qS_ad), 'T', double(T_ad),'qH', 0);
+sol(1)  = struct('time', 0, 'pressure', value(p_ad), ...
+    'bhp', value(bhp_ad), 'qS', value(qS_ad), 'T', value(T_ad),'qH', 0);
 
 %% Main loop
 t = 0; step = 0;
 hwb = waitbar(0,'Simulation..');
-while t < totTime,
+while t < totTime
    t = t + dt;
    step = step + 1;
    fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
@@ -152,8 +152,8 @@ while t < totTime,
 
    % Newton loop
    resNorm = 1e99;
-   p0  = double(p_ad); % Previous step pressure
-   T0  = double(T_ad);
+   p0  = value(p_ad); % Previous step pressure
+   T0  = value(T_ad);
    nit = 0;
    while (resNorm > tol) && (nit < maxits)
 
@@ -187,12 +187,12 @@ while t < totTime,
       fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
    end
 
-   if nit > maxits,
+   if nit > maxits
       error('Newton solves did not converge')
    else % store solution
-      sol(step+1)  = struct('time', t, 'pressure', double(p_ad), ...
-                            'bhp', double(bhp_ad), 'qS', double(qS_ad), ...
-			    'T', double(T_ad), 'qH', sum(double(hq)));
+      sol(step+1)  = struct('time', t, 'pressure', value(p_ad), ...
+                            'bhp', value(bhp_ad), 'qS', value(qS_ad), ...
+			    'T', value(T_ad), 'qH', sum(value(hq)));
       waitbar(t/totTime,hwb);
    end
 end
@@ -210,11 +210,12 @@ p = vertcat(sol(:).pressure);
 cax=[min(p) max(p)]./barsa;
 for i=1:4
    subplot(2,2,i);
+   set(gca,'Clipping','off');
    plotCellData(G, sol(steps(i)).pressure/barsa, show, 'EdgeColor',.5*[1 1 1]);
    plotWell(G, W, 'FontSize',12);
    view(-125,20), camproj perspective
    caxis(cax);
-   axis tight off; zoom(1.4)
+   axis tight off; zoom(1.1)
    text(200,170,-8,[num2str(round(steps(i)*dt/day)) ' days'],'FontSize',12);
 end
 colorbar('horiz','Position',[.1 .05 .8 .025]);
@@ -227,11 +228,12 @@ T = vertcat(sol(:).T); %-T_r;
 cax=[min(T) max(T)];
 for i=1:numel(steps)
    subplot(2,2,i);
+   set(gca,'Clipping','off');
    plotCellData(G, sol(steps(i)).T, show, 'EdgeColor',.5*[1 1 1]);
    plotWell(G, W, 'FontSize',12);
    view(-125,20), camproj perspective
    caxis(cax);
-   axis tight off; zoom(1.4)
+   axis tight off; zoom(1.1)
    text(200,170,-8,[num2str(round(steps(i)*dt/day)) ' days'],'FontSize',12);
 end
 h=colorbar('horiz','Position',[.1 .05 .8 .025]);
@@ -270,7 +272,7 @@ hold on, plot(t([1 end]), [Tjt Tjt],'--k'); hold off
 text(t(5), Tjt+.25, 'Joule-Tompson');
 
 % linearized adiabatic temperature
-hf   = Ef(p,T) + double(p)./rho(p,T);
+hf   = Ef(p,T) + value(p)./rho(p,T);
 dHdp = hf.jac{1};
 dHdT = hf.jac{2};
 Tab  = T_r - dHdp*dp/dHdT;

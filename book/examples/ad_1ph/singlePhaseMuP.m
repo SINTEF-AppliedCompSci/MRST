@@ -75,9 +75,9 @@ for method=1:2
 
       gradz = grad(G.cells.centroids(:,3));
       switch method
-         case 1,
+         case 1
             v  = @(p)  -(T./mu(avg(p))).*( grad(p) - g*avg(rho(p)).*gradz );
-         case 2,
+         case 2
             hf2cn = getCellNoFaces(G);
             nhf = numel(hf2cn);
             hf2f  = sparse(double(G.cells.faces(:,1)),(1:nhf)',1);
@@ -106,20 +106,20 @@ for method=1:2
       nc = G.cells.num;
       [pIx, bhpIx, qSIx] = deal(1:nc, nc+1, nc+2);
       sol = repmat(struct('time',[],'pressure',[],'bhp',[],'qS',[]),[numSteps+1,1]);
-      sol(1)  = struct('time', 0, 'pressure', double(p_ad), ...
-         'bhp', double(bhp_ad), 'qS', double(qS_ad));
+      sol(1)  = struct('time', 0, 'pressure', value(p_ad), ...
+         'bhp', value(bhp_ad), 'qS', value(qS_ad));
 
       % Time loop
       t = 0; step = 0;
       hwb = waitbar(0,'Simulation ..');
-      while t < totTime,
+      while t < totTime
          t = t + dt;
          step = step + 1;
          fprintf('Time step %d: Time %.2f -> %.2f days\n', ...
             step, convertTo(t - dt, day), convertTo(t, day));
          % Newton loop
          resNorm = 1e99;
-         p0  = double(p_ad); % Previous step pressure
+         p0  = value(p_ad); % Previous step pressure
          nit = 0;
          while (resNorm > tol) && (nit <= maxits)
             % Add source terms to homogeneous pressure equation:
@@ -141,11 +141,11 @@ for method=1:2
             nit     = nit + 1;
           end
 
-         if nit > maxits,
+         if nit > maxits
             error('Newton solves did not converge')
          else % store solution
-            sol(step+1)  = struct('time', t, 'pressure', double(p_ad), ...
-               'bhp', double(bhp_ad), 'qS', double(qS_ad));
+            sol(step+1)  = struct('time', t, 'pressure', value(p_ad), ...
+               'bhp', value(bhp_ad), 'qS', value(qS_ad));
            waitbar(t/totTime,hwb)
          end
       end

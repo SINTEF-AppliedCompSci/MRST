@@ -110,20 +110,20 @@ tol      = 1e-5;                % Newton tolerance
 maxits   = 10;                  % max number of Newton its
 
 sol = repmat(struct('time',[],'pressure',[],'bhp',[],'qS',[]),[numSteps+1,1]);
-sol(1)  = struct('time', 0, 'pressure', double(p_ad), ...
-   'bhp', double(bhp_ad), 'qS', double(qS_ad));
+sol(1)  = struct('time', 0, 'pressure', value(p_ad), ...
+   'bhp', value(bhp_ad), 'qS', value(qS_ad));
 
 %% Main loop
 t = 0; step = 0;
 hwb = waitbar(t,'Simulation ..');
-while t < totTime,
+while t < totTime
    t = t + dt;
    step = step + 1;
    fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
       step, convertTo(t - dt, day), convertTo(t, day));
    % Newton loop
    resNorm = 1e99;
-   p0  = double(p_ad); % Previous step pressure
+   p0  = value(p_ad); % Previous step pressure
    nit = 0;
    while (resNorm > tol) && (nit <= maxits)
       % Add source terms to homogeneous pressure equation:
@@ -146,11 +146,11 @@ while t < totTime,
       fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
    end
 
-   if nit > maxits,
+   if nit > maxits
       error('Newton solves did not converge')
    else % store solution
-      sol(step+1)  = struct('time', t, 'pressure', double(p_ad), ...
-                            'bhp', double(bhp_ad), 'qS', double(qS_ad));
+      sol(step+1)  = struct('time', t, 'pressure', value(p_ad), ...
+                            'bhp', value(bhp_ad), 'qS', value(qS_ad));
       waitbar(t/totTime,hwb);
    end
 end
@@ -173,11 +173,12 @@ clf;
 steps = [2 5 10 20];
 for i=1:4
    subplot(2,2,i);
+   set(gca,'Clipping','off');
    plotCellData(G, sol(steps(i)).pressure/barsa, show,'EdgeColor',.5*[1 1 1]);
    plotWell(G,W);
    view(-125,20), camproj perspective
    caxis([115 205]);
-   axis tight off; zoom(1.4)
+   axis tight off; zoom(1.1)
    text(200,170,-8,[num2str(round(steps(i)*dt/day)) ' days'],'FontSize',14);
 end
 h=colorbar('horiz','Position',[.1 .05 .8 .025]);

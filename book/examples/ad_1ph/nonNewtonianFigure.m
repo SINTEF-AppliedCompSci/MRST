@@ -1,17 +1,17 @@
 mu0 = 100*centi*poise;
 for nsim=1:4
-   switch nsim,
-      case 1,
+   switch nsim
+      case 1
          fluidModel = struct('mu0', mu0, 'nmu',  1, 'Kc', .1);
          nonNewtonianCell;
-      case 2,
+      case 2
          fluidModel = struct('mu0', mu0, 'nmu', .3, 'Kc', .1);
          nonNewtonianCell;
-      case 3,
+      case 3
          fluidModel = struct('mu0', mu0, 'nmu', .3, 'Kc', .1);
          wellAvg = true;
          nonNewtonianFace;
-      case 4,
+      case 4
          fluidModel = struct('mu0', mu0, 'nmu', .3, 'Kc', .1);
          wellAvg = false;
          nonNewtonianFace;

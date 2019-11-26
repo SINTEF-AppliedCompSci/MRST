@@ -112,14 +112,14 @@ nc = G.cells.num;
    deal(1:nc, nc+1:2*nc, 2*nc+1, 2*nc+2);
 sol = repmat(struct('time',[],'pressure',[],'eta',[], ...
                     'bhp',[],'qS',[]), [numSteps+1,1]);
-sol(1) = struct('time', 0, 'pressure', double(p_ad), ...
-                'eta', double(eta_ad), ...
-                'bhp', double(bhp_ad), 'qS', double(qS_ad));
+sol(1) = struct('time', 0, 'pressure', value(p_ad), ...
+                'eta', value(eta_ad), ...
+                'bhp', value(bhp_ad), 'qS', value(qS_ad));
 [etamin, etawmin, etamean] = deal(zeros(numSteps,1));
 
 %% Time loop
 t = 0; step = 0;
-while t < totTime,
+while t < totTime
 
    % Increment time
    t = t + dt;
@@ -128,7 +128,7 @@ while t < totTime,
       step, convertTo(t - dt, day), convertTo(t, day));
 
    % Main Newton loop
-   p0  = double(p_ad); % Previous step pressure
+   p0  = value(p_ad); % Previous step pressure
    [resNorm,nit] = deal(1e99, 0);
    while (resNorm > tol) && (nit < maxits)
 
@@ -143,7 +143,7 @@ while t < totTime,
          resNorm2 = norm(res);
          nit2     = nit2+1;
       end
-      if nit2 > maxits,
+      if nit2 > maxits
          error('Local Newton solves did not converge')
       else
          eta_ad.val = eta_ad2.val;
@@ -176,12 +176,12 @@ while t < totTime,
  %  plotCellData(G,eta_ad.val,'FaceAlpha',.3,'EdgeAlpha', .1);
  %  view(3); colorbar; drawnow
 
-   if nit > maxits,
+   if nit > maxits
       error('Newton solves did not converge')
    else % store solution
-      sol(step+1)  = struct('time', t, 'pressure', double(p_ad), ...
-         'eta', double(eta_ad), ...
-         'bhp', double(bhp_ad), 'qS', double(qS_ad));
+      sol(step+1)  = struct('time', t, 'pressure', value(p_ad), ...
+         'eta', value(eta_ad), ...
+         'bhp', value(bhp_ad), 'qS', value(qS_ad));
    end
    etamin (step) = min(eta_ad.val);
    etawmin(step) = min(eta_ad.val(wc));
@@ -195,7 +195,7 @@ clf
    plotyy([sol(2:end).time]/day, [sol(2:end).qS]*day, ...
           [sol(2:end).time]/day, mean([sol(2:end).pressure]/barsa), ...
           'stairs', 'plot');
-set(ha,'FontSize',16);
+%set(ha,'FontSize',16);
 set(hr,'LineWidth', 2);
 set(hp,'LineStyle','none','Marker','o','LineWidth', 1);
 xlabel('time [days]');
