@@ -56,8 +56,8 @@ end
 [mobW, mobO] = deal(mob{:});
 [rhoW, rhoO] = deal(rho{:});
 
-Gw = -rhogdz{1};
-Go = -rhogdz{2};
+Gw = rhogdz{1};
+Go = rhogdz{2};
 if ~isempty(pc{1})
     Gw = Gw - op.Grad(pc{1});
 end
