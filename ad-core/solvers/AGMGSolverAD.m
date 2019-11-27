@@ -29,14 +29,6 @@ classdef AGMGSolverAD < LinearSolverAD
             solver = merge_options(solver, varargin{:});
        end
        
-       function [dx, result, report] = solveLinearProblem(solver, problem, model)
-           if solver.reduceToCell
-               [dx, result, report] = solver.solveCellReducedLinearProblem(problem, model);
-           else
-               [dx, result, report] = solveLinearProblem@LinearSolverAD(solver, problem, model);
-           end
-       end
-       
        function [result, report] = solveLinearSystem(solver, A, b)
            cleanAfter = false;
            if ~solver.setupDone
