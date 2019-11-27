@@ -5,9 +5,9 @@
 % calculation of radial transmissibility and the definition of the well
 % structure. Also, the simulation performances of the standalone Cartesian 
 % grid that uses the Peaceman well model and the hybrid grid are compared.
-%
-% Load necessary modules
-mrstModule add ad-core ad-blackoil ad-props
+
+mrstModule add nwm ad-core ad-blackoil ad-props
+
 %% Build the hybrid grid
 % Build the Cartesian grid
 GC = cartGrid([15, 15], [1000, 1000]);
@@ -27,6 +27,7 @@ pW  = [500, 500];
 % Get the hybrid grid
 G = radCartHybridGrid(GC, cI, rW, rM, nR, pW);
 figure, hold on; axis equal off, plotGrid(G)
+
 %% Compute the radial half transmissibility factor
 % The radial transmissibility is derived from the radial/angular two-point 
 % flux approximation. The derivation assumes the steady-state flow and
@@ -42,9 +43,10 @@ GR.radDims = [GR.radDims(1), GR.radDims(2)-1, 1];
 skin = 0;
 ft = computeRadTransFactor(GR, pW, skin);
 ft = ft(~isnan(ft));
-%% Assign the radial transmissibility
-rock = makeRock(G, [.25, .25]*darcy, 0.25);
 
+%% Assign the radial transmissibility
+% Define a homogeneous rock 
+rock = makeRock(G, [.25, .25]*darcy, 0.25);
 % Linear half transmissibility
 hT = computeTrans(G, rock);
 % Indices of radial cells involved in the factor calculations
@@ -66,6 +68,7 @@ assert( numel(hT) == numel(cf) )
 T_all  = 1 ./ accumarray(cf, 1./hT, [nf, 1]);
 intCon = all(G.faces.neighbors, 2);
 T = T_all(intCon);
+
 %% Setup simulation model
 % Define a two phase (oil-water) fluid
 fluid = initSimpleADIFluid('mu',    [1, 5, 0]*centi*poise, ...
@@ -82,6 +85,7 @@ model.operators.T = T;
 % The rock and model of Cartesian grid
 rockC  = makeRock(GC, [.25, .25]*darcy, 0.25);
 modelC = TwoPhaseOilWaterModel(GC, rockC, fluid);
+
 %% Define wells for the hybrid grid
 % Setup two injectors
 % INJ1: south-west corner cell
@@ -114,6 +118,7 @@ plotGrid(G, 'facecolor', 'none')
 plotGrid(G, W(3).cells)
 xlim([498,502]); ylim([498,502]);
 legend('G', 'Well cells')
+
 %% Define wells for the Cartesian grid
 % Setup two injectors
 % INJ1: south-west corner cell
@@ -132,12 +137,12 @@ D = sqrt(sum(D.^2,2));
 wcP = find(D==min(D));
 WC = addWell(WC, GC, rockC, wcP, 'Name', 'PROD', 'sign', -1, ...
     'comp_i', [1, 1], 'Val', bhp, 'Type', 'bhp', 'Radius', rW);
+
 %% Define schedule
 timesteps = ones(20,1)*30*day;
-
-% Set up the schedule containing both the wells and the timesteps
 schedule  = simpleSchedule(timesteps, 'W', W);
 scheduleC = simpleSchedule(timesteps, 'W', WC);
+
 %% Initial state
 sW = zeros(G.cells.num, 1);
 sat = [sW, 1 - sW];
@@ -146,13 +151,16 @@ state0 = initResSol(G, 300*barsa, sat);
 sW = zeros(GC.cells.num, 1);
 sat = [sW, 1 - sW];
 state0C = initResSol(GC, 300*barsa, sat);
+
 %% Run the simulator
 [wellSols, states, report] = simulateScheduleAD(state0, model, schedule);
 [wellSolsC, statesC, reportC] = simulateScheduleAD(state0C, modelC, scheduleC);
+
 %% Compare the well solutions
 % Show the differences of producer's data (bhp, qWs, qOs) between the 
 % hybrid grid and Cartesian grid
 plotWellSols({wellSols, wellSolsC}, report.ReservoirTime)
+
 %% Compare the pressure and oil saturation
 ts = 20;
 figure

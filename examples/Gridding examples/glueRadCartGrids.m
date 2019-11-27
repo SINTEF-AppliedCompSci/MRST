@@ -6,7 +6,9 @@
 % easy to connect the two subgrids: obtain the points and connectivity
 % lists of the subgrids and then assemble them to get the global ones. In 
 % addition, the common points at the grid boundaries are merged and mapped. 
-%
+
+mrstModule add nwm
+
 %% Build the Cartesian grid
 GC = cartGrid([20, 20], [200, 200]);
 GC = computeGeometry(GC);
@@ -29,6 +31,7 @@ legend('Cells outside the well reigon', 'Cells inside the well reigon')
 
 % Extract the sorted boundary nodes of the reigon (in 'counterclockwise')
 bn = extractBdyNodesCells(GC, cI);
+
 %% Generate radial point set
 % nA - Number of cells in angular direction
 % nR - Number of cells in radial direction
@@ -58,6 +61,7 @@ pR = bsxfun(@plus, [px(:), py(:)], pW);
 % The boundary points are the outermost angular points. The total radial
 % dimension is then nR+1
 pR = [pR; pbn];
+
 %% Build the radial grid
 [GR, tR] = buildRadialGrid(pR, nA, nR+1);
 
@@ -66,17 +70,18 @@ figure, hold on; axis equal off
 plotGrid(GC, cO, 'facecolor', 'y')
 plotGrid(GR, 'facecolor', 'g')
 legend('Cells outside the well reigon', 'Cells inside the well reigon')
+
 %% Glue the grids
 % The constructor 'tessellationGrid' is used to glue the two grids. First,
 % we should get the points and connectivity lists of the two subgrids. The 
 % connectivity list provides the indices of nodes specifing each polygonal 
 % cell, i.e. the nodes of cells.
 
-% Points and conn. list of the radial grid
+% Points and connectivity list of the radial grid
 pR = GR.nodes.coords;
 % tR is obtained from 'buildRadialGrid' to keep indices
 
-% Points and conn. list of the Cartesian grid
+% Points and connectivity list of the Cartesian grid
 % Remove the cells inside the well region first
 [GC_Rem, ~, ~, mapn] = removeCells(GC, cI);
 pC = GC_Rem.nodes.coords;
@@ -94,12 +99,13 @@ pC = pC(idx,:);
 % We already know the bounday nodes in pR: the last nA nodes
 nNo(bn)  = size(pR,1)+1 - (nA:-1:1)';
 
-% Map the conn. list
+% Map the connectivity list
 [cnC, pos] = gridCellNodes(GC_Rem, (1:GC_Rem.cells.num));
 cnC = nNo(cnC);
-tC  = arrayfun(@(c)cnC(pos(c):pos(c+1)-1), (1:GC_Rem.cells.num)', 'UniformOutput', false);
+tC  = arrayfun(@(c)cnC(pos(c):pos(c+1)-1), (1:GC_Rem.cells.num)', ...
+    'UniformOutput', false);
 
-% Assemble the points and conn. lists
+% Assemble the points and connectivity lists
 p = [pR; pC];
 % Sort the tC to same direction with tR (in 'clockwise')
 tC = sortPtsClockWise(p, tC);
@@ -110,6 +116,7 @@ G = computeGeometry(G);
 % Plot the hybrid grid
 figure, hold on; axis equal off
 plotGrid(G)
+
 %%
 % The function 'radCartHybridGrid' integrates above generation process, we 
 % can call it to build a hybrid grid directly.

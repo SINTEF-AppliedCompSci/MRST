@@ -9,7 +9,9 @@
 % to build an radial grid using the constructor 'tessellationGrid'. The 
 % generating points are the grid nodes, and the indices of grid objects, 
 % i.e. cells, faces, and nodes, are numerbed logically.
-%
+
+mrstModule add nwm
+
 %% Generate radial point set
 % nA - Number of cells in angular direction
 % nR - Number of cells in radial direction
@@ -60,6 +62,7 @@ title('Face numbers of cells in Pebi-style radial grid')
 % Display the number of very small faces
 fprintf(' There are altogether %d faces with areas smaller than 1e-10\n', ...
     nnz( H.faces.areas < 1e-10 ))
+
 %%
 % 3. The indices of faces are not numbered logically. We cannot find the
 % radial faces and angular faces directly. This would be unfavorbale when
@@ -76,24 +79,25 @@ for i = c'
 end
 title('Directions of Pebi-style radial grid faces')
 legend('H', 'Face 1', 'Face 2', 'Face 3', 'Face 4')
+
 %% Build the radial grid by 'tessellationGrid'
 % The 'tessellationGrid' accepts the combination of points (geometrical 
 % input) and connectivity list (topological inputs) and returns a complete
 % grid structure. The connectivity list provides the indices of nodes
 % specifing each polygonal cell, i.e. the 'tessellationGrid' restores the 
 % complete grid-object sequence of nodes->faces->cells from nodes->cells.
-% The cell / node numbering follows the sequence of conn. list / generating 
-% points.
+% The cell / node numbering follows the sequence of connectivity list /
+% generating points.
 % The face numbering follows the combining numbering of two nodes 
 % specifying the face.
-% e.g. for a conn. list of {[1, 2, 4, 5], [2, 3, 4]}:
+% e.g. for a connectivity list of {[1, 2, 4, 5], [2, 3, 4]}:
 % Face indices:    1  2  3  4  5  6
 % Node1 indices:   1  1  2  2  2  3
 % Node2 indices:   4  5  3  4  5  4
 %
-% Since the radial grid is structured, we can pick the conn. list from the
-% Cartesian node distribution matrix. The nodes corresponding to cell 
-% (i, j) is: {L(i,j), L(i+1,j), L(i+1,j+1), L(i,j+1)}
+% Since the radial grid is structured, we can pick the connectivity list 
+% from the Cartesian node distribution matrix. The nodes corresponding to 
+% cell (i, j) is: {L(i,j), L(i+1,j), L(i+1,j+1), L(i,j+1)}
 %
 % Arrange the node to a Cartesian format   
 %   ---->  Radial 
@@ -135,7 +139,7 @@ subplot(1,2,2), axis equal tight off
 plotCellData(G, r)
 title('Radial indices')
 
-% According to the picking method of conn. list, for every cell, it has:
+% According to the picking method of connectivity list, for every cell:
 % Face 1:  Radial  -
 % Face 2:  Angular + 
 % Face 3:  Radial  +
@@ -155,6 +159,7 @@ for i = c
 end
 title('Directions of radial grid faces')
 legend('G', 'Face 1 (R-)', 'Face 2 (A+)', 'Face 3 (R+)', 'Face 4 (A-)')
+
 %%
 % The function 'buildRadialGrid' integrates above generation process, we 
 % can call it to build a radial grid directly.

@@ -1,5 +1,5 @@
 function G = makeLayeredGridNWM(g, p, varargin)
-% Extrude 2D Grid to layered 3D grid according the topology of 2D grid and
+% Extrude 2D grid to layered 3D grid according the topology of 2D grid and
 % provided layer point set. 
 %
 % SYNOPSIS:
@@ -166,24 +166,5 @@ end
 function cn = getNodesOfcell(G)
     [cn, pos] = gridCellNodes(G, (1:G.cells.num)');
     cn = arrayfunUniOut(@(c)cn(pos(c):pos(c+1)-1), (1:G.cells.num)');
-    cn = sortPtsCounterClockWise(G.nodes.coords, cn);
+    cn = sortPtsCounterClockWise(G.nodes.coords(:, [1,2]), cn);
 end
-
-% function cellNodes = getNodesOfcell_Ori(G)
-%     cellNodes = cell(G.cells.num, 1);
-%     fAngle = @(x,y)2*pi*double(sign(atan2(y,x))<0) + atan2(y,x);
-%     for c = 1 : G.cells.num
-%         facePos = G.cells.facePos(c) : G.cells.facePos(c+1)-1;
-%         faces = G.cells.faces(facePos, 1);
-%         nodes = arrayfunUniOut(@(f)gridFaceNodes(G, f), faces);
-%         nodes = unique(cell2mat(nodes));
-%         coords = G.nodes.coords(nodes, [1, 2]);
-%         xx = coords(:,1);
-%         yy = coords(:,2);
-%         xc = mean(xx);
-%         yc = mean(yy);
-%         a  = arrayfun(@(x, y)fAngle(x-xc, y-yc), xx, yy);
-%         [~, i] = sort(a);
-%         cellNodes{c} = nodes(i);
-%     end
-% end

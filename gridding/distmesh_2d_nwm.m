@@ -1,5 +1,5 @@
-function [ p, t ] = distmesh_2d ( fd, fh, h0, box, iteration_max, pfix, ...
-  varargin )
+function [ p, t ] = distmesh_2d_nwm ( fd, fh, h0, box, iteration_max, pfix, ...
+    plotMesh, varargin )
 
 %*****************************************************************************80
 %
@@ -169,11 +169,12 @@ function [ p, t ] = distmesh_2d ( fd, fh, h0, box, iteration_max, pfix, ...
       bars = unique ( sort ( bars, 2 ), 'rows' );
 %
 %  5. Graphical output of the current mesh.
-      figure(111);cla;
-      trimesh ( t, p(:,1), p(:,2), zeros(N,1), 'EdgeColor', 'b', 'Linewidth', 1 )
-      title ( sprintf ( 'Iteration %d', iteration ) );
-      view(2), axis equal, axis off, drawnow
-%
+      if plotMesh
+          figure(111);cla;
+          trimesh ( t, p(:,1), p(:,2), zeros(N,1), 'EdgeColor', 'b', 'Linewidth', 1 )
+          title ( sprintf ( 'Iteration %d', iteration ) );
+          view(2); axis equal off; drawnow
+      end
 %  Put a "pause" command here if you'd like to see each new mesh.
 %
     end

@@ -13,13 +13,7 @@ function [p, t, bdyID] = demoHandleVoronoiDiag(pVor, tVor, pib, pob, pW, tW, bnW
     pVor = pVor(map(:,2), :);
     
     % Remove conflict points (point too close to each other)
-    try
-        % Require Statistics and Machine Learning Toolbox
-        D = pdist2(pVor, pVor, 'euclidean');
-    catch
-        % An alternative to 'pdist2'
-        D = euclideanDistance(pVor, pVor);
-    end
+    D = euclideanDistance(pVor, pVor);
     D = triu(D);
     tol2 = 0.1;
     [removed, reserved] = find(D < tol2);
@@ -37,13 +31,7 @@ function [p, t, bdyID] = demoHandleVoronoiDiag(pVor, tVor, pib, pob, pW, tW, bnW
     
     % Connect with the WR grid: add WR points, and map the connectivity 
     % list again
-    try
-        % Require Statistics and Machine Learning Toolbox
-        D2 = pdist2(pVor, pib, 'euclidean');
-    catch
-        % An alternative to 'pdist2'
-        D2 = euclideanDistance(pVor, pib);
-    end
+    D2 = euclideanDistance(pVor, pib);
     [IBID, ~] = find( bsxfun(@eq, D2, min(D2)) );
     map1 = find( ~ismember((1:size(pVor,1))', IBID) );
     pVor = pVor(map1, :);
@@ -54,13 +42,13 @@ function [p, t, bdyID] = demoHandleVoronoiDiag(pVor, tVor, pib, pob, pW, tW, bnW
         map2(ismember(map2(:,2), x), 1)'], tVor);
     p = [pW; pVor];
     t = [tW; tVor];
-    D3 = pdist2(p, pob,'euclidean'); 
+    
+    D3 = euclideanDistance(p, pob); 
     [bdyID, ~] = find( bsxfun(@eq, D3, min(D3)) );
     
     % Add empty cells
     [p, t] = addEmpCells(p, t, bnW);
 end
-
 
 function [p, t] = addEmpCells(p, t, bnW)
 % Add empty cells which appear during the generation of Voronoi grid

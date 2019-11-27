@@ -23,7 +23,7 @@ function [players, t, bdyID] = generateVOIGridNodes(GC, packed, WR, layerRf, opt
         case 'triangular'
             generator = @triangularPts;
         case 'Voronoi'
-            generator = @VoionoiPts_New;
+            generator = @VoionoiPts;
         otherwise
             error([mfilename, ': Unknown grid type'])
     end
@@ -75,7 +75,7 @@ function [p, t, bdyID] = triangularPts(G, packed, WR, layer, opt)
 end
 
 % -------------------------------------------------------------------------
-function [p, t, bdyID] = VoionoiPts_New(G, packed, WR, layer, opt)
+function [p, t, bdyID] = VoionoiPts(G, packed, WR, layer, opt)
     % Get outer boundary points and auxiliary point of VOI
     fV     = packed.faces{layer};
     bfV    = packed.bdyFaces{layer};
@@ -113,13 +113,7 @@ function [p, t, bdyID] = VoionoiPts_New(G, packed, WR, layer, opt)
     pVor = pVor(map(:,2), :);
     
     % Remove conflict points (point too close to each other)
-    try
-        % Require Statistics and Machine Learning Toolbox
-        D = pdist2(pVor, pVor, 'euclidean');
-    catch
-        % An alternative to 'pdist2'
-        D = euclideanDistance(pVor, pVor);
-    end
+    D = euclideanDistance(pVor, pVor);
     D = triu(D);
     tol2 = 0.1;
     [removed, reserved] = find(D < tol2);
@@ -136,13 +130,7 @@ function [p, t, bdyID] = VoionoiPts_New(G, packed, WR, layer, opt)
     tVor = tVor( cellfun(@length, tVor) > 3 );
     
     % Add WR points, and map the connectivity list again
-    try
-        % Require Statistics and Machine Learning Toolbox
-        D2 = pdist2(pVor, pib, 'euclidean');
-    catch
-        % An alternative to 'pdist2'
-        D2 = euclideanDistance(pVor, pib);
-    end
+    D2 = euclideanDistance(pVor, pib);
     [IBID, ~] = find( bsxfun(@eq, D2, min(D2)) );
     map1 = find( ~ismember((1:size(pVor,1))', IBID) );
     pVor = pVor(map1, :);
@@ -153,7 +141,7 @@ function [p, t, bdyID] = VoionoiPts_New(G, packed, WR, layer, opt)
         map2(ismember(map2(:,2), x), 1)'], tVor);
     p = [pW; pVor];
     t = [tW; tVor];
-    D3 = pdist2(p, pob,'euclidean'); 
+    D3 = euclideanDistance(p, pob); 
     [bdyID, ~] = find( bsxfun(@eq, D3, min(D3)) );
     
     % Add empty cells
@@ -303,99 +291,6 @@ function [p, t] = addEmpCells(p, t, bnW)
         end
     end
 end
-
-% % -------------------------------------------------------------------------
-% function [p, t, bdyID] = VoionoiPts(G, packed, WR, layer, opt)
-%     % Assign Volume of Interest (VOI) data
-%     fV     = packed.faces{layer};
-%     bdfV   = packed.bdyFaces{layer};
-%     boxfV  = packed.boxFaces{layer};
-%     bdnV   = packed.bdyNodes{layer};
-%     
-%     % Assign Well Region (WR) data
-%     pW   = [vertcat(WR.points.cart); vertcat(WR.points.rad)];
-%     tW   = WR.connlist;
-%     bnW  = WR.bdnodes;
-%     
-%     % Get Internal boundary points
-%     pib = pW(bnW,:);
-%     tW = sortPtsCounterClockWise(pW, tW);
-%     g = tessellationGrid(pW, tW);
-%     g = computeGeometry(g);
-%     bdnWR2 = [bnW, [bnW(2:end); bnW(1)]];
-%     nodesg = arrayfun(@(f)g.faces.nodes...
-%         (g.faces.nodePos(f) : g.faces.nodePos(f+1)-1, 1)', (1:g.faces.num)', ...
-%         'UniformOutput', false);
-%     nodesg = cell2mat(nodesg);
-%     bf = arrayfun(@(i)find( all(ismember(nodesg, bdnWR2(i,:)), 2) ), ...
-%         (1:size(bdnWR2,1))');
-%     bfxy = g.faces.centroids(bf, :);
-%     bc = sum(g.faces.neighbors(bf,:), 2);
-%     bcxy = g.cells.centroids(bc, :);
-%     pib2 = 2*bfxy - bcxy;
-%     
-%     % Get outer boundary points
-%     pob  = G.nodes.coords(bdnV, [1,2]);
-%     pob2 = G.faces.centroids(bdfV, [1,2]);
-%     
-%     % Generate basic points from distmesh
-%     pdis = pointsByDistmesh(pib2, pob2, opt.multiplier, opt.maxIter);
-%     
-%     % Add auxiliary point
-%     boxfV = boxfV(~ismember(boxfV, fV));
-%     boxfc = G.faces.centroids(boxfV, [1,2]); % box face centroids 
-%     wrcc  = g.cells.centroids; % well region cell centroids
-%     
-%     % Get Voronoi points and connectivity list
-%     pall = [pdis; boxfc; wrcc];
-%     [pVor, tVor] = voronoin(pall, {'Qbb','Qz'});
-%     
-%     % Remove points outside the region
-%     fdI = @(p)dpoly(p, [pib; pib(1,:)]);
-%     fdO = @(p)dpoly(p, [pob; pob(1,:)]);
-%     fd  = @(p)ddiff(fdO(p), fdI(p));
-%     tol1 = 0.1;
-%     in  = find(fd(pVor) < tol1 & all(~isinf(pVor), 2));
-%     map = [(1:length(in))', in];
-%     pVor = pVor(map(:,2), :);
-%     
-%     % Remove conflict points (point too close to each other)
-%     D = pdist2(pVor, pVor, 'euclidean'); 
-%     D = triu(D);
-%     tol2 = 0.1;
-%     [removed, reserved] = find(D < tol2);
-%     ii = removed < reserved; 
-%     removed = removed(ii);
-%     reserved = reserved(ii);
-%     map(removed,1) = map(reserved,1);
-%     idx  = find(~ismember((1:size(pVor,1))', removed));
-%     pVor = pVor(idx, :);
-%     map(:,1) = arrayfun(@(x)find(x == idx), map(:,1));
-%     
-%     % Map the connectivity list
-%     tVor = cellfun(@(x)unique( map(ismember(map(:,2), x), 1)' ), ...
-%         tVor, 'UniformOutput', false);
-%     tVor = tVor( cellfun(@length, tVor) > 3 );
-%     
-%     % Add WR points, and map the connectivity list again
-%     D2 = pdist2(pVor, pib, 'euclidean'); 
-%     [IBID, ~] = find( bsxfun(@eq, D2, min(D2)) );
-%     map1 = find( ~ismember((1:size(pVor,1))', IBID) );
-%     pVor = pVor(map1, :);
-%     map1 = [(1:length(map1))', map1];
-%     map1(:,1) = map1(:,1) + size(pW,1);
-%     map2 = [bnW, IBID];
-%     tVor = cellfun(@(x)[map1(ismember(map1(:,2), x), 1)', ...
-%         map2(ismember(map2(:,2), x), 1)'], tVor, 'UniformOutput', false);
-%     p = [pW; pVor];
-%     t = [tW; tVor];
-%     D3 = pdist2(p, pob,'euclidean'); 
-%     [bdyID, ~] = find( bsxfun(@eq, D3, min(D3)) );
-%     
-%     % Add some empty cells
-% %     [p, t] = repairNodes(p, t);
-%     [p, t] = addEmpCells(p, t, bnW);
-% end
 
 function throwError(L)
     error(['Cannot generate appropriate Voronoi sites, please \n',...

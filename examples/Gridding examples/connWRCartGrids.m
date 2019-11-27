@@ -10,10 +10,13 @@
 % * Removing conflicting points, 
 % * Connecting with the WR grid, and
 % * Connecting with the Cartesian grid.
-%
+
+mrstModule add nwm upr
+
 %% Build the Cartesian grid
 GC = cartGrid([25, 25], [200, 200]);
 GC = computeGeometry(GC);
+
 %% Define well trajectory and region of interest (ROI) boundary
 % The well trajectory, should be located inside the ROI boundary.
 ns = 12;
@@ -23,7 +26,7 @@ traj = [150*cos(th)+200, 150*sin(th)];
 pbdy = [136, 150;
         145,  95;
          90,  30;
-         50,  50;
+         35,  45;
          45, 105;
          90, 160];
      
@@ -49,14 +52,12 @@ demoPlotPoly(pbdy, 'k^-', 'r', 5)
 demoPlotPoly(GC.nodes.coords(bnC,:), 'ks-', 'g', 4)
 legend('GC outside the ROI', 'GC inside the ROI', 'Well path' ,...
     'Specified ROI boundary','Clipped ROI boundary')
+
 %% Get the points and connectivity list of WR grid
 % The WR grid is built along the well trajectory, consisting of a Cartesian
-% region and two half-radial regions
-% For the Cartesian region, the X axis extends along the well trajectory:
-%     ---------> X
-%    |    -----------------------------------
-%  Y |    --------- Well trajectory ---------
-%    V    -----------------------------------
+% region and two half-radial regions. For the Cartesian region, the X axis 
+% extends along the well trajectory. (see 'exampleNearWellBoreModeling')
+
 % The number of Cartesian cells in Y direction
 ny = 8;
 % The size Cartesian region in Y direction
@@ -80,6 +81,7 @@ plotGrid(GW, 'facecolor', [.0, .44, .74])
 demoPlotPoly(GC.nodes.coords(bnC, :), 'ks-', 'g', 4)
 demoPlotPoly(pW(bnW, :), 'ko-', 'y', 3)
 legend('GC outside the ROI', 'GW (WR grid)', 'ROI boundary' ,'WR boundary')
+
 %% Design the generating points
 % The Voronoi grid is built within the region between the outer boundary 
 % (ROI boundary) and inner boundary (WR grid boundary), namely transition 
@@ -114,3 +116,68 @@ legend('Outer boundary of TR' ,'Inner boundary of TR', ...
 % The auxiliary points consist of the centroids of the Cartesian cells
 % outside the ROI and the intersection points (inside the WR grid) of 
 % circumcircles of the WR boundary nodes.
+pauxW = pIn;
+pauxC = GC.cells.centroids(cO, :);
+
+% Combine the basic points and auxiliary points to get the generating
+% points of the Voronoi diagram
+pall = [pdis; pauxC; pauxW];
+% Get the nodes and connectivity list of the Voronoi diagram
+[pVor, tVor] = voronoin(pall, {'Qbb','Qz'});
+
+% Plot the Voronoi diagram
+figure, hold on, axis equal off
+voronoi(pall(:,1), pall(:,2), '-')
+demoPlotPoly(pdis,  'ro',  'r', 2)
+demoPlotPoly(pauxC, 'bo',  'b', 2)
+demoPlotPoly(pauxW, 'k^',  'k', 3)
+demoPlotPoly(pob,   'ks-', 'g', 4)
+demoPlotPoly(pib,   'ko-', 'y', 3)
+legend('', 'Initial Voronoi digram', 'Basic points' ,'Auxiliary points (CO)', ...
+    'Auxiliary points (WR)', 'Outer boundary of TR' ,'Inner boundary of TR')
+xlim([-20, 220])
+ylim([-20, 220])
+
+%% Handle the Voronoi diagram
+% Here, three treatments are performed:
+% * Clipping the Voronoi diagram, 
+% * Removing conflicting points, and
+% * Connecting with the WR grid.
+[pVor, tVor, bnVor] = demoHandleVoronoiDiag(pVor, tVor, pib, pob, pW, tW, bnW);
+
+%% Connect with the Cartesian grid
+% Next, connect the Voronoi grid (already connected to the WR grid) with
+% the Cartesian grid
+% Remove cells inside the ROI
+[GC_Rem, ~, ~, mapn] = removeCells(GC, cI);
+pC = GC_Rem.nodes.coords;
+
+% Get the indices of boundary nodes in GC_Rem
+bnC = arrayfun(@(n)find(mapn == n), bnC);
+
+% Merge the common nodes (boundary nodes). The boundary node indices in pC 
+% are replaced by the ones in pVor
+nNo  = (1:size(pC,1))';
+% The non-boundary nodes indices
+idx  = ~ismember(nNo, bnC);
+nNo(idx) = (1:nnz(idx))' + size(pVor,1);
+pC = pC(idx,:);
+% We already know the bounday nodes in pVor: bnVor
+nNo(bnC)  = bnVor;
+
+% Map the connectivity list
+[cnC, pos] = gridCellNodes(GC_Rem, (1:GC_Rem.cells.num));
+cnC = nNo(cnC);
+tC  = arrayfun(@(c)cnC(pos(c):pos(c+1)-1), (1:GC_Rem.cells.num)', ...
+    'UniformOutput', false);
+
+%% Get the hybrid grid
+% Assemble the points and connectivity lists
+p = [pVor; pC];
+t = [tVor; tC];
+t = sortPtsCounterClockWise(p, t);
+G = tessellationGrid(p, t);
+G = computeGeometry(G);
+
+figure, hold on, axis equal tight off
+plotGrid(G)

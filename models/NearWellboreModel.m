@@ -1,5 +1,6 @@
 classdef NearWellboreModel
-% Class for collecting simulation data of the near-wellbore model
+% Class for generating necessary variables passed to the mrst AD simulators
+% for the hybrid grid of near-wellbore model
     properties
         subGrids    % Subgrids {Corner-point grid, VOI grid, HW grid}
         inputDeck   % ECLIPSE-style Input deck of CPG simulation model
@@ -483,7 +484,7 @@ classdef NearWellboreModel
                     error('Unknow boundary location')
             end
             t1 = clock;
-            fprintf('      %s - %s: %s boundary, ', types{grdInd(1)},...
+            fprintf('      %8s - %8s: %7s boundary, ', types{grdInd(1)},...
                 types{grdInd(2)}, bdyLoc)
             nmf = handleNonMatchingFaces(G1, f1, G2, f2, ...
                 'isfaceNodesSorted', true);
@@ -505,11 +506,11 @@ classdef NearWellboreModel
             C  = G2.parentInfo.cells;
             BN = G2.parentInfo.bdyNodes;
             t1 = clock;
-            fprintf('      %s - %s: layered boundary, ', types{grdInd(1)},...
+            fprintf('      %8s - %8s: layered boundary, ', types{grdInd(1)},...
                 types{grdInd(2)})
             mf = handleMatchingFaces(G1, C, BN, G2);
             t2 = clock;
-            fprintf('time elapsed %.2f [s]\n', etime(t2, t1))
+            fprintf('elapsed time %.2f [s]\n', etime(t2, t1))
         end
 
         function model = setupSimModel(nwm, rock, T_all, N_all)
@@ -787,7 +788,7 @@ classdef NearWellboreModel
             c1  = sum(G.faces.neighbors(f1, :),2);
             idx = nmf(:,1)== f1;
             if nnz(idx) > 0
-                figure, hold on
+                cla, hold on
                 f2  = nmf(idx, 2);
                 c2  = sum(G.faces.neighbors(f2, :),2);
                 plotGrid(G, c1, 'facecolor', 'none')
@@ -811,7 +812,7 @@ classdef NearWellboreModel
             if nnz(idx) > 0
                 f2  = mf(idx, 2);
                 c2  = sum(G.faces.neighbors(f2, :),2);
-                figure, hold on
+                cla, hold on
                 plotGrid(G, c1, 'facecolor', 'none')
                 arrayfun(@(c)plotGrid(G, c, 'facecolor', rand(3,1)), c2)
                 view(3),axis off

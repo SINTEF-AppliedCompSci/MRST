@@ -1,4 +1,4 @@
-%% Near-wellbore modeling (NWM) example
+%% The grids in the Near-wellbore modeling (NWM) method
 % 
 % Typically, the horizontal well (HW) is built in the Corner-point grid 
 % (CPG) or Cartesian grid by the standard well model (Peaceman's model) 
@@ -13,51 +13,42 @@
 % horizontal well. 
 %
 % The global grid will consist of three subgrids that adopt different
-% gridding strategies and transmissibility calculations:
+% gridding strategies:
 % -------------------------------------------------------------------------
-% | Grid | Description | Type                 | Transmissibility          |
+% | Grid | Description | Type                 | Constructor               |
 % |-----------------------------------------------------------------------|
-% | GC   | Background  | Corner-point         | Local coordinate system   |
-% |      | grid        |                      | Linear approximation      |
+% | GC   | Background  | Corner-point or      | initEclipseGrid           |
+% |      | grid        | Cartesian            |                           |
 % |-----------------------------------------------------------------------|
-% | GV   | VOI grid    | Unstructured,        | Global coordinate system  |
-% |      |             | Vertically layered   | Linear approximation      |
+% | GV   | VOI grid    | Unstructured,        | tessellationGrid +        |
+% |      |             | Vertically layered   | makeLayeredGridNWM        |
 % |-----------------------------------------------------------------------|
-% | GW   | HW grid     | Structured radial,   | Global coordinate system  |
-% |      |             | Horizontally layered | Radial approximation      |
-% |      |             |                      | Isotropic permeability    |
+% | GW   | HW grid     | Structured radial,   | tessellationGrid +        |
+% |      |             | Horizontally layered | makeLayeredGridNWM        |
 % -------------------------------------------------------------------------
 %
 % Remarks:
-% * In the grid domain, the subgrid boundaries are not connected. The
-%   connection between subgrids are accomplished by the non-neighbor 
-%   connection (NNC).
-% * The ECLIPSE input deck is used to specify basic simulation parameters,
-%   including 'RUNSPEC', 'GRID', 'PROPS', 'SOLUTION', and 'SCHEDULE'. 
-%   These parameters can also be provided by MRST functionalities, e.g. 
-%   'makemodel3', 'processGRDECL', 'initSimpleADIFluid', 'addWell', 
-%   'simpleSchedule'. However, this module is basically tailored to the 
-%   deck-format input. Some modifications of this module's function are 
-%   needed when calling above functions.
-% * This module now only support the modeling of horizontal wells.
-% * This module now only support the single property and equilibration 
-%   region.
+% * This module now only support the modeling of horizontal wells. The
+%   modeling of vertical wells is under development.
 % * The volume of interest (VOI) can not cover the faults.
-clear
-% Load necessary modules
-mrstModule add ad-core ad-blackoil ad-props mrst-gui wellpaths deckformat
+
+mrstModule add nwm deckformat wellpaths upr
+
 %% Read the ECLIPSE input deck
-fn = fullfile(pwd, '..', 'data', 'CPG.data');
+fn = fullfile(pwd, '..', 'data', 'NWM.data');
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
+
 %% Build the background Corner-point grid (CPG)
 GC = initEclipseGrid(deck);
 GC = computeGeometry(GC);
+
 %% Define basic information of horizontal well (HW)
 % The well trajectory is specified by a set of discrete 3D well points 
 % (in xyz format) which divides the HW into multiple segments.
-load trajectory.mat
-
+% Load well trajectory
+fn = fullfile(pwd, '..', 'data', 'trajectory.mat');
+load(fn)
 % Number of well segments
 ns = size(pW,1)-1;
 
@@ -72,14 +63,14 @@ ns = size(pW,1)-1;
 %  'isMS'      :   Indicating the multi-segment well definition
 %  'roughness' :   Roughness per well segment
 % (See 'exampleNWMMultiSegmentWell')
-
 well = struct(...
-    'name'         , 'P1', ...
+    'name'         , 'PROD', ...
     'trajectory'   , pW, ...
     'segmentNum'   , ns, ...
     'radius'       , 0.15 * ones(ns+1,1), ...
     'skinFactor'   , zeros(ns,1), ...
     'openedSegs'   , (1:ns));
+
 %% Define the volume of interest (VOI)
 % The VOI is a 3D region in which we will reconstruct a layered 
 % unstructured grid. 
@@ -108,8 +99,7 @@ geoV = VOI.allInfoOfVolume();
 VOI.plotVolumeCells(geoV), view(3)
 VOI.plotVolumeLayerFaces(geoV), view(3)
 VOI.plotVolumeBoundaries(geoV), view(2)
-%%
-close all
+
 %% Build the layered unstructured VOI grid
 % The unstructured VOI grid includes a 2D well region (WR). The WR is 
 % composed of a Cartesian region and two half-radial regions in xy plane, 
@@ -160,17 +150,16 @@ GV = VOI.ReConstructToUnstructuredGrid(WR, layerRf, ...
 
 % Show the VOI grid. We can plot the specified layers / surfaces by calling 
 % 'GV.cells.layers==layer'/ 'GV.faces.surfaces==surface'
-figure, axis off
+figure, axis off, view([-41, 62])
 arrayfun(@(layer)plotGrid(GV, GV.cells.layers==layer, ...
     'facecolor', rand(3,1)), 1:GV.layers.num)
-view([-41, 62])
+title('Layers of the VOI grid')
 
-figure, axis off
+figure, axis off, view([-41, 62])
 arrayfun(@(surface)plotFaces(GV, GV.faces.surfaces==surface, ...
     'facecolor', rand(3,1)), 1:GV.layers.num+1)
-view([-41, 62])
-%%
-close all
+title('Surfaces of the VOI grid')
+
 %% Build the layered radial HW grid
 % The HW grid is built inside the Cartesian region of VOI grid. The logical
 % indices of HW region should be specified.
@@ -199,6 +188,7 @@ HW = HorWellRegion(GV, well, regionIndices);
 % Visualize the HW region
 HW.showWellRegionInVOIGrid('showWellRgionCells', true);
 view([-53, 15]), axis off
+title('The HW region in VOI grid')
 
 % Get the geometrical information of GV in HW region, including cells, 
 % faces, boundary faces, nodes, boundary nodes, etc.
@@ -229,7 +219,7 @@ radPara1 = struct(...
 % %                         grid
 radPara2 = struct(...
     'gridType'  , 'gradual', ...
-    'boxRatio'  , [0.7, 0.7], ...
+    'boxRatio'  , [0.6, 0.6], ...
     'nRadCells' , [7, 2], ...
     'pDMult'    , 10, ...
     'offCenter' , true);
@@ -241,182 +231,15 @@ GW = HW.ReConstructToRadialGrid(radPara2);
 HW.showWellRegionInVOIGrid('showWellRgionCells', false);
 plotGrid(GW, GW.cells.layers==1, 'facecolor', rand(3,1))
 view([-53, 15]), axis off
+title('The reconstructed HW region in VOI grid')
 
 % Show the HW grid
 figure, axis equal tight off, view([-85, 9])
 arrayfun(@(layer)plotGrid(GW, GW.cells.layers==layer, ...
     'facecolor', rand(3,1)), 1:GW.layers.num)
+title('Layers of the HW grid')
 
 figure, axis equal tight off, view([-85, 9])
 arrayfun(@(surface)plotFaces(GW, GW.faces.surfaces==surface, ...
     'facecolor', rand(3,1)), 1:GW.layers.num+1)
-%%
-close all
-%% Collect the simulation data
-% The standard ad-blackoil simulator requires 'G', 'rock', 'fluid', 
-% 'model', 'schedule', and 'initState'. They should be redefined (except 
-% the 'fluid') to conform with the global hybrid grid. The class 
-% 'NearWellboreModel' is provided to collect the simulation data from 
-% deck-format input.
-
-% Define the NearWellboreModel by three subgrids, input deck and well
-NWM = NearWellboreModel({GC, GV, GW}, deck, well);
-%% Get the global hybrid grid
-G = NWM.validateGlobalGrid();
-
-% Show the global grid. We can plot the specified subgrids by calling 
-% 'G.cells.grdID==i'
-figure, hold on, axis off
-plotGrid(G, G.cells.grdID == 1, 'facecolor', 'none')
-plotGrid(G, G.cells.grdID == 2, 'facecolor', 'y')
-view([-28, 20])
-
-figure, hold on, axis off
-plotGrid(G, G.cells.grdID == 2, 'facecolor', 'none')
-plotGrid(G, G.cells.grdID == 3, 'facecolor', 'g')
-view([-76, 70])
-
-% Also, use 'G.cells.grdID == i & G.cells.layers == j' to plot layer j of
-% subgrid i
-figure, hold on, axis off
-plotCellData(G, G.cells.centroids(:,1), ...
-    G.cells.layers == 4 & G.cells.grdID == 1)
-plotCellData(G, G.cells.centroids(:,1), ...
-    G.cells.layers == 1 & G.cells.grdID == 2)
-view([-3, 56])
-%%
-close all
-%% Setup the fuild
-fluid = NWM.setupFluid();
-%% Get the rocks
-% The rocks of three subgrids:
-% -------------------------------------------------------------------------
-% | Rock     | Grid     | Source        | Permeability   | Anisotropy     |
-% |          |          |               | coordinate     |                |
-% |-----------------------------------------------------------------------|
-% | rockC    | GC       | Input deck    | Local          | Yes            |
-% |-----------------------------------------------------------------------|
-% | rockV    | GV       | Interpolation | Global         | Yes            |
-% |          |          | of rockC      |                |                |
-% |-----------------------------------------------------------------------|
-% | rockW    | GW       | User-defined  | Global         | No             |
-% -------------------------------------------------------------------------
-
-rockC = NWM.getCPGRockFromDeck();
-rockV = NWM.getVOIRocksByInterp();
-
-% View the permeability
-figure
-subplot(1,2,1), axis equal off
-plotCellData(GC, rockC.perm(:,1), geoV.cells{1})
-subplot(1,2,2), axis equal off
-plotCellData(GV, rockV.perm(:,1), GV.cells.layers==1)
-
-% Define a simple rock for HW grid. Each segement (layer) of the grid
-% has uniform permeability and porosity.
-nclayer = GW.cells.num / GW.layers.num;
-permW = linspace(400, 500, GW.layers.num) * (milli*darcy);
-permW = repmat(permW, nclayer, 1);
-poroW = linspace(0.18, 0.2, GW.layers.num);
-poroW = repmat(poroW, nclayer, 1);
-rockW.perm = [permW(:), permW(:), permW(:)];
-rockW.poro = poroW(:);
-
-% Get the rock for global grid
-rock = NWM.getGlobalRock({rockC, rockV, rockW});
-
-% View the permeability of global grid
-figure, hold on, axis off
-plotCellData(G, rock.perm(:,1), G.cells.layers == 4 & G.cells.grdID == 1)
-plotCellData(G, rock.perm(:,1), G.cells.layers == 1 & G.cells.grdID == 2)
-view([-3, 56])
-
-figure, axis equal tight off, view([-85, 9])
-plotCellData(G, rock.perm(:,1),G.cells.grdID == 3)
-%%
-close all
-%% Get the transmissbility and neighbors
-% The transmissbility consists of four parts:
-% -------------------------------------------------------------------------
-% | Trans-     | Grid       | Flow          | Permeability   | Anisotropy |
-% | missbility |            | approximation | coordinate     |            |
-% |-----------------------------------------------------------------------|
-% | TC         | Updated    | Linear        | Local          | Yes        |
-% |            | GC         |               |                |            |
-% |-----------------------------------------------------------------------|
-% | TV         | Updated    | Linear        | Global         | Yes        |
-% |            | GV         |               |                |            |
-% |-----------------------------------------------------------------------|
-% | TW         | GW         | Radial        | Global         | No         |
-% |            |            |               |                |            |
-% -------------------------------------------------------------------------
-% | T_nnc      | Grids      | Linear        | Global         | Yes        |
-% |            | connection |               |                |            |
-% -------------------------------------------------------------------------
-% * The T_nnc (transmissbility of non-neighbor connection) is used to
-%   connect the three subgrids.
-% * Updated GC and GV are obtained by 'removeCells'.
-%
-% Compute the transmissbility of the global grid T:
-% T = [TC; TV; TW], corresponding to G.faces.neighbors
-T = NWM.getTransGloGrid(rock);
-
-% Generate the NNC
-% First, compute the intersection relations between subgrids
-intXn = NWM.computeBoundaryIntxnRelation();
-
-% View intersection relation of the non-matching face
-NWM.plotNonMatchingIntxnRelation(intXn ,15171)
-% View intersection relation of the matching face
-NWM.plotMatchingIntxnRelation(intXn ,2689)
-
-% Generate the NNC
-nnc = NWM.generateNonNeighborConn(intXn, rock, T);
-
-% Get the assembled transmissbility and neighbors
-% T_all = [T;                 nnc.T];
-% N_all = [G.faces.neighbors; nnc.cells];
-[T_all, N_all] = NWM.assembleTransNeighbors(T, nnc);
-%%
-close all
-%% Setup simultaion model
-% We use the 'GenericBlackOilModel' as the simulation model
-model = NWM.setupSimModel(rock, T_all, N_all);
-%% Get the simulation schedule
-% Get the schedule from the production/injection control data from deck.
-% Some fields in the well struct of the HW will be redefined, e.g. cells,
-% 'WI'
-schedule = NWM.getSimSchedule(model, 'refDepthFrom', 'deck');
-
-% Show the well
-figure, axis equal tight off, view([-85, 9])
-plotGrid(G, G.cells.grdID == 3, 'facecolor', 'none')
-plotWell(G, schedule.control(1).W(1))
-%% Get the initial state by equilibrium initialization
-initState = NWM.getInitState(model);
-%% The packed output
-% % Call 'packedSimData'to obtain all necessary simulation data of 
-% % the near-wellbore model. The input is the rock of HW grid.
-% [G, rock, fluid, model, schedule, initState] = NWM.packedSimData(rockW, 'refDepthFrom', 'deck');
-% % Also, call 'packedCPGSimData' to obtain the simulation data of CPG.
-% [GC, rockC, fluid, modelC, scheduleC, initStateC] = NWM.packedCPGSimData();
-%% Simulate base case
-[wellSols, states, report] = simulateScheduleAD(initState, model, schedule);
-%% Plot the results
-state = states{end};
-
-% Oil saturation
-figure, axis off, view([-23, 29])
-plotCellData(G, state.s(:,2))
-title('Oil saturation of global grid')
-
-figure, axis off, view([-27, 56])
-plotCellData(G, state.s(:,2), G.cells.grdID==2)
-title('Oil saturation of VOI grid')
-
-figure, axis equal tight off, view([-85, 9])
-plotCellData(G, state.s(:,2), G.cells.grdID==3)
-title('Oil saturation of HW grid')
-
-% Well solutions
-plotWellSols(wellSols, report.ReservoirTime)
+title('Surfaces of the HW grid')

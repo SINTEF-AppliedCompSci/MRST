@@ -1,4 +1,8 @@
 function [pIn, pOut, R] = demoComputeAuxPts(p, bn, m0)
+% An excerpt from 'generateVOIGridNodes' to show how to generate the 
+% auxiliary points for the Voronoi diagram. The auxiliary points help to
+% locate the boundary nodes in p, i.e. p(bn, :).
+
     pib = p(bn, :);
     pib = [pib; pib(1,:)];
     n   = size(bn,1);

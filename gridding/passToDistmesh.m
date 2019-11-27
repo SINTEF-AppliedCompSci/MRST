@@ -34,7 +34,7 @@ function [pdis, fd] = passToDistmesh(pIB, pOB, multiplier, maxIter, varargin)
     bbox = [ [x_min, y_min]; [x_max, y_max] ];
 
     fprintf('    * Dist Mesh iteration information: \n')
-    pdis = distmesh_2d(fd, fh, h0, bbox, maxIter, pfix);
+    pdis = distmesh_2d_nwm(fd, fh, h0, bbox, maxIter, pfix, false);
     close(gcf)
 
     % Remove points too close to the boundary

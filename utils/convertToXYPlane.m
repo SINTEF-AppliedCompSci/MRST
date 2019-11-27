@@ -7,7 +7,7 @@ function [pts1, pts2, T, R, nor_z] = convertToXYPlane(pts1, n1, pts2, varargin)
 %
 % All points of pts1 and pts2 will be transformed.
 % Optional: 'normalZ', provide z-normal of the plane
-%
+
     opt = struct('normalZ', []);
     opt = merge_options(opt, varargin{:});
     
