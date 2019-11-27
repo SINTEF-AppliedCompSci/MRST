@@ -42,7 +42,11 @@ end
 end
 
 function [krW, krO, krG] = relPermWOG(sw, sg, f, varargin)
-swcon = f.sWcon;
+if isfield(f, 'sWcon')
+    swcon = f.sWcon;
+else
+    swcon = 0;
+end
 swcon = min(swcon, value(sw)-1e-5);
 
 d  = (sg+sw-swcon);
