@@ -161,7 +161,7 @@ boundS = @(x) mpsa_discr.boundStress * x;   % boundary mech. discretization
 gradP = @(x) mpsa_discr.gradP * x;          % gradient of pressure
 divU = @(x) mpsa_discr.divD * x;            % divergence of displacement
 divS = @(x) mpsa_discr.div * x;             % divergence of stress
-stabDelta = @(x) mpsa_discr.stabDelta * x;  % stability parameter
+compat = @(x) mpsa_discr.stabDelta * x;  % stability parameter
 
 % MPFA discrete operators
 F = @(x) mpfa_discr.F * x;                  % flux discretization
@@ -252,7 +252,7 @@ xi    = @(p_n) (alpha_biot-n).*C_s.*S_w(p_n).^2 + n.*C_w.*S_w(p_n);
 chi   = @(p_n) (alpha_biot-n).*C_s.*S_w(p_n).*p_n + n;  
 pEq1  = @(p_n,u,u_n) alpha_biot .* S_w(p_n) .* divU(u-u_n);
 pEq2  = @(p, p_n, p_m, tau, f_flow)  ...
-        alpha_biot.^2 .* S_w(p_n) .* stabDelta(S_w(p_n) .* p_n) ...
+        alpha_biot.^2 .* S_w(p_n) .* compat(S_w(p_n) .* p_n) ...
         + V .* xi(p_n) .* (p - p_n)  ...
         + V .* chi(p_n) .* (S_w(p_m) + C_S(p_m).*(p - p_m) - S_w(p_n)) ...
         + tau .* divF(Q(p, p_m)) - V .* tau .* f_flow;
