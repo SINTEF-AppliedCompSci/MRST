@@ -17,7 +17,8 @@ fluid_name = 'simple';
 caseName = ['FractureMS', '_', fluid_name];
 
 % Load the grid and set up petrophysical model
-load setup_fracture
+pth = fullfile(getDatasetPath('MSFractures'), 'setup_fracture.mat');
+load(pth);
 rdim  = [1000 500];
 G.nodes.coords = G.nodes.coords.*rdim;
 G    = computeGeometry(G);

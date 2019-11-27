@@ -10,7 +10,8 @@ mrstModule add coarsegrid incomp msrsb book ad-core
 %%  Set up the fine-scale model
 gravity reset off
 rdim = [1000 500];
-load setup_fracture.mat;
+pth = fullfile(getDatasetPath('MSFractures'), 'setup_fracture.mat');
+load(pth);
 G.nodes.coords = bsxfun(@times, G.nodes.coords, rdim);
 G = computeGeometry(G);
 perm(G.cells.tag)=10000;
