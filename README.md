@@ -2,11 +2,11 @@
 
 <img src="u.gif" width="500" height="400">
 
-*Desiccation of clayey sample in a Petri-dish under atmospheric evaporation*
+*Desiccation of a clayey sample in a Petri-dish under atmospheric evaporation*
 
 ## Description
 This module implements a discretization of the (three-dimensional) equations of unsaturated poroelasticity using
-cell-centered finite volume methods, specifically MPFA-O and MPSA-W. Note that if  mechanical effects are neglected, the set of equations reduce to the well-known Richards' equation. The module is written using the AD-OO approach, aimign at flexibility as its first goal.
+cell-centered finite volume methods, specifically MPFA-O and MPSA-W. Note that if  mechanical effects are neglected, the set of equations reduce to the well-known Richards' equation. The module is written using the AD-OO approach, aiming at flexibility as its first goal.
 
 There are four numerical examples accompanying this module:
 * convAnalysisRE.m
@@ -14,7 +14,7 @@ There are four numerical examples accompanying this module:
 * waterInfiltrationRE.m
 * desiccationUnsatBiot.m
 
-The first two are convergence tests and the last two are practical applications. Even though the numerical tests are well documented, they are not meant as tutorials, but are rather included for demonstrative purposes. To learn the basics regardign the module usage, we recommend waterInfiltration.m.
+The first two are convergence tests and the last two are practical applications. Even though the numerical tests are well documented, they are not meant as tutorials, but are rather included for demonstrative purposes. To learn the basics regarding the module usage, we recommend waterInfiltrationRE.m.
 
 This module was largely based on:
 * Varela, Jhabriel. Implementation of an MPFA/MPSA-FV Solver for the Unsaturated Flow in Deformable Porous Media. MS thesis. The University of Bergen, 2018.
