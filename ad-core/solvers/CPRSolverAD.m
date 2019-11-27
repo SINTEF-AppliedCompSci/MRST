@@ -198,6 +198,7 @@ classdef CPRSolverAD < LinearSolverAD
 
             prec = @(r) solver.applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
             assert(all(isfinite(b)), 'Linear system rhs must have finite entries.');
+            t_prep = toc(timer);
             try
                 [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance,...
                                                     min(solver.maxIterations, size(A, 1)), prec);
@@ -207,6 +208,7 @@ classdef CPRSolverAD < LinearSolverAD
                 solver.ellipticSolver = solver.ellipticSolver.cleanupSolver(Ap, b(pInx));
                 rethrow(exception)
             end
+            t_solve = toc(timer) - t_prep;
             % Clean up elliptic solver
             solver.ellipticSolver = solver.ellipticSolver.cleanupSolver(Ap, b(pInx));
 
@@ -224,10 +226,7 @@ classdef CPRSolverAD < LinearSolverAD
             end
             
             solver.keepNumber = keepNumber0;
-
-            % Recover stuff
-            solvetime = toc(timer);
-            
+            t_post = toc(timer) - t_prep - t_solve;
             if solver.verbose
                 switch fl
                     case 0
@@ -248,9 +247,12 @@ classdef CPRSolverAD < LinearSolverAD
             
             if nargout > 2
                 report = struct('IterationsGMRES', its(2), ...
-                                'FlagGMRES',       fl, ...
-                                'SolverTime',      solvetime, ...
-                                'FinalResidual',   relres);
+                                'FlagGMRES',          fl, ...
+                                'SolverTime',         t_solve + t_prep + t_post, ...
+                                'LinearSolutionTime', t_solve, ...
+                                'preparationTime',    t_prep, ...
+                                'postprocessTime',    t_post, ...
+                                'FinalResidual',      relres);
                 if solver.extraReport
                     report.ResidualHistory = resvec;
                 end
