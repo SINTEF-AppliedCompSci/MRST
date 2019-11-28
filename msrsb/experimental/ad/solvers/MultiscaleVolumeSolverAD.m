@@ -174,5 +174,15 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                dispif(solver.verbose, 'Basis constructed in %s.\n', formatTimeRange(solver.setupTime));
            end
        end
+       
+        function [d, sn] = getDescription(solver)
+            sn = solver.prolongationType;
+            if solver.controlVolumeRestriction
+                v = 'volume';
+            else
+                v = 'element';
+            end
+            d = sprintf('Multiscale finite-%s solver with %s basis functions', v, solver.prolongationType);
+        end
    end
 end
