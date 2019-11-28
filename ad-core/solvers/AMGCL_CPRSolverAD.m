@@ -14,20 +14,18 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
     %   `BackslashSolverAD`
 
    properties
-       doApplyScalingCPR
-       trueIMPES % Use true impes decoupling strategy (if supported by model)
-       useSYMRCMOrdering
-       pressureScaling
-       diagonalTol = 0.2;
-       couplingTol = 0.02;
-       decoupling = 'quasiIMPES';
-       strategy = 'mrst';
+       doApplyScalingCPR % true / false
+       useSYMRCMOrdering % true / false
+       pressureScaling % scaling factor for pressure - automatically determined
+       diagonalTol = 0.2; % tolerance if strategy ends with _drs
+       couplingTol = 0.02; % tolerance for drs
+       decoupling = 'trueIMPES'; % trueimpes, quasiimpes, none
+       strategy = 'mrst'; % mrst, mrst_drs, amgcl, amgcl_drs
    end
    methods
        function solver = AMGCL_CPRSolverAD(varargin)
             require linearsolvers
             solver = solver@AMGCLSolverAD();
-            solver.trueIMPES    = false;
             solver.doApplyScalingCPR = true;
             solver.reduceToCell = true;
             solver.tolerance    = 1e-6;
@@ -94,7 +92,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                    if ~strcmpi(problem.types{i}, 'cell')
                        continue
                    end
-                   ds = double(scale{i});
+                   ds = value(scale{i});
                    if (numel(ds) > 1 || any(ds ~= 0))
                        problem.equations{i} = problem.equations{i}.*scale{i};
                    end
