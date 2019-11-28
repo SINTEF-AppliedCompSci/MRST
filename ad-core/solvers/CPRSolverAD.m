@@ -200,7 +200,7 @@ classdef CPRSolverAD < LinearSolverAD
             assert(all(isfinite(b)), 'Linear system rhs must have finite entries.');
             t_prep = toc(timer);
             try
-                [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance,...
+                [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.tolerance,...
                                                     min(solver.maxIterations, size(A, 1)), prec);
             catch exception
                 % Ensure external memory etc is deallocated properly if the
@@ -238,7 +238,7 @@ classdef CPRSolverAD < LinearSolverAD
                     case 3
                         fprintf('GMRES stagnated. Unable to reduce residual.');
                 end
-                fprintf(' Final residual: %1.2e after %d iterations (tol: %1.2e) \n', relres, its(2), solver.relativeTolerance);
+                fprintf(' Final residual: %1.2e after %d iterations (tol: %1.2e) \n', relres, its(2), solver.tolerance);
             end
             
             if nargout > 1
