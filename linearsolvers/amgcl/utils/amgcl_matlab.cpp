@@ -355,6 +355,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int maxiter            = (int)mxGetScalar(prhs[4]);
     int solver_strategy_id = (int)mxGetScalar(prhs[5]);
     bool verbose           = mxGetScalar(mxGetField(pa, 0, "verbose"));
+    int nthreads           = mxGetScalar(mxGetField(pa, 0, "nthreads"));
+    int block_size         = mxGetScalar(mxGetField(pa, 0, "block_size"));
     int reuse_mode;
     if(nrhs == 7){
       reuse_mode = (int)mxGetScalar(prhs[6]);
@@ -362,17 +364,22 @@ void mexFunction( int nlhs, mxArray *plhs[],
       reuse_mode = 1;
     }
     if(verbose){
-      std::cout << "AMGCL solver recieved problem with " << n << " degrees of freedom. ";
-      int nthreads = omp_get_max_threads();
+      std::cout << "AMGCL solver recieved problem with " << n << " degrees of freedom.";
+      if(block_size == 1){
+        std::cout << " Treating system as scalar.";
+      }else{
+        std::cout << " System has block size of " << block_size << ".";
+      }
+      std::cout << std::endl;
       if(nthreads == 1){
         std::cout << "Solving in serial.";
       }
       else{
         std::cout << "Solving with " << nthreads << " threads using OpenMP.";
-      }
+      }      
       std::cout << std::endl;
     }
-
+    omp_set_num_threads(nthreads);
     std::vector<double> b(n);
     #pragma omp parallel for
     for(int ix = 0; ix < n; ix++){
