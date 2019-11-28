@@ -55,6 +55,9 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
 
         function [d, sn] = getDescription(solver)
             sn = 'AMGCL-CPR';
+            if solver.amgcl_setup.cpr_blocksolver
+                sn = [sn, '-block'];
+            end
             prm = {'solver', 'relaxation', 'preconditioner'};
             tmp = cell(1, numel(prm)+1);
             for i = 1:numel(prm)
@@ -64,7 +67,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
             end
             [ix, choice, description] = solver.getParameterGroup('relaxation', 's_relaxation');
             tmp{end} = sprintf('%15s: %s (%s Internal index %d)', 's_relaxation', choice, description, ix);
-            d = [sprintf('AMGCL constrained-pressure-residual (CPR) solver. Configuration:\n', sn), ...
+            d = [sprintf('AMGCL constrained-pressure-residual (CPR) solver. Configuration:\n'), ...
                  sprintf('\t%s\n', tmp{:})];
         end
        

@@ -91,11 +91,16 @@ classdef AMGCLSolverAD < LinearSolverAD
        end
        
         function  solver = cleanupSolver(solver, A, b, varargin) %#ok
-            resetAMGCL();
+            if solver.reuseMode > 1
+                resetAMGCL();
+            end
         end
         
         function [d, sn] = getDescription(solver)
             sn = 'AMGCL';
+            if solver.amgcl_setup.block_size > 1
+                sn = [sn, '-block'];
+            end
             prm = {'solver', 'relaxation', 'preconditioner'};
             tmp = cell(1, numel(prm));
             for i = 1:numel(prm)
