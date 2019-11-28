@@ -227,20 +227,20 @@ classdef CPRSolverAD < LinearSolverAD
             
             solver.keepNumber = keepNumber0;
             t_post = toc(timer) - t_prep - t_solve;
-            if solver.verbose
-                switch fl
-                    case 0
-                        fprintf('GMRES converged:');
-                    case 1
-                        fprintf('GMRES did not converge. Reached maximum iterations');
-                    case 2
-                        fprintf('GMRES did not converge. Preconditioner was ill-conditioned.');
-                    case 3
-                        fprintf('GMRES stagnated. Unable to reduce residual.');
-                end
-                fprintf(' Final residual: %1.2e after %d iterations (tol: %1.2e) \n', relres, its(2), solver.tolerance);
+            doPrint = true;
+            switch fl
+                case 0
+                    doPrint = solver.verbose;
+                    dispif(doPrint, 'GMRES converged:');
+                case 1
+                    fprintf('GMRES did not converge. Reached maximum iterations');
+                case 2
+                    fprintf('GMRES did not converge. Preconditioner was ill-conditioned.');
+                case 3
+                    fprintf('GMRES stagnated. Unable to reduce residual.');
             end
-            
+            dispif(doPrint, ' Final residual: %1.2e after %d iterations (tol: %1.2e) \n', relres, its(2), solver.tolerance);
+
             if nargout > 1
                 result = vertcat(dx{:});
             end
