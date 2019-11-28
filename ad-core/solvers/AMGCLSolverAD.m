@@ -67,6 +67,14 @@ classdef AMGCLSolverAD < LinearSolverAD
            end
        end
        
+       function [n, name, descr] = getParameterGroup(solver, group, fld)
+           group = lower(group);
+           if nargin < 3 || isempty(fld)
+               fld = group;
+           end
+           [n, name, descr] = translateOptionsAMGCL(group, solver.amgcl_setup.(fld));
+       end
+       
        function [result, report] = callAMGCL_MEX(solver, A, b, id)
             timer = tic();
             [result, res, its] = amgcl_matlab(A', b, solver.amgcl_setup, solver.tolerance, solver.maxIterations, id, solver.reuseMode);
@@ -84,6 +92,19 @@ classdef AMGCLSolverAD < LinearSolverAD
        
         function  solver = cleanupSolver(solver, A, b, varargin) %#ok
             resetAMGCL();
+        end
+        
+        function [d, sn] = getDescription(solver)
+            sn = 'AMGCL';
+            prm = {'solver', 'relaxation', 'preconditioner'};
+            tmp = cell(1, numel(prm));
+            for i = 1:numel(prm)
+                s = prm{i};
+                [ix, choice, description] = solver.getParameterGroup(s);
+                tmp{i} = sprintf('%15s: %s (%s Internal index %d)', s, choice, description, ix);
+            end
+            d = [sprintf('General AMGCL solver. Configuration:\n'), ...
+                 sprintf('\t%s\n', tmp{:})];
         end
    end
 end

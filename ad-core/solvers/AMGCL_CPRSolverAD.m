@@ -53,6 +53,21 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            [dx, result, report] = solveAdjointProblem@LinearSolverAD(solver, problemPrev,problemCurr, adjVec, objective, model);
        end
 
+        function [d, sn] = getDescription(solver)
+            sn = 'AMGCL-CPR';
+            prm = {'solver', 'relaxation', 'preconditioner'};
+            tmp = cell(1, numel(prm)+1);
+            for i = 1:numel(prm)
+                s = prm{i};
+                [ix, choice, description] = solver.getParameterGroup(s);
+                tmp{i} = sprintf('%15s: %s (%s Internal index %d)', s, choice, description, ix);
+            end
+            [ix, choice, description] = solver.getParameterGroup('relaxation', 's_relaxation');
+            tmp{end} = sprintf('%15s: %s (%s Internal index %d)', 's_relaxation', choice, description, ix);
+            d = [sprintf('AMGCL constrained-pressure-residual (CPR) solver. Configuration:\n', sn), ...
+                 sprintf('\t%s\n', tmp{:})];
+        end
+       
        function setSRelaxation(solver, varargin)
            solver.setParameterGroup('relaxation', 's_relaxation', varargin{:});
        end

@@ -21,6 +21,11 @@ classdef BackslashSolverAD < LinearSolverAD
            % Nothing to report
            report = struct();
        end
+       
+        function [d, sn] = getDescription(solver)
+            sn = 'mldivide';
+            d = 'Matlab \ operator (mldivide direct solver)';
+        end
    end
 end
 

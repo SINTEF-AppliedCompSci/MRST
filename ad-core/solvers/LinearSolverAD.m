@@ -587,6 +587,20 @@ classdef LinearSolverAD < handle
             I = (1:n)';
             M = sparse(I, I, d, n, n);
         end
+        
+        function [d, shortname] = getDescription(solver)
+            % Get the description and a short name used for display
+            % purposes.
+            shortname = 'Virtual base';
+            d = 'Virtual base class linear solver. Not for direct use.';
+        end
+        
+        function disp(solver)
+            [d, sn] = solver.getDescription();
+            s1 = sprintf('  %s linear solver of class %s', sn, class(solver));
+            fprintf('%s\n  %s\n  %s\n  ->', s1, repmat('-', 1, numel(s1)-2), d);
+            builtin('disp', solver);
+        end
     end
 end
 

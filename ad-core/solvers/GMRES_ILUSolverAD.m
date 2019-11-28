@@ -73,6 +73,11 @@ classdef GMRES_ILUSolverAD < LinearSolverAD
                 'udiag',   solver.udiagReplacement, ...
                 'thresh',  solver.pivotThreshold);
         end
+        
+        function [d, sn] = getDescription(solver)
+            sn = 'Matlab-GMRES-ILU(0)';
+            d = 'GMRES with incomplete LU-factorization (ILU(0)) as preconditioner';
+        end
     end
 end
 

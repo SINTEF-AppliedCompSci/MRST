@@ -258,6 +258,13 @@ classdef CPRSolverAD < LinearSolverAD
                 end
             end
         end
+        
+        function [d, sn] = getDescription(solver)
+            [tmp, sn_sub] = solver.ellipticSolver.getDescription();
+            sn = ['Matlab-CPR-', sn_sub];
+            d = sprintf(['Matlab implementation of constrained pressure', ...
+                        ' residual (CPR) with dynamic row-sum. Elliptic solver: %s.'], sn_sub);
+        end
     end
     methods(Static)
         function x = applyTwoStagePreconditioner(r, A, L, U, pInx, ellipticSolver)
