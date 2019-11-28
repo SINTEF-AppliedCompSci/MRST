@@ -53,8 +53,8 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            [dx, result, report] = solveAdjointProblem@LinearSolverAD(solver, problemPrev,problemCurr, adjVec, objective, model);
        end
 
-       function setSRelaxation(solver, v)
-           solver.amgcl_setup.s_relaxation = translateOptionsAMGCL('relaxation', v);
+       function setSRelaxation(solver, varargin)
+           solver.setParameterGroup('relaxation', 's_relaxation', varargin{:});
        end
 
        function problem = prepareProblemCPR(solver, problem, model)

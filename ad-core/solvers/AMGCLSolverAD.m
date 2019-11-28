@@ -15,7 +15,7 @@ classdef AMGCLSolverAD < LinearSolverAD
 
    properties
        amgcl_setup
-       reuseMode = 1;
+       reuseMode = 1; % 1 for no reuse, 2 for re-use
    end
 
    methods
@@ -34,20 +34,37 @@ classdef AMGCLSolverAD < LinearSolverAD
            [result, report] = solver.callAMGCL_MEX(A, b, 1);
        end
        
-       function setCoarsening(solver, v)
-           solver.amgcl_setup.coarsening = translateOptionsAMGCL('coarsening', v);
+       function setCoarsening(solver, varargin)
+           solver.setParameterGroup('coarsening', [], varargin{:});
        end
        
-       function setRelaxation(solver, v)
-           solver.amgcl_setup.relaxation = translateOptionsAMGCL('relaxation', v);
+       function setRelaxation(solver, varargin)
+           solver.setParameterGroup('relaxation', [], varargin{:});
        end
        
-       function setPreconditioner(solver, v)
-           solver.amgcl_setup.preconditioner = translateOptionsAMGCL('preconditioner', v);
+       function setPreconditioner(solver, varargin)
+           solver.setParameterGroup('preconditioner', [], varargin{:});
        end
        
-       function setSolver(solver, v)
-           solver.amgcl_setup.solver = translateOptionsAMGCL('solver', v);
+       function setSolver(solver, varargin)
+           solver.setParameterGroup('solver', [], varargin{:});
+       end
+       
+       function setParameterGroup(solver, group, fld, v)
+           group = lower(group);
+           if isempty(fld)
+               fld = group;
+           end
+           if nargin == 3
+               fprintf('No %s argument given. Available options:\n', group)
+               [~, choices, descriptions] = translateOptionsAMGCL(group, []);
+               for i = 1:numel(choices)
+                   fprintf('%10s: ', choices{i});
+                   disp(descriptions{i});
+               end
+           else
+               solver.amgcl_setup.(fld) = translateOptionsAMGCL(group, v);
+           end
        end
        
        function [result, report] = callAMGCL_MEX(solver, A, b, id)
@@ -63,8 +80,11 @@ classdef AMGCLSolverAD < LinearSolverAD
             report = struct('converged',  res <= solver.tolerance, ...
                             'residual',   res,...
                             'iterations', its);
-
        end
+       
+        function  solver = cleanupSolver(solver, A, b, varargin) %#ok
+            resetAMGCL();
+        end
    end
 end
 
