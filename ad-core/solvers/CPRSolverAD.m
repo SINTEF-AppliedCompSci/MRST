@@ -275,7 +275,10 @@ classdef CPRSolverAD < LinearSolverAD
            if isfinite(solver.relativeTolerance)
                % Elliptic solver uses absolute tolerance? We scale the
                % problem based on current value
-               es.tolerance = norm(r)*solver.relativeTolerance;
+               scaled = norm(r)*solver.relativeTolerance;
+               strictest = min(solver.tolerance, solver.relativeTolerance);
+               tol = max(scaled, strictest);
+               es.tolerance = tol;
            end
            x = zeros(size(r));
            rp = r(pInx);
