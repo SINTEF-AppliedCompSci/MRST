@@ -116,7 +116,7 @@ end
 nph = numel(mob);
 G = cell(1, nph);
 for i = 1:nph
-    G{i} = rhogdz{i};
+    G{i} = -rhogdz{i};
     if ~isempty(pc{i})
         G{i} = G{i} - op.Grad(pc{i});
     end
