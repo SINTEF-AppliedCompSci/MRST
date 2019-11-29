@@ -17,9 +17,10 @@ classdef BackslashSolverAD < LinearSolverAD
        end
        
        function [result, report] = solveLinearSystem(solver, A, b)
-          result = A\b;
-           % Nothing to report
-           report = struct();
+           timer = tic();
+           result = A\b;
+           t_solve = toc(timer);
+           report = solver.getSolveReport('LinearSolutionTime', t_solve);
        end
        
         function [d, sn] = getDescription(solver)

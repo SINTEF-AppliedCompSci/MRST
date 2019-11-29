@@ -66,7 +66,19 @@ classdef LinearSolverAD < handle
         
         function [result, report] = solveLinearSystem(solver, A, b) %#ok
             % Solve the linear system to a given tolerance
+            report = solver.getSolveReport();
             error('Superclass not meant for direct use')
+        end
+        
+        function report = getSolveReport(solver, varargin) %#ok
+            report = struct('Iterations', 0, ... % Number of iterations (if iterative)
+                            'Residual',   0, ... % Final residual
+                            'SolverTime', 0, ... % Total time in solver
+                            'LinearSolutionTime', 0, ... % Time spent solving system
+                            'PreparationTime', 0, ... % Schur complement, scaling, ...
+                            'PostProcessTime', 0, ... % Recovery, undo scaling, ...
+                            'Converged', true); % Bool indicating convergence
+            report = merge_options_relaxed(report, varargin);
         end
         
         function [grad, result, report] = solveAdjointProblem(solver, problemPrev,...
@@ -163,8 +175,8 @@ classdef LinearSolverAD < handle
 
             report.SolverTime = toc(timer);
             report.LinearSolutionTime = t_solve;
-            report.preparationTime = t_prepare;
-            report.postprocessTime = report.SolverTime - t_solve - t_prepare;
+            report.PreparationTime = t_prepare;
+            report.PostProcessTime = report.SolverTime - t_solve - t_prepare;
             grad = solver.storeIncrements(problemCurr, result);
         end
         
@@ -261,8 +273,8 @@ classdef LinearSolverAD < handle
             [result, report] = problem.processResultAfterSolve(result, report);
             report.SolverTime = toc(timer);
             report.LinearSolutionTime = t_solve;
-            report.preparationTime = t_prepare;
-            report.postprocessTime = report.SolverTime - t_solve - t_prepare;
+            report.PreparationTime = t_prepare;
+            report.PostProcessTime = report.SolverTime - t_solve - t_prepare;
             if solver.replaceNaN
                 result(isnan(result)) = solver.replacementNaN;
             end

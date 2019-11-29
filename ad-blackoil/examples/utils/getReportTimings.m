@@ -18,10 +18,10 @@ function timings = getReportTimings(report)
                 ls = r.LinearSolver;
                 if not(r.Converged)
                     prep = 0;
-                    if isfield(ls, 'preparationTime')
+                    if isfield(ls, 'PreparationTime')
                         % Fine grained statistics is available
-                        prep = prep + ls.preparationTime;
-                        prep = prep + ls.postprocessTime;
+                        prep = prep + ls.PreparationTime;
+                        prep = prep + ls.PostProcessTime;
                         lsolve = lsolve + ls.LinearSolutionTime;
                     elseif isfield(ls, 'SolverTime')
                         lsolve = lsolve + ls.SolverTime;

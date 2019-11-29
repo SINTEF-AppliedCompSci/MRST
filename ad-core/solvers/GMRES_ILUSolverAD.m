@@ -48,6 +48,7 @@ classdef GMRES_ILUSolverAD < LinearSolverAD
         end
         
         function [result, report] = solveLinearSystem(solver, A, b)
+            timer = tic();
             nel = size(A, 1);
             if solver.reorderEquations
                 [A, b] = reorderForILU(A, b);
@@ -57,10 +58,11 @@ classdef GMRES_ILUSolverAD < LinearSolverAD
                 solver.tolerance,...
                 min(solver.maxIterations, nel), ...
                 L, U);
-            report = struct('GMRESFlag',  flag, ...
-                            'residual',   res,...
-                            'iterations', its);
-
+            t_solve = toc(timer);
+            report = solver.getSolveReport('Residual',   res,...
+                                           'Iterations', its, ...
+                                           'LinearSolutionTime', t_solve);
+            report.GMRESFlag = flag;
             if flag > 0
                 warning('Solver did not converge to specified tolerance of %g. Reported residual estimate was %g', solver.tolerance, res);
             end
