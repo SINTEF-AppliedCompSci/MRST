@@ -167,7 +167,7 @@ for i = 1:ns
 end
 figure;
 bar(total)
-set(gca, 'XTickLabel', names);
+set(gca, 'XTickLabel', names, 'XTickLabelRotation',20);
 legend('Pressure', 'Transport', 'Outer');
 
 %% Prepare for animation of solutions: plot initial state
@@ -275,8 +275,8 @@ hold off
 axis tight, xlabel('Time [days]'), ylabel('kg/day')
 ax1 = gca;
 ax2 = axes('position',get(gca,'position'),'visible','off');
-legend(ax1, h(1,2:end), names)
-legend(ax2, h(:,1), model.EOSModel.fluid.names,'Location','Best');
+legend(ax1, h(1,2:end), names,'Location','East')
+legend(ax2, h(:,1), model.EOSModel.fluid.names,'Location','SouthEast');
 set([ax1 ax2],'FontSize',12);
 
 %% Estimate and plot the maximum CFL numbers of the whole simulation
