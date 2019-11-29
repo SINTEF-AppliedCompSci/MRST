@@ -165,6 +165,7 @@ xlabel('Time step'), ylabel('Runtime [s]');
 mrstModule add blackoil-sequential
 seqmodel = getSequentialModelFromFI(model);
 
+seqmodel.pressureModel.incTolPressure = 1e-5;
 seqmodel.transportModel.conserveOil = true;
 seqmodel.transportModel.conserveWater = true;
 seqmodel.transportModel.useCNVConvergence = true;
