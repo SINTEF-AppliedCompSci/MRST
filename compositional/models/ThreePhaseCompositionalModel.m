@@ -448,7 +448,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             rho = value(model.getProp(state, 'Density'));
             s = value(model.getProp(state, 's'));
             pv = value(model.getProp(state, 'PoreVolume'));
-            mass = pv.*rho.*s;
+            mass = bsxfun(@times, pv, rho.*s);
             if model.water
                 cnames = cnames(~strcmpi(cnames, 'water'));
             end

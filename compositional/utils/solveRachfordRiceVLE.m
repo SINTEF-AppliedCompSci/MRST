@@ -92,7 +92,7 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
 end
 
 function V = bisection(V_max0, V_min0, K, z, opt)
-    fn = @(V) sum(((K - 1).*z)./(1 + V.*(K - 1)), 2);
+    fn = @(V) sum(((K - 1).*z)./(1 + bsxfun(@times, V, K - 1)), 2);
     left0 = fn(V_min0);
     right0 = fn(V_max0);
     [left, right, V_max, V_min] = deal(left0, right0, V_max0, V_min0);
@@ -145,8 +145,9 @@ function [dV, r] = getIncrement(V, K, z, opt)
         % Manual jacobian, faster
         if 1
             % Vectorized version
-            enum = sum((z.*(K - 1))./(1 + V.*(K-1)), 2);
-            denom = sum((z.*(K - 1).^2)./(1 + V.*(K-1)).^2, 2);
+            mlt = @(x, y) bsxfun(@times, x, y);
+            enum = sum((z.*(K - 1))./(1 + mlt(V, K-1)), 2);
+            denom = sum((z.*(K - 1).^2)./(1 + mlt(V, K-1)).^2, 2);
         else
             ncomp = size(K, 2);
             % Partially vectorized version 
