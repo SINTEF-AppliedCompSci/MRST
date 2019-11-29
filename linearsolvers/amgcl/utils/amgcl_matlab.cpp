@@ -303,7 +303,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double *rhs;
     double *err;
     double *it_count;
-    mwSize m,n,nnz;
+    mwSize m, n, nnz, m_rhs, n_rhs;
     mwIndex * cols;
     mwIndex * rows;
     const mxArray * pa;
@@ -311,8 +311,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double * entries;
     std::string relaxParam;
     std::string coarsenParam;
-
-    if (nrhs != 6 && nrhs != 7) {
+    
+    if (nrhs == 0 && nlhs == 0){
+        mexPrintf("AMGCL is compiled and ready for use.\n");
+        return;
+    } else if (nrhs != 6 && nrhs != 7) {
 	    mexErrMsgTxt("6 or 7 input arguments required.\nSyntax: amgcl_matlab(A, b, opts, tol, maxit, solver_id, reuse_id)");
     } else if (nlhs > 3) {
 	    mexErrMsgTxt("More than three outputs requested!");
@@ -320,14 +323,21 @@ void mexFunction( int nlhs, mxArray *plhs[],
 
     m = mxGetM(prhs[0]);
     n = mxGetN(prhs[0]);
+    
+    m_rhs = mxGetM(prhs[1]);
+    n_rhs = mxGetN(prhs[1]);
     int M = (int)m;
 
     if (!mxIsDouble(prhs[0]) || mxIsComplex(prhs[0]) ||  !mxIsSparse(prhs[0]) ) {
 	    mexErrMsgTxt("Matrix should be a real sparse matrix.");
         return;
     }
-    if (!mxIsDouble(prhs[1]) || mxIsComplex(prhs[1])) {
-	    mexErrMsgTxt("Right hand side must be real double column vector.");
+    if (n != m) {
+	    mexErrMsgTxt("Matrix must be square.");
+        return;
+    }
+    if (!mxIsDouble(prhs[1]) || mxIsComplex(prhs[1]) || n_rhs != 1 || m_rhs != m) {
+	    mexErrMsgTxt("Right hand side must be real double column vector with one entry per row of A.");
         return;
     }
     // First output: Solution column vector
