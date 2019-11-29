@@ -102,6 +102,10 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
 
            % Get and apply scaling
            if solver.doApplyScalingCPR && strcmpi(solver.decoupling, 'trueimpes')
+                if ~isempty(problem.A)
+                    problem = problem.clearSystem();
+                    dispif(solver.verbose, 'System already assembled. CPR will re-assemble!');
+                end
                scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
                % Solver will take the sum for us, we just weight each
                % equation. Note: This is not the entirely correct way
@@ -121,7 +125,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
 
            if isempty(solver.keepNumber)
                if solver.reduceToCell
-                   % Will be reduced to ncell by block_size syste,
+                   % Will be reduced to ncell by block_size system
                    ndof = n*m;
                else
                    % We have no idea and should check

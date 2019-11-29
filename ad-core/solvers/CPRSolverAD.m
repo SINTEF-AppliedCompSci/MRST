@@ -58,7 +58,10 @@ classdef CPRSolverAD < LinearSolverAD
             % Solve a linearized problem using a constrained pressure
             % residual preconditioner
             timer = tic();
-            
+            if ~isempty(problem0.A)
+                problem0 = problem0.clearSystem();
+                dispif(solver.verbose, 'System already assembled. CPR will re-assemble!');
+            end
             % In the case that we have a oil equation, we generally want
             % this to be the first entry as most black oil models are
             % parametrized by oil pressure as the primary variable.
