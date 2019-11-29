@@ -25,6 +25,7 @@ classdef BackslashSolverAD < LinearSolverAD
        
         function [d, sn] = getDescription(solver)
             sn = 'mldivide';
+            sn = [sn, solver.id];
             d = 'Matlab \ operator (mldivide direct solver)';
         end
    end

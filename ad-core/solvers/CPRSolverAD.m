@@ -265,6 +265,7 @@ classdef CPRSolverAD < LinearSolverAD
         function [d, sn] = getDescription(solver)
             [tmp, sn_sub] = solver.ellipticSolver.getDescription();
             sn = ['Matlab-CPR-', sn_sub];
+            sn = [sn, solver.id];
             d = sprintf(['Matlab implementation of constrained pressure', ...
                         ' residual (CPR) with dynamic row-sum. Elliptic solver: %s.'], sn_sub);
         end

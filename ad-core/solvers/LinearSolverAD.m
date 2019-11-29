@@ -39,8 +39,9 @@ classdef LinearSolverAD < handle
         useSparseReduction % If true, sparse indexing will be used with keepNumber option
         variableOrdering % Variable ordering to be used for linear solver. Row vector of equal length to the size of the linear system.
         equationOrdering % Equation ordering to be used for linear solver. Row vector of equal length to the size of the linear system.
+        id = ''; % Short text string identifying the specific solver. Appended to the short name (see getDescription)
     end
-    
+
     methods
         function solver = LinearSolverAD(varargin)
             solver.tolerance       = 1e-8;
@@ -604,6 +605,8 @@ classdef LinearSolverAD < handle
             % Get the description and a short name used for display
             % purposes.
             shortname = 'Virtual base';
+            shortname = [shortname, solver.id];
+
             d = 'Virtual base class linear solver. Not for direct use.';
         end
         

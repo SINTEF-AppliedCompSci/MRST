@@ -74,6 +74,7 @@ classdef AGMGSolverAD < LinearSolverAD
 
        function [d, sn] = getDescription(solver)
            sn = 'AGMG';
+           sn = [sn, solver.id];
            d = 'Aggregation based multigrid (AGMG)';
        end
    end

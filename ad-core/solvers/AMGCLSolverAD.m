@@ -102,6 +102,8 @@ classdef AMGCLSolverAD < LinearSolverAD
             if solver.amgcl_setup.block_size > 1
                 sn = [sn, '-block'];
             end
+            sn = [sn, solver.id];
+
             prm = {'solver', 'relaxation', 'preconditioner'};
             tmp = cell(1, numel(prm));
             for i = 1:numel(prm)

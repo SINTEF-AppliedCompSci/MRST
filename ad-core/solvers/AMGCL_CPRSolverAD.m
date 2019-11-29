@@ -58,6 +58,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
             if solver.amgcl_setup.cpr_blocksolver
                 sn = [sn, '-block'];
             end
+            sn = [sn, solver.id];
             prm = {'solver', 'relaxation', 'preconditioner'};
             tmp = cell(1, numel(prm)+1);
             for i = 1:numel(prm)

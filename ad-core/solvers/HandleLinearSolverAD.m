@@ -14,5 +14,13 @@ classdef HandleLinearSolverAD < LinearSolverAD
            result = solver.fcn_handle(A, b);
        end
 
+        function [d, shortname] = getDescription(solver)
+            % Get the description and a short name used for display
+            % purposes.
+            shortname = 'Handle';
+            shortname = [shortname, solver.id];
+
+            d = 'Wrapper for function_handle.';
+        end
     end
 end
