@@ -120,8 +120,8 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            report.SolverTime = toc(timer);
            report.LinearSolutionTime = t_solve;
            report.BasisTime = t_basis;
-           report.preparationTime = t_prepare;
-           report.postprocessTime = report.SolverTime - t_solve - t_prepare;
+           report.PreparationTime = t_prepare;
+           report.PostProcessTime = report.SolverTime - t_solve - t_prepare;
            dx = solver.storeIncrements(problem, result);
        end
 
