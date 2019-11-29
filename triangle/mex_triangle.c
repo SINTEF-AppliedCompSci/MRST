@@ -96,7 +96,7 @@ void import_struct (struct triangulateio *out, const mxArray *in)
   mxArray    *field;
 
 
-  if(!mxIsStruct (in)) mxErrMsgTxt ("Input to getiostruct must be a struct");
+  if(!mxIsStruct (in)) mexErrMsgTxt ("Input to getiostruct must be a struct");
 
   nfields = mxGetNumberOfFields (in);
   fnames  = mxMalloc (nfields * sizeof(const char *));
