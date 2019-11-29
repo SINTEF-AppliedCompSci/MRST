@@ -88,7 +88,6 @@ schedule = convertDeckScheduleToMRST(model, deck);
 %% Solve the schedule with AMGCL-CPR as the linear solver
 lsolve = AMGCL_CPRSolverAD('maxIterations', 200, 'tolerance', 1e-3);
 lsolve.setSRelaxation('ilu0');
-lsolve.trueIMPES = true;
 % We can set coarsening and solver options as well
 lsolve.setCoarsening('aggregation');
 lsolve.setSolver('bicgstab');
