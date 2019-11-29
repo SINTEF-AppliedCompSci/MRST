@@ -167,7 +167,7 @@ classdef CompositionalMSPressureModel < MultiscalePressureModel
             if model.regularizeReconstructionUpdate
                 [dpReconstruct, t_solve] = reconstructPressureNormalized(CG, dpMS, A, b);
             else
-                [dpReconstruct, t_solve] = reconstructPressure(CG.partition, dpMS, A, b, false);
+                [dpReconstruct, t_solve] = reconstructPressure(CG.partition, dpMS, A, b, true);
             end
             % Update the internal domain pressure with the reconstructed
             % increment.
