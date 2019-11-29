@@ -81,8 +81,12 @@ function [model, states] = run2DCase(varargin)
         deck = readEclipseDeck(fn);
         deck = convertDeckUnits(deck);
         fluid = initDeckADIFluid(deck);
-        fluid = rmfield(fluid, 'pcOW');
-        fluid = rmfield(fluid, 'pcOG');
+        if isfield(fluid, 'pcOW')
+            fluid = rmfield(fluid, 'pcOW');
+        end
+        if isfield(fluid, 'pcOG')
+            fluid = rmfield(fluid, 'pcOG');
+        end
 
         % Setup quadratic relative permeabilities, since SPE1 relperm are a bit rough.
         fluid.krW = @(s) s.^2;
