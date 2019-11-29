@@ -9,6 +9,10 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
     end
     
     methods
+        function fsb = ExplicitFlowStateBuilder(varargin)
+            fsb@FlowStateBuilder(varargin{:});
+        end
+        
         function dt_max = getMaximumTimestep(fsb, fd, model, state, state0, dt, forces)
             if fsb.isFirstTimeStep(state)
                 dt_max = fsb.initialStep;
