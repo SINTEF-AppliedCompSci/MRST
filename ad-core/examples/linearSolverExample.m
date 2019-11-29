@@ -15,7 +15,7 @@ assert(isscalar(n));
 assert(n <= 100);
 hasAGMG = ~isempty(mrstPath('agmg'));
 
-%%
+%% Set up test prolem
 G = cartGrid([n, n, n], [1000, 1000, 100]);
 G = computeGeometry(G);
 rock = makeRock(G, 1*darcy, 1);
@@ -30,7 +30,7 @@ W = verticalWell(W, G, rock, n, n, n, 'comp_i', [1, 0, 0], 'val', 200*barsa);
 s0 = rand(G.cells.num, 3);
 s0 = bsxfun(@rdivide, s0, sum(s0, 2));
 state0 = initResSol(G, 50*barsa, s0);
-%%
+%% Set up model
 fluid = initSimpleADIFluid('c', [1e-6, 1e-5, 1e-3]/barsa, 'n', [2, 2, 2], 'rho', [1000, 500, 100]);
 model = GenericBlackOilModel(G, rock, fluid);
 % model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true);
@@ -48,7 +48,7 @@ tmodel = tmodel.validateModel(forces);
 state0 = model.validateState(state0);
 dt = 1*year;
 %% Utilities
-maxIter = 250;
+maxIter = 100;
 tol = 1e-6;
 
 getter = @(x, fld) cellfun(@(x) x.(fld), x);
@@ -75,32 +75,32 @@ state0t = tmodel.validateState(state0);
 tproblem = tmodel.getEquations(state0t, statet, dt, forces);
 tproblem = tproblem.assembleSystem();
 
-%% Compare CPR
+%% Compare fully-implicit
 innerTol = 1e-4;
 block_arg = {'variableOrdering', ordering, 'equationOrdering', ordering};
 base_arg = {'tolerance', tol, 'maxIterations', maxIter, 'keepNumber', ncomp*ncells};
-% base_arg = {}
 cpr = CPRSolverAD(base_arg{:});
 cpr_agmg = CPRSolverAD(base_arg{:},'ellipticSolver', AGMGSolverAD('tolerance', innerTol));
 cpr_amgcl = CPRSolverAD(base_arg{:},'ellipticSolver', AMGCLSolverAD('reuseMode', 2, 'tolerance', innerTol));
 cpr_cl = AMGCL_CPRSolverAD(base_arg{:}, block_arg{:});
 bl = BackslashSolverAD();
 gmilu = GMRES_ILUSolverAD(base_arg{:});
-%%
+% Store
 fi_solvers = {};
 if solveDirect
     fi_solvers{end+1} = bl;
 end
 fi_solvers{end+1} = gmilu;
-fi_solvers{end+1} = cpr;
+if solveDirect
+    fi_solvers{end+1} = cpr;
+end
 if hasAGMG
     fi_solvers{end+1} = cpr_agmg;
 end
 fi_solvers{end+1} = cpr_amgcl;
 fi_solvers{end+1} = cpr_cl;
-
 [descr_fi, names_fi] = cellfun(@getDescription, fi_solvers, 'UniformOutput', false);
-
+% Solving
 ns = numel(fi_solvers);
 reports_fi = cell(1, ns);
 for sno = 1:ns
@@ -109,15 +109,14 @@ for sno = 1:ns
     [dx, result, reports_fi{sno}] = solver.solveLinearProblem(problem, model);
 end
 fprintf('Solve done.\n');
-%%
+%% Plot
 [timing_fi, its_fi] = getTiming(reports_fi, getData);
-
 if doPlot
     figure(1); clf;
     plotLinearTimingsForExample(names_fi, timing_fi, its_fi);
     title('Fully-implicit system');
 end
-%% Compare pressure system
+%% Setup pressure solver
 parg = {'tolerance', tol, 'maxIterations', maxIter, 'keepNumber', ncells};
 amg_stuben = AMGCLSolverAD(parg{:}, 'coarsening', 'ruge_stuben', 'id', '-classical');
 amg_aggr = AMGCLSolverAD(parg{:}, 'coarsening', 'aggregation', 'id', '-aggregation');
@@ -140,18 +139,15 @@ if hasAGMG
 end
 
 [descr_p, names_p] = cellfun(@getDescription, p_solvers, 'UniformOutput', false);
-
 nsp = numel(p_solvers);
 reports_p = cell(1, nsp);
 
 for sno = 1:nsp
-    fprintf('Pressure: Solving solver %d of %d\n', sno, nsp);
+    fprintf('Pressure: Solving solver %d of %d: %s\n', sno, nsp, names_p{sno});
     solver = p_solvers{sno};
     [dx, result, reports_p{sno}] = solver.solveLinearProblem(pproblem, model);
 end
-
 [timing_p, its_p] = getTiming(reports_p, getData);
-
 if doPlot
     figure(2); clf;
     plotLinearTimingsForExample(names_p, timing_p, its_p);
@@ -183,7 +179,7 @@ nst = numel(t_solvers);
 reports_t = cell(1, nst);
 
 for sno = 1:nst
-    fprintf('Transport: Solving solver %d of %d\n', sno, nst);
+    fprintf('Transport: Solving solver %d of %d: %s\n', sno, nst, names_t{sno});
     solver = t_solvers{sno};
     [dx, result, reports_t{sno}] = solver.solveLinearProblem(tproblem, model);
 end
