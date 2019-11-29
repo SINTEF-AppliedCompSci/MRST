@@ -56,7 +56,6 @@ getData = @(x) [getter(x, 'PreparationTime'); getter(x, 'LinearSolutionTime'); g
 
 %% Get systems
 problem = model.getEquations(state0, state0, dt, forces);
-problem = problem.assembleSystem();
 ncomp = model.getNumberOfComponents();
 ordering = getCellMajorReordering(ncells, ncomp);
 
@@ -65,6 +64,7 @@ pproblem = pmodel.getEquations(state0, state0, dt, forces);
 % Skip wells
 pproblem.equations = pproblem.equations(1);
 pproblem.equations{1}.jac = pproblem.equations{1}.jac(1);
+% We can pre-assemble to save a bit of time
 pproblem = pproblem.assembleSystem();
 
 % Transport
@@ -112,14 +112,16 @@ fprintf('Solve done.\n');
 %%
 if doPlot
     figure(1); clf;
-    plotStuff(reports_fi, names_fi, getData);
+    plotLinearTimingsForExample(reports_fi, names_fi, getData);
     title('Fully-implicit system');
 end
 %% Compare pressure system
 parg = {'tolerance', tol, 'maxIterations', maxIter, 'keepNumber', ncells};
-amg_stuben = AMGCLSolverAD(parg{:}, 'coarsening', 'ruge_stuben');
-amg_aggr = AMGCLSolverAD(parg{:}, 'coarsening', 'aggregation');
-amg_smoothed_aggr = AMGCLSolverAD(parg{:}, 'coarsening', 'smoothed_aggregation');
+amg_stuben = AMGCLSolverAD(parg{:}, 'coarsening', 'ruge_stuben', 'id', '-classical');
+amg_aggr = AMGCLSolverAD(parg{:}, 'coarsening', 'aggregation', 'id', '-aggregation');
+amg_smoothed_aggr = AMGCLSolverAD(parg{:}, 'coarsening', 'smoothed_aggregation', 'id', '-smoothed_aggregation');
+amg_smoothed_aggre = AMGCLSolverAD(parg{:}, 'coarsening', 'smoothed_aggr_emin', 'id', '-smoothed_aggr_emin');
+
 agmg = AGMGSolverAD(parg{:});
 
 p_solvers = {};
@@ -129,6 +131,8 @@ end
 p_solvers{end+1} = amg_stuben;
 p_solvers{end+1} = amg_aggr;
 p_solvers{end+1} = amg_smoothed_aggr;
+p_solvers{end+1} = amg_smoothed_aggre;
+
 if hasAGMG
     p_solvers{end+1} = agmg;
 end
@@ -145,7 +149,7 @@ for sno = 1:nsp
 end
 if doPlot
     figure(2); clf;
-    plotStuff(reports_p, names_p, getData);
+    plotLinearTimingsForExample(reports_p, names_p, getData);
     title('Pressure system');
 end
 %% Compare transport system
@@ -153,10 +157,10 @@ end
 % spai0
 
 topts = ['preconditioner', 'relaxation', block_arg];
-amgcl_gs = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', 1, 'relaxation', 'gauss_seidel');
-amgcl_ilu  = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', 1, 'relaxation', 'ilu0');
-amgcl_bilu = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'ilu0');
-amgcl_bgs = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'gauss_seidel');
+amgcl_gs = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', 1, 'relaxation', 'gauss_seidel', 'id', '-gs');
+amgcl_ilu  = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', 1, 'relaxation', 'ilu0', 'id', '-ilu0');
+amgcl_bilu = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'ilu0', 'id', '-ilu0');
+amgcl_bgs = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'gauss_seidel', 'id', '-gs');
 
 t_solvers = {};
 if solveDirect
@@ -180,11 +184,11 @@ end
 %%
 if doPlot
     figure(3); clf;
-    plotStuff(reports_t, names_t, getData);
+    plotLinearTimingsForExample(reports_t, names_t, getData);
     title('Transport system')
 end
 %%
-function plotStuff(reports, names, getData)
+function plotLinearTimingsForExample(reports, names, getData)
     timing = getData(reports);
     ok = true(size(timing, 1), 1);
     for i = 1:size(timing, 1)
@@ -196,7 +200,7 @@ function plotStuff(reports, names, getData)
     bh = bar(timing, 'stacked');
     legend('Pre', 'Solve', 'Post');
     set(gca, 'XTickLabel', names, 'TickLabelInterpreter', 'none');
-    set(gca, 'XTickLabelRotation', -90)
+    set(gca, 'XTickLabelRotation', -20)
     tot = sum(timing, 2);
     for i = 1:numel(tot)
         r = reports{i};
