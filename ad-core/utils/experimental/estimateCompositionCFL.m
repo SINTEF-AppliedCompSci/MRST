@@ -17,7 +17,7 @@ function cfl = estimateCompositionCFL(model, state, dt, varargin)
     compMass = value(model.getProp(state, 'ComponentTotalMass')');
     totMass = sum(compMass, 2);
     % Ignore small masses 
-    bad = compMass./totMass < 1e-7;
+    bad = bsxfun(@rdivide, compMass, totMass) < 1e-7;
     compMass(bad) = 1;
     massFace = upstream(model, compMass, flag, xflow, l, r);
     
