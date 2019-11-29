@@ -15,6 +15,7 @@ classdef CompositionalMSPressureModel < MultiscalePressureModel
             model = model@MultiscalePressureModel(G, rock, fluid, pmodel, mssolver);
             model.resetBasisAfterConvergence = false;
             model.regularizeReconstructionUpdate = false;
+            assert(~isa(pmodel, 'CompositionalMSPressureModel'));
             model.useGetEquationsForFlux = ~isa(pmodel, 'PressureModel');
             model.dpMaxRel = inf;
             model.reconstructWellFlux = false;
