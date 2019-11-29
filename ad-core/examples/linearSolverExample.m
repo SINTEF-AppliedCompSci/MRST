@@ -110,9 +110,11 @@ for sno = 1:ns
 end
 fprintf('Solve done.\n');
 %%
+[timing_fi, its_fi] = getTiming(reports_fi, getData);
+
 if doPlot
     figure(1); clf;
-    plotLinearTimingsForExample(reports_fi, names_fi, getData);
+    plotLinearTimingsForExample(names_fi, timing_fi, its_fi);
     title('Fully-implicit system');
 end
 %% Compare pressure system
@@ -147,11 +149,15 @@ for sno = 1:nsp
     solver = p_solvers{sno};
     [dx, result, reports_p{sno}] = solver.solveLinearProblem(pproblem, model);
 end
+
+[timing_p, its_p] = getTiming(reports_p, getData);
+
 if doPlot
     figure(2); clf;
-    plotLinearTimingsForExample(reports_p, names_p, getData);
+    plotLinearTimingsForExample(names_p, timing_p, its_p);
     title('Pressure system');
 end
+
 %% Compare transport system
 % t-solvers: GMRES ilu, backslash, amgcl ilu0, ilu0-block, iluk-block,
 % spai0
@@ -182,13 +188,15 @@ for sno = 1:nst
     [dx, result, reports_t{sno}] = solver.solveLinearProblem(tproblem, model);
 end
 %%
+[timing_t, its_t] = getTiming(reports_t, getData);
+
 if doPlot
     figure(3); clf;
-    plotLinearTimingsForExample(reports_t, names_t, getData);
+    plotLinearTimingsForExample(names_t, timing_t, its_t);
     title('Transport system')
 end
 %%
-function plotLinearTimingsForExample(reports, names, getData)
+function [timing, its] = getTiming(reports, getData)
     timing = getData(reports);
     ok = true(size(timing, 1), 1);
     for i = 1:size(timing, 1)
@@ -197,22 +205,37 @@ function plotLinearTimingsForExample(reports, names, getData)
         end
     end
     timing = timing.*ok;
+    its = zeros(size(reports));
+    for i = 1:numel(reports)
+        r = reports{i};
+        if isfield(r, 'Iterations')
+            if ok(i)
+                its(i) = r.Iterations(end);
+            else
+                its(i) = nan;
+            end
+        end
+    end
+    
+end
+
+function timing = plotLinearTimingsForExample(names, timing, its)
     bh = bar(timing, 'stacked');
     legend('Pre', 'Solve', 'Post');
     set(gca, 'XTickLabel', names, 'TickLabelInterpreter', 'none');
     set(gca, 'XTickLabelRotation', -20)
     tot = sum(timing, 2);
     for i = 1:numel(tot)
-        r = reports{i};
-        if isfield(r, 'Iterations') && r.Iterations(end) > 0
-            if ok(i)
-                s = num2str(r.Iterations(end));
-            else
-                s = 'Fail';
-            end
-            th = text(i, tot(i) + 0.05*max(tot), s);
-            set(th, 'HorizontalAlignment', 'center', 'FontSize', 14)
+        it = its(i);
+        if it > 0
+            s = num2str(it);
+        elseif isnan(it)
+            s = 'Fail';
+        else
+            s = '';
         end
+        th = text(i, tot(i) + 0.05*max(tot), s);
+        set(th, 'HorizontalAlignment', 'center', 'FontSize', 14)
     end
     ylim([0, 1.1*max(tot)]);
 end
