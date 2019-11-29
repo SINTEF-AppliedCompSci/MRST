@@ -20,7 +20,7 @@ caseName = ['FractureMS', '_', fluid_name];
 pth = fullfile(getDatasetPath('MSFractures'), 'setup_fracture.mat');
 load(pth);
 rdim  = [1000 500];
-G.nodes.coords = G.nodes.coords.*rdim;
+G.nodes.coords = bsxfun(@times, G.nodes.coords, rdim);
 G    = computeGeometry(G);
 rock = makeRock(G, perm*milli*darcy, 0.3);
 rock.perm(G.cells.tag > 0) = 10*darcy;
@@ -275,7 +275,7 @@ hold off
 axis tight, xlabel('Time [days]'), ylabel('kg/day')
 ax1 = gca;
 ax2 = axes('position',get(gca,'position'),'visible','off');
-legend(ax1, h(1,2:end), tittel)
+legend(ax1, h(1,2:end), names)
 legend(ax2, h(:,1), model.EOSModel.fluid.names,'Location','Best');
 set([ax1 ax2],'FontSize',12);
 
@@ -283,7 +283,7 @@ set([ax1 ax2],'FontSize',12);
 m = GenericOverallCompositionModel(G, rock, fluid, eos, 'water', false);
 m = m.validateModel();
 cfl_s = zeros(G.cells.num, 1);
-cfl_z = zeros(G.cells.num, 1);
+cfl_z = zeros(G.cells.num, m.getNumberOfComponents());
 for i = 1:numel(schedule.step.val)
     s = states{1}{i};
     dt = schedule.step.val(i);
