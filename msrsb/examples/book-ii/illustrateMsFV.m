@@ -6,7 +6,7 @@
 % show their sparsity pattern along with that of the reduced coarse-scale
 % system.
 
-mrstModule add incomp spe10 coarsegrid
+mrstModule add coarsegrid incomp spe10
 
 %% Set up model
 % The mesh is designed to have k*k coarse blocks, that each consists of
@@ -48,7 +48,8 @@ outlineCoarseGrid(G, p,'Color','k','LineWidth',2);
 h2=plotGrid(G,d(:)==1,'EdgeColor','w','FaceColor','w','LineWidth',2,'FaceAlpha',0);
 h3=plotGrid(G,d(:)==2,'EdgeColor','r','FaceColor','w','LineWidth',2,'FaceAlpha',0);
 colormap(parula); axis off
-h=legend([h3,h2,h1],' node',' edge',' inner','Color',[.8 .8 .9],'FontSize',14);
+h=legend([h3,h2,h1],' node',' edge',' inner');
+set(h,'Color',[.8 .8 .9],'FontSize',14);
 h.Position = [.65 .67 .25 .25];
 
 %% Show matrix and wirebasket reordering
