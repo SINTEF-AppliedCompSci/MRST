@@ -19,7 +19,7 @@
 %   * 'fully coupled'          : fully coupled solver
 %   * 'fixed stress splitting' : solver using fixed stress splitting 
 %
-
+mrstModule add ad-mechanics
 
 clear opt
 
