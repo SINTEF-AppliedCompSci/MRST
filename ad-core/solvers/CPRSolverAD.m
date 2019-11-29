@@ -197,9 +197,7 @@ classdef CPRSolverAD < LinearSolverAD
             end
             % Set up elliptic solver
             solver.ellipticSolver = solver.ellipticSolver.setupSolver(Ap, b(pInx));
-            ellipSolve = @(b) solver.ellipticSolver.solveLinearSystem(Ap, b);
-
-            prec = @(r) solver.applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
+            prec = @(r) solver.applyTwoStagePreconditioner(r, A, Ap, L, U, pInx);
             assert(all(isfinite(b)), 'Linear system rhs must have finite entries.');
             t_prep = toc(timer);
             try
@@ -270,12 +268,19 @@ classdef CPRSolverAD < LinearSolverAD
             d = sprintf(['Matlab implementation of constrained pressure', ...
                         ' residual (CPR) with dynamic row-sum. Elliptic solver: %s.'], sn_sub);
         end
-    end
-    methods(Static)
-        function x = applyTwoStagePreconditioner(r, A, L, U, pInx, ellipticSolver)
+        
+        function x = applyTwoStagePreconditioner(solver, r, A, Ap, L, U, pInx)
+           es = solver.ellipticSolver;
+           
+           if isfinite(solver.relativeTolerance)
+               % Elliptic solver uses absolute tolerance? We scale the
+               % problem based on current value
+               es.tolerance = norm(r)*solver.relativeTolerance;
+           end
            x = zeros(size(r));
-           x(pInx) = ellipticSolver(r(pInx));
-
+           rp = r(pInx);
+           x(pInx) = es.solveLinearSystem(Ap, rp);
+           solver.ellipticSolver.solveLinearSystem(Ap, rp);
            r = r - A*x;
            x = x + U\(L\r);
         end
