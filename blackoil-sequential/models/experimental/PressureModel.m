@@ -3,6 +3,7 @@ classdef PressureModel < WrapperModel
         incTolPressure = 1e-3;
         useIncTol = true;
         reductionStrategy = 'analytic';
+        pressureIncTolType = 'relative';
     end
     
     methods
@@ -68,11 +69,18 @@ classdef PressureModel < WrapperModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             p0 = state.pressure;
             [state, report] = model.parentModel.updateState(state, problem, dx, drivingForces);
-            range = max(p0) - min(p0);
-            if range == 0
-                range = 1;
+            switch lower(model.pressureIncTolType)
+                case 'relative'
+                    range = max(p0) - min(p0);
+                    if range == 0
+                        range = 1;
+                    end
+                    state.dpRel = (state.pressure - p0)./range;
+                case 'absolute'
+                    state.dpRel = state.pressure - p0;
+                case 'norm'
+                    state.dpRel = (state.pressure - p0)/norm(state.pressure, inf);
             end
-            state.dpRel = (state.pressure - p0)./range;
         end
         
         function  [convergence, values, names] = checkConvergence(model, problem)
