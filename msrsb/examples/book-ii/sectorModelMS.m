@@ -96,7 +96,7 @@ try
 catch
     pressureSolver = BackslashSolverAD();
 end
-linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'relativeTolerance', 1e-3);
+linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'tolerance', 1e-3);
 
 %%
 figure(1)
@@ -124,8 +124,8 @@ plotFaces(CG, 1:CG.faces.num,'FaceColor','none','EdgeColor','k');
 msSolver = MultiscaleVolumeSolverAD(CG, 'tolerance', 1e-4, ...
             'maxIterations', 1, 'useGMRES', false, 'verbose', false, ...
             'getSmoother', getSmootherFunction('type', 'ilu0', 'iterations', 1));
-linsolve = CPRSolverAD('ellipticSolver', msSolver, 'relativeTolerance', 1e-3);
 
+linsolve = CPRSolverAD('ellipticSolver', msSolver, 'tolerance', 1e-3);
 % Solve problem
 [wellSolsMS, statesMS, reportMS] = ...
    simulateScheduleAD(state0, model, schedule, 'LinearSolver', linsolve);
