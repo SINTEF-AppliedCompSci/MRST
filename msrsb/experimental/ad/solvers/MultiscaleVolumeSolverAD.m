@@ -177,6 +177,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
        
         function [d, sn] = getDescription(solver)
             sn = solver.prolongationType;
+            sn = [sn, solver.id];
             if solver.controlVolumeRestriction
                 v = 'volume';
             else
