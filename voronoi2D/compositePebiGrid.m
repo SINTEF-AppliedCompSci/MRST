@@ -119,7 +119,8 @@ opt = struct('wellLines',       {{}}, ...
              'circleFactor',    0.6,  ...  
              'protLayer',false, ...
              'protD',           {{@(p) ones(size(p,1),1)*norm(celldim)/10}},...
-             'polyBdr',         zeros(0,2));
+             'polyBdr',         zeros(0,2),...
+             'useMrstPebi',     false);
 
 opt = merge_options(opt, varargin{:});
 circleFactor = opt.circleFactor;
@@ -186,9 +187,9 @@ F = createFaultGridPoints(faultLines, faultGridSize, 'circleFactor', circleFacto
 polyBdr = opt.polyBdr;
 [k,l] = size(polyBdr);
 if 0<k && k<3
-	warning('Polygon must have at least 3 edges. Assuming rectangular domain');
+	error('Polygon must have at least 3 edges.');
 end
-if k<3
+if k==0
 	dx = pdims(1)/ceil(pdims(1)/celldim(1));
 	dy = pdims(2)/ceil(pdims(2)/celldim(2));
 	vx = 0:dx:pdims(1);
@@ -236,18 +237,13 @@ resPts = removeConflictPoints2(resPts, F.c.CC, F.c.R);
 
 % Create Grid
 Pts = [F.f.pts; wellPts; protPts; F.t.pts; resPts];
-if k<3
-       G = triangleGrid(Pts);
-       G = pebi(G);
+
+if opt.useMrstPebi
+    G = pebi(triangleGrid(Pts));
 else
-       G = clippedPebi2D(Pts,polyBdr);
+    G = clippedPebi2D(Pts, polyBdr);
 end
 
-% if opt.useMrstPebi
-%     G = pebi(triangleGrid(Pts));
-% else
-%     G = clippedPebi2D(Pts, polyBdr);
-% end
 % label fault faces.
 if ~isempty(F.f.pts)
   N      = G.faces.neighbors + 1; 
