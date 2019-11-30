@@ -25,7 +25,7 @@ function [p] = interLinePath(line, fh, lineDist,sePtn, varargin)
       return
     end
     % Create initial points, equally distributed.
-    p = eqInterpret(line, lineDist,sePtn);
+    p = eqInterpret(line, lineDist, sePtn);
     % add auxillary points
     if sePtn(1)~=0, p = [line(1,:);p];   end
     if sePtn(2)~=0, p = [p;line(end,:)]; end

@@ -113,13 +113,13 @@ opt = struct('wellLines',       {{}}, ...
              'wellGridFactor',  1,  ...
              'mlqtMaxLevel',    0,    ...
              'mlqtLevelSteps',  -1,   ...
-						 'wellRho',         @(x) ones(size(x,1),1),...
+			 'wellRho',         @(x) ones(size(x,1),1),...
              'faultLines',      {{}}, ...
              'faultGridFactor', 1,  ...
              'circleFactor',    0.6,  ...  
              'protLayer',false, ...
-             'protD', {{@(p) ones(size(p,1),1)*norm(celldim)/10}},...
-						 'polyBdr',         zeros(0,2));
+             'protD',           {{@(p) ones(size(p,1),1)*norm(celldim)/10}},...
+             'polyBdr',         zeros(0,2));
 
 opt = merge_options(opt, varargin{:});
 circleFactor = opt.circleFactor;
@@ -130,6 +130,7 @@ faultGridSize  = min(celldim)*opt.faultGridFactor;
 mlqtMaxLevel   = opt.mlqtMaxLevel;
 mlqtLevelSteps = opt.mlqtLevelSteps;
 wellRho        = @(x) wellGridSize*opt.wellRho(x);
+
 % Test input
 
 assert(numel(pdims)==2);
@@ -166,8 +167,6 @@ else
   assert(numel(protD) == numel(opt.wellLines));
   protD = protD(IC);
 end
-  
-
 
 % Create well points
 bisectPnt = (faultGridSize.^2 - (circleFactor*faultGridSize).^2 ...
@@ -194,6 +193,7 @@ if k<3
 	dy = pdims(2)/ceil(pdims(2)/celldim(2));
 	vx = 0:dx:pdims(1);
 	vy = 0:dy:pdims(2);
+    polyBdr = [0, 0; pdims(1), 0; pdims(1), pdims(1); 0, pdims(2)];
 else
 	assert(l==2,'polygon boundary is only supported in 2D');
 	lDim = [min(polyBdr); max(polyBdr)];
@@ -209,6 +209,11 @@ if k>=3
 	resPtsInit = resPtsInit(IN,:);
 end
 
+% Remove tip sites outside domain
+if size(F.f.pts, 1) > 0
+    innside = inpolygon(F.t.pts(:, 1), F.t.pts(:, 2), polyBdr(:, 1), polyBdr(:, 2));
+    F.t.pts = F.t.pts(innside, :);
+end
 % Refine reservoir grid
 if ~isempty(wellPts)
     res = {};
@@ -232,11 +237,17 @@ resPts = removeConflictPoints2(resPts, F.c.CC, F.c.R);
 % Create Grid
 Pts = [F.f.pts; wellPts; protPts; F.t.pts; resPts];
 if k<3
-	G = triangleGrid(Pts);
-	G = pebi(G);
+       G = triangleGrid(Pts);
+       G = pebi(G);
 else
-	G = clippedPebi2D(Pts,polyBdr);
+       G = clippedPebi2D(Pts,polyBdr);
 end
+
+% if opt.useMrstPebi
+%     G = pebi(triangleGrid(Pts));
+% else
+%     G = clippedPebi2D(Pts, polyBdr);
+% end
 % label fault faces.
 if ~isempty(F.f.pts)
   N      = G.faces.neighbors + 1; 

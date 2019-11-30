@@ -243,31 +243,37 @@ end
 polyBdr = opt.polyBdr;
 [k,l] = size(polyBdr);
 if 0<k && k<3
-	warning('Polygon must have at least 3 edges. Assuming rectangular domain');
+	Error('Polygon must have at least 3 edges.');
 end
-if k<3
+if k==0
 	x = pdims;
 	rectangle = [0,0; x(1),x(2)];
 	fd = @(p,varargin) drectangle(p, 0, x(1), 0, x(2));
 	corners = [0,0; 0,x(2); x(1),0; x(1),x(2)];
 	vararg  = [];
+    polyBdr = [0, 0; pdims(1), 0; pdims(1), pdims(1); 0, pdims(2)];
 else
-  assert(l==2,'polygon boundary is only supported in 2D');
+    assert(l==2,'polygon boundary is only supported in 2D');
 	rectangle = [min(polyBdr); max(polyBdr)];
 	corners   = polyBdr;
 	fd        = @dpoly;
-	vararg    = [polyBdr;polyBdr(1,:)];
+	vararg    = [polyBdr; polyBdr(1,:)];
 end	
+% Remove tip sites outside domain
+if size(F.f.pts, 1) > 0
+    innside = inpolygon(F.t.pts(:, 1), F.t.pts(:, 2), polyBdr(:, 1), polyBdr(:, 2));
+    F.t.pts = F.t.pts(innside, :);
+end    
 
 if faultRef && wellRef
-  ds = min(wellGridSize,faultGridSize);
-  hres = @(x,varargin) min(hresf(p), hresw(p));
+    ds = min(wellGridSize,faultGridSize);
+    hres = @(x,varargin) min(hresf(p), hresw(p));
 elseif faultRef
-  ds = faultGridSize;
-  hres = @(p,varargin) hresf(p);
+    ds = faultGridSize;
+    hres = @(p,varargin) hresf(p);
 else 
-  ds = wellGridSize;
-  hres = @(p, varargin) hresw(p);
+    ds = wellGridSize;
+    hres = @(p, varargin) hresw(p);
 end
 fixedPts = [F.f.pts; wellPts; protPts; F.t.pts; corners];  
 [Pts,~,sorting] = distmesh2d(fd, hres, ds, rectangle, fixedPts,vararg);
