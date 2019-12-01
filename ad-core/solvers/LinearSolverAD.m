@@ -315,66 +315,25 @@ classdef LinearSolverAD < handle
         end
         
         function [A, b, sys] = reduceLinearSystem(solver, A, b, isAdjoint)
+            % Perform Schur complement reduction of linear system
             if nargin == 3
                 isAdjoint = false;
             end
-            % Perform Schur complement reduction of linear system
-            sys = struct('B', [], 'C', [], 'D',   [], 'E',   [],...
-                         'f', [], 'h', [], 'E_L', [], 'E_U', []);
-            if isempty(solver.keepNumber) || solver.keepNumber >= size(b, 1)
-                return
-            end
-            if isempty(A)
-                return
-            end
-            nk = solver.keepNumber;
-            start = 1:nk;
-            [ix, jx, vx] = find(A);
-            if any(~isfinite(vx))
-                warning('Non-finite values in matrix before Schur-complement reduction.');
-            end
-            if any(~isfinite(b))
-                warning('Non-finite values in right-hand side before Schur-complement reduction.');
-            end
-            
             if solver.useSparseReduction
-                n = size(A, 2);
-                keep = false(n, 1);
-                keep(start) = true;
-                keepRow = keep(ix);
-                keepCol = keep(jx);
-                kb = keepRow & keepCol;
-                sys.B = sparse(ix(kb), jx(kb), vx(kb), nk, nk);
-
-                kc = keepRow & ~keepCol;
-                sys.C = sparse(ix(kc), jx(kc) - nk, vx(kc), nk, n - nk);
-
-                kd = ~keepRow & keepCol;
-                sys.D = sparse(ix(kd) - nk, jx(kd), vx(kd), n - nk, nk);
-
-                ke = ~keepRow & ~keepCol;
-                sys.E = sparse(ix(ke) - nk, jx(ke) - nk, vx(ke), n - nk, n - nk);
-                sys.f = b(keep);
-                sys.h = b(~keep);
+                method = 'sparse';
             else
-                start = 1:nk;
-                stop = (nk+1):size(A, 2);
-                sys.B = A(start, start);
-                sys.C = A(start, stop);
-                sys.D = A(stop, start);
-                sys.E = A(stop, stop);
-                
-                sys.f = b(start);
-                sys.h = b(stop);
+                method = 'subset';
             end
-            [sys.E_L, sys.E_U] = lu(sys.E);
-            A = sys.B - sys.C*(sys.E_U\(sys.E_L\sys.D));
-            if isAdjoint
-                % We are solving the transpose system
-                b = sys.f - (sys.D')*((sys.E')\sys.h);
-            else
-                % We are solving the untransposed system
-                b = sys.f - sys.C*(sys.E_U\(sys.E_L\sys.h));
+            sys = splitMatrixForReduction(A, b, solver.keepNumber, method, true);
+            if ~isempty(sys.B)
+                A = sys.B - sys.C*(sys.E_U\(sys.E_L\sys.D));
+                if isAdjoint
+                    % We are solving the transpose system
+                    b = sys.f - (sys.D')*((sys.E')\sys.h);
+                else
+                    % We are solving the untransposed system
+                    b = sys.f - sys.C*(sys.E_U\(sys.E_L\sys.h));
+                end
             end
         end
         
