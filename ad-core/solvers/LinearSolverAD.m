@@ -53,7 +53,7 @@ classdef LinearSolverAD < handle
             solver.replacementNaN  = 0;
             solver.replacementInf  = 0;
             solver.reduceToCell    = false;
-            solver.useSparseReduction = true;
+            solver.useSparseReduction = false;
             solver.applyLeftDiagonalScaling = false;
             solver.applyRightDiagonalScaling = false;
             solver.variableOrdering = [];
