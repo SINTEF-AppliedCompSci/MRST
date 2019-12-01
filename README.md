@@ -32,8 +32,8 @@ For an introduction to MPSA:
 * MATLAB (Tested version: R2019a)
 
 ## MRST dependencies
-* incomp
 * [fvbiot](https://github.com/pmgbergen/fvbiot)
+* [upr](https://www.sintef.no/projectweb/mrst/modules/upr/)
 
 ## Cite
 If you use fv-unsat, please cite:
