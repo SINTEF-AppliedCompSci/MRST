@@ -34,9 +34,9 @@ Lx = 100;   Ly = 100;   Lz = 100;    % domain lenght [cm]
 G = cartGrid([nx,ny,nz],[Lx,Ly,Lz]); % create Cartesian Grid
 G = computeGeometry(G);              % compute geometry
 
-% Plotting grid
-%newplot; plotGrid(G); axis off; 
-%pbaspect([1,1,5]); view([-51,26]);
+%Plotting grid
+newplot; plotGrid(G); axis off; 
+pbaspect([1,1,5]); view([-51,26]);
 
 %% Physical properties 
 
@@ -189,5 +189,5 @@ for ii=1:printLevels
     ylabel('Depth [cm]'); xlabel('\theta [-]');
     set(gca,'Ydir','reverse'); axis tight; box on; grid on; 
     
-    pause(2); t_h1.String =[]; t_h2.String =[];
+    pause(0.01); t_h1.String =[]; t_h2.String =[];
 end
