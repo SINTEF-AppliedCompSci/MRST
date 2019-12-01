@@ -1,7 +1,7 @@
 mrstModule add ad-core ad-blackoil ad-props blackoil-sequential linearsolvers agmg
 %% Set up model
 if ~exist('n', 'var')
-    n = 20;
+    n = 40;
 end
 % Enable plotting
 if ~exist('doPlot', 'var')
@@ -9,13 +9,17 @@ if ~exist('doPlot', 'var')
 end
 
 if ~exist('solveDirect', 'var')
-    solveDirect = n^3 <= 100000;
+    solveDirect = true;
 end
+
+solveDirect = solveDirect && n^3 <= 100000;
 assert(isscalar(n));
 assert(n <= 100);
 hasAGMG = ~isempty(mrstPath('agmg'));
-
-%% Set up test prolem
+n = ceil(n);
+% Plot offset
+offset = 0;
+%% Set up test problem
 G = cartGrid([n, n, n], [1000, 1000, 100]);
 G = computeGeometry(G);
 rock = makeRock(G, 1*darcy, 1);
@@ -83,6 +87,10 @@ cpr = CPRSolverAD(base_arg{:});
 cpr_agmg = CPRSolverAD(base_arg{:},'ellipticSolver', AGMGSolverAD('tolerance', innerTol));
 cpr_amgcl = CPRSolverAD(base_arg{:},'ellipticSolver', AMGCLSolverAD('reuseMode', 2, 'tolerance', innerTol));
 cpr_cl = AMGCL_CPRSolverAD(base_arg{:}, block_arg{:});
+cpr_cl_w = AMGCL_CPRSolverAD(base_arg{:}, block_arg{:}, ...
+    'coarsening', 'smoothed_aggregation', 'relaxation', 'spai0', ...
+    'solver', 'bicgstab', 'npre', 3, 'npost', 3, 'ncycle', 2, 'id', '-tweaked');
+%%
 bl = BackslashSolverAD();
 gmilu = GMRES_ILUSolverAD(base_arg{:});
 % Store
@@ -99,6 +107,8 @@ if hasAGMG
 end
 fi_solvers{end+1} = cpr_amgcl;
 fi_solvers{end+1} = cpr_cl;
+fi_solvers{end+1} = cpr_cl_w;
+
 [descr_fi, names_fi] = cellfun(@getDescription, fi_solvers, 'UniformOutput', false);
 % Solving
 ns = numel(fi_solvers);
@@ -112,7 +122,7 @@ fprintf('Solve done.\n');
 %% Plot
 [timing_fi, its_fi] = getTiming(reports_fi, getData);
 if doPlot
-    figure(1); clf;
+    figure(1 + offset); clf;
     plotLinearTimingsForExample(names_fi, timing_fi, its_fi);
     title('Fully-implicit system');
 end
@@ -147,9 +157,10 @@ for sno = 1:nsp
     solver = p_solvers{sno};
     [dx, result, reports_p{sno}] = solver.solveLinearProblem(pproblem, model);
 end
+%%
 [timing_p, its_p] = getTiming(reports_p, getData);
 if doPlot
-    figure(2); clf;
+    figure(2 + offset); clf;
     plotLinearTimingsForExample(names_p, timing_p, its_p);
     title('Pressure system');
 end
@@ -187,7 +198,7 @@ end
 [timing_t, its_t] = getTiming(reports_t, getData);
 
 if doPlot
-    figure(3); clf;
+    figure(3 + offset); clf;
     plotLinearTimingsForExample(names_t, timing_t, its_t);
     title('Transport system')
 end
