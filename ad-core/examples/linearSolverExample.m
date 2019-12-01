@@ -177,7 +177,7 @@ amgcl_bgs = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxatio
 
 t_solvers = {};
 if solveDirect
-    p_solvers{end+1} = bl;
+    t_solvers{end+1} = bl;
 end
 t_solvers{end+1} = gmilu;
 t_solvers{end+1} = amgcl_gs;
