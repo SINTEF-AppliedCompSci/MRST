@@ -50,9 +50,9 @@ thick = dz .* ones(nz,1);      % thickness vector
 G = makeLayeredGrid(G, thick); % extrude grid
 G = computeGeometry(G);        % compute geometry
 
-%newplot; plotGrid(G, 'FaceColor', [.8, .8, .8]); 
-%axis off equal; view([-9, 33]); 
-%export_fig -transparent fv_unsat-example4_grid.png
+%Plotting grid
+newplot; plotGrid(G, 'FaceColor', [.8, .8, .8]); 
+axis off equal; view([-9, 33]); 
 %% Extracting grid information
 
 Nc = G.cells.num;     % total number of cells
@@ -215,7 +215,7 @@ tau_max = 1000;         % [s] maximum time step
 tau = tau_init;         % [s] initializing time step
 timeCum = 0;            % [s] initializing cumulative time
 
-printLevels = 100;      % number of printing levels
+printLevels = 50;      % number of printing levels
 printTimes = ((simTime/printLevels):(simTime/printLevels):simTime)';
 pp = 1;                 % initializing printing counter
 ee = 1;                 % intializing exporting counter
@@ -342,7 +342,7 @@ while (timeCum < simTime) && (p_top > p_crit) && (pControlled == false)
         end
         timeCum = timeCum-tau; % we go back one time step
         pControlled = true;
-        tau = 1;
+        tau = tau_min;
     end
 end
 
@@ -418,7 +418,7 @@ for ii=1:length(sol.time)
     pause(0.01); out = out + 1; 
     t_h.String = [];  % we delete the current text box to plot the next one
 end
-%set(gcf,'color','w'); export_fig fv_unsat-example4_Sw.eps
+
 %% Displacement plot
 clf; u_mag = cell(length(sol.time), 1);
 for ii=1:length(sol.time)
@@ -440,7 +440,6 @@ for ii=1:length(sol.time)
     pause(0.01);    out = out + 1;
     t_h.String = [];   % we delete the current text box to plot the next one
 end
-%set(gcf,'color','w'); export_fig fv_unsat-example4_u.eps
 
 %% Top pressure and fluxes plots
 clf; newplot;
@@ -460,9 +459,7 @@ plot(sol.time/hour,fluxTopPlot,'r.-','LineWidth',2,'MarkerSize',15);
 axis tight; grid on; box on;
 xlabel('Time [hours]'); a = get(gca,'XTickLabel'); set(gca,'XTickLabel',a,'FontSize',14)
 ylabel('Q_w^{top}  [mm^3/s]'); b = get(gca,'YTickLabel'); set(gca,'YTickLabel',b,'FontSize',14)
-set(gcf,'color','w');
 
-%set(gcf,'color','w'); export_fig fv_unsat-example4_topPandFlux.eps
 %% Quiver plot
 clf; newplot;
 ux = sol.u{end}(1:Nd:end); uxTop = ux(1:G.layerSize);
@@ -473,5 +470,3 @@ cb=colorbar('EastOutside'); cb.FontSize=13; caxis([minU maxU])
 title('|| u || [mm]','FontSize',15); box on; set(gcf,'color','w'); hold on;
 quiver(xc(1:G.layerSize), yc(1:G.layerSize), uxTop, uyTop, 1,'LineWidth',1.5, 'Color', 'r');
 pause(0.01); axis([0.05, 0.103, 0.05, 0.103]);
-%set(gcf,'color','w'); export_fig fv_unsat-example4_tensile.eps
-%export_fig('../../../../chapter-redaction/chapter/figs/fv-unsat_example4_tensile.eps');
