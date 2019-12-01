@@ -104,7 +104,10 @@ classdef AMGCLSolverAD < LinearSolverAD
             end
             sn = [sn, solver.id];
 
-            prm = {'solver', 'relaxation', 'preconditioner'};
+            prm = {'solver', 'preconditioner', 'relaxation'};
+            if solver.amgcl_setup.preconditioner == 1
+                prm{end+1} = 'coarsening';
+            end
             tmp = cell(1, numel(prm));
             for i = 1:numel(prm)
                 s = prm{i};
