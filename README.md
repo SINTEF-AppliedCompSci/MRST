@@ -2,7 +2,7 @@
 
 ## Description
 This module implements a discretization of the (three-dimensional) equations of unsaturated poroelasticity using
-cell-centered finite volume methods, specifically MPFA-O and MPSA-W. Note that if  mechanical effects are neglected, the set of equations reduce to the well-known Richards' equation. The module is written using the AD-OO approach, aiming at flexibility as its first goal.
+cell-centered finite volume methods, specifically MPFA-O and MPSA-W. Note that if  mechanical effects are neglected, the set of equations reduce to the well-known Richards' equation. The module is written using the AD approach, aiming at flexibility as its first goal.
 
 There are four numerical examples accompanying this module:
 * convAnalysisRE.m
