@@ -197,9 +197,11 @@ function files = move_all_to_dest(files, repo, opt)
 
    if numel(moved_elems) == numel(fileset)
       % Success.  Report final fileset to caller.
+      escape = @(dname) ...
+         regexptranslate('escape', fileparts(fullfile(dname, '.')));
+
       files = files(~ cellfun(@is_directory, files));
-      sdir  = regexptranslate('escape', fileparts(fullfile(odir, '.')));
-      files = regexprep(files, sdir, opt.dest);
+      files = regexprep(files, escape(odir), escape(opt.dest));
    end
 end
 
