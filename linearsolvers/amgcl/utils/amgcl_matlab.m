@@ -136,7 +136,7 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
       % Note explicit /EHsc to enable C++ exception handling
       CXXFLAGS  = { ['COMPFLAGS=/EHsc /MD /DAMGCL_ASYNC_SETUP ', ...
                      '/openmp /wd4715 /fp:fast /bigobj'] };
-      LINK      = { ['-L', fullfile(matlabroot, 'bin', a) ]};
+      LINK      = { ['-L', fullfile(matlabroot, 'bin', a) ] };
       iomp5     = { ['LINKFLAGS=$LINKFLAGS ', ...
                      '/nodefaultlib:vcomp libiomp5md.lib' ]};
       libstdcpp = {};

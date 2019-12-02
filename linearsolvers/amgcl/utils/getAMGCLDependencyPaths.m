@@ -26,13 +26,14 @@ function [amgclpath, boostpath] = getAMGCLDependencyPaths(varargin)
             repo = 'ddemidov/amgcl';
             % Latest tested
             fprintf('Downloading AMGCL...')
-            githubDownload(repo, 'All', true, 'Base', mrstOutputDirectory, ...
-                                 'Dest', dep_path, 'Revision', opt.amgcl_rev);
-            [ok, msg] = movefile(fullfile(dep_path, amgcl_folder), amgclpath);
-            fprintf('Ok!');
-            if ~ok
-                error(msg);
+            files = githubDownload(repo, 'All', true, 'Base', mrstOutputDirectory, ...
+                                         'Dest', amgclpath, 'Revision', opt.amgcl_rev);
+            if isempty(files)
+                error('Download:Failure', ...
+                      'Failed to acquire AMGCL source code from GitHub');
             end
+
+            fprintf(' Ok!\n');
         end
     end
     
@@ -46,7 +47,7 @@ function [amgclpath, boostpath] = getAMGCLDependencyPaths(varargin)
             end
             fprintf('Downloading and extracting BOOST. This may take a minute...')
             unzip(boost_url, dep_path);
-            fprintf('Ok!');
+            fprintf(' Ok!\n');
         end
     end
 end
