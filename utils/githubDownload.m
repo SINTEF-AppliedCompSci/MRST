@@ -94,14 +94,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if opt.all
       download = @download_zip;
+      move     = @(files) move_all_to_dest(files, repository, opt);
    else
       download = @download_files;
+      move     = @(files) move_fileset_to_dest(files, opt);
    end
 
    files = download(repository, object_url(repository, opt), opt);
 
    if ~ isempty(opt.dest)
-      files = move_to_dest(files, opt.dest);
+      files = move(files);
    end
 end
 
@@ -150,7 +152,61 @@ end
 
 %--------------------------------------------------------------------------
 
-function files = move_to_dest(files, dest)
+function files = move_all_to_dest(files, repo, opt)
+   nchar = 8;
+
+   comp  = split(repo);
+   rev   = opt.revision(1 : min(numel(opt.revision), nchar));
+   stage = fullfile(opt.base, comp{:});
+   match = dir(fullfile(stage, [comp{end}, '-', rev, '*']));
+
+   if (numel(match) > 1) && (numel(opt.revision) > nchar)
+      % Uncommon case.  Hash collision in first 'nchar' characters.  Retry
+      % with full user-specified SHA-1 string.
+      match = dir(fullfile(stage, [comp{end}, '-', opt.revision, '*']));
+   end
+
+   if numel(match) == 1
+      % Typical case.  SHA-1 unique in first 'nchar' characters.
+      odir = fullfile(stage, match.name);
+   else
+      error('DirMatch:Failure', ...
+           ['Failed to identify GitHub repository files ', ...
+            'corresponding to commit ID ''%s'' in stage/base ', ...
+            'directory ''%s'''], opt.revision, stage);
+   end
+
+   assert (~isempty(odir), 'Internal logic error');
+
+   elems = dir(odir);
+   elems = { elems.name };
+   skip  = strcmp(elems, '.') | strcmp(elems, '..');
+
+   % Equivalent to FULLFILE(odir, elems(~skip)) in recent MATLAB versions.
+   fileset = cellfun(@(e) fullfile(odir, e), elems(~skip), ...
+                     'UniformOutput', false);
+
+   if isempty(fileset)
+      files = {};
+   end
+
+   moved_elems = move_fileset_to_dest(fileset, opt);
+
+   assert (isempty(moved_elems) || ...
+           numel(moved_elems) == numel(fileset), 'Internal Logic Error');
+
+   if numel(moved_elems) == numel(fileset)
+      % Success.  Report final fileset to caller.
+      files = files(~ cellfun(@is_directory, files));
+      sdir  = regexptranslate('escape', fileparts(fullfile(odir, '.')));
+      files = regexprep(files, sdir, opt.dest);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function files = move_fileset_to_dest(files, opt)
+   dest = opt.dest;
    [ok, msg, id] = ensure_dir_exists(dest);
 
    if ok
@@ -160,18 +216,7 @@ function files = move_to_dest(files, dest)
       ok = [ ok{:} ];
 
       if ~ all(ok)
-         args  = [ reshape(files(~ok), 1, []) ; ...
-                   reshape(msg(~ok)  , 1, []) ];
-
-         nchar = max(cellfun('prodofsize', args(1, :)));
-         args  = [ repmat({ nchar }, [ 1, size(args, 2) ]) ; args ];
-
-         msg = sprintf('  * %*s: %s\n', args{:});
-
-         pl = '';  if size(msg, 2) > 1, pl = 's'; end
-
-         warning('FileMove:Failure', ...
-                 'Failed to move file%s to destination\n%s', pl, msg);
+         report_move_failure(files(~ok), msg(~ok));
       end
    else
       warning(id, ['Failed to ensure existence of ', ...
@@ -179,6 +224,23 @@ function files = move_to_dest(files, dest)
    end
 
    if ~ all(ok), files = {}; end
+end
+
+%--------------------------------------------------------------------------
+
+function report_move_failure(fileset, msg)
+   args  = [ reshape(fileset, 1, []) ; ...
+             reshape(msg    , 1, []) ];
+
+   nchar = max(cellfun('prodofsize', args(1, :)));
+   args  = [ repmat({ nchar }, [ 1, size(args, 2) ]) ; args ];
+
+   msg = sprintf('  * %*s: %s\n', args{:});
+
+   pl = '';  if size(msg, 2) > 1, pl = 's'; end
+
+   warning('FileMove:Failure', ...
+           'Failed to move file%s to destination\n%s', pl, msg);
 end
 
 %--------------------------------------------------------------------------
@@ -238,12 +300,11 @@ end
 function [ok, msg, id] = create_if_not_exists(odir)
    [ok, msg, id] = deal(true, '', '');
 
-   if ~ isdir(odir)
+   if ~ is_directory(odir)
       [ok, msg, id] = mkdir(odir);
 
       if ~ ok
          msg = sprintf('Failed to create directory (%s)', msg);
-         return
       end
    end
 end
@@ -273,4 +334,14 @@ end
 
 function comp = split(s)
    comp = regexp(s, '/', 'split');
+end
+
+%--------------------------------------------------------------------------
+
+function tf = is_directory(elem)
+   if exist('isfolder', 'builtin')
+      tf = isfolder(elem);
+   else
+      tf = isdir(elem);
+   end
 end
