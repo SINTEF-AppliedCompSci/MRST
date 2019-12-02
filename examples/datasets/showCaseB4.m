@@ -52,7 +52,7 @@ set(gca,'dataaspect',[32 44 2.5])
 axis tight off, view(104,28);
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -18,7 +18,7 @@ function h=plotSlice(G, data_in, slice_ind, dim)
 %        the current `axes` object. 
 
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
