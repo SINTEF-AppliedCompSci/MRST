@@ -12,6 +12,26 @@ function [dx, dy, dz] = cellDimsCG(G,ix)
 % RETURNS:
 %   dx, dy, dz -- Size of bounding box for each cell.  In particular,
 %                 [dx(k),dy(k),dz(k)] is Cartesian BB for cell ix(k).
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 n = numel(ix);
 [dx, dy, dz] = deal(zeros([n, 1]));
 ixc = G.cells.facePos;
