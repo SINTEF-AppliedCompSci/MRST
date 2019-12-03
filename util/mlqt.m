@@ -21,7 +21,7 @@ function [res] = mlqt(cellCenter, bndr, cellSize, varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}
     
-    %% Load options
+    % Load options
     opt = struct('level', 1, ...
                  'maxLev', 0, ...
                  'distTol', -1);
@@ -36,13 +36,13 @@ function [res] = mlqt(cellCenter, bndr, cellSize, varargin)
     assert(size(opt.distTol,1) >0)
     
     
-    %% Is recursion finished? 
+    % Is recursion finished? 
     if level> maxLev
         res = {cellCenter, cellSize};
         return
     end
     
-    %% Set distance tolerance
+    % Set distance tolerance
     if size(opt.distTol,1)==1
         if opt.distTol <= 0
             distTol = 2.5*cellSize/2;
@@ -58,12 +58,20 @@ function [res] = mlqt(cellCenter, bndr, cellSize, varargin)
     n = size(bndr,1);
     repPnt = repmat(cellCenter,n,1);
     if any(all(bsxfun(@le, abs(repPnt-bndr), distTol),2)) % Should cell be refined?
-        shift = cellSize/4;
+        dx = cellSize/4;
         varArg = {'level', level+1, 'maxLev', maxLev, 'distTol', distNext};
-        res = [mlqt(cellCenter + [shift(1),  shift(2)], bndr, cellSize/2, varArg{:});...
-               mlqt(cellCenter + [shift(1), -shift(2)], bndr, cellSize/2, varArg{:});...
-               mlqt(cellCenter + [-shift(1),-shift(2)], bndr, cellSize/2, varArg{:});...
-               mlqt(cellCenter + [-shift(1), shift(2)], bndr, cellSize/2, varArg{:})];            
+        shift = [dx(1),  dx(2);
+                 dx(1), -dx(2);
+                -dx(1), -dx(2);
+                -dx(1),  dx(2)];
+        if size(cellCenter, 2)==3
+            shift = [shift,  dx(3) * ones(4,1);
+                     shift, -dx(3) * ones(4,1)];
+        end
+        res = [];
+        for i = 1:size(shift, 1)
+            res = [res; mlqt(cellCenter + shift(i, :), bndr, cellSize/2, varArg{:})];
+        end
     else
         res = {cellCenter, cellSize};
     end

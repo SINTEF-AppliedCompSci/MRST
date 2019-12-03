@@ -141,7 +141,7 @@ assert(mlqtMaxLevel>=0);
 assert(faultGridSize>0);
 assert(0.5<circleFactor && circleFactor<1);
 
-if ~all(celldim > 0),
+if ~all(celldim > 0)
    error('CELLDIM must be positive');
 end
 if numel(celldim)~=2
@@ -189,13 +189,12 @@ polyBdr = opt.polyBdr;
 if 0<k && k<3
 	error('Polygon must have at least 3 edges.');
 end
-if k==0
+if k==0 % No polygon is given. Assume rectangular box given by pdims
 	dx = pdims(1)/ceil(pdims(1)/celldim(1));
 	dy = pdims(2)/ceil(pdims(2)/celldim(2));
 	vx = 0:dx:pdims(1);
 	vy = 0:dy:pdims(2);
-    polyBdr = [0, 0; pdims(1), 0; pdims(1), pdims(1); 0, pdims(2)];
-else
+else % A polygon is given, use this and ignore the pdims
 	assert(l==2,'polygon boundary is only supported in 2D');
 	lDim = [min(polyBdr); max(polyBdr)];
 	dx = diff(lDim(:,1))/ceil(diff(lDim(:,1))/celldim(1));
@@ -203,11 +202,16 @@ else
 	vx = lDim(1,1):dx:lDim(2,1);
 	vy = lDim(1,2):dy:lDim(2,2);
 end
+
+if k==0 % From now on we only work with polyBdr
+   polyBdr = [0, 0; pdims(1), 0; pdims(1), pdims(1); 0, pdims(2)];
+end
+
 [X, Y] = meshgrid(vx, vy);
 resPtsInit = [X(:), Y(:)];
-if k>=3
-	 IN        = inpolygon(resPtsInit(:,1),resPtsInit(:,2), polyBdr(:,1), polyBdr(:,2));
-	resPtsInit = resPtsInit(IN,:);
+if k>=3 % If k < 3 we have a Cartesian box, no need to remove points
+	IN        = inpolygon(resPtsInit(:,1),resPtsInit(:,2), polyBdr(:,1), polyBdr(:,2));
+    resPtsInit = resPtsInit(IN,:);
 end
 
 % Remove tip sites outside domain
@@ -215,6 +219,7 @@ if size(F.f.pts, 1) > 0
     innside = inpolygon(F.t.pts(:, 1), F.t.pts(:, 2), polyBdr(:, 1), polyBdr(:, 2));
     F.t.pts = F.t.pts(innside, :);
 end
+
 % Refine reservoir grid
 if ~isempty(wellPts)
     res = {};
