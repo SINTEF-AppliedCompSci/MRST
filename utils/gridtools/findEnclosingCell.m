@@ -56,7 +56,7 @@ cc = G.cells.centroids(j, :);
 sgn = sign(dot(cfc-cc, n, 2));
 
 % Adjust sign to make n point in the same direction as cfc-cc
-n = sgn.*n;
+n = bsxfun(@times, sgn, n);
 
 % Expand cell numbers 
 cellno = rldecode(cells, diff(G.cells.facePos));
