@@ -48,7 +48,7 @@ function [P1, removed] = removeConflictPoints2(P1,P2,dist)
     removed = false(size(P1,1));
     return
   end
-  dist     = repmat(dist',size(P1,1),1);
+  dist    = repmat(dist',size(P1,1),1);
   removed = any(pdist2(P1,P2)<dist,2);
   P1      = P1(~removed,:);
 

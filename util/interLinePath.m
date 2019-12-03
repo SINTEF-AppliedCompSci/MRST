@@ -2,12 +2,11 @@ function [p] = interLinePath(line, fh, lineDist,sePtn, varargin)
     % Interpolate a line path. 
     % Arguments:
     %   line        Coordinates of the fault line. Must be ordered.
-    %   fh          A function handle for the distance function 
-    %               for the interpolation fh = 1 will give a equiv distant
+    %   fh          A function handle for the distance function for the
+    %               interpolation fh = 1 will give equividistant
     %               interpolation
-    %   lineDist    Scalar which set the initial guess for the distance 
-    %               between interpolation
-    %               points (Relative to fh = 1)
+    %   lineDist    Scalar which sets the initial guess for the distance
+    %               between interpolation points (Relative to fh = 1)
     % varargin:    
     %               Arguments passed to fh
 %{
