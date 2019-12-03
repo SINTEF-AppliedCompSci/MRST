@@ -2,6 +2,26 @@ function phi = basisOW(states, varargin)%, efrac_p, efrac_s, n_p, n_s)
     % efrac_(s/p) fraction of energy to be included (upper bound) for
     % saturation or pressure
     % n_(s/p) upper bound for the number of eigenvectors to be included
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('energyfraction_pressure', 1,...
                  'energyfraction_saturation', 1,...
                  'maxno_pressure',          inf,...
