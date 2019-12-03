@@ -6,12 +6,10 @@ function d = pdist2(x,y)
   % Returns:
   %    d        Matrix where d(i,j) is the distance from
   %             x(i,:) to y(j,:)
-  % Written by Halvor Møll Nilsen
-      d=nan(size(x,1),size(y,1));
-    for i=1:size(y,1)
-        dl=sqrt(sum(bsxfun(@minus,x,y(i,:)).^2,2));
-        d(:,i)=dl;
-    end
+  % Uses the fact that 
+  %    ||x-y||^2 = ||x||^2 + ||y||^2 - 2*x.y
+  % and takes the absolute value to avoid problems with roundoff.
+   d = sqrt(abs(bsxfun(@plus, sum(x.^2,2),sum(y.^2,2)') - 2*(x*y')));
 end
 
  
