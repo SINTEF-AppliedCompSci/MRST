@@ -109,7 +109,7 @@ for f = 1:numel(faults)
 	vararg    = [f_xy; f_xy(1,:)];
     h = @(p, varargin) ds * ones(size(p, 1), 1);
     fixedPts = [internal_pts; tip_sites; corners];  
-    [pts, ~, sorting] = distmesh2d(fd, h, ds, rectangle, fixedPts, vararg);
+    [pts, ~, sorting] = distmesh2d(fd, h, ds, rectangle, fixedPts, false, vararg);
     % Distmesh change the order of all points. We undo this sorting.
     isInt = false(max(sorting),1); isInt(1:size(internal_pts,1)) = true;
     isInt = isInt(sorting);

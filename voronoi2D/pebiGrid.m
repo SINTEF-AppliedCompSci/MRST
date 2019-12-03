@@ -95,15 +95,22 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 %                     Note that if k>=3 the innput pdims will have no
 %                     effect.
 %   sufFaultCond     - OPTIONAL 
-%                    Default value true. If sufFaultCond = false we don
-%                    not enforce the sufficient and necessary fault
-%                    condition. Instead we enforce a less strict 
-%                    condition and remove any reservoir sites that are 
-%                    closer to the fault sites than the fault grid size.
-%                    Note that Conformity is then not guaranteed. You
-%                    might still set this to false if you have problems
-%                    with bad cells at the end of your faults because the
-%                    sufficient condition removes some reservoir points. 
+%                    Default value true. If sufFaultCond = false we do not
+%                    enforce the sufficient and necessary fault condition.
+%                    Instead we enforce a less strict condition and remove
+%                    any reservoir sites that are closer to the fault sites
+%                    than the fault grid size. Note that Conformity is then
+%                    not guaranteed. You might still set this to false if
+%                    you have problems with bad cells at the end of your
+%                    faults because the sufficient condition removes some
+%                    reservoir points.
+%   linearize        - OPTIONAL
+%                    Default is false. If true, we evaluate the scaled
+%                    edge-length function in distmesh2d by interpolating
+%                    between values computed at the vertices. There are
+%                    usually more edges than vertices and if the
+%                    edge-length function is expensive to compute, this
+%                    will save significant computational time.
 %
 % RETURNS:
 %   G              - Valid grid definition.  
@@ -147,7 +154,8 @@ opt = struct('wellLines',       {{}}, ...
              'protLayer',       false, ...
              'protD',           {{@(p) ones(size(p,1),1)*resGridSize/10}},...
 			 'polyBdr',         zeros(0,2), ...
-			 'sufFaultCond',    true,...
+			 'sufFaultCond',    true,...,
+             'linearize',       false,...,
              'useMrstPebi',     false);
 
 opt             = merge_options(opt, varargin{:});
@@ -277,7 +285,7 @@ else
     hres = @(p, varargin) hresw(p);
 end
 fixedPts = [F.f.pts; wellPts; protPts; F.t.pts; corners];  
-[Pts,~,sorting] = distmesh2d(fd, hres, ds, rectangle, fixedPts,vararg);
+[Pts,~,sorting] = distmesh2d(fd, hres, ds, rectangle, fixedPts, opt.linearize, vararg);
 
 % Distmesh change the order of all points. We undo this sorting.
 isFault = false(max(sorting),1); isFault(1:size(F.f.pts,1)) = true;

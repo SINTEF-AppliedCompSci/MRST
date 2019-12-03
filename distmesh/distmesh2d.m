@@ -1,6 +1,6 @@
-function [p,t, IC]=distmesh2d(fd,fh,h0,bbox,pfix,varargin)
+function [p,t, IC]=distmesh2d(fd,fh,h0,bbox,pfix,linearize,varargin)
 %DISTMESH2D 2-D Mesh Generator using Distance Functions.
-%   [P,T]=DISTMESH2D(FD,FH,H0,BBOX,PFIX,FPARAMS)
+%   [P,T]=DISTMESH2D(FD,FH,H0,BBOX,PFIX,LINEARIZE,FPARAMS)
 %
 %      P:         Node positions (Nx2)
 %      T:         Triangle indices (NTx3)
@@ -9,6 +9,7 @@ function [p,t, IC]=distmesh2d(fd,fh,h0,bbox,pfix,varargin)
 %      H0:        Initial edge length
 %      BBOX:      Bounding box [xmin,ymin; xmax,ymax]
 %      PFIX:      Fixed node positions (NFIXx2)
+%      LINEARIZE: Interpolate FH between vertex values
 %      FPARAMS:   Additional parameters passed to FD and FH
 %
 %   Example: (Uniform Mesh on Unit Circle)
@@ -91,7 +92,12 @@ while count<maxIt
   % 6. Move mesh points based on bar lengths L and forces F
   barvec=p(bars(:,1),:)-p(bars(:,2),:);              % List of bar vectors
   L=sqrt(sum(barvec.^2,2));                          % L = Bar lengths
-  hbars=feval(fh,(p(bars(:,1),:)+p(bars(:,2),:))/2,varargin{:});
+  if linearize
+    ph = feval(fh, p, varargin{:});
+    hbars = (ph(bars(:,1))+ph(bars(:,2)))/2;
+  else
+    hbars = feval(fh, (p(bars(:,1),:)+p(bars(:,2),:))/2, varargin{:});
+  end
   L0=hbars*Fscale*sqrt(sum(L.^2)/sum(hbars.^2));     % L0 = Desired lengths
   
   % Density control - remove points that are too close
@@ -120,6 +126,7 @@ end
 
 if count == maxIt
     warning('DistMesh did not converge in maximum number of iterations.')
+    disp([max(sqrt(sum(deltat*Ftot(d<-geps,:).^2,2))/h0),dptol])
 end
 
 % Clean up final mesh
