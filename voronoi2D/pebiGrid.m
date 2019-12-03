@@ -222,7 +222,7 @@ sePtn = (1.0+faultOffset/wellGridSize)*sePtn;
 % create distance functions
 if wellRef && ~isempty(wellPts)
     hresw   = @(x) min((ones(size(x,1),1)/wellGridFactor), ...
-                  min(1.2*exp(pdist2(x,wellPts)/wellEps),[],2));
+                  1.2*exp(min(pdist2(x,wellPts),[],2)/wellEps));
     hfault = @(x) wellGridSize*faultGridFactor*hresw(x).*faultRho(x);
 else
   hresw   = @(p) constFunc(p)/wellGridFactor;
@@ -235,7 +235,7 @@ F = createFaultGridPoints(faultLines, faultGridSize,'circleFactor', circleFactor
 
 if faultRef && ~isempty(F.f.pts)
   hresf = @(x) min((ones(size(x,1),1)/faultGridFactor), ...
-                    min(1.2*exp(pdist2(x,F.f.pts)/faultEps),[],2));
+                    1.2*exp(min(pdist2(x,F.f.pts),[],2)/faultEps));
 else
   hresf = @(p) constFunc(p)/wellGridFactor;
 end
