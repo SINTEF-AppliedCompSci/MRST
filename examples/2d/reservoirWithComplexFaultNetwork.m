@@ -26,13 +26,14 @@ figure(); hold on
 plot([bdr(:,1);bdr(1,1)],[bdr(:,2);bdr(1,2)],'k');
 plotLinePath(fault,'color',color(2,:));
 axis equal;
+
 %% calculate fault intersections
 [fault, fCut, ~] = splitAtInt(fault, {});
 
 %% Create fault sites
 fGs = max(max(bdr))/70;
 F = createFaultGridPoints(fault, fGs,'fCut',fCut);
-plot(F.f.pts(:,1), F.f.pts(:,2),'.','markersize',15);
+plot(F.f.pts(:,1), F.f.pts(:,2),'.','markersize',5);
 
 %% Create reservoir sites
 % We crate a set of random reservoir sites. Then we remove any outside our
@@ -43,6 +44,8 @@ keep = inpolygon(pInit(:,1),pInit(:,2),bdr(:,1), bdr(:,2));
 pInit = pInit(keep,:);
 
 pInit = removeConflictPoints2(pInit,F.f.pts,F.f.Gs);
+plot(pInit(:,1),pInit(:,2),'.k','MarkerSize',5);
+
 %% Create CVD.
 % We now create the CVD by minimizing the CVD energy function using the
 % L-BFGS agorithm. We do this by calling the wrapping function createCVD.

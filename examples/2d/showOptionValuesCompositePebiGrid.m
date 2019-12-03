@@ -5,7 +5,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%}  
+%}
+
 %% wellLines
 % This sets the wells in our reservoir. The wells are stored as a cell
 % array, each element corresponding to one well
@@ -15,10 +16,12 @@ gS = [0.1,0.1];
 pdims=[1,1];
 G = compositePebiGrid(gS, pdims,'wellLines',w);
 
+clf
 plotGrid(G);
-hold on
 plotGrid(G,G.cells.tag,'facecolor','b')
-axis equal
+axis equal tight
+plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
+
 %% wellGridFactor
 % The wellGridFactor sets the relative size of the well cells. If
 % wellGridFactor=0.5 the well cells will have about half the size of the
@@ -29,14 +32,11 @@ pdims=[1,1];
 G1 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1);
 G2 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/2);
 
-figure()
-plotGrid(G1)
-title('wellGridFactor=1')
-axis equal
-figure()
-plotGrid(G2)
-title('wellGridFactor=1/2')
-axis equal
+figure('Position',[480 340 980 420])
+subplot(1,2,1)
+plotGrid(G1), title('wellGridFactor=1'), axis equal tight off
+subplot(1,2,2)
+plotGrid(G2), title('wellGridFactor=1/2'), axis equal tight off
 
 
 %% mlqtMaxLevel
@@ -49,14 +49,11 @@ pdims=[1,1];
 G1 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/2,'mlqtMaxLevel',1);
 G2 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/4,'mlqtMaxLevel',2);
 
-figure()
-plotGrid(G1)
-title('mlqtMaxLevel=1')
-axis equal
-figure()
-plotGrid(G2)
-title('mlqtMaxLevel=2')
-axis equal
+figure('Position',[480 340 980 420])
+subplot(1,2,1)
+plotGrid(G1); title('mlqtMaxLevel=1'), axis equal tight off
+subplot(1,2,2)
+plotGrid(G2); title('mlqtMaxLevel=2'), axis equal tight off
 
 %% mlqtLevelSteps
 % We can define which distance from a well triggers which level of
@@ -71,14 +68,11 @@ G1 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
 G2 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
                       'mlqtMaxLevel',2,'mlqtLevelSteps',lev2);
 
-figure()
-plotGrid(G1)
-title('mlqtLevelSteps=[0.05,0.1]')
-axis equal
-figure()
-plotGrid(G2)
-title('mlqtLevelSteps=[0.1,0.2]');
-axis equal
+figure('Position',[480 340 980 420])
+subplot(1,2,1)
+plotGrid(G1); title('mlqtLevelSteps=[0.05,0.1]'), axis equal tight off
+subplot(1,2,2)
+plotGrid(G2); title('mlqtLevelSteps=[0.1,0.2]'), axis equal tight off
 
 %% wellRho
 % A function that sets the relative size of the fault sites in the domain.
@@ -86,13 +80,18 @@ w = {[0.2,0.3;0.8,0.7]};
 gS = [0.1,0.1];
 pdims=[1,1];
 wellRho = @(p) 1 - 0.9*p(:,1);
-G = compositePebiGrid(gS, pdims,'wellLines',w,'wellRho',wellRho);
+G1 = compositePebiGrid(gS, pdims,'wellLines',w);
+G2 = compositePebiGrid(gS, pdims,'wellLines',w,'wellRho',wellRho);
 
-figure()
-plotGrid(G)
-plotGrid(G,G.cells.tag,'facecolor','b')
-title('wellRhoRho=@(p) 1 - 0.9*p(:,1)')
-axis equal
+figure('Position',[480 340 980 420])
+subplot(1,2,1)
+plotGrid(G1); plotGrid(G1,G1.cells.tag,'facecolor','b');
+title('Without wellRho'); axis equal tight off
+subplot(1,2,2)
+plotGrid(G2); plotGrid(G2,G2.cells.tag,'facecolor','b');
+title('wellRho=@(p) 1 - 0.9*p(:,1)')
+axis equal tight off
+
 %% ProtLayer
 % Adds a protection layer around wells. The protection sites are place
 % normal along the well path
@@ -101,14 +100,17 @@ y = 0.5+0.1*sin(pi*x);
 w = {[x',y']};
 gS = [0.1,0.1];
 pdims=[1,1];
-G = compositePebiGrid(gS, pdims,'wellLines',w,'protLayer',true);
+G1 = compositePebiGrid(gS, pdims,'wellLines',w,'protLayer',false);
+G2 = compositePebiGrid(gS, pdims,'wellLines',w,'protLayer',true);
 
-figure()
-plotGrid(G);
-hold on
-plotGrid(G,G.cells.tag,'facecolor','b')
-title('Protection Layer on')
-axis equal
+figure('Position',[480 340 980 420])
+subplot(1,2,1)
+plotGrid(G1); plotGrid(G1,G1.cells.tag,'facecolor','b')
+title('Protection Layer off'), axis equal tight off
+subplot(1,2,2)
+plotGrid(G2); plotGrid(G2,G2.cells.tag,'facecolor','b')
+title('Protection Layer on'), axis equal tight off
+
 
 %% protD
 % This parameter sets the distance from the protection sites to the well
@@ -118,15 +120,16 @@ w = {[0.2,0.8;0.8,0.8],...
 gS = [0.08,0.08];
 pdims=[1,1];
 protD = {@(p)0.01+0.1*p(:,1), @(p) 0.01*ones(size(p,1),1)};
-G = compositePebiGrid(gS, pdims,'wellLines',w,'protLayer',true,'protD',protD);
+G1 = compositePebiGrid(gS, pdims,'wellLines',w,'protLayer',true);
+G2 = compositePebiGrid(gS, pdims,'wellLines',w,'protLayer',true,'protD',protD);
 
-figure()
-plotGrid(G);
-hold on
-plotGrid(G,G.cells.tag,'facecolor','b')
-title('Specifying Protection Distance')
-axis equal
-
+figure('Position',[480 340 980 420])
+subplot(1,2,1)
+plotGrid(G1); plotGrid(G1,G1.cells.tag,'facecolor','b')
+title('Default protection distance'), axis equal tight off
+subplot(1,2,2)
+plotGrid(G2); plotGrid(G2,G2.cells.tag,'facecolor','b')
+title('User-prescribed protection distance'), axis equal tight off
 
 
 %% faultLines
@@ -139,10 +142,9 @@ pdims=[1,1];
 figure()
 G = compositePebiGrid(gS, pdims,'faultLines',f);
 plotGrid(G);
-hold on
-plotFaces(G,G.faces.tag,'edgeColor','r')
+plotFaces(G,G.faces.tag,'edgeColor','r','LineWidth',2)
 title('Fault Lines')
-axis equal
+axis equal tight off
 
 
 %% faultGridFactor
@@ -155,14 +157,11 @@ pdims=[1,1];
 G1 = compositePebiGrid(gS, pdims,'faultLines',f,'faultGridFactor',1);
 G2 = compositePebiGrid(gS, pdims,'faultLines',f,'faultGridFactor',1/2);
 
-figure()
-plotGrid(G1)
-title('faultGridFactor=1')
-axis equal
-figure()
-plotGrid(G2)
-title('faultGridFactor=1/2')
-axis equal
+figure('Position',[480 340 980 420])
+subplot(1,2,1)
+plotGrid(G1); title('faultGridFactor=1'); axis equal tight off
+subplot(1,2,2)
+plotGrid(G2); title('faultGridFactor=1/2'); axis equal tight off
 
 %% circleFactor
 % The fault sites are generated by setting placing a set of circles along
@@ -175,14 +174,13 @@ pdims=[1,1];
 G1 = compositePebiGrid(gS, pdims,'faultLines',f,'circleFactor',0.55);
 G2 = compositePebiGrid(gS, pdims,'faultLines',f,'circleFactor',0.9);
 
-figure()
-plotGrid(G1)
-title('circleFactor=0.55')
-axis equal
-figure()
-plotGrid(G2)
-title('circleFactor=0.9')
-axis equal
+figure('Position',[480 340 980 420])
+subplot(1,2,1)
+plotGrid(G1); title('circleFactor=0.55'), axis equal tight off
+subplot(1,2,2)
+plotGrid(G2); title('circleFactor=0.9'), axis equal tight off
+
+
 
 %% PolyBdr
 % Create a non-square reservoir domain
@@ -192,6 +190,4 @@ pdims = [1,1]; % can be set to anything
 G = compositePebiGrid(gs,pdims,'polyBdr',bdr);
 
 figure()
-plotGrid(G)
-title('Polygon boundary')
-axis equal tight
+plotGrid(G); title('Polygonal boundary'); axis equal tight off
