@@ -1,7 +1,7 @@
 function [val, der, wellSols, states] = evalObjective(u, obj, state0, model, schedule, scaling)
 % Objective (and gradient) evaluation function based on input control vector u
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

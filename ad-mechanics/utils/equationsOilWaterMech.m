@@ -68,7 +68,7 @@ function [eqs, names, types, state] = equationsOilWaterMech(p0, sW0, state0, ...
 % Equation for oil water system that also takes input from mechanics.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
