@@ -126,7 +126,6 @@ end
 
 if count == maxIt
     warning('DistMesh did not converge in maximum number of iterations.')
-    disp([max(sqrt(sum(deltat*Ftot(d<-geps,:).^2,2))/h0),dptol])
 end
 
 % Clean up final mesh
