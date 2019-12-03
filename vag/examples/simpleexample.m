@@ -38,44 +38,46 @@ cellinflux(1) = 100; % some rate
 nodeinflux = zeros(nn, 1);
 rhs = rhsfun(nodeinflux, cellinflux);
 
-clear nodetbl;
-nodetbl.nodes = (1 : nn)';
-nodetbl.num = nn;
-clear bcnodetbl;
-bcnodetbl.nodes = nn;
-bcnodetbl.num = 1;
+
+% We define "boundary nodes" where we impose a given pressure. In this case,
+% we consider only the last node
+
+bcnodes = nn;
+nbcn = numel(bcnodes);
 
 intnodes = true(nn, 1);
-intnodes(bcnodetbl.nodes) = false;
+intnodes(bcnodes) = false;
 intnodes = find(intnodes);
-clear intnodetbl
-intnodetbl.nodes = intnodes;
-intnodetbl.num = numel(intnodes);
 
-A11 = A(intnodetbl.nodes, intnodetbl.nodes);
-A12 = A(intnodetbl.nodes, bcnodetbl.nodes);
+A11 = A(intnodes, intnodes);
+A12 = A(intnodes, bcnodes);
 
+% We impose a given pressure at the nodes
 pval = 100;
-pbc = pval*ones(bcnodetbl.num, 1);
+pbc = pval*ones(nbcn, 1);
 
-rhs = rhs(intnodetbl.nodes);
+rhs = rhs(intnodes);
 rhs = rhs - A12*pbc;
 
 
 %% Solve system
+
 x = A11\rhs;
 
-%% Recover node  pressures
+%% Recover nodal  pressures
+
 pn = NaN(nn, 1);
-pn(intnodetbl.nodes) = x;
-pn(bcnodetbl.nodes)  = pbc;
+pn(intnodes) = x;
+pn(bcnodes)  = pbc;
 
 %% Recover cell  pressures
 
 pc = computeCellPressure(pn, cellinflux);
 
 %% Plot solution
+
 close all
+
 figure
 plotNodeData(G, pn)
 title('nodal pressure')
