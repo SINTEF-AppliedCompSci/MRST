@@ -45,16 +45,18 @@ function bc = fluxside(bc, G, side, flux, varargin)
 %            according to 'X' before 'Y', and 'Y' before 'Z'.
 %
 % OPTIONAL PARAMETERS:
-%   sat    - Fluid composition of fluid injected across inflow faces.
+%   sat    - Volumetric composition of fluid injected across inflow faces.
 %            An n-by-m array of fluid compositions with 'n' being the
-%            number of individual faces specified by (`I1,I2`) (i.e.,
-%            `n==numel(I1)*numel(I2))` or one.  If m=3, the columns of 'sat'
-%            are interpreted as 1 <-> Aqua, 2 <-> Liquid, 3 <-> Vapor.
+%            number of faces in 'faces' and for m=3, the columns
+%            interpreted as 1 <-> Aqua, 2 <-> Liquid, 3 <-> Vapor.
+%            The fractions should sum up to one, i.e. have row-sum of
+%            unity. If a row vector is specified, this vector is used for
+%            all faces in the definition.
 %
 %            This field is for the benefit of transport solvers such as
-%            `implicitTransport` and will be ignored for outflow faces.
+%            'implicitTransport' and will be ignored for outflow faces.
 %
-%            Default value: sat = [] (assume single-phase flow).
+%            Default value: `sat = 1` (assume single-phase flow).
 %
 %   range  - Restricts the search for outer faces to a subset of the cells
 %            in the direction perpendicular to that of the face. Example:
@@ -91,14 +93,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-if ~isfield(G, 'cartDims'),
+if ~isfield(G, 'cartDims')
    error(msgid('NotImplemented'), ...
          'FLUXSIDE is not implemented for this grid type.');
 end
 
 mrstNargInCheck(4, 10, nargin);
 
-if nargin == 4 || ischar(varargin{1}),
+if nargin == 4 || ischar(varargin{1})
    % fluxside(bc, G, side, flux, ['pn1', pv1, ...]).  Use entire face.
    I1 = []; I2 = [];
 else
@@ -107,7 +109,7 @@ else
    varargin = varargin(3 : end);
 end
 
-opt = struct('sat', [], 'range', []);
+opt = struct('sat', 1, 'range', []);
 opt = merge_options(opt, varargin{:});
 sat = opt.sat;
 

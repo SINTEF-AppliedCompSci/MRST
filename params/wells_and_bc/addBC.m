@@ -1,10 +1,11 @@
 function bc = addBC(bc, f, t, v, varargin)
 %Add boundary condition to (new or existing) BC object
 %
-% There can only be a single boundary condition per face in the grid.  This
-% is now enforced. Solvers assume boundary conditions are given on the
-% boundary;  conditions in the interior of the domain yield unpredictable
-% results.
+% There can only be a single boundary condition per face in the grid.
+% Solvers assume boundary conditions are given on the boundary; conditions
+% in the interior of the domain yield unpredictable results and is not
+% officially supported. Faces with no boundary conditions are generally
+% interpreted as no-flux boundary conditions for all phases.
 %
 % SYNOPSIS:
 %   bc = addBC(bc, faces, type, values)
@@ -24,7 +25,9 @@ function bc = addBC(bc, f, t, v, varargin)
 %   values - Boundary condition value.  Interpreted as a pressure value (in
 %            units of 'Pa') when `type=='pressure'` and as a flux value (in
 %            units of 'm^3/s') when `type=='flux'`.  One scalar value for
-%            each face in 'faces'.
+%            each face in 'faces'. If a single value is given, it will be
+%            repeated for all faces.
+%            
 %
 %            Note: If `type=='flux'`, the values in 'values' are interpreted
 %            as injection fluxes (into the reservoir).  Specifically, a
@@ -33,15 +36,18 @@ function bc = addBC(bc, f, t, v, varargin)
 %            the caller should provide a negative value in 'values'.
 %
 % OPTIONAL PARAMETERS:
-%   sat    - Fluid composition of fluid injected across inflow faces.
+%   sat    - Volumetric composition of fluid injected across inflow faces.
 %            An n-by-m array of fluid compositions with 'n' being the
 %            number of faces in 'faces' and for m=3, the columns
 %            interpreted as 1 <-> Aqua, 2 <-> Liquid, 3 <-> Vapor.
+%            The fractions should sum up to one, i.e. have row-sum of
+%            unity. If a row vector is specified, this vector is used for
+%            all faces in the definition.
 %
 %            This field is for the benefit of transport solvers such as
 %            'implicitTransport' and will be ignored for outflow faces.
 %
-%            Default value: `sat = []` (assume single-phase flow).
+%            Default value: `sat = 1` (assume single-phase flow).
 %
 % NOTE:
 %   For convenience, values and sat may contain a single value.  This value
@@ -83,7 +89,7 @@ if isempty(f)
    return;
 end
 
-opt = struct('sat', []);
+opt = struct('sat', 1);
 opt = merge_options(opt, varargin{:});
 s   = opt.sat;
 
@@ -114,7 +120,8 @@ assert (all(strcmpi(t, 'pressure') | strcmpi(t, 'flux')), ...
 %    the existing 'bc.sat' array.
 %
 assert (isnumeric(s));
-assert (isempty(bc.sat) || (size(bc.sat,2) == size(s,2)));
+assert (isempty(bc.sat) || (size(bc.sat,2) == size(s,2)),...
+    'Number of columns in sat field does not match pre-existing sat field in bc.');
 
 % Verify that boundary condition is not already set
 bc_given = false(max([f(:); bc.face]), 1);
@@ -122,13 +129,15 @@ bc_given(bc.face) = true;
 assert(~any(bc_given(f)), ...
    'New boundary condition overlaps with conditions already in bc-struct.');
 
-
 nf = numel(f);
-
 % Expand single-element saturations and BC values to cover all faces.
 %
-if size(s,1) == 1, s = s(ones([nf, 1]), :); end
-if numel(v)  == 1, v = v(ones([nf, 1])   ); end
+if size(s,1) == 1
+    s = repmat(s, nf, 1);
+end
+if numel(v)  == 1
+    v = repmat(v, nf, 1);
+end
 
 % Verify that v and s are same length as faces (or s empty).
 assert (numel(v)      ==     nf  );
