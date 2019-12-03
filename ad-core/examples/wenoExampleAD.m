@@ -74,4 +74,4 @@ for i = 1:numel(states)
     axis equal tight
 end
 %% Plot wells
-plotWellSols({ws, ws_weno}, report.SimulationTime, 'datasetnames', {'SPU', 'WENO'}, 'field', 'qWs', 'SelectedWells', 2)
+plotWellSols({ws, ws_e, ws_weno, ws_weno_ex}, report.SimulationTime, 'datasetnames', {'FIM-SPU', 'AIM-SPU', 'FIM-WENO', 'AIM-WENO'}, 'field', 'qWs', 'SelectedWells', 2)
