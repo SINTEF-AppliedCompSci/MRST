@@ -1,8 +1,6 @@
-%% Use VAG transmissibilities and hybridization to compute solution
-
 %% Load modules
 
-mrstModule add vag vem
+mrstModule add mpfa vem vag vemmech
 
 %% Setup a Cartesian grid
 
@@ -17,6 +15,7 @@ G = computeGeometry(G);
 
 nc = G.cells.num;
 nn = G.nodes.num;
+
 perm = 0.008527*100;
 rock = makeRock(G, perm*ones(nc, 1), 0.1*ones(nc, 1));
 
@@ -24,56 +23,67 @@ rock = makeRock(G, perm*ones(nc, 1), 0.1*ones(nc, 1));
 
 vagstruct = computeVagTrans(G, rock);
 
-%% Setup system matrixrhsfun = op.rhsfun;
+%% Setup system matrix
 
 [A, op] = setupSystem(vagstruct, G);
 
 rhsfun = op.rhsfun;
 computeCellPressure = op.computeCellPressure;
 
-%% Setup boundary condition: Given influx at first node and given pressure at
-%% last node
+%% setup source and boundary conditions
 
-% We inject in the first node, no injection elsewhere
-
+% We set up a source. Let us inject at a given rate in the first cell
 cellinflux    = zeros(nc, 1);
-nodeinflux    = zeros(nn, 1);
-nodeinflux(1) = 1e8*meter^3/day;
+cellinflux(1) = 100; % some rate
+nodeinflux = zeros(nn, 1);
 rhs = rhsfun(nodeinflux, cellinflux);
 
-% We impose a given pressure p in the last node
+clear nodetbl;
+nodetbl.nodes = (1 : nn)';
+nodetbl.num = nn;
+clear bcnodetbl;
+bcnodetbl.nodes = nn;
+bcnodetbl.num = 1;
 
-p = 100*barsa;
-intnodes = 1 : (nn - 1);
-A11 = A(intnodes, intnodes);
-A12 = A(intnodes, nn);
+intnodes = true(nn, 1);
+intnodes(bcnodetbl.nodes) = false;
+intnodes = find(intnodes);
+clear intnodetbl
+intnodetbl.nodes = intnodes;
+intnodetbl.num = numel(intnodes);
 
-rhs = rhs(intnodes) - A12*p;
+A11 = A(intnodetbl.nodes, intnodetbl.nodes);
+A12 = A(intnodetbl.nodes, bcnodetbl.nodes);
+
+pval = 100;
+pbc = pval*ones(bcnodetbl.num, 1);
+
+rhs = rhs(intnodetbl.nodes);
+rhs = rhs - A12*pbc;
+
 
 %% Solve system
-
 x = A11\rhs;
 
 %% Recover node  pressures
-
 pn = NaN(nn, 1);
-pn(intnodes) = x;
-pn(nn)       = p;
-
+pn(intnodetbl.nodes) = x;
+pn(bcnodetbl.nodes)  = pbc;
 
 %% Recover cell  pressures
 
 pc = computeCellPressure(pn, cellinflux);
 
-
-%% plotting
-
-figure(1)
-clf
-plotCellData(G, pc);
+%% Plot solution
+close all
+figure
+plotNodeData(G, pn)
+title('nodal pressure')
+axis equal
 colorbar
 
-figure(2)
-clf
-plotNodeData(G, pn);
+figure
+plotCellData(G, pc)
+title('cell pressure')
+axis equal
 colorbar
