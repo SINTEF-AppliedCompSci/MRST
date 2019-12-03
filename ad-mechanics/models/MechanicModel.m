@@ -26,7 +26,7 @@ classdef MechanicModel < PhysicalModel
 % SEE ALSO: MechBlackOilModel.m, MechOilWaterModel.m, MechWaterModel.m, MechFluidFixedStressSplitModel.m
 %
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
