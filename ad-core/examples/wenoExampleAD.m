@@ -67,7 +67,7 @@ for i = 1:numel(states)
     plotCellData(G, states_e{i}.s(:, 1), 'edgecolor', 'none');
     title('AIM SPU')
     axis equal tight
-    
+
     subplot(2, 2, 4)
     plotCellData(G, states_weno_ex{i}.s(:, 1), 'edgecolor', 'none');
     title('AIM WENO')
@@ -75,3 +75,29 @@ for i = 1:numel(states)
 end
 %% Plot wells
 plotWellSols({ws, ws_e, ws_weno, ws_weno_ex}, report.SimulationTime, 'datasetnames', {'FIM-SPU', 'AIM-SPU', 'FIM-WENO', 'AIM-WENO'}, 'field', 'qWs', 'SelectedWells', 2)
+
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
