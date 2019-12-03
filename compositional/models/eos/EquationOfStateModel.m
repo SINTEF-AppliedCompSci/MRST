@@ -947,7 +947,7 @@ classdef EquationOfStateModel < PhysicalModel
 
                         % d = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
                         mlt = @(x, y) bsxfun(@times, x, y);
-                        d = -bsxfun(@rdivide, mlt(dE2, z).^2 + mlt(dE1, z) + dE0, 3*z.^2 + 2*z.*e2 + e1);
+                        d = -bsxfun(@rdivide, mlt(dE2, z.^2) + mlt(dE1, z) + dE0, 3*z.^2 + 2*z.*e2 + e1);
                         if any(any(d~=0))
                             if Z.jac{i}.isZero
                                 Z.jac{i} = Z.jac{i}.expandZero();
