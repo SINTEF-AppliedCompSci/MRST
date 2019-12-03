@@ -183,10 +183,10 @@ wsFIms = simulateScheduleAD(state0, seqmodel, schedule);
 % tells the simulator that the time step should be iterated upon.
 seqmodel.stepFunctionIsLinear        = false;
 seqmodel.outerCheckParentConvergence = false;
-seqmodel.volumeDiscrepancyTolerance  = 5e-3;
+seqmodel.volumeDiscrepancyTolerance  = 3e-3;
 seqmodel.incTolSaturation            = inf;
 wsSFIms = simulateScheduleAD(state0, seqmodel, schedule);
 
 %% Compare the solutions
 plotWellSols({wellSols,wsSFIms,wsFIms}, cumsum(schedule.step.val), ...
-    'datasetnames',{'FI','SFI','SI'});
+    'datasetnames',{'FI','SFI','SI'},'field','qOs');
