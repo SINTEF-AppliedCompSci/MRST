@@ -78,11 +78,11 @@ model.dsMaxAbs  = .1;
 % where Matlab's standard linear solvers scale poorly.
 try
     mrstModule add agmg
-    pressureSolver = AGMGSolverAD('tolerance', 1e-4);
+    pressureSolver = AGMGSolverAD();
 catch
     pressureSolver = BackslashSolverAD();
 end
-linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'relativeTolerance', 1e-3);
+linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'tolerance', 1e-3, 'relativeTolerance', 1e-5);
 
 %% Plot the rock permeability
 % The SPE9 data set has an anisotropic, inhomogenous permeability field.
