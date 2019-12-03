@@ -73,7 +73,8 @@ hasOutsideRho = isfield(bc, 'rho');
 if ~hasOutsideMob
     ss = sum(bc.sat, 2);
     % Values should either sum to zero or one
-    assert(all(ss - 1 < sqrt(eps) | ss < sqrt(eps)));
+    assert(all(ss - 1 < sqrt(eps) | ss < sqrt(eps)), ...
+        'Boundary conditions should have ''sat'' field which has row-sum 1.');
 end
 % Mapping
 BCcells = sum(N, 2);
