@@ -1,31 +1,21 @@
 function pn = incompVAG(G, vagstruct, W, varargin)
-% Solve incompressible flow problem (fluxes/pressures) using VAG method.
-% Only Neumann bc and well input.
 %
 % SYNOPSIS:
 %   state = incompVAG(G, vagstruct, W, varargin)
 %
 % DESCRIPTION:
-%   This function assembles and solves a (block) system of linear equations
-%   defining interface fluxes and cell pressures at the next time step in a
-%   sequential splitting scheme for the reservoir simulation problem
-%   defined by Darcy's law and a given set of external influences (wells,
-%   sources, and boundary conditions).
-%
-%   This function uses a Vertex Approximate Gradient (VAG) method 
+%   Solve incompressible flow problem (fluxes/pressures) using VAG method.
+%   Only Neumann bc and well input.
 %
 % REQUIRED PARAMETERS:
 %
-%   G,    - Grid and half-transmissibilities as computed by the function
-%            'computeMultiPointTrans'.
-%
-%  vagstruct - Computed by computeVagTrans
+%  G         - Grid
+%  vagstruct - Structure as computed by computeVagTrans
 %
 % OPTIONAL PARAMETERS:
 %   wells  - Well structure as defined by functions 'addWell' and
 %            'assembleWellSystem'.  May be empty (i.e., W = struct([]))
 %            which is interpreted as a model without any wells.
-%
 %
 %   LinSolve     - Handle to linear system solver software to which the
 %                  fully assembled system of linear equations will be
@@ -36,9 +26,8 @@ function pn = incompVAG(G, vagstruct, W, varargin)
 %                  in order to solve a system Ax=b of linear equations.
 %                  Default value: LinSolve = @mldivide (backslash).
 %
-
 %
-% RETURNS:
+% RETURNS: pressure at nodes
 
 %
 % SEE ALSO:

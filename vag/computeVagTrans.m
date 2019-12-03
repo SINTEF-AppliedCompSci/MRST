@@ -1,10 +1,40 @@
 function vagstruct = computeVagTrans(G, rock)
+%
+%
+% SYNOPSIS:
+%   function vagstruct = computeVagTrans(G, rock)
+%
+% DESCRIPTION: Computes the VAG transmissibilities
+%
+% PARAMETERS:
+%   G    - Grid
+%   rock - Rock structure 
+%
+% RETURNS:
+%   vagstruct - structure containing
+%
+%                  vagstruct.A - vector containing the transmissibility.
+%                                The index is given by the table cellnode2tbl
+%
+%                  vagstruct.cellnode2tbl - Indexing table of the cell-node-node
+%                                           triplets (for each cell, all pairs of nodes that belong to
+%                                           that cell)
+%
+%                  vagstruct.cellnodetbl  - Indexing table of the cell-node
+%                                           connectivities (for each cell,
+%                                           the nodes that belong to the cell)
+%
+% EXAMPLE:
+%
+% SEE ALSO: `computeMimeticIP`
+%
+
 
 
     %% Setup cell, face, node and vertices tables
         
     % NOTE : By vertices, we denote the point that can be either a cell centroid, a
-    % face centroid or a node position. The vertices are their own numbering
+    % face centroid or a node position. The vertices have their own numbering
     % (from 1 to np, see below). 
     assert(G.griddim == 3, 'only 3D code for now!');
     

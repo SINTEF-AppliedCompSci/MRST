@@ -1,3 +1,6 @@
+%% VAG example
+%  Example of VAG computation, with well injection. It uses the function
+%  incompVAG to solve the system
 
 mrstModule add vag vem vemmech
 
@@ -28,7 +31,10 @@ W = addWell([], G, rock, injcells, 'Comp_i', 1, 'Type', 'rate', 'Val', rate, ...
 W = addWell(W, G, rock, prodcells, 'Comp_i', 1, 'Type', 'bhp', 'Val', bhp, ...
             'sign', -1, 'Radius', radius);
 
+%% Compute the vag transmissibility
 vagstruct = computeVagTrans(G, rock);
+
+%% Solve for pressure
 pn = incompVAG(G, vagstruct, W);
 
 close all

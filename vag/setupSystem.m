@@ -1,4 +1,34 @@
 function [A, operators] = setupSystem(vagstruct, G)
+%
+%
+% SYNOPSIS:
+%   function [A, operators] = setupSystem(vagstruct, G)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   vagstruct - as returned by computeVagTrans
+%   G         - Grid
+%
+% RETURNS:
+%   A         - System matrix with nodal degree of freedom
+%   operators - structure containing
+%
+%               operators.rhsfun   - function to compute the right-hand side:
+%                                    The function takes two vector flux values, corresponding to
+%                                    flux at nodes and cells, see function `assembleRHS` at the end of this file 
+%
+%               operators.matrices - intermediate matrices that are assembled
+%
+%               operators.tbls     - tables describing various connectivities
+%
+%               operators.computeCellPressure - function that computes the cell pressures given the nodal pressures.
+%
+% EXAMPLE: `linearpressuretest`
+%
+% SEE ALSO: `computeVagTrans`, `incompVAG`
+%
+
     
     Atrans = vagstruct.A;
     cellnode2tbl = vagstruct.cellnode2tbl;
