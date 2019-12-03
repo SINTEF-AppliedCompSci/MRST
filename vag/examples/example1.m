@@ -2,7 +2,7 @@
 
 %% Load modules
 
-mrstModule add mpfa vem vag vemmech
+mrstModule add vag vem
 
 %% Setup a Cartesian grid
 
@@ -24,79 +24,56 @@ rock = makeRock(G, perm*ones(nc, 1), 0.1*ones(nc, 1));
 
 vagstruct = computeVagTrans(G, rock);
 
-A       = vagstruct.A;
-cellnode2tbl = vagstruct.cellnode2tbl;
-cellnodetbl  = vagstruct.cellnodetbl;
+%% Setup system matrixrhsfun = op.rhsfun;
 
-cellnodetbl = addLocInd(cellnodetbl, 'cnind');
+[A, op] = setupSystem(vagstruct, G);
 
-[~, cellnode2tbl] = setupTableMapping(cellnode2tbl, cellnodetbl, {'cells', ...
-                    {'nodes1', 'nodes'}});
-cellnode2tbl = replacefield(cellnode2tbl, {'cnind', 'cnind1'});
-[~, cellnode2tbl] = setupTableMapping(cellnode2tbl, cellnodetbl, {'cells', ...
-                    {'nodes2', 'nodes'}});
-cellnode2tbl = replacefield(cellnode2tbl, {'cnind', 'cnind2'});
+rhsfun = op.rhsfun;
+computeCellPressure = op.computeCellPressure;
 
-tbl = cellnode2tbl; %alias
-A = sparse(tbl.cnind1, tbl.cnind2, A, cellnodetbl.num, cellnodetbl.num);
+%% Setup boundary condition: Given influx at first node and given pressure at
+%% last node
 
-nnc = cellnodetbl.num;
-R1 = sparse(cellnodetbl.cnind, cellnodetbl.cells, ones(nnc, 1), nnc, nc);
-R2 = sparse(cellnodetbl.cnind, cellnodetbl.nodes, ones(nnc, 1), nnc, nn);
+% We inject in the first node, no injection elsewhere
 
-% We defined the matrix opcells with coefficients either
-% equal to zero and one We have opcell(i, j) = 1 only if the
-% node i (in node-localCell indexing) and the node j (in
-% cell-localNode indexing) has a cell in common.
-L1 = R1';
-L2 = sparse(cellnodetbl.cells, cellnodetbl.cnind, ones(nnc, 1), nc, nnc);
-opcells = L2'*L1;
+cellinflux    = zeros(nc, 1);
+nodeinflux    = zeros(nn, 1);
+nodeinflux(1) = 1e8*meter^3/day;
+rhs = rhsfun(nodeinflux, cellinflux);
 
-% We defined the matrix opnodes. Same as opcells but for nodes.
-L1 = sparse(cellnodetbl.nodes, cellnodetbl.cnind, ones(nnc, 1), nn, nnc);
-L2 = R2';
-opnodes = L2'*L1;
+% We impose a given pressure p in the last node
 
-% We take intersection of the two: It means that S(i, j) = 1
-% if node i and j (in their respective indexing) corresponds
-% to the same "physical" cell and node.
-S = opcells.*opnodes;
+p = 100*barsa;
+intnodes = 1 : (nn - 1);
+A11 = A(intnodes, intnodes);
+A12 = A(intnodes, nn);
 
-% We assemble the helper matrices, as described in slides
-M11 = R1'*A*R1;
-M12 = -R1'*A*S'*R2;
-M21 = M12';
-M22 = R2'*S*A*S'*R2;
+rhs = rhs(intnodes) - A12*p;
 
-M = [[M11, M12]; [M21, M22]];
-n = nc + nn;
+%% Solve system
 
-% We use Lagrangian multipliers to enforce the boundary
-% conditions for pressure
-%ind = nc + 1; % we impose pressure at first node
-ind = n  ; % we set pressure at last node
-nind = size(ind, 1);
-dirop = sparse((1 : nind)', ind, ones(nind, 1), nind, n);
+x = A11\rhs;
 
-M = [[M, -dirop']; [dirop, zeros(nind)]];
+%% Recover node  pressures
 
-% We can set up the source.
-% Let us choose the first cell 
-f = zeros(n, 1);
-f(1) = 1000; % some rate 
-%pval = zeros(nind, 1); % we impose a non zero pressure;
-pval=100;
+pn = NaN(nn, 1);
+pn(intnodes) = x;
+pn(nn)       = p;
 
 
-rhs = [f; pval];
+%% Recover cell  pressures
 
-x = M\rhs;
-u = x(1 : nc);
-v = x((nc + 1)' : n);
-bhp= x(n+1:n+1);
+pc = computeCellPressure(pn, cellinflux);
+
+
+%% plotting
+
 figure(1)
 clf
-plotCellData(G, u)
+plotCellData(G, pc);
+colorbar
+
 figure(2)
 clf
-plotNodeData(G, v)
+plotNodeData(G, pn);
+colorbar
