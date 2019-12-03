@@ -114,6 +114,11 @@ methods
         end
     end
 
+    function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
+        % Get equations from AD states
+        assert(false, 'Not implemented in base class');
+    end
+    
     function [problem, state] = getEquations(model, state0, state, dt, forces, varargin)
         % Get the set of linearized model equations with possible Jacobians
         %
@@ -496,7 +501,7 @@ methods
                 kept = nc;
                 if kept
                     % Some values are to be kept. We set all which are not
-                    % kept to emtpy to ensure that the storage is
+                    % kept to empty to ensure that the storage is
                     % normalized with missing values.
                     for j = 1:numel(names)
                         name = names{j};
