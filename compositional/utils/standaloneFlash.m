@@ -37,7 +37,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     solver = getDefaultFlashNonLinearSolver();
     
     state = struct();
-
+    [p, T, z] = expandArguments(EOSModel, p, T, z);
     z = max(z, EOSModel.minimumComposition);
     z = bsxfun(@rdivide, z, sum(z, 2));
     state.pressure = p;
@@ -55,5 +55,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nargout > 5
         rhoL = EOSModel.PropertyModel.computeDensity(p, x, Z_L, T, true);
         rhoV = EOSModel.PropertyModel.computeDensity(p, y, Z_V, T, false);
+    end
+end
+
+function [p, T, z] = expandArguments(eos, p, T, z)
+    p = reshape(p, [], 1);
+    T = reshape(T, [], 1);
+    ncomp = eos.fluid.getNumberOfComponents();
+    assert(size(z, 2) == ncomp, ...
+        'Component input must have %d columns (the number of components in the eos)', ncomp);
+    np = numel(p);
+    nt = numel(T);
+    nz = size(z, 1);
+    
+    dims = [np, nt, nz];
+    md = max(dims);
+    assert(all(dims == 1 | dims == md), 'All inputs must have either 1 row, or equal to the maximum value %d', md);
+    if np == 1
+        p = repmat(p, md, 1);
+    end
+    if nt == 1
+        T = repmat(T, md, 1);
+    end
+    if nz == 1
+        z = repmat(z, md, 1);
     end
 end
