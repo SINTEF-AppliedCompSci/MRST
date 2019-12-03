@@ -36,4 +36,4 @@ cr = G.cells.centroids(:,2)<-0.5*G.cells.centroids(:,1) + 0.6 ...
 plotGrid(G, ~cr)
 axis equal tight
 view(-83,50)
-light
+camlight
