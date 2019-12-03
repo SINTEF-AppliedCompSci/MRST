@@ -25,9 +25,10 @@ function [fig] = plotLinePath(lines, varargin)
 % Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}
+flag = ishold;
 hold on
 for i = 1:numel(lines)
   fig = plot(lines{i}(:, 1), lines{i}(:, 2) ,varargin{:});
 end
-
+if ~flag, hold off; end
 end
