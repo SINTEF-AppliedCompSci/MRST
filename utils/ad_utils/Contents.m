@@ -2,7 +2,7 @@
 %   Support routines for MRST AD implementation
 %
 % Files
-%   lMultdiag - J = lMultDiag(d, J1)  
+%   lMultdiag - J = lMultDiag(d, J1)
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

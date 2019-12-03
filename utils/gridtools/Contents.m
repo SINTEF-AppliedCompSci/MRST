@@ -26,7 +26,7 @@
 %   sampleFromBox         - Sample from data on a uniform Cartesian grid that covers the bounding box
 %   sortEdges             - Sort edges in G.faces.edges counter-clockwise to face orientation
 %   sortGrid              - Permute nodes, faces and cells to sorted form
-%   sortHorizons          - 
+%   sortHorizons          - Undocumented Utility Function
 %   transform3Dto2Dgrid   - Transforms a 3D grid into a 2D grid.
 %   translateGrid         - Move all grid coordinates according to particular translation
 %   volumeByGaussGreens   - Compute cell volume by means of Gauss-Greens' formula

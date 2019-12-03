@@ -8,7 +8,7 @@
 %   cellDims                  - cellDims -- Compute physical dimensions of all cells in single well
 %   cellDimsCG                - cellDims -- Compute physical dimensions of all cells in single well
 %   cellFlux2faceFlux         - Transform cell-based flux field to face-based.
-%   computeWellIndex          - 
+%   computeWellIndex          - Undocumented Utility Function for Connection Transmissibility Factors
 %   dinterpq1                 - Compute derivative of piecewise linear interpolant.
 %   dinterpTable              - Compute derivative of one-dimensional interpolant, possibly using splines.
 %   dispif                    - Produce textual output contingent upon predicate.
@@ -19,7 +19,7 @@
 %   geomspace                 - Geometrically spaced vector.
 %   getSortedCellNodes        - Construct n x 2 table of cell edges with edges oriented the same
 %   githubDownload            - Download objects from GitHub (.ZIP or collection of files)
-%   incompHydrostaticPressure - 
+%   incompHydrostaticPressure - Undocumented Utility Function
 %   initVariablesADI          - Initialize a set of automatic differentiation variables
 %   interpTable               - Interpolate a one-dimensional table, possibly using splines.
 %   invv                      - Compute inverse of sequence of square matrices using LAPACK.
@@ -29,6 +29,7 @@
 %   md5sum                    - md5sum - Compute md5 check sum of all input arguments
 %   md5sum_fallback           - Alternative implementation of md5sum for systems without C compiler.
 %   merge_options             - Override default control options.
+%   merge_options_relaxed     - A less general version of merge_options focused on specific choices:
 %   moduleGUI                 - Interactive user interface for activation/deactivation of known mrst modules
 %   mrstDataDirectory         - Set or retrieve the current canonical data directory for MRST
 %   mrstDebug                 - Globally control default settings for MRST debugging information.
@@ -44,18 +45,19 @@
 %   msgid                     - Construct Error/Warning message ID by prepending function name.
 %   multiEig                  - Solve sequence of general (unsymmetric) eigenvalue problems using LAPACK
 %   multiSymmEig              - Solve sequence of symmetric eigenvalue problems using LAPACK
-%   reduceToDouble            - Reduce ADI variable to double. This standalone version only exists
+%   reduceToDouble            - Reduce ADI variable to double.
 %   require                   - Announce and enforce module dependency.
 %   rldecode                  - Decompress run length encoding of array `A` along dimension `dim`.
 %   rlencode                  - Compute run length encoding of array A along dimension dim.
 %   ROOTDIR                   - Retrieve full path of Toolbox installation directory.
-%   subsetMinus               - 
-%   subsetPlus                - 
+%   subsetMinus               - Undocumented Utility Function
+%   subsetPlus                - Undocumented Utility Function
 %   ternaryAxis               - Create a ternary axis and mappings to ternary space
 %   tetrahedralAxis           - Create a ternary axis and mappings to ternary space
 %   ticif                     - Evaluate function TIC if input is true.
 %   tocif                     - Evaluate function TOC if input is true.
 %   uniqueStable              - Support `unique(A, 'stable')` in all versions of MATLAB
+%   value                     - Remove AD state and compact 1 by n cell arrays to matrices
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
