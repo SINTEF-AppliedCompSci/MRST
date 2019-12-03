@@ -131,7 +131,7 @@ classdef StateFunctionGrouping
             end
         end
         % --------------- Evaluation functions ---------------------------%
-        function v = get(props, model, state, name)
+        function [v, state] = get(props, model, state, name)
             % Get value of a property (possibily triggering several function
             % evaluations if required. Repeated calls to get within the
             % same AD-initialization of state for the same property will
