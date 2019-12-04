@@ -71,8 +71,7 @@ model.useCNVConvergence = true;
 % solver by specifying 'useCPR' to be true. By doing that, AGMG algebraic
 % multigrid solver will be used if it is present. For much larger cases,
 % the AGMG will improve the solution speed significantly and be required.
-nonlinearsolver = getNonLinearSolver(model, 'DynamicTimesteps', false, ...
-                                     'useCPR', false);
+nonlinearsolver = getNonLinearSolver(model, 'useCPR', false);
 nonlinearsolver.useRelaxation = true;
 
 %% Visualize the properties of the black-oil fluid model
