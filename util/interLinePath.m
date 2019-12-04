@@ -1,4 +1,4 @@
-function [p] = interLinePath(line, fh, lineDist,sePtn, varargin)
+function [p] = interLinePath(line, fh, lineDist, sePtn, interpol, varargin)
     % Interpolate a line path. 
     % Arguments:
     %   line        Coordinates of the fault line. Must be ordered.
@@ -23,43 +23,90 @@ function [p] = interLinePath(line, fh, lineDist,sePtn, varargin)
       p = [];
       return
     end
-    % Create initial points, equally distributed.
-    p = eqInterpret(line, lineDist, sePtn);
+    if interpol
+        % Create initial points, equally distributed.
+        p       = eqInterpret(line, lineDist, sePtn);
+        flag    = false(size(p,1),1);
+        ptsUsed = [1; size(line,1)]; 
+    else
+        [p, origIx, ptsUsed] = subdivideLineSegments(line, lineDist, sePtn);
+        flag = false(size(p,1),1); flag(origIx) = true;
+        ptsUsed([1 end]) = [1 size(line,1)];
+    end
+    
     % add auxillary points
-    if sePtn(1)~=0, p = [line(1,:);p];   end
-    if sePtn(2)~=0, p = [p;line(end,:)]; end
+    if sePtn(1)~=0 
+        p = [line(1,:);p];  flag=[true; flag]; end
+    if sePtn(2)~=0
+        p = [p;line(end,:)]; flag=[flag; true]; end
+ 
+    % clf; plot(line(:,1),line(:,2),':ok','LineWidth',2), hold all,
+    % hp = plot(p(:,1),p(:,2),'.','MarkerSize',18);
     count=0;
     while count<maxIt
       count = count+1;
       % Calculate distances, and wanted distances
-      d = distAlLine(line, p);
+      d    = distAlLine(line, p);
       pmid = (p(1:end-1,:) + p(2:end,:))/2;
-      dw = fh(pmid,varargin{:});
+      dw   = fh(pmid,varargin{:});
       if sePtn(1)~=0, dw(1)   = dw(1).*sePtn(1);   end
       if sePtn(2)~=0, dw(end) = dw(end).*sePtn(2); end
 
-      % Possible insert or remove points
-      if sum(d - dw)>min(dw)
-          [~, id] = max(d - dw);
-          p = [p(1:id,:); pmid(id,:); p(id+1:end,:)];
-          continue
-      elseif sum(d - dw)<-max(dw)
-          [~, id] = min(d - dw);
-          if id == 1, id = 2; end
-          p = p([1:id-1,id+1:end],:);
+      % Determine whether we need to insert or remove points in each of the
+      % line segments
+      dd = d-dw;
+      ind = [0; find(flag(2:end-1)); numel(d)];
+      insert = zeros(numel(ind)-1,1);
+      for i=1:numel(insert)
+          ix   = ind(i)+1:ind(i+1);
+          dsum = sum(dd(ix)); 
+          if dsum>min(dw(ix))
+              [~, id]   = max(dd(ix));
+              insert(i) = id + ind(i);
+          elseif dsum<-max(dw(ix))
+              [~, id]   = min(dd(ix));
+              id        = id + ind(i) + (id==1);
+              insert(i) = -id * (~flag(id));
+          end
+      end
+      % Insert or remove the points determined in the previous for-loop
+      if any(insert~=0)
+          offset = 0;
+          for i=1:numel(insert)
+              if insert(i)>0
+                  id     = insert(i)+offset;
+                  p      = [p(1:id,:); pmid(insert(i),:); p(id+1:end,:)];
+                  flag   = [flag(1:id); false; flag(id+1:end)];
+                  offset = offset+1;
+                  % delete(hp); hp = plot(p(:,1),p(:,2),'.','MarkerSize',18);
+              elseif insert(i)<0
+                  id     = -insert(i)+offset;
+                  p      = p([1:id-1,id+1:end],:);
+                  flag   = flag([1:id-1,id+1:end]);
+                  offset = offset-1;
+                  % delete(hp); hp = plot(p(:,1),p(:,2),'.','MarkerSize',18);
+              end
+          end
           continue
       end
+      
       % If we only have external nodes, we can do nothing.
       if size(p,1)<=2, return, end
+      
+      % Update the plot of all points
+      % hp.XData = p(:,1)';
+      % hp.YData = p(:,2)';
+      % drawnow; pause(.1);
+      
       % Move points based on desired length
       Fb = dw - d;                       % Bar forces
       Fn = Fb(1:end-1) - Fb(2:end);      % Force on internal nodes
       moveNode = Fn*0.2;                 % Movement of each internal node.
       d = d + [moveNode(1); moveNode(2:end) - moveNode(1:end-1); -moveNode(end)];
-      p = interpLine(line,d);            % Update node positions
+      p = interpLine(line, d, find(flag), ptsUsed); % Update node positions
 
       % Terminate if Nodes have moved (relative) less  than TOL
-      if all(abs(moveNode)<TOL*lineDist), break; end
+      if all(abs(moveNode(~flag(2:end-1)))<TOL*lineDist), break; end
     end
     
     if sePtn(1)~=0, p = p(2:end,:);end
@@ -112,12 +159,15 @@ function [d] = eucDist(a, b)
 end
 
 
-function [newPoints] = interpLine(path, dt)
+function [newPoints] = interpLine(path, dt, fix, ptsUsed)
     distS = sqrt(sum(diff(path,[],1).^2,2));
     t = [0; cumsum(distS)];
     
     newPtsEval = [0; cumsum(dt)];
-    newPtsEval(end) = t(end); % Last point can not move
-
+    if numel(fix)>2
+        newPtsEval(fix) = t(ptsUsed);  % Points that cannot move
+    else
+        newPtsEval(end) = t(end);
+    end
     newPoints = interp1(t,path,newPtsEval);
 end
