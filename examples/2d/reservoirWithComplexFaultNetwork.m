@@ -22,21 +22,23 @@
 pth = fullfile(mrstPath('upr'), 'datasets', 'gridBranets.mat');
 load(pth);
 color = get(gca,'ColorOrder');
-figure(); hold on
+figure('Position',[480 340 900 420])
+subplot(1,2,1)
+hold on
 plot([bdr(:,1);bdr(1,1)],[bdr(:,2);bdr(1,2)],'k');
 plotLinePath(fault,'color',color(2,:));
-axis equal;
+axis equal off;
 
 %% calculate fault intersections
 [fault, fCut, ~] = splitAtInt(fault, {});
 
 %% Create fault sites
 fGs = max(max(bdr))/70;
-F = createFaultGridPoints(fault, fGs,'fCut',fCut);
+F = createFaultGridPoints(fault, fGs,'fCut',fCut,'interpolFL',true);
 plot(F.f.pts(:,1), F.f.pts(:,2),'.','markersize',5);
 
 %% Create reservoir sites
-% We crate a set of random reservoir sites. Then we remove any outside our
+% We create a set of random reservoir sites. Then we remove any outside our
 % domain.
 n = 1500;
 pInit = bsxfun(@plus,bsxfun(@times, rand(n,2),(max(bdr) - min(bdr))), min(bdr));
@@ -60,7 +62,7 @@ pth = fullfile(mrstPath('upr'), 'datasets', 'reservoirWithComplexFaultNetwork.ma
 load(pth)
 
 %% Plot grid
-figure(); hold on
+subplot(1,2,2), hold on
 plotGrid(G,'facecolor','none');
 plotLinePath(fault,'color','k','linewidth',1);
 axis equal off tight
