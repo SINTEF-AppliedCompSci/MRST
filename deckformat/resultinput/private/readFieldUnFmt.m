@@ -122,9 +122,9 @@ function header = read_meta(fid)
       name = strtrim(name);
 
       if nel > 0
-         type_size  = get_type_size (type);
-         type_prec  = get_type_prec (type);
-         block_size = get_block_size(type);
+         [type_size, type] = get_type_characteristics(type);
+         block_size        = get_block_size(type);
+         type_prec         = get_type_prec (type, type_size, block_size);
       else
          type_size  = -1;
          type       = strtrim(type);
@@ -171,14 +171,17 @@ end
 function values = read_char_record(fid, header)
    if header.number > 0
       n      = header.number;
+      nchar  = header.size;
       prec   = header.prec;
-      a      = reshape(fread(fid, n * header.size, prec, 8), 1, []);
-      values = { cellstr(char(reshape(a, 8, []) .')) };
+      skip   = 8;
+      a      = reshape(fread(fid, n * nchar, prec, skip), 1, []);
+      values = { cellstr(char(reshape(a, nchar, []) .')) };
 
-      % Skip to start of next header unless n*size is muliple of 840 in
-      % which case the skip has already been performed.
-      if ~feof(fid) && (mod(n * header.size, 840) ~= 0)
-         fseek(fid, 8, 'cof');
+      % Skip to start of next header unless 'n' is muliple of maximum block
+      % size.  In the latter case, the FREAD call has already skipped over
+      % the control characters.
+      if ~feof(fid) && (mod(n, header.blksiz) ~= 0)
+         fseek(fid, skip, 'cof');
       end
    else
       values = { [] };
@@ -187,10 +190,20 @@ end
 
 %--------------------------------------------------------------------------
 
-function size = get_type_size(type)
-   size = 4;
-   if any(strcmp(type, {'CHAR', 'DOUB'}))
+function [size, type] = get_type_characteristics(type)
+   if any(strcmp(type, {'INTE', 'REAL', 'LOGI'}))
+      size = 4;
+
+   elseif any(strcmp(type, {'CHAR', 'DOUB'}))
       size = 8;
+
+   elseif ~isempty(regexp(type, '^C\d+$', 'once'))
+      size = sscanf(type, 'C%d', 1);
+      type = 'CHAR';  % Treat C0nn as CHAR for remainder of processing.
+
+   else
+      error('ElmType:UnSupp', ...
+            'Vector Element Type ''%s'' is not Supported', type);
    end
 end
 
@@ -206,14 +219,26 @@ end
 
 %--------------------------------------------------------------------------
 
-function precision = get_type_prec(type)
+function precision = get_type_prec(type, type_size, block_size)
    switch type
-      case 'INTE', precision = '1000*int32';
-      case 'REAL', precision = '1000*float32';
-      case 'DOUB', precision = '1000*float64';
-      case 'CHAR', precision = '840*uchar=>char';
-      case 'LOGI', precision = '1000*int32';
+      case 'INTE'
+         precision = sprintf('%d*int32', block_size);
+
+      case 'REAL'
+         precision = sprintf('%d*float32', block_size);
+
+      case 'DOUB'
+         precision = sprintf('%d*float64', block_size);
+
+      case 'CHAR'
+         % Usually just 105 * 8 == 840 bytes in a block, but this allows
+         % for extended character types like C0nn too.
+         precision = sprintf('%d*uchar=>char', block_size * type_size);
+
+      case 'LOGI'
+         precision = sprintf('%d*int32', block_size);
+
       otherwise
-         error('Field type ''%s'' is unsupported.', type);
+         error('ElmType:UnSupp', 'Field type ''%s'' is unsupported.', type);
    end
 end

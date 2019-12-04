@@ -22,7 +22,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 smspec = readEclipseOutputFileUnFmt([prefix, '.SMSPEC']);
 
-nameList = smspec.WGNAMES.values;
+if isfield(smspec, 'WGNAMES')
+   nameList = smspec.WGNAMES.values;
+elseif isfield(smspec, 'NAMES')
+   nameList = smspec.NAMES.values;
+else
+   error('SmryNames:Unknown', ...
+        ['No known summary vector name list in SMSPEC fields\n\t', ...
+         '{ %s}'], sprintf('%s ', sort(fieldnames(smspec))));
+end
 kwrdList = smspec.KEYWORDS.values;
 
 % replace empty entries by 'empty'

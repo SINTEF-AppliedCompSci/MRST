@@ -67,20 +67,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = merge_options(opt, varargin{:});
 
    lin = fgetl(fid);
-   while isempty(lin) && ischar(lin),
+   while isempty(lin) && ischar(lin)
       lin = fgetl(fid);
    end
 
-   if ischar(lin),
+   if ischar(lin)
 
       lin(lin == '''') = '';
 
       a      = regexp(strtrim(lin), '\s+', 'split');
       name   =        a{1}       ;
       number = sscanf(a{2}, '%f');
-      ttype  =        a{3}       ;
 
-      if number == 0,
+      [ttype, nchar] = parse_type(a{3});
+
+      if number == 0
 
          dispif(opt.Verbose, ...
                 'Keyword ''%s'' with no associated data.\n', name);
@@ -88,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          output = struct('type', ttype, 'values', {});
          return
 
-      elseif number < 0,
+      elseif number < 0
 
          error(msgid('Negative:ItemCount'), ...
               ['Don''t know how to deal with negative (=%d) item ', ...
@@ -97,38 +98,40 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
 
       % If we get here, number > 0.
-      switch lower(ttype),
-         case {'inte', 'doub', 'real'},
+      switch lower(ttype)
+         case {'inte', 'doub', 'real'}
 
             values = textscan(fid, '%f', number);
             values = values{1};
 
-            if any(strcmpi(ttype, {'DOUB', 'REAL'})),
+            if any(strcmpi(ttype, {'DOUB', 'REAL'}))
                ttype = 'REAL';
             end
 
-         case 'logi',
+         case 'logi'
 
             values = textscan(fid, '%s', number);
             values = cellfun(@(s) s == 'T', values{1});    % -> LOGICAL
 
-         case 'char',
+         case 'char'
 
-            % Read strings as sequence of eight-character arrays, delimited
-            % by single quote (') characters (which are omitted in result).
-            % This method preserves white-space (blanks) within each string
-            % and guarantees that the number of elements in 'values' is a
-            % multiple of eight.  Note format's leading blank with standard
-            % semantics: Skip blanks between strings.
-            values = fscanf(fid, ' %*c%8c%*c', number);
+            % Read strings as sequence of 'nchar' fixed-width character
+            % arrays, delimited by single quote (') characters (which are
+            % omitted in result).  This method preserves white-space
+            % (blanks) within each string and guarantees that the number of
+            % elements in 'values' is a multiple of 'nchar' (usually 8).
+            % Note format's leading blank with standard semantics: Skip
+            % blanks between strings.
+            fmt    = sprintf('%dc', nchar);
+            values = fscanf(fid, [' %*c%', fmt, '%*c'], number);
 
-            assert (numel(values) == 8 * number, ...
+            assert (numel(values) == nchar * number, ...
                    ['Internal error in ''CHAR'' handling ', ...
                     'for keyword ''%s''.'], name);
 
             % Convert to cell-array of strings by placing each sequence of
-            % eight characters into a separate row in a CHAR array.
-            values = cellstr(reshape(values, 8, []) .');
+            % 'nchar' characters into a separate row in a CHAR array.
+            values = cellstr(reshape(values, nchar, []) .');
 
             % Wrap cellstring in CELL (producing single-element cell array)
             % to account for STRUCT's treatment of CELL array input (i.e.,
@@ -136,7 +139,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % array element for each cell array element).
             values = { values };
 
-         otherwise,
+         otherwise
             error(msgid('Type:Unknown'), ...
                  ['Variable type ''%s'' is unexpected ', ...
                   'at this time.'], ttype);
@@ -150,7 +153,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       name = 'Input Failure: ';
 
-      if feof(fid),
+      if feof(fid)
          name = [name, 'End-of-file.'];
       else
          err = ferror(fid);
@@ -165,4 +168,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    output = struct('type', ttype, 'values', values);
+end
+
+%--------------------------------------------------------------------------
+
+function [ttype, nchar] = parse_type(ttype)
+   if any(strcmpi(ttype, { 'INTE', 'LOGI', 'DOUB', 'REAL' }))
+      nchar = NaN; % Should not be used
+
+   elseif strcmpi(ttype, 'CHAR')
+      nchar = 8; % Traditional 8-character fixed width string
+
+   elseif ~isempty(regexp(ttype, '^C\d+$', 'once'))
+      nchar = sscanf(ttype, 'C%d');
+      ttype = 'CHAR';  % Treat C0nn as CHAR for remainder of processing
+
+   else
+      error('ElmType:Unsupp', ...
+            'Field Element Type ''%s'' is Not Supported', ttype);
+   end
 end
