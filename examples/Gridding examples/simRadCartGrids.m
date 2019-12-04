@@ -3,9 +3,11 @@
 % This example demonstrates how to perform simulation on a radial-Cartesian 
 % hybrid grid. The additional treatments for such grid involve the 
 % calculation of radial transmissibility and the definition of the well
-% structure. Also, the simulation performances of the standalone Cartesian 
-% grid that uses the Peaceman well model and the hybrid grid are compared.
+% structure. Also, the simulation performances between the standalone 
+% Cartesian grid that uses the Peaceman well model and the hybrid grid are 
+% compared.
 
+clear
 mrstModule add nwm ad-core ad-blackoil ad-props
 
 %% Build the hybrid grid
@@ -47,17 +49,22 @@ ft = ft(~isnan(ft));
 %% Assign the radial transmissibility
 % Define a homogeneous rock 
 rock = makeRock(G, [.25, .25]*darcy, 0.25);
+
 % Linear half transmissibility
 hT = computeTrans(G, rock);
+
 % Indices of radial cells involved in the factor calculations
 radCells = (1:GR.cells.num-GR.radDims(1))';
+
 % Note the factor is suitable for only isotropic permeability
 permR = rock.perm(radCells,1);
 n = diff(G.cells.facePos);
 permR = rldecode(permR, n(radCells));
+
 % Compute the radial half transmissibility
 hTR = permR .* ft;
-% Assign the radial transmissibility
+
+% Assign the radial half transmissibility
 idx = (1:numel(hTR))';
 hT(idx) = hTR;
 
@@ -138,12 +145,12 @@ wcP = find(D==min(D));
 WC = addWell(WC, GC, rockC, wcP, 'Name', 'PROD', 'sign', -1, ...
     'comp_i', [1, 1], 'Val', bhp, 'Type', 'bhp', 'Radius', rW);
 
-%% Define schedule
+%% Define the schedule
 timesteps = ones(20,1)*30*day;
 schedule  = simpleSchedule(timesteps, 'W', W);
 scheduleC = simpleSchedule(timesteps, 'W', WC);
 
-%% Initial state
+%% Define the initial state
 sW = zeros(G.cells.num, 1);
 sat = [sW, 1 - sW];
 state0 = initResSol(G, 300*barsa, sat);
@@ -152,7 +159,7 @@ sW = zeros(GC.cells.num, 1);
 sat = [sW, 1 - sW];
 state0C = initResSol(GC, 300*barsa, sat);
 
-%% Run the simulator
+%% Run the simulation
 [wellSols, states, report] = simulateScheduleAD(state0, model, schedule);
 [wellSolsC, statesC, reportC] = simulateScheduleAD(state0C, modelC, scheduleC);
 
@@ -163,19 +170,22 @@ plotWellSols({wellSols, wellSolsC}, report.ReservoirTime)
 
 %% Compare the pressure and oil saturation
 ts = 20;
+
+pargs = {'EdgeColor','none'};
 figure
-subplot(2,2,1), axis equal off
-plotCellData(G, states{ts}.pressure/barsa, 'edgecolor', 'none')
+subplot(2,2,1), axis equal tight off
+plotCellData(G, states{ts}.pressure/barsa, pargs{:})
 title('Pressure of the hybrid grid')
 
-subplot(2,2,2), axis equal off
-plotCellData(GC, statesC{ts}.pressure/barsa, 'edgecolor', 'none')
+subplot(2,2,2), axis equal tight off
+plotCellData(GC, statesC{ts}.pressure/barsa, pargs{:})
 title('Pressure of the Cartesian grid')
 
 subplot(2,2,3), axis equal tight off
-plotCellData(G, states{ts}.s(:,2), 'edgecolor', 'none')
+plotCellData(G, states{ts}.s(:,2), pargs{:})
 title('Oil saturation of the hybrid grid')
 
 subplot(2,2,4), axis equal tight off
-plotCellData(GC, statesC{ts}.s(:,2), 'edgecolor', 'none')
+plotCellData(GC, statesC{ts}.s(:,2), pargs{:})
 title('Oil saturation of the Cartesian grid')
+

@@ -1,6 +1,7 @@
 function G = makeLayeredGridNWM(g, p, varargin)
 % Extrude 2D grid to layered 3D grid according the topology of 2D grid and
-% provided layer point set. 
+% provided surface point set. The surface points are given on all surfaces, 
+% and topologically aligned in layered direction.
 %
 % SYNOPSIS:
 %   G = makeLayeredGridNWM(g, p)
@@ -12,10 +13,12 @@ function G = makeLayeredGridNWM(g, p, varargin)
 %
 % KEYWORD ARGUMENTS:
 %  'connectivity'  - Connectivity list (nodes of cells) for g, 
-%                    ncell_g x 1 cell
+%                    ncell_g x 1 cell. Note if the 2D grid are not on the 
+%                    XY plane, the connectivity list of the 2D grid should
+%                    be provided
 %
 % RETURNS:
-%   G  - Valid 2.5D layerd grid
+%   G  - Valid 2.5D layerd grid structure
 %
 % EXAMPLE:
 %   N     = 10;
@@ -30,12 +33,12 @@ function G = makeLayeredGridNWM(g, p, varargin)
 %   g     = pebi(g);
 %   p     = g.nodes.coords;
 %   z     = (0:10:50)';
-%   players = arrayfun(@(z)[p-z/10, z*ones(size(p,1),1)], z, 'UniformOutput', false);
-%   G = makeLayeredGridNWM(g, players);
+%   pSurfs = arrayfun(@(z)[p-z/10, z*ones(size(p,1),1)], z, 'UniformOutput', false);
+%   G = makeLayeredGridNWM(g, pSurfs);
 %   figure, plotGrid(G), view(3)
-%
+% 
 % SEE ALSO:
-%   `makeLayeredGrid`, `tessellationGrid`
+%   `makeLayeredGrid` `tessellationGrid` `layeredGrids`
 
     opt = struct('connectivity', []);
     opt = merge_options(opt, varargin{:});
@@ -50,10 +53,10 @@ function G = makeLayeredGridNWM(g, p, varargin)
     np = unique( cellfun(@(x)size(x, 1), p) );
     assert( length(np) == 1 );
 
-    % Create a empty struct
+    % Create a empty structure
     G = struct;
 
-    % Cell number in Z direction
+    % Cell number in layered direction
     nz = length(p)-1;
 
     % Cell number and face number of the 2D grid

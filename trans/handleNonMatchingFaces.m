@@ -13,6 +13,7 @@ function relation = handleNonMatchingFaces(G1, faces1, G2, faces2, varargin)
 %                      from G2. Basically, faces1 and faces2 constitute the
 %                      same 3D surface. The surface is continuous and
 %                      completed.
+%
 % % KEYWORD ARGUMENTS:
 %  'isfaceNodesSorted'  -  Wether the nodes of faces stored at 
 %                          'G.faces.nodes' are sorted (for both G1 and G2)
@@ -22,8 +23,8 @@ function relation = handleNonMatchingFaces(G1, faces1, G2, faces2, varargin)
 %              column 1     - Face of G1
 %              column 2     - Face of G2
 %              column 3     - Areas of intersection subfaces
-%              column 4-6   - Centroids of intersection subfaces
-%              column 7-9   - Normals of intersection subfaces
+%              column 4-6   - Centroids of the subfaces
+%              column 7-9   - Normals of the subfaces
 %
 % EXAMPLE:
 %     G1 = cartGrid([10, 10, 5], [10, 10, 5]);
@@ -45,13 +46,13 @@ function relation = handleNonMatchingFaces(G1, faces1, G2, faces2, varargin)
     opt = struct('isfaceNodesSorted', false);
     opt = merge_options(opt, varargin{:});
    
-    % Face points
+    % Nodes of faces
     faceNodes1 = arrayfun(@(f)getSortedFaceNodes(G1, f, opt.isfaceNodesSorted), ...
         faces1, 'UniformOutput', false);
     faceNodes2 = arrayfun(@(f)getSortedFaceNodes(G2, f, opt.isfaceNodesSorted), ...
         faces2, 'UniformOutput', false);
 
-    % Get the intersecting information
+    % Get the intersection relation
     relation = arrayfun(@(f, fn)IntxnRelationSingleFace...
         (G1, f, fn, G2, faces2, faceNodes2), faces1, faceNodes1, ...
         'UniformOutput', false);

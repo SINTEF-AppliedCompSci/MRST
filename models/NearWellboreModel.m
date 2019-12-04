@@ -1,10 +1,11 @@
 classdef NearWellboreModel
-% Class for generating necessary variables passed to the mrst AD simulators
-% for the hybrid grid of near-wellbore model
+% Class for generating necessary data structures passed to the mrst AD 
+% simulators for the hybrid grid of near-wellbore model
+
     properties
-        subGrids    % Subgrids {Corner-point grid, VOI grid, HW grid}
-        inputDeck   % ECLIPSE-style Input deck of CPG simulation model
-        well        % Struct for well information
+        subGrids    % Subgrids {Corner-point grid (CPG), VOI grid, HW grid}
+        inputDeck   % ECLIPSE-style input deck of CPG
+        well        % Structure of well information
         gloGrid     % The global hybrid grid
         fluid       % AD-solver fluid from ECLIPSE-style input deck
     end
@@ -30,7 +31,7 @@ classdef NearWellboreModel
         end
 
         function f = setupFluid(nwm)
-            % Initialize fluid from input deck
+            % Initialize AD fluid from input deck
             deck  = nwm.inputDeck;
             f = initDeckADIFluid(deck);
         end
@@ -80,7 +81,8 @@ classdef NearWellboreModel
         end
 
         function [G, rock, f, model, schedule, initState] = packedSimData(nwm, rockW, varargin)
-            % Obtain all necessary simulation data of near-wellbore model
+            % Obtain all necessary simulation data structures of the hybrid
+            % grid in near-wellbore model
             % Global grid
             G = nwm.gloGrid;
             % AD fluid
@@ -91,21 +93,19 @@ classdef NearWellboreModel
             rock  = nwm.getGlobalRock({rockC, rockV, rockW});
             % Simulation model
             T = nwm.getTransGloGrid(rock);
-            intXn = nwm.computeBoundaryIntxnRelation();
+            intXn = nwm.computeIntxnRelation();
             nnc = nwm.generateNonNeighborConn(intXn, rock, T);
             G.nnc = nnc;
             [T_all, N_all] = nwm.assembleTransNeighbors(T, nnc);
             model = nwm.setupSimModel(rock, T_all, N_all);
             % Schedule
-            opt = struct('refDepthFrom', 'deck');
-            opt = merge_options(opt, varargin{:});
-            schedule = nwm.getSimSchedule(model, 'refDepthFrom', opt.refDepthFrom);
-            % Init state
+            schedule = nwm.getSimSchedule(model, varargin{:});
+            % Initial state
             initState = nwm.getInitState(model);
         end
         
         function [GC, rockC, f, modelC, scheduleC, initStateC] = packedCPGSimData(nwm)
-            % Obtain all necessary simulation data of the CPG
+            % Obtain all necessary simulation data structures of the CPG
             % CPG
             [GC, ~] = nwm.assignInputSubGrds();
             % AD fluid
@@ -165,7 +165,7 @@ classdef NearWellboreModel
         function rockV = getVOIRocksByInterp(nwm, varargin)
             % Get the rock of input VOI grid by interpolation of CPG rock
             % Optional:
-            %  'InterpMethod', same with opitions in `griddata`
+            %  'InterpMethod', same with opitions in 'griddata':
             %  'linear' (default) | 'nearest' | 'natural' | 'cubic' | 'v4'
             opt = struct('InterpMethod', 'linear');
             opt = merge_options(opt, varargin{:});
@@ -174,8 +174,8 @@ classdef NearWellboreModel
             rockC    = nwm.getCPGRockFromDeck();
             grdecl   = nwm.getGrdEclFromDeck();
             
-            % ID to determine the corresponding layers in packed data of
-            % the VOI grid layers
+            % Layer indices to determine the corresponding layers in packed 
+            % data of the VOI grid layers
             layerID = rldecode((1:length(GV.layers.refinement))', ...
                 GV.layers.refinement);
             assert(length(layerID) == GV.layers.num)
@@ -187,6 +187,7 @@ classdef NearWellboreModel
                 cCenters  = GC.cells.centroids;
                 cfCenters = GC.faces.centroids(GC.cells.faces(:,1), :);
             end
+            
             % Get the properties by interpolation
             rockV.perm = zeros(GV.cells.num,3);
             rockV.poro = zeros(GV.cells.num,1);
@@ -225,7 +226,7 @@ classdef NearWellboreModel
         end
 
         function varargout = assignSubRocks(nwm, rock)
-            % Assign the rocks for updated subgrids from the global rock
+            % Assign rocks from the global rock for updated subgrids 
             mapc = nwm.cellMapFromSubGrdsToGloGrd();
             fn = fieldnames(rock);
             subRocks = cell(numel(mapc),1);
@@ -244,7 +245,7 @@ classdef NearWellboreModel
         end
 
         function [T_all, N_all] = assembleTransNeighbors(nwm, T, nnc)
-            % Assemble transmissibility and neighbors for the simulation
+            % Assemble transmissibility and neighborship for the simulation
             % model
             G = nwm.gloGrid;
             T_all = [T;                 nnc.T];
@@ -253,10 +254,11 @@ classdef NearWellboreModel
         end
         
         function T = getTransGloGrid(nwm, rock)
-            % Compute the transmissibility for the global grid.
+            % Compute the transmissibility for the global grid
             % rock: rock of the global grid
             % The transmissibility consists of: 
             % Transmissibility of updated [CPG, VOI grid, and HW grid]
+            
             % Half transmissibility of updated CPG
             hTC = nwm.computeCPGHalfTrans(rock);
             % Half transmissibility of updated VOI grid
@@ -274,16 +276,16 @@ classdef NearWellboreModel
         end
         
         function hT = computeCPGHalfTrans(nwm, rock)
-            % Compute the half transmissibility of the updated CPG.
+            % Compute half transmissibility of the updated CPG
             % -----------------------------------------------
             % | Flow          | Permeability   | Anisotropy |
             % | approximation | coordinate     |            |
             % |---------------------------------------------|
             % | Linear        | Local          | Yes        |
             % -----------------------------------------------
+            
             [GCu, ~] = nwm.assignSubGrds();
             [rockCu, ~] = nwm.assignSubRocks(rock);
-            
             grdecl = nwm.getGrdEclFromDeck();
             if isfield(grdecl, 'COORD')
                 [cCenters, cFCenters] = computeCpGeometry(GCu, grdecl);
@@ -295,11 +297,10 @@ classdef NearWellboreModel
             else
                 error([mfilename, ': Unknown deck grid input'])
             end
-            
         end
         
         function hT = computeVOIGrdHalfTrans(nwm, rock)
-            % Compute the half transmissibility of the updated VOI Grid.
+            % Compute half transmissibility of the updated VOI Grid
             % -----------------------------------------------
             % | Flow          | Permeability   | Anisotropy |
             % | approximation | coordinate     |            |
@@ -312,7 +313,7 @@ classdef NearWellboreModel
         end
 
         function hT = computeHWGrdHalfTrans(nwm, rock)
-            % Compute the half transmissibility of the updated HW Grid.
+            % Compute half transmissibility of the updated HW Grid
             % -----------------------------------------------
             % | Flow          | Permeability   | Anisotropy |
             % | approximation | coordinate     |            |
@@ -340,21 +341,21 @@ classdef NearWellboreModel
         function ft = getRadTransFactors(nwm)
             % Get the radial half transmissibility factors for the HW grid
             % Get the factors of the 2D surface grids first
-            fprintf(' -- Computing the radial transmissibility factor\n')
+            fprintf(' -- Computing the radial transmissibility factors\n')
             [~, ~, GWu] = nwm.assignSubGrds();
             gW    = GWu.surfGrid;
             pXYs  = GWu.layers.coordsXY;
             % Skin factors of segments
             s_seg = nwm.well.skinFactor;
             if size(s_seg,1) > size(s_seg,2); s_seg = s_seg'; end
-            % Assign to each surface grids
+            % Assign to all surface grids
             skins = [s_seg(1), (s_seg(1:end-1)+ s_seg(2:end))/2, s_seg(end)];
             assert(numel(s_seg) == nwm.well.segmentNum, ...
-                'The skin factors should be given for all segments!')
+                'The skin factors should be given for all segments')
             pW = [0, 0];
             ft = arrayfunUniOut(@(i)computeRadTransFactor(gW, pW, skins(i), ...
                 'nodeCoords', pXYs{i}), (1:numel(pXYs))');
-            % Extend the factor to the layered HW grid
+            % Extend the factor to layered HW grid
             ft = cellfun(@(x,y)(x+y)/2, ft(1:end-1), ft(2:end), ...
                 'UniformOutput', false);
             for k = 1 : length(ft)
@@ -367,7 +368,7 @@ classdef NearWellboreModel
         end
         
         function nnc = generateNonNeighborConn(nwm, intXn, rock, T)
-            % Generate non-neighbor connections
+            % Generate the non-neighbor connections (NNCs)
             % intXn: Boundary intersection relations
             % rock:  Rock of global grid
             % T:     Fully transmissibility of global grid
@@ -381,8 +382,8 @@ classdef NearWellboreModel
         end
         
         function nnc = nncOfNonMatchingBoundaries(nwm, intXn, rock, T)
-            % Generate non-neighbor connections arised from non-matching
-            % boundaries
+            % Generate non-neighbor connections (NNCs) arised from the 
+            % non-matching boundaries
             % intXn: Boundary intersection relations
             % rock:  Rock of global grid
             % T:     Fully transmissibility of global grid
@@ -411,8 +412,8 @@ classdef NearWellboreModel
         end
         
         function nnc = nncOfMatchingBoundaries(nwm, intXn, rock, T)
-            % Generate non-neighbor connections arised from matching
-            % boundaries
+            % Generate non-neighbor connections (NNCs) arised from the 
+            % matching boundaries
             % intXn: Boundary intersection relations
             % rock:  Rock of global grid
             % T:     Fully transmissibility of global grid
@@ -434,10 +435,10 @@ classdef NearWellboreModel
             nnc.T  = 1./(1./nnc.hT(:,1) + 1./nnc.hT(:,2));
         end
         
-        function intXn = computeBoundaryIntxnRelation(nwm)
-            % Compute intersection relations between boundaries of subgrids
+        function intXn = computeIntxnRelation(nwm)
+            % Compute intersection relations between subgrids
             fprintf([' -- Computing intersection relations between ',...
-                'boundaries of subgrids\n'])
+                'subgrids\n'])
             % Non-mactching faces
             nmf_CV = [nwm.nonMatchingIntxnRelation([1,2], 'top'); ...
                 nwm.nonMatchingIntxnRelation([1,2], 'bot')];
@@ -460,7 +461,7 @@ classdef NearWellboreModel
 
         function nmf = nonMatchingIntxnRelation(nwm, grdInd, bdyLoc)
             % Compute intersection relations of non-matching faces on
-            % the boundaries of input subgrids.
+            % the boundaries of input subgrids
             % gridInd: Indices of the subgrids involving in the computation
             %          [i-1, i], i <= number of subgrids
             % bdyLoc:  The location of boundaries
@@ -494,10 +495,10 @@ classdef NearWellboreModel
 
         function mf  = matchingIntxnRelation(nwm, grdInd)
             % Compute intersection relations of matching faces on the
-            % layered boundaries of input subgrids.
+            % layered boundaries of input subgrids
             % gridInd: Indices of the subgrids involving in the computation
             %          [i-1, i], i <= number of subgrids
-            %
+            
             subG = nwm.assignInputSubGrds();
             assert(grdInd(2)<=numel(subG));
             assert(grdInd(2)==grdInd(1)+1);
@@ -518,7 +519,7 @@ classdef NearWellboreModel
             % the global grid
             % rock:  Rock of global grid
             % T_all: Full transmissibility
-            % N_all: Neighbor ship
+            % N_all: Neighborship of all connections
             gravity reset on
             G    = nwm.gloGrid;
             f    = nwm.fluid;
@@ -533,17 +534,18 @@ classdef NearWellboreModel
             % Reset the operators
             model.operators = setupOperatorsTPFA(G, rock, ...
                 'neighbors', N, 'trans', T);
+            model.operators.N_all = N_all;
             model.operators.T_all = T_all;
         end
         
         function schedule = getSimSchedule(nwm, model, varargin)
-            % Get the simulation schedule from the production/injection
-            % control data in deck for the global grid
-            fprintf(' -- Defining schedule from input deck\n')
+            % Get the simulation schedule for the global grid from the 
+            % production/injection control data in deck 
+            fprintf(' -- Converting schedule from input deck\n')
             opt = struct('refDepthFrom', 'deck');
             opt = merge_options(opt, varargin{:});
             G = nwm.gloGrid;
-            % Assign the CPG schedule first, to get the well struct of
+            % Assign the CPG schedule first, to get the well structure of
             % CPG model
             modelC = nwm.setupCPGSimModel();
             scheduleC = nwm.getCPGSimSchedule(modelC);
@@ -556,22 +558,26 @@ classdef NearWellboreModel
             rockTmp.perm = nan(G.cells.num, 3);
             for i = 1 : numel(scheduleC.control)
                 W0 = scheduleC.control(i).W;
-                name = vertcat(W0.name);
-                ii = all(name == nwm.well.name, 2);
+                ii = arrayfun(@(w)strcmp(nwm.well.name, w.name), W0);
                 % Map the cells of the other wells
-                WOthers = W0(~ii);
-                for w = 1 : numel(WOthers)
-                    c0 = WOthers(w).cells;
+                WRegular = W0(~ii);
+                for w = 1 : numel(WRegular)
+                    c0 = WRegular(w).cells;
                     [tmp, ~, ic] = intersect(c0, mapc(:,1), 'stable');
                     assert(all(tmp==c0));
-                    WOthers(w).cells = mapc(ic, 2);
+                    WRegular(w).cells = mapc(ic, 2);
                 end
-                % Well struct for horizontal well
+                % Well structure for the HW
                 switch opt.refDepthFrom
                     case 'deck'
                         refDepth = W0(ii).refDepth;
+                        fprintf(['    Info : The reference depth of %s',...
+                            ' adopts the value from deck\n'], nwm.well.name)
                     case 'trajectory'
                         refDepth = nwm.well.trajectory(1,3);
+                        fprintf(['    Info : The reference depth of %s',...
+                            ' has been set to the depth of first well',...
+                            ' point\n'], nwm.well.name)
                     otherwise
                         error('Unknown reference depth definition type')
                 end
@@ -585,10 +591,11 @@ classdef NearWellboreModel
                 W.cell_origin = ones(numel(wc),1);
                 W.cstatus     = true(numel(wc),1);
                 % Call 'addWell' to compute the 'W.dz'
-                WTmp = addWell([], G, rockTmp, wc, 'refDepth', refDepth);
+                WTmp = addWell([], G, rockTmp, wc, 'name', 'WTmp', ...
+                    'refDepth', refDepth);
                 W.dZ = WTmp.dZ;
                 % Combine with the other wells
-                WNew = [W; WOthers];
+                WNew = [W; WRegular];
                 scheduleC.control(i).W = WNew;
             end
             schedule = scheduleC;
@@ -607,16 +614,16 @@ classdef NearWellboreModel
         end
         
         function schedule = getCPGSimSchedule(nwm, model)
-            % Get the simulation schedule from deck for the input CPG
+            % Get the simulation schedule for input CPG from deck
             deck = nwm.inputDeck;
             schedule = convertDeckScheduleToMRST(model, deck);
         end
         
         function [wc, wf, WI] = getWellCellPara(nwm, model)
-            %  Get parameters for well cell of the HW
+            %  Get parameters for well cells of the HW
             %  wc: well cell indices
             %  wf: well face indices
-            %  WI: well index
+            %  WI: well indices of well cells
             wc = nwm.getWellCells();
             G = nwm.gloGrid;
             % Wellbore faces (always the first face of wc)
@@ -664,7 +671,7 @@ classdef NearWellboreModel
         end
         
         function mapc = cellMapFromInputSubGrdsToGloGrd(nwm)
-            % Cell map from the input subgrids to the global grid
+            % Cell map from input subgrids to global grid
             subG = nwm.assignSubGrds();
             mapc = nwm.cellMapFromSubGrdsToGloGrd();
             for i = 1 : numel(subG)
@@ -673,7 +680,7 @@ classdef NearWellboreModel
         end
 
         function mapf = faceMapFromInputSubGrdsToGloGrd(nwm)
-            % Faces map from the input subgrids to the global grid
+            % Face map from input subgrids to global grid
             subG = nwm.assignSubGrds();
             mapf = nwm.faceMapFromSubGrdsToGloGrd();
             for i = 1 : numel(subG)
@@ -682,8 +689,8 @@ classdef NearWellboreModel
         end
 
         function mapc = cellMapFromSubGrdsToGloGrd(nwm)
-            % Cell map from the updated subgrids (after-remove cells) to
-            % the global grid
+            % Cell map from updated subgrids (after-remove cells) to global
+            % grid
             subG = nwm.assignSubGrds();
             nc = cellfun(@(G)G.cells.num, subG);
             if size(nc,1) > size(nc,2); nc = nc'; end
@@ -693,8 +700,8 @@ classdef NearWellboreModel
         end
 
         function mapf = faceMapFromSubGrdsToGloGrd(nwm)
-            % Face map from the updated subgrids (after-remove cells) to
-            % the global grid
+            % Face map from updated subgrids (after-remove cells) to global
+            % grid
             subG = nwm.assignSubGrds();
             nf = cellfun(@(G)G.faces.num, subG);
             if size(nf,1) > size(nf,2); nf = nf'; end
@@ -704,10 +711,10 @@ classdef NearWellboreModel
         end
 
         function grdecl = getGrdEclFromDeck(nwm)
-            % Get ECLIPSE grid structure from deck.
+            % Get ECLIPSE grid structure from deck
             deck = nwm.inputDeck;
-            % Does not assign the 'ACTNUM' for robustness.
-            if isfield(deck.GRID, 'COORD')
+            % Does not assign the 'ACTNUM' for robustness
+            if isfield(deck.GRID, 'COORD') % CPG
                 fn = {'cartDims', 'COORD', 'ZCORN'};
             else % Cartesian grid
                 fn = {'cartDims', 'DX', 'DY', 'DZ', 'TOPS'};
@@ -720,8 +727,7 @@ classdef NearWellboreModel
         function checkCellMaps(nwm)
             % Check the cell maps
             G  = nwm.gloGrid;
-            % From the updated subgrids (after-remove cells) to
-            % the global grid
+            % From updated subgrids (after-remove cells) to global grid
             mapc = nwm.cellMapFromSubGrdsToGloGrd();
             subG = nwm.assignSubGrds();
             for i = 1 : numel(subG)
@@ -729,7 +735,7 @@ classdef NearWellboreModel
                 p2 = G.cells.centroids(mapc{i}(:,2),:);
                 assert( all( all(p1==p2) ), 'Wrong cell map!')
             end
-            % From the input subgrids to the global grid
+            % From input subgrids to global grid
             mapc = nwm.cellMapFromInputSubGrdsToGloGrd();
             subG = nwm.assignInputSubGrds();
             for i = 1 : numel(subG)
@@ -743,8 +749,7 @@ classdef NearWellboreModel
         function checkFaceMaps(nwm)
             % Check the face maps
             G  = nwm.gloGrid;
-            % From the updated subgrids (after-remove cells) to
-            % the global grid
+            % From updated subgrids (after-remove cells) to global grid
             mapf = nwm.faceMapFromSubGrdsToGloGrd();
             subG = nwm.assignSubGrds();
             for i = 1 : numel(subG)
@@ -752,7 +757,7 @@ classdef NearWellboreModel
                 p2 = G.faces.centroids(mapf{i}(:,2),:);
                 assert( all( all(p1==p2) ), 'Wrong face map!')
             end
-            % From the input subgrids to the global grid
+            % From input subgrids to global grid
             mapf = nwm.faceMapFromInputSubGrdsToGloGrd();
             subG = nwm.assignInputSubGrds();
             for i = 1 : numel(subG)
@@ -824,11 +829,11 @@ classdef NearWellboreModel
 
     end
 
-    methods (Access = private)
+    methods (Access = protected)
 
         function CV = mapIntxnRelationCV(nwm, CV)
             % Map the intersection relation from input subgrids (GC and GV)
-            % to global grid.
+            % to global grid
             % CV(:,1): faces of GC
             % CV(:,2): faces of GV
             mapf = nwm.faceMapFromInputSubGrdsToGloGrd();
@@ -889,7 +894,7 @@ classdef NearWellboreModel
         end
 
         function GWu = updateHWGrid(nwm)
-            % Get the updated HW grid.
+            % Get the updated HW grid
             % No cells are removed
             [~, ~, GW] = nwm.assignInputSubGrds();
             GWu = GW;
@@ -904,14 +909,14 @@ end
 function checkDeck(deck)
     if ~isempty(fieldnames(deck.REGIONS))
         error(['The near-wellbore model now only',...
-            ' support single region definition!'])
+            ' supports single region definition'])
     end
     if ~isfield(deck.SOLUTION, 'EQUIL')
         error(['The keyword ''EQUIL'' in the deck input is required ',...
-            'for the equilibrium initialization!'])
+            'for the equilibrium initialization'])
     end
     if size(deck.SOLUTION.EQUIL, 1) > 1
         error(['The near-wellbore model now only',...
-            ' support single equilibration region!'])
+            ' supports single equilibration region'])
     end
 end

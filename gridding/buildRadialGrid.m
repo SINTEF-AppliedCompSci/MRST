@@ -1,5 +1,5 @@
 function [G, t] = buildRadialGrid(p, nA, nR)
-% Build the 2D radial grid from points and dimensions
+% Build the 2D radial grid from point and dimension definitions
 %
 % SYNOPSIS:
 %   [G, t] = buildRadialGrid(p, nA, nR)
@@ -18,10 +18,10 @@ function [G, t] = buildRadialGrid(p, nA, nR)
 %       Face 2:  Angular + 
 %       Face 3:  Radial  +
 %       Face 4:  Angular - 
-%       If the points are geneated from R+ to R-, the direction of face 1 
-%       and 3 will be R+ and R-
-%       If the points are geneated in clockwise direction, the direction of
-%       face 2 and 4 will be A- and A+
+%      If the points are generated from R+ to R-, the directions of face 1 
+%      and 3 will be R+ and R-
+%      If the points are generated in clockwise direction, the directions o
+%      of face 2 and 4 will be A- and A+
 %  t - Connectivity list
 %
 % EXAMPLE:

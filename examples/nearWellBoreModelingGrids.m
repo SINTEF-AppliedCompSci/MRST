@@ -7,7 +7,7 @@
 % unrigorous when the real well trajectory fails to follow the grid 
 % orientation. For another, some field operations require high-resolution 
 % flow descriptions in the well vicinity. The coarse well cells always 
-% unable to provide such descriptions due to the linear flow approxmation 
+% unable to provide such descriptions due to the linear flow approximation 
 % and low-resolution rock properties. To this end, this example 
 % demonstrates the local grid reconstruction in the near-wellbore region of
 % horizontal well. 
@@ -23,15 +23,19 @@
 % | GV   | VOI grid    | Unstructured,        | tessellationGrid +        |
 % |      |             | Vertically layered   | makeLayeredGridNWM        |
 % |-----------------------------------------------------------------------|
-% | GW   | HW grid     | Structured radial,   | tessellationGrid +        |
+% | GW   | HW grid     | Structured, Radial,  | buildRadialGrid +         |
 % |      |             | Horizontally layered | makeLayeredGridNWM        |
 % -------------------------------------------------------------------------
 %
 % Remarks:
-% * This module now only support the modeling of horizontal wells. The
+% * This module now only supports the modeling of horizontal wells. The
 %   modeling of vertical wells is under development.
-% * The volume of interest (VOI) can not cover the faults.
+% * The volume of interest (VOI) cannot cover the faults.
+% * The package 'distmesh' comes from module 'upr'. Note module 'hfm' also
+%   includes the 'distmesh', but the iterations will be slow due to the  
+%   pure MATLAB version of the DSEGMENT routine introduced in 'hfm'.
 
+clear
 mrstModule add nwm deckformat wellpaths upr
 
 %% Read the ECLIPSE input deck
@@ -52,17 +56,17 @@ load(fn)
 % Number of well segments
 ns = size(pW,1)-1;
 
-% Define the well struct. 
-%  'name':         Name of the well, should match the well name list in deck 
+% Define the well structure 
+%  'name':         Well name, should match the well name list in deck 
 %  'trajectory':   Well trajectory, 3D points in xyz format
 %  'segmentNum':   Number of well segment, equals to n_wellpoints - 1
 %  'radius':       Wellbore (Casing) radius per well segment
-%  'skinFactor':   Skin factor per well node
-%  'openedSegs':   Opened segments (allow fluid to flow into wellbore)
+%  'skinFactor':   Skin factor per well point
+%  'openedSegs':   Opened segments (allow fluid to flow into the wellbore)
 % The coupling of the NWM with multi-segment well requires: 
 %  'isMS'      :   Indicating the multi-segment well definition
 %  'roughness' :   Roughness per well segment
-% (See 'exampleNWMMultiSegmentWell')
+% (See 'nearWellBoreModelingMultiSegWell')
 well = struct(...
     'name'         , 'PROD', ...
     'trajectory'   , pW, ...
@@ -84,15 +88,15 @@ pbdy = [240,   50;...
         280,   90];
 
 % The VOI are vertically expanded by extra layers:
-% nextra(1): Layer numbers above the layers that HW occupies
-% nextra(2): Layer numbers below the layers that HW occupies
+% nextra(1): Number of layers above the HW layers
+% nextra(2): Number of layers below the HW layers
 nextra = [1, 1];
 
 % Define the VOI according to the CPG, well, boundary and extra layers
 VOI = VolumeOfInterest(GC, well, pbdy, nextra);
 
-% Get the geometrical information of CPG in VOI, including cells, faces,
-% boundary faces, nodes, boundary nodes, etc.
+% Get the geometrical information of CPG in VOI, including cells, 
+% layer-faces, boundary faces, nodes, boundary nodes, etc.
 geoV = VOI.allInfoOfVolume();
 
 % Show the VOI boundary, cells, and faces.
@@ -103,22 +107,20 @@ VOI.plotVolumeBoundaries(geoV), view(2)
 %% Build the layered unstructured VOI grid
 % The unstructured VOI grid includes a 2D well region (WR). The WR is 
 % composed of a Cartesian region and two half-radial regions in xy plane, 
-% which is used to connect the HW grid. 
-% Generate the grid nodes for the 2D WR region. For the Cartesian region, 
-% the X axis extends along the well trajectory:
+% which is used to connect the HW grid. For the Cartesian region, the X 
+% axis extends along the well trajectory:
 %     ---------> X
 %    |    -----------------------------------
 %  Y |    --------- Well trajectory ---------
 %    V    -----------------------------------
-%
-% The number of Cartesian cells in Y direction
-WR.ny = 6; 
-% The size Cartesian region in Y direction, better to be larger than
+
+% ly: The size of Cartesian region in Y direction, better to be larger than
 % the well-segment length
+% ny: The number of Cartesian cells in Y direction
+% na: The number of angular cells in radial region
 VOI.maxWellSegLength2D()
-WR.ly = 12;
-% The number of angular cells in radial region
-WR.na = 5;
+WR = struct('ly', 15, 'ny', 10, 'na', 5);
+
 % Prepare the 2D well region nodes
 WR = VOI.prepareWellRegionNodes2D(WR);
 
@@ -127,14 +129,16 @@ WR = VOI.prepareWellRegionNodes2D(WR);
 VOI.plot2DWRSubGrid(WR)
 
 % Next, build the layered unstructured VOI grid. The refinement is allowed
-% for each CPG layers.
-% Define the number of refined layers for each VOI layer. Each of the four 
-% VOI layers will be refined into two layers.
+% for each CPG layer.
+% Define the number of refinement layers for each VOI layer. The dimension 
+% of 'layerRf' should be equal to the number of VOI layers.
+VOI.volumeLayerNumber()
+% Each of the four VOI layers will be refined into two sublayers.
 layerRf = [2, 2, 2, 2];
 
 % The open-source triangle generator 'DistMesh' (Per-Olof Persson) is used
-% to obtain high-quality triangles. 
-% The scaled edge length function is defined as:
+% to obtain high-quality triangles. The scaled edge length function is 
+% defined as:
 % h(p) = max(multiplier*d(p) +lIB, lOB)
 % to let the point density increases from inner boundary to outer boundary
 % lIB: average length of the inner boundary (outer-boundary of WR subgrid)
@@ -162,7 +166,7 @@ title('Surfaces of the VOI grid')
 
 %% Build the layered radial HW grid
 % The HW grid is built inside the Cartesian region of VOI grid. The logical
-% indices of HW region should be specified.
+% indices of HW region should be specified:
 %      1   ymin                     ymax   ny 
 %    ----- ----- ----- ----- ----- ----- -----
 %   |     |     |     |     |     |     |     |    1
@@ -180,9 +184,9 @@ title('Surfaces of the VOI grid')
 %               1 < zmin < zmax < nz (GV.layers.num)
 %          
 %               [ymin, ymax, zmin, zmax]
-regionIndices = [   2,    5,    2,    7];
+regionIndices = [   3,    8,    2,    7];
 
-% Define the HW region according to the GV, well, and regionIndices
+% Define the HW region according to GV, well, and regionIndices
 HW = HorWellRegion(GV, well, regionIndices);
 
 % Visualize the HW region

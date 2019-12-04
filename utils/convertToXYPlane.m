@@ -1,10 +1,9 @@
 function [pts1, pts2, T, R, nor_z] = convertToXYPlane(pts1, n1, pts2, varargin)
-% Convert the points p from the fully 3D plane to horizontal xy plane. The 
+% Convert the points p from fully 3D plane to horizontal xy plane. The 
 % fully 3D plane is specified by pts1(n1(1), :), pts1(n1(2), :), and 
 % pts1(n1(3), :).
 % New z-axis: Along normals of the 3D plane
 % New x-axis: pts1(n1(2), :) - pts1(n1(1), :)
-%
 % All points of pts1 and pts2 will be transformed.
 % Optional: 'normalZ', provide z-normal of the plane
 

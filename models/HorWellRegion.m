@@ -1,9 +1,12 @@
 classdef HorWellRegion
-% Class for Horizontal Well region in Volume of Interest (VOI) grid
+% Class for horizontal well (HW) region in volume of interest (VOI) grid 
+% which generates the geometrical information of VOI grid and constructs 
+% the radial HW grid
+    
     properties
         GVOI             % Layered unstructured VOI grid
         regionIndices    % Logical indices of HW region in VOI grid
-        well             % Struct for well information
+        well             % Structure of well information
     end
     
     methods
@@ -27,7 +30,7 @@ classdef HorWellRegion
             %   * = HW region
             %   Remarks:    1 < ymin < ymax < ny (GV.children.cartDims(2))
             %               1 < zmin < zmax < nz (GV.layers.num)
-            %  regionIndices: [ymin, ymax, zmin, zmax]
+            %   regionIndices: [ymin, ymax, zmin, zmax]
             %
             hw.GVOI           = G;
             hw.well           = well;
@@ -36,7 +39,7 @@ classdef HorWellRegion
         end
         
         function checkRegionIndices(hw)
-            % Check whether the region indices exceed the Cartesian
+            % Check whether the region indices exceed the Cartesian reigon
             % dimension of the VOI grid
             [nx, ny, nz] = hw.assignCartDimsOfVOIGrid();
             assert(hw.well.segmentNum == nx);
@@ -48,9 +51,9 @@ classdef HorWellRegion
         end
         
         function packed = allInfoOfRegion(hw, varargin)
-            % Get all information of the region, including cells,
-            % layer-faces,nodes of layer-faces, boundary nodes and box
-            % faces.
+            % Get all information of the region, consisting of cells,
+            % layer-faces, nodes of layer-faces, boundary nodes, indices of
+            % vertices.
             packed.cells = hw.cellsOfRegion();
             packed.nodes = hw.nodesOfRegion();
             packed.faces = hw.facesOfRegion(packed.cells, packed.nodes);
@@ -73,14 +76,14 @@ classdef HorWellRegion
         end
         
         function n = nodesOfRegion(hw, varargin)
-            % Get nodes of HW region in GV
+            % Get nodes of layer-faces of HW region in VOI grid
             [nx, ny] = hw.assignCartDimsOfVOIGrid();
             n_yz = hw.getNodesSingleSurface();
             n = arrayfunUniOut(@(x)n_yz(:) + x * (ny+1), (0:nx)');
         end
         
         function f = facesOfRegion(hw, c, n, varargin)
-            % Get layer faces of HW region in VOI grid
+            % Get layer-faces of HW region in VOI grid
             G = hw.GVOI;
             faceFun = @(c)gridCellFaces(G, c);
             nodeFun = @(f)gridFaceNodes(G, f);
@@ -109,7 +112,7 @@ classdef HorWellRegion
         end
         
         function vxID = IDOfFourVertices(hw)
-            % Get the ID of four vertices in boundary nodes
+            % Get the indices of four vertices in boundary nodes
             n_yz = hw.getNodesSingleSurface();
             vx    = [n_yz(1,1); n_yz(1,end); n_yz(end,end); n_yz(end,1)];
             bn_yz = [n_yz(1, :)'; n_yz(2:end-1, end); ...
@@ -145,7 +148,7 @@ classdef HorWellRegion
         end
         
         function [nx, ny, nz] = assignCartDimsOfVOIGrid(hw)
-            % Assign Cartesian dimension of VOI grid
+            % Assign Cartesian dimensions of VOI grid
             G  = hw.GVOI;
             G2 = G.surfGrid;
             [nx, ny, nz] = deal(G2.cartDims(1),G2.cartDims(2),G.layers.num);
@@ -153,14 +156,14 @@ classdef HorWellRegion
         
         function GW = ReConstructToRadialGrid(hw, radPara)
             % Reconstruct VOI grid in HW region to layered radial grid.
-            % We provide two types of grid lines:
+            % Two types of grid lines are provided:
             % 'pureCircular' : The radial grid lines are pure circular
             % 'gradual'      : The radial grid lines vary from the circular
             %                  line to the rectangular line of a specified
             %                  box gradually
             % PARAMETERS:
-            %  GV      - The layered VOI grid, built by 'VolumeOfInterest.
-            %            ReConstructGrid'
+            %  GV      - The layered VOI grid, built by 
+            %            'VolumeOfInterest.ReConstructGrid'
             %  radPara - Parameters for generating the radial grid
             %            The type 'pureCircular' requires following fields:
             %               'maxRadius': Max radius of the radial grid
@@ -181,37 +184,41 @@ classdef HorWellRegion
             %                            
             % RETURNS:
             %  GW - Layered radial HW grid
-            %
+            
             fprintf(' -- Reconstructing the VOI grid to radial HW grid\n')
+            
+            % Geometrical info of HW reigon
             packed = hw.allInfoOfRegion();
-            [players, playersXY, wellbores] = ...
+            [pSurfs, pSurfXY, wellbores] = ...
                 generateHWGridNodes(hw.GVOI, packed, hw.well, radPara);
             
             % Construct the 2D grid
-            p   = playersXY{1};
+            p   = pSurfXY{1};
             nA  = unique(cellfun(@numel, packed.bdyNodes));
             assert(numel(nA)==1);
             [gW, t] = buildRadialGrid(p, nA, sum(radPara.nRadCells));
             gW.nodes.boundary = (gW.nodes.num-nA+1 : gW.nodes.num)';
-            % Redefine the radial dimensions, in order to compatible with
-            % `computeRadTransFactor`
+            
+            % Rewrite the radial dimensions, in order to be compatible with
+            % 'computeRadTransFactor'
             switch radPara.gridType
                 case 'pureCircular'
                     % The outer-most radial cells are not 'real radial cells'
                     gW.radDims = [nA, radPara.nRadCells-1, 1];
                 case 'gradual'
-                    % The outside-box radial cells are not 'real radial cells'
+                    % The radial cells outside the box are not 'real radial
+                    % cells'
                     gW.radDims = [nA, radPara.nRadCells];
                 otherwise
                     error([mfilename, ': Unknown radial grid type'])
             end
             
             % Extrude the 2D grid to 3D grid
-            GW = makeLayeredGridNWM(gW, players, 'connectivity', t);
+            GW = makeLayeredGridNWM(gW, pSurfs, 'connectivity', t);
             GW.radDims = [gW.radDims, GW.layers.num];
             GW.layers.refinement = ones(GW.layers.num, 1);
             GW.wellbores = wellbores;
-            GW.layers.coordsXY = playersXY;
+            GW.layers.coordsXY = pSurfXY;
             GW.parentInfo = packed;
         end
         
@@ -245,12 +252,12 @@ classdef HorWellRegion
         end
         
         function plotRegionLayerFaces(hw, packed)
-            % Plot layer faces of the HW region
+            % Plot layer-faces of the HW region
             figure, hold on, axis off
             arrayfun(@(x)plotFaces(hw.GVOI, packed.faces{x}, 'facecolor',...
                 rand(3,1)), (1:numel(packed.faces))')
             view(3)
-            title('Layer faces of the region')
+            title('Layer-faces of the region')
         end
     end
 end

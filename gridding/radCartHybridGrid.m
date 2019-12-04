@@ -6,12 +6,12 @@ function [G, t] = radCartHybridGrid(GC, CI, rW, rM, nR, pW)
 %   G = radCartHybridGrid(GC, CI, rW, rM, nR, pW)
 %
 % PARAMETERS:
-%  GC    -   The Cartesian grid 
-%  CI    -   Cells indside the well region
+%  GC    -   The Cartesian grid structure
+%  CI    -   Cells inside the well region
 %  nR    -   Number of cells in radial direction
 %  rW    -   The minimum radius (wellbore radius)
 %  rM    -   The maximum radius
-%  pW    -   The well point coordinates (center of the radial grid)
+%  pW    -   The well point coordinates
 %
 % RETURNS:
 %  G  -  Valid hybrid grid definition
@@ -31,18 +31,18 @@ function [G, t] = radCartHybridGrid(GC, CI, rW, rM, nR, pW)
 %   figure, hold on; axis equal off, plotGrid(G)
 %  
 % SEE ALSO:
-%  `tessellationGrid` `pebi` `buildRadialGrid`
+%  `tessellationGrid` `pebi` `buildRadialGrid` `glueRadCartGrids`
 
-    % Get the sorted boundary nodes of the reigon (in 'counterclockwise')
+    % Get the sorted boundary nodes of the region (in counterclockwise)
     bn = extractBdyNodesCells(GC, CI, 'plotResults', false);
     
     % The angular dimension and grid angles are determined by the boundary
     % nodes to conform with the Cartesian grid
     nA = numel(bn);
     
+    % Compute the angles
     pbn = GC.nodes.coords(bn, :);
     pbn0 = bsxfun(@minus, pbn, pW);
-    % Compute the angles
     th = cart2pol(pbn0(:,1), pbn0(:,2));
     
     % Get the grid radii
@@ -60,10 +60,10 @@ function [G, t] = radCartHybridGrid(GC, CI, rW, rM, nR, pW)
     % Build the radial grid
     [GR, tR] = buildRadialGrid(pR, nA, nR+1);
 
-    % Points and conn. list of the radial grid
+    % Points and connectivity list of the radial grid
     pR = GR.nodes.coords;
 
-    % Points and conn. list of the Cartesian grid
+    % Points and connectivity list of the Cartesian grid
     % Remove the cells inside the well region first
     [GC_Rem, ~, ~, mapn] = removeCells(GC, CI);
     pC = GC_Rem.nodes.coords;
@@ -78,19 +78,22 @@ function [G, t] = radCartHybridGrid(GC, CI, rW, rM, nR, pW)
     idx  = ~ismember(nNo, bn);
     nNo(idx) = (1:nnz(idx))' + size(pR,1);
     pC = pC(idx,:);
-    % We already know the bounday nodes in pR: the last nA nodes
+    % We already know the boundary nodes in pR: the last nA nodes
     nNo(bn)  = size(pR,1)+1 - (nA:-1:1)';
 
-    % Map the conn. list
+    % Map the connectivity list of GC_Rem
     [cnC, pos] = gridCellNodes(GC_Rem, (1:GC_Rem.cells.num));
     cnC = nNo(cnC);
     tC  = arrayfunUniOut(@(c)cnC(pos(c):pos(c+1)-1), (1:GC_Rem.cells.num)');
 
-    % Assemble the points and conn. lists
+    % Assemble the points and connectivity lists
     p = [pR; pC];
-    % Sort the tC to same direction with tR (in 'clockwise')
+    
+    % Sort the tC to same direction with tR (in clockwise)
     tC = sortPtsClockWise(p, tC);
     t = [tR; tC];
+    
+    % Build the hybrid grid
     G = tessellationGrid(p, t);
     G = computeGeometry(G);
     G.subGrids = {GR; GC_Rem};

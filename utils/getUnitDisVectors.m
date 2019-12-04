@@ -1,11 +1,11 @@
 function [ux, uy, uz] = getUnitDisVectors(G, cfCentersAll, cells)
-% Get unit distance vectors of cells in Corner-point grid
+% Get unit distance vectors of cells in Corner-point or Cartesian grid
 %
 % SYNOPSIS:
 %   [ux, uy, uz] = getUnitDisVectors(G, cfCentersAll, cells)
 %
 % PARAMETERS:
-%  G             - Corner-point or Cartesian grid struct
+%  G             - Corner-point or Cartesian grid structure
 %  cfCentersAll  - Cell face center of the G, corresponding to G.cells.faces
 %                  can be obtained by: 'computeCpGeometry' or 
 %                  G.faces.centroids(G.cells.faces(:,1), :)

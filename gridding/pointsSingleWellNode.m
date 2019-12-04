@@ -1,11 +1,33 @@
 function p0 = pointsSingleWellNode(pW, ly, ny, na, ii)
-% Generate the 2D points corresponding to single well node ii.
-% The parameter represeation can be found in 'prepareWellRegionNodes2D'.
+% Generate the 2D well region (WR) points corresponding to single well node
+% ii. The WR is composed of a Cartesian region and two half-radial regions 
+% in xy plane, which is used to connect the HW grid. For the Cartesian 
+% region, the X axis extends along the well trajectory:
+%     ---------> X
+%    |    -----------------------------------
+%  Y |    --------- Well trajectory ---------
+%    V    -----------------------------------
+%
+% SYNOPSIS:
+%   p0 = pointsSingleWellNode(pW, ly, ny, na, ii)
+%
+% PARAMETERS:
+%  pW     - The well trajectory, specified by a set of discrete 3D well 
+%           points (in xyz format)
+%  ly     - The size of Cartesian region in Y direction
+%  ny     - The number of Cartesian cells in Y direction
+%  na     - The number of angular cells in radial region
+%  ii     - Well node index
+%
+% RETURNS:
+%  p0   - 2D well region (WR) points corresponding to single well node ii
+%
+% SEE ALSO:
+%  `VolumeOfInterest` `getConnListAndBdyNodeWR2D` `nearWellBoreModelingGrids`
     
-    % Compute the angle
+    % Compute the angles
     y0 = linspace(ly/2, 0, ny/2+1)';
     y0 = y0(1:end-1);
-    
     fTheta = @(x,y)2*pi*double(sign(atan2(y,x))<0) + atan2(y,x);
     pW = pW(:, [1,2]);
     p2 = pW(ii, :);
@@ -53,6 +75,7 @@ function p0 = pointsSingleWellNode(pW, ly, ny, na, ii)
         xyr = [];
     end
 
+    % The points
     p0.cart = xy;
     p0.rad  = xyr;
 end

@@ -1,6 +1,6 @@
 function t = makeConnListFromMat(nd, varargin)
 % Make the connectivity list from the node distribution matrix for a
-% structured style grid.
+% structured grid.
 % The node distribution matrix:
 %
 %       1  2  3                      nnx
@@ -11,7 +11,7 @@ function t = makeConnListFromMat(nd, varargin)
 %       *  *  *  *  *  *  ....  *  *  *
 %  nny  *  *  *  *  *  *  ....  *  *  *
 %
-% The nodes corresponding to cell (i, j) is: 
+% The nodes corresponding to cell (i,j) is: 
 %  {L(i,j), L(i+1,j), L(i+1,j+1), L(i,j+1)}
 %
 % SYNOPSIS:
@@ -26,7 +26,7 @@ function t = makeConnListFromMat(nd, varargin)
 %              of the connectivity list cycles along 'order' fastest.
 %
 % RETURNS:
-%    t  - Connectivity list, n x 4 matrix
+%    t  - Connectivity list, n x 1 cell
 %
 % EXAMPLE:
 %    [nnx, nny] = deal(10, 6);

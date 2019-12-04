@@ -8,8 +8,8 @@ function relation = handleMatchingFaces(G1, cells1, bdnodes1, G2)
 %   relation = handleMatchingFaces(G1, cells1, bdnodes1, G2)
 %
 % PARAMETERS:
-%  G1,G2     - Grid structure, G2 is a layerd grid loacted inside G1
-%  cells1    - Cells in G1 which are replaced by G2
+%  G1,G2     - Layered grid structures, G2 is loacted inside G1
+%  cells1    - Cells in G1 which will be replaced by G2
 %  bdnodes1  - Boundary nodes of cells1
 %
 % RETURNS:
@@ -49,7 +49,7 @@ function relation = handleMatchingFaces(G1, cells1, bdnodes1, G2)
     relation = cell(length(cells1), 1);
     for k = 1 : length(cells1)
         faces1 = arrayfun(@(c)fun_faces(G1,c), cells1{k}, 'UniformOutput', false);
-        tab = tabulate(cell2mat(faces1));
+        tab = tabulate_NWM(cell2mat(faces1));
         faces1 = tab( tab(:,2) == 1, 1);
         nodes1 = arrayfun(@(f)fun_nodes(G1,f), faces1, 'UniformOutput', false);
         bdnFourPts = [bdnodes1{k}, bdnodes1{k+1}];

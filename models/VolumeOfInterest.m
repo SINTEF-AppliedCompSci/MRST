@@ -1,8 +1,11 @@
 classdef VolumeOfInterest
-    % Class for Volume of Interest (VOI) in the Corner-point grid or Cartesian grid
+% Class for volume of interest (VOI) in the Corner-point grid (CPG) or 
+% Cartesian grid which generates the geometrical information of CPG or 
+% Cartesian grid in VOI and constructs the unstructured VOI grid.
+    
     properties
-        CPG            % Corner-point or Cartesian grid struct
-        well           % Struct for well information
+        CPG            % CPG or Cartesian grid structure
+        well           % Structure of well information
         boundary       % 2D VOI boundary specified by the polygon
         extraLayers    % Extra layers above and below the layers where the
                        % well is located
@@ -14,8 +17,8 @@ classdef VolumeOfInterest
             volume.CPG         = G;
             volume.well        = well;
             volume.boundary    = pbdy;
-            % nextra(1): Layer numbers above the layers that well occupies
-            % nextra(2): Layer numbers below the layers that well occupies
+            % nextra(1): Number of layers above the HW layers
+            % nextra(2): Number of layers below the HW layers
             volume.extraLayers = nextra;
             volume.plotVolumeBoundaries(1, 'plotClippedBoundary',false)
             % All well points should be located inside the boundary
@@ -27,8 +30,7 @@ classdef VolumeOfInterest
         end
         
         function varargout = logicalIndices(volume, varargin)
-            % Get logical indices of Grid. The Grid should be structured in
-            % all three dimensions.
+            % Get logical indices of CPG
             G = volume.CPG;
             if nargin > 1
                 indices = gridLogicalIndices(G, varargin{1});
@@ -43,7 +45,7 @@ classdef VolumeOfInterest
         end
         
         function indicator = layerFaceIndicator(volume, varargin)
-            % Find face indicator at layered dimension (typically is 'Z')
+            % Find face indicator of layered dimension (typically is 'Z')
             G = volume.CPG;
             if isfield(G, 'cartDims') && size(G.cells.faces,2)==2
                 indicator = [5, 6];
@@ -57,60 +59,6 @@ classdef VolumeOfInterest
             [I, J, K] = volume.logicalIndices();
             c = arrayfun(@(x)find(I == ijk(x,1) & J == ijk(x,2) & ...
                 K == ijk(x,3)), (1:size(ijk,1))');
-        end
-        
-        function wc = PeacemanWellCells(volume, varargin)
-            % Find well cells of Peaceman's well model, require 'wellpaths'
-            % module
-            pW   = volume.well.trajectory;
-            wph  = makeSingleWellpath(pW);
-            wc   = findWellPathCells(volume.CPG, wph);
-        end
-        
-        function ij = ijIndicesFromBoundary(volume, varargin)
-            % Get i and j indices from the defined 2D boundary
-            pbdy = volume.boundary;
-            % Get ij indices of the volume from a defined 2D polygon
-            % All well points should be located inside the boundary
-            pW = volume.well.trajectory;
-            assert(all(inpolygon(pW(:,1), pW(:,2), pbdy(:,1), pbdy(:,2))), ...
-                ['Well points outside the boundary were defected, ', ...
-                'try to enlarge the boundary']);
-            [I, J, K] = volume.logicalIndices();
-            % Find VOI cells per layers
-            c = cell(max(K), 1);
-            for k = min(K) : max(K)
-                cktol = find(K == k);
-                xy    = volume.CPG.cells.centroids(cktol, [1, 2]);
-                in    = inpolygon(xy(:,1), xy(:,2), pbdy(:,1), pbdy(:,2));
-                c{k}  = cktol(in);
-            end
-            % Combine the cells and extract the logical indices
-            ij = cellfunUniOut(@(c)[I(c), J(c)], c);
-            ij = cell2mat(ij);
-            ij = unique(ij, 'rows');
-            % Remove 'bad' ij (appears only once)
-            tabi = tabulate(ij(:,1));
-            badi = ismember(ij(:,1), tabi(tabi(:,2) == 1, 1));
-            tabj = tabulate(ij(:,2));
-            badj = ismember(ij(:,2), tabj(tabj(:,2) == 1, 1));
-            ij = ij(~(badi|badj), :);
-        end
-        
-        function k = kIndicesFromExtraLayers(volume, varargin)
-            % Get the grid layer index from the extra layers and layers
-            % occupied by the well
-            nex = volume.extraLayers;
-            % Get k from grid layers that well occupies and extra defined
-            % layers. nextra = number of layers [above, below] the well
-            % layers
-            [~, ~, K] = volume.logicalIndices();
-            wc    = volume.PeacemanWellCells();
-            kwc   = K(wc);
-            kmin  = min(kwc) - nex(1);
-            kmax  = max(kwc) + nex(2);
-            k = (kmin : kmax)';
-            k = k( k <= max(K) & k >= min(K) );
         end
         
         function packed = allInfoOfVolume(volume, varargin)
@@ -127,6 +75,57 @@ classdef VolumeOfInterest
             packed.clippedBoundary = cellfunUniOut(...
                 @(n)volume.CPG.nodes.coords(n, [1,2]), bn);
             packed.KIndices = volume.kIndicesFromExtraLayers();
+        end
+        
+        function wc = PeacemanWellCells(volume, varargin)
+            % Find well cells of Peaceman's well model, require 'wellpaths'
+            % module
+            pW   = volume.well.trajectory;
+            wph  = makeSingleWellpath(pW);
+            wc   = findWellPathCells(volume.CPG, wph);
+        end
+        
+        function ij = ijIndicesFromBoundary(volume, varargin)
+            % Get i and j indices f the volume from the defined 2D boundary
+            pbdy = volume.boundary;
+            % All well points should be located inside the boundary
+            pW = volume.well.trajectory;
+            assert(all(inpolygon(pW(:,1), pW(:,2), pbdy(:,1), pbdy(:,2))), ...
+                ['Well points outside the boundary were defected, ', ...
+                'try to enlarge the boundary']);
+            [I, J, K] = volume.logicalIndices();
+            % Find VOI cells per layer
+            c = cell(max(K), 1);
+            for k = min(K) : max(K)
+                cktol = find(K == k);
+                xy    = volume.CPG.cells.centroids(cktol, [1, 2]);
+                in    = inpolygon(xy(:,1), xy(:,2), pbdy(:,1), pbdy(:,2));
+                c{k}  = cktol(in);
+            end
+            % Combine the cells and extract the logical indices
+            ij = cellfunUniOut(@(c)[I(c), J(c)], c);
+            ij = cell2mat(ij);
+            ij = unique(ij, 'rows');
+            % Remove 'bad' ij (appears only once)
+            tabi = tabulate_NWM(ij(:,1));
+            badi = ismember(ij(:,1), tabi(tabi(:,2) == 1, 1));
+            tabj = tabulate_NWM(ij(:,2));
+            badj = ismember(ij(:,2), tabj(tabj(:,2) == 1, 1));
+            ij = ij(~(badi|badj), :);
+        end
+        
+        function k = kIndicesFromExtraLayers(volume, varargin)
+            % Get the grid layer indices from the extra layers and layers
+            % occupied by the well
+            % nex = number of layers [above, below] the well layers
+            nex = volume.extraLayers;
+            [~, ~, K] = volume.logicalIndices();
+            wc    = volume.PeacemanWellCells();
+            kwc   = K(wc);
+            kmin  = min(kwc) - nex(1);
+            kmax  = max(kwc) + nex(2);
+            k = (kmin : kmax)';
+            k = k( k <= max(K) & k >= min(K) );
         end
         
         function c = cellsOfVolume(volume, varargin)
@@ -153,7 +152,8 @@ classdef VolumeOfInterest
         
         function f = getLayerFacesFromCells(volume, c, indicator, varargin)
             % Get layer-faces of cell c in single layer
-            % For Corner-point grid, the layer-faces are Z- and Z+ faces
+            % For CPG or Cartesian grid, the layer-faces are Z- and Z+ 
+            % faces
             G   = volume.CPG;
             cf  = G.cells.faces(mcolon(G.cells.facePos(c), ...
                 G.cells.facePos(c+1) - 1),1);
@@ -193,7 +193,7 @@ classdef VolumeOfInterest
         end
         
         function [bn, bf] = boundaryInfoOfVolume(volume, f, varargin)
-            % Get all boundary nodes and faces of the volume
+            % Get all boundary nodes and layer-faces of the volume
             [bn, bf] = cellfun(@(f)volume.getBoundaryInfoSingleSurface(f),...
                 f, 'UniformOutput', false);
         end
@@ -214,7 +214,7 @@ classdef VolumeOfInterest
             g = tessellationGrid(p, t);
             g = computeGeometry(g);
             Ng = g.faces.neighbors;
-            % Boundary faces of g, sorted, counter clock wise
+            % Boundary faces of g, sorted, counterclockwise
             bfg = find( ~all(Ng,2) );
             bfg = sortPtsCounterClockWise(g.faces.centroids, {bfg});
             bfg = bfg{1};
@@ -222,14 +222,14 @@ classdef VolumeOfInterest
             [bfng, pos] = gridFaceNodes(g, bfg);
             assert(all(diff(pos)==2))
             bfng = reshape(bfng, 2, [])';
-            % Boundary nodes of VOI in g, sorted, counter clock wise
+            % Boundary nodes of VOI in g, sorted, counterclockwise
             bng = arrayfun(@(r)bfng(r, ~ismember(bfng(r,:), bfng(r-1,:))), ...
                 (2:size(bfng,1)-1)');
             idx  = ismember(bfng(1,:), bfng(2,:));
             bng  = [bfng(1,~idx); bfng(1,idx); bng];
-            % Boundary nodes of VOI in G, sorted, counter clock wise
+            % Boundary nodes of VOI in G, sorted, counterclockwise
             bn  = nu(bng);
-            % The following are the preparations of building pebi grid
+            % The following are the preparations of building Voronoi grid
             % Boundary cells in g
             bcg = sum(Ng(bfg, :),2);
             bcg = unique(bcg, 'stable');
@@ -244,13 +244,138 @@ classdef VolumeOfInterest
                     cc(ii) = intersect(c1, c2);
                 end
             end
-            % Insert the Z cells
+            % Insert the 'Z' cells
             bcg = [bcg, cc]';
             bcg = bcg(:);
             bcg = bcg(bcg~=0);
-            % Boundary faces of VOI in g,  cell index of g equals to face
-            % index of VOI f
+            % Boundary faces of VOI in g, cell index of g equals to face
+            % index of VOI face
             bf = f(bcg);
+            assert(numel(bf) == unique(numel(bf)), ['Isolate boundary',...
+                ' faces are detected, please redefine the boundary polygon'])
+        end
+        
+        function WR = prepareWellRegionNodes2D(volume, WR)
+            % Prepare the 2D well region nodes.
+            % The unstructured VOI grid includes a 2D well region (WR). The
+            % WR is composed of a Cartesian region and two half-radial
+            % regions in xy plane, which are used to connect the HW grid.
+            % This function generates the grid nodes for the three
+            % structured regions.
+            % For the Cartesian region, the X axis extends along the well
+            % trajectory:
+            %     ---------> X
+            %    |    -----------------------------------
+            %  Y |    --------- Well trajectory ---------
+            %    V    -----------------------------------
+            %
+            % PARAMETERS:
+            % WR - The 2D WR structure that consists of following fields:
+            %  'ny' - The number of Cartesian cells in Y direction
+            %  'ny' - The size of Cartesian region in Y direction
+            %  'na' - The number of angular cells in radial region
+            %
+            % RETURNS:
+            % The expanded WR structure with node and topology information:
+            %  'points'    - 2D coordinates WR nodes
+            %  'connlist'  - Connectivity list of the whole well region
+            %  'connlistC' - Connectivity list of the Cartesian region
+            %  'bdnodes'   - Indices of outer boundary nodes of the whole 
+            %                well region
+            %  'bdnodesC'  - Indices of outer boundary nodes of the 
+            %                Cartesian region
+            %  'cartDims'  - Dimensions of the Cartesian region, [nx, ny]
+           
+            pW = volume.well.trajectory;
+            nx = volume.well.segmentNum;
+            ny = WR.ny;
+            if mod(ny,2) == 1
+                warning(['ny must be an even number, ny+1 (%d) is',...
+                    ' used instead'], ny+1)
+                ny = ny + 1;
+            end
+            ly = WR.ly;
+            na = WR.na;
+            
+            % Generate the WR points corresponding to all well nodes
+            p = arrayfun(@(ii)pointsSingleWellNode(pW, ly, ny, na, ii), ...
+                (1:nx+1)');
+            pall = [vertcat(p.cart); vertcat(p.rad)];
+            pbdy = volume.boundary;
+            assert(all(inpolygon(pall(:,1), pall(:,2), pbdy(:,1), pbdy(:,2))),...
+                ['Points outside the boundary were detected, please reduce ',...
+                'the size of Cartesian region']);
+            
+            % Get connectivity list and boundary nodes of WR
+            [t, tC, bn, bnC] = getConnListAndBdyNodeWR2D(p, ny, na);
+            
+            % Asssign data to WR
+            WR.points     = p;
+            WR.connlist   = t;
+            WR.connlistC  = tC;
+            WR.bdnodes    = bn;
+            WR.bdnodesC   = bnC;
+            WR.cartDims   = [nx, ny];
+        end
+        
+        function GV = ReConstructToUnstructuredGrid(volume, WR, layerRf, varargin)
+            % Reconstruct CPG in VOI to layered unstructured grid.
+            % The open-source triangle generator 'DistMesh' 
+            % (Per-Olof Persson) is used to obtain high-quality triangles. 
+            % The scaled edge length function is defined as:
+            % h(p) = max(multiplier*d(p) +lIB, lOB)
+            % to let the point density increases from inner boundary to
+            % outer boundary
+            % lIB: average length of inner boundary (outer-boundary of WR subgrid)
+            % lOB: average length of outer boundary (VOI clipped boundary)
+            %
+            % PARAMETERS:
+            %  WR      - The 2D well region struct, including the node and
+            %            topology information. Generated by
+            %            'prepareWellRegionNodes2D'
+            %  layerRf - Number of refinement layers in each VOI layer
+            %
+            % KEYWORD ARGUMENTS:
+            %   'multiplier'- Multiplier of the scaled edge length function
+            %   'maxIter'   - The maximum number of DistMesh iterations
+            %   'gridType'  - Grid type, 'Voronoi' (default) | 'triangular'
+            %
+            % RETURNS:
+            %  GV - Layered unstructured VOI grid
+           
+            fprintf(' -- Reconstructing the CPG to unstructured VOI grid\n')
+            
+            opt = struct('multiplier', 0.2,...
+                'maxIter', 500,...
+                'gridType', 'triangular');
+            opt = merge_options(opt, varargin{:});
+            
+            % Geometrical info of VOI
+            packed = volume.allInfoOfVolume();
+            if ~isfield(WR, 'points')
+                WR = volume.prepareWellRegionNodes2D(WR);
+            end
+            
+            % Generate nodes for the unstructured grid
+            [pSurfs, t, bdyID] = ...
+                generateVOIGridNodes(volume.CPG, packed, WR, layerRf, opt);
+            
+            % Construct the 2D grid
+            p = pSurfs{1}(:, [1,2]);
+            t = sortPtsCounterClockWise(p, t);
+            gV = tessellationGrid(p, t);
+            gV.nodes.boundary = bdyID;
+            gV.cartDims = WR.cartDims;
+            
+            % Extrude the 2D grid to 3D grid
+            GV = makeLayeredGridNWM(gV, pSurfs, 'connectivity', t);
+            if size(layerRf,1) < size(layerRf,2)
+                layerRf = layerRf';
+            end
+            GV.layers.refinement = layerRf(1:numel(packed.cells));
+            GV.parentInfo = packed;
+            
+            dispInfo(GV);
         end
         
         function plotVolumeBoundaries(volume, packed, varargin)
@@ -284,136 +409,15 @@ classdef VolumeOfInterest
         end
         
         function plotVolumeLayerFaces(volume, packed)
-            % Plot layer faces of the volume
+            % Plot layer-faces of the volume
             figure, hold on, axis off
             arrayfun(@(x)plotFaces(volume.CPG, packed.faces{x}, 'facecolor',...
                 rand(3,1)), (1:numel(packed.faces))')
-            title('Layer faces of the volume')
-        end
-        
-        function WR = prepareWellRegionNodes2D(volume, WR)
-            % Prepare the 2D well region nodes.
-            % The unstructured VOI grid includes a 2D well region (WR). The
-            % WR is composed of a Cartesian region and two half-radial
-            % regions in xy plane, which are used to connect the HW grid.
-            % This function generates the grid nodes for the three
-            % structured regions.
-            % For the Cartesian region, the X axis extends along the well
-            % trajectory:
-            %     ---------> X
-            %    |    -----------------------------------
-            %  Y |    --------- Well trajectory ---------
-            %    V    -----------------------------------
-            %
-            % PARAMETERS:
-            %  WR: The 2D well region that consists of should include the
-            %  following field:
-            %   'ny' - The number of Cartesian cells in Y direction
-            %   'ny' - The size of Cartesian region in Y direction
-            %   'na' - The number of angular cells in radial region
-            %
-            % RETURNS:
-            % The expanded WR with node and topology information
-            %  'points'    - 2D coordinates WR nodes
-            %  'connlist'  - Connectivity list of the WR nodes
-            %  'connlistC' - Connectivity list of the WR nodes,
-            %                only include the Cartesian region
-            %  'bdnodes'   - Indices for boundary nodes of WR
-            %  'bdnodesC'  - Indices for boundary nodes of WR,
-            %                only include the Cartesian region
-            %  'cartDims'  - Dimensions of the Cartesian region, [nx, ny]
-            %
-            pW = volume.well.trajectory;
-            nx = volume.well.segmentNum;
-            ny = WR.ny;
-            if mod(ny,2) == 1
-                warning(['ny must be an even number, ny+1 (%d) is',...
-                    'used instead'], ny+1)
-                ny = ny + 1;
-            end
-            ly = WR.ly;
-            na = WR.na;
-            % Get points corresponding to single well node
-            p = arrayfun(@(ii)pointsSingleWellNode(pW, ly, ny, na, ii), ...
-                (1:nx+1)');
-            
-            pall = [vertcat(p.cart); vertcat(p.rad)];
-            pbdy = volume.boundary;
-            assert(all(inpolygon(pall(:,1), pall(:,2), pbdy(:,1), pbdy(:,2))),...
-                ['Points outside the boundary were detected, please reduce ',...
-                'the size of Cartesian region']);
-            [t, tC, bn, bnC] = getConnListAndBdyNodeWR2D(p, ny, na);
-            
-            % Asssign data to WR
-            WR.points     = p;
-            WR.connlist   = t;
-            WR.connlistC  = tC;
-            WR.bdnodes    = bn;
-            WR.bdnodesC   = bnC;
-            WR.cartDims   = [nx, ny];
-        end
-        
-        function GV = ReConstructToUnstructuredGrid(volume, WR, layerRf, varargin)
-            % Reconstruct CPG in VOI to layered unstructured grid.
-            % We use the open-source triangle generator 'DistMesh'
-            % (Per-Olof Persson) to obtain high-quality triangles.
-            % We adopt the scaled edge length function:
-            % h(p) = max(multiplier*d(p) +lIB, lOB)
-            % to let the point density increases from inner boundary to
-            % outer boundary
-            % lIB: average length of inner boundary (outer-boundary of WR subgrid)
-            % lOB: average length of outer boundary (VOI clipped boundary)
-            %
-            % PARAMETERS:
-            %  WR      - The 2D well region struct, including the node and
-            %            topology information. Generated by
-            %            'prepareWellRegionNodes2D'
-            %  layerRf - Number of refined layers in each VOI layer
-            %
-            %  Optional:
-            %   'multiplier'- Multiplier of the scaled edge length function
-            %   'maxIter'   - The maximum number of distmesh iterations
-            %   'gridType'  - Grid type, 'Voronoi' (default) | 'triangular'
-            %
-            % RETURNS:
-            %  GV - Layered unstructured VOI grid
-            %
-            fprintf(' -- Reconstructing the CPG to unstructured VOI grid\n')
-            
-            opt = struct('multiplier', 0.2,...
-                'maxIter', 500,...
-                'gridType', 'triangular');
-            opt = merge_options(opt, varargin{:});
-            
-            packed = volume.allInfoOfVolume();
-            if ~isfield(WR, 'points')
-                WR = volume.prepareWellRegionNodes2D(WR);
-            end
-            
-            % Generate nodes for the unstructured grid
-            [players, t, bdyID] = ...
-                generateVOIGridNodes(volume.CPG, packed, WR, layerRf, opt);
-            
-            % Construct the 2D grid
-            p = players{1}(:, [1,2]);
-            t = sortPtsCounterClockWise(p, t);
-            gV = tessellationGrid(p, t);
-            gV.nodes.boundary = bdyID;
-            gV.cartDims = WR.cartDims;
-            
-            % Extrude the 2D grid to 3D grid
-            GV = makeLayeredGridNWM(gV, players, 'connectivity', t);
-            if size(layerRf,1) < size(layerRf,2)
-                layerRf = layerRf';
-            end
-            GV.layers.refinement = layerRf(1:numel(packed.cells));
-            GV.parentInfo = packed;
-            
-            dispInfo(GV);
+            title('Layer-faces of the volume')
         end
         
         function plot2DWRSubGrid(volume, WR)
-            % Plot the subgrid of2D well region
+            % Plot the subgrid of the 2D well region
             if ~isfield(WR, 'points')
                 WR = volume.prepareWellRegionNodes2D(WR);
             end
@@ -427,11 +431,19 @@ classdef VolumeOfInterest
         end
         
         function maxWellSegLength2D(volume)
-            % Compute maximum lengths of well segments
+            % Display the maximum 2D length of well segments
             pW = volume.well.trajectory(:, [1,2]);
             L = diff(pW, 1);
             L = sqrt(sum(L.^2,2));
             fprintf('    Info : The maximum well-segment length in 2D is %.2f\n', max(L))
+        end
+        
+        function volumeLayerNumber(volume)
+            % Display the number of volume layers
+            k = volume.kIndicesFromExtraLayers();
+            fprintf('    Info : The number of VOI layers is %d (', numel(k))
+            arrayfun(@(k)fprintf(' %d ', k), k)
+            fprintf(')\n')
         end
         
     end

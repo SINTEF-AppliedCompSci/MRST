@@ -2,11 +2,12 @@
 %
 % This example aims to show the complete workflow for the NWM method. This
 % includes building the volume of interest (VOI) grid, building the 
-% horizontal well (HW) grid, and generating variables passed to the AD 
-% simulators. Details about the grids and variable generation can be found
-% in example 'nearWellBoreModelingGrids' and 'nearWellBoreModelingSim',
-% respectively.
+% horizontal well (HW) grid, and generating data structures passed to the 
+% AD simulators. Details about the grids and data structure generations can
+% be found in example 'nearWellBoreModelingGrids' and 
+% 'nearWellBoreModelingSim', respectively.
 
+clear
 mrstModule add nwm ad-core ad-blackoil ad-props mrst-gui deckformat wellpaths upr
 
 %% Read the ECLIPSE input deck
@@ -24,7 +25,7 @@ fn = fullfile(pwd, '..', 'data', 'trajectory.mat');
 load(fn)
 % Number of well segments
 ns = size(pW,1)-1;
-% Define the well struct. 
+% Define the well structure 
 well = struct(...
     'name'         , 'PROD', ...
     'trajectory'   , pW, ...
@@ -48,12 +49,12 @@ nextra = [1, 1];
 % Define the VOI according to the CPG, well, boundary and extra layers
 VOI = VolumeOfInterest(GC, well, pbdy, nextra);
 
-% Define parameters for the 2D well region grid 
-WR.ny = 6; 
-WR.ly = 12;
-WR.na = 5;
+% Define parameters for the 2D well region subgrid 
+VOI.maxWellSegLength2D()
+WR = struct('ly', 15, 'ny', 10, 'na', 5);
 
-% Define the number of refined layers for each VOI layer
+% Define the number of refinement layers for each VOI layer
+VOI.volumeLayerNumber()
 layerRf = [2, 2, 2, 2];
 
 % Reconstruct the CPG in VOI to layered unstructured grid
@@ -62,13 +63,13 @@ GV = VOI.ReConstructToUnstructuredGrid(WR, layerRf, ...
 
 %% Build the layered radial HW grid
 % Define the logical indices of HW region
-regionIndices = [   2,    5,    2,    7];
+regionIndices = [   3,    8,    2,    7];
 
 % Define the HW region according to the GV, well, and regionIndices
 HW = HorWellRegion(GV, well, regionIndices);
 
 % Define the parameters for building the radial grid
-radPara2 = struct(...
+radPara = struct(...
     'gridType'  , 'gradual', ...
     'boxRatio'  , [0.6, 0.6], ...
     'nRadCells' , [7, 2], ...
@@ -76,9 +77,9 @@ radPara2 = struct(...
     'offCenter' , true);
 
 % Reconstruct the VOI grid in HW region to layered radial grid
-GW = HW.ReConstructToRadialGrid(radPara2);
+GW = HW.ReConstructToRadialGrid(radPara);
 
-%% Generate variables for the AD simulator
+%% Generate data structures for the AD simulator
 % Define the 'NearWellboreModel' by three subgrids, input deck and well
 NWM = NearWellboreModel({GC, GV, GW}, deck, well);
 
@@ -91,12 +92,12 @@ poroW = repmat(poroW, nclayer, 1);
 rockW.perm = [permW(:), permW(:), permW(:)];
 rockW.poro = poroW(:);
 
-% Get the variables for the NWM grid
+% Get the mrst data structures for the NWM grid
 [G, rock, fluid, model, schedule, initState] = NWM.packedSimData(rockW);
 
-% Get the variables for the CPG
+% Get the mrst data structures for the CPG
 [GC, rockC, ~, modelC, scheduleC, initStateC] = NWM.packedCPGSimData();
 
-%% Run the simulator
+%% Run the simulation
 [wellSols, states, report] = simulateScheduleAD(initState, model, schedule);
 

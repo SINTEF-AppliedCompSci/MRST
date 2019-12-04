@@ -1,9 +1,11 @@
 classdef MultiSegWellNWM < NearWellboreModel
-% Derived class for collecting simulation data of the near-wellbore model
-% coupling with multi-segment well model
+% Derived class for generating necessary data structures passed to the mrst
+% AD simulators for the hybrid grid of near-wellbore model coupling with 
+% the multi-segment well model
 
     properties
-       wellboreGrid 
+       wellboreGrid  % 1D 'wellbore grid' in the void wellbore space which
+                     % conforms with the reservoir grid
     end
     
     methods
@@ -17,10 +19,10 @@ classdef MultiSegWellNWM < NearWellboreModel
         function model = setupSimModel(nwm, rock, T_all, N_all)
             % Setup simulation model passed to ad-blackoil simulator for 
             % the global grid (the multi-segment well model now only
-            % support 'ThreePhaseBlackOilModel')
-            % rock:  Rock of global grid
+            % supports the 'ThreePhaseBlackOilModel')
+            % rock:  Rock of the global grid
             % T_all: Full transmissibility
-            % N_all: Neighbor ship
+            % N_all: Neighborship of all connections
             gravity reset on
             G    = nwm.gloGrid;
             f    = nwm.fluid;
@@ -28,7 +30,7 @@ classdef MultiSegWellNWM < NearWellboreModel
             intCon = all(N_all, 2);
             N = N_all(intCon, :);
             T = T_all(intCon);
-            % Phase component
+            % Phase components
             ph = nwm.getPhaseFromDeck();
             assert(all(ph.wat & ph.oil & ph.gas), ['The multi-segment '...
                 'well model now only support ''ThreePhaseBlackOilModel'''])
@@ -42,19 +44,24 @@ classdef MultiSegWellNWM < NearWellboreModel
 
         function schedule = getSimSchedule(msw, model, varargin)
             % Get the multi-segment well simulation schedule from deck and
-            % node/segment definition
-            schedule = getSimSchedule@NearWellboreModel(msw, model);
+            % node/segment definitions
+            opt = struct('returnMS', true, 'refDepthFrom', 'trajectory');
+            opt = merge_options(opt, varargin{:});
+            schedule = getSimSchedule@NearWellboreModel(msw, model, ...
+                'refDepthFrom', 'trajectory');
+            if ~opt.returnMS
+                return
+            end
             nodes = msw.generateNodes();
             segs = msw.generateSegments();
             for i = 1 : numel(schedule.control)
                 W0 = schedule.control(i).W;
-                name = vertcat(W0.name);
-                ii = all(name == msw.well.name, 2);
-                WOthers = W0(~ii);
+                ii = arrayfun(@(w)strcmp(msw.well.name, w.name), W0);
+                WRegular = W0(~ii);
                 W = W0(ii);
                 W = convert2MSWell(W, ...
                     'cell2node'   , nodes.cell2node, ...
-                    'connDZ'      , [], ...
+                    'connDZ'      , W.dZ, ...
                     'nodeDepth'   , nodes.depth, ...
                     'topo'        , segs.topo, ...
                     'segLength'   , segs.length, ...
@@ -66,24 +73,23 @@ classdef MultiSegWellNWM < NearWellboreModel
                     'vol'         , nodes.vol);
                 W.segments.roughness = segs.roughness;
                 W.segments.flowModel = segs.flowModel;
-                % Redefine the reference depth
-                dz = W.refDepth - nodes.depth(1);
-                W.refDepth = nodes.depth(1);
-                W.dZ = W.dZ + dz;
-                WNew = combineMSwithRegularWells(WOthers, W);
+                if numel(WRegular) > 0
+                    WNew = combineMSwithRegularWells(WRegular, W);
+                else
+                    WNew = W;
+                end
                 schedule.control(i).W = WNew;
             end
         end
         
         function gW = buildWellboreGrid(msw)
-            % Build grid for the space inside wellbore
+            % Build grid for the void space inside wellbore
             [~, ~, GW] = msw.assignSubGrds();
-            % Get the wall and screen nodes
+            % Get the borewall (casing) nodes and connectivity list
             wellbores = GW.wellbores;
             pW = cellfunUniOut(@(x)x.wall.coords, wellbores);
             nA = GW.radDims(1);
             assert(all( cellfun(@(x)size(x,1)==nA, pW) ));
-            % Build the radial grid
             p = pW{1}(:, [1,2]);
             t = {(1:nA)'};
             % Build the wellbore grid
@@ -94,7 +100,7 @@ classdef MultiSegWellNWM < NearWellboreModel
         end
 
         function nodes = generateNodes(msw)
-            % Generate nodes information from the wellbore grid for 
+            % Generate node definitions from the wellbore grid for 
             % multi-segment well
             gW = msw.wellboreGrid;
             nA = gW.radDims(1);
@@ -113,7 +119,7 @@ classdef MultiSegWellNWM < NearWellboreModel
         end
         
         function segs = generateSegments(msw)
-            % Generate segment information from the wellbore grid for
+            % Generate segment definitions from the wellbore grid for
             % multi-segment well
             gW = msw.wellboreGrid;
             % Topology
@@ -121,8 +127,6 @@ classdef MultiSegWellNWM < NearWellboreModel
             t   = gW.faces.neighbors(f,:);
             t   = sort(t, 2);
             % Length
-%             dxyz = gW.cells.centroids(t(:,1), :) - gW.cells.centroids(t(:,2), :);
-%             L    = sqrt( sum(dxyz.^2, 2) );
             dxyz1 = gW.cells.centroids(t(:,1), :) - gW.faces.centroids(f, :);
             L1    = sqrt( sum(dxyz1.^2, 2) );
             dxyz2 = gW.cells.centroids(t(:,2), :) - gW.faces.centroids(f, :);
@@ -148,21 +152,28 @@ classdef MultiSegWellNWM < NearWellboreModel
                 'flowModel', fm);
         end
         
-        function plotCell2Node(msw, nodes, N)
-            % Plot reservoir cells connected to node N
+        function plotSegments(msw, nodes, segs, S)
+            % Plot the nodes and reservoir cells assoicated with segment S
             G = msw.gloGrid;
             coords = nodes.coords;
+            topo = segs.topo(S, :);
             figure, hold on
             c2n = nodes.cell2node;
             wc = nodes.resCells;
-            if size(N, 1) > size(N,2); N = N'; end;
-            for i = N
+            N = unique(topo(:));
+            for i = N'
                 idx = find(c2n(i, :));
                 for j = 1 : numel(idx)
                     p = [coords(i,:); G.cells.centroids(wc(idx(j)), :)];
-                    plot3(p(:,1), p(:,2), p(:,3), '.-', 'color', [1, 0, 0])
+                    plot3(p(:,1), p(:,2), p(:,3), 's-', 'color', ...
+                        [1, 0, 0], 'linewidth', 1)
                 end
                 plotGrid(G, wc(idx), 'facecolor', 'none')
+            end
+            for k = 1 : size(topo,1)
+                p = coords(topo(k, :), :);
+                plot3(p(:,1), p(:,2), p(:,3), 's-', 'color', ...
+                    [0, 0, 1], 'linewidth', 1)
             end
         end
         

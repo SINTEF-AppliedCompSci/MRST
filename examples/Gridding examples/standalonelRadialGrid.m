@@ -8,8 +8,9 @@
 % the restrictions of the pebi-style radial grid, and then demonstrate how 
 % to build an radial grid using the constructor 'tessellationGrid'. The 
 % generating points are the grid nodes, and the indices of grid objects, 
-% i.e. cells, faces, and nodes, are numerbed logically.
+% i.e. cells, faces, and nodes, are numbered logically.
 
+clear
 mrstModule add nwm
 
 %% Generate radial point set
@@ -34,6 +35,7 @@ p = [px(:), py(:)];
 pP = [[0, 0]; p];
 H = pebi(triangleGrid(pP));
 H = computeGeometry(H);
+
 % Remove the central cell
 d = sqrt( sum(H.cells.centroids.^2, 2) );
 cC = find(d == min(d));
@@ -42,7 +44,7 @@ H = removeCells(H, cC);
 % 1. The generating points will not be the grid nodes, instead they are
 % located inside the grid cells (see the definition of the Voronoi
 % diagram), which goes against the situations where we want to locate the 
-% specific points, e.g. gluing the grids, model the wellbore explicitly.
+% specific points, e.g. gluing the grids, modeling the wellbore explicitly.
 figure, hold on; axis equal off
 plotGrid(H)
 demoPlotLine(p, 'ks', 'r', 2)
@@ -63,9 +65,8 @@ title('Face numbers of cells in Pebi-style radial grid')
 fprintf(' There are altogether %d faces with areas smaller than 1e-10\n', ...
     nnz( H.faces.areas < 1e-10 ))
 
-%%
 % 3. The indices of faces are not numbered logically. We cannot find the
-% radial faces and angular faces directly. This would be unfavorbale when
+% radial faces and angular faces directly. This would be unfavorable when
 % computing the radial transmissibility. 
 c = find(cfN==4);
 c = c([5:10:end]);
@@ -82,9 +83,9 @@ legend('H', 'Face 1', 'Face 2', 'Face 3', 'Face 4')
 
 %% Build the radial grid by 'tessellationGrid'
 % The 'tessellationGrid' accepts the combination of points (geometrical 
-% input) and connectivity list (topological inputs) and returns a complete
+% input) and connectivity list (topological input) and returns a valid
 % grid structure. The connectivity list provides the indices of nodes
-% specifing each polygonal cell, i.e. the 'tessellationGrid' restores the 
+% specifying each polygonal cell, i.e. the 'tessellationGrid' restores the 
 % complete grid-object sequence of nodes->faces->cells from nodes->cells.
 % The cell / node numbering follows the sequence of connectivity list /
 % generating points.
@@ -97,10 +98,10 @@ legend('H', 'Face 1', 'Face 2', 'Face 3', 'Face 4')
 %
 % Since the radial grid is structured, we can pick the connectivity list 
 % from the Cartesian node distribution matrix. The nodes corresponding to 
-% cell (i, j) is: {L(i,j), L(i+1,j), L(i+1,j+1), L(i,j+1)}
+% cell (i,j) is: {L(i,j), L(i+1,j), L(i+1,j+1), L(i,j+1)}
 %
 % Arrange the node to a Cartesian format   
-%   ---->  Radial 
+%   ---->  Radial
 %  |
 %  V  Angular
 %
@@ -113,6 +114,7 @@ legend('H', 'Face 1', 'Face 2', 'Face 3', 'Face 4')
 %  nA  *  *  *  *  *  *  ....  *  *  *
 %  1   *  *  *  *  *  *  ....  *  *  *
 
+% Make the connectivity list
 np = size(p,1);
 nd = reshape((1:np)', nA, nR+1);
 nd = [nd; nd(1,:)];
@@ -121,6 +123,7 @@ j = repmat((1:nR),  nA,  1);
 t = arrayfun(@(i, j)[nd(i,j), nd(i+1,j), nd(i+1,j+1), nd(i,j+1)], i(:), ...
     j(:), 'UniformOutput', false);
 
+% Build the radial grid
 G  = tessellationGrid(p, t);
 
 % Plot the grid and generating points
@@ -144,10 +147,10 @@ title('Radial indices')
 % Face 2:  Angular + 
 % Face 3:  Radial  +
 % Face 4:  Angular - 
-% If the points are geneated from R+ to R-, the direction of face 1 and 3 
+% If the points are generated from R+ to R-, the directions of face 1 and 3 
 % will be R+ and R-
-% If the points are geneated in clockwise direction, the direction of face 
-% 2 and 4 will be A- and A+
+% If the points are generated in clockwise direction, the directions of 
+% face 2 and 4 will be A- and A+
 c = randperm(G.cells.num, 4);
 figure, hold on; axis equal off
 plotGrid(G, 'facecolor', 'none')

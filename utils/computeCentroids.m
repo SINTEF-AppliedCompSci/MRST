@@ -1,5 +1,5 @@
 function pmid = computeCentroids(p)
-% Compute the centroids of the 2D polygon specified by point 'p'
+% Compute centroids of the 2D polygon specified by points p
     p0 = sum(p,1)/size(p,1);
     areas = zeros(size(p,1),1);
     pmids = zeros(size(p,1),2);

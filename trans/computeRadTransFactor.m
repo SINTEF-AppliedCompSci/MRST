@@ -1,6 +1,8 @@
 function ft = computeRadTransFactor(G, pW, skin, varargin)
-% Compute the radial half transmissibility factor (ft) for the 2D radial grid
-% (halfTrans = perm .* ft .* dZ)
+% Compute the radial half transmissibility factor (ft) for the 2D radial 
+% grid (halfTrans = perm .* ft). The computation assumes the steady-state 
+% flow, and the 'transmissibility center' is obtained by integral of the 
+% pressure within the area of cell
 %
 % SYNOPSIS:
 %    ft = computeRadTransFactor(G, pW, skin)
@@ -14,16 +16,16 @@ function ft = computeRadTransFactor(G, pW, skin, varargin)
 %            [nA, nR(1), nR(2)]. For the second case, the total raidal 
 %            dimension is nR(1)+nR(2), but only cells with r-indices within 
 %            1 - nR(1) are involved in the calculations.
-%    pW    - 2D coordinate of the well point.
-%    skin  - Skin factor of the well.
+%    pW    - 2D coordinate of the well point
+%    skin  - Skin factor of the well
 %
 % KEYWORD ARGUMENTS:
-%   'nodeCoords'  - Provide the 2D coordinates of grid nodes. The G will be
+%   'nodeCoords'  - Provided 2D coordinates of grid nodes. The G will be
 %                   updated after assigning 'G.nodes.coords' = nodeCoords.
 %
 % RETURNS:
 %    ft   - Radial half transmissibility factor, corresponding to
-%           'G.cells.faces'. fts of cells with r-indices within 
+%           'G.cells.faces'. ft of cells with r-indices within 
 %            nR(1)+1 - nR(1)+nR(2) are 'nan'.
 %
 % EXAMPLE:
@@ -99,7 +101,6 @@ function ft = computeRadTransFactor(G, pW, skin, varargin)
     end
 end
 
-% -------------------------------------------------------------------------
 function [IR, IA, S, thA, b, c] = computeI(pA, pB, pC)
     fAngle = @(v1,v2)acos(dot(v1,v2)/norm(v1,2)/norm(v2,2));
     

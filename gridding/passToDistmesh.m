@@ -1,4 +1,5 @@
 function [pdis, fd] = passToDistmesh(pIB, pOB, multiplier, maxIter, varargin)
+% Generate parameters passed to 'distmesh_2d_nwm'
     opt = struct('pIBRadius', []);
     opt = merge_options(opt, varargin{:});
 
@@ -35,7 +36,7 @@ function [pdis, fd] = passToDistmesh(pIB, pOB, multiplier, maxIter, varargin)
 
     fprintf('    * Dist Mesh iteration information: \n')
     pdis = distmesh_2d_nwm(fd, fh, h0, bbox, maxIter, pfix, false);
-    close(gcf)
+%     close(gcf)
 
     % Remove points too close to the boundary
     lIBmax = max(lIB);

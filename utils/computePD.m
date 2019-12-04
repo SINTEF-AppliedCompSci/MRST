@@ -1,5 +1,5 @@
 function f = computePD(x, y, a, b, xw, yw)
-% Compute dimensionless pressure for flow problem that a well is 
+% Compute dimensionless pressure for the flow problem that a well is 
 % arbitrarily located inside a rectangular box with width a and height b. 
 % The distance from well to right boundary is xw and to the lower boundary 
 % is yw
@@ -11,6 +11,7 @@ function f = computePD(x, y, a, b, xw, yw)
 %      |                        .                 |
 %      |                        .                 |
 %       -------------------------------------------
+
     % A constant for computing the infinite series
     N = 10; 
     nn = (-N : N)';

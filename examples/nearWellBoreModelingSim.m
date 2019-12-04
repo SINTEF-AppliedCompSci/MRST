@@ -1,43 +1,44 @@
 %% Simulation on the Near-wellbore modeling (NWM) hybrid grid
 % 
-% This example demonstrates how to generate necessary variables passed to 
-% the mrst AD simulators for the NWM hybrid grid. The original data is 
-% given in ECLIPSE deck file which conforms with the background 
+% This example demonstrates how to generate necessary data structures
+% passed to the mrst AD simulators for the NWM hybrid grid. The original 
+% data is given in ECLIPSE deck file which conforms with the background 
 % Corner-point grid (CPG). The class 'NearWellboreModel' accepts the data 
-% for CPG and returns the variables for the hybrid grid in mrst standard 
-% format, consisting of 'G', 'rock', 'fluid', 'model', 'schedule', and 
-% 'initState'. Before the collection, make sure that the three subgrids 
+% for CPG and returns the data structures for the hybrid grid in mrst 
+% standard format, consisting of 'G', 'rock', 'fluid', 'model', 'schedule', 
+% and 'initState'. Before the collection, make sure that the three subgrids 
 % (GC, GV, and GW) are ready (see example 'nearWellBoreModelingGrids'). 
 %
 % The generation involves several key processes:
 %  * Assemble the subgrdis to get the global hybrid grid
 %  * Initialize the AD fluid
 %  * Make rocks from subones
-%  * Compute the transmissbility and neighborship (including the NNC)
-%  * Setup simultaion model
+%  * Compute the transmissibility and neighborship (including the NNC)
+%  * Setup simulation model
 %  * Convert the simulation schedule
 %  * Define the initial state by equilibrium initialization
 %
 % Remarks:
 % * In the grid domain, the subgrid boundaries are not connected. The
-%   connection between subgrids are accomplished by the non-neighbor 
+%   connections between subgrids are accomplished by the non-neighbor 
 %   connection (NNC).
 %   The 'NearWellboreModel' only accepts the ECLIPSE deck input. If you
-%   need to define the simulation variables by mrst functionalities, e.g. 
-%   'makeRocks', 'initSimpleADIFluid', 'addWell', and 'simpleSchedule',
+%   need to define the simulation data structures by mrst functionalities,
+%   e.g. 'makeRocks', 'initSimpleADIFluid', 'addWell', and 'simpleSchedule',
 %   some modifications are required.
-% * This module now only support the single property and equilibration 
+% * This module now only supports the single property and equilibration 
 %   region.
 
-mrstModule add nwm ad-core ad-blackoil ad-props mrst-gui
+clear
+mrstModule add nwm ad-core ad-blackoil ad-props mrst-gui diagnostics
 
-%% Load subgrids, well info struct and input deck 
-% Load subgrids (GC, GV, GW), well info struct (well), and input deck
+%% Load subgrids, well info structure and input deck 
+% Load subgrids (GC, GV, GW), well info structure (well), and input deck
 % (deck) in example 'nearWellBoreModelingGrids'
 run nearWellBoreModelingGrids
 close all
 
-%% Define the 'NearWellboreModel'
+%% Define the NearWellboreModel
 % Define the 'NearWellboreModel' by three subgrids, input deck and well
 NWM = NearWellboreModel({GC, GV, GW}, deck, well);
 
@@ -73,7 +74,7 @@ title('X-coordinate of the cell centroids')
 fluid = NWM.setupFluid();
 
 %% Make rocks for the global grid
-% First, get the rocks of three subgrids
+% First, get the rocks of three subgrids:
 % -------------------------------------------------------------------------
 % | Rock     | Grid     | Source        | Permeability   | Anisotropy     |
 % |          |          |               | coordinate     |                |
@@ -98,8 +99,8 @@ subplot(1,2,2), axis equal off
 plotCellData(GV, rockV.perm(:,1), GV.cells.layers==1)
 title(sprintf('PermX of the VOI grid \nin VOI layer 1'))
 
-% Define a simple rock for HW grid. Each segement (layer) of the grid
-% has uniform permeability and porosity.
+% Define a simple rock for HW grid. Each segment (layer) of the grid has 
+% uniform permeability and porosity
 nclayer = GW.cells.num / GW.layers.num;
 permW = linspace(400, 500, GW.layers.num) * (milli*darcy);
 permW = repmat(permW, nclayer, 1);
@@ -120,8 +121,8 @@ plotCellData(G, rock.perm(:,1), G.cells.layers == 4 & G.cells.grdID == 1)
 plotCellData(G, rock.perm(:,1), G.cells.layers == 1 & G.cells.grdID == 2)
 title('PermX of the global grid in VOI layer 1')
 
-%% Compute the transmissbility and neighborship
-% The transmissbility consists of four parts:
+%% Compute the transmissibility and neighborship
+% The transmissibility consists of four parts:
 % -------------------------------------------------------------------------
 % | Trans-     | Grid       | Flow          | Permeability   | Anisotropy |
 % | missbility |            | approximation | coordinate     |            |
@@ -138,45 +139,44 @@ title('PermX of the global grid in VOI layer 1')
 % | T_nnc      | Grids      | Linear        | Global         | Yes        |
 % |            | connection |               |                |            |
 % -------------------------------------------------------------------------
-% * The T_nnc (transmissbility of NNC) is used to connect the boundaries of 
-%   subgrids.
-% * Updated GC and GV are obtained by 'removeCells'.
+% * The T_nnc (transmissibility of NNC) is used to connect the subgrids
+% * Updated GC and GV are obtained by 'removeCells'
 
-% Compute the transmissbility T of the global grid:
+% Compute the transmissibility T of the global grid:
 % T = [TC; TV; TW], corresponding to G.faces.neighbors
 T = NWM.getTransGloGrid(rock);
 
 % Generate the NNC
 % First, compute the intersection relations between subgrids
-intXn = NWM.computeBoundaryIntxnRelation();
+intXn = NWM.computeIntxnRelation();
 % View intersection relations
 figure, subplot(1,2,1), axis off
 NWM.plotNonMatchingIntxnRelation(intXn ,15171)
-title('Intersection relations of non-matching face: 15171')
+title('Intersection relations of non-matching face 15171')
 subplot(1,2,2), axis off
 NWM.plotMatchingIntxnRelation(intXn ,2689)
-title('Intersection relations of matching face: 2689')
+title('Intersection relations of matching face 2689')
 pos = get(gcf, 'position'); pos(3) = 2*pos(3);
 set(gcf, 'position', pos);
 
-% Next, generate the cell pairs and associated transmissbility
+% Next, generate the cell pairs and associated transmissibility
 nnc = NWM.generateNonNeighborConn(intXn, rock, T);
 
-% Get the assembled transmissbility and neighborship
+% Get the assembled transmissibility and neighborship
 % T_all = [T;                 nnc.T];
 % N_all = [G.faces.neighbors; nnc.cells];
 [T_all, N_all] = NWM.assembleTransNeighbors(T, nnc);
 
-%% Setup simultaion model
+%% Setup simulation model
 % We use the 'GenericBlackOilModel' as the simulation model. The 
-% 'neighbors' and 'trans' in model.operators are rewriten:
+% 'neighbors' and 'trans' in model.operators are rewritten:
 % model.operators = setupOperatorsTPFA(G, rock,'neighbors', N, 'trans', T);
 % model.operators.T_all = T_all;
 model = NWM.setupSimModel(rock, T_all, N_all);
 
 %% Convert the simulation schedule
 % Convert the schedule from the section 'SCHEDULE' in deck for the global
-% grid. Some fields in 'W' of the HW are redefined, e.g. cells, 'WI'.
+% grid. Some fields in 'W' of the HW are redefined, e.g. 'cells', 'WI'.
 schedule = NWM.getSimSchedule(model, 'refDepthFrom', 'deck');
 
 % Show the well
@@ -187,23 +187,54 @@ plotWell(G, schedule.control(1).W(1))
 %% Get the initial state by equilibrium initialization
 initState = NWM.getInitState(model);
 
-%% Run the simulator
+%% Run the simulation
 [wellSols, states, report] = simulateScheduleAD(initState, model, schedule);
 
 %% Plot the results
 % Oil saturation
-state = states{end};
+ts = 20;
+state = states{ts};
+
 figure, axis off, view([-23, 29])
 plotCellData(G, state.s(:,2))
 title('Oil saturation of global grid')
 
 figure, axis off, view([-27, 56])
 plotCellData(G, state.s(:,2), G.cells.grdID==2)
-title('Oil saturation of VOI grid')
+title('Oil saturation of VOI subgrid')
 
 figure, axis equal tight off, view([-85, 9])
 plotCellData(G, state.s(:,2), G.cells.grdID==3)
-title('Oil saturation of HW grid')
+title('Oil saturation of HW subgrid')
 
 % Well solutions
 plotWellSols(wellSols, report.ReservoirTime)
+
+%% Apply some flow diagnostics
+% Since the NNC is introduced to operators, we should rearrange the output
+% flux
+flux0 = state.flux;
+flux0 = flux0(~all(flux0==0, 2), :);
+flux = zeros(size(N_all,1), 3);
+intCon = all(N_all, 2);
+flux(intCon, :) = flux0;
+state.flux = flux;
+
+% Define a temporary 'G' whose 'faces.neighbors' are replaced by N_all to
+% be compatible with 'computeTimeOfFlight'
+Gtmp = G;
+Gtmp.faces.neighbors = N_all;
+
+% Compute TOF and tracer partitioning
+W = schedule.control(2).W;
+D = computeTOFandTracer(state, Gtmp, rock, 'wells', W);
+
+% Visualize the TOF of HW subgrid
+figure, axis equal tight off, view([-85, 9])
+plotCellData(G, sum(D.tof,2), G.cells.grdID == 3)
+title('TOF of HW grid')
+
+% Visualize the injector partitioning of HW subgrid
+figure, axis equal tight off, view([-85, 9])
+plotCellData(G, D.ipart, G.cells.grdID == 3)
+title('Injector partitioning of HW grid')

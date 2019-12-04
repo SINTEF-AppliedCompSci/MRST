@@ -1,6 +1,6 @@
 function G = assembleGrids(Gs)
-% Assemble grids, but does not merge common faces and does not handle 
-% boundary intersections
+% Assemble multiple grids, but does not merge common faces and does not 
+% handle boundary intersections
 %
 % SYNOPSIS:
 %   Gf = assembleGrids(Gs)
@@ -9,7 +9,7 @@ function G = assembleGrids(Gs)
 %   Gs  - Grids, nGrid x 1, cell
 %
 % RETURNS:
-%   G - The combined Grid
+%   G - The combined grid
 %
 % EXAMPLE:
 %  G1 = cartGrid([20, 10], [20, 10]);
@@ -39,7 +39,7 @@ function G = assembleGrids(Gs)
     Gs = convertToColumn(Gs);
     assert(size(Gs, 2) == 1, 'Grid cellarray must be one dimensional!')
     
-    % Create a empty struct
+    % Create an empty struct
     G = struct;
 
     % G.cells -------------------------------------------------------------
