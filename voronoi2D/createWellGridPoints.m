@@ -6,7 +6,7 @@ function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridS
 %   [...] = createWellGridPoints(..., 'Name1', Value1, 'Name2', Value2,...)
 %
 % Parameters:
-%   wellLines       A cell of arrays. Each nx2 array in the cell contains 
+%   wellLines     - A cell of arrays. Each nx2 array in the cell contains 
 %                   the piecewise linear approximation of a well. The 
 %                   values must be sorted along the line, e.g., a well 
 %                   consisting of two lines would be [x1,y1; x2,y2; x3,y3].
@@ -15,12 +15,21 @@ function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridS
 %
 %                   If an array has length 1 it is considered a point well.
 %
-%   wellGridSize    Desired distance between well points along a well.
+%   wellGridSize  - Desired distance between well points along a well.
 %                   The true distance is set such that it is a factor of 
 %                   the total fault length, and therefore might be slightly
 %                   smaller than the desired distance.
 %   
-%   wfCut           - OPTIONAL.
+%   interpolWP    - OPTIONAL.
+%                   Default value is a boolean false value, but the user
+%                   can supply an individual value per well path. If false,
+%                   each segment in the corresponding well curve will be
+%                   represented by at least one cell. If true, the routine
+%                   will interpolate along the curve, which means that cell
+%                   centers will not necessarily fall exactly on the
+%                   prescribed curve.
+%
+%   wfCut         - OPTIONAL.
 %                   Default value array of zeros. Array of length equal the
 %                   number of wells. The value equals the output of the 
 %                   function [~,~, fwCut] = splitLines. The value of 
@@ -40,17 +49,17 @@ function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridS
 %                   If the value is 3 both the starts and end point is 
 %                   removed.
 %
-%   sePtn           - OPTIONAL.
-%                   Default vaule array of zeros, Array of length equal the
-%                   number of well x 2 ([s,e]). Each row gives the start 
-%                   and end position of the well interpolation. The 
-%                   position is relative the steplength. If 
-%                   s=ones(numel(wellLines),1) all wells will start their 
+%   sePtn         - OPTIONAL.
+%                   Default value is an array of zeros, Array of length
+%                   equal the number of wells x 2 ([s,e]). Each row gives
+%                   the start and end position of the well interpolation.
+%                   The position is relative to the steplength. If
+%                   s=ones(numel(wellLines),1) all wells will start their
 %                   first well site one step length from the start of the
-%                   well paths. Be carefull when using both wfCut and sePts
-%                   as the effects adds up. 
+%                   well paths. Be careful when using both wfCut and sePts
+%                   as the effects add up.
 %
-%   protLayer       - OPTIONAL.
+%   protLayer     - OPTIONAL.
 %                   Default set to false. If set to true a protection layer
 %                   is added on both sides of the well
 %                   .          .             .  Protection Layer
@@ -59,7 +68,7 @@ function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridS
 %
 %                   .          .             .  Protection Layer
 % 
-%  protD            - OPTIONAL.
+%  protD          - OPTIONAL.
 %                   Default value wellGridSize/10. Cell array of Functions.
 %                   The array should have either one function or one 
 %                   function for  each well path.
@@ -94,22 +103,28 @@ function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridS
 %}
 
 % load options
-opt   = struct('wfCut',zeros(numel(wellLines),1),...
-               'wCut',zeros(numel(wellLines),1),...
-               'sePtn', zeros(numel(wellLines),2),...
-               'protLayer',false, ...
-               'protD', {{@(p) ones(size(p,1),1)*wellGridSize/10}},...
-               'wellRho',@(x)wellGridSize*constFunc(x));
-opt   = merge_options(opt,varargin{:});
-wfCut = opt.wfCut;
-wCut  = opt.wCut;
-sePtn = opt.sePtn;
-protD = opt.protD;
+opt   = struct('wfCut',       zeros(numel(wellLines),1),...
+               'wCut',        zeros(numel(wellLines),1),...
+               'sePtn',       zeros(numel(wellLines),2),...
+               'protLayer',   false, ...
+               'interpolWP',  false, ...
+               'protD',       {{@(p) ones(size(p,1),1)*wellGridSize/10}},...
+               'wellRho',     @(x)wellGridSize*constFunc(x));
+opt      = merge_options(opt,varargin{:});
+wfCut    = opt.wfCut;
+wCut     = opt.wCut;
+sePtn    = opt.sePtn;
+protD    = opt.protD;
+interpWP = opt.interpolWP;
 
 if numel(protD) == 1
   protD = repmat(protD,numel(wellLines),1);num2cell(protD, 2);
 end
 assert(numel(protD) == numel(wellLines));
+if numel(interpWP) == 1
+  interpWP = repmat(interpWP, numel(wellLines),1);
+end
+assert(numel(interpWP)==numel(wellLines));
 
 wGs     = [];
 pGs     = [];
@@ -122,13 +137,12 @@ for i = 1:numel(wellLines)  % create well points
       p = wellLine;
       wellSpace = wellGridSize;
   else
-      p = interLinePath(wellLine, opt.wellRho,wellGridSize, sePtn(i,:));
+      p = interLinePath(wellLine, opt.wellRho, wellGridSize, sePtn(i,:), interpWP(i));
       if isempty(p)
         continue
       end
       wellSpace = sqrt(sum(diff(p,1,1).^2,2));
-      wellSpace = [wellSpace(1);wellSpace;wellSpace(end)];
-      wellSpace = min([wellSpace(1:end-1), wellSpace(2:end)],[],2);
+      wellSpace = min(wellSpace([1 1:end]), wellSpace([1:end end]));
   end
   
   keep = 1:size(p,1);
@@ -166,9 +180,9 @@ for i = 1:numel(wellLines)  % create well points
     newN = bsxfun(@rdivide, newN,sqrt(sum(newN.^2,2)));
     
     if numel(keepProt)> 1
-      newN = [newN;newN(end,:)];
+      newN = newN([1:end end],:);
     else
-      pK = pK(1,:); 
+      pK = pK(1,:);
     end
     d = repmat(protD{i}(pK), 1,2);
     protPts = [protPts; pK + newN.*d; pK - newN.*d];

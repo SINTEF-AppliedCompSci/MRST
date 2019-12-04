@@ -6,7 +6,7 @@ function [F] = createFaultGridPoints(faultLines,faultGridSize, varargin)
 %   F = createFaultGridPoints(..., 'Name1', Value1, 'Name2', Value2, ...)
 %
 % Parameters:
-%   faultLine       A cell of arrays. Each nx2 array in the cell contains 
+%   faultLines      A cell of arrays. Each nx2 array in the cell contains 
 %                   the piecewise linear approximation of a fault. The 
 %                   values must be sorted along the line, e.g., a fault 
 %                   consisting of two lines would be [x1,y1; x2,y2; x3,y3].
@@ -18,14 +18,23 @@ function [F] = createFaultGridPoints(faultLines,faultGridSize, varargin)
 %                   the total fault length, and therefore might be slightly
 %                   smaller than the desired distance.
 %   
-%   circleFactor    - OPTIONAL.
+%   interpolFL    - OPTIONAL.
+%                   Default value is a boolean false value, but the user
+%                   can supply an individual value per well path. If false,
+%                   each segment in the corresponding fault curve will be
+%                   represented by at least one cell. If true, the routine
+%                   will interpolate along the curve, which means that cell
+%                   edges will not necessarily fall exactly on the
+%                   prescribed curve.
+%
+%   circleFactor  - OPTIONAL.
 %                   Default value 0.6. The ratio between faultGridSize and 
 %                   the radius of the circles used to create the points. If
 %                   circleFactor is increased, the distance between the 
 %                   fault and the points are increased. Valid values for
 %                   circleFactor are in the interval (0.5,1.0).
 %
-%   distFun         - OPTIONAL.
+%   distFun       - OPTIONAL.
 %                   Default value @(x) faultGridSize*constFunc(x). Function
 %                   handle that specify a relative fault grid size. If
 %                   distFun = @(x) 1-0.5*x(:,1), in the unit square, then
@@ -33,7 +42,7 @@ function [F] = createFaultGridPoints(faultLines,faultGridSize, varargin)
 %                   as many grid points as equivalent faults placed on the
 %                   left side. 
 %
-%   fCut            - OPTIONAL.
+%   fCut          - OPTIONAL.
 %                   Default value array of zeros. Array of length equal the
 %                   number of faults. The value equals the output of the 
 %                   function [~, fCut,~]=splitFaults. The value of element
@@ -42,7 +51,7 @@ function [F] = createFaultGridPoints(faultLines,faultGridSize, varargin)
 %                   If the value is 2 it share a start point. If the value
 %                   is 3 it share both a start point and an end point.
 %
-%   fwCut           - OPTIONAL.
+%   fwCut         - OPTIONAL.
 %                   Default value array of zeros. Array of length equal the
 %                   number of faults. The value equals the output of the 
 %                   function [~,~, fwCut] = splitFaults. The value of 
@@ -53,7 +62,7 @@ function [F] = createFaultGridPoints(faultLines,faultGridSize, varargin)
 %                   from the start. If the value is 3 it starts half a step
 %                   length from both the start and end.
 %
-%   mergeTol        - OPTIONAL.
+%   mergeTol      - OPTIONAL.
 %                   Default value zero. Relative allowed distance between
 %                   two circles on different fault paths. If the relative
 %                   distance is less than a 
@@ -108,13 +117,21 @@ opt = struct('distFun',     fh,  ...
              'circleFactor', 0.6, ...
              'fCut',         zeros(numel(faultLines),1), ...
              'fwCut',        zeros(numel(faultLines),1), ...
-             'mergeTol',     0);
+             'mergeTol',     0, ...
+             'interpolFL',   false);
 opt = merge_options(opt, varargin{:});
 
 fh           = opt.distFun;
 circleFactor = opt.circleFactor;
 fCut         = opt.fCut;
 fwCut        = opt.fwCut;
+
+if ~isempty(faultLines)
+    if (numel(opt.interpolFL) == 1)
+        opt.interpolFL = repmat(opt.interpolFL, numel(faultLines),1);
+    end
+    assert(numel(opt.interpolFL)==numel(faultLines));
+end
 
 
 % Initialize variables.
@@ -144,7 +161,8 @@ for i = 1:F.l.nFault
                           faultLinePts(faultLine,     ... 
                                        faultGridSize,...
                                        circleFactor, ...
-                                       fCut(i),sePtn,fh);
+                                       fCut(i),sePtn, fh, ...
+                                       opt.interpolFL(i));
   nl = size(p,1)/2;
   if nl==0 % No fault points created
     F.l.fPos = [F.l.fPos; F.l.fPos(end)];
@@ -249,13 +267,13 @@ end
 end
 
 function [Pts, gridSpacing, circCenter, circRadius, f2c,f2cPos, c2f,c2fPos] = ...
-    faultLinePts(faultLine, fracDs, circleFactor, isCut,sePtn, fh) 
+    faultLinePts(faultLine, fracDs, circleFactor, isCut, sePtn, fh, interpFL) 
 
     assert(0.5<circleFactor && circleFactor<1)
     assert(size(faultLine,1)>1 && size(faultLine,2)==2);
     
     % interpolate fault line to get circle centers. 
-    circCenter = interLinePath(faultLine, fh, fracDs,sePtn);
+    circCenter = interLinePath(faultLine, fh, fracDs, sePtn, interpFL);
     numOfFracPts = size(circCenter,1)-1;
     
     % Test if faultLine is to short
