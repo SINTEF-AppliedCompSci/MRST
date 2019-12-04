@@ -24,7 +24,7 @@ function [A, fds] = convertTableToArray(tbl, fdsfirst)
     
     fds = fieldnames(tbl);
     
-    fdsToRemove = {fdsfirst{:}, 'ind', 'num'};
+    fdsToRemove = {fdsfirst{:}, 'num'};
     for ifield = 1 : numel(fdsToRemove)
         fds = fds(~strcmp(fds, fdsToRemove{ifield}));
     end

@@ -143,9 +143,6 @@ end
 
 function ofields = getOtherFields(tbl, fields)
     ofields = fieldnames(tbl);
-    if any(strcmp(ofields, 'ind'));
-        ofields = ofields(~strcmp(ofields, 'ind'));
-    end
     if any(strcmp(ofields, 'num'));
         ofields = ofields(~strcmp(ofields, 'num'));
     end    

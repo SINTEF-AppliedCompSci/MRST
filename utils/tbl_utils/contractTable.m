@@ -39,13 +39,13 @@ function [prodAB, restbl] = contractTable(Acell, Bcell, fds)
     %% sanity checks
     % first check: we should have fds1 (fds2) equal to ofds1 (ofds2).
     ofds1 = afds1;
-    fdsToRemove = {fdscross{:}, 'ind', 'num'};
+    fdsToRemove = {fdscross{:}, 'num'};
     for ifield = 1 : numel(fdsToRemove)
         ofds1 = ofds1(~strcmp(ofds1, fdsToRemove{ifield}));
     end
     
     ofds2 = afds2;
-    fdsToRemove = {fdscross{:}, 'ind', 'num'};
+    fdsToRemove = {fdscross{:}, 'num'};
     for ifield = 1 : numel(fdsToRemove)
         ofds2 = ofds2(~strcmp(ofds2, fdsToRemove{ifield}));
     end

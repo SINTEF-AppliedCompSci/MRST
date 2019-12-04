@@ -9,7 +9,7 @@ function tbl = sortTable(tbl, fds, varargin);
         warning('option not really tested yet!');
         ofds = fieldnames(tbl);
     
-        fdsToRemove = {fds{:}, 'ind', 'num'};
+        fdsToRemove = {fds{:}, 'num'};
         for ifield = 1 : numel(fdsToRemove)
             ofds = ofds(~strcmp(ofds, fdsToRemove{ifield}));
         end
