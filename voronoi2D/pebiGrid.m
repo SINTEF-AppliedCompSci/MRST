@@ -8,6 +8,7 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 % PARAMETERS
 %   resGridSize     - Size of the reservoir grid cells, in units of
 %                     meters. 
+%
 %   pdims           - Vector, length 2, [xmax, ymax], of physical size in
 %                     units of meters of the computational domain. 
 %
@@ -17,24 +18,38 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 %                     well-trace. The well is assumed to be linear 
 %                     between the coorinates. If the vector only contains 
 %                     one coordinate, the well is treated as a point well.
+%
+%   interpolWP     - OPTIONAL.
+%                     Default value is a boolean false value, but the user
+%                     can supply an individual value per well path. If
+%                     false, each segment in the corresponding well curve
+%                     will be represented by at least one cell. If true,
+%                     the routine will interpolate along the curve, which
+%                     means that cell centers will not necessarily fall
+%                     exactly on the prescribed curve.
+%
 %   wellGridFactor  - OPTIONAL.
 %                     Default value is 1. This gives the relative grid
 %                     size of the well grid cells compared to reservoir 
 %                     grid cells. If wellGridFactor=0.5 the well cells 
 %                     will be about half the size of the reservoir cells.
+%
 %   wellRefinement  - OPTIONAL
 %                     Default value FALSE. Set to true to turn on
 %                     refinement around wells.
+%
 %   wellEps         - OPTIONAL
 %                     Default value 0.25/max(pdims). wellEps set the
 %                     refinement transition around wells. The density
 %                     function for the reservoir grid is set by
 %                     rho~exp(-distance to well / wellEps).
+%
 %   wellRho         - OPTIONAL
 %                     Default value @(x) ones(size(x,1),1). Function gives
 %                     the relative distance between well points. If
 %                     wellRho=0.5 in an area the distance between
 %                     well-cells will be 0.5*wellGridFactor*resGridSize
+%
 %   protLayer       - OPTIONAL.
 %                     Default set to false. If set to true a protection layer
 %                     is added on both sides of the well
@@ -52,16 +67,28 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 %                     to the protection sites. The function is evaluated along 
 %                     the well path such that protD(0) is the start of the 
 %                     well while protD(1) is the end of the well.
+%
 %   faultLines      - OPTIONAL
 %                     Default value empty. A struct of vectors.  Each 
 %                     vector, size nf x 2, is the coordinates of a 
 %                     fault-trace. The fault is assumed to be linear 
 %                     between the coorinates
+%
 %   faultGridFactor - OPTIONAL.
 %                     Default value is 0.5. This gives the relative grid
 %                     size of the fault grid cells compared to reservoir 
 %                     grid cells. If faultGridFactor=0.5 the fault cells 
 %                     will be about half the size of the reservoir cells.
+%
+%   interpolFL      - OPTIONAL.
+%                     Default value is a boolean false value, but the
+%                     user can supply an individual value per well path.
+%                     If false, each segment in the corresponding fault
+%                     curve will be represented by at least one cell. If
+%                     true, the routine will interpolate along the
+%                     curve, which means that cell edges will not
+%                     necessarily fall exactly on the prescribed curve.
+%
 %   circleFactor    - OPTIONAL.
 %                     Default value 0.6.  Valid values are between 0.5 
 %                     and 1. circleFactor controll the size of the 
@@ -70,20 +97,24 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 %                     and distace between the circles. A small value will
 %                     place the fault points close the the faults, while
 %                     a large value will place the far from the faults.
+%
 %   faultRho        - OPTIONAL.
 %                     Default value 1. Function that gives the relative
 %                     distance between fault sites along a path. If
 %                     faultRho=0.5 in a area, the fault sites will here
 %                     be about 50% closer than in other areas.
+%
 %   fautRefinement  - OPTIONAL
 %                     Default value FALSE. Set to true to turn on
 %                     refinement around faults.
-%   faultEps         - OPTIONAL
+%
+%   faultEps        - OPTIONAL
 %                     Default value 0.25/max(pdims). faultEps set the
 %                     refinement transition around faults. The density
 %                     function for the reservoir grid is set by
 %                     rho~exp(-distance to fault / faultEps).
-%   polyBdr          - OPTIONAL 
+%
+%   polyBdr         - OPTIONAL 
 %                     Default value []. plyBdr is a array of size [k,2].
 %                     if k>=3 polyBdr gives the vertices of the reservoir
 %                     boundary. For this domain:
@@ -94,23 +125,25 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 %                     vertices must run clockwise or counterclockwise.
 %                     Note that if k>=3 the innput pdims will have no
 %                     effect.
-%   sufFaultCond     - OPTIONAL 
-%                    Default value true. If sufFaultCond = false we do not
-%                    enforce the sufficient and necessary fault condition.
-%                    Instead we enforce a less strict condition and remove
-%                    any reservoir sites that are closer to the fault sites
-%                    than the fault grid size. Note that Conformity is then
-%                    not guaranteed. You might still set this to false if
-%                    you have problems with bad cells at the end of your
-%                    faults because the sufficient condition removes some
-%                    reservoir points.
-%   linearize        - OPTIONAL
-%                    Default is false. If true, we evaluate the scaled
-%                    edge-length function in distmesh2d by interpolating
-%                    between values computed at the vertices. There are
-%                    usually more edges than vertices and if the
-%                    edge-length function is expensive to compute, this
-%                    will save significant computational time.
+%
+%   sufFaultCond    - OPTIONAL 
+%                     Default value true. If sufFaultCond = false we do not
+%                     enforce the sufficient and necessary fault condition.
+%                     Instead we enforce a less strict condition and remove
+%                     any reservoir sites that are closer to the fault
+%                     sites than the fault grid size. Note that Conformity
+%                     is then not guaranteed. You might still set this to
+%                     false if you have problems with bad cells at the end
+%                     of your faults because the sufficient condition
+%                     removes some reservoir points.
+%
+%   linearize       - OPTIONAL
+%                     Default is false. If true, we evaluate the scaled
+%                     edge-length function in distmesh2d by interpolating
+%                     between values computed at the vertices. There are
+%                     usually more edges than vertices and if the
+%                     edge-length function is expensive to compute, this
+%                     will save significant computational time.
 %
 % RETURNS:
 %   G              - Valid grid definition.  
@@ -142,6 +175,7 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 % Set options
 opt = struct('wellLines',       {{}}, ...
              'wellGridFactor',  1, ...
+             'interpolWP',      false, ...
              'wellRefinement',  false, ...
              'faultRefinement', false, ...
              'wellEps',         -1,...
@@ -149,6 +183,7 @@ opt = struct('wellLines',       {{}}, ...
              'faultEps',        -1,...
              'faultLines',      {{}}, ...
              'faultGridFactor', 1, ...
+             'interpolFL',      false, ...
              'circleFactor',    0.6,...
              'faultRho',        @(x) ones(size(x,1),1),...
              'protLayer',       false, ...
@@ -187,28 +222,41 @@ assert(wellGridSize>0);
 assert(faultGridSize>0);
 assert(0.5<circleFactor && circleFactor<1);
 
-% Load faults and Wells
-faultLines                = opt.faultLines;
-wellLines                 = opt.wellLines;
-[faultLines, fCut, fwCut] = splitAtInt(faultLines, wellLines);
-[wellLines,  wCut, wfCut,IC] = splitAtInt(opt.wellLines, opt.faultLines);
-% find vertical wells
-nw = cellfun(@numel, opt.wellLines)/2;
-vW = nw==1;
-wellLines = [wellLines,opt.wellLines(nw==1)];
-wCut = [wCut;zeros(sum(vW),1)];
-wfCut = [wfCut; zeros(sum(vW),1)];
-
-% Load protection layer
-protD = opt.protD;
-if numel(protD) == 1
-  protD = repmat(protD,numel(wellLines),1);%num2cell(protD, 2);
-else
-  assert(numel(protD) == numel(opt.wellLines));
-  protD = protD(IC);
+if ~isempty(opt.wellLines)
+    if (numel(opt.interpolWP) == 1)
+        opt.interpolWP = repmat(opt.interpolWP, numel(opt.wellLines),1);
+    end
+    assert(numel(opt.interpolWP)==numel(opt.wellLines));
+    
+    if numel(opt.protD) == 1
+        opt.protD = repmat(opt.protD,numel(opt.wellLines),1);
+    end
+    assert(numel(opt.protD) == numel(opt.wellLines));
 end
 
+if ~isempty(opt.faultLines)
+    if (numel(opt.interpolFL) == 1)
+        opt.interpolFL = repmat(opt.interpolFL, numel(opt.faultLines),1);
+    end
+    assert(numel(opt.interpolFL)==numel(opt.faultLines));
+end
 
+% Split faults and wells paths
+[faultLines, fCut, fwCut, IC] = splitAtInt(opt.faultLines, opt.wellLines);
+interpFL = opt.interpolFL(IC);
+
+[wellLines,  wCut, wfCut, IC] = splitAtInt(opt.wellLines, opt.faultLines);
+interpWP = opt.interpolWP(IC);
+protD    = opt.protD(IC);
+
+% find vertical wells
+nw        = cellfun(@numel, opt.wellLines)/2;
+vW        = nw==1;
+wellLines = [wellLines,opt.wellLines(vW)];
+wCut      = [wCut;zeros(sum(vW),1)];
+wfCut     = [wfCut; zeros(sum(vW),1)];
+interpWP  = [interpWP; opt.interpolWP(vW)];
+protD     = [protD; opt.protD(vW)];
 
 % Create well Points
 sePtn = [wfCut==2|wfCut==3, wfCut==1|wfCut==3];
@@ -222,24 +270,33 @@ bisectPnt = (fLen.^2 - (circleFactor*fLen).^2 ...
 faultOffset = sqrt((circleFactor*fLen).^2 - bisectPnt.^2);
 sePtn = (1.0+faultOffset/wellGridSize)*sePtn;
 
-[wellPts, wGs,protPts,pGs] = createWellGridPoints(wellLines, wellGridSize,'sePtn',sePtn,...
-                                              'wCut',wCut,'protLayer',opt.protLayer,...
-                                              'protD',protD,'wellRho',wellRho);
+[wellPts, wGs, protPts, pGs] = ...
+    createWellGridPoints(wellLines, wellGridSize, ...
+                         'sePtn',        sePtn,...
+                         'wCut',         wCut, ...
+                         'protLayer',    opt.protLayer,...
+                         'protD',        protD, ...
+                         'wellRho',      wellRho, ...
+                         'interpolWP',   interpWP);
 
 
 % create distance functions
 if wellRef && ~isempty(wellPts)
-    hresw   = @(x) min((ones(size(x,1),1)/wellGridFactor), ...
-                  1.2*exp(minPdist2(x,wellPts)/wellEps));
+    hresw  = @(x) min((ones(size(x,1),1)/wellGridFactor), ...
+        1.2*exp(minPdist2(x,wellPts)/wellEps));
     hfault = @(x) wellGridSize*faultGridFactor*hresw(x).*faultRho(x);
 else
-  hresw   = @(p) constFunc(p)/wellGridFactor;
-  hfault = @(p) faultGridSize*faultRho(p);
+    hresw  = @(p) constFunc(p)/wellGridFactor;
+    hfault = @(p) faultGridSize*faultRho(p);
 end
 
 % Create fault points
-F = createFaultGridPoints(faultLines, faultGridSize,'circleFactor', circleFactor,...
-                          'fCut', fCut,'fwCut', fwCut, 'distFun', hfault);
+F = createFaultGridPoints(faultLines, faultGridSize,...
+                          'circleFactor',  circleFactor,...
+                          'fCut',          fCut, ...
+                          'fwCut',         fwCut, ...
+                          'interpolFL',   interpFL, ...
+                          'distFun', hfault);
 
 if faultRef && ~isempty(F.f.pts)
   hresf = @(x) min((ones(size(x,1),1)/faultGridFactor), ...
@@ -247,13 +304,10 @@ if faultRef && ~isempty(F.f.pts)
 else
   hresf = @(p) constFunc(p)/wellGridFactor;
 end
-% Create Reservoir grid points
+% Create reservoir grid points
 % set domain function
 polyBdr = opt.polyBdr;
 [k,l] = size(polyBdr);
-if 0<k && k<3
-	Error('Polygon must have at least 3 edges.');
-end
 if k==0
 	x = pdims;
 	rectangle = [0,0; x(1),x(2)];
@@ -261,13 +315,16 @@ if k==0
 	corners = [0,0; 0,x(2); x(1),0; x(1),x(2)];
 	vararg  = [];
     polyBdr = [0, 0; pdims(1), 0; pdims(1), pdims(1); 0, pdims(2)];
+elseif k<3
+	error('Polygon must have at least 3 edges.');
 else
     assert(l==2,'polygon boundary is only supported in 2D');
 	rectangle = [min(polyBdr); max(polyBdr)];
 	corners   = polyBdr;
 	fd        = @dpoly;
 	vararg    = [polyBdr; polyBdr(1,:)];
-end	
+end
+
 % Remove tip sites outside domain
 if size(F.f.pts, 1) > 0
     innside = inpolygon(F.t.pts(:, 1), F.t.pts(:, 2), polyBdr(:, 1), polyBdr(:, 2));
@@ -275,13 +332,13 @@ if size(F.f.pts, 1) > 0
 end    
 
 if faultRef && wellRef
-    ds = min(wellGridSize,faultGridSize);
+    ds   = min(wellGridSize,faultGridSize);
     hres = @(x,varargin) min(hresf(p), hresw(p));
 elseif faultRef
-    ds = faultGridSize;
+    ds   = faultGridSize;
     hres = @(p,varargin) hresf(p);
 else 
-    ds = wellGridSize;
+    ds   = wellGridSize;
     hres = @(p, varargin) hresw(p);
 end
 fixedPts = [F.f.pts; wellPts; protPts; F.t.pts; corners];  
@@ -290,10 +347,10 @@ fixedPts = [F.f.pts; wellPts; protPts; F.t.pts; corners];
 % Distmesh change the order of all points. We undo this sorting.
 isFault = false(max(sorting),1); isFault(1:size(F.f.pts,1)) = true;
 isFault = isFault(sorting);
-[~,If]   = sort(sorting(isFault));
+[~,If]  = sort(sorting(isFault));
 isWell  = false(max(sorting),1); isWell(size(F.f.pts,1)+(1:size(wellPts,1)))= true;
 isWell  = isWell(sorting);
-[~,Iw]   = sort(sorting(isWell));
+[~,Iw]  = sort(sorting(isWell));
 isRes   = ~isFault & ~isWell;
 
 fPts = Pts(isFault,:);
@@ -304,7 +361,7 @@ wPts = wPts(Iw,:);
 if opt.sufFaultCond
 	Pts = faultSufCond(Pts(isRes,:),F);
 else
-	Pts  = removeConflictPoints2(Pts(isRes,:),F.f.pts, F.f.Gs);
+	Pts = removeConflictPoints2(Pts(isRes,:),F.f.pts, F.f.Gs);
 end
 Pts  = [fPts; wPts; Pts];
 % Create grid
