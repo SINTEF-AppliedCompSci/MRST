@@ -31,5 +31,5 @@ c = G.cells.centroids(:,2) < y/2.01;
 plotGrid(G,c)
 plotGrid(G,G.cells.tag,'facecolor','red')
 view(180,0)
-axis equal
+axis equal tight
 
