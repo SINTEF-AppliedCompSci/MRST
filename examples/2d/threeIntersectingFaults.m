@@ -17,7 +17,7 @@ gS = [1/30,1/30];
 %% Create grid
 % We use the routine compositePebiGrid to create the grid. We use the
 % preset options. 
-G = compositePebiGrid(gS,[1,1.15],'faultLines',l);
+G = compositePebiGrid(gS,[1,1.15],'faultLines',l, 'useMrstPebi', true);
 
 %% Plot grid
 figure(1); clf; hold on
