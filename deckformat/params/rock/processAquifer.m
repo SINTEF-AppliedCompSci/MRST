@@ -2,6 +2,25 @@ function output = processAquifer(deck, G)
 % return array aquifer. Each row corresponds to a cell connected to the aquifer.
 % the aquind structure gives the content of each column:
 
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     aquind.aquid     = 1; % Aquifer numer (id) 
     aquind.conn      = 2; % Connections (cell number)
     aquind.pvttbl    = 3; % PVT table number
