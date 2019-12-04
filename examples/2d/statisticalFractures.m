@@ -1,4 +1,4 @@
-%% Create a fractrued reservoir
+%% Create a fractured reservoir
 % The following fractures are taken from a dataset in the HFM module in
 % MRST. The example full will take at least 8-10 minutes to run, depending
 % on your computer. To lower the runtime, we select a subset of the
