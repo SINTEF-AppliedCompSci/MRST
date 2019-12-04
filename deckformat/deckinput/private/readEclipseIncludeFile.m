@@ -136,8 +136,16 @@ function inc_fid = open_include_file(inc_fn, dirname, rspec)
 
    [inc_fid, msg] = fopen(inc_fn, 'rt');
    if inc_fid < 0
-      error('Open:Failed', ...
-            'Failed to Open INCLUDE file ''%s'': %s', inc_fn, msg);
+      if isunix() && ~ismac()
+         % Case-sensitive system (i.e., Linux/Unix).  Simulation model MAY
+         % have been created on a case insensitive system (Windows) or case
+         % preserving (macOS) system.  TRY to open 'inc_fn' while ignoring
+         % filename casing.
+         inc_fid = open_include_file_case_insensitively(inc_fn, dirname);
+      else
+         error('Open:Failed', ...
+               'Failed to Open INCLUDE file ''%s'': %s', inc_fn, msg);
+      end
    end
 end
 
@@ -167,6 +175,79 @@ function inc_fn = normalise_filename(inc_fn, dirname, rspec)
    if ~strcmp(inc_fn(1), filesep)
       % Translate relative pathname to absolute pathname.
       inc_fn = fullfile(dirname, inc_fn);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function inc_fid = open_include_file_case_insensitively(inc_fn, dirname)
+   assert (isunix() && ~ismac(), 'Internal Logic Error');
+
+   [root, pth, search_fn] = split_filename_path(inc_fn, dirname);
+
+   fname = search_filename_case_insensitively(root, pth, search_fn);
+
+   inc_fid = open_case_insensitive_filename(fname, inc_fn);
+end
+
+%--------------------------------------------------------------------------
+
+function [root, pth, search_fn] = split_filename_path(inc_fn, dirname)
+   if ~strcmp(dirname(end), '/'), dirname = [ dirname, '/' ]; end
+
+   [pth, search_fn, ext] = fileparts(regexprep(inc_fn, dirname, ''));
+
+   if ~strcmp(pth(1), '/')
+      root = dirname;
+   else
+      root = '/';  pth = pth(2:end);
+   end
+
+   search_fn = [search_fn, ext];
+end
+
+%--------------------------------------------------------------------------
+
+function fname = ...
+      search_filename_case_insensitively(fname, pth, search_fn)
+
+   for e = [ regexp(pth, '/', 'split'), { search_fn } ]
+      d     = dir(fname);
+      elems = { d.name };
+      ix    = find(strcmpi(elems, e{1}));
+
+      if numel(ix) == 1
+         fname = fullfile(fname, elems{ix});
+      else
+         error('CaseMatch:Fail', ...
+              ['Case Insensitive Filename Mathcing Failed Trying ', ...
+               'to Match Filename Component ''', e{1}, '''']);
+      end
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function inc_fid = open_case_insensitive_filename(fname, inc_fn)
+   if exist(fname, 'file')
+      [inc_fid, msg] = fopen(fname, 'rt');
+
+      if inc_fid < 0
+         error('CaseMatch:OpenFailure', ...
+               'Failed to Open Case Insensitive Filename ''%s'': %s', ...
+               fname, msg);
+
+      else
+         dispif(mrstVerbose(), ...
+               ['Case sensistive INCLUDE filename ''%s'' did not ', ...
+                'name existing file on disk.\n  -> Using case ', ...
+                'insensitive filename ''%s'' instead.\n\n'], ...
+                inc_fn, fname);
+      end
+   else
+      error('CaseMatch:None', ...
+           ['Case Insensitive Filename ''%s'' Does Not Name an ', ...
+            'Existing Filename on Disk'], fname);
    end
 end
 
