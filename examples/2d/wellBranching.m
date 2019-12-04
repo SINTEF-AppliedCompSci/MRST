@@ -18,7 +18,8 @@ well = {[0.5,0.2; 0.5,0.3;0.47,0.4;0.4,0.5; 0.33,0.6;0.26,0.7], ...
         [0.5,0.55;0.55,0.65;0.6,0.75;0.62,0.85]};
 
 % We now plot the wells to see how they look like
-figure(); hold on
+figure('Position',[480 340 980 420])
+subplot(1,2,1)
 plotLinePath(well,'color','blue');
 axis equal tight
 axis ([0,1,0,1])
@@ -41,7 +42,6 @@ Gc = compositePebiGrid(gS, [1, 1], ...
 
 %% Plot composite grid
 %And plot it
-figure(); hold on
 plotGrid(Gc, 'facecolor','none')
 axis equal tight
 title('compositePebiGrid(...)')
@@ -65,7 +65,7 @@ Gdist = pebiGrid(1/24, [1, 1], 'wellLines', well, ...
                 'wellGridFactor', 0.5^2, 'wellRefinement', true, ...
                 'wellEps',eps);
 %% Plot pebiGrid
-figure(); hold on
+subplot(1,2,2), hold on
 plotGrid(Gdist,'facecolor','none')
 axis equal tight
 title('pebiGrid(...)')
