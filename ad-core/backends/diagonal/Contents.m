@@ -4,7 +4,7 @@
 %   DiagonalAutoDiffBackend - Automatic differentiation backend class (diagonal representation)
 %   DiagonalJacobian        - Diagonal representation of a Jacobian
 %   DiagonalSubset          - Structured subset of a diagonal jacobian
-%   GenericAD                   - GenericAD is the testbed for future updates to the ADI class. All
+%   GenericAD               - GenericAD is the testbed for future updates to the ADI class. All
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

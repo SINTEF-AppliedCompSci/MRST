@@ -1,17 +1,20 @@
 % UTILS
 %
 % Files
-%   addPolymerProperties                  - 
-%   computeCapillaryNumber                - SYNOPSIS:
-%   computeFluxAndPropsOilWaterSurfactant - SYNOPSIS:
-%   computeRelPermSft                     - SYNOPSIS:
-%   computeSqVelocTPFA                    - SYNOPSIS:
-%   computeVelocTPFA                      - SYNOPSIS:
-%   equationsOilWaterPolymer              - SYNOPSIS:
-%   equationsOilWaterSurfactant           - SYNOPSIS:
-%   equationsThreePhaseBlackOilPolymer    - SYNOPSIS:
-%   getFluxAndPropsWaterPolymer_BO        - dpW, extraOutput
-%   updateAdsorption                      - SYNOPSIS:
+%   addPolymerProperties                            - Undocumented Utility Function
+%   computeCapillaryNumber                          - SYNOPSIS:
+%   computeFluxAndPropsOilWaterSurfactant           - SYNOPSIS:
+%   computeFluxAndPropsThreePhaseBlackOilSurfactant - SYNOPSIS:
+%   computeRelPermSft                               - SYNOPSIS:
+%   computeSqVelocTPFA                              - SYNOPSIS:
+%   computeVelocTPFA                                - SYNOPSIS:
+%   equationsOilWaterPolymer                        - SYNOPSIS:
+%   equationsOilWaterSurfactant                     - SYNOPSIS:
+%   equationsThreePhaseBlackOilPolymer              - SYNOPSIS:
+%   equationsThreePhaseBlackOilSurfactant           - SYNOPSIS:
+%   equationsThreePhaseSurfactantPolymer            - SYNOPSIS:
+%   getFluxAndPropsWaterPolymer_BO                  - dpW, extraOutput
+%   updateAdsorption                                - SYNOPSIS:
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

@@ -1,8 +1,20 @@
+% FLUX
+%
 % Files
-%   matchObservedOW - Compute mismatch-function
-%   NPVBlackOil     - Compute net present value of a schedule with well solutions
-%   NPVOW           - Compute net present value of a schedule with well solutions
-%   NPVOWPolymer    - Compute net present value of a schedule with well solutions
+%   ComponentPhaseFlux                    - 
+%   ComponentTotalFlux                    - 
+%   FaceComponentMobility                 - 
+%   FaceMobility                          - 
+%   GravityPotentialDifference            - 
+%   PermeabilityGradientDiscretization    - Class defining the discretization of the permeability
+%   PermeabilityPotentialGradient         - 
+%   PhaseFlux                             - 
+%   PhasePotentialDifference              - 
+%   PhaseUpwindFlag                       - 
+%   PressureGradient                      - 
+%   PressureGradientWithThresholdPressure - 
+%   Transmissibility                      - 
+%   TwoPointFluxApproximation             - 
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

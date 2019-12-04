@@ -1,7 +1,7 @@
 % UTILS
 %
 % Files
-%   control2schedule         - Convert control vector u to schedule 
+%   control2schedule         - Convert control vector u to schedule
 %   evalObjective            - Objective (and gradient) evaluation function based on input control vector u
 %   initSimpleScaledADIFluid - version of initSimpleScaledADIFluid with additional relperm scaling
 %   scaleConstraints         - Linear constraint scaling

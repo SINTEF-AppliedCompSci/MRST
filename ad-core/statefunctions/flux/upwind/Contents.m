@@ -1,8 +1,11 @@
+% UPWIND
+%
 % Files
-%   matchObservedOW - Compute mismatch-function
-%   NPVBlackOil     - Compute net present value of a schedule with well solutions
-%   NPVOW           - Compute net present value of a schedule with well solutions
-%   NPVOWPolymer    - Compute net present value of a schedule with well solutions
+%   getBoundaryFacesMerged              - Undocumented Utility Function
+%   UpwindDiscretization                - Base class for upwind discretization. The upwind discretization is in
+%   UpwindFunctionWrapperDiscretization - Simple wrapper for function handles for upwinding (classical MRST
+%   UpwindProperty                      - Base class which adds the faceUpstream function to derived classes
+%   WENOUpwindDiscretization            - Weighted essentially non-oscillatory scheme for upwinding
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

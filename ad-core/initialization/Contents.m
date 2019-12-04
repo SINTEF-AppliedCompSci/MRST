@@ -1,20 +1,20 @@
 % INITIALIZATION
 %
 % Files
-%   getDeckOPMData                        - 
-%   getInitializationRegionsBase          - 
-%   getInitializationRegionsBlackOil      - 
-%   getInitializationRegionsCompositional - 
-%   getInitializationRegionsDeck          - 
-%   getMinimumPhaseSaturations            - 
-%   getMinMaxPhaseSaturations             - 
-%   getMinMaxPhaseSaturationsFromRelPerm  - 
-%   initEclipseProblemAD                  - 
-%   initializeEquilibriumPressures        - 
-%   initializeEquilibriumSaturations      - 
-%   initStateBlackOilAD                   - 
-%   initStateDeck                         - 
-%   plotRegionContacts                    - 
+%   getDeckOPMData                        - Undocumented Utility Function
+%   getInitializationRegionsBase          - Undocumented Utility Function
+%   getInitializationRegionsBlackOil      - Undocumented Utility Function
+%   getInitializationRegionsCompositional - Undocumented Utility Function
+%   getInitializationRegionsDeck          - Undocumented Utility Function
+%   getMinimumPhaseSaturations            - Undocumented Utility Function
+%   getMinMaxPhaseSaturations             - Undocumented Utility Function
+%   getMinMaxPhaseSaturationsFromRelPerm  - Undocumented Utility Function
+%   initEclipseProblemAD                  - Undocumented Utility Function
+%   initializeEquilibriumPressures        - Undocumented Utility Function
+%   initializeEquilibriumSaturations      - Undocumented Utility Function
+%   initStateBlackOilAD                   - Undocumented Utility Function
+%   initStateDeck                         - Undocumented Utility Function
+%   plotRegionContacts                    - Undocumented Utility Function
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

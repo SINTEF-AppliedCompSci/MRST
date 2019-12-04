@@ -2,7 +2,6 @@
 %
 % Files
 %   optimizeQuad - Gradient-based search for optimium of a quadratic function on unit square
-%   testFunction - Simple quadratic function:
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

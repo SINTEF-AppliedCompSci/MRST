@@ -1,8 +1,10 @@
+% FLOW_STATE
+%
 % Files
-%   matchObservedOW - Compute mismatch-function
-%   NPVBlackOil     - Compute net present value of a schedule with well solutions
-%   NPVOW           - Compute net present value of a schedule with well solutions
-%   NPVOWPolymer    - Compute net present value of a schedule with well solutions
+%   AdaptiveImplicitFlowStateBuilder - AIM - adaptive implicit flow state builder. Takes certain cells to be
+%   ExplicitFlowStateBuilder         - 
+%   FlowStateBuilder                 - The FlowStateBuilder class is used to define the AD-state used for
+%   ImplicitFlowStateBuilder         - Default base class is already implicit - we have this class to make
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

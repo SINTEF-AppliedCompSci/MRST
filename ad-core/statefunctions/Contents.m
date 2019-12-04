@@ -1,8 +1,11 @@
+% STATEFUNCTIONS
+%
 % Files
-%   matchObservedOW - Compute mismatch-function
-%   NPVBlackOil     - Compute net present value of a schedule with well solutions
-%   NPVOW           - Compute net present value of a schedule with well solutions
-%   NPVOWPolymer    - Compute net present value of a schedule with well solutions
+%   FacilityFluxDiscretization - 
+%   FlowPropertyFunctions      - Default grouping for describing a system of flow equations. Contains
+%   FluxDiscretization         - Function grouping for Darcy-type flux discretization. The defaults
+%   StateFunction              - Class for gridded domain properties
+%   StateFunctionGrouping      - A StateFunctionGrouping class is a grouping of interdependent properties.
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

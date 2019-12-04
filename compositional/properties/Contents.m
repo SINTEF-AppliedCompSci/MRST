@@ -1,8 +1,14 @@
+% PROPERTIES
+%
 % Files
-%   matchObservedOW - Compute mismatch-function
-%   NPVBlackOil     - Compute net present value of a schedule with well solutions
-%   NPVOW           - Compute net present value of a schedule with well solutions
-%   NPVOWPolymer    - Compute net present value of a schedule with well solutions
+%   ComponentPhaseMassFractionsLV      - 
+%   ComponentPhaseMoleFractionsLV      - 
+%   CompositionalDensity               - 
+%   CompositionalFlowPropertyFunctions - 
+%   CompositionalViscosityLV           - 
+%   FugacityLV                         - 
+%   PhaseCompressibilityFactorsLV      - 
+%   PhaseMixingCoefficientsLV          - 
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

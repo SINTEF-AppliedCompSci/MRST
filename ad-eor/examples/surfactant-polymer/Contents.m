@@ -1,8 +1,7 @@
+% SURFACTANT-POLYMER
+%
 % Files
-%   matchObservedOW - Compute mismatch-function
-%   NPVBlackOil     - Compute net present value of a schedule with well solutions
-%   NPVOW           - Compute net present value of a schedule with well solutions
-%   NPVOWPolymer    - Compute net present value of a schedule with well solutions
+%   surfactantPolymerTutorial2D - 2D Three-Phase Surfactant-Polymer Injection Case
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

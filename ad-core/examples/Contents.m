@@ -1,8 +1,13 @@
 % EXAMPLES
 %
 % Files
-%   adBuckleyLeverett1D    - Classic Buckley-Leverett Problem: 1D Horizontal Displacement
-%   fluidInspectionExample - Demonstrate Interactive Plotting of Fluid Properties for AD-solvers
+%   adBuckleyLeverett1D             - Classic Buckley-Leverett Problem: 1D Horizontal Displacement
+%   demoPackedProblems              - Managing simulations: Restart, packed problems and more
+%   differentRegionFunctionsExample - The use of regions: Different functions in different parts of the domain
+%   fluidInspectionExample          - Demonstrate Interactive Plotting of Fluid Properties for AD-solvers
+%   linearSolverExample             - Set up model
+%   stateFunctionTutorial           - Introduction to StateFunctions for the AD-OO framework
+%   wenoExampleAD                   - Set up scenario
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

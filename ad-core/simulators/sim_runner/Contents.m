@@ -1,11 +1,15 @@
 % SIM_RUNNER
 %
 % Files
-%   clearPackedSimulatorOutput        - 
-%   getMultiplePackedSimulatorOutputs - 
-%   getPackedSimulatorOutput          - 
-%   packSimulationProblem             - 
-%   simulatePackedProblem             - 
+%   clearPackedSimulatorOutput        - Remove stored data for one or more packed simulation problem
+%   getMultiplePackedSimulatorOutputs - Short description
+%   getPackedSimulatorOutput          - Get output from a packed simulation problem
+%   monitorBackgroundSimulations      - Monitor simulations running in the background or another session
+%   PackedProblemManager              - Class for managing a set of packed simulation problems. See
+%   packSimulationProblem             - Pack simulation inputs into a single atomic representation of problem
+%   simulatePackedProblem             - Simulate one or more packed simulation problems
+%   simulatePackedProblemBackground   - Simulate a packed simulation problem as a seperate Matlab thread
+%   simulatePackedProblemStandalone   - Stand-alone solver for running packed problems programmatically
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

@@ -27,7 +27,7 @@
 %   assignSDENSITY    - dens of size ntpvtx3
 %   assignSGFN        - 
 %   assignSGOF        - 
-%   assignSGWFN       - 
+%   assignSGWFN       - Undocumented Utility Function
 %   assignSHRATE      - 
 %   assignSLGOF       - 
 %   assignSOF2        - 

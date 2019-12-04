@@ -5,6 +5,7 @@
 %   inspectFluidModel      - Create a interactive plotting panel for a given model that shows
 %   plotReportIterations   - Plot nonlinear convergence behavior for simulateScheduleAD output
 %   plotWellSols           - Plot well solutions from AD-solvers
+%   simpleUIbar            - Undocumented Utility Function
 %   simulationRuntimePanel - Internal function for drawing panel during simulation. See
 
 %{

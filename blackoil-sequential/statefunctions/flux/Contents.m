@@ -1,8 +1,17 @@
+% FLUX
+%
 % Files
-%   matchObservedOW - Compute mismatch-function
-%   NPVBlackOil     - Compute net present value of a schedule with well solutions
-%   NPVOW           - Compute net present value of a schedule with well solutions
-%   NPVOWPolymer    - Compute net present value of a schedule with well solutions
+%   ComponentMobilityTotalSaturation     - Class implementing the mobility for a specific component
+%   ComponentPhaseDensityTotalSaturation - 
+%   ComponentPhaseFluxFractionalFlow     - 
+%   ComponentPhaseMassTotalSaturation    - 
+%   FaceTotalMobility                    - 
+%   FixedTotalFlux                       - 
+%   PhaseFluxFixedTotalVelocity          - 
+%   PhaseInterfacePressureDifferences    - 
+%   PhasePotentialUpwindFlag             - 
+%   TotalMobility                        - 
+%   TotalSaturation                      - 
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

@@ -1,7 +1,7 @@
 % UTILS
 %
 % Files
-%   getDeckEGG - 
+%   getDeckEGG - Undocumented Utility Function
 %   setupEGG   - Setup the EGG benchmark case for simulation
 
 %{

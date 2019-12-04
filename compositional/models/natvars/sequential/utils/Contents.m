@@ -1,8 +1,8 @@
 % UTILS
 %
 % Files
-%   correctSequentialBHP   - 
-%   getUpdatesFromPressure - 
+%   correctSequentialBHP   - Undocumented Utility Function
+%   getUpdatesFromPressure - Undocumented Utility Function
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

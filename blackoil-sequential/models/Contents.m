@@ -1,14 +1,17 @@
 % MODELS
 %
 % Files
+%   AcceleratedSequentialModel              - Accelerated sequential model inspired by "Nonlinear acceleration of
 %   PressureBlackOilModel                   - Pressure model for three-phase, blackoil equations
 %   PressureBlackOilPolymerModel            - Polymer pressure model for blackoil
+%   PressureModel                           - 
 %   PressureOilWaterModel                   - Pressure model for two phase oil/water system without dissolution
 %   PressureOilWaterPolymerModel            - Two phase oil/water system with polymer
-%   SequentialPressureTransportModel        - Sequential meta-model which solves pressure and transport using a fixed
-%   SequentialPressureTransportModelPolymer - 
+%   SequentialPressureTransportModel        - Sequential meta-model which solves pressure and transport
+%   SequentialPressureTransportModelPolymer - Call parent
 %   TransportBlackOilModel                  - Two phase oil/water system without dissolution
 %   TransportBlackOilPolymerModel           - Two phase oil/water system with polymer
+%   TransportModel                          - 
 %   TransportOilWaterModel                  - Two phase oil/water system without dissolution
 %   TransportOilWaterPolymerModel           - Two phase oil/water system with polymer
 

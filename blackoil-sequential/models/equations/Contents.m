@@ -4,7 +4,7 @@
 %   pressureEquationBlackOil         - 
 %   pressureEquationBlackOilPolymer  - 
 %   pressureEquationOilWater         - 
-%   pressureEquationOilWaterPolymer  - 
+%   pressureEquationOilWaterPolymer  - Undocumented Utility Function
 %   transportEquationBlackOil        - Generate linearized problem for a volatile 3Ph system (wet-gas, live-oil).
 %   transportEquationBlackOilPolymer - 
 %   transportEquationOilWater        - 

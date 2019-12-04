@@ -1,8 +1,10 @@
+% UTILS
+%
 % Files
-%   matchObservedOW - Compute mismatch-function
-%   NPVBlackOil     - Compute net present value of a schedule with well solutions
-%   NPVOW           - Compute net present value of a schedule with well solutions
-%   NPVOWPolymer    - Compute net present value of a schedule with well solutions
+%   getReportTimings         - Undocumented Utility Function
+%   loadAquiferEclipseResult - Undocumented Utility Function
+%   setupAquifertest         - Undocumented Utility Function
+%   surfWithOutline          - Standard surf plot with black outline of perimeter
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

@@ -1,7 +1,9 @@
 % MODELS
 %
 % Files
-%   ThreePhaseCompositionalModel - Base class for compositional models
+%   GenericNaturalVariablesModel   - 
+%   GenericOverallCompositionModel - 
+%   ThreePhaseCompositionalModel   - Base class for compositional models
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
