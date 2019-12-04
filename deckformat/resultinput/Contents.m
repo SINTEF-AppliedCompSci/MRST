@@ -4,7 +4,7 @@
 %   addFluxesToRestartStates         - Expand Reservoir State to Include Phase Fluxes.
 %   convertRestartToStates           - states = convertRestartToStates(fn, G, varargin)
 %   convertSummaryToWellSols         - [wellSols, time] = convertSummaryToWellSols(fn, unit)
-%   eclOut2mrst                      - 
+%   eclOut2mrst                      - Undocumented Utility Function
 %   initGridFromEclipseOutput        - Reads eclipse output files and converts to MRST-compatible datastructures
 %   processEclipseRestartSpec        - Read unformatted (binary) ECLIPSE restart specification file (*RSSPEC) and 
 %   readEclipseOutputFileFmt         - Read formatted (ASCII) ECLIPSE output/result file
