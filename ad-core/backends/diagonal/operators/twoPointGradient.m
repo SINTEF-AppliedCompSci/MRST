@@ -1,5 +1,5 @@
 function v = twoPointGradient(N, v, M, useMex)
-% Discrete gradient for the NewAD library
+%Discrete gradient for the GenericAD library
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
