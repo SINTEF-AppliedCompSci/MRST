@@ -33,7 +33,7 @@ fixedPts = [rectangle1; rectangle1(swap1)';rectangle1(swap2)'];
 hd = @(p) rho(p)/fGs;
 fd = @(p) drectangle(p, rectangle1(1),rectangle1(2), rectangle1(3),rectangle1(4));
 
-[Pts,t] = distmesh2d(fd, hd, fGs, rectangle1, fixedPts);
+[Pts,t] = distmesh2d(fd, hd, fGs, rectangle1, fixedPts, false);
 
 fDt1.ConnectivityList = t;
 
