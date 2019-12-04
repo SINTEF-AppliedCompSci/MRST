@@ -81,7 +81,7 @@ function CS = generateCoarseSystem(G, rock, S, CG, mob, varargin)
 %   `computeMimeticIP`, `generateCoarseGrid`, `evalBasisFunc`, `mrstVerbose`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
