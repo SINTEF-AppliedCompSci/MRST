@@ -3,27 +3,40 @@ function [wellSols, time] = convertSummaryToWellSols(fn, unit)
 % Create wellSols with fields qOs, qWs, qGs and bhp from from eclipse
 % summary file fn. Supperted units are 'metric', 'field'.
 
-    if nargin < 2
-        warning('No unit given, assuming metric')
-        unit = 'metric';
-    end
+    [smry, spec] = get_summary(fn);
 
+    if nargin == 1, unit = []; end
+
+    [qOs, qWs, qGs, bhp, wns, time] = ...
+       extract_quantities(smry, extract_units(spec, unit));
+
+    wellSols = assign_wellsols(smry, qOs, qWs, qGs, bhp, wns);
+end
+
+%--------------------------------------------------------------------------
+
+function [smry, spec] = get_summary(fn)
     if isstruct(fn)
-        smry = fn;
+        [smry, spec] = deal(fn, []);
     else
-        smry = readEclipseSummaryUnFmt(fn);
+        [smry, spec] = readEclipseSummaryUnFmt(fn);
     end
+end
 
+%--------------------------------------------------------------------------
+
+function u = extract_units(spec, unit)
     % units:
     if ischar(unit)
         u = getUnits(unit);
-    else
+    elseif ~isempty(spec)
+        u = getInteheadUnit(spec);
+    elseif ~isempty(unit)
         u = unit;
+    else
+        warning('Unit:Defaulted', 'No unit given, assuming metric');
+        u = getUnits('metric');
     end
-
-    [qOs, qWs, qGs, bhp, wns, time] = extract_quantities(smry, u);
-
-    wellSols = assign_wellsols(smry, qOs, qWs, qGs, bhp, wns);
 end
 
 %--------------------------------------------------------------------------
@@ -151,4 +164,11 @@ function u = getUnits(unit)
       otherwise
          error(['Unit ', unit, ' not supported']);
    end
+end
+
+%--------------------------------------------------------------------------
+
+function u = getInteheadUnit(spec)
+   ustring = { 'METRIC', 'FIELD', 'LAB', 'PVT-M' };
+   u = getUnits(ustring{ spec.INTEHEAD.values(1) });
 end
