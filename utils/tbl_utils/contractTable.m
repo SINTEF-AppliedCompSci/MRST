@@ -1,4 +1,28 @@
 function [prodAB, restbl] = contractTable(Acell, Bcell, fds)
+%
+%
+% SYNOPSIS:
+%   function [prodAB, restbl] = contractTable(Acell, Bcell, fds)
+%
+% DESCRIPTION: Compute the contraction of two tensors along the fields given
+% by fds
+%
+% PARAMETERS:
+%   Acell - First tensor: Acell{1} gives the tensor in vector form which
+%   follows the indexing table given in Acell{2}
+%   Bcell - Second tensor: Same structure as first tensor
+%   fds   - cell of fields along which the reduction will be made
+%
+% RETURNS:
+%   prodAB - Result of the contraction of the two tensor, as a vector indexed
+%   according to indexing table prodAB
+%   restbl - Indexing table for prodAB
+%
+% EXAMPLE:
+%
+% SEE ALSO: `setupTableMapping`
+%
+
     
     A    = Acell{1};
     tblA = Acell{2};
