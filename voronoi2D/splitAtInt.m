@@ -66,23 +66,21 @@ function [splitL1, L1Cut, L1L2Cut, IC] = splitAtInt(L1, L2)
 %}
 if isempty(L1)
   splitL1 = L1;
-  L1Cut = [];
-  L1L2Cut = [];
-  IC = [];
+  [L1Cut, L1L2Cut, IC] = deal([]);
   return
 end
 splitL1 = cell(0);
-tmpCut    = cell(0);
-IC = (1:numel(L1))';
+tmpCut  = cell(0);
+IC      = (1:numel(L1))';
 for i = 1:numel(L1)
   [splitL1{i},~,tmpCut{i}] = splitLines(L1(i),L1([1:i-1,i+1:end]));  
 end
-n = cellfun(@numel,splitL1);
-IC = repelem(IC,n);
+n       = cellfun(@numel,splitL1);
+IC      = repelem(IC,n);
 splitL1 = horzcat(splitL1{:});
-tmpCut      = vertcat(tmpCut{:});
-[splitL1, cutId,L1L2Cut,IC2] = splitLines(splitL1, L2);
-IC = IC(IC2);
+tmpCut  = vertcat(tmpCut{:});
+[splitL1,cutId,L1L2Cut,IC2] = splitLines(splitL1, L2);
+IC  = IC(IC2);
 
 L1Cut = zeros(sum(sum(cutId, 1) + 2),1); % initialize array
 numEl = 0;
@@ -90,20 +88,20 @@ for i = 1:size(tmpCut,1)
   switch tmpCut(i)
     case 0
       numNew = sum(cutId(i,:)) + 1;
-      toNum = numEl + numNew;
+      toNum  = numEl + numNew;
       L1Cut(numEl+1:toNum,1) = [zeros(numNew-1,1); 0];
     case 1
       numNew = sum(cutId(i,:)) + 1;
-      toNum = numEl + numNew;
+      toNum  = numEl + numNew;
       L1Cut(numEl+1:toNum,1) = [zeros(numNew-1,1); 1];
     case 2
       numNew = sum(cutId(i,:)) + 1;
-      toNum = numEl + numNew;
+      toNum  = numEl + numNew;
       L1Cut(numEl+1:toNum,1) = [2; zeros(numNew-1,1)];
     case 3 
       if sum(cutId(i,:))
         numNew = sum(cutId(i,:)) + 1;
-        toNum = numEl + numNew;
+        toNum  = numEl + numNew;
         L1Cut(numEl+1:toNum,1) = [2; zeros(numNew-2,1); 1];
       else
         toNum = numEl + 1;
@@ -122,10 +120,9 @@ for i = 1:numel(splitL1)
 end
 if numel(splitL1)>0
   numPts  = cellfun(@(c) size(c,1),splitL1);  
-  keep = numPts>1;
-  splitL1= splitL1(keep);
-  L1Cut = L1Cut(keep);
+  keep    = numPts>1;
+  splitL1 = splitL1(keep);
+  L1Cut   = L1Cut(keep);
   L1L2Cut = L1L2Cut(keep);
-  IC = IC(keep);
+  IC      = IC(keep);
 end
-
