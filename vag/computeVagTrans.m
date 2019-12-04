@@ -31,9 +31,9 @@ function vagstruct = computeVagTrans(G, rock)
 
 
 
-    %% Setup cell, face, node and vertices tables
+    %% Setup cell, face, node and vertices indexing tables
         
-    % NOTE : By vertices, we denote the point that can be either a cell centroid, a
+    % NOTE : By vertices, we denote a point that can either be a cell centroid, a
     % face centroid or a node position. The vertices have their own numbering
     % (from 1 to np, see below). 
     assert(G.griddim == 3, 'only 3D code for now!');
@@ -61,7 +61,8 @@ function vagstruct = computeVagTrans(G, rock)
     
     %% Setup vertcoltbl and vertcent
     
-    % vertcent contains the coordinates of the vertices and belonds to vertcoltbl
+    % vertcent contains the coordinates of the vertices and is indexed using
+    % the indexing table vertcoltbl
      
     coltbl.coldim   = (1 : 3)';
     coltbl.num      = 3;
@@ -71,8 +72,9 @@ function vagstruct = computeVagTrans(G, rock)
     [~, facecoltbl] = setupTableMapping(facetbl, coltbl, []);
     [~, nodecoltbl] = setupTableMapping(nodetbl, coltbl, []);
 
-    % The following assignments require internal knowledge on setupTableMapping
-    % machinery.
+    % We collect the cell, face and node centroids given by the grid structure in
+    % vectors that follows the indexing of the indexing tables cellcoltbl,
+    % facecoltbl and nodecoltbl.
     cellcent = G.cells.centroids;
     cellcent = reshape(cellcent', [], 1);
     facecent = G.faces.centroids;
@@ -90,10 +92,10 @@ function vagstruct = computeVagTrans(G, rock)
     %% Setup tetratbl
     
     % There corresponds a tetrahedra for each triplet (cell, face, edge), where the
-    % face belongs to the face and the edge to the face. The table tetratbl
-    % describe all these tetrahedra. The vertices of the tetrahedra are given by
-    % the cell centroid, the face centroid, and the two nodes that constitute
-    % the edge.
+    % face belongs to the face and the edge to the face. The indexing table
+    % tetratbl describe all these tetrahedra. The vertices of the tetrahedra are
+    % given by the cell centroid, the face centroid, and the two nodes that
+    % constitute the edge.
     
 
     nc = G.cells.num;
@@ -184,7 +186,7 @@ function vagstruct = computeVagTrans(G, rock)
 
     % For each vertex in a tetrahedra, we are going to compute the normal of the
     % face that is opposite to the tetrahedra. The normals will be stored in a
-    % vector that belongs to tetravertcoltbl
+    % vector that belongs that follows the indexing table tetravertcoltbl
     
     
     % We first set up the table tetravertopptbl, which contains for each
@@ -220,6 +222,7 @@ function vagstruct = computeVagTrans(G, rock)
     [~, tetravertoppcoltbl] = setupTableMapping(tetravertopptbl, coltbl, []);
 
     map = setupTableMapping(vertcoltbl, tetravertoppcoltbl, {{'vertices', 'oppvertices'}, 'coldim'});
+    
     % tetraoppvertcent gives the coordinate of each of the opposite vertices
     tetraoppvertcent = map*vertcent;
 
@@ -297,7 +300,8 @@ function vagstruct = computeVagTrans(G, rock)
 
     %% We set up the permeability tensor
 
-    % The permeability tensor is stored in perm which belongs to cellcolrowtbl
+    % The permeability tensor is stored in perm which is indexed according to the
+    % indexing table cellcolrowtbl
     rowtbl.rowdim = (1 : 3)';
     rowtbl.num = 3;
 
@@ -311,7 +315,8 @@ function vagstruct = computeVagTrans(G, rock)
     
     
     % We dispatch perm to each vertex of each tetrahedra and multiply it with
-    % grad. We obtain Kgrad, which belongs to tetravertcoltbl
+    % grad. We obtain Kgrad, which is indexed according to indexing table
+    % tetravertcoltbl
     
     [~, tetravertcolrowtbl] = setupTableMapping(tetravertcoltbl, rowtbl, []);
     dispatchmap = setupTableMapping(cellcolrowtbl, tetravertcolrowtbl, {'cells', ...
@@ -319,10 +324,9 @@ function vagstruct = computeVagTrans(G, rock)
     K = dispatchmap*perm;
 
     %% Setup of Amat
-    %
-    % The tensor Amat is stored in tetravert2tbl. For each tetrahedra, it is a
-    % two-dimensional tensor for pairs of values at the vertices of the
-    % tetrahedra.
+    % The tensor Amat is stored according indexing table tetravert2tbl. For each
+    % tetrahedra, it is a two-dimensional tensor for pairs of values at the
+    % vertices of the tetrahedra.
     
     dispatchmap = setupTableMapping(tetravertcoltbl, tetravertcolrowtbl, tetravertcolfds);
     Kgrad = K.*(dispatchmap*grad);
@@ -417,7 +421,8 @@ function vagstruct = computeVagTrans(G, rock)
 
     %% Summation of contribution over the tetrahedra in a cell
     
-    % We create table cellverttbl which contains all the vertices for a cell.
+    % We create indexing table cellverttbl which contains all the vertices for a
+    % cell.
     cellverttbl = projTable(tetraverttbl, {'cells', 'vertices'});
 
     % We create table cellvert2tbl which contains the two-dimensional tensor
@@ -427,14 +432,13 @@ function vagstruct = computeVagTrans(G, rock)
 
     reducemapping = setupTableMapping(tetravert2tbl, cellvert2tbl, {'cells', 'vertices1', ...
                         'vertices2'});
-    % The tensor Amat now belongs to cellvert2tbl:
+    % The tensor Amat is now indexed according to cellvert2tbl:
     Amat = reducemapping*Amat;
 
     %% Barycentric condensation
 
-    % setup cellcnverttbl:
-    % For each cell, the vertices of the cell and of the nodes that belong to the
-    % cell.
+    % setup cellcnverttbl: For each cell, the vertices of the cell and of the nodes
+    % that belong to the cell.
     cellnodetbl.cells = rldecode((1 : nc)', diff(G.cells.nodePos));
     cellnodetbl.nodes = G.cells.nodes;
     cellnodetbl.num   = numel(cellnodetbl.cells);
@@ -450,10 +454,10 @@ function vagstruct = computeVagTrans(G, rock)
     cellcnverttbl = convertArrayToTable(a, {'cells', 'cnvertices'});
     cellcnvertfds = {'cells', 'cnvertices'};
 
-    % We setup cellvertcnvert:
-    % This table is used to describe the barycentric condenstion from vertices to
-    % cnvertices. It is used to store a 2D tensor of pair of values at
-    % cnvertices and vertices, which we call the barycentric mapping.
+    % We setup cellvertcnvert: This table is used to describe the barycentric
+    % condenstion from vertices to cnvertices. It is used to store a 2D tensor
+    % of pair of values at cnvertices and vertices, which we call the
+    % barycentric mapping.
     [~, cellvertcnverttbl] = setupTableMapping(cellverttbl, cellcnverttbl, ...
                                                             {'cells'});
     cellvertcnvertfds = {'cells', 'cnvertices', 'vertices'};
@@ -465,8 +469,7 @@ function vagstruct = computeVagTrans(G, rock)
     % For the cnvertices the mapping is just the identity
     barcoef(vertind == cnvertind) = 1; % todo: barcoef is sparse. can we use a different approach?
 
-    % We setup nodecoef:
-    % for a face: 1/(number of nodes that belongs to the face)
+    % We setup nodecoef: for a face, it is equal to 1/(number of nodes that belongs to the face)
 
     facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos));
     facenodetbl.nodes = G.faces.nodes;
