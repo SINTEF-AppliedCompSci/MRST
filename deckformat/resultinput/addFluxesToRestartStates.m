@@ -1,4 +1,6 @@
 function states = addFluxesToRestartStates(states, G, T, rock, fluid, deck)
+%Expand Reservoir State to Include Phase Fluxes.
+
 % The rock structure is needed when the scaling of relative permeability is
 % used.
     

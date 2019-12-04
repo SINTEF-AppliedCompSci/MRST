@@ -1,7 +1,9 @@
 % Files
-%   compressRock    - Compress rock properties to active cells only
-%   computeTranMult - Compute transmissibility multipliers.
-%   initEclipseRock - Extract rock properties from input deck
+%   compressRock       - Compress rock properties to active cells only
+%   computeTranMult    - Compute transmissibility multipliers.
+%   initEclipseRock    - Extract rock properties from input deck
+%   initRelpermScaling - set up the relperm scaling parameters from deck ('SOGCR', 'SGU', 'SGCR',
+%   processAquifer     - return array aquifer. Each row corresponds to a cell connected to the aquifer.
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.

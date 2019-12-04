@@ -1,7 +1,7 @@
 % RESULTINPUT
 %
 % Files
-%   addFluxesToRestartStates         - 
+%   addFluxesToRestartStates         - Expand Reservoir State to Include Phase Fluxes.
 %   convertRestartToStates           - states = convertRestartToStates(fn, G, varargin)
 %   convertSummaryToWellSols         - [wellSols, time] = convertSummaryToWellSols(fn, unit)
 %   eclOut2mrst                      - 
