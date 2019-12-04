@@ -1,7 +1,8 @@
 % MSRSB
 %
 % Files
-%   iteratedJacobiBasis - Set up basis function for the MsRSB (multiscale restricted smoothed basis) method
+%   getMultiscaleRestrictionSmoothedBasis - Set up basis function for the MsRSB (multiscale restricted smoothed basis) method
+%   iteratedJacobiBasis                   - Deprecated function. Renamed to getMultiscaleRestrictionSmoothedBasis.
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

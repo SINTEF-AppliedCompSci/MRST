@@ -1,7 +1,7 @@
 % UTILS
 %
 % Files
-%   getCoreyRelperm      - 
+%   getCoreyRelperm      - Undocumented Utility Function
 %   getExampleCapPres    - Returns a capillary-pressure curves for each region. Returns a cell array
 %   getExampleFluidProps - Returns a structure with fluid properties for use with the examples.
 

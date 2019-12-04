@@ -1,9 +1,9 @@
 % MRST-BOOK
 %
 % Files
-%   addDefaultWellFields - 
+%   addDefaultWellFields - Undocumented Utility Function
 %   coarsenWells         - Generate well structure according to coarse grid Gc
-%   hT2T                 - 
+%   hT2T                 - Undocumented Utility Function
 %   upscaleTransGlobal   - Calculate upscaled transmissibilities for a coarse model
 
 %{

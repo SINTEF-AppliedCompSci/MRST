@@ -4,7 +4,6 @@
 %   boundaryNeighbors          - 
 %   cppMultiscaleBasis         - Create MsRSB basis using MEX code
 %   cppMultiscaleBasisFromFile - 
-%   demo_mexMsRSB              - Some different test cases
 %   mex_cppMultiscaleBasis     - Internal build routine for MsRSB accelerated basis functions
 %   setupMexInteractionMapping - Setup mex mapping for cppMultiscaleBasis
 
