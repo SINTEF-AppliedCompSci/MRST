@@ -4,7 +4,10 @@ function vagstruct = computeVagTrans(G, rock)
 % SYNOPSIS:
 %   function vagstruct = computeVagTrans(G, rock)
 %
-% DESCRIPTION: Computes the VAG transmissibilities
+% DESCRIPTION: Computes the VAG transmissibilities. The implementation makes
+% extensive use of the indexing table mechanism, introduced utils/tbl_utils in
+% module mrst-core. It is not clear yet whether indexing tables scale well to
+% large problem. Therefore, the function computeVagTrans may be slow.
 %
 % PARAMETERS:
 %   G    - Grid

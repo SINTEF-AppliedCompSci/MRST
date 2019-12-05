@@ -2,6 +2,8 @@
 %  Example of VAG computation, with well injection. It uses the function
 %  incompVAG to solve the system
 
+%% Load modules
+
 mrstModule add vag vem vemmech
 
 %% Define and process geometry

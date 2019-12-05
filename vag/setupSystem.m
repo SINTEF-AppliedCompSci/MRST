@@ -28,7 +28,6 @@ function [A, operators] = setupSystem(vagstruct, G)
 %
 % SEE ALSO: `computeVagTrans`, `incompVAG`
 %
-
     
     Atrans = vagstruct.A;
     cellnode2tbl = vagstruct.cellnode2tbl;

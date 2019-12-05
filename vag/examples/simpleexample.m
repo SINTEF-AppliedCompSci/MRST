@@ -1,3 +1,7 @@
+%% VAG example
+%  Example of VAG computation, with given rate injection in some cells and given
+%  pressure at other cells. It uses the function incompVAG to solve the system
+
 %% Load modules
 
 mrstModule add mpfa vem vag vemmech
