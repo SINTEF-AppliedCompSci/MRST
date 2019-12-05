@@ -29,8 +29,8 @@ problem = packSimulationProblem(state0, model, schedule, 'egg_model_FlowDiagnost
 % This may take some time to simulate, however if the simulation has been
 % completed already a new call to simulatePackedProblem will recognise
 % that the simulation is complete and will do nothing.
-% If the simulation is aborted, a new call to simulatePackedProblem will continue 
-% the simulation. 
+% If the simulation is aborted, a new call to simulatePackedProblem will continue
+% the simulation.
 % To clear previous results and rerun a simulation use:
 %       clearPackedSimulatorOutput(problem);
 simulatePackedProblem(problem);
@@ -50,7 +50,7 @@ PostProcessDiagnosticsMRST(problem);
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
