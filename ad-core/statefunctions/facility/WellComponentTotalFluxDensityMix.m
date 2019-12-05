@@ -66,7 +66,7 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
                 isRate = ~(strcmpi(targetType, 'resv') | strcmpi(targetType, 'bhp'));
                 surfaceRates = value(state.FacilityState.surfacePhaseRates);
                 surfaceRates(isRate, :) = phaseCompi(isRate, :).*targetValue(isRate);
-                surfaceMassRates = surfaceRates.*rhoS;
+                surfaceMassRates = surfaceRates.*value(rhoS);
                 for ph = 1:nph
                     injectionMass = injectionMass + phaseCompi(:, ph).*surfaceMassRates(:, ph).*[surfaceComposition{:, ph}];
                 end
