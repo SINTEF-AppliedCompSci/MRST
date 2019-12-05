@@ -389,7 +389,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
       }      
       std::cout << std::endl;
     }
-    omp_set_num_threads(nthreads);
+    #ifdef _OPENMP
+        omp_set_num_threads(nthreads);
+    #endif
     std::vector<double> b(n);
     #pragma omp parallel for
     for(int ix = 0; ix < n; ix++){
