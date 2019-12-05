@@ -1,10 +1,9 @@
-% EXAMPLES
+% VAG
 %
 % Files
-%   sequentialAMGCL  - Select layer 1
-%   showOptionsAMGCL - Example demonstrating different options for AMGCL
-%   testAMGCL        - Example demonstrating AMGCL on a few test problems
-%   testAMGCL_cpr    - Example demonstrating AMGCL on a few test problems
+%   computeVagTrans - SYNOPSIS:
+%   incompVAG       - SYNOPSIS:
+%   setupSystem     - SYNOPSIS:
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.

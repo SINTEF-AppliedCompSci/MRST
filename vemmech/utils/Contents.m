@@ -6,7 +6,7 @@
 %   calStressEigsVEM       - calculate eigen values of stress tensor and the basis
 %   calculateQC            - SYNOPSIS:
 %   calculateQF            - SYNOPSIS:
-%   calculateStressVEM     - 
+%   calculateStressVEM     - Undocumented Utility Function
 %   complex3DGrid          - SYNOPSIS:
 %   Enu2C                  - For each cell, construct the 3x3 (in 2D) or 6x6 (in 3D) matrix representing
 %   ENu2LMu_3D             - SYNOPSIS:

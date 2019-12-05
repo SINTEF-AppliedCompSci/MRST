@@ -1,7 +1,7 @@
 % UTILS
 %
 % Files
-%   producerInjectorGrid - 
+%   producerInjectorGrid - Undocumented Utility Function
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.

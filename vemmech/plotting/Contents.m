@@ -3,7 +3,7 @@
 % Files
 %   plotCellDataDeformed - SYNOPSIS:
 %   plotFaceDataDeformed - SYNOPSIS:
-%   plotFaces2D          - 
+%   plotFaces2D          - Undocumented Utility Function
 %   plotGridDeformed     - SYNOPSIS:
 %   plotNodeDataDeformed - SYNOPSIS:
 

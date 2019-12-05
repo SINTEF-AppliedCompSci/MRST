@@ -1,8 +1,8 @@
 % MPSAMECH
 %
 % Files
-%   LSMIM_linElast      - 
-%   systemStressMimetic - s = computeMimeticIP(g,rock,varargin{:});
+%   LSMIM_linElast      - Undocumented Utility Function
+%   systemStressMimetic - Undocumented Utilty Function
 
 %{
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
