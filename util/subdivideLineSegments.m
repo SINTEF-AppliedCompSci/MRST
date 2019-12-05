@@ -25,7 +25,7 @@ function [Pts, origIx, ptsUsed] = subdivideLineSegments(path, dt, sePtn)
 
 sDist = sqrt(sum(diff(path,[],1).^2,2));
 cCoor = [0; cumsum(sDist)];
-split = round(max(1,sDist./dt));
+split = ceil(sDist./dt);
 nCoor = nan(sum(split)+1,1);
 
 sPt  = sePtn(1)*dt;
@@ -37,7 +37,7 @@ for i=1:numel(sDist)
         split(i)=0; continue
     end
     ds          = min(cCoor(i+1),ePt)-max(cCoor(i),sPt);
-    split(i)    = round(max(1,ds/dt));
+    split(i)    = ceil(ds/dt);
     nCoor(n:n+split(i)) = max(cCoor(i),sPt):ds/split(i):min(cCoor(i+1),ePt);
     n           = n + split(i);
     flag(i:i+1) = true;
