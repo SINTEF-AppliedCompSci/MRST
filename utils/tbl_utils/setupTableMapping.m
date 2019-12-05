@@ -77,13 +77,31 @@ function [map, tbl] = setupTableMapping(tbl1, tbl2, crossfields, varargin)
 %   tbl  - table constructed from tbl1, tbl2 and the given fields
 %   crossfields, as described above
 %
-% SEE ALSO: `projTable`, `sortTable`, `convertArrayToTable`,
-% `convertTableToArray`, `addLocInd`, `replacefield`
-%
+% SEE ALSO:
+%   `projTable`, `sortTable`, `convertArrayToTable`, `convertTableToArray`,
+%   `addLocInd`, `replacefield`.
 
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
-% TODO: not supported situation, the same fieldname is in "other fields" and
-% appears as a replacement field name (see below)
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+% TODO: not supported situation, the same fieldname is in "other fields"
+% and appears as a replacement field name (see below)
     opt = struct('crossextend', [], 'fastunstable', false);
     opt = merge_options(opt, varargin{:});
     
