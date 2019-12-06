@@ -1,13 +1,14 @@
 % Files
-%   diagnostEggModel           - Ranking of different realizations of the same model
-%   diagnostFlowPatterns       - Flow Pattern and Dynamic Heterogeneity for 2D Five-Spot Problem
-%   diagnostIntro              - Introduction to Flow Diagnostics
-%   diagnostOptimWellPlacement - Optimizing Well Placement and Rates
-%   diagnostOptimize1D         - Well Optimization using Adjoints and Flow Diagnostics
-%   diagnostUpscaleIntro       - Illustrate use of flow diagnostics to verify upscaling
-%   diagnostUpscaleSPE10       - Upscaling a Subset of SPE 10
-%   diagnostViewerDemo         - Interactive diagnostics on the SAIGUP dataset
-%   diagnostWellPairs          - Well-Pair Diagnostics for 3D Subset of SPE10
+%   diagnostEggModel                 - Ranking of different realizations of the same model
+%   diagnostFlowPatterns             - Flow Pattern and Dynamic Heterogeneity for 2D Five-Spot Problem
+%   diagnostIntro                    - Introduction to Flow Diagnostics
+%   diagnosticsPostProcessorWithMRST - Diagnostics GUI using MRST simulation output
+%   diagnostOptimWellPlacement       - Optimizing Well Placement and Rates
+%   diagnostOptimize1D               - Well Optimization using Adjoints and Flow Diagnostics
+%   diagnostUpscaleIntro             - Illustrate use of flow diagnostics to verify upscaling
+%   diagnostUpscaleSPE10             - Upscaling a Subset of SPE 10
+%   diagnostViewerDemo               - Interactive diagnostics on the SAIGUP dataset
+%   diagnostWellPairs                - Well-Pair Diagnostics for 3D Subset of SPE10
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

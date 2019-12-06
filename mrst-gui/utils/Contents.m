@@ -3,20 +3,21 @@
 % Files
 %   CellDataPatch           - 
 %   DynamicMeasureSelector  - 
-%   limitedToolbarFigure    - 
+%   limitedToolbarFigure    - Undocumented Utility Function
 %   PreDiagnosticsSelector  - 
-%   PropertyDisplaySelector - 
+%   PropertyDisplaySelector - sampleprops must be updated with limits! will produce error
 %   setInteractiveModes     - set props for zoom/pan/rotate in axes ax
-%   setUIStyle              - 
+%   setUIStyle              - Undocumented Utility Function
 %   SummarySelector         - 
 %   tatarizeMap             - Independent colors maximally dissimilar from all previous colors
 %   TimeStepSelector        - 
 %   TracerSelector          - 
-%   UIGetTimeSteps          - 
+%   UIGetTimeSteps          - Undocumented Utility Function
 %   UIItem                  - 
-%   UIMenu                  - 
+%   UIMenu                  - UIMenu - Create menu or menu items
 %   WellPlotHandle          - 
 %   WellSelector            - 
+%   WellSolSelector         - 
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

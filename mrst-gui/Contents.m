@@ -2,10 +2,10 @@
 %
 % Files
 %   addFilters                 - Filter cells based on dataset.
-%   colorizedHistogram         - 
+%   colorizedHistogram         - Undocumented Utility Function
 %   datasetSelector            - Create dataset selector either as standalone or integrated in gui.
 %   editWells                  - Edit well setup
-%   editStructGUI              - 
+%   editStructGUI              - Undocumented Utility Function
 %   extractSubcellsInteractive - Extract a subset of cells from a grid interactively.
 %   fastRotateButton           - Hook in faster rotation for 3D plots.
 %   getStructFields            - Dump possible plotting fields of a struct into human readable format.
