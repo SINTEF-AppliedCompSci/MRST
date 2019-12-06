@@ -2,6 +2,7 @@
 %   Collection of external datasets known to MRST
 %
 % Files
+%   dataset_aquifertest          - Info function for the dataset of a 2D oil-water two phase cases with Fetkovich aquifers. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_bedmodel2            - Info function for bedModel2 dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_bedmodels1           - Info function for bedModels1 dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_blackoilpolymer2d    - Info function for the dataset of a 2D black-oil polymer example. Use getDatasetInfo or getAvailableDatasets for practical purposes.
@@ -10,13 +11,21 @@
 %   dataset_co2atlasbarentssea   - Info function for CO2lab dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_co2atlasnorwegiansea - Info function for CO2lab dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_egg                  - Info function for Egg dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
-%   dataset_igemsgrids           - 
-%   dataset_igemssample          - 
-%   dataset_igemssurfaces        - 
+%   dataset_igemsgrids           - Dataset Function for IGEMS Grids
+%   dataset_igemssample          - Dataset Function for IGEMS Sample
+%   dataset_igemssurfaces        - Dataset Function for IGEMS Surfaces
 %   dataset_johansen             - Info function for Johansen dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+%   dataset_msfractures          - Info function for MSFractures dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_norne                - Info function for Norne dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+%   dataset_npd_bjarmeland       - Info function for Frigg dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+%   dataset_npd_egersund         - Info function for Egersund dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+%   dataset_npd_frigg            - Info function for Frigg dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+%   dataset_npd_froanbasin       - Info function for Frigg dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+%   dataset_npd_stordbasin       - Info function for Frigg dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+%   dataset_npd_utsira           - Info function for Frigg dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_olympus              - Info function for Olympus benchmark dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_saigup               - Info function for SAIGUP dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+%   dataset_sftspe9              - Info function for SPE9 dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_simplecomp           - Info function for simple compositional dataset. 
 %   dataset_sleipner             - Info function for CO2lab dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_sleipnerplumes       - Info function for CO2lab dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
