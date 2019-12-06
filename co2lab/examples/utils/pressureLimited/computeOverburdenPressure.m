@@ -4,8 +4,7 @@ function [ P_over ] = computeOverburdenPressure( Gt, rock2D, ...
 % the weight of all overlying layers (fluid + solid). Here, we assume
 % overlying formation is made up of same rock and fluid type as found in
 % storage formation (i.e., rock porosity, water density)
-
-
+%
 % Inputs:
 %   Gt                - 2D grid, as generated using topSurfaceGrid
 %   rock2D            - rock structure, containing poro (porosity)
@@ -19,6 +18,24 @@ function [ P_over ] = computeOverburdenPressure( Gt, rock2D, ...
 % Outputs:
 %   P_over            - overburden pressure, in Pascals
 
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     opt.surface_pressure = 1*atm;
     opt.seawater_density = 1000 * kilogram/meter^3;
@@ -42,6 +59,4 @@ function [ P_over ] = computeOverburdenPressure( Gt, rock2D, ...
     % Overburden pressure:
     P_over = opt.surface_pressure + opt.seawater_density * g * H1 + ...
                 (poro2 .* rhoW2 + (1 - poro2) .* rhoR2) .* g .* H2;
-
 end
-
