@@ -1,6 +1,7 @@
 function [G, data] = visualizeEclipseOutput(prefix)
 % Simple, experimental Eclipse output visualization function.
 % Intentionally undocumented.
+
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -20,7 +21,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    require deckformat ad-fi
+    require deckformat
+
     init = readEclipseOutputFileUnFmt([prefix, '.INIT']);
     grid = readEclipseOutputFileUnFmt([prefix, '.EGRID']);
     [G, rock, N, T] = initGridFromEclipseOutput(init, grid);
