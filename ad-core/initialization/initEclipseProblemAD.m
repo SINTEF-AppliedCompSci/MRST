@@ -1,5 +1,45 @@
 function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varargin)
-%Undocumented Utility Function
+%Set up all inputs to simulateScheduleAD from deck-file
+%
+% SYNOPSIS:
+%   [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck)
+%
+% REQUIRED PARAMETERS:
+%   deck - Representation of the deck-case. Either a string or output from
+%          readEclipseDeck from the deckformat module.
+%
+% OPTIONAL PARAMETERS:
+%   useMexGeometry     - Use mcomputeGeometry to compute geometry data.
+%                        Default: useMex optional value.
+%   useMexProcessGrid  - Use mprocessGRDECL to build grid. Default: useMex
+%   TimestepStrategy   - Strategy to pick time-steps in NonLinearSolver
+%                        output.
+%   useCPR             - Prefer CPR over general iterative solvers for
+%                        fully-implicit systems
+%   useMex             - Use C/C++ acceleration where possible (e.g. in AD
+%                        backend)
+%   AutoDiffBackend    - Name of AD backend to use (sparse/diagonal/diagonal-mex)
+%   model              - Model to use. Can be used to avoid setup.
+%   G                  - Grid. Can be used to avoid setting up grid.
+%   getSchedule        - Can be disabled to avoid processing schedule.
+%   getInitialState    - Create initial state from deck (EQUIL or direct
+%                        assignment of initial conditions)
+%   splitDisconnected  - Passed onto processGRDECl.
+%
+% RETURNS:
+%   state0    - Initial state.
+%   model     - A model instance which attempts to realize all options in
+%               the deck.
+%   schedule  - The schedule containing the time-steps and driving forces.
+%   nonlinear - NonLinearSolver class instance, with attached LinearSolver
+%               and timeStepSelector classes suitable for simulating the
+%               problem.
+% NOTE:
+%   name
+%
+% SEE ALSO:
+%   simulateScheduleAD, getNonLinearSolver, packSimulationProblem,
+%   selectLinearSolverAD
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
@@ -27,8 +67,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     deck = convertDeckUnits(deck);
 
-    opt = struct('useMexGeometry',       false, ...
-                 'useMexProcessGrid',    false, ...
+    opt = struct('useMexGeometry',       [], ...
+                 'useMexProcessGrid',    [], ...
                  'TimestepStrategy',     'iteration', ...
                  'useCPR',               true, ...
                  'useMex',               false, ...
@@ -40,6 +80,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'getInitialState',      true, ...
                  'SplitDisconnected',    false);
     [opt, extra] = merge_options(opt, varargin{:});
+    if isempty(opt.useMexGeometry)
+        opt.useMexGeometry = opt.useMex;
+    end
+    if isempty(opt.useMexProcessGrid)
+        opt.useMexProcessGrid = opt.useMex;
+    end
     if isempty(opt.model)
         model = initializeModel(deck, opt);
     else
@@ -64,7 +110,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         case 'diagonal-mex'
             model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true);
         case 'diagonal'
-            model.AutoDiffBackend = DiagonalAutoDiffBackend();
+            model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', opt.useMex);
         case 'sparse'
             % Do nothing, this is default;
     end
