@@ -40,7 +40,7 @@ function [p] = interLinePath(line, fh, lineDist, sePtn, interpol, varargin)
     if sePtn(2)~=0
         p = [p;line(end,:)]; flag=[flag; true]; end
  
-    % clf; plot(line(:,1),line(:,2),':ok','LineWidth',2), hold all,
+    % plot(line(:,1),line(:,2),':k','LineWidth',1), hold all,
     % hp = plot(p(:,1),p(:,2),'.','MarkerSize',18);
     count=0;
     while count<maxIt
@@ -78,13 +78,13 @@ function [p] = interLinePath(line, fh, lineDist, sePtn, interpol, varargin)
                   p      = [p(1:id,:); pmid(insert(i),:); p(id+1:end,:)];
                   flag   = [flag(1:id); false; flag(id+1:end)];
                   offset = offset+1;
-                  % delete(hp); hp = plot(p(:,1),p(:,2),'.','MarkerSize',18);
+                  %delete(hp); hp = plot(p(:,1),p(:,2),'.','MarkerSize',18);
               elseif insert(i)<0
                   id     = -insert(i)+offset;
                   p      = p([1:id-1,id+1:end],:);
                   flag   = flag([1:id-1,id+1:end]);
                   offset = offset-1;
-                  % delete(hp); hp = plot(p(:,1),p(:,2),'.','MarkerSize',18);
+                  %delete(hp); hp = plot(p(:,1),p(:,2),'.','MarkerSize',18);
               end
           end
           continue
@@ -97,6 +97,13 @@ function [p] = interLinePath(line, fh, lineDist, sePtn, interpol, varargin)
       % hp.XData = p(:,1)';
       % hp.YData = p(:,2)';
       % drawnow; pause(.1);
+      %
+      % if ~mod(count,10)
+      %    col = tatarizeMap(size(p,1));
+      %    for i=1:size(p,1)
+      %        plot(p(i,1),p(i,2),'.','MarkerSize',18,'color',col(i,:));
+      %    end
+      % end
       
       % Move points based on desired length
       Fb = dw - d;                       % Bar forces
@@ -108,6 +115,9 @@ function [p] = interLinePath(line, fh, lineDist, sePtn, interpol, varargin)
       % Terminate if Nodes have moved (relative) less  than TOL
       if all(abs(moveNode(~flag(2:end-1)))<TOL*lineDist), break; end
     end
+    % for i=1:size(p,1)
+    %     plot(p(i,1),p(i,2),'.','MarkerSize',30,'color',col(i,:));
+    % end
     
     if sePtn(1)~=0, p = p(2:end,:);end
     if sePtn(2)~=0, p = p(1:end-1,:);end
