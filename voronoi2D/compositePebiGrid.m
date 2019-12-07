@@ -76,10 +76,10 @@ function [G,Pts,F] = compositePebiGrid(celldim, pdims, varargin)
 %                       fault-trace. The fault is assumed to be linear 
 %                       between the coorinates
 %
-%   faultGridFactor   - OPTINAL.
+%   faultGridFactor   - OPTIONAL.
 %                       Default value is 0.5. This gives the relative grid
 %                       size of the fault grid cells compared to reservoir 
-%                       grid cells. If faultGridFactor=0.5 the fault cells 
+%                       grid cells. If faultGridFactor=0.5, the fault cells 
 %                       will be about half the size of the reservoir cells.
 %
 %   interpolFL        - OPTIONAL.
@@ -239,7 +239,7 @@ F = createFaultGridPoints(faultLines, faultGridSize, ...
 
 % Create reservoir grid
 polyBdr = opt.polyBdr;
-[k,l]   = size(polyBdr);
+[k,n]   = size(polyBdr);
 if k==0 % No polygon is given. Assume rectangular box given by pdims
 	dx = pdims(1)/ceil(pdims(1)/celldim(1));
 	dy = pdims(2)/ceil(pdims(2)/celldim(2));
@@ -250,7 +250,7 @@ elseif k<3
 	error('Polygon must have at least 3 edges.');
 else
     % A polygon is given, use this and ignore the pdims
-	assert(l==2,'polygon boundary is only supported in 2D');
+	assert(n==2,'polygon boundary is only supported in 2D');
 	lDim = [min(polyBdr); max(polyBdr)];
 	dx = diff(lDim(:,1))/ceil(diff(lDim(:,1))/celldim(1));
 	dy = diff(lDim(:,2))/ceil(diff(lDim(:,2))/celldim(2));
