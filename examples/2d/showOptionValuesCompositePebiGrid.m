@@ -52,7 +52,7 @@ w = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = [0.1,0.1];
 pdims=[1,1];
 G1 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/2,'mlqtMaxLevel',1);
-G2 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/4,'mlqtMaxLevel',2);
+G2 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/8,'mlqtMaxLevel',3);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -60,7 +60,7 @@ plotGrid(G1); title('mlqtMaxLevel=1'), axis equal tight off
 plotGrid(G1,G1.cells.tag,'facecolor','b')
 hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 subplot(1,2,2)
-plotGrid(G2); title('mlqtMaxLevel=2'), axis equal tight off
+plotGrid(G2); title('mlqtMaxLevel=3'), axis equal tight off
 plotGrid(G2,G2.cells.tag,'facecolor','b')
 hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 
