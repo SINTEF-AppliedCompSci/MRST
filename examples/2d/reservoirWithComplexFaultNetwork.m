@@ -33,7 +33,7 @@ axis equal off;
 [fault, fCut, ~] = splitAtInt(fault, {});
 
 %% Create fault sites
-fGs = max(max(bdr))/70;
+fGs = max(bdr(:))/70;
 F = createFaultGridPoints(fault, fGs,'fCut',fCut,'interpolFL',true);
 plot(F.f.pts(:,1), F.f.pts(:,2),'.','markersize',5);
 
@@ -50,7 +50,7 @@ plot(pInit(:,1),pInit(:,2),'.k','MarkerSize',5);
 
 %% Create CVD.
 % We now create the CVD by minimizing the CVD energy function using the
-% L-BFGS agorithm. We do this by calling the wrapping function createCVD.
+% L-BFGS agorithm. We do this by calling the wrapping function CVD2D.
 % This takes some time, so we have saved
 % the output in a file: 'datasets/reservoirWithComplexFaultNetwork.mat'.
 % In this file maxIt was set to 200, but you get good results even after 10
