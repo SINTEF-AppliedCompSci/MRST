@@ -314,7 +314,7 @@ if k==0
 	fd = @(p,varargin) drectangle(p, 0, x(1), 0, x(2));
 	corners = [0,0; 0,x(2); x(1),0; x(1),x(2)];
 	vararg  = [];
-    polyBdr = [0, 0; pdims(1), 0; pdims(1), pdims(1); 0, pdims(2)];
+    polyBdr = [0, 0; pdims(1), 0; pdims(1), pdims(2); 0, pdims(2)];
 elseif k<3
 	error('Polygon must have at least 3 edges.');
 else
