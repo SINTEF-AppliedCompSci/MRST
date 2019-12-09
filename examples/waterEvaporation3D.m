@@ -1,4 +1,4 @@
-dwfsafadg%% Three-dimensional water evaporation process
+%% Three-dimensional water evaporation process
 % 
 % This code is an implementation of the mixed-based form of the Richards' 
 % Equation in a three-dimensional domain using Automatic Differentiation 
