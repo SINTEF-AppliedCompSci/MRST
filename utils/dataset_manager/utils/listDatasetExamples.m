@@ -109,7 +109,7 @@ function printExampleList(info, examples)
     
     for i = 1:numel(examples)
         ex = examples(i);
-        fprintf(['%-', num2str(N), 's (%s): <a href="matlab: mrstModule add %s, edit %s">%s</a>\n'], ...
+        fprintf(['%-', num2str(N), 's (%s): <a href="matlab: mrstModule add %s, edit ''%s''">%s</a>\n'], ...
                 ex.name, ex.module, ex.module, ex.path, ex.path);
 
     end
