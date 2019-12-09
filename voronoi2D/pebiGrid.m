@@ -207,6 +207,15 @@ wellRho         = @(x) wellGridSize*opt.wellRho(x);
 faultGridSize   = resGridSize*faultGridFactor;
 faultRho = opt.faultRho;
 
+% If polygon boundary is give, use this
+polyBdr = opt.polyBdr;
+[sizePolyBdr,l] = size(polyBdr);
+if sizePolyBdr >= 3
+    pdims = max(polyBdr) - min(polyBdr);
+elseif sizePolyBdr==2 || sizePolyBdr == 1
+	error('Polygon must have at least 3 edges.');
+end
+
 if wellEps<0
     wellEps = 0.25 * max(pdims);
 end
@@ -306,17 +315,14 @@ else
 end
 % Create reservoir grid points
 % set domain function
-polyBdr = opt.polyBdr;
-[k,l] = size(polyBdr);
-if k==0
+
+if sizePolyBdr==0
 	x = pdims;
 	rectangle = [0,0; x(1),x(2)];
 	fd = @(p,varargin) drectangle(p, 0, x(1), 0, x(2));
 	corners = [0,0; 0,x(2); x(1),0; x(1),x(2)];
 	vararg  = [];
     polyBdr = [0, 0; pdims(1), 0; pdims(1), pdims(2); 0, pdims(2)];
-elseif k<3
-	error('Polygon must have at least 3 edges.');
 else
     assert(l==2,'polygon boundary is only supported in 2D');
 	rectangle = [min(polyBdr); max(polyBdr)];
@@ -326,7 +332,7 @@ else
 end
 
 % Remove tip sites outside domain
-if size(F.f.pts, 1) > 0
+if size(F.t.pts, 1) > 0
     innside = inpolygon(F.t.pts(:, 1), F.t.pts(:, 2), polyBdr(:, 1), polyBdr(:, 2));
     F.t.pts = F.t.pts(innside, :);
 end    

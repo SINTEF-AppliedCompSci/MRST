@@ -38,7 +38,7 @@ function [p, removed] = faultSufCond(p, F)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}
 
-TOL = 50*eps;
+TOL = 10 * (max(F.f.pts(:)) - min(F.f.pts(:))) * eps;
 nc = size(F.c.CC,1);
 np = size(p,1);
 

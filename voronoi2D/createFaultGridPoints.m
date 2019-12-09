@@ -244,7 +244,7 @@ end
 % Merge fault intersections
 if ~isempty(F.f.pts)
   % Remove duplicate fault centers
-  F.c.CC = floor(F.c.CC*10^15)/10^15;
+  F.c.CC = floor(F.c.CC * 1e13) / 1e13;
   [~, IA, IC] = unique(F.c.CC,'rows');
   F.c.CC      = F.c.CC(IA,:);
   F.c.R       = F.c.R(IA);
@@ -455,7 +455,7 @@ function [F] = fixIntersections(F,fh, circFac, mergeTol)
   map            = [F.f.cPos(fId),F.f.cPos(fId)+1]';
   
   F.f.c(map(:))  = [c';neigh(:,1)';c';neigh(:,1)';c';neigh(:,2)';c';neigh(:,2)'];%reshape(repmat([c',c';neigh(:,1)',neigh(:,2)'],2,1),2,[]);
-  p = round(F.f.pts*10^13)/10^13;
+  p = round(F.f.pts / 1e-12) * 1e12;
   [~, IA, IC] = unique(p,'rows');
   F.f.pts = F.f.pts(IA,:);
   F.f.Gs = F.f.Gs(IA);

@@ -21,21 +21,25 @@
 % square, and therefore have to create the grid "manually". 
 pth = fullfile(mrstPath('upr'), 'datasets', 'gridBranets.mat');
 load(pth);
-color = get(gca,'ColorOrder');
 figure('Position',[480 340 900 420])
 subplot(1,2,1)
+col = get(gca, 'colororder');
 hold on
 plot([bdr(:,1);bdr(1,1)],[bdr(:,2);bdr(1,2)],'k');
-plotLinePath(fault,'color',color(2,:));
-axis equal off;
+plotLinePath(fault, 'color', col(2,:));
+axis equal off tight;
 
 %% calculate fault intersections
-[fault, fCut, ~] = splitAtInt(fault, {});
+[faultSplit, fCut, ~] = splitAtInt(fault, {});
 
 %% Create fault sites
-fGs = max(bdr(:))/70;
-F = createFaultGridPoints(fault, fGs,'fCut',fCut,'interpolFL',true);
-plot(F.f.pts(:,1), F.f.pts(:,2),'.','markersize',5);
+fGs = max(bdr(:))/50;
+F = createFaultGridPoints(faultSplit, fGs,'fCut',fCut,'interpolFL',true);
+% Remove tip sites that violate the fault condition
+F.t.pts = faultSufCond(F.t.pts, F);
+% Remove tip sites outside domain
+innside = inpolygon(F.t.pts(:, 1), F.t.pts(:, 2), bdr(:, 1), bdr(:, 2));
+F.t.pts = F.t.pts(innside, :);
 
 %% Create reservoir sites
 % We create a set of random reservoir sites. Then we remove any outside our
@@ -45,29 +49,40 @@ pInit = bsxfun(@plus,bsxfun(@times, rand(n,2),(max(bdr) - min(bdr))), min(bdr));
 keep = inpolygon(pInit(:,1),pInit(:,2),bdr(:,1), bdr(:,2));
 pInit = pInit(keep,:);
 
-pInit = removeConflictPoints2(pInit,F.f.pts,F.f.Gs);
-plot(pInit(:,1),pInit(:,2),'.k','MarkerSize',5);
+%% Plot initial sites
+pInit = removeConflictPoints2(pInit, F.f.pts, F.f.Gs);
+subplot(1, 2, 1);
+plot(pInit(:,1),pInit(:,2), '.k','MarkerSize', 5);
+plot(F.f.pts(:, 1), F.f.pts(:, 2), '.', 'color', col(1,:),'markersize',5);
+plot(F.t.pts(:, 1), F.t.pts(:, 2), '.', 'color', col(3,:), 'markersize',5);
 
 %% Create CVD.
 % We now create the CVD by minimizing the CVD energy function using the
 % L-BFGS agorithm. We do this by calling the wrapping function CVD2D.
-% This takes some time, so we have saved
+% This takes some time (approximately 90 sec), so we have saved
 % the output in a file: 'datasets/reservoirWithComplexFaultNetwork.mat'.
-% In this file maxIt was set to 200, but you get good results even after 10
-% iterations.
+% In this file maxIt was set to 10. The CVD algorithm was not fully
+% converged, but still gives a quite nice mesh.
 % If you wish to run the optimization yourself, uncomment the following
 % code:
-%G = CVD2D(pInit, bdr,'fixedPts', F.f.pts,'maxIt',10);
-pth = fullfile(mrstPath('upr'), 'datasets', 'reservoirWithComplexFaultNetwork.mat');
+%[G, sites] = CVD2D(pInit, bdr,'fixedPts', [F.f.pts; F.t.pts],'maxIt', 10);
+pth = fullfile(mrstPath('upr_git'), 'datasets', 'reservoirWithComplexFaultNetwork.mat');
 load(pth)
 
 %% Plot grid
 subplot(1,2,2), hold on
 plotGrid(G,'facecolor','none');
-plotLinePath(fault,'color','k','linewidth',1);
+plotLinePath(faultSplit, 'color','k','linewidth',1);
 axis equal off tight
 
+%% Create grid using Delaunay optimization
+An alternative to use the CVD optimization is to use the Delaunay
+optimization. This can be used by calling the wrapper function pebiGrid
 
-
-
-
+Gd = pebiGrid(fGs, [], 'faultLines', fault, ...
+                       'polyBdr', bdr, ...
+                       'interpolFL', true);
+subplot(1, 3, 3);
+plotGrid(Gd,'facecolor','none');
+plotLinePath(fault, 'color','k','linewidth',1);
+axis equal off tight
