@@ -91,7 +91,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     catch
         G = computeGeometry(G);
     end
-    model = TwoPhaseOilWaterModel(G, rock, fluid, 'gravity', [0, 0, 9.80665]);
+    model = GenericBlackOilModel(G, rock, fluid, 'gravity', [0, 0, 9.80665],...
+                                    'water', true, 'oil', true, 'gas', false);
     model.minimumPressure = 1000*psia;
     
     state = initResSol(G, pRef, [srw, 1-srw]);
