@@ -76,8 +76,8 @@ plotLinePath(faultSplit, 'color','k','linewidth',1);
 axis equal off tight
 
 %% Create grid using Delaunay optimization
-An alternative to use the CVD optimization is to use the Delaunay
-optimization. This can be used by calling the wrapper function pebiGrid
+% An alternative to use the CVD optimization is to use the Delaunay
+% optimization. This can be used by calling the wrapper function pebiGrid
 
 Gd = pebiGrid(fGs, [], 'faultLines', fault, ...
                        'polyBdr', bdr, ...
