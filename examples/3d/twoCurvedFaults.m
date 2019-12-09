@@ -1,4 +1,3 @@
-doSave = false;
 %% set boundary
 tx = 1;
 ty = 1;
@@ -105,12 +104,12 @@ plotGrid(Gs, cr)
 tx = t1.Points(:, 1);
 ty = t1.Points(:, 2) - 1.5 * dy;
 tz = t1.Points(:, 3);
-trisurf(t1.ConnectivityList, tx, ty, tz,'facecolor',color(2, :))
+trisurf(t1.ConnectivityList, tx, ty, tz,'facecolor',color(1, :))
 
 tx = t2.Points(:, 1);
 ty = t2.Points(:, 2) - .5 * dy;
 tz = t2.Points(:, 3);
-trisurf(t2.ConnectivityList, tx, ty, tz,'facecolor',color(1, :))
+trisurf(t2.ConnectivityList, tx, ty, tz,'facecolor',color(2, :))
 
 % make plot pretty
 view(120,30);
@@ -118,9 +117,3 @@ light('Position',[5 10 -1],'Style','infinite')
 light('Position',[-1 -1 2],'Style','local')
 set(gca,'zdir','normal')
 axis equal off
-
-%% Save grid
-if doSave
-    print('../latex/figs/tilted_wavy_faults','-dpng','-r400')
-end
-
