@@ -50,7 +50,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    ok = available();
 
-   if ~ ok,
+   if ~ ok
       ok = download(repo, rev, coll, files, odir) && available();
    end
 end
@@ -58,8 +58,8 @@ end
 %--------------------------------------------------------------------------
 
 function [repo, rev, coll, files] = define_subset
-   repo = 'OPM/opm-data';
-   rev  = '2198d5b';
+   repo = 'OPM/opm-tests';
+   rev  = '6c406ed';
    coll = 'spe9/eclipse-simulation';
 
    files = strcat('SPE9_CP', { '.INIT'   , ...
