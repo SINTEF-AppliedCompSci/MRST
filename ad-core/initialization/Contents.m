@@ -9,7 +9,7 @@
 %   getMinimumPhaseSaturations            - Undocumented Utility Function
 %   getMinMaxPhaseSaturations             - Undocumented Utility Function
 %   getMinMaxPhaseSaturationsFromRelPerm  - Undocumented Utility Function
-%   initEclipseProblemAD                  - Undocumented Utility Function
+%   initEclipseProblemAD                  - Set up all inputs to simulateScheduleAD from deck-file
 %   initializeEquilibriumPressures        - Undocumented Utility Function
 %   initializeEquilibriumSaturations      - Undocumented Utility Function
 %   initStateBlackOilAD                   - Undocumented Utility Function

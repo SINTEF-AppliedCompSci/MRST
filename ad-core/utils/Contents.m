@@ -19,6 +19,8 @@
 %   crossFlowMixture                      - Undocumented Utility Function
 %   crossFlowMixtureDensity               - Undocumented Utility Function
 %   double2ADI                            - Convert a double to ADI variable, using a sample ADI variable for dimensions
+%   estimateCompositionCFL                - Undocumented Utility Function
+%   estimateSaturationCFL                 - Undocumented Utility Function
 %   expandIfUniform                       - Utility which reverses "value" compaction. If given a matrix (logical
 %   faceUpstr                             - Perform single-point upwinding of cell values to face
 %   fastInterpTable                       - Fast interpolation of table, using griddedInterpolant
@@ -27,6 +29,7 @@
 %   getConvergenceValuesCNV               - Compute convergence based on total mass balance and maximum residual mass balance.
 %   getConvergenceValuesWells             - Undocumented Utility Function
 %   getFaceTransmissibility               - Compute face transmissibilities, accounting for input-specific multipliers
+%   getFractionalFlowMagnitude            - Undocumented Utility Function
 %   getGridSYMRCMOrdering                 - Undocumented Utility Function
 %   getMultiDimInterpolator               - Get a multidimensional interpolator (with support for ADI varibles)
 %   getMultipliers                        - Get dynamic multiplier values for reservoir quantities

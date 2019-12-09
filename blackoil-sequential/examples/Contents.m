@@ -3,7 +3,6 @@
 % Files
 %   multipleSubstepsDemo  - Buckley-Leverett problem with multiple substeps
 %   relaxedVolumeSPE10    - Set up simulation problem
-%   runSeqTestAndCompare  - 
 %   sequentialFiveSpotWAG - Set up and run a five-spot problem with water-alternating-gas (WAG) drive
 %   sequentialEGG         - Simulate the Egg model
 %   sequentialSPE1        - Compare sequential solver to fully implicit, applied to the SPE1 problem
