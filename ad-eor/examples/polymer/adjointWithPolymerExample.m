@@ -56,8 +56,8 @@ state0.s(ijk{3} == 2, 2) = .8;
 state0.s(:,1) = 1 - state0.s(:,2);
 
 % Add zero polymer concentration to the state.
-state0.c    = zeros(G.cells.num, 1);
-state0.cmax = zeros(G.cells.num, 1);
+state0.cp    = zeros(G.cells.num, 1);
+state0.cpmax = zeros(G.cells.num, 1);
 
 clf, title('Oil concentration')
 plotCellData(G, state0.s(:,2));
@@ -73,7 +73,7 @@ axis tight off, view(70, 30), colorbar;
 % increase the local displacement efficiency and also the volumetric sweep.
 % To see the effect of polymer on the water viscosity, we plot the visocity
 % multiplier, which is based on tabulated data given in the input file
-dc = 0:.1:fluid.cmax;
+dc = 0 : .1 : fluid.cpmax;
 plot(dc, fluid.muWMult(dc),'LineWidth',2)
 title('muW Multiplier')
 xlabel('Polymer concentration [kg/m^3]')
@@ -99,8 +99,8 @@ schedule = convertDeckScheduleToMRST(modelPolymer, deck);
 % the model and the NonLinearSolver class (optional argument to
 % simulateScheduleAD).
 
-[wellSolsPolymer, statesPolymer] = ...
-    simulateScheduleAD(state0, modelPolymer, schedule);
+[wellSolsPolymer, statesPolymer] = simulateScheduleAD(state0, modelPolymer, ...
+                                                  schedule);
 %%
 [wellSolsOW, statesOW] = simulateScheduleAD(state0, modelOW, schedule);
 

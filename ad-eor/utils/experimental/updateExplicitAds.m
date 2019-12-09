@@ -40,7 +40,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     s = model.operators; % shortcut
     fluid = model.fluid; % shortcut
 
-    [p, sW, c, cmax, ads, adsmax ] = model.getProps(state, 'pressure', 'water', 'surfactant', ...
+    [p, sW, cs, csmax, ads, adsmax] = model.getProps(state, 'pressure', 'water', 'surfactant', ...
                                                            'surfactantmax', 'ads', 'adsmax');
 
     new_ads = computeEffAds(c, opt.desorptionThreshold, fluid);
@@ -78,6 +78,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     state = model.setProp(state, 'ads', new_ads);
     state = model.setProp(state, 'adsmax', max(new_ads, adsmax));
     state = model.setProp(state, 'surfactant', max(new_c, 0));
-    state = model.setProp(state, 'surfactantmax', max(new_c, cmax));
+    state = model.setProp(state, 'surfactantmax', max(new_cs, csmax));
 
 end

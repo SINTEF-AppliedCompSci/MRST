@@ -10,7 +10,7 @@ classdef PolymerPhaseFlux < StateFunction
         end
         
         function v = evaluateOnDomain(prop, model, state)
-            [phaseFlux, cf] = prop.getEvaluatedDependencies(state,...
+            [phaseFlux, cpf] = prop.getEvaluatedDependencies(state,...
                 'PhaseFlux', 'FaceConcentration');
             nph = numel(phaseFlux);
             v = cell(1, nph+1);
@@ -20,9 +20,9 @@ classdef PolymerPhaseFlux < StateFunction
             
             fluid = model.fluid;
             mixpar = fluid.mixPar;
-            cbar   = cf/fluid.cmax;
-            a = fluid.muWMult(fluid.cmax).^(1-mixpar);
-            v{nph+1} = v{1}./(1+(1-a)*cbar).*cf;
+            cpbar   = cpf/fluid.cpmax;
+            a = fluid.muWMult(fluid.cpmax).^(1-mixpar);
+            v{nph+1} = v{1}./(1+(1-a)*cpbar).*cpf;
         end
     end
 end

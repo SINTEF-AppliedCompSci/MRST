@@ -70,11 +70,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     G     = model.G;
 
     % Properties at current timestep
-    [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', 'surfactant', ...
+    [p, sW, cs, csmax, wellSol] = model.getProps(state, 'pressure', 'water', 'surfactant', ...
                                                       'surfactantmax', 'wellsol');
 
     % Properties at previous timestep
-    [p0, sW0, c0, cmax0] = model.getProps(state0, 'pressure', 'water', 'surfactant', 'surfactantmax');
+    [p0, sW0, cs0, csmax0] = model.getProps(state0, 'pressure', 'water', 'surfactant', 'surfactantmax');
 
     pBH    = vertcat(wellSol.bhp);
     qWs    = vertcat(wellSol.qWs);

@@ -1,5 +1,5 @@
 function f = assignPLYMAX(f, plymax, reg)
-f.cmax = plymax(1);
+f.cpmax = plymax(1);
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

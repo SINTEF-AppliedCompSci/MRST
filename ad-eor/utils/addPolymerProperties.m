@@ -26,7 +26,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     polyFluid = initDeckADIFluid(polyDeck);
 
     fns = {'muWMult','dps','rrf','rhoR','adsInx','adsMax','ads',...
-        'mixPar','cmax'};
+        'mixPar','cpmax'};
     for i=1:numel(fns)
         fluid.(fns{i}) = polyFluid.(fns{i});
     end

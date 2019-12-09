@@ -70,7 +70,7 @@ classdef OilWaterSurfactantBaseModel < TwoPhaseOilWaterModel
                 fn = 'c';
               case {'surfactantmax'}
                 index = 1;
-                fn = 'cmax';
+                fn = 'cpmax';
               otherwise
                 [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
                     model, name, varargin{:});

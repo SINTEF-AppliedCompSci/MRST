@@ -12,8 +12,8 @@ classdef EffectiveMixturePolymerViscMultiplier < StateFunction
             cp   = model.getProp(state, 'polymer');            
             fluid = model.fluid;
             mixpar = fluid.mixPar;
-            cpbar   = cp/fluid.cmax;
-            a = fluid.muWMult(fluid.cmax).^(1-mixpar);
+            cpbar   = cp/fluid.cpmax;
+            a = fluid.muWMult(fluid.cpmax).^(1-mixpar);
             b = 1./(1 - cpbar + cpbar./a);
             % The viscosity multiplier only results from the polymer mixing.
             muWeffMult = b.*fluid.muWMult(cp).^mixpar;            
