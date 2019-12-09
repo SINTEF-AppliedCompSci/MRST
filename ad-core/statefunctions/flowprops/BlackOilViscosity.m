@@ -30,7 +30,9 @@ classdef BlackOilViscosity < StateFunction
             
             f = model.fluid;
             p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
-            nc = numelValue(p_phase{1});
+            [sample, isAD] = getSampleAD(p_phase{:});
+            nc = numelValue(sample);
+
             if model.water
                 wix = phInd == 1;
                 pw = p_phase{wix};
@@ -68,6 +70,13 @@ classdef BlackOilViscosity < StateFunction
                     mu{gix} = prop.evaluateFunctionOnDomainWithArguments(f.muG, pg, rv, flag);
                 else
                     mu{gix} = prop.evaluateFunctionOnDomainWithArguments(f.muG, pg);
+                end
+            end
+            if isAD
+                for i = 1:numel(mu)
+                    if ~isa(mu{i}, 'ADI')
+                        mu{i} = model.AutoDiffBackend.convertToAD(mu{i}, sample);
+                    end
                 end
             end
         end
