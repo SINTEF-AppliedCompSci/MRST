@@ -6,7 +6,7 @@
 
 mrstModule add mrst-gui ad-core diagnostics
 
-if ~ makeSPE9OutputAvailable,
+if ~ makeSPE9OutputAvailable
    error('SPE9Download:Failure', ...
          'Failed to download ECLIPSE output for SPE-9 benchmark case');
 end
