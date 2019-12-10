@@ -61,6 +61,8 @@ classdef TransportModelDG < TransportModel
             % things to state that should be recomputed in pressure step
             model.parentModel.outputFluxes         = false;
             model.parentModel.OutputStateFunctions = {};
+            model.parentModel.useCNVConvergence  = false;
+            model.parentModel.nonlinearTolerance = 1e-3;
         end
         
         %-----------------------------------------------------------------%
@@ -429,12 +431,13 @@ classdef TransportModelDG < TransportModel
             cells = sum(model.G.faces.neighbors(faces,:),2);
             % Compute preoperites with AD
             bcStateDG  = model.getStateDG(state , cells, faces, false);
-            % Compute preoperites without AD (using getStateADDG ensures
+            % Compute preoperites without AD (using getStateDG ensures
             % that properties are evaluated consistently)
             bcStateDG0 = model.getStateDG(state0, cells, faces, false);
             % Get flow state (either bcStateDG or bcStateDG0)
             bcStateDG  = model.parentModel.FluxDiscretization.buildFlowState(model.parentModel, bcStateDG, bcStateDG0, dt);
             % Compute boundary condition fluxes
+            model.parentModel = model.parentModel.FluxDiscretization.expandRegions(model.parentModel, 'cells', bcStateDG.cells);
             q = computeBoundaryFluxesDG(model.parentModel, bcStateDG, bc);
         end
         
