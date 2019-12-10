@@ -1,78 +1,60 @@
-function coords = getPlotCoordinates(G, varargin)
+function coords = getPlotCoordinates2(G, varargin)
 
-    opt = struct('n'      , 100  , ...
-                 'phaseNo', 1    , ...
-                 'plot'   , true , ...
-                 'plot1d' , false);
+    opt = struct('n'     , 1000  , ...
+                 'plot1d', false);
     
     [opt, ~] = merge_options(opt, varargin{:});
 
-    xmax = max(G.nodes.coords, [], 1);
-    xmin = min(G.nodes.coords, [], 1);
-
-    dx   = xmax - xmin;
-    n = round(opt.n.*dx./max(dx));
+    n0 = sortNodes(G);
     
-    x = cell(1,G.griddim);
     if opt.plot1d
-        x{1} = linspace(xmin(1), xmax(1), n(1))';
-        for d = 2:G.griddim
-            x{d} = (xmin(d) + xmax(d))/2;
-            n(d) = 1;
+        xmax = max(G.nodes.coords, [], 1);
+        xmin = min(G.nodes.coords, [], 1);
+        x      = linspace(xmin(1), xmax(1), opt.n)';
+        y      = repmat((xmin(2) + xmax(2))/2, opt.n, 1);
+        points = [x,y];
+        cells  = nan(size(points, 1), 1);
+        for i = 1:G.cells.num
+            xv = G.nodes.coords(G.cells.nodes(G.cells.nodePos(i):G.cells.nodePos(i+1)-1),:);
+            ix = inpolygon(points(:,1), points(:,2), xv(:,1), xv(:,2));
+            cells(ix) = i;
         end
+        faces = [];
     else
-        for d = 1:G.griddim
-            x{d} = linspace(xmin(d), xmax(d), n(d))';
-        end
-    end
-
-    x0 = cell(size(x));
-    [x0{:}] = ndgrid(x{:});
-
-    nPts = numel(x0{1});
-    points = zeros(nPts, G.griddim);
-    for d = 1:G.griddim
-        points(:,d) = x0{d}(:);
-    end
     
-    cells = ones(nPts,1);
-    keep = false(nPts,1);
-    for cNo = 1:G.cells.num
-        if G.griddim == 2
-            nodes = getCellNodes(cNo, G);
-        else
-            ix = G.cells.nodePos(cNo):G.cells.nodePos(cNo+1)-1;
-            nodes = G.cells.nodes(ix);
-        end
-        xn       = G.nodes.coords(nodes,:);
-        [in, on] = deal(false(numel(keep),1));
-        [in(~keep), on(~keep)] = inCell(G, points(~keep,:), xn);
-%         [in, on] = inpolygon(points(:,1), points(:,2), xn(:,1), xn(:,2));
-        cells(in | on) = cNo;
-        keep = keep | in | on;
+        faces = find(all(G.faces.neighbors > 0, 2));
+        n1 = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1),1);
+        n1 = repmat(reshape(n1,2,[]), 2, 1);
+        n1 = reshape(n1([1,2,4,3], :), [], 1);
+        n = [n0; n1];
+        x = G.nodes.coords(n,:);
+        cells0 = rldecode((1:G.cells.num)', diff(G.cells.nodePos), 1);
+
+
+        cells1 = repmat(G.faces.neighbors(faces,:)', 2, 1);
+        cells1 = reshape(cells1([1,3,2,4], :), [], 1);
+        cells = [cells0; cells1];
+
+        f = (1:size(x,1))';
+        ii = [cells0; rldecode((1:numel(faces))' + max(cells0), 4, 1)];
+        jj = [mcolon(ones(G.cells.num,1), diff(G.cells.nodePos)), repmat(1:4, 1, numel(faces))]';
+        faces = full(sparse(ii, jj, f));
+        faces(faces == 0) = nan;
+        
     end
-    coords = struct('points', points, 'cells', cells, 'keep', keep, 'n', n);
-    
+    coords = struct('points', x, 'cells', cells, 'faces', faces);
+
 end
-
-function nodes = getCellNodes(cell, G)
     
-    faces = G.cells.faces(G.cells.facePos(cell):G.cells.facePos(cell+1)-1);
-    nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
-    nodes = reshape(nodes, 2, [])';
-    swap = G.faces.neighbors(faces,1) ~= cell;
-    nodes(swap,:) = nodes(swap, [2,1]); nodes = nodes(:,1);
-%     nodes = unique(nodes);
-    
-end
+function n = sortNodes(G)
 
-function [in, on] = inCell(G, x, xv)
-    on = false(size(x,1),1);
-    if G.griddim == 2
-        [in, on] = inpolygon(x(:,1), x(:,2), xv(:,1), xv(:,2));
-    else
-        tri = delaunay(xv);
-        tn  = tsearchn(xv, tri, x);
-        in  = ~isnan(tn);
-    end
+    f = G.cells.faces(:,1);
+    n = G.faces.nodes(mcolon(G.faces.nodePos(f),G.faces.nodePos(f+1)-1));
+    s = G.faces.neighbors(f,1) ~= rldecode((1:G.cells.num)', diff(G.cells.facePos),1);
+
+    n = reshape(n, 2, []);
+    n(:,s) = n([2,1], s);
+    n = n(:);
+    n = n(1:2:end);
+
 end

@@ -9,7 +9,7 @@ function fn = plotLimiter(model, varargin)
                  'pbaspect', [1,1,0.3]  );
     [opt, patchOpt] = merge_options(opt, varargin{:});
     % Get coordinates for plotting
-    coords = getPlotCoordinates2(model.G, 'n', opt.n, 'plot1d', opt.plot1d);
+    coords = getPlotCoordinates(model.G, 'n', opt.n, 'plot1d', opt.plot1d);
     % Set figure position
     if opt.plot1d
         opt.position = [0,0,800,400];
