@@ -1,5 +1,5 @@
 function [h, saturation] = plotSaturationDG(disc, state, varargin)
-
+    % Visualize dG saturation with higher-order dG basis functions
     opt = struct('n'      , 100  , ...
                  'phaseNo', 1    , ...
                  'plot1d' , false, ...
@@ -8,20 +8,13 @@ function [h, saturation] = plotSaturationDG(disc, state, varargin)
                  'makePlot', true, ...
                  'pbaspect', [1,1,1]);
     [opt, extra] = merge_options(opt, varargin{:});
-    
     coords = opt.coords;
     if isempty(coords)
         coords = getPlotCoordinates2(disc.G, varargin{:});
     end
-    
     x     = coords.points;
-%     keep  = coords.keep;
     cells = coords.cells;
-%     n     = coords.n;
     xs    = cell(1, disc.G.griddim);
-%     for d = 1:disc.G.griddim
-%         xs{d} = reshape(x(:,d), n);
-%     end
     saturation = @(state) disc.evaluateDGVariable(x, cells, state, state.sdof(:,opt.phaseNo));
     h = [];
     if opt.makePlot && ~isempty(state)
@@ -29,10 +22,6 @@ function [h, saturation] = plotSaturationDG(disc, state, varargin)
         if opt.plot1d
             h = plot(x(:,1), s, extra{:});
         elseif disc.G.griddim == 2
-            
-            
-%             s(~keep) = nan;
-%             s        = reshape(s, n);
             if opt.contour
                 h = contourf(xs{1}, xs{2}, s, extra{:});
             else
@@ -42,14 +31,7 @@ function [h, saturation] = plotSaturationDG(disc, state, varargin)
                 pbaspect(opt.pbaspect);
             end
         else
-            s(~keep) = nan;
-            s        = reshape(s, n);
-            h = patch(isosurface(xs{1}, xs{2}, xs{3}, s, 0.6));
-            h.FaceColor = 'blue';
-            h.EdgeColor = 'none';
-            lighting gouraud
-            axis equal
-            axis([min(x(:,1)), max(x(:,1)), min(x(:,2)), max(x(:,2)), min(x(:,3)), max(x(:,3))]);
+            error('Only supported for 1D and 2D')
         end
     end
 
