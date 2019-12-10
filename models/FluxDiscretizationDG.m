@@ -68,13 +68,22 @@ classdef FluxDiscretizationDG < FluxDiscretization
             end
         end
         
-        function model = expandRegions(fd, model, type)
+        function model = expandRegions(fd, model, type, elements)
             
+            if nargin < 4
+                elements = [];
+            end
             switch type
                 case 'cells'
-                    [~, ~, cells] = model.discretization.getCubature((1:model.G.cells.num)', 'cell');
+                    cells = elements;
+                    if isempty(cells)
+                        [~, ~, cells] = model.discretization.getCubature((1:model.G.cells.num)', 'cell');
+                    end
                 case 'faces'
-                    [~, ~, ~, faces] = model.discretization.getCubature(find(model.operators.internalConn), 'face');
+                    faces = elements;
+                    if isempty(faces)
+                        [~, ~, ~, faces] = model.discretization.getCubature(find(model.operators.internalConn), 'face');
+                    end
                     cells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
             end
             
