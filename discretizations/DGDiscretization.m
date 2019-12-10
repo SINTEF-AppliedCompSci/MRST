@@ -137,7 +137,6 @@ classdef DGDiscretization < SpatialDiscretization
             % RETURNS:
             %   ix - Indices into states.sdof. Dof number dofNo for cells
             %        are found in state.sdof(ix,:);
-
             G = disc.G;
             if nargin < 3 || (numel(dofNo) == 1 && dofNo == Inf)
                 % dofNo not given, return ix for all dofs
@@ -147,76 +146,21 @@ classdef DGDiscretization < SpatialDiscretization
                 % Cells not given, return ix for all cells
                 cells = 1:G.cells.num;
             end
-            
             ix = state.dofPos(dofNo, cells);
             ix = ix(:);
-            
             if nargin < 5
                 includezero = false;
             end
             if ~includezero
                 ix(ix == 0) = [];
             end
-              
         end
         
         %-----------------------------------------------------------------%
-        function [xhat, translation, scaling] = transformCoords(disc, x, cells, inverse, useParent)
-            % Transfor coordinates from physical to reference coordinates. 
-            %
-            % PARAMETERS:
-            %   x         - Coordinates in physical space
-            %   cells     - Cells we want reference coordinates for, cells(ix)
-            %               are used when transforming x(ix,:)
-            %   inverse   - Boolean indicatiing if we are mapping 
-            %               to (inverse = false) or from (inverse = true)
-            %               reference coordiantes. Default = false.
-            %   useParent - Boolean indicating if we are working on the
-            %               full grid (G.parent) or a subgrid.
-            %
-            % RETURNS:
-            %   xhat        - Transformed coordinates
-            %   translation - Translation applied to x
-            %   scaling     - Scaling applied to x
-            
-            G = disc.G;
-            
+        function [xhat, translation, scaling] = transformCoords(disc, x, cells, inverse)
+            % Transfor coordinates from physical to reference coordinates
             if nargin < 4, inverse   = false; end
-            if nargin < 5, useParent = false; end
-            
-            if isfield(G, 'mappings') && useParent
-                G = G.parent;
-            end
-            
             [xhat, translation, scaling] = disc.cellCubature.transformCoords(x, cells, inverse);
-            
-            if 0
-            % Coordinates are centered in cell center
-            if any(strcmpi(G.type, 'generateCoarseGrid'))
-                translation = -G.cells.centers(cells,:);
-            else
-                translation = -G.cells.centroids(cells,:);
-            end
-            if isfield(G.cells, 'dx')
-                % Scaling found from dimensions of minimum bounding box
-                % aligned with coordinate axes that contains the cell
-                scaling = 1./(G.cells.dx(cells,:)/2);
-            else
-                % If it G.cells.dx is not computed, we use approximation
-                dx = G.cells.volumes(cells).^(1/G.griddim);
-                scaling = repmat(1./(dx/2), 1, disc.dim);
-            end
-            
-            if ~inverse
-                xhat = (x + translation).*scaling;
-                xhat = xhat(:, 1:disc.dim);
-                scaling     = scaling(:, 1:disc.dim);
-                translation = translation(:, 1:disc.dim);
-            else
-                xhat = x./scaling - translation;
-            end
-               
-            end
         end
         
         %-----------------------------------------------------------------%
@@ -233,7 +177,6 @@ classdef DGDiscretization < SpatialDiscretization
                 nDof = factorial(deg + disc.dim)...
                        ./(factorial(disc.dim).*factorial(deg));
             end
-            
         end
         
         %-----------------------------------------------------------------%
@@ -241,10 +184,8 @@ classdef DGDiscretization < SpatialDiscretization
             % Map dofs from state0 to state, typically from one timestep to
             % the next, when we start with maximum number of dofs in all
             % cells.
-            
             % Update dofPos
             state = disc.updateDofPos(state);
-            
             if nargin == 3
                 name = 'sdof';
             else
@@ -264,12 +205,11 @@ classdef DGDiscretization < SpatialDiscretization
                 end
                 state.(name) = dof;
             end
-
         end
         
         %-----------------------------------------------------------------%
         function p = evaluateDGVariable(disc, x, cells, state, pdof, psi)
-            
+            % Evaluate dG variable at cubature points 'x' in 'cells'
             if isempty(pdof)
                 return
             else
@@ -291,18 +231,19 @@ classdef DGDiscretization < SpatialDiscretization
                     end
                 end
             end
-
         end
         
         %-----------------------------------------------------------------%
         function p = evaluateProp(disc, state, dof, type, elements)
+            % Convenience function for evaluation of model properties.
+            % Called by e.g., TransportModelDG.
             psi = [];
             if nargin < 5
                 elements = Inf;
             end
             switch type
                 case 'cell'
-                    if isfield(state, 'psi_c')% && all(isinf(elements))
+                    if isfield(state, 'psi_c')
                         psi = state.psi_c;
                         cNo = state.cells;
                         x   = [];
@@ -310,7 +251,7 @@ classdef DGDiscretization < SpatialDiscretization
                         [~ , x, cNo] = disc.getCubature(elements, 'cell');
                     end
                 case 'face'
-                    if isfield(state, 'psi_f')% && all(isinf(elements))
+                    if isfield(state, 'psi_f')
                         psi = state.psi_f;
                         cNo = state.fcells;
                         x   = [];
@@ -336,6 +277,7 @@ classdef DGDiscretization < SpatialDiscretization
         
         %-----------------------------------------------------------------%
         function state = evaluateBasisFunctions(disc, state, cells, faces)
+            % Evaluate basis functions in cubature points
             [~ , xc, cNo     ] = disc.getCubature(cells, 'cell');
             [~ , xf, ~  , fNo] = disc.getCubature(faces, 'face');
             N    = disc.G.faces.neighbors;
@@ -361,7 +303,9 @@ classdef DGDiscretization < SpatialDiscretization
             state.mfaces = faces;
         end
         
+        %-----------------------------------------------------------------%
         function fill = getFillSat(disc, state)
+            % Get total saturation dofs of all cells
             fill = zeros(sum(state.nDof),1);
             ix   = disc.getDofIx(state, 1);
             fill(ix) = 1;
