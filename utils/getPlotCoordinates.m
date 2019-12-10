@@ -1,5 +1,5 @@
-function coords = getPlotCoordinates2(G, varargin)
-
+function coords = getPlotCoordinates(G, varargin)
+    % Get coordinates for plotting higher-order dG variables
     opt = struct('n'     , 1000  , ...
                  'plot1d', false);
     
