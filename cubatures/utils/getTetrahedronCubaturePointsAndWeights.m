@@ -1,4 +1,20 @@
 function [x, w, n, xR] = getTetrahedronCubaturePointsAndWeights(k)
+    % Get tetrahedron cubature points and weights for a cubature of precision k,
+    % taken from the book "P. Solin, K. Segeth and I. Dolezel: Higher-Order
+    % Finite Element Methods", Chapman & Hall/CRC Press, 2003.
+    %
+    % SYNOPSIS:
+    %
+    %   [x, w, n, xR] = getTetrahedronCubaturePointsAndWeights(k)
+    %
+    % PARAMETERS:
+    %   k - cubature prescision
+    %
+    % RETURNS:
+    %   x  - Cubature points
+    %   w  - Cubature weights
+    %   n  - Number of cubature points
+    %   xR - Coordinates of reference tetrahedron
 
     xR = [-1, -1, -1; 
            1, -1, -1; 

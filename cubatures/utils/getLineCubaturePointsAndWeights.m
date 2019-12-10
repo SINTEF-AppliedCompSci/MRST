@@ -1,5 +1,20 @@
 function [x, w, n, xR] = getLineCubaturePointsAndWeights(k)
-% Get line cubature points and weights for a cubature of precision k
+    % Get line cubature points and weights for a cubature of precision k,
+    % taken from the book "P. Solin, K. Segeth and I. Dolezel: Higher-Order
+    % Finite Element Methods", Chapman & Hall/CRC Press, 2003.
+    %
+    % SYNOPSIS:
+    %
+    %   [x, w, n, xR] = getLineCubaturePointsAndWeights(k)
+    %
+    % PARAMETERS:
+    %   k - cubature prescision
+    %
+    % RETURNS:
+    %   x  - Cubature points
+    %   w  - Cubature weights
+    %   n  - Number of cubature points
+    %   xR - Coordinates of reference line
 
     xR = [-1,1];
     
@@ -96,11 +111,6 @@ function [x, w, n, xR] = getLineCubaturePointsAndWeights(k)
    
     x = xw(:,1);
     w = xw(:,2)/2;
-    % Transform coordinates to [0,1]
-%     x = (x + 1)/2;
-    % Assign y coordinates
-%     x = [x, 1-x];
-
     n = numel(w);
 
 end
