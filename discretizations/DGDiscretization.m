@@ -1,92 +1,58 @@
 classdef DGDiscretization < SpatialDiscretization
     
     properties
-
-        degree              % Degree of discretization, dG(degree)
-        degree0
-        basis   = 'legendre' % Type of basis functions. Standard is tensor 
+        degree = 1          % Degree of discretization, dG(degree)
+        basis  = 'legendre' % Type of basis functions. Standard is tensor 
                             % products of Legendre polynomials.
-        dim                 % Dimension of disc to facilitate e.g. 2D 
-                            % simulations on horizontal slice of 3D
-                            % reservoir
-        
+                            
         useMomentFitting    % Bool to tell the method to use experimental 
                             % unstructured cubature class
+                            
         cellCubature        % Cubature for cell integrals
         faceCubature        % Cubature for face integrals
-        
-        jumpTolerance         % Tolerance for sat jumps across interfaces
-        jumpLimiter
-        outTolerance          % Tolerance for sat outside [0,1]
-        outLimiter
-        meanTolerance         % Tolerance of mean sat outside [0,1]
-        limitAfterNewtonStep  % Use limiter after each Newton iteration
-        limitAfterConvergence % Use limiter after convergence to reduce
-                              % jumps and ensure values inside [0,1]
-        
-        plotLimiterProgress % 1d plot of result before and after limiter
-        
         velocityInterp      % Function for mapping face fluxes to cell
                             % velocity/ies
+                            
         upwindType          % Type of upwind calculation
-        
         internalConnParent  % If we only solve on subset of full grid, we
-                            % must keep tract of internal connections in 
-                            % the full grid.
+                            % must keep tract of internal connections in
+                            % the full grid
                             
-        limiter
-                            
-        nDof
-        dofPos
-        sample
-        
-        interp_setup
-        
+        nDof                % Number of dofs per cell
+        dofPos              % Map into state.(name)dof
+        sample              % AD sample
     end
     
     methods
         
         %-----------------------------------------------------------------%
         function disc = DGDiscretization(G, varargin)
-            
-%             disc = disc@WENODiscretization(model, model.G.griddim, 'includeBoundary', true);
+            % Constructor
             disc = disc@SpatialDiscretization(G, varargin{:});
-            
-            G = disc.G;
-            
             % Standard dG properties
             disc.degree = 1;
-%             disc.degree0 = [];
             disc.basis  = 'legendre';
-            disc.dim    = G.griddim;
-            
             % Cubature
             disc.useMomentFitting = false;
-            
             % Specifics for reordering
             disc.internalConnParent  = disc.internalConn;
             disc.G.parent            = G;
-            
+            % Merge options
             [disc, basisArgs] = merge_options(disc, varargin{:});
-            
             % Replace basis string by dG basis object
             if ~isfield(disc.basis, 'psi')
-                disc.basis  = dgBasis(disc.dim, disc.degree, disc.basis, basisArgs{:});
+                disc.basis = dgBasis(disc.dim, disc.degree, disc.basis, basisArgs{:});
             end
             disc.degree = disc.basis.degree;
-%             disc.nDof   = disc.getnDof();
-%             [~, disc] = disc.updateDofPos(disc);
-            
             % Set up velocity interpolation
             disc.velocityInterp = velocityInterpolation(G, 'mimetic');
             disc.upwindType     = 'potential';
-            
             % Create cubatures
             prescision = 2*max(disc.degree);
             isCoarse   = isfield(G, 'parent');
             if G.griddim == 2
-                if isCoarse %&& ~disc.useUnstructCubature
-                    volCub  = CoarseGrid2DCubature(G, prescision);
+                if isCoarse
+                    volCub = CoarseGrid2DCubature(G, prescision);
                 else
                     if all(disc.degree == 0) || disc.useMomentFitting
                         volCub = MomentFitting2DCubature(G, prescision);
@@ -117,10 +83,8 @@ classdef DGDiscretization < SpatialDiscretization
                     end
                 end
             end
-            
             disc.cellCubature  = volCub;
             disc.faceCubature = surfCub;
-            
         end
         
         %-----------------------------------------------------------------%
@@ -133,7 +97,6 @@ classdef DGDiscretization < SpatialDiscretization
             %
             % Zeros are included to easily map dofs from one timestep to
             % the next.
-
             dp = reshape((1:disc.G.cells.num*disc.basis.nDof)', disc.basis.nDof, []);
             if isfield(state, 'nDof')
                 nd = state.nDof;
@@ -142,22 +105,20 @@ classdef DGDiscretization < SpatialDiscretization
             end
             subt = cumsum([0; disc.basis.nDof - nd(1:end-1)]);
             [ii, jj, v] = find(dp);
-
+            % Fix dimensions
             if size(ii,1) == 1, ii = ii'; end
             if size(jj,1) == 1, jj = jj'; end
             if size(v ,1) == 1, v  =  v'; end
-
+            % Compute position
             cnDof = cumsum(nd);
-
             v = v - subt(jj);
             v(v > cnDof(jj)) = 0;
             dp = full(sparse(ii, jj, v));
-            
+            % Assign
             state.nDof   = nd;
             state.dofPos = dp;
             disc.nDof    = nd;
             disc.dofPos  = dp;
-            
         end
         
         %-----------------------------------------------------------------%
@@ -251,7 +212,6 @@ classdef DGDiscretization < SpatialDiscretization
                 xhat = xhat(:, 1:disc.dim);
                 scaling     = scaling(:, 1:disc.dim);
                 translation = translation(:, 1:disc.dim);
-%                 assert(all(all(abs(xhat)<=1)))
             else
                 xhat = x./scaling - translation;
             end
