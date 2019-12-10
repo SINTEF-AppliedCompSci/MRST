@@ -55,7 +55,7 @@ set(gcf,'Position',[300 400 800 420],'PaperPositionMode','auto');
 trap_field = zeros(size(res.traps));
 trap_field(res.traps>0) = 2;
 for r = [res.cell_lines{:}]'
-    for c = 1:numel(r);
+    for c = 1:numel(r)
         trap_field(r{c}) = 1;
     end
 end
