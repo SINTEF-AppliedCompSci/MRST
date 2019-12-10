@@ -13,7 +13,6 @@ classdef ComponentPhaseVelocityFractionalFlowDG < StateFunction
             ncomp = model.getNumberOfComponents;
             nph = model.getNumberOfPhases;
             
-            
             vT = prop.getEvaluatedDependencies(state, 'TotalVelocity');
             
             compMob = model.getProp(state, 'ComponentMobility');

@@ -1,6 +1,5 @@
 classdef ComponentTotalVelocityDG < StateFunction
     properties
-
     end
     
     methods

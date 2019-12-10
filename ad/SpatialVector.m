@@ -1,4 +1,6 @@
 classdef SpatialVector
+    % Class for supporting ad as spatial vectors, for use in e.g.,
+    % Discontinuous Galerkin discretizations
    
     properties
         vals
