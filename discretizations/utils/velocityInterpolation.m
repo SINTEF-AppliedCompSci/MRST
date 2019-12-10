@@ -1,5 +1,5 @@
 function vi = velocityInterpolation(G, type)
-
+    % Construct velocity vector from face fluxes
     switch type
         case 'mimetic'
 
