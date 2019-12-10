@@ -22,7 +22,7 @@
 pth = fullfile(mrstPath('upr'), 'datasets', 'gridBranets.mat');
 load(pth);
 figure('Position',[480 340 900 420])
-subplot(1,2,1)
+subplot(1,3,1)
 col = get(gca, 'colororder');
 hold on
 plot([bdr(:,1);bdr(1,1)],[bdr(:,2);bdr(1,2)],'k');
@@ -51,7 +51,7 @@ pInit = pInit(keep,:);
 
 %% Plot initial sites
 pInit = removeConflictPoints2(pInit, F.f.pts, F.f.Gs);
-subplot(1, 2, 1);
+subplot(1, 3, 1);
 plot(pInit(:,1),pInit(:,2), '.k','MarkerSize', 5);
 plot(F.f.pts(:, 1), F.f.pts(:, 2), '.', 'color', col(1,:),'markersize',5);
 plot(F.t.pts(:, 1), F.t.pts(:, 2), '.', 'color', col(3,:), 'markersize',5);
@@ -66,11 +66,11 @@ plot(F.t.pts(:, 1), F.t.pts(:, 2), '.', 'color', col(3,:), 'markersize',5);
 % If you wish to run the optimization yourself, uncomment the following
 % code:
 %[G, sites] = CVD2D(pInit, bdr,'fixedPts', [F.f.pts; F.t.pts],'maxIt', 10);
-pth = fullfile(mrstPath('upr_git'), 'datasets', 'reservoirWithComplexFaultNetwork.mat');
+pth = fullfile(mrstPath('upr'), 'datasets', 'reservoirWithComplexFaultNetwork.mat');
 load(pth)
 
 %% Plot grid
-subplot(1,2,2), hold on
+subplot(1,3,2), hold on
 plotGrid(G,'facecolor','none');
 plotLinePath(faultSplit, 'color','k','linewidth',1);
 axis equal off tight
