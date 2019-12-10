@@ -93,12 +93,10 @@ classdef MomentFitting2DCubature < Cubature
                     % Map to face reference coordinates
                     xq = G.faces.phys2ref(xq, faceNo);
                     count = faceNo;
-                    num   = G.faces.num;
                 else
                     % Map to cell reference coordiantes
                     xq    = cubature.transformCoords(xq, cellNo);
                     count = cellNo;
-                    num   = G.cells.num;
                 end
                 % Moments
                 tol = eps(10);
