@@ -406,8 +406,12 @@ classdef NonLinearSolver < handle
                     end
                 end
             end
-            % If we converged, the last step did not solve anything
-            its = i - converged;
+            % If we converged, the last step may not have solved anything
+            if isfield(reports{end}, 'Solved')
+                its = i - double(~reports{end}.Solved);
+            else
+                its = i - converged;
+            end
             reports = reports(~cellfun(@isempty, reports));
             solver.convergenceIssues = false;
             if converged
