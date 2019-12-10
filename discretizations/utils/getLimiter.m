@@ -1,5 +1,6 @@
 function limiter = getLimiter(model, type, varargin)
-    
+    % Get limiter for dG simulations. Currently only supports TVB and
+    % scaling
     opt = struct('tol', 0, 'limits', []);
     opt = merge_options(opt, varargin{:});
     switch type
