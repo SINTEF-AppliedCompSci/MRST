@@ -383,7 +383,6 @@ classdef DGDiscretization < SpatialDiscretization
                     warning('No cells with %d dofs', dofNo);
                 end
             end
-            I = disc.trimValues(I);
         end
         
         %-----------------------------------------------------------------%
@@ -434,7 +433,6 @@ classdef DGDiscretization < SpatialDiscretization
                         warning('No cells with %d dofs', dofNo);
                     end
                 end
-                I = disc.trimValues(I);
             end
         end
         
@@ -480,7 +478,7 @@ classdef DGDiscretization < SpatialDiscretization
         
         %-----------------------------------------------------------------%
         function [vMin, vMax] = getMinMax(disc, state, dof)
-            % Get maximum and minimum value of dG variable for each cell.
+            % Get minimum and maximum value of dG variable for each cell.
             % Evaluated in cubature points
             G = disc.G;
             % Get all quadrature points for all cells
@@ -504,131 +502,6 @@ classdef DGDiscretization < SpatialDiscretization
             [vMinC, vMaxC] = getMinMax(vC, nC);
             vMin = min(vMinF, vMinC);
             vMax = max(vMaxF, vMaxC);
-        end
-        
-        %-----------------------------------------------------------------%
-        function [jumpVal, faces, cells] = getInterfaceJumps(disc, dof, state)
-            % Get interface jumps for all internal connections in grid
-            
-            G     = disc.G;
-            faces = find(disc.internalConn);
-            cells = G.faces.neighbors(disc.internalConn,:);
-            if isfield(G, 'mappings')
-                % We assume we are using reordering, and thus only check
-                % interface jumps for interfaces against already solved
-                % cells
-                order   = G.mappings.cellMap.localOrder;
-                isUpstr = any(order <= order(~G.cells.ghost)',2);
-                keep    = all(isUpstr(cells),2);
-                faces   = faces(keep);
-            end
-            
-            % Saturation function
-            s = @(x, c) disc.evaluateDGVariable(x, c, state, dof);
-            
-            % Get reference coordinates
-            xF    = G.faces.centroids(faces,:);            
-            cells = G.faces.neighbors(faces,:);                
-            cL    = cells(:,1);
-            cR    = cells(:,2);
-            
-            % Find inteface jumps
-            jumpVal = abs(s(xF, cL) - s(xF, cR));
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function state = limiters(disc, model, state, state0, before)
-            % Limiters applied after each Newton iteration if
-            % disc.limitAfterNewtonStep = true and before = true, and after
-            % convergence if disc.limitAfterConvergence = true and before =
-            % false
-
-            G = disc.G;
-            check = true(G.cells.num,1);
-            if isfield(G, 'mappings')
-                check(G.cells.ghost) = false;
-            end
-                
-            if before
-                
-                % Limiters to be applied after each Newton iteration
-%                 if disc.meanTolerance < Inf
-%                     % If the mean cell saturation is outside [0,1],
-%                     % something is wrong, and we reduce to order 0
-%                     s = state.s;
-%                     meanOutside = any(s < 0 - disc.meanTolerance | ...
-%                                       s > 1 + disc.meanTolerance, 2);
-%                     bad = meanOutside & check;
-%                     if any(bad)
-%                         state = dgLimiter(disc, state, bad, 'kill', 'plot', disc.plotLimiterProgress);
-%                     end 
-%                 end
-                
-                if disc.degree > 0
-                    if disc.outTolerance < Inf && 1
-                        % If saturation is outside [0,1], we reduce to order 1
-                        if 0
-                            state = dgLimiter(disc, state, check, 's', 'scale', 'plot', disc.plotLimiterProgress);
-                        else
-                            [sMin, sMax] = disc.getMinMaxSaturation(state);
-                            outside = sMin < 0 - disc.outTolerance | ...
-                                      sMax > 1 + disc.outTolerance;
-                            bad = outside & check;
-                            if any(bad)
-                                state = dgLimiter(disc, state, bad, 's', disc.outLimiter, 'plot', disc.plotLimiterProgress);
-                            end
-                        end
-                    end
-
-                    if disc.jumpTolerance < Inf && 1
-                        % Cells with interface jumps larger than threshold
-                        [jumpVal, ~, cells] = disc.getInterfaceJumps(state.sdof(:,1), state);
-                        j = accumarray(cells(:), repmat(jumpVal,2,1) > disc.jumpTolerance) > 0;
-                        jump = false(G.cells.num,1);
-                        jump(cells(:))          = j(cells(:));
-                        jump(state.degree == 0) = false;
-%                         if size(jump,1) == 1; jump = jump'; end
-                        bad = jump & check;
-                        if any(bad)
-                            state = dgLimiter(disc, state, bad, 's', disc.jumpLimiter, 'plot', disc.plotLimiterProgress);
-                        end
-                    end
-                end
-            else
-                % Limiters to be applied after convergence
-                if disc.degree > 0
-                    % Scale solutions so that 0 <= s <= 1
-%                     state = dgLimiter(disc, state, check, 's', 'scale', 'plot', disc.plotLimiterProgress);
-                    if disc.jumpTolerance < Inf
-                        % Limit saturation slope in cells with interface jumps
-                        % larger than threshold
-                        [jumpVal, ~, cells] = disc.getInterfaceJumps(state.sdof(:,1), state);
-                        j = accumarray(cells(:), repmat(jumpVal,2,1) > disc.jumpTolerance) > 0;
-                        jump = false(G.cells.num,1);
-                        jump(cells(:))          = j(cells(:));
-                        jump(state.degree == 0) = false;
-                        bad = jump & check & state.degree > 0;
-                        if any(bad)
-                            state = dgLimiter(disc, state, bad, 's', 'tvb', 'plot', disc.plotLimiterProgress);
-                        end
-                    end
-                end
-            end
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function v = trimValues(disc, v)
-            tol = eps(mean(disc.G.cells.volumes));
-            tol = -inf;
-%             tol = 1e-7;
-            ix = abs(v) < tol;
-            if isa(v, 'ADI')
-                v.val(ix) = 0;
-            else
-                v(ix) = 0;
-            end             
         end
         
     end
