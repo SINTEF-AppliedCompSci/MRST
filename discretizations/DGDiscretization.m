@@ -312,19 +312,10 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function varargout = evaluateDGVariables(disc, x, cells, state, varargin)
-            varargout = cellfun(@(v) disc.evaluateDGVariable(x, cells, state, v), ...
-                                               varargin, 'UniformOutput', false);
-        end
-        
-        %-----------------------------------------------------------------%
         function varargout = getCellMean(disc, state, cells, varargin)
             % Get average cell value from dofs
-
-            % Get cubature for all cells
             W = disc.getCubature(cells, 'cell');
             val = cell(numel(varargin),1);
-            
             for i = 1:nargin-3
                 dof = varargin{i};
                 v = disc.evaluateProp(state, dof, 'cell', cells);
@@ -338,12 +329,6 @@ classdef DGDiscretization < SpatialDiscretization
                 val{i} = v;
             end
             varargout = val;
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function dotProduct = dot(disc,u,v)
-            dotProduct = sum(u.*v, 2);
         end
         
         %-----------------------------------------------------------------%
@@ -401,7 +386,8 @@ classdef DGDiscretization < SpatialDiscretization
                 if any(keepCells)
                     ix = disc.getDofIx(disc, dofNo, cells(keepCells));
                     if isa(u, 'SpatialVector')
-                        i = W*disc.dot(u,v{dofNo}(x).*scaling);
+%                         i = W*disc.dot(u,v{dofNo}(x).*scaling);
+                        i = W*dot(u,v{dofNo}(x).*scaling);
                     else
                         i = W*(u.*v{dofNo}(x));
                     end
