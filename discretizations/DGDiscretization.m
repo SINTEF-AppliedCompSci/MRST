@@ -439,47 +439,10 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] = getSaturationUpwind(disc, faces, x, T, vT, state, g, mob, sdof, rdof, cdof)
-            % Explicit calculation of upstream cells. See getSaturationUpwindDG
-            [flag_v, flag_G, upCells_v, upCells_G, s_v, s_G] ...
-                = getSaturationUpwindDG(disc, faces, x, T, vT, state, g, mob, sdof, rdof, cdof);
-        end
-        
-        %-----------------------------------------------------------------%
-        function flag = multiphaseUpwindIndices(disc, G, v, T, mob, upstr)
-            % Explicit calculation of upstream cells. See getSaturationUpwindDG
-            
-            [~, ~, ~, faces] = disc.getCubature(find(disc.internalConn), 'face');
-            nf = numel(faces);
-            % Mapping from all faces to internal connections
-            all2int = zeros(disc.G.faces.num,1);
-            all2int(disc.internalConn) = 1:nnz(disc.internalConn);
-            ix = all2int(faces);
-            
-            T  = T(ix);
-            v  = v(ix);
-            
-            % Make fake faceUpstr function
-            upw = @(flag, x)faceUpstr(flag, x, [1:nf; nf+1:2*nf]', [nf, 2*nf]);
-
-            flag = multiphaseUpwindIndices(G, v, T, mob, upw);
-        end
-        
-        % --------------------------------------------------------------------%
-        function gdxyz = getGravityGradient(disc, model)
-            
-            x = model.G.cells.centroids;
-            [~, ~, ~, faces] = disc.getCubature(find(model.operators.internalConn), 'face');
-            cells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
-            gdxyz = model.operators.Grad(model.G.cells.centroids) * g';
-        end
-        
-        %-----------------------------------------------------------------%
         function [W, x, cellNo, faceNo] = getCubature(disc, elements, type, varargin)
             % Get cubature for elements. Wrapper for cubature class
             % function getCubature, with mapping of elements before and
             % after in case we are solving on a subgrid
-            
             useMap = isfield(disc.G, 'mappings');
             if useMap
                 % Map elements to old numbering
@@ -491,7 +454,6 @@ classdef DGDiscretization < SpatialDiscretization
                         elements = maps.faceMap.new2old(elements);
                 end
             end
-            
             % Get correct cubature type
             switch type 
                 case 'cell'
@@ -499,56 +461,28 @@ classdef DGDiscretization < SpatialDiscretization
                 case {'surface', 'face'}
                     cubature = disc.faceCubature;
             end
-            
+            % Make options struct
             opt = struct('excludeBoundary', true                   , ...
                          'internalConn'   , disc.internalConnParent, ...
                          'outwardNormal'  , true                   );
             opt = merge_options(opt, varargin{:});
-            
             % Get cubature from cubature class
             [W, x, ~, cellNo, faceNo] = cubature.getCubature(elements, type, ...
                                  'excludeBoundary', opt.excludeBoundary    , ...
                                  'internalConn'   , opt.internalConn       , ...
                                  'outwardNormal'  , opt.outwardNormal      );
-                
             if useMap
                 % Map elements back to new numbering
                 cellNo = maps.cellMap.old2new(cellNo);
                 faceNo = maps.faceMap.old2new(faceNo);
             end
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function [sMin, sMax] = getMinMaxSaturation(disc, state)
-            % Get maximum and minimum saturaiton for each cell
-            
-            G = disc.G;
-            cells = (1:G.cells.num)';
-            
-            % Get all quadrature points for all cells
-            [~, xSurf, cSurf, ~] = disc.getCubature(cells, 'surface', 'excludeBoundary', false);
-            [~, xCell, cCell, ~] = disc.getCubature(cells, 'volume' );
-            % Evaluate saturation at faces
-            sSurf = disc.evaluateDGVariable(xSurf, cSurf, state, state.sdof(:,1));
-            [~, nSurf] = rlencode(cSurf);
-            [sMins, sMaxs] = getMinMax(sSurf, nSurf);
-            % Evaluate saturation at cells
-            sCell = disc.evaluateDGVariable(xCell, cCell, state, state.sdof(:,1));
-            [~, nCell] = rlencode(cCell);
-            % Find min/max saturation
-            [sMinc, sMaxc] = getMinMax(sCell, nCell);
-            sMin = min(sMins, sMinc);
-            sMax = max(sMaxs, sMaxc);
-            
         end
         
         %-----------------------------------------------------------------%
         function [vMin, vMax] = getMinMax(disc, state, dof)
-            % Get maximum and minimum saturaiton for each cell
-            
+            % Get maximum and minimum value of dG variable for each cell.
+            % Evaluated in cubature points
             G = disc.G;
-            
             % Get all quadrature points for all cells
             [~, xF, ~, fF] = disc.getCubature((1:G.faces.num), 'face');
             xF = repmat(xF, 2, 1);
@@ -570,7 +504,6 @@ classdef DGDiscretization < SpatialDiscretization
             [vMinC, vMaxC] = getMinMax(vC, nC);
             vMin = min(vMinF, vMinC);
             vMax = max(vMaxF, vMaxC);
-            
         end
         
         %-----------------------------------------------------------------%
