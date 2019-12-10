@@ -31,15 +31,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [opt, solver_arg] = merge_options(opt, varargin{:});
     solver_arg = ['tolerance', opt.tolerance, solver_arg];
     lsolve = BackslashSolverAD();
-    if opt.useAMGCL
-        mrstModule add linearsolvers
-        opt.useAMGCL = checkAMGCL();
-    end
     ncomp = getComponentCount(model);
     ndof = ncomp*model.G.cells.num;
     if ndof <= opt.BackslashThreshold
         % We do not need a custom linear solver
         return
+    end
+    if opt.useAMGCL
+        mrstModule add linearsolvers
+        opt.useAMGCL = checkAMGCL();
     end
     isDiagonal = isa(model.AutoDiffBackend, 'DiagonalAutoDiffBackend');
     
