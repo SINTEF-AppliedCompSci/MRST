@@ -2,9 +2,11 @@ function WP = computeWellPairs(state, G, rock, W, D )
 %Compute volumes and fluxes associated with each flux pair
 %
 % SYNOPSIS:
-%   WP = computeWellPairs(G, rock, W, D)
+%   WP = computeWellPairs(state, G, rock, W, D)
 %
 % PARAMETERS:
+%   state - Reservoir state
+%
 %   G     - Grid structure.
 %
 %   rock  - Rock data structure.
