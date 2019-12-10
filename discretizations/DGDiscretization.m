@@ -184,7 +184,6 @@ classdef DGDiscretization < SpatialDiscretization
             % Map dofs from state0 to state, typically from one timestep to
             % the next, when we start with maximum number of dofs in all
             % cells.
-            % Update dofPos
             state = disc.updateDofPos(state);
             if nargin == 3
                 name = 'sdof';
@@ -332,42 +331,31 @@ classdef DGDiscretization < SpatialDiscretization
         end
         
         %-----------------------------------------------------------------%
-        function ip = inner(disc, u, v, differential, elements, bc)
-            
+        function ip = inner(disc, u, v, differential, elements)
+            % Compute dG inner products
+            %
+            % PARAMETERS:
+            %   u            - Either scalar vector of SpatialVector
+            %   v            - Basis function cell array
+            %   differential - 'dV': cell integral, 'dS' face integral
+            %   elements     - Elements we compute innter product over
+            %
+            % RETURNS:
+            %   ip - Inner product (u,v) over elements
             if nargin < 5
                 elements = Inf;
-            end
-                
+            end 
             switch differential
                 case 'dV'
                     ip = disc.cellInt(u, v, elements);
                 case 'dS'
                     ip = disc.faceInt(u, v, elements);
-                case 'dSbc'
-                    ip = disc.faceFluxIntBC2(u, v, bc);
-            end
-            
+            end 
         end
         
         %-----------------------------------------------------------------%
         function I = cellInt(disc, u, v, cells)
             % Integrate integrand over cells
-            %
-            % PARAMETERS:
-            %   model    - Model, which contains information on how the
-            %              integrand looks like
-            %   fun      - Integrand function handle
-            %   cells    - Cells over which we will integrate fun
-            %   state, state0 - States from current and prev timestep,
-            %              to be used for dofPos
-            %   varargin - Variables passed to model for integrand
-            %              evalauation. varargin{1} MUST be an AD object of
-            %              dofs for all cells in the grid.
-            %
-            % RETURNS:
-            %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
-            %       all cells
-            
             nDofMax  = numel(v);     % Maximum number of dofs
             % Empty cells means all cells in grid
             if isempty(cells)
@@ -386,7 +374,6 @@ classdef DGDiscretization < SpatialDiscretization
                 if any(keepCells)
                     ix = disc.getDofIx(disc, dofNo, cells(keepCells));
                     if isa(u, 'SpatialVector')
-%                         i = W*disc.dot(u,v{dofNo}(x).*scaling);
                         i = W*dot(u,v{dofNo}(x).*scaling);
                     else
                         i = W*(u.*v{dofNo}(x));
@@ -401,23 +388,7 @@ classdef DGDiscretization < SpatialDiscretization
         
         %-----------------------------------------------------------------%
         function I = faceInt(disc, u, v, faces)
-            % Integrate integrand over all internal faces of each cell in
-            % cells
-            %
-            % PARAMETERS:
-            %   model    - Model, which contains information on how the
-            %              integrand looks like
-            %   fun      - Integrand function handle
-            %   cells    - Cells over which we will integrate fun
-            %   state    - State to be used for dofPos
-            %   varargin - Variables passed to model for integrand
-            %              evalauation. varargin{1} MUST be an AD object of
-            %              dofs for all cells in the grid.
-            %
-            % RETURNS:
-            %   I - Integrals int(fun*psi{dofNo}) for dofNo = 1:nDof over
-            %       all cell surfaces of all cells
-            
+            % Integrate integrand over faces
             nDofMax = disc.basis.nDof; % maximum number of dofs
             % Get cubature
             [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
@@ -465,110 +436,6 @@ classdef DGDiscretization < SpatialDiscretization
                 end
                 I = disc.trimValues(I);
             end
-        end
-        
-         %-----------------------------------------------------------------%
-        function I = faceFluxIntBC2(disc, u, v, bc)
-            % Integrate integrand over all faces where bcs are defined
-            %
-            % PARAMETERS:
-            %   model    - Model, which contains information on how the
-            %              integrand looks like
-            %   fun      - Integrand function handle
-            %   bc       - Boundary condition struct from schedule
-            %   state    - State to be used for dofPos
-            %   varargin - Variables passed to model for integrand
-            %              evalauation. varargin{1} MUST be an AD object of
-            %              dofs for all cells in the grid.
-            %
-            % RETURNS:
-            %   I - All integrals int(fun*psi{dofNo}) for dofNo = 1:nDof
-            %       over all bc faces for each cell
-            
-            G       = disc.G;          % Grid
-            nDofMax = disc.basis.nDof; % Maximum number of dofs
-            % Get faces and corresponding cells where BCs are defined
-            faces = bc.face;
-            cells = sum(G.faces.neighbors(faces,:),2);
-            % Get cubature for each face, find corresponding cells, and
-            % transform to reference coords
-            [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
-            cellNo = sum(G.faces.neighbors(faceNo,:),2);
-            [x_r, ~, ~] = disc.transformCoords(x, cellNo);
-            % Ensure that we have the right sign for the integrals
-            sgn = 1 - 2*(G.faces.neighbors(faces, 1) == 0);
-            W = W.*sgn;
-            % Mappings from global cell numbers to bc face/cell numbers
-            globCell2BCcell = nan(G.cells.num,1);
-            globCell2BCcell(cells) = 1:numel(cells);
-            S = sparse(globCell2BCcell(cells), 1:numel(faces), 1);
-            % Evaluate integrals
-            I = disc.sample*0;
-            for dofNo = 1:nDofMax
-                keepCells = disc.nDof(cells) >= dofNo;
-                if any(keepCells)
-                    ix = disc.getDofIx(disc, dofNo, cells(keepCells)');
-                    i  = W*(u.*v{dofNo}(x_r));
-                    i  = S*i;
-                    I(ix) = i(keepCells);
-                end
-            end
-            %I = disc.trimValues(I);
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function I = faceFluxIntBC(disc, fun, bc, state, sdof)
-            % Integrate integrand over all faces where bcs are defined
-            %
-            % PARAMETERS:
-            %   model    - Model, which contains information on how the
-            %              integrand looks like
-            %   fun      - Integrand function handle
-            %   bc       - Boundary condition struct from schedule
-            %   state    - State to be used for dofPos
-            %   varargin - Variables passed to model for integrand
-            %              evalauation. varargin{1} MUST be an AD object of
-            %              dofs for all cells in the grid.
-            %
-            % RETURNS:
-            %   I - All integrals int(fun*psi{dofNo}) for dofNo = 1:nDof
-            %       over all bc faces for each cell
-            
-            G       = disc.G;          % Grid
-            psi     = disc.basis.psi;  % Basis functions
-            nDof    = state.nDof;      % Number of dofs per cell
-            nDofMax = disc.basis.nDof; % Maximum number of dofs
-            % Get faces and corresponding cells where BCs are defined
-            faces = bc.face;
-            cells = sum(G.faces.neighbors(faces,:),2);
-            % Get cubature for each face, find corresponding cells, and
-            % transform to reference coords
-            [W, x, ~, faceNo] = disc.getCubature(faces, 'face');
-            cellNo = sum(G.faces.neighbors(faceNo,:),2);
-            [xR, ~, ~] = disc.transformCoords(x, cellNo);
-            % Ensure that we have the right sign for the integrals
-            sgn = 1 - 2*(G.faces.neighbors(faces, 1) == 0);
-            W = W.*sgn;
-            % Mappings from global cell numbers to bc face/cell numbers
-            globCell2BCcell = nan(G.cells.num,1);
-            globCell2BCcell(cells) = 1:numel(cells);
-            S = sparse(globCell2BCcell(cells), 1:numel(faces), 1);
-            % Evaluate integrals
-%             I = getSampleAD(sdof)*0;
-%             I = getSampleAD(sdof);
-            I = sdof;
-            for dofNo = 1:nDofMax
-                keepCells = nDof(cells) >= dofNo;
-                if any(keepCells)
-                    ix = disc.getDofIx(state, dofNo, cells(keepCells)');
-                    i  = W*fun(psi{dofNo}(xR));
-                    i = S*i;
-                    I(ix) = i(keepCells);
-                end
-            end
-            I = disc.trimValues(I);
-            
         end
         
         %-----------------------------------------------------------------%
