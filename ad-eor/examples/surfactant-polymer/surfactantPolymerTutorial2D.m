@@ -118,7 +118,7 @@ for i = 1 : length(T)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
-sgtitle('Oil saturation for water flooding')
+set(gcf, 'name', 'Oil saturation for water flooding')
 
 % Plot cell oil saturation in different tsteps of polymer flooding
 sOmin = min( cellfun(@(x)min(x.s(:,2)), statesP) );
@@ -134,7 +134,7 @@ for i = 1 : length(T)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
-sgtitle('Oil saturation for polymer flooding')
+set(gcf, 'name', 'Oil saturation for polymer flooding')
 
 % Plot cell oil saturation in different tsteps of surfactant flooding
 sOmin = min( cellfun(@(x)min(x.s(:,2)), statesS) );
@@ -150,7 +150,7 @@ for i = 1 : length(T)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
-sgtitle('Oil saturation for surfactant flooding')
+set(gcf, 'name', 'Oil saturation for surfactant flooding')
 
 % Plot cell oil saturation in different tsteps of surfactant-polymer flooding
 sOmin = min( cellfun(@(x)min(x.s(:,2)), statesSP) );
@@ -166,7 +166,8 @@ for i = 1 : length(T)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
-sgtitle('Oil saturation for surfactant-polymer flooding')
+set(gcf, 'name', 'Oil saturation for surfactant-polymer flooding')
+
 %% Plot well solutions of water flooding and surfactant-polymer flooding
 % The orange line denotes pure water flooding while the blue line denotes SP
 % flooing

@@ -89,7 +89,8 @@ for i = 1 : length(T)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
-sgtitle('Oil saturation for water flooding')
+set(gcf, 'name', 'Oil saturation for water flooding')
+
 
 % Plot cell oil saturation in different tsteps of surfactant flooding
 sOmin = min( cellfun(@(x)min(x.s(:,2)), statesSurfactant) );
@@ -105,7 +106,7 @@ for i = 1 : length(T)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
-sgtitle('Oil saturation for surfactant flooding')
+set(gcf, 'name', 'Oil saturation for surfactant flooding');
 
 %% Plot well solutions
 % The orange line denotes pure water flooding while the blue line denotes
