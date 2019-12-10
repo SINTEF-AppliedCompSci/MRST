@@ -15,7 +15,9 @@ classdef SurfactantPhasePressures < StateFunction
             cs = model.getProps(state, 'surfactant');
             p = model.getProps(state, 'Pressure');
             pc = prop.getEvaluatedDependencies(state, 'CapillaryPressure');
-            pc{1} = pc{1}.*fluid.ift(cs)/fluid.ift(0);
+            if ~isempty(pc{1})
+                pc{1} = pc{1}.*fluid.ift(cs)/fluid.ift(0);
+            end
             nph = numel(pc);
             p_phase = cell(1, nph);
             for i = 1:nph
