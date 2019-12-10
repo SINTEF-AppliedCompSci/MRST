@@ -22,7 +22,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     switch lower(type)
         case 'prod'
-            cmap = jet(numel(D.prod));
+            if numel(D.prod)<6
+                cmap = lines(numel(D.prod));
+            else
+                cmap = jet(numel(D.prod));
+            end
             c = cmap(index,:);
         case 'inj'
             cmap = gray(numel(D.inj));
