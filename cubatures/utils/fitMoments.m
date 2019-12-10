@@ -1,60 +1,72 @@
-function [x,w,nPts] = fitMoments(x, basis, moments, num, varargin)
-
-    opt = struct('reduce', true, 'tol', 1e-12);
+function [points,weights,nPts] = fitMoments(x, basis, moments, varargin)
+    % Compute cubature by moment fitting, possibly with reduction
+    opt = struct('reduce', true, 'tol', 1e-10, 'chunkSize', 10, 'equal', false);
     opt = merge_options(opt, varargin{:});
 
     psi  = basis.psi;
     nDof = basis.nDof;
-    nPts = size(x,1);
-    
-    k       = nPts;
-    reduced = true;
-%     w = [];
-    
-%     opts = optimoptions('lsqlin');
-%     opts.ConstraintTolerance = 1e-8;
-%     opts.OptimalityTolerance = 1e-3;
-%     opts.MaxIterations       = 100;
-    
-     % Matrix of basis functions evalauted at current quadrature points
-    p = cell2mat(cellfun(@(p) p(x), psi, 'unif', false));
-    [ii, jj] = blockDiagIndex(nPts*ones(num,1), nDof*ones(num,1));
-    P = sparse(jj, ii, repmat(p, num,1));
+    n0 = size(x,1);
 
-%     I = speye(nPts*num); o = zeros(nPts*num,1); r = Inf(nPts*num,1);
-    [w, ~, ~, flag] = lsqnonneg(P, moments);
-    flag = flag && all(abs(residual)<opt.tol);
-%     [w, ~, ~, flag] = lsqlin(I, o, I, r, P  , moments, [], [], [], opts);
-%     [w, ~, ~, flag] = lsqlin(I, o, I, r, P  , moments, o, r, [], opts);
-    
-    if flag < 0
-        error('Moment fitting did not find a solution!');
+    ne = numel(moments{1});
+    if opt.equal
+        ne = 1;
+        ePos = 1:2;
+    else
+        nc = ceil(ne/opt.chunkSize);
+        ePos   = round(linspace(0, ne, nc))+1;
     end
-    
-    if opt.reduce
-        while k > 0 && reduced 
+    nPts   = zeros(ne,1);
+    [points, weights] = deal([]);
 
-            % Matrix of basis functions evalauted at current quadrature points
-            p = cell2mat(cellfun(@(p) p(x), psi, 'unif', false));
-            s = sum(reshape(p.^2, nPts, nDof), 2);
-            [~, ix] = sort(s);
+    x0     = x;
+
+    for i = 1:numel(ePos)-1
+        
+        elements = ePos(i):ePos(i+1)-1;
+        ne_loc = numel(elements);
+        
+        fprintf('Compressing quadrature for element %d to %d of %d ... ', ...
+                                         min(elements), max(elements), ne);
+        tic;
+        
+        m = cellfun(@(m)m(elements), moments, 'UniformOutput', false);
+        tol = 100*eps(mean(m{1}));
+        m = vertcat(m{:});
+        M = nan(numel(m),1);
+        for j = 1:nDof
+            M((1:nDof:nDof*ne_loc)+j-1) = m((ne_loc*(j-1) + (1:ne_loc)));
+        end
+        
+        reduced = true;
+        x = x0;
+        n = n0;
+        k = n0;
+        w = zeros(n,1);
+        
+        while k > 0 && reduced 
+        
+            % Matrix of basis functions evalauted at current quadrature points            
+            P = computeBasisMatrix(psi, x, ne_loc, n, nDof);
+            [w, ~, residual, flag] = lsqnonneg(P, M);
+            
+            s = sum(full(P(1:nDof, 1:n)).^2,1);
+            if opt.reduce                
+                [~, ix] = sort(s);
+            else
+                ix = [];
+            end
             reduced = false;
             xPrev = x;
             wPrev = w;
+            nPrev = n;
 
             for pNo = 1:numel(ix)
                 x(ix(pNo),:) = [];
-                nPts = size(x,1);
-                p = cell2mat(cellfun(@(p) p(x), psi, 'unif', false));
-                [ii, jj] = blockDiagIndex(nPts*ones(num,1), nDof*ones(num,1));
-                P = sparse(jj, ii, repmat(p, num,1));
-
-%                 I = speye(nPts*num); o = zeros(nPts*num,1); r = Inf(nPts*num,1);
-%                 [w, ~, ~, flag] = lsqlin(I, o, I, r, P  , moments, [], [], [], opts);
-                [w, ~, ~, flag] = lsqnonneg(P, moments);
-                flag = flag && all(abs(residual)<opt.tol);
-%                 [w, ~, ~, flag] = lsqlin(I, o, I, r, P  , moments, o, r, [], opts);
-
+                n = size(x,1);
+                
+                P = computeBasisMatrix(psi, x, ne_loc, n, nDof);
+                [w, ~, residual, flag] = lsqnonneg(P, M);
+                flag = flag && all(abs(residual)<tol);
                 if flag > 0
                     k       = k-1;
                     reduced = true;
@@ -62,12 +74,32 @@ function [x,w,nPts] = fitMoments(x, basis, moments, num, varargin)
                 else
                     x = xPrev;
                     w = wPrev;
+                    n = nPrev;
                 end    
             end
-
+            
         end
+        
+        nPts(elements) = n;
+        points  = [points;repmat(x,ne_loc,1)];
+        weights = [weights;w];
+        
+        time = toc;
+        fprintf('Compressed from %d to %d points in %f second\n', n0, n, time);
+              
     end
     
-    nPts = size(x,1);
+    if opt.equal
+        ne = numel(moments{1});
+        nPts    = repmat(n, ne, 1);
+        points  = repmat(points, ne, 1);
+        weights = repmat(weights, ne, 1);
+    end
     
+end
+
+function P = computeBasisMatrix(psi, x, ne, n, nDof)
+    p = cell2mat(cellfun(@(p) p(x), psi, 'unif', false));
+    [ii, jj] = blockDiagIndex(n*ones(ne,1), nDof*ones(ne,1));
+    P = sparse(jj, ii, repmat(p, ne,1));
 end

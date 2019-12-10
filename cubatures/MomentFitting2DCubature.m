@@ -102,7 +102,7 @@ classdef MomentFitting2DCubature < Cubature
                 tol = eps(10);
                 M = cellfun(@(p) accumarray(count, wq.*p(xq)), psi, 'unif', false);
                 M = cellfun(@(m) m.*(abs(m) > tol), M, 'unif', false);
-                [x,w,n] = fitMoments3(x, basis, M, 'equal', equal, 'reduce', cubature.reduce, 'chunkSize', cubature.chunkSize);
+                [x,w,n] = fitMoments(x, basis, M, 'equal', equal, 'reduce', cubature.reduce, 'chunkSize', cubature.chunkSize);
             end
             
             % Map from reference to physical coordinates

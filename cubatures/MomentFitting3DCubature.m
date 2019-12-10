@@ -79,7 +79,7 @@ classdef MomentFitting3DCubature < Cubature
                     rhs(dofNo, :) = m;
                     M{dofNo} = m;
                 end
-                [x,w,n] = fitMoments3(x, basis, M, 'equal', G.cells.equal);
+                [x,w,n] = fitMoments(x, basis, M, 'equal', G.cells.equal);
                 cellNo = rldecode((1:G.cells.num)', n, 1);
                 w = w.*G.cells.volumes(cellNo);
             end

@@ -105,7 +105,7 @@ setAxProps = @(ax) set(ax, 'Projection'        , 'Perspective', ...
 % For plotting wells
 pw = @() plotWell(GRef, WRef, 'height', -1, 'color', 'k');
 % Get coordinates for plotting (to be used in patch)
-coords = getPlotCoordinates2(G);
+coords = getPlotCoordinates(G);
 close all; figure('Position', [0,0,1000,500]);
 subplot(1,2,1); % Plot dG(0)
 [hs0, satDG0] = plotSaturationDG(tmodelDG0.discretization, stDG0{1}, ...
