@@ -72,7 +72,6 @@ set(gca,'FontSize',12)
 mrstColorbar(K,'South',true); axis tight
 hold on; plot(xw(:,1),xw(:,2),'.r','MarkerSize',18); hold off
 
-
 %% Set base model
 % The base model is a two-phase oil-water model
 model        = GenericBlackOilModel(G, rock, fluid, 'gas', false);
