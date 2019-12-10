@@ -20,7 +20,6 @@ function [eqs, names, types] = equationsChemicalLog(model, state)
      
     T = model.getProp(state, 'temperature');
     
-    
     An  = 6.0221413*10^23;    % avagadros number [#/mol]
     F   = 9.64853399e4;       % Faraday's Constant [C/mol]
     R   = 8.3144621;          % Gas Constant [J/(K mol)]
@@ -54,7 +53,7 @@ function [eqs, names, types] = equationsChemicalLog(model, state)
     for i = 1 : chemsys.nC
         ionDum = ionDum + (CV(1,i).^2.*species{i}).*litre/mol;
     end
-    ion = cell(1,chemsys.nC);
+    ion = cell(1, chemsys.nC);
     [ion{:}] = deal((1/2)*abs(ionDum));
     
     %% calculate acitivity coefficient by davies equation
