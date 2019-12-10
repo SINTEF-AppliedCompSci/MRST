@@ -40,14 +40,29 @@ function obj = pressurePenalizer(model, states, schedule, penalty, plim, varargi
 % RETURNS:
 %   obj         - cell array of size Nx1 (where N is number of time steps
 %               that function gets evaluated at)
-%
-% SEE ALSO:
-%   
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
 % Format of objective function:
 %   obj = max(0, sign(p - plim)) * penalty * (p - plim)^k
 % obj is computed for each or for a specific time step
-
 
    opt.cells            = [];
    opt.penalizeBHP      = false;
