@@ -1,12 +1,10 @@
 function state = assignDofFromState(disc, state, names)
     % Assign dofs from state (typically initial state). All dofs
     % for dofNo > 0 are set to zero.
-
     % Set degree to disc.degree in all cells
     if ~isfield(state, 'degree')
         state.degree = repmat(disc.degree, disc.G.cells.num, 1);
     end
-
     % Create vector dofPos for position of dofs in state.sdof
     if 0
         state = disc.updateDofPos(state);
@@ -18,7 +16,6 @@ function state = assignDofFromState(disc, state, names)
     end
     ix          = disc.getDofIx(state, 1);
     % Loop trough possible fields and initialise constant dof
-%     flds = getDofFields();
     if nargin < 3
         names = fieldnames(state);
     end
@@ -42,7 +39,3 @@ end
 function flds = exceptions()
     flds = {'nDof', 'degree', 'wellSol', 'flux', 'sMax', 'dofPos', 'eos', 'flag', 'FlowProps'};
 end
-
-% function flds = getDofFields()
-%     flds = {'pressure', 's', 'rs', 'rv', 'x', 'y', 'components', 'c'};
-% end
