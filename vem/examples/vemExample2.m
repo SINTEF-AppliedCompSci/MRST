@@ -147,7 +147,7 @@ for i = 1:nT
     axis equal off
     
     %   Solve VEM pressure equation.
-    stateVEM = incompVEM(stateVEM, G, SVEM, fluid, 'src', src);
+    stateVEM = incompVEM(stateVEM, G, SVEM, fluid, 'src', src, 'cellPressure', true);
     
     %   Postprocess solution.
     stateVEM = conserveFlux(stateVEM, G, rock, 'src', src);
