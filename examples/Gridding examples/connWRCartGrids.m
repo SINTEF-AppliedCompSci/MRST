@@ -12,7 +12,7 @@
 % * Connecting with the Cartesian grid
 
 clear
-mrstModule add nwm upr
+mrstModule add nwm upr ad-core ad-props ad-blackoil diagnostics
 
 %% Build the Cartesian grid
 GC = cartGrid([25, 25], [200, 200]);
