@@ -13,10 +13,10 @@ tet grid + twist low tol: same bad ntpfa
 %}
 
 clear all
-%close all
+close all
 
 mrstModule add incomp mimetic  ad-blackoil ad-core postprocessing ...
-    ad-props mpfa ntpfa-kobaisi ntpfa mrst-gui wellpaths
+    ad-props mpfa ntpfa-kobaisi ntpfa mrst-gui wellpaths blackoil-sequential
 
 % Grid (twist later)
 nx = 7;
@@ -24,9 +24,9 @@ ny = 5;
 nz = 3;
 N = [nx, ny, nz];
 L = [10, 20, 30];
-refine = 4;
+refine = 2;
 G = cartGrid(N*refine, L);
-G = tetrahedralGrid(G.nodes.coords);
+%G = tetrahedralGrid(G.nodes.coords);
 G = computeGeometry(G);
 xyzmax = max(G.nodes.coords);
 xyzmin = min(G.nodes.coords);
@@ -61,7 +61,7 @@ W = addWell(W, G, rock, well_cells(G, '5'), 'Type', 'rate', ...
 %             'Val', -bhp_val, 'Name', 'I2');
 
 % Optional twist
-G = twister(G, 0.1);
+%G = twister(G, 0.1);
 
 figure
 plotCellData(G,rock.perm)
@@ -95,7 +95,7 @@ tracer = true;
 results = {};
 
 %% TPFA mrst version
-results{end+1}.name = 'mrst tpfa';
+results{end+1}.name = 'tpfa mrst';
 disp(results{end}.name);
 T = computeTrans(G,rock);
 state = incompTPFA(state0, G, T, fluid, 'wells', W, 'bc', bc_std);
@@ -111,6 +111,24 @@ if plotconc
 drawnow
 end
 results{end}.state = state;
+
+
+%% ntpfa mrst
+W = [];
+W = addWell(W, G, rock, well_cells(G, '1'), 'Type', 'rate', ...
+            'comp_i', [1,0], 'radius', 0.01, ...
+            'Val', 10, 'Name', 'I1');
+W = addWell(W, G, rock, well_cells(G, '5'), 'Type', 'rate', ...
+            'comp_i', [1,0], 'radius', 0.01, ...
+            'Val', 1, 'Name', 'I2');
+fluidAD = initSimpleADIFluid();
+state0 = initResSol(G, 0, [1, 0]);
+results{end+1}.name = 'ntpfa mrst';
+disp(results{end}.name);
+model = PressureOilWaterModelNTPFA(G, rock, fluidAD);
+schedule = simpleSchedule(1, 'W', W, 'bc', bc_std);
+[~, states] = simulateScheduleAD(state0, model, schedule);
+results{end}.state = states{1};
 
 
 %% nonlinear TPFA
