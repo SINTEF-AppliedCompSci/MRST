@@ -5,7 +5,7 @@ opt = struct('MatrixOutput', false, ...
 opt = merge_options(opt, varargin{:});
 
 dispif(mrstVerbose, 'FlowNTPFA\n');
-[mu,rho]=fluid.properties();
+[mu,rho] = fluid.properties();
 mu = mu(1);
 rho = rho(1);
 
@@ -25,22 +25,22 @@ T = TransNTPFA(G,bc,mu,u0,OSflux);
 if opt.MatrixOutput
     state.A = A;
     state.jac = jacobian(G,bc,mu,rho,u0,OSflux,W, opt, well_posed);
-    return;
+    %return;
 end
 
-iter=0;
-res=zeros(maxiter+1,1);
-bnorm=norm(b,inf);
-res(1)=norm(A*u0-b,inf)/bnorm;
+iter = 0;
+res = zeros(maxiter+1,1);
+bnorm = norm(b,inf);
+res(1) = norm(A*u0-b,inf)/bnorm;
 %res(1)=tol+1;
-u=u0;
+u = u0;
 while(res(iter+1)>tol && iter<maxiter)
     dispif(mrstVerbose & mod(iter,1)==0, ['iter=',num2str(iter), ' res=', num2str(res(iter+1)), '\n'])
-    u=A\b;
-    T=TransNTPFA(G,bc,mu,u,OSflux);
-    [A,b]=AssemAb(G,bc,mu,rho,T,W,opt.src,well_posed);
-    iter=iter+1;
-    res(iter+1)=norm(A*u-b,inf)/bnorm;
+    u = A\b;
+    T = TransNTPFA(G,bc,mu,u,OSflux);
+    [A,b] = AssemAb(G,bc,mu,rho,T,W,opt.src,well_posed);
+    iter = iter+1;
+    res(iter+1) = norm(A*u-b,inf)/bnorm;
 end
 dispif(mrstVerbose, ['iter=',num2str(iter), ' res=', num2str(res(iter+1)), '\n'])
 if iter==maxiter
@@ -48,12 +48,12 @@ if iter==maxiter
              ' reached. Residual=', num2str(res(end))]);
 end
 
-[flux,wellsol]=computeFlux(G,u,T,W,mu,rho);
-state.pressure=u(1:G.cells.num);
-state.flux=flux;
-state.wellSol=wellsol;
-state.iter=iter;
-state.res=res(1:iter+1);
+[flux,wellsol] = computeFlux(G,u,T,W,mu,rho);
+state.pressure = u(1:G.cells.num);
+state.flux = flux;
+state.wellSol = wellsol;
+state.iter = iter;
+state.res = res(1:iter+1);
 
 % if opt.MatrixOutput
 %     state.A = A;
@@ -70,48 +70,50 @@ function T=TransNTPFA(G,bc,mu,u,OSflux)
     T{2} = 0*repmat(u(1), G.faces.num, 1);
     for i_face=1:G.faces.num
         if(all(G.faces.neighbors(i_face,:)~=0))
-            t1=OSflux{i_face,1};
-            t2=OSflux{i_face,2};
-            r1=t1(3:end-1,2)'*u(t1(3:end-1,1))+t1(end,2);
-            r2=t2(3:end-1,2)'*u(t2(3:end-1,1))+t2(end,2);
-            eps=1e-12*max(abs([t1(:,end);t2(:,end)]));
-            if(abs(r1)<=eps)
+            t1 = OSflux{i_face,1};
+            t2 = OSflux{i_face,2};
+            r1 = t1(3:end-1,2)'*u(t1(3:end-1,1)) + t1(end,2);
+            r2 = t2(3:end-1,2)'*u(t2(3:end-1,1)) + t2(end,2);
+            eps = 0*r1 + 1e-12*max(abs([t1(:,end);t2(:,end)]));
+            %r1
+            %eps
+            if (abs(r1)<=eps)
                 %r1=0;
                 r1 = 0*r1; 
             end
-            if(abs(r2)<=eps)
+            if (abs(r2)<=eps)
                 r2 = 0*r2;
             end
             
-            if(abs(r1+r2)>eps)
-                mu1=r2./(r1+r2); % ./ for AD
-                mu2=1-mu1;
+            if (abs(r1+r2)>eps)
+                mu1 = r2./(r1+r2); % ./ for AD
+                mu2 = 1-mu1;
             else
-                mu1=0*r1 + 0.5; 
-                mu2=0*r2 + 0.5;
+                mu1 = 0*r1 + 0.5; 
+                mu2 = 0*r2 + 0.5;
             end
             % if isa(u,'ADI')
             %     keyboard
             % end
-            T{1}(i_face)=(mu1*t1(1,2)+mu2*t2(2,2))./mu; 
-            T{2}(i_face)=(mu1*t1(2,2)+mu2*t2(1,2))./mu;
+            T{1}(i_face) = (mu1*t1(1,2)+mu2*t2(2,2))./mu; 
+            T{2}(i_face) = (mu1*t1(2,2)+mu2*t2(1,2))./mu;
         else
             ind=find(bc.face==i_face,1);
             if(strcmpi(bc.type{ind},'pressure'))
-                t1=OSflux{i_face,1};t2=OSflux{i_face,2};
-                t11=t1(1,2);t12=t1(2,2);
-                t22=t2(1,2);t21=t2(2,2);
-                r1=t1(3:end-1,2)'*u(t1(3:end-1,1))+t1(end,2);
-                r2=t2(end,2);
-                eps=1e-12*max(abs([t1(:,end);t2(:,end)]));
-                if(abs(r1)<=eps),r1=0;end
-                if(abs(r2)<=eps),r2=0;end
-                if(abs(r1+r2)>eps)
-                    mu1=r2/(r1+r2);
-                    mu2=1-mu1;
+                t1 = OSflux{i_face,1};t2=OSflux{i_face,2};
+                t11 = t1(1,2);t12=t1(2,2);
+                t22 = t2(1,2);t21=t2(2,2);
+                r1 = t1(3:end-1,2)'*u(t1(3:end-1,1))+t1(end,2);
+                r2 = t2(end,2) + 0.*u(1);
+                eps = 0*r1 + 1e-12*max(abs([t1(:,end);t2(:,end)]));
+                if (abs(r1)<=eps), r1 = 0; end
+                if (abs(r2)<=eps), r2 = 0; end
+                if (abs(r1+r2)>eps)
+                    mu1 = r2./(r1+r2);
+                    mu2 = 1-mu1;
                 else
-                    mu1=0.5;
-                    mu2=0.5;
+                    mu1 = 0.5;
+                    mu2 = 0.5;
                 end
                 T{1}(i_face)=mu1*t11+mu2*t21; % Divide by mu as above?
                 T{2}(i_face)=(mu1*t12+mu2*t22)*bc.value{ind}(G.faces.centroids(i_face,:));
@@ -132,7 +134,7 @@ function T=TransNTPFA(G,bc,mu,u,OSflux)
     %end
 end
 %--------------------------------------------------------------------------
-function [A,b,I,J,V]=AssemAb(G,bc,mu,rho,T,W, src, well_posed)
+function [A,b,I,J,V]=AssemAb(G,~,mu,rho,T,W, src, well_posed)
     dispif(mrstVerbose, 'AssemAb\n');
     ncf=max(diff(G.cells.facePos));
     nc=G.cells.num;
@@ -164,8 +166,9 @@ function [A,b,I,J,V]=AssemAb(G,bc,mu,rho,T,W, src, well_posed)
             V(k)=T{1}(i_face);
             %V(k)=value(T{1}(i_face));
             k=k+1;
+            %T2_val = T{2}(i_face) + 0*V(1);
+            %b(c1) = b(c1) + T2_val;
             b(c1)=b(c1)+T{2}(i_face);
-            %b(c1)=b(c1)+value(T{2}(i_face));
         end
     end
     
