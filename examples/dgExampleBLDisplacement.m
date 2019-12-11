@@ -112,7 +112,7 @@ for t = tsteps
     ylim([-0.2, 1.2])
 end
 
-%% Store dG(1)
+%% Plot dG(1) solution
 close all
 pos = [0,0,800,400];
 
@@ -128,8 +128,7 @@ ax = gca;
 ax.FontSize = 14;
 bx = [19.5, 22.5, -0.1, 0.25];
 rectangle('Position', [bx([1,3]), bx([2,4]) - bx([1,3])], 'linestyle', '--');
-drawnow(); pause(0.5)
-saveeps('buckley-leverett', 'limiter');
+drawnow(); pause(0.5), saveeps('buckley-leverett', 'limiter');
 
 figure('Position', [0,0,350,400])
 hold on
@@ -142,11 +141,9 @@ ax = gca;
 ax.FontSize = 14;
 [ax.XTick, ax.YTick] = deal([]);
 legend({'Unlimited', 'Limited'}, 'fontSize', 15, 'Location', 'northeast')
-drawnow(); pause(0.5)
-saveeps('buckley-leverett', 'limiter-zoom');
+drawnow(); pause(0.5), saveeps('buckley-leverett', 'limiter-zoom');
 
-%%
-close all
+%% Compare FV and dG(0) - dG(2)
 
 t = 15;
 figure('Position', [100, 100, 800, 400])
@@ -168,8 +165,7 @@ ax = gca;
 ax.FontSize = 14;
 bx = [16, 20, 0.35, 0.75];
 rectangle('Position', [bx([1,3]), bx([2,4]) - bx([1,3])], 'linestyle', '--');
-drawnow(); pause(0.5)
-saveeps('buckley-leverett', 'solutions')
+drawnow(); pause(0.5), saveeps('buckley-leverett', 'solutions')
 
 figure('Position', [100, 100, 400, 400])
 % Tweak FV solution so we can plot it as dG
@@ -188,15 +184,3 @@ axis(bx)
 ax = gca;
 [ax.XTick, ax.YTick] = deal([]);
 saveeps('buckley-leverett', 'solutions-zoom')
-
-
-%%
-                                                    
-disc = tmodelDG1.discretization;
-[~, x, cNo] = disc.getCubature(Inf, 'cell');
-t    = 10;
-disc.nDof   = stDG1{t}.nDof;
-disc.dofPos = stDG1{t}.dofPos;
-psi         = disc.basis.psi;
-sW   = disc.evaluateDGVariable(x, cNo, stDG1{t}, stDG1{t}.sdof(:,1));
-mass = disc.inner(sW, psi, 'dV');

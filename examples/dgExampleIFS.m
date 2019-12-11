@@ -9,8 +9,8 @@ mrstModule add dg upr vem vemmech spe10 ad-props ad-core ad-blackoil ...
 
 %% Set up fine-scale model
 % We extract the lower half of layer 13 of SPE10 2
-[state0Ref, modelRef, scheduleRef] = setupSPE10_AD('layers', 13, ...
-                                            'J'     , (1:110) + 30);
+[state0Ref, modelRef, scheduleRef] = setupSPE10_AD('layers', 13           , ...
+                                                   'J'     , (1:110) + 30);
 GRef    = modelRef.G;
 rockRef = modelRef.rock;
 WRef    = scheduleRef.control(1).W;
