@@ -160,15 +160,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-if ~isempty(W) && ~isfield(W, 'WI')
-   error(msgid('CallingSequence:Changed'), ...
-        ['The calling sequence for function ''addWell'' has changed\n', ...
-         'Please use\n\tW = addWell(W, G, rock, cellInx, ...)\n', ...
-         'from now on.']);
-end
-
 mrstNargInCheck(4, [], nargin);
+
 if islogical(cellInx)
     assert(numel(cellInx) == G.cells.num, ...
     'Logical mask does not match number of grid cells.');
@@ -215,18 +208,19 @@ if isempty(opt.compi)
     opt.compi = [1, 0, 0];
 end
 
-
 WI = reshape(opt.WI, [], 1);
 
-assert (numel(WI)       == numC, ...
-    'Provided WI should be one entry per perforated cell.')
-assert (numel(opt.Kh)   == numC, ...
-    'Provided Kh should be one entry per perforated cell.')
+assert (numel(WI) == numC, ...
+        'Provided WI should be one entry per perforated cell.')
+assert (numel(opt.Kh) == numC, ...
+        'Provided Kh should be one entry per perforated cell.')
 assert (numel(opt.Skin) == numC || numel(opt.Skin) == 1, ...
-    ['Provided Skin should be one entry per perforated cell or a single', ...
-    ' entry for all perforated cells']);
+       ['Provided Skin should be one entry per perforated cell or ', ...
+        'a single entry for all perforated cells']);
 
-if numel(opt.Skin) == 1, opt.Skin = opt.Skin(ones([numC, 1]));  end
+if numel(opt.Skin) == 1
+   opt.Skin = opt.Skin(ones([numC, 1]));
+end
 
 % Set reference depth default value.
 if isempty(opt.refDepth)
@@ -409,7 +403,8 @@ if(isfield(G,'nodes'))
 elseif isfield(G.faces, 'centroids')
    [dx, dy, dz] = cellDimsCG(G, cells);
 else
-   warning('Face geometry missing, will not compute representative radius')
+   warning('RepRad:FaceGeomMissing', ...
+           'Face geometry missing, will not compute representative radius')
    [dx, dy, dz] = deal(nan(G.cells.num, 1));
 end
 

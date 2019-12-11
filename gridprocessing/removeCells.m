@@ -6,26 +6,31 @@ function [G, cellmap, facemap, nodemap] = removeCells(G, cells)
 %   [H, cellmap, facemap, nodemap] = removeCells(G, cells)
 %
 % PARAMETERS:
-%   G          - Valid grid definition
+%   G       - Valid grid definition
 %
-%   cells      - list of cell numbers to be removed.
+%   cells   - List of cell numbers (cell IDs) to remove.
 %
 % RETURNS:
-%   H          - Updated grid definition where cells have been removed.
-%                In addition, any unreferenced faces or nodes are
-%                subsequently removed.
+%   H       - Updated grid definition where cells have been removed.
+%             Moreover, any unreferenced faces or nodes are subsequently
+%             removed.
 %
-%   cellmap    - cell numbers in `G` for each cell in `H`.
+%   cellmap - Cell numbers in `G` for each cell in `H`.  Specifically,
+%             `cellmap(i)` is the cell ID of `G` that corresponds to cell
+%             `i` in `H`.
 %
-%   facemap    - face numbers in `G` for each face in `H`.
+%   facemap - Face numbers in `G` for each face in `H`.  Specifically,
+%             `facemap(i)` is the face ID of `G` that corresponds to face
+%             `i` in `H`.
 %
-%   nodemapmap - node numbers in `G` for each node in `H`.
-%
+%   nodemap - Node numbers in `G` for each node in `H`.  Specifically,
+%             `nodemap(i)` is the node ID of `G` that corresponds to node
+%             `i` in `H`.
 %
 % EXAMPLE:
 %   G = cartGrid([3, 5, 7]);
 %   G = removeCells(G, 1 : 2 : G.cells.num);
-%   plotGrid(G); view(-35, 20); camlight
+%   plotGrid(G), view(-35, 20), camlight
 %
 % NOTE:
 %   The process of removing cells is irreversible.
@@ -52,8 +57,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-%
 % Mark resulting outer boundary with optional tag.
 %
 %
@@ -63,8 +66,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %  t  = find((m1 & ~m2) | (~m1 & m2));
 %  G.faces.tag(t)=99;
 
-
-   if isempty(cells),
+   if isempty(cells)
       % Function is no-op if no cells are scheduled for removal.
       %
       cellmap = (1 : G.cells.num) .';
@@ -74,7 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       return;
    end
 
-   if islogical(cells),
+   if islogical(cells)
       assert (numel(cells) == G.cells.num, ...
              ['The length of logical vector differs from ', ...
               'number of grid cells.']);
@@ -87,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
   cellmap    = mapExcluding(ind);
 
   % remove and renumber cells in cellFaces
-  if isfield(G.cells, 'numFaces'),
+  if isfield(G.cells, 'numFaces')
      warning('MRST:deprecated', ...
             ['The field numFaces will not be supported in ', ...
              'future releases of MRST.'])
@@ -116,7 +118,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
   facemap = mapExcluding(ind);
 
   % remove and renumber faces in faceNodes
-  if isfield(G.faces, 'numNodes'),
+  if isfield(G.faces, 'numNodes')
      warning('MRST:deprecated', ...
             ['The field ''numNodes'' will be removed in a', ...
              'future release of MRST.'])
@@ -132,7 +134,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
   G.cells.faces(:,1) = facemap(G.cells.faces(:,1));
 
 
-  if any(G.cells.faces(:,1)==0),
+  if any(G.cells.faces(:,1) == 0)
       error('In removeCells: Too many faces removed!');
   end
 
@@ -140,7 +142,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           'Every grid must record its origin in the field ''type''.');
 
   % Alter geometry
-  if or(any(strcmp(G.type, 'computeGeometry')), any(strcmp(G.type, 'mcomputeGeometry')))
+  if any(strcmp(G.type, 'computeGeometry')) || ...
+        any(strcmp(G.type, 'mcomputeGeometry'))
       G.cells.centroids(cells,:) = [];
       G.cells.volumes(cells,:)   = [];
       G.faces.areas(ind)         = [];
@@ -151,12 +154,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
   numNodes(ind)            = [];
   G.faces.neighbors(ind,:) = [];
   G.faces.nodePos = cumsum([1; double(numNodes)]);
-  if isfield(G.faces, 'tag'),
+  if isfield(G.faces, 'tag')
      G.faces.tag      (ind,:) = [];
   end
   G.faces.num              = G.faces.num - sum(ind);
-
-
 
   % Construct node map:
   ind = true(G.nodes.num, 1);
@@ -168,7 +169,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
   G.nodes.num           = G.nodes.num - sum(ind);
   G.faces.nodes           = nodemap(G.faces.nodes);
 
-  if any(G.faces.nodes==0),
+  if any(G.faces.nodes==0)
       error('In removeCells: Too many nodes removed!');
   end
 
@@ -178,6 +179,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
   facemap = find(facemap > 0);
   nodemap = find(nodemap > 0);
 end
+
+%--------------------------------------------------------------------------
+
 function m = mapExcluding(indices)
    n            = numel(indices);
    ind          = ones(n,1);
