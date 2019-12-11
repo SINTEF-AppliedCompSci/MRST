@@ -56,6 +56,19 @@ classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
             end
 
         end
+        
+        function state = validateState(model, state)
+        % Check parent class
+            state = validateState@ThreePhaseBlackOilModel(model, state);
+            fn = model.getVariableField('aquiferfluxes');
+            if ~isfield(state, fn)
+                dt = 0;
+                q = computeAquiferFluxes(model, state, dt);
+                state.aquiferfluxes = q;
+            end
+            clear fn
+        end
+        
         % --------------------------------------------------------------------%
         function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))

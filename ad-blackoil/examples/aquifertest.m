@@ -3,6 +3,7 @@ mrstModule add mrst-gui deckformat ad-props ad-core ad-blackoil
 
 mrstVerbose true
 gravity on
+close all
 
 %% run two test cases
 
