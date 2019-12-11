@@ -115,7 +115,7 @@ L1Cut = L1Cut(1:numEl); % Remove values not assigned.
 
 %% Remove lines that are one point
 for i = 1:numel(splitL1)
-  [~, IA,~] = unique(round(splitL1{i}*10^14)/10^14,'rows','stable');  
+  [~, IA,~] = unique(round(splitL1{i}*10^13)/10^13,'rows','stable');
   splitL1{i} = splitL1{i}(IA, :);
 end
 if numel(splitL1)>0
