@@ -1,4 +1,4 @@
-function nls = getDefaultFlashNonLinearSolver()
+function nls = getDefaultFlashNonLinearSolver(varargin)
 % Get default nonlinear solver for flash problems.
 
 %{
@@ -27,4 +27,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nls.useRelaxation = true;
     nls.continueOnFailure = true;
     nls.errorOnFailure = false;
+    nls = merge_options(nls, varargin{:});
 end

@@ -1,4 +1,4 @@
-function [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, EOSModel)
+function [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, EOSModel, varargin)
 % Utility for flashing without explicitly forming a state
 %
 % SYNOPSIS:
@@ -34,7 +34,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    solver = getDefaultFlashNonLinearSolver();
+    solver = getDefaultFlashNonLinearSolver(varargin{:});
     
     state = struct();
     [p, T, z] = expandArguments(EOSModel, p, T, z);
