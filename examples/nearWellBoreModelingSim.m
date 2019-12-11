@@ -48,12 +48,12 @@ G = NWM.validateGlobalGrid();
 % Show the global grid. We can plot the specified subgrids by calling 
 % 'G.cells.grdID==i'
 figure 
-subplot(1,2,1), hold on, axis off
+subplot(1,2,1), hold on, axis tight off
 plotGrid(G, G.cells.grdID == 1, 'facecolor', 'none')
 plotGrid(G, G.cells.grdID == 2, 'facecolor', 'y')
 view([-36, 38])
 title('CPG and VOI grid')
-subplot(1,2,2), hold on, axis off
+subplot(1,2,2), hold on, axis tight off
 plotGrid(G, G.cells.grdID == 2, 'facecolor', 'none')
 plotGrid(G, G.cells.grdID == 3, 'facecolor', 'g')
 view([-76, 60])
@@ -63,7 +63,7 @@ set(gcf, 'position', pos);
 
 % Also, use 'G.cells.grdID == i & G.cells.layers == j' to plot layer j of
 % subgrid i
-figure, hold on, axis off
+figure, hold on, axis tight off
 plotCellData(G, G.cells.centroids(:,1), G.cells.layers == 4 & G.cells.grdID == 1)
 plotCellData(G, G.cells.centroids(:,1), G.cells.layers == 1 & G.cells.grdID == 2)
 view([-3, 56])
@@ -92,10 +92,10 @@ rockC = NWM.getCPGRockFromDeck();
 rockV = NWM.getVOIRocksByInterp();
 % View rockC and rockV
 figure
-subplot(1,2,1), axis equal off
+subplot(1,2,1), axis equal tight off
 plotCellData(GC, rockC.perm(:,1), GV.parentInfo.cells{1})
 title(sprintf('PermX of the CPG \nin VOI layer 1'))
-subplot(1,2,2), axis equal off
+subplot(1,2,2), axis equal tight off
 plotCellData(GV, rockV.perm(:,1), GV.cells.layers==1)
 title(sprintf('PermX of the VOI grid \nin VOI layer 1'))
 
@@ -116,7 +116,7 @@ title('PermX of the HW grid')
 % Assemble the subrocks to get the global one
 rock = NWM.getGlobalRock({rockC, rockV, rockW});
 % View rock
-figure, hold on, axis off, view([-3, 56])
+figure, hold on, axis tight off, view([-3, 56])
 plotCellData(G, rock.perm(:,1), G.cells.layers == 4 & G.cells.grdID == 1)
 plotCellData(G, rock.perm(:,1), G.cells.layers == 1 & G.cells.grdID == 2)
 title('PermX of the global grid in VOI layer 1')
@@ -195,11 +195,11 @@ initState = NWM.getInitState(model);
 ts = 20;
 state = states{ts};
 
-figure, axis off, view([-23, 29])
+figure, axis tight off, view([-23, 29])
 plotCellData(G, state.s(:,2))
 title('Oil saturation of global grid')
 
-figure, axis off, view([-27, 56])
+figure, axis tight off, view([-27, 56])
 plotCellData(G, state.s(:,2), G.cells.grdID==2)
 title('Oil saturation of VOI subgrid')
 

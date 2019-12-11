@@ -179,8 +179,8 @@ axis tight off, view([-16, 45])
 title('The segments, nodes and reservoir cells connected to nodes')
 
 % Convert the schedule from CPG to global grid
-% Note the reference depth has been set to the depth of first well point
-% (i.e. the top node)
+% Note the reference depth has been set to the depth of the top node
+% (i.e. first cell in wellbore grid)
 scheduleMS = MSW.getSimSchedule(model);
 
 % We can also get the schedule without multi-segment well definition
@@ -213,7 +213,7 @@ plotWellSols({wellSols, wellSolsMS}, report.ReservoirTime)
 %% Compare the liquid production along the well
 nA = GW.radDims(1);
 x = ( pW(1:end-1,1) + pW(2:end,1) ) / 2;
-[xx,tt]=meshgrid(x,report.ReservoirTime/day);
+[xx, tt] = meshgrid(x,report.ReservoirTime/day);
 
 [fluxMS, flux] = deal( zeros(numel(wellSols), ns) );
 for i = 1 : numel(wellSols)

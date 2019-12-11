@@ -10,7 +10,7 @@ classdef MultiSegWellNWM < NearWellboreModel
     
     methods
         function msw = MultiSegWellNWM(subGrids, deck, well, varargin)
-            msw = msw@ NearWellboreModel(subGrids, deck, well, varargin);
+            msw = msw@NearWellboreModel(subGrids, deck, well, varargin);
             assert( isfield(well, 'isMS') && well.isMS, ...
                 'The input well is not a multi-segment well' )
             msw.wellboreGrid = msw.buildWellboreGrid();
@@ -45,10 +45,10 @@ classdef MultiSegWellNWM < NearWellboreModel
         function schedule = getSimSchedule(msw, model, varargin)
             % Get the multi-segment well simulation schedule from deck and
             % node/segment definitions
-            opt = struct('returnMS', true, 'refDepthFrom', 'trajectory');
+            opt = struct('returnMS', true, 'refDepthFrom', 'topNode');
             opt = merge_options(opt, varargin{:});
             schedule = getSimSchedule@NearWellboreModel(msw, model, ...
-                'refDepthFrom', 'trajectory');
+                'refDepthFrom', 'topNode');
             if ~opt.returnMS
                 return
             end
