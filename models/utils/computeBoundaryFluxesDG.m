@@ -1,6 +1,6 @@
 function [q, rhogKdz] = computeBoundaryFluxesDG(model, state, bc)
 
-    disc = model.discretization;
+    disc = model.operators.discretization;
     G    = model.G;
     % Compute total flux
     

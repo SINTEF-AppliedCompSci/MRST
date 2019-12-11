@@ -8,7 +8,7 @@ classdef FixedTotalVelocityDG < FixedTotalFluxDG
             gp@FixedTotalFluxDG(model, varargin{:});
         end
         function vT = evaluateOnDomain(prop, model, state)
-            vT = model.discretization.velocityInterp.faceFlux2cellVelocity(sum(state.flux,2));
+            vT = model.operators.discretization.velocityInterp.faceFlux2cellVelocity(sum(state.flux,2));
             vT = vT(state.cells,:);
         end
     end

@@ -77,12 +77,12 @@ classdef FluxDiscretizationDG < FluxDiscretization
                 case 'cells'
                     cells = elements;
                     if isempty(cells)
-                        [~, ~, cells] = model.discretization.getCubature((1:model.G.cells.num)', 'cell');
+                        [~, ~, cells] = model.operators.discretization.getCubature((1:model.G.cells.num)', 'cell');
                     end
                 case 'faces'
                     faces = elements;
                     if isempty(faces)
-                        [~, ~, ~, faces] = model.discretization.getCubature(find(model.operators.internalConn), 'face');
+                        [~, ~, ~, faces] = model.operators.discretization.getCubature(find(model.operators.internalConn), 'face');
                     end
                     cells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
             end

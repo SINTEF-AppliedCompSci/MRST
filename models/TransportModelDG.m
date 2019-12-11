@@ -36,8 +36,6 @@ classdef TransportModelDG < TransportModel
             if isempty(model.discretization)
                 model.discretization = DGDiscretization(model.G, discretizationArgs{:});
             end
-            % Assign discretization to parentModel
-            model.parentModel.discretization = model.discretization;
             % Add phase saturations as dgVariables
             if any(strcmpi(model.dgVariables, 's'))
                 phNames = model.parentModel.getPhaseNames();
@@ -57,6 +55,9 @@ classdef TransportModelDG < TransportModel
             model.parentModel.operators = setupOperatorsDG(model.discretization  , ...
                                                            model.parentModel.G   , ...
                                                            model.parentModel.rock);
+            % Assign discretization to parentModel (currently stored on
+            % operators)
+            model.parentModel.operators.discretization = model.discretization;
             % Pressure is not solved with DG, make sure to don't store
             % things to state that should be recomputed in pressure step
             model.parentModel.outputFluxes         = false;
