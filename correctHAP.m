@@ -11,7 +11,7 @@ function [interpFace]=correctHAP(G,interpFace,myRatio)
 dispif(mrstVerbose, 'correctHAP\n');
 
 HAP=interpFace.coords; % store the locations of the original harmonic averaging points;
-if(nargin==2)
+if(nargin==2 | (nargin==3 & isempty(myRatio)))
     if(interpFace.percentage>0)
         if(G.griddim==2)
             R=0.5*G.faces.areas;
