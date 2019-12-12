@@ -90,7 +90,7 @@ function q = computeTransportSourceTerm(state, G, wells, src, bc, varargin)
 %   - implement gravity effects for pressure boundary and wells
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -117,12 +117,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    r = [];  % Actual strength of source term (in m^3/s).
    i = [];  % Injection composition (size NUMEL(qs)-by-SIZE(sat,2))
 
-   if ~isempty(wells),
+   if ~isempty(wells)
       [c, r, i] = ...
          concat(c, r, i, opt, @() contrib_wells(wells, state.wellSol));
    end
 
-   if ~isempty(src),
+   if ~isempty(src)
       [c, r, i] = ...
          concat(c, r, i, opt, @() contrib_src(src));
    end
@@ -141,21 +141,21 @@ end
 %--------------------------------------------------------------------------
 
 function check_input(wells, bc, src, opt)
-   if opt.use_compi,
+   if opt.use_compi
 
-      if ~isempty(wells) && any(cellfun('isempty', { wells.compi })),
+      if ~isempty(wells) && any(cellfun('isempty', { wells.compi }))
          error('ComputeTransportSourceTerm:EmptyWellCompi', ...
               ['Wells must have valid ''.comp_i'' fields to ', ...
                'specify (''use_compi'',TRUE).']);
       end
 
-      if ~isempty(bc) && isempty(bc.sat),
+      if ~isempty(bc) && isempty(bc.sat)
          error('ComputeTransportSourceTerm:EmptyBCSat', ...
               ['Boundary conditions must have valid ''.sat'' ', ...
                'field to specify (''use_compi'',TRUE).']);
       end
 
-      if ~isempty(src) && isempty(src.sat),
+      if ~isempty(src) && isempty(src.sat)
          error('ComputeTransportSourceTerm:EmptySrcSat', ...
               ['Explicit source terms must have valid ''.sat'' ', ...
                'field to specify (''use_compi'',TRUE).']);
@@ -172,7 +172,7 @@ function [qi, qs, compi] = concat(qi, qs, compi, opt, contrib)
    qi = [ qi ; i ];
    qs = [ qs ; s ];
 
-   if opt.use_compi,
+   if opt.use_compi
       assert (isempty(compi) || size(c, 2) == size(compi, 2), ...
              ['Injection composition incompatible with existing ', ...
               'source terms']);
@@ -227,7 +227,7 @@ function [qi, qs, c] = contrib_bc(G, state, bc)
    qi    = [ qi ; bdryCell(isNeu) ];
    qs    = [ qs ; bc.value(isNeu) ];
 
-   if ~isempty(bc.sat),
+   if ~isempty(bc.sat)
       % Reorder composition to match cells ('qi').
 
       i = [ reshape(find(isDir), [], 1) ; ...

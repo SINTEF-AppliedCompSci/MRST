@@ -1,18 +1,18 @@
 % UTILS
 %
 % Files
-%   adjacentFacesForFace         - 
-%   computeNonLinearTrans        - 
-%   getCollocationSet            - 
-%   getFaceFromCellInterpolator  - Get nodes
-%   getFaceFromCellInterpolatorN - 
-%   getInterpolationOperator     - Pcell = speye(G.cells.num);
-%   getNodeFromCellInterpolator  - Get nodes
-%   incompSinglePhaseNTPFA       - 
-%   interpolatedFacePressure     - 
+%   adjacentFacesForFace         - Undocumented Utility Function
+%   computeNonLinearTrans        - Undocumented Utility Function
+%   getCollocationSet            - Undocumented Utility Function
+%   getFaceFromCellInterpolator  - Undocumented Utility Function
+%   getFaceFromCellInterpolatorN - Undocumented Utility Function
+%   getInterpolationOperator     - Undocumented Utility Function
+%   getNodeFromCellInterpolator  - Undocumented Utility Function
+%   incompSinglePhaseNTPFA       - Undocumented Utility Function
+%   interpolatedFacePressure     - Undocumented Utility Function
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

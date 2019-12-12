@@ -52,7 +52,7 @@ function cc = capPressureRHS(g, mob, pc, pc_form)
          cc = (diff(mob(cellno,:), [], 2) ./ totmob(cellno)) .* dpc;
 
       else
-         error('no such cappilary formulation implemented')
+         error('no such capillary formulation implemented')
       end
 
    else

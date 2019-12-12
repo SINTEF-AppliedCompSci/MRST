@@ -6,7 +6,7 @@
 %   calStressEigsVEM       - calculate eigen values of stress tensor and the basis
 %   calculateQC            - SYNOPSIS:
 %   calculateQF            - SYNOPSIS:
-%   calculateStressVEM     - 
+%   calculateStressVEM     - Undocumented Utility Function
 %   complex3DGrid          - SYNOPSIS:
 %   Enu2C                  - For each cell, construct the 3x3 (in 2D) or 6x6 (in 3D) matrix representing
 %   ENu2LMu_3D             - SYNOPSIS:
@@ -21,7 +21,7 @@
 %   VEM_div                - Discrete div operator for the virtual element method
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

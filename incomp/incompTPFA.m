@@ -131,7 +131,7 @@ function state = incompTPFA(state, G, T, fluid, varargin)
 %   `initWellSol`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -177,7 +177,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            isempty(opt.bc)   , ...
            isempty(opt.src)  , ...
            isempty(opt.bcp)  , ...
-           isempty(opt.wells), ~grav]),
+           isempty(opt.wells), ~grav])
       warning(msgid('DrivingForce:Missing'),                   ...
              ['No external driving forces present in model--', ...
               'state remains unchanged.\n']);
@@ -215,27 +215,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       computePressureRHS(G, omega, opt.bc, opt.src);
 
    % made to add capillary pressure
-   if isfield(fluid, 'pc')
-      pc = fluid.pc(state);
-
-%{
-      gpc = zeros(size(totmob));
-
-      if isfield(fluid,'gpc') && strcmp(opt.pc_form, 'global'),
-         gpc = fluid.gpc(state);
-      end
-%}
-
+   pc = getIncompCapillaryPressure(state, fluid);
+   if ~isempty(pc)
       if any(abs(pc) > 0)
-
-%{
-         if isfield(fluid, 'gpc') && strcmp(opt.pc_form, 'global'),
-            cc = capPressureRHS(G, mob, pc, gpc, opt.pc_form); % ERROR HERE
-         else
-%}
-            cc = capPressureRHS(G, mob, pc, opt.pc_form);
-         %end
-
+         cc = capPressureRHS(G, mob, pc, opt.pc_form);
          grav = grav + cc;
       end
    end
@@ -243,13 +226,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    sgn = 2*(neighborship(cf, 1) == cellNo) - 1;
    j   = i(cf) | dF(cf);
    fg  = accumarray(cf(j), grav(j).*sgn(j), [nif, 1]);
-   if ~isempty(opt.bcp),
+   if ~isempty(opt.bcp)
       fg(opt.bcp.face) = fg(opt.bcp.face) + opt.bcp.value;
       warning('mrst:periodic_bc', ...
              ['Face pressures are not well defined for ', ...
               'periodic boundary faces']);
 
-      if any(G.faces.neighbors(:,1) == G.faces.neighbors(:,2)),
+      if any(G.faces.neighbors(:,1) == G.faces.neighbors(:,2))
          error(['Periodic boundary: This code do not work ', ...
                 'if a face is in and outflow']);
       end
@@ -268,7 +251,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    D    = zeros(nw, 1);
    W    = opt.wells;
 
-   for k = 1 : nw,
+   for k = 1 : nw
       wc       = W(k).cells;
       nwc      = numel(wc);
       w        = k + nc;
@@ -277,14 +260,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       dp       = computeIncompWellPressureDrop(W(k), mob, rho, norm(gravity));
       d   (wc) = d   (wc) + wi;
       state.wellSol(k).cdp = dp;
-      if     strcmpi(W(k).type, 'bhp'),
+      if     strcmpi(W(k).type, 'bhp')
          ww=max(wi);
          rhs (w)  = rhs (w)  + ww*W(k).val;
          rhs (wc) = rhs (wc) + wi.*(W(k).val + dp);
          C{k}     = -sparse(1, nc);
          D(k)     = ww;
 
-      elseif strcmpi(W(k).type, 'rate'),
+      elseif strcmpi(W(k).type, 'rate')
          rhs (w)  = rhs (w)  + W(k).val;
          rhs (wc) = rhs (wc) + wi.*dp;
 
@@ -330,8 +313,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    dispif(opt.Verbose, 'Solving linear system...\t\t\t');
    t0 = ticif (opt.Verbose);
 
-   if ~any(dF) && (isempty(W) || ~any(strcmpi({ W.type }, 'bhp'))),
-      if A(1) > 0,
+   if ~any(dF) && (isempty(W) || ~any(strcmpi({ W.type }, 'bhp')))
+      if A(1) > 0
          A(1) = 2*A(1);
       else
          [j, j] = max(diag(A));  %#ok
@@ -339,12 +322,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
 
-   if opt.condition_number,
+   if opt.condition_number
       disp('***************************************');
       disp(['Conditon number is :   ', num2str(condest(A))]);
       disp('***************************************');
    end
-   if opt.MatrixOutput,
+   if opt.MatrixOutput
       state.A   = A;
       state.rhs = rhs;
    end
@@ -400,10 +383,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    flux(~i) = -sgn.*ft(~i).*( fpress(~i) - p(c) - fg(~i) );
    %flux = -sgn.*ft((fpress(~i)-p(c)-grav));
    state.pressure(1 : nc) = p(1 : nc);
-   state.flux(:)          = flux;
+   state.flux             = flux;
    state.facePressure     = fpress;
 
-   for k = 1 : nw,
+   for k = 1 : nw
       wc = W(k).cells;
       dp = state.wellSol(k).cdp;
       state.wellSol(k).flux     = W(k).WI.*totmob(wc).*(p(nc+k) + dp - p(wc));
@@ -416,10 +399,7 @@ end
 %--------------------------------------------------------------------------
 
 function [mob, omega, rho] = dynamic_quantities(state, fluid)
-   [mu, rho] = fluid.properties(state);
-   s         = fluid.saturation(state);
-   kr        = fluid.relperm(s, state);
-
+   [rho, kr, mu] = getIncompProps(state, fluid);
    mob    = bsxfun(@rdivide, kr, mu);
    totmob = sum(mob, 2);
    omega  = sum(bsxfun(@times, mob, rho), 2) ./ totmob;
@@ -427,9 +407,9 @@ end
 
 %--------------------------------------------------------------------------
 
-function [T, ft] = compute_trans(G, T, cellNo, cellFaces, neighborship, totmob, opt)
+function [T, ft] = compute_trans(G, T, cellNo, cellFaces, neighborship, totmob, opt) %#ok
     niface = size(neighborship, 1);
-    if opt.use_trans,  
+    if opt.use_trans
       neighborcount = sum(neighborship > 0, 2);
       assert (numel(T) == niface, ...
              ['Expected one transmissibility for each interface ', ...

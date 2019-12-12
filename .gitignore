@@ -3,3 +3,4 @@
 *.pdf
 *.ps
 *.tmp
+linearsolvers/amgcl/dependencies/*

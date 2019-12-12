@@ -88,7 +88,6 @@ schedule = convertDeckScheduleToMRST(model, deck);
 %% Solve the schedule with AMGCL-CPR as the linear solver
 lsolve = AMGCL_CPRSolverAD('maxIterations', 200, 'tolerance', 1e-3);
 lsolve.setSRelaxation('ilu0');
-lsolve.trueIMPES = true;
 % We can set coarsening and solver options as well
 lsolve.setCoarsening('aggregation');
 lsolve.setSolver('bicgstab');
@@ -114,3 +113,30 @@ bar([ls_time, report.SimulationTime - ls_time], 'stacked')
 legend('Linear solver time', 'Assembly');
 xlabel('Timestep number');
 ylabel('Time [s]');
+
+%%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

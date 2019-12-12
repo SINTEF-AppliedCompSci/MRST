@@ -36,7 +36,9 @@ function varargout = amgcl_matlab(varargin)
 % NOTE:
 %   For first-time use, this gateway will attempt to build a MEX-file using
 %   the configured C++ compiler. In order to do this, the paths to the
-%   dependencies AMGCL and BOOST must be specified via global variables.
+%   dependencies AMGCL and BOOST can be specified via global variables, or
+%   the dependencies can be automatically downloaded by MRST if Internet
+%   access is available.
 %
 %   For instance, this can be done by executing the following:
 %   global BOOSTPATH AMGCLPATH
@@ -50,23 +52,27 @@ function varargout = amgcl_matlab(varargin)
 %
 %   This gateway was last tested with commit
 %
-%      91348b025144b61a2d3b7417988373d0dc8c8d00
+%      a551614040f0a7b793b41a4a63386675ca61d8da
 %
 %   of the AMGCL software (from GitHub: https://github.com/ddemidov/amgcl).
+%
+%   * Linux (Ubuntu 18.04.2 LTS):
+%       GCC   7.4.0
+%       Boost 1.70.0
 %
 %   * Linux (Mint 17.2):
 %       GCC   4.9.4
 %       Boost 1.63.0
 %
-%   * MS Windows 10 (1607):
-%       MSVC  19.16.27024.1 (Visual Studio 15.9)
-%       Boost 1.68.0
+%   * MS Windows 10 (1809):
+%       MSVC 19.16.27032.1  (Visual Studio 2017 15.9.15)
+%       Boost 1.70.0
 %
 % SEE ALSO:
 %   `callAMGCL`, `getAMGCLMexStruct`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -89,8 +95,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              'Supported in MATLABs prior to 8.3.0 (R2014a)']);
    end
 
-   global AMGCLPATH
-   global BOOSTPATH
+   [AMGCLPATH, BOOSTPATH] = getAMGCLDependencyPaths();
    if ~valid_global_path(AMGCLPATH)
       error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
              '''AMGCLPATH'' Variable is Set in Current MATLAB Session.', ...
@@ -131,7 +136,7 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
       % Note explicit /EHsc to enable C++ exception handling
       CXXFLAGS  = { ['COMPFLAGS=/EHsc /MD /DAMGCL_ASYNC_SETUP ', ...
                      '/openmp /wd4715 /fp:fast /bigobj'] };
-      LINK      = { ['-L', fullfile(matlabroot, 'bin', a) ]};
+      LINK      = { ['-L', fullfile(matlabroot, 'bin', a) ] };
       iomp5     = { ['LINKFLAGS=$LINKFLAGS ', ...
                      '/nodefaultlib:vcomp libiomp5md.lib' ]};
       libstdcpp = {};

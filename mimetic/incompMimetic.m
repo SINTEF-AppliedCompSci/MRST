@@ -137,7 +137,7 @@ function state = incompMimetic(state, g, s, fluid, varargin)
 %   `initState`, `solveIncompFlowMS`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -175,7 +175,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    do_solve = checkDrivingForcesIncomp(g, opt);
 
-   if do_solve,
+   if do_solve
       cellNo  = rldecode(1:g.cells.num, diff(g.cells.facePos), 2) .';
       s.C     = sparse(1:numel(cellNo), cellNo, 1);
       s.D     = sparse(1:numel(cellNo), double(g.cells.faces(:,1)), 1, ...
@@ -243,7 +243,7 @@ function [A, b, dF, dC, dp] = build_system(state, g, s, w, bc, src, fluid, opt)
    [Aw, bw, dFw, dCw, dp] = syscomp_wells(g, w, mob, totmob, rho, opt);
 
    % Include effects of capillary pressure
-   if ~isempty(cappress),
+   if ~isempty(cappress)
       br{1} = br{1} + cappress;
    end
 
@@ -253,7 +253,7 @@ function [A, b, dF, dC, dp] = build_system(state, g, s, w, bc, src, fluid, opt)
    A{3} = opt.BlkDiag(Ar{3}, Aw{3});  b{3} = vertcat(br{3}, bw{2});
 
    % If rhs is supplied by user, replace b constructed above by given rhs
-   if ~isempty(opt.rhs),
+   if ~isempty(opt.rhs)
       assert (iscell(opt.rhs));
       assert (numel(b) == numel(opt.rhs));
       assert (all(cellfun(@(u,v) all(size(u) == size(v)), b, opt.rhs)));
@@ -280,17 +280,17 @@ function solver = pick_solver(g, s, dF, dC, opt)
    lam     = nan(size(dF));
    lam(dF) = dC;
 
-   switch lower(opt.Solver),
-      case 'hybrid',
-         if ~any(strcmp(s.type, {'hybrid', 'comp_hybrid'})),
+   switch lower(opt.Solver)
+      case 'hybrid'
+         if ~any(strcmp(s.type, {'hybrid', 'comp_hybrid'}))
             error(id('SolverMode:Inconsistent'), ...
                  ['Solver mode ''hybrid'' is incompatible with ', ...
                   'linear system type ''%s''.'], s.type);
          end
 
          solver = @(A,b) solve_hybrid(A, b, lam, dF, regul, opt);
-      case 'mixed',
-         if ~any(strcmp(s.type, {'mixed', 'tpfa', 'comp_hybrid'})),
+      case 'mixed'
+         if ~any(strcmp(s.type, {'mixed', 'tpfa', 'comp_hybrid'}))
             error(id('SolverMode:Inconsistent'), ...
                  ['Solver mode ''mixed'' is incompatible with ', ...
                   'linear system type ''%s''.'], s.type);
@@ -298,8 +298,8 @@ function solver = pick_solver(g, s, dF, dC, opt)
 
          solver = @(A,b) solve_mixed(A, b, g, s, lam, dF, ...
                                      regul, opt, @mixedSymm);
-      case 'tpfa',
-         if ~any(strcmp(s.type, {'mixed', 'tpfa', 'comp_hybrid'})),
+      case 'tpfa'
+         if ~any(strcmp(s.type, {'mixed', 'tpfa', 'comp_hybrid'}))
             error(id('SolverMode:Inconsistent'), ...
                  ['Solver mode ''tpfa'' is incompatible with ', ...
                   'linear system type ''%s''.'], s.type);
@@ -307,7 +307,7 @@ function solver = pick_solver(g, s, dF, dC, opt)
 
          solver = @(A,b) solve_mixed(A, b, g, s, lam, dF, ...
                                      regul, opt, @tpfSymm);
-      otherwise,
+       otherwise
          error(id('SolverMode:NotSupported'), ...
                'Solver mode ''%s'' is not supported.', opt.solver);
    end
@@ -349,20 +349,20 @@ end
 %--------------------------------------------------------------------------
 
 function state = pack_solution(state, g, s, flux, pres, lam, dp, opt)
-   if ~isfield(state, 'facePressure'),
+   if ~isfield(state, 'facePressure')
       state.facePressure = zeros([g.faces.num, 1]);
    end
    state.pressure(:)     = pres;
    state.facePressure(:) = lam (1 : s.sizeD(2));
    state.flux(:)         = cellFlux2faceFlux(g, flux(1 : s.sizeB(1)));
 
-   if ~isempty(opt.wells),
+   if ~isempty(opt.wells)
       nw  = numel(opt.wells);
       i_c = 0;
       i_f = s.sizeB(1);
       i_p = s.sizeD(2);
 
-      for k = 1 : nw,
+      for k = 1 : nw
          nperf = numel(opt.wells(k).cells);
 
          state.wellSol(k).flux     = -flux(i_f + 1 : i_f + nperf);
@@ -383,15 +383,15 @@ function [A, b, dF, dC] = syscomp_res(g, s, mob, omega, bc, src, opt)
 
    mob = spdiags(s.C * mob, 0, s.sizeB(1), s.sizeB(2));
 
-   if strcmpi(opt.Solver, 'hybrid'),
-      if ~isfield(s, 'BI'),
+   if strcmpi(opt.Solver, 'hybrid')
+      if ~isfield(s, 'BI')
          error(id('SolverMode:Inconsistent'), ...
               ['Solver mode ''hybrid'' is incompatible with ', ...
                'linear system type ''%s''.'], s.type);
       end
       A{1} = mob * s.BI;
    else
-      if ~isfield(s, 'B'),
+      if ~isfield(s, 'B')
          error(id('SolverMode:Inconsistent'), ...
               ['Solver mode ''%s'' is incompatible with ', ...
                'linear system type ''%s''.'], opt.Solver, s.type);
@@ -404,7 +404,7 @@ function [A, b, dF, dC] = syscomp_res(g, s, mob, omega, bc, src, opt)
 
    [b{1:3}, grav, dF, dC] = computePressureRHS(g, omega, bc, src);
 
-   if ~ isempty(opt.bcp),
+   if ~ isempty(opt.bcp)
       dp_face               = zeros([g.faces.num, 1]);
       dp_face(opt.bcp.face) = opt.bcp.value;
 
@@ -433,7 +433,7 @@ function [A, b, dF, dC, dp] = syscomp_wells(G, W, mob, totmob, rho, opt)
    dC = [];
    dp = [];
 
-   if ~isempty(W),
+   if ~isempty(W)
       % but fill in values when there nevertheless are some...
       nperf = cellfun(@numel, { W.cells });
       wc    = vertcat(W.cells);   n = numel(wc);   i = 1 : n;
@@ -484,7 +484,7 @@ function nF = neumann_faces(g, dF, opt)
    nF(any(g.faces.neighbors == 0, 2)) = true;  % All external faces ...
    nF(dF(1 : g.faces.num))            = false; % ... except Dirichlet cond.
 
-   if ~isempty(opt.wells),
+   if ~isempty(opt.wells)
       % Additionally include all rate-constrained wells.
       nF = [nF; strcmpi('rate', { opt.wells.type } .')];
    end
@@ -497,7 +497,7 @@ function Do = oriented_mapping(s, orient, opt)
 % the reduced, mixed system of linear equtions in linear system solver
 % functions 'mixedSymm' and 'tpfSymm'.
 %
-   if ~isempty(opt.wells),
+   if ~isempty(opt.wells)
       n  = sum(cellfun(@numel, { opt.wells.cells }));
       dw = speye(n);
       ow = ones([n, 1]);
@@ -514,18 +514,15 @@ end
 function [mob, totmob, omega, rho, cappress] = ...
       dynamic_quantities(g, state, fluid, opt)
 
-   [mu, rho] = fluid.properties(state);
-   s         = fluid.saturation(state);
-   kr        = fluid.relperm(s, state);
+   [rho, kr, mu] = getIncompProps(state, fluid);
+   pc = getIncompCapillaryPressure(state, fluid);
 
    mob    = bsxfun(@rdivide, kr, mu);
    totmob = sum(mob, 2);
    omega  = sum(bsxfun(@times, mob, rho), 2) ./ totmob;
 
-   if isfield(fluid, 'pc'),
-      pc = fluid.pc(state);
-
-      if any(abs(pc) > 0),
+   if ~isempty(pc)
+      if any(abs(pc) > 0)
          cappress = capPressureRHS(g, mob, pc, opt.pc_form);
       else
          cappress = [];

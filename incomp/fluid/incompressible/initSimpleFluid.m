@@ -6,11 +6,14 @@ function fluid = initSimpleFluid(varargin)
 %
 % PARAMETERS:
 %   'pn'/pv - List of 'key'/value pairs defining specific fluid
-%             characteristics.  The following parameters must be defined
+%             characteristics.  The following parameters can be defined
 %             with one value for each of the two fluid phases:
-%               - mu  -- Phase viscosities in units of Pa*s.
+%               - mu  -- Phase viscosities in units of Pa*s. Defaults to 1
+%                        1*centi*poise for each phase.
 %               - rho -- Phase densities in units of kilogram/meter^3.
-%               - n   -- Phase relative permeability exponents.
+%                        Defaults to 1.
+%               - n   -- Phase relative permeability exponents. 
+%                        Defaults to 1.
 %
 % RETURNS:
 %   fluid - Fluid data structure as described in 'fluid_structure'
@@ -29,7 +32,7 @@ function fluid = initSimpleFluid(varargin)
 %   `fluid_structure`, `solveIncompFlow`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -48,11 +51,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   opt = struct('mu', [], 'rho', [], 'n', []);
+   opt = struct('mu', [1, 1]*centi*poise, ... 
+                'rho', [1, 1]*kilogram/meter^3, ...
+                'n', [1, 1]);
    opt = merge_options(opt, varargin{:});
 
-   n_mu = numel(opt.mu); n_rho = numel(opt.rho); n_n = numel(opt.n);
-   assert ((n_mu == 2) && (n_rho == 2) && (n_n == 2));
+   assert(numel(opt.mu)  == 2, 'Viscosity (mu) must have exactly two entries.');
+   assert(numel(opt.rho) == 2, 'Density (rho) must have exactly two entries.');
+   assert(numel(opt.n)   == 2, 'Corey exponents (n) must have exactly two entries.');
 
    prop = @(  varargin) properties(opt, varargin{:});
    kr   = @(s,varargin) relperm(s, opt, varargin{:});
@@ -76,14 +82,14 @@ function varargout = relperm(s, opt, varargin)
    s1 = s(:,1); s2 = 1 - s1;
    varargout{1} = [s1 .^ opt.n(1), s2 .^ opt.n(2)];
 
-   if nargout > 1,
+   if nargout > 1
       null = zeros([numel(s1), 1]);
       varargout{2} = [opt.n(1) .* s1 .^ (opt.n(1) - 1), ...
                       null, null                      , ...
                       opt.n(2) .* s2 .^ (opt.n(2) - 1)];
    end
 
-   if nargout > 2,
+   if nargout > 2
       a = opt.n .* (opt.n - 1);
       varargout{3} = [a(1) .* s1 .^ (opt.n(1) - 2), ...
                       a(2) .* s2 .^ (opt.n(2) - 2)];

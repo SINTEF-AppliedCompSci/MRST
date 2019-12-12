@@ -118,7 +118,7 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %   `initResSol`, `initWellSol`, `mrstVerbose`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -307,10 +307,7 @@ end
 % -------------------------------------------------------------------------- 
 
 function [mob, totmob, omega, rho] = dynamic_quantities(state, fluid)
-    [mu, rho] = fluid.properties(state); 
-    s = fluid.saturation(state); 
-    kr = fluid.relperm(s, state); 
-
+   [rho, kr, mu] = getIncompProps(state, fluid);
     mob = bsxfun(@rdivide, kr, mu); 
     totmob = sum(mob, 2); 
     omega = sum(bsxfun(@times, mob, rho), 2) ./ totmob; 

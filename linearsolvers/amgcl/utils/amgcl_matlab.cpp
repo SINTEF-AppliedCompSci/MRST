@@ -35,7 +35,6 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/cat.hpp>
-#include <boost/range/iterator_range_core.hpp>
 
 /* MEX interfaces */
 #include "amgcl_mex_utils.cpp"
@@ -192,7 +191,9 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
           switch(block_size){
             BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_CPR_SOLVER, cpr_drs_block_solve_ptr, AMGCL_BLOCK_SIZES)
             default:
-                mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
+                mexErrMsgIdAndTxt("AMGCL:UndefBlockSize",
+                                  "Failure: Block size %d not supported.",
+                                  block_size);
           }
         }
     }else{
@@ -207,7 +208,9 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
           switch(block_size){
             BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_CPR_SOLVER, cpr_block_solve_ptr, AMGCL_BLOCK_SIZES)
             default:
-                mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
+                mexErrMsgIdAndTxt("AMGCL:UndefBlockSize",
+                                  "Failure: Block size %d not supported.",
+                                  block_size);
           }
         }
     }
@@ -283,7 +286,9 @@ void solve_regular(int n, const M matrix, const mxArray * pa,
       } break;
       BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, block_solve_ptr, AMGCL_BLOCK_SIZES)
         default:
-            mexErrMsgIdAndTxt("AMGCL:UndefBlockSize", "Failure: Block size not supported.");
+            mexErrMsgIdAndTxt("AMGCL:UndefBlockSize",
+                              "Failure: Block size %d not supported.",
+                              block_size);
     }
 }
 
@@ -298,7 +303,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double *rhs;
     double *err;
     double *it_count;
-    mwSize m,n,nnz;
+    mwSize m, n, nnz, m_rhs, n_rhs;
     mwIndex * cols;
     mwIndex * rows;
     const mxArray * pa;
@@ -306,8 +311,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double * entries;
     std::string relaxParam;
     std::string coarsenParam;
-
-    if (nrhs != 6 && nrhs != 7) {
+    
+    if (nrhs == 0 && nlhs == 0){
+        mexPrintf("AMGCL is compiled and ready for use.\n");
+        return;
+    } else if (nrhs != 6 && nrhs != 7) {
 	    mexErrMsgTxt("6 or 7 input arguments required.\nSyntax: amgcl_matlab(A, b, opts, tol, maxit, solver_id, reuse_id)");
     } else if (nlhs > 3) {
 	    mexErrMsgTxt("More than three outputs requested!");
@@ -315,14 +323,21 @@ void mexFunction( int nlhs, mxArray *plhs[],
 
     m = mxGetM(prhs[0]);
     n = mxGetN(prhs[0]);
+    
+    m_rhs = mxGetM(prhs[1]);
+    n_rhs = mxGetN(prhs[1]);
     int M = (int)m;
 
     if (!mxIsDouble(prhs[0]) || mxIsComplex(prhs[0]) ||  !mxIsSparse(prhs[0]) ) {
 	    mexErrMsgTxt("Matrix should be a real sparse matrix.");
         return;
     }
-    if (!mxIsDouble(prhs[1]) || mxIsComplex(prhs[1])) {
-	    mexErrMsgTxt("Right hand side must be real double column vector.");
+    if (n != m) {
+	    mexErrMsgTxt("Matrix must be square.");
+        return;
+    }
+    if (!mxIsDouble(prhs[1]) || mxIsComplex(prhs[1]) || n_rhs != 1 || m_rhs != m) {
+	    mexErrMsgTxt("Right hand side must be real double column vector with one entry per row of A.");
         return;
     }
     // First output: Solution column vector
@@ -350,6 +365,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int maxiter            = (int)mxGetScalar(prhs[4]);
     int solver_strategy_id = (int)mxGetScalar(prhs[5]);
     bool verbose           = mxGetScalar(mxGetField(pa, 0, "verbose"));
+    int nthreads           = mxGetScalar(mxGetField(pa, 0, "nthreads"));
+    int block_size         = mxGetScalar(mxGetField(pa, 0, "block_size"));
     int reuse_mode;
     if(nrhs == 7){
       reuse_mode = (int)mxGetScalar(prhs[6]);
@@ -357,17 +374,24 @@ void mexFunction( int nlhs, mxArray *plhs[],
       reuse_mode = 1;
     }
     if(verbose){
-      std::cout << "AMGCL solver recieved problem with " << n << " degrees of freedom. ";
-      int nthreads = omp_get_max_threads();
+      std::cout << "AMGCL solver recieved problem with " << n << " degrees of freedom.";
+      if(block_size == 1){
+        std::cout << " Treating system as scalar.";
+      }else{
+        std::cout << " System has block size of " << block_size << ".";
+      }
+      std::cout << std::endl;
       if(nthreads == 1){
         std::cout << "Solving in serial.";
       }
       else{
         std::cout << "Solving with " << nthreads << " threads using OpenMP.";
-      }
+      }      
       std::cout << std::endl;
     }
-
+    #ifdef _OPENMP
+        omp_set_num_threads(nthreads);
+    #endif
     std::vector<double> b(n);
     #pragma omp parallel for
     for(int ix = 0; ix < n; ix++){
