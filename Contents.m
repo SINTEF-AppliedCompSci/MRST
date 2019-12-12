@@ -4,7 +4,8 @@
 % |     Copyright (C) 2019 Lin Zhao. See COPYRIGHT.TXT for details.       |
 %  ----------------------------------------------------------------------- 
 %
-% Routines for hybrid gridding and simulation of the near-modeling method
+% Routines for the implementation and manipulation of near-wellbore 
+% modeling (NWM) methodology
 %
 % AUTHOR:      Lin Zhao (zhaolin_9@126.com)
 % INSTITUTION: Reservoir Engineering group, China University of Petroleum
@@ -12,13 +13,14 @@
 %              Computational Geosciences group, SINTEF Digital (2018-2019),
 %              Supervisor: Knut-Andreas Lie
 % ACKNOWLEDGEMENT:
-%   Sincerely thanks to the technical supports of Knut-Andreas Lie, 
+%   Sincerely thanks for the technical supports of Knut-Andreas Lie, 
 %   Atgeirr F. Rasmussen, Stein Krogstad, Xavier Raynaud, and Kai Bao from
 %   SINTEF Digital; Hanqiao Jiang, JunJian Li, and Jie Li from China 
 %   University of Petroleum (Beijing); Xin Sun from China University of 
 %   Petroleum (HuaDong); Shuai Ma from China University of Geosciences 
 %   (Beijing).
-%   Sincerely thanks to the financial support of China Scholarship Council.
+%   Sincerely thanks for the financial support of China Scholarship
+%   Council (CSC).
 %
 %
 %
