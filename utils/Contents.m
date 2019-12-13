@@ -2,10 +2,12 @@
 %
 % Files
 %   buckleyLeverettProfile    - Get analytical Buckely-Leverett solution for a simple Riemann problem
+%   computeCellDimensions     - Undocumented Utility Function
 %   computeSequentialFluxesDG - Undocumented Utility Function
 %   getPlotCoordinates        - Get coordinates for plotting higher-order dG variables
 %   plotLimiter               - Undocumented Utility Function
 %   plotSaturationDG          - Visualize dG saturation with higher-order dG basis functions
+%   unstructuredCarpetPlot    - Undocumented Utility Function
 %   unstructuredContour       - Undocumented Utility Function
 
 %{
