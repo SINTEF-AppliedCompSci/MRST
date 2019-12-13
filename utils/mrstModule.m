@@ -135,7 +135,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   % The behaviour has changed.
                   munlock
 
-                  assert (any(strcmp(nextmode, {'experimental', 'release'})));
+                  assert (any(strcmp(nextmode, {'experimental', 'release'})), ...
+                         ['Supported behaviours are ''experimental'' ', ...
+                          'and ''release''']);
                   mods = MODLIST;
 
                   % Clear modules with previous behavior mode
