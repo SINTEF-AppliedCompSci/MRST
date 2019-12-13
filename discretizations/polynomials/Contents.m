@@ -1,14 +1,10 @@
-classdef FixedTotalFluxDG < FixedTotalFlux
-    properties
-    end
-    
-    methods
-        function vT = evaluateOnDomain(prop, model, state)
-            vT = sum(state.flux, 2);
-            vT = vT(state.faces);
-        end
-    end
-end
+% POLYNOMIALS
+%
+% Files
+%   chebyshevPolynomials - Undocumented Utility Function
+%   legendrePolynomials  - Undocumented Utility Function
+%   Polynomial           - Polynomial class for basis functions in MRST
+%   simplePolynomials    - Undocumented Utility Function
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

@@ -1,14 +1,11 @@
-classdef FixedTotalFluxDG < FixedTotalFlux
-    properties
-    end
-    
-    methods
-        function vT = evaluateOnDomain(prop, model, state)
-            vT = sum(state.flux, 2);
-            vT = vT(state.faces);
-        end
-    end
-end
+% EXAMPLES
+%
+% Files
+%   dgExampleBLDisplacement - Bucley-Leverett displacement
+%   dgExampleDiscretization - Components of a Discontinuous Galerkin Discretization in MRST
+%   dgExampleIFS            - Simulation of an inverted five-spot pattern with dG
+%   dgExampleNess           - Simulation of an inverted five-spot pattern with dG
+%   dgShowSparsity          - Show Sparsity Pattern
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

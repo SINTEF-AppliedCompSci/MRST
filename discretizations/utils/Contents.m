@@ -1,14 +1,15 @@
-classdef FixedTotalFluxDG < FixedTotalFlux
-    properties
-    end
-    
-    methods
-        function vT = evaluateOnDomain(prop, model, state)
-            vT = sum(state.flux, 2);
-            vT = vT(state.faces);
-        end
-    end
-end
+% UTILS
+%
+% Files
+%   addLimiter            - Add limiter to ned or existing limiter object.
+%   assignDofFromState    - Assign dofs from state (typically initial state). All dofs
+%   dgBasis               - Undocumented Utility Function
+%   getLimiter            - Get limiter for dG simulations. Currently only supports TVB and
+%   getMinMax             - Undocumented Utility Function
+%   plotDGBasis           - Undocumented Utility Function
+%   polyDim               - Computes the dimension of the space of polynomials of degree k or less
+%   setupOperatorsDG      - Undocumented Utility Function
+%   velocityInterpolation - Construct velocity vector from face fluxes
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

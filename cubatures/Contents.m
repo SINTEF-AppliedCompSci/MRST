@@ -1,14 +1,12 @@
-classdef FixedTotalFluxDG < FixedTotalFlux
-    properties
-    end
-    
-    methods
-        function vT = evaluateOnDomain(prop, model, state)
-            vT = sum(state.flux, 2);
-            vT = vT(state.faces);
-        end
-    end
-end
+% CUBATURES
+%
+% Files
+%   Cubature                - Cubature class for cubatures on MRST grids
+%   LineCubature            - 1D line cubatureature for faces in 2D MRST grids
+%   MomentFitting2DCubature - Cubature based on moment-fitting for MRST grids
+%   MomentFitting3DCubature - Cubature based on moment-fitting for MRST grids
+%   TetrahedronCubature     - 
+%   TriangleCubature        - Triangle cubature class for cubatures on MRST grids
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

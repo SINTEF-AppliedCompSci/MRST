@@ -1,14 +1,12 @@
-classdef FixedTotalFluxDG < FixedTotalFlux
-    properties
-    end
-    
-    methods
-        function vT = evaluateOnDomain(prop, model, state)
-            vT = sum(state.flux, 2);
-            vT = vT(state.faces);
-        end
-    end
-end
+% UTILS
+%
+% Files
+%   buckleyLeverettProfile    - Get analytical Buckely-Leverett solution for a simple Riemann problem
+%   computeSequentialFluxesDG - Undocumented Utility Function
+%   getPlotCoordinates        - Get coordinates for plotting higher-order dG variables
+%   plotLimiter               - Undocumented Utility Function
+%   plotSaturationDG          - Visualize dG saturation with higher-order dG basis functions
+%   unstructuredContour       - Undocumented Utility Function
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

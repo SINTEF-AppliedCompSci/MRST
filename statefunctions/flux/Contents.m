@@ -1,14 +1,13 @@
-classdef FixedTotalFluxDG < FixedTotalFlux
-    properties
-    end
-    
-    methods
-        function vT = evaluateOnDomain(prop, model, state)
-            vT = sum(state.flux, 2);
-            vT = vT(state.faces);
-        end
-    end
-end
+% FLUX
+%
+% Files
+%   ComponentPhaseVelocityFractionalFlowDG - 
+%   ComponentTotalVelocityDG               - 
+%   FixedTotalFluxDG                       - 
+%   FixedTotalVelocityDG                   - 
+%   GravityPermeabilityGradientDG          - 
+%   GravityPotentialDifferenceDG           - 
+%   PhasePotentialUpwindFlagDG             - 
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
