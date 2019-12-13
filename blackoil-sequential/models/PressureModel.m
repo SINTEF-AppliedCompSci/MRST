@@ -4,6 +4,7 @@ classdef PressureModel < WrapperModel
         useIncTol = true;
         reductionStrategy = 'analytic';
         pressureIncTolType = 'relative';
+        pressureTol = inf;
     end
     
     methods
@@ -28,7 +29,9 @@ classdef PressureModel < WrapperModel
                     origP = origin{isP};
                     keep = isP | cellfun(@(x) ~strcmp(x, origP), origin);
                 case 'numerical'
-                    
+                    assert(false, 'PressureReduction:NotImplemented', 'Not implemented.');
+                otherwise
+                    error('Unknown reduction strategy %s', model.reductionStrategy);
             end
             if init
                 [vars{keep}] = model.AutoDiffBackend.initVariablesAD(vars{keep});
@@ -75,34 +78,61 @@ classdef PressureModel < WrapperModel
                     if range == 0
                         range = 1;
                     end
-                    state.dpRel = (state.pressure - p0)./range;
+                    dp = (state.pressure - p0)./range;
                 case 'absolute'
-                    state.dpRel = state.pressure - p0;
+                    dp = state.pressure - p0;
                 case 'norm'
-                    state.dpRel = (state.pressure - p0)/norm(state.pressure, inf);
+                    dp = (state.pressure - p0)/norm(state.pressure, inf);
+                otherwise
+                    error('Unknown pressure increment %s', model.pressureIncTolType);
             end
+            state.pressureChange = dp;
         end
         
         function  [convergence, values, names] = checkConvergence(model, problem)
             [convergence, values, names] = model.parentModel.checkConvergence(problem);
-            if ~isnan(problem.iterationNo) && model.useIncTol
-                if problem.iterationNo  > 1
-                    values(1) = norm(problem.state.dpRel, inf);
+            ptol = model.pressureTol;
+            itol = model.incTolPressure;
+            usePTol = isfinite(ptol);
+            useITol = isfinite(itol) && model.useIncTol;
+            assert(usePTol || useITol, 'Pressure model has no valid way of checking convergence!');
+            if usePTol
+                % Check the actual value of the pressure equation. Note:
+                % Requires that the equation is actually properly scaled!
+                % The scaling is implicit from the pressure reduction
+                % factors.
+                convergence(1) = values(1) < ptol;
+            else
+                % Skip first equation
+                names = names(2:end);
+                convergence = convergence(2:end);
+                values = values(2:end);
+            end
+            
+            if useITol
+                % Check the increment tolerance  for pressure
+                if problem.iterationNo > 1 && ~isnan(problem.iterationNo)
+                    dp = norm(problem.state.pressureChange, inf);
                 else
-                    values(1) = inf;
+                    dp = inf;
                 end
-                convergence = [values(1) < model.incTolPressure, convergence(2:end)];
-                names{1} = 'Delta P';
+                convergence = [dp < itol, convergence];
+                names = ['Delta P', names];
+                values = [dp, values];
             end
         end
 
         function [state, report] = updateAfterConvergence(model, varargin)
             [state, report] = updateAfterConvergence@WrapperModel(model, varargin{:});
+            % Clean up internal fields
             if isfield(state, 'statePressure')
                 state = rmfield(state, 'statePressure');
             end
             if isfield(state, 'sT')
                 state.sT = sum(value(state.s), 2);
+            end
+            if isfield(state, 'pressureChange')
+                state = rmfield(state, 'pressureChange');
             end
             state.statePressure = state;
         end
