@@ -11,11 +11,11 @@ function varargout = mrstPath(varargin)
 %         paths = mrstPath
 %
 % DESCRIPTION:
-%  `mrstPath` manages the mapping between the local file system and the
-%  abstract modules used by the `mrstModule` function. This function can
-%  add and remove modules as well as query the file-system mapping of
-%  existing modules. For this reason, a number of different calling
-%  syntaxes are available:
+%   `mrstPath` manages the mapping between the local file system and the
+%   abstract modules used by the `mrstModule` function.  This function can
+%   add and remove module mappings and query the file-system mapping of
+%   existing modules.  For this reason, a number of different calling
+%   syntaxes are available:
 %
 %   Mode 1)
 %     Register (insert) new mappings of module names to system paths
@@ -104,20 +104,22 @@ function varargout = mrstPath(varargin)
 %   
 %     Nothing - If called in modes 1) and 2)
 %
-%     modules - In mode 3) List, represented as a cell array of strings, of 
-%               the currently active add-on modules.  If called without 
-%               output arguments, function 'mrstPath' will display the 
-%               known mapping of the requested modules (all modules if 
-%               module list is empty) in the Command Window.
+%     modules - In mode 3) List, represented as a cell array of strings
+%               (character vectors), of the currently active add-on
+%               modules.  If called without output arguments, function
+%               'mrstPath' will display the known mapping of the requested
+%               modules (all modules if module list is empty) in the
+%               Command Window.
 %
 %               If called with a single output argument and no input
 %               arguments, then the output will be a cell array of strings
-%               containing the currently registered modules.
+%               (character vectors) containing the currently registered
+%               modules.
 %
-%               NOTE: As a special case the return value will be a string
-%               (not a cell array of strings) if function `mrstPath` is
-%               called with a single input module name and a single output
-%               parameter, e.g., as ::
+%               NOTE: The return value will, as a special case, be a
+%               character vector rather than a cell array of character
+%               vectors if function `mrstPath` is called with a single
+%               input module name and a single output parameter, e.g., as::
 %
 %                   pth = mrstPath('search', 'deckformat')
 %
@@ -146,7 +148,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
 
    persistent CACHE
 
