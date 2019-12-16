@@ -192,9 +192,15 @@ function [psolve, obj, isAD] = getPressureSolver(cg, input, opt)
                    ' argument when solver is AD']);
         end
         model = input;
-        model.extraStateOutput = true;
-        model.outputFluxes = true;
-        model.gravity = [0, 0, 0];
+        if isprop(model, 'parentModel')
+            model.parentModel.extraStateOutput = true;
+            model.parentModel.outputFluxes = true;
+            model.parentModel.gravity = [0, 0, 0];
+        else
+            model.extraStateOutput = true;
+            model.outputFluxes = true;
+            model.gravity = [0, 0, 0];
+        end
         psolve = @(bcase, wcase) standaloneSolveAD(...
             init_state, model, opt.dt, 'bc', bcase, 'W', wcase, ...
             'LinearSolver', opt.LinearSolver);
