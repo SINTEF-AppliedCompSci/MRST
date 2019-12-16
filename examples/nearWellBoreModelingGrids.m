@@ -39,7 +39,7 @@ clear
 mrstModule add nwm deckformat wellpaths upr
 
 %% Read the ECLIPSE input deck
-fn = fullfile(pwd, '..', 'data', 'NWM.data');
+fn = fullfile('data', 'NWM.data');
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
 
@@ -51,7 +51,7 @@ GC = computeGeometry(GC);
 % The well trajectory is specified by a set of discrete 3D well points 
 % (in xyz format) which divides the HW into multiple segments.
 % Load well trajectory
-fn = fullfile(pwd, '..', 'data', 'trajectory.mat');
+fn = fullfile('data', 'trajectory.mat');
 load(fn)
 % Number of well segments
 ns = size(pW,1)-1;

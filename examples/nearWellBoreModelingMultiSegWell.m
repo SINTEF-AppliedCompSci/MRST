@@ -15,7 +15,7 @@ clear
 mrstModule add nwm ad-core ad-blackoil ad-props mrst-gui deckformat wellpaths upr
 
 %% Read the ECLIPSE input deck
-fn = fullfile(pwd, '..', 'data', 'MSW.data');
+fn = fullfile('data', 'MSW.data');
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
 

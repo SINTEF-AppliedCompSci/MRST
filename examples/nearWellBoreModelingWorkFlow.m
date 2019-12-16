@@ -11,7 +11,7 @@ clear
 mrstModule add nwm ad-core ad-blackoil ad-props mrst-gui deckformat wellpaths upr
 
 %% Read the ECLIPSE input deck
-fn = fullfile(pwd, '..', 'data', 'NWM.data');
+fn = fullfile('data', 'NWM.data');
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
 
@@ -21,7 +21,7 @@ GC = computeGeometry(GC);
 
 %% Define basic information of horizontal well (HW)
 % Load well trajectory
-fn = fullfile(pwd, '..', 'data', 'trajectory.mat');
+fn = fullfile('data', 'trajectory.mat');
 load(fn)
 % Number of well segments
 ns = size(pW,1)-1;
