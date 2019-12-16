@@ -144,7 +144,6 @@ plotWell(G,W,'height',500,'color','b');
 
 
 %% Copyright notice
-displayEndOfDemoMessage(mfilename)
 
 % <html>
 % <p><font size="-1">

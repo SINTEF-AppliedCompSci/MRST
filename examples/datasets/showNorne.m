@@ -195,8 +195,6 @@ set(hc, 'YTick', 0.5, 'YTickLabel','mD', ...
     'XTick', log10(cs*milli*darcy), 'XTickLabel', num2str(cs'));
 
 %%
-displayEndOfDemoMessage(mfilename)
-
 % <html>
 % <p><font size="-1">
 % Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

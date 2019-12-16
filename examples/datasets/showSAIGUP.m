@@ -180,12 +180,12 @@ colorbarHist(rock.ntg,[.2 1],'South',100);
 %% 
 % and the satnum
 clf
-SN = grdecl.SATNUM(G.cells.indexMap); j = jet(60);
+SN = grdecl.SATNUM(G.cells.indexMap); jj = jet(60);
 plotCellData(G,SN, pargs{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
 view(-65,60);
 colorbarHist(SN, [.5 6.5], 'South', 0:.5:6.5);
-colormap(j(1:10:end,:))
+colormap(jj(1:10:end,:))
 
 %% 
 % and a plot where we split them up
@@ -193,7 +193,7 @@ clf
 plotGrid(G,'FaceColor','none', pargs{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]);
 view(-65,60);
-caxis([0.5 6.5]), colormap(j(1:10:end,:))
+caxis([0.5 6.5]), colormap(jj(1:10:end,:))
 
 h1 = plotCellData(G,SN, find(SN==1), pargs{:});
 h2 = plotCellData(G,SN, find(SN==5), pargs{:});
