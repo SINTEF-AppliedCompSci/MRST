@@ -15,7 +15,6 @@ function h = monitorBackgroundSimulations(problems, varargin)
 % RETURNS:
 %   Nothing
 
-
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -35,7 +34,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('pause', 0.25, 'useFigure', [], ...
+    opt = struct('pause', 0.25, 'useFigure', NaN, ...
                  'indices', (1:numel(problems))', ...
                  'dynamicText', true, ...
                  'totalNumberOfCases', numel(problems), ...
