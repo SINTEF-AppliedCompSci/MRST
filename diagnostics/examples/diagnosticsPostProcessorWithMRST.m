@@ -19,7 +19,6 @@ gravity reset on
 %% Setup model, schedule and initial state
 % We get all necessary parameters from the Eclipse deck
 G = initEclipseGrid(deck);
-G = extractSubgrid(G, logical(deck.GRID.ACTNUM));
 [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, 'G', G);
 
 %% Define/pack simulation problem
