@@ -1,13 +1,13 @@
 % MRST-BOOK
 %
 % Files
-%   addDefaultWellFields - 
+%   addDefaultWellFields - Undocumented Utility Function
 %   coarsenWells         - Generate well structure according to coarse grid Gc
-%   hT2T                 - 
+%   hT2T                 - Undocumented Utility Function
 %   upscaleTransGlobal   - Calculate upscaled transmissibilities for a coarse model
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

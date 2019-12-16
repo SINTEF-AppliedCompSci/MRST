@@ -3,22 +3,22 @@
 % Files
 %   getCapVisDist               - Upscale two-way oil-water distribution
 %   pcVsUpscaledSwGravityBinary - Create fine scale capillary pressure pc as a function of upscaled sW.
-%   upAbsPerm                   - 
+%   upAbsPerm                   - Undocumented Utility Function
 %   upAbsPermAvg                - Power averaging of of the absolute permeability
-%   upAbsPermPres               - 
+%   upAbsPermPres               - Undocumented Utility Function
 %   upFracFlowOW                - Upscale fractional flow curves.
 %   upPcOW                      - Upscale capillary pressure curves.
 %   upPolyAds                   - Upscale polymer adsorption isotherm using a simple average.
-%   upPolyRk                    - 
+%   upPolyRk                    - Undocumented Utility Function
 %   upPoro                      - Upscale porosity of the block by pore volume averaging
 %   upRelPerm                   - Upscaling of relative permeability
 %   upRelPermEPS                - Upscaling of relperm curves by end-point scaling (EPS)
-%   upRelPermPV                 - 
+%   upRelPermPV                 - Undocumented Utility Function
 %   upscaleTransNew             - Calculate upscaled transmissibilities for a coarse model
 %   upWells                     - Upscale wells
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

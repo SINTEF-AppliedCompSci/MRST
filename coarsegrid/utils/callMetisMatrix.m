@@ -57,7 +57,7 @@ function p = callMetisMatrix(A, n, varargin)
 %   `callMetis`, `partitionUI`, `processPartition`, `system`, `tempname`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -77,14 +77,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    global METISPATH
 
-   if n <= 1,
+   if n <= 1
       error(msgid('NumBlocks:Invalid'), ...
             'Number of blocks (''n'') must be greater than one.');
    end
 
    name = tempname();
    [fp, msg] = fopen(name,'w');
-   if fp < 0,
+   if fp < 0
       error(msgid('File:Open'), ...
             'Failed to open intermediate file ''%s'': %s.', name, msg);
    end
@@ -108,16 +108,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if ~isempty(METISPATH) && isdir(METISPATH) && ...
-         exist(fullfile(METISPATH, binname), 'file') == 2,
+         exist(fullfile(METISPATH, binname), 'file') == 2
 
        binname = fullfile(METISPATH, binname);
    end
 
    [st, attr, id] = fileattrib(binname);
-   if ~ st,
+   if ~ st
        error(id, 'METIS binary ''%s'': %s', binname, attr);
    end
-   if ~ attr.UserExecute,
+   if ~ attr.UserExecute
        error('METIS binary ''%s'' is not executable', binname);
    end
    vertnum = size(A, 1);
@@ -134,7 +134,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    t = t(:, 2:end) .';
 
    fprintf(fp, '%d %d %d1\n', vertnum, edgenum, vertexWeights);
-   for i = 1 : vertnum,
+   for i = 1 : vertnum
       if vertexWeights
           fprintf(fp, ' %d ', weights(i));
       end

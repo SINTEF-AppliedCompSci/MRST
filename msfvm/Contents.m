@@ -2,7 +2,7 @@
 %
 % Files
 %   createPermutationMatrix - Create permutation matrices for the coarse orderings in the MsFV
-%   find_clusters           - 
+%   find_clusters           - Undocumented Utility Function
 %   findCenter              - indices of blocks in the current cell
 %   mldivide_update         - A,b linear system
 %   partitionUIdual         - Create coarse dual partition/grid
@@ -11,7 +11,7 @@
 %   solveMSFV_TPFA_Incomp   - Solve incompressible flow problem (flux/pressures) using a multiscale
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

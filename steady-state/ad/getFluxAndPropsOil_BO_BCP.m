@@ -1,5 +1,26 @@
 function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO_BCP(...
         model, p, p_prop, sO, krO, T, gdz, rs, isSat, bcp)
+%Undocumented Utility Function
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     disgas = isprop(model, 'disgas') && model.disgas;
     
     if nargin < 7
@@ -38,6 +59,6 @@ function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO_BCP(...
     end
     
     % oil upstream-index
-    upco = (double(dpO)<=0);
+    upco = (value(dpO)<=0);
     vO   = - s.faceUpstr(upco, mobO).*T.*dpO;
 end

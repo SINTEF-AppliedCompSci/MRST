@@ -19,7 +19,7 @@ mrstModule add coarsegrid msrsb ad-core mrst-gui incomp
 % vertical permeability.
 mrstModule add deckformat
 
-if ~(makeNorneSubsetAvailable() && makeNorneGRDECL()),
+if ~(makeNorneSubsetAvailable() && makeNorneGRDECL())
    error('Unable to obtain simulation model subset');
 end
 
@@ -84,7 +84,7 @@ wells = [13, 88,  -1; ...
 
 W = [];
 [inum, pnum] = deal(1);
-for i = 1:size(wells, 1);
+for i = 1:size(wells, 1)
     % Set well
     W = verticalWell(W, G, rock, wells(i, 1), wells(i, 2), [],...
                      'comp_i', [1, 0], 'type', 'bhp');
@@ -126,7 +126,7 @@ solver = @(state) implicitTransport(state, G, dt, rock, fluid, 'wells', W);
 
 state = psolve(state0);
 
-states = state;
+states([1 N_step+1]) = state;
 for i = 1:N_step
     fprintf('Step %d of %d: ', i, N_step);
     
@@ -134,7 +134,7 @@ for i = 1:N_step
     state = psolve(states(end));
     fprintf('Ok! ');
     fprintf('Solving transport... ');
-    states = [states; solver(state)];
+    states(i+1) = solver(state);
     fprintf('Ok!\n');
 end
 
@@ -206,7 +206,7 @@ fn = getSmootherFunction('type', 'ilu');
 psolve = @(state, basis) incompMultiscale(state, CG, T, fluid, basis, 'wells', W_ms, ...
     'getSmoother', fn, 'iterations', 0);
 
-states_ms = psolve(state0, basis);
+states_ms([1 N_step+1]) = psolve(state0, basis);
 for i = 1:N_step
     state = states_ms(end);
 
@@ -220,7 +220,7 @@ for i = 1:N_step
     state = psolve(state, basis);
     fprintf('Ok! ');
     fprintf('Solving transport... ');
-    states_ms = [states_ms; solver(state)];
+    states_ms(i+1) = solver(state);
     fprintf('Ok!\n');
 end
 
@@ -233,7 +233,7 @@ psolve = @(state, basis) incompMultiscale(state, CG, T, fluid, basis, 'wells', W
     'getSmoother', fn, 'iterations', 5, 'useGMRES', true);
 basis = basis0;
 
-states_it = psolve(state0, basis);
+states_it([1 N_step+1]) = psolve(state0, basis);
 for i = 1:N_step
     state = states_it(end);
     if updateBasis && mod(i, 10) == 0 && i > 1
@@ -246,7 +246,7 @@ for i = 1:N_step
     state = psolve(state, basis);
     fprintf('Ok! ');
     fprintf('Solving transport... ');
-    states_it = [states_it; solver(state)];
+    states_it(i+1) = solver(state);
     fprintf('Ok!\n');
 end
 
@@ -287,3 +287,30 @@ ws_it = convertIncompWellSols(W, states_it, fluid);
 ws = {ws_ref, ws_ms, ws_it};
 shortname = {'ref', 'ms', 'it'};
 plotWellSols(ws, Time, 'datasetnames', names)
+
+%%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

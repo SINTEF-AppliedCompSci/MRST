@@ -1,10 +1,11 @@
 % MSRSB
 %
 % Files
-%   iteratedJacobiBasis - Set up basis function for the MsRSB (multiscale restricted smoothed basis) method
+%   getMultiscaleRestrictionSmoothedBasis - Set up basis function for the MsRSB (multiscale restricted smoothed basis) method
+%   iteratedJacobiBasis                   - Deprecated function. Renamed to getMultiscaleRestrictionSmoothedBasis.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

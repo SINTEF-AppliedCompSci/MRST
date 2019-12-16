@@ -19,6 +19,10 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
        getSmoother
        useGMRES
    end
+   
+   properties (Access = private)
+       smoother_fn = [];
+   end
    methods
        function solver = MultiscaleVolumeSolverAD(coarsegrid, varargin)
            solver = solver@LinearSolverAD();
@@ -28,7 +32,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            dim = coarsegrid.parent.griddim;
            
            % Default options
-           solver.prolongationType = 'smoothed';
+           solver.prolongationType = 'msrsb';
            solver.controlVolumeRestriction = true;
            solver.updateBasis = false;
            solver.maxIterations = 0;
@@ -40,23 +44,28 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            solver.resetBasis = false;
            solver.updateInterval = 1;
            solver.basisIterations = ceil(50*(Nf/Nc).^(1/dim));
+           solver.keepNumber = coarsegrid.parent.cells.num;
            
            solver = merge_options(solver, varargin{:});
            
            solver.setupTime = 0;
            solver.coarsegrid = coarsegrid;
        end
-       
+
        function [x, report] = solveLinearSystem(solver, A, b)
            CG = solver.coarsegrid;
            nc = CG.parent.cells.num;
            if isempty(solver.basis)
               solver.setupSolver(A(1:nc, 1:nc), b(1:nc));
            end
-           
+           if isempty(solver.smoother_fn)
+               fn = solver.getSmoother;
+           else
+               fn = solver.smoother_fn;
+           end
            [x, report] = solveMultiscaleIteratively(A, b, [], ...
                                                           solver.basis, ...
-                                                          solver.getSmoother, ...
+                                                          fn, ...
                                                           solver.tolerance,...
                                                           solver.maxIterations, ...
                                                           @(A, b) mldivide(A, b), ...
@@ -64,32 +73,23 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                                                           solver.verbose);
        end
               
-       function solver = setupSolver(solver, A, b, varargin) %#ok 
+       function solver = setupSolver(solver, A, b, varargin)
            % Run setup on a solver for a given system
            solver = solver.createBasis(A);
+           solver.smoother_fn = solver.getSmoother(A, b);
        end
        
        function  solver = cleanupSolver(solver, A, b, varargin) %#ok 
            % Clean up solver after use (if needed)
+           solver.smoother_fn = [];
        end
        
        function [dx, result, report] = solveLinearProblem(solver, problem0, model)
            % Solve a linearized problem
            timer = tic();
-           skipElim = isa(problem0, 'PressureReducedLinearSystem');
-           if skipElim
-               problem = problem0;
-           else
-               [problem, eliminated] = problem0.reduceToSingleVariableType('cell');
-           end
-           problem = problem.assembleSystem();
-           [A, b]= problem.getLinearSystem;
-           
-           nc = solver.coarsegrid.parent.cells.num;
-           doReduce = size(b, 1) > nc;
-           if doReduce
-               [A, b, B, C, D, E, f, h] = reduceSystem(A, b, nc);
-           end
+           problem = problem0.assembleSystem();
+           [A, b] = problem.getLinearSystem();
+           [A, b, lsys] = solver.reduceLinearSystem(A, b);
            t_prepare = toc(timer);
            if isempty(solver.basis)
                solver = solver.createBasis(A);
@@ -114,23 +114,15 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            t_basis = toc(timer) - t_prepare;
            [result, report] = solver.solveLinearSystem(A, b);
            t_solve = toc(timer) - t_prepare - t_basis;
-           if doReduce
-               s = E\(h - D*result);
-               result = [result; s];
-           end
+           result = solver.recoverLinearSystem(result, lsys);
            
            [result, report] = problem.processResultAfterSolve(result, report);
            report.SolverTime = toc(timer);
            report.LinearSolutionTime = t_solve;
            report.BasisTime = t_basis;
-           report.preparationTime = t_prepare;
-           report.postprocessTime = report.SolverTime - t_solve - t_prepare;
-           dxCell = solver.storeIncrements(problem, result);
-           if skipElim
-               dx = dxCell;
-           else
-               dx = problem.recoverFromSingleVariableType(problem0, dxCell, eliminated);
-           end
+           report.PreparationTime = t_prepare;
+           report.PostProcessTime = report.SolverTime - t_solve - t_prepare;
+           dx = solver.storeIncrements(problem, result);
        end
 
        function solver = createBasis(solver, A)
@@ -145,21 +137,29 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                end
                timer = tic();
                [ii, jj, vv] = find(A);
-               keep = ii ~= jj;
+               % Pick out the diagonal
+               d = zeros(size(A, 1), 1);
+               isDiag = ii == jj;
+               d(ii(isDiag)) = vv(isDiag);
+               % Take the positive off-diagonal entries, following the sign
+               % convention of the diagonal
+               keep = ii ~= jj & sign(d(ii)) == -sign(vv);
                n = size(A, 1);
-               
-               
+               % Strip down the sparse structure to the kept elements
                ii = ii(keep);
                jj = jj(keep);
                vv = vv(keep);
-               vv = abs(vv);
-               
-               dd = accumarray(jj, vv);
-               
+               % Take the row sum to be the diagonal (with opposite sign)
+               dd = accumarray(ii, vv, [size(A, 1), 1]);
+               dd(dd == 0) = mean(dd);
+               % Build sparse matrix format
                ii = [ii; (1:n)'];
                jj = [jj; (1:n)'];
                vv = [vv; -dd];
-               
+               % This is the regularized matrix used to get
+               % partition-of-unity basis functions. Note that there is an
+               % alternative reguarlization in getMultiscaleBasis, which we
+               % explicitly disable here since it is already fixed.
                A = sparse(ii, jj, vv, n, n);               
                [solver.basis, solver.coarsegrid] =...
                    getMultiscaleBasis(solver.coarsegrid, A, 'useMEX', solver.useMEX, ...
@@ -174,33 +174,16 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                dispif(solver.verbose, 'Basis constructed in %s.\n', formatTimeRange(solver.setupTime));
            end
        end
+       
+        function [d, sn] = getDescription(solver)
+            sn = solver.prolongationType;
+            sn = [sn, solver.id];
+            if solver.controlVolumeRestriction
+                v = 'volume';
+            else
+                v = 'element';
+            end
+            d = sprintf('Multiscale finite-%s solver with %s basis functions', v, solver.prolongationType);
+        end
    end
-end
-
-function  [A, b, B, C, D, E, f, h] = reduceSystem(A, b, keepNum)
-   [ix, jx, vx] = find(A);
-   n = size(A, 2);
-   keep = false(n, 1);
-   keep(1:keepNum) = true;
-   nk = keepNum;
-
-   keepRow = keep(ix);
-   keepCol = keep(jx);
-   kb = keepRow & keepCol;
-   B = sparse(ix(kb), jx(kb), vx(kb), nk, nk);
-
-   kc = keepRow & ~keepCol;
-   C = sparse(ix(kc), jx(kc) - nk, vx(kc), nk, n - nk);
-
-   kd = ~keepRow & keepCol;
-   D = sparse(ix(kd) - nk, jx(kd), vx(kd), n - nk, nk);
-
-   ke = ~keepRow & ~keepCol;
-   E = sparse(ix(ke) - nk, jx(ke) - nk, vx(ke), n - nk, n - nk);
-   f = b(keep);
-   h = b(~keep);
-   
-   [L, U] = lu(E);
-   A = B - C*(U\(L\D));
-   b = f - C*(U\(L\h));
 end

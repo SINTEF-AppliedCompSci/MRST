@@ -23,7 +23,7 @@ function blockIx = partitionUI(G, coarseDim)
 %   `processPartition`, `partitionLayers`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -44,14 +44,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 if ~isfield(G, 'cartDims')
    error(msgid('grid_structure:Invalid'), ...
          ['Grid must be be logically Cartiesian to use partitionUI.'...
-         ' Missing field ''cartDim''.']);
+         ' Missing field ''cartDims''.']);
 end
-if ~grid_ok(G),
+if ~grid_ok(G)
    error(msgid('grid_structure:Invalid'), ...
          'Grid is not a valid grid_structure structure');
 end
 
-if ~any(numel(coarseDim) == [2, 3]) || any(coarseDim < 1),
+if ~any(numel(coarseDim) == [2, 3]) || any(coarseDim < 1)
    error(msgid('coarseDim:Invalid'), ...
         ['Parameter ''coarseDim'' must be a two or three component ', ...
          'vector\ncontaining strictly positive integers.']);
@@ -68,7 +68,7 @@ i = [ i{:} ];
 M = max(i) - min(i) + 1;
 
 blockIx = zeros([G.cells.num, 1]);
-for d = numel(coarseDim) : -1 : 1,
+for d = numel(coarseDim) : -1 : 1
    B = double(coarseDim(d));
    blockIx = lbLinDist(i(:,d) - min(i(:,d)), M(d), B) + B*blockIx;
 end

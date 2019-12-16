@@ -55,8 +55,6 @@ gravity off
 verbose = false;
 
 %% Set up pressure and transport solvers
-% We
-A = getIncomp1PhMatrix(G, T, refSol, fluid);
 % Reference TPFA
 r_psolve = @(state) incompTPFA(state, G, T, fluid, 'wells', W);
 % MsFV solver. We use the more modern version of the solver found in the
@@ -100,7 +98,7 @@ dT     = time/60;
 % Iterate through the time steps and plot the saturation profiles along the
 % way.
 t = 0;
-while t < time,
+while t < time
     % Solve transport equations using the transport solver
     msSol  = tsolve(msSol , dT);
     refSol = tsolve(refSol, dT);
@@ -138,3 +136,30 @@ while t < time,
     end
     t = t + dT;
 end
+
+%%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

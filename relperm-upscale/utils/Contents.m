@@ -1,16 +1,16 @@
 % UTILS
 %
 % Files
-%   assignCoarseTransmissibility      - 
+%   assignCoarseTransmissibility      - Undocumented Utility Function
 %   assignUpscaledRelperm             - Assign upscaled relperm to AD model
-%   computeCoarseProps                - 
+%   computeCoarseProps                - Undocumented Utility Function
 %   computeRelpermFromStates          - Compute relative permeability from a fine-scale simulation
-%   computeTransmissibilityFromStates - 
-%   mergeHalfFaceRelperm              - 
-%   regularizeSaturationFunction      - 
+%   computeTransmissibilityFromStates - Undocumented Utility Function
+%   mergeHalfFaceRelperm              - Undocumented Utility Function
+%   regularizeSaturationFunction      - Undocumented Utility Function
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

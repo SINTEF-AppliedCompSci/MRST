@@ -10,7 +10,7 @@
 #include <algorithm>
 
 #include <omp.h>
-#include "main.h"
+#include "mex_basis_solver.h"
 
 #ifdef USEMEX
 #include <mex.h>
@@ -18,6 +18,7 @@
 #endif
 
 #include <cstring>
+#define TIME_NOW std::chrono::high_resolution_clock::now();
 
 int main(int argc, char* argv[])
 {
@@ -125,9 +126,13 @@ void mexFunction(
 	const size_t * matrix_dim = mxGetDimensions(prhs[3]);
 	grid.n_fine = matrix_dim[1];
 
-
 	/* Building matrix */
+	auto t1 = TIME_NOW;
 	buildMatrixFromMxSparse(&mat, prhs[3]);
+	auto t2 = TIME_NOW;
+	std::cout << "Matlab matrix processed in "
+		<< std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
+		<< " ms"  << std::endl;
 
 	/* Initial basis guess */
 	double * initial_basis = (double*)mxGetData(prhs[4]);
@@ -200,6 +205,7 @@ void buildMatrixFromMxSparse(ConnMatrix * mat, const mxArray * A) {
 		
 	}
 	// Scale by missing diagonal
+    #pragma omp parallel for
 	for (int i = 0; i < m; i++) {
 		for (int j = 0; j < n_el; j++) {
 			mat->conn[i*n_el + j] = mat->conn[i*n_el + j] / diag[i];

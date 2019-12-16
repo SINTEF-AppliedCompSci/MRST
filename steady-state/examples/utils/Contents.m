@@ -1,12 +1,12 @@
 % UTILS
 %
 % Files
-%   getCoreyRelperm      - 
+%   getCoreyRelperm      - Undocumented Utility Function
 %   getExampleCapPres    - Returns a capillary-pressure curves for each region. Returns a cell array
 %   getExampleFluidProps - Returns a structure with fluid properties for use with the examples.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

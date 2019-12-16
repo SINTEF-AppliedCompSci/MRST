@@ -2,12 +2,12 @@
 %
 % Files
 %   equationsOilWater_BCP       - Get linearized problem for oil/water system with black oil-style
-%   getFluxAndPropsOil_BO_BCP   - 
-%   getFluxAndPropsWater_BO_BCP - 
+%   getFluxAndPropsOil_BO_BCP   - Undocumented Utility Function
+%   getFluxAndPropsWater_BO_BCP - Undocumented Utility Function
 %   TwoPhaseOilWaterModel_BCP   - Two phase oil/water system without dissolution
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

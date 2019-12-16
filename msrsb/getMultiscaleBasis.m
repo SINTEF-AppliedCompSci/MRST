@@ -46,7 +46,7 @@ function [basis, CG] = getMultiscaleBasis(CG, A, varargin)
 %   `incompMultiscale`
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -67,7 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     Nc = CG.cells.num;
     Nf = G.cells.num;
     
-    opt = struct('type',             'rsb', ...
+    opt = struct('type',             'msrsb', ...
                  'useMex',           false, ...
                  'regularizeSys',    true, ...
                  'mexGrid',          [], ...
@@ -90,12 +90,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     switch lower(opt.type)
-        case {'msrsb', 'rsb', 'jacobi', 'smoothed', 'jacobi-mex'}
+        case {'msrsb', 'msrsb-mex'}
             
             if ~isfield(CG.cells, 'interaction')
                 CG = storeInteractionRegion(CG);
             end
-            if opt.useMex || strcmpi(opt.type, 'jacobi-mex')
+            if opt.useMex || strcmpi(opt.type, 'msrsb-mex')
                 assert(exist('cppMultiscaleBasis', 'file') > 0, 'MsRSB-Mex basis functions not available');
                 CG = setupMexInteractionMapping(CG);
                 [B, ~, basis.I_compressed] = cppMultiscaleBasis(CG, A, 'verbose', true, 'omega', 2/3, 'maxiter', opt.iterations, 'tolerance', opt.tolerance, 'basis', opt.basis);
@@ -106,7 +106,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     B0 = opt.basis.B;
                 end
                 assert(exist('iteratedJacobiBasis', 'file') > 0, 'MsRSB basis functions not available');
-                B = iteratedJacobiBasis(A, CG, 'iterations', opt.iterations,...
+                B = getMultiscaleRestrictionSmoothedBasis(A, CG, 'iterations', opt.iterations,...
                     'incrementTol', opt.tolerance, 'interpolator', B0);
             end
         case {'mstpfa', 'tpfa'}

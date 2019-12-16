@@ -50,20 +50,20 @@ void getBasis(Grid * grid, ConnMatrix * mat, double * basis, double tol, int N, 
 
 int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, double tol, int maxiter, double omega) {
 	// Number of non-zero elements in the basis (the values explicitly assigned in sparse matrix
-    int n_el = (*grid).n_basis;
+    int n_el = grid->n_basis;
     // Number of coarse blocks
-	int n_c = (*grid).n_coarse;
+	int n_c = grid->n_coarse;
     // Number of fine cells in total
-	int n_f = (*grid).n_fine;
+	int n_f = grid->n_fine;
     // Upper bound on the number of off diagonal entries in a matrix row
-	int n_conn = (*mat).n_conn;
+	int n_conn = mat->n_conn;
 
     // Used for sum of basis functions for renormalization
 	double * update_sum = new double[n_f]();
     // Storage for the update values
 	double * basis_update = new double[n_el]();
 
-	std::cout << "Starting smoothing iterations..." << std::endl;;
+	std::cout << "Starting smoothing iterations... ";
 	// Iterate up to max iterations
 	int iter = 0;
 	
@@ -76,8 +76,8 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
 		#pragma omp parallel for
 		for (int coarseIx = 0; coarseIx < n_c; coarseIx++) {
             // Compute the position in the sparse matrix where we have cells
-			int start = (*grid).offsets[coarseIx];
-			int stop  = (*grid).offsets[coarseIx+1];
+			int start = grid->offsets[coarseIx];
+			int stop  = grid->offsets[coarseIx+1];
 			// Iterate over local support
 			for (int j = start; j < stop; j++) {
 				basis_update[j] = basis[j];
@@ -89,7 +89,7 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
 						break;
 					}
                     // This is the tentative update for each basis element
-					basis_update[j] +=  (*mat).loc_conn[j*n_conn + k]* basis[jx];
+					basis_update[j] +=  mat->loc_conn[j*n_conn + k]* basis[jx];
 				}
 			}
 		}
@@ -97,7 +97,7 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
 		#pragma omp barrier
 		#pragma omp parallel for
 		for (int i = 0; i < n_el; i++) {
-			int type = (*grid).celltypes[i];
+			int type = grid->celltypes[i];
 			if(type == 0){
 				// The cell is category 1: We simply update the value.
 				basis[i] -= omega*basis_update[i];
@@ -110,15 +110,15 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
                 // need to keep track of what the nonzero values are.
 				basis[i] -= omega*basis_update[i];
                 #pragma omp atomic
-                update_sum[(*grid).support[i]] += basis[i];
+                update_sum[grid->support[i]] += basis[i];
 			}
 		}
 		#pragma omp barrier
 		#pragma omp parallel for
 		for (int i = 0; i < n_el; i++) {
             // Fix partition of unity for cells that are part of some boundary.
-			if ((*grid).celltypes[i] == 2) {
-				double us = update_sum[(*grid).support[i]];
+			if (grid->celltypes[i] == 2) {
+				double us = update_sum[grid->support[i]];
 				basis[i] = basis[i]/us;
 			}
 		}
@@ -136,14 +136,14 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
 
 	delete[] update_sum;
 	delete[] basis_update;
-	std::cout << "Done after " << iter << " iterations\r\n";
+	std::cout << "done after " << iter << " iterations." << std::endl;
 	return 0;
 }
 
 void renormalize(Grid * grid, ConnMatrix * mat, double * basis){
     // Renormalize so that the basis functions have sum one globally
-	int n_el = (*grid).n_basis;
-	int n_f = (*grid).n_fine;
+	int n_el = grid->n_basis;
+	int n_f = grid->n_fine;
 	double * sumval = new double[n_f]();
 	#pragma omp parallel for
 	for(int i = 0; i < n_el; i++){
@@ -173,22 +173,22 @@ int readInfo(Grid * grid, std::string file_path) {
 	infofile >> nf;
 	infofile >> nc;
 	// Read offsets
-	(*grid).offsets = new int[nc + 1];
+	grid->offsets = new int[nc + 1];
 	int i = 0;
 	while (!infofile.eof() && i < nc + 1) {
-		infofile >> (*grid).offsets[i];
+		infofile >> grid->offsets[i];
 		i++;
 	}
 	
-	n_basis = (*grid).offsets[nc];
+	n_basis = grid->offsets[nc];
 	// Read support
-	(*grid).support = new int[n_basis];
-	(*grid).celltypes = new int[n_basis];
+	grid->support = new int[n_basis];
+	grid->celltypes = new int[n_basis];
 	i = 0;
 	while (!supportfile.eof() && !typefile.eof() && i < n_basis) {
-		supportfile >> (*grid).support[i];
-		//std::cout << i << " -> " << (*grid).support[i] << "\r\n";
-		typefile >> (*grid).celltypes[i];
+		supportfile >> grid->support[i];
+		//std::cout << i << " -> " << grid->support[i] << "\r\n";
+		typefile >> grid->celltypes[i];
 		i++;
 	}
 	if (i != n_basis) {
@@ -198,9 +198,9 @@ int readInfo(Grid * grid, std::string file_path) {
 	}
 
 	// store misc constants
-	(*grid).n_basis = n_basis;
-	(*grid).n_fine = nf;
-	(*grid).n_coarse = nc;
+	grid->n_basis = n_basis;
+	grid->n_fine = nf;
+	grid->n_coarse = nc;
 
 	return 0;
 };
@@ -210,16 +210,16 @@ int readConnMatrix(Grid * grid, ConnMatrix * mat, std::string file_path) {
 	if(openFlatFile(file_path + "matrix.txt", &f)){return 1;};
 	if(openFlatFile(file_path + "sparsity.txt", &fs)){return 1;};
 	int n_conn, n_el;
-	n_el = (*grid).n_fine;
+	n_el = grid->n_fine;
 	f >> n_conn;
 
 
 
-	(*mat).conn    = new double[n_el*n_conn];
-	(*mat).j_index = new int[n_el*n_conn];
-	(*mat).n_i = n_el;
-	(*mat).n_conn = n_conn;
-	std::cout << "Matrix is " << (*mat).n_i << " by " << n_conn << "\r\n";
+	mat->conn    = new double[n_el*n_conn];
+	mat->j_index = new int[n_el*n_conn];
+	mat->n_i = n_el;
+	mat->n_conn = n_conn;
+	std::cout << "Matrix is " << mat->n_i << " by " << n_conn << "\r\n";
 
 	int i = 0;
 	int ix;
@@ -236,7 +236,7 @@ int readConnMatrix(Grid * grid, ConnMatrix * mat, std::string file_path) {
 		for (int i = 0; i < n_el; i++) {
 			for (int j = 0; j < n_conn; j++) {
 				ix = i*n_conn + j;
-				std::cout << (*mat).conn[ix] << " ";
+				std::cout << mat->conn[ix] << " ";
 			}
 			std::cout << "\r\n";
 		}
@@ -245,7 +245,7 @@ int readConnMatrix(Grid * grid, ConnMatrix * mat, std::string file_path) {
 };
 
 int readBasisOperator(Grid * grid, double * basis, std::string file_path) {
-	int n_el = (*grid).n_basis;
+	int n_el = grid->n_basis;
 
 	std::ifstream f;
 	openFlatFile(file_path + "operator.txt", &f);
@@ -306,10 +306,11 @@ void setupCoarseMapping(Grid * grid, ConnMatrix * mat){
 						}
 					}
 				}
+                /*
 				if(!done && grid->celltypes[j] != 1){
 					printf("Error! %d: %d (mapping cell %d to %d) with category %d...\n", coarseIx, j, c, c_n, grid->celltypes[j]);
 				}
-
+                */
 				if(done){
 					mat->loc_index[j*n_conn + k] = l;
 					mat->loc_conn[j*n_conn + k] = mat->conn[c*n_conn + k];
@@ -321,7 +322,7 @@ void setupCoarseMapping(Grid * grid, ConnMatrix * mat){
 }
 
 int writeBasisOperator(Grid * grid, std::string file_path, double * basis) {
-	int n_el = (*grid).n_basis;
+	int n_el = grid->n_basis;
 
 	std::ofstream myfile(file_path + "operator.txt");
 
@@ -338,8 +339,8 @@ int writeBasisOperator(Grid * grid, std::string file_path, double * basis) {
 };
 
 int openFlatFile(std::string file_path, std::ifstream * file) {
-	(*file).open(file_path.c_str());
-	if (!(*file).is_open()) {
+	file->open(file_path.c_str());
+	if (!(file->is_open())) {
 		std::cout << "Unable to open file: " << file_path << "\r\n";
 		return 1;
 	}

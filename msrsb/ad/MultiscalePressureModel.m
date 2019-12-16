@@ -1,5 +1,4 @@
 classdef MultiscalePressureModel < ReservoirModel
-    % Two phase oil/water system without dissolution
     properties
         pressureModel
         multiscaleSolver
@@ -42,7 +41,19 @@ classdef MultiscalePressureModel < ReservoirModel
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             [problem, state] = model.pressureModel.getEquations(state0, state, dt, drivingForces, varargin{:});
         end
+        
+        function [vars, names, origin] = getPrimaryVariables(model, state)
+            [vars, names, origin] = model.pressureModel.getPrimaryVariables(state);
+        end
 
+        function state = initStateAD(model, state, vars, names, origin)
+            state = model.pressureModel.initStateAD(state, vars, names, origin);
+        end
+        
+        function [eqs, names, types, state] = getModelEquations(pmodel, state0, state, dt, drivingForces)
+            [eqs, names, types, state] = model.pressureModel.getModelEquations(state0, state, dt, drivingForces);
+        end
+        
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
             [convergence, values, names] = checkConvergence(model.pressureModel, problem, varargin{:});
         end
@@ -69,12 +80,7 @@ classdef MultiscalePressureModel < ReservoirModel
             [state, varargout{:}] = model.pressureModel.updateState(state, varargin{:});
             if model.coarseScaleConvergence
                 part = model.multiscaleSolver.coarsegrid.partition;
-%                 dp0 = state.dpRel;
-%                 state.dpRel = accumarray(part, state.pressure - p0)./accumarray(part, p0);
                 state.dpRel = accumarray(part, abs(state.dpRel))./accumarray(part, 1);
-%                 fprintf('Average: %2.4g, Point: %2.4g\n', norm(state.dpRel, inf), norm(dp0, inf));
-%                 c = model.multiscaleSolver.coarsegrid.cells.centers;
-%                 state.dpRel = state.dpRel(c);
             end
         end
         
@@ -103,8 +109,8 @@ classdef MultiscalePressureModel < ReservoirModel
                 A = problem.A;
                 b = problem.b;
             else
-                A = -problem.equations{1}.jac{1};
-                b =  problem.equations{1}.val;
+                A = problem.equations{1}.jac{1};
+                b = -problem.equations{1}.val;
             end
             % Single pass of multiscale solver
             solver = model.multiscaleSolver;
@@ -130,6 +136,8 @@ classdef MultiscalePressureModel < ReservoirModel
             flux(CG.faces.fconn, :) = stateCoarse.flux(CG.faces.fconn, :);
             
             state = stateConverged;
+            % Take fluxes from wellSol in reconstructed state
+            state.wellSol = stateFlux.wellSol;
             state.flux = flux;
             
             % Use property pressure for transport
@@ -137,16 +145,6 @@ classdef MultiscalePressureModel < ReservoirModel
 
             report.reconstructionTime = toc(timer);
             report.reconstructionSolver = t_solve;
-            
-            if 0
-                BHPix = find(arrayfun(@(x) strcmpi(x.type, 'bhp'), state.wellSol));
-                for i = 1:numel(BHPix)
-                    ix = BHPix(i);
-%                     state.wellSol(ix) = stateFlux.wellSol(ix);
-                    state.wellSol(ix).flux = stateFlux.wellSol(ix).flux;
-                end
-            end
-
         end
         
         function state_flux = setFluxes(model, state0, state, dt, forces, propsPressure)
@@ -164,6 +162,13 @@ classdef MultiscalePressureModel < ReservoirModel
             [model.pressureModel, state] = model.pressureModel.updateForChangedControls(state, forces);
         end
         
+        function [model, state] = prepareReportstep(model, varargin)
+            [model.pressureModel, state] = model.pressureModel.prepareReportstep(varargin{:});
+        end
+
+        function [model, state] = prepareTimestep(model, varargin)
+            [model.pressureModel, state] = model.pressureModel.prepareTimestep(varargin{:});
+        end
         function model = validateModel(model, varargin)
             model.pressureModel = model.pressureModel.validateModel(varargin{:});
         end

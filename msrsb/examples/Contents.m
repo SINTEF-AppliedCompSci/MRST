@@ -1,15 +1,18 @@
 % EXAMPLES
 %
 % Files
-%   bedModelMS                    - Multiscale solver applied to high-resolution bed model
-%   exampleMs                     - Simple Conceptual Multiscale Example (Layers of SPE10)
-%   highContrastChannelMultiscale - Problem comparing different multiscale methods on an idealized channel
-%   inclusionsMultiscale          - Multiscale solver with inactive cells / inclusions
-%   runNorne2phMS                 - Water injection in a field model using the MsRSB-method
-%   SPE10Layer2phMS               - Simulate a transport problem with the MsRSB method
+%   acceleratedMultiscaleBasisGenerationExample - MsRSB basis function with mex acceleration
+%   bedModelMS                                  - Multiscale solver applied to high-resolution bed model
+%   highContrastChannelMultiscale               - Problem comparing different multiscale methods on an idealized channel
+%   inclusionsMultiscale                        - Multiscale solver with inactive cells / inclusions
+%   introIterativeMultiscale                    - Introduction to the use of multiscale solvers as an iterative two-level method
+%   introMultiscale                             - Introduction to multiscale finite-volume methods
+%   lackOfMonotonicity                          - Lack of Monotonicity (Layers of SPE10)
+%   runNorne2phMS                               - Water injection in a field model using the MsRSB-method
+%   SPE10Layer2phMS                             - Simulate a transport problem with the MsRSB method
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

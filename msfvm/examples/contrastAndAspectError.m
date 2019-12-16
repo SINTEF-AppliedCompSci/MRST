@@ -64,7 +64,7 @@ errors = nan(nc, na);
 normerr = @(ms, ref, k) norm(ref - ms, k)/norm(ref, k);
 
 for i = 1:nc
-    for j = 1:na;
+    for j = 1:na
         aspect = aspects(j);
         % Set up grid with aspect ratio
         G = cartGrid([30 30], [30*aspect, 30]*meter);
@@ -173,3 +173,30 @@ for i = 1:numel(csubs)
         title(['Error in multiscale: Contrast ', num2str(contrasts(ci)), ' aspect ', num2str(aspects(aj)), ' error: ', num2str(errors(ci, aj))])
     end
 end
+
+%%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

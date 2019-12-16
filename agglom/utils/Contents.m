@@ -8,12 +8,12 @@
 %   convertSource2Coarse         - Accumulate fine-scale source terms to coarse scale
 %   findConfinedBlocks           - Identify coarse blocks confined entirely within a single other block.
 %   mergeBlocksByConnections     - Merge blocks based on connection strength
-%   mergeSingleNeighbour         - 
+%   mergeSingleNeighbour         - Undocumented Internal Utility Function
 %   removeConfinedBlocks         - Remove singular confined blocks and expose groups of confined blocks
 %   signOfFineFacesOnCoarseFaces - Identify fine-scale flux direction corresponding to coarse-scale outflow
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -30,7 +30,7 @@ function blockIx = partitionLayers(G, coarseDim, L)
 %   `processPartition`, `partitionUI`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -49,17 +49,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-if ~grid_ok(G),
+if ~grid_ok(G)
    error('partitionLayers:grid_structure:NOIJK', ...
          'Grid is not a valid grid_structure structure');
 end
 
-if numel(coarseDim) ~= 2,
+if numel(coarseDim) ~= 2
    error('partitionLayers:coarseDim:Invalid', ...
          '`coarseDim'' is not valid coarse ij dimension spec');
 end
 
-if isfield(G.cells, 'ijkMap');
+if isfield(G.cells, 'ijkMap')
    ijk = double(G.cells.ijkMap);
    M   = double(max(ijk));
 else
@@ -72,7 +72,7 @@ end
 L    = reshape(L, 1, []);
 lNum = rldecode(1 : numel(L) - 1, diff(L), 2) - 1;
 blockIx = lNum(ijk(:,3))';
-for d = 2 : -1 : 1,
+for d = 2 : -1 : 1
    B = coarseDim(d);
    blockIx = lbLinDist(ijk(:,d) - 1, M(d), B) + B*blockIx;
 end

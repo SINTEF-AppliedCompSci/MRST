@@ -15,7 +15,7 @@
 %  46-71, 2016. DOI: 10.1016/j.jcp.2015.10.010
 
 % Load modules
-mrstModule add msrsb incomp coarsegrid mrst-gui msfvm
+mrstModule add msrsb incomp coarsegrid mrst-gui msfvm matlab_bgl
 
 %% We set up the domain
 % The domain consists of 65 by 65 fine cells and a permeability field that
@@ -101,7 +101,7 @@ CG.dual = DG;
 A = getIncomp1PhMatrix(G, T);
 basisfv = getMultiscaleBasis(CG, A, 'type', 'msfvm');
 msfv = incompMultiscale(state0, CG, T, fluid, basisfv, 'wells', W);
-basis = getMultiscaleBasis(CG, A, 'type', 'rsb', 'useMex', true, ...
+basis = getMultiscaleBasis(CG, A, 'type', 'msrsb', 'useMex', true, ...
                                   'iterations', 1000,'tolerance', 1e-4);
 % Create a second coarse grid that adapts to the already computed basis
 % functions (see paper for more details).
@@ -164,7 +164,7 @@ outlineCoarseGrid(G, CG2.partition, 'w', 'linewidth', 1)
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

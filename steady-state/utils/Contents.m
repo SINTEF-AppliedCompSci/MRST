@@ -5,15 +5,15 @@
 %   addPcOWInvADIFluid           - Add a fluid function for computing the inverse of the capillary pressure.
 %   cartBlockMap                 - Find identical coarse blocks in a partition of a Cartesian grid. This
 %   createBlockFluid             - Extracting the fluid for the current coarse cell only.
-%   createFracFlowTablesFromDeck - 
+%   createFracFlowTablesFromDeck - Undocumented Utility Function
 %   initADIFluidOW               - Make a structure representing an oil-water fluid. This is might be a
 %   initADIFluidOWPolymer        - Make a structure representing a three-component fluid (water, oil,
-%   makePeriodicCartesianGrid    - Uses the MRST module 'upscaling'
+%   makePeriodicCartesianGrid    - Undocumented Utility Function
 %   simulateToSteadyStateADI     - Run simulation to a steady state solution is found using fully implicit
 %   struct2args                  - Converts a structure to a cell array with both fieldnames and values,
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

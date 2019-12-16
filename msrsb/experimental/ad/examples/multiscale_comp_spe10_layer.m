@@ -38,6 +38,7 @@ fluid = initSimpleADIFluid('mu', [1, 5, 1]*centi*poise, 'rho', [1000, 700, 1], '
 modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
 % Sequential pressure-transport model with same type
 model = getSequentialModelFromFI(modelfi);
+model.transportModel.useCNVConvergence = modelfi.useCNVConvergence;
 
 
 figure;
@@ -135,3 +136,30 @@ plotWellSols({ws_split, wellsols{1}}, cumsum(schedule.step.val), 'datasetnames',
 
 %%
 plotWellSols({ws_split, wellsols{1}, wsfi}, cumsum(schedule.step.val), 'datasetnames', {'Sequential', 'Multiscale', 'FI'})
+
+%%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
