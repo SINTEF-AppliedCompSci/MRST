@@ -172,15 +172,15 @@ function [p, pxy, wellbore] = GradualRadialPoints(GV, packed, well, radPara, ii)
         l1m  = l1m / norm(p2-p1);
         p3   = pbb(i1,:);
         p4   = pbb(i2,:);
-        p34m = p3 + l1m * (p4-p3);
+        p34m = bsxfun(@plus, p3, l1m * (p4-p3));
         pbb(im,:) = p34m; % Assign points in box edges
     end
     
     % Get points between pob and pbb
     space = linspace(0, 1, nRT(2)+1);
     space = space(2:end-1);
-    px1 = pob(:,1) + (pbb(:,1)-pob(:,1)) * space;
-    py1 = pob(:,2) + (pbb(:,2)-pob(:,2)) * space;
+    px1 = bsxfun(@plus, pob(:,1), (pbb(:,1)-pob(:,1)) * space);
+    py1 = bsxfun(@plus, pob(:,2), (pbb(:,2)-pob(:,2)) * space);
     
     % Get points inside the box
     pD = getPD(rW, a, b, xw, yw, nRT, pDMult);
