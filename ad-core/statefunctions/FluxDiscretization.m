@@ -58,6 +58,9 @@ classdef FluxDiscretization < StateFunctionGrouping
 
         function fd = setFlowStateBuilder(fd, fb)
             fd.FlowStateBuilder = fb;
+            if nargout == 0
+                warning('No output argument -- FlowStateBuilder was not changed.');
+            end
         end
         
         function fb = getFlowStateBuilder(fd)
