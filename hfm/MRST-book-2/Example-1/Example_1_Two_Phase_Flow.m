@@ -46,7 +46,8 @@ fracplanes(3).poro=0.8;
 fracplanes(3).perm=10000*darcy;
 
 %% CONSTRUCT GLOBAL GRID
-[G,fracplanes]=EDFMgrid(G,fracplanes);
+tol=1e-6;
+[G,fracplanes]=EDFMgrid(G,fracplanes,'Tolerance',tol);
 
 %% MATRIX-FRACTURE NNC CALCULATIONS
 tol=1e-5; % tolerance for equality of doubles
@@ -87,7 +88,7 @@ model = ThreePhaseBlackOilModel(G, G.rock, fluid, ...
 model.operators = setupEDFMOperatorsTPFA(G, G.rock, tol);
 
 %% ADD INJECTOR
-totTime = 5*year;
+totTime = 2*year;
 tpv = sum(model.operators.pv);
 wellRadius = 0.1;
 [nx, ny, nz] = deal(G.cartDims(1), G.cartDims(2), G.cartDims(3));
