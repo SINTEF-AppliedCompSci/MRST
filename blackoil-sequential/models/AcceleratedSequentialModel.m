@@ -125,8 +125,6 @@ classdef AcceleratedSequentialModel < SequentialPressureTransportModel
                 else
                     w_next = -wi*(r_prev'*(r - r_prev))/sum((r-r_prev).^2);
                 end
-                max(w_next)
-                min(w_next)
                 if ~isfinite(w_next)
                     w_next = model.w;
                 end
