@@ -1,5 +1,5 @@
 function u = unitConversionFactors(inputUnit, outputUnit)
-%Get given unit conversion factors wrt SI
+% Get unit conversion factors from/between given unit(s)
 %
 % SYNOPSIS:
 %   u = unitConversionFactors(inputUnit)
@@ -10,12 +10,11 @@ function u = unitConversionFactors(inputUnit, outputUnit)
 %               'PVT_M', or 'SI'
 %   
 %  outputUnit - Unit name as above. Default value: SI
+%
 % RETURNS:
-%   u - For single input: data structure of unit conversion factors from input data to MRST's
-%       strict SI conventions.
-%       Otherwise: data structure of unit conversion factors from inputUnit
-%       to outputUnit, e.g.,
-%               p_out = p_in*u.press
+%   u - Data structure of unit conversion factors from inputUnit
+%       to outputUnit, such that e.g. for pressure,
+%               p [outputUnit] = (p [inputUnit] )*u.press
 %          
 % SEE ALSO:
 %   `convertDeckUnits`,
@@ -203,9 +202,7 @@ switch nm
             'volumheatcapacity', 1, ...
             'massheatcapacity' , 1);
     otherwise
-        error(id('USys:Unknown'), ...
-            ['Input unit system must be either METRIC, ', ...
-            'FIELD, LAB, PVT_M, or SI.']);
+        error('Input unit system ''%s'' unknown, must be either METRIC, FIELD, LAB, PVT_M, or SI.', upper(nm));
 end
 
 end
