@@ -78,7 +78,7 @@ end
 
 function unitName = deckUnitName(rspec)
 validUnitNames = {'METRIC', 'FIELD', 'LAB', 'PVT_M', 'SI'};
-occurance = cellfun(@(nm)isfield(rspec, nm), validUnitNames);
+occurance = isfield(rspec, validUnitNames);
 if sum(occurance) ~= 1
     error(id('USys:Unknown'), ...
         ['Input unit system must be either METRIC, ', ...
