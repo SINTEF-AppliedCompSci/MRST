@@ -119,33 +119,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         values = [values; values(cellfa)];
     end
 
-
-    Mgc = max(gc);
-    mgc = min(gc);
-
+    Mgc = max(gc); Mgc = min([Mgc; max(G.nodes.coords)]);
+    mgc = min(gc); mgc = max([mgc; min(G.nodes.coords)]);
 
     tmp = cell(G.griddim, 1);
     for i = 1:G.griddim
-        m = mgc(i);
-        M = Mgc(i);
-        tmp{i} = m:((M-m)/mesh(i)):M;
+        tmp{i} = linspace(mgc(i),Mgc(i),mesh(i)+1);
     end
 
     [x,y,z] = meshgrid(tmp{:});
 
-    if (ispc || ismac) && ~strcmpi(get(gcf, 'Renderer'), 'OpenGL'),
+    if (ispc || ismac) && ~strcmpi(get(gcf, 'Renderer'), 'OpenGL')
         set(gcf, 'Renderer', 'OpenGL');
     end
 
     c = opt.cmap(N);
     if isempty(opt.interpolant)
-        if exist('TriScatteredInterp', 'file'),
-            F = TriScatteredInterp(gc(:,1), gc(:,2), gc(:,3), values);
+        if exist('scatteredInterpolant', 'file')
+            F = scatteredInterpolant(gc(:,1), gc(:,2), gc(:,3), values);
+        elseif exist('TriScatteredInterp', 'file')
+            F = TriScatteredInterp(gc(:,1), gc(:,2), gc(:,3), values); %#ok<DTRIINT>
         else
             assert (exist('griddata3', 'file') == 2, ...
                     'Function GRIDDATA3 does not exist?');
             F = @(xi, yi, zi) ...
-                griddata3(gc(:,1), gc(:,2), gc(:,3), values, xi, yi, zi); %#ok
+                griddata3(gc(:,1), gc(:,2), gc(:,3), values, xi, yi, zi);
         end
         interpolant = F(x,y,z);
     else
