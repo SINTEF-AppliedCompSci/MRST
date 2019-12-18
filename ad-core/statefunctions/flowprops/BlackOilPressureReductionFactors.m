@@ -20,11 +20,11 @@ classdef BlackOilPressureReductionFactors < StateFunction
                     gp = gp.dependsOn({'rv'}, 'state');
                 end
             end
-            gp = gp.dependsOn({'ShrinkageFactors'});
+            gp = gp.dependsOn({'ShrinkageFactors', 'PoreVolume'});
         end
 
         function w = evaluateOnDomain(prop, model, state)
-            b = prop.getEvaluatedDependencies(state, 'ShrinkageFactors');
+            [b, pv] = prop.getEvaluatedDependencies(state, 'ShrinkageFactors', 'PoreVolume');
             rhoS = model.getSurfaceDensities();
             
             vap = prop.vapoil;
@@ -69,7 +69,7 @@ classdef BlackOilPressureReductionFactors < StateFunction
                     otherwise
                         f = 0;
                 end
-                w{ph} = f;
+                w{ph} = f./pv; % Scale final pressure equation with pore-volume
             end
         end
     end
