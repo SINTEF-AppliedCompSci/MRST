@@ -2,15 +2,17 @@ function G = removeShortEdges(G, tol)
 %Replace short edges in grid G by a single node.
 %
 % SYNOPSIS:
-%   G = removeShortEdges(G)
+%   G = removeShortEdges(G, tol)
 %
 % PARAMETERS:
 %   G       - Grid structure as described by grid_structure.
 %
 % RETURNS:
-%   G       - Grid structure. Nodes joined by a an edge with ||edge||<tol
-%             are collapsed to a single node at the edge mid-point. Faces
+%   G       - Grid structure. Nodes joined by an edge with ||edge||<tol
+%             are collapsed to a single node at the edge midpoint. Faces
 %             and cells that collapse as a consequence are removed.
+%   tol     - OPTIONAL
+%             The maximum length of edges that are removed. Default: 0.0
 %
 % NOTE:
 %   This is useful to remove very short edges that may appear in
@@ -45,7 +47,7 @@ THE SOFTWARE.
 
 
 
-   if nargin == 1,
+   if nargin == 1
       tol = 0.0;
    end
 

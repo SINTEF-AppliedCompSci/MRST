@@ -63,12 +63,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    incDiag = false;
    if nargin > 1 && (numel(varargin{1}) == 1) && ...
-         (isnumeric(varargin{1}) || islogical(varargin{1})),
+         (isnumeric(varargin{1}) || islogical(varargin{1}))
       incDiag = varargin{1};
    end
 
    nRows = -1;
-   if nargin > 2 && (numel(varargin{2}) == 1) && isnumeric(varargin{2}),
+   if nargin > 2 && (numel(varargin{2}) == 1) && isnumeric(varargin{2})
       nRows = varargin{2};
    end
 
@@ -78,8 +78,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %
    subs = [ reshape(N, [], 1) , reshape(fliplr(N), [], 1) ];
 
-   if incDiag,
-      if nRows > 0,
+   if incDiag
+      if nRows > 0
          m = nRows;
       else
          m = max(subs(:,1));

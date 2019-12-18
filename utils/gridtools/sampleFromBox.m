@@ -11,7 +11,7 @@ function q = sampleFromBox(G, p, c)
 %    p  - input array to sample from. The array is assumed to be values
 %         on a uniform Cartesian grid covers the bounding box of grid `G`.
 %         The values should be given as a Nx by Ny matrix where Nx and Ny
-%         is the number of values in the x and y direction respectively.
+%         is the number of values in the x and y direction, respectively.
 %    c  - array specifying a subset of cells in `G` in which values will be
 %         sampled
 %
@@ -43,7 +43,7 @@ assert(any(G.griddim==[2,3]), 'Number of space dimensions must be 2 or 3');
 % Check number of dimensions, using a hack to avoid problems if the last
 % the size of the array should have been (n,m,1)
 nd = size(p);
-if numel(nd)==G.griddim-1,
+if numel(nd)==G.griddim-1
    nd = [nd 1];
 end
 assert(G.griddim == numel(nd), 'Number of space dimensions do not match');
