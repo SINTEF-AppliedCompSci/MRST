@@ -85,7 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    ext          = any(g.faces.neighbors == 0, 2);
    contourfaces = @(I) any(I(g.faces.neighbors + 1), 2);
 
-   for i = 1 : n,
+   for i = 1 : n
       % Fill space between contours.
       I = [false; value >= levels(i) & value <= levels(i + 1)];
       f = find(contourfaces(I) & ext);
