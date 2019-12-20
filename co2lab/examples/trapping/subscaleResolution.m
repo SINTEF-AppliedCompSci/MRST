@@ -19,8 +19,8 @@
 mrstModule add co2lab
 %% Load data and create grids
 fprintf('Constructing Sleipner model...');
-sleipner_deck = readGRDECL(fullfile(mrstPath('co2lab'), ...
-   'data', 'sleipner', 'M9X1.grdecl'));
+datapath = getDatasetPath('sleipner');
+sleipner_deck = readGRDECL(fullfile(datapath, 'M9X1.grdecl'));
 
 % Do mapaxis explicitly to get coinciding coordinate systems
 ma = [436914 6475050 436914 6469150 440114 6469150];
