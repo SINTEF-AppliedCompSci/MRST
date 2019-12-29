@@ -1119,7 +1119,7 @@ function [vfp, usys] = convertVFPCommon(vfp, u)
    if strcmp(vfp.USYS, 'USYS')
       usys = u;
    else
-      usys = unit_system(struct(vfp.USYS, 1));
+      usys = unitConversionFactors(vfp.USYS);
    end
 
    if any(strcmp(vfp.FLOID, {'OIL', 'WAT', 'LIQ'}))
