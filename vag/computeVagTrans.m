@@ -270,26 +270,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     prod.tbl2 = tetravertcolrowcrosstbl;
     prod.reducefds = {'coldim'};
     prod.mergefds  = tetravertfds;
+    prod.replacefds  = {'rowdim', 'coldim'};
     prod = prod.setup();
     
     oppfacenormals = prod.evalProd(u1, crossvec);
-    
-    
-    tetravertrowcrosstbl = prod.prodtbl;
-    tetravertcolcrosstbl = replacefield(tetravertrowcrosstbl, {'rowdim', ...
-                        'coldim'});
+    tetravertcolcrosstbl = prod.prodtbl;
     
     prod = TensorProd();
     prod.tbl1 = tetravertcolcrosstbl;
     prod.tbl2 = tetravertcoltbl;
     prod.reducefds = {'coldim'};
     prod.mergefds = tetravertfds;
+    prod.replacefds  = {'crossdim', 'coldim'};
     prod = prod.setup();
     
     oppfacenormals = prod.evalProd(oppfacenormals, u2);
-    
     tetravertcrosstbl = prod.prodtbl;
-    tetravertcrosstbl = replacefield(tetravertcrosstbl, {'crossdim', 'coldim'});
 
     tetravertcolfds = gettblfds(tetravertcoltbl);
     [~, indstruct] = generateSubspace(tetravertcrosstbl, tetravertcoltbl, tetravertcolfds);
