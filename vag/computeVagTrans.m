@@ -132,8 +132,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     faceedgetbl.edges = G.faces.edges;
     faceedgetbl.num   = numel(faceedgetbl.faces);
 
-    [~, cellfaceedgetbl] = setupTableMapping(cellfacetbl, faceedgetbl, ...
-                                                          {'faces'});
+    cellfaceedgetbl = generateSubspace(cellfacetbl, faceedgetbl, {'faces'});
     
 
     %% Setup tetraverttbl
@@ -147,7 +146,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     tetratbl = cellfaceedgetbl;
     tetrafds = {'cells', 'faces', 'edges'};
 
-    [~, tetracoltbl] = setupTableMapping(coltbl, tetratbl, []);
+    tetracoltbl = generateSubspace(coltbl, tetratbl, {});
     tetracolfds = {'cells', 'faces', 'edges', 'coldim'};
 
     ne = G.edges.num;
@@ -156,7 +155,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     edgetbl.nodes = G.edges.nodes(G.edges.nodePos(1 : (end - 1)));
     edgetbl.num   = ne;
 
-    [~, tetratbl2] = setupTableMapping(tetratbl, edgetbl, {'edges'});
+    tetratbl2 = generateSubspace(tetratbl, edgetbl, {'edges'});
     tetratbl2 = replacefield(tetratbl2, {'nodes', 'nodes1'});
 
     clear edgetbl;
@@ -164,7 +163,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     edgetbl.nodes = G.edges.nodes(G.edges.nodePos(1 : (end - 1)) + 1);
     edgetbl.num   = ne;
 
-    [~, tetratbl2] = setupTableMapping(tetratbl2, edgetbl, {'edges'});
+    tetratbl2 = generateSubspace(tetratbl2, edgetbl, {'edges'});
     tetratbl2 = replacefield(tetratbl2, {'nodes', 'nodes2'});
 
     exttetrafds = {'cells', 'faces', 'edges', 'nodes1', 'nodes2'};
@@ -194,8 +193,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     tetravertfds = {'cells', 'faces', 'edges', 'vertices'};
 
-    [~, tetravertcoltbl] = setupTableMapping(tetraverttbl, coltbl, []);
-
+    tetravertcoltbl = generateSubspace(tetraverttbl, coltbl, []);
     tetravertcolfds = {'cells', 'faces', 'edges', 'vertices', 'coldim'};
 
     %% Compute the normals for tetraverttbl
@@ -210,7 +208,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     
     % start the construction of tetraveropptbl
-    [~, tetravertopptbl] = setupTableMapping(tetraverttbl, tetraverttbl, {'cells', ...
+    tetravertopptbl = generateSubspace(tetraverttbl, tetraverttbl, {'cells', ...
                         'faces', 'edges'}, 'crossextend', {{'vertices', {'vertices', ...
                         'oppvertices'}}});
 
@@ -318,8 +316,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rowtbl.rowdim = (1 : 3)';
     rowtbl.num = 3;
 
-    [~, colrowtbl] = setupTableMapping(coltbl, rowtbl, {});
-    [~, cellcolrowtbl] = setupTableMapping(celltbl, colrowtbl, []);
+    colrowtbl = generateSubspace(coltbl, rowtbl, {});
+    cellcolrowtbl = generateSubspace(celltbl, colrowtbl, []);
     cellcolrowtbl = sortTable(cellcolrowtbl, {'cells', 'coldim', 'rowdim'});
 
     permmat = permTensor(rock, G.griddim);
@@ -412,25 +410,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     determinanttbl.dim2 = [2; 3; 1; 3; 1; 2];
     determinanttbl.dim3 = [3; 2; 3; 1; 2; 1];
     determinanttbl.num = numel(determinanttbl.dim1);
-    [~, tetradettbl] = setupTableMapping(tetratbl, determinanttbl, []);
+    [tetradettbl, indstruct] = generateSubspace(tetratbl, determinanttbl, []);
     detmultiplier = [1; -1; -1; 1; 1; -1];
-    map1 = setupTableMapping(tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim1'}});
-    map2 = setupTableMapping(tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim2'}});
-    map3 = setupTableMapping(tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim3'}});
-    map4 = setupTableMapping(determinanttbl, tetradettbl, {'dim1', 'dim2', ...
-                        'dim3'});
-    vol = (map4*detmultiplier).*(map1*u1).*(map2*u2).*(map3*u3);
-    reducemap = setupTableMapping(tetradettbl, tetratbl, tetrafds);
-    vol = reducemap*vol;
+    detmultiplier = tbldispatch2(detmultiplier, indstruct);
+    
+    u1 = tblmap(u1, tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim1'}});
+    u2 = tblmap(u2, tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim2'}});
+    u3 = tblmap(u3, tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim3'}});
+    vol = detmultiplier.*u1.*u2.*u3;
+    vol = tblmap(vol, tetradettbl, tetratbl, tetrafds);
     vol = 1/6*abs(vol);
 
     % We multiply the tensor Amat by the volume
     
-    dispatchmap = setupTableMapping(tetratbl, tetravert2tbl, tetrafds);
-    vol = dispatchmap*vol;
+    prod = TensorProd();
+    prod.tbl1    = tetratbl;
+    prod.tbl2    = tetravert2tbl;
+    prod.prodtbl = tetravert2tbl;
+    prod.mergefds = tetrafds;
+    prod = prod.setup();
     
-    Amat = vol.*Amat;
-
+    Amat = prod.evalProd(vol, Amat);
+    
 
     %% Summation of contribution over the tetrahedra in a cell
     
@@ -440,14 +441,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % We create table cellvert2tbl which contains the two-dimensional tensor
     % acting on pair of vertices 
-    [~, cellvert2tbl] = setupTableMapping(cellverttbl, cellverttbl, {'cells'}, 'crossextend', {{'vertices', ...
-                        {'vertices1', 'vertices2' }}});
-
-    reducemapping = setupTableMapping(tetravert2tbl, cellvert2tbl, {'cells', 'vertices1', ...
-                        'vertices2'});
+    cellvert2tbl = generateSubspace(cellverttbl, cellverttbl, {'cells'}, ...
+                                    'crossextend', {{'vertices', {'vertices1', ...
+                        'vertices2' }}});
     % The tensor Amat is now indexed according to cellvert2tbl:
-    Amat = reducemapping*Amat;
+    Amat = tblmap(Amat, tetravert2tbl, cellvert2tbl, {'cells', 'vertices1', ...
+                        'vertices2'});
 
+    
     %% Barycentric condensation
 
     % setup cellcnverttbl: For each cell, the vertices of the cell and of the nodes
@@ -456,7 +457,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     cellnodetbl.nodes = G.cells.nodes;
     cellnodetbl.num   = numel(cellnodetbl.cells);
 
-    [~, cellnodetbl] = setupTableMapping(cellnodetbl, nodetbl, {'nodes'});
+    cellnodetbl = generateSubspace(cellnodetbl, nodetbl, {'nodes'});
     a1 = convertTableToArray(cellnodetbl, {'cells', 'vertices'});
     a1 = unique(a1(:, [1, 2]), 'rows'); % all the vertices from the nodes for
                                         % given cell
@@ -471,8 +472,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % condensation from vertices to cnvertices. It is used to store a 2D tensor
     % of pair of values at cnvertices and vertices, which we call the
     % barycentric mapping.
-    [~, cellvertcnverttbl] = setupTableMapping(cellverttbl, cellcnverttbl, ...
-                                                            {'cells'});
+    cellvertcnverttbl = generateSubspace(cellverttbl, cellcnverttbl, ...
+                                         {'cells'});
     cellvertcnvertfds = {'cells', 'cnvertices', 'vertices'};
 
     % We store in barcoef the barycentric mapping
@@ -489,30 +490,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     facenodetbl.num = numel(facenodetbl.faces);
     nnodeperface = diff(G.faces.nodePos);
     % Here we assume that facetbl.faces = (1 : nf)'
-    dispatchmap = setupTableMapping(facetbl, facenodetbl, {'faces'});
-    nodecoef = 1./(dispatchmap*nnodeperface);
+    nodecoef = tblmap(nnodeperface, facetbl, facenodetbl, {'faces'});
+    nodecoef = 1./nodecoef;
 
-    [~, facenodetbl] = setupTableMapping(facenodetbl, nodetbl, {'nodes'});
+    facenodetbl = generateSubspace(facenodetbl, nodetbl, {'nodes'});
     facenodetbl = replacefield(facenodetbl, {'vertices', 'nodevertices'});
-    [~, facenodetbl] = setupTableMapping(facenodetbl, facetbl, {'faces'});
+    facenodetbl = generateSubspace(facenodetbl, facetbl, {'faces'});
     facenodetbl = replacefield(facenodetbl, {'vertices', 'facevertices'});
 
     facenodefds = {'faces', 'nodes', 'nodevertices', 'facevertices'};
 
     [cellfacenodetbl, indstruct] = generateSubspace(cellfacetbl, facenodetbl, {'faces'});
     nodecoef = tbldispatch2(nodecoef, indstruct);
-    % dispatchmap = setupTableMapping(facenodetbl, cellfacenodetbl, {'faces', 'nodes'});
-    % nodecoef = dispatchmap*nodecoef;
     
     cellfacenodefds = {'cells', 'faces', 'nodes', 'nodevertices', 'facevertices'};
 
-    map = setupTableMapping(cellfacenodetbl, cellvertcnverttbl, {'cells', ...
+    nodecoef = tblmap(nodecoef, cellfacenodetbl, cellvertcnverttbl, {'cells', ...
                         {'facevertices', 'vertices'}, {'nodevertices', ...
                         'cnvertices'}});
-    barcoef = barcoef + map*nodecoef;
+    barcoef = barcoef + nodecoef;
 
     % We apply barcoef to vertices1 and vertices2 in the Amat matrix.
-    
     prod = TensorProd();
     prod.tbl1 = cellvertcnverttbl;
     prod.tbl2 = cellvert2tbl;
@@ -542,19 +540,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     %% Finally, we collect the elements for only the node vertices
 
-    [~, cellnverttbl] = setupTableMapping(cellcnverttbl, nodetbl, {{'cnvertices', ...
+    cellnverttbl = generateSubspace(cellcnverttbl, nodetbl, {{'cnvertices', ...
                         'vertices'}});
     cellnverttbl = replacefield(cellnverttbl, {'cnvertices', 'nvertices'});
 
     clear crossextends
     crossextends{1} = {'nvertices', {'nvertices1', 'nvertices2'}};
     crossextends{2} = {'nodes', {'nodes1', 'nodes2'}};
-    [~, cellnvert2tbl] = setupTableMapping(cellnverttbl, cellnverttbl, {'cells'}, ...
-                                                         'crossextend', crossextends);
+    
+    cellnvert2tbl = generateSubspace(cellnverttbl, cellnverttbl, {'cells'}, ...
+                                     'crossextend', crossextends);
 
-    map = setupTableMapping(cellcnvert2tbl, cellnvert2tbl, {'cells', {'cnvertices1', ...
+    A = tblmap(Amat, cellcnvert2tbl, cellnvert2tbl, {'cells', {'cnvertices1', ...
                         'nvertices1'}, {'cnvertices2', 'nvertices2'}});
-    A = map*Amat;
 
     cellnode2tbl = cellnvert2tbl;
     cellnode2tbl = rmfield(cellnode2tbl, 'nvertices1');
