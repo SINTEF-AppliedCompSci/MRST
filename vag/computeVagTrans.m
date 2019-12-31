@@ -85,10 +85,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     coltbl.coldim   = (1 : 3)';
     coltbl.num      = 3;
 
-    [~, vertcoltbl] = setupTableMapping(verttbl, coltbl, []);
-    [~, cellcoltbl] = setupTableMapping(celltbl, coltbl, []);
-    [~, facecoltbl] = setupTableMapping(facetbl, coltbl, []);
-    [~, nodecoltbl] = setupTableMapping(nodetbl, coltbl, []);
 
     % We collect the cell, face and node centroids given by the grid structure in
     % vectors that follows the indexing of the indexing tables cellcoltbl,
@@ -100,12 +96,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nodecent = G.nodes.coords;
     nodecent = reshape(nodecent', [], 1);
 
-    op = setupTableMapping(cellcoltbl, vertcoltbl, {'vertices', 'coldim'});
-    vertcent = op*cellcent;
-    op = setupTableMapping(facecoltbl, vertcoltbl, {'vertices', 'coldim'});
-    vertcent = vertcent + op*facecent;
-    op = setupTableMapping(nodecoltbl, vertcoltbl, {'vertices', 'coldim'});
-    vertcent = vertcent + op*nodecent;
+    vertcoltbl = generateSubspace(verttbl, coltbl, []);
+    cellcoltbl = generateSubspace(celltbl, coltbl, []);
+    facecoltbl = generateSubspace(facetbl, coltbl, []);
+    nodecoltbl = generateSubspace(nodetbl, coltbl, []);
+
+    [~, indstruct] = generateSubspace(cellcoltbl, vertcoltbl, {'vertices', 'coldim'});
+    vertcent = tblmap1to2(cellcent, indstruct);
+    [~, indstruct] = generateSubspace(facecoltbl, vertcoltbl, {'vertices', 'coldim'});
+    vertcent = vertcent + tblmap1to2(facecent, indstruct);
+    [~, indstruct] = generateSubspace(nodecoltbl, vertcoltbl, {'vertices', 'coldim'});
+    vertcent = vertcent + tblmap1to2(nodecent, indstruct);
 
     %% Setup tetratbl
     
@@ -171,17 +172,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     verts = cell(4, 1);
     indverts = cell(4, 1);
     nt = tetratbl.num;
-    dispatchmap = setupTableMapping(celltbl, tetratbl2, {'cells'});
-    verts{1}    = dispatchmap*(celltbl.vertices);
+    verts{1}    = tblmap(celltbl.vertices, celltbl, tetratbl2, {'cells'});
     indverts{1} = ones(nt, 1);
-    dispatchmap = setupTableMapping(facetbl, tetratbl2, {'faces'});
-    verts{2}    = dispatchmap*(facetbl.vertices);
+    verts{2}    = tblmap(facetbl.vertices, facetbl, tetratbl2, {'faces'});
     indverts{2} = 2*ones(nt, 1);
-    dispatchmap = setupTableMapping(nodetbl, tetratbl2, {{'nodes', 'nodes1'}});
-    verts{3}    = dispatchmap*(nodetbl.vertices);
+    verts{3}    = tblmap(nodetbl.vertices, nodetbl, tetratbl2, {{'nodes', 'nodes1'}});
     indverts{3} = 3*ones(nt, 1);
-    dispatchmap = setupTableMapping(nodetbl, tetratbl2, {{'nodes', 'nodes2'}});
-    verts{4}    = dispatchmap*(nodetbl.vertices);
+    verts{4}    = tblmap(nodetbl.vertices, nodetbl, tetratbl2, {{'nodes', 'nodes2'}});
     indverts{4} = 3*ones(nt, 1);
 
     clear tetraverttbl;
@@ -238,13 +235,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % We construct the table tetravertoppcoltbl, which contains a vector for
     % each of the opposite vertices
-    [~, tetravertoppcoltbl] = setupTableMapping(tetravertopptbl, coltbl, []);
+    tetravertoppcoltbl = generateSubspace(tetravertopptbl, coltbl, []);
 
-    map = setupTableMapping(vertcoltbl, tetravertoppcoltbl, {{'vertices', 'oppvertices'}, 'coldim'});
-    
     % tetraoppvertcent gives the coordinate of each of the opposite vertices
-    tetraoppvertcent = map*vertcent;
-
+    tetraoppvertcent = tblmap(vertcent, vertcoltbl, tetravertoppcoltbl, {{'vertices', 'oppvertices'}, 'coldim'});
+    
     % We set up the vectors u1 and u2. Given an opposite face, let us denote the
     % vertices by P1, P2 and P3. Then, we have u1 = P1 - P2 and u2 = P1 -
     % P3. The normal of the opposite face will then be obtained by computing
@@ -253,16 +248,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     reducemap = setupTableMapping(tetravertoppcoltbl, tetravertcoltbl, ...
                                                 tetravertcolfds);
 
-    mult1 = [1; -1; 0];
-    mult1 = map*mult1;
-    u1 = mult1.*tetraoppvertcent;
-    u1 = reducemap*u1;
-
-    mult2 = [1; 0; -1];
-    mult2 = map*mult2;
-    u2 = mult2.*tetraoppvertcent;
-    u2 = reducemap*u2;
-
+    Acell    = cell(2, 1);
+    Acell{1} = [1; -1; 0];
+    Acell{2} = loctbl;
+    Bcell    = cell(2, 1);
+    Bcell{1} = tetraoppvertcent;
+    Bcell{2} = tetravertoppcoltbl;
+    
+    clear fds;
+    fds{1} = {};
+    fds{2} = {tetravertcolfds{:}, 'oppvertices'};
+    fds{3} = {'oppvertinds'};
+    
+    u1 = contractTable2(Acell, Bcell, fds, tetravertcoltbl);
+                                                
+    Acell{1} = [1; 0; -1];
+    u2 = contractTable2(Acell, Bcell, fds, tetravertcoltbl);
+    
     % We start computing the cross product of u1 and u2
     colrowcrosstbl.coldim   = [2; 3; 1; 3; 1; 2];
     colrowcrosstbl.rowdim   = [3; 2; 3; 1; 2; 1];
@@ -506,11 +508,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     facenodefds = {'faces', 'nodes', 'nodevertices', 'facevertices'};
 
-    [~, cellfacenodetbl] = setupTableMapping(cellfacetbl, facenodetbl, {'faces'});
+    [cellfacenodetbl, indstruct] = generateSubspace(cellfacetbl, facenodetbl, {'faces'});
+    nodecoef = tbldispatch2(nodecoef, indstruct);
+    % dispatchmap = setupTableMapping(facenodetbl, cellfacenodetbl, {'faces', 'nodes'});
+    % nodecoef = dispatchmap*nodecoef;
+    
     cellfacenodefds = {'cells', 'faces', 'nodes', 'nodevertices', 'facevertices'};
 
-    dispatchmap = setupTableMapping(facenodetbl, cellfacenodetbl, {'faces', 'nodes'});
-    nodecoef = dispatchmap*nodecoef;
     map = setupTableMapping(cellfacenodetbl, cellvertcnverttbl, {'cells', ...
                         {'facevertices', 'vertices'}, {'nodevertices', ...
                         'cnvertices'}});
