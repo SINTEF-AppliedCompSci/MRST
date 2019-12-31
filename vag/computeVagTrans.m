@@ -133,6 +133,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     [~, cellfaceedgetbl] = setupTableMapping(cellfacetbl, faceedgetbl, ...
                                                           {'faces'});
+    
 
     %% Setup tetraverttbl
     
@@ -381,6 +382,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     A = convertTableToArray(tetraverttbl, {'cells', 'faces', 'edges', 'vertices'});
     A = sortrows(A);
 
+    clear loctbl
     loctbl.locind = [1; 2; 3; 4];
     loctbl.num = 4;
 
@@ -473,7 +475,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     cellcnvertfds = {'cells', 'cnvertices'};
 
     % We setup cellvertcnvert: This table is used to describe the barycentric
-    % condenstion from vertices to cnvertices. It is used to store a 2D tensor
+    % condensation from vertices to cnvertices. It is used to store a 2D tensor
     % of pair of values at cnvertices and vertices, which we call the
     % barycentric mapping.
     [~, cellvertcnverttbl] = setupTableMapping(cellverttbl, cellcnverttbl, ...
