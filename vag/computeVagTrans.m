@@ -300,22 +300,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %  pointing to the centroid of the opposite face.
     
     % We compute the centroid of the opposite face
-    reducemap = setupTableMapping(tetravertoppcoltbl, tetravertcoltbl, tetravertcolfds);
-    tetraoppfacecent = 1/3*(reducemap*tetraoppvertcent);
-
-    map = setupTableMapping(vertcoltbl, tetravertcoltbl, {'vertices', 'coldim'});
-    tetravertcent = map*vertcent;
+    tetraoppfacecent = 1/3*tblmap(tetraoppvertcent, tetravertoppcoltbl, tetravertcoltbl, tetravertcolfds);
+    tetravertcent = tblmap(vertcent, vertcoltbl, tetravertcoltbl, {'vertices', 'coldim'});
 
     coef = (oppfacenormals.*(tetravertcent - tetraoppfacecent));
-    reducemap = setupTableMapping(tetravertcoltbl, tetraverttbl, tetravertfds);
-    coef = reducemap*coef;
+    
+    coef = tblmap(coef, tetravertcoltbl, tetraverttbl, tetravertfds);
     coef = 1./coef;
-
-    dispatchmap = setupTableMapping(tetraverttbl, tetravertcoltbl, tetravertfds);
-    coef = dispatchmap*coef;
+    coef = tblmap(coef, tetraverttbl, tetravertcoltbl, tetravertfds);
 
     grad = coef.*oppfacenormals;
-
 
     %% We set up the permeability tensor
 
@@ -337,41 +331,44 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % grad. We obtain Kgrad, which is indexed according to indexing table
     % tetravertcoltbl
     
-    [~, tetravertcolrowtbl] = setupTableMapping(tetravertcoltbl, rowtbl, []);
-    dispatchmap = setupTableMapping(cellcolrowtbl, tetravertcolrowtbl, {'cells', ...
+    tetravertcolrowtbl = generateSubspace(tetravertcoltbl, rowtbl, {});
+    K = tblmap(perm, cellcolrowtbl, tetravertcolrowtbl, {'cells', ...
                         'coldim', 'rowdim'});
-    K = dispatchmap*perm;
 
     %% Setup of Amat
     % The tensor Amat is stored according indexing table tetravert2tbl. For each
     % tetrahedra, it is a two-dimensional tensor for pairs of values at the
     % vertices of the tetrahedra.
     
-    dispatchmap = setupTableMapping(tetravertcoltbl, tetravertcolrowtbl, tetravertcolfds);
-    Kgrad = K.*(dispatchmap*grad);
-    tetravertrowtbl = replacefield(tetravertcoltbl, {'coldim', 'rowdim'});
-    reducemap = setupTableMapping(tetravertcolrowtbl, tetravertrowtbl, {tetravertfds{:}, ...
-                        'rowdim'});
-    Kgrad = reducemap*Kgrad;
-
     
-    [~, tetravert2tbl] = setupTableMapping(tetraverttbl, tetraverttbl, {'cells', ...
-                        'faces', 'edges'}, 'crossextend', {{'vertices', {'vertices1', ...
-                        'vertices2'}}});
-    tetravert2fds = {'cells', 'faces', 'edges', 'vertices1', 'vertices2'};
-    [~, tetravert2coltbl] = setupTableMapping(coltbl, tetravert2tbl, []);
-    tetravert2colfds = {'cells', 'faces', 'edges', 'vertices1', 'vertices2', 'coldim'};
+    prod = TensorProd();
+    prod.tbl1 = tetravertcolrowtbl;
+    prod.tbl2 = tetravertcoltbl;
+    prod.replacefds1 = {{'coldim', 'temp'}, {'rowdim', 'coldim'}, {'temp', 'rowdim'}};
+    prod.replacefds2 = {'coldim', 'rowdim'};
+    prod.reducefds   = {'rowdim'};
+    prod.mergefds    = tetravertfds;
+    prod.prodtbl     = tetravertcoltbl;
+    prod = prod.setup();
+    
+    Kgrad = prod.evalProd(K, grad);
+    
 
-    dispatchmap = setupTableMapping(tetravertcoltbl, tetravert2coltbl, {'cells', ...
-                        'faces', 'edges', 'coldim', {'vertices', 'vertices1'}});
-    Kgrad = dispatchmap*Kgrad;
-    dispatchmap = setupTableMapping(tetravertcoltbl, tetravert2coltbl, {'cells', ...
-                        'faces', 'edges', 'coldim', {'vertices', 'vertices2'}});
-    grad = dispatchmap*grad;
+    tetravert2tbl = generateSubspace(tetraverttbl, tetraverttbl, {'cells', ...
+                        'faces', 'edges'}, 'crossextend', {{'vertices', ...
+                        {'vertices1', 'vertices2'}}});
+    
+    tetravert2coltbl = generateSubspace(coltbl, tetravert2tbl, []);
+
+    tetravertcolfds = {'cells', 'faces', 'edges', 'coldim'};
+    Kgrad = tblmap(Kgrad, tetravertcoltbl, tetravert2coltbl, {tetravertcolfds{:}, {'vertices', 'vertices1'}});
+    grad  = tblmap(grad , tetravertcoltbl, tetravert2coltbl, {tetravertcolfds{:}, {'vertices', 'vertices2'}});
+    
     Amat = Kgrad.*grad;
-
-    reducemapping = setupTableMapping(tetravert2coltbl, tetravert2tbl, tetravert2fds);
-    Amat = reducemapping*Amat;
+    
+    tetravert2fds = gettblfds(tetravert2tbl);
+    Amat = tblmap(Amat, tetravert2coltbl, tetravert2tbl, tetravert2fds);
+    
 
     %% Computation of the volume of each tetrahedra
     
@@ -379,8 +376,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % P2 - P1, u2 = P3 - P1 and u3 = P4 - P1. The volume of the tetrahedra is
     % given by 1/6 multiplied with the determinant of [u1, u2, u3].
     
-    A = convertTableToArray(tetraverttbl, {'cells', 'faces', 'edges', 'vertices'});
-    A = sortrows(A);
+    tetravertmat = convertTableToArray(tetraverttbl, {'cells', 'faces', 'edges', 'vertices'});
+    tetravertmat = sortrows(tetravertmat);
 
     clear loctbl
     loctbl.locind = [1; 2; 3; 4];
@@ -388,33 +385,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     locinds = repmat(loctbl.locind, tetratbl.num, 1);
 
-    A = [A, locinds];
+    tetravertmat = [tetravertmat, locinds];
 
-    tetraverttbl2 = convertArrayToTable(A, {'cells', 'faces', 'edges', 'vertices', ...
+    tetraverttbl2 = convertArrayToTable(tetravertmat, {'cells', 'faces', 'edges', 'vertices', ...
                         'locind'});
-    [~, tetravertcoltbl2] = setupTableMapping(tetraverttbl2, coltbl, []);
+    tetravertcoltbl2 = generateSubspace(tetraverttbl2, coltbl, []);
 
-    map = setupTableMapping(vertcoltbl, tetravertcoltbl2, {'vertices', 'coldim'});
-    tetravertcent = map*vertcent;
+    tetravertcent = tblmap(vertcent, vertcoltbl, tetravertcoltbl2, {'vertices', 'coldim'});
 
-    mult1 = [-1; 1; 0; 0];
-    dispatchmap = setupTableMapping(loctbl, tetravertcoltbl2, {'locind'});
-    mult1 = dispatchmap*mult1;
-    u1 = mult1.*tetravertcent;
-    reducemap = setupTableMapping(tetravertcoltbl2, tetracoltbl, {'cells', ...
-                        'faces', 'edges', 'coldim'});
-    u1 = reducemap*u1;
-
+    
+    prod = TensorProd();
+    prod.tbl1 = loctbl;
+    prod.tbl2 = tetravertcoltbl2;
+    prod.reducefds = {'locind'};
+    prod.prodtbl = tetracoltbl;
+    prod = prod.setup();
+    
+    mult1 = [-1; 1; 0; 0];    
+    u1 = prod.evalProd(mult1, tetravertcent);
     mult2 = [-1; 0; 1; 0];
-    mult2 = dispatchmap*mult2;
-    u2 = mult2.*tetravertcent;
-    u2 = reducemap*u2;
-
-    mult3 = [-1; 0; 0; 1];
-    mult3 = dispatchmap*mult3;
-    u3 = mult3.*tetravertcent;
-    u3 = reducemap*u3;
-
+    u2 = prod.evalProd(mult2, tetravertcent);
+    mult3 = [-1; 0; 0; 1];    
+    u3 = prod.evalProd(mult3, tetravertcent);
+    
     determinanttbl.dim1 = [1; 1; 2; 2; 3; 3];
     determinanttbl.dim2 = [2; 3; 1; 3; 1; 2];
     determinanttbl.dim3 = [3; 2; 3; 1; 2; 1];
