@@ -244,26 +244,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % vertices by P1, P2 and P3. Then, we have u1 = P1 - P2 and u2 = P1 -
     % P3. The normal of the opposite face will then be obtained by computing
     % the cross-product of u1 and u2.
-    map = setupTableMapping(loctbl, tetravertoppcoltbl, {'oppvertinds'});
-    reducemap = setupTableMapping(tetravertoppcoltbl, tetravertcoltbl, ...
-                                                tetravertcolfds);
 
-    Acell    = cell(2, 1);
-    Acell{1} = [1; -1; 0];
-    Acell{2} = loctbl;
-    Bcell    = cell(2, 1);
-    Bcell{1} = tetraoppvertcent;
-    Bcell{2} = tetravertoppcoltbl;
+    prod = TensorProd();
+    prod.tbl1 = loctbl;
+    prod.tbl2 = tetravertoppcoltbl;
+    prod.reducefds = {'oppvertinds'};
+    prod.prodtbl   = tetravertcoltbl;
+    prod = prod.setup();
     
-    clear fds;
-    fds{1} = {};
-    fds{2} = {tetravertcolfds{:}, 'oppvertices'};
-    fds{3} = {'oppvertinds'};
-    
-    u1 = contractTable2(Acell, Bcell, fds, tetravertcoltbl);
-                                                
-    Acell{1} = [1; 0; -1];
-    u2 = contractTable2(Acell, Bcell, fds, tetravertcoltbl);
+    u1 = prod.evalProd([1; -1; 0], tetraoppvertcent);
+    u2 = prod.evalProd([1; 0; -1], tetraoppvertcent);
     
     % We start computing the cross product of u1 and u2
     colrowcrosstbl.coldim   = [2; 3; 1; 3; 1; 2];
