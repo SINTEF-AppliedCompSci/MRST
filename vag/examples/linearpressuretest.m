@@ -15,9 +15,9 @@ mrstModule add mpfa vem vag vemmech
 
 %% Setup a Cartesian grid
 
-nx = 3;
-ny = 3;
-nz = 5;
+nx = 10;
+ny = 10;
+nz = 3;
 cartDims = [nx, ny, nz];
 physDims = [1, 1, 1];
 

@@ -261,28 +261,40 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     colrowcrosstbl.crossdim = [1; 1; 2; 2; 3; 3];
     colrowcrosstbl.num = numel(colrowcrosstbl.coldim);
 
-    [~, tetravertcolrowcrosstbl] = setupTableMapping(tetraverttbl, colrowcrosstbl, []);
-
     crossvec = [1; -1; -1; 1; 1; -1];
+    [tetravertcolrowcrosstbl, indstruct] = generateSubspace(colrowcrosstbl, tetraverttbl, []);
+    crossvec = tbldispatch1(crossvec, indstruct);
+    
+    prod = TensorProd();
+    prod.tbl1 = tetravertcoltbl;
+    prod.tbl2 = tetravertcolrowcrosstbl;
+    prod.reducefds = {'coldim'};
+    prod.mergefds  = tetravertfds;
+    prod = prod.setup();
+    
+    oppfacenormals = prod.evalProd(u1, crossvec);
+    
+    
+    tetravertrowcrosstbl = prod.prodtbl;
+    tetravertcolcrosstbl = replacefield(tetravertrowcrosstbl, {'rowdim', ...
+                        'coldim'});
+    
+    prod = TensorProd();
+    prod.tbl1 = tetravertcolcrosstbl;
+    prod.tbl2 = tetravertcoltbl;
+    prod.reducefds = {'coldim'};
+    prod.mergefds = tetravertfds;
+    prod = prod.setup();
+    
+    oppfacenormals = prod.evalProd(oppfacenormals, u2);
+    
+    tetravertcrosstbl = prod.prodtbl;
+    tetravertcrosstbl = replacefield(tetravertcrosstbl, {'crossdim', 'coldim'});
 
-    map1 = setupTableMapping(tetravertcoltbl, tetravertcolrowcrosstbl, {tetravertfds{:}, 'coldim'});
-    map2 = setupTableMapping(tetravertcoltbl, tetravertcolrowcrosstbl, {tetravertfds{:}, {'coldim', 'rowdim'}});
-    map3 = setupTableMapping(colrowcrosstbl , tetravertcolrowcrosstbl, {'coldim'       , 'rowdim' , 'crossdim'});
-    oppfacenormals = (map3*crossvec).*(map1*u1).*(map2*u2);
+    tetravertcolfds = gettblfds(tetravertcoltbl);
+    [~, indstruct] = generateSubspace(tetravertcrosstbl, tetravertcoltbl, tetravertcolfds);
+    oppfacenormals = tblmap1to2(oppfacenormals, indstruct);
 
-    crosstbl = coltbl;
-    crosstbl = replacefield(crosstbl, {'coldim', 'crossdim'});
-    [~, tetravertcrosstbl] = setupTableMapping(tetraverttbl, crosstbl, []);
-
-    map = setupTableMapping(tetravertcolrowcrosstbl, tetravertcrosstbl, {tetravertfds{:}, ...
-                        'crossdim'});
-    % The vector oppfacenormals now contains the cross-products:
-    oppfacenormals = map*oppfacenormals;
-
-    % this is done just for the form, the map should be equal to the identity
-    map = setupTableMapping(tetravertcrosstbl, tetravertcoltbl, {tetravertfds{:}, ...
-                        {'crossdim', 'coldim'}});
-    oppfacenormals = map*oppfacenormals;
 
     %% Computation of the approximate of the gradient in the tetrahedra
     
@@ -510,37 +522,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         'cnvertices'}});
     barcoef = barcoef + map*nodecoef;
 
+    % We apply barcoef to vertices1 and vertices2 in the Amat matrix.
+    
+    prod = TensorProd();
+    prod.tbl1 = cellvertcnverttbl;
+    prod.tbl2 = cellvert2tbl;
+    prod.replacefds1 = {{'vertices', 'vertices1'}, {'cnvertices', ...
+                        'cnvertices1'}};
+    prod.reducefds   = {'vertices1'};
+    prod.mergefds    = {'cells'};
+    prod = prod.setup();
+    
+    Amat = prod.evalProd(barcoef, Amat);
+    
+    cellvert2cnvert1tbl = prod.prodtbl;
 
-    % We setup a 4D tensor barcoef2, which is the tensor product of the 2D
-    % tensor barcoef.
-    crossextend1 = {'vertices'  , {'vertices1'  , 'vertices2'}};
-    crossextend2 = {'cnvertices', {'cnvertices1', 'cnvertices2'}};
-    crossextend = {crossextend1, crossextend2};
-    [~, cellvert2cnvert2tbl] = setupTableMapping(cellvertcnverttbl, ...
-                                                 cellvertcnverttbl, {'cells'}, ...
-                                                 'crossextend', crossextend);
-
-    dispatchmap = setupTableMapping(cellvert2tbl, cellvert2cnvert2tbl, {'cells', 'vertices1', ...
-                        'vertices2'});
-    Amat = dispatchmap*Amat;
-
-    dispatchmap1 = setupTableMapping(cellvertcnverttbl, cellvert2cnvert2tbl, {'cells', {'vertices', 'vertices1'}, ...
-                        {'cnvertices', 'cnvertices1'}});
-    barcoef1 = dispatchmap1*barcoef;
-    dispatchmap2 = setupTableMapping(cellvertcnverttbl, cellvert2cnvert2tbl, {'cells', {'vertices', 'vertices2'}, ...
-                        {'cnvertices', 'cnvertices2'}});
-    barcoef2 = dispatchmap2*barcoef;
-
-    Amat = Amat.*barcoef1.*barcoef2;
-
-    [~, cellcnvert2tbl] = setupTableMapping(cellcnverttbl, cellcnverttbl, {'cells'}, 'crossextend', ...
-                                                          {{'cnvertices', ...
-                        {'cnvertices1', 'cnvertices2'}}});
-    reducemap = setupTableMapping(cellvert2cnvert2tbl, cellcnvert2tbl, {'cells', ...
-                        'cnvertices1', 'cnvertices2'});
-
-    Amat = reducemap*Amat;
-
+    prod = TensorProd();
+    prod.tbl1 = cellvert2cnvert1tbl;
+    prod.tbl2 = cellvertcnverttbl;
+    prod.replacefds2 = {{'vertices', 'vertices2'}, {'cnvertices', ...
+                        'cnvertices2'}};
+    prod.reducefds   = {'vertices2'};
+    prod.mergefds    = {'cells'};
+    prod = prod.setup();
+    
+    Amat = prod.evalProd(Amat, barcoef);
+    
+    cellcnvert2tbl = prod.prodtbl;
+    
 
     %% Finally, we collect the elements for only the node vertices
 
