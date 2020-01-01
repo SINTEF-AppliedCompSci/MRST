@@ -96,16 +96,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nodecent = G.nodes.coords;
     nodecent = reshape(nodecent', [], 1);
 
-    vertcoltbl = generateSubspace(verttbl, coltbl, []);
-    cellcoltbl = generateSubspace(celltbl, coltbl, []);
-    facecoltbl = generateSubspace(facetbl, coltbl, []);
-    nodecoltbl = generateSubspace(nodetbl, coltbl, []);
+    vertcoltbl = crossTable(verttbl, coltbl, []);
+    cellcoltbl = crossTable(celltbl, coltbl, []);
+    facecoltbl = crossTable(facetbl, coltbl, []);
+    nodecoltbl = crossTable(nodetbl, coltbl, []);
 
-    [~, indstruct] = generateSubspace(cellcoltbl, vertcoltbl, {'vertices', 'coldim'});
+    [~, indstruct] = crossTable(cellcoltbl, vertcoltbl, {'vertices', 'coldim'});
     vertcent = tblmap1to2(cellcent, indstruct);
-    [~, indstruct] = generateSubspace(facecoltbl, vertcoltbl, {'vertices', 'coldim'});
+    [~, indstruct] = crossTable(facecoltbl, vertcoltbl, {'vertices', 'coldim'});
     vertcent = vertcent + tblmap1to2(facecent, indstruct);
-    [~, indstruct] = generateSubspace(nodecoltbl, vertcoltbl, {'vertices', 'coldim'});
+    [~, indstruct] = crossTable(nodecoltbl, vertcoltbl, {'vertices', 'coldim'});
     vertcent = vertcent + tblmap1to2(nodecent, indstruct);
 
     %% Setup tetratbl
@@ -132,7 +132,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     faceedgetbl.edges = G.faces.edges;
     faceedgetbl.num   = numel(faceedgetbl.faces);
 
-    cellfaceedgetbl = generateSubspace(cellfacetbl, faceedgetbl, {'faces'});
+    cellfaceedgetbl = crossTable(cellfacetbl, faceedgetbl, {'faces'});
     
 
     %% Setup tetraverttbl
@@ -146,7 +146,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     tetratbl = cellfaceedgetbl;
     tetrafds = {'cells', 'faces', 'edges'};
 
-    tetracoltbl = generateSubspace(coltbl, tetratbl, {});
+    tetracoltbl = crossTable(coltbl, tetratbl, {});
     tetracolfds = {'cells', 'faces', 'edges', 'coldim'};
 
     ne = G.edges.num;
@@ -155,7 +155,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     edgetbl.nodes = G.edges.nodes(G.edges.nodePos(1 : (end - 1)));
     edgetbl.num   = ne;
 
-    tetratbl2 = generateSubspace(tetratbl, edgetbl, {'edges'});
+    tetratbl2 = crossTable(tetratbl, edgetbl, {'edges'});
     tetratbl2 = replacefield(tetratbl2, {'nodes', 'nodes1'});
 
     clear edgetbl;
@@ -163,7 +163,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     edgetbl.nodes = G.edges.nodes(G.edges.nodePos(1 : (end - 1)) + 1);
     edgetbl.num   = ne;
 
-    tetratbl2 = generateSubspace(tetratbl2, edgetbl, {'edges'});
+    tetratbl2 = crossTable(tetratbl2, edgetbl, {'edges'});
     tetratbl2 = replacefield(tetratbl2, {'nodes', 'nodes2'});
 
     exttetrafds = {'cells', 'faces', 'edges', 'nodes1', 'nodes2'};
@@ -193,7 +193,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     tetravertfds = {'cells', 'faces', 'edges', 'vertices'};
 
-    tetravertcoltbl = generateSubspace(tetraverttbl, coltbl, []);
+    tetravertcoltbl = crossTable(tetraverttbl, coltbl, []);
     tetravertcolfds = {'cells', 'faces', 'edges', 'vertices', 'coldim'};
 
     %% Compute the normals for tetraverttbl
@@ -208,7 +208,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     
     % start the construction of tetraveropptbl
-    tetravertopptbl = generateSubspace(tetraverttbl, tetraverttbl, {'cells', ...
+    tetravertopptbl = crossTable(tetraverttbl, tetraverttbl, {'cells', ...
                         'faces', 'edges'}, 'crossextend', {{'vertices', {'vertices', ...
                         'oppvertices'}}});
 
@@ -233,7 +233,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % We construct the table tetravertoppcoltbl, which contains a vector for
     % each of the opposite vertices
-    tetravertoppcoltbl = generateSubspace(tetravertopptbl, coltbl, []);
+    tetravertoppcoltbl = crossTable(tetravertopptbl, coltbl, []);
 
     % tetraoppvertcent gives the coordinate of each of the opposite vertices
     tetraoppvertcent = tblmap(vertcent, vertcoltbl, tetravertoppcoltbl, {{'vertices', 'oppvertices'}, 'coldim'});
@@ -260,7 +260,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     colrowcrosstbl.num = numel(colrowcrosstbl.coldim);
 
     crossvec = [1; -1; -1; 1; 1; -1];
-    [tetravertcolrowcrosstbl, indstruct] = generateSubspace(colrowcrosstbl, tetraverttbl, []);
+    [tetravertcolrowcrosstbl, indstruct] = crossTable(colrowcrosstbl, tetraverttbl, []);
     crossvec = tbldispatch1(crossvec, indstruct);
     
     prod = TensorProd();
@@ -286,7 +286,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     tetravertcrosstbl = prod.prodtbl;
 
     tetravertcolfds = gettblfds(tetravertcoltbl);
-    [~, indstruct] = generateSubspace(tetravertcrosstbl, tetravertcoltbl, tetravertcolfds);
+    [~, indstruct] = crossTable(tetravertcrosstbl, tetravertcoltbl, tetravertcolfds);
     oppfacenormals = tblmap1to2(oppfacenormals, indstruct);
 
 
@@ -316,8 +316,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rowtbl.rowdim = (1 : 3)';
     rowtbl.num = 3;
 
-    colrowtbl = generateSubspace(coltbl, rowtbl, {});
-    cellcolrowtbl = generateSubspace(celltbl, colrowtbl, []);
+    colrowtbl = crossTable(coltbl, rowtbl, {});
+    cellcolrowtbl = crossTable(celltbl, colrowtbl, []);
     cellcolrowtbl = sortTable(cellcolrowtbl, {'cells', 'coldim', 'rowdim'});
 
     permmat = permTensor(rock, G.griddim);
@@ -329,7 +329,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % grad. We obtain Kgrad, which is indexed according to indexing table
     % tetravertcoltbl
     
-    tetravertcolrowtbl = generateSubspace(tetravertcoltbl, rowtbl, {});
+    tetravertcolrowtbl = crossTable(tetravertcoltbl, rowtbl, {});
     K = tblmap(perm, cellcolrowtbl, tetravertcolrowtbl, {'cells', ...
                         'coldim', 'rowdim'});
 
@@ -352,11 +352,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     Kgrad = prod.evalProd(K, grad);
     
 
-    tetravert2tbl = generateSubspace(tetraverttbl, tetraverttbl, {'cells', ...
+    tetravert2tbl = crossTable(tetraverttbl, tetraverttbl, {'cells', ...
                         'faces', 'edges'}, 'crossextend', {{'vertices', ...
                         {'vertices1', 'vertices2'}}});
     
-    tetravert2coltbl = generateSubspace(coltbl, tetravert2tbl, []);
+    tetravert2coltbl = crossTable(coltbl, tetravert2tbl, []);
 
     tetravertcolfds = {'cells', 'faces', 'edges', 'coldim'};
     Kgrad = tblmap(Kgrad, tetravertcoltbl, tetravert2coltbl, {tetravertcolfds{:}, {'vertices', 'vertices1'}});
@@ -387,7 +387,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     tetraverttbl2 = convertArrayToTable(tetravertmat, {'cells', 'faces', 'edges', 'vertices', ...
                         'locind'});
-    tetravertcoltbl2 = generateSubspace(tetraverttbl2, coltbl, []);
+    tetravertcoltbl2 = crossTable(tetraverttbl2, coltbl, []);
 
     tetravertcent = tblmap(vertcent, vertcoltbl, tetravertcoltbl2, {'vertices', 'coldim'});
 
@@ -410,7 +410,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     determinanttbl.dim2 = [2; 3; 1; 3; 1; 2];
     determinanttbl.dim3 = [3; 2; 3; 1; 2; 1];
     determinanttbl.num = numel(determinanttbl.dim1);
-    [tetradettbl, indstruct] = generateSubspace(tetratbl, determinanttbl, []);
+    [tetradettbl, indstruct] = crossTable(tetratbl, determinanttbl, []);
     detmultiplier = [1; -1; -1; 1; 1; -1];
     detmultiplier = tbldispatch2(detmultiplier, indstruct);
     
@@ -441,7 +441,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % We create table cellvert2tbl which contains the two-dimensional tensor
     % acting on pair of vertices 
-    cellvert2tbl = generateSubspace(cellverttbl, cellverttbl, {'cells'}, ...
+    cellvert2tbl = crossTable(cellverttbl, cellverttbl, {'cells'}, ...
                                     'crossextend', {{'vertices', {'vertices1', ...
                         'vertices2' }}});
     % The tensor Amat is now indexed according to cellvert2tbl:
@@ -457,7 +457,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     cellnodetbl.nodes = G.cells.nodes;
     cellnodetbl.num   = numel(cellnodetbl.cells);
 
-    cellnodetbl = generateSubspace(cellnodetbl, nodetbl, {'nodes'});
+    cellnodetbl = crossTable(cellnodetbl, nodetbl, {'nodes'});
     a1 = convertTableToArray(cellnodetbl, {'cells', 'vertices'});
     a1 = unique(a1(:, [1, 2]), 'rows'); % all the vertices from the nodes for
                                         % given cell
@@ -472,7 +472,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % condensation from vertices to cnvertices. It is used to store a 2D tensor
     % of pair of values at cnvertices and vertices, which we call the
     % barycentric mapping.
-    cellvertcnverttbl = generateSubspace(cellverttbl, cellcnverttbl, ...
+    cellvertcnverttbl = crossTable(cellverttbl, cellcnverttbl, ...
                                          {'cells'});
     cellvertcnvertfds = {'cells', 'cnvertices', 'vertices'};
 
@@ -493,14 +493,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nodecoef = tblmap(nnodeperface, facetbl, facenodetbl, {'faces'});
     nodecoef = 1./nodecoef;
 
-    facenodetbl = generateSubspace(facenodetbl, nodetbl, {'nodes'});
+    facenodetbl = crossTable(facenodetbl, nodetbl, {'nodes'});
     facenodetbl = replacefield(facenodetbl, {'vertices', 'nodevertices'});
-    facenodetbl = generateSubspace(facenodetbl, facetbl, {'faces'});
+    facenodetbl = crossTable(facenodetbl, facetbl, {'faces'});
     facenodetbl = replacefield(facenodetbl, {'vertices', 'facevertices'});
 
     facenodefds = {'faces', 'nodes', 'nodevertices', 'facevertices'};
 
-    [cellfacenodetbl, indstruct] = generateSubspace(cellfacetbl, facenodetbl, {'faces'});
+    [cellfacenodetbl, indstruct] = crossTable(cellfacetbl, facenodetbl, {'faces'});
     nodecoef = tbldispatch2(nodecoef, indstruct);
     
     cellfacenodefds = {'cells', 'faces', 'nodes', 'nodevertices', 'facevertices'};
@@ -540,7 +540,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     %% Finally, we collect the elements for only the node vertices
 
-    cellnverttbl = generateSubspace(cellcnverttbl, nodetbl, {{'cnvertices', ...
+    cellnverttbl = crossTable(cellcnverttbl, nodetbl, {{'cnvertices', ...
                         'vertices'}});
     cellnverttbl = replacefield(cellnverttbl, {'cnvertices', 'nvertices'});
 
@@ -548,7 +548,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     crossextends{1} = {'nvertices', {'nvertices1', 'nvertices2'}};
     crossextends{2} = {'nodes', {'nodes1', 'nodes2'}};
     
-    cellnvert2tbl = generateSubspace(cellnverttbl, cellnverttbl, {'cells'}, ...
+    cellnvert2tbl = crossTable(cellnverttbl, cellnverttbl, {'cells'}, ...
                                      'crossextend', crossextends);
 
     A = tblmap(Amat, cellcnvert2tbl, cellnvert2tbl, {'cells', {'cnvertices1', ...
