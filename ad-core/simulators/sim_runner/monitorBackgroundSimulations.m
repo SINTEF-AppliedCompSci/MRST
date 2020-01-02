@@ -34,7 +34,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('pause', 0.25, 'useFigure', NaN, ...
+    opt = struct('pause', 0.25, 'useFigure', [], ...
                  'indices', (1:numel(problems))', ...
                  'dynamicText', true, ...
                  'totalNumberOfCases', numel(problems), ...
@@ -51,12 +51,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     bn = join(basenames, ',');
     fn = sprintf('Simulating: %s', bn{1});
     h = opt.handle;
-    if isnan(opt.useFigure) || opt.useFigure
+    if isempty(opt.useFigure)
+        opt.useFigure = usejava('desktop');
+    end
+    if opt.useFigure
         if isempty(h.figure)
             h.figure = figure('Name', fn, 'ToolBar', 'none',...
                               'NumberTitle', 'off', 'MenuBar', 'none');
         end
-        opt.useFigure = isgraphics(h.figure);
+        opt.useFigure = ishandle(h.figure); % Not using isgraphics for backwards compat.
     end
     dispstr = '';
     if ~opt.useFigure
