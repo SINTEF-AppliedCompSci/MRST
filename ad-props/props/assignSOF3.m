@@ -10,9 +10,11 @@ function [krOW, krOG, pts_ow, pts_og] = getFunctions(f, SOF3, reg)
     for i = 1:reg.sat
         sof3 = SOF3{i};
         SO = sof3(:, 1);
+
         pts_ow(i, :) = getPoints(SO, sof3(:, 2));
         pts_og(i, :) = getPoints(SO, sof3(:, 3));
         sof3 = extendTab(sof3);
+        SO = sof3(:, 1);
         krow = sof3(:, 2);
         krog = sof3(:, 3);
         krOW{i} = @(so) interpTable(SO, krow, so);
