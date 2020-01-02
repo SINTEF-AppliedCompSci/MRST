@@ -64,6 +64,7 @@ function s = solveSaturations(p, p_ref, pc_fn, pc_sign, s_min, s_max)
     s = zeros(size(p));
     sat = (0:0.01:1)';
     pc = pc_sign*pc_fn(sat);
+
     dp =  p - p_ref;
     toMax = dp > max(pc);
     toMin = dp <= min(pc);
@@ -80,6 +81,11 @@ function s = solveSaturations(p, p_ref, pc_fn, pc_sign, s_min, s_max)
     middle = ~(toMin | toMax);
     if any(middle)
         s_inv = invertCapillary(dp(middle), pc_fn, pc_sign);
+        if size(s_max, 1) == 1
+            s_inv(isnan(s_inv)) = s_max;
+        else
+            s_inv(isnan(s_inv)) = s_max(middle);
+        end
         if numel(s_min) == 1
             s_min = repmat(s_min, size(s_inv));
         else
@@ -92,6 +98,12 @@ end
 function S = invertCapillary(dp, pc_fn, sgn)
     s = (0:0.0001:1)';
     pc = sgn*pc_fn(s);
+    if pc(1) == pc(end)
+        % There's no capillary pressure to speak of. Return NaN and fix
+        % this on the outside.
+        S = nan(size(dp));
+        return;
+    end
     
     [pc, ix] = unique(pc, 'last');
     s = s(ix);
