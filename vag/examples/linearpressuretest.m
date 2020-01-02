@@ -17,7 +17,7 @@ mrstModule add mpfa vem vag vemmech
 
 nx = 3;
 ny = 3;
-nz = 5;
+nz = 3;
 cartDims = [nx, ny, nz];
 physDims = [1, 1, 1];
 

@@ -85,10 +85,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     coltbl.coldim   = (1 : 3)';
     coltbl.num      = 3;
 
-    [~, vertcoltbl] = setupTableMapping(verttbl, coltbl, []);
-    [~, cellcoltbl] = setupTableMapping(celltbl, coltbl, []);
-    [~, facecoltbl] = setupTableMapping(facetbl, coltbl, []);
-    [~, nodecoltbl] = setupTableMapping(nodetbl, coltbl, []);
 
     % We collect the cell, face and node centroids given by the grid structure in
     % vectors that follows the indexing of the indexing tables cellcoltbl,
@@ -100,12 +96,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nodecent = G.nodes.coords;
     nodecent = reshape(nodecent', [], 1);
 
-    op = setupTableMapping(cellcoltbl, vertcoltbl, {'vertices', 'coldim'});
-    vertcent = op*cellcent;
-    op = setupTableMapping(facecoltbl, vertcoltbl, {'vertices', 'coldim'});
-    vertcent = vertcent + op*facecent;
-    op = setupTableMapping(nodecoltbl, vertcoltbl, {'vertices', 'coldim'});
-    vertcent = vertcent + op*nodecent;
+    vertcoltbl = crossTable(verttbl, coltbl, []);
+    cellcoltbl = crossTable(celltbl, coltbl, []);
+    facecoltbl = crossTable(facetbl, coltbl, []);
+    nodecoltbl = crossTable(nodetbl, coltbl, []);
+
+    [~, indstruct] = crossTable(cellcoltbl, vertcoltbl, {'vertices', 'coldim'});
+    vertcent = tblmap1to2(cellcent, indstruct);
+    [~, indstruct] = crossTable(facecoltbl, vertcoltbl, {'vertices', 'coldim'});
+    vertcent = vertcent + tblmap1to2(facecent, indstruct);
+    [~, indstruct] = crossTable(nodecoltbl, vertcoltbl, {'vertices', 'coldim'});
+    vertcent = vertcent + tblmap1to2(nodecent, indstruct);
 
     %% Setup tetratbl
     
@@ -131,8 +132,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     faceedgetbl.edges = G.faces.edges;
     faceedgetbl.num   = numel(faceedgetbl.faces);
 
-    [~, cellfaceedgetbl] = setupTableMapping(cellfacetbl, faceedgetbl, ...
-                                                          {'faces'});
+    cellfaceedgetbl = crossTable(cellfacetbl, faceedgetbl, {'faces'});
+    
 
     %% Setup tetraverttbl
     
@@ -145,7 +146,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     tetratbl = cellfaceedgetbl;
     tetrafds = {'cells', 'faces', 'edges'};
 
-    [~, tetracoltbl] = setupTableMapping(coltbl, tetratbl, []);
+    tetracoltbl = crossTable(coltbl, tetratbl, {});
     tetracolfds = {'cells', 'faces', 'edges', 'coldim'};
 
     ne = G.edges.num;
@@ -154,7 +155,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     edgetbl.nodes = G.edges.nodes(G.edges.nodePos(1 : (end - 1)));
     edgetbl.num   = ne;
 
-    [~, tetratbl2] = setupTableMapping(tetratbl, edgetbl, {'edges'});
+    tetratbl2 = crossTable(tetratbl, edgetbl, {'edges'});
     tetratbl2 = replacefield(tetratbl2, {'nodes', 'nodes1'});
 
     clear edgetbl;
@@ -162,7 +163,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     edgetbl.nodes = G.edges.nodes(G.edges.nodePos(1 : (end - 1)) + 1);
     edgetbl.num   = ne;
 
-    [~, tetratbl2] = setupTableMapping(tetratbl2, edgetbl, {'edges'});
+    tetratbl2 = crossTable(tetratbl2, edgetbl, {'edges'});
     tetratbl2 = replacefield(tetratbl2, {'nodes', 'nodes2'});
 
     exttetrafds = {'cells', 'faces', 'edges', 'nodes1', 'nodes2'};
@@ -170,17 +171,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     verts = cell(4, 1);
     indverts = cell(4, 1);
     nt = tetratbl.num;
-    dispatchmap = setupTableMapping(celltbl, tetratbl2, {'cells'});
-    verts{1}    = dispatchmap*(celltbl.vertices);
+    verts{1}    = tblmap(celltbl.vertices, celltbl, tetratbl2, {'cells'});
     indverts{1} = ones(nt, 1);
-    dispatchmap = setupTableMapping(facetbl, tetratbl2, {'faces'});
-    verts{2}    = dispatchmap*(facetbl.vertices);
+    verts{2}    = tblmap(facetbl.vertices, facetbl, tetratbl2, {'faces'});
     indverts{2} = 2*ones(nt, 1);
-    dispatchmap = setupTableMapping(nodetbl, tetratbl2, {{'nodes', 'nodes1'}});
-    verts{3}    = dispatchmap*(nodetbl.vertices);
+    verts{3}    = tblmap(nodetbl.vertices, nodetbl, tetratbl2, {{'nodes', 'nodes1'}});
     indverts{3} = 3*ones(nt, 1);
-    dispatchmap = setupTableMapping(nodetbl, tetratbl2, {{'nodes', 'nodes2'}});
-    verts{4}    = dispatchmap*(nodetbl.vertices);
+    verts{4}    = tblmap(nodetbl.vertices, nodetbl, tetratbl2, {{'nodes', 'nodes2'}});
     indverts{4} = 3*ones(nt, 1);
 
     clear tetraverttbl;
@@ -196,8 +193,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     tetravertfds = {'cells', 'faces', 'edges', 'vertices'};
 
-    [~, tetravertcoltbl] = setupTableMapping(tetraverttbl, coltbl, []);
-
+    tetravertcoltbl = crossTable(tetraverttbl, coltbl, []);
     tetravertcolfds = {'cells', 'faces', 'edges', 'vertices', 'coldim'};
 
     %% Compute the normals for tetraverttbl
@@ -212,7 +208,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     
     % start the construction of tetraveropptbl
-    [~, tetravertopptbl] = setupTableMapping(tetraverttbl, tetraverttbl, {'cells', ...
+    tetravertopptbl = crossTable(tetraverttbl, tetraverttbl, {'cells', ...
                         'faces', 'edges'}, 'crossextend', {{'vertices', {'vertices', ...
                         'oppvertices'}}});
 
@@ -237,59 +233,62 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % We construct the table tetravertoppcoltbl, which contains a vector for
     % each of the opposite vertices
-    [~, tetravertoppcoltbl] = setupTableMapping(tetravertopptbl, coltbl, []);
+    tetravertoppcoltbl = crossTable(tetravertopptbl, coltbl, []);
 
-    map = setupTableMapping(vertcoltbl, tetravertoppcoltbl, {{'vertices', 'oppvertices'}, 'coldim'});
-    
     % tetraoppvertcent gives the coordinate of each of the opposite vertices
-    tetraoppvertcent = map*vertcent;
-
+    tetraoppvertcent = tblmap(vertcent, vertcoltbl, tetravertoppcoltbl, {{'vertices', 'oppvertices'}, 'coldim'});
+    
     % We set up the vectors u1 and u2. Given an opposite face, let us denote the
     % vertices by P1, P2 and P3. Then, we have u1 = P1 - P2 and u2 = P1 -
     % P3. The normal of the opposite face will then be obtained by computing
     % the cross-product of u1 and u2.
-    map = setupTableMapping(loctbl, tetravertoppcoltbl, {'oppvertinds'});
-    reducemap = setupTableMapping(tetravertoppcoltbl, tetravertcoltbl, ...
-                                                tetravertcolfds);
 
-    mult1 = [1; -1; 0];
-    mult1 = map*mult1;
-    u1 = mult1.*tetraoppvertcent;
-    u1 = reducemap*u1;
-
-    mult2 = [1; 0; -1];
-    mult2 = map*mult2;
-    u2 = mult2.*tetraoppvertcent;
-    u2 = reducemap*u2;
-
+    prod = TensorProd();
+    prod.tbl1 = loctbl;
+    prod.tbl2 = tetravertoppcoltbl;
+    prod.reducefds = {'oppvertinds'};
+    prod.prodtbl   = tetravertcoltbl;
+    prod = prod.setup();
+    
+    u1 = prod.evalProd([1; -1; 0], tetraoppvertcent);
+    u2 = prod.evalProd([1; 0; -1], tetraoppvertcent);
+    
     % We start computing the cross product of u1 and u2
     colrowcrosstbl.coldim   = [2; 3; 1; 3; 1; 2];
     colrowcrosstbl.rowdim   = [3; 2; 3; 1; 2; 1];
     colrowcrosstbl.crossdim = [1; 1; 2; 2; 3; 3];
     colrowcrosstbl.num = numel(colrowcrosstbl.coldim);
 
-    [~, tetravertcolrowcrosstbl] = setupTableMapping(tetraverttbl, colrowcrosstbl, []);
-
     crossvec = [1; -1; -1; 1; 1; -1];
+    [tetravertcolrowcrosstbl, indstruct] = crossTable(colrowcrosstbl, tetraverttbl, []);
+    crossvec = tbldispatch1(crossvec, indstruct);
+    
+    prod = TensorProd();
+    prod.tbl1 = tetravertcoltbl;
+    prod.tbl2 = tetravertcolrowcrosstbl;
+    prod.reducefds = {'coldim'};
+    prod.mergefds  = tetravertfds;
+    prod.replacefds  = {'rowdim', 'coldim'};
+    prod = prod.setup();
+    
+    oppfacenormals = prod.evalProd(u1, crossvec);
+    tetravertcolcrosstbl = prod.prodtbl;
+    
+    prod = TensorProd();
+    prod.tbl1 = tetravertcolcrosstbl;
+    prod.tbl2 = tetravertcoltbl;
+    prod.reducefds = {'coldim'};
+    prod.mergefds = tetravertfds;
+    prod.replacefds  = {'crossdim', 'coldim'};
+    prod = prod.setup();
+    
+    oppfacenormals = prod.evalProd(oppfacenormals, u2);
+    tetravertcrosstbl = prod.prodtbl;
 
-    map1 = setupTableMapping(tetravertcoltbl, tetravertcolrowcrosstbl, {tetravertfds{:}, 'coldim'});
-    map2 = setupTableMapping(tetravertcoltbl, tetravertcolrowcrosstbl, {tetravertfds{:}, {'coldim', 'rowdim'}});
-    map3 = setupTableMapping(colrowcrosstbl , tetravertcolrowcrosstbl, {'coldim'       , 'rowdim' , 'crossdim'});
-    oppfacenormals = (map3*crossvec).*(map1*u1).*(map2*u2);
+    tetravertcolfds = gettblfds(tetravertcoltbl);
+    [~, indstruct] = crossTable(tetravertcrosstbl, tetravertcoltbl, tetravertcolfds);
+    oppfacenormals = tblmap1to2(oppfacenormals, indstruct);
 
-    crosstbl = coltbl;
-    crosstbl = replacefield(crosstbl, {'coldim', 'crossdim'});
-    [~, tetravertcrosstbl] = setupTableMapping(tetraverttbl, crosstbl, []);
-
-    map = setupTableMapping(tetravertcolrowcrosstbl, tetravertcrosstbl, {tetravertfds{:}, ...
-                        'crossdim'});
-    % The vector oppfacenormals now contains the cross-products:
-    oppfacenormals = map*oppfacenormals;
-
-    % this is done just for the form, the map should be equal to the identity
-    map = setupTableMapping(tetravertcrosstbl, tetravertcoltbl, {tetravertfds{:}, ...
-                        {'crossdim', 'coldim'}});
-    oppfacenormals = map*oppfacenormals;
 
     %% Computation of the approximate of the gradient in the tetrahedra
     
@@ -299,22 +298,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %  pointing to the centroid of the opposite face.
     
     % We compute the centroid of the opposite face
-    reducemap = setupTableMapping(tetravertoppcoltbl, tetravertcoltbl, tetravertcolfds);
-    tetraoppfacecent = 1/3*(reducemap*tetraoppvertcent);
-
-    map = setupTableMapping(vertcoltbl, tetravertcoltbl, {'vertices', 'coldim'});
-    tetravertcent = map*vertcent;
+    tetraoppfacecent = 1/3*tblmap(tetraoppvertcent, tetravertoppcoltbl, tetravertcoltbl, tetravertcolfds);
+    tetravertcent = tblmap(vertcent, vertcoltbl, tetravertcoltbl, {'vertices', 'coldim'});
 
     coef = (oppfacenormals.*(tetravertcent - tetraoppfacecent));
-    reducemap = setupTableMapping(tetravertcoltbl, tetraverttbl, tetravertfds);
-    coef = reducemap*coef;
+    
+    coef = tblmap(coef, tetravertcoltbl, tetraverttbl, tetravertfds);
     coef = 1./coef;
-
-    dispatchmap = setupTableMapping(tetraverttbl, tetravertcoltbl, tetravertfds);
-    coef = dispatchmap*coef;
+    coef = tblmap(coef, tetraverttbl, tetravertcoltbl, tetravertfds);
 
     grad = coef.*oppfacenormals;
-
 
     %% We set up the permeability tensor
 
@@ -323,8 +316,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rowtbl.rowdim = (1 : 3)';
     rowtbl.num = 3;
 
-    [~, colrowtbl] = setupTableMapping(coltbl, rowtbl, {});
-    [~, cellcolrowtbl] = setupTableMapping(celltbl, colrowtbl, []);
+    colrowtbl = crossTable(coltbl, rowtbl, {});
+    cellcolrowtbl = crossTable(celltbl, colrowtbl, []);
     cellcolrowtbl = sortTable(cellcolrowtbl, {'cells', 'coldim', 'rowdim'});
 
     permmat = permTensor(rock, G.griddim);
@@ -336,41 +329,44 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % grad. We obtain Kgrad, which is indexed according to indexing table
     % tetravertcoltbl
     
-    [~, tetravertcolrowtbl] = setupTableMapping(tetravertcoltbl, rowtbl, []);
-    dispatchmap = setupTableMapping(cellcolrowtbl, tetravertcolrowtbl, {'cells', ...
+    tetravertcolrowtbl = crossTable(tetravertcoltbl, rowtbl, {});
+    K = tblmap(perm, cellcolrowtbl, tetravertcolrowtbl, {'cells', ...
                         'coldim', 'rowdim'});
-    K = dispatchmap*perm;
 
     %% Setup of Amat
     % The tensor Amat is stored according indexing table tetravert2tbl. For each
     % tetrahedra, it is a two-dimensional tensor for pairs of values at the
     % vertices of the tetrahedra.
     
-    dispatchmap = setupTableMapping(tetravertcoltbl, tetravertcolrowtbl, tetravertcolfds);
-    Kgrad = K.*(dispatchmap*grad);
-    tetravertrowtbl = replacefield(tetravertcoltbl, {'coldim', 'rowdim'});
-    reducemap = setupTableMapping(tetravertcolrowtbl, tetravertrowtbl, {tetravertfds{:}, ...
-                        'rowdim'});
-    Kgrad = reducemap*Kgrad;
-
     
-    [~, tetravert2tbl] = setupTableMapping(tetraverttbl, tetraverttbl, {'cells', ...
-                        'faces', 'edges'}, 'crossextend', {{'vertices', {'vertices1', ...
-                        'vertices2'}}});
-    tetravert2fds = {'cells', 'faces', 'edges', 'vertices1', 'vertices2'};
-    [~, tetravert2coltbl] = setupTableMapping(coltbl, tetravert2tbl, []);
-    tetravert2colfds = {'cells', 'faces', 'edges', 'vertices1', 'vertices2', 'coldim'};
+    prod = TensorProd();
+    prod.tbl1 = tetravertcolrowtbl;
+    prod.tbl2 = tetravertcoltbl;
+    prod.replacefds1 = {{'coldim', 'temp'}, {'rowdim', 'coldim'}, {'temp', 'rowdim'}};
+    prod.replacefds2 = {'coldim', 'rowdim'};
+    prod.reducefds   = {'rowdim'};
+    prod.mergefds    = tetravertfds;
+    prod.prodtbl     = tetravertcoltbl;
+    prod = prod.setup();
+    
+    Kgrad = prod.evalProd(K, grad);
+    
 
-    dispatchmap = setupTableMapping(tetravertcoltbl, tetravert2coltbl, {'cells', ...
-                        'faces', 'edges', 'coldim', {'vertices', 'vertices1'}});
-    Kgrad = dispatchmap*Kgrad;
-    dispatchmap = setupTableMapping(tetravertcoltbl, tetravert2coltbl, {'cells', ...
-                        'faces', 'edges', 'coldim', {'vertices', 'vertices2'}});
-    grad = dispatchmap*grad;
+    tetravert2tbl = crossTable(tetraverttbl, tetraverttbl, {'cells', ...
+                        'faces', 'edges'}, 'crossextend', {{'vertices', ...
+                        {'vertices1', 'vertices2'}}});
+    
+    tetravert2coltbl = crossTable(coltbl, tetravert2tbl, []);
+
+    tetravertcolfds = {'cells', 'faces', 'edges', 'coldim'};
+    Kgrad = tblmap(Kgrad, tetravertcoltbl, tetravert2coltbl, {tetravertcolfds{:}, {'vertices', 'vertices1'}});
+    grad  = tblmap(grad , tetravertcoltbl, tetravert2coltbl, {tetravertcolfds{:}, {'vertices', 'vertices2'}});
+    
     Amat = Kgrad.*grad;
-
-    reducemapping = setupTableMapping(tetravert2coltbl, tetravert2tbl, tetravert2fds);
-    Amat = reducemapping*Amat;
+    
+    tetravert2fds = gettblfds(tetravert2tbl);
+    Amat = tblmap(Amat, tetravert2coltbl, tetravert2tbl, tetravert2fds);
+    
 
     %% Computation of the volume of each tetrahedra
     
@@ -378,64 +374,64 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % P2 - P1, u2 = P3 - P1 and u3 = P4 - P1. The volume of the tetrahedra is
     % given by 1/6 multiplied with the determinant of [u1, u2, u3].
     
-    A = convertTableToArray(tetraverttbl, {'cells', 'faces', 'edges', 'vertices'});
-    A = sortrows(A);
+    tetravertmat = convertTableToArray(tetraverttbl, {'cells', 'faces', 'edges', 'vertices'});
+    tetravertmat = sortrows(tetravertmat);
 
+    clear loctbl
     loctbl.locind = [1; 2; 3; 4];
     loctbl.num = 4;
 
     locinds = repmat(loctbl.locind, tetratbl.num, 1);
 
-    A = [A, locinds];
+    tetravertmat = [tetravertmat, locinds];
 
-    tetraverttbl2 = convertArrayToTable(A, {'cells', 'faces', 'edges', 'vertices', ...
+    tetraverttbl2 = convertArrayToTable(tetravertmat, {'cells', 'faces', 'edges', 'vertices', ...
                         'locind'});
-    [~, tetravertcoltbl2] = setupTableMapping(tetraverttbl2, coltbl, []);
+    tetravertcoltbl2 = crossTable(tetraverttbl2, coltbl, []);
 
-    map = setupTableMapping(vertcoltbl, tetravertcoltbl2, {'vertices', 'coldim'});
-    tetravertcent = map*vertcent;
+    tetravertcent = tblmap(vertcent, vertcoltbl, tetravertcoltbl2, {'vertices', 'coldim'});
 
-    mult1 = [-1; 1; 0; 0];
-    dispatchmap = setupTableMapping(loctbl, tetravertcoltbl2, {'locind'});
-    mult1 = dispatchmap*mult1;
-    u1 = mult1.*tetravertcent;
-    reducemap = setupTableMapping(tetravertcoltbl2, tetracoltbl, {'cells', ...
-                        'faces', 'edges', 'coldim'});
-    u1 = reducemap*u1;
-
+    
+    prod = TensorProd();
+    prod.tbl1 = loctbl;
+    prod.tbl2 = tetravertcoltbl2;
+    prod.reducefds = {'locind'};
+    prod.prodtbl = tetracoltbl;
+    prod = prod.setup();
+    
+    mult1 = [-1; 1; 0; 0];    
+    u1 = prod.evalProd(mult1, tetravertcent);
     mult2 = [-1; 0; 1; 0];
-    mult2 = dispatchmap*mult2;
-    u2 = mult2.*tetravertcent;
-    u2 = reducemap*u2;
-
-    mult3 = [-1; 0; 0; 1];
-    mult3 = dispatchmap*mult3;
-    u3 = mult3.*tetravertcent;
-    u3 = reducemap*u3;
-
+    u2 = prod.evalProd(mult2, tetravertcent);
+    mult3 = [-1; 0; 0; 1];    
+    u3 = prod.evalProd(mult3, tetravertcent);
+    
     determinanttbl.dim1 = [1; 1; 2; 2; 3; 3];
     determinanttbl.dim2 = [2; 3; 1; 3; 1; 2];
     determinanttbl.dim3 = [3; 2; 3; 1; 2; 1];
     determinanttbl.num = numel(determinanttbl.dim1);
-    [~, tetradettbl] = setupTableMapping(tetratbl, determinanttbl, []);
+    [tetradettbl, indstruct] = crossTable(tetratbl, determinanttbl, []);
     detmultiplier = [1; -1; -1; 1; 1; -1];
-    map1 = setupTableMapping(tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim1'}});
-    map2 = setupTableMapping(tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim2'}});
-    map3 = setupTableMapping(tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim3'}});
-    map4 = setupTableMapping(determinanttbl, tetradettbl, {'dim1', 'dim2', ...
-                        'dim3'});
-    vol = (map4*detmultiplier).*(map1*u1).*(map2*u2).*(map3*u3);
-    reducemap = setupTableMapping(tetradettbl, tetratbl, tetrafds);
-    vol = reducemap*vol;
+    detmultiplier = tbldispatch2(detmultiplier, indstruct);
+    
+    u1 = tblmap(u1, tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim1'}});
+    u2 = tblmap(u2, tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim2'}});
+    u3 = tblmap(u3, tetracoltbl, tetradettbl, {tetrafds{:}, {'coldim', 'dim3'}});
+    vol = detmultiplier.*u1.*u2.*u3;
+    vol = tblmap(vol, tetradettbl, tetratbl, tetrafds);
     vol = 1/6*abs(vol);
 
     % We multiply the tensor Amat by the volume
     
-    dispatchmap = setupTableMapping(tetratbl, tetravert2tbl, tetrafds);
-    vol = dispatchmap*vol;
+    prod = TensorProd();
+    prod.tbl1    = tetratbl;
+    prod.tbl2    = tetravert2tbl;
+    prod.prodtbl = tetravert2tbl;
+    prod.mergefds = tetrafds;
+    prod = prod.setup();
     
-    Amat = vol.*Amat;
-
+    Amat = prod.evalProd(vol, Amat);
+    
 
     %% Summation of contribution over the tetrahedra in a cell
     
@@ -445,14 +441,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % We create table cellvert2tbl which contains the two-dimensional tensor
     % acting on pair of vertices 
-    [~, cellvert2tbl] = setupTableMapping(cellverttbl, cellverttbl, {'cells'}, 'crossextend', {{'vertices', ...
-                        {'vertices1', 'vertices2' }}});
-
-    reducemapping = setupTableMapping(tetravert2tbl, cellvert2tbl, {'cells', 'vertices1', ...
-                        'vertices2'});
+    cellvert2tbl = crossTable(cellverttbl, cellverttbl, {'cells'}, ...
+                                    'crossextend', {{'vertices', {'vertices1', ...
+                        'vertices2' }}});
     % The tensor Amat is now indexed according to cellvert2tbl:
-    Amat = reducemapping*Amat;
+    Amat = tblmap(Amat, tetravert2tbl, cellvert2tbl, {'cells', 'vertices1', ...
+                        'vertices2'});
 
+    
     %% Barycentric condensation
 
     % setup cellcnverttbl: For each cell, the vertices of the cell and of the nodes
@@ -461,7 +457,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     cellnodetbl.nodes = G.cells.nodes;
     cellnodetbl.num   = numel(cellnodetbl.cells);
 
-    [~, cellnodetbl] = setupTableMapping(cellnodetbl, nodetbl, {'nodes'});
+    cellnodetbl = crossTable(cellnodetbl, nodetbl, {'nodes'});
     a1 = convertTableToArray(cellnodetbl, {'cells', 'vertices'});
     a1 = unique(a1(:, [1, 2]), 'rows'); % all the vertices from the nodes for
                                         % given cell
@@ -473,11 +469,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     cellcnvertfds = {'cells', 'cnvertices'};
 
     % We setup cellvertcnvert: This table is used to describe the barycentric
-    % condenstion from vertices to cnvertices. It is used to store a 2D tensor
+    % condensation from vertices to cnvertices. It is used to store a 2D tensor
     % of pair of values at cnvertices and vertices, which we call the
     % barycentric mapping.
-    [~, cellvertcnverttbl] = setupTableMapping(cellverttbl, cellcnverttbl, ...
-                                                            {'cells'});
+    cellvertcnverttbl = crossTable(cellverttbl, cellcnverttbl, ...
+                                         {'cells'});
     cellvertcnvertfds = {'cells', 'cnvertices', 'vertices'};
 
     % We store in barcoef the barycentric mapping
@@ -494,73 +490,69 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     facenodetbl.num = numel(facenodetbl.faces);
     nnodeperface = diff(G.faces.nodePos);
     % Here we assume that facetbl.faces = (1 : nf)'
-    dispatchmap = setupTableMapping(facetbl, facenodetbl, {'faces'});
-    nodecoef = 1./(dispatchmap*nnodeperface);
+    nodecoef = tblmap(nnodeperface, facetbl, facenodetbl, {'faces'});
+    nodecoef = 1./nodecoef;
 
-    [~, facenodetbl] = setupTableMapping(facenodetbl, nodetbl, {'nodes'});
+    facenodetbl = crossTable(facenodetbl, nodetbl, {'nodes'});
     facenodetbl = replacefield(facenodetbl, {'vertices', 'nodevertices'});
-    [~, facenodetbl] = setupTableMapping(facenodetbl, facetbl, {'faces'});
+    facenodetbl = crossTable(facenodetbl, facetbl, {'faces'});
     facenodetbl = replacefield(facenodetbl, {'vertices', 'facevertices'});
 
     facenodefds = {'faces', 'nodes', 'nodevertices', 'facevertices'};
 
-    [~, cellfacenodetbl] = setupTableMapping(cellfacetbl, facenodetbl, {'faces'});
+    [cellfacenodetbl, indstruct] = crossTable(cellfacetbl, facenodetbl, {'faces'});
+    nodecoef = tbldispatch2(nodecoef, indstruct);
+    
     cellfacenodefds = {'cells', 'faces', 'nodes', 'nodevertices', 'facevertices'};
 
-    dispatchmap = setupTableMapping(facenodetbl, cellfacenodetbl, {'faces', 'nodes'});
-    nodecoef = dispatchmap*nodecoef;
-    map = setupTableMapping(cellfacenodetbl, cellvertcnverttbl, {'cells', ...
+    nodecoef = tblmap(nodecoef, cellfacenodetbl, cellvertcnverttbl, {'cells', ...
                         {'facevertices', 'vertices'}, {'nodevertices', ...
                         'cnvertices'}});
-    barcoef = barcoef + map*nodecoef;
+    barcoef = barcoef + nodecoef;
 
+    % We apply barcoef to vertices1 and vertices2 in the Amat matrix.
+    prod = TensorProd();
+    prod.tbl1 = cellvertcnverttbl;
+    prod.tbl2 = cellvert2tbl;
+    prod.replacefds1 = {{'vertices', 'vertices1'}, {'cnvertices', ...
+                        'cnvertices1'}};
+    prod.reducefds   = {'vertices1'};
+    prod.mergefds    = {'cells'};
+    prod = prod.setup();
+    
+    Amat = prod.evalProd(barcoef, Amat);
+    
+    cellvert2cnvert1tbl = prod.prodtbl;
 
-    % We setup a 4D tensor barcoef2, which is the tensor product of the 2D
-    % tensor barcoef.
-    crossextend1 = {'vertices'  , {'vertices1'  , 'vertices2'}};
-    crossextend2 = {'cnvertices', {'cnvertices1', 'cnvertices2'}};
-    crossextend = {crossextend1, crossextend2};
-    [~, cellvert2cnvert2tbl] = setupTableMapping(cellvertcnverttbl, ...
-                                                 cellvertcnverttbl, {'cells'}, ...
-                                                 'crossextend', crossextend);
-
-    dispatchmap = setupTableMapping(cellvert2tbl, cellvert2cnvert2tbl, {'cells', 'vertices1', ...
-                        'vertices2'});
-    Amat = dispatchmap*Amat;
-
-    dispatchmap1 = setupTableMapping(cellvertcnverttbl, cellvert2cnvert2tbl, {'cells', {'vertices', 'vertices1'}, ...
-                        {'cnvertices', 'cnvertices1'}});
-    barcoef1 = dispatchmap1*barcoef;
-    dispatchmap2 = setupTableMapping(cellvertcnverttbl, cellvert2cnvert2tbl, {'cells', {'vertices', 'vertices2'}, ...
-                        {'cnvertices', 'cnvertices2'}});
-    barcoef2 = dispatchmap2*barcoef;
-
-    Amat = Amat.*barcoef1.*barcoef2;
-
-    [~, cellcnvert2tbl] = setupTableMapping(cellcnverttbl, cellcnverttbl, {'cells'}, 'crossextend', ...
-                                                          {{'cnvertices', ...
-                        {'cnvertices1', 'cnvertices2'}}});
-    reducemap = setupTableMapping(cellvert2cnvert2tbl, cellcnvert2tbl, {'cells', ...
-                        'cnvertices1', 'cnvertices2'});
-
-    Amat = reducemap*Amat;
-
+    prod = TensorProd();
+    prod.tbl1 = cellvert2cnvert1tbl;
+    prod.tbl2 = cellvertcnverttbl;
+    prod.replacefds2 = {{'vertices', 'vertices2'}, {'cnvertices', ...
+                        'cnvertices2'}};
+    prod.reducefds   = {'vertices2'};
+    prod.mergefds    = {'cells'};
+    prod = prod.setup();
+    
+    Amat = prod.evalProd(Amat, barcoef);
+    
+    cellcnvert2tbl = prod.prodtbl;
+    
 
     %% Finally, we collect the elements for only the node vertices
 
-    [~, cellnverttbl] = setupTableMapping(cellcnverttbl, nodetbl, {{'cnvertices', ...
+    cellnverttbl = crossTable(cellcnverttbl, nodetbl, {{'cnvertices', ...
                         'vertices'}});
     cellnverttbl = replacefield(cellnverttbl, {'cnvertices', 'nvertices'});
 
     clear crossextends
     crossextends{1} = {'nvertices', {'nvertices1', 'nvertices2'}};
     crossextends{2} = {'nodes', {'nodes1', 'nodes2'}};
-    [~, cellnvert2tbl] = setupTableMapping(cellnverttbl, cellnverttbl, {'cells'}, ...
-                                                         'crossextend', crossextends);
+    
+    cellnvert2tbl = crossTable(cellnverttbl, cellnverttbl, {'cells'}, ...
+                                     'crossextend', crossextends);
 
-    map = setupTableMapping(cellcnvert2tbl, cellnvert2tbl, {'cells', {'cnvertices1', ...
+    A = tblmap(Amat, cellcnvert2tbl, cellnvert2tbl, {'cells', {'cnvertices1', ...
                         'nvertices1'}, {'cnvertices2', 'nvertices2'}});
-    A = map*Amat;
 
     cellnode2tbl = cellnvert2tbl;
     cellnode2tbl = rmfield(cellnode2tbl, 'nvertices1');
