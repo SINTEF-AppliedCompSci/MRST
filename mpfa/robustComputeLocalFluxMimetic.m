@@ -24,7 +24,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     % that we will have a block structure for the nodal scalar product.
     facenodetbl = sortTable(facenodetbl, {'nodes', 'faces'});
     
-    [~, cellnodefacetbl] = setupTableMapping(cellfacetbl, facenodetbl, {'faces'});
+    cellnodefacetbl = crossTable(cellfacetbl, facenodetbl, {'faces'});
 
     % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
     % unique facet in a corner
@@ -41,8 +41,8 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     % mattbl is the table which specifies how nodeM is stored: a matrix for
     % each "corner" (cell-node pair).
     crossextend = {'faces', {'faces1', 'faces2'}};
-    [~, mattbl] = setupTableMapping(cellnodefacetbl, cellnodefacetbl, {'cells', 'nodes'}, ...
-                                         'crossextend', {crossextend});
+    mattbl = crossTable(cellnodefacetbl, cellnodefacetbl, {'cells', 'nodes'}, ...
+                        'crossextend', {crossextend});
     % We order mattbl in cell-node-face1-face2 order
     % This is done to optimize for-end loop below
     mattbl = sortTable(mattbl, {'cells', 'nodes', 'faces1', 'faces2'});
@@ -78,38 +78,29 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     permmat = perm;
     perm = reshape(permmat', [], 1);
     % setup cellcolrow table for the vector perm
-    [~, colrowtbl] = setupTableMapping(coltbl, rowtbl, []);
-    [~, cellcolrowtbl] = setupTableMapping(colrowtbl, celltbl, []);
+    colrowtbl = crossTable(coltbl, rowtbl, []);
+    cellcolrowtbl = crossTable(colrowtbl, celltbl, {});
     cellcolrowtbl = sortTable(cellcolrowtbl, {'cells', 'coldim', 'rowdim'});
     cellcolrowtbl = addLocInd(cellcolrowtbl, 'ccrind');
     
-    % dispatch perm on cellnodeface
-    
-    [~, cellnodefacecolrowtbl] = setupTableMapping(cellcolrowtbl, cellnodefacetbl, ...
-                                                                 {'cells'});
-    op = setupTableMapping(cellcolrowtbl, cellnodefacecolrowtbl, {'ccrind'}, ...
-                                         'fastunstable', true);
-    perm = op*perm;
     % Multiply perm with facetNormals
-    map1 = setupTableMapping(cellnodefacecoltbl, cellnodefacecolrowtbl, ...
-                                           {'cnfind', 'coldim'}, 'fastunstable', ...
-                                           true);
-    Kn = perm.*(map1*facetNormals);
+    prod = TensorProd();
+    prod.tbl1 = cellcolrowtbl;
+    prod.tbl2 = cellnodefacecoltbl;
+    prod.replacefds1 = {{'coldim', 'temp'}, {'rowdim', 'coldim'}, {'temp', 'rowdim'}};
+    prod.replacefds2 = {'coldim', 'rowdim'};
+    prod.mergefds = {'cells'};
+    prod.reducefds = {'rowdim'};
+    prod.prodtbl = cellnodefacecoltbl;
+    prod = prod.setup();
     
-    map2 = setupTableMapping(cellnodefacecolrowtbl, cellnodefacecoltbl, ...
-                                           {'cnfind', {'rowdim', 'coldim'}}, ...
-                                           'fastunstable', true);
-    Kn = map2*Kn;
-    
+    Kn = prod.evalProd(perm, facetNormals);
+   
     % store Kn in matrix form in facePermNormals.
-    op = setupTableMapping(cellnodefacetbl, cellnodefacecoltbl, {'cnfind'}, ...
-                                         'fastunstable', true);
-    ind1 = cellnodefacetbl.cnfind;
-    ind1 = op*ind1;
-    op = setupTableMapping(coltbl, cellnodefacecoltbl, {'coldim'}, 'fastunstable', ...
-                                   true);
+    ind1 = (1 : cellnodefacetbl.num)';
+    ind1 = tblmap(ind1, cellnodefacetbl, cellnodefacecoltbl, {'cells', 'nodes', 'faces'});
     ind2 = (1 : coltbl.num)';
-    ind2 = op*ind2;    
+    ind2 = tblmap(ind2, coltbl, cellnodefacecoltbl, {'coldim'});
     facePermNormals = sparse(ind1, ind2, Kn, cellnodefacetbl.num, coltbl.num);
     
     % Some shortcuts
@@ -126,9 +117,10 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     areas = G.faces.areas(fno);
     vols  = G.cells.volumes(cno);
     
-    map = setupTableMapping(cellnodetbl, cellnodefacetbl, {'cells', 'nodes'}); 
-    nfaces = diag(map'*map);
-    nfaces = map*nfaces;
+    % number of faces per cell-nodes.
+    nfaces = tblmap(ones(cellnodefacetbl.num, 1), cellnodefacetbl, cellnodetbl, {'cells', 'nodes'}); 
+    % we setup nfaces indexed along cellnodefacetbl
+    nfaces = tblmap(nfaces, cellnodetbl, cellnodefacetbl, {'cells', 'nodes'}); 
     
     cnf_i = 1; % start indice for the cellnodefacetbl index
     mat_i = 1; % start indice for the mattbl index
