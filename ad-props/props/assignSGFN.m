@@ -1,14 +1,14 @@
 function f = assignSGFN(f, sgfn, reg)
-    [f.krG, pcOG, f.krPts.g, f.krPts.og, hasPC] = getFunctions(f, sgfn, reg);
+    [f.krG, pcOG, f.krPts.g, hasPC] = getFunctions(f, sgfn, reg);
     if hasPC
         f.pcOG = pcOG;
     end
 end
 
-function [krG, pcOG, pts, pts_o, hasPC] = getFunctions(f, SGFN, reg)
+function [krG, pcOG, pts, hasPC] = getFunctions(f, SGFN, reg)
     [krG, pcOG] = deal(cell(1, reg.sat));
     
-    [pts, pts_o] = deal(zeros(reg.sat, 4));
+    pts = deal(zeros(reg.sat, 4));
     hasPC = false;
     for i = 1:reg.sat
         if isfield(f, 'krPts')
@@ -17,7 +17,7 @@ function [krG, pcOG, pts, pts_o, hasPC] = getFunctions(f, SGFN, reg)
             warning('No relperm points found in assignment of SGOF.');
             swcon = 0;
         end
-        [pts(i, :), pts_o(i, :)] = getPoints(SGFN{i}, swcon);
+        pts(i, :) = getPoints(SGFN{i}, swcon);
         sgfn = extendTab(SGFN{i});
         SG = sgfn(:, 1);
         kr = sgfn(:, 2);
@@ -28,7 +28,7 @@ function [krG, pcOG, pts, pts_o, hasPC] = getFunctions(f, SGFN, reg)
     end
 end
 
-function [pts, pts_o] = getPoints(sgfn, swcon)
+function pts = getPoints(sgfn, swcon)
     % Connate gas saturation
     pts = zeros(1, 4);
     pts(1) = sgfn(1, 1);
@@ -39,14 +39,6 @@ function [pts, pts_o] = getPoints(sgfn, swcon)
     pts(3) = sgfn(end,1);
     % Maximum relperm
     pts(4) = sgfn(end,2);
-    
-    % Get OG-scaling
-    pts_o = zeros(1, 4);
-    pts_o(3) = 1;
-    ii = find(sgfn(:,3) == 0, 1, 'first');
-    pts_o(2) = 1 - sgfn(ii,1) - swcon;
-    % Maximum oil relperm
-    pts_o(4) = sgfn(1,3);
 end
 
 
