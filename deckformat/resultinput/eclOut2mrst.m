@@ -76,7 +76,7 @@ switch unit
         u.trans   = centi*poise * meter^3 / (day * barsa);
     case 'field'
         u.length  = ft;
-        u.resvol  = ft^3;
+        u.resvol  = stb;
         u.perm    = milli*darcy;
         u.trans   = centi*poise * stb / (day * psia);
     case 'lab'
