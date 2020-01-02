@@ -9,6 +9,12 @@ classdef MultipliedPoreVolume < StateFunction
             if isfield(model.fluid, 'pvMultR')
                 gp = gp.dependsOn({'pressure'}, 'state');
             end
+            assert(isfield(model.operators, 'pv'), ...
+                'Pore-volume (pv) must be present as field in operators struct');
+            assert(numel(model.operators.pv) == model.G.cells.num,...
+                'Pore-volumes must be defined in each cell.');
+            assert(all(model.operators.pv > 0), ...
+                'Pore-volumes must be non-negative.');
         end
         function pv = evaluateOnDomain(prop, model, state)
             % Get effective pore-volume, accounting for possible
