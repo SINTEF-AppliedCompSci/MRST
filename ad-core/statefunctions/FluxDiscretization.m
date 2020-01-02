@@ -85,7 +85,7 @@ classdef FluxDiscretization < StateFunctionGrouping
             %            component names.
             %   types  - Types of each equation (defaults to 'cell', to
             %            indicate cell-wise equations on the whole domain)
-            ncomp = model.getNumberOfComponents;
+            ncomp = model.getNumberOfComponents();
             [acc, types] = deal(cell(1, ncomp));
             names = model.getComponentNames();
             [types{:}] = deal('cell');
@@ -93,6 +93,10 @@ classdef FluxDiscretization < StateFunctionGrouping
             mass0 = model.getProps(state0, 'ComponentTotalMass');
             flowState = fd.buildFlowState(model, state, state0, dt);
             v = model.getProps(flowState, 'ComponentTotalFlux');
+            if ~iscell(mass0)
+                % May have been reduced to a double array
+                mass0 = {mass0};
+            end
             for c = 1:ncomp
                 acc{c} = (mass{c} - mass0{c})./dt;
             end
