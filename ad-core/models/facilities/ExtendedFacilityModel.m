@@ -3,6 +3,7 @@ classdef ExtendedFacilityModel < FacilityModel
         T = 288.15; % Metric standard conditions
         pressure = 101.325*kilo*Pascal; % Metric standard pressure
         SeparatorGroup
+        outputFluxes = true;
     end
     
     methods
@@ -307,7 +308,7 @@ classdef ExtendedFacilityModel < FacilityModel
 
             [state, report] = updateAfterConvergence@FacilityModel(model, state0, state, dt, drivingForces);
             nw = model.getNumberOfActiveWells(state.wellSol);
-            if nw > 0
+            if nw > 0 && model.outputFluxes
                 map = state.FacilityFluxProps.FacilityWellMapping;
                 phaseq = value(model.getProp(state, 'PhaseFlux'));
                 cf = model.getProp(state, 'ComponentTotalFlux');
