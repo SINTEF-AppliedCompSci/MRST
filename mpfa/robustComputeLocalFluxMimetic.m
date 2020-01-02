@@ -183,26 +183,19 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
         fprintf('Condensate on nodes ...\n');
     end    
     % Condensate on nodes (sum up cell contributions for given node).
-    [~, redmattbl] = setupTableMapping(facenodetbl, facenodetbl, {'nodes'}, ...
-                                               'crossextend', {{'faces', {'faces1', ...
-                        'faces2'}}});
-    op = setupTableMapping(mattbl, redmattbl, {'nodes', 'faces1', 'faces2'});
-    nodeM = op*nodeM;
+    redmattbl = projTable(mattbl, {'nodes', 'faces1', 'faces2'});
+    nodeM = tblmap(nodeM, mattbl, redmattbl, {'nodes', 'faces1', 'faces2'});
     
     if opt.verbose
         fprintf('Set up matrix ...\n');
     end    
     % Setup matrix
     % First set up facet indices in the redmattbl table
-    op = setupTableMapping(facenodetbl, redmattbl, {'nodes', {'faces', ...
+    fnind = (1 : facenodetbl.num)';
+    facesind1 = tblmap(fnind, facenodetbl, redmattbl, {'nodes', {'faces', ...
                         'faces1'}});
-    facesind1 = (1 : facenodetbl.num)';
-    facesind1 = op*facesind1;
-
-    op = setupTableMapping(facenodetbl, redmattbl, {'nodes', {'faces', ...
+    facesind2 = tblmap(fnind, facenodetbl, redmattbl, {'nodes', {'faces', ...
                         'faces2'}});
-    facesind2 = (1 : facenodetbl.num)';
-    facesind2 = op*facesind2;
     
     % Assembly of B
     B = sparse(facesind1, ...
