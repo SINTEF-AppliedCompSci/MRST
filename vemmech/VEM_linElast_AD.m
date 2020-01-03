@@ -211,7 +211,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     u   = nan(ndof, 1);
 
-    u(isdirdofs)  = u_bc(isdirdofs);
+    u(isdirdofs)  = value(u_bc(isdirdofs));
     u(~isdirdofs) = x;
     uu = reshape(u, G.griddim, [])';
 
