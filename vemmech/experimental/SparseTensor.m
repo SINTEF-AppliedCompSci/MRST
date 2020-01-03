@@ -43,6 +43,8 @@ classdef SparseTensor
              comp.coefs = comp.coefs(:); % ensure column vector
              if isempty(comp.coefs)
                 comp.coefs = ones(size(comp.ixs, 1), 1);
+             elseif isscalar(comp.coefs)
+                comp.coefs = comp.coefs * ones(size(comp.ixs,1), 1);
              end
              self = SparseTensor(comp);
            otherwise

@@ -166,7 +166,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Add load to right hand side
     rhs = rhso + f + f_pressure;
     % Add boundary forces
-    if(~isempty(el_bc.force_bc))
+    if(isfield(el_bc, 'force_bc') && ~isempty(el_bc.force_bc))
        
        % defining weight tensor in face-node-dim ('f', 'n')
        if G.griddim == 2
