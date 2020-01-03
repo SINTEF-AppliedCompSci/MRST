@@ -49,17 +49,38 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    facetbl.faces = (1 : nf)';
    facetbl.num = nf;
    
+   % setup table of cell face index
    cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
    cellfacetbl.faces = G.cells.faces(:, 1);
    cellfacetbl.num   = numel(cellfacetbl.cells);
 
+   % sign of normal (outwards or inwards)
+   N = G.faces.neighbors;
+   faces = (1 : nf)';
+
+   intn = N(:, 1) > 0;
+   poscellfacetbl.cells = N(intn, 1);
+   poscellfacetbl.faces = faces(intn);
+   poscellfacetbl.num   = numel(poscellfacetbl.cells);
+   facepossgn = tblmap(ones(poscellfacetbl.num, 1), poscellfacetbl, cellfacetbl, {'cells', 'faces'});
+   
+   intn = N(:, 2) > 0;
+   negcellfacetbl.cells = N(intn, 2);
+   negcellfacetbl.faces = faces(intn);
+   negcellfacetbl.num   = numel(negcellfacetbl.cells);
+   facenegsgn = tblmap(ones(negcellfacetbl.num, 1), negcellfacetbl, cellfacetbl, {'cells', 'faces'});
+   
+   facesgn = facepossgn - facenegsgn;
+
+   
+   % setup table of face node index
    facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos));
    facenodetbl.nodes = G.faces.nodes;
    facenodetbl.num = numel(facenodetbl.faces);
 
-   [~, cellfacenodetbl] = setupTableMapping(cellfacetbl, facenodetbl, ...
-                                                         {'faces'});
+   cellfacenodetbl = crossTable(cellfacetbl, facenodetbl, {'faces'});
    
+   % setup table of cell node index
    cellnodetbl = projTable(cellfacenodetbl, {'cells', 'nodes'});      
    
    extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == ...
@@ -121,9 +142,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        locmattbl.fnind1 = fnind1;
        locmattbl.fnind2 = fnind2;
        locmattbl.num = numel(locmattbl.fnind1);
-       map = setupTableMapping(locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
-       iB = map*iB;
-       clear map;
+       % map = crossTable(locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
+       iB = tblmap(iB, locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
+       % clear map;
        
        % clean-up and prepare locface2nodetbl for further use in contraction operations
        locface2nodetbl = duplicatefield(locface2nodetbl, {'nodes', {'nodes1', ...
@@ -154,60 +175,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            break  
        end
        
-       div        = zeros(loccellfacenodetbl.num, 1);
-       locfacetbl = projTable(locfacenodetbl, {'faces'});
-       locfaces   = locfacetbl.faces;
+       div = tblmap(facesgn, cellfacetbl, loccellfacenodetbl, {'cells', 'faces'});
 
-       intn = (N(locfaces, 1) > 0);
-       if any(intn)
-           clear locposcellfacetbl
-           locposcellfacetbl.cells = N(locfaces(intn), 1);
-           locposcellfacetbl.faces = locfaces(intn);
-           locposcellfacetbl.num   = numel(locposcellfacetbl.cells);
-           mappos = setupTableMapping(locposcellfacetbl, loccellfacenodetbl, {'cells', 'faces'});
-           div = div + mappos*ones(locposcellfacetbl.num, 1);
-           clear mappos
-       end
-
-       intn = (N(locfaces, 2) > 0);
-       if any(intn)
-           clear locnegcellfacetbl
-           locnegcellfacetbl.cells = N(locfaces(intn), 2);
-           locnegcellfacetbl.faces = locfaces(intn);
-           locnegcellfacetbl.num   = numel(locnegcellfacetbl.cells);
-           mapneg = setupTableMapping(locnegcellfacetbl, loccellfacenodetbl, {'cells', 'faces'});
-           div = div - mapneg*ones(locnegcellfacetbl.num, 1);
-           clear mapneg
-       end
-
-       % Table loccell_1facenode_1tbl for div mapping from facenode to cell
-       loccell_1facenode_1tbl = replacefield(loccellfacenodetbl, {{'faces', ...
-                           'faces1'}, {'cells', 'cells1'}, {'nodes', ...
-                           'nodes1'}});
-
-       % Table loccell_2facenode_2tbl for div' mapping from cell to facenode
-       loccell_2facenode_2tbl = replacefield(loccellfacenodetbl, {{'faces', ...
-                           'faces2'}, {'cells', 'cells2'}, {'nodes', ...
-                           'nodes2'}});
+       prod = TensorProd();
+       prod.tbl1 = locface2nodetbl;
+       prod.tbl2 = loccellfacenodetbl;
+       prod.replacefds2 = {{'cells', 'cells2'}, {'faces', 'faces2'}, {'nodes', ...
+                   'nodes2'}};
+       prod.reducefds = {'faces2', 'nodes2'};
+       prod = prod.setup();
        
-       [iBdiv, locfacenode_1cell_2tbl] = contractTable({iB, locface2nodetbl}, ...
-                                                       {div, loccell_2facenode_2tbl}, ...
-                                                       {{'nodes1', 'faces1'}, ...
-                           {'cells2'}, {'faces2', 'nodes2'}});
+       iBdiv = prod.evalProd(iB, div);
+       iBdivtbl = prod.prodtbl;
+       
+       prod = TensorProd();
+       prod.tbl1 = loccellfacenodetbl;
+       prod.tbl2 = iBdivtbl;
+       prod.replacefds1 = {{'cells', 'cells1'}, {'faces', 'faces1'}, {'nodes', ...
+                   'nodes1'}};
+       prod.reducefds = {'faces1', 'nodes1'};
+       prod = prod.setup();
+       
+       diviBdiv    = prod.evalProd(div, iBdiv);
+       diviBdivtbl = prod.prodtbl;
 
-       [diviBdiv, loccell_1cell_2tbl] = contractTable({div, loccell_1facenode_1tbl}, ...
-                                                      {iBdiv, ...
-                           locfacenode_1cell_2tbl}, {{'cells1'}, {'cells2'}, ...
-                           {'faces1', 'nodes1'}});
 
        % Aggregate contribution in A
-       tbl = loccell_1cell_2tbl; %alias
+       
+       tbl = diviBdivtbl; %alias
        locA = sparse(tbl.cells1, tbl.cells2, diviBdiv, nc, nc);
        A = A + locA;
        
        % Aggregate contribution in F
-       locface_1cell_2tbl = projTable(locfacenode_1cell_2tbl, {'faces1', ...
-                           'cells2'});
+       locface_1cell_2tbl = projTable(iBdivtbl, {'faces1', 'cells2'});
        % remove external faces
        a = convertTableToArray(locface_1cell_2tbl, {'faces1', 'cells2'});
        locfaces = a(:, 1);
@@ -215,9 +215,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        a = a(isintface, :);
        locface_1cell_2tbl = convertArrayToTable(a, {'faces1', 'cells2'});
        
-       map = setupTableMapping(locfacenode_1cell_2tbl, locface_1cell_2tbl, ...
-                                             {'faces1', 'cells2'});
-       locF = map*iBdiv;
+       % map = setupTableMapping(iBdivtbl, locface_1cell_2tbl, {'faces1', ...
+                           % 'cells2'});
+       locF = tblmap(iBdiv, iBdivtbl, locface_1cell_2tbl, {'faces1', ...
+                           'cells2'});
        tbl  = locface_1cell_2tbl; %alias
        locF = sparse(tbl.faces1, tbl.cells2, locF, nf, nc);
        F    = F + locF;

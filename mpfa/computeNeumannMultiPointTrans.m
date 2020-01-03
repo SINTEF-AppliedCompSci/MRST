@@ -140,11 +140,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    intfacetbl.num = numel(intfaces);
    
    % setup table with only internal faces
-   [~, cellintnodefacetbl] = setupTableMapping(cellnodefacetbl, intfacetbl, ...
-                                                             {'faces'});
+   cellintnodefacetbl = crossTable(cellnodefacetbl, intfacetbl, {'faces'});
    % add facenode indexing
-   [~, cellintnodefacetbl] = setupTableMapping(cellintnodefacetbl, facenodetbl, ...
-                                                             {'faces', ...
+   cellintnodefacetbl = crossTable(cellintnodefacetbl, facenodetbl, {'faces', ...
                        'nodes'});
    
    fino = cellintnodefacetbl.faces; %alias
@@ -190,8 +188,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % at the external facenode, compute the fluxes at the faces
    F = iB*div';
    % mapping from facenode to face
-   [~, intfacenodetbl] = setupTableMapping(facenodetbl, intfacetbl, ...
-                                                        {'faces'});
+   intfacenodetbl = crossTable(facenodetbl, intfacetbl, {'faces'});
    tbl = intfacenodetbl; %alias
    map = sparse(tbl.faces, tbl.fnind, ones(tbl.num, 1), nf, facenodetbl.num);
    F = map*F;
