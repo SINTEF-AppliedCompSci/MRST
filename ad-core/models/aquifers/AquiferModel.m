@@ -25,34 +25,13 @@ classdef AquiferModel < PhysicalModel
         end
         end
         
+        % -----------------------------------------------------------------
+        
         function model = validateModel(model, reservoirModel)
             model.ReservoirModel = reservoirModel;
         end
-%         
-%             fn = model.getVariableField('aquiferfluxes');
-%             if ~isfield(state, fn)
-%                 dt = 0;
-%                 q = computeAquiferFluxes(model, state, dt);
-%                 state.aquiferfluxes = q;
-%             end
-%             clear fn
-%        end
         
-        % % --------------------------------------------------------------------%
-        % function [fn, index] = getVariableField(model, name, varargin)
-        %     switch(lower(name))
-        %       case {'aquiferpressures', 'aquifervolumes'}
-        %         fn = lower(name);
-        %         index = 1;
-        %       case 'aquiferfluxes'
-        %         fn = lower(name);
-        %         index = 1;
-        %       otherwise
-        %         % Basic phases are known to the base class
-        %         [fn, index] = getVariableField@PhysicalModel(model, name, ...
-        %                                                      varargin{:});
-        %     end
-        % end
+        % -----------------------------------------------------------------
         
         function state = initStateAquifer(model, state)
         p   = model.initvals.pressures;
@@ -64,12 +43,11 @@ classdef AquiferModel < PhysicalModel
             [sol(k).pressure, sol(k).volume] = deal(p(k), vol(k));
         end
         state.aquiferSol = sol;
-        % also include initial fluxes
-        %state = updateAquiferFluxes(model, state, 0);
         end
         
+        % -----------------------------------------------------------------
         
-        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
             report = [];
             p0   = vertcat(state.aquiferSol.pressure);
             vol0 = vertcat(state.aquiferSol.volume);
@@ -99,11 +77,12 @@ classdef AquiferModel < PhysicalModel
             end
         end
         
+        % -----------------------------------------------------------------
+        
         function q = computeAquiferFluxes(model, state, dt)
             % compute aquifer connection fluxes
-
-            [p, sW] = model.ReservoirModel.getProps(state, 'pressure', 'water');
-            
+            rmodel = model.ReservoirModel;
+                      
             p_aq = vertcat(state.aquiferSol.pressure);
             V_aq = vertcat(state.aquiferSol.volume);
 
@@ -124,24 +103,15 @@ classdef AquiferModel < PhysicalModel
             
             p_aq = aquid2conn*p_aq;
             V_aq = aquid2conn*V_aq;
-
-            p  = p(conn);
-            sW = sW(conn);
             
-            rmodel = model.ReservoirModel;
-            
-            fluid = rmodel.fluid;
-            pcOW = 0;
+            p  = rmodel.getProps(state, 'PhasePressures');
             ph = rmodel.getPhaseNames();
-            isw = (ph == 'W');
-            if isfield(fluid, 'pcOW') && ~isempty(sW)
-                %pcOW = rmodel.getProps(state, 'CapillaryPressure');
-                %pcOW = pcOW{isw}(conn);
-            end
+            isw = ph == 'W';
+            pW  = p{isw}(conn);
 
             b = rmodel.getProps(state, 'ShrinkageFactors');
             bW = b{isw}(conn);
-            rhoW = bW.*fluid.rhoWS;
+            rhoW = bW.*rmodel.fluid.rhoWS;
             
             Tc = C.*V_aq./J;
             if dt == 0
@@ -151,10 +121,12 @@ classdef AquiferModel < PhysicalModel
             end
             
             g = rmodel.gravity(3);
-            q = alpha.*J.*(p_aq + pcOW - p + rhoW.*g.*(depthconn - depthaq)).*coef;
+            q = alpha.*J.*(p_aq - pW + rhoW.*g.*(depthconn - depthaq)).*coef;
             
         end
 
+        % -----------------------------------------------------------------
+        
         function eqs = addAquifersContribution(model, eqs, names, state,  dt)
             q = computeAquiferFluxes(model, state, dt);
             wind = strcmpi('water', names);
@@ -167,6 +139,8 @@ classdef AquiferModel < PhysicalModel
             conn = model.aquifers(:, ix.conn);
             eqs{wind}(conn) = eqs{wind}(conn) - q*scale;
         end
+        
+        % -----------------------------------------------------------------
         
         function state = updateAquiferFluxes(model, state, dt)
             if nargin < 3
