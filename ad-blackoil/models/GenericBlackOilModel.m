@@ -25,6 +25,12 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
                                                                  dissolved, {}, ...
                                                                  drivingForces);
             end
+            
+            % Add aquifer contributions if any.
+            if  ~isempty(model.AquiferModel)
+                eqs = addAquifersContribution(model.AquiferModel, eqs, names, state, dt);
+            end
+            
             % Assemble equations and add in sources
             for i = 1:numel(eqs)
                 if ~isempty(src.cells)

@@ -46,6 +46,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         s = bsxfun(@rdivide, s, sum(s, 2));
         state.s = s;
     end
+    if ~isempty(model.AquiferModel)
+        state = model.AquiferModel.initStateAquifer(state);
+    end
 end
 
 function state = directAssignment(model, deck)

@@ -189,12 +189,16 @@ methods
             'Operators must be set up before simulation. See model.setupOperators for more details.');
 
         model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
-
+        
         if isempty(model.FlowPropertyFunctions)
             model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
         end
         if isempty(model.FluxDiscretization)
             model.FluxDiscretization = FluxDiscretization(model); %#ok
+        end
+        
+        if ~isempty(model.AquiferModel)
+            model.AquiferModel = model.AquiferModel.validateModel(model);
         end
     end
 
@@ -263,10 +267,9 @@ methods
         end
         
         if ~isempty(model.AquiferModel)
-            [state, f_report] = model.AquiferModel.updateAfterConvergence(state0, state, dt, drivingForces);
-        else
-            f_report = [];
+            state = model.AquiferModel.updateAfterConvergence(state0, state, dt, drivingForces);
         end
+
         [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
         report.FacilityReport = f_report;
         if isfield(state, 'sMax')
