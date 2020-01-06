@@ -1,65 +1,24 @@
-classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
+classdef AquiferModel < PhysicalModel
     
     properties
         aquifers % aquifers data table
         aquind % structure which explains the fields in the aquifers data table
         aquiferprops
-        modeltype
+        reservoirModel
     end
     
     methods
-        function model = AquiferBlackOilModel(G, rock, fluid, aquifers, aquind, ...
+        function model = AquiferBlackOilModel(reservoirModel, aquifers, aquind, ...
                                               aquiferprops, varargin)
-            opt = struct('modeltype', 'blackoil');
-            [opt, rest] = merge_options(opt, varargin{:});
-            model = model@ThreePhaseBlackOilModel(G, rock, fluid, rest{:});
-
-            model.modeltype = opt.modeltype;
-            switch model.modeltype
-              case 'blackoil'
-                model.oil = true;
-                model.gas = true;
-                model.water = true;
-              case 'oilwater'
-                model.oil    = true;
-                model.water  = true;
-                model.gas    = false;
-                model.disgas = false;
-                model.vapoil = false;
-              otherwise
-                error('modeltype not recognized');
-            end
-            
+            model = model@PhysicalModel([]);
+            model.reservoirModel = reservoirModel;
             model.aquifers     = aquifers;
             model.aquind       = aquind;
             model.aquiferprops = aquiferprops;
         end
         
-        function forces = getValidDrivingForces(model)
-            forces = getValidDrivingForces@ThreePhaseBlackOilModel(model);
-            forces.aquifer = true;
-        end
-        
-        
-        function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            switch model.modeltype
-              case 'blackoil'
-                [problem, state] = equationsBlackOil(state0, state, model, dt, ...
-                                                     drivingForces, ...
-                                                     varargin{:});
-              case 'oilwater'
-                [problem, state] = equationsOilWater(state0, state, model, dt, ...
-                                                     drivingForces, ...
-                                                     varargin{:});
-              otherwise
-                error('modeltype not recognized');
-            end
-
-        end
-        
         function state = validateState(model, state)
         % Check parent class
-            state = validateState@ThreePhaseBlackOilModel(model, state);
             fn = model.getVariableField('aquiferfluxes');
             if ~isfield(state, fn)
                 dt = 0;
@@ -118,6 +77,8 @@ classdef AquiferBlackOilModel < ThreePhaseBlackOilModel
         
         function eqs = addAquifersContribution(model, eqs, names, state,  dt)
             
+            reservoirModel = model.reservoirModel;
+           
             q = computeAquiferFluxes(model, state, dt);
             
             wind = strcmpi('water', names);

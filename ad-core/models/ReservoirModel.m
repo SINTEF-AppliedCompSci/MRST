@@ -52,6 +52,7 @@ properties
     % Coupling to forces and other models
     gravity % Vector for the gravitational force
     FacilityModel % Facility model used to represent wells
+    AquiferModel % Facility model used to represent wells
     FlowPropertyFunctions % Grouping for flow properties
     FluxDiscretization % Grouping for flux discretization
     Components = {};
@@ -127,6 +128,9 @@ methods
         end
         if ~isempty(model.FacilityModel)
             state = model.FacilityModel.validateState(state);
+        end
+        if ~isempty(model.AquiferModel)
+            state = model.AquiferModel.validateState(state);
         end
         if ~isfield(state, 'sMax') && isfield(state, 's')
             state.sMax = state.s;
@@ -257,6 +261,12 @@ methods
         else
             f_report = [];
         end
+        
+        if ~isempty(model.AquiferModel)
+            [state, f_report] = model.AquiferModel.updateAfterConvergence(state0, state, dt, drivingForces);
+        else
+            f_report = [];
+        end
         [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
         report.FacilityReport = f_report;
         if isfield(state, 'sMax')
@@ -377,7 +387,12 @@ methods
             case 'flux'
                 index = ':';
                 fn = 'flux';
-            case 'wellsol'
+            case 'aquifersol'
+                % Use colon to get all variables, since the wellsol may
+                % be empty
+                index = ':';
+                fn = 'aquiferSol';
+          case 'wellsol'
                 % Use colon to get all variables, since the wellsol may
                 % be empty
                 index = ':';
