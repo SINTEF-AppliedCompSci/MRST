@@ -4,12 +4,12 @@ classdef AquiferModel < PhysicalModel
         aquifers % aquifers data table
         aquind % structure which explains the fields in the aquifers data table
         aquiferprops
-        reservoirModel
+        reservoirModel % reservoir model the aquifer belongs to
     end
     
     methods
-        function model = AquiferBlackOilModel(reservoirModel, aquifers, aquind, ...
-                                              aquiferprops, varargin)
+        function model = AquiferModel(reservoirModel, aquifers, aquind, ...
+                                      aquiferprops, varargin)
             model = model@PhysicalModel([]);
             model.reservoirModel = reservoirModel;
             model.aquifers     = aquifers;
@@ -28,28 +28,26 @@ classdef AquiferModel < PhysicalModel
             clear fn
         end
         
-        % --------------------------------------------------------------------%
-        function [fn, index] = getVariableField(model, name, varargin)
-            switch(lower(name))
-              case {'aquiferpressures', 'aquifervolumes'}
-                fn = lower(name);
-                index = 1;
-              case 'aquiferfluxes'
-                fn = lower(name);
-                index = 1;
-              otherwise
-                % Basic phases are known to the base class
-                [fn, index] = getVariableField@ThreePhaseBlackOilModel(model, ...
-                                                                  name, varargin{:});
-            end
-        end
+        % % --------------------------------------------------------------------%
+        % function [fn, index] = getVariableField(model, name, varargin)
+        %     switch(lower(name))
+        %       case {'aquiferpressures', 'aquifervolumes'}
+        %         fn = lower(name);
+        %         index = 1;
+        %       case 'aquiferfluxes'
+        %         fn = lower(name);
+        %         index = 1;
+        %       otherwise
+        %         % Basic phases are known to the base class
+        %         [fn, index] = getVariableField@PhysicalModel(model, name, ...
+        %                                                      varargin{:});
+        %     end
+        % end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
 
-            [state, report] = updateAfterConvergence@ThreePhaseBlackOilModel(model, ...
-                                                              state0, state, ...
-                                                              dt, ...
-                                                              drivingForces);
+            reservoirModel = model.reservoirModel;
+            
             p_aq = model.getProp(state, 'aquiferpressures');
             V_aq = model.getProp(state, 'aquifervolumes');
             
@@ -63,18 +61,74 @@ classdef AquiferModel < PhysicalModel
             nconn = size(conn, 1);
             naq = max(aquid);
             aquid2conn = sparse(aquid, (1 : nconn)', 1, naq, nconn)';
-           
+            
             Q = aquid2conn'*q;
             Q = dt.*Q;
             C = aquiferprops.C;
             p_aq = p_aq - Q./(C.*V_aq);
             V_aq = V_aq - Q;
-        
-            state = model.setProp(state, 'aquiferpressures', p_aq);
-            state = model.setProp(state, 'aquifervolumes'  , V_aq);
-            state = model.setProp(state, 'aquiferfluxes'  , q);
+            
+            % TODO: reorder by aquifer
+            state.aquifersol = struct('aquiferpressures', p_aq, ...
+                                      'aquifervolumes'  , V_aq, ...
+                                      'aquiferfluxes'   , q);
         end
         
+        function q = computeAquiferFluxes(model, state, dt)
+
+            reservoirModel = model.reservoirModel;
+            [p, sW] = reservoirmodel.getProps(state, 'pressure', 'water');
+            
+            % TODO : fetch in right-way (fix below)
+            p_aq = state.aquifersol.aquiferpressures;
+            V_aq = state.aquifersol.aquifervolumes;
+
+            aquifers = model.aquifers;
+            aquind   = model.aquind;
+            
+            alpha     = aquifers(:, aquind.alpha);
+            J         = aquifers(:, aquind.J);
+            conn      = aquifers(:, aquind.conn);
+            depthconn = aquifers(:, aquind.depthconn);
+            depthaq   = aquifers(:, aquind.depthaq);
+            C         = aquifers(:, aquind.C);
+            aquid     = aquifers(:, aquind.aquid);
+            
+            nconn = size(conn, 1);
+            naq = max(aquid);
+            aquid2conn = sparse(aquid, (1 : nconn)', 1, naq, nconn)';
+            
+            p_aq = aquid2conn*p_aq;
+            V_aq = aquid2conn*V_aq;
+
+            p  = p(conn);
+            sW = sW(conn);
+            
+            fluid = model.fluid;
+            pcOW = 0;
+            ph = model.getPhaseNames();
+            isw = (ph == 'W');
+            if isfield(fluid, 'pcOW') && ~isempty(sW)
+                pcOW = model.getProps(state, 'CapillaryPressure');
+                pcOW = pcOW{isw}(conn);
+            end
+
+            b = model.getProps(state, 'ShrinkageFactors');
+            bW = b{isw}(conn);
+            rhoW = bW.*fluid.rhoWS;
+            
+            Tc = C.*V_aq./J;
+            if dt == 0
+                coef = 1;
+            else
+                coef = (1 - exp(-dt./Tc))./(dt./Tc);
+            end
+            
+            g = model.gravity(3);
+            q = alpha.*J.*(p_aq + pcOW - p + rhoW.*g.*(depthconn - depthaq)).*coef;
+            
+        end
+
         function eqs = addAquifersContribution(model, eqs, names, state,  dt)
             
             reservoirModel = model.reservoirModel;
