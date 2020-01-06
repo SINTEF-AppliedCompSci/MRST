@@ -14,13 +14,6 @@ function [uu, extra] = VEM_linElast_AD(G, C, el_bc, load, varargin)
 %                          fields
 %                  'nodes'    : nodes where the displacement condition is applied
 %                  'uu'       : value for the displacement
-%
-%                  The two following fields are not used in the VEM implementation
-%                  but becomes relevant for other methods such as MPSA, see paper
-%
-%                  'faces'    : faces displacement
-%                  'uu_faces' : value for the displacement
-%
 %                  'mask'     : if false then displacement values that are
 %                               imposed in given Cartesian directions are in
 %                               fact ignored.
