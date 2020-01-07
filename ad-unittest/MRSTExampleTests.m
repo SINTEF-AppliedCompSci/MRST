@@ -90,6 +90,8 @@ function [names, modules] = getSkippedTests()
         'SPE10SubsetADIExample', ... % Takes too long to run, ad-fi
         'runNorneExample', ... % Takes too long to run
         'diagnosticsPostProcessorWithMRST', ... % GUI example
+        'ensemblePackedProblemsExample', ... % Launches Matlab sessions
+        '', ...
         'demoPackedProblems'... % Example which launches Matlab sessions
             };
     names = cellfun(@(x) [x, '.m'], names, 'UniformOutput', false);
