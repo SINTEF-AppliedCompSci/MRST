@@ -28,16 +28,16 @@ classdef FluxDiscretization < StateFunctionGrouping
             % Darcy flux
             props = props.setStateFunction('Transmissibility', Transmissibility(model));
             props = props.setStateFunction('PermeabilityPotentialGradient', PermeabilityPotentialGradient(model, tpfa));
-            if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
-                pgrad = PressureGradientWithThresholdPressure(model, model);
-            else
-                pgrad = PressureGradient(model);
-            end
-            props = props.setStateFunction('PressureGradient', pgrad);
+            props = props.setStateFunction('PressureGradient', PressureGradient(model));
             props = props.setStateFunction('GravityPotentialDifference', GravityPotentialDifference(model));
             
             % Phase flux
-            props = props.setStateFunction('PhasePotentialDifference', PhasePotentialDifference(model));
+            if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
+                ppd = PhasePotentialDifferenceThresholded(model, model);
+            else
+                ppd = PhasePotentialDifference(model);
+            end
+            props = props.setStateFunction('PhasePotentialDifference', ppd);
             props = props.setStateFunction('PhaseUpwindFlag', PhaseUpwindFlag(model));
             
             % Face values - typically upwinded
