@@ -124,14 +124,18 @@ function grid = convertGRID(grid, u)
             unt = u.length;
 
             if isfield(grid, 'MAPUNITS')
+               mapstr = 'METRES';
                switch grid.MAPUNITS
-                  case 'METRES', unt = meter;
-                  case 'FEET'  , unt = ft;
+                  case 'METRES'
+                      unt = meter;
+                  case 'FEET'
+                      unt = ft;
                   otherwise
                      warning('MapUnits:Unknown', ...
                              'Unknown map units ''%s''. Using METRES', ...
                              grid.MAPUNITS);
                end
+               grid.MAPUNITS = mapstr;
             end
 
             grid.(key) = convertFrom(grid.(key), unt);
