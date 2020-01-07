@@ -156,7 +156,7 @@ types = {'cell', 'cell'};
 
 % Add aquifer contributions if any.
 if ~isempty(model.AquiferModel)
-    eqs = addAquifersContribution(model, eqs, names, state, dt);
+    eqs = addAquifersContribution(model.AquiferModel, eqs, names, state, dt);
 end
 
 % Finally, add in and setup well equations

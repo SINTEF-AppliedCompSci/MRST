@@ -52,7 +52,7 @@ properties
     % Coupling to forces and other models
     gravity % Vector for the gravitational force
     FacilityModel % Facility model used to represent wells
-    AquiferModel % Facility model used to represent wells
+    AquiferModel  % Model used to represent aquifers
     FlowPropertyFunctions % Grouping for flow properties
     FluxDiscretization % Grouping for flux discretization
     Components = {};
@@ -391,7 +391,7 @@ methods
                 index = ':';
                 fn = 'flux';
             case 'aquifersol'
-                % Use colon to get all variables, since the wellsol may
+                % Use colon to get all variables, since aquiferSol may
                 % be empty
                 index = ':';
                 fn = 'aquiferSol';
