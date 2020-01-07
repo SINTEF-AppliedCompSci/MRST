@@ -88,8 +88,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                          'experimental_scaling', opt.experimental_scaling);
     end
 
-    % Recalculate "weights" (all are calculated in the assembly, they could in fact only be calculated
-    % once).
+    %% Recalculate "weights" (all are calculated in the assembly, they could in fact only be calculated once)
     if (G.griddim == 2)
         qf_all = G.faces.areas / 2;
         [qc_all, qcvol] = calculateQF(G);
@@ -97,56 +96,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         [qc_all, qf_all, qcvol] = calculateQC(G);
     end
 
-    % Apply Diriclet boundary conditions
+    %% Apply Diriclet boundary conditions
     [u_bc, dirdofs] = el_bc.disp_bc.asVector({'d', 'n'}, [G.griddim, G.nodes.num]);
+
     ndof = G.griddim * G.nodes.num;
     isdirdofs = false(ndof, 1);
     isdirdofs(dirdofs) = true;
 
+    ignore = isnan(u_bc); % NaN used to indicate suppressed entries 
+    u_bc(ignore) = 0;
+    isdirdofs(ignore) = false;
+    
     rhso = - S * u_bc;
-    
-    
-%     % % NB: Only rolling conditions in the Cartesian directions is allowed for now.
-    % % If duplicated  values exist, remove them.
-    % bc = el_bc.disp_bc;
-    % [bcnodes, j, i] = unique(bc.nodes);
-    % if(numel(bcnodes) ~= numel(bc.nodes))
-    %     %  warning('boundary conditions have mulitiple definitions')
-    % end
-    % u_bc = bc.uu(j, :);
-    % mask = zeros(numel(bcnodes), G.griddim);
-    % % use the mask form or
-    % for k = 1:G.griddim
-    %     mask(:, k) = accumarray(i, bc.mask(:, k), [numel(bcnodes), 1]);
-    % end
-    % mask = mask > 0;
 
-    % % Find the logical vector to remove Diriclet boundary conditions
-    % ndof = G.griddim * G.nodes.num;
-    % if(all(mask(:) == true))
-    %     dirdofs = mcolon(G.griddim * (bcnodes - 1) + 1, G.griddim * (bcnodes - 1) + G.griddim)';
-    %     u_bc = reshape(u_bc', [], 1);
-    % else
-    %     dirdofs = mcolon(G.griddim * (bcnodes - 1) + 1, G.griddim * (bcnodes - 1) + G.griddim)';
-    %     dirdofs = reshape(dirdofs, G.griddim, []);
-    %     mm = mask';
-    %     ind = find(mm);
-    %     u_bc = reshape(u_bc', [], 1);
-    %     dirdofs = reshape(dirdofs, [], 1);
-    %     dirdofs = dirdofs(ind);
-    %     u_bc = u_bc(ind);
-    % end
-    % isdirdofs = false(ndof, 1);
-    % isdirdofs(dirdofs) = true;
-
-
-    % % Calculate the boundary conditions
-    % V_dir = nan(ndof, 1);
-    % V_dir(isdirdofs) = u_bc(:);
-    % V_dir(~isdirdofs) = 0;
-    % rhso = -S * V_dir;
-
-    % Calculate load terms
+    %% Calculate and apply load terms
     % There are several alternatives, which may lead to different errors in particular for thin
     % long cells, see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1]
     f = calculateVolumeTerm(G, load, qc_all, qcvol, opt);
@@ -158,7 +121,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     % Add load to right hand side
     rhs = rhso + f + f_pressure;
-    % Add boundary forces
+
+    %% Add boundary forces
     if(isfield(el_bc, 'force_bc') && ~isempty(el_bc.force_bc))
        
        % defining weight tensor in face-node-dim ('f', 'n')
@@ -173,7 +137,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           QF = face_node_tensor(G, 'f', 'n', 'values', qf_all);
        end
        % extend weight tensor to face-node-dim space ('f', 'n', 'd')
-       QF = QF * SparseTensor([1, 1], 'd');
+       QF = QF * SparseTensor(ones(G.griddim, 1), 'd');
        
        % expand face forces tensor to face-node-dim space (only boundary)
        F = el_bc.force_bc ^ face_node_tensor(G, 'f', 'n', 'boundary_only', true);
@@ -190,8 +154,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Reduce the degrees of freedom
     rhs = rhs(~isdirdofs);
     A   = S(~isdirdofs, ~isdirdofs);
-    A   = (A + A') / 2; % The matrix is theoretically symmetric, make sure that it is also symmetric
-                        % numerically
+    
+    %% make matrix perfectly symmetric (numericaly)
+    A   = (A + A') / 2; % The matrix is theoretically symmetric, make sure that it
+                        % is also symmetric numerically
+
+    %% Solve the equation system (unless 'no_solve' option)
     if(opt.no_solve)
         x=nan(sum(~isdirdofs),1);
     else
