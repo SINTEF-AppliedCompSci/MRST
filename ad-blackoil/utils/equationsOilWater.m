@@ -155,7 +155,7 @@ types = {'cell', 'cell'};
                                                                  drivingForces);
 
 % Add aquifer contributions if any.
-if isfield(drivingForces, 'aquifer') && (drivingForces.aquifer==true)
+if ~isempty(model.AquiferModel)
     eqs = addAquifersContribution(model, eqs, names, state, dt);
 end
 
