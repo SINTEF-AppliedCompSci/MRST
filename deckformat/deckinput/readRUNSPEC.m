@@ -67,6 +67,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data = readDefaultedRecord(fid, tmpl);
             rspec.(kw) = to_double(data);  clear tmpl
 
+         case 'EQLOPTS'
+            data = readRecordString(fid);
+            data = removeQuotes(tokenizeRecord(strtrim(data)));
+            rspec.(kw)  = data;
+
          case 'GRIDOPTS'
             tmpl = { 'NO', '0', '0' };
             data = readDefaultedRecord(fid, tmpl);
