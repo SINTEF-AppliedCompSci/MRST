@@ -104,9 +104,9 @@ seq = packer(seqmodel, 'Sequential');
 % Based on our observations from the two-phase version of the problem, we
 % use a simple 10x10 partition instead of a more unstructured partition
 % that adapts to the fractures. For the first multiscale solver, we set the
-% convergence criterion to be a factor 50 looser than the default of 1e-3.
-% The linear solver is two orders of magnitude more relaxed than the strict
-% AMG settings used above.
+% convergence criterion to be a factor 50 times looser than the default of
+% 1e-3. The linear solver is two orders of magnitude more relaxed than the
+% strict AMG settings used above.
 
 pr = sampleFromBox(G, reshape(1:100,[10 10]));
 pr = processPartition(G, compressPartition(pr));
@@ -174,7 +174,7 @@ legend('Pressure', 'Transport', 'Outer');
 % We plot hydrocarbon saturation and component concentration
 G.cells.sortedCellNodes = getSortedCellNodes(G);
 
-figure('Position',[580 200 860 550]);
+afig = figure('Position',[580 200 860 550]);
 flds = {@(state) state.s(:, 2),  @(state) state.components};
 nd = numel(flds);
 hp = zeros(ns, nd);
@@ -187,7 +187,7 @@ for data = 1:nd
         plotGrid(G, vertcat(schedule.control(1).W.cells),'FaceColor','r','EdgeColor','r');
         if data == 1
             caxis([0, 1]);
-            title(names{i},'FontSize',12,'FontWeight','normal');
+            title(names{i},'FontSize',10,'FontWeight','normal');
         end
         set(gca, 'XTickLabel', [], 'YTickLabel', [], 'FontSize',12);
     end
@@ -203,6 +203,7 @@ text(.9,.05,'CO2','Color','w','FontSize',6,'HorizontalAlignment','right');
 axis off
 
 %% Run the animation
+figure(afig);
 for stepNo = 1:5:numel(schedule.step.val)
     for i = 1:ns
         s = states{i}{stepNo};
@@ -251,7 +252,7 @@ plot(T{1}/day, s_err,'LineWidth',2)
 set(gca, 'YScale', 'log')
 xlabel('Time [days]')
 axis tight
-legend(names)
+legend(names), title('Volume errors');
 
 %% Plot component production
 % We plot the component production for each of the four simulations. To be
@@ -277,7 +278,7 @@ ax1 = gca;
 ax2 = axes('position',get(gca,'position'),'visible','off');
 legend(ax1, h(1,2:end), names,'Location','East')
 legend(ax2, h(:,1), model.EOSModel.fluid.names,'Location','SouthEast');
-set([ax1 ax2],'FontSize',12);
+set([ax1 ax2],'FontSize',12); title('Component production');
 
 %% Estimate and plot the maximum CFL numbers of the whole simulation
 m = GenericOverallCompositionModel(G, rock, fluid, eos, 'water', false);
@@ -301,6 +302,7 @@ axis tight off
 set(ch, 'YTick', -2:2, 'YTickLabel', ...
     arrayfun(@(x) sprintf('10^{%d}', x), -2:2, 'Unif', false));
 % colormap(parula.^2);
+title('Saturation CFL');
 
 % Plot composition CFL
 figure; 
@@ -310,6 +312,7 @@ axis tight off
 set(ch, 'YTick', -3:2, 'YTickLabel', ...
     arrayfun(@(x) sprintf('10^{%d}', x), -3:2, 'Unif', false));
 % colormap(parula.^2);
+title('Composition CFL');
 
 %%
 % <html>
