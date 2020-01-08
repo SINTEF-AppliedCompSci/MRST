@@ -74,6 +74,9 @@ title('MsRSB: iterative GMRES','FontSize',12,'FontWeight','normal');
 [~,c] = boundaryFaces(G);
 
 %% Run the simulation
+% To accelerate rendering of new results, we do not replot the grid cells,
+% but simply update the CData (saturation values) that are used to
+% determine colors in each subplot.
 for i = 1:Nt
     state        = psolver(rstates{i});
     rstates{i+1} = tsolver(state);
