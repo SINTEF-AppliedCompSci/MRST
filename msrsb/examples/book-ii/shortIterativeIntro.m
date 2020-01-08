@@ -15,6 +15,7 @@ resnorm  = @(p) norm(b-A*p,2)/norm(b,2);
 
 %% Plot of residuals
 figure('Position',[300 340 1000 420]);
+titles = {'First multiscale','After smoothing','Second multicale','After smoothing'};
 for i=1:4
     subplot(2,2,i); cla
     switch i
@@ -29,6 +30,7 @@ for i=1:4
     plotFaces(CG,1:CG.faces.num,'linewidth',1);
     axis equal tight, set(gca,'FontSize',12);
     caxis([0 2e-8]);
+    title(titles{i},'FontWeight','normal');
 end
 colormap(.65*flipud(parula.^6)+.35)
 set(colorbar,'Position',[.9 .11 .025 .33]);
