@@ -238,7 +238,9 @@ plotGrid(CG,ind(2),'FaceAlpha',.2,'FaceColor',[.8 .3 .3]);
 plotGrid(CG,ind(1),'FaceAlpha',.1,'FaceColor',[.3 .3 .8]);
 plotCellData(G,sol,sol>1.1);
 plotGrid(CG,neigh,'FaceAlpha',.1);
-view(3); axis tight off
+plotGrid(CG,'FaceAlpha',0,'EdgeAlpha',.3)
+view(3); axis tight off;
+axis([15 30 0 15 0 3]);
 title('Two blocks containing cells with >10% pressure overshoot')
 
 %% Copyright notice
