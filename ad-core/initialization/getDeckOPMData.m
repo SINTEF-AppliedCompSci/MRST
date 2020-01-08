@@ -22,6 +22,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opm = mrstPath('opm-data');
     opm_tests = mrstPath('opm-tests');
+    assert(~isempty(opm));
+    assert(~isempty(opm_tests));
     fn = fullfile(opm, name, [caseName, '.DATA']);
     deck = readEclipseDeck(fn);
     
@@ -68,6 +70,11 @@ end
 function output = getOutputEclipse(deck, fldr, caseName, unit)
     G = initEclipseGrid(deck);
     smry_prefix = fullfile(fldr, 'eclipse-simulation', caseName);
+
+    if ~exist([smry_prefix, '.SMSPEC'], 'file')
+        % Norne hack...
+        smry_prefix = fullfile(fldr, 'ECL.2014.2', caseName);
+    end
 
     ws = convertSummaryToWellSols(smry_prefix, unit);
     states = convertRestartToStates(smry_prefix, G, 'use_opm', false, 'consistentWellSols', false);
