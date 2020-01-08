@@ -70,6 +70,7 @@ figure('units', 'normalized', 'position', [0.1, .1, .8, 0.8]);
 plotCellData(G, log10(rock.perm(:, 1)), 'edgec', 'none')
 axis tight
 plotGrid(CG,'FaceColor','none','LineWidth',2);
+title('Permeability (log-scale) and coarse partition');
 
 %% Define and solve the fine-scale flow problem
 % Set up a pressure drop along the x-axis.
@@ -282,26 +283,26 @@ plotCellData(CG, p_upscaled/barsa,'EdgeColor','none');
 plotFaces(CG,1:CG.faces.num)
 axis equal tight;
 caxis(ca);
-title('Upscaled')
+title('Upscaled pressure')
 
 subplot(2, 2, 2);
 plotCellData(G, p_fine/barsa);
 axis equal tight;
 caxis(ca);
-title('Fine-scale')
+title('Fine-scale pressure')
 
 subplot(2, 2, 3);
 plotCellData(CG, p_ms/barsa,'EdgeColor','none'); 
 plotFaces(CG,1:CG.faces.num)
 axis equal tight;
 caxis(ca);
-title('Coarse MS');
+title('Coarse MS pressure');
 
 subplot(2, 2, 4);
 plotCellData(G, p_prolongated/barsa);
 axis equal tight;
 caxis(ca);
-title('Fine MS');
+title('Fine MS pressure');
 
 %% Plot the error in the fine-scale multiscale solution
 % The multiscale solution has two sources of error: The approximations made
@@ -314,7 +315,7 @@ plotCellData(G, abs(p_prolongated - p_fine)/max(p_fine));
 axis equal tight;
 caxis auto;
 colorbar
-title('Error, MS');
+title('Relative MS pressure error');
 
 %% Reconstructed velocity field
 % A fine-scale pressure approximation is usually not our primary interest
