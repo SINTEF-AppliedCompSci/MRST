@@ -5,6 +5,11 @@
 % viscosity 0.3 cP into another fluid of density 1000 kg/m^3 and viscosity
 % 1 cP that fills a layered medium containing thirteen high-permeability
 % fractures.
+%
+% The example assumes that you have METIS installed on your system. This is
+% relatively simple on a Linux system; see callMetisMatrix function for
+% details how to set it up. On Windows, we do unfortunately not yet have a
+% general receipe of how to set up METIS.
 mrstModule add coarsegrid incomp msrsb book ad-core
 
 %%  Set up the fine-scale model
@@ -48,6 +53,7 @@ CG1    = storeInteractionRegion(CG1);
 basis1 = getMultiscaleBasis(CG1, getIncomp1PhMatrix(G, hT), 'type', 'msrsb');
 
 % METIS partition adapting to fractures
+% 
 T   = 1 ./ accumarray(G.cells.faces(:,1), 1 ./ hT, [G.faces.num, 1]);
 tag = [0; G.cells.tag];
 N   = G.faces.neighbors + 1;
