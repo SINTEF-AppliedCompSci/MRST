@@ -39,6 +39,7 @@ d = d + d';
 figure(1), clf, plotCellData(G,d(:),'EdgeAlpha',.1); axis tight
 colormap(.6*jet+.4*ones(size(jet)));
 outlineCoarseGrid(G, p,'Color','k','LineWidth',1); axis off
+title('Wirebasket ordering')
 
 %% Alternative visualization of wirebasket ordering
 % Show the porosity and outline edge and node cells.
@@ -51,6 +52,7 @@ colormap(parula); axis off
 h=legend([h3,h2,h1],' node',' edge',' inner');
 set(h,'Color',[.8 .8 .9],'FontSize',14);
 h.Position = [.65 .67 .25 .25];
+title('Wirebasket ordering')
 
 %% Show matrix and wirebasket reordering
 % We show the sparsity pattern of the fine-scale matrix before and after
@@ -60,7 +62,7 @@ i = find(d(:)==0)'; in=numel(i);
 e = find(d(:)==1)'; en=numel(e);
 n = find(d(:)==2)'; nn=numel(n);
 figure(2), clf
-subplot(1,2,1), spy(A);
+subplot(1,2,1), spy(A); title('Original matrix A');
 subplot(1,2,2), cla, hold on
 patch([0 in in 0], [0 0 in in],[0 0 0 0],'FaceColor',[.8 1 .8],'Edgecolor','none');
 patch([0 en en 0]+in, [0 0 en en]+in,[0 0 0 0],'FaceColor',[.8 .8 1],'Edgecolor','none');
@@ -72,6 +74,7 @@ patch([0 0 nn nn]+in+en, [0 in+en in+en 0], [0 0 0 0],'FaceColor',[1 1 .8],'Edge
 patch([in in+en in+en in], [0 0 nn nn]+in+en, [0 0 0 0],'FaceColor',[1 .8 1],'Edgecolor','none');
 patch([0 0 nn nn]+in+en, [in in+en in+en in], [0 0 0 0],'FaceColor',[1 .8 1],'Edgecolor','none');
 spy(A([i e n],[i e n]));
+title('After wirebasket ordering');
 
 %% Construct and visualize P
 % Using the explicit formulas given in the book chapter, we construct the
@@ -94,17 +97,20 @@ plotCellData(g,val,'EdgeColor','none');
 axis equal tight, box on, caxis([0 1]);
 set(gca,'YDir','reverse','XTick',[],'YTick',[],'DataAspectRatio',[1 3 1]);
 P = Pwb; P(:,[i e n])=Pwb;
+title('P, wirebasket ordering');
 
 % Show in natural ordering
 subplot(1,2,2); val=P(:); val(val==0)=NaN;
 plotCellData(g, val, 'EdgeColor','none'); 
 axis equal tight, box on, caxis([0 1]);
 set(gca,'YDir','reverse','XTick',[],'YTick',[],'DataAspectRatio',[1 3 1]);
+title('P, natural ordering');
 
 % Show on top of grid
 figure, plotCellData(G,rock.poro,'EdgeAlpha',.1);
 outlineCoarseGrid(G, p,'Color','k','LineWidth',1);
 plotCellData(G,max(rock.poro)*P(5,:)',P(5,:)'>0,'EdgeAlpha',.1);
+title('Basis function imposed on porosity');
 
 %% Construct and visualize R
 % The restriction operator can either be set as P' or as a finite-volume
@@ -116,6 +122,7 @@ g = cartGrid(size(R)); val=R(:); val(val==0)=NaN;
 plotCellData(g, val, 'EdgeColor','none'); 
 axis equal tight, box on, caxis([0 1]);
 set(gca,'YDir','reverse','XTick',[],'YTick',[],'DataAspectRatio',[3 1 1]);
+title('Galerkin restriction operator');
 
 subplot(2,1,2)
 pval=unique(p);
@@ -127,6 +134,7 @@ val=R(:); val(val==0)=NaN;
 plotCellData(g, val, 'EdgeColor','none'); 
 axis equal tight, box on, caxis([0 1]);
 set(gca,'YDir','reverse','XTick',[],'YTick',[],'DataAspectRatio',[3  1 1]);
+title('Finite-volume restriction operator');
 
 %% Compare linear systems
 % Show sparsity plot of the fine-scale and the coarse-scale systems
@@ -135,12 +143,13 @@ figure,
 subplot(1,2,1),val=A(:); val(val==0)=NaN;
 plotCellData(cartGrid(size(A)), val, 'EdgeColor','none');
 axis equal tight, box on, set(gca,'YDir','reverse','XTick',[],'YTick',[]);
+title('Fine-scale discretization')
 
 subplot(1,2,2)
 val=Ac(:); val(val==0)=NaN;
 plotCellData(cartGrid(size(Ac)), val, 'EdgeColor','none');
 axis equal tight, box on, set(gca,'YDir','reverse','XTick',[],'YTick',[]);
-
+title('Coarse-scale discretization');
 %%
 % <html>
 % <p><font size="-1">
