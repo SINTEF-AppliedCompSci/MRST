@@ -1,5 +1,15 @@
 function amax=myPlotAllocation(WP, WPc, names, amax)
-%Undocumented Utility Function
+%Plot well-allocation factors for two models of different solutions
+% SYNOPSIS
+%   amax=plotWellAllocationComparision(WP1, WP2, names, amax)
+%
+% PARAMETERS:
+%   WP1, WP2 - data structure containing information about well pairs,
+%              computed by a call to 'computeWellPairs'
+%   names    - names of the wells
+%   amax     - maximum allocation contained in these data
+%
+% See plotWellAllocationComparison for more information
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
