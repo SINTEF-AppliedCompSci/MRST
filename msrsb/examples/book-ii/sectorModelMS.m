@@ -5,8 +5,10 @@
 % implicit framework. That is, we use the iterative method as the elliptic
 % solver in a CPR preconditioner.
 
-mrstModule add ad-core ad-blackoil ad-props mrst-gui msrsb coarsegrid
-
+mrstModule add ad-core ad-blackoil ad-props mrst-gui msrsb coarsegrid linearsolvers
+% Set a single thread for all solvers to leave parallelism out of the
+% discussion. You can increase this number to reduce the runtime.
+t0 = maxNumCompThreads(1);
 %% Build simulation model
 % The simulation model is built manually. Here, we only give the necessary
 % statements and refer to the original example for discussion and plots.
@@ -90,10 +92,15 @@ model.dpMaxRel  = .1;
 model.dsMaxAbs  = .1;
 
 % Set up CPR preconditioner
+pressureSolver = AMGCLSolverAD('tolerance', 1e-4, ...
+                               'coarsening', 'aggregation', ...
+                               'solver', 'gmres', ...
+                               'reuseMode', 2); % Reuse setup inside CPR
 try
-    mrstModule add agmg
-    pressureSolver = AGMGSolverAD('tolerance', 1e-4);
+    % Check if solver is working
+    pressureSolver.solveLinearSystem(speye(3), rand(3, 1));
 catch
+    % Fall back to Matlab's builtin direct solver
     pressureSolver = BackslashSolverAD();
 end
 linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'tolerance', 1e-3);
@@ -131,7 +138,7 @@ linsolve = CPRSolverAD('ellipticSolver', msSolver, 'tolerance', 1e-3);
    simulateScheduleAD(state0, model, schedule, 'LinearSolver', linsolve);
 
 %% Plot comparison
-plotWellSols({wellSols, wellSolsMS}, cumsum(schedule.step.val),'datasetnames',{'agmg','msrsb'});
+plotWellSols({wellSols, wellSolsMS}, cumsum(schedule.step.val),'datasetnames',{'amgcl','msrsb'});
 
 %% Plot time consumption
 % Get total runtime
@@ -148,13 +155,13 @@ solveTotal = [timeMS, timeBase];
 figure, hold all
 bar(vertcat(solveBase.LinearSolve))
 bar(vertcat(solveMS.LinearSolve),'BarWidth',.3)
-legend('agmg','msrsb'); set(gca,'FontSize',12);
+legend('amg','msrsb'); set(gca,'FontSize',12);
 xlabel('Time step'), ylabel('Linear solver time [s]');
 
 figure, hold all
 bar(timeBase)
 bar(timeMS,'BarWidth',.3)
-legend('agmg','msrsb'); set(gca,'FontSize',12);
+legend('amg','msrsb'); set(gca,'FontSize',12);
 xlabel('Time step'), ylabel('Runtime [s]');
 
 %% Solve using sequential multiscale solver
@@ -190,7 +197,8 @@ wsSFIms = simulateScheduleAD(state0, seqmodel, schedule);
 %% Compare the solutions
 plotWellSols({wellSols,wsSFIms,wsFIms}, cumsum(schedule.step.val), ...
     'datasetnames',{'FI','SFI','SI'},'field','qOs');
-
+%% Reset the threads back to default
+maxNumCompThreads(t0);
 %%
 % <html>
 % <p><font size="-1">
