@@ -11,7 +11,8 @@
 % indicated by lines on top of those of the coarse scale.
 
 %% Set up fine-scale problem
-mrstModule add agmg book coarsegrid diagnostics incomp libgeometry spe10 upscaling 
+mrstModule add agmg book coarsegrid diagnostics 
+mrstModule add incomp libgeometry msrsb spe10 upscaling 
 
 if ~exist('agmg', 'file') || ...
       norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8
@@ -43,6 +44,15 @@ for w = 1 : numel(wtype)
 end
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
 fprintf(1,'done\n');
+
+%% Plot the setup
+figure
+Kx = convertTo(rock.perm(:,1),milli*darcy);
+plotCellData(G,log10(Kx),'EdgeColor','none');
+mrstColorbar(Kx,'south',true);
+plotWell(G,W);
+view(-75,20); set(gca,'DataAsp',[15 15 1]); axis tight off
+colormap(colormap.^1.5)
 
 %% Solve flow problem and compute flow diagnostics
 fprintf(1,'Solving fine-scale problem ...');
