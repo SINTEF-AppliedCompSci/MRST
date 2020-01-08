@@ -30,12 +30,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         [state, p] = initStateBlackOilAD(model, regions);
         if isfield(deck.PROPS, 'SWATINIT')
             model = model.validateModel();
-            s = state.s;
-            s(:, 1) = deck.PROPS.SWATINIT(model.G.cells.indexMap);
-            s(:, 2) = max(1 - sum(s, 2), 0);
-            s = bsxfun(@rdivide, s, sum(s, 2));
-            state.s = s;
-            pc =model.getProp(state, 'capillarypressure');
+            swat = deck.PROPS.SWATINIT(model.G.cells.indexMap);
+            state = model.setProp(state, 'sw', swat);
+            so = 1 - swat;
+            if model.gas
+                so = so - model.getProp(state, 'sg');
+            end
+            if any(so < 0)
+                warning('SWAT resulted in %d negative saturations', sum(so < 0));
+            end
+            so = max(so, 0);
+            state = model.setProp(state, 'so', so);
+            pc = model.getProp(state, 'capillarypressure');
             ix = model.getPhaseIndices();
             wix = ix(1);
             % Note sign
