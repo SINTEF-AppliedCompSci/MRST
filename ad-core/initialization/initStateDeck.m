@@ -44,12 +44,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             pc = model.getProp(state, 'capillarypressure');
             ix = model.getPhaseIndices();
             wix = ix(1);
+            oix = ix(2);
             % Note sign
             pcow = -pc{wix};
             if isempty(pcow)
-                warning()
+                warning('Oil-Water capillary pressure must be present for scaling of pc-curve with SWATINIT.')
             end
-            dp = p(:, ix(2)) - p(:, ix(1));
+            p(:, oix) = state.pressure; % May be wrong in regions where oil is immobile
+            dp = p(:, oix) - p(:, wix);
             bad = dp <= 0;
             scale = dp./pcow;
             scale(bad) = 1;
