@@ -33,6 +33,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     aquancon = deck.SOLUTION.AQUANCON;
     aqufetp  = deck.SOLUTION.AQUFETP;
     
+    % Check that aquifer pressures are not defaulted (currently not supported)
+    assert(~any(isnan(aqufetp(:,3))), 'Defaulting aquifer pressure is not supported')
+    
     aquid = cell2mat(aquancon(:, 1));
     imin = cell2mat(aquancon(:, 2));
     imax = cell2mat(aquancon(:, 3));
