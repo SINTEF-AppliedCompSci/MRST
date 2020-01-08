@@ -33,7 +33,7 @@ classdef FluxDiscretization < StateFunctionGrouping
             
             % Phase flux
             if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
-                ppd = PhasePotentialDifferenceThresholded(model, model);
+                ppd = PhasePotentialDifferenceThresholded(model);
             else
                 ppd = PhasePotentialDifference(model);
             end
