@@ -66,11 +66,12 @@ u_correct = [0.192823, 0.0114290, 0.83]';
 %u_correct = [0, 0, 0.83]';
 [dd, extra] = VEM_linElast_AD(G, cfun(u_correct), bcfun(u_correct), loadfun(u_correct));
 dd = dd';
-dd = dd(~extra.disc.isdirdofs);
+%dd = dd(~extra.disc.isdirdofs);
 
 %% define objective function
 scaling = 1e9;
-obj_fun = @(u, x) match_displacement_objfun(u, x, dd, scaling);
+obj_fun = @(u, x) ...
+          match_displacement_objfun(u, x, extra.disc.isdirdofs, dd(:), scaling);
 
 %% Solve optimization problem
 %u = 0.10;

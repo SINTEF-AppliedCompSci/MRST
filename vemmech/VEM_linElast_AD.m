@@ -103,7 +103,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     isdirdofs = false(ndof, 1);
     isdirdofs(dirdofs) = true;
 
-    ignore = isnan(u_bc); % NaN used to indicate suppressed entries 
+    ignore = isnan(value(u_bc)); % NaN used to indicate suppressed entries 
     u_bc(ignore) = 0;
     isdirdofs(ignore) = false;
     
@@ -134,7 +134,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        else
           % qf_all is already in face-node space, but we need to convert
           % it to a tensor
-          QF = face_node_tensor(G, 'f', 'n', 'values', qf_all);
+          QF = face_node_tensor(G, 'f', 'n', ...
+                                'values', qf_all, ...
+                                'boundary_only', true);
        end
        % extend weight tensor to face-node-dim space ('f', 'n', 'd')
        QF = QF * SparseTensor(ones(G.griddim, 1), 'd');

@@ -41,6 +41,11 @@ if opt.boundary_only
    
    keep = rldecode(int_faces, diff(G.faces.nodePos));
    ixs = ixs(keep,:);
+   
+   if ~isempty(opt.values)
+      opt.values = opt.values(keep);
+   end
+   
 end
 
 

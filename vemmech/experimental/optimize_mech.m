@@ -72,7 +72,7 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    dofs = ~extra.disc.isdirdofs; %% exclude dirichlet nodes
 
    dd = dd';
-   dd = dd(dofs);
+   %dd = dd(dofs);
    
    [val, oval_du, oval_dd] = obj_fun(u, dd(:));
    
