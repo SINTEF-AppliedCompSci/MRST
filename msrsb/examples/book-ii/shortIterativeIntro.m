@@ -53,7 +53,8 @@ end
 
 figure
 plot(1:nit+1,res,'-o',1:nit+1,rep.resvec,'-s','MarkerFaceColor',[.8 .8 .8]); 
-set(gca,'YScale','log'); legend('MsRSB+ILU(0)', 'MsRSB+ILU0, GMRES');
+set(gca,'YScale','log'); legend('MsRSB+ILU(0)', 'MsRSB+ILU(0), GMRES');
+xlabel('Iteration number'),ylabel('Normalized residual');
 
 %%
 % <html>
