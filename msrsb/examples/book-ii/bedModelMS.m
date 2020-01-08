@@ -53,20 +53,24 @@ subplot(2,2,1,'FontSize',12)
 plotCellData(G,log10(Kx),'EdgeAlpha',.1);
 mrstColorbar(Kx,'west',true)
 view(30,30); axis tight off;
+title('Horizontal permeability','FontSize',10,'FontWeight','normal');
 
 subplot(2,2,3,'FontSize',12)
 plotCellData(G,facies,'EdgeAlpha',.1);
 caxis([.5 6.5]); colormap(gca,flipud(lines(6)));
 mrstColorbar(facies,'west')
-view(30,30); axis tight off;
+view(30,30); axis tight off; 
+title('Facies','FontSize',10,'FontWeight','normal');
 
 subplot(2,2,2,'FontSize',12) 
 yyaxis left, bar(ncell), axis tight
 yyaxis right, plot(cumsum(ncell),'LineWidth',1)
+title('Cell count per layer','FontSize',10,'FontWeight','normal');
 
 subplot(2,2,4,'FontSize',12) 
 yyaxis left, bar(pvols), set(gca,'YScale','log','YTick',10.^(-4:1))
 yyaxis right, plot(cumsum(pvols),'LineWidth',1), axis tight
+title('Pore volume per layer','FontSize',10,'FontWeight','normal');
 
 %% Set up and solve the fine-scale problem
 % Pressure drop from left to right and no-flow conditions elsewhere,
@@ -153,8 +157,9 @@ end
 
 %% Visualize two of the solutions
 figure('Position',[300 200 1000 280])
-titles = {'physical space', 'index space', ...
-    'cell count', 'pore volume', 'bulk volume', 'manual'};
+titles = {'Partition in physical space', 'Partition in index space', ...
+    'Partition by cell count', 'Partition by pore volume', ...
+    'Partition by bulk volume', 'Manual partition'};
 selection = [1 3];
 for i=1:2
     subplot(1,3,i)
@@ -234,7 +239,7 @@ plotGrid(CG,ind(1),'FaceAlpha',.1,'FaceColor',[.3 .3 .8]);
 plotCellData(G,sol,sol>1.1);
 plotGrid(CG,neigh,'FaceAlpha',.1);
 view(3); axis tight off
-
+title('Two blocks containing cells with >10% pressure overshoot')
 
 %% Copyright notice
 
