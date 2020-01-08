@@ -138,7 +138,7 @@ linsolve = CPRSolverAD('ellipticSolver', msSolver, 'tolerance', 1e-3);
    simulateScheduleAD(state0, model, schedule, 'LinearSolver', linsolve);
 
 %% Plot comparison
-plotWellSols({wellSols, wellSolsMS}, cumsum(schedule.step.val),'datasetnames',{'amgcl','msrsb'});
+plotWellSols({wellSols, wellSolsMS}, cumsum(schedule.step.val),'datasetnames',{'amg','msrsb'});
 
 %% Plot time consumption
 % Get total runtime
