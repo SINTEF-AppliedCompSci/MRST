@@ -241,7 +241,7 @@ plotGrid(CG,neigh,'FaceAlpha',.1);
 plotGrid(CG,'FaceAlpha',0,'EdgeAlpha',.3)
 view(3); axis tight off;
 axis([15 30 0 15 0 3]);
-title('Two blocks containing cells with >10% pressure overshoot')
+title('Two blocks containing cells with highest discrepancy')
 
 %% Copyright notice
 
