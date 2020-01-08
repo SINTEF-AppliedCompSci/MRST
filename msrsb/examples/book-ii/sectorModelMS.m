@@ -138,7 +138,8 @@ linsolve = CPRSolverAD('ellipticSolver', msSolver, 'tolerance', 1e-3);
    simulateScheduleAD(state0, model, schedule, 'LinearSolver', linsolve);
 
 %% Plot comparison
-plotWellSols({wellSols, wellSolsMS}, cumsum(schedule.step.val),'datasetnames',{'amg','msrsb'});
+plotWellSols({wellSols, wellSolsMS}, cumsum(schedule.step.val), ...
+    'datasetnames',{'amg','msrsb'}, 'field','qOs');
 
 %% Plot time consumption
 % Get total runtime
@@ -181,7 +182,7 @@ seqmodel = addMultiscaleSolverComp(seqmodel, CG, 'maxIterations', 50,...
                                                'tolerance', 0.01);
 
 % Run sequentially implicit
-wsFIms = simulateScheduleAD(state0, seqmodel, schedule);
+wsSIms = simulateScheduleAD(state0, seqmodel, schedule);
 
 %% Run sequentially fully implicit
 % Here, we configure the algorithm to only check the volume discrepancy and
@@ -195,7 +196,7 @@ seqmodel.incTolSaturation            = inf;
 wsSFIms = simulateScheduleAD(state0, seqmodel, schedule);
 
 %% Compare the solutions
-plotWellSols({wellSols,wsSFIms,wsFIms}, cumsum(schedule.step.val), ...
+plotWellSols({wellSols,wsSFIms,wsSIms}, cumsum(schedule.step.val), ...
     'datasetnames',{'FI','SFI','SI'},'field','qOs');
 %% Reset the threads back to default
 maxNumCompThreads(t0);
