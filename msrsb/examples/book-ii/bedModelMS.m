@@ -239,8 +239,8 @@ plotGrid(CG,ind(1),'FaceAlpha',.1,'FaceColor',[.3 .3 .8]);
 plotCellData(G,sol,sol>1.1);
 plotGrid(CG,neigh,'FaceAlpha',.1);
 plotGrid(CG,'FaceAlpha',0,'EdgeAlpha',.3)
-view(3); axis tight off;
-axis([15 30 0 15 0 3]);
+axis tight off;
+axis([15 30 0 15 0 3]); view(-20,35)
 title('Two blocks containing cells with highest discrepancy')
 
 %% Copyright notice
