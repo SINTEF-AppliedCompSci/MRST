@@ -1,4 +1,12 @@
 classdef SparseTensor
+    % Sparse tensor class
+    % 
+    % SYNOPSIS:
+    % 
+    % 
+    % DESCRIPTION:
+    %
+         
    
    properties
       % Cell array of components.  Each component should be a struct with 
