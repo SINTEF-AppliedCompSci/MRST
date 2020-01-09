@@ -49,13 +49,11 @@ classdef BaseRelativePermeability < StateFunction
             % check for defaulted (nan) swcon -> use table values
             nix = isnan(swcon);
             if any(nix)
-                swcon_tab  = reshape(f.krPts.w(prop.regions(cix), 1), [], 1);
-                swcon(nix) = swcon_tab(nix);
+                swcon(nix) = reshape(f.krPts.w(prop.regions(nix), 1), [], 1);
             end
         elseif isfield(f, 'krPts')
             % Connate water from rel perm table
-            cix = prop.cell_subset;
-            swcon = reshape(f.krPts.w(prop.regions(cix), 1), [], 1);
+            swcon = reshape(f.krPts.w(prop.regions, 1), [], 1);
         end
         swcon = min(swcon, value(sw)-1e-5);
 
