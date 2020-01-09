@@ -147,7 +147,8 @@ function model = initializeModel(deck, opt)
     
     if isempty(opt.G)
         if ~isfield(deck.GRID, 'ACTNUM')
-            deck.GRID.ACTNUM = (1:prod(deck.GRID.cartDims))';
+            nc = prod(deck.GRID.cartDims);
+            deck.GRID.ACTNUM = ones(nc, 1);
         end
             
         if isfield(rock, 'ntg')
