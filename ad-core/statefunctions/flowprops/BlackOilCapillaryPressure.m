@@ -25,7 +25,10 @@ classdef BlackOilCapillaryPressure < StateFunction
             if model.water && model.oil && isfield(f, 'pcOW')
                 sW = model.getProp(state, 'sw');
                 pcow = prop.evaluateFunctionOnDomainWithArguments(f.pcOW, sW);
-                if ~isempty(prop.endpointOptionSW)
+                if isfield(state, 'pcowScale')
+                    pcow = pcow.*state.pcowScale;
+                end
+                if ~isempty(prop.endpointOptionSW) && false % Disabled due to bad data
                     pcmin = prop.pcOWMin;
                     pcmax = prop.pcOWMax;
                     pcw = prop.endpointPCOW;

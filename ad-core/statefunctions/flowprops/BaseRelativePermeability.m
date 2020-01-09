@@ -6,6 +6,10 @@ classdef BaseRelativePermeability < StateFunction
         regions_imbibition = [];
     end
     
+    properties (Access = private)
+        cell_subset = ':';
+    end
+    
     methods
         function gp = BaseRelativePermeability(varargin)
             gp@StateFunction(varargin{:});
@@ -40,10 +44,18 @@ classdef BaseRelativePermeability < StateFunction
                 isfield(model.rock, 'krscale') && ...
                 isfield(model.rock.krscale.drainage, 'w')
             % Connate water in rock, endpoint scaling
-            swcon = model.rock.krscale.drainage.w(:, 1);
+            cix = prop.cell_subset;
+            swcon = model.rock.krscale.drainage.w(cix, 1);
+            % check for defaulted (nan) swcon -> use table values
+            nix = isnan(swcon);
+            if any(nix)
+                swcon_tab  = reshape(f.krPts.w(prop.regions(cix), 1), [], 1);
+                swcon(nix) = swcon_tab(nix);
+            end
         elseif isfield(f, 'krPts')
             % Connate water from rel perm table
-            swcon = reshape(f.krPts.w(prop.regions, 1), [], 1);
+            cix = prop.cell_subset;
+            swcon = reshape(f.krPts.w(prop.regions(cix), 1), [], 1);
         end
         swcon = min(swcon, value(sw)-1e-5);
 
@@ -124,6 +136,12 @@ classdef BaseRelativePermeability < StateFunction
     function [s_scale, k_max_m] = scaleSaturation(prop, pts, phase, reg, f, s, cells)
         if nargin  < 7
             cells = ':';
+        end
+        if ischar(cells)
+            cells = prop.cell_subset;
+        else
+            assert(isnumeric(cells));
+            cells = cells(prop.cell_subset);
         end
         if prop.relpermPoints == 2 % 2-point
             [m, c, p, k] = getTwoPointScalers(pts, phase, reg, f, cells);
@@ -207,6 +225,12 @@ classdef BaseRelativePermeability < StateFunction
             state.s = s;
         end
     end
+    
+    function property = subset(property, subs)
+        property = subset@StateFunction(property, subs);
+        property.cell_subset = subs;
+    end
+
 end
 end
 

@@ -25,11 +25,11 @@ classdef PhasePotentialDifferenceThresholded < PhasePotentialDifference
                 left = left_equil == thpres(i, 1);
                 right = right_equil == thpres(i, 2);
                 
-                threshold(left & right, 1) = thpres(i, 3);
+                threshold(left & right, 1) = -thpres(i, 3);
                 % Other direction
                 left = left_equil == thpres(i, 2);
                 right = right_equil == thpres(i, 1);
-                threshold(left & right, 2) = -thpres(i, 3);
+                threshold(left & right, 2) = thpres(i, 3);
             end
             if any(~isfinite(threshold(:)))
                 warning('Non-defaulted threshold pressures detected. Please call setThresholdPressuresFromState');

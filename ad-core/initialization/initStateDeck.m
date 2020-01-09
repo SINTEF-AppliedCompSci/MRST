@@ -27,7 +27,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isfield(deck.SOLUTION, 'EQUIL')
         % Equilibrium regions, initialize via solver
         regions = getInitializationRegionsDeck(model, deck);
-        state = initStateBlackOilAD(model, regions);
+        [state, p] = initStateBlackOilAD(model, regions);
+        if isfield(deck.PROPS, 'SWATINIT')
+            model = model.validateModel();
+            swat = deck.PROPS.SWATINIT(model.G.cells.indexMap);
+            state = model.setProp(state, 'sw', swat);
+            so = 1 - swat;
+            if model.gas
+                so = so - model.getProp(state, 'sg');
+            end
+            if any(so < 0)
+                warning('SWAT resulted in %d negative saturations', sum(so < 0));
+            end
+            so = max(so, 0);
+            state = model.setProp(state, 'so', so);
+            pc = model.getProp(state, 'capillarypressure');
+            ix = model.getPhaseIndices();
+            wix = ix(1);
+            oix = ix(2);
+            % Note sign
+            pcow = -pc{wix};
+            if isempty(pcow)
+                warning('Oil-Water capillary pressure must be present for scaling of pc-curve with SWATINIT.')
+            end
+            p(:, oix) = state.pressure; % May be wrong in regions where oil is immobile
+            dp = p(:, oix) - p(:, wix);
+            bad = dp <= 0;
+            scale = dp./pcow;
+            scale(bad) = 1;
+            state.pcowScale = scale;
+        end
     elseif any(isfield(deck.SOLUTION, {'PRESSURE', 'PRVD'})) && ...
             any(isfield(deck.SOLUTION, {'SGAS', 'SOIL', 'SWAT'}))
         % We got the values directly and just need to assign them.
@@ -36,18 +65,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         error(msgid('Scheme:Unknown'), ...
             ['Initialisation scheme specified in ', ...
             '''deck'' is not supported.']);
-    end
-    if isfield(deck.PROPS, 'SWATINIT')
-        s = state.s;
-        s(:, 1) = deck.PROPS.SWATINIT(model.G.cells.indexMap);
-        s(:, 2) = 0;
-        s(:, 2) = 1 - sum(s, 2);
-        s(:, 2) = max(s(:, 2), 0);
-        s = bsxfun(@rdivide, s, sum(s, 2));
-        state.s = s;
-    end
-    if ~isempty(model.AquiferModel)
-        state = model.AquiferModel.initStateAquifer(state);
     end
 end
 
