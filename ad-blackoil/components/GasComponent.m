@@ -23,7 +23,12 @@ classdef GasComponent < ImmiscibleComponent
                 oix = phasenames == 'O';
                 b = model.getProps(state, 'ShrinkageFactors');
                 rhoS = model.getSurfaceDensities();
-                rhoGS = rhoS(gix);
+                if size(rhoS, 1) > 1
+                    reg = model.FlowPropertyFunctions.ShrinkageFactors.regions;
+                else
+                    reg = 1;
+                end
+                rhoGS = rhoS(reg, gix);
                 if component.vapoil
                     bG = b{gix};
                     c{gix} = rhoGS.*bG;

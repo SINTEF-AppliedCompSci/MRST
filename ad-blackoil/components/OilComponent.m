@@ -23,7 +23,12 @@ classdef OilComponent < ImmiscibleComponent
                 oix = phasenames == 'O';
                 b = model.getProps(state, 'ShrinkageFactors');
                 rhoS = model.getSurfaceDensities();
-                rhoOS = rhoS(oix);
+                if size(rhoS, 1) > 1
+                    reg = model.FlowPropertyFunctions.ShrinkageFactors.regions;
+                else
+                    reg = 1;
+                end
+                rhoOS = rhoS(reg, oix);
                 if component.disgas
                     bO = b{oix};
                     c{oix} = rhoOS.*bO;
