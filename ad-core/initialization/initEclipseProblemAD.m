@@ -146,15 +146,17 @@ function model = initializeModel(deck, opt)
     rock  = initEclipseRock(deck);
     
     if isempty(opt.G)
-        if isfield(deck.GRID, 'ACTNUM')
-            if isfield(rock, 'ntg')
-                pv = rock.poro.*rock.ntg;
-            else
-                pv = rock.poro;
-            end
-            perm_ok = ~all(rock.perm == 0, 2);
-            deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
+        if ~isfield(deck.GRID, 'ACTNUM')
+            deck.GRID.ACTNUM = (1:prod(deck.GRID.cartDims))';
         end
+            
+        if isfield(rock, 'ntg')
+            pv = rock.poro.*rock.ntg;
+        else
+            pv = rock.poro;
+        end
+        perm_ok = ~all(rock.perm == 0, 2);
+        deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
 
         G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected);
         if numel(G) > 1
