@@ -1,7 +1,7 @@
 function f = assignSGOF(f, sgof, reg)
     [f.krG, f.krOG, pcOG, f.krPts.g, f.krPts.og, hasPC] = getFunctions(f, sgof, reg);
     if hasPC
-        f.f.pcOG = f.pcOG;
+        f.pcOG = pcOG;
     end
 end
 
@@ -55,7 +55,7 @@ if ~isempty(varargin)
 end
 end
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

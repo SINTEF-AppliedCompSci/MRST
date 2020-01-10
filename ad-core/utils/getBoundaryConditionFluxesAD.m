@@ -37,7 +37,7 @@ function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(mode
 %   addBC, pside, fluxside
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -73,7 +73,8 @@ hasOutsideRho = isfield(bc, 'rho');
 if ~hasOutsideMob
     ss = sum(bc.sat, 2);
     % Values should either sum to zero or one
-    assert(all(ss - 1 < sqrt(eps) | ss < sqrt(eps)));
+    assert(all(ss - 1 < sqrt(eps) | ss < sqrt(eps)), ...
+        'Boundary conditions should have ''sat'' field which has row-sum 1.');
 end
 % Mapping
 BCcells = sum(N, 2);

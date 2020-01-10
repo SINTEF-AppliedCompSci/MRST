@@ -65,8 +65,8 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
             [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, ...
                                                               drivingForces);
               if model.surfactant
-                  cs     = model.getProp(state, 'surfactant');
-                  csmax  = model.getProp(state, 'surfactantmax');
+                  cs    = model.getProp(state, 'surfactant');
+                  csmax = model.getProp(state, 'surfactantmax');
                   state = model.setProp(state, 'surfactantmax', max(csmax, cs));
               end
         end
@@ -216,7 +216,7 @@ end
 
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

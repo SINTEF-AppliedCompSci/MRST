@@ -15,7 +15,7 @@ classdef AMGCLSolverAD < LinearSolverAD
 
    properties
        amgcl_setup
-       reuseMode = 1;
+       reuseMode = 1; % 1 for no reuse, 2 for re-use
    end
 
    methods
@@ -34,20 +34,45 @@ classdef AMGCLSolverAD < LinearSolverAD
            [result, report] = solver.callAMGCL_MEX(A, b, 1);
        end
        
-       function setCoarsening(solver, v)
-           solver.amgcl_setup.coarsening = translateOptionsAMGCL('coarsening', v);
+       function setCoarsening(solver, varargin)
+           solver.setParameterGroup('coarsening', [], varargin{:});
        end
        
-       function setRelaxation(solver, v)
-           solver.amgcl_setup.relaxation = translateOptionsAMGCL('relaxation', v);
+       function setRelaxation(solver, varargin)
+           solver.setParameterGroup('relaxation', [], varargin{:});
        end
        
-       function setPreconditioner(solver, v)
-           solver.amgcl_setup.preconditioner = translateOptionsAMGCL('preconditioner', v);
+       function setPreconditioner(solver, varargin)
+           solver.setParameterGroup('preconditioner', [], varargin{:});
        end
        
-       function setSolver(solver, v)
-           solver.amgcl_setup.solver = translateOptionsAMGCL('solver', v);
+       function setSolver(solver, varargin)
+           solver.setParameterGroup('solver', [], varargin{:});
+       end
+       
+       function setParameterGroup(solver, group, fld, v)
+           group = lower(group);
+           if isempty(fld)
+               fld = group;
+           end
+           if nargin == 3
+               fprintf('No %s argument given. Available options:\n', group)
+               [~, choices, descriptions] = translateOptionsAMGCL(group, []);
+               for i = 1:numel(choices)
+                   fprintf('%10s: ', choices{i});
+                   disp(descriptions{i});
+               end
+           else
+               solver.amgcl_setup.(fld) = translateOptionsAMGCL(group, v);
+           end
+       end
+       
+       function [n, name, descr] = getParameterGroup(solver, group, fld)
+           group = lower(group);
+           if nargin < 3 || isempty(fld)
+               fld = group;
+           end
+           [n, name, descr] = translateOptionsAMGCL(group, solver.amgcl_setup.(fld));
        end
        
        function [result, report] = callAMGCL_MEX(solver, A, b, id)
@@ -60,16 +85,43 @@ classdef AMGCLSolverAD < LinearSolverAD
             elseif solver.verbose
                 fprintf('AMGCL solver converged to %1.3e in %2d iterations after %2.2f seconds.\n', res, its, t_solve);
             end
-            report = struct('converged',  res <= solver.tolerance, ...
-                            'residual',   res,...
-                            'iterations', its);
-
+            report = solver.getSolveReport(...
+                            'Converged',  res <= solver.tolerance, ...
+                            'Residual',   res,...
+                            'Iterations', its);
        end
+       
+        function  solver = cleanupSolver(solver, A, b, varargin) %#ok
+            if solver.reuseMode > 1
+                resetAMGCL();
+            end
+        end
+        
+        function [d, sn] = getDescription(solver)
+            sn = 'AMGCL';
+            if solver.amgcl_setup.block_size > 1
+                sn = [sn, '-block'];
+            end
+            sn = [sn, solver.id];
+
+            prm = {'solver', 'preconditioner', 'relaxation'};
+            if solver.amgcl_setup.preconditioner == 1
+                prm{end+1} = 'coarsening';
+            end
+            tmp = cell(1, numel(prm));
+            for i = 1:numel(prm)
+                s = prm{i};
+                [ix, choice, description] = solver.getParameterGroup(s);
+                tmp{i} = sprintf('%15s: %s (%s Internal index %d)', s, choice, description, ix);
+            end
+            d = [sprintf('General AMGCL solver. Configuration:\n'), ...
+                 sprintf('\t%s\n', tmp{:})];
+        end
    end
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

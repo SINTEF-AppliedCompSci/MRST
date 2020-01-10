@@ -52,7 +52,7 @@ function [problem, state] = equationsOilWater(state0, state, model, dt, drivingF
 %   equationsBlackOil, TwoPhaseOilWaterModel
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -155,8 +155,8 @@ types = {'cell', 'cell'};
                                                                  drivingForces);
 
 % Add aquifer contributions if any.
-if isfield(drivingForces, 'aquifer') && (drivingForces.aquifer==true)
-    eqs = addAquifersContribution(model, eqs, names, state, dt);
+if ~isempty(model.AquiferModel)
+    eqs = addAquifersContribution(model.AquiferModel, eqs, names, state, dt);
 end
 
 % Finally, add in and setup well equations
@@ -170,7 +170,7 @@ problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

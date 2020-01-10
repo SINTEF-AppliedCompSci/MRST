@@ -28,16 +28,16 @@ classdef FluxDiscretization < StateFunctionGrouping
             % Darcy flux
             props = props.setStateFunction('Transmissibility', Transmissibility(model));
             props = props.setStateFunction('PermeabilityPotentialGradient', PermeabilityPotentialGradient(model, tpfa));
-            if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
-                pgrad = PressureGradientWithThresholdPressure(model, model);
-            else
-                pgrad = PressureGradient(model);
-            end
-            props = props.setStateFunction('PressureGradient', pgrad);
+            props = props.setStateFunction('PressureGradient', PressureGradient(model));
             props = props.setStateFunction('GravityPotentialDifference', GravityPotentialDifference(model));
             
             % Phase flux
-            props = props.setStateFunction('PhasePotentialDifference', PhasePotentialDifference(model));
+            if ~isempty(model.inputdata) && isfield(model.inputdata.SOLUTION, 'THPRES')
+                ppd = PhasePotentialDifferenceThresholded(model);
+            else
+                ppd = PhasePotentialDifference(model);
+            end
+            props = props.setStateFunction('PhasePotentialDifference', ppd);
             props = props.setStateFunction('PhaseUpwindFlag', PhaseUpwindFlag(model));
             
             % Face values - typically upwinded
@@ -58,6 +58,9 @@ classdef FluxDiscretization < StateFunctionGrouping
 
         function fd = setFlowStateBuilder(fd, fb)
             fd.FlowStateBuilder = fb;
+            if nargout == 0
+                warning('No output argument -- FlowStateBuilder was not changed.');
+            end
         end
         
         function fb = getFlowStateBuilder(fd)
@@ -82,7 +85,7 @@ classdef FluxDiscretization < StateFunctionGrouping
             %            component names.
             %   types  - Types of each equation (defaults to 'cell', to
             %            indicate cell-wise equations on the whole domain)
-            ncomp = model.getNumberOfComponents;
+            ncomp = model.getNumberOfComponents();
             [acc, types] = deal(cell(1, ncomp));
             names = model.getComponentNames();
             [types{:}] = deal('cell');
@@ -90,6 +93,10 @@ classdef FluxDiscretization < StateFunctionGrouping
             mass0 = model.getProps(state0, 'ComponentTotalMass');
             flowState = fd.buildFlowState(model, state, state0, dt);
             v = model.getProps(flowState, 'ComponentTotalFlux');
+            if ~iscell(mass0)
+                % May have been reduced to a double array
+                mass0 = {mass0};
+            end
             for c = 1:ncomp
                 acc{c} = (mass{c} - mass0{c})./dt;
             end
@@ -109,3 +116,22 @@ classdef FluxDiscretization < StateFunctionGrouping
         end
     end
 end
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

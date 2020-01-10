@@ -149,8 +149,6 @@ classdef NonLinearSolver < handle
             converged = false;
             done = false;
 
-            dt = dT;
-
             % Number of nonlinear iterations total
             itCount = 0;
             % Number of ministeps due to cutting
@@ -159,7 +157,6 @@ classdef NonLinearSolver < handle
             stepCount = 0;
             % Number of accepted steps
             acceptCount = 0;
-
             t_local = 0;
 
             isFinalMinistep = false;
@@ -178,13 +175,17 @@ classdef NonLinearSolver < handle
 
             dtMin = dT/(2^solver.maxTimestepCuts);
             timestepFailure = false;
+            % Start with control-step
+            dt = dT;
             while ~done
                 if timestepFailure
                     dt_selector = stepsel.cutTimestep(dt_prev, dt, model, solver, state_prev, state0_inner, drivingForces);
                 else
                     dt_selector = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner, drivingForces);
                 end
-                dt_model = model.getMaximumTimestep(state, state0_inner, dt_selector, drivingForces);
+                % Find maximum time-step with the rest of current control
+                % step as bound
+                dt_model = model.getMaximumTimestep(state, state0_inner, dT - t_local, drivingForces);
                 dt_choice = min(dt_selector, dt_model);
                 if t_local + dt_choice >= dT
                     % Ensure that we hit report time
@@ -405,8 +406,12 @@ classdef NonLinearSolver < handle
                     end
                 end
             end
-            % If we converged, the last step did not solve anything
-            its = i - converged;
+            % If we converged, the last step may not have solved anything
+            if isfield(reports{end}, 'Solved')
+                its = i - double(~reports{end}.Solved);
+            else
+                its = i - converged;
+            end
             reports = reports(~cellfun(@isempty, reports));
             solver.convergenceIssues = false;
             if converged
@@ -560,7 +565,7 @@ classdef NonLinearSolver < handle
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -1,31 +1,36 @@
 function [yi, dyidxi, dyidvi] = interpPVT(T, xi, vi, flag)
 % Interpolate PVT-type curves
 compDer = (nargout>1);
-
-yi = zeros(size(xi));
-if compDer
-    dyidxi = zeros(size(xi));
-    dyidvi = zeros(size(xi));
-end
-tabSat = T.data(T.pos(1:end-1),:);
-
-if isempty(xi)
-    [yi, dyidxi, dyidvi] = deal([]);
-    return;
-else
-    [ixf, ixnf] = deal(flag, ~flag);
-    if ~compDer
-        yi(ixf)  = interpTable(tabSat(:, 1), tabSat(:, 2), xi(ixf));
-        yi(ixnf) = interp2DPVT({T}, xi(ixnf), vi(ixnf), {':'});
+if isa(T, 'function_handle')
+    if compDer
+        [yi, dyidxi, dyidvi] = T(xi, vi, flag);
     else
-        [yi(ixf), dyidxi(ixf)]                 = interpReg({tabSat}, xi(ixf), {':'});
-        [yi(ixnf), dyidxi(ixnf), dyidvi(ixnf)] = interp2DPVT({T}, xi(ixnf), vi(ixnf), {':'});
+        yi = T(xi, vi, flag);
+    end
+else
+    yi = zeros(size(xi));
+    if compDer
+        dyidxi = zeros(size(xi));
+        dyidvi = zeros(size(xi));
+    end
+    tabSat = T.data(T.pos(1:end-1),:);
+
+    if isempty(xi)
+        [yi, dyidxi, dyidvi] = deal([]);
+        return;
+    else
+        [ixf, ixnf] = deal(flag, ~flag);
+        if ~compDer
+            yi(ixf)  = interpTable(tabSat(:, 1), tabSat(:, 2), xi(ixf));
+            yi(ixnf) = interp2DPVT({T}, xi(ixnf), vi(ixnf), {':'});
+        else
+            [yi(ixf), dyidxi(ixf)]                 = interpReg({tabSat}, xi(ixf), {':'});
+            [yi(ixnf), dyidxi(ixnf), dyidvi(ixnf)] = interp2DPVT({T}, xi(ixnf), vi(ixnf), {':'});
+        end
     end
 end
-
-            
 %{
-Copyright 2009-2018 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

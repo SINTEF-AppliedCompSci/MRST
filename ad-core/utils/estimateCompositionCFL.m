@@ -1,4 +1,25 @@
 function cfl = estimateCompositionCFL(model, state, dt, varargin)
+%Undocumented Utility Function
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('forces', []);
     opt = merge_options(opt, varargin{:});
     
@@ -17,7 +38,7 @@ function cfl = estimateCompositionCFL(model, state, dt, varargin)
     compMass = value(model.getProp(state, 'ComponentTotalMass')');
     totMass = sum(compMass, 2);
     % Ignore small masses 
-    bad = compMass./totMass < 1e-7;
+    bad = bsxfun(@rdivide, compMass, totMass) < 1e-7;
     compMass(bad) = 1;
     massFace = upstream(model, compMass, flag, xflow, l, r);
     

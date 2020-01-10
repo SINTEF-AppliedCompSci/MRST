@@ -1,23 +1,49 @@
 function f = assignSGFN(f, sgfn, reg)
-   cfun = @(f) cellfun(f, sgfn, 'UniformOutput', false);
-
-   % Compute tables (static data)
-   Tkrg  = extendTab( cfun(@(x) x(:, [1, 2])) );
-   Tpcog = extendTab( cfun(@(x) x(:, [1, 3])) );
-
-   % Region mapping
-   regmap = @(sg, varargin) ...
-      getRegMap(sg, reg.SATNUM, reg.SATINX, varargin{:});
-
-   % Region interpolator
-   ireg = @(T, sg, varargin) interpReg(T, sg, regmap(sg, varargin{:}));
-
-   f.krG  = @(sg, varargin) ireg(Tkrg , sg, varargin{:});
-   f.pcOG = @(sg, varargin) ireg(Tpcog, sg, varargin{:});
+    [f.krG, pcOG, f.krPts.g, hasPC] = getFunctions(f, sgfn, reg);
+    if hasPC
+        f.pcOG = pcOG;
+    end
 end
 
+function [krG, pcOG, pts, hasPC] = getFunctions(f, SGFN, reg)
+    [krG, pcOG] = deal(cell(1, reg.sat));
+    
+    pts = deal(zeros(reg.sat, 4));
+    hasPC = false;
+    for i = 1:reg.sat
+        if isfield(f, 'krPts')
+            swcon = f.krPts.w(i, 1);
+        else
+            warning('No relperm points found in assignment of SGOF.');
+            swcon = 0;
+        end
+        pts(i, :) = getPoints(SGFN{i}, swcon);
+        sgfn = extendTab(SGFN{i});
+        SG = sgfn(:, 1);
+        kr = sgfn(:, 2);
+        pc = sgfn(:, 3);
+        hasPC = hasPC || any(pc ~= 0);
+        krG{i} = @(sg) interpTable(SG, kr, sg);
+        pcOG{i} = @(sg) interpTable(SG, pc, sg);
+    end
+end
+
+function pts = getPoints(sgfn, swcon)
+    % Connate gas saturation
+    pts = zeros(1, 4);
+    pts(1) = sgfn(1, 1);
+    % Last mobile gas saturation
+    ii = find(sgfn(:,2)==0, 1, 'last');
+    pts(2) = sgfn(ii,1);
+    % Last point
+    pts(3) = sgfn(end,1);
+    % Maximum relperm
+    pts(4) = sgfn(end,2);
+end
+
+
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -58,7 +58,10 @@ classdef CPRSolverAD < LinearSolverAD
             % Solve a linearized problem using a constrained pressure
             % residual preconditioner
             timer = tic();
-            
+            if ~isempty(problem0.A)
+                problem0 = problem0.clearSystem();
+                dispif(solver.verbose, 'System already assembled. CPR will re-assemble!');
+            end
             % In the case that we have a oil equation, we generally want
             % this to be the first entry as most black oil models are
             % parametrized by oil pressure as the primary variable.
@@ -194,12 +197,11 @@ classdef CPRSolverAD < LinearSolverAD
             end
             % Set up elliptic solver
             solver.ellipticSolver = solver.ellipticSolver.setupSolver(Ap, b(pInx));
-            ellipSolve = @(b) solver.ellipticSolver.solveLinearSystem(Ap, b);
-
-            prec = @(r) solver.applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
+            prec = @(r) solver.applyTwoStagePreconditioner(r, A, Ap, L, U, pInx);
             assert(all(isfinite(b)), 'Linear system rhs must have finite entries.');
+            t_prep = toc(timer);
             try
-                [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance,...
+                [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.tolerance,...
                                                     min(solver.maxIterations, size(A, 1)), prec);
             catch exception
                 % Ensure external memory etc is deallocated properly if the
@@ -207,6 +209,7 @@ classdef CPRSolverAD < LinearSolverAD
                 solver.ellipticSolver = solver.ellipticSolver.cleanupSolver(Ap, b(pInx));
                 rethrow(exception)
             end
+            t_solve = toc(timer) - t_prep;
             % Clean up elliptic solver
             solver.ellipticSolver = solver.ellipticSolver.cleanupSolver(Ap, b(pInx));
 
@@ -224,44 +227,64 @@ classdef CPRSolverAD < LinearSolverAD
             end
             
             solver.keepNumber = keepNumber0;
-
-            % Recover stuff
-            solvetime = toc(timer);
-            
-            if solver.verbose
-                switch fl
-                    case 0
-                        fprintf('GMRES converged:');
-                    case 1
-                        fprintf('GMRES did not converge. Reached maximum iterations');
-                    case 2
-                        fprintf('GMRES did not converge. Preconditioner was ill-conditioned.');
-                    case 3
-                        fprintf('GMRES stagnated. Unable to reduce residual.');
-                end
-                fprintf(' Final residual: %1.2e after %d iterations (tol: %1.2e) \n', relres, its(2), solver.relativeTolerance);
+            t_post = toc(timer) - t_prep - t_solve;
+            doPrint = true;
+            switch fl
+                case 0
+                    doPrint = solver.verbose;
+                    dispif(doPrint, 'GMRES converged:');
+                case 1
+                    fprintf('GMRES did not converge. Reached maximum iterations');
+                case 2
+                    fprintf('GMRES did not converge. Preconditioner was ill-conditioned.');
+                case 3
+                    fprintf('GMRES stagnated. Unable to reduce residual.');
             end
-            
+            dispif(doPrint, ' Final residual: %1.2e after %d iterations (tol: %1.2e) \n', relres, its(2), solver.tolerance);
+
             if nargout > 1
                 result = vertcat(dx{:});
             end
             
             if nargout > 2
-                report = struct('IterationsGMRES', its(2), ...
-                                'FlagGMRES',       fl, ...
-                                'SolverTime',      solvetime, ...
-                                'FinalResidual',   relres);
+                report = solver.getSolveReport(...
+                                'Iterations',         its(2), ...
+                                'Converged',          fl == 0, ...
+                                'SolverTime',         t_solve + t_prep + t_post, ...
+                                'LinearSolutionTime', t_solve, ...
+                                'PreparationTime',    t_prep, ...
+                                'PostProcessTime',    t_post, ...
+                                'Residual',           relres);
+                report.FlagGMRES = fl;
                 if solver.extraReport
                     report.ResidualHistory = resvec;
                 end
             end
         end
-    end
-    methods(Static)
-        function x = applyTwoStagePreconditioner(r, A, L, U, pInx, ellipticSolver)
+        
+        function [d, sn] = getDescription(solver)
+            [tmp, sn_sub] = solver.ellipticSolver.getDescription();
+            sn = ['Matlab-CPR-', sn_sub];
+            sn = [sn, solver.id];
+            d = sprintf(['Matlab implementation of constrained pressure', ...
+                        ' residual (CPR) with dynamic row-sum. Elliptic solver: %s.'], sn_sub);
+        end
+        
+        function x = applyTwoStagePreconditioner(solver, r, A, Ap, L, U, pInx)
+           es = solver.ellipticSolver;
+           
+           if isfinite(solver.relativeTolerance)
+               % Elliptic solver uses absolute tolerance? We scale the
+               % problem based on current value
+               scaled = norm(r)*solver.relativeTolerance;
+               strictest = min(solver.tolerance, solver.relativeTolerance);
+               tol = max(scaled, strictest);
+               es.tolerance = tol;
+           end
            x = zeros(size(r));
-           x(pInx) = ellipticSolver(r(pInx));
-
+           rp = r(pInx);
+           x(pInx) = es.solveLinearSystem(Ap, rp);
+           solver.ellipticSolver.solveLinearSystem(Ap, rp);
            r = r - A*x;
            x = x + U\(L\r);
         end
@@ -270,7 +293,7 @@ end
 
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -278,7 +301,7 @@ MRST is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
-
+ 
 MRST is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the

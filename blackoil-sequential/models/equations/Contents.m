@@ -4,14 +4,14 @@
 %   pressureEquationBlackOil         - 
 %   pressureEquationBlackOilPolymer  - 
 %   pressureEquationOilWater         - 
-%   pressureEquationOilWaterPolymer  - 
+%   pressureEquationOilWaterPolymer  - Undocumented Utility Function
 %   transportEquationBlackOil        - Generate linearized problem for a volatile 3Ph system (wet-gas, live-oil).
 %   transportEquationBlackOilPolymer - 
 %   transportEquationOilWater        - 
 %   transportEquationOilWaterPolymer - 
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

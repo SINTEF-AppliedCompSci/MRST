@@ -1,6 +1,7 @@
 % UTILS
 %
 % Files
+%   addPropertyDependence                 - Document dependencies and external dependencies
 %   addFluxesFromSourcesAndBC             - Add in fluxes imposed by sources and face boundary conditions
 %   assignValue                           - Assign values to ADI object by way of indices, without changing jacobians
 %   bc2ADbc                               - INTERNAL DEPRECATED FUNCTION: Intentionally undocumented.
@@ -8,22 +9,28 @@
 %   CNV_MBConvergence                     - Compute convergence based on total mass balance and maximum residual mass balance.
 %   combineEquations                      - Combine equations. For doubles, this is equivialent to a vertical
 %   compressSchedule                      - Compress schedule to take the longest possible timesteps while honoring controls
-%   computeCpGeometry                     - 
+%   computeCpGeometry                     - Undocumented Utility Function
 %   computeSourcesAndBoundaryConditionsAD - Compute phase-pseudocomponent source terms (compatible with AD codes)
 %   convert2MSWell                        - Utility for Converting Standard Well Structure to Multi-Segment Type
 %   convertDeckScheduleToMRST             - Convert deck-type schedule to MRST style schedule
 %   convertIncompWellSols                 - Convert wellSols from incomp module to format used in ad-core/ad-blackoil
 %   convertReportToSchedule               - Create a new schedule based on actual ministeps from a simulation report
 %   convertReservoirFluxesToSurface       - Compute surface fluxes from reservoir fluxes
+%   crossFlowMixture                      - Undocumented Utility Function
+%   crossFlowMixtureDensity               - Undocumented Utility Function
 %   double2ADI                            - Convert a double to ADI variable, using a sample ADI variable for dimensions
+%   estimateCompositionCFL                - Undocumented Utility Function
+%   estimateSaturationCFL                 - Undocumented Utility Function
+%   expandIfUniform                       - Utility which reverses "value" compaction. If given a matrix (logical
 %   faceUpstr                             - Perform single-point upwinding of cell values to face
 %   fastInterpTable                       - Fast interpolation of table, using griddedInterpolant
 %   getBoundaryConditionFluxesAD          - Get boundary condition fluxes for a given set of values
 %   getCellMajorReordering                - Get equation ordering transforming variable major to cell major ordering
 %   getConvergenceValuesCNV               - Compute convergence based on total mass balance and maximum residual mass balance.
-%   getConvergenceValuesWells             - 
+%   getConvergenceValuesWells             - Undocumented Utility Function
 %   getFaceTransmissibility               - Compute face transmissibilities, accounting for input-specific multipliers
-%   getGridSYMRCMOrdering                 - 
+%   getFractionalFlowMagnitude            - Undocumented Utility Function
+%   getGridSYMRCMOrdering                 - Undocumented Utility Function
 %   getMultiDimInterpolator               - Get a multidimensional interpolator (with support for ADI varibles)
 %   getMultipliers                        - Get dynamic multiplier values for reservoir quantities
 %   getPerforationToWellMapping           - Get map from global perforation number to global well index.
@@ -32,30 +39,37 @@
 %   getSimulationTime                     - Get the global time for a set of states produced by simulateScheduleAD
 %   getSourceFluxesAD                     - Short description
 %   getWellOutput                         - Extract values from wellsols.
+%   HandleStruct                          - 
 %   initWellSolAD                         - Set up well solution struct for a automatic differentiation model
-%   interpolateIDW                        - Number of sample points and dimension of space
+%   interpolateIDW                        - Undocumented Utility Function
 %   makeScheduleConsistent                - Ensure that a schedule is consistent in terms of well counts/perforations
 %   mergeOrderedArrays                    - Merge two sets of cells that are similar in that they may contain
+%   numelData                             - Alias for numel. Useful for writing code which handles either
+%   numelValue                            - Undocumented Utility Function
 %   padRatesAndCompi                      - Pad one/two/threephase values with zeros corresponding to missing phases.
 %   phaseDensitiesTobfactor               - Convert densities to b-facctors, accounting for dissolution
 %   pressureBCContrib                     - LEGACY FUNCTION: Intentionally undocumented.
 %   pressureBCContribADI                  - LEGACY FUNCTION: Intentionally undocumented.
 %   printConvergenceReport                - Print a neatly formatted convergence report
+%   readSummaryLocal                      - Undocumented Utility Function
 %   recoverVars                           - Recover previously eliminated variables x at position n using solutions sol
 %   refineSchedule                        - Compute a finer schedule, including new time steps but preserving the time steps of the original
 %   reorderForILU                         - Attempt to reorder a set of equations so that the diagonal is non-zero
 %   ResultHandler                         - Class for storing and retrieving simulation results, either in memory or stored to disk
-%   selectLinearSolverAD                  - 
+%   selectLinearSolverAD                  - Undocumented Utility Function
 %   selectModelFromDeck                   - Select simulation model from a ECLIPSE/FrontSim style input deck
 %   setupOperatorsTPFA                    - Set up helper structure for solvers based on automatic differentiation.
 %   setWellSign                           - Ensure that wells have a defined sign. Will attempt to guess based on controls.
 %   simpleSchedule                        - Make a schedule with varying timesteps and fixed wells/bc/src terms
 %   splitFaceCellValue                    - Split multi-valued function into cell and face values
-%   standaloneSolveAD                     - 
+%   splitMatrixForReduction               - Split matrix A and right-hand side into blocks
+%   standaloneSolveAD                     - Solve a single time-step with AD solvers for given forces
+%   structPropEvaluated                   - Undocumented Utility Function
 %   terniaryWellPlot                      - Plot well curves (water, gas, oil and optionally BHP) for wellSols
+%   wellSolToVector                       - Extract selected summary vectors from cell array of well solutions
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

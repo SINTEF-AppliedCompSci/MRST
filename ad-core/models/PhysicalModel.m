@@ -114,6 +114,11 @@ methods
         end
     end
 
+    function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
+        % Get equations from AD states
+        assert(false, 'Not implemented in base class');
+    end
+    
     function [problem, state] = getEquations(model, state0, state, dt, forces, varargin)
         % Get the set of linearized model equations with possible Jacobians
         %
@@ -496,7 +501,7 @@ methods
                 kept = nc;
                 if kept
                     % Some values are to be kept. We set all which are not
-                    % kept to emtpy to ensure that the storage is
+                    % kept to empty to ensure that the storage is
                     % normalized with missing values.
                     for j = 1:numel(names)
                         name = names{j};
@@ -678,6 +683,7 @@ methods
                                    'ResOnly', true, ...
                                    'iteration', iteration+1, ...
                                    varargin{:});
+           state = model.reduceState(state, true);
         end
         if model.verbose
             printConvergenceReport(resnames, values, convergence, iteration, isConverged);
@@ -688,6 +694,7 @@ methods
                         'Failure',      failure, ...
                         'FailureMsg',   failureMsg, ...
                         'Converged',    isConverged, ...
+                        'Solved',       ~isConverged, ...
                         'AssemblyTime', t_assembly, ...
                         'Residuals',    values, ...
                         'StabilizeReport', stabilizeReport,...
@@ -723,6 +730,7 @@ methods
                         'Failure',      false, ...
                         'FailureMsg',   '', ...
                         'Converged',    false, ...
+                        'Solved',       true, ...
                         'FinalUpdate',  [],...
                         'Residuals',    [],...
                         'AssemblyTime',    0, ...
@@ -887,7 +895,7 @@ methods
                 nms = c.getNamesOfStateFunctions();
                 sub = strcmpi(nms, name);
                 if any(sub)
-                    p = c.get(model, state, nms{sub});
+                    [p, state] = c.get(model, state, nms{sub});
                     return
                 end
             end
@@ -1288,7 +1296,7 @@ end
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

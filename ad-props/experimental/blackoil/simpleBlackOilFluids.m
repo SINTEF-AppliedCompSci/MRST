@@ -1,6 +1,25 @@
 function fluid = simpleBlackOilFluids(mycomp,mycomp)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+%Undocumented Utility Function
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 fluid=initSimpleADIFluid('mu',[0.5 5 1e-1]*centi*poise,'rho',[1000 1000 1000],'n',[2 1 1]);
 
 % fluid comp
@@ -57,4 +76,3 @@ switch my_fluid
 end
 
 end
-

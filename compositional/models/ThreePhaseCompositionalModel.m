@@ -448,7 +448,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             rho = value(model.getProp(state, 'Density'));
             s = value(model.getProp(state, 's'));
             pv = value(model.getProp(state, 'PoreVolume'));
-            mass = pv.*rho.*s;
+            mass = bsxfun(@times, pv, rho.*s);
             if model.water
                 cnames = cnames(~strcmpi(cnames, 'water'));
             end
@@ -510,7 +510,7 @@ end
 
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

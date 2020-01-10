@@ -3,6 +3,7 @@
 % Files
 %   combineMSwithRegularWells           - Combine regular and MS wells, accounting for missing fields
 %   computeWellContributionsSingleWell  - Main internal function for computing well equations and source terms
+%   ExtendedFacilityModel               - 
 %   FacilityModel                       - A model coupling facilities and wells to the reservoir
 %   MultisegmentWell                    - Derived class implementing multisegment wells
 %   nozzleValve                         - Nozzle valve model
@@ -14,10 +15,10 @@
 %   unpackPerforationProperties         - Unpack the properties extracted by packPerforationProperties. Internal function.
 %   wellBoreFriction                    - Empricial model for well-bore friction
 %   UniformFacilityModel                - Simplified facility model which is sometimes faster
-%   reorderWellPerforationsByDepth      - 
+%   reorderWellPerforationsByDepth      - Undocumented Utility Function
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

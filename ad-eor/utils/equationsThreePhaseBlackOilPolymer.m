@@ -36,7 +36,7 @@ function [problem, state] = equationsThreePhaseBlackOilPolymer(state0, state, mo
 % properties
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -70,11 +70,11 @@ W = drivingForces.W;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src));
 
 % Properties at current timestep
-[p, sW, sG, rs, rv, c, cmax, wellSol] = model.getProps(state, ...
+[p, sW, sG, rs, rv, cp, cpmax, wellSol] = model.getProps(state, ...
    'pressure', 'water', 'gas', 'rs', 'rv', 'polymer', 'polymermax', 'wellsol');
 
 % Properties at previous timestep
-[p0, sW0, sG0, rs0, rv0, c0, cmax0, wellSol0] = model.getProps(state0, ...
+[p0, sW0, sG0, rs0, rv0, cp0, cpmax0, wellSol0] = model.getProps(state0, ...
    'pressure', 'water', 'gas', 'rs', 'rv', 'polymer', 'polymermax', 'wellsol');
 
 [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
@@ -95,14 +95,14 @@ end
 if ~opt.resOnly
     if ~opt.reverseMode
         % define primary varible x and initialize
-        [p, sW, x, c, wellVars{:}] = ...
-            initVariablesADI(p, sW, x, c, wellVars{:});
+        [p, sW, x, cp, wellVars{:}] = ...
+            initVariablesADI(p, sW, x, cp, wellVars{:});
     else
         x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
         % Set initial gradient to zero
         wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
-        [p0, sW0, x0, c0, wellVars0{:}] = ...
-            initVariablesADI(p0, sW0, x0, c0, wellVars0{:}); %#ok
+        [p0, sW0, x0, cp0, wellVars0{:}] = ...
+            initVariablesADI(p0, sW0, x0, cp0, wellVars0{:}); %#ok
         clear zw;
         [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW, x0, rs0, rv0, p0);
     end
@@ -136,10 +136,10 @@ T = s.T.*transMult;
 gdz = model.getGravityGradient();
 
 % Evaluate water and polymer properties
-ads  = effads(c, cmax, f);
-ads0 = effads(c0, cmax0, f);
+ads  = effads(cp, cpmax, f);
+ads0 = effads(cp0, cpmax0, f);
 [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
+    getFluxAndPropsWaterPolymer_BO(model, p, sW, cp, ads, ...
     krW, T, gdz);
 bW0 = f.bW(p0);
 
@@ -161,11 +161,11 @@ if model.usingShear || model.usingShearLog || model.usingShearLogshrate
             sgn = vertcat(W.sign);
             
             wc_inj = wc(sgn(perf2well) > 0);
-            cw        = c(wc_inj);
+            cpw = cp(wc_inj);
             
-            mob    = {mobW, mobO, mobG};
+            mob = {mobW, mobO, mobG};
             muWMultW = muWMult(wc_inj);
-            muWFullyMixed = model.fluid.muWMult(cw);
+            muWFullyMixed = model.fluid.muWMult(cpw);
 
             mob{1}(wc_inj) = mob{1}(wc_inj) ./ muWFullyMixed .* muWMultW;
             rho = {rhoW, rhoO, rhoG};
@@ -175,7 +175,7 @@ if model.usingShear || model.usingShearLog || model.usingShearLogshrate
             
             [src, wellsys, state.wellSol] = ...
             model.FacilityModel.getWellContributions(wellSol0, wellSol, wellVars, ...
-                                    wellMap, p, mob, rho, dissolved, {c}, ...
+                                    wellMap, p, mob, rho, dissolved, {cp}, ...
                                     dt, opt.iteration);
 
         else
@@ -204,8 +204,8 @@ if model.usingShear || model.usingShearLog || model.usingShearLogshrate
     % verfied with any tests yet due to lack of the reference result.
 
     [~, wciPoly, iInxW] = getWellPolymer(W);
-    cw = c(wc);
-    muWMultW(iInxW) = model.fluid.muWMult(cw(iInxW));
+    cpw = cp(wc);
+    muWMultW(iInxW) = model.fluid.muWMult(cpw(iInxW));
 
     % Maybe should also apply this for PRODUCTION wells.
     muWMultW((iInxW(wciPoly==0))) = 1;
@@ -336,8 +336,8 @@ end
 
 % polymer in water equation :
 poro =  s.pv./G.cells.volumes;
-polymer = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
-   pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
+polymer = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*cp - ...
+   pvMult0.*f.bW(p0).*sW0.*cp0) + (s.pv/dt).* ...
    ( f.rhoR.*((1-poro)./poro).*(ads - ads0)) + s.Div(bWvP);
 
 % Applying correction to the polymer equation when the Jacobian is
@@ -355,7 +355,7 @@ if ~opt.resOnly
     % bad marks the cells prolematic in evaluating Jacobian
     bad = abs(diag(polymer.jac{4})) < eps;
     % the other way is to choose based on the water saturation
-    polymer(bad) = c(bad);
+    polymer(bad) = cp(bad);
 end
 eqs = {water, oil, gas, polymer};
 names = {'water', 'oil', 'gas', 'polymer'};
@@ -368,7 +368,7 @@ dissolved = model.getDissolutionMatrix(rs, rv);
 
 [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
                                                  {pW, p, pG}, sat, mob, rho, ...
-                                                 dissolved, {c}, ...
+                                                 dissolved, {cp}, ...
                                                  drivingForces);
 
 % Finally, add in and setup well equations
@@ -377,11 +377,11 @@ perf2well = getPerforationToWellMapping(W);
 sgn = vertcat(W.sign);
 
 wc_inj = wc(sgn(perf2well) > 0);
-cw     = c(wc_inj);
+cpw     = cp(wc_inj);
 
 % remove the old viscosity and applying the fully mixed viscosity
 muWMultW = muWMult(wc_inj);
-muWFullyMixed = model.fluid.muWMult(cw);
+muWFullyMixed = model.fluid.muWMult(cpw);
 
 mob{1}(wc_inj) = mob{1}(wc_inj) ./ muWFullyMixed .* muWMultW;
 
@@ -391,7 +391,7 @@ if model.usingShear || model.usingShearLog || model.usingShearLogshrate
     mob{1}(wc) = mob{1}(wc)./shearMultW;
 end
 
-[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {c}, dt, opt);
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {cp}, dt, opt);
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 end
@@ -425,11 +425,11 @@ end
 %--------------------------------------------------------------------------
 
 % Effective adsorption, depending of desorption or not
-function y = effads(c, cmax, f)
+function y = effads(cp, cpmax, f)
    if f.adsInx == 2
-      y = f.ads(max(c, cmax));
+      y = f.ads(max(cp, cpmax));
    else
-      y = f.ads(c);
+      y = f.ads(cp);
    end
 end
 

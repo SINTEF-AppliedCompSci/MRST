@@ -62,6 +62,17 @@ classdef PackedProblemManager < handle
             end
         end
         
+        function simulateProblem(ppm, varargin)
+            % Simulate one or more problems (directly in current session)
+            if mod(nargin - 1, 2) == 1
+                index = varargin{1};
+                varargin = varargin(2:end);
+            else
+                index = ':';
+            end
+            simulatePackedProblem(ppm.packedProblems(index), varargin{:});
+        end
+        % --- Utilities
         function monitorProgress(ppm, single_update, index)
             % Show progress indicator for background simulation of problems
             if nargin < 3
@@ -74,20 +85,28 @@ classdef PackedProblemManager < handle
             indices = (1:ppm.N)';
             if ppm.showOnlyActive
                 active = ppm.problem_is_executing(index);
-                if ~any(active)
+                fh = ppm.handle.figure;
+                if any(active) || (~isempty(fh) && ishandle(fh))
+                    isDone = ppm.getNumberOfCompleteSteps(false) >= ppm.nsteps;
+                    alreadyDone = sum(isDone(~active));
+                else
                     % Display everything, for an overview
                     active = ':';
+                    alreadyDone = 0;
                 end
             else
                 active = ':';
+                alreadyDone = 0;
             end
             indices = indices(active);
+            activeProblems = problems(active);
             switch lower(ppm.displayProgressType)
                 case {'graphical', 'text', 'text-scrolling'}
                     useFigure = strcmpi(ppm.displayProgressType, 'graphical');
-                    ppm.handle = monitorBackgroundSimulations(problems(active), ...
+                    ppm.handle = monitorBackgroundSimulations(activeProblems, ...
                         'useFigure', useFigure, 'handle', ppm.handle, ...
                         'dynamicText', ~strcmpi(ppm.displayProgressType, 'text-scrolling'), ...
+                        'totalNumberOfCases', numel(problems), 'totalProgress', alreadyDone, ...
                         'singleUpdate', single_update, 'indices', indices);
                 otherwise
 
@@ -151,17 +170,6 @@ classdef PackedProblemManager < handle
             n = ppm.getNumberOfCompleteSteps(true);
             ppm.problem_is_executing = ppm.problem_is_executing & ~(n >= ppm.nsteps);
         end
-        
-        function simulateProblem(ppm, varargin)
-            % Simulate a problem (directly in current session)
-            if mod(nargin - 1, 2) == 1
-                index = varargin{1};
-                varargin = varargin(2:end);
-            else
-                index = ':';
-            end
-            simulatePackedProblem(ppm.packedProblems(index), varargin{:});
-        end
 
         function simulateProblemBackground(ppm, varargin)
             % Simulate a problem in background (without interacting with
@@ -207,3 +215,22 @@ classdef PackedProblemManager < handle
         end
     end
 end
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

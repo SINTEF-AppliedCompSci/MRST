@@ -1,12 +1,32 @@
 function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
+%Undocumented Utility Function
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+    % Make sure that model is ready for evaluation of properties
+    model = model.validateModel();
     opt = struct('pressure', []);
     opt = merge_options(opt, varargin{:});
     
     if ~iscell(regions)
         regions = {regions};
     end
-    
-    [rs, rv] = deal(0);
     vapoil = isprop(model, 'vapoil') && model.vapoil;
     disgas = isprop(model, 'disgas') && model.disgas;
     compositional = isprop(model, 'EOSModel');
@@ -28,6 +48,7 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
     watIx = model.getPhaseIndex('W');
     oilIx = model.getPhaseIndex('O');
     gasIx = model.getPhaseIndex('G');
+    refIx = 1 + model.oil;
 
     pressures = zeros(G.cells.num, nph);
     touched = false(G.cells.num, 1);
@@ -53,23 +74,24 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
         pressures(cells, :) = p;
         
         % Evalaute rel. perm.
-        sat = cell(1, nph);
         pc = cell(1, nph);
         for i = 1:nph
-            sat{i} = state.s(cells, i);
             pc{i} = region.pc_sign(i)*region.pc_functions{i}(state.s(cells, i));
         end
-        kr = s;
-        numberOfMobile = sum(kr > 0, 2);
+        m = model;
+        m.FlowPropertyFunctions = model.FlowPropertyFunctions.subset(cells);
+
+        tmp_state = struct('s', s, 'pressure', p(:, 1));
+        kr = value(m.getProp(tmp_state, 'RelativePermeability'));
         maxSat = max(s, [], 2);
-        singlePhaseMobile = numberOfMobile <= 1;
+        referenceImmobile = kr(:, refIx) < 1e-8;
         
         toOil = true(size(p, 1), 1);
         if model.gas
             % If only gas is mobile, set oil pressure to the gas hydrostatic 
             % pressure minus the capillary pressure
-            onlyGas = (kr(:, gasIx) > 0 & singlePhaseMobile) |...
-                       (s(:, gasIx) == maxSat & numberOfMobile == 0);
+            gasMajority = s(:, gasIx) == maxSat;
+            onlyGas = gasMajority & referenceImmobile;
 
             toOil(onlyGas) = false;
             state.pressure(cells(onlyGas)) = p(onlyGas, gasIx) - pc{gasIx}(onlyGas);
@@ -105,9 +127,8 @@ function [state, pressures] = initStateBlackOilAD(model, regions, varargin)
             end
         end
         if model.water
-            % onlyWat = state.s(cells, watIx) == 1;
-            onlyWat = (kr(:, watIx) > 0 & singlePhaseMobile) | ...
-                      (s(:, watIx) == maxSat & numberOfMobile == 0);
+            watMajority = s(:, watIx) == maxSat;
+            onlyWat = watMajority & referenceImmobile;
             toOil(onlyWat) = false;
             state.pressure(cells(onlyWat)) = p(onlyWat, watIx) - pc{watIx}(onlyWat);
         end

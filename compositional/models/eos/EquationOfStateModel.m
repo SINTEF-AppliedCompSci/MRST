@@ -945,7 +945,9 @@ classdef EquationOfStateModel < PhysicalModel
                         dE1 = E1.jac{i}.diagonal;
                         dE0 = E0.jac{i}.diagonal;
 
-                        d = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
+                        % d = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
+                        mlt = @(x, y) bsxfun(@times, x, y);
+                        d = -bsxfun(@rdivide, mlt(dE2, z.^2) + mlt(dE1, z) + dE0, 3*z.^2 + 2*z.*e2 + e1);
                         if any(any(d~=0))
                             if Z.jac{i}.isZero
                                 Z.jac{i} = Z.jac{i}.expandZero();
@@ -1162,7 +1164,7 @@ classdef EquationOfStateModel < PhysicalModel
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

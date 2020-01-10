@@ -1,13 +1,15 @@
 % MODELS
 %
 % Files
+%   AquiferBlackOilModel    - 
+%   GenericBlackOilModel    - 
 %   ThreePhaseBlackOilModel - Three phase with optional dissolved gas and vaporized oil
 %   TwoPhaseOilWaterModel   - Two phase oil/water system without dissolution
-%   WaterModel              - Single phase water model. 
+%   WaterModel              - Single phase water model.
 %   WaterThermalModel       - Single phase water model with thermal effects. Should be considered
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

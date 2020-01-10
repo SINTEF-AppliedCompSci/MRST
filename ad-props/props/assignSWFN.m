@@ -1,39 +1,54 @@
 function f = assignSWFN(f, swfn, reg)
-f.krW  = @(sw, varargin)krW(sw, swfn, reg, varargin{:});
-f.pcOW = @(sw, varargin)pcOW(sw, swfn, reg, varargin{:});
-swcon = cellfun(@(x)x(1,1), swfn);
-ntsat = numel(reg.SATINX);
-if ntsat == 1
-    f.sWcon = swcon(1);
-else
-    f.sWcon = swcon(reg.SATNUM);
-end
+    [f.krW, pcOW, f.krPts.w, hasPC] = getFunctions(swfn, reg);
+    if hasPC
+        f.pcOW = pcOW;
+    end
 
-if isfield(reg, 'SURFNUM')
-   % Assign miscible relperm for surfactant
-   f.krWSft  = @(sw, varargin)krWSft(sw, swfn, reg, varargin{:});
-   % Assign residual water saturation for surfactant
-   f.sWconSft = swcon(reg.SURFNUM);
-   % Assign residual oil saturation
-   sOres  = cellfun(@(x)x(end, 1), swfn);
-   f.sOres = 1 - sOres(reg.SATNUM);
-   f.sOresSft = 1 - sOres(reg.SURFNUM);
-end
+    if isfield(reg, 'SURFNUM')
+       % Assign miscible relperm for surfactant
+       f.krWSft  = @(sw, varargin)krWSft(sw, swfn, reg, varargin{:});
+       % Assign residual water saturation for surfactant
+       swcon = f.krPts.w(:, 1);
+       f.sWconSft = swcon(reg.SURFNUM);
+       % Assign residual oil saturation
+       sOres  = cellfun(@(x)x(end, 1), swfn);
+       f.sOres = 1 - sOres(reg.SATNUM);
+       f.sOresSft = 1 - sOres(reg.SURFNUM);
+    end
 
 end
 
-function v = krW(sw, swfn, reg, varargin)
-satinx = getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
-T = cellfun(@(x)x(:,[1,2]), swfn, 'UniformOutput', false);
-T = extendTab(T);
-v = interpReg(T, sw, satinx);
+
+function [krW, pcOW, pts_w, hasPC] = getFunctions(SWFN, reg)
+    pts_w = zeros(reg.sat, 4);
+    
+    [krW, pcOW] = deal(cell(1, reg.sat));
+    hasPC = false;
+    for i = 1:reg.sat
+        pts_w(i, :) = getPoints(SWFN{i});
+        
+        swfn = extendTab(SWFN{i});
+        SW = swfn(:, 1);
+        kr = swfn(:, 2);
+        pc = swfn(:, 3);
+        hasPC = hasPC || any(pc ~= 0);
+        krW{i} = @(sw) interpTable(SW, kr, sw);
+        pcOW{i} = @(sw) interpTable(SW, pc, sw);
+    end
 end
 
-function v = pcOW(sw, swfn, reg, varargin)
-satinx = getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
-T = cellfun(@(x)x(:,[1,3]), swfn, 'UniformOutput', false);
-T = extendTab(T);
-v = interpReg(T, sw, satinx);
+
+function pts = getPoints(swof)
+    pts = zeros(1, 4);
+    % Connate water saturation
+    pts(1) = swof(1, 1);
+    % Last immobile water saturation
+    ii = find(swof(:,2)==0, 1, 'last');
+    pts(2) = swof(ii,1);
+    % Last point
+    pts(3) = swof(end,1);
+    % Maximum relperm
+    pts(4) = swof(end,2);
 end
 
 function v = krWSft(sw, swfn, reg, varargin)
@@ -44,7 +59,7 @@ v = interpReg(T, sw, surfinx);
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

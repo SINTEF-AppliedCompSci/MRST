@@ -1,6 +1,29 @@
 function [deck, output] = getDeckOPMData(name, caseName)
+%Undocumented Utility Function
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opm = mrstPath('opm-data');
     opm_tests = mrstPath('opm-tests');
+    assert(~isempty(opm));
+    assert(~isempty(opm_tests));
     fn = fullfile(opm, name, [caseName, '.DATA']);
     deck = readEclipseDeck(fn);
     
@@ -47,6 +70,11 @@ end
 function output = getOutputEclipse(deck, fldr, caseName, unit)
     G = initEclipseGrid(deck);
     smry_prefix = fullfile(fldr, 'eclipse-simulation', caseName);
+
+    if ~exist([smry_prefix, '.SMSPEC'], 'file')
+        % Norne hack...
+        smry_prefix = fullfile(fldr, 'ECL.2014.2', caseName);
+    end
 
     ws = convertSummaryToWellSols(smry_prefix, unit);
     states = convertRestartToStates(smry_prefix, G, 'use_opm', false, 'consistentWellSols', false);

@@ -48,6 +48,7 @@ classdef GMRES_ILUSolverAD < LinearSolverAD
         end
         
         function [result, report] = solveLinearSystem(solver, A, b)
+            timer = tic();
             nel = size(A, 1);
             if solver.reorderEquations
                 [A, b] = reorderForILU(A, b);
@@ -57,10 +58,12 @@ classdef GMRES_ILUSolverAD < LinearSolverAD
                 solver.tolerance,...
                 min(solver.maxIterations, nel), ...
                 L, U);
-            report = struct('GMRESFlag',  flag, ...
-                            'residual',   res,...
-                            'iterations', its);
-
+            t_solve = toc(timer);
+            report = solver.getSolveReport('Residual',   res,...
+                                           'Iterations', its, ...
+                                           'Converged', flag == 0, ...
+                                           'LinearSolutionTime', t_solve);
+            report.GMRESFlag = flag;
             if flag > 0
                 warning('Solver did not converge to specified tolerance of %g. Reported residual estimate was %g', solver.tolerance, res);
             end
@@ -73,11 +76,17 @@ classdef GMRES_ILUSolverAD < LinearSolverAD
                 'udiag',   solver.udiagReplacement, ...
                 'thresh',  solver.pivotThreshold);
         end
+        
+        function [d, sn] = getDescription(solver)
+            sn = 'Matlab-GMRES-ILU(0)';
+            sn = [sn, solver.id];
+            d = 'GMRES with incomplete LU-factorization (ILU(0)) as preconditioner';
+        end
     end
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

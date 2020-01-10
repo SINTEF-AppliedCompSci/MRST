@@ -78,11 +78,11 @@ model.dsMaxAbs  = .1;
 % where Matlab's standard linear solvers scale poorly.
 try
     mrstModule add agmg
-    pressureSolver = AGMGSolverAD('tolerance', 1e-4);
+    pressureSolver = AGMGSolverAD();
 catch
     pressureSolver = BackslashSolverAD();
 end
-linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'relativeTolerance', 1e-3);
+linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'tolerance', 1e-3, 'relativeTolerance', 1e-5);
 
 %% Plot the rock permeability
 % The SPE9 data set has an anisotropic, inhomogenous permeability field.
@@ -606,7 +606,7 @@ title('Phase distribution after final timstep')
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

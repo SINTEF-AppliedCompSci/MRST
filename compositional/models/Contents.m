@@ -1,10 +1,12 @@
 % MODELS
 %
 % Files
-%   ThreePhaseCompositionalModel - Base class for compositional models
+%   GenericNaturalVariablesModel   - 
+%   GenericOverallCompositionModel - 
+%   ThreePhaseCompositionalModel   - Base class for compositional models
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

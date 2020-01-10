@@ -48,15 +48,7 @@ state0.csmax= zeros([model.G.cells.num, 1]);
 model.useCNVConvergence = true;
 
 % Setting up the non-linear solver.
-% Since the size of the current prolbem is relatively small, the direct
-% linear solver provided by MATLAB is efficient enough, so we are not using
-% CPR-preconditioned linear sover by specifying 'useCPR' to be false.
-% For bigger problem, you should try to activate CPR-preconditioned linear
-% solver by specifying 'useCPR' to be true. By doing that, AGMG algebraic
-% multigrid solver will be used if it is present. For much larger cases,
-% the AGMG will improve the solution speed significantly and be required.
-nonlinearsolver = getNonLinearSolver(model, 'DynamicTimesteps', false, ...
-                                     'useCPR', false);
+nonlinearsolver = NonLinearSolver();
 nonlinearsolver.useRelaxation = true;
 
 %% Run the schedule with plotting function
@@ -119,7 +111,7 @@ for i = 1 : length(T)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
-sgtitle('Oil saturation for water flooding')
+set(gcf, 'name', 'Oil saturation for water flooding')
 
 % Plot cell oil saturation in different tsteps of polymer flooding
 sOmin = min( cellfun(@(x)min(x.s(:,2)), statesP) );
@@ -135,7 +127,7 @@ for i = 1 : length(T)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
-sgtitle('Oil saturation for polymer flooding')
+set(gcf, 'name', 'Oil saturation for polymer flooding')
 
 % Plot cell oil saturation in different tsteps of surfactant flooding
 sOmin = min( cellfun(@(x)min(x.s(:,2)), statesS) );
@@ -151,7 +143,7 @@ for i = 1 : length(T)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
-sgtitle('Oil saturation for surfactant flooding')
+set(gcf, 'name', 'Oil saturation for surfactant flooding')
 
 % Plot cell oil saturation in different tsteps of surfactant-polymer flooding
 sOmin = min( cellfun(@(x)min(x.s(:,2)), statesSP) );
@@ -167,7 +159,8 @@ for i = 1 : length(T)
     caxis([sOmin, sOmax])
     title(['T = ', num2str(T(i))])
 end
-sgtitle('Oil saturation for surfactant-polymer flooding')
+set(gcf, 'name', 'Oil saturation for surfactant-polymer flooding')
+
 %% Plot well solutions of water flooding and surfactant-polymer flooding
 % The orange line denotes pure water flooding while the blue line denotes SP
 % flooing
@@ -178,7 +171,7 @@ plotWellSols({wellSolsSP, wellSolsW},cumsum(schedule.step.val))
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

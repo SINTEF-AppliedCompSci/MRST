@@ -61,22 +61,22 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             if model.polymer
                 % Store the polymer from previous iteration temporarily to
                 % use in convergence criteria
-                c_prev = model.getProp(state, 'polymer');
+                cp_prev = model.getProp(state, 'polymer');
             end
 
             [state, report] = updateState@TwoPhaseOilWaterModel(model, ...
                state, problem,  dx, drivingForces);
 
             if model.polymer
-                % Limit polymer concentration to [0, fluid.cmax]
-                c = model.getProp(state, 'polymer');
-                c = min(c, model.fluid.cmax);
-                state = model.setProp(state, 'polymer', max(c, 0) );
-                state.c_prev = c_prev;
+                % Limit polymer concentration to [0, fluid.cpmax]
+                cp = model.getProp(state, 'polymer');
+                cp = min(cp, model.fluid.cpmax);
+                state = model.setProp(state, 'polymer', max(cp, 0) );
+                state.cp_prev = cp_prev;
 
                 % Shear Thinning Report
                 % We (may) have stored the shear thinning report
-                % temporarily in the state structure. We move this over to
+                % temporarily in the state strucpture. We move this over to
                 % the report structure instead. The reason for this is that
                 % there is no report returned from the equations.
                 if isfield(state, 'ShearThinningReport')
@@ -89,13 +89,13 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, drivingForces);
             if model.polymer
-                c     = model.getProp(state, 'polymer');
-                cmax  = model.getProp(state, 'polymermax');
-                state = model.setProp(state, 'polymermax', max(cmax, c));
+                cp    = model.getProp(state, 'polymer');
+                cpmax = model.getProp(state, 'polymermax');
+                state = model.setProp(state, 'polymermax', max(cpmax, cp));
 
-                if isfield(state, 'c_prev')
+                if isfield(state, 'cp_prev')
                     % Remove the temporary field used for convergence
-                    state = rmfield(state, 'c_prev');
+                    state = rmfield(state, 'cp_prev');
                 end
             end
         end
@@ -110,9 +110,9 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                     c = model.getComponentNames();
                     index = find(strcmpi(c, 'polymer'));
                     if strcmpi(name, 'polymer')
-                        fn = 'c';
+                        fn = 'cp';
                     else
-                        fn = 'cmax';
+                        fn = 'cpmax';
                     end
                 otherwise
                     [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
@@ -244,8 +244,8 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 % the polymer does not travel at the same velocity as water. See
                 % the governing equation for polymer
                 % (e.g. equationsOilWaterPolymer.m)
-                cbarw = concpolyRes/f.cmax;
-                a     = f.muWMult(f.cmax).^(1-f.mixPar);
+                cbarw = concpolyRes/f.cpmax;
+                a     = f.muWMult(f.cpmax).^(1-f.mixPar);
                 cqP   = concpolyRes.*cqWs./(a + (1-a).*cbarw);
 
                 % For the injecting connections, the polymer is distributed equally in each
@@ -263,7 +263,7 @@ end
 
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -3,14 +3,13 @@
 % Files
 %   multipleSubstepsDemo  - Buckley-Leverett problem with multiple substeps
 %   relaxedVolumeSPE10    - Set up simulation problem
-%   runSeqTestAndCompare  - 
 %   sequentialFiveSpotWAG - Set up and run a five-spot problem with water-alternating-gas (WAG) drive
 %   sequentialEGG         - Simulate the Egg model
 %   sequentialSPE1        - Compare sequential solver to fully implicit, applied to the SPE1 problem
 %   sequentialSPE10       - Solve layers of SPE10 with sequential and fully implicit solver
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

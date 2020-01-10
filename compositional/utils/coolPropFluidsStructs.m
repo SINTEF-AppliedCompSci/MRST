@@ -1,5 +1,25 @@
 function fluids = coolPropFluidsStructs()
 % Fluids taken from CoolProp. Used for lookup of properties.
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 fluids = [...
 struct('name', 'R507A', 'Tcrit', 343.765, 'Pcrit', 3704900.0,'rhocrit',490.74, 'acentric', 0.286, 'molarmass', 0.0988592), ...
 struct('name', 'RC318', 'Tcrit', 388.38, 'Pcrit', 2777500.0,'rhocrit',619.972700656, 'acentric', 0.355345, 'molarmass', 0.2000312), ...

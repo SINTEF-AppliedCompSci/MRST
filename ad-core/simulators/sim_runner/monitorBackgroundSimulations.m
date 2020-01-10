@@ -15,7 +15,6 @@ function h = monitorBackgroundSimulations(problems, varargin)
 % RETURNS:
 %   Nothing
 
-
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -38,6 +37,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('pause', 0.25, 'useFigure', [], ...
                  'indices', (1:numel(problems))', ...
                  'dynamicText', true, ...
+                 'totalNumberOfCases', numel(problems), ...
+                 'totalProgress',    0, ...
                  'handle', struct('figure', [], 'text', [], 'iteration', 0),...
                  'singleUpdate', false);
     opt = merge_options(opt, varargin{:});
@@ -50,12 +51,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     bn = join(basenames, ',');
     fn = sprintf('Simulating: %s', bn{1});
     h = opt.handle;
-    if isempty(opt.useFigure) || opt.useFigure
+    if isempty(opt.useFigure)
+        opt.useFigure = usejava('desktop');
+    end
+    if opt.useFigure
         if isempty(h.figure)
             h.figure = figure('Name', fn, 'ToolBar', 'none',...
                               'NumberTitle', 'off', 'MenuBar', 'none');
         end
-        opt.useFigure = isgraphics(h.figure);
+        opt.useFigure = ishandle(h.figure); % Not using isgraphics for backwards compat.
     end
     dispstr = '';
     if ~opt.useFigure
@@ -64,7 +68,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             dispstr = h.text;
         end
     end
-    height = 0.9/np;
+    height = 0.9/(np+1);
     descriptions = cellfun(@getDescription, problems, 'UniformOutput', false);
     while simulating
         h.iteration = h.iteration + 1;
@@ -74,12 +78,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             clf(h.figure);
         end
         active = false(np, 1);
-        for i = 1:np
-            p = problems{i};
-            [n, num, active(i)] = getStatus(p);
-            descr = descriptions{i};
+        done = false(np, 1);
+        for i = 0:np
+            if i == 0
+                num = opt.totalProgress + sum(double(done));
+                n = opt.totalNumberOfCases;
+                descr = sprintf('Total progress: %d of %d cases simulated.', num, n);
+                caseStr = 'Total';
+                color = [0.3, 0.3, 1];
+                dispstr = descr;
+            else
+                p = problems{i};
+                done(i) = num >= n;
+                [n, num, active(i)] = getStatus(p);
+                descr = descriptions{i};
+                caseStr = sprintf('%3d)', opt.indices(i));
+                color = [1, 0.4, 0.4];
+            end
             if opt.useFigure
-                simpleUIbar(h.figure, num/n, (i-1)*height, height, descr)
+                if i == 0
+                    barpos = np*height;
+                else
+                    barpos = (i-1)*height;
+                end
+                simpleUIbar(h.figure, num/n, barpos, height, descr, 'FaceColor', color)
             else
                 bar_width = 50;
                 perc = min(num/n, 1);
@@ -93,11 +115,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     mystr = 'Not started.';
                 end
                 pbar = [repmat('#', 1, ceil(bar_width*perc)), repmat(' ', 1, floor(bar_width*(1-perc)))];
-                nextstr = sprintf('%3d) %s\n    -> %3d of %3d steps simulated [%s] %s', ...
-                                  opt.indices(i), descr, num, n, pbar, mystr);
-               if i == 1
-                   dispstr = nextstr;
-               else
+                nextstr = sprintf('%s %s\n    -> %3d of %3d steps simulated [%s] %s', ...
+                                caseStr, descr, num, n, pbar, mystr);
+               if i > 0
                    dispstr = [dispstr, newline, nextstr];
                end
             end

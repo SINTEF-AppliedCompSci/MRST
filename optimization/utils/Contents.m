@@ -1,7 +1,7 @@
 % UTILS
 %
 % Files
-%   control2schedule         - Convert control vector u to schedule 
+%   control2schedule         - Convert control vector u to schedule
 %   evalObjective            - Objective (and gradient) evaluation function based on input control vector u
 %   initSimpleScaledADIFluid - version of initSimpleScaledADIFluid with additional relperm scaling
 %   scaleConstraints         - Linear constraint scaling
@@ -9,7 +9,7 @@
 %   setupConstraints         - Setup linear constraints for scaled problem. Assumes linConst applies to
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

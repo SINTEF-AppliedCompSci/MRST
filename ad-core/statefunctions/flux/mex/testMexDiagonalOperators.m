@@ -1,4 +1,25 @@
 function results = testMexDiagonalOperators(model, varargin)
+%Undocumented Test Routine
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     N = model.operators.N;
     G = model.G;
 
@@ -101,6 +122,18 @@ function results = testMexDiagonalOperators(model, varargin)
     f_matlab = @() cell_value + discreteDivergence([], N, face_value, nc, nf, sortIx, gradMat, prelim, false);
     f_sparse = @() ops_sparse.AccDiv(cell_value, face_value);
     [divacc, divacc_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'accdiv', 'Accumulation + divergence', opt, results);
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %    Test sparse()           %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    V_matlab = cell_value.jac{1};
+    V_matlab.useMex = false;
+    V_mex = V_matlab;
+    V_mex.useMex = true;
+    V_default = face_value_sparse.jac{1};
+    f_mex = @() V_mex.sparse();
+    f_matlab = @() V_matlab.sparse();
+    f_sparse = @() V_default;
+    [cellsparse, cellsparse_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'sparse', 'Class -> Sparse', opt, results);
 end
 
 function [out, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, shortname, name, opt, results)
@@ -109,14 +142,24 @@ function [out, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, sh
     [mex, t_c] = perform_benchmark(fn_mex, its);
     
     out = matlab;
-    v_error = norm(value(matlab) - value(mex))./norm(value(matlab));
-    if ~issparse(mex.jac{1})
-        mex.jac{1} = mex.jac{1}.sparse();
+    if issparse(matlab)
+        v_error = 0;
+    else
+        v_error = norm(value(matlab) - value(mex))./norm(value(matlab));
     end
-    if ~issparse(matlab.jac{1})
-        matlab.jac{1} = matlab.jac{1}.sparse();
+
+    if issparse(matlab)
+        j_error = norm(matlab - mex, inf)./norm(matlab, inf);
+    else
+        if ~issparse(mex.jac{1})
+            mex.jac{1} = mex.jac{1}.sparse();
+        end
+        if ~issparse(matlab.jac{1})
+            matlab.jac{1} = matlab.jac{1}.sparse();
+        end
+        j_error = norm(matlab.jac{1} - mex.jac{1}, inf)./norm(matlab.jac{1}, inf);
     end
-    j_error = norm(matlab.jac{1} - mex.jac{1}, inf)./norm(matlab.jac{1}, inf);
+    
     
     if opt.testSparse
         [out_sparse, t_s] = perform_benchmark(fn_sparse, its);

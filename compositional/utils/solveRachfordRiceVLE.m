@@ -1,6 +1,26 @@
 function L = solveRachfordRiceVLE(L, K, z, varargin)
 % Solve Rachford Rice equations to find liquid and vapor
 % distribution.
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('tolerance', 1e-12, ...
                  'min_z', 1e-10,...
                  'useAD', false, ...
@@ -92,7 +112,7 @@ function L = solveRachfordRiceVLE(L, K, z, varargin)
 end
 
 function V = bisection(V_max0, V_min0, K, z, opt)
-    fn = @(V) sum(((K - 1).*z)./(1 + V.*(K - 1)), 2);
+    fn = @(V) sum(((K - 1).*z)./(1 + bsxfun(@times, V, K - 1)), 2);
     left0 = fn(V_min0);
     right0 = fn(V_max0);
     [left, right, V_max, V_min] = deal(left0, right0, V_max0, V_min0);
@@ -145,8 +165,9 @@ function [dV, r] = getIncrement(V, K, z, opt)
         % Manual jacobian, faster
         if 1
             % Vectorized version
-            enum = sum((z.*(K - 1))./(1 + V.*(K-1)), 2);
-            denom = sum((z.*(K - 1).^2)./(1 + V.*(K-1)).^2, 2);
+            mlt = @(x, y) bsxfun(@times, x, y);
+            enum = sum((z.*(K - 1))./(1 + mlt(V, K-1)), 2);
+            denom = sum((z.*(K - 1).^2)./(1 + mlt(V, K-1)).^2, 2);
         else
             ncomp = size(K, 2);
             % Partially vectorized version 

@@ -1,7 +1,8 @@
 function [values, names, tolerances, evaluated] = getConvergenceValuesWells(model, problem)
+%Undocumented Utility Function
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -18,6 +19,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
     isperf = problem.indexOfType('perf');
     iswell = problem.indexOfType('well');
     isseg  = problem.indexOfType('seg');

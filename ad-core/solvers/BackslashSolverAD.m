@@ -17,15 +17,22 @@ classdef BackslashSolverAD < LinearSolverAD
        end
        
        function [result, report] = solveLinearSystem(solver, A, b)
-          result = A\b;
-           % Nothing to report
-           report = struct();
+           timer = tic();
+           result = A\b;
+           t_solve = toc(timer);
+           report = solver.getSolveReport('LinearSolutionTime', t_solve);
        end
+       
+        function [d, sn] = getDescription(solver)
+            sn = 'mldivide';
+            sn = [sn, solver.id];
+            d = 'Matlab \ operator (mldivide direct solver)';
+        end
    end
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

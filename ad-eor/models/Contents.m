@@ -1,12 +1,14 @@
 % MODELS
 %
 % Files
-%   OilWaterPolymerModel           - Oil/water/polymer system
-%   OilWaterSurfactantModel        - SYNOPSIS:
-%   ThreePhaseBlackOilPolymerModel - Three-phase black-oil model with support for polymer injection
+%   OilWaterPolymerModel              - Oil/water/polymer system
+%   OilWaterSurfactantModel           - SYNOPSIS:
+%   ThreePhaseBlackOilPolymerModel    - Three-phase black-oil model with support for polymer injection
+%   ThreePhaseBlackOilSurfactantModel - SYNOPSIS:
+%   ThreePhaseSurfactantPolymerModel  - Three-phase black-oil model with support for surfactant and polymer injection
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -1,4 +1,25 @@
 function lsolve = selectLinearSolverAD(model, varargin)
+%Undocumented Utility Function
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('useAMGCL',            true, ...
                  'useAGMG',             true,...
                  'useILU',              true,...
@@ -10,15 +31,15 @@ function lsolve = selectLinearSolverAD(model, varargin)
     [opt, solver_arg] = merge_options(opt, varargin{:});
     solver_arg = ['tolerance', opt.tolerance, solver_arg];
     lsolve = BackslashSolverAD();
-    if opt.useAMGCL
-        mrstModule add linearsolvers
-        opt.useAMGCL = checkAMGCL();
-    end
     ncomp = getComponentCount(model);
     ndof = ncomp*model.G.cells.num;
     if ndof <= opt.BackslashThreshold
         % We do not need a custom linear solver
         return
+    end
+    if opt.useAMGCL
+        mrstModule add linearsolvers
+        opt.useAMGCL = checkAMGCL();
     end
     isDiagonal = isa(model.AutoDiffBackend, 'DiagonalAutoDiffBackend');
     
@@ -95,9 +116,7 @@ end
 function ncomp = getComponentCount(model)
     model = model.validateModel();
     names = model.getComponentNames();
-    if isa(model, 'GenericBlackOilModel') || ...
-       isa(model, 'GenericNaturalVariablesModel') || ...
-       isa(model, 'GenericOverallCompositionModel')
+    if isa(model, 'ExtendedReservoirModel')
         ncomp = numel(names);
     elseif isa(model, 'ThreePhaseBlackOilModel')
         ncomp = numel(names) + sum(model.getActivePhases);

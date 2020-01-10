@@ -19,6 +19,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
         volumeDiscrepancyTolerance = 1e-3; % Tolerance for volume error (|sum of saturations - 1|)
         incTolSaturation = 1e-3; % Tolerance for change in saturations in transport for convergence. 
         outerCheckParentConvergence = true; % Use parentModel, if present, to check convergence
+        outerCheckPressureConvergence = false; % Check the pressure equation after transport
     end
     
     methods
@@ -54,7 +55,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             model.pressureNonLinearSolver.identifier = 'PRESSURE';
             
             if isempty(model.transportNonLinearSolver)
-                model.transportNonLinearSolver = NonLinearSolver();
+                model.transportNonLinearSolver = NonLinearSolver('useRelaxation', true);
             end
             model.transportNonLinearSolver.identifier = 'TRANSPORT';
             
@@ -193,20 +194,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
         end
         
         function [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration, pressure_state)
-            % Alternate mode: If outer loop is enabled, we will revisit
-            % the pressue equation to verify that the equation remains
-            % converged after the transport step. This check ensures
-            % that the assumption of fixed total velocity is reasonable
-            % up to some tolerance.
-            if ~isempty(model.parentModel) && model.outerCheckParentConvergence
-                state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
-                [problem, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
-                state = model.parentModel.reduceState(state, false);
-                [converged, values, resnames] = model.parentModel.checkConvergence(problem);
-            else
-                resnames = {};
-                [converged, values] = deal([]);
-            end
+            resnames = {};
+            [converged, values] = deal([]);
             % Check volume discrepancy
             tol_vol = model.volumeDiscrepancyTolerance;
             if isfinite(tol_vol)
@@ -227,9 +216,35 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 s = state.s;
                 ds = max(max(abs(s-s0), [], 2));
                 values(end+1) = ds;
-                converged(end+1)  = ds <= tol_inc;
+                converged(end+1) = ds <= tol_inc;
                 resnames{end+1} = 'Saturation increment';
             end
+            % Alternate mode: If outer loop is enabled, we will revisit
+            % the pressue equation to verify that the equation remains
+            % converged after the transport step. This check ensures
+            % that the assumption of fixed total velocity is reasonable
+            % up to some tolerance.
+            if ~isempty(model.parentModel) && model.outerCheckParentConvergence
+                state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
+                [problem, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                state = model.parentModel.reduceState(state, false);
+                [c_parent, v_parent, n_parent] = model.parentModel.checkConvergence(problem);
+                converged = [converged, c_parent];
+                values = [values, v_parent];
+                resnames = [resnames, n_parent];
+            end
+            
+            if model.outerCheckPressureConvergence
+                tmp = state;
+                tmp.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
+                problem = model.pressureModel.getEquations(state0, tmp, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                [c_p, v_p, n_p] = model.pressureModel.checkConvergence(problem);
+                keep = ~strcmpi(n_p, 'Delta P');
+                converged = [converged, c_p(keep)];
+                values = [values, v_p(keep)];
+                resnames = [resnames, n_p(keep)];
+            end
+
             converged = converged | iteration > model.maxOuterIterations;
             if model.verbose
                 printConvergenceReport(resnames, values, converged, iteration);
@@ -280,7 +295,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

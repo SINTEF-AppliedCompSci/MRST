@@ -1,12 +1,12 @@
 % SURFACTANT
 %
 % Files
-%   spe10SurfanctantExample - Oil-Water-Surfactant System for a Layer of the SPE10 Model
-%   tutorialSurfactant1D    - 1D Tutorial For a Oil-Water-Surfactant system
-%   tutorialSurfactant3D    - Tutorial for a simple 3D case of a oil-water-surfactant system
+%   BOtutorialSurfactant2D - 2D Tutorial For ad Black-Oil-Surfactant system
+%   tutorialSurfactant1D   - 1D Tutorial For a Oil-Water-Surfactant system
+%   tutorialSurfactant3D   - Tutorial for a simple 3D case of a oil-water-surfactant system
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

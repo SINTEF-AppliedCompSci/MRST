@@ -29,14 +29,6 @@ classdef AGMGSolverAD < LinearSolverAD
             solver = merge_options(solver, varargin{:});
        end
        
-       function [dx, result, report] = solveLinearProblem(solver, problem, model)
-           if solver.reduceToCell
-               [dx, result, report] = solver.solveCellReducedLinearProblem(problem, model);
-           else
-               [dx, result, report] = solveLinearProblem@LinearSolverAD(solver, problem, model);
-           end
-       end
-       
        function [result, report] = solveLinearSystem(solver, A, b)
            cleanAfter = false;
            if ~solver.setupDone
@@ -52,9 +44,9 @@ classdef AGMGSolverAD < LinearSolverAD
                                     solver.maxIterations);
            end
            [result, flag, relres, iter, resvec] = fn(A, b);
-           report = struct('Converged', flag < 1, ...
-                           'RelativeResidual', relres, ...
-                           'Iterations',   iter);
+           report = solver.getSolveReport('Converged', flag < 1, ...
+                                          'Residual', relres, ...
+                                          'Iterations',   iter);
             if solver.extraReport
                 report.ResidualHistory = resvec;
             end
@@ -79,11 +71,17 @@ classdef AGMGSolverAD < LinearSolverAD
                solver.setupDone = false;
            end
        end
+
+       function [d, sn] = getDescription(solver)
+           sn = 'AGMG';
+           sn = [sn, solver.id];
+           d = 'Aggregation based multigrid (AGMG)';
+       end
    end
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

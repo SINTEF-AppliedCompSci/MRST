@@ -1,4 +1,4 @@
-function solver = getNonLinearSolver(model, varargin)
+function nonlinear = getNonLinearSolver(model, varargin)
 % Set up reasonable defaults for the nonlinear solver for a field
 % simulation with significant size and complexity
 %
@@ -23,7 +23,7 @@ function solver = getNonLinearSolver(model, varargin)
 %   simulateScheduleAD, NonLinearSolver
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -41,27 +41,47 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-opt = struct('DynamicTimesteps', true, ...
-             'useCPR',           true);
+    opt = struct('TimestepStrategy',      'iteration', ...
+                 'useCPR',                true, ...
+                 'LinearSolverArguments', {{}});
 
-[opt, varg] = merge_options(opt, varargin{:});
+    [opt, varg] = merge_options(opt, varargin{:});
 
-[linsolve, timestepper] = deal([]);
-if opt.useCPR && isa(model, 'ReservoirModel')
-    if ~isempty(mrstPath('agmg'))
-        mrstModule add agmg
-        pSolver = AGMGSolverAD();
-    else
-        pSolver = BackslashSolverAD();
+    nonlinear = NonLinearSolver(varg{:});
+    nonlinear.LinearSolver = selectLinearSolverAD(model, 'useCPR', opt.useCPR, ...
+                                                    opt.LinearSolverArguments{:});
+    switch lower(opt.TimestepStrategy)
+        case 'none'
+            % Do nothing
+            sel = [];
+        case 'iteration'
+            % Control on iterations
+            sel = IterationCountTimeStepSelector('targetIterationCount', 8);
+        case 'ds'
+            % Control on saturation change
+            sel = ...
+                StateChangeTimeStepSelector('targetProps', {'s'},...
+                                            'targetChangeAbs', 0.2, ...
+                                            'targetIterationCount', inf);
+        case 'dsdc'
+            % Control on saturation + components
+            names = {'s'};
+            targets = 0.2;
+            if isa(model, 'ThreePhaseCompositionalModel')
+                names = {'s', 'components'};
+                targets = [0.2, 0.2];
+            end
+            sel = ...
+                StateChangeTimeStepSelector('targetProps', names,...
+                                            'targetChangeAbs', targets, ...
+                                            'targetIterationCount', inf);
+
+        otherwise
+            error('Unknown timestepping strategy %s', opt.TimestepStrategy);
     end
-    linsolve = CPRSolverAD('ellipticSolver', pSolver);
-end
-
-if opt.DynamicTimesteps
-    timestepper = ...
-    IterationCountTimeStepSelector('firstRampupStepRelative', 0.1, ...
-                                   'firstRampupStep',         1*day);
-end
-solver = NonLinearSolver('timeStepSelector', timestepper, ...
-                         'LinearSolver', linsolve, varg{:});
+    if ~isempty(sel)
+        sel.firstRampupStepRelative = 0.1;
+        sel.firstRampupStep = 1*day;
+        nonlinear.timeStepSelector = sel;
+    end
 end

@@ -14,12 +14,25 @@ function state = updateExplicitAds(state, model, varargin)
 %
 % RETURNS:
 %   state - State at current time-step with updated adsorption
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
 
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     opt = struct('desorptionThreshold', -inf);
     opt = merge_options(opt, varargin{:});
@@ -27,7 +40,7 @@ function state = updateExplicitAds(state, model, varargin)
     s = model.operators; % shortcut
     fluid = model.fluid; % shortcut
 
-    [p, sW, c, cmax, ads, adsmax ] = model.getProps(state, 'pressure', 'water', 'surfactant', ...
+    [p, sW, cs, csmax, ads, adsmax] = model.getProps(state, 'pressure', 'water', 'surfactant', ...
                                                            'surfactantmax', 'ads', 'adsmax');
 
     new_ads = computeEffAds(c, opt.desorptionThreshold, fluid);
@@ -65,6 +78,6 @@ function state = updateExplicitAds(state, model, varargin)
     state = model.setProp(state, 'ads', new_ads);
     state = model.setProp(state, 'adsmax', max(new_ads, adsmax));
     state = model.setProp(state, 'surfactant', max(new_c, 0));
-    state = model.setProp(state, 'surfactantmax', max(new_c, cmax));
+    state = model.setProp(state, 'surfactantmax', max(new_cs, csmax));
 
 end

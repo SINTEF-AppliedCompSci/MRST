@@ -72,9 +72,9 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
                state, problem,  dx, drivingForces);
 
             if model.polymer
-                c = model.getProp(state, 'polymer');
-                c = min(c, model.fluid.cmax);
-                state = model.setProp(state, 'polymer', max(c, 0));
+                cp = model.getProp(state, 'polymer');
+                cp = min(cp, model.fluid.cpmax);
+                state = model.setProp(state, 'polymer', max(cp, 0));
             end
         end
 
@@ -82,9 +82,9 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@ThreePhaseBlackOilModel(model, state0, state, dt, drivingForces);
             if model.polymer
-                c     = model.getProp(state, 'polymer');
-                cmax  = model.getProp(state, 'polymermax');
-                state = model.setProp(state, 'polymermax', max(cmax, c));
+                cp     = model.getProp(state, 'polymer');
+                cpmax  = model.getProp(state, 'polymermax');
+                state = model.setProp(state, 'polymermax', max(cpmax, cp));
             end
         end
 
@@ -216,26 +216,26 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
                 cqWs = qMass{wix}./f.rhoWS; % connection volume flux at surface condition
 
                 if well.isInjector()
-                    concWell = model.getProp(well.W, 'polymer');
-                    cqP = concWell.*cqWs;
+                    concWellp = model.getProp(well.W, 'polymer');
+                    cqP = concWellp.*cqWs;
                 else
                     pix = strcmpi(model.getComponentNames(), 'polymer');
-                    concWell = packed.components{pix};
+                    concWellp = packed.components{pix};
 
-                    a = f.muWMult(f.cmax).^(1-f.mixPar);
-                    cbarw     = concWell/f.cmax;
+                    a = f.muWMult(f.cpmax).^(1-f.mixPar);
+                    cpbarw = concWellp/f.cpmax;
 
-                    % the term (a + (1 - a).*cbarw) account for the
+                    % the term (a + (1 - a).*cpbarw) account for the
                     % todd-longstaff mixing factor, which model the fact that for
                     % not-fully mixed polymer solution the polymer does not
                     % travel at the same velocity as water. See the governing
                     % equation for polymer (e.g. equationsOilWaterPolymer.m)
-                    cqP = concWell.*cqWs./(a + (1-a).*cbarw);
+                    cqP = concWellp.*cqWs./(a + (1-a).*cpbarw);
                 end
 
                 qwpoly = packed.extravars{strcmpi(packed.extravars_names, 'qwpoly')};
 
-                compEqs{end+1} = qwpoly - sum(concWell.*cqWs);
+                compEqs{end+1} = qwpoly - sum(concWellp.*cqWs);
                 compSrc{end+1} = cqP;
                 eqNames{end+1} = 'polymerWells';
             end
@@ -244,7 +244,7 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

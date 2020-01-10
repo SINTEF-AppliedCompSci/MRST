@@ -64,15 +64,7 @@ state0.cpmax= zeros([model.G.cells.num, 1]);
 model.useCNVConvergence = true;
 
 % Setting up the non-linear solver.
-% Since the size of the current prolbem is relatively small, the direct
-% linear solver provided by MATLAB is efficient enough, so we are not using
-% CPR-preconditioned linear sover by specifying 'useCPR' to be false.
-% For bigger problem, you should try to activate CPR-preconditioned linear
-% solver by specifying 'useCPR' to be true. By doing that, AGMG algebraic
-% multigrid solver will be used if it is present. For much larger cases,
-% the AGMG will improve the solution speed significantly and be required.
-nonlinearsolver = getNonLinearSolver(model, 'DynamicTimesteps', false, ...
-                                     'useCPR', false);
+nonlinearsolver = NonLinearSolver();
 nonlinearsolver.useRelaxation = true;
 
 %% Visualize the properties of the black-oil fluid model
@@ -334,7 +326,7 @@ fprintf('The simulation has been finished! \n');
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

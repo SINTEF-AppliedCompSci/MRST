@@ -1,4 +1,4 @@
-function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz, varargin)
+function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, cp, ads, krW, T, gdz, varargin)
 %dpW, extraOutput
 %
 % SYNOPSIS:
@@ -14,7 +14,7 @@ function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = getFluxA
 %   model - Instance of the model
 %   pO    - Pressure in oil phase
 %   sW    - Saturation
-%   c     - Polymer concentration
+%   cp    - Polymer concentration
 %   ads   - Adsorption value
 %   krW   - Water relative permeability
 %   T     - Transmissibilities
@@ -38,7 +38,7 @@ function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = getFluxA
 %
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -70,11 +70,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Multipliers due to polymer
     mixpar = fluid.mixPar;
-    cbar   = c/fluid.cmax;
-    a = fluid.muWMult(fluid.cmax).^(1-mixpar);
-    b = 1./(1-cbar+cbar./a);
+    cpbar   = cp/fluid.cpmax;
+    a = fluid.muWMult(fluid.cpmax).^(1-mixpar);
+    b = 1./(1-cpbar+cpbar./a);
     % The viscosity multiplier only result from the polymer mixing.
-    muWeffMult = b.*fluid.muWMult(c).^mixpar;
+    muWeffMult = b.*fluid.muWMult(cp).^mixpar;
     permRed = 1 + ((fluid.rrf-1)./fluid.adsMax).*ads;
     muWMult  = muWeffMult.*permRed;
 
@@ -98,12 +98,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     % Polymer
-    muPeff = muWeff.*(a + (1-a)*cbar);
+    muPeff = muWeff.*(a + (1-a)*cpbar);
     [muPf, muPeff] = s.splitFaceCellValue(s, upcw, muPeff);
-    [cf  , ~     ] = s.splitFaceCellValue(s, upcw, c     );
+    [cpf, ~ ] = s.splitFaceCellValue(s, upcw, cp);
     mobP = krW./muPeff;
     
-    vP = -(krWf./muPf).*cf.*T.*dpW;
+    vP = -(krWf./muPf).*cpf.*T.*dpW;
 
 end
 

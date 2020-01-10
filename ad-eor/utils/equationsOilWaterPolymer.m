@@ -33,7 +33,7 @@ function [problem, state] = equationsOilWaterPolymer(state0, state, model, dt, .
 %
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -66,11 +66,11 @@ op = model.operators;
 fluid = model.fluid;
 
 % Properties at current timestep
-[p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
+[p, sW, cp, cpmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
     'polymer', 'polymermax', 'wellSol');
 
 % Properties at previous timestep
-[p0, sW0, c0, cmax0, wellSol0] = model.getProps(state0, 'pressure', 'water', ...
+[p0, sW0, cp0, cpmax0, wellSol0] = model.getProps(state0, 'pressure', 'water', ...
                                                         'polymer', 'polymermax', ...
                                                         'wellSol');
 
@@ -79,13 +79,13 @@ fluid = model.fluid;
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, sW, c, wellVars{:}] = ...
-            initVariablesADI(p, sW, c, wellVars{:});
+        [p, sW, cp, wellVars{:}] = ...
+            initVariablesADI(p, sW, cp, wellVars{:});
         primaryVars = {'pressure', 'sW', 'polymer', wellVarNames{:}};
     else
         wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
-        [p0, sW0, c0, wellVars0{:}] = ...
-            initVariablesADI(p0, sW0, c0, wellVars0{:}); %#ok
+        [p0, sW0, cp0, wellVars0{:}] = ...
+            initVariablesADI(p0, sW0, cp0, wellVars0{:}); %#ok
         primaryVars = {'pressure', 'sW', 'polymer'};
     end
 else
@@ -114,10 +114,10 @@ T = op.T.*transMult;
 % Gravity contribution
 gdz = model.getGravityGradient();
 
-ads  = effads(c, cmax, fluid);
-ads0 = effads(c0, cmax0, fluid);
+ads  = effads(cp, cpmax, fluid);
+ads0 = effads(cp0, cpmax0, fluid);
 [vW, vP, bW, ~, mobW, mobP, rhoW, pW, upcw, a] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
+    getFluxAndPropsWaterPolymer_BO(model, p, sW, cp, ads, ...
     krW, T, gdz);
 bW0 = fluid.bW(p0);
 
@@ -150,8 +150,8 @@ oil = (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + op.Div(bOvO);
 
 % Conservation of polymer in water:
 poro = model.rock.poro;
-polymer = (op.pv.*(1-fluid.dps)/dt).*(pvMult.*bW.*sW.*c - ...
-   pvMult0.*bW0.*sW0.*c0) + (op.pv/dt).* ...
+polymer = (op.pv.*(1-fluid.dps)/dt).*(pvMult.*bW.*sW.*cp - ...
+   pvMult0.*bW0.*sW0.*cp0) + (op.pv/dt).* ...
    (fluid.rhoR.*((1-poro)./poro).*(ads-ads0) ) + op.Div(bWvP);
 
 if ~opt.resOnly
@@ -166,7 +166,7 @@ if ~opt.resOnly
     % bad marks the cells prolematic in evaluating Jacobian
     bad = abs(diag(polymer.jac{3})) < eps;
     % the other way is to choose based on the water saturation
-    polymer(bad) = c(bad);
+    polymer(bad) = cp(bad);
 end
 eqs   = {water, oil, polymer};
 names = {'water', 'oil', 'polymer'};
@@ -177,11 +177,11 @@ mob = {mobW, mobO};
 sat = {sW, sO};
 [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
                                                                  {pW, p}, sat, mob, rho, ...
-                                                                 {}, {c}, ...
+                                                                 {}, {cp}, ...
                                                                  drivingForces);
 
 % Finally, add in and setup well equations
-[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {c}, dt, opt);
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {cp}, dt, opt);
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
@@ -191,10 +191,10 @@ end
 %--------------------------------------------------------------------------
 
 % Effective adsorption, depending of desorption or not
-function y = effads(c, cmax, fluid)
+function y = effads(cp, cpmax, fluid)
    if fluid.adsInx == 2
-      y = fluid.ads(max(c, cmax));
+      y = fluid.ads(max(cp, cpmax));
    else
-      y = fluid.ads(c);
+      y = fluid.ads(cp);
    end
 end

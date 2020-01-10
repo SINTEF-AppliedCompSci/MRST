@@ -3,6 +3,8 @@ classdef PressureModel < WrapperModel
         incTolPressure = 1e-3;
         useIncTol = true;
         reductionStrategy = 'analytic';
+        pressureIncTolType = 'relative';
+        pressureTol = inf;
     end
     
     methods
@@ -27,7 +29,9 @@ classdef PressureModel < WrapperModel
                     origP = origin{isP};
                     keep = isP | cellfun(@(x) ~strcmp(x, origP), origin);
                 case 'numerical'
-                    
+                    assert(false, 'PressureReduction:NotImplemented', 'Not implemented.');
+                otherwise
+                    error('Unknown reduction strategy %s', model.reductionStrategy);
             end
             if init
                 [vars{keep}] = model.AutoDiffBackend.initVariablesAD(vars{keep});
@@ -68,33 +72,67 @@ classdef PressureModel < WrapperModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             p0 = state.pressure;
             [state, report] = model.parentModel.updateState(state, problem, dx, drivingForces);
-            range = max(p0) - min(p0);
-            if range == 0
-                range = 1;
+            switch lower(model.pressureIncTolType)
+                case 'relative'
+                    range = max(p0) - min(p0);
+                    if range == 0
+                        range = 1;
+                    end
+                    dp = (state.pressure - p0)./range;
+                case 'absolute'
+                    dp = state.pressure - p0;
+                case 'norm'
+                    dp = (state.pressure - p0)/norm(state.pressure, inf);
+                otherwise
+                    error('Unknown pressure increment %s', model.pressureIncTolType);
             end
-            state.dpRel = (state.pressure - p0)./range;
+            state.pressureChange = dp;
         end
         
         function  [convergence, values, names] = checkConvergence(model, problem)
             [convergence, values, names] = model.parentModel.checkConvergence(problem);
-            if ~isnan(problem.iterationNo) && model.useIncTol
-                if problem.iterationNo  > 1
-                    values(1) = norm(problem.state.dpRel, inf);
+            ptol = model.pressureTol;
+            itol = model.incTolPressure;
+            usePTol = isfinite(ptol);
+            useITol = isfinite(itol) && model.useIncTol;
+            assert(usePTol || useITol, 'Pressure model has no valid way of checking convergence!');
+            if usePTol
+                % Check the actual value of the pressure equation. Note:
+                % Requires that the equation is actually properly scaled!
+                % The scaling is implicit from the pressure reduction
+                % factors.
+                convergence(1) = values(1) < ptol;
+            else
+                % Skip first equation
+                names = names(2:end);
+                convergence = convergence(2:end);
+                values = values(2:end);
+            end
+            
+            if useITol
+                % Check the increment tolerance  for pressure
+                if problem.iterationNo > 1 && ~isnan(problem.iterationNo)
+                    dp = norm(problem.state.pressureChange, inf);
                 else
-                    values(1) = inf;
+                    dp = inf;
                 end
-                convergence = [values(1) < model.incTolPressure, convergence(2:end)];
-                names{1} = 'Delta P';
+                convergence = [dp < itol, convergence];
+                names = ['Delta P', names];
+                values = [dp, values];
             end
         end
 
         function [state, report] = updateAfterConvergence(model, varargin)
             [state, report] = updateAfterConvergence@WrapperModel(model, varargin{:});
+            % Clean up internal fields
             if isfield(state, 'statePressure')
                 state = rmfield(state, 'statePressure');
             end
             if isfield(state, 'sT')
                 state.sT = sum(value(state.s), 2);
+            end
+            if isfield(state, 'pressureChange')
+                state = rmfield(state, 'pressureChange');
             end
             state.statePressure = state;
         end
@@ -104,3 +142,22 @@ classdef PressureModel < WrapperModel
         end
     end
 end
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

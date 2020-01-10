@@ -14,20 +14,18 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
     %   `BackslashSolverAD`
 
    properties
-       doApplyScalingCPR
-       trueIMPES % Use true impes decoupling strategy (if supported by model)
-       useSYMRCMOrdering
-       pressureScaling
-       diagonalTol = 0.2;
-       couplingTol = 0.02;
-       decoupling = 'quasiIMPES';
-       strategy = 'mrst';
+       doApplyScalingCPR % true / false
+       useSYMRCMOrdering % true / false
+       pressureScaling % scaling factor for pressure - automatically determined
+       diagonalTol = 0.2; % tolerance if strategy ends with _drs
+       couplingTol = 0.02; % tolerance for drs
+       decoupling = 'trueIMPES'; % trueimpes, quasiimpes, none
+       strategy = 'mrst'; % mrst, mrst_drs, amgcl, amgcl_drs
    end
    methods
        function solver = AMGCL_CPRSolverAD(varargin)
             require linearsolvers
             solver = solver@AMGCLSolverAD();
-            solver.trueIMPES    = false;
             solver.doApplyScalingCPR = true;
             solver.reduceToCell = true;
             solver.tolerance    = 1e-6;
@@ -55,8 +53,30 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            [dx, result, report] = solveAdjointProblem@LinearSolverAD(solver, problemPrev,problemCurr, adjVec, objective, model);
        end
 
-       function setSRelaxation(solver, v)
-           solver.amgcl_setup.s_relaxation = translateOptionsAMGCL('relaxation', v);
+        function [d, sn] = getDescription(solver)
+            sn = 'AMGCL-CPR';
+            if solver.amgcl_setup.cpr_blocksolver
+                sn = [sn, '-block'];
+            end
+            sn = [sn, solver.id];
+            prm = {'solver', 'preconditioner', 'relaxation'};
+            if solver.amgcl_setup.preconditioner == 1
+                prm{end+1} = 'coarsening';
+            end
+            tmp = cell(1, numel(prm)+1);
+            for i = 1:numel(prm)
+                s = prm{i};
+                [ix, choice, description] = solver.getParameterGroup(s);
+                tmp{i} = sprintf('%15s: %s (%s Internal index %d)', s, choice, description, ix);
+            end
+            [ix, choice, description] = solver.getParameterGroup('relaxation', 's_relaxation');
+            tmp{end} = sprintf('%15s: %s (%s Internal index %d)', 's_relaxation', choice, description, ix);
+            d = [sprintf('AMGCL constrained-pressure-residual (CPR) solver. Configuration:\n'), ...
+                 sprintf('\t%s\n', tmp{:})];
+        end
+       
+       function setSRelaxation(solver, varargin)
+           solver.setParameterGroup('relaxation', 's_relaxation', varargin{:});
        end
 
        function problem = prepareProblemCPR(solver, problem, model)
@@ -86,6 +106,10 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
 
            % Get and apply scaling
            if solver.doApplyScalingCPR && strcmpi(solver.decoupling, 'trueimpes')
+                if ~isempty(problem.A)
+                    problem = problem.clearSystem();
+                    dispif(solver.verbose, 'System already assembled. CPR will re-assemble!');
+                end
                scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
                % Solver will take the sum for us, we just weight each
                % equation. Note: This is not the entirely correct way
@@ -94,7 +118,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                    if ~strcmpi(problem.types{i}, 'cell')
                        continue
                    end
-                   ds = double(scale{i});
+                   ds = value(scale{i});
                    if (numel(ds) > 1 || any(ds ~= 0))
                        problem.equations{i} = problem.equations{i}.*scale{i};
                    end
@@ -105,7 +129,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
 
            if isempty(solver.keepNumber)
                if solver.reduceToCell
-                   % Will be reduced to ncell by block_size syste,
+                   % Will be reduced to ncell by block_size system
                    ndof = n*m;
                else
                    % We have no idea and should check
@@ -332,7 +356,7 @@ function [w, ndof] = getScalingInternalCPR(solver, A, b)
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

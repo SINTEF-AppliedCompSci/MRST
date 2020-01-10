@@ -1,15 +1,19 @@
 % EXAMPLES
 %
 % Files
-%   blackoilSectorModelExample - Example demonstrating use of boundary conditions for pressure support
-%   blackoilTutorialGravSeg    - Gravity segregation using two phase AD solvers
-%   blackoilTutorialOnePhase   - Example: Depletion of a closed or open reservoir compartment
-%   blackoilTutorialPlotHook   - Example demonstrating in-situ plotting capabilities in MRST-AD
-%   multisegmentWellExample    - Multi-segment well example based on SPE 1 benchmark model
-%   simulatorWorkflowExample   - Workflow example for MRST-AD
+%   aquifertest                      - load modules
+%   blackoilSectorModelExample       - Example demonstrating use of boundary conditions for pressure support
+%   blackoilTimeIntegrationExample   - 
+%   blackoilTutorialGravSeg          - Gravity segregation using two phase AD solvers
+%   blackoilTutorialMexAcceleration  - Example demonstrating accelerated assembly for faster simulation
+%   blackoilTutorialOnePhase         - Example: Depletion of a closed or open reservoir compartment
+%   blackoilTutorialPlotHook         - Example demonstrating in-situ plotting capabilities in MRST-AD
+%   immiscibleTimeIntegrationExample - 
+%   multisegmentWellExample          - Multi-segment well example based on SPE 1 benchmark model
+%   simulatorWorkflowExample         - Workflow example for MRST-AD
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

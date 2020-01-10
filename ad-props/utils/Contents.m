@@ -7,12 +7,13 @@
 %   handleRegions        - 
 %   interp2DPVT          - 
 %   interp2DTable        - 
+%   interpPVT            - Interpolate PVT-type curves
 %   interpReg            - Interpolate data (with region support)
 %   interpRegPVT         - Interpolate PVT-type curves with region support
 %   interpRegular2DTable - 
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

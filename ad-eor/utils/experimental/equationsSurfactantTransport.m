@@ -38,7 +38,26 @@ function [problem, state] = equationsSurfactantTransport(state0, state, ...
 %
 % SEE ALSO: LinearizedProblem, LinearSolverAD, equationsOilWaterSurfactant,
 % ImplicitExplicitOilWaterSurfactantModel, PressureSaturationSurfactantModel
-%
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('Verbose', mrstVerbose, ...
                  'reverseMode', false, ...
                  'resOnly', false, ...
@@ -52,11 +71,11 @@ function [problem, state] = equationsSurfactantTransport(state0, state, ...
     G = model.G;
 
     % Properties at current timestep
-    [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', 'surfactant', ...
+    [p, sW, cs, csmax, wellSol] = model.getProps(state, 'pressure', 'water', 'surfactant', ...
                                                       'surfactantmax', 'wellsol');
 
     % Properties at previous timestep
-    [p0, sW0, c0, cmax0] = model.getProps(state0, 'pressure', 'water', 'surfactant', 'surfactantmax');
+    [p0, sW0, cs0, csmax0] = model.getProps(state0, 'pressure', 'water', 'surfactant', 'surfactantmax');
 
     pBH   = vertcat(wellSol.bhp);
     qWs   = vertcat(wellSol.qWs);
@@ -102,8 +121,8 @@ function [problem, state] = equationsSurfactantTransport(state0, state, ...
     bWvSft = op.faceUpstr(upcw, bW).*vSft;
 
     poro = model.rock.poro;
-    ads  = computeEffAds(c_impl, cmax, fluid);
-    ads0 = computeEffAds(c0, cmax0, fluid);
+    ads  = computeEffAds(cs_impl, csmax, fluid);
+    ads0 = computeEffAds(cs0, csmax0, fluid);
     ads_term = fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0);
 
     % Conservation of surfactant in water:

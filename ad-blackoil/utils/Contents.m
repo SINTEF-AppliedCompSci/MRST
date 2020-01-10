@@ -3,7 +3,9 @@
 % Files
 %   assignWellValuesFromControl       - Assign wellSol values when values are set as controls
 %   calculateHydrocarbonsFromStatusBO - Compute solution variables for the gas/oil/rs/rv-variable in black-oil
+%   computeAquiferFluxes              - Undocumented Utility Function
 %   computeFlashBlackOil              - Compute flash for a black-oil model with disgas/vapoil
+%   computeInitAquifer                - Undocumented Utility Function
 %   equationsBlackOil                 - Generate linearized problem for the black-oil equations
 %   equationsOilWater                 - Generate linearized problem for the two-phase oil-water model
 %   equationsWater                    - Generate linearized problem for the single-phase water model
@@ -17,11 +19,11 @@
 %   getFluxAndPropsOil_BO             - Get flux and properties for the oil phase for a black-oil problem
 %   getFluxAndPropsWater_BO           - Get flux and properties for the water phase for a black-oil problem
 %   getPolymerShearMultiplier         - Compute the flux multiplier due to polymer shear thinning/thickening
-%   getWellPolymer                    - 
+%   getWellPolymer                    - Undocumented Utility Function
 %   updateStateBlackOilGeneric        - Generic update function for blackoil-like models
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

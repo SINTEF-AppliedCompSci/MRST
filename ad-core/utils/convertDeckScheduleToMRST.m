@@ -28,7 +28,7 @@ function scheduleMRST = convertDeckScheduleToMRST(model, scheduleDeck, varargin)
 %   scheduleMRST - Schedule ready for simulation in 'simulateScheduleAD'.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -47,7 +47,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     opt = struct('StepLimit',        inf, ...
-                 'useCpGeometry',    size(model.G.faces, 2) > 1, ...
+                 'useCpGeometry',    size(model.G.cells.faces, 2) > 1, ...
                  'DepthReorder',     false, ...
                  'ReorderStrategy',  {{}}, ...
                  'EnsureConsistent', true);

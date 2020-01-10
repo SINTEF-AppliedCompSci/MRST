@@ -84,7 +84,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             % cp denotes concentration of polymer, cs is concentration of surfactant.    
             if model.polymer
                 cp = model.getProp(state, 'polymer');
-                cp = min(cp, model.fluid.cmax);
+                cp = min(cp, model.fluid.cpmax);
                 state = model.setProp(state, 'polymer', max(cp, 0));
             end
             if model.surfactant
@@ -287,15 +287,15 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                     concWellp = packed.components{pixp};
                     concWells = packed.components{pixs};
 
-                    a = f.muWMult(f.cmax).^(1-f.mixPar);
-                    cbarw     = concWellp/f.cmax;
+                    a = f.muWMult(f.cpmax).^(1-f.mixPar);
+                    cpbarw = concWellp/f.cpmax;
 
-                    % the term (a + (1 - a).*cbarw) account for the
+                    % the term (a + (1 - a).*cpbarw) account for the
                     % todd-longstaff mixing factor, which model the fact that for
                     % not-fully mixed polymer solution the polymer does not
                     % travel at the same velocity as water. See the governing
                     % equation for polymer (e.g. equationsOilWaterPolymer.m)
-                    cqP = concWellp.*cqWs./(a + (1-a).*cbarw);
+                    cqP = concWellp.*cqWs./(a + (1-a).*cpbarw);
                 end
                 cqS = concWells.*cqWs;
 
@@ -314,7 +314,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

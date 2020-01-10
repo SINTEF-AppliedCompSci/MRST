@@ -39,8 +39,9 @@ classdef LinearSolverAD < handle
         useSparseReduction % If true, sparse indexing will be used with keepNumber option
         variableOrdering % Variable ordering to be used for linear solver. Row vector of equal length to the size of the linear system.
         equationOrdering % Equation ordering to be used for linear solver. Row vector of equal length to the size of the linear system.
+        id = ''; % Short text string identifying the specific solver. Appended to the short name (see getDescription)
     end
-    
+
     methods
         function solver = LinearSolverAD(varargin)
             solver.tolerance       = 1e-8;
@@ -52,7 +53,7 @@ classdef LinearSolverAD < handle
             solver.replacementNaN  = 0;
             solver.replacementInf  = 0;
             solver.reduceToCell    = false;
-            solver.useSparseReduction = true;
+            solver.useSparseReduction = false;
             solver.applyLeftDiagonalScaling = false;
             solver.applyRightDiagonalScaling = false;
             solver.variableOrdering = [];
@@ -66,7 +67,19 @@ classdef LinearSolverAD < handle
         
         function [result, report] = solveLinearSystem(solver, A, b) %#ok
             % Solve the linear system to a given tolerance
+            report = solver.getSolveReport();
             error('Superclass not meant for direct use')
+        end
+        
+        function report = getSolveReport(solver, varargin) %#ok
+            report = struct('Iterations', 0, ... % Number of iterations (if iterative)
+                            'Residual',   0, ... % Final residual
+                            'SolverTime', 0, ... % Total time in solver
+                            'LinearSolutionTime', 0, ... % Time spent solving system
+                            'PreparationTime', 0, ... % Schur complement, scaling, ...
+                            'PostProcessTime', 0, ... % Recovery, undo scaling, ...
+                            'Converged', true); % Bool indicating convergence
+            report = merge_options_relaxed(report, varargin);
         end
         
         function [grad, result, report] = solveAdjointProblem(solver, problemPrev,...
@@ -163,8 +176,8 @@ classdef LinearSolverAD < handle
 
             report.SolverTime = toc(timer);
             report.LinearSolutionTime = t_solve;
-            report.preparationTime = t_prepare;
-            report.postprocessTime = report.SolverTime - t_solve - t_prepare;
+            report.PreparationTime = t_prepare;
+            report.PostProcessTime = report.SolverTime - t_solve - t_prepare;
             grad = solver.storeIncrements(problemCurr, result);
         end
         
@@ -261,8 +274,8 @@ classdef LinearSolverAD < handle
             [result, report] = problem.processResultAfterSolve(result, report);
             report.SolverTime = toc(timer);
             report.LinearSolutionTime = t_solve;
-            report.preparationTime = t_prepare;
-            report.postprocessTime = report.SolverTime - t_solve - t_prepare;
+            report.PreparationTime = t_prepare;
+            report.PostProcessTime = report.SolverTime - t_solve - t_prepare;
             if solver.replaceNaN
                 result(isnan(result)) = solver.replacementNaN;
             end
@@ -302,66 +315,25 @@ classdef LinearSolverAD < handle
         end
         
         function [A, b, sys] = reduceLinearSystem(solver, A, b, isAdjoint)
+            % Perform Schur complement reduction of linear system
             if nargin == 3
                 isAdjoint = false;
             end
-            % Perform Schur complement reduction of linear system
-            sys = struct('B', [], 'C', [], 'D',   [], 'E',   [],...
-                         'f', [], 'h', [], 'E_L', [], 'E_U', []);
-            if isempty(solver.keepNumber) || solver.keepNumber >= size(b, 1)
-                return
-            end
-            if isempty(A)
-                return
-            end
-            nk = solver.keepNumber;
-            start = 1:nk;
-            [ix, jx, vx] = find(A);
-            if any(~isfinite(vx))
-                warning('Non-finite values in matrix before Schur-complement reduction.');
-            end
-            if any(~isfinite(b))
-                warning('Non-finite values in right-hand side before Schur-complement reduction.');
-            end
-            
             if solver.useSparseReduction
-                n = size(A, 2);
-                keep = false(n, 1);
-                keep(start) = true;
-                keepRow = keep(ix);
-                keepCol = keep(jx);
-                kb = keepRow & keepCol;
-                sys.B = sparse(ix(kb), jx(kb), vx(kb), nk, nk);
-
-                kc = keepRow & ~keepCol;
-                sys.C = sparse(ix(kc), jx(kc) - nk, vx(kc), nk, n - nk);
-
-                kd = ~keepRow & keepCol;
-                sys.D = sparse(ix(kd) - nk, jx(kd), vx(kd), n - nk, nk);
-
-                ke = ~keepRow & ~keepCol;
-                sys.E = sparse(ix(ke) - nk, jx(ke) - nk, vx(ke), n - nk, n - nk);
-                sys.f = b(keep);
-                sys.h = b(~keep);
+                method = 'sparse';
             else
-                start = 1:nk;
-                stop = (nk+1):size(A, 2);
-                sys.B = A(start, start);
-                sys.C = A(start, stop);
-                sys.D = A(stop, start);
-                sys.E = A(stop, stop);
-                
-                sys.f = b(start);
-                sys.h = b(stop);
+                method = 'subset';
             end
-            [sys.E_L, sys.E_U] = lu(sys.E);
-            A = sys.B - sys.C*(sys.E_U\(sys.E_L\sys.D));
-            if isAdjoint
-                % We are solving the transpose system
-                b = sys.f - (sys.D')*((sys.E')\sys.h);
-            else
-                % We are solving the untransposed system
-                b = sys.f - sys.C*(sys.E_U\(sys.E_L\sys.h));
+            sys = splitMatrixForReduction(A, b, solver.keepNumber, method, true);
+            if ~isempty(sys.B)
+                A = sys.B - sys.C*(sys.E_U\(sys.E_L\sys.D));
+                if isAdjoint
+                    % We are solving the transpose system
+                    b = sys.f - (sys.D')*((sys.E')\sys.h);
+                else
+                    % We are solving the untransposed system
+                    b = sys.f - sys.C*(sys.E_U\(sys.E_L\sys.h));
+                end
             end
         end
         
@@ -587,11 +559,27 @@ classdef LinearSolverAD < handle
             I = (1:n)';
             M = sparse(I, I, d, n, n);
         end
+        
+        function [d, shortname] = getDescription(solver)
+            % Get the description and a short name used for display
+            % purposes.
+            shortname = 'Virtual base';
+            shortname = [shortname, solver.id];
+
+            d = 'Virtual base class linear solver. Not for direct use.';
+        end
+        
+        function disp(solver)
+            [d, sn] = solver.getDescription();
+            s1 = sprintf('  %s linear solver of class %s', sn, class(solver));
+            fprintf('%s\n  %s\n  %s\n  ->', s1, repmat('-', 1, numel(s1)-2), d);
+            builtin('disp', solver);
+        end
     end
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

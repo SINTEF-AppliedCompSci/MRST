@@ -5,10 +5,11 @@
 %   inspectFluidModel      - Create a interactive plotting panel for a given model that shows
 %   plotReportIterations   - Plot nonlinear convergence behavior for simulateScheduleAD output
 %   plotWellSols           - Plot well solutions from AD-solvers
+%   simpleUIbar            - Undocumented Utility Function
 %   simulationRuntimePanel - Internal function for drawing panel during simulation. See
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

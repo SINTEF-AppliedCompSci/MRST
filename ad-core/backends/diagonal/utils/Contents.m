@@ -2,7 +2,8 @@
 %
 % Files
 %   diagMult                 - Internal function for diagonal multiplication in AD code
-%   double2GenericAD             - Convert a double to GenericAD variable, using a sample GenericAD variable for dimensions
+%   diagProductMult          - Undocumented Utility Function
+%   double2GenericAD         - Convert a double to GenericAD variable, using a sample GenericAD variable for dimensions
 %   getSparseArguments       - Get sparse matrix indices
 %   getSparseBlocks          - Get sparse blocks
 %   incrementSubset          - Update a subset directly
@@ -11,7 +12,7 @@
 %   matrixDims               - Overloadable version of size
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
