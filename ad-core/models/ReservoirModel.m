@@ -52,6 +52,7 @@ properties
     % Coupling to forces and other models
     gravity % Vector for the gravitational force
     FacilityModel % Facility model used to represent wells
+    AquiferModel  % Model used to represent aquifers
     FlowPropertyFunctions % Grouping for flow properties
     FluxDiscretization % Grouping for flux discretization
     Components = {};
@@ -128,6 +129,9 @@ methods
         if ~isempty(model.FacilityModel)
             state = model.FacilityModel.validateState(state);
         end
+        if ~isempty(model.AquiferModel)
+            state = model.AquiferModel.validateState(state);
+        end
         if ~isfield(state, 'sMax') && isfield(state, 's')
             state.sMax = state.s;
         end
@@ -185,12 +189,16 @@ methods
             'Operators must be set up before simulation. See model.setupOperators for more details.');
 
         model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
-
+        
         if isempty(model.FlowPropertyFunctions)
             model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
         end
         if isempty(model.FluxDiscretization)
             model.FluxDiscretization = FluxDiscretization(model); %#ok
+        end
+        
+        if ~isempty(model.AquiferModel)
+            model.AquiferModel = model.AquiferModel.validateModel(model);
         end
     end
 
@@ -257,6 +265,11 @@ methods
         else
             f_report = [];
         end
+        
+        if ~isempty(model.AquiferModel)
+            state = model.AquiferModel.updateAfterConvergence(state0, state, dt, drivingForces);
+        end
+
         [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
         report.FacilityReport = f_report;
         if isfield(state, 'sMax')
@@ -377,7 +390,12 @@ methods
             case 'flux'
                 index = ':';
                 fn = 'flux';
-            case 'wellsol'
+            case 'aquifersol'
+                % Use colon to get all variables, since aquiferSol may
+                % be empty
+                index = ':';
+                fn = 'aquiferSol';
+          case 'wellsol'
                 % Use colon to get all variables, since the wellsol may
                 % be empty
                 index = ':';

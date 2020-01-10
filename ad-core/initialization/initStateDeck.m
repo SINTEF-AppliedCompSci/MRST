@@ -66,6 +66,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ['Initialisation scheme specified in ', ...
             '''deck'' is not supported.']);
     end
+    if ~isempty(model.AquiferModel)
+        state = model.AquiferModel.initStateAquifer(state);
+    end
 end
 
 function state = directAssignment(model, deck)

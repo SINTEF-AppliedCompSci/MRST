@@ -9,13 +9,18 @@ close all
 
 datadir = getDatasetPath('aquifertest', 'download', true);
 
+
+%%
+
 for icase = 1 : 2
     
     fnroot = sprintf('2D_OILWATER_AQ_ECLIPSE_%d', icase);
     fn = fullfile(datadir, [fnroot, '.DATA']);
-    [model, initState, schedule] = setupAquifertest(fn);
-    [wellSols, states, schedulereport] = simulateScheduleAD(initState, model, ...
-                                                      schedule);
+    
+    deck = convertDeckUnits(readEclipseDeck(fn));
+    [state0, model, schedule] = initEclipseProblemAD(deck);
+    
+    [wellSols, states, schedulereport] = simulateScheduleAD(state0, model, schedule);
     statesEcl = loadAquiferEclipseResult(datadir, fnroot);
 
 
