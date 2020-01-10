@@ -76,6 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'UniformFacilityModel', false, ...
                  'model',                [], ...
                  'G',                    [], ...
+                 'permTolerance',        0, ...
                  'getSchedule',          true, ...
                  'getInitialState',      true, ...
                  'SplitDisconnected',    false);
@@ -146,15 +147,18 @@ function model = initializeModel(deck, opt)
     rock  = initEclipseRock(deck);
     
     if isempty(opt.G)
-        if isfield(deck.GRID, 'ACTNUM')
-            if isfield(rock, 'ntg')
-                pv = rock.poro.*rock.ntg;
-            else
-                pv = rock.poro;
-            end
-            perm_ok = ~all(rock.perm == 0, 2);
-            deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
+        if ~isfield(deck.GRID, 'ACTNUM')
+            nc = prod(deck.GRID.cartDims);
+            deck.GRID.ACTNUM = ones(nc, 1);
         end
+            
+        if isfield(rock, 'ntg')
+            pv = rock.poro.*rock.ntg;
+        else
+            pv = rock.poro;
+        end
+        perm_ok = ~all(rock.perm > opt.permTolerance, 2);
+        deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
 
         G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected);
         if numel(G) > 1

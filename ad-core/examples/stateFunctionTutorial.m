@@ -101,8 +101,13 @@ cmodel = GenericNaturalVariablesModel(model.G, model.rock, model.fluid, eos, 'wa
 cmodel = cmodel.validateModel();
 
 clf;
-plotStateFunctionGroupings(cmodel.FlowPropertyFunctions);
-
+[h, g] = plotStateFunctionGroupings(cmodel.FlowPropertyFunctions);
+%% Print as TiKZ figure
+% If you have a LaTeX+PGF compiler, you can also make publication-quality plots
+% using the experimental printStateFunctionGroupingTikz routine. The code
+% is printed to the command window.
+clc
+printStateFunctionGroupingTikz(g)
 % <html>
 % <p><font size="-1">
 % Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
