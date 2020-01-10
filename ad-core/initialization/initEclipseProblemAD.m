@@ -157,7 +157,7 @@ function model = initializeModel(deck, opt)
         else
             pv = rock.poro;
         end
-        perm_ok = ~all(rock.perm > opt.permTolerance, 2);
+        perm_ok = all(rock.perm > opt.permTolerance, 2);
         deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
 
         G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected);
