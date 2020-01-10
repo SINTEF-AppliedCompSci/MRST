@@ -263,7 +263,7 @@ end
 flds = {'PERMX', 'PERMY', 'PERMZ', 'PORO', 'ACTNUM'};
 for k = 1:numel(flds)
     if isfield(deck.GRID, flds{k})
-        if strcmp(flds, 'ACTNUM')
+        if strcmp(flds{k}, 'ACTNUM')
             fmt = getFmtStr(f.int);
         else
             fmt = getFmtStr(f.sci);
@@ -408,7 +408,8 @@ for i=1:numel(myfields)
     elseif strcmp(myfield, 'AQUFETP')
         % might have nans
          v = v(:, 1:9);
-         fmts = repmat({f.sci}, [1,9]);
+         fmts = {f.int, f.sci, f.sci, f.sci, f.sci, f.sci, f.int, f.sci, f.sci};
+%         fmts = repmat({f.sci}, [1,9]);
          [v, nix] = replace_nan(v);
          fmts(nix) = {f.string};
          dump_vector(fid, dirname, lower(myfield), getFmtStr(fmts{:}, ' /'), v');
