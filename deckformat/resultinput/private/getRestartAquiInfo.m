@@ -26,21 +26,34 @@ unitNo = intehead( 3);
 aq = [];
 
 naq = intehead(41);    % number of aquifers (guess)
-if naq > 0 && isfield(rstrt, 'XAAQ')
+if naq > 0 && isfield(rstrt, 'XAAQ') && ...
+        (isfield(rstrt, 'ACAQ_1') || isfield(rstrt, 'ACAQ'))
+    niaaq = intehead(43);
+    iaaq  = rstrt.IAAQ{step};  
+    % support Fetkovich for now, elems 10,11 of IAAQ shoud be zero
+    tpix = [10;11] + (0:(naq-1))*niaaq;
+    if ~all(iaaq(tpix(:)) == 0)
+        warning('Only aquifers of Fetkovich-type are supported');
+        return
+    end
+    nsaaq = intehead(44);
+    saaq  = rstrt.SAAQ{step};
     nxaaq = intehead(45);
     xaaq  = rstrt.XAAQ{step};
     if ~(numel(xaaq) == naq*nxaaq)
         warning('Unexpected format of aquifer data in restart file, skipping ...')
         return;
     else
-        aq = repmat(struct('cijk', [], 'p', [], 'qW', [], 'flux', [], 'num', []), [naq, 1]);
+        aq = repmat(struct('cijk', [], 'pressure', [], 'qW', [], 'flux', [], ...
+                           'vol', [], 'num', []), [naq, 1]);
         for k = 1:naq
-            aq(k).p  = xaaq(2 + (k-1)*nxaaq);
-            aq(k).qW = xaaq(1 + (k-1)*nxaaq);
+            aq(k).pressure   = xaaq(2 + (k-1)*nxaaq);
+            aq(k).qW         = xaaq(1 + (k-1)*nxaaq);
+            % current volume = initial - total produced
+            aq(k).vol        = saaq(2 + (k-1)*nsaaq) - xaaq(3 + (k-1)*nxaaq); 
         end
         % get number of connections for each aquifer
-        niaaq = intehead(43);
-        nconn = rstrt.IAAQ{step}(1 + (0:(naq-1))*niaaq);
+        nconn = iaaq(1 + (0:(naq-1))*niaaq);
         
         nicaq = intehead(46);
         nacaq = intehead(48);
