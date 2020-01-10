@@ -411,14 +411,14 @@ for i=1:numel(myfields)
          fmts = repmat({f.sci}, [1,9]);
          [v, nix] = replace_nan(v);
          fmts(nix) = {f.string};
-         dump_vector(fid, dirname, lower(myfield), [getFmtStr(fmts{:}), ' /'], v');
+         dump_vector(fid, dirname, lower(myfield), getFmtStr(fmts{:}, ' /'), v');
     elseif strcmp(myfield, 'AQUANCON')
         % replace negative multiplyer
         v = v(:, 1:11);
         fmts = {f.int, f.int, f.int, f.int, f.int, f.int, f.int, f.string, f.sci, f.double, f.string};
         [v, nix]  = replace_negative(v);
         fmts(nix) = {f.string};
-        dump_vector(fid, dirname, lower(myfield), [getFmtStr(fmts{:}), ' /'], v');    
+        dump_vector(fid, dirname, lower(myfield), getFmtStr(fmts{:}, ' /'), v');    
     else
         values = v;
         if ~iscell(values)
