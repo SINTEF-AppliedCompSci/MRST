@@ -32,6 +32,10 @@ classdef WrapperModel < PhysicalModel
         function state = validateState(model, state)
             state = model.parentModel.validateState(state);
         end
+        
+        function schedule = validateSchedule(model, schedule)
+            schedule = model.parentModel.validateSchedule(schedule);
+        end
 
         function [state, report] = updateState(model, varargin)
             [state, report] = model.parentModel.updateState(varargin{:});
