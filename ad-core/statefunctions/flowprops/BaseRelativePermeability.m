@@ -141,43 +141,6 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
             k_max_m = k{2}./k{1};
         end
 
-        function s_min = getCriticalPhaseSaturations(prop, model, state, drainage)
-            if nargin < 4
-                drainage = true;
-            end
-
-            if drainage
-                satnum = prop.regions_imbibition;
-            else
-                satnum = prop.regions;
-            end
-
-            if isempty(satnum)
-                satnum = 1;
-            end
-
-            phases = model.getPhaseNames();
-            nph = numel(phases);
-            s_min = zeros(size(satnum));
-            if isfield(model.fluid, 'krPts')
-                pts = model.fluid.krPts;
-                for i = 1:nph
-                    ph = lower(phases(i));
-                    if strcmp(ph, 'o') && ~isfield(pts, 'o')
-                        if model.water && model.gas
-                            s_min(i) = max(pts.ow(satnum, 2), pts.og(satnum, 2));
-                        elseif model.water
-                            s_min(i) = pts.ow(satnum, 2);
-                        elseif model.gas
-                            s_min(i) = pts.og(satnum, 2);
-                        end
-                    else
-                        s_min(i) = pts.(ph)(satnum, 2);
-                    end
-                end
-            end
-        end
-
         function [state, chopped] = applyImmobileChop(prop, model, state, state0)
             chopped = false;
             if prop.immobileChop

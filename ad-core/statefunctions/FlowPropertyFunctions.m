@@ -45,17 +45,15 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
             if ~isempty(model.inputdata)
                 % We may have recieved a deck. Check for endpoint scaling
                 deck = model.inputdata;
-                
+
+                % Scaling is active and can impact rel.perm and pc
                 do_scaling = isfield(deck.RUNSPEC, 'ENDSCALE');
-                three_point = isfield(deck.PROPS, 'SCALECRS') && strcmpi(deck.PROPS.SCALECRS{1}(1), 'y');
+                props.CapillaryPressure.scalingActive = do_scaling;
                 props.RelativePermeability.scalingActive = do_scaling;
+
+                % Set number of points for scaling
+                three_point = isfield(deck.PROPS, 'SCALECRS') && strcmpi(deck.PROPS.SCALECRS{1}(1), 'y');
                 props.RelativePermeability.relpermPoints = 2 + three_point;
-                if isfield(model.rock, 'sw')
-                    % Endpoint capillary pressure is defined
-                    pc = props.getStateFunction('CapillaryPressure');
-                    pc = pc.setWaterEndpointScaling(model, model.rock.sw, 1);
-                    props = props.setStateFunction('CapillaryPressure', pc);
-                end
             end
             % Black-oil specific features follow
             if isprop(model, 'disgas') && model.disgas

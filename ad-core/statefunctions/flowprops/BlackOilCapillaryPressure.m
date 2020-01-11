@@ -1,13 +1,11 @@
-classdef BlackOilCapillaryPressure < StateFunction
+classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
+    % Implementation of black-oil type capillary pressure
     properties
+
     end
-    
+
     properties (Access = protected)
-        endpointSW
-        endpointPCOW
-        pcOWMin
-        pcOWMax
-        endpointOptionSW = [];
+
     end
     
     methods
@@ -24,28 +22,18 @@ classdef BlackOilCapillaryPressure < StateFunction
             f = model.fluid;
             if model.water && model.oil && isfield(f, 'pcOW')
                 sW = model.getProp(state, 'sw');
+                if prop.scalingActive
+%                     swcon = prop.getConnateWater(model, state);
+                    pts = model.rock.krscale.drainage;
+                    reg = prop.regions;
+                    [get, ~, U, L] = SaturationProperty.getSatPointPicker(f, pts, reg, prop.cell_subset);
+                    [swcon, SWCON] = get('w', L);
+                    [swmax, SWMAX] = get('w', U);
+                    sW = swcon + (sW - SWCON).*(swmax - swcon)./(SWMAX - SWCON);
+                end
                 pcow = prop.evaluateFunctionOnDomainWithArguments(f.pcOW, sW);
                 if isfield(state, 'pcowScale')
                     pcow = pcow.*state.pcowScale;
-                end
-                if ~isempty(prop.endpointOptionSW) && false % Disabled due to bad data
-                    pcmin = prop.pcOWMin;
-                    pcmax = prop.pcOWMax;
-                    pcw = prop.endpointPCOW;
-                    reg = prop.regions;
-                    if ~isempty(reg)
-                        pcmin = pcmin(reg);
-                        pcmax = pcmax(reg);
-                        pcw = pcw(reg);
-                    end
-                    pc_scale = (pcow - pcmin)./(pcmax - pcmin);
-                    switch prop.endpointOptionSW
-                        case 1
-                            % Initial water is interpreted as maximum pc
-                            pcow = (pcw - pcmin).*pc_scale + pcmin;
-                        case 2
-                            pcow = (pcmax - pcw).*pc_scale + pcw;
-                    end
                 end
                 % Note sign! Water is always first
                 pc{phInd == 1} = -pcow;
@@ -65,33 +53,11 @@ classdef BlackOilCapillaryPressure < StateFunction
             anyPresent = isfield(f, 'pcOW') || isfield(f, 'pcOG') || isfield(f, 'pcWG');
         end
         
-        function prop = setWaterEndpointScaling(prop, model, sw_prescribed, option)
-            % Special case where water capillary pressure is adjusted to
-            % match the initial water saturation, instead of the other way
-            % around
-            if ~isfield(model.fluid, 'pcOW')
-                return
-            end
-            nreg = numel(model.fluid.pcOW);
-            prop.endpointSW = zeros(nreg, 1);
-            prop.endpointPCOW = zeros(nreg, 1);
-            prop.pcOWMin = zeros(nreg, 1);
-            prop.pcOWMax = zeros(nreg, 1);
-            for i = 1:nreg
-                if isa(model.fluid.pcOW, 'function_handle')
-                    pc = model.fluid.pcOW;
-                else
-                    pc = model.fluid.pcOW{i};
-                end
-                v = pc([0; 1]);
-                prop.pcOWMin(i) = min(v);
-                prop.pcOWMax(i) = max(v);
-            end
-            prop.endpointOptionSW = option;
-            pc_min = prop.evaluateFunctionOnDomainWithArguments(model.fluid.pcOW, sw_prescribed);
-            prop.endpointSW = sw_prescribed;
-            prop.endpointPCOW = pc_min;
+        function property = subset(property, subs)
+            property = subset@StateFunction(property, subs);
+            property.cell_subset = subs;
         end
+
     end
 end
 

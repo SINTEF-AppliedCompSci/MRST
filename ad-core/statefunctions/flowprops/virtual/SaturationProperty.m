@@ -33,6 +33,43 @@ classdef SaturationProperty
                 swcon = zeros(model.G.cells.num, 1);
             end
         end
+        
+        function s_min = getCriticalPhaseSaturations(prop, model, state, drainage)
+            if nargin < 4
+                drainage = true;
+            end
+
+            if drainage
+                satnum = prop.regions_imbibition;
+            else
+                satnum = prop.regions;
+            end
+
+            if isempty(satnum)
+                satnum = 1;
+            end
+
+            phases = model.getPhaseNames();
+            nph = numel(phases);
+            s_min = zeros(size(satnum));
+            if isfield(model.fluid, 'krPts')
+                pts = model.fluid.krPts;
+                for i = 1:nph
+                    ph = lower(phases(i));
+                    if strcmp(ph, 'o') && ~isfield(pts, 'o')
+                        if model.water && model.gas
+                            s_min(i) = max(pts.ow(satnum, 2), pts.og(satnum, 2));
+                        elseif model.water
+                            s_min(i) = pts.ow(satnum, 2);
+                        elseif model.gas
+                            s_min(i) = pts.og(satnum, 2);
+                        end
+                    else
+                        s_min(i) = pts.(ph)(satnum, 2);
+                    end
+                end
+            end
+        end
     end
 
     methods (Static)
@@ -132,10 +169,10 @@ classdef SaturationProperty
         function [get, CR, U, L, KM] = getSatPointPicker(f, pts, reg, cells)
             % Get function handle for getting saturation-based scaling
             % points
-            L  = 1;
-            CR = 2;
-            U  = 3;
-            KM = 4;
+            L  = 1; % Connate (always present)
+            CR = 2; % Critical (first point where phase becomes mobile)
+            U  = 3; % Saturation at which maximum rel. perm occurs
+            KM = 4; % Maximum rel. perm.
 
             tbl = @(phase, index) f.krPts.(phase)(reg, index);
             scal = @(phase, index) pts.(phase)(cells, index);
