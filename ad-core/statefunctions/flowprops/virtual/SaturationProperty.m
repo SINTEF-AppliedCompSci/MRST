@@ -1,0 +1,154 @@
+classdef SaturationProperty
+    % Virtual class for utilities related to saturation function endpoint
+    % scaling
+    properties
+        scalingActive = false;
+    end
+    
+    properties (Access = protected)
+        cell_subset = ':';
+    end
+
+    methods
+        function swcon = getConnateWater(prop, model, state)
+            % Get the connate water in each cell of the domain. This may
+            % come from either the fluid or the rock, depending if the
+            % scaling is active.
+            if prop.scalingActive && ...
+                    isfield(model.rock, 'krscale') && ...
+                    isfield(model.rock.krscale.drainage, 'w')
+                % Connate water in rock, endpoint scaling
+                cix = prop.cell_subset;
+                swcon = model.rock.krscale.drainage.w(cix, 1);
+                % check for defaulted (nan) swcon -> use table values
+                nix = isnan(swcon);
+                if any(nix)
+                    swcon(nix) = reshape(f.krPts.w(prop.regions(nix), 1), [], 1);
+                end
+            elseif isfield(f, 'krPts')
+                % Connate water from rel perm table
+                swcon = reshape(f.krPts.w(prop.regions, 1), [], 1);
+            else
+                % No found - zero swcon in every cell
+                swcon = zeros(model.G.cells.num, 1);
+            end
+        end
+    end
+
+    methods (Static)
+        function [m, c, p, k] = getTwoPointScalers(pts, ph, reg, f, cells)
+            % Get scaling factors for two-point rel.perm. scaling
+            [get, CR, U, L, KM] = SaturationProperty.getSatPointPicker(f, pts, reg, cells);
+            switch ph
+                case {'w', 'g'}
+                    [su, SU] = get(ph, U);
+                case {'ow', 'og'}
+                    if isfield(f.krPts, 'w')
+                        [swl, SWL] = get('w', L);
+                    else
+                        swl = 0; SWL = 0;
+                    end
+                    if isfield(f.krPts, 'g')
+                        [sgl, SGL] = get('g', L);
+                    else
+                        sgl = 0; SGL = 0;
+                    end
+                    SU = 1 - SWL - SGL;
+                    su = 1 - swl - sgl;
+            end
+            [scr, SCR] = get(ph, CR);
+            p = cell(1, 2);
+            p{1} = SCR;
+            m    = (su-scr)./(SU-SCR);
+            c    = scr - SCR.*m;
+            p{2} = SU;
+            [k{1}, k{2}] = get(ph, KM);
+        end
+
+        function [m, c, p, k] = getThreePointScalers(pts, ph, reg, f, cells)
+            % Get scaling factors for three-point rel.perm. scaling
+            [get, CR, U, L, KM] = SaturationProperty.getSatPointPicker(f, pts, reg, cells);
+            switch ph
+                case 'w'
+                    [sowcr, SOWCR] = get('ow', CR);
+                    [sgl, SGL] = get('g', L);
+
+                    SR = 1 - SOWCR - SGL;
+                    sr = 1 - sowcr - sgl;
+
+                    [su, SU] = get('w', U);  
+                case 'g'
+                    [sogcr, SOGCR] = get('og', CR);
+                    [swl, SWL] = get('w', L);
+                    SR = 1 - SOGCR - SWL;
+                    sr = 1 - sogcr - swl;
+
+                    [su, SU] = get('g', U);
+                case 'ow'
+                    [swcr, SWCR] = get('w', CR);
+                    [sgl, SGL] = get('g', L);
+
+                    SR = 1 - SWCR - SGL;
+                    sr = 1 - swcr - sgl;
+
+                    [swl, SWL] = get('w', L);
+                    [sgl, SGL] = get('g', L);
+
+                    SU = 1 - SWL - SGL;
+                    su = 1 - swl - sgl;
+                case 'og'
+                    [sgcr, SGCR] = get('g', CR);
+                    [swl, SWL] = get('w', L);
+                    [sgl, SGL] = get('g', L);
+                    SR   = 1 - SGCR - SWL;
+                    sr   = 1 - sgcr - swl;
+
+                    SU   = 1 - SGL - SWL;
+                    su = 1 - sgl - swl;
+            end
+            [scr, SCR] = get(ph, CR);
+
+            m = cell(1, 2);
+            p = cell(1, 3);
+            c = cell(1, 2);
+
+            p{1} = SCR;
+            m{1} = (sr-scr)./(SR-SCR);
+            c{1} = scr - SCR.*m{1};
+            p{2} = SR;
+
+            p{3} = SU;
+
+            m{2} = (su-sr)./(SU-SR);
+            c{2} = sr - SR.*m{2};
+            ix = SU <= SR;
+            if nnz(ix) > 0
+                m{2}(ix) = 0;
+                c{2}(ix) = 0;
+            end
+            [k{1}, k{2}] = get(ph, KM);
+        end
+
+        function [get, CR, U, L, KM] = getSatPointPicker(f, pts, reg, cells)
+            % Get function handle for getting saturation-based scaling
+            % points
+            L  = 1;
+            CR = 2;
+            U  = 3;
+            KM = 4;
+
+            tbl = @(phase, index) f.krPts.(phase)(reg, index);
+            scal = @(phase, index) pts.(phase)(cells, index);
+            get = @(phase, index) SaturationProperty.getPair(phase, index, tbl, scal);
+        end
+
+        function [v1, v2] = getPair(phase, index, fn1, fn2)
+            v1 = fn1(phase, index);
+            v2 = fn2(phase, index);
+            % When scaling values are not given, they fall back to tables values
+            ind = isnan(v2);
+            v2(ind) = v1(ind);
+        end
+    end
+end
+

@@ -48,7 +48,7 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
                 
                 do_scaling = isfield(deck.RUNSPEC, 'ENDSCALE');
                 three_point = isfield(deck.PROPS, 'SCALECRS') && strcmpi(deck.PROPS.SCALECRS{1}(1), 'y');
-                props.RelativePermeability.relpermScaling = do_scaling;
+                props.RelativePermeability.scalingActive = do_scaling;
                 props.RelativePermeability.relpermPoints = 2 + three_point;
                 if isfield(model.rock, 'sw')
                     % Endpoint capillary pressure is defined
