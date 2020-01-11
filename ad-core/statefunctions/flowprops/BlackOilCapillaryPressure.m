@@ -55,11 +55,14 @@ classdef BlackOilCapillaryPressure < StateFunction
                 sG = model.getProp(state, 'sg');
                 pc{phInd == 3} = prop.evaluateFunctionOnDomainWithArguments(f.pcOG, sG);
             end
+            if ~model.oil && isfield(f, 'pcWG')
+                pc{phInd == 2} = prop.evaluateFunctionOnDomainWithArguments(f.pcWG, sG);
+            end
         end
         
         function anyPresent = pcPresent(prop, model)
             f = model.fluid;
-            anyPresent = isfield(f, 'pcOW') || isfield(f, 'pcOG');
+            anyPresent = isfield(f, 'pcOW') || isfield(f, 'pcOG') || isfield(f, 'pcWG');
         end
         
         function prop = setWaterEndpointScaling(prop, model, sw_prescribed, option)
