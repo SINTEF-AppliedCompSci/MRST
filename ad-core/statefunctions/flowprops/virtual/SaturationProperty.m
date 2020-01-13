@@ -23,11 +23,11 @@ classdef SaturationProperty
                 % check for defaulted (nan) swcon -> use table values
                 nix = isnan(swcon);
                 if any(nix)
-                    swcon(nix) = reshape(f.krPts.w(prop.regions(nix), 1), [], 1);
+                    swcon(nix) = reshape(model.fluid.krPts.w(prop.regions(nix), 1), [], 1);
                 end
-            elseif isfield(f, 'krPts')
+            elseif isfield(model.fluid, 'krPts')
                 % Connate water from rel perm table
-                swcon = reshape(f.krPts.w(prop.regions, 1), [], 1);
+                swcon = reshape(model.fluid.krPts.w(prop.regions, 1), [], 1);
             else
                 % No found - zero swcon in every cell
                 swcon = zeros(model.G.cells.num, 1);
