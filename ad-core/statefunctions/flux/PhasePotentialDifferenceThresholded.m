@@ -89,7 +89,8 @@ classdef PhasePotentialDifferenceThresholded < PhasePotentialDifference
                 
                 dp = pot{i};
                 dp = dp - delta;
-                dp(sign(dpi) ~= sign(value(dp))) = 0;
+                ok = sign(dpi) == sign(value(dp));
+                dp = dp.*ok;
                 pot{i} = dp;
             end
         end
