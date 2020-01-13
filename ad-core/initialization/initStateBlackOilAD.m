@@ -82,7 +82,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         m.FlowPropertyFunctions = model.FlowPropertyFunctions.subset(cells);
 
         tmp_state = struct('s', s, 'pressure', p(:, 1));
-        kr = value(m.getProp(tmp_state, 'RelativePermeability'));
+        try
+            kr = value(m.getProp(tmp_state, 'RelativePermeability'));
+        catch
+            warning(['Unable to evaluate relative permeability during ', ...
+                    'initialization. The phase pressures might be off where', ...
+                    ' saturations do not correspond to mobile phases']);
+            kr = s;
+        end
         maxSat = max(s, [], 2);
         referenceImmobile = kr(:, refIx) < 1e-8;
         
