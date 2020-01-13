@@ -53,7 +53,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
 
     s = operators;
-    v = -s.T.*s.Grad(p);
+    gradp = s.Grad(p);
+    if isa(gradp, 'ADI')
+        gradp.val(find(value(gradp)==0)) = 1e-8;
+    else
+        gradp(find(gradp==0)) = 1e-8;
+    end
+    v = -s.T.*gradp;
 
     switch opt.velocCompMethod
       case 'linear'
