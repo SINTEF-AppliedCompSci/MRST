@@ -364,15 +364,8 @@ classdef SimpleWell < PhysicalModel
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
             if isfield(wellSol, 'ComponentTotalFlux') && ~isempty(wellSol.ComponentTotalFlux)
-                qVol = wellSol.flux;
-                qVol(qVol == 0) = w.sign*1e-12;
-                qMass = wellSol.ComponentTotalFlux;
-                qMass(qMass == 0) = w.sign*1e-12;
-                
-                if w.sign == 1
-%                     qMass = qMass.*w.compi;
-%                     qVol = qVol.*w.compi;
-                end
+                qVol = sum(wellSol.flux, 2);
+                qMass = sum(wellSol.ComponentTotalFlux, 2);
             else
                 % typically initial step, assume uniform drawdown and use compi/mobility accordingly
                 sgn = w.sign;
@@ -383,14 +376,28 @@ classdef SimpleWell < PhysicalModel
                 if sgn == -1 && nargin == 6 && ~isempty(mob_res)
                     qVol  = bsxfun(@times, w.WI,  mob_res);
                 end
-                qMass = qVol.*rho_res; 
+                qVol = sum(qVol, 2);
+                qMass = sum(qVol.*rho_res, 2);
             end
             C = well.wb2in(w);      % mapping wb-flux to in-flux
             wbMassFlux  = abs(C\qMass);  % solve to get well-bore mass flux
             wbVolumeFlux  = abs(C\qVol); % solve to get well-bore volume flux
-            
-            rhoMix = sum(wbMassFlux, 2)./sum(wbVolumeFlux, 2);
+            % Approximate mixture density by averaging mass and volume
+            % fluxes
+            rhoMix = wbMassFlux./wbVolumeFlux;
             rhoMix(isnan(rhoMix)) = 0;
+            
+            nc = numel(rhoMix);
+            for i = (nc-1):-1:1
+                % If the density ends up being close to zero, we might be
+                % dealing with either disabled perforations or a well with
+                % zero rate. Back-traverse the mixture density and insert
+                % the values. If the values are at the end, it doesn't
+                % really matter for the pressure drop model.
+                if rhoMix(i) < 1e-8
+                    rhoMix(i) = rhoMix(i+1);
+                end
+            end
             % get dz between segment nodes and bh-node1. This is a simple
             % hydrostatic distribution.
             dpt = [0; w.dZ];
