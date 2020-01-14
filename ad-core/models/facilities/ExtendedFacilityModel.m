@@ -294,6 +294,10 @@ classdef ExtendedFacilityModel < FacilityModel
                         mob_i = mob(perf2well == wellNo, :);
                     end
                     wellSol(wellNo) = wm.updateConnectionPressureDropState(model.ReservoirModel, wellSol(wellNo), rho_i, rho_i, mob_i);
+                    ctrl = wm.W.type;
+                    if ~(strcmpi(ctrl, 'bhp') || strcmpi(ctrl, 'thp'))
+                        wellSol(wellNo).status = wm.W.val ~= 0;
+                    end
                 end
             end
             state.wellSol = wellSol;

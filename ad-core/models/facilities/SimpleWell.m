@@ -363,7 +363,7 @@ classdef SimpleWell < PhysicalModel
                 nperf = numel(w.cells);
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
-            if isfield(wellSol, 'ComponentTotalFlux') && ~isempty(wellSol.ComponentTotalFlux)
+            if isfield(wellSol, 'ComponentTotalFlux') && any(wellSol.ComponentTotalFlux(:))
                 qVol = sum(wellSol.flux, 2);
                 qMass = sum(wellSol.ComponentTotalFlux, 2);
             else
@@ -372,31 +372,49 @@ classdef SimpleWell < PhysicalModel
                 if sgn == 0
                     sgn = 1;
                 end
-                qVol  = w.WI*w.compi;
                 if sgn == -1 && nargin == 6 && ~isempty(mob_res)
                     qVol  = bsxfun(@times, w.WI,  mob_res);
+                else
+                    qVol  = w.WI*w.compi;
                 end
-                qVol = sum(qVol, 2);
                 qMass = sum(qVol.*rho_res, 2);
+                qVol = sum(qVol, 2);
             end
+            isShut = abs(sum(qMass)) < 1e-12;
             C = well.wb2in(w);      % mapping wb-flux to in-flux
             wbMassFlux  = abs(C\qMass);  % solve to get well-bore mass flux
             wbVolumeFlux  = abs(C\qVol); % solve to get well-bore volume flux
             % Approximate mixture density by averaging mass and volume
             % fluxes
-            rhoMix = wbMassFlux./wbVolumeFlux;
-            rhoMix(isnan(rhoMix)) = 0;
-            
-            nc = numel(rhoMix);
-            for i = (nc-1):-1:1
-                % If the density ends up being close to zero, we might be
-                % dealing with either disabled perforations or a well with
-                % zero rate. Back-traverse the mixture density and insert
-                % the values. If the values are at the end, it doesn't
-                % really matter for the pressure drop model.
-                if rhoMix(i) < 1e-8
-                    rhoMix(i) = rhoMix(i+1);
+            if isShut
+                T = max(well.W.WI, 1e-16);
+                q_approx = bsxfun(@times, T, mob_res);
+                rhoMix = sum(q_approx.*rho_res, 2)./sum(q_approx, 2);
+            else
+                rhoMix = wbMassFlux./wbVolumeFlux;
+                rhoMix(isnan(rhoMix)) = 0;
+
+                nc = numel(rhoMix);
+                for i = (nc-1):-1:1
+                    % If the density ends up being close to zero, we might be
+                    % dealing with either disabled perforations or a well with
+                    % zero rate. Back-traverse the mixture density and insert
+                    % the values. If the values are at the end, it doesn't
+                    % really matter for the pressure drop model.
+                    if rhoMix(i) < 1e-8
+                        rhoMix(i) = rhoMix(i+1);
+                    end
                 end
+            end
+            bad = rhoMix == 0 | ~isfinite(rhoMix);
+            if all(bad)
+                warning(['Unable to compute wellbore mixture density for', ...
+                         ' well %s. Pressure drop may be incorrect.'], wellSol.name);
+            else
+                rhoMix(bad) = mean(rhoMix(~bad));
+            end
+            if strcmpi(wellSol.name, 'c-4h')
+                disp(rhoMix)
             end
             % get dz between segment nodes and bh-node1. This is a simple
             % hydrostatic distribution.

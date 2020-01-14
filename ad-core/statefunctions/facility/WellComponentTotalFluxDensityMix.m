@@ -39,12 +39,17 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
             massFlux  = value(v');
             massFluxTotal = sum(massFlux,2);
             
-%             isInjector = map.isInjector(map.perf2well);
+            isInjector = map.isInjector(map.perf2well);
             injection  = massFluxTotal > 0;
-%             production = ~injection & massFluxTotal ~= 0;
-%             crossflow = (injection & ~isInjector) | ...
-%                         (production & isInjector);
-            if any(injection)
+            production = ~injection;
+            crossflow = (injection & ~isInjector) | ...
+                        (production & isInjector);
+            if 0
+                replace = injection;
+            else
+                replace = crossflow;
+            end
+            if any(replace)
                 rhoS = prop.getEvaluatedDependencies(state, 'InjectionSurfaceDensity');
 
                 ws = state.wellSol(map.active);
@@ -76,12 +81,12 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
                 rhoMix = crossFlowMixtureDensity(massFlux, volumeFluxTotal, injectionMass, map);
                 rhoMixPerf = rhoMix(map.perf2well, :);
 
-                vt = zeros(sum(injection), 1);
+                vt = zeros(sum(replace), 1);
                 for i = 1:nph
-                    vt = vt + volFlux{i}(injection);
+                    vt = vt + volFlux{i}(replace);
                 end
                 for i = 1:ncomp
-                    v{i}(injection) = vt.*rhoMixPerf(injection, i);
+                    v{i}(replace) = vt.*rhoMixPerf(replace, i);
                 end
             end
         end
