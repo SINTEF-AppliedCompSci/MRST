@@ -33,6 +33,7 @@ classdef SimpleWell < PhysicalModel
         dsMaxAbs % Maximum allowable change in well composition/saturation
         VFPTable % Vertical lift table. EXPERIMENTAL.
         doUpdatePressureDrop
+        simplePressureDrop
         ControlDensity
     end
 
@@ -45,6 +46,7 @@ classdef SimpleWell < PhysicalModel
             well.allowSignChange = false;
             well.allowControlSwitching = true;
             well.doUpdatePressureDrop = true;
+            well.simplePressureDrop = false;
 
             well.dpMaxRel = inf;
             well.dpMaxAbs = inf;
@@ -381,66 +383,77 @@ classdef SimpleWell < PhysicalModel
                 qVol = sum(qVol, 2);
             end
             isShut = abs(sum(qMass)) < 1e-12;
-            C = well.wb2in(w);      % mapping wb-flux to in-flux
-            wbMassFlux  = abs(C\qMass);  % solve to get well-bore mass flux
-            wbVolumeFlux  = abs(C\qVol); % solve to get well-bore volume flux
-            % Approximate mixture density by averaging mass and volume
-            % fluxes
-            if isShut
-                T = max(well.W.WI, 1e-16);
-                q_approx = bsxfun(@times, T, mob_res);
-                rhoMix = sum(q_approx.*rho_res, 2)./sum(q_approx, 2);
+            g   = norm(model.gravity);
+            if well.simplePressureDrop
+                if isShut
+                    T = max(well.W.WI, 1e-16);
+                    q_approx = bsxfun(@times, T, mob_res);
+                    rhoMix = sum(q_approx.*rho_res, 2)./sum(q_approx, 2);
+                else
+                    rhoMix = sum(qMass)/sum(qVol);
+                end
+                cdp = g.*w.dZ.*rhoMix;
             else
-                rhoMix = wbMassFlux./wbVolumeFlux;
-                rhoMix(isnan(rhoMix)) = 0;
+                C = well.wb2in(w);      % mapping wb-flux to in-flux
+                wbMassFlux  = abs(C\qMass);  % solve to get well-bore mass flux
+                wbVolumeFlux  = abs(C\qVol); % solve to get well-bore volume flux
+                % Approximate mixture density by averaging mass and volume
+                % fluxes
+                if isShut
+                    T = max(well.W.WI, 1e-16);
+                    q_approx = bsxfun(@times, T, mob_res);
+                    rhoMix = sum(q_approx.*rho_res, 2)./sum(q_approx, 2);
+                else
+                    rhoMix = wbMassFlux./wbVolumeFlux;
+                    rhoMix(isnan(rhoMix)) = 0;
 
-                nc = numel(rhoMix);
-                for i = (nc-1):-1:1
-                    % If the density ends up being close to zero, we might be
-                    % dealing with either disabled perforations or a well with
-                    % zero rate. Back-traverse the mixture density and insert
-                    % the values. If the values are at the end, it doesn't
-                    % really matter for the pressure drop model.
-                    if rhoMix(i) < 1e-8
-                        rhoMix(i) = rhoMix(i+1);
+                    nc = numel(rhoMix);
+                    for i = (nc-1):-1:1
+                        % If the density ends up being close to zero, we might be
+                        % dealing with either disabled perforations or a well with
+                        % zero rate. Back-traverse the mixture density and insert
+                        % the values. If the values are at the end, it doesn't
+                        % really matter for the pressure drop model.
+                        if rhoMix(i) < 1e-8
+                            rhoMix(i) = rhoMix(i+1);
+                        end
                     end
                 end
-            end
-            bad = rhoMix == 0 | ~isfinite(rhoMix);
-            if all(bad)
-                warning(['Unable to compute wellbore mixture density for', ...
-                         ' well %s. Pressure drop may be incorrect.'], wellSol.name);
-            else
-                rhoMix(bad) = mean(rhoMix(~bad));
-            end
-            if strcmpi(wellSol.name, 'c-4h')
-                disp(rhoMix)
-            end
-            % get dz between segment nodes and bh-node1. This is a simple
-            % hydrostatic distribution.
-            dpt = [0; w.dZ];
-            dz  = diff(dpt);%.*w.cstatus;
-            g   = norm(gravity);
-            ddp = g*rhoMix.*dz; % p-diff between connection neighbors
-            % well topology assumes we can traverse from top down, but we
-            % use a loop just in case of crazy ordering. If this loop does
-            % not converge, the solver will throw an error.
-            cdp    = nan(size(ddp));
-            cdp(1) = ddp(1);
-            its = 0; maxIts = 100;
-            while and(any(isnan(cdp)), its<maxIts)
-                its = its +1;
-                % Traverse from top node and down with the pressure
-                % differentials found earlier.
-                for cnr = 2:numel(cdp)
-                    cdp(w.topo(cnr,2)) = cdp(w.topo(cnr,1)) + ddp(cnr);
+                bad = rhoMix == 0 | ~isfinite(rhoMix);
+                if all(bad)
+                    warning(['Unable to compute wellbore mixture density for', ...
+                             ' well %s. Pressure drop may be incorrect.'], wellSol.name);
+                else
+                    rhoMix(bad) = mean(rhoMix(~bad));
                 end
-            end
-            if its == maxIts
-                % If this loop did not converge, something is wrong with
-                % either the densities or the well itself. Regardless of
-                % reason, we throw an error.
-                error(['Problem with topology for well: ', wellSol.name, '. Segments appear not to be connected'])
+                if strcmpi(wellSol.name, 'c-4h')
+                    disp(rhoMix)
+                end
+                % get dz between segment nodes and bh-node1. This is a simple
+                % hydrostatic distribution.
+                dpt = [0; w.dZ];
+                dz  = diff(dpt);%.*w.cstatus;
+                ddp = g*rhoMix.*dz; % p-diff between connection neighbors
+                % well topology assumes we can traverse from top down, but we
+                % use a loop just in case of crazy ordering. If this loop does
+                % not converge, the solver will throw an error.
+                cdp    = nan(size(ddp));
+                cdp(1) = ddp(1);
+                its = 0; maxIts = 100;
+                while and(any(isnan(cdp)), its<maxIts)
+                    its = its +1;
+                    % Traverse from top node and down with the pressure
+                    % differentials found earlier.
+                    for cnr = 2:numel(cdp)
+                        cdp(w.topo(cnr,2)) = cdp(w.topo(cnr,1)) + ddp(cnr);
+                    end
+                end
+                if its == maxIts
+                    % If this loop did not converge, something is wrong with
+                    % either the densities or the well itself. Regardless of
+                    % reason, we throw an error.
+                    error(['Problem with topology for well: ', wellSol.name, '. Segments appear not to be connected'])
+                end
             end
             wellSol.cdp = cdp;
         end
