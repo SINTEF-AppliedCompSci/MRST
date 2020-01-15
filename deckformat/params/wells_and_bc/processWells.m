@@ -180,7 +180,6 @@ function W = process_wconinj(W, control, G, rock, c2a, well_id, p, opt)
         case 'thp' , val = control.WCONINJ{i, 10};
 
         otherwise
-          val = 0;
           dispif(opt.Verbose && status, ...
                  ['Control mode ''%s'' unsupported for injector ', ...
                   '''%s''.  Ignored.\n'], upper(type), nm);
@@ -339,13 +338,13 @@ function W = process_wsurfact(W, control, varargin)
        W(i).cs = [W(i).cs, 0];
    end
 
-   if ~isempty(W),
+   if ~isempty(W)
       Wn = { W.name };
 
       for i = 1 : nsurf
          j = find(strcmp(Wn, control.WSURFACT{i,1}));
 
-         if ~isempty(j),
+         if ~isempty(j)
             [ W(j).cs(end) ] = deal(control.WSURFACT{i,2});
          end
       end
@@ -368,13 +367,13 @@ function W = process_wsolvent(W, control, varargin)
        W(i).solventFrac = 0;
    end
 
-   if ~isempty(W),
+   if ~isempty(W)
       Wn = { W.name };
 
       for i = 1 : nsol
          j = find(strcmp(Wn, control.WSOLVENT{i,1}));
 
-         if ~isempty(j),
+         if ~isempty(j)
             [ W(j).solventFrac ] = deal(control.WSOLVENT{i,2});
          end
       end
@@ -397,13 +396,13 @@ function W = process_wtemp(W, control, varargin)
        W(i).T = [W(i).T, 0];
    end
 
-   if ~isempty(W),
+   if ~isempty(W)
       Wn = { W.name };
 
       for i = 1 : nsurf
          j = find(strcmp(Wn, control.WTEMP{i,1}));
 
-         if ~isempty(j),
+         if ~isempty(j)
             [ W(j).T(end) ] = deal(control.WTEMP{i,2});
          end
       end
@@ -584,7 +583,7 @@ function wid = enumerateWells(control)
 
       wid = @(s) ht.get(s);
 
-   catch %#ok
+   catch
       % Fall back to (probably) linear structure field name search if Java
       % is unavailable (e.g., -nojvm or a different interpreter).
 
@@ -651,10 +650,6 @@ function W = buildWell(W, G, rock, c2a, control, i, p, ...
    RefDepth = control.WELSPECS{i,5};
    assert (isnumeric(RefDepth));
 
-   if isnan(RefDepth)
-      RefDepth = min(G.cells.centroids(vertcat(perf{:}), 3));
-   end
-
    % Remove cells from connection which are shutdown
    perf = vertcat(perf{:});
    [ia, ia] = unique(perf, 'last');                             %#ok<ASGLU>
@@ -680,7 +675,7 @@ function W = buildWell(W, G, rock, c2a, control, i, p, ...
 
       if numel(W) > sizeW
          W(end).lims = [];
-         W(end).cstatus   = cstatus;
+         W(end).cstatus = cstatus;
       end
    end
 end
@@ -691,7 +686,7 @@ function compdat = insertDefaultCOMPDAT(control, id, nlayers)
    compdat = control.COMPDAT;
    present = false([size(control.WELSPECS,1), 1]);
 
-   if ~isempty(compdat),
+   if ~isempty(compdat)
       compdat(:,1) = cellfun(id, compdat(:,1), 'UniformOutput', false);
       present(vertcat(compdat{:,1})) = true;
    end
@@ -701,7 +696,7 @@ function compdat = insertDefaultCOMPDAT(control, id, nlayers)
    %
    tmpl = {-1, -1, 1, nlayers, 'OPEN', 0, 0.0, 0.1, -1, 0.0, ...
            'Default', 'Z', -1};
-   for w = reshape(find(~present), 1, []),
+   for w = reshape(find(~present), 1, [])
       compdat = [compdat; [w, tmpl]]; %#ok
    end
 
@@ -718,7 +713,7 @@ end
 function wconinje = insertDefaultWCONINJE(control)
    wconinje = control.WCONINJE;
 
-   if numel(wconinje) > 0,
+   if numel(wconinje) > 0
       % Insert default pressure target (large value) where needed
       i = isnan(vertcat(wconinje{:,7}));
       wconinje(i,7) = { 6895 * barsa };  % \approx 1e5 psia
@@ -730,7 +725,7 @@ end
 function wconprod = insertDefaultWCONPROD(control)
    wconprod = control.WCONPROD;
 
-   if numel(wconprod) > 0,
+   if numel(wconprod) > 0
       % Insert default pressure value (atmospheric pressure) where needed.
       i = isnan(vertcat(wconprod{:,9}));
       wconprod(i,9) = { 1 * atm };

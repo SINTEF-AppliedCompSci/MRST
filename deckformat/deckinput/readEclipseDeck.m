@@ -59,19 +59,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Read input deck
    kw = getEclipseKeyword(fid);
-   while ischar(kw),
-      switch kw,
-         case 'RUNSPEC',
+   while ischar(kw)
+      switch kw
+         case 'RUNSPEC'
             deck = readRUNSPEC(fid, dirname, deck);
 
-         case 'END',
+         case 'END'
             break;
 
-         case {'ECHO', 'NOECHO'},
+         case {'ECHO', 'NOECHO'}
             kw = getEclipseKeyword(fid);
             continue;  % Ignore.  Not handled in MRST
 
-         otherwise,
+          otherwise
             fclose(fid);
             error(msgid('Keyword:Unexpected'), ...
                   'Unexpected keyword ''%s'' in input deck.', kw);
@@ -80,8 +80,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       kw = getEclipseKeyword(fid);
    end
 
-   if isfield(deck, 'GRID') && isstruct(deck.GRID),
-      if isfield(deck.GRID, 'ACTNUM'),
+   if isfield(deck, 'GRID') && isstruct(deck.GRID)
+      if isfield(deck.GRID, 'ACTNUM')
          deck.GRID.ACTNUM = int32(reshape(deck.GRID.ACTNUM, [], 1));
       end
 
