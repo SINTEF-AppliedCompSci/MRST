@@ -42,7 +42,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     opt = struct('perforationFields', {{'WI', 'dZ', 'dir', 'r', 'rR'}}, ...
                  'DepthReorder',      false, ...
-                 'ReorderStrategy',   {{'origin'}}, ...
+                 'ReorderStrategy',   {{}}, ...
                  'G',                 [], ...
                  'fixSign',           true);
 
@@ -66,6 +66,35 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag, opt);
     % Perform alternate ordering of well cells
     schedule = reorderWellsPerforations(schedule, opt);
+    % Fix defaulted reference depths
+    schedule = setReferenceDepths(schedule, W_all, opt);
+end
+
+function schedule = setReferenceDepths(schedule, W_all, opt)
+    for wNo = 1:numel(W_all)
+        w = W_all(wNo);
+        if isnan(w.refDepth)
+            assert(~isempty(opt.G), 'Grid must be provided when refDepth is defaulted');
+            z = opt.G.cells.centroids(:, 3);
+            active = w.cstatus;
+            for i = 1:numel(schedule.control)
+                active = active | schedule.control(i).W(wNo).cstatus;
+            end
+            c = w.cells(active);
+            if any(active)
+                refDepth = z(c(1));
+            else
+                % This well is never active? Doesn't really matter what the
+                % value is.
+                refDepth = 0;
+            end
+            dZ = z(w.cells) - refDepth;
+            for i = 1:numel(schedule.control)
+                schedule.control(i).W(wNo).refDepth = refDepth;
+                schedule.control(i).W(wNo).dZ = dZ;
+            end
+        end
+    end
 end
 
 function ctrl_order = getControlOrdering(schedule)
@@ -260,17 +289,32 @@ function schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag
 end
 
 function schedule = reorderWellsPerforations(schedule, opt)
-    if isempty(opt.ReorderStrategy)
-        if opt.DepthReorder
-            % Backwards compatibility
-            opt.ReorderStrategy = {'depth'};
-        else
-            opt.ReorderStrategy = {'origin'};
-        end
+    order = opt.ReorderStrategy;
+    for wNo = 1:numel(schedule.control(1).W)
+        schedule = setUniformDirection(schedule, wNo);
     end
     % One strategy per well is supported
-    nw = numel(schedule.control(1).W);
-    order = opt.ReorderStrategy;
+    W = schedule.control(1).W;
+    nw = numel(W);
+    if isempty(order)
+        % Defaulted
+        if opt.DepthReorder
+            % Backwards compatibility
+            order = {'depth'};
+        else
+            % Default varies based on type of well
+            order = cell(nw, 1);
+            for i = 1:nw
+               w = W(i);
+               if all(w.dir == 'Z')
+                   order{i} = 'depth';
+               else
+                   order{i} = 'direction-ijz-heel';
+               end
+            end
+        end
+    end
+    
     if numel(order) == 1
         val = order{1};
         order = cell(nw, 1);
@@ -281,38 +325,36 @@ function schedule = reorderWellsPerforations(schedule, opt)
     for wNo = 1:nw
         dispif(mrstVerbose(), 'Ordering well %d (%s) with strategy "%s".\n', ...
                                 wNo, schedule.control(1).W(wNo).name, order{wNo})
-        schedule = setUniformDZ(schedule, wNo);
-        switch lower(order{wNo})
-            case 'origin'
-                schedule = originReorder(schedule, wNo, opt);
-            case 'depth'
-                schedule = depthReorder(schedule, wNo, opt);
-            case 'direction'
-                schedule = directionReorder(schedule, wNo, opt);
-            case 'none'
-                % We are leaving everything to chance!
-            otherwise
-                error('Unknown ordering strategy %s', order{wNo});
+        strategy = lower(order{wNo});
+        if startsWith(strategy, 'direction')
+            schedule = directionReorder(schedule, wNo, opt, strategy);
+        else
+            switch strategy
+                case 'origin'
+                    schedule = originReorder(schedule, wNo, opt);
+                case 'depth'
+                    schedule = depthReorder(schedule, wNo, opt);
+                case 'none'
+                    % We are leaving everything to chance!
+                otherwise
+                    error('Unknown ordering strategy %s', order{wNo});
+            end
         end
     end
 end
 
-function schedule = setUniformDZ(schedule, wellNo)
+function schedule = setUniformDirection(schedule, wellNo)
     nc = numel(schedule.control(1).W(wellNo).cells);
-    dz = zeros(nc, 1);
     dir = repmat(' ', nc, 1);
     % Find all defined dZ values
     for i = 1:numel(schedule.control)
         w = schedule.control(i).W(wellNo);
-        defaulted = dz == 0 & w.dZ ~= 0;
-        dz(defaulted) = w.dZ(defaulted);
         ok_dir = w.dir ~= ' ';
         dir(ok_dir) = w.dir(ok_dir);
     end
     dir(dir == ' ') = 'Z';
-    % Set uniform dZ
+    % Set uniform direction
     for i = 1:numel(schedule.control)
-        schedule.control(i).W(wellNo).dZ = dz;
         schedule.control(i).W(wellNo).dir = dir;
     end
 end
@@ -338,19 +380,52 @@ function schedule = originReorder(schedule, wellNo, opt)
 end
 
 function schedule = depthReorder(schedule, wellNo, opt)
-    dz = schedule.control(1).W(wellNo).dZ;
-    if issorted(dz)
+    w = schedule.control(1).W(wellNo);
+    z = opt.G.cells.centroids(w.cells, 3);
+    if issorted(z)
         return
     end
-    [~, sortIx] = sort(dz);
+    [~, sortIx] = sort(z);
     schedule = reorderCellFields(schedule, wellNo, opt, sortIx);
-    assert(issorted(schedule.control(1).W(wellNo).dZ))
 end
 
-function schedule = directionReorder(schedule, wellNo, opt)
+function schedule = directionReorder(schedule, wellNo, opt, strategy)
     G = opt.G;
-    assert(not(isempty(G)), 'Grid must be provided for directional ordering');
     w = schedule.control(1).W(wellNo);
+    options = strsplit(strategy, '-');
+    nopt = numel(options);
+    % Get IJK and centroids for processing
+    ijk = value(gridLogicalIndices(G));
+    ijk = ijk(w.cells, :);
+    centroids = G.cells.centroids(w.cells, :);
+
+    if nopt > 1
+        direction = options{2};
+    else
+        direction = 'xyz';
+    end
+    
+    if nopt > 2
+        switch options{3}
+            case 'first'
+                index = [];
+            case 'heel'
+                assert(isfield(w, 'heel') && numel(w.heel) > 1, ...
+                    'Heel I, J index must be provided.');
+                % Pick closest to heel
+                ij_dist = sum(abs(bsxfun(@minus, ijk(:, 1:2), w.heel(1:2))), 2);
+                mdist = min(ij_dist);
+                candidates = find(ij_dist == mdist);
+                % Pick top value if multiple cells are equally close
+                [~, mz] = min(centroids(candidates, 3));
+                index = candidates(mz);
+            otherwise
+                index = num2str(options{3});
+        end
+    else
+        index = 1;
+    end
+    assert(not(isempty(G)), 'Grid must be provided for directional ordering');
     nc = numel(w.cells);
     sortIx = nan(nc, 1);
     % Always start with first perforation
@@ -361,8 +436,23 @@ function schedule = directionReorder(schedule, wellNo, opt)
         dir = repmat(dir, nc, 1);
     end
     convention = 'xyz';
-    assert(all(ismember(dir, convention)))
-    pts = G.cells.centroids(w.cells, :);
+    assert(all(ismember(dir, convention)));
+    
+    pts = zeros(size(centroids));
+    ijk_names = 'ijk';
+    unitscale = @(x) (x - min(x))./(max(x) - min(x));
+    for i = 1:G.griddim
+        if strcmpi(direction(i), ijk_names(i))
+            pts(:, i) = unitscale(ijk(:, i));
+        else
+            pts(:, i) = unitscale(centroids(:, i));
+        end
+    end
+
+    if isempty(index)
+        [~, index] = min(pts(:, 3));
+    end
+    pts = swap(pts, index, 1);
     current_pt = pts(1, :);
     pts(1, :) = inf;
     % Loop over all segments. Assume that direction in previous cell is
@@ -375,6 +465,12 @@ function schedule = directionReorder(schedule, wellNo, opt)
         current_pt = pts(pos, :);
         pts(pos, :) = inf;
     end
+    sortIx = swap(sortIx, sortIx == index, sortIx == 1);
     schedule = reorderCellFields(schedule, wellNo, opt, sortIx);
 end
 
+function array = swap(array, in, out)
+    tmp = array(out, :);
+    array(out, :) = array(in, :);
+    array(in, :) = tmp;
+end
