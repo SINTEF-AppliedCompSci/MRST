@@ -57,7 +57,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % -- Tensor product grid -----------------------------------------------
    elseif all(isfield(deck.GRID, {'DXV', 'DYV', 'DZV'}))
-      if isfield(deck.GRID, 'DEPTHZ'),
+      if isfield(deck.GRID, 'DEPTHZ')
          depthz = deck.GRID.DEPTHZ;
       else
          depthz = zeros(prod(deck.RUNSPEC.DIMENS(1:2)+1), 1);
