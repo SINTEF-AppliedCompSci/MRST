@@ -201,11 +201,8 @@ classdef ExtendedFacilityModel < FacilityModel
                 rho = cellfun(@(x) x.ControlDensity, facility.WellModels(map.active), 'UniformOutput', false);
                 rho = vertcat(rho{is_resv});
                 resv_rates = 0;
-                phaseRates = facility.getProps(state, 'PhaseFlux');
-                rhoR = model.getProps(state, 'Density');
                 for ph = 1:nph
-                    tmp = wsum*(phaseRates{ph}.*rhoR{ph}(map.cells));
-                    resv_rates = resv_rates + tmp(is_resv)./rho(:, ph);
+                    resv_rates = resv_rates + q_s{ph}(is_resv).*rho(:, ph);
                 end
                 ctrl_eq(is_resv) = resv_rates - targets(is_resv);
             end
@@ -529,36 +526,36 @@ classdef ExtendedFacilityModel < FacilityModel
                 flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
                 flowProps.ShrinkageFactors.useSaturatedFlag = true;
-                substate = flowProps.evaluateStateFunctionWithDependencies(model.ReservoirModel, substate, 'Density');
-                rho = substate.FlowProps.Density;
-                rho = [rho{:}];
-                if false
-                    newRates = sum(qs.*rhoS./rho, 2);
-                else
-                    shrink = 1 - rs.*rv;
-                    b = substate.FlowProps.ShrinkageFactors;
-                    newRates = 0;
-                    if rmodel.water
-                        wix = 1;
-                        bW = b{wix};
-                        newRates = newRates + qs(:, wix)./bW;
+                substate = flowProps.evaluateStateFunctionWithDependencies(model.ReservoirModel, substate, 'ShrinkageFactors');
+                shrink = 1 - rs.*rv;
+                b = substate.FlowProps.ShrinkageFactors;
+                newRates = 0;
+                nph = model.getNumberOfPhases();
+                factors = zeros(nc, nph);
+                if rmodel.water
+                    wix = 1;
+                    bW = b{wix};
+                    factors(:, wix) = 1./bW;
+                    newRates = newRates + qs(:, wix)./bW;
+                end
+                if rmodel.oil
+                    bO = b{oix};
+                    orat = qs(:, oix);
+                    factors(:, oix) = 1./(bO.*shrink);
+                    if vapoil
+                        orat = orat - rv.*qs(:, gix);
+                        factors(:, gix) = factors(:, gix) - rv./(bO.*shrink);
                     end
-                    if rmodel.oil
-                        bO = b{oix};
-                        orat = qs(:, oix);
-                        if vapoil
-                            orat = orat - rv.*qs(:, gix);
-                        end
-                        newRates = newRates + orat./(bO.*shrink);
+                    newRates = newRates + orat./(bO.*shrink);
+                end
+                if rmodel.gas
+                    bG = b{gix};
+                    grat = qs(:, gix);
+                    factors(:, gix) = factors(:, gix) + 1./(bG.*shrink);
+                    if vapoil
+                        factors(:, oix) = factors(:, oix) - rs./(bG.*shrink);
                     end
-                    if rmodel.gas
-                        bG = b{gix};
-                        grat = qs(:, gix);
-                        if vapoil
-                            grat = grat - rs.*qs(:, oix);
-                        end
-                        newRates = newRates + grat./(bG.*shrink);
-                    end
+                    newRates = newRates + grat./(bG.*shrink);
                 end
                 resvIx = find(isRESV);
                 actIx = find(activeWellMask);
@@ -571,7 +568,7 @@ classdef ExtendedFacilityModel < FacilityModel
                         model.WellModels{global_well_ix}.W.type = 'resv';
                         state.wellSol(global_well_ix).type = 'resv';
                     end
-                    model.WellModels{global_well_ix}.ControlDensity = rho(i, :);
+                    model.WellModels{global_well_ix}.ControlDensity = factors(i, :);
                 end
             end
         end
