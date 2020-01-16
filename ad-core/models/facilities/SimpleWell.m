@@ -426,9 +426,6 @@ classdef SimpleWell < PhysicalModel
                 else
                     rhoMix(bad) = mean(rhoMix(~bad));
                 end
-                if strcmpi(wellSol.name, 'c-4h')
-                    disp(rhoMix)
-                end
                 % get dz between segment nodes and bh-node1. This is a simple
                 % hydrostatic distribution.
                 dpt = [0; w.dZ];
