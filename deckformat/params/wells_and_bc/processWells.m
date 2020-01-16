@@ -650,6 +650,10 @@ function W = buildWell(W, G, rock, c2a, control, i, p, ...
    RefDepth = control.WELSPECS{i,5};
    assert (isnumeric(RefDepth));
 
+   if isnan(RefDepth)
+      RefDepth = min(G.cells.centroids(vertcat(perf{:}), 3));
+   end
+
    % Remove cells from connection which are shutdown
    perf = vertcat(perf{:});
    [ia, ia] = unique(perf, 'last');                             %#ok<ASGLU>
