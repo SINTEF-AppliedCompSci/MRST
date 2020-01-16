@@ -32,6 +32,7 @@ if ~isempty(aq)
         aq(k).pressure  = convertFrom(aq(k).pressure, u.press);
         aq(k).qW        = convertFrom(aq(k).qW,       u.resvolume/u.time);
         aq(k).flux      = convertFrom(aq(k).flux,     u.resvolume/u.time);
+        aq(k).vol       = convertFrom(aq(k).vol,      u.resvolume);
     end
     
     aq = rmfield(aq, 'cijk');
