@@ -510,6 +510,12 @@ classdef ExtendedFacilityModel < FacilityModel
                         rv(subs) = sum(state0.rv.*pvi)/sum(pvi);
                     end
                 end
+                substate = struct('pressure', pm, ...
+                                  's', repmat([1, 0, 0], nc, 1), ...
+                                  'rs', rs, ...
+                                  'rv', rv);
+                rs0 = rs;
+                rv0 = rv;
                 if any(isHist)
                     if disgas
                         rs(isHist) = min(qs(isHist, gix)./qs(isHist, oix), rs);
@@ -518,16 +524,12 @@ classdef ExtendedFacilityModel < FacilityModel
                         rv(isHist) = min(qs(isHist, oix)./qs(isHist, gix), rv);
                     end
                 end
-                substate = struct('pressure', pm, ...
-                                  's', repmat([1, 0, 0], nc, 1), ...
-                                  'rs', rs, ...
-                                  'rv', rv);
-
                 flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
                 flowProps.ShrinkageFactors.useSaturatedFlag = true;
                 substate = flowProps.evaluateStateFunctionWithDependencies(model.ReservoirModel, substate, 'ShrinkageFactors');
                 shrink = 1 - rs.*rv;
+                shrink0 = 1 - rs0.*rv0;
                 b = substate.FlowProps.ShrinkageFactors;
                 newRates = 0;
                 nph = model.getNumberOfPhases();
@@ -541,19 +543,20 @@ classdef ExtendedFacilityModel < FacilityModel
                 if rmodel.oil
                     bO = b{oix};
                     orat = qs(:, oix);
-                    factors(:, oix) = 1./(bO.*shrink);
+                    factors(:, oix) = 1./(bO.*shrink0);
                     if vapoil
                         orat = orat - rv.*qs(:, gix);
-                        factors(:, gix) = factors(:, gix) - rv./(bO.*shrink);
+                        factors(:, gix) = factors(:, gix) - rv./(bO.*shrink0);
                     end
                     newRates = newRates + orat./(bO.*shrink);
                 end
                 if rmodel.gas
                     bG = b{gix};
                     grat = qs(:, gix);
-                    factors(:, gix) = factors(:, gix) + 1./(bG.*shrink);
+                    factors(:, gix) = factors(:, gix) + 1./(bG.*shrink0);
                     if vapoil
-                        factors(:, oix) = factors(:, oix) - rs./(bG.*shrink);
+                        grat = grat - rs.*qs(:, oix);
+                        factors(:, oix) = factors(:, oix) - rs./(bG.*shrink0);
                     end
                     newRates = newRates + grat./(bG.*shrink);
                 end
