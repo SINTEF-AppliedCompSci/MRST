@@ -76,18 +76,8 @@ function schedule = setReferenceDepths(schedule, W_all, opt)
         if isnan(w.refDepth)
             assert(~isempty(opt.G), 'Grid must be provided when refDepth is defaulted');
             z = opt.G.cells.centroids(:, 3);
-            active = w.cstatus;
-            for i = 1:numel(schedule.control)
-                active = active | schedule.control(i).W(wNo).cstatus;
-            end
-            c = w.cells(active);
-            if any(active)
-                refDepth = z(c(1));
-            else
-                % This well is never active? Doesn't really matter what the
-                % value is.
-                refDepth = 0;
-            end
+            c = w.cells;
+            refDepth = z(c(1));
             dZ = z(w.cells) - refDepth;
             for i = 1:numel(schedule.control)
                 schedule.control(i).W(wNo).refDepth = refDepth;

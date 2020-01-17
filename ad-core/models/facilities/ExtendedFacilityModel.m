@@ -317,11 +317,31 @@ classdef ExtendedFacilityModel < FacilityModel
                     cf = reshape(cf, 1, []);
                 end
                 cf = value(cf);
-                for i = 1:numel(map.active)
-                    wi = map.active(i);
-                    act = map.perf2well == i;
-                    state.wellSol(wi).flux = phaseq(act, :);
-                    state.wellSol(wi).ComponentTotalFlux = cf(act, :);
+                if 1
+                    nwt = numel(state.wellSol);
+                    active = false(nwt, 1);
+                    active(map.active) = true;
+                    actIndex = zeros(nwt, 1);
+                    actIndex(map.active) = (1:numel(map.active))';
+                    for wi = 1:nwt
+                        if active(wi)
+                            act = map.perf2well == actIndex(wi);
+                            flux = phaseq(act, :);
+                            ctf = cf(act, :);
+                        else
+                            ctf = [];
+                            flux = [];
+                        end
+                        state.wellSol(wi).flux = flux;
+                        state.wellSol(wi).ComponentTotalFlux = ctf;
+                    end
+                else
+                    for i = 1:numel(map.active)
+                        wi = map.active(i);
+                        act = map.perf2well == i;
+                        state.wellSol(wi).flux = phaseq(act, :);
+                        state.wellSol(wi).ComponentTotalFlux = cf(act, :);
+                    end
                 end
             end
         end
