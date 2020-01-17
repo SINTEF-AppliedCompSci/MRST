@@ -273,7 +273,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 rho = rho(wc, :);
                 % Use mobility in well-cells if no connection fluxes are
                 % available (typically first step for well)
-                if ~isfield(wellSol(1), 'ComponentTotalFlux') || any(arrayfun(@(x)isempty(x.ComponentTotalFlux), wellSol))
+                if ~isfield(wellSol(1), 'ComponentTotalFlux') || any(arrayfun(@(x) ~any(x.ComponentTotalFlux(:)), wellSol))
                     mob = model.ReservoirModel.getProps(state, 'Mobility');
                     mob = [mob{:}];
                     mob = mob(wc,:);
@@ -317,31 +317,25 @@ classdef ExtendedFacilityModel < FacilityModel
                     cf = reshape(cf, 1, []);
                 end
                 cf = value(cf);
-                if 1
-                    nwt = numel(state.wellSol);
-                    active = false(nwt, 1);
-                    active(map.active) = true;
-                    actIndex = zeros(nwt, 1);
-                    actIndex(map.active) = (1:numel(map.active))';
-                    for wi = 1:nwt
-                        if active(wi)
-                            act = map.perf2well == actIndex(wi);
-                            flux = phaseq(act, :);
-                            ctf = cf(act, :);
-                        else
-                            ctf = [];
-                            flux = [];
-                        end
-                        state.wellSol(wi).flux = flux;
-                        state.wellSol(wi).ComponentTotalFlux = ctf;
+                nwt = numel(state.wellSol);
+                active = false(nwt, 1);
+                active(map.active) = true;
+                actIndex = zeros(nwt, 1);
+                actIndex(map.active) = (1:numel(map.active))';
+                nph = model.getNumberOfPhases();
+                ncomp = model.getNumberOfComponents();
+                for wi = 1:nwt
+                    if active(wi)
+                        act = map.perf2well == actIndex(wi);
+                        flux = phaseq(act, :);
+                        ctf = cf(act, :);
+                    else
+                        nc = numel(drivingForces.W(wi).cells);
+                        flux = zeros(nc, nph);
+                        ctf = zeros(nc, ncomp);
                     end
-                else
-                    for i = 1:numel(map.active)
-                        wi = map.active(i);
-                        act = map.perf2well == i;
-                        state.wellSol(wi).flux = phaseq(act, :);
-                        state.wellSol(wi).ComponentTotalFlux = cf(act, :);
-                    end
+                    state.wellSol(wi).flux = flux;
+                    state.wellSol(wi).ComponentTotalFlux = ctf;
                 end
             end
         end
