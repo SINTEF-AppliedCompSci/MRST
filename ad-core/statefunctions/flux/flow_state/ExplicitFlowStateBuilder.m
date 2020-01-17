@@ -5,6 +5,7 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
         explicitFluxProps = {'FaceMobility', 'FaceComponentMobility',...
                              'GravityPotentialDifference'};
         implicitFluxProps = {'PressureGradient'};
+        explicitProps = {};
         initialStep = 1*day;
     end
     
@@ -60,6 +61,12 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
                 end
                 f = model.getProps(state0, prop);
                 flowState.(name).(prop) = f;
+            end
+            props = builder.explicitProps;
+            for i = 1:numel(props)
+                p = props{i};
+                tmp = model.getProp(state0, p);
+                flowState = model.setProp(flowState, p, tmp);
             end
         end
         
