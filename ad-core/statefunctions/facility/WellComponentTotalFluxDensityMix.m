@@ -53,7 +53,7 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
                 rhoS = prop.getEvaluatedDependencies(state, 'InjectionSurfaceDensity');
 
                 ws = state.wellSol(map.active);
-                targetType = arrayfun(@(x) x.type, ws, 'UniformOutput', false);
+                targetType = reshape(arrayfun(@(x) x.type, ws, 'UniformOutput', false), [], 1);
                 targetValue = vertcat(ws.val);
 %                 isZero = ~strcmpi(targets, 'bhp') & val == 0;
                 nw = numel(W);
@@ -69,8 +69,9 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
                 injectionMass = zeros(nw, ncomp);
                 phaseCompi = vertcat(W.compi);
                 isRate = ~(strcmpi(targetType, 'resv') | strcmpi(targetType, 'bhp'));
+                isRateInjector = isRate & map.isInjector;
                 surfaceRates = value(state.FacilityState.surfacePhaseRates);
-                surfaceRates(isRate, :) = phaseCompi(isRate, :).*targetValue(isRate);
+                surfaceRates(isRateInjector, :) = phaseCompi(isRateInjector, :).*targetValue(isRateInjector);
                 surfaceMassRates = surfaceRates.*value(rhoS);
                 for ph = 1:nph
                     injectionMass = injectionMass + phaseCompi(:, ph).*surfaceMassRates(:, ph).*[surfaceComposition{:, ph}];
