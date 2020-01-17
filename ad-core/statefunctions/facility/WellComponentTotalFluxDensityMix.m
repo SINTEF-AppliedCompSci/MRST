@@ -44,8 +44,8 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
             production = ~injection;
             crossflow = (injection & ~isInjector) | ...
                         (production & isInjector);
-            if 0
-                replace = injection;
+            if 1
+                replace = injection & crossflow;
             else
                 replace = crossflow;
             end
