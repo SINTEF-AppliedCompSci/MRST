@@ -382,7 +382,14 @@ classdef SimpleWell < PhysicalModel
                 qMass = sum(qVol.*rho_res, 2);
                 qVol = sum(qVol, 2);
             end
-            isShut = abs(sum(qMass)) < 1e-12;
+            if well.allowCrossflow
+                % Ignore density contribution from crossflow connections,
+                % since these flows may have unphysical densities.
+                xFlow = sign(qMass) ~= wellSol.sign;
+                qMass(xFlow) = 0;
+                qVol(xFlow) = 0;
+            end
+            isShut = abs(sum(qMass)) < 1e-12 | ~wellSol.status;
             g   = norm(model.gravity);
             if well.simplePressureDrop
                 if isShut
