@@ -585,7 +585,16 @@ classdef SimpleWell < PhysicalModel
                 dv = dx{isBHP};
                 dv = well.limitUpdateRelative(dv, wellSol.bhp, well.dpMaxRel);
                 dv = well.limitUpdateAbsolute(dv, well.dpMaxAbs);
+                hasLim = isfield(well.W.lims, 'bhp');
+                if hasLim
+                    lim = well.W.lims.bhp;
+                    dist = wellSol.bhp - lim;
+                end
                 wellSol.bhp = wellSol.bhp + dv;
+                tol = 0.1*barsa;
+                if hasLim && sign(wellSol.bhp - lim) ~= sign(dist) && abs(dist) > 2*tol
+                    wellSol.bhp = well.W.lims.bhp + tol*sign(dist);
+                end
                 variables = variables(~isBHP);
                 dx = dx(~isBHP);
             end
