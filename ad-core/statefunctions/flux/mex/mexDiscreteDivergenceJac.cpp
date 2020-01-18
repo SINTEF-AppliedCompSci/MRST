@@ -17,8 +17,8 @@ void divergenceJac(int nf, int nc,
     int mv = facePos[nc];
     #pragma omp parallel for
     for(int index = 0; index < m*nc; index++){
-        int col = index % nc;
-        int der = index / nc;
+        int col = index / m;
+        int der = index % m;
         // Each cell has number of connections equal to the number of half-
         // faces for that cell plus itself multiplied by the block size
         int prev = facePos[col];
@@ -67,10 +67,10 @@ void divergenceJac(int nf, int nc,
             int diag_index, sgn;
             if(c >= 0){
                 // High entry, corresponding to N(f, 2)
-                v = diagonal[der*2*nf + f + nf];
+                v = diagonal[(f + nf)*m + der];
             }else{
                 // Low entry, corresponding to N(f, 1)
-                v = -diagonal[der*2*nf + f];
+                v = -diagonal[f*m + der];
             }
             // Set row entry
             ir[sparse_offset + i] = abs(c);
@@ -90,8 +90,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
 { 
     auto t0 = std::chrono::high_resolution_clock::now();
     // In: 
-    // cell diagonal (nc x m) or empty
-    // diagonal (nf x m)
+    // cell diagonal (m x nc) or empty
+    // diagonal (m x nf)
     // N (nf x 2)
     // facePos (nc+1 x 1)
     // faces (length facePos(end)-1)
@@ -114,7 +114,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* Diagonal of fluxes */
     double * diagonal = mxGetPr(prhs[1]);
 
-    int m = mxGetN(diagJac);
+    int m = mxGetM(diagJac);
     int nf = mxGetM(prhs[2]);
     int nc = mxGetM(prhs[3])-1;
     int nhf = mxGetM(prhs[4]);
@@ -126,7 +126,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
         mexErrMsgTxt("Accumulation term diagonal was provided, but dimensions are incorrect.");
     }
     {
-        int nf_in = mxGetM(diagJac);
+        int nf_in = mxGetN(diagJac);
         if(nf_in != 2*nf){
             mexErrMsgTxt("Face inputs do not match.");
         }
