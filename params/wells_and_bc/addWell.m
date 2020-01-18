@@ -370,7 +370,7 @@ elseif isfield(G.faces, 'centroids')
     delta = max(G.faces.centroids)-min(G.faces.centroids);
 else
     % Skip check
-    delta = inf;
+    delta = inf(1, G.griddim);
 end
 
 if max(dZ) > delta*direction(1:dims).' && norm(gravity()) > 0
