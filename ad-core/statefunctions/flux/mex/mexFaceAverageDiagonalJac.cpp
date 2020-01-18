@@ -15,10 +15,10 @@ void faceAverageJac(const int nf, const int nc, const double * diagonal, const d
     #else
         #pragma omp parallel for collapse(2)
     #endif
-    for(int j=0;j<m;j++){
-        for(int i=0;i<2*nf;i++){
+    for(int i=0;i<2*nf;i++){
+        for(int j=0;j<m;j++){
             int cell_inx = N[i]-1;
-            result[j*2*nf + i] = diagonal[nc*j + cell_inx]/2.0;
+            result[i*m + j] = diagonal[m*cell_inx + j]/2.0;
         }
     }
 }
@@ -29,8 +29,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		  int nrhs, const mxArray *prhs[] )
      
 { 
-    // In: diagonal (nc x m), N (nf x 2)
-    // Out: Face diagonal of (2*nf x m)
+    // In: diagonal (m x nc), N (nf x 2)
+    // Out: Face diagonal of (m x 2*nf)
     if (nrhs != 2) { 
 	    mexErrMsgTxt("2 input arguments required."); 
     } else if (nlhs > 1) {
@@ -39,11 +39,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double * diagonal = mxGetPr(prhs[0]);
     double * N = mxGetPr(prhs[1]);
 
-    int nc = mxGetM(prhs[0]);
-    int m = mxGetN(prhs[0]);
+    int nc = mxGetN(prhs[0]);
+    int m = mxGetM(prhs[0]);
     int nf = mxGetM(prhs[1]);
         
-    plhs[0] = mxCreateDoubleMatrix(2*nf, m, mxREAL);
+    plhs[0] = mxCreateDoubleMatrix(m, 2*nf, mxREAL);
     double * result = mxGetPr(plhs[0]);
     switch (m){
             case 1:
