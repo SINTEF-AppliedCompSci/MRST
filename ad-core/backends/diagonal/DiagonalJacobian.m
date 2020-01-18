@@ -289,7 +289,7 @@ classdef DiagonalJacobian
                         else
                             if uD
                                 if numel(v) == 1
-                                    u.diagonal(:, s.subs{1}) = v;
+                                    u.diagonals(:, s.subs{1}) = v;
                                     return
                                 end
                                 u = u.sparse();
