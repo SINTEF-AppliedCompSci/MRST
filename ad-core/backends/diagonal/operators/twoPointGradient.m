@@ -43,7 +43,7 @@ function jac = gradJac(jac, N, M, useMex)
             diagonal = M*jac.diagonal;
         else
             if useMex
-                diagonal = mexTwoPointGradientDiagonalJac(jac.diagonal, N);
+                diagonal = mexTwoPointGradientDiagonalJac(jac.diagonals, N);
             else
                 diagonal = jac.diagonals(:, N);
                 nf = size(N, 1);
