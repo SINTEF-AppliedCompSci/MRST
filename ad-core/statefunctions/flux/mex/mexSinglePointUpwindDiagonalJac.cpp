@@ -15,11 +15,11 @@ void upwindJac(const int nf, const int nc, const mxLogical * flag, const double 
     #else
         #pragma omp parallel for collapse(2)
     #endif
-    for(int j=0;j<m;j++){
-        for(int i=0;i<2*nf;i++){
-            int cell_inx = N[i]-1;
-            if(flag[i % nf] == i < nf){
-                result[j*2*nf + i] = diagonal[nc*j + cell_inx];
+    for(int i=0;i<2*nf;i++){
+        int cell_inx = N[i]-1;
+        if(flag[i % nf] == i < nf){
+        for(int j=0;j<m;j++){
+            result[i*m + j] = diagonal[m*cell_inx + j];
             }
         }
     }
@@ -32,8 +32,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		  int nrhs, const mxArray *prhs[] )
      
 { 
-    // In: diagonal (nc x m), N (nf x 2), flag (nf x 1) bool
-    // Out: Face diagonal of (2*nf x m)
+    // In: diagonal (m x nc), N (nf x 2), flag (nf x 1) bool
+    // Out: Face diagonal of (m x 2*nf)
     if (nrhs != 3) { 
 	    mexErrMsgTxt("3 input arguments required."); 
     } else if (nlhs > 1) {
@@ -43,13 +43,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double * N = mxGetPr(prhs[1]);
     mxLogical  * flag = mxGetLogicals(prhs[2]);
 
-    int nc = mxGetM(prhs[0]);
-    int m = mxGetN(prhs[0]);
+    int nc = mxGetN(prhs[0]);
+    int m = mxGetM(prhs[0]);
     int nf = mxGetM(prhs[1]);
     
     // printf("%d cells with %d faces and %d derivatives \n", nc, nf, m);
     
-    plhs[0] = mxCreateDoubleMatrix(2*nf, m, mxREAL);
+    plhs[0] = mxCreateDoubleMatrix(m, 2*nf, mxREAL);
     double * result = mxGetPr(plhs[0]);
     switch (m){
             case 1:

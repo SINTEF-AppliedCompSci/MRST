@@ -58,7 +58,7 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS, useMex)
             jac = jac.toZero(size(N, 1));
         else
             if useMex
-                diagonal = mexSinglePointUpwindDiagonalJac(jac.diagonal, N, flag);
+                diagonal = mexSinglePointUpwindDiagonalJac(jac.diagonals, N, flag);
             elseif 1
                 nf = size(N, 1);
                 diagonal = zeros(size(jac.diagonals, 1), 2*nf);
