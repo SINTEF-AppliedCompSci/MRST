@@ -64,14 +64,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 % this only work for full deck or first region.
-opt = struct('G',              [], ...
-             'region_method', 'deck', ...
-             'singleRegion',   [], ...
-             'regionOverride', struct());
+opt = struct('G',               [], ...
+             'region_method',   'deck', ...
+             'singleRegion',    [], ...
+             'useMex',          false, ...
+             'interp1d',        [], ...
+             'regionOverride',  struct());
  
 opt = merge_options(opt,varargin{:});
-% reg = handleRegions(deck, opt.G);
 reg = getRegions(deck, opt);
+% Pass interpolation along with regions to avoid breaking interface
+if isempty(opt.interp1d)
+    if opt.useMex
+        reg.interp1d = @interpTableMEX;
+    else
+        reg.interp1d = @interpTable;
+    end
+else
+    reg.interp1d = opt.interp1d;
+end
 
 fluid = struct();
 

@@ -19,7 +19,7 @@ function [bO, muO, rsSat] = getFunctions(PVTO, reg)
         
         bO{i} = @(po, rs, flag) interpPVT(bo, po, rs, flag);
         muO{i} = @(po, rs, flag) interpPVT(muo, po, rs, flag);
-        rsSat{i} = @(po) interpTable(p_bub, rs, po);
+        rsSat{i} = @(po) reg.interp1d(p_bub, rs, po);
     end
 end
 

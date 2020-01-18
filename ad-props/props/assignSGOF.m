@@ -22,9 +22,9 @@ function [krG, krOG, pcOG, pts, pts_o, hasPC] = getFunctions(f, SGOF, reg)
         SG = sgof(:, 1);
         pc = sgof(:, 4);
         hasPC = hasPC || any(pc ~= 0);
-        krG{i} = @(sg) interpTable(SG, sgof(:, 2), sg);
-        krOG{i} = @(so) interpTable(SG, sgof(:, 3), 1-so-swcon);
-        pcOG{i} = @(sg) interpTable(SG, pc, sg);
+        krG{i} = @(sg) reg.interp1d(SG, sgof(:, 2), sg);
+        krOG{i} = @(so) reg.interp1d(SG, sgof(:, 3), 1-so-swcon);
+        pcOG{i} = @(sg) reg.interp1d(SG, pc, sg);
     end
 end
 
@@ -49,11 +49,6 @@ function [pts, pts_o] = getPoints(sgof, swcon)
     pts_o(4) = sgof(1,3);
 end
 
-function v = selectSubset(v, varargin)
-if ~isempty(varargin)
-    v = v(varargin{2});
-end
-end
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 

@@ -176,7 +176,7 @@ function model = initializeModel(deck, opt)
             G = computeGeometry(G);
         end
     end
-    fluid = initDeckADIFluid(deck, 'G', G);
+    fluid = initDeckADIFluid(deck, 'G', G, 'useMex', opt.useMex);
     gravity reset on;
     
     rock  = compressRock(rock, G.cells.indexMap);
