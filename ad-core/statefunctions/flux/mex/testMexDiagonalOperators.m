@@ -54,7 +54,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     f_sparse = @(varargin) ops_sparse.faceAvg(cell_value_sparse);
     
     [favg, favg_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'faceavg', 'Face average', opt, results);
-    
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Test single-point upwinding %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -62,6 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     f_sparse = @(varargin) ops_sparse.faceUpstr(flag, cell_value_sparse);
     [f_mex, f_matlab] = genFunctions(upw);
     [face_value, face_value_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'upwind', 'Single-point upwind', opt, results);
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Test gradient          %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -81,10 +82,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellmult', 'Multiply and add (cell)', opt, results);
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %       Test diagonal subsets %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    subset = (1:5:nc)';
+    f_subset = @(useMex) cell_value(subset);
+    [f_mex, f_matlab] = genFunctions(f_subset);
+    f_sparse = @(varargin) cell_value_sparse(subset);
+    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellsubset', 'Take large subset (cell)', opt, results);
+
+    subset = [1; ceil(nc/2); nc];
+    f_subset = @(useMex) cell_value(subset);
+    [f_mex, f_matlab] = genFunctions(f_subset);
+    f_sparse = @(varargin) cell_value_sparse(subset);
+    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellsubset_small', 'Take small subset (cell)', opt, results);
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %  Test face diagonal mult    %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    cell_mult = @(useMex) fn(face_value, 2*face_value, 3*face_value);
-    [f_mex, f_matlab] = genFunctions(cell_mult);
+    face_mult = @(useMex) fn(face_value, 2*face_value, 3*face_value);
+    [f_mex, f_matlab] = genFunctions(face_mult);
     f_sparse = @(varargin) fn(face_value_sparse, 2*face_value_sparse, 3*face_value_sparse);
     [facemultval, facemultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'facemult', 'Multiply and add (face)', opt, results);
     
@@ -105,7 +121,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     sortIx = struct('C', C, 'J_sorted_index', sortedN, 'I_base', I_base);
     if opt.print
-        toc()
+        fprintf('Operator setup took %g seconds\n', toc());
     end
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Test divergence        %
@@ -134,6 +150,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     f_matlab = @() V_matlab.sparse();
     f_sparse = @() V_default;
     [cellsparse, cellsparse_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'sparse', 'Class -> Sparse', opt, results);
+    fprintf('**********************************************************************\n');
 end
 
 function [out, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, shortname, name, opt, results)
@@ -168,13 +185,12 @@ function [out, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, sh
         t_s = nan;
     end
     if opt.print
-        fprintf('********************************************************\n');
+        fprintf('**********************************************************************\n');
         fprintf('* %s\n* Diagonal: %4fs, Diagonal-MEX: %4fs (%1.2f speedup)\n', name, t_m/its, t_c/its, t_m/t_c);
         if opt.testSparse
             fprintf('*   Sparse: %4fs, Diagonal-MEX: %4fs (%1.2f speedup)\n', t_s/its, t_c/its, t_s/t_c);
         end
-        fprintf('Value error %1.2g, Jacobian error %1.2g\n', v_error, j_error)
-        fprintf('********************************************************\n');
+        fprintf('* -> Errors: Value %1.2g, Jacobian %1.2g\n', v_error, j_error)
     end
     if nargout > 1
         results.(shortname) = struct('t_matlab', t_m/its, 't_mex', t_c/its, 't_sparse', t_s/its, 'description', name);
