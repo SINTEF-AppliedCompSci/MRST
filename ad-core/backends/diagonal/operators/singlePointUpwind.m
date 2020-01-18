@@ -61,22 +61,22 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS, useMex)
                 diagonal = mexSinglePointUpwindDiagonalJac(jac.diagonal, N, flag);
             elseif 1
                 nf = size(N, 1);
-                diagonal = zeros(2*nf, size(jac.diagonal, 2));
-                diagonal(flag, :) = jac.diagonal(N(flag, 1), :);
+                diagonal = zeros(size(jac.diagonals, 1), 2*nf);
+                diagonal(:, flag) = jac.diagonals(:, N(flag, 1));
 
                 notFlag = ~flag;
                 flag2 = [false(nf, 1); notFlag];
-                diagonal(flag2, :) = jac.diagonal(N(notFlag, 2), :);
-                jac.diagonal = diagonal;
+                diagonal(:, flag2) = jac.diagonals(:, N(notFlag, 2));
+                jac.diagonals = diagonal;
             else
-                diagonal = bsxfun(@times, jac.diagonal(N, :), [flag; ~flag]);
+                diagonal = bsxfun(@times, jac.diagonals(:, N), [flag; ~flag]');
             end
 
             if isempty(DS)
                 jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset);
                 DS = jac;
             else
-                DS.diagonal = diagonal;
+                DS.diagonals = diagonal;
                 DS.map = N;
                 DS.dim = jac.dim;
                 DS.parentSubset = jac.subset;

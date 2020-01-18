@@ -33,19 +33,42 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nc = model.G.cells.num;
     d = rand(opt.nc, opt.block_size);
     flag = rand(nf, 1) > 0.5;
-    cell_value = GenericAD(rand(opt.nc, 1), DiagonalJacobian(d, size(d), []));
+    cell_value = GenericAD(rand(opt.nc, 1), DiagonalJacobian(d', size(d), []));
     
     % Make sparse version
     J = cell(1, opt.block_size);
     for i = 1:opt.block_size
-        d = cell_value.jac{1}.diagonal(:, i);
+        d = cell_value.jac{1}.diagonals(i, :)';
         ix = (1:nc)';
         J{i} = sparse(ix, ix, d, nc, nc);
     end
     ops_sparse = setupOperatorsTPFA(G, makeRock(G, 1, 1));
     cell_value_sparse = ADI(value(cell_value), J);
     % Perform tests
-    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %       Test diagonal mult    %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    fn = @(x, y, z) x.*y + z;
+    cell_mult = @(useMex) fn(cell_value, 2*cell_value, 3*cell_value);
+    [f_mex, f_matlab] = genFunctions(cell_mult);
+    f_sparse = @(varargin) fn(cell_value_sparse, 2*cell_value_sparse, 3*cell_value_sparse);
+    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellmult', 'Multiply and add (cell)', opt, results);
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %       Test diagonal subsets %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    subset = (1:5:nc)';
+    f_subset = @(useMex) cell_value(subset);
+    [f_mex, f_matlab] = genFunctions(f_subset);
+    f_sparse = @(varargin) cell_value_sparse(subset);
+    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellsubset', 'Take large subset (cell)', opt, results);
+
+    subset = [1; ceil(nc/2); nc];
+    f_subset = @(useMex) cell_value(subset);
+    [f_mex, f_matlab] = genFunctions(f_subset);
+    f_sparse = @(varargin) cell_value_sparse(subset);
+    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellsubset_small', 'Take small subset (cell)', opt, results);
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Test face average      %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -70,31 +93,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [f_mex, f_matlab] = genFunctions(grad);
     f_sparse = @(varargin) ops_sparse.Grad(cell_value_sparse);
     [gradient, gradient_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'gradient', 'Two-point gradient', opt, results);
-    
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %       Test diagonal mult    %
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    fn = @(x, y, z) x.*y + z;
-    cell_mult = @(useMex) fn(cell_value, 2*cell_value, 3*cell_value);
-    [f_mex, f_matlab] = genFunctions(cell_mult);
-    f_sparse = @(varargin) fn(cell_value_sparse, 2*cell_value_sparse, 3*cell_value_sparse);
-    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellmult', 'Multiply and add (cell)', opt, results);
-
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %       Test diagonal subsets %
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    subset = (1:5:nc)';
-    f_subset = @(useMex) cell_value(subset);
-    [f_mex, f_matlab] = genFunctions(f_subset);
-    f_sparse = @(varargin) cell_value_sparse(subset);
-    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellsubset', 'Take large subset (cell)', opt, results);
-
-    subset = [1; ceil(nc/2); nc];
-    f_subset = @(useMex) cell_value(subset);
-    [f_mex, f_matlab] = genFunctions(f_subset);
-    f_sparse = @(varargin) cell_value_sparse(subset);
-    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellsubset_small', 'Take small subset (cell)', opt, results);
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %  Test face diagonal mult    %
@@ -200,13 +198,13 @@ end
 function [out, t] = perform_benchmark(fn, its)
     timer = tic();
     bad = false;
-    try
+%     try
         for i = 1:its
             out = fn();
         end
-    catch
-        bad = true;
-    end
+%     catch
+%         bad = true;
+%     end
     t = toc(timer);
     if bad
         t = nan;

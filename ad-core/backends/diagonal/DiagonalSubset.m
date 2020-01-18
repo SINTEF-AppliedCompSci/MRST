@@ -10,7 +10,7 @@ classdef DiagonalSubset < DiagonalJacobian
             if nargin == 0
                 return
             end
-            D.diagonal = d;
+            D.diagonals = d;
             D.dim = dims;
             D.map = map;
             if nargin > 3
@@ -25,9 +25,9 @@ classdef DiagonalSubset < DiagonalJacobian
         end
 
         function [x, D] = diagMult(v, x, D)
-            if any(x.diagonal(:))
-                v = repmat(v, size(x.map, 2), 1);
-                x.diagonal = bsxfun(@times, x.diagonal, v);
+            if any(x.diagonals(:))
+                v = repmat(v', 1, size(x.map, 2));
+                x.diagonals = bsxfun(@times, x.diagonals, v);
             else
                 x = x.toZero();
             end
@@ -49,18 +49,18 @@ classdef DiagonalSubset < DiagonalJacobian
                 else
                     n = size(x.map, 2);
                 end
-                if isempty(x.diagonal)
+                if isempty(x.diagonals)
                     [x, D1] = diagMult(v1, y, D1);
-                elseif isempty(y.diagonal)
+                elseif isempty(y.diagonals)
                     [x, D2] = diagMult(v2, x, D2);
                 else
                     v1 = repmat(v1, n, 1);
                     v2 = repmat(v2, n, 1);
                     if allow_implicit
-                        x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
+                        x.diagonals = x.diagonals.*v2' + y.diagonals.*v1';
                     else
-                        x.diagonal = bsxfun(@times, x.diagonal, v2) + ...
-                                     bsxfun(@times, y.diagonal, v1);
+                        x.diagonals = bsxfun(@times, x.diagonals, v2') + ...
+                                      bsxfun(@times, y.diagonals, v1');
                     end
                 end
             end
@@ -96,13 +96,13 @@ classdef DiagonalSubset < DiagonalJacobian
         end
         
         function [I, J, V, imax, jmax] = getSparseBlocks(D)
-            n = size(D.diagonal, 1);
+            n = size(D.diagonals, 2);
             m = D.dim(2);
             nmap = size(D.map, 2);
             imax = n/nmap;
             jmax = prod(D.dim);
             if isempty(D.subset)
-                nval = size(D.diagonal, 1);
+                nval = n;
             else
                 nval = numel(D.subset)/nmap;
             end
@@ -118,7 +118,7 @@ classdef DiagonalSubset < DiagonalJacobian
             if ~isempty(D.parentSubset)
                 jmap = D.parentSubset(jmap);
             end
-            V = D.diagonal;
+            V = D.diagonals';
             if m == 1
                 J = reshape(jmap, [], 1);
             else

@@ -68,7 +68,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             nv = numVals(sub);
             nval = nv(1);
             dim = [nval, nnz(sub)];
-            d = zeros(numVals(i), 0);
+            d = zeros(0, numVals(i));
             zerojac{j} = DiagonalJacobian(d, dim, zeros(numVals(i), 1), useMex);
         end
         varargout{i} = GenericAD(varargin{i}, zerojac, numVals, offset, useMex);
@@ -80,11 +80,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         nsub = numel(sub);
         
         assert(all(nv == nval));
-        djac = DiagonalJacobian(zeros(nval, nsub), [nval, nsub], [], useMex);
+        djac = DiagonalJacobian(zeros(nsub, nval), [nval, nsub], [], useMex);
         for i = 1:nsub
             s = sub(i);
             J = djac;
-            J.diagonal(:, i) = 1;
+            J.diagonals(i, :) = 1;
             varargout{s}.jac{type} = J;
         end
     end
