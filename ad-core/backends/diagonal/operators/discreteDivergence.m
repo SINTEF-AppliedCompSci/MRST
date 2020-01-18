@@ -22,33 +22,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     hasAcc = not(isempty(acc));
     if isa(v, 'GenericAD')
-        v.val = accumulate(N, value(v), nc);
+        v.val = accumulate(value(acc), value(v), N, nc, useMex);
         if hasAcc && isa(acc, 'GenericAD')
             % Both present, both are AD
             for i = 1:numel(v.jac)
                 v.jac{i} = accDivJac(acc.jac{i}, v.jac{i}, N, nc, nf, sortIx, C, prelim, useMex);
             end
-            v.val = v.val + acc.val;
         else
             for i = 1:numel(v.jac)
                 v.jac{i} = divJac(v.jac{i}, N, nc, nf, sortIx, C, prelim, useMex);
             end
-            if hasAcc
-                % Acc is not AD
-                v.val = v.val + acc;
-            end
         end
     else
         assert(isnumeric(v), 'Expected numeric vector, but got ''%s''\n', class(v))
-        v = accumulate(N, v, nc);
-        if hasAcc
-            v = v + acc;
-        end
+        v = accumulate(acc, v, N, nc);
     end
 end
 
-function v = accumulate(N, v, nc)
-    v = accumarray(N(:, 1), v, [nc, 1]) - accumarray(N(:, 2), v, [nc, 1]);
+function v = accumulate(acc, v, N, nc, useMex)
+    if useMex
+        v = mexDiscreteDivergenceVal(acc, v, N, nc);
+    else
+        v = accumarray(N(:, 1), v, [nc, 1]) - accumarray(N(:, 2), v, [nc, 1]);
+        if ~isempty(acc)
+            v = v + acc;
+        end
+    end
 end
 
 function jac = divJac(jac, N, nc, nf, sortIx, C, prelim, useMex)
