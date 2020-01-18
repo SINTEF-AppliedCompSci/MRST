@@ -16,17 +16,13 @@ void gradientJac(const int nf, const int nc, const double * diagonal, const doub
         #pragma omp parallel for collapse(2)
     #endif
     // Loop over each face
-    for(int i=0;i<2*nf;i++){
-        int sgn;
-        if(i<nf){
-            sgn = -1;
-        }else{
-            sgn = 1;
-        }
-        int cell_inx = N[i]-1;
+    for(int i=0;i<nf;i++){
+        int cell_left = N[i]-1;
+        int cell_right = N[i + nf]-1;
         // Loop over derivatives
         for(int j=0;j<m;j++){
-            result[i*m + j] = sgn*diagonal[m*cell_inx + j];
+            result[i*m + j] = -diagonal[m*cell_left + j];
+            result[(i + nf)*m + j] = diagonal[m*cell_right + j];
         }
     }
     return;

@@ -18,8 +18,8 @@ void upwindJac(const int nf, const int nc, const mxLogical * flag, const double 
     for(int i=0;i<2*nf;i++){
         int cell_inx = N[i]-1;
         if(flag[i % nf] == i < nf){
-        for(int j=0;j<m;j++){
-            result[i*m + j] = diagonal[m*cell_inx + j];
+            for(int j=0;j<m;j++){
+                result[i*m + j] = diagonal[m*cell_inx + j];
             }
         }
     }
