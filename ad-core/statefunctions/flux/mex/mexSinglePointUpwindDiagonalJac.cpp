@@ -10,11 +10,7 @@
 
 template <int m>
 void upwindJac(const int nf, const int nc, const mxLogical * flag, const double * diagonal, const double * N, double * result){
-    #ifdef _WIN32
-        #pragma omp parallel for
-    #else
-        #pragma omp parallel for collapse(2)
-    #endif
+    #pragma omp parallel for
     for(int i=0;i<2*nf;i++){
         int cell_inx = N[i]-1;
         if(flag[i % nf] == i < nf){
