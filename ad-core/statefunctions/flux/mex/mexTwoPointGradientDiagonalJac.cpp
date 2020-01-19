@@ -10,11 +10,7 @@
 
 template <int m>
 void gradientJac(const int nf, const int nc, const double * diagonal, const double * N, double * result){
-    #ifdef _WIN32
-        #pragma omp parallel for
-    #else
-        #pragma omp parallel for collapse(2)
-    #endif
+    #pragma omp parallel for
     // Loop over each face
     for(int i=0;i<nf;i++){
         int cell_left = N[i]-1;
