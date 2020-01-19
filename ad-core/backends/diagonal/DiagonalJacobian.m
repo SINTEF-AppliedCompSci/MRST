@@ -1,7 +1,7 @@
 classdef DiagonalJacobian
     % Diagonal representation of a Jacobian
     properties
-        diagonals % Dense matrix of diagonal derivatives
+        diagonal % Dense matrix of diagonal derivatives
         subset % Indices corresponding to the subset (if empty, class contains the full set)
         dim % Vector: First dimension is the number of variables in block, while the second is the number of columns
         useMex = false;
@@ -17,7 +17,7 @@ classdef DiagonalJacobian
             elseif islogical(subset)
                 subset = find(subset);
             end
-            D.diagonals = d;
+            D.diagonal = d;
             D.dim = dim;
             D.subset = subset;
             if nargin > 3
@@ -27,23 +27,19 @@ classdef DiagonalJacobian
         
         function sub = getSubset(u)
             if u.isZero
-                sub = zeros(size(u.diagonals, 2), 1);
+                sub = zeros(size(u.diagonal, 1), 1);
             elseif isempty(u.subset)
-                sub = reshape(1:size(u.diagonals, 2), [], 1);
+                sub = reshape(1:size(u.diagonal, 1), [], 1);
             else
                 sub = u.subset;
             end
-        end
-
-        function diagonal(d, varargin)
-            assert(false);
         end
 
         function u = toZero(u, n)
             if nargin == 1
                 % The function is not taking a subset, just converting an
                 % existing subset to zero type if present.
-                n = size(u.diagonals, 2);
+                n = size(u.diagonal, 1);
                 if ~isempty(u.subset)
                     u.subset = zeros(n, 1);
                 end
@@ -52,20 +48,19 @@ classdef DiagonalJacobian
                 % it is arbitrary, but present.
                 u.subset = zeros(n, 1);
             end
-            u.diagonals = zeros(0, n);
+            u.diagonal = zeros(n, 0);
         end
 
         function u = expandZero(u)
-            u.diagonals = zeros(u.dim(2), size(u.diagonals, 2));
+            u.diagonal = zeros(size(u.diagonal, 1), u.dim(2));
         end
         
         function isz = isZero(u)
-            isz = size(u.diagonals, 1) == 0;
+            isz = size(u.diagonal, 2) == 0;
         end
         
         function [I, J, V, imax, jmax] = getSparseBlocks(D, ioffset, joffset)
-            %[imax, m] = size(D.diagonal);
-            [m, imax] = size(D.diagonals);
+            [imax, m] = size(D.diagonal);
             jmax = prod(D.dim);
             if m == 0
                 I = zeros(0, 1); J = zeros(0, 1); V = zeros(0, 1);
@@ -84,7 +79,7 @@ classdef DiagonalJacobian
                 end
             end
             I = repmat(reshape(1:numel(subs), [], 1), m, 1);
-            V = D.diagonals';
+            V = D.diagonal;
             V(subs == 0, :) = 0;
             if nargin > 1
                 I = I + ioffset;
@@ -109,8 +104,8 @@ classdef DiagonalJacobian
         end
         
         function s = sparse(D)
-            if D.useMex && isempty(D.subset) && ~isempty(D.diagonals)
-                s = mexDiagonalSparse(D.diagonals, D.subset, D.dim);
+            if D.useMex && isempty(D.subset) && ~isempty(D.diagonal)
+                s = mexDiagonalSparse(D.diagonal, D.subset, D.dim);
             else
                 [I, J, V, n, m] = D.getSparseArguments();
                 % s = accumarray([I(:), J(:)], V(:), [n, m], [], [], true);
@@ -169,7 +164,7 @@ classdef DiagonalJacobian
                     % Get subset, check individual values
                     s = x.getSubset();
                     if subsetsEqualNoZeroCheck(x, v, s(subs), v.subset)
-                        x.diagonals(:, subs) = x.diagonals(:, subs) + v.diagonals;
+                        x.diagonal(subs, :) = x.diagonal(subs, :) + v.diagonal;
                         % x.subset = DiagonalJacobian.treatSubset(x.subset, y.subset);
                     else
                         x = x.sparse();
@@ -199,7 +194,7 @@ classdef DiagonalJacobian
                             end
                         elseif numel(s(1).subs) == 2 && ischar(s(1).subs{2})
                             if any(s(1).subs{1})
-                                u.diagonals = u.diagonals(:, s(1).subs{1});
+                                u.diagonal = u.diagonal(s(1).subs{1}, :);
                             else
                                 u = u.toZero(0);
                             end
@@ -242,7 +237,7 @@ classdef DiagonalJacobian
                                 return
                             end
                             if v.isZero
-                                u.diagonals(:, s.subs{1}) = 0;
+                                u.diagonal(s.subs{1}, :) = 0;
                                 return
                             end
                             if u.isZero
@@ -261,7 +256,7 @@ classdef DiagonalJacobian
                                     u.subset = u.getSubset;
                                     u.subset(s.subs{1}) = vsub;
                                 end
-                                u.diagonals(:, s.subs{1}) = v.diagonals;
+                                u.diagonal(s.subs{1}, :) = v.diagonal;
                                 return
                             end
 
@@ -276,7 +271,7 @@ classdef DiagonalJacobian
                             end
                             
                             if allowDiag
-                                u.diagonals(:, s.subs{1}) = v.diagonals;
+                                u.diagonal(s.subs{1}, :) = v.diagonal;
                                 if ~isempty(u.subset) && ~isempty(v.subset)
                                     % Handle zero (wild card) subsets
                                     u.subset(s.subs{1}) = max(u.subset(s.subs{1}), v.subset);
@@ -289,7 +284,7 @@ classdef DiagonalJacobian
                         else
                             if uD
                                 if numel(v) == 1
-                                    u.diagonals(:, s.subs{1}) = v;
+                                    u.diagonal(s.subs{1}, :) = v;
                                     return
                                 end
                                 u = u.sparse();
@@ -308,7 +303,7 @@ classdef DiagonalJacobian
         
         
         function x = uminus(x)
-            x.diagonals = -x.diagonals;
+            x.diagonal = -x.diagonal;
         end
         
         function x = minus(x, y)
@@ -319,7 +314,7 @@ classdef DiagonalJacobian
             % Right matrix divide: `h=u/v`
             if isscalar(v)
                 if ~u.isZero()
-                    u.diagonals = u.diagonals./v';
+                    u.diagonal = u.diagonal./v;
                 end
             else
                 u = u.sparse();
@@ -349,7 +344,7 @@ classdef DiagonalJacobian
 
             if xD && yD
                 if subsetsEqualNoZeroCheck(x, y)
-                    x.diagonals = x.diagonals + y.diagonals;
+                    x.diagonal = x.diagonal + y.diagonal;
                     x.subset = DiagonalJacobian.treatSubset(x.subset, y.subset);
                 else
                     x = x.sparse() + y.sparse();
@@ -362,7 +357,7 @@ classdef DiagonalJacobian
                     x = x.sparse();
                     x = plus(x, y);
                 elseif isscalar(y)
-                    x.diagonals = x.diagonals + y;
+                    x.diagonal = x.diagonal + y;
                 end
             else
                 x = plus(y, x);
@@ -384,7 +379,7 @@ classdef DiagonalJacobian
             yD = isa(y, 'DiagonalJacobian');
             if xD && yD
                 if subsetsEqualNoZeroCheck(x, y)
-                    x.diagonals = x.diagonals.*y.diagonals;
+                    x.diagonal = x.diagonal.*y.diagonal;
                     x.subset = DiagonalJacobian.treatSubset(x.subset, y.subset);
                 else
                     x = x.sparse().*y.sparse();
@@ -394,7 +389,7 @@ classdef DiagonalJacobian
             
             if xD
                 if isscalar(y)
-                    x.diagonals = x.diagonals.*y';
+                    x.diagonal = x.diagonal.*y;
                 else
                     x = x.sparse();
                     x = x.*y;
@@ -416,21 +411,21 @@ classdef DiagonalJacobian
             yD = isa(y, 'DiagonalJacobian');
             if xD && yD
                 if subsetsEqualNoZeroCheck(x, y)
-                    x.diagonals = x.diagonals.*y.diagonals;
+                    x.diagonal = x.diagonal.*y.diagonal;
                     x.subset = DiagonalJacobian.treatSubset(x.subset, y.subset);
                 else
                     x = x.sparse().*y.sparse();
                 end
             elseif xD
                 if isscalar(y)
-                    x.diagonals = x.diagonals.*y';
+                    x.diagonal = x.diagonal.*y;
                 else
                     x = x.sparse();
                     x = x.*y;
                 end
             else
                 if isscalar(x)
-                    y.diagonals = x'.*y.diagonals;
+                    y.diagonal = x.*y.diagonal;
                     x = y;
                 else
                     y = y.sparse();
@@ -440,7 +435,7 @@ classdef DiagonalJacobian
         end
         
         function varargout = matrixDims(D, n)
-            dims = [size(D.diagonals, 2), prod(D.dim)];
+            dims = [size(D.diagonal, 1), prod(D.dim)];
             if nargout == 1
                 varargout{1} = dims;
                 if nargin > 1
@@ -457,9 +452,9 @@ classdef DiagonalJacobian
                 allow_implicit = ~verLessThan('matlab','9.1');
             end
             if allow_implicit
-                x.diagonals = x.diagonals.*v';
+                x.diagonal = x.diagonal.*v;
             else
-                x.diagonals = bsxfun(@times, x.diagonals, v');
+                x.diagonal = bsxfun(@times, x.diagonal, v);
             end
         end
         
@@ -476,16 +471,16 @@ classdef DiagonalJacobian
                 return
             else
                 % Both are diagonal, new Matlab
-                if isempty(x.diagonals)
+                if isempty(x.diagonal)
                     [x, D1] = diagMult(v1, y, D1);
-                elseif isempty(y.diagonals)
+                elseif isempty(y.diagonal)
                     [x, D2] = diagMult(v2, x, D2);
                 else
                     if allow_implicit
-                        x.diagonals = x.diagonals.*v2' + y.diagonals.*v1';
+                        x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
                     else
                         % Both are diagonal, old Matlab
-                        x.diagonals = bsxfun(@times, x.diagonals, v2') + bsxfun(@times, y.diagonals, v1');
+                        x.diagonal = bsxfun(@times, x.diagonal, v2) + bsxfun(@times, y.diagonal, v1);
                     end
                 end
             end
@@ -504,7 +499,7 @@ classdef DiagonalJacobian
                 n = 1;
             end
             
-            if size(D.diagonals, 2) == 1 && n == 1
+            if size(D.diagonal, 1) == 1 && n == 1
                 x = D;
             else
                 x = sum(D.sparse(), n);
@@ -512,7 +507,7 @@ classdef DiagonalJacobian
         end
         
         function n = nnz(D)
-            n = nnz(D.diagonals);
+            n = nnz(D.diagonal);
         end
         
         function u = horzcat(varargin)
@@ -548,7 +543,7 @@ classdef DiagonalJacobian
                 l = varargin{1}.dim(2);
                 
                 subsets = cellfun(@(x) x.getSubset, varargin, 'UniformOutput', false);
-                diags = cellfun(@(x) x.diagonals, varargin, 'UniformOutput', false);
+                diags = cellfun(@(x) x.diagonal, varargin, 'UniformOutput', false);
                 isZero = cellfun(@(x) x.isZero, varargin);
                 for i = 1:m
                     if isZero(i)
@@ -557,11 +552,11 @@ classdef DiagonalJacobian
                     end
                 end
 
-                d = horzcat(diags{:});
+                d = vertcat(diags{:});
                 map = vertcat(subsets{:});
                 
                 out = varargin{1};
-                out.diagonals = d;
+                out.diagonal = d;
                 out.subset = map;
             end
         end

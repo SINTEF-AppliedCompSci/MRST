@@ -14,7 +14,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
 { 
     // s = mexDiagonalSparse(D.diagonal, D.subset, D.dim);
     // In: 
-    // diagonal (n x m)
+    // diagonal (m x n)
     // subset (either empty or length m)
     // dim (1 x 2) with entries [l n]
     // Out: sparse
@@ -27,10 +27,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double * subset = mxGetPr(prhs[1]);
     double * dims = mxGetPr(prhs[2]);
 
-    // Number of rows (number of derivatives per element)
-    int n = mxGetM(prhs[0]);
-    // Number of columns (number of elements)
-    int m = mxGetN(prhs[0]);
+    // Number of rows
+    int m = mxGetM(prhs[0]);
+    // Number of columns
+    int n = mxGetN(prhs[0]);
 
     int dim_sz = mxGetN(prhs[2]);
     if(dim_sz != 2){
@@ -54,22 +54,34 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // Column indices, zero-indexed, offset encoded of length l*n + 1
     mwIndex * jc = mxGetJc(plhs[0]);
 
-    if(subset_sz != 0){
-        mexErrMsgTxt("Routine only supports empty subsets");
+    
+    if(subset_sz == 0){
+        #pragma omp parallel for
+        for(int index = 0; index < l*n; index++){
+            // One entry per column
+            jc[index] = index;
+            // Column index
+            ir[index] = index % m;
+            // Actual derivative
+            pr[index] = diagonal[index];
+        }
+        // Final entry, one per column
+        jc[ncols] = ncols;
+    }else{
+        if(subset_sz != m){
+            mexErrMsgTxt("Subset was given, but does not match diagonal.");
+        }
+        for(int index = 0; index < m*n; index++){
+            // One entry per column
+            jc[index] = index;
+            // Column index
+            ir[index] = index % m;
+            // Actual derivative
+            pr[index] = diagonal[index];
+        }
+        // Final entry, one per column
+        jc[ncols] = ncols;
     }
-    #pragma omp parallel for
-    for(int index = 0; index < l*n; index++){
-        // One entry per column
-        int row = index % m;
-        int der = index / m;
-        jc[index] = index;
-        // Column index
-        ir[index] = index % m;
-        // Actual derivative
-        pr[index] = diagonal[row*n + der];
-    }
-    // Final entry, one per column
-    jc[ncols] = ncols;
 }
 
 

@@ -43,9 +43,9 @@ function jac = avgJac(jac, N, useMex)
         jac = jac.toZero(size(N, 1));
     else
         if useMex
-            diagonal = mexFaceAverageDiagonalJac(jac.diagonals, N);
+            diagonal = mexFaceAverageDiagonalJac(jac.diagonal, N);
         else
-            diagonal = 0.5*jac.diagonals(:, N);
+            diagonal = 0.5*jac.diagonal(N, :);
         end
         jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset);
     end

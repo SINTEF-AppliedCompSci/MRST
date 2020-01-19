@@ -43,11 +43,11 @@ function jac = gradJac(jac, N, M, useMex)
             diagonal = M*jac.diagonal;
         else
             if useMex
-                diagonal = mexTwoPointGradientDiagonalJac(jac.diagonals, N);
+                diagonal = mexTwoPointGradientDiagonalJac(jac.diagonal, N);
             else
-                diagonal = jac.diagonals(:, N);
+                diagonal = jac.diagonal(N, :);
                 nf = size(N, 1);
-                diagonal(:, 1:nf) = -diagonal(:, 1:nf);
+                diagonal(1:nf, :) = -diagonal(1:nf, :);
             end
         end
         jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset);

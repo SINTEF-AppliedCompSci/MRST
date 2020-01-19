@@ -33,12 +33,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nc = model.G.cells.num;
     d = rand(opt.nc, opt.block_size);
     flag = rand(nf, 1) > 0.5;
-    cell_value = GenericAD(rand(opt.nc, 1), DiagonalJacobian(d', size(d), []));
+    cell_value = GenericAD(rand(opt.nc, 1), DiagonalJacobian(d, size(d), []));
     
     % Make sparse version
     J = cell(1, opt.block_size);
     for i = 1:opt.block_size
-        d = cell_value.jac{1}.diagonals(i, :)';
+        d = cell_value.jac{1}.diagonal(:, i);
         ix = (1:nc)';
         J{i} = sparse(ix, ix, d, nc, nc);
     end
@@ -198,13 +198,13 @@ end
 function [out, t] = perform_benchmark(fn, its)
     timer = tic();
     bad = false;
-%     try
+    try
         for i = 1:its
             out = fn();
         end
-%     catch
-%         bad = true;
-%     end
+    catch
+        bad = true;
+    end
     t = toc(timer);
     if bad
         t = nan;
