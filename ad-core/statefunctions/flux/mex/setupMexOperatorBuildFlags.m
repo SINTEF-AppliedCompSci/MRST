@@ -48,21 +48,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      '/nodefaultlib:vcomp ', iomp5{1} ]};
       libstdcpp = {};
 
+   elseif is_xcode_clang()
+      dispif(mrstVerbose(), 'Clang detected. Will not use OpenMP...\n');
+      CXXFLAGS = ...
+         { [sprintf('CXXFLAGS=$CXXFLAGS %s ', formatDefs('-', defines)), ...
+            '-O3 -std=c++11 -ffast-math -march=native'] };
+
+      libstdcpp = { '-lstdc++' };
+      iomp5 = {};
+
    elseif is_gnu_gcc()
       CXXFLAGS = ...
          { [sprintf('CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE %s ', formatDefs('-', defines)), ...
             '-fPIC -O3 -std=c++11 -ffast-math -march=native -fopenmp'] };
 
       libstdcpp = { '-lstdc++' };
-      
-   elseif is_xcode_clang()
-      dispif(mrstVerbose(), 'Clang detected. Will not use OpenMP...\n');
-      CXXFLAGS = ...
-         { [sprintf('CXXFLAGS=$CXXFLAGS %s ', formatDefs('-', defines)), ...
-            '-fPIC -O3 -std=c++11 -ffast-math -march=native'] };
-
-      libstdcpp = { '-lstdc++' };
-      iomp5 = {};
 
    else
 
