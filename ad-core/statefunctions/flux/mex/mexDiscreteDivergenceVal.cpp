@@ -4,7 +4,9 @@
 #include <cmath>
 #include <mex.h>
 #include <array>
-#include <omp.h>
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
 #include <iostream>
 #include <chrono>
 

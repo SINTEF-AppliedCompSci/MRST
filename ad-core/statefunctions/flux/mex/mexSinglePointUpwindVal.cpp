@@ -4,7 +4,9 @@
 #include <cmath>
 #include <mex.h>
 #include <array>
-
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
 #include <iostream>
 
 /* MEX gateway */
