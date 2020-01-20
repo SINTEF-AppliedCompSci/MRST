@@ -7,11 +7,10 @@ classdef BlackOilPoreVolume < PoreVolume
         function gp = BlackOilPoreVolume(model, varargin)
             gp@PoreVolume(model, varargin{:});
             gp = gp.dependsOn({'pressure'}, 'state');
-            assert(isfield, model.fluid, 'pvMultR', 'pvMultR missing from fluid.');
+            assert(isfield(model.fluid, 'pvMultR'), 'pvMultR missing from fluid.');
         end
         function pv = evaluateOnDomain(prop, model, state)
-            % Get effective pore-volume, accounting for possible
-            % rock-compressibility
+            % Get effective pore-volume, accounting for rock-compressibility
             pv = evaluateOnDomain@PoreVolume(prop, model, state);
             f = model.fluid;
             p = model.getProp(state, 'pressure');
