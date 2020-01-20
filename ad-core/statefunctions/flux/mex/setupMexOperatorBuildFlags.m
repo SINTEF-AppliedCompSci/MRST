@@ -62,6 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             '-fPIC -O3 -std=c++11 -ffast-math -march=native'] };
 
       libstdcpp = { '-lstdc++' };
+      iomp5 = {};
 
    else
 
