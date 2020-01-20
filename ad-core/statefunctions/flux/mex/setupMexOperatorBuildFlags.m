@@ -33,7 +33,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   'microsoft', ['libmw', lib, '.lib']);
 
       LINK  = { ['-L', fullfile(matlabroot, 'bin', a) ] };
-      iomp5 = { 'libiomp5.lib' };
+      iomp5 = { 'libiomp5md.lib' };
    else
       mwlib = @(lib) ['-lmw', lib];
       LINK  = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
