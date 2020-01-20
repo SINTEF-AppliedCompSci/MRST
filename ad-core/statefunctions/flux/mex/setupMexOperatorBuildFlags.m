@@ -52,7 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       dispif(mrstVerbose(), 'Clang detected. Will not use OpenMP...\n');
       CXXFLAGS = ...
          { [sprintf('CXXFLAGS=$CXXFLAGS %s ', formatDefs('-', defines)), ...
-            '-O3 -std=c++11 -ffast-math -march=native'] };
+            '-fPIC -O3 -std=c++11 -ffast-math -march=native'] };
 
       libstdcpp = { '-lstdc++' };
       iomp5 = {};
@@ -77,7 +77,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function s = formatDefs(prefix, defines)
-    s = sprintf([' ', prefix, 'D%s'], defines{:});
+    if isempty(defines)
+        s = '';
+    else
+        s = sprintf([' ', prefix, 'D%s'], defines{:});
+    end
 end
 
 %--------------------------------------------------------------------------
