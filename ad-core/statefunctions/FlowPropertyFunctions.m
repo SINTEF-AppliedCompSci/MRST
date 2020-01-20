@@ -32,7 +32,13 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
             props = props.setStateFunction('ShrinkageFactors', BlackOilShrinkageFactors(model, pvt));
             props = props.setStateFunction('Density', BlackOilDensity(model, pvt));
             props = props.setStateFunction('Viscosity', BlackOilViscosity(model, pvt));
-            props = props.setStateFunction('PoreVolume', MultipliedPoreVolume(model, pvt));
+            if isfield(model.fluid, 'pvMultR')
+                % Check for multiplier
+                pv = BlackOilPoreVolume(model, pvt);
+            else
+                pv = PoreVolume(model, pvt);
+            end
+            props = props.setStateFunction('PoreVolume', pv);
             props = props.setStateFunction('PhasePressures', PhasePressures(model, pvt));
             props = props.setStateFunction('PressureReductionFactors', BlackOilPressureReductionFactors(model));
             

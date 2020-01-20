@@ -1,14 +1,11 @@
-classdef MultipliedPoreVolume < StateFunction
-    % Effective pore-volume after pressure-multiplier
+classdef PoreVolume < StateFunction
+    % Static pore-volume taken from state
     properties
     end
     
     methods
-        function gp = MultipliedPoreVolume(model, varargin)
+        function gp = PoreVolume(model, varargin)
             gp@StateFunction(model, varargin{:});
-            if isfield(model.fluid, 'pvMultR')
-                gp = gp.dependsOn({'pressure'}, 'state');
-            end
             assert(isfield(model.operators, 'pv'), ...
                 'Pore-volume (pv) must be present as field in operators struct');
             assert(numel(model.operators.pv) == model.G.cells.num,...
@@ -16,16 +13,9 @@ classdef MultipliedPoreVolume < StateFunction
             assert(all(model.operators.pv > 0), ...
                 'Pore-volumes must be non-negative.');
         end
-        function pv = evaluateOnDomain(prop, model, state)
-            % Get effective pore-volume, accounting for possible
-            % rock-compressibility
-            f = model.fluid;
+        function pv = evaluateOnDomain(prop, model, state) %#ok
+            % Static pore-volume
             pv = model.operators.pv;
-            if isfield(f, 'pvMultR')
-                p = model.getProp(state, 'pressure');
-                pvMult = prop.evaluateFunctionOnDomainWithArguments(f.pvMultR, p);
-                pv = pv.*pvMult;
-            end
         end
     end
 end
