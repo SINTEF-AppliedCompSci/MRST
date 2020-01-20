@@ -7,6 +7,7 @@ classdef BlackOilPoreVolume < PoreVolume
         function gp = BlackOilPoreVolume(model, varargin)
             gp@PoreVolume(model, varargin{:});
             gp = gp.dependsOn({'pressure'}, 'state');
+            assert(isfield, model.fluid, 'pvMultR', 'pvMultR missing from fluid.');
         end
         function pv = evaluateOnDomain(prop, model, state)
             % Get effective pore-volume, accounting for possible
