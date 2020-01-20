@@ -35,7 +35,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     else
         assert(isnumeric(v), 'Expected numeric vector, but got ''%s''\n', class(v))
-        v = accumulate(acc, v, N, nc);
+        v = accumulate(acc, v, N, nc, useMex);
     end
 end
 
