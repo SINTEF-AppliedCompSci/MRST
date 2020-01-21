@@ -10,8 +10,8 @@ classdef StateFunction
 
     methods
         function prop = StateFunction(model, regions, varargin)
-            assert(isa(model, 'PhysicalModel'), 'Model must be derived from PhysicalModel base class');
             if nargin > 0
+                assert(isa(model, 'PhysicalModel'), 'Model must be derived from PhysicalModel base class');
                 prop.AutoDiffBackend = model.AutoDiffBackend;
                 if nargin > 1
                     prop.regions = regions;
