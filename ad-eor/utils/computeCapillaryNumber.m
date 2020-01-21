@@ -53,12 +53,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
 
     s = operators;
+    
+% If the injection well pressure or flow rate is set too large, 
+% the pressure change may reach the upper limit at the first time step and
+% cause the pressure gradient (gradp) to be 0 at next simulation step. 
+% This may further cause the calculation error of log(Nc) in 
+% SurfactantRelativePermeability function. Here we set gradp to be a 
+% minimum (1e-8) to avoid such numerical calculation errors.
     gradp = s.Grad(p);
-    if isa(gradp, 'ADI')
-        gradp.val(find(value(gradp)==0)) = 1e-8;
-    else
-        gradp(find(gradp==0)) = 1e-8;
-    end
+    gradp(abs(value(gradp)) < 1e-8) = 1e-8;
     v = -s.T.*gradp;
 
     switch opt.velocCompMethod
