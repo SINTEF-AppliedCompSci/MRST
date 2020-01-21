@@ -1,29 +1,6 @@
-function f = assignPVTO(f, pvto, reg)
-    [f.bO, f.muO, f.rsSat] = getFunctions(pvto, reg);
-end
+function varargout = mexDiscreteDivergenceVal(varargin)
+%Undocumented Utility Function
 
-function [bO, muO, rsSat] = getFunctions(PVTO, reg)
-    [bO, muO, rsSat] = deal(cell(1, reg.pvt));
-    
-    for i = 1:reg.pvt
-        pvto = PVTO{i};
-        
-        p_bub = pvto.data(pvto.pos(1:end-1),1);
-        rs = pvto.key;
-        
-        bo = pvto;
-        bo.data = [bo.data(:,1), 1./bo.data(:,2)];
-        
-        muo = pvto;
-        muo.data = [muo.data(:,1), muo.data(:,3)];
-        
-        bO{i} = @(po, rs, flag) interpPVT(bo, po, rs, flag);
-        muO{i} = @(po, rs, flag) interpPVT(muo, po, rs, flag);
-        rsSat{i} = @(po) reg.interp1d(p_bub, rs, po);
-    end
-end
-
-% 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -42,3 +19,16 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+   filename = 'mexDiscreteDivergenceVal.cpp';
+   INCLUDE = {};
+
+   OPTS = { '-O' };
+
+   SRC = {filename};
+
+   [CXXFLAGS, LINK, LIBS] = setupMexOperatorBuildFlags();
+
+   buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
+   [varargout{1:nargout}] = mexDiscreteDivergenceVal(varargin{:});
+end

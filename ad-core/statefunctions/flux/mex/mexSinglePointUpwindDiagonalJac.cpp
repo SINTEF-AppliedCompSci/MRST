@@ -4,13 +4,15 @@
 #include <cmath>
 #include <mex.h>
 #include <array>
-
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
 #include <iostream>
 
 
 template <int m>
 void upwindJac(const int nf, const int nc, const mxLogical * flag, const double * diagonal, const double * N, double * result){
-    #ifdef _WIN32
+    #ifdef _MSC_VER
         #pragma omp parallel for
     #else
         #pragma omp parallel for collapse(2)

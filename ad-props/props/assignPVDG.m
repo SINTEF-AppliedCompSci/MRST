@@ -11,8 +11,8 @@ function [bG, muG] = getFunctions(f, PVDG, reg)
         pG = pvdg(:, 1);
         BG = pvdg(:, 2);
         mug = pvdg(:, 3);
-        bG{i}  = @(pg) interpTable(pG, 1./BG, pg);
-        muG{i} = @(pg) interpTable(pG, mug, pg);
+        bG{i}  = @(pg) reg.interp1d(pG, 1./BG, pg);
+        muG{i} = @(pg) reg.interp1d(pG, mug, pg);
     end
 end
 

@@ -201,11 +201,8 @@ classdef ExtendedFacilityModel < FacilityModel
                 rho = cellfun(@(x) x.ControlDensity, facility.WellModels(map.active), 'UniformOutput', false);
                 rho = vertcat(rho{is_resv});
                 resv_rates = 0;
-                phaseRates = facility.getProps(state, 'PhaseFlux');
-                rhoR = model.getProps(state, 'Density');
                 for ph = 1:nph
-                    tmp = wsum*(phaseRates{ph}.*rhoR{ph}(map.cells));
-                    resv_rates = resv_rates + tmp(is_resv)./rho(:, ph);
+                    resv_rates = resv_rates + q_s{ph}(is_resv).*rho(:, ph);
                 end
                 ctrl_eq(is_resv) = resv_rates - targets(is_resv);
             end
@@ -276,7 +273,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 rho = rho(wc, :);
                 % Use mobility in well-cells if no connection fluxes are
                 % available (typically first step for well)
-                if ~isfield(wellSol(1), 'ComponentTotalFlux') || any(arrayfun(@(x)isempty(x.ComponentTotalFlux), wellSol))
+                if ~isfield(wellSol(1), 'ComponentTotalFlux') || any(arrayfun(@(x) ~any(x.ComponentTotalFlux(:)), wellSol))
                     mob = model.ReservoirModel.getProps(state, 'Mobility');
                     mob = [mob{:}];
                     mob = mob(wc,:);
@@ -294,6 +291,10 @@ classdef ExtendedFacilityModel < FacilityModel
                         mob_i = mob(perf2well == wellNo, :);
                     end
                     wellSol(wellNo) = wm.updateConnectionPressureDropState(model.ReservoirModel, wellSol(wellNo), rho_i, rho_i, mob_i);
+                    ctrl = wm.W.type;
+                    if ~(strcmpi(ctrl, 'bhp') || strcmpi(ctrl, 'thp'))
+                        wellSol(wellNo).status = wm.W.val ~= 0;
+                    end
                 end
             end
             state.wellSol = wellSol;
@@ -316,11 +317,25 @@ classdef ExtendedFacilityModel < FacilityModel
                     cf = reshape(cf, 1, []);
                 end
                 cf = value(cf);
-                for i = 1:numel(map.active)
-                    wi = map.active(i);
-                    act = map.perf2well == i;
-                    state.wellSol(wi).flux = phaseq(act, :);
-                    state.wellSol(wi).ComponentTotalFlux = cf(act, :);
+                nwt = numel(state.wellSol);
+                active = false(nwt, 1);
+                active(map.active) = true;
+                actIndex = zeros(nwt, 1);
+                actIndex(map.active) = (1:numel(map.active))';
+                nph = model.getNumberOfPhases();
+                ncomp = model.getNumberOfComponents();
+                for wi = 1:nwt
+                    if active(wi)
+                        act = map.perf2well == actIndex(wi);
+                        flux = phaseq(act, :);
+                        ctf = cf(act, :);
+                    else
+                        nc = numel(drivingForces.W(wi).cells);
+                        flux = zeros(nc, nph);
+                        ctf = zeros(nc, ncomp);
+                    end
+                    state.wellSol(wi).flux = flux;
+                    state.wellSol(wi).ComponentTotalFlux = ctf;
                 end
             end
         end
@@ -509,6 +524,12 @@ classdef ExtendedFacilityModel < FacilityModel
                         rv(subs) = sum(state0.rv.*pvi)/sum(pvi);
                     end
                 end
+                substate = struct('pressure', pm, ...
+                                  's', repmat([1, 0, 0], nc, 1), ...
+                                  'rs', rs, ...
+                                  'rv', rv);
+                rs0 = rs;
+                rv0 = rv;
                 if any(isHist)
                     if disgas
                         rs(isHist) = min(qs(isHist, gix)./qs(isHist, oix), rs);
@@ -517,44 +538,41 @@ classdef ExtendedFacilityModel < FacilityModel
                         rv(isHist) = min(qs(isHist, oix)./qs(isHist, gix), rv);
                     end
                 end
-                substate = struct('pressure', pm, ...
-                                  's', repmat([1, 0, 0], nc, 1), ...
-                                  'rs', rs, ...
-                                  'rv', rv);
-
                 flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
                 flowProps.ShrinkageFactors.useSaturatedFlag = true;
-                substate = flowProps.evaluateStateFunctionWithDependencies(model.ReservoirModel, substate, 'Density');
-                rho = substate.FlowProps.Density;
-                rho = [rho{:}];
-                if false
-                    newRates = sum(qs.*rhoS./rho, 2);
-                else
-                    shrink = 1 - rs.*rv;
-                    b = substate.FlowProps.ShrinkageFactors;
-                    newRates = 0;
-                    if rmodel.water
-                        wix = 1;
-                        bW = b{wix};
-                        newRates = newRates + qs(:, wix)./bW;
+                substate = flowProps.evaluateStateFunctionWithDependencies(model.ReservoirModel, substate, 'ShrinkageFactors');
+                shrink = 1 - rs.*rv;
+                shrink0 = 1 - rs0.*rv0;
+                b = substate.FlowProps.ShrinkageFactors;
+                newRates = 0;
+                nph = model.getNumberOfPhases();
+                factors = zeros(nc, nph);
+                if rmodel.water
+                    wix = 1;
+                    bW = b{wix};
+                    factors(:, wix) = 1./bW;
+                    newRates = newRates + qs(:, wix)./bW;
+                end
+                if rmodel.oil
+                    bO = b{oix};
+                    orat = qs(:, oix);
+                    factors(:, oix) = 1./(bO.*shrink0);
+                    if vapoil
+                        orat = orat - rv.*qs(:, gix);
+                        factors(:, gix) = factors(:, gix) - rv./(bO.*shrink0);
                     end
-                    if rmodel.oil
-                        bO = b{oix};
-                        orat = qs(:, oix);
-                        if vapoil
-                            orat = orat - rv.*qs(:, gix);
-                        end
-                        newRates = newRates + orat./(bO.*shrink);
+                    newRates = newRates + orat./(bO.*shrink);
+                end
+                if rmodel.gas
+                    bG = b{gix};
+                    grat = qs(:, gix);
+                    factors(:, gix) = factors(:, gix) + 1./(bG.*shrink0);
+                    if vapoil
+                        grat = grat - rs.*qs(:, oix);
+                        factors(:, oix) = factors(:, oix) - rs./(bG.*shrink0);
                     end
-                    if rmodel.gas
-                        bG = b{gix};
-                        grat = qs(:, gix);
-                        if vapoil
-                            grat = grat - rs.*qs(:, oix);
-                        end
-                        newRates = newRates + grat./(bG.*shrink);
-                    end
+                    newRates = newRates + grat./(bG.*shrink);
                 end
                 resvIx = find(isRESV);
                 actIx = find(activeWellMask);
@@ -567,7 +585,7 @@ classdef ExtendedFacilityModel < FacilityModel
                         model.WellModels{global_well_ix}.W.type = 'resv';
                         state.wellSol(global_well_ix).type = 'resv';
                     end
-                    model.WellModels{global_well_ix}.ControlDensity = rho(i, :);
+                    model.WellModels{global_well_ix}.ControlDensity = factors(i, :);
                 end
             end
         end

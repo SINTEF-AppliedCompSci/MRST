@@ -11,7 +11,7 @@ classdef FacilityFluxDiscretization < StateFunctionGrouping
     
     methods
         function props = FacilityFluxDiscretization(model)
-            props.structName = 'FacilityFluxProps';
+            props@StateFunctionGrouping('FacilityFluxProps');
             
             props.PhaseFlux = WellPhaseFlux(model);
             props.ComponentTotalFlux = ComponentTotalFlux(model);

@@ -1,4 +1,4 @@
-function [CXXFLAGS, LINK, LIBS] = setupMexOperatorBuildFlags()
+function [CXXFLAGS, LINK, LIBS] = setupMexOperatorBuildFlags(defines)
 %Undocumented Utility Function
 
 %{
@@ -19,34 +19,106 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+   if nargin == 0
+       defines = {};
+   end
+   if ischar(defines)
+       defines = {defines};
+   end
    a = computer('arch');
 
-   if ispc
+   if ispc()
       mwlib = @(lib) ...
-      fullfile(matlabroot, 'extern', 'lib', a, ...
-               'microsoft', ['libmw', lib, '.lib']);
+         fullfile(matlabroot, 'extern', 'lib', a, ...
+                  'microsoft', ['libmw', lib, '.lib']);
 
+      LINK  = { ['-L', fullfile(matlabroot, 'bin', a) ] };
+      iomp5 = { 'libiomp5md.lib' };
+   else
+      mwlib = @(lib) ['-lmw', lib];
+      LINK  = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
+      iomp5 = { '-liomp5' };
+   end
+
+   if is_visual_cpp()
       % Note explicit /EHsc to enable C++ exception handling
-      CXXFLAGS  = { 'COMPFLAGS=/EHsc /MD /openmp /O2' };
-      LINK      = { ['-L', fullfile(matlabroot, 'bin', a) ]};
+      CXXFLAGS  = { [sprintf('COMPFLAGS=/EHsc /MD %s', formatDefs('-', defines)), ...
+                     '/openmp /wd4715 /fp:fast /bigobj'] };
       iomp5     = { ['LINKFLAGS=$LINKFLAGS ', ...
-                     '/nodefaultlib:vcomp libiomp5md.lib' ]};
+                     '/nodefaultlib:vcomp ', iomp5{1} ]};
       libstdcpp = {};
 
-   elseif isunix
+   elseif is_xcode_clang()
+      dispif(mrstVerbose(), 'Clang detected. Will not use OpenMP...\n');
+      CXXFLAGS = ...
+         { [sprintf('CXXFLAGS=$CXXFLAGS %s ', formatDefs('-', defines)), ...
+            '-fPIC -O3 -std=c++11 -ffast-math -march=native'] };
 
-       mwlib = @(lib) ['-lmw', lib];
+      libstdcpp = { '-lstdc++' };
+      iomp5 = {};
 
-       CXXFLAGS = ...
-          { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE -fPIC -O3 ', ...
-             '-std=c++11 -ffast-math -march=native -fopenmp'] };
+   elseif is_gnu_gcc()
+      CXXFLAGS = ...
+         { [sprintf('CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE %s ', formatDefs('-', defines)), ...
+            '-fPIC -O3 -std=c++11 -ffast-math -march=native -fopenmp'] };
 
-       LINK = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
+      libstdcpp = { '-lstdc++' };
 
-       iomp5     = { '-liomp5', 'LDFLAGS=$LDFLAGS -fopenmp' };
-       libstdcpp = { '-lstdc++' };
+   else
+
+      error('Architecture:Unsupported', ...
+           ['Computer Architecture ''%s'' (compiler ''%s'') is ', ...
+            'not Supported for %s'], ...
+            computer(), compilername(), mfilename());
+
    end
 
    LIBS = [ iomp5, { mwlib('lapack'), mwlib('blas') }, libstdcpp ];
+end
+
+function s = formatDefs(prefix, defines)
+    if isempty(defines)
+        s = '';
+    else
+        s = sprintf([' ', prefix, 'D%s'], defines{:});
+    end
+end
+
+%--------------------------------------------------------------------------
+
+function tf = is_visual_cpp()
+   tf = ispc() && ~isempty(regexpi(compiler_short_name(), '^MSVC'));
+end
+
+%--------------------------------------------------------------------------
+
+function tf = is_gnu_gcc()
+   tf = ~isempty(regexpi(compiler_short_name(), 'g\+\+'));
+end
+
+%--------------------------------------------------------------------------
+
+function tf = is_xcode_clang()
+   tf = ~isempty(regexpi(compiler_short_name(), 'Clang\+\+'));
+end
+
+
+%--------------------------------------------------------------------------
+
+function cname = compilername()
+   cfg   = compiler_config();
+   cname = cfg.Name;
+end
+
+%--------------------------------------------------------------------------
+
+function cname = compiler_short_name()
+   cfg   = compiler_config();
+   cname = cfg.ShortName;
+end
+
+%--------------------------------------------------------------------------
+
+function cfg = compiler_config()
+   cfg = mex.getCompilerConfigurations('c++');
 end

@@ -4,7 +4,9 @@
 #include <cmath>
 #include <mex.h>
 #include <array>
-
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
 #include <iostream>
 
 /* MEX gateway */
@@ -29,8 +31,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
         
     plhs[0] = mxCreateDoubleMatrix(nf, m, mxREAL);
     double * result = mxGetPr(plhs[0]);
-    
-    #ifdef _WIN32
+
+    #ifdef _MSC_VER
         #pragma omp parallel for
     #else
         #pragma omp parallel for collapse(2)

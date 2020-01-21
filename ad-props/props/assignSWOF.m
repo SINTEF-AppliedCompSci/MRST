@@ -18,9 +18,9 @@ function [krW, krOW, pcOW, pts_w, pts_ow, hasPC] = getFunctions(SWOF, reg)
         SW = swof(:, 1);
         pc = swof(:, 4);
         hasPC = hasPC || any(pc ~= 0);
-        krW{i} = @(sw) interpTable(SW, swof(:, 2), sw);
-        krOW{i} = @(so) interpTable(SW, swof(:, 3), 1-so);
-        pcOW{i} = @(sw) interpTable(SW, pc, sw);
+        krW{i} = @(sw) reg.interp1d(SW, swof(:, 2), sw);
+        krOW{i} = @(so) reg.interp1d(SW, swof(:, 3), 1-so);
+        pcOW{i} = @(sw) reg.interp1d(SW, pc, sw);
     end
 end
 

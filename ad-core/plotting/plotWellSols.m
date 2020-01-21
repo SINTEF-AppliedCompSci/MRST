@@ -420,10 +420,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 if get(ctrlplot, 'Value') && isfield(wellsols{i}{1}, 'type')
                     type = cellfun(@(ws) ws(wpos).type, wellsols{i}, 'UniformOutput', false);
                     [types, tmp, ctrl_id] = unique(type);
-                    switched = find(diff(ctrl_id, 1) ~= 0);
+                    switched = [1; find(diff(ctrl_id, 1) ~= 0)];
                     for switch_step = 1:numel(switched)
                         six = switched(switch_step);
-                        text(x(six), d(six), [type{six}, '->', type{six+1}], ...
+                        if switch_step == 1
+                            sl = type{six};
+                        else
+                            sl = [type{six}, '->', type{six+1}];
+                        end
+                        text(x(six), d(six), sl, ...
                             'HorizontalAlignment', 'center', 'BackgroundColor', [1, 1, 1]*0.7,...
                             'LineStyle', line, 'edgecolor', c, 'linewidth', 2);
                     end

@@ -20,7 +20,7 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
 
     methods
         function props = FlowPropertyFunctions(model)
-            props@StateFunctionGrouping();
+            props@StateFunctionGrouping('FlowProps');
             sat = props.getRegionSaturation(model);
             pvt = props.getRegionPVT(model);
             % Saturation properties
@@ -32,7 +32,13 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
             props = props.setStateFunction('ShrinkageFactors', BlackOilShrinkageFactors(model, pvt));
             props = props.setStateFunction('Density', BlackOilDensity(model, pvt));
             props = props.setStateFunction('Viscosity', BlackOilViscosity(model, pvt));
-            props = props.setStateFunction('PoreVolume', MultipliedPoreVolume(model, pvt));
+            if isfield(model.fluid, 'pvMultR')
+                % Check for multiplier
+                pv = BlackOilPoreVolume(model, pvt);
+            else
+                pv = PoreVolume(model, pvt);
+            end
+            props = props.setStateFunction('PoreVolume', pv);
             props = props.setStateFunction('PhasePressures', PhasePressures(model, pvt));
             props = props.setStateFunction('PressureReductionFactors', BlackOilPressureReductionFactors(model));
             
@@ -63,8 +69,6 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
             if isprop(model, 'vapoil') && model.vapoil
                 props = props.setStateFunction('RvMax', RvMax(model, pvt));
             end
-            % Define storage field in state
-            props.structName = 'FlowProps';
         end
         
         function sat = getRegionSaturation(props, model)

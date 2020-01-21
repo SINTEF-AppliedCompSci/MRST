@@ -122,19 +122,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isempty(cnames) && opt.UniformFacilityModel && ~isa(model, 'ExtendedReservoirModel')
         model.FacilityModel = UniformFacilityModel(model);
     end
-    % Set up schedule
-    if opt.getSchedule
-        schedule = convertDeckScheduleToMRST(model, deck, extra{:});
-    else
-        schedule = [];
-    end
     % Set up state
     if opt.getInitialState
         state0 = initStateDeck(model, deck);
     else
         state0 = [];
     end
-    
+    % Set up schedule
+    if opt.getSchedule
+        schedule = convertDeckScheduleToMRST(model, deck, extra{:});
+    else
+        schedule = [];
+    end
+
     if nargout > 3
         nonlinear = getNonLinearSolver(model, ...
                                        'TimestepStrategy', opt.TimestepStrategy, ...
@@ -176,7 +176,7 @@ function model = initializeModel(deck, opt)
             G = computeGeometry(G);
         end
     end
-    fluid = initDeckADIFluid(deck, 'G', G);
+    fluid = initDeckADIFluid(deck, 'G', G, 'useMex', opt.useMex);
     gravity reset on;
     
     rock  = compressRock(rock, G.cells.indexMap);

@@ -17,16 +17,19 @@ classdef StateFunctionGrouping
     
     properties (Access = protected)
         structName % Name of the struct where the properties should be stored on state
-        propertyNames % Base name of all properties (i.e. what they implement)
-        propertyTypes % Indicator of property (0 for class member "intrinsic", 1 for stored)
-        extraProperties = {}; % Additional properties, not present as class properties
+        functionNames % Base name of all properties (i.e. what they implement)
+        functionTypes % Indicator of property (0 for class member "intrinsic", 1 for stored)
+        extraFunctions = {}; % Additional properties, not present as class properties
         excludedFields % Class properties which are not intended as functions
     end
     
     methods
-        function props = StateFunctionGrouping()
-            props.propertyNames = setdiff(properties(props), props.excludedFields);
-            props.propertyTypes = zeros(size(props.propertyNames));
+        function props = StateFunctionGrouping(structname)
+            if nargin > 0
+                props.structName = structname;
+            end
+            props.functionNames = setdiff(properties(props), props.excludedFields);
+            props.functionTypes = zeros(size(props.functionNames));
         end
         % ----------------------- Getters --------------------------------%
         function [names, types, implementation] = getNamesOfStateFunctions(props)
@@ -37,8 +40,8 @@ classdef StateFunctionGrouping
             % depended upon). If a third argument is requested, the class
             % name of the currently set implementation will be output as
             % well.
-            names = props.propertyNames;
-            types = props.propertyTypes;
+            names = props.functionNames;
+            types = props.functionTypes;
             if nargout > 2
                 n = numel(names);
                 implementation = cell(n, 1);
@@ -51,12 +54,12 @@ classdef StateFunctionGrouping
 
         function prop = getStateFunction(props, name)
             % Get named property function (case-sensitive)
-            sub = strcmp(props.propertyNames, name);
-            if props.propertyTypes(sub) == 0
+            sub = strcmp(props.functionNames, name);
+            if props.functionTypes(sub) == 0
                 prop = props.(name);
             else
-                extrasub = sub(props.propertyTypes == 1);
-                prop = props.extraProperties{extrasub};
+                extrasub = sub(props.functionTypes == 1);
+                prop = props.extraFunctions{extrasub};
             end
         end
         
@@ -66,6 +69,12 @@ classdef StateFunctionGrouping
             name = props.structName;
         end
 
+        function state = initStateFunctionContainer(group, state)
+            % Set up state function container on a state
+            [f, name] = group.getStateFunctionContainer();
+            state.(name) = f;
+        end
+
         function [container, name] = getStateFunctionContainer(props, state)
             % Set up dynamic container (handle class) for storing
             % properties as we go
@@ -73,7 +82,7 @@ classdef StateFunctionGrouping
             if nargin > 1 && isfield(state, name)
                 container = state.(name);
             else
-                fld = [props.propertyNames(:)'; cell(1, numel(props.propertyNames))];
+                fld = [props.functionNames(:)'; cell(1, numel(props.functionNames))];
                 s = struct(fld{:});
                 container = HandleStruct(s);
             end
@@ -87,10 +96,10 @@ classdef StateFunctionGrouping
             %   - prop. Property implementation (StateFunction instance)
             assert(isa(prop, 'StateFunction'));
             assert(ischar(name));
-            sub = strcmp(props.propertyNames, name);
+            sub = strcmp(props.functionNames, name);
             if any(sub)
                 % We are replacing an existing property
-                ptypes = props.propertyTypes;
+                ptypes = props.functionTypes;
                 type = ptypes(sub);
                 if type == 0
                     % Class property ("intrinsic"), just replace directly
@@ -99,32 +108,32 @@ classdef StateFunctionGrouping
                     % This property was not found, we are adding extending
                     % the list of extra properties
                     assert(type == 1);
-                    props.extraProperties{sub(ptypes == 1)} = prop;
+                    props.extraFunctions{sub(ptypes == 1)} = prop;
                 end
             else
                 % We are adding a new property and must extend the
                 % corresponding internal datastructures.
-                props.propertyNames = [props.propertyNames; name];
-                props.propertyTypes = [props.propertyTypes; 1];
-                props.extraProperties{end+1, 1} = prop;
+                props.functionNames = [props.functionNames; name];
+                props.functionTypes = [props.functionTypes; 1];
+                props.extraFunctions{end+1, 1} = prop;
             end
         end
 
         function props = removeStateFunction(props, name)
             % Remove a property function from the list. Only allowed for
             % non-intrinsic functions.
-            sub = strcmp(props.propertyNames, name);
+            sub = strcmp(props.functionNames, name);
             if any(sub)
-                ptypes = props.propertyTypes;
+                ptypes = props.functionTypes;
                 type = ptypes(sub);
                 if type == 0
                     error('Cannot remove intrinsic property %s', name);
                 else
                     assert(type == 1);
                     extrasub = sub(ptypes == 1);
-                    props.extraProperties = props.extraProperties(~extrasub);
-                    props.propertyTypes = props.propertyTypes(~sub);
-                    props.propertyNames = props.propertyNames(~sub);
+                    props.extraFunctions = props.extraFunctions(~extrasub);
+                    props.functionTypes = props.functionTypes(~sub);
+                    props.functionNames = props.functionNames(~sub);
                 end
             else
                 warning('Property %s was not found, and cannot be removed.', name);
@@ -201,7 +210,7 @@ classdef StateFunctionGrouping
         function props = subset(props, subset)
             % Take the subset of all the properties (reducing regions etc
             % to the new local domain defined by cell_subset).
-            names = props.propertyNames;
+            names = props.functionNames;
             for i = 1:numel(names)
                 name = names{i};
                 prop = props.getStateFunction(name);
@@ -223,8 +232,8 @@ classdef StateFunctionGrouping
                 fprintf('%s', class(props));
             end
             fprintf(' state function grouping instance.\n');
-            names = props.propertyNames;
-            types = props.propertyTypes;
+            names = props.functionNames;
+            types = props.functionTypes;
             
             len = max(cellfun(@numel, names))+1;
             

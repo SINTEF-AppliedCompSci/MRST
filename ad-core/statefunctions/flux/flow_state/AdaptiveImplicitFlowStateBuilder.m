@@ -53,6 +53,26 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
                 end
                 flowState.(name).(prop) = X_hyb;
             end
+            props = builder.explicitProps;
+            for i = 1:numel(props)
+                p = props{i};
+                v0 = model.getProp(state0, p);
+                v = model.getProp(state, p);
+                if iscell(v)
+                    for j = 1:numel(v)
+                        v{j} = v{j}.*implicit;
+                        if iscell(v0)
+                            vj0 = v0{j};
+                        else
+                            vj0 = v0(:, j);
+                        end
+                        v{j} = v{j} + explicit.*vj0;
+                    end
+                else
+                    v = v.*implicit + explicit.*v0;
+                end
+                flowState = model.setProp(flowState, p, v);
+            end
         end
         
         function [builder, state] = prepareTimestep(builder, fd, model, state, state0, dt, drivingForces)

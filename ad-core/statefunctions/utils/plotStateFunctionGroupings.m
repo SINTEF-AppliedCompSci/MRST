@@ -27,6 +27,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'Center', {{}}, ...
                  'TextArg', {{}}, ...
                  'Label', 'name', ...
+                 'Sources', [], ...
                  'ColorizeEdges', 'in', ...
                  'Layout', 'layered', ...
                  'includeState', true);
@@ -47,7 +48,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     groupnames = depgraph.GroupNames;
     impl = depgraph.Implementation;
     full_names = cellfun(@(x, y) sprintf('%s.%s', x, y), groupnames(category), names, 'UniformOutput', false); 
-    if opt.includeState
+    if  ~isempty(opt.Sources)
+        src = opt.Sources;
+        for i = 1:numel(src)
+            if ~contains(src{i}, '.')
+                tmp = find(contains(full_names, src{i}), 1, 'first');
+                src{i} = full_names{tmp}; % Hope that we match
+            end
+        end
+    elseif opt.includeState
         n = size(C, 1);
         left = zeros(n+1, 1);
         isState = reshape(depgraph.GroupTypes <= 0, 1, []);
@@ -60,7 +69,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         src = 1;
     else
         types = depgraph.GroupTypes;
-        src = full_names(types == min(types));
+        if max(types) == min(types)
+            src = full_names{1};
+        else
+            src = full_names(types == min(types));
+        end
     end
     clear graph
     [G, ~, category, keep] = buildStateFunctionDigraph(C, full_names, category, ...
