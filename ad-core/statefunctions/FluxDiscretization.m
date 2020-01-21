@@ -24,7 +24,7 @@ classdef FluxDiscretization < StateFunctionGrouping
             upstr = UpwindFunctionWrapperDiscretization(model);
             tpfa = TwoPointFluxApproximation(model);
 
-            props@StateFunctionGrouping();
+            props@StateFunctionGrouping('FluxProps');
             % Darcy flux
             props = props.setStateFunction('Transmissibility', Transmissibility(model));
             props = props.setStateFunction('PermeabilityPotentialGradient', PermeabilityPotentialGradient(model, tpfa));
@@ -51,9 +51,6 @@ classdef FluxDiscretization < StateFunctionGrouping
 
             % Flow discretizer
             props.FlowStateBuilder = ImplicitFlowStateBuilder();
-            
-            % Define storage
-            props.structName = 'FluxProps';
         end
 
         function fd = setFlowStateBuilder(fd, fb)

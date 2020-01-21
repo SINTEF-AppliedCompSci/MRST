@@ -40,9 +40,9 @@ fluid.rhoGS = 10;
 
 eos = initDeckEOSModel(deck);
 if useNatural
-    model = NaturalVariablesCompositionalModel(G, rock, fluid, eos.fluid, 'water', false);
+    model = GenericNaturalVariablesModel(G, rock, fluid, eos.fluid, 'water', false);
 else
-    model = OverallCompositionCompositionalModel(G, rock, fluid, eos.fluid, 'water', false);
+    model = GenericOverallCompositionModel(G, rock, fluid, eos.fluid, 'water', false);
 end
 schedule = convertDeckScheduleToMRST(model, deck);
 

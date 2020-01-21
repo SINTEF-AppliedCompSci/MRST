@@ -20,7 +20,7 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
 
     methods
         function props = FlowPropertyFunctions(model)
-            props@StateFunctionGrouping();
+            props@StateFunctionGrouping('FlowProps');
             sat = props.getRegionSaturation(model);
             pvt = props.getRegionPVT(model);
             % Saturation properties
@@ -69,8 +69,6 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
             if isprop(model, 'vapoil') && model.vapoil
                 props = props.setStateFunction('RvMax', RvMax(model, pvt));
             end
-            % Define storage field in state
-            props.structName = 'FlowProps';
         end
         
         function sat = getRegionSaturation(props, model)

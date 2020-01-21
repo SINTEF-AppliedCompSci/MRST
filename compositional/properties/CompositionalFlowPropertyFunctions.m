@@ -21,8 +21,9 @@ classdef CompositionalFlowPropertyFunctions < FlowPropertyFunctions
         end
         
         function props = setCompactEvaluation(props, val)
-            for i = 1:numel(props.propertyNames)
-                name = props.propertyNames{i};
+            names = props.functionNames;
+            for i = 1:numel(names)
+                name = names{i};
                 fn = props.getStateFunction(name);
                 if isprop(fn, 'useCompactEvaluation')
                     fn.useCompactEvaluation = val;
