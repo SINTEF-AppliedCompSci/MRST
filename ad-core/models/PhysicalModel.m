@@ -109,8 +109,7 @@ methods
     function state = initStateFunctionContainers(model, state)
         pf = model.getStateFunctionGroupings();
         for i = 1:numel(pf)
-            [f, name] = pf{i}.getStateFunctionContainer();
-            state.(name) = f;
+            state = pf{i}.initStateFunctionContainer(state);
         end
     end
 

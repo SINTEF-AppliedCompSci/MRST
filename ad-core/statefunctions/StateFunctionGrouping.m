@@ -66,6 +66,12 @@ classdef StateFunctionGrouping
             name = props.structName;
         end
 
+        function state = initStateFunctionContainer(group, state)
+            % Set up state function container on a state
+            [f, name] = group.getStateFunctionContainer();
+            state.(name) = f;
+        end
+
         function [container, name] = getStateFunctionContainer(props, state)
             % Set up dynamic container (handle class) for storing
             % properties as we go
