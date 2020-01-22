@@ -621,6 +621,14 @@ classdef SparseTensor
             if sum(keep) == numel(comp.indexnames)
                % no index to contract
                return
+            else
+               % @@ for the moment, we assume that there is only one
+               % contraction to make (generalize this as needed)
+               assert(sum(keep) == numel(comp.indexnames) - 2);
+               tmp = comp.ixs(:, ~keep);
+               keep_entries = tmp(:,1) == tmp(:,2);
+               comp.ixs = comp.ixs(keep_entries, :);
+               comp.coefs = comp.coefs(keep_entries);
             end
             comp.indexnames = comp.indexnames(keep);
             comp.ixs = comp.ixs(:, keep);
@@ -628,6 +636,7 @@ classdef SparseTensor
             % contract one component in one index
             local_ind = strcmp(ixname, comp.indexnames);
 
+            assert(sum(local_ind) <= 1,'duplicated ix'); % no duplicated indices here
             % get rid of contracting index
             comp.indexnames = comp.indexnames(~local_ind);
             comp.ixs = comp.ixs(:, ~local_ind);
