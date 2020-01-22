@@ -382,10 +382,11 @@ classdef SimpleWell < PhysicalModel
                 qMass = sum(qVol.*rho_res, 2);
                 qVol = sum(qVol, 2);
             end
-            if well.allowCrossflow
+            if well.allowCrossflow && wellSol.sign ~= 0
                 % Ignore density contribution from crossflow connections,
                 % since these flows may have unphysical densities.
                 xFlow = sign(qMass) ~= wellSol.sign;
+                xFlow = xFlow & ~all(xFlow);
                 qMass(xFlow) = 0;
                 qVol(xFlow) = 0;
             end
