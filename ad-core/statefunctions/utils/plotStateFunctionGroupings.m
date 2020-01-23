@@ -115,7 +115,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         case 'all'
             local_names = names;
             for i = 1:numel(local_names)
-                if ~isempty(impl{i})
+                if strcmpi(local_names{i}, 'state')
+                    % Do nothing
+                elseif ~isempty(impl{i})
                     local_names{i} = sprintf('%s (%s)', local_names{i}, impl{i});
                 end
             end

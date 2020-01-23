@@ -17,7 +17,7 @@ void divergenceJac(int nf, int nc,
                    const double * accumulation, const double * diagonal,
                    double * pr, mwIndex * ir, mwIndex * jc){
     int mv = facePos[nc];
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for(int index = 0; index < m*nc; index++){
         int col = index % nc;
         int der = index / nc;
@@ -39,7 +39,7 @@ void divergenceJac(int nf, int nc,
         }
     }
     // Loop over cells and assemble Jacobian
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for(int outer_ix = 0; outer_ix < nc*m; outer_ix++){
         int cell = outer_ix % nc;
         int der = outer_ix / nc;

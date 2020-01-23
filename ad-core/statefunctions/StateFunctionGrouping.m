@@ -223,11 +223,13 @@ classdef StateFunctionGrouping
         % ----- Display, plotting etc ------------------------------------%
         function disp(props)
             % Custom display function
+            iname = inputname(1);
             fprintf('  ');
             name = class(props);
             isDesktop = usejava('desktop');
             if isDesktop
-                fprintf('<a href="matlab:helpPopup %s">%s</a> (<a href="matlab:edit %s.m">edit</a>)', name, name, name);
+                fprintf(['<a href="matlab:helpPopup %s">%s</a> (<a href="matlab:edit %s.m">edit</a>', ...
+                    '|<a href="matlab:figure;plotStateFunctionGroupings(%s)">plot</a>)'], name, name, name, iname);
             else
                 fprintf('%s', class(props));
             end
@@ -240,12 +242,16 @@ classdef StateFunctionGrouping
             for type = 0:1
                 typeIndices = find(types == type);
                 if type == 0
-                    fprintf('\n  Intrinsic properties (Class properties for %s, always present):\n\n', class(props));
+                    if isempty(typeIndices)
+                        fprintf('  Class has no intrinsic state functions.\n');
+                    else
+                        fprintf('\n  Intrinsic state functions (Class properties for %s, always present):\n', class(props));
+                    end
                 else
                     if isempty(typeIndices)
-                        fprintf('\n  No extra properties have been added to this class instance.\n\n');
+                        fprintf('  No extra state functions have been added to this class instance.\n');
                     else
-                        fprintf('\n  Extra properties (Added to class instance):\n\n');
+                        fprintf('\n  Extra state functions (Added to class instance):\n');
                     end
                 end
                 for i = 1:numel(typeIndices)
@@ -253,10 +259,12 @@ classdef StateFunctionGrouping
                     fn = props.getStateFunction(names{index});
 
                     cl = class(fn);
-                    fprintf('%*s: ', len, names{index});
+                    fprintf('    %*s: ', len, names{index});
                     if isDesktop
                         fprintf('<a href="matlab:helpPopup %s">%s</a>', cl, cl);
-                        fprintf(' (<a href="matlab:edit %s.m">edit</a>)', cl);
+                        fprintf([' (<a href="matlab:edit %s.m">edit</a>|', ...
+                            '<a href="matlab:figure;plotStateFunctionGroupings(%s,''center'',''%s'')">plot</a>)'],...
+                            cl, iname, [class(props), '.', names{index}]);
                     else
                         fprintf('%s', class(fn));
                     end

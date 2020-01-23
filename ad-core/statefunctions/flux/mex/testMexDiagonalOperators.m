@@ -23,7 +23,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     N = model.operators.N;
     G = model.G;
 
-    opt = struct('print', nargout == 0, 'block_size', 5, 'iterations', 5, 'nc', max(N(:)), 'testSparse', true);
+    opt = struct('print', nargout == 0, 'block_size', 5, ...
+                 'iterations', 5, 'nc', max(N(:)), 'testSparse', true, ...
+                 'testDiag', true, 'testMex', true);
     opt = merge_options(opt, varargin{:});
     
     results = opt;
@@ -52,7 +54,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     cell_mult = @(useMex) fn(cell_value, 2*cell_value, 3*cell_value);
     [f_mex, f_matlab] = genFunctions(cell_mult);
     f_sparse = @(varargin) fn(cell_value_sparse, 2*cell_value_sparse, 3*cell_value_sparse);
-    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellmult', 'Multiply and add (cell)', opt, results);
+    [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellmult', 'Multiply and add (cell)', opt, results);
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %       Test diagonal subsets %
@@ -61,13 +63,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     f_subset = @(useMex) cell_value(subset);
     [f_mex, f_matlab] = genFunctions(f_subset);
     f_sparse = @(varargin) cell_value_sparse(subset);
-    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellsubset', 'Take large subset (cell)', opt, results);
+    [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellsubset', 'Take large subset (cell)', opt, results);
 
     subset = [1; ceil(nc/2); nc];
     f_subset = @(useMex) cell_value(subset);
     [f_mex, f_matlab] = genFunctions(f_subset);
     f_sparse = @(varargin) cell_value_sparse(subset);
-    [cellmultval, cellmultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellsubset_small', 'Take small subset (cell)', opt, results);
+    [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'cellsubset_small', 'Take small subset (cell)', opt, results);
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Test face average      %
@@ -76,7 +78,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [f_mex, f_matlab] = genFunctions(f_avg);
     f_sparse = @(varargin) ops_sparse.faceAvg(cell_value_sparse);
     
-    [favg, favg_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'faceavg', 'Face average', opt, results);
+    [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'faceavg', 'Face average', opt, results);
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Test single-point upwinding %
@@ -84,7 +86,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     upw = @(useMex) singlePointUpwind(flag, N, cell_value, useMex);
     f_sparse = @(varargin) ops_sparse.faceUpstr(flag, cell_value_sparse);
     [f_mex, f_matlab] = genFunctions(upw);
-    [face_value, face_value_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'upwind', 'Single-point upwind', opt, results);
+    [face_value, face_value_mex, face_value_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'upwind', 'Single-point upwind', opt, results);
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Test gradient          %
@@ -92,15 +94,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     grad = @(useMex) twoPointGradient(N, cell_value, [], useMex);
     [f_mex, f_matlab] = genFunctions(grad);
     f_sparse = @(varargin) ops_sparse.Grad(cell_value_sparse);
-    [gradient, gradient_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'gradient', 'Two-point gradient', opt, results);
+    [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'gradient', 'Two-point gradient', opt, results);
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %  Test face diagonal mult    %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    face_mult = @(useMex) fn(face_value, 2*face_value, 3*face_value);
-    [f_mex, f_matlab] = genFunctions(face_mult);
+    f_mex = @() fn(face_value_mex, 2*face_value_mex, 3*face_value_mex);
+    f_matlab = @(useMex) fn(face_value, 2*face_value, 3*face_value);
     f_sparse = @(varargin) fn(face_value_sparse, 2*face_value_sparse, 3*face_value_sparse);
-    [facemultval, facemultval_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'facemult', 'Multiply and add (face)', opt, results);
+    [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'facemult', 'Multiply and add (face)', opt, results);
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Prep divergence        %
@@ -124,18 +126,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Test divergence        %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    div = @(useMex) discreteDivergence([], N, face_value, nc, nf, sortIx, gradMat, prelim, useMex);
-    [f_mex, f_matlab] = genFunctions(div);
+    f_mex = @() discreteDivergence([], N, face_value_mex, nc, nf, sortIx, gradMat, prelim, true);
+    f_matlab = @() discreteDivergence([], N, face_value, nc, nf, sortIx, gradMat, prelim, false);
     f_sparse = @(varargin) ops_sparse.Div(face_value_sparse);
-    [divergence, div_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'div', 'Discrete divergence', opt, results);
+    [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'div', 'Discrete divergence', opt, results);
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Test DivAcc            %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    f_mex = @() discreteDivergence(cell_value, N, face_value, nc, nf, sortIx, gradMat, prelim, true);
-    f_matlab = @() cell_value + discreteDivergence([], N, face_value, nc, nf, sortIx, gradMat, prelim, false);
+    f_mex = @() discreteDivergence(cell_value, N, face_value_mex, nc, nf, sortIx, gradMat, prelim, true);
+    f_matlab = @() discreteDivergence(cell_value, N, face_value, nc, nf, sortIx, gradMat, prelim, false);
     f_sparse = @() ops_sparse.AccDiv(cell_value, face_value);
-    [divacc, divacc_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'accdiv', 'Accumulation + divergence', opt, results);
+    [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'accdiv', 'Accumulation + divergence', opt, results);
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %    Test sparse()           %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -143,38 +145,58 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     V_matlab.useMex = false;
     V_mex = V_matlab;
     V_mex.useMex = true;
-    V_default = face_value_sparse.jac{1};
+    
+    if opt.testSparse
+        V_default = face_value_sparse.jac{1};
+        f_sparse = @() V_default;
+    else
+        f_sparse = @() nan;
+    end
     f_mex = @() V_mex.sparse();
     f_matlab = @() V_matlab.sparse();
-    f_sparse = @() V_default;
-    [cellsparse, cellsparse_sparse, results] = testFunction(f_mex, f_matlab, f_sparse, 'sparse', 'Class -> Sparse', opt, results);
+    [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'sparse', 'Class -> Sparse', opt, results);
     fprintf('**********************************************************************\n');
 end
 
-function [out, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, shortname, name, opt, results)
+function [out, out_mex, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, shortname, name, opt, results)
     its = opt.iterations;
-    [matlab, t_m] = perform_benchmark(fn_mat, its);
-    [mex, t_c] = perform_benchmark(fn_mex, its);
+    check = true;
+    if opt.testDiag
+        [matlab, t_m] = perform_benchmark(fn_mat, its);
+    else
+        [matlab, t_m] = deal(nan);
+        check = false;
+    end
+    if opt.testMex
+        [mex, t_c] = perform_benchmark(fn_mex, its);
+    else
+        [mex, t_c] = deal(nan);
+        check = false;
+    end
     
     out = matlab;
-    if issparse(matlab)
-        v_error = 0;
-    else
-        v_error = norm(value(matlab) - value(mex))./norm(value(matlab));
-    end
+    out_mex = mex;
+    if check
+        if issparse(matlab)
+            v_error = 0;
+        else
+            v_error = norm(value(matlab) - value(mex))./norm(value(matlab));
+        end
 
-    if issparse(matlab)
-        j_error = norm(matlab - mex, inf)./norm(matlab, inf);
+        if issparse(matlab)
+            j_error = norm(matlab - mex, inf)./norm(matlab, inf);
+        else
+            if ~issparse(mex.jac{1})
+                mex.jac{1} = mex.jac{1}.sparse();
+            end
+            if ~issparse(matlab.jac{1})
+                matlab.jac{1} = matlab.jac{1}.sparse();
+            end
+            j_error = norm(matlab.jac{1} - mex.jac{1}, inf)./norm(matlab.jac{1}, inf);
+        end
     else
-        if ~issparse(mex.jac{1})
-            mex.jac{1} = mex.jac{1}.sparse();
-        end
-        if ~issparse(matlab.jac{1})
-            matlab.jac{1} = matlab.jac{1}.sparse();
-        end
-        j_error = norm(matlab.jac{1} - mex.jac{1}, inf)./norm(matlab.jac{1}, inf);
+        [v_error, j_error] = deal(nan);
     end
-    
     
     if opt.testSparse
         [out_sparse, t_s] = perform_benchmark(fn_sparse, its);
@@ -198,13 +220,13 @@ end
 function [out, t] = perform_benchmark(fn, its)
     timer = tic();
     bad = false;
-    try
+%     try
         for i = 1:its
             out = fn();
         end
-    catch
-        bad = true;
-    end
+%     catch
+%         bad = true;
+%     end
     t = toc(timer);
     if bad
         t = nan;

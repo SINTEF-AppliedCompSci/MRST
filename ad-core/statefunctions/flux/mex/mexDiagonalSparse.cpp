@@ -58,7 +58,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
 
     
     if(subset_sz == 0){
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(static)
         for(int index = 0; index < l*n; index++){
             // One entry per column
             jc[index] = index;
