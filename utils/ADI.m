@@ -377,7 +377,7 @@ classdef ADI
           sinu = sin(u.val);
           h = u;
           h.val = sinu;
-          h.jac = ADI.lMultDiag(cos(u.val), u.jac);
+          h.jac = h.lMultDiag(cos(u.val), u.jac);
        end
           
       %--------------------------------------------------------------------
@@ -386,7 +386,7 @@ classdef ADI
           cosu = cos(u.val);
           h = u;
           h.val = cosu;
-          h.jac = ADI.lMultDiag(-sin(u.val), u.jac);
+          h.jac = h.lMultDiag(-sin(u.val), u.jac);
        end
          
       %--------------------------------------------------------------------
