@@ -42,12 +42,12 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double * result = mxGetPr(plhs[0]);
     if(has_accumulation){
         double * accumulation = mxGetPr(prhs[0]);
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(static)
         for(int i = 0; i < (int)nc; i++){
             result[i] = accumulation[i];
         }
     }
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for(int f = 0; f < nf; f++){
         int c1 = N[f]-1;
         int c2 = N[f+nf]-1;

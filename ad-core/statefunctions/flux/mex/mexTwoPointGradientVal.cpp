@@ -33,7 +33,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double * result = mxGetPr(plhs[0]);
 
     #ifdef _MSC_VER
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(static)
     #else
         #pragma omp parallel for collapse(2)
     #endif

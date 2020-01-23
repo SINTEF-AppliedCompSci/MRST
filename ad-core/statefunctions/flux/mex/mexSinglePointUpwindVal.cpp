@@ -35,7 +35,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     plhs[0] = mxCreateDoubleMatrix(nf, dim, mxREAL);
     double * result = mxGetPr(plhs[0]);
     
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for(int i=0;i<nf;i++){
         int cell_inx;
         if(flag[i]){
