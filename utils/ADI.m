@@ -372,6 +372,24 @@ classdef ADI
       end
 
       %--------------------------------------------------------------------
+      function h = sin(u)
+          % Element-wise sine: `h=sin(u)`
+          sinu = sin(u.val);
+          h = u;
+          h.val = sinu;
+          h.jac = h.lMultDiag(cos(u.val), u.jac);
+       end
+          
+      %--------------------------------------------------------------------
+      function h = cos(u)
+          % Element-wise cosine: `h=cos(u)`
+          cosu = cos(u.val);
+          h = u;
+          h.val = cosu;
+          h.jac = h.lMultDiag(-sin(u.val), u.jac);
+       end
+         
+      %--------------------------------------------------------------------
 
       function h = max(u,v)
           % Take the element-wise maximum value of two objects
