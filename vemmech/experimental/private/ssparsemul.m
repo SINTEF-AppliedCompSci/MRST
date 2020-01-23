@@ -10,16 +10,19 @@ function [rows, cols, vals] = ssparsemul(ixs1, v1, ixs2, v2)
    % [ik2, in, v2] = find(m2);
    % M = size(m1, 1);
    % N = size(m2, 2);
-   
+
    tmp = diff(in);
    tmp_ix = find(tmp);
    
    k_for_n = [ones(in(1), 1); 1+rldecode(tmp_ix, tmp(tmp_ix)); numel(in)+1];
+
+   k_for_n = [k_for_n; repmat(k_for_n(end), N+1-numel(k_for_n), 1)];
    
    tmp = diff(ik1);
    tmp_ix = find(tmp);
    m_for_k = [ones(ik1(1), 1); 1+rldecode(tmp_ix, tmp(tmp_ix)); numel(ik1)+1];
 
+   m_for_k = [m_for_k; repmat(m_for_k(end), max(ik2)+1 - numel(m_for_k), 1)];
    
    if isa(v1, 'ADI') || isa(v2, 'ADI')
       % temporal storage arrays must be ADI too
@@ -62,10 +65,10 @@ function [rows, cols, vals] = ssparsemul(ixs1, v1, ixs2, v2)
          mix0 = m_for_k(k);
          mix1 = m_for_k(k+1);
          num_new = mix1-mix0;
-         
-         tmp_m(next_entry_loc:next_entry_loc + num_new - 1) = im(mix0:mix1-1);
-         tmp_v(next_entry_loc:next_entry_loc + num_new - 1) = val * v1(mix0:mix1-1);
-      
+         if num_new > 0
+            tmp_m(next_entry_loc:next_entry_loc + num_new - 1) = im(mix0:mix1-1);
+            tmp_v(next_entry_loc:next_entry_loc + num_new - 1) = val * v1(mix0:mix1-1);
+         end
          next_entry_loc = next_entry_loc + num_new;
       end
       
