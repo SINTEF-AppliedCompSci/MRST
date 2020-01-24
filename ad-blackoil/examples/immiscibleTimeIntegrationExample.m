@@ -60,15 +60,10 @@ aim = packSimulationProblem(state0, model_aim, schedule, 'immiscible_time', 'Nam
 % single step. We bypass the convergence checks and can demonstrate the
 % oscillations that result in taking a longer time-step than the stable
 % limit.
-model_explicit_largedt = model.validateModel();
-% Get the flux discretization
-flux = model_explicit_largedt.FluxDiscretization;
-% Use explicit form of flow state
-fb = ExplicitFlowStateBuilder();
-fb.saturationCFL = 5;
-fb.compositionCFL = inf; % Immiscible, saturation cfl is enough
-flux = flux.setFlowStateBuilder(fb);
-model_explicit_largedt.FluxDiscretization = flux;
+model_explicit_largedt = setTimeDiscretization(model, 'explicit', 'verbose', true,...
+    'saturationCFL', 5, ...
+    'compositionCFL', inf); % Immiscible, saturation cfl is enough
+
 model_explicit_largedt.stepFunctionIsLinear = true; 
 explicit_largedt = packSimulationProblem(state0, model_explicit_largedt, schedule, 'immiscible_time', 'Name', 'Explicit (CFL target 5)');
 
