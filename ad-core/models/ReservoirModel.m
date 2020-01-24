@@ -52,6 +52,7 @@ properties
     % Coupling to forces and other models
     gravity % Vector for the gravitational force
     FacilityModel % Facility model used to represent wells
+    FacilityNonLinearSolver % Nonlinear solver used when wells are solved separately
     AquiferModel  % Model used to represent aquifers
     FlowPropertyFunctions % Grouping for flow properties
     FluxDiscretization % Grouping for flux discretization
@@ -184,6 +185,7 @@ methods
         else
             model.FacilityModel.ReservoirModel = model;
         end
+        model.FacilityModel.AutoDiffBackend = model.AutoDiffBackend;
 
         assert(~isempty(model.operators),...
             'Operators must be set up before simulation. See model.setupOperators for more details.');
@@ -202,6 +204,17 @@ methods
         end
     end
 
+    function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin)
+        if iteration == 1 && ~isempty(model.FacilityNonLinearSolver)
+            nls = model.FacilityNonLinearSolver;
+            [state, freport] = nls.solveTimestep(state0, dt, model.FacilityModel, 'initialGuess', state, 'W', drivingForces.W);
+        else
+            freport = [];
+        end
+        [state, report] = stepFunction@PhysicalModel(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin{:});
+        report.FacilityStepReport = freport;
+    end
+    
     % --------------------------------------------------------------------%
     function [model, state] = updateForChangedControls(model, state, forces)
         % Called whenever controls change.

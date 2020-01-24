@@ -279,8 +279,8 @@ classdef FacilityModel < PhysicalModel
             state = initStateAD@PhysicalModel(model, state, {}, {}, {});
         end
 
-        function [variables, names, origin] = getPrimaryVariables(model, wellSol)
-            [variables, names] = model.getAllPrimaryVariables(wellSol);
+        function [variables, names, origin] = getPrimaryVariables(model, state)
+            [variables, names] = model.getAllPrimaryVariables(state.wellSol);
             origin = cell(size(variables));
             [origin{:}] = deal(class(model));
         end
