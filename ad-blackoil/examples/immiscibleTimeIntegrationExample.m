@@ -44,14 +44,7 @@ implicit = packSimulationProblem(state0, model, schedule, 'immiscible_time', 'Na
 %% Explicit solver
 % This solver has a time-step restriction based on the CFL condition in
 % each cell. The solver estimates the time-step before each solution.
-model_explicit = model.validateModel();
-% Get the flux discretization
-flux = model_explicit.FluxDiscretization;
-% Use explicit form of flow state
-fb = ExplicitFlowStateBuilder('Verbose', true);
-fb.compositionCFL = inf;
-flux = flux.setFlowStateBuilder(fb);
-model_explicit.FluxDiscretization = flux;
+model_explicit = setTimeDiscretization(model, 'explicit', 'verbose', true);
 explicit = packSimulationProblem(state0, model_explicit, schedule, 'immiscible_time', 'Name', 'Explicit');
 
 %% Adaptive implicit
@@ -60,12 +53,7 @@ explicit = packSimulationProblem(state0, model_explicit, schedule, 'immiscible_t
 % treatment far away from wells or driving forces. The values for
 % estimated composition CFL and saturation CFL to trigger a switch to
 % implicit status can be adjusted.
-model_aim = model.validateModel();
-flux = model_aim.FluxDiscretization;
-fb = AdaptiveImplicitFlowStateBuilder('Verbose', true);
-fb.compositionCFL = inf;
-flux = flux.setFlowStateBuilder(fb);
-model_aim.FluxDiscretization = flux;
+model_aim = setTimeDiscretization(model, 'adaptive-implicit', 'verbose', true);
 aim = packSimulationProblem(state0, model_aim, schedule, 'immiscible_time', 'Name', 'Adaptive-Implicit (AIM)');
 %% Make an explicit solver with larger CFL limit
 % Since the equation is linear, we can set the NonLinearSolver to use a

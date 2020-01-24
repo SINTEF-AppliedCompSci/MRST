@@ -10,13 +10,7 @@ implicit = packSimulationProblem(state0, model, schedule, 'SPE1_ex', 'Name', 'Fu
 %% Explicit solver
 % This solver has a time-step restriction based on the CFL condition in
 % each cell. The solver estimates the time-step before each solution.
-model_explicit = model.validateModel();
-% Get the flux discretization
-flux = model_explicit.FluxDiscretization;
-% Use explicit form of flow state
-fb = ExplicitFlowStateBuilder();
-flux = flux.setFlowStateBuilder(fb);
-model_explicit.FluxDiscretization = flux;
+model_explicit = setTimeDiscretization(model, 'explicit');
 explicit = packSimulationProblem(state0, model_explicit, schedule, 'SPE1_ex', 'Name', 'Explicit');
 
 %% Adaptive implicit
@@ -25,11 +19,7 @@ explicit = packSimulationProblem(state0, model_explicit, schedule, 'SPE1_ex', 'N
 % treatment far away from wells or driving forces. The values for
 % estimated composition CFL and saturation CFL to trigger a switch to
 % implicit status can be adjusted.
-model_aim = model.validateModel();
-flux = model_aim.FluxDiscretization;
-fb = AdaptiveImplicitFlowStateBuilder();
-flux = flux.setFlowStateBuilder(fb);
-model_aim.FluxDiscretization = flux;
+model_aim = setTimeDiscretization(model, 'adaptive-implicit');
 aim = packSimulationProblem(state0, model_aim, schedule, 'SPE1_ex', 'Name', 'Adaptive-Implicit (AIM)');
 %% Simulate the problems
 problems = {implicit, explicit, aim};
