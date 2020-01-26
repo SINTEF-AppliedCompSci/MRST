@@ -49,6 +49,7 @@ nodefacetbl.num   = numel(nodefacetbl.faces);
 % We setup the face-node table and it is ordered along ascending node numbers so
 % that we will have a block structure for the nodal scalar product.
 nodefacetbl = sortTable(nodefacetbl, {'nodes', 'faces'});
+nodefacecoltbl = crossTable(nodefacetbl, coltbl, {});
 
 cellnodefacetbl = crossTable(cellfacetbl, nodefacetbl, {'faces'});
 
@@ -127,13 +128,17 @@ cellnodecoltbl     = rmfield(cellnodecoltbl, {'cncind'});
 % cellnodecolrowtbl is obtained for any u in cellnodefacecoltbl by using v =
 % grad_nodeface.evalProd(g, u) where grad_nodeface is defined below
 %
-grad_nodeface = TensorProd();
-grad_nodeface.tbl1 = cellnodefacecoltbl;
-grad_nodeface.tbl2 = cellnodefacecoltbl;
-grad_nodeface.replacefds1 = {'coldim', 'rowdim'};
-grad_nodeface.reducefds = {'faces'};
-grad_nodeface.mergefds = {'cells', 'nodes'};
-grad_nodeface = grad_nodeface.setup();
+prod = TensorProd();
+prod.tbl1 = cellnodefacecoltbl;
+prod.tbl2 = nodefacecoltbl;
+prod.replacefds1 = {'coldim', 'rowdim'};
+prod.reducefds = {'faces'};
+prod.mergefds = {'nodes'};
+prod.prodtbl = cellnodecolrowtbl;
+prod = prod.setup();
+
+grad_nodeface = SparseTensor();
+grad_nodeface = grad_nodeface.setFromTensorProd(g, prod);
 
 % The cellcol part of the grad operator from cellcoltbl to cellnodecolrowtbl is
 % obtained for any u in cellcoltbl by using v = grad_cell.evalProd(greduced, u)
@@ -141,13 +146,15 @@ grad_nodeface = grad_nodeface.setup();
 %
 fds = {'cells', 'nodes', 'coldim'};
 greduced = - tblmap(g, cellnodefacecoltbl, cellnodecoltbl, fds); 
-grad_cell = TensorProd();
-grad_cell.tbl1 = cellnodecoltbl;
-grad_cell.tbl2 = cellcoltbl;
-grad_cell.replacefds1 = {'coldim', 'rowdim'};
-grad_cell.mergefds = {'cells'};
-grad_cell = grad_cell.setup();
+prod = TensorProd();
+prod.tbl1 = cellnodecoltbl;
+prod.tbl2 = cellcoltbl;
+prod.replacefds1 = {'coldim', 'rowdim'};
+prod.mergefds = {'cells'};
+prod = prod.setup();
 
+grad_cell = SparseTensor();
+grad_cell = grad_cell.setFromTensorProd(greduced, prod);
 
 %% setup the facet normals
 fno = cellnodefacetbl.faces;
@@ -164,35 +171,64 @@ facetNormals = reshape(facetNormals', [], 1);
 
 % The nodefacecol part of the divergence operator from cellnodecolrowtbl to
 % nodefacecoltbl is obtained for any u in cellnodecolrowtbl by evaluating the
-% expression div_facenode.evalProd(d, u) where d and div_facenode are defined
+% expression div_nodeface.evalProd(d, u) where d and div_nodeface are defined
 % below
 %
 d = facetNormals; 
-div_facenode = TensorProd();
-div_facenode.tbl1 = cellnodefacecoltbl;
-div_facenode.tbl2 = cellnodecolrowtbl;
-div_facenode.replacefds1 = {'coldim', 'rowdim'};
-div_facenode.reducefds = {'rowdim', 'cells'};
-div_facenode.mergefds = {'nodes'};
-div_facenode.mergefds = {'nodes'};
-div_facenode = div_facenode.setup();
+prod = TensorProd();
+prod.tbl1 = cellnodefacecoltbl;
+prod.tbl2 = cellnodecolrowtbl;
+prod.replacefds1 = {'coldim', 'rowdim'};
+prod.reducefds = {'rowdim', 'cells'};
+prod.mergefds = {'nodes'};
+prod.prodtbl = nodefacecoltbl;
+prod = prod.setup();
+
+div_nodeface = SparseTensor();
+div_nodeface = div_nodeface.setFromTensorProd(d, prod);
 
 % the cellcol part of the divergence operator from cellnodecolrowtbl to
 % cellcoltbl is obtained for any u in cellnodecolrowtbl by evaluating the
-% expression div_facenode.evalProd(dreduced, u) where dreduced and div_facenode
+% expression div_cell.evalProd(dreduced, u) where dreduced and div_cell
 % are defined below
 %
+
+warning('div_cell to be fixed...')
 fds = {'cells', 'nodes', 'coldim'};
 % note the minus sign below (see formula in paper)
-dereduced = - tblmap(facetNormals, cellnodefacecoltbl, cellnodecoltbl, fds);
+dreduced = - tblmap(facetNormals, cellnodefacecoltbl, cellnodecoltbl, fds);
 
-div_cell = TensorProd();
-div_cell.tbl1 = cellnodecoltbl;
-div_cell.tbl2 = cellnodecolrowtbl;
-div_cell.replacefds1 = {'coldim', 'rowdim'};
-div_cell.reducefds   = {'rowdim', 'nodes'};
-div_cell.mergefds    = {'cells'};
-div_cell = div_cell.setup();
+prod = TensorProd();
+prod.tbl1 = cellnodecoltbl;
+prod.tbl2 = cellnodecolrowtbl;
+prod.replacefds1 = {'coldim', 'rowdim'};
+prod.reducefds   = {'rowdim', 'nodes'};
+prod.mergefds    = {'cells'};
+prod = prod.setup();
+
+div_cell = SparseTensor();
+div_cell = div_cell.setFromTensorProd(dreduced, prod);
 
 
+divgrad_nodeface = multSparseTensor(div_nodeface, grad_nodeface);
 
+divgradmat = divgrad_nodeface.getMatrix();
+
+return
+
+
+prod = TensorProd();
+prod.tbl1 = nodefacecoltbl;
+prod.tbl2 = cellnodefacecoltbl;
+prod.mergefds = {'faces', 'nodes', 'coldim'};
+prod.prodtbl = cellnodefacecoltbl;
+prod = prod.setup();
+
+tens = SparseTensor();
+val = ones(cellnodefacecoltbl.num, 1);
+tens = tens.setFromTensorProd(val, prod, 'argindex', 2);
+
+
+divgrad_nodeface = multSparseTensor(divgrad_nodeface, tens);
+
+mat = divgrad_nodeface.getMatrix();
