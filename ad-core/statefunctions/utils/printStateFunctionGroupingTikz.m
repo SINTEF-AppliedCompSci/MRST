@@ -10,7 +10,7 @@ function printStateFunctionGroupingTikz(g)
     groupNames = cell(1, n);
     for i = 1:n
         node = nodes{i};
-        sep = split(node, '.');
+        sep = regexp(node,'\.','split');
         if numel(sep) == 1
             nodeName = sep{1};
             groupName = 'state';
