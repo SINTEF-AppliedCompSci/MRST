@@ -73,7 +73,7 @@ end
 function schedule = setReferenceDepths(schedule, W_all, opt)
     for wNo = 1:numel(W_all)
         w = W_all(wNo);
-        if isnan(w.refDepth)
+        if (isfield(w.defaulted, 'refDepth') && w.defaulted.refDepth) || isnan(w.refDepth)
             assert(~isempty(opt.G), 'Grid must be provided when refDepth is defaulted');
             z = opt.G.cells.centroids(:, 3);
             c = w.cells;
@@ -316,7 +316,7 @@ function schedule = reorderWellsPerforations(schedule, opt)
         dispif(mrstVerbose(), 'Ordering well %d (%s) with strategy "%s".\n', ...
                                 wNo, schedule.control(1).W(wNo).name, order{wNo})
         strategy = lower(order{wNo});
-        if startsWith(strategy, 'direction')
+        if ~isempty(regexp(strategy, 'direction', 'once'))
             schedule = directionReorder(schedule, wNo, opt, strategy);
         else
             switch strategy
