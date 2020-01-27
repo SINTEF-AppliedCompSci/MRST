@@ -224,12 +224,16 @@ classdef StateFunctionGrouping
         function disp(props)
             % Custom display function
             iname = inputname(1);
+            canPlot = ~isempty(iname); % Make sure that the variable is defined in workspace
             fprintf('  ');
             name = class(props);
             isDesktop = usejava('desktop');
             if isDesktop
-                fprintf(['<a href="matlab:helpPopup %s">%s</a> (<a href="matlab:edit %s.m">edit</a>', ...
-                    '|<a href="matlab:figure;plotStateFunctionGroupings(%s)">plot</a>)'], name, name, name, iname);
+                fprintf('<a href="matlab:helpPopup %s">%s</a> (<a href="matlab:edit %s.m">edit</a>', name, name, name);
+                if canPlot
+                    fprintf('|<a href="matlab:figure;plotStateFunctionGroupings(%s)">plot</a>', iname);
+                end
+                fprintf(')');
             else
                 fprintf('%s', class(props));
             end
@@ -262,9 +266,13 @@ classdef StateFunctionGrouping
                     fprintf('    %*s: ', len, names{index});
                     if isDesktop
                         fprintf('<a href="matlab:helpPopup %s">%s</a>', cl, cl);
-                        fprintf([' (<a href="matlab:edit %s.m">edit</a>|', ...
-                            '<a href="matlab:figure;plotStateFunctionGroupings(%s,''center'',''%s'')">plot</a>)'],...
-                            cl, iname, [class(props), '.', names{index}]);
+                        fprintf(' (<a href="matlab:edit %s.m">edit</a>', cl);
+                        if canPlot
+                            fprintf(['|<a href="matlab:figure;plotStateFunctionGroupings(%s,', ...
+                                     '''center'',''%s'')">plot</a>'],...
+                                iname, [class(props), '.', names{index}]);
+                        end
+                        fprintf(')');
                     else
                         fprintf('%s', class(fn));
                     end
