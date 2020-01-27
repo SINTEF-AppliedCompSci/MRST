@@ -97,12 +97,12 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     if ~opt.resOnly
         % ADI variables needed since we are not only computing residuals.
         if ~opt.reverseMode
-            [p, sW, x, cp, cs, wellVars{:}] = initVariablesADI(p, sW, x, cp, cs, wellVars{:});
+            [p, sW, x, cp, cs, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, sW, x, cp, cs, wellVars{:});
         else
             x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
             % Set initial gradient to zero
             wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
-            [p0, sW0, x0, cp0, cs0, wellVars0{:}] = initVariablesADI(p0, sW0, x0, cp0, cs0, wellVars0{:});
+            [p0, sW0, x0, cp0, cs0, wellVars0{:}] = model.AutoDiffBackend.initVariablesAD(p0, sW0, x0, cp0, cs0, wellVars0{:});
             [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW0, x0, rs0, rv0, p0);
         end
     end
@@ -296,7 +296,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
 
     % Conservation of mass for water
     water = (1/dt).*(pv.*bW.*sW - pv0.*bW0.*sW0);
-    divWater = s.Div(bWvW);
+    wflux = bWvW;
 
     % Conservation of mass for oil
     if model.vapoil
@@ -307,10 +307,10 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
         % Final equation
         oil = (1/dt).*( pv .*(bO.* sO  + rv.* bG.* sG) - ...
                         pv0.*(bO0.*sO0 + rv0.*bG0.*sG0));
-        divOil = s.Div(bOvO + rvbGvG);
+        oflux = bOvO + rvbGvG;
     else
         oil = (1/dt).*(pv.*bO.*sO - pv0.*bO0.*sO0 );
-        divOil = s.Div(bOvO);
+        oflux = bOvO;
     end
 
     % Conservation of mass for gas
@@ -320,10 +320,10 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
 
         gas = (1/dt).*(pv.* (bG.* sG  + rs.* bO.* sO) - ...
                        pv0.*(bG0.*sG0 + rs0.*bO0.*sO0 ));
-        divGas = s.Div(bGvG + rsbOvO);
+        gflux = bGvG + rsbOvO;
     else
         gas = (1/dt).*(pv.*bG.*sG - pv0.*bG0.*sG0 );
-        divGas = s.Div(bGvG);
+        gflux = bGvG;
     end
 
     % Computation of adsoprtion term
@@ -340,11 +340,11 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     % Conservation of polymer in polymer phase:
     polymer = ((1-fluid.dps)/dt).*(pv.*bW.*sW.*cp - ...
                                      pv0.*fluid.bW(p0).*sW0.*cp0) + (s.pv/dt).* adsp_term;
-    divPolymer = s.Div(bWvP);
+    pflux = bWvP;
     
     % Conservation of surfactant in water:
     surfactant = (1/dt).*(pv.*bW.*sW.*cs - pv0.*bW0.*sW0.*cs0) + (s.pv/dt).*adss_term;
-    divSurfactant = s.Div(bWvSft);
+    sflux = bWvSft;
     
     % Applying correction to the surfactant and polymer equation when the Jacobian is
     % prolematic for some cells.
@@ -353,8 +353,9 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
         epsilon = 1.e-8;
         % the first way is based on the diagonal values of the resulting
         % Jacobian matrix
-        epsP = sqrt(epsilon)*mean(abs(diag(polymer.jac{4})));
-        epsS = sqrt(epsilon)*mean(abs(diag(surfactant.jac{5})));
+        [dp, ds] = getDiags(polymer, surfactant);
+        epsP = sqrt(epsilon)*mean(abs(dp));
+        epsS = sqrt(epsilon)*mean(abs(ds));
         % sometimes there is no water in the whole domain
         if (epsP == 0.)
             epsP = epsilon;
@@ -363,15 +364,15 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
             epsS = epsilon;
         end
         % bad marks the cells prolematic in evaluating Jacobian
-        badP = abs(diag(polymer.jac{4})) < epsP;
-        badS = abs(diag(surfactant.jac{5})) < epsS;
+        badP = abs(dp) < epsP;
+        badS = abs(ds) < epsS;
         % the other way is to choose based on the water saturation
         polymer(badP) = cp(badP);
         surfactant(badS) = cs(badS);
     end
 
     eqs   = {water, oil, gas, polymer, surfactant};
-    divTerms = {divWater, divOil, divGas, divPolymer, divSurfactant};
+    fluxes = {wflux, oflux, gflux, pflux, sflux};
     names = {'water', 'oil', 'gas', 'polymer', 'surfactant'};
     types = {'cell', 'cell', 'cell', 'cell', 'cell'};
     components = {cp, cs};
@@ -411,8 +412,8 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
                                                     p, mob, rho, dissolved, ...
                                                     components, dt, opt);
     % Finally, adding divergence terms to equations
-    for i = 1:numel(divTerms)
-        eqs{i} = eqs{i} + divTerms{i};
+    for i = 1:numel(fluxes)
+        eqs{i} = s.AccDiv(eqs{i}, fluxes{i});
     end
     
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
@@ -625,6 +626,16 @@ function zSh = computeShearMultLog(fluid, vW, muWMultf)
     zSh = ones(numel(vW), 1);
     zSh(iShear) = z;
 
+end
+
+function [dp, ds] = getDiags(polymer, surfactant)
+    if isa(polymer, 'GenericAD') && isa(polymer.jac{1}, 'DiagonalJacobian');
+        dp = polymer.jac{1}.diagonal(:, 4);
+        ds = surfactant.jac{1}.diagonal(:, 5);
+    else
+        dp = diag(polymer.jac{4});
+        ds = diag(surfactant.jac{5});
+    end
 end
 
 %--------------------------------------------------------------------------
