@@ -19,8 +19,9 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
             fluid = model.fluid;
             [cs, Nc] = model.getProps(state, 'surfactant', 'capillaryNumber');
 
-            isSft = (value(cs) > 0);
-            m = 0*cs;
+            isSft = value(cs) > 0;
+            m = zeros(model.G.cells.num, 1);
+            m = model.AutoDiffBackend.convertToAD(m, cs);
             if nnz(isSft) > 0
                 logNc = log(Nc(isSft))/log(10);
                 % We cap logNc (as done in Eclipse)
