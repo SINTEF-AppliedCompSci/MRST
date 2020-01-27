@@ -14,7 +14,7 @@ classdef SurfactantCapillaryPressure < BlackOilCapillaryPressure
             fluid = model.fluid;
             if ~isfield(fluid, 'pcOW')
                 pc = evaluateOnDomain@BlackOilCapillaryPressure(prop, model, ...
-                                                                state);
+                    state);
             else
                 [act, phInd] = model.getActivePhases();
                 nph = sum(act);
@@ -25,6 +25,15 @@ classdef SurfactantCapillaryPressure < BlackOilCapillaryPressure
                 pcow = pcow.*fluid.ift(c)/fluid.ift(0);
                 % Note sign! Water is always first
                 pc{phInd == 1} = -pcow;
+                
+                if model.gas && model.oil && isfield(fluid, 'pcOG')
+                    sG = model.getProp(state, 'sg');
+                    pc{phInd == 3} = prop.evaluateFunctionOnDomainWithArguments(fluid.pcOG, sG);
+                end
+                if ~model.oil && isfield(fluid, 'pcWG')
+                    pc{phInd == 2} = prop.evaluateFunctionOnDomainWithArguments(fluid.pcWG, sG);
+                end
+                
             end
         end
     end
