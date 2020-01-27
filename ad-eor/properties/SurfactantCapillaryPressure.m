@@ -6,7 +6,7 @@ classdef SurfactantCapillaryPressure < BlackOilCapillaryPressure
     methods
         function prop = SurfactantCapillaryPressure(varargin)
             prop@BlackOilCapillaryPressure(varargin{:});
-            prop = prop.dependsOn({'sW', 'surfactant'}, 'state');
+            prop = prop.dependsOn({'s', 'surfactant'}, 'state');
         end
         
         function pc = evaluateOnDomain(prop, model, state)

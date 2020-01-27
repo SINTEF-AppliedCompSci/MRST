@@ -132,12 +132,7 @@
     % Set up properties
     state = model.initStateFunctionContainers(state);
 
-    % EQUATIONS ---------------------------------------------------------------
-    pBH = wellVars{wellMap.isBHP};
-    Nc = computeCapillaryNumber(p, cs, pBH, W, fluid, G, op, 'velocCompMethod', ...
-                            opt.velocCompMethod);
-    state.CapillaryNumber = Nc;
-    
+    % EQUATIONS ---------------------------------------------------------------   
     [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
     [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
     [phaseFlux, flags] = model.getProps(state, 'PhaseFlux',  'PhaseUpwindFlag');

@@ -110,17 +110,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     state = model.initStateFunctionContainers(state);
     
     % EQUATIONS ---------------------------------------------------------------
-    pBH = wellVars{wellMap.isBHP};
-    Nc = computeCapillaryNumber(p, cs, pBH, W, fluid, G, op, 'velocCompMethod', ...
-                                opt.velocCompMethod);
-    state.CapillaryNumber = Nc;
-
     [b, pv]               = model.getProps(state, 'ShrinkageFactors','PoreVolume');
     [b0, pv0]             = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
     [phaseFlux, flags]    = model.getProps(state, 'PhaseFlux', 'PhaseUpwindFlag');
     [pressures, mob, rho] = model.getProps(state, 'PhasePressures', 'Mobility', 'Density');
-    [kr] = model.getProps(state, 'RelativePermeability');
-    state.RelativePermeability = kr;
     
     if isfield(fluid, 'pvMultR')
         pvMult =  fluid.pvMultR(p);
