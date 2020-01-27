@@ -46,6 +46,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     for w = 1:numel(wellSol)
         ws = wellSol(w);
+        if ~ws.status
+            continue
+        end
         tp = ws.type;
         v  = ws.val;
         switch tp
@@ -73,12 +76,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 ws.qWs = v;
             case 'grat'
                 ws.qGs = v;
-            case 'lrat'
-                % Do nothing
-            case 'thp'
+            case {'lrat', 'thp', 'resv'}
                 % Do nothing
             otherwise
-                error('Unknown well control mode');
+                error('Unknown well control mode %s', tp);
         end
         wellSol(w) = ws;
     end

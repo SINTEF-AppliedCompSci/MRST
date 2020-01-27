@@ -72,6 +72,9 @@ classdef ExtendedFacilityModel < FacilityModel
             end
         end
         
+        function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
+            [problem, state] = getEquations@PhysicalModel(model, state0, state, dt, drivingForces, varargin{:});
+        end
         function [eqs, names, types, state] = getModelEquations(facility, state0, state, dt, drivingForces)
             model = facility.ReservoirModel;
             map = facility.getProps(state, 'FacilityWellMapping');

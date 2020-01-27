@@ -123,7 +123,7 @@ methods
         [origin{:}] = deal(class(model));
         
         if not(isempty(model.FacilityModel))
-            [v, n, o] = model.FacilityModel.getPrimaryVariables(state.wellSol);
+            [v, n, o] = model.FacilityModel.getPrimaryVariables(state);
             vars = [vars, v];
             names = [names, n];
             origin = [origin, o];

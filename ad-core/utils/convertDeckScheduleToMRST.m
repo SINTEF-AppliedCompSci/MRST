@@ -96,7 +96,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     for i = 1:nc
         % Parse well
-        W = processWells(model.G, model.rock, scheduleDeck.control(i), 'DepthReorder', opt.DepthReorder, wellArg{:}, 'cellDims', cellDims);
+        W = processWells(model.G, model.rock, scheduleDeck.control(i), 'OutputDefaulted', true, ...
+            'DepthReorder', opt.DepthReorder, wellArg{:}, 'cellDims', cellDims);
         
         for j = 1:numel(W)
             c = [W(j).compi, 0];
