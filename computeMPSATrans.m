@@ -12,8 +12,15 @@ blocksize = 10;
 % general unstructured grids, the Cartesian grid is here represented using
 % an unstructured formate in which cells, faces, nodes, etc. are given
 % explicitly.
-nx = 10; ny = 10;
-G = cartGrid([nx, ny]);
+dimcase = 3;
+switch dimcase
+  case 2
+    nx = 10; ny = 10;
+    G = cartGrid([nx, ny]);
+  case 3
+    nx = 5; ny = 5; nz = 5;
+    G = cartGrid([nx, ny, nz]);
+end
 % G = twister(G, 0.1);
 G = computeGeometry(G);
 nc = G.cells.num;
@@ -282,7 +289,6 @@ voigt1 = [];
 voigt2 = [];
 stensind = [];
 
-
 for i = 1 : vdim
     for j = i : vdim
         voigt1(end + 1) = i;
@@ -292,7 +298,6 @@ for i = 1 : vdim
     end
 end
 
-
 stenstbl.voigt1 = voigt1';
 stenstbl.voigt2 = voigt2';
 stenstbl.stensind = stensind';
@@ -300,73 +305,43 @@ stenstbl.num = stensdim;
 fds = {'stensind', 'voigt1', 'voigt2'};
 stenstbl = sortTable(stenstbl, fds);
 
-voigt2tbl = crossTable(voigtbl, voigtbl, 'crossextend', {'voigt1', ...
-                    'voigt2'});
+mat = sparse(voigt1, voigt2, stensind);
+mat = diag(diag(mat)) + abs(mat - mat');
+[i, j, ind] = find(mat);
 
+stensfulltbl.voigt1 = i;
+stensfulltbl.voigt2 = j;
+stensfulltbl.stensind = ind;
+stensfulltbl.num = numel(i);
 
-for i = 1 : voigt2tbl.num
-    v1 = voigt2tbl.voigt1;
-    v2 = voigt2tbl.voigt2;
-    if v1 < v2;
-        stensind(i) = 
-    
-% stensmat = convertTableToArray(stenstbl, {'stensind', 'voigt1', 'voigt2'});
-
-
-% stensfullmat = [stensmat; ...
-%             [stensmat(:, 1), stensmat(:, 3), stensmat(:, 2)]];
-
-% stensfulltbl = convertArrayToTable(stensfullmat, {'stensind', 'voigt1', ...
-%                     'voigt2'});
-
-% stensfulltbl = crossTable(stensfulltbl, voigttbl, {{'voigt1', 'voigt'}});
-% stensfulltbl = replacefield(stensfulltbl, {{'coldim', 'coldim1'}, {'rowdim', 'rowdim1'}});
-% stensfulltbl = crossTable(stensfulltbl, voigttbl, {{'voigt2', 'voigt'}});
-% stensfulltbl = replacefield(stensfulltbl, {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}});
-% stensfulltbl = rmfield(stensfulltbl, {'voigt1', 'voigt2'});
-
-% fds = {'stensind', 'rowdim1', 'coldim1', 'rowdim2', 'coldim2'};
-% stensfulltbl = sortTable(stensfulltbl, fds);
-% stensfullmat = convertTableToArray(stensfulltbl, fds);
 
 crossfds = {{'coldim', {'coldim1', 'coldim2'}}, ...
             {'rowdim', {'rowdim1', 'rowdim2'}}, ...
-            {'voigt', {'voigt1', 'voigt2'}}};
+           };
+col2row2tbl = crossTable(colrowtbl, colrowtbl, {}, 'crossextend', crossfds);
 
-col2row2voigt2tbl = crossTable(colrowvoigttbl, colrowvoigttbl, {}, 'crossextend', ...
-                               crossfds);
+fds = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
+col2row2voigt2tbl = crossTable(col2row2tbl, colrowvoigttbl, fds);
+col2row2voigt2tbl = replacefield(col2row2voigt2tbl, {'voigt', 'voigt1'});
+fds = {{'coldim2', 'coldim'}, {'rowdim2', 'rowdim'}};
+col2row2voigt2tbl = crossTable(col2row2voigt2tbl, colrowvoigttbl, fds);
+col2row2voigt2tbl = replacefield(col2row2voigt2tbl, {'voigt', 'voigt2'});
 
-fds = {'rowdim1', 'coldim1', 'voigt1', ...
-       'rowdim2', 'coldim2', 'voigt2', ...
-      };
-col2row2voigt2mat = convertTableToArray(col2row2voigt2tbl, fds);
+col2row2voigt2tbl = crossTable(col2row2voigt2tbl, stensfulltbl, {'voigt1', ...
+                    'voigt2'});
 
 Cvoigt = (1 : stenstbl.num)';
 
-% prod = TensorProd();
-% prod.tbl1 = stenstbl;
-% prod.tbl2 = voigttbl;
-% prod.replacefds1 = {'stensind', ''};
-% prod.replacefds2 = {{'voigt', 'voigt2'}, {'coldim', ''}, {'rowdim', ''}};
-% prod.reducefds = {'voigt2'};
-% prod = prod.setup();
-% 
-% Cvoigtmat = SparseMatrix();
-% Cvoigtmat = Cvoigtmat.setFromTensorProd(Cvoigt, prod);
-% Cvoigtmat = Cvoigtmat.matrix;
-
-% C = tblmap(Cvoigt, stenstbl, stensfulltbl, {'stensind'});
-
-C = tblmap(Cvoigt, stenstbl, col2row2voigt2tbl, {'voigt1', 'voigt2'});
-
-return
+C = tblmap(Cvoigt, stenstbl, col2row2voigt2tbl, {'stensind'});
 
 prod = TensorProd();
-prod.tbl1 = col2row2tbl;
+prod.tbl1 = col2row2voigt2tbl;
 prod.tbl2 = colrowtbl;
-prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
+prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}, ...
+                    {'voigt1', ''}, {'voigt2', ''}};
 prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
 prod.reducefds = {'coldim2', 'rowdim2'};
+prod.prodtbl = colrowtbl;
 prod = prod.setup();
 
 Cmat = SparseMatrix();
