@@ -235,7 +235,7 @@ function W_ghost = addGhostWells(G, W_target, rock, ijk, W_all, opt)
             end
             w = verticalWell([], G, rock, double(i), double(j), [], ...
                              'Type', 'rate', 'val', 0, 'Name', ...
-                             'MrGhost', 'Sign', 1, 'refDepth', nan);
+                             'MrGhost', 'Sign', 1, 'refDepth', min(G.cells.centroids(:, 3)));
             if ~isempty(w.cells)
                 W_ghost = [W_ghost; w];                         %#ok<AGROW>
             end
