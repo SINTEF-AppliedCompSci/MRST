@@ -138,10 +138,6 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     state = model.initStateFunctionContainers(state);
 
     % EQUATIONS ---------------------------------------------------------------
-    pBH = wellVars{wellMap.isBHP};
-    Nc = computeCapillaryNumber(p, cs, pBH, W, fluid, G, s, 'velocCompMethod', ...
-                                opt.velocCompMethod);
-    state.CapillaryNumber = Nc;
 
     [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
     [b0, pv0] = model.getProps(state0, 'ShrinkageFactors', 'PoreVolume');
