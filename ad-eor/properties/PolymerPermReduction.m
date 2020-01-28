@@ -1,22 +1,17 @@
-classdef EffectiveMixturePolymerViscMultiplier < StateFunction
+classdef PolymerPermReduction < StateFunction
     properties
     end
 
     methods
-        function gp = EffectiveMixturePolymerViscMultiplier(varargin)
-            gp@StateFunction(varargin{:});
-            gp = gp.dependsOn({'polymer'}, 'state'); % check mechanism
+        function gp = PolymerPermReduction(model, varargin)
+            gp@StateFunction(model, varargin{:});
+            gp = gp.dependsOn({'PolymerAdsorption'});
         end
 
-        function muWeffMult = evaluateOnDomain(prop, model, state)
-            cp   = model.getProp(state, 'polymer');            
+        function permRed = evaluateOnDomain(prop, model, state)
+            ads = model.getProp(state, 'PolymerAdsorption');
             fluid = model.fluid;
-            mixpar = fluid.mixPar;
-            cpbar   = cp/fluid.cpmax;
-            a = fluid.muWMult(fluid.cpmax).^(1-mixpar);
-            b = 1./(1 - cpbar + cpbar./a);
-            % The viscosity multiplier only results from the polymer mixing.
-            muWeffMult = b.*fluid.muWMult(cp).^mixpar;            
+            permRed = 1 + ((fluid.rrf - 1)./fluid.adsMax).*ads;
         end
     end
 end

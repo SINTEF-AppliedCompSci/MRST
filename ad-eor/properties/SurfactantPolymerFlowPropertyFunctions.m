@@ -1,9 +1,9 @@
 classdef SurfactantPolymerFlowPropertyFunctions < SurfactantFlowPropertyFunctions
 
     properties
-        PolymerAdsorption;
-        PolymerViscMultiplier;
-        EffectiveMixturePolymerViscMultiplier;
+        PolymerAdsorption
+        PolymerViscMultiplier
+        PolymerPermReduction
     end
     
     methods
@@ -12,8 +12,9 @@ classdef SurfactantPolymerFlowPropertyFunctions < SurfactantFlowPropertyFunction
             sat = props.getRegionSaturation(model);
             props.PolymerAdsorption     = PolymerAdsorption(model, sat);
             props.PolymerViscMultiplier = PolymerViscMultiplier(model, sat);
-            props.EffectiveMixturePolymerViscMultiplier = EffectiveMixturePolymerViscMultiplier(model, sat);
-            props.Viscosity             = SurfactantPolymerViscosity(model, sat);
+            props.PolymerPermReduction  = PolymerPermReduction(model, sat);
+            props.Viscosity = SurfactantPolymerViscosity(model, sat);
+            props.Mobility = SurfactantPolymerMobility(model, sat);
         end
     end
 end
