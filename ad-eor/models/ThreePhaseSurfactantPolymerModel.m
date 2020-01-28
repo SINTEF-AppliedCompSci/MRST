@@ -114,10 +114,12 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             if isempty(model.FlowPropertyFunctions)
                 model.FlowPropertyFunctions = SurfactantPolymerFlowPropertyFunctions(model);
             end
-            if isempty(model.FluxDiscretization)
-                model.FluxDiscretization = PolymerFluxDiscretization(model);
-            end
             model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
+            fp = model.FlowPropertyFunctions;
+            upstr = UpwindFunctionWrapperDiscretization(model);
+            fp = fp.setStateFunction('PolymerPhaseFlux', PolymerPhaseFlux(model));
+            fp = fp.setStateFunction('FaceConcentration', FaceConcentration(model, upstr));
+            model.FlowPropertyFunctions = fp;
         end
 
         % --------------------------------------------------------------------%
