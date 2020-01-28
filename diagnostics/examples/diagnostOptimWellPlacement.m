@@ -70,7 +70,7 @@ inRate  = sum(pv)/(10*year);                     % Initial rate
 minRate = inRate/4;                              % Minimum allowed rate
 [midx, midy] = deal(ceil(Nx/2), ceil(Ny/2));     % Midpoint: producer
 addw =  @(W, i, j, k) ...
-    verticalWell(W, G, rock, i, j, k, 'Val', inRate, 'Type', 'rate')%, 'refDepth', nan);
+    verticalWell(W, G, rock, i, j, k, 'Val', inRate, 'Type', 'rate', 'refDepth', nan);
 W = [];
 for i = -1:2:1
    for j = -1:2:1
@@ -85,7 +85,7 @@ for i = -1:2:1
 end
 targets = 1:numel(W);                   % Indices of wells to be optimized
 W = [W; verticalWell([], G, rock, midx, midy, [], ...
-                     'Val', 0, 'Type', 'bhp', 'Name', 'P')]%, 'refDepth', nan)];
+                     'Val', 0, 'Type', 'bhp', 'Name', 'P', 'refDepth', nan)];
 
 %% Plot the initial setup
 clf
