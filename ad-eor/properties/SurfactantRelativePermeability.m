@@ -79,7 +79,7 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
                 krO_Sft = krOW_Sft;
             end
             
-            if numel(state.s) > 2
+            if model.gas
                 sOGres_noSft   = fluid.krPts.og(surfreg, 2); % Residual oil saturation without surfactant
                 sGres_noSft = fluid.krPts.g(satreg, 2);  % Residual gas saturation without surfactant
                 sOGres_Sft   = fluid.krPts.og(surfreg, 2); % Residual oil saturation with surfactant
@@ -127,7 +127,7 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
             krW  = m.*krW_Sft + (1 - m).*krW_noSft;
             krO  = m.*krO_Sft + (1 - m).*krO_noSft;
             
-            if numel(state.s) > 2
+            if model.gas
                 kr = {krW, krO, krG};
             else
                 kr = {krW, krO};
