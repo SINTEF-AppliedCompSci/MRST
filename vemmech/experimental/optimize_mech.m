@@ -69,7 +69,7 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    load = loadfun(u);
    [dd, extra] = VEM_linElast_AD(G, C, bc, load);
 
-   dofs = ~extra.disc.isdirdofs; %% exclude dirichlet nodes
+   %dofs = ~extra.disc.isdirdofs; %% exclude dirichlet nodes
 
    dd = dd';
    %dd = dd(dofs);
@@ -87,7 +87,10 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    %grad = grad';
    %grad = oval_du + lambda' * dsys_du;
    
-      
+   % invert signs, since the unitBoxBFGS routine maximizes rather than
+   % minimizes
+   val = -val;
+   grad = -grad;
 end
 
 

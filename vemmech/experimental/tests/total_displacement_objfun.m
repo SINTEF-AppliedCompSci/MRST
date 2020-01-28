@@ -11,7 +11,7 @@ function [val, du, dx] = total_displacement_objfun(u, x)
 
    offset = x - krull.dd;
 
-   val = -sum(offset(:).^2)/numel(x.val) * SCALING/100;
+   val = sum(offset(:).^2)/numel(x.val) * SCALING/100;
    
    %val = -sum(x(:).^2)/numel(x.val) * SCALING;
    

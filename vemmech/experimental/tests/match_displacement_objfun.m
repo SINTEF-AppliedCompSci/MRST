@@ -13,7 +13,7 @@ function [val, du, dx] = match_displacement_objfun(u, x, dirdofs, target, scalin
 
    error = x - target;
 
-   val = -sum(error(:).^2)/numel(x.val) * scaling;
+   val = sum(error(:).^2)/numel(x.val) * scaling;
    
    du = val.jac{1}(:);
    dx = val.jac{2}(:);
