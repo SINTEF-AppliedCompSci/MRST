@@ -82,7 +82,7 @@ CC = vertcat(sites{:});
 rSites = surfaceSufCondFromGrid3D(rSites, grids_2, gamma);
 sites_3 = [internal_pts; rSites];
 
-grid_3 = mirroredPebi(sites_3, bdr);
+grid_3 = mirroredPebi3D(sites_3, bdr);
 grid_3.cells.sites = sites_3;
 
 

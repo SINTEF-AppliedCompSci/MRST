@@ -136,7 +136,7 @@ W.pts  = surfaceSufCond3D(W.pts,F.c.CC,F.c.R);
 pts = [F.f.pts;W.pts;rSites];
 %bdrDT = delaunayTriangulation(bdr);
 %G = clippedPebi3D(pts,bdrDT);
-G = mirroredPebi(pts, bdr);
+G = mirroredPebi3D(pts, bdr);
 
 % Tag well cells 
 G.cells.tag = false(G.cells.num,1);

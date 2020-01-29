@@ -1,8 +1,8 @@
-function [G] = mirroredPebi(pts, bound)
+function [G] = mirroredPebi3D(pts, bound)
 % Creates 3D voronoi diagram inside a convex boundary
 %
 % SYNOPSIS:
-%   G = mirroredPebi(pts, bound)
+%   G = mirroredPebi3D(pts, bound)
 %
 % PARAMETERS:
 %   p         A nx3 array containing the voronoi sites. 
@@ -21,7 +21,7 @@ function [G] = mirroredPebi(pts, bound)
 % Z(1:2:end) = Z(1:2:end) + dt/2;
 % pts = [X(:), Y(:),Z(:)];
 % bound = [0,0,0; 1,0,0; 1,1,0; 0,1,0; 0,0,1; 1,0,1; 1,1,1;0,1,1];
-% G = mirroredPebi(pts, bound);
+% G = mirroredPebi3D(pts, bound);
 % plotGrid(G);
 % axis equal
 %

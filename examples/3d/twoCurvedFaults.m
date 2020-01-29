@@ -83,7 +83,7 @@ rSites = [X(:), Y(:), Z(:)];
 rSites = surfaceSufCond3D(rSites, F.c.CC, F.c.R);
 
 sites = [F.f.pts; rSites];
-G = mirroredPebi(sites, bdr);
+G = mirroredPebi3D(sites, bdr);
 plot3(X(:),Y(:),Z(:),'.','MarkerSize',6,'Color',color(4,:));
 %% plot
 G = computeGeometry(G);

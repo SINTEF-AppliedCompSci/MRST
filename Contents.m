@@ -69,7 +69,7 @@
 %   removeSurfaceConflictSites3D - Removes fault points at the intersection of
 %                          faults
 %   isColinear          - Tests if points lie on a straight line
-%   mirroredPebi        - Creates a 3D PEBI-grid of a convext hull by
+%   mirroredPebi3D        - Creates a 3D PEBI-grid of a convext hull by
 %                         mirroring all points around the boundary faces
 %   voronoi2mrst        - Transform the output of VORONOIN() to a MRST grid
 %                         structure

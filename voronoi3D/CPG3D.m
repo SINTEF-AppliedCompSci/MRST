@@ -52,7 +52,7 @@ function [G,optPts,f,g] = CPG3D(pts, bnd, varargin)
 %   axis equal tight
 %
 % SEE ALSO
-%   compositePebiGrid3D, pebiGrid, clippedPebi3D, mirroredPebi, CPG2D
+%   compositePebiGrid3D, pebiGrid, clippedPebi3D, mirroredPebi3D, CPG2D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -90,13 +90,13 @@ pts = reshape(pts',[],1);
                                'inDomain', inDomain);
 
 optPts = reshape(optPts,3,[])';
-G = mirroredPebi(optPts, bnd);
+G = mirroredPebi3D(optPts, bnd);
 end
 
 function [f, g] = objectiveFunc(pts, bndr, nf, rho)
     pts = reshape(pts,3,[])';
 
-    G = mirroredPebi(pts, bndr);
+    G = mirroredPebi3D(pts, bndr);
     G = computeGeometry(G);
     G = mrstGridWithFullMappings(G);
 

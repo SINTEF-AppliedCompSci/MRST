@@ -83,7 +83,7 @@ pts = [F.f.pts;rSites];
 gs  = [F.f.Gs;rGs];
 pri = [F.f.pri;rPri];
 
-Gd = mirroredPebi(pts,bdr);
+Gd = mirroredPebi3D(pts,bdr);
 
 Gd = computeGeometry(Gd);
 %% plot grid

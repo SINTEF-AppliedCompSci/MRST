@@ -29,7 +29,7 @@
 %   surfaceSufCond3D
 %   removeSurfaceConflictSites3D
 %   isColinear
-%   mirroredPebi
+%   mirroredPebi3D
 %   voronoi2mrst
 %   wellSufCond3D
 %
@@ -59,7 +59,7 @@
 %
 % - isColinear tests if a set of points lie on a straight line
 %
-% - mirroredPebi creates a PEBI-grid with a valid MRST grid structure
+% - mirroredPebi3D creates a PEBI-grid with a valid MRST grid structure
 %   innside a convex domain.
 %
 % - voronoi2mrst converts a Qhull grid structure into a MRST grid
