@@ -80,17 +80,7 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
                 end
             end
         end
-        
-        function sat = getRegionSurfactant(props, model)
-            r = model.rock;
-            sat = ones(model.G.cells.num, 1);
-            if isfield(r, 'regions')
-                if isfield(r.regions, 'surfactant')
-                    sat = r.regions.surfactant;
-                end
-            end
-        end
-        
+              
         function pvt = getRegionPVT(props, model)
             r = model.rock;
             pvt = ones(model.G.cells.num, 1);
