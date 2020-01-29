@@ -163,6 +163,10 @@ classdef SparseTensor
          
       end
       
+      function self = sub(self, ixname, ixval)
+         self = self.product(SparseTensor([], ixval, {ixname}));
+      end
+      
       function self = duplicateIndex(self, name, newname)
 
          comp_ix = self.component_with_ix(name, false);
