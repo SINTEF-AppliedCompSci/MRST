@@ -36,7 +36,7 @@ mLs = [0.1,0.05]'; % This sets the distance from a well where each
 
 %% Create Grid
 % We can now create the composite Pebi grid:
-Gc = compositePebiGrid(gS, [1, 1], ...
+Gc = compositePebiGrid2D(gS, [1, 1], ...
                        'wellLines', well, 'wellGridFactor',wGf, ...
                        'mlqtMaxLevel', nRs,'mlqtLevelSteps', mLs);
 
@@ -44,7 +44,7 @@ Gc = compositePebiGrid(gS, [1, 1], ...
 %And plot it
 plotGrid(Gc, 'facecolor','none')
 axis equal tight
-title('compositePebiGrid(...)')
+title('compositePebiGrid2D(...)')
 drawnow
 % We plot the cells taged as well cells
 plotGrid(Gc,Gc.cells.tag,'facecolor','b')

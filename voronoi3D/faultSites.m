@@ -33,7 +33,7 @@ function [grids_2] = faultSites(faults, grids_1, intersections, ds, gamma)
 %       plotGrid(grids_2{i})
 %   end
 % SEE ALSO
-%   intersectionSites, faultIntersections, reservoirSites, compositePebiGrid, pebi, createFaultGridPoints, createWellGridPoints.
+%   intersectionSites, faultIntersections, reservoirSites, compositePebiGrid2D, pebi, createFaultGridPoints, createWellGridPoints.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

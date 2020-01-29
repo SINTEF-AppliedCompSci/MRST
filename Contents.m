@@ -27,7 +27,7 @@
 % /voronoi2D
 %   README2D            - README for files in voronoi2D folder
 %   clippedPebi2D       - 2D PEBI-grid clipped against polygon boundary
-%   compositePebiGrid   - Creates a conforming PEBI-grid embedded in a
+%   compositePebiGrid2D   - Creates a conforming PEBI-grid embedded in a
 %                         Cartesian background grid.
 %   createFaultGridPoints - Creates a set of Voronoi sites equidistant on
 %                           both sides of a set of faults
@@ -46,7 +46,7 @@
 %     reservoirWithComplexFaultNetwork  - A reservoir with many faults
 %     showOptionValuesCompositePebiGrid - Show the different parameters
 %                                         that you can pass to
-%                                         compositePebiGrid
+%                                         compositePebiGrid2D
 %     showOPtionValuesPebiGrid          - Show the different parameters you
 %                                         can pass to pebiGrid
 %     statisticalFractures              - Reservoir with many fractures

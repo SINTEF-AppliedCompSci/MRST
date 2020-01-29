@@ -20,7 +20,7 @@
 % Voronoi-2D contains the following functions
 % Functions:
 %     clippedPebi2D
-%     compositePebiGrid
+%     compositePebiGrid2D
 %     createFaultGridPoints
 %     createWellGridPoints
 %     CVD2D
@@ -33,7 +33,7 @@
 % - clippedPebiGrid2D creates a clipped Voronoi diagram from a point set
 %   and a polygon boundary
 %
-% - compositePebiGrid is an interface function that can be called to create 
+% - compositePebiGrid2D is an interface function that can be called to create 
 %   a valid MRST grid structure. It creates a Pebi grid conforming to 
 %   faults and wells. The functions creates a semi-structured grid, by 
 %   inserting voronoi seeds around wells and fractures.

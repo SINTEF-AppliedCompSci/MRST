@@ -25,7 +25,7 @@ function [pts,removed] = faultSufCond3D(pts, CC, CR)
 %   plot3(pts(:,1), pts(:,2), pts(:,3),'.','markersize',15)
 %
 % SEE ALSO:
-%   compositePebiGrid, pebi, clippedPebi3D, clipGrid.
+%   compositePebiGrid2D, pebi, clippedPebi3D, clipGrid.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

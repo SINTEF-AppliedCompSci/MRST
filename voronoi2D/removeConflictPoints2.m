@@ -37,7 +37,7 @@ function [P1, removed] = removeConflictPoints2(P1,P2,dist)
 %   end
 %
 % SEE ALSO:
-%   splitWells, createFaultGridPoints, compositePebiGrid, pebiGrid
+%   splitWells, createFaultGridPoints, compositePebiGrid2D, pebiGrid
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

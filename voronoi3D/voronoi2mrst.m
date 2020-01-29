@@ -26,7 +26,7 @@ function G = voronoi2mrst(V, C)
 % axis equal
 %
 % SEE ALSO:
-%   compositePebiGrid, pebi, clippedPebi3D, clipGrid.
+%   compositePebiGrid2D, pebi, clippedPebi3D, clipGrid.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

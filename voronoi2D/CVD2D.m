@@ -50,7 +50,7 @@ function [G,optPts,f,g] = CVD2D(pts,bnd,varargin)
 %   axis equal tight
 %
 % SEE ALSO
-%   compositePebiGrid, pebi, pebiGrid, clippedPebi2D
+%   compositePebiGrid2D, pebi, pebiGrid, clippedPebi2D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

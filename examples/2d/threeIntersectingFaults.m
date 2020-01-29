@@ -19,9 +19,9 @@ l = {[0.1,0.42; 0.4,.55; 0.7,0.65], ...
 gS = [1/30,1/30];
    
 %% Create grid
-% We use the routine compositePebiGrid to create the grid. We use the
+% We use the routine compositePebiGrid2D to create the grid. We use the
 % preset options. 
-G = compositePebiGrid(gS,[1,1.15],'faultLines',l, 'useMrstPebi', true);
+G = compositePebiGrid2D(gS,[1,1.15],'faultLines',l, 'useMrstPebi', true);
 
 %% Plot grid
 figure(1); clf; hold on

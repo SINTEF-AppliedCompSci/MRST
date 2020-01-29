@@ -26,7 +26,7 @@ function [G] = mirroredPebi(pts, bound)
 % axis equal
 %
 % SEE ALSO:
-%   compositePebiGrid, pebi, voronoi2mrst, clipGrid.
+%   compositePebiGrid2D, pebi, voronoi2mrst, clipGrid.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

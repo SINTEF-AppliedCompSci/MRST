@@ -93,7 +93,7 @@ function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridS
 %   plot(wPts(:,1),wPts(:,2),'.r','markersize',20)
 %
 % SEE ALSO:
-%   pebiGrid, compositePebiGrid, createFaultGridPoints, pebi
+%   pebiGrid, compositePebiGrid2D, createFaultGridPoints, pebi
 %   createWellGridPoints3D.
 
 %{

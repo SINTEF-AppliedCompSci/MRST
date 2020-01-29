@@ -22,7 +22,7 @@ function G = clippedPebi2D(p, bnd)
 %   axis equal tight
 %
 % SEE ALSO
-%   compositePebiGrid, pebi, pebiGrid, clippedPebi3D
+%   compositePebiGrid2D, pebi, pebiGrid, clippedPebi3D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

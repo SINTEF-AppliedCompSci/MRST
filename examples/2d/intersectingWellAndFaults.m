@@ -1,7 +1,7 @@
 %% Example
 % This script contains an example of a single curved well path intersected
 % by several straight faults. We use the two wrapper-functions
-% compositePebiGrid(..) and pebiGrid(..) to create PEBI grids conforming
+% compositePebiGrid2D(..) and pebiGrid(..) to create PEBI grids conforming
 % to the faults and the well path.
 
 %{
@@ -37,7 +37,7 @@ title('Well path and fractures')
 axis equal tight, axis ([0,1,0,1])
 %subplot(1,2,2), copyobj(get(ax,'Children'),gca);
 
-%% Construct Voronoi grid using compositePebiGrid
+%% Construct Voronoi grid using compositePebiGrid2D
 % Before we call the gridding fuctions we set some parameters.
 gS  = 1/24; % The grid size
 wGf = 0.5;  % The relative size of well cells compared to gS
@@ -45,7 +45,7 @@ fGf = 0.5;  % The relative size of fault cells compared to gS
 nRs = 1;    % Number of refinement steps towards the well
 
 % We can now create the composite Pebi grid:
-Gc = compositePebiGrid([gS,gS], [1, 1], ...
+Gc = compositePebiGrid2D([gS,gS], [1, 1], ...
                        'wellLines', well, 'wellGridFactor',wGf, ...
                        'faultLines',fault, 'faultGridFactor', fGf,...
                        'mlqtMaxLevel', nRs);
@@ -53,7 +53,7 @@ Gc = compositePebiGrid([gS,gS], [1, 1], ...
 subplot(1,2,1)
 plotGrid(Gc, 'facecolor','none')
 axis equal tight off
-title('compositePebiGrid(...)')
+title('compositePebiGrid2D(...)')
 drawnow
 
 %% Construct Voronoi grid using pebiGrid

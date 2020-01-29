@@ -1,5 +1,5 @@
 %% Example
-% In this example we show all optional options for compositePebiGrid.
+% In this example we show all optional options for compositePebiGrid2D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -14,7 +14,7 @@ w = {[0.2,0.8;0.5,0.6;0.8,0.8],...
      [0.5,0.2]};
 gS = [0.1,0.1];
 pdims=[1,1];
-G = compositePebiGrid(gS, pdims,'wellLines',w);
+G = compositePebiGrid2D(gS, pdims,'wellLines',w);
 
 clf
 plotGrid(G);
@@ -30,8 +30,8 @@ plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 w = {[0.2,0.3;0.8,0.7]};
 gS = [0.1,0.1];
 pdims=[1,1];
-G1 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1);
-G2 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/2);
+G1 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1);
+G2 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/2);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -51,8 +51,8 @@ hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 w = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = [0.1,0.1];
 pdims=[1,1];
-G1 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/2,'mlqtMaxLevel',1);
-G2 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/8,'mlqtMaxLevel',3);
+G1 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/2,'mlqtMaxLevel',1);
+G2 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/8,'mlqtMaxLevel',3);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -73,9 +73,9 @@ gS = [0.1,0.1];
 pdims=[1,1];
 lev1 = [0.05,0.1];
 lev2 = [0.1,0.2];
-G1 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
+G1 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
                       'mlqtMaxLevel',2,'mlqtLevelSteps',lev1);
-G2 = compositePebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
+G2 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
                       'mlqtMaxLevel',2,'mlqtLevelSteps',lev2);
 
 figure('Position',[480 340 980 420])
@@ -95,8 +95,8 @@ w = {[0.2,0.3;0.5,0.5;0.8,0.7]};
 gS = [0.1,0.1];
 pdims=[1,1];
 wellRho = @(p) 1 - 0.9*p(:,1);
-G1 = compositePebiGrid(gS, pdims,'wellLines',w);
-G2 = compositePebiGrid(gS, pdims,'wellLines',w,'wellRho',wellRho);
+G1 = compositePebiGrid2D(gS, pdims,'wellLines',w);
+G2 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellRho',wellRho);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -120,9 +120,9 @@ y = 0.5+0.1*sin(pi*x);
 w = {[x',y']};
 gS = [0.1,0.1];
 pdims=[1,1];
-G1 = compositePebiGrid(gS, pdims, 'wellLines', w, ...
+G1 = compositePebiGrid2D(gS, pdims, 'wellLines', w, ...
                        'interpolWP', true, 'protLayer', false);
-G2 = compositePebiGrid(gS, pdims, 'wellLines', w, ...
+G2 = compositePebiGrid2D(gS, pdims, 'wellLines', w, ...
                        'interpolWP', true, 'protLayer', true);
 
 figure('Position',[480 340 980 420])
@@ -142,8 +142,8 @@ w = {[0.2,0.8;0.8,0.8],...
 gS = [0.08,0.08];
 pdims=[1,1];
 protD = {@(p)0.01+0.1*p(:,1), @(p) 0.01*ones(size(p,1),1)};
-G1 = compositePebiGrid(gS, pdims,'wellLines',w,'protLayer',true);
-G2 = compositePebiGrid(gS, pdims,'wellLines',w,'protLayer',true,'protD',protD);
+G1 = compositePebiGrid2D(gS, pdims,'wellLines',w,'protLayer',true);
+G2 = compositePebiGrid2D(gS, pdims,'wellLines',w,'protLayer',true,'protD',protD);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -162,8 +162,8 @@ f = {[0.2,0.8;0.5,0.65;0.8,0.8],...
 gS = [0.1,0.1];
 pdims=[1,1];
 figure()
-G1 = compositePebiGrid(gS, pdims,'faultLines',f);
-G2 = compositePebiGrid(gS, pdims,'faultLines',f,'interpolFL',[true; true]);
+G1 = compositePebiGrid2D(gS, pdims,'faultLines',f);
+G2 = compositePebiGrid2D(gS, pdims,'faultLines',f,'interpolFL',[true; true]);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -183,8 +183,8 @@ title('Fault lines: interpolated'), axis equal tight off
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = [0.1,0.1];
 pdims=[1,1];
-G1 = compositePebiGrid(gS, pdims,'faultLines',f,'faultGridFactor',1);
-G2 = compositePebiGrid(gS, pdims,'faultLines',f,'faultGridFactor',1/2);
+G1 = compositePebiGrid2D(gS, pdims,'faultLines',f,'faultGridFactor',1);
+G2 = compositePebiGrid2D(gS, pdims,'faultLines',f,'faultGridFactor',1/2);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -203,8 +203,8 @@ plotLinePath(f,'--or','linewidth',2,'MarkerFaceColor','w');
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = [0.1,0.1];
 pdims=[1,1];
-G1 = compositePebiGrid(gS, pdims,'faultLines',f,'circleFactor',0.55);
-G2 = compositePebiGrid(gS, pdims,'faultLines',f,'circleFactor',0.9);
+G1 = compositePebiGrid2D(gS, pdims,'faultLines',f,'circleFactor',0.55);
+G2 = compositePebiGrid2D(gS, pdims,'faultLines',f,'circleFactor',0.9);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -219,7 +219,7 @@ plotLinePath(f,'--or','linewidth',2,'MarkerFaceColor','w');
 bdr   = [0,0;-0.5,1;0.5,1.5;1,1];
 gs    = [0.1,0.1];
 pdims = [1,1]; % can be set to anything
-G = compositePebiGrid(gs,pdims,'polyBdr',bdr);
+G = compositePebiGrid2D(gs,pdims,'polyBdr',bdr);
 
 figure()
 plotGrid(G); title('Polygonal boundary'); axis equal tight off

@@ -1,10 +1,10 @@
-function [G,Pts,F] = compositePebiGrid(celldim, pdims, varargin)
+function [G,Pts,F] = compositePebiGrid2D(celldim, pdims, varargin)
 % Construct a 2D composite Pebi grid. A cartesian background grid that is 
 % refined around faults and wells.
 %
 % SYNOPSIS:
-%   G = compositePebiGrid(resGridSize, pdims)
-%   G = compositePebiGrid(...,'Name1',Value1,'Name2',Value2,...)
+%   G = compositePebiGrid2D(resGridSize, pdims)
+%   G = compositePebiGrid2D(...,'Name1',Value1,'Name2',Value2,...)
 %
 % PARAMETERS:
 %   resGridSize       - [xSize,ySize] Size of the reservoir grid cells in x
@@ -124,11 +124,11 @@ function [G,Pts,F] = compositePebiGrid(celldim, pdims, varargin)
 % EXAMPLE:
 %   fl = {[0.2,0.2;0.8,0.8]};
 %   wl = {[0.2,0.8;0.8,0.2]};
-%   G  = compositePebiGrid([1/10,1/10],[1,1],'wellLines',wl,'faultLines',fl)
+%   G  = compositePebiGrid2D([1/10,1/10],[1,1],'wellLines',wl,'faultLines',fl)
 %   cla, plotGrid(G)
 %
 % SEE ALSO:
-%   compositePebiGrid, pebi, createFaultGridPoints, createWellGridPoints.
+%   compositePebiGrid2D, pebi, createFaultGridPoints, createWellGridPoints.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

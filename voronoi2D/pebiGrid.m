@@ -161,7 +161,7 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 %   cla, plotGrid(G)
 %
 % SEE ALSO
-%   compositePebiGrid, pebi, createFaultGridPoints, createWellGridPoints.
+%   compositePebiGrid2D, pebi, createFaultGridPoints, createWellGridPoints.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
