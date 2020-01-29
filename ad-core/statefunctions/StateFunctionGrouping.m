@@ -78,6 +78,11 @@ classdef StateFunctionGrouping
             state.(name) = f;
         end
 
+        function present = isStateInitialized(group, state)
+            % Set up state function container on a state
+            present = isfield(state, group.structName);
+        end
+        
         function [container, name] = getStateFunctionContainer(props, state)
             % Set up dynamic container (handle class) for storing
             % properties as we go
