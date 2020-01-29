@@ -80,16 +80,6 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
                 end
             end
         end
-              
-        function pvt = getRegionPVT(props, model)
-            r = model.rock;
-            pvt = ones(model.G.cells.num, 1);
-            if isfield(r, 'regions')
-                if isfield(r.regions, 'pvt')
-                    pvt = r.regions.pvt;
-                end
-            end
-        end
     end
 end
 
