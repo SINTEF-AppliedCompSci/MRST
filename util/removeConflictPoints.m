@@ -1,4 +1,4 @@
-function [P1, removed] = removeConflictPoints2(P1,P2,dist)
+function [P1, removed] = removeConflictPoints(P1,P2,dist)
 % Remove any points from the first given point set that is closer than a
 % given distance to the second given point set.
 % other given setset.
@@ -26,7 +26,7 @@ function [P1, removed] = removeConflictPoints2(P1,P2,dist)
 %   P1 = [X(:),Y(:)];
 %   P2 = [5,5;2,2];
 %   dist = [3;2];
-%   ptsRem = removeConflictPoints2(P1,P2,dist);
+%   ptsRem = removeConflictPoints(P1,P2,dist);
 %   figure(); hold on
 %   plot(P1(:,1),P1(:,2),'o')
 %   plot(ptsRem(:,1),ptsRem(:,2),'.')

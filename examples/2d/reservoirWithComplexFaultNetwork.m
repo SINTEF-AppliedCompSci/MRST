@@ -50,7 +50,7 @@ keep = inpolygon(pInit(:,1),pInit(:,2),bdr(:,1), bdr(:,2));
 pInit = pInit(keep,:);
 
 %% Plot initial sites
-pInit = removeConflictPoints2(pInit, F.f.pts, F.f.Gs);
+pInit = removeConflictPoints(pInit, F.f.pts, F.f.Gs);
 subplot(1, 3, 1);
 plot(pInit(:,1),pInit(:,2), '.k','MarkerSize', 5);
 plot(F.f.pts(:, 1), F.f.pts(:, 2), '.', 'color', col(1,:),'markersize',5);

@@ -286,10 +286,10 @@ else
 end
 
 % Remove Conflic Points
-resPts = removeConflictPoints2(resPts, wellPts,  wGs);
-resPts = removeConflictPoints2(resPts, protPts,  pGs);
-resPts = removeConflictPoints2(resPts, F.f.pts,  F.f.Gs);
-resPts = removeConflictPoints2(resPts, F.c.CC,   F.c.R);
+resPts = removeConflictPoints(resPts, wellPts,  wGs);
+resPts = removeConflictPoints(resPts, protPts,  pGs);
+resPts = removeConflictPoints(resPts, F.f.pts,  F.f.Gs);
+resPts = removeConflictPoints(resPts, F.c.CC,   F.c.R);
 
 % Create Grid
 Pts = [F.f.pts; wellPts; protPts; F.t.pts; resPts];

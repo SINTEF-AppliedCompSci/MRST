@@ -367,7 +367,7 @@ wPts = wPts(Iw,:);
 if opt.sufFaultCond
 	Pts = surfaceSufCond2D(Pts(isRes,:),F);
 else
-	Pts = removeConflictPoints2(Pts(isRes,:),F.f.pts, F.f.Gs);
+	Pts = removeConflictPoints(Pts(isRes,:),F.f.pts, F.f.Gs);
 end
 Pts  = [fPts; wPts; Pts];
 % Create grid

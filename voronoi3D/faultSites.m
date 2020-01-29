@@ -148,6 +148,6 @@ for i = 1:numel(grids_1)
     v = grids_1{i}{2};
     kappaSqr = sum((c - v).^2, 2);
     R = sqrt(kappaSqr + gamma^2);
-    pts = removeConflictPoints2(pts, v, R);
+    pts = removeConflictPoints(pts, v, R);
 end
 end

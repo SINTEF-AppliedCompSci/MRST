@@ -38,7 +38,7 @@
 %   pebiGrid            - Creates a fully unstructured PEBI-grid by using
 %                         DistMesh
 %   plotLinePath        - Plots a fault or a well path
-%   removeConflictPoints2 - Remove sites that are too close to each other
+%   removeConflictPoints - Remove sites that are too close to each other
 %   splitAtInt          - Split a fault or well paths at the intersections.
 %   /examples
 %     intersectingWellAndFaults         - one well intersected of several
