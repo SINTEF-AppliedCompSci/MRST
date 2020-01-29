@@ -111,14 +111,26 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
         
         % --------------------------------------------------------------------%
         function model = validateModel(model, varargin)
-            if isempty(model.FlowPropertyFunctions)
-                model.FlowPropertyFunctions = SurfactantPolymerFlowPropertyFunctions(model);
-            end
             model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
+            
             fp = model.FlowPropertyFunctions;
             upstr = UpwindFunctionWrapperDiscretization(model);
+            satreg  = fp.getRegionSaturation(model);
+            surfreg = fp.getRegionSurfactant(model);
+            
+            fp = fp.setStateFunction('PolymerAdsorption', PolymerAdsorption(model));            
+            fp = fp.setStateFunction('PolymerViscMultiplier', PolymerViscMultiplier(model));            
+            fp = fp.setStateFunction('PolymerPermReduction', PolymerPermReduction(model));                        
+            fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));            
+            fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model));            
             fp = fp.setStateFunction('PolymerPhaseFlux', PolymerPhaseFlux(model));
-            fp = fp.setStateFunction('FaceConcentration', FaceConcentration(model, upstr));
+            fp = fp.setStateFunction('FaceConcentration', FaceConcentration(model, upstr)); 
+            
+            fp.Viscosity = SurfactantPolymerViscosity(model);            
+            fp.Mobility = SurfactantPolymerMobility(model);
+            fp.RelativePermeability = SurfactantRelativePermeability(model, satreg, surfreg);
+            fp.CapillaryPressure    = SurfactantCapillaryPressure(model, satreg);
+            fp.PhasePressures = SurfactantPhasePressures(model);
             model.FlowPropertyFunctions = fp;
         end
 

@@ -78,10 +78,19 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
         end
         
         function model = validateModel(model, varargin)
-            if isempty(model.FlowPropertyFunctions)
-                model.FlowPropertyFunctions = SurfactantFlowPropertyFunctions(model);
-            end
-            model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
+            model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});            
+            fp = model.FlowPropertyFunctions;
+            satreg  = fp.getRegionSaturation(model);
+            surfreg = fp.getRegionSurfactant(model);
+                                  
+            fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));            
+            fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model));            
+            
+            fp.Viscosity = BlackOilSurfactantViscosity(model);            
+            fp.RelativePermeability = SurfactantRelativePermeability(model, satreg, surfreg);
+            fp.CapillaryPressure    = SurfactantCapillaryPressure(model, satreg);
+            fp.PhasePressures = SurfactantPhasePressures(model);
+            model.FlowPropertyFunctions = fp;
         end 
 
         function [fn, index] = getVariableField(model, name, varargin)

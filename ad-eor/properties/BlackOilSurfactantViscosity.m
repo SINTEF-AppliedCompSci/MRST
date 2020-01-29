@@ -14,9 +14,9 @@ classdef BlackOilSurfactantViscosity < BlackOilViscosity
            pW = p{1};
            mu = prop.evaluateOnDomain@BlackOilViscosity(model, state);
            mu{1} = model.fluid.muWSft(cs);
-           muWMults = model.fluid.muW(pW)/model.fluid.muWr;
+           muWMultPressure = model.fluid.muW(pW)/model.fluid.muWr;
            
-           mu{1} = mu{1}.*muWMults;
+           mu{1} = mu{1}.*muWMultPressure;
         end
     end
 end
