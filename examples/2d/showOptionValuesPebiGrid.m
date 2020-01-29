@@ -1,5 +1,5 @@
 %% Example
-% In this example we show all optional options for pebiGrid.
+% In this example we show all optional options for pebiGrid2D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -14,7 +14,7 @@ w = {[0.2,0.8;0.5,0.6;0.8,0.8],...
      [0.5,0.2]};
 gS = 0.1;
 pdims=[1,1];
-G = pebiGrid(gS, pdims,'wellLines',w);
+G = pebiGrid2D(gS, pdims,'wellLines',w);
 
 clf
 plotGrid(G);
@@ -30,8 +30,8 @@ plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 w = {[0.2,0.3;0.8,0.7]};
 gS = 0.1;
 pdims=[1,1];
-G1 = pebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1);
-G2 = pebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/2);
+G1 = pebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1);
+G2 = pebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/2);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -49,8 +49,8 @@ hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 w = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
-G1 = pebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/4,'wellRefinement',true);
-G2 = pebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/8,'wellRefinement',true);
+G1 = pebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/4,'wellRefinement',true);
+G2 = pebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/8,'wellRefinement',true);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -73,9 +73,9 @@ gS = 0.1;
 pdims=[1,1];
 eps1 = 1/5;
 eps2 = 1/2;
-G1 = pebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
+G1 = pebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
               'wellRefinement',true,'wellEps',eps1);
-G2 = pebiGrid(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
+G2 = pebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
               'wellRefinement',true,'wellEps',eps2);
 
 figure('Position',[480 340 980 420])
@@ -95,8 +95,8 @@ w = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
 wellRho = @(p) 1 - 0.9*p(:,1);
-G1 = pebiGrid(gS, pdims,'wellLines',w);
-G2 = pebiGrid(gS, pdims,'wellLines',w,'wellRho',wellRho);
+G1 = pebiGrid2D(gS, pdims,'wellLines',w);
+G2 = pebiGrid2D(gS, pdims,'wellLines',w,'wellRho',wellRho);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -120,8 +120,8 @@ y = 0.5+0.1*sin(pi*x);
 w = {[x',y']};
 gS = 0.1;
 pdims=[1,1];
-G1 = pebiGrid(gS, pdims,'wellLines',w,'interpolWP', true, 'protLayer',true);
-G2 = pebiGrid(gS, pdims,'wellLines',w,'interpolWP', true, 'protLayer',false);
+G1 = pebiGrid2D(gS, pdims,'wellLines',w,'interpolWP', true, 'protLayer',true);
+G2 = pebiGrid2D(gS, pdims,'wellLines',w,'interpolWP', true, 'protLayer',false);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -139,8 +139,8 @@ w = {[0.2,0.8;0.8,0.8],...
 gS = 0.1;
 pdims=[1,1];
 protD = {@(p)0.01+0.1*p(:,1), @(p) 0.01*ones(size(p,1),1)};
-G1 = pebiGrid(gS, pdims,'wellLines',w,'protLayer',true);
-G2 = pebiGrid(gS, pdims,'wellLines',w,'protLayer',true,'protD',protD);
+G1 = pebiGrid2D(gS, pdims,'wellLines',w,'protLayer',true);
+G2 = pebiGrid2D(gS, pdims,'wellLines',w,'protLayer',true,'protD',protD);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -158,8 +158,8 @@ f = {[0.2,0.8;0.5,0.65;0.8,0.8],...
      [0.5,0.2;0.1,0.5]};
 gS = 0.1;
 pdims=[1,1];
-G1 = pebiGrid(gS, pdims,'faultLines',f);
-G2 = pebiGrid(gS, pdims,'faultLines',f, 'interpolFL', [true; true]);
+G1 = pebiGrid2D(gS, pdims,'faultLines',f);
+G2 = pebiGrid2D(gS, pdims,'faultLines',f, 'interpolFL', [true; true]);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -179,8 +179,8 @@ title('Fault lines: interpolated'), axis equal tight off
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
-G1 = pebiGrid(gS, pdims,'faultLines',f,'faultGridFactor',1);
-G2 = pebiGrid(gS, pdims,'faultLines',f,'faultGridFactor',1/2);
+G1 = pebiGrid2D(gS, pdims,'faultLines',f,'faultGridFactor',1);
+G2 = pebiGrid2D(gS, pdims,'faultLines',f,'faultGridFactor',1/2);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -201,8 +201,8 @@ plotLinePath(f,'--or','linewidth',2,'MarkerFaceColor','w');
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
-G1 = pebiGrid(gS, pdims,'faultLines',f,'circleFactor',0.55);
-G2 = pebiGrid(gS, pdims,'faultLines',f,'circleFactor',0.9);
+G1 = pebiGrid2D(gS, pdims,'faultLines',f,'circleFactor',0.55);
+G2 = pebiGrid2D(gS, pdims,'faultLines',f,'circleFactor',0.9);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -219,7 +219,7 @@ f = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
 faultRho = @(p) 1 - 0.9*p(:,1);
-G = pebiGrid(gS, pdims,'faultLines',f,'faultRho',faultRho);
+G = pebiGrid2D(gS, pdims,'faultLines',f,'faultRho',faultRho);
 
 figure()
 plotGrid(G)
@@ -235,7 +235,7 @@ axis equal tight off
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
-G = pebiGrid(gS, pdims,'faultLines',f,'faultGridFactor',1/4,'faultRefinement',true);
+G = pebiGrid2D(gS, pdims,'faultLines',f,'faultGridFactor',1/4,'faultRefinement',true);
 
 figure()
 plotGrid(G)
@@ -253,9 +253,9 @@ gS = 0.1;
 pdims=[1,1];
 eps1 = 1/5;
 eps2 = 1/2;
-G1 = pebiGrid(gS, pdims,'faultLines',f,'faultGridFactor',1/4, ...
+G1 = pebiGrid2D(gS, pdims,'faultLines',f,'faultGridFactor',1/4, ...
               'faultRefinement',true,'faultEps',eps1);
-G2 = pebiGrid(gS, pdims,'faultLines',f,'faultGridFactor',1/4, ...
+G2 = pebiGrid2D(gS, pdims,'faultLines',f,'faultGridFactor',1/4, ...
               'faultRefinement',true,'faultEps',eps2);
 
 
@@ -273,7 +273,7 @@ plotLinePath(f,'--or','linewidth',2,'MarkerFaceColor','w');
 bdr   = [0,0;-0.5,1;0.5,1.5;1,1];
 gs    = 0.1;
 pdims = [1,1]; % can be set to anything
-G = pebiGrid(gs,pdims,'polyBdr',bdr);
+G = pebiGrid2D(gs,pdims,'polyBdr',bdr);
 
 figure()
 plotGrid(G)

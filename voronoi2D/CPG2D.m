@@ -50,7 +50,7 @@ function [G,optPts,f,g] = CPG2D(pts,bnd,varargin)
 %   axis equal tight
 %
 % SEE ALSO
-%   compositePebiGrid2D, pebi, pebiGrid, clippedPebi2D
+%   compositePebiGrid2D, pebi, pebiGrid2D, clippedPebi2D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

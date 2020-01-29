@@ -49,7 +49,7 @@ drawnow
 % We plot the cells taged as well cells
 plotGrid(Gc,Gc.cells.tag,'facecolor','b')
 
-%% Set pebiGrid Parameters:
+%% Set pebiGrid2D Parameters:
 % We now use the other wrapper function to create a PEBI-grid using
 % distmesh:
 eps = 1/12; % This parameter defines the refinement around the wells. The
@@ -61,13 +61,13 @@ eps = 1/12; % This parameter defines the refinement around the wells. The
 % This is usually not a problem, since the grid most likely is good before
 % the convergence requirement is met. 
 
-Gdist = pebiGrid(1/24, [1, 1], 'wellLines', well, ...
+Gdist = pebiGrid2D(1/24, [1, 1], 'wellLines', well, ...
                 'wellGridFactor', 0.5^2, 'wellRefinement', true, ...
                 'wellEps',eps);
-%% Plot pebiGrid
+%% Plot pebiGrid2D
 subplot(1,2,2), hold on
 plotGrid(Gdist,'facecolor','none')
 axis equal tight
-title('pebiGrid(...)')
+title('pebiGrid2D(...)')
 % We plot the cells taged as well cells
 plotGrid(Gc,Gc.cells.tag,'facecolor','b')

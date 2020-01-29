@@ -52,7 +52,7 @@ function [G,optPts,f,g] = CPG3D(pts, bnd, varargin)
 %   axis equal tight
 %
 % SEE ALSO
-%   compositePebiGrid3D, pebiGrid, clippedPebi3D, mirroredPebi3D, CPG2D
+%   compositePebiGrid3D, pebiGrid2D, clippedPebi3D, mirroredPebi3D, CPG2D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

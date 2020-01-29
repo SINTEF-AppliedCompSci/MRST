@@ -57,7 +57,7 @@ function [splitL1, L1Cut, L1L2Cut, IC] = splitAtInt2D(L1, L2)
 %   disp(L1L2Cut)
 %
 % SEE ALSO:
-%   splitWells, surfaceSites2D, compositePebiGrid2D, pebiGrid
+%   splitWells, surfaceSites2D, compositePebiGrid2D, pebiGrid2D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

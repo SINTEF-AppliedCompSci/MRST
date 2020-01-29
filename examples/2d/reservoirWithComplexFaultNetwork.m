@@ -17,7 +17,7 @@
 % cell array of all faults. The second variable is bdr which is the 
 % boundary of the reservoir. bdr is a set of coordinates for the vertices
 % in a polygon. The vertices must be ordered counterclockwise or clockwise.
-% We can not use the wrapping function pebiGrid since the boundary is not a
+% We can not use the wrapping function pebiGrid2D since the boundary is not a
 % square, and therefore have to create the grid "manually". 
 pth = fullfile(mrstPath('upr'), 'datasets', 'gridBranets.mat');
 load(pth);
@@ -77,9 +77,9 @@ axis equal off tight
 
 %% Create grid using Delaunay optimization
 % An alternative to use the CVD optimization is to use the Delaunay
-% optimization. This can be used by calling the wrapper function pebiGrid
+% optimization. This can be used by calling the wrapper function pebiGrid2D
 
-Gd = pebiGrid(fGs, [], 'faultLines', fault, ...
+Gd = pebiGrid2D(fGs, [], 'faultLines', fault, ...
                        'polyBdr', bdr, ...
                        'interpolFL', true);
 subplot(1, 3, 3);

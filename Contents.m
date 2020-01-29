@@ -35,7 +35,7 @@
 %                          wells
 %   CPG2D               - Create a Centroidal Voronoi Diagram
 %   surfaceSufCond2D        - Enforce suficient fault condition
-%   pebiGrid            - Creates a fully unstructured PEBI-grid by using
+%   pebiGrid2D            - Creates a fully unstructured PEBI-grid by using
 %                         DistMesh
 %   plotLinePath        - Plots a fault or a well path
 %   removeConflictPoints - Remove sites that are too close to each other
@@ -48,7 +48,7 @@
 %                                         that you can pass to
 %                                         compositePebiGrid2D
 %     showOPtionValuesPebiGrid          - Show the different parameters you
-%                                         can pass to pebiGrid
+%                                         can pass to pebiGrid2D
 %     statisticalFractures              - Reservoir with many fractures
 %     threeIntersectingFaults           - Three faults that intersects
 %     wellBranching                     - Intersecting wells

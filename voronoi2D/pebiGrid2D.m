@@ -1,9 +1,9 @@
-function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
+function [G,Pts,F] = pebiGrid2D(resGridSize, pdims, varargin)
 % Construct a 2D Pebi grid.
 %
 % SYNOPSIS:
-%   G = pebiGrid(resGridSize, pdims)
-%   G = pebiGrid(...,'Name1',Value1,'Name2',Value2,...)
+%   G = pebiGrid2D(resGridSize, pdims)
+%   G = pebiGrid2D(...,'Name1',Value1,'Name2',Value2,...)
 %
 % PARAMETERS
 %   resGridSize     - Size of the reservoir grid cells, in units of
@@ -157,7 +157,7 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 % EXAMPLE:
 %   fl = {[0.2,0.2;0.8,0.8]};
 %   wl = {[0.2,0.8;0.8,0.2]};
-%   G  = pebiGrid(1/10,[1,1],'wellLines',wl,'faultLines',fl)
+%   G  = pebiGrid2D(1/10,[1,1],'wellLines',wl,'faultLines',fl)
 %   cla, plotGrid(G)
 %
 % SEE ALSO

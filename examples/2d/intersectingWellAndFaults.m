@@ -1,7 +1,7 @@
 %% Example
 % This script contains an example of a single curved well path intersected
 % by several straight faults. We use the two wrapper-functions
-% compositePebiGrid2D(..) and pebiGrid(..) to create PEBI grids conforming
+% compositePebiGrid2D(..) and pebiGrid2D(..) to create PEBI grids conforming
 % to the faults and the well path.
 
 %{
@@ -56,7 +56,7 @@ axis equal tight off
 title('compositePebiGrid2D(...)')
 drawnow
 
-%% Construct Voronoi grid using pebiGrid
+%% Construct Voronoi grid using pebiGrid2D
 % We now use the other wrapper function to create a PEBI-grid using
 % distmesh:
 eps = 1/12; % This parameter defines the refinement around the wells. The
@@ -66,19 +66,19 @@ eps = 1/12; % This parameter defines the refinement around the wells. The
 % distmesh will most likely not converge in the maximum number of
 % iterations. This is usually not a problem, since the grid most likely is
 % good before the convergence requirement is met.
-Gdist = pebiGrid(gS, [1, 1], 'wellLines', well, ...
+Gdist = pebiGrid2D(gS, [1, 1], 'wellLines', well, ...
                 'wellGridFactor',wGf/2, 'wellRefinement', true, ...
                 'wellEps',eps, 'faultlines', fault,'faultGridFactor',0.8);
 Gdist = computeGeometry(Gdist);
 
-% Plot pebiGrid
+% Plot pebiGrid2D
 subplot(1,2,2), hold on
 plotGrid(Gdist,'facecolor',[.95 .95 1])
 plotGrid(Gdist,Gdist.cells.tag, 'facecolor','b')
 centF = Gdist.faces.centroids(Gdist.faces.tag,:);
 plot(centF(:,1), centF(:,2),'.k','markersize',8)
 axis equal tight off
-title('pebiGrid(...)')
+title('pebiGrid2D(...)')
 
 
 

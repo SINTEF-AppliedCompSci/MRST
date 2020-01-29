@@ -93,7 +93,7 @@ function [wellPts, wGs, protPts,pGs] = lineSites2D(wellLines, wellGridSize, vara
 %   plot(wPts(:,1),wPts(:,2),'.r','markersize',20)
 %
 % SEE ALSO:
-%   pebiGrid, compositePebiGrid2D, surfaceSites2D, pebi
+%   pebiGrid2D, compositePebiGrid2D, surfaceSites2D, pebi
 %   lineSites2D3D.
 
 %{

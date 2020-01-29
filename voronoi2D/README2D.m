@@ -25,7 +25,7 @@
 %     lineSites2D
 %     CPG2D
 %     surfaceSufCond2D
-%     pebiGrid
+%     pebiGrid2D
 %     plotLinePath
 %     removeConflicPoints2
 %     splitAtInt2D
@@ -48,7 +48,7 @@
 % 
 % - surfaceSufCond2D enforces the sufficient fault condition.
 %
-% - pebiGrid is an interface function that can be called to create a valid 
+% - pebiGrid2D is an interface function that can be called to create a valid 
 %   MRST grid structure. It creates a fully unstructured PEBI-grid that 
 %   conforms to faults and wells. It uses the software DistMesh to create 
 %   the background grid. DistMesh is a software for creating unstructured 
