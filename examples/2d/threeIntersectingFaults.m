@@ -6,7 +6,11 @@
 % Proceedings of the SPE Reservoir Simulation Symposium, Houston, Texas,
 % USA, February 2015. doi: 10.2118/173243-MS
 %
-
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}  
 %% Set fault
 l = {[0.1,0.42; 0.4,.55; 0.7,0.65], ...
      [0.8,0.13; 0.6,0.4; 0.55,0.6],...

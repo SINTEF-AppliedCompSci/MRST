@@ -98,7 +98,7 @@ function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridS
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+% Copyright (C) 2015-2020 Runar Lie Berge. See COPYRIGHT.TXT for details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}
 

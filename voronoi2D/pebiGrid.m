@@ -165,7 +165,7 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+% Copyright (C) 2015-2020 Runar Lie Berge. See COPYRIGHT.TXT for details.
 %
 % distMesh is used to create the background grid 
 % (http://persson.berkeley.edu/distmesh/)

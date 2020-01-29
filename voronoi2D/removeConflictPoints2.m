@@ -1,5 +1,7 @@
 function [P1, removed] = removeConflictPoints2(P1,P2,dist)
-% Remove any points from a set that is too close to an other set.
+% Remove any points from the first given point set that is closer than a
+% given distance to the second given point set.
+% other given setset.
 %
 % SYNOPSIS:
 %   [Pts, removed] = removeConflicPoints2(P1,P2,dist)
@@ -39,7 +41,7 @@ function [P1, removed] = removeConflictPoints2(P1,P2,dist)
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+% Copyright (C) 2015-2020 Runar Lie Berge. See COPYRIGHT.TXT for details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}  
 

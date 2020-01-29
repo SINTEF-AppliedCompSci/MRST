@@ -1,3 +1,12 @@
+%% A 3D domain with 2 curved faults. 
+% We create two curved faults by triangulating them by distmesh.
+% We then use the createFaultGridPoint3d function to create the grid points
+% of the faults, before we crate a cartesian background grid.
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016-2020 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}
 %% set boundary
 tx = 1;
 ty = 1;

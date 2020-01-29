@@ -3,7 +3,7 @@
 %points as fixed points. 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+% Copyright (C) 2016-2020 Runar Lie Berge. See COPYRIGHT.TXT for details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}
 
@@ -53,7 +53,7 @@ yr = ymin:dt:ymax;
 zr = zmin:dt:zmax;
 [X,Y,Z] = ndgrid(xr,yr,zr);
 rSites = [X(:), Y(:), Z(:)];
-
+% Remove conflict sites
 [rSites,removed] = faultSufCond3D(rSites,F.c.CC,F.c.R);
 
 %% CVD optimization

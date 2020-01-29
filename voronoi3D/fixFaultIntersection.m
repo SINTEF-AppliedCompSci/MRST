@@ -1,5 +1,5 @@
 function F = fixFaultIntersection(F)
-% Removes conflicting fault points from intersecting (or almost 
+% Removes conflicting fault sites from intersecting (or almost 
 % intersecting) faults.
 %
 % SYNOPSIS:

@@ -18,7 +18,7 @@ function [Pts, wellType, removed] = removeConflictPoints(Pts, gridSpacing, ...
     %                   that were removed
     %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+    % Copyright (C) 2015-2020 Runar Lie Berge. See COPYRIGHT.TXT for details.
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     opt = struct('wellType',false(size(Pts,1),1));
     opt = merge_options(opt,varargin{:});
