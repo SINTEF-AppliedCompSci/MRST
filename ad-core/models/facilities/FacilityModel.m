@@ -284,9 +284,13 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [variables, names, origin] = getPrimaryVariables(model, state)
-            [variables, names] = model.getAllPrimaryVariables(state.wellSol);
-            origin = cell(size(variables));
-            [origin{:}] = deal(class(model));
+            if isfield(state, 'wellSol')
+                [variables, names] = model.getAllPrimaryVariables(state.wellSol);
+                origin = cell(size(variables));
+                [origin{:}] = deal(class(model));
+            else
+                [variables, names, origin] = deal({});
+            end
         end
 
         function model = validateModel(model, varargin)
