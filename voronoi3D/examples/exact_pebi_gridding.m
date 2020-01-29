@@ -11,9 +11,9 @@
 f1 = [1,3,2; 4,3,2; 4,3,4; 1,3, 4];
 f2 = [2,2,3.3; 5,2,3.3; 5,4,3.3; 2,4, 3.3];
 
-% Then we use the help function ellipticFault to create an elliptic
+% Then we use the help function ellipticSurface3D to create an elliptic
 % fault
-f3 = ellipticFault([3,2.5, 3.2], 2, 2, 0, pi/2, pi/2);
+f3 = ellipticSurface3D([3,2.5, 3.2], 2, 2, 0, pi/2, pi/2);
 
 fracs = {f1, f2, f3};
 
