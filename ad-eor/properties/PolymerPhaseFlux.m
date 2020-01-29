@@ -7,13 +7,15 @@ classdef PolymerPhaseFlux < StateFunction
         function gp = PolymerPhaseFlux(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn('FaceConcentration');
+            gp = gp.dependsOn({'FaceMobility', 'PermeabilityPotentialGradient'});
         end
         
         function vP = evaluateOnDomain(prop, model, state)
+            [mob, kgrad] = prop.getEvaluatedDependencies(state,...
+                'FaceMobility', 'PermeabilityPotentialGradient');
+            % compute water phase flux first
+            vW = -mob{1}.*kgrad{1};            
             cpf = prop.getEvaluatedDependencies(state, 'FaceConcentration');
-            phaseFlux = model.getProps(state, 'PhaseFlux');
-            vW = deal(phaseFlux{1});
-            
             fluid = model.fluid;
             mixpar = fluid.mixPar;
             cpbar   = cpf/fluid.cpmax;

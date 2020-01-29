@@ -8,6 +8,7 @@ classdef FaceConcentration < StateFunction & UpwindProperty
             gp@StateFunction(backend);
             gp@UpwindProperty(upwinding)
             gp = gp.dependsOn('polymer', 'state');
+            gp = gp.dependsOn('PhaseUpwindFlag');
         end
         
         function fcp = evaluateOnDomain(prop, model, state)

@@ -5,12 +5,16 @@ classdef SurfactantPolymerMobility < StateFunction
     methods
         function gp = SurfactantPolymerMobility(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'RelativePermeability', 'Viscosity'});
-            gp = gp.dependsOn({'PolymerPermReduction'});
+            gp = gp.dependsOn({'RelativePermeability', 'PolymerPermReduction'});
+            gp = gp.dependsOn('Viscosity', 'PVTPropertyFunctions');
+            if isfield(model.fluid, 'tranMultR')
+                gp = gp.dependOn('pressure', 'state');
+            end
         end
         function mob = evaluateOnDomain(prop, model, state)
-            [mu, kr] = prop.getEvaluatedDependencies(state, 'Viscosity', 'RelativePermeability');
+            kr = prop.getEvaluatedDependencies(state, 'RelativePermeability');
             permRed  = prop.getEvaluatedDependencies(state, 'PolymerPermReduction');
+            mu = model.getProps(state, 'Viscosity');
             mob = cellfun(@(x, y) x./y, kr, mu, 'UniformOutput', false);
             mob{1} = mob{1}./permRed;
             if isfield(model.fluid, 'tranMultR')
