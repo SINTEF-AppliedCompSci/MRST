@@ -42,7 +42,7 @@ function [W] = lineSites3D(wellLines, rho)
 %   plot3(wellLines{2}(:,1),wellLines{2}(:,2),wellLines{2}(:,3),'b')
 %
 % SEE ALSO:
-%   surfaceSites3D, clippedPebi3D, voronoi2mrst, 
+%   surfaceSites3D, clippedPebi3D, voronoi2mrstGrid3D, 
 %   lineSites2D
 
 %{

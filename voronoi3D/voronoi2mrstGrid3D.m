@@ -1,9 +1,9 @@
-function G = voronoi2mrst(V, C)
+function G = voronoi2mrstGrid3D(V, C)
 % Transform Voronoi diagram stored in a Qhull grid structure to a MRST grid
 % structure.
 %
 % SYNOPSIS:
-%   G = voronoi2mrst(V,C)
+%   G = voronoi2mrstGrid3D(V,C)
 %
 % PARAMETERS:
 %   V         A nx3 array containing the vertices of the Voronoi diagram,
@@ -21,7 +21,7 @@ function G = voronoi2mrst(V, C)
 % Y(1:2:end) = Y(1:2:end) + dt/2;
 % pts = [X(:), Y(:),Z(:)];
 % [V,C] = voronoin(pts);
-% G = voronoi2mrst(V,C);
+% G = voronoi2mrstGrid3D(V,C);
 % plotGrid(G);
 % axis equal
 %

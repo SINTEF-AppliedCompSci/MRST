@@ -18,10 +18,10 @@ rem = cellfun(@(c) any(isinf(V(c,1))), C);
 Cn   = C(~rem);
 Vn   = V(2:end,:);
 Cn   = cellfun(@(c) c-1, Cn,'un',false);
-G1   = voronoi2mrst(Vn, Cn);
-% Or we can let voronoi2mrst remove these. Note: this will result in a
+G1   = voronoi2mrstGrid3D(Vn, Cn);
+% Or we can let voronoi2mrstGrid3D remove these. Note: this will result in a
 % warning.
-G2 = voronoi2mrst(V,C);
+G2 = voronoi2mrstGrid3D(V,C);
 
 %% Plot grid
 clf;

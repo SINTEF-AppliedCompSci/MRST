@@ -30,7 +30,7 @@
 %   removeSurfaceConflictSites3D
 %   isColinear
 %   mirroredPebi3D
-%   voronoi2mrst
+%   voronoi2mrstGrid3D
 %   wellSufCond3D
 %
 %
@@ -62,7 +62,7 @@
 % - mirroredPebi3D creates a PEBI-grid with a valid MRST grid structure
 %   innside a convex domain.
 %
-% - voronoi2mrst converts a Qhull grid structure into a MRST grid
+% - voronoi2mrstGrid3D converts a Qhull grid structure into a MRST grid
 %   structure.
 %
 % - wellSufCond3D enforces the sufficient well condition.

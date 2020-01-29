@@ -26,7 +26,7 @@ function [G] = mirroredPebi3D(pts, bound)
 % axis equal
 %
 % SEE ALSO:
-%   compositePebiGrid2D, pebi, voronoi2mrst, clipGrid.
+%   compositePebiGrid2D, pebi, voronoi2mrstGrid3D, clipGrid.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,7 +72,7 @@ C = C(~remove);
 V   = V(2:end,:);
 C   = cellfun(@(c) c-1, C,'un',false);
 % Convert to mrst Grid-structure
-G = voronoi2mrst(V, C);    
+G = voronoi2mrstGrid3D(V, C);    
 end
 
 

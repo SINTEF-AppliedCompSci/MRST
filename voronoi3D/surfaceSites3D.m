@@ -53,7 +53,7 @@ function [F] = surfaceSites3D(faultTri, rho)
 %   plot3(F.f.pts(:,1),F.f.pts(:,2),F.f.pts(:,3), '.','markersize',15)
 %
 % SEE ALSO:
-%   surfaceSites3D, BallInt, clippedPebi3D, voronoi2mrst
+%   surfaceSites3D, BallInt, clippedPebi3D, voronoi2mrstGrid3D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
