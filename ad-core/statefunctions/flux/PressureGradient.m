@@ -6,7 +6,7 @@ classdef PressureGradient < StateFunction
     methods
         function gp = PressureGradient(varargin)
             gp@StateFunction(varargin{:});
-            gp = gp.dependsOn('PhasePressures', 'FlowPropertyFunctions');
+            gp = gp.dependsOn('PhasePressures', 'PVTPropertyFunctions');
             gp = gp.dependsOn('pressure', 'state');
         end
         function dp = evaluateOnDomain(prop, model, state)

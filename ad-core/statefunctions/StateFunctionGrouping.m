@@ -79,7 +79,7 @@ classdef StateFunctionGrouping
         end
 
         function present = isStateInitialized(group, state)
-            % Set up state function container on a state
+            % Check if the state contains the requisite container
             present = isfield(state, group.structName);
         end
         
