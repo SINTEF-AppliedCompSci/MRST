@@ -99,7 +99,7 @@ end
 F = surfaceSites3D(opt.faultSurf,faultRho);
 
 % Remove conflict points at fault intersections
-F = fixFaultIntersection(F);
+F = removeSurfaceConflictSites3D(F);
 
 % Create well points
 W = lineSites3D(opt.wellLines, wellRho);

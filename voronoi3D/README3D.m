@@ -27,7 +27,7 @@
 %   lineSites3D
 %   CPG3D
 %   surfaceSufCond3D
-%   fixFaultIntersection
+%   removeSurfaceConflictSites3D
 %   isColinear
 %   mirroredPebi
 %   voronoi2mrst
@@ -55,7 +55,7 @@
 %
 % - surfaceSufCond2D enforces the sufficient fault condition.
 %
-% - fixFaultIntersection removes points from faults that are intersecting
+% - removeSurfaceConflictSites3D removes points from faults that are intersecting
 %
 % - isColinear tests if a set of points lie on a straight line
 %

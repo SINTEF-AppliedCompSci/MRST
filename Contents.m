@@ -66,7 +66,7 @@
 %   lineSites3D - Creates a set of points tracing a well path
 %   CPG3D               - create a 3D Centroidal Voronoi diagram
 %   surfaceSufCond3D      - enforce sufficent and necessary fault condition
-%   fixFaultIntersection - Removes fault points at the intersection of
+%   removeSurfaceConflictSites3D - Removes fault points at the intersection of
 %                          faults
 %   isColinear          - Tests if points lie on a straight line
 %   mirroredPebi        - Creates a 3D PEBI-grid of a convext hull by

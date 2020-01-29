@@ -1,9 +1,9 @@
-function F = fixFaultIntersection(F)
+function F = removeSurfaceConflictSites3D(F)
 % Removes conflicting fault sites from intersecting (or almost 
 % intersecting) faults.
 %
 % SYNOPSIS:
-%   Fr = fixFaultIntersection(F)
+%   Fr = removeSurfaceConflictSites3D(F)
 %   
 %
 % PARAMETERS:
@@ -47,7 +47,7 @@ function F = fixFaultIntersection(F)
 %   rho = @(p) 1.5/nx*ones(size(p,1),1);
 % 
 %   F   = surfaceSites3D({fDt1,fDt2},{rho,rho});
-%   Fh  = fixFaultIntersection(F);
+%   Fh  = removeSurfaceConflictSites3D(F);
 %   figure; hold on; axis equal
 %   plot3(F.f.pts(:,1), F.f.pts(:,2), F.f.pts(:,3),'bo','markersize',5); 
 %   plot3(Fh.f.pts(:,1), Fh.f.pts(:,2), Fh.f.pts(:,3),'r.','markersize',15);
