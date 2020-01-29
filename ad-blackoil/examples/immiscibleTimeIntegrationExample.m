@@ -116,7 +116,40 @@ end
 ylabel('Timestep length [day]')
 xlabel('Fraction of total simulation time');
 legend(names)
+%% Solve with sequential version of the solver
+% In the previous section, we used the variable implicitness, but the
+% solver did still simultaneously update pressure and saturations. An
+% alternative is to use a sequential solver which first solves pressure,
+% and then solves the transport equations either entirely or fully
+% implicitly.
+mrstModule add blackoil-sequential
+modelseq = getSequentialModelFromFI(model);
 
+seq = packSimulationProblem(state0, modelseq, schedule, 'immiscible_time', 'Name', 'Sequential-Implicit');
+
+modelseq_explicit = setTimeDiscretization(modelseq, 'explicit', 'verbose', true);
+seq_explicit = packSimulationProblem(state0, modelseq_explicit, schedule, 'immiscible_time', 'Name', 'Sequential-Explicit');
+
+modelseq_aim = setTimeDiscretization(modelseq, 'explicit', 'verbose', true);
+seq_aim = packSimulationProblem(state0, modelseq_aim, schedule, 'immiscible_time', 'Name', 'Sequential-AIM');
+
+allvariants = {implicit, explicit, aim, seq, seq_explicit, seq_aim};
+simulatePackedProblem(allvariants, 'continueOnError', false);
+
+[ws, states, reports, names, T] = getMultiplePackedSimulatorOutputs(allvariants);
+%% Plot the displacement
+% Note that as this example has no changes in mobility or significant
+% compressibility, we can expect the different levels of explicitness to be
+% the same between the sequential and fully coupled solvers.
+markers = {'-.', '.', 'o'};
+for i = 1:numel(T{1})
+    clf; hold on
+    for j = 1:numel(states)
+        plot(states{j}{i}.s(:, 1), markers{mod(j, 3)+1});
+    end
+    legend(names)
+    drawnow
+end
 % <html>
 % <p><font size="-1">
 % Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
