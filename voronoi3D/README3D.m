@@ -25,7 +25,7 @@
 %   compositePebiGrid3D
 %   surfaceSites3D
 %   lineSites3D
-%   CVD3D
+%   CPG3D
 %   faultSufCond3D
 %   fixFaultIntersection
 %   isColinear
@@ -50,7 +50,7 @@
 %
 % - lineSites3D places points along given well-lines.
 %
-% - CVD3D creates a centroidal Voronoi diagram by minimizing the CVD energy
+% - CPG3D creates a centroidal Voronoi diagram by minimizing the CVD energy
 %   function. It does this by using the L-BFGS optimization algorithm.
 %
 % - surfaceSufCond2D enforces the sufficient fault condition.

@@ -64,7 +64,7 @@
 %   surfaceSites3D - Creates a set of points equidistant on both
 %                             sides of a triangulation
 %   lineSites3D - Creates a set of points tracing a well path
-%   CVD3D               - create a 3D Centroidal Voronoi diagram
+%   CPG3D               - create a 3D Centroidal Voronoi diagram
 %   faultSufCond3D      - enforce sufficent and necessary fault condition
 %   fixFaultIntersection - Removes fault points at the intersection of
 %                          faults

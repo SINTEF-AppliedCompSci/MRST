@@ -58,7 +58,7 @@ rSites = [X(:), Y(:), Z(:)];
 
 %% CVD optimization
 bdrDT = delaunayTriangulation(bdr);
-G = CVD3D(rSites,bdr,'tol',1e-3,'maxIt',20,'fixedPts',F.f.pts);
+G = CPG3D(rSites,bdr,'tol',1e-3,'maxIt',20,'fixedPts',F.f.pts);
 G = computeGeometry(G);
 
 %% plot

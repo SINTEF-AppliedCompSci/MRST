@@ -1,10 +1,10 @@
-function [G,optPts,f,g] = CVD3D(pts, bnd, varargin)
+function [G,optPts,f,g] = CPG3D(pts, bnd, varargin)
 % Construct a 3D centroidal Voronoi Diagram(CVD). The CVD is found by
 % minimizing the CVD energy function using the lbfgs algorithm.
 %
 % SYNOPSIS:
-%   [G, optPts, f, g] = CVD3D(pts, bnd)
-%   [...] = CVD3D(..., 'Name1', Value1,'Name2', Value2,...)
+%   [G, optPts, f, g] = CPG3D(pts, bnd)
+%   [...] = CPG3D(..., 'Name1', Value1,'Name2', Value2,...)
 %
 % PARAMETERS:
 %   p        - A n X 3 array of coordinates. Initial guess for Voronoi
@@ -46,7 +46,7 @@ function [G,optPts,f,g] = CVD3D(pts, bnd, varargin)
 %   p = rand(30,3);
 %   bnd = [0,0,0;0,1,0;1,1,0;1,0,0;...
 %          0,0,1;0,1,1;1,1,1;1,0,1];
-%   G = CVD3D(p,bnd);
+%   G = CPG3D(p,bnd);
 %   figure();
 %   plotGrid(G);
 %   axis equal tight
