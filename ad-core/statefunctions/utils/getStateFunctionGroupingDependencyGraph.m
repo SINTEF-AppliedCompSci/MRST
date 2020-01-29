@@ -99,11 +99,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         dep_cat(i) = find(strcmp(group_names, d.grouping));
         if strcmpi(d.grouping, 'state')
             dep_impl{i} = 'state';
-            dep_symbl{i} = 'state';
         else
             dep_impl{i} = '?';
-            dep_symbl{i} = d.name;
         end
+        dep_symbl{i} = d.name;
     end
     I = [all_implementation; dep_impl];
     N = [all_names; dep_names];

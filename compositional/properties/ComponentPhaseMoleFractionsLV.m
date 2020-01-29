@@ -1,4 +1,5 @@
 classdef ComponentPhaseMoleFractionsLV < StateFunction
+    % Mole fractions for each phase
     properties
     end
     
@@ -6,6 +7,7 @@ classdef ComponentPhaseMoleFractionsLV < StateFunction
         function gp = ComponentPhaseMoleFractionsLV(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'x', 'y'}, 'state');
+            gp.label = 'x_{i,\alpha}';
         end
 
         function v = evaluateOnDomain(prop, model, state)

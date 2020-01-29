@@ -1,4 +1,5 @@
 classdef PhaseMixingCoefficientsLV < StateFunction
+    % Mixing coefficients for liquid-vapor system
     properties
         useCompactEvaluation = true;
     end
@@ -7,6 +8,7 @@ classdef PhaseMixingCoefficientsLV < StateFunction
         function gp = PhaseMixingCoefficientsLV(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'pressure', 'temperature', 'x', 'y'}, 'state');
+            gp.label = 'S_i B_i A_\alpha B_\alpha A_{ij}';
         end
 
         function v = evaluateOnDomain(prop, model, state)

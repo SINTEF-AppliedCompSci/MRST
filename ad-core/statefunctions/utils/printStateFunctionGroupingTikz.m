@@ -1,4 +1,4 @@
-function printStateFunctionGroupingTikz(g)
+function printStateFunctionGroupingTikz(g, p)
 % Tikz version of plotStateFunctionGrouping
     outer = 'tree layout';
     inner = 'tree layout, grow = right';
@@ -8,6 +8,16 @@ function printStateFunctionGroupingTikz(g)
     n = numel(nodes);
     nodeNames = cell(1, n);
     groupNames = cell(1, n);
+    hasHandle = nargin > 1 && ishandle(p);
+    if hasHandle
+        nodeNames = get(p, 'NodeLabel');
+        for i = 1:numel(nodeNames)
+            nn = nodeNames{i};
+            if checkLaTeX(nn)
+                nodeNames{i} = sprintf('$%s$', nn);
+            end
+        end
+    end
     for i = 1:n
         node = nodes{i};
         sep = regexp(node,'\.','split');
@@ -18,7 +28,9 @@ function printStateFunctionGroupingTikz(g)
             nodeName = sep{2};
             groupName = sep{1};
         end
-        nodeNames{i} = nodeName;
+        if ~hasHandle
+            nodeNames{i} = nodeName;
+        end
         groupNames{i} = groupName;
     end
     uniqueGroups = uniqueStable(groupNames);
@@ -101,8 +113,17 @@ function printStateFunctionGroupingTikz(g)
     fprintf('}\n\\end{document}\n');
 end
 
-function drawn = drawEdges(nodes, edges, groups, group, stylearg, colors, allgroups)
+function istex = checkLaTeX(x)
+    if numel(x) <= 3
+        istex = true;
+    elseif any(x == '{' | x == '}' | x == '_' | x == '\')
+        istex = true;
+    else
+        istex = false;
+    end
+end
 
+function drawn = drawEdges(nodes, edges, groups, group, stylearg, colors, allgroups)
     ne = size(edges, 1);
     drawn = false(ne, 1);
     for i = 1:ne

@@ -62,7 +62,7 @@ disp(model.FlowPropertyFunctions)
 % order to understand the relationships between the different functions.
 for i = 1:numel(groups)
     figure;
-    plotStateFunctionGroupings(groups{i})
+    plotStateFunctionGroupings(groups{i},  'label', 'label')
     title(class(groups{i}));
 end
 %% Plot a specific dependency
