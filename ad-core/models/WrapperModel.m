@@ -70,6 +70,10 @@ classdef WrapperModel < PhysicalModel
         function [state, report] = updateAfterConvergence(model, varargin)
             [state, report] = model.parentModel.updateAfterConvergence(varargin{:});
         end
+        
+        function dt = getMaximumTimestep(model, state, state0, dt, drivingForces)
+            dt = model.parentModel.getMaximumTimestep(state, state0, dt, drivingForces);
+        end
     end
 end
 
