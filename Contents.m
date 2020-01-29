@@ -73,7 +73,7 @@
 %                         mirroring all points around the boundary faces
 %   voronoi2mrstGrid3D        - Transform the output of VORONOIN() to a MRST grid
 %                         structure
-%   wellSufCond3D       - Enforces the well condition
+%   lineSufCond3D       - Enforces the well condition
 %   /examples
 %       compositePebiGridWithTwoFaults - Create a grid using the composite
 %                                        wrapping function of a reservoir

@@ -1,4 +1,4 @@
-function [pts,removed] = wellSufCond3D(pts, W)
+function [pts,removed] = lineSufCond3D(pts, W)
 % Enforces the sufficient well condition
 %
 % SYNOPSIS:
@@ -34,7 +34,7 @@ function [pts,removed] = wellSufCond3D(pts, W)
 %   z = 0.5*sin(x)+0.5;
 %   wellPts = {[x,y,z]};
 %   W = lineSites3D(wellPts, @(x) 0.3*ones(size(x,1),1));
-%   [~,removed] = wellSufCond3D(pts,W);
+%   [~,removed] = lineSufCond3D(pts,W);
 %   figure()
 %   hold on
 %   plot3(pts(removed,1), pts(removed,2), pts(removed,3),'.','markersize',15)

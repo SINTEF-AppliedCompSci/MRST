@@ -128,7 +128,7 @@ bdr   = [ 0, 0, 0;  ...
 rSites = [X(:), Y(:), Z(:)];
 
 % Remove conflict points
-rSites = wellSufCond3D(rSites, W);
+rSites = lineSufCond3D(rSites, W);
 rSites = surfaceSufCond3D(rSites,F.c.CC,F.c.R);
 W.pts  = surfaceSufCond3D(W.pts,F.c.CC,F.c.R);
 

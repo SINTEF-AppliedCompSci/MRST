@@ -31,7 +31,7 @@
 %   isColinear
 %   mirroredPebi3D
 %   voronoi2mrstGrid3D
-%   wellSufCond3D
+%   lineSufCond3D
 %
 %
 % - ballInt calculates the two unique intersection points of three balls
@@ -65,7 +65,7 @@
 % - voronoi2mrstGrid3D converts a Qhull grid structure into a MRST grid
 %   structure.
 %
-% - wellSufCond3D enforces the sufficient well condition.
+% - lineSufCond3D enforces the sufficient well condition.
 %
 % EXAMPLES:
 % see subfolder voronoi3D/examples
