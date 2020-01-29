@@ -31,7 +31,7 @@
 %                         Cartesian background grid.
 %   surfaceSites2D - Creates a set of Voronoi sites equidistant on
 %                           both sides of a set of faults
-%   createWellGridPoints - Creates a set of Voronoi sites tracing a set of
+%   lineSites2D - Creates a set of Voronoi sites tracing a set of
 %                          wells
 %   CVD2D               - Create a Centroidal Voronoi Diagram
 %   faultSufCond        - Enforce suficient fault condition

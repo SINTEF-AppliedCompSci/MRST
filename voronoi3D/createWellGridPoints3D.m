@@ -43,7 +43,7 @@ function [W] = createWellGridPoints3D(wellLines, rho)
 %
 % SEE ALSO:
 %   createFaultGridPoints3D, clippedPebi3D, voronoi2mrst, 
-%   createWellGridPoints
+%   lineSites2D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

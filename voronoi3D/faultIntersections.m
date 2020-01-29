@@ -24,7 +24,7 @@ function intersections = faultIntersections(faults)
 %   intersections{1}{2:3}
 %
 % SEE ALSO
-%   intersectionSites, faultSites, reservoirSites, compositePebiGrid2D, pebi, surfaceSites2D, createWellGridPoints.
+%   intersectionSites, faultSites, reservoirSites, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

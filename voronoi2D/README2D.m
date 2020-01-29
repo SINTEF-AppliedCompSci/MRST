@@ -22,7 +22,7 @@
 %     clippedPebi2D
 %     compositePebiGrid2D
 %     surfaceSites2D
-%     createWellGridPoints
+%     lineSites2D
 %     CVD2D
 %     faultSufCond
 %     pebiGrid
@@ -41,7 +41,7 @@
 % - surfaceSites2D creates sites equiv-distant on each side of the
 %   given faults. 
 % 
-% - createWellGridPoints places sites along given well-lines.
+% - lineSites2D places sites along given well-lines.
 %
 % - CVD2D creates a centroidal Voronoi diagram by minimizing the CVD energy
 %   function. It does this by using the L-BFGS optimization algorithm.

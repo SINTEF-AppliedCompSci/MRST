@@ -26,7 +26,7 @@ function grids_1 = intersectionSites(intersections, ds)
 %   % the vertices of the grid are:
 %   grids_1{1}{2}
 % SEE ALSO
-%   intersectionSites, faultSites, reservoirSites, compositePebiGrid2D, pebi, surfaceSites2D, createWellGridPoints.
+%   intersectionSites, faultSites, reservoirSites, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

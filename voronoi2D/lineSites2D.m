@@ -1,9 +1,9 @@
-function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridSize, varargin) 
+function [wellPts, wGs, protPts,pGs] = lineSites2D(wellLines, wellGridSize, varargin) 
 % Places well grid points along wells.
 %
 % SYNOPSIS:
-%   [wellPts, wGs, protPts, pGs] = createWellGridPoints(F,faultGridSize)
-%   [...] = createWellGridPoints(..., 'Name1', Value1, 'Name2', Value2,...)
+%   [wellPts, wGs, protPts, pGs] = lineSites2D(F,faultGridSize)
+%   [...] = lineSites2D(..., 'Name1', Value1, 'Name2', Value2,...)
 %
 % Parameters:
 %   wellLines     - A cell of arrays. Each nx2 array in the cell contains 
@@ -87,14 +87,14 @@ function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridS
 % EXAMPLE
 %   wl = {[0.2,0.2;0.8,0.8]};
 %   gS = 0.1;
-%   wPts = createWellGridPoints(fl,gS);
+%   wPts = lineSites2D(fl,gS);
 %   figure(); hold on
 %   plot(wl{1}(:,1), wl{1}(:,2))
 %   plot(wPts(:,1),wPts(:,2),'.r','markersize',20)
 %
 % SEE ALSO:
 %   pebiGrid, compositePebiGrid2D, surfaceSites2D, pebi
-%   createWellGridPoints3D.
+%   lineSites2D3D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

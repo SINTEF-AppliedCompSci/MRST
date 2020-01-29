@@ -102,7 +102,7 @@ function [F] = surfaceSites2D(faultLines,faultGridSize, varargin)
 %   plot(F.f.pts(:,1),F.f.pts(:,2),'.r','markersize',20)
 %
 % SEE ALSO:
-%   pebiGrid, compositePebiGrid2D, createWellGridPoints, splitFaults, pebi.
+%   pebiGrid, compositePebiGrid2D, lineSites2D, splitFaults, pebi.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
