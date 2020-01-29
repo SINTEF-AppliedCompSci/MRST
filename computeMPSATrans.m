@@ -10,17 +10,14 @@
 mrstModule add mimetic mpfa incomp
 
 clear all
-
-isverbose = true;
-eta       = 1/3;
-blocksize = 10;
+eta = 1/3;
 
 %% Define and process geometry
 % Construct a Cartesian grid 
 dimcase = 2;
 switch dimcase
   case 2
-    nx = 2; ny = 2;
+    nx = 5; ny = 5;
     G = cartGrid([nx, ny]);
   case 3
     nx = 5; ny = 5; nz = 5;
@@ -206,6 +203,7 @@ prod = TensorProd();
 prod.tbl1 = cellnodefacecoltbl;
 prod.tbl2 = cellnodecolrowtbl;
 prod.replacefds1 = {'coldim', 'rowdim'};
+prod.replacefds2 = {'coldim', 'rowdim', 'interchange'};
 prod.reducefds = {'rowdim', 'cells'};
 prod.mergefds = {'nodes'};
 prod.prodtbl = nodefacecoltbl;
