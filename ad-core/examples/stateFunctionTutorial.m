@@ -9,6 +9,8 @@ mrstModule add ad-core ad-blackoil deckformat ad-props
 pth = getDatasetPath('spe1');
 fn  = fullfile(pth, 'BENCH_SPE1.DATA');
 [state0, model, schedule, nonlinear] = initEclipseProblemAD(fn);
+
+simulateScheduleAD(state0, model, schedule)
 %% Validate model to set up defaults
 % State functions are set up at the start of a simulation, with reasonable
 % defaults given. Here, we manually call validateModel to invoke these
@@ -27,14 +29,14 @@ groups = model.getStateFunctionGroupings();
 % saturations which are stored directly in the state. Normally, we do not
 % have to think too hard about where exactly a property is defined, since
 % the framework can figure it out for us.
-mobility = model.getProp(state0, 'Mobility');
+relperm = model.getProp(state0, 'RelativePermeability');
 % Alternatively, we could invoke the FlowPropertyFunctions grouping's get
 % function to the same effect.
-mob = model.FlowPropertyFunctions.get(model, state0, 'Mobility');
+kr = model.FlowPropertyFunctions.get(model, state0, 'RelativePermeability');
 
 figure;
-plotCellData(model.G, mobility{2});
-title('Initial oil mobility')
+plotCellData(model.G, relperm{2});
+title('Initial oil relperm')
 view(30, 30);
 colorbar
 %% We can also initialize AD-variables in state to get derivatives
@@ -42,7 +44,7 @@ colorbar
 stateAD = state0;
 stateAD.pressure = initVariablesADI(state0.pressure);
 % Outputs are now ADI, with differentiation with respect to pressure
-mobAD = model.FlowPropertyFunctions.get(model, stateAD, 'Mobility');
+mobAD = model.getProp(stateAD, 'Mobility');
 disp(mobAD)
 %% Show a state function grouping
 % We can inspect the FlowPropertyFunctions directly. The
@@ -72,22 +74,24 @@ plotStateFunctionGroupings(model.FlowPropertyFunctions, 'Stop', 'Mobility')
 title('All dependencies required to evaluate mobility')
 %% Plot all dependencies of a property
 % Let's see all properties which directly or indirectly depend on on the
-% pressure in the state
+% pressure in the state. We get the PVT properties together with the flow
+% properties for this purpose.
+groups = {model.FlowPropertyFunctions, model.PVTPropertyFunctions};
 figure(1); clf
-plotStateFunctionGroupings(model.FlowPropertyFunctions, 'Start', 'pressure')
+plotStateFunctionGroupings(groups, 'Start', 'pressure')
 title('Flow properties that depend on pressure') 
 %% Plot everything which either depends upon a property, or uses that property
 % Let's see all properties which directly or indirectly depend on on the
 % pressure in the state
 figure(1); clf
-plotStateFunctionGroupings(model.FlowPropertyFunctions, 'Center', 'Mobility')
+plotStateFunctionGroupings(groups, 'Center', 'Mobility')
 title('Upstream and downstream mobility dependencies');
 %% We can combine graphs
 % Here, we plot all the flow properties together with the discretization of
 % the flux, which depends on many of these properties.
 df = get(0, 'DefaultFigurePosition');
 figure('Position', df.*[1, 1, 2, 2]);
-tmp = {model.FlowPropertyFunctions, model.FluxDiscretization};
+tmp = {model.FlowPropertyFunctions, model.FluxDiscretization, model.PVTPropertyFunctions};
 plotStateFunctionGroupings(tmp);
 title('Flow properties + flow discretization')
 %% Create a compositional model and visualize the property graphs

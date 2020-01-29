@@ -497,7 +497,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 oix = rmodel.getPhaseIndex('O');
                 gix = rmodel.getPhaseIndex('G');
                 
-                pvt_reg = rmodel.FlowPropertyFunctions.Density.regions;
+                pvt_reg = rmodel.PVTPropertyFunctions.Density.regions;
                 if isempty(pvt_reg)
                     pvt_reg = ones(rmodel.G.cells.num, 1);
                 end
@@ -541,13 +541,14 @@ classdef ExtendedFacilityModel < FacilityModel
                         rv(isHist) = min(qs(isHist, oix)./qs(isHist, gix), rv);
                     end
                 end
-                flowProps = model.ReservoirModel.FlowPropertyFunctions.subset(cells);
+                minimodel = model.ReservoirModel;
+                minimodel.PVTPropertyFunctions = minimodel.PVTPropertyFunctions.subset(cells);
+                minimodel.FlowPropertyFunctions = minimodel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
-                flowProps.ShrinkageFactors.useSaturatedFlag = true;
-                substate = flowProps.evaluateStateFunctionWithDependencies(model.ReservoirModel, substate, 'ShrinkageFactors');
+                minimodel.PVTPropertyFunctions.ShrinkageFactors.useSaturatedFlag = true;
+                b = minimodel.getProp(substate, 'ShrinkageFactors');
                 shrink = 1 - rs.*rv;
                 shrink0 = 1 - rs0.*rv0;
-                b = substate.FlowProps.ShrinkageFactors;
                 newRates = 0;
                 nph = model.getNumberOfPhases();
                 factors = zeros(nc, nph);

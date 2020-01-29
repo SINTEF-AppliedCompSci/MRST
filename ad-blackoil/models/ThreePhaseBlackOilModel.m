@@ -241,7 +241,7 @@ methods
         if model.vapoil
             % RV must be supplied for all cells. This may cause an error.
             model.checkProperty(state, 'rv', nc, 1);
-            rvMax = model.getProp(state, 'rvMax');
+            rvMax = model.getProp(state, 'RvMax');
             [so, sg, rv] = model.getProps(state, 'so', 'sg', 'rv');
             rv(so > 0) = rvMax(so > 0);
             rv = rv.*(sg > 0);

@@ -88,9 +88,6 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                     model.Components{ci} = c;
                 end
             end
-            if isempty(model.FlowPropertyFunctions)
-                model.FlowPropertyFunctions = CompositionalFlowPropertyFunctions(model);
-            end
             model = validateModel@OverallCompositionCompositionalModel(model, varargin{:});
             model.FluxDiscretization.GravityPotentialDifference.saturationWeighting = true;
         end

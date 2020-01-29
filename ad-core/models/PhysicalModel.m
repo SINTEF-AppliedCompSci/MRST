@@ -889,7 +889,11 @@ methods
         if isempty(fn)
             % Not known - check property functions
             containers = model.getStateFunctionGroupings();
-            for i = 1:numel(containers)
+            nc = numel(containers);
+            if nc > 0 && ~containers{1}.isStateInitialized(state)
+                state = model.initStateFunctionContainers(state);
+            end
+            for i = 1:nc
                 c = containers{i};
                 nms = c.getNamesOfStateFunctions();
                 sub = strcmpi(nms, name);
@@ -899,7 +903,7 @@ methods
                 end
             end
             error('PhysicalModel:UnknownVariable', ...
-                'Unknown variable field %s', name);
+                'I did not find %s in any state function grouping or via getVariableField', name);
         else
             if iscell(state.(fn))
                 if ischar(index)

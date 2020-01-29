@@ -143,6 +143,10 @@ classdef FacilityModel < PhysicalModel
             end
         end
 
+        function model = setReservoirModel(model, resmodel)
+            model.ReservoirModel = resmodel;
+            model.AutoDiffBackend = resmodel.AutoDiffBackend;
+        end
         function W = getWellStruct(model, subs)
             % Get the well struct representing the current set of wells
             %
@@ -280,9 +284,13 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [variables, names, origin] = getPrimaryVariables(model, state)
-            [variables, names] = model.getAllPrimaryVariables(state.wellSol);
-            origin = cell(size(variables));
-            [origin{:}] = deal(class(model));
+            if isfield(state, 'wellSol')
+                [variables, names] = model.getAllPrimaryVariables(state.wellSol);
+                origin = cell(size(variables));
+                [origin{:}] = deal(class(model));
+            else
+                [variables, names, origin] = deal({});
+            end
         end
 
         function model = validateModel(model, varargin)

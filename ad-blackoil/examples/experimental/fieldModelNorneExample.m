@@ -50,14 +50,16 @@ model.FacilityModel.FacilityFluxDiscretization.ComponentTotalFlux = WellComponen
 % Reset just in case
 model.FluxDiscretization = [];
 model.FlowPropertyFunctions = [];
+model.PVTPropertyFunctions = [];
+
 model = model.validateModel();
 useFlag = false;
-model.FlowPropertyFunctions.Viscosity.useSaturatedFlag = useFlag;
-model.FlowPropertyFunctions.ShrinkageFactors.useSaturatedFlag = useFlag;
+model.PVTPropertyFunctions.Viscosity.useSaturatedFlag = useFlag;
+model.PVTPropertyFunctions.ShrinkageFactors.useSaturatedFlag = useFlag;
 
-RvMax = model.FlowPropertyFunctions.getStateFunction('RvMax');
+RvMax = model.PVTPropertyFunctions.getStateFunction('RvMax');
 RvMax.rvReduction = 0.5; % Not tested, but in the deck
-model.FlowPropertyFunctions = model.FlowPropertyFunctions.setStateFunction('RvMax', RvMax);
+model.PVTPropertyFunctions = model.PVTPropertyFunctions.setStateFunction('RvMax', RvMax);
 
 
 model.dsMaxAbs = 0.2;

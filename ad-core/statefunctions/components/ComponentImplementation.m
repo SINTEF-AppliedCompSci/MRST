@@ -11,9 +11,10 @@ classdef ComponentImplementation
         function c = ComponentImplementation(name)
             c.name = name;
             % Document dependencies internal to grouping
-            c = c.dependsOn({'PoreVolume', 'Density', 'Mobility'});
+            c = c.dependsOn({'Mobility'});
             % State dependencies
             c = c.dependsOn('s', 'state');
+            c = c.dependsOn({'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
         end
         
         function c = getComponentDensity(component, model, state)

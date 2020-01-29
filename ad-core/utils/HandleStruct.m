@@ -54,6 +54,10 @@ classdef HandleStruct < handle
             ds2 = HandleStruct(ds.data);
         end
         
+        function ok = isfield(ds, f)
+            ok = isfield(ds.data, f);
+        end
+        
         function ok = structPropEvaluated(s, name)
             ok = ~isempty(s.data.(name));
         end
