@@ -7,7 +7,7 @@ function grids_1 = intersectionSites(intersections, ds)
 %
 % PARAMETERS
 %   intersecitons   - The intersection of fautls as returned from
-%                     faultIntersections
+%                     surfaceIntersections3D.m
 %   ds              - Cell size of the 1D cells
 %
 % RETURNS:
@@ -19,7 +19,7 @@ function grids_1 = intersectionSites(intersections, ds)
 %   f1 = [1,3,2; 4,3,2; 4,3,4; 1,3, 4];
 %   f2 = [2,2,3.3; 5,2,3.3; 5,4,3.3; 2,4, 3.3];
 %   fracs = {f1, f2};
-%   intersections = faultIntersections(fracs);
+%   intersections = surfaceIntersections3D.m(fracs);
 %   grids_1 = intersectionSites(intersections, 0.2);
 %   % the PEBI-sites are:
 %   grids_1{1}{1} 

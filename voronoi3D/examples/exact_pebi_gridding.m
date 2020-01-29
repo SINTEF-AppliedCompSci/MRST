@@ -19,7 +19,7 @@ fracs = {f1, f2, f3};
 
 %% Finding fault intersections
 
-intersections = faultIntersections(fracs);
+intersections = surfaceIntersections3D.m(fracs);
 
 %% Generate 1D grids
 % We start by generating the 1D grids. The only parameter we have to

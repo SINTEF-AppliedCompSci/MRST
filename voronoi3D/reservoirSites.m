@@ -25,14 +25,14 @@ function [grid_3]  = reservoirSites(pdim, faults, grids_2, ds, gamma)
 %   f1 = [1,3,2; 4,3,2; 4,3,4; 1,3, 4];
 %   f2 = [2,2,3.3; 5,2,3.3; 5,4,3.3; 2,4, 3.3];
 %   fracs = {f1, f2};
-%   intersections = faultIntersections(fracs);
+%   intersections = surfaceIntersections3D.m(fracs);
 %   grids_1 = intersectionSites(intersections, 0.2);
 %   grids_2 = fautlSites(fracs, grids_1, intersections, 0.2, 0.2/6)
 %   grids_3 = reservoirSites([6,6,6], fracs, grids_2, 0.4, 0.1)
 %   plotGrid(grids_3)
 %
 % SEE ALSO
-%   intersectionSites, faultIntersections, faultSites, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
+%   intersectionSites, surfaceIntersections3D.m, faultSites, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

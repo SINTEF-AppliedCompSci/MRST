@@ -1,8 +1,8 @@
-function intersections = faultIntersections(faults)
+function intersections = surfaceIntersections3D.m(faults)
 % Find the intersection of faults defined by polygons. 
 %
 % SYNOPSIS:
-%   intersections = faultIntersections(faults)
+%   intersections = surfaceIntersections3D.m(faults)
 %
 % PARAMETERS
 %   faults          - cell array of faults. Each element is a vector of
@@ -17,7 +17,7 @@ function intersections = faultIntersections(faults)
 %   f1 = [1,3,2; 4,3,2; 4,3,4; 1,3, 4];
 %   f2 = [2,2,3.3; 5,2,3.3; 5,4,3.3; 2,4, 3.3];
 %   fracs = {f1, f2};
-%   intersections = faultIntersections(fracs);
+%   intersections = surfaceIntersections3D.m(fracs);
 %   % The intersection line is:
 %   intersections{1}{1}
 %   % The indices of the faults are
