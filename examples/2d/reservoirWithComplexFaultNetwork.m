@@ -34,7 +34,7 @@ axis equal off tight;
 
 %% Create fault sites
 fGs = max(bdr(:))/50;
-F = createFaultGridPoints(faultSplit, fGs,'fCut',fCut,'interpolFL',true);
+F = surfaceSites2D(faultSplit, fGs,'fCut',fCut,'interpolFL',true);
 % Remove tip sites that violate the fault condition
 F.t.pts = faultSufCond(F.t.pts, F);
 % Remove tip sites outside domain

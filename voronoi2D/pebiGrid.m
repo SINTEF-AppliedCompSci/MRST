@@ -152,7 +152,7 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 %                        - G.faces.tag is TRUE for all fault edges.
 %   Pts            - Array [G.cells.num x 3] of the Voronoi sites.
 %   F              - Struct with elements as returned from 
-%                    createFaultGridPoints
+%                    surfaceSites2D
 %
 % EXAMPLE:
 %   fl = {[0.2,0.2;0.8,0.8]};
@@ -161,7 +161,7 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 %   cla, plotGrid(G)
 %
 % SEE ALSO
-%   compositePebiGrid2D, pebi, createFaultGridPoints, createWellGridPoints.
+%   compositePebiGrid2D, pebi, surfaceSites2D, createWellGridPoints.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -300,7 +300,7 @@ else
 end
 
 % Create fault points
-F = createFaultGridPoints(faultLines, faultGridSize,...
+F = surfaceSites2D(faultLines, faultGridSize,...
                           'circleFactor',  circleFactor,...
                           'fCut',          fCut, ...
                           'fwCut',         fwCut, ...

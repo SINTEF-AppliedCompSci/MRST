@@ -18,7 +18,7 @@ function [p, removed] = faultSufCond(p, F)
 % 
 % EXAMPLE:
 %   p = rand(200,2);
-%   F = createFaultGridPoints({[0.2,0.5;0.8,0.5]},0.2);
+%   F = surfaceSites2D({[0.2,0.5;0.8,0.5]},0.2);
 %   [~,r] = faultSufCond(p,F);
 %   theta = linspace(0,2*pi)';
 %   figure(); hold on

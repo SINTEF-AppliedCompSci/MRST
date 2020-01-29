@@ -1,9 +1,9 @@
-function [F] = createFaultGridPoints(faultLines,faultGridSize, varargin) 
+function [F] = surfaceSites2D(faultLines,faultGridSize, varargin) 
 % Places fault grid points on both sides of faults.
 %
 % SYNOPSIS:
-%   F = createFaultGridPoints(faultLines,faultGridSize)
-%   F = createFaultGridPoints(..., 'Name1', Value1, 'Name2', Value2, ...)
+%   F = surfaceSites2D(faultLines,faultGridSize)
+%   F = surfaceSites2D(..., 'Name1', Value1, 'Name2', Value2, ...)
 %
 % Parameters:
 %   faultLines      A cell of arrays. Each nx2 array in the cell contains 
@@ -96,7 +96,7 @@ function [F] = createFaultGridPoints(faultLines,faultGridSize, varargin)
 % EXAMPLE
 %   fl = {[0.2,0.2;0.8,0.8]};
 %   gS = 0.1;
-%   F = createFaultGridPoints(fl,gS);
+%   F = surfaceSites2D(fl,gS);
 %   figure(); hold on
 %   plot(fl{1}(:,1), fl{1}(:,2))
 %   plot(F.f.pts(:,1),F.f.pts(:,2),'.r','markersize',20)

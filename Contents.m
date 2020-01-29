@@ -29,7 +29,7 @@
 %   clippedPebi2D       - 2D PEBI-grid clipped against polygon boundary
 %   compositePebiGrid2D   - Creates a conforming PEBI-grid embedded in a
 %                         Cartesian background grid.
-%   createFaultGridPoints - Creates a set of Voronoi sites equidistant on
+%   surfaceSites2D - Creates a set of Voronoi sites equidistant on
 %                           both sides of a set of faults
 %   createWellGridPoints - Creates a set of Voronoi sites tracing a set of
 %                          wells

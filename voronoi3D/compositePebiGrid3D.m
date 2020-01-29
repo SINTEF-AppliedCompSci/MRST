@@ -49,7 +49,7 @@ function [G,F] = compositePebiGrid3D(celldim, pdim, varargin)
 %   
 %
 % SEE ALSO:
-%   compositePebiGrid2D, pebi, createFaultGridPoints, createWellGridPoints.
+%   compositePebiGrid2D, pebi, surfaceSites2D, createWellGridPoints.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

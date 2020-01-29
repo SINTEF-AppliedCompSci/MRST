@@ -53,11 +53,11 @@ function [F] = createFaultGridPoints3D(faultTri, rho)
 %   plot3(F.f.pts(:,1),F.f.pts(:,2),F.f.pts(:,3), '.','markersize',15)
 %
 % SEE ALSO:
-%   createFaultGridPoints, BallInt, clippedPebi3D, voronoi2mrst
+%   createFaultGridPoints3D, BallInt, clippedPebi3D, voronoi2mrst
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+% Copyright (C) 2015-2020 Runar Lie Berge. See COPYRIGHT.TXT for details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}  
 

@@ -21,7 +21,7 @@
 % Functions:
 %     clippedPebi2D
 %     compositePebiGrid2D
-%     createFaultGridPoints
+%     surfaceSites2D
 %     createWellGridPoints
 %     CVD2D
 %     faultSufCond
@@ -38,10 +38,10 @@
 %   faults and wells. The functions creates a semi-structured grid, by 
 %   inserting voronoi seeds around wells and fractures.
 % 
-% - createFaultGridPoints creates points equiv-distant on each side of the
+% - surfaceSites2D creates sites equiv-distant on each side of the
 %   given faults. 
 % 
-% - createWellGridPoints places points along given well-lines.
+% - createWellGridPoints places sites along given well-lines.
 %
 % - CVD2D creates a centroidal Voronoi diagram by minimizing the CVD energy
 %   function. It does this by using the L-BFGS optimization algorithm.
