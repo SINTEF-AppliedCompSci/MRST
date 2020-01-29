@@ -96,13 +96,13 @@ end
 
 
 % Create fault sites
-F = createFaultGridPoints3D(opt.faultSurf,faultRho);
+F = surfaceSites3D(opt.faultSurf,faultRho);
 
 % Remove conflict points at fault intersections
 F = fixFaultIntersection(F);
 
 % Create well points
-W = createWellGridPoints3D(opt.wellLines, wellRho);
+W = lineSites3D(opt.wellLines, wellRho);
 
 % Create reservoir sites
 x = pdim(1); y = pdim(2); z = pdim(3);

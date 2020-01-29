@@ -7,7 +7,7 @@ function F = fixFaultIntersection(F)
 %   
 %
 % PARAMETERS:
-%   F         - Struct (as returned from createFaultGridPoints3D) with 
+%   F         - Struct (as returned from surfaceSites3D) with 
 %               elements:
 %     F.f.pts   - Point coordinates.
 %     F.f.Gs    - Grid spacing for each fault point. This is the distance
@@ -46,15 +46,15 @@ function F = fixFaultIntersection(F)
 %   fDt2.Points = [X(:),-0.5*X(:), Z(:)];
 %   rho = @(p) 1.5/nx*ones(size(p,1),1);
 % 
-%   F   = createFaultGridPoints3D({fDt1,fDt2},{rho,rho});
+%   F   = surfaceSites3D({fDt1,fDt2},{rho,rho});
 %   Fh  = fixFaultIntersection(F);
 %   figure; hold on; axis equal
 %   plot3(F.f.pts(:,1), F.f.pts(:,2), F.f.pts(:,3),'bo','markersize',5); 
 %   plot3(Fh.f.pts(:,1), Fh.f.pts(:,2), Fh.f.pts(:,3),'r.','markersize',15);
 %
 % SEE ALSO:
-%   compositePebiGrid3D, pebi, createFaultGridPoints3D, 
-%   createWellGridPoints3D.
+%   compositePebiGrid3D, pebi, surfaceSites3D, 
+%   lineSites3D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

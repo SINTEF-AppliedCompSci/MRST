@@ -32,7 +32,7 @@ function [p,offSet] = ballInt(CC1, CR1, CC2, CR2, CC3, CR3)
 % p = ballInt(CC1, CR, CC2, CR, CC3, CR)
 %
 % SEE ALSO:
-%   createFaultGridPoints3D, calcNormals, isColinear
+%   surfaceSites3D, calcNormals, isColinear
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

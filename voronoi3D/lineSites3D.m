@@ -1,4 +1,4 @@
-function [W] = createWellGridPoints3D(wellLines, rho)
+function [W] = lineSites3D(wellLines, rho)
 % Creates a set of points folowing a well path.
 %
 % SYNOPSIS:
@@ -30,7 +30,7 @@ function [W] = createWellGridPoints3D(wellLines, rho)
 % EXAMPLE:
 %   wellLines = {[0,0,0;0.5,0,0;1,1,1],[0,0,0;0,1,0;1,1,1]};
 %   rho = @(x) 0.1*ones(size(x,1),1);
-%   W = createWellGridPoints3D(wellLines, rho);
+%   W = lineSites3D(wellLines, rho);
 %
 %   figure()
 %   hold on
@@ -42,7 +42,7 @@ function [W] = createWellGridPoints3D(wellLines, rho)
 %   plot3(wellLines{2}(:,1),wellLines{2}(:,2),wellLines{2}(:,3),'b')
 %
 % SEE ALSO:
-%   createFaultGridPoints3D, clippedPebi3D, voronoi2mrst, 
+%   surfaceSites3D, clippedPebi3D, voronoi2mrst, 
 %   lineSites2D
 
 %{

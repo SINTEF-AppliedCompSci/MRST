@@ -60,7 +60,7 @@ view(3);
 %% Place sites at sphere intersections
 % t1 and t2 are triangulations of the two surfaces
 R = @(p) 1/20 * ones(size(p, 1), 1); % Radius of spheres
-F = createFaultGridPoints3D({t1, t2}, {R, R});
+F = surfaceSites3D({t1, t2}, {R, R});
 
 plot3(F.f.pts(:,1),F.f.pts(:,2),F.f.pts(:,3),'.',...
     'MarkerSize',14,'Color',color(3,:));

@@ -23,8 +23,8 @@
 %   clipGrid
 %   clippedPebi3D
 %   compositePebiGrid3D
-%   createFaultGridPoints3D
-%   createWellGridPoints3D
+%   surfaceSites3D
+%   lineSites3D
 %   CVD3D
 %   faultSufCond3D
 %   fixFaultIntersection
@@ -48,7 +48,7 @@
 %   to faults and wells. The functions creates a semi-structured grid, by 
 %   inserting voronoi seeds around wells and fractures.
 %
-% - createWellGridPoints3D places points along given well-lines.
+% - lineSites3D places points along given well-lines.
 %
 % - CVD3D creates a centroidal Voronoi diagram by minimizing the CVD energy
 %   function. It does this by using the L-BFGS optimization algorithm.

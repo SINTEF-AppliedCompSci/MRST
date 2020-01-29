@@ -51,7 +51,7 @@ mid = 1/3*(fDt.Points(fDt.ConnectivityList(:,1),:) ...
          + fDt.Points(fDt.ConnectivityList(:,3),:));
 fDt.ConnectivityList = fDt.ConnectivityList(mid(:,3)>x0(3)-h+1e-4,:);
 
-F = createFaultGridPoints3D({fDt},{rho});
+F = surfaceSites3D({fDt},{rho});
 clf
 patch('vertices',fDt.Points, 'faces', fDt.ConnectivityList, ...
       'facealpha',0.3,'facecolor','r')

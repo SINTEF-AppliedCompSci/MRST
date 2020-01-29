@@ -39,7 +39,7 @@ fDt1.ConnectivityList = t;
 
 fDt1.Points = [Pts(:,1), y/2*ones(size(Pts,1),1), Pts(:,2)];
 
-F = createFaultGridPoints3D({fDt1},{rho});
+F = surfaceSites3D({fDt1},{rho});
 
 %% Create initial reservoir sites
 

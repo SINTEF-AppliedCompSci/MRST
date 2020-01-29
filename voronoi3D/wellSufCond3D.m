@@ -33,7 +33,7 @@ function [pts,removed] = wellSufCond3D(pts, W)
 %   y = 0.5*ones(numel(x),1);
 %   z = 0.5*sin(x)+0.5;
 %   wellPts = {[x,y,z]};
-%   W = createWellGridPoints3D(wellPts, @(x) 0.3*ones(size(x,1),1));
+%   W = lineSites3D(wellPts, @(x) 0.3*ones(size(x,1),1));
 %   [~,removed] = wellSufCond3D(pts,W);
 %   figure()
 %   hold on
@@ -42,7 +42,7 @@ function [pts,removed] = wellSufCond3D(pts, W)
 %   axis equal
 %
 % SEE ALSO:
-%   clippedPebi3D, clipGrid, createWellGridPoints3D, faultSufCond3D
+%   clippedPebi3D, clipGrid, lineSites3D, faultSufCond3D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

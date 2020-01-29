@@ -1,4 +1,4 @@
-function [F] = createFaultGridPoints3D(faultTri, rho)
+function [F] = surfaceSites3D(faultTri, rho)
 % Creates a set of points equidistant on both sides of a triangulation.
 %
 % The points are created by creating a ball centered at each vertex of the
@@ -7,7 +7,7 @@ function [F] = createFaultGridPoints3D(faultTri, rho)
 % intersections.
 %
 % SYNOPSIS:
-%   F = createFaultGridPoints3D(faultTri, rho);
+%   F = surfaceSites3D(faultTri, rho);
 %
 % PARAMETERS:
 %   faultTri  - A nx1 cell array of triangulations. Each element, 
@@ -45,7 +45,7 @@ function [F] = createFaultGridPoints3D(faultTri, rho)
 %   dt.ConnectivityList = delaunay([X(:), Y(:)]);
 %   dt.Points = [dt.Points, zeros(size(dt.Points,1),1)];
 %   rho = @(p) 0.3*ones(size(p,1),1);
-%   F         = createFaultGridPoints3D({dt}, {rho});
+%   F         = surfaceSites3D({dt}, {rho});
 %
 %   figure()
 %   hold on
@@ -53,7 +53,7 @@ function [F] = createFaultGridPoints3D(faultTri, rho)
 %   plot3(F.f.pts(:,1),F.f.pts(:,2),F.f.pts(:,3), '.','markersize',15)
 %
 % SEE ALSO:
-%   createFaultGridPoints3D, BallInt, clippedPebi3D, voronoi2mrst
+%   surfaceSites3D, BallInt, clippedPebi3D, voronoi2mrst
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
