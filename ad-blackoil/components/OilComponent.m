@@ -24,7 +24,7 @@ classdef OilComponent < ImmiscibleComponent
                 b = model.getProps(state, 'ShrinkageFactors');
                 rhoS = model.getSurfaceDensities();
                 if size(rhoS, 1) > 1
-                    reg = model.FlowPropertyFunctions.ShrinkageFactors.regions;
+                    reg = model.PVTPropertyFunctions.ShrinkageFactors.regions;
                 else
                     reg = 1;
                 end
