@@ -426,12 +426,23 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         end
 
         function model = validateModel(model, varargin)
-            if isempty(model.FlowPropertyFunctions)
-                model.FlowPropertyFunctions = CompositionalFlowPropertyFunctions(model);
-            end
+            model = validateModel@ReservoirModel(model, varargin{:});
+            
+            pvtprops = model.PVTPropertyFunctions;
+            pvtprops = pvtprops.setStateFunction('ShrinkageFactors', DensityDerivedShrinkageFactors(model));
+            pvtprops = pvtprops.setStateFunction('Density', CompositionalDensity(model));
+            
+            pvtprops = pvtprops.setStateFunction('ComponentPhaseMassFractions', ComponentPhaseMassFractionsLV(model));
+            pvtprops = pvtprops.setStateFunction('ComponentPhaseMoleFractions', ComponentPhaseMoleFractionsLV(model));
+
+            pvtprops = pvtprops.setStateFunction('PhaseMixingCoefficients', PhaseMixingCoefficientsLV(model));
+            pvtprops = pvtprops.setStateFunction('Fugacity', FugacityLV(model));
+            pvtprops = pvtprops.setStateFunction('PhaseCompressibilityFactors', PhaseCompressibilityFactorsLV(model));
+            pvtprops = pvtprops.setStateFunction('Viscosity', CompositionalViscosityLV(model));
+
+            model.PVTPropertyFunctions = pvtprops;
             % Use matching AD backends for EOS and for flow model
             model.EOSModel.AutoDiffBackend = model.AutoDiffBackend;
-            model = validateModel@ReservoirModel(model, varargin{:});
         end
     end
     
