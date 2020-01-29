@@ -58,14 +58,14 @@ plot(F.t.pts(:, 1), F.t.pts(:, 2), '.', 'color', col(3,:), 'markersize',5);
 
 %% Create CVD.
 % We now create the CVD by minimizing the CVD energy function using the
-% L-BFGS agorithm. We do this by calling the wrapping function CVD2D.
+% L-BFGS agorithm. We do this by calling the wrapping function CPG2D.
 % This takes some time (approximately 90 sec), so we have saved
 % the output in a file: 'datasets/reservoirWithComplexFaultNetwork.mat'.
 % In this file maxIt was set to 10. The CVD algorithm was not fully
 % converged, but still gives a quite nice mesh.
 % If you wish to run the optimization yourself, uncomment the following
 % code:
-%[G, sites] = CVD2D(pInit, bdr,'fixedPts', [F.f.pts; F.t.pts],'maxIt', 10);
+%[G, sites] = CPG2D(pInit, bdr,'fixedPts', [F.f.pts; F.t.pts],'maxIt', 10);
 pth = fullfile(mrstPath('upr'), 'datasets', 'reservoirWithComplexFaultNetwork.mat');
 load(pth)
 

@@ -23,7 +23,7 @@
 %     compositePebiGrid2D
 %     surfaceSites2D
 %     lineSites2D
-%     CVD2D
+%     CPG2D
 %     faultSufCond
 %     pebiGrid
 %     plotLinePath
@@ -43,7 +43,7 @@
 % 
 % - lineSites2D places sites along given well-lines.
 %
-% - CVD2D creates a centroidal Voronoi diagram by minimizing the CVD energy
+% - CPG2D creates a centroidal Voronoi diagram by minimizing the CVD energy
 %   function. It does this by using the L-BFGS optimization algorithm.
 % 
 % - faultSufCond enforces the sufficient fault condition.

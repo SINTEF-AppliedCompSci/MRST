@@ -1,4 +1,4 @@
-function [G,optPts,f,g] = CVD2D(pts,bnd,varargin)
+function [G,optPts,f,g] = CPG2D(pts,bnd,varargin)
 % Construct a 2D centroidal Voronoi Diagram (CVD). The CVD is found by
 % minimizing the CVD energy function using the lbfgs algorithm.
 %
@@ -45,7 +45,7 @@ function [G,optPts,f,g] = CVD2D(pts,bnd,varargin)
 % EXAMPLE:
 %   p = rand(30,2);
 %   bnd = [0,0;0,1;1,1;1,0];
-%   G = CVD2D(p,bnd);
+%   G = CPG2D(p,bnd);
 %   plotGrid(G);
 %   axis equal tight
 %
