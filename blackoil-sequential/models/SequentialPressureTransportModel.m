@@ -291,6 +291,12 @@ classdef SequentialPressureTransportModel < ReservoirModel
         function [fn, index] = getVariableField(model, name, varargin)
             [fn, index] = model.pressureModel.getVariableField(name, varargin{:});
         end
+        
+        function dt = getMaximumTimestep(model, state, state0, dt, drivingForces)
+            dt_p = model.pressureModel.getMaximumTimestep(state, state0, dt, drivingForces);
+            dt_t = model.transportModel.getMaximumTimestep(state, state0, dt, drivingForces);
+            dt = min(dt_p, dt_t);
+        end
     end
 end
 
