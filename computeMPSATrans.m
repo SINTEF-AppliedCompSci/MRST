@@ -1,3 +1,12 @@
+%% Assembly of MPSA-weak
+%%
+%%  Reference paper:
+%% Finite volume methods for elasticity with weak symmetry
+%% Keilegavlen, Eirik and Nordbotten, Jan Martin
+%% International Journal for Numerical Methods in Engineering
+%% 2017
+
+% load modules
 mrstModule add mimetic mpfa incomp
 
 clear all
@@ -7,12 +16,8 @@ eta       = 1/3;
 blocksize = 10;
 
 %% Define and process geometry
-% Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
-% has dimension 1-by-1-by-1. Because our flow solvers are applicable for
-% general unstructured grids, the Cartesian grid is here represented using
-% an unstructured formate in which cells, faces, nodes, etc. are given
-% explicitly.
-dimcase = 3;
+% Construct a Cartesian grid 
+dimcase = 2;
 switch dimcase
   case 2
     nx = 10; ny = 10;
@@ -22,15 +27,11 @@ switch dimcase
     G = cartGrid([nx, ny, nz]);
 end
 % G = twister(G, 0.1);
+% compute Grid geometry
 G = computeGeometry(G);
-nc = G.cells.num;
 
-%% Set rock and fluid data
-% The only parameters in the single-phase pressure equation are the
-% permeability $K$, which here is homogeneous, isotropic and equal 100 mD.
-% The fluid has density 1000 kg/m^3 and viscosity 1 cP.
-% We make a non diagonal rock tensor
-rock = makeRock(G, 1e-3*darcy, 1);
+%% Basic table setup
+%
 
 nc  = G.cells.num;
 nf  = G.faces.num;
@@ -80,11 +81,6 @@ cellnodecoltbl = sortTable(cellnodecoltbl, {'cells', 'nodes', 'coldim'});
 cellnodecolrowtbl = crossTable(cellnodecoltbl, rowtbl, {});
 cellnodecoltbl = addLocInd(cellnodecoltbl, 'cncind');
 
-% shortcuts:
-fno = cellnodefacetbl.faces;
-cno = cellnodefacetbl.cells;
-nno = cellnodefacetbl.nodes;
-
 cellnodefacecoltbl = crossTable(cellnodefacetbl, coltbl, {});
 
 fds = {'cells', 'nodes', 'coldim'};
@@ -93,6 +89,15 @@ cellnodefacecoltbl = crossTable(cellnodefacecoltbl, cellnodecoltbl, fds);
 % this sorting may be unecessary. We do it to be sure
 fds = {'cells', 'nodes', 'faces', 'coldim', 'cnfind', 'cncind'};
 cellnodefacecoltbl = sortTable(cellnodefacecoltbl, fds);
+
+
+%% Construction of tensor g (as defined in paper eq 4.1.2)
+% shortcuts:
+%
+
+fno = cellnodefacetbl.faces;
+cno = cellnodefacetbl.cells;
+nno = cellnodefacetbl.nodes;
 
 cellFacetVec = G.faces.centroids(fno, :) - G.cells.centroids(cno, :) + ...
     eta*(G.nodes.coords(nno, :) - G.faces.centroids(fno, :));
@@ -130,44 +135,53 @@ gtbl.num = numel(gtbl.cncind);
 fds = {'cncind', 'cnfind'};
 g = tblmap(g, gtbl, cellnodefacecoltbl, fds);
 
+%% Construction of the gradient operator
+%
 % We clean-up the tables
 
 cellnodefacecoltbl = rmfield(cellnodefacecoltbl, {'cnfind', 'cncind'});
 cellnodecoltbl     = rmfield(cellnodecoltbl, {'cncind'});
 
-% The cellnodefacecol part of the grad operator from cellnodefacecoltbl to
-% cellnodecolrowtbl is obtained for any u in cellnodefacecoltbl by using v =
-% grad_nodeface.evalProd(g, u) where grad_nodeface is defined below
+% Construction of gradnodeface_op : nodefacecoltbl -> cellnodecolrowtbl
+%
+% The nodefacecol part of the grad operator from nodefacecoltbl to
+% cellnodecolrowtbl is obtained for any u in nodefacecoltbl by using v =
+% prod.evalProd(g, u) where prod is defined below
 %
 prod = TensorProd();
 prod.tbl1 = cellnodefacecoltbl;
 prod.tbl2 = nodefacecoltbl;
-prod.replacefds1 = {'coldim', 'rowdim'};
+prod.replacefds2 = {'coldim', 'rowdim'};
 prod.reducefds = {'faces'};
 prod.mergefds = {'nodes'};
 prod.prodtbl = cellnodecolrowtbl;
 prod = prod.setup();
 
-grad_nodeface = SparseTensor();
-grad_nodeface = grad_nodeface.setFromTensorProd(g, prod);
+gradnodeface_T = SparseTensor();
+gradnodeface_T = gradnodeface_T.setFromTensorProd(g, prod);
 
+% Construction of gradcell_T : cellcoltbl -> cellnodecolrowtbl
+%
 % The cellcol part of the grad operator from cellcoltbl to cellnodecolrowtbl is
-% obtained for any u in cellcoltbl by using v = grad_cell.evalProd(greduced, u)
-% where greduced and grad_cell are defined below 
+% obtained for any u in cellcoltbl by using v = prod.evalProd(greduced, u)
+% where greduced and prod are defined below 
 %
 fds = {'cells', 'nodes', 'coldim'};
 greduced = - tblmap(g, cellnodefacecoltbl, cellnodecoltbl, fds); 
 prod = TensorProd();
 prod.tbl1 = cellnodecoltbl;
 prod.tbl2 = cellcoltbl;
-prod.replacefds1 = {'coldim', 'rowdim'};
+prod.replacefds2 = {'coldim', 'rowdim'};
 prod.mergefds = {'cells'};
+prod.prodtbl = cellnodecolrowtbl;
 prod = prod.setup();
 
-grad_cell = SparseTensor();
-grad_cell = grad_cell.setFromTensorProd(greduced, prod);
+gradcell_T = SparseTensor();
+gradcell_T = gradcell_T.setFromTensorProd(greduced, prod);
 
-%% setup the facet normals
+%% Construction of the divergence operator
+%
+% setup the facet normals
 fno = cellnodefacetbl.faces;
 cno = cellnodefacetbl.cells;
 numnodes = double(diff(G.faces.nodePos));
@@ -180,9 +194,11 @@ facetNormals = sgn.*facetNormals; % Outward normals with respect to cell
                                   % in cellnodefacetbl.
 facetNormals = reshape(facetNormals', [], 1);
 
+% divnodeface_T : cellnodecolrowtbl -> nodefacecoltbl
+%
 % The nodefacecol part of the divergence operator from cellnodecolrowtbl to
 % nodefacecoltbl is obtained for any u in cellnodecolrowtbl by evaluating the
-% expression div_nodeface.evalProd(d, u) where d and div_nodeface are defined
+% expression divnodeface_T.evalProd(d, u) where d and divnodeface_T are defined
 % below
 %
 d = facetNormals; 
@@ -195,12 +211,14 @@ prod.mergefds = {'nodes'};
 prod.prodtbl = nodefacecoltbl;
 prod = prod.setup();
 
-div_nodeface = SparseTensor();
-div_nodeface = div_nodeface.setFromTensorProd(d, prod);
+divnodeface_T = SparseTensor();
+divnodeface_T = divnodeface_T.setFromTensorProd(d, prod);
 
+% divcell_T : cellnodecoltbl -> cellcoltbl
+%
 % the cellcol part of the divergence operator from cellnodecolrowtbl to
 % cellcoltbl is obtained for any u in cellnodecolrowtbl by evaluating the
-% expression div_cell.evalProd(dreduced, u) where dreduced and div_cell
+% expression divcell_T.evalProd(dreduced, u) where dreduced and divcell_T
 % are defined below
 %
 
@@ -218,11 +236,14 @@ prod.mergefds    = {'cells'};
 prod.prodtbl = cellcoltbl;
 prod = prod.setup();
 
-div_cell = SparseTensor();
-div_cell = div_cell.setFromTensorProd(dreduced, prod);
+divcell_T = SparseTensor();
+divcell_T = divcell_T.setFromTensorProd(dreduced, prod);
 
-divgrad_nodeface = multSparseTensor(div_nodeface, grad_nodeface);
 
+%% Construction of transpose operator for matrices at nodes (that are
+%% elements of nodecolrowtbl)
+%
+%  trans_T: nodecolrowtbl -> nodecolrowtbl
 colrowtbl = crossTable(coltbl, rowtbl, {});
 nodecolrowtbl = crossTable(nodetbl, colrowtbl, {});
 
@@ -243,10 +264,14 @@ prod.reducefds = {'coldim2', 'rowdim2'};
 prod.prodtbl = nodecolrowtbl;
 prod = prod.setup();
 
-sym_op = SparseTensor();
-sym_op = sym_op.setFromTensorProd(ones(col2row2tbl.num, 1), prod);
+trans_T = SparseTensor();
+trans_T = trans_T.setFromTensorProd(ones(col2row2tbl.num, 1), prod);
 
-% get nodal average of cellnode tensor
+%% Construction of nodal average for cellnode tensor
+%
+% transnodeaverage_T : cellnodecolrowtbl -> nodecolrowtbl
+%
+% (later this operator is dispatched to cells)
 prod = TensorProd();
 prod.tbl1 = celltbl;
 prod.tbl2 = cellnodecolrowtbl;
@@ -255,13 +280,30 @@ prod.prodtbl = nodecolrowtbl;
 
 prod = prod.setup();
 
-nodeaverage_op = SparseTensor();
-nodeaverage_op = nodeaverage_op.setFromTensorProd(ones(celltbl.num), prod);
+nodeaverage_T = SparseTensor();
+nodeaverage_T = nodeaverage_T.setFromTensorProd(ones(celltbl.num), prod);
 
-symnodeaverage_op = multSparseTensor(sym_op, nodeaverage_op);
+transnodeaverage_T = trans_T*nodeaverage_T;
 
-% Defines stiffness operator
+% we need to dispatch this tensor to cellnodecolrowtbl
+% now we have
+% transnodeaverage_T : cellnodecolrowtbl -> cellnodecolrowtbl
 
+prod = TensorProd();
+prod.tbl1 = celltbl;
+prod.tbl2 = nodecolrowtbl;
+prod.prodtbl = cellnodecolrowtbl;
+prod = prod.setup();
+
+celldispatch_T = SparseTensor();
+celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num), prod);
+
+transnodeaverage_T = celldispatch_T*transnodeaverage_T;
+
+%% Construction of the stiffness operator
+%
+% C_T : cellnodecolrowtbl -> cellnodecolrowtbl
+%
 dim = G.griddim;
 vdim = dim*(dim + 1)/2;
 voigttbl.voigt = (1 : vdim)';
@@ -348,4 +390,33 @@ Cmat = SparseMatrix();
 Cmat = Cmat.setFromTensorProd(C, prod);
 Cmat = Cmat.matrix;
 
+col2row2tbl = rmfield(col2row2voigt2tbl, {'voigt1', 'voigt2', 'stensind'});
+[cellnodecol2row2tbl, indstruct] = crossTable(cellnodetbl, col2row2tbl, {});
+C = tbldispatch2(C, indstruct);
+
+prod = TensorProd();
+prod.tbl1 = cellnodecol2row2tbl;
+prod.tbl2 = cellnodecolrowtbl;
+prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
+prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
+prod.mergefds = {'cells', 'nodes'};
+prod.reducefds = {'coldim2', 'rowdim2'};
+prod.prodtbl = cellnodecolrowtbl;
+prod = prod.setup();
+
+C_T = SparseTensor();
+C_T = C_T.setFromTensorProd(C, prod);
+
+Cgradnodeface_T = C_T*gradnodeface_T;
+transaverCgradnodeface_T = transnodeaverage_T*Cgradnodeface_T;
+
+combGgradnodeface_T = Cgradnodeface_T + transaverCgradnodeface_T;
+
+Cgradcell_T = C_T*gradcell_T;
+transaverCgradcell_T = transnodeaverage_T*Cgradcell_T;
+
+combGgradcell_T = Cgradcell_T + transaverCgradcell_T;
+
+A11 = divnodeface_T*combGgradnodeface_T;
+A11 = A11.getMatrix();
 
