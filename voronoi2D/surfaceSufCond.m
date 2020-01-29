@@ -1,8 +1,8 @@
-function [p, removed] = faultSufCond(p, F)
+function [p, removed] = surfaceSufCond2D(p, F)
 % Enforces the sufficient fault condition.
 %
 % SYNOPSIS:
-%   [p, removed] = faultSufCond(p,F)
+%   [p, removed] = surfaceSufCond2D(p,F)
 %
 % PARAMETERS:
 %   p         - A n X 2 array of points
@@ -19,7 +19,7 @@ function [p, removed] = faultSufCond(p, F)
 % EXAMPLE:
 %   p = rand(200,2);
 %   F = surfaceSites2D({[0.2,0.5;0.8,0.5]},0.2);
-%   [~,r] = faultSufCond(p,F);
+%   [~,r] = surfaceSufCond2D(p,F);
 %   theta = linspace(0,2*pi)';
 %   figure(); hold on
 %   for i = 1:size(F.c.CC,1)

@@ -34,7 +34,7 @@
 %   lineSites2D - Creates a set of Voronoi sites tracing a set of
 %                          wells
 %   CPG2D               - Create a Centroidal Voronoi Diagram
-%   faultSufCond        - Enforce suficient fault condition
+%   surfaceSufCond2D        - Enforce suficient fault condition
 %   pebiGrid            - Creates a fully unstructured PEBI-grid by using
 %                         DistMesh
 %   plotLinePath        - Plots a fault or a well path

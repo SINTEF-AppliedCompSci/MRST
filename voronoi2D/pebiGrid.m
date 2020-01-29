@@ -365,7 +365,7 @@ wPts = Pts(isWell,:);
 wPts = wPts(Iw,:);
 
 if opt.sufFaultCond
-	Pts = faultSufCond(Pts(isRes,:),F);
+	Pts = surfaceSufCond2D(Pts(isRes,:),F);
 else
 	Pts = removeConflictPoints2(Pts(isRes,:),F.f.pts, F.f.Gs);
 end

@@ -2,7 +2,7 @@ function [pts,removed] = faultSufCond3D(pts, CC, CR)
 % Enforces the sufficient fault condition
 %
 % SYNOPSIS:
-%   [pts, removed] = faultSufCond(pts, CC, CR)
+%   [pts, removed] = faultSufCond3D(pts, CC, CR)
 %
 % PARAMETERS:
 %   pts     - A nx3 array of points. 
@@ -20,7 +20,7 @@ function [pts,removed] = faultSufCond3D(pts, CC, CR)
 %   pts = rand(600,3);
 %   CC  = [0,0,0;1,1,1];
 %   CR  = [0.7;0.7];
-%   pts = faultSufCond(pts, CC, CR);
+%   pts = faultSufCond3D(pts, CC, CR);
 %   figure()
 %   plot3(pts(:,1), pts(:,2), pts(:,3),'.','markersize',15)
 %

@@ -53,7 +53,7 @@
 % - CVD3D creates a centroidal Voronoi diagram by minimizing the CVD energy
 %   function. It does this by using the L-BFGS optimization algorithm.
 %
-% - faultSufCond enforces the sufficient fault condition.
+% - surfaceSufCond2D enforces the sufficient fault condition.
 %
 % - fixFaultIntersection removes points from faults that are intersecting
 %

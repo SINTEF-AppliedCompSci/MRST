@@ -24,7 +24,7 @@
 %     surfaceSites2D
 %     lineSites2D
 %     CPG2D
-%     faultSufCond
+%     surfaceSufCond2D
 %     pebiGrid
 %     plotLinePath
 %     removeConflicPoints2
@@ -46,7 +46,7 @@
 % - CPG2D creates a centroidal Voronoi diagram by minimizing the CVD energy
 %   function. It does this by using the L-BFGS optimization algorithm.
 % 
-% - faultSufCond enforces the sufficient fault condition.
+% - surfaceSufCond2D enforces the sufficient fault condition.
 %
 % - pebiGrid is an interface function that can be called to create a valid 
 %   MRST grid structure. It creates a fully unstructured PEBI-grid that 

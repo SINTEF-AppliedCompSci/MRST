@@ -36,7 +36,7 @@ axis equal off tight;
 fGs = max(bdr(:))/50;
 F = surfaceSites2D(faultSplit, fGs,'fCut',fCut,'interpolFL',true);
 % Remove tip sites that violate the fault condition
-F.t.pts = faultSufCond(F.t.pts, F);
+F.t.pts = surfaceSufCond2D(F.t.pts, F);
 % Remove tip sites outside domain
 innside = inpolygon(F.t.pts(:, 1), F.t.pts(:, 2), bdr(:, 1), bdr(:, 2));
 F.t.pts = F.t.pts(innside, :);
