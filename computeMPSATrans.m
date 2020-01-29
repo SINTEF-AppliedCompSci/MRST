@@ -20,7 +20,7 @@ blocksize = 10;
 dimcase = 2;
 switch dimcase
   case 2
-    nx = 10; ny = 10;
+    nx = 2; ny = 2;
     G = cartGrid([nx, ny]);
   case 3
     nx = 5; ny = 5; nz = 5;
@@ -407,16 +407,20 @@ prod = prod.setup();
 C_T = SparseTensor();
 C_T = C_T.setFromTensorProd(C, prod);
 
-Cgradnodeface_T = C_T*gradnodeface_T;
+% Cgradnodeface_T = C_T*gradnodeface_T;
+Cgradnodeface_T = gradnodeface_T;
 transaverCgradnodeface_T = transnodeaverage_T*Cgradnodeface_T;
 
-combGgradnodeface_T = Cgradnodeface_T + transaverCgradnodeface_T;
+combCgradnodeface_T = Cgradnodeface_T + transaverCgradnodeface_T;
 
-Cgradcell_T = C_T*gradcell_T;
+% Cgradcell_T = C_T*gradcell_T;
+Cgradcell_T = gradcell_T;
 transaverCgradcell_T = transnodeaverage_T*Cgradcell_T;
 
-combGgradcell_T = Cgradcell_T + transaverCgradcell_T;
+combCgradcell_T = Cgradcell_T + transaverCgradcell_T;
 
-A11 = divnodeface_T*combGgradnodeface_T;
+A11 = divnodeface_T*combCgradnodeface_T;
+% A11 = divnodeface_T*transaverCgradnodeface_T;
+% A11 = divnodeface_T*Cgradnodeface_T;
 A11 = A11.getMatrix();
 
