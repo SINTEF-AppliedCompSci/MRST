@@ -19,6 +19,8 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
                 dt_max = fsb.initialStep;
                 return;
             end
+            % Remove any cached properties
+            state = model.reduceState(state, true);
             cfl_s = estimateSaturationCFL(model, state, 1/fsb.saturationCFL, 'forces', forces);
             cfl_c = estimateCompositionCFL(model, state, 1/fsb.compositionCFL, 'forces', forces);
             
