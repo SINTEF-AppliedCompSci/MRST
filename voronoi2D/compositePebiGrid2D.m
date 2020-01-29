@@ -70,19 +70,19 @@ function [G,Pts,F] = compositePebiGrid2D(celldim, pdims, varargin)
 %                       the well path such that protD(0) is the start of the 
 %                       well while protD(1) is the end of the well.
 %
-%   faultLines        - OPTIONAL
+%   faceConstraints        - OPTIONAL
 %                       Default value empty. A struct of vectors.  Each 
 %                       vector, size nf x 2, is the coordinates of a 
 %                       fault-trace. The fault is assumed to be linear 
 %                       between the coorinates
 %
-%   faultGridFactor   - OPTIONAL.
+%   FCFactor   - OPTIONAL.
 %                       Default value is 0.5. This gives the relative grid
 %                       size of the fault grid cells compared to reservoir 
-%                       grid cells. If faultGridFactor=0.5, the fault cells 
+%                       grid cells. If FCFactor=0.5, the fault cells 
 %                       will be about half the size of the reservoir cells.
 %
-%   interpolFL        - OPTIONAL.
+%   interpolateFC        - OPTIONAL.
 %                       Default value is a boolean false value, but the
 %                       user can supply an individual value per well path.
 %                       If false, each segment in the corresponding fault
@@ -124,7 +124,7 @@ function [G,Pts,F] = compositePebiGrid2D(celldim, pdims, varargin)
 % EXAMPLE:
 %   fl = {[0.2,0.2;0.8,0.8]};
 %   wl = {[0.2,0.8;0.8,0.2]};
-%   G  = compositePebiGrid2D([1/10,1/10],[1,1],'cellConstraints',wl,'faultLines',fl)
+%   G  = compositePebiGrid2D([1/10,1/10],[1,1],'cellConstraints',wl,'faceConstraints',fl)
 %   cla, plotGrid(G)
 %
 % SEE ALSO:
@@ -143,9 +143,9 @@ opt = struct('cellConstraints',       {{}}, ...
              'mlqtMaxLevel',    0,    ...
              'mlqtLevelSteps',  -1,   ...
 			 'CCRho',         @(x) ones(size(x,1),1),...
-             'faultLines',      {{}}, ...
-             'faultGridFactor', 1,  ...
-             'interpolFL',      false, ...
+             'faceConstraints',      {{}}, ...
+             'FCFactor', 1,  ...
+             'interpolateFC',      false, ...
              'circleFactor',    0.6,  ...  
              'protLayer',       false, ...
              'protD',           {{@(p) ones(size(p,1),1)*norm(celldim)/10}},...
@@ -157,7 +157,7 @@ circleFactor = opt.circleFactor;
 
 % Set grid sizes
 wellGridSize   = min(celldim)*opt.CCFactor;
-faultGridSize  = min(celldim)*opt.faultGridFactor;
+faultGridSize  = min(celldim)*opt.FCFactor;
 mlqtMaxLevel   = opt.mlqtMaxLevel;
 mlqtLevelSteps = opt.mlqtLevelSteps;
 CCRho        = @(x) wellGridSize*opt.CCRho(x);
@@ -182,11 +182,11 @@ if ~isempty(opt.cellConstraints)
     assert(numel(opt.protD) == numel(opt.cellConstraints));
 end
 
-if ~isempty(opt.faultLines)
-    if (numel(opt.interpolFL) == 1)
-        opt.interpolFL = repmat(opt.interpolFL, numel(opt.faultLines),1);
+if ~isempty(opt.faceConstraints)
+    if (numel(opt.interpolateFC) == 1)
+        opt.interpolateFC = repmat(opt.interpolateFC, numel(opt.faceConstraints),1);
     end
-    assert(numel(opt.interpolFL)==numel(opt.faultLines));
+    assert(numel(opt.interpolateFC)==numel(opt.faceConstraints));
 end
 
 
@@ -198,10 +198,10 @@ if numel(celldim)~=2
 end
 
 % Split faults and wells paths
-[faultLines, fCut, fwCut, IC] = splitAtInt2D(opt.faultLines, opt.cellConstraints);
-interpFL = opt.interpolFL(IC);
+[faceConstraints, fCut, fwCut, IC] = splitAtInt2D(opt.faceConstraints, opt.cellConstraints);
+interpFL = opt.interpolateFC(IC);
 
-[cellConstraints,  wCut, wfCut, IC] = splitAtInt2D(opt.cellConstraints, opt.faultLines);
+[cellConstraints,  wCut, wfCut, IC] = splitAtInt2D(opt.cellConstraints, opt.faceConstraints);
 interpWP = opt.interpolateCC(IC);
 protD    = opt.protD(IC);
 
@@ -231,11 +231,11 @@ sePtn = (1.0+faultOffset/wellGridSize)*sePtn;
                          'interpolateCC',   interpWP);
 
 % Create fault points
-F = surfaceSites2D(faultLines, faultGridSize, ...
+F = surfaceSites2D(faceConstraints, faultGridSize, ...
                           'circleFactor', circleFactor, ...
                           'fCut',         fCut, ...
                           'fwCut',        fwCut, ...
-                          'interpolFL',   interpFL);
+                          'interpolateFC',   interpFL);
 
 % Create reservoir grid
 polyBdr = opt.polyBdr;

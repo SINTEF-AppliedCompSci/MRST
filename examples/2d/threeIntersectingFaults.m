@@ -21,7 +21,7 @@ gS = [1/30,1/30];
 %% Create grid
 % We use the routine compositePebiGrid2D to create the grid. We use the
 % preset options. 
-G = compositePebiGrid2D(gS,[1,1.15],'faultLines',l, 'useMrstPebi', true);
+G = compositePebiGrid2D(gS,[1,1.15],'faceConstraints',l, 'useMrstPebi', true);
 
 %% Plot grid
 figure(1); clf; hold on

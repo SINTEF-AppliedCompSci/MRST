@@ -24,7 +24,7 @@ rho = @(p) 1/nx*ones(size(p,1),1);
 %% Create Grid
 % We can now create the grid.
 G = compositePebiGrid3D([nx,nx,nx],[1,1,1],'faultSurf',{fDt1,fDt2}, ...
-                                           'faultRho',{rho});
+                                           'FCRho',{rho});
 G = computeGeometry(G);
 %% Plot Grid
 % Let us plot the grid. Some cells are removed to better visualizing what

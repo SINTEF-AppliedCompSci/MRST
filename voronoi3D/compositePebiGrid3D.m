@@ -17,14 +17,14 @@ function [G,F] = compositePebiGrid3D(celldim, pdim, varargin)
 %                       triangulations. Each triangulation should be a 
 %                       surface embedded in 3D. The grid will conform to 
 %                       the surfaces.
-%   faultRho         - OPTIONAL.
+%   FCRho         - OPTIONAL.
 %                       Default value sqrt(sum(pdims./celldim.^2)). 
-%                       faultRho is a cell array of length nf or 1.
-%                       Each element in faultRho is a function. 
+%                       FCRho is a cell array of length nf or 1.
+%                       Each element in FCRho is a function. 
 %                       The function must map from a nx3 array to nx1 
-%                       array. faultRho{i}(faultSurf{i}.Points)define the 
+%                       array. FCRho{i}(faultSurf{i}.Points)define the 
 %                       radius of the balls placed along fault i. If 
-%                       faultRho has one element, this function is applied
+%                       FCRho has one element, this function is applied
 %                       to all fault surfaces.
 %   cellConstraints        - OPTIONAL.
 %                       Default value {{}}. A nwx1 cell array of vectors. 
@@ -76,15 +76,15 @@ end
 opt = struct('cellConstraints', {{}}, ...
              'CCRho',   {{@(x) sqrt(pdim./sum(celldim.^2))*ones(size(x,1),1)}},...
              'faultSurf', {{}},      ...
-             'faultRho',  {{@(x) sqrt(pdim./sum(celldim.^2))*ones(size(x,1),1)}});          
+             'FCRho',  {{@(x) sqrt(pdim./sum(celldim.^2))*ones(size(x,1),1)}});          
 opt = merge_options(opt, varargin{:});
 
-faultRho = opt.faultRho;
-if numel(faultRho) == 1
-  faultRho = repmat(faultRho,numel(opt.faultSurf),1);num2cell(faultRho, 2);
+FCRho = opt.FCRho;
+if numel(FCRho) == 1
+  FCRho = repmat(FCRho,numel(opt.faultSurf),1);num2cell(FCRho, 2);
 else
-  assert(numel(faultRho) == numel(opt.faultSurf),...
-    'Number of faultRho must either be 1 or numel(faultSurf)');
+  assert(numel(FCRho) == numel(opt.faultSurf),...
+    'Number of FCRho must either be 1 or numel(faultSurf)');
 end
 CCRho = opt.CCRho;
 if numel(CCRho) == 1
@@ -96,7 +96,7 @@ end
 
 
 % Create fault sites
-F = surfaceSites3D(opt.faultSurf,faultRho);
+F = surfaceSites3D(opt.faultSurf,FCRho);
 
 % Remove conflict points at fault intersections
 F = removeSurfaceConflictSites3D(F);

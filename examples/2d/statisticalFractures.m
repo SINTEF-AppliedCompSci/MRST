@@ -50,13 +50,13 @@ for i=1:numel(ix)
   ix(i) = refPts(i,2)<yMax;
 end
 [eps,amp,refPts] = deal(eps(ix),amp(ix),refPts(ix,:));
-faultRho =@(p) min(ones(size(p,1),1), ...
+FCRho =@(p) min(ones(size(p,1),1), ...
     min(bsxfun(@times, amp,exp(bsxfun(@rdivide, pdist2(p,refPts),eps))),[],2));
 
 % Plot the distance function
 G = computeGeometry(cartGrid([70 2*yMax],[35 yMax]));
 subplot(2,1,2)
-plotCellData(G, faultRho(G.cells.centroids),'EdgeColor','none'); view(90,90)
+plotCellData(G, FCRho(G.cells.centroids),'EdgeColor','none'); view(90,90)
 hold on
 plotLinePath(lines,'k', 'LineWidth',1);
 plot(refPts(:,1),refPts(:,2),'r.','MarkerSize',12);
@@ -66,9 +66,9 @@ hold off,
 axis tight
 
 %% Generate grid
-G = pebiGrid2D(15,[35,yMax],'faultLines',lines,'faultGridFactor',1/50,...
-             'circleFactor',0.62,'faultRefinement',true,'faultEps',5,...
-             'faultRho', faultRho,'useMrstPebi',true,'linearize', true);
+G = pebiGrid2D(15,[35,yMax],'faceConstraints',lines,'FCFactor',1/50,...
+             'circleFactor',0.62,'FCRefinement',true,'FCEps',5,...
+             'FCRho', FCRho,'useMrstPebi',true,'linearize', true);
 
 %% Plot the grid
 clf

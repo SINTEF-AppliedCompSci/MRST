@@ -68,19 +68,19 @@ function [G,Pts,F] = pebiGrid2D(resGridSize, pdims, varargin)
 %                     the well path such that protD(0) is the start of the 
 %                     well while protD(1) is the end of the well.
 %
-%   faultLines      - OPTIONAL
+%   faceConstraints      - OPTIONAL
 %                     Default value empty. A struct of vectors.  Each 
 %                     vector, size nf x 2, is the coordinates of a 
 %                     fault-trace. The fault is assumed to be linear 
 %                     between the coorinates
 %
-%   faultGridFactor - OPTIONAL.
+%   FCFactor - OPTIONAL.
 %                     Default value is 0.5. This gives the relative grid
 %                     size of the fault grid cells compared to reservoir 
-%                     grid cells. If faultGridFactor=0.5 the fault cells 
+%                     grid cells. If FCFactor=0.5 the fault cells 
 %                     will be about half the size of the reservoir cells.
 %
-%   interpolFL      - OPTIONAL.
+%   interpolateFC      - OPTIONAL.
 %                     Default value is a boolean false value, but the
 %                     user can supply an individual value per well path.
 %                     If false, each segment in the corresponding fault
@@ -98,21 +98,21 @@ function [G,Pts,F] = pebiGrid2D(resGridSize, pdims, varargin)
 %                     place the fault points close the the faults, while
 %                     a large value will place the far from the faults.
 %
-%   faultRho        - OPTIONAL.
+%   FCRho        - OPTIONAL.
 %                     Default value 1. Function that gives the relative
 %                     distance between fault sites along a path. If
-%                     faultRho=0.5 in a area, the fault sites will here
+%                     FCRho=0.5 in a area, the fault sites will here
 %                     be about 50% closer than in other areas.
 %
-%   faultRefinement - OPTIONAL
+%   FCRefinement - OPTIONAL
 %                     Default value FALSE. Set to true to turn on
 %                     refinement around faults.
 %
-%   faultEps        - OPTIONAL
-%                     Default value 0.25/max(pdims). faultEps set the
+%   FCEps        - OPTIONAL
+%                     Default value 0.25/max(pdims). FCEps set the
 %                     refinement transition around faults. The density
 %                     function for the reservoir grid is set by
-%                     rho~exp(-distance to fault / faultEps).
+%                     rho~exp(-distance to fault / FCEps).
 %
 %   polyBdr         - OPTIONAL 
 %                     Default value []. plyBdr is a array of size [k,2].
@@ -126,8 +126,8 @@ function [G,Pts,F] = pebiGrid2D(resGridSize, pdims, varargin)
 %                     Note that if k>=3 the innput pdims will have no
 %                     effect.
 %
-%   sufFaultCond    - OPTIONAL 
-%                     Default value true. If sufFaultCond = false we do not
+%   sufFCCond    - OPTIONAL 
+%                     Default value true. If sufFCCond = false we do not
 %                     enforce the sufficient and necessary fault condition.
 %                     Instead we enforce a less strict condition and remove
 %                     any reservoir sites that are closer to the fault
@@ -157,7 +157,7 @@ function [G,Pts,F] = pebiGrid2D(resGridSize, pdims, varargin)
 % EXAMPLE:
 %   fl = {[0.2,0.2;0.8,0.8]};
 %   wl = {[0.2,0.8;0.8,0.2]};
-%   G  = pebiGrid2D(1/10,[1,1],'cellConstraints',wl,'faultLines',fl)
+%   G  = pebiGrid2D(1/10,[1,1],'cellConstraints',wl,'faceConstraints',fl)
 %   cla, plotGrid(G)
 %
 % SEE ALSO
@@ -181,31 +181,31 @@ opt = struct('cellConstraints',       {{}}, ...
              'CCEps',         -1,...
              'protLayer',       false, ...
              'protD',           {{@(p) ones(size(p,1),1)*resGridSize/10}},...
-             'faultLines',      {{}}, ...
-             'faultGridFactor', 1, ...
-             'interpolFL',      false, ...
+             'faceConstraints',      {{}}, ...
+             'FCFactor', 1, ...
+             'interpolateFC',      false, ...
              'circleFactor',    0.6,...
-             'faultRefinement', false, ...
-             'faultRho',        @(x) ones(size(x,1),1),...
-             'faultEps',        -1,...
+             'FCRefinement', false, ...
+             'FCRho',        @(x) ones(size(x,1),1),...
+             'FCEps',        -1,...
 			 'polyBdr',         zeros(0,2), ...
-			 'sufFaultCond',    true,...,
+			 'sufFCCond',    true,...,
              'linearize',       false,...,
              'useMrstPebi',     false);
 
 opt             = merge_options(opt, varargin{:});
 circleFactor    = opt.circleFactor;
 wellRef         = opt.CCRefinement;
-faultRef        = opt.faultRefinement;
+faultRef        = opt.FCRefinement;
 CCEps         = opt.CCEps;
-faultEps        = opt.faultEps;
+FCEps        = opt.FCEps;
 % Set grid sizes
 CCFactor  = opt.CCFactor;
-faultGridFactor = opt.faultGridFactor;
+FCFactor = opt.FCFactor;
 wellGridSize    = resGridSize*CCFactor;
 CCRho         = @(x) wellGridSize*opt.CCRho(x);
-faultGridSize   = resGridSize*faultGridFactor;
-faultRho = opt.faultRho;
+faultGridSize   = resGridSize*FCFactor;
+FCRho = opt.FCRho;
 
 % If polygon boundary is give, use this
 polyBdr = opt.polyBdr;
@@ -219,8 +219,8 @@ end
 if CCEps<0
     CCEps = 0.25 * max(pdims);
 end
-if faultEps<0
-    faultEps = 0.25 * max(pdims);
+if FCEps<0
+    FCEps = 0.25 * max(pdims);
 end
 
 % Test input
@@ -243,18 +243,18 @@ if ~isempty(opt.cellConstraints)
     assert(numel(opt.protD) == numel(opt.cellConstraints));
 end
 
-if ~isempty(opt.faultLines)
-    if (numel(opt.interpolFL) == 1)
-        opt.interpolFL = repmat(opt.interpolFL, numel(opt.faultLines),1);
+if ~isempty(opt.faceConstraints)
+    if (numel(opt.interpolateFC) == 1)
+        opt.interpolateFC = repmat(opt.interpolateFC, numel(opt.faceConstraints),1);
     end
-    assert(numel(opt.interpolFL)==numel(opt.faultLines));
+    assert(numel(opt.interpolateFC)==numel(opt.faceConstraints));
 end
 
 % Split faults and wells paths
-[faultLines, fCut, fwCut, IC] = splitAtInt2D(opt.faultLines, opt.cellConstraints);
-interpFL = opt.interpolFL(IC);
+[faceConstraints, fCut, fwCut, IC] = splitAtInt2D(opt.faceConstraints, opt.cellConstraints);
+interpFL = opt.interpolateFC(IC);
 
-[cellConstraints,  wCut, wfCut, IC] = splitAtInt2D(opt.cellConstraints, opt.faultLines);
+[cellConstraints,  wCut, wfCut, IC] = splitAtInt2D(opt.cellConstraints, opt.faceConstraints);
 interpWP = opt.interpolateCC(IC);
 protD    = opt.protD(IC);
 
@@ -270,7 +270,7 @@ protD     = [protD; opt.protD(vW)];
 % Create well Points
 sePtn = [wfCut==2|wfCut==3, wfCut==1|wfCut==3];
 if wellRef
-  fLen = wellGridSize*faultGridFactor*1.2;  
+  fLen = wellGridSize*FCFactor*1.2;  
 else
   fLen = faultGridSize;
 end
@@ -293,23 +293,23 @@ sePtn = (1.0+faultOffset/wellGridSize)*sePtn;
 if wellRef && ~isempty(wellPts)
     hresw  = @(x) min((ones(size(x,1),1)/CCFactor), ...
         1.2*exp(minPdist2(x,wellPts)/CCEps));
-    hfault = @(x) wellGridSize*faultGridFactor*hresw(x).*faultRho(x);
+    hfault = @(x) wellGridSize*FCFactor*hresw(x).*FCRho(x);
 else
     hresw  = @(p) constFunc(p)/CCFactor;
-    hfault = @(p) faultGridSize*faultRho(p);
+    hfault = @(p) faultGridSize*FCRho(p);
 end
 
 % Create fault points
-F = surfaceSites2D(faultLines, faultGridSize,...
+F = surfaceSites2D(faceConstraints, faultGridSize,...
                           'circleFactor',  circleFactor,...
                           'fCut',          fCut, ...
                           'fwCut',         fwCut, ...
-                          'interpolFL',   interpFL, ...
+                          'interpolateFC',   interpFL, ...
                           'distFun', hfault);
 
 if faultRef && ~isempty(F.f.pts)
-  hresf = @(x) min((ones(size(x,1),1)/faultGridFactor), ...
-                    1.2*exp(minPdist2(x,F.f.pts)/faultEps));
+  hresf = @(x) min((ones(size(x,1),1)/FCFactor), ...
+                    1.2*exp(minPdist2(x,F.f.pts)/FCEps));
 else
   hresf = @(p) constFunc(p)/CCFactor;
 end
@@ -364,7 +364,7 @@ fPts = fPts(If,:);
 wPts = Pts(isWell,:);
 wPts = wPts(Iw,:);
 
-if opt.sufFaultCond
+if opt.sufFCCond
 	Pts = surfaceSufCond2D(Pts(isRes,:),F);
 else
 	Pts = removeConflictPoints(Pts(isRes,:),F.f.pts, F.f.Gs);

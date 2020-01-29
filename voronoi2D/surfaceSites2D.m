@@ -1,12 +1,12 @@
-function [F] = surfaceSites2D(faultLines,faultGridSize, varargin) 
+function [F] = surfaceSites2D(faceConstraints,faultGridSize, varargin) 
 % Places fault grid points on both sides of faults.
 %
 % SYNOPSIS:
-%   F = surfaceSites2D(faultLines,faultGridSize)
+%   F = surfaceSites2D(faceConstraints,faultGridSize)
 %   F = surfaceSites2D(..., 'Name1', Value1, 'Name2', Value2, ...)
 %
 % Parameters:
-%   faultLines      A cell of arrays. Each nx2 array in the cell contains 
+%   faceConstraints      A cell of arrays. Each nx2 array in the cell contains 
 %                   the piecewise linear approximation of a fault. The 
 %                   values must be sorted along the line, e.g., a fault 
 %                   consisting of two lines would be [x1,y1; x2,y2; x3,y3].
@@ -18,7 +18,7 @@ function [F] = surfaceSites2D(faultLines,faultGridSize, varargin)
 %                   the total fault length, and therefore might be slightly
 %                   smaller than the desired distance.
 %   
-%   interpolFL    - OPTIONAL.
+%   interpolateFC    - OPTIONAL.
 %                   Default value is a boolean false value, but the user
 %                   can supply an individual value per well path. If false,
 %                   each segment in the corresponding fault curve will be
@@ -90,7 +90,7 @@ function [F] = surfaceSites2D(faultLines,faultGridSize, varargin)
 %     F.l.c         Map from fault paths to circles
 %     F.l.cPos      Circle F.l.c(F.l.cPos(i):F.l.cPos(i+1)-1) is created
 %                   for fault i.
-%     F.l.l         faultLine from input.
+%     F.l.l         faceConstraint from input.
 %     
 %
 % EXAMPLE
@@ -115,10 +115,10 @@ function [F] = surfaceSites2D(faultLines,faultGridSize, varargin)
 fh  = @(x) faultGridSize*constFunc(x);
 opt = struct('distFun',     fh,  ...
              'circleFactor', 0.6, ...
-             'fCut',         zeros(numel(faultLines),1), ...
-             'fwCut',        zeros(numel(faultLines),1), ...
+             'fCut',         zeros(numel(faceConstraints),1), ...
+             'fwCut',        zeros(numel(faceConstraints),1), ...
              'mergeTol',     0, ...
-             'interpolFL',   false);
+             'interpolateFC',   false);
 opt = merge_options(opt, varargin{:});
 
 fh           = opt.distFun;
@@ -126,11 +126,11 @@ circleFactor = opt.circleFactor;
 fCut         = opt.fCut;
 fwCut        = opt.fwCut;
 
-if ~isempty(faultLines)
-    if (numel(opt.interpolFL) == 1)
-        opt.interpolFL = repmat(opt.interpolFL, numel(faultLines),1);
+if ~isempty(faceConstraints)
+    if (numel(opt.interpolateFC) == 1)
+        opt.interpolateFC = repmat(opt.interpolateFC, numel(faceConstraints),1);
     end
-    assert(numel(opt.interpolFL)==numel(faultLines));
+    assert(numel(opt.interpolateFC)==numel(faceConstraints));
 end
 
 
@@ -149,20 +149,20 @@ F.c.lPos  = 1;
 
 F.l.f     = [];
 F.l.fPos  = 1;                  % Map frm fault lines to fault points
-F.l.l     = faultLines;
-F.l.nFault = numel(faultLines);
+F.l.l     = faceConstraints;
+F.l.nFault = numel(faceConstraints);
 
 F.t.pts   = [];                 % tip points
 
 for i = 1:F.l.nFault
-  faultLine     = F.l.l{i};
+  faceConstraint     = F.l.l{i};
   sePtn         = .5*[fwCut(i)==2|fwCut(i)==3; fwCut(i)==1|fwCut(i)==3];
   [p, fracSpace, fCi, fRi, f2ci,cPos, c2fi,fPos] =   ...
-                          faultLinePts(faultLine,     ... 
+                          faceConstraintPts(faceConstraint,     ... 
                                        faultGridSize,...
                                        circleFactor, ...
                                        fCut(i),sePtn, fh, ...
-                                       opt.interpolFL(i));
+                                       opt.interpolateFC(i));
   nl = size(p,1)/2;
   if nl==0 % No fault points created
     F.l.fPos = [F.l.fPos; F.l.fPos(end)];
@@ -266,16 +266,16 @@ end
 end
 
 function [Pts, gridSpacing, circCenter, circRadius, f2c,f2cPos, c2f,c2fPos] = ...
-    faultLinePts(faultLine, fracDs, circleFactor, isCut, sePtn, fh, interpFL) 
+    faceConstraintPts(faceConstraint, fracDs, circleFactor, isCut, sePtn, fh, interpFL) 
 
     assert(0.5<circleFactor && circleFactor<1)
-    assert(size(faultLine,1)>1 && size(faultLine,2)==2);
+    assert(size(faceConstraint,1)>1 && size(faceConstraint,2)==2);
     
     % interpolate fault line to get circle centers. 
-    circCenter = interLinePath(faultLine, fh, fracDs, sePtn, interpFL);
+    circCenter = interLinePath(faceConstraint, fh, fracDs, sePtn, interpFL);
     numOfFracPts = size(circCenter,1)-1;
     
-    % Test if faultLine is too short
+    % Test if faceConstraint is too short
     if numOfFracPts == 1
       d = sqrt(sum((circCenter(2,:)-circCenter(1,:)).^2, 2));
       if d < 0.8*fh((circCenter(2,:)+circCenter(1,:))/2)

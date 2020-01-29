@@ -34,7 +34,7 @@ axis equal off tight;
 
 %% Create fault sites
 fGs = max(bdr(:))/50;
-F = surfaceSites2D(faultSplit, fGs,'fCut',fCut,'interpolFL',true);
+F = surfaceSites2D(faultSplit, fGs,'fCut',fCut,'interpolateFC',true);
 % Remove tip sites that violate the fault condition
 F.t.pts = surfaceSufCond2D(F.t.pts, F);
 % Remove tip sites outside domain
@@ -79,9 +79,9 @@ axis equal off tight
 % An alternative to use the CVD optimization is to use the Delaunay
 % optimization. This can be used by calling the wrapper function pebiGrid2D
 
-Gd = pebiGrid2D(fGs, [], 'faultLines', fault, ...
+Gd = pebiGrid2D(fGs, [], 'faceConstraints', fault, ...
                        'polyBdr', bdr, ...
-                       'interpolFL', true);
+                       'interpolateFC', true);
 subplot(1, 3, 3);
 plotGrid(Gd,'facecolor','none');
 plotLinePath(fault, 'color','k','linewidth',1);
