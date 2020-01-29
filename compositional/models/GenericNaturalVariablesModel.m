@@ -110,9 +110,6 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                     model.Components{ci} = c;
                 end
             end
-            if isempty(model.FlowPropertyFunctions)
-                model.FlowPropertyFunctions = CompositionalFlowPropertyFunctions(model);
-            end
             model = validateModel@NaturalVariablesCompositionalModel(model, varargin{:});
             model.FluxDiscretization.GravityPotentialDifference.saturationWeighting = true;
         end
