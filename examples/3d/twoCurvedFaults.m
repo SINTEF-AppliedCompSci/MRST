@@ -80,7 +80,7 @@ xr = xmin:dt:xmax; yr = ymin:dt:ymax; zr = zmin:dt:zmax;
 [X,Y,Z] = ndgrid(xr, yr, zr);
 rSites = [X(:), Y(:), Z(:)];
 % Remove any sites innside the spheres
-rSites = faultSufCond3D(rSites, F.c.CC, F.c.R);
+rSites = surfaceSufCond3D(rSites, F.c.CC, F.c.R);
 
 sites = [F.f.pts; rSites];
 G = mirroredPebi(sites, bdr);

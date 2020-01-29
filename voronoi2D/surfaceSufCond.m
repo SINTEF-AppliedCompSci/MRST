@@ -30,7 +30,7 @@ function [p, removed] = surfaceSufCond2D(p, F)
 %   plot(p(~r,1), p(~r,2),'.b');
 %
 % SEE ALSO
-%   compositePebiGrid2D, pebi, pebiGrid, clippedPebi2D, faultSufCond3D
+%   compositePebiGrid2D, pebi, pebiGrid, clippedPebi2D, surfaceSufCond3D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

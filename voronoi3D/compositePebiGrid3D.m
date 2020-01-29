@@ -129,8 +129,8 @@ rSites = [X(:), Y(:), Z(:)];
 
 % Remove conflict points
 rSites = wellSufCond3D(rSites, W);
-rSites = faultSufCond3D(rSites,F.c.CC,F.c.R);
-W.pts  = faultSufCond3D(W.pts,F.c.CC,F.c.R);
+rSites = surfaceSufCond3D(rSites,F.c.CC,F.c.R);
+W.pts  = surfaceSufCond3D(W.pts,F.c.CC,F.c.R);
 
 % Create grid
 pts = [F.f.pts;W.pts;rSites];

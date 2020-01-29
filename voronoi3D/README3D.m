@@ -26,7 +26,7 @@
 %   surfaceSites3D
 %   lineSites3D
 %   CPG3D
-%   faultSufCond3D
+%   surfaceSufCond3D
 %   fixFaultIntersection
 %   isColinear
 %   mirroredPebi

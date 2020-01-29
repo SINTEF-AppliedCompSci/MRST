@@ -33,7 +33,7 @@ function [grids_2] = surfaceGrid3D(faults, grids_1, intersections, ds, gamma)
 %       plotGrid(grids_2{i})
 %   end
 % SEE ALSO
-%   lineGrid3D, surfaceIntersections3D.m, reservoirSites, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
+%   lineGrid3D, surfaceIntersections3D.m, volumeGrid3D, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -51,7 +51,7 @@ axis equal tight
 % Ok, so this looks good so far. Let us now generate the 3D grids
 ds_3 = .4;
 gamma_3 = ds_3/12;
-grids_3 = reservoirSites([6,6,6], fracs, grids_2, ds_3, gamma_3);
+grids_3 = volumeGrid3D([6,6,6], fracs, grids_2, ds_3, gamma_3);
 grids_3 = computeGeometry(grids_3);
 
 %% Plot Grids

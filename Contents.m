@@ -65,7 +65,7 @@
 %                             sides of a triangulation
 %   lineSites3D - Creates a set of points tracing a well path
 %   CPG3D               - create a 3D Centroidal Voronoi diagram
-%   faultSufCond3D      - enforce sufficent and necessary fault condition
+%   surfaceSufCond3D      - enforce sufficent and necessary fault condition
 %   fixFaultIntersection - Removes fault points at the intersection of
 %                          faults
 %   isColinear          - Tests if points lie on a straight line

@@ -54,7 +54,7 @@ zr = zmin:dt:zmax;
 [X,Y,Z] = ndgrid(xr,yr,zr);
 rSites = [X(:), Y(:), Z(:)];
 % Remove conflict sites
-[rSites,removed] = faultSufCond3D(rSites,F.c.CC,F.c.R);
+[rSites,removed] = surfaceSufCond3D(rSites,F.c.CC,F.c.R);
 
 %% CVD optimization
 bdrDT = delaunayTriangulation(bdr);

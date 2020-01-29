@@ -26,7 +26,7 @@ function grids_1 = lineGrid3D(intersections, ds)
 %   % the vertices of the grid are:
 %   grids_1{1}{2}
 % SEE ALSO
-%   lineGrid3D, surfaceGrid3D, reservoirSites, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
+%   lineGrid3D, surfaceGrid3D, volumeGrid3D, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

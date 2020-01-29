@@ -42,7 +42,7 @@ function [pts,removed] = wellSufCond3D(pts, W)
 %   axis equal
 %
 % SEE ALSO:
-%   clippedPebi3D, clipGrid, lineSites3D, faultSufCond3D
+%   clippedPebi3D, clipGrid, lineSites3D, surfaceSufCond3D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

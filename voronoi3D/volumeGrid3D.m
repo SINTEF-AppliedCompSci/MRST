@@ -1,9 +1,9 @@
-function [grid_3]  = reservoirSites(pdim, faults, grids_2, ds, gamma)
+function [grid_3]  = volumeGrid3D(pdim, faults, grids_2, ds, gamma)
 % Find the sites and 3D grid that conform to faults, and the intersection
 % of faults.
 %
 % SYNOPSIS:
-%   grids_3 = reservoirSites(pdim, fautls, grids_2, ds, gamma)
+%   grids_3 = volumeGrid3D(pdim, fautls, grids_2, ds, gamma)
 %
 % PARAMETERS
 %   pdim            - Vector, length numel(celldim), of physical size in
@@ -28,7 +28,7 @@ function [grid_3]  = reservoirSites(pdim, faults, grids_2, ds, gamma)
 %   intersections = surfaceIntersections3D.m(fracs);
 %   grids_1 = lineGrid3D(intersections, 0.2);
 %   grids_2 = fautlSites(fracs, grids_1, intersections, 0.2, 0.2/6)
-%   grids_3 = reservoirSites([6,6,6], fracs, grids_2, 0.4, 0.1)
+%   grids_3 = volumeGrid3D([6,6,6], fracs, grids_2, 0.4, 0.1)
 %   plotGrid(grids_3)
 %
 % SEE ALSO
