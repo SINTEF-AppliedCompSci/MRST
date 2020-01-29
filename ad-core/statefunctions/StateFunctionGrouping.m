@@ -55,6 +55,9 @@ classdef StateFunctionGrouping
         function prop = getStateFunction(props, name)
             % Get named property function (case-sensitive)
             sub = strcmp(props.functionNames, name);
+            if ~any(sub)
+                error('%s is not known to this instance of the %s StateFunctionGrouping', name, class(props));
+            end
             if props.functionTypes(sub) == 0
                 prop = props.(name);
             else
@@ -181,10 +184,16 @@ classdef StateFunctionGrouping
         
         function ok = isStateFunctionEvaluated(props, model, state, name)
             % Check if property is present in cache.
-            if isfield(state, props.structName)
+            nm = props.structName;
+            if isfield(state, nm)
                 % Cache is present, but this specific property is not
                 % necessarily present
-                ok = structPropEvaluated(state.(props.structName), name);
+                if ~isfield(state.(nm), name)
+                    error(['Did not find %s in %s field. %s does not appear', ...
+                        ' to belong to %s. Check your dependencies.'], ...
+                        name, nm, name, class(props));
+                end
+                ok = structPropEvaluated(state.(nm), name);
             else
                 % Cache object is missing, we have no properties
                 ok = false;
@@ -277,6 +286,21 @@ classdef StateFunctionGrouping
                         fprintf('%s', class(fn));
                     end
                     fprintf('\n');
+                end
+            end
+        end
+        
+        function props = setCompactEvaluation(props, val)
+            % Use more compact evaluation for properties where the same
+            % value can be evaluated multiple times (e.g. multiple
+            % densities in the single-phase region)
+            names = props.functionNames;
+            for i = 1:numel(names)
+                name = names{i};
+                fn = props.getStateFunction(name);
+                if isprop(fn, 'useCompactEvaluation')
+                    fn.useCompactEvaluation = val;
+                    props = props.setStateFunction(name, fn);
                 end
             end
         end
