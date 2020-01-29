@@ -22,7 +22,7 @@ wl = {[x/2,y/2,.99*z;x/2,y/2,3*z/4],  ...
       [x/2,y/2,z/2; 2*x/5,y/2,z/3;   x/3,y/2,.01]};
 
 %% Create grid
-G = compositePebiGrid3D(celldim,[x,y,z], 'wellLines',wl,'wellRho',{wG});
+G = compositePebiGrid3D(celldim,[x,y,z], 'cellConstraints',wl,'CCRho',{wG});
 G = computeGeometry(G);
 %% plot
 color = get(gca,'ColorOrder');

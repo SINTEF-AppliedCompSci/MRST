@@ -1,4 +1,4 @@
-function [wellPts, wGs, protPts,pGs] = lineSites2D(wellLines, wellGridSize, varargin) 
+function [wellPts, wGs, protPts,pGs] = lineSites2D(cellConstraints, wellGridSize, varargin) 
 % Places well grid points along wells.
 %
 % SYNOPSIS:
@@ -6,7 +6,7 @@ function [wellPts, wGs, protPts,pGs] = lineSites2D(wellLines, wellGridSize, vara
 %   [...] = lineSites2D(..., 'Name1', Value1, 'Name2', Value2,...)
 %
 % Parameters:
-%   wellLines     - A cell of arrays. Each nx2 array in the cell contains 
+%   cellConstraints     - A cell of arrays. Each nx2 array in the cell contains 
 %                   the piecewise linear approximation of a well. The 
 %                   values must be sorted along the line, e.g., a well 
 %                   consisting of two lines would be [x1,y1; x2,y2; x3,y3].
@@ -20,7 +20,7 @@ function [wellPts, wGs, protPts,pGs] = lineSites2D(wellLines, wellGridSize, vara
 %                   the total fault length, and therefore might be slightly
 %                   smaller than the desired distance.
 %   
-%   interpolWP    - OPTIONAL.
+%   interpolateCC    - OPTIONAL.
 %                   Default value is a boolean false value, but the user
 %                   can supply an individual value per well path. If false,
 %                   each segment in the corresponding well curve will be
@@ -54,7 +54,7 @@ function [wellPts, wGs, protPts,pGs] = lineSites2D(wellLines, wellGridSize, vara
 %                   equal the number of wells x 2 ([s,e]). Each row gives
 %                   the start and end position of the well interpolation.
 %                   The position is relative to the steplength. If
-%                   s=ones(numel(wellLines),1) all wells will start their
+%                   s=ones(numel(cellConstraints),1) all wells will start their
 %                   first well site one step length from the start of the
 %                   well paths. Be careful when using both wfCut and sePts
 %                   as the effects add up.
@@ -103,41 +103,41 @@ function [wellPts, wGs, protPts,pGs] = lineSites2D(wellLines, wellGridSize, vara
 %}
 
 % load options
-opt   = struct('wfCut',       zeros(numel(wellLines),1),...
-               'wCut',        zeros(numel(wellLines),1),...
-               'sePtn',       zeros(numel(wellLines),2),...
+opt   = struct('wfCut',       zeros(numel(cellConstraints),1),...
+               'wCut',        zeros(numel(cellConstraints),1),...
+               'sePtn',       zeros(numel(cellConstraints),2),...
                'protLayer',   false, ...
-               'interpolWP',  false, ...
+               'interpolateCC',  false, ...
                'protD',       {{@(p) ones(size(p,1),1)*wellGridSize/10}},...
-               'wellRho',     @(x)wellGridSize*constFunc(x));
+               'CCRho',     @(x)wellGridSize*constFunc(x));
 opt      = merge_options(opt,varargin{:});
 wfCut    = opt.wfCut;
 wCut     = opt.wCut;
 sePtn    = opt.sePtn;
 protD    = opt.protD;
-interpWP = opt.interpolWP;
+interpWP = opt.interpolateCC;
 
 if numel(protD) == 1
-  protD = repmat(protD,numel(wellLines),1);num2cell(protD, 2);
+  protD = repmat(protD,numel(cellConstraints),1);num2cell(protD, 2);
 end
-assert(numel(protD) == numel(wellLines));
+assert(numel(protD) == numel(cellConstraints));
 if numel(interpWP) == 1
-  interpWP = repmat(interpWP, numel(wellLines),1);
+  interpWP = repmat(interpWP, numel(cellConstraints),1);
 end
-assert(numel(interpWP)==numel(wellLines));
+assert(numel(interpWP)==numel(cellConstraints));
 
 wGs     = [];
 pGs     = [];
 wellPts = [];
 protPts = zeros(0,2);
-for i = 1:numel(wellLines)  % create well points
-  wellLine       = wellLines{i};
+for i = 1:numel(cellConstraints)  % create well points
+  cellConstraint       = cellConstraints{i};
   
-  if (size(wellLine,1) == 1)
-      p = wellLine;
+  if (size(cellConstraint,1) == 1)
+      p = cellConstraint;
       wellSpace = wellGridSize;
   else
-      p = interLinePath(wellLine, opt.wellRho, wellGridSize, sePtn(i,:), interpWP(i));
+      p = interLinePath(cellConstraint, opt.CCRho, wellGridSize, sePtn(i,:), interpWP(i));
       if isempty(p)
         continue
       end
@@ -166,11 +166,11 @@ for i = 1:numel(wellLines)  % create well points
   wGs     = [wGs; wellSpace(keep)];
   wellPts = [wellPts;p(keep,:)];
 
-  if size(wellLine,1)>1
+  if size(cellConstraint,1)>1
   if opt.protLayer
     % Calculate numerical normals
     if numel(keepProt)==1
-      pK = [p(keepProt,:);wellLine(end,:)];
+      pK = [p(keepProt,:);cellConstraint(end,:)];
     else
       pK = p(keepProt,:);
     end

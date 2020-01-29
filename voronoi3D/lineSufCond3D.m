@@ -14,7 +14,7 @@ function [pts,removed] = lineSufCond3D(pts, W)
 %   W           - A struct with elements
 %     W.pts     - A mx3 array of well points. The well points interpolates
 %                 the given well paths, with a distance given by rho.
-%     W.wellPos - A mapping from wellLines to W.nodes. 
+%     W.wellPos - A mapping from cellConstraints to W.nodes. 
 %     W.nodes   - W.pts is not ordered randomly. Also two wells 
 %                 might share one well point. To find the well points that
 %                 belong to well i, we can use the following code:

@@ -7,14 +7,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}
 
-%% wellLines
+%% cellConstraints
 % This sets the wells in our reservoir. The wells are stored as a cell
 % array, each element corresponding to one well
 w = {[0.2,0.8;0.5,0.6;0.8,0.8],...
      [0.5,0.2]};
 gS = [0.1,0.1];
 pdims=[1,1];
-G = compositePebiGrid2D(gS, pdims,'wellLines',w);
+G = compositePebiGrid2D(gS, pdims,'cellConstraints',w);
 
 clf
 plotGrid(G);
@@ -23,23 +23,23 @@ axis equal tight off
 plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 
 
-%% wellGridFactor
-% The wellGridFactor sets the relative size of the well cells. If
-% wellGridFactor=0.5 the well cells will have about half the size of the
+%% CCFactor
+% The CCFactor sets the relative size of the well cells. If
+% CCFactor=0.5 the well cells will have about half the size of the
 % reservoir sites:
 w = {[0.2,0.3;0.8,0.7]};
 gS = [0.1,0.1];
 pdims=[1,1];
-G1 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1);
-G2 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/2);
+G1 = compositePebiGrid2D(gS, pdims,'cellConstraints',w,'CCFactor',1);
+G2 = compositePebiGrid2D(gS, pdims,'cellConstraints',w,'CCFactor',1/2);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
-plotGrid(G1), title('wellGridFactor=1'), axis equal tight off
+plotGrid(G1), title('CCFactor=1'), axis equal tight off
 plotGrid(G1,G1.cells.tag,'facecolor','b')
 hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 subplot(1,2,2)
-plotGrid(G2), title('wellGridFactor=1/2'), axis equal tight off
+plotGrid(G2), title('CCFactor=1/2'), axis equal tight off
 plotGrid(G2,G2.cells.tag,'facecolor','b')
 hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 
@@ -51,8 +51,8 @@ hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 w = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = [0.1,0.1];
 pdims=[1,1];
-G1 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/2,'mlqtMaxLevel',1);
-G2 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/8,'mlqtMaxLevel',3);
+G1 = compositePebiGrid2D(gS, pdims,'cellConstraints',w,'CCFactor',1/2,'mlqtMaxLevel',1);
+G2 = compositePebiGrid2D(gS, pdims,'cellConstraints',w,'CCFactor',1/8,'mlqtMaxLevel',3);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -73,9 +73,9 @@ gS = [0.1,0.1];
 pdims=[1,1];
 lev1 = [0.05,0.1];
 lev2 = [0.1,0.2];
-G1 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
+G1 = compositePebiGrid2D(gS, pdims,'cellConstraints',w,'CCFactor',1/4, ...
                       'mlqtMaxLevel',2,'mlqtLevelSteps',lev1);
-G2 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellGridFactor',1/4, ...
+G2 = compositePebiGrid2D(gS, pdims,'cellConstraints',w,'CCFactor',1/4, ...
                       'mlqtMaxLevel',2,'mlqtLevelSteps',lev2);
 
 figure('Position',[480 340 980 420])
@@ -89,26 +89,26 @@ plotGrid(G2,G2.cells.tag,'facecolor','b')
 hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 
 
-%% wellRho
+%% CCRho
 % A function that sets the relative size of the fault sites in the domain.
 w = {[0.2,0.3;0.5,0.5;0.8,0.7]};
 gS = [0.1,0.1];
 pdims=[1,1];
-wellRho = @(p) 1 - 0.9*p(:,1);
-G1 = compositePebiGrid2D(gS, pdims,'wellLines',w);
-G2 = compositePebiGrid2D(gS, pdims,'wellLines',w,'wellRho',wellRho);
+CCRho = @(p) 1 - 0.9*p(:,1);
+G1 = compositePebiGrid2D(gS, pdims,'cellConstraints',w);
+G2 = compositePebiGrid2D(gS, pdims,'cellConstraints',w,'CCRho',CCRho);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
 plotGrid(G1); plotGrid(G1,G1.cells.tag,'facecolor','b');
 plotGrid(G1,G1.cells.tag,'facecolor','b')
 hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
-title('wellRho=1'); axis equal tight off
+title('CCRho=1'); axis equal tight off
 subplot(1,2,2)
 plotGrid(G2); plotGrid(G2,G2.cells.tag,'facecolor','b');
 plotGrid(G2,G2.cells.tag,'facecolor','b')
 hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
-title('wellRho=@(p) 1 - 0.9*p(:,1)')
+title('CCRho=@(p) 1 - 0.9*p(:,1)')
 axis equal tight off
 
 
@@ -120,10 +120,10 @@ y = 0.5+0.1*sin(pi*x);
 w = {[x',y']};
 gS = [0.1,0.1];
 pdims=[1,1];
-G1 = compositePebiGrid2D(gS, pdims, 'wellLines', w, ...
-                       'interpolWP', true, 'protLayer', false);
-G2 = compositePebiGrid2D(gS, pdims, 'wellLines', w, ...
-                       'interpolWP', true, 'protLayer', true);
+G1 = compositePebiGrid2D(gS, pdims, 'cellConstraints', w, ...
+                       'interpolateCC', true, 'protLayer', false);
+G2 = compositePebiGrid2D(gS, pdims, 'cellConstraints', w, ...
+                       'interpolateCC', true, 'protLayer', true);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -142,8 +142,8 @@ w = {[0.2,0.8;0.8,0.8],...
 gS = [0.08,0.08];
 pdims=[1,1];
 protD = {@(p)0.01+0.1*p(:,1), @(p) 0.01*ones(size(p,1),1)};
-G1 = compositePebiGrid2D(gS, pdims,'wellLines',w,'protLayer',true);
-G2 = compositePebiGrid2D(gS, pdims,'wellLines',w,'protLayer',true,'protD',protD);
+G1 = compositePebiGrid2D(gS, pdims,'cellConstraints',w,'protLayer',true);
+G2 = compositePebiGrid2D(gS, pdims,'cellConstraints',w,'protLayer',true,'protD',protD);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)

@@ -26,18 +26,18 @@ function [G,F] = compositePebiGrid3D(celldim, pdim, varargin)
 %                       radius of the balls placed along fault i. If 
 %                       faultRho has one element, this function is applied
 %                       to all fault surfaces.
-%   wellLines        - OPTIONAL.
+%   cellConstraints        - OPTIONAL.
 %                       Default value {{}}. A nwx1 cell array of vectors. 
 %                       Each element, of size kx3, contains the coordinates 
 %                       of a well-trace. The well is assumed to be linear
 %                       between the coordinates.
-%   wellRho           - OPTIONAL.
+%   CCRho           - OPTIONAL.
 %                       Default value sqrt(sum(pdims./celldim.^2)). WellRho
 %                       is a cell array of length nwx1 or 1. Each element
 %                       is a function. The fucntion must map from a nx3
-%                       array to nx1 array. wellRho{i}(p) defines the
+%                       array to nx1 array. CCRho{i}(p) defines the
 %                       desired distance between well sites that are placed
-%                       along well path wellLines{i}. If wellRho has one
+%                       along well path cellConstraints{i}. If CCRho has one
 %                       element, this function is applied to all well
 %                       paths.
 % RETURNS:
@@ -73,8 +73,8 @@ if numel(pdim)~=3
 end
 
 % Set options
-opt = struct('wellLines', {{}}, ...
-             'wellRho',   {{@(x) sqrt(pdim./sum(celldim.^2))*ones(size(x,1),1)}},...
+opt = struct('cellConstraints', {{}}, ...
+             'CCRho',   {{@(x) sqrt(pdim./sum(celldim.^2))*ones(size(x,1),1)}},...
              'faultSurf', {{}},      ...
              'faultRho',  {{@(x) sqrt(pdim./sum(celldim.^2))*ones(size(x,1),1)}});          
 opt = merge_options(opt, varargin{:});
@@ -86,12 +86,12 @@ else
   assert(numel(faultRho) == numel(opt.faultSurf),...
     'Number of faultRho must either be 1 or numel(faultSurf)');
 end
-wellRho = opt.wellRho;
-if numel(wellRho) == 1
-  wellRho = repmat(wellRho,numel(opt.wellLines),1);num2cell(wellRho, 2);
+CCRho = opt.CCRho;
+if numel(CCRho) == 1
+  CCRho = repmat(CCRho,numel(opt.cellConstraints),1);num2cell(CCRho, 2);
 else
-  assert(numel(wellRho) == numel(opt.wellLines),...
-    'Number of wellRho must either be 1 or numel(wellLines)');
+  assert(numel(CCRho) == numel(opt.cellConstraints),...
+    'Number of CCRho must either be 1 or numel(cellConstraints)');
 end
 
 
@@ -102,7 +102,7 @@ F = surfaceSites3D(opt.faultSurf,faultRho);
 F = removeSurfaceConflictSites3D(F);
 
 % Create well points
-W = lineSites3D(opt.wellLines, wellRho);
+W = lineSites3D(opt.cellConstraints, CCRho);
 
 % Create reservoir sites
 x = pdim(1); y = pdim(2); z = pdim(3);

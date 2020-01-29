@@ -13,20 +13,20 @@ function [G,Pts,F] = compositePebiGrid2D(celldim, pdims, varargin)
 %   pdims             - Vector, length 2, [xmax, ymax], of physical size in
 %                       units of meters of the computational domain. 
 %
-%   wellLines         - OPTIONAL.
+%   cellConstraints         - OPTIONAL.
 %                       Default value empty. A struct of vectors. Each 
 %                       vector, size nw x 2, is the coordinates of a 
 %                       well-trace. The well is assumed to be linear 
 %                       between the coorinates. If the vector only contains 
 %                       one coordinate, the well is treated as a point well.
 %
-%   wellGridFactor    - OPTIONAL.
+%   CCFactor    - OPTIONAL.
 %                       Default value is 0.5. This gives the relative grid
 %                       size of the well grid cells compared to reservoir 
-%                       grid cells. If wellGridFactor=0.5 the well cells 
+%                       grid cells. If CCFactor=0.5 the well cells 
 %                       will be about half the size of the reservoir cells.
 %
-%   interpolWP        - OPTIONAL.
+%   interpolateCC        - OPTIONAL.
 %                       Default value is a boolean false value, but the
 %                       user can supply an individual value per well path.
 %                       If false, each segment in the corresponding well
@@ -45,12 +45,12 @@ function [G,Pts,F] = compositePebiGrid2D(celldim, pdims, varargin)
 %                       The default value -1 calls the default level step
 %                       in the mlqt function.
 %
-%   wellRho           - OPTIONAL
+%   CCRho           - OPTIONAL
 %                       Default value @(x) ones(size(x,1),1). Function gives
 %                       the relative distance between well points. If
-%                       wellRho=0.5 in an area, the distance between
+%                       CCRho=0.5 in an area, the distance between
 %                       well-cells will be
-%                       0.5*wellGridFactor*min(resGridSize)
+%                       0.5*CCFactor*min(resGridSize)
 %
 %   protLayer         - OPTIONAL.
 %                       Default set to false. If set to true a protection layer
@@ -124,7 +124,7 @@ function [G,Pts,F] = compositePebiGrid2D(celldim, pdims, varargin)
 % EXAMPLE:
 %   fl = {[0.2,0.2;0.8,0.8]};
 %   wl = {[0.2,0.8;0.8,0.2]};
-%   G  = compositePebiGrid2D([1/10,1/10],[1,1],'wellLines',wl,'faultLines',fl)
+%   G  = compositePebiGrid2D([1/10,1/10],[1,1],'cellConstraints',wl,'faultLines',fl)
 %   cla, plotGrid(G)
 %
 % SEE ALSO:
@@ -137,12 +137,12 @@ function [G,Pts,F] = compositePebiGrid2D(celldim, pdims, varargin)
 %}  
 
 % Set options
-opt = struct('wellLines',       {{}}, ...
-             'wellGridFactor',  1,  ...
-             'interpolWP',      false, ...
+opt = struct('cellConstraints',       {{}}, ...
+             'CCFactor',  1,  ...
+             'interpolateCC',      false, ...
              'mlqtMaxLevel',    0,    ...
              'mlqtLevelSteps',  -1,   ...
-			 'wellRho',         @(x) ones(size(x,1),1),...
+			 'CCRho',         @(x) ones(size(x,1),1),...
              'faultLines',      {{}}, ...
              'faultGridFactor', 1,  ...
              'interpolFL',      false, ...
@@ -156,11 +156,11 @@ opt = merge_options(opt, varargin{:});
 circleFactor = opt.circleFactor;
 
 % Set grid sizes
-wellGridSize   = min(celldim)*opt.wellGridFactor;
+wellGridSize   = min(celldim)*opt.CCFactor;
 faultGridSize  = min(celldim)*opt.faultGridFactor;
 mlqtMaxLevel   = opt.mlqtMaxLevel;
 mlqtLevelSteps = opt.mlqtLevelSteps;
-wellRho        = @(x) wellGridSize*opt.wellRho(x);
+CCRho        = @(x) wellGridSize*opt.CCRho(x);
 
 % Test input
 assert(numel(pdims)==2);
@@ -170,16 +170,16 @@ assert(mlqtMaxLevel>=0);
 assert(faultGridSize>0);
 assert(0.5<circleFactor && circleFactor<1);
 
-if ~isempty(opt.wellLines)
-    if (numel(opt.interpolWP) == 1)
-        opt.interpolWP = repmat(opt.interpolWP, numel(opt.wellLines),1);
+if ~isempty(opt.cellConstraints)
+    if (numel(opt.interpolateCC) == 1)
+        opt.interpolateCC = repmat(opt.interpolateCC, numel(opt.cellConstraints),1);
     end
-    assert(numel(opt.interpolWP)==numel(opt.wellLines));
+    assert(numel(opt.interpolateCC)==numel(opt.cellConstraints));
     
     if numel(opt.protD) == 1
-        opt.protD = repmat(opt.protD,numel(opt.wellLines),1);
+        opt.protD = repmat(opt.protD,numel(opt.cellConstraints),1);
     end
-    assert(numel(opt.protD) == numel(opt.wellLines));
+    assert(numel(opt.protD) == numel(opt.cellConstraints));
 end
 
 if ~isempty(opt.faultLines)
@@ -198,20 +198,20 @@ if numel(celldim)~=2
 end
 
 % Split faults and wells paths
-[faultLines, fCut, fwCut, IC] = splitAtInt2D(opt.faultLines, opt.wellLines);
+[faultLines, fCut, fwCut, IC] = splitAtInt2D(opt.faultLines, opt.cellConstraints);
 interpFL = opt.interpolFL(IC);
 
-[wellLines,  wCut, wfCut, IC] = splitAtInt2D(opt.wellLines, opt.faultLines);
-interpWP = opt.interpolWP(IC);
+[cellConstraints,  wCut, wfCut, IC] = splitAtInt2D(opt.cellConstraints, opt.faultLines);
+interpWP = opt.interpolateCC(IC);
 protD    = opt.protD(IC);
 
 % find vertical wells
-nw        = cellfun(@numel, opt.wellLines)/2;
+nw        = cellfun(@numel, opt.cellConstraints)/2;
 vW        = nw==1;
-wellLines = [wellLines,opt.wellLines(vW)];
+cellConstraints = [cellConstraints,opt.cellConstraints(vW)];
 wCut      = [wCut;zeros(sum(vW),1)];
 wfCut     = [wfCut; zeros(sum(vW),1)];
-interpWP  = [interpWP; opt.interpolWP(vW)];
+interpWP  = [interpWP; opt.interpolateCC(vW)];
 protD     = [protD; opt.protD(vW)];
 
 % Create well points
@@ -222,13 +222,13 @@ sePtn = [wfCut==2|wfCut==3, wfCut==1|wfCut==3];
 sePtn = (1.0+faultOffset/wellGridSize)*sePtn;
 
 [wellPts, wGs,protPts,pGs] = ...
-    lineSites2D(wellLines, wellGridSize,...
+    lineSites2D(cellConstraints, wellGridSize,...
                          'sePtn',        sePtn, ...
                          'wCut',         wCut,...
                          'protLayer',    opt.protLayer,...
                          'protD',        protD, ...
-                         'wellRho',      wellRho, ...
-                         'interpolWP',   interpWP);
+                         'CCRho',      CCRho, ...
+                         'interpolateCC',   interpWP);
 
 % Create fault points
 F = surfaceSites2D(faultLines, faultGridSize, ...

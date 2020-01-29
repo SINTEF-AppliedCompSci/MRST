@@ -12,14 +12,14 @@ function [G,Pts,F] = pebiGrid2D(resGridSize, pdims, varargin)
 %   pdims           - Vector, length 2, [xmax, ymax], of physical size in
 %                     units of meters of the computational domain. 
 %
-%   wellLines       - OPTIONAL.
+%   cellConstraints       - OPTIONAL.
 %                     Default value empty. A struct of vectors. Each 
 %                     vector, size nw x 2, is the coordinates of a 
 %                     well-trace. The well is assumed to be linear 
 %                     between the coorinates. If the vector only contains 
 %                     one coordinate, the well is treated as a point well.
 %
-%   interpolWP     - OPTIONAL.
+%   interpolateCC     - OPTIONAL.
 %                     Default value is a boolean false value, but the user
 %                     can supply an individual value per well path. If
 %                     false, each segment in the corresponding well curve
@@ -28,27 +28,27 @@ function [G,Pts,F] = pebiGrid2D(resGridSize, pdims, varargin)
 %                     means that cell centers will not necessarily fall
 %                     exactly on the prescribed curve.
 %
-%   wellGridFactor  - OPTIONAL.
+%   CCFactor  - OPTIONAL.
 %                     Default value is 1. This gives the relative grid
 %                     size of the well grid cells compared to reservoir 
-%                     grid cells. If wellGridFactor=0.5 the well cells 
+%                     grid cells. If CCFactor=0.5 the well cells 
 %                     will be about half the size of the reservoir cells.
 %
-%   wellRefinement  - OPTIONAL
+%   CCRefinement  - OPTIONAL
 %                     Default value FALSE. Set to true to turn on
 %                     refinement around wells.
 %
-%   wellEps         - OPTIONAL
-%                     Default value 0.25/max(pdims). wellEps set the
+%   CCEps         - OPTIONAL
+%                     Default value 0.25/max(pdims). CCEps set the
 %                     refinement transition around wells. The density
 %                     function for the reservoir grid is set by
-%                     rho~exp(-distance to well / wellEps).
+%                     rho~exp(-distance to well / CCEps).
 %
-%   wellRho         - OPTIONAL
+%   CCRho         - OPTIONAL
 %                     Default value @(x) ones(size(x,1),1). Function gives
 %                     the relative distance between well points. If
-%                     wellRho=0.5 in an area the distance between
-%                     well-cells will be 0.5*wellGridFactor*resGridSize
+%                     CCRho=0.5 in an area the distance between
+%                     well-cells will be 0.5*CCFactor*resGridSize
 %
 %   protLayer       - OPTIONAL.
 %                     Default set to false. If set to true a protection layer
@@ -157,7 +157,7 @@ function [G,Pts,F] = pebiGrid2D(resGridSize, pdims, varargin)
 % EXAMPLE:
 %   fl = {[0.2,0.2;0.8,0.8]};
 %   wl = {[0.2,0.8;0.8,0.2]};
-%   G  = pebiGrid2D(1/10,[1,1],'wellLines',wl,'faultLines',fl)
+%   G  = pebiGrid2D(1/10,[1,1],'cellConstraints',wl,'faultLines',fl)
 %   cla, plotGrid(G)
 %
 % SEE ALSO
@@ -173,12 +173,12 @@ function [G,Pts,F] = pebiGrid2D(resGridSize, pdims, varargin)
 %}  
 
 % Set options
-opt = struct('wellLines',       {{}}, ...
-             'wellGridFactor',  1, ...
-             'interpolWP',      false, ...
-             'wellRefinement',  false, ...
-			 'wellRho',         @(x) ones(size(x,1),1),...
-             'wellEps',         -1,...
+opt = struct('cellConstraints',       {{}}, ...
+             'CCFactor',  1, ...
+             'interpolateCC',      false, ...
+             'CCRefinement',  false, ...
+			 'CCRho',         @(x) ones(size(x,1),1),...
+             'CCEps',         -1,...
              'protLayer',       false, ...
              'protD',           {{@(p) ones(size(p,1),1)*resGridSize/10}},...
              'faultLines',      {{}}, ...
@@ -195,15 +195,15 @@ opt = struct('wellLines',       {{}}, ...
 
 opt             = merge_options(opt, varargin{:});
 circleFactor    = opt.circleFactor;
-wellRef         = opt.wellRefinement;
+wellRef         = opt.CCRefinement;
 faultRef        = opt.faultRefinement;
-wellEps         = opt.wellEps;
+CCEps         = opt.CCEps;
 faultEps        = opt.faultEps;
 % Set grid sizes
-wellGridFactor  = opt.wellGridFactor;
+CCFactor  = opt.CCFactor;
 faultGridFactor = opt.faultGridFactor;
-wellGridSize    = resGridSize*wellGridFactor;
-wellRho         = @(x) wellGridSize*opt.wellRho(x);
+wellGridSize    = resGridSize*CCFactor;
+CCRho         = @(x) wellGridSize*opt.CCRho(x);
 faultGridSize   = resGridSize*faultGridFactor;
 faultRho = opt.faultRho;
 
@@ -216,8 +216,8 @@ elseif sizePolyBdr==2 || sizePolyBdr == 1
 	error('Polygon must have at least 3 edges.');
 end
 
-if wellEps<0
-    wellEps = 0.25 * max(pdims);
+if CCEps<0
+    CCEps = 0.25 * max(pdims);
 end
 if faultEps<0
     faultEps = 0.25 * max(pdims);
@@ -231,16 +231,16 @@ assert(wellGridSize>0);
 assert(faultGridSize>0);
 assert(0.5<circleFactor && circleFactor<1);
 
-if ~isempty(opt.wellLines)
-    if (numel(opt.interpolWP) == 1)
-        opt.interpolWP = repmat(opt.interpolWP, numel(opt.wellLines),1);
+if ~isempty(opt.cellConstraints)
+    if (numel(opt.interpolateCC) == 1)
+        opt.interpolateCC = repmat(opt.interpolateCC, numel(opt.cellConstraints),1);
     end
-    assert(numel(opt.interpolWP)==numel(opt.wellLines));
+    assert(numel(opt.interpolateCC)==numel(opt.cellConstraints));
     
     if numel(opt.protD) == 1
-        opt.protD = repmat(opt.protD,numel(opt.wellLines),1);
+        opt.protD = repmat(opt.protD,numel(opt.cellConstraints),1);
     end
-    assert(numel(opt.protD) == numel(opt.wellLines));
+    assert(numel(opt.protD) == numel(opt.cellConstraints));
 end
 
 if ~isempty(opt.faultLines)
@@ -251,20 +251,20 @@ if ~isempty(opt.faultLines)
 end
 
 % Split faults and wells paths
-[faultLines, fCut, fwCut, IC] = splitAtInt2D(opt.faultLines, opt.wellLines);
+[faultLines, fCut, fwCut, IC] = splitAtInt2D(opt.faultLines, opt.cellConstraints);
 interpFL = opt.interpolFL(IC);
 
-[wellLines,  wCut, wfCut, IC] = splitAtInt2D(opt.wellLines, opt.faultLines);
-interpWP = opt.interpolWP(IC);
+[cellConstraints,  wCut, wfCut, IC] = splitAtInt2D(opt.cellConstraints, opt.faultLines);
+interpWP = opt.interpolateCC(IC);
 protD    = opt.protD(IC);
 
 % find vertical wells
-nw        = cellfun(@numel, opt.wellLines)/2;
+nw        = cellfun(@numel, opt.cellConstraints)/2;
 vW        = nw==1;
-wellLines = [wellLines,opt.wellLines(vW)];
+cellConstraints = [cellConstraints,opt.cellConstraints(vW)];
 wCut      = [wCut;zeros(sum(vW),1)];
 wfCut     = [wfCut; zeros(sum(vW),1)];
-interpWP  = [interpWP; opt.interpolWP(vW)];
+interpWP  = [interpWP; opt.interpolateCC(vW)];
 protD     = [protD; opt.protD(vW)];
 
 % Create well Points
@@ -280,22 +280,22 @@ faultOffset = sqrt((circleFactor*fLen).^2 - bisectPnt.^2);
 sePtn = (1.0+faultOffset/wellGridSize)*sePtn;
 
 [wellPts, wGs, protPts, pGs] = ...
-    lineSites2D(wellLines, wellGridSize, ...
+    lineSites2D(cellConstraints, wellGridSize, ...
                          'sePtn',        sePtn,...
                          'wCut',         wCut, ...
                          'protLayer',    opt.protLayer,...
                          'protD',        protD, ...
-                         'wellRho',      wellRho, ...
-                         'interpolWP',   interpWP);
+                         'CCRho',      CCRho, ...
+                         'interpolateCC',   interpWP);
 
 
 % create distance functions
 if wellRef && ~isempty(wellPts)
-    hresw  = @(x) min((ones(size(x,1),1)/wellGridFactor), ...
-        1.2*exp(minPdist2(x,wellPts)/wellEps));
+    hresw  = @(x) min((ones(size(x,1),1)/CCFactor), ...
+        1.2*exp(minPdist2(x,wellPts)/CCEps));
     hfault = @(x) wellGridSize*faultGridFactor*hresw(x).*faultRho(x);
 else
-    hresw  = @(p) constFunc(p)/wellGridFactor;
+    hresw  = @(p) constFunc(p)/CCFactor;
     hfault = @(p) faultGridSize*faultRho(p);
 end
 
@@ -311,7 +311,7 @@ if faultRef && ~isempty(F.f.pts)
   hresf = @(x) min((ones(size(x,1),1)/faultGridFactor), ...
                     1.2*exp(minPdist2(x,F.f.pts)/faultEps));
 else
-  hresf = @(p) constFunc(p)/wellGridFactor;
+  hresf = @(p) constFunc(p)/CCFactor;
 end
 % Create reservoir grid points
 % set domain function
@@ -375,7 +375,7 @@ if opt.useMrstPebi
 	t    = delaunay(Pts);
 	% Fix boundary
 	pmid = (Pts(t(:,1),:)+Pts(t(:,2),:)+Pts(t(:,3),:))/3;% Compute centroids
-	t    = t(fd(pmid,vararg)<-0.001*wellGridFactor,:);   % Keep interior triangles
+	t    = t(fd(pmid,vararg)<-0.001*CCFactor,:);   % Keep interior triangles
 
 	G = triangleGrid(Pts, t);
 	G = pebi(G);
