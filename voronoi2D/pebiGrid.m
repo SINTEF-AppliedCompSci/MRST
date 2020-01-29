@@ -251,10 +251,10 @@ if ~isempty(opt.faultLines)
 end
 
 % Split faults and wells paths
-[faultLines, fCut, fwCut, IC] = splitAtInt(opt.faultLines, opt.wellLines);
+[faultLines, fCut, fwCut, IC] = splitAtInt2D(opt.faultLines, opt.wellLines);
 interpFL = opt.interpolFL(IC);
 
-[wellLines,  wCut, wfCut, IC] = splitAtInt(opt.wellLines, opt.faultLines);
+[wellLines,  wCut, wfCut, IC] = splitAtInt2D(opt.wellLines, opt.faultLines);
 interpWP = opt.interpolWP(IC);
 protD    = opt.protD(IC);
 

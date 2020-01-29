@@ -73,7 +73,7 @@ for f = 1:numel(faults)
     end
     num_lines = size(internal_pts_xy,1)/2;
     internal_pts_xy = mat2cell(internal_pts_xy, 2 * ones(num_lines,1), 2)';
-    [split_pts_xy, ~, ~, ic] = splitAtInt(internal_pts_xy, {});
+    [split_pts_xy, ~, ~, ic] = splitAtInt2D(internal_pts_xy, {});
     %split_pts_xy = cell2mat(split_pts_xy)';
     split_pts = cellfun(@(c) [c, zeros(2, 1)], split_pts_xy, 'un',0);
     split_pts = cellfun(@(c) c * R + center, split_pts, 'un', 0);

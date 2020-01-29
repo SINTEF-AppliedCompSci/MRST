@@ -39,7 +39,7 @@
 %                         DistMesh
 %   plotLinePath        - Plots a fault or a well path
 %   removeConflictPoints - Remove sites that are too close to each other
-%   splitAtInt          - Split a fault or well paths at the intersections.
+%   splitAtInt2D          - Split a fault or well paths at the intersections.
 %   /examples
 %     intersectingWellAndFaults         - one well intersected of several
 %                                         faults

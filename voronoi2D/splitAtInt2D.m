@@ -1,8 +1,8 @@
-function [splitL1, L1Cut, L1L2Cut, IC] = splitAtInt(L1, L2)
+function [splitL1, L1Cut, L1L2Cut, IC] = splitAtInt2D(L1, L2)
 % Split paths at all intersections. 
 %
 % SYNOPSIS:
-%   [splitL1, fCut, fwCut] = splitAtInt(L1, L2)
+%   [splitL1, fCut, fwCut] = splitAtInt2D(L1, L2)
 %
 % PARAMETERS;
 %   L1              A cell of arrays. Each nx2 array in the cell contains 
@@ -46,7 +46,7 @@ function [splitL1, L1Cut, L1L2Cut, IC] = splitAtInt(L1, L2)
 %   L1 = {[0.2,0.2;0.8,0.8], [0.2,0.5;0.8,0.5]};
 %   L2 = {[0.3,0.8;0.3,0.2]};
 %   gS = 0.1;
-%   [L1,L1Cut,L1L2Cut] = splitAtInt(L1,L2);
+%   [L1,L1Cut,L1L2Cut] = splitAtInt2D(L1,L2);
 %   figure(); hold on
 %   name = {};
 %   for i = 1:numel(L1)

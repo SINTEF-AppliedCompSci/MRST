@@ -28,7 +28,7 @@
 %     pebiGrid
 %     plotLinePath
 %     removeConflicPoints2
-%     splitAtInt
+%     splitAtInt2D
 % 
 % - clippedPebiGrid2D creates a clipped Voronoi diagram from a point set
 %   and a polygon boundary
@@ -61,7 +61,7 @@
 %   to points from another set. This function can be used to remove small 
 %   orconstricted cells.
 % 
-% - splitAtInt is a function that splits a set of paths at each 
+% - splitAtInt2D is a function that splits a set of paths at each 
 %   intersection. It can be used to split all faults and wells at their 
 %   intersections.
 % 

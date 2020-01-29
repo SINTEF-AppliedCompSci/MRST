@@ -30,7 +30,7 @@ plotLinePath(fault, 'color', col(2,:));
 axis equal off tight;
 
 %% calculate fault intersections
-[faultSplit, fCut, ~] = splitAtInt(fault, {});
+[faultSplit, fCut, ~] = splitAtInt2D(fault, {});
 
 %% Create fault sites
 fGs = max(bdr(:))/50;
