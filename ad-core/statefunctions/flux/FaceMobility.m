@@ -1,4 +1,7 @@
 classdef FaceMobility < StateFunction & UpwindProperty
+    % Phase mobility, with phase upwind (or alternatively some other
+    % upwind, provided that the name of that flag is given to the
+    % constructor)
     properties (Access = protected)
         upwind_name; % Name of state function where upwind flag comes from
     end
@@ -13,6 +16,7 @@ classdef FaceMobility < StateFunction & UpwindProperty
             fm.upwind_name = upwind_name;
             fm = fm.dependsOn(upwind_name);
             fm = fm.dependsOn('Mobility', 'FlowPropertyFunctions');
+            fm.label = '\lambda_\alpha^f';
         end
         
         function fmob = evaluateOnDomain(prop, model, state)

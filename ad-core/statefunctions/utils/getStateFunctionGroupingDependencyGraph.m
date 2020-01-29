@@ -27,15 +27,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     observed = cell(np, 1);
     origin = cell(np, 1);
     group_names = cell(np, 1);
+    symbols = cell(np, 1);
     for i = 1:np
         group = function_groupings{i};
-        [names{i}, observed{i}, implementation{i}] = getNames(group);
+        [names{i}, observed{i}, implementation{i}, symbols{i}] = getNames(group);
         origin{i} = i*ones(numel(names{i}), 1);
         group_names{i} = class(group);
     end
     category = rldecode((1:np)', cellfun(@numel, names));
     all_dependencies = vertcat(observed{:});
     all_names = vertcat(names{:});
+    all_symbols = vertcat(symbols{:});
     all_implementation = vertcat(implementation{:});
     names_full = cellfun(@(x, y) sprintf('%s.%s', x, y),...
                     group_names(category), all_names, 'UniformOutput', false);
@@ -89,6 +91,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nd = numel(all_dependencies);
     dep_names = cell(nd, 1);
     dep_impl = cell(nd, 1);
+    dep_symbl = cell(nd, 1);
     dep_cat = zeros(nd, 1);
     for i = 1:nd
         d = all_dependencies(i);
@@ -96,12 +99,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         dep_cat(i) = find(strcmp(group_names, d.grouping));
         if strcmpi(d.grouping, 'state')
             dep_impl{i} = 'state';
+            dep_symbl{i} = 'state';
         else
             dep_impl{i} = '?';
+            dep_symbl{i} = d.name;
         end
     end
     I = [all_implementation; dep_impl];
     N = [all_names; dep_names];
+    S = [all_symbols; dep_symbl];
     C = [category; dep_cat];
     % Known dependencies are 1, unknown dependencies are -1
     group_types = 1 - 2*double(C > n_base_group);
@@ -110,11 +116,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     assert(numel(I) == numel(C));
     assert(numel(I) == numel(N));
-    assert(numel(I) == numel(C));
+    assert(numel(I) == numel(S));
 
     graph = struct('C', A,                     ... % Dependency graph
                    'Implementation', {I},      ... % Implementation of specific functions (ordered)
                    'FunctionNames', {N},       ... % Names of functions (ordered)
+                   'Labels',       {S},        ... % Label/shortname for each element
                    'GroupIndex', C,            ... % Index into GroupNames
                    'GroupTypes', group_types,  ... % 1 for connections inside the groups provided, -1 for outside, 0 for state
                    'GroupNames', {group_names});   % Names of groups (class name)
@@ -131,11 +138,11 @@ function deps = fixSubclassDependencies(groups, deps)
     end
 end
 
-function [names, observed, impl] = getNames(group)
+function [names, observed, impl, symbols] = getNames(group)
     if isempty(group)
         error('Empty state function. Did you forget to set it up?');
     end
-    [names, ~, impl] = group.getNamesOfStateFunctions();
+    [names, ~, impl, symbols] = group.getNamesOfStateFunctions();
     observed = [];
     for i = 1:numel(names)
         prop = group.getStateFunction(names{i});

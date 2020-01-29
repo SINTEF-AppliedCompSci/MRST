@@ -1,4 +1,5 @@
 classdef BlackOilViscosity < StateFunction
+    % Black-oil style viscosity functions that account for rs and Rv
     properties
         useSaturatedFlag = true;
         disgas = false;
@@ -21,6 +22,7 @@ classdef BlackOilViscosity < StateFunction
                 end
             end
             gp = gp.dependsOn({'PhasePressures'});
+            gp.label = '\mu_\alpha';
         end
         
         function mu = evaluateOnDomain(prop, model, state)

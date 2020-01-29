@@ -1,4 +1,5 @@
 classdef ComponentPhaseDensity < StateFunction & ComponentProperty
+    % Component density in each cell for each phase
     properties
 
     end
@@ -7,6 +8,7 @@ classdef ComponentPhaseDensity < StateFunction & ComponentProperty
         function gp = ComponentPhaseDensity(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp@ComponentProperty(model);
+            gp.label = '\rho_\alpha x_{i,\alpha}';
         end
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;

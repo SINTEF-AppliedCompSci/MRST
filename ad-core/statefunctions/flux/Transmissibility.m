@@ -1,4 +1,6 @@
 classdef Transmissibility < StateFunction
+    % Transmissibility for internal faces. May include an optional
+    % pressure-dependent multiplier from a field in the fluid model.
     properties
         
     end
@@ -9,6 +11,7 @@ classdef Transmissibility < StateFunction
             if isfield(model.fluid, 'transMult')
                 pp = pp.dependsOn('pressure', 'state');
             end
+            pp.label = 'T_f';
         end
         
         function T = evaluateOnDomain(prop, model, state)

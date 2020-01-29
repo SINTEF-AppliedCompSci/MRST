@@ -32,7 +32,7 @@ classdef StateFunctionGrouping
             props.functionTypes = zeros(size(props.functionNames));
         end
         % ----------------------- Getters --------------------------------%
-        function [names, types, implementation] = getNamesOfStateFunctions(props)
+        function [names, types, implementation, labels] = getNamesOfStateFunctions(props)
             % Get the names of all properties in collection. If a second
             % output argument is requested, it will give the internal
             % indicators if a property is intrinsic to the class (and will
@@ -45,9 +45,15 @@ classdef StateFunctionGrouping
             if nargout > 2
                 n = numel(names);
                 implementation = cell(n, 1);
+                labels = cell(n, 1);
                 for i = 1:n
                     p = props.getStateFunction(names{i});
                     implementation{i} = class(p);
+                    s = p.label;
+                    if isempty(s)
+                        s = names{i};
+                    end
+                    labels{i} = s;
                 end
             end
         end

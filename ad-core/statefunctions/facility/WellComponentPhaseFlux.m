@@ -8,7 +8,9 @@ classdef WellComponentPhaseFlux < StateFunction
         function gp = WellComponentPhaseFlux(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping', 'PhaseFlux'});
-            gp = gp.dependsOn({'ComponentPhaseDensity', 'Density'}, 'FlowPropertyFunctions');
+            gp = gp.dependsOn({'Density'}, 'PVTPropertyFunctions');
+            gp = gp.dependsOn({'ComponentPhaseDensity'}, 'FlowPropertyFunctions');
+            gp.label = 'Q_{i,\alpha}';
         end
         function componentPhaseFlux = evaluateOnDomain(prop, facility, state)
             % Preliminaries

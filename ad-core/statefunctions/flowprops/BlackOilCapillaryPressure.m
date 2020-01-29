@@ -12,6 +12,7 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
         function prop = BlackOilCapillaryPressure(model, varargin)
             prop = prop@StateFunction(model, varargin{:});
             prop = prop.dependsOn('s', 'state');
+            prop.label = 'p_{c\alpha}';
         end
         
         function pc = evaluateOnDomain(prop, model, state)

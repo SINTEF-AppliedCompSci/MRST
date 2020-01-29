@@ -9,8 +9,6 @@ mrstModule add ad-core ad-blackoil deckformat ad-props
 pth = getDatasetPath('spe1');
 fn  = fullfile(pth, 'BENCH_SPE1.DATA');
 [state0, model, schedule, nonlinear] = initEclipseProblemAD(fn);
-
-simulateScheduleAD(state0, model, schedule)
 %% Validate model to set up defaults
 % State functions are set up at the start of a simulation, with reasonable
 % defaults given. Here, we manually call validateModel to invoke these

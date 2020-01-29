@@ -1,4 +1,5 @@
 classdef RsMax < StateFunction
+    % Maximum Rs (dissolved gas-oil ratio)
     properties
     end
     
@@ -6,6 +7,7 @@ classdef RsMax < StateFunction
         function gp = RsMax(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn('pressure', 'state');
+            gp.label = 'R_s^{max}';
         end
         
         function rsSat = evaluateOnDomain(prop, model, state)

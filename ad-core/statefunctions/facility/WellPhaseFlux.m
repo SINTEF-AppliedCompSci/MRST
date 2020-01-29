@@ -9,6 +9,7 @@ classdef WellPhaseFlux < StateFunction
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping', 'PerforationPressureGradient', 'WellIndex'});
             gp = gp.dependsOn({'Mobility'}, 'FlowPropertyFunctions');
+            gp.label = 'q_\alpha';
         end
         
         function q_ph = evaluateOnDomain(prop, model, state)

@@ -1,4 +1,5 @@
 classdef ComponentPhaseMass < StateFunction & ComponentProperty
+    % Mass of each component, in each phase.
     properties
 
     end
@@ -7,6 +8,7 @@ classdef ComponentPhaseMass < StateFunction & ComponentProperty
         function gp = ComponentPhaseMass(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp@ComponentProperty(model);
+            gp.label = 'M_{i,\alpha}';
         end
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;

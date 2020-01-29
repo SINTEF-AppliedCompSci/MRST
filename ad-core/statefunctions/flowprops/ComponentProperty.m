@@ -1,4 +1,6 @@
 classdef ComponentProperty
+    % Virtual class for properties that get their values from the model's
+    % components
     properties
         
     end

@@ -1,4 +1,5 @@
 classdef Mobility < StateFunction
+    % Mobility for each phase. Normally rel. perm. divided by viscosity.
     properties
     end
     
@@ -7,6 +8,7 @@ classdef Mobility < StateFunction
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'RelativePermeability'});
             gp = gp.dependsOn('Viscosity', 'PVTPropertyFunctions');
+            gp.label = '\lambda_\alpha';
         end
         function mob = evaluateOnDomain(prop, model, state)
             kr = prop.getEvaluatedDependencies(state, 'RelativePermeability');

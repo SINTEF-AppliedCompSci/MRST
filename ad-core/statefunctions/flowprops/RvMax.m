@@ -1,4 +1,5 @@
 classdef RvMax < StateFunction
+    % Maximum Rv (vaporized oil-gas ratio)
     properties
         rvReduction = 0;
     end
@@ -7,6 +8,7 @@ classdef RvMax < StateFunction
         function gp = RvMax(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn('PhasePressures');
+            gp.label = 'R_v^{max}';
         end
         
         function rvSat = evaluateOnDomain(prop, model, state)

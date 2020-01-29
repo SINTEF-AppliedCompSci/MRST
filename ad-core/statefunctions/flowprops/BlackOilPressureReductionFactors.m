@@ -1,4 +1,5 @@
 classdef BlackOilPressureReductionFactors < StateFunction
+    % Component weighting factors used to form a pressure equation
     properties
         useSaturatedFlag = false;
         disgas = false;
@@ -21,6 +22,7 @@ classdef BlackOilPressureReductionFactors < StateFunction
                 end
             end
             gp = gp.dependsOn({'ShrinkageFactors', 'PoreVolume'});
+            gp.label = 'w_i^p';
         end
 
         function w = evaluateOnDomain(prop, model, state)

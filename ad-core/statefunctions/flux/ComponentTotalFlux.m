@@ -1,4 +1,5 @@
 classdef ComponentTotalFlux < StateFunction
+    % Total flux of all components, summed up over all phases
     properties
 
     end
@@ -7,6 +8,7 @@ classdef ComponentTotalFlux < StateFunction
         function gp = ComponentTotalFlux(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn('ComponentPhaseFlux');
+            gp.label = 'V_i';
         end
         
         function v = evaluateOnDomain(prop, model, state)

@@ -12,6 +12,7 @@ classdef PerforationPressureGradient < StateFunction
             gp = gp.dependsOn('FacilityWellMapping');
             gp = gp.dependsOn('pressure', 'state');
             gp = gp.dependsOn('bhp', 'state');
+            gp.label = 'p-p_{bh}-\Delta p';
         end
         function dp = evaluateOnDomain(prop, model, state)
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
