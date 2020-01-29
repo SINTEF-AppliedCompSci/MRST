@@ -1,4 +1,4 @@
-function [pts, removed] = faultSufCondFromGrid3D(pts, grids_2, gamma)
+function [pts, removed] = surfaceSufCondFromGrid3D(pts, grids_2, gamma)
 
 removed = false(size(pts, 1), 1);
 for i = 1:numel(grids_2)

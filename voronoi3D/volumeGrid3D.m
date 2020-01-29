@@ -79,7 +79,7 @@ rSites = [X(:), Y(:), Z(:)];
 sites = cellfun(@(c) c.cells.sites, grids_2, 'un', false);
 CC = vertcat(sites{:});
 
-rSites = faultSufCondFromGrid3D(rSites, grids_2, gamma);
+rSites = surfaceSufCondFromGrid3D(rSites, grids_2, gamma);
 sites_3 = [internal_pts; rSites];
 
 grid_3 = mirroredPebi(sites_3, bdr);
