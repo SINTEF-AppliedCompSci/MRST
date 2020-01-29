@@ -1,9 +1,9 @@
-function grids_1 = intersectionSites(intersections, ds)
+function grids_1 = lineGrid3D(intersections, ds)
 % Find the sites of the grids defined by fault intersections, and generate
 % the corresponding 1D grids
 %
 % SYNOPSIS:
-%   grids_1 = intersectionSites(intersections, ds)
+%   grids_1 = lineGrid3D(intersections, ds)
 %
 % PARAMETERS
 %   intersecitons   - The intersection of fautls as returned from
@@ -20,13 +20,13 @@ function grids_1 = intersectionSites(intersections, ds)
 %   f2 = [2,2,3.3; 5,2,3.3; 5,4,3.3; 2,4, 3.3];
 %   fracs = {f1, f2};
 %   intersections = surfaceIntersections3D.m(fracs);
-%   grids_1 = intersectionSites(intersections, 0.2);
+%   grids_1 = lineGrid3D(intersections, 0.2);
 %   % the PEBI-sites are:
 %   grids_1{1}{1} 
 %   % the vertices of the grid are:
 %   grids_1{1}{2}
 % SEE ALSO
-%   intersectionSites, faultSites, reservoirSites, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
+%   lineGrid3D, surfaceGrid3D, reservoirSites, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -25,9 +25,9 @@ intersections = surfaceIntersections3D.m(fracs);
 % We start by generating the 1D grids. The only parameter we have to
 % specify here is the grid size of the 1D cells. The 1D grids are defined
 % by the intersection of two faults. To generate the grids we call the 
-% function intersectionSites. This returns a cell array of all 1D grids.
+% function lineGrid3D. This returns a cell array of all 1D grids.
 ds_1 = 0.2;
-grids_1 = intersectionSites(intersections, ds_1);
+grids_1 = lineGrid3D(intersections, ds_1);
 
 %% Generate 2D grids
 % We now generate the 2D grids. Here we specify two parameters. The first
@@ -37,7 +37,7 @@ grids_1 = intersectionSites(intersections, ds_1);
 ds_2 = 0.25;
 gamma_2 = ds_2/6;
 
-[grids_2] = faultSites(fracs, grids_1, intersections, ds_2, gamma_2);
+[grids_2] = surfaceGrid3D(fracs, grids_1, intersections, ds_2, gamma_2);
 
 %% Plot grids so far.
 % Let us plot the grids we have generated so far:

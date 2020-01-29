@@ -1,15 +1,15 @@
-function [grids_2] = faultSites(faults, grids_1, intersections, ds, gamma)
+function [grids_2] = surfaceGrid3D(faults, grids_1, intersections, ds, gamma)
 % Find the sites and grids of faults such that the 2D PEBI-grids conform to
 % the fault intersections.
 %
 % SYNOPSIS:
-%   grids_2 = faultSites(faults, grids_1, intersections, ds, gamma)
+%   grids_2 = surfaceGrid3D(faults, grids_1, intersections, ds, gamma)
 %
 % PARAMETERS
 %   fautls          - cell array of faults. Each element is a vector of
 %                     the vertices of the fault
 %   grids_1         - cell array of 1D grids as returned from
-%                     intersectionSites
+%                     lineGrid3D
 %   intersecitons   - The intersection of fautls as returned from
 %                     surfaceIntersections3D.m
 %   ds              - Cell size of the 2D cells
@@ -26,14 +26,14 @@ function [grids_2] = faultSites(faults, grids_1, intersections, ds, gamma)
 %   f2 = [2,2,3.3; 5,2,3.3; 5,4,3.3; 2,4, 3.3];
 %   fracs = {f1, f2};
 %   intersections = surfaceIntersections3D.m(fracs);
-%   grids_1 = intersectionSites(intersections, 0.2);
+%   grids_1 = lineGrid3D(intersections, 0.2);
 %   grids_2 = fautlSites(fracs, grids_1, intersections, 0.2, 0.2/6)
 %   figure(); clf; hold on
 %   for i =1:numel(grids_2)
 %       plotGrid(grids_2{i})
 %   end
 % SEE ALSO
-%   intersectionSites, surfaceIntersections3D.m, reservoirSites, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
+%   lineGrid3D, surfaceIntersections3D.m, reservoirSites, compositePebiGrid2D, pebi, surfaceSites2D, lineSites2D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
