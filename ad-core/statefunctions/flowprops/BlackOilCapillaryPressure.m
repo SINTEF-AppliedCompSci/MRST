@@ -23,7 +23,6 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
             if model.water && model.oil && isfield(f, 'pcOW')
                 sW = model.getProp(state, 'sw');
                 if prop.scalingActive
-%                     swcon = prop.getConnateWater(model, state);
                     pts = model.rock.krscale.drainage;
                     reg = prop.regions;
                     [get, ~, U, L] = SaturationProperty.getSatPointPicker(f, pts, reg, prop.cell_subset);

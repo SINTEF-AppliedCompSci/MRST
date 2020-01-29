@@ -5,10 +5,12 @@ classdef Mobility < StateFunction
     methods
         function gp = Mobility(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'RelativePermeability', 'Viscosity'});
+            gp = gp.dependsOn({'RelativePermeability'});
+            gp = gp.dependsOn('Viscosity', 'PVTPropertyFunctions');
         end
         function mob = evaluateOnDomain(prop, model, state)
-            [mu, kr] = prop.getEvaluatedDependencies(state, 'Viscosity', 'RelativePermeability');
+            kr = prop.getEvaluatedDependencies(state, 'RelativePermeability');
+            mu = model.getProp(state, 'Viscosity');
             mob = cellfun(@(x, y) x./y, kr, mu, 'UniformOutput', false);
             if isfield(model.fluid, 'tranMultR')
                 % Pressure dependent mobility multiplier 

@@ -18,7 +18,7 @@ classdef InjectionSurfaceDensity < StateFunction
             % regardless of active or inactive status for that
             % perforation.
             topcell = arrayfun(@(x) x.cells(1), W);
-            reg = model.FlowPropertyFunctions.Density.regions;
+            reg = model.PVTPropertyFunctions.Density.regions;
             rhoS = rhoS(reg(topcell), :);
             if isfield(W, 'rhoS')
                 % Surface density is given on a per-well-basis for the

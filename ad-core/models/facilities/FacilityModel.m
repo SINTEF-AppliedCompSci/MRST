@@ -143,6 +143,10 @@ classdef FacilityModel < PhysicalModel
             end
         end
 
+        function model = setReservoirModel(model, resmodel)
+            model.ReservoirModel = resmodel;
+            model.AutoDiffBackend = resmodel.AutoDiffBackend;
+        end
         function W = getWellStruct(model, subs)
             % Get the well struct representing the current set of wells
             %

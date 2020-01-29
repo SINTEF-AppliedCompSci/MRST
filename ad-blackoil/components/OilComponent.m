@@ -9,7 +9,7 @@ classdef OilComponent < ImmiscibleComponent
             c@ImmiscibleComponent(name, gasIndex);
             c.disgas = disgas;
             c.vapoil = vapoil;
-            c = c.dependsOn('ShrinkageFactors');
+            c = c.dependsOn('ShrinkageFactors', 'PVTPropertyFunctions');
             if vapoil
                 c = c.dependsOn('rv', 'state');
             end

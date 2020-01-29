@@ -55,6 +55,7 @@ properties
     FacilityNonLinearSolver % Nonlinear solver used when wells are solved separately
     AquiferModel  % Model used to represent aquifers
     FlowPropertyFunctions % Grouping for flow properties
+    PVTPropertyFunctions % Grouping for PVT properties
     FluxDiscretization % Grouping for flux discretization
     Components = {};
 end
@@ -185,15 +186,15 @@ methods
         else
             model.FacilityModel.ReservoirModel = model;
         end
-        model.FacilityModel.AutoDiffBackend = model.AutoDiffBackend;
 
         assert(~isempty(model.operators),...
             'Operators must be set up before simulation. See model.setupOperators for more details.');
-
-        model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
         
         if isempty(model.FlowPropertyFunctions)
             model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
+        end
+        if isempty(model.PVTPropertyFunctions)
+            model.PVTPropertyFunctions = PVTPropertyFunctions(model); %#ok
         end
         if isempty(model.FluxDiscretization)
             model.FluxDiscretization = FluxDiscretization(model); %#ok
@@ -202,6 +203,9 @@ methods
         if ~isempty(model.AquiferModel)
             model.AquiferModel = model.AquiferModel.validateModel(model);
         end
+        % Next, validate the facility
+        model.FacilityModel = model.FacilityModel.setReservoirModel(model);
+        model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
     end
 
     function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin)
@@ -421,7 +425,9 @@ methods
 
     function containers = getStateFunctionGroupings(model)
         containers = getStateFunctionGroupings@PhysicalModel(model);
-        extra = {model.FlowPropertyFunctions, model.FluxDiscretization};
+        extra = {model.FlowPropertyFunctions, ...
+                 model.PVTPropertyFunctions, ...
+                 model.FluxDiscretization};
         if ~isempty(model.FacilityModel)
             fm_props = model.FacilityModel.getStateFunctionGroupings();
             extra = [extra, fm_props];

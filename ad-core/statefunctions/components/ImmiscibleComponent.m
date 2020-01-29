@@ -8,7 +8,7 @@ classdef ImmiscibleComponent < ComponentImplementation
         function c = ImmiscibleComponent(name, phase)
             c@ComponentImplementation(name);
             c.phaseIndex = phase;
-            c = c.dependsOn('Density');
+            c = c.dependsOn('Density', 'PVTPropertyFunctions');
         end
         
         function c = getComponentDensity(component, model, state, varargin)
