@@ -821,7 +821,7 @@ classdef SparseTensor
          
          stride = cumprod([1, shape(1:end-1)]);
                   
-         tmp = bsxfun(@(x,y) ceil(x/y), ix1d, stride);
+         tmp = bsxfun(@(x,y) ceil(x./y), ix1d, stride);
          ixs = bsxfun(@mod, tmp-1, shape)+1;
       end
       
