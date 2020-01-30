@@ -36,8 +36,8 @@ prod.reducefds = {'coldim'};
 prod.prodtbl = rowtbl;
 prod = prod.setup();
 
-setupMatrix(A, prod)
+A = setupTensor(A, prod);
+B = A.transpose;
 
-B = trans_T.getMatrix()*A;
-
-setupMatrix(B, prod)
+printTensor(A);
+printTensor(B);

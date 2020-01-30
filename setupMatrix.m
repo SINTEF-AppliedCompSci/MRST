@@ -1,4 +1,4 @@
-function A = getthematrix(u, prod)
+function A = setupMatrix(u, prod)
     A = SparseTensor();
     A = A.setFromTensorProd(u, prod);
     A = A.getMatrix();
