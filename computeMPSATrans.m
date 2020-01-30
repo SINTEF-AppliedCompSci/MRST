@@ -17,7 +17,7 @@ eta = 1/3;
 dimcase = 2;
 switch dimcase
   case 2
-    nx = 5; ny = 5;
+    nx = 20; ny = 20;
     G = cartGrid([nx, ny]);
   case 3
     nx = 5; ny = 5; nz = 5;
@@ -472,8 +472,35 @@ A = A22 - A21*invA11*A12;
 % We setup a source-term
 switch dimcase
   case 2
-    indcell = floor(nx/2 + ny/2*nx);
+    indcell = floor(nx/2) + nx*floor((ny - 1)/2);
+    force = [0; 1]; % force in upward direction
   case 3
     indcell = floor(nx/2 + ny/2*nx + nz/2*nx*ny);
+    force = [0; 0; 1]; % force in upward direction    
 end
 
+close all
+figure
+plotGrid(G)
+plotGrid(G, indcell, 'facecolor', 'red');
+title('source cell')
+
+
+sourcetbl.cells = indcell;
+sourcetbl.num = numel(indcell);
+
+sourcetbl = crossTable(sourcetbl, coltbl, {});
+
+force = tblmap(force, coltbl, sourcetbl, {'coldim'});
+force = tblmap(force, sourcetbl, cellcoltbl, {'cells', 'coldim'});
+
+u = A\force;
+
+u = reshape(u, dimcase, [])';
+
+figure
+plotCellData(G, u(:, 1));
+title('displacement - x direction')
+figure
+plotCellData(G, u(:, 2));
+title('displacement - y direction')
