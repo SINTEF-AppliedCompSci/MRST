@@ -8,8 +8,14 @@
 %}
 
 %% cellConstraints
-% This sets the wells in our reservoir. The wells are stored as a cell
-% array, each element corresponding to one well
+% This sets the cell constraints in our reservoir. The desired feature of
+% these constraints is that the cell centroids of the grid cell trace the
+% lines that define the constraints. In practice, we can not guarantee that
+% the cell centroids trace the given constraints, instead, the algorithm
+% will place the PEBI sites along the constrained lines. However, if the
+% grid is fairly "nice", the cell centroids will align with the PEBI sites.
+% The cell contstraints are stored as a cell array, each element
+% corresponding to one line:
 w = {[0.2,0.8;0.5,0.6;0.8,0.8],...
      [0.5,0.2]};
 gS = [0.1,0.1];
@@ -24,9 +30,9 @@ plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 
 
 %% CCFactor
-% The CCFactor sets the relative size of the well cells. If
-% CCFactor=0.5 the well cells will have about half the size of the
-% reservoir sites:
+% The CCFactor sets the relative distance between the sites that trace the
+% cellConstraints. If CCFactor=0.5 the distance between the cellConstraint
+% sites will be about half the size of the reservoir grid size:
 w = {[0.2,0.3;0.8,0.7]};
 gS = [0.1,0.1];
 pdims=[1,1];
@@ -46,7 +52,7 @@ hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 
 %% mlqtMaxLevel
 % mlqtMaxLevel sets how many steps of local grid refinement we create
-% around each well.
+% around each cellConstraint.
 
 w = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = [0.1,0.1];
@@ -66,7 +72,7 @@ hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 
 
 %% mlqtLevelSteps
-% We can define which distance from a well triggers which level of
+% We can define what distance from a cellConstraint triggers which level of
 % mlqt-refinement.
 w = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = [0.1,0.1];
@@ -90,7 +96,8 @@ hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 
 
 %% CCRho
-% A function that sets the relative size of the fault sites in the domain.
+% A function that sets the relative distance between the cellConstraint
+% sites in the domain.
 w = {[0.2,0.3;0.5,0.5;0.8,0.7]};
 gS = [0.1,0.1];
 pdims=[1,1];
@@ -113,8 +120,8 @@ axis equal tight off
 
 
 %% protLayer
-% Adds a protection layer around wells. The protection sites are placed
-% normal along the well path
+% Adds a protection layer around cellConstraints. The protection sites are placed
+% normal along the constraint path
 x = linspace(0.2,0.8);
 y = 0.5+0.1*sin(pi*x);
 w = {[x',y']};
@@ -135,8 +142,8 @@ title('Protection Layer on'), axis equal tight off
 
 
 %% protD
-% This parameter sets the distance from the protection sites to the well
-% path. This is cellarray of functions, one for each well path.
+% This parameter sets the distance from the protection sites to the
+% cellConstraint. This is a cellarray of functions, one for each cellConstraint.
 w = {[0.2,0.8;0.8,0.8],...
      [0.5,0.2;0.1,0.5]};
 gS = [0.08,0.08];
@@ -155,14 +162,33 @@ title('User-prescribed protection distance'), axis equal tight off
 
 
 %% faceConstraints
-% This sets the faults in our reservoir. The faults are stored as a cell
-% array, each element corresponding to one fault
+% Defines a set of surfaces which should be traced by faces of the grid.
+% The faults are stored as a cell array, each element corresponding to one
+% fault
 f = {[0.2,0.8;0.5,0.65;0.8,0.8],...
      [0.5,0.2;0.1,0.5]};
 gS = [0.1,0.1];
 pdims=[1,1];
+G = compositePebiGrid2D(gS, pdims,'faceConstraints',f);
+
 figure()
-G1 = compositePebiGrid2D(gS, pdims,'faceConstraints',f);
+plotGrid(G);
+plotFaces(G,G.faces.tag,'edgeColor','r','LineWidth',4)
+plotLinePath(f,'--ow','linewidth',2,'MarkerFaceColor','w');
+axis equal tight off
+%% interpolateFC
+% The face constraints can either be interpolated or represented exactly.
+% the interpolation option should be used if the line path is defined as a
+% curve that is discretized by very many line segments. If the line segment
+% is interpolated faces of the grid might not represent the face constraints
+% exactly at the "kinks" of the curves. If interpolateFC is
+% false, each line segment in a face constraint will be represented
+% exactly, also where the curve bends.
+f = {[0.2,0.8;0.5,0.65;0.8,0.8],...
+     [0.5,0.2;0.1,0.5]};
+gS = [0.1,0.1];
+pdims=[1,1];
+G1 = compositePebiGrid2D(gS, pdims,'faceConstraints',f,'interpolateFC',[false; false]);
 G2 = compositePebiGrid2D(gS, pdims,'faceConstraints',f,'interpolateFC',[true; true]);
 
 figure('Position',[480 340 980 420])
@@ -177,8 +203,8 @@ title('Fault lines: interpolated'), axis equal tight off
 
 
 %% FCFactor
-% The FCFactor sets the relative distance between the fault cells
-% along the fault paths. If fautlGridFactor=0.5 the fault cells will be
+% The FCFactor sets the relative distance between the sites that represent
+% the constrained surface. If FCFactor=0.5 the sites will
 % have spaceing about half the size of the reservoir cells:
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = [0.1,0.1];
@@ -196,8 +222,8 @@ plotLinePath(f,'--or','linewidth',2,'MarkerFaceColor','w');
 
 
 %% circleFactor
-% The fault sites are generated by setting placing a set of circles along
-% the fault path with a distance gS*FCFactor. The radius of the
+% The surface sites are generated by setting placing a set of circles along
+% the surface path with a distance gS*FCFactor. The radius of the
 % circles are gS*FCFactor*circleFactor. The fault sites are place
 % at the intersection of these circles.
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};

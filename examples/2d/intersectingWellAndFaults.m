@@ -2,11 +2,13 @@
 % This script contains an example of a single curved well path intersected
 % by several straight faults. We use the two wrapper-functions
 % compositePebiGrid2D(..) and pebiGrid2D(..) to create PEBI grids conforming
-% to the faults and the well path.
+% to the faults and the well path. In this example we will show how the
+% wells can be traced by cell centroids of the PEBI grid and faults by
+% faces of the grid.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Copyright (C) 2016-2020 Runar Lie Berge. See COPYRIGHT.TXT for details.
+% Copyright (C) 2015-2020 Runar Lie Berge. See COPYRIGHT.TXT for details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}  
 
@@ -44,7 +46,14 @@ wGf = 0.5;  % The relative size of well cells compared to gS
 fGf = 0.5;  % The relative size of fault cells compared to gS
 nRs = 1;    % Number of refinement steps towards the well
 
-% We can now create the composite Pebi grid:
+% We can now create the composite Pebi grid. By passing the wells by the
+% keyword 'cellConstraints' compositePebiGrid2D will place a set of sites
+% that trace the lines defined by the wells. By passing the faults by the
+% keyword 'faceConstraints' compositePebiGrid2D will create a grid such
+% that the lines given by the faults are traced by faces in the grid. In
+% addition to the background grid size gS, we can also controll the relative
+% local grid size along the cellConstraints ('CCFactor) and faceConstraints
+% ('FCFactor')
 Gc = compositePebiGrid2D([gS,gS], [1, 1], ...
                        'cellConstraints', well, 'CCFactor',wGf, ...
                        'faceConstraints',fault, 'FCFactor', fGf,...
@@ -67,8 +76,8 @@ eps = 1/12; % This parameter defines the refinement around the wells. The
 % iterations. This is usually not a problem, since the grid most likely is
 % good before the convergence requirement is met.
 Gdist = pebiGrid2D(gS, [1, 1], 'cellConstraints', well, ...
-                'CCFactor',wGf/2, 'CCRefinement', true, ...
-                'CCEps',eps, 'faultlines', fault,'FCFactor',0.8);
+                'CCFactor',wGf / 2, 'CCRefinement', true, ...
+                'CCEps',eps, 'faceConstraints', fault);
 Gdist = computeGeometry(Gdist);
 
 % Plot pebiGrid2D

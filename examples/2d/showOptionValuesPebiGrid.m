@@ -8,8 +8,14 @@
 %}
 
 %% cellConstraints
-% This sets the wells in our reservoir. The wells are stored as a cell
-% array, each element corresponding to one well
+% This sets the cell constraints in our reservoir. The desired feature of
+% these constraints is that the cell centroids of the grid cell trace the
+% lines that define the constraints. In practice, we can not guarantee that
+% the cell centroids trace the given constraints, instead, the algorithm
+% will place the PEBI sites along the constrained lines. However, if the
+% grid is fairly "nice", the cell centroids will align with the PEBI sites.
+% The cell contstraints are stored as a cell array, each element
+% corresponding to one line:
 w = {[0.2,0.8;0.5,0.6;0.8,0.8],...
      [0.5,0.2]};
 gS = 0.1;
@@ -24,9 +30,9 @@ plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 
 
 %% CCFactor
-% The CCFactor sets the relative size of the well cells. If
-% CCFactor=0.5 the well cells will have about half the size of the
-% reservoir sites:
+% The CCFactor sets the relative distance between the sites that trace the
+% cellConstraints. If CCFactor=0.5 the distance between the cellConstraint
+% sites will be about half the size of the reservoir grid size:
 w = {[0.2,0.3;0.8,0.7]};
 gS = 0.1;
 pdims=[1,1];
@@ -45,7 +51,7 @@ hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 
 %% CCRefinement
 % CCRefinement is a logical parameter which is set to true if we whish
-% the grid to be refined towards the wells.
+% the background grid to be refined towards the wells.
 w = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
@@ -56,16 +62,16 @@ figure('Position',[480 340 980 420])
 subplot(1,2,1)
 plotGrid(G1); plotGrid(G1, G1.cells.tag,'faceColor','b')
 hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
-title('CCRefinement'), axis equal tight off
+title('CCRefinement=true, CCFactor=1/4'), axis equal tight off
 
 subplot(1,2,2)
 plotGrid(G2); plotGrid(G2, G2.cells.tag,'faceColor','b')
 hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
-title('CCRefinement'), axis equal tight off
+title('CCRefinement=true, CCFactor=1/8'), axis equal tight off
 
 %% CCEps
-% CCEps controlls the refinement towards the wells. The cell sizes are
-% increasing exponentially away from the wells: exp(dist(x,well)/CCEps).
+% CCEps controlls the refinement towards the cellConstraints. The cell sizes are
+% increasing exponentially away from the cellConstraint: exp(dist(x,cellConstraint)/CCEps).
 % Notice that you have to scale CCEps to your reservoir size, or distMesh
 % might take a very long time to converge.
 w = {[0.2,0.3;0.5,0.5;0.8,0.5]};
@@ -90,7 +96,8 @@ hold on, plotLinePath(w,'wo-','linewidth',2,'MarkerFaceColor','w');
 
 
 %% CCRho
-% A function that sets the relative size of the fault sites in the domain.
+% A function that sets the relative distance between the cellConstraint
+% sites in the domain.
 w = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
@@ -113,8 +120,8 @@ axis equal tight off
 
 
 %% protLayer
-% Adds a protection layer around wells. The protection sites are placed
-% normal along the well path
+% Adds a protection layer around cellConstraints. The protection sites are placed
+% normal along the constraint path
 x = linspace(0.2,0.8);
 y = 0.5+0.1*sin(pi*x);
 w = {[x',y']};
@@ -132,8 +139,8 @@ plotGrid(G2); plotGrid(G2,G2.cells.tag,'facecolor','b')
 title('Protection Layer on'), axis equal tight off
 
 %% protD
-% This parameter sets the distance from the protection sites to the well
-% path. This is cellarray of functions, one for each well path.
+% This parameter sets the distance from the protection sites to the
+% cellConstraint. This is a cellarray of functions, one for each cellConstraint.
 w = {[0.2,0.8;0.8,0.8],...
      [0.5,0.2;0.1,0.5]};
 gS = 0.1;
@@ -152,14 +159,35 @@ title('User-prescribed protection distance'), axis equal tight off
 
 
 %% faceConstraints
-% This sets the faults in our reservoir. The wells are stored as a cell
-% array, each element corresponding to one fault
+% Defines a set of surfaces which should be traced by faces of the grid.
+% The faults are stored as a cell array, each element corresponding to one
+% fault
 f = {[0.2,0.8;0.5,0.65;0.8,0.8],...
      [0.5,0.2;0.1,0.5]};
 gS = 0.1;
 pdims=[1,1];
-G1 = pebiGrid2D(gS, pdims,'faceConstraints',f);
-G2 = pebiGrid2D(gS, pdims,'faceConstraints',f, 'interpolateFC', [true; true]);
+G = pebiGrid2D(gS, pdims,'faceConstraints',f);
+
+figure()
+plotGrid(G);
+plotFaces(G,G.faces.tag,'edgeColor','r','LineWidth',4)
+plotLinePath(f,'--ow','linewidth',2,'MarkerFaceColor','w');
+axis equal tight off
+
+%% interpolateFC
+% The face constraints can either be interpolated or represented exactly.
+% the interpolation option should be used if the line path is defined as a
+% curve that is discretized by very many line segments. If the line segment
+% is interpolated faces of the grid might not represent the face constraints
+% exactly at the "kinks" of the curves. If interpolateFC is
+% false, each line segment in a face constraint will be represented
+% exactly, also where the curve bends.
+f = {[0.2,0.8;0.5,0.65;0.8,0.8],...
+     [0.5,0.2;0.1,0.5]};
+gS = 0.1;
+pdims=[1,1];
+G1 = pebiGrid2D(gS, pdims,'faceConstraints',f,'interpolateFC',[false; false]);
+G2 = pebiGrid2D(gS, pdims,'faceConstraints',f,'interpolateFC',[true; true]);
 
 figure('Position',[480 340 980 420])
 subplot(1,2,1)
@@ -173,9 +201,9 @@ title('Fault lines: interpolated'), axis equal tight off
 
 
 %% FCFactor
-% The FCFactor sets the relative distance between the fault cells
-% along the fault paths. If FCFactor=0.5 the fault cells will be
-% have spacing about half the size of the reservoir cells:
+% The FCFactor sets the relative distance between the sites that represent
+% the constrained surface. If FCFactor=0.5 the sites will
+% have spaceing about half the size of the reservoir cells:
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
@@ -191,13 +219,10 @@ plotGrid(G2); title('FCFactor=1/2'); axis equal tight off
 plotLinePath(f,'--or','linewidth',2,'MarkerFaceColor','w');
 
 %% circleFactor
-% The fault sites are generated by placing a set of circles along
-% the fault path with a distance gS*FCFactor. The radius of the
+% The surface sites are generated by setting placing a set of circles along
+% the surface path with a distance gS*FCFactor. The radius of the
 % circles are gS*FCFactor*circleFactor. The fault sites are place
-% at the intersection of these circles. Notice that in the second example,
-% the fault is not traced by edges in the grid. This is because the
-% distance between fault sites becomes so large that distmesh managed to
-% force reservoir sites between the fault sites.
+% at the intersection of these circles.
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
@@ -214,7 +239,8 @@ plotLinePath(f,'--or','linewidth',2,'MarkerFaceColor','w');
 
 
 %% FCRho
-% A function that sets the relative size of the fault sites in the domain.
+% A function that sets the relative size of the face constraint sites in
+% the domain.
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
@@ -230,8 +256,8 @@ axis equal tight off
 
 %% FCRefinement
 % FCRefinement is a logical parameter which is set to true if we whish
-% the grid to be refined towards the fault. NOTE: FCRefinement is not
-% thoroughly together with wellrefinement!
+% the grid to be refined towards the faceConstraints. NOTE: FCRefinement is
+% not tested thoroughly together with wellrefinement!
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};
 gS = 0.1;
 pdims=[1,1];
@@ -244,8 +270,8 @@ title('Fault Refinement'), axis equal tight off
 
 
 %% FCEps
-% FCEps controlls the refinement towards the faults. The cell sizes are
-% increasing exponentially away from the faults: exp(dist(x,fault)/FCEps).
+% FCEps controlls the refinement towards the faceConstraitns. The cell sizes are
+% increasing exponentially away from the faceConstraints: exp(dist(x,constraint)/FCEps).
 % Notice that you have to scale FCEps to your reservoir size, or distMesh
 % might take a very long time to converge.
 f = {[0.2,0.3;0.5,0.5;0.8,0.5]};

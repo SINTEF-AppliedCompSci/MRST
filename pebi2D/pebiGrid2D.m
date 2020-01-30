@@ -197,17 +197,17 @@ opt = struct('cellConstraints', {{}}, ...
 
 opt          = merge_options(opt, varargin{:});
 circleFactor = opt.circleFactor;
-CCRef      = opt.CCRefinement;
-FCRef     = opt.FCRefinement;
+CCRef        = opt.CCRefinement;
+FCRef        = opt.FCRefinement;
 CCEps        = opt.CCEps;
 FCEps        = opt.FCEps;
 % Set grid sizes
-CCFactor = opt.CCFactor;
-FCFactor = opt.FCFactor;
-CCGridSize  = resGridSize*CCFactor;
-CCRho         = @(x) CCGridSize*opt.CCRho(x);
+CCFactor   = opt.CCFactor;
+FCFactor   = opt.FCFactor;
+CCGridSize = resGridSize*CCFactor;
+CCRho      = @(x) CCGridSize*opt.CCRho(x);
 FCGridSize = resGridSize*FCFactor;
-FCRho = opt.FCRho;
+FCRho      = opt.FCRho;
 
 % If polygon boundary is give, use this
 polyBdr = opt.polyBdr;
@@ -253,10 +253,10 @@ if ~isempty(opt.faceConstraints)
 end
 
 % Split face constraints and cell constraints
-[faceConstraints, fCut, fwCut, IC] = splitAtInt2D(opt.faceConstraints, opt.cellConstraints);
+[faceConstraints, fCut, fcCut, IC] = splitAtInt2D(opt.faceConstraints, opt.cellConstraints);
 interpFL = opt.interpolateFC(IC);
 
-[cellConstraints,  wCut, wfCut, IC] = splitAtInt2D(opt.cellConstraints, opt.faceConstraints);
+[cellConstraints,  cCut, cfCut, IC] = splitAtInt2D(opt.cellConstraints, opt.faceConstraints);
 interpWP = opt.interpolateCC(IC);
 protD    = opt.protD(IC);
 
@@ -264,13 +264,13 @@ protD    = opt.protD(IC);
 nw        = cellfun(@numel, opt.cellConstraints)/2;
 vW        = nw==1;
 cellConstraints = [cellConstraints,opt.cellConstraints(vW)];
-wCut      = [wCut;zeros(sum(vW),1)];
-wfCut     = [wfCut; zeros(sum(vW),1)];
+cCut      = [cCut;zeros(sum(vW),1)];
+cfCut     = [cfCut; zeros(sum(vW),1)];
 interpWP  = [interpWP; opt.interpolateCC(vW)];
 protD     = [protD; opt.protD(vW)];
 
 % Create cell constraint sites
-sePtn = [wfCut==2|wfCut==3, wfCut==1|wfCut==3];
+sePtn = [cfCut==2|cfCut==3, cfCut==1|cfCut==3];
 if CCRef
   fLen = CCGridSize*FCFactor*1.2;  
 else
@@ -284,7 +284,7 @@ sePtn = (1.0+faultOffset/CCGridSize)*sePtn;
 [wellPts, wGs, protPts, pGs] = ...
     lineSites2D(cellConstraints, CCGridSize, ...
                          'sePtn',         sePtn,...
-                         'wCut',          wCut, ...
+                         'cCut',          cCut, ...
                          'protLayer',     opt.protLayer,...
                          'protD',         protD, ...
                          'CCRho',         CCRho, ...
@@ -301,13 +301,13 @@ else
     hfault = @(p) FCGridSize*FCRho(p);
 end
 
-% Create fault points
+% Create surface sites
 F = surfaceSites2D(faceConstraints, FCGridSize,...
                           'circleFactor',  circleFactor,...
                           'fCut',          fCut, ...
-                          'fwCut',         fwCut, ...
-                          'interpolateFC',   interpFL, ...
-                          'distFun', hfault);
+                          'fcCut',         fcCut, ...
+                          'interpolateFC', interpFL, ...
+                          'distFun',       hfault);
 
 if FCRef && ~isempty(F.f.pts)
   hresf = @(x) min((ones(size(x,1),1)/FCFactor), ...
@@ -315,9 +315,9 @@ if FCRef && ~isempty(F.f.pts)
 else
   hresf = @(p) constFunc(p)/CCFactor;
 end
+
 % Create reservoir grid points
 % set domain function
-
 if sizePolyBdr==0
 	x = pdims;
 	rectangle = [0,0; x(1),x(2)];
@@ -388,7 +388,7 @@ end
 if ~isempty(F.f.pts)
   N      = G.faces.neighbors + 1; 
   % N == 1 is now a boundary constraint, so we have to add 1 to the start of 
-  % cPos.  We also add empty mapping for no fault pts.
+  % cPos.  We also add empty mapping for no surface pts.
   f2cPos = [1;F.f.cPos; F.f.cPos(end)*ones(size(Pts,1)-size(F.f.pts,1),1)];
   map1   = arrayfun(@colon, f2cPos(N(:,1)),f2cPos(N(:,1)+1)-1,'un',false);
   map2   = arrayfun(@colon, f2cPos(N(:,2)),f2cPos(N(:,2)+1)-1,'un',false);
@@ -397,7 +397,7 @@ else
   G.faces.tag = false(G.faces.num,1);
 end
 
-%Label cell constraint cells
+% Label cell constraint cells
 if ~isempty(wellPts)
   G.cells.tag = false(G.cells.num,1);
   % Add tag to all cells generated from wellPts
@@ -405,8 +405,8 @@ if ~isempty(wellPts)
   G.cells.tag(wellCells)= true;
   
   % Add tag to cell and face constraint crossings
-  endOfLine = fwCut==1 | fwCut==3;        % Crossing at end of face constraint
-  strOfLine = fwCut==2 | fwCut==3;        % Crossing at start of face constraint
+  endOfLine = fcCut==1 | fcCut==3;        % Crossing at end of face constraint
+  strOfLine = fcCut==2 | fcCut==3;        % Crossing at start of face constraint
   fIde      = F.l.fPos([false;endOfLine]);
   fIds      = F.l.fPos(strOfLine);
   fToTag    = [F.l.f(mcolon(fIde - 2,fIde-1)); F.l.f(mcolon(fIds,fIds+1))];
