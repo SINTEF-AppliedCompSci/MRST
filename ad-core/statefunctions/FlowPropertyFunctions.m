@@ -19,6 +19,19 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
             % Saturation properties
             props = props.setStateFunction('CapillaryPressure', BlackOilCapillaryPressure(model, sat));
             props = props.setStateFunction('RelativePermeability', BaseRelativePermeability(model, sat));
+            if ~isempty(model.inputdata)
+                % We may have recieved a deck. Check for endpoint scaling
+                deck = model.inputdata;
+
+                % Scaling is active and can impact rel.perm and pc
+                do_scaling = isfield(deck.RUNSPEC, 'ENDSCALE');
+                props.CapillaryPressure.scalingActive = do_scaling;
+                props.RelativePermeability.scalingActive = do_scaling;
+
+                % Set number of points for scaling
+                three_point = isfield(deck.PROPS, 'SCALECRS') && strcmpi(deck.PROPS.SCALECRS{1}(1), 'y');
+                props.RelativePermeability.relpermPoints = 2 + three_point;
+            end
             props = props.setStateFunction('Mobility', Mobility(model, sat));
 
             % Components
