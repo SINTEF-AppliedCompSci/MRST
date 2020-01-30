@@ -465,4 +465,15 @@ A22 = A22.getMatrix();
 
 invA11 = bi(A11, sz);
 
-A = A22 + A21*invA11*A12;
+A = A22 - A21*invA11*A12;
+
+%% solve a problem
+
+% We setup a source-term
+switch dimcase
+  case 2
+    indcell = floor(nx/2 + ny/2*nx);
+  case 3
+    indcell = floor(nx/2 + ny/2*nx + nz/2*nx*ny);
+end
+
