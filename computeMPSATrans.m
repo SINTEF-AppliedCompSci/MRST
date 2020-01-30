@@ -60,12 +60,16 @@ nodefacetbl.num   = numel(nodefacetbl.faces);
 nodefacetbl = sortTable(nodefacetbl, {'nodes', 'faces'});
 nodefacecoltbl = crossTable(nodefacetbl, coltbl, {});
 
-cellnodefacetbl = crossTable(cellfacetbl, nodefacetbl, {'faces'});
+% We setup boundary face table
+intfaces = find(all(G.faces.neighbors, 2));
+intfacetbl.faces = intfaces;
+intfacetbl.num = numel(intfaces);
 
 % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
 % unique facet in a corner
 % We order cellnodeface in cell-node-face order. This is node to optimize
 % for-end loop below.
+cellnodefacetbl = crossTable(cellfacetbl, nodefacetbl, {'faces'});
 cellnodefacetbl = sortTable(cellnodefacetbl, {'cells', 'nodes', 'faces'});
 cellnodefacetbl = addLocInd(cellnodefacetbl, 'cnfind');
 
@@ -420,5 +424,24 @@ combCgradcell_T = Cgradcell_T + transaverCgradcell_T;
 A11 = divnodeface_T*combCgradnodeface_T;
 % A11 = divnodeface_T*transaverCgradnodeface_T;
 % A11 = divnodeface_T*Cgradnodeface_T;
-A11 = A11.getMatrix();
 
+% Setup Dirichlet boundary condition
+nodeintfacecoltbl = crossTable(intfacetbl, nodefacecoltbl, {'faces'});
+fds = {'nodes', 'faces', 'coldim'};
+nodeintfacecoltbl = sortTable(nodeintfacecoltbl, fds);
+
+prod = TensorProd();
+prod.tbl1 = intfacetbl;
+prod.tbl2 = nodefacecoltbl;
+prod.mergefds = {'faces'};
+prod.prodtbl = nodeintfacecoltbl;
+prod = prod.setup();
+
+P_T = SparseTensor();
+P_T = P_T.setFromTensorProd(ones(intfacetbl.num, 1), prod);
+
+P_Tt = P_T.transpose();
+
+A11 = P_T*A11*P_Tt;
+
+A11 = A11.getMatrix();
