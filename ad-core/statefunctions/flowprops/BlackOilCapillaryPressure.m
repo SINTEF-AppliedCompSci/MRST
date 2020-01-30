@@ -1,11 +1,14 @@
 classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
     % Implementation of black-oil type capillary pressure
     properties
-
     end
 
     properties (Access = protected)
-
+        surfaceTensionOW
+        surfaceTensionOG
+        porosityExponent
+        permeabilityExponent
+        permeabilityDirection
     end
     
     methods
@@ -21,6 +24,19 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
             pc = cell(1, nph);
             
             f = model.fluid;
+            JfuncActiveOW = prop.scalingActive && ~isempty(prop.surfaceTensionOW);
+            JfuncActiveOG = prop.scalingActive && ~isempty(prop.surfaceTensionOG);
+            if JfuncActiveOG || JfuncActiveOW
+                phi = model.rock.poro(prop.cell_subset);
+                k = model.rock.perm(prop.cell_subset, prop.permeabilityDirection);
+                k = sum(k, 2)./size(k, 2);
+                % Apply exponents
+                k = k.^prop.permeabilityExponent;
+                phi = phi.^prop.porosityExponent;
+                
+                ratio = phi./k;
+            end
+
             if model.water && model.oil && isfield(f, 'pcOW')
                 sW = model.getProp(state, 'sw');
                 if prop.scalingActive
@@ -34,6 +50,10 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
                 pcow = prop.evaluateFunctionOnDomainWithArguments(f.pcOW, sW);
                 if isfield(state, 'pcowScale')
                     pcow = pcow.*state.pcowScale;
+                    assert(~JfuncActiveOW, 'Cannot both have initial water pc scale and Jfunc scaling.');
+                elseif JfuncActiveOW
+                    sow = prop.surfaceTensionOW;
+                    pcow = sow.*ratio.*pcow;
                 end
                 % Note sign! Water is always first
                 pc{phInd == 1} = -pcow;
@@ -41,7 +61,12 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
             
             if model.gas && model.oil && isfield(f, 'pcOG')
                 sG = model.getProp(state, 'sg');
-                pc{phInd == 3} = prop.evaluateFunctionOnDomainWithArguments(f.pcOG, sG);
+                pcog = prop.evaluateFunctionOnDomainWithArguments(f.pcOG, sG);
+                if JfuncActiveOG
+                    sog = prop.surfaceTensionOG;
+                    pcog = sog.*ratio.*pcog;
+                end
+                pc{phInd == 3} = pcog;
             end
             if ~model.oil && isfield(f, 'pcWG')
                 pc{phInd == 2} = prop.evaluateFunctionOnDomainWithArguments(f.pcWG, sG);
@@ -58,6 +83,31 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
             property.cell_subset = subs;
         end
 
+        function prop = setJFunctionConstants(prop, poroexp, permexp, permdir)
+            prop.porosityExponent = poroexp;
+            prop.permeabilityExponent = permexp;
+            
+            if ischar(permdir)
+                newdir = zeros(1, numel(permdir));
+                for i = 1:numel(permdir)
+                    newdir(i) = find('xyz' == lower(permdir(i)));
+                end
+                permdir = newdir;
+            end
+            prop.permeabilityDirection = permdir; %
+        end
+        
+        function prop = setSurfaceTension(prop, value, fluidpair)
+            switch lower(fluidpair)
+                case 'ow'
+                    prop.surfaceTensionOW = value;
+                case 'og'
+                    prop.surfaceTensionOG = value;
+                otherwise
+                    error('Unsupported pair %s', fluidpair);
+            end
+        end
+        
     end
 end
 

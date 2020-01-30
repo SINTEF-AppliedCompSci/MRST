@@ -17,21 +17,37 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
             props@StateFunctionGrouping('FlowProps');
             sat = props.getRegionSaturation(model);
             % Saturation properties
-            props = props.setStateFunction('CapillaryPressure', BlackOilCapillaryPressure(model, sat));
-            props = props.setStateFunction('RelativePermeability', BaseRelativePermeability(model, sat));
+            pc = BlackOilCapillaryPressure(model, sat);
+            kr = BaseRelativePermeability(model, sat);
             if ~isempty(model.inputdata)
                 % We may have recieved a deck. Check for endpoint scaling
                 deck = model.inputdata;
 
                 % Scaling is active and can impact rel.perm and pc
                 do_scaling = isfield(deck.RUNSPEC, 'ENDSCALE');
-                props.CapillaryPressure.scalingActive = do_scaling;
-                props.RelativePermeability.scalingActive = do_scaling;
+                pc.scalingActive = do_scaling;
+                kr.scalingActive = do_scaling;
 
                 % Set number of points for scaling
                 three_point = isfield(deck.PROPS, 'SCALECRS') && strcmpi(deck.PROPS.SCALECRS{1}(1), 'y');
-                props.RelativePermeability.relpermPoints = 2 + three_point;
+                kr.relpermPoints = 2 + three_point;
+                
+                if isfield(deck.GRID, 'JFUNC')
+                    jf = deck.GRID.JFUNC;
+                    jtype = jf{1};
+                    scaleOW = model.water && model.oil && (strcmpi(jtype, 'both') || strcmpi(jtype, 'water'));
+                    if scaleOW
+                        pc = pc.setSurfaceTension(jf{2}, 'ow');
+                    end
+                    scaleOG = model.gas && model.oil && (strcmpi(jtype, 'both') || strcmpi(jtype, 'gas'));
+                    if scaleOG
+                        pc = pc.setSurfaceTension(jf{3}, 'og');
+                    end
+                    pc = pc.setJFunctionConstants(jf{4}, jf{5}, jf{6});
+                end
             end
+            props = props.setStateFunction('CapillaryPressure', pc);
+            props = props.setStateFunction('RelativePermeability', kr);
             props = props.setStateFunction('Mobility', Mobility(model, sat));
 
             % Components
