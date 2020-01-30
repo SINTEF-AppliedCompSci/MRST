@@ -374,9 +374,18 @@ col2row2voigt2tbl = replacefield(col2row2voigt2tbl, {'voigt', 'voigt2'});
 col2row2voigt2tbl = crossTable(col2row2voigt2tbl, stensfulltbl, {'voigt1', ...
                     'voigt2'});
 
-Cvoigt = (1 : stenstbl.num)';
+% We choose some Stiffness matrix
 
-C = tblmap(Cvoigt, stenstbl, col2row2voigt2tbl, {'stensind'});
+switch dimcase
+  case 2
+    temptbl.voigt1 = [1; 2; 3];
+    temptbl.voigt2 = [1; 2; 3];
+    temptbl.num = 3; 
+    C = tblmap([1; 1; 0.5], temptbl, stenstbl, {'voigt1', 'voigt2'});
+  case 3
+end
+
+C = tblmap(C, stenstbl, col2row2voigt2tbl, {'stensind'});
 
 prod = TensorProd();
 prod.tbl1 = col2row2voigt2tbl;
