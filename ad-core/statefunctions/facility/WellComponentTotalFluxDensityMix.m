@@ -92,8 +92,8 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
                 override = 0;
                 for ph = 1:ph
                    wellinj = phaseCompi(:, ph).*surfaceMassRates(:, ph).*[surfaceComposition{:, ph}];
-                   override = override + wellinj;
-                   wellinj = max(wellinj, 0); % Into wellbore
+                   override = override - wellinj;
+                   wellinj = -max(wellinj, 0); % Into wellbore
                    for c = 1:ncomp
 
                         mi = phase_flux{c, ph};
