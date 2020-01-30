@@ -422,19 +422,24 @@ transaverCgradcell_T = transnodeaverage_T*Cgradcell_T;
 combCgradcell_T = Cgradcell_T + transaverCgradcell_T;
 
 A11 = divnodeface_T*combCgradnodeface_T;
-% A11 = divnodeface_T*transaverCgradnodeface_T;
-% A11 = divnodeface_T*Cgradnodeface_T;
+A12 = divnodeface_T*combCgradcell_T; 
+A21 = divcell_T*combCgradnodeface_T;
+A22 = divcell_T*combCgradcell_T; 
 
-% Setup Dirichlet boundary condition
+
+%% Setup for Dirichlet condition
+%
+% Setup projection tensor P_t : nodefacecoltbl -> nodeintfacecoltbl
+%
 nodeintfacecoltbl = crossTable(intfacetbl, nodefacecoltbl, {'faces'});
 fds = {'nodes', 'faces', 'coldim'};
 nodeintfacecoltbl = sortTable(nodeintfacecoltbl, fds);
 
 prod = TensorProd();
 prod.tbl1 = intfacetbl;
-prod.tbl2 = nodefacecoltbl;
+prod.tbl2 = nodeintfacecoltbl;
 prod.mergefds = {'faces'};
-prod.prodtbl = nodeintfacecoltbl;
+prod.prodtbl = nodefacecoltbl;
 prod = prod.setup();
 
 P_T = SparseTensor();
@@ -442,6 +447,22 @@ P_T = P_T.setFromTensorProd(ones(intfacetbl.num, 1), prod);
 
 P_Tt = P_T.transpose();
 
-A11 = P_T*A11*P_Tt;
+A11 = P_Tt*A11*P_T;
+A12 = P_Tt*A12;
+A21 = A21*P_T;
+
+% convert Aij to matrices;
 
 A11 = A11.getMatrix();
+A12 = A12.getMatrix();
+A21 = A21.getMatrix();
+A22 = A22.getMatrix();
+
+% get the block structure
+% We count the number of degrees of freedom that are connected to the same
+% node.
+[nodes, sz] = rlencode(nodeintfacecoltbl.nodes, 1);
+
+invA11 = bi(A11, sz);
+
+A = A22 + A21*invA11*A12;
