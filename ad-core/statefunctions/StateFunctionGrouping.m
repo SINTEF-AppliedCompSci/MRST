@@ -60,8 +60,8 @@ classdef StateFunctionGrouping
 
         function prop = getStateFunction(props, name)
             % Get named property function (case-sensitive)
-            sub = strcmp(props.functionNames, name);
-            if ~any(sub)
+            [present, sub] = props.hasStateFunction(name);
+            if ~present
                 error('%s is not known to this instance of the %s StateFunctionGrouping', name, class(props));
             end
             if props.functionTypes(sub) == 0
@@ -70,6 +70,11 @@ classdef StateFunctionGrouping
                 extrasub = sub(props.functionTypes == 1);
                 prop = props.extraFunctions{extrasub};
             end
+        end
+        
+        function [present, sub] = hasStateFunction(group, name)
+            sub = strcmp(group.functionNames, name);
+            present = any(sub);
         end
         
         function name = getStateFunctionContainerName(props)
@@ -240,6 +245,72 @@ classdef StateFunctionGrouping
                 props = props.setStateFunction(name, prop);
             end
         end
+        
+        function ok = checkDependencies(group, groups)
+            % Checks if dependencies are met for a given group. Internal
+            % dependencies are always checked, and externals are checked if
+            % a cell array of other groups are provided.
+            %
+            % If output is requested, this function returns a boolean. If
+            % not, it produces an error at first unmet dependency.
+            % Additional diagnostic can be enabled by mrstVerbose.
+            checkExternal = nargin > 1;
+            throwError = nargout > 0;
+            if throwError
+                dispfn = @(varargin) error(varargin{:});
+            else
+                dispfn = @(varargin) dispif(mrstVerbose(), varargin{:});
+            end
+            
+            nf = numel(group.functionNames);
+            ok = true;
+            for i = 1:nf
+                % Check all dependencies
+                name = group.functionNames{i};
+                fn = group.getStateFunction(name);
+                % We first check internals (i.e. in same group)
+                for j = 1:numel(fn.dependencies)
+                    depname = fn.dependencies{j};
+                    present = group.hasStateFunction(depname);
+                    if ~present
+                        dispfn('Unmet internal dependency for function %s in group %s: Did not find %s in own group.\n', name, class(group), depname);
+                    end
+                    ok = ok && present;
+                end
+                % If groups were provided, we also check the externals for
+                % our group
+                if checkExternal
+                    for j = 1:numel(fn.externals)
+                        e = fn.externals(j);
+                        extgroupname = e.grouping;
+                        if strcmpi(extgroupname, 'state')
+                            % State is always fulfilled
+                            continue
+                        end
+                        depname = e.name;
+                        candidates = find(cellfun(@(x) isa(x, extgroupname), groups));
+                        if isempty(candidates)
+                            ok = false;
+                            dispfn('Unmet external dependency for function %s in group %s: Did not find any groups of class %s that may contain %s.\n',...
+                                    name, class(group), extgroupname, depname);
+                        else
+                            for k = 1:numel(candidates)
+                                found = groups{candidates(k)}.hasStateFunction(depname);
+                                if found
+                                    break;
+                                end
+                            end
+                            ok = ok && found;
+                            if ~found
+                                dispfn('Unmet external dependency for function %s in group %s: Did not find %s in group of class %s.\n',...
+                                    name, class(group), depname, extgroupname);
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
         % ----- Display, plotting etc ------------------------------------%
         function disp(props)
             % Custom display function

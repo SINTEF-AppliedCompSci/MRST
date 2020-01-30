@@ -214,6 +214,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     ctrl = schedule.control(schedule.step.control(1));
     [forces, fstruct] = model.getDrivingForces(ctrl);
     model = model.validateModel(fstruct);
+    % Check dependencies
+    model.checkStateFunctionDependencies();
     dispif(opt.Verbose, 'Model ready for simulation...\n')
     % Validate schedule
     dispif(opt.Verbose, 'Preparing schedule for simulation...\n')

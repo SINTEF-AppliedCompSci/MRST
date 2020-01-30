@@ -921,6 +921,13 @@ methods
         groupings = {};
     end
 
+    function checkStateFunctionDependencies(model)
+        groups = model.getStateFunctionGroupings();
+        for i = 1:numel(groups)
+            g = groups{i};
+            g.checkDependencies(groups);
+        end
+    end
 
     function varargout = getProps(model, state, varargin)
         % Get multiple properties from state in one go
