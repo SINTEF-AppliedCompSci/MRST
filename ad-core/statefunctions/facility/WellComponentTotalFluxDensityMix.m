@@ -38,17 +38,16 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
             W   = map.W;
             massFlux  = value(v');
             massFluxTotal = sum(massFlux,2);
-            
+            psum = map.perforationSum;
+
             isInjector = map.isInjector(map.perf2well);
             injection  = massFluxTotal > 0;
             production = ~injection;
             crossflow = (injection & ~isInjector) | ...
                         (production & isInjector);
-            if 1
-                replace = injection;
-            else
-                replace = crossflow;
-            end
+            wellHasXFlow = psum*crossflow;
+            replace = injection & wellHasXFlow(map.perf2well);
+
             if any(replace)
                 rhoS = prop.getEvaluatedDependencies(state, 'InjectionSurfaceDensity');
 
@@ -84,7 +83,6 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
                 resdens = cellfun(@(x) x(map.cells), resdens, 'unif', false);
                 dens = value(resdens);
                 
-                psum = map.perforationSum;
                 volFluxValue = value(volFlux);
                 injVol = max(volFluxValue, 2);
                 surfaceDens = psum*(dens.*injVol);
@@ -112,6 +110,8 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
                 ci = bsxfun(@rdivide, vi, sum(vi, 2));
                 bad = any(isnan(ci), 2);
                 if any(bad)
+                    % Producers that are only injecting - we just need some
+                    % value because Newton will hopefully fix this for us.
                     override = abs(override);
                     override = max(override, 1e-12);
                     override = bsxfun(@rdivide, override, sum(override, 2));
