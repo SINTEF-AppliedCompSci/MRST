@@ -162,6 +162,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 mrstNargInCheck(4, [], nargin);
 
+if isempty(cellInx) || (islogical(cellInx) && ~any(cellInx))
+   warn_empty_cell_index_range(numel(W), varargin{:});
+   return
+end
+
 if islogical(cellInx)
     assert(numel(cellInx) == G.cells.num, ...
     'Logical mask does not match number of grid cells.');
@@ -428,3 +433,14 @@ ci = welldir == 'z';
 re(ci) = sqrt(dy(ci) .* dx(ci) / pi);
 
 rr = sqrt( re .* radius);
+
+%--------------------------------------------------------------------------
+
+function warn_empty_cell_index_range(nW, varargin)
+[opt, ign] = merge_options(struct('Name', ''), varargin{:});    %#ok<ASGLU>
+
+name = opt.Name;
+if isempty(name), name = sprintf('%d', nW + 1); end
+
+warning('Empty:CellIndexSelection', ...
+        'Empty Cell Selection in Well ''%s''. Well Ignored.', name);
