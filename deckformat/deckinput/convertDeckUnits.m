@@ -168,6 +168,11 @@ function grid = convertGRID(grid, u)
 
          case {'DZMTRXV', 'DZMTRX'}
               grid.(key) = convertFrom(grid.(key), u.length);
+              
+         case 'JFUNC'
+             for i = 2:3
+                grid.(key){i} = convertFrom(grid.(key){i}, u.jsurftens);
+             end
 
          case {'cartDims',                          ...  % MRST specific
                'ACTNUM'  , 'NTG', 'PORO', 'MULTPV', ...

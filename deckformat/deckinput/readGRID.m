@@ -132,6 +132,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data([1, 3]) = to_double(data([1, 3]));  clear tmpl
             grd.(kw)     = data;
 
+         case 'JFUNC'
+            tmpl         = { 'BOTH', 'NaN', 'NaN', '0.5', '0.5', 'XY'};
+            data         = readDefaultedRecord(fid, tmpl);
+            data(2:5) = to_double(data(2:5));  clear tmpl
+            grd.(kw)     = data;
+
          case 'PINCHREG'
             nrec = 0;
 
