@@ -903,7 +903,7 @@ methods
                 end
             end
             error('PhysicalModel:UnknownVariable', ...
-                'I did not find %s in any state function grouping or via getVariableField', name);
+                'I did not find %s in any state function grouping or via getVariableField for model of type %s', name, class(model));
         else
             if iscell(state.(fn))
                 if ischar(index)
