@@ -89,6 +89,7 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
                 surfaceDens = surfaceDens./(psum*injVol);
                 
                 vi = zeros(nw, ncomp);
+                totvol = zeros(nw, nph);
                 override = 0;
                 for ph = 1:ph
                    wellinj = phaseCompi(:, ph).*surfaceMassRates(:, ph).*[surfaceComposition{:, ph}];
@@ -104,10 +105,13 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
                         resprod = psum*(qm./dens(:, ph));
                         % Volume of each component in phase (mass in phase
                         % divided by volume)
-                        vi(:, c) = vi(:, c) + resprod + wellinj(:, c)./surfaceDens(:, ph);
+                        added_volume = resprod + wellinj(:, c)./surfaceDens(:, ph);
+                        vi(:, c) = vi(:, c) + added_volume;
+                        totvol(:, ph) = totvol(:, ph) + added_volume;
                     end
                 end
                 ci = bsxfun(@rdivide, vi, sum(vi, 2));
+                phasecomp = bsxfun(@rdivide, totvol, sum(totvol, 2));
                 bad = any(isnan(ci), 2);
                 if any(bad)
                     % Producers that are only injecting - we just need some
@@ -116,15 +120,20 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
                     override = max(override, 1e-12);
                     override = bsxfun(@rdivide, override, sum(override, 2));
                     ci(bad, :) = override(bad, :);
+                    phasecomp(bad, :) = override(bad, :); % Just guess...
                 end
                 vt = zeros(sum(replace), 1);
                 for i = 1:nph
                     vt = vt + volFlux{i}(replace);
                 end
                 
+                volFluxTotal = 0;
+                for i = 1:nph
+                    volFluxTotal = volFluxTotal + volFlux{i};
+                end
                 massFluxTotal = 0;
                 for i = 1:nph
-                    massFluxTotal = massFluxTotal + volFlux{i}.*resdens{i};
+                    massFluxTotal = massFluxTotal + phasecomp(map.perf2well, i).*volFluxTotal.*resdens{i};
                 end
                 ci_perf = ci(map.perf2well, :);
                 for i = 1:ncomp

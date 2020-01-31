@@ -365,7 +365,7 @@ classdef SimpleWell < PhysicalModel
                 nperf = numel(w.cells);
                 w.topo = [(0:(nperf-1))', (1:nperf)'];
             end
-            if isfield(wellSol, 'ComponentTotalFlux') && any(wellSol.ComponentTotalFlux(:))
+            if w.sign < 1 && isfield(wellSol, 'ComponentTotalFlux') && any(wellSol.ComponentTotalFlux(:))
                 qVol = sum(wellSol.flux, 2);
                 qMass = sum(wellSol.ComponentTotalFlux, 2);
             else

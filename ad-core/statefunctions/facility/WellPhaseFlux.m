@@ -29,6 +29,7 @@ classdef WellPhaseFlux < StateFunction
             production = ~injection & vTdp ~= 0;
             crossflow = (injection & ~isInjector) | ...
                         (production & isInjector);
+            crossflow = crossflow & false;
             if any(injection)
                 compi = vertcat(W.compi);
                 if any(crossflow)
