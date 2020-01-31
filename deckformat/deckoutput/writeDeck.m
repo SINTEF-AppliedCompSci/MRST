@@ -334,7 +334,13 @@ for fld = reshape(fieldnames(deck.PROPS), 1, [])
     for regn = 1:numel(values)
         values{regn}(isnan(values{regn})) = 0;
     end
-    fmt = getFmtStr(f.sci, size(values{1}, 2));
+
+    fmt = f.sci;
+    if iscellstr(values)
+        % ROCKOPTS or similar
+        fmt = f.string;
+    end
+    fmt = getFmtStr(fmt, size(values{1}, 2));
     dump_multiple(fid, dirname, lower(fld{1}), fmt, values);
 end
 end
@@ -392,6 +398,7 @@ end
 fprintf(fid_pvtg, '/\n');
 fclose(fid_pvtg);
 end
+
 %--------------------------------------------------------------------------
 
 function dump_solution(fid,dirname, deck, f)
@@ -433,6 +440,7 @@ for i=1:numel(myfields)
     end
 end
 end
+
 %--------------------------------------------------------------------------
 
 function dump_vector(fid, dirname, field, fmt, v, newFile)
@@ -467,6 +475,7 @@ end
 end
 
 %--------------------------------------------------------------------------
+
 function dump_multiple(fid, dirname, field, fmt, v)
 fncase = @upper;
 org_fid = fid;
@@ -477,7 +486,10 @@ if fid < 0
     error('Unable to open ''%s'' for writing: %s', fn, msg);
 end
 fprintf(fid, '%s\n', upper(field));
-if iscell(v)
+if iscellstr(v)
+   fprintf(fid, fmt, v{:});
+   fprintf(fid, '/\n');
+elseif iscell(v)
     for k = 1:numel(v)
         fprintf(fid, fmt, v{k}');
         fprintf(fid, '/\n');
@@ -494,6 +506,7 @@ fprintf(org_fid, '%s\n', 'INCLUDE');
 fprintf(org_fid, '%s\n', fncase([field, '.txt']));
 fprintf(org_fid, '/\n\n');
 end
+
 %--------------------------------------------------------------------------
 
 function [t, ix] = replace_negative(t)
@@ -509,6 +522,7 @@ end
         t(:,ix) = repmat({'1*'}, [size(t,1), nnz(ix)]);
     end
 end
+
 %--------------------------------------------------------------------------
 
 function [t, ix] = replace_nan(t)
@@ -524,6 +538,7 @@ if any(ix)
     t(:,ix) = repmat({'1*'}, [size(t,1), nnz(ix)]);
 end
 end
+
 %--------------------------------------------------------------------------
 
 function str = getFmtStr(varargin)
@@ -541,6 +556,7 @@ if n > 1
 end
 str = [str, '\n'];
 end
+
 %--------------------------------------------------------------------------
 
 function printHeader(fid)
@@ -557,5 +573,3 @@ str = ...
 fprintf(fid, '%s\n', str{:});
 fprintf(fid, '\n%s\n\n', '-- Generated deck from MRST function writeDeck');
 end
-
-
