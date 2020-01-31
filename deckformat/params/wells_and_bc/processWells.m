@@ -463,37 +463,23 @@ function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
                     p, type, val, compi, opt.InnerProduct, -1, opt);
 
       if numel(W) > sizeW
+          W(end).lims = struct('orat', -inf, ...
+                               'wrat', -inf, ...
+                               'grat', -inf, ...
+                               'lrat', -inf, ...
+                               'resv', -inf, ...
+                               'bhp', 1*atm);
          switch type
            case 'orat'
              W(end).lims.orat = -control.WCONHIST{i, 4};
-             W(end).lims.wrat = -inf;
-             W(end).lims.grat = -inf;
-             W(end).lims.lrat = -inf;
-             W(end).lims.bhp  = 1*atm;
            case 'wrat'
              W(end).lims.wrat = -control.WCONHIST{i, 5};
-             W(end).lims.orat = -inf;
-             W(end).lims.grat = -inf;
-             W(end).lims.lrat = -inf;
-             W(end).lims.bhp  = 1*atm;
            case 'grat'
              W(end).lims.grat = -control.WCONHIST{i, 6};
-             W(end).lims.orat = -inf;
-             W(end).lims.wrat = -inf;
-             W(end).lims.lrat = -inf;
-             W(end).lims.bhp  = 1*atm;
            case 'lrat'
              W(end).lims.lrat = -sum([control.WCONHIST{i, 4:5}]);
-             W(end).lims.orat = -inf;
-             W(end).lims.wrat = -inf;
-             W(end).lims.grat = -inf;
-             W(end).lims.bhp  = 1*atm;
            case 'bhp'
              W(end).lims.bhp  = control.WCONHIST{i, 10};
-             W(end).lims.lrat = -inf;
-             W(end).lims.orat = -inf;
-             W(end).lims.wrat = -inf;
-             W(end).lims.grat = -inf;
          end
          W(end).status    = status;
       end
