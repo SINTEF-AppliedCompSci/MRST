@@ -1,5 +1,5 @@
 function [foptval, uopt, history, uu_opt, extra] = ...
-       optimize_mech(u, G, bcfun, cfun, loadfun, obj_fun)
+       optimize_mech(u, G, bcfun, cfun, loadfun, obj_fun, varargin)
 %
 %
 % SYNOPSIS:
@@ -40,11 +40,41 @@ function [foptval, uopt, history, uu_opt, extra] = ...
 
    mrstModule add optimization;
    
+   opt.gradTol = 1e-3;
+   opt.cyclical = []; % indices of cyclical control variables
+   [opt, ~] = merge_options(opt, varargin{:});
+
+   
    G = createAugmentedGrid(computeGeometry(G));
    
    funwrap = @(u) fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun);
    
    [foptval, uopt, history] = unitBoxBFGS(u, funwrap);
+
+   % handle cyclical variables that have hit against the imposed box boundary
+   small = 1e-2;
+   if ~isempty(opt.cyclical)
+      
+      ixs_1 = uopt(opt.cyclical) == 1;
+      ixs_0 = uopt(opt.cyclical) == 0;
+      
+      while any([ixs_1(:) ;ixs_0(:)]) && ...
+             (history.pg(end) > opt.gradTol || isnan(history.pg(end)))
+         uopt
+         % one or more cyclical variables 'stuck' against the imposed boundary.  Move them
+         % to the other side and try again.
+         fprintf('cyclical variable(s) stuck.  Trying again.\n');
+         u = uopt;
+         u(ixs_1) = 0+small;
+         u(ixs_0) = 1-small;
+         [foptval, uopt, history] = unitBoxBFGS(u, funwrap, 'stepInit', small);
+         ixs_1 = uopt(opt.cyclical) == 1;
+         ixs_0 = uopt(opt.cyclical) == 0;
+
+      end
+   end
+   
+
 
    %% compute additional information if requested
    if nargout > 3
