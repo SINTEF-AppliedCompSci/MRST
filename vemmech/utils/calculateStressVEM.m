@@ -1,6 +1,6 @@
 function [stress,strain]=calculateStressVEM(G,uu, op,varargin)
 opt.do_patch=false;
-opt=merge_options(opt,varargin{:})
+opt=merge_options(opt,varargin{:});
 
 if(G.griddim==2)
     lindim=3;
