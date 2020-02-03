@@ -4,14 +4,14 @@ function interpFace=findHAP(G,rock,bc)
 
 %   interpFace.coords: coordinates of interpolating points
 %   interpFace.weights: interpolating weights
-%   interpFace.percentage: the percentage of cells whose centroid is
+%   interpFace.fraction: the fraction of cells whose centroid is
 %   outside the convex hull
 dispif(mrstVerbose, 'findHAP\n');
 K=permTensor(rock,G.griddim);
 K=reshape(K',G.griddim,G.griddim,[]);
 interpFace.coords=zeros(G.faces.num,G.griddim);
 interpFace.weights=zeros(G.faces.num,2);
-interpFace.percentage=0;
+interpFace.fraction=0;
 % find harmoinc averaging point--------------------------------------------
 for i_face=1:G.faces.num
     c1=G.faces.neighbors(i_face,1);
@@ -67,5 +67,5 @@ for i=1:G.cells.num
             counter(i)=inhull(xc,hap,ind,-1e-5);
     end 
 end
-interpFace.percentage=1-sum(counter)/G.cells.num;
+interpFace.fraction=1-sum(counter)/G.cells.num;
 end
