@@ -8,7 +8,7 @@ classdef CompositionalDensity < StateFunction
         function gp = CompositionalDensity(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
-            gp = gp.dependsOn({'pressure', 'temperature'}, 'state');
+            gp = gp.dependsOn({'pressure', 'T'}, 'state');
             gp.label = '\rho_\alpha';
         end
 

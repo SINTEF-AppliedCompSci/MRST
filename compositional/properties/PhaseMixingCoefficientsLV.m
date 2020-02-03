@@ -7,7 +7,7 @@ classdef PhaseMixingCoefficientsLV < StateFunction
     methods
         function gp = PhaseMixingCoefficientsLV(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'pressure', 'temperature'}, 'state');
+            gp = gp.dependsOn({'pressure', 'T'}, 'state');
             gp = gp.dependsOn('ComponentPhaseMoleFractions');
             gp.label = 'S_i B_i A_\alpha B_\alpha A_{ij}';
         end
