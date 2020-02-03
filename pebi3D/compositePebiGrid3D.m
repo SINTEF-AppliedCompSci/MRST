@@ -57,9 +57,8 @@ function [G,F] = compositePebiGrid3D(celldim, pdim, varargin)
 % Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}  
-
 % Check input
-if ~all(celldim > 0),
+if ~all(celldim > 0)
    error('CELLDIM must be positive');
 end
 if numel(celldim)~=3
@@ -76,11 +75,16 @@ end
 % Set options
 opt = struct('cellConstraints', {{}}, ...
              'CCRho',   {{@(x) sqrt(pdim./sum(celldim.^2))*ones(size(x,1),1)}},...
+             'mlqtMaxLevel',    0,    ...
+             'mlqtLevelSteps',  -1,   ...
              'faceConstraints', {{}},      ...
              'FCRho',  {{@(x) sqrt(pdim./sum(celldim.^2))*ones(size(x,1),1)}});          
 opt = merge_options(opt, varargin{:});
 
 FCRho = opt.FCRho;
+mlqtMaxLevel   = opt.mlqtMaxLevel;
+mlqtLevelSteps = opt.mlqtLevelSteps;
+
 if numel(FCRho) == 1
   FCRho = repmat(FCRho,numel(opt.faceConstraints),1);num2cell(FCRho, 2);
 else
@@ -95,6 +99,14 @@ else
     'Number of CCRho must either be 1 or numel(cellConstraints)');
 end
 
+if numel(FCRho) == 1
+  FCRho = repmat(FCRho,numel(opt.faceConstraints),1);num2cell(FCRho, 2);
+else
+  assert(numel(FCRho) == numel(opt.faceConstraints),...
+    'Number of FCRho must either be 1 or numel(faceConstraint)');
+end
+
+assert(mlqtMaxLevel>=0, 'mlqtMaxLevel must be greater or equal 0');
 
 % Create face constraint sites
 F = surfaceSites3D(opt.faceConstraints,FCRho);
@@ -128,13 +140,22 @@ bdr   = [ 0, 0, 0;  ...
 [X,Y,Z] = ndgrid(xa,ya,za);
 rSites = [X(:), Y(:), Z(:)];
 
+% Possible refine mesh
+if ~isempty(W.pts)
+    varArg = {'level', 1, 'maxLev', mlqtMaxLevel, 'distTol', mlqtLevelSteps};
+    res = {};
+    for i = 1:size(rSites, 1)
+        res = [res; mlqt(rSites(i,:), W.pts , [dx, dy , dz], varArg{:})];
+    end
+    rSites = vertcat(res{:, 1});
+end
 % Remove conflict sites
 rSites = lineSufCond3D(rSites, W);
 rSites = surfaceSufCond3D(rSites,F.c.CC,F.c.R);
 W.pts  = surfaceSufCond3D(W.pts,F.c.CC,F.c.R);
 
 % Create grid
-pts = [F.f.pts;W.pts;rSites];
+pts = [F.f.pts; W.pts; rSites];
 %bdrDT = delaunayTriangulation(bdr);
 %G = clippedPebi3D(pts,bdrDT);
 G = mirroredPebi3D(pts, bdr);
