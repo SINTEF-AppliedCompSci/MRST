@@ -65,8 +65,8 @@ function [foptval, uopt, history, uu_opt, extra] = ...
          % to the other side and try again.
          fprintf('cyclical variable(s) stuck.  Trying again.\n');
          u = uopt;
-         u(ixs_1) = 0+small;
-         u(ixs_0) = 1-small;
+         u(opt.cyclical(ixs_1)) = 0+small;
+         u(opt.cyclical(ixs_0)) = 1-small;
          [foptval, uopt, history] = unitBoxBFGS(u, funwrap, 'stepInit', small);
          ixs_1 = uopt(opt.cyclical) == 1;
          ixs_0 = uopt(opt.cyclical) == 0;
@@ -104,7 +104,7 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    dd = dd';
    %dd = dd(dofs);
    
-   [val, oval_du, oval_dd] = obj_fun(u, dd(:));
+   [val, oval_du, oval_dd] = obj_fun(value(u), dd(:));
    
    %% use adjoint to compute gradient
    lambda = -extra.A \ oval_dd; % A symmetric, so no transpose necessary
