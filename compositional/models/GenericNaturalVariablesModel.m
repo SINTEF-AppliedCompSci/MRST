@@ -171,7 +171,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             end
 
             if not(isempty(model.FacilityModel))
-                [v, n, o] = model.FacilityModel.getPrimaryVariables(state.wellSol);
+                [v, n, o] = model.FacilityModel.getPrimaryVariables(state);
             else
                 [v, n, o] = deal({});
             end

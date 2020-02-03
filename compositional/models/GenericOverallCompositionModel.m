@@ -119,7 +119,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             origin = cell(1, numel(names));
             [origin{:}] = deal(class(model));
             if ~isempty(model.FacilityModel)
-                [v, n, o] = model.FacilityModel.getPrimaryVariables(state.wellSol);
+                [v, n, o] = model.FacilityModel.getPrimaryVariables(state);
                 vars = [vars, v];
                 names = [names, n];
                 origin = [origin, o];
