@@ -287,13 +287,13 @@ else
     % resGridSize = repmat(0.5*min(dx,dy),size(resPts,1),1);
 end
 
-% Remove Conflic Points
+% Remove conflict points
 resPts = removeConflictPoints(resPts, CCPts,  CCGs);
 resPts = removeConflictPoints(resPts, protPts,  pGs);
 resPts = removeConflictPoints(resPts, F.f.pts,  F.f.Gs);
 resPts = removeConflictPoints(resPts, F.c.CC,   F.c.R);
 
-% Create Grid
+% Create grid
 Pts = [F.f.pts; CCPts; protPts; F.t.pts; resPts];
 
 if opt.useMrstPebi
@@ -302,7 +302,7 @@ else
     G = clippedPebi2D(Pts, polyBdr);
 end
 
-% label fault faces.
+% Label fault faces.
 if ~isempty(F.f.pts)
   N      = G.faces.neighbors + 1; 
   % N == 1 is now a boundary face, so we have to add 1 to the start of 
@@ -315,7 +315,7 @@ else
   G.faces.tag = false(G.faces.num,1);
 end
 
-%Label constrained cells
+% Label constrained cells
 if ~isempty(CCPts)
   G.cells.tag = false(G.cells.num,1);
   
