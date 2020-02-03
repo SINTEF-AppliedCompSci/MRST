@@ -7,14 +7,18 @@ classdef PhaseMixingCoefficientsLV < StateFunction
     methods
         function gp = PhaseMixingCoefficientsLV(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'pressure', 'temperature', 'x', 'y'}, 'state');
+            gp = gp.dependsOn({'pressure', 'temperature'}, 'state');
+            gp = gp.dependsOn('ComponentPhaseMoleFractions');
             gp.label = 'S_i B_i A_\alpha B_\alpha A_{ij}';
         end
 
         function v = evaluateOnDomain(prop, model, state)
             eos = model.EOSModel;
-            [p, T, x, y] = model.getProps(state,...
-                'pressure', 'temperature', 'liquidMoleFractions', 'vaporMoleFractions');
+            [p, T] = model.getProps(state, 'pressure', 'temperature');
+            xy = prop.getEvaluatedDependencies(state, 'ComponentPhaseMoleFractions');
+            wat = model.water;
+            x = xy(:, 1 + wat);
+            y = xy(:, 2 + wat);
             acf = eos.fluid.acentricFactors;
             
             [A_ij, Bi] = eos.getMixingParameters(p, T, acf, iscell(x));
