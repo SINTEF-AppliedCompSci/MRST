@@ -255,7 +255,7 @@ classdef StateFunctionGrouping
             % not, it produces an error at first unmet dependency.
             % Additional diagnostic can be enabled by mrstVerbose.
             checkExternal = nargin > 1;
-            throwError = nargout > 0;
+            throwError = nargout == 0;
             if throwError
                 dispfn = @(varargin) error(varargin{:});
             else
