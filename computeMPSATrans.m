@@ -275,16 +275,20 @@ trans_T = trans_T.setFromTensorProd(ones(col2row2tbl.num, 1), prod);
 % transnodeaverage_T : cellnodecolrowtbl -> nodecolrowtbl
 %
 % (later this operator is dispatched to cells)
+nnodes = tblmap(ones(cellnodetbl.num, 1), cellnodetbl, nodetbl, {'nodes'});
+coef = tblmap(1./nnodes, nodetbl, cellnodetbl, {'nodes'});
+
 prod = TensorProd();
-prod.tbl1 = celltbl;
+prod.tbl1 = cellnodetbl;
 prod.tbl2 = cellnodecolrowtbl;
 prod.reducefds = {'cells'};
+prod.mergefds = {'nodes'};
 prod.prodtbl = nodecolrowtbl;
 
 prod = prod.setup();
 
 nodeaverage_T = SparseTensor();
-nodeaverage_T = nodeaverage_T.setFromTensorProd(ones(celltbl.num), prod);
+nodeaverage_T = nodeaverage_T.setFromTensorProd(coef, prod);
 
 transnodeaverage_T = trans_T*nodeaverage_T;
 
