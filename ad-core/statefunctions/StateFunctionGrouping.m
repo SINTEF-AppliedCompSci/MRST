@@ -273,7 +273,7 @@ classdef StateFunctionGrouping
                     depname = fn.dependencies{j};
                     present = group.hasStateFunction(depname);
                     if ~present
-                        dispfn('Unmet internal dependency for function %s in group %s: Did not find %s in own group.\n', name, class(group), depname);
+                        dispfn('Unmet internal dependency for %s in group %s: Did not find %s in own group.\n', name, class(group), depname);
                     end
                     ok = ok && present;
                 end
@@ -291,7 +291,7 @@ classdef StateFunctionGrouping
                         candidates = find(cellfun(@(x) isa(x, extgroupname), groups));
                         if isempty(candidates)
                             ok = false;
-                            dispfn('Unmet external dependency for function %s in group %s: Did not find any groups of class %s that may contain %s.\n',...
+                            dispfn('Unmet external dependency for %s in group %s: Did not find any groups of class %s that may contain %s.\n',...
                                     name, class(group), extgroupname, depname);
                         else
                             for k = 1:numel(candidates)
@@ -308,6 +308,14 @@ classdef StateFunctionGrouping
                         end
                     end
                 end
+            end
+            if ok
+                if checkExternal
+                    dparg = 'internal and external';
+                else
+                    dparg = 'internal';
+                end
+                dispif(mrstVerbose(), 'All %s dependencies are met for group of class %s.\n', dparg, class(group));
             end
         end
         
