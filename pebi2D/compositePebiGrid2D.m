@@ -274,7 +274,7 @@ if size(F.f.pts, 1) > 0
 end
 
 % Refine reservoir grid
-if ~isempty(W.Pts)
+if ~isempty(CCPts)
     res = {};
     varArg = {'level', 1, 'maxLev', mlqtMaxLevel, 'distTol', mlqtLevelSteps};
     for i = 1:size(resPtsInit,1)
