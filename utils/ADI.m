@@ -394,7 +394,7 @@ classdef ADI
          asinu = asin(u.val);
          h = u;
          h.val = asinu;
-         h.jac = ADI.lMultDiag(1./sqrt(1-u.val.^2), u.jac);
+         h.jac = h.lMultDiag(1./sqrt(1-u.val.^2), u.jac);
       end
       
       %-------------------------------------------------------------------- 
@@ -402,7 +402,7 @@ classdef ADI
          acosu = acos(u.val);
          h = u;
          h.val = acosu;
-         h.jac = ADI.lMultDiag(-1./sqrt(1-u.val.^2), u.jac);
+         h.jac = h.lMultDiag(-1./sqrt(1-u.val.^2), u.jac);
       end
       
       %--------------------------------------------------------------------
