@@ -82,7 +82,7 @@ opt = merge_options(opt, varargin{:});
 
 FCRho = opt.FCRho;
 if numel(FCRho) == 1
-  FCRho = repmat(FCRho,numel(opt.faceConstraint),1);num2cell(FCRho, 2);
+  FCRho = repmat(FCRho,numel(opt.faceConstraints),1);num2cell(FCRho, 2);
 else
   assert(numel(FCRho) == numel(opt.faceConstraint),...
     'Number of FCRho must either be 1 or numel(faceConstraint)');
@@ -97,7 +97,7 @@ end
 
 
 % Create face constraint sites
-F = surfaceSites3D(opt.faceConstraint,FCRho);
+F = surfaceSites3D(opt.faceConstraints,FCRho);
 
 % Remove conflict points at fault intersections
 F = removeSurfaceConflictSites3D(F);
