@@ -1,15 +1,16 @@
 %% Assembly of MPSA-weak
 %%
-%%  Reference paper:
+%% Reference paper:
 %% Finite volume methods for elasticity with weak symmetry
 %% Keilegavlen, Eirik and Nordbotten, Jan Martin
 %% International Journal for Numerical Methods in Engineering
 %% 2017
 
+clear all
+
 % load modules
 mrstModule add mimetic mpfa incomp
 
-clear all
 eta = 1/3;
 
 %% Define and process geometry
@@ -17,7 +18,7 @@ eta = 1/3;
 dimcase = 2;
 switch dimcase
   case 2
-    nx = 20; ny = 20;
+    nx = 10; ny = 10;
     G = cartGrid([nx, ny]);
   case 3
     nx = 5; ny = 5; nz = 5;
@@ -308,23 +309,99 @@ transnodeaverage_T = celldispatch_T*transnodeaverage_T;
 %
 dim = G.griddim;
 vdim = dim*(dim + 1)/2;
+asymdim = dim*dim - vdim;
 voigttbl.voigt = (1 : vdim)';
+voigttbl.num = vdim;
 switch dim
   case 2
     voigttbl.coldim = [1; 2; 2];
     voigttbl.rowdim = [1; 2; 1];
     voigt = [1; 3; 3; 2];
+    colrowasymtbl.asym = [1; 1];
+    colrowasymtbl.coldim = [1; 2];    
+    colrowasymtbl.rowdim = [2; 1];
   case 3
     voigttbl.coldim = [1; 2; 3; 3; 3; 2];
     voigttbl.rowdim = [1; 2; 3; 2; 1; 1];
     voigt = [1; 6; 5; 6; 2; 4; 5; 4; 3];
 end
-voigttbl.num = vdim;
+
+colrowasymtbl.num = numel(colrowasymtbl.asym);
 
 colrowvoigttbl.coldim = colrowtbl.coldim;
 colrowvoigttbl.rowdim = colrowtbl.rowdim;
 colrowvoigttbl.voigt  = voigt;
 colrowvoigttbl.num    = colrowtbl.num;
+
+clear voigtbl
+voigtbl.voigt = (1 : vdim)';
+voigtbl.num = vdim;
+
+voigt2tbl = crossTable(voigttbl, voigttbl, {}, 'crossextend', {{'voigt', ...
+                    {'voigt1', 'voigt2'}}});
+
+col2row2voigt2tbl = crossTable(colrowvoigttbl, voigt2tbl, {{'voigt', ...
+                    'voigt1'}});
+fds = {{'voigt', 'voigt1'}, {'coldim', 'coldim1'}, {'rowdim', 'rowdim1'}};
+col2row2voigt2tbl = replacefield(col2row2voigt2tbl, fds);
+
+col2row2voigt2tbl = crossTable(col2row2voigt2tbl, colrowvoigttbl, {{'voigt2', 'voigt'}} );
+fds = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
+col2row2voigt2tbl = replacefield(col2row2voigt2tbl, fds);
+
+
+col2row2tbl = rmfield(col2row2voigt2tbl, {'voigt1', 'voigt2'});
+% note that col2row2voigt2tbl and col2row2tbl are the same indexing
+
+C = [9; 3; 2; 3; 10; 1; 2; 1; 11];
+
+C = tblmap(C, voigt2tbl, col2row2voigt2tbl, {'voigt1', 'voigt2'});
+
+colrowtbl = addLocInd(colrowtbl, 'colrowdim');
+
+ind1 = tblmap(colrowtbl.colrowdim, colrowtbl, col2row2tbl, {{'coldim', 'coldim1'}, ...
+                    {'rowdim', 'rowdim1'}});
+ind2 = tblmap(colrowtbl.colrowdim, colrowtbl, col2row2tbl, {{'coldim', 'coldim2'}, ...
+                    {'rowdim', 'rowdim2'}});
+
+n = colrowtbl.num;
+Cmat = sparse(ind1, ind2, C, n, n);
+Cmat = full(Cmat);
+
+asymtbl.asym = (1 : asymdim)';
+asymtbl.num = asymdim;
+
+asym2tbl = crossTable(asymtbl, asymtbl, {}, 'crossextend', {{'asym', ...
+                    {'asym1', 'asym2'}}});
+
+col2row2asym2tbl = crossTable(colrowasymtbl, asym2tbl, {{'asym', ...
+                    'asym1'}});
+fds = {{'asym', 'asym1'}, {'coldim', 'coldim1'}, {'rowdim', 'rowdim1'}};
+col2row2asym2tbl = replacefield(col2row2asym2tbl, fds);
+
+col2row2asym2tbl = crossTable(col2row2asym2tbl, colrowasymtbl, {{'asym2', 'asym'}} );
+fds = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
+col2row2asym2tbl = replacefield(col2row2asym2tbl, fds);
+
+Casym = [1];
+Casym = tblmap(Casym, asym2tbl, col2row2asym2tbl, {'asym1', 'asym2'});
+
+m = [1; -1];
+fds = {{'asym', 'asym1'}, {'coldim', 'coldim1'}, {'rowdim', 'rowdim1'}};
+m1 = tblmap(m, colrowasymtbl, col2row2asym2tbl, fds);
+fds = {{'asym', 'asym2'}, {'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
+m2 = tblmap(m, colrowasymtbl, col2row2asym2tbl, fds);
+
+Casym = m1.*Casym.*m2;
+
+fds = {'coldim1', 'rowdim1', 'coldim2', 'rowdim2'};
+Casym = tblmap(Casym, col2row2asym2tbl, col2row2tbl, fds);
+Casymmat = sparse(ind1, ind2, C, n, n);
+Casymmat = full(Casymmat);
+
+C = Cmat + Casymmat;
+
+return
 
 stensdim = vdim*(vdim + 1)/2;
 
@@ -357,7 +434,6 @@ stensfulltbl.voigt1 = i;
 stensfulltbl.voigt2 = j;
 stensfulltbl.stensind = ind;
 stensfulltbl.num = numel(i);
-
 
 crossfds = {{'coldim', {'coldim1', 'coldim2'}}, ...
             {'rowdim', {'rowdim1', 'rowdim2'}}, ...
@@ -488,13 +564,6 @@ switch dimcase
     force = [0; 0; 1]; % force in upward direction    
 end
 
-close all
-figure
-plotGrid(G)
-plotGrid(G, indcell, 'facecolor', 'red');
-title('source cell')
-
-
 sourcetbl.cells = indcell;
 sourcetbl.num = numel(indcell);
 
@@ -506,6 +575,14 @@ force = tblmap(force, sourcetbl, cellcoltbl, {'cells', 'coldim'});
 u = A\force;
 
 u = reshape(u, dimcase, [])';
+
+return
+
+close all
+figure
+plotGrid(G)
+plotGrid(G, indcell, 'facecolor', 'red');
+title('source cell')
 
 figure
 plotCellData(G, u(:, 1));
