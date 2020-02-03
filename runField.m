@@ -1,7 +1,7 @@
 %% run field model
 clear all;close all;clc
 mrstModule add incomp mimetic  ad-blackoil ad-core glpk ntpfa_glpk ...
-    ad-props mpfa eni mrst-gui ntpfa-kobaisi ntpfa blackoil-sequential ...
+    ad-props mpfa project-eni mrst-gui ntpfa nfvm blackoil-sequential ...
     wellpaths 
 
 plotconc = false;
@@ -162,7 +162,7 @@ mrstverbosestatus=mrstVerbose;
 mrstVerbose on
 disp(solvers{end});
 interpFace=findHAP(G,rock,bc_flow_ntpfa);
-disp(['fraction of faces with centroids outside convex hull ', num2str(interpFace.percentage)]);
+disp(['fraction of faces with centroids outside convex hull ', num2str(interpFace.fraction)]);
 interpFace=correctHAP(G,interpFace);
 OSflux=findOSflux(G,rock,bc_flow_ntpfa,interpFace);
 state=FlowNTPFA(G,bc_flow_ntpfa,fluid,Wtp,OSflux,p0*ones(G.cells.num,1),1e-7,1000,'matrixOutput', true);

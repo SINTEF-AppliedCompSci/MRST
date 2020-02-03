@@ -137,7 +137,7 @@ mrstverbosestatus=mrstVerbose;
 mrstVerbose on
 disp(results{end}.name);
 interpFace=findHAP(G,rock,bc_flow_ntpfa);
-disp(['fraction of faces with centroids outside convex hull ', num2str(interpFace.percentage)]);
+disp(['fraction of faces with centroids outside convex hull ', num2str(interpFace.fraction)]);
 interpFace=correctHAP(G,interpFace);
 OSflux=findOSflux(G,rock,bc_flow_ntpfa,interpFace);
 %state=FlowNTPFA(G,bc_flow_ntpfa,fluid,W,OSflux,p0*ones(G.cells.num, ...

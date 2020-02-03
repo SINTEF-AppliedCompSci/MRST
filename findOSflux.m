@@ -345,7 +345,7 @@ if ~exist('faceA','var') %|| nf == 4
     plot3(xc(1),xc(2),xc(3),'ko','markersize',14)
     ind=convhull(hap);
     trisurf(ind,hap(:,1),hap(:,2),hap(:,3), 'Facecolor','cyan','facealpha',0.5)
-    in_convex_hull=inhull(xc,hap,ind,1e-5)
+    in_convex_hull=max_inhull(xc,hap,ind,1e-5)
     
     % Plot Kn. 
     Gc = extractSubgrid(G,c);

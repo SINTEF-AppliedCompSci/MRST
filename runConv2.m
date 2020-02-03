@@ -6,6 +6,7 @@ close all;
 %clc
 
 %mrstVerbose on
+mrstVerbose off
 
 %% 2D test: rotating anisotropic permeability, u=sin(pi*x)*sin(pi*y)+1
 Lx=1;Ly=1;
@@ -113,10 +114,10 @@ for t = 1:numel(tols)
         s1=incompMimetic(state0,G,computeMimeticIP(G,rock),fluid,'bc',bc_std,'src',src);
 
         % NTPFA
-        mrstVerbose on
+        %mrstVerbose on
         [interpFace]=findHAP(G,rock,bc);
-        hap(i_con)=interpFace.percentage;
-        disp(['fraction of faces with centroids outside convex hull: ', num2str(interpFace.percentage)]);
+        hap(i_con)=interpFace.fraction;
+        disp(['fraction of faces with centroids outside convex hull: ', num2str(interpFace.fraction)]);
         interpFace=correctHAP(G,interpFace);
         OSflux=findOSflux(G,rock,bc,interpFace);
         u0=ones(G.cells.num,1);
@@ -126,7 +127,7 @@ for t = 1:numel(tols)
         %picard(i_con,:)=[s2.iter, s3.iter];
         picard(i_con,1)=s2.iter;
         clear u0 OSflux interpFace src bc rock q
-        mrstVerbose off
+        %mrstVerbose off
         
         %x=G.cells.centroids(:,1);y=G.cells.centroids(:,2);
         %ua=uexact(G.cells.centroids');
@@ -206,7 +207,7 @@ end
 %     s1=OnePhaseIncompMPFA(G,TransMPFAO(G,rock,bc),src);
     
 %     interpFace=findHAP(G,rock,bc);
-%     hap(i_con)=interpFace.percentage;
+%     hap(i_con)=interpFace.fraction;
     
 %     interpFace=correctHAP(G,interpFace);
 %     OSflux=findOSflux(G,rock,bc,interpFace);
@@ -284,7 +285,7 @@ end
 %     s1=OnePhaseIncompMPFA(G,TransMPFAO(G,rock,bc),src);
 
 %     [interpFace]=findHAP(G,rock,bc);
-%     hap(i_con)=interpFace.percentage;
+%     hap(i_con)=interpFace.fraction;
 
 %     interpFace=correctHAP(G,interpFace);clear coin
 %     OSflux=findOSflux(G,rock,bc,interpFace);
