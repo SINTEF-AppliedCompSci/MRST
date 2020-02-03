@@ -167,6 +167,7 @@ methods
     function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
         if ~isempty(drivingForces.W)
             [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
+            model.FacilityModel = model.FacilityModel.setReservoirModel(model);
         end
         if ~isempty(model.FluxDiscretization)
             [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
