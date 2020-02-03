@@ -312,30 +312,36 @@ vdim = dim*(dim + 1)/2;
 asymdim = dim*dim - vdim;
 voigttbl.voigt = (1 : vdim)';
 voigttbl.num = vdim;
+
 switch dim
   case 2
     voigttbl.coldim = [1; 2; 2];
     voigttbl.rowdim = [1; 2; 1];
-    voigt = [1; 3; 3; 2];
+    
+    colrowvoigttbl.coldim = colrowtbl.coldim;
+    colrowvoigttbl.rowdim = colrowtbl.rowdim;
+    colrowvoigttbl.voigt = [1; 3; 3; 2];
+    colrowvoigttbl.num    = colrowtbl.num;
+
+    voigt = [1; 0.5; 0.5; 1];
+    
     colrowasymtbl.asym = [1; 1];
     colrowasymtbl.coldim = [1; 2];    
     colrowasymtbl.rowdim = [2; 1];
+    colrowasymtbl.num = numel(colrowasymtbl.asym);
+    
+    asym = [1; -1];
+    
   case 3
+    error('not implemented yet');
     voigttbl.coldim = [1; 2; 3; 3; 3; 2];
     voigttbl.rowdim = [1; 2; 3; 2; 1; 1];
     voigt = [1; 6; 5; 6; 2; 4; 5; 4; 3];
 end
 
-colrowasymtbl.num = numel(colrowasymtbl.asym);
-
-colrowvoigttbl.coldim = colrowtbl.coldim;
-colrowvoigttbl.rowdim = colrowtbl.rowdim;
-colrowvoigttbl.voigt  = voigt;
-colrowvoigttbl.num    = colrowtbl.num;
-
-clear voigtbl
-voigtbl.voigt = (1 : vdim)';
-voigtbl.num = vdim;
+clear voigttbl
+voigttbl.voigt = (1 : vdim)';
+voigttbl.num = vdim;
 
 voigt2tbl = crossTable(voigttbl, voigttbl, {}, 'crossextend', {{'voigt', ...
                     {'voigt1', 'voigt2'}}});
@@ -351,11 +357,23 @@ col2row2voigt2tbl = replacefield(col2row2voigt2tbl, fds);
 
 
 col2row2tbl = rmfield(col2row2voigt2tbl, {'voigt1', 'voigt2'});
-% note that col2row2voigt2tbl and col2row2tbl are the same indexing
+% note that col2row2voigt2tbl and col2row2tbl correspond to the same indexing
 
 C = [9; 3; 2; 3; 10; 1; 2; 1; 11];
 
 C = tblmap(C, voigt2tbl, col2row2voigt2tbl, {'voigt1', 'voigt2'});
+
+fds = {{'voigt', 'voigt1'}, {'coldim', 'coldim1'}, {'rowdim', 'rowdim1'}};
+voigt1 = tblmap(voigt, colrowvoigttbl, col2row2voigt2tbl, fds);
+fds = {{'voigt', 'voigt2'}, {'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
+voigt2 = tblmap(voigt, colrowvoigttbl, col2row2voigt2tbl, fds);
+
+C = voigt1.*C.*voigt2;
+
+% note necessary in fact because col2row2voigt2tbl and col2row2tbl correspond
+% to the same indexing
+C = tblmap(C, col2row2voigt2tbl, col2row2tbl, {'coldim1', 'rowdim1', 'coldim2', ...
+                    'rowdim2'});
 
 colrowtbl = addLocInd(colrowtbl, 'colrowdim');
 
@@ -386,17 +404,16 @@ col2row2asym2tbl = replacefield(col2row2asym2tbl, fds);
 Casym = [1];
 Casym = tblmap(Casym, asym2tbl, col2row2asym2tbl, {'asym1', 'asym2'});
 
-m = [1; -1];
 fds = {{'asym', 'asym1'}, {'coldim', 'coldim1'}, {'rowdim', 'rowdim1'}};
-m1 = tblmap(m, colrowasymtbl, col2row2asym2tbl, fds);
+asym1 = tblmap(asym, colrowasymtbl, col2row2asym2tbl, fds);
 fds = {{'asym', 'asym2'}, {'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
-m2 = tblmap(m, colrowasymtbl, col2row2asym2tbl, fds);
+asym2 = tblmap(asym, colrowasymtbl, col2row2asym2tbl, fds);
 
-Casym = m1.*Casym.*m2;
+Casym = asym1.*Casym.*asym2;
 
 fds = {'coldim1', 'rowdim1', 'coldim2', 'rowdim2'};
 Casym = tblmap(Casym, col2row2asym2tbl, col2row2tbl, fds);
-Casymmat = sparse(ind1, ind2, C, n, n);
+Casymmat = sparse(ind1, ind2, Casym, n, n);
 Casymmat = full(Casymmat);
 
 C = Cmat + Casymmat;
