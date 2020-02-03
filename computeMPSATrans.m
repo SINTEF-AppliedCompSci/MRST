@@ -363,8 +363,10 @@ col2row2voigt2tbl = replacefield(col2row2voigt2tbl, fds);
 col2row2tbl = rmfield(col2row2voigt2tbl, {'voigt1', 'voigt2'});
 % note that col2row2voigt2tbl and col2row2tbl correspond to the same indexing
 
-C = [9; 3; 2; 3; 10; 1; 2; 1; 11];
-
+C = [9 ; 3 ; 2 ; 3 ; 10 ; 1 ; 2 ; 1 ; 11] ;
+% C = [5; 0; 0 ; ...
+     % 0; 5; 0; ...
+     % 0; 0; 1]  ;
 C = tblmap(C, voigt2tbl, col2row2voigt2tbl, {'voigt1', 'voigt2'});
 
 fds = {{'voigt', 'voigt1'}, {'coldim', 'coldim1'}, {'rowdim', 'rowdim1'}};
@@ -420,85 +422,9 @@ Casym = tblmap(Casym, col2row2asym2tbl, col2row2tbl, fds);
 Casymmat = sparse(ind1, ind2, Casym, n, n);
 Casymmat = full(Casymmat);
 
+% C is in col2row2tbl
 C = Cmat + Casymmat;
 
-return
-
-stensdim = vdim*(vdim + 1)/2;
-
-s = 0;
-voigt1 = [];
-voigt2 = [];
-stensind = [];
-
-for i = 1 : vdim
-    for j = i : vdim
-        voigt1(end + 1) = i;
-        voigt2(end + 1) = j;
-        s = s + 1;
-        stensind(end + 1) = s;
-    end
-end
-
-stenstbl.voigt1 = voigt1';
-stenstbl.voigt2 = voigt2';
-stenstbl.stensind = stensind';
-stenstbl.num = stensdim;
-fds = {'stensind', 'voigt1', 'voigt2'};
-stenstbl = sortTable(stenstbl, fds);
-
-mat = sparse(voigt1, voigt2, stensind);
-mat = diag(diag(mat)) + abs(mat - mat');
-[i, j, ind] = find(mat);
-
-stensfulltbl.voigt1 = i;
-stensfulltbl.voigt2 = j;
-stensfulltbl.stensind = ind;
-stensfulltbl.num = numel(i);
-
-crossfds = {{'coldim', {'coldim1', 'coldim2'}}, ...
-            {'rowdim', {'rowdim1', 'rowdim2'}}, ...
-           };
-col2row2tbl = crossTable(colrowtbl, colrowtbl, {}, 'crossextend', crossfds);
-
-fds = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
-col2row2voigt2tbl = crossTable(col2row2tbl, colrowvoigttbl, fds);
-col2row2voigt2tbl = replacefield(col2row2voigt2tbl, {'voigt', 'voigt1'});
-fds = {{'coldim2', 'coldim'}, {'rowdim2', 'rowdim'}};
-col2row2voigt2tbl = crossTable(col2row2voigt2tbl, colrowvoigttbl, fds);
-col2row2voigt2tbl = replacefield(col2row2voigt2tbl, {'voigt', 'voigt2'});
-
-col2row2voigt2tbl = crossTable(col2row2voigt2tbl, stensfulltbl, {'voigt1', ...
-                    'voigt2'});
-
-% We choose some Stiffness matrix
-
-switch dimcase
-  case 2
-    temptbl.voigt1 = [1; 2; 3];
-    temptbl.voigt2 = [1; 2; 3];
-    temptbl.num = 3; 
-    C = tblmap([1; 1; 0.5], temptbl, stenstbl, {'voigt1', 'voigt2'});
-  case 3
-end
-
-C = tblmap(C, stenstbl, col2row2voigt2tbl, {'stensind'});
-
-prod = TensorProd();
-prod.tbl1 = col2row2voigt2tbl;
-prod.tbl2 = colrowtbl;
-prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}, ...
-                    {'voigt1', ''}, {'voigt2', ''}};
-prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
-prod.reducefds = {'coldim2', 'rowdim2'};
-prod.prodtbl = colrowtbl;
-prod = prod.setup();
-
-Cmat = SparseMatrix();
-Cmat = Cmat.setFromTensorProd(C, prod);
-Cmat = Cmat.matrix;
-
-col2row2tbl = rmfield(col2row2voigt2tbl, {'voigt1', 'voigt2', 'stensind'});
 [cellnodecol2row2tbl, indstruct] = crossTable(cellnodetbl, col2row2tbl, {});
 C = tbldispatch2(C, indstruct);
 
