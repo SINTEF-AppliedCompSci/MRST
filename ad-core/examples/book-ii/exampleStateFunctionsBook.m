@@ -53,7 +53,22 @@ stateAD = cmodel.getStateAD(stateAD);
 
 fprintf('First evaluation: '); tic(); rho = cmodel.getProp(stateAD, 'Density'); toc();
 fprintf('Second evaluation: '); tic(); rho = cmodel.getProp(stateAD, 'Density'); toc();
+%% Set up a black-oil model
+pth = getDatasetPath('spe1');
+fn  = fullfile(pth, 'BENCH_SPE1.DATA');
+% deck = readEclipseDeck(fn);
+[state0, bomodel, schedule, nonlinear] = initEclipseProblemAD(fn);
+bomodel = bomodel.validateModel();
 
-
-
-
+%%
+figure;
+[h, gbo] = plotStateFunctionGroupings(bomodel, 'Stop', 'Density', 'includeState', false);
+%%
+figure;
+[~, gcomp] = plotStateFunctionGroupings(cmodel,'Stop', 'Density', 'includeState', false);
+%%
+clc
+printStateFunctionGroupingTikz(gbo);
+%%
+clc
+printStateFunctionGroupingTikz(gcomp);
