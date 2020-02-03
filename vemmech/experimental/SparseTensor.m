@@ -626,16 +626,30 @@ classdef SparseTensor
                % no index to contract
                return
             else
-               % @@ for the moment, we assume that there is only one
-               % contraction to make (generalize this as needed)
-               assert(sum(keep) == numel(comp.indexnames) - 2);
-               tmp = comp.ixs(:, ~keep);
-               keep_entries = tmp(:,1) == tmp(:,2);
-               comp.ixs = comp.ixs(keep_entries, :);
-               comp.coefs = comp.coefs(keep_entries);
+               
+               % determine names of contracting indices
+               cnames = unique({comp.indexnames{~keep}});
+               for i = 1:numel(cnames)
+                  cix = find(cellfun(@(x) strcmp(cnames{i}, x), comp.indexnames));
+                  assert(numel(cix) == 2);
+                  tmp = comp.ixs(:, cix);
+                  keep_entries = tmp(:,1) == tmp(:,2);
+                  comp.ixs = comp.ixs(keep_entries, :);
+                  comp.ixs(:, cix) = [];
+                  comp.coefs = comp.coefs(keep_entries);
+                  comp.indexnames(cix) = [];
+               end
+               
+               % % @@ for the moment, we assume that there is only one
+               % % contraction to make (generalize this as needed)
+               % assert(sum(keep) == numel(comp.indexnames) - 2);
+               % tmp = comp.ixs(:, ~keep);
+               % keep_entries = tmp(:,1) == tmp(:,2);
+               % comp.ixs = comp.ixs(keep_entries, :);
+               % comp.coefs = comp.coefs(keep_entries);
             end
-            comp.indexnames = comp.indexnames(keep);
-            comp.ixs = comp.ixs(:, keep);
+            % comp.indexnames = comp.indexnames(keep);
+            % comp.ixs = comp.ixs(:, keep);
          else 
             % contract one component in one index
             local_ind = strcmp(ixname, comp.indexnames);
@@ -851,11 +865,12 @@ classdef SparseTensor
             indexnames = {indexnames};
          end
          
-         if isscalar(coefs) 
+         if numel(indexnames) == 0
+            assert(isscalar(coefs));
             component.coefs = coefs;
             component.ixs = [];
-            assert(numel(indexnames) == 0);
-         elseif isvector(coefs)
+         elseif numel(indexnames)==1
+            assert(isvector(coefs));
             if issparse(coefs)
                nz = find(coefs);
                component.coefs = coefs(nz);
@@ -865,8 +880,8 @@ classdef SparseTensor
                component.coefs = coefs(:);
                component.ixs = (1:numel(coefs))';
             end
-            assert(numel(indexnames) == 1);
          else
+            assert(numel(indexnames)==2);
             assert(ismatrix(coefs));
             if issparse(coefs)
                nz = find(coefs); % only keep nonzeros

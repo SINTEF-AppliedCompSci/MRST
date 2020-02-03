@@ -71,21 +71,28 @@ function [rows, cols, vals] = ssparsemul(ixs1, v1, ixs2, v2)
          end
          next_entry_loc = next_entry_loc + num_new;
       end
-      
-      % ensure uniqueness of entries
-      tmp_m_loc = tmp_m(1:next_entry_loc-1);
 
-      % @@ the following method seems to work efficiently, and works with ADI
-      ltable = find(accumarray(tmp_m_loc, 1, [], [], [], true));
-      ltable_inv = sparse(ltable, 1, 1:numel(ltable));
+      if next_entry_loc == 1
+         % no new elements were created during this row/col multiplication
+         um = [];
+         nu = numel(um); % equals zero in this case
+         tot = 0;
+      else
+         % ensure uniqueness of entries
+         tmp_m_loc = tmp_m(1:next_entry_loc-1);
+         
+         % @@ the following method seems to work efficiently, and works with ADI
+         ltable = find(accumarray(tmp_m_loc, 1, [], [], [], true));
+         ltable_inv = sparse(ltable, 1, 1:numel(ltable));
+         
+         tmp_m_loc = ltable_inv(tmp_m_loc);
+         spmat = sparse(tmp_m_loc, 1:numel(tmp_m_loc), 1);
+         
+         um = ltable(:);
+         tot = spmat * tmp_v(1:next_entry_loc-1);
+         nu = numel(um);
+      end   
       
-      tmp_m_loc = ltable_inv(tmp_m_loc);
-      spmat = sparse(tmp_m_loc, 1:numel(tmp_m_loc), 1);
-      
-      um = ltable(:);
-      tot = spmat * tmp_v(1:next_entry_loc-1);
-      nu = numel(um);
-            
       % check if reallocation is needed (if so, double array size)
       if next_entry + nu > size(final_m, 1)
          final_m = [final_m; 0 * final_m]; %#ok
