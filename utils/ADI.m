@@ -378,7 +378,7 @@ classdef ADI
           h = u;
           h.val = sinu;
           h.jac = h.lMultDiag(cos(u.val), u.jac);
-       end
+      end
           
       %--------------------------------------------------------------------
       function h = cos(u)
@@ -387,8 +387,24 @@ classdef ADI
           h = u;
           h.val = cosu;
           h.jac = h.lMultDiag(-sin(u.val), u.jac);
-       end
+      end
          
+      %-------------------------------------------------------------------- 
+      function h = asin(u)
+         asinu = asin(u.val);
+         h = u;
+         h.val = asinu;
+         h.jac = ADI.lMultDiag(1./sqrt(1-u.val.^2), u.jac);
+      end
+      
+      %-------------------------------------------------------------------- 
+      function h = acos(u)
+         acosu = acos(u.val);
+         h = u;
+         h.val = acosu;
+         h.jac = ADI.lMultDiag(-1./sqrt(1-u.val.^2), u.jac);
+      end
+      
       %--------------------------------------------------------------------
 
       function h = max(u,v)
