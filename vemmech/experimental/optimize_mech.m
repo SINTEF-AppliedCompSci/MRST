@@ -38,10 +38,11 @@ function [foptval, uopt, history, uu_opt, extra] = ...
 % SEE ALSO:
 %   VEM_linelast_AD
 
-   mrstModule add optimization;
+   mrstModule add optimization linearsolvers;
    
    opt.gradTol = 1e-3;
-   opt.objChangeTol = 1e-5;
+   opt.objChangeTol = 1e-5; %@@ might be too tight (much tighter than default
+                            %in unitBoxBFGS)
    opt.cyclical = []; % indices of cyclical control variables
    [opt, ~] = merge_options(opt, varargin{:});
 
@@ -96,12 +97,17 @@ end
 
 function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
 
+   fprintf('Calling fun_wrapper\n');
    u = initVariablesADI(u);
    
    bc = bcfun(u);
    C = cfun(u);
    load = loadfun(u);
-   [dd, extra] = VEM_linElast_AD(G, C, bc, load);
+   
+   amgsolver = @(A, b) callAMGCL(A, b, 'relaxation', 'chebyshev', 'solver', 'cg', ...
+                              'tolerance', 1e-6, 'maxIterations', 500);
+   
+   [dd, extra] = VEM_linElast_AD(G, C, bc, load, 'linsolve', amgsolver);
 
    %dofs = ~extra.disc.isdirdofs; %% exclude dirichlet nodes
 
@@ -111,7 +117,9 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    [val, oval_du, oval_dd] = obj_fun(value(u), dd(:));
    
    %% use adjoint to compute gradient
-   lambda = -extra.A \ oval_dd; % A symmetric, so no transpose necessary
+   
+   lambda = amgsolver(extra.A, -oval_dd);
+   %lambda = -extra.A \ oval_dd; % A symmetric, so no transpose necessary
    
    dAdu_dd = 0; % @@ will change when including stiffness params. dependence on u
    dbdu = extra.rhs.jac{1};
