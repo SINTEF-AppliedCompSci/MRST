@@ -111,13 +111,31 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
         
         % --------------------------------------------------------------------%
         function model = validateModel(model, varargin)
-            if isempty(model.FlowPropertyFunctions)
-                model.FlowPropertyFunctions = SurfactantPolymerFlowPropertyFunctions(model);
-            end
-            if isempty(model.FluxDiscretization)
-                model.FluxDiscretization = PolymerFluxDiscretization(model);
-            end
             model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
+            
+            fp = model.FlowPropertyFunctions;
+            pp = model.PVTPropertyFunctions;
+            fd = model.FluxDiscretization;
+            upstr = UpwindFunctionWrapperDiscretization(model);
+            satreg  = fp.getRegionSaturation(model);
+            surfreg = fp.getRegionSurfactant(model);
+            
+            fp = fp.setStateFunction('PolymerAdsorption', PolymerAdsorption(model));                                    
+            fp = fp.setStateFunction('PolymerPermReduction', PolymerPermReduction(model));                        
+            fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));            
+            fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model));
+            pp = pp.setStateFunction('PolymerViscMultiplier', PolymerViscMultiplier(model));
+            fd = fd.setStateFunction('PolymerPhaseFlux', PolymerPhaseFlux(model));
+            fd = fd.setStateFunction('FaceConcentration', FaceConcentration(model, upstr)); 
+                                    
+            fp.Mobility = SurfactantPolymerMobility(model);
+            fp.RelativePermeability = SurfactantRelativePermeability(model, satreg, surfreg);
+            fp.CapillaryPressure    = SurfactantCapillaryPressure(model, satreg);
+            pp.Viscosity = SurfactantPolymerViscosity(model);
+            pp.PhasePressures = SurfactantPhasePressures(model);
+            model.FlowPropertyFunctions = fp;
+            model.PVTPropertyFunctions  = pp;
+            model.FluxDiscretization    = fd;
         end
 
         % --------------------------------------------------------------------%

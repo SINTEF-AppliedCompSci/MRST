@@ -4,18 +4,19 @@ classdef SurfactantPolymerViscosity < BlackOilViscosity
             gp@BlackOilViscosity(prop, varargin{:});
             gp = addPropertyDependence(gp, {'PolymerViscMultiplier'});
             gp = gp.dependsOn('surfactant', 'state');
-            gp = gp.dependsOn('pressure', 'state');
+            gp = gp.dependsOn('PhasePressures');
         end
         
         function mu = evaluateOnDomain(prop, model, state)
             fluid = model.fluid;
-            p = model.getProps(state, 'pressure');
+            p = model.getProps(state, 'PhasePressures');
             cs = model.getProps(state, 'surfactant');
-            muWMultp = prop.getEvaluatedDependencies(state, 'PolymerViscMultiplier');
-            muWMults = fluid.muW(p)/fluid.muWr;
+            pW = p{1};
+            muWMultPolymer = prop.getEvaluatedDependencies(state, 'PolymerViscMultiplier');
+            muWMultPressure = fluid.muW(pW)/fluid.muWr;
             mu = prop.evaluateOnDomain@BlackOilViscosity(model, state);
             mu{1} = model.fluid.muWSft(cs);
-            mu{1} = mu{1}.*muWMults.*muWMultp;            
+            mu{1} = mu{1}.*muWMultPressure.*muWMultPolymer;            
         end
     end
 end
