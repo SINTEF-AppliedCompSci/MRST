@@ -11,7 +11,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}  
 
-%% load Geometry.
+%% Load geometry.
 % The faults was drawn in inkscape, and then we extracted the coordinates
 % from the .svg file. The dataset contains two variables; fault which is a
 % cell array of all faults. The second variable is bdr which is the 
