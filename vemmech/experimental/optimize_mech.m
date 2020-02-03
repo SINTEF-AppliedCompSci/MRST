@@ -41,6 +41,7 @@ function [foptval, uopt, history, uu_opt, extra] = ...
    mrstModule add optimization;
    
    opt.gradTol = 1e-3;
+   opt.objChangeTol = 1e-5;
    opt.cyclical = []; % indices of cyclical control variables
    [opt, ~] = merge_options(opt, varargin{:});
 
@@ -48,8 +49,11 @@ function [foptval, uopt, history, uu_opt, extra] = ...
    G = createAugmentedGrid(computeGeometry(G));
    
    funwrap = @(u) fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun);
+                              
    
-   [foptval, uopt, history] = unitBoxBFGS(u, funwrap);
+   [foptval, uopt, history] = unitBoxBFGS(u, funwrap, ...
+                                          'gradTol', opt.gradTol, ...
+                                          'objChangeTol', opt.objChangeTol);
 
    % handle cyclical variables that have hit against the imposed box boundary
    small = 1e-2;
