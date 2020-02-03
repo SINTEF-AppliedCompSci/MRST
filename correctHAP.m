@@ -12,7 +12,7 @@ dispif(mrstVerbose, 'correctHAP\n');
 
 HAP=interpFace.coords; % store the locations of the original harmonic averaging points;
 if(nargin==2 | (nargin==3 & isempty(myRatio)))
-    if(interpFace.percentage>0)
+    if(interpFace.fraction>0)
         if(G.griddim==2)
             R=0.5*G.faces.areas;
         else
@@ -81,8 +81,23 @@ switch G.griddim
             theFaces=G.cells.faces(G.cells.facePos(thecell):G.cells.facePos(thecell+1)-1);
             hap=interpFace.coords(theFaces,:);
             ind=convhull(hap);
-            in=inhull(xc,hap,ind,-1e-5);
-%             in=inpolyhedron(ind,hap,xc);
+            in = inhull(xc,hap,ind,-1e-5);
+            
+            % % Test inpolyhedron: much slower
+            % t1 = tic;
+            % in2 = inpolyhedron(ind, hap, xc);
+            % time_inpoly = toc(t1);
+            % [time_inhull, time_inpoly]
+            % if in ~= in2
+            %     keyboard
+            % end
+            
+            % Test mex inhull
+            %in = mex_inhull(xc,hap,ind,-1e-5);
+            %in2,in
+            %assert(all(in2==in));
+            
+            
             if(~in),flag=thecell;break;end
         end
 end
