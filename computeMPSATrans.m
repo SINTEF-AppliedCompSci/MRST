@@ -18,7 +18,7 @@ eta = 1/3;
 dimcase = 2;
 switch dimcase
   case 2
-    nx = 10; ny = 10;
+    nx = 2; ny = 2;
     G = cartGrid([nx, ny]);
   case 3
     nx = 5; ny = 5; nz = 5;
@@ -181,6 +181,31 @@ prod = prod.setup();
 gradcell_T = SparseTensor();
 gradcell_T = gradcell_T.setFromTensorProd(greduced, prod);
 
+
+% some test gradnodeface_T and gradcell_T
+
+dotest = false;
+if dotest
+    fno = nodefacetbl.faces;
+    nno = nodefacetbl.nodes;
+    facetcent = G.faces.centroids(fno, :) + eta*(G.nodes.coords(nno, :) - ...
+                                                 G.faces.centroids(fno, :));
+    facetcent = reshape(facetcent', [], 1);
+
+
+    g1 = gradnodeface_T.getMatrix()*facetcent;
+
+    cellcent = G.cells.centroids(celltbl.cells, :);
+    cellcent = reshape(cellcent', [], 1);
+
+    g2 = gradcell_T.getMatrix()*cellcent;
+
+    g = g1 + g2;
+    % g should correspond to identity in cellnodecolrowtbl
+end
+
+
+
 %% Construction of the divergence operator
 %
 % setup the facet normals
@@ -216,6 +241,18 @@ prod = prod.setup();
 
 divnodeface_T = SparseTensor();
 divnodeface_T = divnodeface_T.setFromTensorProd(d, prod);
+
+
+% some test for dinnodeface_T
+dotest = false;
+if dotest
+    % create uniform gradient tensor (take unity)
+    assert(dimcase == 2);
+    colrowtbl = crossTable(coltbl, rowtbl, {});
+    g = [1; 0; 0; 1];
+    g = tblmap(g, colrowtbl, cellnodecolrowtbl, {'coldim', 'rowdim'});
+    d = divnodeface_T.getMatrix()*g;
+end
 
 % divcell_T : cellnodecoltbl -> cellcoltbl
 %
@@ -306,6 +343,16 @@ celldispatch_T = SparseTensor();
 celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num), prod);
 
 transnodeaverage_T = celldispatch_T*transnodeaverage_T;
+
+% some test for transnodeaverage_T
+dotest = false;
+if dotest
+    assert(dimcase == 2);
+    colrowtbl = crossTable(coltbl, rowtbl, {});
+    g = [1; 2; 3; 1];
+    g = tblmap(g, colrowtbl, cellnodecolrowtbl, {'coldim', 'rowdim'});
+    g = transnodeaverage_T.getMatrix()*g;
+end
 
 %% Construction of the stiffness operator
 %
@@ -458,6 +505,14 @@ A12 = divnodeface_T*combCgradcell_T;
 A21 = divcell_T*combCgradnodeface_T;
 A22 = divcell_T*combCgradcell_T; 
 
+dotest = true;
+if dotest
+    A11mat = A11.getMatrix()
+    [nodes, sz] = rlencode(nodefacecoltbl.nodes, 1);
+    invA11 = bi(A11mat, sz);
+end
+
+return
 
 %% Setup for Dirichlet condition
 %
@@ -524,6 +579,8 @@ u = A\force;
 u = reshape(u, dimcase, [])';
 
 return
+
+%% plotting
 
 close all
 figure
