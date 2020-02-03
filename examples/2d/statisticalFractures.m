@@ -67,6 +67,8 @@ axis tight
 
 %% Generate grid
 % We generate a grid where the fractures are traced by faces of the grid.
+% This will take a few minutes since the number of constraints is quite
+% large.
 G = pebiGrid2D(15,[35,yMax],'faceConstraints',lines,'FCFactor',1/50,...
              'circleFactor',0.55,'FCRefinement',true,'FCEps',5,...
              'FCRho', FCRho,'useMrstPebi',true,'linearize', true);
