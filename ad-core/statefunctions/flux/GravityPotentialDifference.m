@@ -1,4 +1,5 @@
 classdef GravityPotentialDifference < StateFunction
+    % Difference in phase potential over a face due to gravity
     properties
         saturationWeighting = false;
     end
@@ -10,6 +11,7 @@ classdef GravityPotentialDifference < StateFunction
             if gp.saturationWeighting
                 gp = gp.dependsOn('s', 'state');
             end
+            gp.label = 'g \rho_\alpha \Delta z';
         end
         function gRhoDz = evaluateOnDomain(prop, model, state)
             act = model.getActivePhases();

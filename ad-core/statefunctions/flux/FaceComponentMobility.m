@@ -1,4 +1,6 @@
 classdef FaceComponentMobility < StateFunction & UpwindProperty
+    % Mobility of the component mass for all components in all phases, with
+    % empty entries where a component is not present.
     properties (Access = protected)
         upwind_name; % Name of state function where upwind flag comes from
     end
@@ -13,6 +15,7 @@ classdef FaceComponentMobility < StateFunction & UpwindProperty
             fm.upwind_name = upwind_name;
             fm = fm.dependsOn(upwind_name);
             fm = fm.dependsOn('ComponentMobility', 'FlowPropertyFunctions');
+            fm.label = 'M_{i,\alpha}\lambda_\alpha^f';
         end
         
         function mobf = evaluateOnDomain(prop, model, state)

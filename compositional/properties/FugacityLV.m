@@ -1,4 +1,5 @@
 classdef FugacityLV < StateFunction
+    % Fugacity for liquid-vapor system
     properties
         useCompactEvaluation = true;
     end
@@ -8,6 +9,7 @@ classdef FugacityLV < StateFunction
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions', 'PhaseCompressibilityFactors'});
             gp = gp.dependsOn({'pressure'}, 'state');
+            gp.label = 'f_\alpha';
         end
 
         function f = evaluateOnDomain(prop, model, state)

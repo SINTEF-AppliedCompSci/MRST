@@ -9,6 +9,7 @@ classdef WellPhaseFlux < StateFunction
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping', 'PerforationPressureGradient', 'WellIndex'});
             gp = gp.dependsOn({'Mobility'}, 'FlowPropertyFunctions');
+            gp.label = 'q_\alpha';
         end
         
         function q_ph = evaluateOnDomain(prop, model, state)
@@ -28,6 +29,7 @@ classdef WellPhaseFlux < StateFunction
             production = ~injection & vTdp ~= 0;
             crossflow = (injection & ~isInjector) | ...
                         (production & isInjector);
+            crossflow = crossflow & false;
             if any(injection)
                 compi = vertcat(W.compi);
                 if any(crossflow)

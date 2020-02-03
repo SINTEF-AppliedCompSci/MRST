@@ -8,6 +8,7 @@ classdef CompositionalViscosityLV < StateFunction
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
             gp = gp.dependsOn({'pressure', 'temperature'}, 'state');
+            gp.label = '\mu_\alpha';
         end
         
         function mu = evaluateOnDomain(prop, model, state)

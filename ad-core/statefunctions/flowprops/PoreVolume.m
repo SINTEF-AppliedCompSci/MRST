@@ -12,6 +12,7 @@ classdef PoreVolume < StateFunction
                 'Pore-volumes must be defined in each cell.');
             assert(all(model.operators.pv > 0), ...
                 'Pore-volumes must be non-negative.');
+            gp.label = '\Phi';
         end
         function pv = evaluateOnDomain(prop, model, state) %#ok
             % Static pore-volume

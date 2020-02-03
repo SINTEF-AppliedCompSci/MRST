@@ -15,6 +15,7 @@ classdef FacilityFluxDiscretization < StateFunctionGrouping
             
             props.PhaseFlux = WellPhaseFlux(model);
             props.ComponentTotalFlux = ComponentTotalFlux(model);
+            props.ComponentTotalFlux.label = 'Q_i';
             props.ComponentPhaseFlux = WellComponentPhaseFlux(model);
             props.PerforationPressureGradient = PerforationPressureGradient(model);
             props.WellIndex = WellIndex(model);

@@ -1,4 +1,5 @@
 classdef BaseRelativePermeability < StateFunction & SaturationProperty
+    % Phase relative permeability (per cell)
     properties
         relpermPoints = 2;
         immobileChop = false;
@@ -9,6 +10,7 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
         function gp = BaseRelativePermeability(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'s', 'sMax'}, 'state');
+            gp.label = 'k_\alpha';
         end
 
         function kr = evaluateOnDomain(prop, model, state)

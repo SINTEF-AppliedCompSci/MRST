@@ -1,4 +1,5 @@
 classdef PhaseUpwindFlag < StateFunction
+    % Phase-upstream flag for each phase
     properties
 
     end
@@ -7,6 +8,7 @@ classdef PhaseUpwindFlag < StateFunction
         function gp = PhaseUpwindFlag(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn('PhasePotentialDifference');
+            gp.label = 'up_\alpha';
         end
 
         function flags = evaluateOnDomain(prop, model, state)

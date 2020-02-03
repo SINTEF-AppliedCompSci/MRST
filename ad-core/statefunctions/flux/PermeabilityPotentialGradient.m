@@ -1,4 +1,6 @@
 classdef PermeabilityPotentialGradient < StateFunction
+    % The difference in potential over a face, multiplied with a
+    % discretized permeability
     properties
         PermeabilityGradientDiscretization
     end
@@ -11,6 +13,7 @@ classdef PermeabilityPotentialGradient < StateFunction
             if isa(kgrad, 'TwoPointFluxApproximation')
                 pp = pp.dependsOn('Transmissibility');
             end
+            pp.label = 'K(\nabla p_\alpha+g\rho_\alpha\Delta z)';
         end
         
         function v = evaluateOnDomain(prop, model, state)

@@ -903,7 +903,7 @@ methods
                 end
             end
             error('PhysicalModel:UnknownVariable', ...
-                'I did not find %s in any state function grouping or via getVariableField', name);
+                'I did not find %s in any state function grouping or via getVariableField for model of type %s', name, class(model));
         else
             if iscell(state.(fn))
                 if ischar(index)
@@ -921,6 +921,13 @@ methods
         groupings = {};
     end
 
+    function checkStateFunctionDependencies(model)
+        groups = model.getStateFunctionGroupings();
+        for i = 1:numel(groups)
+            g = groups{i};
+            g.checkDependencies(groups);
+        end
+    end
 
     function varargout = getProps(model, state, varargin)
         % Get multiple properties from state in one go

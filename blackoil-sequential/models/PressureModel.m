@@ -44,24 +44,20 @@ classdef PressureModel < WrapperModel
 
         function [eqs, names, types, state] = getModelEquations(pmodel, state0, state, dt, drivingForces)
             model = pmodel.parentModel;
+            ncomp = model.getNumberOfComponents();
+            [eqs, names, types, state] = model.getModelEquations(state0, state, dt, drivingForces);
+            ceqs = eqs(1:ncomp);
             
-            [ceqs, flux] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             w = model.getProp(state, 'PressureReductionFactors');
-
-            src = model.FacilityModel.getComponentSources(state);
             % Assemble equations and add in sources
             pressure_equation = 0;
             for i = 1:numel(ceqs)
-                if ~isempty(src.cells)
-                    ceqs{i}(src.cells) = ceqs{i}(src.cells) - src.value{i};
-                end
-                pressure_equation = pressure_equation + w{i}.*model.operators.AccDiv(ceqs{i}, flux{i});
+                pressure_equation = pressure_equation + w{i}.*ceqs{i};
             end
-            % Get facility equations
-            [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
-            eqs = [{pressure_equation}, weqs];
-            names = ['pressure', wnames];
-            types = ['cell', wtypes];
+            subs = (ncomp+1):numel(eqs);
+            eqs = [{pressure_equation}, eqs(subs)];
+            names = ['pressure', names(subs)];
+            types = ['cell', types(subs)];
         end
 
         

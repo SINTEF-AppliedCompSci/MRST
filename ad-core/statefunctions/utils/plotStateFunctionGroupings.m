@@ -47,6 +47,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     names = depgraph.FunctionNames;
     groupnames = depgraph.GroupNames;
     impl = depgraph.Implementation;
+    labl = depgraph.Labels;
     full_names = cellfun(@(x, y) sprintf('%s.%s', x, y), groupnames(category), names, 'UniformOutput', false); 
     if  ~isempty(opt.Sources)
         src = opt.Sources;
@@ -63,6 +64,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         names = ['state'; names];
         impl = ['state'; impl];
+        labl = ['state'; labl];
         full_names = ['state'; full_names];
         C = [left, [isState; C]];
         category = [1; category+1];
@@ -110,6 +112,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     switch lower(opt.Label)
         case 'name'
             p.NodeLabel = names(keep);
+        case 'label'
+            p.NodeLabel = labl(keep);
         case 'implementation'
             p.NodeLabel = impl(keep);
         case 'all'

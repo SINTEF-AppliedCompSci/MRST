@@ -1,4 +1,5 @@
 classdef ComponentPhaseMassFractionsLV < StateFunction
+    % Component mass fractions
     properties
     end
     
@@ -6,6 +7,7 @@ classdef ComponentPhaseMassFractionsLV < StateFunction
         function gp = ComponentPhaseMassFractionsLV(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'ComponentPhaseMoleFractions'});
+            gp.label = 'X_{i,\alpha}';
         end
 
         function mass = evaluateOnDomain(prop, model, state)

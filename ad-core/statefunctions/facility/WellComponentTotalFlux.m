@@ -9,6 +9,7 @@ classdef WellComponentTotalFlux < StateFunction
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping'});
             gp = gp.dependsOn('ComponentPhaseFlux');
+            gp.label = 'Q_i';
         end
         
         function v = evaluateOnDomain(prop, model, state)

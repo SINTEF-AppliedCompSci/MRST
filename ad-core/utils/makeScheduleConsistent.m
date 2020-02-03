@@ -66,6 +66,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag, opt);
     % Perform alternate ordering of well cells
     schedule = reorderWellsPerforations(schedule, opt);
+    if ~isempty(W_all)
+        % Well may have been updated, we need a representative well to work
+        % with when setting reference depths.
+        W_all = schedule.control(1).W;
+    end
     % Fix defaulted reference depths
     schedule = setReferenceDepths(schedule, W_all, opt);
 end

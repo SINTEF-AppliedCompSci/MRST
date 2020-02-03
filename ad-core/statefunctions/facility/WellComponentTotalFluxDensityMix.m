@@ -38,17 +38,16 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
             W   = map.W;
             massFlux  = value(v');
             massFluxTotal = sum(massFlux,2);
-            
+            psum = map.perforationSum;
+
             isInjector = map.isInjector(map.perf2well);
             injection  = massFluxTotal > 0;
             production = ~injection;
             crossflow = (injection & ~isInjector) | ...
                         (production & isInjector);
-            if 1
-                replace = injection;
-            else
-                replace = crossflow;
-            end
+            wellHasXFlow = psum*crossflow;
+            replace = injection & wellHasXFlow(map.perf2well);
+
             if any(replace)
                 rhoS = prop.getEvaluatedDependencies(state, 'InjectionSurfaceDensity');
 
@@ -78,16 +77,67 @@ classdef WellComponentTotalFluxDensityMix < StateFunction
                 end
                 % Total volumetric flux in connections
                 volFlux = model.getProp(state, 'PhaseFlux');
-                volumeFluxTotal = sum(value(volFlux), 2);
-                rhoMix = crossFlowMixtureDensity(massFlux, volumeFluxTotal, injectionMass, map);
-                rhoMixPerf = rhoMix(map.perf2well, :);
+%                 volumeFluxTotal = sum(value(volFlux), 2);
+                
+                resdens = model.ReservoirModel.getProp(state, 'Density');
+                resdens = cellfun(@(x) x(map.cells), resdens, 'unif', false);
+                dens = value(resdens);
+                
+                volFluxValue = value(volFlux);
+                injVol = max(volFluxValue, 2);
+                surfaceDens = psum*(dens.*injVol);
+                surfaceDens = surfaceDens./(psum*injVol);
+                
+                vi = zeros(nw, ncomp);
+                totvol = zeros(nw, nph);
+                override = 0;
+                for ph = 1:ph
+                   wellinj = phaseCompi(:, ph).*surfaceMassRates(:, ph).*[surfaceComposition{:, ph}];
+                   override = override - wellinj;
+                   wellinj = -max(wellinj, 0); % Into wellbore
+                   for c = 1:ncomp
 
+                        mi = phase_flux{c, ph};
+                        if isempty(mi)
+                            continue
+                        end
+                        qm = value(min(mi, 0)); % Into wellbore
+                        resprod = psum*(qm./dens(:, ph));
+                        % Volume of each component in phase (mass in phase
+                        % divided by volume)
+                        added_volume = resprod + wellinj(:, c)./surfaceDens(:, ph);
+                        vi(:, c) = vi(:, c) + added_volume;
+                        totvol(:, ph) = totvol(:, ph) + added_volume;
+                    end
+                end
+                ci = bsxfun(@rdivide, vi, sum(vi, 2));
+                phasecomp = bsxfun(@rdivide, totvol, sum(totvol, 2));
+                bad = any(isnan(ci), 2);
+                if any(bad)
+                    % Producers that are only injecting - we just need some
+                    % value because Newton will hopefully fix this for us.
+                    override = abs(override);
+                    override = max(override, 1e-12);
+                    override = bsxfun(@rdivide, override, sum(override, 2));
+                    ci(bad, :) = override(bad, :);
+                    phasecomp(bad, :) = override(bad, :); % Just guess...
+                end
                 vt = zeros(sum(replace), 1);
                 for i = 1:nph
                     vt = vt + volFlux{i}(replace);
                 end
+                
+                volFluxTotal = 0;
+                for i = 1:nph
+                    volFluxTotal = volFluxTotal + volFlux{i};
+                end
+                massFluxTotal = 0;
+                for i = 1:nph
+                    massFluxTotal = massFluxTotal + phasecomp(map.perf2well, i).*volFluxTotal.*resdens{i};
+                end
+                ci_perf = ci(map.perf2well, :);
                 for i = 1:ncomp
-                    v{i}(replace) = vt.*rhoMixPerf(replace, i);
+                    v{i}(replace) = massFluxTotal(replace).*ci_perf(replace, i);
                 end
             end
         end

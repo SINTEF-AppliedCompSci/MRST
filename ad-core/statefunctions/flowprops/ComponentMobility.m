@@ -1,5 +1,5 @@
 classdef ComponentMobility < StateFunction & ComponentProperty
-    % Class implementing the mobility for a specific component
+    % Class implementing the mobility for each component and phase
     properties
 
     end
@@ -8,6 +8,7 @@ classdef ComponentMobility < StateFunction & ComponentProperty
         function gp = ComponentMobility(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp@ComponentProperty(model);
+            gp.label = '\lambda_{i, \alpha}';
         end
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;

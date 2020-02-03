@@ -1,4 +1,6 @@
 classdef DensityDerivedShrinkageFactors < StateFunction
+    % Simple "shrinkage factors" which are just phase densities divided by
+    % surface densities. Useful for models that provide density directly.
     properties
     end
     
@@ -6,6 +8,7 @@ classdef DensityDerivedShrinkageFactors < StateFunction
         function gp = DensityDerivedShrinkageFactors(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'Density'});
+            gp.label = 'b_\alpha';
         end
 
         function b = evaluateOnDomain(prop, model, state)

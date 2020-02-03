@@ -1,4 +1,5 @@
 classdef BlackOilShrinkageFactors < StateFunction
+    % Shrinkage factors for black-oil
     properties
         useSaturatedFlag = true;
         disgas = false;
@@ -21,6 +22,7 @@ classdef BlackOilShrinkageFactors < StateFunction
                 end
             end
             gp = gp.dependsOn({'PhasePressures'});
+            gp.label = 'b_\alpha';
         end
 
         function b = evaluateOnDomain(prop, model, state)

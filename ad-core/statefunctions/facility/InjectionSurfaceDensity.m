@@ -8,6 +8,7 @@ classdef InjectionSurfaceDensity < StateFunction
         function gp = InjectionSurfaceDensity(varargin)
             gp@StateFunction(varargin{:});
             gp.dependsOn('FacilityWellMapping');
+            gp.label = '\rho_\alpha^{w}';
         end
         function rhoS = evaluateOnDomain(prop, facility, state)
             model = facility.ReservoirModel;

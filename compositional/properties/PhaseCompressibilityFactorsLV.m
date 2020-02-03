@@ -1,4 +1,6 @@
 classdef PhaseCompressibilityFactorsLV < StateFunction
+    % Compressibility factors for liquid-vapor system (multiplier to ideal
+    % gas law)
     properties
         useCompactEvaluation = true;
     end
@@ -8,6 +10,7 @@ classdef PhaseCompressibilityFactorsLV < StateFunction
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions'});
             gp = gp.dependsOn({'pressure'}, 'state');
+            gp.label = 'Z_\alpha';
         end
 
         function v = evaluateOnDomain(prop, model, state)

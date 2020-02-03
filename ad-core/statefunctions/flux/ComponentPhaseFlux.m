@@ -1,4 +1,5 @@
 classdef ComponentPhaseFlux < StateFunction
+    % Flux of each component, in each phase
     properties (Access = protected)
         mobility_name; % Name of state function where component mobility comes from
     end
@@ -11,6 +12,7 @@ classdef ComponentPhaseFlux < StateFunction
             end
             cf.mobility_name = mob_name;
             cf = cf.dependsOn({'PermeabilityPotentialGradient', cf.mobility_name});
+            cf.label = 'V_{i,\alpha}';
         end
 
         function v = evaluateOnDomain(prop, model, state)

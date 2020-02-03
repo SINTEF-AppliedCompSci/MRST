@@ -1,4 +1,5 @@
 classdef CompositionalDensity < StateFunction
+    % Density where the liquid and vapor phases are predicted by a EOS
     properties
         useCompactEvaluation = true;
     end
@@ -8,6 +9,7 @@ classdef CompositionalDensity < StateFunction
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
             gp = gp.dependsOn({'pressure', 'temperature'}, 'state');
+            gp.label = '\rho_\alpha';
         end
 
         function rho = evaluateOnDomain(prop, model, state)

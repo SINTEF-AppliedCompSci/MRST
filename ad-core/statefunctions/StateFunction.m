@@ -6,6 +6,7 @@ classdef StateFunction
         dependencies = {};
         externals = [];
         structName
+        label
     end
 
     methods

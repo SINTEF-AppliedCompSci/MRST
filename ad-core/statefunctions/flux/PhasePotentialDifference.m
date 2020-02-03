@@ -1,4 +1,7 @@
 classdef PhasePotentialDifference < StateFunction
+    % The potential difference over each interface, for each phase. This is
+    % essentially the phase gradient plus any contribution from gravity
+    % acting on the averaged phase density.
     properties
 
     end
@@ -10,6 +13,7 @@ classdef PhasePotentialDifference < StateFunction
             if norm(model.gravity) > 0
                 gp = gp.dependsOn('GravityPotentialDifference');
             end
+            gp.label = '\nabla p_\alpha + \rho_\alpha g \Delta z';
         end
         function v = evaluateOnDomain(prop, model, state)
             dp = prop.getEvaluatedDependencies(state, 'PressureGradient');

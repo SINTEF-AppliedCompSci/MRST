@@ -1,4 +1,6 @@
 classdef PhasePressures < StateFunction
+    % Pressure for each phase. Will always return one value for each phase,
+    % even if all phases have the same pressure.
     properties
     end
     
@@ -7,6 +9,7 @@ classdef PhasePressures < StateFunction
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'CapillaryPressure'}, 'FlowPropertyFunctions');
             gp = gp.dependsOn({'pressure'}, 'state');
+            gp.label = 'p_\alpha';
         end
         
         function p_phase = evaluateOnDomain(prop, model, state)

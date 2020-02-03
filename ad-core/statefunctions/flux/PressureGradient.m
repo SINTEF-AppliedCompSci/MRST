@@ -1,4 +1,5 @@
 classdef PressureGradient < StateFunction
+    % Gradient of phase pressures for internal faces
     properties
 
     end
@@ -8,6 +9,7 @@ classdef PressureGradient < StateFunction
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn('PhasePressures', 'PVTPropertyFunctions');
             gp = gp.dependsOn('pressure', 'state');
+            gp.label = '\nabla p_\alpha';
         end
         function dp = evaluateOnDomain(prop, model, state)
             act = model.getActivePhases();

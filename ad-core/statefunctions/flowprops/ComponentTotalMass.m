@@ -1,4 +1,5 @@
 classdef ComponentTotalMass <  StateFunction & ComponentProperty
+    % The total mass of each component, given per cell
     properties
 
     end
@@ -7,7 +8,9 @@ classdef ComponentTotalMass <  StateFunction & ComponentProperty
         function gp = ComponentTotalMass(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn('ComponentPhaseMass');
+            gp.label = 'M_i';
         end
+
         function mass = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;
             nph = model.getNumberOfPhases;

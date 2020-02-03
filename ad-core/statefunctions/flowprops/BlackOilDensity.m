@@ -19,6 +19,7 @@ classdef BlackOilDensity < StateFunction
                 end
             end
             gp = gp.dependsOn({'ShrinkageFactors'});
+            gp.label = '\rho_\alpha';
         end
         function rho = evaluateOnDomain(prop, model, state)
             rhoS = model.getSurfaceDensities();

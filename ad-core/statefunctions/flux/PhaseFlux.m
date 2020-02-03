@@ -1,4 +1,6 @@
 classdef PhaseFlux < StateFunction
+    % Phase flux for each phase. The volumetric flux associated with each
+    % internal interface.
     properties
 
     end
@@ -7,6 +9,7 @@ classdef PhaseFlux < StateFunction
         function fm = PhaseFlux(model)
             fm@StateFunction(model);
             fm = fm.dependsOn({'FaceMobility', 'PermeabilityPotentialGradient'});
+            fm.label = 'v_\alpha';
         end
 
         
