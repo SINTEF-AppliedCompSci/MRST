@@ -18,8 +18,17 @@ eta = 1/3;
 dimcase = 2;
 switch dimcase
   case 2
-    nx = 2; ny = 2;
-    G = cartGrid([nx, ny]);
+    ny = 30;
+    dx = 1e-3;
+    dy = [dx; ones(ny, 1)];
+    y = [0; cumsum(dy)];
+    y = 1/max(y)*y;
+    dx = [dx; ones(ny, 1); dx];
+    x = [0; cumsum(dx)];
+    x = 1/max(x)*x;
+    G = tensorGrid(x, y);
+    nx = 30; ny = 30;
+    G = cartGrid([nx, ny], [1, 1]);
   case 3
     nx = 5; ny = 5; nz = 5;
     G = cartGrid([nx, ny, nz]);
@@ -181,9 +190,7 @@ prod = prod.setup();
 gradcell_T = SparseTensor();
 gradcell_T = gradcell_T.setFromTensorProd(greduced, prod);
 
-
 % some test gradnodeface_T and gradcell_T
-
 dotest = false;
 if dotest
     fno = nodefacetbl.faces;
@@ -191,7 +198,6 @@ if dotest
     facetcent = G.faces.centroids(fno, :) + eta*(G.nodes.coords(nno, :) - ...
                                                  G.faces.centroids(fno, :));
     facetcent = reshape(facetcent', [], 1);
-
 
     g1 = gradnodeface_T.getMatrix()*facetcent;
 
@@ -203,7 +209,6 @@ if dotest
     g = g1 + g2;
     % g should correspond to identity in cellnodecolrowtbl
 end
-
 
 
 %% Construction of the divergence operator
@@ -464,13 +469,13 @@ prod = prod.setup();
 C_T = SparseTensor();
 C_T = C_T.setFromTensorProd(C, prod);
 
-Cgradnodeface_T = C_T*gradnodeface_T;
+Cgradnodeface_T = cornerfix_T*C_T*gradnodeface_T;
 % Cgradnodeface_T = cornerfix_T*gradnodeface_T;
 transaverCgradnodeface_T = transnodeaverage_T*Cgradnodeface_T;
 
 combCgradnodeface_T = Cgradnodeface_T + transaverCgradnodeface_T;
 
-Cgradcell_T = C_T*gradcell_T;
+Cgradcell_T = cornerfix_T*C_T*gradcell_T;
 % Cgradcell_T = gradcell_T;
 transaverCgradcell_T = transnodeaverage_T*Cgradcell_T;
 
