@@ -312,8 +312,17 @@ trans_T = trans_T.setFromTensorProd(ones(col2row2tbl.num, 1), prod);
 % transnodeaverage_T : cellnodecolrowtbl -> nodecolrowtbl
 %
 % (later this operator is dispatched to cells)
-nnodes = tblmap(ones(cellnodetbl.num, 1), cellnodetbl, nodetbl, {'nodes'});
-coef = tblmap(1./nnodes, nodetbl, cellnodetbl, {'nodes'});
+%
+
+% Compute number of cell per node
+[~, indstruct] = crossTable(cellnodetbl, nodetbl, {'nodes'});
+nnodes = tblmap1to2(ones(cellnodetbl.num, 1), indstruct);
+coef   = tblmap2to1(1./nnodes, indstruct);
+
+assert(dimcase == 2)
+% we eliminitate the places (at the boundaries) where the local reconstruction
+% is ill-posed
+coef(coef == 1) = 0;
 
 prod = TensorProd();
 prod.tbl1 = cellnodetbl;
