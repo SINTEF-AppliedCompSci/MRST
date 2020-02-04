@@ -322,6 +322,9 @@ coef   = tblmap2to1(1./nnodes, indstruct);
 assert(dimcase == 2)
 % we eliminitate the places (at the boundaries) where the local reconstruction
 % is ill-posed
+cornernodetbl.nodes = find(nnodes == 1);
+cornernodetbl.num = numel(cornernodetbl.nodes);
+
 coef(coef == 1) = 0;
 
 prod = TensorProd();
@@ -352,6 +355,27 @@ celldispatch_T = SparseTensor();
 celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num), prod);
 
 transnodeaverage_T = celldispatch_T*transnodeaverage_T;
+
+%% we need to multiply by 2 for the corners
+assert(dimcase == 2);
+cornercellnodecolrowtbl = crossTable(cornernodetbl, cellnodecolrowtbl, ...
+                                     {'nodes'});
+
+ind = tblmap(ones(cornernodetbl.num, 1), cornernodetbl, cellnodecolrowtbl, ...
+             {'nodes'});
+
+c = ones(cellnodecolrowtbl.num, 1);
+c(logical(ind)) = 2;
+
+prod = TensorProd();
+prod.tbl1 = cellnodecolrowtbl;
+prod.tbl2 = cellnodecolrowtbl;
+prod.mergefds = {'cells', 'nodes', 'coldim', 'rowdim'};
+prod.prodtbl = cellnodecolrowtbl;
+prod = prod.setup();
+
+cornerfix_T = SparseTensor();
+cornerfix_T = cornerfix_T.setFromTensorProd(c, prod);
 
 % some test for transnodeaverage_T
 dotest = false;
