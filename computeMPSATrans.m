@@ -391,119 +391,62 @@ end
 %
 % C_T : cellnodecolrowtbl -> cellnodecolrowtbl
 %
-dim = G.griddim;
-vdim = dim*(dim + 1)/2;
-asymdim = dim*dim - vdim;
-voigttbl.voigt = (1 : vdim)';
-voigttbl.num = vdim;
 
-switch dim
-  case 2
-    voigttbl.coldim = [1; 2; 2];
-    voigttbl.rowdim = [1; 2; 1];
+mu = 1;
+lambda = 0;
+Cvoigt = mu*[[2 0 0]; ...
+             [0 2 0]; ...
+             [0 0 1]];
+Z = [0; 0];
+Cvoigt = [[lambda*ones(2, 2), Z]; ...
+          [Z', 0] ...
+         ] + Cvoigt;
+Casym = mu*1;
+
+n1 = size(Cvoigt, 1);
+n2 = size(Casym, 1);
+
+Z = zeros(n1, n2);
+
+C = [[Cvoigt, Z];...
+     [Z', Casym];
+    ];
+
+% convert from colrow to voigt (including asymetric part)
+% follows indexing of colrowtbl
+M = [[1  0 0 0]; ...
+     [0  0 0 1]; ...
+     [0  1 1 0]; ...
+     [0 -1 1 0] ...
+    ];
+
+% We should add an extra multiplication for the coef 2 on diagonal for Voigt.
+V = diag([1; 1; 0.5; 0.5]);
+
+C = M'*V*C*M;
+
+fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
+       {'coldim', {'coldim1', 'coldim2'}}};
+col2row2tbl = crossTable(colrowtbl, colrowtbl, {}, 'crossextend', fds);
+
+C = reshape(C', [], 1);
+
+dotest = true;
+if dotest
+    prod = TensorProd();
+    prod.tbl1 = col2row2tbl;
+    prod.tbl2 = colrowtbl;
+    prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
+    prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
+    prod.reducefds = {'coldim2', 'rowdim2'};
+    prod.prodtbl = colrowtbl;
+    prod = prod.setup();
+
+    C_T = SparseTensor();
+    C_T = C_T.setFromTensorProd(C, prod);
     
-    colrowvoigttbl.coldim = colrowtbl.coldim;
-    colrowvoigttbl.rowdim = colrowtbl.rowdim;
-    colrowvoigttbl.voigt = [1; 3; 3; 2];
-    colrowvoigttbl.num    = colrowtbl.num;
-
-    voigt = [1; 0.5; 0.5; 1];
-    
-    colrowasymtbl.asym = [1; 1];
-    colrowasymtbl.coldim = [1; 2];    
-    colrowasymtbl.rowdim = [2; 1];
-    colrowasymtbl.num = numel(colrowasymtbl.asym);
-    
-    asym = [1; -1];
-    
-  case 3
-    error('not implemented yet');
-    voigttbl.coldim = [1; 2; 3; 3; 3; 2];
-    voigttbl.rowdim = [1; 2; 3; 2; 1; 1];
-    voigt = [1; 6; 5; 6; 2; 4; 5; 4; 3];
-end
-
-clear voigttbl
-voigttbl.voigt = (1 : vdim)';
-voigttbl.num = vdim;
-
-voigt2tbl = crossTable(voigttbl, voigttbl, {}, 'crossextend', {{'voigt', ...
-                    {'voigt1', 'voigt2'}}});
-
-col2row2voigt2tbl = crossTable(colrowvoigttbl, voigt2tbl, {{'voigt', ...
-                    'voigt1'}});
-fds = {{'voigt', 'voigt1'}, {'coldim', 'coldim1'}, {'rowdim', 'rowdim1'}};
-col2row2voigt2tbl = replacefield(col2row2voigt2tbl, fds);
-
-col2row2voigt2tbl = crossTable(col2row2voigt2tbl, colrowvoigttbl, {{'voigt2', 'voigt'}} );
-fds = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
-col2row2voigt2tbl = replacefield(col2row2voigt2tbl, fds);
-
-
-col2row2tbl = rmfield(col2row2voigt2tbl, {'voigt1', 'voigt2'});
-% note that col2row2voigt2tbl and col2row2tbl correspond to the same indexing
-
-C = [9 ; 3 ; 2 ; 3 ; 10 ; 1 ; 2 ; 1 ; 11] ;
-% C = [5; 0; 0 ; ...
-     % 0; 5; 0; ...
-     % 0; 0; 1]  ;
-C = tblmap(C, voigt2tbl, col2row2voigt2tbl, {'voigt1', 'voigt2'});
-
-fds = {{'voigt', 'voigt1'}, {'coldim', 'coldim1'}, {'rowdim', 'rowdim1'}};
-voigt1 = tblmap(voigt, colrowvoigttbl, col2row2voigt2tbl, fds);
-fds = {{'voigt', 'voigt2'}, {'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
-voigt2 = tblmap(voigt, colrowvoigttbl, col2row2voigt2tbl, fds);
-
-C = voigt1.*C.*voigt2;
-
-% note necessary in fact because col2row2voigt2tbl and col2row2tbl correspond
-% to the same indexing
-C = tblmap(C, col2row2voigt2tbl, col2row2tbl, {'coldim1', 'rowdim1', 'coldim2', ...
-                    'rowdim2'});
-
-colrowtbl = addLocInd(colrowtbl, 'colrowdim');
-
-ind1 = tblmap(colrowtbl.colrowdim, colrowtbl, col2row2tbl, {{'coldim', 'coldim1'}, ...
-                    {'rowdim', 'rowdim1'}});
-ind2 = tblmap(colrowtbl.colrowdim, colrowtbl, col2row2tbl, {{'coldim', 'coldim2'}, ...
-                    {'rowdim', 'rowdim2'}});
-
-n = colrowtbl.num;
-Cmat = sparse(ind1, ind2, C, n, n);
-Cmat = full(Cmat);
-
-asymtbl.asym = (1 : asymdim)';
-asymtbl.num = asymdim;
-
-asym2tbl = crossTable(asymtbl, asymtbl, {}, 'crossextend', {{'asym', ...
-                    {'asym1', 'asym2'}}});
-
-col2row2asym2tbl = crossTable(colrowasymtbl, asym2tbl, {{'asym', ...
-                    'asym1'}});
-fds = {{'asym', 'asym1'}, {'coldim', 'coldim1'}, {'rowdim', 'rowdim1'}};
-col2row2asym2tbl = replacefield(col2row2asym2tbl, fds);
-
-col2row2asym2tbl = crossTable(col2row2asym2tbl, colrowasymtbl, {{'asym2', 'asym'}} );
-fds = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
-col2row2asym2tbl = replacefield(col2row2asym2tbl, fds);
-
-Casym = [1];
-Casym = tblmap(Casym, asym2tbl, col2row2asym2tbl, {'asym1', 'asym2'});
-
-fds = {{'asym', 'asym1'}, {'coldim', 'coldim1'}, {'rowdim', 'rowdim1'}};
-asym1 = tblmap(asym, colrowasymtbl, col2row2asym2tbl, fds);
-fds = {{'asym', 'asym2'}, {'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
-asym2 = tblmap(asym, colrowasymtbl, col2row2asym2tbl, fds);
-
-Casym = asym1.*Casym.*asym2;
-
-fds = {'coldim1', 'rowdim1', 'coldim2', 'rowdim2'};
-Casym = tblmap(Casym, col2row2asym2tbl, col2row2tbl, fds);
-Casymmat = sparse(ind1, ind2, Casym, n, n);
-Casymmat = full(Casymmat);
-
-% C is in col2row2tbl
-C = Cmat + Casymmat;
+    printTensor(C_T); 
+end 
 
 [cellnodecol2row2tbl, indstruct] = crossTable(cellnodetbl, col2row2tbl, {});
 C = tbldispatch2(C, indstruct);
@@ -521,14 +464,14 @@ prod = prod.setup();
 C_T = SparseTensor();
 C_T = C_T.setFromTensorProd(C, prod);
 
-% Cgradnodeface_T = C_T*gradnodeface_T;
-Cgradnodeface_T = gradnodeface_T;
+Cgradnodeface_T = C_T*gradnodeface_T;
+% Cgradnodeface_T = cornerfix_T*gradnodeface_T;
 transaverCgradnodeface_T = transnodeaverage_T*Cgradnodeface_T;
 
 combCgradnodeface_T = Cgradnodeface_T + transaverCgradnodeface_T;
 
-% Cgradcell_T = C_T*gradcell_T;
-Cgradcell_T = gradcell_T;
+Cgradcell_T = C_T*gradcell_T;
+% Cgradcell_T = gradcell_T;
 transaverCgradcell_T = transnodeaverage_T*Cgradcell_T;
 
 combCgradcell_T = Cgradcell_T + transaverCgradcell_T;
@@ -538,92 +481,135 @@ A12 = divnodeface_T*combCgradcell_T;
 A21 = divcell_T*combCgradnodeface_T;
 A22 = divcell_T*combCgradcell_T; 
 
-dotest = true;
+dotest = false;
 if dotest
     A11mat = A11.getMatrix()
     [nodes, sz] = rlencode(nodefacecoltbl.nodes, 1);
     invA11 = bi(A11mat, sz);
 end
 
-return
-
-%% Setup for Dirichlet condition
-%
-% Setup projection tensor P_t : nodefacecoltbl -> nodeintfacecoltbl
-%
-nodeintfacecoltbl = crossTable(intfacetbl, nodefacecoltbl, {'faces'});
-fds = {'nodes', 'faces', 'coldim'};
-nodeintfacecoltbl = sortTable(nodeintfacecoltbl, fds);
-
-prod = TensorProd();
-prod.tbl1 = intfacetbl;
-prod.tbl2 = nodeintfacecoltbl;
-prod.mergefds = {'faces'};
-prod.prodtbl = nodefacecoltbl;
-prod = prod.setup();
-
-P_T = SparseTensor();
-P_T = P_T.setFromTensorProd(ones(intfacetbl.num, 1), prod);
-
-P_Tt = P_T.transpose();
-
-A11 = P_Tt*A11*P_T;
-A12 = P_Tt*A12;
-A21 = A21*P_T;
-
-% convert Aij to matrices;
-
 A11 = A11.getMatrix();
 A12 = A12.getMatrix();
 A21 = A21.getMatrix();
 A22 = A22.getMatrix();
 
-% get the block structure
-% We count the number of degrees of freedom that are connected to the same
-% node.
-[nodes, sz] = rlencode(nodeintfacecoltbl.nodes, 1);
 
-invA11 = bi(A11, sz);
+%% Boundary conditions
 
-A = A22 - A21*invA11*A12;
+% One linear form per Dirichlet condition
 
-%% solve a problem
+extfacetbl.faces = find(G.faces.centroids(:, 2) == 0);
+extfacetbl.num = numel(extfacetbl.faces);
 
-% We setup a source-term
-switch dimcase
-  case 2
-    indcell = floor(nx/2) + nx*floor((ny - 1)/2);
-    force = [0; 1]; % force in upward direction
-  case 3
-    indcell = floor(nx/2 + ny/2*nx + nz/2*nx*ny);
-    force = [0; 0; 1]; % force in upward direction    
+extnodefacetbl = crossTable(nodefacetbl, extfacetbl, {'faces'});
+
+prod = TensorProd();
+prod.tbl1 = coltbl;
+prod.tbl2 = extnodefacetbl;
+prod.prodtbl = nodefacecoltbl;
+prod = prod.setup();
+
+d = [0; 1];
+D_T = SparseTensor();
+D_T = D_T.setFromTensorProd(d, prod);
+Dmat{1} = D_T.getMatrix();
+
+clear extfacetbl
+extfacetbl.faces = find(G.faces.centroids(:, 1) == 0);
+extfacetbl.num = numel(extfacetbl.faces);
+
+extnodefacetbl = crossTable(nodefacetbl, extfacetbl, {'faces'});
+
+prod = TensorProd();
+prod.tbl1 = coltbl;
+prod.tbl2 = extnodefacetbl;
+prod.prodtbl = nodefacecoltbl;
+prod = prod.setup();
+
+d = [1; 0];
+D_T = SparseTensor();
+D_T = D_T.setFromTensorProd(d, prod);
+Dmat{2} = D_T.getMatrix();
+
+D = [Dmat{1}, Dmat{2}];
+
+% Setup force at top, in opposite normal direction
+y = G.faces.centroids(:, 2);
+ymax = max(y);
+extfacetbl.faces = find(y == ymax);
+extfacetbl.num = numel(extfacetbl.faces);
+
+extnodefacetbl = crossTable(nodefacetbl, extfacetbl, {'faces'});
+extnodefacecoltbl = crossTable(extnodefacetbl, coltbl, {});
+extFacetNormals = tblmap(facetNormals, cellnodefacecoltbl, extnodefacecoltbl, ...
+                         {'faces', 'nodes', 'coldim'});
+
+force = tblmap(-extFacetNormals, extnodefacecoltbl, nodefacecoltbl, {'nodes', ...
+                    'faces', 'coldim'});
+
+dosourceterm = false;
+if dosourceterm
+    % We setup a source-term
+    switch dimcase
+      case 2
+        indcell = floor(nx/2) + nx*floor((ny - 1)/2);
+        force = [0; 1]; % force in upward direction
+      case 3
+        indcell = floor(nx/2 + ny/2*nx + nz/2*nx*ny);
+        force = [0; 0; 1]; % force in upward direction    
+    end
+
+    sourcetbl.cells = indcell;
+    sourcetbl.num = numel(indcell);
+
+    sourcetbl = crossTable(sourcetbl, coltbl, {});
+
+    force = tblmap(force, coltbl, sourcetbl, {'coldim'});
+    force = tblmap(force, sourcetbl, cellcoltbl, {'cells', 'coldim'});
 end
 
-sourcetbl.cells = indcell;
-sourcetbl.num = numel(indcell);
+n2 = size(A22, 1);
+n3 = size(D, 2);
+Z1 = zeros(n3, n2);
+Z2 = zeros(n3, n3);
+A = [[A11, A12, -D]; ...
+     [A21, A22, Z1']; ...
+     [D' , Z1 , Z2]];
 
-sourcetbl = crossTable(sourcetbl, coltbl, {});
-
-force = tblmap(force, coltbl, sourcetbl, {'coldim'});
-force = tblmap(force, sourcetbl, cellcoltbl, {'cells', 'coldim'});
+n1 = size(A11, 1);
+Z1 = zeros(n2, 1);
+Z2 = zeros(n3, 1);
+force = [force; Z1; Z2];
 
 u = A\force;
 
+u = u(n1 + 1 : n1 + n2); 
 u = reshape(u, dimcase, [])';
 
-return
+% get the block structure
+% We count the number of degrees of freedom that are connected to the same
+% node.
+% [nodes, sz] = rlencode(nodeintfacecoltbl.nodes, 1);
+% 
+% invA11 = bi(A11, sz);
+
+% A = A22 - A21*invA11*A12;
+
+% u = A\force;
+
+% u = reshape(u, dimcase, [])';
+
+% return
 
 %% plotting
+% 
 
 close all
 figure
-plotGrid(G)
-plotGrid(G, indcell, 'facecolor', 'red');
-title('source cell')
-
-figure
 plotCellData(G, u(:, 1));
 title('displacement - x direction')
+colorbar
 figure
 plotCellData(G, u(:, 2));
 title('displacement - y direction')
+colorbar
