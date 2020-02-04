@@ -43,7 +43,12 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
                     if scaleOG
                         pc = pc.setSurfaceTension(jf{3}, 'og');
                     end
-                    pc = pc.setJFunctionConstants(jf{4}, jf{5}, jf{6});
+                    if isfield(deck, 'PCUNIT')
+                        u = deck.PCUNIT;
+                    else
+                        u = 1;
+                    end
+                    pc = pc.setJFunctionConstants(jf{4}, jf{5}, jf{6}, u);
                 end
             end
             props = props.setStateFunction('CapillaryPressure', pc);

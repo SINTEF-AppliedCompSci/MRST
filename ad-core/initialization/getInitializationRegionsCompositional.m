@@ -35,54 +35,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nPh = sum(actPh);
 
     rho = cell(1, nPh);
-    PC = cell(1, nPh);
-    pc_sign = ones(1, nPh);
-    
-    
-    
+
     f = model.fluid;
     [satnum, pvtnum] = deal(1);
     if isfield(model.rock, 'regions')
-        if isfield(model.rock.regions, 'saturation')
-            satnum = model.rock.regions.saturation(opt.cells);
-        end
         if isfield(model.rock.regions, 'pvt')
             pvtnum = model.rock.regions.pvt(opt.cells);
         end
-    end
-    if model.water
-        ix = model.getPhaseIndex('W');
-        
-        bW = getFunction(f, 'bW', pvtnum);
-        rho{ix} = @(p, z) bW(p).*f.rhoWS(pvtnum);
-        pc_sign(ix) = -1;
-        if isfield(model.fluid, 'pcOW')
-            pcOW = getFunction(f, 'pcOW', satnum);
-            PC{ix} = @(S) pcOW(S);
-        else
-            PC{ix} = @(S) 0*S;
+        if isfield(model.rock.regions, 'saturation')
+            satnum = model.rock.regions.saturation(opt.cells);
         end
     end
-    
+    [pc, pc_sign, pc_scale] = getEquilPC(model, satnum, opt.cells);
+    if model.water
+        ix = model.getPhaseIndex('W');
+        bW = getFunction(f, 'bW', pvtnum);
+        rho{ix} = @(p, z) bW(p).*f.rhoWS(pvtnum);
+    end
     if model.oil
         ix = model.getPhaseIndex('O');
         rho{ix} = @(p, z) getDensity(model, p, T(p, z), z, x(p, z), true);
-        PC{ix} = @(S) 0*S;
     end
-    
     if model.gas
         ix = model.getPhaseIndex('G');
         rho{ix} = @(p, z) getDensity(model, p, T(p, z), z, y(p, z), false);
-        pc_sign(ix) = 1;
-        if isfield(model.fluid, 'pcOG')
-            pcOG = getFunction(f, 'pcOG', satnum);
-            PC{ix} = @(S) pcOG(S);
-        elseif ~model.oil && isfield(model.fluid, 'pcWG')
-            pcWG = getFunction(f, 'pcWG', satnum);
-            PC{ix} = @(S) pcWG(S);
-        else
-            PC{ix} = @(S) 0*S;
-        end
     end
     ref_index = model.getPhaseIndex('O');
     
@@ -93,9 +69,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         'cells',            opt.cells, ...
         'reference_index',  ref_index, ...
         'pc_sign',          pc_sign, ...
+        'pc_scale',         pc_scale, ...
         's_min',            s_min, ...
         's_max',            s_max, ...
-        'pc_functions',     PC, ...
+        'pc_functions',     pc, ...
         args{:});
 end
 
