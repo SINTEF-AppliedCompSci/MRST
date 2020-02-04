@@ -304,6 +304,9 @@ methods
         %   model - Class instance. If returned, this model is ready for
         %           evaluation of state functions. It may have been changed
         %           in the process.
+        dispif(model.verbose, ...
+            'Initializing StateFunctionGroupings attached to class of type %s\n',...
+            class(model));
     end
 
     function schedule = validateSchedule(model, schedule)

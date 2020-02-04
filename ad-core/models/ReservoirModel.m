@@ -199,13 +199,19 @@ methods
     
     function model = setupStateFunctionGroupings(model)
         if isempty(model.FlowPropertyFunctions)
+            dispif(model.verbose, 'Setting up FlowPropertyFunctions...');
             model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
+            dispif(model.verbose, ' Ok.\n');
         end
         if isempty(model.PVTPropertyFunctions)
+            dispif(model.verbose, 'Setting up PVTPropertyFunctions...');
             model.PVTPropertyFunctions = PVTPropertyFunctions(model); %#ok
+            dispif(model.verbose, ' Ok.\n');
         end
         if isempty(model.FluxDiscretization)
+            dispif(model.verbose, 'Setting up FluxDiscretization...');
             model.FluxDiscretization = FluxDiscretization(model); %#ok
+            dispif(model.verbose, ' Ok.\n');
         end
     end
     
