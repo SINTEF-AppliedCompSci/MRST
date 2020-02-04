@@ -427,7 +427,13 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 
         function model = validateModel(model, varargin)
             model = validateModel@ReservoirModel(model, varargin{:});
-            
+            % Use matching AD backends for EOS and for flow model
+            model.EOSModel.AutoDiffBackend = model.AutoDiffBackend;
+        end
+        
+        function model = setupStateFunctionGroupings(model)
+            model = setupStateFunctionGroupings@ReservoirModel(model);
+            % Compositional specializations
             pvtprops = model.PVTPropertyFunctions;
             pvtprops = pvtprops.setStateFunction('ShrinkageFactors', DensityDerivedShrinkageFactors(model));
             pvtprops = pvtprops.setStateFunction('Density', CompositionalDensity(model));
@@ -441,8 +447,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             pvtprops = pvtprops.setStateFunction('Viscosity', CompositionalViscosityLV(model));
 
             model.PVTPropertyFunctions = pvtprops;
-            % Use matching AD backends for EOS and for flow model
-            model.EOSModel.AutoDiffBackend = model.AutoDiffBackend;
         end
     end
     

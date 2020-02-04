@@ -57,18 +57,6 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function model = validateModel(model, varargin)
-        % Validate model.
-        %
-        % SEE ALSO:
-        %   :meth:`ad_core.models.PhysicalModel.validateModel`
-
-        if isempty(model.FlowPropertyFunctions)
-            model.FlowPropertyFunctions = FlowPropertyFunctions(model);
-        end
-        model = validateModel@ReservoirModel(model, varargin{:});
-    end
-    % --------------------------------------------------------------------%
     function [fn, index] = getVariableField(model, name, varargin)
         switch(lower(name))
             case {'rs', 'rv'}
