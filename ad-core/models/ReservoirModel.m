@@ -184,13 +184,20 @@ methods
 
         if isempty(model.FacilityModel)
             model.FacilityModel = FacilityModel(model); %#ok
-        else
-            model.FacilityModel.ReservoirModel = model;
         end
 
         assert(~isempty(model.operators),...
             'Operators must be set up before simulation. See model.setupOperators for more details.');
-        
+
+        if ~isempty(model.AquiferModel)
+            model.AquiferModel = model.AquiferModel.validateModel(model);
+        end
+        % Next, validate the facility
+        model.FacilityModel = model.FacilityModel.setReservoirModel(model);
+        model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
+    end
+    
+    function model = setupStateFunctionGroupings(model)
         if isempty(model.FlowPropertyFunctions)
             model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
         end
@@ -200,15 +207,8 @@ methods
         if isempty(model.FluxDiscretization)
             model.FluxDiscretization = FluxDiscretization(model); %#ok
         end
-        
-        if ~isempty(model.AquiferModel)
-            model.AquiferModel = model.AquiferModel.validateModel(model);
-        end
-        % Next, validate the facility
-        model.FacilityModel = model.FacilityModel.setReservoirModel(model);
-        model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
     end
-
+    
     function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin)
         if iteration == 1 && ~isempty(model.FacilityNonLinearSolver)
             nls = model.FacilityNonLinearSolver;

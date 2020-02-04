@@ -284,7 +284,26 @@ methods
         % Base class is always suitable, but we call the AD backend and
         % allow it to modify any discrete operators (if applicable)
         model = model.AutoDiffBackend.updateDiscreteOperators(model);
-        return
+        model = model.setupStateFunctionGroupings();
+    end
+    
+    function model = setupStateFunctionGroupings(model)
+        % Initialize state functions and corresponding groups
+        %
+        % SYNOPSIS:
+        %   model = model.validateModel();
+        %   model = model.validateModel(forces);
+        %
+        % DESCRIPTION:
+        %   Ensure that all state functions have been set up.
+        %
+        % PARAMETERS:
+        %   model  - Class instance to be validated.
+        %
+        % RETURNS:
+        %   model - Class instance. If returned, this model is ready for
+        %           evaluation of state functions. It may have been changed
+        %           in the process.
     end
 
     function schedule = validateSchedule(model, schedule)
