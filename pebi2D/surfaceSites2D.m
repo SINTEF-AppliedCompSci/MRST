@@ -355,8 +355,10 @@ function [F] = fixIntersections(F,fh, circFac, mergeTol)
   circPos = cumsum([1; circNum]);
   id(circPos(1:end-1)) = 1;
   id      = cumsum(id);
-  circ    = [circ(id), F.f.c([F.f.cPos(vertcat(I{circ})),...
-             F.f.cPos(vertcat(I{circ}))+1])];
+  % circ    = [circ(id), F.f.c([F.f.cPos(vertcat(I{circ})),...
+  %            F.f.cPos(vertcat(I{circ}))+1])];
+  circ    = [circ(id), reshape(F.f.c([F.f.cPos(vertcat(I{circ})),...
+             F.f.cPos(vertcat(I{circ}))+1]),numel(id),[])];
   
   % Find shared circle
   [neigh,neighPos] = findNeighbors(circ(:,1),F); %F.c.f,F.c.fPos, F.f.c,F.f.cPos);
