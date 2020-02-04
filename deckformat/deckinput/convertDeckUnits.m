@@ -53,7 +53,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    inputUnit = deckUnitName(deck.RUNSPEC);
    u = unitConversionFactors(inputUnit, opt.outputUnit);
-
+   if ~isfield(deck, 'PCUNIT')
+       % On the first conversion, we store the pressure unit. This may be
+       % used to interpret PC curves as dimensionless J-functions instead.
+       deck.PCUNIT = u.press;
+   end
    for sect = reshape(fieldnames(deck), 1, [])
       s = sect{1};
 
