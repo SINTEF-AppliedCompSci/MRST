@@ -134,9 +134,3 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    val = -val;
    grad = -grad;
 end
-
-
-   
-   %function [v, u, history] = unitBoxBFGS(u0, f, varargin)   
-%function [uu, extra] = VEM_linElast_AD(G, C, el_bc, load, varargin)
-   
