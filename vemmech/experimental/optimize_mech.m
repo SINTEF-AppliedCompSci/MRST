@@ -117,8 +117,8 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    [val, oval_du, oval_dd] = obj_fun(value(u), dd(:));
    
    %% use adjoint to compute gradient
-   
-   lambda = amgsolver(extra.A, -oval_dd);
+   %   keyboard;
+   lambda = amgsolver(extra.A, -full(oval_dd));
    %lambda = -extra.A \ oval_dd; % A symmetric, so no transpose necessary
    
    dAdu_dd = 0; % @@ will change when including stiffness params. dependence on u
