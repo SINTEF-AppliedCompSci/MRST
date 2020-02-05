@@ -74,6 +74,11 @@ classdef WrapperModel < PhysicalModel
         function dt = getMaximumTimestep(model, state, state0, dt, drivingForces)
             dt = model.parentModel.getMaximumTimestep(state, state0, dt, drivingForces);
         end
+        
+        function scaling = getScalingFactorsCPR(model, problem, names, solver)
+            scaling = model.parentModel.getScalingFactorsCPR(problem, names, solver);
+        end
+        
     end
 end
 
