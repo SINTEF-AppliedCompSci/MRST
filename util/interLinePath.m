@@ -17,17 +17,17 @@ function [p] = interLinePath(line, fh, lineDist, sePtn, interpol, varargin)
     % Parameters
     TOL = 1e-4; maxIt = 10000;
     if size(line,1)==1
-      p = line;
-      return
+        p = line;
+        return
     elseif isempty(line)
-      p = [];
-      return
+        p = [];
+        return
     end
     if interpol
         % Create initial points, equally distributed.
         p       = eqInterpret(line, lineDist, sePtn);
         flag    = false(size(p,1),1);
-        ptsUsed = [1; size(line,1)]; 
+        ptsUsed = [1; size(line,1)];
     else
         [p, origIx, ptsUsed] = subdivideLineSegments(line, lineDist, sePtn);
         flag = false(size(p,1),1); flag(origIx) = true;
@@ -40,8 +40,10 @@ function [p] = interLinePath(line, fh, lineDist, sePtn, interpol, varargin)
     if sePtn(2)~=0
         p = [p;line(end,:)]; flag=[flag; true]; end
  
-    % plot(line(:,1),line(:,2),':k','LineWidth',1), hold all,
-    % hp = plot(p(:,1),p(:,2),'.','MarkerSize',18);
+    % plot(line(:,1),line(:,2),':k','LineWidth',1), hold all,              % makePlot
+    % ncol = size(p,1);                                                    % makePlot
+    % col = tatarizeMap(ncol);                                             % makePlot
+
     count=0;
     while count<maxIt
       count = count+1;
@@ -78,13 +80,15 @@ function [p] = interLinePath(line, fh, lineDist, sePtn, interpol, varargin)
                   p      = [p(1:id,:); pmid(insert(i),:); p(id+1:end,:)];
                   flag   = [flag(1:id); false; flag(id+1:end)];
                   offset = offset+1;
-                  %delete(hp); hp = plot(p(:,1),p(:,2),'.','MarkerSize',18);
+                  % ncol = ncol+1;                                         % makePlot
+                  % tmp = tatarizeMap(ncol);                               % makePlot
+                  % col = [col(1:id,:); tmp(ncol,:); col(id+1:end,:)];     % makePlot
               elseif insert(i)<0
                   id     = -insert(i)+offset;
                   p      = p([1:id-1,id+1:end],:);
                   flag   = flag([1:id-1,id+1:end]);
                   offset = offset-1;
-                  %delete(hp); hp = plot(p(:,1),p(:,2),'.','MarkerSize',18);
+                  % col = col([1:id-1,id+1:end],:);                        % makePlot
               end
           end
           continue
@@ -93,17 +97,9 @@ function [p] = interLinePath(line, fh, lineDist, sePtn, interpol, varargin)
       % If we only have external nodes, we can do nothing.
       if size(p,1)<=2, return, end
       
-      % Update the plot of all points
-      % hp.XData = p(:,1)';
-      % hp.YData = p(:,2)';
-      % drawnow; pause(.1);
-      %
-      % if ~mod(count,10)
-      %    col = tatarizeMap(size(p,1));
-      %    for i=1:size(p,1)
-      %        plot(p(i,1),p(i,2),'.','MarkerSize',18,'color',col(i,:));
-      %    end
-      % end
+      % for i=1:size(p,1)                                                  % makePlot
+      %     plot(p(i,1),p(i,2),'.','MarkerSize',18,'color',col(i,:));      % makePlot
+      % end                                                                % makePlot
       
       % Move points based on desired length
       Fb = dw - d;                       % Bar forces
@@ -115,9 +111,9 @@ function [p] = interLinePath(line, fh, lineDist, sePtn, interpol, varargin)
       % Terminate if Nodes have moved (relative) less  than TOL
       if all(abs(moveNode(~flag(2:end-1)))<TOL*lineDist), break; end
     end
-    % for i=1:size(p,1)
-    %     plot(p(i,1),p(i,2),'.','MarkerSize',30,'color',col(i,:));
-    % end
+    % for i=1:size(p,1)                                                    % makePlot
+    %     plot(p(i,1),p(i,2),'.','MarkerSize',30,'color',col(i,:));        % makePlot
+    % end                                                                  % makePlot
     
     if sePtn(1)~=0, p = p(2:end,:);end
     if sePtn(2)~=0, p = p(1:end-1,:);end
