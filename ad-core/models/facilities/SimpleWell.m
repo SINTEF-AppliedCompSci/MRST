@@ -390,7 +390,7 @@ classdef SimpleWell < PhysicalModel
                 qMass(xFlow) = 0;
                 qVol(xFlow) = 0;
             end
-            isShut = abs(sum(qMass)) < 1e-12 | ~wellSol.status;
+            isShut = abs(sum(qMass)) < 1e-20 | ~wellSol.status;
             g   = norm(model.gravity);
             if well.simplePressureDrop
                 if isShut
