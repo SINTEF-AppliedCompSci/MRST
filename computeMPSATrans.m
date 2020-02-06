@@ -348,10 +348,8 @@ transnodeaverage_T = trans_T*nodeaverage_T;
 % now we have
 % transnodeaverage_T : cellnodecolrowtbl -> cellnodecolrowtbl
 
-toc
-'hello'
-domanual = true;
-if domanual
+dooptimized = true;
+if dooptimized
     node = cellnodecolrowtbl.nodes;
     col = cellnodecolrowtbl.coldim;
     row = cellnodecolrowtbl.rowdim;
@@ -374,7 +372,6 @@ else
     celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num), prod);
 end
 
-toc
 transnodeaverage_T = celldispatch_T*transnodeaverage_T;
 
 %% we need to multiply by 2 for the corners
@@ -625,6 +622,7 @@ u = reshape(u, dimcase, [])';
 %% plotting
 % 
 toc
+
 close all
 figure
 plotCellData(G, u(:, 1));
