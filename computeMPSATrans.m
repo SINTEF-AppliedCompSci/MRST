@@ -8,6 +8,8 @@
 
 clear all
 
+tic
+
 % load modules
 mrstModule add mimetic mpfa incomp
 
@@ -39,6 +41,7 @@ G = computeGeometry(G);
 
 %% Basic table setup
 %
+tic
 
 nc  = G.cells.num;
 nf  = G.faces.num;
@@ -69,11 +72,6 @@ nodefacetbl.num   = numel(nodefacetbl.faces);
 % that we will have a block structure for the nodal scalar product.
 nodefacetbl = sortTable(nodefacetbl, {'nodes', 'faces'});
 nodefacecoltbl = crossTable(nodefacetbl, coltbl, {});
-
-% We setup boundary face table
-intfaces = find(all(G.faces.neighbors, 2));
-intfacetbl.faces = intfaces;
-intfacetbl.num = numel(intfaces);
 
 % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
 % unique facet in a corner
@@ -115,7 +113,6 @@ cellFacetVec = G.faces.centroids(fno, :) - G.cells.centroids(cno, :) + ...
 
 cellFacetVec = reshape(cellFacetVec', [], 1);
 
-
 fds = {'cells', 'nodes', 'faces'};
 cnf = cellnodefacetbl;
 ind1 = tblmap(cnf.cnfind, cnf, cellnodefacecoltbl, fds);
@@ -152,6 +149,7 @@ g = tblmap(g, gtbl, cellnodefacecoltbl, fds);
 
 cellnodefacecoltbl = rmfield(cellnodefacecoltbl, {'cnfind', 'cncind'});
 cellnodecoltbl     = rmfield(cellnodecoltbl, {'cncind'});
+
 
 % Construction of gradnodeface_op : nodefacecoltbl -> cellnodecolrowtbl
 %
@@ -350,15 +348,33 @@ transnodeaverage_T = trans_T*nodeaverage_T;
 % now we have
 % transnodeaverage_T : cellnodecolrowtbl -> cellnodecolrowtbl
 
-prod = TensorProd();
-prod.tbl1 = celltbl;
-prod.tbl2 = nodecolrowtbl;
-prod.prodtbl = cellnodecolrowtbl;
-prod = prod.setup();
+toc
+'hello'
+domanual = true;
+if domanual
+    node = cellnodecolrowtbl.nodes;
+    col = cellnodecolrowtbl.coldim;
+    row = cellnodecolrowtbl.rowdim;
+    ind = (node - 1)*(dim*dim) + (col - 1)*dim + row;
+    
+    celldispatch_T = SparseTensor();
+    celldispatch_T.fromTbl = nodecolrowtbl;
+    celldispatch_T.toTbl = cellnodecolrowtbl;
+    celldispatch_T.col = ind;
+    celldispatch_T.row = (1 : cellnodecolrowtbl.num)';
+    celldispatch_T.val = ones(cellnodecolrowtbl.num, 1);
+else
+    prod = TensorProd();
+    prod.tbl1 = celltbl;
+    prod.tbl2 = nodecolrowtbl;
+    prod.prodtbl = cellnodecolrowtbl;
+    prod = prod.setup();
 
-celldispatch_T = SparseTensor();
-celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num), prod);
+    celldispatch_T = SparseTensor();
+    celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num), prod);
+end
 
+toc
 transnodeaverage_T = celldispatch_T*transnodeaverage_T;
 
 %% we need to multiply by 2 for the corners
@@ -398,7 +414,7 @@ end
 %
 
 mu = 1;
-lambda = 0;
+lambda = 1;
 Cvoigt = mu*[[2 0 0]; ...
              [0 2 0]; ...
              [0 0 1]];
@@ -608,7 +624,7 @@ u = reshape(u, dimcase, [])';
 
 %% plotting
 % 
-
+toc
 close all
 figure
 plotCellData(G, u(:, 1));
