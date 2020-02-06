@@ -19,7 +19,9 @@ function [grids_2] = surfaceGrid3D(surfaces, grids_1, intersections, ds, gamma)
 %   grids_2         - cell-array where each element is a 2D grid. In
 %                     addition to a normal MRST-grid the field
 %                     G.cells.sites is added, which is an array of the
-%                     sites used to generate the grid
+%                     sites used to generate the grid. Likewise, we add a
+%                     Boolean array G.cells.resSite that indicates if the
+%                     the site is a background reservoir site or not
 %
 % EXAMPLE:
 %   f1 = [1,3,2; 4,3,2; 4,3,4; 1,3, 4];
@@ -130,6 +132,8 @@ for f = 1:numel(surfaces)
     pts = [pts, zeros(size(pts,1),1)];
     %sites_2 = [sites_2; {pts * R + center, f}];
     G.cells.sites = pts * R + center;
+    G.cells.resSite = true(size(pts,1),1);
+    G.cells.resSite(1:numel(If))=false;
     grids_2 = [grids_2, G];
 end
 end
