@@ -65,7 +65,7 @@ assert(all(coarseDim <= G.cartDims), ...
 [i{1 : numel(G.cartDims)}] = ...
    ind2sub(double(G.cartDims), double(G.cells.indexMap));
 i = [ i{:} ];
-M = max(i) - min(i) + 1;
+M = max(i, [], 1) - min(i, [], 1) + 1;
 
 blockIx = zeros([G.cells.num, 1]);
 for d = numel(coarseDim) : -1 : 1
