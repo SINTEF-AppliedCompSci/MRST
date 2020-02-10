@@ -20,7 +20,9 @@ classdef InjectionSurfaceDensity < StateFunction
             % perforation.
             topcell = arrayfun(@(x) x.cells(1), W);
             reg = model.PVTPropertyFunctions.Density.regions;
-            if ~isempty(reg)
+            if isempty(reg)
+                rhoS = repmat(rhoS, numel(topcell), 1);
+            else
                 rhoS = rhoS(reg(topcell), :);
             end
             if isfield(W, 'rhoS')
