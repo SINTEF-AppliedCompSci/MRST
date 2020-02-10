@@ -60,15 +60,25 @@ fn  = fullfile(pth, 'BENCH_SPE1.DATA');
 [state0, bomodel, schedule, nonlinear] = initEclipseProblemAD(fn);
 bomodel = bomodel.validateModel();
 
-%%
+%% Plot density relations for a black-oil model
 figure;
 [h, gbo] = plotStateFunctionGroupings(bomodel, 'Stop', 'Density', 'includeState', false);
-%%
-figure;
-[~, gcomp] = plotStateFunctionGroupings(cmodel,'Stop', 'Density', 'includeState', false);
-%%
 clc
 printStateFunctionGroupingTikz(gbo);
-%%
+
+%% Plot density relations for a compositional model
+figure;
+[~, gcomp] = plotStateFunctionGroupings(cmodel,'Stop', 'Density', 'includeState', false);
 clc
 printStateFunctionGroupingTikz(gcomp);
+
+%% Plot all functions
+figure;
+[~, gbos] = plotStateFunctionGroupings(bomodel, 'includeState', false);
+clc
+printStateFunctionGroupingTikz(gbos);
+%% Plot all functions (as symbols)
+figure;
+[h2, gbos2, g] = plotStateFunctionGroupings(bomodel, 'includeState', false, 'label', 'label');
+clc
+printStateFunctionGroupingTikz(gbos2, h2);
