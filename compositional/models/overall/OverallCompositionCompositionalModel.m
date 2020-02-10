@@ -56,21 +56,22 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             end
             
             t1 = tic();
-            xM = model.EOSModel.getMassFraction(x);
-            yM = model.EOSModel.getMassFraction(y);
+            eos = model.EOSModel;
+            xM = eos.getMassFraction(x);
+            yM = eos.getMassFraction(y);
             report.t_massfraction = toc(t1);
             
             t2 = tic();
-            rhoL = model.PropertyModel.computeDensity(p, x, Z_L, temp, true);
-            rhoV = model.PropertyModel.computeDensity(p, y, Z_V, temp, false);
+            rhoL = model.PropertyModel.computeDensity(eos, p, x, Z_L, temp, true);
+            rhoV = model.PropertyModel.computeDensity(eos, p, y, Z_V, temp, false);
             report.t_density = toc(t2);
             
             [sL, sV] = model.EOSModel.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
             
             t3 = tic();
             if nargout > 6
-                muL = model.PropertyModel.computeViscosity(p, x, Z_L, temp, true);
-                muV = model.PropertyModel.computeViscosity(p, y, Z_V, temp, false);
+                muL = model.PropertyModel.computeViscosity(eos, p, x, Z_L, temp, true);
+                muV = model.PropertyModel.computeViscosity(eos, p, y, Z_V, temp, false);
             end
             report.t_viscosity = toc(t3);
         end

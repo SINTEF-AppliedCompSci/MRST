@@ -434,10 +434,11 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
         end
         
         function [xM, rho, mu] = getFlowPropsNatural(model, p, x, Z, T, isLiquid)
-            xM = model.EOSModel.getMassFraction(x);
-            rho = model.PropertyModel.computeDensity(p, x, Z, T, isLiquid);
+            eos = model.EOSModel;
+            xM = eos.getMassFraction(x);
+            rho = model.PropertyModel.computeDensity(eos, p, x, Z, T, isLiquid);
             if nargout > 2
-                mu = model.PropertyModel.computeViscosity(p, x, Z, T, isLiquid);
+                mu = model.PropertyModel.computeViscosity(eos, p, x, Z, T, isLiquid);
             end
         end
         

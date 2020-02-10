@@ -42,6 +42,9 @@ function model = initDeckEOSModel(deck)
     else
         model = model.setType(eos_type);
     end
+    if isfield(deck.PROPS, 'SSHIFT')
+        model.PropertyModel.volumeShift = deck.PROPS.SSHIFT;
+    end
 end
 
 %{

@@ -53,8 +53,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     Z_L = state.Z_L;
     Z_V = state.Z_V;
     if nargout > 5
-        rhoL = EOSModel.PropertyModel.computeDensity(p, x, Z_L, T, true);
-        rhoV = EOSModel.PropertyModel.computeDensity(p, y, Z_V, T, false);
+        rhoL = EOSModel.PropertyModel.computeDensity(EOSModel, p, x, Z_L, T, true);
+        rhoV = EOSModel.PropertyModel.computeDensity(EOSModel, p, y, Z_V, T, false);
     end
 end
 
