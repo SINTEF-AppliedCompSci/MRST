@@ -54,8 +54,8 @@ classdef EOSSeparator < BasicSeparator
                 y = state.y;
                 L = state.L;
             end
-            rhoL = eos.PropertyModel.computeMolarDensity(p, x, Z_L, temp, true);
-            rhoV = eos.PropertyModel.computeMolarDensity(p, y, Z_V, temp, false);
+            rhoL = eos.PropertyModel.computeMolarDensity(eos, p, x, Z_L, temp, true);
+            rhoV = eos.PropertyModel.computeMolarDensity(eos, p, y, Z_V, temp, false);
 
             densities = {rhoL, rhoV};
             moleL = L.*totMole;
