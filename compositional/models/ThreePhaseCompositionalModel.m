@@ -487,7 +487,11 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             else
                 tol_comp = model.nonlinearTolerance;
                 massT = sum(mass(:, model.water+1:end), 2);
-                scale = dt./max(massT, 1);
+                scale = dt./massT;
+                if model.water
+                    maxEOSSat = sum(s(:, model.water+1:end), 2);
+                    scale(maxEOSSat < 1e-4) = 0;
+                end
                 v_comp = cellfun(@(x) norm(scale.*value(x), inf), problem.equations(isComponent));
             end
             tol_comp = repmat(tol_comp, size(v_comp));
