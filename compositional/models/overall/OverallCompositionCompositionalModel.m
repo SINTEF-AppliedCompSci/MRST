@@ -136,7 +136,7 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
                 else
                     [v, v0] = deal(1);
                 end
-
+                
                 state.dz = computeChange(z, state0.components, v, v0);
             end
 
@@ -169,7 +169,9 @@ end
 function dz = computeChange(z, z0, s, s0)
     z_prev = bsxfun(@times, s0, z0);
     z_curr = bsxfun(@times, s, z);
-    dz = max(abs(z_curr - z_prev), [], 1);
+    dz = abs(z_curr - z_prev);
+    dz(s < 1e-4) = 0;
+    dz = max(dz, [], 1);
 end
 
 %{
