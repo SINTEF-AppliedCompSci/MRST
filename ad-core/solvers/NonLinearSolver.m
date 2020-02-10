@@ -50,6 +50,7 @@ classdef NonLinearSolver < handle
         relaxationDecrement = [] % Change in relaxation on stagnation/oscillation
         minRelaxation = 0.5 % Lowest possible relaxation factor
         maxRelaxation = 1.0 % Largest possible relaxation factor
+        oscillationThreshold = 1.0 % Fraction of non-converged values that must oscillate/stagnate before relaxation is activated
         
         useLinesearch = false % True to enable line-search in residual
         alwaysUseLinesearch = false % Debug option to always use line search
@@ -383,7 +384,8 @@ classdef NonLinearSolver < handle
                     % We will use relaxations if all non-converged residuals are
                     % either stagnating or oscillating.
                     bad = (isOscillating | isStagnated);
-                    relax = all(bad | isOk) && ~all(isOk);
+                    rfactor = solver.oscillationThreshold;
+                    relax = sum(bad & ~isOk) >= rfactor*sum(~isOk) && ~all(isOk);
                     if relax
                         if solver.verbose > 0 && ~solver.convergenceIssues
                             fprintf('Convergence issues detected:');
