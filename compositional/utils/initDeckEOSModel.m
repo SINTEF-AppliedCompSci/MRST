@@ -37,7 +37,7 @@ function model = initDeckEOSModel(deck)
     model = EquationOfStateModel([], fluid);
     
     eos_type = deck.PROPS.EOS;
-    if isfield(deck.PROPS, 'PRCORR') && strcmp(eos_type, 'PR')
+    if isfield(deck.PROPS, 'PRCORR') && (isempty(eos_type) || strcmp(eos_type, 'PR'))
         model = model.setType('PRCORR');
     else
         model = model.setType(eos_type);
