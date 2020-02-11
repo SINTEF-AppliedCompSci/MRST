@@ -30,7 +30,7 @@ switch runcase
     x = 1/max(x)*x;
     G = tensorGrid(x, y);    
   case 2
-    nx = 10; ny = 10;
+    nx = 100; ny = 100;
     G = cartGrid([nx, ny], [1, 1]);
   case 3
     nx = 5; ny = 5; nz = 5;
@@ -88,6 +88,8 @@ cellnodefacetbl = sortTable(cellnodefacetbl, {'cells', 'nodes', 'faces'});
 cellnodetbl = projTable(cellnodefacetbl, {'nodes', 'cells'});
 cellnodetbl = sortTable(cellnodetbl, {'cells', 'nodes'});
 
+fds = {'cells'};
+cell2cellnode = getDispatchInd(celltbl, cellnodetbl, fds);
 fds = {'cells', 'faces'};
 cellface2cellnodeface = getDispatchInd(cellfacetbl, cellnodefacetbl, fds);
 fds = {'cells', 'nodes'};
@@ -109,9 +111,12 @@ cellnodefacecolrowtbl = crossTable(cellnodefacecoltbl, rowtbl, {});
 
 
 % some shortcuts
+c_num     = celltbl.num;
 cnf_num   = cellnodefacetbl.num;
 cnfc_num  = cellnodefacecoltbl.num;
 cn_num    = cellnodetbl.num;
+cncr_num  = cellnodecolrowtbl.num;
+nf_num    = nodefacetbl.num;
 cnfcr_num = cellnodefacecolrowtbl.num;
 d_num     = coltbl.num;
 
@@ -175,8 +180,6 @@ prod.dispind1 = sub2ind([d_num, cnf_num], c, i);
 prod.dispind2 = sub2ind([d_num, cnf_num], r, nodeface2cellnodeface(i));
 prod.dispind3 = sub2ind([d_num, d_num, cn_num], r, c, cellnode2cellnodeface(i));
 prod.issetup = true;
-
-% prod = prod.setup();
 
 gradnodeface_T = SparseTensor('matlabsparse', true);
 gradnodeface_T = gradnodeface_T.setFromTensorProd(g, prod);
@@ -266,7 +269,14 @@ prod.replacefds2 = {'coldim', 'rowdim', 'interchange'};
 prod.reducefds = {'rowdim', 'cells'};
 prod.mergefds = {'nodes'};
 prod.tbl3 = nodefacecoltbl;
-prod = prod.setup();
+
+prod.pivottbl = cellnodefacecolrowtbl;
+[r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
+prod.dispind1 = sub2ind([d_num, cnf_num], r, i);
+prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, cellnode2cellnodeface(i));
+prod.dispind3 = sub2ind([d_num, nf_num], c, nodeface2cellnodeface(i));
+
+prod.issetup = true;
 
 divnodeface_T = SparseTensor('matlabsparse', true);
 divnodeface_T = divnodeface_T.setFromTensorProd(d, prod);
@@ -298,12 +308,19 @@ dreduced = - tblmap(facetNormals, cellnodefacecoltbl, cellnodecoltbl, fds);
 prod = TensorProd();
 prod.tbl1 = cellnodecoltbl;
 prod.tbl2 = cellnodecolrowtbl;
+prod.tbl3 = cellcoltbl;
 prod.replacefds1 = {'coldim', 'rowdim'};
 prod.replacefds2 = {'coldim', 'rowdim', 'interchange'};
 prod.reducefds   = {'rowdim', 'nodes'};
 prod.mergefds    = {'cells'};
-prod.tbl3 = cellcoltbl;
-prod = prod.setup();
+
+prod.pivottbl = cellnodecolrowtbl;
+[r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
+prod.dispind1 = sub2ind([d_num, cn_num], r, i);
+prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, i);
+prod.dispind3 = sub2ind([d_num, c_num], c, cell2cellnode(i));
+
+prod.issetup = true;
 
 divcell_T = SparseTensor('matlabsparse', true);
 divcell_T = divcell_T.setFromTensorProd(dreduced, prod);
@@ -417,7 +434,14 @@ prod.tbl1 = cellnodecolrowtbl;
 prod.tbl2 = cellnodecolrowtbl;
 prod.mergefds = {'cells', 'nodes', 'coldim', 'rowdim'};
 prod.tbl3 = cellnodecolrowtbl;
-prod = prod.setup();
+
+prod.pivottbl = cellnodecolrowtbl;
+cncr_num = cellnodecolrowtbl.num; %shortcut
+prod.dispind1 = (1 : cncr_num)';
+prod.dispind2 = (1 : cncr_num)';
+prod.dispind3 = (1 : cncr_num)';
+
+prod.issetup = true;
 
 cornerfix_T = SparseTensor('matlabsparse', true);
 cornerfix_T = cornerfix_T.setFromTensorProd(c, prod);
@@ -504,7 +528,17 @@ prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
 prod.mergefds = {'cells', 'nodes'};
 prod.reducefds = {'coldim2', 'rowdim2'};
 prod.tbl3 = cellnodecolrowtbl;
-prod = prod.setup();
+
+prod.pivottbl = cellnodecol2row2tbl;
+
+d = d_num; %shortcut
+cnc2r2_num = cellnodecol2row2tbl.num; %shortcut
+[r2, c2, r1, c1, i] = ind2sub([d, d, d, d, cn_num], (1 : cnc2r2_num)');
+prod.dispind1 = (1 : cnc2r2_num)';
+prod.dispind2 = sub2ind([d, d, cn_num], r1, c1, i);
+prod.dispind3 = sub2ind([d, d, cn_num], r2, c2, i);
+
+prod.issetup = true;
 
 C_T = SparseTensor('matlabsparse', true);
 C_T = C_T.setFromTensorProd(C, prod);
