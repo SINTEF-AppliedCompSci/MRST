@@ -181,21 +181,34 @@ prod.issetup = true;
 gradnodeface_T = SparseTensor('matlabsparse', true);
 gradnodeface_T = gradnodeface_T.setFromTensorProd(g, prod);
 
-
 % Construction of gradcell_T : cellcoltbl -> cellnodecolrowtbl
 %
 % The cellcol part of the grad operator from cellcoltbl to cellnodecolrowtbl is
 % obtained for any u in cellcoltbl by using v = prod.evalProd(greduced, u)
 % where greduced and prod are defined below 
 %
-fds = {'cells', 'nodes', 'coldim'};
-greduced = - tblmap(g, cellnodefacecoltbl, cellnodecoltbl, fds); 
+prod = TensorProd();
+prod.tbl1 = cellnodefacecoltbl;
+prod.tbl2 = cellnodefacecoltbl;
+prod.tbl3 = cellnodecoltbl;
+prod.pivottbl = cellnodefacecoltbl;
+prod.reducefds = {'faces'};
+
+prod.dispind1 = (1 : cnfc_num)';
+prod.dispind2 = (1 : cnfc_num)';
+[c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
+prod.dispind3 = sub2ind([d_num, cn_num], c, cellnode2cellnodeface(i));
+
+prod.issetup = true;
+
+greduced = - prod.evalProd(ones(cnfc_num, 1), g);
+
 prod = TensorProd();
 prod.tbl1 = cellnodecoltbl;
 prod.tbl2 = cellcoltbl;
+prod.tbl3 = cellnodecolrowtbl;
 prod.replacefds2 = {'coldim', 'rowdim'};
 prod.mergefds = {'cells'};
-prod.tbl3 = cellnodecolrowtbl;
 prod = prod.setup();
 
 gradcell_T = SparseTensor('matlabsparse', true);
