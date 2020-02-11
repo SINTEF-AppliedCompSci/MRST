@@ -72,7 +72,6 @@ nodefacetbl.num   = numel(nodefacetbl.faces);
 % We setup the face-node table and it is ordered along ascending node numbers so
 % that we will have a block structure for the nodal scalar product.
 nodefacetbl = sortTable(nodefacetbl, {'nodes', 'faces'});
-nodefacetbl = addLocInd(nodefacetbl, 'nfind');
 nodefacecoltbl = crossTable(nodefacetbl, coltbl, {});
 
 % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
@@ -87,7 +86,6 @@ cellnodefacetbl = addLocInd(cellnodefacetbl, 'cnfind');
 % corner
 cellnodetbl = projTable(cellnodefacetbl, {'nodes', 'cells'});
 cellnodetbl = sortTable(cellnodetbl, {'cells', 'nodes'});
-cellnodetbl = addLocInd(cellnodetbl, 'cnind');
 
 fds = {'cells', 'faces'};
 cellface2cellnodeface = getDispatchInd(cellfacetbl, cellnodefacetbl, fds);
@@ -104,10 +102,8 @@ cellnodefacecoltbl = crossTable(cellnodefacetbl, coltbl, {});
 
 fds = {'cells', 'nodes', 'coldim'};
 cellnodefacecoltbl = crossTable(cellnodefacecoltbl, cellnodecoltbl, fds);
-
 % this sorting may be unecessary. We do it to be sure
 fds = {'cells', 'nodes', 'faces', 'coldim', 'cnfind', 'cncind'};
-% fds = {'cells', 'nodes', 'faces', 'coldim', 'cnfind'};
 cellnodefacecoltbl = sortTable(cellnodefacecoltbl, fds);
 
 %% Construction of tensor g (as defined in paper eq 4.1.2)
@@ -163,11 +159,8 @@ cellnodefacecoltbl = crossTable(cellnodefacetbl, coltbl, {});
 fds = {'cells', 'nodes', 'faces', 'coldim'};
 g = tblmap(g, oldcellnodefacecoltbl, cellnodefacecoltbl, fds);
 
-% cellnodefacecoltbl = rmfield(cellnodefacecoltbl, {'cnfind', 'cncind'});
 cellnodefacecoltbl = rmfield(cellnodefacecoltbl, {'cnfind'});
 cellnodecoltbl     = rmfield(cellnodecoltbl, {'cncind'});
-nodefacecoltbl     = rmfield(nodefacecoltbl, {'nfind'});
-cellnodecolrowtbl  = rmfield(cellnodecolrowtbl, {'cnind'});
 
 % Construction of gradnodeface_op : nodefacecoltbl -> cellnodecolrowtbl
 %
@@ -183,10 +176,25 @@ prod.reducefds   = {'faces'};
 prod.mergefds    = {'nodes'};
 prod.tbl3 = cellnodecolrowtbl;
 
-prod = prod.setup();
+cellnodefacecolrowtbl = crossTable(cellnodefacecoltbl, rowtbl, {});
+
+ncnf   = cellnodefacetbl.num;
+ncn    = cellnodetbl.num;
+ncnfcr = cellnodefacecolrowtbl.num;
+nd = coltbl.num;
+
+[r, c, i] = ind2sub([nd, nd, ncnf], (1 : ncnfcr)');
+
+prod.dispind1 = sub2ind([nd, ncnf], c, i);
+prod.dispind2 = sub2ind([nd, ncnf], r, nodeface2cellnodeface(i));
+prod.dispind3 = sub2ind([nd, nd, ncn], r, c, cellnode2cellnodeface(i));
+prod.issetup = true;
+
+% prod = prod.setup();
 
 gradnodeface_T = SparseTensor();
 gradnodeface_T = gradnodeface_T.setFromTensorProd(g, prod);
+
 
 % cellnodefacecoltbl = rmfield(cellnodefacecoltbl, {'cnfind', 'cncind'});
 % cellnodecoltbl     = rmfield(cellnodecoltbl, {'cncind'});
