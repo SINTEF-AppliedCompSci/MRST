@@ -20,7 +20,7 @@ eta = 1/3;
 dimcase = 2;
 switch dimcase
   case 2
-    ny = 30;
+    ny = 4;
     dx = 1e-3;
     dy = [dx; ones(ny, 1)];
     y = [0; cumsum(dy)];
@@ -68,9 +68,11 @@ cellfacetbl.num   = numel(cellfacetbl.cells);
 nodefacetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos)); 
 nodefacetbl.nodes = G.faces.nodes;
 nodefacetbl.num   = numel(nodefacetbl.faces);
+
 % We setup the face-node table and it is ordered along ascending node numbers so
 % that we will have a block structure for the nodal scalar product.
 nodefacetbl = sortTable(nodefacetbl, {'nodes', 'faces'});
+nodefacetbl = addLocInd(nodefacetbl, 'nfind');
 nodefacecoltbl = crossTable(nodefacetbl, coltbl, {});
 
 % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
@@ -84,11 +86,19 @@ cellnodefacetbl = addLocInd(cellnodefacetbl, 'cnfind');
 % We setup the cell-node table, cellnodetbl. Each entry determine a unique
 % corner
 cellnodetbl = projTable(cellnodefacetbl, {'nodes', 'cells'});
+cellnodetbl = sortTable(cellnodetbl, {'cells', 'nodes'});
+cellnodetbl = addLocInd(cellnodetbl, 'cnind');
 
-cellnodecoltbl = crossTable(cellnodetbl, coltbl, {});
-cellnodecoltbl = sortTable(cellnodecoltbl, {'cells', 'nodes', 'coldim'});
+fds = {'cells', 'faces'};
+cellface2cellnodeface = getDispatchInd(cellfacetbl, cellnodefacetbl, fds);
+fds = {'cells', 'nodes'};
+cellnode2cellnodeface = getDispatchInd(cellnodetbl, cellnodefacetbl, fds);
+fds = {'faces', 'nodes'};
+nodeface2cellnodeface = getDispatchInd(nodefacetbl, cellnodefacetbl, fds);
+
+cellnodecoltbl    = crossTable(cellnodetbl, coltbl, {});
 cellnodecolrowtbl = crossTable(cellnodecoltbl, rowtbl, {});
-cellnodecoltbl = addLocInd(cellnodecoltbl, 'cncind');
+cellnodecoltbl    = addLocInd(cellnodecoltbl, 'cncind');
 
 cellnodefacecoltbl = crossTable(cellnodefacetbl, coltbl, {});
 
@@ -97,8 +107,8 @@ cellnodefacecoltbl = crossTable(cellnodefacecoltbl, cellnodecoltbl, fds);
 
 % this sorting may be unecessary. We do it to be sure
 fds = {'cells', 'nodes', 'faces', 'coldim', 'cnfind', 'cncind'};
+% fds = {'cells', 'nodes', 'faces', 'coldim', 'cnfind'};
 cellnodefacecoltbl = sortTable(cellnodefacecoltbl, fds);
-
 
 %% Construction of tensor g (as defined in paper eq 4.1.2)
 % shortcuts:
@@ -147,9 +157,17 @@ g = tblmap(g, gtbl, cellnodefacecoltbl, fds);
 %
 % We clean-up the tables
 
-cellnodefacecoltbl = rmfield(cellnodefacecoltbl, {'cnfind', 'cncind'});
-cellnodecoltbl     = rmfield(cellnodecoltbl, {'cncind'});
+oldcellnodefacecoltbl = cellnodefacecoltbl;
+cellnodefacecoltbl = crossTable(cellnodefacetbl, coltbl, {});
 
+fds = {'cells', 'nodes', 'faces', 'coldim'};
+g = tblmap(g, oldcellnodefacecoltbl, cellnodefacecoltbl, fds);
+
+% cellnodefacecoltbl = rmfield(cellnodefacecoltbl, {'cnfind', 'cncind'});
+cellnodefacecoltbl = rmfield(cellnodefacecoltbl, {'cnfind'});
+cellnodecoltbl     = rmfield(cellnodecoltbl, {'cncind'});
+nodefacecoltbl     = rmfield(nodefacecoltbl, {'nfind'});
+cellnodecolrowtbl  = rmfield(cellnodecolrowtbl, {'cnind'});
 
 % Construction of gradnodeface_op : nodefacecoltbl -> cellnodecolrowtbl
 %
@@ -161,13 +179,19 @@ prod = TensorProd();
 prod.tbl1 = cellnodefacecoltbl;
 prod.tbl2 = nodefacecoltbl;
 prod.replacefds2 = {'coldim', 'rowdim'};
-prod.reducefds = {'faces'};
-prod.mergefds = {'nodes'};
-prod.prodtbl = cellnodecolrowtbl;
+prod.reducefds   = {'faces'};
+prod.mergefds    = {'nodes'};
+prod.tbl3 = cellnodecolrowtbl;
+
 prod = prod.setup();
 
 gradnodeface_T = SparseTensor();
 gradnodeface_T = gradnodeface_T.setFromTensorProd(g, prod);
+
+% cellnodefacecoltbl = rmfield(cellnodefacecoltbl, {'cnfind', 'cncind'});
+% cellnodecoltbl     = rmfield(cellnodecoltbl, {'cncind'});
+% nodefacecoltbl     = rmfield(nodefacecoltbl, {'nfind'});
+% cellnodecolrowtbl  = rmfield(cellnodecolrowtbl, {'cnind'});
 
 % Construction of gradcell_T : cellcoltbl -> cellnodecolrowtbl
 %
@@ -182,7 +206,7 @@ prod.tbl1 = cellnodecoltbl;
 prod.tbl2 = cellcoltbl;
 prod.replacefds2 = {'coldim', 'rowdim'};
 prod.mergefds = {'cells'};
-prod.prodtbl = cellnodecolrowtbl;
+prod.tbl3 = cellnodecolrowtbl;
 prod = prod.setup();
 
 gradcell_T = SparseTensor();
@@ -239,7 +263,7 @@ prod.replacefds1 = {'coldim', 'rowdim'};
 prod.replacefds2 = {'coldim', 'rowdim', 'interchange'};
 prod.reducefds = {'rowdim', 'cells'};
 prod.mergefds = {'nodes'};
-prod.prodtbl = nodefacecoltbl;
+prod.tbl3 = nodefacecoltbl;
 prod = prod.setup();
 
 divnodeface_T = SparseTensor();
@@ -276,7 +300,7 @@ prod.replacefds1 = {'coldim', 'rowdim'};
 prod.replacefds2 = {'coldim', 'rowdim', 'interchange'};
 prod.reducefds   = {'rowdim', 'nodes'};
 prod.mergefds    = {'cells'};
-prod.prodtbl = cellcoltbl;
+prod.tbl3 = cellcoltbl;
 prod = prod.setup();
 
 divcell_T = SparseTensor();
@@ -304,7 +328,7 @@ prod.replacefds1 = {{'coldim1', 'coldim'}, ...
 prod.replacefds2 = {{'coldim', 'coldim2'}, ...
                     {'rowdim', 'rowdim2'}};
 prod.reducefds = {'coldim2', 'rowdim2'};
-prod.prodtbl = nodecolrowtbl;
+prod.tbl3 = nodecolrowtbl;
 prod = prod.setup();
 
 trans_T = SparseTensor();
@@ -335,7 +359,7 @@ prod.tbl1 = cellnodetbl;
 prod.tbl2 = cellnodecolrowtbl;
 prod.reducefds = {'cells'};
 prod.mergefds = {'nodes'};
-prod.prodtbl = nodecolrowtbl;
+prod.tbl3 = nodecolrowtbl;
 
 prod = prod.setup();
 
@@ -365,7 +389,7 @@ else
     prod = TensorProd();
     prod.tbl1 = celltbl;
     prod.tbl2 = nodecolrowtbl;
-    prod.prodtbl = cellnodecolrowtbl;
+    prod.tbl3 = cellnodecolrowtbl;
     prod = prod.setup();
 
     celldispatch_T = SparseTensor();
@@ -389,7 +413,7 @@ prod = TensorProd();
 prod.tbl1 = cellnodecolrowtbl;
 prod.tbl2 = cellnodecolrowtbl;
 prod.mergefds = {'cells', 'nodes', 'coldim', 'rowdim'};
-prod.prodtbl = cellnodecolrowtbl;
+prod.tbl3 = cellnodecolrowtbl;
 prod = prod.setup();
 
 cornerfix_T = SparseTensor();
@@ -457,7 +481,7 @@ if dotest
     prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
     prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
     prod.reducefds = {'coldim2', 'rowdim2'};
-    prod.prodtbl = colrowtbl;
+    prod.tbl3 = colrowtbl;
     prod = prod.setup();
 
     C_T = SparseTensor();
@@ -476,7 +500,7 @@ prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
 prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
 prod.mergefds = {'cells', 'nodes'};
 prod.reducefds = {'coldim2', 'rowdim2'};
-prod.prodtbl = cellnodecolrowtbl;
+prod.tbl3 = cellnodecolrowtbl;
 prod = prod.setup();
 
 C_T = SparseTensor();
@@ -524,7 +548,7 @@ extnodefacetbl = crossTable(nodefacetbl, extfacetbl, {'faces'});
 prod = TensorProd();
 prod.tbl1 = coltbl;
 prod.tbl2 = extnodefacetbl;
-prod.prodtbl = nodefacecoltbl;
+prod.tbl3 = nodefacecoltbl;
 prod = prod.setup();
 
 d = [0; 1];
@@ -541,7 +565,7 @@ extnodefacetbl = crossTable(nodefacetbl, extfacetbl, {'faces'});
 prod = TensorProd();
 prod.tbl1 = coltbl;
 prod.tbl2 = extnodefacetbl;
-prod.prodtbl = nodefacecoltbl;
+prod.tbl3 = nodefacecoltbl;
 prod = prod.setup();
 
 d = [1; 0];
