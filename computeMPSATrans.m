@@ -17,9 +17,9 @@ eta = 1/3;
 
 %% Define and process geometry
 % Construct a Cartesian grid 
-dimcase = 2;
-switch dimcase
-  case 2
+runcase = 2;
+switch runcase
+  case 1
     ny = 4;
     dx = 1e-3;
     dy = [dx; ones(ny, 1)];
@@ -28,13 +28,15 @@ switch dimcase
     dx = [dx; ones(ny, 1); dx];
     x = [0; cumsum(dx)];
     x = 1/max(x)*x;
-    G = tensorGrid(x, y);
-    nx = 30; ny = 30;
+    G = tensorGrid(x, y);    
+  case 2
+    nx = 10; ny = 10;
     G = cartGrid([nx, ny], [1, 1]);
   case 3
     nx = 5; ny = 5; nz = 5;
     G = cartGrid([nx, ny, nz]);
 end
+
 % G = twister(G, 0.1);
 % compute Grid geometry
 G = computeGeometry(G);
@@ -106,6 +108,14 @@ cellnodefacecoltbl = crossTable(cellnodefacecoltbl, cellnodecoltbl, fds);
 fds = {'cells', 'nodes', 'faces', 'coldim', 'cnfind', 'cncind'};
 cellnodefacecoltbl = sortTable(cellnodefacecoltbl, fds);
 
+
+% some shortcuts
+cnf_num   = cellnodefacetbl.num;
+cn_num    = cellnodetbl.num;
+cnfcr_num = cellnodefacecolrowtbl.num;
+d_num     = coltbl.num;
+
+
 %% Construction of tensor g (as defined in paper eq 4.1.2)
 % shortcuts:
 %
@@ -119,6 +129,8 @@ cellFacetVec = G.faces.centroids(fno, :) - G.cells.centroids(cno, :) + ...
 
 cellFacetVec = reshape(cellFacetVec', [], 1);
 
+% [c, i] = ind2sub()
+
 fds = {'cells', 'nodes', 'faces'};
 cnf = cellnodefacetbl;
 ind1 = tblmap(cnf.cnfind, cnf, cellnodefacecoltbl, fds);
@@ -126,7 +138,6 @@ ind1 = tblmap(cnf.cnfind, cnf, cellnodefacecoltbl, fds);
 fds = {'cells', 'nodes', 'coldim'};
 cnc = cellnodecoltbl;
 ind2 = tblmap(cnc.cncind, cnc, cellnodefacecoltbl, fds);
-
 
 n = cellnodecoltbl.num; 
 assert(n == cellnodefacetbl.num, ['This implementation of mpsaw cannot handle ' ...
@@ -178,28 +189,20 @@ prod.tbl3 = cellnodecolrowtbl;
 
 cellnodefacecolrowtbl = crossTable(cellnodefacecoltbl, rowtbl, {});
 
-ncnf   = cellnodefacetbl.num;
-ncn    = cellnodetbl.num;
-ncnfcr = cellnodefacecolrowtbl.num;
-nd = coltbl.num;
 
-[r, c, i] = ind2sub([nd, nd, ncnf], (1 : ncnfcr)');
 
-prod.dispind1 = sub2ind([nd, ncnf], c, i);
-prod.dispind2 = sub2ind([nd, ncnf], r, nodeface2cellnodeface(i));
-prod.dispind3 = sub2ind([nd, nd, ncn], r, c, cellnode2cellnodeface(i));
+[r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
+
+prod.dispind1 = sub2ind([d_num, cnf_num], c, i);
+prod.dispind2 = sub2ind([d_num, cnf_num], r, nodeface2cellnodeface(i));
+prod.dispind3 = sub2ind([d_num, d_num, cn_num], r, c, cellnode2cellnodeface(i));
 prod.issetup = true;
 
 % prod = prod.setup();
 
-gradnodeface_T = SparseTensor();
+gradnodeface_T = SparseTensor('matlabsparse', true);
 gradnodeface_T = gradnodeface_T.setFromTensorProd(g, prod);
 
-
-% cellnodefacecoltbl = rmfield(cellnodefacecoltbl, {'cnfind', 'cncind'});
-% cellnodecoltbl     = rmfield(cellnodecoltbl, {'cncind'});
-% nodefacecoltbl     = rmfield(nodefacecoltbl, {'nfind'});
-% cellnodecolrowtbl  = rmfield(cellnodecolrowtbl, {'cnind'});
 
 % Construction of gradcell_T : cellcoltbl -> cellnodecolrowtbl
 %
@@ -217,7 +220,7 @@ prod.mergefds = {'cells'};
 prod.tbl3 = cellnodecolrowtbl;
 prod = prod.setup();
 
-gradcell_T = SparseTensor();
+gradcell_T = SparseTensor('matlabsparse', true);
 gradcell_T = gradcell_T.setFromTensorProd(greduced, prod);
 
 % some test gradnodeface_T and gradcell_T
@@ -274,7 +277,7 @@ prod.mergefds = {'nodes'};
 prod.tbl3 = nodefacecoltbl;
 prod = prod.setup();
 
-divnodeface_T = SparseTensor();
+divnodeface_T = SparseTensor('matlabsparse', true);
 divnodeface_T = divnodeface_T.setFromTensorProd(d, prod);
 
 
@@ -282,7 +285,7 @@ divnodeface_T = divnodeface_T.setFromTensorProd(d, prod);
 dotest = false;
 if dotest
     % create uniform gradient tensor (take unity)
-    assert(dimcase == 2);
+    assert(dim == 2);
     colrowtbl = crossTable(coltbl, rowtbl, {});
     g = [1; 0; 0; 1];
     g = tblmap(g, colrowtbl, cellnodecolrowtbl, {'coldim', 'rowdim'});
@@ -311,7 +314,7 @@ prod.mergefds    = {'cells'};
 prod.tbl3 = cellcoltbl;
 prod = prod.setup();
 
-divcell_T = SparseTensor();
+divcell_T = SparseTensor('matlabsparse', true);
 divcell_T = divcell_T.setFromTensorProd(dreduced, prod);
 
 
@@ -339,7 +342,7 @@ prod.reducefds = {'coldim2', 'rowdim2'};
 prod.tbl3 = nodecolrowtbl;
 prod = prod.setup();
 
-trans_T = SparseTensor();
+trans_T = SparseTensor('matlabsparse', true);
 trans_T = trans_T.setFromTensorProd(ones(col2row2tbl.num, 1), prod);
 
 %% Construction of nodal average for cellnode tensor
@@ -354,7 +357,7 @@ trans_T = trans_T.setFromTensorProd(ones(col2row2tbl.num, 1), prod);
 nnodes = tblmap1to2(ones(cellnodetbl.num, 1), indstruct);
 coef   = tblmap2to1(1./nnodes, indstruct);
 
-assert(dimcase == 2)
+assert(dim == 2)
 % we eliminitate the places (at the boundaries) where the local reconstruction
 % is ill-posed
 cornernodetbl.nodes = find(nnodes == 1);
@@ -371,7 +374,7 @@ prod.tbl3 = nodecolrowtbl;
 
 prod = prod.setup();
 
-nodeaverage_T = SparseTensor();
+nodeaverage_T = SparseTensor('matlabsparse', true);
 nodeaverage_T = nodeaverage_T.setFromTensorProd(coef, prod);
 
 transnodeaverage_T = trans_T*nodeaverage_T;
@@ -387,12 +390,13 @@ if dooptimized
     row = cellnodecolrowtbl.rowdim;
     ind = (node - 1)*(dim*dim) + (col - 1)*dim + row;
     
-    celldispatch_T = SparseTensor();
+    celldispatch_T = SparseTensor('matlabsparse', true);
     celldispatch_T.fromTbl = nodecolrowtbl;
     celldispatch_T.toTbl = cellnodecolrowtbl;
     celldispatch_T.col = ind;
     celldispatch_T.row = (1 : cellnodecolrowtbl.num)';
     celldispatch_T.val = ones(cellnodecolrowtbl.num, 1);
+    celldispatch_T = celldispatch_T.setMatrix();
 else
     prod = TensorProd();
     prod.tbl1 = celltbl;
@@ -400,14 +404,14 @@ else
     prod.tbl3 = cellnodecolrowtbl;
     prod = prod.setup();
 
-    celldispatch_T = SparseTensor();
+    celldispatch_T = SparseTensor('matlabsparse', true);
     celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num), prod);
 end
 
 transnodeaverage_T = celldispatch_T*transnodeaverage_T;
 
 %% we need to multiply by 2 for the corners
-assert(dimcase == 2);
+assert(dim == 2);
 cornercellnodecolrowtbl = crossTable(cornernodetbl, cellnodecolrowtbl, ...
                                      {'nodes'});
 
@@ -424,13 +428,13 @@ prod.mergefds = {'cells', 'nodes', 'coldim', 'rowdim'};
 prod.tbl3 = cellnodecolrowtbl;
 prod = prod.setup();
 
-cornerfix_T = SparseTensor();
+cornerfix_T = SparseTensor('matlabsparse', true);
 cornerfix_T = cornerfix_T.setFromTensorProd(c, prod);
 
 % some test for transnodeaverage_T
 dotest = false;
 if dotest
-    assert(dimcase == 2);
+    assert(dim == 2);
     colrowtbl = crossTable(coltbl, rowtbl, {});
     g = [1; 2; 3; 1];
     g = tblmap(g, colrowtbl, cellnodecolrowtbl, {'coldim', 'rowdim'});
@@ -492,7 +496,7 @@ if dotest
     prod.tbl3 = colrowtbl;
     prod = prod.setup();
 
-    C_T = SparseTensor();
+    C_T = SparseTensor('matlabsparse', true);
     C_T = C_T.setFromTensorProd(C, prod);
     
     printTensor(C_T); 
@@ -511,7 +515,7 @@ prod.reducefds = {'coldim2', 'rowdim2'};
 prod.tbl3 = cellnodecolrowtbl;
 prod = prod.setup();
 
-C_T = SparseTensor();
+C_T = SparseTensor('matlabsparse', true);
 C_T = C_T.setFromTensorProd(C, prod);
 
 Cgradnodeface_T = cornerfix_T*C_T*gradnodeface_T;
@@ -560,7 +564,7 @@ prod.tbl3 = nodefacecoltbl;
 prod = prod.setup();
 
 d = [0; 1];
-D_T = SparseTensor();
+D_T = SparseTensor('matlabsparse', true);
 D_T = D_T.setFromTensorProd(d, prod);
 Dmat{1} = D_T.getMatrix();
 
@@ -577,7 +581,7 @@ prod.tbl3 = nodefacecoltbl;
 prod = prod.setup();
 
 d = [1; 0];
-D_T = SparseTensor();
+D_T = SparseTensor('matlabsparse', true);
 D_T = D_T.setFromTensorProd(d, prod);
 Dmat{2} = D_T.getMatrix();
 
@@ -600,7 +604,7 @@ force = tblmap(-extFacetNormals, extnodefacecoltbl, nodefacecoltbl, {'nodes', ..
 dosourceterm = false;
 if dosourceterm
     % We setup a source-term
-    switch dimcase
+    switch dim
       case 2
         indcell = floor(nx/2) + nx*floor((ny - 1)/2);
         force = [0; 1]; % force in upward direction
@@ -634,7 +638,7 @@ force = [force; Z1; Z2];
 u = A\force;
 
 u = u(n1 + 1 : n1 + n2); 
-u = reshape(u, dimcase, [])';
+u = reshape(u, dim, [])';
 
 % get the block structure
 % We count the number of degrees of freedom that are connected to the same
