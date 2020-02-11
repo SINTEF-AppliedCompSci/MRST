@@ -82,7 +82,6 @@ nodefacecoltbl = crossTable(nodefacetbl, coltbl, {});
 % for-end loop below.
 cellnodefacetbl = crossTable(cellfacetbl, nodefacetbl, {'faces'});
 cellnodefacetbl = sortTable(cellnodefacetbl, {'cells', 'nodes', 'faces'});
-cellnodefacetbl = addLocInd(cellnodefacetbl, 'cnfind');
 
 % We setup the cell-node table, cellnodetbl. Each entry determine a unique
 % corner
@@ -98,19 +97,20 @@ nodeface2cellnodeface = getDispatchInd(nodefacetbl, cellnodefacetbl, fds);
 
 cellnodecoltbl    = crossTable(cellnodetbl, coltbl, {});
 cellnodecolrowtbl = crossTable(cellnodecoltbl, rowtbl, {});
-cellnodecoltbl    = addLocInd(cellnodecoltbl, 'cncind');
 
 cellnodefacecoltbl = crossTable(cellnodefacetbl, coltbl, {});
+cellnodefacecolrowtbl = crossTable(cellnodefacecoltbl, rowtbl, {});
 
-fds = {'cells', 'nodes', 'coldim'};
-cellnodefacecoltbl = crossTable(cellnodefacecoltbl, cellnodecoltbl, fds);
+% fds = {'cells', 'nodes', 'coldim'};
+% cellnodefacecoltbl = crossTable(cellnodefacecoltbl, cellnodecoltbl, fds);
 % this sorting may be unecessary. We do it to be sure
-fds = {'cells', 'nodes', 'faces', 'coldim', 'cnfind', 'cncind'};
-cellnodefacecoltbl = sortTable(cellnodefacecoltbl, fds);
+% fds = {'cells', 'nodes', 'faces', 'coldim', 'cnfind', 'cncind'};
+% cellnodefacecoltbl = sortTable(cellnodefacecoltbl, fds);
 
 
 % some shortcuts
 cnf_num   = cellnodefacetbl.num;
+cnfc_num  = cellnodefacecoltbl.num;
 cn_num    = cellnodetbl.num;
 cnfcr_num = cellnodefacecolrowtbl.num;
 d_num     = coltbl.num;
@@ -129,15 +129,9 @@ cellFacetVec = G.faces.centroids(fno, :) - G.cells.centroids(cno, :) + ...
 
 cellFacetVec = reshape(cellFacetVec', [], 1);
 
-% [c, i] = ind2sub()
-
-fds = {'cells', 'nodes', 'faces'};
-cnf = cellnodefacetbl;
-ind1 = tblmap(cnf.cnfind, cnf, cellnodefacecoltbl, fds);
-
-fds = {'cells', 'nodes', 'coldim'};
-cnc = cellnodecoltbl;
-ind2 = tblmap(cnc.cncind, cnc, cellnodefacecoltbl, fds);
+[c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
+ind1 = i;
+ind2 = sub2ind([d_num, cn_num], c, cellnode2cellnodeface(i));
 
 n = cellnodecoltbl.num; 
 assert(n == cellnodefacetbl.num, ['This implementation of mpsaw cannot handle ' ...
@@ -152,26 +146,14 @@ sz = repmat(coltbl.num, cellnodetbl.num, 1);
 invA = bi(A, sz);
 
 [cncind, cnfind, g] = find(invA);
+[c, i] = ind2sub([d_num, cn_num], cncind);
+ind = sub2ind([d_num, cnf_num], c, cnfind);
 
-gtbl.cncind = cncind;
-gtbl.cnfind = cnfind;
-gtbl.num = numel(gtbl.cncind);
-
-fds = {'cncind', 'cnfind'};
-g = tblmap(g, gtbl, cellnodefacecoltbl, fds);
+g(ind) = g;
 
 %% Construction of the gradient operator
 %
-% We clean-up the tables
 
-oldcellnodefacecoltbl = cellnodefacecoltbl;
-cellnodefacecoltbl = crossTable(cellnodefacetbl, coltbl, {});
-
-fds = {'cells', 'nodes', 'faces', 'coldim'};
-g = tblmap(g, oldcellnodefacecoltbl, cellnodefacecoltbl, fds);
-
-cellnodefacecoltbl = rmfield(cellnodefacecoltbl, {'cnfind'});
-cellnodecoltbl     = rmfield(cellnodecoltbl, {'cncind'});
 
 % Construction of gradnodeface_op : nodefacecoltbl -> cellnodecolrowtbl
 %
@@ -186,10 +168,6 @@ prod.replacefds2 = {'coldim', 'rowdim'};
 prod.reducefds   = {'faces'};
 prod.mergefds    = {'nodes'};
 prod.tbl3 = cellnodecolrowtbl;
-
-cellnodefacecolrowtbl = crossTable(cellnodefacecoltbl, rowtbl, {});
-
-
 
 [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
 
