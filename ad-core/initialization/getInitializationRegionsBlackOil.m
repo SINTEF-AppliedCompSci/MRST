@@ -24,7 +24,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'rs', [], ...
                  'rv', []);
     [opt, args] = merge_options(opt, varargin{:});
-    
+    % Ensure that groups are set up before building init regions
+    model = model.setupStateFunctionGroupings();
+
     actPh = model.getActivePhases();
     nPh = sum(actPh);
     
