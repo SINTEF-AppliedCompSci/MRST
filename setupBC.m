@@ -123,6 +123,9 @@ function [D, force] = setupBC(runcase, G, tbls, mappings, varargin)
         end
       
       case '3d-linear'
+        
+        facetNormals = opt.facetNormals;
+
         Dmat = cell(3, 1);
         for i = 1 : 3
             extfaces = find(G.faces.centroids(:, i) == 0);
@@ -133,10 +136,10 @@ function [D, force] = setupBC(runcase, G, tbls, mappings, varargin)
         D = horzcat(Dmat{:});
         
         % Setup force at top, in opposite normal direction
-        y = G.faces.centroids(:, 2);
+        y = G.faces.centroids(:, 3);
         ymax = max(y);
         extfacetbl.faces = find(y == ymax);
-        extfacetbl.num = numel(extfacetbl.faces);
+        extfacetbl.num   = numel(extfacetbl.faces);
 
         [extnodefacetbl, indstruct] = crossTable(nodefacetbl, extfacetbl, {'faces'});
         nodeface_from_extnodeface = indstruct{1}.inds;
