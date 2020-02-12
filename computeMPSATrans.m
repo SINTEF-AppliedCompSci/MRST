@@ -596,123 +596,15 @@ A12 = A12.getMatrix();
 A21 = A21.getMatrix();
 A22 = A22.getMatrix();
 
+tbls = struct('nodefacetbl'       , nodefacetbl       , ...
+              'nodefacecoltbl'    , nodefacecoltbl    , ...
+              'cellnodefacetbl'   , cellnodefacetbl   , ...
+              'cellnodefacecoltbl', cellnodefacecoltbl, ...
+              'coltbl'            , coltbl);
 
-%% Boundary conditions
+mappings = struct('nodeface_from_cellnodeface', nodeface_from_cellnodeface);
 
-% One linear form per Dirichlet condition
-
-extfacetbl.faces = find(G.faces.centroids(:, 2) == 0);
-extfacetbl.num = numel(extfacetbl.faces);
-
-extnodefacetbl = crossTable(nodefacetbl, extfacetbl, {'faces'});
-
-prod = TensorProd();
-prod.tbl1 = coltbl;
-prod.tbl2 = extnodefacetbl;
-prod.tbl3 = nodefacecoltbl;
-prod = prod.setup();
-
-d = [0; 1];
-D_T = SparseTensor('matlabsparse', true);
-D_T = D_T.setFromTensorProd(d, prod);
-Dmat{1} = D_T.getMatrix();
-
-clear extfacetbl
-extfacetbl.faces = find(G.faces.centroids(:, 1) == 0);
-extfacetbl.num = numel(extfacetbl.faces);
-
-extnodefacetbl = crossTable(nodefacetbl, extfacetbl, {'faces'});
-
-prod = TensorProd();
-prod.tbl1 = coltbl;
-prod.tbl2 = extnodefacetbl;
-prod.tbl3 = nodefacecoltbl;
-prod = prod.setup();
-
-d = [1; 0];
-D_T = SparseTensor('matlabsparse', true);
-D_T = D_T.setFromTensorProd(d, prod);
-Dmat{2} = D_T.getMatrix();
-
-D = [Dmat{1}, Dmat{2}];
-
-% Setup force at top, in opposite normal direction
-y = G.faces.centroids(:, 2);
-ymax = max(y);
-extfacetbl.faces = find(y == ymax);
-extfacetbl.num = numel(extfacetbl.faces);
-
-[extnodefacetbl, indstruct] = crossTable(nodefacetbl, extfacetbl, {'faces'});
-nodeface_from_extnodeface = indstruct{1}.inds;
-
-extnodefacecoltbl = crossTable(extnodefacetbl, coltbl, {});
-
-map = TensorMap();
-map.fromTbl  = cellnodefacecoltbl;
-map.toTbl    = extnodefacecoltbl;
-map.mergefds = {'faces', 'nodes', 'coldim'};
-
-% Here, we setup a direct construction of extcellnodefacetbl, which allows us
-% to avoid map = map.setup()    
-%    
-%    map = map.setup();
-%    extFacetNormals = map.eval(facetNormals);
-
-u = (1 : extnodefacetbl.num)';
-v = zeros(nodefacetbl.num, 1);
-v(nodeface_from_extnodeface) = u;
-w = v(nodeface_from_cellnodeface);
-ind = find(w);
-fds = {'cells', 'nodes', 'faces'};
-cellnodefacemat = convertTableToArray(cellnodefacetbl, fds);
-extcellnodefacemat = cellnodefacemat(ind, 1 : 3);
-extcellnodefacetbl = convertArrayToTable(extcellnodefacemat, fds);
-extnodeface_from_extcellnodeface = w(ind);
-cellnodeface_from_extcellnodeface = ind;
-
-extcellnodefacecoltbl = crossTable(extcellnodefacetbl, coltbl, {});
-
-map.pivottbl = extcellnodefacecoltbl;
-ecnf_num = extcellnodefacetbl.num;
-ecnfc_num = extcellnodefacecoltbl.num;
-[c, i] = ind2sub([d_num, ecnf_num], (1 : ecnfc_num)');
-ind1 = cellnodeface_from_extcellnodeface(i);
-map.dispind1 = sub2ind([d_num, cnfc_num], c, ind1);
-ind2 = extnodeface_from_extcellnodeface(i);
-map.dispind2 = sub2ind([d_num, cnfc_num], c, ind2);
-map.issetup = true;
-
-extFacetNormals = map.eval(facetNormals);
-
-map = TensorMap();
-map.fromTbl = extnodefacecoltbl;
-map.toTbl = nodefacecoltbl;
-map.mergefds = {'faces', 'nodes', 'coldim'};
-
-map = map.setup();
-
-force = map.eval(-extFacetNormals);
-
-dosourceterm = false;
-if dosourceterm
-    % We setup a source-term
-    switch dim
-      case 2
-        indcell = floor(nx/2) + nx*floor((ny - 1)/2);
-        force = [0; 1]; % force in upward direction
-      case 3
-        indcell = floor(nx/2 + ny/2*nx + nz/2*nx*ny);
-        force = [0; 0; 1]; % force in upward direction    
-    end
-
-    sourcetbl.cells = indcell;
-    sourcetbl.num = numel(indcell);
-
-    sourcetbl = crossTable(sourcetbl, coltbl, {});
-
-    force = tblmap(force, coltbl, sourcetbl, {'coldim'});
-    force = tblmap(force, sourcetbl, cellcoltbl, {'cells', 'coldim'});
-end
+[D, force] = setupBC(runcase, G, tbls, mappings, 'facetNormals', facetNormals);
 
 % get the block structure
 % We count the number of degrees of freedom that are connected to the same
