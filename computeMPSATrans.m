@@ -90,6 +90,8 @@ cellnodetbl = sortTable(cellnodetbl, {'cells', 'nodes'});
 
 fds = {'cells'};
 cell2cellnode = getDispatchInd(celltbl, cellnodetbl, fds);
+fds = {'nodes'};
+node2cellnode = getDispatchInd(nodetbl, cellnodetbl, fds);
 fds = {'cells', 'faces'};
 cellface2cellnodeface = getDispatchInd(cellfacetbl, cellnodefacetbl, fds);
 fds = {'cells', 'nodes'};
@@ -112,11 +114,13 @@ cellnodefacecolrowtbl = crossTable(cellnodefacecoltbl, rowtbl, {});
 
 % some shortcuts
 c_num     = celltbl.num;
+n_num     = nodetbl.num;
 cnf_num   = cellnodefacetbl.num;
 cnfc_num  = cellnodefacecoltbl.num;
 cn_num    = cellnodetbl.num;
 cncr_num  = cellnodecolrowtbl.num;
 nf_num    = nodefacetbl.num;
+nfc_num   = nodefacecoltbl.num;
 cnfcr_num = cellnodefacecolrowtbl.num;
 d_num     = coltbl.num;
 
@@ -212,7 +216,14 @@ prod.tbl2 = cellcoltbl;
 prod.tbl3 = cellnodecolrowtbl;
 prod.replacefds2 = {'coldim', 'rowdim'};
 prod.mergefds = {'cells'};
-prod = prod.setup();
+
+prod.pivottbl = cellnodecolrowtbl;
+[r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
+prod.dispind1 = sub2ind([d_num, cn_num], c, i);
+prod.dispind2 = sub2ind([d_num, c_num], r, cell2cellnode(i));
+prod.dispind3 = (1 : cncr_num);
+
+prod.issetup = true;
 
 gradcell_T = SparseTensor('matlabsparse', true);
 gradcell_T = gradcell_T.setFromTensorProd(greduced, prod);
@@ -342,13 +353,28 @@ col2row2tbl.num = colrowtbl.num;
 prod = TensorProd();
 prod.tbl1 = col2row2tbl;
 prod.tbl2 = nodecolrowtbl;
+prod.tbl3 = nodecolrowtbl;
 prod.replacefds1 = {{'coldim1', 'coldim'}, ...
                     {'rowdim1', 'rowdim'}};
 prod.replacefds2 = {{'coldim', 'coldim2'}, ...
                     {'rowdim', 'rowdim2'}};
 prod.reducefds = {'coldim2', 'rowdim2'};
-prod.tbl3 = nodecolrowtbl;
-prod = prod.setup();
+
+nodecol2row2tbl = crossTable(nodetbl, col2row2tbl, {});
+nc2r2_num = nodecol2row2tbl.num; % shortcut
+
+% note the definition of col2row2tbl above
+prod.pivottbl = nodecol2row2tbl;
+[r, c, i] = ind2sub([d_num, d_num, n_num], (1 : nc2r2_num)');
+c2 = c;
+r2 = r;
+c1 = r;
+r1 = c;
+prod.dispind1 = sub2ind([d_num, d_num], r, c);
+prod.dispind2 = sub2ind([d_num, d_num, n_num], r2, c2, i);
+prod.dispind3 = sub2ind([d_num, d_num, n_num], r1, c1, i);
+
+prod.issetup = true;
 
 trans_T = SparseTensor('matlabsparse', true);
 trans_T = trans_T.setFromTensorProd(ones(col2row2tbl.num, 1), prod);
@@ -376,11 +402,18 @@ coef(coef == 1) = 0;
 prod = TensorProd();
 prod.tbl1 = cellnodetbl;
 prod.tbl2 = cellnodecolrowtbl;
+prod.tbl3 = nodecolrowtbl;
 prod.reducefds = {'cells'};
 prod.mergefds = {'nodes'};
-prod.tbl3 = nodecolrowtbl;
 
-prod = prod.setup();
+prod.pivottbl = cellnodecolrowtbl;
+
+[r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
+prod.dispind1 = i;
+prod.dispind2 = (1 : cncr_num)';
+prod.dispind3 = sub2ind([d_num, d_num, n_num], r, c, node2cellnode(i));
+
+prod.issetup = true;
 
 nodeaverage_T = SparseTensor('matlabsparse', true);
 nodeaverage_T = nodeaverage_T.setFromTensorProd(coef, prod);
@@ -391,30 +424,21 @@ transnodeaverage_T = trans_T*nodeaverage_T;
 % now we have
 % transnodeaverage_T : cellnodecolrowtbl -> cellnodecolrowtbl
 
-dooptimized = true;
-if dooptimized
-    node = cellnodecolrowtbl.nodes;
-    col = cellnodecolrowtbl.coldim;
-    row = cellnodecolrowtbl.rowdim;
-    ind = (node - 1)*(dim*dim) + (col - 1)*dim + row;
-    
-    celldispatch_T = SparseTensor('matlabsparse', true);
-    celldispatch_T.fromTbl = nodecolrowtbl;
-    celldispatch_T.toTbl = cellnodecolrowtbl;
-    celldispatch_T.col = ind;
-    celldispatch_T.row = (1 : cellnodecolrowtbl.num)';
-    celldispatch_T.val = ones(cellnodecolrowtbl.num, 1);
-    celldispatch_T = celldispatch_T.setMatrix();
-else
-    prod = TensorProd();
-    prod.tbl1 = celltbl;
-    prod.tbl2 = nodecolrowtbl;
-    prod.tbl3 = cellnodecolrowtbl;
-    prod = prod.setup();
+prod = TensorProd();
+prod.tbl1 = celltbl;
+prod.tbl2 = nodecolrowtbl;
+prod.tbl3 = cellnodecolrowtbl;
 
-    celldispatch_T = SparseTensor('matlabsparse', true);
-    celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num), prod);
-end
+prod.pivottbl = cellnodecolrowtbl;
+[r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
+prod.dispind1 = cell2cellnode(i);
+prod.dispind2 = sub2ind([d_num, d_num, n_num], r, c, node2cellnode(i));
+prod.dispind3 = (1 : cncr_num)';
+
+prod.issetup = true;
+
+celldispatch_T = SparseTensor('matlabsparse', true);
+celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num), prod);
 
 transnodeaverage_T = celldispatch_T*transnodeaverage_T;
 
@@ -500,7 +524,7 @@ col2row2tbl = crossTable(colrowtbl, colrowtbl, {}, 'crossextend', fds);
 
 C = reshape(C', [], 1);
 
-dotest = true;
+dotest = false;
 if dotest
     prod = TensorProd();
     prod.tbl1 = col2row2tbl;
@@ -618,10 +642,43 @@ ymax = max(y);
 extfacetbl.faces = find(y == ymax);
 extfacetbl.num = numel(extfacetbl.faces);
 
-extnodefacetbl = crossTable(nodefacetbl, extfacetbl, {'faces'});
+[extnodefacetbl, indstruct] = crossTable(nodefacetbl, extfacetbl, {'faces'});
+nodeface2extnodeface = indstruct{1}.inds;
+
 extnodefacecoltbl = crossTable(extnodefacetbl, coltbl, {});
+
 extFacetNormals = tblmap(facetNormals, cellnodefacecoltbl, extnodefacecoltbl, ...
                          {'faces', 'nodes', 'coldim'});
+
+map = TensorMap();
+map.tbl1 = cellnodefacecoltbl;
+map.tbl2 = nodefacecoltbl;
+map.mergefds = {'faces', 'nodes', 'coldim'};
+
+map.pivottbl = cellnodefacecoltbl;
+[c, cnf] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
+map.dispind1 = (1 : cnfc_num)';
+nf = nodeface2cellnodeface(cnf);
+map.dispind2 = sub2ind([d_num, nf_num], c, nf);
+map.issetup = true;
+
+test = map.eval(facetNormals);
+
+map = TensorMap();
+map.tbl1 = nodefacecoltbl;
+map.tbl2 = extnodefacecoltbl;
+map.mergefds = {'faces', 'nodes', 'coldim'};
+
+map.pivottbl = extnodefacecoltbl;
+enf_num = extnodefacetbl.num;
+enfc_num = extnodefacecoltbl.num;
+[c, i] = ind2sub([d_num, enf_num], (1 : enfc_num)');
+map.dispind1 = sub2ind([d_num, nf_num], c, nodeface2extnodeface(i));
+map.dispind2 = (1 : enfc_num)';
+map.issetup = true;
+
+
+
 
 force = tblmap(-extFacetNormals, extnodefacecoltbl, nodefacecoltbl, {'nodes', ...
                     'faces', 'coldim'});
