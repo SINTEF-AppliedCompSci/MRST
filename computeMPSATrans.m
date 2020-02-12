@@ -89,15 +89,15 @@ cellnodetbl = projTable(cellnodefacetbl, {'nodes', 'cells'});
 cellnodetbl = sortTable(cellnodetbl, {'cells', 'nodes'});
 
 fds = {'cells'};
-cell2cellnode = getDispatchInd(celltbl, cellnodetbl, fds);
+cell_from_cellnode = getDispatchInd(celltbl, cellnodetbl, fds);
 fds = {'nodes'};
-node2cellnode = getDispatchInd(nodetbl, cellnodetbl, fds);
+node_from_cellnode = getDispatchInd(nodetbl, cellnodetbl, fds);
 fds = {'cells', 'faces'};
-cellface2cellnodeface = getDispatchInd(cellfacetbl, cellnodefacetbl, fds);
+cellface_from_cellnodeface = getDispatchInd(cellfacetbl, cellnodefacetbl, fds);
 fds = {'cells', 'nodes'};
-cellnode2cellnodeface = getDispatchInd(cellnodetbl, cellnodefacetbl, fds);
+cellnode_from_cellnodeface = getDispatchInd(cellnodetbl, cellnodefacetbl, fds);
 fds = {'faces', 'nodes'};
-nodeface2cellnodeface = getDispatchInd(nodefacetbl, cellnodefacetbl, fds);
+nodeface_from_cellnodeface = getDispatchInd(nodefacetbl, cellnodefacetbl, fds);
 
 cellnodecoltbl    = crossTable(cellnodetbl, coltbl, {});
 cellnodecolrowtbl = crossTable(cellnodecoltbl, rowtbl, {});
@@ -140,7 +140,7 @@ cellFacetVec = reshape(cellFacetVec', [], 1);
 
 [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
 ind1 = i;
-ind2 = sub2ind([d_num, cn_num], c, cellnode2cellnodeface(i));
+ind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
 
 n = cellnodecoltbl.num; 
 assert(n == cellnodefacetbl.num, ['This implementation of mpsaw cannot handle ' ...
@@ -181,8 +181,8 @@ prod.tbl3 = cellnodecolrowtbl;
 [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
 
 prod.dispind1 = sub2ind([d_num, cnf_num], c, i);
-prod.dispind2 = sub2ind([d_num, cnf_num], r, nodeface2cellnodeface(i));
-prod.dispind3 = sub2ind([d_num, d_num, cn_num], r, c, cellnode2cellnodeface(i));
+prod.dispind2 = sub2ind([d_num, cnf_num], r, nodeface_from_cellnodeface(i));
+prod.dispind3 = sub2ind([d_num, d_num, cn_num], r, c, cellnode_from_cellnodeface(i));
 prod.issetup = true;
 
 gradnodeface_T = SparseTensor('matlabsparse', true);
@@ -204,7 +204,7 @@ prod.reducefds = {'faces'};
 prod.dispind1 = (1 : cnfc_num)';
 prod.dispind2 = (1 : cnfc_num)';
 [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-prod.dispind3 = sub2ind([d_num, cn_num], c, cellnode2cellnodeface(i));
+prod.dispind3 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
 
 prod.issetup = true;
 
@@ -220,7 +220,7 @@ prod.mergefds = {'cells'};
 prod.pivottbl = cellnodecolrowtbl;
 [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
 prod.dispind1 = sub2ind([d_num, cn_num], c, i);
-prod.dispind2 = sub2ind([d_num, c_num], r, cell2cellnode(i));
+prod.dispind2 = sub2ind([d_num, c_num], r, cell_from_cellnode(i));
 prod.dispind3 = (1 : cncr_num);
 
 prod.issetup = true;
@@ -284,8 +284,8 @@ prod.tbl3 = nodefacecoltbl;
 prod.pivottbl = cellnodefacecolrowtbl;
 [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
 prod.dispind1 = sub2ind([d_num, cnf_num], r, i);
-prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, cellnode2cellnodeface(i));
-prod.dispind3 = sub2ind([d_num, nf_num], c, nodeface2cellnodeface(i));
+prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, cellnode_from_cellnodeface(i));
+prod.dispind3 = sub2ind([d_num, nf_num], c, nodeface_from_cellnodeface(i));
 
 prod.issetup = true;
 
@@ -329,7 +329,7 @@ prod.pivottbl = cellnodecolrowtbl;
 [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
 prod.dispind1 = sub2ind([d_num, cn_num], r, i);
 prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, i);
-prod.dispind3 = sub2ind([d_num, c_num], c, cell2cellnode(i));
+prod.dispind3 = sub2ind([d_num, c_num], c, cell_from_cellnode(i));
 
 prod.issetup = true;
 
@@ -411,7 +411,7 @@ prod.pivottbl = cellnodecolrowtbl;
 [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
 prod.dispind1 = i;
 prod.dispind2 = (1 : cncr_num)';
-prod.dispind3 = sub2ind([d_num, d_num, n_num], r, c, node2cellnode(i));
+prod.dispind3 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
 
 prod.issetup = true;
 
@@ -431,8 +431,8 @@ prod.tbl3 = cellnodecolrowtbl;
 
 prod.pivottbl = cellnodecolrowtbl;
 [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-prod.dispind1 = cell2cellnode(i);
-prod.dispind2 = sub2ind([d_num, d_num, n_num], r, c, node2cellnode(i));
+prod.dispind1 = cell_from_cellnode(i);
+prod.dispind2 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
 prod.dispind3 = (1 : cncr_num)';
 
 prod.issetup = true;
@@ -643,45 +643,55 @@ extfacetbl.faces = find(y == ymax);
 extfacetbl.num = numel(extfacetbl.faces);
 
 [extnodefacetbl, indstruct] = crossTable(nodefacetbl, extfacetbl, {'faces'});
-nodeface2extnodeface = indstruct{1}.inds;
+nodeface_from_extnodeface = indstruct{1}.inds;
 
 extnodefacecoltbl = crossTable(extnodefacetbl, coltbl, {});
 
-extFacetNormals = tblmap(facetNormals, cellnodefacecoltbl, extnodefacecoltbl, ...
-                         {'faces', 'nodes', 'coldim'});
-
 map = TensorMap();
-map.tbl1 = cellnodefacecoltbl;
-map.tbl2 = nodefacecoltbl;
+map.fromTbl  = cellnodefacecoltbl;
+map.toTbl    = extnodefacecoltbl;
 map.mergefds = {'faces', 'nodes', 'coldim'};
 
-map.pivottbl = cellnodefacecoltbl;
-[c, cnf] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-map.dispind1 = (1 : cnfc_num)';
-nf = nodeface2cellnodeface(cnf);
-map.dispind2 = sub2ind([d_num, nf_num], c, nf);
+% Here, we setup a direct construction of extcellnodefacetbl, which allows us
+% to avoid map = map.setup()    
+%    
+%    map = map.setup();
+%    extFacetNormals = map.eval(facetNormals);
+
+u = (1 : extnodefacetbl.num)';
+v = zeros(nodefacetbl.num, 1);
+v(nodeface_from_extnodeface) = u;
+w = v(nodeface_from_cellnodeface);
+ind = find(w);
+fds = {'cells', 'nodes', 'faces'};
+cellnodefacemat = convertTableToArray(cellnodefacetbl, fds);
+extcellnodefacemat = cellnodefacemat(ind, 1 : 3);
+extcellnodefacetbl = convertArrayToTable(extcellnodefacemat, fds);
+extnodeface_from_extcellnodeface = w(ind);
+cellnodeface_from_extcellnodeface = ind;
+
+extcellnodefacecoltbl = crossTable(extcellnodefacetbl, coltbl, {});
+
+map.pivottbl = extcellnodefacecoltbl;
+ecnf_num = extcellnodefacetbl.num;
+ecnfc_num = extcellnodefacecoltbl.num;
+[c, i] = ind2sub([d_num, ecnf_num], (1 : ecnfc_num)');
+ind1 = cellnodeface_from_extcellnodeface(i);
+map.dispind1 = sub2ind([d_num, cnfc_num], c, ind1);
+ind2 = extnodeface_from_extcellnodeface(i);
+map.dispind2 = sub2ind([d_num, cnfc_num], c, ind2);
 map.issetup = true;
 
-test = map.eval(facetNormals);
+extFacetNormals = map.eval(facetNormals);
 
 map = TensorMap();
-map.tbl1 = nodefacecoltbl;
-map.tbl2 = extnodefacecoltbl;
+map.fromTbl = extnodefacecoltbl;
+map.toTbl = nodefacecoltbl;
 map.mergefds = {'faces', 'nodes', 'coldim'};
 
-map.pivottbl = extnodefacecoltbl;
-enf_num = extnodefacetbl.num;
-enfc_num = extnodefacecoltbl.num;
-[c, i] = ind2sub([d_num, enf_num], (1 : enfc_num)');
-map.dispind1 = sub2ind([d_num, nf_num], c, nodeface2extnodeface(i));
-map.dispind2 = (1 : enfc_num)';
-map.issetup = true;
+map = map.setup();
 
-
-
-
-force = tblmap(-extFacetNormals, extnodefacecoltbl, nodefacecoltbl, {'nodes', ...
-                    'faces', 'coldim'});
+force = map.eval(-extFacetNormals);
 
 dosourceterm = false;
 if dosourceterm
