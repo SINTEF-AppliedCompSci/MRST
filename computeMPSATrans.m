@@ -81,9 +81,6 @@ cellnodefacetbl = crossTable(cellfacetbl, nodefacetbl, {'faces'});
 cellnodefacetbl = sortTable(cellnodefacetbl, {'cells', 'nodes', 'faces'});
 cellnodefacetbl = addLocInd(cellnodefacetbl, 'cnfind');
 
-[~, indstruct] = crossTable(nodefacetbl, cellnodefacetbl, {'nodes', 'faces'});
-cnf2nf = indstruct{1}.inds;
-
 % We setup the cell-node table, cellnodetbl. Each entry determine a unique
 % corner
 cellnodetbl = projTable(cellnodefacetbl, {'nodes', 'cells'});
@@ -351,8 +348,8 @@ transnodeaverage_T = trans_T*nodeaverage_T;
 % now we have
 % transnodeaverage_T : cellnodecolrowtbl -> cellnodecolrowtbl
 
-dooptimize = true;
-if dooptimize
+dooptimized = true;
+if dooptimized
     node = cellnodecolrowtbl.nodes;
     col = cellnodecolrowtbl.coldim;
     row = cellnodecolrowtbl.rowdim;
@@ -485,23 +482,13 @@ prod = prod.setup();
 C_T = SparseTensor();
 C_T = C_T.setFromTensorProd(C, prod);
 
-dooptimize = false;
-if dooptimize
-    error('not yet implemented');
-    ind1 = rldecode(cnf2nf, dim*ones(numel(cnf2nf), 1));
-    ind1 = rldecode(cnf2nf, dim*ones(numel(cnf2nf), 1));
-else
-    Cgradnodeface_T = C_T*gradnodeface_T;
-    Cgradnodeface_T = cornerfix_T*Cgradnodeface_T;
-end
+Cgradnodeface_T = cornerfix_T*C_T*gradnodeface_T;
 % Cgradnodeface_T = cornerfix_T*gradnodeface_T;
 transaverCgradnodeface_T = transnodeaverage_T*Cgradnodeface_T;
 
 combCgradnodeface_T = Cgradnodeface_T + transaverCgradnodeface_T;
 
-Cgradcell_T = C_T*gradcell_T;
-Cgradcell_T = cornerfix_T*Cgradcell_T;
-
+Cgradcell_T = cornerfix_T*C_T*gradcell_T;
 % Cgradcell_T = gradcell_T;
 transaverCgradcell_T = transnodeaverage_T*Cgradcell_T;
 
