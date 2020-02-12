@@ -76,6 +76,7 @@ simulatePackedProblem(problems, 'continueOnError', false);
 [ws, states, reports, names, T] = getMultiplePackedSimulatorOutputs(problems);
 %% Plot the results
 % Note oscillations for CFL > 1.
+model = model.setupStateFunctionGroupings();
 figure(1);
 for stepNo = 1:numel(schedule.step.val)
     clf; 
