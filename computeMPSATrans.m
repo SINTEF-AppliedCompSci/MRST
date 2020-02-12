@@ -22,7 +22,7 @@ runcases = {'2d-refinement', ...
             '2d-compaction', ...
             '3d-linear'};
 
-runcase = '2d-linear';
+runcase = '3d-linear';
 
 switch runcase
   case '2d-refinement'
@@ -497,47 +497,96 @@ end
 % C_T : cellnodecolrowtbl -> cellnodecolrowtbl
 %
 
+mu = 1;
+lambda = 1;
+vdim = dim*(dim + 1)/2;
+avdim = dim*dim - vdim;
+
+Cvoigt = mu*eye(vdim);
+Z1 = zeros(dim, vdim - dim);
+Z2 = zeros(vdim - dim);
+Cvoigt = [[lambda*ones(dim), Z1]; ...
+          [Z1'             , Z2]] ...
+         + Cvoigt;
+
+% Asymmetric part
+Casym = mu*eye(avdim);
+
+n1 = size(Cvoigt, 1);
+n2 = size(Casym, 1);
+
+Z = zeros(n1, n2);
+
+C = [[Cvoigt, Z];...
+     [Z', Casym];
+    ];
+
+% Change of basis :  
+% mapping A -> A + A' and A -> A - A'
+% follows indexing of colrowtbl
+
+voigttbl.voigt = (1 : vdim)';
+voigttbl.num = numel(voigttbl.voigt);
+
+avoigttbl.avoigt = (1 : avdim)';
+avoigttbl.num = numel(avoigttbl.avoigt);
+
+colrowvoigttbl.coldim = colrowtbl.coldim;
+colrowvoigttbl.rowdim = colrowtbl.rowdim;
 switch dim
-    
   case 2
-    mu = 1;
-    lambda = 1;
-    Cvoigt = mu*[[2 0 0]; ...
-                 [0 2 0]; ...
-                 [0 0 1]];
-    Z = [0; 0];
-    Cvoigt = [[lambda*ones(2, 2), Z]; ...
-              [Z', 0] ...
-             ] + Cvoigt;
-    Casym = mu*1;
-
-    n1 = size(Cvoigt, 1);
-    n2 = size(Casym, 1);
-
-    Z = zeros(n1, n2);
-
-    C = [[Cvoigt, Z];...
-         [Z', Casym];
-        ];
-
-    % convert from colrow to voigt (including asymetric part)
-    % follows indexing of colrowtbl
-    M = [[1  0 0 0]; ...
-         [0  0 0 1]; ...
-         [0  1 1 0]; ...
-         [0 -1 1 0] ...
-        ];
-
-    % We should add an extra multiplication for the coef 2 on diagonal for Voigt.
-    V = diag([1; 1; 0.5; 0.5]);
-
+    colrowvoigttbl.voigt  = [1; 3; 3; 2];
   case 3
-    
+    colrowvoigttbl.voigt  = [1; 6; 5; 6; 2; 4; 5; 4; 3];
 end
 
-    
-C = M'*V*C*M;
+colrowvoigttbl.num = numel(colrowvoigttbl.coldim);
 
+% to index the avoigt we the same ordering as voigt, just skipping the diagonal
+switch dim
+  case 2
+    colrowavoigttbl.avoigt = [1; 1];
+    colrowavoigttbl.coldim = [1; 2];
+    colrowavoigttbl.rowdim = [2; 1];
+  case 3
+    colrowavoigttbl.avoigt = [1; 2; 3; 1; 2; 3];
+    colrowavoigttbl.coldim = [2; 1; 1; 3; 3; 2];
+    colrowavoigttbl.rowdim = [3; 3; 2; 2; 1; 1];
+end
+
+colrowavoigttbl.num = numel(colrowavoigttbl.avoigt);
+
+prod = TensorProd();
+prod.tbl1 = colrowvoigttbl;
+prod.tbl2 = voigttbl;
+prod.tbl3 = colrowtbl;
+prod.reducefds = {'voigt'};
+prod = prod.setup();
+
+V_T = SparseTensor();
+V_T = V_T.setFromTensorProd(ones(colrowvoigttbl.num, 1), prod);
+V = V_T.getMatrix();
+
+prod = TensorProd();
+prod.tbl1 = colrowavoigttbl;
+prod.tbl2 = avoigttbl;
+prod.tbl3 = colrowtbl;
+prod.reducefds = {'avoigt'};
+prod = prod.setup();
+
+AV_T = SparseTensor();
+coef = [ones(avdim, 1); -ones(avdim, 1)]; 
+AV_T = AV_T.setFromTensorProd(coef, prod);
+AV = AV_T.getMatrix();
+
+M = [V, AV]';
+M = full(M);
+
+
+% We add an extra multiplication for the coef 2 on diagonal for Voigt.
+d = [ones(dim, 1); 0.5*ones(dim*dim - dim, 1)];
+Vc = diag(d);
+C = M'*Vc*C*M;
 
 fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
        {'coldim', {'coldim1', 'coldim2'}}};
@@ -625,13 +674,15 @@ tbls = struct('nodefacetbl'       , nodefacetbl       , ...
 
 mappings = struct('nodeface_from_cellnodeface', nodeface_from_cellnodeface);
 
-[D, force] = setupBC(runcase, G, tbls, mappings, 'facetNormals', facetNormals);
-
 % get the block structure
 % We count the number of degrees of freedom that are connected to the same
 % node.
 [nodes, sz] = rlencode(nodefacecoltbl.nodes, 1);
 invA11 = bi(A11, sz);
+
+
+% We enforce the boundary conditions as Lagrange multipliers
+[D, force] = setupBC(runcase, G, tbls, mappings, 'facetNormals', facetNormals);
 
 B11 = A22 - A21*invA11*A12;
 B12 = A21*invA11*D;
