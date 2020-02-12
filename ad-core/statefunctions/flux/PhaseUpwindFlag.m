@@ -8,7 +8,7 @@ classdef PhaseUpwindFlag < StateFunction
         function gp = PhaseUpwindFlag(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn('PhasePotentialDifference');
-            gp.label = 'up_\alpha';
+            gp.label = '\Theta_\alpha \leq 0';
         end
 
         function flags = evaluateOnDomain(prop, model, state)

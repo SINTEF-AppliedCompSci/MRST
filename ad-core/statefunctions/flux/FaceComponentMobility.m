@@ -15,7 +15,7 @@ classdef FaceComponentMobility < StateFunction & UpwindProperty
             fm.upwind_name = upwind_name;
             fm = fm.dependsOn(upwind_name);
             fm = fm.dependsOn('ComponentMobility', 'FlowPropertyFunctions');
-            fm.label = 'M_{i,\alpha}\lambda_\alpha^f';
+            fm.label = '\lambda_{i, \alpha}^f';
         end
         
         function mobf = evaluateOnDomain(prop, model, state)

@@ -72,10 +72,10 @@ classdef WellComponentTotalVolumeBalanceCrossflow < StateFunction
                 isRateInjector = isRate & map.isInjector;
                 qs = state.FacilityState.surfacePhaseRates;
 
-                target = vertcat(W.val);
+                target = vertcat(ws.val);
                 for ph = 1:nph
                     q_surf = (~isRateInjector.*qs{ph} + isRateInjector.*target);
-                    q_surf = qs{ph};
+%                     q_surf = qs{ph};
                     qs_ph = rhoS{ph}.*phaseCompi(:, ph).*q_surf;
                     for c = 1:ncomp
                         if any(surfaceComposition{c, ph})
@@ -166,18 +166,21 @@ classdef WellComponentTotalVolumeBalanceCrossflow < StateFunction
                     rho = resdens{ph}(replace);
                     replaceMassFlux{ph} = phaseVolumeFractions{ph}.*vft.*rho;
                 end
-                v_r = prop.computeCrossFlux(model, state, 'specialsauce', map, replace, ncomp, nph, resdens, phase_flux, replaceMassFlux, wellComponentTotalMass, wellComponentTotalMassXflow, phaseMassComposition, volFluxTotal, rhoS, phaseCompi, surfaceComposition);
-                v_f = prop.computeCrossFlux(model, state, 'phasemassfractions', map, replace, ncomp, nph, resdens, phase_flux, replaceMassFlux, wellComponentTotalMass, wellComponentTotalMassXflow, phaseMassComposition, volFluxTotal, rhoS, phaseCompi, surfaceComposition);
+                v_r = prop.computeCrossFlux(model, state, 'specialsauce', map, replace, ncomp, nph, resdens, phase_flux, replaceMassFlux, wellComponentTotalMass, wellComponentTotalMassXflow, phaseMassComposition, volFluxTotal, rhoS, phaseCompi, surfaceComposition, qs, injectionMass);
+                v_f = prop.computeCrossFlux(model, state, 'phasemassfractions', map, replace, ncomp, nph, resdens, phase_flux, replaceMassFlux, wellComponentTotalMass, wellComponentTotalMassXflow, phaseMassComposition, volFluxTotal, rhoS, phaseCompi, surfaceComposition, qs, injectionMass);
                 for c = 1:ncomp
                     ii = map.isInjector(active);
-                    new = v_r{c}.*ii + v_f{c}.*~ii;
+                    new = v_f{c}.*~ii;
+                    if any(ii)
+                        new = new + v_r{c}.*ii;
+                    end
                     v{c}(replace) = new;
                 end
             end
         end
         
         function v = computeCrossFlux(prop, model, state, masstype, map, replace, ncomp, nph, resdens, phase_flux, replaceMassFlux, wellComponentTotalMass, ...
-                wellComponentTotalMassXflow, phaseMassComposition, volFluxTotal, rhoS, phaseCompi, surfaceComposition)
+                wellComponentTotalMassXflow, phaseMassComposition, volFluxTotal, rhoS, phaseCompi, surfaceComposition, qs, injectionMass)
             psum = map.perforationSum;
             active = map.perf2well(replace);
             vft = volFluxTotal(replace);
@@ -230,35 +233,68 @@ classdef WellComponentTotalVolumeBalanceCrossflow < StateFunction
                     tmp = prop.reduce(volFluxTotal);
                     if prop.onlyLocalDerivatives
                         delta = -value(volFluxTotal) + volFluxTotal;
+                        phases = zeros(numel(map.W), nph, ncomp);
+                        for ph = 1:nph
+                            for c = 1:ncomp
+                                ii = value(phaseMassComposition{c, ph});
+                                if ~isempty(ii)
+                                    phases(:, ph, c) = ii;
+                                end
+                            end
+                        end
                     else
                         delta = 0;
                     end
+                    
                     netVol = psum*tmp;
                     netVol = max(netVol, 0);
                     netVolPerf = netVol(map.perf2well) + delta;
                     injVolTotPerf = injVolTot(map.perf2well) + delta;
                     ratio = netVolPerf./injVolTotPerf;
                     ratio(~isfinite(value(ratio))) = 0;
-                    if isa(ratio, 'ADI')
-                        
-                    end
+                    
+                    tmp = psum*injVol;
+                    w = volFluxTotal./tmp(map.perf2well);
+                    w(~isfinite(value(w))) = 1;
                     for c = 1:ncomp
                         % Exact mass-balance for crossflow
                         mass = -wellComponentTotalMassXflow{c}(active);
                         rho = mass./injVolTotPerf(replace);
 
-                        rp = rho;
-                        qi = rp.*vft;
+%                         if prop.onlyLocalDerivatives
+%                             rho_mix = 0;
+%                             for ph = 1:nph
+%                                 rho_mix = rho_mix + phases(map.perf2well, ph, c).*resdens{ph};
+%                             end
+%                             rho_mix = rho_mix(replace);
+%                             rho = rho - value(rho_mix) + rho_mix;
+%                         end
+                        qi = rho.*vft;
                         % Volume-based approach for remainder
                         extra = 0;
                         qt = volFluxTotal.*ratio;
+                        rhoS = model.ReservoirModel.getSurfaceDensities();
+%                         rhoS = rhoS(1, :);
+                        added = false;
                         for ph = 1:nph
-                            ci = surfaceComposition{c, ph};
-                            tmp = phaseCompi(:, ph).*ci;
-                            extra = extra + tmp(map.perf2well).*resdens{ph}.*qt;
+%                             ci = surfaceComposition{c, ph};
+%                             tmp = phaseCompi(:, ph).*ci;
+%                             add = qs{ph}.*rhoS(ph).*tmp;
+                            add = injectionMass{c, ph};
+                            if isempty(add) || all(value(add) == 0)
+                                continue
+                            end
+                            add = max(add, 0);
+%                             add = value(add);
+                            extra = extra + add(map.perf2well).*w;
+                            added = true;
+%                             extra = extra + tmp(map.perf2well).*resdens{ph}.*qt;
                         end
-
-                        v{c} = qi + extra(replace);
+                        if added
+                            v{c} = qi + extra(replace);
+                        else
+                            v{c} = qi;
+                        end
                     end
                 otherwise
                     error('%s is not supported', masstype);

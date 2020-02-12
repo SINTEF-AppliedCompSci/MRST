@@ -9,7 +9,7 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
     methods
         function gp = BaseRelativePermeability(varargin)
             gp@StateFunction(varargin{:});
-            gp = gp.dependsOn({'s', 'sMax'}, 'state');
+            gp = gp.dependsOn({'s'}, 'state');
             gp.label = 'k_\alpha';
         end
 

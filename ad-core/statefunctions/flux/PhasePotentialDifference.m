@@ -13,7 +13,7 @@ classdef PhasePotentialDifference < StateFunction
             if norm(model.gravity) > 0
                 gp = gp.dependsOn('GravityPotentialDifference');
             end
-            gp.label = '\nabla p_\alpha + \rho_\alpha g \Delta z';
+            gp.label = '\Theta_\alpha';
         end
         function v = evaluateOnDomain(prop, model, state)
             dp = prop.getEvaluatedDependencies(state, 'PressureGradient');
