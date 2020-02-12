@@ -650,7 +650,7 @@ function W = buildWell(W, G, rock, c2a, control, i, p, ...
    [ia, ia] = unique(perf, 'last');                             %#ok<ASGLU>
    ia = sort(ia); % Don't sort well connections according to cell ID
 
-   cstatus = strcmp('OPEN', openShutFlag(ia));
+   cstatus = ~(strcmp('SHUT', openShutFlag(ia)) | strcmp('HEAT', openShutFlag(ia)));
    %ia = ia(ia_open);
 
    perf  =  perf(ia);
