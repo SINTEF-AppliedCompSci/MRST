@@ -17,9 +17,15 @@ eta = 1/3;
 
 %% Define and process geometry
 % Construct a Cartesian grid 
-runcase = 2;
+runcases = {'2d-refinement', ...
+            '2d-linear'    , ...
+            '2d-compaction', ...
+            '3d-linear'};
+
+runcase = '2d-linear';
+
 switch runcase
-  case 1
+  case '2d-refinement'
     ny = 4;
     dx = 1e-3;
     dy = [dx; ones(ny, 1)];
@@ -29,10 +35,10 @@ switch runcase
     x = [0; cumsum(dx)];
     x = 1/max(x)*x;
     G = tensorGrid(x, y);    
-  case 2
+  case {'2d-linear', '2d-compaction'}
     nx = 30; ny = 30;
     G = cartGrid([nx, ny], [1, 1]);
-  case 3
+  case '3d-linear'
     nx = 5; ny = 5; nz = 5;
     G = cartGrid([nx, ny, nz]);
 end
@@ -388,16 +394,24 @@ trans_T = trans_T.setFromTensorProd(ones(col2row2tbl.num, 1), prod);
 
 % Compute number of cell per node
 [~, indstruct] = crossTable(cellnodetbl, nodetbl, {'nodes'});
-nnodes = tblmap1to2(ones(cellnodetbl.num, 1), indstruct);
-coef   = tblmap2to1(1./nnodes, indstruct);
+nnodepercell = tblmap1to2(ones(cellnodetbl.num, 1), indstruct);
+coef   = tblmap2to1(1./nnodepercell, indstruct);
 
-assert(dim == 2)
 % we eliminitate the places (at the boundaries) where the local reconstruction
-% is ill-posed
-cornernodetbl.nodes = find(nnodes == 1);
-cornernodetbl.num = numel(cornernodetbl.nodes);
+% is ill-posed: nodes with one cell in 2d (corners of a Cartesian grid) and
+% nodes with less the two nodes in 3d (edges of a Cartesian grid);
 
-coef(coef == 1) = 0;
+switch dim
+  case 2
+    maxnnodepercell = 1;
+  case 3
+    maxnnodepercell = 2;
+end
+    
+fixnodetbl.nodes = find(nnodepercell <= maxnnodepercell);
+fixnodetbl.num = numel(fixnodetbl.nodes);
+
+coef(coef >= 1/maxnnodepercell) = 0;
 
 prod = TensorProd();
 prod.tbl1 = cellnodetbl;
@@ -407,7 +421,6 @@ prod.reducefds = {'cells'};
 prod.mergefds = {'nodes'};
 
 prod.pivottbl = cellnodecolrowtbl;
-
 [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
 prod.dispind1 = i;
 prod.dispind2 = (1 : cncr_num)';
@@ -442,12 +455,11 @@ celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num), prod);
 
 transnodeaverage_T = celldispatch_T*transnodeaverage_T;
 
-%% we need to multiply by 2 for the corners
-assert(dim == 2);
-cornercellnodecolrowtbl = crossTable(cornernodetbl, cellnodecolrowtbl, ...
-                                     {'nodes'});
+%% we need to multiply by 2 at the place where we discarded the symmetry requirement
 
-ind = tblmap(ones(cornernodetbl.num, 1), cornernodetbl, cellnodecolrowtbl, ...
+fixcellnodecolrowtbl = crossTable(fixnodetbl, cellnodecolrowtbl, {'nodes'});
+
+ind = tblmap(ones(fixnodetbl.num, 1), fixnodetbl, cellnodecolrowtbl, ...
              {'nodes'});
 
 c = ones(cellnodecolrowtbl.num, 1);
@@ -467,8 +479,8 @@ prod.dispind3 = (1 : cncr_num)';
 
 prod.issetup = true;
 
-cornerfix_T = SparseTensor('matlabsparse', true);
-cornerfix_T = cornerfix_T.setFromTensorProd(c, prod);
+bcfix_T = SparseTensor('matlabsparse', true);
+bcfix_T = bcfix_T.setFromTensorProd(c, prod);
 
 % some test for transnodeaverage_T
 dotest = false;
@@ -567,13 +579,13 @@ prod.issetup = true;
 C_T = SparseTensor('matlabsparse', true);
 C_T = C_T.setFromTensorProd(C, prod);
 
-Cgradnodeface_T = cornerfix_T*C_T*gradnodeface_T;
-% Cgradnodeface_T = cornerfix_T*gradnodeface_T;
+Cgradnodeface_T = bcfix_T*C_T*gradnodeface_T;
+% Cgradnodeface_T = bcfix_T*gradnodeface_T;
 transaverCgradnodeface_T = transnodeaverage_T*Cgradnodeface_T;
 
 combCgradnodeface_T = Cgradnodeface_T + transaverCgradnodeface_T;
 
-Cgradcell_T = cornerfix_T*C_T*gradcell_T;
+Cgradcell_T = bcfix_T*C_T*gradcell_T;
 % Cgradcell_T = gradcell_T;
 transaverCgradcell_T = transnodeaverage_T*Cgradcell_T;
 
@@ -629,8 +641,6 @@ u = B\force;
 n = cellcoltbl.num;
 u = u(1 : n); 
 u = reshape(u, dim, [])';
-
-return
 
 %% plotting
 % 
