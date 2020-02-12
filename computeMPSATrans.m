@@ -30,7 +30,7 @@ switch runcase
     x = 1/max(x)*x;
     G = tensorGrid(x, y);    
   case 2
-    nx = 100; ny = 100;
+    nx = 30; ny = 30;
     G = cartGrid([nx, ny], [1, 1]);
   case 3
     nx = 5; ny = 5; nz = 5;
@@ -714,38 +714,31 @@ if dosourceterm
     force = tblmap(force, sourcetbl, cellcoltbl, {'cells', 'coldim'});
 end
 
-n2 = size(A22, 1);
-n3 = size(D, 2);
-Z1 = zeros(n3, n2);
-Z2 = zeros(n3, n3);
-A = [[A11, A12, -D]; ...
-     [A21, A22, Z1']; ...
-     [D' , Z1 , Z2]];
-
-n1 = size(A11, 1);
-Z1 = zeros(n2, 1);
-Z2 = zeros(n3, 1);
-force = [force; Z1; Z2];
-
-u = A\force;
-
-u = u(n1 + 1 : n1 + n2); 
-u = reshape(u, dim, [])';
-
 % get the block structure
 % We count the number of degrees of freedom that are connected to the same
 % node.
-% [nodes, sz] = rlencode(nodeintfacecoltbl.nodes, 1);
-% 
-% invA11 = bi(A11, sz);
+[nodes, sz] = rlencode(nodefacecoltbl.nodes, 1);
+invA11 = bi(A11, sz);
 
-% A = A22 - A21*invA11*A12;
+B11 = A22 - A21*invA11*A12;
+B12 = A21*invA11*D;
+B21 = -D'*invA11*A12;
+B22 = D'*invA11*D;
 
-% u = A\force;
+force1 = -A21*invA11*force;
+force2 = -D'*invA11*force;
 
-% u = reshape(u, dimcase, [])';
+B = [[B11, B12]; ...
+     [B21, B22]];
 
-% return
+force = [force1; force2];
+
+u = B\force;
+n = cellcoltbl.num;
+u = u(1 : n); 
+u = reshape(u, dim, [])';
+
+return
 
 %% plotting
 % 
