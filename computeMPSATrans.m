@@ -497,38 +497,47 @@ end
 % C_T : cellnodecolrowtbl -> cellnodecolrowtbl
 %
 
-mu = 1;
-lambda = 1;
-Cvoigt = mu*[[2 0 0]; ...
-             [0 2 0]; ...
-             [0 0 1]];
-Z = [0; 0];
-Cvoigt = [[lambda*ones(2, 2), Z]; ...
-          [Z', 0] ...
-         ] + Cvoigt;
-Casym = mu*1;
+switch dim
+    
+  case 2
+    mu = 1;
+    lambda = 1;
+    Cvoigt = mu*[[2 0 0]; ...
+                 [0 2 0]; ...
+                 [0 0 1]];
+    Z = [0; 0];
+    Cvoigt = [[lambda*ones(2, 2), Z]; ...
+              [Z', 0] ...
+             ] + Cvoigt;
+    Casym = mu*1;
 
-n1 = size(Cvoigt, 1);
-n2 = size(Casym, 1);
+    n1 = size(Cvoigt, 1);
+    n2 = size(Casym, 1);
 
-Z = zeros(n1, n2);
+    Z = zeros(n1, n2);
 
-C = [[Cvoigt, Z];...
-     [Z', Casym];
-    ];
+    C = [[Cvoigt, Z];...
+         [Z', Casym];
+        ];
 
-% convert from colrow to voigt (including asymetric part)
-% follows indexing of colrowtbl
-M = [[1  0 0 0]; ...
-     [0  0 0 1]; ...
-     [0  1 1 0]; ...
-     [0 -1 1 0] ...
-    ];
+    % convert from colrow to voigt (including asymetric part)
+    % follows indexing of colrowtbl
+    M = [[1  0 0 0]; ...
+         [0  0 0 1]; ...
+         [0  1 1 0]; ...
+         [0 -1 1 0] ...
+        ];
 
-% We should add an extra multiplication for the coef 2 on diagonal for Voigt.
-V = diag([1; 1; 0.5; 0.5]);
+    % We should add an extra multiplication for the coef 2 on diagonal for Voigt.
+    V = diag([1; 1; 0.5; 0.5]);
 
+  case 3
+    
+end
+
+    
 C = M'*V*C*M;
+
 
 fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
        {'coldim', {'coldim1', 'coldim2'}}};
