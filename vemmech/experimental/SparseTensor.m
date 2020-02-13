@@ -328,17 +328,14 @@ classdef SparseTensor
          % do all contractions, start with the cheapest
          while true
             
-            ixname = self.get_cheapest_pending_contraction();
+            ixname = self.get_cheapest_pending_contraction(); 
             if isempty(ixname)
                % no more work to be done
                break
             end
             % do the contraction
-            self = self.two_component_contraction(ixname);
-            
-            % if contraction led to additional contractions now being
-            % associated with the same single component, carry out those too
-            self = self.complete_simple_contractions();
+            self = self.two_component_contraction(ixname); 
+         
          end
          
          % all contractions/semicontractions carried out.  Expand tensor now,
@@ -395,7 +392,7 @@ classdef SparseTensor
          comps = self.components(comp_ixs);
 
          % @@ TEST
-         contracted_comp = contract_components(comps{1}, comps{2});
+         contracted_comp = SparseTensor.contract_components(comps{1}, comps{2});
          self.components(comp_ixs) = [];
          self.components = [self.components, contracted_comp];
          
@@ -495,23 +492,35 @@ classdef SparseTensor
                                       % have been carried out, since cost
                                       % estimates are only interesting for
                                       % contracting two different components
-         comps = self.components;
-         cost = 0;
-         for i = comp_ixs
-            entries = size(comps{i}.ixs, 1);
-            ixind = strcmp(ixname,comps{i}.indexnames);
-            numdiff = numel(unique(comps{i}.ixs(:, ixind)));
          
-            cost = cost + entries / numdiff;
-         end
+         [comp1, comp2] = deal(self.components{comp_ixs});
+         
+         cixnames = intersect(comp1.indexnames, comp2.indexnames);
+
+         num_free_ixs1 = numel(comp1.indexnames) - numel(cixnames);
+         num_free_ixs2 = numel(comp2.indexnames) - numel(cixnames);
+         
+         cost = num_free_ixs1 * log(size(comp1.ixs, 1)) + ...
+                num_free_ixs2 * log(size(comp2.ixs, 1));
+         
          % comps = self.components;
          % cost = 0;
-         % for i = [comp_ix_1, comp_ix_2]
+         % for i = comp_ixs
+         %    entries = size(comps{i}.ixs, 1);
          %    ixind = strcmp(ixname,comps{i}.indexnames);
          %    numdiff = numel(unique(comps{i}.ixs(:, ixind)));
-            
-         %    cost = cost + (size(comps{i}.ixs, 1) ^ size(comps{i}.ixs, 2) / numdiff);
+         
+         %    cost = cost + entries / numdiff;
          % end
+
+         % % comps = self.components;
+         % % cost = 0;
+         % % for i = [comp_ix_1, comp_ix_2]
+         % %    ixind = strcmp(ixname,comps{i}.indexnames);
+         % %    numdiff = numel(unique(comps{i}.ixs(:, ixind)));
+            
+         % %    cost = cost + (size(comps{i}.ixs, 1) ^ size(comps{i}.ixs, 2) / numdiff);
+         % % end
       end
       
       function ixname = next_unused_contr_ix_name(self, other)
