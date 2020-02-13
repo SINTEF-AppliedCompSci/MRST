@@ -30,14 +30,10 @@ classdef GasComponent < ImmiscibleComponent
                 phasenames = model.getPhaseNames();
                 gix = phasenames == 'G';
                 oix = phasenames == 'O';
+                reg = model.PVTPropertyFunctions.getRegionPVT(model);
                 b = model.getProps(state, 'ShrinkageFactors');
-                rhoS = model.getSurfaceDensities();
-                if size(rhoS, 1) > 1
-                    reg = model.PVTPropertyFunctions.ShrinkageFactors.regions;
-                else
-                    reg = 1;
-                end
-                rhoGS = rhoS(reg, gix);
+                rhoS = model.getSurfaceDensities(reg);
+                rhoGS = rhoS(:, gix);
                 if component.vapoil
                     bG = b{gix};
                     c{gix} = rhoGS.*bG;
