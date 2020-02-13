@@ -1,4 +1,4 @@
-function [assembly, tbls] = assembleMPSA(G, prop, bc, eta, runcase)
+function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, runcase)
 
 %% Assembly of MPSA-weak
 %%
@@ -543,8 +543,10 @@ function [assembly, tbls] = assembleMPSA(G, prop, bc, eta, runcase)
 
 
     % We enforce the boundary conditions as Lagrange multipliers
-    [D, force] = setupBC(runcase, G, tbls, mappings, 'facetNormals', facetNormals);
+    [bcstruct, force] = setupBCpercase(runcase, G, tbls, mappings, 'facetNormals', facetNormals);
 
+    D = setupBC(bcstruct, G, tbls);
+    
     matrices = struct('A11', A11, ...
                       'A12', A12, ...
                       'A21', A21, ...

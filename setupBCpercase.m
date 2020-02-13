@@ -1,4 +1,4 @@
-function [D, force] = setupBC(runcase, G, tbls, mappings, varargin)
+function [bcstruct, force] = setupBCpercase(runcase, G, tbls, mappings, varargin)
 %% Boundary conditions
 
     opt = struct('facetNormals', []);
@@ -22,26 +22,21 @@ function [D, force] = setupBC(runcase, G, tbls, mappings, varargin)
         
       case {'2d-refinement', '2d-linear', '2d-compaction'}
         
-        bottomextfaces = find(G.faces.centroids(:, 2) == 0);
-        d = [0; 1];
-        Dmat{1} = assignLinearForm(bottomextfaces, d, tbls);
+        extfaces{1} = find(G.faces.centroids(:, 2) == 0);
+        linforms{1} = [0; 1];
 
         switch runcase
             
           case {'2d-linear', '2d-refinement'}
-            leftextfaces = find(G.faces.centroids(:, 1) == 0);
-            d = [1; 0];
-            Dmat{2} = assignLinearForm(leftextfaces, [1; 0], tbls);
+            extfaces{2} = find(G.faces.centroids(:, 1) == 0);
+            linforms{2} = [1; 0];
             
           case '2d-compaction'
-            d = [1; 0];
-            Dmat{2} = assignLinearForm(bottomextfaces, [1; 0], tbls);            
+            linforms{2} = [1; 0];
 
           otherwise
             error('runcase not recognized');
         end
-
-        D = [Dmat{1}, Dmat{2}];
 
         % Setup force at top, in opposite normal direction
         y = G.faces.centroids(:, 2);
@@ -126,26 +121,24 @@ function [D, force] = setupBC(runcase, G, tbls, mappings, varargin)
         
         facetNormals = opt.facetNormals;
 
-        Dmat = cell(3, 1);
         switch runcase
           case '3d-linear'
             for i = 1 : 3
-                extfaces = find(G.faces.centroids(:, i) == 0);
-                d = zeros(3, 1);
-                d(i) = 1;
-                Dmat{i} = assignLinearForm(extfaces, d, tbls);
+                extfaces{i} = find(G.faces.centroids(:, i) == 0);
+                linform = zeros(3, 1);
+                linform(i) = 1;
+                linforms{i} = linform;
             end
           case '3d-compaction'
-            extfaces = find(G.faces.centroids(:, 3) == 0);
+            extface = find(G.faces.centroids(:, 3) == 0);
             for i = 1 : 3
-                d = zeros(3, 1);
-                d(i) = 1;
-                Dmat{i} = assignLinearForm(extfaces, d, tbls);
+                extfaces{i} = extface
+                linform = zeros(3, 1);
+                linform(i) = 1;
+                linforms{i} = linform;
             end
         end
             
-        D = horzcat(Dmat{:});
-        
         % Setup force at top, in opposite normal direction
         y = G.faces.centroids(:, 3);
         ymax = max(y);
@@ -177,28 +170,13 @@ function [D, force] = setupBC(runcase, G, tbls, mappings, varargin)
         error('runcase not recognized');
         
     end
+
+    for i = 1 : numel(extfaces)
+        bcstruct{i}.extfaces = extfaces{i};
+        bcstruct{i}.linform  = linforms{i};
+    end
+    
     
 end
 
-function D = assignLinearForm(extfaces, linform, tbls)
-    
-    nodefacetbl    = tbls.nodefacetbl;
-    nodefacecoltbl = tbls.nodefacecoltbl;
-    coltbl         = tbls.coltbl;
-  
-    extfacetbl.faces = extfaces;
-    extfacetbl.num = numel(extfacetbl.faces);
 
-    extnodefacetbl = crossTable(nodefacetbl, extfacetbl, {'faces'});
-
-    prod = TensorProd();
-    prod.tbl1 = coltbl;
-    prod.tbl2 = extnodefacetbl;
-    prod.tbl3 = nodefacecoltbl;
-    prod = prod.setup();
-
-    D_T = SparseTensor('matlabsparse', true);
-    D_T = D_T.setFromTensorProd(linform, prod);
-    D = D_T.getMatrix();
-    
-end
