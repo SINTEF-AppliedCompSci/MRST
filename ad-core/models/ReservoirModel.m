@@ -1314,13 +1314,24 @@ methods
 
     end
 
-    function rhoS = getSurfaceDensities(model, regions)
+    function rhoS = getSurfaceDensities(model, regions, phases)
         % Get the surface densities of the active phases in canonical
         % ordering (WOG, with any inactive phases removed).
+        % OPTIONAL INPUTS:
+        % regions - Region indicator to use for output if multiple surface
+        %           densities are present. If regions are present, the
+        %           output will have equal number of rows as the number of
+        %           entries in regions, or to the number of true entries if
+        %           it is a logical array.
+        % phases  - Index into the phases. Will only return values for
+        %           these phases.
         %
         % RETURNS:
         %   rhoS - pvt x n double array of surface densities.
         names = model.getPhaseNames();
+        if nargin > 2
+            names = names(phases);
+        end
         rhoS = value(arrayfun(@(x) model.fluid.(['rho', x, 'S'])', names, 'UniformOutput', false));
         if nargin > 1 && size(rhoS, 1) > 1 && ~isempty(regions)
             rhoS = rhoS(regions, :);
