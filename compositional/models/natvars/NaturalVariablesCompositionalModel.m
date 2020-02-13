@@ -392,8 +392,8 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 L_new = (state.z0(mv) - state.y(mv))./(state.x(mv) - state.y(mv));
                 state.L(twoPhase) = L_new(twoPhase);
             else
-                rhoO = model.PropertyModel.computeMolarDensity(p, x, Z_L, temp, true);
-                rhoG = model.PropertyModel.computeMolarDensity(p, y, Z_V, temp, false);
+                rhoO = model.PropertyModel.computeMolarDensity(eos, p, x, Z_L, temp, true);
+                rhoG = model.PropertyModel.computeMolarDensity(eos, p, y, Z_V, temp, false);
                 L = rhoO.*sO./(rhoO.*sO + rhoG.*sG);
                 state.L = double(L);
             end
