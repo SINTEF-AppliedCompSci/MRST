@@ -20,27 +20,34 @@ classdef EquationOfStateComponent < ComponentImplementation
         end
         
         function c = getComponentDensity(component, model, state, varargin)
-            c = getComponentDensity@ComponentImplementation(component, model, state, varargin{:});
-            [rho, massFractions] = model.getProps(state, 'Density', 'ComponentPhaseMassFractions');
-            ix = component.componentIndex;
+            c = component.getPhaseComposition(model, state, varargin{:});
+            rho = model.getProps(state, 'Density');
             for ph = 1:numel(c)
-                mf = massFractions{ix, ph};
-                if ~isempty(mf)
-                    c{ph} = rho{ph}.*mf;
+                if ~isempty(c{ph})
+                    c{ph} = rho{ph}.*c{ph};
                 end
             end
         end
         
         function c = getPhaseComposition(component, model, state, varargin)
+            massFractions = model.getProps(state, 'ComponentPhaseMassFractions');
+            ix = component.componentIndex;
+            nph = size(massFractions, 2);
+            c = cell(1, nph);
+            for ph = 1:nph
+                mf = massFractions{ix, ph};
+                if ~isempty(mf)
+                    c{ph} = mf;
+                end
+            end
+        end
+        
+        function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
             for i = 1:nph
                 c{i} = component.surfacePhaseMassFractions(i);
             end
-        end
-        
-        function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
-            c = component.getPhaseComposition(model, state);
         end
 
         function c = getPurePhaseDensitySurface(component, model, state, pressure, temperature)
