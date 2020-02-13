@@ -1,4 +1,5 @@
-function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, runcase)
+function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings, ...
+                                         runcase)
 
 %% Assembly of MPSA-weak
 %%
@@ -8,74 +9,31 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, runcase)
 %% International Journal for Numerical Methods in Engineering
 %% 2017
 
-    nc  = G.cells.num;
-    nf  = G.faces.num;
-    nn  = G.nodes.num;
-    dim = G.griddim;
+    coltbl                = tbls.coltbl;
+    celltbl               = tbls.celltbl;
+    nodetbl               = tbls.nodetbl;
+    cellfacetbl           = tbls.cellfacetbl;
+    cellnodetbl           = tbls.cellnodetbl;
+    nodefacetbl           = tbls.nodefacetbl;
+    cellcoltbl            = tbls.cellcoltbl;
+    nodecoltbl            = tbls.nodecoltbl;
+    nodefacecoltbl        = tbls.nodefacecoltbl;
+    cellnodefacetbl       = tbls.cellnodefacetbl;
+    cellnodecoltbl        = tbls.cellnodecoltbl;
+    cellnodecolrowtbl     = tbls.cellnodecolrowtbl;
+    cellnodefacecoltbl    = tbls.cellnodefacecoltbl;
+    cellnodefacecolrowtbl = tbls.cellnodefacecolrowtbl;
+    colrowtbl             = tbls.colrowtbl;
+    nodecolrowtbl         = tbls.nodecolrowtbl;
+    col2row2tbl           = tbls.col2row2tbl;
+    cellcol2row2tbl       = tbls.cellcol2row2tbl;
 
-    coltbl.coldim = (1 : dim)';
-    coltbl.num = dim;
-    rowtbl = coltbl;
-    rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
-
-    celltbl.cells = (1 : nc)';
-    celltbl.num = nc;
-
-    nodetbl.nodes = (1 : nn)';
-    nodetbl.num = nn;
-
-    cellcoltbl = crossTable(celltbl, coltbl, {}); % ordering is cell - col
-    nodecoltbl = crossTable(nodetbl, coltbl, {}); % ordering is cell - col
-
-    cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
-    cellfacetbl.faces = G.cells.faces(:, 1);
-    cellfacetbl.num   = numel(cellfacetbl.cells);
-
-    nodefacetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos)); 
-    nodefacetbl.nodes = G.faces.nodes;
-    nodefacetbl.num   = numel(nodefacetbl.faces);
-
-    % We setup the face-node table and it is ordered along ascending node numbers so
-    % that we will have a block structure for the nodal scalar product.
-    nodefacetbl = sortTable(nodefacetbl, {'nodes', 'faces'});
-    nodefacecoltbl = crossTable(nodefacetbl, coltbl, {});
-
-    % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
-    % unique facet in a corner
-    % We order cellnodeface in cell-node-face order. This is node to optimize
-    % for-end loop below.
-    cellnodefacetbl = crossTable(cellfacetbl, nodefacetbl, {'faces'});
-    cellnodefacetbl = sortTable(cellnodefacetbl, {'cells', 'nodes', 'faces'});
-
-    % We setup the cell-node table, cellnodetbl. Each entry determine a unique
-    % corner
-    cellnodetbl = projTable(cellnodefacetbl, {'nodes', 'cells'});
-    cellnodetbl = sortTable(cellnodetbl, {'cells', 'nodes'});
-
-    fds = {'cells'};
-    cell_from_cellnode = getDispatchInd(celltbl, cellnodetbl, fds);
-    fds = {'nodes'};
-    node_from_cellnode = getDispatchInd(nodetbl, cellnodetbl, fds);
-    fds = {'cells', 'faces'};
-    cellface_from_cellnodeface = getDispatchInd(cellfacetbl, cellnodefacetbl, fds);
-    fds = {'cells', 'nodes'};
-    cellnode_from_cellnodeface = getDispatchInd(cellnodetbl, cellnodefacetbl, fds);
-    fds = {'faces', 'nodes'};
-    nodeface_from_cellnodeface = getDispatchInd(nodefacetbl, cellnodefacetbl, fds);
-
-    cellnodecoltbl    = crossTable(cellnodetbl, coltbl, {});
-    cellnodecolrowtbl = crossTable(cellnodecoltbl, rowtbl, {});
-
-    cellnodefacecoltbl = crossTable(cellnodefacetbl, coltbl, {});
-    cellnodefacecolrowtbl = crossTable(cellnodefacecoltbl, rowtbl, {});
-
-    % fds = {'cells', 'nodes', 'coldim'};
-    % cellnodefacecoltbl = crossTable(cellnodefacecoltbl, cellnodecoltbl, fds);
-    % this sorting may be unecessary. We do it to be sure
-    % fds = {'cells', 'nodes', 'faces', 'coldim', 'cnfind', 'cncind'};
-    % cellnodefacecoltbl = sortTable(cellnodefacecoltbl, fds);
-
-
+    cell_from_cellnode         = mappings.cell_from_cellnode;
+    node_from_cellnode         = mappings.node_from_cellnode;
+    cellface_from_cellnodeface = mappings.cellface_from_cellnodeface;
+    cellnode_from_cellnodeface = mappings.cellnode_from_cellnodeface;
+    nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
+    
     % some shortcuts
     c_num     = celltbl.num;
     n_num     = nodetbl.num;
@@ -87,7 +45,8 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, runcase)
     nfc_num   = nodefacecoltbl.num;
     cnfcr_num = cellnodefacecolrowtbl.num;
     d_num     = coltbl.num;
-
+    
+    dim = coltbl.num;
 
     %% Construction of tensor g (as defined in paper eq 4.1.2)
     % shortcuts:
@@ -262,7 +221,6 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, runcase)
     if dotest
         % create uniform gradient tensor (take unity)
         assert(dim == 2);
-        colrowtbl = crossTable(coltbl, rowtbl, {});
         g = [1; 0; 0; 1];
         g = tblmap(g, colrowtbl, cellnodecolrowtbl, {'coldim', 'rowdim'});
         d = divnodeface_T.getMatrix()*g;
@@ -305,17 +263,15 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, runcase)
     %% elements of nodecolrowtbl)
     %
     %  trans_T: nodecolrowtbl -> nodecolrowtbl
-    colrowtbl = crossTable(coltbl, rowtbl, {});
-    nodecolrowtbl = crossTable(nodetbl, colrowtbl, {});
 
-    col2row2tbl.coldim2 = colrowtbl.coldim;
-    col2row2tbl.rowdim2 = colrowtbl.rowdim;
-    col2row2tbl.coldim1 = colrowtbl.rowdim;
-    col2row2tbl.rowdim1 = colrowtbl.coldim;
-    col2row2tbl.num = colrowtbl.num;
+    symcol2row2tbl.coldim2 = colrowtbl.coldim;
+    symcol2row2tbl.rowdim2 = colrowtbl.rowdim;
+    symcol2row2tbl.coldim1 = colrowtbl.rowdim;
+    symcol2row2tbl.rowdim1 = colrowtbl.coldim;
+    symcol2row2tbl.num = colrowtbl.num;
 
     prod = TensorProd();
-    prod.tbl1 = col2row2tbl;
+    prod.tbl1 = symcol2row2tbl;
     prod.tbl2 = nodecolrowtbl;
     prod.tbl3 = nodecolrowtbl;
     prod.replacefds1 = {{'coldim1', 'coldim'}, ...
@@ -324,11 +280,11 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, runcase)
                         {'rowdim', 'rowdim2'}};
     prod.reducefds = {'coldim2', 'rowdim2'};
 
-    nodecol2row2tbl = crossTable(nodetbl, col2row2tbl, {});
-    nc2r2_num = nodecol2row2tbl.num; % shortcut
+    symnodecol2row2tbl = crossTable(nodetbl, symcol2row2tbl, {});
+    nc2r2_num = symnodecol2row2tbl.num; % shortcut
 
-    % note the definition of col2row2tbl above
-    prod.pivottbl = nodecol2row2tbl;
+    % note the definition of symcol2row2tbl above
+    prod.pivottbl = symnodecol2row2tbl;
     [r, c, i] = ind2sub([d_num, d_num, n_num], (1 : nc2r2_num)');
     c2 = c;
     r2 = r;
@@ -341,7 +297,7 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, runcase)
     prod.issetup = true;
 
     trans_T = SparseTensor('matlabsparse', true);
-    trans_T = trans_T.setFromTensorProd(ones(col2row2tbl.num, 1), prod);
+    trans_T = trans_T.setFromTensorProd(ones(symcol2row2tbl.num, 1), prod);
 
     %% Construction of nodal average for cellnode tensor
     %
@@ -444,7 +400,6 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, runcase)
     dotest = false;
     if dotest
         assert(dim == 2);
-        colrowtbl = crossTable(coltbl, rowtbl, {});
         g = [1; 2; 3; 1];
         g = tblmap(g, colrowtbl, cellnodecolrowtbl, {'coldim', 'rowdim'});
         g = transnodeaverage_T.getMatrix()*g;
@@ -454,12 +409,6 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, runcase)
     %
     % C_T : cellnodecolrowtbl -> cellnodecolrowtbl
     %
-    fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
-           {'coldim', {'coldim1', 'coldim2'}}};
-    col2row2tbl = crossTable(colrowtbl, colrowtbl, {}, 'crossextend', fds);
-    cellcol2row2tbl = crossTable(celltbl, col2row2tbl, {});
-
-
 
     tbls = struct('celltbl'        , celltbl        , ...
                   'coltbl'         , coltbl         , ...
