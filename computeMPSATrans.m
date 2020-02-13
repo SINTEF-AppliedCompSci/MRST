@@ -11,7 +11,7 @@ clear all
 tic
 
 % load modules
-mrstModule add mimetic mpfa incomp
+mrstModule add mimetic mpfa incomp vemmech
 
 eta = 1/3;
 
@@ -20,9 +20,10 @@ eta = 1/3;
 runcases = {'2d-refinement', ...
             '2d-linear'    , ...
             '2d-compaction', ...
-            '3d-linear'};
+            '3d-linear'    , ...
+            '3d-compaction' };
 
-runcase = '3d-linear';
+runcase = '2d-linear';
 
 switch runcase
   case '2d-refinement'
@@ -36,11 +37,13 @@ switch runcase
     x = 1/max(x)*x;
     G = tensorGrid(x, y);    
   case {'2d-linear', '2d-compaction'}
-    nx = 30; ny = 30;
+    nx = 1; ny = 1;
     G = cartGrid([nx, ny], [1, 1]);
-  case '3d-linear'
+  case {'3d-linear', '3d-compaction'}
     nx = 5; ny = 5; nz = 5;
-    G = cartGrid([nx, ny, nz]);
+    G = cartGrid([nx, ny, nz], [1, 1, 1]);
+  otherwise
+    error('runcase not recognized');
 end
 
 % G = twister(G, 0.1);
@@ -68,6 +71,7 @@ nodetbl.nodes = (1 : nn)';
 nodetbl.num = nn;
 
 cellcoltbl = crossTable(celltbl, coltbl, {}); % ordering is cell - col
+nodecoltbl = crossTable(nodetbl, coltbl, {}); % ordering is cell - col
 
 cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
 cellfacetbl.faces = G.cells.faces(:, 1);
@@ -174,7 +178,7 @@ g(ind) = g;
 %
 % The nodefacecol part of the grad operator from nodefacecoltbl to
 % cellnodecolrowtbl is obtained for any u in nodefacecoltbl by using v =
-% prod.evalProd(g, u) where prod is defined below
+% prod.eval(g, u) where prod is defined below
 %
 prod = TensorProd();
 prod.tbl1 = cellnodefacecoltbl;
@@ -197,7 +201,7 @@ gradnodeface_T = gradnodeface_T.setFromTensorProd(g, prod);
 % Construction of gradcell_T : cellcoltbl -> cellnodecolrowtbl
 %
 % The cellcol part of the grad operator from cellcoltbl to cellnodecolrowtbl is
-% obtained for any u in cellcoltbl by using v = prod.evalProd(greduced, u)
+% obtained for any u in cellcoltbl by using v = prod.eval(greduced, u)
 % where greduced and prod are defined below 
 %
 prod = TensorProd();
@@ -214,7 +218,7 @@ prod.dispind3 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
 
 prod.issetup = true;
 
-greduced = - prod.evalProd(ones(cnfc_num, 1), g);
+greduced = - prod.eval(ones(cnfc_num, 1), g);
 
 prod = TensorProd();
 prod.tbl1 = cellnodecoltbl;
@@ -274,7 +278,7 @@ facetNormals = reshape(facetNormals', [], 1);
 %
 % The nodefacecol part of the divergence operator from cellnodecolrowtbl to
 % nodefacecoltbl is obtained for any u in cellnodecolrowtbl by evaluating the
-% expression divnodeface_T.evalProd(d, u) where d and divnodeface_T are defined
+% expression divnodeface_T.eval(d, u) where d and divnodeface_T are defined
 % below
 %
 d = facetNormals; 
@@ -314,7 +318,7 @@ end
 %
 % the cellcol part of the divergence operator from cellnodecolrowtbl to
 % cellcoltbl is obtained for any u in cellnodecolrowtbl by evaluating the
-% expression divcell_T.evalProd(dreduced, u) where dreduced and divcell_T
+% expression divcell_T.eval(dreduced, u) where dreduced and divcell_T
 % are defined below
 %
 
@@ -497,119 +501,272 @@ end
 % C_T : cellnodecolrowtbl -> cellnodecolrowtbl
 %
 
-mu = 1;
-lambda = 1;
 vdim = dim*(dim + 1)/2;
 avdim = dim*dim - vdim;
-
-Cvoigt = mu*eye(vdim);
-Z1 = zeros(dim, vdim - dim);
-Z2 = zeros(vdim - dim);
-Cvoigt = [[lambda*ones(dim), Z1]; ...
-          [Z1'             , Z2]] ...
-         + Cvoigt;
-
-% Asymmetric part
-Casym = mu*eye(avdim);
-
-n1 = size(Cvoigt, 1);
-n2 = size(Casym, 1);
-
-Z = zeros(n1, n2);
-
-C = [[Cvoigt, Z];...
-     [Z', Casym];
-    ];
-
-% Change of basis :  
-% mapping A -> A + A' and A -> A - A'
-% follows indexing of colrowtbl
-
-voigttbl.voigt = (1 : vdim)';
-voigttbl.num = numel(voigttbl.voigt);
-
-avoigttbl.avoigt = (1 : avdim)';
-avoigttbl.num = numel(avoigttbl.avoigt);
-
-colrowvoigttbl.coldim = colrowtbl.coldim;
-colrowvoigttbl.rowdim = colrowtbl.rowdim;
-switch dim
-  case 2
-    colrowvoigttbl.voigt  = [1; 3; 3; 2];
-  case 3
-    colrowvoigttbl.voigt  = [1; 6; 5; 6; 2; 4; 5; 4; 3];
-end
-
-colrowvoigttbl.num = numel(colrowvoigttbl.coldim);
-
-% to index the avoigt we the same ordering as voigt, just skipping the diagonal
-switch dim
-  case 2
-    colrowavoigttbl.avoigt = [1; 1];
-    colrowavoigttbl.coldim = [1; 2];
-    colrowavoigttbl.rowdim = [2; 1];
-  case 3
-    colrowavoigttbl.avoigt = [1; 2; 3; 1; 2; 3];
-    colrowavoigttbl.coldim = [2; 1; 1; 3; 3; 2];
-    colrowavoigttbl.rowdim = [3; 3; 2; 2; 1; 1];
-end
-
-colrowavoigttbl.num = numel(colrowavoigttbl.avoigt);
-
-prod = TensorProd();
-prod.tbl1 = colrowvoigttbl;
-prod.tbl2 = voigttbl;
-prod.tbl3 = colrowtbl;
-prod.reducefds = {'voigt'};
-prod = prod.setup();
-
-V_T = SparseTensor();
-V_T = V_T.setFromTensorProd(ones(colrowvoigttbl.num, 1), prod);
-V = V_T.getMatrix();
-
-prod = TensorProd();
-prod.tbl1 = colrowavoigttbl;
-prod.tbl2 = avoigttbl;
-prod.tbl3 = colrowtbl;
-prod.reducefds = {'avoigt'};
-prod = prod.setup();
-
-AV_T = SparseTensor();
-coef = [ones(avdim, 1); -ones(avdim, 1)]; 
-AV_T = AV_T.setFromTensorProd(coef, prod);
-AV = AV_T.getMatrix();
-
-M = [V, AV]';
-M = full(M);
-
-
-% We add an extra multiplication for the coef 2 on diagonal for Voigt.
-d = [ones(dim, 1); 0.5*ones(dim*dim - dim, 1)];
-Vc = diag(d);
-C = M'*Vc*C*M;
-
 fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
        {'coldim', {'coldim1', 'coldim2'}}};
 col2row2tbl = crossTable(colrowtbl, colrowtbl, {}, 'crossextend', fds);
+cellcol2row2tbl = crossTable(celltbl, col2row2tbl, {});
 
-C = reshape(C', [], 1);
+constructiontypes = {'direct_lambda_mu_construction', ...
+                    'general_voigt_construction'};
+constructiontype = 'general_voigt_construction';
 
-dotest = false;
-if dotest
+switch constructiontype
+  case 'direct_lambda_mu_construction'
+    mu = linspace(1, 2, nc);
+    lambda = linspace(1, 2, nc);
+
+    mutbl.coldim1 = colrowtbl.coldim;
+    mutbl.coldim2 = colrowtbl.coldim;
+    mutbl.rowdim1 = colrowtbl.rowdim;
+    mutbl.rowdim2 = colrowtbl.rowdim;
+    mutbl.num = numel(mutbl.coldim1);
+
+    cellmutbl = crossTable(celltbl, mutbl, {});
+
+    map = TensorMap();
+    map.fromTbl = celltbl;
+    map.toTbl = cellmutbl;
+    map.mergefds = {'cells'};
+    map = map.setup();
+
+    mu = map.eval(mu);
+
+    map = TensorMap();
+    map.fromTbl = cellmutbl;
+    map.toTbl = cellcol2row2tbl;
+    fds = {'coldim1', 'coldim2', 'rowdim1', 'rowdim2', 'cells'};
+    map.mergefds = fds;
+    map = map.setup();
+
+    mu = map.eval(mu);
+
+    diagtbl.coldim = (1 : d_num)';
+    diagtbl.rowdim = (1 : d_num)';
+    diagtbl.num = d_num;
+    fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
+           {'coldim', {'coldim1', 'coldim2'}}};
+    lambdatbl = crossTable(diagtbl, diagtbl, {}, 'crossextend', fds);
+
+    celllambdatbl = crossTable(celltbl, lambdatbl, {});
+
+    map = TensorMap();
+    map.fromTbl = celltbl;
+    map.toTbl = celllambdatbl;
+    map.mergefds = {'cells'};
+    map = map.setup();
+
+    lambda = map.eval(lambda);
+
+    map = TensorMap();
+    map.fromTbl = celllambdatbl;
+    map.toTbl = cellcol2row2tbl;
+    fds = {'coldim1', 'coldim2', 'rowdim1', 'rowdim2', 'cells'};
+    map.mergefds = fds;
+    map = map.setup();
+
+    lambda = map.eval(lambda);
+
+    Cvoigt = mu + lambda;
+
+    dotest = true;
+    if dotest
+        % print tensor C for first cell
+        clear samplecelltbl;
+        samplecelltbl.cells = 1;
+        samplecelltbl.num = 1;
+        
+        samplecellcolrowtbl = crossTable(samplecelltbl, colrowtbl, {});
+        samplecellcol2row2tbl = crossTable(samplecelltbl, col2row2tbl, {});
+        
+        map = TensorMap();
+        map.fromTbl = cellcol2row2tbl;
+        map.toTbl = samplecellcol2row2tbl;
+        fds = {'coldim1', 'coldim2', 'rowdim1', 'rowdim2', 'cells'};
+        map.mergefds = fds;
+        map = map.setup();
+        
+        C1 = map.eval(lambda);
+        
+        prod = TensorProd();
+        prod.tbl1 = samplecellcol2row2tbl;
+        prod.tbl2 = samplecellcolrowtbl;
+        prod.tbl3 = samplecellcolrowtbl;
+        prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
+        prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
+        prod.mergefds = {'cells'};
+        prod.reducefds = {'coldim2', 'rowdim2'};
+        
+        C1_T = SparseTensor();
+        C1_T = C1_T.setFromTensorProd(C1, prod);
+        
+    end
+    
+  case 'general_voigt_construction'
+
+    mu = 2;
+    lambda = 1;
+    
+    Cvoigt = mu*eye(vdim);
+    Z1 = zeros(dim, vdim - dim);
+    Z2 = zeros(vdim - dim);
+    Cvoigt = [[lambda*ones(dim), Z1]; ...
+              [Z1'             , Z2]] ...
+             + Cvoigt;
+
+    % Asymmetric part
+    Casym = mu*eye(avdim);
+
+    n1 = size(Cvoigt, 1);
+    n2 = size(Casym, 1);
+
+    Z = zeros(n1, n2);
+
+    C = [[Cvoigt, Z];...
+         [Z', Casym];
+        ];
+
+    C = reshape(C', [], 1);
+
+    % We dispatch C
+    map = TensorMap();
+    map.fromTbl = col2row2tbl;
+    map.toTbl = cellcol2row2tbl;
+    fds = {'coldim1', 'coldim2', 'rowdim1', 'rowdim2'};
+    map.mergefds = fds;
+    map = map.setup();
+    
+    C = map.eval(C);
+    
+    % Change of basis :  
+    % mapping A -> A + A' and A -> A - A'
+    % follows indexing of colrowtbl
+
+    voigttbl.voigt = (1 : vdim)';
+    voigttbl.num = numel(voigttbl.voigt);
+
+    avoigttbl.avoigt = (1 : avdim)';
+    avoigttbl.num = numel(avoigttbl.avoigt);
+
+    colrowvoigttbl.coldim = colrowtbl.coldim;
+    colrowvoigttbl.rowdim = colrowtbl.rowdim;
+    switch dim
+      case 2
+        colrowvoigttbl.voigt  = [1; 3; 3; 2];
+      case 3
+        colrowvoigttbl.voigt  = [1; 6; 5; 6; 2; 4; 5; 4; 3];
+    end
+
+    colrowvoigttbl.num = numel(colrowvoigttbl.coldim);
+
+    % to index the avoigt we the same ordering as voigt, just skipping the diagonal
+    switch dim
+      case 2
+        colrowavoigttbl.avoigt = [1; 1];
+        colrowavoigttbl.coldim = [1; 2];
+        colrowavoigttbl.rowdim = [2; 1];
+      case 3
+        colrowavoigttbl.avoigt = [1; 2; 3; 1; 2; 3];
+        colrowavoigttbl.coldim = [2; 1; 1; 3; 3; 2];
+        colrowavoigttbl.rowdim = [3; 3; 2; 2; 1; 1];
+    end
+
+    colrowavoigttbl.num = numel(colrowavoigttbl.avoigt);
+
     prod = TensorProd();
-    prod.tbl1 = col2row2tbl;
-    prod.tbl2 = colrowtbl;
-    prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
-    prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
-    prod.reducefds = {'coldim2', 'rowdim2'};
+    prod.tbl1 = colrowvoigttbl;
+    prod.tbl2 = voigttbl;
     prod.tbl3 = colrowtbl;
+    prod.reducefds = {'voigt'};
     prod = prod.setup();
 
-    C_T = SparseTensor('matlabsparse', true);
-    C_T = C_T.setFromTensorProd(C, prod);
+    V_T = SparseTensor();
+    V_T = V_T.setFromTensorProd(ones(colrowvoigttbl.num, 1), prod);
+    V = V_T.getMatrix();
+
+    prod = TensorProd();
+    prod.tbl1 = colrowavoigttbl;
+    prod.tbl2 = avoigttbl;
+    prod.tbl3 = colrowtbl;
+    prod.reducefds = {'avoigt'};
+    prod = prod.setup();
+
+    AV_T = SparseTensor();
+    coef = [ones(avdim, 1); -ones(avdim, 1)]; 
+    AV_T = AV_T.setFromTensorProd(coef, prod);
+    AV = AV_T.getMatrix();
+
+    M1 = [V, AV]';
+    M1 = full(M1);
+
+    % We add an extra multiplication for the coef 2 on diagonal for Voigt.
+    d = [ones(dim, 1); 0.5*ones(dim*dim - dim, 1)];
+    Vc = diag(d);
+
+    M2 = M1'*Vc;
+
+    % we write M1 and M2 as elements of col2row2tbl
+    M1 = reshape(M1', [], 1);
+    M2 = reshape(M2', [], 1);
+
+    % map = TensorMap();
+    % map.fromTbl = col2row2tbl;
+    % map.toTbl = cellcol2row2tbl;
+    % fds = {'rowdim1', 'rowdim2', 'coldim1', 'coldim2'};
+    % map.mergefds = fds;
+    % map = map.setup();
+
+    % % we dispatch M1 and M2 as elements of cellcol2row2tbl
+    % M1 = map.eval(M1);
+    % M2 = map.eval(M2);
+
+    prod = TensorProd();
+    prod.tbl1 = cellcol2row2tbl;
+    prod.tbl2 = col2row2tbl;
+    prod.tbl3 = cellcol2row2tbl;
+    prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
+    prod.replacefds2 = {{'coldim2', 'coldim'}, {'rowdim2', 'rowdim'}};
+    prod.mergefds = {'coldim', 'rowdim'};
+
+    prod = prod.setup();
+
+    CM1 = prod.eval(C, M1);
     
-    printTensor(C_T); 
-end 
+    prod = TensorProd();
+    prod.tbl1 = col2row2tbl;
+    prod.tbl2 = cellcol2row2tbl;
+    prod.tbl3 = cellcol2row2tbl;
+    prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
+    prod.replacefds2 = {{'coldim2', 'coldim'}, {'rowdim2', 'rowdim'}};
+    prod.mergefds = {'coldim', 'rowdim'};
+
+    prod = prod.setup();
+
+    M2CM1 = prod.eval(M2, CM1);
+    
+    dotest = false;
+    if dotest
+        prod = TensorProd();
+        prod.tbl1 = col2row2tbl;
+        prod.tbl2 = colrowtbl;
+        prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
+        prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
+        prod.reducefds = {'coldim2', 'rowdim2'};
+        prod.tbl3 = colrowtbl;
+        prod = prod.setup();
+
+        C_T = SparseTensor('matlabsparse', true);
+        C_T = C_T.setFromTensorProd(C, prod);
+        
+        printTensor(C_T); 
+    end 
+
+  otherwise
+    error('constructiontype not recognized');
+end
+
+return
 
 [cellnodecol2row2tbl, indstruct] = crossTable(cellnodetbl, col2row2tbl, {});
 C = tbldispatch2(C, indstruct);
@@ -680,7 +837,6 @@ mappings = struct('nodeface_from_cellnodeface', nodeface_from_cellnodeface);
 [nodes, sz] = rlencode(nodefacecoltbl.nodes, 1);
 invA11 = bi(A11, sz);
 
-
 % We enforce the boundary conditions as Lagrange multipliers
 [D, force] = setupBC(runcase, G, tbls, mappings, 'facetNormals', facetNormals);
 
@@ -689,29 +845,71 @@ B12 = A21*invA11*D;
 B21 = -D'*invA11*A12;
 B22 = D'*invA11*D;
 
-force1 = -A21*invA11*force;
-force2 = -D'*invA11*force;
+rhs1 = -A21*invA11*force;
+rhs2 = -D'*invA11*force;
 
 B = [[B11, B12]; ...
      [B21, B22]];
 
-force = [force1; force2];
+rhs = [rhs1; rhs2];
 
-u = B\force;
+sol = B\rhs;
 n = cellcoltbl.num;
-u = u(1 : n); 
-u = reshape(u, dim, [])';
+% displacement values at cell centers.
+u = sol(1 : n);
+% Force where the Dirichlet BC at imposed
+lambda = sol(n + 1: end);
+
+% displacement values at facenode
+unf = invA11*(force - A12*u + D*lambda);
+
+
+% setup mapping from nodeface to node
+
+map = TensorMap();
+map.fromTbl = nodefacecoltbl;
+map.toTbl   = nodecoltbl;
+map.mergefds = {'nodes', 'coldim'};
+map = map.setup();
+
+coef = map.eval(ones(nodefacecoltbl.num));
+coef = 1./coef;
+
+prod = TensorProd();
+prod.tbl1 = nodecoltbl;
+prod.tbl2 = nodefacecoltbl;
+prod.tbl3 = nodecoltbl;
+prod.mergefds = {'nodes', 'coldim'};
+prod = prod.setup();
+
+
+nodalDisp_T = SparseTensor('matlabsparse', true);
+nodalDisp_T = nodalDisp_T.setFromTensorProd(coef, prod);
+
+nodalDisp_op = nodalDisp_T.getMatrix();
+
+un = nodalDisp_op*unf;
+
+
 
 %% plotting
 % 
-toc
-
 close all
+
+unvec = reshape(un, dim, [])';
+
 figure
-plotCellData(G, u(:, 1));
+coef = 1e0;
+plotGridDeformed(G, coef*unvec);
+
+%%
+uvec = reshape(u, dim, [])';
+
+figure
+plotCellData(G, uvec(:, 1));
 title('displacement - x direction')
 colorbar
 figure
-plotCellData(G, u(:, 2));
+plotCellData(G, uvec(:, 2));
 title('displacement - y direction')
 colorbar
