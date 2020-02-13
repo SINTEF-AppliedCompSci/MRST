@@ -510,13 +510,17 @@ cellcol2row2tbl = crossTable(celltbl, col2row2tbl, {});
 
 constructiontypes = {'direct_lambda_mu_construction', ...
                     'general_voigt_construction'};
-constructiontype = 'general_voigt_construction';
+% constructiontype = 'general_voigt_construction';
+constructiontype = 'direct_lambda_mu_construction';
 
 switch constructiontype
   case 'direct_lambda_mu_construction'
-    mu = linspace(1, 2, nc);
-    lambda = linspace(1, 2, nc);
 
+    % mu = linspace(1, 2, nc);
+    % lambda = linspace(1, 2, nc);
+    mu = 1*ones(nc, 1);
+    lambda = 1*ones(nc, 1);
+    
     mutbl.coldim1 = colrowtbl.coldim;
     mutbl.coldim2 = colrowtbl.coldim;
     mutbl.rowdim1 = colrowtbl.rowdim;
@@ -568,9 +572,10 @@ switch constructiontype
 
     lambda = map.eval(lambda);
 
-    Cvoigt = mu + lambda;
+    C = mu + lambda;
 
     dotest = true;
+    
     if dotest
         % print tensor C for first cell
         clear samplecelltbl;
@@ -587,7 +592,7 @@ switch constructiontype
         map.mergefds = fds;
         map = map.setup();
         
-        C1 = map.eval(lambda);
+        C1 = map.eval(C);
         
         prod = TensorProd();
         prod.tbl1 = samplecellcol2row2tbl;
@@ -600,7 +605,7 @@ switch constructiontype
         
         C1_T = SparseTensor();
         C1_T = C1_T.setFromTensorProd(C1, prod);
-        
+
     end
     
   case 'general_voigt_construction'
@@ -752,7 +757,6 @@ switch constructiontype
         printTensor(C_T); 
     end 
     
-
   otherwise
     error('constructiontype not recognized');
 end
