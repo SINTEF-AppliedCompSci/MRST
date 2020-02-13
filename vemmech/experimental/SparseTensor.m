@@ -393,13 +393,19 @@ classdef SparseTensor
          comp_ixs = self.component_with_ix(ixname, true);
          assert(numel(comp_ixs) == 2);
          comps = self.components(comp_ixs);
-         if isa(comps{1}.coefs, 'ADI') || isa(comps{2}.coefs, 'ADI')
-            self = two_component_contraction_adi(self, ixname);
-         else
-            % @@ Use the adi version until the float version is fixed
-            self = two_component_contraction_adi(self, ixname); 
-            %self = two_component_contraction_float(self, ixname);
-         end
+
+         % @@ TEST
+         contracted_comp = contract_components(comps{1}, comps{2});
+         self.components(comp_ixs) = [];
+         self.components = [self.components, contracted_comp];
+         
+         % if isa(comps{1}.coefs, 'ADI') || isa(comps{2}.coefs, 'ADI')
+         %    self = two_component_contraction_adi(self, ixname);
+         % else
+         %    % @@ Use the adi version until the float version is fixed
+         %    self = two_component_contraction_adi(self, ixname); 
+         %    %self = two_component_contraction_float(self, ixname);
+         % end
       end
          
       
@@ -558,6 +564,54 @@ classdef SparseTensor
 
    methods(Static)
       
+      function comp = contract_components(comp1, comp2)
+         
+         % determining contracting (common) indices
+         cixnames = intersect(comp1.indexnames, comp2.indexnames);
+         
+         cix1 = cellfun(@(x) find(strcmp(x, comp1.indexnames)), cixnames);
+         cix2 = cellfun(@(x) find(strcmp(x, comp2.indexnames)), cixnames);
+         
+         % determining stride when making contracting indices into 1D array
+         maxind1 = max(comp1.ixs(:, cix1));
+         maxind2 = max(comp2.ixs(:, cix2));
+         maxind = max(maxind1, maxind2);
+         
+         cix1_1d = SparseTensor.compute_1D_index(comp1.ixs(:, cix1), maxind);
+         cix2_1d = SparseTensor.compute_1D_index(comp2.ixs(:, cix2), maxind);
+
+         % replace contracting indices with 1D variant
+         cname = cixnames{1};
+         comp1.ixs(:, cix1) = [];   
+         comp1.indexnames(cix1) = [];
+
+         comp1.ixs = [comp1.ixs, cix1_1d];
+         comp1.indexnames = [comp1.indexnames, cname];
+
+         comp2.ixs(:, cix2) = [];
+         comp2.indexnames(cix2) = [];
+         
+         comp2.ixs = [comp2.ixs, cix2_1d];
+         comp2.indexnames = [comp2.indexnames, cname];
+         
+         % carry out the contraction, by reinterpreting tensors as sparse 2D
+         % matrices
+         [c1_keep_ix, stride1, c1_contract_ix, c1_vals, c1_keep_ixnames] = ...
+             SparseTensor.prepare_for_contraction(comp1, cname, true);
+         [c2_keep_ix, stride2, c2_contract_ix, c2_vals, c2_keep_ixnames] = ...
+             SparseTensor.prepare_for_contraction(comp2, cname, false);
+         
+         [row, col, vals] = ssparsemul([c1_keep_ix, c1_contract_ix], c1_vals, ...
+                                       [c2_contract_ix, c2_keep_ix], c2_vals);
+         
+         row = SparseTensor.compute_subs(row, stride1);
+         col = SparseTensor.compute_subs(col, stride2);
+         comp.indexnames = [c1_keep_ixnames, c2_keep_ixnames];
+         comp.ixs = [row, col];
+         comp.coefs = vals;
+         
+      end
+      
       function [keep_ix, keep_stride, contract_ix, vals, ixnames] = ...
              prepare_for_contraction(comp, ixname, sort_contract)
          
@@ -639,17 +693,7 @@ classdef SparseTensor
                   comp.coefs = comp.coefs(keep_entries);
                   comp.indexnames(cix) = [];
                end
-               
-               % % @@ for the moment, we assume that there is only one
-               % % contraction to make (generalize this as needed)
-               % assert(sum(keep) == numel(comp.indexnames) - 2);
-               % tmp = comp.ixs(:, ~keep);
-               % keep_entries = tmp(:,1) == tmp(:,2);
-               % comp.ixs = comp.ixs(keep_entries, :);
-               % comp.coefs = comp.coefs(keep_entries);
             end
-            % comp.indexnames = comp.indexnames(keep);
-            % comp.ixs = comp.ixs(:, keep);
          else 
             % contract one component in one index
             local_ind = strcmp(ixname, comp.indexnames);
@@ -669,30 +713,7 @@ classdef SparseTensor
          
          % sum up other elements at the correct place
          index1d = SparseTensor.compute_1D_index(comp.ixs);
-         
-         % tmp = accumarray(index1d(:), comp.coefs, [], [], [], true);
-         % [uindex, ~, v] = find(tmp);
-         % comp.coefs = v;
-         
-         % logical_size = max(comp.ixs);
-         % reindex = cell(size(comp.ixs, 2), 1);
-         
-         % [reindex{:}] = ind2sub(logical_size, uindex);
-         
-         % comp.ixs = [reindex{:}];
-
-         % keyboard
-         % map = accumarray([index1d, (1:size(comp.ixs,1))'], 1, [], [], [], true);
-         % keep = sum(map, 2) > 0;
-         % keep_ix = find(keep);
-         % elim_rows = accumarray([(1:numel(keep_ix))', keep_ix], 1, [], [], [], true);
-         % map = elim_rows * map;
-         % % map = map(keep,:);
-         % comp.coefs = map * comp.coefs;
-         % uindex = find(keep);
-         
          [uindex, ~, ic] = unique(index1d);
-
          map = accumarray([ic, (1:size(comp.ixs, 1))'], 1, [], [], [], true);
          
          comp.coefs = map * comp.coefs;
@@ -700,12 +721,8 @@ classdef SparseTensor
          % % extract nonzeros and recompute indices
          
          logical_size = max(comp.ixs);
-         % reindex = cell(size(comp.ixs, 2), 1);
-         % [reindex{:}] = ind2sub(logical_size, uindex);
-         %comp.ixs = [reindex{:}];
          
          comp.ixs = SparseTensor.compute_subs(uindex, logical_size);
-         % %comp.ixs = cell2mat(reindex');
       end
       
       function [t1, t2] = make_tensors_compatible(t1, t2)
