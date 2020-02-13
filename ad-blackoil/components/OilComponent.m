@@ -27,17 +27,16 @@ classdef OilComponent < ImmiscibleComponent
             c = getComponentDensity@ImmiscibleComponent(component, model, state);
             if component.disgas || component.vapoil % Check for black-oil behavior
                 phasenames = model.getPhaseNames();
-                gix = phasenames == 'G';
                 oix = phasenames == 'O';
                 reg = model.PVTPropertyFunctions.getRegionPVT(model);
                 b = model.getProps(state, 'ShrinkageFactors');
-                rhoS = model.getSurfaceDensities(reg);
-                rhoOS = rhoS(:, oix);
+                rhoOS = model.getSurfaceDensities(reg, oix);
                 if component.disgas
                     bO = b{oix};
                     c{oix} = rhoOS.*bO;
                 end
                 if component.vapoil
+                    gix = phasenames == 'G';
                     bG = b{gix};
                     rv = model.getProp(state, 'rv');
                     c{gix} = rv.*rhoOS.*bG;

@@ -29,16 +29,15 @@ classdef GasComponent < ImmiscibleComponent
             if component.disgas || component.vapoil
                 phasenames = model.getPhaseNames();
                 gix = phasenames == 'G';
-                oix = phasenames == 'O';
                 reg = model.PVTPropertyFunctions.getRegionPVT(model);
                 b = model.getProps(state, 'ShrinkageFactors');
-                rhoS = model.getSurfaceDensities(reg);
-                rhoGS = rhoS(:, gix);
+                rhoGS = model.getSurfaceDensities(reg, gix);
                 if component.vapoil
                     bG = b{gix};
                     c{gix} = rhoGS.*bG;
                 end
                 if component.disgas
+                    oix = phasenames == 'O';
                     bO = b{oix};
                     rs = model.getProp(state, 'rs');
                     c{oix} = rs.*rhoGS.*bO;
