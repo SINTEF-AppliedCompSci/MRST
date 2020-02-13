@@ -1,4 +1,8 @@
 classdef OilComponent < ImmiscibleComponent
+    % A black-oil component description of the oil type, which modifies the
+    % immiscible implementation to account for parts of the oil component
+    % vaporizing into the gaseous phase (if vapoil is present) and that the
+    % oil density can be modified by dissolved gas (if disgas is present)
     properties
         disgas
         vapoil
@@ -13,6 +17,10 @@ classdef OilComponent < ImmiscibleComponent
             if vapoil
                 c = c.dependsOn('rv', 'state');
             end
+        end
+        
+        function c = getPhaseComposition(component, model, state, varargin)
+            c = getPhaseComposition@ComponentImplementation(component, model, state, varargin{:});
         end
         
         function c = getComponentDensity(component, model, state)

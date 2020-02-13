@@ -1,5 +1,7 @@
 classdef ImmiscibleComponent < ComponentImplementation
-    % Specialized interface for immiscible component
+    % A component description that assumes that the component is
+    % immiscible, i.e. it only exists in one phase that is made up entirely
+    % of that specific component.
     properties
         phaseIndex % Index of phase this component belongs to
     end
@@ -24,7 +26,9 @@ classdef ImmiscibleComponent < ComponentImplementation
         end
         
         function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
-            c = component.getPhaseComposition(model, state);
+            nph = model.getNumberOfPhases();
+            c = cell(nph, 1);
+            c{component.phaseIndex} = 1;
         end
         
         function c = getPhaseComponentFractionWell(component, model, state, W)
