@@ -29,7 +29,7 @@ classdef PressureModel < WrapperModel
                     origP = origin{isP};
                     keep = isP | cellfun(@(x) ~strcmp(x, origP), origin);
                 case 'numerical'
-                    assert(false, 'PressureReduction:NotImplemented', 'Not implemented.');
+%                     assert(false, 'PressureReduction:NotImplemented', 'Not implemented.');
                 otherwise
                     error('Unknown reduction strategy %s', model.reductionStrategy);
             end
@@ -136,6 +136,26 @@ classdef PressureModel < WrapperModel
         function rhoS = getSurfaceDensities(model)
             rhoS = model.parentModel.getSurfaceDensities();
         end
+        
+        function model = validateModel(model, varargin)
+            
+            model = validateModel@WrapperModel(model, varargin{:});
+            pmodel = model.parentModel;
+            pvt = pmodel.PVTPropertyFunctions;
+            switch model.reductionStrategy
+                case 'numerical'
+                    pvt = pvt.setStateFunction('PressureReductionFactors', NumericalPressureReductionFactors(pmodel));
+                case 'analytic'
+                    assert(isa(pmodel, 'ThreePhaseBlackOilModel'), ...
+                        'Analytical pressure reduction factors currently only implemented for black-oil!');
+                    pvt = pvt.setStateFunction('PressureReductionFactors', BlackOilPressureReductionFactors(pmodel));
+                otherwise
+                    error('Unknown reduction strategy');
+            end
+            model.parentModel.PVTPropertyFunctions = pvt;
+
+        end
+        
     end
 end
 
