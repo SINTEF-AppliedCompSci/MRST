@@ -1314,7 +1314,7 @@ methods
 
     end
 
-    function rhoS = getSurfaceDensities(model)
+    function rhoS = getSurfaceDensities(model, regions)
         % Get the surface densities of the active phases in canonical
         % ordering (WOG, with any inactive phases removed).
         %
@@ -1322,6 +1322,9 @@ methods
         %   rhoS - pvt x n double array of surface densities.
         names = model.getPhaseNames();
         rhoS = value(arrayfun(@(x) model.fluid.(['rho', x, 'S'])', names, 'UniformOutput', false));
+        if nargin > 1 && size(rhoS, 1) > 1 && ~isempty(regions)
+            rhoS = rhoS(regions, :);
+        end
     end
 
     function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
