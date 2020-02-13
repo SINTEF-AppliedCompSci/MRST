@@ -37,7 +37,7 @@ switch runcase
     x = 1/max(x)*x;
     G = tensorGrid(x, y);    
   case {'2d-linear', '2d-compaction'}
-    nx = 1; ny = 1;
+    nx = 5; ny = 5;
     G = cartGrid([nx, ny], [1, 1]);
   case {'3d-linear', '3d-compaction'}
     nx = 5; ny = 5; nz = 5;
@@ -605,7 +605,7 @@ switch constructiontype
     
   case 'general_voigt_construction'
 
-    mu = 2;
+    mu = 1;
     lambda = 1;
     
     Cvoigt = mu*eye(vdim);
@@ -710,23 +710,12 @@ switch constructiontype
     M1 = reshape(M1', [], 1);
     M2 = reshape(M2', [], 1);
 
-    % map = TensorMap();
-    % map.fromTbl = col2row2tbl;
-    % map.toTbl = cellcol2row2tbl;
-    % fds = {'rowdim1', 'rowdim2', 'coldim1', 'coldim2'};
-    % map.mergefds = fds;
-    % map = map.setup();
-
-    % % we dispatch M1 and M2 as elements of cellcol2row2tbl
-    % M1 = map.eval(M1);
-    % M2 = map.eval(M2);
-
     prod = TensorProd();
     prod.tbl1 = cellcol2row2tbl;
     prod.tbl2 = col2row2tbl;
     prod.tbl3 = cellcol2row2tbl;
-    prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
-    prod.replacefds2 = {{'coldim2', 'coldim'}, {'rowdim2', 'rowdim'}};
+    prod.replacefds1 = {{'coldim2', 'coldim'}, {'rowdim2', 'rowdim'}};
+    prod.replacefds2 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
     prod.mergefds = {'coldim', 'rowdim'};
 
     prod = prod.setup();
@@ -737,13 +726,14 @@ switch constructiontype
     prod.tbl1 = col2row2tbl;
     prod.tbl2 = cellcol2row2tbl;
     prod.tbl3 = cellcol2row2tbl;
-    prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
-    prod.replacefds2 = {{'coldim2', 'coldim'}, {'rowdim2', 'rowdim'}};
+    prod.replacefds1 = {{'coldim2', 'coldim'}, {'rowdim2', 'rowdim'}};
+    prod.replacefds2 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
     prod.mergefds = {'coldim', 'rowdim'};
 
     prod = prod.setup();
 
     M2CM1 = prod.eval(M2, CM1);
+    C = M2CM1;
     
     dotest = false;
     if dotest
@@ -761,14 +751,13 @@ switch constructiontype
         
         printTensor(C_T); 
     end 
+    
 
   otherwise
     error('constructiontype not recognized');
 end
 
-return
-
-[cellnodecol2row2tbl, indstruct] = crossTable(cellnodetbl, col2row2tbl, {});
+[cellnodecol2row2tbl, indstruct] = crossTable(cellnodetbl, cellcol2row2tbl, {'cells'});
 C = tbldispatch2(C, indstruct);
 
 prod = TensorProd();
@@ -896,11 +885,10 @@ un = nodalDisp_op*unf;
 % 
 close all
 
-unvec = reshape(un, dim, [])';
-
-figure
-coef = 1e0;
-plotGridDeformed(G, coef*unvec);
+% unvec = reshape(un, dim, [])';
+% figure 
+% coef = 1e0;
+% plotGridDeformed(G, coef*unvec);
 
 %%
 uvec = reshape(u, dim, [])';
