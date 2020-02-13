@@ -125,6 +125,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                             'initialGuess', state, ...
                             forceArg{:});
                 [~, state] = model.transportModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                state = model.reduceState(state);
             end
             if isfield(state, 'iteration')
                 state = rmfield(state, 'iteration');
