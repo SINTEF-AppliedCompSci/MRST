@@ -122,17 +122,28 @@ function [D, force] = setupBC(runcase, G, tbls, mappings, varargin)
             force = tblmap(force, sourcetbl, cellcoltbl, {'cells', 'coldim'});
         end
       
-      case '3d-linear'
+      case {'3d-linear', '3d-compaction'}
         
         facetNormals = opt.facetNormals;
 
         Dmat = cell(3, 1);
-        for i = 1 : 3
-            extfaces = find(G.faces.centroids(:, i) == 0);
-            d = zeros(3, 1);
-            d(i) = 1;
-            Dmat{i} = assignLinearForm(extfaces, d, tbls);
+        switch runcase
+          case '3d-linear'
+            for i = 1 : 3
+                extfaces = find(G.faces.centroids(:, i) == 0);
+                d = zeros(3, 1);
+                d(i) = 1;
+                Dmat{i} = assignLinearForm(extfaces, d, tbls);
+            end
+          case '3d-compaction'
+            extfaces = find(G.faces.centroids(:, 3) == 0);
+            for i = 1 : 3
+                d = zeros(3, 1);
+                d(i) = 1;
+                Dmat{i} = assignLinearForm(extfaces, d, tbls);
+            end
         end
+            
         D = horzcat(Dmat{:});
         
         % Setup force at top, in opposite normal direction
