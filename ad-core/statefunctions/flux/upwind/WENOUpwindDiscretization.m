@@ -62,33 +62,6 @@ classdef WENOUpwindDiscretization < UpwindDiscretization
             % Face centroids expanded to triangles
             fc = model.G.faces.centroids(model.operators.internalConn, 1:disc.dim);
             [vq, faces, w] = disc.interpolateTriWENO(model, state, cells, fc, cellvalue);
-            if 0
-                % Disabled - old code for SPU downgrade
-                if isfield(state, 'use_upwind_face')
-                    next_val = value(q_c) + value(dvq);
-                    if 1
-                        dq_d = value(ws);
-                        qd = value(q_b);
-                        q_tri = qd(centers) + dq_d;
-                        
-                        bad = q_tri < 0 | q_tri > 1;
-                        state.use_upwind_face(faces(bad)) = true;
-                    end
-                end
-                
-                if isfield(state, 'use_upwind_face')
-                    to_spu = state.use_upwind_face;
-                    to_spu = to_spu | state.use_upwind_cell(cells);
-                    
-                    upw = nnz(to_spu);
-                    nf = numel(to_spu);
-                    if upw > 0
-                        fprintf('%d out of %d faces (%1.2f%%) are upwinded\n', upw, nf, 100*upw/nf);
-                    end
-                    dvq(to_spu) = 0;
-                end
-                vq = q_c + dvq;
-            end
         end
         
         function [q_interp, pointNo, w] = interpolateTriWENO(disc, model, state, cells, points, q)
@@ -317,6 +290,7 @@ classdef WENOUpwindDiscretization < UpwindDiscretization
                 coord_mapping = zeros(nc, disc.dim, disc.dim);
             else
                 coord_mapping = [];
+                M = 1;
             end
             
             min_values = zeros(nc, disc.dim);

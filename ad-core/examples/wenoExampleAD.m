@@ -24,6 +24,16 @@ schedule = simpleSchedule(dt, 'W', W);
 state0 = initResSol(G, 100*barsa, [0, 1]);
 %% Simulate base case
 [ws, states, report] = simulateScheduleAD(state0, model, schedule);
+%% Plot the CFL condition
+cfl = estimateSaturationCFL(model, states{1}, max(schedule.step.val));
+figure;
+plotCellData(G, cfl, 'EdgeColor', 'none');
+cmap = parula(100);
+cmap = interp1((0.02:0.02:2), cmap, log10(2:100)');
+colormap(cmap);
+colorbar;
+
+outlineCoarseGrid(G, double(cfl > 1), 'Color', 'w');
 %% Set up a WENO discretization
 model_weno = model;
 weno = WENOUpwindDiscretization(model_weno);
