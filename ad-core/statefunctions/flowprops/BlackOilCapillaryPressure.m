@@ -54,6 +54,7 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
             end
             
             if model.gas && model.oil && isfield(f, 'pcOG')
+                % Oil gas capillary pressure
                 sG = model.getProp(state, 'sg');
                 pcog = prop.evaluateFunctionOnDomainWithArguments(f.pcOG, sG);
                 if JfuncActiveOG
@@ -63,7 +64,9 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
                 pc{phInd == 3} = pcog;
             end
             if ~model.oil && isfield(f, 'pcWG')
-                pc{phInd == 2} = prop.evaluateFunctionOnDomainWithArguments(f.pcWG, sG);
+                % Water-gas capillary pressure
+                sG = model.getProp(state, 'sg');
+                pc{phInd == 3} = prop.evaluateFunctionOnDomainWithArguments(f.pcWG, sG);
             end
         end
         
