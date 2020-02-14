@@ -40,6 +40,8 @@ classdef PVTPropertyFunctions < StateFunctionGrouping
         end
         
         function pvt = getRegionPVT(props, model)
+            % Get the region indicator in each cell of the domain from the
+            % rock. If not found in rock, region 1 is used in all cells.
             r = model.rock;
             pvt = ones(model.G.cells.num, 1);
             if isfield(r, 'regions')
