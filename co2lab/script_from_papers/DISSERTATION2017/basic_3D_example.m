@@ -117,7 +117,7 @@ bc_cell_ix = sum(G.faces.neighbors(bc_face_ix,:), 2);
 p_face_pressure = initState.pressure(bc_cell_ix); 
 
 % Add hydrostatic pressure conditions to open boundary faces
-bc = addBC(bc, bc_face_ix, 'pressure', p_face_pressure);
+bc = addBC(bc, bc_face_ix, 'pressure', p_face_pressure, 'sat', [1, 0]);
 
 %% Schedule
 
