@@ -108,7 +108,7 @@ bc = [];
 p_bc = G.faces.centroids(bcIx, 3) * rhow * g(3);
 
 % Add hydrostatic pressure conditions to open boundary faces
-bc = addBC(bc, bcIx, 'pressure', p_bc);
+bc = addBC(bc, bcIx, 'pressure', p_bc, 'sat', [1, 0]);
 
 %% Schedule
 
