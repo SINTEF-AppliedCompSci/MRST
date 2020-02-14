@@ -59,10 +59,10 @@ classdef EquationOfStateComponent < ComponentImplementation
             c = arrayfun(@(x) x, rho, 'UniformOutput', false);
         end
 
-        function c = getPhaseComponentFractionWell(component, model, state, W)
+        function c = getPhaseComponentFractionInjection(component, model, state, force)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
-            comp_i = vertcat(W.components);
+            comp_i = vertcat(force.components);
             comp_i = model.EOSModel.getMassFraction(comp_i);
             index = component.componentIndex - model.water;
             ci = comp_i(:, index);

@@ -31,12 +31,15 @@ classdef ImmiscibleComponent < ComponentImplementation
             c{component.phaseIndex} = 1;
         end
         
-        function c = getPhaseComponentFractionWell(component, model, state, W)
+        function c = getPhaseComponentFractionInjection(component, model, state, force)
             % Get the fraction of the component in each phase (when
             % injecting from outside the domain)
-            nph = model.getNumberOfPhases();
-            c = cell(nph, 1);
-            comp_i = vertcat(W.compi);
+            c = cell(model.getNumberOfPhases(), 1);
+            if isfield(force, 'compi')
+                comp_i = vertcat(force.compi);
+            else
+                comp_i = vertcat(force.sat);
+            end
             index = component.phaseIndex;
             ci = comp_i(:, index);
             if any(ci ~= 0)

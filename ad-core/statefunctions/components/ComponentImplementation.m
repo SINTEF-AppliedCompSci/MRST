@@ -83,7 +83,7 @@ classdef ComponentImplementation
             c = cell(nph, 1);
         end
         
-        function c = getPhaseComponentFractionWell(component, model, state, W)
+        function c = getPhaseComponentFractionInjection(component, model, state, force)
             % Get the fraction of the component in each phase (when
             % injecting from outside the domain)
             nph = model.getNumberOfPhases();
