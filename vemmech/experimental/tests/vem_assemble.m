@@ -1,6 +1,6 @@
 %G = cartGrid([1, 1, 2]);
-%G = cartGrid([2, 2, 2]);
-G = cartGrid([20, 20, 20]);
+G = cartGrid([2, 2, 2]);
+%G = cartGrid([20, 20, 20]);
 %G = cartGrid([22, 22, 22]);
 %G = cartGrid([30 30 30]);
 %G = cartGrid([40, 40, 40]);

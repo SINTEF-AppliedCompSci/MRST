@@ -24,7 +24,10 @@ classdef SparseTensor
            case 1
              if isstruct(varargin{1})
                 % input is directly in the form of a component
-                self.components = {varargin{1}};
+                self.components = varargin(1);
+             elseif iscell(varargin{1})
+                % input is directly in the form of a list of components
+                self.components = varargin{1};
              else
                 % intrinsic scalar
                 assert(isscalar(varargin{1}));
@@ -222,6 +225,7 @@ classdef SparseTensor
                end
             end
          end
+         cixnames = unique(cixnames);
       end
       
       % since there may be some zeroes in the coefs that are eliminated by
@@ -316,6 +320,120 @@ classdef SparseTensor
          end
       end
 
+      function self = expandall_bis(self, expand_tensor)
+
+         if nargin < 2
+            expand_tensor = true; 
+         end
+
+         if numel(self.components) == 1
+            return
+         end
+         
+         % put all coefs on a common form, where all coefs have all contracting indices
+         [comps, num_cix, max_cix, indep_comps] = SparseTensor.set_common_form(self.components);
+         
+         % check if there are any contractions
+         if num_cix > 0
+            control = zeros(1, num_cix);
+            
+            % determining which components will be used to control the looping over 
+            % different contracting indices; sort elements accordingly
+            counter_vals = {};
+            counter_comp = [];
+            for i = 1:numel(comps)
+               new_covered = (control == 0 & ~isnan(comps{i}.ixs(1, 1:num_cix)));
+
+               if sum(new_covered) > 0
+                  counter_comp = [counter_comp, i];
+                  num_counters = numel(counter_comp);
+                  control(new_covered) = num_counters;
+                  
+                  [comps{i}.ixs, tmp_ix] = sortrows(comps{i}.ixs, find(control==i));
+                  comps{i}.coefs = comps{i}.coefs(tmp_ix);
+                  counter_vals{num_counters} = ...
+                      [1; 1+find(sum(abs(diff(comps{i}.ixs(:, control == i))), 2))];
+               end
+            end
+            
+            counters = ones(1, num_counters);
+            max_counters = cellfun(@(x) numel(x), counter_vals);
+            multi_ix = zeros(1, num_cix);
+            actives = cell(1, numel(comps));
+            
+            new_comp = struct('coefs', [], 'ixs', [], 'indexnames', {});
+            for i = 1:numel(comps)
+               new_comp.indexnames = [new_comp.indexnames, comp{i}.indexnames(num_cix+1:end)];
+            end
+            
+            while all(counters <= max_counters)
+               
+               % compute current multiindex
+               for i = 1:numel(counters)
+                  multi_ix(control==i) = ...
+                      comps{counter_comp(i)}.ixs(counter_vals{i}(counters(i)), control==i);
+               end
+
+               % identify active entries
+               for i = 1:numel(comps)
+                  non_nan = ~isnan(comps{i}.ixs(1,1:num_cix));
+                  actives{i} = find(prod(comps{i}.ixs(:, find(non_nan)) == multi_ix(non_nan), 2));
+               end
+               
+               c2 = ones(1, numel(comps));
+               c2_max = cellfun(@(x) numel(x), actives);
+               while all(c2 <= c2_max)
+                  
+                  v = 1; 
+                  free_ixs = [];
+                  for i = 1:numel(comps)
+                     loc_ix = actives{i}(c2(i));
+                     v = v * comps{i}.coefs(loc_ix);
+                     free_ixs = [free_ixs, comps{i}.ixs(loc_ix, num_cix+1:end)];
+                  end
+                  new_comp.coefs = [new_comp.coefs; v];
+                  new_comp.ixs = [new_comp.ixs; free_ixs];
+                  
+                  % increment c2
+                  c2(end) = c2(end) + 1;
+                  for i = numel(c2):-1:2
+                     if c2(i) > c2_max(end)
+                        c2(i) = 1;
+                        c2(i-1) = c2(i-1)+1;
+                     end
+                  end
+               end
+                                 
+               % increment counter
+               counters(end) = counters(end) + 1;
+               for i = numel(counters):-1:2
+                  if counters(i) > max_counters(i)
+                     counters(i) = 1;
+                     counters(i-1) = counters(i-1)+1;
+                  end
+               end
+            end
+         
+         end
+         
+         % re-introduce the components independent of the contraction
+         comps = [comps, indep_comps];
+
+         % all contractions/semicontractions carried out.  Expand tensor now,
+         % if requested
+         if expand_tensor
+            expanded_comp = comps{1};
+            for i = 2:numel(self.components)
+               expanded_comp = SparseTensor.tensor_product(expanded_comp, comps{i});
+            end
+            
+            self = SparseTensor(expanded_comp);
+         else 
+            self = SparseTensor(comps);
+         end
+      end
+
+      
       function self = expandall(self, expand_tensor)
          if nargin < 2
             expand_tensor = true; % default is true
@@ -335,7 +453,7 @@ classdef SparseTensor
             end
             % do the contraction
             self = self.two_component_contraction(ixname); 
-         
+            
          end
          
          % all contractions/semicontractions carried out.  Expand tensor now,
@@ -572,6 +690,68 @@ classdef SparseTensor
    end % end methods
 
    methods(Static)
+      
+      function [comps, num_cix, max_cix, indep_comps] = set_common_form(comps)
+         
+         % identify all contracting indices
+         [~, cix] = SparseTensor(comps).indexNames();
+         num_cix = numel(cix);
+         
+         % split components into those that participate in the contraction, and those who
+         % are unaffected
+         indep_comps = {};
+         for i = numel(comps):-1:1
+            if numel(setdiff(comps{i}.indexnames, cix)) == numel(comps{i}.indexnames)
+               % unaffected
+               indep_comps = [indep_comps, comp];
+               comps(i) = [];
+            end
+         end
+         
+         % ensure all components have all contracting indices, and that they
+         % are listed first
+         for i = 1:numel(comps)
+            % ensure existence
+            missing = setdiff(cix, comps{i}.indexnames);
+            comps{i}.indexnames = [comps{i}.indexnames, missing];
+            comps{i}.ixs = [comps{i}.ixs, ...
+                            nan(size(comps{i}.ixs, 1), numel(missing))];
+            
+            % place contracting indices first among all indices
+            ind = cellfun(@(x) find(strcmpi(x, comps{i}.indexnames)), cix);
+            comps{i}.indexnames(ind) = [];
+            comps{i}.indexnames = [cix, comps{i}.indexnames];
+            tmp = comps{i}.ixs(:, ind);
+            comps{i}.ixs(:, ind) = [];
+            comps{i}.ixs = [tmp, comps{i}.ixs];
+         end
+         
+         % determine max. values for each contracting index
+         mx = cellfun(@(c) arrayfun(@(ix) max(c.ixs(:, ix)), 1:num_cix), ...
+                      comps(:), 'uniformoutput', false);
+         max_cix = max(vertcat(mx{:}));
+         
+         % sort index order according to max_cix
+         [max_cix, ix_order] = sort(max_cix, 'descend');
+         
+         for i = 1:numel(comps)
+            comps{i}.indexnames(1:num_cix) = comps{i}.indexnames(ix_order);
+            comps{i}.ixs(:, 1:num_cix) = comps{i}.ixs(:, ix_order);
+         end
+         
+         % % sort elements according to contracting index values
+         % for i = 1:numel(comps)
+         %    [comps{i}.ixs, tmp_ix] = sortrows(comps{i}.ixs);
+         %    comps{i}.coefs = comps{i}.coefs(tmp_ix);
+         % end
+         
+         % sort components according to number of elements
+         csize = cellfun(@(c) size(c.ixs, 1), comps);
+         [~, c_order] = sort(csize, 'descend');
+         comps = comps(c_order);
+         
+      end
+      
       
       function comp = contract_components(comp1, comp2)
          
