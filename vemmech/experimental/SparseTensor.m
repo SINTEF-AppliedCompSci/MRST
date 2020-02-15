@@ -714,7 +714,7 @@ classdef SparseTensor
          for i = numel(comps):-1:1
             if numel(setdiff(comps{i}.indexnames, cix)) == numel(comps{i}.indexnames)
                % unaffected
-               indep_comps = [indep_comps, comp];
+               indep_comps = [indep_comps, comps(i)];
                comps(i) = [];
             end
          end
