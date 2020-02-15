@@ -361,9 +361,11 @@ classdef SparseTensor
             multi_ix = zeros(1, num_cix);
             actives = cell(1, numel(comps));
             
-            new_comp = struct('coefs', [], 'ixs', [], 'indexnames', {});
+            new_comp.coefs = [];
+            new_comp.ixs = [];
+            new_comp.indexnames = {};
             for i = 1:numel(comps)
-               new_comp.indexnames = [new_comp.indexnames, comp{i}.indexnames(num_cix+1:end)];
+               new_comp.indexnames = [new_comp.indexnames, comps{i}.indexnames(num_cix+1:end)];
             end
             
             while all(counters <= max_counters)
@@ -413,7 +415,7 @@ classdef SparseTensor
                   end
                end
             end
-         
+            comps = {new_comp}; % replace components with their contracted product
          end
          
          % re-introduce the components independent of the contraction
