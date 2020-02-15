@@ -415,6 +415,15 @@ classdef SparseTensor
                   end
                end
             end
+            
+            % contract all terms with the same indices in new_comp.
+            % To re-use existing code, we introduce a dummy index, and call 
+            % single_component_contraction
+            dummy_name = self.next_unused_contr_ix_name();
+            new_comp.indexnames = [new_comp.indexnames, dummy_name];
+            new_comp.ixs = [new_comp.ixs, ones(size(new_comp.ixs, 1), 1)];
+            new_comp = SparseTensor.single_component_contraction(new_comp, dummy_name);
+            
             comps = {new_comp}; % replace components with their contracted product
          end
          
