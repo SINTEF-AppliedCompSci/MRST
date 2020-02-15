@@ -320,7 +320,7 @@ classdef SparseTensor
          end
       end
 
-      function self = expandall_bis(self, expand_tensor)
+      function self = expandall(self, expand_tensor)
 
          if nargin < 2
             expand_tensor = true; 
@@ -434,7 +434,7 @@ classdef SparseTensor
          % if requested
          if expand_tensor
             expanded_comp = comps{1};
-            for i = 2:numel(self.components)
+            for i = 2:numel(comps)
                expanded_comp = SparseTensor.tensor_product(expanded_comp, comps{i});
             end
             
@@ -445,7 +445,7 @@ classdef SparseTensor
       end
 
       
-      function self = expandall(self, expand_tensor)
+      function self = expandall_old(self, expand_tensor)
          if nargin < 2
             expand_tensor = true; % default is true
          end
