@@ -405,16 +405,19 @@ classdef SparseTensor
             remove = prod(ranges_all(:, 2:2:end), 2) == 0;
             ranges_all(remove,:) = [];
 
-            
-            new_comp.coefs = [];
-            new_comp.ixs = [];
+            total_new_coefs = sum(prod(ranges_all(:, 2:2:end), 2));
+
+
             new_comp.indexnames = {};
             for i = 1:numel(comps)
                new_comp.indexnames = [new_comp.indexnames, comps{i}.indexnames(num_cix+1:end)];
             end
+            new_comp.coefs = zeros(total_new_coefs, 1);
+            new_comp.ixs = zeros(total_new_coefs, numel(new_comp.indexnames));
             
+            free_ixs = zeros(1, numel(new_comp.indexnames));
             for r = ranges_all'
-               
+               cur_ix = 1;
                cstart = r(1:2:end)';
                cend = cstart + r(2:2:end)'-1;
                crun = cstart;
@@ -422,19 +425,20 @@ classdef SparseTensor
                while all(crun <= cend);
 
                   v = 1;
-                  free_ixs = zeros(1, numel(new_comp.indexnames));
                   pos = 1;
                   for i = 1:numel(crun)
                      v = v * comps{i}.coefs(crun(i));
-                     fix = comps{i}.ixs(crun(i), num_cix+1:end);
-                     free_ixs(pos:pos+numel(fix)-1) = fix;
-                     pos = pos + numel(fix);
+                     
+                     num_free = size(comps{i}.ixs, 2) - num_cix;
+                     free_ixs(pos:pos + num_free - 1) = comps{i}.ixs(crun(i), num_cix+1:end);
+                     pos = pos + num_free;
                   end
                   
-                  new_comp.coefs = [new_comp.coefs; v];
-                  new_comp.ixs = [new_comp.ixs; free_ixs];
+                  new_comp.coefs(cur_ix) = v;
+                  new_comp.ixs(cur_ix, :) = free_ixs;
                   
                   % increment counter
+                  cur_ix = cur_ix + 1;
                   crun(end) = crun(end) + 1;
                   for i = numel(cstart):-1:2
                      if crun(i) > cend(i)
