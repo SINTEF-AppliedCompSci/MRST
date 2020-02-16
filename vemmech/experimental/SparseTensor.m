@@ -416,16 +416,17 @@ classdef SparseTensor
             new_comp.ixs = zeros(total_new_coefs, numel(new_comp.indexnames));
             
             free_ixs = zeros(1, numel(new_comp.indexnames));
+            cur_ix = 1;
+            
             for r = ranges_all'
-               cur_ix = 1;
                cstart = r(1:2:end)';
                cend = cstart + r(2:2:end)'-1;
                crun = cstart;
                
-               while all(crun <= cend);
+               while all(crun <= cend)
 
                   v = 1;
-                  pos = 1;
+                  pos = 1;                  
                   for i = 1:numel(crun)
                      v = v * comps{i}.coefs(crun(i));
                      
