@@ -352,22 +352,22 @@ classdef SparseTensor
                   [comps{i}.ixs, tmp_ix] = sortrows(comps{i}.ixs, find(control==i));
                   comps{i}.coefs = comps{i}.coefs(tmp_ix);
                   counter_vals{num_counters} = ...
-                      [1; 1+find(sum(abs(diff(comps{i}.ixs(:, control == i))), 2))];
+                      [1; 1 + find(sum(abs(diff(comps{i}.ixs(:, control == i))), 2))];
                end
             end
             
-            counters = ones(1, num_counters);
-            max_counters = cellfun(@(x) numel(x), counter_vals);
-            multi_ix = zeros(1, num_cix);
-            actives = cell(1, numel(comps));
-            
-            new_comp.coefs = [];
-            new_comp.ixs = [];
-            new_comp.indexnames = {};
+            % change order of indexing so that the resulting multiindex has an ordered stride
+            [control, tmp_ix] = sort(control);
             for i = 1:numel(comps)
-               new_comp.indexnames = [new_comp.indexnames, comps{i}.indexnames(num_cix+1:end)];
+               comps{i}.ixs(:, 1:num_cix) = comps{i}.ixs(:, tmp_ix);
             end
             
+            % identifying all relevant indexing combinations
+            counters = ones(1,num_counters);
+            max_counters = cellfun(@(x) numel(x), counter_vals);
+            multi_indices = zeros(prod(max_counters), num_cix);
+            multi_ix = zeros(1, num_cix);
+            pos = 1;
             while all(counters <= max_counters)
                
                % compute current multiindex
@@ -375,37 +375,8 @@ classdef SparseTensor
                   multi_ix(control==i) = ...
                       comps{counter_comp(i)}.ixs(counter_vals{i}(counters(i)), control==i);
                end
-
-               % identify active entries
-               for i = 1:numel(comps)
-                  non_nan = ~isnan(comps{i}.ixs(1,1:num_cix));
-                  actives{i} = find(prod(comps{i}.ixs(:, find(non_nan)) == multi_ix(non_nan), 2));
-               end
+               multi_indices(pos,:) = multi_ix;
                
-               c2 = ones(1, numel(comps));
-               c2_max = cellfun(@(x) numel(x), actives);
-               while all(c2 <= c2_max)
-                  
-                  v = 1; 
-                  free_ixs = [];
-                  for i = 1:numel(comps)
-                     loc_ix = actives{i}(c2(i));
-                     v = v * comps{i}.coefs(loc_ix);
-                     free_ixs = [free_ixs, comps{i}.ixs(loc_ix, num_cix+1:end)];
-                  end
-                  new_comp.coefs = [new_comp.coefs; v];
-                  new_comp.ixs = [new_comp.ixs; free_ixs];
-                  
-                  % increment c2
-                  c2(end) = c2(end) + 1;
-                  for i = numel(c2):-1:2
-                     if c2(i) > c2_max(end)
-                        c2(i) = 1;
-                        c2(i-1) = c2(i-1)+1;
-                     end
-                  end
-               end
-                                 
                % increment counter
                counters(end) = counters(end) + 1;
                for i = numel(counters):-1:2
@@ -414,8 +385,66 @@ classdef SparseTensor
                      counters(i-1) = counters(i-1)+1;
                   end
                end
+               pos = pos+1;
+            end
+
+            % re-sort indices and coefs so that largest stride is first (and same for all)
+            for i = 1:numel(comps)
+               [comps{i}.ixs, ix_order] = sortrows(comps{i}.ixs, 1:num_cix);
+               comps{i}.coefs = comps{i}.coefs(ix_order);
             end
             
+            % identify indices active in each component when working with a given multiindex
+            ranges = cell(1, num_cix);
+            for i = 1:numel(comps)
+               ranges{i} = SparseTensor.identify_index_ranges(multi_indices, comps{i});
+            end
+            
+            % remove entries that will evaluate to 0 anyway
+            ranges_all = [ranges{:}];
+            remove = prod(ranges_all(:, 2:2:end), 2) == 0;
+            ranges_all(remove,:) = [];
+
+            
+            new_comp.coefs = [];
+            new_comp.ixs = [];
+            new_comp.indexnames = {};
+            for i = 1:numel(comps)
+               new_comp.indexnames = [new_comp.indexnames, comps{i}.indexnames(num_cix+1:end)];
+            end
+            
+            for r = ranges_all'
+               
+               cstart = r(1:2:end)';
+               cend = cstart + r(2:2:end)'-1;
+               crun = cstart;
+               
+               while all(crun <= cend);
+
+                  v = 1;
+                  free_ixs = zeros(1, numel(new_comp.indexnames));
+                  pos = 1;
+                  for i = 1:numel(crun)
+                     v = v * comps{i}.coefs(crun(i));
+                     fix = comps{i}.ixs(crun(i), num_cix+1:end);
+                     free_ixs(pos:pos+numel(fix)-1) = fix;
+                     pos = pos + numel(fix);
+                  end
+                  
+                  new_comp.coefs = [new_comp.coefs; v];
+                  new_comp.ixs = [new_comp.ixs; free_ixs];
+                  
+                  % increment counter
+                  crun(end) = crun(end) + 1;
+                  for i = numel(cstart):-1:2
+                     if crun(i) > cend(i)
+                        crun(i) = cstart(i);
+                        crun(i-1) = crun(i-1)+1;
+                     end
+                  end
+               end
+            end
+                                    
             % contract all terms with the same indices in new_comp.
             % To re-use existing code, we introduce a dummy index, and call 
             % single_component_contraction
@@ -701,6 +730,35 @@ classdef SparseTensor
    end % end methods
 
    methods(Static)
+      
+      function ranges = identify_index_ranges(multiix, comp)
+         
+         ixs = comp.ixs(:, 1:size(multiix, 2));
+         nans = isnan(ixs(1,:));
+         ixs(:,nans) = [];
+         multiix(:,nans) = [];
+         
+         ixs = fliplr(ixs); % move longest stride to the right
+         multiix = fliplr(multiix); 
+
+         maxixs = max(vertcat(multiix, ixs));
+         
+         multi_ixs_1d = SparseTensor.compute_1D_index(multiix, maxixs);
+         ixs_1d = SparseTensor.compute_1D_index(ixs, maxixs);
+         
+         [mix_vals, ~, mix_occur_ix] = unique(multi_ixs_1d);
+         
+         [vals, reps] = rlencode(ixs_1d);
+         
+         range_entries = zeros(mix_vals(end), 2);
+         
+         range_entries(vals, 1) = cumsum([1;reps(1:end-1)]);
+         range_entries(vals, 2) = reps;
+         
+         ranges = range_entries(mix_occur_ix, :);
+
+      end
+      
       
       function [comps, num_cix, max_cix, indep_comps] = set_common_form(comps)
          
