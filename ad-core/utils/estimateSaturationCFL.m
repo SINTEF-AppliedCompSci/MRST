@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('forces', []);
+    opt = struct('forces', [], 'useInflow', false);
     opt = merge_options(opt, varargin{:});
     if isfield(state, 'flux')
         v = state.flux(model.operators.internalConn, :);
@@ -49,10 +49,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     nc = model.G.cells.num;
-    % Accumulate into cell if flow is outgoing, or we have any kind of
-    % cross-flow.
-    rate_cell = accumarray(l, rate_face.*( flag | xflow), [nc, 1]) +...
-                accumarray(r, rate_face.*(~flag | xflow), [nc, 1]);
+    % Accumulate into cell if flow is going in right direction, or if we
+    % have any kind of cross-flow.
+    if opt.useInflow
+        % Inflow faces is used to estimate throughput
+        f = ~flag;
+    else
+        % Outflow faces is used to estimate throughput
+        f = flag;
+    end
+    rate_cell = accumarray(l, rate_face.*( f | xflow), [nc, 1]) +...
+                accumarray(r, rate_face.*(~f | xflow), [nc, 1]);
     if ~isempty(opt.forces)
         if isfield(state.wellSol, 'flux') % Wells
             map = model.FacilityModel.getProp(state, 'FacilityWellMapping');

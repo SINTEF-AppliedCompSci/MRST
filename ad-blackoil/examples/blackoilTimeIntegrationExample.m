@@ -1,18 +1,28 @@
 mrstModule add ad-core ad-blackoil deckformat ad-props linearsolvers
 mrstVerbose on
-[G, rock, fluid, deck, state] = setupSPE1();
-[state0, model, schedule] = initEclipseProblemAD(deck);
-
+if ~exist('name', 'var')
+    name = 'spe1';
+end
+switch name
+    case 'spe1'
+        [G, rock, fluid, deck, state] = setupSPE1();
+    case 'spe9'
+        [G, rock, fluid, deck, state] = setupSPE9();
+    otherwise
+        error('Case %d not supported', name);
+end
+[state0, model, schedule, nls] = initEclipseProblemAD(deck, 'TimestepStrategy', 'none');
 %% Fully-implicit
 % The default discretization in MRST is fully-implicit. Consequently, we
 % can use the model as-is.
-implicit = packSimulationProblem(state0, model, schedule, 'SPE1_ex', 'Name', 'Fully-Implicit');
+implicit = packSimulationProblem(state0, model, schedule, name, ...
+    'NonLinearSolver', nls, 'Name', 'Fully-Implicit');
 %% Explicit solver
 % This solver has a time-step restriction based on the CFL condition in
 % each cell. The solver estimates the time-step before each solution.
 model_explicit = setTimeDiscretization(model, 'explicit');
-explicit = packSimulationProblem(state0, model_explicit, schedule, 'SPE1_ex', 'Name', 'Explicit');
-
+explicit = packSimulationProblem(state0, model_explicit, schedule, name, ...
+    'NonLinearSolver', nls, 'Name', 'Explicit');
 %% Adaptive implicit
 % We can solve some cells implicitly and some cells explicitly based on the
 % local CFL conditions. For many cases, this amounts to an explicit
@@ -20,7 +30,8 @@ explicit = packSimulationProblem(state0, model_explicit, schedule, 'SPE1_ex', 'N
 % estimated composition CFL and saturation CFL to trigger a switch to
 % implicit status can be adjusted.
 model_aim = setTimeDiscretization(model, 'adaptive-implicit');
-aim = packSimulationProblem(state0, model_aim, schedule, 'SPE1_ex', 'Name', 'Adaptive-Implicit (AIM)');
+aim = packSimulationProblem(state0, model_aim, schedule, name,...
+    'NonLinearSolver', nls, 'Name', 'Adaptive-Implicit (AIM)');
 %% Simulate the problems
 problems = {implicit, explicit, aim};
 simulatePackedProblem(problems);

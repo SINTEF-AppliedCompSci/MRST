@@ -82,10 +82,11 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
                 fs = builder.firstStepImplicit;
                 [impl_sat, impl_comp] = deal(repmat(fs, model.G.cells.num, 1));
             else
-                cfl = estimateSaturationCFL(model, state, dt, 'forces', drivingForces);
+                iflow = builder.useInflowForEstimate;
+                cfl = estimateSaturationCFL(model, state, dt, 'forces', drivingForces, 'useInflow', iflow);
                 impl_sat = cfl >= builder.saturationCFL;
                 
-                cfl_c = estimateCompositionCFL(model, state, dt, 'forces', drivingForces);
+                cfl_c = estimateCompositionCFL(model, state, dt, 'forces', drivingForces, 'useInflow', iflow);
                 impl_comp = max(cfl_c, [], 2) >= builder.compositionCFL;
             end
             implicit = impl_sat | impl_comp;

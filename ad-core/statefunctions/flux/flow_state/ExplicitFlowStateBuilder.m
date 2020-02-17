@@ -1,12 +1,13 @@
 classdef ExplicitFlowStateBuilder < FlowStateBuilder
     properties
-        saturationCFL = 0.9;
-        compositionCFL = 0.9;
+        saturationCFL = 0.9; % Target saturation CFL. Should be <= 1 for stability.
+        compositionCFL = 0.9; % Target composition CFL. Should be <= 1 for stability.
         explicitFluxProps = {'FaceMobility', 'FaceComponentMobility',...
-                             'GravityPotentialDifference'};
-        implicitFluxProps = {'PressureGradient'};
-        explicitProps = {};
-        initialStep = 1*day;
+                             'GravityPotentialDifference'}; % StateFunctions that should always be explicit
+        implicitFluxProps = {'PressureGradient'}; % StateFunctions that should always be implicit
+        explicitProps = {}; % setProp capable properties that should be explicit
+        initialStep = 1*day;% Timestep used if no fluxes are present
+        useInflowForEstimate = false;
     end
     
     methods
@@ -21,8 +22,9 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
             end
             % Remove any cached properties
             state = model.reduceState(state, true);
-            cfl_s = estimateSaturationCFL(model, state, 1/fsb.saturationCFL, 'forces', forces);
-            cfl_c = estimateCompositionCFL(model, state, 1/fsb.compositionCFL, 'forces', forces);
+            iflow = fsb.useInflowForEstimate;
+            cfl_s = estimateSaturationCFL(model, state, 1/fsb.saturationCFL, 'forces', forces, 'useInflow', iflow);
+            cfl_c = estimateCompositionCFL(model, state, 1/fsb.compositionCFL, 'forces', forces, 'useInflow', iflow);
             
             dt_max_z = min(1./max(cfl_c, [], 2));
             dt_max_s = min(1./max(cfl_s, [], 2));

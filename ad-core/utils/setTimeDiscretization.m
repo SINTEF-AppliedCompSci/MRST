@@ -2,7 +2,7 @@ function model = setTimeDiscretization(model, type, varargin)
     % Set the discretization choice for a model
     switch lower(type)
         case {'fully-implicit', 'fim'}
-            fb = FlowStateBuilder(varargin{:});
+            fb = ImplicitFlowStateBuilder(varargin{:});
         case {'adaptive-implicit', 'aim'}
             fb = AdaptiveImplicitFlowStateBuilder(varargin{:});
         case {'explicit', 'impes'}
