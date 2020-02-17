@@ -65,7 +65,7 @@ classdef WellComponentTotalVolumeBalanceCrossflow < StateFunction
                 [surfaceComposition{rem}] = deal(zeros(nw, 1));
                 % Partial density: Units mass of component per volume of
                 % total surface volumetric surface stream
-                injectionMass = cell(nph, ncomp);
+                injectionMass = cell(ncomp, nph);
                 [injectionMass{:}] = deal(0);
                 phaseCompi = vertcat(W.compi);
                 isRate = ~(strcmpi(targetType, 'resv') | strcmpi(targetType, 'bhp'));
