@@ -48,7 +48,7 @@ classdef TransportModel < WrapperModel
             names = basenames;
             origin = baseorigin;
             useTotalSaturation = strcmpi(model.formulation, 'totalSaturation') ...
-                                     && (sum(isS) == nph - 1 || sum(isS) == 0);
+                                     && (sum(isS) < nph);
             if useTotalSaturation
                 % Replace pressure with total saturation
                 replacement = 'sT';
