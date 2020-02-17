@@ -21,8 +21,8 @@ classdef CompositionalDensity < StateFunction
             L_ix = 1+model.water;
             V_ix = L_ix + 1;
             
-            x = mf((1+model.water):end, L_ix);
-            y = mf((1+model.water):end, V_ix);
+            x = mf(1:end-hasWater, L_ix);
+            y = mf(1:end-hasWater, V_ix);
             eos = model.EOSModel;
             pm = eos.PropertyModel;
             rhoL = pm.computeDensity(eos, p, x, Z{L_ix}, T, true);

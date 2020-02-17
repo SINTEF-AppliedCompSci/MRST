@@ -21,9 +21,9 @@ classdef CompositionalViscosityLV < StateFunction
                                                            'ComponentPhaseMoleFractions');
             oix = phInd == 2;
             gix = phInd == 3;
-            
-            x = mf((1+model.water):end, oix);
-            y = mf((1+model.water):end, gix);
+            wat = model.water;
+            x = mf(1:end-wat, oix);
+            y = mf(1:end-wat, gix);
 
             if model.water
                 p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');

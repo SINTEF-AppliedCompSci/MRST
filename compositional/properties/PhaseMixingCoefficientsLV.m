@@ -17,8 +17,8 @@ classdef PhaseMixingCoefficientsLV < StateFunction
             [p, T] = model.getProps(state, 'pressure', 'temperature');
             xy = prop.getEvaluatedDependencies(state, 'ComponentPhaseMoleFractions');
             wat = model.water;
-            x = xy((1+wat):end, 1 + wat);
-            y = xy((1+wat):end, 2 + wat);
+            x = xy(1:end-wat, 1 + wat);
+            y = xy(1:end-wat, 2 + wat);
             acf = eos.fluid.acentricFactors;
             
             [A_ij, Bi] = eos.getMixingParameters(p, T, acf, iscell(x));

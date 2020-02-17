@@ -105,8 +105,8 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             z = ensureMinimumFraction(z, z_tol);
             z = expandMatrixToCell(z);
             cnames = model.EOSModel.fluid.names;
-            names = [{'pressure'}, cnames(1:end-1)];
-            vars = [p, z(1:end-1)];
+            names = [{'pressure'}, cnames(2:end)];
+            vars = [p, z(2:end)];
             if model.water
                 names = [names, {'water'}];
                 vars = [vars, {sW}];
