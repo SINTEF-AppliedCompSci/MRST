@@ -486,6 +486,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     v_comp = problem.state.dz;
                 end
                 tol_comp = model.incTolComposition;
+                names_comp = model.getComponentNames();
             else
                 tol_comp = model.nonlinearTolerance;
                 massT = sum(mass(:, model.water+1:end), 2);
@@ -495,9 +496,10 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     scale(maxEOSSat < 1e-4) = 0;
                 end
                 v_comp = cellfun(@(x) norm(scale.*value(x), inf), problem.equations(isComponent));
+                names_comp = names(isComponent);
             end
             tol_comp = repmat(tol_comp, size(v_comp));
-            names_comp = names(isComponent);
+            
             if model.water && ~model.useIncTolComposition
                 isWater = strcmpi(names, 'water');
                 if any(isWater)
