@@ -64,7 +64,7 @@ classdef EquationOfStateComponent < ComponentImplementation
             c = cell(nph, 1);
             comp_i = vertcat(force.components);
             comp_i = model.EOSModel.getMassFraction(comp_i);
-            index = component.componentIndex - model.water;
+            index = component.componentIndex;
             ci = comp_i(:, index);
             if any(ci ~= 0)
                 for i = (1+model.water):nph

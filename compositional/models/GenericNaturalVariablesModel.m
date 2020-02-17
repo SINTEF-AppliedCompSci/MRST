@@ -91,7 +91,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 f = model.EOSModel.fluid;
                 names_hc = f.names;
                 if model.water
-                    names = ['water', names_hc];
+                    names = [names_hc, 'water'];
                 else
                     names = names_hc;
                 end

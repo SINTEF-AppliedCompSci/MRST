@@ -17,12 +17,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             % Discretize
             [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
-            % Define helper variables
-            wat = model.water;
-            ncomp = numel(names);
-            n_hc = ncomp - wat;
             % Assemble equations and add in sources
-            
             [pressures, sat, mob, rho, X] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ComponentPhaseMassFractions');
             comps = cellfun(@(x, y) {x, y}, X(:, 1+model.water), X(:, 2+model.water), 'UniformOutput', false);
             
@@ -69,7 +64,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 f = model.EOSModel.fluid;
                 names_hc = f.names;
                 if model.water
-                    names = ['water', names_hc];
+                    names = [names_hc, 'water']; % Put water last
                 else
                     names = names_hc;
                 end
