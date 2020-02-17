@@ -59,7 +59,7 @@ classdef WellComponentTotalVolumeBalanceCrossflow < StateFunction
                 surfaceComposition = cell(ncomp, nph);
                 for c = 1:ncomp
                     % Store well injector composition
-                    surfaceComposition(c, :) = model.ReservoirModel.Components{c}.getPhaseComponentFractionWell(model.ReservoirModel, state, W);
+                    surfaceComposition(c, :) = model.ReservoirModel.Components{c}.getPhaseComponentFractionInjection(model.ReservoirModel, state, W);
                 end
                 rem = cellfun(@isempty, surfaceComposition);
                 [surfaceComposition{rem}] = deal(zeros(nw, 1));
