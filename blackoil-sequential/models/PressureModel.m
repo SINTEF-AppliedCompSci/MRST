@@ -56,7 +56,7 @@ classdef PressureModel < WrapperModel
             subs = (ncomp+1):numel(eqs);
             eqs = [{pressure_equation}, eqs(subs)];
             names = ['pressure', names(subs)];
-            types = ['cell', types(subs)];       
+            types = ['cell', types(subs)];
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
@@ -70,7 +70,7 @@ classdef PressureModel < WrapperModel
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             if strcmpi(model.reductionStrategy, 'numerical')
-                state = updateReductionFactorProsp(model, state);
+                state = updateReductionFactorProps(model, state);
             end
             p0 = state.pressure;
             [state, report] = model.parentModel.updateState(state, problem, dx, drivingForces);
@@ -146,9 +146,7 @@ classdef PressureModel < WrapperModel
             rhoS = model.parentModel.getSurfaceDensities();
         end
         
-        function model = validateModel(model, varargin)
-            
-            model = validateModel@WrapperModel(model, varargin{:});
+        function model = setupStateFunctionGroupings(model, varargin)
             pmodel = model.parentModel;
             pvt = pmodel.PVTPropertyFunctions;
             switch model.reductionStrategy
@@ -161,30 +159,25 @@ classdef PressureModel < WrapperModel
                     error('Unknown reduction strategy');
             end
             model.parentModel.PVTPropertyFunctions = pvt;
-
         end
         
     end
 end
 
 function state = assignReductionFactorProps(model, state, state0, dt)
-
     mass0 = model.parentModel.getProp(state0, 'ComponentTotalMass');
     props = struct('mass0'   , {mass0}, ...
                    'dt'      , dt     , ...
                    'pressure', []     , ...
                    'weights' , []     );
     state.reductionFactorProps = props;
-
 end
 
-function state = updateReductionFactorProsp(model, state)
-
+function state = updateReductionFactorProps(model, state)
     pressure = model.getProp(state, 'pressure');
     weights  = model.parentModel.getProp(state, 'PressureReductionFactors');
     state.reductionFactorProps.pressure = pressure;
     state.reductionFactorProps.weights = horzcat(weights{:});
-
 end
 
 %{
