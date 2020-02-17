@@ -368,10 +368,19 @@ classdef SparseTensor
             multi_indices = zeros(prod(max_counters), num_cix);
             multi_ix = zeros(1, num_cix);
             pos = 1;
+            allixs = cell(numel(comps), 1);
+            for i = 1:numel(comps) 
+               % we extract the ixs to a separate structure for performance reasons in the loop
+               % below
+               allixs{i} = comps{i}.ixs;
+            end
+            
             while all(counters <= max_counters)
                
                % compute current multiindex
                for i = 1:numel(counters)
+                  % multi_ix(control==i) = ...
+                  %     allixs{counter_comp(i)}(counter_vals{i}(counters(i)), control==i);
                   multi_ix(control==i) = ...
                       comps{counter_comp(i)}.ixs(counter_vals{i}(counters(i)), control==i);
                end
@@ -415,8 +424,18 @@ classdef SparseTensor
             new_comp.coefs = zeros(total_new_coefs, 1);
             new_comp.ixs = zeros(total_new_coefs, numel(new_comp.indexnames));
             
-            free_ixs = zeros(1, numel(new_comp.indexnames));
+            cur_free_ixs = zeros(1, numel(new_comp.indexnames));
             cur_ix = 1;
+            
+            % for speed reasons, we extract the below information from the comps and store
+            % them in a separate structure (shown by profiler to give a
+            % significant performance increase)
+            allcoefs = cell(numel(comps), 1);
+            allfreeixs = cell(numel(comps), 1);
+            for i = 1:numel(comps)
+               allcoefs{i} = comps{i}.coefs;
+               allfreeixs{i} = comps{i}.ixs(:, num_cix+1:end);
+            end
             
             for r = ranges_all'
                cstart = r(1:2:end)';
@@ -428,15 +447,21 @@ classdef SparseTensor
                   v = 1;
                   pos = 1;                  
                   for i = 1:numel(crun)
-                     v = v * comps{i}.coefs(crun(i));
                      
-                     num_free = size(comps{i}.ixs, 2) - num_cix;
-                     free_ixs(pos:pos + num_free - 1) = comps{i}.ixs(crun(i), num_cix+1:end);
+                     coefs = allcoefs{i};
+                     freeixs = allfreeixs{i};
+                     v = v * coefs(crun(i));
+                     
+                     num_free = size(freeixs, 2);
+
+                     cur_free_ixs(pos:pos + num_free - 1) = freeixs(crun(i), :);
+                     
+                     
                      pos = pos + num_free;
                   end
                   
                   new_comp.coefs(cur_ix) = v;
-                  new_comp.ixs(cur_ix, :) = free_ixs;
+                  new_comp.ixs(cur_ix, :) = cur_free_ixs;
                   
                   % increment counter
                   cur_ix = cur_ix + 1;
@@ -479,7 +504,7 @@ classdef SparseTensor
       end
 
       
-      function self = expandall_old(self, expand_tensor)
+      function self = expandall_deprecated(self, expand_tensor)
          if nargin < 2
             expand_tensor = true; % default is true
          end
