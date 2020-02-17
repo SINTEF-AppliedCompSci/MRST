@@ -46,6 +46,9 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
         end
 
         function [state, report] = updateState(model, state, problem, dx, forces)
+            if isfield(state, 'FractionalDerivatives')
+                state = rmfield(state, 'FractionalDerivatives');
+            end
             [state, report] = updateState@OverallCompositionCompositionalModel(model, state, problem, dx, forces);
             if ~isempty(model.FacilityModel)
                 state = model.FacilityModel.applyWellLimits(state);
@@ -144,7 +147,8 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             z{fill} = z_end;
             state = model.setProp(state, 'components', z);
             if isa(state.pressure, 'ADI') || isa(z{1}, 'ADI')
-                [state.x, state.y, state.L] = model.EOSModel.getPhaseFractionAsADI(state, state.pressure, state.T, state.components);
+                [state.x, state.y, state.L, state.FractionalDerivatives] = ...
+                    model.EOSModel.getPhaseFractionAsADI(state, state.pressure, state.T, state.components);
             end
             if ~isempty(model.FacilityModel)
                 % Select facility model variables and pass them off to attached
