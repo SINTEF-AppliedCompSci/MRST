@@ -51,6 +51,7 @@ classdef WrapperModel < PhysicalModel
 
         function model = validateModel(model, varargin)
             model.parentModel = model.parentModel.validateModel(varargin{:});
+            model = model.setupStateFunctionGroupings();
         end
 
         function [fn, index] = getVariableField(model, name, varargin)
@@ -77,6 +78,14 @@ classdef WrapperModel < PhysicalModel
         
         function scaling = getScalingFactorsCPR(model, problem, names, solver)
             scaling = model.parentModel.getScalingFactorsCPR(problem, names, solver);
+        end
+        
+        function checkStateFunctionDependencies(model)
+            model.parentModel.checkStateFunctionDependencies();
+        end
+        
+        function forces = validateDrivingForces(model, forces)
+            forces = model.parentModel.validateDrivingForces(forces);
         end
         
     end

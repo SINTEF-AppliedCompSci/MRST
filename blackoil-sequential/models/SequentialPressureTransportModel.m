@@ -298,6 +298,11 @@ classdef SequentialPressureTransportModel < ReservoirModel
             dt_t = model.transportModel.getMaximumTimestep(state, state0, dt, drivingForces);
             dt = min(dt_p, dt_t);
         end
+        
+        function forces = validateDrivingForces(model, forces)
+           forces = model.pressureModel.validateDrivingForces(forces);
+        end
+        
     end
 end
 
