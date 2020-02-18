@@ -5,12 +5,13 @@ function varargout = invv(varargin)
 %   B = invv(A, sz)
 %
 % PARAMETERS:
-%   A  - Array (type `double`) containing the elements/entries of a sequence
-%        of square matrices--ordered consequtively.  Each matrix is
-%        expected to be small (dimension less than 50).
+%   A  - Column array (type `double`) containing the elements/entries of a
+%        sequence of square matrices--ordered consequtively.  Each matrix
+%        is expected to be small (dimension less than 50).
 %
-%   sz - Sequence of matrix block sizes.  The number of matrix blocks
-%        contained in `A` is implicitly assumed to be `numel(sz)`.
+%   sz - Sequence of matrix block sizes, i.e. the number of rows/columns in
+%        each square matrix. The number of matrix blocks contained in `A`
+%        is implicitly assumed to be `numel(sz)`.
 %
 % RETURNS:
 %   B  - Array (type `double`) containing the elements/entries of the
@@ -28,6 +29,14 @@ function varargout = invv(varargin)
 %       end
 %
 %   except for round-off errors.
+%
+% EXAMPLE:
+%   a = [1; 0; ... % First row, first matrix
+%        0; 1; ... % Second row, first matrix
+%        2; 3; ... % First row, second matrix
+%        4; 5];    % Second row, second matrix
+%   b = [2, 2];
+%   result = invv(a, b)
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
