@@ -1,23 +1,24 @@
-classdef ComponentImplementation
+classdef GenericComponent
     % The base class that implements all interfaces for a given component.
     % The helper class provides a number of utility functions that
     % determine the mobility, total mass and composition at different
     % conditions.
     properties
         name
-        dependencies = {};
+        functionDependencies = struct();
         externals = [];
         molarMass = 1;
     end
     
     methods
-        function c = ComponentImplementation(name)
+        function c = GenericComponent(name)
             c.name = name;
             % Document dependencies internal to grouping
-            c = c.dependsOn({'Mobility'});
+            c = c.functionDependsOn('getComponentMobility', {'Mobility'});
+            c = c.functionDependsOn('getComponentMobility', {'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
             % State dependencies
-            c = c.dependsOn('s', 'state');
-            c = c.dependsOn({'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMass', {'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMass', 's', 'state');
         end
         
         function c = getPhaseComposition(component, model, state)
@@ -90,9 +91,19 @@ classdef ComponentImplementation
             c = cell(nph, 1);
         end
 
-        function prop = dependsOn(prop, varargin)
-            % Document dependencies and external dependencies
-            prop = addPropertyDependence(prop, varargin{:});
+        function prop = functionDependsOn(prop, fn, varargin)
+            % Document the dependencies of a specific function
+            if ~isfield(prop.functionDependencies, fn)
+                prop = prop.clearFunctionDependencies(fn);
+            end
+            f = prop.functionDependencies;
+            f.(fn) = addPropertyDependence(f.(fn), varargin{:});
+            prop.functionDependencies = f;
+        end
+        
+        function prop = clearFunctionDependencies(prop, fn)
+            % Clear dependencies for a specific function
+            prop.functionDependencies.(fn) = struct('dependencies', [], 'externals', []);
         end
     end
 end

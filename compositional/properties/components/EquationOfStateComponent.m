@@ -1,4 +1,4 @@
-classdef EquationOfStateComponent < ComponentImplementation
+classdef EquationOfStateComponent < GenericComponent
     properties
         componentIndex % Global component numbering
         surfacePhaseMassFractions % Mass fraction for each phase
@@ -9,14 +9,16 @@ classdef EquationOfStateComponent < ComponentImplementation
     
     methods
         function c = EquationOfStateComponent(name, p, T, cindex, surfaceMassFractions, density, mw)
-            c@ComponentImplementation(name);
+            c@GenericComponent(name);
             c.componentIndex = cindex;
             c.pressure = p;
             c.T = T;
             c.surfacePhaseMassFractions = surfaceMassFractions;
             c.surfacePhaseDensityPure = density;
             c.molarMass = mw;
-            c = c.dependsOn({'Density', 'ComponentPhaseMassFractions'}, 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getPhaseComposition', {'ComponentPhaseMassFractions'}, 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentDensity', {'Density'}, 'PVTPropertyFunctions');
+
         end
         
         function c = getComponentDensity(component, model, state, varargin)

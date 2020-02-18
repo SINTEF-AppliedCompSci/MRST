@@ -1,4 +1,4 @@
-classdef ImmiscibleComponent < ComponentImplementation
+classdef ImmiscibleComponent < GenericComponent
     % A component description that assumes that the component is
     % immiscible, i.e. it only exists in one phase that is made up entirely
     % of that specific component.
@@ -8,13 +8,13 @@ classdef ImmiscibleComponent < ComponentImplementation
     
     methods
         function c = ImmiscibleComponent(name, phase)
-            c@ComponentImplementation(name);
+            c@GenericComponent(name);
             c.phaseIndex = phase;
-            c = c.dependsOn('Density', 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentDensity', 'Density', 'PVTPropertyFunctions');
         end
         
         function c = getComponentDensity(component, model, state, varargin)
-            c = getComponentDensity@ComponentImplementation(component, model, state, varargin{:});
+            c = getComponentDensity@GenericComponent(component, model, state, varargin{:});
             rho = model.getProp(state, 'Density');
             c{component.phaseIndex} = rho{component.phaseIndex};
         end
