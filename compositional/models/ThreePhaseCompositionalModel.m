@@ -145,9 +145,11 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             p0 = state.pressure;
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
             range = max(p0) - min(p0);
-            if range == 0
-                range = 1;
+            tol = model.incTolPressure;
+            if isinf(tol)
+                tol = 1e-3;
             end
+            range = max(range, mean(p0)*tol);
             state.dpRel = (state.pressure - p0)./range;
             state.dpAbs = state.pressure - p0;
         end
