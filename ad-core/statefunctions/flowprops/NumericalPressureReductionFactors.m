@@ -1,9 +1,13 @@
 classdef NumericalPressureReductionFactors < StateFunction
-    
+    properties
+        useDiagonalReduction
+    end
     methods
         
         function prf = NumericalPressureReductionFactors(model, varargin)
             prf@StateFunction(model, varargin{:});
+            AD = model.AutoDiffBackend;
+            prf.useDiagonalReduction = isa(AD, 'DiagonalAutoDiffBackend') && AD.useMex;
         end
         
         function weights = evaluateOnDomain(prop, model, state) %#ok
@@ -17,7 +21,7 @@ classdef NumericalPressureReductionFactors < StateFunction
             p      = value(state.pressure);
             p_prev = state.reductionFactorProps.pressure;
             % Weights at current and previous iteration
-            w      = getWeights(mass, mass0, dt, ncell, ncomp);
+            w      = getWeights(prop, mass, mass0, dt, ncell, ncomp);
             w_prev = state.reductionFactorProps.weights;
             % Get derivatives of weights wrt pressure
             dwdp = getWeightDerivatives(w, w_prev, p, p_prev);
@@ -34,9 +38,7 @@ classdef NumericalPressureReductionFactors < StateFunction
                 weights{i} = Wp;
             end
         end
-
     end
-    
 end
 
 function [state, ncell, ncomp] = getStateAD(model, state)
@@ -55,28 +57,43 @@ function [state, ncell, ncomp] = getStateAD(model, state)
     ncomp = model.getNumberOfComponents();
 end
 
-function w = getWeights(mass, mass0, dt, ncell, ncomp)
+function w = getWeights(prp, mass, mass0, dt, ncell, ncomp)
     % Compute mass difference
     acc = cellfun(@(m, m0) (m - m0)./dt, mass, mass0, 'UniformOutput', false);
-    c = combineEquations(acc{:});
-    if isnumeric(c)
+    isD = cellfun(@isnumeric, acc);
+    if all(isD)
         w = ones(ncell, ncomp);
         return;
     end
-    % Get mass difference Jacobians
-    A = c.jac{1};
     ndof = ncell*ncomp;
-    % Safeguard against singular system (typically incomp/ weakly incomp)
-    [~, jj, v] = find(A);
-    ix  = jj <= ncell;
-    tol = 1e-16;
-    if ~any(ix) || norm(v(ix), inf) < tol
-        A = A + sparse(1:ncell, 1:ncell, 1, ndof, ndof);
+    if prp.useDiagonalReduction
+        % Special case: We can assume that all jacobians are diagonal.
+        diags = cellfun(@(x) x.jac{1}.diagonal', acc, 'UniformOutput', false);
+        M = vertcat(diags{:});
+        ncell = size(M, 2);
+        sz = repmat(ncomp, ncell, 1);
+        Mi = invv(reshape(M, [], 1), sz);
+        [i, j] = blockDiagIndex(sz, sz);
+        b = zeros(ndof, 1);
+        b(1:ncomp:end-ncomp+1) = 1/barsa;
+        M_inv = sparse(i, j, Mi, ndof, ndof);
+        w = M_inv*b;
+    else
+        c = combineEquations(acc{:});
+        % Get mass difference Jacobians
+        A = c.jac{1};
+        % Safeguard against singular system (typically incomp/ weakly incomp)
+        [~, jj, v] = find(A);
+        ix  = jj <= ncell;
+        tol = 1e-16;
+        if ~any(ix) || norm(v(ix), inf) < tol
+            A = A + sparse(1:ncell, 1:ncell, 1, ndof, ndof);
+        end
+        b = zeros(1, ndof);
+        b(1:ncell) = 1/barsa;
+        % Compute weights
+        w = b/A;
     end
-    b = zeros(1, ndof);
-    b(1:ncell) = 1/barsa;
-    % Compute weights
-    w = b/A;
     w = reshape(w', [], ncomp);
 end
 
