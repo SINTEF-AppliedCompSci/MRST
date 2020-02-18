@@ -151,7 +151,7 @@ args_ok(int nlhs, int nrhs, const mxArray *prhs[])
 {
     int ok;
 
-    ok = (nrhs == 2) && (nlhs == 1);
+    ok = (nrhs == 2) && (nlhs <= 1);
 
     ok = ok &&   mxIsDouble (prhs[0]) ;
     ok = ok && (!mxIsComplex(prhs[1]));
