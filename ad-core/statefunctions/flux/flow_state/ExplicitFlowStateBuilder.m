@@ -3,7 +3,9 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
         saturationCFL = 0.9; % Target saturation CFL. Should be <= 1 for stability.
         compositionCFL = 0.9; % Target composition CFL. Should be <= 1 for stability.
         explicitFlux = {'FaceMobility', 'FaceComponentMobility',...
-                             'GravityPotentialDifference'}; % StateFunctions that should always be explicit
+                        'GravityPotentialDifference'}; % StateFunctions that should always be explicit
+        explicitFlow = {}; % Flow properties
+        explicitPVT = {}; % PVT properties
         explicitProps = {}; % setProp capable properties that should be explicit
         initialStep = 1*day;% Timestep used if no fluxes are present
         useInflowForEstimate = false;
@@ -49,29 +51,52 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
             props = builder.explicitProps;
             for i = 1:numel(props)
                 p = props{i};
-                tmp = model.getProp(state0, p);
-                flowState = model.setProp(flowState, p, tmp);
+                flowState = model.setProp(flowState, p, model.getProp(state0, p));
             end
             % Then we make sure that the explicit flux state functions are
             % set from the explicit state.
-            props = builder.explicitFlux;
-            name = fd.getStateFunctionContainerName();
-            if ~isfield(state0, name)
-                % Ensure that property containers exist
-                state0 = model.initStateFunctionContainers(state0);
-                state0 = value(state0);
-            end
-            if ~isfield(flowState, name)
-                flowState = model.initStateFunctionContainers(flowState);
-            end
-            for i = 1:numel(props)
-                prop = props{i};
-                % Remove cached entries
-                if ~isempty(state0.(name).(prop))
-                    state0.(name).(prop) = [];
+            [groups, names] = builder.getExplicitGroups(model);
+            for groupNo = 1:numel(groups)
+                grp = groups{groupNo};
+                props = names{groupNo};
+                name = grp.getStateFunctionContainerName();
+                if ~isfield(state0, name)
+                    % Ensure that property containers exist
+                    state0 = model.initStateFunctionContainers(state0);
+                    state0 = value(state0);
                 end
-                f = model.getProps(state0, prop);
-                flowState.(name).(prop) = f;
+                if ~isfield(flowState, name)
+                    flowState = model.initStateFunctionContainers(flowState);
+                end
+                for i = 1:numel(props)
+                    prop = props{i};
+                    % Remove cached entries
+                    if ~isempty(state0.(name).(prop))
+                        state0.(name).(prop) = [];
+                    end
+                    f = model.getProps(state0, prop);
+                    flowState.(name).(prop) = f;
+                end
+            end
+        end
+        
+        function [groups, names] = getExplicitGroups(builder, model)
+            groups = {};
+            names = {};
+            pvt = builder.explicitPVT;
+            if ~isempty(pvt)
+                groups{end+1} = model.PVTPropertyFunctions;
+                names{end+1} = pvt;
+            end
+            flow = builder.explicitPVT;
+            if ~isempty(flow)
+                groups{end+1} = model.FlowPropertyFunctions;
+                names{end+1} = flow;
+            end
+            flux = builder.explicitFlux;
+            if ~isempty(flux)
+                groups{end+1} = model.FluxDiscretization;
+                names{end+1} = flux;
             end
         end
         
