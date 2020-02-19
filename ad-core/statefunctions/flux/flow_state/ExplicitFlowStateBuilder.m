@@ -2,9 +2,8 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
     properties
         saturationCFL = 0.9; % Target saturation CFL. Should be <= 1 for stability.
         compositionCFL = 0.9; % Target composition CFL. Should be <= 1 for stability.
-        explicitFluxProps = {'FaceMobility', 'FaceComponentMobility',...
+        explicitFlux = {'FaceMobility', 'FaceComponentMobility',...
                              'GravityPotentialDifference'}; % StateFunctions that should always be explicit
-        implicitFluxProps = {'PressureGradient'}; % StateFunctions that should always be implicit
         explicitProps = {}; % setProp capable properties that should be explicit
         initialStep = 1*day;% Timestep used if no fluxes are present
         useInflowForEstimate = false;
@@ -25,7 +24,6 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
             iflow = fsb.useInflowForEstimate;
             cfl_s = estimateSaturationCFL(model, state, 1/fsb.saturationCFL, 'forces', forces, 'useInflow', iflow);
             cfl_c = estimateCompositionCFL(model, state, 1/fsb.compositionCFL, 'forces', forces, 'useInflow', iflow);
-            
             dt_max_z = min(1./max(cfl_c, [], 2));
             dt_max_s = min(1./max(cfl_s, [], 2));
             dt_max = min(dt_max_z, dt_max_s);
@@ -44,10 +42,19 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
         
         function flowState = build(builder, fd, model, state, state0, dt)
             % Hybridize state
-            % Get implicit props to ensure they are cached
-            model.getProps(state, builder.implicitFluxProps{:});
+            % The base state is the implicit. Other functions are then
+            % assigned.
             flowState = state;
-            props = builder.explicitFluxProps;
+            % First insert any properties that can be set with setProp
+            props = builder.explicitProps;
+            for i = 1:numel(props)
+                p = props{i};
+                tmp = model.getProp(state0, p);
+                flowState = model.setProp(flowState, p, tmp);
+            end
+            % Then we make sure that the explicit flux state functions are
+            % set from the explicit state.
+            props = builder.explicitFlux;
             name = fd.getStateFunctionContainerName();
             if ~isfield(state0, name)
                 % Ensure that property containers exist
@@ -65,12 +72,6 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
                 end
                 f = model.getProps(state0, prop);
                 flowState.(name).(prop) = f;
-            end
-            props = builder.explicitProps;
-            for i = 1:numel(props)
-                p = props{i};
-                tmp = model.getProp(state0, p);
-                flowState = model.setProp(flowState, p, tmp);
             end
         end
         
