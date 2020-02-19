@@ -14,11 +14,9 @@ classdef ComponentProperty
                 exts = cell(ncomp, 1);
                 cfn = gp.componentFunctionName;
                 for c = 1:ncomp
-                    cf = model.Components{c}.functionDependencies;
-                    if isfield(cf, cfn)
-                        deps{c} = cf.(cfn).dependencies;
-                        exts{c} = cf.(cfn).externals;
-                    end
+                    cdeps = model.Components{c}.getFunctionDependencies(cfn);
+                    deps{c} = cdeps.dependencies;
+                    exts{c} = cdeps.externals;
                 end
                 % Internal - flow props dependencies
                 deps = unique(vertcat(deps{:}));

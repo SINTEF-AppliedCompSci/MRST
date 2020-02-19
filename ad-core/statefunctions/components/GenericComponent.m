@@ -1,11 +1,10 @@
-classdef GenericComponent
+classdef GenericComponent < StateFunctionDependent
     % The base class that implements all interfaces for a given component.
     % The helper class provides a number of utility functions that
     % determine the mobility, total mass and composition at different
     % conditions.
     properties
         name
-        functionDependencies = struct();
         externals = [];
         molarMass = 1;
     end
@@ -91,20 +90,6 @@ classdef GenericComponent
             c = cell(nph, 1);
         end
 
-        function prop = functionDependsOn(prop, fn, varargin)
-            % Document the dependencies of a specific function
-            if ~isfield(prop.functionDependencies, fn)
-                prop = prop.clearFunctionDependencies(fn);
-            end
-            f = prop.functionDependencies;
-            f.(fn) = addPropertyDependence(f.(fn), varargin{:});
-            prop.functionDependencies = f;
-        end
-        
-        function prop = clearFunctionDependencies(prop, fn)
-            % Clear dependencies for a specific function
-            prop.functionDependencies.(fn) = struct('dependencies', [], 'externals', []);
-        end
     end
 end
 

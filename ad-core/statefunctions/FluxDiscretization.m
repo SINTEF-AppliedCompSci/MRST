@@ -51,6 +51,9 @@ classdef FluxDiscretization < StateFunctionGrouping
 
             % Flow discretizer
             props.FlowStateBuilder = ImplicitFlowStateBuilder();
+            
+            % Conservation equations needs totam mass fluxes and total masses
+            props = props.functionDependsOn('componentConservationEquations', {'ComponentTotalMass', 'ComponentTotalFlux'});
         end
 
         function fd = setFlowStateBuilder(fd, fb)

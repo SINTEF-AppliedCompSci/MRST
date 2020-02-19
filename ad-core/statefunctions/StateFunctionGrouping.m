@@ -1,4 +1,4 @@
-classdef StateFunctionGrouping
+classdef StateFunctionGrouping < StateFunctionDependent
     % A StateFunctionGrouping class is a grouping of interdependent properties.
     % Inside each grouping, dependencies are handled and all grouped
     % properties are stored in the same normalized field on the state.
