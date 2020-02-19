@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "TensorComp.hpp"
-
+#include "contract_algo.hpp"
 #include "mex.hpp"
 #include "mexAdapter.hpp"
 
@@ -30,33 +30,41 @@ public:
 
     cout << "Number of components read: " << comps.size() << endl;
 
-    const TensorComp<double> result = contract_components(comps);
+    const vector<TensorComp<double>> resultcomps = contract_components(comps);
 
     // convert TensorComp to a return value to put into 'outputs'
     ArrayFactory factory;
 
-    StructArray matlab_result = factory.createStructArray({1,1},
-                                                          {"indexnames", "coefs", "ixs"});
-    CellArray indexnames = factory.createCellArray({1, result.numIndices()});
-    for (int i = 0; i != result.numIndices(); ++i)
-      indexnames[i] = factory.createCharArray(result.indexNames()[i]);
+    CellArray result = factory.createCellArray({1, resultcomps.size()});
 
-    TypedArray<double> coefs =
-      factory.createArray<double>(ArrayDimensions{result.coefs().size(), 1},
-                                  &result.coefs()[0],
-                                  &result.coefs()[0] + result.coefs().size());
+    for (int i = 0; i != resultcomps.size(); ++i) {
+      const auto& res = resultcomps[i];
+      
+      StructArray entry = factory.createStructArray({1,1},
+                                                    {"indexnames", "coefs", "ixs"});
+      
+      CellArray indexnames = factory.createCellArray({1, res.numIndices()});
+      for (int j = 0; j != res.numIndices(); ++j)
+        indexnames[j] = factory.createCharArray(res.indexNames()[j]);
 
-    vector<double> ixs_double(result.ixs().begin(), result.ixs().end());
-    TypedArray<double> ixs =
-      factory.createArray<double>(
-         ArrayDimensions{result.coefs().size(), result.numIndices()},
-         &ixs_double[0], &ixs_double[0] + ixs_double.size());
-    
-    matlab_result[0]["indexnames"] = indexnames;
-    matlab_result[0]["coefs"] = coefs;
-    matlab_result[0]["ixs"] = ixs;
+      TypedArray<double> coefs =
+        factory.createArray<double>(ArrayDimensions{res.coefs().size(), 1},
+                                    &res.coefs()[0],
+                                    &res.coefs()[0] + res.coefs().size());
 
-    outputs[0] = matlab_result;
+      vector<double> ixs_double(res.ixs().begin(), res.ixs().end());
+      TypedArray<double> ixs =
+        factory.createArray<double>(
+           ArrayDimensions{res.coefs().size(), res.numIndices()},
+           &ixs_double[0], &ixs_double[0] + ixs_double.size());
+
+      entry[0]["indexnames"] = indexnames;
+      entry[0]["coefs"] = coefs;
+      entry[0]["ixs"] = ixs;
+      result[i] = entry;
+    }
+
+    outputs[0] = result;
 
   }
 
