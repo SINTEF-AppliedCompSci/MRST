@@ -6,6 +6,7 @@ classdef TransportModel < WrapperModel
     
     methods
         function model = TransportModel(parent, varargin)
+            parent.FluxDiscretization = []; % Remove flux discretization (if setup)
             model = model@WrapperModel(parent);
             model = merge_options(model, varargin{:});
             model.AutoDiffBackend = parent.AutoDiffBackend;
