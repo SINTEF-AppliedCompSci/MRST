@@ -4,8 +4,9 @@
 #include <vector>
 #include <string>
 
-template<typename T>
-class TensorComp
+// ============================================================================
+template<typename T> class TensorComp
+// ============================================================================
 {
 public:
   TensorComp(const std::vector<std::string>& indexnames,
@@ -26,8 +27,10 @@ private:
   
 }; // end class TensorComp
 
+// ----------------------------------------------------------------------------
 template<typename T>
 TensorComp<T> contract_components(const std::vector<TensorComp<T>>& comps)
+// ----------------------------------------------------------------------------
 {
   return comps[0]; // @@ implement properly
 }
