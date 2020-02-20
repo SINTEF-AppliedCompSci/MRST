@@ -26,12 +26,15 @@ classdef NumericalPressureReductionFactors < StateFunction
             % Get derivatives of weights wrt pressure
             dwdp = getWeightDerivatives(w, w_prev, p, p_prev);
             % Construct AD weights
+            pAD = state.pressure;
+            isAD = isa(pAD, 'ADI');
             weights = cell(ncomp, 1);
             for i = 1:ncomp
                 wi = w(:, i);
-                if any(dwdp)
-                    Wp = model.AutoDiffBackend.convertToAD(wi, state.pressure);
-                    Wp.jac{1} = sparse(1:ncell, 1:ncell, dwdp(:, i), ncell, ncell);
+                dpi = dwdp(:, i);
+                if isAD && any(dpi)
+                    Wp = model.AutoDiffBackend.convertToAD(wi, pAD);
+                    Wp.jac{1} = sparse(1:ncell, 1:ncell, dpi, ncell, ncell);
                 else
                     Wp = wi;
                 end
