@@ -31,7 +31,7 @@ public:
   const std::vector<T>& coefs() const {return coefs_;}
   const std::vector<Index>& ixs() const { return ixs_;}
 
-  std::vector<Index> indexValuesFor(std::string ixname);
+  std::vector<Index> indexValuesFor(const std::string& ixname) const;
   
   template<typename Indexable>
   TensorComp<T>& permuteIndices(const Indexable perm);
@@ -58,11 +58,11 @@ private:
 }; // end class TensorComp
 
 // ----------------------------------------------------------------------------
-template<typename T> inline std::vector<Index>
-TensorComp<T>::indexValuesFor(std::string ixname)
+template<typename T> inline std::vector<typename TensorComp<T>::Index>
+TensorComp<T>::indexValuesFor(const std::string& ixname) const
 // ----------------------------------------------------------------------------
 {
-  for (int i = 0; i != indexNames.size(); ++i)
+  for (int i = 0; i != indexNames().size(); ++i)
     if (ixname == indexNames()[i])
       return std::vector<Index>(&ixs_[i * numCoefs()], &ixs_[(i+1) * numCoefs()]);
   return std::vector<Index>();
