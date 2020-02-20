@@ -298,16 +298,23 @@ classdef NonLinearSolver < handle
                 done = isFinalMinistep && converged;
             end
 
-            if acceptCount ~= 1, pl_mini = 's'; else pl_mini = ''; end
-            if itCount     ~= 1, pl_it   = 's'; else pl_it   = ''; end
-
+            if acceptCount ~= 1
+                pl_mini = 's';
+            else
+                pl_mini = '';
+            end
+            if itCount ~= 1
+                pl_it   = 's';
+            else
+                pl_it = '';
+            end
+            time = toc(timer);
             dispif(solver.verbose > 0, ...
                    [solver.getId(), ...
                     'Solved timestep with %d accepted ministep%s', ...
-                    ' (%d rejected, %d total iteration%s)\n'], ...
-                   acceptCount, pl_mini, stepCount - acceptCount, ...
-                   itCount, pl_it);
-            time = toc(timer);
+                    ' (Iteration%s: %d rejected, %d total, %s each)\n'], ...
+                   acceptCount, pl_mini, pl_it, stepCount - acceptCount, ...
+                   itCount, formatTimeRange(time/itCount, 2));
             % Truncate reports from step functions
             reports = reports(~cellfun(@isempty, reports));
             report = struct('Iterations',           itCount,...
