@@ -505,7 +505,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 if any(isWater)
                     rhoW = rho(:, 1);
                     scale_w = dt./(pv.*rhoW);                
-                    v_water = value(problem.equations{isWater})./scale_w;
+                    v_water = value(problem.equations{isWater}).*scale_w;
                     v_comp = [v_comp, norm(v_water, inf)];
                     tol_comp = [tol_comp, model.toleranceCNV];
                     isComponent(isWater) = true;
