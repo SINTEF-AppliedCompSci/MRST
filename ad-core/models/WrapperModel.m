@@ -50,8 +50,9 @@ classdef WrapperModel < PhysicalModel
         end
 
         function model = validateModel(model, varargin)
+            default = isempty(model.parentModel.getStateFunctionGroupings());
             model.parentModel = model.parentModel.validateModel(varargin{:});
-            model = model.setupStateFunctionGroupings();
+            model = model.setupStateFunctionGroupings(default);
         end
 
         function [fn, index] = getVariableField(model, name, varargin)
