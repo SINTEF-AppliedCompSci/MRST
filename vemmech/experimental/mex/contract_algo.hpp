@@ -306,11 +306,9 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
   // setup free indices associated with each component
   std::vector<std::pair<std::vector<Index>, std::vector<std::string>>> free_indices;
   std::vector<int> free_indices_num;
-  std::vector<Index*> free_ix_iterators;
   for (const auto& c : comps) {
     free_indices.emplace_back(free_indices_for(c, cixnames));
     free_indices_num.push_back(free_indices.back().second.size());
-    free_ix_iterators.push_back(&(free_indices.back().first[0]));
   }
   const size_t N = ranges[1].size();
   std::vector<T> coefs;
@@ -334,11 +332,14 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
       T new_coef = 1;
 
       for (int j = 0; j != ranges.size(); ++j) {
-
-        new_coef *= comps[j].coefs()[rstart[j] + running[j]];
+        const Index cur_ix = rstart[j] + running[j];
+        const Index cur_ix2 = cur_ix * free_indices_num[j];
         
-        indices.insert(indices.end(), free_ix_iterators[j], free_ix_iterators[j] + free_indices_num[j]);
-        free_ix_iterators[j] += free_indices_num[j];
+        new_coef *= comps[j].coefs()[cur_ix];
+        
+        indices.insert(indices.end(),
+                       &(free_indices[j].first[cur_ix2]),
+                       &(free_indices[j].first[cur_ix2 + free_indices_num[j]]));
       }
       
       coefs.push_back(new_coef);
