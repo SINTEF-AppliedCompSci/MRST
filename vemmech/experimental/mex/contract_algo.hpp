@@ -80,7 +80,7 @@ identify_comps_for_multiix_iteration(std::vector<TensorComp<T>>& comps,
 }
 
 // ----------------------------------------------------------------------------
-inline void advance_multiindex(std::vector<int>& mix, const std::vector<size_t>& bounds)
+inline void advance_multiindex(std::vector<size_t>& mix, const std::vector<size_t>& bounds)
 // ----------------------------------------------------------------------------
 {
   mix.back() = mix.back() + 1;
@@ -157,7 +157,7 @@ compute_multiindices(
             [](const IxControl& c1, const IxControl& c2) {
               return c1.ix_entries[0] < c2.ix_entries[0];});
   
-  std::vector<int> indices(controls.size(), 0); 
+  std::vector<size_t> indices(controls.size(), 0); 
   std::vector<size_t> indices_max;
   for (const auto& c : controls)
     indices_max.push_back(c.ix_values[0].size());
@@ -257,13 +257,118 @@ compute_index_ranges(const TensorComp<T>& comp,
 }
 
 // ----------------------------------------------------------------------------
-template<typename<T> std::vector<TensorComp<T>>
-compute_sums(const std::vector<TensorComp<T>>& comps,
-             const std::vector<std::vector<std::array<Index, 2>>>& ranges,
-             const std::vector<std::string>>& cixnames)
+template<typename T>
+std::pair<std::vector<typename TensorComp<T>::Index>, std::vector<std::string>>
+free_indices_for(const TensorComp<T>& comp,
+                 const std::vector<std::string>& cixnames)
 // ----------------------------------------------------------------------------
 {
+  typedef typename TensorComp<T>::Index Index;
+
+  const auto ixnames = comp.indexNames();
+  std::vector<std::pair<std::vector<Index>, std::string>> free_ixs;
+
+  for (const auto& iname : ixnames)
+    if (std::find(cixnames.begin(), cixnames.end(), iname) == cixnames.end())
+      // this is a free index, since it is not among the contracting indices
+      free_ixs.emplace_back( std::pair<std::vector<Index>, std::string> {
+          comp.indexValuesFor(iname), iname
+            });;
+
+  if (free_ixs.empty())
+    return std::pair<std::vector<Index>, std::vector<std::string>>();
   
+  // reshuffle indices
+  std::vector<Index> res_ixs;
+  const size_t numvals = free_ixs[0].first.size();
+  for (Index i = 0; i != numvals; ++i)
+    for (int j = 0; j != free_ixs.size(); ++j)
+      res_ixs.push_back(free_ixs[j].first[i]);
+
+  // collecting free index names
+  std::vector<std::string> free_ix_names;
+  for (const auto& fix : free_ixs)
+    free_ix_names.push_back(fix.second);
+
+  return std::pair<std::vector<Index>, std::vector<std::string>> {
+    res_ixs, free_ix_names
+  };
+}
+
+// ----------------------------------------------------------------------------
+template<typename T> TensorComp<T>
+compute_sums(const std::vector<TensorComp<T>>& comps,
+             const std::vector<std::vector<std::array<typename TensorComp<T>::Index, 2>>>& ranges,
+             const std::vector<std::string>& cixnames)
+// ----------------------------------------------------------------------------
+{
+  typedef typename TensorComp<T>::Index Index;
+  // setup free indices associated with each component
+  std::vector<std::pair<std::vector<Index>, std::vector<std::string>>> free_indices;
+  std::vector<int> free_indices_num;
+  std::vector<Index*> free_ix_iterators;
+  for (const auto& c : comps) {
+    free_indices.emplace_back(free_indices_for(c, cixnames));
+    free_indices_num.push_back(free_indices.back().second.size());
+    free_ix_iterators.push_back(&(free_indices.back().first[0]));
+  }
+  const size_t N = ranges[1].size();
+  std::vector<T> coefs;
+  std::vector<Index> indices;
+  std::vector<size_t> rstart(ranges.size()), rlen(ranges.size()), running(ranges.size(), 0);
+  
+  for (size_t i = 0; i != N; ++i) {
+
+    bool skip = false;
+    for (int j = 0; j < ranges.size() && !skip; ++j) {
+      running[j] = 0;
+      rstart[j] = ranges[j][i][0];
+      rlen[j] = ranges[j][i][1] - rstart[j];
+      skip = (rlen[j] == 0);
+    }
+    if (skip)
+      continue; // no (value) for this element
+    
+    while (running[0] != rlen[0]) {
+
+      T new_coef = 1;
+
+      for (int j = 0; j != ranges.size(); ++j) {
+
+        new_coef *= comps[j].coefs()[rstart[j] + running[j]];
+        
+        indices.insert(indices.end(), free_ix_iterators[j], free_ix_iterators[j] + free_indices_num[j]);
+        free_ix_iterators[j] += free_indices_num[j];
+      }
+      
+      coefs.push_back(new_coef);
+      
+      advance_multiindex(running, rlen);
+    }
+
+  }
+
+  // collect the index names of the to-be-created tensor
+  std::vector<std::string> indexnames;
+  for (const auto& fi : free_indices)
+    indexnames.insert(indexnames.end(), fi.second.begin(), fi.second.end());
+
+  // reformat indices
+  const size_t num_free_indices = indexnames.size();
+  const size_t num_free_ix_values = indices.size() / num_free_indices;
+  
+  std::vector<Index> indices_reordered(indices.size());
+  size_t pos = 0;
+  for (size_t i = 0; i != num_free_ix_values; ++i)
+    for (size_t j = 0; j != num_free_indices; ++j)
+      indices_reordered[i * num_free_indices + j] = indices[pos++];
+  
+  // generate result tensor and add up element with similar indices
+  TensorComp<T> result(indexnames, coefs, indices_reordered);
+  result.sortIndicesByNumber(true).sortElementsByIndex().sumEqualIndices();
+
+  return result;
+
 }
 
 // ============================================================================
@@ -295,8 +400,9 @@ std::vector<TensorComp<T>> contract_components(std::vector<TensorComp<T>> comps)
     comp_ranges.emplace_back(compute_index_ranges(c, cixs, mix));
 
   // multiply together relevant indices and construct new component
-  std::vector<TensorComp<T>> result = compute_sums(comps, comp_ranges, cixs);
+  TensorComp<T> summed_tensor = compute_sums(comps, comp_ranges, cixs);
 
+  std::vector<TensorComp<T>> result(1, summed_tensor);
   return result;
   //return comps; // @@ implement properly
 }

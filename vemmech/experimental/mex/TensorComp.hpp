@@ -40,7 +40,9 @@ public:
   TensorComp<T>& permuteIndices(const Indexable perm);
   TensorComp<T>& sortElementsByIndex(bool descending=false);
   TensorComp<T>& sortIndicesByNumber(bool descending=false);
-
+  TensorComp<T>& sumEqualIndices();
+  
+  
   size_t numUniqueValuesFor(int ix) const ;
   size_t numUniqueValuesFor(const std::string& ixname) const;
   
@@ -172,6 +174,57 @@ TensorComp<T>::moveIndicesFirst(const std::vector<std::string>& ixnames)
   return permuteIndices(perm);
   
 }
+
+// ----------------------------------------------------------------------------
+template<typename T> inline TensorComp<T>& TensorComp<T>::sumEqualIndices()
+// ----------------------------------------------------------------------------
+{
+  sortElementsByIndex(); // ensure equal indices follow each other
+
+  const int N = numIndices();
+  std::vector<T> new_coefs;
+  std::vector<std::vector<Index>> new_indices(N);
+
+  auto coef_ptr = coefs().begin();
+  std::vector<const Index*> old_ix_ptrs(N);
+
+  new_coefs.push_back(*coef_ptr++);
+  for (int i = 0; i != N; ++i) {
+    old_ix_ptrs[i] = &(ixs_[i * coefs().size()]);
+    new_indices[i].push_back(*old_ix_ptrs[i]++);
+  }
+  
+  while(coef_ptr != coefs().end()) {
+    // check if current index set equals 
+    bool same = true;
+    for (int i = 0; i != N && same; ++i)
+      same = *(old_ix_ptrs[i]) == new_indices[i].back();
+
+    if (same) {
+      new_coefs.back() += *coef_ptr; // add to existing element
+    } else {
+      new_coefs.push_back(*coef_ptr);
+      for (int i = 0; i != N; ++i)
+        new_indices[i].push_back(*old_ix_ptrs[i]);
+    }
+
+    // advance iterators
+    ++coef_ptr;
+    for (int i = 0; i != N; ++i)
+      ++old_ix_ptrs[i];
+  }
+
+  std::vector<Index> all_ixs;
+  for (int i = 0; i != N; ++i)
+    all_ixs.insert(all_ixs.end(), new_indices[i].begin(), new_indices[i].end());
+
+  // replace old member data with new
+  coefs_.swap(new_coefs);
+  ixs_.swap(all_ixs);
+
+  return *this;
+}
+
 
 // ----------------------------------------------------------------------------
 template<typename T> inline TensorComp<T>&
