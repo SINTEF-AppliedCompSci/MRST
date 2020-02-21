@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('useNodeMax', false);
+    opt = struct('useNodeMax', false, 'fill', false);
     [opt, extra] = merge_options(opt, varargin{:});
 
     if nargin == 2
@@ -39,6 +39,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [x, y] = ndgrid(linspace(xMin(1), xMax(1), n), linspace(xMin(2), xMax(2), n));
     val = fun(x, y);
     
-    [c, h] = contour(x, y, val, nl, extra{:});
+    if opt.fill
+        [c, h] = contourf(x, y, val, nl, extra{:});
+    else
+        [c, h] = contour(x, y, val, nl, extra{:});
+    end
     
 end
