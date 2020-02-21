@@ -74,29 +74,4 @@ tmodel3.parentModel.FluxDiscretization = flux;
 plot(G.cells.centroids(:,1),stSPUe{end}.s(:,1),'.','MarkerSize',20);
 
 %% dG explicit
-tmodelDGe = tmodelDGi;
-flux      = tmodelDGi.parentModel.FluxDiscretization;
-fb        = ExplicitFlowStateBuilderDG();
-flux      = flux.setFlowStateBuilder(fb);
-tmodelDGe.parentModel.FluxDiscretization = flux;
-[~, stDGe, repDGe] = simulateScheduleAD(state0, tmodelDGe, schedule);
-plot(G.cells.centroids(:,1),stSPUe{end}.s(:,1),'.','MarkerSize',20);
-
-%% WENO explicit
-tmodel4 = tmodel3;
-tmodel4.parentModel.operators.faceUpstr = @(flag, x) weno.faceUpstream(model, [], flag, x);
-[~, stWENOe, repWENOe] = simulateScheduleAD(state0, tmodel4, schedule);
-plot(G.cells.centroids(:,1),stWENOe{end}.s(:,1),'.','MarkerSize',20);
-
-hold off
-
-%% First-order dG simulation
-tmodelDG1 = TransportModelDG(model, 'degree', [1,0]);
-%tmodelDG1 = tmodelDG1.validateModel();
-%tmodelDG1.parentModel.FluxDiscretization.ComponentPhaseVelocity = ComponentPhaseFluxFractionalFlowSimple(model);
-[~, stDG1, repDG1] = simulateScheduleAD(state0, tmodelDG1, schedule);
-
-%% Higher-order dG simulations
-tmodelDG2 = TransportModelDG(model, 'degree', [2,0]);
-[~, stDG2, repDG2] = simulateScheduleAD(state0, tmodelDG2, schedule);
-                                                    
+% TBA
