@@ -74,6 +74,8 @@ classdef PressureModel < WrapperModel
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
             [model, state] = prepareTimestep@WrapperModel(model, state, state0, dt, drivingForces);
             state = assignReductionFactorProps(model, state, state0, dt);
+            % Ensure that saturations are normalized
+            state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
         end
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
