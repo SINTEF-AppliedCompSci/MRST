@@ -287,23 +287,29 @@ methods
         model = model.setupStateFunctionGroupings();
     end
     
-    function model = setupStateFunctionGroupings(model, varargin)
+    function model = setupStateFunctionGroupings(model, setDefaults) %#ok
         % Initialize state functions and corresponding groups
         %
         % SYNOPSIS:
-        %   model = model.validateModel();
-        %   model = model.validateModel(forces);
+        %   model = model.setupStateFunctionGroupings();
+        %   model = model.setupStateFunctionGroupings(setDefaults);
         %
         % DESCRIPTION:
         %   Ensure that all state functions have been set up.
         %
         % PARAMETERS:
-        %   model  - Class instance to be validated.
+        %   model       - Class instance for which state function groupings
+        %                 should be set up
+        %   setDefaults - Boolean indicating if we should set up a
+        %                 default discretization. Default: true
         %
         % RETURNS:
         %   model - Class instance. If returned, this model is ready for
         %           evaluation of state functions. It may have been changed
         %           in the process.
+        if nargin < 2
+            setDefaults = true; %#ok
+        end
         dispif(model.verbose, ...
             'Initializing StateFunctionGroupings attached to class of type %s\n',...
             class(model));
