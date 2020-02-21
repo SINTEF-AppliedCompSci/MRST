@@ -110,8 +110,8 @@ classdef TransportModel < WrapperModel
             end
         end
         
-        function model = setupStateFunctionGroupings(model, default)
-            if ~default
+        function model = setupStateFunctionGroupings(model, setDefaults)
+            if ~setDefaults
                 % State functions have already been set up
                 return
             end
