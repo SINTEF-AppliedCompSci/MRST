@@ -52,6 +52,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   assert (isnumeric(unit), ...
+           'Unuspported ''unit'' representation ''%s''', class(unit));
 
    q = bsxfun(@rdivide, q, unit);
 end
