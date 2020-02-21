@@ -199,6 +199,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 sV = 1 - sL;
                 state.s = [sL, sV];
             end
+            assert(all(all(state.s >= 0)), 'Negative saturations after flash.');
         end
     
         

@@ -103,7 +103,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
         function [vars, names, origin] = getPrimaryVariables(model, state)
             % Get primary variables from state, before a possible
             % initialization as AD.'
-            [p, sW, z] = model.getProps(state, 'pressure', 'water', 'z');
+            [p, sW, z] = model.getProps(state, 'pressure', 'sW', 'z');
             z_tol = model.EOSModel.minimumComposition;
             z = ensureMinimumFraction(z, z_tol);
             z = expandMatrixToCell(z);
@@ -111,7 +111,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             names = [{'pressure'}, cnames(2:end)];
             vars = [p, z(2:end)];
             if model.water
-                names = [names, {'water'}];
+                names = [names, {'sW'}];
                 vars = [vars, {sW}];
             end
             origin = cell(1, numel(names));
@@ -159,7 +159,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 removed = removed | isF;
             end
             if model.water
-                isWater = strcmp(names, 'water');
+                isWater = strcmp(names, 'sW');
                 sW = vars{isWater};
                 removed(isWater) = true;
                 offset = 1;
