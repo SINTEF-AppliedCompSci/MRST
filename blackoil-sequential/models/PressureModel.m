@@ -2,7 +2,7 @@ classdef PressureModel < WrapperModel
     properties
         incTolPressure = 1e-3;
         useIncTol = true;
-        reductionStrategy  = 'analytic';
+        reductionStrategy;
         pressureIncTolType = 'relative';
         pressureTol = inf;
     end
@@ -14,6 +14,14 @@ classdef PressureModel < WrapperModel
             end
             model = model@WrapperModel(parent);
             model = merge_options(model, varargin{:});
+            if isempty(model.reductionStrategy)
+                if isa(model, 'ThreePhaseBlackOilModel')
+                    s = 'analytic';
+                else
+                    s = 'numerical';
+                end
+                model.reductionStrategy = s;
+            end
             model.AutoDiffBackend = parent.AutoDiffBackend;
         end
         
