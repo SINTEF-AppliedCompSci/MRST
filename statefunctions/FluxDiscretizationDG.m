@@ -8,9 +8,9 @@ classdef FluxDiscretizationDG < FluxDiscretization
     
     methods
         function fd = FluxDiscretizationDG(model)
-            
+            % Initialize
             fd = fd@FluxDiscretization(model);
-            
+            % Copy over properties from model.FluxDiscretization
             if ~isempty(model.FluxDiscretization)
                 names = model.FluxDiscretization.getNamesOfStateFunctions();
                 for i = 1:numel(names)
@@ -18,7 +18,7 @@ classdef FluxDiscretizationDG < FluxDiscretization
                     fd = fd.setStateFunction(names{i}, p);
                 end
             end
-            
+            % Set dg-specific state functions
             fd = fd.setStateFunction('TotalFlux', FixedTotalFluxDG(model));
             fd = fd.setStateFunction('GravityPotentialDifference', GravityPotentialDifferenceDG(model));
             fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlagDG(model));
@@ -26,23 +26,6 @@ classdef FluxDiscretizationDG < FluxDiscretization
             fd = fd.setStateFunction('ComponentPhaseVelocity', ComponentPhaseVelocityFractionalFlowDG(model));
             fd = fd.setStateFunction('TotalVelocity', FixedTotalVelocityDG(model));
             fd = fd.setFlowStateBuilder(FlowStateBuilderDG);
-            
-%             fd = fd.setStateFunction('PhaseFlux', PhaseFluxFixedTotalVelocity(model));
-%             fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlag(model));
-%             fd = fd.setStateFunction('ComponentPhaseFlux', ComponentPhaseFluxFractionalFlow(model));
-%             
-%             fd = fd.setStateFunction('PhaseInterfacePressureDifferences', PhaseInterfacePressureDifferences(model));
-%             fd = fd.setStateFunction('TotalFlux', FixedTotalFluxDG(model));
-%             fd = fd.setStateFunction('FaceTotalMobility', FaceTotalMobility(model));
-%             
-%             fd = fd.setStateFunction('GravityPotentialDifference', GravityPotentialDifferenceDG(model));
-%             fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlagDG(model));
-%             
-%             fd.ComponentTotalVelocity = ComponentTotalVelocityDG(model);
-%             fd.ComponentPhaseVelocity = ComponentPhaseVelocityFractionalFlowDG(model);
-%             fd.TotalVelocity = FixedTotalVelocityDG(model);
-%             
-%             fd = fd.setFlowStateBuilder(FlowStateBuilderDG);
         end
         
         function [acc, v, vc, names, types] = componentConservationEquations(fd, model, state, state0, dt)

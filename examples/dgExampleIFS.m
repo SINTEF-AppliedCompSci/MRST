@@ -27,8 +27,8 @@ wellLines = mat2cell(GRef.cells.centroids(vertcat(WRef.cells),1:2), ...
                                                     ones(numel(WRef),1), 2)';
 % Construct PEBI grid
 G = pebiGrid2D(max(l)/n, l, 'cellConstraints', wellLines, ... % Well coords
-                            'CCRefinement', true     , ... % Refine
-                            'CCFactor', 0.4      );
+                            'CCRefinement'   , true     , ... % Refine
+                            'CCFactor'       , 0.4      );
 G = computeGeometry(G);       % Compute geometry
 G = computeCellDimensions(G); % Compute cell dimensions
 
