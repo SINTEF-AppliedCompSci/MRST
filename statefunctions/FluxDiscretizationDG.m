@@ -8,45 +8,45 @@ classdef FluxDiscretizationDG < FluxDiscretization
     
     methods
         function fd = FluxDiscretizationDG(model)
- 
+            
             fd = fd@FluxDiscretization(model);
             
-            fd = fd.setStateFunction('PhaseFlux', PhaseFluxFixedTotalVelocity(model));
-            fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlag(model));
-            fd = fd.setStateFunction('ComponentPhaseFlux', ComponentPhaseFluxFractionalFlow(model));
+            if ~isempty(model.FluxDiscretization)
+                names = model.FluxDiscretization.getNamesOfStateFunctions();
+                for i = 1:numel(names)
+                    p = model.FluxDiscretization.getStateFunction(names{i});
+                    fd = fd.setStateFunction(names{i}, p);
+                end
+            end
             
-            fd = fd.setStateFunction('PhaseInterfacePressureDifferences', PhaseInterfacePressureDifferences(model));
             fd = fd.setStateFunction('TotalFlux', FixedTotalFluxDG(model));
-            fd = fd.setStateFunction('FaceTotalMobility', FaceTotalMobility(model));
-            
             fd = fd.setStateFunction('GravityPotentialDifference', GravityPotentialDifferenceDG(model));
             fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlagDG(model));
-            
-            fd.ComponentTotalVelocity = ComponentTotalVelocityDG(model);
-            fd.ComponentPhaseVelocity = ComponentPhaseVelocityFractionalFlowDG(model);
-            fd.TotalVelocity = FixedTotalVelocityDG(model);
-            
+            fd = fd.setStateFunction('ComponentTotalVelocity', ComponentTotalVelocityDG(model));
+            fd = fd.setStateFunction('ComponentPhaseVelocity', ComponentPhaseVelocityFractionalFlowDG(model));
+            fd = fd.setStateFunction('TotalVelocity', FixedTotalVelocityDG(model));
             fd = fd.setFlowStateBuilder(FlowStateBuilderDG);
+            
+%             fd = fd.setStateFunction('PhaseFlux', PhaseFluxFixedTotalVelocity(model));
+%             fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlag(model));
+%             fd = fd.setStateFunction('ComponentPhaseFlux', ComponentPhaseFluxFractionalFlow(model));
+%             
+%             fd = fd.setStateFunction('PhaseInterfacePressureDifferences', PhaseInterfacePressureDifferences(model));
+%             fd = fd.setStateFunction('TotalFlux', FixedTotalFluxDG(model));
+%             fd = fd.setStateFunction('FaceTotalMobility', FaceTotalMobility(model));
+%             
+%             fd = fd.setStateFunction('GravityPotentialDifference', GravityPotentialDifferenceDG(model));
+%             fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlagDG(model));
+%             
+%             fd.ComponentTotalVelocity = ComponentTotalVelocityDG(model);
+%             fd.ComponentPhaseVelocity = ComponentPhaseVelocityFractionalFlowDG(model);
+%             fd.TotalVelocity = FixedTotalVelocityDG(model);
+%             
+%             fd = fd.setFlowStateBuilder(FlowStateBuilderDG);
         end
         
         function [acc, v, vc, names, types] = componentConservationEquations(fd, model, state, state0, dt)
             % Compute discretized conservation equations in the interior of the domain.
-            % REQUIRED PARAMETERS:
-            %   model  - ReservoirModel derived class
-            %   state  - State corresponding to the given model at the end
-            %            of the current time-integration interval.
-            %   state0 - State at previous time-step.
-            %   dt     - Time-step length.
-            % RETURNS:
-            %   acc    - Cell array of component accumulation terms
-            %            discretized with a first order finite-difference
-            %            scheme.
-            %   v      - Cell array of component fluxes in the interior of
-            %            the domain.
-            %   names  - The names of each equation (corresponds to
-            %            component names.
-            %   types  - Types of each equation (defaults to 'cell', to
-            %            indicate cell-wise equations on the whole domain)
             ncomp = model.getNumberOfComponents;
             [acc, types] = deal(cell(1, ncomp));
             names = model.getComponentNames();
