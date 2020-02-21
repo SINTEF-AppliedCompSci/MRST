@@ -357,18 +357,40 @@ classdef TransportModelDG < TransportModel
             % Validate model before simulation
             assert(any(strcmpi('s', model.dgVariables)), ...
                 'dG currently requires that saturation is a dG variable');
-            % Transport model handles most of the validation
+            % Parent class handles most of the validation
             model = validateModel@TransportModel(model, varargin{:});
-            % Set flux discretization
-            model.parentModel.FluxDiscretization = FluxDiscretizationDG(model.parentModel);
-            % Set flow property functions
-            fp  = model.parentModel.FlowPropertyFunctions;
-            pvt = fp.getRegionPVT(model.parentModel);
-            fp  = fp.setStateFunction('PoreVolume', MultipliedPoreVolumeDG(model.parentModel, pvt));
-            fp  = fp.setStateFunction('GravityPermeabilityGradient', GravityPermeabilityGradientDG(model.parentModel));
-            model.parentModel.FlowPropertyFunctions = fp;
         end
         
+        function model = setupStateFunctionGroupings(model, default)
+            if ~default
+                % State functions have already been set up
+                assert(isa(model.parentModel.FluxDiscretization, 'FluxDiscretizationDG'));
+                return
+            end
+            model = setupStateFunctionGroupings@TransportModel(model, default);
+            pModel = model.parentModel;
+            
+            % Adjust flow property functions
+            fp = model.parentModel.FlowPropertyFunctions;
+            fp = fp.setStateFunction('GravityPermeabilityGradient', GravityPermeabilityGradientDG(pModel));
+            fp = fp.setStateFunction('TotalMobility', TotalMobility(pModel));
+            model.parentModel.FlowPropertyFunctions = fp;
+            
+            % Adjust PVT property functions
+            pvt    = model.parentModel.PVTPropertyFunctions;
+            pvtReg = pvt.getRegionPVT(pModel);
+            if isa(pvt.PoreVolume, 'PoreVolume')
+                pvt.PoreVolume = PoreVolumeDG(pModel, pvtReg);
+            elseif isa(pvt.PoreVolume, 'BlackOilPoreVolume')
+                pvt.PoreVolume = BlackOilPoreVolumeDG(pModel, pvtReg);
+            else
+                error('Pore volume type not supported by dG')
+            end
+            model.parentModel.PVTPropertyFunctions = pvt;
+            % Adjust flux discretization
+            model.parentModel.FluxDiscretization = FluxDiscretizationDG(pModel);
+        end
+    
         %-----------------------------------------------------------------%
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
             % Get model equations
