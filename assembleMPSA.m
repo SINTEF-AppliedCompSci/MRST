@@ -86,7 +86,6 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings,
     %% Construction of the gradient operator
     %
 
-
     % Construction of gradnodeface_op : nodefacecoltbl -> cellnodecolrowtbl
     %
     % The nodefacecol part of the grad operator from nodefacecoltbl to
@@ -474,8 +473,6 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings,
     A21 = A21.getMatrix();
     A22 = A22.getMatrix();
     
-
-    
     % get the block structure
     % We count the number of degrees of freedom that are connected to the same
     % node.
@@ -495,6 +492,26 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings,
     [bcstruct, force] = setupBCpercase(runcase, G, tbls, mappings, 'facetNormals', facetNormals);
 
     D = setupBC(bcstruct, G, tbls);
+
+    
+    % the solution is given by the system
+    %
+    % A = [[A11, A12, -D];
+    %      [A21, A22,  0];
+    %      [D' , 0  ,  0]];
+    %
+    % u = [u(nodeface);
+    %      u(cell);
+    %      lagmult];
+    %
+    % f = [force(extnodeface);
+    %      force(cells);
+    %      0];
+    %
+    % A*u = f
+    %
+    % By construction of the method, the matrix A11 is block-diagonal. Hence,
+    % we invert it directly and reduce to a cell-centered scheme.
     
     matrices = struct('A11', A11, ...
                       'A12', A12, ...

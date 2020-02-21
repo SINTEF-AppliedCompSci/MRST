@@ -23,7 +23,7 @@ runcases = {'2d-refinement', ...
             '3d-linear'    , ...
             '3d-compaction' };
 
-runcase = '2d-linear';
+runcase = '3d-compaction';
 
 switch runcase
   case '2d-refinement'
@@ -52,12 +52,12 @@ G = computeGeometry(G);
 
 % set material properties
 nc = G.cells.num;
+
 lambda = ones(nc, 1);
 mu     = ones(nc, 1);
 
 prop = struct('lambda', lambda, ...
               'mu', mu);
-
 bc = [];
 
 [tbls, mappings] = setupStandardTables(G);
@@ -65,8 +65,20 @@ bc = [];
 
 B   = assembly.B  ;
 rhs = assembly.rhs;
+
+sol = B\rhs;
+n = cellcoltbl.num;
+% displacement values at cell centers.
+u = sol(1 : n);
+
+% Force where the Dirichlet BC are imposed (the are given by the lagrange
+% multipliers)
+lagmult = sol(n + 1: end);
+
+% Compute displacement at nodes
+
 force = assembly.force;
-matrices  = assembly.matrices;
+matrices = assembly.matrices;
 nodaldisp_op = assembly.nodaldisp_op;
 
 cellcoltbl = tbls.cellcoltbl;
@@ -75,27 +87,18 @@ invA11 = matrices.invA11;
 D      = matrices.D;
 A12    = matrices.A12;
 
-sol = B\rhs;
-n = cellcoltbl.num;
-% displacement values at cell centers.
-u = sol(1 : n);
-% Force where the Dirichlet BC are imposed (the are given by the lagrange
-% multipliers)
-lagmult = sol(n + 1: end);
-
 % displacement values at facenode
 unf = invA11*(force - A12*u + D*lagmult);
-
 un = nodaldisp_op*unf;
 
 %% plotting
 % 
 close all
 
-% unvec = reshape(un, dim, [])';
-% figure 
-% coef = 1e0;
-% plotGridDeformed(G, coef*unvec);
+unvec = reshape(un, dim, [])';
+figure 
+coef = 1e0;
+plotGridDeformed(G, coef*unvec);
 
 %%
 dim = G.griddim;
