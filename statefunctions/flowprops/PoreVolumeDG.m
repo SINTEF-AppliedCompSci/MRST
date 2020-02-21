@@ -1,24 +1,13 @@
-classdef MultipliedPoreVolumeDG < MultipliedPoreVolume
-    % Effective pore-volume after pressure-multiplier
+classdef PoreVolumeDG < PoreVolume
+    % Static pore-volume taken from state
     properties
     end
     
     methods
-        function gp = MultipliedPoreVolumeDG(model, varargin)
-            gp@MultipliedPoreVolume(model, varargin{:});
-        end
         function pv = evaluateOnDomain(prop, model, state)
-            % Get effective pore-volume, accounting for possible
-            % rock-compressibility
-            f = model.fluid;
-            pv = model.operators.pv;
+            % Static pore-volume
+            pv = evaluateOnDomain@PoreVolume(prop, model, state);
             pv = pv(state.cells);
-            if isfield(f, 'pvMultR')
-                p = model.getProp(state, 'pressure');
-                pvMult = prop.evaluateFunctionOnDomainWithArguments(f.pvMultR, p);
-                pvMult = pvMult(state.cells);
-                pv = pv.*pvMult;
-            end
         end
     end
 end
