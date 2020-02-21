@@ -188,15 +188,13 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             L = state.L;
             Z_L = state.Z_L;
             Z_V = state.Z_V;
-
+            sL = L.*Z_L./(L.*Z_L + (1-L).*Z_V);
+            sV = 1 - sL;
             if model.water
                 sW = state.s(:, 1);
-                sL = (1 - sW).*L.*Z_L./(L.*Z_L + (1-L).*Z_V);
-                sV = 1 - sW - sL;
-                state.s = [sW, sL, sV];
+                void = (1 - sW);
+                state.s = [sW, void.*sL, void.*sV];
             else
-                sL = L.*Z_L./(L.*Z_L + (1-L).*Z_V);
-                sV = 1 - sL;
                 state.s = [sL, sV];
             end
             assert(all(all(state.s >= 0)), 'Negative saturations after flash.');

@@ -92,6 +92,7 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             wix = strcmpi(vars, 'sW');
             if any(wix)
                 state = model.updateStateFromIncrement(state, dx{wix}, problem, 'sW', inf, model.dsMaxAbs);
+                state = model.capProperty(state, 'sW', 0, 1);
                 removed(wix) = true;
                 vars = vars(~wix);
             end
