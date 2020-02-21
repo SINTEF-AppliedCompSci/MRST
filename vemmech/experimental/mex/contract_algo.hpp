@@ -90,21 +90,20 @@ inline void advance_multiindex(std::vector<int>& mix, const std::vector<size_t>&
       mix[i-1] = mix[i-1] + 1;
     }
   }
-  std::cout << "new mix: ";
-  for (int i = 0; i != mix.size(); ++i)
-    std::cout << mix[i] << "  (" << bounds[i] << ") ";
-  std::cout <<  std::endl;
+  // std::cout << "new mix: ";
+  // for (int i = 0; i != mix.size(); ++i)
+  //   std::cout << mix[i] << "  (" << bounds[i] << ") ";
+  // std::cout <<  std::endl;
 }
   
 
 // ----------------------------------------------------------------------------
 template<typename T>
-std::vector<std::vector<typename TensorComp<T>::Index>>
+std::vector<typename TensorComp<T>::Index>
 compute_multiindices(
      const std::vector<std::string>& cixs,
      const std::vector<int>& mix_comp,
-     const std::vector<TensorComp<T>>& comps,
-     std::vector<std::vector<std::array<typename TensorComp<T>::Index, 2>>>& ranges)
+     const std::vector<TensorComp<T>>& comps)
 // ----------------------------------------------------------------------------
 {
   typedef typename TensorComp<T>::Index Index;
@@ -115,9 +114,7 @@ compute_multiindices(
     std::vector<Index> ix_entries;
     std::vector<std::vector<Index>> ix_values;
   };
-
   std::vector<IxControl> controls;
-  
   for (int c_ix = 0; c_ix != comps.size(); ++c_ix) {
 
     // determine indices for which this component will control the multiindex
@@ -133,13 +130,8 @@ compute_multiindices(
       continue;
     
     std::vector<std::vector<Index>> ixvals(ixnames.size());
-    for (int i = 0; i != ixnames.size(); ++i) {
+    for (int i = 0; i != ixnames.size(); ++i) 
       ixvals[i] = comps[c_ix].indexValuesFor(ixnames[i]);
-      std::cout << "ixvals size: ";
-      for (int j = 0; j != ixvals[i].size(); ++j)
-        std::cout << ixvals[i][j] <<  " " ;
-      std::cout << std::endl;
-    }
     
     // identify where index changes occur
     std::vector<Index> changes(1, 0);
@@ -148,8 +140,6 @@ compute_multiindices(
         if (ixvals[j][i-1] != ixvals[j][i]) 
           changes.push_back(i);
 
-    std:: cout << "changes size: " << changes.size() << std::endl;
-    
     std::vector<std::vector<Index>> unique_ixvals;
     for (int i = 0; i != ix_pos.size(); ++i) {
       std::vector<Index> unique_ival(changes.size());
@@ -159,9 +149,7 @@ compute_multiindices(
 
       unique_ixvals.push_back(unique_ival);
     }
-
     controls.emplace_back(IxControl {c_ix, ix_pos, unique_ixvals} );
-    std:: cout << "unique ixvals: " << unique_ixvals[0].size() << std::endl;
   }
 
   // sort controls so that highest stride lies in first index
@@ -175,24 +163,99 @@ compute_multiindices(
     indices_max.push_back(c.ix_values[0].size());
   assert(indices.size() > 0);
   
-  std::vector<std::vector<Index>> result;
+  std::vector<Index> result;
   std::vector<Index> new_multiindex(mix_comp.size());
   
   while (indices[0] != indices_max[0]) {
-
     for (int i = 0; i != controls.size(); ++i) {
       const auto& ctrl = controls[i];
       for (int j = 0; j != ctrl.ix_values.size(); ++j)
         new_multiindex[ctrl.ix_entries[j]] = ctrl.ix_values[j][indices[i]];
     }
-    result.push_back(new_multiindex);
+    result.insert(result.end(), new_multiindex.begin(), new_multiindex.end());
     
     // advance loop multiindex
     advance_multiindex(indices, indices_max);
   }
-
   return result;
 }
+
+// ----------------------------------------------------------------------------
+template<typename T> std::vector<std::array<typename TensorComp<T>::Index, 2>>
+compute_index_ranges(const TensorComp<T>& comp,
+                     const std::vector<std::string>& cixnames,
+                     const std::vector<typename TensorComp<T>::Index>& mixs)
+// ----------------------------------------------------------------------------
+{
+  typedef typename TensorComp<T>::Index Index;
+  const int elnum = (int)cixnames.size(); // number of multiindex components
+  const size_t mixnum = mixs.size() / elnum; // number of multiindices
+  
+  // determine contracting indices present in this component
+  std::vector<int> active;
+  for (int i = 0; i != elnum; ++i)
+    if (comp.indexPos(cixnames[i]) >= 0)
+      active.push_back(i);
+
+  const int actnum = active.size(); // number of active contracting indices in comp
+
+  // preparing index vectors for comparison
+  std::vector<std::vector<Index>> tmp;
+  for (size_t i = 0; i != actnum; ++i)
+    tmp.push_back(comp.indexValuesFor(cixnames[active[i]]));
+
+  std::vector<Index> comp_ixs;
+  for (size_t i = 0; i != tmp[0].size(); ++i) 
+    for (int j = 0; j != tmp.size(); ++j)
+      comp_ixs.push_back(tmp[j][i]);
+
+  std::vector<Index> mix_ixs;
+  for (size_t i = 0; i != mixnum; ++i)
+    for (int j = 0; j != actnum; ++j)
+      mix_ixs.push_back(mixs[i*elnum + active[j]]);
+
+  // loop through all multiindices and define ranges
+  std::vector<std::array<Index, 2>> result(mixnum);
+
+  const auto ixless = [actnum](typename std::vector<Index>::iterator cix,
+                               typename std::vector<Index>::iterator mix) {
+    for (int i = 0; i != actnum; ++i)
+      if (cix[i] != mix[i])
+        return (cix[i] < mix[i]);
+    return false;
+  };
+
+  auto cit = comp_ixs.begin();
+
+  for (auto mit = mix_ixs.begin(); mit != mix_ixs.end(); mit += actnum) {
+    
+    const int ix = (mit - mix_ixs.begin()) / actnum;
+
+    // check if this is a repeat of last iterations values for mit
+    if (ix > 0 && !( ixless(mit, mit-actnum) || ixless(mit-actnum, mit))) {
+      result[ix] = result[ix-1];
+      continue;
+    }
+          
+    // advance counter until multiindex is found
+    while (ixless(cit, mit) && cit < comp_ixs.end())
+      cit += actnum;
+
+    if (ixless(mit, cit)) // indices are not equal
+      continue;
+
+    // if we got here, the two indices are equal
+    result[ix][0] = (cit - comp_ixs.begin()) / actnum;
+
+    while (!ixless(mit, cit) && cit < comp_ixs.end())
+      cit += actnum;
+
+    result[ix][1] = (cit - comp_ixs.begin()) / actnum;
+
+  }
+  return result;
+}
+
 
 // ============================================================================
 template<typename T>
@@ -205,35 +268,22 @@ std::vector<TensorComp<T>> contract_components(std::vector<TensorComp<T>> comps)
   // identify contracting indices; sort them according to number of unique values
     const std::vector<std::string> cixs(identify_contracting_multiindex(comps));
 
-  cout << "Contracting indices: " << endl;
-  for (auto l : cixs)
-    cout << l << endl;
-
   // Determine which components will control the iteration of each index in the
   // multiindex.  
   const auto mix_comp = identify_comps_for_multiix_iteration(comps, cixs);
 
-  cout << "Mix comp: " << endl;
-  for (int i = 0; i != mix_comp.size(); ++i)
-    cout << mix_comp[i] << endl;
-  
   // prepare components for iteration  by sorting index order and coefficient properly
   for (int i = 0; i != comps.size(); ++i)  
     comps[i].sortIndicesByNumber(true).moveIndicesFirst(cixs).sortElementsByIndex();
     
   // identify all possible multiindex values and corresponding entry ranges in
   // components
-  std::vector<std::vector<std::array<Index, 2>>> comp_ranges;
-  const std::vector<std::vector<Index>> mix =
-    compute_multiindices(cixs, mix_comp, comps, comp_ranges);
+  const std::vector<Index> mix = compute_multiindices(cixs, mix_comp, comps);
 
-  cout << "Start of multiindex list: " << endl;
-  for (int i = 0; i != mix.size(); ++i) {
-    const auto& entry = mix[i];
-    for (int j = 0; j != mix[i].size(); ++j)
-      cout << mix[i][j] << " ";
-    cout << endl;
-  }
+  std::vector<std::vector<std::array<Index, 2>>> comp_ranges;
+
+  for (const auto& c : comps)
+    comp_ranges.emplace_back(compute_index_ranges(c, cixs, mix));
   
   return comps; // @@ implement properly
 }

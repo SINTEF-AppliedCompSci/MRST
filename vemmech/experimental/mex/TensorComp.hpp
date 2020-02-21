@@ -19,7 +19,7 @@ public:
   using ICount = std::tuple<int, size_t>;
 
   typedef int Index;
-  
+  TensorComp() {}
   TensorComp(const std::vector<std::string>& indexnames,
              const std::vector<T>& coefs,
              const std::vector<Index>& ixs) :
@@ -30,6 +30,9 @@ public:
   const size_t numCoefs() const {return coefs_.size();}
   const std::vector<T>& coefs() const {return coefs_;}
   const std::vector<Index>& ixs() const { return ixs_;}
+
+  // return position of index with given name, or -1 if it doesn't exist
+  int indexPos(const std::string& name) const;
 
   std::vector<Index> indexValuesFor(const std::string& ixname) const;
   
@@ -44,7 +47,9 @@ public:
   // any index name found in 'ixnames' should be moved to the front of the
   // multiindex
   TensorComp<T>& moveIndicesFirst(const std::vector<std::string>& ixnames);
-  
+
+  void write(std::ostream& os) const ;
+  void read(std::istream& is);
   
 private:
   std::vector<std::string> indexnames_;
@@ -53,10 +58,71 @@ private:
 
   template<typename Indexable>
   static bool is_permutation_(const Indexable perm, const Index num);
-
   
 }; // end class TensorComp
 
+// ----------------------------------------------------------------------------
+template<typename T>
+void TensorComp<T>::write(std::ostream& os) const
+// ----------------------------------------------------------------------------
+{
+  // writing index names
+  os << indexnames_.size() << '\n';
+  for (const auto& n : indexnames_)
+    os << n << '\n';
+
+  // writing coefficients
+  os << coefs_.size() << '\n';
+  for (const auto& c : coefs_)
+    os << c << ' ';
+  os << '\n';
+
+  // writing indices
+  os << ixs_.size() << '\n';
+  for (const auto& i : ixs_)
+    os << i << ' ';
+  os << '\n';
+}
+
+// ----------------------------------------------------------------------------
+template<typename T>
+void TensorComp<T>::read(std::istream& is)
+// ----------------------------------------------------------------------------
+{
+  // read index names
+  int num; is >> num;
+  std::vector<std::string> ixnames(num);
+  
+  for (int i = 0; i != num; ++i)
+    is >> ixnames[i];
+
+  // read coefficients
+  is >> num;
+  std::vector<T> coefs(num);
+  for (int i = 0; i != num; ++i)
+    is >> coefs[i];
+
+  // read indices
+  is >> num;
+  std::vector<Index> ixs(num);
+  for (int i = 0; i != num; ++i)
+    is >> ixs[i];
+
+  indexnames_.swap(ixnames);
+  coefs_.swap(coefs);
+  ixs_.swap(ixs);
+}
+
+
+// ----------------------------------------------------------------------------
+template<typename T> inline 
+int TensorComp<T>::indexPos(const std::string& name) const
+// ----------------------------------------------------------------------------
+{
+  const auto pos = std::find(indexnames_.begin(), indexnames_.end(), name);
+  return (pos == indexnames_.end()) ? -1 : pos - indexnames_.begin();
+}
+  
 // ----------------------------------------------------------------------------
 template<typename T> inline std::vector<typename TensorComp<T>::Index>
 TensorComp<T>::indexValuesFor(const std::string& ixname) const
@@ -180,7 +246,7 @@ template<typename T> template<typename Indexable> inline bool
 TensorComp<T>::is_permutation_(const Indexable perm, const Index num)
 // ----------------------------------------------------------------------------
 {
-  std::vector<Index> input(perm, perm + num);
+  std::vector<Index> input(&perm[0], &perm[0] + num);
   std::sort(input.begin(), input.end());
   for (int i = 0; i != input.size(); ++i)
     if (input[i] != i)

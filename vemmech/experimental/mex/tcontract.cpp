@@ -1,3 +1,4 @@
+#include <fstream> //@@ for debugging
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -30,6 +31,14 @@ public:
 
     cout << "Number of components read: " << comps.size() << endl;
 
+    // saving components
+    ofstream os("saved.comps");
+    os << comps.size() << '\n';
+    for (const auto c : comps)
+      c.write(os);
+    os.close();
+    
+    
     const vector<TensorComp<double>> resultcomps = contract_components(comps);
 
     // convert TensorComp to a return value to put into 'outputs'
