@@ -132,7 +132,7 @@ function [bcstruct, force] = setupBCpercase(runcase, G, tbls, mappings, varargin
           case '3d-compaction'
             extface = find(G.faces.centroids(:, 3) == 0);
             for i = 1 : 3
-                extfaces{i} = extface
+                extfaces{i} = extface;
                 linform = zeros(3, 1);
                 linform(i) = 1;
                 linforms{i} = linform;

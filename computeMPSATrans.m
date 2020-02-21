@@ -49,6 +49,7 @@ end
 % G = twister(G, 0.1);
 % compute Grid geometry
 G = computeGeometry(G);
+dim = G.griddim;
 
 % set material properties
 nc = G.cells.num;
@@ -67,8 +68,11 @@ B   = assembly.B  ;
 rhs = assembly.rhs;
 
 sol = B\rhs;
-n = cellcoltbl.num;
+
 % displacement values at cell centers.
+cellcoltbl = tbls.cellcoltbl;
+n = cellcoltbl.num;
+
 u = sol(1 : n);
 
 % Force where the Dirichlet BC are imposed (the are given by the lagrange
@@ -81,7 +85,6 @@ force = assembly.force;
 matrices = assembly.matrices;
 nodaldisp_op = assembly.nodaldisp_op;
 
-cellcoltbl = tbls.cellcoltbl;
 
 invA11 = matrices.invA11;
 D      = matrices.D;
