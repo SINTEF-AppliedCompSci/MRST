@@ -256,6 +256,15 @@ compute_index_ranges(const TensorComp<T>& comp,
   return result;
 }
 
+// ----------------------------------------------------------------------------
+template<typename<T> std::vector<TensorComp<T>>
+compute_sums(const std::vector<TensorComp<T>>& comps,
+             const std::vector<std::vector<std::array<Index, 2>>>& ranges,
+             const std::vector<std::string>>& cixnames)
+// ----------------------------------------------------------------------------
+{
+  
+}
 
 // ============================================================================
 template<typename T>
@@ -284,8 +293,12 @@ std::vector<TensorComp<T>> contract_components(std::vector<TensorComp<T>> comps)
 
   for (const auto& c : comps)
     comp_ranges.emplace_back(compute_index_ranges(c, cixs, mix));
-  
-  return comps; // @@ implement properly
+
+  // multiply together relevant indices and construct new component
+  std::vector<TensorComp<T>> result = compute_sums(comps, comp_ranges, cixs);
+
+  return result;
+  //return comps; // @@ implement properly
 }
   
 #endif
