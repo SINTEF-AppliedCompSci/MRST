@@ -7,7 +7,7 @@ classdef GravityPermeabilityGradientDG < StateFunction
     methods
         function gp = GravityPermeabilityGradientDG(varargin)
             gp@StateFunction(varargin{:});
-            gp = gp.dependsOn({'Density'});
+            gp = gp.dependsOn('Density', 'PVTPropertyFunctions');
             model = varargin{1};
             dim = model.G.griddim;
             [ii, jj] = blockDiagIndex(dim*ones(dim,1), ones(dim,1));
@@ -16,7 +16,7 @@ classdef GravityPermeabilityGradientDG < StateFunction
         
         function gRhoKdz = evaluateOnDomain(gp, model, state)
             
-            rho = gp.getEvaluatedDependencies(state, 'Density');
+            rho = model.getProp(state, 'Viscosity');
             
             g = model.getGravityVector;
             [K, ~, c] = permTensor(model.rock, model.G.griddim);
