@@ -99,6 +99,8 @@ classdef TransportModelDG < TransportModel
             state = validateState@TransportModel(model, state);
             % Assign dofs
             state = assignDofFromState(model.discretization, state, model.dgVariables);
+            % Evaluate basis functions in cubature points
+            state = model.discretization.evaluateBasisFunctions(state, inf, inf);
         end
         
         %-----------------------------------------------------------------%
@@ -623,6 +625,15 @@ classdef TransportModelDG < TransportModel
                 end
             end
 
+        end
+        
+        % ----------------------------------------------------------------%
+        function dt = getMaximumTimestep(model, state, state0, dt0, drivingForces)
+            % Define the maximum allowable time-step based on physics or
+            % discretization choice
+                state = model.getStateAD(state, false);
+                state = state.wellStateDG;
+                dt = model.parentModel.getMaximumTimestep(state, state0, dt0, drivingForces);
         end
         
     end
