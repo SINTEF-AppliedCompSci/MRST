@@ -197,7 +197,7 @@ methods
         model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
     end
     
-    function model = setupStateFunctionGroupings(model)
+    function model = setupStateFunctionGroupings(model, varargin)
         if isempty(model.FlowPropertyFunctions)
             dispif(model.verbose, 'Setting up FlowPropertyFunctions...');
             model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok

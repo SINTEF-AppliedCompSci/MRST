@@ -110,8 +110,8 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
         end
         
         % --------------------------------------------------------------------%
-        function model = setupStateFunctionGroupings(model)
-            model = setupStateFunctionGroupings@ThreePhaseBlackOilModel(model);
+        function model = setupStateFunctionGroupings(model, varargin)
+            model = setupStateFunctionGroupings@ThreePhaseBlackOilModel(model, varargin{:});
             
             fp = model.FlowPropertyFunctions;
             pp = model.PVTPropertyFunctions;

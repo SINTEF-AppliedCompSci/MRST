@@ -434,8 +434,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             assert(model.oil, 'Oileic phase must be present for compositional');
         end
         
-        function model = setupStateFunctionGroupings(model)
-            model = setupStateFunctionGroupings@ReservoirModel(model);
+        function model = setupStateFunctionGroupings(model, varargin)
+            model = setupStateFunctionGroupings@ReservoirModel(model, varargin{:});
             % Compositional specializations
             pvtprops = model.PVTPropertyFunctions;
             pvtprops = pvtprops.setStateFunction('ShrinkageFactors', DensityDerivedShrinkageFactors(model));
