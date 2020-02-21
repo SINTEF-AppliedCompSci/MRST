@@ -22,7 +22,7 @@ classdef FugacityLV < StateFunction
             wat = model.water;
             twoPhase = model.getTwoPhaseFlag(state);
             for i = 1:2
-                xy = mf((1+wat):end, i + wat)';
+                xy = mf(1:end-wat, i + wat)';
                 m = mix{i+wat};
                 if i == 2 && prop.useCompactEvaluation && ~all(twoPhase)
                     [~, ~, twoPhase] = model.getFlag(state);
