@@ -346,9 +346,10 @@ classdef ExtendedFacilityModel < FacilityModel
         
         function containers = getStateFunctionGroupings(model)
             containers = getStateFunctionGroupings@PhysicalModel(model);
-            assert(not(isempty(model.FacilityFluxDiscretization)), ...
-                'FacilityFluxDiscretization not initialized - did you call "validateModel"?');
-            containers = [containers, {model.FacilityFluxDiscretization}];
+            ffd = model.FacilityFluxDiscretization;
+            if ~isempty(ffd)
+                containers = [containers, {ffd}];
+            end
         end
         
         function [p, T] = getSurfaceConditions(fm)
