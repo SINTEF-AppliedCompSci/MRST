@@ -12,7 +12,7 @@ mrstModule add upr dg ad-core ad-props ad-blackoil blackoil-sequential
 % model (with dG) and use a standalone pressure solver to compute pressure.
 % This is used as input to compute the linearized transport equations for
 % the dG transport solver.
-G        = pebiGrid(1/4, [1,1]);
+G        = pebiGrid2D(1/4, [1,1]);
 G        = computeGeometry(G);
 G        = computeCellDimensions(G);
 rock     = makeRock(G, 1, 1);

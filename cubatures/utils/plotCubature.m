@@ -68,7 +68,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         plotPoint = @(x, varargin) plot3(x(:,1), x(:,2), x(:,3), varargin{:});
     end
     for i = 1:numel(w)
-        plotPoint(x, opt.markerStyle, 'markerSize', scaling(i), 'markerFaceColor', 'k')
+        plotPoint(x(i,:), opt.markerStyle, 'markerSize', scaling(i), 'markerFaceColor', 'k')
 %         plot(x(i,1), x(i,2), opt.markerStyle, 'markerSize', scaling(i), 'markerFaceColor', 'k')
     end
 

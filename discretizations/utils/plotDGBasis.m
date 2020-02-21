@@ -32,7 +32,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     dx   = max(xmax - xc, xc - xmin)*2;
     
-    g = computeGeometry(pebiGrid(max(dx)/opt.n, dx, 'polyBdr', xn));
+    g = computeGeometry(pebiGrid2D(max(dx)/opt.n, dx, 'polyBdr', xn));
     x = g.nodes.coords;
     x = (x - G.cells.centroids(cellNo,:))./(dx/2);
     

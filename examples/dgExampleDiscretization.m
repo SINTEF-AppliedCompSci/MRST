@@ -8,7 +8,7 @@ savepng = @(a,b) disp(b);  % Dummy function
 %% Make grid
 % We construct a small PEBI grid
 mrstModule add upr            % For generating PEBI grids
-G = pebiGrid(1/8, [1,1]);     % PEBI grid
+G = pebiGrid2D(1/8, [1,1]);   % PEBI grid
 G = computeGeometry(G);       % Compute geometry
 G = computeCellDimensions(G); % Compute cell dimensions
 
