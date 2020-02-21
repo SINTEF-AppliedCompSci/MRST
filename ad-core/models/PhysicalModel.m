@@ -287,7 +287,7 @@ methods
         model = model.setupStateFunctionGroupings();
     end
     
-    function model = setupStateFunctionGroupings(model)
+    function model = setupStateFunctionGroupings(model, varargin)
         % Initialize state functions and corresponding groups
         %
         % SYNOPSIS:
