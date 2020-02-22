@@ -213,7 +213,9 @@ methods
             model.FluxDiscretization = FluxDiscretization(model); %#ok
             dispif(model.verbose, ' Ok.\n');
         end
-        model.FacilityModel = model.FacilityModel.setupStateFunctionGroupings(varargin{:});
+        if ~isempty(model.FacilityModel)
+            model.FacilityModel = model.FacilityModel.setupStateFunctionGroupings(varargin{:});
+        end
     end
     
     function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin)
