@@ -1,8 +1,10 @@
-%% Bucley-Leverett displacement
+%% Resolution of trailing linear waves
 % In this example, we consider an incompressible Buckley-Leverett
-% displacement in a horizontal 1D channel aligned with the x-axis, and
-% compare higher-order discontinuous Galerkin methods with the standard
-% finite-volume discretization.
+% displacement with an approximate, piecewise linear flux function as an
+% idealized model of trailing linear waves seen in multicomponent and
+% compositional simulation models. The example shows that dG(1) gives
+% similar resolution of the leading displacement wave as an explicit SPU
+% scheme and better resolution of the trailing linear waves.
 
 %% Add modules
 mrstModule add dg ad-core ad-props ad-blackoil blackoil-sequential
@@ -10,24 +12,24 @@ mrstModule add dg ad-core ad-props ad-blackoil blackoil-sequential
 %% Set up problem
 % Construct grid, compute geometry and cell dimensions, and set
 % petrophysical properties 
-n    = 80; m=25/40*n;
+n    = 40; m=25/40*n;
 G    = computeGeometry(cartGrid([n,1],[1 1]));
 G    = computeCellDimensions(G);
 rock = makeRock(G, 1, 1);
 
 % We consider Bucley-Leverett-type displacement with quadratic relperms
-fluid = initSimpleADIFluid('phases', 'WO' , 'n', [2,2], ... 
+fluid = initSimpleADIFluid('phases', 'WO' , 'n', [2,3], ... 
                            'mu', [1,1],  'rho', [1,1]);
 sm = linspace(0,1,6);
-% sm = [0:0.2:0.6 linspace(0.8,1,21)];
-fluid.krO = @(s) interpTable(sm, sm.^3, s);
-fluid.krW = @(s) interpTable(sm, sm.^2, s);
 fluid.f_w = @(s) interpTable(sm, sm.^2./(sm.^2 + (1-sm).^3), s);
+
+figure
 fm = fluid.f_w(sm);
 sc  = sm([end:-1:4 1]);
 fc  = fm([end:-1:4 1]);
 dfc = diff(fc)./diff(sc); 
 plot(sm,fm,'-o'); hold on,plot(sc,fc,'--','LineWidth',1); hold off
+legend('f(S)','f^c(S)');
 
 % The base model is a generic black-oil model with oil and water
 model  = GenericBlackOilModel(G, rock, fluid, 'gas', false);
@@ -72,6 +74,6 @@ flux = flux.setFlowStateBuilder(fb);
 tmodel3.parentModel.FluxDiscretization = flux;
 [~, stSPUe, repSPUe] = simulateScheduleAD(state0, tmodel3, schedule);
 plot(G.cells.centroids(:,1),stSPUe{end}.s(:,1),'.','MarkerSize',20);
-
+legend('exact solution','SPU implicit','dG(1) implicit','SPU explicit');
 %% dG explicit
 % TBA
