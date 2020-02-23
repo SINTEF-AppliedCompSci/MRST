@@ -441,7 +441,7 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
   
   // generate result tensor and add up element with similar indices
   TensorComp<T> result(indexnames, coefs, indices_reordered);
-  result.sortIndicesByNumber(true).sortElementsByIndex().sumEqualIndices();
+    result.sumEqualIndices();
 
   return result;
 

@@ -272,6 +272,8 @@ TensorComp<T>::sortElementsByIndex(bool descending)
 {
   const size_t Nc = numCoefs();
   const size_t Ni = numIndices();
+
+  std::cout << "Sorting " << Nc << " indices." << std::endl;
   std::vector<const Index*> ptrs(Nc); // first sort pointers, then shuffle data
 
   // make pointers point to first index element of each multiindex
@@ -304,7 +306,7 @@ TensorComp<T>::sortElementsByIndex(bool descending)
       ptrs[ic] += Nc; // progress pointer to next column of indices
     }
   }
-
+  std::cout << "Finished!" << std::endl;
   std::swap(coefs_, coefs_sorted);
   std::swap(ixs_, ixs_sorted);
 
