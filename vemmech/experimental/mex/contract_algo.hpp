@@ -426,15 +426,15 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
   std::vector<size_t> rstart(ranges.size()), rlen(ranges.size()), running(ranges.size(), 0);
   std::cout << "Num index combinations: " << N << std::endl;
 
-  //const size_t CONSOLIDATE_TRIGGER = 500000; // @@ doesn't seem to improve
+  const size_t CONSOLIDATE_TRIGGER = 2000000; // @@ doesn't seem to improve
                                                // overall runtime, but may come
                                                // in handy if memory runs low
   for (size_t i = 0; i != N; ++i) {
 
-    // if ( (i+1) % CONSOLIDATE_TRIGGER == 0) {
-    //   std::cout << "Consolidating for i=" << i << std::endl;
-    //   consolidate_entries(coefs, indices);
-    // }      
+    if ( (i+1) % CONSOLIDATE_TRIGGER == 0) {
+      std::cout << "Consolidating for i=" << i << std::endl;
+      consolidate_entries(coefs, indices);
+    }      
 
     bool skip = false;
     for (int j = 0; j < ranges.size() && !skip; ++j) {
