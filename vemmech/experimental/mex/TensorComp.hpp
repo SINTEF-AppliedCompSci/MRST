@@ -44,6 +44,7 @@ public:
   template<typename Indexable>
   TensorComp<T>& permuteIndices(const Indexable perm);
   TensorComp<T>& sortElementsByIndex(bool descending=false);
+  //TensorComp<T>& sortElementsByIndex_old(bool descending=false);
   TensorComp<T>& sortIndicesByNumber(bool descending=false);
   TensorComp<T>& sumEqualIndices();
   
@@ -264,48 +265,95 @@ TensorComp<T>::sortIndicesByNumber(bool descending)
   
 }
 
-
 // ----------------------------------------------------------------------------
 template<typename T> inline TensorComp<T>&
 TensorComp<T>::sortElementsByIndex(bool descending)
 // ----------------------------------------------------------------------------
 {
-  using Ivec = std::vector<Index>;
-  Ivec elem(numIndices()+1, 0);
-  std::vector<Ivec> tmp_sort(numCoefs(), elem);
-  const size_t N = numCoefs();
-  for (int cix = 0; cix != numCoefs(); ++cix) {
-    for (int i = 0; i != numIndices(); ++i)
-      tmp_sort[cix][i] = ixs_[i * N + cix];
-    tmp_sort[cix][numIndices()] = cix;
-  }
+  const size_t Nc = numCoefs();
+  const size_t Ni = numIndices();
+  std::vector<const Index*> ptrs(Nc); // first sort pointers, then shuffle data
 
-  std::sort(tmp_sort.begin(), tmp_sort.end(),
-            [](const Ivec& v1, const Ivec& v2) {
-              for (int i = 0; i != v1.size(); ++i)
-                if (v1[i] != v2[i])
-                  return (v1[i] < v2[i]);
-              return true;
-            });
+  // make pointers point to first index element of each multiindex
+  for (size_t i = 0; i != Nc; ++i)
+    ptrs[i] = &ixs_[i];
+
+  auto comp = [Ni, Nc] (const Index* i1, const Index* i2) {
+                for (int i = 0; i != Ni; ++i, i1 += Nc, i2 += Nc)
+                  if (*i1 != *i2)
+                    return *i1 < *i2;
+                return false;
+              };
+                
+  std::sort(ptrs.begin(), ptrs.end(), comp);
 
   if (descending)
-    std::reverse(tmp_sort.begin(), tmp_sort.end());
+    std::reverse(ptrs.begin(), ptrs.end());
   
-  // copy sorted indices back
-  for (int cix = 0; cix != numCoefs(); ++cix)
-    for (int i = 0; i != numIndices(); ++i)
-      ixs_[i * N + cix] = tmp_sort[cix][i];
-  
-  // sorting coefs
+  // reshuffle data (indices and coefficients)
   std::vector<T> coefs_sorted(coefs_.size());
-  for (int cix = 0; cix != numCoefs(); ++cix)
-    coefs_sorted[cix] = coefs_[tmp_sort[cix][numIndices()]];
+  for (size_t ic = 0; ic != Nc; ++ic) {
+    coefs_sorted[ic] = coefs_[size_t(ptrs[ic] - &ixs_[0])];
+  }
+  
+  std::vector<Index> ixs_sorted(ixs_.size());
+  auto iter = ixs_sorted.begin();
+  for (size_t ii = 0; ii != Ni; ++ii) {
+    for (size_t ic = 0; ic != Nc; ++ic) {
+      *iter++ = *ptrs[ic];
+      ptrs[ic] += Nc; // progress pointer to next column of indices
+    }
+  }
 
   std::swap(coefs_, coefs_sorted);
+  std::swap(ixs_, ixs_sorted);
 
   return *this;
-  
 }
+
+// // ----------------------------------------------------------------------------
+// template<typename T> inline TensorComp<T>&
+// TensorComp<T>::sortElementsByIndex_old(bool descending)
+// // ----------------------------------------------------------------------------
+// {
+//   //std::cout << "Sorting : " << numCoefs() << " coefficients." << std::endl;
+//   using Ivec = std::vector<Index>;
+//   Ivec elem(numIndices()+1, 0);
+//   std::vector<Ivec> tmp_sort(numCoefs(), elem);
+//   const size_t Nc = numCoefs();
+//   const size_t Ni = numIndices();
+//   for (int cix = 0; cix != Nc; ++cix) {
+//     for (int i = 0; i != Ni; ++i)
+//       tmp_sort[cix][i] = ixs_[i * Nc + cix];
+//     tmp_sort[cix][Ni] = cix;
+//   }
+
+//   std::sort(tmp_sort.begin(), tmp_sort.end(),
+//             [](const Ivec& v1, const Ivec& v2) {
+//               for (int i = 0; i != v1.size(); ++i)
+//                 if (v1[i] != v2[i])
+//                   return (v1[i] < v2[i]);
+//               return true;
+//             });
+
+//   if (descending)
+//     std::reverse(tmp_sort.begin(), tmp_sort.end());
+  
+//   // copy sorted indices back
+//   for (int cix = 0; cix != Nc; ++cix)
+//     for (int i = 0; i != Ni; ++i)
+//       ixs_[i * Nc + cix] = tmp_sort[cix][i];
+  
+//   // sorting coefs
+//   std::vector<T> coefs_sorted(coefs_.size());
+//   for (int cix = 0; cix != Nc; ++cix)
+//     coefs_sorted[cix] = coefs_[tmp_sort[cix][Ni]];
+
+//   std::swap(coefs_, coefs_sorted);
+
+//   return *this;
+  
+// }
   
 // ----------------------------------------------------------------------------
 template<typename T> template<typename Indexable> inline bool
