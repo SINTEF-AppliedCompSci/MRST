@@ -59,10 +59,7 @@ schedule = simpleSchedule(dt, 'W', W);
 % is computed using MPFA instead of the regular two-point difference for
 % each face.
 mrstModule add mpfa
-model_mpfa = model.setupStateFunctionGroupings();
-
-mpfa = PhasePotentialDifferenceMPFA(model_mpfa);
-model_mpfa.FluxDiscretization = model_mpfa.FluxDiscretization.setStateFunction('PhasePotentialDifference', mpfa);
+model_mpfa = setMPFADiscretization(model);
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);
 %% Simulate explicit MPFA and explicit TPFA
 model_exp = setTimeDiscretization(model, 'Explicit', 'initialStep', 0.01*day);
