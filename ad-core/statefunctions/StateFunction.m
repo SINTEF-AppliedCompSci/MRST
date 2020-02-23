@@ -31,6 +31,21 @@ classdef StateFunction
             prop = addPropertyDependence(prop, varargin{:});
         end
         
+        function prop = resetDependencies(prop, resetInternal, resetExternal)
+            if nargin < 3
+                resetExternal = true;
+            end
+            if nargin < 2
+                resetInternal = true;
+            end
+            if resetInternal
+                prop.dependencies = {};
+            end
+            if resetExternal
+                prop.externals = [];
+            end
+        end
+        
         function v = evaluateFunctionOnDomainWithArguments(prop, fn, varargin)
             % Evaluate function handle on the entire domain, with specified
             % input arguments
