@@ -90,10 +90,6 @@ inline void advance_multiindex(std::vector<size_t>& mix, const std::vector<size_
       mix[i-1] = mix[i-1] + 1;
     }
   }
-  // std::cout << "new mix: ";
-  // for (int i = 0; i != mix.size(); ++i)
-  //   std::cout << mix[i] << "  (" << bounds[i] << ") ";
-  // std::cout <<  std::endl;
 }
 
 // ----------------------------------------------------------------------------
@@ -366,6 +362,50 @@ free_indices_for(const TensorComp<T>& comp,
 }
 
 // ----------------------------------------------------------------------------
+template<typename T>
+void consolidate_entries(std::vector<T>& coefs,
+                         std::vector<typename TensorComp<T>::Index>& indices)
+// ----------------------------------------------------------------------------
+{
+  typedef typename TensorComp<T>::Index Index;
+  if (indices.size() == 0) {
+    // no free indices, we are working with an intrinsic scalar
+    T sum = std::accumulate(coefs.begin(), coefs.end(), (T)0);
+    coefs = std::vector<T>(1, sum);
+    return;
+  }
+
+  // we create a temporary TensorComp to benefit from its 'sumEqualIndices()' algorithm
+  size_t num_free_indices = indices.size() / coefs.size();
+  size_t num_free_ix_values = coefs.size();
+  
+  std::vector<Index> indices_reordered(indices.size());
+  size_t pos = 0;
+  for (size_t j = 0; j != num_free_indices; ++j)
+    for (size_t i = 0; i != num_free_ix_values; ++i)
+      indices_reordered[pos++] = indices[i * num_free_indices + j];
+  
+  // generate result tensor and add up element with similar indices
+  std::vector<std::string> indexnames(num_free_indices, "dummy_ix");  // index name unimportant
+  
+  TensorComp<T> tcomp(indexnames, coefs, indices_reordered);
+  tcomp.sumEqualIndices();
+  coefs = tcomp.coefs();
+  indices_reordered = tcomp.ixs();
+
+  // reshuffle indices back
+  pos = 0;
+  indices.resize(indices_reordered.size());  
+  num_free_indices = indices.size() / coefs.size(); // recompute, since size has changed 
+  num_free_ix_values = coefs.size();                // recompute, since size has changed
+
+  
+  for (size_t j = 0; j != num_free_indices; ++j)
+    for (size_t i = 0; i != num_free_ix_values; ++i)
+      indices[i * num_free_indices + j] = indices_reordered[pos++];
+}
+
+// ----------------------------------------------------------------------------
 template<typename T> TensorComp<T>
 compute_sums(const std::vector<TensorComp<T>>& comps,
              const std::vector<std::vector<std::array<typename TensorComp<T>::Index, 2>>>& ranges,
@@ -384,8 +424,17 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
   std::vector<T> coefs;
   std::vector<Index> indices;
   std::vector<size_t> rstart(ranges.size()), rlen(ranges.size()), running(ranges.size(), 0);
-  
+  std::cout << "Num index combinations: " << N << std::endl;
+
+  //const size_t CONSOLIDATE_TRIGGER = 500000; // @@ doesn't seem to improve
+                                               // overall runtime, but may come
+                                               // in handy if memory runs low
   for (size_t i = 0; i != N; ++i) {
+
+    // if ( (i+1) % CONSOLIDATE_TRIGGER == 0) {
+    //   std::cout << "Consolidating for i=" << i << std::endl;
+    //   consolidate_entries(coefs, indices);
+    // }      
 
     bool skip = false;
     for (int j = 0; j < ranges.size() && !skip; ++j) {
@@ -394,8 +443,10 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
       rlen[j] = ranges[j][i][1] - rstart[j];
       skip = (rlen[j] == 0);
     }
+
     if (skip)
       continue; // no (value) for this element
+
     
     while (running[0] != rlen[0]) {
 
@@ -416,9 +467,7 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
       
       advance_multiindex(running, rlen);
     }
-
   }
-
   // collect the index names of the to-be-created tensor
   std::vector<std::string> indexnames;
   for (const auto& fi : free_indices)
@@ -441,8 +490,7 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
   
   // generate result tensor and add up element with similar indices
   TensorComp<T> result(indexnames, coefs, indices_reordered);
-    result.sumEqualIndices();
-
+  result.sumEqualIndices();
   return result;
 
 }
