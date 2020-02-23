@@ -15,11 +15,16 @@ template<typename T> class TensorComp
 // ============================================================================
 {
 public:
-  //using Index = int;
-  using ICount = std::tuple<int, size_t>;
 
   typedef int Index;
+
+  // empty tensor
   TensorComp() {}
+  // intrinsic scalar
+  TensorComp(const T& scalar) : indexnames_(std::vector<std::string>()),
+                                coefs_(std::vector<T>(1, scalar)),
+                                ixs_(std::vector<Index>()) {}
+  // indexed tensor
   TensorComp(const std::vector<std::string>& indexnames,
              const std::vector<T>& coefs,
              const std::vector<Index>& ixs) :
@@ -231,21 +236,29 @@ template<typename T> inline TensorComp<T>&
 TensorComp<T>::sortIndicesByNumber(bool descending)
 // ----------------------------------------------------------------------------
 {
+  typedef std::tuple<size_t, std::string, size_t> ICount; // index name included to ensure unique sort
+
   // determine unique entries in for each index
   std::vector<ICount> num_uniques(numIndices());
 
   const size_t N = numCoefs();
   for (int i = 0; i != numIndices(); ++i)
-    num_uniques[i] = ICount {numUniqueValuesFor(i), i};
+    num_uniques[i] = ICount {numUniqueValuesFor(i), indexnames_[i], i};
 
   // permute indices accordingly
-  std::sort(num_uniques.begin(), num_uniques.end());
-  if (descending)
-    std::reverse(num_uniques.begin(), num_uniques.end());
+  auto comp = descending ? [](const ICount& a, const ICount& b) { return a > b;} :
+                           [](const ICount& a, const ICount& b) { return a < b;};
+
+    // [](const ICount& a, const ICount& b) { return std::get<0>(a) > std::get<0>(b);} :
+    // [](const ICount& a, const ICount& b) { return std::get<0>(a) < std::get<0>(b);};
+  
+  std::stable_sort(num_uniques.begin(), num_uniques.end(), comp);
+  // if (descending)
+  //   std::reverse(num_uniques.begin(), num_uniques.end());
 
   std::vector<int> perm(numIndices());
   for (int i = 0; i != numIndices(); ++i)
-    perm[i] = std::get<1>(num_uniques[i]);
+    perm[i] = std::get<2>(num_uniques[i]);
 
   return permuteIndices(perm);
   

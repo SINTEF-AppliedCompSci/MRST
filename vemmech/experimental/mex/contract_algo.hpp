@@ -60,8 +60,8 @@ identify_contracting_multiindex(const std::vector<TensorComp<T>>& comps)
 
 // ----------------------------------------------------------------------------
 template<typename T> std::vector<int>
-identify_comps_for_multiix_iteration(std::vector<TensorComp<T>>& comps,
-                                    const std::vector<std::string>& cixs)
+identify_comps_for_multiix_iteration(const std::vector<TensorComp<T>>& comps,
+                                     const std::vector<std::string>& cixs)
 // ----------------------------------------------------------------------------
 {
   std::vector<int> result(cixs.size(), -1); // -1 flags that index not yet set
@@ -95,7 +95,57 @@ inline void advance_multiindex(std::vector<size_t>& mix, const std::vector<size_
   //   std::cout << mix[i] << "  (" << bounds[i] << ") ";
   // std::cout <<  std::endl;
 }
-  
+
+// ----------------------------------------------------------------------------
+template<typename Index>
+std::vector<size_t> sort_multiindex(std::vector<Index>& mix, int num_elem)
+// ----------------------------------------------------------------------------
+{
+  struct SortElem {
+    const Index* ptr;
+    size_t init_pos;
+  };
+  size_t N = mix.size() / num_elem;
+  std::vector<SortElem> mixptrs(N);
+  for (size_t i = 0; i != N; ++i)
+    mixptrs[i] = { &mix[i * num_elem], i};
+
+  auto comp = [num_elem](const SortElem& i1, const SortElem& i2) {
+                for (int i = 0; i != num_elem; ++i)
+                  if (i1.ptr[i] != i2.ptr[i])
+                    return i1.ptr[i] < i2.ptr[i];
+                return false;
+              };
+  std::sort(mixptrs.begin(), mixptrs.end(), comp);
+
+  // copying sorted elements back
+  std::vector<size_t> reindexes(N);
+  std::vector<Index> result(mix.size());
+  size_t count = 0;
+  size_t reindex_count = 0;
+  for (auto it = mixptrs.begin(); it != mixptrs.end(); ++it) {
+    for (int i = 0; i != num_elem; ++i) 
+      result[count++] = it->ptr[i];
+    
+    reindexes[reindex_count++] = it->init_pos;
+  }
+  std::swap(mix, result);
+  return reindexes;
+}
+
+// ----------------------------------------------------------------------------
+template<typename Index>
+void transpose(std::vector<Index>& vals, size_t num_cols)
+// ----------------------------------------------------------------------------
+{
+  const size_t num_rows = vals.size() / num_cols;
+  std::vector<Index> result(vals.size());
+  size_t ix = 0;
+  for(size_t i = 0; i != num_rows; ++i)
+    for(size_t j = 0; j != num_cols; ++j)
+      result[ix++] = vals[j * num_rows + i];
+  std::swap(vals, result);
+}
 
 // ----------------------------------------------------------------------------
 template<typename T>
@@ -129,23 +179,31 @@ compute_multiindices(
     if (ixnames.empty())
       continue;
     
-    std::vector<std::vector<Index>> ixvals(ixnames.size());
-    for (int i = 0; i != ixnames.size(); ++i) 
-      ixvals[i] = comps[c_ix].indexValuesFor(ixnames[i]);
+    std::vector<Index> ixvals;
+    for (int i = 0; i != ixnames.size(); ++i) {
+      const auto col = comps[c_ix].indexValuesFor(ixnames[i]);
+      ixvals.insert(ixvals.end(), col.begin(), col.end());
+    }
+    transpose(ixvals, ixnames.size());
+    sort_multiindex(ixvals, ixnames.size());
     
     // identify where index changes occur
+    const size_t elnum = ixnames.size();
+    const size_t N = ixvals.size() / elnum;
+    
     std::vector<Index> changes(1, 0);
-    for (int i = 0; i != ixvals[0].size(); ++i)
-      for (int j = 0; j != ixvals.size() && changes.back() != i; ++j)
-        if (ixvals[j][i-1] != ixvals[j][i]) 
+    for (int i = 1; i != N; ++i) {
+      for (int j = 0; j != elnum && changes.back() != i; ++j)
+        if (ixvals[elnum * i + j] != ixvals[elnum * (i-1) + j])
           changes.push_back(i);
+    }
 
     std::vector<std::vector<Index>> unique_ixvals;
-    for (int i = 0; i != ix_pos.size(); ++i) {
+    for (int i = 0; i != elnum; ++i) {
       std::vector<Index> unique_ival(changes.size());
 
       for (int j = 0; j != changes.size(); ++j)
-        unique_ival[j] = ixvals[i][changes[j]];
+        unique_ival[j] = ixvals[changes[j] * elnum + i];
 
       unique_ixvals.push_back(unique_ival);
     }
@@ -177,6 +235,8 @@ compute_multiindices(
     // advance loop multiindex
     advance_multiindex(indices, indices_max);
   }
+  sort_multiindex(result, mix_comp.size());
+  
   return result;
 }
 
@@ -213,6 +273,9 @@ compute_index_ranges(const TensorComp<T>& comp,
   for (size_t i = 0; i != mixnum; ++i)
     for (int j = 0; j != actnum; ++j)
       mix_ixs.push_back(mixs[i*elnum + active[j]]);
+
+  const auto reindex = sort_multiindex(mix_ixs, actnum);
+                                       
 
   // loop through all multiindices and define ranges
   std::vector<std::array<Index, 2>> result(mixnum);
@@ -253,6 +316,13 @@ compute_index_ranges(const TensorComp<T>& comp,
     result[ix][1] = (cit - comp_ixs.begin()) / actnum;
 
   }
+  // reindex results according to original order of elements in mixs
+  std::vector<std::array<Index, 2>> result_reorder(result.size());
+  for (size_t i = 0; i != result.size(); ++i)
+    result_reorder[reindex[i]] = result[i];
+
+  std::swap(result, result_reorder);
+  
   return result;
 }
 
@@ -354,15 +424,20 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
   for (const auto& fi : free_indices)
     indexnames.insert(indexnames.end(), fi.second.begin(), fi.second.end());
 
-  // reformat indices
+  // reformat indices (unless tensor is an intrinsic scalar, in which case we return it)
   const size_t num_free_indices = indexnames.size();
+  if (num_free_indices == 0)
+    // tensor is an intrinsic scalar
+    return TensorComp<T>(std::accumulate(coefs.begin(), coefs.end(), (T)0));
+
   const size_t num_free_ix_values = indices.size() / num_free_indices;
+
   
   std::vector<Index> indices_reordered(indices.size());
   size_t pos = 0;
-  for (size_t i = 0; i != num_free_ix_values; ++i)
-    for (size_t j = 0; j != num_free_indices; ++j)
-      indices_reordered[i * num_free_indices + j] = indices[pos++];
+  for (size_t j = 0; j != num_free_indices; ++j)
+    for (size_t i = 0; i != num_free_ix_values; ++i)
+      indices_reordered[pos++] = indices[i * num_free_indices + j];
   
   // generate result tensor and add up element with similar indices
   TensorComp<T> result(indexnames, coefs, indices_reordered);

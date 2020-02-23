@@ -360,6 +360,7 @@ classdef SparseTensor
             [control, tmp_ix] = sort(control);
             for i = 1:numel(comps)
                comps{i}.ixs(:, 1:num_cix) = comps{i}.ixs(:, tmp_ix);
+               comps{i}.indexnames(1:num_cix) = comps{i}.indexnames(tmp_ix);
             end
             
             % identifying all relevant indexing combinations

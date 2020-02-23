@@ -1,11 +1,13 @@
-%G = cartGrid([1, 1, 2]);
-%G = cartGrid([3, 3, 3]);
-%G = cartGrid([5,10, 10]);
+G = cartGrid([1, 1, 1]);
+%G = cartGrid([2,2,2]);
+%G = cartGrid([5, 10, 10]);
 %G = cartGrid([10, 10, 10]);
-%G = cartGrid([40, 20, 20]);
+%G = cartGrid([15, 15, 15]);
+%G = cartGrid([20, 20, 20]);
+%G = cartGrid([40, 40, 40]);
 %G = cartGrid([22, 22, 22]);
 %G = cartGrid([30 30 30]);
-G = cartGrid([40, 40, 40]);
+%G = cartGrid([40, 40, 40]);
 
 T_dim_ind = SparseTensor(ones(G.griddim, 1), {'dim'});
 T_node_coords = SparseTensor(G.nodes.coords, {'node', 'dim'});
