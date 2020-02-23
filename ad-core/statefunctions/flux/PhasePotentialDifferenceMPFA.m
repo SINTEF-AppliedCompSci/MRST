@@ -19,39 +19,39 @@ classdef PhasePotentialDifferenceMPFA < StateFunction
             pp.hasGravity = norm(model.gravity(1:model.G.griddim)) > 0;
             require mpfa
             [~, M] = computeMultiPointTrans(model.G, model.rock);
-            
-            Tv = M.rTrans;
-            Tg = M.rgTrans(model.operators.internalConn, :);
-            
+            Tv = M.rTrans; % Cells -> Inner faces
+            Tg = M.rgTrans(model.operators.internalConn, :); % Inner -> Inner
+            % Change sign and re-scale operators to fit with AD-OO
+            % definition of gradient.
             scale = -1./(2*model.operators.T);
             pp.ViscousGrad = Tv.*scale;
             pp.GravityGrad = -Tg.*scale/2;
             assert(all(M.N(:) == model.operators.N(:)));
-            
+            % Allow kw inputs
             pp = merge_options(pp, varargin{:});
-            pp.label = 'K(\nabla p_\alpha+g\rho_\alpha\Delta z)';
+            pp.label = '\Theta_\alpha';
         end
         
         function v = evaluateOnDomain(prop, model, state)
             nph = model.getNumberOfPhases();
-            Vgrad = prop.ViscousGrad;
-            Ggrad = prop.GravityGrad;
+            M_d = prop.ViscousGrad;
+            M_g = prop.GravityGrad;
             v = cell(1, nph);
             if prop.uniquePressure
                 p = model.getProp(state, 'pressure');
-                Kgradp = Vgrad*p;
-                [v{:}] = deal(Kgradp);
+                gradp = M_d*p;
+                [v{:}] = deal(gradp);
             else
                 pressures = model.getProp(state, 'PhasePressures');
                 for i = 1:nph
-                    v{i} = Vgrad*pressures{i};
+                    v{i} = M_d*pressures{i};
                 end
             end
             
             if prop.hasGravity
                 gdz = model.getProp(state, 'GravityPotentialDifference');
                 for i = 1:nph
-                    v{i} = v{i} + Ggrad*gdz{i};
+                    v{i} = v{i} + M_g*gdz{i};
                     % v{i} = v{i} + gdz{i}; Alternate way, inconsistent
                 end
             end
