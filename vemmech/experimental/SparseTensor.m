@@ -775,18 +775,31 @@ classdef SparseTensor
          
          multi_ixs_1d = SparseTensor.compute_1D_index(multiix, maxixs);
          ixs_1d = SparseTensor.compute_1D_index(ixs, maxixs);
-         
-         [mix_vals, ~, mix_occur_ix] = unique(multi_ixs_1d);
+   
+         % ---- new try ---
          
          [vals, reps] = rlencode(ixs_1d);
          
-         range_entries = zeros(mix_vals(end), 2);
+         range_entries = zeros(max(multi_ixs_1d), 2);
          
          range_entries(vals, 1) = cumsum([1;reps(1:end-1)]);
          range_entries(vals, 2) = reps;
          
-         ranges = range_entries(mix_occur_ix, :);
-
+         ranges = range_entries(multi_ixs_1d, :);
+         
+         % --- old try ---
+         % [mix_vals, ~, mix_occur_ix] = unique(multi_ixs_1d);
+         
+         % [vals, reps] = rlencode(ixs_1d);
+         
+         % range_entries = zeros(mix_vals(end), 2);
+         
+         % range_entries(vals, 1) = cumsum([1;reps(1:end-1)]);
+         % range_entries(vals, 2) = reps;
+         
+         % ranges = range_entries(mix_occur_ix, :);
+         
+         
       end
       
       
