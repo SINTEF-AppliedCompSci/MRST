@@ -6,7 +6,7 @@ function model = setMPFADiscretization(model)
     else
         m = model;
     end
-    model = setMPFA(model);
+    m = setMPFA(m);
     if isWrapper
         model.parentModel = m;
     else
@@ -22,7 +22,7 @@ function model = setMPFA(model)
     % Change sign and re-scale operators to fit with AD-OO
     % definition of gradient.
     scale = -1./(2*model.operators.T);
-    Grad = Tv.*scale;
+    MPFAGrad = Tv.*scale;
     G_scale = -Tg.*scale/2;
     assert(all(M.N(:) == model.operators.N(:)), ...
         'Operator neighborship does not match MPFA neighborship. NNC?');
@@ -33,7 +33,7 @@ function model = setMPFA(model)
     % Discrete gradient
     fd = model.FluxDiscretization;
     dp = fd.getStateFunction('PressureGradient');
-    dp.Grad = @(x) Grad*x;
+    dp.Grad = @(x) MPFAGrad*x;
     fd = fd.setStateFunction('PressureGradient', dp);
     % Phase potential difference
     dg = fd.getStateFunction('GravityPotentialDifference');
