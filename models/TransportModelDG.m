@@ -456,11 +456,13 @@ classdef TransportModelDG < TransportModel
             cells = sum(model.G.faces.neighbors(faces,:),2);
             % Compute preoperites with AD
             bcStateDG  = model.getStateDG(state , cells, faces, false);
-            % Compute preoperites without AD (using getStateDG ensures
+            % Compute properites without AD (using getStateDG ensures
             % that properties are evaluated consistently)
-            bcStateDG0 = model.getStateDG(state0, cells, faces, false);
+%             bcStateDG0 = model.getStateDG(state0, cells, faces, false);
             % Get flow state (either bcStateDG or bcStateDG0)
-            bcStateDG  = model.parentModel.FluxDiscretization.buildFlowState(model.parentModel, bcStateDG, bcStateDG0, dt);
+            fsb = FlowStateBuilderDG();
+            bcStateDG = fsb.build(model.parentModel.FluxDiscretization, model.parentModel, bcStateDG, [], []);
+%             bcStateDG  = model.parentModel.FluxDiscretization.buildFlowState(model.parentModel, bcStateDG, bcStateDG0, dt);
             % Compute boundary condition fluxes
             model.parentModel = model.parentModel.FluxDiscretization.expandRegions(model.parentModel, 'cells', bcStateDG.cells);
             q = computeBoundaryFluxesDG(model.parentModel, bcStateDG, bc);
@@ -633,6 +635,9 @@ classdef TransportModelDG < TransportModel
             % discretization choice
                 state = model.getStateAD(state, false);
                 state = state.wellStateDG;
+                state.cells = (1:model.G.cells.num)';
+                state.faces = (1:model.G.faces.num)';
+                state.faces = state.faces(model.parentModel.operators.internalConn);
                 dt = model.parentModel.getMaximumTimestep(state, state0, dt0, drivingForces);
         end
         
