@@ -159,7 +159,7 @@ classdef DGDiscretization < SpatialDiscretization
         %-----------------------------------------------------------------%
         function [xhat, translation, scaling] = transformCoords(disc, x, cells, inverse)
             % Transfor coordinates from physical to reference coordinates
-            if nargin < 4, inverse   = false; end
+            if nargin < 4, inverse = false; end
             [xhat, translation, scaling] = disc.cellCubature.transformCoords(x, cells, inverse);
         end
         
