@@ -8,6 +8,7 @@
 #include <assert.h>
 
 #include "TensorComp.hpp"
+#include "multiix_tools.hpp"
 
 // ----------------------------------------------------------------------------
 template<typename T> inline std::vector<std::string>
@@ -77,70 +78,6 @@ identify_comps_for_multiix_iteration(const std::vector<TensorComp<T>>& comps,
     }
   }
   return result;
-}
-
-// ----------------------------------------------------------------------------
-inline void advance_multiindex(std::vector<size_t>& mix, const std::vector<size_t>& bounds)
-// ----------------------------------------------------------------------------
-{
-  mix.back() = mix.back() + 1;
-  for (int i = mix.size() - 1; i > 0; --i) {
-    if (mix[i] == bounds[i]) {
-      mix[i] = 0;
-      mix[i-1] = mix[i-1] + 1;
-    }
-  }
-}
-
-// ----------------------------------------------------------------------------
-template<typename Index>
-std::vector<size_t> sort_multiindex(std::vector<Index>& mix, int num_elem)
-// ----------------------------------------------------------------------------
-{
-  struct SortElem {
-    const Index* ptr;
-    size_t init_pos;
-  };
-  size_t N = mix.size() / num_elem;
-  std::vector<SortElem> mixptrs(N);
-  for (size_t i = 0; i != N; ++i)
-    mixptrs[i] = { &mix[i * num_elem], i};
-
-  auto comp = [num_elem](const SortElem& i1, const SortElem& i2) {
-                for (int i = 0; i != num_elem; ++i)
-                  if (i1.ptr[i] != i2.ptr[i])
-                    return i1.ptr[i] < i2.ptr[i];
-                return false;
-              };
-  std::sort(mixptrs.begin(), mixptrs.end(), comp);
-
-  // copying sorted elements back
-  std::vector<size_t> reindexes(N);
-  std::vector<Index> result(mix.size());
-  size_t count = 0;
-  size_t reindex_count = 0;
-  for (auto it = mixptrs.begin(); it != mixptrs.end(); ++it) {
-    for (int i = 0; i != num_elem; ++i) 
-      result[count++] = it->ptr[i];
-    
-    reindexes[reindex_count++] = it->init_pos;
-  }
-  std::swap(mix, result);
-  return reindexes;
-}
-
-// ----------------------------------------------------------------------------
-template<typename Index>
-void transpose(std::vector<Index>& vals, size_t num_cols)
-// ----------------------------------------------------------------------------
-{
-  const size_t num_rows = vals.size() / num_cols;
-  std::vector<Index> result(vals.size());
-  size_t ix = 0;
-  for(size_t i = 0; i != num_rows; ++i)
-    for(size_t j = 0; j != num_cols; ++j)
-      result[ix++] = vals[j * num_rows + i];
-  std::swap(vals, result);
 }
 
 // ----------------------------------------------------------------------------
