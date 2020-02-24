@@ -73,7 +73,7 @@ function state = tvb(state, model, interpSetup, name, tol, limits)
 
     if any(bad)
         for i = 1:nc
-            dofbar = approximatGradient(model, interpSetup, state, dof(:,i), v(:,i));
+            dofbar = approximateGradient(model, interpSetup, state, dof(:,i), v(:,i));
             dofbar = dofbar(bad,:)';
             dofbar = dofbar(:);
             dofbar(isnan(dofbar)) = 0;
@@ -127,7 +127,7 @@ function [jumpVal, faces, cells] = getInterfaceJumps(disc, dof, state)
 end
 
 %-------------------------------------------------------------------------%
-function dofbar = approximatGradient(model, interpSetup, state, dof, v)
+function dofbar = approximateGradient(model, interpSetup, state, dof, v)
 
     G    = model.parentModel.G;
     disc = model.discretization;

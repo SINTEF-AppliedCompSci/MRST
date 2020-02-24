@@ -12,13 +12,13 @@ classdef ComponentTotalVelocityDG < StateFunction
             ncomp = model.getNumberOfComponents();
             nph = model.getNumberOfPhases();
             v = cell(ncomp, 1);
-            phase_flux = prop.getEvaluatedDependencies(state, 'ComponentPhaseVelocity');
+            phase_velocity = prop.getEvaluatedDependencies(state, 'ComponentPhaseVelocity');
             
             for c = 1:ncomp
                 % Loop over phases where the component may be present
                 for ph = 1:nph
                     % Check if present
-                    m = phase_flux{c, ph};
+                    m = phase_velocity{c, ph};
                     if ~isempty(m)
                         if isempty(v{c})
                             v{c} = m;
