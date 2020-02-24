@@ -414,13 +414,13 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                         sG(pureVapor) = max(sG(pureVapor), stol);
                     end
                 end
-
-                if any(pureLiquid)
-                    sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
+                toLiquid = ~pureVapor;
+                if any(toLiquid)
+                    sO(toLiquid) = sT(toLiquid) - sW(toLiquid);
                     if isa(sO, 'ADI')
-                        sO.val(pureLiquid) = max(sO.val(pureLiquid), stol);
+                        sO.val(toLiquid) = max(sO.val(toLiquid), stol);
                     else
-                        sO(pureLiquid) = max(sO(pureLiquid), stol);
+                        sO(toLiquid) = max(sO(toLiquid), stol);
                     end
                 end
             end
@@ -450,6 +450,18 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             pvtprops = pvtprops.setStateFunction('Viscosity', CompositionalViscosityLV(model));
 
             model.PVTPropertyFunctions = pvtprops;
+            
+            fp = model.FlowPropertyFunctions;
+            cmass = fp.getStateFunction('ComponentTotalMass');
+            if isempty(cmass.getMinimumDerivatives())
+                ncomp = model.getNumberOfComponents();
+                mv = model.EOSModel.minimumComposition;
+                md = repmat(mv/100, 1, ncomp);
+                md(1) = mv/barsa; % Pressure alignment - assumed 1.
+                cmass = cmass.setMinimumDerivatives(md);
+                fp = fp.setStateFunction('ComponentTotalMass', cmass);
+            end
+            model.FlowPropertyFunctions = fp;
         end
     end
     
