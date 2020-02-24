@@ -7,8 +7,11 @@ classdef ExplicitFlowStateBuilderDG < ExplicitFlowStateBuilder & FlowStateBuilde
             switch type
                 case 'face'
                     flowState0 = state0.faceStateDG;
+                    
                 case 'cell'
-                    flowState0 = state0.faceStateDG;
+                    flowState0 = state0.cellStateDG;
+                    builder.explicitFlux = {};
+                    builder.explicitFlow = {'ComponentMobility', 'Mobility', 'GravityPermeabilityGradient'};
             end
             flowState = build@ExplicitFlowStateBuilder(builder, fd, model, flowState, flowState0, dt);
         end
