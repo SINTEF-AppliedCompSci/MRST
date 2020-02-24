@@ -335,7 +335,7 @@ classdef DGDiscretization < SpatialDiscretization
             % Compute dG inner products
             %
             % PARAMETERS:
-            %   u            - Either scalar vector of SpatialVector
+            %   u            - Either scalar vector or SpatialVector
             %   v            - Basis function cell array
             %   differential - 'dV': cell integral, 'dS' face integral
             %   elements     - Elements we compute innter product over
@@ -350,7 +350,7 @@ classdef DGDiscretization < SpatialDiscretization
                     ip = disc.cellInt(u, v, elements);
                 case 'dS'
                     ip = disc.faceInt(u, v, elements);
-            end 
+            end
         end
         
         %-----------------------------------------------------------------%
