@@ -32,7 +32,11 @@ W = addWell(W, G, rock, find(ii == 1 & jj == 1), 'comp_i', [1, 0], 'type', 'bhp'
 % easily simulate the same problem with different underlying physics.
 gravity reset off;
 fluid = initSimpleADIFluid('cR', 1e-8/barsa, 'rho', [1, 1000, 100]);
-if exist('useComp', 'var') && useComp
+if ~exist('useComp', 'var')
+    useComp = false;
+end
+
+if useComp
     % Compositional, two-component
     [f, info] = getCompositionalFluidCase('verysimple');
     eos = EquationOfStateModel(G, f);
@@ -80,7 +84,7 @@ title('TPFA explicit')
 figure;
 plotToolbar(G, statesMPFAExplicit)
 title('MPFA explicit')
-%% Plot the well curves
+%% Plot the producer results
 % We note that there are two choices that impact the accuracy of the
 % scheme: The choice between a consistent and an inconsistent scheme
 % results in bias to the producer that is favorably aligned with the grid
@@ -99,21 +103,44 @@ for i = 2:3
         c = 'b';
     end
     wn = W(i).name;
+    if useComp
+        get = @(ws) -getWellOutput(ws, 'ComponentTotalFlux', wn, 1);
+        ti = get(ws);
+        te = get(wsExplicit);
+        mi = get(wsMPFA);
+        me = get(wsMPFAExplicit);
+        l = 'CO2 production';
+        yl = [0, 0.18];
+    else
+        rt = {'qWs', 'qOs'};
+        qs_te = getWellOutput(wsExplicit, rt, wn);
+        qs_ti = getWellOutput(ws, rt, wn);
+        qs_me = getWellOutput(wsMPFAExplicit, rt, wn);
+        qs_mi = getWellOutput(wsMPFA, rt, wn);
+
+        ti = qs_ti(:, :, 1)./(sum(qs_ti, 3));
+        te = qs_te(:, :, 1)./(sum(qs_te, 3));
+        mi = qs_mi(:, :, 1)./(sum(qs_mi, 3));
+        me = qs_me(:, :, 1)./(sum(qs_me, 3));
+        l = 'Water cut';
+        yl = [0, 1];
+    end
     li = sprintf('%s: Implicit', wn);
     le = sprintf('%s: Explicit', wn);
     % Inconsistent solvers
-    qws_te = getWellOutput(wsExplicit, 'qWs', wn);
-    qws_ti = getWellOutput(ws, 'qWs', wn);
     figure(h1);
-    plot(time/day, -qws_ti, '--', 'linewidth', 2, 'color', c, 'DisplayName', li);
-    plot(time/day, -qws_te, '-', 'linewidth', 1, 'color', c, 'DisplayName', le);
-
+    plot(time/day, ti, '--', 'linewidth', 2, 'color', c, 'DisplayName', li);
+    plot(time/day, te, '-', 'linewidth', 1, 'color', c, 'DisplayName', le);
+    xlabel('Days simulated');
+    ylabel(l);
+    ylim(yl);
     % Consistent solvers
-    qws_me = getWellOutput(wsMPFAExplicit, 'qWs', wn);
-    qws_mi = getWellOutput(wsMPFA, 'qWs', wn);
     figure(h2);
-    plot(time/day, -qws_mi, '--', 'linewidth', 2, 'color', c, 'DisplayName', li);
-    plot(time/day, -qws_me, '-', 'linewidth', 1, 'color', c, 'DisplayName', le);
+    plot(time/day, mi, '--', 'linewidth', 2, 'color', c, 'DisplayName', li);
+    plot(time/day, me, '-', 'linewidth', 1, 'color', c, 'DisplayName', le);
+    xlabel('Days simulated');
+    ylabel(l);
+    ylim(yl);
 end
 
 for i = 1:2
@@ -126,3 +153,44 @@ for i = 1:2
 end
 %% Interactive plotting
 plotWellSols({ws, wsMPFA, wsExplicit, wsMPFAExplicit}, time, 'datasetnames', {'TPFA implicit', 'MPFA implicit', 'TPFA explicit', 'MPFA explicit'})
+%% Plot the front at a chosen time-step
+if useComp
+    ix = 20;
+else
+    ix = 10;
+end
+
+x = reshape(G.cells.centroids(:, 1), G.cartDims);
+y = reshape(G.cells.centroids(:, 2), G.cartDims);
+
+for i = 1:2
+    if i == 1
+        impl = states;
+        expl = statesExplicit;
+    else
+        impl = statesMPFA;
+        expl = statesMPFAExplicit;
+    end
+    impl = impl{ix};
+    expl = expl{ix};
+    if useComp
+        vi = impl.components(:, 1);
+        ei = expl.components(:, 1);
+    else
+        vi = impl.s(:, 1);
+        ei = expl.s(:, 1);
+    end
+    N        = 20;
+    cval     = [.5*movsum(linspace(0,1,N+1),2) 1];
+    figure(i); clf; hold on
+    colormap(flipud([.7*winter(128).^2+.3; 1 1 1]));
+    contourf(x, y, reshape(vi, G.cartDims), cval,'EdgeColor','none');
+    contour(x, y, reshape(ei, G.cartDims),  cval(2:end-1), 'k')
+    plotGrid(G, 'FaceColor', 'none', 'EdgeColor', 0.8*[1, 1, 1], 'EdgeAlpha', 0.25);
+
+    axis equal tight off;
+    for wno = 1:numel(W)
+        c = G.cells.centroids(W(wno).cells, :);
+        plot(c(1), c(2), 'kO', 'markersize', 8, 'markerFaceColor', 'r')
+    end
+end
