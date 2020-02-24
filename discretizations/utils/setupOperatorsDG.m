@@ -31,9 +31,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     op.M = M;
     op.faceAvg = @(x) M*x;
     
-%     op.faceUpstr0 = @(flag, x) op.faceUpstr(flag, x);
+    op.faceUpstr0 = @(flag, x) op.faceUpstr(flag, x);
     op.faceUpstr = @(flag, x) faceUpstr(flag, x, N, [nf, 2*nf]);
-%     op.faceUpstr = @(flag, x) fup(op, flag, x, nf);
+    op.faceUpstr = @(flag, x) fup(op, flag, x, nf);
     
     op.C0 = op.C;
     C = sparse((1:nf)'.*[1,1], N, ones(nf,1)*[1 -1], nf, 2*nf);
@@ -66,9 +66,9 @@ function dv = div(op, v)
 end
 
 function up = fup(op, flag, x, nf)
-%     if numel(flag) 
-%         up = op.faceUpstr0(flag, x);
-%     else
+    if numel(flag) < nf
+        up = op.faceUpstr0(flag, x);
+    else
         up = op.faceUpstr(flag, x);
-%     end
+    end
 end
