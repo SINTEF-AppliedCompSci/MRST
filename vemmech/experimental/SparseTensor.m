@@ -321,6 +321,45 @@ classdef SparseTensor
       end
 
       function self = expandall(self, expand_tensor)
+         
+         if nargin < 2
+            expand_tensor = true; 
+         end
+
+         [ixnames, cixnames] = indexNames(self);
+         sum_comps = {};
+         indep_comps = {};
+         for c = self.components
+            if numel(intersect(cixnames, c{:}.indexnames)) > 0
+               sum_comps = [sum_comps, c];
+            else
+               indep_comps = [indep_comps, c];
+            end
+         end
+         
+         if numel(sum_comps) > 1
+            % ensure no sparse vectors used
+            for i = 1:numel(sum_comps)
+               sum_comps{i}.coefs = full(sum_comps{i}.coefs);
+            end
+            sumcomp = tcontract(sum_comps);
+            self = SparseTensor([indep_comps, sumcomp]);   
+         else
+            self = SparseTensor(indep_comps);
+         end
+         
+         if expand_tensor
+            expanded_comp = self.components{1};
+            for i = 2:numel(self.components)
+               expanded_comp = SparseTensor.tensor_product(expanded_comp, ...
+                                                           self.components{i});
+            end
+            self = SparseTensor(expanded_comp);
+         end
+      end
+
+            
+      function self = expandall_regular(self, expand_tensor)
 
          if nargin < 2
             expand_tensor = true; 

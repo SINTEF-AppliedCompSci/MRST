@@ -24,10 +24,13 @@ public:
     const CellArray cells = inputs[0];
     vector<TensorComp<double>> comps;
 
-    for (const auto c : cells)
+    for (const auto c : cells) {
+      std::cout << "enter" << std::endl;
       comps.emplace_back( TensorComp<double>{extract_indexnames_(c),
                                              extract_numbers_<double>(c, "coefs"),
                                              extract_numbers_<int>(c, "ixs")});
+      std::cout << "exit" << std::endl;
+    }
 
     cout << "Number of components read: " << comps.size() << endl;
 
@@ -37,8 +40,7 @@ public:
     // for (const auto c : comps)
     //   c.write(os);
     // os.close();
-    
-    
+
     const vector<TensorComp<double>> resultcomps = contract_components(comps);
 
     // convert TensorComp to a return value to put into 'outputs'
@@ -92,7 +94,6 @@ public:
   template<typename T>
   vector<T> extract_numbers_(const StructArray& comp, const string field) {
     const TypedArray<double> arr = comp[0][field];
-
     vector<T> result;
     copy(arr.begin(), arr.end(), back_inserter(result));
     return result;
