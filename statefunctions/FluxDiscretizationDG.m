@@ -89,10 +89,8 @@ function props = expandPropsRegions(props, cells)
     for j = 1:numel(names)
         if isprop(props, names{j})
             p = props.(names{j});
-            if isprop(p, 'regions') && ~isempty(p.regions)
-                p.regions = p.regions(cells);
-                props.(names{j}) = p;
-            end
+            p = p.subset(cells);
+            props.(names{j}) = p;
         end
     end
 end
