@@ -36,16 +36,6 @@ classdef TransportModelDG < TransportModel
             if isempty(model.discretization)
                 model.discretization = DGDiscretization(model.G, discretizationArgs{:});
             end
-            % Add phase saturations as dgVariables
-            if any(strcmpi(model.dgVariables, 's'))
-                phNames = model.parentModel.getPhaseNames();
-                for ph = phNames
-                    model.dgVariables{end+1} = ['s', ph];
-                end
-                if strcmpi(model.formulation, 'totalSaturation')
-                    model.dgVariables{end+1} = 'sT';
-                end
-            end
             % Get limiters
             for l = 1:numel(model.limiters)
                 limiter = model.limiters(l);
@@ -110,15 +100,10 @@ classdef TransportModelDG < TransportModel
             isParent = strcmp(origin, class(model.parentModel));
             vars     = vars(isParent);
             names    = names(isParent);
-            % If saturation is a dG variable, we relace 's' by 'sW', etc
+            % If saturation is a dG variable, we have already assigned relace 's' by
+            % 'sW', etc
             isSat = strcmpi(model.dgVariables, 's');
-            if any(isSat)
-                model.dgVariables(isSat) = [];
-                phNames = model.parentModel.getPhaseNames();
-                for ph = phNames
-                    model.dgVariables{end+1} = ['s', ph];
-                end
-            end
+            model.dgVariables(isSat) = [];
             % Add dof to ending of dG variable names
             isDof        = ismember(names, model.dgVariables);
             names(isDof) = cellfun(@(bn) [bn, 'dof'], names(isDof), 'UniformOutput', false);
@@ -174,7 +159,7 @@ classdef TransportModelDG < TransportModel
                 strcmpi(model.formulation, 'totalSaturation') && sum(isS) == nph - 1;
             if useTotalSaturation
                 % Replace pressure with total saturation
-                if any(strcmpi('sT',model.dgVariables))
+                if any(strcmpi('sT', model.dgVariables))
                     replacement = 'sTdof';
                 else
                     replacement = 'sT';
@@ -357,12 +342,23 @@ classdef TransportModelDG < TransportModel
         %-----------------------------------------------------------------%
         function model = validateModel(model, varargin)
             % Validate model before simulation
-            assert(any(strcmpi('s', model.dgVariables)), ...
-                'dG currently requires that saturation is a dG variable');
+            isSat = strcmpi('s', model.dgVariables);
+            assert(any(isSat), 'dG currently requires that saturation is a dG variable');
+            % Add phase saturations as dgVariables
+            if isSat
+                phNames = model.parentModel.getPhaseNames();
+                for ph = phNames
+                    model.dgVariables{end+1} = ['s', ph];
+                end
+                if strcmpi(model.formulation, 'totalSaturation')
+                    model.dgVariables{end+1} = 'sT';
+                end
+            end
             % Parent class handles most of the validation
             model = validateModel@TransportModel(model, varargin{:});
         end
         
+        %-----------------------------------------------------------------%
         function model = setupStateFunctionGroupings(model, default)
             if ~default
                 % State functions have already been set up
@@ -371,13 +367,11 @@ classdef TransportModelDG < TransportModel
             end
             model = setupStateFunctionGroupings@TransportModel(model, default);
             pModel = model.parentModel;
-            
             % Adjust flow property functions
             fp = model.parentModel.FlowPropertyFunctions;
             fp = fp.setStateFunction('GravityPermeabilityGradient', GravityPermeabilityGradientDG(pModel));
             fp = fp.setStateFunction('TotalMobility', TotalMobility(pModel));
             model.parentModel.FlowPropertyFunctions = fp;
-            
             % Adjust PVT property functions
             pvt    = model.parentModel.PVTPropertyFunctions;
             pvtReg = pvt.getRegionPVT(pModel);
@@ -538,7 +532,7 @@ classdef TransportModelDG < TransportModel
             for i = 1:numel(dofVars)
                 dvMaxAbs = inf;
                 if strcmpi(dofVars{i}, 'sTdof')
-                    dvMaxAbs = model.parentModel.dsMaxAbs./min(model.discretization.basis.nDof,model.dsMaxAbsDiv);
+                    dvMaxAbs = model.dsMaxTotal./min(model.discretization.basis.nDof,model.dsMaxAbsDiv);
                 end
                 state = updateStateFromIncrement(model, state, dx, problem, dofVars{i}, inf, dvMaxAbs);
             end
