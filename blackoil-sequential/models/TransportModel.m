@@ -113,6 +113,7 @@ classdef TransportModel < WrapperModel
         function model = setupStateFunctionGroupings(model, setDefaults)
             if ~setDefaults
                 % State functions have already been set up
+                warning('State function models for parent model is already set up.');
                 return
             end
             pmodel = model.parentModel;
