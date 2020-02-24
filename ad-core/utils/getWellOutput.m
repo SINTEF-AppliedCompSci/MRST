@@ -1,4 +1,4 @@
-function [welldata, wellnames, fldnames] = getWellOutput(wellsols, fldnames, wells)
+function [welldata, wellnames, fldnames] = getWellOutput(wellsols, fldnames, wells, index)
 %Extract values from wellsols.
 %
 % SYNOPSIS:
@@ -52,6 +52,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     assert(iscell(wellsols))
     nsteps = numel(wellsols);
+    if nargin < 4
+        index = 1;
+    end
     if nsteps == 0
         % No data, exit early
         welldata = [];
@@ -66,9 +69,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Valid fields are fields with exactly one value per well
     validfields = fieldnames(ws0);
     datacounts = cellfun(@(x) numel(ws0(1).(x)), validfields);
-    notMultiple = datacounts <= 1;
-    validfields = validfields(notMultiple);
-    datacounts  = datacounts(notMultiple);
+    acceptible = datacounts >= index;
+    validfields = validfields(acceptible);
+    datacounts  = datacounts(acceptible);
     if nargin < 2
         fldnames = validfields;
     end
@@ -109,12 +112,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fld = fldnames{i};
         fieldNo = strcmpi(validfields, fld);
         assert(any(strcmpi(fld, validfields)),...
-            'Only well fields with a single output value can be extracted using getWellOutput');
+            'Dimensions of %s does not match the given index %d', fld, index);
         if datacounts(fieldNo) == 0
             % No data, return NaN
             continue
         end
-        data = cellfun(@(x) [x(subs).(fld)], wellsols, 'UniformOutput', false);
+        data = cellfun(@(x) [x(subs).(fld)(index)], wellsols, 'UniformOutput', false);
         welldata(:, :, i) = vertcat(data{:});
     end
 end
