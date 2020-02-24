@@ -16,7 +16,7 @@ classdef GravityPermeabilityGradientDG < StateFunction
         
         function gRhoKdz = evaluateOnDomain(gp, model, state)
             
-            rho = model.getProp(state, 'Viscosity');
+            rho = model.getProp(state, 'Density');
             
             g = model.getGravityVector;
             [K, ~, c] = permTensor(model.rock, model.G.griddim);
