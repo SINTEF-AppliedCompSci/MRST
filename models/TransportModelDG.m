@@ -99,6 +99,8 @@ classdef TransportModelDG < TransportModel
             state = validateState@TransportModel(model, state);
             % Assign dofs
             state = assignDofFromState(model.discretization, state, model.dgVariables);
+            % Evaluate basis functions in cubature points
+            state = model.discretization.evaluateBasisFunctions(state, inf, inf);
         end
         
         %-----------------------------------------------------------------%
@@ -454,11 +456,13 @@ classdef TransportModelDG < TransportModel
             cells = sum(model.G.faces.neighbors(faces,:),2);
             % Compute preoperites with AD
             bcStateDG  = model.getStateDG(state , cells, faces, false);
-            % Compute preoperites without AD (using getStateDG ensures
+            % Compute properites without AD (using getStateDG ensures
             % that properties are evaluated consistently)
-            bcStateDG0 = model.getStateDG(state0, cells, faces, false);
+%             bcStateDG0 = model.getStateDG(state0, cells, faces, false);
             % Get flow state (either bcStateDG or bcStateDG0)
-            bcStateDG  = model.parentModel.FluxDiscretization.buildFlowState(model.parentModel, bcStateDG, bcStateDG0, dt);
+            fsb = FlowStateBuilderDG();
+            bcStateDG = fsb.build(model.parentModel.FluxDiscretization, model.parentModel, bcStateDG, [], []);
+%             bcStateDG  = model.parentModel.FluxDiscretization.buildFlowState(model.parentModel, bcStateDG, bcStateDG0, dt);
             % Compute boundary condition fluxes
             model.parentModel = model.parentModel.FluxDiscretization.expandRegions(model.parentModel, 'cells', bcStateDG.cells);
             q = computeBoundaryFluxesDG(model.parentModel, bcStateDG, bc);
@@ -600,6 +604,7 @@ classdef TransportModelDG < TransportModel
             % Update state after convergence
             state.FacilityFluxProps = state.wellStateDG.FacilityFluxProps;
             % Let transport model do it's thing
+            model.parentModel.outputFluxes = false;
             [state, report] = updateAfterConvergence@TransportModel(model, state0, state, dt, drivingForces);
             % Remove cell/face/well state
             state = rmfield(state, 'cellStateDG');
@@ -622,7 +627,18 @@ classdef TransportModelDG < TransportModel
                     end
                 end
             end
-
+        end
+        
+        % ----------------------------------------------------------------%
+        function dt = getMaximumTimestep(model, state, state0, dt0, drivingForces)
+            % Define the maximum allowable time-step based on physics or
+            % discretization choice
+            state = model.getStateAD(state, false);
+            state = state.wellStateDG;
+            state.cells = (1:model.G.cells.num)';
+            state.faces = (1:model.G.faces.num)';
+            state.faces = state.faces(model.parentModel.operators.internalConn);
+            dt = model.parentModel.getMaximumTimestep(state, state0, dt0, drivingForces);
         end
         
     end

@@ -59,6 +59,7 @@ plot(G.cells.centroids(:,1),stSPUi{end}.s(:,1),'.','MarkerSize',20);
 
 %% dG implicit
 tmodelDGi = TransportModelDG(model, 'degree', [1,0]);
+tmodelDGi.storeUnlimited = true;
 tmodelDGi = tmodelDGi.validateModel();
 tmodelDGi.parentModel.FluxDiscretization.ComponentPhaseFlux = ComponentPhaseFluxFractionalFlowSimple(model);
 tmodelDGi.parentModel.FluxDiscretization.ComponentPhaseVelocity = ComponentPhaseVelocityFractionalFlowSimpleDG(model);
@@ -74,6 +75,14 @@ flux = flux.setFlowStateBuilder(fb);
 tmodel3.parentModel.FluxDiscretization = flux;
 [~, stSPUe, repSPUe] = simulateScheduleAD(state0, tmodel3, schedule);
 plot(G.cells.centroids(:,1),stSPUe{end}.s(:,1),'.','MarkerSize',20);
-legend('exact solution','SPU implicit','dG(1) implicit','SPU explicit');
+
 %% dG explicit
-% TBA
+tmodelDGe = tmodelDGi;
+flux      = tmodelDGe.parentModel.FluxDiscretization;
+tmodelDGe.parentModel.outputFluxes = true;
+fb        = ExplicitFlowStateBuilderDG();
+%fb    = AdaptiveImplicitFlowStateBuilder();
+flux      = flux.setFlowStateBuilder(fb);
+tmodelDGe.parentModel.FluxDiscretization = flux;
+[~, stDGe, repDGe] = simulateScheduleAD(state0, tmodelDGe, schedule);
+plot(G.cells.centroids(:,1),stDGe{end}.s(:,1),'.','MarkerSize',20);

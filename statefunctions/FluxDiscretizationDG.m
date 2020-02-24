@@ -39,13 +39,13 @@ classdef FluxDiscretizationDG < FluxDiscretization
             mass  = model.getProps(state.cellStateDG, 'ComponentTotalMass');
             mass0 = model.getProps(state0.cellStateDG, 'ComponentTotalMass');
             % Get boundary flux term
-            flowState = fd.buildFlowState(model, state, state0, dt);
+            flowStateFace = fd.buildFlowState(model, state, state0, dt, 'face');
             model     = fd.expandRegions(model, 'faces');
-            v         = model.getProps(flowState, 'ComponentTotalFlux');
+            v         = model.getProps(flowStateFace, 'ComponentTotalFlux');
             % Get cell flux term
-            state.cellStateDG.FluxProps = state.faceStateDG.FluxProps;
+            flowStateCell = fd.buildFlowState(model, state, state0, dt, 'cell');
             model = fd.expandRegions(model, 'cells');
-            vc = model.getProps(state.cellStateDG, 'ComponentTotalVelocity');
+            vc = model.getProps(flowStateCell, 'ComponentTotalVelocity');
             for c = 1:ncomp
                 acc{c} = (mass{c} - mass0{c})./dt;
             end
@@ -80,6 +80,13 @@ classdef FluxDiscretizationDG < FluxDiscretization
             
         end
         
+        function flowState = buildFlowState(fd, model, state, state0, dt, type)
+            if nargin < 6
+                type = 'face';
+            end
+            flowState = fd.FlowStateBuilder.build(fd, model, state, state0, dt, type);
+        end
+        
     end
     
 end
@@ -89,10 +96,8 @@ function props = expandPropsRegions(props, cells)
     for j = 1:numel(names)
         if isprop(props, names{j})
             p = props.(names{j});
-            if isprop(p, 'regions') && ~isempty(p.regions)
-                p.regions = p.regions(cells);
-                props.(names{j}) = p;
-            end
+            p = p.subset(cells);
+            props.(names{j}) = p;
         end
     end
 end

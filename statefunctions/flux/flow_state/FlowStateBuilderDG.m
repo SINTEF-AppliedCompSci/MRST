@@ -1,9 +1,16 @@
 classdef FlowStateBuilderDG < FlowStateBuilder
     
     methods
-        function flowState = build(builder, fd, model, state, state0, dt)
-            
-            flowState = state.faceStateDG;
+        function flowState = build(builder, fd, model, state, state0, dt, type)
+            if nargin < 7
+                type = 'face';
+            end
+            switch type
+                case 'face'
+                    flowState = state.faceStateDG;
+                case 'cell'
+                    flowState = state.cellStateDG;
+            end
             propfn = model.getStateFunctionGroupings();
             for i = 1:numel(propfn)
                 p = propfn{i};
@@ -13,8 +20,7 @@ classdef FlowStateBuilderDG < FlowStateBuilder
                 end
             end
             flowState = model.initStateFunctionContainers(flowState);
-%             state = model.validateState(state);
-            flowState.type = 'face';
+            flowState.type = type;
             if ~isfield(flowState, 'cells')
                 flowState.cells = (1:model.G.cells.num)';
                 flowState.faces = (1:model.G.faces.num)';
