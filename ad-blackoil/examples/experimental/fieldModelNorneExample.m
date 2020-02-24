@@ -43,11 +43,6 @@ model.toleranceMB = 1e-7;
 model.FacilityModel = ExtendedFacilityModel(model);
 model.FacilityModel.toleranceWellBHP = 1e-3;
 model.FacilityModel.toleranceWellRate = 5e-3;
-% Use the alternative more rigorous crossflow definition for component
-% fluxes
-xflow = WellComponentTotalVolumeBalanceCrossflow(model);
-xflow.onlyLocalDerivatives = false;
-model.FacilityModel.FacilityFluxDiscretization.ComponentTotalFlux = xflow;
 
 % Reset just in case
 model.FluxDiscretization = [];
@@ -55,6 +50,14 @@ model.FlowPropertyFunctions = [];
 model.PVTPropertyFunctions = [];
 
 model = model.validateModel();
+% Use the alternative more rigorous crossflow definition for component
+% fluxes
+xflow = WellComponentTotalVolumeBalanceCrossflow(model);
+xflow.onlyLocalDerivatives = false;
+
+model.FacilityModel.FacilityFluxDiscretization.ComponentTotalFlux = xflow;
+
+
 useFlag = false;
 model.PVTPropertyFunctions.Viscosity.useSaturatedFlag = useFlag;
 model.PVTPropertyFunctions.ShrinkageFactors.useSaturatedFlag = useFlag;
