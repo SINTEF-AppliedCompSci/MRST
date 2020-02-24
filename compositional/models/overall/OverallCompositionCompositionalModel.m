@@ -151,6 +151,9 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
                 state.switchCount = zeros(model.G.cells.num, 1);
             end
             twoPhase0 = state.L < 1 & state.L > 0;
+            % Set minimum overall composition
+            minz = model.EOSModel.minimumComposition;
+            state.components = ensureMinimumFraction(state.components, minz);
             % Update saturations etc using flash routine
             state = model.computeFlash(state, problem.dt, problem.iterationNo);
             twoPhase = state.L < 1 & state.L > 0;
@@ -158,9 +161,7 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             
             dispif(model.verbose > 1, '%d gas, %d oil, %d two-phase\n', nnz(state.L == 0), nnz(state.L == 1), nnz(twoPhase));
             state.switchCount = state.switchCount + double(switched);
-            
-            minz = model.EOSModel.minimumComposition;
-            state.components = ensureMinimumFraction(state.components, minz);
+            % Set minimum phase composition
             state.x = ensureMinimumFraction(state.x, minz);
             state.y = ensureMinimumFraction(state.y, minz);
         end
