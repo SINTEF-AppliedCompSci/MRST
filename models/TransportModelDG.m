@@ -626,19 +626,18 @@ classdef TransportModelDG < TransportModel
                     end
                 end
             end
-
         end
         
         % ----------------------------------------------------------------%
         function dt = getMaximumTimestep(model, state, state0, dt0, drivingForces)
             % Define the maximum allowable time-step based on physics or
             % discretization choice
-                state = model.getStateAD(state, false);
-                state = state.wellStateDG;
-                state.cells = (1:model.G.cells.num)';
-                state.faces = (1:model.G.faces.num)';
-                state.faces = state.faces(model.parentModel.operators.internalConn);
-                dt = model.parentModel.getMaximumTimestep(state, state0, dt0, drivingForces);
+            state = model.getStateAD(state, false);
+            state = state.wellStateDG;
+            state.cells = (1:model.G.cells.num)';
+            state.faces = (1:model.G.faces.num)';
+            state.faces = state.faces(model.parentModel.operators.internalConn);
+            dt = model.parentModel.getMaximumTimestep(state, state0, dt0, drivingForces);
         end
         
     end
