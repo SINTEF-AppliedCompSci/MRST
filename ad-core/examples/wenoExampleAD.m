@@ -34,31 +34,15 @@ colormap(cmap);
 colorbar;
 
 outlineCoarseGrid(G, double(cfl > 1), 'Color', 'w');
-%% Set up a WENO discretization
-model_weno = model;
-weno = WENOUpwindDiscretization(model_weno);
-
 %% Override the component discretization with a WENO scheme
-model_weno = model_weno.validateModel();
-props = model_weno.FluxDiscretization;
-disp(props)
-props = props.setStateFunction('FaceMobility', FaceMobility(model_weno, weno));
-props = props.setStateFunction('FaceComponentMobility', FaceComponentMobility(model_weno, weno));
-model_weno.FluxDiscretization = props;
-
+model_weno = setWENODiscretization(model);
 [ws_weno, states_weno, report_weno] = simulateScheduleAD(state0, model_weno, schedule);
-%%
-model_e = model.validateModel();
-fd = model_e.FluxDiscretization;
-fd = fd.setFlowStateBuilder(AdaptiveImplicitFlowStateBuilder('initialStep', 0.02*day, 'verbose', true));
-model_e.FluxDiscretization = fd;
+%% Adaptive implicit SPU
+model_e = setTimeDiscretization(model, 'AIM', 'initialstep', 0.02*day, 'verbose', true);
 [ws_e, states_e, report_e] = simulateScheduleAD(state0, model_e, schedule);
 
-%%
-model_weno_expl = model_weno;
-fd = model_weno_expl.FluxDiscretization;
-fd = fd.setFlowStateBuilder(AdaptiveImplicitFlowStateBuilder('initialStep', 0.02*day, 'verbose', true));
-model_weno_expl.FluxDiscretization = fd;
+%% Adaptive implicit WENO
+model_weno_expl = setTimeDiscretization(model_weno, 'AIM', 'initialstep', 0.02*day, 'verbose', true);
 [ws_weno_ex, states_weno_ex, report_weno_ex] = simulateScheduleAD(state0, model_weno_expl, schedule);
 
 %% Plot saturations
