@@ -604,6 +604,7 @@ classdef TransportModelDG < TransportModel
             % Update state after convergence
             state.FacilityFluxProps = state.wellStateDG.FacilityFluxProps;
             % Let transport model do it's thing
+            model.parentModel.outputFluxes = false;
             [state, report] = updateAfterConvergence@TransportModel(model, state0, state, dt, drivingForces);
             % Remove cell/face/well state
             state = rmfield(state, 'cellStateDG');
