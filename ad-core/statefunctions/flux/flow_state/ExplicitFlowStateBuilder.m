@@ -88,7 +88,7 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
                 groups{end+1} = model.PVTPropertyFunctions;
                 names{end+1} = pvt;
             end
-            flow = builder.explicitPVT;
+            flow = builder.explicitFlow;
             if ~isempty(flow)
                 groups{end+1} = model.FlowPropertyFunctions;
                 names{end+1} = flow;
