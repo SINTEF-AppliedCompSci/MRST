@@ -75,7 +75,6 @@ flux = flux.setFlowStateBuilder(fb);
 tmodel3.parentModel.FluxDiscretization = flux;
 [~, stSPUe, repSPUe] = simulateScheduleAD(state0, tmodel3, schedule);
 plot(G.cells.centroids(:,1),stSPUe{end}.s(:,1),'.','MarkerSize',20);
-legend('exact solution','SPU implicit','dG(1) implicit','SPU explicit');
 
 %% dG explicit
 tmodelDGe = tmodelDGi;
@@ -86,4 +85,4 @@ fb        = ExplicitFlowStateBuilderDG();
 flux      = flux.setFlowStateBuilder(fb);
 tmodelDGe.parentModel.FluxDiscretization = flux;
 [~, stDGe, repDGe] = simulateScheduleAD(state0, tmodelDGe, schedule);
-plot(G.cells.centroids(:,1),stDGi{end}.s(:,1),'.','MarkerSize',20);
+plot(G.cells.centroids(:,1),stDGe{end}.s(:,1),'.','MarkerSize',20);
