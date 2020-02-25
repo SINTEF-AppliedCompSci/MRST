@@ -177,6 +177,7 @@ end
 function state = assignReductionFactorProps(model, state, state0, dt)
     mass0 = model.parentModel.getProp(state0, 'ComponentTotalMass');
     props = struct('mass0'   , {mass0}, ...
+                   'mass'    , []     , ...
                    'dt'      , dt     , ...
                    'pressure', []     , ...
                    'weights' , []     );
@@ -186,8 +187,10 @@ end
 function state = updateReductionFactorProps(model, state)
     pressure = model.getProp(state, 'pressure');
     weights  = model.parentModel.getProp(state, 'PressureReductionFactors');
+    mass  = model.parentModel.getProp(state, 'ComponentTotalMass');
     state.reductionFactorProps.pressure = pressure;
-    state.reductionFactorProps.weights = horzcat(weights{:});
+    state.reductionFactorProps.weights = value(weights');
+    state.reductionFactorProps.mass = value(mass');
 end
 
 %{
