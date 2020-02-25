@@ -164,7 +164,10 @@ classdef PressureModel < WrapperModel
                     assert(isa(pmodel, 'ThreePhaseBlackOilModel'), ...
                         'Analytical pressure reduction factors currently only implemented for black-oil.');
                 case 'numerical'
-                    pvt = pvt.setStateFunction('PressureReductionFactors', NumericalPressureReductionFactors(pmodel));
+                    rf = pvt.getStateFunction('PressureReductionFactors');
+                    if ~isa(rf, 'NumericalPressureReductionFactors')
+                        pvt = pvt.setStateFunction('PressureReductionFactors', NumericalPressureReductionFactors(pmodel));
+                    end
                 otherwise
                     error('Unknown reduction strategy');
             end
