@@ -186,7 +186,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 void = 1 - sW;
                 sL = sL.*void;
                 sV = sV.*void;
-                [sL, sV] = model.setMinimumTwoPhaseSaturations(state, sW, sL, sV, pureVapor, pureLiquid);
+                [sL, sV] = model.setMinimumTwoPhaseSaturations(state, sW, sL, sV, pureVapor, ~pureVapor);
 
                 s = {sW, sL, sV};
             else

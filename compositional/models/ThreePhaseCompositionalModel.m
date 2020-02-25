@@ -414,13 +414,12 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                         sG(pureVapor) = max(sG(pureVapor), stol);
                     end
                 end
-                toLiquid = ~pureVapor;
-                if any(toLiquid)
-                    sO(toLiquid) = sT(toLiquid) - sW(toLiquid);
+                if any(pureLiquid)
+                    sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
                     if isa(sO, 'ADI')
-                        sO.val(toLiquid) = max(sO.val(toLiquid), stol);
+                        sO.val(pureLiquid) = max(sO.val(pureLiquid), stol);
                     else
-                        sO(toLiquid) = max(sO(toLiquid), stol);
+                        sO(pureLiquid) = max(sO(pureLiquid), stol);
                     end
                 end
             end
