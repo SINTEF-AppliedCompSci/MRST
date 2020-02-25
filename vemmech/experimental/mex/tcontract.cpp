@@ -43,6 +43,7 @@ public:
 
     const vector<TensorComp<double>> resultcomps = contract_components(comps);
 
+    std::cout << "Now preparing data for return to MATLAB." << std::endl;
     // convert TensorComp to a return value to put into 'outputs'
     ArrayFactory factory;
 
@@ -75,6 +76,8 @@ public:
       result[i] = entry;
     }
 
+    cout << "Returning to MATLAB now." << std::endl;
+    
     outputs[0] = result;
 
   }

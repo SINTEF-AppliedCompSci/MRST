@@ -315,7 +315,8 @@ void consolidate_entries(std::vector<T>& coefs,
   // we create a temporary TensorComp to benefit from its 'sumEqualIndices()' algorithm
   size_t num_free_indices = indices.size() / coefs.size();
   size_t num_free_ix_values = coefs.size();
-  
+
+  // @@ parallelize!  (change to transpose, and parallelize transpose
   std::vector<Index> indices_reordered(indices.size());
   size_t pos = 0;
   for (size_t j = 0; j != num_free_indices; ++j)
@@ -428,6 +429,8 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
   // generate result tensor and add up element with similar indices
   TensorComp<T> result(indexnames, coefs, indices_reordered);
   result.sumEqualIndices();
+  std::cout << "Exiting compute_sums." << std::endl;
+  
   return result;
 
 }

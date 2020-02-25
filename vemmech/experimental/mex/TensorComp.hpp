@@ -5,7 +5,8 @@
 #include <vector>
 #include <string>
 #include <tuple>
-#include <algorithm>
+//#include <algorithm>
+#include <parallel/algorithm>  //@@ gcc_specific
 #include <array>
 #include <set>
 #include <assert.h>
@@ -185,8 +186,10 @@ TensorComp<T>::moveIndicesFirst(const std::vector<std::string>& ixnames)
 template<typename T> inline TensorComp<T>& TensorComp<T>::sumEqualIndices()
 // ----------------------------------------------------------------------------
 {
+  std::cout << "Entering sumEqualIndices. " << std::endl;
   sortElementsByIndex(); // ensure equal indices follow each other
 
+  std::cout << "Still in sumEqualIndices - just finished sorting elements." << std::endl;
   const int N = numIndices();
   std::vector<T> new_coefs;
   std::vector<std::vector<Index>> new_indices(N);
@@ -199,7 +202,8 @@ template<typename T> inline TensorComp<T>& TensorComp<T>::sumEqualIndices()
     old_ix_ptrs[i] = &(ixs_[i * coefs().size()]);
     new_indices[i].push_back(*old_ix_ptrs[i]++);
   }
-  
+
+  // @@ THIS LOOP SHOULD BE PARALLELIZED
   while(coef_ptr != coefs().end()) {
     // check if current index set equals 
     bool same = true;
@@ -228,6 +232,7 @@ template<typename T> inline TensorComp<T>& TensorComp<T>::sumEqualIndices()
   coefs_.swap(new_coefs);
   ixs_.swap(all_ixs);
 
+  std::cout << "Finishing sumEqualIndices." << std::endl;
   return *this;
 }
 
@@ -286,8 +291,14 @@ TensorComp<T>::sortElementsByIndex(bool descending)
                     return *i1 < *i2;
                 return false;
               };
-                
-  std::sort(ptrs.begin(), ptrs.end(), comp);
+
+  if (std::is_sorted(ptrs.begin(), ptrs.end(), comp)) {
+    std::cout << "Already sorted. Returning." << std::endl;
+    return *this;
+  }
+  
+  //std::sort(ptrs.begin(), ptrs.end(), comp);
+  __gnu_parallel::sort(ptrs.begin(), ptrs.end(), comp);
 
   if (descending)
     std::reverse(ptrs.begin(), ptrs.end());

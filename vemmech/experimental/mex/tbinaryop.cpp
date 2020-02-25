@@ -37,11 +37,11 @@ public:
                                        extract_numbers_<double>(cells[1], "coefs"),
                                        extract_numbers_<int>(cells[1], "ixs"));
 
-    ofstream os("saved.comps");
-    os << 2 << '\n';
-    c1.write(os);
-    c2.write(os);
-    os.close();
+    // ofstream os("saved.comps");
+    // os << 2 << '\n';
+    // c1.write(os);
+    // c2.write(os);
+    // os.close();
     
     CharArray op = inputs[1];
 

@@ -1106,7 +1106,30 @@ classdef SparseTensor
          component.coefs = component.coefs(I);
       end
 
+         
       function tensor = apply_binary_operator(t1, t2, op)
+         [t1, t2] = SparseTensor.make_tensors_compatible(t1, t2);
+         assert(numel(t1.components) == 1); % should also be the case for t2 by now
+         
+         if isequal(op, @plus)
+            optxt = '+';
+         elseif isequal(op, @minus)
+            optxt = '-';
+         elseif isequal(op, @rdivide)
+            optxt = '/';
+         elseif isequal(op, @times)
+            optxt = '*';
+         else
+            error('Unknown binary operator.');
+         end
+         
+         comp = tbinaryop([t1.components, t2.components], optxt);
+         
+         tensor = SparseTensor(comp);
+      end      
+
+      
+      function tensor = apply_binary_operator_nonmex(t1, t2, op)
          [t1, t2] = SparseTensor.make_tensors_compatible(t1, t2);
          assert(numel(t1.components) == 1); % should also be the case for t2 by now
          
