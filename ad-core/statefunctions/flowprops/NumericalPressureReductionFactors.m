@@ -2,6 +2,7 @@ classdef NumericalPressureReductionFactors < StateFunction
     properties
         useDiagonalReduction
         includeDerivatives = true;
+        fullDerivatives = true;
     end
     methods
         
@@ -13,22 +14,25 @@ classdef NumericalPressureReductionFactors < StateFunction
         
         function weights = evaluateOnDomain(prop, model, state) %#ok
             % Get state with the full primary variable set as AD
-            [stateAD, ncell, ncomp] = getStateAD(model, state);
+            [stateAD, ncell, ncomp] = prop.getStateAD(model, state);
             % Timestep and mass at current and previous timestep
             dt    = state.reductionFactorProps.dt;
-            mass  = model.getProps(stateAD, 'ComponentTotalMass');
-            mass0 = state.reductionFactorProps.mass0;
             % Pressure at current and previous iteration
             p      = value(state.pressure);
+            mass  = model.getProps(stateAD, 'ComponentTotalMass');            
+            factor = state.reductionFactorProps;
+            factor.mass = mass;
+            factor.pressure = p;
             % Weights at current and previous iteration
-            w      = getWeights(prop, mass, mass0, dt, ncell, ncomp);
+            w      = prop.getWeights(factor, dt, ncell, ncomp);
             w_prev = state.reductionFactorProps.weights;
             % Get derivatives of weights wrt pressure
-            next = struct('pressure', p, 'mass', {mass});
-            dwdp = getWeightDerivatives(w, w_prev, next, state.reductionFactorProps);
             % Construct AD weights
             pAD = state.pressure;
             isAD = isa(pAD, 'ADI') && prop.includeDerivatives;
+            if isAD
+                dwdp = prop.getWeightDerivatives(w, w_prev, factor);
+            end
             weights = cell(ncomp, 1);
             for i = 1:ncomp
                 wi = w(:, i);
@@ -45,8 +49,10 @@ classdef NumericalPressureReductionFactors < StateFunction
             end
         end
         
-        function w = getWeights(prp, mass, mass0, dt, ncell, ncomp)
+        function w = getWeights(prp, factor, dt, ncell, ncomp)
             % Compute mass difference
+            mass = factor.mass;
+            mass0 = factor.mass0;
             acc = cellfun(@(m, m0) (m - m0)./dt, mass, mass0, 'UniformOutput', false);
             isD = cellfun(@isnumeric, acc);
             if all(isD)
@@ -56,15 +62,40 @@ classdef NumericalPressureReductionFactors < StateFunction
             ndof = ncell*ncomp;
             if prp.useDiagonalReduction
                 % Special case: We can assume that all jacobians are diagonal.
-                diags = cellfun(@(x) x.jac{1}.diagonal', acc, 'UniformOutput', false);
+                diags = cellfun(@(x) x.jac{1}.diagonal, acc, 'UniformOutput', false);
+                extra = cell(1, ncomp);
+                b = zeros(ndof, 1);
+                scale = 1/barsa;
+                 % scale = sum(M(1:ncomp:end-ncomp+1, :), 1);
+                if prp.fullDerivatives && ~isempty(factor.weights)
+                    masses = value(mass');
+                    masses0 = value(mass0');
+                    dm = masses - masses0;
+                    dm(abs(dm) < 1e-8) = 0;
+                    % Matrix entries
+                    maindiag = zeros(ncell, ncomp);
+                    for i = 1:ncomp
+                        d = getDiagonal(mass{i}, i);
+                        e = masses.*d./dm(:, i);
+                        e(~isfinite(e)) = 0;
+                        extra{i} = e;
+                        maindiag(:, i) = d;
+                    end
+                    % Right-hand side
+                    w0 = sum(factor.weights, 2);
+                    b_extra = bsxfun(@times, maindiag./dm, w0);
+                    b_extra(~isfinite(b_extra)) = 0;
+                    b = b + b_extra(:);
+                    for i = 1:ncomp
+                        diags{i} = diags{i} + extra{i};
+                    end
+                end
+                diags = cellfun(@(x) x', diags, 'UniformOutput', false);
                 M = vertcat(diags{:});
                 ncell = size(M, 2);
                 sz = repmat(ncomp, ncell, 1);
                 Mi = invv(reshape(M, [], 1), sz);
                 [i, j] = blockDiagIndex(sz, sz);
-                b = zeros(ndof, 1);
-                scale = 1/barsa;
-                 % scale = sum(M(1:ncomp:end-ncomp+1, :), 1);
                 b(1:ncomp:end-ncomp+1) = scale;
                 M_inv = sparse(i, j, Mi, ndof, ndof);
                 w = M_inv*b;
@@ -86,36 +117,51 @@ classdef NumericalPressureReductionFactors < StateFunction
             end
             w = reshape(w', [], ncomp);
         end
+        
+        function [state, ncell, ncomp] = getStateAD(prop, model, state)
+            % Remove existing AD
+            state = model.reduceState(state, true);
+            % Get variables
+            [vars, names, origin] = model.getPrimaryVariables(state);
+            isP   = strcmp(names, 'pressure');
+            origP = origin{isP};
+            isW   = cellfun(@(x) ~strcmp(x, origP), origin);
+            % Initialize AD
+            [vars{~isW}] = model.AutoDiffBackend.initVariablesAD(vars{~isW});
+            state = model.initStateAD(state, vars, names, origin);
+            % Get various sizes needed later
+            ncell = model.G.cells.num;
+            ncomp = model.getNumberOfComponents();
+        end
+
+        function dwdp = getWeightDerivatives(prop, w, w0, factor)
+            % Compute weight derivatives by numerical differentiation
+            if ~isempty(w0)
+                dw = w - w0;
+                if prop.fullDerivatives
+                    masses = factor.mass;
+                    m0 = value(factor.mass0');
+                    m  = value(masses');
+                    dm = m - m0;
+                    dwdm = bsxfun(@rdivide, dw, dm);
+                    for i = 1:size(dwdm, 2)
+                        dwdm(:, i) = dwdm(:, i).*getDiagonal(masses{i}, i);
+                    end
+                    dwdp = dwdm;
+                else
+                    p0 = prev.pressure;
+                    p  = next.pressure;
+                    dp = p - p0;
+                    dwdp = bsxfun(@rdivide, dw, dp);
+                end
+                dwdp(~isfinite(dwdp)) = 0;
+            else
+                dwdp = 0*w;
+            end
+        end
     end
 end
 
-function [state, ncell, ncomp] = getStateAD(model, state)
-    % Remove existing AD
-    state = model.reduceState(state, true);
-    % Get variables
-    [vars, names, origin] = model.getPrimaryVariables(state);
-    isP   = strcmp(names, 'pressure');
-    origP = origin{isP};
-    isW   = cellfun(@(x) ~strcmp(x, origP), origin);
-    % Initialize AD
-    [vars{~isW}] = model.AutoDiffBackend.initVariablesAD(vars{~isW});
-    state = model.initStateAD(state, vars, names, origin);
-    % Get various sizes needed later
-    ncell = model.G.cells.num;
-    ncomp = model.getNumberOfComponents();
+function d = getDiagonal(x, i)
+    d = x.jac{1}.diagonal(:, i);
 end
-
-function dwdp = getWeightDerivatives(w, w0, next, prev)
-    % Compute weight derivatives by numerical differentiation
-    if ~isempty(w0)
-        p0 = prev.pressure;
-        p  = next.pressure;
-        dp = p - p0;
-        dw = w - w0;
-        dwdp = bsxfun(@rdivide, dw, dp);
-        dwdp(~isfinite(dwdp)) = 0;
-    else
-        dwdp = 0*w;
-    end
-end
-
