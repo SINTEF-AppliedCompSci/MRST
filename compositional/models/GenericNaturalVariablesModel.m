@@ -255,7 +255,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 is_sw = strcmp(names, 'satw');
                 sW = vars{is_sw};
                 
-                [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid);
+                [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureLiquid, pureVapor);
                 removed(is_sw) = true;
                 sat = {sW, sO, sG};
             else
