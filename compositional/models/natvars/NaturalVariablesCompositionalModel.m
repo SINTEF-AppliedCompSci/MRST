@@ -183,13 +183,14 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
 
             if model.water
                 sT = sum(state.s, 2);
-                space = (sT - state.s(:, 1))./sT;
+                s_hc = (sT - state.s(:, 1))./sT;
             else
-                space = 1;
+                s_hc = 1;
             end
-            state.dz = max(max(abs(bsxfun(@times, deltax, space)), bsxfun(@times, deltay, space)));
-            dz2 = max(abs(bsxfun(@times, state.components - state0.components, space)));
-            state.dz = max(state.dz, dz2);
+            dx = model.computeChange(deltax, s_hc);
+            dy = model.computeChange(deltay, s_hc);
+            dz = model.computeChange(state.components - state0.components, s_hc);
+            state.dz = max(dz, max(dx, dy));
         end
 
         function state = flashPhases(model, state, state0, s_uncap, xyUpdated, iteration)

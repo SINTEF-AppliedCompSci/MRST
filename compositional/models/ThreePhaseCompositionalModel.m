@@ -540,6 +540,13 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             tol_f = repmat(model.fugacityTolerance, size(v_f));
             names_f = problem.equationNames(isFugacity);
        end
+       
+       function dz = computeChange(model, dz, s_hc)
+           dz = bsxfun(@times, abs(dz), s_hc);
+           tol = model.toleranceCNV/10;
+           dz(s_hc < tol, :) = 0;
+           dz = max(dz, [], 1);
+       end
     end
 end
 

@@ -124,21 +124,21 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
                     rm = rm - (z(:, i) - z0);
                 end
             end
-            
+            if model.water
+                s_hc  = 1 - state.s(:, 1);
+            else
+                s_hc = 1;
+            end
             if any(ok)
                 % We had components as active variables somehow
                 assert(nnz(~ok) == 1)
                 z(:, ~ok) = min(max(z(:, ~ok) + rm, 0), 1);
                 z = bsxfun(@rdivide, z, sum(z, 2));
                 state.components = z;
-                if model.water
-                    v  = 1 - state.s(:, 1);
-                    v0 = 1 - state0.s(:, 1);
-                else
-                    [v, v0] = deal(1);
-                end
-                
-                state.dz = computeChange(z, state0.components, v, v0);
+                dz = model.computeChange(state.components - state0.components, s_hc);
+                state.dz = dz;
+            else
+                state.dz = zeros(1, ncomp);
             end
 
             % Parent class handles almost everything for us
@@ -156,6 +156,12 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             state.components = ensureMinimumFraction(state.components, minz);
             % Update saturations etc using flash routine
             state = model.computeFlash(state, problem.dt, problem.iterationNo);
+            % Set increments in phase compositions as well
+            dx = model.computeChange(state.x - state.y, s_hc);
+            dy = model.computeChange(state.x - state.y, s_hc);
+            dxy = max(dx, dy);
+            state.dz = max(state.dz, dxy);
+            
             twoPhase = state.L < 1 & state.L > 0;
             switched = twoPhase0 ~= twoPhase;
             
@@ -168,13 +174,7 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
     end
 end
 
-function dz = computeChange(z, z0, s, s0)
-    z_prev = bsxfun(@times, s0, z0);
-    z_curr = bsxfun(@times, s, z);
-    dz = abs(z_curr - z_prev);
-    dz(s < 1e-4) = 0;
-    dz = max(dz, [], 1);
-end
+
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
