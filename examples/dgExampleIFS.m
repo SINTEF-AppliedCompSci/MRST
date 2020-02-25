@@ -137,6 +137,29 @@ colormap(interp1([0; 0.5; 1], [1, 0, 0; 1, 1, 1; 0, 0, 1], 0:0.01:1))
 caxis([-.151 .151]);
 colorbar('EastOutside');
 
+%% Plot the production responses
+plotWellSols({wsDG0,wsDG1},'datasetnames',{'dG(0)','dG(1)'},'field','qWs');
+
+%% Plot the number of iterations taken in different parts of the solver
+reports = {repDG0, repDG1};
+ns = numel(reports);
+stats = cell(1, ns);
+for i = 1:ns
+    stats{i} = getPressureTransportIterations(reports{i});
+end
+total = zeros(ns, 3);
+for i = 1:ns
+    s = stats{i};
+    total(i, 1) = sum(s.pressure);
+    total(i, 2) = sum(s.transport);
+    total(i, 3) = sum(s.outer);
+end
+figure;
+bar(total)
+set(gca, 'XTickLabel', {'dG(0)','dG(1)'}, 'XTickLabelRotation',20);
+legend('Pressure', 'Transport', 'Outer','Location','best');
+text(1:ns,total(:,2),num2str(total(:,2)),'vert','bottom','horiz','center');
+
 %%
 % <html>
 % <p><font size="-1">
