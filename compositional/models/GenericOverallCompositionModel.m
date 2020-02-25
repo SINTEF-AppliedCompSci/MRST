@@ -182,11 +182,11 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             sV = volV./volT;
             
             if model.water
-                [pureLiquid, pureVapor] = model.getFlag(state);
+                [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
                 void = 1 - sW;
                 sL = sL.*void;
                 sV = sV.*void;
-                [sL, sV] = model.setMinimumTwoPhaseSaturations(state, sW, sL, sV, pureLiquid, pureVapor);
+                [sL, sV] = model.setMinimumTwoPhaseSaturations(state, sW, sL, sV, pureLiquid, pureVapor, twoPhase);
 
                 s = {sW, sL, sV};
             else

@@ -402,24 +402,44 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             scaling = getScalingFactorsCPR@ReservoirModel(model, problem, names, solver);
         end
 
-        function [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid)
-            stol = 1e-8;
+        function [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureLiquid, pureVapor, twoPhase)
+            % Set a minumum phase saturation value for the EOS-governed
+            % phases. This may be required for numerical stability, as the
+            % component-in-phase conservation equations degenerate when the
+            % saturations are zero. The minimum value is taken from the
+            % configured value i nthe EOS.
+            stol = model.EOSModel.minimumSaturation;
             if model.water
+                if nargin > 7
+                    mustHaveVapor = pureVapor | twoPhase;
+                    mustHaveLiquid = pureLiquid | twoPhase;
+                else
+                    mustHaveVapor = pureVapor;
+                    mustHaveLiquid = pureLiquid;
+                end
                 sT = sum(state.s, 2);
                 if any(pureVapor)
                     sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
+
+                end
+                
+                if any(mustHaveVapor)
                     if isa(sG, 'ADI')
-                        sG.val(pureVapor) = max(sG.val(pureVapor), stol);
+                        sG.val(mustHaveVapor) = max(sG.val(mustHaveVapor), stol);
                     else
-                        sG(pureVapor) = max(sG(pureVapor), stol);
+                        sG(mustHaveVapor) = max(sG(mustHaveVapor), stol);
                     end
                 end
+                
                 if any(pureLiquid)
                     sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
+                end
+                
+                if any(mustHaveLiquid)
                     if isa(sO, 'ADI')
-                        sO.val(pureLiquid) = max(sO.val(pureLiquid), stol);
+                        sO.val(mustHaveLiquid) = max(sO.val(mustHaveLiquid), stol);
                     else
-                        sO(pureLiquid) = max(sO(pureLiquid), stol);
+                        sO(mustHaveLiquid) = max(sO(mustHaveLiquid), stol);
                     end
                 end
             end

@@ -11,6 +11,7 @@ classdef EquationOfStateModel < PhysicalModel
         selectGibbsMinimum = true; % Use minimum Gibbs energy to select Z
         alpha = [];
         minimumComposition = 1e-8; % Minimum composition value (for numerical stability)
+        minimumSaturation  = 1e-8; % Minimum total EOS phase saturation 
         equilibriumConstantFunctions = {};
     end
 
