@@ -105,7 +105,7 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    load = loadfun(u);
    
    amgsolver = @(A, b) callAMGCL(A, b, 'relaxation', 'chebyshev', 'solver', 'cg', ...
-                              'tolerance', 1e-6, 'maxIterations', 500);
+                              'tolerance', 2e-6, 'maxIterations', 2000);
    
    [dd, extra] = VEM_linElast_AD(G, C, bc, load, 'linsolve', amgsolver);
 
