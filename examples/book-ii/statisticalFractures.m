@@ -9,7 +9,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Copyright (C) 2016-2020 Runar Lie Berge. See COPYRIGHT.TXT for details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%}  
+%}
+
+mrstModule add upr
 
 %% Load dataset and possibly select a subset of the fractures
 % To select a smaller subset of the fractures, you can set yMax to be
@@ -75,15 +77,19 @@ G = pebiGrid2D(15,[35,yMax],'faceConstraints',lines,'FCFactor',1/50,...
 
 %% Plot the grid
 clf
+set(gcf,'Position',[500 370 878 408]);
 subplot(3,1,1:2)
 patch([0 35 35 0],[0 0 yMax yMax],ones(4,1),'FaceColor',[.95 .95 1]), 
-plotGrid(G,'FaceColor','none')
-plotLinePath(lines)
+plotGrid(G,'FaceColor','none','edgecolor',[.6 .6 .6])
+h=plotLinePath(lines,'LineWidth',1.5);
+mrstModule add book
+col = tatarizeMap(numel(h));
+for i=1:numel(h), set(h(i),'Color',col(i,:)); end
 hold on
 patch([23.5 25.5 25.5 23.5],[17 17 28 28],ones(4,1), ...
     'LineWidth',1,'EdgeColor','b','FaceColor','none')
 patch([24.6 27 27 24.6],[65 65 74 74],ones(4,1), ...
-    'LineWidth',1,'EdgeColor','g','FaceColor','none')
+    'LineWidth',1,'EdgeColor','r','FaceColor','none')
 hold off
 view(90,90), axis tight off
 ax1 = gca;
