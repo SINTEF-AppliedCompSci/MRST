@@ -1,6 +1,8 @@
 mrstModule add ad-core ad-blackoil ad-props
 %% Set up scenario
-dims = [50, 50];
+nx = 50;
+ny = 50;
+dims = [nx, ny];
 pdims = [100, 100];
 
 G = cartGrid(dims, pdims);
@@ -25,15 +27,30 @@ state0 = initResSol(G, 100*barsa, [0, 1]);
 %% Simulate base case
 [ws, states, report] = simulateScheduleAD(state0, model, schedule);
 %% Plot the CFL condition
-cfl = estimateSaturationCFL(model, states{1}, max(schedule.step.val));
+e = 0.01;
+state = states{1};
+cfl = estimateSaturationCFL(model, state, max(schedule.step.val));
 figure;
-plotCellData(G, cfl, 'EdgeColor', 'none');
-cmap = parula(100);
-cmap = interp1((0.02:0.02:2), cmap, log10(2:100)');
-colormap(cmap);
-colorbar;
+plotCellData(G, log10(cfl + e), 'EdgeColor', 'none');
+colormap(jet)
 
+% cmap = jet(100);
+% cmap = interp1((0.02:0.02:2), cmap, log10(2:100)');
+% colormap(cmap);
+cb = colorbar;
+v = [e, 0.1, 1, 10, 20];
+set(cb, 'Ticks', log10(v))
+set(cb, 'TickLabels', v, 'FontSize', 18)
+
+mrstModule add streamlines;
+seed = (nx:nx-1:nx*ny).';
+Sf = pollock(G, state, seed, 'substeps', 1);
+Sb = pollock(G, state, seed, 'substeps', 1, 'reverse', true);
+hf=streamline(Sf);
+hb=streamline(Sb);
+set([hf; hb],'Color','k');
 outlineCoarseGrid(G, double(cfl > 1), 'Color', 'w');
+axis equal tight off
 %% Override the component discretization with a WENO scheme
 model_weno = setWENODiscretization(model);
 [ws_weno, states_weno, report_weno] = simulateScheduleAD(state0, model_weno, schedule);
@@ -51,22 +68,62 @@ for i = 1:numel(states)
     figure(1); clf;
     subplot(2, 2, 1)
     plotCellData(G, states{i}.s(:, 1), 'edgecolor', 'none');
-    axis equal tight
     title('FIM SPU');
+    axis equal tight
+
     subplot(2, 2, 2)
     plotCellData(G, states_weno{i}.s(:, 1), 'edgecolor', 'none');
-    axis equal tight
     title('FIM WENO')
+    axis equal tight
+
     subplot(2, 2, 3)
     plotCellData(G, states_e{i}.s(:, 1), 'edgecolor', 'none');
     title('AIM SPU')
     axis equal tight
-
+    
     subplot(2, 2, 4)
     plotCellData(G, states_weno_ex{i}.s(:, 1), 'edgecolor', 'none');
     title('AIM WENO')
     axis equal tight
 end
+%% Plot the fronts at a specific time
+ix = 80;
+x = reshape(G.cells.centroids(:, 1), G.cartDims);
+y = reshape(G.cells.centroids(:, 2), G.cartDims);
+x(x == min(x(:))) = min(G.nodes.coords(:, 1));
+x(x == max(x(:))) = max(G.nodes.coords(:, 1));
+y(y == min(y(:))) = min(G.nodes.coords(:, 2));
+y(y == max(y(:))) = max(G.nodes.coords(:, 2));
+
+for i = 1:2
+    if i == 1
+        impl = states;
+        expl = states_e;
+    else
+        impl = states_weno;
+        expl = states_weno_ex;
+    end
+    impl = impl{ix};
+    expl = expl{ix};
+
+    vi = impl.s(:, 1);
+    ei = expl.s(:, 1);
+    N        = 20;
+    cval     = [.5*movsum(linspace(0,1,N+1),2) 1];
+    figure(i); clf; hold on
+    colormap(flipud([.7*winter(128).^2+.3; 1 1 1]));
+    contourf(x, y, reshape(vi, G.cartDims), cval,'EdgeColor','none');
+    contour(x, y, reshape(ei, G.cartDims),  cval(2:end-1), 'k')
+    % outlineCoarseGrid(G, double(cfl > 0.9), 'Color', 'r');
+
+    axis equal tight off;
+    for wno = 1:numel(W)
+        c = G.cells.centroids(W(wno).cells, :);
+        plot(c(1), c(2), 'kO', 'markersize', 8, 'markerFaceColor', 'r')
+    end
+
+end
+
 %% Plot wells
 plotWellSols({ws, ws_e, ws_weno, ws_weno_ex}, report.SimulationTime, 'datasetnames', {'FIM-SPU', 'AIM-SPU', 'FIM-WENO', 'AIM-WENO'}, 'field', 'qWs', 'SelectedWells', 2)
 
