@@ -106,6 +106,12 @@ for i = 1:numel(fn)
         fluid.(f) = fluid.(f){1};
     end
 end
+if isfield(deck.RUNSPEC, 'GAS') && any(fluid.rhoGS == 0)
+    fluid.rhoGS(fluid.rhoGS == 0) = 1;
+end
+if isfield(deck.RUNSPEC, 'OIL') && any(fluid.rhoOS == 0)
+    fluid.rhoOS(fluid.rhoOS == 0) = 1;
+end
 end
 
 %--------------------------------------------------------------------------
