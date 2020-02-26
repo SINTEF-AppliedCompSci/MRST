@@ -124,8 +124,13 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
         assert(z_method == 1);
         zvd = deck.PROPS.ZMFVD{regionIx};
         z_fn = @(p, z) interpolateDepthTable(zvd(:, 1), zvd(:, 2:end), z);
-        tvd = deck.PROPS.TEMPVD{regionIx};
-        T_fn = @(p, z) interpolateDepthTable(tvd(:, 1), tvd(:, 2), z);
+        if isfield(deck.PROPS, 'RTEMP')
+            T = deck.PROPS.RTEMP;
+            T_fn = @(p, z) repmat(T, size(p));
+        else
+            tvd = deck.PROPS.TEMPVD{regionIx};
+            T_fn = @(p, z) interpolateDepthTable(tvd(:, 1), tvd(:, 2), z);
+        end
         contacts(2) = min(model.G.cells.centroids(:, 3)) - 10;
 
         region = getInitializationRegionsCompositional(model, contacts(act),...
