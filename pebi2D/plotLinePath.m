@@ -1,9 +1,9 @@
-function [fig] = plotLinePath(lines, varargin)
+function [h] = plotLinePath(lines, varargin)
 % plotLinePath plots the lines in a cell array
 %
 % SYNOPSIS:
 %       plotGrid(lines)
-%       plotGrid(lines, 'pn1', pv1, ...)
+%       h = plotGrid(lines, 'pn1', pv1, ...)
 %
 % PARAMETERS:
 %   lines     - cell array of lines. Each element in the cell array is a 
@@ -12,7 +12,7 @@ function [fig] = plotLinePath(lines, varargin)
 %               This list will be passed directly on to function PLOT.
 %
 % Returns
-%   fig       - Function handle to axis.
+%   h         - Handle to line objects.
 %
 % EXAMPLE:
 %   l = {[0,0;0.5,0;1,1],[0,1;1,0]};
@@ -27,8 +27,9 @@ function [fig] = plotLinePath(lines, varargin)
 %}
 flag = ishold;
 hold on
+h = zeros(numel(lines),1);
 for i = 1:numel(lines)
-  fig = plot(lines{i}(:, 1), lines{i}(:, 2) ,varargin{:});
+  h(i) = plot(lines{i}(:, 1), lines{i}(:, 2) ,varargin{:});
 end
 if ~flag, hold off; end
 end
