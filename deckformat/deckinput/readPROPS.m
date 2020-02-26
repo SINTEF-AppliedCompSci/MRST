@@ -168,6 +168,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'RKTRMDIR'
             prp.(kw) = true;
 
+         case {'RTEMP', 'RTEMPA'}
+            tmpl = { 'NaN' };
+            data      = readDefaultedKW(fid, tmpl, 'NRec', 1);
+            prp.(kw)  = to_double(data);  clear tmpl
+
          case 'ROCKOPTS'
             tmpl = { 'PRESSURE', 'NOSTORE', 'PVTNUM', 'DEFLATION' };
             prp.(kw) = readDefaultedKW(fid, tmpl, 'NRec', 1);    clear tmpl

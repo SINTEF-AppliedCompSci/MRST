@@ -362,6 +362,13 @@ function props = convertPROPS(props, u)
             unt         = [u.gasvol_s/u.liqvol_s, u.press];
             props.(key) = convertFrom(props.(key), unt);
 
+          case {'RTEMP', 'RTEMPA'}
+            d =  convertFrom(props.(key) + u.tempoffset, u.temp);
+            if isnan(d)
+                d = 288.706*Kelvin();
+            end
+            props.(key) = d;
+
          case 'STCOND'
             d = props.(key);
             d(1) = convertFrom(d(1) + u.tempoffset, u.temp);
