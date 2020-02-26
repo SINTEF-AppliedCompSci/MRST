@@ -15,7 +15,7 @@ function model = setWENODiscretization(model)
 end
 
 function model = setWENO(model)
-    weno = WENOUpwindDiscretization(model);
+    weno = WENOUpwindDiscretization(model); % Create WENO
     if isempty(model.FluxDiscretization)
         model = model.setupStateFunctionGroupings();
     end

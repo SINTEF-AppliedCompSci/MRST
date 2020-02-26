@@ -1,11 +1,11 @@
 classdef WENOUpwindDiscretization < UpwindDiscretization
     % Weighted essentially non-oscillatory scheme for upwinding
     properties
-        dim % Dimension of discretization
-        includeBoundary % Include boundary values in interpolation
-        interpolateReference % Interpolate in a scaled reference space
-        useMatrixProducts % Faster implementation for many cases
-        compactStencil % Take only a single connection for multiple neighbors
+        dim;                        % Dimension of discretization
+        includeBoundary = true;     % Include boundary values in interpolation
+        interpolateReference = true;% Interpolate in a scaled reference space
+        useMatrixProducts = true;   % Faster implementation for many cases
+        compactStencil  = true;     % Take only a single connection for multiple neighbors
     end
     
     properties (Access = protected)
@@ -15,11 +15,6 @@ classdef WENOUpwindDiscretization < UpwindDiscretization
     methods
         function weno = WENOUpwindDiscretization(model, dim, varargin)
             weno@UpwindDiscretization();
-            weno.includeBoundary = true;
-            weno.interpolateReference = true;
-            weno.useMatrixProducts = true;
-            weno.compactStencil = true;
-            
             if nargin == 1
                 weno.dim = model.G.griddim;
             else
