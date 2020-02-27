@@ -9,6 +9,17 @@
 #include "TensorComp.hpp"
 #include "multiix_tools.hpp"
 
+
+// ----------------------------------------------------------------------------
+template<typename It> bool ixless(const It& iter1, const It& iter2, int N)
+// ----------------------------------------------------------------------------
+{
+  for (int i = 0; i != N; ++i)
+    if (iter1[i] != iter2[i])
+      return (iter1[i] < iter2[i]);
+  return false;
+}
+
 // ----------------------------------------------------------------------------
 // this function requires t1 and t2 to be already sorted.  It should only be
 // called through a dispatch from the 'apply_binary_op' function.
@@ -34,23 +45,15 @@ apply_add_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
   std::vector<T> target_coefs;
   std::vector<typename TensorComp<T>::Index> target_ixs;
 
-  const auto ixless =
-    [Ni](const decltype(t1_ix_iter) iter1, const decltype(t2_ix_iter) iter2) {
-      for (int i = 0; i != Ni; ++i)
-        if (iter1[i] != iter2[i])
-          return (iter1[i] < iter2[i]);
-      return false;
-    };
-                      
   while (t1_ix_iter != t1_ix_iter_end &&
          t2_ix_iter != t2_ix_iter_end) {
 
-    if (ixless(t1_ix_iter, t2_ix_iter)) {
+    if (ixless(t1_ix_iter, t2_ix_iter, Ni)) {
       // add 0 to the coefficient from t1
       target_coefs.push_back(*t1_coef_iter++);
       for (int i = 0; i != Ni; ++i)
         target_ixs.push_back(*t1_ix_iter++);
-    } else if (ixless(t2_ix_iter, t1_ix_iter)) {
+    } else if (ixless(t2_ix_iter, t1_ix_iter, Ni)) {
       // add 0 to the coefficient from t2
       target_coefs.push_back(*t2_coef_iter++);
       for (int i = 0; i != Ni; ++i)
@@ -95,24 +98,16 @@ apply_subtract_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
 
   std::vector<T> target_coefs;
   std::vector<typename TensorComp<T>::Index> target_ixs;
-
-  const auto ixless =
-    [Ni](const decltype(t1_ix_iter) iter1, const decltype(t2_ix_iter) iter2) {
-      for (int i = 0; i != Ni; ++i)
-        if (iter1[i] != iter2[i])
-          return (iter1[i] < iter2[i]);
-      return false;
-    };
                       
   while (t1_ix_iter != t1_ix_iter_end &&
          t2_ix_iter != t2_ix_iter_end) {
 
-    if (ixless(t1_ix_iter, t2_ix_iter)) {
+    if (ixless(t1_ix_iter, t2_ix_iter, Ni)) {
       // subtract 0
       target_coefs.push_back(*t1_coef_iter++);
       for (int i = 0; i != Ni; ++i)
         target_ixs.push_back(*t1_ix_iter++);
-    } else if (ixless(t2_ix_iter, t1_ix_iter)) {
+    } else if (ixless(t2_ix_iter, t1_ix_iter, Ni)) {
       // subtract t2 from 0
       target_coefs.push_back(-1 * (*t2_coef_iter++));
       for (int i = 0; i != Ni; ++i)
@@ -158,22 +153,14 @@ apply_mul_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
   std::vector<T> target_coefs;
   std::vector<typename TensorComp<T>::Index> target_ixs;
 
-  const auto ixless =
-    [Ni](const decltype(t1_ix_iter) iter1, const decltype(t2_ix_iter) iter2) {
-      for (int i = 0; i != Ni; ++i)
-        if (iter1[i] != iter2[i])
-          return (iter1[i] < iter2[i]);
-      return false;
-    };
-                      
   while (t1_ix_iter != t1_ix_iter_end &&
          t2_ix_iter != t2_ix_iter_end) {
 
-    if (ixless(t1_ix_iter, t2_ix_iter)) {
+    if (ixless(t1_ix_iter, t2_ix_iter, Ni)) {
       // multiplication by 0 -> no new coefficient, but advance index
       t1_ix_iter += Ni;
       ++t1_coef_iter;
-    } else if (ixless(t2_ix_iter, t1_ix_iter)) {
+    } else if (ixless(t2_ix_iter, t1_ix_iter, Ni)) {
       // multiplication by 0 -> no new coefficient, but advance index
       t2_ix_iter += Ni;
       ++t2_coef_iter;
@@ -218,22 +205,14 @@ apply_div_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
   std::vector<T> target_coefs;
   std::vector<typename TensorComp<T>::Index> target_ixs;
 
-  const auto ixless =
-    [Ni](const decltype(t1_ix_iter) iter1, const decltype(t2_ix_iter) iter2) {
-      for (int i = 0; i != Ni; ++i)
-        if (iter1[i] != iter2[i])
-          return (iter1[i] < iter2[i]);
-      return false;
-    };
-                      
   while (t1_ix_iter != t1_ix_iter_end &&
          t2_ix_iter != t2_ix_iter_end) {
 
-    if (ixless(t1_ix_iter, t2_ix_iter)) {
+    if (ixless(t1_ix_iter, t2_ix_iter, Ni)) {
       // division by zero
       throw std::runtime_error("Division by zero in element-wise tensor division.");
       
-    } else if (ixless(t2_ix_iter, t1_ix_iter)) {
+    } else if (ixless(t2_ix_iter, t1_ix_iter, Ni)) {
       // 0 divided by something -> no new coefficient, but advance index
       t2_ix_iter += Ni;
       ++t2_coef_iter;
