@@ -44,12 +44,15 @@ function [foptval, uopt, history, uu_opt, extra] = ...
    opt.objChangeTol = 1e-5; %@@ might be too tight (much tighter than default
                             %in unitBoxBFGS)
    opt.cyclical = []; % indices of cyclical control variables
+   opt.extra = []; % if discretization is precomputed, it can be passed in
+                   % here to save time in VEM_linelast_AD
    [opt, ~] = merge_options(opt, varargin{:});
 
+   if ~strcmpi(G.type{end}, 'createAugmentedGrid')
+      G = createAugmentedGrid(computeGeometry(G));
+   end
    
-   G = createAugmentedGrid(computeGeometry(G));
-   
-   funwrap = @(u) fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun);
+   funwrap = @(u) fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, opt.extra);
                               
    
    [foptval, uopt, history] = unitBoxBFGS(u, funwrap, ...
@@ -65,7 +68,7 @@ function [foptval, uopt, history, uu_opt, extra] = ...
       
       while any([ixs_1(:) ;ixs_0(:)]) && ...
              (history.pg(end) > opt.gradTol || isnan(history.pg(end)))
-         uopt
+
          % one or more cyclical variables 'stuck' against the imposed boundary.  Move them
          % to the other side and try again.
          fprintf('cyclical variable(s) stuck.  Trying again.\n');
@@ -95,7 +98,7 @@ function [foptval, uopt, history, uu_opt, extra] = ...
    end
 end
 
-function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
+function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, extra)
 
    fprintf('Calling fun_wrapper\n');
    u = initVariablesADI(u);
@@ -107,7 +110,8 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    amgsolver = @(A, b) callAMGCL(A, b, 'relaxation', 'chebyshev', 'solver', 'cg', ...
                               'tolerance', 2e-6, 'maxIterations', 2000);
    
-   [dd, extra] = VEM_linElast_AD(G, C, bc, load, 'linsolve', amgsolver);
+   [dd, extra] = VEM_linElast_AD(G, C, bc, load, ...
+                                 'linsolve', amgsolver, 'extra', extra);
 
    %dofs = ~extra.disc.isdirdofs; %% exclude dirichlet nodes
 
