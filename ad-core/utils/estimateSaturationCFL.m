@@ -62,6 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 accumarray(r, rate_face.*(~f | xflow), [nc, 1]);
     if ~isempty(opt.forces)
         if isfield(state.wellSol, 'flux') % Wells
+            model = model.validateModel(opt.forces);
             map = model.FacilityModel.getProp(state, 'FacilityWellMapping');
             active = map.active;
             wflux = sum(vertcat(state.wellSol(active).flux), 2);
