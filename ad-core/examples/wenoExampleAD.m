@@ -29,7 +29,7 @@ state0 = initResSol(G, 100*barsa, [0, 1]);
 %% Plot the CFL condition
 e = 0.01;
 state = states{1};
-cfl = estimateSaturationCFL(model, state, max(schedule.step.val));
+cfl = estimateSaturationCFL(model, state, max(schedule.step.val), 'forces', schedule.control(1));
 figure;
 plotCellData(G, log10(cfl + e), 'EdgeColor', 'none');
 colormap(jet)
@@ -38,7 +38,7 @@ colormap(jet)
 % cmap = interp1((0.02:0.02:2), cmap, log10(2:100)');
 % colormap(cmap);
 cb = colorbar;
-v = [e, 0.1, 1, 10, 20];
+v = [e, 0.1, 1, 10, 30];
 set(cb, 'Ticks', log10(v))
 set(cb, 'TickLabels', v, 'FontSize', 18)
 
@@ -50,6 +50,8 @@ hf=streamline(Sf);
 hb=streamline(Sb);
 set([hf; hb],'Color','k');
 outlineCoarseGrid(G, double(cfl > 1), 'Color', 'w');
+outlineCoarseGrid(G, ones(G.cells.num, 1), 'Color', 'k');
+
 axis equal tight off
 %% Override the component discretization with a WENO scheme
 model_weno = setWENODiscretization(model);
@@ -114,14 +116,13 @@ for i = 1:2
     colormap(flipud([.7*winter(128).^2+.3; 1 1 1]));
     contourf(x, y, reshape(vi, G.cartDims), cval,'EdgeColor','none');
     contour(x, y, reshape(ei, G.cartDims),  cval(2:end-1), 'k')
-    % outlineCoarseGrid(G, double(cfl > 0.9), 'Color', 'r');
+    outlineCoarseGrid(G, ones(G.cells.num, 1), 'Color', 'k');
 
     axis equal tight off;
     for wno = 1:numel(W)
         c = G.cells.centroids(W(wno).cells, :);
         plot(c(1), c(2), 'kO', 'markersize', 8, 'markerFaceColor', 'r')
     end
-
 end
 
 %% Plot wells
