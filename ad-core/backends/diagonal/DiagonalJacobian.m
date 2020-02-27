@@ -421,7 +421,7 @@ classdef DiagonalJacobian
                     x.diagonal = x.diagonal.*y;
                 else
                     x = x.sparse();
-                    x = x.*y;
+                    x = x*y;
                 end
             else
                 if isscalar(x)
