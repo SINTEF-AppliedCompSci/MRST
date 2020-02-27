@@ -71,6 +71,10 @@ classdef FacilityModel < PhysicalModel
                 model.FacilityFluxDiscretization = FacilityFluxDiscretization(model); %#ok
             end
         end
+        
+        function model = resetStateFunctionGroupings(model)
+            model.FacilityFluxDiscretization = [];
+        end
 
         function model = setupWells(model, W, wellmodels)
             % Set up well models for changed controls or the first

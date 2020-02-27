@@ -315,6 +315,17 @@ methods
             class(model));
     end
 
+    function model = removeStateFunctionGroupings(model)
+        % Remove all  state functions from model
+        %
+        % SYNOPSIS:
+        %   model = model.removeStateFunctionGroupings();
+
+        dispif(model.verbose, ...
+            'Resetting StateFunctionGroupings attached to class of type %s\n',...
+            class(model));
+    end
+
     function schedule = validateSchedule(model, schedule)
         assert(isfield(schedule, 'control'), ...
             'Schedule is missing .control field. Cannot define driving forces.')

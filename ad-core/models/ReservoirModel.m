@@ -218,6 +218,15 @@ methods
         end
     end
     
+    function model = removeStateFunctionGroupings(model)
+        model.FlowPropertyFunctions = [];
+        model.PVTPropertyFunctions = [];
+        model.FluxDiscretization = [];
+        if ~isempty(model.FacilityModel)
+            model.FacilityModel = model.FacilityModel.removeStateFunctionGroupings();
+        end
+    end
+    
     function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin)
         if iteration == 1 && ~isempty(model.FacilityNonLinearSolver)
             nls = model.FacilityNonLinearSolver;
