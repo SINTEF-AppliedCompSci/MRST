@@ -159,15 +159,29 @@ classdef SparseTensor
          % considered to be summed)
          common_names = intersect(self.indexNames(), other.indexNames());
          for nix = 1:numel(common_names)
-            % choose an index name that does not overlap with any already
-            % used in either of the involved tensors
-            flagged_name = self.next_unused_contr_ix_name(other);
+            
             if only_semiproduct
-               self = self.duplicateIndex(common_names{nix}, flagged_name);
+               [self, ixname1] = self.ensure_has_duplicate(common_names{nix});
             else
-               self = self.changeIndexName(common_names{nix}, flagged_name);
+               [self, ixname1] = self.ensure_no_duplicate(common_names{nix});
             end
-            other = other.changeIndexName(common_names{nix}, flagged_name);
+            [other, ixname2] = other.ensure_no_duplicate(common_names{nix});
+            
+            summing_ix_name = self.next_unused_contr_ix_name(other);
+            
+            self = self.changeIndexName(ixname1, summing_ix_name);
+            other = other.changeIndexName(ixname2, summing_ix_name);
+            
+            % % choose an index name that does not overlap with any already
+            % % used in either of the involved tensors
+            % flagged_name = self.next_unused_contr_ix_name(other);
+            % if only_semiproduct
+            %    self = self.duplicateIndex(common_names{nix}, flagged_name);
+            % else
+            %    self = self.changeIndexName(common_names{nix}, flagged_name);
+            % end
+            % other = other.changeIndexName(common_names{nix}, flagged_name);
+            
          end
          self.components = [self.components, other.components];
       end
@@ -206,14 +220,23 @@ classdef SparseTensor
          end
          
          % contraction (or semicontraction) involving two indices
-         newname = self.next_unused_contr_ix_name();
-         
          if only_semicontract
-            self = self.duplicateIndex(ixname1, newname);
+            [self, ixname1] = self.ensure_has_duplicate(ixname1);
          else
-            self = self.changeIndexName(ixname1, newname);
+            [self, ixname1] = self.ensure_no_duplicate(ixname1);
          end
+         [self, ixname2] = self.ensure_no_duplicate(ixname2);
+         newname = self.next_unused_contr_ix_name();
+         self = self.changeIndexName(ixname1, newname);
          self = self.changeIndexName(ixname2, newname);
+         
+         % newname = self.next_unused_contr_ix_name();
+         % if only_semicontract
+         %    self = self.duplicateIndex(ixname1, newname);
+         % else
+         %    self = self.changeIndexName(ixname1, newname);
+         % end
+         % self = self.changeIndexName(ixname2, newname);
          
          % if the contraction only involves a single component, carry it out
          comp_ix = self.component_with_ix(newname, false);         
@@ -951,9 +974,67 @@ classdef SparseTensor
          comp_ix = res; % multiple compoents (or zero)
       end
       
+      function [self, duplicate_ixname] = ensure_has_duplicate(self, ixname)
+      % ensure that the tensor component with the index named ixname has a duplicate
+      % of this index
+         assert(~SparseTensor.is_contracting_ix(ixname));
+         comp = self.components{self.component_with_ix(ixname)};
+         idix = SparseTensor.identical_indices(comp, ixname);
+         if numel(idix) == 1
+            dupname = self.next_unused_contr_ix_name();
+            self = self.duplicateIndex(ixname, dupname);
+            duplicate_ixname = dupname;
+            return
+         end
+         assert(numel(idix) == 2);
+         if strcmp(comp.indexnames{idix(1)}, ixname)
+            duplicate_ixname = comp.indexnames{idix(2)};
+         else
+            duplicate_ixname = comp.indexnames{idix(3)};
+         end
+      end
+      
+      
+      function [self, unique_ixname] = ensure_no_duplicate(self, ixname)
+      % ensure that the tensor component with the index named ixname has a duplicate
+      % of this index
+         assert(~SparseTensor.is_contracting_ix(ixname));
+         comp_ix = self.component_with_ix(ixname);
+         comp = self.components{comp_ix};
+         idix = SparseTensor.identical_indices(comp, ixname);
+         if numel(idix) == 1
+            unique_ixname = ixname;
+            return
+         end
+         assert(numel(idix) == 2);
+         % remove the index, since it has a duplicate
+         if strcmp(comp.indexnames{idix(1)}, ixname)
+            remove_ix = idix(1);
+            keep_ix = idix(2);
+         else
+            remove_ix = idix(2);
+            keep_ix = idix(1);
+         end
+         unique_ixname = comp.indexnames{keep_ix};
+         self.components{comp_ix}.indexnames(remove_ix) = [];
+         self.components{comp_ix}.ixs(:, remove_ix) = [];
+      end
+                  
    end % end methods
 
    methods(Static)
+
+      function identical_ixs = identical_indices(comp, ixname)
+
+         identical_ixs = ...
+             find(cellfun(@(x)strcmpi(ixname, x), comp.indexnames), 1, 'first');
+         
+         if identical_ixs
+            tmp = abs(comp.ixs - comp.ixs(:, identical_ixs));
+            
+            identical_ixs = find(sum(tmp) == 0);
+         end
+      end
       
       function ranges = identify_index_ranges(multiix, comp)
          
