@@ -157,8 +157,8 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             % Update saturations etc using flash routine
             state = model.computeFlash(state, problem.dt, problem.iterationNo);
             % Set increments in phase compositions as well
-            dx = model.computeChange(state.x - state.y, s_hc);
-            dy = model.computeChange(state.x - state.y, s_hc);
+            dx = model.computeChange(state0.x - state.x, s_hc);
+            dy = model.computeChange(state0.y - state.y, s_hc);
             dxy = max(dx, dy);
             state.dz = max(state.dz, dxy);
             
