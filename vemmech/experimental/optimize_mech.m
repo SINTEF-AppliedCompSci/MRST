@@ -44,12 +44,15 @@ function [foptval, uopt, history, uu_opt, extra] = ...
    opt.objChangeTol = 1e-5; %@@ might be too tight (much tighter than default
                             %in unitBoxBFGS)
    opt.cyclical = []; % indices of cyclical control variables
+   opt.extra = []; % if discretization is precomputed, it can be passed in
+                   % here to save time in VEM_linelast_AD
    [opt, ~] = merge_options(opt, varargin{:});
 
+   if ~strcmpi(G.type{end}, 'createAugmentedGrid')
+      G = createAugmentedGrid(computeGeometry(G));
+   end
    
-   G = createAugmentedGrid(computeGeometry(G));
-   
-   funwrap = @(u) fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun);
+   funwrap = @(u) fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, opt.extra);
                               
    
    [foptval, uopt, history] = unitBoxBFGS(u, funwrap, ...
@@ -65,7 +68,7 @@ function [foptval, uopt, history, uu_opt, extra] = ...
       
       while any([ixs_1(:) ;ixs_0(:)]) && ...
              (history.pg(end) > opt.gradTol || isnan(history.pg(end)))
-         uopt
+
          % one or more cyclical variables 'stuck' against the imposed boundary.  Move them
          % to the other side and try again.
          fprintf('cyclical variable(s) stuck.  Trying again.\n');
@@ -95,7 +98,7 @@ function [foptval, uopt, history, uu_opt, extra] = ...
    end
 end
 
-function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
+function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, extra)
 
    fprintf('Calling fun_wrapper\n');
    u = initVariablesADI(u);
@@ -105,9 +108,10 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    load = loadfun(u);
    
    amgsolver = @(A, b) callAMGCL(A, b, 'relaxation', 'chebyshev', 'solver', 'cg', ...
-                              'tolerance', 1e-6, 'maxIterations', 500);
+                              'tolerance', 2e-6, 'maxIterations', 2000);
    
-   [dd, extra] = VEM_linElast_AD(G, C, bc, load, 'linsolve', amgsolver);
+   [dd, extra] = VEM_linElast_AD(G, C, bc, load, ...
+                                 'linsolve', amgsolver, 'extra', extra);
 
    %dofs = ~extra.disc.isdirdofs; %% exclude dirichlet nodes
 
@@ -117,8 +121,8 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    [val, oval_du, oval_dd] = obj_fun(value(u), dd(:));
    
    %% use adjoint to compute gradient
-   
-   lambda = amgsolver(extra.A, -oval_dd);
+   %   keyboard;
+   lambda = amgsolver(extra.A, -full(oval_dd));
    %lambda = -extra.A \ oval_dd; % A symmetric, so no transpose necessary
    
    dAdu_dd = 0; % @@ will change when including stiffness params. dependence on u
@@ -134,9 +138,3 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun)
    val = -val;
    grad = -grad;
 end
-
-
-   
-   %function [v, u, history] = unitBoxBFGS(u0, f, varargin)   
-%function [uu, extra] = VEM_linElast_AD(G, C, el_bc, load, varargin)
-   

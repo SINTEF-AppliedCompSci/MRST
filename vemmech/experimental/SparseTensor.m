@@ -1,25 +1,80 @@
 classdef SparseTensor
     % Sparse tensor class
-    % 
+    %   
     % SYNOPSIS:
-    % 
+    %   SparseTensor represents a sparse, multi-indexed array, which can be
+    %   seen as a multidimensional generalization of a sparse matrix.
     % 
     % DESCRIPTION:
+    % 
+    %   SparseTensor is written to allow simple and efficient manipulation of
+    %   multiindexed, sparse arrays, including arithmetic operations, tensor
+    %   products and tensor contractions.  Tensor products and tensor
+    %   contractions are lazily evaluated; the internal data structure of
+    %   SparseTensor is a set of factors ("components") that can be
+    %   multiplied together or contracted in one or more indices to produce
+    %   the actual multidimensional tensor elements.
     %
-         
-   
+    %   A SparseTensor is characterized by its number of indices (zero or more),
+    %   which each has a name (e.g. 'i', 'j', but also longer names are
+    %   possible).  Each index runs from 1 and upwards.  For certain index
+    %   combinations (e.g. ('i', 'j') = (34, 22)), the SparseTensor may have a
+    %   nonzero value.  The upper bound of each indices is practically defined
+    %   as its highest index value for which there is a nonzero tensor value.
+    %  
+    %   A SparseTensor with zero indices represents a single scalar value,
+    %   sometimes referred to as an 'intrinsic scalar'.
+    %    
+    %   Note that indices are referred to by name, not by order, so two
+    %   tensors having the same number of indices with the same names are
+    %   considered to be compatible, even though the index names are given in
+    %   different orders.
+        
    properties
-      % Cell array of components.  Each component should be a struct with 
-      % the fields: 
-      % - coefs (vector of coefs)
-      % - ixs (matrix where each row constitute a multiindex)
-      % - indexnames (names of indices, one for each row of 'ixs')
+
+      % Cell array of components (factors).  Each component should be a
+      % struct with the fields: 
+      % - coefs (vector of coefficient values)
+      % - ixs (matrix where each row constitute a multiindex, describing the
+      %   index position of each coefficient in 'coefs')
+      % - indexnames (cell array contianing the names of each index.  There
+      %   should be one name per column of 'ixs'.  Typical names could be
+      %   'i', 'j', etc.
       components 
    end
    
    methods
       
       function self = SparseTensor(varargin)
+         
+      % The SparseTensor can be constructed in various ways, depending on the
+      % number and nature of arguments passed to its constructor.  The
+      % possibilites are:
+      % 
+      % * Single input: (scalar value)
+      %     This creates a SparseTensor representing a scalar value (zero
+      %     indices)
+      %
+      % * Single input: (struct)
+      %      It is assumed that the struct is on the form of a 'component' (see
+      %      documentation of 'components' in the property section above).  The
+      %      SparseTensor will be constructed directly from this component.
+      %
+      % * Two inputs (matrix, cell array)
+      %      This constructor is used to convert a matrix (or vector) to a
+      %      SparseTensor.  The cell array provides the corresponding index
+      %      names.  If the matrix (or vector) is sparse, only nonzero
+      %      elements will be preserved.  Example of use, where 'm' is a 2d
+      %      matrix: 
+      %         a = SparseTensor(m, {'i', 'j'})
+      % 
+      % * Three inputs (vector, matrix, cell array)
+      %      The SparseTensor is constructed directly from a vector of
+      %      the nonzero coefficients (first argument), a matrix representing
+      %      the corresponding multiindices (rows equal to length of
+      %      coefficient vector, columns equal to number of indices), and a
+      %      cell array with the name of the indices (one for each index).
+      % 
          switch nargin
            case 1
              if isstruct(varargin{1})
@@ -62,8 +117,30 @@ classdef SparseTensor
              error('Unsupported arguments to constructor.');
          end
       end
+
       
       function self = product(self, other, only_semiproduct)
+      % Compute the tensor product of two tensors.  
+      %
+      % If A_ij and B_kl are two tensors, the tensor product can be written
+      % C_ijkl, where C_ijkl = A_ij * B_jk.
+      %          
+      % If the two tensors being multiplied share one or more indices
+      % (e.g. identical index names), a tensor contraction will take place.  For
+      % example: If A_ij and B_jk are two tensors, the product after tensor
+      % contraction will be:
+      % 
+      %    C_ik = sum_j(A_ij, B_jk)   (summation over the index 'j')
+      % 
+      % If 'only_semiproduct' is true, then 'half a contraction' will take
+      % place, where the summation is not carried out.  In the case of the
+      % previous example, this would be:
+      % 
+      %    C_ijk = A_ij * B_jk
+      %
+      % As such, a full contraction can be seen as a semi-contraction followed
+      % by a summation over the contracting index.
+         
          if nargin < 3
             only_semiproduct = false;
          end
@@ -96,8 +173,25 @@ classdef SparseTensor
       end
       
       function self = contract(self, ixname1, ixname2, only_semicontract)
-      % can be called with one index (contraction) or two indices
-      % (contraction or semicontraction)
+      % Contract a tensor in one of its indices.  This function can be called
+      % with one or two named indices.
+      % An example in one index: if the tensor A_ijk is contracted in the
+      % index 'i', the result B is: 
+      % 
+      % B_jk = sum_i(A_ijk)
+      % 
+      % An example in two indices: if the tensor A_ijk is contracted in the
+      % two indices 'i' and 'j', the result B is:
+      %  
+      % B_k = sum_i(A_iik)  (only involves elements where j = i)
+      % 
+      % If two indices are given, it is also possible to carry out only 'half a
+      % contraction', where the final summation is not carried out, by
+      % specifying 'only_semicontract' to be true.  In the case of the previous
+      % example, this would be:
+      %   
+      % B_ik = A_iik  (only involves elements where j = i)
+
          if nargin < 3
             % Simple contraction in one index.  
             comp_ix = self.component_with_ix(ixname1);
@@ -129,31 +223,51 @@ classdef SparseTensor
       end
       
       function self = plus(self, other)
+      % Add two tensors.  This is only allowed if the tensors have the same number of
+      % indices, with the same names.
          self = SparseTensor.apply_binary_operator(self, other, @plus);
       end
       
       function self = minus(self, other)
+      % Subtract two tensors.  This is only allowed if the tensors have the same
+      % number of indices, with the same names.
          self = SparseTensor.apply_binary_operator(self, other, @minus);
       end
       
       function self = rdivide(self, other)
+      % Element-wise divide two tensors.  This is only allowed if the tensors have the
+      % same number of indices, with the same names.
          self = SparseTensor.apply_binary_operator(self, other, @rdivide);
       end
       
       function self = times(self, other)
+      % Element-wise multiply two tensors.  This is only allowed if the tensors have
+      % the same number of indices, with the same names.
          self = SparseTensor.apply_binary_operator(self, other, @times);
       end
       
       function self = mpower(self, other)
+      % Tensor product between two tensors, where contractions will be treated only as
+      % semi-contractions.  (Contractions are identified for identical index
+      % names in the two involved tensors.)
          self = self.product(other, true);
       end
       
       function t = mtimes(self, other)
+      % Tensor product between two tensors, where contractions will be treated as full
+      % contractions. (Contractions are identified for identical index names in
+      % the two involved tensors.)
          t = self.product(other, false);
       end
       
       function self = sortIndices(self, ixset_order)
-      
+      % Sort the order of index names.  'ixset_order' should thus represent a
+      % perumtation.  For instance, if this method is called on the tensor
+      % A_ijkl with the ixset_order = [1324], the resulting tensor would be
+      % A_ikjl.
+      %  
+      % Note that this method requires SparseTensor to do an explicit
+      % multiplication of all its components, which may be computationally expensive.
          self = self.expandall();
 
          assert(SparseTensor.is_permutation(ixset_order, self.indexNames()));
@@ -167,6 +281,9 @@ classdef SparseTensor
       end
       
       function self = sub(self, ixname, ixval)
+      % Return the tensor resulting from fixing one index to one index value.  For
+      % instance, if applying this method with the arguments ('i', 3) to the
+      % tensor A_ijk, the result is  B_jk = A_{i=3}jk
          self = self.product(SparseTensor([], ixval, {ixname}));
       end
       
@@ -186,6 +303,10 @@ classdef SparseTensor
       end
             
       function self = changeIndexName(self, oldnames, newnames)
+      % Change the name of one or more indices, from oldnames to newnames. If multiple
+      % index names are involved, 'oldnames' and 'newnames' are provided as cell
+      % arrays of srrings.  If only one index name is involved, 'oldnames' and
+      % 'newnames' can be provided directly as strings.
          if ~iscell(oldnames)
             oldnames = {oldnames}; newnames = {newnames};
          end
@@ -204,13 +325,19 @@ classdef SparseTensor
       end
 
       function self = toInd(self)
+      % Change  the tensor to an 'indicator tensor', where all nonzero
+      % elements are 1.  
+      %  
+      % Note that this method requires SparseTensor to do an explicit
+      % multiplication of all its components, which may be computationally
+      % expensive.
          self = self.expandall();
          self.components{1}.coefs = self.components{1}.coefs * 0 + 1;
       end
       
       function [ixnames, cixnames] = indexNames(self)
       % return tensor index names.  Contracting indices are returned as
-      % second value.
+      % second return value.
          ixnames = {};
          cixnames = {};
          for c = self.components
@@ -232,6 +359,10 @@ classdef SparseTensor
       % the call to sparse, we also return the 1D indices, to let the user
       % know which elements were present (even if zero)
       function [v, ix] = asVector(self, ixnames, shape)
+      % Convert a (generally multiindexed) tensor to a matlab vector (1
+      % index), by given a permuatation of the index names.  The shape of the
+      % tensor may also be given as a second argument, in case the shape
+      % should be defined by values higher than the highest value for each index.
          
          % ensure the user has actually provided a permutation of all index names
          assert(SparseTensor.is_permutation(self.indexNames(), ixnames));
@@ -258,6 +389,16 @@ classdef SparseTensor
       end
       
       function M = asMatrix(self, ixnames, force_sparse, shape)
+      % Convert a (generally multiindexed) tensor to a matlab matrix (2
+      % indices), by specifying which indices should be used define rows and
+      % columns in the matrix.  Each index of the tensor must be used either
+      % in the definition of rows or of columns (but not both).  
+      % 
+      % The matrix will generally be returned in sparse form, unless the size
+      % is below a certain threshold, for which it is returned as a full
+      % matrix (this is often useful for testing purposes involving small
+      % cases).  However, if 'force_sparse' is set to true, the returned
+      % matrix will always b sparse.
          SPARSE_THRESHOLD = 200;
          
          if ~exist('force_sparse', 'var')
@@ -321,26 +462,36 @@ classdef SparseTensor
       end
 
       function self = expandall(self, expand_tensor)
-         
+      % Explicitly carry out all tensor products, contractions and
+      % semi-contractions implied by the components in the SparseTensor
+      % (these operations are usually not carried out since SparseTensor
+      % employs lazy evaluation).  
+      % Note that an explicit multiplication of all the tensor components may
+      % be computationally expensive.
+      % 
+      % If 'expand_tensor' is set to 'false' only multiplications involving
+      % contractions or semi-contractions are carried out.  Otherwise, all
+      % components are explicitly multiplied.
+
          if nargin < 2
             expand_tensor = true; 
          end
 
-         [ixnames, cixnames] = indexNames(self);
+         [~, cixnames] = indexNames(self);
          sum_comps = {};
          indep_comps = {};
          for c = self.components
             if numel(intersect(cixnames, c{:}.indexnames)) > 0
-               sum_comps = [sum_comps, c];
+               sum_comps = [sum_comps, c];%#ok
             else
-               indep_comps = [indep_comps, c];
+               indep_comps = [indep_comps, c];%#ok
             end
          end
          
          if numel(sum_comps) > 1
             % ensure no sparse vectors used
             for i = 1:numel(sum_comps)
-               sum_comps{i}.coefs = full(sum_comps{i}.coefs);
+               sum_comps{i}.coefs = full(sum_comps{i}.coefs);%#ok
             end
             sumcomp = tcontract(sum_comps);
             self = SparseTensor([indep_comps, sumcomp]);   
@@ -369,8 +520,10 @@ classdef SparseTensor
             return
          end
          
-         % put all coefs on a common form, where all coefs have all contracting indices
-         [comps, num_cix, max_cix, indep_comps] = SparseTensor.set_common_form(self.components);
+         % put all coefs on a common form, where all coefs have all
+         % contracting indices 
+         [comps, num_cix, ~, indep_comps] = ...
+             SparseTensor.set_common_form(self.components);
          
          % check if there are any contractions
          if num_cix > 0
@@ -545,6 +698,7 @@ classdef SparseTensor
 
       
       function self = expandall_deprecated(self, expand_tensor)
+
          if nargin < 2
             expand_tensor = true; % default is true
          end
