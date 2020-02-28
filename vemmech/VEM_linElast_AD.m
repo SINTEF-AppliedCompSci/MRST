@@ -97,16 +97,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                          'S'                   , opt.S, ...
                          'experimental_scaling', opt.experimental_scaling);
     end
-
-    %% Recalculate "weights" (all are calculated in the assembly, they could in fact only be calculated once)
+    toc
+    %% Recalculate "weights" (all are calculated in the assembly, they could
+    %% in fact only be calculated once)
+    tic; fprintf('Recalculating weights.\n');
     if (G.griddim == 2)
         qf_all = G.faces.areas / 2;
         [qc_all, qcvol] = calculateQF(G);
     else
         [qc_all, qf_all, qcvol] = calculateQC(G);
     end
-
+    toc
     %% Apply Diriclet boundary conditions
+    tic; fprintf('Computing boundary conditions.\n');
     [u_bc, dirdofs] = el_bc.disp_bc.asVector({'d', 'n'}, [G.griddim, G.nodes.num]);
 
     ndof = G.griddim * G.nodes.num;
@@ -163,6 +166,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
        rhs   = rhs + fbc;
     end
+    toc
+    tic; fprintf('Reducing degrees of freedom.\n');
     % Reduce the degrees of freedom
     rhs = rhs(~isdirdofs);
     A   = S(~isdirdofs, ~isdirdofs);
@@ -170,8 +175,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %% make matrix perfectly symmetric (numericaly)
     A   = (A + A') / 2; % The matrix is theoretically symmetric, make sure that it
                         % is also symmetric numerically
-
+    toc
     %% Solve the equation system (unless 'no_solve' option)
+    tic; fprintf('Solving system.\n');
     if(opt.no_solve)
         x=nan(sum(~isdirdofs),1);
     else
@@ -182,6 +188,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        end
         x   = opt.linsolve(A, b);
     end
+    
+    toc
+    
     u   = nan(ndof, 1);
 
     u(isdirdofs)  = value(u_bc(isdirdofs));
@@ -203,7 +212,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             'divrhs'    , vdiv * u_bc);
 
     end
-
 end
 
 function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
