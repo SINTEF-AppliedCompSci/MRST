@@ -36,3 +36,4 @@ iy = repelem((1:numel_u)', numel_v, 1);
 mat = sparse(ix, iy, 1, numel_u * numel_v, numel_u);
 
 res = (mat * u) .* repmat(v, numel_u, 1);
+res = full(res);
