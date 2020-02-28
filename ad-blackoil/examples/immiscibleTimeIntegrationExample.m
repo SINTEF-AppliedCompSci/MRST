@@ -8,10 +8,15 @@ x = G.cells.centroids/L;
 
 poro = repmat(0.5, G.cells.num, 1);
 %%
-poro(x > 0.2 & x < 0.3) = 0.05;
-poro(x > 0.7 & x < 0.8) = 0.05;
-poro(x > 0.45 & x < 0.55) = 0.1;
-
+A = [0.20, 0.30, 0.05];
+B = [0.45, 0.55, 0.1];
+C = [0.70, 0.80, 0.05];
+regs = {A, B, C};
+nreg = numel(regs);
+for i = 1:nreg
+    R = regs{i};
+    poro(x > R(1) & x < R(2)) = R(3);
+end
 rock = makeRock(G, 1*darcy, poro);
 
 close all
@@ -97,6 +102,27 @@ for stepNo = 1:numel(schedule.step.val)
     legend('Porosity', 'CFL', 'CFL stable limit');
     drawnow
 end
+%%
+ns = numel(states);
+model = model.setupStateFunctionGroupings();
+figure(1);
+for stepNo = 1:numel(schedule.step.val)
+    clf; hold on
+    for r = 1:nreg
+        R = regs{r};
+        x1 = L*R(1);
+        x2 = L*R(2);
+        patch([x1, x1, x2, x2], [0, 1, 1, 0], 'k', 'FaceAlpha', .1);
+        text((x1 + x2)/2, 0.8, sprintf('\\phi = %1.2f', R(3)),'HorizontalAlignment', 'center', 'FontSize', 14)
+    end
+    h = nan(ns, 1);
+    for j = 1:ns
+        h(j) = plotCellData(G, states{j}{stepNo}.s(:, 1), 'LineWidth', 2);
+    end
+    legend(h, names);
+    drawnow
+end
+
 %% Plot the fraction of cells which are implicit
 imp_frac = cellfun(@(x) sum(x.implicit)/numel(x.implicit), states{3});
 figure;
