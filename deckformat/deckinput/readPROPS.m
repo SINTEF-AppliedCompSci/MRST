@@ -55,6 +55,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'EOS'
             prp.(kw) = readDefaultedKW(fid, {'PR'}, 'NRec', nmeosr);
 
+         case 'EHYSTR'
+             nrec = 1; % This keyword has only 1 record independent of the
+                       % number of imbibition region
+             tmpl = {'0.1', '2', '1.0', '0.1', ....
+                     'BOTH', 'RETR', 'DRAIN', 'OIL', ...
+                     'NO', 'NO', 'NO', '0.0', '0'};
+             data = readDefaultedKW(fid, tmpl, 'NRec', nrec);
+             numix = [1:4, 12, 13];
+             prp.(kw) = data;
+             prp.(kw)(numix) = num2cell(to_double(data(numix)));
+             clear tmpl nrec numix;
+
          case 'PRCORR'
             prp.PRCORR = true;
 
