@@ -484,7 +484,7 @@ classdef SparseTensor
          end
       end
 
-      function self = expandall(self, expand_tensor)
+      function self = expandall_mex(self, expand_tensor)
       % Explicitly carry out all tensor products, contractions and
       % semi-contractions implied by the components in the SparseTensor
       % (these operations are usually not carried out since SparseTensor
@@ -532,195 +532,8 @@ classdef SparseTensor
          end
       end
 
-            
-      function self = expandall_regular(self, expand_tensor)
-
-         if nargin < 2
-            expand_tensor = true; 
-         end
-
-         if numel(self.components) == 1
-            return
-         end
-         
-         % put all coefs on a common form, where all coefs have all
-         % contracting indices 
-         [comps, num_cix, ~, indep_comps] = ...
-             SparseTensor.set_common_form(self.components);
-         
-         % check if there are any contractions
-         if num_cix > 0
-            control = zeros(1, num_cix);
-            
-            % determining which components will be used to control the looping over 
-            % different contracting indices; sort elements accordingly
-            counter_vals = {};
-            counter_comp = [];
-            for i = 1:numel(comps)
-               new_covered = (control == 0 & ~isnan(comps{i}.ixs(1, 1:num_cix)));
-
-               if sum(new_covered) > 0
-                  counter_comp = [counter_comp, i];
-                  num_counters = numel(counter_comp);
-                  control(new_covered) = num_counters;
-                  
-                  [comps{i}.ixs, tmp_ix] = sortrows(comps{i}.ixs, find(control==i));
-                  comps{i}.coefs = comps{i}.coefs(tmp_ix);
-                  counter_vals{num_counters} = ...
-                      [1; 1 + find(sum(abs(diff(comps{i}.ixs(:, control == i))), 2))];
-               end
-            end
-            
-            % change order of indexing so that the resulting multiindex has an ordered stride
-            [control, tmp_ix] = sort(control);
-            for i = 1:numel(comps)
-               comps{i}.ixs(:, 1:num_cix) = comps{i}.ixs(:, tmp_ix);
-               comps{i}.indexnames(1:num_cix) = comps{i}.indexnames(tmp_ix);
-            end
-            
-            % identifying all relevant indexing combinations
-            counters = ones(1,num_counters);
-            max_counters = cellfun(@(x) numel(x), counter_vals);
-            multi_indices = zeros(prod(max_counters), num_cix);
-            multi_ix = zeros(1, num_cix);
-            pos = 1;
-            allixs = cell(numel(comps), 1);
-            for i = 1:numel(comps) 
-               % we extract the ixs to a separate structure for performance reasons in the loop
-               % below
-               allixs{i} = comps{i}.ixs;
-            end
-            
-            while all(counters <= max_counters)
-               
-               % compute current multiindex
-               for i = 1:numel(counters)
-                  % multi_ix(control==i) = ...
-                  %     allixs{counter_comp(i)}(counter_vals{i}(counters(i)), control==i);
-                  multi_ix(control==i) = ...
-                      comps{counter_comp(i)}.ixs(counter_vals{i}(counters(i)), control==i);
-               end
-               multi_indices(pos,:) = multi_ix;
-               
-               % increment counter
-               counters(end) = counters(end) + 1;
-               for i = numel(counters):-1:2
-                  if counters(i) > max_counters(i)
-                     counters(i) = 1;
-                     counters(i-1) = counters(i-1)+1;
-                  end
-               end
-               pos = pos+1;
-            end
-
-            % re-sort indices and coefs so that largest stride is first (and same for all)
-            for i = 1:numel(comps)
-               [comps{i}.ixs, ix_order] = sortrows(comps{i}.ixs, 1:num_cix);
-               comps{i}.coefs = comps{i}.coefs(ix_order);
-            end
-            
-            % identify indices active in each component when working with a given multiindex
-            ranges = cell(1, num_cix);
-            for i = 1:numel(comps)
-               ranges{i} = SparseTensor.identify_index_ranges(multi_indices, comps{i});
-            end
-            
-            % remove entries that will evaluate to 0 anyway
-            ranges_all = [ranges{:}];
-            remove = prod(ranges_all(:, 2:2:end), 2) == 0;
-            ranges_all(remove,:) = [];
-
-            total_new_coefs = sum(prod(ranges_all(:, 2:2:end), 2));
-
-
-            new_comp.indexnames = {};
-            for i = 1:numel(comps)
-               new_comp.indexnames = [new_comp.indexnames, comps{i}.indexnames(num_cix+1:end)];
-            end
-            new_comp.coefs = zeros(total_new_coefs, 1);
-            new_comp.ixs = zeros(total_new_coefs, numel(new_comp.indexnames));
-            
-            cur_free_ixs = zeros(1, numel(new_comp.indexnames));
-            cur_ix = 1;
-            
-            % for speed reasons, we extract the below information from the comps and store
-            % them in a separate structure (shown by profiler to give a
-            % significant performance increase)
-            allcoefs = cell(numel(comps), 1);
-            allfreeixs = cell(numel(comps), 1);
-            for i = 1:numel(comps)
-               allcoefs{i} = comps{i}.coefs;
-               allfreeixs{i} = comps{i}.ixs(:, num_cix+1:end);
-            end
-            
-            for r = ranges_all'
-               cstart = r(1:2:end)';
-               cend = cstart + r(2:2:end)'-1;
-               crun = cstart;
-               
-               while all(crun <= cend)
-
-                  v = 1;
-                  pos = 1;                  
-                  for i = 1:numel(crun)
-                     
-                     coefs = allcoefs{i};
-                     freeixs = allfreeixs{i};
-                     v = v * coefs(crun(i));
-                     
-                     num_free = size(freeixs, 2);
-
-                     cur_free_ixs(pos:pos + num_free - 1) = freeixs(crun(i), :);
-                     
-                     
-                     pos = pos + num_free;
-                  end
-                  
-                  new_comp.coefs(cur_ix) = v;
-                  new_comp.ixs(cur_ix, :) = cur_free_ixs;
-                  
-                  % increment counter
-                  cur_ix = cur_ix + 1;
-                  crun(end) = crun(end) + 1;
-                  for i = numel(cstart):-1:2
-                     if crun(i) > cend(i)
-                        crun(i) = cstart(i);
-                        crun(i-1) = crun(i-1)+1;
-                     end
-                  end
-               end
-            end
-                                    
-            % contract all terms with the same indices in new_comp.
-            % To re-use existing code, we introduce a dummy index, and call 
-            % single_component_contraction
-            dummy_name = self.next_unused_contr_ix_name();
-            new_comp.indexnames = [new_comp.indexnames, dummy_name];
-            new_comp.ixs = [new_comp.ixs, ones(size(new_comp.ixs, 1), 1)];
-            new_comp = SparseTensor.single_component_contraction(new_comp, dummy_name);
-            
-            comps = {new_comp}; % replace components with their contracted product
-         end
-         
-         % re-introduce the components independent of the contraction
-         comps = [comps, indep_comps];
-
-         % all contractions/semicontractions carried out.  Expand tensor now,
-         % if requested
-         if expand_tensor
-            expanded_comp = comps{1};
-            for i = 2:numel(comps)
-               expanded_comp = SparseTensor.tensor_product(expanded_comp, comps{i});
-            end
-            
-            self = SparseTensor(expanded_comp);
-         else 
-            self = SparseTensor(comps);
-         end
-      end
-
       
-      function self = expandall_deprecated(self, expand_tensor)
+      function self = expandall(self, expand_tensor)
 
          if nargin < 2
             expand_tensor = true; % default is true
@@ -739,7 +552,7 @@ classdef SparseTensor
                break
             end
             % do the contraction
-            self = self.two_component_contraction(ixname); 
+            self = self.multicomponent_contraction(ixname); 
             
          end
          
@@ -758,7 +571,6 @@ classdef SparseTensor
       % ---- The following methods represent implementation details, and are not ----
       % -------------------- intended to be directly run by user --------------------
       
-      
       function self = complete_simple_contractions(self)
          
          for i = 1:numel(self.components)
@@ -776,39 +588,103 @@ classdef SparseTensor
             return
          end
          
-         % make list of all pending contractions
+         % loop through list of possible contractions and pick the cheapest possible one
          cur_lowest_cost = inf;
          for cur_name = cixs
             
-            cur_name = cur_name{:}; %#ok
-            cost = self.contraction_cost_estimate(cur_name);
-            if cost < cur_lowest_cost
-               cur_lowest_cost = cost;
-               ixname = cur_name;
+            % check if this contraction is possible at this time
+            comps_ix = self.component_with_ix(cur_name, true);
+            comps = self.components(comps_ix);
+            all_ixnames = cellfun(@(x) x.indexnames, comps, 'uniformoutput', false);
+            all_ixnames = horzcat(all_ixnames{:});
+            [names, ~, pos] = unique(all_ixnames);
+            summation_indices = names(hist(pos, unique(pos))>1);
+            % none of the indices that will be summed within this selection of components
+            % should be present in any of the other components.  Otherwise, we
+            % cannot carry out this contraction at this time
+            other_comps = self.components;
+            other_comps(comps_ix) = [];
+            
+            other_ixnames = cellfun(@(x) x.indexnames, other_comps, 'uniformoutput', false);
+            other_ixnames = unique(horzcat(other_ixnames{:}));
+
+            if numel(other_ixnames) == 0
+               overlap = [];
+            else
+               overlap = intersect(summation_indices, other_ixnames);
+            end
+            
+            if isempty(overlap)
+               % no overlap with indices outside.  Contraction is possible
+                                       
+               cur_name = cur_name{:}; %#ok
+               cost = self.contraction_cost_estimate(cur_name);
+               if cost < cur_lowest_cost
+                  cur_lowest_cost = cost;
+                  ixname = cur_name;
+               end
             end
          end
       end
+
+      % function ixname = get_cheapest_pending_contraction(self)
       
-
-      function self = two_component_contraction(self, ixname)
+      %    % get all index names for which there are pending contractions
+      %    [~, cixs] = self.indexNames();
          
+      %    if isempty(cixs)
+      %       ixname = [];
+      %       return
+      %    end
+         
+      %    % make list of all pending contractions
+      %    cur_lowest_cost = inf;
+      %    for cur_name = cixs
+            
+      %       cur_name = cur_name{:}; %#ok
+      %       cost = self.contraction_cost_estimate(cur_name);
+      %       if cost < cur_lowest_cost
+      %          cur_lowest_cost = cost;
+      %          ixname = cur_name;
+      %       end
+      %    end
+      % end
+
+      
+      function self = multicomponent_contraction(self, ixname)
+
          comp_ixs = self.component_with_ix(ixname, true);
-         assert(numel(comp_ixs) == 2);
-         comps = self.components(comp_ixs);
-
-         % @@ TEST
-         contracted_comp = SparseTensor.contract_components(comps{1}, comps{2});
-         self.components(comp_ixs) = [];
-         self.components = [self.components, contracted_comp];
+         assert(numel(comp_ixs) > 1);
          
-         % if isa(comps{1}.coefs, 'ADI') || isa(comps{2}.coefs, 'ADI')
-         %    self = two_component_contraction_adi(self, ixname);
-         % else
-         %    % @@ Use the adi version until the float version is fixed
-         %    self = two_component_contraction_adi(self, ixname); 
-         %    %self = two_component_contraction_float(self, ixname);
-         % end
+         comps = self.components(comp_ixs);
+         other_comps = self.components;
+         other_comps(comp_ixs) = [];
+         
+         contracted_comp = tcontract(comps);
+
+         self = SparseTensor([contracted_comp, other_comps]);
+         
       end
+
+      % function self = two_component_contraction(self, ixname)
+         
+      %    comp_ixs = self.component_with_ix(ixname, true);
+      %    assert(numel(comp_ixs) == 2);
+      %    comps = self.components(comp_ixs);
+
+      %    % @@ TEST
+      %    contracted_comp = SparseTensor.contract_components(comps{1}, comps{2});
+      %    self.components(comp_ixs) = [];
+      %    self.components = [self.components, contracted_comp];
+         
+      %    % if isa(comps{1}.coefs, 'ADI') || isa(comps{2}.coefs, 'ADI')
+      %    %    self = two_component_contraction_adi(self, ixname);
+      %    % else
+      %    %    % @@ Use the adi version until the float version is fixed
+      %    %    self = two_component_contraction_adi(self, ixname); 
+      %    %    %self = two_component_contraction_float(self, ixname);
+      %    % end
+      % end
          
       
       function self = two_component_contraction_adi(self, ixname)
@@ -893,40 +769,67 @@ classdef SparseTensor
       function cost = contraction_cost_estimate(self, ixname)
 
          comp_ixs = self.component_with_ix(ixname, true);
-         assert(numel(comp_ixs) == 2) % otherwise, contraction should already
-                                      % have been carried out, since cost
-                                      % estimates are only interesting for
-                                      % contracting two different components
+         assert(numel(comp_ixs) > 1) % otherwise, contraction should already
+                                     % have been carried out, since cost
+                                     % estimates are only interesting for
+                                     % contracting two different components
          
-         [comp1, comp2] = deal(self.components{comp_ixs});
+         comps = self.components(comp_ixs);
          
-         cixnames = intersect(comp1.indexnames, comp2.indexnames);
-
-         num_free_ixs1 = numel(comp1.indexnames) - numel(cixnames);
-         num_free_ixs2 = numel(comp2.indexnames) - numel(cixnames);
-         
-         cost = num_free_ixs1 * log(size(comp1.ixs, 1)) + ...
-                num_free_ixs2 * log(size(comp2.ixs, 1));
-         
-         % comps = self.components;
-         % cost = 0;
-         % for i = comp_ixs
-         %    entries = size(comps{i}.ixs, 1);
-         %    ixind = strcmp(ixname,comps{i}.indexnames);
-         %    numdiff = numel(unique(comps{i}.ixs(:, ixind)));
-         
-         %    cost = cost + entries / numdiff;
-         % end
-
-         % % comps = self.components;
-         % % cost = 0;
-         % % for i = [comp_ix_1, comp_ix_2]
-         % %    ixind = strcmp(ixname,comps{i}.indexnames);
-         % %    numdiff = numel(unique(comps{i}.ixs(:, ixind)));
+         cost = 0;
+         for i = 1:numel(comps)
+            c = comps{i};
+            others = comps;
+            others(i) = [];
+            other_ixnames = cellfun(@(x) x.indexnames, others, 'uniformoutput', false);
+            other_ixnames = unique(horzcat(other_ixnames{:}));
             
-         % %    cost = cost + (size(comps{i}.ixs, 1) ^ size(comps{i}.ixs, 2) / numdiff);
-         % % end
+            free_ixnames = setdiff(c.indexnames, other_ixnames); % not part of summation
+            num_free = numel(free_ixnames);
+            
+            cost = cost + num_free * log(size(c.ixs, 1));
+         end
+         
       end
+
+      % function cost = contraction_cost_estimate(self, ixname)
+
+      %    comp_ixs = self.component_with_ix(ixname, true);
+      %    assert(numel(comp_ixs) == 2) % otherwise, contraction should already
+      %                                 % have been carried out, since cost
+      %                                 % estimates are only interesting for
+      %                                 % contracting two different components
+         
+      %    [comp1, comp2] = deal(self.components{comp_ixs});
+         
+      %    cixnames = intersect(comp1.indexnames, comp2.indexnames);
+
+      %    num_free_ixs1 = numel(comp1.indexnames) - numel(cixnames);
+      %    num_free_ixs2 = numel(comp2.indexnames) - numel(cixnames);
+         
+      %    cost = num_free_ixs1 * log(size(comp1.ixs, 1)) + ...
+      %           num_free_ixs2 * log(size(comp2.ixs, 1));
+         
+      %    % comps = self.components;
+      %    % cost = 0;
+      %    % for i = comp_ixs
+      %    %    entries = size(comps{i}.ixs, 1);
+      %    %    ixind = strcmp(ixname,comps{i}.indexnames);
+      %    %    numdiff = numel(unique(comps{i}.ixs(:, ixind)));
+         
+      %    %    cost = cost + entries / numdiff;
+      %    % end
+
+      %    % % comps = self.components;
+      %    % % cost = 0;
+      %    % % for i = [comp_ix_1, comp_ix_2]
+      %    % %    ixind = strcmp(ixname,comps{i}.indexnames);
+      %    % %    numdiff = numel(unique(comps{i}.ixs(:, ixind)));
+            
+      %    % %    cost = cost + (size(comps{i}.ixs, 1) ^ size(comps{i}.ixs, 2) / numdiff);
+      %    % % end
+      % end
+      
       
       function ixname = next_unused_contr_ix_name(self, other)
       % 'other' is an optional argument.  If provided, the produced ixname
@@ -996,7 +899,7 @@ classdef SparseTensor
       
       
       function [self, unique_ixname] = ensure_no_duplicate(self, ixname)
-      % ensure that the tensor component with the index named ixname has a duplicate
+      % ensure that the tensor component with the index named ixname has no duplicate
       % of this index
          assert(~SparseTensor.is_contracting_ix(ixname));
          comp_ix = self.component_with_ix(ixname);
@@ -1015,6 +918,15 @@ classdef SparseTensor
             remove_ix = idix(2);
             keep_ix = idix(1);
          end
+         
+         if ~SparseTensor.is_contracting_ix(comp.indexnames{keep_ix})
+            % a duplicate would always be a contracting index.  
+            % @@ However, it may be that a contracting index could still not be a duplicate,
+            % so this may still fail!
+            unique_ixname = ixname;
+            return;
+         end
+         
          unique_ixname = comp.indexnames{keep_ix};
          self.components{comp_ix}.indexnames(remove_ix) = [];
          self.components{comp_ix}.ixs(:, remove_ix) = [];

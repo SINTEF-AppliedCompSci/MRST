@@ -162,7 +162,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        FQF = FQF.contract('f');
               
        % get components @@ (expand to support ADI)
-       fbc = FQF.asVector({'d', 'n'});
+       fbc = FQF.asVector({'d', 'n'}, [G.griddim, G.nodes.num]);
             
        rhs   = rhs + fbc;
     end
