@@ -3,14 +3,14 @@
 
 #include <algorithm>
 #include <vector>
-// #include <iostream> //@@ debug
+#include <iostream>
 // #include <string> // @@debug
 
 class BasicAD
 {
 public:
-  BasicAD() : val_(0) {};
-  BasicAD(double val) :val_(val) {};
+  BasicAD() : val_(0) {}; 
+  BasicAD(double val) :val_(val) {}; 
   BasicAD(double val, int num_derivs) : val_(val), derivs_(num_derivs, 0) {}
 
   BasicAD(const BasicAD& rhs) : val_(rhs.val()), derivs_(rhs.derivs()) {}
@@ -55,7 +55,13 @@ public:
     val_ /= rhs.val();
     //dump_derivs("/=AD");
   }
-  
+
+  void write(std::ostream& os) const {
+    os << val_ << '\n';
+    for (size_t i = 0; i != derivs_.size(); ++i)
+      os << derivs_[i] << " ";
+    os << '\n';
+  }
   
 private:
   double val_;
@@ -81,6 +87,11 @@ private:
       *target += *it * factor;
   }
 };
+
+inline std::ostream& operator<<(std::ostream& os, const BasicAD& ad) {
+  ad.write(os);
+  return os;
+}
 
 inline BasicAD operator+(const BasicAD& a1, const BasicAD& a2) {
   BasicAD result(a1);

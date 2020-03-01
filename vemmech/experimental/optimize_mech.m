@@ -122,9 +122,10 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, extra)
    
    %% use adjoint to compute gradient
    %   keyboard;
+   tic; fprintf('Solving for adjoint.\n');
    lambda = amgsolver(extra.A, -full(oval_dd));
    %lambda = -extra.A \ oval_dd; % A symmetric, so no transpose necessary
-   
+   toc;
    dAdu_dd = 0; % @@ will change when including stiffness params. dependence on u
    dbdu = extra.rhs.jac{1};
    dsys_du = dAdu_dd - dbdu;

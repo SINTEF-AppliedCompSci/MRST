@@ -5,6 +5,8 @@
 #include "mexAdapter.hpp"
 
 #include "BasicAD.hpp"
+
+#include <fstream> // @@ debug
 using namespace matlab::data;
 using matlab::mex::ArgumentList;
 
@@ -32,6 +34,7 @@ inline std::vector<std::string> extract_indexnames(const StructArray& comp)  {
 // ----------------------------------------------------------------------------  
 inline Array extract_coefs(const TensorComp<double>& res,
                            std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr) {
+  
   ArrayFactory factory;
   TypedArray<double> coefs =
     factory.createArray<double>(ArrayDimensions{res.coefs().size(), 1},
@@ -63,6 +66,10 @@ SparseArray<double> make_sparse_(const ArrayDimensions& adim,
 // ----------------------------------------------------------------------------  
 inline Array extract_coefs(const TensorComp<BasicAD>& res,
                            std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr) {
+  // std::ofstream os("debug.out");
+  // res.write(os);
+  // os.close();
+  
   ArrayFactory factory;
   const std::vector<BasicAD>& coefs = res.coefs();
   // exctracting values
@@ -146,15 +153,19 @@ std::vector<BasicAD> extract_numbers(const StructArray& comp, const std::string 
     TypedArray<double> vals = matlabPtr->feval(u"getval", adinput);
     std::vector<double> vals_double(vals.begin(), vals.end());
 
-    result.reserve(vals_double.size());
-    for (size_t i = 0; i != vals_double.size(); ++i)
-      result.push_back(BasicAD {vals_double[i]});
-      
     // read jacobian
     CellArray jac = matlabPtr->feval(u"getjac", adinput);
     if (jac.getNumberOfElements() != 1) 
       throw std::runtime_error("Currently only supports one jacobian matrix.");
-      
+
+    const ArrayDimensions dims = jac[0].getDimensions();
+    const int num_derivs = dims[1];
+    
+    // create vector of BasicAD
+    result.reserve(vals_double.size());
+    for (size_t i = 0; i != vals_double.size(); ++i)
+      result.push_back(BasicAD {vals_double[i], num_derivs});
+
     std::vector<double> jac_elems;
     std::vector<size_t> rows, cols;
     parse_sparse_(jac[0], jac_elems, rows, cols);
