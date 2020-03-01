@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <vector>
+// #include <iostream> //@@ debug
+// #include <string> // @@debug
 
 class BasicAD
 {
@@ -27,29 +29,31 @@ public:
   }
       
   // addition/subtraction/multiplication/division with scalar
-  void operator+=(double val) {val_ += val;}
-  void operator-=(double val) {val_ -= val;}
+  void operator+=(double val) {val_ += val; }
+  void operator-=(double val) {val_ -= val; }
   void operator*=(double val) {
-    val_ *= val; std::for_each(derivs_.begin(), derivs_.end(), [val](double& d) {d *= val;});}
+    val_ *= val; std::for_each(derivs_.begin(), derivs_.end(), [val](double& d) {d *= val;}); }
   void operator/=(double val) {
-    val_ /= val; std::for_each(derivs_.begin(), derivs_.end(), [val](double& d) {d /= val;});}
+    val_ /= val; std::for_each(derivs_.begin(), derivs_.end(), [val](double& d) {d /= val;}); }
   
   // addition/subtraction with BasicAD
-  void operator+=(const BasicAD& rhs) { val_ += rhs.val(); add_derivs_(rhs.derivs());  }
-  void operator-=(const BasicAD& rhs) { val_ -= rhs.val(); add_derivs_(rhs.derivs(), -1);}
+  void operator+=(const BasicAD& rhs) { val_ += rhs.val(); add_derivs_(rhs.derivs()); }
+  void operator-=(const BasicAD& rhs) { val_ -= rhs.val(); add_derivs_(rhs.derivs(), -1); }
 
   // multiplication/division
   void operator*=(const BasicAD& rhs) {
-    val_ *= rhs.val();
     mul_derivs_(rhs.val());
     add_derivs_(rhs.derivs(), val_);
+    val_ *= rhs.val();
+    //dump_derivs("*=AD");
   }
 
   void operator/=(const BasicAD& rhs) {
-    val_ /= rhs.val();
     mul_derivs_(rhs.val());
     add_derivs_(rhs.derivs_, -val_);
     mul_derivs_(1/(rhs.val() * rhs.val()));
+    val_ /= rhs.val();
+    //dump_derivs("/=AD");
   }
   
   
@@ -57,6 +61,13 @@ private:
   double val_;
   std::vector<double> derivs_;
 
+  // inline void dump_derivs(std::string message) {
+  //   std::cout << message << " - Value is: " << val_ << std::endl;
+  //   for (int i = 0; i != derivs_.size(); ++i) 
+  //     std::cout << derivs_[i] << " ";
+  //   std::cout << std::endl;
+  // }
+  
   inline void mul_derivs_(double val) {
     std::for_each(derivs_.begin(), derivs_.end(), [val] (double& d) {d *= val;});
   }
