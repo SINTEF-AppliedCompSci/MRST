@@ -17,7 +17,7 @@ template<typename T> class TensorComp
 {
 public:
 
-  typedef int Index;
+  typedef size_t Index;
 
   // empty tensor
   TensorComp() {}
@@ -393,7 +393,7 @@ TensorComp<T>::permuteIndices(const Indexable perm)
 // ----------------------------------------------------------------------------
 {
   assert(is_permutation_(perm, numIndices()));
-  std::vector<Index> result(ixs_.size(), T(0));
+  std::vector<Index> result(ixs_.size(), Index(0));
   std::vector<std::string> ixnames_new(numIndices());
   
   const size_t N = numCoefs();
