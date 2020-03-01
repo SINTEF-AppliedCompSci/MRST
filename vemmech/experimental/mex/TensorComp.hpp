@@ -108,8 +108,14 @@ void TensorComp<T>::read(std::istream& is)
   // read coefficients
   is >> num;
   std::vector<T> coefs(num);
-  for (int i = 0; i != num; ++i)
-    is >> coefs[i];
+  std::string tmp;
+  for (int i = 0; i != num; ++i) {
+    is >> tmp;
+    if (tmp == "-nan")
+      coefs[i] = std::nan("");
+    else
+      coefs[i] = std::atof(tmp.c_str());
+  }
 
   // read indices
   is >> num;

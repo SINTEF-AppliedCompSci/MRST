@@ -1276,7 +1276,7 @@ classdef SparseTensor
       end      
 
       
-      function tensor = apply_binary_operator_nonmex(t1, t2, op)
+      function tensor = apply_binary_operator_orig(t1, t2, op)
          [t1, t2] = SparseTensor.make_tensors_compatible(t1, t2);
          assert(numel(t1.components) == 1); % should also be the case for t2 by now
          

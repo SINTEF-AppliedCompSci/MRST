@@ -45,10 +45,18 @@ apply_add_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
   std::vector<T> target_coefs;
   std::vector<typename TensorComp<T>::Index> target_ixs;
 
-  while (t1_ix_iter != t1_ix_iter_end &&
+  while (t1_ix_iter != t1_ix_iter_end ||
          t2_ix_iter != t2_ix_iter_end) {
 
-    if (ixless(t1_ix_iter, t2_ix_iter, Ni)) {
+    if (t1_ix_iter == t1_ix_iter_end) {
+      target_coefs.push_back(*t2_coef_iter++);
+      for (int i = 0; i != Ni; ++i)
+        target_ixs.push_back(*t2_ix_iter++);
+    } else if (t2_ix_iter == t2_ix_iter_end) {
+      target_coefs.push_back(*t1_coef_iter++);
+      for (int i = 0; i != Ni; ++i)
+        target_ixs.push_back(*t1_ix_iter++);
+    } else if (ixless(t1_ix_iter, t2_ix_iter, Ni)) {
       // add 0 to the coefficient from t1
       target_coefs.push_back(*t1_coef_iter++);
       for (int i = 0; i != Ni; ++i)
@@ -99,10 +107,18 @@ apply_subtract_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
   std::vector<T> target_coefs;
   std::vector<typename TensorComp<T>::Index> target_ixs;
                       
-  while (t1_ix_iter != t1_ix_iter_end &&
+  while (t1_ix_iter != t1_ix_iter_end ||
          t2_ix_iter != t2_ix_iter_end) {
 
-    if (ixless(t1_ix_iter, t2_ix_iter, Ni)) {
+    if (t1_ix_iter == t1_ix_iter_end) {
+      target_coefs.push_back(-1 * (*t2_coef_iter++));
+      for (int i = 0; i != Ni; ++i)
+        target_ixs.push_back(*t2_ix_iter++);
+    } else if (t2_ix_iter == t2_ix_iter_end) {
+      target_coefs.push_back(*t1_coef_iter++);
+      for (int i = 0; i != Ni; ++i)
+        target_ixs.push_back(*t1_ix_iter++);
+    } else if (ixless(t1_ix_iter, t2_ix_iter, Ni)) {
       // subtract 0
       target_coefs.push_back(*t1_coef_iter++);
       for (int i = 0; i != Ni; ++i)
