@@ -40,7 +40,7 @@ classdef EOSSeparator < BasicSeparator
             state = solver.solveTimestep(state, 1, eos);
             % Set derivatives, if we are using AD
             [Z_L, Z_V] = deal(state.Z_L, state.Z_V);
-            useAD = isa(z{1}, 'ADI');
+            useAD = isa(z{1}, 'ADI') || isa(p, 'ADI') || isa(temp, 'ADI');
             if useAD
                 [x, y, L] = eos.getPhaseFractionAsADI(state, p, temp, z);
                 acf = eos.fluid.acentricFactors;
