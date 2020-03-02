@@ -95,7 +95,8 @@ Copyright 2014 Jan Nordbotten jan.nordbotten@math.uib.no
    %out = MPSA(gem, constit, 'FV', 1);
    gem.G=G;
    %out = MPSA(gem, constit, 'FV', 1);
-   out = MPSA_stab(gem, constit, 'FV', 1);
+   out = MPSA_stab(gem, constit);
+   
    %md = MPSA_vectorized(G,constit,'weakCont',weakCont,'bc',bc,'eta',eta,'biot',0);
    %%{
    %isBoundary = any(G.faces.neighbors == 0,2);
