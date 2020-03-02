@@ -6,27 +6,27 @@ function [tbls, mappings] = setupStandardTables(G)
     dim = G.griddim;
 
     coltbl.coldim = (1 : dim)';
-    coltbl.num = dim;
+    coltbl = IndexTable(coltbl);
     rowtbl = coltbl;
     rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
 
     celltbl.cells = (1 : nc)';
-    celltbl.num = nc;
-
+    celltbl = IndexTable(celltbl);
+    
     nodetbl.nodes = (1 : nn)';
-    nodetbl.num = nn;
-
+    nodetbl = IndexTable(nodetbl);
+    
     cellcoltbl = crossTable(celltbl, coltbl, {}); % ordering is cell - col
     nodecoltbl = crossTable(nodetbl, coltbl, {}); % ordering is cell - col
 
     cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
     cellfacetbl.faces = G.cells.faces(:, 1);
-    cellfacetbl.num   = numel(cellfacetbl.cells);
-
+    cellfacetbl = IndexTable(cellfacetbl);
+    
     nodefacetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos)); 
     nodefacetbl.nodes = G.faces.nodes;
-    nodefacetbl.num   = numel(nodefacetbl.faces);
-
+    nodefacetbl = IndexTable(nodefacetbl); 
+    
     % We setup the face-node table and it is ordered along ascending node numbers so
     % that we will have a block structure for the nodal scalar product.
     nodefacetbl = sortTable(nodefacetbl, {'nodes', 'faces'});

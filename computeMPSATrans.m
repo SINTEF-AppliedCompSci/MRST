@@ -62,6 +62,8 @@ prop = struct('lambda', lambda, ...
 bc = [];
 
 [tbls, mappings] = setupStandardTables(G);
+return
+
 [assembly, tbls] = assembleMPSA(G, prop, bc, eta, tbls, mappings, runcase);
 
 B   = assembly.B  ;

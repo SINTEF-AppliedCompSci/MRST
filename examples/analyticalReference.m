@@ -1,6 +1,5 @@
 function res = analyticalReference(lambda, mu)
 % Compute reference analytical solution
-    
 
     % Analytical solution
     d1 = @(x, y) x .* (1 - x) .* sin(2 * pi * y); 
