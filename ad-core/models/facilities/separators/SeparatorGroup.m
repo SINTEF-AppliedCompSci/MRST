@@ -57,7 +57,7 @@ classdef SeparatorGroup
                         end
                     end
                     if hasWater
-                        waterMass = componentMassRates{1};
+                        waterMass = componentMassRates{end};
                         streamMole = streamMole(1:end-1);
                     end
 
