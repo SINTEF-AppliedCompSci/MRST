@@ -6,12 +6,15 @@ classdef FlowStateBuilder
     %  - Creating a hybrid state for fluxes where some or all terms are
     %  taken implicitly.
     properties
-        verbose = mrstVerbose();
+        verbose = [];
     end
     
     methods
         function fsb = FlowStateBuilder(varargin)
             fsb = merge_options(fsb, varargin{:});
+            if isempty(fsb.verbose)
+                fsb.verbose = mrstVerbose();
+            end
         end
 
         function dt = getMaximumTimestep(fsb, fd, model, state, state0, dt, forces)
