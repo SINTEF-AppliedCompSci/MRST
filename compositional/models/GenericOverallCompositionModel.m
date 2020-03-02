@@ -87,6 +87,10 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 end
             end
             model = validateModel@OverallCompositionCompositionalModel(model, varargin{:});
+        end
+        
+        function model = setupStateFunctionGroupings(model, varargin)
+            model = setupStateFunctionGroupings@OverallCompositionCompositionalModel(model, varargin{:});
             model.FluxDiscretization.GravityPotentialDifference.saturationWeighting = true;
         end
         
