@@ -21,7 +21,7 @@ function D = assignLinearForm(extfaces, linform, tbls)
     coltbl         = tbls.coltbl;
   
     extfacetbl.faces = extfaces;
-    extfacetbl.num = numel(extfacetbl.faces);
+    extfacetbl = IndexTable(extfacetbl);
 
     extnodefacetbl = crossTable(nodefacetbl, extfacetbl, {'faces'});
 

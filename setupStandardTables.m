@@ -44,16 +44,35 @@ function [tbls, mappings] = setupStandardTables(G)
     cellnodetbl = projTable(cellnodefacetbl, {'nodes', 'cells'});
     cellnodetbl = sortTable(cellnodetbl, {'cells', 'nodes'});
 
-    fds = {'cells'};
-    cell_from_cellnode = getDispatchInd(celltbl, cellnodetbl, fds);
-    fds = {'nodes'};
-    node_from_cellnode = getDispatchInd(nodetbl, cellnodetbl, fds);
-    fds = {'cells', 'faces'};
-    cellface_from_cellnodeface = getDispatchInd(cellfacetbl, cellnodefacetbl, fds);
-    fds = {'cells', 'nodes'};
-    cellnode_from_cellnodeface = getDispatchInd(cellnodetbl, cellnodefacetbl, fds);
-    fds = {'faces', 'nodes'};
-    nodeface_from_cellnodeface = getDispatchInd(nodefacetbl, cellnodefacetbl, fds);
+    map = TensorMap();
+    map.fromTbl = celltbl;
+    map.toTbl = cellnodetbl;
+    map.mergefds = {'cells'};
+    cell_from_cellnode = getDispatchInd(map);
+    
+    map = TensorMap();
+    map.fromTbl = nodetbl;
+    map.toTbl = cellnodetbl;
+    map.mergefds = {'nodes'};
+    node_from_cellnode = getDispatchInd(map);
+    
+    map = TensorMap();
+    map.fromTbl = cellfacetbl;
+    map.toTbl = cellnodefacetbl;
+    map.mergefds = {'cells', 'faces'};
+    cellface_from_cellnodeface = getDispatchInd(map);
+    
+    map = TensorMap();
+    map.fromTbl = cellnodetbl;
+    map.toTbl = cellnodefacetbl;
+    map.mergefds  = {'cells', 'nodes'};
+    cellnode_from_cellnodeface = getDispatchInd(map);
+    
+    map = TensorMap();
+    map.fromTbl = nodefacetbl;
+    map.toTbl = cellnodefacetbl;
+    map.mergefds = {'faces', 'nodes'};
+    nodeface_from_cellnodeface = getDispatchInd(map);
 
     cellnodecoltbl    = crossTable(cellnodetbl, coltbl, {});
     cellnodecolrowtbl = crossTable(cellnodecoltbl, rowtbl, {});

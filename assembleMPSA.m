@@ -52,9 +52,9 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings,
     % shortcuts:
     %
 
-    fno = cellnodefacetbl.faces;
-    cno = cellnodefacetbl.cells;
-    nno = cellnodefacetbl.nodes;
+    fno = cellnodefacetbl.get('faces');
+    cno = cellnodefacetbl.get('cells');
+    nno = cellnodefacetbl.get('nodes');
 
     cellFacetVec = G.faces.centroids(fno, :) - G.cells.centroids(cno, :) + ...
         eta*(G.nodes.coords(nno, :) - G.faces.centroids(fno, :));
@@ -174,8 +174,8 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings,
     %% Construction of the divergence operator
     %
     % setup the facet normals
-    fno = cellnodefacetbl.faces;
-    cno = cellnodefacetbl.cells;
+    fno = cellnodefacetbl.get('faces');
+    cno = cellnodefacetbl.get('cells');
     numnodes = double(diff(G.faces.nodePos));
     numnodes = numnodes(fno);
     facetNormals = G.faces.normals(fno, :);
@@ -263,11 +263,11 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings,
     %
     %  trans_T: nodecolrowtbl -> nodecolrowtbl
 
-    symcol2row2tbl.coldim2 = colrowtbl.coldim;
-    symcol2row2tbl.rowdim2 = colrowtbl.rowdim;
-    symcol2row2tbl.coldim1 = colrowtbl.rowdim;
-    symcol2row2tbl.rowdim1 = colrowtbl.coldim;
-    symcol2row2tbl.num = colrowtbl.num;
+    symcol2row2tbl.coldim2 = colrowtbl.get('coldim');
+    symcol2row2tbl.rowdim2 = colrowtbl.get('rowdim');
+    symcol2row2tbl.coldim1 = colrowtbl.get('rowdim');
+    symcol2row2tbl.rowdim1 = colrowtbl.get('coldim');
+    symcol2row2tbl = IndexTable(symcol2row2tbl);
 
     prod = TensorProd();
     prod.tbl1 = symcol2row2tbl;
@@ -322,7 +322,7 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings,
     end
     
     fixnodetbl.nodes = find(nnodepercell <= maxnnodepercell);
-    fixnodetbl.num = numel(fixnodetbl.nodes);
+    fixnodetbl = IndexTable(fixnodetbl);
 
     coef(coef >= 1/maxnnodepercell) = 0;
 
@@ -476,7 +476,7 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings,
     % get the block structure
     % We count the number of degrees of freedom that are connected to the same
     % node.
-    [nodes, sz] = rlencode(nodefacecoltbl.nodes, 1);
+    [nodes, sz] = rlencode(nodefacecoltbl.get('nodes'), 1);
     invA11 = bi(A11, sz);
 
     tbls = struct('nodefacetbl'       , nodefacetbl       , ...

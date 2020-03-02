@@ -143,7 +143,7 @@ function [bcstruct, force] = setupBCpercase(runcase, G, tbls, mappings, varargin
         y = G.faces.centroids(:, 3);
         ymax = max(y);
         extfacetbl.faces = find(y == ymax);
-        extfacetbl.num   = numel(extfacetbl.faces);
+        extfacetbl = IndexTable(extfacetbl);
 
         [extnodefacetbl, indstruct] = crossTable(nodefacetbl, extfacetbl, {'faces'});
         nodeface_from_extnodeface = indstruct{1}.inds;

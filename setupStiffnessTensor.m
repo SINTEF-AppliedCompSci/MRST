@@ -23,11 +23,11 @@ function C = setupStiffnessTensor(prop, tbls)
     switch constructiontype
       case 'direct_lambda_mu_construction'
 
-        mutbl.coldim1 = colrowtbl.coldim;
-        mutbl.coldim2 = colrowtbl.coldim;
-        mutbl.rowdim1 = colrowtbl.rowdim;
-        mutbl.rowdim2 = colrowtbl.rowdim;
-        mutbl.num = numel(mutbl.coldim1);
+        mutbl.coldim1 = colrowtbl.get('coldim');
+        mutbl.coldim2 = colrowtbl.get('coldim');
+        mutbl.rowdim1 = colrowtbl.get('rowdim');
+        mutbl.rowdim2 = colrowtbl.get('rowdim');
+        mutbl = IndexTable(mutbl);
 
         cellmutbl = crossTable(celltbl, mutbl, {});
 
@@ -50,7 +50,8 @@ function C = setupStiffnessTensor(prop, tbls)
 
         diagtbl.coldim = (1 : dim)';
         diagtbl.rowdim = (1 : dim)';
-        diagtbl.num = dim;
+        diagtbl = IndexTable(diagtbl);
+
         fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
                {'coldim', {'coldim1', 'coldim2'}}};
         lambdatbl = crossTable(diagtbl, diagtbl, {}, 'crossextend', fds);
@@ -82,7 +83,7 @@ function C = setupStiffnessTensor(prop, tbls)
             % print tensor C for first cell
             clear samplecelltbl;
             samplecelltbl.cells = 1;
-            samplecelltbl.num = 1;
+            samplecelltbl = IndexTable(samplecelltbl);
             
             samplecellcolrowtbl = crossTable(samplecelltbl, colrowtbl, {});
             samplecellcol2row2tbl = crossTable(samplecelltbl, col2row2tbl, {});
