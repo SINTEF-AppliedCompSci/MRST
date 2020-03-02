@@ -2,7 +2,7 @@ mrstModule add vemmech mpsa vem
 
 clear all
 
-% Two versions of the O - method is implemented : 
+% Two versions of the O-method are implemented : 
 % 
 % 1) The standard version (single continuity point). This breaks down on
 % Cartesian grids, and becomes arbitrarily bad when close to Cartesian.
@@ -15,9 +15,9 @@ clear all
 % works for all grids, but the convergence order is lowered.
 % 
 
-% number of refinement levels
+% Number of refinement levels
 nref = 4; 
-% spatial refinement
+% Spatial refinement
 Nd = 2; 
 
 % Switch this on for perturbed grids
@@ -74,54 +74,22 @@ switch testCase
     
 end
 
-
 % Uniform Lame parameters
-mu = 1; 
 lambda = 1; 
+mu = 1; 
 
-% Analytical solution
-d1 = @(x, y) x .* (1 - x) .* sin(2 * pi * y); 
-d2 = @(x, y) sin(2 * pi * x) .* sin(2 * pi * y); 
-dvec = @(coord) [d1(coord( :, 1), coord( :, 2)), d2(coord( :, 1), coord( :, 2))]; 
-% divD = diff(d1, x) + diff(d2, y); 
-d1dx = @(x, y) (1 - 2*x).*sin(2*pi*y); 
-d1dxdx = @(x, y) - 2.*sin(2*pi*y); 
-d1dxdy = @(x, y) (1 - 2*x).*2*pi.*cos(2*pi*y); d1dydx = d1dxdy; 
-d2dy = @(x, y) sin(2*pi*x) .*2*pi.*cos(2*pi*y); 
-d2dydy = @(x, y) - sin(2*pi*x) .*(2*pi).^2.*sin(2*pi*y); 
-d2dydx = @(x, y) cos(2*pi*x) .*(2*pi).^2.*cos(2*pi*y); d2dxdy = d2dydx; 
-d1dy = @(x, y) x.*(1 - x).*2*pi.*cos(2*pi*y); 
-d1dydy = @(x, y) - x.*(1 - x).*(2*pi)^2.*sin(2*pi*y); 
-d2dx = @(x, y) cos(2*pi*x).*sin(2*pi*y)*2*pi; 
-d2dxdx = @(x, y) - sin(2*pi*x).*sin(2*pi*y)*(2*pi)^2; 
+res = analyticalReference(lambda, mu);
 
-divD = @(x, y) d1dx(x, y) + d2dy(x, y); 
-divDdx = @(x, y) d1dxdx(x, y) + d2dydx(x, y); 
-divDdy = @(x, y) d1dxdy(x, y) + d2dydy(x, y); 
-s11 = @(x, y) 2 * mu * d1dx(x, y) + lambda * divD(x, y); 
-s11dx = @(x, y) 2*mu *d1dxdx(x, y) + lambda * divDdx(x, y); 
-s12 = @(x, y)  mu * (d1dy(x, y) + d2dx(x, y)); 
-s12dy = @(x, y) mu * (d1dydy(x, y) + d2dxdy(x, y)); 
-s12dx = @(x, y)  mu * (d1dydx(x, y) + d2dxdx(x, y)); 
-s21 = @(x, y)  mu * (d1dy(x, y) + d2dx(x, y)); 
-s21dx = @(x, y) mu*(d1dydx(x, y) + d2dxdx(x, y)); 
-s21dy = @(x, y)  mu * (d1dydy(x, y) + d2dxdy(x, y)); 
-s22 = @(x, y) 2 * mu * d2dy(x, y) + lambda * divD(x, y); 
-s22dy = @(x, y) 2 * mu * d2dydy(x, y) + lambda * divDdy(x, y); 
+mrhs2  = res.mrhs2;
+mrhs1  = res.mrhs1;
+dvec  = res.dvec;
+d1  = res.d1;
+d2  = res.d2;
+s11   = res.s11;
+s21   = res.s21;
+s12   = res.s12;
+s22   = res.s22;
 
-d1Full = d1; 
-d2Full = d2; 
-
-s11f = s11; 
-s21f = s21; 
-s12f = s12; 
-s22f = s22; 
-
-% Apply divergence
-% mrhs1 = inline(simplify(diff(s11, x) + diff(s21, y))); 
-mrhs1 = @(x, y) s11dx(x, y) + s21dy(x, y); 
-mrhs2 = @(x, y) s12dx(x, y) + s22dy(x, y); 
-% mrhs2 = inline(simplify(diff(s12, x) + diff(s22, y))); 
 
 for iter1 = 1 : nref
     disp(['Refinement ' num2str(iter1)])
@@ -159,12 +127,12 @@ for iter1 = 1 : nref
     md = MPSA_vectorized(G, constit, 'weakCont', weakCont, 'bc', bc, 'eta', eta, 'biots', 0);
     
     rhsMech = [mrhs1(xc( :, 1), xc( :, 2)).* G.cells.volumes, mrhs2(xc( :, 1), xc( :, 2)).* G.cells.volumes]; 
-    san1 = sum([s11f(xf( :, 1), xf( :, 2)), s21f(xf( :, 1), xf( :, 2))] .* G.faces.normals, 2); 
-    san2 = sum([s12f(xf( :, 1), xf( :, 2)), s22f(xf( :, 1), xf( :, 2))] .* G.faces.normals, 2); 
+    san1 = sum([s11(xf( :, 1), xf( :, 2)), s21(xf( :, 1), xf( :, 2))] .* G.faces.normals, 2); 
+    san2 = sum([s12(xf( :, 1), xf( :, 2)), s22(xf( :, 1), xf( :, 2))] .* G.faces.normals, 2); 
     dnum = reshape((md.A \ reshape(rhsMech', [], 1)), 2, [])'; 
     toc; 
     % Analytical solution
-    dex = [d1Full(xc( :, 1), xc( :, 2)) d2Full(xc( :, 1), xc( :, 2))]; 
+    dex = [d1(xc( :, 1), xc( :, 2)) d2(xc( :, 1), xc( :, 2))]; 
     
     % Errors in L2 and max - norm
     deL2(iter1) = sqrt(sum(sum(bsxfun(@times, G.cells.volumes.^2, (dex - dnum).^2)))) / sqrt(sum(sum(bsxfun(@times, G.cells.volumes.^2, ( dex).^2)))); 
