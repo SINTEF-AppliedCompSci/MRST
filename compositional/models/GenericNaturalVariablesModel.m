@@ -111,6 +111,10 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 end
             end
             model = validateModel@NaturalVariablesCompositionalModel(model, varargin{:});
+        end
+        
+        function model = setupStateFunctionGroupings(model, varargin)
+            model = setupStateFunctionGroupings@NaturalVariablesCompositionalModel(model, varargin{:});
             model.FluxDiscretization.GravityPotentialDifference.saturationWeighting = true;
         end
         
