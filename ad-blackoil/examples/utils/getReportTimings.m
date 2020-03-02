@@ -24,15 +24,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         report = report.ControlstepReports;
     end
     nstep = numel(report);
-    timings = repmat(makeTiming(nan, nan, nan, nan, nan), nstep, 1);
+    timings = repmat(makeTiming(nan, nan, nan, nan, nan, nan), nstep, 1);
     for stepNo = 1:nstep
         rep = report{stepNo};
         assembly = 0;
         lsolve = 0;
         lsolve_prep = 0;
         total = rep.WallTime;
+        n_assemblies = 0;
         for i = 1:numel(rep.StepReports)
-            for j = 1:numel(rep.StepReports{i}.NonlinearReport)
+            nasm = numel(rep.StepReports{i}.NonlinearReport);
+            n_assemblies = n_assemblies + nasm;
+            for j = 1:nasm
                 r = rep.StepReports{i}.NonlinearReport{j};
                 assembly = assembly + r.AssemblyTime;
                 % Linear solver
@@ -51,14 +54,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
             end
         end
-        timings(stepNo) = makeTiming(total, assembly, lsolve, lsolve_prep, rep.Iterations);
+        timings(stepNo) = makeTiming(total, assembly, lsolve, lsolve_prep, rep.Iterations, n_assemblies);
     end
 end
 
-function s = makeTiming(total, assembly, linear, linear_prep, its)
+function s = makeTiming(total, assembly, linear, linear_prep, its, asm)
     s = struct('Total', total, ...
                'Assembly', assembly, ...
                'LinearSolve', linear, ...
                'LinearSolvePrep', linear_prep, ...
+               'NumberOfAssemblies',  asm, ...
                'Iterations', its);
 end
