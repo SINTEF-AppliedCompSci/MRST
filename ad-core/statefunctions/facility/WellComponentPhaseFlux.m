@@ -75,6 +75,7 @@ classdef WellComponentPhaseFlux < StateFunction
                             cflux(:, c) = value(v);
                         end
                     end
+                    compi = compi./max(sum(compi,2), 1e-10);
                     compi = crossFlowMixture(cflux, compi, map);
                     for c = 1:ncomp
                         if ~isempty(componentPhaseFlux{c, ph})
