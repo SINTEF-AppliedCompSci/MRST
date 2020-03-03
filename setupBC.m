@@ -1,7 +1,4 @@
-function D = setupBC(loadstruct, G, tbls)
-
-    
-    bc = loadstruct.bc;
+function D = setupBC(bc, G, tbls)
     
     n = numel(bc);
     D = cell(n, 1);

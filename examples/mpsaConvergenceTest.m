@@ -1,6 +1,8 @@
-mrstModule add vemmech mpsa vem
+mrstModule add vemmech mpsaw vem
 
 clear all
+close all
+
 
 % Number of refinement levels
 nref = 4; 
@@ -58,14 +60,16 @@ for iter1 = 1 : nref
     G = gridForConvTest(Nx, gridType); 
     G = computeVEMGeometry(G); 
     G = computeGeometryCalc(G); 
-    
+    [tbls, mappings] = setupStandardTables(G);
+
     Nc = G.cells.num; 
     Nf = G.faces.num; 
     Nn = G.nodes.num; 
     Nd = G.griddim; 
     
     isBoundary = any(G.faces.neighbors == 0, 2); 
-    bfn = gridFaceNodes(G, find(isBoundary)); 
+    bcfaces =  find(isBoundary); 
+
     
     if pert == 1
         error('not implemented');
@@ -80,18 +84,42 @@ for iter1 = 1 : nref
     
     tic; 
     
-    muc = mu*ones(Nc, 1); 
-    lambdac = lambda*ones(Nc, 1); 
+    clear prop
+    prop.mu = mu*ones(Nc, 1); 
+    prop.lambda = lambda*ones(Nc, 1); 
     
-    constit = shear_normal_stress(Nc, Nd, muc, lambdac, zeros(Nc, 1)); 
-    bc = addBC([], find(isBoundary), 'pressure', 0); 
+    rhsMech = -[mrhs1(xc( :, 1), xc( :, 2)).* G.cells.volumes, mrhs2(xc( :, 1), xc( :, 2)).* G.cells.volumes]; 
+    rhsMech = reshape(rhsMech', [], 1); % element of cellcoltbl
     
-    md = MPSA_vectorized(G, constit, 'weakCont', weakCont, 'bc', bc, 'eta', eta, 'biots', 0);
+    clear bc
+    bc{1}.extfaces = bcfaces;
+    bc{1}.linform = [1; 0];
+    bc{2}.extfaces = bcfaces;
+    bc{2}.linform = [0; 1];
     
-    rhsMech = [mrhs1(xc( :, 1), xc( :, 2)).* G.cells.volumes, mrhs2(xc( :, 1), xc( :, 2)).* G.cells.volumes]; 
+    clear loadstruct
+    loadstruct.bc = bc;
+    loadstruct.force = rhsMech;
+    loadstruct.extforce = zeros(tbls.nodefacecoltbl.num, 1);
+    
+    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings);
+    
+    B   = assembly.B  ;
+    rhs = assembly.rhs;
+    sol = B\rhs;
+
+    % displacement values at cell centers.
+    cellcoltbl = tbls.cellcoltbl;
+    n = cellcoltbl.num;
+
+    u = sol(1 : n);
+    u = reshape(u, 2, [])';
+    
+    dnum = u;
+    
     san1 = sum([s11(xf( :, 1), xf( :, 2)), s21(xf( :, 1), xf( :, 2))] .* G.faces.normals, 2); 
     san2 = sum([s12(xf( :, 1), xf( :, 2)), s22(xf( :, 1), xf( :, 2))] .* G.faces.normals, 2); 
-    dnum = reshape((md.A \ reshape(rhsMech', [], 1)), 2, [])'; 
+    
     toc; 
     % Analytical solution
     dex = [d1(xc( :, 1), xc( :, 2)) d2(xc( :, 1), xc( :, 2))]; 
@@ -100,13 +128,16 @@ for iter1 = 1 : nref
     deL2(iter1) = sqrt(sum(sum(bsxfun(@times, G.cells.volumes.^2, (dex - dnum).^2)))) / sqrt(sum(sum(bsxfun(@times, G.cells.volumes.^2, ( dex).^2)))); 
     dem(iter1) = max(max(abs(dex - dnum))); 
     
-    stress = md.stress*reshape(dnum', [], 1); 
-    
-    s_ex = reshape([san1, san2]', [], 1); 
-    
-    sem(iter1) = max(abs(s_ex - stress))/ max(abs(stress)); 
-    fa = reshape(repmat(G.faces.areas, 1, Nd)', [], 1); 
-    seL2(iter1) = sqrt(sum(fa.^2 .* (stress - s_ex).^2)) / sqrt(sum(fa.^2 .* s_ex.^2)); 
+    dostresscomputation = false;
+    if dostresscomputation
+        stress = md.stress*reshape(dnum', [], 1); 
+        
+        s_ex = reshape([san1, san2]', [], 1); 
+        
+        sem(iter1) = max(abs(s_ex - stress))/ max(abs(stress)); 
+        fa = reshape(repmat(G.faces.areas, 1, Nd)', [], 1); 
+        seL2(iter1) = sqrt(sum(fa.^2 .* (stress - s_ex).^2)) / sqrt(sum(fa.^2 .* s_ex.^2)); 
+    end
     % make VEM solution
     
     [E, nu] = elasticModuloTransform(lambda, mu, 'lam_mu', 'E_nu'); 
@@ -148,39 +179,52 @@ end
 log2(deL2(1 : end - 1)./deL2(2 : end))
 log2(deVEM(1 : end - 1)./deVEM(2 : end))
 
-return
-
 %% 
 n = 3; 
-figure(), 
+figure
+set(gcf, 'name', 'displacement')
 subplot(3, 2, 1)
 plotCellData(G, dnum( :, 1)), colorbar
+title('x-mpsa')
 subplot(n, 2, 2)
 plotCellData(G, dnum( :, 2)), colorbar
+title('y-mpsa')
 subplot(n, 2, 3)
 plotNodeData(G, uVEM( :, 1)), colorbar
+title('x-vem')
 subplot(n, 2, 4)
 plotNodeData(G, uVEM( :, 2)), colorbar
+title('y-vem')
 subplot(n, 2, 5)
 plotCellData(G, uu( :, 1)), colorbar
+title('x-exact')
 subplot(n, 2, 6)
 plotCellData(G, uu( :, 2)), colorbar
+title('x-exact')
+
 %% 
-figure(1), clf, 
+figure
+set(gcf, 'name', 'error')
+
 uu_nn = dvec(G.nodes.coords); 
 uu_cc = dvec(G.cells.centroids); 
 val = uVEM - uu_nn; 
 subplot(2, 2, 1), 
 plotNodeData(G, val( :, 1)); colorbar
+title('x-vem')
 subplot(2, 2, 2), 
 plotNodeData(G, val( :, 2));colorbar
+title('y-vem')
 val = dnum - uu_cc;
 subplot(2, 2, 3), 
 plotCellData(G, val( :, 1));colorbar
+title('x-mpsa')
 subplot(2, 2, 4), 
 plotCellData(G, val( :, 2));colorbar
+title('x-mpsa')
+
 %%
-figure(1), 
+figure
 subplot(2, 1, 1), 
 plotCellData(G, mrhs1(G.cells.centroids( : , 1), G.cells.centroids( :, 2)));colorbar
 subplot(2,1,2),

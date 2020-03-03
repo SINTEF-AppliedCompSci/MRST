@@ -1,5 +1,4 @@
-function [assembly, tbls] = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                         runcase)
+function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
 
 %% Assembly of MPSA-weak
 %%
@@ -475,7 +474,8 @@ function [assembly, tbls] = assembleMPSA(G, prop, loadstruct, eta, tbls, mapping
 
     % We enforce the boundary conditions as Lagrange multipliers
 
-    D = setupBC(loadstruct, G, tbls);
+    bc = loadstruct.bc;
+    D = setupBC(bc, G, tbls);
     
     % the solution is given by the system
     %
@@ -483,15 +483,18 @@ function [assembly, tbls] = assembleMPSA(G, prop, loadstruct, eta, tbls, mapping
     %      [A21, A22,  0];
     %      [D' , 0  ,  0]];
     %
-    % u = [u(nodeface);
-    %      u(cell);
+    % u = [u  (displacement at nodefacecoltbl);
+    %      u  (displacement at cellcoltbl);
     %      lagmult];
     %
-    % f = [force(extnodeface);
-    %      force(cells);
+    % f = [extforce  (force at nodefacecoltbl);
+    %      force  (volumetric force at cellcoltbl);
     %      0];
     %
     % A*u = f
+    %
+    % Note: extforce is sparse and should only give contribution at facets
+    % that are at the boundary
     %
     % By construction of the method, the matrix A11 is block-diagonal. Hence,
     % we invert it directly and reduce to a cell-centered scheme.
@@ -502,21 +505,41 @@ function [assembly, tbls] = assembleMPSA(G, prop, loadstruct, eta, tbls, mapping
                       'A22', A22, ...
                       'D'  , D  , ...
                       'invA11', invA11);
+    % We reduced the system (shur complement) using invA11
+    % We obtain system of the form
+    %
+    % B*u = rhs
+    %
+    % where
+    %
+    % B = [[B11, B12];
+    %      [B21, B22]];
+    %
+    % u = [u (displacement at cellcoltbl);
+    %      lagmult];
+    %
+    % rhs = redextforce + [force;
+    %                     0]
+    
+    extforce = loadstruct.extforce;
+    force = loadstruct.force;
     
     B11 = A22 - A21*invA11*A12;
     B12 = A21*invA11*D;
     B21 = -D'*invA11*A12;
     B22 = D'*invA11*D;
 
+    extforce = loadstruct.extforce;
     force = loadstruct.force;
     
-    rhs1 = -A21*invA11*force;
-    rhs2 = -D'*invA11*force;
+    redextforce = [-A21*invA11*extforce;
+                   -D'*invA11*extforce];
 
     B = [[B11, B12]; ...
          [B21, B22]];
 
-    rhs = [rhs1; rhs2];
+    nlag = size(D, 2);
+    rhs = redextforce + [force; zeros(nlag, 1)];
 
     % setup mapping from nodeface to node
 
@@ -536,7 +559,6 @@ function [assembly, tbls] = assembleMPSA(G, prop, loadstruct, eta, tbls, mapping
     prod.mergefds = {'nodes', 'coldim'};
     prod = prod.setup();
 
-
     nodaldisp_T = SparseTensor('matlabsparse', true);
     nodaldisp_T = nodaldisp_T.setFromTensorProd(coef, prod);
 
@@ -544,10 +566,9 @@ function [assembly, tbls] = assembleMPSA(G, prop, loadstruct, eta, tbls, mapping
 
     assembly = struct('B'           , B       , ...
                       'rhs'         , rhs     , ...
-                      'force'       , force     , ...
+                      'extforce'    , extforce, ...
                       'matrices'    , matrices, ...
                       'nodaldisp_op', nodaldisp_op);
     
-    tbls = struct('cellcoltbl', cellcoltbl);
 end
 

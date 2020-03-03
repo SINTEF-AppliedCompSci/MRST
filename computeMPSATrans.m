@@ -11,7 +11,7 @@ clear all
 tic
 
 % load modules
-mrstModule add mimetic mpfa incomp vemmech
+mrstModule add mimetic mpsaw incomp vemmech
 
 eta = 1/3;
 
@@ -62,7 +62,7 @@ prop = struct('lambda', lambda, ...
 
 [tbls, mappings] = setupStandardTables(G);
 loadstruct = setupBCpercase(runcase, G, tbls, mappings);
-[assembly, tbls] = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, runcase);
+assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings);
 
 B   = assembly.B  ;
 rhs = assembly.rhs;
@@ -81,10 +81,9 @@ lagmult = sol(n + 1: end);
 
 % Compute displacement at nodes
 
-force = assembly.force;
+force = assembly.extforce;
 matrices = assembly.matrices;
 nodaldisp_op = assembly.nodaldisp_op;
-
 
 invA11 = matrices.invA11;
 D      = matrices.D;

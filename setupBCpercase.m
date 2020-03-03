@@ -8,7 +8,8 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
     cellnodefacetbl    = tbls.cellnodefacetbl;
     cellnodefacecoltbl = tbls.cellnodefacecoltbl;
     coltbl             = tbls.coltbl;
-
+    cellcoltbl         = tbls.cellcoltbl;
+    
     nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
     
     d_num = coltbl.num;
@@ -26,6 +27,9 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
                                       % in cellnodefacetbl.
     facetNormals = reshape(facetNormals', [], 1);
 
+    % no volumetric force
+    force = zeros(cellcoltbl.num, 1);
+    
     
     switch runcase
         
@@ -102,10 +106,11 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
 
         map = map.setup();
 
-        force = map.eval(-extFacetNormals);
+        extforce = map.eval(-extFacetNormals);
 
         dosourceterm = false;
         if dosourceterm
+            error('not done');
             % We setup a source-term
             switch dim
               case 2
@@ -170,7 +175,7 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
         map.mergefds = {'faces', 'nodes', 'coldim'};
 
         map = map.setup();
-        force = map.eval(-extFacetNormals);
+        extforce = map.eval(-extFacetNormals);
       
       otherwise
         error('runcase not recognized');
@@ -183,6 +188,7 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
     end
     
     loadstruct.bc = bc;
+    loadstruct.extforce = extforce;
     loadstruct.force = force;
     
 end
