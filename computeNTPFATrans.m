@@ -46,7 +46,7 @@ function [fluxop, fluxop_neumann, A] = computeNTPFATrans(G, rock)
     cell2facetbl.faces = [faces{1}; faces{2}];
     cell2facetbl = IndexTable(cell2facetbl);
 
-    vals = [0.5*vals{1}; -0.5*vals{2}];
+    vals = -[0.5*vals{1}; -0.5*vals{2}];
 
     celltbl.cells = (1 : nc)';
     celltbl = IndexTable(celltbl);
