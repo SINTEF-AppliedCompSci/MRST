@@ -1,4 +1,4 @@
-function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings, ...
+function [assembly, tbls] = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
                                          runcase)
 
 %% Assembly of MPSA-weak
@@ -409,13 +409,6 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings,
     % C_T : cellnodecolrowtbl -> cellnodecolrowtbl
     %
 
-    tbls = struct('celltbl'        , celltbl        , ...
-                  'coltbl'         , coltbl         , ...
-                  'colrowtbl'      , colrowtbl      , ...
-                  'cellcol2row2tbl', cellcol2row2tbl, ...
-                  'col2row2tbl'    , col2row2tbl);
-
-
     C = setupStiffnessTensor(prop, tbls);
 
     [cellnodecol2row2tbl, indstruct] = crossTable(cellnodetbl, cellcol2row2tbl, {'cells'});
@@ -473,26 +466,16 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings,
     A21 = A21.getMatrix();
     A22 = A22.getMatrix();
     
-    % get the block structure
+    % Uses the block structure for the local reduction
     % We count the number of degrees of freedom that are connected to the same
     % node.
     [nodes, sz] = rlencode(nodefacecoltbl.get('nodes'), 1);
     invA11 = bi(A11, sz);
 
-    tbls = struct('nodefacetbl'       , nodefacetbl       , ...
-                  'nodefacecoltbl'    , nodefacecoltbl    , ...
-                  'cellnodefacetbl'   , cellnodefacetbl   , ...
-                  'cellnodefacecoltbl', cellnodefacecoltbl, ...
-                  'coltbl'            , coltbl);
-
-    mappings = struct('nodeface_from_cellnodeface', nodeface_from_cellnodeface);
-
 
     % We enforce the boundary conditions as Lagrange multipliers
-    [bcstruct, force] = setupBCpercase(runcase, G, tbls, mappings, 'facetNormals', facetNormals);
 
-    D = setupBC(bcstruct, G, tbls);
-
+    D = setupBC(loadstruct, G, tbls);
     
     % the solution is given by the system
     %
@@ -525,6 +508,8 @@ function [assembly, tbls] = assembleMPSA(G, prop, bcstruct, eta, tbls, mappings,
     B21 = -D'*invA11*A12;
     B22 = D'*invA11*D;
 
+    force = loadstruct.force;
+    
     rhs1 = -A21*invA11*force;
     rhs2 = -D'*invA11*force;
 

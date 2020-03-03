@@ -1,9 +1,6 @@
-function [bcstruct, force] = setupBCpercase(runcase, G, tbls, mappings, varargin)
+function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
 %% Boundary conditions
 
-    opt = struct('facetNormals', []);
-    opt = merge_options(opt, varargin{:}); 
-    
     % One linear form per Dirichlet condition
 
     nodefacetbl        = tbls.nodefacetbl;
@@ -17,6 +14,18 @@ function [bcstruct, force] = setupBCpercase(runcase, G, tbls, mappings, varargin
     d_num = coltbl.num;
     cnfc_num = cellnodefacecoltbl.num;
     
+    fno = cellnodefacetbl.get('faces');
+    cno = cellnodefacetbl.get('cells');
+    numnodes = double(diff(G.faces.nodePos));
+    numnodes = numnodes(fno);
+    facetNormals = G.faces.normals(fno, :);
+    facetNormals = bsxfun(@ldivide, numnodes, facetNormals);
+
+    sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+    facetNormals = sgn.*facetNormals; % Outward normals with respect to cell
+                                      % in cellnodefacetbl.
+    facetNormals = reshape(facetNormals', [], 1);
+
     
     switch runcase
         
@@ -84,7 +93,6 @@ function [bcstruct, force] = setupBCpercase(runcase, G, tbls, mappings, varargin
         map.dispind2 = sub2ind([d_num, cnfc_num], c, ind2);
         map.issetup = true;
 
-        facetNormals = opt.facetNormals;
         extFacetNormals = map.eval(facetNormals);
 
         map = TensorMap();
@@ -119,8 +127,6 @@ function [bcstruct, force] = setupBCpercase(runcase, G, tbls, mappings, varargin
       
       case {'3d-linear', '3d-compaction'}
         
-        facetNormals = opt.facetNormals;
-
         switch runcase
           case '3d-linear'
             for i = 1 : 3
@@ -172,10 +178,12 @@ function [bcstruct, force] = setupBCpercase(runcase, G, tbls, mappings, varargin
     end
 
     for i = 1 : numel(extfaces)
-        bcstruct{i}.extfaces = extfaces{i};
-        bcstruct{i}.linform  = linforms{i};
+        bc{i}.extfaces = extfaces{i};
+        bc{i}.linform  = linforms{i};
     end
     
+    loadstruct.bc = bc;
+    loadstruct.force = force;
     
 end
 

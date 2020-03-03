@@ -1,12 +1,14 @@
-function D = setupBC(bcstruct, G, tbls)
+function D = setupBC(loadstruct, G, tbls)
 
     
-    n = numel(bcstruct);
+    bc = loadstruct.bc;
+    
+    n = numel(bc);
     D = cell(n, 1);
     
     for i = 1 : n
-        extfaces = bcstruct{i}.extfaces;
-        linform  = bcstruct{i}.linform;
+        extfaces = bc{i}.extfaces;
+        linform  = bc{i}.linform;
         D{i} = assignLinearForm(extfaces, linform, tbls);
     end
     
