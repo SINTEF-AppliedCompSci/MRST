@@ -441,12 +441,12 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     Cgradnodeface_T = bcfix_T*C_T*gradnodeface_T;
     transaverCgradnodeface_T = transnodeaverage_T*Cgradnodeface_T;
 
-    combCgradnodeface_T = Cgradnodeface_T + transaverCgradnodeface_T;
+    combCgradnodeface_T = 0.5*(Cgradnodeface_T + transaverCgradnodeface_T);
 
     Cgradcell_T = bcfix_T*C_T*gradcell_T;
     transaverCgradcell_T = transnodeaverage_T*Cgradcell_T;
 
-    combCgradcell_T = Cgradcell_T + transaverCgradcell_T;
+    combCgradcell_T = 0.5*(Cgradcell_T + transaverCgradcell_T);
 
     A11 = divnodeface_T*combCgradnodeface_T;
     A12 = divnodeface_T*combCgradcell_T; 
