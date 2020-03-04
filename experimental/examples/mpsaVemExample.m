@@ -1,6 +1,7 @@
-mrstModule add vemmech mpsa vem
+mrstModule add vemmech mpsaw mpfa vem
 
 clear all
+
 
 % Two versions of the O-method are implemented : 
 % 
@@ -75,7 +76,7 @@ switch testCase
 end
 
 % Uniform Lame parameters
-lambda = 1; 
+lambda = 1e2; 
 mu = 1; 
 
 res = analyticalReference(lambda, mu);
@@ -183,26 +184,45 @@ for iter1 = 1 : nref
                 
 end
 %% 
+% print error rate
 log2(deL2(1 : end - 1)./deL2(2 : end))
 log2(deVEM(1 : end - 1)./deVEM(2 : end))
 
-return
+%% error at last iteration
+fprintf('relative L2 error exact vs mpsa: %g\n', deL2(end));
+fprintf('relative L2 error exact vs vem: %g\n', deVEM(end));
 
 %% 
-n = 3; 
-figure(), 
-subplot(3, 2, 1)
+n = 4; 
+figure(1), 
+clf
+
+subplot(n, 2, 1)
 plotCellData(G, dnum( :, 1)), colorbar
+title('mpsa - vectorized');
 subplot(n, 2, 2)
 plotCellData(G, dnum( :, 2)), colorbar
+
 subplot(n, 2, 3)
 plotNodeData(G, uVEM( :, 1)), colorbar
+title('vem');
 subplot(n, 2, 4)
 plotNodeData(G, uVEM( :, 2)), colorbar
+
 subplot(n, 2, 5)
 plotCellData(G, uu( :, 1)), colorbar
+title('mpsa');
 subplot(n, 2, 6)
 plotCellData(G, uu( :, 2)), colorbar
+
+subplot(n, 2, 7)
+plotCellData(G, dex( :, 1)), colorbar
+title('exact');
+subplot(n, 2, 8)
+plotCellData(G, dex( :, 2)), colorbar
+
+return
+
 %% 
 figure(1), clf, 
 uu_nn = dvec(G.nodes.coords); 

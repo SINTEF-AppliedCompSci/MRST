@@ -12,9 +12,9 @@ Nd = 2;
 % Switch this on for perturbed grids
 pert = 0; 
 % Test case number (see definitions below)
-testCase = 3; 
+testCase = 1; 
 % Constant (between 0 and 1) in MPSA - W which defines position of continuity point
-eta = 0; 
+eta = 1/3; 
 
 switch testCase
   case 1
@@ -175,37 +175,51 @@ for iter1 = 1 : nref
                 
                 
 end
-%% 
+
+%% Print convergence rates
+
 log2(deL2(1 : end - 1)./deL2(2 : end))
 log2(deVEM(1 : end - 1)./deVEM(2 : end))
+
+%% Error at last iteration
+
+fprintf('relative L2 error exact vs mpsa: %g\n', deL2(end));
+fprintf('relative L2 error exact vs vem: %g\n', deVEM(end));
+
 
 %% 
 n = 3; 
 figure
-set(gcf, 'name', 'displacement')
-subplot(3, 2, 1)
-plotCellData(G, dnum( :, 1)), colorbar
-title('x-mpsa')
-subplot(n, 2, 2)
-plotCellData(G, dnum( :, 2)), colorbar
-title('y-mpsa')
-subplot(n, 2, 3)
-plotNodeData(G, uVEM( :, 1)), colorbar
-title('x-vem')
-subplot(n, 2, 4)
-plotNodeData(G, uVEM( :, 2)), colorbar
-title('y-vem')
-subplot(n, 2, 5)
-plotCellData(G, uu( :, 1)), colorbar
-title('x-exact')
-subplot(n, 2, 6)
-plotCellData(G, uu( :, 2)), colorbar
-title('x-exact')
+set(gcf, 'numbertitle', 'off', 'name', 'DISPLACEMENT')
 
+subplot(3, 2, 1)
+title('x-mpsa')
+plotCellData(G, dnum( :, 1), 'edgecolor', 'none'), colorbar
+
+subplot(n, 2, 2)
+title('y-mpsa')
+plotCellData(G, dnum( :, 2), 'edgecolor', 'none'), colorbar
+
+subplot(n, 2, 3)
+title('x-vem')
+plotNodeData(G, uVEM( :, 1), 'edgecolor', 'none'), colorbar
+
+subplot(n, 2, 4)
+title('y-vem')
+plotNodeData(G, uVEM( :, 2), 'edgecolor', 'none'), colorbar
+
+subplot(n, 2, 5)
+title('x-exact')
+plotCellData(G, dex( :, 1), 'edgecolor', 'none'), colorbar
+
+subplot(n, 2, 6)
+title('y-exact')
+plotCellData(G, dex( :, 2), 'edgecolor', 'none'), colorbar
+
+return
 %% 
 figure
-set(gcf, 'name', 'error')
-
+set(gcf, 'numbertitle', 'off', 'name', 'ERROR')
 uu_nn = dvec(G.nodes.coords); 
 uu_cc = dvec(G.cells.centroids); 
 val = uVEM - uu_nn; 

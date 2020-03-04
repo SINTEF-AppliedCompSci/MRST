@@ -11,7 +11,7 @@ clear all
 tic
 
 % load modules
-mrstModule add mimetic mpsaw incomp vemmech
+mrstModule add mimetic mpsaw incomp vemmech mpfa
 
 eta = 1/3;
 
