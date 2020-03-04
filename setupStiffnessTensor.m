@@ -37,7 +37,7 @@ function C = setupStiffnessTensor(prop, tbls)
         map.mergefds = {'cells'};
         map = map.setup();
 
-        mu = map.eval(mu);
+        Cmu = map.eval(2*mu);
 
         map = TensorMap();
         map.fromTbl = cellmutbl;
@@ -46,7 +46,7 @@ function C = setupStiffnessTensor(prop, tbls)
         map.mergefds = fds;
         map = map.setup();
 
-        mu = map.eval(mu);
+        Cmu = map.eval(Cmu);
 
         diagtbl.coldim = (1 : dim)';
         diagtbl.rowdim = (1 : dim)';
@@ -73,9 +73,9 @@ function C = setupStiffnessTensor(prop, tbls)
         map.mergefds = fds;
         map = map.setup();
 
-        lambda = map.eval(lambda);
+        Clambda = map.eval(lambda);
 
-        C = mu + lambda;
+        C = Cmu + Clambda;
 
         dotest = true;
         
@@ -113,7 +113,7 @@ function C = setupStiffnessTensor(prop, tbls)
         
       case 'general_voigt_construction'
 
-        warning('not fully functional yet');
+        error('not fully functional yet');
         
         Cvoigt = mu*eye(vdim);
         Z1 = zeros(dim, vdim - dim);
