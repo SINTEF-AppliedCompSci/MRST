@@ -49,8 +49,12 @@ implicit = packSimulationProblem(state0, model, schedule, 'immiscible_time', 'Na
 %% Explicit solver
 % This solver has a time-step restriction based on the CFL condition in
 % each cell. The solver estimates the time-step before each solution.
-model_explicit = setTimeDiscretization(model, 'explicit', 'verbose', true);
+model_explicit = setTimeDiscretization(model, 'explicit', 'verbose', 2);
 explicit = packSimulationProblem(state0, model_explicit, schedule, 'immiscible_time', 'Name', 'Explicit');
+
+fsb = model_explicit.FluxDiscretization.getFlowStateBuilder();
+disp(fsb)
+
 
 %% Adaptive implicit
 % We can solve some cells implicitly and some cells explicitly based on the
@@ -58,8 +62,8 @@ explicit = packSimulationProblem(state0, model_explicit, schedule, 'immiscible_t
 % treatment far away from wells or driving forces. The values for
 % estimated composition CFL and saturation CFL to trigger a switch to
 % implicit status can be adjusted.
-model_aim = setTimeDiscretization(model, 'adaptive-implicit', 'verbose', true);
-aim = packSimulationProblem(state0, model_aim, schedule, 'immiscible_time', 'Name', 'Adaptive-Implicit (AIM)');
+model_aim = setTimeDiscretization(model, 'adaptive-implicit', 'verbose', 2);
+aim = packSimulationProblem(state0, model_aim, schedule, 'immiscible_time', 'Name', 'AIM');
 %% Make an explicit solver with larger CFL limit
 % Since the equation is linear, we can set the NonLinearSolver to use a
 % single step. We bypass the convergence checks and can demonstrate the
@@ -70,7 +74,7 @@ model_explicit_largedt = setTimeDiscretization(model, 'explicit', 'verbose', tru
     'compositionCFL', inf); % Immiscible, saturation cfl is enough
 
 model_explicit_largedt.stepFunctionIsLinear = true; 
-explicit_largedt = packSimulationProblem(state0, model_explicit_largedt, schedule, 'immiscible_time', 'Name', 'Explicit (CFL target 5)');
+explicit_largedt = packSimulationProblem(state0, model_explicit_largedt, schedule, 'immiscible_time', 'Name', 'Explicit (CFL>1)');
 
 %% Simulate the problems
 problems = {implicit, explicit, aim, explicit_largedt};
@@ -117,7 +121,14 @@ for stepNo = 1:numel(schedule.step.val)
     end
     h = nan(ns, 1);
     for j = 1:ns
-        h(j) = plotCellData(G, states{j}{stepNo}.s(:, 1), 'LineWidth', 2);
+        if j == 1
+            st = '--';
+            lw = 2;
+        else
+            st = '-';
+            lw = 1;
+        end
+        h(j) = plotCellData(G, states{j}{stepNo}.s(:, 1), 'LineStyle', st, 'LineWidth', lw);
     end
     legend(h, names);
     drawnow
