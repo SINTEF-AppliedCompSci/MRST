@@ -1,6 +1,7 @@
-function [u, f] = analyticalReference2(d)
+function [u, f] = analyticalReferencePaper(d)
     
 % d = spatial dimension
+%
 % Reference solution from paper
 %  title={Finite volume methods for elasticity with weak symmetry},
 %  author={Keilegavlen, Eirik and Nordbotten, Jan Martin},
@@ -10,7 +11,9 @@ function [u, f] = analyticalReference2(d)
 %  pages={939--962},
 %  year={2017},
 %  publisher={Wiley Online Library}
-
+%
+%  The displacement u which is returned by this function has not been
+%  multiplied by the indicator function, as it appears in the paper. 
 
 
     % displacement
