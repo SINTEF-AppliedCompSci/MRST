@@ -36,16 +36,18 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
       case {'2d-refinement', '2d-linear', '2d-compaction'}
         
         extfaces{1} = find(G.faces.centroids(:, 2) == 0);
-        linforms{1} = [0; 1];
+        n = numel(extfaces{1});
+        linforms{1} = repmat([0, 1], n, 1);
 
         switch runcase
             
           case {'2d-linear', '2d-refinement'}
             extfaces{2} = find(G.faces.centroids(:, 1) == 0);
-            linforms{2} = [1; 0];
+            n = numel(extfaces{2});
+            linforms{2} = repmat([1, 0], n, 1);
             
           case '2d-compaction'
-            linforms{2} = [1; 0];
+            linforms{2} = repmat([1, 0], n, 1);
 
           otherwise
             error('runcase not recognized');
@@ -138,7 +140,8 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
                 extfaces{i} = find(G.faces.centroids(:, i) == 0);
                 linform = zeros(3, 1);
                 linform(i) = 1;
-                linforms{i} = linform;
+                n = numel(extfaces{i});
+                linforms{i} = repmat(linform, n, 1);
             end
           case '3d-compaction'
             extface = find(G.faces.centroids(:, 3) == 0);
@@ -146,7 +149,8 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
                 extfaces{i} = extface;
                 linform = zeros(3, 1);
                 linform(i) = 1;
-                linforms{i} = linform;
+                n = numel(extfaces{i});
+                linforms{i} = repmat(linform, n, 1);
             end
         end
             
@@ -182,10 +186,8 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
         
     end
 
-    for i = 1 : numel(extfaces)
-        bc{i}.extfaces = extfaces{i};
-        bc{i}.linform  = linforms{i};
-    end
+    bc.extfaces = vertcat(extfaces{:});
+    bc.linform  = vertcat(linforms{:});
     
     loadstruct.bc = bc;
     loadstruct.extforce = extforce;
