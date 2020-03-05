@@ -92,10 +92,10 @@ for iter1 = 1 : nref
     rhsMech = reshape(rhsMech', [], 1); % element of cellcoltbl
     
     clear bc
-    bc{1}.extfaces = bcfaces;
-    bc{1}.linform = [1; 0];
-    bc{2}.extfaces = bcfaces;
-    bc{2}.linform = [0; 1];
+    bc.extfaces = [bcfaces; bcfaces];
+    n = numel(bcfaces);
+    bc.linform = [repmat([1, 0], n, 1); ...
+                  repmat([0, 1], n, 1)];
     
     clear loadstruct
     loadstruct.bc = bc;
