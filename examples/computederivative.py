@@ -8,7 +8,7 @@ dervar = [x, y, z]
 c1 = sympy.Rational(1, 2)
 c2 = sympy.Rational(2, 3)
 
-d = 2
+d = 3
 if d == 3:
     u1 = ((x - c1)**2)*(y - c1)**2*(z - c1)**2
     u2 = ((x - c1)**2)*(y - c1)**2*(z - c1)**2
@@ -33,10 +33,11 @@ for i in range(d):
 # stress = 2*mu*(symmetric gradient) + lambda*trace(symmetric gradient)*I
 # The example has been designed such that the trace equal zero.
 stress = []
+mu = 1
 for i in range(d):
     scomp = []
     for j in range(d):
-        s = 0.5*(gradu[i][j] + gradu[j][i])
+        s = 2*mu*0.5*(gradu[i][j] + gradu[j][i])
         scomp.append(s)
     stress.append(scomp)
 
