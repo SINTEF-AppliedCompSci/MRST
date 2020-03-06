@@ -1,4 +1,4 @@
-function [D, bcvals] = setupBC(bc, G, tbls)
+function [D, bcvals] = setupFaceBC(bc, G, tbls)
     
     nodefacetbl    = tbls.nodefacetbl;
     nodefacecoltbl = tbls.nodefacecoltbl;
@@ -47,7 +47,7 @@ function [D, bcvals] = setupBC(bc, G, tbls)
     nodefacebc.linform       = linform;
     nodefacebc.linformvals   = bcvals;
 
-    [D, bcvals] = setupNodefaceBc(nodefacebc, G, tbls);
+    [D, bcvals] = setupNodeFaceBc(nodefacebc, G, tbls);
 
     
 end

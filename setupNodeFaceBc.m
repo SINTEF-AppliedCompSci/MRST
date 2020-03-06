@@ -1,4 +1,4 @@
-function [D, bcvals] = setupNodefaceBc(bc, G, tbls)
+function [D, bcvals] = setupNodeFaceBc(bc, G, tbls)
 % the structur bc gives conditions on the nodeface displacement
 
     assert(isfield(bc, 'bcnodefacetbl'), ['this function is meant to set ' ...

@@ -1,6 +1,9 @@
-function mpsaPaperConvergenceTest(Nd, nref)
+function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
 % Nd : spatial dimension
 % nref : number of refinement level
+% kappa : coefficient used for the top-corner (kappa = 1 corresponds to
+%         homogeneous case)
+% alpha : coefficient defining lambda from mu, lambda = alpha*mu;
     
 % Convergence test case
 % title={Finite volume methods for elasticity with weak symmetry},
@@ -14,13 +17,10 @@ function mpsaPaperConvergenceTest(Nd, nref)
 
     mrstModule add vemmech mpsaw vem
 
-
-    % Number of refinement levels
-    nref = 4; 
-
     % Test case number (see definitions below)
     testCase = 1; 
-
+    doVem = false;
+    
     % The constant eta (between 0 and 1) in MPSAW which defines the position of
     % continuity point
 
@@ -45,65 +45,108 @@ function mpsaPaperConvergenceTest(Nd, nref)
         error('testCase not recognized');
     end
 
-    kappa = 1;
-    alpha = 1;
-    % the coefficients mu and lambda are defined through the coefficients kappa
-    % and alpha
 
-    [u, f] = analyticalReferencePaper(Nd);
+    [u_fun, force_fun, mu_fun] = analyticalReferencePaper(Nd, kappa);
 
     for iter1 = 1 : nref
         
         disp(['Refinement ' num2str(iter1)])
         
         Nx = 2^iter1*ones(1, Nd); 
-        [G, cornercelltbl] = gridForConvTest(Nx, gridType); 
+        G = gridForConvTest(Nx, gridType); 
         G = computeVEMGeometry(G); 
         G = computeGeometryCalc(G); 
         [tbls, mappings] = setupStandardTables(G);
-
+        coltbl = tbls.coltbl;
+        nodefacetbl = tbls.nodefacetbl;
+        nodefacecoltbl = tbls.nodefacecoltbl;
+        
         Nc = G.cells.num; 
         Nf = G.faces.num; 
         Nn = G.nodes.num; 
         Nd = G.griddim; 
-
-        mu = ones(Nc, 1);
-        ccells = cornercelltbl.get('cells');
-        mu(ccells) = kappa;
         
+        % prepare input for analytical functions
+        for idim = 1 : Nd
+            cc{idim} = G.cells.centroids(:, idim);
+        end
+        mu = mu_fun(cc{:});
         lambda = alpha*mu;
+        
+        prop.mu = mu; 
+        prop.lambda = lambda; 
         
         isBoundary = any(G.faces.neighbors == 0, 2); 
         bcfaces =  find(isBoundary);
         
+        bcfacetbl.faces = bcfaces;
+        bcfacetbl = IndexTable(bcfacetbl);
+        bcnodefacetbl = crossTable(bcfacetbl, nodefacetbl, {'faces'});
+        bcnodefacecoltbl = crossTable(bcnodefacetbl, coltbl, {}, 'optpureproduct', ...
+                                      true);
+        clear bcfacetbl
         
+        [~, nodefacecents] = computeNodeFaceCentroids(G, tbls, eta);
+        % Here, we assume a given structure of nodefacecoltbl:
+        nodefacecents = reshape(nodefacecents, Nd, [])';
         
-        xf = G.faces.centroids; 
-        xc = G.cells.centroids; 
+        map = TensorMap();
+        map.fromTbl = nodefacecoltbl;
+        map.toTbl = bcnodefacecoltbl;
+        map.mergefds = {'nodes', 'faces', 'coldim'};
+        map = map.setup();
         
-        clear prop
-        prop.mu = mu*ones(Nc, 1); 
-        prop.lambda = lambda*ones(Nc, 1); 
+        bcnodefacecents = map.eval(nodefacecents);
+        % Here, we assume a given structure of bcnodefacecoltbl:
+        bcnodefacecents = reshape(bcnodefacecents, Nd, [])';
+        bcnum = bcnodefacetbl.num;
         
+        % Prepare input for analytical functions
+        for idim = 1 : Nd
+            bnfc{idim} = bcnodefacecents(:, idim);
+        end
         
-        clear bc
-        bc{1}.extfaces = bcfaces;
-        bc{1}.linform = [1; 0];
-        bc{2}.extfaces = bcfaces;
-        bc{2}.linform = [0; 1];
+        % Compute boundary conditions
+        for idim = 1 : Nd
+            linform = zeros(bcnum, Nd);
+            linform(:, idim) = 1;
+            linforms{idim} = linform;
+            linformvals{idim} = u_fun{idim}(bnfc{:});
+        end
         
-        clear loadstruct
+        bcfaces = bcnodefacetbl.get('faces');
+        bcnodes = bcnodefacetbl.get('nodes');
+        extbcnodefacetbl.faces = repmat(bcfaces, Nd, 1);
+        extbcnodefacetbl.nodes = repmat(bcnodes, Nd, 1);
+        extbcnodefacetbl = IndexTable(extbcnodefacetbl);
+        
+        bc.bcnodefacetbl = extbcnodefacetbl;
+        bc.linform = vertcat(linforms{:});
+        bc.linformvals = vertcat(linformvals{:});
+        clear extbcnodefacetbl linforms linformvals
+
+        % Compute body force
+        force = NaN(Nc, Nd);
+        for idim = 1 : Nd
+            force(:, idim) = force_fun{idim}(cc{:});
+        end
+        force = bsxfun(@times, G.cells.volumes, force);
+        % Here, we assume we know the structure of cellcoltbl;
+        force = reshape(force', [], 1);
+        
         loadstruct.bc = bc;
-        loadstruct.force = rhsMech;
+        loadstruct.force = force;
         loadstruct.extforce = zeros(tbls.nodefacecoltbl.num, 1);
+        clear bc force
         
         assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings);
+        clear prop loadstruct
         
         B   = assembly.B  ;
         rhs = assembly.rhs;
         sol = B\rhs;
 
-        % displacement values at cell centers.
+        % Displacement values at cell centers.
         cellcoltbl = tbls.cellcoltbl;
         n = cellcoltbl.num;
 
@@ -112,12 +155,11 @@ function mpsaPaperConvergenceTest(Nd, nref)
         
         dnum = u;
         
-        san1 = sum([s11(xf( :, 1), xf( :, 2)), s21(xf( :, 1), xf( :, 2))] .* G.faces.normals, 2); 
-        san2 = sum([s12(xf( :, 1), xf( :, 2)), s22(xf( :, 1), xf( :, 2))] .* G.faces.normals, 2); 
-        
-        toc; 
-        % Analytical solution
-        dex = [d1(xc( :, 1), xc( :, 2)) d2(xc( :, 1), xc( :, 2))]; 
+        % Analytical solution : displacement at cell centers
+        dex = NaN(Nc, Nd);
+        for idim = 1 : Nd
+            dex(:, idim) = u_fun{idim}(cc{:}); 
+        end
         
         % Errors in L2 and max - norm
         deL2(iter1) = sqrt(sum(sum(bsxfun(@times, G.cells.volumes.^2, (dex - dnum).^2)))) / sqrt(sum(sum(bsxfun(@times, G.cells.volumes.^2, ( dex).^2)))); 
@@ -125,6 +167,10 @@ function mpsaPaperConvergenceTest(Nd, nref)
         
         dostresscomputation = false;
         if dostresscomputation
+            san1 = sum([s11(xf( :, 1), xf( :, 2)), s21(xf( :, 1), xf( :, 2))] ...
+                       .* G.faces.normals, 2); 
+            san2 = sum([s12(xf( :, 1), xf( :, 2)), s22(xf( :, 1), xf( :, 2))] ...
+                       .* G.faces.normals, 2)
             stress = md.stress*reshape(dnum', [], 1); 
             
             s_ex = reshape([san1, san2]', [], 1); 
@@ -133,85 +179,101 @@ function mpsaPaperConvergenceTest(Nd, nref)
             fa = reshape(repmat(G.faces.areas, 1, Nd)', [], 1); 
             seL2(iter1) = sqrt(sum(fa.^2 .* (stress - s_ex).^2)) / sqrt(sum(fa.^2 .* s_ex.^2)); 
         end
-        % make VEM solution
         
-        [E, nu] = elasticModuloTransform(lambda, mu, 'lam_mu', 'E_nu'); 
-        %{
-        if(G.griddim == 2)
-            [E, nu] = LMu2ENu_2D(lambda, mu); 
-            else
-                [E, nu] = LMu2ENu_3D(lambda, mu); 
-                end
-                %} 
-                Ev = repmat(E, G.cells.num, 1); 
-                nuv = repmat(nu, G.cells.num, 1); 
-                C = Enu2C(Ev, nuv, G); 
-                %}
-                %{
-                C = nan(G.cells.num, numel(constit{1})); 
-                for i = 1 : G.cells.num
-                    C(i, : ) = constit{i}( : ); 
-                    end
-                    %}
-                    % set all boundary to no displacement
-                    faces = find(any(G.faces.neighbors == 0, 2)); 
-                    inodes = mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces + 1) - 1); 
-                    nodes = unique(G.faces.nodes(inodes)); 
-                    el_bc = struct('disp_bc', struct('nodes', nodes, 'uu', zeros(numel(nodes), G.griddim), 'faces', faces,...
-                                                     'uu_face', zeros(numel(nodes), G.griddim), 'mask', true(numel(nodes), G.griddim)),...
-                                   'force_bc', []); 
-                    load = @(coord) - [mrhs1(coord( :, 1), coord( :, 2)), mrhs2(coord( :, 1), coord( :, 2))]; 
-                    
-                    tic; [uVEM, extra] = VEM_linElast(G, C, el_bc, load); toc; 
-                    deVEM(iter1) = sqrt(sum(sum(bsxfun(@times, (uVEM(G.cells.nodes, : ) - dvec(G.nodes.coords(G.cells.nodes, : ))).^2, G.weights.cell_nodes), 2)))./...
-                        sqrt(sum(sum(bsxfun(@times, dvec(G.nodes.coords(G.cells.nodes, : )).^2, G.weights.cell_nodes), 2))); 
-                    % make CC solution with global interface
-                    tic; [uu, out] = CC_linElast(G, C, el_bc, load); toc; 
-                    
+        % Compute VEM solution
+        if doVem
+            error('bc not implemented yet for VEM');
+            [E, nu] = elasticModuloTransform(lambda, mu, 'lam_mu', 'E_nu'); 
+            Ev = repmat(E, G.cells.num, 1); 
+            nuv = repmat(nu, G.cells.num, 1); 
+            C = Enu2C(Ev, nuv, G); 
+            % set all boundary to no displacement
+            faces = find(any(G.faces.neighbors == 0, 2)); 
+            inodes = mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces + 1) - 1); 
+            nodes = unique(G.faces.nodes(inodes)); 
+            el_bc = struct('disp_bc', struct('nodes', nodes, 'uu', zeros(numel(nodes), G.griddim), 'faces', faces,...
+                                             'uu_face', zeros(numel(nodes), G.griddim), 'mask', true(numel(nodes), G.griddim)),...
+                           'force_bc', []); 
+            load = @(coord) - [force_fun{1}(coord( :, 1), coord( :, 2)), force_fun{2}(coord( :, 1), coord( :, 2))]; 
+            
+            [uVEM, extra] = VEM_linElast(G, C, el_bc, load); 
+            
+            % Prepare input for analytical functions
+            for idim = 1 : Nd
+                ncc{idim} = G.nodes.coords(G.cells.nodes, idim);
+            end
+            % Analytical solution : displacement at ncc
+            dnex = NaN(numel(ncc{1}), Nd);
+            for idim = 1 : Nd
+                dnex(:, idim) = u_fun{idim}(ncc{:}); 
+            end        
+            w = G.weights.cell_nodes;
+            deVEM(iter1) = sqrt(sum(sum(bsxfun(@times, (uVEM(G.cells.nodes, : ) - ...
+                                                        dnex).^2, w), 2)))./ ...
+                sqrt(sum(sum(bsxfun(@times, dnex.^2, w), 2))); 
+            % make CC solution with global interface
+            [uu, out] = CC_linElast(G, C, el_bc, load); 
+        end
                     
     end
 
     %% Print convergence rates
 
+    fprintf('Convergence rate for MPSA\n');
     log2(deL2(1 : end - 1)./deL2(2 : end))
-    log2(deVEM(1 : end - 1)./deVEM(2 : end))
+    if doVem
+        fprintf('Convergence rate for VEM\n');
+        log2(deVEM(1 : end - 1)./deVEM(2 : end))
+    end
+    
 
     %% Error at last iteration
 
     fprintf('relative L2 error exact vs mpsa: %g\n', deL2(end));
-    fprintf('relative L2 error exact vs vem: %g\n', deVEM(end));
-
+    if doVem
+        fprintf('relative L2 error exact vs vem: %g\n', deVEM(end));
+    end
 
     %% 
-    n = 3; 
-    figure
+    if doVem
+        n = 3; 
+    else 
+        n = 2;
+    end
+    
+    figure(1)
+    clf
     set(gcf, 'numbertitle', 'off', 'name', 'DISPLACEMENT')
 
-    subplot(3, 2, 1)
+    subplot(n, 2, 1)
     title('x-mpsa')
-    plotCellData(G, dnum( :, 1), 'edgecolor', 'none'), colorbar
+    plotCellData(G, dnum(: , 1), 'edgecolor', 'none'), colorbar
 
     subplot(n, 2, 2)
     title('y-mpsa')
-    plotCellData(G, dnum( :, 2), 'edgecolor', 'none'), colorbar
+    plotCellData(G, dnum(: , 2), 'edgecolor', 'none'), colorbar
 
     subplot(n, 2, 3)
-    title('x-vem')
-    plotNodeData(G, uVEM( :, 1), 'edgecolor', 'none'), colorbar
+    title('x-exact')
+    plotCellData(G, dex(: , 1), 'edgecolor', 'none'), colorbar
 
     subplot(n, 2, 4)
-    title('y-vem')
-    plotNodeData(G, uVEM( :, 2), 'edgecolor', 'none'), colorbar
-
-    subplot(n, 2, 5)
-    title('x-exact')
-    plotCellData(G, dex( :, 1), 'edgecolor', 'none'), colorbar
-
-    subplot(n, 2, 6)
     title('y-exact')
-    plotCellData(G, dex( :, 2), 'edgecolor', 'none'), colorbar
+    plotCellData(G, dex(: , 2), 'edgecolor', 'none'), colorbar
+
+    if doVem
+        subplot(n, 2, 5)
+        title('x-vem')
+        plotNodeData(G, uVEM(: , 1), 'edgecolor', 'none'), colorbar
+
+        subplot(n, 2, 6)
+        title('y-vem')
+        plotNodeData(G, uVEM(: , 2), 'edgecolor', 'none'), colorbar
+    end
+    
 
     return
+    
     %% 
     figure
     set(gcf, 'numbertitle', 'off', 'name', 'ERROR')
@@ -240,9 +302,3 @@ function mpsaPaperConvergenceTest(Nd, nref)
     plotCellData(G,mrhs2(G.cells.centroids(:,1),G.cells.centroids(:,2)));colorbar
 end
 
-
-function y = Xindfunction(x)
-    ix = all(x > 0.5, 2);
-    y = 0*x;
-    y(ix) = 1;
-end
