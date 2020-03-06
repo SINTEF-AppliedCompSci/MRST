@@ -410,7 +410,11 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     % We enforce the boundary conditions as Lagrange multipliers
 
     bc = loadstruct.bc;
-    D = setupBC(bc, G, tbls);
+    if isfield(bc, 'bcnodefacetbl')
+        [D, bcvals] = setupNodeFaceBc(bc, G, tbls);
+    else
+        [D, bcvals] = setupFaceBC(bc, G, tbls);
+    end
     
     % the solution is given by the system
     %
@@ -424,7 +428,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     %
     % f = [extforce  (force at nodefacecoltbl);
     %      force  (volumetric force at cellcoltbl);
-    %      0];
+    %      bcvals (for the linear form at the boundary)];
     %
     % A*u = f
     %
@@ -454,7 +458,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     %      lagmult];
     %
     % rhs = redextforce + [force;
-    %                     0]
+    %                     bcvals]
     
     extforce = loadstruct.extforce;
     force = loadstruct.force;
@@ -473,8 +477,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     B = [[B11, B12]; ...
          [B21, B22]];
 
-    nlag = size(D, 2);
-    rhs = redextforce + [force; zeros(nlag, 1)];
+    rhs = redextforce + [force; bcvals];
 
     % setup mapping from nodeface to node
 
