@@ -117,7 +117,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.dispind2 = (1 : cnfc_num)';
     [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
     prod.dispind3 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
-
     prod.issetup = true;
 
     greduced = - prod.eval(ones(cnfc_num, 1), g);
@@ -134,32 +133,10 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.dispind1 = sub2ind([d_num, cn_num], c, i);
     prod.dispind2 = sub2ind([d_num, c_num], r, cell_from_cellnode(i));
     prod.dispind3 = (1 : cncr_num);
-
     prod.issetup = true;
 
     gradcell_T = SparseTensor('matlabsparse', true);
     gradcell_T = gradcell_T.setFromTensorProd(greduced, prod);
-
-    % some test gradnodeface_T and gradcell_T
-    dotest = false;
-    if dotest
-        fno = nodefacetbl.faces;
-        nno = nodefacetbl.nodes;
-        facetcent = G.faces.centroids(fno, :) + eta*(G.nodes.coords(nno, :) - ...
-                                                     G.faces.centroids(fno, :));
-        facetcent = reshape(facetcent', [], 1);
-
-        g1 = gradnodeface_T.getMatrix()*facetcent;
-
-        cellcent = G.cells.centroids(celltbl.cells, :);
-        cellcent = reshape(cellcent', [], 1);
-
-        g2 = gradcell_T.getMatrix()*cellcent;
-
-        g = g1 + g2;
-        % g should correspond to identity in cellnodecolrowtbl
-    end
-
 
     %% Construction of the divergence operator
     %
@@ -198,22 +175,10 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.dispind1 = sub2ind([d_num, cnf_num], r, i);
     prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, cellnode_from_cellnodeface(i));
     prod.dispind3 = sub2ind([d_num, nf_num], c, nodeface_from_cellnodeface(i));
-
     prod.issetup = true;
 
     divnodeface_T = SparseTensor('matlabsparse', true);
     divnodeface_T = divnodeface_T.setFromTensorProd(d, prod);
-
-
-    % some test for dinnodeface_T
-    dotest = false;
-    if dotest
-        % create uniform gradient tensor (take unity)
-        assert(dim == 2);
-        g = [1; 0; 0; 1];
-        g = tblmap(g, colrowtbl, cellnodecolrowtbl, {'coldim', 'rowdim'});
-        d = divnodeface_T.getMatrix()*g;
-    end
 
     % divcell_T : cellnodecoltbl -> cellcoltbl
     %
@@ -241,7 +206,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.dispind1 = sub2ind([d_num, cn_num], r, i);
     prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, i);
     prod.dispind3 = sub2ind([d_num, c_num], c, cell_from_cellnode(i));
-
     prod.issetup = true;
 
     divcell_T = SparseTensor('matlabsparse', true);
@@ -272,7 +236,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     symnodecol2row2tbl = crossTable(nodetbl, symcol2row2tbl, {});
     nc2r2_num = symnodecol2row2tbl.num; % shortcut
 
-    % note the definition of symcol2row2tbl above
+    % (note the definition of symcol2row2tbl above)
     prod.pivottbl = symnodecol2row2tbl;
     [r, c, i] = ind2sub([d_num, d_num, n_num], (1 : nc2r2_num)');
     c2 = c;
@@ -282,7 +246,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.dispind1 = sub2ind([d_num, d_num], r, c);
     prod.dispind2 = sub2ind([d_num, d_num, n_num], r2, c2, i);
     prod.dispind3 = sub2ind([d_num, d_num, n_num], r1, c1, i);
-
     prod.issetup = true;
 
     trans_T = SparseTensor('matlabsparse', true);
@@ -328,7 +291,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.dispind1 = i;
     prod.dispind2 = (1 : cncr_num)';
     prod.dispind3 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
-
     prod.issetup = true;
 
     nodeaverage_T = SparseTensor('matlabsparse', true);
@@ -336,8 +298,8 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
 
     transnodeaverage_T = trans_T*nodeaverage_T;
 
-    % we need to dispatch this tensor to cellnodecolrowtbl
-    % now we have
+    % We need to dispatch this tensor to cellnodecolrowtbl.
+    % Now we have
     % transnodeaverage_T : cellnodecolrowtbl -> cellnodecolrowtbl
 
     prod = TensorProd();
@@ -350,7 +312,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.dispind1 = cell_from_cellnode(i);
     prod.dispind2 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
     prod.dispind3 = (1 : cncr_num)';
-
     prod.issetup = true;
 
     celldispatch_T = SparseTensor('matlabsparse', true);
@@ -358,7 +319,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
 
     transnodeaverage_T = celldispatch_T*transnodeaverage_T;
 
-    %% we need to multiply by 2 at the place where we discarded the symmetry requirement
+    %% We need to multiply by 2 at the place where we discarded the symmetry requirement
 
     fixcellnodecolrowtbl = crossTable(fixnodetbl, cellnodecolrowtbl, {'nodes'});
 
@@ -379,20 +340,11 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.dispind1 = (1 : cncr_num)';
     prod.dispind2 = (1 : cncr_num)';
     prod.dispind3 = (1 : cncr_num)';
-
     prod.issetup = true;
 
     bcfix_T = SparseTensor('matlabsparse', true);
     bcfix_T = bcfix_T.setFromTensorProd(c, prod);
 
-    % some test for transnodeaverage_T
-    dotest = false;
-    if dotest
-        assert(dim == 2);
-        g = [1; 2; 3; 1];
-        g = tblmap(g, colrowtbl, cellnodecolrowtbl, {'coldim', 'rowdim'});
-        g = transnodeaverage_T.getMatrix()*g;
-    end
 
     %% Construction of the stiffness operator
     %
@@ -421,7 +373,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.dispind1 = (1 : cnc2r2_num)';
     prod.dispind2 = sub2ind([d, d, cn_num], r1, c1, i);
     prod.dispind3 = sub2ind([d, d, cn_num], r2, c2, i);
-
     prod.issetup = true;
 
     C_T = SparseTensor('matlabsparse', true);
@@ -443,13 +394,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     A12 = divnodeface_T*combCgradcell_T; 
     A21 = divcell_T*combCgradnodeface_T;
     A22 = divcell_T*combCgradcell_T; 
-
-    dotest = false;
-    if dotest
-        A11mat = A11.getMatrix()
-        [nodes, sz] = rlencode(nodefacecoltbl.nodes, 1);
-        invA11 = bi(A11mat, sz);
-    end
 
     A11 = A11.getMatrix();
     A12 = A12.getMatrix();
