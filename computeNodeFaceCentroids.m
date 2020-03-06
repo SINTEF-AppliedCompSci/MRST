@@ -9,17 +9,18 @@ function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids(G, tbls, 
     cellnodefacecoltbl = tbls.cellnodefacecoltbl;
     nodefacecoltbl     = tbls.nodefacecoltbl;
     
-    fno = cellnodefacetbl.get('faces');
     cno = cellnodefacetbl.get('cells');
+    fno = cellnodefacetbl.get('faces');
     nno = cellnodefacetbl.get('nodes');
     
     % Absolute position of node-face points (in cellnodefacecoltbl)
-    abscellnodefacecents = G.faces.centroids(fno, :) + eta* (G.nodes.coords(nno, ...
-                                                      :) - G.faces.centroids(fno, ...
-                                                      :));
-    % Relative position of node-face points (in cellnodefacecoltbl)
-    cellnodefacecents = abscellnodefacecents - G.cells.centroids(cno, :);
+    ccents = G.cells.centroids(cno, :);
+    fcents = G.faces.centroids(fno, :);
+    ncents = G.nodes.coords(nno, :);
+    abscellnodefacecents = eta*ncents + (1 - eta)*fcents;
     
+    % Relative position of node-face points (in cellnodefacecoltbl)
+    cellnodefacecents = abscellnodefacecents - ccents;
     
     cellnodefacecents = reshape(cellnodefacecents', [], 1);
     abscellnodefacecents = reshape(abscellnodefacecents', [], 1);

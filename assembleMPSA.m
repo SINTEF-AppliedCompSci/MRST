@@ -33,7 +33,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     cellnode_from_cellnodeface = mappings.cellnode_from_cellnodeface;
     nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
     
-    % some shortcuts
+    % Some shortcuts
     c_num     = celltbl.num;
     n_num     = nodetbl.num;
     cnf_num   = cellnodefacetbl.num;
