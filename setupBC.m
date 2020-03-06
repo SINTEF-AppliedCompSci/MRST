@@ -1,20 +1,37 @@
-function D = setupBC(bc, G, tbls)
+function [D, bcvals] = setupBC(bc, G, tbls)
     
     nodefacetbl    = tbls.nodefacetbl;
     nodefacecoltbl = tbls.nodefacecoltbl;
     coltbl         = tbls.coltbl;
 
+    % note that bcfacetbl, as constructed below, has repeated indices (same face can
+    % have several linear forms which are imposed on it). We add a local index
+    % denoted bcinds, which makes all those (now multiple-)index unique.
     bcfacetbl.faces = bc.extfaces;
     bcfacetbl = IndexTable(bcfacetbl);
     bcfacetbl = bcfacetbl.addLocInd('bcinds');
+    
     bcfacecoltbl = crossTable(bcfacetbl, coltbl, {}, 'optpureproduct', true);
+    
+    bcnodefacetbl = crossTable(bcfacetbl, nodefacetbl, {'faces'});
+    bcnodefacecoltbl = crossTable(bcnodefacetbl, coltbl, {}, 'optpureproduct', ...
+                                  true);
+    
+    bcvals = bc.linformvals;
+    % bcvals belongs to bcfacetbl;
+    map = TensorMap();
+    map.fromTbl = bcfacetbl;
+    map.toTbl = bcnodefacetbl;
+    map.mergefds = {'faces', 'bcinds'};
+    map = map.setup();
+    
+    bcvals = map.eval(bcvals);
+    % bcvals belongs to bcnodefacetbl;
+    
     
     linform = bc.linform;
     linform = reshape(linform', [], 1);
     % linform belongs to bcfacecoltbl    
-    
-    bcnodefacetbl = crossTable(bcfacetbl, nodefacetbl, {'faces'});
-    bcnodefacecoltbl = crossTable(bcnodefacetbl, coltbl, {}, 'optpureproduct', true);
     
     map = TensorMap();
     map.fromTbl = bcfacecoltbl;
@@ -25,30 +42,13 @@ function D = setupBC(bc, G, tbls)
     linform = map.eval(linform);
     % linform now belongs to bcnodefacecoltbl
     
-    prod = TensorProd();
-    prod.tbl1 = bcnodefacecoltbl;
-    prod.tbl2 = bcnodefacecoltbl;
-    prod.tbl3 = bcnodefacetbl;
-    prod.mergefds = {'nodes', 'faces', 'bcinds'};
-    prod.reducefds = {'coldim'};
-    prod = prod.setup();
-     
-    D_T = SparseTensor('matlabsparse', true);
-    D_T = D_T.setFromTensorProd(linform, prod);
+    bcnodefacetbl = replacefield(bcnodefacetbl, {{'bcinds', ''}});
+    nodefacebc.bcnodefacetbl = bcnodefacetbl;
+    nodefacebc.linform       = linform;
+    nodefacebc.linformvals   = bcvals;
 
-    map = TensorMap();
-    map.fromTbl = nodefacecoltbl;
-    map.toTbl = bcnodefacecoltbl;
-    map.mergefds = {'nodes', 'faces', 'coldim'};
-    map = map.setup();
-    
-    M_T = SparseTensor('matlabsparse', true);
-    M_T = M_T.setFromTensorMap(map);
-    
-    D_T = D_T*M_T;
-    
-    D = D_T.getMatrix();
-    D = D';
+    [D, bcvals] = setupNodefaceBc(nodefacebc, G, tbls);
+
     
 end
 

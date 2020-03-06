@@ -151,6 +151,22 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
                 linform(i) = 1;
                 n = numel(extfaces{i});
                 linforms{i} = repmat(linform, n, 1);
+                if i == 1
+                    % we impose a translation in the x-direction on the top face
+                    linformvals{i} = ones(n, 1);
+                else
+                    linformvals{i} = ones(n, 1);
+                end
+            end
+          case '3d-compaction-dirichlet'
+            extface = find(G.faces.centroids(:, 3) == 0);
+            for i = 1 : 3
+                extfaces{i} = extface;
+                linform = zeros(3, 1);
+                linform(i) = 1;
+                n = numel(extfaces{i});
+                linforms{i} = repmat(linform, n, 1);
+                linformvals{i} = zeros(n, 1); 
             end
         end
             
@@ -186,8 +202,9 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
         
     end
 
-    bc.extfaces = vertcat(extfaces{:});
-    bc.linform  = vertcat(linforms{:});
+    bc.extfaces    = vertcat(extfaces{:});
+    bc.linform     = vertcat(linforms{:});
+    bc.linformvals = vertcat(linformvals{:});
     
     loadstruct.bc = bc;
     loadstruct.extforce = extforce;
