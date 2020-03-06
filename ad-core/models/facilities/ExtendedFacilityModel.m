@@ -264,6 +264,30 @@ classdef ExtendedFacilityModel < FacilityModel
             [model, state] = model.updateRESVControls(state, state0);
         end
         
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            % Update state.
+            %
+            % SEE ALSO:
+            %   :meth:`ad_core.models.PhysicalModel.updateState`
+
+            [state, report] = updateState@FacilityModel(model, state, problem, dx, drivingForces);
+            if strcmpi(model.primaryVariableSet, 'none')
+                [surfaceRates, surfaceDensity] = model.getSurfaceRates(state);
+                bhp = model.getProp(state, 'BottomHolePressure');
+                
+                names = model.ReservoirModel.getPhaseNames();
+                map = model.getProp(state, 'FacilityWellMapping');
+                actIx = find(map.active);
+                for j = 1:numel(actIx)
+                    ix = actIx(j);
+                    state.wellSol(ix).bhp = bhp(j);
+                    for i = 1:numel(surfaceRates)
+                        state.wellSol(ix).(['q', names(i), 's']) = surfaceRates{i}(j);
+                    end
+                end
+            end
+        end
+        
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
             % Update pressure drop
             wellSol = state.wellSol;
