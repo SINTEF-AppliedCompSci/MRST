@@ -349,6 +349,12 @@ methods
         % NOTE:
         %   This function is called automatically during class
         %   construction.
+        if nargin < 3
+            rock = model.rock;
+        end
+        if nargin < 2
+            G = model.G;
+        end
         model.operators = setupOperatorsTPFA(G, rock, varargin{:});
     end
 
