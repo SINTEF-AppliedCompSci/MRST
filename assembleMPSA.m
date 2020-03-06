@@ -48,17 +48,8 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     dim = coltbl.num;
 
     %% Construction of tensor g (as defined in paper eq 4.1.2)
-    % shortcuts:
-    %
 
-    fno = cellnodefacetbl.get('faces');
-    cno = cellnodefacetbl.get('cells');
-    nno = cellnodefacetbl.get('nodes');
-
-    cellFacetVec = G.faces.centroids(fno, :) - G.cells.centroids(cno, :) + ...
-        eta*(G.nodes.coords(nno, :) - G.faces.centroids(fno, :));
-
-    cellFacetVec = reshape(cellFacetVec', [], 1);
+    cellnodefacecents = computeNodeFaceCentroids(G, tbls, eta);
 
     [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
     ind1 = i;
@@ -68,7 +59,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     assert(n == cellnodefacetbl.num, ['This implementation of mpsaw cannot handle ' ...
                         'this grid']);
 
-    A = sparse(ind1, ind2, cellFacetVec, n, n);
+    A = sparse(ind1, ind2, cellnodefacecents, n, n);
 
     opt.invertBlocks = 'mex';
     bi = blockInverter(opt);
