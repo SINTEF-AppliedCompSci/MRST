@@ -87,8 +87,6 @@ function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
         clear bcfacetbl
         
         [~, nodefacecents] = computeNodeFaceCentroids(G, tbls, eta);
-        % Here, we assume a given structure of nodefacecoltbl:
-        nodefacecents = reshape(nodefacecents, Nd, [])';
         
         map = TensorMap();
         map.fromTbl = nodefacecoltbl;
@@ -151,7 +149,7 @@ function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
         n = cellcoltbl.num;
 
         u = sol(1 : n);
-        u = reshape(u, 2, [])';
+        u = reshape(u, Nd, [])';
         
         dnum = u;
         
