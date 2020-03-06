@@ -1,4 +1,4 @@
-function [u, f] = analyticalReferencePaper(d)
+function [u, f, mu] = analyticalReferencePaper(d, kappa)
     
 % d = spatial dimension
 %
@@ -24,17 +24,19 @@ function [u, f] = analyticalReferencePaper(d)
     switch d 
       case 2
         
-        u{1} = @(x, y) (x - 0.5).^2.*(y - 0.5).^2;
-        u{2} = @(x, y) -2/3*(x - 0.5).*(y - 0.5).^3;
+        mu = @(x, y) (1 - Xindfunction2D(x, y)) + kappa*Xindfunction2D(x, y);
+        u{1} = @(x, y) 1./mu(x, y).*((x - 0.5).^2.*(y - 0.5).^2);
+        u{2} = @(x, y) 1./mu(x, y).*(-2/3*(x - 0.5).*(y - 0.5).^3);
         
         f{1} = @(x, y) 0.25*(2*x - 1).^2 + 0.25*(2*y - 1).^2;
         f{2} = @(x, y) -2.0*x.*y + 1.0*x + 1.0*y - 0.5;
         
       case 3
 
-        u{1} = @(x,y,z) ((x - 0.5).^2).*(y - 0.5).^2.*(z - 0.5).^2;
-        u{2} = @(x,y,z) ((x - 0.5).^2).*(y - 0.5).^2.*(z - 0.5).^2;
-        u{3} = @(x,y,z) -2/3*((x - 0.5).*(y - 0.5).^2 + (x - 0.5).^2.*(y - 0.5)).*(z - 0.5).^3;
+        mu = @(x, y) (1 - Xindfunction3D(x, y)) + kappa*Xindfunction3D(x, y);
+        u{1} = @(x,y,z) 1./mu(x, y, z).*(((x - 0.5).^2).*(y - 0.5).^2.*(z - 0.5).^2);
+        u{2} = @(x,y,z) 1./mu(x, y, z).*(((x - 0.5).^2).*(y - 0.5).^2.*(z - 0.5).^2);
+        u{3} = @(x,y,z) 1./mu(x, y, z).*(-2/3*((x - 0.5).*(y - 0.5).^2 + (x - 0.5).^2.*(y - 0.5)).*(z - 0.5).^3);
 
         f{1} = @(x,y,z) (0.0625*(2*x - 1).^2.*(2*z - 1).^2 + 1/4*(2*x - 1).*(y ...
                                                           - 0.5).*(2*z - 1).^2 ...
@@ -62,4 +64,19 @@ function [u, f] = analyticalReferencePaper(d)
         error('d not recognized')
 
     end
+    
+    
+    
+end
+
+function u = Xindfunction2D(x, y)
+    ix = (x > 0.5) & (y > 0.5);
+    u = 0*x;
+    u(ix) = 1;
+end
+
+function u = Xindfunction3D(x, y, z)
+    ix = (x > 0.5) & (y > 0.5) & (z > 0.5);
+    u = 0*x;
+    u(ix) = 1;
 end
