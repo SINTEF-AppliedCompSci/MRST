@@ -9,8 +9,8 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
     methods
         function builder = AdaptiveImplicitFlowStateBuilder(varargin)
             builder@ExplicitFlowStateBuilder(varargin{:});
-            builder.explicitFluxProps = {'Mobility', 'ComponentMobility'};
-            builder.implicitFluxProps = {};
+            builder.explicitFlux = {}; % Not supported
+            builder.explicitFlow = {'Mobility', 'ComponentMobility'};
         end
         
         function dt_max = getMaximumTimestep(fsb, fd, model, state, state0, dt, forces)
@@ -25,53 +25,55 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
             if all(implicit)
                 return
             end
-            explicit = ~implicit;
-            props = builder.explicitFluxProps;
-            
-            fp = model.FlowPropertyFunctions;
-            name = fp.getStateFunctionContainerName();
-            for i = 1:numel(props)
-                prop = props{i};
-                if isfield(state0, name)
-                    % Remove cached entries
-                    if ~isempty(state0.(name).(prop))
-                        state0.(name).(prop) = [];
-                    end
-                end
-                X = model.getProps(state, prop);
-                X0 = model.getProps(state0, prop);
-                
-                X_hyb = X;
-                if iscell(X_hyb)
-                    for j = 1:numel(X_hyb)
-                        if ~isempty(X_hyb{j})
-                            X_hyb{j} = implicit.*X{j} + explicit.*X0{j};
+            explicit = ~implicit;            
+            [groups, names] = builder.getExplicitGroups(model);
+            for groupNo = 1:numel(groups)
+                grp = groups{groupNo};
+                props = names{groupNo};
+                name = grp.getStateFunctionContainerName();
+                for i = 1:numel(props)
+                    prop = props{i};
+                    if isfield(state0, name)
+                        % Remove cached entries
+                        if ~isempty(state0.(name).(prop))
+                            state0.(name).(prop) = [];
                         end
                     end
-                else
-                    X_hyb = implicit.*X + explicit.*X0;
-                end
-                flowState.(name).(prop) = X_hyb;
-            end
-            props = builder.explicitProps;
-            for i = 1:numel(props)
-                p = props{i};
-                v0 = model.getProp(state0, p);
-                v = model.getProp(state, p);
-                if iscell(v)
-                    for j = 1:numel(v)
-                        v{j} = v{j}.*implicit;
-                        if iscell(v0)
-                            vj0 = v0{j};
-                        else
-                            vj0 = v0(:, j);
+                    X = model.getProps(state, prop);
+                    X0 = model.getProps(state0, prop);
+
+                    X_hyb = X;
+                    if iscell(X_hyb)
+                        for j = 1:numel(X_hyb)
+                            if ~isempty(X_hyb{j})
+                                X_hyb{j} = implicit.*X{j} + explicit.*X0{j};
+                            end
                         end
-                        v{j} = v{j} + explicit.*vj0;
+                    else
+                        X_hyb = implicit.*X + explicit.*X0;
                     end
-                else
-                    v = v.*implicit + explicit.*v0;
+                    flowState.(name).(prop) = X_hyb;
                 end
-                flowState = model.setProp(flowState, p, v);
+                props = builder.explicitProps;
+                for i = 1:numel(props)
+                    p = props{i};
+                    v0 = model.getProp(state0, p);
+                    v = model.getProp(state, p);
+                    if iscell(v)
+                        for j = 1:numel(v)
+                            v{j} = v{j}.*implicit;
+                            if iscell(v0)
+                                vj0 = v0{j};
+                            else
+                                vj0 = v0(:, j);
+                            end
+                            v{j} = v{j} + explicit.*vj0;
+                        end
+                    else
+                        v = v.*implicit + explicit.*v0;
+                    end
+                    flowState = model.setProp(flowState, p, v);
+                end
             end
         end
         
@@ -82,10 +84,11 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
                 fs = builder.firstStepImplicit;
                 [impl_sat, impl_comp] = deal(repmat(fs, model.G.cells.num, 1));
             else
-                cfl = estimateSaturationCFL(model, state, dt, 'forces', drivingForces);
+                iflow = builder.useInflowForEstimate;
+                cfl = estimateSaturationCFL(model, state, dt, 'forces', drivingForces, 'useInflow', iflow);
                 impl_sat = cfl >= builder.saturationCFL;
                 
-                cfl_c = estimateCompositionCFL(model, state, dt, 'forces', drivingForces);
+                cfl_c = estimateCompositionCFL(model, state, dt, 'forces', drivingForces, 'useInflow', iflow);
                 impl_comp = max(cfl_c, [], 2) >= builder.compositionCFL;
             end
             implicit = impl_sat | impl_comp;
@@ -106,6 +109,8 @@ classdef AdaptiveImplicitFlowStateBuilder < ExplicitFlowStateBuilder
                 '%d limited by composition, %d limited by saturation, %d belong to wells.\n'], ...
                 ni, nc, 100*ni/nc, ni_c, ni_s, ni_w);
             state.implicit = implicit;
+            assert(isempty(builder.explicitFlux), ...
+                'AIM does not support flux terms. You should specify PVT or Flow propertes instead.');
         end
     end
 end

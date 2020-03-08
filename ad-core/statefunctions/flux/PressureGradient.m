@@ -1,20 +1,20 @@
 classdef PressureGradient < StateFunction
     % Gradient of phase pressures for internal faces
     properties
-
+        Grad;
     end
     
     methods
-        function gp = PressureGradient(varargin)
-            gp@StateFunction(varargin{:});
+        function gp = PressureGradient(model, varargin)
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn('PhasePressures', 'PVTPropertyFunctions');
             gp = gp.dependsOn('pressure', 'state');
             gp.label = '\nabla p_\alpha';
+            gp.Grad = model.operators.Grad;
         end
         function dp = evaluateOnDomain(prop, model, state)
             act = model.getActivePhases();
             nph = sum(act);
-            Grad = model.operators.Grad;
             
             dp = cell(1, nph);
             if model.FlowPropertyFunctions.CapillaryPressure.pcPresent(model)
@@ -22,13 +22,13 @@ classdef PressureGradient < StateFunction
                 % each phase
                 p = model.getProp(state, 'PhasePressures');
                 for i = 1:nph
-                    dp{i} = Grad(p{i});
+                    dp{i} = prop.Grad(p{i});
                 end
             else
                 % There is no capillary pressure and a single gradient for
                 % the unique pressure is sufficient
                 p = model.getProp(state, 'pressure');
-                [dp{:}] = deal(Grad(p));
+                [dp{:}] = deal(prop.Grad(p));
             end
         end
     end

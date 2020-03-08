@@ -13,7 +13,7 @@ classdef PermeabilityPotentialGradient < StateFunction
             if isa(kgrad, 'TwoPointFluxApproximation')
                 pp = pp.dependsOn('Transmissibility');
             end
-            pp.label = 'K(\nabla p_\alpha+g\rho_\alpha\Delta z)';
+            pp.label = 'T_f \Theta_\alpha';
         end
         
         function v = evaluateOnDomain(prop, model, state)

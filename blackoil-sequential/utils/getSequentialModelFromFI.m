@@ -10,6 +10,8 @@ function model = getSequentialModelFromFI(fimodel, varargin)
     fluid = fimodel.fluid;
     G     = fimodel.G;
     if isa(fimodel, 'ExtendedReservoirModel')
+        % Reset state function groupings
+        fimodel = fimodel.removeStateFunctionGroupings();
         pressureModel = PressureModel(fimodel);
         transportModel = TransportModel(fimodel);
     else

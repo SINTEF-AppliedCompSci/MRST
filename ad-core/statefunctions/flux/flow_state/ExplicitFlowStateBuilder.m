@@ -1,12 +1,14 @@
 classdef ExplicitFlowStateBuilder < FlowStateBuilder
     properties
-        saturationCFL = 0.9;
-        compositionCFL = 0.9;
-        explicitFluxProps = {'FaceMobility', 'FaceComponentMobility',...
-                             'GravityPotentialDifference'};
-        implicitFluxProps = {'PressureGradient'};
-        explicitProps = {};
-        initialStep = 1*day;
+        saturationCFL = 0.9; % Target saturation CFL. Should be <= 1 for stability.
+        compositionCFL = 0.9; % Target composition CFL. Should be <= 1 for stability.
+        explicitFlux = {'FaceMobility', 'FaceComponentMobility',...
+                        'GravityPotentialDifference'}; % StateFunctions that should always be explicit
+        explicitFlow = {}; % Flow properties
+        explicitPVT = {}; % PVT properties
+        explicitProps = {}; % setProp capable properties that should be explicit
+        initialStep = 1*day;% Timestep used if no fluxes are present
+        useInflowForEstimate = false;
     end
     
     methods
@@ -21,9 +23,9 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
             end
             % Remove any cached properties
             state = model.reduceState(state, true);
-            cfl_s = estimateSaturationCFL(model, state, 1/fsb.saturationCFL, 'forces', forces);
-            cfl_c = estimateCompositionCFL(model, state, 1/fsb.compositionCFL, 'forces', forces);
-            
+            iflow = fsb.useInflowForEstimate;
+            cfl_s = estimateSaturationCFL(model, state, 1/fsb.saturationCFL, 'forces', forces, 'useInflow', iflow);
+            cfl_c = estimateCompositionCFL(model, state, 1/fsb.compositionCFL, 'forces', forces, 'useInflow', iflow);
             dt_max_z = min(1./max(cfl_c, [], 2));
             dt_max_s = min(1./max(cfl_s, [], 2));
             dt_max = min(dt_max_z, dt_max_s);
@@ -42,33 +44,59 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
         
         function flowState = build(builder, fd, model, state, state0, dt)
             % Hybridize state
-            % Get implicit props to ensure they are cached
-            model.getProps(state, builder.implicitFluxProps{:});
+            % The base state is the implicit. Other functions are then
+            % assigned.
             flowState = state;
-            props = builder.explicitFluxProps;
-            name = fd.getStateFunctionContainerName();
-            if ~isfield(state0, name)
-                % Ensure that property containers exist
-                state0 = model.initStateFunctionContainers(state0);
-                state0 = value(state0);
-            end
-            if ~isfield(flowState, name)
-                flowState = model.initStateFunctionContainers(flowState);
-            end
-            for i = 1:numel(props)
-                prop = props{i};
-                % Remove cached entries
-                if ~isempty(state0.(name).(prop))
-                    state0.(name).(prop) = [];
-                end
-                f = model.getProps(state0, prop);
-                flowState.(name).(prop) = f;
-            end
+            % First insert any properties that can be set with setProp
             props = builder.explicitProps;
             for i = 1:numel(props)
                 p = props{i};
-                tmp = model.getProp(state0, p);
-                flowState = model.setProp(flowState, p, tmp);
+                flowState = model.setProp(flowState, p, model.getProp(state0, p));
+            end
+            % Then we make sure that the explicit flux state functions are
+            % set from the explicit state.
+            [groups, names] = builder.getExplicitGroups(model);
+            for groupNo = 1:numel(groups)
+                grp = groups{groupNo};
+                props = names{groupNo};
+                name = grp.getStateFunctionContainerName();
+                if ~isfield(state0, name)
+                    % Ensure that property containers exist
+                    state0 = model.initStateFunctionContainers(state0);
+                    state0 = value(state0);
+                end
+                if ~isfield(flowState, name)
+                    flowState = model.initStateFunctionContainers(flowState);
+                end
+                for i = 1:numel(props)
+                    prop = props{i};
+                    % Remove cached entries
+                    if ~isempty(state0.(name).(prop))
+                        state0.(name).(prop) = [];
+                    end
+                    f = model.getProps(state0, prop);
+                    flowState.(name).(prop) = f;
+                end
+            end
+        end
+        
+        function [groups, names] = getExplicitGroups(builder, model)
+            groups = {};
+            names = {};
+            pvt = builder.explicitPVT;
+            if ~isempty(pvt)
+                groups{end+1} = model.PVTPropertyFunctions;
+                names{end+1} = pvt;
+            end
+            flow = builder.explicitFlow;
+            if ~isempty(flow)
+                groups{end+1} = model.FlowPropertyFunctions;
+                names{end+1} = flow;
+            end
+            flux = builder.explicitFlux;
+            if ~isempty(flux)
+                groups{end+1} = model.FluxDiscretization;
+                names{end+1} = flux;
             end
         end
         

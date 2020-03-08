@@ -61,7 +61,19 @@ classdef FacilityModel < PhysicalModel
             model = merge_options(model, varargin{:});
             model.ReservoirModel = reservoirModel;
             model.WellModels = {};
-            model.FacilityFluxDiscretization = FacilityFluxDiscretization(model);
+        end
+        
+        function model = setupStateFunctionGroupings(model, useDefaults)
+            if nargin < 2
+                useDefaults = isempty(model.FacilityFluxDiscretization);
+            end
+            if useDefaults
+                model.FacilityFluxDiscretization = FacilityFluxDiscretization(model); %#ok
+            end
+        end
+        
+        function model = resetStateFunctionGroupings(model)
+            model.FacilityFluxDiscretization = [];
         end
 
         function model = setupWells(model, W, wellmodels)

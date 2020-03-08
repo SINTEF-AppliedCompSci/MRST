@@ -20,7 +20,11 @@ classdef InjectionSurfaceDensity < StateFunction
             % perforation.
             topcell = arrayfun(@(x) x.cells(1), W);
             reg = model.PVTPropertyFunctions.Density.regions;
-            rhoS = rhoS(reg(topcell), :);
+            if isempty(reg)
+                rhoS = repmat(rhoS, numel(topcell), 1);
+            else
+                rhoS = rhoS(reg(topcell), :);
+            end
             if isfield(W, 'rhoS')
                 % Surface density is given on a per-well-basis for the
                 % injectors

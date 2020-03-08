@@ -24,6 +24,14 @@ classdef DiagonalSubset < DiagonalJacobian
             end
         end
 
+        function u = subsasgn(u, s, v)
+            if strcmp(s(1).type, '.')
+                u = builtin('subsasgn',u,s,v);
+            else
+                assert(false, 'Subsasgn not supported for diagonal subset.');
+            end
+        end
+        
         function [x, D] = diagMult(v, x, D)
             if any(x.diagonal(:))
                 v = repmat(v, size(x.map, 2), 1);

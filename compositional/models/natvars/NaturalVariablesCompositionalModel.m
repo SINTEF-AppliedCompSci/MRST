@@ -183,13 +183,14 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
 
             if model.water
                 sT = sum(state.s, 2);
-                space = (sT - state.s(:, 1))./sT;
+                s_hc = (sT - state.s(:, 1))./sT;
             else
-                space = 1;
+                s_hc = 1;
             end
-            state.dz = max(max(abs(bsxfun(@times, deltax, space)), bsxfun(@times, deltay, space)));
-            dz2 = max(abs(bsxfun(@times, state.components - state0.components, space)));
-            state.dz = max(state.dz, dz2);
+            dx = model.computeChange(deltax, s_hc);
+            dy = model.computeChange(deltay, s_hc);
+            dz = model.computeChange(state.components - state0.components, s_hc);
+            state.dz = max(dz, max(dx, dy));
         end
 
         function state = flashPhases(model, state, state0, s_uncap, xyUpdated, iteration)
@@ -392,8 +393,8 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 L_new = (state.z0(mv) - state.y(mv))./(state.x(mv) - state.y(mv));
                 state.L(twoPhase) = L_new(twoPhase);
             else
-                rhoO = model.PropertyModel.computeMolarDensity(p, x, Z_L, temp, true);
-                rhoG = model.PropertyModel.computeMolarDensity(p, y, Z_V, temp, false);
+                rhoO = model.PropertyModel.computeMolarDensity(eos, p, x, Z_L, temp, true);
+                rhoG = model.PropertyModel.computeMolarDensity(eos, p, y, Z_V, temp, false);
                 L = rhoO.*sO./(rhoO.*sO + rhoG.*sG);
                 state.L = double(L);
             end
@@ -434,10 +435,11 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
         end
         
         function [xM, rho, mu] = getFlowPropsNatural(model, p, x, Z, T, isLiquid)
-            xM = model.EOSModel.getMassFraction(x);
-            rho = model.PropertyModel.computeDensity(p, x, Z, T, isLiquid);
+            eos = model.EOSModel;
+            xM = eos.getMassFraction(x);
+            rho = model.PropertyModel.computeDensity(eos, p, x, Z, T, isLiquid);
             if nargout > 2
-                mu = model.PropertyModel.computeViscosity(p, x, Z, T, isLiquid);
+                mu = model.PropertyModel.computeViscosity(eos, p, x, Z, T, isLiquid);
             end
         end
         

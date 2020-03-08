@@ -7,7 +7,7 @@ classdef ComponentPhaseDensity < StateFunction & ComponentProperty
     methods
         function gp = ComponentPhaseDensity(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp@ComponentProperty(model);
+            gp@ComponentProperty(model, 'getComponentDensity');
             gp.label = '\rho_\alpha x_{i,\alpha}';
         end
         function v = evaluateOnDomain(prop, model, state)

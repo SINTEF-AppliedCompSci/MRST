@@ -1,19 +1,22 @@
 classdef ComponentProperty
     % Virtual class for properties that get their values from the model's
     % components
-    properties
-        
+    properties (Access = protected)
+        componentFunctionName % Name of member function in component implementation
     end
     
     methods
-        function gp = ComponentProperty(model)
+        function gp = ComponentProperty(model, name)
             if nargin > 0
+                gp.componentFunctionName = name;
                 ncomp = model.getNumberOfComponents();
                 deps = cell(ncomp, 1);
                 exts = cell(ncomp, 1);
+                cfn = gp.componentFunctionName;
                 for c = 1:ncomp
-                    deps{c} = model.Components{c}.dependencies;
-                    exts{c} = model.Components{c}.externals;
+                    cdeps = model.Components{c}.getFunctionDependencies(cfn);
+                    deps{c} = cdeps.dependencies;
+                    exts{c} = cdeps.externals;
                 end
                 % Internal - flow props dependencies
                 deps = unique(vertcat(deps{:}));

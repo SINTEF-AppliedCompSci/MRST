@@ -19,10 +19,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    if isstruct(model)
+        G = model;
+        rock = makeRock(G, 1, 1);
+        model = ReservoirModel(G, rock, struct());
+    end
     N = model.operators.N;
     G = model.G;
-
     opt = struct('print', nargout == 0, 'block_size', 5, ...
                  'iterations', 5, 'nc', max(N(:)), 'testSparse', true, ...
                  'testDiag', true, 'testMex', true);
@@ -32,7 +35,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Make test props
     nf = size(N, 1);
-    nc = model.G.cells.num;
+    nc = G.cells.num;
     d = rand(opt.nc, opt.block_size);
     flag = rand(nf, 1) > 0.5;
     cell_value = GenericAD(rand(opt.nc, 1), DiagonalJacobian(d, size(d), []));

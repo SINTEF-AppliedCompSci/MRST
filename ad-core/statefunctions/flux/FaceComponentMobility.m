@@ -6,16 +6,19 @@ classdef FaceComponentMobility < StateFunction & UpwindProperty
     end
     
     methods
-        function fm = FaceComponentMobility(model, upwinding, upwind_name)
+        function fm = FaceComponentMobility(model, upstr, upwind_name)
+            if nargin < 2
+                upstr = UpwindFunctionWrapperDiscretization(model);
+            end
             if nargin < 3
                 upwind_name = 'PhaseUpwindFlag';
             end
             fm@StateFunction(model);
-            fm@UpwindProperty(upwinding)
+            fm@UpwindProperty(upstr)
             fm.upwind_name = upwind_name;
             fm = fm.dependsOn(upwind_name);
             fm = fm.dependsOn('ComponentMobility', 'FlowPropertyFunctions');
-            fm.label = 'M_{i,\alpha}\lambda_\alpha^f';
+            fm.label = '\lambda_{i, \alpha}^f';
         end
         
         function mobf = evaluateOnDomain(prop, model, state)

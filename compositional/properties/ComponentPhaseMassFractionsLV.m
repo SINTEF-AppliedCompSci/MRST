@@ -15,9 +15,9 @@ classdef ComponentPhaseMassFractionsLV < StateFunction
             moles = prop.getEvaluatedDependencies(state, 'ComponentPhaseMoleFractions');
             
             mass = moles;
-            offset = model.water + 1;
+            wat = model.water;
             for i = 1:size(mass, 2)
-                mass(offset:end, i) = eos.getMassFraction(moles(offset:end, i));
+                mass(1:end-wat, i) = eos.getMassFraction(moles(1:end-wat, i));
             end
         end
     end

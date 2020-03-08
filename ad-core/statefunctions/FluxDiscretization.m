@@ -21,7 +21,6 @@ classdef FluxDiscretization < StateFunctionGrouping
     
     methods
         function props = FluxDiscretization(model)
-            upstr = UpwindFunctionWrapperDiscretization(model);
             tpfa = TwoPointFluxApproximation(model);
 
             props@StateFunctionGrouping('FluxProps');
@@ -41,9 +40,9 @@ classdef FluxDiscretization < StateFunctionGrouping
             props = props.setStateFunction('PhaseUpwindFlag', PhaseUpwindFlag(model));
             
             % Face values - typically upwinded
-            props = props.setStateFunction('FaceComponentMobility', FaceComponentMobility(model, upstr));
+            props = props.setStateFunction('FaceComponentMobility', FaceComponentMobility(model));
             % Phase mobility on face
-            props = props.setStateFunction('FaceMobility', FaceMobility(model, upstr));
+            props = props.setStateFunction('FaceMobility', FaceMobility(model));
             % 
             props = props.setStateFunction('ComponentPhaseFlux', ComponentPhaseFlux(model));
             props = props.setStateFunction('ComponentTotalFlux', ComponentTotalFlux(model));
@@ -51,6 +50,9 @@ classdef FluxDiscretization < StateFunctionGrouping
 
             % Flow discretizer
             props.FlowStateBuilder = ImplicitFlowStateBuilder();
+            
+            % Conservation equations needs total mass fluxes and total masses
+            props = props.functionDependsOn('componentConservationEquations', {'ComponentTotalMass', 'ComponentTotalFlux'});
         end
 
         function fd = setFlowStateBuilder(fd, fb)

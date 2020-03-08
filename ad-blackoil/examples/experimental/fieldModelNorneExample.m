@@ -42,10 +42,7 @@ model.toleranceMB = 1e-7;
 % Set well tolerances
 model.FacilityModel = ExtendedFacilityModel(model);
 model.FacilityModel.toleranceWellBHP = 1e-3;
-model.FacilityModel.toleranceWellRate = 1e-3;
-% Use the alternative more rigorous crossflow definition for component
-% fluxes
-model.FacilityModel.FacilityFluxDiscretization.ComponentTotalFlux = WellComponentTotalFluxDensityMix(model);
+model.FacilityModel.toleranceWellRate = 5e-3;
 
 % Reset just in case
 model.FluxDiscretization = [];
@@ -53,6 +50,14 @@ model.FlowPropertyFunctions = [];
 model.PVTPropertyFunctions = [];
 
 model = model.validateModel();
+% Use the alternative more rigorous crossflow definition for component
+% fluxes
+xflow = WellComponentTotalVolumeBalanceCrossflow(model);
+xflow.onlyLocalDerivatives = false;
+
+model.FacilityModel.FacilityFluxDiscretization.ComponentTotalFlux = xflow;
+
+
 useFlag = false;
 model.PVTPropertyFunctions.Viscosity.useSaturatedFlag = useFlag;
 model.PVTPropertyFunctions.ShrinkageFactors.useSaturatedFlag = useFlag;
@@ -67,6 +72,12 @@ model.dpMaxRel = 0.1;
 
 nls.useRelaxation = true;
 nls.minRelaxation = 0.5;
+nls.maxIterations = 18;
+nls.maxTimestepCuts = 10;
+nls.oscillationThreshold = 0.5;
+nls.acceptanceFactor = 10;
+nls.verbose = false;
+nls.LinearSolver.verbose = false;
 
 problem = packSimulationProblem(state0, model, schedule, 'norne', ...
     'Name', 'GenericBlackOil_FI_EGRID', 'nonlinearsolver', nls);
@@ -79,21 +90,51 @@ simulatePackedProblem(problem, 'continueOnError', false);
 nstep = numel(ws);
 T = cumsum(schedule.step.val(1:nstep));
 %% Plot well sols
-if 1
-    % Get output stored in test repository
-    ws_opm = output.opm.wellSols(2:end);
-    T_opm = cumsum(schedule.step.val);
-    fname = 'OPM-Flow-Legacy';
-else
-    pp = fullfile(mrstPath('opm-tests'), 'norne', 'NORNE_ATW2013');
-    [ws_opm, T_opm] = convertSummaryToWellSols(pp);
-    fname = 'OPM-Flow';
-end
-wellSols = {ws, ws_opm};
 
+% Get output stored in test repository
+ws_opm = output.opm.wellSols(2:end);
+T_opm = cumsum(schedule.step.val);
+fname = 'OPM-Flow-Legacy';
+wellSols = {ws, ws_opm};
 time = {T; T_opm};
 names = {'MRST', fname};
-plotWellSols(wellSols, time, 'datasetnames', names)
+
+try
+    % Flow output - may not be present
+    pp = fullfile(mrstPath('opm-tests'), 'norne', 'NORNE_ATW2013');
+    states_newopm = convertRestartToStates(pp, model.G);
+    [ws_opm, T_opm_new] = convertSummaryToWellSols(pp);
+    fname = 'OPM-Flow';
+    
+    wellSols{end+1} = ws_opm;
+    time{end+1} = T_opm_new;
+    names{end+1} = fname;
+catch
+    
+end
+
+ecl = fullfile(mrstPath('opm-tests'), 'norne', 'ECL.2014.2', 'NORNE_ATW2013');
+[ws_ecl, T_ecl] = convertSummaryToWellSols(ecl, 'metric');
+wellSols{end+1} = ws_ecl;
+time{end+1} = T_ecl;
+names{end+1} = 'Eclipse';
+
+try
+    % Flow output without hysteresis to match MRST - may not be present
+    fn = fullfile(mrstPath('scratchpad'), 'new_fluid', 'norne');
+    rstrt = load(fullfile(fn, 'restart_nohyst.mat'));
+    rstrt = rstrt.rs;
+    % 
+    smry = load(fullfile(fn, 'smry_nohyst'));
+    smry = smry.smry;
+    [ws_nohyst, T_nohyst] = convertSummaryToWellSols(smry, 'metric');
+    wellSols{end+1} = ws_nohyst;
+    time{end+1} = T_nohyst;
+    names{end+1} = 'Flow-NoHyst';
+catch
+    
+end
+plotWellSols(wellSols, time, 'datasetnames', names, 'linestyles', {'-o', '--'})
 %% Plot states
 figure;
 plotToolbar(G_viz, output.opm.states);

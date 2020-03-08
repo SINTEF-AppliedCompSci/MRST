@@ -13,12 +13,18 @@ classdef BlackOilShrinkageFactors < StateFunction
                 gp.disgas = model.disgas;
                 if gp.disgas
                     gp = gp.dependsOn({'rs'}, 'state');
+                    if gp.useSaturatedFlag
+                        gp = gp.dependsOn({'s'}, 'state');
+                    end
                 end
             end
             if isprop(model, 'vapoil')
                 gp.vapoil = model.vapoil;
                 if gp.vapoil
                     gp = gp.dependsOn({'rv'}, 'state');
+                    if gp.useSaturatedFlag
+                        gp = gp.dependsOn({'s'}, 'state');
+                    end
                 end
             end
             gp = gp.dependsOn({'PhasePressures'});

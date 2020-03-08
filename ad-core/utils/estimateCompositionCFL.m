@@ -20,10 +20,9 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('forces', []);
+    opt = struct('forces', [], 'useInflow', false);
     opt = merge_options(opt, varargin{:});
     
-    pv = model.operators.pv;
     internal = model.operators.internalConn;
     v = state.flux(internal, :);
     vT = sum(v, 2);
@@ -50,8 +49,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     cfl = zeros(nc, ncomp);
     
     for i = 1:ncomp
-        rate_cell = accumarray(l, rate_face(:, i).*( flag | xflow), [nc, 1]) +...
-                    accumarray(r, rate_face(:, i).*(~flag | xflow), [nc, 1]);
+        if opt.useInflow
+            % Inflow faces is used to estimate throughput
+            f = ~flag;
+        else
+            % Outflow faces is used to estimate throughput
+            f = flag;
+        end
+        rate_cell = accumarray(l, rate_face(:, i).*( f | xflow), [nc, 1]) +...
+                    accumarray(r, rate_face(:, i).*(~f | xflow), [nc, 1]);
         cfl(:, i) = dt.*rate_cell;
     end
     % Guard against cells without inflow

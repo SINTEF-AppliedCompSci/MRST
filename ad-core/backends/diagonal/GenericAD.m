@@ -495,16 +495,18 @@ classdef GenericAD < ADI
                 for k = 1:nj
                     [J1{k}, D1, D2] = diagProductMult(v1, v2, J1{k}, J2{k}, D1, D2);
                 end
+                J = J1;
             elseif anyPair1
                 for k = 1:nj
                     [J1{k}, D1] = diagMult(v1, J2{k}, D1);
                 end
+                J = J1;
             else
                 for k = 1:nj
                     [J2{k}, D2] = diagMult(v2, J1{k}, D2);
                 end
+                J = J2;
             end
-            J = J1;
         end
     end
 end

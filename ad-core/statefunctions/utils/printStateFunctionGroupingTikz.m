@@ -1,14 +1,25 @@
-function printStateFunctionGroupingTikz(g, p)
-% Tikz version of plotStateFunctionGrouping
-    outer = 'tree layout';
-    inner = 'tree layout, grow = right';
+function printStateFunctionGroupingTikz(g, varargin)
+    if mod(numel(varargin), 2) == 1
+        p = varargin{1};
+        varargin = varargin(2:end);
+    else
+        p = nan;
+    end
+    opt = struct('edgeDraw',    true, ...
+                 'drawGroups',  true, ...
+                 'inner',       'tree layout, grow = right', ...
+                 'outer',       'tree layout');
+    opt = merge_options(opt, varargin{:});
+    % Tikz version of plotStateFunctionGrouping
+    outer = opt.outer;
+    inner = opt.inner;
     node_dist = 3;
     nodes = g.Nodes{:, 1};
     edges = g.Edges{:, 1};
     n = numel(nodes);
     nodeNames = cell(1, n);
     groupNames = cell(1, n);
-    hasHandle = nargin > 1 && ishandle(p);
+    hasHandle = ishandle(p);
     if hasHandle
         nodeNames = get(p, 'NodeLabel');
         for i = 1:numel(nodeNames)
@@ -57,7 +68,7 @@ function printStateFunctionGroupingTikz(g, p)
             '\\begin{document}\n']);
     
     fprintf('\\tikzstyle{propbox}=[rounded rectangle, draw = black]\n');
-    fprintf('\\tikzstyle{propedge}=[>={Stealth[round,sep,bend]}, line width = 1pt, draw = black!30]\n');
+    fprintf('\\tikzstyle{propedge}=[>={Stealth[round,sep,bend]}, line width = 1pt, draw = black!30, line width = 1pt, draw = black!30, -Stealth]\n');
     fprintf('\\tikzstyle{groupbox}=[font=\\bfseries \\Large, rounded corners, opacity=0.4]\n');
     
     colors = [228, 26, 28; ...
@@ -76,7 +87,7 @@ function printStateFunctionGroupingTikz(g, p)
     fprintf('\\tikz[]{\n');
     fprintf('\\graph[%s, nodes={propbox}, edges={propedge}, node distance = %dcm]{\n', outer, node_dist);
     active = false(size(edges, 1), 1);
-    doSub = true;
+    doSub = opt.drawGroups;
     
     for gno = 1:ng
         group = uniqueGroups{gno};
@@ -97,19 +108,23 @@ function printStateFunctionGroupingTikz(g, p)
     end
     % Draw edges
     edgecolors = colors;
-    drawEdges(nodes, edges(~active, :), groupNames, [], 'densely dashed, opacity = 0.5', edgecolors, uniqueGroups);
+    if ~opt.edgeDraw
+        drawEdges(nodes, edges(~active, :), groupNames, [], 'densely dashed, opacity = 0.5', edgecolors, uniqueGroups);
+    end
     fprintf('};\n');
-    
+    fprintf('\\begin{scope}[on background layer]\n');
+    if opt.edgeDraw
+        drawEdges(nodes, edges(~active, :), groupNames, [], 'propedge, densely dashed, opacity = 0.5', edgecolors, uniqueGroups, true);
+    end
     % Draw background boxes
     if doSub
-        fprintf('\\begin{scope}[on background layer]\n');
         for gno = 1:ng
             group = uniqueGroups{gno};
             fprintf('\t\\draw[%s, groupbox]\n', group);
             fprintf('\t(%s.north east) rectangle (%s.south west);\n', group, group);
         end
-        fprintf('\\end{scope}\n');
     end
+    fprintf('\\end{scope}\n');
     fprintf('}\n\\end{document}\n');
 end
 
@@ -123,7 +138,10 @@ function istex = checkLaTeX(x)
     end
 end
 
-function drawn = drawEdges(nodes, edges, groups, group, stylearg, colors, allgroups)
+function drawn = drawEdges(nodes, edges, groups, group, stylearg, colors, allgroups, asSep)
+    if nargin < 8
+        asSep = false;
+    end
     ne = size(edges, 1);
     drawn = false(ne, 1);
     for i = 1:ne
@@ -147,7 +165,11 @@ function drawn = drawEdges(nodes, edges, groups, group, stylearg, colors, allgro
         else
             arg = ['[', arg, ']'];
         end
-        fprintf('%d -> %s %d, \n', start, arg, stop)
+        if asSep
+            fprintf('\\draw%s (%d) -> (%d);\n', arg, start, stop)
+        else
+            fprintf('%d -> %s %d, \n', start, arg, stop)
+        end
     end
 end
 

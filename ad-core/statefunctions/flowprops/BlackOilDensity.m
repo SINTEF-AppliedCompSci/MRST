@@ -22,12 +22,12 @@ classdef BlackOilDensity < StateFunction
             gp.label = '\rho_\alpha';
         end
         function rho = evaluateOnDomain(prop, model, state)
-            rhoS = model.getSurfaceDensities();
+            rhoS = model.getSurfaceDensities(prop.regions);
             nph = size(rhoS, 2);
             rho = cell(1, nph);
             b = prop.getEvaluatedDependencies(state, 'ShrinkageFactors');
             for i = 1:nph
-                rho{i} = rhoS(prop.regions, i).*b{i};
+                rho{i} = rhoS(:, i).*b{i};
             end
             if (prop.disgas || prop.vapoil) && model.gas && model.oil
                 names = model.getPhaseNames();
@@ -35,11 +35,11 @@ classdef BlackOilDensity < StateFunction
                 gix = names == 'G';
                 if prop.disgas
                     rs = model.getProp(state, 'rs');
-                    rho{oix} = rho{oix} + rs.*b{oix}.*rhoS(prop.regions, gix);
+                    rho{oix} = rho{oix} + rs.*b{oix}.*rhoS(:, gix);
                 end
                 if prop.vapoil
                     rv = model.getProp(state, 'rv');
-                    rho{gix} = rho{gix} + rv.*b{gix}.*rhoS(prop.regions, oix);
+                    rho{gix} = rho{gix} + rv.*b{gix}.*rhoS(:, oix);
                 end
             end
             mv = cellfun(@(x) min(value(x)), rho);

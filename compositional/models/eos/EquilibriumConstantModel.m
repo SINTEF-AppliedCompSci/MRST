@@ -12,8 +12,8 @@ classdef EquilibriumConstantModel < EquationOfStateModel
         
         function [Z_L, Z_V, f_L, f_V] = getCompressibilityAndFugacity(model, P, T, x, y, z, Z_L, Z_V, varargin)
             R = 8.3144598;
-            rhoL = model.PropertyModel.computeMolarDensity(P, x, nan, T, true);
-            rhoV = model.PropertyModel.computeMolarDensity(P, y, nan, T, false);
+            rhoL = model.PropertyModel.computeMolarDensity(model, P, x, nan, T, true);
+            rhoV = model.PropertyModel.computeMolarDensity(model, P, y, nan, T, false);
             assert(all(P > 0), 'Pressures must be positive!')
             Z_L = P./(rhoL.*R.*T);
             Z_V = P./(rhoV.*R.*T);

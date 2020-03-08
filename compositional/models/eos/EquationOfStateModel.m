@@ -11,6 +11,7 @@ classdef EquationOfStateModel < PhysicalModel
         selectGibbsMinimum = true; % Use minimum Gibbs energy to select Z
         alpha = [];
         minimumComposition = 1e-8; % Minimum composition value (for numerical stability)
+        minimumSaturation  = 1e-8; % Minimum total EOS phase saturation 
         equilibriumConstantFunctions = {};
     end
 
@@ -660,7 +661,7 @@ classdef EquationOfStateModel < PhysicalModel
             end
         end
 
-        function [x, y, L] = getPhaseFractionAsADI(model, state, p, T, z)
+        function [x, y, L, derivatives] = getPhaseFractionAsADI(model, state, p, T, z)
             % Compute derivatives for values obtained by solving the
             % equilibrium equations (molar fractions in each phase, liquid
             % mole fraction).
@@ -670,11 +671,17 @@ classdef EquationOfStateModel < PhysicalModel
             x = z;
             y = z;
             L = state.L;
+            derivatives = struct('dL', [], 'dx', [], 'dy', []);
             if ~any(twoPhase)
                 return
             end
             sample = getSampleAD(p, T, z{:});
-            [dLdpTz, dxdpTz, dydpTz] = model.getPhaseFractionDerivativesPTZ(state, twoPhase);
+            if isfield(state, 'FractionalDerivatives')
+                fd = state.FractionalDerivatives;
+                [dLdpTz, dxdpTz, dydpTz] = deal(fd.dL, fd.dx, fd.dy);
+            else
+                [dLdpTz, dxdpTz, dydpTz] = model.getPhaseFractionDerivativesPTZ(state, twoPhase);
+            end
             ncomp = model.fluid.getNumberOfComponents();
             
             p2ph = p(twoPhase);
@@ -692,6 +699,11 @@ classdef EquationOfStateModel < PhysicalModel
                 end
                 x{i}(twoPhase) = model.addDerivativePTZ(x{i}(twoPhase), dxdpTz{i}, p2ph, T2ph, z2ph);
                 y{i}(twoPhase) = model.addDerivativePTZ(y{i}(twoPhase), dydpTz{i}, p2ph, T2ph, z2ph);
+            end
+            if nargout > 3
+                derivatives.dL = dLdpTz;
+                derivatives.dx = dxdpTz;
+                derivatives.dy = dydpTz;
             end
         end
 
@@ -720,7 +732,6 @@ classdef EquationOfStateModel < PhysicalModel
             % A few constants
             ncell = numel(p);
             ncomp = model.fluid.getNumberOfComponents();
-            nsecondary = 1 + 2*ncomp;
             [xAD, yAD, zAD] = deal(cell(1, ncomp));
             
             fullZ = true;
@@ -760,7 +771,7 @@ classdef EquationOfStateModel < PhysicalModel
             [I, J, V] = find(dsdp);
             % P, T and each component
             dLdpTz = zeros(ncell, nprimary);
-            dxdpTz = cell(1, ncomp);
+            dxdpTz = cell(ncomp, 1);
             [dxdpTz{:}] = deal(zeros(ncell, nprimary));
             dydpTz = dxdpTz;
             

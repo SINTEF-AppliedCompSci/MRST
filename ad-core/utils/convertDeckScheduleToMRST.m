@@ -49,6 +49,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('StepLimit',        inf, ...
                  'useCpGeometry',    size(model.G.cells.faces, 2) > 1, ...
                  'DepthReorder',     false, ...
+                 'skipWarnings',     {{'RefDepth:BelowTopConnection', 'RepRad:FaceGeomMissing'}}, ...
                  'ReorderStrategy',  {{}}, ...
                  'EnsureConsistent', true);
     [opt, wellArg] = merge_options(opt, varargin{:});
@@ -93,7 +94,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 warning('Unknown phase, translation directly from deck difficult, setting zero');
         end
     end
-    
+    nwarn = numel(opt.skipWarnings);
+    warnStatus = cell(1, nwarn);
+    for i = 1:nwarn
+        w = opt.skipWarnings{i};
+        warnStatus{i} = warning('query', w);
+        warning('off', w);
+    end
     for i = 1:nc
         % Parse well
         W = processWells(model.G, model.rock, scheduleDeck.control(i), 'OutputDefaulted', true, ...
@@ -118,6 +125,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             W = rmfield(W, 'solventFrac');
         end
         scheduleMRST.control(i).W = W;
+    end
+    for i = 1:nwarn
+        warning(warnStatus{i}.state, opt.skipWarnings{i});
     end
     
     if ~isinf(opt.StepLimit)

@@ -276,7 +276,8 @@ classdef ExtendedFacilityModel < FacilityModel
                 rho = rho(wc, :);
                 % Use mobility in well-cells if no connection fluxes are
                 % available (typically first step for well)
-                if ~isfield(wellSol(1), 'ComponentTotalFlux') || any(arrayfun(@(x) ~any(x.ComponentTotalFlux(:)), wellSol))
+                if ~isfield(wellSol(1), 'ComponentTotalFlux') || ...
+                    any(arrayfun(@(x) sum(sum(abs((x.ComponentTotalFlux)))) < 1e-20, wellSol))
                     mob = model.ReservoirModel.getProps(state, 'Mobility');
                     mob = [mob{:}];
                     mob = mob(wc,:);
@@ -345,9 +346,10 @@ classdef ExtendedFacilityModel < FacilityModel
         
         function containers = getStateFunctionGroupings(model)
             containers = getStateFunctionGroupings@PhysicalModel(model);
-            assert(not(isempty(model.FacilityFluxDiscretization)), ...
-                'FacilityFluxDiscretization not initialized - did you call "validateModel"?');
-            containers = [containers, {model.FacilityFluxDiscretization}];
+            ffd = model.FacilityFluxDiscretization;
+            if ~isempty(ffd)
+                containers = [containers, {ffd}];
+            end
         end
         
         function [p, T] = getSurfaceConditions(fm)

@@ -1,18 +1,20 @@
-classdef ImmiscibleComponent < ComponentImplementation
-    % Specialized interface for immiscible component
+classdef ImmiscibleComponent < GenericComponent
+    % A component description that assumes that the component is
+    % immiscible, i.e. it only exists in one phase that is made up entirely
+    % of that specific component.
     properties
         phaseIndex % Index of phase this component belongs to
     end
     
     methods
         function c = ImmiscibleComponent(name, phase)
-            c@ComponentImplementation(name);
+            c@GenericComponent(name);
             c.phaseIndex = phase;
-            c = c.dependsOn('Density', 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentDensity', 'Density', 'PVTPropertyFunctions');
         end
         
         function c = getComponentDensity(component, model, state, varargin)
-            c = getComponentDensity@ComponentImplementation(component, model, state, varargin{:});
+            c = getComponentDensity@GenericComponent(component, model, state, varargin{:});
             rho = model.getProp(state, 'Density');
             c{component.phaseIndex} = rho{component.phaseIndex};
         end
@@ -24,15 +26,20 @@ classdef ImmiscibleComponent < ComponentImplementation
         end
         
         function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
-            c = component.getPhaseComposition(model, state);
-        end
-        
-        function c = getPhaseComponentFractionWell(component, model, state, W)
-            % Get the fraction of the component in each phase (when
-            % injecting from outside the domain)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
-            comp_i = vertcat(W.compi);
+            c{component.phaseIndex} = 1;
+        end
+        
+        function c = getPhaseComponentFractionInjection(component, model, state, force)
+            % Get the fraction of the component in each phase (when
+            % injecting from outside the domain)
+            c = cell(model.getNumberOfPhases(), 1);
+            if isfield(force, 'compi')
+                comp_i = vertcat(force.compi);
+            else
+                comp_i = vertcat(force.sat);
+            end
             index = component.phaseIndex;
             ci = comp_i(:, index);
             if any(ci ~= 0)

@@ -46,7 +46,7 @@ classdef WellComponentPhaseFlux < StateFunction
             componentPhaseFlux = cell(ncomp, nph);
             for c = 1:ncomp
                 % Store well injector composition
-                surfaceComposition(c, :) = model.Components{c}.getPhaseComponentFractionWell(model, state, W);
+                surfaceComposition(c, :) = model.Components{c}.getPhaseComponentFractionInjection(model, state, W);
                 for ph = 1:nph
                     % Compute production source terms everywhere. We
                     % overwrite the injection/crossflow terms later on.
@@ -75,6 +75,7 @@ classdef WellComponentPhaseFlux < StateFunction
                             cflux(:, c) = value(v);
                         end
                     end
+                    compi = compi./max(sum(compi,2), 1e-10);
                     compi = crossFlowMixture(cflux, compi, map);
                     for c = 1:ncomp
                         if ~isempty(componentPhaseFlux{c, ph})

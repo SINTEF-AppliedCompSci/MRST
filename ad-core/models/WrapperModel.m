@@ -50,7 +50,9 @@ classdef WrapperModel < PhysicalModel
         end
 
         function model = validateModel(model, varargin)
+            setDefaults = isempty(model.parentModel.getStateFunctionGroupings());
             model.parentModel = model.parentModel.validateModel(varargin{:});
+            model = model.setupStateFunctionGroupings(setDefaults);
         end
 
         function [fn, index] = getVariableField(model, name, varargin)
@@ -74,6 +76,19 @@ classdef WrapperModel < PhysicalModel
         function dt = getMaximumTimestep(model, state, state0, dt, drivingForces)
             dt = model.parentModel.getMaximumTimestep(state, state0, dt, drivingForces);
         end
+        
+        function scaling = getScalingFactorsCPR(model, problem, names, solver)
+            scaling = model.parentModel.getScalingFactorsCPR(problem, names, solver);
+        end
+        
+        function checkStateFunctionDependencies(model)
+            model.parentModel.checkStateFunctionDependencies();
+        end
+        
+        function forces = validateDrivingForces(model, forces)
+            forces = model.parentModel.validateDrivingForces(forces);
+        end
+        
     end
 end
 
