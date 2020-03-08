@@ -20,7 +20,7 @@ classdef PolymerPhaseFlux < StateFunction
             mixpar = fluid.mixPar;
             cpbar   = cpf/fluid.cpmax;
             a = fluid.muWMult(fluid.cpmax).^(1-mixpar);
-            vP = vW./(1+(1-a)*cpbar).*cpf;
+            vP = vW./(a+(1-a)*cpbar).*cpf;
         end
     end
 end
