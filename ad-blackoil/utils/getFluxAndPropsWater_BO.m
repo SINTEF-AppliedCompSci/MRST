@@ -65,12 +65,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     fluid = model.fluid;
     s = model.operators;
-    fp = model.FlowPropertyFunctions();
+    fp = model.FlowPropertyFunctions;
+    pp = model.PVTPropertyFunctions;
     if isempty(fp)
         fp_sat = StateFunction(model);
         fp_pvt = fp_sat;
     else
-        fp_pvt = fp.Density;
+        fp_pvt = pp.Density;
         fp_sat = fp.RelativePermeability;
     end
     pvtfun = @(varargin) fp_pvt.evaluateFunctionOnDomainWithArguments(varargin{:});
