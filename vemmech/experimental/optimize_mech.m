@@ -40,8 +40,8 @@ function [foptval, uopt, history, uu_opt, extra] = ...
 
    mrstModule add optimization linearsolvers;
    
-   opt.gradTol = 1e-3;
-   opt.objChangeTol = 1e-5; %@@ might be too tight (much tighter than default
+   opt.gradTol = 1e-3; %1e-3;
+   opt.objChangeTol = 1e-5;%1e-5; %@@ might be too tight (much tighter than default
                             %in unitBoxBFGS)
    opt.cyclical = []; % indices of cyclical control variables
    opt.extra = []; % if discretization is precomputed, it can be passed in
@@ -90,10 +90,14 @@ function [foptval, uopt, history, uu_opt, extra] = ...
       bc = bcfun(uopt);
       load = loadfun(uopt);
 
+      amgsolver = @(A, b) callAMGCL(A, b, 'relaxation', 'chebyshev', 'solver', 'cg', ...
+                                    'tolerance', 2e-6, 'maxIterations', 2000);
       if nargout == 4
-         uu_opt = VEM_linElast_AD(G, C, bc, load);
+         uu_opt = VEM_linElast_AD(G, C, bc, load, 'linsolve', amgsolver, ...
+                                  'extra', opt.extra);
       else
-         [uu_opt, extra] = VEM_linElast_AD(G, C, bc, load);
+         [uu_opt, extra] = VEM_linElast_AD(G, C, bc, load, 'linsolve', amgsolver, ...
+                                           'extra', opt.extra);
       end
    end
 end
