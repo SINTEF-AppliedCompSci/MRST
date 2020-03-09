@@ -76,40 +76,6 @@ function C = setupStiffnessTensor(prop, tbls)
         Clambda = map.eval(lambda);
 
         C = Cmu + Clambda;
-
-        dotest = true;
-        
-        if dotest
-            % print tensor C for first cell
-            clear samplecelltbl;
-            samplecelltbl.cells = 1;
-            samplecelltbl = IndexTable(samplecelltbl);
-            
-            samplecellcolrowtbl = crossTable(samplecelltbl, colrowtbl, {});
-            samplecellcol2row2tbl = crossTable(samplecelltbl, col2row2tbl, {});
-            
-            map = TensorMap();
-            map.fromTbl = cellcol2row2tbl;
-            map.toTbl = samplecellcol2row2tbl;
-            fds = {'coldim1', 'coldim2', 'rowdim1', 'rowdim2', 'cells'};
-            map.mergefds = fds;
-            map = map.setup();
-            
-            C1 = map.eval(C);
-            
-            prod = TensorProd();
-            prod.tbl1 = samplecellcol2row2tbl;
-            prod.tbl2 = samplecellcolrowtbl;
-            prod.tbl3 = samplecellcolrowtbl;
-            prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
-            prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
-            prod.mergefds = {'cells'};
-            prod.reducefds = {'coldim2', 'rowdim2'};
-            
-            C1_T = SparseTensor();
-            C1_T = C1_T.setFromTensorProd(C1, prod);
-
-        end
         
       case 'general_voigt_construction'
 
