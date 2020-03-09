@@ -15,7 +15,7 @@ function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
 % year={2017},
 % publisher={Wiley Online Library}
 
-    mrstModule add vemmech mpsaw vem
+    mrstModule add vemmech mpsaw vem mpfa
 
     % Test case number (see definitions below)
     testCase = 1; 
@@ -32,11 +32,11 @@ function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
       case 2
         % Cartesian grid
         gridType = 1; 
-        eta = 0; 
+        eta = 1e-9; 
       case 3
         % Triangular grid, 90 degree angles
         gridType = 2; 
-        eta = 1/3; 
+        eta = 0.5; 
       case 4
         % Equilateral triangles
         gridType = 3; 
@@ -44,7 +44,6 @@ function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
       otherwise
         error('testCase not recognized');
     end
-
 
     [u_fun, force_fun, mu_fun] = analyticalReferencePaper(Nd, kappa);
 
@@ -98,6 +97,7 @@ function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
         % Here, we assume a given structure of bcnodefacecoltbl:
         bcnodefacecents = reshape(bcnodefacecents, Nd, [])';
         bcnum = bcnodefacetbl.num;
+
         
         % Prepare input for analytical functions
         for idim = 1 : Nd
@@ -243,64 +243,67 @@ function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
         n = 2;
     end
     
-    figure(1)
-    clf
-    set(gcf, 'numbertitle', 'off', 'name', 'DISPLACEMENT')
+    doplot = false;
+    if doplot 
+        figure
+        set(gcf, 'numbertitle', 'off', 'name', 'DISPLACEMENT')
 
-    subplot(n, 2, 1)
-    title('x-mpsa')
-    plotCellData(G, dnum(: , 1), 'edgecolor', 'none'), colorbar
+        subplot(n, 2, 1)
+        title('x-mpsa')
+        plotCellData(G, dnum(: , 1), 'edgecolor', 'none'), colorbar
 
-    subplot(n, 2, 2)
-    title('y-mpsa')
-    plotCellData(G, dnum(: , 2), 'edgecolor', 'none'), colorbar
+        subplot(n, 2, 2)
+        title('y-mpsa')
+        plotCellData(G, dnum(: , 2), 'edgecolor', 'none'), colorbar
 
-    subplot(n, 2, 3)
-    title('x-exact')
-    plotCellData(G, dex(: , 1), 'edgecolor', 'none'), colorbar
+        subplot(n, 2, 3)
+        title('x-exact')
+        plotCellData(G, dex(: , 1), 'edgecolor', 'none'), colorbar
 
-    subplot(n, 2, 4)
-    title('y-exact')
-    plotCellData(G, dex(: , 2), 'edgecolor', 'none'), colorbar
+        subplot(n, 2, 4)
+        title('y-exact')
+        plotCellData(G, dex(: , 2), 'edgecolor', 'none'), colorbar
 
-    if doVem
-        subplot(n, 2, 5)
+        if doVem
+            subplot(n, 2, 5)
+            title('x-vem')
+            plotNodeData(G, uVEM(: , 1), 'edgecolor', 'none'), colorbar
+
+            subplot(n, 2, 6)
+            title('y-vem')
+            plotNodeData(G, uVEM(: , 2), 'edgecolor', 'none'), colorbar
+        end
+        
+
+        return
+        
+        %% 
+        figure
+        set(gcf, 'numbertitle', 'off', 'name', 'ERROR')
+        uu_nn = dvec(G.nodes.coords); 
+        uu_cc = dvec(G.cells.centroids); 
+        val = uVEM - uu_nn; 
+        subplot(2, 2, 1), 
+        plotNodeData(G, val( :, 1)); colorbar
         title('x-vem')
-        plotNodeData(G, uVEM(: , 1), 'edgecolor', 'none'), colorbar
-
-        subplot(n, 2, 6)
+        subplot(2, 2, 2), 
+        plotNodeData(G, val( :, 2));colorbar
         title('y-vem')
-        plotNodeData(G, uVEM(: , 2), 'edgecolor', 'none'), colorbar
+        val = dnum - uu_cc;
+        subplot(2, 2, 3), 
+        plotCellData(G, val( :, 1));colorbar
+        title('x-mpsa')
+        subplot(2, 2, 4), 
+        plotCellData(G, val( :, 2));colorbar
+        title('x-mpsa')
+
+        %%
+        figure
+        subplot(2, 1, 1), 
+        plotCellData(G, mrhs1(G.cells.centroids( : , 1), G.cells.centroids( :, 2)));colorbar
+        subplot(2,1,2),
+        plotCellData(G,mrhs2(G.cells.centroids(:,1),G.cells.centroids(:,2)));colorbar
     end
     
-
-    return
-    
-    %% 
-    figure
-    set(gcf, 'numbertitle', 'off', 'name', 'ERROR')
-    uu_nn = dvec(G.nodes.coords); 
-    uu_cc = dvec(G.cells.centroids); 
-    val = uVEM - uu_nn; 
-    subplot(2, 2, 1), 
-    plotNodeData(G, val( :, 1)); colorbar
-    title('x-vem')
-    subplot(2, 2, 2), 
-    plotNodeData(G, val( :, 2));colorbar
-    title('y-vem')
-    val = dnum - uu_cc;
-    subplot(2, 2, 3), 
-    plotCellData(G, val( :, 1));colorbar
-    title('x-mpsa')
-    subplot(2, 2, 4), 
-    plotCellData(G, val( :, 2));colorbar
-    title('x-mpsa')
-
-    %%
-    figure
-    subplot(2, 1, 1), 
-    plotCellData(G, mrhs1(G.cells.centroids( : , 1), G.cells.centroids( :, 2)));colorbar
-    subplot(2,1,2),
-    plotCellData(G,mrhs2(G.cells.centroids(:,1),G.cells.centroids(:,2)));colorbar
 end
 
