@@ -9,14 +9,19 @@ classdef PolymerViscMultiplier < StateFunction
         end
 
         function muWeffMult = evaluateOnDomain(prop, model, state)
-            cp   = model.getProp(state, 'polymer');            
             fluid = model.fluid;
+            cp   = model.getProp(state, 'polymer');
+            cpMax = repmat(fluid.cpmax, numelValue(cp), 1);
+            
+            mult = prop.evaluateFunctionOnDomainWithArguments(fluid.muWMult, cp);
+            multMax = prop.evaluateFunctionOnDomainWithArguments(fluid.muWMult, cpMax);
+            
             mixpar = fluid.mixPar;
             cpbar   = cp/fluid.cpmax;
-            a = fluid.muWMult(fluid.cpmax).^(1-mixpar);
+            a = multMax.^(1-mixpar);
             b = 1./(1 - cpbar + cpbar./a);
             % The viscosity multiplier only results from the polymer mixing.
-            muWeffMult = b.*fluid.muWMult(cp).^mixpar;            
+            muWeffMult = b.*mult.^mixpar;            
         end
     end
 end
