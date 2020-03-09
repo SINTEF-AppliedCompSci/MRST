@@ -487,7 +487,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     map.mergefds = {'nodes', 'coldim'};
     map = map.setup();
 
-    coef = map.eval(ones(nodefacecoltbl.num));
+    coef = map.eval(ones(nodefacecoltbl.num, 1));
     coef = 1./coef;
 
     prod = TensorProd();
