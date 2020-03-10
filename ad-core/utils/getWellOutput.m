@@ -117,7 +117,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % No data, return NaN
             continue
         end
-        data = cellfun(@(x) [x(subs).(fld)(index)], wellsols, 'UniformOutput', false);
+        data = cellfun(@(x) [arrayfun(@(y) y.(fld)(index), x(subs))], wellsols, 'UniformOutput', false);
         welldata(:, :, i) = vertcat(data{:});
     end
 end
