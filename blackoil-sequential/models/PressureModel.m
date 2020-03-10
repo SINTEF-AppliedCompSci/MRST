@@ -15,7 +15,7 @@ classdef PressureModel < WrapperModel
             model = model@WrapperModel(parent);
             model = merge_options(model, varargin{:});
             if isempty(model.reductionStrategy)
-                if isa(model, 'ThreePhaseBlackOilModel')
+                if isa(parent, 'ThreePhaseBlackOilModel')
                     s = 'analytic';
                 else
                     s = 'numerical';
