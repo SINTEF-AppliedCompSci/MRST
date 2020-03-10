@@ -29,7 +29,8 @@ classdef CapillaryNumber < StateFunction
             % SurfactantRelativePermeability function. Here we set gradp to be a
             % minimum (1e-8) to avoid such numerical calculation errors.
             gradp = s.Grad(p);
-            gradp(abs(value(gradp)) < 1e-8) = 1e-8;
+            tooSmall = abs(value(gradp)) < 1e-8;
+            gradp = ~tooSmall.*gradp + tooSmall.*1e-8;
             v = -s.T.*gradp;
             
             switch velocitymethod
