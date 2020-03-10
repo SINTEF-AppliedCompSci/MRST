@@ -46,13 +46,16 @@ function [foptval, uopt, history, uu_opt, extra] = ...
    opt.cyclical = []; % indices of cyclical control variables
    opt.extra = []; % if discretization is precomputed, it can be passed in
                    % here to save time in VEM_linelast_AD
+   opt.background_forces = []; % background forces acting on selected nodes,
+                               % and which are not adjusted during optimization
    [opt, ~] = merge_options(opt, varargin{:});
 
    if ~strcmpi(G.type{end}, 'createAugmentedGrid')
       G = createAugmentedGrid(computeGeometry(G));
    end
    
-   funwrap = @(u) fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, opt.extra);
+   funwrap = @(u) fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, opt.extra, ...
+                              opt.background_forces);
                               
    
    [foptval, uopt, history] = unitBoxBFGS(u, funwrap, ...
@@ -94,15 +97,17 @@ function [foptval, uopt, history, uu_opt, extra] = ...
                                     'tolerance', 2e-6, 'maxIterations', 2000);
       if nargout == 4
          uu_opt = VEM_linElast_AD(G, C, bc, load, 'linsolve', amgsolver, ...
-                                  'extra', opt.extra);
+                                  'extra', opt.extra, 'background_forces', opt.background_forces);
       else
          [uu_opt, extra] = VEM_linElast_AD(G, C, bc, load, 'linsolve', amgsolver, ...
-                                           'extra', opt.extra);
+                                           'extra', opt.extra, 'background_forces', ...
+                                           opt.background_forces);
       end
    end
 end
 
-function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, extra)
+function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, extra, ...
+                                   background_forces)
 
    fprintf('Calling fun_wrapper\n');
    u = initVariablesADI(u);
@@ -115,7 +120,8 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, extra)
                               'tolerance', 2e-6, 'maxIterations', 2000);
    
    [dd, extra] = VEM_linElast_AD(G, C, bc, load, ...
-                                 'linsolve', amgsolver, 'extra', extra);
+                                 'linsolve', amgsolver, 'extra', extra, ...
+                                 'background_forces', background_forces);
 
    %dofs = ~extra.disc.isdirdofs; %% exclude dirichlet nodes
 

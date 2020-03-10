@@ -36,7 +36,10 @@ function [uu, extra] = VEM_linElast_AD(G, C, el_bc, load, varargin)
 %  'pressure'             - Pressure field, used at loading term
 %  'extra'                - If system was already previously discretized, the
 %                           resulting 'extra' struct can be passed along to
-%                           this call, to avoid having to call VEM_assemble again.
+%                           this call, to avoid having to call VEM_assemble
+%                           again.
+%  'background_forces'    - Additional forces to apply to nodes (regardless
+%                           of boundary conditions)
 %
 % RETURNS:
 %   uu    - Displacement field
@@ -75,6 +78,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'experimental_scaling', false                    , ...
                  'pressure'     , [],...
                  'extra'        , [], ...
+                 'background_forces', [], ...
                  'no_solve',false);
     opt = merge_options(opt, varargin{:});
     opt.add_operators = opt.add_operators && nargout>1;
@@ -134,6 +138,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     % Add load to right hand side
     rhs = rhso + f + f_pressure;
+    
+    if ~isempty(opt.background_forces)
+       rhs = rhs + opt.background_forces;
+    end
 
     %% Add boundary forces
     if(isfield(el_bc, 'force_bc') && ~isempty(el_bc.force_bc))
