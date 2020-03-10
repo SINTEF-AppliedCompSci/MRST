@@ -19,64 +19,68 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-   if nargin == 0
-       defines = {};
-   end
-   if ischar(defines)
-       defines = {defines};
-   end
-   a = computer('arch');
+    if nargin == 0
+        defines = {};
+    end
+    if ischar(defines)
+        defines = {defines};
+    end
+    a = computer('arch');
 
-   if ispc()
-      mwlib = @(lib) ...
-         fullfile(matlabroot, 'extern', 'lib', a, ...
-                  'microsoft', ['libmw', lib, '.lib']);
+    if ispc()
+        mwlib = @(lib) ...
+            fullfile(matlabroot, 'extern', 'lib', a, ...
+            'microsoft', ['libmw', lib, '.lib']);
 
-      LINK  = { ['-L', fullfile(matlabroot, 'bin', a) ] };
-      iomp5 = { 'libiomp5md.lib' };
-   else
-      mwlib = @(lib) ['-lmw', lib];
-      LINK  = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
-      iomp5 = { '-liomp5' };
-   end
+        LINK  = { ['-L', fullfile(matlabroot, 'bin', a) ] };
+        iomp5 = { 'libiomp5md.lib' };
+    else
+        mwlib = @(lib) ['-lmw', lib];
+        LINK  = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
+        iomp5 = { '-liomp5' };
+    end
 
-   if is_visual_cpp()
-      % Note explicit /EHsc to enable C++ exception handling
-      CXXFLAGS  = { [sprintf('COMPFLAGS=/EHsc /MD %s', formatDefs('-', defines)), ...
-                     '/openmp /wd4715 /fp:fast /bigobj'] };
-      iomp5     = { ['LINKFLAGS=$LINKFLAGS ', ...
-                     '/nodefaultlib:vcomp ', iomp5{1} ]};
-      libstdcpp = {};
+    if is_visual_cpp()
+        % Note explicit /EHsc to enable C++ exception handling
+        CXXFLAGS  = { [sprintf('COMPFLAGS=/EHsc /MD %s', formatDefs('-', defines)), ...
+            '/openmp /wd4715 /fp:fast /bigobj'] };
+        iomp5     = { ['LINKFLAGS=$LINKFLAGS ', ...
+            '/nodefaultlib:vcomp ', iomp5{1} ]};
+        libstdcpp = {};
 
-   elseif is_xcode_clang()
-      dispif(mrstVerbose(), 'Clang detected. Will not use OpenMP...\n');
-      CXXFLAGS = ...
-         { [sprintf('CXXFLAGS=$CXXFLAGS %s ', formatDefs('-', defines)), ...
+    elseif is_xcode_clang()
+        dispif(mrstVerbose(), 'Clang detected. Will not use OpenMP...\n');
+        CXXFLAGS = ...
+            { [sprintf('CXXFLAGS=$CXXFLAGS %s ', formatDefs('-', defines)), ...
             '-fPIC -O3 -std=c++11 -ffast-math -march=native'] };
 
-      libstdcpp = { '-lstdc++' };
-      iomp5 = {};
+        libstdcpp = { '-lstdc++' };
+        iomp5 = {};
 
-   elseif is_gnu_gcc()
-      CXXFLAGS = ...
-         { [sprintf('CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE %s ', formatDefs('-', defines)), ...
+    elseif is_gnu_gcc()
+        CXXFLAGS = ...
+            { [sprintf('CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE %s ', formatDefs('-', defines)), ...
             '-fPIC -O3 -std=c++11 -ffast-math -march=native -fopenmp'] };
 
-      libstdcpp = { '-lstdc++' };
+        libstdcpp = { '-lstdc++' };
+        if ispc()
+            LINK = [LINK, 'LDFLAGS="$LDFLAGS -fopenmp"'];
+            libstdcpp = {};
+            iomp5 = {};
+        end
+    else
 
-   else
-
-      error('Architecture:Unsupported', ...
-           ['Computer Architecture ''%s'' (compiler ''%s'') is ', ...
+        error('Architecture:Unsupported', ...
+            ['Computer Architecture ''%s'' (compiler ''%s'') is ', ...
             'not Supported for %s'], ...
             computer(), compilername(), mfilename());
 
-   end
+    end
 
-   LIBS = [ iomp5, { mwlib('lapack'), mwlib('blas') }, libstdcpp ];
-end
+    LIBS = [ iomp5, { mwlib('lapack'), mwlib('blas') }, libstdcpp ];
+    end
 
-function s = formatDefs(prefix, defines)
+    function s = formatDefs(prefix, defines)
     if isempty(defines)
         s = '';
     else
@@ -87,38 +91,38 @@ end
 %--------------------------------------------------------------------------
 
 function tf = is_visual_cpp()
-   tf = ispc() && ~isempty(regexpi(compiler_short_name(), '^MSVC'));
+    tf = ispc() && ~isempty(regexpi(compiler_short_name(), '^MSVC'));
 end
 
 %--------------------------------------------------------------------------
 
 function tf = is_gnu_gcc()
-   tf = ~isempty(regexpi(compiler_short_name(), 'g\+\+'));
+    tf = ~isempty(regexpi(compiler_short_name(), 'g\+\+'));
 end
 
 %--------------------------------------------------------------------------
 
 function tf = is_xcode_clang()
-   tf = ~isempty(regexpi(compiler_short_name(), 'Clang\+\+'));
+    tf = ~isempty(regexpi(compiler_short_name(), 'Clang\+\+'));
 end
 
 
 %--------------------------------------------------------------------------
 
 function cname = compilername()
-   cfg   = compiler_config();
-   cname = cfg.Name;
+    cfg   = compiler_config();
+    cname = cfg.Name;
 end
 
 %--------------------------------------------------------------------------
 
 function cname = compiler_short_name()
-   cfg   = compiler_config();
-   cname = cfg.ShortName;
+    cfg   = compiler_config();
+    cname = cfg.ShortName;
 end
 
 %--------------------------------------------------------------------------
 
 function cfg = compiler_config()
-   cfg = mex.getCompilerConfigurations('c++');
+    cfg = mex.getCompilerConfigurations('c++');
 end
