@@ -121,7 +121,7 @@ classdef ExtendedFacilityModel < FacilityModel
                     q_s = state.FacilityState.primaryVariables(1:nph);
                     [eqs, names, types] = deal(cell(1, nph+1));
                     for ph = 1:nph
-                        eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(ph);
+                        eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(:, ph);
                         names{ph} = [phnames{ph}, 'Wells'];
                         types{ph} = 'perf';
                     end
