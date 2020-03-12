@@ -55,7 +55,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             case 'bhp'
                 ws.bhp = v;
             case 'rate'
-                if ws.sign < 0
+                if ws.sign < 1
                     continue;
                 end
                 if model.water
