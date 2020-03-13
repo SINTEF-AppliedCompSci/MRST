@@ -270,7 +270,7 @@ methods
 
         % Update the wells
         if isfield(state, 'wellSol')
-            state.wellSol = model.FacilityModel.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
+            state = model.FacilityModel.updateState(state, problem, dx, drivingForces);
         end
 
         % Update saturations in one go

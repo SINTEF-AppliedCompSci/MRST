@@ -74,7 +74,7 @@ classdef WellComponentTotalVolumeBalanceCrossflow < StateFunction
 
                 target = vertcat(ws.val);
                 for ph = 1:nph
-                    q_surf = (~isRateInjector.*qs{ph} + isRateInjector.*target);
+                    q_surf = (~isRateInjector.*value(qs{ph}) + isRateInjector.*target);
 %                     q_surf = qs{ph};
                     qs_ph = rhoS{ph}.*phaseCompi(:, ph).*q_surf;
                     for c = 1:ncomp
