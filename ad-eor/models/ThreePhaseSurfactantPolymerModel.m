@@ -71,8 +71,16 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             state = validateState@ThreePhaseBlackOilModel(model, state);
             nc = model.G.cells.num;
             model.checkProperty(state, 'Polymer', [nc, 1], [1, 2]);
+            fn = model.getVariableField('Polymermax');
+            if ~isfield(state, fn)
+                state.(fn) = model.getProp(state, 'Polymer');
+            end
             model.checkProperty(state, 'Polymermax', [nc, 1], [1, 2]);
             model.checkProperty(state, 'Surfactant', [nc, 1], [1, 2]);
+            fn = model.getVariableField('SurfactantMax');
+            if ~isfield(state, fn)
+                state.(fn) = model.getProp(state, 'Surfactant');
+            end
             model.checkProperty(state, 'SurfactantMax', [nc, 1], [1, 2]);
         end
 

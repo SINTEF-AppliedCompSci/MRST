@@ -13,14 +13,22 @@ classdef CapillaryNumber < StateFunction
         end
         function Nc = evaluateOnDomain(prop, model, state)
             velocitymethod = prop.vmeth;
-            [p, cs, wellSol] = model.getProps(state, 'pressure', 'surfactant', 'wellSol');
+            add_well_contrib = ~isempty(model.FacilityModel.WellModels);
+            if add_well_contrib
+                wellSol = model.getProps(state, 'wellSol');
+            else
+                wellSol = [];
+            end
+            [p, cs] = model.getProps(state, 'pressure', 'surfactant');
             fluid = model.fluid;
             G = model.G;
             s = model.operators;
-            drivingForces = model.getValidDrivingForces();
-            W = drivingForces.W;
-            [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
-            pBH = wellVars{wellMap.isBHP};
+            if add_well_contrib
+                drivingForces = model.getValidDrivingForces();
+                W = drivingForces.W;
+                [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+                pBH = wellVars{wellMap.isBHP};
+            end
             
             % If the injection well pressure or flow rate is set too large,
             % the pressure change may reach the upper limit at the first time step and
@@ -41,8 +49,10 @@ classdef CapillaryNumber < StateFunction
                     for i = 1 : numel(veloc)
                         veloc_sq = veloc_sq + veloc{i}(v).^2;
                     end
-                    [velocW, wc] = computeWellContrib(G, W, p, pBH);
-                    veloc_sq(wc) = veloc_sq(wc) + velocW.^2;
+                    if add_well_contrib
+                        [velocW, wc] = computeWellContrib(G, W, p, pBH);
+                        veloc_sq(wc) = veloc_sq(wc) + velocW.^2;
+                    end
                     
                 case 'square'
                     
