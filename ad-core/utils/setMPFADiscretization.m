@@ -32,6 +32,7 @@ function model = setMPFA(model)
     % Discrete gradient
     fd = model.FluxDiscretization;
     dp = fd.getStateFunction('PressureGradient');
+    model.operators.mpfagrad = MPFAGrad;
     dp.Grad = @(x) MPFAGrad*x;
     fd = fd.setStateFunction('PressureGradient', dp);
     % Gravity potential difference
