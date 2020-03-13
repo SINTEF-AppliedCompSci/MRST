@@ -4,6 +4,7 @@ classdef ExtendedFacilityModel < FacilityModel
         pressure = 101.325*kilo*Pascal; % Metric standard pressure
         SeparatorGroup
         outputFluxes = true;
+        doPostUpdate
     end
     
     methods
@@ -234,14 +235,10 @@ classdef ExtendedFacilityModel < FacilityModel
 
             % Zero surface rate conditions
             wsign = vertcat(map.W.sign);
-            % resv_value = value(resv_rates);
             surface_value = value(wrates);
             
             zeroTarget = targets == 0 & (is_surface_control | is_resv);
-            % zeroSurface = (is_surface_control & sign(surface_value) ~= wsign & wsign ~= 0);
-            % zeroRESV = (is_resv & sign(resv_value) ~= wsign & wsign ~= 0);
             zeroBHP = (is_bhp & sign(surface_value) ~= wsign & wsign ~= 0 & surface_value ~= 0);
-%             zeroRates = zeroTarget | zeroSurface | zeroRESV | zeroBHP;
             zeroRates = zeroTarget | zeroBHP;
             if any(zeroRates)
                 q_t = 0;
@@ -278,6 +275,9 @@ classdef ExtendedFacilityModel < FacilityModel
         end
 
         function model = validateModel(model, varargin)
+            if ~isempty(model.doPostUpdate)
+                model.doPostUpdate = strcmpi(model.primaryVariableSet, 'none');
+            end
             model = validateModel@FacilityModel(model, varargin{:});
         end
 
@@ -293,7 +293,7 @@ classdef ExtendedFacilityModel < FacilityModel
             %   :meth:`ad_core.models.PhysicalModel.updateState`
 
             [state, report] = updateState@FacilityModel(model, state, problem, dx, drivingForces);
-            if strcmpi(model.primaryVariableSet, 'none')
+            if model.doPostUpdate
                 [surfaceRates, surfaceDensity] = model.getSurfaceRates(state);
                 bhp = model.getProp(state, 'BottomHolePressure');
                 
