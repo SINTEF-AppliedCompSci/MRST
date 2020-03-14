@@ -8,7 +8,7 @@ classdef SurfactantPolymerMobility < StateFunction
             gp = gp.dependsOn({'RelativePermeability', 'PolymerPermReduction'});
             gp = gp.dependsOn('Viscosity', 'PVTPropertyFunctions');
             if isfield(model.fluid, 'tranMultR')
-                gp = gp.dependOn('pressure', 'state');
+                gp = gp.dependsOn('pressure', 'state');
             end
         end
         function mob = evaluateOnDomain(prop, model, state)
