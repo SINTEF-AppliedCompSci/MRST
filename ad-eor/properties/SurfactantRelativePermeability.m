@@ -9,7 +9,7 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
     methods
         function prop = SurfactantRelativePermeability(model, satreg, surfreg, varargin)
             prop@BaseRelativePermeability(model, varargin{:});
-            prop = prop.dependsOn({'s', 'surfactant'}, 'state');
+            prop = prop.dependsOn('surfactant', 'state');
             prop = prop.dependsOn({'CapillaryNumber'});
             prop.zeroSurf = StateFunction(model, satreg);
             prop.fullSurf = StateFunction(model, surfreg);
