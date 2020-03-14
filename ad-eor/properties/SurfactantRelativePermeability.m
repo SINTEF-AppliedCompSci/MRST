@@ -24,7 +24,7 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
             m = zeros(model.G.cells.num, 1);
             m = model.AutoDiffBackend.convertToAD(m, cs);
             if nnz(isSft) > 0
-                logNc = log(Nc(isSft))/log(10);
+                logNc = log10(Nc(isSft));
                 % We cap logNc (as done in Eclipse)
                 logNc = min(max(-20, logNc), 20);
                 m(isSft) = fluid.miscfact(logNc, 'cellInx', find(isSft));
@@ -39,9 +39,9 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
             satreg  = model.rock.regions.saturation; 
             surfreg = model.rock.regions.surfactant;
 
-            sWcon_noSft = fluid.krPts.w(satreg  , 2); % Residual water saturation   without surfactant
+            sWcon_noSft = fluid.krPts.w(satreg   , 2); % Residual water saturation   without surfactant
             sOWres_noSft = fluid.krPts.ow(satreg , 2); % Residual oil saturation     without surfactant
-            sWcon_Sft   = fluid.krPts.w(surfreg , 2); % Residual water saturation   with    surfactant
+            sWcon_Sft   = fluid.krPts.w(surfreg  , 2); % Residual water saturation   with    surfactant
             sOWres_Sft   = fluid.krPts.ow(surfreg, 2); % Residual oil saturation     with    surfactant
             
             % Interpolated water/oil residual saturations
