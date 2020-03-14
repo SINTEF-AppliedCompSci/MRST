@@ -353,7 +353,7 @@ classdef FacilityModel < PhysicalModel
             %            variables.
             %
             switch lower(model.primaryVariableSet)
-                case 'standard'
+                case {'standard', 'explicit'}
                     phNames = model.ReservoirModel.getPhaseNames();
                     names = arrayfun(@(x) ['q', x, 's'], phNames, 'UniformOutput', false);
                     names = [names, 'bhp'];

@@ -53,7 +53,7 @@ model = model.validateModel();
 % Use the alternative more rigorous crossflow definition for component
 % fluxes
 xflow = WellComponentTotalVolumeBalanceCrossflow(model);
-xflow.onlyLocalDerivatives = false;
+xflow.onlyLocalDerivatives = true;
 
 model.FacilityModel.FacilityFluxDiscretization.ComponentTotalFlux = xflow;
 
