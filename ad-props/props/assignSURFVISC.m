@@ -1,11 +1,13 @@
 function f = assignSURFVISC(f, surfvisc, reg)
-f.muWSft = @(c, varargin) muWSft(c, surfvisc, reg, varargin{:});
+    f.muWSft = getFunction(surfvisc, reg);
 end
 
-function v = muWSft(c, surfvisc, reg, varargin)
-satinx = getRegMap(c, reg.PVTNUM, reg.PVTINX, varargin{:});
-surfvisc = extendTab(surfvisc);
-v = interpReg(surfvisc, c, satinx);
+function muWSft = getFunction(surfvisc, reg)
+    muWSft = cell(1, reg.pvt);
+    for i = 1:reg.pvt
+        t = extendTab(surfvisc{i});
+        muWSft{i} = @(c, varargin) reg.interp1d(t(:, 1), t(:, 2), c);
+    end
 end
 
 %{
