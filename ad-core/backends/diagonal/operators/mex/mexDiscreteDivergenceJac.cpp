@@ -32,7 +32,7 @@ void divergenceJac(int nf, int nc,
             int dpos = base + cells_ix[col];
             ir[dpos] = col;
             if(has_accumulation){
-                pr[dpos] = accumulation[der * nc];
+                pr[dpos] = accumulation[der * nc + col];
             }else{
                 pr[dpos] = 0.0;
             }
@@ -46,7 +46,7 @@ void divergenceJac(int nf, int nc,
         int nlf = facePos[cell+1] - f_offset;
         int diag = cells_ix[cell];
         int width = jc[cell +1]-jc[cell];
-        for(int i=0; i<width; i++){
+        for(int i = 0; i < width; i++){
             // Loop over entire column
             // Local face index
             int fl = i % (nlf+1);
@@ -60,18 +60,16 @@ void divergenceJac(int nf, int nc,
             int f = faces[f_offset + fl - passed];
             // Global cell index
             int c = cells[f_offset + fl - passed];
-            // double other_val, v;
-            // int diag_index, sgn;
             // Iterate over derivatives
             for(int der = 0; der < m; der++){
                 double v;
                 int sparse_offset = jc[cell + nc * der];
                 if(c < 0){
                     // Low entry, corresponding to N(f, 1)
-                    v = -diagonal[der * 2 * nf + f];
+                    v = -diagonal[der * nf + f];
                 }else{
                     // High entry, corresponding to N(f, 2)
-                    v = diagonal[der * 2 * nf + f + nf];
+                    v = diagonal[der * nf + f + m*nf];
                 }
                 // Set row entry
                 ir[sparse_offset + i] = abs(c);
@@ -92,7 +90,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     auto t0 = std::chrono::high_resolution_clock::now();
     // In: 
     // cell diagonal (nc x m) or empty
-    // diagonal (nf x m)
+    // diagonal (nf x 2*m)
     // N (nf x 2)
     // facePos (nc+1 x 1)
     // faces (length facePos(end)-1)
@@ -115,7 +113,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* Diagonal of fluxes */
     double * diagonal = mxGetPr(prhs[1]);
 
-    int m = mxGetN(diagJac);
+    int m = mxGetN(diagJac)/2;
     int nf = mxGetM(prhs[2]);
     int nc = mxGetM(prhs[3])-1;
     int nhf = mxGetM(prhs[4]);
@@ -128,7 +126,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     }
     {
         int nf_in = mxGetM(diagJac);
-        if(nf_in != 2*nf){
+        if(nf_in != nf){
             mexErrMsgTxt("Face inputs do not match.");
         }
     }

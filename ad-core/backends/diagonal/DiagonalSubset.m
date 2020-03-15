@@ -34,7 +34,6 @@ classdef DiagonalSubset < DiagonalJacobian
         
         function [x, D] = diagMult(v, x, D)
             if any(x.diagonal(:))
-                v = repmat(v, size(x.map, 2), 1);
                 x.diagonal = bsxfun(@times, x.diagonal, v);
             else
                 x = x.toZero();
@@ -52,18 +51,11 @@ classdef DiagonalSubset < DiagonalJacobian
                 [y, D1] = diagMult(v1, y, D1);
                 x = x + y;
             else
-                if numx
-                    n = size(y.map, 2);
-                else
-                    n = size(x.map, 2);
-                end
                 if isempty(x.diagonal)
                     [x, D1] = diagMult(v1, y, D1);
                 elseif isempty(y.diagonal)
                     [x, D2] = diagMult(v2, x, D2);
                 else
-                    v1 = repmat(v1, n, 1);
-                    v2 = repmat(v2, n, 1);
                     if allow_implicit
                         x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
                     else
@@ -107,7 +99,7 @@ classdef DiagonalSubset < DiagonalJacobian
             n = size(D.diagonal, 1);
             m = D.dim(2);
             nmap = size(D.map, 2);
-            imax = n/nmap;
+            imax = n;
             jmax = prod(D.dim);
             if isempty(D.subset)
                 nval = size(D.diagonal, 1);
@@ -117,22 +109,19 @@ classdef DiagonalSubset < DiagonalJacobian
             if size(D.map, 1) == 1
                 D.map = repmat(D.map, nval, 1);
             end
-            I = repmat((1:n/nmap)', nmap, m);
-            if isempty(D.subset)
-                jmap = reshape(D.map, [], 1);
-            else
-                jmap = reshape(D.map(D.subset, :), [], 1);
+            I = repmat((1:n)', 1, nmap*m);
+            jmap = D.map;
+            if ~isempty(D.subset)
+                jmap = jmap(D.subset, :);
             end
             if ~isempty(D.parentSubset)
                 jmap = D.parentSubset(jmap);
             end
             V = D.diagonal;
-            if m == 1
-                J = reshape(jmap, [], 1);
-            else
-                J = bsxfun(@plus, repmat(jmap, 1, m), (0:m-1)*D.dim(1));
-            end
-            V(jmap == 0, :) = 0;
+            J = jmap(:, rldecode((1:nmap)', m));
+            tmp = (0:m-1)*D.dim(1);
+            J = bsxfun(@plus, J, repmat(tmp, 1, nmap));
+            V(all(jmap == 0, 2), :) = 0;
         end
         
         function u = repmat(u, varargin)

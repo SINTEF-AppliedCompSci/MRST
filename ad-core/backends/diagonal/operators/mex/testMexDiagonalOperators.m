@@ -143,7 +143,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     f_mex = @() discreteDivergence(cell_value, N, face_value_mex, nc, nf, sortIx, gradMat, prelim, true);
     f_matlab = @() discreteDivergence(cell_value, N, face_value, nc, nf, sortIx, gradMat, prelim, false);
-    f_sparse = @() ops_sparse.AccDiv(cell_value, face_value);
+    f_sparse = @() ops_sparse.AccDiv(cell_value_sparse, face_value_sparse);
     [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'accdiv', 'Accumulation + divergence', opt, results);
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %    Test sparse()           %
