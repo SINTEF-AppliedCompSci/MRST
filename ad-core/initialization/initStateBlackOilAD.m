@@ -154,4 +154,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~all(touched)
         warning('Regions did not cover all cells. Model only partially initialized.');
     end
+    if isprop(model, 'polymer')
+        state.cp = zeros(G.cells.num, 1);
+    end
+    if isprop(model, 'surfactant')
+        state.cs = zeros(G.cells.num, 1);
+    end
 end

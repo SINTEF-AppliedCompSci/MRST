@@ -160,6 +160,13 @@ function state = directAssignment(model, deck)
         end
         state.rv = rv;
     end
+    % TODO: Is there a valid direct assigment for these? We should add that.
+    if isprop(model, 'polymer')
+        state.cp = zeros(G.cells.num, 1);
+    end
+    if isprop(model, 'surfactant')
+        state.cs = zeros(G.cells.num, 1);
+    end
 end
 
 function reg = getPVTNUM(model, deck)
