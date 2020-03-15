@@ -24,7 +24,7 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
             m = zeros(model.G.cells.num, 1);
             m = model.AutoDiffBackend.convertToAD(m, cs);
             if nnz(isSft) > 0
-                logNc = log10(Nc(isSft));
+                logNc = log(Nc(isSft))/log(10);  % log10 is not yet implemented in ADI
                 % We cap logNc (as done in Eclipse)
                 logNc = min(max(-20, logNc), 20);
                 m(isSft) = fluid.miscfact(logNc, 'cellInx', find(isSft));
