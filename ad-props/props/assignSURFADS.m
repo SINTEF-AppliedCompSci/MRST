@@ -1,11 +1,16 @@
 function f = assignSURFADS(f, surfads, reg)
-   surfads = extendTab(surfads);
-
-   regmap = @(c, varargin) ...
-      getRegMap(c, reg.SATNUM, reg.SATINX, varargin{:});
-
-    f.surfads = @(c, varargin) interpReg(surfads, c, regmap(c, varargin{:}));
+%   surfads = extendTab(surfads);
+   f.surfads = getFunction(surfads, reg);
 end
+
+function surfads = getFunction(SURFADS, reg)
+    surfads = cell(1, reg.sat);
+    for i = 1:reg.sat
+        t = extendTab(SURFADS{i});
+        surfads{i} = @(c, varargin) reg.interp1d(t(:, 1), t(:, 2), c);
+    end
+end
+
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
