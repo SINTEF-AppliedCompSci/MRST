@@ -32,11 +32,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     plhs[0] = mxCreateDoubleMatrix(nf, m, mxREAL);
     double * result = mxGetPr(plhs[0]);
 
-    #ifdef _MSC_VER
-        #pragma omp parallel for schedule(static)
-    #else
-        #pragma omp parallel for collapse(2)
-    #endif
+     #pragma omp parallel for schedule(static)
      for(int i=0;i<nf;i++){
          int left = N[i] - 1;
          int right = N[i + nf] - 1;

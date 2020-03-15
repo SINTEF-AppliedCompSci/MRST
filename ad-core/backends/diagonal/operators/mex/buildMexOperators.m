@@ -1,4 +1,4 @@
-function ok = buildMexOperators(rebuild, varargin)
+function buildMexOperators(rebuild, varargin)
     opt = struct('names', {{}});
     opt = merge_options(opt, varargin{:});
     if nargin == 0
@@ -8,18 +8,13 @@ function ok = buildMexOperators(rebuild, varargin)
     if rebuild
         delete_compiled_files(opt);
     end
-    ok = build_files();
+    build_files();
 end
 
 function ok = build_files()
     G = cartGrid([2, 2, 2]);
     G = computeGeometry(G);
-    try
-        res = testMexDiagonalOperators(G);
-        ok = true;
-    catch
-        ok = false;
-    end
+    res = testMexDiagonalOperators(G);
 end
 
 function delete_compiled_files(opt)
