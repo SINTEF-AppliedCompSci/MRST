@@ -18,39 +18,34 @@ void divergenceJac(int nf, int nc,
                    double * pr, mwIndex * ir, mwIndex * jc){
     int mv = facePos[nc];
     #pragma omp parallel for schedule(static)
-    for(int index = 0; index < m*nc; index++){
-        int col = index % nc;
-        int der = index / nc;
+    for(int col = 0; col < nc; col++){
         // Each cell has number of connections equal to the number of half-
         // faces for that cell plus itself multiplied by the block size
         int prev = facePos[col];
         int n_local_hf = facePos[col+1] - prev;
-        int ix = col + der*nc;
-        // Base offset taking into account how far we have come
-        int base = der*(mv + nc) + (prev + col);
-        jc[ix+1] = base + n_local_hf+1;
-        // Set diagonal entries
-        int dpos = base + cells_ix[col];
-        ir[dpos] = col;
-        if(has_accumulation){
-            pr[dpos] = accumulation[index];
-        }else{
-            pr[dpos] = 0.0;
+        for (int der = 0; der < m; der++){
+            int ix = col + der*nc;
+            // Base offset taking into account how far we have come
+            int base = der*(mv + nc) + (prev + col);
+            jc[ix+1] = base + n_local_hf+1;
+            // Set diagonal entries
+            int dpos = base + cells_ix[col];
+            ir[dpos] = col;
+            if(has_accumulation){
+                pr[dpos] = accumulation[der * nc];
+            }else{
+                pr[dpos] = 0.0;
+            }
         }
     }
     // Loop over cells and assemble Jacobian
     #pragma omp parallel for schedule(static)
-    for(int outer_ix = 0; outer_ix < nc*m; outer_ix++){
-        int cell = outer_ix % nc;
-        int der = outer_ix / nc;
+    for(int cell = 0; cell < nc; cell++){
         int f_offset = facePos[cell];
         // Number of local faces
         int nlf = facePos[cell+1] - f_offset;
         int diag = cells_ix[cell];
-
-        int start = cell + nc*der;
-        int sparse_offset = jc[start];
-        int width = jc[start+1]-jc[start];
+        int width = jc[cell +1]-jc[cell];
         for(int i=0; i<width; i++){
             // Loop over entire column
             // Local face index
@@ -64,22 +59,26 @@ void divergenceJac(int nf, int nc,
             // Global face index
             int f = faces[f_offset + fl - passed];
             // Global cell index
-            int c = cells[f_offset + fl- passed];
-            double other_val, v;
-            int diag_index, sgn;
-            if(c >= 0){
-                // High entry, corresponding to N(f, 2)
-                v = diagonal[der*2*nf + f + nf];
-            }else{
-                // Low entry, corresponding to N(f, 1)
-                v = -diagonal[der*2*nf + f];
+            int c = cells[f_offset + fl - passed];
+            // double other_val, v;
+            // int diag_index, sgn;
+            // Iterate over derivatives
+            for(int der = 0; der < m; der++){
+                double v;
+                int sparse_offset = jc[cell + nc * der];
+                if(c < 0){
+                    // Low entry, corresponding to N(f, 1)
+                    v = -diagonal[der * 2 * nf + f];
+                }else{
+                    // High entry, corresponding to N(f, 2)
+                    v = diagonal[der * 2 * nf + f + nf];
+                }
+                // Set row entry
+                ir[sparse_offset + i] = abs(c);
+                pr[sparse_offset + i] = v;
+                // Set corresponding diagonal entry
+                pr[sparse_offset + diag] -= v;
             }
-            // Set row entry
-            ir[sparse_offset + i] = abs(c);
-            pr[sparse_offset + i] = v;
-            // Set corresponding diagonal entry
-            #pragma omp atomic
-            pr[sparse_offset + diag] -= v;
         }
     }
 }
