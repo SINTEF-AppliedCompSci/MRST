@@ -17,8 +17,8 @@ void faceAverageJac(const int nf, const int nc, const double * diagonal, const d
         int left = N[i] - 1;
         int right = N[i + nf] - 1;
         for(int j=0;j<m;j++){
-            result[j * 2 * nf + i] = 0.5 * diagonal[nc * j + left];
-            result[j * 2 * nf + i + nf] = 0.5 * diagonal[nc * j + right];
+            result[j * nf + i] = 0.5 * diagonal[nc * j + left];
+            result[j * nf + i + m*nf] = 0.5 * diagonal[nc * j + right];
         }
     }
 }
@@ -30,7 +30,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
      
 { 
     // In: diagonal (nc x m), N (nf x 2)
-    // Out: Face diagonal of (2*nf x m)
+    // Out: Face diagonal of (nf x 2*m)
     if (nrhs != 2) { 
 	    mexErrMsgTxt("2 input arguments required."); 
     } else if (nlhs > 1) {
@@ -43,7 +43,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int m = mxGetN(prhs[0]);
     int nf = mxGetM(prhs[1]);
         
-    plhs[0] = mxCreateDoubleMatrix(2*nf, m, mxREAL);
+    plhs[0] = mxCreateDoubleMatrix(nf, 2*m, mxREAL);
     double * result = mxGetPr(plhs[0]);
     switch (m){
             case 1:
