@@ -68,10 +68,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     ws.qGs = v*W(w).compi(gi);
                 end
                 if isprop(model, 'polymer') && model.polymer
-                    ws.cWPoly = W(w).poly;
+                    ws.cWPoly = W(w).cp;
                 end
                 if isprop(model, 'surfactant') && model.surfactant
-                    ws.qWSft = ws.qWs*W(w).surfact;
+                    ws.qWSft = ws.qWs*W(w).cs;
                 end
             case 'orat'
                 ws.qOs = v;
