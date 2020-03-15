@@ -17,10 +17,12 @@ void faceAverageJac(const int nf, const int nc, const double * diagonal, const d
     #else
         #pragma omp parallel for collapse(2)
     #endif
-    for(int j=0;j<m;j++){
-        for(int i=0;i<2*nf;i++){
-            int cell_inx = N[i]-1;
-            result[j*2*nf + i] = diagonal[nc*j + cell_inx]/2.0;
+    for (int i = 0; i < nf; i++) {
+        int left = N[i] - 1;
+        int right = N[i + nf] - 1;
+        for(int j=0;j<m;j++){
+            result[j * 2 * nf + i] = 0.5 * diagonal[nc * j + left];
+            result[j * 2 * nf + i + nf] = 0.5 * diagonal[nc * j + right];
         }
     }
 }
