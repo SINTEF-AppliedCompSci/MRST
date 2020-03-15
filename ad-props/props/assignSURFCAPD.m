@@ -1,11 +1,14 @@
 function f = assignSURFCAPD(f, surfcapd, reg)
-   f.miscfact = @(Nc, varargin) miscfact(Nc, surfcapd, reg, varargin{:});
+% Polymer shear thinning/thickening
+    f.miscfact = getFunction(surfcapd, reg);
 end
 
-function m = miscfact(Nc, surfcapd, reg, varargin)
-   satinx = getRegMap(Nc, reg.SATNUM, reg.SATINX, varargin{:});
-   surfcapd = extendTab(surfcapd);
-   m = interpReg(surfcapd, Nc, satinx);
+function miscfact = getFunction(surfcapd, reg)
+    miscfact = cell(1, reg.pvt);
+    for i = 1:reg.pvt
+        t = extendTab(surfcapd{i});
+        miscfact{i} = @(Nc, varargin) reg.interp1d(t(:, 1), t(:, 2), Nc);
+    end
 end
 
 %{
