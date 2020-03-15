@@ -162,7 +162,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     f_mex = @() V_mex.sparse();
     f_matlab = @() V_matlab.sparse();
     [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'sparse', 'Class -> Sparse', opt, results);
-    fprintf('**********************************************************************\n');
+    dispif(opt.print, '**********************************************************************\n');
 end
 
 function [out, out_mex, out_sparse, results] = testFunction(fn_mex, fn_mat, fn_sparse, shortname, name, opt, results)
