@@ -37,13 +37,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     #pragma omp parallel for schedule(static)
     for(int i=0;i<nf;i++){
-        int cell_inx;
+        int fpos = i + nf;
         if(flag[i]){
-            cell_inx = N[i]-1;
+            fpos = i;
         }
         else{
-            cell_inx = N[i + nf]-1;
+            fpos = i + nf;
         }
+        int cell_inx = N[fpos] - 1;
         for(int j =0; j<dim; j++){
             result[i+nf*j] = value[cell_inx + nc*j];
         }

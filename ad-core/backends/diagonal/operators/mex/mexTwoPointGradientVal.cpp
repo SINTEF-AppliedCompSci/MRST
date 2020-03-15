@@ -37,6 +37,15 @@ void mexFunction( int nlhs, mxArray *plhs[],
     #else
         #pragma omp parallel for collapse(2)
     #endif
+     for(int i=0;i<nf;i++){
+         int left = N[i] - 1;
+         int right = N[i + nf] - 1;
+         for (int j = 0; j < m; j++) {
+            result[i + j * nf] = value[right + j * nc] - value[left + j * nc];
+
+        }
+    }
+     /*
     for(int j=0;j<m;j++){
         for(int i=0;i<2*nf;i++){
             int cell_inx = N[i]-1;
@@ -50,6 +59,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
             }
         }
     }
+
+     */
     return;
 }
 
