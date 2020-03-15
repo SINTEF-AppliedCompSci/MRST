@@ -5,11 +5,11 @@ classdef PolymerPermReduction < StateFunction
     methods
         function gp = PolymerPermReduction(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'PolymerAdsorption'});
+            gp = gp.dependsOn('PolymerAdsorption');
         end
 
         function permRed = evaluateOnDomain(prop, model, state)
-            ads = model.getProp(state, 'PolymerAdsorption');
+            ads = prop.getEvaluatedDependencies(state,'PolymerAdsorption');
             fluid = model.fluid;
             permRed = 1 + ((fluid.rrf - 1)./fluid.adsMax).*ads;
         end
