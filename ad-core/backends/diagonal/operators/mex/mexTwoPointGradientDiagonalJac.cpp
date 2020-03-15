@@ -12,21 +12,13 @@
 
 template <int m>
 void gradientJac(const int nf, const int nc, const double * diagonal, const double * N, double * result){
-    #ifdef _MSC_VER
-        #pragma omp parallel for
-    #else
-        #pragma omp parallel for collapse(2)
-    #endif
-    for(int j=0;j<m;j++){
-        for(int i=0;i<2*nf;i++){
-            int sgn;
-            int cell_inx = N[i]-1;
-            if(i<nf){
-                sgn = -1;
-            }else{
-                sgn = 1;
-            }
-            result[j*2*nf + i] = sgn*diagonal[nc*j + cell_inx];
+    #pragma omp parallel for
+    for (int i = 0; i < nf; i++) {
+        int cell_inx = N[i] - 1;
+        for (int j = 0; j < m; j++) {
+            double v = diagonal[nc * j + cell_inx];
+            result[j * 2 * nf + i]      = -v;
+            result[j * 2 * nf + i + nf] =  v;
         }
     }
     return;

@@ -12,17 +12,18 @@
 
 template <int m>
 void upwindJac(const int nf, const int nc, const mxLogical * flag, const double * diagonal, const double * N, double * result){
-    #ifdef _MSC_VER
-        #pragma omp parallel for schedule(static)
-    #else
-        #pragma omp parallel for collapse(2)
-    #endif
-    for(int j=0;j<m;j++){
-        for(int i=0;i<2*nf;i++){
-            int cell_inx = N[i]-1;
-            if(flag[i % nf] == i < nf){
-                result[j*2*nf + i] = diagonal[nc*j + cell_inx];
-            }
+    #pragma omp parallel for schedule(static)
+    for(int i=0;i<nf;i++){
+        int pos, cell_inx;
+        if (flag[i]) {
+            pos = i;
+        }
+        else {
+            pos = i + nf;
+        }
+        cell_inx = N[pos] - 1;
+        for (int j = 0; j < m; j++) {
+            result[j * 2 * nf + pos] = diagonal[nc * j + cell_inx];
         }
     }
     return;
