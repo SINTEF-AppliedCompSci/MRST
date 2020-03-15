@@ -1,4 +1,4 @@
-function results = testMexDiagonalOperators(model, varargin)
+function [results, prelim] = testMexDiagonalOperators(model, varargin)
 %Undocumented Test Routine
 
 %{
@@ -28,7 +28,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     G = model.G;
     opt = struct('print', nargout == 0, 'block_size', 5, ...
                  'iterations', 5, 'nc', max(N(:)), 'testSparse', true, ...
-                 'testDiag', true, 'testMex', true);
+                 'testDiag', true, 'testMex', true, 'prelim', []);
     opt = merge_options(opt, varargin{:});
     
     results = opt;
@@ -113,7 +113,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if opt.print
         tic();
     end
-    prelim = getMexDiscreteDivergenceJacPrecomputes(model);
+    if isempty(opt.prelim)
+        prelim = getMexDiscreteDivergenceJacPrecomputes(model);
+    else
+        prelim = opt.prelim;
+    end
     
     n1 = N(:, 1);
     n2 = N(:, 2);
