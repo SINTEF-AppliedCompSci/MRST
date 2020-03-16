@@ -1,5 +1,7 @@
 function [tbls, mappings] = setupStandardTables(G)
     
+    usevirtual = false;
+    
     nc  = G.cells.num;
     nf  = G.faces.num;
     nn  = G.nodes.num;
@@ -30,6 +32,8 @@ function [tbls, mappings] = setupStandardTables(G)
     % We setup the face-node table and it is ordered along ascending node numbers so
     % that we will have a block structure for the nodal scalar product.
     nodefacetbl = sortIndexArray(nodefacetbl, {'nodes', 'faces'});
+    
+    % not virtual because used in setupBCpercase (could be optimized)
     nodefacecoltbl = crossIndexArray(nodefacetbl, coltbl, {});
 
     % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
@@ -74,14 +78,18 @@ function [tbls, mappings] = setupStandardTables(G)
     map.mergefds = {'faces', 'nodes'};
     nodeface_from_cellnodeface = getDispatchInd(map);
 
-    cellnodecoltbl    = crossIndexArray(cellnodetbl, coltbl, {});
-    cellnodecolrowtbl = crossIndexArray(cellnodecoltbl, rowtbl, {});
+    cellnodecoltbl    = crossIndexArray(cellnodetbl, coltbl, {}, 'virtual', usevirtual);
 
+    % not virtual because used in setupBCpercase (could be optimized)
     cellnodefacecoltbl = crossIndexArray(cellnodefacetbl, coltbl, {});
-    cellnodefacecolrowtbl = crossIndexArray(cellnodefacecoltbl, rowtbl, {});
-
+    
     colrowtbl = crossIndexArray(coltbl, rowtbl, {});
-    nodecolrowtbl = crossIndexArray(nodetbl, colrowtbl, {});
+    cellnodecolrowtbl = crossIndexArray(cellnodetbl, colrowtbl, {}, 'virtual', ...
+                                        usevirtual);
+    cellnodefacecolrowtbl = crossIndexArray(cellnodefacetbl, colrowtbl, {}, ...
+                                            'virtual', usevirtual);
+
+    nodecolrowtbl = crossIndexArray(nodetbl, colrowtbl, {}, 'virtual', usevirtual);
     
     fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
            {'coldim', {'coldim1', 'coldim2'}}};
