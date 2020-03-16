@@ -1,4 +1,4 @@
-function mpsaPaperConvergenceFunc(Nd, nref, kappa, alpha, gridtype, eta)
+function output = mpsaPaperConvergenceFunc(Nd, nref, kappa, alpha, gridtype, eta, varargin)
 % Nd       : spatial dimension
 % nref     : number of refinement level
 % kappa    : coefficient used for the top-corner (kappa = 1 corresponds to
@@ -20,10 +20,9 @@ function mpsaPaperConvergenceFunc(Nd, nref, kappa, alpha, gridtype, eta)
 % year={2017},
 % publisher={Wiley Online Library}
 
-    mrstModule add vemmech mpsaw vem mpfa
-
-    doVem = false;
-    
+    opt=struct('doVem', false);
+    opt=merge_options(opt,varargin{:});
+   
     [u_fun, force_fun, mu_fun] = analyticalReferencePaper(Nd, kappa);
 
     for iter1 = 1 : nref
@@ -31,7 +30,7 @@ function mpsaPaperConvergenceFunc(Nd, nref, kappa, alpha, gridtype, eta)
         disp(['Refinement ' num2str(iter1)])
         
         Nx = 2^iter1*ones(1, Nd); 
-        G = gridForConvTest(Nx, gridType); 
+        G = gridForConvTest(Nx, gridtype); 
         G = computeVEMGeometry(G); 
         G = computeGeometryCalc(G); 
         [tbls, mappings] = setupStandardTables(G);
@@ -162,7 +161,7 @@ function mpsaPaperConvergenceFunc(Nd, nref, kappa, alpha, gridtype, eta)
         end
         
         % Compute VEM solution
-        if doVem
+        if opt.doVem
             error('bc not implemented yet for VEM');
             [E, nu] = elasticModuloTransform(lambda, mu, 'lam_mu', 'E_nu'); 
             Ev = repmat(E, G.cells.num, 1); 
@@ -198,90 +197,17 @@ function mpsaPaperConvergenceFunc(Nd, nref, kappa, alpha, gridtype, eta)
                     
     end
 
-    %% Print convergence rates
-
-    fprintf('Convergence rate for MPSA\n');
-    log2(deL2(1 : end - 1)./deL2(2 : end))
-    if doVem
-        fprintf('Convergence rate for VEM\n');
-        log2(deVEM(1 : end - 1)./deVEM(2 : end))
-    end
     
-
-    %% Error at last iteration
-
-    fprintf('relative L2 error exact vs mpsa: %g\n', deL2(end));
-    if doVem
-        fprintf('relative L2 error exact vs vem: %g\n', deVEM(end));
-    end
-
-    %% 
-    if doVem
-        n = 3; 
-    else 
-        n = 2;
-    end
+    % displacement for analytical solution (last refinement)
+    output.dex = dex; 
+    % displacement for mpsa solution (last refinement)
+    output.dnum = dnum;
+    % L2 error between analytical and mpsa
+    output.deL2 = deL2;
     
-    doplot = false;
-    if doplot 
-        figure
-        set(gcf, 'numbertitle', 'off', 'name', 'DISPLACEMENT')
-
-        subplot(n, 2, 1)
-        title('x-mpsa')
-        plotCellData(G, dnum(: , 1), 'edgecolor', 'none'), colorbar
-
-        subplot(n, 2, 2)
-        title('y-mpsa')
-        plotCellData(G, dnum(: , 2), 'edgecolor', 'none'), colorbar
-
-        subplot(n, 2, 3)
-        title('x-exact')
-        plotCellData(G, dex(: , 1), 'edgecolor', 'none'), colorbar
-
-        subplot(n, 2, 4)
-        title('y-exact')
-        plotCellData(G, dex(: , 2), 'edgecolor', 'none'), colorbar
-
-        if doVem
-            subplot(n, 2, 5)
-            title('x-vem')
-            plotNodeData(G, uVEM(: , 1), 'edgecolor', 'none'), colorbar
-
-            subplot(n, 2, 6)
-            title('y-vem')
-            plotNodeData(G, uVEM(: , 2), 'edgecolor', 'none'), colorbar
-        end
-        
-
-        return
-        
-        %% 
-        figure
-        set(gcf, 'numbertitle', 'off', 'name', 'ERROR')
-        uu_nn = dvec(G.nodes.coords); 
-        uu_cc = dvec(G.cells.centroids); 
-        val = uVEM - uu_nn; 
-        subplot(2, 2, 1), 
-        plotNodeData(G, val( :, 1)); colorbar
-        title('x-vem')
-        subplot(2, 2, 2), 
-        plotNodeData(G, val( :, 2));colorbar
-        title('y-vem')
-        val = dnum - uu_cc;
-        subplot(2, 2, 3), 
-        plotCellData(G, val( :, 1));colorbar
-        title('x-mpsa')
-        subplot(2, 2, 4), 
-        plotCellData(G, val( :, 2));colorbar
-        title('x-mpsa')
-
-        %%
-        figure
-        subplot(2, 1, 1), 
-        plotCellData(G, mrhs1(G.cells.centroids( : , 1), G.cells.centroids( :, 2)));colorbar
-        subplot(2,1,2),
-        plotCellData(G,mrhs2(G.cells.centroids(:,1),G.cells.centroids(:,2)));colorbar
+    % displacement for mpsa solution (last refinement)
+    if opt.doVem
+        output.uVem = uVem;
     end
     
 end
