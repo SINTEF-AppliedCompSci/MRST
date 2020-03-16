@@ -1,4 +1,4 @@
-function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha, gridtype, eta)
+function mpsaPaperConvergenceFunc(Nd, nref, kappa, alpha, gridtype, eta)
 % Nd       : spatial dimension
 % nref     : number of refinement level
 % kappa    : coefficient used for the top-corner (kappa = 1 corresponds to
