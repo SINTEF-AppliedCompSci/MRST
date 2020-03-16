@@ -17,7 +17,7 @@ function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids(G, tbls, 
     ccents = G.cells.centroids(cno, :);
     fcents = G.faces.centroids(fno, :);
     ncents = G.nodes.coords(nno, :);
-    abscellnodefacecents = eta*ncents + (1 - eta)*fcents;
+    abscellnodefacecents = (1 - eta)*ncents + eta*fcents;
     
     % Relative position of node-face points (in cellnodefacecoltbl)
     cellnodefacecents = abscellnodefacecents - ccents;
