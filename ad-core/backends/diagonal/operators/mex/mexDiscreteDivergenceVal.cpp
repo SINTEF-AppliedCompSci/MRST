@@ -40,21 +40,23 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     plhs[0] = mxCreateDoubleMatrix(nc, 1, mxREAL);
     double * result = mxGetPr(plhs[0]);
-    if(has_accumulation){
-        double * accumulation = mxGetPr(prhs[0]);
-        #pragma omp parallel for schedule(static)
-        for(int i = 0; i < (int)nc; i++){
-            result[i] = accumulation[i];
+    #pragma omp parallel{
+        if(has_accumulation){
+            double * accumulation = mxGetPr(prhs[0]);
+            #pragma omp for schedule(static)
+            for(int i = 0; i < (int)nc; i++){
+                result[i] = accumulation[i];
+            }
         }
-    }
-    #pragma omp parallel for schedule(static)
-    for(int f = 0; f < nf; f++){
-        int c1 = N[f]-1;
-        int c2 = N[f+nf]-1;
-        #pragma omp atomic
-        result[c1] += flux[f];
-        #pragma omp atomic
-        result[c2] -= flux[f];
+        #pragma omp for
+        for(int f = 0; f < nf; f++){
+            int c1 = N[f]-1;
+            int c2 = N[f+nf]-1;
+            #pragma omp atomic
+            result[c1] += flux[f];
+            #pragma omp atomic
+            result[c2] -= flux[f];
+        }
     }
 }
 

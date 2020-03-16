@@ -11,71 +11,75 @@
 #include <chrono>
 
 template <int m, bool has_accumulation>
-void divergenceJac(int nf, int nc,
+void divergenceJac(const int nf, const int nc,
                    const double * N, const double * facePos, const double * faces, 
                    const double * cells, const double * cells_ix,
                    const double * accumulation, const double * diagonal,
                    double * pr, mwIndex * ir, mwIndex * jc){
     int mv = facePos[nc];
-    #pragma omp parallel for schedule(static)
-    for(int col = 0; col < nc; col++){
-        // Each cell has number of connections equal to the number of half-
-        // faces for that cell plus itself multiplied by the block size
-        int prev = facePos[col];
-        int n_local_hf = facePos[col+1] - prev;
-        for (int der = 0; der < m; der++){
-            int ix = col + der*nc;
-            // Base offset taking into account how far we have come
-            int base = der*(mv + nc) + (prev + col);
-            jc[ix+1] = base + n_local_hf+1;
-            // Set diagonal entries
-            int dpos = base + cells_ix[col];
-            ir[dpos] = col;
-            if(has_accumulation){
-                pr[dpos] = accumulation[der * nc + col];
-            }else{
-                pr[dpos] = 0.0;
+    #pragma omp parallel shared(pr, ir, jc)
+    {
+        int cell;
+        #pragma omp for
+        for(cell = 0; cell < nc; cell++){
+            // Each cell has number of connections equal to the number of half-
+            // faces for that cell plus itself multiplied by the block size
+            int prev = facePos[cell];
+            int n_local_hf = facePos[cell +1] - prev;
+            for (int der = 0; der < m; der++){
+                int ix = cell + der*nc;
+                // Base offset taking into account how far we have come
+                int base = der*(mv + nc) + (prev + cell);
+                jc[ix+1] = base + n_local_hf+1;
+                // Set diagonal entries
+                int dpos = base + cells_ix[cell];
+                ir[dpos] = cell;
+                if(has_accumulation){
+                    pr[dpos] = accumulation[der * nc + cell];
+                }else{
+                    pr[dpos] = 0.0;
+                }
             }
         }
-    }
-    // Loop over cells and assemble Jacobian
-    #pragma omp parallel for schedule(static)
-    for(int cell = 0; cell < nc; cell++){
-        int f_offset = facePos[cell];
-        // Number of local faces
-        int nlf = facePos[cell+1] - f_offset;
-        int diag = cells_ix[cell];
-        int width = jc[cell +1]-jc[cell];
-        for(int i = 0; i < width; i++){
-            // Loop over entire column
-            // Local face index
-            int fl = i % (nlf+1);
-            // Diagonal entry can be skipped - we handle this later
-            if(fl == diag){
-                continue;
-            }
-            // Check if we have passed diagonal entry
-            int passed = (double)(fl > diag);
-            // Global face index
-            int f = faces[f_offset + fl - passed];
-            // Global cell index
-            int c = cells[f_offset + fl - passed];
-            // Iterate over derivatives
-            for(int der = 0; der < m; der++){
-                double v;
-                int sparse_offset = jc[cell + nc * der];
-                if(c < 0){
-                    // Low entry, corresponding to N(f, 1)
-                    v = -diagonal[der * nf + f];
-                }else{
-                    // High entry, corresponding to N(f, 2)
-                    v = diagonal[der * nf + f + m*nf];
+        // Loop over cells and assemble Jacobian
+        #pragma omp for
+        for(cell = 0; cell < nc; cell++){
+            int f_offset = facePos[cell];
+            // Number of local faces
+            int nlf = facePos[cell+1] - f_offset;
+            int diag = cells_ix[cell];
+            int width = jc[cell +1]-jc[cell];
+            for(int i = 0; i < width; i++){
+                // Loop over entire column
+                // Local face index
+                int fl = i % (nlf+1);
+                // Diagonal entry can be skipped - we handle this later
+                if(fl == diag){
+                    continue;
                 }
-                // Set row entry
-                ir[sparse_offset + i] = abs(c);
-                pr[sparse_offset + i] = v;
-                // Set corresponding diagonal entry
-                pr[sparse_offset + diag] -= v;
+                // Check if we have passed diagonal entry
+                int passed = (double)(fl > diag);
+                // Global face index
+                int f = faces[f_offset + fl - passed];
+                // Global cell index
+                int c = cells[f_offset + fl - passed];
+                // Iterate over derivatives
+                for(int der = 0; der < m; der++){
+                    double v;
+                    int sparse_offset = jc[cell + nc * der];
+                    if(c < 0){
+                        // Low entry, corresponding to N(f, 1)
+                        v = -diagonal[der * nf + f];
+                    }else{
+                        // High entry, corresponding to N(f, 2)
+                        v = diagonal[der * nf + f + m*nf];
+                    }
+                    // Set row entry
+                    ir[sparse_offset + i] = abs(c);
+                    pr[sparse_offset + i] = v;
+                    // Set corresponding diagonal entry
+                    pr[sparse_offset + diag] -= v;
+                }
             }
         }
     }
