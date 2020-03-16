@@ -9,7 +9,7 @@ classdef SurfactantPolymerViscosity < BlackOilViscosity
         
         function mu = evaluateOnDomain(prop, model, state)
             mu     = prop.evaluateOnDomain@BlackOilViscosity(model, state);
-            [~,I]  = model.getActivePhases(); iW = (I==1);
+            ph     = model.getPhaseNames(); iW = find(ph=='W');
             cs     = model.getProps(state,'surfactant');
             p      = prop.getEvaluatedDependencies(state, 'PhasePressures');
             mPol   = prop.getEvaluatedDependencies(state, 'PolymerViscMultiplier');
