@@ -26,7 +26,8 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     nodecolrowtbl         = tbls.nodecolrowtbl;
     col2row2tbl           = tbls.col2row2tbl;
     cellcol2row2tbl       = tbls.cellcol2row2tbl;
-
+    cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
+    
     cell_from_cellnode         = mappings.cell_from_cellnode;
     node_from_cellnode         = mappings.node_from_cellnode;
     cellface_from_cellnodeface = mappings.cellface_from_cellnodeface;
@@ -372,9 +373,21 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
 
     C = setupStiffnessTensor(prop, tbls);
 
-    [cellnodecol2row2tbl, indstruct] = crossIndexArray(cellnodetbl, cellcol2row2tbl, {'cells'});
-    C = tbldispatch2(C, indstruct);
-
+    map = TensorMap();
+    map.fromTbl = cellcol2row2tbl;
+    map.toTbl = cellnodecol2row2tbl;
+    map.mergefds = {'cells', 'coldim1', 'coldim2', 'rowdim1', 'rowdim2'};
+    
+    map.pivottbl = cellnodecol2row2tbl;
+    cnc2r2_num = cellnodecol2row2tbl.num; %shortcut
+    c2r2_num = col2row2tbl.num; %shortcut
+    [c2r2, i] = ind2sub([c2r2_num, cn_num], (1 : cnc2r2_num)');
+    map.dispind1 = sub2ind([c2r2_num, c_num], c2r2, cell_from_cellnode(i));
+    map.dispind2 = (1 : cnc2r2_num)';
+    map.issetup = true;
+    
+    C = map.eval(C);
+    
     prod = TensorProd();
     prod.tbl1 = cellnodecol2row2tbl;
     prod.tbl2 = cellnodecolrowtbl;
@@ -387,7 +400,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.pivottbl = cellnodecol2row2tbl;
 
     d = d_num; %shortcut
-    cnc2r2_num = cellnodecol2row2tbl.num; %shortcut
     [r2, c2, r1, c1, i] = ind2sub([d, d, d, d, cn_num], (1 : cnc2r2_num)');
     prod.dispind1 = (1 : cnc2r2_num)';
     prod.dispind2 = sub2ind([d, d, cn_num], r1, c1, i);

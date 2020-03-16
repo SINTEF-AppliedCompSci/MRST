@@ -40,7 +40,9 @@ switch runcase
     nx = 5; ny = 5;
     G = cartGrid([nx, ny], [1, 1]);
   case {'3d-linear', '3d-compaction'}
-    nx = 5; ny = 5; nz = 5;
+    nx = 10;
+    ny = nx;
+    nz = nx;
     G = cartGrid([nx, ny, nz], [1, 1, 1]);
   otherwise
     error('runcase not recognized');
