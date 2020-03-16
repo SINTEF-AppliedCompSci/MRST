@@ -14,7 +14,7 @@ function convergenceTest()
 % publisher={Wiley Online Library}
 
     %% Load necessary modules
-    mrstModule add mpfa mpsaw vemmech
+    mrstModule add vem mpfa mpsaw vemmech
 
     %% params setting
     % nref     : degree of refinement
@@ -30,32 +30,64 @@ function convergenceTest()
 
 
     %% New Case
-    params = struct('nref'    , 1, ...
-                    'Nd'      , 2, ...
-                    'kappa'   , 1, ...
-                    'alpha'   , 1, ...
-                    'gridtype', 1, ... % Cartesian
-                    'eta'     , 1e-8);
-    
-    output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
-    figure
-    plotConv(output, params);
+    dothiscase = false;
+    if dothiscase
+        params = struct('nref'    , 6, ...
+                        'Nd'      , 2, ...
+                        'kappa'   , 1, ...
+                        'alpha'   , 1, ...
+                        'gridtype', 1, ... % Cartesian
+                        'eta'     , 1e-8);
+        
+        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        figure
+        plotConv(output, params);
+    end
 
     %% New Case
-    params = struct('nref'    , 6, ...
-                    'Nd'      , 2, ...
-                    'kappa'   , 1, ...
-                    'alpha'   , 1, ...
-                    'gridtype', 2, ... % Triangular grid, 90 degree angles
-                    'eta'     , 1/3);
+    dothiscase = false;
+    if dothiscase
+        params = struct('nref'    , 6, ...
+                        'Nd'      , 2, ...
+                        'kappa'   , 1, ...
+                        'alpha'   , 1, ...
+                        'gridtype', 2, ... % Triangular grid, 90 degree angles
+                        'eta'     , 1/3);
+        
+        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        figure
+        plotConv(output, params);
+    end
     
-    output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
-    figure
-    hold on
-    plotConv(output, params);
-    params.eta = 2/3;
-    output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);    
-    plotConv(output, params);
+    %% New Case
+    dothiscase = false;
+    if dothiscase
+        params = struct('nref'    , 6, ...
+                        'Nd'      , 2, ...
+                        'kappa'   , 1, ...
+                        'alpha'   , 1, ...
+                        'gridtype', 3, ... % Triangular grid, 90 degree angles
+                        'eta'     , 1/3);
+        
+        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        figure
+        plotConv(output, params);
+    end
+    
+    %% New Case
+    dothiscase = true;
+    if dothiscase
+        params = struct('nref'    , 6, ...
+                        'Nd'      , 2, ...
+                        'kappa'   , 3, ...
+                        'alpha'   , 1, ...
+                        'gridtype', 1, ... % Cartesian Grid
+                        'eta'     , 1/3);
+        
+        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        figure
+        plotConv(output, params);
+    end
     
 end
 
