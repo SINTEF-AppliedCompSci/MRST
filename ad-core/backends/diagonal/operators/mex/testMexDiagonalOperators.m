@@ -19,17 +19,31 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    opt = struct('print', nargout == 0, 'block_size', 5, ...
+                 'iterations', 5, 'nc', [], 'testSparse', true, ...
+                 'testDiag', true, 'testMex', true, 'prelim', [], 'ordering', []);
+    opt = merge_options(opt, varargin{:});
+
+    if isnumeric(model)
+        % We recieved dimensional inputs
+        G = cartGrid(model);
+        model = computeGeometry(G);
+    end
     if isstruct(model)
+        % We recieved a grid?
         G = model;
         rock = makeRock(G, 1, 1);
         model = ReservoirModel(G, rock, struct());
     end
     N = model.operators.N;
     G = model.G;
-    opt = struct('print', nargout == 0, 'block_size', 5, ...
-                 'iterations', 5, 'nc', max(N(:)), 'testSparse', true, ...
-                 'testDiag', true, 'testMex', true, 'prelim', []);
-    opt = merge_options(opt, varargin{:});
+    if isempty(opt.nc)
+        opt.nc = max(N(:));
+    end
+    if ~isempty(opt.ordering)
+        N = opt.ordering(N);
+        model.operators.N = N;
+    end
     
     results = opt;
     
