@@ -8,13 +8,13 @@ function [D, bcvals] = setupFaceBC(bc, G, tbls)
     % have several linear forms which are imposed on it). We add a local index
     % denoted bcinds, which makes all those (now multiple-)index unique.
     bcfacetbl.faces = bc.extfaces;
-    bcfacetbl = IndexTable(bcfacetbl);
+    bcfacetbl = IndexArray(bcfacetbl);
     bcfacetbl = bcfacetbl.addLocInd('bcinds');
     
-    bcfacecoltbl = crossTable(bcfacetbl, coltbl, {}, 'optpureproduct', true);
+    bcfacecoltbl = crossIndexArray(bcfacetbl, coltbl, {}, 'optpureproduct', true);
     
-    bcnodefacetbl = crossTable(bcfacetbl, nodefacetbl, {'faces'});
-    bcnodefacecoltbl = crossTable(bcnodefacetbl, coltbl, {}, 'optpureproduct', ...
+    bcnodefacetbl = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
+    bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, 'optpureproduct', ...
                                   true);
     
     bcvals = bc.linformvals;

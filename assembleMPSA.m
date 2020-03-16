@@ -221,7 +221,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     symcol2row2tbl.rowdim2 = colrowtbl.get('rowdim');
     symcol2row2tbl.coldim1 = colrowtbl.get('rowdim');
     symcol2row2tbl.rowdim1 = colrowtbl.get('coldim');
-    symcol2row2tbl = IndexTable(symcol2row2tbl);
+    symcol2row2tbl = IndexArray(symcol2row2tbl);
 
     prod = TensorProd();
     prod.tbl1 = symcol2row2tbl;
@@ -233,7 +233,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
                         {'rowdim', 'rowdim2'}};
     prod.reducefds = {'coldim2', 'rowdim2'};
 
-    symnodecol2row2tbl = crossTable(nodetbl, symcol2row2tbl, {});
+    symnodecol2row2tbl = crossIndexArray(nodetbl, symcol2row2tbl, {});
     nc2r2_num = symnodecol2row2tbl.num; % shortcut
 
     % (note the definition of symcol2row2tbl above)
@@ -259,7 +259,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     %
 
     % Compute number of cell per node
-    [~, indstruct] = crossTable(cellnodetbl, nodetbl, {'nodes'});
+    [~, indstruct] = crossIndexArray(cellnodetbl, nodetbl, {'nodes'});
     nnodepercell = tblmap1to2(ones(cellnodetbl.num, 1), indstruct);
     coef   = tblmap2to1(1./nnodepercell, indstruct);
 
@@ -275,7 +275,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     end
     
     fixnodetbl.nodes = find(nnodepercell <= maxnnodepercell);
-    fixnodetbl = IndexTable(fixnodetbl);
+    fixnodetbl = IndexArray(fixnodetbl);
 
     coef(coef >= 1/maxnnodepercell) = 0;
 
@@ -321,7 +321,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
 
     %% We need to multiply by 2 at the place where we discarded the symmetry requirement
 
-    fixcellnodecolrowtbl = crossTable(fixnodetbl, cellnodecolrowtbl, {'nodes'});
+    fixcellnodecolrowtbl = crossIndexArray(fixnodetbl, cellnodecolrowtbl, {'nodes'});
 
     ind = tblmap(ones(fixnodetbl.num, 1), fixnodetbl, cellnodecolrowtbl, ...
                  {'nodes'});
@@ -353,7 +353,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
 
     C = setupStiffnessTensor(prop, tbls);
 
-    [cellnodecol2row2tbl, indstruct] = crossTable(cellnodetbl, cellcol2row2tbl, {'cells'});
+    [cellnodecol2row2tbl, indstruct] = crossIndexArray(cellnodetbl, cellcol2row2tbl, {'cells'});
     C = tbldispatch2(C, indstruct);
 
     prod = TensorProd();

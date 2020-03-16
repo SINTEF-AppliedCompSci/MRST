@@ -59,10 +59,10 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
         extfacetbl.faces = find(y == ymax);
         extfacetbl.num = numel(extfacetbl.faces);
 
-        [extnodefacetbl, indstruct] = crossTable(nodefacetbl, extfacetbl, {'faces'});
+        [extnodefacetbl, indstruct] = crossIndexArray(nodefacetbl, extfacetbl, {'faces'});
         nodeface_from_extnodeface = indstruct{1}.inds;
 
-        extnodefacecoltbl = crossTable(extnodefacetbl, coltbl, {});
+        extnodefacecoltbl = crossIndexArray(extnodefacetbl, coltbl, {});
 
         map = TensorMap();
         map.fromTbl  = cellnodefacecoltbl;
@@ -87,7 +87,7 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
         extnodeface_from_extcellnodeface = w(ind);
         cellnodeface_from_extcellnodeface = ind;
 
-        extcellnodefacecoltbl = crossTable(extcellnodefacetbl, coltbl, {});
+        extcellnodefacecoltbl = crossIndexArray(extcellnodefacetbl, coltbl, {});
 
         map.pivottbl = extcellnodefacecoltbl;
         ecnf_num = extcellnodefacetbl.num;
@@ -126,7 +126,7 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
             sourcetbl.cells = indcell;
             sourcetbl.num = numel(indcell);
 
-            sourcetbl = crossTable(sourcetbl, coltbl, {});
+            sourcetbl = crossIndexArray(sourcetbl, coltbl, {});
 
             force = tblmap(force, coltbl, sourcetbl, {'coldim'});
             force = tblmap(force, sourcetbl, cellcoltbl, {'cells', 'coldim'});
@@ -174,12 +174,12 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
         y = G.faces.centroids(:, 3);
         ymax = max(y);
         extfacetbl.faces = find(y == ymax);
-        extfacetbl = IndexTable(extfacetbl);
+        extfacetbl = IndexArray(extfacetbl);
 
-        [extnodefacetbl, indstruct] = crossTable(nodefacetbl, extfacetbl, {'faces'});
+        [extnodefacetbl, indstruct] = crossIndexArray(nodefacetbl, extfacetbl, {'faces'});
         nodeface_from_extnodeface = indstruct{1}.inds;
 
-        extnodefacecoltbl = crossTable(extnodefacetbl, coltbl, {});
+        extnodefacecoltbl = crossIndexArray(extnodefacetbl, coltbl, {});
 
         map = TensorMap();
         map.fromTbl  = cellnodefacecoltbl;

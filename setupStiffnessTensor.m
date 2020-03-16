@@ -27,9 +27,9 @@ function C = setupStiffnessTensor(prop, tbls)
         mutbl.coldim2 = colrowtbl.get('coldim');
         mutbl.rowdim1 = colrowtbl.get('rowdim');
         mutbl.rowdim2 = colrowtbl.get('rowdim');
-        mutbl = IndexTable(mutbl);
+        mutbl = IndexArray(mutbl);
 
-        cellmutbl = crossTable(celltbl, mutbl, {});
+        cellmutbl = crossIndexArray(celltbl, mutbl, {});
 
         map = TensorMap();
         map.fromTbl = celltbl;
@@ -50,13 +50,13 @@ function C = setupStiffnessTensor(prop, tbls)
 
         diagtbl.coldim = (1 : dim)';
         diagtbl.rowdim = (1 : dim)';
-        diagtbl = IndexTable(diagtbl);
+        diagtbl = IndexArray(diagtbl);
 
         fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
                {'coldim', {'coldim1', 'coldim2'}}};
-        lambdatbl = crossTable(diagtbl, diagtbl, {}, 'crossextend', fds);
+        lambdatbl = crossIndexArray(diagtbl, diagtbl, {}, 'crossextend', fds);
 
-        celllambdatbl = crossTable(celltbl, lambdatbl, {});
+        celllambdatbl = crossIndexArray(celltbl, lambdatbl, {});
 
         map = TensorMap();
         map.fromTbl = celltbl;

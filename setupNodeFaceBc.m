@@ -10,7 +10,7 @@ function [D, bcvals] = setupNodeFaceBc(bc, G, tbls)
     
     bcnodefacetbl = bc.bcnodefacetbl;
     bcnodefacetbl = bcnodefacetbl.addLocInd('bcinds');
-    bcnodefacecoltbl = crossTable(bcnodefacetbl, coltbl, {}, 'optpureproduct', true);
+    bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, 'optpureproduct', true);
     
     linform = bc.linform;
     linform = reshape(linform', [], 1);

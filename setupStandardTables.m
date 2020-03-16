@@ -6,43 +6,43 @@ function [tbls, mappings] = setupStandardTables(G)
     dim = G.griddim;
 
     coltbl.coldim = (1 : dim)';
-    coltbl = IndexTable(coltbl);
+    coltbl = IndexArray(coltbl);
     rowtbl = coltbl;
     rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
 
     celltbl.cells = (1 : nc)';
-    celltbl = IndexTable(celltbl);
+    celltbl = IndexArray(celltbl);
     
     nodetbl.nodes = (1 : nn)';
-    nodetbl = IndexTable(nodetbl);
+    nodetbl = IndexArray(nodetbl);
     
-    cellcoltbl = crossTable(celltbl, coltbl, {}); % ordering is cell - col
-    nodecoltbl = crossTable(nodetbl, coltbl, {}); % ordering is cell - col
+    cellcoltbl = crossIndexArray(celltbl, coltbl, {}); % ordering is cell - col
+    nodecoltbl = crossIndexArray(nodetbl, coltbl, {}); % ordering is cell - col
 
     cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
     cellfacetbl.faces = G.cells.faces(:, 1);
-    cellfacetbl = IndexTable(cellfacetbl);
+    cellfacetbl = IndexArray(cellfacetbl);
     
     nodefacetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos)); 
     nodefacetbl.nodes = G.faces.nodes;
-    nodefacetbl = IndexTable(nodefacetbl); 
+    nodefacetbl = IndexArray(nodefacetbl); 
     
     % We setup the face-node table and it is ordered along ascending node numbers so
     % that we will have a block structure for the nodal scalar product.
-    nodefacetbl = sortTable(nodefacetbl, {'nodes', 'faces'});
-    nodefacecoltbl = crossTable(nodefacetbl, coltbl, {});
+    nodefacetbl = sortIndexArray(nodefacetbl, {'nodes', 'faces'});
+    nodefacecoltbl = crossIndexArray(nodefacetbl, coltbl, {});
 
     % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
     % unique facet in a corner
     % We order cellnodeface in cell-node-face order. This is node to optimize
     % for-end loop below.
-    cellnodefacetbl = crossTable(cellfacetbl, nodefacetbl, {'faces'});
-    cellnodefacetbl = sortTable(cellnodefacetbl, {'cells', 'nodes', 'faces'});
+    cellnodefacetbl = crossIndexArray(cellfacetbl, nodefacetbl, {'faces'});
+    cellnodefacetbl = sortIndexArray(cellnodefacetbl, {'cells', 'nodes', 'faces'});
 
     % We setup the cell-node table, cellnodetbl. Each entry determine a unique
     % corner
-    cellnodetbl = projTable(cellnodefacetbl, {'nodes', 'cells'});
-    cellnodetbl = sortTable(cellnodetbl, {'cells', 'nodes'});
+    cellnodetbl = projIndexArray(cellnodefacetbl, {'nodes', 'cells'});
+    cellnodetbl = sortIndexArray(cellnodetbl, {'cells', 'nodes'});
 
     map = TensorMap();
     map.fromTbl = celltbl;
@@ -74,20 +74,20 @@ function [tbls, mappings] = setupStandardTables(G)
     map.mergefds = {'faces', 'nodes'};
     nodeface_from_cellnodeface = getDispatchInd(map);
 
-    cellnodecoltbl    = crossTable(cellnodetbl, coltbl, {});
-    cellnodecolrowtbl = crossTable(cellnodecoltbl, rowtbl, {});
+    cellnodecoltbl    = crossIndexArray(cellnodetbl, coltbl, {});
+    cellnodecolrowtbl = crossIndexArray(cellnodecoltbl, rowtbl, {});
 
-    cellnodefacecoltbl = crossTable(cellnodefacetbl, coltbl, {});
-    cellnodefacecolrowtbl = crossTable(cellnodefacecoltbl, rowtbl, {});
+    cellnodefacecoltbl = crossIndexArray(cellnodefacetbl, coltbl, {});
+    cellnodefacecolrowtbl = crossIndexArray(cellnodefacecoltbl, rowtbl, {});
 
-    colrowtbl = crossTable(coltbl, rowtbl, {});
-    nodecolrowtbl = crossTable(nodetbl, colrowtbl, {});
+    colrowtbl = crossIndexArray(coltbl, rowtbl, {});
+    nodecolrowtbl = crossIndexArray(nodetbl, colrowtbl, {});
     
     fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
            {'coldim', {'coldim1', 'coldim2'}}};
-    col2row2tbl = crossTable(colrowtbl, colrowtbl, {}, 'crossextend', fds);
+    col2row2tbl = crossIndexArray(colrowtbl, colrowtbl, {}, 'crossextend', fds);
     
-    cellcol2row2tbl = crossTable(celltbl, col2row2tbl, {});
+    cellcol2row2tbl = crossIndexArray(celltbl, col2row2tbl, {});
     
     tbls = struct('coltbl'               , coltbl               , ...
                   'celltbl'              , celltbl              , ...

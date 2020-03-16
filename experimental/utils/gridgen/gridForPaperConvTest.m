@@ -15,7 +15,7 @@ function [G, cornercelltbl] = gridForPaperConvTest(Nx, gridType)
         G = computeGeometry(cartGrid(Nx, ones(1, Nd)));
         c = G.cells.centroids;
         cornercelltbl.cells = find(all(c > 0.5, 2));
-        cornercelltbl = IndexTable(cornercelltbl);
+        cornercelltbl = IndexArray(cornercelltbl);
       otherwise
         error('gridType not recognized');
     end
