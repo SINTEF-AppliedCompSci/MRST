@@ -21,7 +21,8 @@ function model = setMPFA(model)
     Tg = M.rgTrans(model.operators.internalConn, :); % Inner -> Inner
     % Change sign and re-scale operators to fit with AD-OO
     % definition of gradient.
-    scale = -1./(2*model.operators.T);
+    T = getFaceTransmissibility(model.G, model.rock);
+    scale = -1./(2*T(model.operators.internalConn));
     MPFAGrad = Tv.*scale;
     Mg = -Tg.*scale/2;
     assert(all(M.N(:) == model.operators.N(:)), ...
