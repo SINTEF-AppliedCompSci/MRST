@@ -38,13 +38,15 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
         extfaces{1} = find(G.faces.centroids(:, 2) == 0);
         n = numel(extfaces{1});
         linforms{1} = repmat([0, 1], n, 1);
-
+        linformvals{1} = zeros(n, 1);
+        
         switch runcase
             
           case {'2d-linear', '2d-refinement'}
             extfaces{2} = find(G.faces.centroids(:, 1) == 0);
             n = numel(extfaces{2});
             linforms{2} = repmat([1, 0], n, 1);
+            linformvals{2} = zeros(n, 1);
             
           case '2d-compaction'
             linforms{2} = repmat([1, 0], n, 1);
@@ -57,7 +59,7 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
         y = G.faces.centroids(:, 2);
         ymax = max(y);
         extfacetbl.faces = find(y == ymax);
-        extfacetbl.num = numel(extfacetbl.faces);
+        extfacetbl = IndexArray(extfacetbl);
 
         [extnodefacetbl, indstruct] = crossIndexArray(nodefacetbl, extfacetbl, {'faces'});
         nodeface_from_extnodeface = indstruct{1}.inds;
@@ -81,9 +83,13 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
         w = v(nodeface_from_cellnodeface);
         ind = find(w);
         fds = {'cells', 'nodes', 'faces'};
-        cellnodefacemat = convertTableToArray(cellnodefacetbl, fds);
-        extcellnodefacemat = cellnodefacemat(ind, 1 : 3);
-        extcellnodefacetbl = convertArrayToTable(extcellnodefacemat, fds);
+        [~, fdind] = ismember(fds, cellnodefacecoltbl.fdnames);
+        extcellnodefacemat = cellnodefacecoltbl.inds(:, fdind);
+        extcellnodefacemat = extcellnodefacemat(ind, 1 : 3);
+        
+        extcellnodefacetbl = IndexArray([]);
+        extcellnodefacetbl = extcellnodefacetbl.setup(fds, extcellnodefacemat);
+        
         extnodeface_from_extcellnodeface = w(ind);
         cellnodeface_from_extcellnodeface = ind;
 
@@ -152,7 +158,7 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
                 n = numel(extfaces{i});
                 linforms{i} = repmat(linform, n, 1);
                 if i == 1
-                    % we impose a translation in the x-direction on the top face
+                    % We impose a translation in the x-direction on the top face
                     linformvals{i} = ones(n, 1);
                 else
                     linformvals{i} = ones(n, 1);
