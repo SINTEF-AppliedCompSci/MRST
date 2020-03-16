@@ -190,7 +190,18 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
 
     fds = {'cells', 'nodes', 'coldim'};
     % note the minus sign below (see formula in paper)
-    dreduced = - tblmap(facetNormals, cellnodefacecoltbl, cellnodecoltbl, fds);
+    map = TensorMap();
+    map.fromTbl = cellnodefacecoltbl;
+    map.toTbl = cellnodecoltbl;
+    map.mergefds = {'cells', 'nodes', 'coldim'};
+    map.pivottbl = cellnodefacecoltbl;
+    
+    map.dispind1 = (1 : cnfc_num)';
+    [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
+    map.dispind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
+    map.issetup = true;
+    
+    dreduced = - map.eval(facetNormals);
 
     prod = TensorProd();
     prod.tbl1 = cellnodecoltbl;
@@ -276,7 +287,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     
     fixnodetbl.nodes = find(nnodepercell <= maxnnodepercell);
     fixnodetbl = IndexArray(fixnodetbl);
-
+    
     coef(coef >= 1/maxnnodepercell) = 0;
 
     prod = TensorProd();
@@ -321,13 +332,21 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
 
     %% We need to multiply by 2 at the place where we discarded the symmetry requirement
 
-    fixcellnodecolrowtbl = crossIndexArray(fixnodetbl, cellnodecolrowtbl, {'nodes'});
+    coef = ones(nodetbl.num, 1);
+    coef(fixnodetbl.get('nodes')) = 2;
 
-    ind = tblmap(ones(fixnodetbl.num, 1), fixnodetbl, cellnodecolrowtbl, ...
-                 {'nodes'});
-
-    c = ones(cellnodecolrowtbl.num, 1);
-    c(logical(ind)) = 2;
+    map = TensorMap();
+    map.fromTbl = nodetbl;
+    map.toTbl = cellnodecolrowtbl;
+    map.mergefds = {'nodes'};
+    
+    map.pivottbl = cellnodecolrowtbl;
+    [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
+    map.dispind1 = node_from_cellnode(i);
+    map.dispind2 = (1 : cncr_num)';
+    map.issetup = true;
+    
+    coef = map.eval(coef);
 
     prod = TensorProd();
     prod.tbl1 = cellnodecolrowtbl;
@@ -343,7 +362,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.issetup = true;
 
     bcfix_T = SparseTensor('matlabsparse', true);
-    bcfix_T = bcfix_T.setFromTensorProd(c, prod);
+    bcfix_T = bcfix_T.setFromTensorProd(coef, prod);
 
 
     %% Construction of the stiffness operator
