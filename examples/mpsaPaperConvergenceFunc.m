@@ -1,14 +1,15 @@
-function output = mpsaPaperConvergenceFunc(Nd, nref, kappa, alpha, gridtype, eta, varargin)
-% Nd       : spatial dimension
-% nref     : number of refinement level
-% kappa    : coefficient used for the top-corner (kappa = 1 corresponds to
-%            homogeneous case)
-% alpha    : Coefficient defining lambda from mu, lambda = alpha*mu;
-% eta      : Value used to set the position of the continuity point
-% gridtype : Different grid type can be used, see below
-%            1 : Cartesian grid
-%            2 : Triangular grid, 90 degree angles
-%            3 : Equilateral triangles
+function output = mpsaPaperConvergenceFunc(params, varargin)
+% params is a struct with the fields:
+%    Nd       : spatial dimension
+%    nref     : number of refinement level
+%    kappa    : coefficient used for the top-corner (kappa = 1 corresponds to
+%               homogeneous case)
+%    alpha    : Coefficient defining lambda from mu, lambda = alpha*mu;
+%    eta      : Value used to set the position of the continuity point
+%    gridtype : Different grid type can be used, see below
+%               1 : Cartesian grid
+%               2 : Triangular grid, 90 degree angles
+%               3 : Equilateral triangles
     
 % Convergence test case
 % title={Finite volume methods for elasticity with weak symmetry},
@@ -20,6 +21,14 @@ function output = mpsaPaperConvergenceFunc(Nd, nref, kappa, alpha, gridtype, eta
 % year={2017},
 % publisher={Wiley Online Library}
 
+
+    Nd = params.Nd;
+    nref = params.nref;
+    kappa = params.kappa;
+    alpha = params.alpha;
+    gridtype = params.gridtype;
+    eta = params.eta;
+    
     opt=struct('doVem', false);
     opt=merge_options(opt,varargin{:});
    
