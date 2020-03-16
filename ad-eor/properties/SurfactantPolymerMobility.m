@@ -13,15 +13,15 @@ classdef SurfactantPolymerMobility < StateFunction
         end
         function mob = evaluateOnDomain(prop, model, state)
             kr = prop.getEvaluatedDependencies(state, 'RelativePermeability');
-            permRed  = prop.getEvaluatedDependencies(state, 'PolymerPermReduction');
-            mu = model.getProps(state, 'Viscosity');
-            mob = cellfun(@(x, y) x./y, kr, mu, 'UniformOutput', false);
-            mob{1} = mob{1}./permRed;
+            permRed = prop.getEvaluatedDependencies(state, 'PolymerPermReduction');
+            mu      = model.getProps(state, 'Viscosity');
+            mob     = cellfun(@(x, y) x./y, kr, mu, 'UniformOutput', false);
+            mob{1}  = mob{1}./permRed;
             if isfield(model.fluid, 'tranMultR')
-                % Pressure dependent mobility multiplier 
-                p = model.getProp(state, 'pressure');
+                % Pressure-dependent mobility multiplier
+                p    = model.getProp(state, 'pressure');
                 mult = model.fluid.tranMultR(p);
-                mob = cellfun(@(x) x.*mult, mob, 'UniformOutput', false);
+                mob  = cellfun(@(x) x.*mult, mob, 'UniformOutput', false);
             end
             % Check for negative values
             mv = cellfun(@(x) min(value(x)), mob);

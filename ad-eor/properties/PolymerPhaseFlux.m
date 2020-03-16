@@ -14,12 +14,12 @@ classdef PolymerPhaseFlux < StateFunction
             [mob, kgrad] = prop.getEvaluatedDependencies(state,...
                 'FaceMobility', 'PermeabilityPotentialGradient');
             % compute water phase flux first
-            vW = -mob{1}.*kgrad{1};            
-            cpf = prop.getEvaluatedDependencies(state, 'FaceConcentration');
-            fluid = model.fluid;
+            vW     = -mob{1}.*kgrad{1};
+            cpf    = prop.getEvaluatedDependencies(state, 'FaceConcentration');
+            fluid  = model.fluid;
             mixpar = fluid.mixPar;
-            cpbar   = cpf/fluid.cpmax;
-            a = fluid.muWMult(fluid.cpmax).^(1-mixpar);
+            cpbar  = cpf/fluid.cpmax;
+            a  = fluid.muWMult(fluid.cpmax).^(1-mixpar);
             vP = vW./(a+(1-a)*cpbar).*cpf;
         end
     end
