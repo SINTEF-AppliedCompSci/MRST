@@ -40,7 +40,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     plhs[0] = mxCreateDoubleMatrix(nc, 1, mxREAL);
     double * result = mxGetPr(plhs[0]);
-    #pragma omp parallel{
+    #pragma omp parallel
+    {
         if(has_accumulation){
             double * accumulation = mxGetPr(prhs[0]);
             #pragma omp for schedule(static)
