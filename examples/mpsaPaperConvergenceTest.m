@@ -1,9 +1,14 @@
-function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
-% Nd : spatial dimension
-% nref : number of refinement level
-% kappa : coefficient used for the top-corner (kappa = 1 corresponds to
-%         homogeneous case)
-% alpha : coefficient defining lambda from mu, lambda = alpha*mu;
+function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha, gridtype, eta)
+% Nd       : spatial dimension
+% nref     : number of refinement level
+% kappa    : coefficient used for the top-corner (kappa = 1 corresponds to
+%            homogeneous case)
+% alpha    : Coefficient defining lambda from mu, lambda = alpha*mu;
+% eta      : Value used to set the position of the continuity point
+% gridtype : Different grid type can be used, see below
+%            1 : Cartesian grid
+%            2 : Triangular grid, 90 degree angles
+%            3 : Equilateral triangles
     
 % Convergence test case
 % title={Finite volume methods for elasticity with weak symmetry},
@@ -17,34 +22,8 @@ function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
 
     mrstModule add vemmech mpsaw vem mpfa
 
-    % Test case number (see definitions below)
-    testCase = 1; 
     doVem = false;
     
-    % The constant eta (between 0 and 1) in MPSAW which defines the position of
-    % continuity point
-
-    switch testCase
-      case 1
-        % Cartesian grid
-        gridType = 1; 
-        eta = 1/3;
-      case 2
-        % Cartesian grid
-        gridType = 1; 
-        eta = 1e-9; 
-      case 3
-        % Triangular grid, 90 degree angles
-        gridType = 2; 
-        eta = 0.5; 
-      case 4
-        % Equilateral triangles
-        gridType = 3; 
-        eta = 1/3;
-      otherwise
-        error('testCase not recognized');
-    end
-
     [u_fun, force_fun, mu_fun] = analyticalReferencePaper(Nd, kappa);
 
     for iter1 = 1 : nref
@@ -79,9 +58,9 @@ function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
         bcfaces =  find(isBoundary);
         
         bcfacetbl.faces = bcfaces;
-        bcfacetbl = IndexTable(bcfacetbl);
-        bcnodefacetbl = crossTable(bcfacetbl, nodefacetbl, {'faces'});
-        bcnodefacecoltbl = crossTable(bcnodefacetbl, coltbl, {}, 'optpureproduct', ...
+        bcfacetbl = IndexArray(bcfacetbl);
+        bcnodefacetbl = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
+        bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, 'optpureproduct', ...
                                       true);
         clear bcfacetbl
         
@@ -116,7 +95,7 @@ function mpsaPaperConvergenceTest(Nd, nref, kappa, alpha)
         bcnodes = bcnodefacetbl.get('nodes');
         extbcnodefacetbl.faces = repmat(bcfaces, Nd, 1);
         extbcnodefacetbl.nodes = repmat(bcnodes, Nd, 1);
-        extbcnodefacetbl = IndexTable(extbcnodefacetbl);
+        extbcnodefacetbl = IndexArray(extbcnodefacetbl);
         
         bc.bcnodefacetbl = extbcnodefacetbl;
         bc.linform = vertcat(linforms{:});
