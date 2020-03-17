@@ -231,7 +231,11 @@ function casetitle = setCaseTitle(Nd, gridtype, eta, kappa, alpha)
       case 2
         gridtypestr = 'Triangular grid, 90 degree angles';
       case 3
+        gridtypestr = 'Equilateral triangles (alt)';
+      case 4
         gridtypestr = 'Equilateral triangles';
+      case 5
+        gridtypestr = 'Hexahedrals';
     end
     
     casetitle = sprintf('%s - %s, \\kappa = %0.3g, \\alpha = %0.3g, \\eta = %0.3g', dimstr, ...
