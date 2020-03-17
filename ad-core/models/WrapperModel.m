@@ -89,6 +89,13 @@ classdef WrapperModel < PhysicalModel
             forces = model.parentModel.validateDrivingForces(forces);
         end
         
+        function rmodel = getReservoirModel(model)
+            rmodel = model.parentModel;
+            while ~isa(rmodel, 'ReservoirModel')
+                rmodel = rmodel.parentModel;
+            end
+        end
+        
     end
 end
 
