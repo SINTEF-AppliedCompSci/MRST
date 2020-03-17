@@ -36,7 +36,7 @@ if(isempty(opt.amgcloptions))
     precond = struct('class','relaxation','type','ilu0','damping',1);
     options = struct('solver',solver,'precond',precond,'solver_type','regular','write_params',true,'block_size',opt.blocksize,'verbose',true);    
 else
-    options = jsonencode(opt.istloptions);
+    options = opt.amgcloptions;
 end
 options = jsonencode(options);
 [x, err, nIter] = amgcl_matlab_simple(mat', rhs, opt.tol, opt.maxiter, options);
