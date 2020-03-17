@@ -1,4 +1,5 @@
-function assembly = blockassembly(G, prop, loadstruct, eta, globtbls, mappings)
+function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globmappings, varargin)
+    
 %% Assembly of MPSA-weak
 %%
 %% Reference paper:
@@ -35,19 +36,18 @@ function assembly = blockassembly(G, prop, loadstruct, eta, globtbls, mappings)
 
     dim = coltbl.num;
 
-    for iblock = 1 : nblock
+    for iblock = 1 : nblocks
 
         %% Construction of tensor g (as defined in paper eq 4.1.2)
         nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
 
-        locnodetbl.nodes = nodes;
-        locnodetbl = IndexArray(locnodetbl);
+        nodetbl.nodes = nodes;
+        nodetbl = IndexArray(nodetbl);
 
         [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls);
 
         celltbl               = tbls.celltbl;
         nodetbl               = tbls.nodetbl;
-        cellfacetbl           = tbls.cellfacetbl;
         cellnodetbl           = tbls.cellnodetbl;
         nodefacetbl           = tbls.nodefacetbl;
         cellcoltbl            = tbls.cellcoltbl;
@@ -141,8 +141,9 @@ function assembly = blockassembly(G, prop, loadstruct, eta, globtbls, mappings)
         prod.tbl1 = cellnodefacecoltbl;
         prod.tbl2 = cellnodefacecoltbl;
         prod.tbl3 = cellnodecoltbl;
+        prod.mergefds = {'cells', 'nodes', 'coldim'};
         prod.reducefds = {'faces'};
-
+        
         % prod.pivottbl = cellnodefacecoltbl;
         % prod.dispind1 = (1 : cnfc_num)';
         % prod.dispind2 = (1 : cnfc_num)';
