@@ -47,7 +47,7 @@ function convergenceTest()
     end
 
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -59,10 +59,12 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
+        filename = 'convd2_k1_a1_g2_eta3';
+        savethisfigure(filename);
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -74,10 +76,12 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
+        filename = 'convd2_k1_a1_g3_eta3';
+        savethisfigure(filename);
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -89,21 +93,42 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
+        filename = 'convd2_k3_a1_g1_eta3';
+        savethisfigure(filename);
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
+    if dothiscase
+        params = struct('nref'    , 6, ...
+                        'Nd'      , 2, ...
+                        'kappa'   , 1, ...
+                        'alpha'   , 10, ...
+                        'gridtype', 1, ... % Cartesian
+                        'eta'     , 1e-8);
+        
+        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        figure
+        plotConv(output, params);
+        filename = 'convd2_k1_a10_g1_eta0';
+        savethisfigure(filename);
+    end
+    
+    %% New Case
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
                         'gridtype', 1, ... % Cartesian Grid
-                        'eta'     , 1/3);
+                        'eta'     , 1e-8);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
+        filename = 'convd3_k1_a1_g1_eta0';
+        savethisfigure(filename);
     end
     
 end
