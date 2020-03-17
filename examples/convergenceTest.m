@@ -41,10 +41,12 @@ function convergenceTest()
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
+        hold on
         plotConv(output, params);
         filename = 'convd2_g1_k1_a1_eta0';
         savethisfigure(filename);
     end
+    
 
     %% New Case
     dothiscase = true;
@@ -62,6 +64,8 @@ function convergenceTest()
         filename = 'convd2_g2_k1_a1_eta3';
         savethisfigure(filename);
     end
+
+    return
     
     %% New Case
     dothiscase = true;
@@ -79,9 +83,9 @@ function convergenceTest()
         filename = 'convd2_g3_k1_a1_eta3';
         savethisfigure(filename);
     end
-    
+
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -98,7 +102,7 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -115,7 +119,7 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -132,7 +136,7 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
@@ -149,7 +153,7 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
@@ -166,7 +170,7 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
@@ -183,7 +187,7 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
