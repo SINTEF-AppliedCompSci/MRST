@@ -178,7 +178,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     datasetname = inputname(2);
-    [cellfields, hasCell, hasNode] = getStructFields(G, accessdata(1), datasetname);
+    [cellfields, hasCell, hasNode] = getStructFields(G, accessdata(1), datasetname); %#ok
     if (hasNode && isfield(G, 'nodes')) && ~isfield(G.nodes, 'cells') && ~opt.skipAugmented
         try
             G = createAugmentedGrid(G);
@@ -215,7 +215,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     ijk = cell(size(G.cartDims));
-    if isfield(G.cells, 'indexMap');
+    if isfield(G.cells, 'indexMap')
         [ijk{:}] = ind2sub(G.cartDims, G.cells.indexMap(1:G.cells.num));
     end
     % Plotting parameters
@@ -331,7 +331,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'cdata', geticon('lockcaxis'), ...
                    'Separator', 'off', 'State', boolToOnOff(opt.lockCaxis));
 
-    if ~isfield(G, 'cartDims') || nnz(G.cartDims > 1) < 2 || opt.plot1d;
+    if ~isfield(G, 'cartDims') || nnz(G.cartDims > 1) < 2 || opt.plot1d
         linePlotToggle = uitoggletool(ht, 'TooltipString', 'View as line plot',...
                        'ClickedCallback', @(src, event) replotPatch(),...
                        'cdata', geticon('1d'), ...
@@ -364,6 +364,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         delete(fig);
     end
     set(fig, 'CloseRequestFcn', @closeFcn);
+    if exist('disableDefaultInteractivity', 'file')
+        % Disable tooltips since we are doing 3D plotting without tooltips
+        disableDefaultInteractivity(gca)
+    end
+
     if opt.startplayback
         playbutton = findobj(fig, 'Tag', 'mrst-datasetselector-play');
         if ~isempty(playbutton)
@@ -512,11 +517,11 @@ end
 
 function plotHistogram(varargin)
     if isempty(histAll); histAll = true; end
-    if isempty(N_hist); N_hist = 10; end;
+    if isempty(N_hist); N_hist = 10; end
     oldfig = gcf;
 
     if isempty(histh) || ~ishandle(histh)
-        if nargin == 0;
+        if nargin == 0
             return;
         end
         histh = figure;
@@ -538,7 +543,7 @@ function plotHistogram(varargin)
     set(0, 'CurrentFigure', histh);
     clf;
     % Find data
-    [n, X] = hist(data_hist, N_hist);
+    [n, X] = hist(data_hist, N_hist); %#ok
 
     function h = plotRectangle(x, height, width, value, varargin)
         h = patch([x; x+width; x+width; x], [0; 0; height; height], value, varargin{:});
@@ -636,11 +641,11 @@ function sliceDataset(src, event)
         slices = old & sum(repmat(Normal, G.cells.num, 1).*(G.cells.centroids  - repmat(A, G.cells.num,1)), 2) > 0;
         replotPatch();
         axis(axold);
-        if final,
+        if final
             setptr(fig,'arrow');
             set(sliceToggle, 'State', 'off')
             break;
-        end;
+        end
     end
 end
 
@@ -702,8 +707,8 @@ function adjustPatch(src, event)
 
     set(gcf, 'Name', 'Change patch style');
 
-    [se, ee] = linkedSlider(fi, [10,60], 0, 1, get(ph, 'EdgeAlpha'), 'Edge'); %#ok<NASGU>
-    [sf, ef] = linkedSlider(fi, [10,90], 0, 1, get(ph, 'FaceAlpha'), 'Face'); %#ok<NASGU>
+    se = linkedSlider(fi, [10,60], 0, 1, get(ph, 'EdgeAlpha'), 'Edge');
+    sf = linkedSlider(fi, [10,90], 0, 1, get(ph, 'FaceAlpha'), 'Face');
     applyfun = @(src, event) set(ph, 'FaceAlpha', get(sf, 'Value'), 'EdgeAlpha', get(se, 'Value'));
 
     patchcolor = @(src, event) set(ph, 'EdgeColor', uisetcolor(get(ph, 'EdgeColor')));
@@ -736,7 +741,7 @@ function replotPatch(varargin)
         end
     end
 
-    if any(ishandle(vh));
+    if any(ishandle(vh))
         delete(vh);
     end
     if plotAsLine
@@ -763,7 +768,7 @@ function replotPatch(varargin)
         end
         
     elseif plotAsVector
-        if ishandle(ph);
+        if ishandle(ph)
             set(ph, 'Visible', 'off');
         end
         vh = plotCellVectorData(G, d, subset);
