@@ -43,7 +43,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if is_visual_cpp()
         % Note explicit /EHsc to enable C++ exception handling
         CXXFLAGS  = { [sprintf('COMPFLAGS=/EHsc /MD %s', formatDefs('-', defines)), ...
-            '/openmp /wd4715 /fp:fast /O2 /bigobj'] };
+            ' /openmp /wd4715 /fp:fast /O2 /bigobj'] };
         iomp5     = { ['LINKFLAGS=$LINKFLAGS ', ...
             '/nodefaultlib:vcomp ', iomp5{1} ]};
         libstdcpp = {};
@@ -52,7 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         dispif(mrstVerbose(), 'Clang detected. Will not use OpenMP...\n');
         CXXFLAGS = ...
             { [sprintf('CXXFLAGS=$CXXFLAGS %s ', formatDefs('-', defines)), ...
-            '-fPIC -O3 -std=c++11 -ffast-math -march=native'] };
+            ' -fPIC -O3 -std=c++11 -ffast-math -march=native'] };
 
         libstdcpp = {};
         iomp5 = {};
@@ -65,7 +65,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         CXXFLAGS = ...
             { [sprintf('CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE %s ', formatDefs('-', defines)), ...
-               sprintf('-fPIC -O3 -std=c++11 -ffast-math %s -fopenmp', march)] };
+               sprintf(' -fPIC -O3 -std=c++11 -ffast-math %s -fopenmp', march)] };
 
         libstdcpp = {};
         if ispc()
