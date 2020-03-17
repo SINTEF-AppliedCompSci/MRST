@@ -1,39 +1,24 @@
 classdef SurfactantCapillaryPressure < BlackOilCapillaryPressure
-% Implementation only for 2 phases oil-water
+% Scale the water-oil capillary pressure as follows
+%     pcow(S_w,c) = pcow(S)*ift(c)/ift(0)
+% where ift(c) is the interfacial tension at surfactant concentration c.
     properties
     end
     
     methods
         function prop = SurfactantCapillaryPressure(varargin)
             prop@BlackOilCapillaryPressure(varargin{:});
-            prop = prop.dependsOn({'s', 'surfactant'}, 'state');
+            prop = prop.dependsOn('surfactant', 'state');
         end
         
         function pc = evaluateOnDomain(prop, model, state)
-            
-            fluid = model.fluid;
-            if ~isfield(fluid, 'pcOW')
-                pc = evaluateOnDomain@BlackOilCapillaryPressure(prop, model, ...
-                    state);
-            else
-                [act, phInd] = model.getActivePhases();
-                nph = sum(act);
-                pc = cell(1, nph);
-                c = model.getProps(state, 'surfactant');
-                sW = model.getProps(state, 'sW');
-                pcow = prop.evaluateFunctionOnDomainWithArguments(fluid.pcOW, sW);
-                pcow = pcow.*fluid.ift(c)/fluid.ift(0);
-                % Note sign! Water is always first
-                pc{phInd == 1} = -pcow;
-                
-                if model.gas && model.oil && isfield(fluid, 'pcOG')
-                    sG = model.getProp(state, 'sg');
-                    pc{phInd == 3} = prop.evaluateFunctionOnDomainWithArguments(fluid.pcOG, sG);
-                end
-                if ~model.oil && isfield(fluid, 'pcWG')
-                    pc{phInd == 2} = prop.evaluateFunctionOnDomainWithArguments(fluid.pcWG, sG);
-                end
-                
+            pc = evaluateOnDomain@BlackOilCapillaryPressure(prop, model,state);
+            [~,phInd] = model.getActivePhases();
+            ind = (phInd==1);
+            if any(ind)
+                c       = model.getProps(state, 'surfactant');
+                scale   = model.fluid.ift(c)/model.fluid.ift(0);
+                pc{ind} = scale.*pc{ind};
             end
         end
     end

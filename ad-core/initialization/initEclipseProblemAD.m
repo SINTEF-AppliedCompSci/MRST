@@ -59,6 +59,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    gravity reset on;
 
     mrstModule add deckformat ad-core ad-blackoil ad-props
     if ischar(deck)
@@ -177,7 +178,6 @@ function model = initializeModel(deck, opt)
         end
     end
     fluid = initDeckADIFluid(deck, 'G', G, 'useMex', opt.useMex);
-    gravity reset on;
     
     rock  = compressRock(rock, G.cells.indexMap);
     model = selectModelFromDeck(G, rock, fluid, deck);

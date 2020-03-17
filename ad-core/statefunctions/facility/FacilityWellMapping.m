@@ -8,6 +8,7 @@ classdef FacilityWellMapping < StateFunction
     methods
         function gp = FacilityWellMapping(varargin)
             gp@StateFunction(varargin{:});
+            gp.label = 'W\rightarrow c';
         end
         function s = evaluateOnDomain(prop, model, state)
             wellSol = state.wellSol;

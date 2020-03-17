@@ -1,12 +1,16 @@
 function f = assignPLYVISC(f, plyvisc, reg)
-f.muWMult = @(c, varargin)muWMult(c, plyvisc, reg, varargin{:});
+    f.muWMult = getFunction(plyvisc, reg);
 end
 
-function v = muWMult(c, plyvisc, reg, varargin)
-satinx = getRegMap(c, reg.PVTNUM, reg.PVTINX, varargin{:});
-plyvisc = extendTab(plyvisc);
-v = interpReg(plyvisc, c, satinx);
+function muWmult = getFunction(plyvisc, reg)
+   muWmult = cell(1, reg.pvt);
+    for i = 1:reg.pvt
+        t = plyvisc{i};
+        t = extendTab(t);
+        muWmult{i} = @(c, varargin) reg.interp1d(t(:, 1), t(:, 2), c);
+    end
 end
+
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

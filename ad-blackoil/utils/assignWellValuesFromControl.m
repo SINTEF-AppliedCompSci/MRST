@@ -55,6 +55,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             case 'bhp'
                 ws.bhp = v;
             case 'rate'
+                if ws.sign < 1
+                    continue;
+                end
                 if model.water
                     ws.qWs = v*W(w).compi(wi);
                 end
@@ -65,10 +68,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     ws.qGs = v*W(w).compi(gi);
                 end
                 if isprop(model, 'polymer') && model.polymer
-                    ws.cWPoly = W(w).poly;
+                    ws.cWPoly = W(w).cp;
                 end
                 if isprop(model, 'surfactant') && model.surfactant
-                    ws.qWSft = ws.qWs*W(w).surfact;
+                    ws.qWSft = ws.qWs*W(w).cs;
                 end
             case 'orat'
                 ws.qOs = v;

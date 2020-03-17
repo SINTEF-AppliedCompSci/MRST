@@ -71,11 +71,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     eos = model.EOSModel;
     [Z_L, Z_V, f_L, f_V] = eos.getCompressibilityAndFugacity(p, temp, x, y, z, Z_L, Z_V);
-    rhoO_m = model.PropertyModel.computeMolarDensity(p, x, Z_L, temp, true);
-    rhoG_m = model.PropertyModel.computeMolarDensity(p, y, Z_V, temp, false);
+    rhoO_m = model.PropertyModel.computeMolarDensity(eos, p, x, Z_L, temp, true);
+    rhoG_m = model.PropertyModel.computeMolarDensity(eos, p, y, Z_V, temp, false);
     
-    rhoO = model.PropertyModel.computeDensity(p, x, Z_L, temp, true);
-    rhoG = model.PropertyModel.computeDensity(p, y, Z_V, temp, false);
+    rhoO = model.PropertyModel.computeDensity(eos, p, x, Z_L, temp, true);
+    rhoG = model.PropertyModel.computeDensity(eos, p, y, Z_V, temp, false);
 
     mol_L = sO.*rhoO_m;
     mol_G = sG.*rhoG_m;

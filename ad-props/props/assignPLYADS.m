@@ -1,11 +1,17 @@
 function f = assignPLYADS(f, plyads, reg)
    plyads = extendTab(plyads);
-
-   regmap = @(c, varargin) ...
-      getRegMap(c, reg.SATNUM, reg.SATINX, varargin{:});
-
-    f.ads = @(c, varargin) interpReg(plyads, c, regmap(c, varargin{:}));
+   f.ads = getFunction(plyads, reg);
 end
+
+function plyads = getFunction(PLYADS, reg)
+   plyads = cell(1, reg.sat);
+    for i = 1:reg.sat
+        t = PLYADS{i};
+        t = extendTab(t);
+        plyads{i} = @(c, varargin) reg.interp1d(t(:, 1), t(:, 2), c);
+    end
+end
+
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

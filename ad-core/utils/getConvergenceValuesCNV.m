@@ -56,12 +56,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Grab tolerances
     tol_mb = model.toleranceMB;
     tol_cnv = model.toleranceCNV;
+    v = model.verbose;
 
     evaluated = false(1, numel(problem));
     [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
     % Value of pore-volume and total pore-volume
     pv = value(pv);
     pvt = sum(pv);
+    if isfield(state, 'cnvscale')
+        pv = pv.*state.cnvscale;
+    end
     
     nph = numel(b);
     CNV = zeros(1, nph);
@@ -93,10 +97,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             B_avg = mean(B);
             % Volume error: Maximum point-wise saturation error, scaled to
             % surface volume via average b-factor for phase
-            CNV(ph) = B_avg*dt*max(abs(eq)./pv);
+            [mv, m_ix] = max(abs(eq)./pv);
+            CNV(ph) = B_avg*dt*mv;
             % Total mass balance error
             MB(ph) = abs(B_avg*sum(eq))/pvt;
             evaluated(eq_ix) = true;
+            if v > 1
+                fprintf('CNV_%s: %d is the worst cell at %g\n',...
+                                                shortPhase(ph), m_ix, CNV(ph));
+            end
         end
     end
     mb_names = arrayfun(@(x) ['MB_', x], shortPhase, 'UniformOutput', false);

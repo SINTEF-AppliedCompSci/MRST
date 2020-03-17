@@ -1,19 +1,5 @@
-classdef PolymerFluxDiscretization < FluxDiscretization
-    properties
-        PolymerPhaseFlux % Polymer phase volumetric fluxes
-        FaceConcentration % Polymer or surfactant concentration on face
-    end
-
-    methods
-        function props = PolymerFluxDiscretization(model)
-            props = props@FluxDiscretization(model);
-            upstr = UpwindFunctionWrapperDiscretization(model);
-            props.PolymerPhaseFlux = PolymerPhaseFlux(model);            
-            props.FaceConcentration = FaceConcentration(model, upstr);
-        end
-    end
-
-end
+function varargout = mexFaceAverageVal(varargin)
+%Undocumented Utility Function
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
@@ -33,3 +19,16 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+   filename = 'mexFaceAverageVal.cpp';
+   INCLUDE = {};
+
+   OPTS = { '-O' };
+
+   SRC = {filename};
+
+   [CXXFLAGS, LINK, LIBS] = setupMexOperatorBuildFlags();
+
+   buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
+   [varargout{1:nargout}] = mexFaceAverageVal(varargin{:});
+end

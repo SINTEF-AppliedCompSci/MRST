@@ -1,11 +1,13 @@
 function f = assignSURFST(f, surfst, reg)
-f.ift = @(c, varargin) ift(c, surfst, reg, varargin{:});
+    f.ift = getFunction(surfst, reg);
 end
 
-function v = ift(c, surfst, reg, varargin)
-satinx = getRegMap(c, reg.PVTNUM, reg.PVTINX, varargin{:});
-surfst = extendTab(surfst);
-v = interpReg(surfst, c, satinx);
+function ift = getFunction(surfst, reg)
+    ift = cell(1, reg.pvt);
+    for i=1:reg.pvt
+        t = extendTab(surfst{i});
+        ift{i} = @(c, varargin) reg.interp1d(t(:,1), t(:,2), c);
+    end
 end
 
 %{

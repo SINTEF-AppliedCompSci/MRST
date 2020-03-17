@@ -32,7 +32,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         p = pressures(:, i);
         s(:, i) = solveSaturations(p, p_ref, ...
-                         region.pc_functions{i}, region.pc_sign(i),...
+                         region.pc_functions{i}, region.pc_sign(i), ...
+                         region.pc_scale(:, i), ...
                          region.s_min(:, i), region.s_max(:, i));
     end
     s(:, refIx) = 1 - sum(s, 2);
@@ -54,18 +55,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         p = pressures(bad, last);
         
         s(bad, last) = solveSaturations(p, p_ref, ...
-                         pc, 1,...
+                         pc, 1, region.pc_scale(bad, 1),...
                          region.s_min(:, last), region.s_max(:, last));
         s(bad, first)= 1 - s(bad, last);
     end
 end
 
-function s = solveSaturations(p, p_ref, pc_fn, pc_sign, s_min, s_max)
+function s = solveSaturations(p, p_ref, pc_fn, pc_sign, pc_scale, s_min, s_max)
     s = zeros(size(p));
     sat = (0:0.01:1)';
     pc = pc_sign*pc_fn(sat);
 
     dp =  p - p_ref;
+    dp = dp./pc_scale;
     toMax = dp > max(pc);
     toMin = dp <= min(pc);
     if size(s_min, 1) == 1

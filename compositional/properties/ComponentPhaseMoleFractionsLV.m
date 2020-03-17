@@ -22,10 +22,10 @@ classdef ComponentPhaseMoleFractionsLV < StateFunction
                 ncomp = numel(x) + 1;
                 nc = model.G.cells.num;
                 u = ones(nc, 1);
-                x = [{[]}, x];
-                y = [{[]}, y];
+                x = [x, {[]}];
+                y = [y, {[]}];
                 w = cell(1, ncomp);
-                w{1} = u;
+                w{end} = u;
                 v = [w', x', y'];
             else
                 v = [x', y'];

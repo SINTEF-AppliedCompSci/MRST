@@ -56,21 +56,22 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             end
             
             t1 = tic();
-            xM = model.EOSModel.getMassFraction(x);
-            yM = model.EOSModel.getMassFraction(y);
+            eos = model.EOSModel;
+            xM = eos.getMassFraction(x);
+            yM = eos.getMassFraction(y);
             report.t_massfraction = toc(t1);
             
             t2 = tic();
-            rhoL = model.PropertyModel.computeDensity(p, x, Z_L, temp, true);
-            rhoV = model.PropertyModel.computeDensity(p, y, Z_V, temp, false);
+            rhoL = model.PropertyModel.computeDensity(eos, p, x, Z_L, temp, true);
+            rhoV = model.PropertyModel.computeDensity(eos, p, y, Z_V, temp, false);
             report.t_density = toc(t2);
             
             [sL, sV] = model.EOSModel.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
             
             t3 = tic();
             if nargout > 6
-                muL = model.PropertyModel.computeViscosity(p, x, Z_L, temp, true);
-                muV = model.PropertyModel.computeViscosity(p, y, Z_V, temp, false);
+                muL = model.PropertyModel.computeViscosity(eos, p, x, Z_L, temp, true);
+                muV = model.PropertyModel.computeViscosity(eos, p, y, Z_V, temp, false);
             end
             report.t_viscosity = toc(t3);
         end
@@ -91,6 +92,7 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             wix = strcmpi(vars, 'sW');
             if any(wix)
                 state = model.updateStateFromIncrement(state, dx{wix}, problem, 'sW', inf, model.dsMaxAbs);
+                state = model.capProperty(state, 'sW', 0, 1);
                 removed(wix) = true;
                 vars = vars(~wix);
             end
@@ -122,21 +124,21 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
                     rm = rm - (z(:, i) - z0);
                 end
             end
-            
+            if model.water
+                s_hc  = 1 - state.s(:, 1);
+            else
+                s_hc = 1;
+            end
             if any(ok)
                 % We had components as active variables somehow
                 assert(nnz(~ok) == 1)
                 z(:, ~ok) = min(max(z(:, ~ok) + rm, 0), 1);
                 z = bsxfun(@rdivide, z, sum(z, 2));
                 state.components = z;
-                if model.water
-                    v  = 1 - state.s(:, 1);
-                    v0 = 1 - state0.s(:, 1);
-                else
-                    [v, v0] = deal(1);
-                end
-
-                state.dz = computeChange(z, state0.components, v, v0);
+                dz = model.computeChange(state.components - state0.components, s_hc);
+                state.dz = dz;
+            else
+                state.dz = zeros(1, ncomp);
             end
 
             % Parent class handles almost everything for us
@@ -149,27 +151,30 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
                 state.switchCount = zeros(model.G.cells.num, 1);
             end
             twoPhase0 = state.L < 1 & state.L > 0;
+            % Set minimum overall composition
+            minz = model.EOSModel.minimumComposition;
+            state.components = ensureMinimumFraction(state.components, minz);
             % Update saturations etc using flash routine
             state = model.computeFlash(state, problem.dt, problem.iterationNo);
+            % Set increments in phase compositions as well
+            dx = model.computeChange(state0.x - state.x, s_hc);
+            dy = model.computeChange(state0.y - state.y, s_hc);
+            dxy = max(dx, dy);
+            state.dz = max(state.dz, dxy);
+            
             twoPhase = state.L < 1 & state.L > 0;
             switched = twoPhase0 ~= twoPhase;
             
             dispif(model.verbose > 1, '%d gas, %d oil, %d two-phase\n', nnz(state.L == 0), nnz(state.L == 1), nnz(twoPhase));
             state.switchCount = state.switchCount + double(switched);
-            
-            minz = model.EOSModel.minimumComposition;
-            state.components = ensureMinimumFraction(state.components, minz);
+            % Set minimum phase composition
             state.x = ensureMinimumFraction(state.x, minz);
             state.y = ensureMinimumFraction(state.y, minz);
         end
     end
 end
 
-function dz = computeChange(z, z0, s, s0)
-    z_prev = bsxfun(@times, s0, z0);
-    z_curr = bsxfun(@times, s, z);
-    dz = max(abs(z_curr - z_prev), [], 1);
-end
+
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

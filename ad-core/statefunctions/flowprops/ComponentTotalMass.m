@@ -1,7 +1,7 @@
 classdef ComponentTotalMass <  StateFunction & ComponentProperty
     % The total mass of each component, given per cell
-    properties
-
+    properties (Access = protected)
+        minimumDerivatives = [];
     end
     
     methods
@@ -29,6 +29,38 @@ classdef ComponentTotalMass <  StateFunction & ComponentProperty
                         end
                     end
                 end
+            end
+            mass = prop.ensureMinimumDerivatives(mass);
+        end
+        
+        function prop = setMinimumDerivatives(prop, der)
+            if ~isa(prop.AutoDiffBackend, 'DiagonalAutoDiffBackend')
+                dispif(mrstVerbose(), 'Minimum derivatives only supported for diagonal backend.');
+                return;
+            end
+            prop.minimumDerivatives = der;
+        end
+        
+        function der = getMinimumDerivatives(prop)
+            der = prop.minimumDerivatives;
+        end
+
+        function mass = ensureMinimumDerivatives(prop, mass)
+            der = prop.minimumDerivatives;
+            if isempty(der)
+                return;
+            end
+            assert(isa(prop.AutoDiffBackend, 'DiagonalAutoDiffBackend'), ...
+                'Minimum derivatives only supported for diagonals.');
+            for c = 1:numel(mass)
+                m = mass{c};
+                if isnumeric(m) || size(m.jac{1}.diagonal, 2) < c
+                    continue
+                end
+                d = der(c);
+                bad = abs(m.jac{1}.diagonal(:, c)) < d;
+                m.jac{1}.diagonal(bad, c) = d;
+                mass{c} = m;
             end
         end
     end

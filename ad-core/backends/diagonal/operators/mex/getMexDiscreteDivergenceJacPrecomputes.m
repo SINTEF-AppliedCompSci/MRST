@@ -21,23 +21,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     G = model.G;
-    interior = false(G.faces.num, 1);
-    interior(model.operators.internalConn) = true;
-    facePos = G.cells.facePos;
-    cellNo = rldecode(1 : G.cells.num, diff(facePos), 2) .';
-    faces = G.cells.faces(:, 1);
-
-    active = interior(faces);
-
-    cellNo = cellNo(active);
-    faces = faces(active);
-
-    internal = model.operators.internalConn;
-    remap = zeros(G.faces.num, 1);
-    remap(internal) = (1:sum(internal))';
-    faces = remap(faces);
-
     N = model.operators.N;
+    if 0
+        % Use grid
+        interior = false(G.faces.num, 1);
+        interior(model.operators.internalConn) = true;
+
+        facePos = G.cells.facePos;
+        cellNo = rldecode(1 : G.cells.num, diff(facePos), 2) .';
+        faces = G.cells.faces(:, 1);
+
+        active = interior(faces);
+
+        cellNo = cellNo(active);
+        faces = faces(active);
+
+        internal = model.operators.internalConn;
+        remap = zeros(G.faces.num, 1);
+        remap(internal) = (1:sum(internal))';
+        faces = remap(faces);
+    else
+        % Use operators.N
+        f = (1:size(N, 1))';
+        pos = sortrows([[N(:, 1); N(:, 2)], [f; f]]); % Sort cell -> face maps
+        faces = pos(:, 2);
+        cellNo = pos(:, 1);
+    end
+    
     lc = N(faces, 1);
     rc = N(faces, 2);
     left = (lc ~= cellNo);

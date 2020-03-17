@@ -8,7 +8,7 @@ classdef CompositionalDensity < StateFunction
         function gp = CompositionalDensity(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
-            gp = gp.dependsOn({'pressure', 'temperature'}, 'state');
+            gp = gp.dependsOn({'pressure', 'T'}, 'state');
             gp.label = '\rho_\alpha';
         end
 
@@ -21,23 +21,24 @@ classdef CompositionalDensity < StateFunction
             L_ix = 1+model.water;
             V_ix = L_ix + 1;
             
-            x = mf((1+model.water):end, L_ix);
-            y = mf((1+model.water):end, V_ix);
-            pm = model.EOSModel.PropertyModel;
-            rhoL = pm.computeDensity(p, x, Z{L_ix}, T, true);
+            x = mf(1:end-hasWater, L_ix);
+            y = mf(1:end-hasWater, V_ix);
+            eos = model.EOSModel;
+            pm = eos.PropertyModel;
+            rhoL = pm.computeDensity(eos, p, x, Z{L_ix}, T, true);
             if prop.useCompactEvaluation
                 [~, ~, twoPhase] = model.getFlag(state);
                 if all(twoPhase)
-                    rhoV = pm.computeDensity(p, y, Z{V_ix}, T, false);
+                    rhoV = pm.computeDensity(eos, p, y, Z{V_ix}, T, false);
                 else
                     rhoV = rhoL;
                     if any(twoPhase)
                         y2ph = cellfun(@(x) x(twoPhase), y, 'UniformOutput', false);
-                        rhoV(twoPhase) = pm.computeDensity(p(twoPhase), y2ph, Z{V_ix}(twoPhase), T(twoPhase), false);
+                        rhoV(twoPhase) = pm.computeDensity(eos, p(twoPhase), y2ph, Z{V_ix}(twoPhase), T(twoPhase), false);
                     end
                 end
             else
-                rhoV = pm.computeDensity(p, y, Z{V_ix}, T, false);
+                rhoV = pm.computeDensity(eos, p, y, Z{V_ix}, T, false);
             end
             
             if hasWater

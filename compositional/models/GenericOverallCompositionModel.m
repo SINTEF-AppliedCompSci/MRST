@@ -17,12 +17,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             % Discretize
             [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
-            % Define helper variables
-            wat = model.water;
-            ncomp = numel(names);
-            n_hc = ncomp - wat;
             % Assemble equations and add in sources
-            
             [pressures, sat, mob, rho, X] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ComponentPhaseMassFractions');
             comps = cellfun(@(x, y) {x, y}, X(:, 1+model.water), X(:, 2+model.water), 'UniformOutput', false);
             
@@ -51,6 +46,9 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
         end
 
         function [state, report] = updateState(model, state, problem, dx, forces)
+            if isfield(state, 'FractionalDerivatives')
+                state = rmfield(state, 'FractionalDerivatives');
+            end
             [state, report] = updateState@OverallCompositionCompositionalModel(model, state, problem, dx, forces);
             if ~isempty(model.FacilityModel)
                 state = model.FacilityModel.applyWellLimits(state);
@@ -69,7 +67,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 f = model.EOSModel.fluid;
                 names_hc = f.names;
                 if model.water
-                    names = ['water', names_hc];
+                    names = [names_hc, 'water']; % Put water last
                 else
                     names = names_hc;
                 end
@@ -89,6 +87,10 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 end
             end
             model = validateModel@OverallCompositionCompositionalModel(model, varargin{:});
+        end
+        
+        function model = setupStateFunctionGroupings(model, varargin)
+            model = setupStateFunctionGroupings@OverallCompositionCompositionalModel(model, varargin{:});
             model.FluxDiscretization.GravityPotentialDifference.saturationWeighting = true;
         end
         
@@ -105,21 +107,21 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
         function [vars, names, origin] = getPrimaryVariables(model, state)
             % Get primary variables from state, before a possible
             % initialization as AD.'
-            [p, sW, z] = model.getProps(state, 'pressure', 'water', 'z');
+            [p, sW, z] = model.getProps(state, 'pressure', 'sW', 'z');
             z_tol = model.EOSModel.minimumComposition;
             z = ensureMinimumFraction(z, z_tol);
             z = expandMatrixToCell(z);
             cnames = model.EOSModel.fluid.names;
-            names = [{'pressure'}, cnames(1:end-1)];
-            vars = [p, z(1:end-1)];
+            names = [{'pressure'}, cnames(2:end)];
+            vars = [p, z(2:end)];
             if model.water
-                names = [names, {'water'}];
+                names = [names, {'sW'}];
                 vars = [vars, {sW}];
             end
             origin = cell(1, numel(names));
             [origin{:}] = deal(class(model));
             if ~isempty(model.FacilityModel)
-                [v, n, o] = model.FacilityModel.getPrimaryVariables(state.wellSol);
+                [v, n, o] = model.FacilityModel.getPrimaryVariables(state);
                 vars = [vars, v];
                 names = [names, n];
                 origin = [origin, o];
@@ -149,7 +151,8 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             z{fill} = z_end;
             state = model.setProp(state, 'components', z);
             if isa(state.pressure, 'ADI') || isa(z{1}, 'ADI')
-                [state.x, state.y, state.L] = model.EOSModel.getPhaseFractionAsADI(state, state.pressure, state.T, state.components);
+                [state.x, state.y, state.L, state.FractionalDerivatives] = ...
+                    model.EOSModel.getPhaseFractionAsADI(state, state.pressure, state.T, state.components);
             end
             if ~isempty(model.FacilityModel)
                 % Select facility model variables and pass them off to attached
@@ -160,7 +163,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 removed = removed | isF;
             end
             if model.water
-                isWater = strcmp(names, 'water');
+                isWater = strcmp(names, 'sW');
                 sW = vars{isWater};
                 removed(isWater) = true;
                 offset = 1;
@@ -183,11 +186,11 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             sV = volV./volT;
             
             if model.water
-                [pureLiquid, pureVapor] = model.getFlag(state);
+                [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
                 void = 1 - sW;
                 sL = sL.*void;
                 sV = sV.*void;
-                [sL, sV] = model.setMinimumTwoPhaseSaturations(state, sW, sL, sV, pureVapor, pureLiquid);
+                [sL, sV] = model.setMinimumTwoPhaseSaturations(state, sW, sL, sV, pureLiquid, pureVapor, twoPhase);
 
                 s = {sW, sL, sV};
             else

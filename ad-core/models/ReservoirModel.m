@@ -167,6 +167,7 @@ methods
     function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
         if ~isempty(drivingForces.W)
             [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
+            model.FacilityModel = model.FacilityModel.setReservoirModel(model);
         end
         if ~isempty(model.FluxDiscretization)
             [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
@@ -183,23 +184,11 @@ methods
 
         if isempty(model.FacilityModel)
             model.FacilityModel = FacilityModel(model); %#ok
-        else
-            model.FacilityModel.ReservoirModel = model;
         end
 
         assert(~isempty(model.operators),...
             'Operators must be set up before simulation. See model.setupOperators for more details.');
-        
-        if isempty(model.FlowPropertyFunctions)
-            model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
-        end
-        if isempty(model.PVTPropertyFunctions)
-            model.PVTPropertyFunctions = PVTPropertyFunctions(model); %#ok
-        end
-        if isempty(model.FluxDiscretization)
-            model.FluxDiscretization = FluxDiscretization(model); %#ok
-        end
-        
+
         if ~isempty(model.AquiferModel)
             model.AquiferModel = model.AquiferModel.validateModel(model);
         end
@@ -207,7 +196,37 @@ methods
         model.FacilityModel = model.FacilityModel.setReservoirModel(model);
         model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
     end
-
+    
+    function model = setupStateFunctionGroupings(model, varargin)
+        if isempty(model.FlowPropertyFunctions)
+            dispif(model.verbose, 'Setting up FlowPropertyFunctions...');
+            model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
+            dispif(model.verbose, ' Ok.\n');
+        end
+        if isempty(model.PVTPropertyFunctions)
+            dispif(model.verbose, 'Setting up PVTPropertyFunctions...');
+            model.PVTPropertyFunctions = PVTPropertyFunctions(model); %#ok
+            dispif(model.verbose, ' Ok.\n');
+        end
+        if isempty(model.FluxDiscretization)
+            dispif(model.verbose, 'Setting up FluxDiscretization...');
+            model.FluxDiscretization = FluxDiscretization(model); %#ok
+            dispif(model.verbose, ' Ok.\n');
+        end
+        if ~isempty(model.FacilityModel)
+            model.FacilityModel = model.FacilityModel.setupStateFunctionGroupings(varargin{:});
+        end
+    end
+    
+    function model = removeStateFunctionGroupings(model)
+        model.FlowPropertyFunctions = [];
+        model.PVTPropertyFunctions = [];
+        model.FluxDiscretization = [];
+        if ~isempty(model.FacilityModel)
+            model.FacilityModel = model.FacilityModel.removeStateFunctionGroupings();
+        end
+    end
+    
     function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin)
         if iteration == 1 && ~isempty(model.FacilityNonLinearSolver)
             nls = model.FacilityNonLinearSolver;
@@ -251,7 +270,7 @@ methods
 
         % Update the wells
         if isfield(state, 'wellSol')
-            state.wellSol = model.FacilityModel.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
+            state = model.FacilityModel.updateState(state, problem, dx, drivingForces);
         end
 
         % Update saturations in one go
@@ -330,6 +349,12 @@ methods
         % NOTE:
         %   This function is called automatically during class
         %   construction.
+        if nargin < 3
+            rock = model.rock;
+        end
+        if nargin < 2
+            G = model.G;
+        end
         model.operators = setupOperatorsTPFA(G, rock, varargin{:});
     end
 
@@ -1307,14 +1332,28 @@ methods
 
     end
 
-    function rhoS = getSurfaceDensities(model)
+    function rhoS = getSurfaceDensities(model, regions, phases)
         % Get the surface densities of the active phases in canonical
         % ordering (WOG, with any inactive phases removed).
+        % OPTIONAL INPUTS:
+        % regions - Region indicator to use for output if multiple surface
+        %           densities are present. If regions are present, the
+        %           output will have equal number of rows as the number of
+        %           entries in regions, or to the number of true entries if
+        %           it is a logical array.
+        % phases  - Index into the phases. Will only return values for
+        %           these phases.
         %
         % RETURNS:
         %   rhoS - pvt x n double array of surface densities.
         names = model.getPhaseNames();
+        if nargin > 2
+            names = names(phases);
+        end
         rhoS = value(arrayfun(@(x) model.fluid.(['rho', x, 'S'])', names, 'UniformOutput', false));
+        if nargin > 1 && size(rhoS, 1) > 1 && ~isempty(regions)
+            rhoS = rhoS(regions, :);
+        end
     end
 
     function [compEqs, compSrc, eqNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)

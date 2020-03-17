@@ -11,7 +11,7 @@ classdef TutorialProduct < StateFunction
         function v = evaluateOnDomain(tp, model, state)
             [l, r] = tp.getEvaluatedDependencies(state, tp.leftNumber, tp.rightNumber);
             fprintf('Multiplying %s and %s.\n', tp.leftNumber, tp.rightNumber);
-            v = l*r;
+            v = l.*r; % Perform element-wise multiplication
         end
     end
 end

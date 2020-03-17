@@ -23,7 +23,7 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props ...
 % The data required for the example
 % The following are all the files needed for this tutorial
 % Two files are the data for the simulation of surfactant polymer flooding.
-current_dir = fileparts(mfilename('fullpath'));
+current_dir = fullfile(mrstPath('ad-eor'), 'examples', 'surfactant-polymer');
 fn = fullfile(current_dir, 'SURFACTANTPOLYMER2D.DATA');
 gravity reset on;
 

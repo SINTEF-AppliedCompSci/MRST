@@ -9,13 +9,14 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
         porosityExponent
         permeabilityExponent
         permeabilityDirection
+        pressureUnit = 1;
     end
     
     methods
         function prop = BlackOilCapillaryPressure(model, varargin)
             prop = prop@StateFunction(model, varargin{:});
             prop = prop.dependsOn('s', 'state');
-            prop.label = 'p_{c\alpha}';
+            prop.label = 'p_{c}';
         end
         
         function pc = evaluateOnDomain(prop, model, state)
@@ -24,17 +25,10 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
             pc = cell(1, nph);
             
             f = model.fluid;
-            JfuncActiveOW = prop.scalingActive && ~isempty(prop.surfaceTensionOW);
-            JfuncActiveOG = prop.scalingActive && ~isempty(prop.surfaceTensionOG);
+            JfuncActiveOW = prop.hasJFunctionScaler('OW');
+            JfuncActiveOG = prop.hasJFunctionScaler('OG');
             if JfuncActiveOG || JfuncActiveOW
-                phi = model.rock.poro(prop.cell_subset);
-                k = model.rock.perm(prop.cell_subset, prop.permeabilityDirection);
-                k = sum(k, 2)./size(k, 2);
-                % Apply exponents
-                k = k.^prop.permeabilityExponent;
-                phi = phi.^prop.porosityExponent;
-                
-                ratio = phi./k;
+                ratio = prop.getJFunctionStaticRatio(model);
             end
 
             if model.water && model.oil && isfield(f, 'pcOW')
@@ -60,6 +54,7 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
             end
             
             if model.gas && model.oil && isfield(f, 'pcOG')
+                % Oil gas capillary pressure
                 sG = model.getProp(state, 'sg');
                 pcog = prop.evaluateFunctionOnDomainWithArguments(f.pcOG, sG);
                 if JfuncActiveOG
@@ -69,7 +64,9 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
                 pc{phInd == 3} = pcog;
             end
             if ~model.oil && isfield(f, 'pcWG')
-                pc{phInd == 2} = prop.evaluateFunctionOnDomainWithArguments(f.pcWG, sG);
+                % Water-gas capillary pressure
+                sG = model.getProp(state, 'sg');
+                pc{phInd == 3} = prop.evaluateFunctionOnDomainWithArguments(f.pcWG, sG);
             end
         end
         
@@ -83,7 +80,10 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
             property.cell_subset = subs;
         end
 
-        function prop = setJFunctionConstants(prop, poroexp, permexp, permdir)
+        function prop = setJFunctionConstants(prop, poroexp, permexp, permdir, pressureunit)
+            if nargin > 4
+                prop.pressureUnit = pressureunit;
+            end
             prop.porosityExponent = poroexp;
             prop.permeabilityExponent = permexp;
             
@@ -106,6 +106,27 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
                 otherwise
                     error('Unsupported pair %s', fluidpair);
             end
+        end
+        
+        function present = hasJFunctionScaler(prop, phasepair)
+            present = prop.scalingActive && ~isempty(prop.getSurfaceTension(phasepair));
+        end
+        
+        function st = getSurfaceTension(prop, phasepair)
+            nm = ['surfaceTension', upper(phasepair)];
+            st = prop.(nm);
+        end
+        
+        
+        function ratio = getJFunctionStaticRatio(prop, model)
+            phi = model.rock.poro(prop.cell_subset);
+            k = model.rock.perm(prop.cell_subset, prop.permeabilityDirection);
+            k = sum(k, 2)./size(k, 2);
+            % Apply exponents
+            k = k.^prop.permeabilityExponent;
+            phi = phi.^prop.porosityExponent;
+            ratio = phi./k;
+            ratio = ratio./prop.pressureUnit; % Account for unit for table
         end
         
     end

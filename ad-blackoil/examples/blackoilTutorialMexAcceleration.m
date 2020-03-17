@@ -63,8 +63,7 @@ testMexDiagonalOperators(model, 'block_size', 3);
 
 ncomp = model.getNumberOfComponents();
 solver = AMGCL_CPRSolverAD('tolerance', 1e-3, 'block_size', ncomp, ...
-                            'useSYMRCMOrdering', true, ...
-                            'coarsening', 'aggregation', 'relaxation', 'ilu0');
+                           'coarsening', 'aggregation', 'relaxation', 'ilu0');
 
 nls = NonLinearSolver('LinearSolver', solver);
 %% Set up initial state
@@ -79,9 +78,11 @@ plotWell(G, W);
 title('Initial saturations');
 %% Run a serial simulation
 maxNumCompThreads(1)
+solver.amgcl_setup.nthreads = 1; % Specify single-thread manually
 [ws0, states0, rep0] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nls);
 %% Run a parallel simulation with four threads
 maxNumCompThreads(4)
+solver.amgcl_setup.nthreads = 4; % Specify threads manually
 [ws, states, rep] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nls);
 % Reset max number of threads
 N = maxNumCompThreads('automatic');

@@ -9,7 +9,7 @@ classdef WellIndex < StateFunction
         function gp = WellIndex(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn('FacilityWellMapping');
-            gp.label = 'WI';
+            gp.label = 'W_I';
         end
         function WI = evaluateOnDomain(prop, model, state)
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');

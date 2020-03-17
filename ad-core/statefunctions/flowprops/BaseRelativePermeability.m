@@ -7,10 +7,13 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
     end
 
     methods
-        function gp = BaseRelativePermeability(varargin)
-            gp@StateFunction(varargin{:});
-            gp = gp.dependsOn({'s', 'sMax'}, 'state');
+        function gp = BaseRelativePermeability(model, varargin)
+            gp@StateFunction(model, varargin{:});
+            gp = gp.dependsOn({'s'}, 'state');
             gp.label = 'k_\alpha';
+            if isfield(model.fluid, 'ehystr')
+                warning('Hysteresis is not supported by %s', class(gp));
+            end
         end
 
         function kr = evaluateOnDomain(prop, model, state)

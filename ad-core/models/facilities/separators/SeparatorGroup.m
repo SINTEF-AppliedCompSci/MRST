@@ -57,8 +57,8 @@ classdef SeparatorGroup
                         end
                     end
                     if hasWater
-                        waterMass = componentMassRates{1};
-                        streamMole = streamMole(2:end);
+                        waterMass = componentMassRates{end};
+                        streamMole = streamMole(1:end-1);
                     end
 
                     [surfaceRates, ~, phaseMoleFractions, molarDensity] = sg.computeSurfaceRates(model, streamMole);

@@ -7,7 +7,7 @@ classdef ComponentPhaseMass < StateFunction & ComponentProperty
     methods
         function gp = ComponentPhaseMass(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp@ComponentProperty(model);
+            gp@ComponentProperty(model, 'getComponentMass');
             gp.label = 'M_{i,\alpha}';
         end
         function v = evaluateOnDomain(prop, model, state)

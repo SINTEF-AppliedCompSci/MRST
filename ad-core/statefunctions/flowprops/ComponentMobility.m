@@ -7,7 +7,7 @@ classdef ComponentMobility < StateFunction & ComponentProperty
     methods
         function gp = ComponentMobility(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp@ComponentProperty(model);
+            gp@ComponentProperty(model, 'getComponentMobility');
             gp.label = '\lambda_{i, \alpha}';
         end
         function v = evaluateOnDomain(prop, model, state)

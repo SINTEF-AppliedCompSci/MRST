@@ -1,18 +1,4 @@
-%% Set up a compositional test model
-mrstModule add ad-core ad-props compositional
-G = cartGrid([200, 200, 1]);
-G = computeGeometry(G);
-cmodel = GenericOverallCompositionModel(G, makeRock(G, 1, 1), initSimpleADIFluid(), getCompositionalFluidCase('spe5'));
-cmodel.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true);
-cmodel = cmodel.validateModel();
-%% Repeated calls will be faster, as values are acached
-statec = initCompositionalState(G, 10*barsa,  273.15 + 30, [0.3, 0.4, 0.3], rand(1, 6), cmodel.EOSModel);
-stateAD = cmodel.validateState(statec);
-stateAD = cmodel.getStateAD(stateAD);
-
-fprintf('First evaluation: '); tic(); rho = cmodel.getProp(stateAD, 'Density'); toc();
-fprintf('Second evaluation: '); tic(); rho = cmodel.getProp(stateAD, 'Density'); toc();
-
+mrstModule add ad-core
 %% Conceptual example
 group = StateFunctionGrouping('mystorage'); % Store in state.mystorage
 % Set the numbers
@@ -42,10 +28,14 @@ G = group.get([], state, 'G'); % First call, triggers execution
 disp(state.mystorage)
 disp('Second call:')
 G = group.get([], state, 'G') % Second call, cached
-
-%%
+%% Partial caching
 clc
 state = group.initStateFunctionContainer(state0);
 xy = group.get([], state, 'XY'); % First call, triggers execution
-%%
 G = group.get([], state, 'G'); % Second call, cached
+%% Dependency checking
+mrstVerbose on; % Print missing dependencies
+group.checkDependencies();
+%% Add an unmet dependency
+group = group.setStateFunction('F', TutorialProduct('X', 'Z'));
+ok = group.checkDependencies();

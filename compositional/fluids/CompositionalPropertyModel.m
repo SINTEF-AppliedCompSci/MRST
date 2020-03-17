@@ -1,13 +1,14 @@
 classdef CompositionalPropertyModel < PropertyModel
     % Property model for compositional models
     properties
+        volumeShift
     end
     
     methods
         function model = CompositionalPropertyModel(varargin)
             model = model@PropertyModel(varargin{:});
         end
-        function rho = computeDensity(model, p, x, Z, T, isLiquid)
+        function rho = computeDensity(model, EOS, p, x, Z, T, isLiquid)
             % Predict mass density from EOS Z-factor
             ncomp = numel(model.fluid.names);
             M = 0;
@@ -18,17 +19,35 @@ classdef CompositionalPropertyModel < PropertyModel
             else
                 M = sum(bsxfun(@times, x, model.fluid.molarMass), 2);
             end
-            R = 8.3144598;
-            rho = p.*M./(R.*T.*Z);
+            rho = model.computeMolarDensity(EOS, p, x, Z, T, isLiquid);
+            rho = rho.*M;
         end
         
-        function rho = computeMolarDensity(model, p, x, Z, T, isLiquid)
+        function rho = computeMolarDensity(model, EOS, p, x, Z, T, isLiquid)
             % Predict molar density from EOS Z-factor
             R = 8.3144598;
-            rho = p./(R.*T.*Z);
+            V = (R.*T.*Z)./p;
+            if ~isempty(model.volumeShift)
+                shift = reshape(model.volumeShift, 1, []);
+                Tc = model.fluid.Tcrit;
+                Pc = model.fluid.Pcrit;
+                
+                beta = EOS.omegaB.*R.*Tc./Pc;
+                factors = shift.*beta;
+                if iscell(x)
+                    corr = 0;
+                    for i = 1:numel(x)
+                        corr = corr + factors(i).*x{i};
+                    end
+                else
+                    corr = sum(bsxfun(@times, factors, x), 2);
+                end
+                V = V - corr;
+            end
+            rho = 1./V;
         end
         
-        function mu = computeViscosity(model, P, x, Z, T, isLiquid)
+        function mu = computeViscosity(model, eos, P, x, Z, T, isLiquid)
             % Compute viscosity using the Lohrenz, Bray and Clark
             % correlation for hydrocarbon mixtures (LBC viscosity)
             if ~iscell(x)
@@ -37,7 +56,7 @@ classdef CompositionalPropertyModel < PropertyModel
             ncomp = numel(x);
             molfactor = 1/gram;
             
-            rho = model.computeMolarDensity(P, x, Z, T, isLiquid);
+            rho = model.computeMolarDensity(eos, P, x, Z, T, isLiquid);
             
             % We first compute an estimated low pressure (surface)
             % viscosity for the mixture

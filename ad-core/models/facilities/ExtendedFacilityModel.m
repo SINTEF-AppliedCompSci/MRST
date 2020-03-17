@@ -4,6 +4,7 @@ classdef ExtendedFacilityModel < FacilityModel
         pressure = 101.325*kilo*Pascal; % Metric standard pressure
         SeparatorGroup
         outputFluxes = true;
+        doPostUpdate
     end
     
     methods
@@ -78,10 +79,30 @@ classdef ExtendedFacilityModel < FacilityModel
         function [eqs, names, types, state] = getModelEquations(facility, state0, state, dt, drivingForces)
             model = facility.ReservoirModel;
             map = facility.getProps(state, 'FacilityWellMapping');
-            varNone = strcmpi(facility.primaryVariableSet, 'none');
+            primary_choice = facility.primaryVariableSet;
+            varNone = strcmpi(primary_choice, 'none');
             if isempty(map.W) || varNone
                 [eqs, names, types] = deal({});
                 return
+            end
+            if strcmpi(primary_choice, 'explicit')
+                nph = model.getNumberOfPhases();
+                ph = model.getPhaseNames();
+                q_s = state.FacilityState.primaryVariables(1:nph);
+                bh = state.FacilityState.primaryVariables{end};
+                
+                [bhp] = facility.getProps(state, 'BottomHolePressure');
+                [surfaceRates] = facility.getSurfaceRates(state);
+                [eqs, names, types] = deal(cell(1, nph+1));
+                eqs{end} = bhp - bh;
+                names{end} = 'bh closure';
+                types{end} = 'well';
+                for i = 1:nph
+                    eqs{i} = surfaceRates{i} - q_s{i};
+                    names{i} = sprintf('q%s', ph(i));
+                    types{i} = 'well';
+                end
+                return;
             end
             nph = model.getNumberOfPhases();
             wsum = map.perforationSum;
@@ -94,56 +115,58 @@ classdef ExtendedFacilityModel < FacilityModel
             rhoScale = bsxfun(@rdivide, value(rhoS), mean(rhoR, 1));
             % One equation for each phase corresponding to the volumetric
             % rate at surface conditions
-            separateRates = strcmpi(facility.primaryVariableSet, 'standard');
             [sn, phnames] = model.getPhaseNames();
-            if separateRates
-                % This is a temporary hack!
-                q_s = state.FacilityState.primaryVariables(1:nph);
-                [eqs, names, types] = deal(cell(1, nph+1));
-                for ph = 1:nph
-                    eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(ph);
-                    names{ph} = [phnames{ph}, 'Wells'];
-                    types{ph} = 'perf';
-                end
-                targetRates = q_s;
-                ctrl_index = nph+1;
-            else
-                varBHP = strcmpi(facility.primaryVariableSet, 'bhp');
-                varMF = strcmpi(facility.primaryVariableSet, 'bhp_massfractions');
-                assert(varBHP || varMF || varNone);
-                % We need to actually store the surface rates in wellSol
-                % here, since there are no corresponding primary variables
-                if varMF
-                    massFractions = state.FacilityState.massfractions;
-                    cnames = model.getComponentNames();
-                    componentSources = facility.getProps(state, 'ComponentTotalFlux');
-                    ncomp = model.getNumberOfComponents();
-                    [eqs, names, types] = deal(cell(1, ncomp));
-                    total = 0;
-                    for i = 1:ncomp
-                        componentSources{i} = map.perforationSum*componentSources{i};
-                        total = total + componentSources{i};
+            switch lower(primary_choice)
+                case 'standard'
+                    % This is a temporary hack!
+                    q_s = state.FacilityState.primaryVariables(1:nph);
+                    [eqs, names, types] = deal(cell(1, nph+1));
+                    for ph = 1:nph
+                        eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(:, ph);
+                        names{ph} = [phnames{ph}, 'Wells'];
+                        types{ph} = 'perf';
                     end
-                    for i = 1:ncomp-1
-                        eqs{i+1} = massFractions{i} - componentSources{i}./total;
-                        names{i+1} = ['well_', cnames{i}];
-                        types{i+1} = 'wellcomposition';
+                    targetRates = q_s;
+                    ctrl_index = nph+1;
+                case {'bhp_massfractions', 'bhp'}
+                    varBHP = strcmpi(facility.primaryVariableSet, 'bhp');
+                    varMF = strcmpi(facility.primaryVariableSet, 'bhp_massfractions');
+                    assert(varBHP || varMF || varNone);
+                    % We need to actually store the surface rates in wellSol
+                    % here, since there are no corresponding primary variables
+                    if varMF
+                        massFractions = state.FacilityState.massfractions;
+                        cnames = model.getComponentNames();
+                        componentSources = facility.getProps(state, 'ComponentTotalFlux');
+                        ncomp = model.getNumberOfComponents();
+                        [eqs, names, types] = deal(cell(1, ncomp));
+                        total = 0;
+                        for i = 1:ncomp
+                            componentSources{i} = map.perforationSum*componentSources{i};
+                            total = total + componentSources{i};
+                        end
+                        for i = 1:ncomp-1
+                            eqs{i+1} = massFractions{i} - componentSources{i}./total;
+                            names{i+1} = ['well_', cnames{i}];
+                            types{i+1} = 'wellcomposition';
+                        end
+                    elseif varBHP
+                        % Just BHP
+                        [eqs, names, types] = deal(cell(1, 1));
                     end
-                elseif varBHP
-                    % Just BHP
-                    [eqs, names, types] = deal(cell(1, 1));
-                end
-                ctrl_index = 1;
-                targetRates = surfaceRates;
-                qSurf = value(surfaceRates);
-                for ph = 1:numel(sn)
-                    fld = ['q', sn(ph), 's'];
-                    for i = 1:numel(map.active)
-                        ix = map.active(i);
-                        state.wellSol(ix).(fld) = qSurf(i, ph);
+                    ctrl_index = 1;
+                    targetRates = surfaceRates;
+                    qSurf = value(surfaceRates);
+                    for ph = 1:numel(sn)
+                        fld = ['q', sn(ph), 's'];
+                        for i = 1:numel(map.active)
+                            ix = map.active(i);
+                            state.wellSol(ix).(fld) = qSurf(i, ph);
+                        end
                     end
-                end
-                clear qSurf;
+                    clear qSurf;
+                otherwise
+                    error('Unknown variable set for facility %s', facility.primaryVariableSet);
             end
             % Set up AD for control equations
             nact = numel(map.active);
@@ -212,14 +235,10 @@ classdef ExtendedFacilityModel < FacilityModel
 
             % Zero surface rate conditions
             wsign = vertcat(map.W.sign);
-            % resv_value = value(resv_rates);
             surface_value = value(wrates);
             
             zeroTarget = targets == 0 & (is_surface_control | is_resv);
-            % zeroSurface = (is_surface_control & sign(surface_value) ~= wsign & wsign ~= 0);
-            % zeroRESV = (is_resv & sign(resv_value) ~= wsign & wsign ~= 0);
             zeroBHP = (is_bhp & sign(surface_value) ~= wsign & wsign ~= 0 & surface_value ~= 0);
-%             zeroRates = zeroTarget | zeroSurface | zeroRESV | zeroBHP;
             zeroRates = zeroTarget | zeroBHP;
             if any(zeroRates)
                 q_t = 0;
@@ -256,12 +275,39 @@ classdef ExtendedFacilityModel < FacilityModel
         end
 
         function model = validateModel(model, varargin)
+            if isempty(model.doPostUpdate)
+                model.doPostUpdate = strcmpi(model.primaryVariableSet, 'none');
+            end
             model = validateModel@FacilityModel(model, varargin{:});
         end
 
         function [model, state] = prepareReportstep(model, state, state0, dt, drivingForces)
             [model, state] = prepareReportstep@FacilityModel(model, state, state0, dt, drivingForces);
             [model, state] = model.updateRESVControls(state, state0);
+        end
+        
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            % Update state.
+            %
+            % SEE ALSO:
+            %   :meth:`ad_core.models.PhysicalModel.updateState`
+
+            [state, report] = updateState@FacilityModel(model, state, problem, dx, drivingForces);
+            if model.doPostUpdate
+                [surfaceRates, surfaceDensity] = model.getSurfaceRates(state);
+                bhp = model.getProp(state, 'BottomHolePressure');
+                
+                names = model.ReservoirModel.getPhaseNames();
+                map = model.getProp(state, 'FacilityWellMapping');
+                actIx = find(map.active);
+                for j = 1:numel(actIx)
+                    ix = actIx(j);
+                    state.wellSol(ix).bhp = bhp(j);
+                    for i = 1:numel(surfaceRates)
+                        state.wellSol(ix).(['q', names(i), 's']) = surfaceRates{i}(j);
+                    end
+                end
+            end
         end
         
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
@@ -276,7 +322,8 @@ classdef ExtendedFacilityModel < FacilityModel
                 rho = rho(wc, :);
                 % Use mobility in well-cells if no connection fluxes are
                 % available (typically first step for well)
-                if ~isfield(wellSol(1), 'ComponentTotalFlux') || any(arrayfun(@(x) ~any(x.ComponentTotalFlux(:)), wellSol))
+                if ~isfield(wellSol(1), 'ComponentTotalFlux') || ...
+                    any(arrayfun(@(x) sum(sum(abs((x.ComponentTotalFlux)))) < 1e-20, wellSol))
                     mob = model.ReservoirModel.getProps(state, 'Mobility');
                     mob = [mob{:}];
                     mob = mob(wc,:);
@@ -345,9 +392,10 @@ classdef ExtendedFacilityModel < FacilityModel
         
         function containers = getStateFunctionGroupings(model)
             containers = getStateFunctionGroupings@PhysicalModel(model);
-            assert(not(isempty(model.FacilityFluxDiscretization)), ...
-                'FacilityFluxDiscretization not initialized - did you call "validateModel"?');
-            containers = [containers, {model.FacilityFluxDiscretization}];
+            ffd = model.FacilityFluxDiscretization;
+            if ~isempty(ffd)
+                containers = [containers, {ffd}];
+            end
         end
         
         function [p, T] = getSurfaceConditions(fm)

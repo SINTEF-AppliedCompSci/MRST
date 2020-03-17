@@ -1,53 +1,36 @@
-classdef ComponentImplementation
-    % Base class for all component class instances
+classdef GenericComponent < StateFunctionDependent
+    % The base class that implements all interfaces for a given component.
+    % The helper class provides a number of utility functions that
+    % determine the mobility, total mass and composition at different
+    % conditions.
     properties
         name
-        dependencies = {};
         externals = [];
         molarMass = 1;
     end
     
     methods
-        function c = ComponentImplementation(name)
+        function c = GenericComponent(name)
             c.name = name;
             % Document dependencies internal to grouping
-            c = c.dependsOn({'Mobility'});
+            c = c.functionDependsOn('getComponentMobility', {'Mobility'});
+            c = c.functionDependsOn('getComponentMobility', {'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
             % State dependencies
-            c = c.dependsOn('s', 'state');
-            c = c.dependsOn({'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMass', {'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMass', 's', 'state');
         end
         
-        function c = getComponentDensity(component, model, state)
-            % Density of component in each phase
-            nph = model.getNumberOfPhases();
-            c = cell(nph, 1);
-        end
-
-        function c = getPhaseComponentFractionWell(component, model, state, W)
-            % Get composition of phases in well (on injection)
-            nph = model.getNumberOfPhases();
-            c = cell(nph, 1);
-        end
-        
-        function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
-            % Surface compositon
-            nph = model.getNumberOfPhases();
-            c = cell(nph, 1);
-        end
-        
-        function c = getPurePhaseDensitySurface(component, model, state, pressure, temperature)
-            % Surface density, for a pure component
-            nph = model.getNumberOfPhases();
-            c = cell(nph, 1);
-        end
-
         function c = getPhaseComposition(component, model, state)
-            % Density of component in each phase. Default implementation
+            % Mass fraction of component in each phase. Default implementation
             % goes via the component density and total density and assumes
             % these are internally consistent.
-            c = component.getComponentDensity(model);
+            c = component.getComponentDensity(model, state);
             rho = model.getProp(state, 'Density');
-            c = cellfun(@rdivide, c, rho, 'UniformOutput', false);
+            for ph = 1:numel(c)
+                if ~isempty(c{ph})
+                    c{ph} = c{ph}./rho{ph};
+                end
+            end
         end
         
         function mass = getComponentMass(component, model, state, varargin)
@@ -66,7 +49,9 @@ classdef ComponentImplementation
         end
         
         function cmob = getComponentMobility(component, model, state, varargin)
-            % Product of mobility and component phase density
+            % The amount of mobile mass in the cell. For most models, this
+            % is just the mobility multiplied with the component density in
+            % the cell.
             mass = component.getComponentDensity(model, state, varargin{:});
             mob = model.getProp(state, 'Mobility');
             
@@ -78,11 +63,33 @@ classdef ComponentImplementation
                 end
             end
         end
-
-        function prop = dependsOn(prop, varargin)
-            % Document dependencies and external dependencies
-            prop = addPropertyDependence(prop, varargin{:});
+        
+        function c = getComponentDensity(component, model, state)
+            % Density of component in each phase (mass per unit of volume)
+            nph = model.getNumberOfPhases();
+            c = cell(nph, 1);
         end
+
+        function c = getPurePhaseDensitySurface(component, model, state, pressure, temperature)
+            % Density of component in each phase at surface conditions
+            nph = model.getNumberOfPhases();
+            c = cell(nph, 1);
+        end
+        
+        function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
+            % Mass fraction of the component in each phase at surface
+            % conditions (specified with pressure and temperature)
+            nph = model.getNumberOfPhases();
+            c = cell(nph, 1);
+        end
+        
+        function c = getPhaseComponentFractionInjection(component, model, state, force)
+            % Get the fraction of the component in each phase (when
+            % injecting from outside the domain)
+            nph = model.getNumberOfPhases();
+            c = cell(nph, 1);
+        end
+
     end
 end
 

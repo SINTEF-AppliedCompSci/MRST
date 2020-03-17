@@ -13,7 +13,7 @@ classdef BlackOilPropertyModel < PropertyModel
             model.viscosityFunctions = mu;
             model.checkStabilityFunction = satfn;
         end
-        function rho = computeDensity(model, p, x, Z, T, isLiquid)
+        function rho = computeDensity(model, eos, p, x, Z, T, isLiquid)
             if isLiquid
                 ix = 1;
             else
@@ -23,12 +23,12 @@ classdef BlackOilPropertyModel < PropertyModel
             rho = model.densityFunctions{ix}(p, T, x);
         end
         
-        function rho = computeMolarDensity(model, p, x, Z, T, isLiquid)
+        function rho = computeMolarDensity(model, eos, p, x, Z, T, isLiquid)
             x = expandMatrixToCell(x);
-            rho = model.computeDensity(p, x, Z, T, isLiquid);
+            rho = model.computeDensity(eos, p, x, Z, T, isLiquid);
         end
         
-        function mu = computeViscosity(model, P, x, Z, T, isLiquid)
+        function mu = computeViscosity(model, eos, P, x, Z, T, isLiquid)
             if isLiquid
                 ix = 1;
             else

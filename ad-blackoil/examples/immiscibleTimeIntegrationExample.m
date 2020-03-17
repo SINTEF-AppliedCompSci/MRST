@@ -8,10 +8,15 @@ x = G.cells.centroids/L;
 
 poro = repmat(0.5, G.cells.num, 1);
 %%
-poro(x > 0.2 & x < 0.3) = 0.05;
-poro(x > 0.7 & x < 0.8) = 0.05;
-poro(x > 0.45 & x < 0.55) = 0.1;
-
+A = [0.20, 0.30, 0.05];
+B = [0.45, 0.55, 0.1];
+C = [0.70, 0.80, 0.05];
+regs = {A, B, C};
+nreg = numel(regs);
+for i = 1:nreg
+    R = regs{i};
+    poro(x > R(1) & x < R(2)) = R(3);
+end
 rock = makeRock(G, 1*darcy, poro);
 
 close all
@@ -44,8 +49,12 @@ implicit = packSimulationProblem(state0, model, schedule, 'immiscible_time', 'Na
 %% Explicit solver
 % This solver has a time-step restriction based on the CFL condition in
 % each cell. The solver estimates the time-step before each solution.
-model_explicit = setTimeDiscretization(model, 'explicit', 'verbose', true);
+model_explicit = setTimeDiscretization(model, 'explicit', 'verbose', 2);
 explicit = packSimulationProblem(state0, model_explicit, schedule, 'immiscible_time', 'Name', 'Explicit');
+
+fsb = model_explicit.FluxDiscretization.getFlowStateBuilder();
+disp(fsb)
+
 
 %% Adaptive implicit
 % We can solve some cells implicitly and some cells explicitly based on the
@@ -53,8 +62,8 @@ explicit = packSimulationProblem(state0, model_explicit, schedule, 'immiscible_t
 % treatment far away from wells or driving forces. The values for
 % estimated composition CFL and saturation CFL to trigger a switch to
 % implicit status can be adjusted.
-model_aim = setTimeDiscretization(model, 'adaptive-implicit', 'verbose', true);
-aim = packSimulationProblem(state0, model_aim, schedule, 'immiscible_time', 'Name', 'Adaptive-Implicit (AIM)');
+model_aim = setTimeDiscretization(model, 'adaptive-implicit', 'verbose', 2);
+aim = packSimulationProblem(state0, model_aim, schedule, 'immiscible_time', 'Name', 'AIM');
 %% Make an explicit solver with larger CFL limit
 % Since the equation is linear, we can set the NonLinearSolver to use a
 % single step. We bypass the convergence checks and can demonstrate the
@@ -65,7 +74,7 @@ model_explicit_largedt = setTimeDiscretization(model, 'explicit', 'verbose', tru
     'compositionCFL', inf); % Immiscible, saturation cfl is enough
 
 model_explicit_largedt.stepFunctionIsLinear = true; 
-explicit_largedt = packSimulationProblem(state0, model_explicit_largedt, schedule, 'immiscible_time', 'Name', 'Explicit (CFL target 5)');
+explicit_largedt = packSimulationProblem(state0, model_explicit_largedt, schedule, 'immiscible_time', 'Name', 'Explicit (CFL>1)');
 
 %% Simulate the problems
 problems = {implicit, explicit, aim, explicit_largedt};
@@ -76,6 +85,7 @@ simulatePackedProblem(problems, 'continueOnError', false);
 [ws, states, reports, names, T] = getMultiplePackedSimulatorOutputs(problems);
 %% Plot the results
 % Note oscillations for CFL > 1.
+model = model.setupStateFunctionGroupings();
 figure(1);
 for stepNo = 1:numel(schedule.step.val)
     clf; 
@@ -96,6 +106,34 @@ for stepNo = 1:numel(schedule.step.val)
     legend('Porosity', 'CFL', 'CFL stable limit');
     drawnow
 end
+%%
+ns = numel(states);
+model = model.setupStateFunctionGroupings();
+figure(1);
+for stepNo = 1:numel(schedule.step.val)
+    clf; hold on
+    for r = 1:nreg
+        R = regs{r};
+        x1 = L*R(1);
+        x2 = L*R(2);
+        patch([x1, x1, x2, x2], [0, 1, 1, 0], 'k', 'FaceAlpha', .1);
+        text((x1 + x2)/2, 0.8, sprintf('\\phi = %1.2f', R(3)),'HorizontalAlignment', 'center', 'FontSize', 14)
+    end
+    h = nan(ns, 1);
+    for j = 1:ns
+        if j == 1
+            st = '--';
+            lw = 2;
+        else
+            st = '-';
+            lw = 1;
+        end
+        h(j) = plotCellData(G, states{j}{stepNo}.s(:, 1), 'LineStyle', st, 'LineWidth', lw);
+    end
+    legend(h, names);
+    drawnow
+end
+
 %% Plot the fraction of cells which are implicit
 imp_frac = cellfun(@(x) sum(x.implicit)/numel(x.implicit), states{3});
 figure;

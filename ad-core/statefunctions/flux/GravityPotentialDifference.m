@@ -1,7 +1,8 @@
 classdef GravityPotentialDifference < StateFunction
     % Difference in phase potential over a face due to gravity
     properties
-        saturationWeighting = false;
+        saturationWeighting = false; % Use saturation-weighted density for average
+        weight = []; % Optional weighting matrix for gravity
     end
     
     methods
@@ -34,6 +35,12 @@ classdef GravityPotentialDifference < StateFunction
                 end
             else
                 [gRhoDz{:}] = deal(gdz);
+            end
+            w = prop.weight;
+            if ~isempty(w)
+                for i = 1:numel(gRhoDz)
+                    gRhoDz{i} = w*gRhoDz{i};
+                end
             end
         end
     end

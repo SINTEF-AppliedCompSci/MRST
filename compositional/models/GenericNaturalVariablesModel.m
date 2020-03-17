@@ -91,7 +91,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 f = model.EOSModel.fluid;
                 names_hc = f.names;
                 if model.water
-                    names = ['water', names_hc];
+                    names = [names_hc, 'water'];
                 else
                     names = names_hc;
                 end
@@ -111,6 +111,10 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 end
             end
             model = validateModel@NaturalVariablesCompositionalModel(model, varargin{:});
+        end
+        
+        function model = setupStateFunctionGroupings(model, varargin)
+            model = setupStateFunctionGroupings@NaturalVariablesCompositionalModel(model, varargin{:});
             model.FluxDiscretization.GravityPotentialDifference.saturationWeighting = true;
         end
         
@@ -171,7 +175,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             end
 
             if not(isempty(model.FacilityModel))
-                [v, n, o] = model.FacilityModel.getPrimaryVariables(state.wellSol);
+                [v, n, o] = model.FacilityModel.getPrimaryVariables(state);
             else
                 [v, n, o] = deal({});
             end
@@ -255,7 +259,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                 is_sw = strcmp(names, 'satw');
                 sW = vars{is_sw};
                 
-                [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureVapor, pureLiquid);
+                [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureLiquid, pureVapor);
                 removed(is_sw) = true;
                 sat = {sW, sO, sG};
             else

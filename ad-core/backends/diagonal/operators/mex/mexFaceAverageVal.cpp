@@ -15,8 +15,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		  int nrhs, const mxArray *prhs[] )
      
 { 
-    // In: value (nc x m), N (nf x 2)
-    // Out: nf gradient
+    // In: Cell value (nc x d), N (nf x 2)
+    // Out: Face value of (nf x d)
     if (nrhs != 2) { 
 	    mexErrMsgTxt("2 input arguments required."); 
     } else if (nlhs > 1) {
@@ -25,29 +25,18 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double * value = mxGetPr(prhs[0]);
     double * N = mxGetPr(prhs[1]);
 
+    int dim = mxGetN(prhs[0]);
     int nc = mxGetM(prhs[0]);
     int nf = mxGetM(prhs[1]);
-    int m = mxGetN(prhs[0]);
-        
-    plhs[0] = mxCreateDoubleMatrix(nf, m, mxREAL);
+    plhs[0] = mxCreateDoubleMatrix(nf, dim, mxREAL);
     double * result = mxGetPr(plhs[0]);
-
-    #ifdef _MSC_VER
-        #pragma omp parallel for schedule(static)
-    #else
-        #pragma omp parallel for collapse(2)
-    #endif
-    for(int j=0;j<m;j++){
-        for(int i=0;i<2*nf;i++){
-            int cell_inx = N[i]-1;
-            double v = value[cell_inx +  j*nc];
-            if(i<nf){
-                #pragma omp atomic
-                result[i + j*nf] -= v;
-            }else{
-                #pragma omp atomic
-                result[i%nf + j*nf] += v;
-            }
+    
+    #pragma omp parallel for schedule(static)
+    for(int i=0;i<nf;i++){
+        int left = N[i] - 1;
+        int right = N[i + nf] - 1;
+        for(int j =0; j<dim; j++){
+            result[i+nf*j] = 0.5*(value[left + nc*j] + value[right + nc * j]);
         }
     }
     return;

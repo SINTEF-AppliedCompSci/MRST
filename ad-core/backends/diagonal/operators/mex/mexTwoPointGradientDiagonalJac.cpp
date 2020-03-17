@@ -12,21 +12,13 @@
 
 template <int m>
 void gradientJac(const int nf, const int nc, const double * diagonal, const double * N, double * result){
-    #ifdef _MSC_VER
-        #pragma omp parallel for
-    #else
-        #pragma omp parallel for collapse(2)
-    #endif
-    for(int j=0;j<m;j++){
-        for(int i=0;i<2*nf;i++){
-            int sgn;
-            int cell_inx = N[i]-1;
-            if(i<nf){
-                sgn = -1;
-            }else{
-                sgn = 1;
-            }
-            result[j*2*nf + i] = sgn*diagonal[nc*j + cell_inx];
+    #pragma omp parallel for
+    for (int i = 0; i < nf; i++) {
+        int left = N[i] - 1;
+        int right = N[i + nf] - 1;
+        for (int j = 0; j < m; j++) {
+            result[j * nf + i]      = -diagonal[nc * j + left];
+            result[j * nf + i + m*nf] =  diagonal[nc * j + right];
         }
     }
     return;
@@ -37,7 +29,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
      
 { 
     // In: diagonal (nc x m), N (nf x 2)
-    // Out: Face diagonal of (2*nf x m)
+    // Out: Face diagonal of (nf x 2*m)
     if (nrhs != 2) { 
 	    mexErrMsgTxt("2 input arguments required."); 
     } else if (nlhs > 1) {
@@ -52,7 +44,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     // mexPrintf("%d cells with %d faces and %d derivatives \n", nc, nf, m);
     
-    plhs[0] = mxCreateDoubleMatrix(2*nf, m, mxREAL);
+    plhs[0] = mxCreateDoubleMatrix(nf, 2*m, mxREAL);
     double * result = mxGetPr(plhs[0]);
     switch (m){
             case 1:

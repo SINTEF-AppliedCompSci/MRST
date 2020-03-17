@@ -10,19 +10,17 @@ classdef PolymerAdsorption < StateFunction
 
         function ads = evaluateOnDomain(prop, model, state)
             [cp, cpmax] = model.getProps(state, 'polymer', 'polymermax');
-            fluid = model.fluid;
-            ads  = effads(cp, cpmax, fluid);
+            f = model.fluid;
+            if f.adsInx == 2
+                ce = max(cp, cpmax);
+            else
+                ce = cp;
+            end
+            ads = prop.evaluateFunctionOnDomainWithArguments(f.ads, ce);
         end
     end
 end
 
-function y = effads(cp, cpmax, f)
-   if f.adsInx == 2
-      y = f.ads(max(cp, cpmax));
-   else
-      y = f.ads(cp);
-   end
-end
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

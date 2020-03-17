@@ -1,4 +1,8 @@
 classdef OilComponent < ImmiscibleComponent
+    % A black-oil component description of the oil type, which modifies the
+    % immiscible implementation to account for parts of the oil component
+    % vaporizing into the gaseous phase (if vapoil is present) and that the
+    % oil density can be modified by dissolved gas (if disgas is present)
     properties
         disgas
         vapoil
@@ -9,31 +13,30 @@ classdef OilComponent < ImmiscibleComponent
             c@ImmiscibleComponent(name, gasIndex);
             c.disgas = disgas;
             c.vapoil = vapoil;
-            c = c.dependsOn('ShrinkageFactors', 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentDensity', 'ShrinkageFactors', 'PVTPropertyFunctions');
             if vapoil
-                c = c.dependsOn('rv', 'state');
+                c = c.functionDependsOn('getComponentDensity', 'rv', 'state');
             end
+        end
+        
+        function c = getPhaseComposition(component, model, state, varargin)
+            c = getPhaseComposition@ComponentImplementation(component, model, state, varargin{:});
         end
         
         function c = getComponentDensity(component, model, state)
             c = getComponentDensity@ImmiscibleComponent(component, model, state);
-            if component.disgas || component.vapoil
-                phasenames = model.getPhaseNames();
-                gix = phasenames == 'G';
-                oix = phasenames == 'O';
+            if component.disgas || component.vapoil % Check for black-oil behavior
                 b = model.getProps(state, 'ShrinkageFactors');
-                rhoS = model.getSurfaceDensities();
-                if size(rhoS, 1) > 1
-                    reg = model.PVTPropertyFunctions.ShrinkageFactors.regions;
-                else
-                    reg = 1;
-                end
-                rhoOS = rhoS(reg, oix);
-                if component.disgas
+                phasenames = model.getPhaseNames();
+                oix = (phasenames == 'O');
+                reg = model.PVTPropertyFunctions.getRegionPVT(model);
+                rhoOS = model.getSurfaceDensities(reg, oix);
+                if component.disgas % Component density is not phase density
                     bO = b{oix};
-                    c{oix} = rhoOS.*bO;
+                    c{oix} = rhoOS.*bO; 
                 end
-                if component.vapoil
+                if component.vapoil % There is mass of oil in gaseous phase
+                    gix = (phasenames == 'G');
                     bG = b{gix};
                     rv = model.getProp(state, 'rv');
                     c{gix} = rv.*rhoOS.*bG;

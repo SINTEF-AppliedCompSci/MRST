@@ -2,7 +2,7 @@ classdef PressureModel < WrapperModel
     properties
         incTolPressure = 1e-3;
         useIncTol = true;
-        reductionStrategy = 'analytic';
+        reductionStrategy;
         pressureIncTolType = 'relative';
         pressureTol = inf;
     end
@@ -14,6 +14,14 @@ classdef PressureModel < WrapperModel
             end
             model = model@WrapperModel(parent);
             model = merge_options(model, varargin{:});
+            if isempty(model.reductionStrategy)
+                if isa(parent, 'ThreePhaseBlackOilModel')
+                    s = 'analytic';
+                else
+                    s = 'numerical';
+                end
+                model.reductionStrategy = s;
+            end
             model.AutoDiffBackend = parent.AutoDiffBackend;
         end
         
@@ -24,12 +32,10 @@ classdef PressureModel < WrapperModel
             % Get the AD state for this model
             [vars, names, origin] = model.getPrimaryVariables(state);
             switch model.reductionStrategy
-                case 'analytic'
+                case {'analytic', 'numerical'}
                     isP = strcmp(names, 'pressure');
                     origP = origin{isP};
                     keep = isP | cellfun(@(x) ~strcmp(x, origP), origin);
-                case 'numerical'
-                    assert(false, 'PressureReduction:NotImplemented', 'Not implemented.');
                 otherwise
                     error('Unknown reduction strategy %s', model.reductionStrategy);
             end
@@ -40,6 +46,7 @@ classdef PressureModel < WrapperModel
             % Not all were AD-initialized
             names = names(keep);
             origin = origin(keep);
+            assert(strcmpi(names{1}, 'pressure'));
         end
 
         function [eqs, names, types, state] = getModelEquations(pmodel, state0, state, dt, drivingForces)
@@ -59,13 +66,22 @@ classdef PressureModel < WrapperModel
             names = ['pressure', names(subs)];
             types = ['cell', types(subs)];
         end
-
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             [problem, state] = getEquations@PhysicalModel(model, state0, state, dt, drivingForces, varargin{:});
         end
         
+        function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
+            [model, state] = prepareTimestep@WrapperModel(model, state, state0, dt, drivingForces);
+            state = assignReductionFactorProps(model, state, state0, dt);
+            % Ensure that saturations are normalized
+            state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
+        end
+        
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            if strcmpi(model.reductionStrategy, 'numerical')
+                state = updateReductionFactorProps(model, state);
+            end
             p0 = state.pressure;
             [state, report] = model.parentModel.updateState(state, problem, dx, drivingForces);
             switch lower(model.pressureIncTolType)
@@ -130,13 +146,54 @@ classdef PressureModel < WrapperModel
             if isfield(state, 'pressureChange')
                 state = rmfield(state, 'pressureChange');
             end
+            if isfield(state, 'reductionFactorProps')
+                state = rmfield(state, 'reductionFactorProps');
+            end 
             state.statePressure = state;
         end
         
         function rhoS = getSurfaceDensities(model)
             rhoS = model.parentModel.getSurfaceDensities();
         end
+        
+        function model = setupStateFunctionGroupings(model, varargin)
+            pmodel = model.parentModel;
+            pvt = pmodel.PVTPropertyFunctions;
+            switch model.reductionStrategy
+                case 'analytic'
+                    assert(isa(pmodel, 'ThreePhaseBlackOilModel'), ...
+                        'Analytical pressure reduction factors currently only implemented for black-oil.');
+                case 'numerical'
+                    rf = pvt.getStateFunction('PressureReductionFactors');
+                    if ~isa(rf, 'NumericalPressureReductionFactors')
+                        pvt = pvt.setStateFunction('PressureReductionFactors', NumericalPressureReductionFactors(pmodel));
+                    end
+                otherwise
+                    error('Unknown reduction strategy');
+            end
+            model.parentModel.PVTPropertyFunctions = pvt;
+        end
+        
     end
+end
+
+function state = assignReductionFactorProps(model, state, state0, dt)
+    mass0 = model.parentModel.getProp(state0, 'ComponentTotalMass');
+    props = struct('mass0'   , {mass0}, ...
+                   'mass'    , []     , ...
+                   'dt'      , dt     , ...
+                   'pressure', []     , ...
+                   'weights' , []     );
+    state.reductionFactorProps = props;
+end
+
+function state = updateReductionFactorProps(model, state)
+    pressure = model.getProp(state, 'pressure');
+    weights  = model.parentModel.getProp(state, 'PressureReductionFactors');
+    mass  = model.parentModel.getProp(state, 'ComponentTotalMass');
+    state.reductionFactorProps.pressure = pressure;
+    state.reductionFactorProps.weights = value(weights');
+    state.reductionFactorProps.mass = value(mass');
 end
 
 %{

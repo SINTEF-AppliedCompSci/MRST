@@ -210,22 +210,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
 
     % Check if model is self-consistent and set up for current BC type
-    dispif(opt.Verbose, 'Preparing model for simulation...\n')
+    dispif(opt.Verbose, 'Validating model...\n')
     ctrl = schedule.control(schedule.step.control(1));
     [forces, fstruct] = model.getDrivingForces(ctrl);
     model = model.validateModel(fstruct);
+    dispif(opt.Verbose, 'Model has been validated.\n')
     % Check dependencies
+    dispif(opt.Verbose, 'Checking state functions and dependencies...\n')
     model.checkStateFunctionDependencies();
-    dispif(opt.Verbose, 'Model ready for simulation...\n')
+    dispif(opt.Verbose, 'All checks ok. Model ready for simulation.\n')
     % Validate schedule
     dispif(opt.Verbose, 'Preparing schedule for simulation...\n')
     schedule = model.validateSchedule(schedule);
-    dispif(opt.Verbose, 'Schedule ready for simulation...\n')
+    dispif(opt.Verbose, 'All steps ok. Schedule ready for simulation.\n')
 
     % Check if initial state is reasonable
     dispif(opt.Verbose, 'Validating initial state...\n')
     state = model.validateState(initState);
-    dispif(opt.Verbose, 'Initial state ready for simulation.\n')
+    dispif(opt.Verbose, 'Initial state ok. Ready to begin simulation.\n')
 
     failure = false;
     simtime = zeros(nSteps, 1);

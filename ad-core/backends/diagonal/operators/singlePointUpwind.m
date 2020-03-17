@@ -59,17 +59,15 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS, useMex)
         else
             if useMex
                 diagonal = mexSinglePointUpwindDiagonalJac(jac.diagonal, N, flag);
-            elseif 1
+            else
                 nf = size(N, 1);
-                diagonal = zeros(2*nf, size(jac.diagonal, 2));
-                diagonal(flag, :) = jac.diagonal(N(flag, 1), :);
+                nder = size(jac.diagonal, 2);
+                diagonal = zeros(nf, 2*nder);
+                diagonal(flag, 1:nder) = jac.diagonal(N(flag, 1), :);
 
                 notFlag = ~flag;
-                flag2 = [false(nf, 1); notFlag];
-                diagonal(flag2, :) = jac.diagonal(N(notFlag, 2), :);
+                diagonal(notFlag, (nder+1):end) = jac.diagonal(N(notFlag, 2), :);
                 jac.diagonal = diagonal;
-            else
-                diagonal = bsxfun(@times, jac.diagonal(N, :), [flag; ~flag]);
             end
 
             if isempty(DS)

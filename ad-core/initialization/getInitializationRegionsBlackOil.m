@@ -24,7 +24,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'rs', [], ...
                  'rv', []);
     [opt, args] = merge_options(opt, varargin{:});
-    
+    % Ensure that groups are set up before building init regions
+    model = model.setupStateFunctionGroupings();
+
     actPh = model.getActivePhases();
     nPh = sum(actPh);
     
@@ -44,40 +46,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             pvtnum = model.rock.regions.pvt(cc);
         end
     end
+    [pc, pc_sign, pc_scale] = getEquilPC(model, satnum, opt.cells);
     if model.water
         ix = model.getPhaseIndex('W');
-        
         bW = getFunction(f, 'bW', pvtnum);
         rho{ix} = @(p, z) bW(p).*f.rhoWS(pvtnum);
-        pc_sign(ix) = -1;
-        if isfield(model.fluid, 'pcOW')
-            pcOW = getFunction(f, 'pcOW', satnum);
-            PC{ix} = @(S) pcOW(S);
-        else
-            PC{ix} = @(S) 0*S;
-        end
     end
     
     if model.oil
         ix = model.getPhaseIndex('O');
-        
         rho{ix} = @(p, z) getOilDensity(model, p, z, opt.rs, pvtnum);
-        PC{ix} = @(S) 0*S;
     end
     
     if model.gas
         ix = model.getPhaseIndex('G');
         rho{ix} = @(p, z) getGasDensity(model, p, z, opt.rv, pvtnum);
-        pc_sign(ix) = 1;
-        if isfield(model.fluid, 'pcOG')
-            pcOG = getFunction(f, 'pcOG', satnum);
-            PC{ix} = @(S) pcOG(S);
-        elseif ~model.oil && isfield(model.fluid, 'pcWG')
-            pcWG = getFunction(f, 'pcWG', satnum);
-            PC{ix} = @(S) pcWG(S);
-        else
-            PC{ix} = @(S) 0*S;
-        end
     end
     if model.oil
         ref_index = model.getPhaseIndex('O');
@@ -86,15 +69,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     [s_min, s_max] = getMinMaxPhaseSaturations(model, satnum, opt.cells);
     region = getInitializationRegionsBase(model, rho, contacts, ...
-        'rho',              rho, ...
-        'cells',            opt.cells, ...
-        'reference_index',  ref_index, ...
-        'pc_sign',          pc_sign, ...
-        's_min',            s_min, ...
-        's_max',            s_max, ...
-        'saturation_region',           satnum, ...
-        'pvt_region',              pvtnum, ...
-        'pc_functions',     PC, ...
+        'rho',               rho, ...
+        'cells',             opt.cells, ...
+        'reference_index',   ref_index, ...
+        'pc_sign',           pc_sign, ...
+        'pc_scale',          pc_scale, ...
+        's_min',             s_min, ...
+        's_max',             s_max, ...
+        'saturation_region', satnum, ...
+        'pvt_region',        pvtnum, ...
+        'pc_functions',      pc, ...
         args{:});
     region.rs = opt.rs;
     region.rv = opt.rv;

@@ -12,17 +12,19 @@
 
 template <int m>
 void upwindJac(const int nf, const int nc, const mxLogical * flag, const double * diagonal, const double * N, double * result){
-    #ifdef _MSC_VER
-        #pragma omp parallel for schedule(static)
-    #else
-        #pragma omp parallel for collapse(2)
-    #endif
-    for(int j=0;j<m;j++){
-        for(int i=0;i<2*nf;i++){
-            int cell_inx = N[i]-1;
-            if(flag[i % nf] == i < nf){
-                result[j*2*nf + i] = diagonal[nc*j + cell_inx];
-            }
+    #pragma omp parallel for schedule(static)
+    for(int i=0;i<nf;i++){
+        int cell_inx, offset;
+        if (flag[i]) {
+            cell_inx = N[i] - 1;
+            offset = 0;
+        }
+        else {
+            cell_inx = N[i + nf] - 1;
+            offset = m * nf;
+        }
+        for (int j = 0; j < m; j++) {
+            result[j * nf + offset + i] = diagonal[nc * j + cell_inx];
         }
     }
     return;
@@ -35,7 +37,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
      
 { 
     // In: diagonal (nc x m), N (nf x 2), flag (nf x 1) bool
-    // Out: Face diagonal of (2*nf x m)
+    // Out: Face diagonal of (nf x 2*m)
     if (nrhs != 3) { 
 	    mexErrMsgTxt("3 input arguments required."); 
     } else if (nlhs > 1) {
@@ -51,7 +53,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     // printf("%d cells with %d faces and %d derivatives \n", nc, nf, m);
     
-    plhs[0] = mxCreateDoubleMatrix(2*nf, m, mxREAL);
+    plhs[0] = mxCreateDoubleMatrix(nf, 2*m, mxREAL);
     double * result = mxGetPr(plhs[0]);
     switch (m){
             case 1:

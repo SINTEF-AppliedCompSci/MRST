@@ -3,22 +3,23 @@ classdef PhasePotentialDifference < StateFunction
     % essentially the phase gradient plus any contribution from gravity
     % acting on the averaged phase density.
     properties
-
+        hasGravity; % Is there gravity?
     end
     
     methods
         function gp = PhasePotentialDifference(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn('PressureGradient');
-            if norm(model.gravity) > 0
+            gp.hasGravity = norm(model.getGravityGradient(), inf) > 0;
+            if gp.hasGravity
                 gp = gp.dependsOn('GravityPotentialDifference');
             end
-            gp.label = '\nabla p_\alpha + \rho_\alpha g \Delta z';
+            gp.label = '\Theta_\alpha';
         end
         function v = evaluateOnDomain(prop, model, state)
             dp = prop.getEvaluatedDependencies(state, 'PressureGradient');
             v = dp;
-            if norm(model.gravity) > 0
+            if prop.hasGravity
                 rhogdz = prop.getEvaluatedDependencies(state, 'GravityPotentialDifference');
                 for i = 1:numel(dp)
                     v{i} = v{i} + rhogdz{i};

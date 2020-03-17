@@ -93,14 +93,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         maxSat = max(s, [], 2);
         referenceImmobile = kr(:, refIx) < 1e-8;
         
-        toOil = true(size(p, 1), 1);
+        toReferencePhase = true(size(p, 1), 1);
         if model.gas
             % If only gas is mobile, set oil pressure to the gas hydrostatic 
             % pressure minus the capillary pressure
             gasMajority = s(:, gasIx) == maxSat;
             onlyGas = gasMajority & referenceImmobile;
 
-            toOil(onlyGas) = false;
+            toReferencePhase(onlyGas) = false;
             state.pressure(cells(onlyGas)) = p(onlyGas, gasIx) - pc{gasIx}(onlyGas);
             if disgas
                 po = p(:, oilIx);
@@ -136,12 +136,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if model.water
             watMajority = s(:, watIx) == maxSat;
             onlyWat = watMajority & referenceImmobile;
-            toOil(onlyWat) = false;
+            toReferencePhase(onlyWat) = false;
             state.pressure(cells(onlyWat)) = p(onlyWat, watIx) - pc{watIx}(onlyWat);
         end
-        if model.oil
-            state.pressure(cells(toOil)) = p(toOil, oilIx);
-        end
+        % Set remaining pressure to reference phase
+        state.pressure(cells(toReferencePhase)) = p(toReferencePhase, refIx);
         
         if compositional
             if isfield(region, 'z')
@@ -154,5 +153,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     if ~all(touched)
         warning('Regions did not cover all cells. Model only partially initialized.');
+    end
+    if isprop(model, 'polymer')
+        state.cp = zeros(G.cells.num, 1);
+    end
+    if isprop(model, 'surfactant')
+        state.cs = zeros(G.cells.num, 1);
     end
 end

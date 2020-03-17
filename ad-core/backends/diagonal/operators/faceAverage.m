@@ -21,10 +21,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     if isa(v, 'GenericAD')
-        if size(N, 1) == 1
-            v.val = 0.5*sum(v.val(N), 1);
+        if useMex
+            v.val = mexFaceAverageVal(v.val, N);
         else
-            v.val = 0.5*sum(v.val(N), 2);
+            if size(N, 1) == 1
+                v.val = 0.5*sum(v.val(N), 1);
+            else
+                v.val = 0.5*sum(v.val(N), 2);
+            end
         end
         v.jac = cellfun(@(x) avgJac(x, N, useMex), v.jac, 'UniformOutput', false);
     else
@@ -45,7 +49,7 @@ function jac = avgJac(jac, N, useMex)
         if useMex
             diagonal = mexFaceAverageDiagonalJac(jac.diagonal, N);
         else
-            diagonal = 0.5*jac.diagonal(N, :);
+            diagonal = 0.5*[jac.diagonal(N(:, 1), :), jac.diagonal(N(:, 2), :)];
         end
         jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset);
     end
