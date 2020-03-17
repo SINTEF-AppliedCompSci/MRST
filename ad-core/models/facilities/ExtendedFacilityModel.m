@@ -275,7 +275,7 @@ classdef ExtendedFacilityModel < FacilityModel
         end
 
         function model = validateModel(model, varargin)
-            if ~isempty(model.doPostUpdate)
+            if isempty(model.doPostUpdate)
                 model.doPostUpdate = strcmpi(model.primaryVariableSet, 'none');
             end
             model = validateModel@FacilityModel(model, varargin{:});
