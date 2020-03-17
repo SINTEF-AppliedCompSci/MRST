@@ -30,7 +30,7 @@ function convergenceTest()
 
 
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -42,6 +42,8 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
+        filename = 'convd2_k1_a1_g1_eta0';
+        savethisfigure(filename);
     end
 
     %% New Case
@@ -75,11 +77,26 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
                         'kappa'   , 3, ...
+                        'alpha'   , 1, ...
+                        'gridtype', 1, ... % Cartesian Grid
+                        'eta'     , 1/3);
+        
+        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        figure
+        plotConv(output, params);
+    end
+    
+    %% New Case
+    dothiscase = false;
+    if dothiscase
+        params = struct('nref'    , 5, ...
+                        'Nd'      , 3, ...
+                        'kappa'   , 1, ...
                         'alpha'   , 1, ...
                         'gridtype', 1, ... % Cartesian Grid
                         'eta'     , 1/3);
@@ -125,4 +142,11 @@ function casetitle = setCaseTitle(Nd, gridtype, eta, kappa, alpha)
     casetitle = sprintf('%s - %s, \\kappa = %0.3g, \\alpha = %0.3g, \\eta = %0.3g', dimstr, ...
                         gridtypestr, kappa, alpha, eta);
         
+end
+
+function savethisfigure(filename)
+    savedir = 'figs';
+    filename = sprintf('%s.png', filename);
+    filename = fullfile(savedir, filename);
+    saveas(gcf, filename);
 end

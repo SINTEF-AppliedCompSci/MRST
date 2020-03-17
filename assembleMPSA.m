@@ -327,7 +327,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     prod.issetup = true;
 
     celldispatch_T = SparseTensor('matlabsparse', true);
-    celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num), prod);
+    celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num, 1), prod);
 
     transnodeaverage_T = celldispatch_T*transnodeaverage_T;
 
