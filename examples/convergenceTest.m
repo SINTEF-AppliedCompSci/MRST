@@ -212,9 +212,12 @@ function plotConv(output, params)
     eta = params.eta;
 
     log2N = (1 : nref)';
-    plot(log2N, log2(deL2), '*--');
-    ylabel('log2(error)');
-    xlabel('-log2(1/N)');
+    plot(log2N, log2(deL2), '*-', 'linewidth', 4);
+    ax = gca;
+    ax.YAxis.FontSize = 18;
+    ax.XAxis.FontSize = 18;
+    ylabel('log2(error)', 'fontsize', 18);
+    xlabel('-log2(1/N)', 'fontsize', 18);
     caseTitle = setCaseTitle(Nd, gridtype, eta, kappa, alpha);
     title(caseTitle);    
 end
