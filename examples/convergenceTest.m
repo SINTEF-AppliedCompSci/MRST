@@ -170,7 +170,7 @@ function casetitle = setCaseTitle(Nd, gridtype, eta, kappa, alpha)
 end
 
 function savethisfigure(filename)
-    savedir = 'figs';
+    savedir = '/home/xavier/Dropbox/';
     filename = sprintf('%s.png', filename);
     filename = fullfile(savedir, filename);
     saveas(gcf, filename);
