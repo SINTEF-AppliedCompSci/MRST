@@ -42,7 +42,7 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd2_k1_a1_g1_eta0';
+        filename = 'convd2_g1_k1_a1_eta0';
         savethisfigure(filename);
     end
 
@@ -59,7 +59,7 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd2_k1_a1_g2_eta3';
+        filename = 'convd2_g2_k1_a1_eta3';
         savethisfigure(filename);
     end
     
@@ -76,7 +76,7 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd2_k1_a1_g3_eta3';
+        filename = 'convd2_g3_k1_a1_eta3';
         savethisfigure(filename);
     end
     
@@ -93,7 +93,7 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd2_k3_a1_g1_eta3';
+        filename = 'convd2_g1_k3_a1_eta3';
         savethisfigure(filename);
     end
     
@@ -110,7 +110,7 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd2_k1_a10_g1_eta0';
+        filename = 'convd2_g1_k1_a10_eta0';
         savethisfigure(filename);
     end
     
@@ -127,7 +127,7 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd3_k1_a1_g1_eta0';
+        filename = 'convd3_g1_k1_a1_eta0';
         savethisfigure(filename);
     end
     
