@@ -64,9 +64,14 @@ prop = struct('lambda', lambda, ...
 
 [tbls, mappings] = setupStandardTables(G);
 loadstruct = setupBCpercase(runcase, G, tbls, mappings);
-% assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings);
-assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                             'blocksize', 10);
+
+doblockassembly = true;
+if doblockassembly
+    assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
+                                 'blocksize', 10);
+else
+    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings);
+end
 
 B   = assembly.B  ;
 rhs = assembly.rhs;

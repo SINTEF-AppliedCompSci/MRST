@@ -21,26 +21,41 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     nblocks = numel(blocksizes);
     blockinds = cumsum([1; blocksizes]);
 
-    coltbl              = globtbls.coltbl;
-    colrowtbl           = globtbls.colrowtbl;
-    col2row2tbl         = globtbls.col2row2tbl;
-    globcelltbl         = globtbls.celltbl;
-    globnodetbl         = globtbls.nodetbl;
-    globcellfacetbl     = globtbls.cellfacetbl;
-    globcellnodetbl     = globtbls.cellnodetbl;
-    globnodefacetbl     = globtbls.nodefacetbl;
-    globcellcoltbl      = globtbls.cellcoltbl;
-    globnodecoltbl      = globtbls.nodecoltbl;
-    globnodefacecoltbl  = globtbls.nodefacecoltbl;
-    globcellcol2row2tbl = globtbls.cellcol2row2tbl;
-
+    coltbl         = globtbls.coltbl;
+    colrowtbl      = globtbls.colrowtbl;
+    col2row2tbl    = globtbls.col2row2tbl;
+    globcellcoltbl = globtbls.cellcoltbl;
+    globnodefacecoltbl = globtbls.nodefacecoltbl;
+    
     dim = coltbl.num;
 
+    globextforce = loadstruct.extforce;
+    globforce = loadstruct.force;
+
+    globbc = loadstruct.bc;
+    globbc = setupFaceBC(globbc, G, globtbls);
+    
+    globbcnodefacetbl = globbc.bcnodefacetbl;        
+    globbcnodefacetbl = globbcnodefacetbl.addLocInd('bcinds');    
+    globbcnodefacecoltbl = crossIndexArray(globbcnodefacetbl, coltbl, {}, ...
+                                           'optpureproduct', true);
+    globlinform     = globbc.linform;
+    globlinformvals = globbc.linformvals;
+
+    gncc = globcellcoltbl.num;
+    gnbc = globbcnodefacecoltbl.num;
+    
+    B11 = sparse(gncc, gncc);
+    B12 = sparse(gncc, gnbc);
+    B21 = sparse(gnbc, gncc);
+    B22 = sparse(gnbc, gnbc);
+    
     for iblock = 1 : nblocks
 
         %% Construction of tensor g (as defined in paper eq 4.1.2)
         nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
 
+        clear nodetbl;
         nodetbl.nodes = nodes;
         nodetbl = IndexArray(nodetbl);
 
@@ -239,7 +254,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         % map.dispind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
         % map.issetup = true;
 
-        prod = prod.setup();
+        map = map.setup();
         
         dreduced = - map.eval(facetNormals);
 
@@ -269,6 +284,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         %
         %  trans_T: nodecolrowtbl -> nodecolrowtbl
 
+        clear symcol2row2tbl;
         symcol2row2tbl.coldim2 = colrowtbl.get('coldim');
         symcol2row2tbl.rowdim2 = colrowtbl.get('rowdim');
         symcol2row2tbl.coldim1 = colrowtbl.get('rowdim');
@@ -315,7 +331,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         % Compute number of cell per node
         [~, indstruct] = crossIndexArray(cellnodetbl, nodetbl, {'nodes'});
         nnodepercell = tblmap1to2(ones(cellnodetbl.num, 1), indstruct);
-        coef   = tblmap2to1(1./nnodepercell, indstruct);
+        coef = tblmap2to1(1./nnodepercell, indstruct);
 
         % we eliminitate the places (at the boundaries) where the local reconstruction
         % is ill-posed: nodes with one cell in 2d (corners of a Cartesian grid) and
@@ -328,6 +344,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
             maxnnodepercell = 2;
         end
 
+        clear fixnodetbl
         fixnodetbl.nodes = find(nnodepercell <= maxnnodepercell);
         fixnodetbl = IndexArray(fixnodetbl);
 
@@ -358,22 +375,21 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         % Now we have
         % transnodeaverage_T : cellnodecolrowtbl -> cellnodecolrowtbl
 
-        prod = TensorProd();
-        prod.tbl1 = celltbl;
-        prod.tbl2 = nodecolrowtbl;
-        prod.tbl3 = cellnodecolrowtbl;
-
-        % prod.pivottbl = cellnodecolrowtbl;
-        % [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-        % prod.dispind1 = cell_from_cellnode(i);
-        % prod.dispind2 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
-        % prod.dispind3 = (1 : cncr_num)';
-        % prod.issetup = true;
+        map = TensorMap();
+        map.fromTbl = nodecolrowtbl;
+        map.toTbl = cellnodecolrowtbl;
+        map.mergefds = {'nodes', 'coldim', 'rowdim'};
         
-        prod = prod.setup();
+        % map.pivottbl = cellnodecolrowtbl;
+        % [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
+        % map.dispind1 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
+        % map.dispind2 = (1 : cncr_num)';
+        % map.issetup = true;
 
+        map = map.setup();
+        
         celldispatch_T = SparseTensor('matlabsparse', true);
-        celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num, 1), prod);
+        celldispatch_T = celldispatch_T.setFromTensorMap(map);
 
         transnodeaverage_T = celldispatch_T*transnodeaverage_T;
 
@@ -486,14 +502,30 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         invA11 = bi(A11, sz);
 
         % We enforce the boundary conditions as Lagrange multipliers
+        
+        bcnodefacetbl = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', ...
+                            'faces'});
+        bcind = bcnodefacetbl.get('bcinds');
+        bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, ...
+                                           'optpureproduct', true);
+        bcnodefacetbl = replacefield(bcnodefacetbl, {{'bcinds', ''}});
+        
+        linformvals = globlinformvals(bcind, :);
 
-        bc = loadstruct.bc;
-        if isfield(bc, 'bcnodefacetbl')
-            [D, bcvals] = setupNodeFaceBc(bc, G, tbls);
-        else
-            [D, bcvals] = setupFaceBC(bc, G, tbls);
-        end
-
+        map = TensorMap();
+        map.fromTbl = globbcnodefacecoltbl;
+        map.toTbl = bcnodefacecoltbl;
+        map.mergefds = {'bcinds', 'coldim', 'nodes', 'faces'};
+        map = map.setup();
+        
+        linform = map.eval(globlinform);
+        
+        bc = struct('bcnodefacetbl', bcnodefacetbl, ...
+                    'linform'      , linform      , ...
+                    'linformvals'  , linformvals);
+        
+        [D, bcvals] = setupNodeFaceBc(bc, G, tbls);
+    
         % the solution is given by the system
         %
         % A = [[A11, A12, -D];
@@ -538,55 +570,99 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         % rhs = redextforce + [force;
         %                     bcvals]
 
-        extforce = loadstruct.extforce;
-        force = loadstruct.force;
+        locB11 = A22 - A21*invA11*A12;
+        locB12 = A21*invA11*D;
+        locB21 = -D'*invA11*A12;
+        locB22 = D'*invA11*D;
 
-        B11 = A22 - A21*invA11*A12;
-        B12 = A21*invA11*D;
-        B21 = -D'*invA11*A12;
-        B22 = D'*invA11*D;
-
-        extforce = loadstruct.extforce;
-        force = loadstruct.force;
-
-        redextforce = [-A21*invA11*extforce;
-                       -D'*invA11*extforce];
-
-        B = [[B11, B12]; ...
-             [B21, B22]];
-
-        rhs = redextforce + [force; bcvals];
-
-        % setup mapping from nodeface to node
+        % locB11 : cellcoltbl    -> cellcoltbl
+        % locB22 : bcnodefacetbl -> bcnodefacetbl
+        % locB12 : bcnodefacetbl -> cellcoltbl
+        % locB21 : cellcoltbl    -> bcnodefacetbl 
+        % Above, we recall that these index arrays are all local.
 
         map = TensorMap();
-        map.fromTbl = nodefacecoltbl;
-        map.toTbl   = nodecoltbl;
-        map.mergefds = {'nodes', 'coldim'};
+        map.fromTbl = cellcoltbl;
+        map.toTbl = globcellcoltbl;
+        map.mergefds = {'cells', 'coldim'};
+        map = map.setup();
+        % map.pivottbl will be cellcoltbl so that dispind2 gives the index of
+        % cellcoltbl in globcellcoltbl
+        cellind = map.dispind2;
+        
+        ncc = cellcoltbl.num;
+        nbc = bcnodefacetbl.num;
+        
+        B11 = B11 + sparse(repmat(cellind, 1, ncc), repmat(cellind', ncc, 1), ...
+                           locB11, gncc, gncc);
+        
+        B22 = B22 + sparse(repmat(bcind, 1, nbc), repmat(bcind', nbc, 1), ...
+                           locB22, gnbc, gnbc);
+
+        B12 = B12 + sparse(repmat(cellind, 1, nbc), repmat(bcind', ncc, 1), ...
+                           locB12, gncc, gnbc);
+        
+        B21 = B21 + sparse(repmat(bcind, 1, ncc), repmat(cellind', nbc, 1), ...
+                           locB21, gnbc, gncc);
+        
+        
+        map = TensorMap();
+        map.fromTbl = globnodefacecoltbl;
+        map.toTbl = nodefacecoltbl;
+        map.mergefds = {'nodes', 'faces', 'coldim'};
         map = map.setup();
 
-        coef = map.eval(ones(nodefacecoltbl.num, 1));
-        coef = 1./coef;
+        extforce = map.eval(globextforce);
+        
+        map = TensorMap();
+        map.fromTbl = globcellcoltbl;
+        map.toTbl = cellcoltbl;
+        map.mergefds = {'cells', 'coldim'};
+        map = map.setup();
 
-        prod = TensorProd();
-        prod.tbl1 = nodecoltbl;
-        prod.tbl2 = nodefacecoltbl;
-        prod.tbl3 = nodecoltbl;
-        prod.mergefds = {'nodes', 'coldim'};
-        prod = prod.setup();
+        force = map.eval(globforce);
+        
+        clear rhs
+        locrhs{1} = -A21*invA11*extforce + force; 
+        locrhs{2} = -D'*invA11*extforce + bcvals;
 
-        nodaldisp_T = SparseTensor('matlabsparse', true);
-        nodaldisp_T = nodaldisp_T.setFromTensorProd(coef, prod);
-
-        nodaldisp_op = nodaldisp_T.getMatrix();
-
-        assembly = struct('B'           , B       , ...
-                          'rhs'         , rhs     , ...
-                          'extforce'    , extforce, ...
-                          'matrices'    , matrices, ...
-                          'nodaldisp_op', nodaldisp_op);
+        % rhs{1} in cellcoltbl
+        % rhs{2} in bcnodefacetbl
+        
+        %% map the values to the global matrices.
 
     end
+    
+    
+    % setup mapping from nodeface to node
+    
+    map = TensorMap();
+    map.fromTbl = nodefacecoltbl;
+    map.toTbl   = nodecoltbl;
+    map.mergefds = {'nodes', 'coldim'};
+    map = map.setup();
+
+    coef = map.eval(ones(nodefacecoltbl.num, 1));
+    coef = 1./coef;
+
+    prod = TensorProd();
+    prod.tbl1 = nodecoltbl;
+    prod.tbl2 = nodefacecoltbl;
+    prod.tbl3 = nodecoltbl;
+    prod.mergefds = {'nodes', 'coldim'};
+    prod = prod.setup();
+
+    nodaldisp_T = SparseTensor('matlabsparse', true);
+    nodaldisp_T = nodaldisp_T.setFromTensorProd(coef, prod);
+
+    nodaldisp_op = nodaldisp_T.getMatrix();
+
+    assembly = struct('B'           , B       , ...
+                      'rhs'         , rhs     , ...
+                      'extforce'    , extforce, ...
+                      'matrices'    , matrices, ...
+                      'nodaldisp_op', nodaldisp_op);
+    
 end
 
 

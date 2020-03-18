@@ -1,4 +1,4 @@
-function [D, bcvals] = setupFaceBC(bc, G, tbls)
+function nodefacebc = setupFaceBC(bc, G, tbls)
     
     nodefacetbl    = tbls.nodefacetbl;
     nodefacecoltbl = tbls.nodefacecoltbl;
@@ -9,6 +9,7 @@ function [D, bcvals] = setupFaceBC(bc, G, tbls)
     % denoted bcinds, which makes all those (now multiple-)index unique.
     bcfacetbl.faces = bc.extfaces;
     bcfacetbl = IndexArray(bcfacetbl);
+    
     bcfacetbl = bcfacetbl.addLocInd('bcinds');
     
     bcfacecoltbl = crossIndexArray(bcfacetbl, coltbl, {}, 'optpureproduct', true);
@@ -46,8 +47,6 @@ function [D, bcvals] = setupFaceBC(bc, G, tbls)
     nodefacebc.bcnodefacetbl = bcnodefacetbl;
     nodefacebc.linform       = linform;
     nodefacebc.linformvals   = bcvals;
-
-    [D, bcvals] = setupNodeFaceBc(nodefacebc, G, tbls);
 
     
 end
