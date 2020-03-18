@@ -82,6 +82,7 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
             fp = model.FlowPropertyFunctions;
             pp = model.PVTPropertyFunctions;
             satreg  = fp.getRegionSaturation(model);
+            pvtreg  = pp.getRegionPVT(model);
             surfreg = fp.getRegionSurfactant(model);
                                   
             fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));            
