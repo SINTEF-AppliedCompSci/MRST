@@ -40,25 +40,18 @@ classdef ExtendedFacilityModel < FacilityModel
             % We use a simple, but fast approach based on the
             % individual components' preference at different conditions
             [p, temp] = facility.getSurfaceConditions();
+            surfaceDensity = facility.getProp(state, 'InjectionSurfaceDensity');
             nph = model.getNumberOfPhases();
-            phaseMassRates = cell(1, nph);
-            [phaseMassRates{:}] = deal(0);
-            surfaceDensity = cell(1, nph);
+            surfaceRates = cell(1, nph);
+            [surfaceRates{:}] = deal(0);
             for c = 1:numel(cflux)
                 composition = model.Components{c}.getPhaseCompositionSurface(model, state, p, temp);
                 for ph = 1:nph
-                    if ~isempty(composition{ph})
-                        phaseMassRates{ph} = phaseMassRates{ph} + composition{ph}.*cflux{c};
+                    if any(composition{ph})
+                        ci = composition{ph}./surfaceDensity{ph};
+                        surfaceRates{ph} = surfaceRates{ph} + ci.*cflux{c};
                     end
                 end
-            end
-            rhoS = facility.getProp(state, 'InjectionSurfaceDensity');
-            surfaceRates = cell(1, nph);
-            for ph = 1:nph
-                rhoPhase = rhoS{ph};
-                surfaceRates{ph} = phaseMassRates{ph}./rhoPhase;
-                rhoPhase = model.AutoDiffBackend.convertToAD(rhoPhase, cflux{1});
-                surfaceDensity{ph} = rhoPhase;
             end
             isProd = ~map.isInjector;
             if ~isempty(facility.SeparatorGroup) && any(isProd)
@@ -67,6 +60,9 @@ classdef ExtendedFacilityModel < FacilityModel
                 cfluxProd = cellfun(@(x) x(isProd), cflux, 'UniformOutput', false);
                 [surfaceRatesProd, surfaceDensityProd] = facility.SeparatorGroup.getSurfaceRates(model, cfluxProd);
                 for ph = 1:nph
+                    if ~isa(surfaceDensity{ph}, 'ADI') && isa(surfaceDensityProd{ph}, 'ADI')
+                        surfaceDensity{ph} = model.AutoDiffBackend.convertToAD(surfaceDensity{ph}, surfaceDensityProd{ph});
+                    end
                     surfaceRates{ph}(isProd) = surfaceRatesProd{ph};
                     surfaceDensity{ph}(isProd) = surfaceDensityProd{ph};
                 end
