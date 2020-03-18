@@ -66,7 +66,7 @@ schedule = simpleSchedule(dt, 'W', W);
 
 %% Simulate the implicit TPFA base case
 disp('TPFA implicit')
-[ws, states] = simulateScheduleAD(state0, model, schedule);
+[wsTPFA, statesTPFA] = simulateScheduleAD(state0, model, schedule);
 
 %% Simulate implicit NTPFA
 disp('NTPFA implicit')
@@ -86,7 +86,7 @@ model_mpfa = setMPFADiscretization(model);
 
 %% Plot the results
 figure
-plotToolbar(G, states);
+plotToolbar(G, statesTPFA);
 axis equal
 axis tight
 colorbar
@@ -153,7 +153,7 @@ for i = 2:3
     wn = W(i).name;
     if useComp
         get = @(ws) -getWellOutput(ws, 'ComponentTotalFlux', wn, 1);
-        ti = get(ws);
+        ti = get(wsTPFA);
         te = get(wsExplicit);
         ni = get(wsNTPFA);
         ne = get(wsNTPFAExplicit);
@@ -164,7 +164,7 @@ for i = 2:3
     else
         rt = {'qWs', 'qOs'};
         qs_te = getWellOutput(wsExplicit, rt, wn);
-        qs_ti = getWellOutput(ws, rt, wn);
+        qs_ti = getWellOutput(wsTPFA, rt, wn);
         qs_ne = getWellOutput(wsNTPFAExplicit, rt, wn);
         qs_ni = getWellOutput(wsNTPFA, rt, wn);
         qs_me = getWellOutput(wsMPFAExplicit, rt, wn);
@@ -209,7 +209,7 @@ for i = 1:2
 end
 
 %% Interactive plotting
-plotWellSols({ws, wsNTPFA, wsMPFA, wsExplicit, wsNTPFAExplicit, wsMPFAExplicit}, ...
+plotWellSols({wsTPFA, wsNTPFA, wsMPFA, wsExplicit, wsNTPFAExplicit, wsMPFAExplicit}, ...
     time, ...
     'datasetnames', ...
     {'TPFA implicit', 'NTPFA implicit', 'MPFA implicit', ...
@@ -227,7 +227,7 @@ y = reshape(G.cells.centroids(:, 2), G.cartDims);
 
 for i = 1:3
     if i == 1
-        impl = states;
+        impl = statesTPFA;
         expl = statesExplicit;
     elseif i == 2
         impl = statesNTPFA;
