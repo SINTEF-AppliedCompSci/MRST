@@ -60,10 +60,9 @@ model.dpMaxRel  = .1;
 model.dsMaxAbs  = .1;
 
 %% Configure linear solver
-% We proceed to setup a CPR-type solver, using the AGMG linear solver as
-% the multigrid preconditioner. The CPR preconditioner attempts to decouple
-% the fully implicit equation set into a pressure component and a transport
-% component.
+% We proceed to setup a CPR-type solver with the best available pressure
+% solver. The CPR preconditioner attempts to decouple the fully implicit
+% equation set into a pressure component and a transport component.
 %
 % The pressure is mathematically elliptic/parabolic in nature, and
 % multigrid is well suited for solving these highly coupled, challenging
@@ -76,13 +75,7 @@ model.dsMaxAbs  = .1;
 % systems with 27000 unknowns (one equation per phase, per cell). However,
 % it does improve the solution speed and is required for larger cases,
 % where Matlab's standard linear solvers scale poorly.
-try
-    mrstModule add agmg
-    pressureSolver = AGMGSolverAD();
-catch
-    pressureSolver = BackslashSolverAD();
-end
-linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'tolerance', 1e-3, 'relativeTolerance', 1e-5);
+linsolve = selectLinearSolverAD(model);
 
 %% Plot the rock permeability
 % The SPE9 data set has an anisotropic, inhomogenous permeability field.
