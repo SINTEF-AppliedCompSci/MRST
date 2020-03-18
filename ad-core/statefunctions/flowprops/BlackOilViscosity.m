@@ -38,7 +38,7 @@ classdef BlackOilViscosity < StateFunction
             if model.water
                 wix = phInd == 1;
                 pw = p_phase{wix};
-                mu{wix} = prop.evaluateFunctionOnDomainWithArguments(f.muW, pw);
+                mu{wix} = prop.evaluateFluid(model, 'muW', pw);
             end
             
             if model.oil
