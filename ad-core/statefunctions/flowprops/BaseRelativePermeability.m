@@ -51,7 +51,7 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
 
             wg = 1-ww;
             if isfield(f, 'krO')
-                krO = prop.evaluateFunctionOnDomainWithArguments(f.krO, so);
+                krO = prop.evaluateFluid(model, 'krO', so);
             else
                 krow = prop.evaluatePhaseRelativePermeability(model, 'ow', so);
                 krog = prop.evaluatePhaseRelativePermeability(model, 'og', so);

@@ -36,12 +36,11 @@ classdef BlackOilShrinkageFactors < StateFunction
             nph = sum(act);
             b = cell(1, nph);
             
-            f = model.fluid;
             p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
             if model.water
                 wix = phInd == 1;
                 pw = p_phase{wix};
-                bW = prop.evaluateFunctionOnDomainWithArguments(f.bW, pw);
+                bW = prop.evaluateFluid(model, 'bW', pw);
                 b{wix} = bW;
             end
             
