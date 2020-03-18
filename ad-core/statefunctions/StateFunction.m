@@ -46,6 +46,13 @@ classdef StateFunction
             end
         end
         
+        function v = evaluateFluid(prop, model, fluidFunctionName, varargin)
+            % Evaluate a named function on the fluid struct on the entire
+            % domain with specified function arguments
+            fn = model.fluid.(fluidFunctionName);
+            v = prop.evaluateFunctionOnDomainWithArguments(fn, varargin{:});
+        end
+        
         function v = evaluateFunctionOnDomainWithArguments(prop, fn, varargin)
             % Evaluate function handle on the entire domain, with specified
             % input arguments

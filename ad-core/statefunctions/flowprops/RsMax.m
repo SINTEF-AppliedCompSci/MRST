@@ -13,8 +13,7 @@ classdef RsMax < StateFunction
         function rsSat = evaluateOnDomain(prop, model, state)
             p = model.getProp(state, 'pressure');
             if model.disgas
-                f = model.fluid;
-                rsSat = prop.evaluateFunctionOnDomainWithArguments(f.rsSat, p);
+                rsSat = prop.evaluateFluid(model, 'rsSat', p);
             else
                 rsSat = 0*p;
             end

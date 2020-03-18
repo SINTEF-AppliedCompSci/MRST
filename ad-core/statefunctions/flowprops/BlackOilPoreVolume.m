@@ -12,9 +12,8 @@ classdef BlackOilPoreVolume < PoreVolume
         function pv = evaluateOnDomain(prop, model, state)
             % Get effective pore-volume, accounting for rock-compressibility
             pv = evaluateOnDomain@PoreVolume(prop, model, state);
-            f = model.fluid;
             p = model.getProp(state, 'pressure');
-            pvMult = prop.evaluateFunctionOnDomainWithArguments(f.pvMultR, p);
+            pvMult = prop.evaluateFluid(model, 'pvMultR', p);
             pv = pv.*pvMult;
         end
     end

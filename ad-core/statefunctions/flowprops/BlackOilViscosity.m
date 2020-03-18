@@ -52,10 +52,11 @@ classdef BlackOilViscosity < StateFunction
                     else
                         flag = false(nc, 1);
                     end
-                    mu{oix} = prop.evaluateFunctionOnDomainWithArguments(f.muO, po, rs, flag);
+                    extra = {rs, flag};
                 else
-                    mu{oix} = prop.evaluateFunctionOnDomainWithArguments(f.muO, po);
+                    extra = {};
                 end
+                mu{oix} = prop.evaluateFluid(model, 'muO', po, extra{:});
             end
             
             if model.gas
@@ -69,10 +70,11 @@ classdef BlackOilViscosity < StateFunction
                     else
                         flag = false(nc, 1);
                     end
-                    mu{gix} = prop.evaluateFunctionOnDomainWithArguments(f.muG, pg, rv, flag);
+                    extra = {rv, flag};
                 else
-                    mu{gix} = prop.evaluateFunctionOnDomainWithArguments(f.muG, pg);
+                    extra = {};
                 end
+                mu{gix} = prop.evaluateFluid(model, 'muG', pg, extra{:});
             end
             if isAD
                 for i = 1:numel(mu)

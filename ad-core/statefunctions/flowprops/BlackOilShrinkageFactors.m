@@ -56,11 +56,11 @@ classdef BlackOilShrinkageFactors < StateFunction
                     else
                         flag = false(numelValue(po), 1);
                     end
-                    bO = prop.evaluateFunctionOnDomainWithArguments(f.bO, po, rs, flag);
+                    extra = {rs, flag};
                 else
-                    bO = prop.evaluateFunctionOnDomainWithArguments(f.bO, po);
+                    extra = {};
                 end
-                b{oix} = bO;
+                b{oix} = prop.evaluateFluid(model, 'bO', po, extra{:});
             end
             
             if model.gas
@@ -74,11 +74,11 @@ classdef BlackOilShrinkageFactors < StateFunction
                     else
                         flag = false(numelValue(pg), 1);
                     end
-                    bG = prop.evaluateFunctionOnDomainWithArguments(f.bG, pg, rv, flag);
+                    extra = {rv, flag};
                 else
-                    bG = prop.evaluateFunctionOnDomainWithArguments(f.bG, pg);
+                    extra = {};
                 end
-                b{gix} = bG;
+                b{gix} = prop.evaluateFluid(model, 'bG', pg, extra{:});
             end
         end
     end
