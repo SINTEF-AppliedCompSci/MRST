@@ -18,7 +18,9 @@ G.nodes.coords(:, 1) = 2 * makeSkew(G.nodes.coords);
 G.nodes.coords(:, 1) = G.nodes.coords(:, 1) * 1000;
 G.nodes.coords(:, 2) = G.nodes.coords(:, 2) * 1000;
 
-%G = twister(G, 0.1);
+G = triangleGrid(G.nodes.coords);
+
+G = twister(G, 0.1);
 G = computeGeometry(G);
 
 % Homogeneous reservoir properties
@@ -26,12 +28,24 @@ rock = makeRock(G, 100*milli*darcy, .2);
 pv = sum(poreVolume(G, rock));
 
 % Symmetric well pattern
-[ii, jj] = gridLogicalIndices(G);
+if any(contains(G.type, 'cartGrid'))
+    [ii, jj] = gridLogicalIndices(G);
+    c1 = find(ii == ceil(G.cartDims(1)/2) & jj == G.cartDims(2));
+    c2 = find(ii == G.cartDims(1) & jj == 1);
+    c3 = find(ii == 1 & jj == 1);
+else
+    offset = 1e-2;
+    xmin = min(G.nodes.coords(:, 1:2));
+    xmax = max(G.nodes.coords(:, 1:2));
+    c1 = findEnclosingCell(G, [0.5 * (xmin(1) + xmax(1)), xmax(2) - offset]);
+    c2 = findEnclosingCell(G, xmin+offset);
+    c3 = findEnclosingCell(G, [xmax(1) - offset, xmin(2) + offset]);
+end
 % Injector + two producers
 W = [];
-W = addWell(W, G, rock, find(ii == ceil(G.cartDims(1)/2) & jj == G.cartDims(2)), 'comp_i', [1, 0], 'type', 'rate', 'val', pv/year);
-W = addWell(W, G, rock, find(ii == G.cartDims(1) & jj == 1), 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa);
-W = addWell(W, G, rock, find(ii == 1 & jj == 1), 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa);
+W = addWell(W, G, rock, c1, 'comp_i', [1, 0], 'type', 'rate', 'val', pv/year);
+W = addWell(W, G, rock, c2, 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa);
+W = addWell(W, G, rock, c3, 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa);
 
 %% We can simulate with either immiscible or compositional fluid physics
 % The example uses the general simulator framework and as such we can
@@ -71,7 +85,8 @@ disp('TPFA implicit')
 %% Simulate implicit NTPFA
 disp('NTPFA implicit')
 mrstModule add nfvm
-model_ntpfa = setNTPFADiscretization(model);
+ratio = 0.0;
+model_ntpfa = setNTPFADiscretization(model, 'myRatio', ratio);
 [wsNTPFA, statesNTPFA] = simulateScheduleAD(state0, model_ntpfa, schedule);
 
 %% Simulate implicit MPFA
@@ -107,7 +122,6 @@ colorbar
 title('MPFA')
 
 return
-
 
 %% Simulate explicit MPFA and explicit TPFA
 model_exp = setTimeDiscretization(model, 'Explicit', 'initialStep', 0.01*day);
