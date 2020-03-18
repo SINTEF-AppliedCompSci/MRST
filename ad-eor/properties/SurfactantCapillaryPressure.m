@@ -6,20 +6,17 @@ classdef SurfactantCapillaryPressure < BlackOilCapillaryPressure
     end
     
     methods
-        function prop = SurfactantCapillaryPressure(varargin)
-            prop@BlackOilCapillaryPressure(varargin{:});
+        function prop = SurfactantCapillaryPressure(model, varargin)
+            prop@BlackOilCapillaryPressure(model, varargin{:});
             prop = prop.dependsOn('surfactant', 'state');
+            assert(model.water && isfield(model.fluid,'ift'))
         end
         
         function pc = evaluateOnDomain(prop, model, state)
             pc = evaluateOnDomain@BlackOilCapillaryPressure(prop, model,state);
-            [~,phInd] = model.getActivePhases();
-            ind = (phInd==1);
-            if any(ind)
-                c       = model.getProps(state, 'surfactant');
-                scale   = model.fluid.ift(c)/model.fluid.ift(0);
-                pc{ind} = scale.*pc{ind};
-            end
+            ph = model.getPhaseNames(); iW = find(ph=='W');
+            c  = model.getProps(state, 'surfactant');
+            pc{iW} = pc{iW}.*model.fluid.ift(c)/model.fluid.ift(0);
         end
     end
 end
