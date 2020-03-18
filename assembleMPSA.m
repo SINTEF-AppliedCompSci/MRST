@@ -314,20 +314,19 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     % Now we have
     % transnodeaverage_T : cellnodecolrowtbl -> cellnodecolrowtbl
 
-    prod = TensorProd();
-    prod.tbl1 = celltbl;
-    prod.tbl2 = nodecolrowtbl;
-    prod.tbl3 = cellnodecolrowtbl;
-
-    prod.pivottbl = cellnodecolrowtbl;
+    map = TensorMap();
+    map.fromTbl = nodecolrowtbl;
+    map.toTbl = cellnodecolrowtbl;
+    map.mergefds = {'nodes', 'coldim', 'rowdim'};
+    
+    map.pivottbl = cellnodecolrowtbl;
     [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-    prod.dispind1 = cell_from_cellnode(i);
-    prod.dispind2 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
-    prod.dispind3 = (1 : cncr_num)';
-    prod.issetup = true;
+    map.dispind1 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
+    map.dispind2 = (1 : cncr_num)';
+    map.issetup = true;
 
     celldispatch_T = SparseTensor('matlabsparse', true);
-    celldispatch_T = celldispatch_T.setFromTensorProd(ones(celltbl.num, 1), prod);
+    celldispatch_T = celldispatch_T.setFromTensorMap(map);
 
     transnodeaverage_T = celldispatch_T*transnodeaverage_T;
 
@@ -441,11 +440,10 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     % We enforce the boundary conditions as Lagrange multipliers
 
     bc = loadstruct.bc;
-    if isfield(bc, 'bcnodefacetbl')
-        [D, bcvals] = setupNodeFaceBc(bc, G, tbls);
-    else
-        [D, bcvals] = setupFaceBC(bc, G, tbls);
+    if ~isfield(bc, 'bcnodefacetbl')
+        bc = setupFaceBC(bc, G, tbls);
     end
+    [D, bcvals] = setupNodeFaceBc(bc, G, tbls);
     
     % the solution is given by the system
     %
@@ -502,13 +500,16 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     extforce = loadstruct.extforce;
     force = loadstruct.force;
     
-    redextforce = [-A21*invA11*extforce;
+    redextforce = [;
                    -D'*invA11*extforce];
 
     B = [[B11, B12]; ...
          [B21, B22]];
-
-    rhs = redextforce + [force; bcvals];
+    
+    rhs{1} = -A21*invA11*extforce + force; 
+    rhs{2} = -D'*invA11*extforce + bcvals;
+    
+    rhs = vertcat(rhs{:});
 
     % setup mapping from nodeface to node
 
