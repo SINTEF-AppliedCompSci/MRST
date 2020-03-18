@@ -14,7 +14,7 @@ function convergenceTest()
 % publisher={Wiley Online Library}
 
     %% Load necessary modules
-    mrstModule add vem mpfa mpsaw vemmech
+    mrstModule add vem mpfa mpsaw vemmech libgeometry
 
     %% params setting
     % nref     : degree of refinement
@@ -30,7 +30,7 @@ function convergenceTest()
 
 
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -49,7 +49,7 @@ function convergenceTest()
     
 
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -65,10 +65,8 @@ function convergenceTest()
         savethisfigure(filename);
     end
 
-    return
-    
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -187,19 +185,19 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
-        params = struct('nref'    , 5, ...
+        params = struct('nref'    , 4, ...
                         'Nd'      , 3, ...
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
                         'gridtype', 5, ... % Cartesian Grid
-                        'eta'     , 1e-8);
+                        'eta'     , 1/3);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd3_g5_k1_a1_eta0';
+        filename = 'convd3_g5_k1_a1_eta3';
         savethisfigure(filename);
     end
 end
