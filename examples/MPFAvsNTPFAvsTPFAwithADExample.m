@@ -84,17 +84,6 @@ mrstModule add mpfa
 model_mpfa = setMPFADiscretization(model);
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);
 
-%% Simulate explicit MPFA and explicit TPFA
-model_exp = setTimeDiscretization(model, 'Explicit', 'initialStep', 0.01*day);
-model_ntpfa_exp = setTimeDiscretization(model_ntpfa, 'Explicit', 'initialStep', 0.01*day);
-model_mpfa_exp = setTimeDiscretization(model_mpfa, 'Explicit', 'initialStep', 0.01*day);
-disp('TPFA explicit')
-[wsExplicit, statesExplicit] = simulateScheduleAD(state0, model_exp, schedule);
-disp('NTPFA explicit')
-[wsNTPFAExplicit, statesNTPFAExplicit] = simulateScheduleAD(state0, model_ntpfa_exp, schedule);
-disp('MPFA explicit')
-[wsMPFAExplicit, statesMPFAExplicit] = simulateScheduleAD(state0, model_mpfa_exp, schedule);
-
 %% Plot the results
 figure
 plotToolbar(G, states);
@@ -116,6 +105,20 @@ axis equal
 axis tight
 colorbar
 title('MPFA')
+
+return
+
+
+%% Simulate explicit MPFA and explicit TPFA
+model_exp = setTimeDiscretization(model, 'Explicit', 'initialStep', 0.01*day);
+model_ntpfa_exp = setTimeDiscretization(model_ntpfa, 'Explicit', 'initialStep', 0.01*day);
+model_mpfa_exp = setTimeDiscretization(model_mpfa, 'Explicit', 'initialStep', 0.01*day);
+disp('TPFA explicit')
+[wsExplicit, statesExplicit] = simulateScheduleAD(state0, model_exp, schedule);
+disp('NTPFA explicit')
+[wsNTPFAExplicit, statesNTPFAExplicit] = simulateScheduleAD(state0, model_ntpfa_exp, schedule);
+disp('MPFA explicit')
+[wsMPFAExplicit, statesMPFAExplicit] = simulateScheduleAD(state0, model_mpfa_exp, schedule);
 
 figure
 plotToolbar(G, statesExplicit);
