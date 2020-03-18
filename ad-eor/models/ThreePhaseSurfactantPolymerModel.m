@@ -134,6 +134,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));            
             fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model, satreg));
             pp = pp.setStateFunction('PolymerViscMultiplier', PolymerViscMultiplier(model, pvtreg));
+            pp = pp.setStateFunction('SurfactantViscMultiplier', SurfactantViscMultiplier(model, pvtreg));
             fd = fd.setStateFunction('PolymerPhaseFlux', PolymerPhaseFlux(model));
             fd = fd.setStateFunction('FaceConcentration', FaceConcentration(model, upstr)); 
                                     

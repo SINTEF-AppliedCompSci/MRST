@@ -1,29 +1,19 @@
-classdef PolymerViscMultiplier < StateFunction
+classdef SurfactantViscMultiplier < StateFunction
     properties
     end
 
     methods
-        function gp = PolymerViscMultiplier(model, varargin)
+        function gp = SurfactantViscMultiplier(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'polymer'}, 'state'); % check mechanism
-            assert(model.water);
-            assert(all(isfield(model.fluid,{'cpmax','mixPar','muWMult'})));
+            gp = gp.dependsOn({'surfactant'}, 'state'); % check mechanism
+            assert(model.water && all(isfield(model.fluid,{'muWr','muWSft'})));
         end
 
-        function effMult = evaluateOnDomain(prop, model, state)
+        function mSft = evaluateOnDomain(prop, model, state)
             % The multiplier is only applied to the water phase
-            fluid   = model.fluid;
-            cp      = model.getProp(state, 'polymer');
-            cpMax   = repmat(fluid.cpmax, numelValue(cp), 1);
-
-            mult    = prop.evaluateFluid(model, 'muWMult', cp);
-            multMax = prop.evaluateFluid(model, 'muWMult', cpMax);
-
-            mixpar  = fluid.mixPar;
-            cpbar   = cp/fluid.cpmax;
-            a       = multMax.^(1-mixpar);
-            b       = 1./(1 - cpbar + cpbar./a);
-            effMult = b.*mult.^mixpar;            
+            cs   = model.getProps(state,'surfactant');
+            mSft = prop.evaluateFluid(model, 'muWSft', cs);
+            mSft = mSft / model.fluid.muWr;
         end
     end
 end
