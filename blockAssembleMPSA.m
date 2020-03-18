@@ -43,12 +43,15 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     globlinformvals = globbc.linformvals;
 
     gncc = globcellcoltbl.num;
-    gnbc = globbcnodefacecoltbl.num;
+    gnbc = globbcnodefacetbl.num;
     
     B11 = sparse(gncc, gncc);
     B12 = sparse(gncc, gnbc);
     B21 = sparse(gnbc, gncc);
     B22 = sparse(gnbc, gnbc);
+
+    rhscc = zeros(gncc, 1);
+    rhsbc = zeros(gnbc, 1);
     
     for iblock = 1 : nblocks
 
@@ -505,27 +508,37 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         
         bcnodefacetbl = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', ...
                             'faces'});
-        bcind = bcnodefacetbl.get('bcinds');
-        bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, ...
-                                           'optpureproduct', true);
-        bcnodefacetbl = replacefield(bcnodefacetbl, {{'bcinds', ''}});
         
-        linformvals = globlinformvals(bcind, :);
+        bcterm_exists = true;
+        if bcnodefacetbl.num == 0
+            bcterm_exists = false;
+        end
+        
+        if bcterm_exists
+            
+            bcind = bcnodefacetbl.get('bcinds');
+            bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, ...
+                                               'optpureproduct', true);
+            bcnodefacetbl = replacefield(bcnodefacetbl, {{'bcinds', ''}});
+            
+            linformvals = globlinformvals(bcind, :);
 
-        map = TensorMap();
-        map.fromTbl = globbcnodefacecoltbl;
-        map.toTbl = bcnodefacecoltbl;
-        map.mergefds = {'bcinds', 'coldim', 'nodes', 'faces'};
-        map = map.setup();
+            map = TensorMap();
+            map.fromTbl = globbcnodefacecoltbl;
+            map.toTbl = bcnodefacecoltbl;
+            map.mergefds = {'bcinds', 'coldim', 'nodes', 'faces'};
+            map = map.setup();
+            
+            linform = map.eval(globlinform);
+            
+            bc = struct('bcnodefacetbl', bcnodefacetbl, ...
+                        'linform'      , linform      , ...
+                        'linformvals'  , linformvals);
+            
+            [D, bcvals] = setupNodeFaceBc(bc, G, tbls);
+            
+        end
         
-        linform = map.eval(globlinform);
-        
-        bc = struct('bcnodefacetbl', bcnodefacetbl, ...
-                    'linform'      , linform      , ...
-                    'linformvals'  , linformvals);
-        
-        [D, bcvals] = setupNodeFaceBc(bc, G, tbls);
-    
         % the solution is given by the system
         %
         % A = [[A11, A12, -D];
@@ -548,12 +561,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         % By construction of the method, the matrix A11 is block-diagonal. Hence,
         % we invert it directly and reduce to a cell-centered scheme.
 
-        matrices = struct('A11', A11, ...
-                          'A12', A12, ...
-                          'A21', A21, ...
-                          'A22', A22, ...
-                          'D'  , D  , ...
-                          'invA11', invA11);
+
         % We reduced the system (shur complement) using invA11
         % We obtain system of the form
         %
@@ -571,9 +579,13 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         %                     bcvals]
 
         locB11 = A22 - A21*invA11*A12;
-        locB12 = A21*invA11*D;
-        locB21 = -D'*invA11*A12;
-        locB22 = D'*invA11*D;
+        
+        if bcterm_exists
+            locB12 = A21*invA11*D;
+            locB21 = -D'*invA11*A12;
+            locB22 = D'*invA11*D;
+        end
+        
 
         % locB11 : cellcoltbl    -> cellcoltbl
         % locB22 : bcnodefacetbl -> bcnodefacetbl
@@ -591,19 +603,23 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         cellind = map.dispind2;
         
         ncc = cellcoltbl.num;
-        nbc = bcnodefacetbl.num;
         
         B11 = B11 + sparse(repmat(cellind, 1, ncc), repmat(cellind', ncc, 1), ...
                            locB11, gncc, gncc);
         
-        B22 = B22 + sparse(repmat(bcind, 1, nbc), repmat(bcind', nbc, 1), ...
-                           locB22, gnbc, gnbc);
+        if bcterm_exists
+            
+            nbc = bcnodefacetbl.num;
+            
+            B22 = B22 + sparse(repmat(bcind, 1, nbc), repmat(bcind', nbc, 1), ...
+                               locB22, gnbc, gnbc);
 
-        B12 = B12 + sparse(repmat(cellind, 1, nbc), repmat(bcind', ncc, 1), ...
-                           locB12, gncc, gnbc);
-        
-        B21 = B21 + sparse(repmat(bcind, 1, ncc), repmat(cellind', nbc, 1), ...
-                           locB21, gnbc, gncc);
+            B12 = B12 + sparse(repmat(cellind, 1, nbc), repmat(bcind', ncc, 1), ...
+                               locB12, gncc, gnbc);
+            
+            B21 = B21 + sparse(repmat(bcind, 1, ncc), repmat(cellind', nbc, 1), ...
+                               locB21, gnbc, gncc);
+        end
         
         
         map = TensorMap();
@@ -622,17 +638,27 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
 
         force = map.eval(globforce);
         
-        clear rhs
-        locrhs{1} = -A21*invA11*extforce + force; 
-        locrhs{2} = -D'*invA11*extforce + bcvals;
+        % locrhscc in cellcoltbl
+        % locrhsbc in bcnodefacetbl
 
-        % rhs{1} in cellcoltbl
-        % rhs{2} in bcnodefacetbl
+        locrhscc = -A21*invA11*extforce + force; 
         
-        %% map the values to the global matrices.
+        rhscc(cellind) = rhscc(cellind) + locrhscc;
+        if bcterm_exists
+            locrhsbc = -D'*invA11*extforce + bcvals;
+            rhsbc(bcind) = rhsbc(bcind) + locrhsbc;
+        end
+        
+        
+        
 
     end
     
+    B = [[B11, B12]; ...
+         [B21, B22]];
+
+    rhs = [rhscc; ...
+           rhsbc];
     
     % setup mapping from nodeface to node
     
@@ -659,8 +685,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
 
     assembly = struct('B'           , B       , ...
                       'rhs'         , rhs     , ...
-                      'extforce'    , extforce, ...
-                      'matrices'    , matrices, ...
+                      'extforce'    , globextforce, ...
                       'nodaldisp_op', nodaldisp_op);
     
 end

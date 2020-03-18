@@ -68,7 +68,7 @@ loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 doblockassembly = true;
 if doblockassembly
     assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                 'blocksize', 10);
+                                 'blocksize', 100);
 else
     assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings);
 end
@@ -83,6 +83,31 @@ cellcoltbl = tbls.cellcoltbl;
 n = cellcoltbl.num;
 
 u = sol(1 : n);
+
+dim = G.griddim;
+uvec = reshape(u, dim, [])';
+
+figure
+plotCellData(G, uvec(:, 1));
+title('displacement - x direction')
+colorbar
+figure
+plotCellData(G, uvec(:, 2));
+title('displacement - y direction')
+colorbar
+
+return
+
+
+%% plotting
+% 
+close all
+
+unvec = reshape(un, dim, [])';
+figure 
+coef = 1e0;
+plotGridDeformed(G, coef*unvec);
+
 
 % Force where the Dirichlet BC are imposed (the are given by the lagrange
 % multipliers)
@@ -102,24 +127,4 @@ A12    = matrices.A12;
 unf = invA11*(force - A12*u + D*lagmult);
 un = nodaldisp_op*unf;
 
-%% plotting
-% 
-close all
-
-unvec = reshape(un, dim, [])';
-figure 
-coef = 1e0;
-plotGridDeformed(G, coef*unvec);
-
 %%
-dim = G.griddim;
-uvec = reshape(u, dim, [])';
-
-figure
-plotCellData(G, uvec(:, 1));
-title('displacement - x direction')
-colorbar
-figure
-plotCellData(G, uvec(:, 2));
-title('displacement - y direction')
-colorbar
