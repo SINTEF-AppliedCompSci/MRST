@@ -5,20 +5,16 @@ classdef BlackOilSurfactantViscosity < BlackOilViscosity
     methods
         function gp = BlackOilSurfactantViscosity(model, varargin)
             gp@BlackOilViscosity(model, varargin{:});
-            gp = gp.dependsOn('PhasePressures');
+            gp = addPropertyDependence(gp, {'SurfactantViscMultiplier'});
             assert(model.water);
-            assert(all(isfield(model.fluid,{'muW','muWR'})));
         end
 
         function mu = evaluateOnDomain(prop, model, state)
-           cs = model.getProps(state, 'surfactant');
-           p = model.getProps(state, 'PhasePressures');
-           pW = p{1};
-           mu = prop.evaluateOnDomain@BlackOilViscosity(model, state);
-           mu{1} = model.fluid.muWSft(cs);
-           muWMultPressure = model.fluid.muW(pW)/model.fluid.muWr;
-           
-           mu{1} = mu{1}.*muWMultPressure;
+            % The multiplier is only applied to the water phase
+            mu   = prop.evaluateOnDomain@BlackOilViscosity(model, state);
+            mSft = prop.getEvaluatedDependencies(state, 'SurfactantViscMultiplier');
+            ph   = model.getPhaseNames(); iW = find(ph=='W');
+            mu{iW} = mu{iW} .* mSft;
         end
     end
 end

@@ -85,7 +85,8 @@ classdef ThreePhaseBlackOilSurfactantModel < ThreePhaseBlackOilModel
             surfreg = fp.getRegionSurfactant(model);
                                   
             fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));            
-            fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model));            
+            fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model));
+            pp = pp.setStateFunction('SurfactantViscMultiplier', SurfactantViscMultiplier(model, pvtreg));
                                     
             fp.RelativePermeability = SurfactantRelativePermeability(model, satreg, surfreg);
             fp.CapillaryPressure    = SurfactantCapillaryPressure(model, satreg);
