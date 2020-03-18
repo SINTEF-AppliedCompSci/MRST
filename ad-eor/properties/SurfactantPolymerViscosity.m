@@ -1,20 +1,22 @@
 classdef SurfactantPolymerViscosity < BlackOilViscosity
     methods
-        function gp = SurfactantPolymerViscosity(prop, varargin)
-            gp@BlackOilViscosity(prop, varargin{:});
+        function gp = SurfactantPolymerViscosity(model, varargin)
+            gp@BlackOilViscosity(model, varargin{:});
             gp = addPropertyDependence(gp, {'PolymerViscMultiplier'});
             gp = gp.dependsOn('surfactant', 'state');
-            gp = gp.dependsOn('PhasePressures');
+            assert(isfield(model.fluid, 'muWr'));
+            assert(isfield(model.fluid, 'muWSft'));
         end
         
         function mu = evaluateOnDomain(prop, model, state)
+            f = model.fluid;
             mu     = prop.evaluateOnDomain@BlackOilViscosity(model, state);
             ph     = model.getPhaseNames(); iW = find(ph=='W');
             cs     = model.getProps(state,'surfactant');
-            p      = prop.getEvaluatedDependencies(state, 'PhasePressures');
             mPol   = prop.getEvaluatedDependencies(state, 'PolymerViscMultiplier');
-            mPres  = model.fluid.muW(p{iW}) / model.fluid.muWr;
-            mu{iW} = model.fluid.muWSft(cs) .* mPol .* mPres;
+            mPres  = mu{iW} / f.muWr;
+            muWSft = prop.evaluateFunctionOnDomainWithArguments(f.muWSft, cs);
+            mu{iW} = muWSft .* mPol .* mPres;
        end
     end
 end
