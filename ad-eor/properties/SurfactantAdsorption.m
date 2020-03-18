@@ -6,7 +6,7 @@ classdef SurfactantAdsorption < StateFunction
         function gp = SurfactantAdsorption(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'surfactant', 'surfactantmax'}, 'state'); % check mechanism
-            asssert(model.water);
+            assert(model.water);
             assert(isfield(model.fluid,'adsInxSft'));
         end
 
