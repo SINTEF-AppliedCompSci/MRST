@@ -66,11 +66,9 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
             tmp = cell(1, numel(prm)+1);
             for i = 1:numel(prm)
                 s = prm{i};
-                [ix, choice, description] = solver.getParameterGroup(s);
-                tmp{i} = sprintf('%15s: %s (%s Internal index %d)', s, choice, description, ix);
+                tmp{i} = solver.getFeatureDescription(s);
             end
-            [ix, choice, description] = solver.getParameterGroup('relaxation', 's_relaxation');
-            tmp{end} = sprintf('%15s: %s (%s Internal index %d)', 's_relaxation', choice, description, ix);
+            tmp{end} = solver.getFeatureDescription('relaxation', 's_relaxation');
             d = [sprintf('AMGCL constrained-pressure-residual (CPR) solver. Configuration:\n'), ...
                  sprintf('\t%s\n', tmp{:})];
         end

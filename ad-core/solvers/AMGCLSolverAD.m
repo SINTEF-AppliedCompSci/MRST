@@ -67,12 +67,12 @@ classdef AMGCLSolverAD < LinearSolverAD
            end
        end
        
-       function [n, name, descr] = getParameterGroup(solver, group, fld)
+       function [n, name, descr, parameters] = getParameterGroup(solver, group, fld)
            group = lower(group);
            if nargin < 3 || isempty(fld)
                fld = group;
            end
-           [n, name, descr] = translateOptionsAMGCL(group, solver.amgcl_setup.(fld));
+           [n, name, descr, parameters] = translateOptionsAMGCL(group, solver.amgcl_setup.(fld));
        end
        
        function [result, report] = callAMGCL_MEX(solver, A, b, id)
@@ -111,11 +111,27 @@ classdef AMGCLSolverAD < LinearSolverAD
             tmp = cell(1, numel(prm));
             for i = 1:numel(prm)
                 s = prm{i};
-                [ix, choice, description] = solver.getParameterGroup(s);
-                tmp{i} = sprintf('%15s: %s (%s Internal index %d)', s, choice, description, ix);
+                tmp{i} = solver.getFeatureDescription(s);
             end
             d = [sprintf('General AMGCL solver. Configuration:\n'), ...
                  sprintf('\t%s\n', tmp{:})];
+        end
+        
+        function out = getFeatureDescription(solver, name, extra)
+            if nargin == 2
+                extra = name;
+            end
+            [ix, choice, description, param] = solver.getParameterGroup(name, extra); %#ok
+            out = sprintf('%15s: %s', extra, choice);
+            out = [out, sprintf(' (%s)', description)];
+            if ~isempty(param)
+                s = '';
+                for j = 1:numel(param)
+                     p = param{j};
+                     s = [s, sprintf('\n\t\t\t\t\t - %s = %g', p, solver.amgcl_setup.(p))];
+                end
+                out = [out, s];
+            end
         end
    end
 end
