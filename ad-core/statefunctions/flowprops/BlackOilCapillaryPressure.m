@@ -41,7 +41,7 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
                     [swmax, SWMAX] = get('w', U);
                     sW = swcon + (sW - SWCON).*(swmax - swcon)./(SWMAX - SWCON);
                 end
-                pcow = prop.evaluateFunctionOnDomainWithArguments(f.pcOW, sW);
+                pcow = prop.evaluateFluid(model, 'pcOW', sW);
                 if isfield(state, 'pcowScale')
                     pcow = pcow.*state.pcowScale;
                     assert(~JfuncActiveOW, 'Cannot both have initial water pc scale and Jfunc scaling.');
@@ -56,7 +56,7 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
             if model.gas && model.oil && isfield(f, 'pcOG')
                 % Oil gas capillary pressure
                 sG = model.getProp(state, 'sg');
-                pcog = prop.evaluateFunctionOnDomainWithArguments(f.pcOG, sG);
+                pcog = prop.evaluateFluid(model, 'pcOG', sG);
                 if JfuncActiveOG
                     sog = prop.surfaceTensionOG;
                     pcog = sog.*ratio.*pcog;
@@ -66,7 +66,7 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
             if ~model.oil && isfield(f, 'pcWG')
                 % Water-gas capillary pressure
                 sG = model.getProp(state, 'sg');
-                pc{phInd == 3} = prop.evaluateFunctionOnDomainWithArguments(f.pcWG, sG);
+                pc{phInd == 3} = prop.evaluateFluid(model, 'pcWG', sG);
             end
         end
         

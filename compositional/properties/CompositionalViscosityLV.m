@@ -27,10 +27,9 @@ classdef CompositionalViscosityLV < StateFunction
 
             if model.water
                 p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
-                f = model.fluid;
                 wix = phInd == 1;
                 pw = p_phase{wix};
-                mu{wix} = prop.evaluateFunctionOnDomainWithArguments(f.muW, pw);
+                mu{wix} = prop.evaluateFluid(model, 'muW', pw);
             end
             eos = model.EOSModel;
             pm = eos.PropertyModel;
