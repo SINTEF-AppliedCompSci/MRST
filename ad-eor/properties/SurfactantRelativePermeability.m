@@ -11,6 +11,9 @@ classdef SurfactantRelativePermeability < BaseRelativePermeability
             prop = prop.dependsOn({'CapillaryNumber'});
             prop.zeroSurf = StateFunction(model, satreg);
             prop.fullSurf = StateFunction(model, surfreg);
+            assert(all(isfield(model.fluid,{'miscfact','krPts'})));
+            assert(any(isfield(model.fluid,{'krO','krOW'})));
+            assert(isfield(model.fluid,'krW'));
         end
         
         function kr = evaluateOnDomain(prop, model, state)

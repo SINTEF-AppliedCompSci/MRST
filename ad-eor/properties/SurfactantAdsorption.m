@@ -6,17 +6,17 @@ classdef SurfactantAdsorption < StateFunction
         function gp = SurfactantAdsorption(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'surfactant', 'surfactantmax'}, 'state'); % check mechanism
+            assert(isfield(model.fluid,'adsInxSft'));
         end
 
         function ads = evaluateOnDomain(prop, model, state)
             [cs, csmax] = model.getProps(state, 'surfactant', 'surfactantmax');
-            f = model.fluid;
-            if f.adsInxSft == 2
+            if model.fluid.adsInxSft == 2
                 ce = max(cs, csmax);
             else
                 ce = cs;
             end
-            ads = prop.evaluateFunctionOnDomainWithArguments(f.surfads, ce);
+            ads = prop.evaluateFluid(model, 'surfads', ce);
         end
     end
 end

@@ -3,9 +3,10 @@ classdef PolymerViscMultiplier < StateFunction
     end
 
     methods
-        function gp = PolymerViscMultiplier(varargin)
-            gp@StateFunction(varargin{:});
+        function gp = PolymerViscMultiplier(model, varargin)
+            gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'polymer'}, 'state'); % check mechanism
+            assert(all(isfield(model.fluid,{'cpmax','mixPar','muWMult'})));
         end
 
         function muWeffMult = evaluateOnDomain(prop, model, state)
@@ -13,8 +14,8 @@ classdef PolymerViscMultiplier < StateFunction
             cp   = model.getProp(state, 'polymer');
             cpMax = repmat(fluid.cpmax, numelValue(cp), 1);
             
-            mult = prop.evaluateFunctionOnDomainWithArguments(fluid.muWMult, cp);
-            multMax = prop.evaluateFunctionOnDomainWithArguments(fluid.muWMult, cpMax);
+            mult    = prop.evaluateFluid(model, 'muWMult', cp);
+            multMax = prop.evaluateFluid(model, 'muWMult', cpMax);
             
             mixpar = fluid.mixPar;
             cpbar   = cp/fluid.cpmax;
