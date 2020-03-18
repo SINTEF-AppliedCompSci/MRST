@@ -8,6 +8,7 @@ classdef CapillaryNumber < StateFunction
         function prop = CapillaryNumber(model, varargin)
             prop@StateFunction(model, varargin{:});
             prop = prop.dependsOn({'pressure', 'surfactant', 'wellSol'}, 'state');
+            assert(model.water && isfield(model.fluid,'ift'));
             % We can choose square or linear velocity method here.
             prop.vmeth = 'square';
         end
@@ -65,8 +66,8 @@ classdef CapillaryNumber < StateFunction
                     error('option for velocCompMethod not recognized');
             end            
             abs_veloc = (veloc_sq).^(1/2);
-            sigma = fluid.ift(cs);
-            Nc = abs_veloc./sigma;            
+            sigma     = model.fluid.ift(cs);
+            Nc        = abs_veloc./sigma;
         end        
     end
 end

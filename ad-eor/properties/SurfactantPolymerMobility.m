@@ -7,6 +7,7 @@ classdef SurfactantPolymerMobility < StateFunction
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'RelativePermeability', 'PolymerPermReduction'});
             gp = gp.dependsOn('Viscosity', 'PVTPropertyFunctions');
+            assert(model.water);
             if isfield(model.fluid, 'tranMultR')
                 gp = gp.dependsOn('pressure', 'state');
             end

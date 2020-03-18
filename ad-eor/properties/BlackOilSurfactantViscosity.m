@@ -6,6 +6,8 @@ classdef BlackOilSurfactantViscosity < BlackOilViscosity
         function gp = BlackOilSurfactantViscosity(model, varargin)
             gp@BlackOilViscosity(model, varargin{:});
             gp = gp.dependsOn('PhasePressures');
+            assert(model.water);
+            assert(all(isfield(model.fluid,{'muW','muWR'})));
         end
 
         function mu = evaluateOnDomain(prop, model, state)

@@ -6,7 +6,7 @@ classdef PolymerAdsorption < StateFunction
         function gp = PolymerAdsorption(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'polymer', 'polymermax'}, 'state'); % check mechanism
-            assert(isfield(model.fluid, 'adsInx'));
+            assert(model.water && isfield(model.fluid, 'adsInx'));
         end
 
         function ads = evaluateOnDomain(prop, model, state)

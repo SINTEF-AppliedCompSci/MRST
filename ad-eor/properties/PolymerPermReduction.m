@@ -6,6 +6,8 @@ classdef PolymerPermReduction < StateFunction
         function gp = PolymerPermReduction(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn('PolymerAdsorption');
+            assert(model.water);
+            assert(all(isfield(model.fluid,{'rrf','adsMax'})));
         end
 
         function permRed = evaluateOnDomain(prop, model, state)
