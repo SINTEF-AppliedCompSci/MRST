@@ -65,15 +65,14 @@ function interpFace = findHAP(G, rock, bc)
         theFaces = G.cells.faces(G.cells.facePos(i):G.cells.facePos(i+1)-1);
         hap = interpFace.coords(theFaces, :);
         ind = convhull(hap);
-        % switch G.griddim
-        %   case 2
-        %     xv = hap(ind, 1);
-        %     yv = hap(ind, 2);
-        %     counter(i) = inpolygon(xc(1), xc(2), xv, yv);
-        %   case 3
-        %     counter(i) = inhull(xc, hap, ind, -1e-5);
-        % end
-        counter(i) = mex_inhull(xc, hap, ind, -1e-5);
+        switch G.griddim
+          case 2
+            xv = hap(ind, 1);
+            yv = hap(ind, 2);
+            counter(i) = inpolygon(xc(1), xc(2), xv, yv);
+          case 3
+            counter(i) = mex_inhull(xc, hap, ind, -1e-5);
+        end
     end
     interpFace.fraction = 1 - sum(counter) / G.cells.num;
 end
