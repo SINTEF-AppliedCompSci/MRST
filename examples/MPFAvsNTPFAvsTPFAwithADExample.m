@@ -13,12 +13,13 @@ mrstModule add ad-core mpfa ad-blackoil compositional ad-props mrst-gui
 %dims = [41,20];
 dims = [21, 10];
 G = cartGrid(dims, [2, 1]);
+
+G = triangleGrid(G.nodes.coords);
+
 makeSkew = @(c) c(:, 1) + .4 * (1 - (c(:, 1) - 1).^2) .* (1 - c(:, 2));
 G.nodes.coords(:, 1) = 2 * makeSkew(G.nodes.coords);
 G.nodes.coords(:, 1) = G.nodes.coords(:, 1) * 1000;
 G.nodes.coords(:, 2) = G.nodes.coords(:, 2) * 1000;
-
-G = triangleGrid(G.nodes.coords);
 
 G = twister(G, 0.1);
 G = computeGeometry(G);
@@ -86,7 +87,8 @@ disp('TPFA implicit')
 disp('NTPFA implicit')
 mrstModule add nfvm
 ratio = 0.0;
-model_ntpfa = setNTPFADiscretization(model, 'myRatio', ratio);
+debug = true;
+model_ntpfa = setNTPFADiscretization(model, 'myRatio', ratio, 'debug', debug);
 [wsNTPFA, statesNTPFA] = simulateScheduleAD(state0, model_ntpfa, schedule);
 
 %% Simulate implicit MPFA
