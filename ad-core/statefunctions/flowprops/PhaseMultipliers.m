@@ -35,7 +35,7 @@ classdef PhaseMultipliers < StateFunction
                 for i = 1:numel(phaseNames)
                     % Multiplier can be compund, i.e. M = A*B*C
                     mi = prop.getEvaluatedDependencies(state, phaseNames{i});
-                    mult = mult * mi;
+                    mult = mult .* mi;
                 end
                 M{ph} = mult;
             end
