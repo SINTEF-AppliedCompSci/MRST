@@ -1,6 +1,8 @@
-function [tbls, mappings] = setupStandardTables(G)
+function [tbls, mappings] = setupStandardTables(G, varargin)
     
-    usevirtual = true;
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
+    useVirtual = opt.useVirtual;
     
     nc  = G.cells.num;
     nf  = G.faces.num;
@@ -61,12 +63,6 @@ function [tbls, mappings] = setupStandardTables(G)
     node_from_cellnode = getDispatchInd(map);
     
     map = TensorMap();
-    map.fromTbl = cellfacetbl;
-    map.toTbl = cellnodefacetbl;
-    map.mergefds = {'cells', 'faces'};
-    cellface_from_cellnodeface = getDispatchInd(map);
-    
-    map = TensorMap();
     map.fromTbl = cellnodetbl;
     map.toTbl = cellnodefacetbl;
     map.mergefds  = {'cells', 'nodes'};
@@ -78,18 +74,18 @@ function [tbls, mappings] = setupStandardTables(G)
     map.mergefds = {'faces', 'nodes'};
     nodeface_from_cellnodeface = getDispatchInd(map);
 
-    cellnodecoltbl    = crossIndexArray(cellnodetbl, coltbl, {}, 'virtual', usevirtual);
+    cellnodecoltbl    = crossIndexArray(cellnodetbl, coltbl, {}, 'virtual', useVirtual);
 
     % not virtual because used in setupBCpercase (could be optimized)
     cellnodefacecoltbl = crossIndexArray(cellnodefacetbl, coltbl, {});
     
     colrowtbl = crossIndexArray(coltbl, rowtbl, {});
     cellnodecolrowtbl = crossIndexArray(cellnodetbl, colrowtbl, {}, 'virtual', ...
-                                        usevirtual);
+                                        useVirtual);
     cellnodefacecolrowtbl = crossIndexArray(cellnodefacetbl, colrowtbl, {}, ...
-                                            'virtual', usevirtual);
+                                            'virtual', useVirtual);
 
-    nodecolrowtbl = crossIndexArray(nodetbl, colrowtbl, {}, 'virtual', usevirtual);
+    nodecolrowtbl = crossIndexArray(nodetbl, colrowtbl, {}, 'virtual', useVirtual);
     
     fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
            {'coldim', {'coldim1', 'coldim2'}}};
@@ -99,7 +95,7 @@ function [tbls, mappings] = setupStandardTables(G)
     cellcol2row2tbl = crossIndexArray(celltbl, col2row2tbl, {}, 'optpureproduct', ...
                                       true);
     cellnodecol2row2tbl = crossIndexArray(cellnodetbl, col2row2tbl, {}, ...
-                                          'virtual', usevirtual);
+                                          'virtual', useVirtual);
     
     tbls = struct('coltbl'               , coltbl               , ...
                   'celltbl'              , celltbl              , ...
@@ -123,7 +119,6 @@ function [tbls, mappings] = setupStandardTables(G)
 
     mappings = struct('cell_from_cellnode'        , cell_from_cellnode        , ...
                       'node_from_cellnode'        , node_from_cellnode        , ...
-                      'cellface_from_cellnodeface', cellface_from_cellnodeface, ...
                       'cellnode_from_cellnodeface', cellnode_from_cellnodeface, ...
                       'nodeface_from_cellnodeface', nodeface_from_cellnodeface);
     

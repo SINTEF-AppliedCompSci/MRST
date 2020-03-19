@@ -1,5 +1,9 @@
-function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls)
+function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, varargin)
     
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
+    useVirtual = opt.useVirtual;
+
     globcelltbl         = globtbls.celltbl;
     globnodetbl         = globtbls.nodetbl;
     globcellnodetbl     = globtbls.cellnodetbl;
@@ -9,12 +13,23 @@ function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls)
     colrowtbl           = globtbls.colrowtbl;
     col2row2tbl         = globtbls.col2row2tbl;
     
-    usevirtual = false;
-
     cellnodetbl = crossIndexArray(nodetbl, globcellnodetbl, {'nodes'});
     cellnodetbl = sortIndexArray(cellnodetbl, {'cells', 'nodes'});
     
     celltbl = projIndexArray(cellnodetbl, {'cells'});
+
+    map = TensorMap();
+    map.fromTbl = celltbl;
+    map.toTbl = cellnodetbl;
+    map.mergefds = {'cells'};
+    cell_from_cellnode = getDispatchInd(map);
+    
+    map = TensorMap();
+    map.fromTbl = nodetbl;
+    map.toTbl = cellnodetbl;
+    map.mergefds = {'nodes'};
+    node_from_cellnode = getDispatchInd(map); 
+   
     
     nodefacetbl = crossIndexArray(nodetbl, globnodefacetbl, {'nodes'});
     nodefacetbl = sortIndexArray(nodefacetbl, {'nodes', 'faces'});    
@@ -29,6 +44,12 @@ function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls)
     map.mergefds  = {'cells', 'nodes'};
     cellnode_from_cellnodeface = getDispatchInd(map);
     
+    map = TensorMap();
+    map.fromTbl = nodefacetbl;
+    map.toTbl = cellnodefacetbl;
+    map.mergefds = {'faces', 'nodes'};
+    nodeface_from_cellnodeface = getDispatchInd(map);
+
     cellcoltbl = crossIndexArray(celltbl, coltbl, {}); % ordering is cell - col
     nodecoltbl = crossIndexArray(nodetbl, coltbl, {}); % ordering is cell - col
 
@@ -36,23 +57,23 @@ function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls)
     % not virtual because used in setupBCpercase (could be optimized)
     nodefacecoltbl = crossIndexArray(nodefacetbl, coltbl, {});
 
-    cellnodecoltbl    = crossIndexArray(cellnodetbl, coltbl, {}, 'virtual', usevirtual);
+    cellnodecoltbl    = crossIndexArray(cellnodetbl, coltbl, {}, 'virtual', useVirtual);
 
     % not virtual because used in setupBCpercase (could be optimized)
     cellnodefacecoltbl = crossIndexArray(cellnodefacetbl, coltbl, {});
     
     cellnodecolrowtbl = crossIndexArray(cellnodetbl, colrowtbl, {}, 'virtual', ...
-                                        usevirtual);
+                                        useVirtual);
     cellnodefacecolrowtbl = crossIndexArray(cellnodefacetbl, colrowtbl, {}, ...
-                                            'virtual', usevirtual);
+                                            'virtual', useVirtual);
 
-    nodecolrowtbl = crossIndexArray(nodetbl, colrowtbl, {}, 'virtual', usevirtual);
+    nodecolrowtbl = crossIndexArray(nodetbl, colrowtbl, {}, 'virtual', useVirtual);
     
     % not virtual because used in setupStiffnessTensor (could be optimized).
     cellcol2row2tbl = crossIndexArray(celltbl, col2row2tbl, {}, 'optpureproduct', ...
                                       true);
     cellnodecol2row2tbl = crossIndexArray(cellnodetbl, col2row2tbl, {}, ...
-                                          'virtual', usevirtual);
+                                          'virtual', useVirtual);
     
     tbls = struct('coltbl'               , coltbl               , ...
                   'celltbl'              , celltbl              , ...
@@ -73,12 +94,9 @@ function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls)
                   'cellcol2row2tbl'      , cellcol2row2tbl      , ...
                   'cellnodecol2row2tbl'  , cellnodecol2row2tbl);
 
-    % mappings = struct('cell_from_cellnode'        , cell_from_cellnode        , ...
-    %                   'node_from_cellnode'        , node_from_cellnode        , ...
-    %                   'cellface_from_cellnodeface', cellface_from_cellnodeface, ...
-    %                   'cellnode_from_cellnodeface', cellnode_from_cellnodeface, ...
-    %                   'nodeface_from_cellnodeface', nodeface_from_cellnodeface);
-    
-    mappings = struct('cellnode_from_cellnodeface', cellnode_from_cellnodeface);
+    mappings = struct('cell_from_cellnode'        , cell_from_cellnode        , ...
+                      'node_from_cellnode'        , node_from_cellnode        , ...
+                      'cellnode_from_cellnodeface', cellnode_from_cellnodeface, ...
+                      'nodeface_from_cellnodeface', nodeface_from_cellnodeface);
         
 end

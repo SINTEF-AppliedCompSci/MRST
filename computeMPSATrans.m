@@ -7,6 +7,7 @@
 %% 2017
 
 clear all
+close all
 
 tic
 
@@ -62,13 +63,14 @@ mu     = ones(nc, 1);
 prop = struct('lambda', lambda, ...
               'mu', mu);
 
-[tbls, mappings] = setupStandardTables(G);
+useVirtual = true;
+[tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
 loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 
 doblockassembly = true;
 if doblockassembly
     assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                 'blocksize', 100);
+                                 'blocksize', 1000);
 else
     assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings);
 end
@@ -84,6 +86,14 @@ n = cellcoltbl.num;
 
 u = sol(1 : n);
 
+plotdeformedgrid = false;
+if plotdeformedgrid
+    nodaldisp_op = assembly.nodaldisp_op;
+    un = nodaldisp_op*u;
+    dim = G.griddim;
+    unvec = reshape(un, dim, [])';
+end
+
 dim = G.griddim;
 uvec = reshape(u, dim, [])';
 
@@ -95,6 +105,12 @@ figure
 plotCellData(G, uvec(:, 2));
 title('displacement - y direction')
 colorbar
+
+if plotdeformedgrid
+    figure 
+    coef = 1e0;
+    plotGridDeformed(G, coef*unvec);
+end
 
 return
 

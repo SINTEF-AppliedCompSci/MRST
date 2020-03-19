@@ -30,7 +30,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     
     cell_from_cellnode         = mappings.cell_from_cellnode;
     node_from_cellnode         = mappings.node_from_cellnode;
-    cellface_from_cellnodeface = mappings.cellface_from_cellnodeface;
     cellnode_from_cellnodeface = mappings.cellnode_from_cellnodeface;
     nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
     

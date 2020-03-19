@@ -8,10 +8,13 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
 %% International Journal for Numerical Methods in Engineering
 %% 2017
 
-    opt = struct('verbose'      , mrstVerbose, ...
-                 'blocksize'    , []);
+    opt = struct('verbose'  , mrstVerbose, ...
+                 'blocksize', [], ...
+                 'useVirual', true);
     opt = merge_options(opt, varargin{:});
+    
     blocksize = opt.blocksize;
+    
     nn = G.nodes.num;
     nblocks = floor(nn/blocksize);
     blocksizes = repmat(blocksize, nblocks, 1);
@@ -24,7 +27,12 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     coltbl         = globtbls.coltbl;
     colrowtbl      = globtbls.colrowtbl;
     col2row2tbl    = globtbls.col2row2tbl;
-    globcellcoltbl = globtbls.cellcoltbl;
+    
+    globnodetbl        = globtbls.nodetbl;
+    globcellcoltbl     = globtbls.cellcoltbl;
+    globnodecoltbl     = globtbls.nodecoltbl;
+    globcellnodetbl    = globtbls.cellnodetbl;
+    globcellnodecoltbl = globtbls.cellnodecoltbl;
     globnodefacecoltbl = globtbls.nodefacecoltbl;
     
     dim = coltbl.num;
@@ -62,7 +70,8 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         nodetbl.nodes = nodes;
         nodetbl = IndexArray(nodetbl);
 
-        [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls);
+        [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, ...
+                                                       'useVirtual', true);
 
         celltbl               = tbls.celltbl;
         nodetbl               = tbls.nodetbl;
@@ -80,7 +89,10 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         cellcol2row2tbl       = tbls.cellcol2row2tbl;
         cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
 
+        cell_from_cellnode         = mappings.cell_from_cellnode;
+        node_from_cellnode         = mappings.node_from_cellnode;
         cellnode_from_cellnodeface = mappings.cellnode_from_cellnodeface;
+        nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
         
         % Some shortcuts
         c_num     = celltbl.num;
@@ -137,14 +149,14 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         prod.mergefds    = {'nodes'};
         prod.tbl3 = cellnodecolrowtbl;
 
-        % [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
-        % 
-        % prod.dispind1 = sub2ind([d_num, cnf_num], c, i);
-        % prod.dispind2 = sub2ind([d_num, cnf_num], r, nodeface_from_cellnodeface(i));
-        % prod.dispind3 = sub2ind([d_num, d_num, cn_num], r, c, cellnode_from_cellnodeface(i));
-        % prod.issetup = true;
+        [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
         
-        prod = prod.setup();
+        prod.dispind1 = sub2ind([d_num, cnf_num], c, i);
+        prod.dispind2 = sub2ind([d_num, cnf_num], r, nodeface_from_cellnodeface(i));
+        prod.dispind3 = sub2ind([d_num, d_num, cn_num], r, c, cellnode_from_cellnodeface(i));
+        prod.issetup = true;
+        
+        % prod = prod.setup();
         
         gradnodeface_T = SparseTensor('matlabsparse', true);
         gradnodeface_T = gradnodeface_T.setFromTensorProd(g, prod);
@@ -162,14 +174,14 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         prod.mergefds = {'cells', 'nodes', 'coldim'};
         prod.reducefds = {'faces'};
         
-        % prod.pivottbl = cellnodefacecoltbl;
-        % prod.dispind1 = (1 : cnfc_num)';
-        % prod.dispind2 = (1 : cnfc_num)';
-        % [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-        % prod.dispind3 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
-        % prod.issetup = true;
+        prod.pivottbl = cellnodefacecoltbl;
+        prod.dispind1 = (1 : cnfc_num)';
+        prod.dispind2 = (1 : cnfc_num)';
+        [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
+        prod.dispind3 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
+        prod.issetup = true;
 
-        prod = prod.setup();
+        % prod = prod.setup();
         
         greduced = - prod.eval(ones(cnfc_num, 1), g);
 
@@ -180,14 +192,14 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         prod.replacefds2 = {'coldim', 'rowdim'};
         prod.mergefds = {'cells'};
 
-        % prod.pivottbl = cellnodecolrowtbl;
-        % [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-        % prod.dispind1 = sub2ind([d_num, cn_num], c, i);
-        % prod.dispind2 = sub2ind([d_num, c_num], r, cell_from_cellnode(i));
-        % prod.dispind3 = (1 : cncr_num);
-        % prod.issetup = true;
+        prod.pivottbl = cellnodecolrowtbl;
+        [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
+        prod.dispind1 = sub2ind([d_num, cn_num], c, i);
+        prod.dispind2 = sub2ind([d_num, c_num], r, cell_from_cellnode(i));
+        prod.dispind3 = (1 : cncr_num);
+        prod.issetup = true;
 
-        prod = prod.setup();
+        % prod = prod.setup();
         
         gradcell_T = SparseTensor('matlabsparse', true);
         gradcell_T = gradcell_T.setFromTensorProd(greduced, prod);
@@ -224,14 +236,14 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         prod.mergefds = {'nodes'};
         prod.tbl3 = nodefacecoltbl;
 
-        % prod.pivottbl = cellnodefacecolrowtbl;
-        % [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
-        % prod.dispind1 = sub2ind([d_num, cnf_num], r, i);
-        % prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, cellnode_from_cellnodeface(i));
-        % prod.dispind3 = sub2ind([d_num, nf_num], c, nodeface_from_cellnodeface(i));
-        % prod.issetup = true;
+        prod.pivottbl = cellnodefacecolrowtbl;
+        [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
+        prod.dispind1 = sub2ind([d_num, cnf_num], r, i);
+        prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, cellnode_from_cellnodeface(i));
+        prod.dispind3 = sub2ind([d_num, nf_num], c, nodeface_from_cellnodeface(i));
+        prod.issetup = true;
 
-        prod = prod.setup();
+        % prod = prod.setup();
         
         divnodeface_T = SparseTensor('matlabsparse', true);
         divnodeface_T = divnodeface_T.setFromTensorProd(d, prod);
@@ -251,13 +263,13 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         map.toTbl = cellnodecoltbl;
         map.mergefds = {'cells', 'nodes', 'coldim'};
         
-        % map.pivottbl = cellnodefacecoltbl;
-        % map.dispind1 = (1 : cnfc_num)';
-        % [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-        % map.dispind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
-        % map.issetup = true;
+        map.pivottbl = cellnodefacecoltbl;
+        map.dispind1 = (1 : cnfc_num)';
+        [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
+        map.dispind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
+        map.issetup = true;
 
-        map = map.setup();
+        % map = map.setup();
         
         dreduced = - map.eval(facetNormals);
 
@@ -270,14 +282,14 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         prod.reducefds   = {'rowdim', 'nodes'};
         prod.mergefds    = {'cells'};
 
-        % prod.pivottbl = cellnodecolrowtbl;
-        % [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-        % prod.dispind1 = sub2ind([d_num, cn_num], r, i);
-        % prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, i);
-        % prod.dispind3 = sub2ind([d_num, c_num], c, cell_from_cellnode(i));
-        % prod.issetup = true;
+        prod.pivottbl = cellnodecolrowtbl;
+        [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
+        prod.dispind1 = sub2ind([d_num, cn_num], r, i);
+        prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, i);
+        prod.dispind3 = sub2ind([d_num, c_num], c, cell_from_cellnode(i));
+        prod.issetup = true;
         
-        prod = prod.setup();
+        % prod = prod.setup();
 
         divcell_T = SparseTensor('matlabsparse', true);
         divcell_T = divcell_T.setFromTensorProd(dreduced, prod);
@@ -308,18 +320,18 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         nc2r2_num = symnodecol2row2tbl.num; % shortcut
 
         % (note the definition of symcol2row2tbl above)
-        % prod.pivottbl = symnodecol2row2tbl;
-        % [r, c, i] = ind2sub([d_num, d_num, n_num], (1 : nc2r2_num)');
-        % c2 = c;
-        % r2 = r;
-        % c1 = r;
-        % r1 = c;
-        % prod.dispind1 = sub2ind([d_num, d_num], r, c);
-        % prod.dispind2 = sub2ind([d_num, d_num, n_num], r2, c2, i);
-        % prod.dispind3 = sub2ind([d_num, d_num, n_num], r1, c1, i);
-        % prod.issetup = true;
+        prod.pivottbl = symnodecol2row2tbl;
+        [r, c, i] = ind2sub([d_num, d_num, n_num], (1 : nc2r2_num)');
+        c2 = c;
+        r2 = r;
+        c1 = r;
+        r1 = c;
+        prod.dispind1 = sub2ind([d_num, d_num], r, c);
+        prod.dispind2 = sub2ind([d_num, d_num, n_num], r2, c2, i);
+        prod.dispind3 = sub2ind([d_num, d_num, n_num], r1, c1, i);
+        prod.issetup = true;
 
-        prod = prod.setup();
+        % prod = prod.setup();
         
         trans_T = SparseTensor('matlabsparse', true);
         trans_T = trans_T.setFromTensorProd(ones(symcol2row2tbl.num, 1), prod);
@@ -360,14 +372,14 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         prod.reducefds = {'cells'};
         prod.mergefds = {'nodes'};
 
-        % prod.pivottbl = cellnodecolrowtbl;
-        % [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-        % prod.dispind1 = i;
-        % prod.dispind2 = (1 : cncr_num)';
-        % prod.dispind3 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
-        % prod.issetup = true;
+        prod.pivottbl = cellnodecolrowtbl;
+        [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
+        prod.dispind1 = i;
+        prod.dispind2 = (1 : cncr_num)';
+        prod.dispind3 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
+        prod.issetup = true;
 
-        prod = prod.setup();
+        % prod = prod.setup();
         
         nodeaverage_T = SparseTensor('matlabsparse', true);
         nodeaverage_T = nodeaverage_T.setFromTensorProd(coef, prod);
@@ -383,13 +395,12 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         map.toTbl = cellnodecolrowtbl;
         map.mergefds = {'nodes', 'coldim', 'rowdim'};
         
-        % map.pivottbl = cellnodecolrowtbl;
-        % [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-        % map.dispind1 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
-        % map.dispind2 = (1 : cncr_num)';
-        % map.issetup = true;
-
-        map = map.setup();
+        map.pivottbl = cellnodecolrowtbl;
+        [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
+        map.dispind1 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
+        map.dispind2 = (1 : cncr_num)';
+        map.issetup = true;
+        % map = map.setup();
         
         celldispatch_T = SparseTensor('matlabsparse', true);
         celldispatch_T = celldispatch_T.setFromTensorMap(map);
@@ -406,12 +417,12 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         map.toTbl = cellnodecolrowtbl;
         map.mergefds = {'nodes'};
 
-        % map.pivottbl = cellnodecolrowtbl;
-        % [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-        % map.dispind1 = node_from_cellnode(i);
-        % map.dispind2 = (1 : cncr_num)';
-        % map.issetup = true;
-        map = map.setup();
+        map.pivottbl = cellnodecolrowtbl;
+        [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
+        map.dispind1 = node_from_cellnode(i);
+        map.dispind2 = (1 : cncr_num)';
+        map.issetup = true;
+        % map = map.setup();
         
         coef = map.eval(coef);
 
@@ -421,13 +432,13 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         prod.mergefds = {'cells', 'nodes', 'coldim', 'rowdim'};
         prod.tbl3 = cellnodecolrowtbl;
 
-        % prod.pivottbl = cellnodecolrowtbl;
-        % cncr_num = cellnodecolrowtbl.num; %shortcut
-        % prod.dispind1 = (1 : cncr_num)';
-        % prod.dispind2 = (1 : cncr_num)';
-        % prod.dispind3 = (1 : cncr_num)';
-        % prod.issetup = true;
-        prod = prod.setup();
+        prod.pivottbl = cellnodecolrowtbl;
+        cncr_num = cellnodecolrowtbl.num; %shortcut
+        prod.dispind1 = (1 : cncr_num)';
+        prod.dispind2 = (1 : cncr_num)';
+        prod.dispind3 = (1 : cncr_num)';
+        prod.issetup = true;
+        % prod = prod.setup();
 
         bcfix_T = SparseTensor('matlabsparse', true);
         bcfix_T = bcfix_T.setFromTensorProd(coef, prod);
@@ -444,14 +455,14 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         map.toTbl = cellnodecol2row2tbl;
         map.mergefds = {'cells', 'coldim1', 'coldim2', 'rowdim1', 'rowdim2'};
 
-        % map.pivottbl = cellnodecol2row2tbl;
-        % cnc2r2_num = cellnodecol2row2tbl.num; %shortcut
-        % c2r2_num = col2row2tbl.num; %shortcut
-        % [c2r2, i] = ind2sub([c2r2_num, cn_num], (1 : cnc2r2_num)');
-        % map.dispind1 = sub2ind([c2r2_num, c_num], c2r2, cell_from_cellnode(i));
-        % map.dispind2 = (1 : cnc2r2_num)';
-        % map.issetup = true;
-        map = map.setup();
+        map.pivottbl = cellnodecol2row2tbl;
+        cnc2r2_num = cellnodecol2row2tbl.num; %shortcut
+        c2r2_num = col2row2tbl.num; %shortcut
+        [c2r2, i] = ind2sub([c2r2_num, cn_num], (1 : cnc2r2_num)');
+        map.dispind1 = sub2ind([c2r2_num, c_num], c2r2, cell_from_cellnode(i));
+        map.dispind2 = (1 : cnc2r2_num)';
+        map.issetup = true;
+        % map = map.setup();
 
         C = map.eval(C);
 
@@ -464,14 +475,14 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         prod.reducefds = {'coldim2', 'rowdim2'};
         prod.tbl3 = cellnodecolrowtbl;
 
-        % prod.pivottbl = cellnodecol2row2tbl;
-        % d = d_num; %shortcut
-        % [r2, c2, r1, c1, i] = ind2sub([d, d, d, d, cn_num], (1 : cnc2r2_num)');
-        % prod.dispind1 = (1 : cnc2r2_num)';
-        % prod.dispind2 = sub2ind([d, d, cn_num], r1, c1, i);
-        % prod.dispind3 = sub2ind([d, d, cn_num], r2, c2, i);
-        % prod.issetup = true;
-        prod = prod.setup();
+        prod.pivottbl = cellnodecol2row2tbl;
+        d = d_num; %shortcut
+        [r2, c2, r1, c1, i] = ind2sub([d, d, d, d, cn_num], (1 : cnc2r2_num)');
+        prod.dispind1 = (1 : cnc2r2_num)';
+        prod.dispind2 = sub2ind([d, d, cn_num], r1, c1, i);
+        prod.dispind3 = sub2ind([d, d, cn_num], r2, c2, i);
+        prod.issetup = true;
+        % prod = prod.setup();
         
         C_T = SparseTensor('matlabsparse', true);
         C_T = C_T.setFromTensorProd(C, prod);
@@ -648,9 +659,6 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
             locrhsbc = -D'*invA11*extforce + bcvals;
             rhsbc(bcind) = rhsbc(bcind) + locrhsbc;
         end
-        
-        
-        
 
     end
     
@@ -660,34 +668,47 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     rhs = [rhscc; ...
            rhsbc];
     
-    % setup mapping from nodeface to node
-    
-    map = TensorMap();
-    map.fromTbl = nodefacecoltbl;
-    map.toTbl   = nodecoltbl;
-    map.mergefds = {'nodes', 'coldim'};
-    map = map.setup();
-
-    coef = map.eval(ones(nodefacecoltbl.num, 1));
-    coef = 1./coef;
-
-    prod = TensorProd();
-    prod.tbl1 = nodecoltbl;
-    prod.tbl2 = nodefacecoltbl;
-    prod.tbl3 = nodecoltbl;
-    prod.mergefds = {'nodes', 'coldim'};
-    prod = prod.setup();
-
-    nodaldisp_T = SparseTensor('matlabsparse', true);
-    nodaldisp_T = nodaldisp_T.setFromTensorProd(coef, prod);
-
-    nodaldisp_op = nodaldisp_T.getMatrix();
-
     assembly = struct('B'           , B       , ...
                       'rhs'         , rhs     , ...
-                      'extforce'    , globextforce, ...
-                      'nodaldisp_op', nodaldisp_op);
+                      'extforce'    , globextforce);
     
+    dosetupnodemapping = false;
+    
+    if dosetupnodemapping
+        % Setup mapping from face displacement to nodal displacement (by averaging)
+        map = TensorMap();
+        map.fromTbl = globcellnodetbl;
+        map.toTbl   = globnodetbl;
+        map.mergefds = {'nodes'};
+        map = map.setup();
+
+        coef = map.eval(ones(globcellnodetbl.num, 1));
+        coef = 1./coef;
+        
+        map = TensorMap();
+        map.fromTbl = globnodetbl;
+        map.toTbl   = globcellnodecoltbl;
+        map.mergefds = {'nodes'};
+        map = map.setup();
+        
+        coef = map.eval(coef);
+        
+        prod = TensorProd();
+        prod.tbl1 = globcellnodecoltbl;
+        prod.tbl2 = globcellcoltbl;
+        prod.tbl3 = globnodecoltbl;
+        prod.reducefds = {'cells'};
+        prod.mergefds = {'coldim'};
+        prod = prod.setup();
+
+        nodaldisp_T = SparseTensor('matlabsparse', true);
+        nodaldisp_T = nodaldisp_T.setFromTensorProd(coef, prod);
+
+        nodaldisp_op = nodaldisp_T.getMatrix();
+
+        assembly.nodaldisp_op = nodaldisp_op;
+
+    end
 end
 
 
