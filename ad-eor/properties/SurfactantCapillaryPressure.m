@@ -16,7 +16,7 @@ classdef SurfactantCapillaryPressure < BlackOilCapillaryPressure
             pc = evaluateOnDomain@BlackOilCapillaryPressure(prop, model,state);
             ph = model.getPhaseNames(); iW = find(ph=='W');
             c  = model.getProps(state, 'surfactant');
-            pc{iW} = pc{iW}.*model.fluid.ift(c)/model.fluid.ift(0);
+            pc{iW} = pc{iW}.*model.fluid.ift(c)./model.fluid.ift(0);
         end
     end
 end
