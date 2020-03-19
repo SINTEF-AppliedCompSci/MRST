@@ -10,13 +10,16 @@ classdef StateFunction
     end
 
     methods
-        function prop = StateFunction(model, regions, varargin)
+        function prop = StateFunction(model, varargin)
             if nargin > 0
                 assert(isa(model, 'PhysicalModel'), 'Model must be derived from PhysicalModel base class');
                 prop.AutoDiffBackend = model.AutoDiffBackend;
-                if nargin > 1
-                    prop.regions = regions;
+                if mod(numel(varargin), 2) == 1
+                    % Odd number of entries means we specified regions
+                    prop.regions = varargin{1};
+                    varargin = varargin(2:end);
                 end
+                prop = merge_options(prop, varargin{:});
             end
         end
 
