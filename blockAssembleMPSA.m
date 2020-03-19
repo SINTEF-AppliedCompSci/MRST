@@ -1,4 +1,4 @@
- assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globmappings, varargin)
+function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globmappings, varargin)
     
 %% Assembly of MPSA-weak
 %%
