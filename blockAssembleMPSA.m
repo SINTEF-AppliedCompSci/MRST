@@ -1,4 +1,4 @@
-function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globmappings, varargin)
+ assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globmappings, varargin)
     
 %% Assembly of MPSA-weak
 %%
@@ -74,7 +74,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         nodetbl = IndexArray(nodetbl);
 
         if opt.verbose
-            fprintf('Assembling block %d (%d nodes)\n', iblock, nodetbl.num);
+            fprintf('Assembling block %d/%d (%d nodes)\n', iblock, nblocks, nodetbl.num);
         end
         
         [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls);
