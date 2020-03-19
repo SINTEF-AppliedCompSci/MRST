@@ -1,6 +1,7 @@
 classdef Mobility < StateFunction
     % Mobility for each phase. Normally rel. perm. divided by viscosity.
-    properties
+    properties (Access = protected)
+        hasMultipliers = false;
     end
     
     methods
@@ -20,6 +21,15 @@ classdef Mobility < StateFunction
                 mult = model.fluid.tranMultR(p);
                 mob = cellfun(@(x) x.*mult, mob, 'UniformOutput', false);
             end
+            if prop.hasMultipliers
+                mult = prop.getEvaluatedDependencies(state, 'MobilityMultipliers');
+                for i = 1:numel(mult)
+                    m = mult{i};
+                    if ~isempty(m)
+                        mu{i} = mu{i}.*m;
+                    end
+                end
+            end
             % Check for negative values
             mv = cellfun(@(x) min(value(x)), mob);
             isAD = cellfun(@(x) isa(x, 'ADI'), mob);
@@ -38,6 +48,11 @@ classdef Mobility < StateFunction
                     mob{ix} = model.AutoDiffBackend.convertToAD(mob{ix}, s);
                 end
             end
+        end
+        
+        function prop = enableMultipliers(prop)
+            prop.hasMultipliers = true;
+            prop = prop.dependsOn('MobilityMultipliers');
         end
     end
 end
