@@ -14,7 +14,7 @@ tic
 % load modules
 mrstModule add mimetic mpsaw incomp vemmech mpfa
 
-eta = 1/3;
+eta = 1e-8;
 
 %% Define and process geometry
 % Construct a Cartesian grid 
@@ -41,7 +41,7 @@ switch runcase
     nx = 5; ny = 5;
     G = cartGrid([nx, ny], [1, 1]);
   case {'3d-linear', '3d-compaction'}
-    nx = 10;
+    nx = 5;
     ny = nx;
     nz = nx;
     G = cartGrid([nx, ny, nz], [1, 1, 1]);
@@ -70,7 +70,7 @@ loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 doblockassembly = true;
 if doblockassembly
     assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                 'blocksize', 1000);
+                                 'blocksize', 1000, 'verbose', true);
 else
     assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings);
 end

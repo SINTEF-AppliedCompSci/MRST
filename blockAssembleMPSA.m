@@ -70,6 +70,10 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         nodetbl.nodes = nodes;
         nodetbl = IndexArray(nodetbl);
 
+        if opt.verbose
+            fprintf('Assembling block %d (%d nodes)\n', iblock, nodetbl.num);
+        end
+        
         [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, ...
                                                        'useVirtual', true);
 
@@ -668,12 +672,11 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     rhs = [rhscc; ...
            rhsbc];
     
-    assembly = struct('B'           , B       , ...
-                      'rhs'         , rhs     , ...
-                      'extforce'    , globextforce);
+    assembly = struct('B'       , B  , ...
+                      'rhs'     , rhs, ...
+                      'extforce', globextforce);
     
     dosetupnodemapping = false;
-    
     if dosetupnodemapping
         % Setup mapping from face displacement to nodal displacement (by averaging)
         map = TensorMap();
