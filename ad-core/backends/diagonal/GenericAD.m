@@ -28,130 +28,6 @@ classdef GenericAD < ADI
             end
         end
         
-        %--------------------------------------------------------------------
-        
-        function h = plus(u,v)
-            if ~isa(u,'ADI')       %u is a vector/scalar
-                if numel(u) <= numel(v.val)
-                    h = v;
-                    h.val = h.val + u;
-                elseif numel(v.val) == 1
-                    h = plus(u, repmat(v,[numel(u), 1]));
-                else
-                    error('Vectors have different lengths')
-                end
-            elseif ~isa(v,'ADI')   %v is a vector/scalar
-                if numel(v) <= numel(u.val)
-                    h = u;
-                    h.val = h.val + v;
-                elseif numel(u.val) == 1
-                    h = plus(repmat(u,[numel(v), 1]), v);
-                else
-                    error('Vectors have different lengths')
-                end
-            else
-                if numel(u.val) == numel(v.val)
-                    h = u;
-                    h.val = u.val + v.val;
-                    h.jac = GenericAD.plusJac(h.jac, v.jac);
-                    if isempty(h.jac)
-                        h = h.val;
-                    end
-                elseif numel(u.val) == 1
-                    h = plus(repmat(u, [numel(v.val), 1]), v);
-                elseif numel(v.val) == 1
-                    h = plus(u, repmat(v, [numel(u.val), 1]));
-                else
-                    error('Vectors have different lengths')
-                end
-            end
-        end
-        function h = mtimes(u,v) % '*'
-            if ~isa(u,'ADI') %u is a scalar/matrix
-                h = v;
-                h.val = u*h.val;
-                h.jac = GenericAD.mtimesJac(u, h.jac);
-                if isempty(h.jac)
-                    h = h.val;
-                end
-            elseif ~isa(v,'ADI') %v is a scalar
-                h = mtimes(v,u);
-            else % special case where either u or v has single value
-                if numel(u.val) == 1
-                    h = u;
-                    h.val = times(u.val, v.val);
-                    h.jac = GenericAD.timesJacUnit(u.val, v.val, u.jac, v.jac);
-                elseif numel(v.val) == 1
-                    h = u;
-                    h.val = times(u.val, v.val);
-                    h.jac = GenericAD.timesJacUnit(v.val, u.val, v.jac, u.jac);
-                else
-                    error('Operation not supported');
-                end
-            end
-        end
-        function h = times(u,v) % '.*'
-            if ~isa(u,'ADI') %u is a scalar/vector
-                if numel(u)==numel(v.val)
-                    h = v;
-                    h.val = u.*h.val;
-                    h.jac = GenericAD.lMultDiag(u, h.jac);
-                else
-                    h = mtimes(u,v);
-                end
-            elseif ~isa(v,'ADI') %v is a scalar/vector
-                h = times(v,u);
-            else
-                if numel(u.val)==numel(v.val)
-                    h = u;
-                    h.jac = GenericAD.timesJac(h.val, v.val, h.jac, v.jac);
-                    h.val = h.val.*v.val;
-                elseif numel(v.val)==1 || numel(u.val)==1
-                    h = mtimes(u,v);
-                else
-                    error('Operation not supported');
-                end
-            end
-        end
-        function h = power(u,v) % '.^'
-            if ~isa(v,'ADI') % v is a scalar
-                h = u;
-                h.val = h.val.^v;
-                h.jac = GenericAD.lMultDiag(v.*u.val.^(v-1), u.jac);
-            elseif ~isa(u,'ADI') % u is a scalar
-                h = v;
-                h.val = u.^v.val;
-                h.jac = GenericAD.lMultDiag((u.^v.val).*log(u), v.jac);
-            else % u and v are both ADI
-                h = u;
-                h.val = u.val.^v.val;
-                h.jac = GenericAD.plusJac( ...
-                    GenericAD.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
-                    GenericAD.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
-            end
-        end
-        
-        
-        function u = subsasgn(u,s,v)
-            if strcmp(s(1).type, '.')
-                u = builtin('subsasgn',u,s,v);
-            else
-                switch s(1).type
-                    case '()'
-                        subs  = s.subs{:};
-                        if isa(v, 'ADI') % v is a ADI
-                            u.jac = u.subsasgnJac(u.jac, subs, v.jac);
-                            u.val(subs) = v.val;
-                        else
-                            u.jac = u.subsasgnJac(u.jac, subs); % set rows to zero
-                            u.val(subs) = v;
-                        end
-                    case '{}'
-                        error('Operation not supported');
-                end
-            end
-        end
-        
         function x = incrementSubset(x, subs, v)
             if isa(x, 'GenericAD')
                 x.val(subs) = x.val(subs) + value(v);
@@ -163,60 +39,6 @@ classdef GenericAD < ADI
             else
                 % V is AD
                 x(subs) = x(subs) + v;
-            end
-        end
-        
-        function h = exp(u)
-            eu = exp(u.val);
-            h = u;
-            h.val = eu;
-            h.jac = GenericAD.lMultDiag(eu, u.jac);
-        end
-        %
-        function h = log(u)
-            logu = log(u.val);
-            h = u;
-            h.val = logu;
-            h.jac = GenericAD.lMultDiag(1./u.val, u.jac);
-        end
-        function h = max(u,v) % this function should be expanded
-            if(nargin==1)
-                assert(isa(u,'ADI'));
-                [value,i] = max(u.val);
-                jacs      = u.subsrefJac(u.jac, i);
-                h = u;
-                h.val = value;
-                h.jac = jacs;
-                return;
-            end
-            assert(nargin==2, 'Max function implemented for up to 2 variables only.');
-            if ~isa(u, 'ADI'), % u is a DOUBLE
-                value =  bsxfun(@max, u, v.val);
-                inx   = ~bsxfun(@gt,  u, v.val) + 1; % Pick 'v' if u <= v
-                h  = v;
-                h.val = value;
-                h.jac = GenericAD.lMultDiag(inx==2, v.jac);
-                if isempty(h.jac)
-                    h = h.val;
-                end
-            elseif ~isa(v,'ADI') %v is a vector
-                h = max(v,u);
-            else % both ADI, should have same number of values
-                value = max(u.val, v.val);
-                inx   = u.val > v.val;
-                h = u;
-                h.val = value;
-                h.jac = GenericAD.plusJac(GenericAD.lMultDiag(inx, u.jac),GenericAD.lMultDiag(~inx, v.jac));
-                if isempty(h.jac)
-                    h = h.val;
-                end
-            end
-        end
-        function u = abs(u)
-            u.jac = GenericAD.lMultDiag(sign(u.val), u.jac);
-            u.val = abs(u.val);
-            if isempty(u.jac)
-                u = u.val;
             end
         end
         
@@ -249,6 +71,7 @@ classdef GenericAD < ADI
             h.val = vertcat(vals{:});
             h.jac = jacs;
         end
+
         function h = combineEquations(varargin)
             isD = cellfun(@isnumeric, varargin);
             if any(isD)
@@ -345,58 +168,7 @@ classdef GenericAD < ADI
                 h.val = vals;
             end
         end
-        
-        function u = interpReg(T, u, reginx)
-            [y, dydu] = interpReg(T, u.val, reginx);
-            u.val = y;
-            u.jac = GenericAD.lMultDiag(dydu, u.jac);
-            if isempty(u.jac)
-                u = u.val;
-            end
-        end
-        
-        %--------------------------------------------------------------------
-        function h = interpPVT(T, x, v, flag)
-            % Interpolate special PVT table with region support
-            if ~isa(x,'ADI') %u is a scalar/matrix
-                h = v;
-                [h.val, ~, dydv] = interpPVT(T, x, v.val, flag);
-                h.jac = GenericAD.lMultDiag(dydv, v.jac);
-            elseif ~isa(v,'ADI') %v is a scalar
-                h = x;
-                [h.val, dydx] = interpPVT(T, x.val, v, flag);
-                h.jac = GenericAD.lMultDiag(dydx, x.jac);
-            else
-                h = x;
-                [h.val, dydx, dydv] = interpPVT(T, x.val, v.val, flag);
-                h.jac = GenericAD.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
-            end
-        end
-        
-        function h = interpRegPVT(T, x, v, flag, reginx)
-            if ~isa(x,'ADI') %u is a scalar/matrix
-                h = v;
-                [h.val, ~, dydv] = interpRegPVT(T, x, v.val, flag, reginx);
-                h.jac = GenericAD.lMultDiag(dydv, v.jac);
-            elseif ~isa(v,'ADI') %v is a scalar
-                h = x;
-                [h.val, dydx] = interpRegPVT(T, x.val, v, flag, reginx);
-                h.jac = GenericAD.lMultDiag(dydx, x.jac);
-            else
-                h = x;
-                [h.val, dydx, dydv] = interpRegPVT(T, x.val, v.val, flag, reginx);
-                h.jac = GenericAD.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
-            end
-            if isempty(h.jac)
-                h = h.val;
-            end
-        end
-        
-        function h = interpTable(X, Y, x, varargin)
-            h = x;
-            h.val = interpTable(X, Y, x.val, varargin{:});
-            h.jac = GenericAD.lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
-        end
+
         function numVars = getNumVars(ad)
             numVars = ad.numVars;
         end
@@ -439,10 +211,6 @@ classdef GenericAD < ADI
         %--------------------------------------------------------------------------
         
         function J = mtimesJac(M, J1)
-            if nnz(M) == 0
-                J = {};
-                return
-            end
             J = cell(1, numel(J1));
             for k = 1:numel(J)
                 J{k} = M*J1{k};
