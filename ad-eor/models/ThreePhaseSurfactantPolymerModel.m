@@ -131,23 +131,34 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             pvtreg  = pp.getRegionPVT(model);
             satreg  = fp.getRegionSaturation(model);
             surfreg = fp.getRegionSurfactant(model);
+            multipliers = cell(1, model.getNumberOfPhases());
             if model.polymer
                 fp = fp.setStateFunction('PolymerAdsorption', PolymerAdsorption(model, satreg));
                 fp = fp.setStateFunction('PolymerPermReduction', PolymerPermReduction(model));
-                pp = pp.setStateFunction('PolymerViscMultiplier', PolymerViscMultiplier(model, pvtreg));
                 fd = fd.setStateFunction('PolymerPhaseFlux', PolymerPhaseFlux(model));
-                fd = fd.setStateFunction('FaceConcentration', FaceConcentration(model)); 
+                fd = fd.setStateFunction('FaceConcentration', FaceConcentration(model));
+                
+                pmult = 'PolymerViscMultiplier';
+                pp = pp.setStateFunction(pmult, PolymerViscMultiplier(model, pvtreg));
+                multipliers{1}{end+1} = pmult;
             end
             
             if model.surfactant
                 fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));
-                pp = pp.setStateFunction('SurfactantViscMultiplier', SurfactantViscMultiplier(model, pvtreg));
                 fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model, satreg));
                 fp.RelativePermeability = SurfactantRelativePermeability(model, satreg, surfreg);
                 fp.CapillaryPressure    = SurfactantCapillaryPressure(model, satreg);
+                
+                smult = 'SurfactantViscMultiplier';
+                pp = pp.setStateFunction(smult, SurfactantViscMultiplier(model, pvtreg));
+                multipliers{1}{end+1} = smult;
             end
+            % Define phase multipliers for the viscosity
+            mult = PhaseMultipliers(model, multipliers);
+            mult.label = 'M_\mu';
+            pp = pp.setStateFunction('ViscosityMultipliers', mult);
+            pp.Viscosity = pp.Viscosity.enableMultipliers();
             % Properties that should be refactored to have combinations
-            pp.Viscosity = SurfactantPolymerViscosity(model);
             fp.Mobility = SurfactantPolymerMobility(model);
 
             model.FlowPropertyFunctions = fp;
