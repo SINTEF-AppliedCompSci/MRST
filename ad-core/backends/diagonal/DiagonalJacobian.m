@@ -403,7 +403,27 @@ classdef DiagonalJacobian
             if DiagonalJacobian.isAllZeros(x) || DiagonalJacobian.isAllZeros(y)
                 dx = matrixDims(x);
                 dy = matrixDims(y);
-                x = sparse([], [], [], dx(1), dy(2));
+                if all(dx == 1)
+                    % Scalar multiply by zero
+                    if isa(y, 'DiagonalJacobian')
+                        x = y.toZero();
+                        return
+                    end
+                    n = dy(1);
+                    m = dy(2);
+                elseif all(dy == 1)
+                    % Scalar multiply by zero
+                    if isa(x, 'DiagonalJacobian')
+                        x = x.toZero();
+                        return
+                    end
+                    n = dx(1);
+                    m = dy(2);
+                else
+                    n = dx(1);
+                    m = dy(2);
+                end
+                x = sparse([], [], [], n, m);
                 return;
             end
             
