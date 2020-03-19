@@ -41,13 +41,16 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     globforce = loadstruct.force;
 
     globbc = loadstruct.bc;
-    globbc = setupFaceBC(globbc, G, globtbls);
+    if ~isfield(globbc, 'bcnodefacetbl')
+        globbc = setupFaceBC(globbc, G, globtbls);
+    end
     
     globbcnodefacetbl = globbc.bcnodefacetbl;        
     globbcnodefacetbl = globbcnodefacetbl.addLocInd('bcinds');    
     globbcnodefacecoltbl = crossIndexArray(globbcnodefacetbl, coltbl, {}, ...
                                            'optpureproduct', true);
-    globlinform     = globbc.linform;
+    globlinform = globbc.linform;
+    globlinform = reshape(globlinform', [], 1);
     globlinformvals = globbc.linformvals;
 
     gncc = globcellcoltbl.num;
@@ -544,6 +547,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
             map = map.setup();
             
             linform = map.eval(globlinform);
+            linform = reshape(linform, dim, [])';
             
             bc = struct('bcnodefacetbl', bcnodefacetbl, ...
                         'linform'      , linform      , ...
@@ -643,19 +647,11 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         map = map.setup();
 
         extforce = map.eval(globextforce);
-        
-        map = TensorMap();
-        map.fromTbl = globcellcoltbl;
-        map.toTbl = cellcoltbl;
-        map.mergefds = {'cells', 'coldim'};
-        map = map.setup();
-
-        force = map.eval(globforce);
-        
+                
         % locrhscc in cellcoltbl
         % locrhsbc in bcnodefacetbl
 
-        locrhscc = -A21*invA11*extforce + force; 
+        locrhscc = -A21*invA11*extforce; 
         
         rhscc(cellind) = rhscc(cellind) + locrhscc;
         if bcterm_exists
@@ -668,6 +664,8 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     B = [[B11, B12]; ...
          [B21, B22]];
 
+    rhscc = rhscc + globforce;
+    
     rhs = [rhscc; ...
            rhsbc];
     

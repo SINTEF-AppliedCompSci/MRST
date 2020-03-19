@@ -485,11 +485,8 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     % u = [u (displacement at cellcoltbl);
     %      lagmult];
     %
-    % rhs = redextforce + [force;
-    %                     bcvals]
-    
-    extforce = loadstruct.extforce;
-    force = loadstruct.force;
+    % rhs = [-A21*invA11*extforce;  +  [force;
+    %        -D'*invA11*extforce  ]     bcvals]
     
     B11 = A22 - A21*invA11*A12;
     B12 = A21*invA11*D;
@@ -499,8 +496,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     extforce = loadstruct.extforce;
     force = loadstruct.force;
     
-    redextforce = [;
-                   -D'*invA11*extforce];
 
     B = [[B11, B12]; ...
          [B21, B22]];
