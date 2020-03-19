@@ -131,16 +131,30 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             pvtreg  = pp.getRegionPVT(model);
             satreg  = fp.getRegionSaturation(model);
             surfreg = fp.getRegionSurfactant(model);
-            multipliers = cell(1, model.getNumberOfPhases());
+            nph = model.getNumberOfPhases();
+            visc_multipliers = cell(1, nph);
+            
             if model.polymer
                 fp = fp.setStateFunction('PolymerAdsorption', PolymerAdsorption(model, satreg));
-                fp = fp.setStateFunction('PolymerPermReduction', PolymerPermReduction(model));
                 fd = fd.setStateFunction('PolymerPhaseFlux', PolymerPhaseFlux(model));
                 fd = fd.setStateFunction('FaceConcentration', FaceConcentration(model));
                 
                 pmult = 'PolymerViscMultiplier';
                 pp = pp.setStateFunction(pmult, PolymerViscMultiplier(model, pvtreg));
-                multipliers{1}{end+1} = pmult;
+                visc_multipliers{1}{end+1} = pmult;
+                
+                % Permeability reduction. If permeability reduction is
+                % present, it means that we must divide the water mobility
+                % with a certain value. This is done via mobility
+                % multipliers.
+                mob_multipliers = cell(1, nph);
+                mob_multipliers{1} = 'PolymerPermReduction';
+                fp = fp.setStateFunction('PolymerPermReduction', PolymerPermReduction(model));
+                mmult = PhaseMultipliers(model, mob_multipliers);
+                mmult.label = 'M_\lambda';
+                mmult.operator = @rdivide;
+                fp = fp.setStateFunction('MobilityMultipliers', mmult);
+                fp.Mobility = fp.Mobility.enableMultipliers();
             end
             
             if model.surfactant
@@ -151,15 +165,15 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 
                 smult = 'SurfactantViscMultiplier';
                 pp = pp.setStateFunction(smult, SurfactantViscMultiplier(model, pvtreg));
-                multipliers{1}{end+1} = smult;
+                visc_multipliers{1}{end+1} = smult;
             end
-            % Define phase multipliers for the viscosity
-            mult = PhaseMultipliers(model, multipliers);
+            % Define phase multipliers for the viscosity. Both surfactant
+            % and polymer can define a multiplier that act together on the
+            % aqueous phase.
+            mult = PhaseMultipliers(model, visc_multipliers);
             mult.label = 'M_\mu';
             pp = pp.setStateFunction('ViscosityMultipliers', mult);
             pp.Viscosity = pp.Viscosity.enableMultipliers();
-            % Properties that should be refactored to have combinations
-            fp.Mobility = SurfactantPolymerMobility(model);
 
             model.FlowPropertyFunctions = fp;
             model.PVTPropertyFunctions  = pp;
