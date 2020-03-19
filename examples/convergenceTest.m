@@ -16,6 +16,8 @@ function convergenceTest()
     %% Load necessary modules
     mrstModule add vem mpfa mpsaw vemmech libgeometry
 
+    close all
+    
     %% params setting
     % nref     : degree of refinement
     nref = 3; % default setting
@@ -28,7 +30,6 @@ function convergenceTest()
     % Possibility to run vem for comparison
     doVem = false;
 
-
     %% New Case
     dothiscase = false;
     if dothiscase
@@ -37,7 +38,7 @@ function convergenceTest()
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
                         'gridtype', 1, ... % Cartesian
-                        'eta'     , 1e-8);
+                        'eta'     , 1e-6);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
@@ -56,7 +57,7 @@ function convergenceTest()
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
                         'gridtype', 2, ... % Triangular grid, 90 degree angles
-                        'eta'     , 1/3);
+                        'eta'     , 1/3 + 1e-8);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
@@ -65,6 +66,7 @@ function convergenceTest()
         savethisfigure(filename);
     end
 
+    
     %% New Case
     dothiscase = false;
     if dothiscase
@@ -72,8 +74,8 @@ function convergenceTest()
                         'Nd'      , 2, ...
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
-                        'gridtype', 3, ... % Triangular grid, 90 degree angles
-                        'eta'     , 1/3);
+                        'gridtype', 3, ... % Triangular grid, equi - alternate
+                        'eta'     , 1/3 + 1e-8);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
@@ -89,7 +91,7 @@ function convergenceTest()
                         'Nd'      , 2, ...
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
-                        'gridtype', 4, ... % Triangular grid, 90 degree angles non alternate
+                        'gridtype', 4, ... % Triangular grid equi - non alternate
                         'eta'     , 1/3);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
@@ -187,12 +189,12 @@ function convergenceTest()
     %% New Case
     dothiscase = true;
     if dothiscase
-        params = struct('nref'    , 4, ...
+        params = struct('nref'    , 3, ...
                         'Nd'      , 3, ...
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
-                        'gridtype', 5, ... % Cartesian Grid
-                        'eta'     , 1/3);
+                        'gridtype', 5, ... % Tetrahedras
+                        'eta'     , 1/3 + 1e-3);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
@@ -237,7 +239,7 @@ function casetitle = setCaseTitle(Nd, gridtype, eta, kappa, alpha)
       case 4
         gridtypestr = 'Equilateral triangles';
       case 5
-        gridtypestr = 'Hexahedrals';
+        gridtypestr = 'Tetrahedrals';
     end
     
     casetitle = sprintf('%s - %s, \\kappa = %0.3g, \\alpha = %0.3g, \\eta = %0.3g', dimstr, ...

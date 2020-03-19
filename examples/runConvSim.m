@@ -100,7 +100,7 @@ function output = runConvSim(G, params, varargin)
     
     if opt.useBlock
         assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                     'blocksize', 1000, 'verbose', true);
+                                     'blocksize', 100, 'verbose', true);
     else
         assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings);
     end
