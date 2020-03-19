@@ -115,7 +115,7 @@ classdef ADI
       function u = uminus(u)
           % Unitary minus: `h = -u`
          u.val = -u.val;
-         u.jac =  ADI.uminusJac(u.jac);
+         u.jac =  u.uminusJac(u.jac);
       end
 
       %--------------------------------------------------------------------
@@ -146,7 +146,7 @@ classdef ADI
              if numel(u.val) == numel(v.val)
                  h = u;
                  h.val = u.val + v.val;
-                 h.jac = ADI.plusJac(h.jac, v.jac);
+                 h.jac = u.plusJac(h.jac, v.jac);
              elseif numel(u.val) == 1
                  h = plus(repmat(u, [numel(v.val), 1]), v);
              elseif numel(v.val) == 1
@@ -171,18 +171,18 @@ classdef ADI
           if ~isa(u,'ADI') %u is a scalar/matrix
               h = v;
               h.val = u*h.val;
-              h.jac = ADI.mtimesJac(u, h.jac);
+              h.jac = h.mtimesJac(u, h.jac);
           elseif ~isa(v,'ADI') %v is a scalar
               h = mtimes(v,u);
           else % special case where either u or v has single value
               if numel(u.val) == 1
                   h = u;
                   h.val = times(u.val, v.val);
-                  h.jac = ADI.timesJacUnit(u.val, v.val, u.jac, v.jac);
+                  h.jac = u.timesJacUnit(u.val, v.val, u.jac, v.jac);
               elseif numel(v.val) == 1
                   h = u;
                   h.val = times(u.val, v.val);
-                  h.jac = ADI.timesJacUnit(v.val, u.val, v.jac, u.jac);
+                  h.jac = u.timesJacUnit(v.val, u.val, v.jac, u.jac);
               else
                   error('Operation not supported');
               end
@@ -192,12 +192,12 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = times(u,v)
-          % Element-wise multiplication: h = u.*v
+         % Element-wise multiplication: h = u.*v
          if ~isa(u,'ADI') %u is a scalar/vector and v is ADI.
              if numel(u)==numel(v.val)
                  h = v;
                  h.val = u.*h.val;
-                 h.jac = ADI.lMultDiag(u, h.jac);
+                 h.jac = h.lMultDiag(u, h.jac);
              else
                  h = mtimes(u,v);
              end
@@ -207,7 +207,7 @@ classdef ADI
              % Both u and v are ADI
              if numel(u.val)==numel(v.val)
                  h = u;
-                 h.jac = ADI.timesJac(h.val, v.val, h.jac, v.jac);
+                 h.jac = h.timesJac(h.val, v.val, h.jac, v.jac);
                  h.val = h.val.*v.val;
              elseif numel(v.val)==1 || numel(u.val)==1
                  h = mtimes(u,v);
@@ -234,7 +234,7 @@ classdef ADI
           % Left matrix divide: `h=u\v`
           if ~isa(u,'ADI') %u is a scalar/matrix
               h.val = u\v.val;
-              h.jac = ADI.mldivideJac(u, h.jac);
+              h.jac = h.mldivideJac(u, h.jac);
           else
               error('Operation not supported');
           end
@@ -247,17 +247,17 @@ classdef ADI
          if ~isa(v,'ADI') % v is a scalar and u is ADI
              h = u;
              h.val = h.val.^v;
-             h.jac = ADI.lMultDiag(v.*u.val.^(v-1), u.jac);
+             h.jac = u.lMultDiag(v.*u.val.^(v-1), u.jac);
          elseif ~isa(u,'ADI') % u is a scalar and v is ADI
              h = v;
              h.val = u.^v.val;
-             h.jac = ADI.lMultDiag((u.^v.val).*log(u), v.jac);
+             h.jac = v.lMultDiag((u.^v.val).*log(u), v.jac);
          else % u and v are both ADI
              h = u;
              h.val = u.val.^v.val;
-             h.jac = ADI.plusJac( ...
-               ADI.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
-               ADI.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
+             h.jac = h.plusJac( ...
+               h.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
+               h.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
          end
       end
 
@@ -306,7 +306,7 @@ classdef ADI
                           end
                           h = u;
                           h.val = h.val(subs);
-                          h.jac = ADI.subsrefJac(h.jac, subs);
+                          h.jac = h.subsrefJac(h.jac, subs);
                       end
                       if numel(s) > 1
                           % Recursively handle next operation
@@ -334,10 +334,10 @@ classdef ADI
                       end
                       
                       if isa(v, 'ADI') % v is a ADI
-                          u.jac = ADI.subsasgnJac(u.jac, subs, v.jac);
+                          u.jac = u.subsasgnJac(u.jac, subs, v.jac);
                           u.val(subs) = v.val;
                       else
-                          u.jac = ADI.subsasgnJac(u.jac, subs); % set rows to zero
+                          u.jac = u.subsasgnJac(u.jac, subs); % set rows to zero
                           u.val(subs) = v;
                       end
                   case '{}'
@@ -360,7 +360,7 @@ classdef ADI
           eu = exp(u.val);
           h = u;
           h.val = eu;
-          h.jac = ADI.lMultDiag(eu, u.jac);
+          h.jac = h.lMultDiag(eu, u.jac);
       end
       %--------------------------------------------------------------------
       function h = log(u)
@@ -368,7 +368,7 @@ classdef ADI
           logu = log(u.val);
           h = u;
           h.val = logu;
-          h.jac = ADI.lMultDiag(1./u.val, u.jac);
+          h.jac = h.lMultDiag(1./u.val, u.jac);
       end
 
       %--------------------------------------------------------------------
@@ -412,8 +412,8 @@ classdef ADI
           if(nargin==1)
               assert(isa(u,'ADI'));
               [value,i] = max(u.val);
-              jacs      = ADI.subsrefJac(u.jac, i);
               h = u;
+              jacs  = h.subsrefJac(u.jac, i);
               h.val = value;
               h.jac = jacs;
               return;
@@ -424,7 +424,7 @@ classdef ADI
               inx   = ~bsxfun(@gt,  u, v.val) + 1; % Pick 'v' if u <= v
               h  = v;
               h.val = value;
-              h.jac = ADI.lMultDiag(inx==2, v.jac);
+              h.jac = h.lMultDiag(inx==2, v.jac);
           elseif ~isa(v,'ADI') %v is a vector
               h = max(v,u);
           else % both ADI, should have same number of values
@@ -432,7 +432,7 @@ classdef ADI
               inx   = u.val > v.val;
               h = u;
               h.val = value;
-              h.jac = ADI.plusJac(ADI.lMultDiag(inx, u.jac),ADI.lMultDiag(~inx, v.jac));
+              h.jac = h.plusJac(h.lMultDiag(inx, u.jac), h.lMultDiag(~inx, v.jac));
           end
       end
 
@@ -454,14 +454,14 @@ classdef ADI
       function u = sum(u)
           % Sum of vector
           u.val = sum(u.val);
-          u.jac = ADI.sumJac(u.jac);
+          u.jac = u.sumJac(u.jac);
       end
 
       %--------------------------------------------------------------------
       function u = cumsum(u)
           % Cumulative sum of vector
           u.val = cumsum(u.val);
-          u.jac = ADI.cumsumJac(u.jac);
+          u.jac = u.cumsumJac(u.jac);
       end
 
       %--------------------------------------------------------------------
@@ -475,7 +475,7 @@ classdef ADI
 
       function u = abs(u)
           % Absolute value
-          u.jac = ADI.lMultDiag(sign(u.val), u.jac);
+          u.jac = u.lMultDiag(sign(u.val), u.jac);
           u.val = abs(u.val);
       end
 
@@ -486,7 +486,7 @@ classdef ADI
           % NOTE:
           %   Only allowed in the first (column) dimension for ADI objects.
           u.val = repmat(u.val, varargin{:});
-          u.jac = ADI.repmatJac(u.jac, varargin{:});
+          u.jac = u.repmatJac(u.jac, varargin{:});
       end
 
       %--------------------------------------------------------------------
@@ -556,7 +556,7 @@ classdef ADI
           % Interpolate property with region support
           [y, dydu] = interpReg(T, u.val, reginx);
           u.val = y;
-          u.jac = ADI.lMultDiag(dydu, u.jac);
+          u.jac = u.lMultDiag(dydu, u.jac);
       end
 
       %--------------------------------------------------------------------
@@ -565,15 +565,15 @@ classdef ADI
           if ~isa(x,'ADI') %u is a scalar/matrix
               h = v;
               [h.val, ~, dydv] = interpPVT(T, x, v.val, flag);
-              h.jac = ADI.lMultDiag(dydv, v.jac);
+              h.jac = h.lMultDiag(dydv, v.jac);
           elseif ~isa(v,'ADI') %v is a scalar
               h = x;
               [h.val, dydx] = interpPVT(T, x.val, v, flag);
-              h.jac = ADI.lMultDiag(dydx, x.jac);
+              h.jac = h.lMultDiag(dydx, x.jac);
           else
               h = x;
               [h.val, dydx, dydv] = interpPVT(T, x.val, v.val, flag);
-              h.jac = ADI.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
+              h.jac = h.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
           end
       end
       
@@ -582,15 +582,15 @@ classdef ADI
           if ~isa(x,'ADI') %u is a scalar/matrix
               h = v;
               [h.val, ~, dydv] = interpRegPVT(T, x, v.val, flag, reginx);
-              h.jac = ADI.lMultDiag(dydv, v.jac);
+              h.jac = h.lMultDiag(dydv, v.jac);
           elseif ~isa(v,'ADI') %v is a scalar
               h = x;
               [h.val, dydx] = interpRegPVT(T, x.val, v, flag, reginx);
-              h.jac = ADI.lMultDiag(dydx, x.jac);
+              h.jac = h.lMultDiag(dydx, x.jac);
           else
               h = x;
               [h.val, dydx, dydv] = interpRegPVT(T, x.val, v.val, flag, reginx);
-              h.jac = ADI.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
+              h.jac = h.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
           end
       end
 
@@ -598,12 +598,12 @@ classdef ADI
           % Interpolate in a table
           h = x;
           h.val = interpTable(X, Y, x.val, varargin{:});
-          h.jac = ADI.lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
+          h.jac = h.lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
       end
       
       function u = reduceToDouble(u)
           % Switch to double representation if no derivatives are present.
-          if isa(u, 'ADI') && sum(cellfun(@nnz, u.jac)) == 0
+          if sum(cellfun(@nnz, u.jac)) == 0
               u = u.val;
           end
       end
