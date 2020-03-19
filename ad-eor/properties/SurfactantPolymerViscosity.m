@@ -3,10 +3,10 @@ classdef SurfactantPolymerViscosity < BlackOilViscosity
         function gp = SurfactantPolymerViscosity(model, varargin)
             gp@BlackOilViscosity(model, varargin{:});
             if model.polymer
-                gp = addPropertyDependence(gp, {'PolymerViscMultiplier'});
+                gp = addPropertyDependence(gp, 'PolymerViscMultiplier');
             end
             if model.surfactant
-                gp = addPropertyDependence(gp, {'SurfactantViscMultiplier'});
+                gp = addPropertyDependence(gp, 'SurfactantViscMultiplier');
             end
             assert(model.water);
         end
