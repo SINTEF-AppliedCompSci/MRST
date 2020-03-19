@@ -1,36 +1,20 @@
-classdef SurfactantPolymerMobility < StateFunction
+classdef SurfactantPolymerMobility < Mobility
     properties
     end
     
     methods
         function gp = SurfactantPolymerMobility(model, varargin)
-            gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'RelativePermeability', 'PolymerPermReduction'});
-            gp = gp.dependsOn('Viscosity', 'PVTPropertyFunctions');
+            gp@Mobility(model, varargin{:});
             assert(model.water);
-            if isfield(model.fluid, 'tranMultR')
-                gp = gp.dependsOn('pressure', 'state');
+            if model.polymer
+                gp = gp.dependsOn('PolymerPermReduction');
             end
         end
         function mob = evaluateOnDomain(prop, model, state)
-            kr = prop.getEvaluatedDependencies(state, 'RelativePermeability');
-            permRed = prop.getEvaluatedDependencies(state, 'PolymerPermReduction');
-            mu      = model.getProps(state, 'Viscosity');
-            mob     = cellfun(@(x, y) x./y, kr, mu, 'UniformOutput', false);
-            mob{1}  = mob{1}./permRed;
-            if isfield(model.fluid, 'tranMultR')
-                % Pressure-dependent mobility multiplier
-                p    = model.getProp(state, 'pressure');
-                mult = model.fluid.tranMultR(p);
-                mob  = cellfun(@(x) x.*mult, mob, 'UniformOutput', false);
-            end
-            % Check for negative values
-            mv = cellfun(@(x) min(value(x)), mob);
-            if any(mv < 0)
-                if model.verbose > 1
-                    warning('Negative mobilities detected! Capping to zero.')
-                end
-                mob = cellfun(@(x) max(x, 0), mob, 'UniformOutput', false);
+            mob = evaluateOnDomain@Mobility(prop, model, state);
+            if model.polymer
+                permRed = prop.getEvaluatedDependencies(state, 'PolymerPermReduction');
+                mob{1}  = mob{1}./permRed;
             end
         end
     end

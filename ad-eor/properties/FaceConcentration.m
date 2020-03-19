@@ -4,9 +4,12 @@ classdef FaceConcentration < StateFunction & UpwindProperty
     end
     
     methods
-        function gp = FaceConcentration(backend, upwinding)
-            gp@StateFunction(backend);
-            gp@UpwindProperty(upwinding)
+        function gp = FaceConcentration(model, upstr)
+            gp@StateFunction(model);
+            if nargin < 2
+                upstr = UpwindFunctionWrapperDiscretization(model);
+            end
+            gp@UpwindProperty(upstr)
             gp = gp.dependsOn('polymer', 'state');
             gp = gp.dependsOn('PhaseUpwindFlag');
         end

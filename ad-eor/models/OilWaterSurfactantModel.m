@@ -1,8 +1,8 @@
-classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
+classdef OilWaterSurfactantModel < ThreePhaseSurfactantPolymerModel
     %
     %
     % SYNOPSIS:
-    %   model = FullyImplicitOilWaterSurfactantModel(G, rock, fluid, varargin)
+    %   model = OilWaterSurfactantModel(G, rock, fluid, varargin)
     %
     % DESCRIPTION: 
     %   Fully implicit model for an oil water system with surfactant. All
@@ -24,22 +24,22 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
     %
 
     properties
-        surfactant
     end
 
     methods
 
         function model = OilWaterSurfactantModel(G, rock, fluid, varargin)
 
-            model = model@TwoPhaseOilWaterModel(G, rock, fluid, varargin{:});
-            model = model.setupOperators(G, rock, varargin{:});
+            model = model@ThreePhaseSurfactantPolymerModel(G, rock, fluid);
             model.surfactant = true;
+            model.gas = false;
+            model.water = true;
+            model.oil = true;
+            model.disgas = false;
+            model.vapoil = false;
+            model.polymer = false;
             
             model = merge_options(model, varargin{:});
-
-        end
-
-        function model = setupOperators(model, G, rock, varargin)
             model.operators.veloc   = computeVelocTPFA(G, model.operators.internalConn);
             model.operators.sqVeloc = computeSqVelocTPFA(G, model.operators.internalConn);
         end
@@ -49,167 +49,6 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
                                                            model, dt, ...
                                                            drivingForces, ...
                                                            varargin{:});
-        end
-
-        function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            [state, report] = updateState@TwoPhaseOilWaterModel(model, state, problem,  dx, ...
-                                                              drivingForces);
-            % cap the concentration (only if implicit solver for concentration)
-            if model.surfactant
-                cs = model.getProp(state, 'surfactant');
-                state = model.setProp(state, 'surfactant', max(cs, 0) );
-            end
-        end
-
-        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-            [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, ...
-                                                              drivingForces);
-              if model.surfactant
-                  cs    = model.getProp(state, 'surfactant');
-                  csmax = model.getProp(state, 'surfactantmax');
-                  state = model.setProp(state, 'surfactantmax', max(csmax, cs));
-              end
-        end
-
-
-        % --------------------------------------------------------------------%
-        function model = validateModel(model, varargin)
-            if isempty(model.FlowPropertyFunctions)
-                model.FlowPropertyFunctions = SurfactantFlowPropertyFunctions(model);
-            end
-            if isempty(model.FluxDiscretization)
-                model.FluxDiscretization = FluxDiscretization(model);
-            end
-            model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
-        end
-
-        function state = validateState(model, state)
-            state = validateState@TwoPhaseOilWaterModel(model, state);
-            nc = model.G.cells.num;
-            model.checkProperty(state, 'Surfactant', [nc, 1], [1, 2]);
-            model.checkProperty(state, 'SurfactantMax', [nc, 1], [1, 2]);
-        end
-
-        function [fn, index] = getVariableField(model, name, varargin)
-            switch(lower(name))
-                case {'surfactant'}
-                    index = 1;
-                    fn = 'cs';
-                case {'surfactantmax'}
-                    index = ':';
-                    fn = 'csmax';
-                case 'qwsft'
-                    index = ':';
-                    fn = 'qWSft';
-                otherwise
-                    [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
-                        model, name, varargin{:});
-            end
-        end
-
-        function names = getComponentNames(model)
-            names = getComponentNames@TwoPhaseOilWaterModel(model);
-            if model.surfactant
-                names{end+1} = 'surfactant';
-            end
-        end
-
-
-        function state = storeSurfData(model, state, s, cs, Nc, sigma)
-            state.SWAT    = double(s);
-            state.SURFACT = double(cs);
-            state.SURFCNM = log(double(Nc))/log(10);
-            state.SURFST  = double(sigma);
-        end
-
-        function [names, types] = getExtraWellEquationNames(model)
-            [names, types] = getExtraWellEquationNames@TwoPhaseOilWaterModel(model);
-            if model.surfactant
-                names{end+1} = 'surfactantWells';
-                types{end+1} = 'perf';
-            end
-        end
-
-        function names = getExtraWellPrimaryVariableNames(model)
-            names = getExtraWellPrimaryVariableNames@TwoPhaseOilWaterModel(model);
-            if model.surfactant
-                names{end+1} = 'qWSft';
-            end
-        end
-        
-        function [eq, src] = addComponentContributions(model, cname, eq, component, src, force)
-        % For a given component conservation equation, compute and add in
-        % source terms for a specific source/bc where the fluxes have
-        % already been computed.
-        %
-        % PARAMETERS:
-        %
-        %   model  - (Base class, automatic)
-        %
-        %   cname  - Name of the component. Must be a property known to the
-        %            model itself through `getProp` and `getVariableField`.
-        %
-        %   eq     - Equation where the source terms are to be added. Should
-        %            be one value per cell in the simulation grid (model.G)
-        %            so that the src.sourceCells is meaningful.
-        %
-        %   component - Cell-wise values of the component in question. Used
-        %               for outflow source terms only.
-        %
-        %   src    - Source struct containing fields for fluxes etc. Should
-        %            be constructed from force and the current reservoir
-        %            state by `computeSourcesAndBoundaryConditionsAD`.
-        %
-        %   force  - Force struct used to produce src. Should contain the
-        %            field defining the component in question, so that the
-        %            inflow of the component through the boundary condition
-        %            or source terms can accurately by estimated.
-            if isempty(force)
-                return
-            end
-            c = model.getProp(force, cname);
-            cells = src.sourceCells;
-            switch lower(cname)
-              case {'surfactant'}
-                % Water based EOR, multiply by water flux divided by
-                % density and add into corresponding equation
-                qW = src.phaseMass{1}./model.fluid.rhoWS;
-                isInj = qW > 0;
-                qC = (isInj.*c + ~isInj.*component(cells)).*qW;
-              otherwise
-                error(['Unknown component ''', cname, '''. BC not implemented.']);
-            end
-            eq(cells) = eq(cells) - qC;
-            src.components{end+1} = qC;
-        end        
-        
-        function [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration)
-            [compEqs, compSrc, compNames, wellSol] = getExtraWellContributions@TwoPhaseOilWaterModel(model, well, wellSol0, wellSol, q_s, bh, packed, qMass, qVol, dt, iteration);
-            if model.surfactant
-                % Implementation of surfactant source terms.
-                %
-                assert(model.water, 'Surfactant injection requires a water phase.');
-                f = model.fluid;
-                
-                % Water is always first
-                wix = 1;
-                % compute water volume rate at surface condition at each well connection
-                cqWs = qMass{wix}./f.rhoWS; % get volume rate, at surface condition.
-                if well.isInjector()
-                    concWell = model.getProp(well.W, 'surfactant');
-                    % compute surfactant mass injected at each well connection
-                    cqS = concWell.*cqWs;
-                else
-                    pix = strcmpi(model.getComponentNames(), 'surfactant');
-                    concWell = packed.components{pix};
-                    % compute surfactant mass produced at each well connection
-                    cqS = concWell.*cqWs;
-                end
-                qwsft = packed.extravars{strcmpi(packed.extravars_names, 'qwsft')};
-                compEqs{end+1} = qwsft - sum(concWell.*cqWs);
-                compSrc{end+1} = cqS;
-                compNames{end+1} = 'surfactantWells';
-            end
         end
     end
 end

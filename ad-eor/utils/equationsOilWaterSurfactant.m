@@ -170,11 +170,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % the other way is to choose based on the water saturation
         surfactant(bad) = cs(bad);
     end
-    
-    if model.extraStateOutput
-        sigma = fluid.ift(cs);
-        CapillaryNumber = Nc;
-    end
 
     eqs      = {water   , oil   , surfactant};
     names    = {'water' , 'oil' , 'surfactant'};
