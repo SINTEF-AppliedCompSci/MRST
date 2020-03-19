@@ -297,7 +297,7 @@ classdef FacilityModel < PhysicalModel
 
         function [variables, names, origin] = getPrimaryVariables(model, state)
             if isfield(state, 'wellSol')
-                [variables, names] = model.getAllPrimaryVariables(state.wellSol);
+                [variables, names] = model.getBasicPrimaryVariables(state.wellSol);
                 origin = cell(size(variables));
                 [origin{:}] = deal(class(model));
             else
