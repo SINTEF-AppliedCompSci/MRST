@@ -74,8 +74,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
             fprintf('Assembling block %d (%d nodes)\n', iblock, nodetbl.num);
         end
         
-        [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, ...
-                                                       'useVirtual', true);
+        [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls);
 
         celltbl               = tbls.celltbl;
         nodetbl               = tbls.nodetbl;

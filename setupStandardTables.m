@@ -1,6 +1,6 @@
 function [tbls, mappings] = setupStandardTables(G, varargin)
     
-    opt = struct('useVirtual', false);
+    opt = struct('useVirtual', true);
     opt = merge_options(opt, varargin{:});
     useVirtual = opt.useVirtual;
     
