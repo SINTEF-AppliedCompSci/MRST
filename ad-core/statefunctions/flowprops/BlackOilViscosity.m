@@ -1,4 +1,4 @@
-classdef BlackOilViscosity < StateFunction
+classdef BlackOilViscosity < Viscosity
     % Black-oil style viscosity functions that account for rs and Rv
     properties
         useSaturatedFlag = true;
@@ -7,81 +7,48 @@ classdef BlackOilViscosity < StateFunction
     end
     
     methods
-        function gp = BlackOilViscosity(model, varargin)
-            gp@StateFunction(model, varargin{:});
-            if isprop(model, 'disgas')
-                gp.disgas = model.disgas;
-                if gp.disgas
-                    gp = gp.dependsOn({'rs'}, 'state');
-                end
+        function mu = BlackOilViscosity(model, varargin)
+            mu@Viscosity(model, varargin{:});
+            assert(isa(model, 'ThreePhaseBlackOilModel'), ...
+                ['Model must be derived from the black-oil model. ', ...
+                'Did you want the regular Viscosity class instead?'])
+            mu.disgas = model.disgas;
+            mu.vapoil = model.vapoil;
+            if mu.disgas
+                mu = mu.dependsOn('rs', 'state');
             end
-            if isprop(model, 'vapoil')
-                gp.vapoil = model.vapoil;
-                if gp.vapoil
-                    gp = gp.dependsOn({'rv'}, 'state');
-                end
+            if mu.vapoil
+                mu = mu.dependsOn('rv', 'state');
             end
-            gp = gp.dependsOn({'PhasePressures'});
-            gp.label = '\mu_\alpha';
+            if mu.useSaturatedFlag
+                mu = mu.dependsOn('s', 'state');
+            end
         end
-        
-        function mu = evaluateOnDomain(prop, model, state)
-            [act, phInd] = model.getActivePhases();
-            nph = sum(act);
-            mu = cell(1, nph);
-            
-            f = model.fluid;
-            p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
-            [sample, isAD] = getSampleAD(p_phase{:});
-            nc = numelValue(sample);
 
-            if model.water
-                wix = phInd == 1;
-                pw = p_phase{wix};
-                mu{wix} = prop.evaluateFluid(model, 'muW', pw);
-            end
-            
-            if model.oil
-                oix = phInd == 2;
-                po = p_phase{oix};
-                if prop.disgas
-                    rs = model.getProp(state, 'rs');
-                    if prop.useSaturatedFlag
-                        sG = model.getProp(state, 'sg');
-                        flag = sG > 0;
-                    else
-                        flag = false(nc, 1);
-                    end
-                    extra = {rs, flag};
+        function mu = evaluatePhaseViscosity(prop, model, state, name, p)
+            if prop.disgas && strcmp(name, 'O')
+                % Oileic phase with dissolved gas component
+                rs = model.getProp(state, 'rs');
+                if prop.useSaturatedFlag
+                    sG = model.getProp(state, 'sg');
+                    flag = sG > 0;
                 else
-                    extra = {};
+                    flag = false(nc, 1);
                 end
-                mu{oix} = prop.evaluateFluid(model, 'muO', po, extra{:});
-            end
-            
-            if model.gas
-                gix = phInd == 3;
-                pg = p_phase{gix};
-                if prop.vapoil
-                    rv = model.getProp(state, 'rv');
-                    if prop.useSaturatedFlag
-                        sO = model.getProp(state, 'so');
-                        flag = sO > 0;
-                    else
-                        flag = false(nc, 1);
-                    end
-                    extra = {rv, flag};
+                mu = prop.evaluateFluid(model, 'muO', p, rs, flag);
+            elseif prop.vapoil && strcmp(name, 'G')
+                % Gaseous phase with vaporized oil component
+                rv = model.getProp(state, 'rv');
+                if prop.useSaturatedFlag
+                    sO = model.getProp(state, 'so');
+                    flag = sO > 0;
                 else
-                    extra = {};
+                    flag = false(nc, 1);
                 end
-                mu{gix} = prop.evaluateFluid(model, 'muG', pg, extra{:});
-            end
-            if isAD
-                for i = 1:numel(mu)
-                    if ~isa(mu{i}, 'ADI')
-                        mu{i} = model.AutoDiffBackend.convertToAD(mu{i}, sample);
-                    end
-                end
+                mu = prop.evaluateFluid(model, 'muG', p, rv, flag);
+            else
+                % Can use base class directly
+                mu = evaluatePhaseViscosity@Viscosity(prop, model, state, name, p);
             end
         end
     end

@@ -1,4 +1,4 @@
-classdef BlackOilShrinkageFactors < StateFunction
+classdef BlackOilShrinkageFactors < ShrinkageFactors
     % Shrinkage factors for black-oil
     properties
         useSaturatedFlag = true;
@@ -7,77 +7,48 @@ classdef BlackOilShrinkageFactors < StateFunction
     end
     
     methods
-        function gp = BlackOilShrinkageFactors(model, varargin)
-            gp@StateFunction(model, varargin{:});
-            if isprop(model, 'disgas')
-                gp.disgas = model.disgas;
-                if gp.disgas
-                    gp = gp.dependsOn({'rs'}, 'state');
-                    if gp.useSaturatedFlag
-                        gp = gp.dependsOn({'s'}, 'state');
-                    end
-                end
+        function b = BlackOilShrinkageFactors(model, varargin)
+            b@ShrinkageFactors(model, varargin{:});
+            assert(isa(model, 'ThreePhaseBlackOilModel'), ...
+                ['Model must be derived from the black-oil model. Did you want', ...
+                ' the regular ShrinkageFactors class instead?'])
+            b.disgas = model.disgas;
+            b.vapoil = model.vapoil;
+            if b.disgas
+                b = b.dependsOn({'rs'}, 'state');
             end
-            if isprop(model, 'vapoil')
-                gp.vapoil = model.vapoil;
-                if gp.vapoil
-                    gp = gp.dependsOn({'rv'}, 'state');
-                    if gp.useSaturatedFlag
-                        gp = gp.dependsOn({'s'}, 'state');
-                    end
-                end
+            if b.vapoil
+                b = b.dependsOn({'rv'}, 'state');
             end
-            gp = gp.dependsOn({'PhasePressures'});
-            gp.label = 'b_\alpha';
+            if b.useSaturatedFlag
+                b = b.dependsOn({'s'}, 'state');
+            end
         end
 
-        function b = evaluateOnDomain(prop, model, state)
-            [act, phInd] = model.getActivePhases();
-            nph = sum(act);
-            b = cell(1, nph);
-            
-            p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
-            if model.water
-                wix = phInd == 1;
-                pw = p_phase{wix};
-                bW = prop.evaluateFluid(model, 'bW', pw);
-                b{wix} = bW;
-            end
-            
-            if model.oil
-                oix = phInd == 2;
-                po = p_phase{oix};
-                if prop.disgas
-                    rs = model.getProp(state, 'rs');
-                    if prop.useSaturatedFlag
-                        sG = model.getProp(state, 'sg');
-                        flag = sG > 0;
-                    else
-                        flag = false(numelValue(po), 1);
-                    end
-                    extra = {rs, flag};
+        function b = evaluatePhaseShrinkageFactor(prop, model, state, name, p)
+            if prop.disgas && strcmp(name, 'O')
+                % Oileic phase with dissolved gas component
+                rs = model.getProp(state, 'rs');
+                if prop.useSaturatedFlag
+                    sG = model.getProp(state, 'sg');
+                    flag = sG > 0;
                 else
-                    extra = {};
+                    flag = false(nc, 1);
                 end
-                b{oix} = prop.evaluateFluid(model, 'bO', po, extra{:});
-            end
-            
-            if model.gas
-                gix = phInd == 3;
-                pg = p_phase{gix};
-                if prop.vapoil
-                    rv = model.getProp(state, 'rv');
-                    if prop.useSaturatedFlag
-                        sO = model.getProp(state, 'so');
-                        flag = sO > 0;
-                    else
-                        flag = false(numelValue(pg), 1);
-                    end
-                    extra = {rv, flag};
+                b = prop.evaluateFluid(model, 'bO', p, rs, flag);
+            elseif prop.vapoil && strcmp(name, 'G')
+                % Gaseous phase with vaporized oil component
+                rv = model.getProp(state, 'rv');
+                if prop.useSaturatedFlag
+                    sO = model.getProp(state, 'so');
+                    flag = sO > 0;
                 else
-                    extra = {};
+                    flag = false(nc, 1);
                 end
-                b{gix} = prop.evaluateFluid(model, 'bG', pg, extra{:});
+                b = prop.evaluateFluid(model, 'bG', p, rv, flag);
+            else
+                % Can use base class directly
+                b = evaluatePhaseShrinkageFactor@ShrinkageFactors(prop, model, state, name, p);
             end
         end
     end

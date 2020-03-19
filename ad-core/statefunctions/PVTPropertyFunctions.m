@@ -16,9 +16,29 @@ classdef PVTPropertyFunctions < StateFunctionGrouping
             pvt = props.getRegionPVT(model);
 
             % PVT properties
-            props = props.setStateFunction('ShrinkageFactors', BlackOilShrinkageFactors(model, pvt));
+            isBO = isa(model, 'ThreePhaseBlackOilModel') && (model.disgas || model.vapoil);
             props = props.setStateFunction('Density', BlackOilDensity(model, pvt));
-            props = props.setStateFunction('Viscosity', BlackOilViscosity(model, pvt));
+            if isBO
+                mu = BlackOilViscosity(model, pvt);
+                bfactors = BlackOilShrinkageFactors(model, pvt);
+                % Black-oil specific features follow
+                if model.disgas
+                    props = props.setStateFunction('RsMax', RsMax(model, pvt));
+                end
+                % Vaporized oil
+                if model.vapoil
+                    props = props.setStateFunction('RvMax', RvMax(model, pvt));
+                end
+                w_p = BlackOilPressureReductionFactors(model);
+            else
+                mu = Viscosity(model, pvt);
+                bfactors = ShrinkageFactors(model, pvt);
+                w_p = PressureReductionFactors(model);
+            end
+            
+            props = props.setStateFunction('Viscosity', mu);
+            props = props.setStateFunction('ShrinkageFactors', bfactors);
+            props = props.setStateFunction('PressureReductionFactors', w_p);
             props = props.setStateFunction('PhasePressures', PhasePressures(model));
             if isfield(model.fluid, 'pvMultR')
                 % Check for multiplier
@@ -27,16 +47,7 @@ classdef PVTPropertyFunctions < StateFunctionGrouping
                 pv = PoreVolume(model, pvt);
             end
             props = props.setStateFunction('PoreVolume', pv);
-            props = props.setStateFunction('PressureReductionFactors', BlackOilPressureReductionFactors(model));
-
-            % Black-oil specific features follow
-            if isprop(model, 'disgas') && model.disgas
-                props = props.setStateFunction('RsMax', RsMax(model, pvt));
-            end
-            % Vaporized oil
-            if isprop(model, 'vapoil') && model.vapoil
-                props = props.setStateFunction('RvMax', RvMax(model, pvt));
-            end
+            
         end
         
         function pvt = getRegionPVT(props, model)

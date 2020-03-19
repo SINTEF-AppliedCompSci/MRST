@@ -1,32 +1,30 @@
-classdef BlackOilPressureReductionFactors < StateFunction
+classdef BlackOilPressureReductionFactors < PressureReductionFactors
     % Component weighting factors used to form a pressure equation
     properties
-        useSaturatedFlag = false;
         disgas = false;
         vapoil = false;
     end
     
     methods
-        function gp = BlackOilPressureReductionFactors(model, varargin)
-            gp@StateFunction(model, varargin{:});
-            if isprop(model, 'disgas')
-                gp.disgas = model.disgas;
-                if gp.disgas
-                    gp = gp.dependsOn({'rs'}, 'state');
-                end
+        function w_p = BlackOilPressureReductionFactors(model, varargin)
+            w_p@PressureReductionFactors(model, varargin{:});
+            assert(isa(model, 'ThreePhaseBlackOilModel'), ...
+                ['Model must be derived from the black-oil model. ', ...
+                'Did you want the regular PressureReductionFactors class instead?'])
+            w_p = w_p.resetDependencies();
+            w_p.vapoil = model.vapoil;
+            w_p.disgas = model.disgas;
+            if w_p.disgas
+                w_p = w_p.dependsOn('rs', 'state');
             end
-            if isprop(model, 'vapoil')
-                gp.vapoil = model.vapoil;
-                if gp.vapoil
-                    gp = gp.dependsOn({'rv'}, 'state');
-                end
+            if w_p.vapoil
+                w_p = w_p.dependsOn('rv', 'state');
             end
-            gp = gp.dependsOn({'ShrinkageFactors', 'PoreVolume'});
-            gp.label = 'w_i^p';
+            w_p = w_p.dependsOn({'ShrinkageFactors', 'PoreVolume', 'Density'});
         end
 
         function w = evaluateOnDomain(prop, model, state)
-            [b, pv] = prop.getEvaluatedDependencies(state, 'ShrinkageFactors', 'PoreVolume');
+            [b, pv, rho] = prop.getEvaluatedDependencies(state, 'ShrinkageFactors', 'PoreVolume', 'Density');
             rhoS = model.getSurfaceDensities();
             
             vap = prop.vapoil;
@@ -55,18 +53,18 @@ classdef BlackOilPressureReductionFactors < StateFunction
             for ph = 1:nph
                 switch names{ph}
                     case 'water'
-                        f = 1./(b{ph}.*rhoS(ph));
+                        f = 1./rho{ph};
                     case 'oil'
                         if dis
                             f = (alpha./rhoS(ph)).*(1./b{ph} - dis.*rs./b{gix});
                         else
-                            f = 1./(b{ph}.*rhoS(ph));
+                            f = 1./rho{ph};
                         end
                     case 'gas'
                         if vap
                             f = (alpha./rhoS(ph)).*(1./b{ph} - vap.*rv./b{oix});
                         else
-                            f = 1./(b{ph}.*rhoS(ph));
+                            f = 1./rho{ph};
                         end
                     otherwise
                         f = 0;
