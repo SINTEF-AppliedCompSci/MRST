@@ -21,7 +21,7 @@ classdef GasComponent < ImmiscibleComponent
         end
 
         function c = getPhaseComposition(component, model, state, varargin)
-            c = getPhaseComposition@ComponentImplementation(component, model, state, varargin{:});
+            c = getPhaseComposition@ImmiscibleComponent(component, model, state, varargin{:});
         end
 
         function c = getComponentDensity(component, model, state)
