@@ -1,5 +1,8 @@
-function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
-
+function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varargin)
+    
+    opt = struct('bcetazero', true);
+    opt = merge_options(opt, varargin{:});
+    
 %% Assembly of MPSA-weak
 %%
 %% Reference paper:
@@ -49,29 +52,127 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
 
     %% Construction of tensor g (as defined in paper eq 4.1.2)
 
-    cellnodefacecents = computeNodeFaceCentroids(G, tbls, eta);
+    cellnodefacecents = computeNodeFaceCentroids(G, tbls, eta, 'bcetazero', opt.bcetazero);
 
-    [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-    ind1 = i;
-    ind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
+    plotcellnodefacecents = true;
+    if plotcellnodefacecents
+        cnfc = reshape(cellnodefacecents, dim, [])';
+        cno = cellnodefacetbl.get('cells');
+        cc = G.cells.centroids(cno, :);
+        cc1 = cc;
+        cc2 = cc + cnfc;
+        figure
+        plotGrid(G)
+        hold on
+        for i = 1 : size(cc, 1);
+            vec = [cc1(i, :); cc2(i, :)];
+            plot(vec(:, 1), vec(:, 2));
+        end
+    end
+    
+    newway = false;
+    if newway
+        
+        cellnodefacecolrowtbl = sortIndexArray(cellnodefacecoltbl, {'cells', ...
+                            'nodes', 'coldim', 'faces'});
+        inds = cellnodefacecolrowtbl.inds;
+        inds = [inds, repmat((1 : dim)', cellnodecoltbl.num, 1)];
+        
+        fdnames = {'cells', 'nodes', 'coldim', 'faces', 'frowdim'};
+        inds = inds;
+        cellnodefacecolfrowtbl = IndexArray([]);
+        cellnodefacecolfrowtbl = cellnodefacecolfrowtbl.setup(fdnames, inds);
+        
+        map = TensorMap();
+        map.fromTbl = cellnodefacecoltbl;
+        map.toTbl = cellnodefacecolfrowtbl;
+        map.mergefds = {'cells', 'nodes', 'coldim', 'faces'};
+        map = map.setup();
+        cellnodefacecents = map.eval(cellnodefacecents);
+        
+        dotest = false;
+        if dotest 
+            testtbl.cells = 1;
+            testtbl.nodes = 1;
+            testtbl = IndexArray(testtbl);
+            
+            testtbl = crossIndexArray(testtbl, cellnodefacecolfrowtbl, {'cells', ...
+                                'nodes'});
+            
+            map = TensorMap();
+            map.fromTbl = cellnodefacecolfrowtbl;
+            map.toTbl = testtbl;
+            map.mergefds = {'cells', 'nodes', 'coldim', 'frowdim', 'faces'};
+            map = map.setup();
+            
+            test = map.eval(cellnodefacecents);
+        end
+        
+        fdnames = {'cells', 'nodes', 'coldim', 'frowdim'};
+        inds = inds(:, [1, 2, 3, 5]);
+        
+        cellnodecolfrowtbl = IndexArray([]);
+        cellnodecolfrowtbl = cellnodecolfrowtbl.setup(fdnames, inds);
+        
+        cellnodefrowtbl = cellnodecoltbl;
+        cellnodefrowtbl.fdnames = {'cells', 'nodes', 'frowdim'};
+        
+        map1 = TensorMap();
+        map1.fromTbl = cellnodecoltbl;
+        map1.toTbl = cellnodecolfrowtbl;
+        map1.mergefds = {'cells', 'nodes', 'coldim'};
+        map1 = map1.setup();
+        
+        ncol = cellnodecoltbl.num;
+        indcol = map1.eval((1 : ncol)');
+        
+        map2 = TensorMap();
+        map2.fromTbl = cellnodefrowtbl;
+        map2.toTbl = cellnodecolfrowtbl;
+        map2.mergefds = {'cells', 'nodes', 'frowdim'};
+        map2 = map2.setup();
+        
+        nfrow = cellnodefrowtbl.num;
+        indfrow = map2.eval((1 : nfrow)');
+        
+        A = sparse(indfrow, indcol, cellnodefacecents, nfrow, ncol);
+        
+        opt.invertBlocks = 'matlab';
+        bi = blockInverter(opt);
+        
+        sz = repmat(coltbl.num, cellnodetbl.num, 1);
+        invA= bi(A, sz);
 
-    n = cellnodecoltbl.num; 
-    assert(n == cellnodefacetbl.num, ['This implementation of mpsaw cannot handle ' ...
-                        'this grid']);
+        % invA is a mapping from cellnodefrowtbl to cellnodecoltbl
+        [indcol, indfrow, g] = find(invA);
+        
+        
+    end
+    
+    oldway = true;
+    if oldway
+        [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
+        ind1 = i;
+        ind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
 
-    A = sparse(ind1, ind2, cellnodefacecents, n, n);
+        cnc_num = cellnodecoltbl.num; 
+        assert(cnc_num == cnf_num, ['This implementation of mpsaw cannot handle ' ...
+                            'this grid']);
 
-    opt.invertBlocks = 'mex';
-    bi = blockInverter(opt);
+        A = sparse(ind1, ind2, cellnodefacecents, cnc_num, cnc_num);
 
-    sz = repmat(coltbl.num, cellnodetbl.num, 1);
-    invA = bi(A, sz);
+        opt.invertBlocks = 'mex';
+        bi = blockInverter(opt);
 
-    [cncind, cnfind, g] = find(invA);
-    [c, i] = ind2sub([d_num, cn_num], cncind);
-    ind = sub2ind([d_num, cnf_num], c, cnfind);
+        sz = repmat(coltbl.num, cellnodetbl.num, 1);
+        invA = bi(A, sz);
 
-    g(ind) = g;
+        ind = sub2ind([cnf_num, cnc_num], ind2, ind1);
+        
+        g = invA(ind);
+        
+    end
+    
 
     %% Construction of the gradient operator
     %
@@ -106,20 +207,18 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings)
     % obtained for any u in cellcoltbl by using v = prod.eval(greduced, u)
     % where greduced and prod are defined below 
     %
-    prod = TensorProd();
-    prod.tbl1 = cellnodefacecoltbl;
-    prod.tbl2 = cellnodefacecoltbl;
-    prod.tbl3 = cellnodecoltbl;
-    prod.pivottbl = cellnodefacecoltbl;
-    prod.reducefds = {'faces'};
+    map = TensorMap();
+    map.fromTbl = cellnodefacecoltbl;
+    map.toTbl = cellnodecoltbl;
+    map.mergefds = {'cells', 'nodes', 'coldim'};
 
-    prod.dispind1 = (1 : cnfc_num)';
-    prod.dispind2 = (1 : cnfc_num)';
+    map.pivottbl = cellnodefacecoltbl;
+    map.dispind1 = (1 : cnfc_num)';
     [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-    prod.dispind3 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
-    prod.issetup = true;
+    map.dispind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
+    map.issetup = true;
 
-    greduced = - prod.eval(ones(cnfc_num, 1), g);
+    greduced = - map.eval(g);
 
     prod = TensorProd();
     prod.tbl1 = cellnodecoltbl;

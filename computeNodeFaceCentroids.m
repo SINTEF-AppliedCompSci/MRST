@@ -1,10 +1,14 @@
-function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids(G, tbls, eta)
+function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids(G, tbls, ...
+                                                      eta, varargin)
+    opt = struct('bcetazero', false);
+    opt = merge_options(opt, varargin{:});
+    bcetazero = opt.bcetazero;
 
-% cellnodefacecents centroid of node-face points, relative to cell
-% centroids. It belongs to cellnodefacecoltbl
-%
-% nodefacecents centroid of node-face points, belongs to nodefacecoltbl
-    
+    % cellnodefacecents centroid of node-face points, relative to cell
+    % centroids. It belongs to cellnodefacecoltbl
+    %
+    % nodefacecents centroid of node-face points, belongs to nodefacecoltbl
+
     cellnodefacetbl    = tbls.cellnodefacetbl;
     cellnodefacecoltbl = tbls.cellnodefacecoltbl;
     nodefacecoltbl     = tbls.nodefacecoltbl;
@@ -17,7 +21,16 @@ function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids(G, tbls, 
     ccents = G.cells.centroids(cno, :);
     fcents = G.faces.centroids(fno, :);
     ncents = G.nodes.coords(nno, :);
-    abscellnodefacecents = eta*ncents + (1 - eta)*fcents;
+
+    if bcetazero
+        % zero eta at boundary faces
+        eta = eta*ones(cellnodefacetbl.num, 1);
+        bcfnoind = any(G.faces.neighbors(fno, :) == 0, 2);
+        eta(bcfnoind) = 0;
+    end
+    
+    abscellnodefacecents = bsxfun(@times, eta, ncents) + bsxfun(@times, (1 - ...
+                                                      eta), fcents);
     
     % Relative position of node-face points (in cellnodefacecoltbl)
     cellnodefacecents = abscellnodefacecents - ccents;
