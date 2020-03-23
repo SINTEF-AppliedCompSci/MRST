@@ -1,4 +1,16 @@
 classdef  EorRelativePermeability < BaseRelativePermeability
+% Relative permeability for EOR models which are based on a multiplier approach
+% and a generic black-oil relative permeability model
+% 
+% This relative function is defined by multiplying the black-oil rel.perm model
+% with multipliers where each multiplier correspond to a given EOR process. See
+% PolymerPermReduction.
+%   
+% The statefunction RelativePermeabilityMultipliers collects all the multipliers
+% and is setup by the model as a container (see helper class
+% MultiplierContainer).
+% 
+
     methods
         function gp = EorRelativePermeability(model, varargin)
             gp@BaseRelativePermeability(model, varargin{:});

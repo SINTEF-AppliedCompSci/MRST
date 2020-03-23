@@ -1,12 +1,12 @@
 classdef EorViscosity < BlackOilViscosity
-% EOR viscosity based on multipliers
+% Viscosity for EOR model which is based on multipliers
 % 
-% This viscosity function covers models where the viscosity is defined by
-% multiplying the black-oil viscosity with multipliers which each correspond
-% to a given EOR process. See SurfactantViscMultiplier and PolymerViscMultiplier.
+% This viscosity function is defined by multiplying the black-oil viscosity with
+% multipliers where each multiplier correspond to a given EOR process. See
+% SurfactantViscMultiplier and PolymerViscMultiplier.
 %   
-% The statefunction ViscosityMultipliers collects all the multipliers (see
-% MultiplierContainer).
+% The statefunction ViscosityMultipliers collects all the multipliers and is
+% setup by the model as a container (see helper class MultiplierContainer).
 % 
     
     methods
