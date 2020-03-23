@@ -10,6 +10,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
 
     opt = struct('verbose'  , mrstVerbose, ...
                  'blocksize', [], ...
+                 'bcetazero', true, ...
                  'useVirual', true);
     opt = merge_options(opt, varargin{:});
     
@@ -114,29 +115,28 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         
         dim = coltbl.num;
         
-        cellnodefacecents = computeNodeFaceCentroids(G, tbls, eta);
+        cellnodefacecents = computeNodeFaceCentroids(G, tbls, eta, 'bcetazero', opt.bcetazero);
 
         [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
         ind1 = i;
         ind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
 
-        n = cellnodecoltbl.num;
-        assert(n == cellnodefacetbl.num, ['This implementation of mpsaw cannot handle ' ...
+        cnc_num = cellnodecoltbl.num;
+        assert(cnc_num == cnf_num, ['This implementation of mpsaw cannot handle ' ...
                             'this grid']);
 
-        A = sparse(ind1, ind2, cellnodefacecents, n, n);
+        A = sparse(ind1, ind2, cellnodefacecents, cnc_num, cnc_num);
 
         opt.invertBlocks = 'mex';
         bi = blockInverter(opt);
 
         sz = repmat(coltbl.num, cellnodetbl.num, 1);
         invA = bi(A, sz);
-
-        [cncind, cnfind, g] = find(invA);
-        [c, i] = ind2sub([d_num, cn_num], cncind);
-        ind = sub2ind([d_num, cnf_num], c, cnfind);
-
-        g(ind) = g;
+        
+        ind = sub2ind([cnf_num, cnc_num], ind2, ind1);
+        
+        g = invA(ind);
+    
     
         %% Construction of the gradient operator
         %
