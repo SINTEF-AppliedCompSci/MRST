@@ -1,14 +1,13 @@
-classdef EORViscosity < Viscosity
-    % Black-oil style viscosity functions that account for rs and Rv
-    properties (Access = protected)
-        hasMultipliers = false;
-    end
+classdef EorViscosity < BlackOilViscosity
+    
+    % EOR Viscosity based on multipliers
+    
+% The 'PhaseMultipliers' ViscosityMultipliers is setup in model build-up
     
     methods
-        function mu = EORViscosity(model, varargin)
-            mu@StateFunction(model, varargin{:});
-            mu = mu.dependsOn('PhasePressures');
-            mu.label = '\mu_\alpha';
+        function mu = EorViscosity(model, varargin)
+            mu@BlackOilViscosity(model, varargin{:});
+            mu = mu.dependsOn('ViscosityMultipliers');
         end
         
         function mu = evaluateOnDomain(prop, model, state)
@@ -20,13 +19,11 @@ classdef EORViscosity < Viscosity
             for ph = 1:nph
                 mu{ph} = prop.evaluatePhaseViscosity(model, state, names(ph), p_phase{ph});
             end
-            if prop.hasMultipliers
-                mult = prop.getEvaluatedDependencies(state, 'ViscosityMultipliers');
-                for i = 1:numel(mult)
-                    m = mult{i};
-                    if ~isempty(m)
-                        mu{i} = mu{i}.*m;
-                    end
+            mult = prop.getEvaluatedDependencies(state, 'ViscosityMultipliers');
+            for i = 1:numel(mult)
+                m = mult{i};
+                if ~isempty(m)
+                    mu{i} = mu{i}.*m;
                 end
             end
             if isAD
@@ -36,15 +33,6 @@ classdef EORViscosity < Viscosity
                     end
                 end
             end
-        end
-        
-        function mu = evaluatePhaseViscosity(prop, model, state, name, p) %#ok
-            mu = prop.evaluateFluid(model, ['mu', name], p);
-        end
-        
-        function prop = enableMultipliers(prop)
-            prop.hasMultipliers = true;
-            prop = prop.dependsOn('ViscosityMultipliers');
         end
     end
 end
