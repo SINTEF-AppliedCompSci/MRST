@@ -110,12 +110,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 opt.Description = [opt.Description, '_', id];
             end
         end
-        if ~isempty(opt.NonLinearSolver)
-            id = opt.NonLinearSolver.getId();
-            if ~isempty(id)
-                opt.Description = [opt.Description, '_', id];
-            end
-        end
     end
 
     if isempty(opt.Directory)
