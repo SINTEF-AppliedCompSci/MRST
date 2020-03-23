@@ -1,8 +1,4 @@
 classdef Viscosity < StateFunction
-    % Black-oil style viscosity functions that account for rs and Rv
-    properties (Access = protected)
-        hasMultipliers = false;
-    end
     
     methods
         function mu = Viscosity(model, varargin)
@@ -20,15 +16,6 @@ classdef Viscosity < StateFunction
             for ph = 1:nph
                 mu{ph} = prop.evaluatePhaseViscosity(model, state, names(ph), p_phase{ph});
             end
-            if prop.hasMultipliers
-                mult = prop.getEvaluatedDependencies(state, 'ViscosityMultipliers');
-                for i = 1:numel(mult)
-                    m = mult{i};
-                    if ~isempty(m)
-                        mu{i} = mu{i}.*m;
-                    end
-                end
-            end
             if isAD
                 for i = 1:numel(mu)
                     if ~isa(mu{i}, 'ADI')
@@ -42,10 +29,6 @@ classdef Viscosity < StateFunction
             mu = prop.evaluateFluid(model, ['mu', name], p);
         end
         
-        function prop = enableMultipliers(prop)
-            prop.hasMultipliers = true;
-            prop = prop.dependsOn('ViscosityMultipliers');
-        end
     end
 end
 
