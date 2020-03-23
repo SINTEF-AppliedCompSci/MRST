@@ -1,5 +1,5 @@
 classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
-    %Three-phase black-oil model with support for surfactant and polymer injection
+    % Three-phase black-oil model with support for surfactant and polymer injection
     %
     % SYNOPSIS:
     %   model = ThreePhaseSurfactantPolymerModel(G, rock, fluid, varargin)
@@ -136,7 +136,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             
             % We replace the default black-oil viscosity with a multiplier
             % based chemical eor viscosity.
-            pp.setStateFunction('Viscosity', EorViscosity(model, pvtreg));
+            pp = pp.setStateFunction('Viscosity', EorViscosity(model, pvtreg));
             
             % Each multiplier is set up as a property (see 'PolymerViscMultiplier' for
             % example). All the multipliers are stored and applied through a
