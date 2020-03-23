@@ -1,11 +1,20 @@
-classdef PhaseMultipliers < StateFunction
+classdef MultiplierContainer < StateFunction
+% This class is a container class which is used to store and then compute, on
+% demand, the product of multipliers which is meant to be apply to a given
+% quantity. An example is ViscosityMultipliers which is set in the
+% ThreePhaseSurfactantPolymerModel.
+%
+% Each multiplier is defined as a statefunction, see PolymerViscMultiplier for
+% an example of multiplier
+    
     properties
-        multNames
-        operator;
+        multNames; % contains the name of the multipliers.
+        operator;  % the default operator is multiplication but an other
+                   % operator can be given here
     end
     
     methods
-        function M = PhaseMultipliers(model, names, varargin)
+        function M = MultiplierContainer(model, names, varargin)
             M@StateFunction(model, varargin{:});
             nph = model.getNumberOfPhases();
             assert(numel(names) == nph);
@@ -23,19 +32,19 @@ classdef PhaseMultipliers < StateFunction
             end
             M.label = 'M';
         end
-        
+
         function M = evaluateOnDomain(prop, model, state)
             nph = numel(prop.multNames);
             M = cell(1, nph);
-            for ph = 1:nph
+            for i = 1:numel(multPhaseNames)
                 multPhaseNames = prop.multNames{ph};
-                if numel(multPhaseNames) == 0
-                    continue
-                end
-                mult = 1;
-                for i = 1:numel(multPhaseNames)
-                    % Multiplier can be compund, i.e. M = A*B*C
+                for ph = 1:nph
                     mi = prop.getEvaluatedDependencies(state, multPhaseNames{i});
+                    
+                    if numel(multPhaseNames) == 0
+                        continue
+                    end
+                    mult = 1;                    % Multiplier can be compund, i.e. M = A*B*C
                     if isempty(prop.operator)
                         mult = mult .* mi;
                     else
