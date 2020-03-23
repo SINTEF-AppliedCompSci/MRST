@@ -1,23 +1,14 @@
-classdef EorViscosity < BlackOilViscosity
-% EOR viscosity based on multipliers
-% 
-% This viscosity function covers models where the viscosity is defined by
-% multiplying the black-oil viscosity with multipliers which each correspond
-% to a given EOR process. See SurfactantViscMultiplier and PolymerViscMultiplier.
-%   
-% The statefunction ViscosityMultipliers collects all the multipliers (see
-% MultiplierContainer).
-% 
-    
+classdef  EorRelativePermeability < BaseRelativePermeability
     methods
-        function mu = EorViscosity(model, varargin)
-            mu@BlackOilViscosity(model, varargin{:});
-            mu = mu.dependsOn('ViscosityMultipliers');
+        function gp = EorRelativePermeability(model, varargin)
+            gp@BaseRelativePermeability(model, varargin{:});
+            gp = gp.dependsOn('RelativePermeabilityMultipliers');
         end
-        
-        function mu = evaluateOnDomain(prop, model, state)
-            mu = evaluateOnDomain@BlackOilViscosity(prop, model, state);
-            mult = prop.getEvaluatedDependencies(state, 'ViscosityMultipliers');
+
+        function kr = evaluateOnDomain(prop, model, state)
+            kr = evaluateOnDomain@BaseRelativePermeability(prop, model, ...
+                                                           state);
+            mult = prop.getEvaluatedDependencies(state, 'RelativePermeabilityMultipliers');
             for i = 1 : numel(mult)
                 m = mult{i};
                 if ~isempty(m)
@@ -25,8 +16,11 @@ classdef EorViscosity < BlackOilViscosity
                 end
             end
         end
+
     end
 end
+
+
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

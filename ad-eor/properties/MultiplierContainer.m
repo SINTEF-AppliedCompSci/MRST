@@ -14,37 +14,35 @@ classdef MultiplierContainer < StateFunction
     end
     
     methods
-        function M = MultiplierContainer(model, names, varargin)
+        function M = MultiplierContainer(model, varargin)
             M@StateFunction(model, varargin{:});
-            nph = model.getNumberOfPhases();
-            assert(numel(names) == nph);
-            M.multNames = cell(1, nph);
-            for ph = 1:nph
-                n = names{ph};
-                if isempty(n)
-                    n = {};
-                elseif ischar(n)
-                    n = {n};
-                end
-                assert(iscell(n));
-                M = M.dependsOn(n);
-                M.multNames{ph} = n;
-            end
             M.label = 'M';
         end
 
+        function prop = addMultiplier(prop, model, name, phase)
+            phind = model.getPhaseIndex(phase);
+            nph = model.getNumberOfPhases();
+            multname = cell(1, nph);
+            multName{phind} = name;
+            multNames = prop.multNames;
+            multNames{end + 1} = multName;
+            prop.multNames = multNames;
+            prop = prop.dependsOn(name);
+        end
+        
+        
         function M = evaluateOnDomain(prop, model, state)
             nph = numel(prop.multNames);
             M = cell(1, nph);
-            for i = 1:numel(multPhaseNames)
+            for ph = 1:nph
                 multPhaseNames = prop.multNames{ph};
-                for ph = 1:nph
+                if numel(multPhaseNames) == 0
+                    continue
+                end
+                mult = 1;
+                for i = 1:numel(multPhaseNames)
+                    % Multiplier can be compund, i.e. M = A*B*C
                     mi = prop.getEvaluatedDependencies(state, multPhaseNames{i});
-                    
-                    if numel(multPhaseNames) == 0
-                        continue
-                    end
-                    mult = 1;                    % Multiplier can be compund, i.e. M = A*B*C
                     if isempty(prop.operator)
                         mult = mult .* mi;
                     else
@@ -54,6 +52,7 @@ classdef MultiplierContainer < StateFunction
                 M{ph} = mult;
             end
         end
+        
     end
 end
 
