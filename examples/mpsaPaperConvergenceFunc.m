@@ -21,16 +21,18 @@ function output = mpsaPaperConvergenceFunc(params, varargin)
 % year={2017},
 % publisher={Wiley Online Library}
 
-
+    opt = struct('doVem', false, ...
+                 'blocksize', [], ...
+                 'bcetazero', false);
+    
+    opt = merge_options(opt, varargin{:});
+    
     Nd = params.Nd;
     nref = params.nref;
     kappa = params.kappa;
     alpha = params.alpha;
     gridtype = params.gridtype;
     eta = params.eta;
-    
-    opt=struct('doVem', false);
-    opt=merge_options(opt,varargin{:});
    
     [u_fun, force_fun, mu_fun] = analyticalReferencePaper(Nd, kappa);
     
@@ -49,7 +51,8 @@ function output = mpsaPaperConvergenceFunc(params, varargin)
         Nd = G.griddim;
         Nc = G.cells.num;
         
-        output = runConvSim(G, params, 'useBlock', true);
+        output = runConvSim(G, params, 'bcetazero', opt.bcetazero, 'blocksize', ...
+                            opt.blocksize);
         
         u = output.u;
         tbls = output.tbls;

@@ -1,10 +1,11 @@
 function output = runConvSim(G, params, varargin)
     
     opt = struct('verbose' , mrstVerbose, ...
-                 'useBlock', true);
+                 'blocksize', [], ...
+                 'bcetazero', false);
+    
     opt = merge_options(opt, varargin{:});
     
-    useBlock = opt.useBlock;
     
     force_fun = params.force_fun;
     mu_fun = params.mu_fun;
@@ -43,7 +44,7 @@ function output = runConvSim(G, params, varargin)
                                        true);
     clear bcfacetbl
     
-    [~, nodefacecents] = computeNodeFaceCentroids(G, tbls, eta);
+    [~, nodefacecents] = computeNodeFaceCentroids(G, tbls, eta, 'bcetazero', opt.bcetazero);
     
     map = TensorMap();
     map.fromTbl = nodefacecoltbl;
@@ -55,7 +56,22 @@ function output = runConvSim(G, params, varargin)
     % Here, we assume a given structure of bcnodefacecoltbl:
     bcnodefacecents = reshape(bcnodefacecents, Nd, [])';
     bcnum = bcnodefacetbl.num;
-
+   
+    dotest = false;
+    if dotest
+        % plot continuity points 
+        figure
+        hold on
+        plotGrid(G)
+        nodefacecents = reshape(nodefacecents, Nd, [])';
+        if Nd == 2
+            plot(nodefacecents(:, 1), nodefacecents(:, 2), '*');
+        else
+            plot3(nodefacecents(:, 1), nodefacecents(:, 2), nodefacecents(:, 3), '*');
+        end
+    end
+    
+    
     % Prepare input for analytical functions
     for idim = 1 : Nd
         bnfc{idim} = bcnodefacecents(:, idim);
@@ -98,11 +114,12 @@ function output = runConvSim(G, params, varargin)
     loadstruct.extforce = zeros(tbls.nodefacecoltbl.num, 1);
     clear bc force
     
-    if opt.useBlock
+    if ~isempty(opt.blocksize)
         assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                     'blocksize', 100, 'verbose', true);
+                                     'blocksize', opt.blocksize, 'verbose', true);
     else
-        assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings);
+        assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
+                                'bcetazero', opt.bcetazero);
     end
     
     clear prop loadstruct
@@ -118,9 +135,10 @@ function output = runConvSim(G, params, varargin)
     u = sol(1 : n);
     u = reshape(u, Nd, [])';    
 
-    output = struct('B'  , B  , ...
-                    'rhs', rhs, ...
-                    'tbls', tbls, ...
-                    'u'  , u);
+    output = struct('B'       , B       , ...
+                    'assembly', assembly, ...
+                    'rhs'     , rhs     , ...
+                    'tbls'    , tbls    , ...
+                    'u'       , u);
     
 end

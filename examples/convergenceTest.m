@@ -20,7 +20,7 @@ function convergenceTest()
     
     %% params setting
     % nref     : degree of refinement
-    nref = 3; % default setting
+    nref = 3;  % default setting
     % Nd       : dimension (2D or 3D)
     % kappa    : Value of heterogenity in the domain (see paper)
     % alpha    : Parameter to setup Lamé coefficient lambda (lambda = alpha*mu)
@@ -31,14 +31,14 @@ function convergenceTest()
     doVem = false;
 
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
                         'gridtype', 1, ... % Cartesian
-                        'eta'     , 1e-6);
+                        'eta'     , 0);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
@@ -50,14 +50,14 @@ function convergenceTest()
     
 
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
                         'gridtype', 2, ... % Triangular grid, 90 degree angles
-                        'eta'     , 1/3 + 1e-8);
+                        'eta'     , 1/3);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
@@ -68,14 +68,14 @@ function convergenceTest()
 
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
                         'gridtype', 3, ... % Triangular grid, equi - alternate
-                        'eta'     , 1/3 + 1e-8);
+                        'eta'     , 1/3);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
@@ -85,7 +85,7 @@ function convergenceTest()
     end
 
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -102,7 +102,7 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -119,14 +119,14 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
                         'kappa'   , 1, ...
                         'alpha'   , 10, ...
                         'gridtype', 1, ... % Cartesian
-                        'eta'     , 1e-8);
+                        'eta'     , 0);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
@@ -136,16 +136,17 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
                         'gridtype', 1, ... % Cartesian Grid
-                        'eta'     , 1e-8);
+                        'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
+                                          500);
         figure
         plotConv(output, params);
         filename = 'convd3_g1_k1_a1_eta0';
@@ -153,16 +154,17 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
                         'kappa'   , 3, ...
                         'alpha'   , 1, ...
                         'gridtype', 1, ... % Cartesian Grid
-                        'eta'     , 1e-8);
+                        'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
+                                          500);
         figure
         plotConv(output, params);
         filename = 'convd3_g1_k3_a1_eta0';
@@ -170,16 +172,17 @@ function convergenceTest()
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
-        params = struct('nref'    , 5, ...
+        params = struct('nref'    , 4, ...
                         'Nd'      , 3, ...
                         'kappa'   , 1, ...
                         'alpha'   , 10, ...
                         'gridtype', 1, ... % Cartesian Grid
-                        'eta'     , 1e-8);
+                        'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
+                                          500);
         figure
         plotConv(output, params);
         filename = 'convd3_g1_k1_a10_eta0';
@@ -189,14 +192,15 @@ function convergenceTest()
     %% New Case
     dothiscase = true;
     if dothiscase
-        params = struct('nref'    , 3, ...
+        params = struct('nref'    , 4, ...
                         'Nd'      , 3, ...
                         'kappa'   , 1, ...
                         'alpha'   , 1, ...
                         'gridtype', 5, ... % Tetrahedras
-                        'eta'     , 1/3 + 1e-3);
+                        'eta'     , 1/3);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
+                                          100);
         figure
         plotConv(output, params);
         filename = 'convd3_g5_k1_a1_eta3';
