@@ -1,4 +1,9 @@
 classdef SurfactantRelativePermeability < BaseRelativePermeability
+% The surfactant relative permeability model corresponds to a scaling of the
+% permeability in both the saturation and relative permeability axis. The
+% scaling with respect to saturation enables in particular to change the
+% value of residual saturations.
+    
     properties
         zeroSurf
         fullSurf

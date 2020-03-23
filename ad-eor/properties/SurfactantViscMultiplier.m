@@ -1,4 +1,7 @@
 classdef SurfactantViscMultiplier < StateFunction
+% Surfactant viscosity multiplier. This value is multiplied to the viscosity and
+% account in this way for the effect of surfactant on the viscosity.
+    
     properties
     end
 

@@ -154,7 +154,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             if model.polymer
                 
                 fp = fp.setStateFunction('PolymerAdsorption', PolymerAdsorption(model, satreg));
-                fd = fd.setStateFunction('PolymerPhaseFlux', PolymerPhaseFlux(model));
+                fd = fd.setStateFunction('PolymerPhaseFlux' , PolymerPhaseFlux(model));
                 fd = fd.setStateFunction('FaceConcentration', FaceConcentration(model));
                 
                 % We set up the polymer viscosity multiplier

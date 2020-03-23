@@ -1,4 +1,8 @@
 classdef PolymerAdsorption < StateFunction
+% Polymer adsorption. The quantity of adsorped polymer will affect the mass
+% conservation equation for polymer and the relative permeability of water,
+% see PolymerPermReduction.
+    
     properties
     end
 

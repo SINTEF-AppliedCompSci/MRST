@@ -1,4 +1,6 @@
 classdef SurfactantAdsorption < StateFunction
+% Surfactant adsorption. The quantity of adsorped surfactant will affect the
+% mass conservation equation for surfactant.
     properties
     end
 
