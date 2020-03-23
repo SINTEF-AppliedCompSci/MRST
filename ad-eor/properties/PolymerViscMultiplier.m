@@ -1,4 +1,8 @@
 classdef PolymerViscMultiplier < StateFunction
+% Polymer viscosity multiplier. The viscosity multiplier is typically an
+% increasing function of the polymer concentration. Moreover a Todd-Longstaff
+% model is used to compute the effective water viscosity.
+    
     properties
     end
 

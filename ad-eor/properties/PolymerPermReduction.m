@@ -1,4 +1,8 @@
 classdef PolymerPermReduction < StateFunction
+% Polymer permeability reduction factor. This coefficient divides the water
+% relative permeability and accounts for effect the reduction of permeability
+% that adsorped polymer induces.
+    
     properties
     end
 

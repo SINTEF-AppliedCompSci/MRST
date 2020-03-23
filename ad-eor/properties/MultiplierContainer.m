@@ -1,11 +1,11 @@
 classdef MultiplierContainer < StateFunction
-% This class is a container class which is used to store and then compute, on
-% demand, the product of multipliers which is meant to be apply to a given
-% quantity. An example is ViscosityMultipliers which is set in the
+% This class is a container class which is used to store and compute the product
+% of multipliers that are meant to be apply to a given quantity. An example is
+% the ViscosityMultipliers container which is set in the
 % ThreePhaseSurfactantPolymerModel.
 %
 % Each multiplier is defined as a statefunction, see PolymerViscMultiplier for
-% an example of multiplier
+% an example of multiplier.
     
     properties
         multNames; % contains the name of the multipliers.
