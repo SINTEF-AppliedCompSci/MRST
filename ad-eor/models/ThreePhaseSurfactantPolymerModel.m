@@ -134,21 +134,22 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             surfreg = fp.getRegionSurfactant(model);
             nph = model.getNumberOfPhases();
             
-            % We EOR viscosities and relative permeabilities. They are
-            % computed from the black-oil value by using a multiplier
-            % approach, with one multiplier for each EOR effect.
+            % We set up EOR viscosities and relative permeabilities. They are computed from
+            % the black-oil value by using a multiplier approach, where we have
+            % one multiplier for each EOR effect.
             pp = pp.setStateFunction('Viscosity', EorViscosity(model, pvtreg));
             fp = fp.setStateFunction('RelativePermeability', EorRelativePermeability(model, satreg));
             
             % The statefunction ViscosityMultipliers and RelPermMultipliers are containers
-            % for the multpliers.  Each multiplier is set up as a property (for
-            % example 'PolymerViscMultiplier') and added to the container.
+            % for the Viscosity and Relative Permeability multpliers.  Each
+            % multiplier is set up as a property (for example
+            % 'PolymerViscMultiplier' below) and added to the container.
             viscmult = MultiplierContainer(model);
             viscmult.label = 'M_\mu';
             
             relpermult = MultiplierContainer(model);
             relpermult.label = 'M_{kr}';
-            relpermult.operator = @rdivide; % the relperm multipliers are divided
+            relpermult.operator = @rdivide; % The relperm multipliers are divided
                         
             if model.polymer
                 
@@ -161,8 +162,9 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 pp = pp.setStateFunction(pmult, PolymerViscMultiplier(model, pvtreg));
                 viscmult = viscmult.addMultiplier(model, pmult, 'W');
                 
-                % Permeability reduction. If permeability reduction is present, it means that we
-                % must divide the water mobility with a certain value. 
+                % We set up the polymer permeability reduction effect. If permeability reduction
+                % is present, it means that we must divide the water relative
+                % permeability with the value of the "multiplier".
                 rppmult = 'PolymerPermReduction';
                 fp = fp.setStateFunction(rppmult, PolymerPermReduction(model));
                 relpermult = relpermult.addMultiplier(model, rppmult, 'W');
@@ -173,12 +175,14 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 
                 fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));
                 fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model, satreg));
+                % The EOR relative permeability is set up as the
+                % SurfactantRelativePermeability combined with multipliers.
                 fp.RelativePermeability = EorSurfactantRelativePermeability(model, ...
                                                                   satreg, ...
                                                                   surfreg);
-                fp.CapillaryPressure    = SurfactantCapillaryPressure(model, satreg);
+                fp.CapillaryPressure = SurfactantCapillaryPressure(model, satreg);
                 
-                % We add the surfactant viscosity multiplier
+                % We set up the surfactant viscosity multiplier
                 smult = 'SurfactantViscMultiplier';
                 pp = pp.setStateFunction(smult, SurfactantViscMultiplier(model, pvtreg));
                 viscmult = viscmult.addMultiplier(model, smult, 'W');
