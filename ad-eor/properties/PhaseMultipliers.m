@@ -28,14 +28,14 @@ classdef PhaseMultipliers < StateFunction
             nph = numel(prop.multNames);
             M = cell(1, nph);
             for ph = 1:nph
-                phaseNames = prop.multNames{ph};
-                if numel(phaseNames) == 0
+                multPhaseNames = prop.multNames{ph};
+                if numel(multPhaseNames) == 0
                     continue
                 end
                 mult = 1;
-                for i = 1:numel(phaseNames)
+                for i = 1:numel(multPhaseNames)
                     % Multiplier can be compund, i.e. M = A*B*C
-                    mi = prop.getEvaluatedDependencies(state, phaseNames{i});
+                    mi = prop.getEvaluatedDependencies(state, multPhaseNames{i});
                     if isempty(prop.operator)
                         mult = mult .* mi;
                     else
