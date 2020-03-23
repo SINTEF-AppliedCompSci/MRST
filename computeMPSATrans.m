@@ -14,7 +14,9 @@ tic
 % load modules
 mrstModule add mimetic mpsaw incomp vemmech mpfa
 
-eta = 1e-8;
+eta = 0;
+
+bcetazero = false;
 
 %% Define and process geometry
 % Construct a Cartesian grid 
@@ -24,7 +26,7 @@ runcases = {'2d-refinement', ...
             '3d-linear'    , ...
             '3d-compaction' };
 
-runcase = '3d-compaction';
+runcase = '2d-linear';
 
 switch runcase
   case '2d-refinement'
@@ -38,8 +40,13 @@ switch runcase
     x = 1/max(x)*x;
     G = tensorGrid(x, y);    
   case {'2d-linear', '2d-compaction'}
-    nx = 5; ny = 5;
+    N = 5;
+    nx = N; ny = N;
     G = cartGrid([nx, ny], [1, 1]);
+    % N = 3;
+    % Nx = N*ones(1, 2);
+    % G = createBisectedTriangleGrid(Nx,1);
+    % G = twister(G, 0.1);
   case {'3d-linear', '3d-compaction'}
     nx = 5;
     ny = nx;
@@ -67,12 +74,13 @@ useVirtual = true;
 [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
 loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 
-doblockassembly = true;
+doblockassembly = false;
 if doblockassembly
     assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
                                  'blocksize', 1000, 'verbose', true);
 else
-    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings);
+    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
+                            'bcetazero', bcetazero);
 end
 
 B   = assembly.B  ;
@@ -97,19 +105,83 @@ end
 dim = G.griddim;
 uvec = reshape(u, dim, [])';
 
-figure
-plotCellData(G, uvec(:, 1));
-title('displacement - x direction')
-colorbar
-figure
-plotCellData(G, uvec(:, 2));
-title('displacement - y direction')
-colorbar
+doplotsol = true;
+if doplotsol
+    figure
+    plotCellData(G, uvec(:, 1));
+    titlestr = sprintf('displacement - %s direction, eta=%g', 'x', eta);
+    title(titlestr)
+    colorbar
+    figure
+    plotCellData(G, uvec(:, 2));
+    titlestr = sprintf('displacement - %s direction, eta=%g', 'y', eta);
+    title(titlestr)
+    colorbar
+end
 
 if plotdeformedgrid
     figure 
     coef = 1e0;
     plotGridDeformed(G, coef*unvec);
+end
+
+doplotcontpoints = false;
+if doplotcontpoints
+    % plot continuity points
+    [~, nodefacecents] = computeNodeFaceCentroids(G, tbls, eta, 'bcetazero', ...
+                                                  bcetazero);
+    figure
+    hold on
+    plotGrid(G)
+    nodefacecents = reshape(nodefacecents, dim, [])';
+    if dim == 2
+        plot(nodefacecents(:, 1), nodefacecents(:, 2), '*');
+    else
+        plot3(nodefacecents(:, 1), nodefacecents(:, 2), nodefacecents(:, 3), '*');
+    end
+
+end
+
+printcondest = false;
+if printcondest
+
+    matrices = assembly.matrices;
+
+    A11 = matrices.A11;
+    A12 = matrices.A12;
+    A21 = matrices.A21;
+    A22 = matrices.A22;
+    D   = matrices.D  ;
+
+    Z1 = zeros(size(A22, 1), size(D, 2));
+    Z = zeros(size(D', 1), size(D, 2));
+
+    A = [[A11, A12, -D];
+         [A21, A22,  Z1];
+         [D' , Z1',  Z]];
+
+    fprintf('condest(A): %g\n', condest(A));
+    fprintf('condest(A11): %g\n', condest(A11));
+    fprintf('condest(A22): %g\n', condest(A22));
+    fprintf('condest(B): %g\n', condest(B));
+    
+end
+
+dplotinzdir = true;
+if dplotinzdir
+    if strcmp(runcase, '2d-linear')
+        % plot displacement
+        x = G.cells.centroids(:, 1);
+        y = G.cells.centroids(:, 2);
+        figure
+        plot(x, uvec(:, 1), '*');
+        titlestr = sprintf('displacement - %s direction, eta=%g', 'x', eta);
+        title(titlestr)
+        figure
+        plot(y, uvec(:, 2), '*');
+        titlestr = sprintf('displacement - %s direction, eta=%g', 'y', eta);
+        title(titlestr)
+    end
 end
 
 return
