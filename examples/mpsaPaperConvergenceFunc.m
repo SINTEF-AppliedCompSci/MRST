@@ -34,6 +34,7 @@ function output = mpsaPaperConvergenceFunc(params, varargin)
     gridtype = params.gridtype;
     eta = params.eta;
     
+    % at the moment, we must have mu0 = 1
     mu0 = 1;
     lamb0 = params.alpha*mu0;
    

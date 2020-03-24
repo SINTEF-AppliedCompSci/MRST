@@ -256,11 +256,11 @@ function savethisfigure(params)
     d = params.Nd;
     kappa = params.kappa;
     alpha = params.alpha;
-    if alpha == 1/3
-        alpha = 3;
-    end
     gridtype = params.gridtype;
     eta = params.eta;
+    if eta == 1/3
+        eta = 3;
+    end
     filename = sprintf('convd_d%d_g%d_k%d_a%d_eta%d.png', d, gridtype, kappa, alpha, eta);
     savedir = '/home/xavier/Dropbox/figs/';
     filename = fullfile(savedir, filename);
