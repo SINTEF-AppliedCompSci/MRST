@@ -31,7 +31,7 @@ function convergenceTest()
     doVem = false;
 
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -44,13 +44,13 @@ function convergenceTest()
         figure
         hold on
         plotConv(output, params);
-        filename = 'convd2_g1_k1_a1_eta0';
-        savethisfigure(filename);
+        
+        savethisfigure(params);
     end
     
 
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -62,13 +62,13 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd2_g2_k1_a1_eta3';
-        savethisfigure(filename);
+        
+        savethisfigure(params);
     end
 
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -80,12 +80,12 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd2_g3_k1_a1_eta3';
-        savethisfigure(filename);
+        
+        savethisfigure(params);
     end
 
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -97,8 +97,8 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd2_g4_k1_a1_eta3';
-        savethisfigure(filename);
+        
+        savethisfigure(params);
     end
     
     %% New Case
@@ -109,17 +109,17 @@ function convergenceTest()
                         'kappa'   , 3, ...
                         'alpha'   , 1, ...
                         'gridtype', 1, ... % Cartesian Grid
-                        'eta'     , 1/3);
+                        'eta'     , 0);
         
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd2_g1_k3_a1_eta3';
-        savethisfigure(filename);
+        
+        savethisfigure(params);
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
@@ -131,17 +131,17 @@ function convergenceTest()
         output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
         figure
         plotConv(output, params);
-        filename = 'convd2_g1_k1_a10_eta0';
-        savethisfigure(filename);
+        
+        savethisfigure(params);
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
-        params = struct('nref'    , 5, ...
+        params = struct('nref'    , 4, ...
                         'Nd'      , 3, ...
                         'kappa'   , 1, ...
-                        'alpha'   , 1, ...
+                        'alpha'   , 0, ...
                         'gridtype', 1, ... % Cartesian Grid
                         'eta'     , 0);
         
@@ -149,12 +149,12 @@ function convergenceTest()
                                           500);
         figure
         plotConv(output, params);
-        filename = 'convd3_g1_k1_a1_eta0';
-        savethisfigure(filename);
+        
+        savethisfigure(params);
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
@@ -167,12 +167,12 @@ function convergenceTest()
                                           500);
         figure
         plotConv(output, params);
-        filename = 'convd3_g1_k3_a1_eta0';
-        savethisfigure(filename);
+        
+        savethisfigure(params);
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 4, ...
                         'Nd'      , 3, ...
@@ -185,12 +185,12 @@ function convergenceTest()
                                           500);
         figure
         plotConv(output, params);
-        filename = 'convd3_g1_k1_a10_eta0';
-        savethisfigure(filename);
+        
+        savethisfigure(params);
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
         params = struct('nref'    , 4, ...
                         'Nd'      , 3, ...
@@ -203,8 +203,8 @@ function convergenceTest()
                                           100);
         figure
         plotConv(output, params);
-        filename = 'convd3_g5_k1_a1_eta3';
-        savethisfigure(filename);
+        
+        savethisfigure(params);
     end
 end
 
@@ -251,9 +251,18 @@ function casetitle = setCaseTitle(Nd, gridtype, eta, kappa, alpha)
         
 end
 
-function savethisfigure(filename)
+function savethisfigure(params)
+    
+    d = params.Nd;
+    kappa = params.kappa;
+    alpha = params.alpha;
+    if alpha == 1/3
+        alpha = 3;
+    end
+    gridtype = params.gridtype;
+    eta = params.eta;
+    filename = sprintf('convd_d%d_g%d_k%d_a%d_eta%d.png', d, gridtype, kappa, alpha, eta);
     savedir = '/home/xavier/Dropbox/figs/';
-    filename = sprintf('%s.png', filename);
     filename = fullfile(savedir, filename);
     saveas(gcf, filename);
 end
