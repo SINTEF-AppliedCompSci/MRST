@@ -8,7 +8,7 @@ classdef  EORRelativePermeability < BaseRelativePermeability
 %   
 % The statefunction RelativePermeabilityMultipliers collects all the multipliers
 % and is setup by the model as a container (see helper class
-% PhaseMultiplierStack).
+% PhaseMultipliers).
 % 
 
     properties
