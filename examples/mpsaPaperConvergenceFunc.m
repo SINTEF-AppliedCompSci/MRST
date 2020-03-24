@@ -33,8 +33,11 @@ function output = mpsaPaperConvergenceFunc(params, varargin)
     alpha = params.alpha;
     gridtype = params.gridtype;
     eta = params.eta;
+    
+    mu0 = 1;
+    lamb0 = params.alpha*mu0;
    
-    [u_fun, force_fun, mu_fun] = analyticalReferencePaper(Nd, kappa);
+    [u_fun, force_fun, mu_fun] = analyticalReferencePaper(Nd, kappa, mu0, lamb0);
     
     params.u_fun     = u_fun;
     params.force_fun = force_fun;

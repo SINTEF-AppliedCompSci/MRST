@@ -2,6 +2,7 @@ import sympy
 sympy.init_printing(pretty_print=False)
 
 x, y, z = sympy.symbols('x y z')
+mu, lamb = sympy.symbols('mu0 lamb0')
 
 dervar = [x, y, z]
 
@@ -32,12 +33,17 @@ for i in range(d):
 
 # stress = 2*mu*(symmetric gradient) + lambda*trace(symmetric gradient)*I
 # The example has been designed such that the trace equal zero.
+lambpart = 0
+for i in range(d):
+    lambpart = lambpart + lamb*(gradu[i][i])
+
 stress = []
-mu = 1
 for i in range(d):
     scomp = []
     for j in range(d):
         s = 2*mu*0.5*(gradu[i][j] + gradu[j][i])
+        if i == j:
+            s = s + lambpart
         scomp.append(s)
     stress.append(scomp)
 
@@ -47,5 +53,5 @@ for j in range(d):
     divcomp = 0
     for i in range(d):
         divcomp = divcomp + sympy.diff(stress[i][j], dervar[i])
-    divcomp = sympy.simplify(divcomp)
+    divcomp = sympy.simplify(divcomp, rational=True)
     div.append(divcomp)
