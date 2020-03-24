@@ -18,11 +18,11 @@ classdef  EORRelativePermeability < BaseRelativePermeability
     methods
         function gp = EORRelativePermeability(model, varargin)
             gp@BaseRelativePermeability(model, varargin{:});
-            gp = gp.dependsOn({'RelativePermeabilityMultipliers', 'ReferenceRelativePermeability'});
+            gp = gp.dependsOn({'RelativePermeabilityMultipliers', 'BaseRelativePermeability'});
         end
 
         function kr = evaluateOnDomain(prop, model, state)
-            kr   = prop.getEvaluatedDependencies(state, 'ReferenceRelativePermeability');
+            kr   = prop.getEvaluatedDependencies(state, 'BaseRelativePermeability');
             mult = prop.getEvaluatedDependencies(state, 'RelativePermeabilityMultipliers');
             for i = 1 : numel(mult)
                 m = mult{i};

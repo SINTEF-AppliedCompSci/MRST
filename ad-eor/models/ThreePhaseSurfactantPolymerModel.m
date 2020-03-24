@@ -138,9 +138,9 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             % the black-oil value by using a multiplier approach, where we have
             % one multiplier for each EOR effect.
             pp = pp.setStateFunction('Viscosity', EORViscosity(model, pvtreg));
-            pp = pp.setStateFunction('ReferenceViscosity', BlackOilViscosity(model));
+            pp = pp.setStateFunction('BaseViscosity', BlackOilViscosity(model));
             fp = fp.setStateFunction('RelativePermeability', EORRelativePermeability(model));
-            fp = fp.setStateFunction('ReferenceRelativePermeability', BaseRelativePermeability(model, satreg));            
+            fp = fp.setStateFunction('BaseRelativePermeability', BaseRelativePermeability(model, satreg));
             
             % The statefunction ViscosityMultipliers and RelPermMultipliers are containers
             % for the Viscosity and Relative Permeability multpliers.  Each
@@ -179,7 +179,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model, satreg));
                 % The EOR relative permeability is set up as the
                 % SurfactantRelativePermeability combined with multipliers.
-                fp = fp.setStateFunction('ReferenceRelativePermeability', SurfactantRelativePermeability(model, satreg, surfreg));
+                fp = fp.setStateFunction('BaseRelativePermeability', SurfactantRelativePermeability(model, satreg, surfreg));
                 fp.CapillaryPressure = SurfactantCapillaryPressure(model, satreg);
                 
                 % We set up the surfactant viscosity multiplier

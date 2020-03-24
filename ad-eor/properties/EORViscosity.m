@@ -12,11 +12,11 @@ classdef EORViscosity < Viscosity
     methods
         function mu = EORViscosity(model, varargin)
             mu@Viscosity(model, varargin{:});
-            mu = mu.dependsOn({'ViscosityMultipliers', 'ReferenceViscosity'});
+            mu = mu.dependsOn({'ViscosityMultipliers', 'BaseViscosity'});
         end
         
         function mu = evaluateOnDomain(prop, model, state)
-            mu = prop.getEvaluatedDependencies(state, 'ReferenceViscosity');
+            mu = prop.getEvaluatedDependencies(state, 'BaseViscosity');
             mult = prop.getEvaluatedDependencies(state, 'ViscosityMultipliers');
             for i = 1 : numel(mult)
                 m = mult{i};
