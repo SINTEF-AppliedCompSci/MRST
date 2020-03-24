@@ -75,11 +75,16 @@ classdef WellComponentPhaseFlux < StateFunction
                             cflux(:, c) = value(v);
                         end
                     end
-                    compi = compi./max(sum(compi,2), 1e-10);
-                    compi = crossFlowMixture(cflux, compi, map);
+                    compi(:, 1:3) = compi(:,1:3)./max(sum(compi(:, 1:3),2), 1e-10);
+                    compi(:, 1:3) = crossFlowMixture(cflux(:, 1:3), compi(:, 1:3), map);
                     for c = 1:ncomp
                         if ~isempty(componentPhaseFlux{c, ph})
-                            perfCompDens = compi(map.perf2well(perfInjecting), c).*injPerforationDensity{ph};
+                            if (c < 4)
+                                perfCompDens = compi(map.perf2well(perfInjecting), c).*injPerforationDensity{ph};
+                            end
+                            if (c == 4) 
+                                perfCompDens = compi(map.perf2well(perfInjecting), c);
+                            end
                             componentPhaseFlux{c, ph}(perfInjecting) = q(perfInjecting).*perfCompDens;
                         end
                     end

@@ -2,61 +2,68 @@ classdef PolymerComponent < GenericComponent
     properties
 
     end
-    
+
     methods
         function c = PolymerComponent()
             c@GenericComponent('polymer');
         end
-        
-        
+
+
         function c = getComponentDensity(component, model, state, varargin)
             cp = model.getProp(state, 'polymer');
-            rho = model.getProps(state, 'Density');
-            nph = numel(rho);
+            b = model.getProps(state, 'ShrinkageFactors');
+            % rho = model.getProps(state, 'Density');
+            % nph = model.getNumberOfPhases;
+            nph = numel(b);
             c = cell(1, nph);
-            c{1} = cp.*rho{1};
+            % TODO: not sure we need b here, cp is defined based on surface
+            % volume, check how it is used
+            c{1} = cp .* b{1}; % rho{1};
         end
-        
+
         function c = getComponentMass(component, model, state, varargin)
-            f = model.fluid;
-            cp = model.getProp(state, 'polymer');
-            rho = model.getProps(state, 'Density');
-            pv = model.getProp(state, 'PoreVolume');
-            
-            nph = numel(rho);
-            c = cell(1, nph);
-            
-            rhoW = rho{1};
-            sw = model.getProp(state, 'sW');
-            % In mobile water 
-            acc = (1-f.dps).*sw.*cp.*rhoW;
-            % Adsorbed part
-            poro = model.rock.poro;
-            ads = model.getProp(state, 'PolymerAdsorption');
-            adsorbed = f.rhoWS.*f.rhoR.*((1-poro)./poro).*ads;
-            
-            c{1} = pv.*(adsorbed + acc);
+             f = model.fluid;
+             cp = model.getProp(state, 'polymer');
+             % rho = model.getProps(state, 'Density');
+             pv = model.getProp(state, 'PoreVolume');
+             b = model.getProps(state, 'ShrinkageFactors');
+
+             % nph = numel(rho);
+             nph = model.getNumberOfPhases;
+             c = cell(1, nph);
+
+             bW = b{1};
+             sw = model.getProp(state, 'sW');
+             % In mobile water
+             acc = (1-f.dps).*sw.*cp.*bW;
+             % Adsorbed part
+             poro = model.rock.poro;
+             ads = model.getProp(state, 'PolymerAdsorption');
+             % adsorbed = f.rhoWS.*f.rhoR.*((1-poro)./poro).*ads;
+             adsorbed = f.rhoR .* ((1-poro)./poro) .* ads;
+
+             c{1} = pv.*(adsorbed + acc);
         end
-        
+
         function cmob = getComponentMobility(component, model, state, varargin)
         % We use a Todd-Longstaff model. It implies that the mobility of the
         % polymer is a non-linear function of the polymer concentration.
-            mass = component.getComponentDensity(model, state, varargin{:});
-            [mob, rho, c] = model.getProps(state, 'Mobility', 'Density', 'polymer');
-            wIx = 1;
-            mobW = mob{wIx};
-            rhoW = rho{wIx};
-            fluid  = model.fluid;
-            mixpar = fluid.mixPar;
-            cpbar  = c/fluid.cpmax;
-            a  = fluid.muWMult(fluid.cpmax).^(1-mixpar);
-            mobP = c.*rhoW.*mobW./(a+(1-a)*cpbar);
-            
-            nphase = numel(mass);
-            cmob = cell(1, nphase);
-            cmob{wIx} = mobP;
-        end
-        
+             % mass = component.getComponentDensity(model, state, varargin{:});
+             [mob, b, c] = model.getProps(state, 'Mobility', 'ShrinkageFactors', 'polymer');
+             wIx = 1;
+             mobW = mob{wIx};
+             bW = b{wIx};
+             fluid  = model.fluid;
+             mixpar = fluid.mixPar;
+             cpbar  = c/fluid.cpmax;
+             a  = fluid.muWMult(fluid.cpmax).^(1-mixpar);
+             mobP = c.*bW.*mobW./(a+(1-a)*cpbar);
+
+             nphase = model.getNumberOfPhases;
+             cmob = cell(1, nphase);
+             cmob{wIx} = mobP;
+         end
+
         function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
             % Polymer does not enter into any phase stream
             nph = model.getNumberOfPhases();
@@ -72,7 +79,7 @@ classdef PolymerComponent < GenericComponent
             end
             wIx = 1;
             cp = vertcat(force.cp);
-            ci = comp_i(:, wIx).*cp;
+            ci = comp_i(:, wIx) .* cp;
             if any(ci ~= 0)
                 c{wIx} = ci;
             end
