@@ -1,4 +1,4 @@
-classdef EorViscosity < BlackOilViscosity
+classdef EORViscosity < BlackOilViscosity
 % Viscosity for EOR model which is based on multipliers
 % 
 % This viscosity function is defined by multiplying the black-oil viscosity with
@@ -10,7 +10,7 @@ classdef EorViscosity < BlackOilViscosity
 % 
     
     methods
-        function mu = EorViscosity(model, varargin)
+        function mu = EORViscosity(model, varargin)
             mu@BlackOilViscosity(model, varargin{:});
             mu = mu.dependsOn('ViscosityMultipliers');
         end

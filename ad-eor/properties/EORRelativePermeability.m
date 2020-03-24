@@ -1,4 +1,4 @@
-classdef  EorRelativePermeability < BaseRelativePermeability
+classdef  EORRelativePermeability < BaseRelativePermeability
 % Relative permeability for EOR models which are based on a multiplier approach
 % and a generic black-oil relative permeability model
 % 
@@ -16,7 +16,7 @@ classdef  EorRelativePermeability < BaseRelativePermeability
     end
 
     methods
-        function gp = EorRelativePermeability(model, varargin)
+        function gp = EORRelativePermeability(model, varargin)
             gp@BaseRelativePermeability(model, varargin{:});
             gp = gp.dependsOn({'RelativePermeabilityMultipliers', 'ReferenceRelativePermeability'});
         end

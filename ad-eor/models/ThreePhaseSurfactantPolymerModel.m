@@ -137,8 +137,8 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             % We set up EOR viscosities and relative permeabilities. They are computed from
             % the black-oil value by using a multiplier approach, where we have
             % one multiplier for each EOR effect.
-            pp = pp.setStateFunction('Viscosity', EorViscosity(model, pvtreg));
-            fp = fp.setStateFunction('RelativePermeability', EorRelativePermeability(model));
+            pp = pp.setStateFunction('Viscosity', EORViscosity(model, pvtreg));
+            fp = fp.setStateFunction('RelativePermeability', EORRelativePermeability(model));
             fp = fp.setStateFunction('ReferenceRelativePermeability', BaseRelativePermeability(model, satreg));            
             
             % The statefunction ViscosityMultipliers and RelPermMultipliers are containers
