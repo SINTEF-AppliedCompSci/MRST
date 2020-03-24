@@ -35,14 +35,14 @@ classdef MultiplierContainer < StateFunction
             nph = numel(prop.multNames);
             M = cell(1, nph);
             for ph = 1:nph
-                multPhaseNames = prop.multNames{ph};
-                if numel(multPhaseNames) == 0
+                multNames = prop.multNames{ph};
+                if numel(multNames) == 0
                     continue
                 end
                 mult = 1;
-                for i = 1:numel(multPhaseNames)
+                for i = 1:numel(multNames)
                     % Multiplier can be compund, i.e. M = A*B*C
-                    mi = prop.getEvaluatedDependencies(state, multPhaseNames{i});
+                    mi = prop.getEvaluatedDependencies(state, multNames{i});
                     if isempty(prop.operator)
                         mult = mult .* mi;
                     else
