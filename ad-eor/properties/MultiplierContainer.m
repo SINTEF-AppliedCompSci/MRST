@@ -22,7 +22,7 @@ classdef MultiplierContainer < StateFunction
         function prop = addMultiplier(prop, model, name, phase)
             phind = model.getPhaseIndex(phase);
             nph = model.getNumberOfPhases();
-            multname = cell(1, nph);
+            multName = cell(1, nph);
             multName{phind} = name;
             multNames = prop.multNames;
             multNames{end + 1} = multName;
