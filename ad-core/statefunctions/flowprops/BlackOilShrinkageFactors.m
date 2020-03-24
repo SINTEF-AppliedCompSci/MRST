@@ -33,7 +33,7 @@ classdef BlackOilShrinkageFactors < ShrinkageFactors
                     sG = model.getProp(state, 'sg');
                     flag = sG > 0;
                 else
-                    flag = false(nc, 1);
+                    flag = false(numelValue(rs), 1);
                 end
                 b = prop.evaluateFluid(model, 'bO', p, rs, flag);
             elseif prop.vapoil && strcmp(name, 'G')
@@ -43,7 +43,7 @@ classdef BlackOilShrinkageFactors < ShrinkageFactors
                     sO = model.getProp(state, 'so');
                     flag = sO > 0;
                 else
-                    flag = false(nc, 1);
+                    flag = false(numelValue(rv), 1);
                 end
                 b = prop.evaluateFluid(model, 'bG', p, rv, flag);
             else

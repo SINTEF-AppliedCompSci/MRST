@@ -33,7 +33,7 @@ classdef BlackOilViscosity < Viscosity
                     sG = model.getProp(state, 'sg');
                     flag = sG > 0;
                 else
-                    flag = false(nc, 1);
+                    flag = false(numelValue(rs), 1);
                 end
                 mu = prop.evaluateFluid(model, 'muO', p, rs, flag);
             elseif prop.vapoil && strcmp(name, 'G')
@@ -43,7 +43,7 @@ classdef BlackOilViscosity < Viscosity
                     sO = model.getProp(state, 'so');
                     flag = sO > 0;
                 else
-                    flag = false(nc, 1);
+                    flag = false(numelValue(rv), 1);
                 end
                 mu = prop.evaluateFluid(model, 'muG', p, rv, flag);
             else
