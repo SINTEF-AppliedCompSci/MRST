@@ -2,10 +2,12 @@ function output = runConvSim(G, params, varargin)
     
     opt = struct('verbose' , mrstVerbose, ...
                  'blocksize', [], ...
+                 'useVirtual', true, ...
                  'bcetazero', false);
     
     opt = merge_options(opt, varargin{:});
-    
+
+    useVirtual = opt.useVirtual;
     
     force_fun = params.force_fun;
     mu_fun = params.mu_fun;
@@ -14,7 +16,7 @@ function output = runConvSim(G, params, varargin)
     alpha = params.alpha;
     
     doVem = false;
-    [tbls, mappings] = setupStandardTables(G);
+    [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
     coltbl = tbls.coltbl;
     nodefacetbl = tbls.nodefacetbl;
     nodefacecoltbl = tbls.nodefacecoltbl;
@@ -116,7 +118,8 @@ function output = runConvSim(G, params, varargin)
     
     if ~isempty(opt.blocksize)
         assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                     'blocksize', opt.blocksize, 'verbose', true);
+                                     'blocksize', opt.blocksize, 'verbose', ...
+                                     true, 'useVirtual', useVirtual);
     else
         assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
                                 'bcetazero', opt.bcetazero);
