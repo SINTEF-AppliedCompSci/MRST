@@ -261,7 +261,7 @@ function savethisfigure(params)
     if eta == 1/3
         eta = 3;
     end
-    filename = sprintf('convd_d%d_g%d_k%d_a%d_eta%d.png', d, gridtype, kappa, alpha, eta);
+    filename = sprintf('convd_d%d_g%d_k%1.g_a%d_eta%d.png', d, gridtype, kappa, alpha, eta);
     savedir = '/home/xavier/Dropbox/figs/';
     filename = fullfile(savedir, filename);
     saveas(gcf, filename);
