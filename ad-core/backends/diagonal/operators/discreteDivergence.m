@@ -65,7 +65,7 @@ function jac = divJac(jac, N, nc, nf, sortIx, C, prelim, useMex)
         return
     else
         if useMex && (isempty(jac.parentSubset) || all(jac.parentSubset == (1:jac.dim(1))'))
-            jac = mexDiscreteDivergenceJac([], jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
+            jac = mexDiscreteDivergenceJac([], jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex, jac.rowMajor);
         else
             jac = sortIx.C*jac.sparse();
         end
@@ -89,9 +89,9 @@ function jac = accDivJac(acc, jac, N, nc, nf, sortIx, C, prelim, useMex)
         if useMex && (isempty(jac.parentSubset) || (numel(jac.parentSubset) == jac.dim(1)) && all(jac.parentSubset == (1:jac.dim(1))'))
             if isa(acc, 'DiagonalJacobian')
                 % NB currently not checking subset here - bug
-                jac = mexDiscreteDivergenceJac(acc.diagonal, jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
+                jac = mexDiscreteDivergenceJac(acc.diagonal, jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex, jac.rowMajor);
             else
-                jac = acc + mexDiscreteDivergenceJac([], jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
+                jac = acc + mexDiscreteDivergenceJac([], jac.diagonal, N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex, jac.rowMajor);
             end
         else
             jac = acc + sortIx.C*jac.sparse();

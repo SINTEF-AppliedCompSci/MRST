@@ -31,16 +31,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isa(v, 'GenericAD')
         M = [];
         DS = [];
+        nc = numel(vD);
         v.val = val;
         for jacNo = 1:numel(v.jac)
-            [v.jac{jacNo}, M, DS] = upwindJac(v.jac{jacNo}, flag, N, M, DS, useMex);
+            [v.jac{jacNo}, M, DS] = upwindJac(v.jac{jacNo}, flag, N, M, DS, nc, useMex);
         end
     else
         v = val;
     end
 end
 
-function [jac, M, DS] = upwindJac(jac, flag, N, M, DS, useMex)
+function [jac, M, DS] = upwindJac(jac, flag, N, M, DS, nc, useMex)
     if issparse(jac)
         if any(jac(:))
             if isempty(M)
@@ -57,21 +58,28 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS, useMex)
         if jac.isZero
             jac = jac.toZero(size(N, 1));
         else
+            rowMajor = jac.rowMajor;
             if useMex
-                diagonal = mexSinglePointUpwindDiagonalJac(jac.diagonal, N, flag);
+                diagonal = mexSinglePointUpwindDiagonalJac(jac.diagonal, N, flag, nc, rowMajor);
             else
                 nf = size(N, 1);
-                nder = size(jac.diagonal, 2);
-                diagonal = zeros(nf, 2*nder);
-                diagonal(flag, 1:nder) = jac.diagonal(N(flag, 1), :);
-
                 notFlag = ~flag;
-                diagonal(notFlag, (nder+1):end) = jac.diagonal(N(notFlag, 2), :);
+                if rowMajor
+                    nder = size(jac.diagonal, 1);
+                    diagonal = zeros(2*nder, nf);
+                    diagonal(1:nder, flag) = jac.diagonal(:, N(flag, 1));
+                    diagonal((nder+1):end, notFlag) = jac.diagonal(:, N(notFlag, 2));
+                else
+                    nder = size(jac.diagonal, 2);
+                    diagonal = zeros(nf, 2*nder);
+                    diagonal(flag, 1:nder) = jac.diagonal(N(flag, 1), :);
+                    diagonal(notFlag, (nder+1):end) = jac.diagonal(N(notFlag, 2), :);
+                end
                 jac.diagonal = diagonal;
             end
 
             if isempty(DS)
-                jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset);
+                jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset, useMex, rowMajor);
                 DS = jac;
             else
                 DS.diagonal = diagonal;

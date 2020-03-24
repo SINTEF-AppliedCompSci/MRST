@@ -6,13 +6,15 @@ classdef DiagonalSubset < DiagonalJacobian
     end
     
     methods
-        function D = DiagonalSubset(d, dims, map, subset, parentSubset)
+        function D = DiagonalSubset(d, dims, map, subset, parentSubset, useMex, useRowMajorMemory)
             if nargin == 0
                 return
             end
             D.diagonal = d;
-            D.dim = dims;
-            D.map = map;
+            D.dim      = dims;
+            D.map      = map;
+            D.useMex   = D.useMex;
+            D.rowMajor = D.rowMajor;
             if nargin > 3
                 if islogical(subset)
                     subset = find(subset);
@@ -20,7 +22,14 @@ classdef DiagonalSubset < DiagonalJacobian
                 D.subset = subset;
                 if nargin > 4
                     D.parentSubset = parentSubset;
+                    if nargin > 5
+                        D.useMex = useMex;
+                        if nargin > 6
+                            D.rowMajor = useRowMajorMemory;
+                        end
+                    end
                 end
+
             end
         end
 
@@ -32,39 +41,39 @@ classdef DiagonalSubset < DiagonalJacobian
             end
         end
         
-        function [x, D] = diagMult(v, x, D)
-            if any(x.diagonal(:))
-                x.diagonal = bsxfun(@times, x.diagonal, v);
-            else
-                x = x.toZero();
-            end
-        end
-        
-        function [x, D1, D2] = diagProductMult(v1, v2, x, y, D1, D2)
-            persistent allow_implicit;
-            if isempty(allow_implicit)
-                allow_implicit = ~verLessThan('matlab','9.1');
-            end
-            numx = isnumeric(x);
-            if numx || isnumeric(y)
-                [x, D2] = diagMult(v2, x, D2);
-                [y, D1] = diagMult(v1, y, D1);
-                x = x + y;
-            else
-                if isempty(x.diagonal)
-                    [x, D1] = diagMult(v1, y, D1);
-                elseif isempty(y.diagonal)
-                    [x, D2] = diagMult(v2, x, D2);
-                else
-                    if allow_implicit
-                        x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
-                    else
-                        x.diagonal = bsxfun(@times, x.diagonal, v2) + ...
-                                     bsxfun(@times, y.diagonal, v1);
-                    end
-                end
-            end
-        end
+%         function [x, D] = diagMult(v, x, D)
+%             if any(x.diagonal(:))
+%                 x.diagonal = bsxfun(@times, x.diagonal, v);
+%             else
+%                 x = x.toZero();
+%             end
+%         end
+%         
+%         function [x, D1, D2] = diagProductMult(v1, v2, x, y, D1, D2)
+%             persistent allow_implicit;
+%             if isempty(allow_implicit)
+%                 allow_implicit = ~verLessThan('matlab','9.1');
+%             end
+%             numx = isnumeric(x);
+%             if numx || isnumeric(y)
+%                 [x, D2] = diagMult(v2, x, D2);
+%                 [y, D1] = diagMult(v1, y, D1);
+%                 x = x + y;
+%             else
+%                 if isempty(x.diagonal)
+%                     [x, D1] = diagMult(v1, y, D1);
+%                 elseif isempty(y.diagonal)
+%                     [x, D2] = diagMult(v2, x, D2);
+%                 else
+%                     if allow_implicit
+%                         x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
+%                     else
+%                         x.diagonal = bsxfun(@times, x.diagonal, v2) + ...
+%                                      bsxfun(@times, y.diagonal, v1);
+%                     end
+%                 end
+%             end
+%         end
 
         function out = matrixDims(D, n)
             if isempty(D.subset)
@@ -96,13 +105,18 @@ classdef DiagonalSubset < DiagonalJacobian
         end
         
         function [I, J, V, imax, jmax] = getSparseBlocks(D)
-            n = size(D.diagonal, 1);
+            % TODO: Check for row major version
+            V = D.diagonal;
+            if D.rowMajor
+                V = V';
+            end
+            n = size(V, 1);
             m = D.dim(2);
             nmap = size(D.map, 2);
             imax = n;
             jmax = prod(D.dim);
             if isempty(D.subset)
-                nval = size(D.diagonal, 1);
+                nval = n;
             else
                 nval = numel(D.subset)/nmap;
             end
@@ -117,7 +131,7 @@ classdef DiagonalSubset < DiagonalJacobian
             if ~isempty(D.parentSubset)
                 jmap = D.parentSubset(jmap);
             end
-            V = D.diagonal;
+            
             J = jmap(:, rldecode((1:nmap)', m));
             tmp = (0:m-1)*D.dim(1);
             J = bsxfun(@plus, J, repmat(tmp, 1, nmap));

@@ -19,7 +19,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    nc = numelValue(v);
     if isa(v, 'GenericAD')
         if useMex
             v.val = mexFaceAverageVal(v.val, N);
@@ -30,13 +30,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 v.val = 0.5*sum(v.val(N), 2);
             end
         end
-        v.jac = cellfun(@(x) avgJac(x, N, useMex), v.jac, 'UniformOutput', false);
+        
+        v.jac = cellfun(@(x) avgJac(x, N, nc, useMex), v.jac, 'UniformOutput', false);
     else
         v = 0.5*(v(N(:, 1), :) + v(N(:, 2), :));
     end
 end
 
-function jac = avgJac(jac, N, useMex)
+function jac = avgJac(jac, N, nc, useMex)
     if issparse(jac)
         if any(jac(:))
             jac = 0.5*(jac(N(:, 1), :) + jac(N(:, 2), :));
@@ -46,12 +47,16 @@ function jac = avgJac(jac, N, useMex)
     elseif jac.isZero
         jac = jac.toZero(size(N, 1));
     else
+        rowMajor = jac.rowMajor;
         if useMex
-            diagonal = mexFaceAverageDiagonalJac(jac.diagonal, N);
+            diagonal = mexFaceAverageDiagonalJac(jac.diagonal, N, nc, rowMajor);
         else
-            diagonal = 0.5*[jac.diagonal(N(:, 1), :), jac.diagonal(N(:, 2), :)];
+            if rowMajor
+                diagonal = 0.5*[jac.diagonal(:, N(:, 1)); jac.diagonal(:, N(:, 2))];
+            else
+                diagonal = 0.5*[jac.diagonal(N(:, 1), :), jac.diagonal(N(:, 2), :)];
+            end
         end
-        jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset);
+        jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset, useMex, rowMajor);
     end
-
 end

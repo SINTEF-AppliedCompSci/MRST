@@ -20,6 +20,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
     properties
         modifyOperators = true; % Update the operators and use custom versions that return `DiagonalSubset` instances
         useMex = false;
+        rowMajor = false;
     end
     
     methods
@@ -60,7 +61,14 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
         end
         
         function out = getBackendDescription(backend)
-            out = 'Diagonal AD';
+            if backend.useMex
+                out = 'Diagonal-MEX';
+            else
+                out = 'Diagonal';
+            end
+            if backend.rowMajor
+                out = [out, '-RowMajor'];
+            end
             if backend.modifyOperators
                 out = [out, ' [custom operators]'];
             else
@@ -76,7 +84,11 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
            else
                opts = struct('useMex', backend.useMex, 'types', []);
            end
-           [varargout{:}] = initVariablesAD_diagonal(varargin{:}, opts);
+           if backend.rowMajor
+               [varargout{:}] = initVariablesAD_diagonalRowMajor(varargin{:}, opts);
+           else
+               [varargout{:}] = initVariablesAD_diagonal(varargin{:}, opts);
+           end
         end
         
         function v = convertToAD(backend, v, sample)

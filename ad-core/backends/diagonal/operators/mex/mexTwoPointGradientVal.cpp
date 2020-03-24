@@ -17,7 +17,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
 { 
     // In: value (nc x m), N (nf x 2)
     // Out: nf gradient
-    if (nrhs != 2) { 
+    if (nrhs == 0) {
+        if (nlhs > 0) {
+            mexErrMsgTxt("Cannot give outputs with no inputs.");
+        }
+        // We are being called through compilation testing. Just do nothing. 
+        // If the binary was actually called, we are good to go.
+        return;
+    } else if (nrhs != 2) { 
 	    mexErrMsgTxt("2 input arguments required."); 
     } else if (nlhs > 1) {
 	    mexErrMsgTxt("Wrong number of output arguments."); 

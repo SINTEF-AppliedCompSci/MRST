@@ -17,7 +17,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
 { 
     // In: Cell value (nc x d), N (nf x 2), flag (nf x 1) bool
     // Out: Face value of (nf x d)
-    if (nrhs != 3) { 
+    if (nrhs == 0) {
+        if (nlhs > 0) {
+            mexErrMsgTxt("Cannot give outputs with no inputs.");
+        }
+        // We are being called through compilation testing. Just do nothing. 
+        // If the binary was actually called, we are good to go.
+        return;
+    } else if (nrhs != 3) {
 	    mexErrMsgTxt("3 input arguments required."); 
     } else if (nlhs > 1) {
 	    mexErrMsgTxt("Wrong number of output arguments."); 

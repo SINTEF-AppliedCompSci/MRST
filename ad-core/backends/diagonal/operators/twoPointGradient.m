@@ -21,14 +21,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     if isa(v, 'GenericAD')
+        nc = numel(v.val);
         v.val = gradVal(v.val, N, useMex);
-        v.jac = cellfun(@(x) gradJac(x, N, M, useMex), v.jac, 'UniformOutput', false);
+        v.jac = cellfun(@(x) gradJac(x, N, nc, useMex), v.jac, 'UniformOutput', false);
     else
         v = gradVal(v, N, useMex);
     end
 end
 
-function jac = gradJac(jac, N, M, useMex)
+function jac = gradJac(jac, N, nc, useMex)
     if issparse(jac)
         if nnz(jac)
             jac = jac(N(:, 2), :) - jac(N(:, 1), :);
@@ -39,16 +40,17 @@ function jac = gradJac(jac, N, M, useMex)
         jac = jac.toZero(size(N, 1));
         return
     else
-        if 0
-            diagonal = M*jac.diagonal;
+        rowMajor = jac.rowMajor;
+        if useMex
+            diagonal = mexTwoPointGradientDiagonalJac(jac.diagonal, N, nc, rowMajor);
         else
-            if useMex
-                diagonal = mexTwoPointGradientDiagonalJac(jac.diagonal, N);
+            if rowMajor
+                diagonal = [-jac.diagonal(:, N(:, 1)); jac.diagonal(:, N(:, 2))];
             else
                 diagonal = [-jac.diagonal(N(:, 1), :), jac.diagonal(N(:, 2), :)];
             end
         end
-        jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset);
+        jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset, useMex, rowMajor);
     end
 end
 

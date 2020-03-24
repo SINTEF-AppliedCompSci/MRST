@@ -21,7 +21,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // flux (nf x 1)
     // N (nf x 2)
     // nc (scalar)
-    if (nrhs != 4) { 
+    if (nrhs == 0) {
+        if (nlhs > 0) {
+            mexErrMsgTxt("Cannot give outputs with no inputs.");
+        }
+        // We are being called through compilation testing. Just do nothing. 
+        // If the binary was actually called, we are good to go.
+        return;
+    } else if (nrhs != 4) {
 	    mexErrMsgTxt("7 input arguments required."); 
     } else if (nlhs > 1) {
 	    mexErrMsgTxt("Wrong number of output arguments."); 
