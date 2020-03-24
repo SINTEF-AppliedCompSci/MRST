@@ -1,4 +1,4 @@
-classdef MultiplierContainer < StateFunction
+classdef PhaseMultiplierStack < StateFunction
 % This class is a container class which is used to store and compute the product
 % of multipliers that are meant to be apply to a given quantity. An example is
 % the ViscosityMultipliers container which is set in the
@@ -14,7 +14,7 @@ classdef MultiplierContainer < StateFunction
     end
     
     methods
-        function M = MultiplierContainer(model, varargin)
+        function M = PhaseMultiplierStack(model, varargin)
             M@StateFunction(model, varargin{:});
             M.label = 'M';
         end

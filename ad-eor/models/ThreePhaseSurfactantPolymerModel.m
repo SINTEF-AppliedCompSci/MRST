@@ -146,10 +146,10 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             % for the Viscosity and Relative Permeability multpliers.  Each
             % multiplier is set up as a property (for example
             % 'PolymerViscMultiplier' below) and added to the container.
-            viscmult = MultiplierContainer(model);
+            viscmult = PhaseMultiplierStack(model);
             viscmult.label = 'M_\mu';
             
-            relpermult = MultiplierContainer(model);
+            relpermult = PhaseMultiplierStack(model);
             relpermult.label = 'M_{kr}';
             relpermult.operator = @rdivide; % The relperm multipliers are divided
                         

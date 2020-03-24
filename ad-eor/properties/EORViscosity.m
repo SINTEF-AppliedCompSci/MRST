@@ -6,7 +6,7 @@ classdef EORViscosity < Viscosity
 % SurfactantViscMultiplier and PolymerViscMultiplier.
 %   
 % The statefunction ViscosityMultipliers collects all the multipliers and is
-% setup by the model as a container (see helper class MultiplierContainer).
+% setup by the model as a container (see helper class PhaseMultiplierStack).
 % 
     
     methods
