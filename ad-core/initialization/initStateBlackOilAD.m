@@ -82,6 +82,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         m.FlowPropertyFunctions = model.FlowPropertyFunctions.subset(cells);
 
         tmp_state = struct('s', s, 'pressure', p(:, 1));
+        tmp_state = model.initStateFunctionContainers(tmp_state);
         try
             kr = value(m.getProp(tmp_state, 'RelativePermeability'));
         catch

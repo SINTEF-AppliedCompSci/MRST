@@ -39,6 +39,8 @@ classdef PolymerComponent < GenericComponent
         end
         
         function cmob = getComponentMobility(component, model, state, varargin)
+        % We use a Todd-Longstaff model. It implies that the mobility of the
+        % polymer is a non-linear function of the polymer concentration.
             mass = component.getComponentDensity(model, state, varargin{:});
             [mob, rho, c] = model.getProps(state, 'Mobility', 'Density', 'polymer');
             wIx = 1;

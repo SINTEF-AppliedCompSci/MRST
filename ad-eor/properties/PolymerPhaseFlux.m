@@ -1,4 +1,7 @@
 classdef PolymerPhaseFlux < StateFunction
+% We use a Todd-Longstaff model. It implies that the mobility of the
+% polymer is a non-linear function of the polymer concentration.
+            
     properties
 
     end

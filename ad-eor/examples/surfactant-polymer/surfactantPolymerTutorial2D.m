@@ -15,9 +15,9 @@
 
 clc
 clear
+close all
 
-mrstModule add ad-core ad-blackoil ad-eor ad-props ...
-               deckformat mrst-gui
+mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 
 %% Set up model and initial conditions
 % The data required for the example
@@ -33,6 +33,10 @@ deck = convertDeckUnits(deck);
 
 % Construct physical model, initial state and dynamic well controls.
 [state0, model, schedule] = initEclipseProblemAD(deck);
+
+model = model.validateModel();
+figure
+plotStateFunctionGroupings(model);
 
 % Add initial surfactant & polymer concentration
 state0.cp   = zeros([model.G.cells.num, 1]);
