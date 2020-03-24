@@ -32,24 +32,30 @@ classdef MultiplierContainer < StateFunction
         
         
         function M = evaluateOnDomain(prop, model, state)
-            nph = numel(prop.multNames);
+            nph = model.getNumberOfPhases();
+            multNames = prop.multNames;
+            nmult = numel(multNames);
+            
             M = cell(1, nph);
             for ph = 1:nph
-                multNames = prop.multNames{ph};
-                if numel(multNames) == 0
-                    continue
-                end
                 mult = 1;
-                for i = 1:numel(multNames)
-                    % Multiplier can be compund, i.e. M = A*B*C
-                    mi = prop.getEvaluatedDependencies(state, multNames{i});
+                % activemult will be set to true if there exists an active multiplier for this phase
+                activemult = false;
+                for i = 1 : nmult
+                    multName = multNames{i};
+                    if ~isempty(multName{ph})
+                        activemult = true;
+                        multi = prop.getEvaluatedDependencies(state, multName{ph});
                     if isempty(prop.operator)
-                        mult = mult .* mi;
+                            mult = mult .* multi;
                     else
-                        mult = prop.operator(mult, mi);
+                            mult = prop.operator(mult, multi);
+                        end
                     end
                 end
-                M{ph} = mult;
+                if activemult
+                    M{ph} = mult;
+                end
             end
         end
         
