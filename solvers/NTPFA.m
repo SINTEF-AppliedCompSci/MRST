@@ -20,10 +20,10 @@ classdef NTPFA
             ntpfa.bc.value = repmat({@(x) 0}, numel(ntpfa.bc.face), 1);
 
             % Set up HAP and fluxes
-            ntpfa.interpFace = findHAP(model.G, model.rock, ntpfa.bc, opt.debug);
+            ntpfa.interpFace = findHAP(model.G, model.rock, ntpfa.bc);
             disp(['fraction of faces with HAPs outside convex hull ', ...
                 num2str(ntpfa.interpFace.fraction)])
-            ntpfa.interpFace = correctHAP(model.G, ntpfa.interpFace, opt.myRatio, opt.debug);
+            ntpfa.interpFace = correctHAP(model.G, ntpfa.interpFace, opt.myRatio);
             ntpfa.OSflux = findOSflux(model.G, model.rock, ntpfa.bc, ntpfa.interpFace);
 
             ntpfa.scale = -1 ./ model.operators.T;
