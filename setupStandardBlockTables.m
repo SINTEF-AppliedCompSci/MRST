@@ -19,6 +19,12 @@ function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, varar
     celltbl = projIndexArray(cellnodetbl, {'cells'});
 
     map = TensorMap();
+    map.fromTbl = globcelltbl;
+    map.toTbl = celltbl;    
+    map.mergefds = {'cells'};
+    globcell_from_cell = getDispatchInd(map);
+    
+    map = TensorMap();
     map.fromTbl = celltbl;
     map.toTbl = cellnodetbl;
     map.mergefds = {'cells'};
@@ -95,6 +101,7 @@ function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, varar
                   'cellnodecol2row2tbl'  , cellnodecol2row2tbl);
 
     mappings = struct('cell_from_cellnode'        , cell_from_cellnode        , ...
+                      'globcell_from_cell'        , globcell_from_cell        , ...
                       'node_from_cellnode'        , node_from_cellnode        , ...
                       'cellnode_from_cellnodeface', cellnode_from_cellnodeface, ...
                       'nodeface_from_cellnodeface', nodeface_from_cellnodeface);

@@ -11,9 +11,10 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     opt = struct('verbose'  , mrstVerbose, ...
                  'blocksize', [], ...
                  'bcetazero', true, ...
-                 'useVirual', true);
+                 'useVirtual', true);
     opt = merge_options(opt, varargin{:});
     
+    useVirtual = opt.useVirtual;
     blocksize = opt.blocksize;
     
     nn = G.nodes.num;
@@ -35,6 +36,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     globcellnodetbl    = globtbls.cellnodetbl;
     globcellnodecoltbl = globtbls.cellnodecoltbl;
     globnodefacecoltbl = globtbls.nodefacecoltbl;
+    globcellcol2row2tbl = globtbls.cellcol2row2tbl;
     
     dim = coltbl.num;
 
@@ -57,6 +59,8 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     gncc = globcellcoltbl.num;
     gnbc = globbcnodefacetbl.num;
     
+    Cglob = setupStiffnessTensor(prop, globtbls);
+    
     B11 = sparse(gncc, gncc);
     B12 = sparse(gncc, gnbc);
     B21 = sparse(gnbc, gncc);
@@ -78,7 +82,8 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
             fprintf('Assembling block %d/%d (%d nodes)\n', iblock, nblocks, nodetbl.num);
         end
         
-        [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls);
+        [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, ...
+                                                       'useVirtual', useVirtual);
 
         celltbl               = tbls.celltbl;
         nodetbl               = tbls.nodetbl;
@@ -96,6 +101,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         cellcol2row2tbl       = tbls.cellcol2row2tbl;
         cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
 
+        globcell_from_cell         = mappings.globcell_from_cell;
         cell_from_cellnode         = mappings.cell_from_cellnode;
         node_from_cellnode         = mappings.node_from_cellnode;
         cellnode_from_cellnodeface = mappings.cellnode_from_cellnodeface;
@@ -454,8 +460,23 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         % C_T : cellnodecolrowtbl -> cellnodecolrowtbl
         %
 
-        C = setupStiffnessTensor(prop, tbls);
-
+        map = TensorMap();
+        map.fromTbl = globcellcol2row2tbl;
+        map.toTbl = cellcol2row2tbl;
+        map.mergefds = {'cells', 'coldim1', 'coldim2', 'rowdim1', 'rowdim2'};
+        
+        map.pivottbl = cellcol2row2tbl;
+        cc2r2_num = cellcol2row2tbl.num; %shortcut
+        c2r2_num = col2row2tbl.num; %shortcut
+        gc_num = globcellcol2row2tbl.num; %shortcut
+        [c2r2, i] = ind2sub([c2r2_num, c_num], (1 : cc2r2_num)');
+        map.dispind1 = sub2ind([c2r2_num, gc_num], c2r2, globcell_from_cell(i));
+        map.dispind2 = (1 : cc2r2_num)';
+        map.issetup = true;
+        % map = map.setup();
+        
+        C = map.eval(Cglob);
+        
         map = TensorMap();
         map.fromTbl = cellcol2row2tbl;
         map.toTbl = cellnodecol2row2tbl;
@@ -463,7 +484,6 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
 
         map.pivottbl = cellnodecol2row2tbl;
         cnc2r2_num = cellnodecol2row2tbl.num; %shortcut
-        c2r2_num = col2row2tbl.num; %shortcut
         [c2r2, i] = ind2sub([c2r2_num, cn_num], (1 : cnc2r2_num)');
         map.dispind1 = sub2ind([c2r2_num, c_num], c2r2, cell_from_cellnode(i));
         map.dispind2 = (1 : cnc2r2_num)';
