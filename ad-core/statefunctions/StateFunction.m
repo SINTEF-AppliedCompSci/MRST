@@ -75,17 +75,23 @@ classdef StateFunction
         
         function v = evaluateFunctionCellSubset(prop, fn, subset, varargin)
             % Evaluate specific function on a given subset
-            if ischar(subset) && strcmp(subset, ':')
-                local_region = prop.regions;
-            else
-                local_region = prop.regions(subset);
-            end
+
             if iscell(fn)
+                local_region = prop.regions;
+                if isempty(local_region)
+                    error(['The function provided is a cell array, which', ...
+                           ' indicates that multiple regions are present.', ...
+                           ' This instance of %s has empty .regions.', ...
+                           ' An region must be provided when', ...
+                           ' the input function is a cell array'], class(prop));
+                end
+                if isnumeric(subset) || islogical(subset)
+                    local_region = local_region(subset);
+                end
                 % We have multiple regions and have to evaluate for each
                 % subregion
                 nc = size(prop.regions, 1);
                 isCell = cellfun(@(x) numelValue(x) == nc, varargin);
-                assert(~isempty(prop.regions))
                 [sample, isAD] = getSampleAD(varargin{:});
                 v = zeros(numel(local_region), 1);
                 if isAD
