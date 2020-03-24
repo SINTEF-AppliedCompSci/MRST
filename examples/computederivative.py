@@ -36,6 +36,8 @@ for i in range(d):
 lambpart = 0
 for i in range(d):
     lambpart = lambpart + lamb*(gradu[i][i])
+lambpart = sympy.simplify(lambpart, rational=True)
+# lambpart = 0
 
 stress = []
 for i in range(d):
