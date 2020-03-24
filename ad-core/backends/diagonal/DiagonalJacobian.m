@@ -454,6 +454,14 @@ classdef DiagonalJacobian
         
         function x = mtimes(x, y)
             if DiagonalJacobian.isAllZeros(x) || DiagonalJacobian.isAllZeros(y)
+                if isscalar(x)
+                    y.diagonal = y.diagonal*x;
+                    return
+                end
+                if isscalar(y)
+                    x.diagonal = x.diagonal*x;
+                    return
+                end
                 dx = matrixDims(x);
                 dy = matrixDims(y);
                 x = sparse([], [], [], dx(1), dy(2));
