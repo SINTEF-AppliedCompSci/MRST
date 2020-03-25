@@ -1423,6 +1423,18 @@ methods
         %   `getExtraWellContributions`
         names = {};
     end
+    
+    function eqs = insertSources(model, eqs, src)
+        % Insert source terms into equations
+        if isempty(src.cells)
+            return;
+        end
+        for i = 1:numel(eqs)
+            if ~isempty(src.cells)
+                eqs{i} = subsetMinus(eqs{i}, src.value{i}, src.cells);
+            end
+        end
+    end
 end
 
 methods (Static)

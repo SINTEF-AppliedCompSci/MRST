@@ -31,11 +31,10 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
                                                              {}, comps, ...
                                                              drivingForces);
             
-            % Assemble equations and add in sources
+            % Add sources
+            eqs = model.insertSources(eqs, src);
+            % Assemble equations
             for i = 1:numel(eqs)
-                if ~isempty(src.cells)
-                    eqs{i}(src.cells) = eqs{i}(src.cells) - src.value{i};
-                end
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
             end
             % Natural variables part
