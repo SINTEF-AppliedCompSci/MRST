@@ -6,7 +6,7 @@
 % Author: Jhabriel Varela. E-mail: Jhabriel.Varela@uib.no. 
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-unsat module.
 
@@ -53,6 +53,7 @@ G = computeGeometry(G);        % compute geometry
 %Plotting grid
 newplot; plotGrid(G, 'FaceColor', [.8, .8, .8]); 
 axis off equal; view([-9, 33]); 
+
 %% Extracting grid information
 
 Nc = G.cells.num;     % total number of cells
@@ -70,8 +71,8 @@ yf = G.faces.centroids(:,2); % face centers in y-direction
 zf = G.faces.centroids(:,3); % face centers in z-direction
 
 nux = G.faces.normals(:,1); % face normals in x-direction
-nuy = G.faces.normals(:,2); % face normals in x-direction
-nuz = G.faces.normals(:,3); % face normals in x-direction
+nuy = G.faces.normals(:,2); % face normals in y-direction
+nuz = G.faces.normals(:,3); % face normals in z-direction
 
 zetac = Lz - zc; % cell centers of elev. head
 zetaf = Lz - zf; % face centers of elev. head
@@ -96,28 +97,28 @@ stiff = shear_normal_stress(Nc, Nd, mu_s, lambda_s, 0.*mu_s); % stiff mat
 
 % Flow parameters
 soil = getHydraulicProperties('clay');
-K_sat = soil.K_s*centi/hour;         % [m/s] saturated hydraulic conduct.
-rho_w = 1014;                        % [kg/m^3] water density
-g = 9.8006;                          % [m/s^2] gravity acceleration
-gamma = rho_w * g;                   % [Pa/m] specific gravity
-mu_w = 1*centi*poise;                % [Pa s] water dynamic viscosity
-k = K_sat*mu_w/gamma;                % [m^2] intrinsic permeability
-rock.perm = repmat([k, k, k], [Nc, 1]); % permeability structure
-n = soil.theta_s;                    % [-] porosity
-C_w = 4.5455E-10;                    % [1/Pa] water compressibility
-alphaVan = soil.alpha / centi;       % [1/m] Equation parameter
-aVan = alphaVan / gamma;             % [Pa/m] Artificial parameter
-nVan = soil.n;                       % [-] Equation parameter
-mVan = 1-(1/nVan);                   % [-] Equation parameter
-theta_r = soil.theta_r;              % [-] Residual water content
-S_r = theta_r/n;                     % [-] Residual saturation
-tempAmbient = 20;                    % [C] Ambient temperature
-relHumidity = 50;                    % [%] Ambient relative humidity
+K_sat = soil.K_s;            % [m/s] saturated hydraulic conduct.
+rho_w = 1014;                % [kg/m^3] water density
+g = 9.8006;                  % [m/s^2] gravity acceleration
+gamma = rho_w * g;           % [Pa/m] specific gravity
+mu_w = 1 * centi * poise;    % [Pa*s] water dynamic viscosity
+k = K_sat*mu_w/gamma;        % [m^2] intrinsic permeability
+rock.perm = k * ones(Nc, 1); % permeability structure
+n = soil.theta_s;            % [-] porosity
+C_w = 4.5455E-10;            % [1/Pa] water compressibility
+alphaVan = soil.alpha;       % [1/m] Equation parameter
+aVan = alphaVan / gamma;     % [Pa/m] Artificial parameter
+nVan = soil.n;               % [-] Equation parameter
+mVan = 1 - ( 1 / nVan);      % [-] Equation parameter
+theta_r = soil.theta_r;      % [-] Residual water content
+S_r = theta_r / n;           % [-] Residual saturation
+tempAmbient = 20;            % [C] Ambient temperature
+relHumidity = 50;            % [%] Ambient relative humidity
 p_crit = computeCriticalPressure(tempAmbient, relHumidity, rho_w);
 
 % Coupling parameters
-C_m = 2.17E-10;                      % [1/Pa] porous medium compressibility
-alpha_biot = 1 - C_s/C_m;            % [-] Biot's coefficient
+C_m = 2.17E-10;               % [1/Pa] porous medium compressibility
+alpha_biot = 1 - C_s/C_m;     % [-] Biot's coefficient
 
 %% Calling water rentention model
 
@@ -215,7 +216,7 @@ tau_max = 1000;         % [s] maximum time step
 tau = tau_init;         % [s] initializing time step
 timeCum = 0;            % [s] initializing cumulative time
 
-printLevels = 50;      % number of printing levels
+printLevels = 50;       % number of printing levels
 printTimes = ((simTime/printLevels):(simTime/printLevels):simTime)';
 pp = 1;                 % initializing printing counter
 ee = 1;                 % intializing exporting counter
@@ -262,7 +263,7 @@ pEq2_f = @(p, p_n, p_m, tau, sourceFlow)  ...
      
 % Pressure-controlled bc discrete equations
 
-% Upstream Weighting
+% Upstream Weighting of krw
 krwUp_p = @(p_m) upstreamWeightingMPFA(G, bcFlow_p, bcFlowVals_p, ...
     mpfa_discr_pres, krw, gamma, p_m, 'pressure', 'on');
 % Darcy Flux

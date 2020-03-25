@@ -31,8 +31,8 @@ function soil = getHydraulicProperties(soil_name)
 %
 %       theta_s [-]       -> water content at saturated conditions
 %       theta_r [-]       -> residual water content
-%       K_s [cm/hour]     -> saturated hydraulic conductivity     
-%       alpha [1/cm]      -> van Genuchten-Mualem equation parameter
+%       K_s [m/s]         -> saturated hydraulic conductivity     
+%       alpha [1/m]       -> van Genuchten-Mualem equation parameter
 %       n [-]             -> van Genuchten-Mualem equation parameter
 %
 %  EXAMPLE:
@@ -87,11 +87,9 @@ switch soil_name
         idx = find(strcmp(catalog, soil_name));
         soil.theta_s = theta_s(idx);
         soil.theta_r = theta_r(idx);
-        soil.K_s = K_s(idx);
-        soil.alpha = alpha(idx);
+        soil.K_s = K_s(idx) * centi * meter / hour;
+        soil.alpha = alpha(idx) / (centi * meter);
         soil.n = n(idx);
     otherwise
         error('Soil type not found. See documentation for available options.')
-end
-
-          
+end       
