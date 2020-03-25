@@ -30,6 +30,7 @@ model.operators = setupOperatorsTPFA(G_sim, rock, 'deck', deck, 'neighbors', Ne,
                                                         'TimestepStrategy', ...
                                                         'ds', 'useCPR', true, ...
                                                         'useMex', useMex);
+nls.LinearSolver.tolerance = 1e-3;
 %% Pack problem
 % Tweaks to have somewhat similar criterion as OPM. For my comparison I ran
 % OPM with:
@@ -38,6 +39,9 @@ model.operators = setupOperatorsTPFA(G_sim, rock, 'deck', deck, 'neighbors', Ne,
 % ToleranceMb="1e-7" # default: "1e-06"
 
 nls.maxIterations = 12;
+% nls.timeStepSelector = SimpleTimeStepSelector();
+nls.timeStepSelector = FactorTimeStepSelector();
+
 model.toleranceCNV = 1e-2;
 model.toleranceMB = 1e-7;
 
@@ -50,6 +54,9 @@ model.FacilityModel.toleranceWellRate = 5e-3;
 model.FluxDiscretization = [];
 model.FlowPropertyFunctions = [];
 model.PVTPropertyFunctions = [];
+
+model.AutoDiffBackend.useMex = true;
+model.AutoDiffBackend.rowMajor = true;
 
 model = model.validateModel();
 % Use the alternative more rigorous crossflow definition for component
@@ -77,7 +84,7 @@ nls.minRelaxation = 0.5;
 nls.maxIterations = 18;
 nls.maxTimestepCuts = 10;
 nls.oscillationThreshold = 0.5;
-nls.acceptanceFactor = 10;
+nls.acceptanceFactor = 1;
 nls.verbose = false;
 nls.LinearSolver.verbose = false;
 
