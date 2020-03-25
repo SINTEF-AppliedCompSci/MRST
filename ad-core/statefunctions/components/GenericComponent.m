@@ -52,14 +52,14 @@ classdef GenericComponent < StateFunctionDependent
             % The amount of mobile mass in the cell. For most models, this
             % is just the mobility multiplied with the component density in
             % the cell.
-            mass = component.getComponentDensity(model, state, varargin{:});
+            density = component.getComponentDensity(model, state, varargin{:});
             mob = model.getProp(state, 'Mobility');
             
-            nphase = numel(mass);
+            nphase = numel(density);
             cmob = cell(1, nphase);
             for i = 1:nphase
-                if ~isempty(mass{i})
-                    cmob{i} = mob{i}.*mass{i};
+                if ~isempty(density{i})
+                    cmob{i} = mob{i}.*density{i};
                 end
             end
         end

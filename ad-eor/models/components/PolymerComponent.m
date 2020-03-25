@@ -18,7 +18,9 @@ classdef PolymerComponent < GenericComponent
             c = cell(1, nph);
             % TODO: not sure we need b here, cp is defined based on surface
             % volume, check how it is used
-            c{1} = cp .* b{1}; % rho{1};
+            % water phase index
+            wIx = 1;
+            c{wIx} = cp .* b{wIx}; % rho{1};
         end
 
         function c = getComponentMass(component, model, state, varargin)
@@ -32,7 +34,8 @@ classdef PolymerComponent < GenericComponent
              nph = model.getNumberOfPhases;
              c = cell(1, nph);
 
-             bW = b{1};
+             wIx = 1;
+             bW = b{wIx};
              sw = model.getProp(state, 'sW');
              % In mobile water
              acc = (1-f.dps).*sw.*cp.*bW;
@@ -42,7 +45,7 @@ classdef PolymerComponent < GenericComponent
              % adsorbed = f.rhoWS.*f.rhoR.*((1-poro)./poro).*ads;
              adsorbed = f.rhoR .* ((1-poro)./poro) .* ads;
 
-             c{1} = pv.*(adsorbed + acc);
+             c{wIx} = pv.*(adsorbed + acc);
         end
 
         function cmob = getComponentMobility(component, model, state, varargin)
@@ -70,6 +73,8 @@ classdef PolymerComponent < GenericComponent
             c = cell(nph, 1);
         end
 
+        % FIXME: the tricky part here is that it is not composition, it is
+        % a concentration, we need to check how this value is used
         function c = getPhaseComponentFractionInjection(component, model, state, force)
             c = cell(model.getNumberOfPhases(), 1);
             if isfield(force, 'compi')

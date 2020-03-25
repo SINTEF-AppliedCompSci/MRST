@@ -21,6 +21,7 @@ classdef WellComponentPhaseFlux < StateFunction
             % Get fluxes and densities + well map needed
             [map, phaseFlux] = prop.getEvaluatedDependencies(state, 'FacilityWellMapping', 'PhaseFlux');
             componentDensity = model.getProps(state, 'ComponentPhaseDensity');
+            b = model.getProps(state, 'ShrinkageFactors');
             wc = map.cells;
             W = map.W;
             nw = numel(W);
@@ -82,8 +83,9 @@ classdef WellComponentPhaseFlux < StateFunction
                             if (c < 4)
                                 perfCompDens = compi(map.perf2well(perfInjecting), c).*injPerforationDensity{ph};
                             end
-                            if (c == 4) 
-                                perfCompDens = compi(map.perf2well(perfInjecting), c);
+                            if (c == 4)
+                                bw = b{ph}(wc(perfInjecting));
+                                perfCompDens = compi(map.perf2well(perfInjecting), c) .* bw;
                             end
                             componentPhaseFlux{c, ph}(perfInjecting) = q(perfInjecting).*perfCompDens;
                         end

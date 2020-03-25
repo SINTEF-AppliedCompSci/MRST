@@ -59,6 +59,17 @@ scheduleGP = schedule;
 [wellSolsGP, statesGP, reportsGP] = ...
     simulateScheduleAD(state0, gmodel, schedule, ...
                     'NonLinearSolver', nonlinearsolver);
+
+%%
+% props = gmodel.validateModel();
+% groups = props.getStateFunctionGroupings();
+% for i = 4:numel(groups)
+%     figure;
+%     [h,g] = plotStateFunctionGroupings(groups{i},  'label', 'label');
+% %    printStateFunctionGroupingTikz(g);
+%     title(class(groups{i}));
+% end
+
 %%
 bomodel = GenericBlackOilModel(model.G, model.rock, model.fluid, 'disgas', model.disgas, 'vapoil', model.vapoil);
 bomodel.nonlinearTolerance = 1e-2;
@@ -66,7 +77,19 @@ bomodel.nonlinearTolerance = 1e-2;
     simulateScheduleAD(state0, bomodel, schedule, ...
                     'NonLinearSolver', nonlinearsolver);
 %%
+% props = bomodel.validateModel();
+% groups = props.getStateFunctionGroupings();
+% for i = 1:numel(groups)
+%     figure;
+%     plotStateFunctionGroupings(groups{i},  'label', 'label')
+%     title(class(groups{i}));
+% end
+
+%%
 plotWellSols({wellSolsGP, wellSolsP, wellSolsBO}, 'datasetnames', {'New', 'Old', 'NoPolymer'})
+
+
+
 
 %%
 % gmodel2 = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, 'disgas', model.disgas, 'vapoil', model.vapoil);
