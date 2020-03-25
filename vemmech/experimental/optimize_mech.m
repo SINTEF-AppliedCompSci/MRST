@@ -1,5 +1,5 @@
 function [foptval, uopt, history, uu_opt, extra] = ...
-       optimize_mech(u, G, bcfun, cfun, loadfun, obj_fun, varargin)
+       optimize_mech(u, G, bcfun, efun, nufun, loadfun, obj_fun, varargin)
 %
 %
 % SYNOPSIS:
@@ -12,8 +12,10 @@ function [foptval, uopt, history, uu_opt, extra] = ...
 %   G       - simulation grid
 %   bcfun   - function that generates an AD-struct with boundary conditions
 %             from the control parameters
-%   cfun    - function that generates an AD-tensor with material properties
-%             from the control parameters (@@ AD currently unsupported)
+%   efun    - function that generates Young's modulus from the control
+%             parameters, for all cells in the grid
+%   nufun   - function that generates Poisson's parameter from the control
+%             parameters, for all cells in the grid
 %   loadfun - function that generates the cellwise load term (AD) from the
 %             control parameters
 %   obj_fun - objective function to minimize.  Should take the vector of
@@ -54,7 +56,7 @@ function [foptval, uopt, history, uu_opt, extra] = ...
       G = createAugmentedGrid(computeGeometry(G));
    end
    
-   funwrap = @(u) fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, opt.extra, ...
+   funwrap = @(u) fun_wrapper(u, G, bcfun, efun, nufun, loadfun, obj_fun, opt.extra, ...
                               opt.background_forces);
                               
    
@@ -89,37 +91,39 @@ function [foptval, uopt, history, uu_opt, extra] = ...
 
    %% compute additional information if requested
    if nargout > 3
-      C = cfun(uopt);
+      E = efun(uopt);
+      nu = nufun(uopt);
       bc = bcfun(uopt);
       load = loadfun(uopt);
 
       amgsolver = @(A, b) callAMGCL(A, b, 'relaxation', 'chebyshev', 'solver', 'cg', ...
                                     'tolerance', 2e-6, 'maxIterations', 2000);
       if nargout == 4
-         uu_opt = VEM_linElast_AD(G, C, bc, load, 'linsolve', amgsolver, ...
+         uu_opt = VEM_linElast_AD(G, E, nu, bc, load, 'linsolve', amgsolver, ...
                                   'extra', opt.extra, 'background_forces', opt.background_forces);
       else
-         [uu_opt, extra] = VEM_linElast_AD(G, C, bc, load, 'linsolve', amgsolver, ...
+         [uu_opt, extra] = VEM_linElast_AD(G, E, nu, bc, load, 'linsolve', amgsolver, ...
                                            'extra', opt.extra, 'background_forces', ...
                                            opt.background_forces);
       end
    end
 end
 
-function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, extra, ...
+function [val, grad] = fun_wrapper(u, G, bcfun, efun, nufun, loadfun, obj_fun, extra, ...
                                    background_forces)
 
    fprintf('Calling fun_wrapper\n');
    u = initVariablesADI(u);
    
    bc = bcfun(u);
-   C = cfun(u);
+   E = efun(u);
+   nu = nufun(u);
    load = loadfun(u);
    
    amgsolver = @(A, b) callAMGCL(A, b, 'relaxation', 'chebyshev', 'solver', 'cg', ...
                               'tolerance', 2e-6, 'maxIterations', 2000);
    
-   [dd, extra] = VEM_linElast_AD(G, C, bc, load, ...
+   [dd, extra] = VEM_linElast_AD(G, E, nu, bc, load, ...
                                  'linsolve', amgsolver, 'extra', extra, ...
                                  'background_forces', background_forces);
 
@@ -136,7 +140,7 @@ function [val, grad] = fun_wrapper(u, G, bcfun, cfun, loadfun, obj_fun, extra, .
    lambda = amgsolver(extra.A, -full(oval_dd));
    %lambda = -extra.A \ oval_dd; % A symmetric, so no transpose necessary
    toc;
-   dAdu_dd = 0; % @@ will change when including stiffness params. dependence on u
+   dAdu_dd = extra.Ax_derivs; % @@ check this
    dbdu = extra.rhs.jac{1};
    dsys_du = dAdu_dd - dbdu;
    
