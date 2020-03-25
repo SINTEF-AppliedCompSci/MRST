@@ -178,61 +178,18 @@ simTime = 1;  % final simulation time
 times = linspace(iniTime, simTime, timeLevels + 1); % evaluation times
 tau = diff(times); % time steps
 
-% Analytical solution + Source terms
+% Retrieving analytical forms: Note that these are stored as function
+% handles and retrieved from data/exactFormsREBiot.mat
 
-% Note that here we make use of the Matlab Symbolic Toolbox.
-% This is not ideal, but is more practical than hard-coding a very
-% long function. It also allows the user to make changes in the analytical
-% solution to determine convergence rates for different scenarios.
-
-syms x y t
-
-% Analytical solutions
-u = [t*x*(1-x)*y*(1-y)*sin(pi*x); t*x*(1-x)*y*(1-y)*cos(pi*y)]; 
-p = -t*x*(1-x)*y*(1-y)*sin(pi*x)*cos(pi*y)-1;                   
-
-% Parameters
-sw = ((1-S_r)/(1+(a_v*abs(p))^nVan)^mVan)+S_r;
-rp = (1-(a_v*abs(p))^(nVan-1)*(1+(a_v*abs(p))^nVan)^(-mVan))^2/...
-     (1+(a_v*abs(p))^nVan)^(mVan/2);
-
-% Constant terms
-xi  = (alpha_biot-n) * C_s * sw^2  +  n * C_w * sw;
-chi = (alpha_biot-n) * C_s * sw * p  +  n;
- 
-% Obtaining analytical expressions
-grad_u = [diff(u(1), x), diff(u(1), y); diff(u(2), x), diff(u(2), y)];
-div_u  = diff(u(1), x) + diff(u(2), y); 
-grad_p = [diff(p, x); diff(p, y)];
-grad_y = [diff(gamma*y, x); diff(gamma*y, y)];
-sw_times_p = sw * p;
-grad_swp = [diff(sw_times_p, x); diff(sw_times_p, y)];
-
-epsilon = 0.5 * (grad_u + transpose(grad_u));
-sigma_eff = 2 * mu_s * epsilon + lambda_s * div_u * eye(2);
-div_sigma_eff = [diff(sigma_eff(1, 1), x) + diff(sigma_eff(2, 1), y);...
-                 diff(sigma_eff(1, 2), x) + diff(sigma_eff(2, 2), y)];
-momentum_eq = div_sigma_eff - alpha_biot * grad_swp;          
-             
-vel = - (k / mu_w) * rp * (grad_p - grad_y);  
-div_vel = diff(vel(1), x) + diff(vel(2), y);
-ddivu_dt = diff(div_u, t);
-dp_dt = diff(p, t);
-dsw_dt = diff(sw, t);
-mass_eq = xi * dp_dt + chi * dsw_dt + alpha_biot * sw * ddivu_dt + div_vel;
-
-f_flow = mass_eq; 
-F_mech = -momentum_eq;
-
-% Converting into inline functions
-p_ex        = matlabFunction(p);
-fflow_ex    = matlabFunction(f_flow);
-q_ex        = matlabFunction(vel);
-u_ex        = matlabFunction(u);
-fmech_ex    = matlabFunction(F_mech);
-sxx_ex      = matlabFunction(sigma_eff(1,1));
-syy_ex      = matlabFunction(sigma_eff(2,2));
-sxy_ex      = matlabFunction(sigma_eff(1,2));
+load('../data/exactFormsREBiot.mat','exactREBiot')
+p_ex     = exactREBiot.pressure;
+fflow_ex = exactREBiot.sourceFlow;
+q_ex     = exactREBiot.velocity;
+u_ex     = exactREBiot.displacement;
+fmech_ex = exactREBiot.sourceMech;
+sxx_ex   = exactREBiot.stress_xx;
+syy_ex   = exactREBiot.stress_yy;
+sxy_ex   = exactREBiot.stress_xy;
 
 % Discrete equations
 
