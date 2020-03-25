@@ -19,7 +19,9 @@ mrstModule add compositional deckformat ad-core ad-props
 %% Set up model
 % MRST includes both natural variables and overall composition. This toggle
 % can switch between the modes.
-useNatural = true;
+if ~exist('useNatural', 'var')
+    useNatural = true;
+end
 
 pth = getDatasetPath('simplecomp');
 fn  = fullfile(pth, 'SIMPLE_COMP.DATA');
@@ -69,7 +71,7 @@ p = 75*barsa;
 state0 = initCompositionalState(G, p, T, 1, z0, eos);
 
 %% Simulate the schedule
-% Note that as the poblem has 500 control steps, this may take some time
+% Note that as the problem has 500 control steps, this may take some time
 % (upwards of 4 minutes).
 [ws, states, rep] = simulateScheduleAD(state0, model, schedule);
 %% Comparison plots with existing simulators
