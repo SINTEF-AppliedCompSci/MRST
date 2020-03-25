@@ -1,4 +1,4 @@
-function yi = interpTable(X, Y, xi, varargin)
+function [yi, dyidx] = interpTable(X, Y, xi, varargin)
 %Interpolate a one-dimensional table, possibly using splines.
 %
 % SYNOPSIS:
@@ -54,4 +54,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    yi = interp1(X, Y, xi, method, 'extrap');
+   if nargout > 1
+       dyidx = dinterpTable(X, Y, xi, varargin{:});
+   end
 end

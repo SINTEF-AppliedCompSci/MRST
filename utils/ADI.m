@@ -597,8 +597,8 @@ classdef ADI
       function h = interpTable(X, Y, x, varargin)
           % Interpolate in a table
           h = x;
-          h.val = interpTable(X, Y, x.val, varargin{:});
-          h.jac = h.lMultDiag(dinterpTable(X,Y, x.val, varargin{:}), x.jac);
+          [h.val, dyidx] = interpTable(X, Y, x.val, varargin{:});
+          h.jac = h.lMultDiag(dyidx, x.jac);
       end
       
       function u = reduceToDouble(u)
