@@ -1,7 +1,9 @@
 %% Load modules
 mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui linearsolvers
 %% 
+gravity reset on
 mrstVerbose on
+useMex = true;
 opm = mrstPath('opm-tests');
 assert(~isempty(opm), 'You must register https://github.com/opm/opm-tests as a module!');
 [deck, output] = getDeckOPMData('norne', 'NORNE_ATW2013');
@@ -16,7 +18,7 @@ G_sim = Ge{2};
 rock = initEclipseRock(deck);
 rock = compressRock(rock, G_sim.cells.indexMap);
 
-fluid = initDeckADIFluid(deck);
+fluid = initDeckADIFluid(deck, 'useMex', useMex);
 % Setup model, but skip setting up the operators since we do not have a
 % proper grid
 model = GenericBlackOilModel(G_sim, [], fluid, 'disgas', true, 'vapoil', true, 'inputdata', deck);
@@ -27,7 +29,7 @@ model.operators = setupOperatorsTPFA(G_sim, rock, 'deck', deck, 'neighbors', Ne,
 [state0, model, schedule, nls] = initEclipseProblemAD(deck, 'model', model, ...
                                                         'TimestepStrategy', ...
                                                         'ds', 'useCPR', true, ...
-                                                        'useMex', true);
+                                                        'useMex', useMex);
 %% Pack problem
 % Tweaks to have somewhat similar criterion as OPM. For my comparison I ran
 % OPM with:
