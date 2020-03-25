@@ -44,8 +44,5 @@ if isnumeric(sample)
     % changing it.
     return
 end
-nval  = numel(u);
-jac  = cellfun(@(j) sparse(nval, size(j, 2)), ...
-               sample.jac, 'UniformOutput', false);
-u = ADI(u,jac);
+u = sample.convertDouble(u);
 end

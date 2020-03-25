@@ -28,6 +28,24 @@ classdef GenericAD < ADI
             end
         end
         
+        function u = convertDouble(x, v)
+            assert(isa(v, 'double'));
+            nval  = numel(v);
+            nj = numel(x.jac);
+            jac = cell(1, nj);
+            for i = 1:nj
+                jx = x.jac{i};
+                if issparse(jx)
+                    jac{i} = sparse([], [], [], nval, size(jx, 2));
+                else
+                    jac{i} = jx.toZero(nval);
+                end
+            end
+            u = x;
+            u.val = v;
+            u.jac = jac;
+        end
+        
         function x = incrementSubset(x, subs, v)
             if isa(x, 'GenericAD')
                 x.val(subs) = x.val(subs) + value(v);
