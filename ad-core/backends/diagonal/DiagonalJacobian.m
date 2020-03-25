@@ -199,6 +199,7 @@ classdef DiagonalJacobian
             u.diagonal = repmat(u.diagonal, varargin{:});
             u.subset = repmat(u.subset, varargin{:});
         end
+
         function x = subsetPlus(x, v, subs)
             if isa(x, 'DiagonalJacobian')
                 if isa(v, 'DiagonalJacobian')
@@ -213,7 +214,7 @@ classdef DiagonalJacobian
                     % Get subset, check individual values
                     s = x.getSubset();
                     if subsetsEqualNoZeroCheck(x, v, s(subs), v.subset)
-                        if u.rowMajor
+                        if x.rowMajor
                             x.diagonal(:, subs) = x.diagonal(:, subs) + v.diagonal;
                         else
                             x.diagonal(subs, :) = x.diagonal(subs, :) + v.diagonal;
