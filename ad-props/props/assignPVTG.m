@@ -21,7 +21,7 @@ function [bG, muG, rvSat] = getFunctions(PVTG, reg)
         muG{i} = @(pg, rv, flag) interpPVT(mug, rv, pg, flag);
         
         
-        rvSat{i} = @(pg) interpTable(p_vap, rv, pg);
+        rvSat{i} = @(pg) reg.interp1d(p_vap, rv, pg);
     end
 end
 
