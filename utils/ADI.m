@@ -49,6 +49,21 @@ classdef ADI
              error('Input to constructor not valid')
          end
       end
+      %--------------------------------------------------------------------
+      function u = convertDouble(x, v)
+          % Convert numeric type v into AD with zero derivatives with
+          % respect to the same variables as x (which is already AD)
+          assert(isa(v, 'double'));
+          nval  = numel(v);
+          nj = numel(x.jac);
+          newjac = cell(1, nj);
+          for i = 1:nj
+              newjac{i} = sparse([], [], [], nval, size(x.jac{i}, 2));
+          end
+          u = x;
+          u.val = v;
+          u.jac = newjac;
+      end
 
       %--------------------------------------------------------------------
       function h = numval(u)
@@ -619,7 +634,7 @@ classdef ADI
               end
           else
               % Adding ADI into double subset
-              u = double2ADI(u, v);
+              u = v.convertDouble(u);
               % Recursively handle this case
               u = subsetPlus(u, v, subs);
           end
