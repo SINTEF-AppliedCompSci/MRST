@@ -6,7 +6,7 @@
 % Author: Jhabriel Varela. E-mail: Jhabriel.Varela@uib.no. 
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-unsat module.
 
@@ -30,7 +30,7 @@ clear; clc(); mrstModule add fvbiot
 
 %% Setting up the grid
 nx = 5;     ny = 5;     nz = 30;     % cells        
-Lx = 100;   Ly = 100;   Lz = 100;    % domain lenght [cm]       
+Lx = 1;     Ly = 1;     Lz = 1;      % domain lenght [m]       
 G = cartGrid([nx,ny,nz],[Lx,Ly,Lz]); % create Cartesian Grid
 G = computeGeometry(G);              % compute geometry
 
@@ -39,23 +39,21 @@ newplot; plotGrid(G); axis off;
 pbaspect([1,1,5]); view([-51,26]);
 
 %% Physical properties 
-
 soil = getHydraulicProperties('newMexSample');
-rho = 1;                    % [g/cm^3] water density
-mu = 0.01;                  % [g/cm.s] water viscosity
-g = 980.66;                 % [cm/s^2] gravity acceleration
-gamma = rho*g;              % [g/cm^2 s^2] specific gravity
-K_sat = soil.K_s/hour;      % [cm/s] saturated hydraulic conductivity
-k = (K_sat*mu)/(rho*g);     % [cm^2] intrinsic permeability
-rock.perm = repmat([k, k, k], [G.cells.num, 1]); % creating perm structure
-alpha = soil.alpha;         % [1/cm] Equation parameter
-nVan = soil.n;              % [-]    Equation parameter
-mVan = 1-(1/nVan);          % [-]    Equation parameter
-theta_s = soil.theta_s;     % [-]    Saturation soil moisture
-theta_r = soil.theta_r;     % [-]    Residual soil moisture
+rho = 1 * gram / (centi * meter)^3;          % [kg/m^3] water density
+mu = 0.01 * gram / (centi * meter * second); % [kg/(m*s)] water viscosity
+g = 980.66 * centi * meter / (second^2);     % [kg/(m*s^2)] gravity acceleration
+gamma = rho*g;                               % [kg/(m^2*s^2)] specific gravity
+K_sat = soil.K_s;                            % [m/s] saturated hydraulic conductivity
+k = (K_sat*mu)/(rho*g);                      % [m^2] intrinsic permeability
+rock.perm = k * ones(G.cells.num, 1);        % creating perm structure
+alpha = soil.alpha;                          % [1/m] Equation parameter
+nVan = soil.n;                               % [-] Equation parameter
+mVan = 1-(1/nVan);                           % [-] Equation parameter
+theta_s = soil.theta_s;                      % [-] Saturation soil moisture
+theta_r = soil.theta_r;                      % [-] Residual soil moisture
 
 %% Water retention curves
-
 [theta, krw, C_theta] = vanGenuchtenMualemTheta(alpha, theta_s, ...
                                                 theta_r, nVan, mVan);
 
@@ -71,8 +69,8 @@ z_min = find(zf == 0);         % top faces idx
 z_max = find(zf > 0.9999*Lz & zf < 1.0001*Lz );  % bottom faces idx
 
 % Creating the boundary structure
-psiT = -75; % [cm] Top boundary pressure head
-psiB = -1000; % [cm] Bottom boundary pressure head
+psiT = -75 * centi * meter;    % [m] Top boundary pressure head
+psiB = -1000 * centi * meter;  % [m] Bottom boundary pressure head
 bc = addBC([], z_min, 'pressure', psiT);       
 bc = addBC(bc, z_max, 'pressure', psiB);      
 bcVal = zeros(G.faces.num, 1);
@@ -82,7 +80,7 @@ bcVal(z_max) = psiB + zetaf(z_max); % assigning Bottom boundary
 % be done for every Dirichlet face only to bcVal, not to bc.
 
 % Initial Condition
-psi_init = psiB .* ones(G.cells.num, 1);  % [cm] Initial condition
+psi_init = psiB .* ones(G.cells.num, 1);  % [m] Initial condition
 
 %% Calling MPFA routine and creating discrete operators
 mpfa_discr = mpfa(G, rock, [], 'bc', bc, 'invertBlocks', 'matlab');
@@ -98,12 +96,12 @@ divF    = @(x) mpfa_discr.div * x;
 psi_ad = initVariablesADI(psi_init);  % Initial value set to psi_init
 
 %% Time parameters
-simTime = 72*hour; % [s] final simulation time
-tau_init = 10;     % [s] initial time step
-tau_min = 10;      % [s] minimum time step 
-tau_max = 10000;   % [s] maximum time step
-tau = tau_init;    % [s] initializing time step
-timeCum = 0;       % [s] initializing cumulative time
+simTime = 72 * hour; % [s] final simulation time
+tau_init = 10;       % [s] initial time step
+tau_min = 10;        % [s] minimum time step 
+tau_max = 10000;     % [s] maximum time step
+tau = tau_init;      % [s] initializing time step
+timeCum = 0;         % [s] initializing cumulative time
 
 %% Printing parameters
 printLevels = 20;       % number of printed levels
@@ -132,12 +130,11 @@ sol.theta = cell(printLevels,1);  % water content
 sol.flux  = cell(printLevels,1);  % flux
                                
 %% Time loop
-
 tol = 1E-6; % tolerance
 maxIter = 10; % maximum number of iterations
 while timeCum < simTime
     
-    psi_n = psi_ad.val;             % [cm] current time step h (n-index)
+    psi_n = psi_ad.val;             % [m] current time step h (n-index)
     timeCum = timeCum + tau;        % [s] cumulative time
     source = zeros(G.cells.num,1);  % source term equal to zero
             
@@ -166,7 +163,7 @@ fprintf('\n sol: \n'); disp(sol); % printing sol structure in console
 for ii=1:printLevels
     newplot;
     subplot(1,2,1); % pressure head plots
-    plotCellData(G, sol.psi{ii,1});
+    plotCellData(G, sol.psi{ii,1} / centi);
     title('\psi_w [cm]', 'FontSize', 13)
     axis off; pbaspect([1,1,5]); view([-51,26]); 
     cb = colorbar; cb.FontSize=11;
@@ -174,7 +171,6 @@ for ii=1:printLevels
                      'Position',[0.5,-0.05,1],... % Position of text   
                      'EdgeColor','w'));           % Textbox 
     t_h1.String=sprintf('Time: %2.1f [hours]',sol.time(ii)/hour); 
-    ylabel('Depth [cm]'); xlabel('\psi [cm]');
     set(gca,'Ydir','reverse'); axis tight; box on; grid on; 
     
     subplot(1,2,2); % water content plots
@@ -186,7 +182,6 @@ for ii=1:printLevels
                      'Position',[0.5,-0.05,1],... % Position of text   
                      'EdgeColor','w'));           % Textbox 
     t_h2.String=sprintf('Time: %2.1f [hours]',sol.time(ii)/hour);
-    ylabel('Depth [cm]'); xlabel('\theta [-]');
     set(gca,'Ydir','reverse'); axis tight; box on; grid on; 
     
     pause(0.01); t_h1.String =[]; t_h2.String =[];
