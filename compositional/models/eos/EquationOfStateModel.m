@@ -927,21 +927,32 @@ classdef EquationOfStateModel < PhysicalModel
             % where u is some primary variable, we can still obtain
             % derivatives without making any assumptions other than the EOS
             % being a cubic polynomial
+            if isnumeric(Z)
+                % This function does nothing if Z is double.
+                return;
+            end
+            backend = model.AutoDiffBackend;
+            isDiagonal = isa(backend, 'DiagonalAutoDiffBackend');
+            
             if nargin < 5
-                if isa(Z, 'GenericAD')
+                if isDiagonal
                     cellJacMap = cell(Z.offsets(end)-1, 1);
-                elseif isa(Z, 'ADI')
-                    cellJacMap = cell(numel(Z.jac), 1);
                 else
-                    cellJacMap = {};
+                    cellJacMap = cell(numel(Z.jac), 1);
                 end
             end
             [E2, E1, E0] = model.getCubicCoefficients(A, B);
             e2 = value(E2);
             e1 = value(E1);
             z = value(Z);
-            if isa(Z, 'GenericAD')
+            if isDiagonal
                 offset = Z.offsets;
+                rowMajor = backend.rowMajor;
+                if rowMajor
+                    z = z';
+                    e1 = e1';
+                    e2 = e2';
+                end
                 for i = 1:numel(Z.jac)
                     act = offset(i):offset(i+1)-1;
                     map = cellJacMap(act);
@@ -971,9 +982,9 @@ classdef EquationOfStateModel < PhysicalModel
                     else
                         % Subset of cells
                         map = map{1};
-                        dE2 = E2.jac{i}.diagonal(map, :);
-                        dE1 = E1.jac{i}.diagonal(map, :);
-                        dE0 = E0.jac{i}.diagonal(map, :);
+                        dE2 = E2.jac{i}.getDiagonal(map);
+                        dE1 = E1.jac{i}.getDiagonal(map);
+                        dE0 = E0.jac{i}.getDiagonal(map);
                         if isempty(dE0)
                             assert(isempty(dE1));
                             assert(isempty(dE2));
@@ -987,15 +998,14 @@ classdef EquationOfStateModel < PhysicalModel
                             if Z.jac{i}.isZero
                                 Z.jac{i} = Z.jac{i}.expandZero();
                             end
-                            Z.jac{i}.diagonal(map, :) = d;
+                            Z.jac{i} = Z.jac{i}.setDiagonal(map, d);
                             if ~isempty(Z.jac{i}.subset)
                                 Z.jac{i}.subset(map) = (1:numel(map))';
                             end
                         end
                     end
                 end
-                
-            elseif isa(Z, 'ADI')
+            else
                 for i = 1:numel(Z.jac)
                     if isempty(cellJacMap{i})
                         [n, m] = size(Z.jac{i});
