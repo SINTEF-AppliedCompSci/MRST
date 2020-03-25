@@ -6,6 +6,7 @@ classdef DiagonalJacobian
         dim % Vector: First dimension is the number of variables in block, while the second is the number of columns
         useMex = false;
         rowMajor = false;
+        allowImplicitExpansion = ~verLessThan('matlab','9.1');
     end
     
     methods
@@ -532,18 +533,16 @@ classdef DiagonalJacobian
         end
 
         function [x, D] = diagMult(v, x, D)
-            persistent allow_implicit;
-            if isempty(allow_implicit)
-                allow_implicit = ~verLessThan('matlab','9.1');
-            end
             if x.rowMajor
                 if x.useMex
                     x.diagonal = mexDiagMult(x.diagonal, v, true);
-                else
+                elseif x.allowImplicitExpansion
                     x.diagonal = x.diagonal.*v';
+                else
+                    x.diagonal = bsxfun(@times, x.diagonal, v');
                 end
             else
-                if allow_implicit
+                if x.allowImplicitExpansion
                     x.diagonal = x.diagonal.*v;
                 else
                     x.diagonal = bsxfun(@times, x.diagonal, v);
@@ -552,10 +551,6 @@ classdef DiagonalJacobian
         end
         
         function [x, D1, D2] = diagProductMult(v1, v2, x, y, D1, D2)
-            persistent allow_implicit;
-            if isempty(allow_implicit)
-                allow_implicit = ~verLessThan('matlab','9.1');
-            end
             if isnumeric(x) || isnumeric(y)
                 [x, D2] = diagMult(v2, x, D2);
                 [y, D1] = diagMult(v1, y, D1);
@@ -571,11 +566,13 @@ classdef DiagonalJacobian
                     if x.rowMajor
                         if x.useMex
                             x.diagonal = mexDiagProductMult(x.diagonal, v2, y.diagonal, v1, true);
-                        else
+                        elseif x.allowImplicitExpansion
                             x.diagonal = x.diagonal.*v2' + y.diagonal.*v1';
+                        else
+                            x.diagonal = bsxfun(@times, x.diagonal, v2') + bsxfun(@times, y.diagonal, v1');
                         end
                     else
-                        if allow_implicit
+                        if x.allowImplicitExpansion
                             % Both are diagonal, new Matlab
                             x.diagonal = x.diagonal.*v2 + y.diagonal.*v1;
                         else

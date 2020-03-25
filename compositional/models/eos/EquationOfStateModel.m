@@ -931,19 +931,7 @@ classdef EquationOfStateModel < PhysicalModel
                 % This function does nothing if Z is double.
                 return;
             end
-            % Newer Matlab allows implicit expansion - use that, if
-            % available
-            persistent allow_implicit;
-            if isempty(allow_implicit)
-                allow_implicit = ~verLessThan('matlab','9.1');
-            end
-            if allow_implicit
-                mlt = @(x, y) x.*y;
-                div = @(x, y) x./y;
-            else
-                mlt = @(x, y) bsxfun(@times, x, y);
-                div = @(x, y) bsxfun(@rdivide, x, y);
-            end
+
             backend = model.AutoDiffBackend;
             isDiagonal = isa(backend, 'DiagonalAutoDiffBackend');
             
@@ -961,6 +949,21 @@ classdef EquationOfStateModel < PhysicalModel
             if isDiagonal
                 offset = Z.offsets;
                 rowMajor = backend.rowMajor;
+                if numel(Z.jac)
+                    % Should be diagonal
+                    allow_implicit = Z.jac{1}.allowImplicitExpansion;
+                else
+                    allow_implicit = false; % Does not matter.
+                end
+                if allow_implicit
+                    % Newer Matlab allows implicit expansion - use that, if
+                    % available
+                    mlt = @(x, y) x.*y;
+                    div = @(x, y) x./y;
+                else
+                    mlt = @(x, y) bsxfun(@times, x, y);
+                    div = @(x, y) bsxfun(@rdivide, x, y);
+                end
                 if rowMajor
                     z = z';
                     e1 = e1';
