@@ -1,4 +1,4 @@
-function u = double2GenericAD(u, sample)
+function u = double2GenericAD(v, sample)
 % Convert a double to GenericAD variable, using a sample GenericAD variable for dimensions
 %
 % SYNOPSIS:
@@ -37,20 +37,19 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-assert(isa(u,'double'));
-if isnumeric(sample)
-    % The dummy variable is also a double, we simply return without
-    % changing it.
-    return
-end
-nval  = numel(u);
-jac  = cellfun(@(j) makeZero(j, nval), ...
-               sample.jac, 'UniformOutput', false);
-
-u = GenericAD(u,jac);
-u.numVars = sample.numVars;
-u.offsets = sample.offsets;
+    assert(isa(v,'double'));
+    if isnumeric(sample)
+        % The dummy variable is also a double, we simply return without
+        % changing it.
+        u = v;
+        return
+    end
+    nval  = numel(v);
+    jac  = cellfun(@(j) makeZero(j, nval), ...
+                        sample.jac, 'UniformOutput', false);
+    u = sample;
+    u.val = v;
+    u.jac = jac;
 end
 
 function x = makeZero(x, nval)
