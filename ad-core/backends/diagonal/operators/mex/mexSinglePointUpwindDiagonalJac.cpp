@@ -12,6 +12,13 @@
 #define TIME_NOW std::chrono::high_resolution_clock::now
 
 template <int m>
+void copyElements(const int offset_face, const int offset_cell, const double * celldata, double * facedata) {
+    for (int der = 0; der < m; der++) {
+        facedata[offset_face + der] = celldata[offset_cell + der];
+    }
+}
+
+template <int m>
 void upwindJacColMajor(const int nf, const int nc, const mxLogical * flag, const double * diagonal, const double * N, double * result){
     #pragma omp parallel for schedule(static)
     for(int i=0;i<nf;i++){
@@ -86,9 +93,12 @@ void upwindJacRowMajor(const int nf, const int nc, const mxLogical* flag, const 
     for (int face = 0; face < nf; face++) {
         bool do_up = !flag[face];
         int cell_inx = N[face + do_up * nf] - 1;
+        copyElements<m>(face * 2 * m + m * do_up, m * cell_inx, diagonal, result);
+        /*
         for (int der = 0; der < m; der++) {
             result[face * 2 * m + der + m * do_up] = diagonal[m * cell_inx + der];
         }
+        */
         // memcpy(&result[face * 2 * m + m * do_up], &diagonal[m * cell_inx], m * sizeof(double));
     }
 }

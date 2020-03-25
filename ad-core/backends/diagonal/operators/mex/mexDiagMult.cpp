@@ -4,23 +4,6 @@
 #include <chrono>
 #include <iostream>
 
-#if !defined(_WIN32)
-#define dscal dscal_
-#endif
-
-// #define operation diagMultBLAS
-#define operation diagMult
-
-template <int m>
-void diagMultBLAS(const size_t n, const double* v, double* D) {
-    const ptrdiff_t dim = m;
-    const ptrdiff_t one = 1;
-#pragma omp parallel for schedule(static)
-    for (int i = 0; i < n; i++) {
-        const double vi = v[i];
-        dscal(&dim, &vi, &D[i * m], &one);
-    }
-}
 
 template <int m, class V_type>
 void diagMult(const size_t n, const V_type* v, const double* D, double* out) {
@@ -72,11 +55,12 @@ void mexFunction(int nlhs, mxArray* plhs[],
     double* d_ptr = mxGetPr(prhs[0]);
 
     auto is_logical_vector = mxIsLogical(prhs[1]);
-    if (is_logical_vector){
-        const mxLogical* v_ptr = mxGetLogicals(prhs[1]);
-        diagMult(n, m, v_ptr, d_ptr, out_ptr);
-    } else {
+    if (!is_logical_vector){
         const double* v_ptr = mxGetPr(prhs[1]);
+        diagMult(n, m, v_ptr, d_ptr, out_ptr);
+    }
+    else {
+        const mxLogical* v_ptr = mxGetLogicals(prhs[1]);
         diagMult(n, m, v_ptr, d_ptr, out_ptr);
     }
 }
