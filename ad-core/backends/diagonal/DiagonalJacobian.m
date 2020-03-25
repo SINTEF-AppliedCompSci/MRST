@@ -29,6 +29,30 @@ classdef DiagonalJacobian
             end
         end
         
+        function u = setDiagonal(u, subs, diagonals)
+            if nargin < 2
+                u.diagonal = diagonals;
+            else
+                if u.rowMajor
+                    u.diagonal(:, subs) = diagonals;
+                else
+                    u.diagonal(subs, :) = diagonals;
+                end
+            end
+        end
+        
+        function D = getDiagonal(u, subs)
+            if nargin == 1
+                D = u.diagonal;
+            else
+                if u.rowMajor
+                    D = u.diagonal(:, subs);
+                else
+                    D = u.diagonal(subs, :);
+                end
+            end
+        end
+
         function sub = getSubset(u)
             d = 1 + u.rowMajor;
             if u.isZero
