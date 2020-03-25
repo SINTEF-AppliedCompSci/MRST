@@ -114,37 +114,13 @@ simTime = 1;  % final simulation time
 times = linspace(iniTime, simTime, timeLevels + 1); % evaluation times
 tau = diff(times); % time steps
 
-% Analytical solution + Source term
+% Retrieving analytical forms: Note that these are stored as function
+% handles and retrieved from data/exactFormsRE.mat
 
-% Note that here we make use of the Matlab Symbolic Toolbox.
-% This is not ideal, but is more practical than hard-coding a very
-% long function. It also allows the user to make changes in the analytical
-% solution to determine convergence rates for different scenarios.
-
-syms x y t
-
-% Analytical solution
-psi = -t * x * (1 - x) * sin(pi*x) * y * (1 - y) * cos(pi*y) + boundPsi;
-
-% Parameters
-wc = (theta_s - theta_r) / (1 + (alpha * abs(psi)) ^ nVan) ...
-     ^ mVan + theta_s;
- 
-rp = (1 - (alpha * abs(psi)) ^ (nVan-1) ...
-     * (1 + (alpha * abs(psi)) ^ nVan) ^ (-mVan)) ^ 2 ...
-     / (1 + (alpha * abs(psi)) ^ nVan) ^ (mVan / 2);
-
-% Obtaining analytical expressions
-grad_psi = [diff(psi, x); diff(psi, y)];
-vel = -rp * grad_psi;
-div_vel = diff(vel(1), x) + diff(vel(2), y);
-partial_theta_partial_t = diff(wc, t);
-source = partial_theta_partial_t + div_vel;
-
-% Converting into inline functions
-psi_ex = matlabFunction(psi);
-f_ex = matlabFunction(source);
-q_ex = matlabFunction(vel);
+load('../data/exactFormsRE.mat', 'exactRE');
+psi_ex = exactRE.psi;
+f_ex = exactRE.source;
+q_ex = exactRE.velocity;
 
 % Discrete equations
                           
