@@ -9,10 +9,7 @@
 #endif
 #include <iostream>
 
-template <int m, bool rowMajor>
-void faceAverageJac(const int nf, const int nc, const double* diagonal, const double* N, double* result) {
-    faceAverageJac<rowMajor>(nf, nc, m, diagonal, N, result);
-}
+
 
 template <bool rowMajor>
 void faceAverageJac(const int nf, const int nc, const int m, const double* diagonal, const double* N, double* result) {
@@ -28,13 +25,15 @@ void faceAverageJac(const int nf, const int nc, const int m, const double* diago
             else {
                 result[der * nf + face] = 0.5 * diagonal[nc * der + left];
                 result[der * nf + face + m * nf] = 0.5 * diagonal[nc * der + right];
-
             }
         }
     }
 }
 
-
+template <int m, bool rowMajor>
+void faceAverageJac(const int nf, const int nc, const double* diagonal, const double* N, double* result) {
+    faceAverageJac<rowMajor>(nf, nc, m, diagonal, N, result);
+}
 
 /* MEX gateway */
 
