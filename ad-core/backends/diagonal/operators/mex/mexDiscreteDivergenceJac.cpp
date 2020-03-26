@@ -49,7 +49,7 @@ void divergenceJac(const int nf, const int nc,
     const double* accumulation, const double* diagonal,
     double* pr, mwIndex* ir, mwIndex* jc) {
     int mv = facePos[nc];
-    #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(dynamic, 512)
     for (int cell = 0; cell < nc; cell++) {
         // Each cell has number of connections equal to the number of half-
         // faces for that cell plus itself multiplied by the block size
