@@ -30,9 +30,7 @@ classdef BlackOilDensity < StateFunction
                 rho{i} = rhoS(:, i).*b{i};
             end
             if (prop.disgas || prop.vapoil) && model.gas && model.oil
-                names = model.getPhaseNames();
-                oix = names == 'O';
-                gix = names == 'G';
+                [oix, gix] = model.getPhaseIndex('O', 'G');
                 if prop.disgas
                     rs = model.getProp(state, 'rs');
                     rho{oix} = rho{oix} + rs.*b{oix}.*rhoS(:, gix);
