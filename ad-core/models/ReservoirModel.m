@@ -582,11 +582,12 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function index = getPhaseIndex(model, phasename)
-        % Query the index of a phase in the model's ordering
+    function varargout = getPhaseIndex(model, varargin)
+        % Query the index of phases in the model's ordering
         %
         % SYNOPSIS:
-        %   index = model.getPhaseNames();
+        %   index = model.getPhaseIndex('W');
+        %   [wix, gix] = model.getPhaseIndex('W', 'G')
         %
         % PARAMETERS:
         %   model     - Class instance
@@ -594,7 +595,10 @@ methods
         % RETURNS:
         %   index   - Index of phase `phasename`
         active = model.getPhaseNames();
-        index = find(active == phasename);
+        varargout = cell(1, nargout);
+        for i = 1:nargout
+            varargout{i} = find(active == varargin{i});
+        end
     end
 
     % --------------------------------------------------------------------%
