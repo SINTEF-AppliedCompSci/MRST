@@ -151,6 +151,7 @@ classdef DiagonalJacobian
         end
         
         function s = sparse(D)
+            % Convert diagonal representation into a sparse representation
             if D.useMex && isempty(D.subset) && ...
               ~isempty(D.diagonal) && ~isa(D, 'DiagonalSubset')
                 % MEX acceleration only for the simplest case
@@ -162,10 +163,17 @@ classdef DiagonalJacobian
         end
         
         function s = double(D)
+            % Convert to sparse
             s = D.sparse();
         end
-
+        function s = full(D)
+            % Convert to full matrix - may be very expensive!
+            s = full(D.sparse());
+        end
+        
         function isEqual = subsetsEqualNoZeroCheck(x, y, xsubset, ysubset)
+            % Check if subsets are equal (ignoring zeros in subset as
+            % "always fits")
             if nargin == 2
                 xsubset = x.subset;
                 ysubset = y.subset;
@@ -175,11 +183,19 @@ classdef DiagonalJacobian
             if chx && chy
                 isEqual = true;
             elseif chx
-                tmp = reshape(1:x.dim(1), [], 1);
-                isEqual = numel(ysubset) == x.dim(1) && all(y.subset(ysubset ~= 0) == tmp(ysubset ~= 0));
+                if numel(ysubset) == x.dim(1)
+                    tmp = (1:x.dim(1))';
+                    isEqual = all(y.subset(ysubset ~= 0) == tmp(ysubset ~= 0));
+                else
+                    isEqual = false;
+                end
             elseif chy
-                tmp = reshape(1:x.dim(1), [], 1);
-                isEqual = numel(xsubset) == y.dim(1) && all(xsubset(xsubset ~= 0) == tmp(xsubset ~= 0));
+                if numel(xsubset) == x.dim(1)
+                    tmp = (1:x.dim(1))';
+                    isEqual = all(xsubset(xsubset ~= 0) == tmp(xsubset ~= 0));
+                else
+                    isEqual = false;
+                end
             else
                 isEqual = numel(xsubset) == numel(ysubset) && ...
                     all(xsubset  == ysubset | xsubset == 0 | y.subset == 0);
@@ -201,6 +217,15 @@ classdef DiagonalJacobian
         end
 
         function x = subsetPlus(x, v, subs)
+            % Increment a subset of the Jacobian in place. This can be
+            % faster than using subsasgn that may produce intermediate
+            % class instances, for example
+            % x(subs) = x(subs) + y(subs)
+            % will end up as
+            % tmp1 = x(subs);
+            % tmp2 = y(subs);
+            % tmp3 = tmp1 + tmp2;
+            % x(subs) = tmp3;
             if isa(x, 'DiagonalJacobian')
                 if isa(v, 'DiagonalJacobian')
                     if v.isZero
