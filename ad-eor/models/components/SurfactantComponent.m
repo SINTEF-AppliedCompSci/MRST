@@ -73,8 +73,8 @@ classdef SurfactantComponent < GenericComponent
                 comp_i = vertcat(force.sat);
             end
             wIx = 1;
-            cp = vertcat(force.cp);
-            ci = comp_i(:, wIx) .* cp./model.fluid.rhoWS;
+            cs = vertcat(force.cs);
+            ci = comp_i(:, wIx) .* cs./model.fluid.rhoWS;
             if any(ci ~= 0)
                 c{wIx} = ci;
             end
