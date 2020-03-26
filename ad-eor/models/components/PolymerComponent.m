@@ -12,25 +12,19 @@ classdef PolymerComponent < GenericComponent
         function c = getComponentDensity(component, model, state, varargin)
             cp = model.getProp(state, 'polymer');
             b = model.getProps(state, 'ShrinkageFactors');
-            % rho = model.getProps(state, 'Density');
-            % nph = model.getNumberOfPhases;
             nph = numel(b);
             c = cell(1, nph);
-            % TODO: not sure we need b here, cp is defined based on surface
-            % volume, check how it is used
             % water phase index
             wIx = 1;
-            c{wIx} = cp .* b{wIx}; % rho{1};
+            c{wIx} = cp .* b{wIx};
         end
 
         function c = getComponentMass(component, model, state, varargin)
              f = model.fluid;
              cp = model.getProp(state, 'polymer');
-             % rho = model.getProps(state, 'Density');
              pv = model.getProp(state, 'PoreVolume');
              b = model.getProps(state, 'ShrinkageFactors');
 
-             % nph = numel(rho);
              nph = model.getNumberOfPhases;
              c = cell(1, nph);
 
@@ -42,16 +36,14 @@ classdef PolymerComponent < GenericComponent
              % Adsorbed part
              poro = model.rock.poro;
              ads = model.getProp(state, 'PolymerAdsorption');
-             % adsorbed = f.rhoWS.*f.rhoR.*((1-poro)./poro).*ads;
              adsorbed = f.rhoR .* ((1-poro)./poro) .* ads;
 
              c{wIx} = pv.*(adsorbed + acc);
         end
 
         function cmob = getComponentMobility(component, model, state, varargin)
-        % We use a Todd-Longstaff model. It implies that the mobility of the
-        % polymer is a non-linear function of the polymer concentration.
-             % mass = component.getComponentDensity(model, state, varargin{:});
+             % We use a Todd-Longstaff model. It implies that the mobility of the
+             % polymer is a non-linear function of the polymer concentration.
              [mob, b, c] = model.getProps(state, 'Mobility', 'ShrinkageFactors', 'polymer');
              wIx = 1;
              mobW = mob{wIx};
