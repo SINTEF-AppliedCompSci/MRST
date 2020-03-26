@@ -68,9 +68,10 @@ classdef PolymerComponent < GenericComponent
          end
 
         function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
-            % Polymer does not enter into any phase stream
+            % Polymer enters into the water stream
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
+            c{1} = 1;
         end
 
         % FIXME: the tricky part here is that it is not composition, it is
@@ -84,7 +85,7 @@ classdef PolymerComponent < GenericComponent
             end
             wIx = 1;
             cp = vertcat(force.cp);
-            ci = comp_i(:, wIx) .* cp;
+            ci = comp_i(:, wIx) .* cp./model.fluid.rhoWS;
             if any(ci ~= 0)
                 c{wIx} = ci;
             end
