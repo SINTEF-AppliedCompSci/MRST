@@ -7,6 +7,7 @@ classdef ComponentPhaseFractionInjectors < StateFunction
     methods
         function gp = ComponentPhaseFractionInjectors(varargin)
             gp@StateFunction(varargin{:});
+            gp = gp.dependsOn('FacilityWellMapping');
             gp.label = 'Q_{i,\alpha}';
         end
         function compi = evaluateOnDomain(prop, facility, state)
