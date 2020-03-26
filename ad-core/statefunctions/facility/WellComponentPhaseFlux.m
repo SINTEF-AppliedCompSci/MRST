@@ -21,6 +21,7 @@ classdef WellComponentPhaseFlux < StateFunction
             % Get fluxes and densities + well map needed
             [map, phaseFlux] = prop.getEvaluatedDependencies(state, 'FacilityWellMapping', 'PhaseFlux');
             componentDensity = model.getProps(state, 'ComponentPhaseDensity');
+            sc = facility.getProps(state, 'ComponentPhaseFractionInjectors');
             b = model.getProps(state, 'ShrinkageFactors');
             wc = map.cells;
             W = map.W;
@@ -43,11 +44,9 @@ classdef WellComponentPhaseFlux < StateFunction
 
             
             % Get phase density if we are injecting
-            surfaceComposition = cell(ncomp, nph);
             componentPhaseFlux = cell(ncomp, nph);
             for c = 1:ncomp
                 % Store well injector composition
-                surfaceComposition(c, :) = model.Components{c}.getPhaseComponentFractionInjection(model, state, W);
                 for ph = 1:nph
                     % Compute production source terms everywhere. We
                     % overwrite the injection/crossflow terms later on.
@@ -63,12 +62,12 @@ classdef WellComponentPhaseFlux < StateFunction
                 massDensity = model.getProp(state, 'Density');
                 injPerforationDensity = cellfun(@(x) x(wc(perfInjecting)), massDensity, 'UniformOutput', false);
                 
-                rem = cellfun(@isempty, surfaceComposition);
-                [surfaceComposition{rem}] = deal(zeros(nw, 1));
+%                 rem = cellfun(@isempty, surfaceComposition);
+%                 [surfaceComposition{rem}] = deal(zeros(nw, 1));
                 for ph = 1:nph
                     q = phaseFlux{ph};
                     
-                    compi = [surfaceComposition{:, ph}];
+%                     compi = [surfaceComposition{:, ph}];
                     cflux = zeros(nperf, ncomp);
                     for c = 1:ncomp
                         v = componentPhaseFlux{c, ph};
@@ -76,18 +75,30 @@ classdef WellComponentPhaseFlux < StateFunction
                             cflux(:, c) = value(v);
                         end
                     end
-                    compi(:, 1:3) = compi(:,1:3)./max(sum(compi(:, 1:3),2), 1e-10);
-                    compi(:, 1:3) = crossFlowMixture(cflux(:, 1:3), compi(:, 1:3), map);
-                    for c = 1:ncomp
-                        if ~isempty(componentPhaseFlux{c, ph})
-                            if (c < 4)
+                    if 0
+                        compi(:, 1:3) = compi(:,1:3)./max(sum(compi(:, 1:3),2), 1e-10);
+                        compi(:, 1:3) = crossFlowMixture(cflux(:, 1:3), compi(:, 1:3), map);
+                        for c = 1:ncomp
+                            if ~isempty(componentPhaseFlux{c, ph})
+                                if (c < 4)
+                                    perfCompDens = compi(map.perf2well(perfInjecting), c).*injPerforationDensity{ph};
+                                end
+                                if (c == 4)
+                                    bw = b{ph}(wc(perfInjecting));
+                                    perfCompDens = compi(map.perf2well(perfInjecting), c) .* bw;
+                                end
+                                componentPhaseFlux{c, ph}(perfInjecting) = q(perfInjecting).*perfCompDens;
+                            end
+                        end
+                    else
+                        compi = sc{ph};
+                        compi = compi./max(sum(compi,2), 1e-10);
+                        compi = crossFlowMixture(cflux, compi, map);
+                        for c = 1:ncomp
+                            if ~isempty(componentPhaseFlux{c, ph})
                                 perfCompDens = compi(map.perf2well(perfInjecting), c).*injPerforationDensity{ph};
+                                componentPhaseFlux{c, ph}(perfInjecting) = q(perfInjecting).*perfCompDens;
                             end
-                            if (c == 4)
-                                bw = b{ph}(wc(perfInjecting));
-                                perfCompDens = compi(map.perf2well(perfInjecting), c) .* bw;
-                            end
-                            componentPhaseFlux{c, ph}(perfInjecting) = q(perfInjecting).*perfCompDens;
                         end
                     end
                 end
