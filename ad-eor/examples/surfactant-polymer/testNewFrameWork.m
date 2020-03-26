@@ -53,6 +53,9 @@ gmodel = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, 'disgas
 gmodel.surfactant = false;
 gmodel.nonlinearTolerance = 1e-2;
 gmodel.usingShear=false;
+
+gmodel = gmodel.validateModel();
+gmodel.FacilityModel.toleranceWellRate = 1e-3;
 % schedule.control(2).W(1).cp = 0;
 
 scheduleGP = schedule;
@@ -85,7 +88,7 @@ bomodel.nonlinearTolerance = 1e-2;
 %     title(class(groups{i}));
 % end
 
-%%
+%% 
 plotWellSols({wellSolsGP, wellSolsP, wellSolsBO}, 'datasetnames', {'New', 'Old', 'NoPolymer'})
 
 
