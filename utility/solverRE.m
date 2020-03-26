@@ -23,7 +23,7 @@ function [psi_ad, psi_m, iter] = solverRE(psi_ad, psi_n, psiEq, ...
 %
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-re-biot module.
 
