@@ -88,6 +88,10 @@ sides = ext_f(~ismember(ext_f, [z_min; z_max])); % idx of sides faces
 
 %% Declaring physical parameters
 
+% Due to the low permeability of the clay, we need to use a simple scaling
+% technique to avoid singular matrices while inverting local mpfa systems
+scale = 1E10;
+
 % Mechanics parameters (Kaolinite (BS) Table 2 -> Mondol et al, 2008)
 lambda_s = 1.229E11 .* ones(Nc, 1);  % [Pa] first Lame parameter
 mu_s = 4.7794E10 .* ones(Nc, 1);     % [Pa] second Lame parameter
@@ -101,7 +105,7 @@ K_sat = soil.K_s;            % [m/s] saturated hydraulic conduct.
 rho_w = 1014;                % [kg/m^3] water density
 g = 9.8006;                  % [m/s^2] gravity acceleration
 gamma = rho_w * g;           % [Pa/m] specific gravity
-mu_w = 1 * centi * poise;    % [Pa*s] water dynamic viscosity
+mu_w = 0.001 * scale;        % [Pa*s] water dynamic viscosity
 k = K_sat*mu_w/gamma;        % [m^2] intrinsic permeability
 rock.perm = k * ones(Nc, 1); % permeability structure
 n = soil.theta_s;            % [-] porosity
@@ -121,7 +125,6 @@ C_m = 2.17E-10;               % [1/Pa] porous medium compressibility
 alpha_biot = 1 - C_s/C_m;     % [-] Biot's coefficient
 
 %% Calling water rentention model
-
 [S_w, krw, C_S] = vanGenuchtenMualemSw(aVan, S_r, nVan, mVan);
 
 %% Boundary conditions
@@ -160,7 +163,7 @@ EMax = vMax * topArea;    % [m^3/s] maximum evaporation flux
 % top face. Note that we mulitply by the viscosity, since the 
 % treatment of the boundary conditions for the mpfa routine assumes
 % unit viscosity.
-Qtop_f = vMax .* mu_w .* A(z_min) ; % [m^3/s] Top boundary
+Qtop_f = vMax .* mu_w .* A(z_min); % [m^3/s] Top boundary
 
 % Creating the boundary structure for flux controlled BC
 bcFlow_f            = addBC([], z_min, 'flux', Qtop_f);     
@@ -199,7 +202,7 @@ divS        = @(x) mpsa_discr.div * x; % divergence of stress
 F_f         = @(x) mpfa_discr_flux.F * x; % flux (flux-control)
 F_p         = @(x) mpfa_discr_pres.F * x; % flux (p-control)
 boundF_f    = @(x) mpfa_discr_flux.boundFlux * x; % bcflux (flux-control)
-boundF_p    = @(x) mpfa_discr_pres.boundFlux * x; % bocflux (p-control)
+boundF_p    = @(x) mpfa_discr_pres.boundFlux * x; % bcflux (p-control)
 divF        = @(x) mpfa_discr_flux.div * x; % divergence of flux
 
 %% Creating AD variables
@@ -363,8 +366,7 @@ while (timeCum < simTime) && (pControlled == true)
         u_ad, u_n, pEq1, pEq2_p, uEq1, uEq2, tau, sourceFlow, sourceMech, ...
         timeCum, tol, maxIter);
     
-    fluxTemp = Q_p(p_act.val, p_m); 
-    krwTemp = krwUp_p(p_m);
+    fluxTemp = Q_p(p_act.val, p_m); krwTemp = krwUp_p(p_m);
     p_top = computeTopPressure(G, p_act, fluxTemp, gamma, mu_w, k, krw);
        
     % Calling time stepping routine
