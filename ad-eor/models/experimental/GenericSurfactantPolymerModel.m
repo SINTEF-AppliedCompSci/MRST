@@ -6,6 +6,9 @@ classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & Exte
     methods
         function model = GenericSurfactantPolymerModel(G, rock, fluid, varargin)
             model = model@ThreePhaseSurfactantPolymerModel(G, rock, fluid, varargin{:});
+            % FIXME: not sure what is the best way to do the following
+            model.operators.veloc = computeVelocTPFA(G, model.operators.internalConn);
+            model.operators.sqVeloc = computeSqVelocTPFA(G, model.operators.internalConn);
             model.OutputStateFunctions = {'ComponentTotalMass'};
         end
 
@@ -26,7 +29,7 @@ classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & Exte
                 eor_names{end+1} = 'surfactant';
             end
             [eor_vars, eor_origin] = deal(cell(1, numel(eor_names)));
-            [eor_vars{:}] = model.getProp(state, eor_names{:});
+            [eor_vars{:}] = model.getProps(state, eor_names{:});
             [eor_origin{:}] = deal(current);
             
             isRes = strcmp(origin, current);
