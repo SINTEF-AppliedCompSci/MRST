@@ -1,10 +1,10 @@
-function [p_ad, p_m, u_ad, iter] = solverUnsatBiot(G, p_ad, p_n, ...
-    u_ad, u_n, pEq1, pEq2, uEq1, uEq2, tau, sourceFlow, sourceMech, ...
+function [p, p_m, u, iter] = solverUnsatBiot(G, p_n, u_n, ...
+    pEq1, pEq2, uEq1, uEq2, tau, sourceFlow, sourceMech, ...
     currentTime, tol, maxIter)
 % Newton solver for the equations of unsaturated poroelasticity
 %
 % SYNOPSIS:
-%   function [p_ad, p_m, u_ad, iter] = newtonSolverUnsatBiot(G, p_ad, p_n, ...
+%   function [p, p_m, u_, iter] = solverUnsatBiot(G, p_ad, p_n, ...
 %       u_ad, u_n, pEq1, pEq2, uEq1, uEq2, tau, sourceFlow, sourceMech, ...
 %       currentTime, tol, maxIter)
 %
@@ -55,6 +55,10 @@ iter = 1;           % maximum number of iterations
 Nd = G.griddim;     % grid dimension
 Nc = G.cells.num;   % number of cells
 
+% Initializing AD-variables
+p_ad = initVariablesADI(p_n);
+u_ad = initVariablesADI(u_n);
+
 % Newton loop
 while (res > tol) && (iter <= maxIter)
     
@@ -84,3 +88,6 @@ while (res > tol) && (iter <= maxIter)
     end
     
 end
+
+p = p_ad.val; % updating pressure value
+u = u_ad.val; % updating displacement value

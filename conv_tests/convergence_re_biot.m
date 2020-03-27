@@ -71,7 +71,7 @@ gamma = rho_w * g;      % specific gravity
 C_w = 1;                % fluid compressibility
 mu_w = 1;               % fluid dynamics viscosity
 k = 1;                  % intrinsic permeability
-rock.perm = repmat([k, k], [G.cells.num, 1]); % creating perm structure
+rock.perm = k * ones(G.cells.num, 1); % creating perm structure
 n = 0.4;                % reference porosity
 
 % Water retention curves (van Genuchten - Mualem)
@@ -168,10 +168,6 @@ F = @(x) mpfa_discr.F * x;                  % flux discretization
 boundF = @(x) mpfa_discr.boundFlux * x;     % boundary flow discretization
 divF = @(x) mpfa_discr.div * x;             % divergence of the flux
 
-% Creating AD variables
-p_ad = initVariablesADI(p_init);
-u_ad = initVariablesADI(u_init);
-
 % Time parameters
 iniTime = 0;  % intial simulation time
 simTime = 1;  % final simulation time 
@@ -181,7 +177,7 @@ tau = diff(times); % time steps
 % Retrieving analytical forms: Note that these are stored as function
 % handles and retrieved from data/exactFormsREBiot.mat
 
-load('../data/exactFormsREBiot.mat','exactREBiot')
+load('exactFormsREBiot.mat','exactREBiot')
 p_ex     = exactREBiot.pressure;
 fflow_ex = exactREBiot.sourceFlow;
 q_ex     = exactREBiot.velocity;
@@ -218,11 +214,13 @@ pEq2  = @(p, p_n, p_m, tau, f_flow)  ...
 tt = 1; % time counter
 tol = 1E-8; % tolerance
 maxIter = 10; % maximum number of iterations
+p = p_init; % current pressure
+u = u_init; % current displacement
 while times(tt) < simTime
     
-    p_n = p_ad.val; % current time level (n-index) 
-    u_n = u_ad.val; % current time level (n-index)
-    tt = tt + 1;    % increasing time counter
+    p_n = p;      % current time level (n-index) 
+    u_n = u;      % current time level (n-index)
+    tt = tt + 1;  % increasing time counter
     
     % Source terms
     sourceMech = zeros(G.cells.num * G.griddim, 1);
@@ -232,7 +230,7 @@ while times(tt) < simTime
     sourceFlow = fflow_ex(times(tt), xc, yc);
 
     % Calling Newton solver
-    [p_ad, p_m, u_ad, ~] = solverUnsatBiot(G, p_ad, p_n, u_ad, u_n, ...
+    [p, p_m, u, ~] = solverUnsatBiot(G, p_n, u_n, ...
         pEq1, pEq2, uEq1, uEq2, tau(tt-1), sourceFlow, sourceMech, ...
         times(tt), tol, maxIter);
     
@@ -262,10 +260,10 @@ T_true(1:G.griddim:end) = sxx .* nu_x + sxy .* nu_y;
 T_true(2:G.griddim:end) = sxy .* nu_x + syy .* nu_y;
 
 % Numerical solutions
-p_num = p_ad.val;          % Numerical pressure 
-u_num = u_ad.val;          % Numerical displacement
-Q_num = Q(p_ad.val, p_m);  % Numerical fluxes
-T_num = T(u_ad.val);       % Numerical traction    
+p_num = p;          % Numerical pressure 
+u_num = u;          % Numerical displacement
+Q_num = Q(p, p_m);  % Numerical fluxes
+T_num = T(u);       % Numerical traction    
 
 % Computing errors
 e_p = sqrt(sum(V .* (p_true - p_num).^2)) ./ sqrt(sum(V .* p_true.^2));

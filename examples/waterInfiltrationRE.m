@@ -54,8 +54,8 @@ theta_s = soil.theta_s;                      % [-] Saturation soil moisture
 theta_r = soil.theta_r;                      % [-] Residual soil moisture
 
 %% Water retention curves
-[theta, krw, C_theta] = vanGenuchtenMualemTheta(alpha, theta_s, ...
-                                                theta_r, nVan, mVan);
+[theta, krw, C_theta] = vanGenuchtenMualemTheta(alpha, theta_s, theta_r, ...
+    nVan, mVan);
 
 %% Boundary and Initial Conditions
 
@@ -91,9 +91,6 @@ F       = @(x) mpfa_discr.F * x;
 boundF  = @(x) mpfa_discr.boundFlux * x; 
 % Discrete divergence
 divF    = @(x) mpfa_discr.div * x;       
-
-%% Creating AD variable
-psi_ad = initVariablesADI(psi_init);  % Initial value set to psi_init
 
 %% Time parameters
 simTime = 72 * hour; % [s] final simulation time
@@ -132,15 +129,16 @@ sol.flux  = cell(printLevels,1);  % flux
 %% Time loop
 tol = 1E-6; % tolerance
 maxIter = 10; % maximum number of iterations
+psi = psi_init;
 while timeCum < simTime
     
-    psi_n = psi_ad.val;             % [m] current time step h (n-index)
+    psi_n = psi;                    % [m] current time step h (n-index)
     timeCum = timeCum + tau;        % [s] cumulative time
     source = zeros(G.cells.num,1);  % source term equal to zero
             
     % Newton loop
-    [psi_ad, psi_m, iter] = solverRE(psi_ad, psi_n, psiEq, tau, ...
-        source, timeCum, tol, maxIter);
+    [psi, psi_m, iter] = solverRE(psi_n, psiEq, tau, source, timeCum, ...
+        tol, maxIter);
                     
     % Time stepping routine
     [tau, pp] = timeStepping(tau, tau_min, tau_max, simTime, timeCum, ...
@@ -149,9 +147,9 @@ while timeCum < simTime
     % Storing solutions at each printing time
     if timeCum == printTimes(ee)
         sol.time(ee,1) = timeCum;
-        sol.psi{ee,1} = psi_ad.val;
-        sol.theta{ee,1} = theta(psi_ad.val);
-        sol.flux{ee,1} = Q(psi_ad.val, psi_m);
+        sol.psi{ee,1} = psi;
+        sol.theta{ee,1} = theta(psi);
+        sol.flux{ee,1} = Q(psi, psi_m);
         ee = ee + 1;   
     end
     
