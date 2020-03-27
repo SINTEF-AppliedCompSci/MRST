@@ -1,9 +1,14 @@
-function buildMexOperators(rebuild, varargin)
-    opt = struct('names', {{}});
-    opt = merge_options(opt, varargin{:});
-    if nargin == 0
+function buildMexOperators(varargin)
+% Build MEX operators for automatic differentiation
+    if mod(nargin, 2) == 1
+        rebuild = varargin{1};
+        varargin = varargin(2:end);
+    else
         rebuild = false;
     end
+    opt = struct('names', {{}});
+    opt = merge_options(opt, varargin{:});
+
     
     [filenames, paths] = get_names(opt);
     
