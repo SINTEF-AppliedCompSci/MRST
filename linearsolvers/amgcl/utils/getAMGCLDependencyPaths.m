@@ -157,8 +157,8 @@ function status = do_download_library(msg)
         title = 'Missing dependency';
         choice = questdlg(msg, title, 'Yes', 'No', 'Yes');
     else
-        prompt = [msg, ' y/n [y]: '];
-        choice = input(prompt, 's');
+        disp(msg);
+        choice = input(' y/n [y]: ', 's');
     end
 
     status = strcmpi(choice, 'y') || strcmpi(choice, 'yes');
