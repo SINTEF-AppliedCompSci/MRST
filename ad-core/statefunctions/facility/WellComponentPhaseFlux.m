@@ -25,7 +25,7 @@ classdef WellComponentPhaseFlux < StateFunction
             b = model.getProps(state, 'ShrinkageFactors');
             wc = map.cells;
             W = map.W;
-            nw = numel(W);
+            % nw = numel(W);
             nperf = numel(wc);
 
             perfTotalFlux = sum(value(phaseFlux), 2);

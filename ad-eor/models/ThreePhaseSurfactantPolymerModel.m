@@ -132,7 +132,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             pvtreg  = pp.getRegionPVT(model);
             satreg  = fp.getRegionSaturation(model);
             surfreg = fp.getRegionSurfactant(model);
-            nph = model.getNumberOfPhases();
+            % nph = model.getNumberOfPhases();
             
             % We set up EOR viscosities and relative permeabilities. They are computed from
             % the black-oil value by using a multiplier approach, where we have

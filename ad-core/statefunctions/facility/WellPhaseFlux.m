@@ -26,6 +26,27 @@ classdef WellPhaseFlux < StateFunction
             Tdp = -wi.*dp;
             vTdp = value(Tdp);
             injection = vTdp > 0;
+            % for polymer injecting, we need to modify the injecting
+            % mobility
+            if (isprop(model.ReservoirModel, 'polymer'))
+                if model.ReservoirModel.polymer
+                    cp = model.ReservoirModel.getProps(state, 'polymer');
+                    % TODO: we might need to only do this to injection well
+                    % instead of all the injection perforations
+                    % how to handle the crossflow of polymer remains to be
+                    % fixed
+                    wc_inj = (map.cells(injection));
+                    cp_inj = cp(wc_inj);
+                    wIx = 1;
+                    mobw_injw = mobw{wIx}(injection);
+                    
+                    viscpmult = model.ReservoirModel.getProps(state, 'PolymerViscMultiplier');
+                    viscpmult_inj = viscpmult(wc_inj);
+                    viscpmultfull = model.ReservoirModel.fluid.muWMult(cp_inj);
+                    mobw{wIx}(injection) = mobw_injw ./ viscpmultfull .* viscpmult_inj;
+                end
+            end
+
             production = ~injection & vTdp ~= 0;
             crossflow = (injection & ~isInjector) | ...
                         (production & isInjector);
