@@ -351,19 +351,21 @@ classdef DiagonalJacobian
                                     u.diagonal(s.subs{1}, :) = v.diagonal;
                                 end
                             else
-                                if subsetsEqualNoZeroCheck(u, v)
+                                usub = u.subset;
+                                vsub = v.subset;
+                                if subsetsEqualNoZeroCheck(u, v, usub, vsub)
                                     % If the subsets match directly, we are
                                     % ready
                                     allowDiag = true;
-                                elseif isempty(u.subset)
+                                elseif isempty(usub)
                                     % Check that we are inserting into
                                     % right position for diagonal to make
                                     % sense
-                                    allowDiag = ~isempty(v.subset) && u.compareIndices(u, s.subs{1}, v.subset);
+                                    allowDiag = ~isempty(vsub) && u.compareIndices(u, s.subs{1}, vsub);
                                 else
                                     % u.subset is not zero
-                                    allowDiag = u.compareIndices(u, s.subs{1}, u.subset(s.subs{1})) &&...
-                                                u.compareIndices(u, s.subs{1}, v.subset);
+                                    allowDiag = u.compareIndices(u, s.subs{1}, usub(s.subs{1})) &&...
+                                                u.compareIndices(u, s.subs{1}, vsub);
                                 end
 
                                 if allowDiag
@@ -374,9 +376,9 @@ classdef DiagonalJacobian
                                     else
                                         u.diagonal(s.subs{1}, :) = v.diagonal;
                                     end
-                                    if ~isempty(u.subset) && ~isempty(v.subset)
+                                    if ~isempty(usub) && ~isempty(vsub)
                                         % Handle zero (wild card) subsets
-                                        u.subset(s.subs{1}) = max(u.subset(s.subs{1}), v.subset);
+                                        u.subset(s.subs{1}) = max(usub(s.subs{1}), vsub);
                                     end
                                 else
                                     u = u.sparse();
