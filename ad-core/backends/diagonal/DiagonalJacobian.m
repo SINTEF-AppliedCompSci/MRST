@@ -267,30 +267,31 @@ classdef DiagonalJacobian
             else
                 switch s(1).type
                     case '()'
+                        ix = s(1).subs{1};
                         if u.isZero
-                            if ~ischar(s(1).subs{1})
-                                u = u.toZero(numel(s(1).subs{1}));
+                            if ~ischar(ix)
+                                u = u.toZero(numel(ix));
                             end
                         elseif numel(s(1).subs) == 2 && ischar(s(1).subs{2})
-                            if any(s(1).subs{1})
+                            if any(ix)
                                 if u.rowMajor
-                                    u.diagonal = u.diagonal(:, s(1).subs{1});
+                                    u.diagonal = u.diagonal(:, ix);
                                 else
-                                    u.diagonal = u.diagonal(s(1).subs{1}, :);
+                                    u.diagonal = u.diagonal(ix, :);
                                 end
                             else
                                 u = u.toZero(0);
                             end
                             
                             if isempty(u.subset)
-                                if ischar(s(1).subs{1})
+                                if ischar(ix)
                                     % Do nothing
                                 else
-                                    u.subset = reshape(s(1).subs{1}, [], 1);
+                                    u.subset = reshape(ix, [], 1);
                                 end
                             else
                                 subs = u.getSubset();
-                                u.subset = subs(s(1).subs{1});
+                                u.subset = subs(ix);
                             end
                         else
                             u = u.sparse();
@@ -306,6 +307,7 @@ classdef DiagonalJacobian
                 end
             end
         end
+
         function u = subsasgn(u, s, v)
             if strcmp(s(1).type, '.')
                 u = builtin('subsasgn',u,s,v);
