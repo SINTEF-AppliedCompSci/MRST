@@ -5,29 +5,34 @@ function buildMexOperators(rebuild, varargin)
         rebuild = false;
     end
     
-    filenames = get_names(opt);
+    [filenames, paths] = get_names(opt);
     
     if rebuild
-        delete_compiled_files(filenames);
+        delete_compiled_files(filenames, paths);
     end
-    build_files(filenames);
+    build_files(filenames, paths);
 end
 
-function build_files(names)
+function build_files(names, paths)
     for i = 1:numel(names)
         n = names{i};
-        try
-            timer = tic();
-            fprintf('Building MEX file %s\n', n)
-            eval(n);
-            fprintf('%s built in %2.2fs\n', n, toc(timer));
-        catch
-            fprintf('Compilation FAILED for %s. Run %s() to manually recompile and see errors.\n', n, n);
+        p = paths{i};
+        if exist(p, 'file')
+            fprintf('%s is already compiled -> OK!\n', names{i});
+        else
+            try
+                timer = tic();
+                fprintf('Building MEX file %s...\n', n)
+                eval(n);
+                fprintf('Extension built in %2.2fs -> OK!\n', toc(timer));
+            catch
+                fprintf('Compilation FAILED for %s. Run %s() to manually recompile and see errors.\n', n, n);
+            end
         end
     end
 end
 
-function names = get_names(opt)
+function [names, paths] = get_names(opt)
     if isempty(opt.names)
         names = {'mexDiscreteDivergenceJac', ...
                  'mexDiscreteDivergenceVal', ...
@@ -45,20 +50,31 @@ function names = get_names(opt)
             names = {names};
         end
     end
-end
-
-function delete_compiled_files(names)
+    n = numel(names);
     pth = fullfile(mrstPath('ad-core'), 'backends',...
                             'diagonal', 'operators', 'mex');
 
     ext = mexext();
+    paths = cell(n, 1);
+    for i = 1:n
+        n = names{i};
+        paths{i} = fullfile(pth, sprintf('%s.%s', n, ext));
+    end
+end
+
+function delete_compiled_files(names, paths)
     for i = 1:numel(names)
         n = names{i};
-        fp = fullfile(pth, sprintf('%s.%s', n, ext));
+        fp = paths{i};
         if exist(fp, 'file')
-            fprintf('Removing MEX file %s\n', n)
+            fprintf('Removing MEX file %s ', n)
             clear(n);
             delete(fp);
+            if exist(fp, 'file')
+                fprintf('-> FAILURE. Unable to delete. Is it loaded in another session?\n');
+            else
+                fprintf('-> OK!\n');
+            end
         end
     end
     rehash
