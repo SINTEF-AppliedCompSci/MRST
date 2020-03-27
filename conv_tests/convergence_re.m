@@ -57,7 +57,7 @@ nu_y = G.faces.normals(:, 2);       % face normals in y-direction
 
 % Rock
 k = 1;  % intrinsic permeability
-rock.perm = repmat([k, k], [G.cells.num, 1]); % creating perm structure
+rock.perm = k * ones(G.cells.num, 1); % creating perm structure
 
 % Water retention curves (van Genuchten - Mualem)
 alpha = 0.04;       % Equation parameter
@@ -105,9 +105,6 @@ F = @(x) mpfa_discr.F * x;               % flux discretization
 boundF = @(x) mpfa_discr.boundFlux * x;  % boundary discretization
 divF = @(x) mpfa_discr.div * x;          % divergence of the flux
 
-% Creating AD variable
-psi_ad = initVariablesADI(psi_init);
-
 % Time parameters
 iniTime = 0;  % intial simulation time
 simTime = 1;  % final simulation time 
@@ -117,7 +114,7 @@ tau = diff(times); % time steps
 % Retrieving analytical forms: Note that these are stored as function
 % handles and retrieved from data/exactFormsRE.mat
 
-load('../data/exactFormsRE.mat', 'exactRE');
+load('exactFormsRE.mat', 'exactRE');
 psi_ex = exactRE.psi;
 f_ex = exactRE.source;
 q_ex = exactRE.velocity;
@@ -137,33 +134,33 @@ psiEq = @(psi, psi_n, psi_m, tau, source) (V ./ tau) .* ( ...
                             
 % Time loop
 
-tt = 1;         % time counter
-tol = 1E-8;     % tolerance
-maxIter = 10;   % maximum number of iterations
+tt = 1;          % time counter
+tol = 1E-8;      % tolerance
+maxIter = 10;    % maximum number of iterations
+psi = psi_init;  % current pressure head
 
 while times(tt) < simTime
     
-    psi_n = psi_ad.val; % current time level (n-index)    
-    tt = tt + 1;        % increasing time counter
+    psi_n = psi;  % current time level (n-index)    
+    tt = tt + 1;  % increasing time counter
     source = f_ex(times(tt), xc, yc);  % Obtaining source term
 
     % Calling newton solver
-    [psi_ad, psi_m, ~] = solverRE(psi_ad, psi_n, psiEq, ...
-                                        tau(tt-1), source, times(tt), ...
-                                        tol, maxIter);                                                                                 
+    [psi, psi_m, ~] = solverRE(psi_n, psiEq, tau(tt-1), source, ...
+        times(tt), tol, maxIter);                                                                                 
 end
 
 % Collecting results and computing error
 
 % True solution
-psi_true = psi_ex(simTime, xc, yc);           % Exact pressure head
-q_true = q_ex(simTime, xf, yf);               % Exact velocity field
-Q_true = q_true(1:G.faces.num) .* nu_x ...    % Exact (normal) fluxes
-         + q_true(G.faces.num+1:end) .* nu_y; %
+psi_true = psi_ex(simTime, xc, yc);            % Exact pressure head
+q_true = q_ex(simTime, xf, yf);                % Exact velocity field
+Q_true = q_true(1:G.faces.num) .* nu_x ...     % Exact (normal) fluxes
+         + q_true(G.faces.num+1:end) .* nu_y;  %
 
 % Numerical solution
-psi_num = psi_ad.val;                         % Numerical pressure head
-Q_num = q(psi_ad.val, psi_m);                 % Numerical fluxes
+psi_num = psi;                                 % Numerical pressure head
+Q_num = q(psi, psi_m);                         % Numerical fluxes
 
 % Computing errors
 errorPsi = sqrt(sum(V .* (psi_true - psi_num).^2)) ... 

@@ -1,4 +1,4 @@
-function pTop = computeTopPressure(G, p_act, flux, gamma, mu_w, k, krw)
+function pTop = computeTopPressure(G, p, flux, gamma, mu_w, k, krw)
 % Get minimum pressure of the top layer using TPFA
 %
 % SYNOPSIS:
@@ -48,7 +48,7 @@ z_min = find(zf == 0);                  % idx of top faces
 
 % Obtaining minimum value of pTop
 pTop = mean( (((flux(z_min) ./ (A(z_min))) .* zc(1) .* mu_w) ./ ...
-    (mean(krw(p_act.val(1:topCellsNum))) .* k)) - gamma .* ...
+    (mean(krw(p(1:topCellsNum))) .* k)) - gamma .* ...
     (zetaf(z_min) - zetac(1:topCellsNum)) ...
-    + p_act.val(1:topCellsNum));
+    + p(1:topCellsNum));
 end

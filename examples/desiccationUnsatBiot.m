@@ -208,8 +208,8 @@ divF        = @(x) mpfa_discr_flux.div * x; % divergence of flux
 %% Creating AD variables
 u_init = zeros(Nd*Nc,1);            % initial u
 p_init = -0.1 * kilo *  ones(Nc,1); % initial p
-u_ad = initVariablesADI(u_init);    % initializing u_ad
-p_ad = initVariablesADI(p_init);    % initializing p_ad
+%u_ad = initVariablesADI(u_init);    % initializing u_ad
+%p_ad = initVariablesADI(p_init);    % initializing p_ad
 
 %% Time parameters and printing parameters
 simTime = 2*hour;       % [s] final simulation time
@@ -291,14 +291,17 @@ sol.flux      = cell(printLevels, 1);  % flux
 %% Flux controlled time loop
 
 pControlled = false;             % boolean to check bc control status
-p_act = p_ad;                    % actual value of pressure
+p = p_init;                      % current value of pressure
+p_act = p;                       % actual value of pressure
+u = u_init;                      % current value of displacement
 p_top = min(p_init);             % intial top pressure value
 tol = 1E-8;                      % tolerance
 maxIter = 10;                    % maximum number of iterations
+
 while (timeCum < simTime) && (p_top > p_crit) && (pControlled == false)
       
-    p_n = p_ad.val; % current time level (n-index) 
-    u_n = u_ad.val; % current time level (n-index)
+    p_n = p; % current time level (n-index) 
+    u_n = u; % current time level (n-index)
     timeCum = timeCum + tau; % cumulative time
     
     % Source terms
@@ -306,13 +309,13 @@ while (timeCum < simTime) && (p_top > p_crit) && (pControlled == false)
     sourceMech = body(p_n);     % sourceMech = body force
     
     % Calling Newton solver
-    [p_ad, p_m, u_ad, iter] = solverUnsatBiot(G, p_ad, p_n, ...
-        u_ad, u_n, pEq1, pEq2_f, uEq1, uEq2, tau, sourceFlow, sourceMech, ...
+    [p, p_m, u, iter] = solverUnsatBiot(G, p_n, u_n, ...
+        pEq1, pEq2_f, uEq1, uEq2, tau, sourceFlow, sourceMech, ...
         timeCum, tol, maxIter);
     
     % Approximating top pressure
-    fluxTemp = Q_f(p_ad.val, p_m); krwTemp = krwUp_f(p_m);
-    p_top = computeTopPressure(G, p_ad, fluxTemp, gamma, mu_w, k, krw);
+    fluxTemp = Q_f(p, p_m); krwTemp = krwUp_f(p_m);
+    p_top = computeTopPressure(G, p, fluxTemp, gamma, mu_w, k, krw);
     
     % If it is flux controlled, update time step and store solution
     if (p_top > p_crit)
@@ -322,17 +325,17 @@ while (timeCum < simTime) && (p_top > p_crit) && (pControlled == false)
         iter, printTimes, pp);
         
         % Actual pressure
-        p_act = p_ad;
+        p_act = p;
         
         % Storing solutions
         if timeCum == printTimes(ee)
             sol.time(ee,1)      = timeCum;
-            sol.u{ee,1}         = u_ad.val;
-            sol.p{ee,1}         = p_act.val;
+            sol.u{ee,1}         = u;
+            sol.p{ee,1}         = p_act;
             sol.pTop(ee,1)      = p_top;
-            sol.Sw{ee,1}        = S_w(p_act.val);
-            sol.traction{ee,1}  = T(u_ad.val);
-            sol.flux{ee,1}      = Q_f(p_act.val, p_m);
+            sol.Sw{ee,1}        = S_w(p_act);
+            sol.traction{ee,1}  = T(u);
+            sol.flux{ee,1}      = Q_f(p_act, p_m);
             ee = ee + 1;
         end
         
@@ -353,8 +356,8 @@ end
 %% Pressure controlled time loop
 while (timeCum < simTime) && (pControlled == true)
     
-    p_n = p_act.val; % current time level (n-index) 
-    u_n = u_ad.val;  % current time level (n-index)
+    p_n = p_act; % current time level (n-index) 
+    u_n = u;     % current time level (n-index)
     timeCum = timeCum + tau;     % cumulative time
     
     % Source terms
@@ -362,11 +365,11 @@ while (timeCum < simTime) && (pControlled == true)
     sourceMech = body(p_n);     % sourceMech = body force
     
     % Calling Newton solver
-    [p_act, p_m, u_ad, iter] = solverUnsatBiot(G, p_act, p_n, ...
-        u_ad, u_n, pEq1, pEq2_p, uEq1, uEq2, tau, sourceFlow, sourceMech, ...
+    [p_act, p_m, u, iter] = solverUnsatBiot(G, p_n, u_n, ...
+        pEq1, pEq2_p, uEq1, uEq2, tau, sourceFlow, sourceMech, ...
         timeCum, tol, maxIter);
     
-    fluxTemp = Q_p(p_act.val, p_m); krwTemp = krwUp_p(p_m);
+    fluxTemp = Q_p(p_act, p_m); krwTemp = krwUp_p(p_m);
     p_top = computeTopPressure(G, p_act, fluxTemp, gamma, mu_w, k, krw);
        
     % Calling time stepping routine
@@ -376,12 +379,12 @@ while (timeCum < simTime) && (pControlled == true)
     % Storing solutions
     if timeCum == printTimes(ee)
         sol.time(ee,1)      = timeCum;
-        sol.u{ee,1}         = u_ad.val;
-        sol.p{ee,1}         = p_act.val;
+        sol.u{ee,1}         = u;
+        sol.p{ee,1}         = p_act;
         sol.pTop(ee,1)      = p_crit;
-        sol.Sw{ee,1}        = S_w(p_act.val);
-        sol.traction{ee,1}  = T(u_ad.val);
-        sol.flux{ee,1}      = Q_p(p_act.val, p_m);
+        sol.Sw{ee,1}        = S_w(p_act);
+        sol.traction{ee,1}  = T(u);
+        sol.flux{ee,1}      = Q_p(p, p_m);
         ee = ee + 1;
     end
     

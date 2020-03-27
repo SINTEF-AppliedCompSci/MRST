@@ -6,7 +6,7 @@
 % Author: Jhabriel Varela. E-mail: Jhabriel.Varela@uib.no. 
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-unsat module.
 

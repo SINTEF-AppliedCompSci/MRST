@@ -1,13 +1,12 @@
-function [psi_ad, psi_m, iter] = solverRE(psi_ad, psi_n, psiEq, ...
-    tau, source, currentTime, tol, maxIter)
+function [psi, psi_m, iter] = solverRE(psi_n, psiEq, tau, source, ...
+    currentTime, tol, maxIter)
 % Newton solver for the Richards' equation
 %
 % SYNOPSIS:
-%   function [psi_ad, psi_m, iter] = newtonSolverRE(psi_ad, psi_n, psiEq, ...
-%       tau, source, currentTime)
+%   function [psi, psi_m, iter] = solverRE(psi_n, psiEq, tau, source, ..
+%   currentTime, tol, maxIter)
 %
 % PARAMETERS:
-%   psi_ad       - AD-object, pressure head AD-variable.
 %   psi_n        - Vector, pressure head evaluated at the last time level.
 %   psiEq        - Function, pressure head equation, i.e. mass balance eq.
 %   tau          - Scalar, time step
@@ -17,7 +16,7 @@ function [psi_ad, psi_m, iter] = solverRE(psi_ad, psi_n, psiEq, ...
 %   maxIter      - Scalar, maximum number of iterations
 %
 %  RETURNS:
-%   psi_ad       - AD-object, updated pressure head AD-variable.
+%   psi          - AD-object, updated pressure head AD-variable.
 %   psi_m        - Vector, pressure head evaluated at the last iteration.
 %   iter         - Scalar, number of iterations needed for convergence
 %
@@ -43,7 +42,10 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 
 res = 100;      % residual value
 iter = 1;       % iterations
-    
+
+% Initaliazing AD-variable
+psi_ad = initVariablesADI(psi_n); 
+
 % Newton loop
 while (res > tol) && (iter <= maxIter)
     
@@ -64,5 +66,6 @@ while (res > tol) && (iter <= maxIter)
     else
         iter = iter + 1;
     end
-    
 end
+
+psi = psi_ad.val; % updated pressure head
