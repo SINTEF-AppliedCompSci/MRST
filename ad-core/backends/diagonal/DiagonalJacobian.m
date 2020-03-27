@@ -316,18 +316,20 @@ classdef DiagonalJacobian
                         vD = isa(v, 'DiagonalJacobian');
 
                         if uD && vD
-                            if u.isZero && v.isZero
-                                return
-                            end
-                            if v.isZero
+                            uz = u.isZero();
+                            vz = v.isZero();
+                            if uz && vz
+                                % Both are zero - nothing to do
+                                return;
+                            elseif vz
+                                % We are inserting a zero Jacobian
                                 if u.rowMajor
                                     u.diagonal(:, s.subs{1}) = 0;
                                 else
                                     u.diagonal(s.subs{1}, :) = 0;
                                 end
-                                return
-                            end
-                            if u.isZero
+                            elseif uz
+                                % We are inserting into a zero Jacobian
                                 vsub = v.getSubset();
                                 
                                 if isempty(u.subset)
@@ -348,50 +350,57 @@ classdef DiagonalJacobian
                                 else
                                     u.diagonal(s.subs{1}, :) = v.diagonal;
                                 end
-                                return
-                            end
-
-                            if subsetsEqualNoZeroCheck(u, v)
-                                allowDiag = true;
-                            elseif isempty(u.subset)
-                                allowDiag = ~isempty(v.subset) && u.compareIndices(u, s.subs{1}, v.subset);
                             else
-                                % u.subset is not zero
-                                allowDiag = u.compareIndices(u, s.subs{1}, u.subset(s.subs{1})) &&...
-                                            u.compareIndices(u, s.subs{1}, v.subset);
-                            end
-                            
-                            if allowDiag
-                                if u.rowMajor
-                                    u.diagonal(:, s.subs{1}) = v.diagonal;
+                                if subsetsEqualNoZeroCheck(u, v)
+                                    % If the subsets match directly, we are
+                                    % ready
+                                    allowDiag = true;
+                                elseif isempty(u.subset)
+                                    % Check that we are inserting into
+                                    % right position for diagonal to make
+                                    % sense
+                                    allowDiag = ~isempty(v.subset) && u.compareIndices(u, s.subs{1}, v.subset);
                                 else
-                                    u.diagonal(s.subs{1}, :) = v.diagonal;
+                                    % u.subset is not zero
+                                    allowDiag = u.compareIndices(u, s.subs{1}, u.subset(s.subs{1})) &&...
+                                                u.compareIndices(u, s.subs{1}, v.subset);
                                 end
-                                if ~isempty(u.subset) && ~isempty(v.subset)
-                                    % Handle zero (wild card) subsets
-                                    u.subset(s.subs{1}) = max(u.subset(s.subs{1}), v.subset);
+
+                                if allowDiag
+                                    % We can safely insert diagonals. The
+                                    % next step is to actually do it.
+                                    if u.rowMajor
+                                        u.diagonal(:, s.subs{1}) = v.diagonal;
+                                    else
+                                        u.diagonal(s.subs{1}, :) = v.diagonal;
+                                    end
+                                    if ~isempty(u.subset) && ~isempty(v.subset)
+                                        % Handle zero (wild card) subsets
+                                        u.subset(s.subs{1}) = max(u.subset(s.subs{1}), v.subset);
+                                    end
+                                else
+                                    u = u.sparse();
+                                    v = v.sparse();
+                                    u(s.subs{1}, :) = v;
+                                end
+                            end
+                        elseif uD
+                            % v is double
+                            if numel(v) == 1
+                                if u.rowMajor
+                                    u.diagonal(:, s.subs{1}) = v;
+                                else
+                                    u.diagonal(s.subs{1}, :) = v;
                                 end
                             else
                                 u = u.sparse();
-                                v = v.sparse();
-                                u(s.subs{1}, :) = v;
+                                % Re-call to insert sparse matrices
+                                u = subsasgn(u, s, v);
                             end
-                        else
-                            if uD
-                                if numel(v) == 1
-                                    if u.rowMajor
-                                        u.diagonal(:, s.subs{1}) = v;
-                                    else
-                                        u.diagonal(s.subs{1}, :) = v;
-                                    end
-                                    return
-                                end
-                                u = u.sparse();
-                                % This case can be optimized more.
-                            end
-                            if vD
-                                v = v.sparse();
-                            end
+                        elseif vD
+                            % u is double
+                            v = v.sparse();
+                            % Re-call to insert sparse matrices
                             u = subsasgn(u, s, v);
                         end
                     case '{}'
