@@ -34,8 +34,8 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
 R = 8.314; % [J mol^{-1} K^{-1}] universal gas constant
-ambientTemp = ambientTemp + 273.15; % [K] absolute ambient temperature
+temperature = ambientTemp + 273.15; % [K] absolute ambient temperature
 M = 0.018015; % [kg mol^{-1}] molecular weight of water
-p_crit = log(relHumidity/100) * R * ambientTemp * rho_w / M;
+p_crit = log(relHumidity/100) * R * temperature * rho_w / M;
 
 end
