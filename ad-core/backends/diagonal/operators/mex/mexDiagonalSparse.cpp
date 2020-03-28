@@ -10,9 +10,9 @@
 #include <iostream>
 /* MEX gateway */
 
-template <bool rowMajor>
+template <bool rowMajor, typename indexType>
 void jac_to_sparse(const int l, const int n, const int m, const double* diagonal, const double* subset,
-    double* pr, mwIndex* ir, mwIndex* jc) {
+    double* pr, indexType* ir, indexType* jc) {
 #pragma omp parallel for schedule(static)
     for (int index = 0; index < l * n; index++) {
         mwIndex ji, ii;
@@ -38,6 +38,7 @@ void jac_to_sparse(const int l, const int n, const int m, const double* diagonal
     jc[l*n] = l*n;
 }
 
+/*
 template <int has_subset>
 void sparse_rowmajor(const int l, const int n, const int m, const int ncols, const double* diagonal, const double* subset,
     double* pr, mwIndex* ir, mwIndex* jc) {
@@ -68,7 +69,7 @@ void sparse_rowmajor(const int l, const int n, const int m, const int ncols, con
         jc[ncols] = ncols;
     }
 }
-
+*/
 void mexFunction( int nlhs, mxArray *plhs[], 
 		  int nrhs, const mxArray *prhs[] )
      
@@ -89,9 +90,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
         return;
     } else if (nrhs != 4) {
 	    mexErrMsgTxt("4 input arguments required."); 
-    } else if (nlhs > 1) {
-	    mexErrMsgTxt("Wrong number of output arguments."); 
+    } else if (nlhs != 5 && nlhs != 1) {
+	    mexErrMsgTxt("Function must either produce five dense outputs (I, J, V, n, m) or a single sparse output (sparse matrix)."); 
     }
+    bool output_sparse = nlhs < 2;
+
     double * diagonal = mxGetPr(prhs[0]);
     double * subset = mxGetPr(prhs[1]);
     double * dims = mxGetPr(prhs[2]);
@@ -132,20 +135,50 @@ void mexFunction( int nlhs, mxArray *plhs[],
     else {
         m_l = m;
     }
-    plhs[0] = mxCreateSparse(m, l * n, m * n, mxREAL);
-    // Entries
-    double * pr  = mxGetPr(plhs[0]);
-    // Row indices, zero-indexed (direct entries)
-    mwIndex * ir = mxGetIr(plhs[0]);
-    // Column indices, zero-indexed, offset encoded of length l*n + 1
-    mwIndex * jc = mxGetJc(plhs[0]);
-
-    if (rowMajor) {
-        jac_to_sparse<true>(m_l, n, m, diagonal, subset, pr, ir, jc);
+    
+    if (output_sparse) {
+        mwIndex* ir;
+        mwIndex* jc;
+        plhs[0] = mxCreateSparse(m, l * n, m * n, mxREAL);
+        // Row indices, zero-indexed (direct entries)
+        ir = mxGetIr(plhs[0]);
+        // Column indices, zero-indexed, offset encoded of length l*n + 1
+        jc = mxGetJc(plhs[0]);
+        double* pr = mxGetPr(plhs[0]);
+        if (rowMajor) {
+            jac_to_sparse<true>(m_l, n, m, diagonal, subset, pr, ir, jc);
+        }
+        else {
+            jac_to_sparse<false>(m_l, n, m, diagonal, subset, pr, ir, jc);
+        }
     }
     else {
-        jac_to_sparse<false>(m_l, n, m, diagonal, subset, pr, ir, jc);
+        int nrows_out = m * n;
+        plhs[0] = mxCreateDoubleMatrix(nrows_out, 1, mxREAL);
+        plhs[1] = mxCreateDoubleMatrix(nrows_out, 1, mxREAL);
+        plhs[2] = mxCreateDoubleMatrix(nrows_out, 1, mxREAL);
+        // Row indices, zero-indexed (direct entries)
+        double * ir = mxGetPr(plhs[0]);
+        // Column indices, zero-indexed, offset encoded of length l*n + 1
+        double * jc = mxGetPr(plhs[1]);
+        // Entries
+        double* pr = mxGetPr(plhs[2]);
+
+        plhs[3] = mxCreateDoubleMatrix(1, 1, mxREAL);
+        plhs[4] = mxCreateDoubleMatrix(1, 1, mxREAL);
+        
+        double* three = mxGetPr(plhs[3]);
+        three[0] = m;
+        double* four = mxGetPr(plhs[4]);
+        four[0] = l*n;
+        if (rowMajor) {
+            jac_to_sparse<true>(m_l, n, m, diagonal, subset, pr, ir, jc);
+        }
+        else {
+            jac_to_sparse<false>(m_l, n, m, diagonal, subset, pr, ir, jc);
+        }
     }
+
 }
 
 
