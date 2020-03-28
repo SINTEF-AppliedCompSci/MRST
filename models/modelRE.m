@@ -1,23 +1,22 @@
-function model = modelRE(G, phys_param, krw_faces, mpfa_discr)
+function model = modelRE(G, phys, krw_faces, mpfa_discr, bcVal)
 
 % Grid-related quantities
-V = G.cell.volumes;
+zc = G.cells.centroids(:, 3);  % cell centers in z-direction
+zf = G.faces.centroids(:, 3);  % face centers in z-direction
+zetac = max(zf) - zc;          % centroids of cells of elev. head
+V = G.cells.volumes;           % Cell volumes
 
 % Discrete mpfa operators
 F       = @(x) mpfa_discr.F * x;          % Flux  
 boundF  = @(x) mpfa_discr.boundFlux * x;  % Boundary fluxes
 divF    = @(x) mpfa_discr.div * x;        % Divergence
 
-% Physical properties
-fluid = phys_param.fluid;
-vGM   = phys_param.vGM;
-
 % Soil Water Retention Curves (SWRC)
-[theta, krw, C_theta] = vanGenuchtenMualemTheta(vGM.alpha, ...
-    vGM.theta_s, vGM.theta_r, vGM.n, vGM.m);
+[theta, krw, C_theta] = vanGenuchtenMualemTheta(phys.flow.alpha, ...
+    phys.flow.theta_s, phys.flow.theta_r, phys.flow.n, phys.flow.m);
 
 % Darcy Flux
-Q = @(psi, psi_m) (fluid.rho .* fluid.g ./ fluid.mu) .* krw_faces(psi_m) .* ...
+Q = @(psi, psi_m) (phys.flow.gamma ./ phys.flow.mu) .* krw_faces(psi_m) .* ...
     (F(psi + zetac) + boundF(bcVal));
 
 % Mass Conservation                         
@@ -31,4 +30,4 @@ model.theta = theta;        % Consitutive relationship for water content
 model.krw = krw;            % Consitutive relationship for rel perm
 model.C_theta = C_theta;    % Consitutive relationship specific moisture capacity
 model.Q = Q;                % Discrete Darcy equation
-model.psiEQ = psiEq;        % Discrete Mass conservation
+model.psiEq = psiEq;        % Discrete Mass conservation
