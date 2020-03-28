@@ -263,8 +263,7 @@ while (time_param.time < time_param.simTime) && (p_top > p_crit) ...
     
     % Approximating top pressure
     fluxTemp = modelEqsFlux.Q(p, p_m); krwTemp = krwUp_f(p_m);
-    p_top = computeTopPressure(G, p, fluxTemp, phys.flow.gamma,...
-        phys.flow.mu, mean(phys.flow.perm), modelEqsFlux.krw);
+    p_top = computeTopPressure(G, phys, p, fluxTemp, modelEqsFlux);
     
     % If it is flux controlled, update time step and store solution
     if (p_top > p_crit)
@@ -320,9 +319,8 @@ while (time_param.time < time_param.simTime) && (pControlled == true)
     
     % Approximating top pressure
     fluxTemp = modelEqsPres.Q(p_act, p_m); krwTemp = krwUp_p(p_m);
-    p_top = computeTopPressure(G, p_act, fluxTemp, phys.flow.gamma,...
-        phys.flow.mu, mean(phys.flow.perm), modelEqsPres.krw);       
-    
+    p_top = computeTopPressure(G, phys, p_act, fluxTemp, modelEqsPres);
+
     % Calling time stepping routine
     [time_param.tau, print_param.print] = timeStepping(time_param, ...
         print_param, iter);
