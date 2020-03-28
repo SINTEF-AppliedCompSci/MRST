@@ -116,7 +116,7 @@ nVan = soil.n;               % [-] Equation parameter
 mVan = 1 - ( 1 / nVan);      % [-] Equation parameter
 theta_r = soil.theta_r;      % [-] Residual water content
 S_r = theta_r / n;           % [-] Residual saturation
-tempAmbient = 20;            % [C] Ambient temperature
+tempAmbient = 25;            % [C] Ambient temperature
 relHumidity = 50;            % [%] Ambient relative humidity
 p_crit = computeCriticalPressure(tempAmbient, relHumidity, rho_w);
 
