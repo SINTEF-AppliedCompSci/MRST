@@ -1,4 +1,4 @@
-function [krwAr] = arithmeticAverageMPFA(G, bc, krw, pot)
+function [krwAr] = arithmeticAverageMPFA(G, bc, phys, pot)
 % Computes the arithmetic average of the relative permeability
 %
 % SYNOPSIS:
@@ -36,6 +36,9 @@ You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
+% Retrieving relative permeability from SWRC
+[~, krw, ~] = vanGenuchtenMualemTheta(phys.flow.alpha, ...
+    phys.flow.theta_s, phys.flow.theta_r, phys.flow.n, phys.flow.m);
 
 % Extracting topological data
 fNei = G.faces.neighbors;               % extracting faces neighbors
