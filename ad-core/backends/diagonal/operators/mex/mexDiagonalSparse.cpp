@@ -135,10 +135,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
     else {
         m_l = m;
     }
-    
+    mwIndex* ir;
+    mwIndex* jc;
+
     if (output_sparse) {
-        mwIndex* ir;
-        mwIndex* jc;
         plhs[0] = mxCreateSparse(m, l * n, m * n, mxREAL);
         // Row indices, zero-indexed (direct entries)
         ir = mxGetIr(plhs[0]);
@@ -154,16 +154,16 @@ void mexFunction( int nlhs, mxArray *plhs[],
     }
     else {
         int nrows_out = m * n;
-        plhs[0] = mxCreateDoubleMatrix(nrows_out, 1, mxREAL);
-        plhs[1] = mxCreateDoubleMatrix(nrows_out, 1, mxREAL);
+        plhs[0] = mxCreateNumericMatrix(nrows_out, 1, mxUINT64_CLASS, mxREAL); // We have no way of allocating mwIndex (size_t). So we hope for the best and allocate uint64...
+        plhs[1] = mxCreateNumericMatrix(nrows_out, 1, mxUINT64_CLASS, mxREAL);
         plhs[2] = mxCreateDoubleMatrix(nrows_out, 1, mxREAL);
         // Row indices, zero-indexed (direct entries)
-        double * ir = mxGetPr(plhs[0]);
+        ir = (mwIndex *) mxGetData(plhs[0]);
         // Column indices, zero-indexed, offset encoded of length l*n + 1
-        double * jc = mxGetPr(plhs[1]);
+        jc = (mwIndex *) mxGetData(plhs[1]);
         // Entries
         double* pr = mxGetPr(plhs[2]);
-
+        // mxGetData
         plhs[3] = mxCreateDoubleMatrix(1, 1, mxREAL);
         plhs[4] = mxCreateDoubleMatrix(1, 1, mxREAL);
         
