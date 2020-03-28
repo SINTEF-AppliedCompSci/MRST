@@ -1,5 +1,5 @@
-function [psi, psi_m, iter] = solverRE(psi_n, psiEq, tau, source, ...
-    currentTime, tol, maxIter)
+function [psi, psi_m, iter] = solverRE(psi_n, modelEqs, time_param, solver_param, ...
+    source)
 % Newton solver for the Richards' equation
 %
 % SYNOPSIS:
@@ -47,10 +47,10 @@ iter = 1;       % iterations
 psi_ad = initVariablesADI(psi_n); 
 
 % Newton loop
-while (res > tol) && (iter <= maxIter)
+while (res > solver_param.tol) && (iter <= solver_param.maxIter)
     
     psi_m = psi_ad.val; % current iteration level (m-index)
-    eq = psiEq(psi_ad, psi_n, psi_m, tau, source); % call eq
+    eq = modelEqs.psiEq(psi_ad, psi_n, psi_m, time_param.tau, source); % call eq
     R = eq.val;       % residual
     J = eq.jac{1};    % Jacobian
     Y = J\-R;         % solve linear system
@@ -58,10 +58,10 @@ while (res > tol) && (iter <= maxIter)
     res = norm(R); % compute tolerance
     
     % Checking convergence
-    if res <= tol
+    if res <= solver_param.tol
         fprintf('Time: %.2f \t Iter: %d \t Error: %.2e \n',...
-            currentTime, iter, res);
-    elseif iter >= maxIter
+            time_param.time, iter, res);
+    elseif iter >= solver_param.maxIter
         error('Solver failed to converge. Try decreasing tol or increasing maxIter.');
     else
         iter = iter + 1;

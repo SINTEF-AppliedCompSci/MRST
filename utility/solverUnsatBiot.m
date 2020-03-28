@@ -1,6 +1,5 @@
-function [p, p_m, u, iter] = solverUnsatBiot(G, p_n, u_n, ...
-    pEq1, pEq2, uEq1, uEq2, tau, sourceFlow, sourceMech, ...
-    currentTime, tol, maxIter)
+function [p, p_m, u, iter] = solverUnsatBiot(G, p_n, u_n, modelEqs, ...
+    time_param, solver_param, sourceFlow, sourceMech)
 % Newton solver for the equations of unsaturated poroelasticity
 %
 % SYNOPSIS:
@@ -60,15 +59,15 @@ p_ad = initVariablesADI(p_n);
 u_ad = initVariablesADI(u_n);
 
 % Newton loop
-while (res > tol) && (iter <= maxIter)
+while (res > solver_param.tol) && (iter <= solver_param.maxIter)
     
     p_m = p_ad.val; % current iteration level (m-index)
     
     % Calling equations
-    eq1 = uEq1(u_ad);
-    eq2 = uEq2(p_ad, p_n, sourceMech);
-    eq3 = pEq1(p_n, u_ad, u_n);
-    eq4 = pEq2(p_ad, p_n, p_m, tau, sourceFlow);
+    eq1 = modelEqs.uEq1(u_ad);
+    eq2 = modelEqs.uEq2(p_ad, p_n, sourceMech);
+    eq3 = modelEqs.pEq1(p_n, u_ad, u_n);
+    eq4 = modelEqs.pEq2(p_ad, p_n, p_m, time_param.tau, sourceFlow);
     
     J = [eq1.jac{1} eq2.jac{1}; eq3.jac{1}, eq4.jac{1}];  % Jacobian
     R = [eq1.val + eq2.val; eq3.val + eq4.val];           % Residual
@@ -78,10 +77,10 @@ while (res > tol) && (iter <= maxIter)
     res = norm(R);  % compute tolerance
     
     % Checking convergence...
-    if res <= tol
+    if res <= solver_param.tol
         fprintf('Time: %.2f \t Iter: %d \t Error: %.2e \n', ...
-            currentTime, iter, res);
-    elseif iter >= maxIter
+            time_param.time, iter, res);
+    elseif iter >= solver_param.maxIter
         error('Solver failed to converge. Try decreasing tol or increasing maxIter.');
     else
         iter = iter + 1;
