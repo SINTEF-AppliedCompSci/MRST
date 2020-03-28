@@ -118,7 +118,7 @@ theta_r = soil.theta_r;      % [-] Residual water content
 S_r = theta_r / n;           % [-] Residual saturation
 tempAmbient = 25;            % [C] Ambient temperature
 relHumidity = 50;            % [%] Ambient relative humidity
-p_crit = computeCriticalPressure(tempAmbient, relHumidity, rho_w);
+p_crit = computeCriticalPressure(relHumidity, tempAmbient, rho_w);
 
 % Coupling parameters
 C_m = 2.17E-10;               % [1/Pa] porous medium compressibility
@@ -208,8 +208,6 @@ divF        = @(x) mpfa_discr_flux.div * x; % divergence of flux
 %% Creating AD variables
 u_init = zeros(Nd*Nc,1);            % initial u
 p_init = -0.1 * kilo *  ones(Nc,1); % initial p
-%u_ad = initVariablesADI(u_init);    % initializing u_ad
-%p_ad = initVariablesADI(p_init);    % initializing p_ad
 
 %% Time parameters and printing parameters
 simTime = 2*hour;       % [s] final simulation time
@@ -371,7 +369,7 @@ while (timeCum < simTime) && (pControlled == true)
     
     fluxTemp = Q_p(p_act, p_m); krwTemp = krwUp_p(p_m);
     p_top = computeTopPressure(G, p_act, fluxTemp, gamma, mu_w, k, krw);
-       
+    
     % Calling time stepping routine
     [tau, pp] = timeStepping(tau, tau_min, tau_max, simTime, timeCum,...
         iter, printTimes, pp);
