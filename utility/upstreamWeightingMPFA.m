@@ -1,5 +1,5 @@
-function [krwUp] = upstreamWeightingMPFA(G, bc, bcVal, mpfa_discr, krw, ...
-    gamma, pot, typePot, grav)
+function [krwUp] = upstreamWeightingMPFA(G, bc, bcVal, mpfa_discr, ...
+    phys, pot, typePot, grav)
 % Computes the upstream weighting of the relative permeability
 %
 % SYNOPSIS:
@@ -45,6 +45,10 @@ You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
+% Retrieving relative permeability from SWRC
+[~, krw, ~] = vanGenuchtenMualemSw(phys.flow.a, phys.flow.S_r, ...
+    phys.flow.n, phys.flow.m);
+
 % Extracting grid and boundary information
 fNei = G.faces.neighbors;               % extracting faces neighbors
 int_fNei = fNei(all(fNei ~= 0,2),:);    % internal faces neighbors
@@ -75,7 +79,7 @@ end
 if strcmp(typePot, 'psiHead')
     flux = F(pot + zetac) + boundF(bcVal);
 elseif strcmp(typePot, 'pressure')
-    flux = F(pot + gamma.*zetac) + boundF(bcVal);
+    flux = F(pot + phys.flow.gamma.*zetac) + boundF(bcVal);
 else
     error('Potential not recognized. See documentation for valid potentials.')
 end
