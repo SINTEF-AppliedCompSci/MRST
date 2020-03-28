@@ -50,11 +50,11 @@ phys.flow.gamma   = phys.flow.rho * phys.flow.g; % specific gravity
 phys.flow.K       = soil.K_s; % saturated hydraulic conductivity
 phys.flow.perm    = (phys.flow.K * phys.flow.mu / phys.flow.gamma) .* ...
     ones(G.cells.num, 1); % intrinsic permeability
-phys.flow.alpha   = soil.alpha;        % [1/m] Equation parameter
-phys.flow.n       = soil.n;            % [-] Equation parameter
-phys.flow.m       = 1-(1/phys.flow.n); % [-] Equation parameter
-phys.flow.theta_s = soil.theta_s;      % [-] Saturation soil moisture
-phys.flow.theta_r = soil.theta_r;      % [-] Residual soil moisture
+phys.flow.alpha   = soil.alpha / meter; % Equation parameter
+phys.flow.n       = soil.n;             % Equation parameter
+phys.flow.m       = 1-(1/phys.flow.n);  % Equation parameter
+phys.flow.theta_s = soil.theta_s;       % Moisture at saturated conditions
+phys.flow.theta_r = soil.theta_r;       % Residual soil moisture
 
 %% Boundary and Initial Conditions
 
@@ -127,10 +127,8 @@ while time_param.time < time_param.simTime
     [psi, psi_m, iter] = solverRE(psi_n, modelEqs, time_param, ...
         solver_param, source);
                     
-    % Time stepping routine
-    [time_param.tau, print_param.print] = timeStepping(time_param.tau, ...
-        time_param.tau_min, time_param.tau_max, time_param.simTime, ...
-        time_param.time, iter, print_param.times, print_param.print);
+    [time_param.tau, print_param.print] = timeStepping(time_param, ...
+        print_param, iter);
     
     % Storing solutions at each printing time
     if time_param.time == print_param.times(print_param.export)

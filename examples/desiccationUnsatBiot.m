@@ -270,9 +270,8 @@ while (time_param.time < time_param.simTime) && (p_top > p_crit) ...
     if (p_top > p_crit)
         
         % Calling time stepping routine
-        [time_param.tau, print_param.print] = timeStepping(time_param.tau, ...
-            time_param.tau_min, time_param.tau_max, time_param.simTime, ...
-            time_param.time, iter, print_param.times, print_param.print);
+        [time_param.tau, print_param.print] = timeStepping(time_param, ...
+            print_param, iter);
         
         % Actual pressure
         p_act = p;
@@ -319,13 +318,14 @@ while (time_param.time < time_param.simTime) && (pControlled == true)
     [p_act, p_m, u, iter] = solverUnsatBiot(G, p_n, u_n, modelEqsPres, ...
         time_param, solver_param, sourceFlow, sourceMech);
     
+    % Approximating top pressure
     fluxTemp = modelEqsPres.Q(p_act, p_m); krwTemp = krwUp_p(p_m);
     p_top = computeTopPressure(G, p_act, fluxTemp, phys.flow.gamma,...
         phys.flow.mu, mean(phys.flow.perm), modelEqsPres.krw);       
     
-    [time_param.tau, print_param.print] = timeStepping(time_param.tau, ...
-        time_param.tau_min, time_param.tau_max, time_param.simTime, ...
-        time_param.time, iter, print_param.times, print_param.print);
+    % Calling time stepping routine
+    [time_param.tau, print_param.print] = timeStepping(time_param, ...
+        print_param, iter);
     
     % Storing solutions
     if time_param.time == print_param.times(print_param.export)
