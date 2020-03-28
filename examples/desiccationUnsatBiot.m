@@ -404,7 +404,7 @@ fluxTopPlot = zeros(length(sol.time),1);
 psiTopPlot = zeros(length(sol.time),1);
 for ii=1:length(sol.time)
     fluxTopPlot(ii,1) = sum(abs(sol.flux{ii,1}(z_min)) / milli^3);
-    psiTopPlot(ii,1) = (sol.pTop(ii,1)/gamma);
+    psiTopPlot(ii,1) = (sol.pTop(ii,1)/phys.flow.gamma);
 end
 subplot(1,2,1);
 plot(sol.time/hour,psiTopPlot,'r.-','LineWidth',2,'MarkerSize',15);
