@@ -90,7 +90,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
         return;
     } else if (nrhs != 4) {
 	    mexErrMsgTxt("4 input arguments required."); 
-    } else if (nlhs != 5 && nlhs != 1) {
+    } else if (nlhs != 5 && nlhs != 1 && nlhs != 0) {
 	    mexErrMsgTxt("Function must either produce five dense outputs (I, J, V, n, m) or a single sparse output (sparse matrix)."); 
     }
     bool output_sparse = nlhs < 2;
@@ -137,14 +137,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
     }
     mwIndex* ir;
     mwIndex* jc;
-
+    double* pr;
     if (output_sparse) {
         plhs[0] = mxCreateSparse(m, l * n, m * n, mxREAL);
         // Row indices, zero-indexed (direct entries)
         ir = mxGetIr(plhs[0]);
         // Column indices, zero-indexed, offset encoded of length l*n + 1
         jc = mxGetJc(plhs[0]);
-        double* pr = mxGetPr(plhs[0]);
+        pr = mxGetPr(plhs[0]);
         if (rowMajor) {
             jac_to_sparse<true>(m_l, n, m, diagonal, subset, pr, ir, jc);
         }
@@ -155,15 +155,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
     else {
         int nrows_out = m * n;
         plhs[0] = mxCreateNumericMatrix(nrows_out, 1, mxUINT64_CLASS, mxREAL); // We have no way of allocating mwIndex (size_t). So we hope for the best and allocate uint64...
-        plhs[1] = mxCreateNumericMatrix(nrows_out, 1, mxUINT64_CLASS, mxREAL);
+        plhs[1] = mxCreateNumericMatrix(l*n + 1, 1, mxUINT64_CLASS, mxREAL);
         plhs[2] = mxCreateDoubleMatrix(nrows_out, 1, mxREAL);
         // Row indices, zero-indexed (direct entries)
         ir = (mwIndex *) mxGetData(plhs[0]);
         // Column indices, zero-indexed, offset encoded of length l*n + 1
         jc = (mwIndex *) mxGetData(plhs[1]);
         // Entries
-        double* pr = mxGetPr(plhs[2]);
-        // mxGetData
+        pr = mxGetPr(plhs[2]);
         plhs[3] = mxCreateDoubleMatrix(1, 1, mxREAL);
         plhs[4] = mxCreateDoubleMatrix(1, 1, mxREAL);
         

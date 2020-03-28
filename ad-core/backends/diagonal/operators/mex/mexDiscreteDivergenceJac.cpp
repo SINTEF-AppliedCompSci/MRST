@@ -127,9 +127,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
         return;
     } else if (nrhs != 8) {
 	    mexErrMsgTxt("8 input arguments required."); 
-    } else if (nlhs > 1) {
-	    mexErrMsgTxt("Wrong number of output arguments."); 
+    } else if (nlhs != 5 && nlhs != 1 && nlhs != 0) {
+        mexErrMsgTxt("Function must either produce five dense outputs (I, J, V, n, m) or a single sparse output (sparse matrix).");
     }
+    bool output_sparse = nlhs < 2;
     const mxArray * accJac   = prhs[0];
     const mxArray * faceJac  = prhs[1];
     double * N       = mxGetPr(prhs[2]);
@@ -175,15 +176,35 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // Each cell has one self-connection plus the number of half-faces, multiplied by block size
     mwSize nzmax = (facePos[nc] + nc)*m;
     // printf("%d cells %d faces, %d half-faces and %d derivatives \n", nc, nf, nhf, m);
-
-    plhs[0] = mxCreateSparse(nc, nc * m, nzmax, mxREAL);
-
-    // Entries
-    double * pr  = mxGetPr(plhs[0]);
     // Row indices, zero-indexed (direct entries)
-    mwIndex * ir = mxGetIr(plhs[0]);
+    mwIndex* ir;
     // Column indices, zero-indexed, offset encoded of length m*nc + 1
-    mwIndex * jc = mxGetJc(plhs[0]);
+    mwIndex* jc;
+    // Entries
+    double* pr;
+    if (output_sparse) {
+        plhs[0] = mxCreateSparse(nc, nc * m, nzmax, mxREAL);
+
+        pr = mxGetPr(plhs[0]);
+        ir = mxGetIr(plhs[0]);
+        jc = mxGetJc(plhs[0]);
+    }
+    else {
+        plhs[0] = mxCreateNumericMatrix(nzmax, 1, mxUINT64_CLASS, mxREAL); // We have no way of allocating mwIndex (size_t). So we hope for the best and allocate uint64...
+        plhs[1] = mxCreateNumericMatrix(m*nc+1, 1, mxUINT64_CLASS, mxREAL);
+        plhs[2] = mxCreateDoubleMatrix(nzmax, 1, mxREAL);
+        ir = (mwIndex*)mxGetData(plhs[0]);
+        jc = (mwIndex*)mxGetData(plhs[1]);
+        // Entries
+        pr = mxGetPr(plhs[2]);
+        plhs[3] = mxCreateDoubleMatrix(1, 1, mxREAL);
+        plhs[4] = mxCreateDoubleMatrix(1, 1, mxREAL);
+
+        double* three = mxGetPr(plhs[3]);
+        three[0] = nc;
+        double* four = mxGetPr(plhs[4]);
+        four[0] = nc * m;
+    }
     if (rowMajor) {
         // RowMajor
         if (has_accumulation) {
