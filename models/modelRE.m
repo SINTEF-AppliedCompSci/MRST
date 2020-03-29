@@ -56,7 +56,7 @@ else
     error('Gravity argument not recognized. Use either ''on'' or ''off''')
 end
 
-% Soil Water Retention Curves (SWRC)
+% Soil Water Retention Curves (SWRC) for the theta-psi model
 [theta, krw, C_theta] = vGM_theta(phys);
 
 % Discrete mpfa operators
@@ -66,11 +66,10 @@ divF = @(x) mpfa_discr.div * x; % Divergence
 
 % Relative permeability at the faces
 if strcmp(relPermMethod, 'arithmetic')
-    krw_faces = @(psi_m) arithmeticAverageMPFA(G, bc, phys, psi_m, ...
-        'moisture');
+    krw_faces = @(psi_m) arithmeticAverageMPFA(G, krw, bc, psi_m);
 elseif strcmp(relPermMethod, 'upstream')
-    krw_faces = @(psi_m) upstreamWeightingMPFA(G, bc, bcVal, mpfa_discr, ...
-        phys, psi_m, 'moisture', gEffects);
+    krw_faces = @(psi_m) upstreamWeightingMPFA(G, krw, bc, bcVal, ...
+        mpfa_discr, phys, psi_m, 'psi', gEffects);
 else
     error('Method not implemented. Use either ''arithmetic'' or ''upstream''')
 end

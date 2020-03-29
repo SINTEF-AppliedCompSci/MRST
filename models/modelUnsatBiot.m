@@ -84,11 +84,10 @@ divF = @(x) mpfa_discr.div * x; % divergence of flux
 
 % Relative permeability at the faces
 if strcmp(relPermMethod, 'arithmetic')
-    krw_faces = @(p_m) arithmeticAverageMPFA(G, bcFlow, phys, p_m, ...
-        'saturation');
+    krw_faces = @(p_m) arithmeticAverageMPFA(G, krw, bcFlow, p_m);
 elseif strcmp(relPermMethod, 'upstream')
-    krw_faces = @(p_m) upstreamWeightingMPFA(G, bcFlow, bcFlowVals, ...
-        mpfa_discr, phys, p_m, 'saturation', gEffects);
+    krw_faces = @(p_m) upstreamWeightingMPFA(G, krw, bcFlow, bcFlowVals, ...
+        mpfa_discr, phys, p_m, 'pressure', gEffects);
 else
     error('Method not implemented. Use either ''arithmetic'' or ''upstream''')
 end
