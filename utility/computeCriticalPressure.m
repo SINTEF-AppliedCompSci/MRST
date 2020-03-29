@@ -1,21 +1,19 @@
-function p_crit = computeCriticalPressure(relHumidity, ambientTemp, rho_w)
+function p_crit = computeCriticalPressure(phys)
 % Determine critical water pressure according to Simunek et al (2005)
 % https://www.pc-progress.com/Downloads/Pgm_hydrus1D/HYDRUS1D-4.17.pdf 
 %
 % SYNOPSIS:
-%   p_crit = criticalPressure(relHumidity, ambientTemp, rho_w)
+%   p_crit = criticalPressure(phys)
 %
 % PARAMETERS:
-%   relHumidity     - Scalar, relative humidity [%]
-%   ambientTemp     - Scalar, ambient temperature [Celsius]
-%   rho_w           - Scalar, water density [kg/m^3]
+%   phys            - Structure, containing the physical parameters
 %
 %  RETURNS:
-%   p_cri           - Scalar, critical water pressure [Pa]
+%   p_cri           - Scalar, critical water pressure in Pascal.
 %
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-unsat module.
 
@@ -34,8 +32,8 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
 R = 8.314; % [J mol^{-1} K^{-1}] universal gas constant
-temperature = ambientTemp + 273.15; % [K] absolute ambient temperature
 M = 0.018015; % [kg mol^{-1}] molecular weight of water
-p_crit = log(relHumidity/100) * R * temperature * rho_w / M;
+p_crit = log(phys.flow.relativeHumidity) * R * phys.flow.temperature ...
+    * phys.flow.rho / M;
 
 end
