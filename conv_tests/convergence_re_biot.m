@@ -177,7 +177,8 @@ tau = diff(times); % time steps
 % Retrieving analytical forms: Note that these are stored as function
 % handles and retrieved from data/exactFormsREBiot.mat
 
-load('exactFormsREBiot.mat','exactREBiot')
+pth = fullfile(mrstPath('fv-unsat'), 'data', 'exactFormsREBiot.mat');
+load(pth, 'exactREBiot');
 p_ex     = exactREBiot.pressure;
 fflow_ex = exactREBiot.sourceFlow;
 q_ex     = exactREBiot.velocity;

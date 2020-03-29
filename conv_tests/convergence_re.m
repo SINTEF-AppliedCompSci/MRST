@@ -114,7 +114,8 @@ tau = diff(times); % time steps
 % Retrieving analytical forms: Note that these are stored as function
 % handles and retrieved from data/exactFormsRE.mat
 
-load('exactFormsRE.mat', 'exactRE');
+pth = fullfile(mrstPath('fv-unsat'), 'data', 'exactFormsRE.mat');
+load(pth, 'exactRE');
 psi_ex = exactRE.psi;
 f_ex = exactRE.source;
 q_ex = exactRE.velocity;
