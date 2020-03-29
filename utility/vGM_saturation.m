@@ -5,7 +5,7 @@ function [S_w, krw, C_S] = vGM_saturation(phys)
 %   [S_w, krw, C_S] = vGM_saturation(phys)
 %
 % PARAMETERS:
-%   phys     - Structure, containing physical parameters
+%   phys   - Structure, containing physical parameters
 %
 %  RETURNS:
 %   S_w    - Function, Saturation, S_w = S_w(p_w)

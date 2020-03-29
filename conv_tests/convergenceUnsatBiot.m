@@ -2,18 +2,19 @@ function [e_p, e_u, e_Q, e_T] = convergenceUnsatBiot(cells, timeLevels)
 % Converge of unsaturated poroelastic equations (Ex. 2 from the chapter)
 %
 % SYNOPSIS:
-%function [e_p, e_u, e_Q, e_T] = convergenceUnsatBiot(cells, timeLevels)
+%   function [e_p, e_u, e_Q, e_T] = convergenceUnsatBiot(cells, timeLevels)
 %
 % PARAMETERS:
-%   cells       - Scalar, number of cells = nx = ny.
-%   timeLevels  - Scalar, number of discrete time levels.
+%   cells       - Scalar, number of cells = nx = ny
+%   timeLevels  - Scalar, number of discrete time levels
 %
-%  RETURNS:
-%   e_p         - Scalar, L2-like discrete error for the pressure.
+% RETURNS:
+%   e_p         - Scalar, L2-like discrete error for the pressure
 %   e_u         - Scalar, L2-like discrete error for the displacement
-%   e_Q         - Scalar, L2-like discrete error for the flux.
-%   e_T         - Scalar, L2-like discrete error for the traction.
+%   e_Q         - Scalar, L2-like discrete error for the flux
+%   e_T         - Scalar, L2-like discrete error for the traction
 %
+% See also convergenceRE.
 
 %{
 Copyright 2018-2020, University of Bergen.
@@ -38,30 +39,30 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 mrstModule add fvbiot fv-unsat
 
 % Creating the grid
-nx = cells;  % Cells in x-direction
-ny = cells;  % Cells in y-direction
-Lx = 1;      % Lenght in x-direction
-Ly = 1;      % Length in y-direction
+nx = cells; % Cells in x-direction
+ny = cells; % Cells in y-direction
+Lx = 1; % Lenght in x-direction
+Ly = 1; % Length in y-direction
 
 % Creating structured triangular grid
-[xx, yy] = meshgrid(0:Lx/nx:Lx,0:Ly/ny:Ly);
-tri      = delaunay(xx(:), yy(:));
-G        = triangleGrid([xx(:) yy(:)], tri);
-G        = computeGeometry(G);
+[xx, yy] = meshgrid(0:Lx/nx:Lx, 0:Ly/ny:Ly);
+tri = delaunay(xx(:), yy(:));
+G = triangleGrid([xx(:) yy(:)], tri);
+G = computeGeometry(G);
 
 % Extracting grid information
-V = G.cells.volumes;           % Cell volumes
-A = G.faces.areas;             % Face areas
-xc = G.cells.centroids(:, 1);  % cell centers in x-direction
-yc = G.cells.centroids(:, 2);  % cell centers in y-direction
-xf = G.faces.centroids(:, 1);  % face centers in x-direction
-yf = G.faces.centroids(:, 2);  % face centers in y-direction
-nu_x = G.faces.normals(:, 1);  % face normals in x-direction
-nu_y = G.faces.normals(:, 2);  % face normals in y-direction
-zetaf = Ly - yf;               % face centers of elevation head
+V = G.cells.volumes; % Cell volumes
+A = G.faces.areas; % Face areas
+xc = G.cells.centroids(:, 1); % cell centers in x-direction
+yc = G.cells.centroids(:, 2); % cell centers in y-direction
+xf = G.faces.centroids(:, 1); % face centers in x-direction
+yf = G.faces.centroids(:, 2); % face centers in y-direction
+nu_x = G.faces.normals(:, 1); % face normals in x-direction
+nu_y = G.faces.normals(:, 2); % face normals in y-direction
+zetaf = Ly - yf; % face centers of elevation head
 
 % Physical parameters
-phys = struct();        % initialize structure to store parameters
+phys = struct(); % initialize structure to store parameters
 
 % Flow parameters
 phys.flow.rho = 1; % fluid density
@@ -92,11 +93,11 @@ phys.flow.alpha_biot = 1 - phys.mech.C_s/phys.flow.C_m; % Biot coefficient
 % Boundary and Initial Conditions
 
 % Boundary indices
-x_min = find(xf == 0);                           % west faces
-x_max = find(xf > 0.9999*Lx & xf < 1.0001*Lx );  % east faces
+x_min = find(xf == 0); % west faces
+x_max = find(xf > 0.9999*Lx & xf < 1.0001*Lx ); % east faces
 
-y_min = find(yf == 0);                           % south faces 
-y_max = find(yf > 0.9999*Ly & yf < 1.0001*Ly );  % north faces 
+y_min = find(yf == 0); % south faces 
+y_max = find(yf > 0.9999*Ly & yf < 1.0001*Ly ); % north faces 
 
 % MECHANICS BC SETUP
 
@@ -132,21 +133,22 @@ u_init = zeros(G.cells.num * G.griddim, 1);
 % Calling MPSA/MPFA routines and creating operators
 
 % Discretise mechanics problem
-mpsa_discr = mpsa(G, phys.mech.stiff, [], 'invertBlocks', 'matlab', 'bc', bcMech);
+mpsa_discr = mpsa(G, phys.mech.stiff, [], 'invertBlocks', 'matlab', ...
+    'bc', bcMech);
 
 % Discretise flow problem
-mpfa_discr = mpfa(G, phys.flow, [], 'invertBlocks', 'matlab', 'bc', bcFlow);
+mpfa_discr = mpfa(G, phys.flow, [], 'invertBlocks', 'matlab', ...
+    'bc', bcFlow);
      
 % Time parameters
-time_param = struct();  % initializing structure to store parameters
+time_param = struct(); % initializing structure to store parameters
 time_param.initial = 0; % initial simulation time
 time_param.simTime = 1; % final simulation time  
-time_param.tau     = time_param.simTime/timeLevels; % constant time step
-time_param.time    = 0; % current time
+time_param.tau = time_param.simTime/timeLevels; % constant time step
+time_param.time = 0; % current time
 
 % Retrieving analytical forms: Note that these are stored as function
 % handles and retrieved from data/exactFormsREBiot.mat
-
 pth = fullfile(mrstPath('fv-unsat'), 'data', 'exactFormsUnsatBiot.mat');
 load(pth, 'exactUnsatBiot');
 p_ex     = exactUnsatBiot.pressure;
@@ -158,28 +160,23 @@ sxx_ex   = exactUnsatBiot.stress_xx;
 syy_ex   = exactUnsatBiot.stress_yy;
 sxy_ex   = exactUnsatBiot.stress_xy;
 
-% Discrete equations
-
-% Computing arithmetic average of relative permeabilities
-krwAr = @(p_m) arithmeticAverageMPFA(G, bcFlow, phys, p_m, 'saturation');
-
-% Calling model
-modelEqs = modelUnsatBiot(G, phys, krwAr, mpfa_discr, mpsa_discr,...
-    bcFlowVals, bcMechVals, 'on');
+% Calling unsatBiot model
+modelEqs = modelUnsatBiot(G, phys, mpfa_discr, mpsa_discr,...
+    bcFlow, bcFlowVals, bcMech, bcMechVals, 'arithmetic', 'on');
 
 % Time loop
-solver_param = struct();    % Initializing structure to store parameters
-solver_param.tol = 1E-8;    % tolerance
-solver_param.maxIter = 10;  % maximum number of iterations
+solver_param = struct(); % Initializing structure to store parameters
+solver_param.tol = 1E-8; % tolerance
+solver_param.maxIter = 10; % maximum number of iterations
 
 p = p_init; % current pressure
 u = u_init; % current displacement
-time_param.time = time_param.tau;   % current time
+time_param.time = time_param.tau; % current time
 
 while time_param.time < time_param.simTime
     
-    p_n = p;      % current time level (n-index) 
-    u_n = u;      % current time level (n-index)
+    p_n = p; % current time level (n-index) 
+    u_n = u; % current time level (n-index)
     
     % Source terms
     sourceMech = zeros(G.cells.num * G.griddim, 1);
@@ -220,15 +217,10 @@ T_true(1:G.griddim:end) = sxx .* nu_x + sxy .* nu_y;
 T_true(2:G.griddim:end) = sxy .* nu_x + syy .* nu_y;
 
 % Numerical solutions
-p_num = p;  % Numerical pressure 
-u_num = u;  % Numerical displacement
-Q_num = modelEqs.Q(p, p_m);  % Numerical fluxes
+p_num = p; % Numerical pressure 
+u_num = u; % Numerical displacement
+Q_num = modelEqs.Q(p, p_m); % Numerical fluxes
 T_num = modelEqs.T(u); % Numerical traction    
-
-% Plotting
-figure()
-subplot(1,2,1); plotCellData(G, p_num); title('Numerical'); colorbar;
-subplot(1,2,2); plotCellData(G, p_true); title('Exact'); colorbar;
 
 % Computing errors
 e_p = sqrt(sum(V .* (p_true - p_num).^2)) ...

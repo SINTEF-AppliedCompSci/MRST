@@ -1,5 +1,5 @@
 function p_crit = computeCriticalPressure(phys)
-% Determine critical water pressure according to Simunek et al (2005)
+% Determine critical water pressure according to Simunek et. al. (2005)
 % https://www.pc-progress.com/Downloads/Pgm_hydrus1D/HYDRUS1D-4.17.pdf 
 %
 % SYNOPSIS:
@@ -9,7 +9,7 @@ function p_crit = computeCriticalPressure(phys)
 %   phys            - Structure, containing the physical parameters
 %
 %  RETURNS:
-%   p_cri           - Scalar, critical water pressure in Pascal.
+%   p_crit          - Scalar, critical water pressure in Pascal.
 %
 
 %{
@@ -30,6 +30,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
+
 
 R = 8.314; % [J mol^{-1} K^{-1}] universal gas constant
 M = 0.018015; % [kg mol^{-1}] molecular weight of water

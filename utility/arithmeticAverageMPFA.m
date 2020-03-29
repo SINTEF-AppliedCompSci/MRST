@@ -1,8 +1,8 @@
-function [krwAr] = arithmeticAverageMPFA(G, bc, phys, pot, SWRC)
+function [krwAr] = arithmeticAverageMPFA(G, krw, bc, pot)
 % Computes the arithmetic average of the relative permeability
 %
 % SYNOPSIS:
-%   function [krwAr] = arithmeticRelPerm(G, bc, krw, pot)
+%   function [krwAr] = arithmeticAverageMPFA(G, bc, krw, pot)
 %
 % PARAMETERS:
 %   G          - Structure, Grid structure from MRST
@@ -12,10 +12,11 @@ function [krwAr] = arithmeticAverageMPFA(G, bc, phys, pot, SWRC)
 %   pot        - Vector, containing the values of the potential. This could
 %                be either the pressure or the pressure head.
 %
-%  RETURNS:
+% RETURNS:
 %   krwAr      - Vector, containing the arithmetic averaged relative
 %                permeabilities at the faces.
 %
+% See also upstreamWeightingMPFA.
 
 %{
 Copyright 2018-2020, University of Bergen.
@@ -36,15 +37,6 @@ You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
-% Retrieving relative permeability from SWRC
-if strcmp(SWRC,'moisture')
-    [~, krw, ~] = vGM_theta(phys);
-elseif strcmp(SWRC, 'saturation')
-    [~, krw, ~] = vGM_saturation(phys);
-else
-    error('Use either ''moisture'' or ''saturation''')
-end
-
 % Extracting topological data
 fNei = G.faces.neighbors;               % extracting faces neighbors
 int_fNei = fNei(all(fNei ~= 0,2),:);    % internal faces neighbors
@@ -59,7 +51,7 @@ krwAr = zeros(G.faces.num,1);
 krwAr(neuFcsIdx) = 1; % equal to one, since fluxes are known
 
 % Dirichlet boundaries
-potFcsIdx = find(ismember(bc.face,dirFcsIdx));  % extracting idx
+potFcsIdx = find(ismember(bc.face, dirFcsIdx));  % extracting idx
 diriNeigh = fNei(dirFcsIdx,:)'; % neighboring cells of diri faces
 diriCells = diriNeigh(diriNeigh > 0); % cells corresponding to each diri face
 krwAr(dirFcsIdx) = 0.5.*(krw(bc.value(potFcsIdx)) + krw(pot(diriCells)));

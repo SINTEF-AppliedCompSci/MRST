@@ -3,32 +3,26 @@ function [p, p_m, u, iter] = solverUnsatBiot(G, p_n, u_n, modelEqs, ...
 % Newton solver for the equations of unsaturated poroelasticity
 %
 % SYNOPSIS:
-%   function [p, p_m, u_, iter] = solverUnsatBiot(G, p_ad, p_n, ...
-%       u_ad, u_n, pEq1, pEq2, uEq1, uEq2, tau, sourceFlow, sourceMech, ...
-%       currentTime, tol, maxIter)
+%   function [p, p_m, u, iter] = solverUnsatBiot(G, p_n, u_n, modelEqs, ...
+%       time_param, solver_param, sourceFlow, sourceMech)
 %
 % PARAMETERS:
-%   G            - Structure, grid structure from MRST
-%   p_ad         - AD-object, pressure AD-variable.
-%   p_n          - Vector, pressure evaluated at the last time level.
-%   u_ad         - AD-object, displacement AD-variable.
-%   u_n          - Vector, displacement evaluated at the last time level.
-%   pEq1         - Function, mechanics contribution to mass conservation.
-%   pEq2         - Function, flow contribution to mass conservation
-%   uEq1         - Function, mechanics contribution to momentum equation.
-%   uEq2         - Function, flow contribution to momentum eq. + source.
-%   tau          - Scalar, time step
-%   sourceFlow   - Vector, source term for the flow equation  
-%   sourceMech   - Vector, source term for the mechanics equation  
-%   currentTime  - Scalar, current simulation time
-%   tol          - Scalar, convergence tolerance
-%   maxIter      - Scalar, maximum number of iterations
+%   G             - Structure, grid structure from MRST
+%   p_n           - Vector, pressure evaluated at the last time level
+%   u_n           - Vector, displacement evaluated at the last time level
+%   modelEqs      - Structure, containing the model equations
+%   time_param    - Structure, containing the time parameters
+%   solver_param  - Structure, containing the solver parameters
+%   sourceFlow    - Vector, source term for the flow equation  
+%   sourceMech    - Vector, source term for the mechanics equation  
 %
-%  RETURNS:
-%   psi_ad       - AD-object, updated pressure head AD-variable.
-%   psi_m        - Vector, pressure head evaluated at the last iteration.
-%   iter         - Scalar, number of iterations needed for convergence
+% RETURNS:
+%   p_ad          - Vector, updated pressure
+%   p_m           - Vector, pressure evaluated at the last iteration
+%   u             - Vector, updated displacement
+%   iter          - Scalar, number of iterations needed for convergence
 %
+% See also solverRE.
 
 %{
 Copyright 2018-2019, University of Bergen.
