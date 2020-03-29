@@ -1,0 +1,47 @@
+This file briefly describes the content of the the fv-unsat module. Inside
+the root folder, you will find the following folders:
+
+* conv_tests,
+* data,
+* examples,
+* models,
+* utility.
+
+In addition, this file (CONTENT.txt) a copy of the license (LICENSE.txt)
+and the README (README.md).
+
+The conv_tests folder contains two functions: convergenceRE.m (needed for 
+the first numerical example) and convergenceUnsatBiot.m (needed for the 
+second numerical example).
+
+The data folder contains two .mat files (exacFormsRE.mat and 
+exactFormsUnsatBiot.mat) and the function getHydraulicProperties.m. The 
+.mat files contains the exact function handles neccesary for the 
+convergence tests, and getHydraulicProperties.m is a mini-catalog of 
+hydraulic properties.
+
+The models folders contains the two parent classes for declaring the 
+discrete models:
+
+* modelRE.m (Richards' equation), and
+* modelUnsatBiot.m (Equations of unsaturated poroelasticity).
+
+The examples folder contains the examples that you will find in the chapter:
+
+* convAnalysisRe.m (Example 1), 
+* convAnalysisUnsatBiot.m (Example 2), 
+* waterInfiltrationRE.m (Example 3), and
+* desiccationUnsatBiot.m (Example 4).
+
+Finally, in the utility folder, you will find the following utilitary
+functions:
+
+* arithmeticAverageMPFA.m,
+* computeCriticalPressure.m,
+* computeTopPressure.m,
+* solverRE.m,
+* solverUnsatBiot.m,
+* timeStepping.m,
+* upstreamWeightingMPFA.m,
+* vGM_saturation.m,
+* vGM_theta.m.
