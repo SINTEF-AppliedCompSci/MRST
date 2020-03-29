@@ -1,10 +1,17 @@
-function model = modelRE(G, phys, krw_faces, mpfa_discr, bcVal)
+function model = modelRE(G, phys, krw_faces, mpfa_discr, bcVal, gEffects)
+
+% Gravity status
+if strcmp(gEffects, 'on')
+    gravOn = 1;
+else
+    gravOn = 0;
+end
 
 % Grid-related quantities
-zc = G.cells.centroids(:, 3);  % cell centers in z-direction
-zf = G.faces.centroids(:, 3);  % face centers in z-direction
-zetac = max(zf) - zc;          % centroids of cells of elev. head
-V = G.cells.volumes;           % Cell volumes
+zc = G.cells.centroids(:, end);  % cell centers in z-direction
+zf = G.faces.centroids(:, end);  % face centers in z-direction
+zetac = max(zf) - zc;            % centroids of cells of elev. head
+V = G.cells.volumes;             % Cell volumes
 
 % Discrete mpfa operators
 F       = @(x) mpfa_discr.F * x;          % Flux  
@@ -17,7 +24,7 @@ divF    = @(x) mpfa_discr.div * x;        % Divergence
 
 % Darcy Flux
 Q = @(psi, psi_m) (phys.flow.gamma ./ phys.flow.mu) .* krw_faces(psi_m) .* ...
-    (F(psi + zetac) + boundF(bcVal));
+    (F(psi + gravOn * zetac) + boundF(bcVal));
 
 % Mass Conservation                         
 psiEq = @(psi, psi_n, psi_m, tau, source)   (V./tau) .* (theta(psi_m) ...
