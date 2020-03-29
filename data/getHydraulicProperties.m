@@ -44,13 +44,13 @@ function soil = getHydraulicProperties(soil_name)
 % 
 %       theta_s: 0.4300
 %       theta_r: 0.0450
-%           K_s: 29.7000
-%         alpha: 0.1450
+%           K_s: 8.2500e-05
+%         alpha: 14.5000
 %             n: 2.6800
 %
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-unsat module.
 

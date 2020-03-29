@@ -1,5 +1,5 @@
-function [krwUp] = upstreamWeightingMPFA(G, bc, bcVal, mpfa_discr, krw, ...
-    gamma, pot, typePot, grav)
+function [krwUp] = upstreamWeightingMPFA(G, bc, bcVal, mpfa_discr, ...
+    phys, pot, SWRC, gEffects)
 % Computes the upstream weighting of the relative permeability
 %
 % SYNOPSIS:
@@ -27,7 +27,7 @@ function [krwUp] = upstreamWeightingMPFA(G, bc, bcVal, mpfa_discr, krw, ...
 %                 permeabilities at the faces. 
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-unsat module.
 
@@ -44,6 +44,24 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
+
+% Gravity effects
+if strcmp(gEffects, 'on')
+    gravOn = 1;
+elseif strcmp(gEffects, 'off')
+    gravOn = 0;
+else
+    error('Gravity argument not recognized. Use either ''on'' or ''off''')
+end
+
+% Retrieving relative permeability from SWRC
+if strcmp(SWRC,'moisture')
+    [~, krw, ~] = vGM_theta(phys);
+elseif strcmp(SWRC, 'saturation')
+    [~, krw, ~] = vGM_saturation(phys);
+else
+    error('Use either ''moisture'' or ''saturation''')
+end
 
 % Extracting grid and boundary information
 fNei = G.faces.neighbors;               % extracting faces neighbors
@@ -63,21 +81,14 @@ krwUp(neuFcsIdx) = 1;   % Since the flux is already known, we set krw=1
 F = @(x) mpfa_discr.F * x;
 boundF = @(x) mpfa_discr.boundFlux * x;
 
-% Check if gravity should be included
-if strcmp(grav, 'off')
-    zetac(:) = 0;
-elseif ~strcmp(grav, 'on')
-    error('Gravity argument not recognized. Use either ''on'' or ''off''')
-end
-
-% Compute fluxes checking if psihead or pressure is used. We assume that
-% bcVal contains the gravity contribution, in the case grav = 'on'.
-if strcmp(typePot, 'psiHead')
-    flux = F(pot + zetac) + boundF(bcVal);
-elseif strcmp(typePot, 'pressure')
-    flux = F(pot + gamma.*zetac) + boundF(bcVal);
+% Compute fluxes. We assume that bcVal contains the gravity contribution
+% in the case gEffects = 'on'.
+if strcmp(SWRC, 'moisture')
+    flux = F(pot + gravOn .* zetac) + boundF(bcVal);
+elseif strcmp(SWRC, 'saturation')
+    flux = F(pot + gravOn .* phys.flow.gamma.*zetac) + boundF(bcVal);
 else
-    error('Potential not recognized. See documentation for valid potentials.')
+    error('Use either ''moisture'' or ''saturation''.')
 end
 
 % Dirichlet boundaries relative permeabilities

@@ -1,24 +1,20 @@
-function [theta, krw, C_theta] = vanGenuchtenMualemTheta(alpha, theta_s, theta_r, n, m)
+function [theta, krw, C_theta] = vGM_theta(phys)
 % van Genuchten-Mualem retention curves for psi-theta model.
 %
 % SYNOPSIS:
-%   [theta, krw, C_theta] = vanGenuchtenMualemTheta(alpha, theta_s, theta_r, n, m)
+%   [theta, krw, C_theta] =  vGM_theta(phys)
 %
 % PARAMETERS:
-%   alpha    - Scalar, van Genuchten equation parameter
-%   theta_s  - Scalar, water content at saturated conditions
-%   theta_r  - Scalar, residual water content
-%   n        - Scalar, van Genuchten equation parameter
-%   m        - Scalar, van Genuchten equation parameter
+%   phys     - Structure, containing physical parameters
 %
 %  RETURNS:
-%   theta    - Function, Water content, i.e., theta = theta(psi)
-%   krw      - Function, Relative permeability, i.e., krw = krw(psi)
-%   C_theta  - Function, Specific saturation capacity, i.e., C_theta = C_theta(psi)
+%   theta    - Function, Water content, theta = theta(psi)
+%   krw      - Function, Relative permeability, krw = krw(psi)
+%   C_theta  - Function, Specific moisture capacity, C_theta = C_theta(psi)
 %
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-unsat module.
 
@@ -35,6 +31,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
+
+% Retrieving physical properties
+alpha = phys.flow.alpha;
+theta_r = phys.flow.theta_r;
+theta_s = phys.flow.theta_s;
+n = phys.flow.n;
+m = phys.flow.m;
 
 % Boolean inline function: true for unsat zone, false for saturated zone
 isUnsat = @(psi) psi < 0;

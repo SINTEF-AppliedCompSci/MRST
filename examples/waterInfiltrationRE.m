@@ -26,7 +26,7 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 
 
 %% Importing required modules
-clear; clc(); mrstModule add fvbiot
+clear; clc(); mrstModule add fvbiot fv-unsat
 
 %% Setting up the grid
 nx = 5;     ny = 5;     nz = 30;     % cells        
@@ -39,32 +39,28 @@ newplot; plotGrid(G); axis off;
 pbaspect([1,1,5]); view([-51,26]);
 
 %% Physical properties 
-soil = getHydraulicProperties('newMexSample');
-rho = 1 * gram / (centi * meter)^3;          % [kg/m^3] water density
-mu = 0.01 * gram / (centi * meter * second); % [kg/(m*s)] water viscosity
-g = 980.66 * centi * meter / (second^2);     % [kg/(m*s^2)] gravity acceleration
-gamma = rho*g;                               % [kg/(m^2*s^2)] specific gravity
-K_sat = soil.K_s;                            % [m/s] saturated hydraulic conductivity
-k = (K_sat*mu)/(rho*g);                      % [m^2] intrinsic permeability
-rock.perm = k * ones(G.cells.num, 1);        % creating perm structure
-alpha = soil.alpha;                          % [1/m] Equation parameter
-nVan = soil.n;                               % [-] Equation parameter
-mVan = 1-(1/nVan);                           % [-] Equation parameter
-theta_s = soil.theta_s;                      % [-] Saturation soil moisture
-theta_r = soil.theta_r;                      % [-] Residual soil moisture
+soil = getHydraulicProperties('newMexSample');  % get soil properties
+phys = struct(); % create structure to store physical properties
 
-%% Water retention curves
-[theta, krw, C_theta] = vanGenuchtenMualemTheta(alpha, theta_s, theta_r, ...
-    nVan, mVan);
+% Flow parameters
+phys.flow.rho     = 1 * gram / (centi * meter)^3; % density
+phys.flow.mu      = 0.01 * gram / (centi * meter * second); % viscosity
+phys.flow.g       = 980.66 * centi * meter / (second^2); % gravity 
+phys.flow.gamma   = phys.flow.rho * phys.flow.g; % specific gravity
+phys.flow.K       = soil.K_s; % saturated hydraulic conductivity
+phys.flow.perm    = (phys.flow.K * phys.flow.mu / phys.flow.gamma) .* ...
+    ones(G.cells.num, 1); % intrinsic permeability
+phys.flow.alpha   = soil.alpha / meter; % Equation parameter
+phys.flow.n       = soil.n;             % Equation parameter
+phys.flow.m       = 1-(1/phys.flow.n);  % Equation parameter
+phys.flow.theta_s = soil.theta_s;       % Moisture at saturated conditions
+phys.flow.theta_r = soil.theta_r;       % Residual soil moisture
 
 %% Boundary and Initial Conditions
 
 % Extracting grid information
-zc = G.cells.centroids(:, 3);  % cell centers in z-direction
 zf = G.faces.centroids(:, 3);  % face centers in z-direction
-zetac = Lz - zc;               % centroids of cells of elev. head
 zetaf = Lz - zf;               % centroids of faces of elev. head
-V = G.cells.volumes;           % Cell volumes
 z_min = find(zf == 0);         % top faces idx
 z_max = find(zf > 0.9999*Lz & zf < 1.0001*Lz );  % bottom faces idx
 
@@ -82,75 +78,65 @@ bcVal(z_max) = psiB + zetaf(z_max); % assigning Bottom boundary
 % Initial Condition
 psi_init = psiB .* ones(G.cells.num, 1);  % [m] Initial condition
 
-%% Calling MPFA routine and creating discrete operators
-mpfa_discr = mpfa(G, rock, [], 'bc', bc, 'invertBlocks', 'matlab');
-
-% Flux discretization
-F       = @(x) mpfa_discr.F * x;         
-% Boundary discretization
-boundF  = @(x) mpfa_discr.boundFlux * x; 
-% Discrete divergence
-divF    = @(x) mpfa_discr.div * x;       
+%% Calling MPFA routine
+mpfa_discr = mpfa(G, phys.flow, [], 'bc', bc, 'invertBlocks', 'matlab');
 
 %% Time parameters
-simTime = 72 * hour; % [s] final simulation time
-tau_init = 10;       % [s] initial time step
-tau_min = 10;        % [s] minimum time step 
-tau_max = 10000;     % [s] maximum time step
-tau = tau_init;      % [s] initializing time step
-timeCum = 0;         % [s] initializing cumulative time
+time_param = struct();  % Initialize structure to store time params
+time_param.simTime = 72 * hour;        % final simulation time
+time_param.tau_init = 10 * second;     % initial time step
+time_param.tau_min = 10 * second;      % minimum time step 
+time_param.tau_max = 10000 * second;   % maximum time step
+time_param.tau = time_param.tau_init;  % initializing time step
+time_param.time = 0;                   % initializing current time
 
 %% Printing parameters
-printLevels = 20;       % number of printed levels
-printTimes = ((simTime/printLevels):(simTime/printLevels):simTime)';
-pp = 1;                 % initializing print counter
-ee = 1;                 % initializing export counter
+print_param = struct();   % Initialize structure to store time params
+print_param.levels = 20;  % number of printed levels
+print_param.times  = ((time_param.simTime/print_param.levels) : ...
+    (time_param.simTime/print_param.levels):time_param.simTime)';
+print_param.print = 1;    % initializing print counter
+print_param.export = 1;   % intializing export counter
 
 %% Discrete equations
 
-% Arithmetic average of krw
-krwAr = @(psi_m) arithmeticAverageMPFA(G, bc, krw, psi_m);
-
-% Darcy Flux
-Q = @(psi, psi_m) (rho.*g./mu) .* krwAr(psi_m) .* ...
-    (F(psi + zetac) + boundF(bcVal));
-
-% Mass Conservation                         
-psiEq = @(psi, psi_n, psi_m, tau, source)   (V./tau) .* (theta(psi_m) ...
-    + C_theta(psi_m) .* (psi - psi_m) - theta(psi_n)) ...
-    + divF(Q(psi, psi_m)) - V .* source;
-                            
+% Computing relative permeabilities at the faces
+krwAr = @(psi_m) arithmeticAverageMPFA(G, bc, phys, psi_m, 'moisture');
+% Calling equation model
+modelEqs = modelRE(G, phys, krwAr, mpfa_discr, bcVal, 'on');
+                         
 %% Creating solution structure
-sol.time  = zeros(printLevels,1); % time
-sol.psi   = cell(printLevels,1);  % pressure head
-sol.theta = cell(printLevels,1);  % water content
-sol.flux  = cell(printLevels,1);  % flux
+sol.time  = zeros(print_param.levels, 1);  
+sol.psi   = cell(print_param.levels, 1);   
+sol.theta = cell(print_param.levels, 1);   
+sol.flux  = cell(print_param.levels, 1);  
                                
 %% Time loop
-tol = 1E-6; % tolerance
-maxIter = 10; % maximum number of iterations
+solver_param = struct();   % initialize structure to store solver parameters
+solver_param.tol = 1E-6;   % tolerance
+solver_param.maxIter = 10; % maximum number of iterations
 psi = psi_init;
-while timeCum < simTime
+
+while time_param.time < time_param.simTime
     
-    psi_n = psi;                    % [m] current time step h (n-index)
-    timeCum = timeCum + tau;        % [s] cumulative time
+    psi_n = psi;  % current time step h (n-index)
+    time_param.time = time_param.time + time_param.tau; % [s] current time
     source = zeros(G.cells.num,1);  % source term equal to zero
             
     % Newton loop
-    [psi, psi_m, iter] = solverRE(psi_n, psiEq, tau, source, timeCum, ...
-        tol, maxIter);
+    [psi, psi_m, iter] = solverRE(psi_n, modelEqs, time_param, ...
+        solver_param, source);
                     
-    % Time stepping routine
-    [tau, pp] = timeStepping(tau, tau_min, tau_max, simTime, timeCum, ...
-        iter, printTimes, pp);
+    [time_param.tau, print_param.print] = timeStepping(time_param, ...
+        print_param, iter);
     
     % Storing solutions at each printing time
-    if timeCum == printTimes(ee)
-        sol.time(ee,1) = timeCum;
-        sol.psi{ee,1} = psi;
-        sol.theta{ee,1} = theta(psi);
-        sol.flux{ee,1} = Q(psi, psi_m);
-        ee = ee + 1;   
+    if time_param.time == print_param.times(print_param.export)
+        sol.time(print_param.export,1) = time_param.time;
+        sol.psi{print_param.export,1} = psi;
+        sol.theta{print_param.export,1} = modelEqs.theta(psi);
+        sol.flux{print_param.export,1} = modelEqs.Q(psi, psi_m);
+        print_param.export = print_param.export + 1;   
     end
     
 end
@@ -158,7 +144,7 @@ end
 fprintf('\n sol: \n'); disp(sol); % printing sol structure in console
 
 %% Plotting pressure head and water content profiles 
-for ii=1:printLevels
+for ii=1:print_param.levels
     newplot;
     subplot(1,2,1); % pressure head plots
     plotCellData(G, sol.psi{ii,1} / centi);

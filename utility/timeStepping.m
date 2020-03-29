@@ -1,5 +1,4 @@
-function [tau, pp] = timeStepping(tau, tau_min, tau_max, simTime, ...
-    timeCum, iter, printTimes, pp)
+function [tau, pp] = timeStepping(time_param, print_param, iter)
 % Calculates the next time step tau
 %
 % timeStepping determines the next time step according to the number of
@@ -55,12 +54,18 @@ You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+timeCum = time_param.time;       % current time
+tau_max = time_param.tau_max;    % maximum time step
+tau_min = time_param.tau_min;    % minumum time step
+simTime = time_param.simTime;    % simulation time
+dt_sim = time_param.tau;         % auxiliar variable
+lowerOptIterRange = 3;           % lower optimal iteration range
+upperOptIterRange = 7;           % upper optimal iteration range
+lowerMultFactor = 1.3;           % lower multiplication factor
+upperMultFactor = 0.7;           % upper multiplication factor
 
-dt_sim = tau;
-lowerOptIterRange = 3;      % [iter] lower optimal iteration range
-upperOptIterRange = 7;      % [iter] upper optimal iteration range
-lowerMultFactor = 1.3;      % [-]    lower multiplication factor
-upperMultFactor = 0.7;      % [-]    upper multiplication factor
+printTimes = print_param.times;  % printing times 
+pp = print_param.print;          % printing counter
 
 % Time Step control
 if (iter-1 <= lowerOptIterRange)

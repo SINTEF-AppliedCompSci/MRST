@@ -46,7 +46,7 @@ for ii=1:length(errorPsi)
     fprintf('\nPerforming simulation for h = %f and dt = %f\n', ...
         h(ii), tau(ii));
     [errorPsi(ii), errorFlux(ii)] = ...
-        convergence_re(numCells(ii), timeLevels(ii));
+        convergenceRE(numCells(ii), timeLevels(ii));
 end
 
 % Computing the error reduction
