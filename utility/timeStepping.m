@@ -13,7 +13,7 @@ function [tau, pp] = timeStepping(time_param, print_param, iter)
 %   time step. Hence, it will multiply the previous time step by a
 %   factor of upperMultFactor.
 %                                                                                                                                                                                                                                                                            Finally, if the number of iterations lies within the lower and upper
-%   If the time step lies withing the optimal range, the previous
+%   If the time step lies within the optimal range, the previous
 %   time step will remain unchanged.
 %
 % SYNOPSIS:
@@ -21,16 +21,11 @@ function [tau, pp] = timeStepping(time_param, print_param, iter)
 %                            timeCum, iter, printTimes, pp)
 %
 % PARAMETERS:
-%   tau          - Scalar, previous time step
-%   tau_min      - Scalar, minimum time step
-%   tau_max      - Scalar, maximum time step
-%   simTime      - Scalar, final simulation time
-%   timeCum      - Scalar, current simulation time
-%   iter         - Scalar, number of iterations of the current time
-%   printTimes   - Vector, containing printing times
-%   pp           - Scalar, counter of printed times
+%   time_param   - Structure, containing time parameters
+%   print_param  - Structure, containing print parameters
+%   iter         - Scalar, number of iterations for the current time level
 %
-%  RETURNS:
+% RETURNS:
 %   tau          - Scalar, time step for the next time level
 %   pp           - Scalar, updated counter of printed times
 %
@@ -54,18 +49,18 @@ You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-timeCum = time_param.time;       % current time
-tau_max = time_param.tau_max;    % maximum time step
-tau_min = time_param.tau_min;    % minumum time step
-simTime = time_param.simTime;    % simulation time
-dt_sim = time_param.tau;         % auxiliar variable
-lowerOptIterRange = 3;           % lower optimal iteration range
-upperOptIterRange = 7;           % upper optimal iteration range
-lowerMultFactor = 1.3;           % lower multiplication factor
-upperMultFactor = 0.7;           % upper multiplication factor
+timeCum = time_param.time; % current time
+tau_max = time_param.tau_max; % maximum time step
+tau_min = time_param.tau_min; % minumum time step
+simTime = time_param.simTime; % simulation time
+dt_sim = time_param.tau; % auxiliar variable
+lowerOptIterRange = 3; % lower optimal iteration range
+upperOptIterRange = 7; % upper optimal iteration range
+lowerMultFactor = 1.3; % lower multiplication factor
+upperMultFactor = 0.7; % upper multiplication factor
 
-printTimes = print_param.times;  % printing times 
-pp = print_param.print;          % printing counter
+printTimes = print_param.times; % printing times 
+pp = print_param.print; % printing counter
 
 % Time Step control
 if (iter-1 <= lowerOptIterRange)
@@ -116,5 +111,6 @@ else
         tau = dt_sim;
     end
 end
+
 end
 

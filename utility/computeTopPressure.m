@@ -1,24 +1,22 @@
 function pTop = computeTopPressure(G, phys, p, flux, modelEqs)
-% Get minimum pressure of the top layer using TPFA
+% Get mean pressure of the top layer using TPFA
 %
 % SYNOPSIS:
-%   pTop = getTopPressure(G, p_act, flux, gamma, mu_w, k)
+%   pTop = computeTopPressure(G, phys, p, flux, modelEqs)
 %
 % PARAMETERS:
-%   G       - Structure, MRST grid structure
-%   p_act   - AD variable, current pressure AD-object
-%   flux    - Vector, Flux corresponding to the current m-level 
-%   krwAr   - Vector, Arithmetic avg of krw corresponding to current m-level
-%   gamma   - Scalar, Specific gravity i.e., gamma = rho_w * g
-%   mu_w    - Scalar, Dynamics viscosity
-%   k       - Intrinsic permeability 
+%   G         - Structure, MRST grid structure
+%   phys      - Structure, containing physical parameters
+%   p         - Vector, containing the values of the pressure
+%   flux      - Vector, Flux corresponding to the current m-level 
+%   modelEqs  - Structure, containing the model equations
 %
-%  RETURNS:
-%   pTop   - Scalar, minumum value of top pressure
+% RETURNS:
+%   pTop      - Scalar, minumum value of top pressure
 %
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-unsat module.
 
@@ -36,20 +34,20 @@ You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
-nz = G.numLayers;                       % number of layers
-topCellsNum = G.cells.num / nz;         % number of top cells
-A  = G.faces.areas;                     % face areas
-zc = G.cells.centroids(:, end);         % cell centers in z-direction 
-zf = G.faces.centroids(:, end);         % face centers in z-direction
-Lz = max(zf);                           % Depth of the domain
-zetac = Lz - zc;                        % cell centers of elev. head
-zetaf = Lz - zf;                        % face centers of elev. head
-z_min = find(zf == 0);                  % idx of top faces
+nz = G.numLayers; % number of layers
+topCellsNum = G.cells.num / nz; % number of top cells
+A  = G.faces.areas; % face areas
+zc = G.cells.centroids(:, end); % cell centers in z-direction 
+zf = G.faces.centroids(:, end); % face centers in z-direction
+Lz = max(zf); % Depth of the domain
+zetac = Lz - zc; % cell centers of elev. head
+zetaf = Lz - zf; % face centers of elev. head
+z_min = find(zf == 0); % idx of top faces
 
-krw = modelEqs.krw;                     % relative permeability function
-mu_w = phys.flow.mu;                    % viscosity
-gamma = phys.flow.gamma;                % specific gravity
-k = mean(phys.flow.perm);               % mean permeability
+krw = modelEqs.krw; % relative permeability function
+mu_w = phys.flow.mu; % viscosity
+gamma = phys.flow.gamma; % specific gravity
+k = mean(phys.flow.perm); % mean permeability
 
 % Obtaining minimum value of pTop
 pTop = mean( (((flux(z_min) ./ (A(z_min))) .* zc(1) .* mu_w) ./ ...

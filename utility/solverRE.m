@@ -1,25 +1,24 @@
-function [psi, psi_m, iter] = solverRE(psi_n, modelEqs, time_param, solver_param, ...
-    source)
-% Newton solver for the Richards' equation
+function [psi, psi_m, iter] = solverRE(psi_n, modelEqs, time_param, ...
+    solver_param, source)
+% Newton solver for Richards' equation
 %
 % SYNOPSIS:
-%   function [psi, psi_m, iter] = solverRE(psi_n, psiEq, tau, source, ..
-%   currentTime, tol, maxIter)
+%   function [psi, psi_m, iter] = solverRE(psi_n, modelEqs, time_param, ... 
+%       solver_param, source)
 %
 % PARAMETERS:
-%   psi_n        - Vector, pressure head evaluated at the last time level.
-%   psiEq        - Function, pressure head equation, i.e. mass balance eq.
-%   tau          - Scalar, time step
+%   psi_n        - Vector, pressure head evaluated at the last time level
+%   modelEqs     - Structure, containing the model equations
+%   time_param   - Structure, containing the time parameters
+%   solver_param - Structure, containing the solver parameters
 %   source       - Vector, source term for the flow equation  
-%   currentTime  - Scalar, current simulation time
-%   tol          - Scalar, convergence tolerance
-%   maxIter      - Scalar, maximum number of iterations
 %
-%  RETURNS:
-%   psi          - AD-object, updated pressure head AD-variable.
-%   psi_m        - Vector, pressure head evaluated at the last iteration.
+% RETURNS:
+%   psi          - Vector, updated pressure
+%   psi_m        - Vector, pressure head evaluated at the last iteration
 %   iter         - Scalar, number of iterations needed for convergence
 %
+% See also solverUnsatBiot.
 
 %{
 Copyright 2018-2020, University of Bergen.
@@ -40,8 +39,8 @@ You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
-res = 100;      % residual value
-iter = 1;       % iterations
+res = 100; % residual value
+iter = 1; % iterations
 
 % Initaliazing AD-variable
 psi_ad = initVariablesADI(psi_n); 
@@ -51,9 +50,9 @@ while (res > solver_param.tol) && (iter <= solver_param.maxIter)
     
     psi_m = psi_ad.val; % current iteration level (m-index)
     eq = modelEqs.psiEq(psi_ad, psi_n, psi_m, time_param.tau, source); % call eq
-    R = eq.val;       % residual
-    J = eq.jac{1};    % Jacobian
-    Y = J\-R;         % solve linear system
+    R = eq.val; % residual
+    J = eq.jac{1}; % Jacobian
+    Y = J\-R; % solve linear system
     psi_ad.val  = psi_ad.val + Y; % update
     res = norm(R); % compute tolerance
     

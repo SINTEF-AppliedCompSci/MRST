@@ -16,7 +16,7 @@ function [krwAr] = arithmeticAverageMPFA(G, krw, bc, pot)
 %   krwAr      - Vector, containing the arithmetic averaged relative
 %                permeabilities at the faces.
 %
-% See also upstreamWeighting.
+% See also upstreamWeightingMPFA.
 
 %{
 Copyright 2018-2020, University of Bergen.
