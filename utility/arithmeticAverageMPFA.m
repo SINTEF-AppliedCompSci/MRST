@@ -1,4 +1,4 @@
-function [krwAr] = arithmeticAverageMPFA(G, bc, phys, pot)
+function [krwAr] = arithmeticAverageMPFA(G, bc, phys, pot, SWRC)
 % Computes the arithmetic average of the relative permeability
 %
 % SYNOPSIS:
@@ -18,7 +18,7 @@ function [krwAr] = arithmeticAverageMPFA(G, bc, phys, pot)
 %
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-unsat module.
 
@@ -37,8 +37,13 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
 % Retrieving relative permeability from SWRC
-[~, krw, ~] = vanGenuchtenMualemTheta(phys.flow.alpha, ...
-    phys.flow.theta_s, phys.flow.theta_r, phys.flow.n, phys.flow.m);
+if strcmp(SWRC,'moisture')
+    [~, krw, ~] = vGM_theta(phys);
+elseif strcmp(SWRC, 'saturation')
+    [~, krw, ~] = vGM_saturation(phys);
+else
+    error('Use either ''moisture'' or ''saturation''')
+end
 
 % Extracting topological data
 fNei = G.faces.neighbors;               % extracting faces neighbors

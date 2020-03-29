@@ -25,7 +25,7 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
 %% Importing required modules
-clear; clc(); mrstModule add fvbiot upr
+clear; clc(); mrstModule add fvbiot fv-unsat upr
 
 %% Creating grid
 
@@ -34,15 +34,13 @@ r = 50 * milli * meter;           % radii of the petri-dish
 fd =@(p) sqrt(sum(p.^2, 2)) - r;  % circular domain function
 min_x = -r;  max_x = r;           % min and max values in x-axis
 min_y = -r;  max_y = r;           % min and max values in y-axis                  
-h = (2*r)/25;                      % step size
+h = (2*r)/25;                     % step size
 [p, t] = distmesh2d(fd, @huniform, h, [min_x, min_y; max_x, max_y], []);
 p = p + r;                        % shifting triangulation points
 G = triangleGrid(p, t);           % creating triangular grid
 G = pebi(G);                      % creaing Voronoi diagram
 
 % Extrude in the z-direction
-Lx = max(p(:,1));                 % max lenght x-axis
-Ly = max(p(:,2));                 % max lenght y-axis
 Lz = 15 * milli * meter;          % thickness of the Petri-dish
 nz = 5;                           % number of layers in z-axis
 dz = Lz/nz;                       % thickness of each layer
@@ -50,44 +48,28 @@ thick = dz .* ones(nz,1);         % thickness vector
 G = makeLayeredGrid(G, thick);    % extrude grid
 G = computeGeometry(G);           % compute geometry
 
-%Plotting grid
+% Plotting grid
 newplot; plotGrid(G, 'FaceColor', [.8, .8, .8]); 
 axis off equal; view([-9, 33]); 
 
 %% Extracting grid information
-
-Nc = G.cells.num;     % total number of cells
-Nf = G.faces.num;     % total number of faces
-Nd = G.griddim;       % grid dimension
-V  = G.cells.volumes; % cell volumes
-A  = G.faces.areas;   % face areas
-
-xc = G.cells.centroids(:,1); % cell centers in x-direction
-yc = G.cells.centroids(:,2); % cell centers in y-direction
-zc = G.cells.centroids(:,3); % cell centers in z-direction
-        
-xf = G.faces.centroids(:,1); % face centers in x-direction
-yf = G.faces.centroids(:,2); % face centers in y-direction
-zf = G.faces.centroids(:,3); % face centers in z-direction
-
-nux = G.faces.normals(:,1); % face normals in x-direction
-nuy = G.faces.normals(:,2); % face normals in y-direction
-nuz = G.faces.normals(:,3); % face normals in z-direction
-
-zetac = Lz - zc; % cell centers of elev. head
-zetaf = Lz - zf; % face centers of elev. head
+Nc = G.cells.num;             % total number of cells
+Nf = G.faces.num;             % total number of faces
+Nd = G.griddim;               % grid dimension
+A  = G.faces.areas;           % face areas
+xc = G.cells.centroids(:, 1); % cell centers in x-direction
+yc = G.cells.centroids(:, 2); % cell centers in y-direction 
+zf = G.faces.centroids(:, 3); % face centers in z-direction
+zetaf = Lz - zf;              % face centers of elev. head
 
 fNei = G.faces.neighbors; % extracting faces neighbors
-int_f = find(all(fNei ~= 0,2)); % internal faces
 ext_f = find(((fNei(:,1) == 0) + (fNei(:,2) == 0)) == 1); % external faces
-int_fNei = fNei(all(fNei ~= 0,2),:); % internal faces neighbors
-
 z_min = find(zf == 0); % idx of top faces
-z_max = find(zf > 0.9999*Lz & zf < 1.0001*Lz ); % idx of bottom faces
+z_max = find(zf > 0.9999*Lz & zf < 1.0001*Lz );  % idx of bottom faces
 sides = ext_f(~ismember(ext_f, [z_min; z_max])); % idx of sides faces
 
 %% Physical parameters
-soil = getHydraulicProperties('clay');
+soil = getHydraulicProperties('clay'); % getting clay hydraulic properties
 phys = struct(); % create structure to store physical properties
 
 % Due to the low permeability of the clay, we need to use a simple scaling
@@ -153,15 +135,13 @@ bcMechVals(Nd * z_max) = 0;   % uz = 0 at the bottom
 % FLOW BOUNDARY CONDITONS
 
 % FLUX CONTROLLED BOUNDARY CONDITIONS
-topArea = sum(A(z_min));  % [m^2] surface top area
-vMax = 6E-07;             % [m/s] maximum evaporation velocity
-EMax = vMax * topArea;    % [m^3/s] maximum evaporation flux
 
-% Now we create a vector containing the indidual fluxes for each
-% top face. Note that we mulitply by the viscosity, since the 
+% We create a vector containing the indidual fluxes for each
+% top face. Note that we mulitply by the viscosity since the 
 % treatment of the boundary conditions for the mpfa routine assumes
 % unit viscosity.
-Qtop_f = vMax .* phys.flow.mu .* A(z_min); % [m^3/s] Top boundary
+vMax = 6E-07;  % [m/s] maximum evaporation velocity
+Qtop_f = vMax .* phys.flow.mu .* A(z_min);  % [m^3/s] Top boundary
 
 % Creating the boundary structure for flux controlled BC
 bcFlow_f            = addBC([], z_min, 'flux', Qtop_f);     
@@ -184,13 +164,16 @@ p_init = -0.1 * kilo * Pascal * ones(Nc, 1); % initial p
 %% Calling MPSA/MPFA routines and creating discrete operators
 
 % Discretize mechanics problem
-mpsa_discr = mpsa(G, phys.mech.stiff, [], 'invertBlocks', 'matlab', 'bc', bcMech);
+mpsa_discr = mpsa(G, phys.mech.stiff, [], 'invertBlocks', 'matlab', ...
+    'bc', bcMech);
 
 % Discretize flow problem for flux-controlled boundary conditions
-mpfa_discr_flux = mpfa(G, phys.flow, [], 'invertBlocks', 'matlab', 'bc', bcFlow_f);
+mpfa_discr_flux = mpfa(G, phys.flow, [], 'invertBlocks', 'matlab', ...
+    'bc', bcFlow_f);
 
 % Discretize flow problem for pressure-controlled boundary conditions
-mpfa_discr_pres = mpfa(G, phys.flow, [], 'invertBlocks', 'matlab', 'bc', bcFlow_p);
+mpfa_discr_pres = mpfa(G, phys.flow, [], 'invertBlocks', 'matlab', ...
+    'bc', bcFlow_p);
 
 %% Time parameters
 time_param = struct();  % Initialize structure to store time params
@@ -214,18 +197,18 @@ print_param.export = 1;   % intializing export counter
 % Setting up model for flux-controlled problem
 % Upstream weighting of krw
 krwUp_f = @(p_m) upstreamWeightingMPFA(G, bcFlow_f, bcFlowVals_f, ...
-    mpfa_discr_flux, phys, p_m, 'pressure', 'on');
+    mpfa_discr_flux, phys, p_m, 'saturation', 'on');
 % Calling model
 modelEqsFlux = modelUnsatBiot(G, phys, krwUp_f, mpfa_discr_flux, ...
-    mpsa_discr, bcFlowVals_f, bcMechVals);
+    mpsa_discr, bcFlowVals_f, bcMechVals, 'on');
 
 % Setting up model for pressure-controlled problem
 % Upstream weighting of krw
 krwUp_p = @(p_m) upstreamWeightingMPFA(G, bcFlow_p, bcFlowVals_p, ...
-    mpfa_discr_pres, phys, p_m, 'pressure', 'on');
+    mpfa_discr_pres, phys, p_m, 'saturation', 'on');
 % Calling model
 modelEqsPres = modelUnsatBiot(G, phys, krwUp_p, mpfa_discr_pres, ...
-    mpsa_discr, bcFlowVals_p, bcMechVals);
+    mpsa_discr, bcFlowVals_p, bcMechVals, 'on');
 
 %% Solution structure
 sol.time      = zeros(print_param.levels, 1); % time
@@ -262,7 +245,7 @@ while (time_param.time < time_param.simTime) && (p_top > p_crit) ...
         time_param, solver_param, sourceFlow, sourceMech);
     
     % Approximating top pressure
-    fluxTemp = modelEqsFlux.Q(p, p_m); krwTemp = krwUp_f(p_m);
+    fluxTemp = modelEqsFlux.Q(p, p_m);
     p_top = computeTopPressure(G, phys, p, fluxTemp, modelEqsFlux);
     
     % If it is flux controlled, update time step and store solution
@@ -318,7 +301,7 @@ while (time_param.time < time_param.simTime) && (pControlled == true)
         time_param, solver_param, sourceFlow, sourceMech);
     
     % Approximating top pressure
-    fluxTemp = modelEqsPres.Q(p_act, p_m); krwTemp = krwUp_p(p_m);
+    fluxTemp = modelEqsPres.Q(p_act, p_m);
     p_top = computeTopPressure(G, phys, p_act, fluxTemp, modelEqsPres);
 
     % Calling time stepping routine
@@ -339,11 +322,11 @@ while (time_param.time < time_param.simTime) && (pControlled == true)
     
 end
 
-% Storing final solutions in "sol" structure
+% Displaying "sol" structure
 fprintf('sol\n'); disp(sol);
 
 %% Pressure plot
-clf; maxP = max(sol.p{1,1}); minP = min(sol.p{end,1}); out = 1; 
+clf; minP = min(sol.p{end,1}); out = 1; 
 for ii=1:length(sol.time)
     newplot; 
     plotCellData(G, sol.p{ii,1});               % plotting data/creating handle
@@ -397,7 +380,7 @@ for ii=1:length(sol.time)
 end
 
 %% Top pressure and fluxes plots
-clf; newplot;
+clf; newplot; 
 fluxTopPlot = zeros(length(sol.time),1);
 psiTopPlot = zeros(length(sol.time),1);
 for ii=1:length(sol.time)
@@ -415,7 +398,7 @@ axis tight; grid on; box on;
 xlabel('Time [hours]'); a = get(gca,'XTickLabel'); set(gca,'XTickLabel',a,'FontSize',14)
 ylabel('Q_w^{top}  [mm^3/s]'); b = get(gca,'YTickLabel'); set(gca,'YTickLabel',b,'FontSize',14)
 
-%% Quiver plot
+%% Quiver plot of displacement field
 clf; newplot;
 ux = sol.u{end}(1:Nd:end); uxTop = ux(1:G.layerSize);
 uy = sol.u{end}(2:Nd:end); uyTop = uy(1:G.layerSize);

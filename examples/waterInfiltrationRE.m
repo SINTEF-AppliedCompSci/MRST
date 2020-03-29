@@ -26,7 +26,7 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 
 
 %% Importing required modules
-clear; clc(); mrstModule add fvbiot
+clear; clc(); mrstModule add fvbiot fv-unsat
 
 %% Setting up the grid
 nx = 5;     ny = 5;     nz = 30;     % cells        
@@ -101,9 +101,9 @@ print_param.export = 1;   % intializing export counter
 %% Discrete equations
 
 % Computing relative permeabilities at the faces
-krwAr = @(psi_m) arithmeticAverageMPFA(G, bc, phys, psi_m);
+krwAr = @(psi_m) arithmeticAverageMPFA(G, bc, phys, psi_m, 'moisture');
 % Calling equation model
-modelEqs = modelRE(G, phys, krwAr, mpfa_discr, bcVal);
+modelEqs = modelRE(G, phys, krwAr, mpfa_discr, bcVal, 'on');
                          
 %% Creating solution structure
 sol.time  = zeros(print_param.levels, 1);  

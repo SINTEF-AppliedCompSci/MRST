@@ -48,7 +48,7 @@ for ii=1:length(error_p)
     fprintf('\nPerforming simulation for h = %f and dt = %f\n', ...
         h(ii), tau(ii));
     [error_p(ii), error_u(ii), error_Q(ii), error_T(ii)] = ...
-        convergence_re_biot(numCells(ii), timeLevels(ii));
+        convergenceUnsatBiot(numCells(ii), timeLevels(ii));
 end
 
 % Computing the error reduction
