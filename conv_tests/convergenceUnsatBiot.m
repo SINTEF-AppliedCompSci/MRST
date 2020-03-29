@@ -16,7 +16,7 @@ function [e_p, e_u, e_Q, e_T] = convergenceUnsatBiot(cells, timeLevels)
 %
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-unsat module.
 

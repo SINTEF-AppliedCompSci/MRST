@@ -14,7 +14,7 @@ function [errorPsi, errorFlux] = convergenceRE(cells, timeLevels)
 %
 
 %{
-Copyright 2018-2019, University of Bergen.
+Copyright 2018-2020, University of Bergen.
 
 This file is part of the fv-unsat module.
 
@@ -33,7 +33,7 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
 % Importing modules
-mrstModule add fvbiot
+mrstModule add fvbiot fv-unsat
 
 % Creating the grid
 nx = cells;                         % Cells in x-direction
@@ -54,22 +54,17 @@ nu_x = G.faces.normals(:, 1);       % face normals in x-direction
 nu_y = G.faces.normals(:, 2);       % face normals in y-direction
 
 % Physical parameters
-
-% Rock
-k = 1;  % intrinsic permeability
-rock.perm = k * ones(G.cells.num, 1); % creating perm structure
-
-% Water retention curves (van Genuchten - Mualem)
-alpha = 0.04;       % Equation parameter
-nVan = 2;           % Equation parameter
-mVan = 1-(1/nVan);  % Equation parameter
-theta_s = 0.4;      % Water content at saturation conditions
-theta_r = 0.1;      % Residual water content 
-
-%%Water retention curves
-
-[theta, krw, C_theta] = vanGenuchtenMualemTheta(alpha, theta_s, ...
-                                                theta_r, nVan, mVan);
+phys = struct(); % Initializing structure to store parameters
+phys.flow.mu    = 1; % viscosity
+phys.flow.rho   = 1; % density
+phys.flow.g     = 1; % gravity
+phys.flow.gamma = phys.flow.g * phys.flow.rho; % specific gravity
+phys.flow.perm = ones(G.cells.num, 1); % permeability
+phys.flow.alpha = 0.04; % vGM parameter
+phys.flow.n = 2; % vGM parameter
+phys.flow.m = 1 - (1 / phys.flow.n); % vGM parameter
+phys.flow.theta_s = 0.4; % water content at saturation conditions
+phys.flow.theta_r = 0.1; % residual water content
 
 % Boundary and Initial Conditions
 
@@ -88,32 +83,27 @@ bc = addBC(bc, y_min, 'pressure', boundPsi);
 bc = addBC(bc, y_max, 'pressure', boundPsi);  
 
 % Boundary cond. values 
-bc_val = zeros(G.faces.num, 1);   % initializing
-bc_val(x_min) = boundPsi;  % west faces
-bc_val(x_max) = boundPsi;  % east faces
-bc_val(y_min) = boundPsi;  % south faces
-bc_val(y_max) = boundPsi;  % north faces
+bcVals = zeros(G.faces.num, 1);   % initializing
+bcVals(x_min) = boundPsi;  % west faces
+bcVals(x_max) = boundPsi;  % east faces
+bcVals(y_min) = boundPsi;  % south faces
+bcVals(y_max) = boundPsi;  % north faces
 
 % Initial condition
 psi_init = boundPsi * ones(G.cells.num, 1);       
 
 % Calling MPFA routine and creating operators
-
-mpfa_discr = mpfa(G, rock, [], 'bc', bc, 'invertBlocks', 'matlab');
+mpfa_discr = mpfa(G, phys.flow, [], 'bc', bc, 'invertBlocks', 'matlab');
      
-F = @(x) mpfa_discr.F * x;               % flux discretization
-boundF = @(x) mpfa_discr.boundFlux * x;  % boundary discretization
-divF = @(x) mpfa_discr.div * x;          % divergence of the flux
-
 % Time parameters
-iniTime = 0;  % intial simulation time
-simTime = 1;  % final simulation time 
-times = linspace(iniTime, simTime, timeLevels + 1); % evaluation times
-tau = diff(times); % time steps
+time_param = struct();  % initializing structure to store parameters
+time_param.initial = 0; % initial simulation time
+time_param.simTime = 1; % final simulation time  
+time_param.tau     = time_param.simTime/timeLevels; % constant time step
+time_param.time    = 0; % current time
 
 % Retrieving analytical forms: Note that these are stored as function
 % handles and retrieved from data/exactFormsRE.mat
-
 pth = fullfile(mrstPath('fv-unsat'), 'data', 'exactFormsRE.mat');
 load(pth, 'exactRE');
 psi_ex = exactRE.psi;
@@ -121,47 +111,42 @@ f_ex = exactRE.source;
 q_ex = exactRE.velocity;
 
 % Discrete equations
-                          
-% Arithmetic average
-krwAr = @(psi_m) arithmeticAverageMPFA(G, bc, krw, psi_m);      
 
-% Darcy Flux
-q = @(psi, psi_m)  krwAr(psi_m) .* (F(psi) + boundF(bc_val));
-
-% Mass Conservation                         
-psiEq = @(psi, psi_n, psi_m, tau, source) (V ./ tau) .* ( ... 
-                theta(psi_m) + C_theta(psi_m) .* (psi - psi_m) - theta(psi_n) ...
-            ) + divF(q(psi, psi_m)) - V .* source;
-                            
+% Arithmetic average of the relative permeabilities
+krwAr = @(psi_m) arithmeticAverageMPFA(G, bc, phys, psi_m);      
+% Calling model
+modelEqs = modelRE(G, phys, krwAr, mpfa_discr, bcVals, 'off');
+                           
 % Time loop
+solver_param = struct();    % Initializing structure to store parameters
+solver_param.tol = 1E-8;    % tolerance
+solver_param.maxIter = 10;  % maximum number of iterations
 
-tt = 1;          % time counter
-tol = 1E-8;      % tolerance
-maxIter = 10;    % maximum number of iterations
-psi = psi_init;  % current pressure head
-
-while times(tt) < simTime
+psi = psi_init;                     % current pressure head
+time_param.time = time_param.tau;   % current time
+while time_param.time < time_param.simTime
     
     psi_n = psi;  % current time level (n-index)    
-    tt = tt + 1;  % increasing time counter
-    source = f_ex(times(tt), xc, yc);  % Obtaining source term
+    source = f_ex(time_param.time, xc, yc); % source term
 
     % Calling newton solver
-    [psi, psi_m, ~] = solverRE(psi_n, psiEq, tau(tt-1), source, ...
-        times(tt), tol, maxIter);                                                                                 
+    [psi, psi_m, ~] = solverRE(psi_n, modelEqs, time_param, ...
+        solver_param, source);
+    
+    time_param.time  = time_param.time + time_param.tau; % increase time
 end
 
 % Collecting results and computing error
 
 % True solution
-psi_true = psi_ex(simTime, xc, yc);            % Exact pressure head
-q_true = q_ex(simTime, xf, yf);                % Exact velocity field
-Q_true = q_true(1:G.faces.num) .* nu_x ...     % Exact (normal) fluxes
-         + q_true(G.faces.num+1:end) .* nu_y;  %
+psi_true = psi_ex(time_param.simTime, xc, yc);  % Exact pressure head
+q_true = q_ex(time_param.simTime, xf, yf);      % Exact velocity field
+Q_true = q_true(1:G.faces.num) .* nu_x ...      % Exact (normal) fluxes
+         + q_true(G.faces.num+1:end) .* nu_y;   %
 
 % Numerical solution
-psi_num = psi;                                 % Numerical pressure head
-Q_num = q(psi, psi_m);                         % Numerical fluxes
+psi_num = psi;                                  % Numerical pressure head
+Q_num = modelEqs.Q(psi, psi_m);                 % Numerical fluxes
 
 % Computing errors
 errorPsi = sqrt(sum(V .* (psi_true - psi_num).^2)) ... 
