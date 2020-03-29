@@ -113,7 +113,7 @@ q_ex = exactRE.velocity;
 % Discrete equations
 
 % Arithmetic average of the relative permeabilities
-krwAr = @(psi_m) arithmeticAverageMPFA(G, bc, phys, psi_m);      
+krwAr = @(psi_m) arithmeticAverageMPFA(G, bc, phys, psi_m, 'moisture');      
 % Calling model
 modelEqs = modelRE(G, phys, krwAr, mpfa_discr, bcVals, 'off');
                            

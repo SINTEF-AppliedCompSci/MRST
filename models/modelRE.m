@@ -1,6 +1,6 @@
 function model = modelRE(G, phys, krw_faces, mpfa_discr, bcVal, gEffects)
 
-% Gravity status
+% Gravity effects
 if strcmp(gEffects, 'on')
     gravOn = 1;
 else
