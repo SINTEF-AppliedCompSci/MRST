@@ -43,30 +43,30 @@ soil = getHydraulicProperties('newMexSample');  % get soil properties
 phys = struct(); % create structure to store physical properties
 
 % Flow parameters
-phys.flow.rho     = 1 * gram / (centi * meter)^3; % density
-phys.flow.mu      = 0.01 * gram / (centi * meter * second); % viscosity
-phys.flow.g       = 980.66 * centi * meter / (second^2); % gravity 
-phys.flow.gamma   = phys.flow.rho * phys.flow.g; % specific gravity
-phys.flow.K       = soil.K_s; % saturated hydraulic conductivity
-phys.flow.perm    = (phys.flow.K * phys.flow.mu / phys.flow.gamma) .* ...
+phys.flow.rho = 1 * gram / (centi * meter)^3; % density
+phys.flow.mu = 0.01 * gram / (centi * meter * second); % viscosity
+phys.flow.g = 980.66 * centi * meter / (second^2); % gravity 
+phys.flow.gamma = phys.flow.rho * phys.flow.g; % specific gravity
+phys.flow.K = soil.K_s; % saturated hydraulic conductivity
+phys.flow.perm = (phys.flow.K * phys.flow.mu / phys.flow.gamma) .* ...
     ones(G.cells.num, 1); % intrinsic permeability
-phys.flow.alpha   = soil.alpha / meter; % Equation parameter
-phys.flow.n       = soil.n;             % Equation parameter
-phys.flow.m       = 1-(1/phys.flow.n);  % Equation parameter
-phys.flow.theta_s = soil.theta_s;       % Moisture at saturated conditions
-phys.flow.theta_r = soil.theta_r;       % Residual soil moisture
+phys.flow.alpha = soil.alpha / meter; % vGM parameter
+phys.flow.n = soil.n; % vGM parameter
+phys.flow.m = 1-(1/phys.flow.n); % Equation parameter
+phys.flow.theta_s = soil.theta_s; % Water content at saturation conditions
+phys.flow.theta_r = soil.theta_r; % Residual water content
 
 %% Boundary and Initial Conditions
 
 % Extracting grid information
-zf = G.faces.centroids(:, 3);  % face centers in z-direction
-zetaf = Lz - zf;               % centroids of faces of elev. head
-z_min = find(zf == 0);         % top faces idx
-z_max = find(zf > 0.9999*Lz & zf < 1.0001*Lz );  % bottom faces idx
+zf = G.faces.centroids(:, end); % face centers in z-direction
+zetaf = Lz - zf; % centroids of faces of elev. head
+z_min = find(zf == 0); % top faces idx
+z_max = find(zf > 0.9999*Lz & zf < 1.0001*Lz ); % bottom faces idx
 
 % Creating the boundary structure
-psiT = -75 * centi * meter;    % [m] Top boundary pressure head
-psiB = -1000 * centi * meter;  % [m] Bottom boundary pressure head
+psiT = -75 * centi * meter; % Top boundary pressure head
+psiB = -1000 * centi * meter; % Bottom boundary pressure head
 bc = addBC([], z_min, 'pressure', psiT);       
 bc = addBC(bc, z_max, 'pressure', psiB);      
 bcVal = zeros(G.faces.num, 1);
@@ -76,52 +76,47 @@ bcVal(z_max) = psiB + zetaf(z_max); % assigning Bottom boundary
 % be done for every Dirichlet face only to bcVal, not to bc.
 
 % Initial Condition
-psi_init = psiB .* ones(G.cells.num, 1);  % [m] Initial condition
+psi = psiB .* ones(G.cells.num, 1);
 
 %% Calling MPFA routine
 mpfa_discr = mpfa(G, phys.flow, [], 'bc', bc, 'invertBlocks', 'matlab');
 
 %% Time parameters
-time_param = struct();  % Initialize structure to store time params
-time_param.simTime = 72 * hour;        % final simulation time
-time_param.tau_init = 10 * second;     % initial time step
-time_param.tau_min = 10 * second;      % minimum time step 
-time_param.tau_max = 10000 * second;   % maximum time step
-time_param.tau = time_param.tau_init;  % initializing time step
-time_param.time = 0;                   % initializing current time
+time_param = struct(); % Initialize structure to store time params
+time_param.simTime = 72 * hour; % final simulation time
+time_param.tau_init = 10 * second; % initial time step
+time_param.tau_min = 10 * second; % minimum time step 
+time_param.tau_max = 10000 * second; % maximum time step
+time_param.tau = time_param.tau_init; % initializing time step
+time_param.time = 0; % initializing current time
 
 %% Printing parameters
-print_param = struct();   % Initialize structure to store time params
-print_param.levels = 20;  % number of printed levels
+print_param = struct(); % Initialize structure to store time params
+print_param.levels = 20; % number of printed levels
 print_param.times  = ((time_param.simTime/print_param.levels) : ...
     (time_param.simTime/print_param.levels):time_param.simTime)';
-print_param.print = 1;    % initializing print counter
-print_param.export = 1;   % intializing export counter
+print_param.print = 1; % initializing print counter
+print_param.export = 1; % intializing export counter
 
-%% Discrete equations
-
-% Computing relative permeabilities at the faces
-krwAr = @(psi_m) arithmeticAverageMPFA(G, bc, phys, psi_m, 'moisture');
-% Calling equation model
-modelEqs = modelRE(G, phys, krwAr, mpfa_discr, bcVal, 'on');
+%% Call Richards' equation model 
+modelEqs = modelRE(G, phys, mpfa_discr, bc, bcVal, 'arithmetic', 'on'); 
                          
 %% Creating solution structure
-sol.time  = zeros(print_param.levels, 1);  
-sol.psi   = cell(print_param.levels, 1);   
+sol.time = zeros(print_param.levels, 1);  
+sol.psi = cell(print_param.levels, 1);   
 sol.theta = cell(print_param.levels, 1);   
-sol.flux  = cell(print_param.levels, 1);  
+sol.flux = cell(print_param.levels, 1);  
                                
 %% Time loop
-solver_param = struct();   % initialize structure to store solver parameters
-solver_param.tol = 1E-6;   % tolerance
+solver_param = struct(); % initialize structure to store solver parameters
+solver_param.tol = 1E-6; % tolerance
 solver_param.maxIter = 10; % maximum number of iterations
-psi = psi_init;
 
 while time_param.time < time_param.simTime
     
-    psi_n = psi;  % current time step h (n-index)
-    time_param.time = time_param.time + time_param.tau; % [s] current time
-    source = zeros(G.cells.num,1);  % source term equal to zero
+    psi_n = psi; % current time step h (n-index)
+    time_param.time = time_param.time + time_param.tau; % current time
+    source = zeros(G.cells.num,1); % source term equal to zero
             
     % Newton loop
     [psi, psi_m, iter] = solverRE(psi_n, modelEqs, time_param, ...
@@ -141,31 +136,32 @@ while time_param.time < time_param.simTime
     
 end
 
-fprintf('\n sol: \n'); disp(sol); % printing sol structure in console
+% Displaying "sol" structure in console
+fprintf('\n sol: \n'); disp(sol); 
 
 %% Plotting pressure head and water content profiles 
 for ii=1:print_param.levels
     newplot;
-    subplot(1,2,1); % pressure head plots
+    subplot(1,2,1); % Pressure head plots
     plotCellData(G, sol.psi{ii,1} / centi);
     title('\psi_w [cm]', 'FontSize', 13)
     axis off; pbaspect([1,1,5]); view([-51,26]); 
     cb = colorbar; cb.FontSize=11;
-    t_h1=handle(text('Units','normalized',...     % Use [%] of the axis length
-                     'Position',[0.5,-0.05,1],... % Position of text   
-                     'EdgeColor','w'));           % Textbox 
-    t_h1.String=sprintf('Time: %2.1f [hours]',sol.time(ii)/hour); 
+    t_h1=handle(text('Units','normalized', ... % Use [%] of the axis length
+                     'Position',[0.5,-0.05,1], ... % Position of text   
+                     'EdgeColor','w')); % Textbox 
+    t_h1.String=sprintf('Time: %2.1f [hours]', sol.time(ii) / hour); 
     set(gca,'Ydir','reverse'); axis tight; box on; grid on; 
     
-    subplot(1,2,2); % water content plots
+    subplot(1,2,2); % Water content plots
     plotCellData(G, sol.theta{ii,1})
     title('\theta_w [ - ]', 'FontSize', 13)
     axis off; pbaspect([1,1,5]); view([-51,26]);
     cb = colorbar; cb.FontSize=11;
-    t_h2=handle(text('Units','normalized',...     % Use [%] of the axis length
-                     'Position',[0.5,-0.05,1],... % Position of text   
-                     'EdgeColor','w'));           % Textbox 
-    t_h2.String=sprintf('Time: %2.1f [hours]',sol.time(ii)/hour);
+    t_h2=handle(text('Units','normalized', ... % Use [%] of the axis length
+                     'Position',[0.5,-0.05,1], ... % Position of text   
+                     'EdgeColor','w')); % Textbox 
+    t_h2.String=sprintf('Time: %2.1f [hours]', sol.time(ii) / hour);
     set(gca,'Ydir','reverse'); axis tight; box on; grid on; 
     
     pause(0.01); t_h1.String =[]; t_h2.String =[];

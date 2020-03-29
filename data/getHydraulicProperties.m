@@ -1,5 +1,5 @@
 function soil = getHydraulicProperties(soil_name)
-% Catalog of unsaturated hydraulic properties for different soils.
+% Catalog of unsaturated hydraulic properties for different soils
 %
 % SOURCES: 
 % [1] : https://doi.org/10.1029/WR024i005p00755

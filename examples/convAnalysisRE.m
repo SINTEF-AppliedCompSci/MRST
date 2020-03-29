@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                               fv-unsat                                                
+%                               fv-unsat                                  %                                                
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Example 1: Convergence analysis for the Richards' equation
@@ -28,17 +28,18 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 clear; clc();
 
 %% Performing the converge test
+
 % We are interested in the convergence rate for the pressure head and 
-% the fluxes. In order to obtain them, we perform the analysis using 5
+% the fluxes. In order to obtain them, we perform the analysis using five
 % levels of spatial refinements for a fixed time step.
 
-numCells   = [10, 20, 40, 80, 160]'; % number of cells
-timeLevels = [10, 10, 10, 10, 10]';  % time levels
+numCells = [10, 20, 40, 80, 160]'; % number of cells
+timeLevels = [10, 10, 10, 10, 10]'; % time levels
 
-h = 1 ./ numCells;     % spatial mesh size
+h = 1 ./ numCells; % spatial mesh size
 tau = 1 ./ timeLevels; % time step
 
-errorPsi = zeros(length(numCells), 1);  % L2 error psi
+errorPsi = zeros(length(numCells), 1); % L2 error psi
 errorFlux = zeros(length(numCells), 1); % L2 error flux
 
 % Looping to obtain the errors
@@ -60,9 +61,9 @@ RateFlux = log2(RedFlux);
 %% Printing results
 table(h, tau, ...
     errorPsi, [nan; RedPsi], [nan; RatePsi], ...
-    errorFlux,  [nan; RedFlux], [nan; RateFlux],...
+    errorFlux,  [nan; RedFlux], [nan; RateFlux], ...
 'VariableNames', {...
     'Grid_size', 'Time_step', ...
     'Error_psi', 'Red_psi', 'Rate_psi', ...
-    'Error_flux', 'Red_flux', 'Rate_flux',...
+    'Error_flux', 'Red_flux', 'Rate_flux', ...
     })

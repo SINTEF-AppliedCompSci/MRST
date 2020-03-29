@@ -28,6 +28,7 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 clear; clc();
 
 %% Performing the converge test
+
 % We are interested in the convergence rate for the pressure, displacement,
 % fluxes and tractions. To obtained them, we perform the analysis using 5
 % levels of spatial and time refinements. 
