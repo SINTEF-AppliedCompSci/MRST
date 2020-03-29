@@ -1,9 +1,8 @@
-function [e_p, e_u, e_Q, e_T] = convergence_re_biot(cells, timeLevels)
+function [e_p, e_u, e_Q, e_T] = convergenceUnsatBiot(cells, timeLevels)
 % Converge of unsaturated poroelastic equations (Ex. 2 from the chapter)
 %
 % SYNOPSIS:
-%function [error_p, error_u, error_flux, error_traction] ...
-%    = convergence_re_biot(cells, timeLevels)
+%function [e_p, e_u, e_Q, e_T] = convergenceUnsatBiot(cells, timeLevels)
 %
 % PARAMETERS:
 %   cells       - Scalar, number of cells = nx = ny.

@@ -1,8 +1,8 @@
-function [errorPsi, errorFlux] = convergence_re(cells, timeLevels)
+function [errorPsi, errorFlux] = convergenceRE(cells, timeLevels)
 % Converge of Richards' equation (Numerical Example 1 from the Chapter)
 %
 % SYNOPSIS:
-%   function [error_psi, error_flux] = convergence_re(cells, timeLevels)
+%   function [errorPsi, errorFlux] = convergenceRE(cells, timeLevels)
 %
 % PARAMETERS:
 %   cells       - Scalar, number of cells = nx = ny.
