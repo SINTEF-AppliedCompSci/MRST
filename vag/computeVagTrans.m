@@ -157,9 +157,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % We set the table tetraverttbl which, for each tetrahedra, gives all the
     % vertices that constitute the tetrahedra.
+    % 
+    % A tetrahedra is given by triplet (cell, face, edge).
     %
-    % In addition, the vertices are given a index indverts (1, 2 or 3) depending on
-    % which entity they correspond to (cell, face or node).
 
     tetratbl = cellfaceedgetbl;
     tetrafds = {'cells', 'faces', 'edges'};
@@ -187,35 +187,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     exttetrafds = {'cells', 'faces', 'edges', 'nodes1', 'nodes2'};
 
-    verts = cell(4, 1);
-    indverts = cell(4, 1);
-    nt = tetratbl.num;
     
+    tetraverttbls = cell(4, 1);
+    
+    tetraverttbls{1} = crossIndexArray(tetratbl2, celltbl, {'cells'}); 
+    tetraverttbls{2} = crossIndexArray(tetratbl2, facetbl, {'faces'});
+    tetraverttbls{3} = crossIndexArray(tetratbl2, nodetbl, {{'nodes1', ...
+                        'nodes'}});
+    tetraverttbls{4} = crossIndexArray(tetratbl2, nodetbl, {{'nodes2', ...
+                        'nodes'}});
+    
+    tetravertinds = [];
     for i = 1 : 4
-        
-    verts{1}    = tblmap(celltbl.vertices, celltbl, tetratbl2, {'cells'});
-    indverts{1} = ones(nt, 1);
-    verts{2}    = tblmap(facetbl.vertices, facetbl, tetratbl2, {'faces'});
-    indverts{2} = 2*ones(nt, 1);
-    verts{3}    = tblmap(nodetbl.vertices, nodetbl, tetratbl2, {{'nodes', 'nodes1'}});
-    indverts{3} = 3*ones(nt, 1);
-    verts{4}    = tblmap(nodetbl.vertices, nodetbl, tetratbl2, {{'nodes', 'nodes2'}});
-    indverts{4} = 3*ones(nt, 1);
+        % note that we assume given row ordering of the indices
+        % {'cells', 'faces', 'edges', 'nodes1', 'nodes2', 'vertices'};
+        tetravertinds = vertcat(tetravertinds, tetraverttbls{i}.inds);
+    end
+    tetravertfdnames = {'cells', 'faces', 'edges', 'nodes1', 'nodes2', 'vertices'};
 
-    clear tetraverttbl;
-    tetraverttbl.vertices = vertcat(verts{:});
-    tetraverttbl.indverts = vertcat(indverts{:});
-    tetraverttbl.cells    = repmat(tetratbl2.cells, 4, 1);
-    tetraverttbl.faces    = repmat(tetratbl2.faces, 4, 1);
-    tetraverttbl.edges    = repmat(tetratbl2.edges, 4, 1);
-    tetraverttbl.num = numel(tetraverttbl.vertices);
-
-    tetravertindtbl = tetraverttbl;
-    tetraverttbl = rmfield(tetraverttbl, 'indverts');
-
-    tetravertfds = {'cells', 'faces', 'edges', 'vertices'};
-
-    [~, tetravertcoltbl] = setupTableMapping(tetraverttbl, coltbl, []);
+    tetraverttbl = IndexArray([]);
+    tetraverttbl = tetraverttbl.setup(tetravertfdnames, tetravertinds);
+    tetraverttbl = tetraverttbl.removefield({'nodes1', 'nodes2'});
+    
+    tetravertcoltbl = crossIndexArray(tetraverttbl, coltbl, [], 'optpureproduct', ...
+                                      true);
 
     tetravertcolfds = {'cells', 'faces', 'edges', 'vertices', 'coldim'};
 
@@ -231,35 +226,42 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     
     % start the construction of tetraveropptbl
-    [~, tetravertopptbl] = setupTableMapping(tetraverttbl, tetraverttbl, {'cells', ...
-                        'faces', 'edges'}, 'crossextend', {{'vertices', {'vertices', ...
-                        'oppvertices'}}});
+    tetravertopptbl = crossIndexArray(tetraverttbl, tetraverttbl, {'cells', ...
+                        'faces', 'edges'}, 'crossextend', {{'vertices', ...
+                        {'vertices', 'oppvertices'}}});
 
-    tetravertoppfds = {'vertices', 'oppvertices', 'cells', 'faces', 'edges'};
-    A = convertTableToArray(tetravertopptbl, tetravertoppfds);
-    A = A(A(:, 1) ~= A(:, 2), :);
-
-    tetravertopptbl = convertArrayToTable(A, tetravertoppfds);
-    A = convertTableToArray(tetravertopptbl, {'cells', 'faces', 'edges', 'vertices', ...
-                        'oppvertices'});
-    A = sortrows(A);
-
+    fdnames = {'vertices', 'oppvertices', 'cells', 'faces', 'edges'};
+    inds = tetravertopptbl.gets(fdnames);
+    inds = inds(inds(:, 1) ~= inds(:, 2), :);
+    tetravertopptbl = IndexArray([]);
+    tetravertopptbl = tetravertopptbl.setup(fdnames, inds);
+    
+    fdnames = {'cells', 'faces', 'edges', 'vertices', 'oppvertices'};
+    tetravertopptbl = sortIndexArray(tetravertopptbl, fdnames);
+    
     loctbl.oppvertinds = [1; 2; 3];
-    loctbl.num = 3;
-    a = repmat(loctbl.oppvertinds, tetraverttbl.num, 1);
+    loctbl = IndexArray(loctbl);
+    
+    ind = repmat([1; 2; 3], tetraverttbl.num, 1);
 
-    A = [A, a];
+    tetravertopptbl = tetravertopptbl.addInd('oppvertinds', ind);
 
-    tetravertopptbl = convertArrayToTable(A, {'cells', 'faces', 'edges', 'vertices', ...
-                        'oppvertices', 'oppvertinds'});
     % end of the construction of tetraveropptbl
     
     % We construct the table tetravertoppcoltbl, which contains a vector for
     % each of the opposite vertices
-    tetravertoppcoltbl = generateSubspace(tetravertopptbl, coltbl, []);
+    tetravertoppcoltbl = crossIndexArray(tetravertopptbl, coltbl, [], ...
+                                         'optpureproduct', true);
 
     % tetraoppvertcent gives the coordinate of each of the opposite vertices
-    tetraoppvertcent = tblmap(vertcent, vertcoltbl, tetravertoppcoltbl, {{'vertices', 'oppvertices'}, 'coldim'});
+    map = TensorMap();
+    map.fromTbl = vertcoltbl;
+    map.toTbl = tetravertoppcoltbl;
+    map.replaceFromTblfds = {{'vertices', 'oppvertices'}};
+    map.mergefds = {'oppvertices', 'coldim'};
+    map = map.setup();
+    
+    tetraoppvertcent = map.eval(vertcent);
     
     % We set up the vectors u1 and u2. Given an opposite face, let us denote the
     % vertices by P1, P2 and P3. Then, we have u1 = P1 - P2 and u2 = P1 -
@@ -270,41 +272,54 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     prod.tbl1 = loctbl;
     prod.tbl2 = tetravertoppcoltbl;
     prod.reducefds = {'oppvertinds'};
-    prod.prodtbl   = tetravertcoltbl;
+    prod.tbl3   = tetravertcoltbl;
     prod = prod.setup();
     
-    u1 = prod.evalProd([1; -1; 0], tetraoppvertcent);
-    u2 = prod.evalProd([1; 0; -1], tetraoppvertcent);
+    u1 = prod.eval([1; -1; 0], tetraoppvertcent);
+    u2 = prod.eval([1; 0; -1], tetraoppvertcent);
     
     % We start computing the cross product of u1 and u2
     colrowcrosstbl.coldim   = [2; 3; 1; 3; 1; 2];
     colrowcrosstbl.rowdim   = [3; 2; 3; 1; 2; 1];
     colrowcrosstbl.crossdim = [1; 1; 2; 2; 3; 3];
-    colrowcrosstbl.num = numel(colrowcrosstbl.coldim);
+    colrowcrosstbl = IndexArray(colrowcrosstbl);
 
-    [~, tetravertcolrowcrosstbl] = setupTableMapping(tetraverttbl, colrowcrosstbl, []);
 
     crossvec = [1; -1; -1; 1; 1; -1];
 
-    map1 = setupTableMapping(tetravertcoltbl, tetravertcolrowcrosstbl, {tetravertfds{:}, 'coldim'});
-    map2 = setupTableMapping(tetravertcoltbl, tetravertcolrowcrosstbl, {tetravertfds{:}, {'coldim', 'rowdim'}});
-    map3 = setupTableMapping(colrowcrosstbl , tetravertcolrowcrosstbl, {'coldim'       , 'rowdim' , 'crossdim'});
-    oppfacenormals = (map3*crossvec).*(map1*u1).*(map2*u2);
+    prod = TensorProd();
+    prod.tbl1 = colrowcrosstbl;
+    prod.tbl2 = tetravertcoltbl;
+    prod.reducefds = {'coldim'};
+    prod = prod.setup();
+    
+    tetravertrowcrosstbl = prod.tbl3;
+    oppfacenormals = prod.eval(crossvec, u1);
+    
+    prod = TensorProd();
+    prod.tbl1 = tetravertrowcrosstbl;
+    prod.tbl2 = tetravertcoltbl;
+    prod.replacefds1 = {{'rowdim', 'coldim'}};
+    prod.mergefds = {'cells', 'faces', 'edges', 'vertices'};
+    prod.reducefds = {'coldim'};
+    prod = prod.setup();    
+    
+    oppfacenormals = prod.eval(oppfacenormals, u2);    
+    
+    tetravertcrosstbl = prod.tbl3;
 
-    crosstbl = coltbl;
-    crosstbl = replacefield(crosstbl, {'coldim', 'crossdim'});
-    [~, tetravertcrosstbl] = setupTableMapping(tetraverttbl, crosstbl, []);
+    map = TensorMap();
+    map.fromTbl = tetravertcrosstbl;
+    map.toTbl = tetravertcoltbl;
+    map.replaceFromTblfds = {{'crossdim', 'coldim'}};
+    map.mergefds = {'cells', 'faces', 'edges', 'coldim', 'vertices'};
+    
+    map = map.setup();
+    
+    oppfacenormals = map.eval(oppfacenormals);
 
-    map = setupTableMapping(tetravertcolrowcrosstbl, tetravertcrosstbl, {tetravertfds{:}, ...
-                        'crossdim'});
-    % The vector oppfacenormals now contains the cross-products:
-    oppfacenormals = map*oppfacenormals;
-
-    % this is done just for the form, the map should be equal to the identity
-    map = setupTableMapping(tetravertcrosstbl, tetravertcoltbl, {tetravertfds{:}, ...
-                        {'crossdim', 'coldim'}});
-    oppfacenormals = map*oppfacenormals;
-
+    error('not done with refactoring');
+    
     %% Computation of the approximate of the gradient in the tetrahedra
     
     % For each vertex, it is given by the normal of the opposite face (let us denote
