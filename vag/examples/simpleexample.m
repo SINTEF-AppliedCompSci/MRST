@@ -27,6 +27,8 @@ rock = makeRock(G, perm*ones(nc, 1), 0.1*ones(nc, 1));
 
 vagstruct = computeVagTrans(G, rock);
 
+return
+
 %% Setup system matrix
 
 [A, op] = setupSystem(vagstruct, G);

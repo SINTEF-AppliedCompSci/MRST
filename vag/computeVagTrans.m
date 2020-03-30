@@ -56,25 +56,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % (from 1 to np, see below). 
     assert(G.griddim == 3, 'only 3D code for now!');
     
+    vagstruct = [];
+    
     nc = G.cells.num;
     nf = G.faces.num;
     nn = G.nodes.num;
 
     celltbl.cells    = (1 : nc)';
     celltbl.vertices = (1 : nc)';
-    celltbl.num      = nc;
+    celltbl = IndexArray(celltbl);
 
     facetbl.faces    = (1 : nf)';
     facetbl.vertices = nc + (1 : nf)';
-    facetbl.num      = nf;
+    facetbl = IndexArray(facetbl);
 
     nodetbl.nodes    = (1 : nn)';
     nodetbl.vertices = nc + nf + (1 : nn)';
-    nodetbl.num      = nn;
+    nodetbl = IndexArray(nodetbl);
 
     np = nc + nf + nn;
     verttbl.vertices = (1 : np)';
-    verttbl.num      = np;
+    verttbl = IndexArray(verttbl);
     vertfds = {'vertices'};
     
     %% Setup vertcoltbl and vertcent
@@ -83,7 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % the indexing table vertcoltbl
      
     coltbl.coldim   = (1 : 3)';
-    coltbl.num      = 3;
+    coltbl = IndexArray(coltbl);
 
 
     % We collect the cell, face and node centroids given by the grid structure in
@@ -96,17 +98,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nodecent = G.nodes.coords;
     nodecent = reshape(nodecent', [], 1);
 
-    vertcoltbl = generateSubspace(verttbl, coltbl, []);
-    cellcoltbl = generateSubspace(celltbl, coltbl, []);
-    facecoltbl = generateSubspace(facetbl, coltbl, []);
-    nodecoltbl = generateSubspace(nodetbl, coltbl, []);
+    vertcoltbl = crossIndexArray(verttbl, coltbl, [], 'optpureproduct', true);
+    cellcoltbl = crossIndexArray(celltbl, coltbl, [], 'optpureproduct', true);
+    facecoltbl = crossIndexArray(facetbl, coltbl, [], 'optpureproduct', true);
+    nodecoltbl = crossIndexArray(nodetbl, coltbl, [], 'optpureproduct', true);
 
-    [~, indstruct] = generateSubspace(cellcoltbl, vertcoltbl, {'vertices', 'coldim'});
-    vertcent = tblmap1to2(cellcent, indstruct);
-    [~, indstruct] = generateSubspace(facecoltbl, vertcoltbl, {'vertices', 'coldim'});
-    vertcent = vertcent + tblmap1to2(facecent, indstruct);
-    [~, indstruct] = generateSubspace(nodecoltbl, vertcoltbl, {'vertices', 'coldim'});
-    vertcent = vertcent + tblmap1to2(nodecent, indstruct);
+    
+    map = TensorMap();
+    map.fromTbl = cellcoltbl;
+    map.toTbl = vertcoltbl;
+    map.mergefds = {'vertices', 'coldim'};
+    map = map.setup();
+    vertcent = map.eval(cellcent);
+    
+    map = TensorMap();
+    map.fromTbl = facecoltbl;
+    map.toTbl = vertcoltbl;
+    map.mergefds = {'vertices', 'coldim'};
+    map = map.setup();
+    vertcent = vertcent + map.eval(facecent);
+    
+    map = TensorMap();
+    map.fromTbl = nodecoltbl;
+    map.toTbl = vertcoltbl;
+    map.mergefds = {'vertices', 'coldim'};
+    map = map.setup();
+    vertcent = vertcent + map.eval(nodecent);
+        
 
     %% Setup tetratbl
     
@@ -121,7 +139,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     clear cellfacetbl;
     cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
     cellfacetbl.faces = G.cells.faces(:, 1);
-    cellfacetbl.num   = numel(cellfacetbl.cells);
+    cellfacetbl = IndexArray(cellfacetbl);
 
     nf = G.faces.num;
     clear faceedgetbl;
@@ -130,12 +148,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     faceedgetbl.faces = rldecode((1 : nf)', diff(G.faces.edgePos));
     faceedgetbl.edges = G.faces.edges;
-    faceedgetbl.num   = numel(faceedgetbl.faces);
+    faceedgetbl = IndexArray(faceedgetbl);
 
-    [~, cellfaceedgetbl] = setupTableMapping(cellfacetbl, faceedgetbl, ...
-                                                          {'faces'});
+    cellfaceedgetbl = crossIndexArray(cellfacetbl, faceedgetbl, {'faces'});
     
-
+    
     %% Setup tetraverttbl
     
     % We set the table tetraverttbl which, for each tetrahedra, gives all the
@@ -147,31 +164,35 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     tetratbl = cellfaceedgetbl;
     tetrafds = {'cells', 'faces', 'edges'};
 
-    [~, tetracoltbl] = setupTableMapping(coltbl, tetratbl, []);
+    tetracoltbl = crossIndexArray(tetratbl, coltbl, [], 'optpureproduct', true);
     tetracolfds = {'cells', 'faces', 'edges', 'coldim'};
 
     ne = G.edges.num;
     clear edgetbl;
     edgetbl.edges = (1 : ne)';
     edgetbl.nodes = G.edges.nodes(G.edges.nodePos(1 : (end - 1)));
-    edgetbl.num   = ne;
+    edgetbl = IndexArray(edgetbl);
 
-    [~, tetratbl2] = setupTableMapping(tetratbl, edgetbl, {'edges'});
+    tetratbl2 = crossIndexArray(tetratbl, edgetbl, {'edges'});
     tetratbl2 = replacefield(tetratbl2, {'nodes', 'nodes1'});
 
     clear edgetbl;
     edgetbl.edges = (1 : ne)';
     edgetbl.nodes = G.edges.nodes(G.edges.nodePos(1 : (end - 1)) + 1);
-    edgetbl.num   = ne;
+    edgetbl = IndexArray(edgetbl);
 
-    [~, tetratbl2] = setupTableMapping(tetratbl2, edgetbl, {'edges'});
+    tetratbl2 = crossIndexArray(tetratbl2, edgetbl, {'edges'});
     tetratbl2 = replacefield(tetratbl2, {'nodes', 'nodes2'});
 
+    
     exttetrafds = {'cells', 'faces', 'edges', 'nodes1', 'nodes2'};
 
     verts = cell(4, 1);
     indverts = cell(4, 1);
     nt = tetratbl.num;
+    
+    for i = 1 : 4
+        
     verts{1}    = tblmap(celltbl.vertices, celltbl, tetratbl2, {'cells'});
     indverts{1} = ones(nt, 1);
     verts{2}    = tblmap(facetbl.vertices, facetbl, tetratbl2, {'faces'});
