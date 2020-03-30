@@ -1,4 +1,4 @@
-classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
+classdef ThreePhaseSurfactantPolymerModel < GenericBlackOilModel
     % Three-phase black-oil model with support for surfactant and polymer injection
     %
     % SYNOPSIS:
@@ -34,12 +34,15 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
     end
 
     methods
-        function model = ThreePhaseSurfactantPolymerModel(G, rock, fluid, varargin)
-            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
+        function model = ThreePhaseSurfactantPolymerModel(G, rock, fluid, deck, varargin)
+            model = model@GenericBlackOilModel(G, rock, fluid, varargin{:});           
+            
+            runspec = deck.RUNSPEC;
+            check = @(name) isfield(runspec, upper(name)) && runspec.(upper(name));
 
             % This is the model parameters for oil/water/gas/surfactant/polymer system
-            model.polymer = true;
-            model.surfactant = true;
+            model.polymer = check('POLYMER');            
+            model.surfactant = check('SURFACTANT');
             if (isfield(fluid,'shrate') && ~isfield(fluid,'plyshlog'))
                 error('SHRATE is specified while PLYSHLOG is not specified')
             end
