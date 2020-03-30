@@ -1,4 +1,4 @@
-classdef ThreePhaseSurfactantPolymerModel < GenericBlackOilModel
+classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
     % Three-phase black-oil model with support for surfactant and polymer injection
     %
     % SYNOPSIS:
@@ -35,14 +35,14 @@ classdef ThreePhaseSurfactantPolymerModel < GenericBlackOilModel
 
     methods
         function model = ThreePhaseSurfactantPolymerModel(G, rock, fluid, deck, varargin)
-            model = model@GenericBlackOilModel(G, rock, fluid, varargin{:});           
+            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});           
             
             runspec = deck.RUNSPEC;
             check = @(name) isfield(runspec, upper(name)) && runspec.(upper(name));
 
-            % This is the model parameters for oil/water/gas/surfactant/polymer system
             model.polymer = check('POLYMER');            
-            model.surfactant = check('SURFACTANT');
+            model.surfactant = check('SURFACT');
+                       
             if (isfield(fluid,'shrate') && ~isfield(fluid,'plyshlog'))
                 error('SHRATE is specified while PLYSHLOG is not specified')
             end
@@ -59,8 +59,10 @@ classdef ThreePhaseSurfactantPolymerModel < GenericBlackOilModel
         % --------------------------------------------------------------------%
         function model = setupOperators(model, G, rock, varargin)
             model.operators = setupOperatorsTPFA(G, rock, varargin{:});
-            model.operators.veloc = computeVelocTPFA(G, model.operators.internalConn);
-            model.operators.sqVeloc = computeSqVelocTPFA(G, model.operators.internalConn);
+            if model.surfactant
+                model.operators.veloc = computeVelocTPFA(G, model.operators.internalConn);
+                model.operators.sqVeloc = computeSqVelocTPFA(G, model.operators.internalConn);
+            end
         end
 
         % --------------------------------------------------------------------%

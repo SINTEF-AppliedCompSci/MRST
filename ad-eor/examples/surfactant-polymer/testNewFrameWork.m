@@ -23,6 +23,7 @@ deck = convertDeckUnits(deck);
 % Add initial surfactant & polymer concentration
 state0.cp   = zeros([model.G.cells.num, 1]);
 state0.cs   = zeros([model.G.cells.num, 1]);
+state0.cpmax =  zeros([model.G.cells.num, 1]);
 
 %% Select nonlinear and linear solvers
 
@@ -40,28 +41,46 @@ nonlinearsolver.useRelaxation = true;
 %                     'NonLinearSolver', nonlinearsolver);
 %%
 scheduleP = schedule;
-scheduleP.control(1).W(1).cs = 0;
+% scheduleP.control(1).W(1).cs = 0;
+% scheduleP.control(2).W(1).cs = 0;
 % scheduleP.control(2).W(1).cp = 0;
 model.usingShear=false;
 
 [wellSolsP, statesP, reportsP] = ...
     simulateScheduleAD(state0, model, scheduleP, ...
-                    'NonLinearSolver', nonlinearsolver);
+                   'NonLinearSolver', nonlinearsolver);
 %%
 clear gmodel statesGP;
-gmodel = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, 'disgas', model.disgas, 'vapoil', model.vapoil);
-gmodel.surfactant = false;
-gmodel.nonlinearTolerance = 1e-2;
-gmodel.usingShear=false;
+gmodelp = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, deck, 'disgas', model.disgas, 'vapoil', model.vapoil);
+% gmodelp.surfactant = false;
+gmodelp.nonlinearTolerance = 1e-2;
+gmodelp.toleranceCNV = 1.e-2;
+gmodelp.usingShear=false;
 
-gmodel = gmodel.validateModel();
-gmodel.FacilityModel.toleranceWellRate = 1e-3;
+gmodelp = gmodelp.validateModel();
+gmodelp.FacilityModel.toleranceWellRate = 1e-3;
 % schedule.control(2).W(1).cp = 0;
-
+% 
 scheduleGP = schedule;
 [wellSolsGP, statesGP, reportsGP] = ...
-    simulateScheduleAD(state0, gmodel, schedule, ...
+    simulateScheduleAD(state0, gmodelp, schedule, ...
                     'NonLinearSolver', nonlinearsolver);
+                
+%%
+% clear gmodel statesGP;
+% gmodelsp = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, 'disgas', model.disgas, 'vapoil', model.vapoil);
+% % gmodelsp.surfactant = false;
+% gmodelsp.nonlinearTolerance = 1e-2;
+% gmodelsp.usingShear=false;
+% 
+% gmodelsp = gmodelsp.validateModel();
+% gmodelsp.FacilityModel.toleranceWellRate = 1e-3;
+% % schedule.control(2).W(1).cp = 0;
+% % 
+% scheduleGSP = schedule;
+% [wellSolsGSP, statesGSP, reportsGSP] = ...
+%     simulateScheduleAD(state0, gmodelsp, schedule, ...
+%                     'NonLinearSolver', nonlinearsolver);
 
 %%
 % props = gmodel.validateModel();
@@ -89,9 +108,8 @@ bomodel.nonlinearTolerance = 1e-2;
 % end
 
 %% 
-plotWellSols({wellSolsGP, wellSolsP, wellSolsBO}, 'datasetnames', {'New', 'Old', 'NoPolymer'})
-
-
+% plotWellSols({wellSolsGP, wellSolsGSP, wellSolsP, wellSolsBO}, 'datasetnames', {'NewP', 'NewSP', 'Old', 'NoPolymer'})
+plotWellSols({wellSolsGP, wellSolsP, wellSolsBO}, 'datasetnames', {'NewP', 'Old', 'NoPolymer'})
 
 
 %%
