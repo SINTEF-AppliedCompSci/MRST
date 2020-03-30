@@ -35,6 +35,11 @@ classdef WellPhaseFlux < StateFunction
                     % instead of all the injection perforations
                     % how to handle the crossflow of polymer remains to be
                     % fixed
+                    % TODO: and also, we can trying to have the fully
+                    % mixing multiplier (or some other thing related) as
+                    % state function, then a few places related to
+                    % different viscosities can be built upon these state
+                    % functions
                     wc_inj = (map.cells(injection));
                     cp_inj = cp(wc_inj);
                     wIx = 1;

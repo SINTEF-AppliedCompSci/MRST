@@ -54,6 +54,22 @@ classdef WellComponentPhaseFlux < StateFunction
                     if ~isempty(componentDensity{c, ph})
                         rhoc = componentDensity{c, ph}(wc);
                         % Compute production fluxes
+                        % TODO: we can move the following outside the for loop else to
+                        % save some if conditions
+                        % for water phase
+                        if (ph == 1)
+                            if (isprop(model, 'polymer'))
+                                if model.polymer &&  strcmp(model.Components{c}.name,'polymer')
+                                    conc = model.getProps(state, 'polymer');
+                                    conc = conc(wc);
+                                    fluid = model.fluid;
+                                    mixpar = fluid.mixPar;
+                                    cpbar = conc / fluid.cpmax;
+                                    a = fluid.muWMult(fluid.cpmax).^(1.-mixpar);
+                                    rhoc = rhoc ./(a + (1-a)*cpbar);
+                                end
+                            end
+                        end
                         componentPhaseFlux{c, ph} = rhoc.*q;
                     end
                 end

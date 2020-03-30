@@ -52,6 +52,8 @@ classdef PolymerComponent < GenericComponent
              mixpar = fluid.mixPar;
              cpbar  = c/fluid.cpmax;
              a  = fluid.muWMult(fluid.cpmax).^(1-mixpar);
+             % TODO: we should save (a+(1-a)*cpbar) somewhere, maybe as
+             % state funtion?
              mobP = c.*bW.*mobW./(a+(1-a)*cpbar);
 
              nphase = model.getNumberOfPhases;
