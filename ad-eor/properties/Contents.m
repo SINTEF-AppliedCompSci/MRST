@@ -3,12 +3,12 @@
 % Files
 %   BlackOilSurfactantViscosity            - 
 %   CapillaryNumber                        - 
-%   EffectiveMixturePolymerViscMultiplier  - 
 %   FaceConcentration                      - 
 %   PolymerAdsorption                      - 
 %   PolymerFluxDiscretization              - 
 %   PolymerPhaseFlux                       - 
-%   PolymerViscMultiplier                  - 
+%   PolymerEffViscMult
+%   PolymerViscMult
 %   SurfactantAdsorption                   - 
 %   SurfactantCapillaryPressure            - Implementation only for 2 phases oil-water
 %   SurfactantFlowPropertyFunctions        - 

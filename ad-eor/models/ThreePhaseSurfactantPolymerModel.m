@@ -150,9 +150,14 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             % The statefunction ViscosityMultipliers and RelPermMultipliers are containers
             % for the Viscosity and Relative Permeability multpliers.  Each
             % multiplier is set up as a property (for example
-            % 'PolymerViscMultiplier' below) and added to the container.
+            % 'PolymerEffViscMult' below) and added to the container.
             viscmult = PhaseMultipliers(model);
             viscmult.label = 'M_\mu';
+
+            % TODO: we need to find an easier way to handle the viscosity multiplication between different component
+            % hopefully, we only handle once. 
+            pviscmult = PhaseMultipliers(model);
+            pviscmult.label = 'M_{\mu_p}';
             
             relpermult = PhaseMultipliers(model);
             relpermult.label = 'M_{kr}';
@@ -164,10 +169,15 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 fd = fd.setStateFunction('PolymerPhaseFlux' , PolymerPhaseFlux(model));
                 fd = fd.setStateFunction('FaceConcentration', FaceConcentration(model));
                 
-                % We set up the polymer viscosity multiplier
-                pmult = 'PolymerViscMultiplier';
-                pp = pp.setStateFunction(pmult, PolymerViscMultiplier(model, pvtreg));
-                viscmult = viscmult.addMultiplier(model, pmult, 'W');
+                % We set up the water effective viscosity multiplier based on polymer concentration
+                peffmult = 'PolymerEffViscMult';
+                pp = pp.setStateFunction(peffmult, PolymerEffViscMult(model, pvtreg));
+                viscmult = viscmult.addMultiplier(model, peffmult, 'W');
+
+                % We set up the polymer effective viscosity multiplier, which is used for polymer transport
+                pviscmult = 'PolymerViscMult';
+                pp = pp.setStateFunction(pviscmult, PolymerViscMult(model, pvtreg));
+                pviscmult = viscmult.addMultiplier(model, pviscmult, 'W');
                 
                 % We set up the polymer permeability reduction effect. If permeability reduction
                 % is present, it means that we must divide the water relative
@@ -191,7 +201,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 smult = 'SurfactantViscMultiplier';
                 pp = pp.setStateFunction(smult, SurfactantViscMultiplier(model, pvtreg));
                 viscmult = viscmult.addMultiplier(model, smult, 'W');
-                
+                pviscmult = viscmult.addMultiplier(model, smult, 'W');
             end
             
             pp = pp.setStateFunction('ViscosityMultipliers', viscmult);

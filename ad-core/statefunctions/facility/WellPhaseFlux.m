@@ -45,7 +45,7 @@ classdef WellPhaseFlux < StateFunction
                     wIx = 1;
                     mobw_injw = mobw{wIx}(injection);
                     
-                    viscpmult = model.ReservoirModel.getProps(state, 'PolymerViscMultiplier');
+                    viscpmult = model.ReservoirModel.getProps(state, 'PolymerEffViscMult');
                     viscpmult_inj = viscpmult(wc_inj);
                     viscpmultfull = model.ReservoirModel.fluid.muWMult(cp_inj);
                     mobw{wIx}(injection) = mobw_injw ./ viscpmultfull .* viscpmult_inj;

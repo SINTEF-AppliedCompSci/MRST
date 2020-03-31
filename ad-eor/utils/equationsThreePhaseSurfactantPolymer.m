@@ -151,7 +151,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     [mobW, mobO, mobG] = deal(mob{:});
     vP = model.getProps(state, 'PolymerPhaseFlux');
 
-    muWeffMult = model.getProp(state, 'PolymerViscMultiplier');
+    muWeffMult = model.getProp(state, 'PolymerEffViscMult');
 
     if model.usingShear || model.usingShearLog || model.usingShearLogshrate
         % calculate well perforation rates :

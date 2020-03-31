@@ -60,13 +60,10 @@ classdef WellComponentPhaseFlux < StateFunction
                         if (ph == 1)
                             if (isprop(model, 'polymer'))
                                 if model.polymer &&  strcmp(model.Components{c}.name,'polymer')
-                                    conc = model.getProps(state, 'polymer');
-                                    conc = conc(wc);
-                                    fluid = model.fluid;
-                                    mixpar = fluid.mixPar;
-                                    cpbar = conc / fluid.cpmax;
-                                    a = fluid.muWMult(fluid.cpmax).^(1.-mixpar);
-                                    rhoc = rhoc ./(a + (1-a)*cpbar);
+                                    [effviscmult, pviscmult] = model.getProps(state, 'PolymerEffViscMult', 'PolymerViscMult');
+                                    effvismultw = effviscmult(wc);
+                                    pviscmultw = pviscmult(wc);
+                                    rhoc = rhoc .* effvismultw ./ pviscmultw;
                                 end
                             end
                         end

@@ -4,7 +4,7 @@ classdef PhaseMultipliers < StateFunction
 % the ViscosityMultipliers container which is set in the
 % ThreePhaseSurfactantPolymerModel.
 %
-% Each multiplier is defined as a statefunction, see PolymerViscMultiplier for
+% Each multiplier is defined as a statefunction, see PolymerEffViscMult for
 % an example of multiplier.
     
     properties

@@ -1,4 +1,4 @@
-classdef PolymerViscMultiplier < StateFunction
+classdef PolymerEffViscMult < StateFunction
 % Polymer viscosity multiplier. The viscosity multiplier is typically an
 % increasing function of the polymer concentration. Moreover a Todd-Longstaff
 % model is used to compute the effective water viscosity.
@@ -7,7 +7,7 @@ classdef PolymerViscMultiplier < StateFunction
     end
 
     methods
-        function gp = PolymerViscMultiplier(model, varargin)
+        function gp = PolymerEffViscMult(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'polymer'}, 'state'); % check mechanism
             assert(model.water);

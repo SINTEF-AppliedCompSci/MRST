@@ -44,17 +44,11 @@ classdef PolymerComponent < GenericComponent
         function cmob = getComponentMobility(component, model, state, varargin)
              % We use a Todd-Longstaff model. It implies that the mobility of the
              % polymer is a non-linear function of the polymer concentration.
-             [mob, b, c] = model.getProps(state, 'Mobility', 'ShrinkageFactors', 'polymer');
+             [mob, b, c, effviscmult, pviscmult] = model.getProps(state, 'Mobility', 'ShrinkageFactors', 'polymer', 'PolymerEffViscMult', 'PolymerViscMult');
              wIx = 1;
              mobW = mob{wIx};
              bW = b{wIx};
-             fluid  = model.fluid;
-             mixpar = fluid.mixPar;
-             cpbar  = c/fluid.cpmax;
-             a  = fluid.muWMult(fluid.cpmax).^(1-mixpar);
-             % TODO: we should save (a+(1-a)*cpbar) somewhere, maybe as
-             % state funtion?
-             mobP = c.*bW.*mobW./(a+(1-a)*cpbar);
+             mobP = c.*bW.*mobW .* effviscmult ./ pviscmult;
 
              nphase = model.getNumberOfPhases;
              cmob = cell(1, nphase);
