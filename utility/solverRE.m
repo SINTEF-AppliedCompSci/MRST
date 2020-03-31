@@ -42,14 +42,15 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 res = 100; % residual value
 iter = 1; % iterations
 
-% Initaliazing AD-variable
+% Initialiazing AD-variable
 psi_ad = initVariablesADI(psi_n); 
 
 % Newton loop
 while (res > solver_param.tol) && (iter <= solver_param.maxIter)
     
     psi_m = psi_ad.val; % current iteration level (m-index)
-    eq = modelEqs.psiEq(psi_ad, psi_n, psi_m, time_param.tau, source); % call eq
+    eq = modelEqs.psiEq(psi_ad, psi_n, psi_m, time_param.tau, ...
+        source); % call equation from model
     R = eq.val; % residual
     J = eq.jac{1}; % Jacobian
     Y = J\-R; % solve linear system
@@ -67,4 +68,4 @@ while (res > solver_param.tol) && (iter <= solver_param.maxIter)
     end
 end
 
-psi = psi_ad.val; % updated pressure head
+psi = psi_ad.val; % return updated pressure head

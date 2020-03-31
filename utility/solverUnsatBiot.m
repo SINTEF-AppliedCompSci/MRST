@@ -43,10 +43,10 @@ You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
-res = 100;          % initializing residual
-iter = 1;           % maximum number of iterations
-Nd = G.griddim;     % grid dimension
-Nc = G.cells.num;   % number of cells
+res = 100; % initializing residual
+iter = 1; % maximum number of iterations
+Nd = G.griddim; % grid dimension
+Nc = G.cells.num; % number of cells
 
 % Initializing AD-variables
 p_ad = initVariablesADI(p_n);
@@ -63,12 +63,12 @@ while (res > solver_param.tol) && (iter <= solver_param.maxIter)
     eq3 = modelEqs.pEq1(p_n, u_ad, u_n);
     eq4 = modelEqs.pEq2(p_ad, p_n, p_m, time_param.tau, sourceFlow);
     
-    J = [eq1.jac{1} eq2.jac{1}; eq3.jac{1}, eq4.jac{1}];  % Jacobian
-    R = [eq1.val + eq2.val; eq3.val + eq4.val];           % Residual
-    Y = J\-R;  % solve linear system
-    u_ad.val = u_ad.val + Y(1:Nd*Nc);     % update u
+    J = [eq1.jac{1} eq2.jac{1}; eq3.jac{1} eq4.jac{1}]; % Jacobian
+    R = [eq1.val + eq2.val; eq3.val + eq4.val]; % Residual
+    Y = J \ -R; % solve linear system
+    u_ad.val = u_ad.val + Y(1:Nd*Nc); % update u
     p_ad.val = p_ad.val + Y(Nd*Nc+1:end); % update p
-    res = norm(R);  % compute tolerance
+    res = norm(R); % compute tolerance
     
     % Checking convergence...
     if res <= solver_param.tol

@@ -69,7 +69,6 @@ z_max = find(zf > 0.9999*Lz & zf < 1.0001*Lz );  % idx of bottom faces
 sides = ext_f(~ismember(ext_f, [z_min; z_max])); % idx of sides faces
 
 %% Physical parameters
-soil = getHydraulicProperties('clay'); % getting clay hydraulic properties
 phys = struct(); % create structure to store physical properties
 
 % Due to the low permeability of the clay, we need to use a simple scaling
@@ -85,6 +84,7 @@ phys.mech.stiff = shear_normal_stress(Nc, Nd, ... % stiffnes matrix
     phys.mech.mu, phys.mech.lambda, 0 .* phys.mech.mu);    
 
 % Flow parameters [Water]
+soil = getHydraulicProperties('clay'); % getting clay hydraulic properties
 phys.flow.K = soil.K_s * meter / second; % saturated hydraulic conduct.
 phys.flow.rho = 1014 * kilo * gram / meter^3; % fluid density
 phys.flow.g = 9.8006 * meter / second^2; % gravity acceleration
@@ -100,17 +100,19 @@ phys.flow.n = soil.n; % vGM parameter
 phys.flow.m = 1 - ( 1 / phys.flow.n); % vGM parameter
 phys.flow.theta_r = soil.theta_r; % Residual water content
 phys.flow.S_r = phys.flow.theta_r / phys.flow.poro; % Residual saturation
-phys.flow.temperature = 298.15 * Kelvin; % Ambient temperature
-phys.flow.relativeHumidity = 0.5; % Ambient relative humidity
 phys.flow.C_m = 2.17E-10 / Pascal; % Porous medium compressibility
 phys.flow.alpha_biot = 1 - phys.mech.C_s/phys.flow.C_m; % Biot coefficient
 
 % Obtaining critical pressure
+phys.flow.temperature = 298.15 * Kelvin; % Ambient temperature
+phys.flow.relativeHumidity = 0.5; % Ambient relative humidity
 p_crit = computeCriticalPressure(phys); 
 
 %% Boundary conditions
 
 % MECHANICS BOUNDARY CONDITIONS
+
+% Creating the boundary structure for the mechanics problem
 bcMech = addBC([], sides, 'pressure', 0); % u=0 at the sides
 bcMech = addBC(bcMech, z_max, 'pressure', 0); % u=0 at the bottom
 
@@ -192,7 +194,7 @@ print_param.times  = ((time_param.simTime/print_param.levels) : ...
 print_param.print = 1; % initializing print counter
 print_param.export = 1; % intializing export counter
 
-%% Discrete equations
+%% Calling the model for the unsaturated poroelastic equations
 
 % Setting up model for flux-controlled problem
 modelEqsFlux = modelUnsatBiot(G, phys, mpfa_discr_flux, mpsa_discr, ...

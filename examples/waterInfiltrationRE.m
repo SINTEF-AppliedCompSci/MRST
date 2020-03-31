@@ -29,14 +29,14 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 clear; clc(); mrstModule add fvbiot fv-unsat
 
 %% Setting up the grid
-nx = 5;     ny = 5;     nz = 30;     % cells        
-Lx = 1;     Ly = 1;     Lz = 1;      % domain lenght [m]       
-G = cartGrid([nx,ny,nz],[Lx,Ly,Lz]); % create Cartesian Grid
-G = computeGeometry(G);              % compute geometry
+nx = 5;     ny = 5;     nz = 30;          % cells        
+Lx = 1;     Ly = 1;     Lz = 1;           % domain lenght [m]       
+G = cartGrid([nx, ny, nz], [Lx, Ly, Lz]); % create Cartesian Grid
+G = computeGeometry(G);                   % compute geometry
 
 %Plotting grid
 newplot; plotGrid(G); axis off; 
-pbaspect([1,1,5]); view([-51,26]);
+pbaspect([1, 1, 5]); view([-51, 26]);
 
 %% Physical properties 
 soil = getHydraulicProperties('newMexSample');  % get soil properties
@@ -52,7 +52,7 @@ phys.flow.perm = (phys.flow.K * phys.flow.mu / phys.flow.gamma) .* ...
     ones(G.cells.num, 1); % intrinsic permeability
 phys.flow.alpha = soil.alpha / meter; % vGM parameter
 phys.flow.n = soil.n; % vGM parameter
-phys.flow.m = 1-(1/phys.flow.n); % Equation parameter
+phys.flow.m = 1-(1/phys.flow.n); % vGM parameter
 phys.flow.theta_s = soil.theta_s; % Water content at saturation conditions
 phys.flow.theta_r = soil.theta_r; % Residual water content
 
@@ -78,7 +78,7 @@ bcVal(z_max) = psiB + zetaf(z_max); % assigning Bottom boundary
 % Initial Condition
 psi = psiB .* ones(G.cells.num, 1);
 
-%% Calling MPFA routine
+%% Discretize the flow problem using MPFA
 mpfa_discr = mpfa(G, phys.flow, [], 'bc', bc, 'invertBlocks', 'matlab');
 
 %% Time parameters
@@ -114,7 +114,7 @@ solver_param.maxIter = 10; % maximum number of iterations
 
 while time_param.time < time_param.simTime
     
-    psi_n = psi; % current time step h (n-index)
+    psi_n = psi; % current time step (n-index)
     time_param.time = time_param.time + time_param.tau; % current time
     source = zeros(G.cells.num,1); % source term equal to zero
             
@@ -122,6 +122,7 @@ while time_param.time < time_param.simTime
     [psi, psi_m, iter] = solverRE(psi_n, modelEqs, time_param, ...
         solver_param, source);
                     
+    % Determine next time step
     [time_param.tau, print_param.print] = timeStepping(time_param, ...
         print_param, iter);
     
