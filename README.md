@@ -10,7 +10,7 @@ There are four numerical examples accompanying this module:
 * waterInfiltrationRE.m
 * desiccationUnsatBiot.m
 
-The first two are convergence tests and the last two are practical applications. Even though the numerical tests are well documented, they are not meant as tutorials, but are rather included for demonstrative purposes. To learn the basics regarding the module usage, we recommend waterInfiltrationRE.m.
+The first two are convergence tests and the last two are practical applications. Even though the numerical tests are well documented, they are not meant as tutorials, but rather included for demonstrative purposes. To learn the basics regarding the module usage, we recommend waterInfiltrationRE.m.
 
 This module was largely based on:
 * Varela, Jhabriel. Implementation of an MPFA/MPSA-FV Solver for the Unsaturated Flow in Deformable Porous Media. MS thesis. The University of Bergen, 2018.
@@ -24,12 +24,12 @@ For an introduction to MPSA:
 * Nordbotten, Jan Martin. "Stable cell-centered finite volume discretization for Biot equations." SIAM Journal on Numerical Analysis 54.2 (2016): 942-968.
  
 ## Requirements
-* MRST (Tested version: 2019a)
+* MRST (Tested version: 2019b)
 * MATLAB (Tested version: R2019a)
 
 ## MRST dependencies
 * [fvbiot](https://github.com/pmgbergen/fvbiot)
-* [upr](https://www.sintef.no/projectweb/mrst/modules/upr/)
+* [distmesh](http://persson.berkeley.edu/distmesh/)
 
 ## Cite
 If you use fv-unsat, please cite:
