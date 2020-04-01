@@ -25,12 +25,12 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
 %% Importing required modules
-clear; clc(); mrstModule add fvbiot fv-unsat upr
+clear; clc(); mrstModule add fv-unsat fvbiot distmesh
 
 %% Creating grid
 
 % Two-dimensional grid
-r = 50 * milli * meter; % radii of the petri-dish
+r = 50 * milli * meter; % radii of the Petri-dish
 fd =@(p) sqrt(sum(p.^2, 2)) - r; % circular domain function
 min_x = -r;  max_x = r; % min and max values in x-axis
 min_y = -r;  max_y = r; % min and max values in y-axis                  
@@ -145,14 +145,14 @@ bcMechVals(Nd * z_max) = 0;   % uz = 0 at the bottom
 vMax = 6E-07 * meter / second; % maximum evaporation velocity
 Qtop_f = vMax .* phys.flow.mu .* A(z_min);  % Top boundary flux
 
-% Creating the boundary structure for flux controlled BC
+% Creating the boundary structure for flux-controlled BC
 bcFlow_f = addBC([], z_min, 'flux', Qtop_f);     
 bcFlowVals_f = zeros(Nf, 1); 
 bcFlowVals_f(z_min) = Qtop_f;                        
 
 % PRESSURE CONTROLLED BOUNDARY CONDITIONS
 
-% Creating the boundary structure for pressure controlled BC
+% Creating the boundary structure for pressure-controlled BC
 bcFlow_p = addBC([], z_min, 'pressure', p_crit);  
 bcFlowVals_p = zeros(Nf, 1);                          
 bcFlowVals_p(z_min) = p_crit + phys.flow.gamma .* zetaf(z_min);                             
@@ -160,8 +160,8 @@ bcFlowVals_p(z_min) = p_crit + phys.flow.gamma .* zetaf(z_min);
 % contribution, and must be included for Dirichlet boundary conditions
 
 % INITIAL CONDITIONS
-u_init = zeros(Nd * Nc, 1) * meter; % initial u
-p_init = -0.1 * kilo * Pascal * ones(Nc, 1); % initial p
+u_init = zeros(Nd * Nc, 1) * meter; 
+p_init = -0.1 * kilo * Pascal * ones(Nc, 1);
 
 %% Calling MPSA/MPFA routines and creating discrete operators
 
