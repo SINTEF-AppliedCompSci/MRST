@@ -221,7 +221,7 @@ for sno = 1:numel(control)
                         WCONPROD{pno,9} = lims.(fnm);
                     case 'thp'
                         WCONPROD{pno,10} = lims.(fnm);
-                    case 'resv'
+                    case {'resv','resv_history'}
                         WCONPROD{pno,8} = abs(lims.(fnm));
                     case 'orat'
                         WCONPROD{pno,4} = abs(lims.(fnm));

@@ -313,90 +313,101 @@ function dump_props(fid, dirname, deck, f)
 for fld = reshape(fieldnames(deck.PROPS), 1, [])
     values = deck.PROPS.(fld{1});
     
-    if strcmp(fld{1}, {'PVTO'})
+    if any(strcmp(fld{1}, {'PVTO','PVTG'}))
         % Custom output routine
-        for pvtn = 1:numel(values)
-            dump_pvto(fid, dirname, values{pvtn}, f);
-        end
-        continue
-    elseif strcmp(fld{1}, {'PVTG'})
-        % Custom output routine
-        for pvtn = 1:numel(values)
-            dump_pvtg(fid, dirname, values{pvtn}, f);
-        end
-        continue
-    end
+        
+            dump_pvt(fid,lower(fld{1}), dirname, values, f);
+        
+        %continue
+%     elseif any(strcmp(fld{1}, {'SCALECRS'}))
+%         fprintf(fid, '%s\n', fld{1});
+%         fprintf(fid, '%s\n', values{1});
+%         fprintf(fid, '\n'); 
+    else
+        values = convertValuesToCell(values);
     
-    if ~iscell(values)
+        for regn = 1:numel(values)
+            values{regn}(isnan(values{regn})) = 0;
+        end
+        if iscellstr(values)
+            dump_vector(fid,dirname, lower(fld{1}), getFmtStr(f.string), values);
+        else
+            fmt = getFmtStr(f.sci, size(values{1}, 2));
+            dump_multiple(fid, dirname, lower(fld{1}), fmt, values);
+        end
+    end
+end
+end
+
+function values = convertValuesToCell(values)
+if ~iscell(values)
+    if(size(values,2)>1)
+        tmp = cell(size(values,1),1);
+        for i=1:numel(tmp)
+            tmp{i} = values(i,:);
+        end
+        values = tmp;
+    else
         values = {values};
     end
-    
-    for regn = 1:numel(values)
-        values{regn}(isnan(values{regn})) = 0;
-    end
-
-    fmt = f.sci;
-    if iscellstr(values)
-        % ROCKOPTS or similar
-        fmt = f.string;
-    end
-    fmt = getFmtStr(fmt, size(values{1}, 2));
-    dump_multiple(fid, dirname, lower(fld{1}), fmt, values);
 end
 end
 
 %--------------------------------------------------------------------------
-
-function dump_pvto(fid, dirname, pvto, f)
-fncase = @upper;
-fprintf(fid, ['INCLUDE\n', fncase('pvto.txt'),  '/\n\n']);
-
-[fid_pvto, msg] = fopen(fullfile(dirname, fncase('pvto.txt')), 'wt');
-if fid_pvto < 0
-    error('Failed to open ''pvto'' output file: %s', msg);
-end
-
-assert (numel(pvto.key) + 1 == numel(pvto.pos));
-
-fprintf(fid_pvto, 'PVTO\n');
-
-for r = 1 : numel(pvto.pos) - 1
-    fprintf(fid_pvto, [f.sci, '\n'], pvto.key(r));
-    
-    i = pvto.pos(r) : pvto.pos(r + 1) - 1;
-    fprintf(fid_pvto, getFmtStr(f.sci, 3), pvto.data(i,:).');
-    fprintf(fid_pvto, '/\n');
-end
-
-fprintf(fid_pvto, '/\n');
-fclose(fid_pvto);
-end
+% function dump_pvto(fid, dirname, pvto, f)
+% fncase = @upper;
+% fprintf(fid, ['INCLUDE\n', fncase('pvto.txt'),  '/\n\n']);
+% 
+% [fid_pvto, msg] = fopen(fullfile(dirname, fncase('pvto.txt')), 'wt');
+% if fid_pvto < 0
+%     error('Failed to open ''pvto'' output file: %s', msg);
+% end
+% 
+% assert (numel(pvto.key) + 1 == numel(pvto.pos));
+% 
+% fprintf(fid_pvto, 'PVTO\n');
+% 
+% for r = 1 : numel(pvto.pos) - 1
+%     fprintf(fid_pvto, [f.sci, '\n'], pvto.key(r));
+%     
+%     i = pvto.pos(r) : pvto.pos(r + 1) - 1;
+%     fprintf(fid_pvto, getFmtStr(f.sci, 3), pvto.data(i,:).');
+%     fprintf(fid_pvto, '/\n');
+% end
+% 
+% fprintf(fid_pvto, '/\n');
+% fclose(fid_pvto);
+% end
 
 %--------------------------------------------------------------------------
 
-function dump_pvtg(fid, dirname, pvtg)
+function dump_pvt(fid,name, dirname, values, f)
 fncase = @upper;
-fprintf(fid, ['INCLUDE\n', fncase('pvtg.txt'), '/\n\n']);
+filename = fncase([name,'.txt']);
+fprintf(fid, ['INCLUDE\n', filename, '/\n\n']);
 
-[fid_pvtg, msg] = fopen(fullfile(dirname, fncase('pvtg.txt')), 'wt');
-if fid_pvtg < 0
-    error('Failed to open ''pvto'' output file: %s', msg);
+[fid_pvt, msg] = fopen(fullfile(dirname, filename), 'wt');
+if fid_pvt < 0
+    error('Failed to open ''pvt'' output file: %s', msg);
 end
 
-assert (numel(pvtg.key) + 1 == numel(pvtg.pos));
 
-fprintf(fid_pvtg, 'PVTG\n');
 
-for r = 1 : numel(pvtg.pos) - 1
-    fprintf(fid_pvtg, '%.10e\n', pvtg.key(r));
+fprintf(fid_pvt, [upper(name),'\n']);
+for i=1:numel(values)
+    pvt=values{i};
+    assert (numel(pvt.key) + 1 == numel(pvt.pos));
+    for r = 1 : numel(pvt.pos) - 1
+        fprintf(fid_pvt, [f.sci, '\n'], pvt.key(r));
     
-    i = pvtg.pos(r) : pvtg.pos(r + 1) - 1;
-    fprintf(fid_pvtg, '%.10e %.10e %.10e\n', pvtg.data(i,:).');
-    fprintf(fid_pvtg, '/\n');
+    
+        i = pvt.pos(r) : pvt.pos(r + 1) - 1;
+        fprintf(fid_pvt, getFmtStr(f.sci, 3), pvt.data(i,:).');
+        fprintf(fid_pvt, '/\n');
+    end
+    fprintf(fid_pvt, '/\n');
 end
-
-fprintf(fid_pvtg, '/\n');
-fclose(fid_pvtg);
+fclose(fid_pvt);
 end
 
 %--------------------------------------------------------------------------
@@ -412,6 +423,11 @@ for i=1:numel(myfields)
         v=v(:,1:9);
         fmt = getFmtStr(f.sci, f.sci, f.sci, f.sci, f.sci, f.sci, f.int, f.int, f.int);
         dump_multiple(fid,dirname, lower(myfield), fmt, v);
+    elseif strcmp(myfield,'THPRES')
+        v=v(:,1:3);
+        fmt = getFmtStr(f.int, f.int, f.sci,'/');
+        %dump_multiple(fid,dirname, lower(myfield), fmt, v, );
+        dump_vector(fid, dirname, lower(myfield), fmt, v');
     elseif strcmp(myfield, 'AQUFETP')
         % might have nans
          v = v(:, 1:9);
@@ -429,13 +445,15 @@ for i=1:numel(myfields)
         dump_vector(fid, dirname, lower(myfield), getFmtStr(fmts{:}, ' /'), v');    
     else
         values = v;
-        if ~iscell(values)
-            values = {values};
+        values = convertValuesToCell(values);
+        for regn = 1:numel(values)
+            values{regn}(isnan(values{regn})) = 0;
         end
         if iscellstr(values)
             dump_vector(fid,dirname, lower(myfield), getFmtStr(f.string), values);
         else
-            dump_multiple(fid,dirname, lower(myfield), getFmtStr(f.sci), values);
+            fmt = getFmtStr(f.sci, size(values{1}, 2));
+            dump_multiple(fid,dirname, lower(myfield), fmt, values);
         end
     end
 end
