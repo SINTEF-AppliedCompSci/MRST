@@ -30,65 +30,47 @@ function [interpFace] = correctHAP(G, interpFace, myRatio)
             while sum(out)
                 for c = cells
                     while out(c)
-                        %fprintf('%d %d\n', c, sum(out))
                         interpFace = correct(G, c, interpFace, R, HAP);
                         out(c) = find_cells(G, c, interpFace);
                     end
                     faces = G.cells.faces(G.cells.facePos(c):G.cells.facePos(c+1)-1);
-                    neighs = G.faces.neighbors(faces, 2);
+                    neighs = G.faces.neighbors(faces, :);
+                    neighs = neighs(:);
                     neighs = neighs(neighs > 0);
-                    %neighs = neighs(out(neighs)); 
-                    
-                    % Should really only take
-                    %the neighbors that aren't in cells already
-                    neighs = setdiff(neighs, cells); % FIXME is setdiff faster than a running find_cells a few more times?
+                    neighs = neighs(neighs ~= c);
                     idx = find_cells(G, neighs, interpFace);
                     neighs = neighs(idx);
-                    %neighs
-                    % for i = 1:numel(neighs) % FIXME
-                    %     n = neighs(i);
-                    %     if isempty(find(cells == n))
-                    %         cells = [cells, n];
-                    %         fprintf('append %d\n',n), pause
-                    %     else
-                    %         fprintf('already found %d\n', n), pause
-                    %     end
-                    % end
-                    cells = [cells, neighs];
+                    cells = [cells, neighs'];
                     out(neighs) = 1;
-
-                    %if numel(neighs)>0, keyboard, end
                 end
             end
             
-            % check
-            out2 = find_cells(G, 1:G.cells.num, interpFace); 
-            %disp(['sum ', num2str(sum(out2))])
-            %keyboard
-            %assert(sum(out2) == 0);
-            if sum(out2) > 0
-                keyboard
-            end
-            
-            
-            % flag = isConvex(G, 1:G.cells.num, interpFace);
-            % while (flag)
-            %     mycell = flag;
-            %     theFaces = G.cells.faces(G.cells.facePos(mycell):G.cells.facePos(mycell+1)-1);
-            %     neighbors = G.faces.neighbors(theFaces, :);
-            %     neighbors = unique(neighbors(:));
-            %     neighbors(neighbors == 0) = [];
-            %     while (flag)
-            %         fprintf("%d %d\n", mycell, flag);
-            %         d = interpFace.coords(theFaces, :) - G.faces.centroids(theFaces, :);
-            %         d = sqrt(dot(d, d, 2));
-            %         [maxRatio, ind] = max(d./R(theFaces));
-            %         y_sigma = HAP(theFaces(ind), :)';
-            %         interpFace = correctHAP_local(G, theFaces(ind), interpFace, y_sigma, 0.9*maxRatio);
-            %         flag = isConvex(G, mycell, interpFace);
-            %     end
-            %     flag = isConvex(G, neighbors(1):G.cells.num, interpFace);
+            % % check
+            % out2 = find_cells(G, 1:G.cells.num, interpFace); 
+            % if sum(out2) > 0
+            %     disp('still outside'),find(out2)
+            %     keyboard
             % end
+            
+            
+%             flag = isConvex(G, 1:G.cells.num, interpFace);
+%             while (flag)
+%                 mycell = flag;
+%                 theFaces = G.cells.faces(G.cells.facePos(mycell):G.cells.facePos(mycell+1)-1);
+%                 neighbors = G.faces.neighbors(theFaces, :);
+%                 neighbors = unique(neighbors(:));
+%                 neighbors(neighbors == 0) = [];
+%                 while (flag)
+%                     fprintf("%d %d\n", mycell, flag);
+%                     d = interpFace.coords(theFaces, :) - G.faces.centroids(theFaces, :);
+%                     d = sqrt(dot(d, d, 2));
+%                     [maxRatio, ind] = max(d./R(theFaces));
+%                     y_sigma = HAP(theFaces(ind), :)';
+%                     interpFace = correctHAP_local(G, theFaces(ind), interpFace, y_sigma, 0.9*maxRatio);
+%                     flag = isConvex(G, mycell, interpFace);
+%                 end
+%                 flag = isConvex(G, neighbors(1):G.cells.num, interpFace);
+%             end
 
         end
     elseif (nargin == 3)
