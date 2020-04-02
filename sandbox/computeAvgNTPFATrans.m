@@ -1,4 +1,4 @@
-function [fluxop, fluxop_neumann, A] = computeNTPFATrans(G, rock)
+function [fluxop, fluxop_neumann, A] = computeAvgNTPFATrans(G, rock)
     
     bc.face = [];
     bc_nfvm = convertBC2FlowNTPFA(G, bc);
