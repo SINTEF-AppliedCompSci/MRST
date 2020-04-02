@@ -5,9 +5,17 @@ opt = struct('MatrixOutput', false, ...
 opt = merge_options(opt, varargin{:});
 
 dispif(mrstVerbose, 'FlowNTPFA\n');
-[mu, rho] = fluid.properties();
-mu = mu(1);
-rho = rho(1);
+
+if isfield(fluid, 'properties')
+    [mu, rho] = fluid.properties();
+        mu = mu(1);
+        rho = rho(1);
+else
+    % FIXME
+    mu = fluid.muW(u0);
+    mu = mu(1);
+    rho = fluid.rhoWS;
+end
 
 % Fix pressure if there are only hom Neumann BC (i.e. no pressure bc)
 % and no bhp wells
@@ -25,14 +33,12 @@ T = TransNTPFA(G, bc, mu, u0, OSflux);
 if opt.MatrixOutput
     state.A = A;
     state.jac = jacobian(G, bc, mu, rho, u0, OSflux, W, opt, well_posed);
-    %return;
 end
 
 iter = 0;
 res = zeros(maxiter+1, 1);
 bnorm = norm(b, inf);
 res(1) = norm(A*u0-b, inf) / bnorm;
-%res(1)=tol+1;
 u = u0;
 while (res(iter+1) > tol && iter < maxiter)
     dispif(mrstVerbose & mod(iter, 1)==0, ['iter=', num2str(iter), ' res=', num2str(res(iter+1)), '\n'])
@@ -55,52 +61,43 @@ state.wellSol = wellsol;
 state.iter = iter;
 state.res = res(1:iter+1);
 
-% if opt.MatrixOutput
-%     state.A = A;
-%     state.jac = jacobian(G, bc, mu, rho, u0, OSflux, opt, well_posed);
-% end
-
 end
 
 %--------------------------------------------------------------------------
-%--------------------------------------------------------------------------
-%--------------------------------------------------------------------------
-
 function jac = jacobian(G, bc, mu, rho, u0, OSflux, W, opt, well_posed)
-dispif(mrstVerbose, 'jacobian\n');
+    dispif(mrstVerbose, 'jacobian\n');
 
-u0 = initVariablesADI(u0);
-T = TransNTPFA(G, bc, mu, u0, OSflux);
+    u0 = initVariablesADI(u0);
+    T = TransNTPFA(G, bc, mu, u0, OSflux);
 
-[A, b, I, J, V] = AssemAb(G, bc, mu, rho, T, W, opt.src, well_posed);
+    [A, b, I, J, V] = AssemAb(G, bc, mu, rho, T, W, opt.src, well_posed);
 
-% Each entry i in Au is A(i,:)*u
-Au = cell(numel(u0.val), 1);
-for k = 1:numel(u0.val)
-    ii = find(I == k);
-    jj = J(ii);
-    Avals = V(ii);
-    uvals = u0(jj);
-    Au{k} = sum(Avals.*uvals);
+    % Each entry i in Au is A(i,:)*u
+    Au = cell(numel(u0.val), 1);
+    for k = 1:numel(u0.val)
+        ii = find(I == k);
+        jj = J(ii);
+        Avals = V(ii);
+        uvals = u0(jj);
+        Au{k} = sum(Avals.*uvals);
+    end
+
+    eqs = combineEquations(Au{:});
+    jac = eqs.jac{1};
+
+    % figure
+    % spy(A)
+    % title('A')
+    % figure
+    % spy(jac)
+    % title('jacobian')
+    % figure
+    % r = symrcm(jac);
+    % spy(jac(r,r))
+    % title('symrcm jacobian')
+
+    % keyboard
+
+    % solve
+    %x = -eqs.jac{1} \ eqs.val;
 end
-
-eqs = combineEquations(Au{:});
-jac = eqs.jac{1};
-
-% figure
-% spy(A)
-% title('A')
-% figure
-% spy(jac)
-% title('jacobian')
-% figure
-% r = symrcm(jac);
-% spy(jac(r,r))
-% title('symrcm jacobian')
-
-% keyboard
-
-% solve
-%x = -eqs.jac{1} \ eqs.val;
-end
-
