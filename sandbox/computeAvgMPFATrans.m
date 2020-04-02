@@ -45,7 +45,7 @@ function [fluxop, fluxop_neumann, A] = computeAvgMPFATrans(G, rock)
     cell2facetbl.cells2 = [cells2{1}; cells2{2}];
     cell2facetbl.faces = [faces{1}; faces{2}];
     cell2facetbl = IndexTable(cell2facetbl);
-keyboard
+
     vals = -[0.5*vals{1}; -0.5*vals{2}];
 
     celltbl.cells = (1 : nc)';
@@ -93,7 +93,7 @@ keyboard
     
     fluxT_neumann = intT*fluxT;
 
-    fluxop_neumann = fluxT_neumann.getMatrix();keyboard
+    fluxop_neumann = fluxT_neumann.getMatrix();
     
     cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
     cellfacetbl.faces = G.cells.faces(:, 1);
