@@ -71,6 +71,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'modelBase', []);
     opt = merge_options(opt, varargin{:});
     
+    % check that OutputStateFunctions is empty, give warning if not 
+    if ~isempty(model.OutputStateFunctions)
+        warning('Model property ''OutputStateFunctions'' is non-empty, this may result in incorrect sensitivities.');
+    end
+    
     getState = @(i) getStateFromInput(schedule, states, state0, i);
     
     if isempty(opt.LinearSolver)
@@ -114,12 +119,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % compute partial derivative of first eq wrt init state and compute
     % initial state sensitivities
     if opt.initStateSensitivity
+        forces = model.getDrivingForces(schedule.control(schedule.step.control(1)));
+        forces = merge_options(model.getValidDrivingForces(), forces{:});
+        model = model.validateModel(forces);
+        
         state0 = model.validateState(state0);
         % set wellSols just to make subsequent function-calls happy, sensitivities wrt wellSols doesn't make sense anyway
         state0.wellSol = states{1}.wellSol;
         dt = schedule.step.val(1);
-        forces = model.getDrivingForces(schedule.control(schedule.step.control(1)));
-        forces = merge_options(model.getValidDrivingForces(), forces{:});
+        
         problem = model.getAdjointEquations(state0, states{1}, dt, forces,...
             'iteration', inf, 'reverseMode', true);
         pnm = problem.primaryVariables;

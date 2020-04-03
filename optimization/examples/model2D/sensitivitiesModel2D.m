@@ -17,15 +17,15 @@ fluid = initSimpleScaledADIFluid('mu',    [.3, 5, 0]*centi*poise, ...
                                  
                        
 % Create model-object of class TwoPhaseOilWaterModel
-model_ref  = TwoPhaseOilWaterModel(G, rock, fluid);                       
+model_ref  = TwoPhaseOilWaterModel(G, rock, fluid, 'OutputStateFunctions', {});                       
 
 % Set initial state and run simulation:
-state0 = initResSol(G, 200*barsa, [.15, .85]);
+state0 = initResSol(G, 200*barsa, [.15, .85]); 
 
 % Set up a perturbed model with different pv and perm:
 rock1 = rock;
 rock1.perm = rock.perm*1.1;
-model = TwoPhaseOilWaterModel(G, rock1, fluid);                       
+model = TwoPhaseOilWaterModel(G, rock1, fluid, 'OutputStateFunctions', {});       
 model.operators.pv = model_ref.operators.pv.*0.8;
 
 % run ref model
