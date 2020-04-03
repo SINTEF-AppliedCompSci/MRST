@@ -1147,11 +1147,11 @@ WCONPROD
 /
 
 WPOLYMER
-   'INJE01' 0.0  0.0 /
+   'INJE01' 2.0  0.0 /
 /
 
 WSURFACT
-  'INJE01'  0.0  /
+  'INJE01'  20.0  /
 /
 
 TSTEP

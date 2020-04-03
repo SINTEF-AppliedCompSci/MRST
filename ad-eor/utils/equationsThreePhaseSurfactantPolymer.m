@@ -394,7 +394,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     
     muWFullyMixed = model.fluid.muWMult(cpw);
 
-    mob{1}(wc_inj) = mob{1}(wc_inj) ./ muWFullyMixed .* muWMultW;
+    % mob{1}(wc_inj) = mob{1}(wc_inj) ./ muWFullyMixed .* muWMultW;
 
     if model.usingShear || model.usingShearLog || model.usingShearLogshrate
         % applying the shear effects

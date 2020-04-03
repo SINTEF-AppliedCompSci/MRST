@@ -29,6 +29,10 @@ classdef ComponentPhaseFlux < StateFunction
                     end
                 end
             end
+            
+            % TODO: it should be a more general function name to handle
+            % extra effects required in the phase flux calculation
+            v = applyShearEffects(v, model, state);
         end
     end
 end

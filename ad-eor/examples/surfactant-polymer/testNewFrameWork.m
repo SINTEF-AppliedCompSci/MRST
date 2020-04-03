@@ -29,41 +29,37 @@ state0.cpmax =  zeros([model.G.cells.num, 1]);
 
 % Using physically normalized residuals for non-linear convergence
 % calcuation.
+% model.nonlinearTolerance = 1e-2;
 model.useCNVConvergence = true;
+% model.toleranceCNV = 1.e-2;
+% model.toleranceMB = 1.e-3;
+% model.FacilityModel.toleranceWellRate = 1e-3;
 
 % Setting up the non-linear solver.
 nonlinearsolver = NonLinearSolver();
 nonlinearsolver.useRelaxation = true;
 %% Full case - for comparison when surfactant is working
-% close all
-% [wellSolsSP, statesSP, reportsSP] = ...
-%     simulateScheduleAD(state0, model, schedule, ...
-%                     'NonLinearSolver', nonlinearsolver);
-%%
-scheduleP = schedule;
-% scheduleP.control(1).W(1).cs = 0;
-% scheduleP.control(2).W(1).cs = 0;
-% scheduleP.control(2).W(1).cp = 0;
-model.usingShear=false;
+close all
+scheduleSP = schedule;
+[wellSolsSP, statesSP, reportsSP] = ...
+    simulateScheduleAD(state0, model, scheduleSP, ...
+                    'NonLinearSolver', nonlinearsolver);
 
-[wellSolsP, statesP, reportsP] = ...
-    simulateScheduleAD(state0, model, scheduleP, ...
-                   'NonLinearSolver', nonlinearsolver);
 %%
-clear gmodel statesGP;
-gmodelp = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, deck, 'disgas', model.disgas, 'vapoil', model.vapoil);
+clear gmodel statesGP wellSolsGP;
+gmodelsp = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, deck, 'disgas', model.disgas, 'vapoil', model.vapoil);
 % gmodelp.surfactant = false;
-gmodelp.nonlinearTolerance = 1e-2;
-gmodelp.toleranceCNV = 1.e-2;
-gmodelp.usingShear=false;
+% gmodelp.nonlinearTolerance = 1e-6;
+% gmodelp.toleranceCNV = 1.e-3;
+% gmodelp.usingShear=false;
 
-gmodelp = gmodelp.validateModel();
-gmodelp.FacilityModel.toleranceWellRate = 1e-3;
+gmodelsp = gmodelsp.validateModel();
+% gmodelp.FacilityModel.toleranceWellRate = 1e-3;
 % schedule.control(2).W(1).cp = 0;
 % 
-scheduleGP = schedule;
+scheduleGSP = schedule;
 [wellSolsGP, statesGP, reportsGP] = ...
-    simulateScheduleAD(state0, gmodelp, schedule, ...
+    simulateScheduleAD(state0, gmodelsp, scheduleGSP, ...
                     'NonLinearSolver', nonlinearsolver);
                 
 %%
@@ -83,9 +79,9 @@ scheduleGP = schedule;
 %                     'NonLinearSolver', nonlinearsolver);
 
 %%
-% props = gmodel.validateModel();
+% props = gmodelp.validateModel();
 % groups = props.getStateFunctionGroupings();
-% for i = 4:numel(groups)
+% for i = 1:numel(groups)
 %     figure;
 %     [h,g] = plotStateFunctionGroupings(groups{i},  'label', 'label');
 % %    printStateFunctionGroupingTikz(g);
@@ -93,6 +89,7 @@ scheduleGP = schedule;
 % end
 
 %%
+clear bomodel;
 bomodel = GenericBlackOilModel(model.G, model.rock, model.fluid, 'disgas', model.disgas, 'vapoil', model.vapoil);
 bomodel.nonlinearTolerance = 1e-2;
 [wellSolsBO, statesBO, reportsBO] = ...
@@ -108,19 +105,4 @@ bomodel.nonlinearTolerance = 1e-2;
 % end
 
 %% 
-% plotWellSols({wellSolsGP, wellSolsGSP, wellSolsP, wellSolsBO}, 'datasetnames', {'NewP', 'NewSP', 'Old', 'NoPolymer'})
-plotWellSols({wellSolsGP, wellSolsP, wellSolsBO}, 'datasetnames', {'NewP', 'Old', 'NoPolymer'})
-
-
-%%
-% gmodel2 = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, 'disgas', model.disgas, 'vapoil', model.vapoil);
-% gmodel2.surfactant = false;
-% gmodel2.nonlinearTolerance = 1e-2;
-% gmodel2.usingShear=false;
-% % schedule.control(2).W(1).cp = 0;
-%
-% [wellSolsGP2, statesGP2, reportsGP2] = ...
-%     simulateScheduleAD(state0, gmodel2, schedule, ...
-%                     'NonLinearSolver', nonlinearsolver);
-% %%
-% plotWellSols({wellSolsGP2, wellSolsP, wellSolsBO}, 'datasetnames', {'New', 'Old', 'NoPolymer'})
+plotWellSols({wellSolsGSP, wellSolsSP, wellSolsBO}, 'datasetnames', {'GenericSP', 'OldModel', 'Blackoil'});

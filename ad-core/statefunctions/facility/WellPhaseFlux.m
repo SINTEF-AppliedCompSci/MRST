@@ -48,6 +48,8 @@ classdef WellPhaseFlux < StateFunction
                     viscpmult = model.ReservoirModel.getProps(state, 'PolymerEffViscMult');
                     viscpmult_inj = viscpmult(wc_inj);
                     viscpmultfull = model.ReservoirModel.fluid.muWMult(cp_inj);
+                    % FIXME: with this way, the effects of the surfactant
+                    % gets removed
                     mobw{wIx}(injection) = mobw_injw ./ viscpmultfull .* viscpmult_inj;
                 end
             end
@@ -82,7 +84,41 @@ classdef WellPhaseFlux < StateFunction
             q_ph = cell(1, nph);
             for i = 1:nph
                 q_ph{i} = mobw{i}.*Tdp;
+            end            
+            %TODO: The first shear-thinning version will be here
+            % prop can be something smaller
+            shearMultW = applyShearEffectsWell(q_ph, prop, model.ReservoirModel, state);
+            % TODO: to seek to avoid the following computation
+            wIx = 1;
+            mobw{wIx} = mobw{wIx} ./ shearMultW;
+            
+            if any(injection)
+                compi = vertcat(W.compi);
+                if any(crossflow)
+                    dispif(model.verbose > 1, 'Crossflow occuring in %d perforations\n', sum(crossflow));
+                    % Compute cross flow for this phase. The approach here
+                    % is to calculate (as doubles) the volumetric inflow of
+                    % all phases into the well-bore. If a well has
+                    % cross-flow, the phase distribution of the
+                    % cross-flowing volume is assumed to reflect the inflow
+                    % conditions, neglecting density change throughout the
+                    % wellbore.
+                    q_wb = bsxfun(@times, value(mobw), vTdp);
+                    compi = crossFlowMixture(q_wb, compi, map);
+                end
+                compi_perf = compi(map.perf2well, :);
+                mobt = zeros(sum(injection), 1);
+                for i = 1:nph
+                    mobt = mobt + mobw{i}(injection);
+                end
+                for i = 1:nph
+                    mobw{i}(injection) = mobt.*compi_perf(injection, i);
+                end
             end
+            q_ph = cell(1, nph);
+            for i = 1:nph
+                q_ph{i} = mobw{i}.*Tdp;
+            end 
         end
     end
 end
