@@ -1,11 +1,12 @@
 clear all
-% close all
+close all
 
 mrstModule add mpsaw vemmech mpfa
 
-N = 10;
+N = 5;
 G = cartGrid([N, N], [1 , 1]);
 angle = 10/180*pi;
+angle = 0;
 [G, bcfaces] = rotateGrid(G, angle);
 G = computeGeometry(G);
 
@@ -86,9 +87,9 @@ sol = B\rhs;
 n = cellcoltbl.num;
 
 ucell = sol(1 : n);
+lagmult = sol(n + 1 : end);
 
-op = setupCell2NodeDispOperator(G, tbls);
-unode = op*ucell;
+unode = assembly.computeNodeDisp(ucell, lagmult);
 
 dim = G.griddim;
 ucell = reshape(ucell, dim, [])';
@@ -98,6 +99,8 @@ figure
 plotGrid(G, 'facecolor', 'none', 'edgecolor', 'blue');
 plotGridDeformed(G, unode, 'facecolor', 'none', 'edgecolor', 'red');
 axis equal
+
+return
 
 figure
 plotCellData(G, ucell(:, 1));

@@ -75,7 +75,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     
     g = invA(ind);
     
-    
 
     %% Construction of the gradient operator
     %
@@ -507,8 +506,26 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     
     rhs = vertcat(rhs{:});
 
-    % setup mapping from nodeface to node
+    assembly = struct('B'           , B       , ...
+                      'rhs'         , rhs     , ...
+                      'extforce'    , extforce, ...
+                      'matrices'    , matrices);
+    
+    assembly.computeNodeDisp = @(ucell, lagmult) computeNodeDisp(ucell, lagmult, ...
+                                                      invA11, A12, D, extforce, ...
+                                                      nodefacecoltbl, nodecoltbl);
+    
+end
 
+
+function unode = computeNodeDisp(ucell, lagmult, invA11, A12, D, extforce, ...
+                                 nodefacecoltbl, nodecoltbl)
+    
+    % unodeface : displace at the nodeface and belongs to nodefacecoltbl
+    unodeface = invA11*(-A12*ucell + D*lagmult + extforce);
+    
+    % Setup mapping from nodeface to node
+    
     map = TensorMap();
     map.fromTbl = nodefacecoltbl;
     map.toTbl   = nodecoltbl;
@@ -528,13 +545,10 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     nodaldisp_T = SparseTensor('matlabsparse', true);
     nodaldisp_T = nodaldisp_T.setFromTensorProd(coef, prod);
 
-    nodaldisp_op = nodaldisp_T.getMatrix();
-
-    assembly = struct('B'           , B       , ...
-                      'rhs'         , rhs     , ...
-                      'extforce'    , extforce, ...
-                      'matrices'    , matrices, ...
-                      'nodaldisp_op', nodaldisp_op);
+    M = nodaldisp_T.getMatrix();
     
+    % return displacement at nodes
+    unode = M*unodeface;
 end
+
 

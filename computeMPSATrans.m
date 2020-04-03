@@ -96,8 +96,8 @@ u = sol(1 : n);
 
 plotdeformedgrid = false;
 if plotdeformedgrid
-    nodaldisp_op = assembly.nodaldisp_op;
-    un = nodaldisp_op*u;
+    lagmult = sol(n + 1 : end);
+    unode = assembly.computeNodeDisp(u, lagmult);
     dim = G.griddim;
     unvec = reshape(un, dim, [])';
 end
