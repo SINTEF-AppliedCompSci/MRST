@@ -12,7 +12,15 @@ function yi = interpTableMEX(X, Y, xi, varargin)
 %
 %   xi      - Evaluation points for new, interpolated, function values.
 %
-%
+%   method  - (OPTIONAL) Choose the interpolation method used:
+%             1 corresponds to a binary search (optimal for a single lookup
+%             in ordered data, default, generally fastest if points are
+%             given on an uneven grid)
+%             2 will use a binning algorithm which can in very particular
+%             cases be faster when a large number of lookups is required.
+%             3 will assume that X is completely uniform in grid size. Only
+%             the first two entries are used. May give wrong results when
+%             assumption is violated - no verification is performed.
 % RETURNS:
 %   yi - Approximate (interpolated/extrapolated) values of the function
 %        y=y(x) at the points `xi`.
@@ -47,7 +55,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         yi = mexInterp1(X, Y, xi);
     else
         yi = xi;
-        [yi.val, der] = mexInterp1(X, Y, xi.val);
+        [yi.val, der] = mexInterp1(X, Y, xi.val, varargin{:});
         yi.jac = yi.lMultDiag(der, yi.jac);
     end
 end

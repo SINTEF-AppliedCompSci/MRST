@@ -33,7 +33,7 @@ size_t binary_search(const double * X, const double x, size_t n){
 
 void interp1_binary_search(const double * X, const double * F, const double * x, double * Fx, double * dFdx, size_t n, size_t m){
     /* Interpolate table of length n with m samples, using binary search */
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, 512)
     for(int ix = 0; ix < m; ix++){
         size_t pos = binary_search(X, x[ix], n);
         double der = (F[pos+1] - F[pos])/(X[pos+1] - X[pos]);
@@ -42,6 +42,29 @@ void interp1_binary_search(const double * X, const double * F, const double * x,
     }
 }
 
+/* Constant size search */
+void interp1_equal_width_search(const double X0, const double dX, const double * F, const double * x, double * Fx, double * dFdx, size_t n, size_t m){
+    /* Interpolate table of length n with m samples, using binary search */
+    #pragma omp parallel for schedule(static, 512)
+    for(int ix = 0; ix < m; ix++){
+        double xi = x[ix] - X0;
+        int pos;
+        if(xi >= 0 && xi <= (n-1)*dX ){
+            pos = xi/dX;
+        }else if(xi < 0){
+            // Out of bounds, lower
+            pos = 0;
+        }else{
+            // Out of bounds, upper
+            pos = n - 2;
+        }
+        double F_i = F[pos];
+        double der = (F[pos+1] - F_i)/dX;
+        // mexPrintf("%d: Value %f, position %d (%f -> %f)\n", ix, x[ix], pos, X0 + pos*dX, X0 + pos*dX + dX);
+        Fx[ix] = F_i + der*(xi - pos*dX);
+        dFdx[ix] = der;
+    }
+}
 
 /* Binned search follows */
 void interp1_binning(const double * X, const double * x, size_t * bins, size_t n, size_t m){
