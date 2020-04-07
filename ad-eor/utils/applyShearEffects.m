@@ -21,7 +21,7 @@ upcw = model.getProp(state, 'PhaseUpwindFlag');
 upcw = upcw{wIx};
 
 rho = model.getProp(state, 'Density');
-rhow = rho{wIx}.val;
+rhow = value(rho{wIx});
 rhowf = s.faceUpstr(upcw, rhow);
 
 
