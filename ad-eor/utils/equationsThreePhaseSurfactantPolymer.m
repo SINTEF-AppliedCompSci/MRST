@@ -153,6 +153,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
 
     muWeffMult = model.getProp(state, 'PolymerEffViscMult');
 
+    injViscFixed = false;
     if model.usingShear || model.usingShearLog || model.usingShearLogshrate
         % calculate well perforation rates :
         if ~isempty(W)
@@ -168,6 +169,8 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
                 muWFullyMixed = model.fluid.muWMult(cpw);
 
                 mob{1}(wc_inj) = mob{1}(wc_inj) ./ muWFullyMixed .* muWMultW;
+                
+                injViscFixed = true;
 
                 dissolved = model.getDissolutionMatrix(rs, rv);
 
@@ -389,12 +392,14 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     wc_inj = wc(sgn(perf2well) > 0);
     cpw     = cp(wc_inj);
 
-    % remove the old viscosity and applying the fully mixed viscosity
-    muWMultW = muWeffMult(wc_inj);
+    if ~injViscFixed
+      % remove the old viscosity and applying the fully mixed viscosity
+      muWMultW = muWeffMult(wc_inj);
     
-    muWFullyMixed = model.fluid.muWMult(cpw);
+      muWFullyMixed = model.fluid.muWMult(cpw);
 
-    % mob{1}(wc_inj) = mob{1}(wc_inj) ./ muWFullyMixed .* muWMultW;
+      mob{1}(wc_inj) = mob{1}(wc_inj) ./ muWFullyMixed .* muWMultW;
+    end
 
     if model.usingShear || model.usingShearLog || model.usingShearLogshrate
         % applying the shear effects
