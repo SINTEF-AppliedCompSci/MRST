@@ -31,6 +31,7 @@ state0.cpmax =  zeros([model.G.cells.num, 1]);
 % calcuation.
 % model.nonlinearTolerance = 1e-2;
 model.useCNVConvergence = true;
+% model.usingShear=false;
 % model.toleranceCNV = 1.e-2;
 % model.toleranceMB = 1.e-3;
 % model.FacilityModel.toleranceWellRate = 1e-3;
@@ -38,9 +39,12 @@ model.useCNVConvergence = true;
 % Setting up the non-linear solver.
 nonlinearsolver = NonLinearSolver();
 nonlinearsolver.useRelaxation = true;
+nonlinearsolver.maxTimestepCuts = 10;
 %% Full case - for comparison when surfactant is working
-close all
+close all, clear statesSP, clear wellSolsSP;
 scheduleSP = schedule;
+% scheduleSP.control(1).W(1).cp=0;
+% scheduleSP.control(2).W(1).cp=0;
 [wellSolsSP, statesSP, reportsSP] = ...
     simulateScheduleAD(state0, model, scheduleSP, ...
                     'NonLinearSolver', nonlinearsolver);
@@ -49,16 +53,20 @@ scheduleSP = schedule;
 clear gmodel statesGP wellSolsGP;
 gmodelsp = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, deck, 'disgas', model.disgas, 'vapoil', model.vapoil);
 % gmodelp.surfactant = false;
-% gmodelp.nonlinearTolerance = 1e-6;
+gmodelsp.nonlinearTolerance = 1e-2;
 % gmodelp.toleranceCNV = 1.e-3;
-% gmodelp.usingShear=false;
+% gmodelsp.usingShear=false;
 
 gmodelsp = gmodelsp.validateModel();
-% gmodelp.FacilityModel.toleranceWellRate = 1e-3;
+gmodelp.FacilityModel.toleranceWellRate = 1e-2;
 % schedule.control(2).W(1).cp = 0;
 % 
 scheduleGSP = schedule;
-[wellSolsGP, statesGP, reportsGP] = ...
+% gmodelsp.polymer=false;
+% scheduleGSP.control(1).W(1).cp=0;
+% scheduleGSP.control(2).W(1).cp=0;
+
+[wellSolsGSP, statesGSP, reportsGSP] = ...
     simulateScheduleAD(state0, gmodelsp, scheduleGSP, ...
                     'NonLinearSolver', nonlinearsolver);
                 
