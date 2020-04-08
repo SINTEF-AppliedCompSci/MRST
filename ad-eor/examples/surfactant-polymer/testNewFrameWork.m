@@ -29,22 +29,14 @@ state0.cpmax =  zeros([model.G.cells.num, 1]);
 
 % Using physically normalized residuals for non-linear convergence
 % calcuation.
-% model.nonlinearTolerance = 1e-2;
 model.useCNVConvergence = true;
-% model.usingShear=false;
-% model.toleranceCNV = 1.e-2;
-% model.toleranceMB = 1.e-3;
-% model.FacilityModel.toleranceWellRate = 1e-3;
 
-% Setting up the non-linear solver.
 nonlinearsolver = NonLinearSolver();
 nonlinearsolver.useRelaxation = true;
 nonlinearsolver.maxTimestepCuts = 10;
 %% Full case - for comparison when surfactant is working
 close all, clear statesSP, clear wellSolsSP;
 scheduleSP = schedule;
-% scheduleSP.control(1).W(1).cp=0;
-% scheduleSP.control(2).W(1).cp=0;
 [wellSolsSP, statesSP, reportsSP] = ...
     simulateScheduleAD(state0, model, scheduleSP, ...
                     'NonLinearSolver', nonlinearsolver);
@@ -52,39 +44,17 @@ scheduleSP = schedule;
 %%
 clear gmodel statesGP wellSolsGP;
 gmodelsp = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, deck, 'disgas', model.disgas, 'vapoil', model.vapoil);
-% gmodelp.surfactant = false;
 gmodelsp.nonlinearTolerance = 1e-2;
-% gmodelp.toleranceCNV = 1.e-3;
-% gmodelsp.usingShear=false;
+
 
 gmodelsp = gmodelsp.validateModel();
 gmodelp.FacilityModel.toleranceWellRate = 1e-2;
-% schedule.control(2).W(1).cp = 0;
-% 
+
 scheduleGSP = schedule;
-% gmodelsp.polymer=false;
-% scheduleGSP.control(1).W(1).cp=0;
-% scheduleGSP.control(2).W(1).cp=0;
 
 [wellSolsGSP, statesGSP, reportsGSP] = ...
     simulateScheduleAD(state0, gmodelsp, scheduleGSP, ...
                     'NonLinearSolver', nonlinearsolver);
-                
-%%
-% clear gmodel statesGP;
-% gmodelsp = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, 'disgas', model.disgas, 'vapoil', model.vapoil);
-% % gmodelsp.surfactant = false;
-% gmodelsp.nonlinearTolerance = 1e-2;
-% gmodelsp.usingShear=false;
-% 
-% gmodelsp = gmodelsp.validateModel();
-% gmodelsp.FacilityModel.toleranceWellRate = 1e-3;
-% % schedule.control(2).W(1).cp = 0;
-% % 
-% scheduleGSP = schedule;
-% [wellSolsGSP, statesGSP, reportsGSP] = ...
-%     simulateScheduleAD(state0, gmodelsp, schedule, ...
-%                     'NonLinearSolver', nonlinearsolver);
 
 %%
 % props = gmodelp.validateModel();
