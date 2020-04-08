@@ -23,7 +23,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-opt = struct('neighbors', [], 'porv', [], 'depth', [], 'actnum', []);
+opt = struct('neighbors', [], 'porv', [], 'depth', [], 'actnum', [], 'trans', []);
 opt = merge_options(opt, varargin{:});
 
 Gs.type     = 'tpfaGrid';
@@ -46,7 +46,7 @@ else % use optional neighbor list
     Gs.faces = struct('neighbors', N, ...
                       'num',       nf);
     % cells
-    if or(~isfield(G.cells, 'eMap'), G.cells.eMap == ':')
+    if ~isfield(G.cells, 'eMap') || G.cells.eMap == ':'
         nc = G.cells.num;
         indexMap = G.cells.indexMap;
     elseif isnumeric(G.cells.eMap)
@@ -93,6 +93,9 @@ end
 
 % finally include face areas for some reason ...
 Gs.faces.areas = nan(G.faces.num, 1);
+if ~isempty(opt.trans)
+    Gs.faces.TRANS = opt.trans;
+end
 end
 
 

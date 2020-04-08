@@ -73,13 +73,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % -- Curvilinear logically Cartesian grid ------------------------------
    % -- FrontSim ----------------------------------------------------------
-   elseif all(isfield(deck.GRID, {'COORDX', 'COORDY', 'COORDZ'})),
+   elseif all(isfield(deck.GRID, {'COORDX', 'COORDY', 'COORDZ'}))
       G = buildCoordGrid(deck.GRID);
 
-
+   % -- "MRST-output NNC grid" ------------------------------------------------------------
+   elseif is_nnc_1d_grid(deck)
+      nc = max(deck.GRID.cartDims);
+      e = deck.EDIT;
+      nnc = deck.GRID.NNC;
+      N = nnc(:, [1, 3]);
+      T = nnc(:, 5);
+      G = cartGrid([nc, 1, 1]);
+      G.cells.faces = [1; 1];
+      G.cells.eMap = ':';
+      G.faces.num = 0;
+      rock = makeRock(G, deck.GRID.PERMX, deck.GRID.PORO);
+      G = simGridTPFA(G, rock, 'neighbors', N, 'porv', e.PORV, 'depth', e.DEPTH, 'trans', T);
    % -- "Grid" ------------------------------------------------------------
-   elseif all(isfield(deck.GRID, {'DX', 'DY', 'DZ'}) | ...
-              isfield(deck.GRID, {'DXV', 'DYV', 'DZV'}))
+   elseif is_delta_grid(deck)
       if isfield(deck.GRID, 'NNC')
          error('Non-neighboring connections not supported.');
       end
@@ -108,8 +119,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       assert(n==ny, 'Only tensor-grid supported.');
 
 
-      if isfield(deck.GRID, 'TOPS'),
-         if all(deck.GRID.TOPS(1:nx*ny) == deck.GRID.TOPS(1)),
+      if isfield(deck.GRID, 'TOPS')
+         if all(deck.GRID.TOPS(1:nx*ny) == deck.GRID.TOPS(1))
             depthz = repmat(deck.GRID.TOPS(1), [(nx+1)*(ny+1), 1]);
          else
             error(['Block-centred grids are only supported ', ...
@@ -133,11 +144,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if isfield(deck.GRID, 'MAPAXES') && opt.mapAxes
-      for i = 1 : numel(G),
+      for i = 1 : numel(G)
          G(i).nodes.coords(:,1:2) = ...
             mapAxes(G(i).nodes.coords(:,1:2), deck.GRID.MAPAXES);
       end
    end
+end
+
+function is_grid = is_delta_grid(deck)
+    is_grid = all(isfield(deck.GRID, {'DX', 'DY', 'DZ'}) | ...
+                  isfield(deck.GRID, {'DXV', 'DYV', 'DZV'}));
+end
+
+function is_nnc = is_nnc_1d_grid(deck)
+    is_nnc = all(isfield(deck.GRID, {'DX', 'DY', 'DZ'})) && ...
+        isfield(deck.GRID, 'cartDims') && ...
+        prod(deck.GRID.cartDims) == max(deck.GRID.cartDims) && ...
+        isfield(deck.GRID, 'NNC');
 end
 
 function dc = getDeltas(deck, index)
