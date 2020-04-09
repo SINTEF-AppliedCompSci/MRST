@@ -14,21 +14,22 @@ classdef WellPhaseFlux < StateFunction
         
         function q_ph = evaluateOnDomain(prop, model, state)
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
-            W = map.W;
             [dp, wi] = prop.getEvaluatedDependencies(state, 'PerforationPressureGradient', 'WellIndex');
             mob = model.ReservoirModel.getProps(state, 'Mobility');
             
-            mobw = cellfun(@(x) x(map.cells), mob, 'UniformOutput', false);
-            nph = numel(mob);
-            
-            isInjector = map.isInjector(map.perf2well);
-            
+            mobw = cellfun(@(x) x(map.cells), mob, 'UniformOutput', false);                        
+
             Tdp = -wi.*dp;
             vTdp = value(Tdp);
             injection = vTdp > 0;
+
             % for polymer injecting, we need to modify the injecting
             % mobility
-            if (isprop(model.ReservoirModel, 'polymer'))
+            % TODO: the following should enter a function with relatively
+            % general name
+            check = @(prop) isprop(model.ReservoirModel, prop) && model.ReservoirModel.(prop);
+            haspolymer = check('polymer');     
+            if (haspolymer)
                 if model.ReservoirModel.polymer
                     cp = model.ReservoirModel.getProps(state, 'polymer');
                     % TODO: we might need to only do this to injection well
@@ -48,80 +49,68 @@ classdef WellPhaseFlux < StateFunction
                     viscpmult = model.ReservoirModel.getProps(state, 'PolymerEffViscMult');
                     viscpmult_inj = viscpmult(wc_inj);
                     viscpmultfull = model.ReservoirModel.fluid.muWMult(cp_inj);
-                    % FIXME: with this way, the effects of the surfactant
-                    % gets removed
+
                     mobw{wIx}(injection) = mobw_injw ./ viscpmultfull .* viscpmult_inj;
                 end
             end
 
-            production = ~injection & vTdp ~= 0;
-            crossflow = (injection & ~isInjector) | ...
-                        (production & isInjector);
-            crossflow = crossflow & false;
-            if any(injection)
-                compi = vertcat(W.compi);
-                if any(crossflow)
-                    dispif(model.verbose > 1, 'Crossflow occuring in %d perforations\n', sum(crossflow));
-                    % Compute cross flow for this phase. The approach here
-                    % is to calculate (as doubles) the volumetric inflow of
-                    % all phases into the well-bore. If a well has
-                    % cross-flow, the phase distribution of the
-                    % cross-flowing volume is assumed to reflect the inflow
-                    % conditions, neglecting density change throughout the
-                    % wellbore.
-                    q_wb = bsxfun(@times, value(mobw), vTdp);
-                    compi = crossFlowMixture(q_wb, compi, map);
-                end
-                compi_perf = compi(map.perf2well, :);
-                mobt = zeros(sum(injection), 1);
-                for i = 1:nph
-                    mobt = mobt + mobw{i}(injection);
-                end
-                for i = 1:nph
-                    mobw{i}(injection) = mobt.*compi_perf(injection, i);
+            q_ph = calculatePhaseRate(Tdp, mobw, map);
+
+            % TODO: the following should be made a function with a general
+            % name
+            if haspolymer
+                hasShear= check('usingShear') || check('usingShearLog') || check('usingShearLogshrate');                
+                if hasShear
+                    mobw = applyShearEffectsWell(mobw, q_ph, prop, model.ReservoirModel, state);
+                    
+                    q_ph = calculatePhaseRate(Tdp, mobw, map);
+
                 end
             end
-            q_ph = cell(1, nph);
-            for i = 1:nph
-                q_ph{i} = mobw{i}.*Tdp;
-            end            
-            %TODO: The first shear-thinning version will be here
-            % prop can be something smaller
-            shearMultW = applyShearEffectsWell(q_ph, prop, model.ReservoirModel, state);
-            % TODO: to seek to avoid the following computation
-            wIx = 1;
-            mobw{wIx} = mobw{wIx} ./ shearMultW;
-            
-            if any(injection)
-                compi = vertcat(W.compi);
-                if any(crossflow)
-                    dispif(model.verbose > 1, 'Crossflow occuring in %d perforations\n', sum(crossflow));
-                    % Compute cross flow for this phase. The approach here
-                    % is to calculate (as doubles) the volumetric inflow of
-                    % all phases into the well-bore. If a well has
-                    % cross-flow, the phase distribution of the
-                    % cross-flowing volume is assumed to reflect the inflow
-                    % conditions, neglecting density change throughout the
-                    % wellbore.
-                    q_wb = bsxfun(@times, value(mobw), vTdp);
-                    compi = crossFlowMixture(q_wb, compi, map);
-                end
-                compi_perf = compi(map.perf2well, :);
-                mobt = zeros(sum(injection), 1);
-                for i = 1:nph
-                    mobt = mobt + mobw{i}(injection);
-                end
-                for i = 1:nph
-                    mobw{i}(injection) = mobt.*compi_perf(injection, i);
-                end
-            end
-            q_ph = cell(1, nph);
-            for i = 1:nph
-                q_ph{i} = mobw{i}.*Tdp;
-            end 
         end
     end
 end
+
+function q_ph = calculatePhaseRate(Tdp, mobw, map)
+    isInjector = map.isInjector(map.perf2well);
+    W = map.W;
+    vTdp = value(Tdp);
+    injection = vTdp > 0;
+    production = ~injection & vTdp ~= 0;
+    crossflow = (injection & ~isInjector) | ...
+                (production & isInjector);
+    crossflow = crossflow & false;
+
+    nph = numel(mobw);
+    if any(injection)
+        compi = vertcat(W.compi);
+        if any(crossflow)
+            dispif(model.verbose > 1, 'Crossflow occuring in %d perforations\n', sum(crossflow));
+            % Compute cross flow for this phase. The approach here
+            % is to calculate (as doubles) the volumetric inflow of
+            % all phases into the well-bore. If a well has
+            % cross-flow, the phase distribution of the
+            % cross-flowing volume is assumed to reflect the inflow
+            % conditions, neglecting density change throughout the
+            % wellbore.
+            q_wb = bsxfun(@times, value(mobw), vTdp);
+            compi = crossFlowMixture(q_wb, compi, map);
+        end
+        compi_perf = compi(map.perf2well, :);
+        mobt = zeros(sum(injection), 1);
+        for i = 1:nph
+            mobt = mobt + mobw{i}(injection);
+        end
+        for i = 1:nph
+            mobw{i}(injection) = mobt.*compi_perf(injection, i);
+        end
+    end
+    q_ph = cell(1, nph);
+    for i = 1:nph
+        q_ph{i} = mobw{i}.*Tdp;
+    end    
+end
+
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

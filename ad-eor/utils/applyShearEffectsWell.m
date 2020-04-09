@@ -1,13 +1,4 @@
-function shearMultW = applyShearEffectsWell(q_ph, prop, model, state)
-
-% TODO: to be improved to avoid wasting computation
-check = @(prop) isprop(model, prop) && model.(prop);
-
-if ~(check('usingShear') || check('usingShearLog') || check('usingShearLogshrate'))
-    shearMultW = 1.;
-    return;
-end
-
+function mob = applyShearEffectsWell(mob, q_ph, prop, model, state)
 
 wIx = 1;
 q_w = value(q_ph{wIx});
@@ -64,10 +55,12 @@ VwW = bwW .* bwW.*q_w./(poroW .* rR .* thicknessWell * 2 * pi);
 % VwW = q_w./(poroW .* rR .* thicknessWell * 2 * pi);
 shearMultW = computeShearMult(fluid, abs(VwW), muWMultW);
 
+mob{wIx} = mob{wIx} ./ shearMultW;
+
 end
 
 
-% TODO: this function is a copy
+% TODO: this function is a copy, possibly we should make it public
 function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
     if isempty(W)
         wPoly = [];
