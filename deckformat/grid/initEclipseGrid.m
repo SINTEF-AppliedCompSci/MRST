@@ -81,8 +81,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       nc = max(deck.GRID.cartDims);
       e = deck.EDIT;
       nnc = deck.GRID.NNC;
-      N = nnc(:, [1, 3]);
-      T = nnc(:, 5);
+      N = nnc(:, [1, 4]);
+      T = nnc(:, 7);
       G = cartGrid([nc, 1, 1]);
       G.cells.faces = [1; 1];
       G.cells.eMap = ':';
