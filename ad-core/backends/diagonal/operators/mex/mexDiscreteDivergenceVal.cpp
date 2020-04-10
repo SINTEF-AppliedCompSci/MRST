@@ -28,8 +28,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
         // We are being called through compilation testing. Just do nothing. 
         // If the binary was actually called, we are good to go.
         return;
-    } else if (nrhs != 4) {
-	    mexErrMsgTxt("7 input arguments required."); 
+    } else if (nrhs != 6) {
+	    mexErrMsgTxt("6 input arguments required."); 
     } else if (nlhs > 1) {
 	    mexErrMsgTxt("Wrong number of output arguments."); 
     }
@@ -39,14 +39,44 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double * N = mxGetPr(prhs[2]);
     double * flux = mxGetPr(v);
     double nc = mxGetScalar(prhs[3]);
+    double * facePos = mxGetPr(prhs[4]);
+    double * faces   = mxGetPr(prhs[5]);
+
 
     int nf = mxGetM(prhs[1]);
     int n_acc = mxGetNumberOfElements(acc);
     
     bool has_accumulation = n_acc > 0;
+    double * accumulation = mxGetPr(prhs[0]);
     
     plhs[0] = mxCreateDoubleMatrix(nc, 1, mxREAL);
     double * result = mxGetPr(plhs[0]);
+    #pragma omp parallel for schedule(dynamic, 512)
+    for (int cell = 0; cell < (int)nc; cell++) {
+        // Each cell has number of connections equal to the number of half-
+        // faces for that cell plus itself multiplied by the block size
+        double v = 0;
+        if(has_accumulation){
+            v = accumulation[cell];
+        }
+        for (int i = facePos[cell]; i < facePos[cell+1]; i++){
+            int f = faces[i];
+            double f_v = flux[f];
+            if(N[f] == cell+1){
+                // Positive flux is out
+                v += f_v;
+            }else{
+                v -= f_v;
+            }
+        }
+        result[cell] = v;
+    }
+    
+    
+    /*
+     
+     
+     
     #pragma omp parallel
     {
         if(has_accumulation){
@@ -56,7 +86,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
                 result[i] = accumulation[i];
             }
         }
-        #pragma omp for
+        #pragma omp for schedule(static)
         for(int f = 0; f < nf; f++){
             int c1 = N[f]-1;
             int c2 = N[f+nf]-1;
@@ -66,6 +96,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
             result[c2] -= flux[f];
         }
     }
+     **/
 }
 
 
