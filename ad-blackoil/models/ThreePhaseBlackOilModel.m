@@ -284,17 +284,27 @@ methods
             dsg = st{3}.*dr - st{2}.*dsw;
 
             if model.disgas
-                rsMax = model.getProp(state, 'rsMax');
-                drs_rel = rsMax.*model.drsMaxRel;
-                drs = min(model.drsMaxAbs, drs_rel);
+                drs_rel = model.drsMaxRel;
+                if isfinite(drs_rel)
+                    rsMax = model.getProp(state, 'rsMax');
+                    drs_rel = rsMax.*drs_rel;
+                    drs = min(model.drsMaxAbs, drs_rel);
+                else
+                    drs = inf;
+                end
                 state = model.updateStateFromIncrement(state, st{1}.*dr, problem, ...
                                                        'rs', inf, drs);
             end
 
             if model.vapoil
-                rvMax = model.getProp(state, 'rvMax');
-                drv_rel = rvMax.*model.drsMaxRel;
-                drs = min(model.drsMaxAbs, drv_rel);
+                drv_rel = model.drsMaxRel;
+                if isfinite(drv_rel)
+                    rvMax = model.getProp(state, 'rvMax');
+                    drv_rel = rvMax.*drv_rel;
+                    drs = min(model.drsMaxAbs, drv_rel);
+                else
+                    drs = inf;
+                end
                 state = model.updateStateFromIncrement(state, st{2}.*dr, problem, ...
                                                        'rv', inf, drs);
             end
