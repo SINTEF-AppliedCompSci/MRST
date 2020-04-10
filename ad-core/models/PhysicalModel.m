@@ -1168,20 +1168,31 @@ methods
             % check that this is a part of the model
             dv = dx;
         end
-
         val0 = model.getProp(state, name);
-
-        [changeRel, changeAbs] = deal(1);
-        if nargin > 5
-            [~, changeRel] = model.limitUpdateRelative(dv, val0, relchangemax);
+        % We can get both relative and absolute increments. These may be
+        % specified either per-value or as a scalar. We check for both.
+        hasRel = nargin > 5 && (numel(relchangemax) > 1 || isfinite(relchangemax(1)));
+        hasAbs = nargin > 6 && (numel(abschangemax) > 1 || isfinite(abschangemax(1)));
+        if ~(hasRel || hasAbs)
+            % No limits on change - we apply directly.
+            val = val0 + dv;
+        else
+            % Limit update by lowest of the relative and absolute limits
+            change = inf;
+            if hasRel
+                % Relative change limit. Measure against current value.
+                biggestChange = max(abs(dv./val0), [], 2);
+                changeRel = min(relchangemax./biggestChange, 1);
+                change = min(change, changeRel);
+            end
+            if hasAbs
+                % Absolute change limit.
+                biggestChange = max(abs(dv), [], 2);
+                changeAbs = min(abschangemax./biggestChange, 1);
+                change = min(change, changeAbs);
+            end
+            val = val0 + bsxfun(@times, dv, change);
         end
-        if nargin > 6
-            [~, changeAbs] = model.limitUpdateAbsolute(dv, abschangemax);
-        end
-        % Limit update by lowest of the relative and absolute limits
-        change = min(changeAbs, changeRel);
-
-        val   = val0 + dv.*repmat(change, 1, size(dv, 2));
         state = model.setProp(state, name, val);
     end
 
