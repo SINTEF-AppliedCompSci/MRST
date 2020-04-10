@@ -23,4 +23,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     N = getNeighbourship(G);
     A = getConnectivityMatrix(N, 'Topological');
     ordering = symrcm(A);
+    ordering = reshape(ordering, [], 1);
 end
