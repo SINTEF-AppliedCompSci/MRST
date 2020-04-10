@@ -197,6 +197,71 @@ classdef GenericAD < ADI
             end
         end
         
+        function h = rdivide(u,v)
+            % Right element-wise division: `h = u./v`
+            if ~isa(v, 'ADI')
+                % Divide by double
+                h = u;
+                v_inv = 1./v;
+                h.val = h.val.*v_inv;
+                if numel(v_inv) == 1
+                    for i = 1:numel(h.jac)
+                        h.jac{i} = h.jac{i}*v_inv;
+                    end
+                else
+                    h.jac = h.lMultDiag(v_inv, h.jac);
+                end
+            elseif isa(u, 'ADI')
+                % Both are AD
+                uv = u.val;
+                vv = v.val;
+                h = u;
+                v_inv = 1./vv;
+                h.val = uv.*v_inv;
+                h.jac = h.timesJac(-h.val.*v_inv, v_inv, u.jac, v.jac);
+            else
+                % v is AD
+                vv = v.val;
+                h = v;
+                h.val = u./vv;
+                h.jac = h.lMultDiag(-u./(vv.^2), h.jac);
+            end
+        end
+        
+        function h = minus(u,v)
+            if ~isa(u,'ADI') %u is a vector/scalar and v is ADI
+                if numel(u) <= numel(v.val)
+                    h = uminus(v);
+                    h.val = h.val + u;
+                elseif numel(v.val) == 1
+                    h = minus(u, repmat(v,[numel(u), 1]));
+                else
+                    error('Vectors have different lengths')
+                end
+            elseif ~isa(v,'ADI')   %v is a vector/scalar and u is ADI
+                if numel(v) <= numel(u.val)
+                    h = u;
+                    h.val = h.val - v;
+                elseif numel(u.val) == 1
+                    h = minus(repmat(u,[numel(v), 1]), v);
+                else
+                    error('Vectors have different lengths')
+                end
+            else
+                % Both variables are ADI
+                if numel(u.val) == numel(v.val)
+                    h = u;
+                    h.val = u.val - v.val;
+                    h.jac = u.minusJac(h.jac, v.jac);
+                elseif numel(u.val) == 1
+                    h = minus(repmat(u, [numel(v.val), 1]), v);
+                elseif numel(v.val) == 1
+                    h = minus(u, repmat(v, [numel(u.val), 1]));
+                else
+                    error('Vectors have different lengths')
+                end
+            end
+        end
     end
     
     methods (Access=protected, Static)
@@ -225,6 +290,25 @@ classdef GenericAD < ADI
             end
         end
         
+        %--------------------------------------------------------------------------
+        
+        function J = minusJac(J1, J2)
+            nv1 = matrixDims(J1{1},1);
+            nv2 = matrixDims(J2{1},1);
+            if  nv1 == nv2
+                J = cellfun(@minus, J1, J2, 'UniformOutput', false);
+            else     % only other legal option is that nv1 = 1 or nv2 =1
+                if nv1 == 1
+                    J = cell(1, numel(J1));
+                    for k = 1:numel(J)
+                        J{k} = repmat(J1{k}, [nv2, 1]) - J2{k};
+                    end
+                else % nv2 = 1
+                    assert(nv2 == 1)
+                    J = GenericAD.minusJac(J2, J1);
+                end
+            end
+        end
         
         %--------------------------------------------------------------------------
         
