@@ -126,6 +126,9 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
     for i = 1:numel(ctrl_order)
         order = ctrl_order(i);
         W = schedule.control(order).W;
+        if isempty(W)
+            continue
+        end
         currentNames = {W.name};
         
         [newNames, subs] = setdiff(currentNames, names);
@@ -210,6 +213,9 @@ function schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag
     for i = 1:numel(ctrl_order)
         ctrl = ctrl_order(i);
         W = schedule.control(ctrl).W;
+        if isempty(W)
+            continue;
+        end
         active = false(numel(W_all), 1);
         
         % Restfields are all fields that are not explicitly handled by the
@@ -275,10 +281,12 @@ function schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag
     % reasonable for when they appear). Do another pass through, and ensure
     % that we also have the correct signs for all wells.
     for i = 1:numel(schedule.control)
-        active = vertcat(schedule.control(i).W.status);
         W = schedule.control(i).W;
-        W(~active) = W_closed(~active);
-        schedule.control(i).W = setWellSign(W);
+        if ~isempty(W)
+            active = vertcat(W.status);
+            W(~active) = W_closed(~active);
+            schedule.control(i).W = setWellSign(W);
+        end
     end
     
 end
