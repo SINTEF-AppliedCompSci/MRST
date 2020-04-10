@@ -13,14 +13,25 @@ function [krW, krOW, pcOW, pts_w, pts_ow, hasPC] = getFunctions(SWOF, reg)
     hasPC = false;
     for i = 1:reg.sat
         [pts_w(i, :), pts_ow(i, :)] = getPoints(SWOF{i});
-        
-        swof = extendTab(SWOF{i});
+        swof = SWOF{i};
+        SW = swof(:, 1);
+        ds = diff(SW);
+        if reg.optimize && all(abs(ds - ds(1)) < sqrt(eps(ds(1))))
+            % Uniform grid
+            ds = ds(1);
+            swof = [[SW(1) - ds; SW; SW(end) + ds], swof([1, 1:end, end], 2:end)];
+            interp = reg.interp1d_uniform;
+        else
+            swof = extendTab(swof);
+            interp = reg.interp1d;
+        end
+
         SW = swof(:, 1);
         pc = swof(:, 4);
         hasPC = hasPC || any(pc ~= 0);
-        krW{i} = @(sw) reg.interp1d(SW, swof(:, 2), sw);
-        krOW{i} = @(so) reg.interp1d(SW, swof(:, 3), 1-so);
-        pcOW{i} = @(sw) reg.interp1d(SW, pc, sw);
+        krW{i} = @(sw) interp(SW, swof(:, 2), sw);
+        krOW{i} = @(so) interp(SW, swof(:, 3), 1-so);
+        pcOW{i} = @(sw) interp(SW, pc, sw);
     end
 end
 

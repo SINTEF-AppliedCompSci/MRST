@@ -12,8 +12,23 @@ function [cW, muWr, bW_fn, muW_fn] = getFunctions(pvtw, reg)
         pwr  = pvtw(pvtnum, 1); % ref pres
         bwr  = pvtw(pvtnum, 2); % ref fvf
         vbw  = pvtw(pvtnum,5); % viscosibility
-        bW_fn{pvtnum} = @(pw) bW(pw, cW(pvtnum), bwr, pwr);
-        muW_fn{pvtnum} = @(pw) muW(pw, pwr, muWr(pvtnum), vbw);
+        muwr = muWr(pvtnum);
+        bW_fn{pvtnum}= getFunction(@(pw) bW(pw, cW(pvtnum), bwr, pwr), reg);
+        if vbw > 0
+            muW_fn{pvtnum} = @(pw) muW(pw, pwr, muwr, vbw);
+        else
+            muW_fn{pvtnum} = @(pw) repmat(muwr, numelValue(pw), 1);
+        end
+    end
+end
+
+function f = getFunction(fn, reg)
+    ps = reg.prange;
+    if isempty(ps)
+        f = @(p) fn(p);
+    else
+        fs = fn(ps);
+        f = @(p) reg.interp1d_uniform(ps, fs, p);
     end
 end
 

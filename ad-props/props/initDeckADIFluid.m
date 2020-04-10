@@ -67,21 +67,35 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opt = struct('G',               [], ...
              'region_method',   'deck', ...
              'singleRegion',    [], ...
+             'resamplePoly',    0, ...
+             'prange',          [], ...
              'useMex',          false, ...
+             'optimize',        false, ...
              'interp1d',        [], ...
              'regionOverride',  struct());
  
 opt = merge_options(opt,varargin{:});
 reg = getRegions(deck, opt);
 % Pass interpolation along with regions to avoid breaking interface
+if opt.optimize && opt.resamplePoly == 0
+    opt.resamplePoly = 20;
+end
 if isempty(opt.interp1d)
     if opt.useMex
         reg.interp1d = @interpTableMEX;
+        reg.interp1d_uniform = @(X, F, x) interpTableMEX(X, F, x, 3);
     else
         reg.interp1d = @interpTable;
+        reg.interp1d_uniform = reg.interp1d;
     end
 else
     reg.interp1d = opt.interp1d;
+    reg.interp1d_uniform = reg.interp1d;
+end
+reg.prange = opt.prange;
+reg.optimize = opt.optimize; % Perform additional optimizations for large cases
+if isempty(reg.prange)
+   reg.prange = get_pressures(deck, opt);
 end
 
 fluid = struct();
@@ -137,7 +151,31 @@ function reg = getRegions(deck, opt)
         end
     end
 end
-
+%--------------------------------------------------------------------------
+function prange = get_pressures(deck, opt)
+    pmax = -inf;
+    pmin = inf;
+    props = deck.PROPS;
+    f = {'PVDG', 'PVDO'};
+    for i = 1:numel(f)
+        fn = f{i};
+        if isfield(props, fn)
+            d = props.(fn);
+            for j = 1:numel(d)
+                pi = d{j}(:, 1);
+                pmax = max(pmax, max(pi));
+                pmin = min(pmin, min(pi));
+            end
+        end
+    end
+    if ~isfinite(pmax)
+        pmax = 1000*barsa;
+    end
+    if ~isfinite(pmin)
+        pmin = 0;
+    end
+    prange = linspace(pmin, pmax, opt.resamplePoly)';
+end
 %--------------------------------------------------------------------------
 
 function fnames = prioritise(fnames)

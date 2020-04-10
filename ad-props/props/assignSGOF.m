@@ -18,13 +18,26 @@ function [krG, krOG, pcOG, pts, pts_o, hasPC] = getFunctions(f, SGOF, reg)
             swcon = 0;
         end
         [pts(i, :), pts_o(i, :)] = getPoints(SGOF{i}, swcon);
-        sgof = extendTab(SGOF{i});
+        
+        sgof = SGOF{i};
+        SG = sgof(:, 1);
+        ds = diff(SG);
+        if reg.optimize && all(abs(ds - ds(1)) < sqrt(eps(ds(1))))
+            % Uniform grid
+            ds = ds(1);
+            sgof = [[SG(1) - ds; SG; SG(end) + ds], sgof([1, 1:end, end], 2:end)];
+            interp = reg.interp1d_uniform;
+        else
+            sgof = extendTab(sgof);
+            interp = reg.interp1d;
+        end
         SG = sgof(:, 1);
         pc = sgof(:, 4);
         hasPC = hasPC || any(pc ~= 0);
-        krG{i} = @(sg) reg.interp1d(SG, sgof(:, 2), sg);
-        krOG{i} = @(so) reg.interp1d(SG, sgof(:, 3), 1-so-swcon);
-        pcOG{i} = @(sg) reg.interp1d(SG, pc, sg);
+        SG_plus_swcon = SG + swcon;
+        krG{i} = @(sg) interp(SG, sgof(:, 2), sg);
+        krOG{i} = @(so) interp(SG_plus_swcon, sgof(:, 3), 1-so);
+        pcOG{i} = @(sg) interp(SG, pc, sg);
     end
 end
 

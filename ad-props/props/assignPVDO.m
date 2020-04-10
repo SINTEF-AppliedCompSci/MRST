@@ -11,8 +11,8 @@ function [bO, muO] = getFunctions(f, PVDO, reg)
         p = pvdo(:, 1);
         BO = pvdo(:, 2);
         muo = pvdo(:, 3);
-        bO{i}  = @(po) interpTable(p, 1./BO, po);
-        muO{i} = @(po) interpTable(p, muo, po);
+        bO{i}  = @(po) reg.interp1d(p, 1./BO, po);
+        muO{i} = @(po) reg.interp1d(p, muo, po);
     end
 end
 

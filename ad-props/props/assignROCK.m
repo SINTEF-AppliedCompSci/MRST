@@ -3,12 +3,22 @@ function f = assignROCK(f, rock, reg)
     cR   = rock(:, 2)';
     pRef = rock(:, 1)';
     if ntpvt == 1
-        f.pvMultR = @(p) pvMult(p, cR, pRef);
+        f.pvMultR = getFunction(cR, pRef, reg);
     else
         f.pvMultR = cell(1, ntpvt);
         for i = 1:ntpvt
-            f.pvMultR{i} = @(p) pvMult(p, cR(i), pRef(i));
+            f.pvMultR{i} = getFunction(cR(i), pRef(i), reg);
         end
+    end
+end
+
+function f = getFunction(cR, pRef, reg)
+    ps = reg.prange;
+    if isempty(ps)
+        f = @(p) pvMult(p, cR, pRef);
+    else
+        fs = pvMult(ps, cR, pRef);
+        f = @(p) reg.interp1d_uniform(ps, fs, p);
     end
 end
 
