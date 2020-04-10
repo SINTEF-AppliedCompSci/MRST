@@ -88,7 +88,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             pgm =  {'gmres_m'};
             plgm = {'lgmres_always_reset', 'lgmres_k', 'lgmres_store_av'};
             pdrs = {'idrs_omega', 'idrs_replacement', 'idrs_s'};
-            parameters = {{}, {}, {}, pbcg, pgm, plgm, {}, pdrs};
+            parameters = {{}, {}, pbcg, pgm, plgm, {}, pdrs};
         otherwise
             error('Option:Unknown', 'Unknown option: ''%s''', name);
     end
