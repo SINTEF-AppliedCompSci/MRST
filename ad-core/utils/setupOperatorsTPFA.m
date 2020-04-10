@@ -102,10 +102,14 @@ N = opt.neighbors;
 
 op = struct();
 if isempty(T)
-    % half-trans -> trans and reduce to interior
-    T = getFaceTransmissibility(G, rock, opt.deck);
+    if isfield(G.faces, 'TRANS')
+        T = G.faces.TRANS;
+    else
+        % half-trans -> trans and reduce to interior
+        T = getFaceTransmissibility(G, rock, opt.deck);
+    end
     assert(isempty(N))
-    N=G.faces.neighbors;
+    N = G.faces.neighbors;
     intInx = all(N ~= 0, 2);
     N  = N(intInx, :);
     op.T_all = T;
@@ -134,8 +138,6 @@ else
             end
         end
     end 
-    
-   
     if numel(T) == n_if
         % Internal interface transmissibility
         op.T_all = zeros(size(intInx));
@@ -147,7 +149,6 @@ else
         op.T_all = T;
         T = T(intInx);
     end
-        
 end
 if any(T<0)
     warning('Negative transmissibilities detected.')
