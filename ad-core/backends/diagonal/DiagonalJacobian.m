@@ -421,6 +421,11 @@ classdef DiagonalJacobian
         function x = minus(x, y)
             x = plus(x, -y);
         end
+        
+        function x = power(x, e)
+            x.diagonal = x.diagonal.^e;
+        end
+
 
         function u = rdivide(u,v)
             % Right matrix divide: `h=u/v`
@@ -517,44 +522,50 @@ classdef DiagonalJacobian
         end
         
         function x = mtimes(x, y)
-            if DiagonalJacobian.isAllZeros(x) || DiagonalJacobian.isAllZeros(y)
+            if DiagonalJacobian.isAllZeros(x)
                 if isscalar(x)
-                    y.diagonal = y.diagonal*x;
-                    return
-                end
-                if isscalar(y)
-                    x.diagonal = x.diagonal*x;
-                    return
-                end
-                dx = matrixDims(x);
-                dy = matrixDims(y);
-                x = sparse([], [], [], dx(1), dy(2));
-                return;
-            end
-
-            xD = isa(x, 'DiagonalJacobian');
-            yD = isa(y, 'DiagonalJacobian');
-            if xD && yD
-                if subsetsEqualNoZeroCheck(x, y)
-                    x.diagonal = x.diagonal.*y.diagonal;
-                    x.subset = DiagonalJacobian.treatSubset(x.subset, y.subset);
-                else
-                    x = x.sparse().*y.sparse();
-                end
-            elseif xD
-                if isscalar(y)
-                    x.diagonal = x.diagonal*y;
-                else
-                    x = x.sparse();
-                    x = x*y;
-                end
-            else
-                if isscalar(x)
-                    y.diagonal = x*y.diagonal;
+                    % Scalar multiply by zero - still diagonal
+                    y = y.toZero();
                     x = y;
                 else
-                    y = y.sparse();
-                    x = x*y;
+                    % Assume valid matrix
+                    dx = matrixDims(x);
+                    dy = matrixDims(y);
+                    x = sparse([], [], [], dx(1), dy(2));
+                end
+            elseif DiagonalJacobian.isAllZeros(y)
+                if isscalar(y)
+                    x = x.toZero();
+                else
+                    dx = matrixDims(x);
+                    dy = matrixDims(y);
+                    x = sparse([], [], [], dx(1), dy(2));
+                end
+            else
+                xD = isa(x, 'DiagonalJacobian');
+                yD = isa(y, 'DiagonalJacobian');
+                if xD && yD
+                    if subsetsEqualNoZeroCheck(x, y)
+                        x.diagonal = x.diagonal.*y.diagonal;
+                        x.subset = DiagonalJacobian.treatSubset(x.subset, y.subset);
+                    else
+                        x = x.sparse().*y.sparse();
+                    end
+                elseif xD
+                    if isscalar(y)
+                        x.diagonal = x.diagonal*y;
+                    else
+                        x = x.sparse();
+                        x = x*y;
+                    end
+                else
+                    if isscalar(x)
+                        y.diagonal = x*y.diagonal;
+                        x = y;
+                    else
+                        y = y.sparse();
+                        x = x*y;
+                    end
                 end
             end
         end
@@ -572,20 +583,24 @@ classdef DiagonalJacobian
         end
 
         function [x, D] = diagMult(v, x, D)
-            if x.rowMajor
-                if x.useMex
-                    x.diagonal = mexDiagMult(x.diagonal, v, true);
-                elseif x.allowImplicitExpansion
-                    x.diagonal = x.diagonal.*v';
+            if any(v)
+                if x.rowMajor
+                    if x.useMex
+                        x.diagonal = mexDiagMult(x.diagonal, v, true);
+                    elseif x.allowImplicitExpansion
+                        x.diagonal = x.diagonal.*v';
+                    else
+                        x.diagonal = bsxfun(@times, x.diagonal, v');
+                    end
                 else
-                    x.diagonal = bsxfun(@times, x.diagonal, v');
+                    if x.allowImplicitExpansion
+                        x.diagonal = x.diagonal.*v;
+                    else
+                        x.diagonal = bsxfun(@times, x.diagonal, v);
+                    end
                 end
             else
-                if x.allowImplicitExpansion
-                    x.diagonal = x.diagonal.*v;
-                else
-                    x.diagonal = bsxfun(@times, x.diagonal, v);
-                end
+                x = x.toZero();
             end
         end
         
@@ -675,11 +690,10 @@ classdef DiagonalJacobian
                 end
                 out = sparse(I, J, V, N, M);
             else
-                assert(~x.rowMajor);
                 m = numel(varargin);
                 l = varargin{1}.dim(2);
-                
-                subsets = cellfun(@(x) x.getSubset, varargin, 'UniformOutput', false);
+                assert(~varargin{1}.rowMajor);
+                subsets = cellfun(@(x) x.getSubset(), varargin, 'UniformOutput', false);
                 diags = cellfun(@(x) x.diagonal, varargin, 'UniformOutput', false);
                 isZero = cellfun(@(x) x.isZero, varargin);
                 for i = 1:m
