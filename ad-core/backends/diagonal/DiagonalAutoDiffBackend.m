@@ -21,6 +21,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
         modifyOperators = true; % Update the operators and use custom versions that return `DiagonalSubset` instances
         useMex = false;
         rowMajor = false;
+        deferredAssembly = false;
     end
     
     methods
@@ -37,8 +38,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
                 nf = size(N, 1);
                 n1 = N(:, 1);
                 n2 = N(:, 2);
-
-
+                % Discrete divergence
                 C  = sparse(N, [(1:nf)'; (1:nf)'], ones(nf,1)*[1 -1], nc, nf);
                 gradMat = sparse((1:2*nf), [n1; n2], rldecode([-1; 1], [nf; nf]), 2*nf, nc);
                 [~, sortedN] = sort(repmat(reshape(N, [], 1), 2, 1));
@@ -48,14 +48,21 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
                 else
                     prelim = [];
                 end
-
                 sortIx = struct('C', C, 'J_sorted_index', sortedN, 'I_base', I_base);
-                model.operators.Grad = @(v) twoPointGradient(N, v, gradMat, backend.useMex);
-                model.operators.Div = @(v) discreteDivergence([], N, v, nc, nf, sortIx, C, prelim, backend.useMex);
-                model.operators.AccDiv = @(a, v) discreteDivergence(a, N, v, nc, nf, sortIx, C, prelim, backend.useMex);
+                div_options = struct('sortIx',             sortIx,...
+                                     'mex',                prelim, ...
+                                     'useMex',             backend.useMex, ...
+                                     'fn',                 [], ...
+                                     'useConservationJac', backend.deferredAssembly, ...
+                                     'N', N, 'C', C, 'nf', nf, 'nc', nc);
 
+                model.operators.Div = @(v) discreteDivergence([], v, div_options);
+                model.operators.AccDiv = @(a, v) discreteDivergence(a, v, div_options);
+                % Cell -> Face operators: Grad, upstream and face average
+                model.operators.Grad = @(v) twoPointGradient(N, v, gradMat, backend.useMex);
                 model.operators.faceUpstr = @(flag, v) singlePointUpwind(flag, N, v, backend.useMex);
                 model.operators.faceAvg = @(v) faceAverage(N, v, backend.useMex);
+
                 model.operators.diag_updated = true;
             end
         end
