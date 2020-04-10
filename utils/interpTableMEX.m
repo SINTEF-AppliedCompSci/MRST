@@ -56,6 +56,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         yi = xi;
         [yi.val, der] = mexInterp1(X, Y, xi.val, varargin{:});
-        yi.jac = yi.lMultDiag(der, yi.jac);
+        if any(der)
+            yi.jac = yi.lMultDiag(der, yi.jac);
+        else
+            yi.jac = cellfun(@(x) 0*x, yi.jac, 'UniformOutput', false);
+        end
     end
 end
