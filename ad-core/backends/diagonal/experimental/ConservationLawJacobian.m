@@ -1,45 +1,29 @@
-classdef (InferiorClasses = {?DiagonalJacobian,?DiagonalSubset}) DivergenceTerm
-    % Very experimental divergence term
+classdef (InferiorClasses = {?DiagonalJacobian,?DiagonalSubset}) ConservationLawJacobian
+    % Very experimental class for Jacobian of a conservation law
     properties
         flux
         accumulation
-        N
-        C
-        mexPrelim
-        useMex
+        divergenceOptions
     end
     
     methods
-        function D = DivergenceTerm(v, n, c, prelim, useMex)
-            D.flux = v;
-            D.N = n;
-            D.C = c;
-            D.mexPrelim = prelim;
-            D.useMex = useMex;
+        function D = ConservationLawJacobian(acc, flux, div_options)
+            D.accumulation = acc;
+            D.flux = flux;
+            D.divergenceOptions = div_options;
         end
-        
+
         function s = sparse(D)
-            jac = D.flux;
-            if D.useMex && (isempty(jac.parentSubset) || all(jac.parentSubset == (1:jac.dim(1))'))
-                prelim = D.mexPrelim;
-                s = mexDiscreteDivergenceJac(jac.diagonal, D.N, prelim.facePos, prelim.faces, prelim.cells, prelim.cellIndex);
-            else
-                s = D.C*jac.sparse();
-            end
-            if ~isempty(D.accumulation)
-                s = s + D.accumulation.sparse();
-            end
+            s = discreteDivergenceDiagonalJac(D.accumulation, D.flux, D.divergenceOptions, false);
         end
         
         function [x, D] = diagMult(v, x, D)
-            [x.flux, D] = diagMult(v, x.flux, D);
-            if ~isempty(x.accumulation)
-                [x.accumulation, D] = diagMult(v, x.accumulation, D);
-            end
+            x = x.sparse();
+            [x, D] = diagMult(v, x, D);
         end
 
         function D = mtimes(D, V)
-            if isa(D, 'DivergenceTerm')
+            if isa(D, 'ConservationLawJacobian')
                 D = D.sparse();
             else
                 V = V.sparse();
@@ -53,7 +37,7 @@ classdef (InferiorClasses = {?DiagonalJacobian,?DiagonalSubset}) DivergenceTerm
         end
 
         function u = plus(u,v)
-            if isa(u, 'DivergenceTerm')
+            if isa(u, 'ConservationLawJacobian')
                 if isempty(u.accumulation)
                     u.accumulation = v;
                 else
@@ -64,18 +48,33 @@ classdef (InferiorClasses = {?DiagonalJacobian,?DiagonalSubset}) DivergenceTerm
             end
         end
         
-        function varargout = matrixDims(D, n)
-            dims = [numel(D.mexPrelim.cellIndex), D.flux.dim(2)];
-            if nargout == 1
-                varargout{1} = dims;
-                if nargin > 1
-                    varargout{1} = varargout{1}(n);
-                end
-            else
-                varargout = {dims(1), dims(2)};
-            end
+        
+%         function varargout = matrixDims(D, n)
+%             dims = [numel(D.mexPrelim.cellIndex), D.flux.dim(2)];
+%             if nargout == 1
+%                 varargout{1} = dims;
+%                 if nargin > 1
+%                     varargout{1} = varargout{1}(n);
+%                 end
+%             else
+%                 varargout = {dims(1), dims(2)};
+%             end
+%         end
+
+        function u = horzcat(varargin)
+            u = ConservationLawJacobian.cat(2, varargin{:});
         end
 
+        function u = vertcat(varargin)
+            u = ConservationLawJacobian.cat(1, varargin{:});
+        end
+    end
+    
+    methods(Static)
+        function out = cat(dim, varargin)
+            varargin = cellfun(@sparse, varargin, 'UniformOutput', false);
+            out = cat(dim, varargin{:});
+        end
     end
 end
 
