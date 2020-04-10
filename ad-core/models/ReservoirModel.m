@@ -188,7 +188,9 @@ methods
 
         assert(~isempty(model.operators),...
             'Operators must be set up before simulation. See model.setupOperators for more details.');
-
+        if ~isfield(model.operators, 'gdz')
+            model.operators.gdz = model.getGravityGradient();
+        end
         if ~isempty(model.AquiferModel)
             model.AquiferModel = model.AquiferModel.validateModel(model);
         end
@@ -1064,13 +1066,16 @@ methods
         %
         % SEE ALSO:
         %   `gravity`
+        if isfield(model.operators, 'gdz')
+            gdxyz = model.operators.gdz;
+        else
+            assert(isfield(model.G, 'cells'), 'Missing cell field on grid');
+            assert(isfield(model.G.cells, 'centroids'),...
+                'Missing centroids field on grid. Consider using computeGeometry first.');
 
-        assert(isfield(model.G, 'cells'), 'Missing cell field on grid');
-        assert(isfield(model.G.cells, 'centroids'),...
-            'Missing centroids field on grid. Consider using computeGeometry first.');
-
-        g = model.getGravityVector();
-        gdxyz = model.operators.Grad(model.G.cells.centroids) * g';
+            g = model.getGravityVector();
+            gdxyz = model.operators.Grad(model.G.cells.centroids) * g';
+        end
     end
 
 % --------------------------------------------------------------------%
