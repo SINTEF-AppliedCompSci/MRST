@@ -1,4 +1,4 @@
-function timings = getReportTimings(report)
+function timings = getReportTimings(report, varargin)
 %Undocumented Utility Function
 
 %{
@@ -19,7 +19,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    opt = struct('skipConverged', false);
+    opt = merge_options(opt, varargin{:});
     if isstruct(report)
         report = report.ControlstepReports;
     end
@@ -37,10 +38,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             n_assemblies = n_assemblies + nasm;
             for j = 1:nasm
                 r = rep.StepReports{i}.NonlinearReport{j};
+                conv = r.Converged;
+                if opt.skipConverged && conv
+                    % We are only measuring the time in each iteration,
+                    % skipping the cost of each assembly that just
+                    % confirmed convergence.
+                    continue;
+                end
                 assembly = assembly + r.AssemblyTime;
                 % Linear solver
                 ls = r.LinearSolver;
-                if not(r.Converged)
+                if ~conv
                     prep = 0;
                     if isfield(ls, 'PreparationTime')
                         % Fine grained statistics is available
