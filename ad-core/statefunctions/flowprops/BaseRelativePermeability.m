@@ -39,23 +39,19 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
         function kr = relPermWOG(prop, model, state)
             % Three-phase system
             [sw, so, sg] = model.getProps(state, 'sw', 'so', 'sg');
-            f = model.fluid;
-            swcon = prop.getConnateWater(model, state);
-            swcon = min(swcon, value(sw)-1e-5);
-
-            d  = (sg+sw-swcon);
-            ww = (sw-swcon)./d;
-
             krW = prop.evaluatePhaseRelativePermeability(model, 'w', sw);
             krG = prop.evaluatePhaseRelativePermeability(model, 'g', sg);
-
-            wg = 1-ww;
-            if isfield(f, 'krO')
+            % Oil rel perm is special
+            if isfield(model.fluid, 'krO')
                 krO = prop.evaluateFluid(model, 'krO', so);
             else
+                swcon = prop.getConnateWater(model, state);
+                swcon = min(swcon, value(sw)-1e-5);
+                d  = (sg+sw-swcon);
+                ww = (sw-swcon)./d;
                 krow = prop.evaluatePhaseRelativePermeability(model, 'ow', so);
                 krog = prop.evaluatePhaseRelativePermeability(model, 'og', so);
-                krO  = wg.*krog + ww.*krow;
+                krO  = (1-ww).*krog + ww.*krow;
             end
             kr = {krW, krO, krG};
         end
