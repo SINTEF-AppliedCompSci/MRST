@@ -52,14 +52,20 @@ classdef ComponentTotalMass <  StateFunction & ComponentProperty
             end
             assert(isa(prop.AutoDiffBackend, 'DiagonalAutoDiffBackend'), ...
                 'Minimum derivatives only supported for diagonals.');
+            rowMajor = prop.AutoDiffBackend.rowMajor;
             for c = 1:numel(mass)
                 m = mass{c};
-                if isnumeric(m) || size(m.jac{1}.diagonal, 2) < c
+                if isnumeric(m) || size(m.jac{1}.diagonal, 2 - rowMajor) < c
                     continue
                 end
                 d = der(c);
-                bad = abs(m.jac{1}.diagonal(:, c)) < d;
-                m.jac{1}.diagonal(bad, c) = d;
+                if rowMajor
+                    bad = abs(m.jac{1}.diagonal(c, :)) < d;
+                    m.jac{1}.diagonal(c, bad) = d;
+                else
+                    bad = abs(m.jac{1}.diagonal(:, c)) < d;
+                    m.jac{1}.diagonal(bad, c) = d;
+                end
                 mass{c} = m;
             end
         end
