@@ -241,6 +241,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             operators.volmap = volmap; 
             operators.D      = D;
             operators.WC     = WC;
+            operators.NC     = NC;
             operators.KH     = KH;
             operators.SE     = SE;
             operators.PP     = PP;

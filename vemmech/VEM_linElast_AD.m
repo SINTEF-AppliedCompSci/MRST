@@ -228,7 +228,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                              % scaling not yet implemented
            extra.Ax_derivs = compute_Ax_derivs(G, u, extra, E, nu, opt.alpha_scaling, ...
                                                isdirdofs);
+        else
+           extra.Ax_derivs = 0;
         end
+        
     end
 end
 
