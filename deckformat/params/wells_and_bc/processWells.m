@@ -135,7 +135,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if isempty(W)
-      W = createDefaultWell(G, rock);
+       if opt.createDefaultWell
+           W = createDefaultWell(G, rock);
+       else
+           W = [];
+       end
       return
    end
 
@@ -595,6 +599,10 @@ end
 %--------------------------------------------------------------------------
 
 function [control, p] = orderCompletions(control)
+   if isempty(control.COMPDAT)
+       p = [];
+       return;
+   end
    comp = [vertcat(control.COMPDAT{:,1}), ...
            (1 : size(control.COMPDAT,1)).'];
    comp = sortrows(comp);
@@ -699,7 +707,9 @@ function compdat = insertDefaultCOMPDAT(control, id, nlayers)
    for w = reshape(find(~present), 1, [])
       compdat = [compdat; [w, tmpl]]; %#ok
    end
-
+   if isempty(compdat)
+       return;
+   end
    % Fill in defaulted (I,J) locations (of well heel).
    i = vertcat(compdat{:,2}) < 1;
    compdat(i,2) = control.WELSPECS(vertcat(compdat{i,1}), 3);

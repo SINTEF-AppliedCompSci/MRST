@@ -32,7 +32,7 @@ if ~isempty(deck)
     deck = convertDeckUnits(deck, 'outputUnit', 'si');
 end
 
-%% RUNSPEC
+% RUNSPEC
 RUNSPEC.DIMENS      = [model.G.cells.num,1,1];
 RUNSPEC.OIL         = model.oil;
 RUNSPEC.GAS         = model.gas;
@@ -56,7 +56,7 @@ if isfield(deck, 'RUNSPEC')
     RUNSPEC = addAdditional(RUNSPEC, deck.RUNSPEC);
 end
 
-%% GRID
+% GRID
 nc = model.G.cells.num;
 GRID.INIT = 1;
 % make 1D grid where all connections are NNC
@@ -84,31 +84,31 @@ T = model.operators.T;
 nf = numel(T);
 GRID.NNC = [model.operators.N(:,1), ones(nf,2), model.operators.N(:,2), ones(nf,2), T];
 
-%% EDIT
+% EDIT
 % set connections in 1D-grid to zero trans
 EDIT.TRANX = zeros(nc,1);
 EDIT.PORV  = model.operators.pv;
 EDIT.DEPTH = depth;
 
-%% PROPS (from input deck)
+% PROPS (from input deck)
 PROPS = [];
 if isfield(deck, 'PROPS')
     PROPS = deck.PROPS;
 end
 
-%% REGIONS
+% REGIONS
 REGIONS=struct();
 if isfield(deck, 'REGIONS')
     REGIONS = deck.REGIONS;
 end
 
-%% SUMMARY
+% SUMMARY
 SUMMARY=struct();
 if isfield(deck, 'SUMMARY')
     SUMMARY = addAdditional(SUMMARY, deck.SUMMARY);
 end
 
-%% SOLUTION
+% SOLUTION
 SOLUTION=struct();
 if ~isempty(opt.state0)
     state0 = opt.state0;
@@ -135,16 +135,16 @@ elseif isfield(deck, 'SOLUTION')
     SOLUTION = addAdditional(SOLUTION, deck.SOLUTION);
 end
 
-%% SCHEDULE
+% SCHEDULE
 SCHEDULE = convertScheduleToDeck(model, schedule, 'linearIndex', true, 'reduceOutput', true);
 
 
-%% unhandeled ??
+% unhandeled ??
 UnhandledKeywords=[];
 UnhandledKeywords.SUMMARY = {'ALL'};
 UnhandledKeywords.SCHEDULE= {'OPTIONS'  'RPTRST'};
 
-%% assemble
+% assemble
 deckmrst.GRID     = GRID;
 deckmrst.RUNSPEC  = RUNSPEC;
 deckmrst.EDIT     = EDIT;
@@ -155,7 +155,7 @@ deckmrst.SOLUTION = SOLUTION;
 deckmrst.SCHEDULE = SCHEDULE;
 deckmrst.UnhandledKeywords = UnhandledKeywords;
 
-%% finally convert to requested units 
+% finally convert to requested units 
 if ~isempty(opt.unit)
     deckmrst = convertDeckUnits(deckmrst, 'outputUnit', opt.unit);
 end
@@ -170,7 +170,9 @@ v =  [10      20     10      20       5       10      5      4     3   0   1    
 if isfield(schedule.control(end), 'W')
     W = schedule.control(end).W;
     v(1) = numel(W);
-    v(2) = max(arrayfun(@(w)numel(w.cells), W));
+    if numel(W)
+        v(2) = max(arrayfun(@(w)numel(w.cells), W));
+    end
     v(4) = v(1);
 end
 end

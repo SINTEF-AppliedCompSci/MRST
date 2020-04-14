@@ -143,7 +143,11 @@ for sno = 1:numel(control)
     control(sno).COMPDAT = vertcat(COMPDAT{:});
     
     %% WCONINJE
-    injIx = find([W.sign] > 0);
+    if isempty(W)
+        injIx = [];
+    else
+        injIx = find([W.sign] > 0);
+    end
     WCONINJE = repmat(WCONINJE_tmp, [numel(injIx), 1]);
     for ino = 1:numel(injIx)
         wno = injIx(ino);
@@ -196,7 +200,11 @@ for sno = 1:numel(control)
     control(sno).WCONINJE = WCONINJE;
     
     %% WCONPROD
-    prodIx = find([W.sign] < 0);
+    if isempty(W)
+        prodIx = [];
+    else
+        prodIx = find([W.sign] < 0);
+    end
     WCONPROD = repmat(WCONPROD_tmp, [numel(prodIx), 1]);
     for pno = 1:numel(prodIx)
         wno = prodIx(pno);

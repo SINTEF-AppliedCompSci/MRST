@@ -64,10 +64,11 @@ function [qOs, qWs, qGs, bhp, wns, time] = extract_quantities(smry, u)
    tf   = ':+:+:+:+';   % special field with time-info
 
    wns  = setdiff(smry.WGNAMES, {tf, 'FIELD', ''}); % well-names
-   time = reshape(convertFrom(smry.get(tf, 'TIME', ':'), u.t), [], 1);
+   t = smry.get(tf, 'TIME', ':');
+   time = reshape(convertFrom(t, u.t), [], 1);
 
    nw = numel(wns);
-   nt = numel(time);
+   nt = max(numel(time), size(t, 2));
 
    [qOs, qWs, qGs, bhp] = deal(zeros([nt, nw]));
 
