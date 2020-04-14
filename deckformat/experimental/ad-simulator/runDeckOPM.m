@@ -70,7 +70,9 @@ end
 if(opt.no_output)
     command = [command,' >& /dev/null'];
 end
-delete(fullfile(opt.outputdir,'adjoint_results.txt'))
+if(opt.do_adjoint)
+    delete(fullfile(opt.outputdir,'adjoint_results.txt'))
+end
 disp('MRST runing flow')
 disp(command)
 a = system(command)
