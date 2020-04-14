@@ -2,11 +2,11 @@ classdef DiagonalJacobian
     % Diagonal representation of a Jacobian
     properties
         diagonal % Dense matrix of diagonal derivatives
-        subset % Indices corresponding to the subset (if empty, class contains the full set)
         dim % Vector: First dimension is the number of variables in block, while the second is the number of columns
+        subset % Indices corresponding to the subset (if empty, class contains the full set)
         useMex = false;
         rowMajor = false;
-        allowImplicitExpansion = ~verLessThan('matlab','9.1');
+        allowImplicitExpansion = exist ("OCTAVE_VERSION", "builtin") > 0 || ~verLessThan('matlab','9.1');
     end
     
     methods
