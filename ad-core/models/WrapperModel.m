@@ -89,6 +89,10 @@ classdef WrapperModel < PhysicalModel
             forces = model.parentModel.validateDrivingForces(forces);
         end
         
+        function groupings = getStateFunctionGroupings(model)
+            groupings = model.parentModel.getStateFunctionGroupings();
+        end
+
         function rmodel = getReservoirModel(model)
             rmodel = model.parentModel;
             while ~isa(rmodel, 'ReservoirModel')
