@@ -2,9 +2,8 @@ classdef DomainDecompositionModel < WrapperModel
    
     properties
         partition
-        subdomainSetup  = {}
+        subdomainSetup
         type            = 'additive'
-        outputJacobians = false
         overlap         = 0
         getPartition    = @(model, varargin) model.partition
         verboseSubmodel = false
@@ -16,7 +15,6 @@ classdef DomainDecompositionModel < WrapperModel
         %-----------------------------------------------------------------%
         function model = DomainDecompositionModel(parent, partition, varargin)
             % Base model initialization
-%             parent = removeStateFunctionOutput(parent);
             model = model@WrapperModel(parent);
             % Set partition
             model.partition = partition;
@@ -44,23 +42,12 @@ classdef DomainDecompositionModel < WrapperModel
             doneMinIts = iteration > nonlinsolver.minIterations;
             subdomainReport = [];
             if (~(all(convergence) && doneMinIts) && ~outOfIterations)
-                timer = tic();
-                t_update = toc(timer);
                 % Solve subdomains
-                tic()
-                [state, subdomainReport, extra] = model.solveSubDomains(state0, dt, drivingForces, state);
-                t_solve = toc(timer) - t_update;
+                timer = tic();
+                [state, subdomainReport] = model.solveSubDomains(state0, dt, drivingForces, state);
+                t_solve = toc(timer);
                 subdomainReport.WallTime = t_solve;
-                if model.outputJacobians
-                    % Add Jacobian information to state
-                    extra.problem = problem;
-                    state.extra   = extra;
-                end
                 state.iterations = state.iterations + subdomainReport.Iterations;
-            else
-                if model.outputJacobians
-                    state.extra = struct('initState', state, 'problem', problem, 'subproblems', []);
-                end
             end
             modelConverged = all(convergence);
             isConverged = (modelConverged && doneMinIts) || model.stepFunctionIsLinear;
@@ -111,28 +98,23 @@ classdef DomainDecompositionModel < WrapperModel
         end
         
         %-----------------------------------------------------------------%
-        function [state, report, extra] = solveSubDomains(model, state0, dt, drivingForces, state)
+        function [state, report, substates] = solveSubDomains(model, state0, dt, drivingForces, state)
             part = model.partition;
             % Initialize
             iterations = nan(model.G.cells.num,1);
-            [pfull, psub] = deal([]);
-            [initState, finalState, startState] = deal(state);
+            [initState, finalState] = deal(state);
+            substates = cell(max(part),1);
             for i = 1:max(part)
                 % Get cell subset
                 cells = part == i;
                 % Solve subdomain
-                [state, substate, subreport, mappings, subproblems] = model.solveSubDomain(model.subdomainSetup{i}, state0, dt, drivingForces, initState);
-                if model.outputJacobians
-                    % Update Jacobians
-                    pfull = model.addProblems(pfull, subproblems.full);
-                    psub  = model.addProblems(psub, subproblems.sub);
-                end
+                [state, substates{i}, subreport, mappings] = model.solveSubDomain(model.subdomainSetup{i}, state0, dt, drivingForces, initState);
                 % Update initial and final state
                 switch model.type
                     case 'additive'
                         % Additive method: map substate to final state
                         if subreport.Converged
-                            finalState = mapState(finalState, substate, mappings);
+                            finalState = mapState(finalState, substates{i}, mappings);
                         end
                     case 'multiplicative'
                         % Multiplicative: update initial state
@@ -142,19 +124,12 @@ classdef DomainDecompositionModel < WrapperModel
                 iterations(cells) = subreport.Iterations;
             end
             state = finalState;
-            if model.outputJacobians
-                problem   = model.getEquations(state0, state, dt, drivingForces, 'iteration', inf, 'resOnly', true);
-                subproblems = struct('full', pfull, 'sub', psub);
-                extra     = struct('subproblems', subproblems, 'initState', startState, 'problem', problem);
-            else
-                extra = [];
-            end
             % Make step report
             report = model.makeDomainStepReport('Iterations', iterations);
         end
         
         %-----------------------------------------------------------------%
-        function [state, substate, subreport, mappings, subproblems] = solveSubDomain(model, setup, state0, dt, drivingForces, state)
+        function [state, substate, subreport, mappings, substate0, subforces, submodel] = solveSubDomain(model, setup, state0, dt, drivingForces, state)
             % Get submodel
             submodel = setup.Model;
             mappings = submodel.mappings;
@@ -174,91 +149,12 @@ classdef DomainDecompositionModel < WrapperModel
             end
             % Map substate to state
             state = mapState(state, substate, mappings);
-            subproblems = [];
-            if model.outputJacobians
-                subproblems = model.getSubProblems(submodel, substate0, state, dt, subforces, mappings);
-            end
         end
         
         %-----------------------------------------------------------------%
         function report = makeDomainStepReport(model, varargin)%#ok
             report = struct('Iterations', [], 'WallTime', []);
             report = merge_options(report, varargin{:});
-        end
-
-        %-----------------------------------------------------------------%
-        function subproblems = getSubProblems(model, submodel, substate0, state, dt, subforces, mappings)
-            % Get substate with all jacobians
-            [state, primaryVars] = model.parentModel.getStateAD(state, true);
-            useMatrix = ~isa(model.parentModel.AutoDiffBackend, 'DiagonalAutoDiffBackend');
-            substate  = getSubState(state, mappings, 'useMatrix', useMatrix, 'mapFaceFields', true, 'mapStateFunctions', true);
-            % Get subproblem
-            if isa(submodel.parentModel, 'PressureModel')
-                if strcmpi(submodel.parentModel.reductionStrategy, 'numerical')
-                    submodel.parentModel.parentModel.PVTPropertyFunctions.PressureReductionFactors.includeDerivatives = false;
-                end
-            end
-            [eqs, names, types, substate] = submodel.parentModel.getModelEquations(substate0, substate, dt, subforces);
-            subproblem0 = model.setupLinearizedProblem(eqs, types, names, primaryVars, substate, dt);
-            % Get restriction operators
-            [RCL, RWL, RCR, RWR] = model.getRestrictionOperators(submodel, subproblem0, mappings, state);
-            % Restric full and subproblems
-            fullproblem = transformProblem(subproblem0, 'ML', RCL', 'MLw', RWL');
-            subproblem  = transformProblem(fullproblem, 'MR', RCR'*RCR, 'MRw', RWR'*RWR);
-            [fullproblem.state, subproblem.state] = deal([]);
-            % Make subproblem struct
-            subproblems = struct('full', fullproblem, 'sub', subproblem);
-        end
-        
-        %-----------------------------------------------------------------%
-        function [RCL, RWL, RCR, RWR] = getRestrictionOperators(model, submodel, subproblem, mappings, state)
-            diagAD = isa(model.parentModel.AutoDiffBackend, 'DiagonalAutoDiffBackend');
-            [RCR, RWR] = deal([]);
-            % Identify cell equations
-            Nc    = model.parentModel.G.cells.num;
-            nc    = submodel.G.cells.num;
-            io    = mappings.cells.internal | mappings.cells.overlap;
-            cells = mappings.cells.keep;
-            ii   = (1:nc)';
-            jj   = find(cells);
-            mask = io(cells);
-            n    = nc;
-            m    = Nc;
-            RCL = sparse(ii, jj, mask, n, m);
-            if diagAD
-                nceq = nnz(strcmpi(subproblem.types, 'cell'));
-                ii   = (1:nc*nceq)';
-                jj   = find(repmat(cells, nceq, 1));
-                mask = repmat(mask, nceq, 1);
-                n    = nc*nceq;
-                m    = Nc*nceq;
-                RCR = sparse(ii, jj, mask, n, m);
-            end
-            % Identify well equations
-            rmodel = model.getReservoirModel();
-            actWellIx = rmodel.FacilityModel.getIndicesOfActiveWells(state.wellSol);
-            isActive  = false(numel(mappings.wells.keep),1);
-            isActive(actWellIx) = true;
-            wells = mappings.wells.keep(isActive);
-            Nw = numel(actWellIx);
-            nw = nnz(wells);
-            ii = (1:nw)';
-            jj = find(wells);
-            n  = max(nw,Nw>0);
-            m  = Nw;
-            RWL = sparse(ii, jj, 1, n, m);
-            if diagAD
-                nweq = numel(state.FacilityState.primaryVariables);
-                ii   = (1:nw*nweq)';
-                jj   = find(repmat(wells, nweq, 1));
-                n    = max(nw,Nw>0)*nweq;
-                m    = Nw*nweq;
-                RWR = sparse(ii, jj, 1, n, m);
-            end
-            if ~diagAD
-                RCR = RCL;
-                RWR = RWL;
-            end
         end
         
         %-----------------------------------------------------------------%
@@ -342,24 +238,6 @@ classdef DomainDecompositionModel < WrapperModel
             [~, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true);
             state = model.reduceState(state, false);
             [state, report] = model.parentModel.updateAfterConvergence(state0, state, dt, drivingForces);
-        end
-        
-        %-----------------------------------------------------------------%
-        function problem = addProblems(model, problem1, problem2)
-            if isempty(problem1)
-                problem = problem2;
-                return
-            end
-            if numel(problem1) > numel(problem2)
-                problem = problem1;
-                np      = numel(problem2);
-            else
-                problem = problem2;
-                np      = numel(problem1);
-            end
-            for i = 1:np
-                problem.equations{i} = problem1.equations{i} + problem2.equations{i};
-            end
         end
         
         %-----------------------------------------------------------------%
