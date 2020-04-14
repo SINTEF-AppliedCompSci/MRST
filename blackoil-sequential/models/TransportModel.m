@@ -132,6 +132,7 @@ classdef TransportModel < WrapperModel
             % Set flow properties
             if isTotalSat
                 fp = fp.setStateFunction('TotalSaturation', TotalSaturation(pmodel));
+                fp = fp.setStateFunction('ComponentPhaseDensity', ComponentPhaseDensityTotalSaturation(pmodel));
                 fp = fp.setStateFunction('ComponentMobility', ComponentMobilityTotalSaturation(pmodel));
                 fp = fp.setStateFunction('ComponentPhaseMass', ComponentPhaseMassTotalSaturation(pmodel));
             end
