@@ -62,7 +62,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             
             model.minimumPressure = 0;
             model.dpMaxRel = 0.25;
-            model = merge_options(model, varargin{:});
+            model = merge_options_relaxed(model, varargin{:});
         end
         
         function [problem, state] = getEquations(model, varargin)

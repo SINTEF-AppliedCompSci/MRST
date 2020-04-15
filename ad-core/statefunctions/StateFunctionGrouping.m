@@ -405,7 +405,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
     methods (Access = protected)
         function group = setInternalNames(group)
             if ~iscell(group.functionNames)
-                group.functionNames = setdiff(properties(group), group.excludedFields);
+                group.functionNames = setdiff(propertynames(group), group.excludedFields);
                 group.functionTypes = zeros(size(group.functionNames));
             end
         end

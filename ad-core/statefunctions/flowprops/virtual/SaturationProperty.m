@@ -166,7 +166,7 @@ classdef SaturationProperty
             [k{1}, k{2}] = get(ph, KM);
         end
 
-        function [get, CR, U, L, KM] = getSatPointPicker(f, pts, reg, cells)
+        function [getter, CR, U, L, KM] = getSatPointPicker(f, pts, reg, cells)
             % Get function handle for getting saturation-based scaling
             % points
             L  = 1; % Connate (always present)
@@ -176,7 +176,7 @@ classdef SaturationProperty
 
             tbl = @(phase, index) f.krPts.(phase)(reg, index);
             scal = @(phase, index) pts.(phase)(cells, index);
-            get = @(phase, index) SaturationProperty.getPair(phase, index, tbl, scal);
+            getter = @(phase, index) SaturationProperty.getPair(phase, index, tbl, scal);
         end
 
         function [v1, v2] = getPair(phase, index, fn1, fn2)
