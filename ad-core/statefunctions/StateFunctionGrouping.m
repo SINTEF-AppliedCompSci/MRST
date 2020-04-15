@@ -24,13 +24,19 @@ classdef StateFunctionGrouping < StateFunctionDependent
     end
     
     methods
-        function props = StateFunctionGrouping(structname)
+        function group = StateFunctionGrouping(structname)
             if nargin > 0
-                props.structName = structname;
+                group.structName = structname;
             end
-            props.functionNames = setdiff(properties(props), props.excludedFields);
-            props.functionTypes = zeros(size(props.functionNames));
+            % Check if running Octave. Octave does not support querying
+            % the properties of a class under construction. For this reason
+            % we perform a check and hope for the best.
+            isOctave = exist("OCTAVE_VERSION", "builtin") > 0;
+            if ~isOctave
+                group = group.setInternalNames();
+            end
         end
+
         % ----------------------- Getters --------------------------------%
         function [names, types, implementation, labels] = getNamesOfStateFunctions(props)
             % Get the names of all properties in collection. If a second
@@ -107,7 +113,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
             end
         end
         % ----------------------- Setters --------------------------------%
-        function props = setStateFunction(props, name, prop)
+        function group = setStateFunction(group, name, prop)
             % Set or replace a property function.
             % INPUT:
             %   - props (class instance, automatic)
@@ -115,26 +121,27 @@ classdef StateFunctionGrouping < StateFunctionDependent
             %   - prop. Property implementation (StateFunction instance)
             assert(isa(prop, 'StateFunction'));
             assert(ischar(name));
-            sub = strcmp(props.functionNames, name);
+            group = group.setInternalNames();
+            sub = strcmp(group.functionNames, name);
             if any(sub)
                 % We are replacing an existing property
-                ptypes = props.functionTypes;
+                ptypes = group.functionTypes;
                 type = ptypes(sub);
                 if type == 0
                     % Class property ("intrinsic"), just replace directly
-                    props.(name) = prop;
+                    group.(name) = prop;
                 else
                     % This property was not found, we are adding extending
                     % the list of extra properties
                     assert(type == 1);
-                    props.extraFunctions{sub(ptypes == 1)} = prop;
+                    group.extraFunctions{sub(ptypes == 1)} = prop;
                 end
             else
                 % We are adding a new property and must extend the
                 % corresponding internal datastructures.
-                props.functionNames = [props.functionNames; name];
-                props.functionTypes = [props.functionTypes; 1];
-                props.extraFunctions{end+1, 1} = prop;
+                group.functionNames = [group.functionNames; name];
+                group.functionTypes = [group.functionTypes; 1];
+                group.extraFunctions{end+1, 1} = prop;
             end
         end
 
@@ -392,6 +399,14 @@ classdef StateFunctionGrouping < StateFunctionDependent
                     fn.useCompactEvaluation = val;
                     props = props.setStateFunction(name, fn);
                 end
+            end
+        end
+    end
+    methods (Access = protected)
+        function group = setInternalNames(group)
+            if ~iscell(group.functionNames)
+                group.functionNames = setdiff(properties(group), group.excludedFields);
+                group.functionTypes = zeros(size(group.functionNames));
             end
         end
     end
