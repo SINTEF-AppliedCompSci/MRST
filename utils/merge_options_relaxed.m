@@ -37,7 +37,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     for i = 1:2:(n-1)
         f = varargin{i};
         v = varargin{i+1};
-        assert(isfield(opt, f));
+        assert(~isstruct(f) || isfield(opt, f));
         opt.(f) = v;
     end
 end
