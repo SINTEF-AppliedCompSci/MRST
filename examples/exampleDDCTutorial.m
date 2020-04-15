@@ -1,11 +1,35 @@
 % Quarter five-spot example on Cartesian grid
-mrstModule add ad-core ad-props ad-blackoil
+mrstModule add ad-core ad-props ad-blackoil coarsegrid
 mrstVerbose on
 
 %% Model
 n     = 105;
 G     = computeGeometry(cartGrid([n,n,1], [1000,1000,10]*meter));
 rock  = makeRock(G, 100*milli*darcy, 0.4);
+x = G.cells.centroids(:,1:2);
+p = partitionCartGrid(G.cartDims, [2,2,1]);
+[ii, jj] = gridLogicalIndices(G);
+m   = floor(n/2)+1;
+mid = (ii == m) | (jj == m);
+partition = 1*(ii > m) + 2*(jj > m) + 1;
+partition(mid) = 5;
+k = zeros(G.cells.num,1);
+for i = 1:4
+    cells = partition == i;
+    xl = x(cells,:);    
+    xl = (xl - mean(xl))./500*6;
+    if i == 2 || i == 4
+        xl(:,1) = -xl(:,1);
+    end
+    if i > 2
+        xl(:,2) = -xl(:,2);
+    end
+    k(cells) = peaks(xl(:,1), xl(:,2))/3;
+end
+lperm = log10(rock.perm);
+lperm = lperm + k;
+rock.perm = 10.^lperm;
+
 fluid = initSimpleADIFluid('phases', 'WO'                         , ...
                            'n'     , [2,2]                        , ...
                            'mu'    , [1,2]*centi*poise            , ...
@@ -27,7 +51,7 @@ producer = @(W,i,j) verticalWell(W, G, rock, i, j, [], ...
                                       'val'   , bhp  , ...
                                       'comp_i', [1,0]);
 W = [];
-W = injector(W, floor(n/2)+1, floor(n/2)+1);
+W = injector(W, m, m);
 W = producer(W, 1, 1);
 W = producer(W, n, 1);
 W = producer(W, n, n);
@@ -63,8 +87,8 @@ subschedule = getSubSchedule(schedule, mappings);
 
 %% Inspect submodel results
 mrstModule add mrst-gui
-states = cellfun(@(substate) mapState(state0, substate, mappings, 'mapWellSol', false), substates, 'UniformOutput', false);
-plotToolbar(G, states); axis equal tight
+% states = cellfun(@(substate) mapState(state0, substate, mappings, 'mapWellSol', false), substates, 'UniformOutput', false);
+% plotToolbar(G, states); axis equal tight
 
 %% Simulate entire problem with sequential splitting
 mrstModule add blackoil-sequential
@@ -74,7 +98,8 @@ modelSeq = SequentialPressureTransportModel(pmodel, tmodel);
 [wsSeq, statesSeq, reportsSeq] = simulateScheduleAD(state0, modelSeq, schedule);
 
 %% Simulate with domain decomposition in transport
-tmodelDD = DomainDecompositionModel(tmodel, partition);
+% tmodelDD = ParallelDomainDecompositionModel(tmodel, partition);
+tmodelDD = DomainDecompositionModel(tmodel, partition, 'parallel', true);
 modelseqDD = SequentialPressureTransportModel(pmodel, tmodelDD, 'parentModel', modelFI);
 [wsSeqDD, statesSeqDD, reportsSeqDD] = simulateScheduleAD(state0, modelseqDD, schedule);
 
@@ -87,7 +112,41 @@ figure(), plotToolbar(G, statesSeqDD); axis equal tight
 %%
 its   = getIterations(reportsSeq.ControlstepReports, 'solver', 'TransportSolver');
 itsDD = getIterations(reportsSeqDD.ControlstepReports, 'solver', 'TransportSolver');
+t = cumsum(schedule.step.val)/day;
+figure();
+pargs = {'LineWidth', 2};
 hold on
-plot(its.total)
-plot(itsDD.total)
+plot(t, cumsum(its.total), pargs{:})
+plot(t, cumsum(itsDD.total), pargs{:})
 hold off
+xlim([0,t(end)])
+xlabel('Time (days)')
+title('Cumulative transport iterations')
+legend({'Global', 'Domain decomposition'}, 'location', 'east')
+box on;
+
+%%
+mrstModule add matlab_bgl
+cmodel = upscaleModelTPFA(modelFI, partition);
+st = upscaleState(cmodel, modelFI, statesSeq{end});
+v = sum(st.flux,2);
+v = v(cmodel.operators.internalConn);
+order = getTopologicalPermutation(cmodel.G, v);
+partition2 = order(partition);
+
+%%
+tmodelDD = DomainDecompositionModel(tmodel, partition2, 'strategy', 'multiplicative');
+modelseqDD = SequentialPressureTransportModel(pmodel, tmodelDD, 'parentModel', modelFI);
+[wsSeqDD, statesSeqDD, reportsSeqDD] = simulateScheduleAD(state0, modelseqDD, schedule);
+
+%%
+
+getPartition = @(varargin) getTopologicalFluxPartition(varargin{:}, 'blockSize', 50);
+tmodelDD = DomainDecompositionModel(tmodel, partition, 'strategy', 'multiplicative', 'getPartition', getPartition);
+tmodelDD.verboseSubmodel = true;
+modelseqDD = SequentialPressureTransportModel(pmodel, tmodelDD, 'parentModel', modelFI);
+[wsSeqDD, statesSeqDD, reportsSeqDD] = simulateScheduleAD(state0, modelseqDD, schedule);
+
+%%
+
+plotToolbar(G, statesSeqDD);
