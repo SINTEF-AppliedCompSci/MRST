@@ -27,9 +27,9 @@ function mappings = getSubCells(model, cells, opt)
     [internal, overlap] = deal(cells);
     M = getConnectivityMatrix(model.operators.N);
     for i = 1:opt.overlap
-        overlap = M*overlap;
+        overlap = overlap | M*overlap;
     end
-    external = M*overlap;
+    external = overlap | M*overlap;
     external = external & ~overlap;
     overlap  = overlap & ~internal;
     keep     = internal | overlap | external;
@@ -144,7 +144,7 @@ function submodel = makeSubModel(model, subG, subop, cellMap, opt)
     end
     % Restrict state function groupings
     useDefault = isempty(submodel.FlowPropertyFunctions);
-    warning('Assuming default state function groupings.');
+%     warning('Assuming default state function groupings.');
     submodel = submodel.setupStateFunctionGroupings();
     if ~useDefault
         submodel.FlowPropertyFunctions = submodel.FlowPropertyFunctions.subset(cellMap.keep);
