@@ -39,11 +39,18 @@ function res = isprop (obj, prop)
   endif
 
   res = false (size (obj));
-  for i = 1:numel (res)
-    try
-        v = obj(i).(prop);
-        res(i) = true;
-    end_try_catch
-  endfor
+  if numel(res) == 1
+      try
+          v = obj.(prop);
+          res = true;
+      end_try_catch
+  else
+    for i = 1:numel (res)
+      try
+          v = obj(i).(prop);
+          res(i) = true;
+      end_try_catch
+    endfor
+  end
 
 endfunction
