@@ -10,17 +10,18 @@ classdef FacilityFluxDiscretization < StateFunctionGrouping
     end
     
     methods
-        function props = FacilityFluxDiscretization(model)
-            props@StateFunctionGrouping('FacilityFluxProps');
+        function group = FacilityFluxDiscretization(model)
+            group@StateFunctionGrouping('FacilityFluxProps');
             
-            props.PhaseFlux = WellPhaseFlux(model);
-            props.ComponentTotalFlux = ComponentTotalFlux(model);
-            props.ComponentTotalFlux.label = 'Q_i';
-            props.ComponentPhaseFlux = WellComponentPhaseFlux(model);
-            props.PerforationPressureGradient = PerforationPressureGradient(model);
-            props.WellIndex = WellIndex(model);
-            props.FacilityWellMapping = FacilityWellMapping(model);
-            props.InjectionSurfaceDensity = InjectionSurfaceDensity(model);
+            group = group.setStateFunction('PhaseFlux', WellPhaseFlux(model));
+            ctf = ComponentTotalFlux(model);
+            ctf.label = 'Q_i';
+            group = group.setStateFunction('ComponentTotalFlux', ctf);
+            group = group.setStateFunction('ComponentPhaseFlux', WellComponentPhaseFlux(model));
+            group = group.setStateFunction('PerforationPressureGradient', PerforationPressureGradient(model));
+            group = group.setStateFunction('WellIndex', WellIndex(model));
+            group = group.setStateFunction('FacilityWellMapping', FacilityWellMapping(model));
+            group = group.setStateFunction('InjectionSurfaceDensity', InjectionSurfaceDensity(model));
         end
     end
 end
