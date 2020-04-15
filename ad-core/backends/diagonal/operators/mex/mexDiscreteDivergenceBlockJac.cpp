@@ -3,7 +3,11 @@
 //
 #include <cmath>
 #include "mex.h"  
-#include "matrix.h"  
+
+#ifndef HAVE_OCTAVE
+#include "matrix.h"
+#endif
+
 #include <array>
 #ifdef _OPENMP
 #include <omp.h>

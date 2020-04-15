@@ -1,5 +1,9 @@
 #include <mex.h>
+
+#ifndef HAVE_OCTAVE
 #include "blas.h"
+#endif
+
 #include <omp.h>
 #include <chrono>
 #include <iostream>
