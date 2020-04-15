@@ -40,7 +40,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         iomp5 = { '-liomp5' };
     end
 
-    if is_visual_cpp()
+    if is_visual_cpp() || is_visual_cpp_intel()
         % Note explicit /EHsc to enable C++ exception handling
         CXXFLAGS  = { [sprintf('COMPFLAGS=/EHsc /MD %s', formatDefs('/', defines)), ...
             ' /openmp /wd4715 /fp:fast /O2 /bigobj'] };
@@ -74,7 +74,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             iomp5 = {};
         end
     else
-
         error('Architecture:Unsupported', ...
             ['Computer Architecture ''%s'' (compiler ''%s'') is ', ...
             'not Supported for %s'], ...
@@ -97,6 +96,12 @@ end
 
 function tf = is_visual_cpp()
     tf = ispc() && ~isempty(regexpi(compiler_short_name(), '^MSVC'));
+end
+
+%--------------------------------------------------------------------------
+
+function tf = is_visual_cpp_intel()
+    tf = ispc() && ~isempty(regexpi(compiler_short_name(), 'INTELCPP\d+MSVCPP\d+'));
 end
 
 %--------------------------------------------------------------------------
