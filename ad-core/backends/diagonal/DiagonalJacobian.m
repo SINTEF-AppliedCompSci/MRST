@@ -478,8 +478,6 @@ classdef DiagonalJacobian
                 if ~DiagonalJacobian.isAllZeros(y)
                     x = x.sparse();
                     x = plus(x, y);
-                elseif isscalar(y)
-                    x.diagonal = x.diagonal + y;
                 end
             else
                 x = plus(y, x);
