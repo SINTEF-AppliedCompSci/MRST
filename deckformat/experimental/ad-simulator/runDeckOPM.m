@@ -28,19 +28,27 @@ opt=struct('outputdir','output',...
     'use_ebos_style',false,...
     'do_adjoint',false,...
     'no_output',false,...
-    'verbose',true);
+    'verbose',true,...
+    'np',1,...
+    'threads',2);
 opt=merge_options(opt,varargin{:});
 % for extra see .XXX.DEBUG of an opm run
+if(opt.np >1)
+    command = ['mpirun -np ',num2str(opt.np),' '];
+else
+    command = [];
+end
 if(opt.use_ebos_style)
-    command=[opt.simulator,' --ecl-deck-file-name=',deckfile];
+    command=[command, opt.simulator,' --ecl-deck-file-name=',deckfile];
     [dir,case_name,ext]=fileparts(deckfile);
     opt.output=fullfile(dir);
 else
     if(opt.force_timestep)
-        command=[opt.simulator,'  --full-time-step-initially=true --enable-adaptive-time-stepping=false --flow-newton-max-iterations=100 '];
+        command=[command, opt.simulator,'  --full-time-step-initially=true --enable-adaptive-time-stepping=false --flow-newton-max-iterations=100 '];
     else
-        command=[opt.simulator,' --enable-tuning=true --flow-newton-max-iterations=100 '];
+        command=[command, opt.simulator,' --enable-tuning=true '];
     end
+    command=[command,' --threads-per-process=',num2str(opt.threads),' '];
     if(opt.do_adjoint)
        % needed for adjoint
        command = [command,' --solve-welleq-initially=true --use-adjoint=true'];
@@ -66,6 +74,7 @@ else
       end
     end
     command = [command,' --output-dir=',opt.outputdir,' ',deckfile];
+    
 end
 if(opt.no_output)
     command = [command,' >& /dev/null'];
@@ -95,7 +104,7 @@ if(nargout>0)
         extra=struct('G',G,'rock',rock,'N',N,'T',T,'init',init, ...
                      'grid',grid,'syscomand', command);
         [states_opm,rstrt_opm] = convertRestartToStates(ofile_cap,G,...
-        'use_opm',false,'includeWellSols',true,'wellSolsFromRestart',true,...
+        'use_opm',false,'includeWellSols',false,'wellSolsFromRestart',true,...
         'includeFluxes',false,'consistentWellSols',false);
     else
         states_opm=[];
