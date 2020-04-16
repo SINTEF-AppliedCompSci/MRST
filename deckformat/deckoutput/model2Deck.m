@@ -1,5 +1,5 @@
 function deckmrst = model2Deck(model, schedule, varargin)
-% Create deck-structure from MRST model and schedule. 
+% Create deck-structure from MRST model and schedule.
 %
 % SYNOPSIS:
 %   deckmrst = model2Deck(model, schedule)
@@ -10,22 +10,23 @@ function deckmrst = model2Deck(model, schedule, varargin)
 %   to other simulators by e.g., writeDeck.
 %
 % REQUIRED PARAMETERS:
-%   model     -  MRST model  
+%   model     -  MRST model
 %
 %   schedule  - MRST schedule
 %
 % OPTIONAL PARAMETERS:
-%   'unit'   - Output deck-structure choice of unit ('metric', 'field' or 
+%   'unit'   - Output deck-structure choice of unit ('metric', 'field' or
 %              'si'). Default is 'si'.
-%   'state0' - Initial state. If not empty, written to SOLUTION section. 
-%   'deck'   - Deck structure. All fields of deck that are not explicitly 
+%   'state0' - Initial state. If not empty, written to SOLUTION section.
+%   'deck'   - Deck structure. All fields of deck that are not explicitly
 %              created in this function will be copied to deckmrst.
 %
-%   
+%
 
 opt = struct('state0',      [], ...
-             'deck',        [], ...
-             'unit',        'si');
+    'gridfromdeck', false,...
+    'deck',        [], ...
+    'unit',        'si');
 opt  = merge_options(opt, varargin{:});
 deck = opt.deck;
 if ~isempty(deck)
@@ -33,7 +34,11 @@ if ~isempty(deck)
 end
 
 % RUNSPEC
-RUNSPEC.DIMENS      = [model.G.cells.num,1,1];
+if(not(opt.gridfromdeck))
+    RUNSPEC.DIMENS      = [model.G.cells.num,1,1];
+else
+    RUNSPEC.DIMENS   = deck.RUNSPEC.DIMENS;
+end
 RUNSPEC.OIL         = model.oil;
 RUNSPEC.GAS         = model.gas;
 RUNSPEC.WATER       = model.water;
@@ -43,7 +48,7 @@ RUNSPEC.UNIFOUT     = 1;
 RUNSPEC.SI          = 1;
 RUNSPEC.WELLDIMS    = getWellDims(schedule);
 %RUNSPEC.START       = 734813;
-RUNSPEC.TABDIMS     = getTabDims(deck); 
+RUNSPEC.TABDIMS     = getTabDims(deck);
 %SATOPTS=[]
 %SATOPTS.DIRECT=0;
 %SATOPTS.HYSTER=0;
@@ -57,39 +62,47 @@ if isfield(deck, 'RUNSPEC')
 end
 
 % GRID
-nc = model.G.cells.num;
-GRID.INIT = 1;
-% make 1D grid where all connections are NNC
-GRID.DX = model.G.cells.volumes;
-GRID.DY = ones(model.G.cells.num, 1);
-% aprox TOPS
-depth = model.G.cells.centroids(:,3);
-if isfield(model.G.faces, 'nodepos')
-    [~,~,dz] = cellDims(model.G, (1:nc)');
+if(not(opt.gridfromdeck))
+    nc = model.G.cells.num;
+    GRID.INIT = 1;
+    % make 1D grid where all connections are NNC
+    GRID.DX = model.G.cells.volumes;
+    GRID.DY = ones(model.G.cells.num, 1);
+    % aprox TOPS
+    depth = model.G.cells.centroids(:,3);
+    if isfield(model.G.faces, 'nodepos')
+        [~,~,dz] = cellDims(model.G, (1:nc)');
+    else
+        dz = ones(nc,1);
+    end
+    GRID.DZ = dz;
+    GRID.TOPS = depth - dz/2;
+    
+    % permeabilities (not used)
+    GRID.PERMX = ones(nc,1);
+    GRID.PERMY = ones(nc,1);
+    GRID.PERMZ = ones(nc,1);
+    GRID.PORO  = ones(nc,1);
+    GRID.ACTNUM   =int32(ones(nc,1));
+    GRID.cartDims = RUNSPEC.DIMENS;
+    % make NNC - list:
+    T = model.operators.T;
+    nf = numel(T);
+    GRID.NNC = [model.operators.N(:,1), ones(nf,2), model.operators.N(:,2), ones(nf,2), T];
+    
+    % EDIT
+    % set connections in 1D-grid to zero trans
+    EDIT.TRANX = zeros(nc,1);
+    EDIT.PORV  = model.operators.pv;
+    EDIT.DEPTH = depth;
 else
-    dz = ones(nc,1);
+    GRID=deck.GRID;
+    if(isfield(deck,'EDIT'))
+        EDIT=deck.EDIT;
+    else
+        EDIT=[];
+    end
 end
-GRID.DZ = dz;
-GRID.TOPS = depth - dz/2;
-
-% permeabilities (not used)
-GRID.PERMX = ones(nc,1);
-GRID.PERMY = ones(nc,1);
-GRID.PERMZ = ones(nc,1);
-GRID.PORO  = ones(nc,1);
-GRID.ACTNUM   =int32(ones(nc,1));
-GRID.cartDims = RUNSPEC.DIMENS;
-% make NNC - list: 
-T = model.operators.T;
-nf = numel(T);
-GRID.NNC = [model.operators.N(:,1), ones(nf,2), model.operators.N(:,2), ones(nf,2), T];
-
-% EDIT
-% set connections in 1D-grid to zero trans
-EDIT.TRANX = zeros(nc,1);
-EDIT.PORV  = model.operators.pv;
-EDIT.DEPTH = depth;
-
 % PROPS (from input deck)
 PROPS = [];
 if isfield(deck, 'PROPS')
@@ -136,8 +149,11 @@ elseif isfield(deck, 'SOLUTION')
 end
 
 % SCHEDULE
-SCHEDULE = convertScheduleToDeck(model, schedule, 'linearIndex', true, 'reduceOutput', true);
-
+if(opt.gridfromdeck)
+    SCHEDULE = convertScheduleToDeck(model, schedule, 'linearIndex', false, 'reduceOutput', true);
+else
+    SCHEDULE = convertScheduleToDeck(model, schedule, 'linearIndex', true, 'reduceOutput', true);
+end
 
 % unhandeled ??
 UnhandledKeywords=[];
@@ -155,7 +171,7 @@ deckmrst.SOLUTION = SOLUTION;
 deckmrst.SCHEDULE = SCHEDULE;
 deckmrst.UnhandledKeywords = UnhandledKeywords;
 
-% finally convert to requested units 
+% finally convert to requested units
 if ~isempty(opt.unit)
     deckmrst = convertDeckUnits(deckmrst, 'outputUnit', opt.unit);
 end
@@ -164,8 +180,8 @@ end
 % -------------------------------------------------------------------------
 % -------------------------------------------------------------------------
 function v = getWellDims(schedule)
-%    1        2       3       4       5        6      7      8     9   10  11  12  13 14   
-% nwells    nconn   ngrp  nwellgrp   ntfip    nrpvt  nrvpvt ntendp                    
+%    1        2       3       4       5        6      7      8     9   10  11  12  13 14
+% nwells    nconn   ngrp  nwellgrp   ntfip    nrpvt  nrvpvt ntendp
 v =  [10      20     10      20       5       10      5      4     3   0   1    1  10 201];
 if isfield(schedule.control(end), 'W')
     W = schedule.control(end).W;
@@ -179,8 +195,8 @@ end
 
 % -------------------------------------------------------------------------
 function v = getTabDims(deck)
-%    1        2       3       4       5        6      7      8     9   10  11  12  13 14 15  
-% ntsfun    ntpvt   nssfun  nppvt   ntfip    nrpvt  nrvpvt ntendp                 ntrocc     
+%    1        2       3       4       5        6      7      8     9   10  11  12  13 14 15
+% ntsfun    ntpvt   nssfun  nppvt   ntfip    nrpvt  nrvpvt ntendp                 ntrocc
 v = [1       1       50      50      16       30     30      1     1   1   10   1  -1  0 1];
 if isempty(deck) || ~isfield(deck, 'PROPS')
     dispif(mrstVerbose, 'PROPS not provided, defaulting TABDIMS\n');
@@ -189,7 +205,7 @@ else
     % get some saturation function
     ix = strncmp({'SWOF'}, nms, 4) | strncmp({'SWFN'}, nms, 4);
     if any(ix)
-        satfld = nms{find(ix, 1, 'first')}; 
+        satfld = nms{find(ix, 1, 'first')};
         v(1) = numel(deck.PROPS.(satfld));
     end
     % get some pvt
