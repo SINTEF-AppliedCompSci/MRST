@@ -87,8 +87,8 @@ subschedule = getSubSchedule(schedule, mappings);
 
 %% Inspect submodel results
 mrstModule add mrst-gui
-% states = cellfun(@(substate) mapState(state0, substate, mappings, 'mapWellSol', false), substates, 'UniformOutput', false);
-% plotToolbar(G, states); axis equal tight
+states = cellfun(@(substate) mapState(state0, substate, mappings, 'mapWellSol', false), substates, 'UniformOutput', false);
+plotToolbar(G, states); axis equal tight
 
 %% Simulate entire problem with sequential splitting
 mrstModule add blackoil-sequential
@@ -99,19 +99,19 @@ modelSeq = SequentialPressureTransportModel(pmodel, tmodel);
 
 %% Simulate with domain decomposition in transport
 % tmodelDD = ParallelDomainDecompositionModel(tmodel, partition);
-tmodelDD = DomainDecompositionModel(tmodel, partition, 'parallel', true);
-modelseqDD = SequentialPressureTransportModel(pmodel, tmodelDD, 'parentModel', modelFI);
-[wsSeqDD, statesSeqDD, reportsSeqDD] = simulateScheduleAD(state0, modelseqDD, schedule);
+tmodelADD = DomainDecompositionModel(tmodel, partition, 'parallel', true);
+modelseqADD = SequentialPressureTransportModel(pmodel, tmodelADD, 'parentModel', modelFI);
+[wsSeqADD, statesSeqADD, reportsSeqADD] = simulateScheduleAD(state0, modelseqADD, schedule);
 
 %% Plot results
 close all
-statesDiff = cellfun(@(s1, s2) compareFields(s1, s2, 'relative', false), statesSeq, statesSeqDD);
+statesDiff = cellfun(@(s1, s2) compareFields(s1, s2, 'relative', false), statesSeq, statesSeqADD);
 figure(), plotToolbar(G, statesDiff); axis equal tight
-figure(), plotToolbar(G, statesSeqDD); axis equal tight
+figure(), plotToolbar(G, statesSeqADD); axis equal tight
 
 %%
 its   = getIterations(reportsSeq.ControlstepReports, 'solver', 'TransportSolver');
-itsDD = getIterations(reportsSeqDD.ControlstepReports, 'solver', 'TransportSolver');
+itsDD = getIterations(reportsSeqADD.ControlstepReports, 'solver', 'TransportSolver');
 t = cumsum(schedule.step.val)/day;
 figure();
 pargs = {'LineWidth', 2};
@@ -125,28 +125,44 @@ title('Cumulative transport iterations')
 legend({'Global', 'Domain decomposition'}, 'location', 'east')
 box on;
 
+% %%
+% mrstModule add matlab_bgl
+% cmodel = upscaleModelTPFA(modelFI, partition);
+% st = upscaleState(cmodel, modelFI, statesSeq{end});
+% v = sum(st.flux,2);
+% v = v(cmodel.operators.internalConn);
+% order = getTopologicalPermutation(cmodel.G, v);
+% partition2 = order(partition);
+
 %%
 mrstModule add matlab_bgl
-cmodel = upscaleModelTPFA(modelFI, partition);
-st = upscaleState(cmodel, modelFI, statesSeq{end});
-v = sum(st.flux,2);
-v = v(cmodel.operators.internalConn);
-order = getTopologicalPermutation(cmodel.G, v);
-partition2 = order(partition);
+% partitionFun = getTopologicalFluxPartition('blockSize', G.cells.num/max(partition));
+partitionFun = getTopologicalFluxPartition('blockSize', 1);
+tmodelMDD = DomainDecompositionModel(tmodel, partitionFun, 'strategy', 'multiplicative', 'storeSubModels', false);
+tmodelMDD.verboseSubmodel = 1;
+modelseqMDD = SequentialPressureTransportModel(pmodel, tmodelMDD, 'parentModel', modelFI);
+problem = packSimulationProblem(state0, modelseqMDD, schedule, 'dcc-tutorial');
+simulatePackedProblem(problem);
+
+% [wsSeqMDD, statesSeqMDD, reportsSeqMDD] = simulateScheduleAD(state0, modelseqMDD, schedule);
+
+%% Plot results
+close all
+figure(), plotToolbar(G, statesSeqMDD); axis equal tight
 
 %%
-tmodelDD = DomainDecompositionModel(tmodel, partition2, 'strategy', 'multiplicative');
-modelseqDD = SequentialPressureTransportModel(pmodel, tmodelDD, 'parentModel', modelFI);
-[wsSeqDD, statesSeqDD, reportsSeqDD] = simulateScheduleAD(state0, modelseqDD, schedule);
+pth = fullfile(mrstPath('ddc'), 'examples', 'gif');
+name = @(i) sprintf('gif-%02d', i);
+savepng = @(i) print(fullfile(pth, name(i)), '-dpng', '-r300');
+gray = [1,1,1]*0.5;
+close all
+figure('Position', [0,0,800,800])
+for i = 1:numel(statesSeqDD)
+   unstructuredContour(G, statesSeqDD{i}.s(:,1), linspace(0,1,15), 'fill', true, 'color', gray);
+   colormap(bone), caxis([0,1]), axis equal tight, box on, ax = gca; [ax.XTick, ax.YTick] = deal([]);
+   drawnow(), pause(0.1); savepng(i);
+end
 
 %%
 
-getPartition = @(varargin) getTopologicalFluxPartition(varargin{:}, 'blockSize', 50);
-tmodelDD = DomainDecompositionModel(tmodel, partition, 'strategy', 'multiplicative', 'getPartition', getPartition);
-tmodelDD.verboseSubmodel = true;
-modelseqDD = SequentialPressureTransportModel(pmodel, tmodelDD, 'parentModel', modelFI);
-[wsSeqDD, statesSeqDD, reportsSeqDD] = simulateScheduleAD(state0, modelseqDD, schedule);
-
-%%
-
-plotToolbar(G, statesSeqDD);
+[ws, st, rep] = simulateScheduleAD(state0, modelseqMDD, schedule)
