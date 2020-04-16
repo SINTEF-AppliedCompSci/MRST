@@ -79,7 +79,7 @@ function [jac, M, DS] = upwindJac(jac, flag, N, M, DS, nc, useMex)
             end
 
             if isempty(DS)
-                jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset, useMex, rowMajor, 'interiorfaces');
+                jac = FixedWidthJacobian(diagonal, jac.dim, N, [], jac.subset, useMex, rowMajor, 'interiorfaces');
                 DS = jac;
             else
                 DS.diagonal = diagonal;

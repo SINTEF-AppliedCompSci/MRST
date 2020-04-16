@@ -18,7 +18,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
     %   `AutoDiffBackend`, `SparseAutoDiffBackend`
 
     properties
-        modifyOperators = true; % Update the operators and use custom versions that return `DiagonalSubset` instances
+        modifyOperators = true; % Update the operators and use custom versions that return `FixedWidthJacobian` instances
         useMex = false;
         rowMajor = false;
         deferredAssembly = false;

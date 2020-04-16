@@ -153,7 +153,7 @@ classdef DiagonalJacobian
         function s = sparse(D)
             % Convert diagonal representation into a sparse representation
             if D.useMex && isempty(D.subset) && ...
-              ~isempty(D.diagonal) && ~isa(D, 'DiagonalSubset')
+              ~isempty(D.diagonal) && ~isa(D, 'FixedWidthJacobian')
                 % MEX acceleration only for the simplest case
                 s = mexDiagonalSparse(D.diagonal, D.subset, D.dim, D.rowMajor);
             else
@@ -671,7 +671,7 @@ classdef DiagonalJacobian
         function out = cat(dim, varargin)
             if dim == 2 || ...
                     any(cellfun(@isnumeric, varargin)) ||...
-                    any(cellfun(@(x) isa(x, 'DiagonalSubset'), varargin))
+                    any(cellfun(@(x) isa(x, 'FixedWidthJacobian'), varargin))
                 nz = cellfun(@nnz, varargin);
                 cz = cumsum([0, nz]);
                 [I, J, V] = deal(zeros(sum(nz), 1));

@@ -1,4 +1,4 @@
-classdef (InferiorClasses = {?DiagonalJacobian,?DiagonalSubset}) ConservationLawJacobian
+classdef (InferiorClasses = {?DiagonalJacobian,?FixedWidthJacobian}) ConservationLawJacobian
     % Very experimental class for Jacobian of a conservation law
     properties
         flux

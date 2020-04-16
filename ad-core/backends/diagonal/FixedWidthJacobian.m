@@ -1,13 +1,13 @@
-classdef DiagonalSubset < DiagonalJacobian
+classdef FixedWidthJacobian < DiagonalJacobian
     % Structured subset of a diagonal jacobian 
     properties
-        map % Map to the underlying DiagonalJacobian representation. Two DiagonalSubsets of the same map can be multiplied together, etc.
+        map % Map to the underlying DiagonalJacobian representation. Two FixedWidthJacobians of the same map can be multiplied together, etc.
         mapName = '';
         parentSubset
     end
     
     methods
-        function D = DiagonalSubset(d, dims, map, subset, parentSubset, useMex, useRowMajorMemory, mapName)
+        function D = FixedWidthJacobian(d, dims, map, subset, parentSubset, useMex, useRowMajorMemory, mapName)
             if nargin == 0
                 return
             end
@@ -52,8 +52,8 @@ classdef DiagonalSubset < DiagonalJacobian
         end
 
         function isEqual = subsetsEqual(x, y)
-            xSub = isa(x, 'DiagonalSubset');
-            ySub = isa(y, 'DiagonalSubset');
+            xSub = isa(x, 'FixedWidthJacobian');
+            ySub = isa(y, 'FixedWidthJacobian');
             if xSub && ySub
                 if x.mapsEqual(y)
                     isEqual = subsetsEqual@DiagonalJacobian(x, y);
@@ -67,8 +67,8 @@ classdef DiagonalSubset < DiagonalJacobian
         
         
         function isEqual = subsetsEqualNoZeroCheck(x, y)
-            xSub = isa(x, 'DiagonalSubset');
-            ySub = isa(y, 'DiagonalSubset');
+            xSub = isa(x, 'FixedWidthJacobian');
+            ySub = isa(y, 'FixedWidthJacobian');
             if xSub && ySub
                 if x.mapsEqual(y)
                     isEqual = subsetsEqualNoZeroCheck@DiagonalJacobian(x, y);
