@@ -38,11 +38,8 @@ Before any script that relies on the repository is run, MRST must be started. Th
 To use the geochemistry module in a Matlab script include the command
 
 ~~~~~
-mrstModule add geochemistry ad-core
+mrstModule add geochemistry 
 ~~~~~
 
 this will make the contents of the geochemistry directory available in the workspace.
 
-### in progress ###
-* address slight mismatch between phreeqc and match for saturation index
-* release transport examples
