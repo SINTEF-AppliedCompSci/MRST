@@ -50,7 +50,7 @@ function jac = gradJac(jac, N, nc, useMex)
                 diagonal = [-jac.diagonal(N(:, 1), :), jac.diagonal(N(:, 2), :)];
             end
         end
-        jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset, useMex, rowMajor);
+        jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset, useMex, rowMajor, 'interiorfaces');
     end
 end
 

@@ -57,6 +57,6 @@ function jac = avgJac(jac, N, nc, useMex)
                 diagonal = 0.5*[jac.diagonal(N(:, 1), :), jac.diagonal(N(:, 2), :)];
             end
         end
-        jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset, useMex, rowMajor);
+        jac = DiagonalSubset(diagonal, jac.dim, N, [], jac.subset, useMex, rowMajor, 'interiorfaces');
     end
 end

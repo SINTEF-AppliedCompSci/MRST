@@ -2,11 +2,12 @@ classdef DiagonalSubset < DiagonalJacobian
     % Structured subset of a diagonal jacobian 
     properties
         map % Map to the underlying DiagonalJacobian representation. Two DiagonalSubsets of the same map can be multiplied together, etc.
+        mapName = '';
         parentSubset
     end
     
     methods
-        function D = DiagonalSubset(d, dims, map, subset, parentSubset, useMex, useRowMajorMemory)
+        function D = DiagonalSubset(d, dims, map, subset, parentSubset, useMex, useRowMajorMemory, mapName)
             if nargin == 0
                 return
             end
@@ -26,10 +27,12 @@ classdef DiagonalSubset < DiagonalJacobian
                         D.useMex = useMex;
                         if nargin > 6
                             D.rowMajor = useRowMajorMemory;
+                            if nargin > 7
+                                D.mapName = mapName;
+                            end
                         end
                     end
                 end
-
             end
         end
 
@@ -52,13 +55,36 @@ classdef DiagonalSubset < DiagonalJacobian
             xSub = isa(x, 'DiagonalSubset');
             ySub = isa(y, 'DiagonalSubset');
             if xSub && ySub
-                if all(size(x.map) == size(y.map)) && all(all(x.map == y.map))
+                if x.mapsEqual(y)
                     isEqual = subsetsEqual@DiagonalJacobian(x, y);
                 else
                     isEqual = false;
                 end
             else
                 isEqual = false;
+            end
+        end
+        
+        
+        function isEqual = subsetsEqualNoZeroCheck(x, y)
+            xSub = isa(x, 'DiagonalSubset');
+            ySub = isa(y, 'DiagonalSubset');
+            if xSub && ySub
+                if x.mapsEqual(y)
+                    isEqual = subsetsEqualNoZeroCheck@DiagonalJacobian(x, y);
+                else
+                    isEqual = false;
+                end
+            else
+                isEqual = false;
+            end
+        end
+        
+        function isEqual = mapsEqual(x, y)
+            if isempty(x.mapName)
+                isEqual = all(size(x.map) == size(y.map)) && all(all(x.map == y.map));
+            else
+                isEqual = strcmp(x.mapName, y.mapName);
             end
         end
         
