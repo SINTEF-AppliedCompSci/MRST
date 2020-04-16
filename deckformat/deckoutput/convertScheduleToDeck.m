@@ -137,7 +137,7 @@ for sno = 1:numel(control)
             end
             COMPDAT{wno}(:, 9) = num2cell(r*2);
             % dir
-            COMPDAT{wno}(:, 13) = num2cell(W(wno).dir(cix));
+            COMPDAT{wno}(:, 13) = num2cell(upper(W(wno).dir(cix)));
         end
     end
     control(sno).COMPDAT = vertcat(COMPDAT{:});
