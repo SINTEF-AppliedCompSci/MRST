@@ -21,7 +21,7 @@ Models supported:
 
 ### Installation ###
 
-1. Install [MRST](http://www.sintef.no/projectweb/mrst/downloadable-resources/). 
+1. Install [MRST](http://www.mrst.no). 
 2. Add the matlab-geoChemistry folder to the "modules" folder of MRST.
 3. Create a file named startup_user.m within the MRST folder, at the same level as startup.m.
 4. In startup_user.m add the line
