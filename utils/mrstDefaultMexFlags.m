@@ -197,7 +197,7 @@ end
 function tf = gcc_need_builtin_openmp()
    gccver = gcc_major_version();
 
-   tf = ~isfinite(gccver) || (gccver > 7);
+   tf = ~all(isfinite(gccver)) || (gccver(1) > 7);
 end
 
 %--------------------------------------------------------------------------
@@ -216,7 +216,6 @@ function ver = gcc_major_version()
       %
       % Parse out the major/main component of this string.
       ver = parse_gcc_verstring(cfg.Version);
-      ver = ver(1);
    else
       % Empty version string.  Fall back to increasingly desperate attempts
       % to parse output from the compiler itself.  Return 'NaN' if unable
@@ -291,14 +290,13 @@ function ver = parse_gcc_fullversion_output(cfg)
       verstr = regexp(verstr{isver}, [name, '.*(', patt, ')'], 'tokens');
 
       ver = parse_gcc_verstring(verstr{1}{1});
-      ver = ver(1);
    end
 end
 
 %--------------------------------------------------------------------------
 
 function ver = parse_gcc_verstring(verstr)
-   ver = sscanf(verstr, '%d.%d.%d');
+   ver = sscanf(strtrim(verstr), '%d.%d.%d');
 
    if numel(ver) < 3
       % E.g. verstr = '7'.  Zero-fill to three components.
