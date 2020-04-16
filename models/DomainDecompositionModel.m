@@ -6,10 +6,11 @@ classdef DomainDecompositionModel < WrapperModel
         strategy        = 'additive'
         overlap         = 0
         getPartition    = @(varargin) varargin{1}.partition;
-        verboseSubmodel = false
+        verboseSubmodel = 0
         subdomainTolerances = []
         useGlobalPressureRange = false
-        parallel        = false;
+        parallel        = false
+        storeSubModels = true;
         % Parallel properties
         localModel
         pool    = [];
@@ -23,6 +24,10 @@ classdef DomainDecompositionModel < WrapperModel
             % Base model initialization
             model = model@WrapperModel(parent);
             % Set partition
+            if isa(partition, 'function_handle')
+                model.getPartition = partition;
+                partition = model.getPartition(model);
+            end
             model.partition = partition;
             % Merge options
             model = merge_options(model, varargin{:});
@@ -39,20 +44,13 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin)
-            
             % Prepare state
             state      = model.prepareState(state, iteration);
             iterations = state.iterations;
             % Get residual
             outOfIterations = iteration > nonlinsolver.maxIterations;
-            problem = model.getEquations(state0, state, dt, drivingForces, ...
-                                       'ResOnly', true, ...
-                                       'iteration', iteration, ...
-                                       varargin{:});
-            problem.iterationNo   = iteration;
-            problem.drivingForces = drivingForces;
             % Check convergence
-            [convergence, values, resnames] = model.parentModel.checkConvergence(problem);
+            [convergence, values, resnames] = model.convergenceCheck(state0, state, dt, drivingForces, iteration, varargin{:});
             % Minimum number of iterations can be prescribed, i.e., we
             % always want at least one set of updates regardless of
             % convergence criterion.
@@ -90,6 +88,18 @@ classdef DomainDecompositionModel < WrapperModel
         end
         
         %-----------------------------------------------------------------%
+        function [convergence, values, resnames] = convergenceCheck(model, state0, state, dt, drivingForces, iteration, varargin)
+            problem = model.getEquations(state0, state, dt, drivingForces, ...
+                                         'ResOnly'   , true              , ...
+                                         'iteration' , iteration         , ...
+                                          varargin{:}                    );
+            problem.iterationNo   = iteration;
+            problem.drivingForces = drivingForces;
+            % Check convergence
+            [convergence, values, resnames] = model.parentModel.checkConvergence(problem);
+        end
+        
+        %-----------------------------------------------------------------%
         function state = prepareState(model, state, iteration)
             % Initialize total subdomain iterations
             if iteration == 1
@@ -98,6 +108,9 @@ classdef DomainDecompositionModel < WrapperModel
             % Get flux from pressure state if it exists
             if isfield(state, 'statePressure')
                 state.flux = state.statePressure.flux;
+            end
+            if isfield(state, 'FractionalDerivatives')
+                state = rmfield(state, 'FractionalDerivatives');
             end
             % Use global pressure range when computing dpRela
             if model.useGlobalPressureRange
@@ -182,6 +195,9 @@ classdef DomainDecompositionModel < WrapperModel
         %-----------------------------------------------------------------%
         function [stateInit, stateFinal, iterations, varargout] = solveSubDomain(model, setup, state0, dt, drivingForces, stateInit, stateFinal, iterations)
             % Get submodel
+            if isempty(setup.Model)
+                setup = model.getSubdomainSetup(setup.Number, true);
+            end
             submodel = setup.Model;
             mappings = submodel.mappings;
             % Get subdomain forces
@@ -232,10 +248,16 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function model = updateSubdomainSetupSerial(model, partition)
-            setup = cell(max(partition),1);
+            partition0 = model.partition;
             model.partition = partition;
-            for i = 1:max(partition)
-                setup{i} = model.getSubdomainSetup(i);
+            np = accumarray(partition,1);
+            setup = cell(max(partition),1);
+            if all(np == 1) && ~isempty(model.subdomainSetup)
+                setup(partition) = model.subdomainSetup(partition0);
+            else
+                for i = 1:max(partition)
+                    setup{i} = model.getSubdomainSetup(i);
+                end
             end
             model.subdomainSetup = setup;
         end
@@ -261,11 +283,18 @@ classdef DomainDecompositionModel < WrapperModel
         end
         
         %-----------------------------------------------------------------%
-        function setup = getSubdomainSetup(model, i)
+        function setup = getSubdomainSetup(model, i, store)
+            setup = struct('Model', [], 'NonlinearSolver', [], 'Number', i);
+            if nargin < 3
+                store = false;
+            end
+            if ~model.storeSubModels && ~store
+                return
+            end
             % Make submodel
-            verbose = model.verboseSubmodel;
+            verbose  = model.verboseSubmodel;
             cells    = model.partition == i;
-            submodel = SubdomainModel(model.parentModel, cells, 'verbose', verbose);
+            submodel = SubdomainModel(model.parentModel, cells, 'verbose', verbose == 2);
             % Adjust submodel tolerances
             submodel = model.setSubdomainTolerances(submodel);
             % Get linear solver
@@ -293,7 +322,8 @@ classdef DomainDecompositionModel < WrapperModel
                                   'LinearSolver'   , lsol                      , ...
                                   'identifier'     , ['SUBDOMAIN ', num2str(i)]);
             % Make subdomain setup
-            setup = struct('Model', submodel, 'NonlinearSolver', nls, 'Number', i);
+            setup.Model = submodel;
+            setup.NonlinearSolver = nls;
         end
         
         %-----------------------------------------------------------------%
