@@ -58,7 +58,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     tol_cnv = model.toleranceCNV;
     v = model.verbose;
 
-    evaluated = false(1, numel(problem));
+    evaluated = false(1, numeq(problem));
     [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
     % Value of pore-volume and total pore-volume
     pv = value(pv);

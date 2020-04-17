@@ -201,7 +201,7 @@ methods
     end
     
     % --------------------------------------------------------------------%
-    function n = numel(problem)
+    function n = numeq(problem)
         % Get the number of distinct equations. Note that an equation here
         % can refer to multiple subequations of the same type (e.g. a 100
         % cell problem where the equations are oil and water conservation
@@ -214,11 +214,11 @@ methods
     function problem = reorderEquations(problem, newIndices)
         % Reorder equations based on a set of indices.
         % ARGUMENTS:
-        % - newIndices: numel(problem) long array of new indices into the
+        % - newIndices: numeq(problem) long array of new indices into the
         %               equations.
         % OUTPUT:
         % - problem   : Problem with re-numbered equations.
-        assert(numel(problem) == numel(newIndices));
+        assert(numeq(problem) == numel(newIndices));
         
         problem.equations = problem.equations(newIndices);
         if ~isempty(problem.types)

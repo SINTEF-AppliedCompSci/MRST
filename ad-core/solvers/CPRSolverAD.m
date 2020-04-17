@@ -178,7 +178,7 @@ classdef CPRSolverAD < LinearSolverAD
             
             % Solve cell equations
             if solver.pressureScaling ~= 1
-                for i = 1:numel(problem)
+                for i = 1:numeq(problem)
                     problem.equations{i}.jac{pressureIndex} =...
                     problem.equations{i}.jac{pressureIndex}./solver.pressureScaling;
                 end

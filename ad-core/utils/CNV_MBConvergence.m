@@ -60,7 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     tol_mb = model.toleranceMB;
     tol_cnv = model.toleranceCNV;
 
-    evaluated = false(1, numel(problem));
+    evaluated = false(1, numeq(problem));
     
     b = model.FlowPropertyFunctions.getProperty(model, state, 'ShrinkageFactors');
     dt = problem.dt;
