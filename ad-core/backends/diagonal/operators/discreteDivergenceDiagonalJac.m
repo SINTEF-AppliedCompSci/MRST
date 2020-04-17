@@ -35,7 +35,7 @@ function jac = divJac(jac, opt)
             p = opt.mex;
             jac = mexDiscreteDivergenceJac([], jac.diagonal, opt.N, p.facePos, p.faces, p.cells, p.cellIndex, jac.rowMajor);
         else
-            jac = sortIx.C*jac.sparse();
+            jac = opt.sortIx.C*jac.sparse();
         end
     end
 end

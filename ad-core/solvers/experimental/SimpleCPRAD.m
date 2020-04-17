@@ -93,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             else
                 eqCounts = cellfun(@(x) numel(double(x)), problem.equations)';
                 reorderEq = nan(n, 1);
-                neq = numel(problem);
+                neq = numeq(problem);
                 move = false(neq, 1);
                 for i = 1:neq
                     move(i) = any(strcmpi(problem.equationNames{i}, ...
@@ -106,7 +106,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 reorderVar = reorderEq;
                 keepNum = n - nmove;
             end
-%             neq = numel(problem); 
+%             neq = numeq(problem); 
 %             eqs = problem.equations; 
 %             for ix = 1:neq, 
 %                 if full(min(abs(diag(eqs{ix}.jac{ix})))) == 0
