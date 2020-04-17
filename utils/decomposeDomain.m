@@ -1,11 +1,21 @@
 function partition = decomposeDomain(model, W, varargin)
-    opt = struct('type', 'metis', 'merge', true, 'minBlockSize', -inf, 'rWell', 50);
+    opt = struct('type'          , 'metis', ...
+                 'merge'         , true   , ...
+                 'partitionWells', true   , ...
+                 'rWell'         , 50     , ...
+                 'minBlockSize'  , -inf   );
+                 
     opt = merge_options(opt, varargin{:});
     if opt.minBlockSize < 0
         opt.minBlockSize = model.G.cells.num/20;
     end
     % Partition into near-well regions and reservorir
-    [pw, is_well] = makeWellPartition(model, W, opt);
+    if opt.partitionWells
+        [pw, is_well] = makeWellPartition(model, W, opt);
+    else
+        pw      = zeros(model.G.cells.num,1);
+        is_well = false(model.G.cells.num,1);
+    end
     % Partition everything ellse
     [pg, is_grid] = makeGridPartition(model, is_well, opt);
     % Combine the partitions
@@ -13,12 +23,15 @@ function partition = decomposeDomain(model, W, varargin)
     partition(is_grid) = pg + max(partition);
     partition = compressPartition(partition);
     % Merge too large blocks
-    ncw = min(accumarray(pw, 1));
+    ncmin = opt.minBlockSize;
+    if opt.partitionWells
+        ncmin = min(accumarray(pw, 1));
+    end
     if opt.merge
-        partition = mergePartition(model, partition, ncw);
+        partition = mergePartition(model, partition, ncmin);
     end
     nc = accumarray(partition,1);
-    partition(nc(partition) < 0.1*ncw) = max(partition);
+    partition(nc(partition) < 0.1*ncmin) = max(partition);
     partition = compressPartition(partition);
 end
 
@@ -60,7 +73,9 @@ function [pg, is_grid] = makeGridPartition(model, is_well, opt)
             pg = partitionMETIS(Gr, T, nb);
         case 'cart'
             n = ceil(sqrt(nb));
-            pg = partitionUI(Gr, [n,n,1]);
+            pdims = ones(1, G.griddim);
+            pdims(1:2) = n;
+            pg = partitionUI(Gr, pdims);
     end
 
 end
