@@ -30,10 +30,12 @@ opt=struct('outputdir','output',...
     'no_output',false,...
     'verbose',true,...
     'np',1,...
-    'threads',2);
+    'threads',2,...
+    'lineartol',1e-2,...
+    'strongdefaults',true);
 opt=merge_options(opt,varargin{:});
 % for extra see .XXX.DEBUG of an opm run
-if(opt.np >1)
+if(opt.np >0)
     command = ['mpirun -np ',num2str(opt.np),' '];
 else
     command = [];
@@ -48,6 +50,10 @@ else
     else
         command=[command, opt.simulator,' --enable-tuning=true '];
     end
+    if(opt.strongdefaults)
+        command =[command,' --tolerance-cnv=0.001 --tolerance-cnv-relaxed=0.001 '];
+    end
+    command =[command,' --linear-solver-reduction=',num2str(opt.lineartol),' '];
     command=[command,' --threads-per-process=',num2str(opt.threads),' '];
     if(opt.do_adjoint)
        % needed for adjoint
