@@ -137,14 +137,19 @@ box on;
 %%
 mrstModule add matlab_bgl
 % partitionFun = getTopologicalFluxPartition('blockSize', G.cells.num/max(partition));
-partitionFun = getTopologicalFluxPartition('blockSize', 1);
-tmodelMDD = DomainDecompositionModel(tmodel, partitionFun, 'strategy', 'multiplicative', 'storeSubModels', false);
+partitionFun = getTopologicalFluxPartition('blockSize',  1);
+subtol = struct('names', {{'toleranceCNV'}}, 'factors', 0.5);
+tmodelMDD = DomainDecompositionModel(tmodel, partitionFun             , ...
+                               'strategy'           , 'multiplicative', ...
+                               'subdomainTolerances', subtol          );
+                                     
 tmodelMDD.verboseSubmodel = 1;
 modelseqMDD = SequentialPressureTransportModel(pmodel, tmodelMDD, 'parentModel', modelFI);
 problem = packSimulationProblem(state0, modelseqMDD, schedule, 'dcc-tutorial');
 simulatePackedProblem(problem);
 
-% [wsSeqMDD, statesSeqMDD, reportsSeqMDD] = simulateScheduleAD(state0, modelseqMDD, schedule);
+%%
+[wsSeqMDD, statesSeqMDD, reportsSeqMDD] = getPackedSimulatorOutput(problem);
 
 %% Plot results
 close all
@@ -154,14 +159,29 @@ figure(), plotToolbar(G, statesSeqMDD); axis equal tight
 pth = fullfile(mrstPath('ddc'), 'examples', 'gif');
 name = @(i) sprintf('gif-%02d', i);
 savepng = @(i) print(fullfile(pth, name(i)), '-dpng', '-r300');
-gray = [1,1,1]*0.5;
-close all
-figure('Position', [0,0,800,800])
-for i = 1:numel(statesSeqDD)
-   unstructuredContour(G, statesSeqDD{i}.s(:,1), linspace(0,1,15), 'fill', true, 'color', gray);
-   colormap(bone), caxis([0,1]), axis equal tight, box on, ax = gca; [ax.XTick, ax.YTick] = deal([]);
-   drawnow(), pause(0.1); savepng(i);
+itmax = max(cellfun(@(s) max(s.iterations), statesSeqMDD));
+itmin = 0;
+graycolor = [1,1,1]*0.5;
+cmap = summer;
+cmap = flipud(pink);
+% cmap = jet;
+nl = 15;
+close all, figure('Position', [0,0,1000,600])
+for i = 1:numel(statesSeqDD)-1
+    subplot(1,2,1); cla;
+    unstructuredContour(G, statesSeqMDD{i}.s(:,1), linspace(0,1,nl), 'fill', true, 'color', graycolor);
+    caxis([0,1]), axis equal tight, box on, ax = gca; [ax.XTick, ax.YTick] = deal([]);
+    subplot(1,2,2); cla;
+    unstructuredContour(G, statesSeqMDD{i}.s(:,1),  linspace(0,1,nl), 'color', graycolor);
+    plotCellData(G, statesSeqMDD{i}.iterations, statesSeqMDD{i}.iterations >= itmin, 'edgecolor', 'none');
+    plotGrid(G, 'facecolor', 'none', 'edgecolor', 'none')
+    caxis([itmin, itmax]), axis equal tight, box on, ax = gca; [ax.XTick, ax.YTick] = deal([]);
+    drawnow(), pause(0.1); %savepng(i);
+    colormap(cmap)
 end
+
+%%
+
 
 %%
 
