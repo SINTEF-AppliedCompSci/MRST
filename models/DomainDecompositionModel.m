@@ -3,14 +3,15 @@ classdef DomainDecompositionModel < WrapperModel
     properties
         partition
         subdomainSetup
-        strategy        = 'additive'
-        overlap         = 0
-        getPartition    = @(varargin) varargin{1}.partition;
-        verboseSubmodel = 0
-        subdomainTolerances = []
+        strategy               = 'additive'
+        overlap                = 0
+        getPartition           = @(varargin) varargin{1}.partition;
+        updateFrequency        = 1
+        verboseSubmodel        = 0
+        subdomainTolerances    = []
         useGlobalPressureRange = false
-        parallel        = false
-        storeSubModels = true;
+        parallel               = false
+        storeSubModels         = true;
         % Parallel properties
         localModel
         pool    = [];
@@ -24,9 +25,10 @@ classdef DomainDecompositionModel < WrapperModel
             % Base model initialization
             model = model@WrapperModel(parent);
             % Set partition
-            if isa(partition, 'function_handle')
+            dynamicPartition = isa(partition, 'function_handle');
+            if dynamicPartition
                 model.getPartition = partition;
-                partition = model.getPartition(model);
+                partition          = model.getPartition(model);
             end
             model.partition = partition;
             % Merge options
@@ -40,6 +42,9 @@ classdef DomainDecompositionModel < WrapperModel
                              'multiplicative strategy. Changing to additive']);
                 end
             end
+            if dynamicPartition || max(partition) > 1000
+                model.storeSubModels = false;
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -50,7 +55,7 @@ classdef DomainDecompositionModel < WrapperModel
             % Get residual
             outOfIterations = iteration > nonlinsolver.maxIterations;
             % Check convergence
-            [convergence, values, resnames] = model.convergenceCheck(state0, state, dt, drivingForces, iteration, varargin{:});
+            [convergence, values, resnames, state] = model.convergenceCheck(state0, state, dt, drivingForces, iteration, varargin{:});
             % Minimum number of iterations can be prescribed, i.e., we
             % always want at least one set of updates regardless of
             % convergence criterion.
@@ -88,7 +93,7 @@ classdef DomainDecompositionModel < WrapperModel
         end
         
         %-----------------------------------------------------------------%
-        function [convergence, values, resnames] = convergenceCheck(model, state0, state, dt, drivingForces, iteration, varargin)
+        function [convergence, values, resnames, state, problem] = convergenceCheck(model, state0, state, dt, drivingForces, iteration, varargin)
             problem = model.getEquations(state0, state, dt, drivingForces, ...
                                          'ResOnly'   , true              , ...
                                          'iteration' , iteration         , ...
@@ -283,12 +288,12 @@ classdef DomainDecompositionModel < WrapperModel
         end
         
         %-----------------------------------------------------------------%
-        function setup = getSubdomainSetup(model, i, store)
+        function setup = getSubdomainSetup(model, i, construct)
             setup = struct('Model', [], 'NonlinearSolver', [], 'Number', i);
             if nargin < 3
-                store = false;
+                construct = false;
             end
-            if ~model.storeSubModels && ~store
+            if max(model.partition) > 500
                 return
             end
             % Make submodel
