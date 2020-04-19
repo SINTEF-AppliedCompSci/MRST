@@ -132,9 +132,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             'iteration', inf, 'reverseMode', true);
         pnm = problem.primaryVariables;
         for kn = 1:numel(pnm)
+            sens.init.(pnm{kn}) = 0;
             for nl = 1:numel(lami)
                 if isa(problem.equations{nl}, 'ADI')
-                    sens.init.(pnm{kn}) = problem.equations{nl}.jac{kn}'*lami{nl};
+                    sens.init.(pnm{kn}) = sens.init.(pnm{kn}) + problem.equations{nl}.jac{kn}'*lami{nl};
                 end
             end
         end
