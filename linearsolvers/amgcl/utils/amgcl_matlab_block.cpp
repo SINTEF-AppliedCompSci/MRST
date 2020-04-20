@@ -2,7 +2,10 @@
 // include necessary system headers
 //
 #define _USE_MATH_DEFINES
+
+#ifndef HAVE_OCTAVE
 #include "matrix.h"
+#endif
 
 #include <cmath>
 #include <mex.h>

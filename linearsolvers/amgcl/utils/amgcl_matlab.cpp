@@ -2,7 +2,6 @@
 // include necessary system headers
 //
 #define _USE_MATH_DEFINES
-#include "matrix.h"
 
 #include <cmath>
 #include <mex.h>
@@ -11,6 +10,10 @@
 #include <string>
 #include <chrono>
 #include <iostream>
+
+#ifndef HAVE_OCTAVE
+#include "matrix.h"
+#endif
 
 #include <amgcl/make_solver.hpp>
 #include <amgcl/backend/builtin.hpp>

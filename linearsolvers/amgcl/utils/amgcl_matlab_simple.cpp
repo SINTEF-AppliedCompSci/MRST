@@ -5,8 +5,9 @@
 #include <cmath>
 #include <mex.h>
 #include <array>
+#ifndef HAVE_OCTAVE
 #include "matrix.h"
-
+#endif
 
 #include <iostream>
 #include <amgcl/make_solver.hpp>
