@@ -234,9 +234,6 @@ if ~isempty(W)
     [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
 end
 
-% Scale solvent equations (this should be changed to CNV/MB convergence...)
-eqs{4} = eqs{4}.*(dt./op.pv);
-
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 end
