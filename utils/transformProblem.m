@@ -11,7 +11,7 @@ function problem = transformProblem(problem, varargin)
     MLw  = opt.MLw;
     % Restrict equations
     isAD = isa(problem.equations{1}, 'ADI');
-    for i = 1:numel(problem)
+    for i = 1:problem.numeq
         eq = problem.equations{i};
         if ~isAD
             if n == nc
