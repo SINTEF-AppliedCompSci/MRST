@@ -114,8 +114,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    SRC = {'amgcl_matlab_block.cpp'};
 
-   mrstModule add ad-core % Hack
-   [CXXFLAGS, LINK, LIBS] = setupMexOperatorBuildFlags('AMGCL_ASYNCSETUP');
+   [CXXFLAGS, LINK, LIBS] = mrstDefaultMexFlags('AMGCL_ASYNCSETUP');
 
    buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
 
