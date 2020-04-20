@@ -135,9 +135,12 @@ state0.wellSol = initWellSolAD(W, model4Ph, state0);
 
 fn = getPlotAfterStepSolvent(state0, model4Ph, scheduleWAG, ...
                      'plotWell', true, 'plotReservoir', true);
-
+% Use compiled, iterative linear solver with CPR preconditioning
+mrstModule add linearsolvers
+lsol = selectLinearSolverAD(model4Ph);
+                 
 [wellSolsWAG, statesWAG, reportsWAG] ...
-    = simulateScheduleAD(state0, model4Ph, scheduleWAG, 'afterStepFn', fn);
+    = simulateScheduleAD(state0, model4Ph, scheduleWAG, 'LinearSolver', lsol, 'afterStepFn', fn);
 
 %% Interactive visualization of results
 % We use an interactive plotting tool to visualize reservoir results and
@@ -159,7 +162,9 @@ model3Ph.extraStateOutput = true;
 state0 = initResSol(G, 100*barsa, [1-sO-sG, sO, sG]);
 state0.wellSol = initWellSolAD(W, model3Ph, state0);
 
-[wellSol, states, reports] = simulateScheduleAD(state0, model3Ph, schedule);
+lsol = selectLinearSolverAD(model3Ph);
+
+[wellSol, states, reports] = simulateScheduleAD(state0, model3Ph, schedule, 'LinearSolver', lsol);
 
 %% Visulize well production curves
 % We look at the well production curves to see the difference of the two
