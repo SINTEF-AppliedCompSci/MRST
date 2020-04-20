@@ -160,10 +160,10 @@ end
 if opt.computeSaturations
     % get region total and water volumes
     if ~opt.reverse
-        pv_reg  = bsxfun(@times, D.ptracer(sub,:), pv);
+        pv_reg  = bsxfun(@times, D.ptracer(sub,pix), pv);
         pvw_reg = bsxfun(@times, pv_reg, state.s(sub,1));
     else
-        pv_reg  = bsxfun(@times, D.itracer(sub,:), pv);
+        pv_reg  = bsxfun(@times, D.itracer(sub,pix), pv);
         pvw_reg = bsxfun(@times, pv_reg, state.s(sub,1));
     end
     % initial saturation
