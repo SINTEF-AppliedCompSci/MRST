@@ -84,7 +84,6 @@ opt = struct('Verbose'    , mrstVerbose, ...
              'iteration'  , -1         );
 
 opt = merge_options(opt, varargin{:});
-opt.resOnly = false;
 
 W     = drivingForces.W;
 op    = model.operators;
@@ -216,28 +215,6 @@ end
 % Conservation of mass for solvent
 solvent = (op.pv/dt).*( pvMult.*bS.*sS - pvMult0.*bS0.*sS0 ) + op.Div(bSvS);
 
-if 0
-    
-    % Enable for debug purposes
-    acc = zeros(model.G.cells.num,4);
-    acc(:,1)    = (op.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 );
-    acc(:,2)    = (op.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 );
-    acc(:,3)    = (op.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 );
-    acc(:,4)    = (op.pv/dt).*( pvMult.*bS.*sS - pvMult0.*bS0.*sS0 );
-    state.acc   = acc;
-    
-    flux = zeros(model.G.cells.num,4);
-    flux(:,1)    = op.Div(bWvW);
-    flux(:,2)    = op.Div(bOvO);
-    flux(:,3)    = op.Div(bGvG);
-    flux(:,4)    = op.Div(bSvS);
-    state.flux   = flux;
-    
-    state.mu = [value(muW), value(muO), value(muG), value(muS)];
-    state.kr = [value(krW), value(krO), value(krG), value(krS)];
-    
-end
-
 state.sr = [value(sOr), value(sGc)];
 state.sOr = value(sOr);
 state.sGc = value(sGc);
@@ -261,18 +238,5 @@ end
 eqs{4} = eqs{4}.*(dt./op.pv);
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-
-end
-
-function varargout = getWellValue(wellCells, varargin)
-    
-    for i = 1:numel(varargin)
-        v = varargin{i};
-        if numel(value(v)) == 1
-            varargout{i} = v;
-        else
-            varargout{i} = v(wellCells);
-        end 
-    end
 
 end
