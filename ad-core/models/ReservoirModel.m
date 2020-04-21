@@ -102,7 +102,7 @@ methods
         model.outputFluxes = true;
         % Gravity defaults to the global variable
         model.gravity = gravity();
-        [model, unparsed] = merge_options(model, varargin{:}); %#ok
+        model = merge_options_relaxed(model, varargin{:});
 
         % Base class does not support any phases
         model.water = false;
