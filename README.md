@@ -2,7 +2,7 @@
 
 ## Description
 This module implements a discretization of the (three-dimensional) equations of unsaturated poroelasticity using
-cell-centered finite volume methods, specifically MPFA-O and MPSA-W. Note that if  mechanical effects are neglected, the set of equations reduce to the well-known Richards' equation. The module is written using the AD approach, aiming at flexibility as its first goal.
+cell-centered finite volume methods, specifically MPFA-O and MPSA-W. Note that if  mechanical effects are neglected, the set of equations reduce to the well-known Richards' equation. The module is written based on the Automatic Differentiation framework provided by MRST.
 
 There are four numerical examples accompanying this module:
 * convAnalysisRE.m
@@ -28,12 +28,15 @@ For an introduction to MPSA:
 * MATLAB (Tested version: R2019a)
 
 ## MRST dependencies
-* [fvbiot](https://github.com/pmgbergen/fvbiot)
+* [fvbiot](https://github.com/pmgbergen/fvbiot) (Please see Troubleshooting section below)
 * [distmesh](http://persson.berkeley.edu/distmesh/)
+
+## Troubleshooting
+* If you are using an MRST version <= 2019b, you will have to clone the [fvbiot](https://github.com/pmgbergen/fvbiot) repository, and replace it manually in your MRST folder. Note that fvbiot is located inside the "modules" folder.
 
 ## Cite
 If you use fv-unsat, please cite:
-* *SPRINGER CHAPTER GOES HERE*
+* *CHAPTER GOES HERE*
 
 ## Contact
 Jhabriel Varela (jhabriel.varela@uib.no).
