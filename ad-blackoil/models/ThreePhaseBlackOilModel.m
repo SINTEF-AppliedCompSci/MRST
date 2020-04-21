@@ -35,7 +35,7 @@ methods
         model.gas = true;
         model.water = true;
 
-        model = merge_options(model, extra{:});
+        model = merge_options_relaxed(model, extra{:});
 
         d = model.inputdata;
         if ~isempty(d)
