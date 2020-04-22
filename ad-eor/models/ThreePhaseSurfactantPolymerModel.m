@@ -4,7 +4,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
     % SYNOPSIS:
     %   model = ThreePhaseSurfactantPolymerModel(G, rock, fluid, varargin)
     %
-    % DESCRIPTION: 
+    % DESCRIPTION:
     %   Fully implicit three phase blackoil model with polymer.
     %
     % PARAMETERS:
@@ -29,30 +29,34 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
         usingShear
 	    % Using PLYSHLOG shear model based on water velocity
         usingShearLog
-	    % Using PLYSHLOG shear model base on water shear rate
+	    % Using PLYSHLOG shear model based on water shear rate
         usingShearLogshrate
     end
 
     methods
         function model = ThreePhaseSurfactantPolymerModel(G, rock, fluid, deck, varargin)
-            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});           
-            
+            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
+
             runspec = deck.RUNSPEC;
             check = @(name) isfield(runspec, upper(name)) && runspec.(upper(name));
 
-            model.polymer = check('POLYMER');            
+            model.polymer    = check('POLYMER');
             model.surfactant = check('SURFACT');
-                       
-            if (isfield(fluid,'shrate') && ~isfield(fluid,'plyshlog'))
-                error('SHRATE is specified while PLYSHLOG is not specified')
+
+            hasSHRATE    = isfield(fluid, 'shrate');
+            hasPLYSHLOG  = isfield(fluid, 'plyshlog');
+            hasPLYSHMULT = isfield(fluid, 'plyshearMult');
+
+            if (hasSHRATE && ~hasPLYSHLOG)
+                error('SHRATE is specified but PLYSHLOG is not')
             end
-            if (isfield(fluid, 'plyshearMult') && isfield(fluid, 'plyshlog'))
+            if (hasPLYSHMULT && hasPLYSHLOG)
                 error('PLYSHLOG and PLYSHEAR are existing together');
             end
 
-            model.usingShear = isfield(fluid, 'plyshearMult');
-            model.usingShearLog = (isfield(fluid, 'plyshlog') && ~isfield(fluid, 'shrate'));
-            model.usingShearLogshrate = (isfield(fluid, 'plyshlog') && isfield(fluid, 'shrate'));
+            model.usingShear    = hasPLYSHMULT;
+            model.usingShearLog = hasPLYSHLOG && ~hasSHRATE;
+            model.usingShearLogshrate =  hasPLYSHLOG && hasSHRATE;
             model = merge_options(model, varargin{:});
         end
 
@@ -60,6 +64,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
         function model = setupOperators(model, G, rock, varargin)
             model.operators = setupOperatorsTPFA(G, rock, varargin{:});
             if model.surfactant
+                % Operators used to compute capillary number
                 model.operators.veloc = computeVelocTPFA(G, model.operators.internalConn);
                 model.operators.sqVeloc = computeSqVelocTPFA(G, model.operators.internalConn);
             end
@@ -98,7 +103,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             [state, report] = updateState@ThreePhaseBlackOilModel(model, ...
                state, problem,  dx, drivingForces);
 
-            % cp denotes concentration of polymer, cs is concentration of surfactant.    
+            % cp denotes concentration of polymer, cs is concentration of surfactant.
             if model.polymer
                 cp = model.getProp(state, 'polymer');
                 cp = min(cp, model.fluid.cpmax);
@@ -125,12 +130,12 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 state = model.setProp(state, 'surfactantmax', max(csmax, cs));
             end
         end
-        
+
         % --------------------------------------------------------------------%
         function model = setupStateFunctionGroupings(model, varargin)
-            
+
             model = setupStateFunctionGroupings@ThreePhaseBlackOilModel(model, varargin{:});
-            
+
             fp = model.FlowPropertyFunctions;
             pp = model.PVTPropertyFunctions;
             fd = model.FluxDiscretization;
@@ -138,7 +143,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             satreg  = fp.getRegionSaturation(model);
             surfreg = fp.getRegionSurfactant(model);
             % nph = model.getNumberOfPhases();
-            
+
             % We set up EOR viscosities and relative permeabilities. They are computed from
             % the black-oil value by using a multiplier approach, where we have
             % one multiplier for each EOR effect.
@@ -146,7 +151,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             pp = pp.setStateFunction('BaseViscosity', BlackOilViscosity(model));
             fp = fp.setStateFunction('RelativePermeability', EORRelativePermeability(model));
             fp = fp.setStateFunction('BaseRelativePermeability', BaseRelativePermeability(model, satreg));
-            
+
             % The statefunction ViscosityMultipliers and RelPermMultipliers are containers
             % for the Viscosity and Relative Permeability multpliers.  Each
             % multiplier is set up as a property (for example
@@ -155,20 +160,20 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             viscmult.label = 'M_\mu';
 
             % TODO: we need to find an easier way to handle the viscosity multiplication between different component
-            % hopefully, we only handle once. 
+            % hopefully, we only handle once.
             pviscmult = PhaseMultipliers(model);
             pviscmult.label = 'M_{\mu_p}';
-            
+
             relpermult = PhaseMultipliers(model);
             relpermult.label = 'M_{kr}';
             relpermult.operator = @rdivide; % The relperm multipliers are divided
-                        
+
             if model.polymer
-                
+
                 fp = fp.setStateFunction('PolymerAdsorption', PolymerAdsorption(model, satreg));
                 fd = fd.setStateFunction('PolymerPhaseFlux' , PolymerPhaseFlux(model));
                 fd = fd.setStateFunction('FaceConcentration', FaceConcentration(model));
-                
+
                 % We set up the water effective viscosity multiplier based on polymer concentration
                 peffmult = 'PolymerEffViscMult';
                 pp = pp.setStateFunction(peffmult, PolymerEffViscMult(model, pvtreg));
@@ -180,41 +185,41 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 % TODO: really not sure whether this is the correct way to
                 % do pviscmult
                 pviscmult = pviscmult.addMultiplier(model, polyviscmult, 'W');
-                
+
                 % We set up the polymer permeability reduction effect. If permeability reduction
                 % is present, it means that we must divide the water relative
                 % permeability with the value of the "multiplier".
                 rppmult = 'PolymerPermReduction';
                 fp = fp.setStateFunction(rppmult, PolymerPermReduction(model));
                 relpermult = relpermult.addMultiplier(model, rppmult, 'W');
-                
+
             end
-            
+
             if model.surfactant
-                
+
                 fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));
                 fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model, satreg));
                 % The EOR relative permeability is set up as the
                 % SurfactantRelativePermeability combined with multipliers.
                 fp = fp.setStateFunction('BaseRelativePermeability', SurfactantRelativePermeability(model, satreg, surfreg));
                 fp.CapillaryPressure = SurfactantCapillaryPressure(model, satreg);
-                
+
                 % We set up the surfactant viscosity multiplier
                 smult = 'SurfactantViscMultiplier';
                 pp = pp.setStateFunction(smult, SurfactantViscMultiplier(model, pvtreg));
                 viscmult = viscmult.addMultiplier(model, smult, 'W');
                 pviscmult = pviscmult.addMultiplier(model, smult, 'W');
             end
-            
+
             pp = pp.setStateFunction('ViscosityMultipliers', viscmult);
             % TODO: BAD NAME!
-            pp = pp.setStateFunction('PolyViscMult', pviscmult); 
+            pp = pp.setStateFunction('PolyViscMult', pviscmult);
             fp = fp.setStateFunction('RelativePermeabilityMultipliers', relpermult);
-            
+
             model.FlowPropertyFunctions = fp;
             model.PVTPropertyFunctions  = pp;
             model.FluxDiscretization    = fd;
-            
+
         end
 
         % --------------------------------------------------------------------%
@@ -237,7 +242,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                         fn = 'cs';
                     else
                         fn = 'csmax';
-                    end    
+                    end
                 case 'qwpoly'
                     fn = 'qWPoly';
                     index = ':';
@@ -253,16 +258,14 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
         % --------------------------------------------------------------------%
         function names = getComponentNames(model)
             names = getComponentNames@ThreePhaseBlackOilModel(model);
-            if model.polymer && model.surfactant
-                    names{end+1} = 'polymer';
-                    names{end+1} = 'surfactant';
-            elseif model.polymer && ~model.surfactant
+            if model.polymer
                 names{end+1} = 'polymer';
-            elseif model.surfactant
+            end
+            if model.surfactant
                 names{end+1} = 'surfactant';
             end
         end
-        
+
         % --------------------------------------------------------------------%
         function state = storeSurfData(model, state, s, cs, Nc, sigma)
             state.SWAT    = double(s);
@@ -271,7 +274,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             state.SURFST  = double(sigma);
             % state.SURFADS = double(ads);
         end
-        
+
         % --------------------------------------------------------------------%
         function scaling = getScalingFactorsCPR(model, problem, names, solver)
             nNames = numel(names);
@@ -298,7 +301,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 [scaling{~handled}] = other{:};
             end
         end
-        
+
         % --------------------------------------------------------------------%
         function [eq, src] = addComponentContributions(model, cname, eq, component, src, force)
         % For a given component conservation equation, compute and add in
@@ -345,7 +348,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             eq(cells) = eq(cells) - qC;
             src.components{end+1} = qC;
         end
-        
+
         function [names, types] = getExtraWellEquationNames(model)
             [names, types] = getExtraWellEquationNames@ThreePhaseBlackOilModel(model);
             if model.polymer
@@ -378,7 +381,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 wix = 1;
                 cqWs = qMass{wix}./f.rhoWS; % connection volume flux at surface condition
             end
-            
+
             if model.polymer
                 if well.isInjector()
                     concWellp = model.getProp(well.W, 'polymer');
@@ -403,7 +406,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 compSrc{end+1} = cqP;
                 eqNames{end+1} = 'polymerWells';
             end
-            
+
             if model.surfactant
                 if well.isInjector()
                     concWells = model.getProp(well.W, 'surfactant');
@@ -416,7 +419,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
 
                 compEqs{end+1} = qwsft - sum(concWells.*cqWs);
                 compSrc{end+1} = cqS;
-                eqNames{end+1} = 'surfactantWells'; 
+                eqNames{end+1} = 'surfactantWells';
             end
         end
     end
