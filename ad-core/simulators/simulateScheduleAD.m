@@ -234,9 +234,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     prevControl = nan;
     firstEmptyIx = 1;
     for i = 1:nSteps
-        if i == 90
-            i;
-        end
         step_header(i);
         state0 = state;
         

@@ -46,8 +46,8 @@ classdef ExtendedFacilityModel < FacilityModel
             [surfaceRates{:}] = deal(0);
             for c = 1:numel(cflux)
                 component = model.Components{c};
-                composition = component.getPhaseCompositionSurface(model, state, p, temp);
                 if ~component.isConcentration
+                    composition = component.getPhaseCompositionSurface(model, state, p, temp);
                     for ph = 1:nph
                         if any(composition{ph})
                             ci = composition{ph}./surfaceDensity{ph};

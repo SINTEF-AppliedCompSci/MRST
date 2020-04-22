@@ -57,14 +57,6 @@ classdef SurfactantComponent < ConcentrationComponent
              cmob{wIx} = mobS;
         end
 
-
-        function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
-            % Polymer enters into the water stream
-            nph = model.getNumberOfPhases();
-            c = cell(nph, 1);
-            c{1} = 1;
-        end
-        
         function c = getInjectionConcentration(component, force)
             c = vertcat(force.cs);
         end
