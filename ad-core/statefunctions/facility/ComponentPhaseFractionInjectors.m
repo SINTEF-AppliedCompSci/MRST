@@ -3,7 +3,7 @@ classdef ComponentPhaseFractionInjectors < StateFunction
     properties
 
     end
-    
+
     methods
         function gp = ComponentPhaseFractionInjectors(varargin)
             gp@StateFunction(varargin{:});
@@ -31,8 +31,14 @@ classdef ComponentPhaseFractionInjectors < StateFunction
             mix = any(isImmiscible) && any(~isImmiscible);
             majorComponent = zeros(1, nph);
 
-            if mix 
+            notConcentration = cellfun(@(x) ~x.isConcentration, comp);
+
+            if mix
                 for c = 1:ncomp
+                    % TODO: how to coordinate the isImmiscible and
+                    % isConcentration will be a problem here
+                    % TODO: only immiscible component can carry other
+                    % component? I do not get the full logic here yet
                     if isImmiscible(c)
                         majorComponent(comp{c}.phaseIndex) = c;
                     end
@@ -43,7 +49,8 @@ classdef ComponentPhaseFractionInjectors < StateFunction
                 ci = [surfaceComposition{:, ph}];
                 mc = majorComponent(ph);
                 if mc > 0
-                    ci(:, mc) = ci(:, mc) - sum(ci(:, [1:(mc-1), mc+1:end]), 2);
+                    otherindex = [1:(mc-1), mc+1:ncomp];
+                    ci(:, mc) = ci(:, mc) - sum(ci(:, otherindex(notConcentration(otherindex))), 2);
                 end
                 compi{ph} = ci;
             end

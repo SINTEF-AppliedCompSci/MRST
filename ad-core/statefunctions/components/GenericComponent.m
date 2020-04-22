@@ -8,6 +8,7 @@ classdef GenericComponent < StateFunctionDependent
         externals = [];
         molarMass = 1;
         isImmiscible = false;
+        isConcentration = false;
     end
     
     methods

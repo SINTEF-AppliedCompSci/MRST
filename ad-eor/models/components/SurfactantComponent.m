@@ -1,11 +1,13 @@
-classdef SurfactantComponent < GenericComponent
+classdef SurfactantComponent < ConcentrationComponent
     properties
 
     end
 
     methods
         function c = SurfactantComponent()
-            c@GenericComponent('surfactant');
+            % this surfactant model is transport in water phase
+            wIx = 1;
+            c@ConcentrationComponent('surfactant', wIx);
         end
 
         function c = getComponentDensity(component, model, state, varargin)
@@ -62,22 +64,9 @@ classdef SurfactantComponent < GenericComponent
             c = cell(nph, 1);
             c{1} = 1;
         end
-
-        % FIXME: the tricky part here is that it is not composition, it is
-        % a concentration, we need to check how this value is used
-        function c = getPhaseComponentFractionInjection(component, model, state, force)
-            c = cell(model.getNumberOfPhases(), 1);
-            if isfield(force, 'compi')
-                comp_i = vertcat(force.compi);
-            else
-                comp_i = vertcat(force.sat);
-            end
-            wIx = 1;
-            cs = vertcat(force.cs);
-            ci = comp_i(:, wIx) .* cs./model.fluid.rhoWS;
-            if any(ci ~= 0)
-                c{wIx} = ci;
-            end
+        
+        function c = getInjectionConcentration(component, force)
+            c = vertcat(force.cs);
         end
 
     end

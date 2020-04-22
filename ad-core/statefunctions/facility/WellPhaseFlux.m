@@ -108,7 +108,7 @@ function q_ph = calculatePhaseRate(Tdp, mobw, map)
     q_ph = cell(1, nph);
     for i = 1:nph
         q_ph{i} = mobw{i}.*Tdp;
-    end    
+    end
 end
 
 

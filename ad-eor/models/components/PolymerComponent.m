@@ -1,15 +1,19 @@
-classdef PolymerComponent < GenericComponent
+classdef PolymerComponent < ConcentrationComponent
     properties
 
     end
 
     methods
         function c = PolymerComponent()
-            c@GenericComponent('polymer');
+            % this polymer model is transport in the water phase
+            wIx = 1;
+            c@ConcentrationComponent('polymer', wIx);
         end
 
 
         function c = getComponentDensity(component, model, state, varargin)
+            % TODO: will we be able to make it a generic property of the
+            % class?
             cp = model.getProp(state, 'polymer');
             b = model.getProps(state, 'ShrinkageFactors');
             nph = numel(b);
@@ -62,22 +66,10 @@ classdef PolymerComponent < GenericComponent
             c{1} = 1;
         end
 
-        % FIXME: the tricky part here is that it is not composition, it is
-        % a concentration, we need to check how this value is used
-        function c = getPhaseComponentFractionInjection(component, model, state, force)
-            c = cell(model.getNumberOfPhases(), 1);
-            if isfield(force, 'compi')
-                comp_i = vertcat(force.compi);
-            else
-                comp_i = vertcat(force.sat);
-            end
-            wIx = 1;
-            cp = vertcat(force.cp);
-            ci = comp_i(:, wIx) .* cp./model.fluid.rhoWS;
-            if any(ci ~= 0)
-                c{wIx} = ci;
-            end
+        function c = getInjectionConcentration(component, force)
+            c = vertcat(force.cp);
         end
+
     end
 end
 
