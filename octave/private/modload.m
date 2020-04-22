@@ -27,4 +27,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            ['MRST''s ''octave'' module is not supported outside of ', ...
             'the Octave environment']);
    end
+
+    cd ..
+   startup_octave();
+   set_reasonable_octave_defaults();
 end

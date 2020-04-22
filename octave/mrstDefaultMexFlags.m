@@ -27,21 +27,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     a = computer('arch');
 
-    if ispc()
-       % @@ The code below will have to be adapted to OCTAVE.
-        mwlib = @(lib) ...
-            fullfile(matlabroot, 'extern', 'lib', a, ...
-            'microsoft', ['libmw', lib, '.lib']);
+    % if ispc()
+    %    % @@ The code below will have to be adapted to OCTAVE.
+    %    assert(strcmpi(a(1:5) == 'mingw')); % @@ code below only adapted for mingw for now
+    %     mwlib = @(lib) ...
+    %         fullfile(matlabroot, 'mingw64', 'lib', a, ...
+    %         'microsoft', ['libmw', lib, '.lib']);
 
-        %LINK  = { ['-L', fullfile(matlabroot, 'bin', a) ] };
-        LINK = {};
-        iomp5 = { 'libiomp5md.lib' };
-    else
+    %     %LINK  = { ['-L', fullfile(matlabroot, 'bin', a) ] };
+    %     LINK = {};
+    %     iomp5 = { 'libiomp5md.lib' };
+    % else
         mwlib = @(lib) ['-l', lib];
         %LINK  = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
         LINK = {};
         iomp5 = { '-liomp5' };
-    end
+    % end
 
     if is_visual_cpp()
         % Note explicit /EHsc to enable C++ exception handling
@@ -61,21 +62,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         iomp5 = {};
 
     elseif is_gnu_gcc()
-        if ispc()
-            march = '';
-        else
+        % if ispc()
+        %     march = '';
+        % else
             march = '-march=native';
-        end
+        % end
         CXXFLAGS = ...
             { [sprintf('CXXFLAGS=$CXXFLAGS  -D_GNU_SOURCE %s ', formatDefs('-', defines)), ...
                sprintf(' -fPIC -O3 -std=c++11 -ffast-math %s -fopenmp -fpermissive', march)] };
 
         libstdcpp = {};
-        if ispc()
-            LINK = [LINK, 'LDFLAGS="$LDFLAGS -fopenmp"'];
-            libstdcpp = {};
-            iomp5 = {};
-        end
+        % if ispc()
+        %     LINK = [LINK, 'LDFLAGS="$LDFLAGS -fopenmp"'];
+        %     libstdcpp = {};
+        %     iomp5 = {};
+        % end
     else
 
         error('Architecture:Unsupported', ...

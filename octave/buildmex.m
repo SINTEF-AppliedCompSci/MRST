@@ -85,16 +85,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    setenv('CXXFLAGS', cxxflags);
 
-   if regexpi(mkoctfile('-p', 'CXX'), 'g\+\+')
-      % ensure we do not use a more recent compiler, which creates linking problems
-      setenv('CXX', 'g++-7');
-      setenv('LD_CXX', 'g++-7');
-   end
+   % if regexpi(mkoctfile('-p', 'CXX'), 'g\+\+')
+   %    % ensure we do not use a more recent compiler, which creates linking problems
+   %    setenv('CXX', 'g++-7');
+   %    setenv('LD_CXX', 'g++-7');
+   % end
    
+   fsep = filesep;
    if mrstVerbose()
-      mkoctfile('--mex', '-v', '-o', [pth, '/', caller], ['-I', pth], ['-L', pth], args{:});
+      mkoctfile('--mex', '-v', '-o', [pth, fsep, caller], ['-I', pth], ['-L', pth], args{:});
    else
-      mkoctfile('--mex', '-o', [pth, '/', caller], ['-I', pth], ['-L', pth], args{:});
+      mkoctfile('--mex', '-o', [pth, fsep, caller], ['-I', pth], ['-L', pth], args{:});
    end
       
    setenv('CXXFLAGS', cxxflags_orig(1:end-1));
@@ -127,8 +128,13 @@ end
 
 function args = canonicalise_filenames(pth, varargin)
    args = varargin;
+   fsep = filesep;
+   if fsep == '\'
+     % when used in a regular expression, '\' must be preceded by '\'
+     fsep = '\\';  
+   end
    patt = [ strcat('^\s*', switchChar()), ...
-            { '=', ['^\s*', filesep], '^\s*\w:\\' } ];
+            { '=', ['^\s*', fsep], '^\s*\w:\\' } ];
 
    % Prepend absolute pathnames to parameters not matching either pattern
    % and that actually represent file-names in the caller's output
