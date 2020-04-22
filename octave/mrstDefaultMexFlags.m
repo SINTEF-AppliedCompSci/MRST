@@ -62,11 +62,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         iomp5 = {};
 
     elseif is_gnu_gcc()
-        % if ispc()
-        %     march = '';
-        % else
+        if ispc()
+            march = '';
+        else
             march = '-march=native';
-        % end
+        end
         CXXFLAGS = ...
             { [sprintf('CXXFLAGS=$CXXFLAGS  -D_GNU_SOURCE %s ', formatDefs('-', defines)), ...
                sprintf(' -fPIC -O3 -std=c++11 -ffast-math %s -fopenmp -fpermissive', march)] };
