@@ -3,7 +3,7 @@ classdef WellPhaseFlux < StateFunction
     properties
 
     end
-    
+
     methods
         function gp = WellPhaseFlux(varargin)
             gp@StateFunction(varargin{:});
@@ -11,62 +11,26 @@ classdef WellPhaseFlux < StateFunction
             gp = gp.dependsOn({'Mobility'}, 'FlowPropertyFunctions');
             gp.label = 'q_\alpha';
         end
-        
+
         function q_ph = evaluateOnDomain(prop, model, state)
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
             [dp, wi] = prop.getEvaluatedDependencies(state, 'PerforationPressureGradient', 'WellIndex');
             mob = model.ReservoirModel.getProps(state, 'Mobility');
-            
-            mobw = cellfun(@(x) x(map.cells), mob, 'UniformOutput', false);                        
+
+            mobw = cellfun(@(x) x(map.cells), mob, 'UniformOutput', false);
 
             Tdp = -wi.*dp;
-            vTdp = value(Tdp);
-            injection = vTdp > 0;
-
-            % for polymer injecting, we need to modify the injecting
+            
+            % TODO: there can be different way to refactor the following.
+            % It can be we apply all the effects to obtain the mobility.
+            % Then we calculate the well rates based on the obtained
             % mobility
-            % TODO: the following should enter a function with relatively
-            % general name
-            check = @(prop) isprop(model.ReservoirModel, prop) && model.ReservoirModel.(prop);
-            haspolymer = check('polymer');     
-            if (haspolymer)
-                if model.ReservoirModel.polymer
-                    cp = model.ReservoirModel.getProps(state, 'polymer');
-                    % TODO: we might need to only do this to injection well
-                    % instead of all the injection perforations
-                    % how to handle the crossflow of polymer remains to be
-                    % fixed
-                    % TODO: and also, we can trying to have the fully
-                    % mixing multiplier (or some other thing related) as
-                    % state function, then a few places related to
-                    % different viscosities can be built upon these state
-                    % functions
-                    wc_inj = (map.cells(injection));
-                    cp_inj = cp(wc_inj);
-                    wIx = 1;
-                    mobw_injw = mobw{wIx}(injection);
-                    
-                    viscpmult = model.ReservoirModel.getProps(state, 'PolymerEffViscMult');
-                    viscpmult_inj = viscpmult(wc_inj);
-                    viscpmultfull = model.ReservoirModel.fluid.muWMult(cp_inj);
-
-                    mobw{wIx}(injection) = mobw_injw ./ viscpmultfull .* viscpmult_inj;
-                end
-            end
+            mobw = updateMobility(mobw, Tdp, model, state, map); 
 
             q_ph = calculatePhaseRate(Tdp, mobw, map);
 
-            % TODO: the following should be made a function with a general
-            % name
-            if haspolymer
-                hasShear= check('usingShear') || check('usingShearLog') || check('usingShearLogshrate');                
-                if hasShear
-                    mobw = applyShearEffectsWell(mobw, q_ph, prop, model.ReservoirModel, state);
-                    
-                    q_ph = calculatePhaseRate(Tdp, mobw, map);
+            q_ph = applyOtherEffects(q_ph, Tdp, mobw, model, prop, state, map);
 
-                end
-            end
         end
     end
 end
@@ -110,6 +74,56 @@ function q_ph = calculatePhaseRate(Tdp, mobw, map)
         q_ph{i} = mobw{i}.*Tdp;
     end
 end
+
+function mobw = updateMobility(mobw, Tdp, model, state, map)
+% Currently, this function only handles the effects related to polymer
+    vTdp = value(Tdp);
+    injection = vTdp > 0;
+
+    % for polymer injecting, we need to modify the injecting
+    % mobility
+    check = @(prop) isprop(model.ReservoirModel, prop) && model.ReservoirModel.(prop);
+    haspolymer = check('polymer');
+    if (haspolymer)
+        if model.ReservoirModel.polymer
+            cp = model.ReservoirModel.getProps(state, 'polymer');
+            % TODO: we might need to only do this to injection well
+            % instead of all the injection perforations
+            % TODO: how to handle the crossflow of polymer remains to be
+            % fixed
+            % TODO: and also, we can trying to have the fully
+            % mixing multiplier (or some other thing related) as
+            % state function, then a few places related to
+            % different viscosities can be built upon these state
+            % functions
+            wc_inj = (map.cells(injection));
+            cp_inj = cp(wc_inj);
+            wIx = 1;
+            mobw_injw = mobw{wIx}(injection);
+
+            viscpmult = model.ReservoirModel.getProps(state, 'PolymerEffViscMult');
+            viscpmult_inj = viscpmult(wc_inj);
+            viscpmultfull = model.ReservoirModel.fluid.muWMult(cp_inj);
+
+            mobw{wIx}(injection) = mobw_injw ./ viscpmultfull .* viscpmult_inj;
+        end
+    end
+end
+
+function q_ph = applyOtherEffects(q_ph, Tdp, mobw, model, prop, state, map)
+    check = @(prop) isprop(model.ReservoirModel, prop) && model.ReservoirModel.(prop);
+    haspolymer = check('polymer');
+    if haspolymer
+        hasShear= check('usingShear') || check('usingShearLog') || check('usingShearLogshrate');
+        if hasShear
+            mobw = applyShearEffectsWell(mobw, q_ph, prop, model.ReservoirModel, state);
+
+            q_ph = calculatePhaseRate(Tdp, mobw, map);
+
+        end
+    end
+end
+
 
 
 %{

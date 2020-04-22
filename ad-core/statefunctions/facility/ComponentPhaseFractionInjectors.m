@@ -31,8 +31,8 @@ classdef ComponentPhaseFractionInjectors < StateFunction
             majorComponent = zeros(1, nph);
             notConcentration = cellfun(@(x) ~x.isConcentration, comp);
 
-            % TODO: the concept of majorComponent can be a little
-            % problematic
+            % TODO: the concept of majorComponent is not totally clear, can
+            % be chanlleging to be extended.
             for c = 1:ncomp
                 if notConcentration(c)
                     majorComponent(comp{c}.phaseIndex) = c;

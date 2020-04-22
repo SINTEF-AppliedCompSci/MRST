@@ -44,8 +44,6 @@ classdef SurfactantComponent < ConcentrationComponent
         end
 
         function cmob = getComponentMobility(component, model, state, varargin)
-             % We use a Todd-Longstaff model. It implies that the mobility of the
-             % polymer is a non-linear function of the polymer concentration.
              [mob, b, c] = model.getProps(state, 'Mobility', 'ShrinkageFactors', 'surfactant');
              wIx = 1;
              mobW = mob{wIx};

@@ -12,8 +12,6 @@ classdef PolymerComponent < ConcentrationComponent
 
 
         function c = getComponentDensity(component, model, state, varargin)
-            % TODO: will we be able to make it a generic property of the
-            % class?
             cp = model.getProp(state, 'polymer');
             b = model.getProps(state, 'ShrinkageFactors');
             nph = numel(b);
