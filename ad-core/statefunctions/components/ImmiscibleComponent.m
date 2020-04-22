@@ -10,7 +10,6 @@ classdef ImmiscibleComponent < GenericComponent
         function c = ImmiscibleComponent(name, phase)
             c@GenericComponent(name);
             c.phaseIndex = phase;
-            c.isImmiscible = true;
             c = c.functionDependsOn('getComponentDensity', 'Density', 'PVTPropertyFunctions');
         end
         

@@ -27,21 +27,15 @@ classdef ComponentPhaseFractionInjectors < StateFunction
             rem = cellfun(@isempty, surfaceComposition);
             [surfaceComposition{rem}] = deal(zeros(nw, 1));
             comp = model.Components;
-            isImmiscible = cellfun(@(x) x.isImmiscible, comp);
-            mix = any(isImmiscible) && any(~isImmiscible);
-            majorComponent = zeros(1, nph);
 
+            majorComponent = zeros(1, nph);
             notConcentration = cellfun(@(x) ~x.isConcentration, comp);
 
-            if mix
-                for c = 1:ncomp
-                    % TODO: how to coordinate the isImmiscible and
-                    % isConcentration will be a problem here
-                    % TODO: only immiscible component can carry other
-                    % component? I do not get the full logic here yet
-                    if isImmiscible(c)
-                        majorComponent(comp{c}.phaseIndex) = c;
-                    end
+            % TODO: the concept of majorComponent can be a little
+            % problematic
+            for c = 1:ncomp
+                if notConcentration(c)
+                    majorComponent(comp{c}.phaseIndex) = c;
                 end
             end
             compi = cell(1, nph);

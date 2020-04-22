@@ -17,7 +17,6 @@ classdef OilComponent < ImmiscibleComponent
             if vapoil
                 c = c.functionDependsOn('getComponentDensity', 'rv', 'state');
             end
-            c.isImmiscible = false;
         end
         
         function c = getPhaseComposition(component, model, state, varargin)
