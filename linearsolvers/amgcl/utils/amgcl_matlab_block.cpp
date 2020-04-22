@@ -3,10 +3,6 @@
 //
 #define _USE_MATH_DEFINES
 
-#ifndef HAVE_OCTAVE
-#include "matrix.h"
-#endif
-
 #include <cmath>
 #include <mex.h>
 #include <array>
@@ -14,6 +10,12 @@
 #include <string>
 #include <chrono>
 #include <iostream>
+
+#ifndef HAVE_OCTAVE
+#include "matrix.h"
+#endif
+
+
 
 #include <amgcl/make_solver.hpp>
 #include <amgcl/backend/builtin.hpp>
