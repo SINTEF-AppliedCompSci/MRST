@@ -93,9 +93,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    fsep = filesep;
    if mrstVerbose()
-      mkoctfile('--mex', '-v', '-o', [pth, fsep, caller], ['-I', pth], ['-L', pth], args{:});
+      %mkoctfile('--mex', '-v', '-o', [pth, fsep, caller], ['-I', pth], ['-L', pth], args{:});
+      mkoctfile('--mex', '-v', '-o', [pth, fsep, caller], ['-I', pth], args{:});
    else
-      mkoctfile('--mex', '-o', [pth, fsep, caller], ['-I', pth], ['-L', pth], args{:});
+      %mkoctfile('--mex', '-o', [pth, fsep, caller], ['-I', pth], ['-L', pth], args{:});
+      mkoctfile('--mex', '-o', [pth, fsep, caller], ['-I', pth], args{:});
    end
       
    setenv('CXXFLAGS', cxxflags_orig(1:end-1));
