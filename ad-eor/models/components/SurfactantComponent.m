@@ -38,12 +38,16 @@ classdef SurfactantComponent < ConcentrationComponent
              % Adsorbed part
              poro = model.rock.poro;
              ads = model.getProp(state, 'SurfactantAdsorption');
-             adsorbed = f.rhoR .* ((1-poro)./poro) .* ads;
+             adsorbed = f.rhoRSft .* ((1-poro)./poro) .* ads;
 
              c{wIx} = pv.*(adsorbed + acc);
         end
 
         function cmob = getComponentMobility(component, model, state, varargin)
+             % The mobility of surfactant is a nonlinear function of
+             % surfactant concentration, which affects both the water
+             % viscosity and the relative permeabilities (by changing the
+             % interfacial tension between oil and water).
              [mob, b, c] = model.getProps(state, 'Mobility', 'ShrinkageFactors', 'surfactant');
              wIx = 1;
              mobW = mob{wIx};
