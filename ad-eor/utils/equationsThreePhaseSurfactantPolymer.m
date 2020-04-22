@@ -52,7 +52,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
 
     opt = struct('Verbose'        , mrstVerbose, ...
                  'reverseMode'    , false      , ...
-                 'velocCompMethod', 'square'   , ... 
+                 'velocCompMethod', 'square'   , ...
                  'resOnly'        , false      , ...
                  'iteration'      , -1 );
     opt = merge_options(opt, varargin{:});
@@ -119,10 +119,10 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     primaryVars = {'pressure', 'sW', gvar, 'polymer', 'surfactant', wellVarNames{:}};
 
     % Evaluate relative permeability
-    
+
     sO  = 1 - sW  - sG;
     sO0 = 1 - sW0 - sG0;
-    
+
     if model.water
         sat = {sW, sO, sG};
         sat0 = {sW0, sO0, sG0};
@@ -169,7 +169,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
                 muWFullyMixed = model.fluid.muWMult(cpw);
 
                 mob{1}(wc_inj) = mob{1}(wc_inj) ./ muWFullyMixed .* muWMultW;
-                
+
                 injViscFixed = true;
 
                 dissolved = model.getDissolutionMatrix(rs, rv);
@@ -288,7 +288,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
 
     % Upstream weight b factors and multiply by interface fluxes to obtain the
     % fluxes at standard conditions.
-    
+
     bWvW = s.faceUpstr(upcw, bW).*vW;
     bOvO = s.faceUpstr(upco, bO).*vO;
     bGvG = s.faceUpstr(upcg, bG).*vG;
@@ -326,7 +326,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
         gflux = bGvG;
     end
 
-    % Computation of adsoprtion term
+    % Computation of adsorption term
     vSft   = s.faceUpstr(upcw, cs).*vW;
     bWvSft = s.faceUpstr(upcw, bW).*vSft;
     poro = model.rock.poro;
@@ -341,32 +341,33 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     polymer = ((1-fluid.dps)/dt).*(pv.*bW.*sW.*cp - ...
                                      pv0.*fluid.bW(p0).*sW0.*cp0) + (s.pv/dt).* adsp_term;
     pflux = bWvP;
-    
+
     % Conservation of surfactant in water:
     surfactant = (1/dt).*(pv.*bW.*sW.*cs - pv0.*bW0.*sW0.*cs0) + (s.pv/dt).*adss_term;
     sflux = bWvSft;
-    
+
     % Applying correction to the surfactant and polymer equation when the Jacobian is
-    % prolematic for some cells.
-    % Typically it is due to totally and almost non-existence of water.    
+    % problematic for some cells.
+    % Typically it is due to total or almost non-existence of water.
     if ~opt.resOnly
         epsilon = 1.e-8;
-        % the first way is based on the diagonal values of the resulting
-        % Jacobian matrix
+        % First, we determine what should be considered small diagonal
+        % values in the Jacobian matrix
         [dp, ds] = getDiags(polymer, surfactant);
         epsP = sqrt(epsilon)*mean(abs(dp));
         epsS = sqrt(epsilon)*mean(abs(ds));
-        % sometimes there is no water in the whole domain
+        % Reset if the tolerence turn out to be zero
         if (epsP == 0.)
             epsP = epsilon;
         end
         if (epsS == 0.)
             epsS = epsilon;
         end
-        % bad marks the cells prolematic in evaluating Jacobian
+        % bad marks cells with problematic Jacobians
         badP = abs(dp) < epsP;
         badS = abs(ds) < epsS;
-        % the other way is to choose based on the water saturation
+        % set value of accumulation term equal concentration, which
+        % implicitly sets the corresponding Jacobian to the identity
         polymer(badP) = cp(badP);
         surfactant(badS) = cs(badS);
     end
@@ -383,7 +384,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
                                                     pressures, sat, mob, rho, ...
                                                     dissolved, components, ...
                                                     drivingForces);
-    
+
     % Finally, add in and setup well equations
     wc    = vertcat(W.cells);
     perf2well = getPerforationToWellMapping(W);
@@ -395,7 +396,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     if ~injViscFixed
       % remove the old viscosity and applying the fully mixed viscosity
       muWMultW = muWeffMult(wc_inj);
-    
+
       muWFullyMixed = model.fluid.muWMult(cpw);
 
       mob{1}(wc_inj) = mob{1}(wc_inj) ./ muWFullyMixed .* muWMultW;
@@ -405,7 +406,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
         % applying the shear effects
         mob{1}(wc) = mob{1}(wc)./shearMultW;
     end
-    
+
     % Finally, add in and setup well equations
     [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
                                                     names, types, wellSol0, ...
@@ -417,7 +418,7 @@ function [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, 
     for i = 1:numel(fluxes)
         eqs{i} = s.AccDiv(eqs{i}, fluxes{i});
     end
-    
+
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 end
