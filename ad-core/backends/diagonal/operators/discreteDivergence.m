@@ -1,4 +1,4 @@
-function v = discreteDivergence(acc, v, options)
+function v = discreteDivergence(acc, flux, options)
 % Discrete divergence for the GenericAD library
 
 %{
@@ -21,21 +21,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     hasAcc = ~isempty(acc);
-    if isa(v, 'GenericAD')
-        v.val = accumulate(value(acc), value(v), options);
-        if hasAcc && isa(acc, 'GenericAD')
-            % Both present, both are AD
-            for i = 1:numel(v.jac)
-                v.jac{i} = discreteDivergenceDiagonalJac(acc.jac{i}, v.jac{i}, options);
+    accAD = isa(acc, 'GenericAD');
+    fluxAD = isa(flux, 'GenericAD');
+    if accAD || fluxAD
+        % We have either as AD. Pick one of them to be our AD instance to
+        % avoid re-instantiating a class.
+        if accAD
+            v = acc;
+        else
+            v = flux;
+        end
+        v.val = accumulate(value(acc), value(flux), options);
+        if hasAcc && accAD
+            % If the accumulation term is the only AD variable, we do not
+            % need to do anything. If the fluxes are AD, we need to perform
+            % acc + div.
+            if fluxAD
+                % Both present, both are AD
+                for i = 1:numel(v.jac)
+                    v.jac{i} = discreteDivergenceDiagonalJac(acc.jac{i}, flux.jac{i}, options);
+                end
             end
         else
+            % Just the flux - accumulation terms are doubles
             for i = 1:numel(v.jac)
-                v.jac{i} = discreteDivergenceDiagonalJac([], v.jac{i}, options);
+                v.jac{i} = discreteDivergenceDiagonalJac([], flux.jac{i}, options);
             end
         end
     else
-        assert(isnumeric(v), 'Expected numeric vector, but got ''%s''\n', class(v))
-        v = accumulate(acc, v, options);
+        assert(isnumeric(flux), 'Expected numeric vector, but got ''%s''\n', class(flux))
+        v = accumulate(acc, flux, options);
     end
 end
 function v = accumulate(acc, v, opt)
