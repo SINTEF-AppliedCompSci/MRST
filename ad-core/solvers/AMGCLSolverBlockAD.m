@@ -40,7 +40,7 @@ classdef AMGCLSolverBlockAD < AMGCLSolverAD
                 solver.amgcl_setup.block_size = bz;
             end
             backend = model.AutoDiffBackend;
-            [A, b, A_nn, b_n, A_cn, A_nc] = backend.getBlockSystemCSR(problem, bz);
+            [A, b, A_nn, b_n, A_cn, A_nc] = backend.getBlockSystemCSR(problem, model, bz);
             needsReduction = ~isempty(A_nn);
             if needsReduction
                 % We have non-cell equations. We try to do something about

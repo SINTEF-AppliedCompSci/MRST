@@ -102,7 +102,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
            v = double2GenericAD(v, sample);
         end
         
-        function [A_cc, b_c, A_nn, b_n, A_cn, A_nc] = getBlockSystemCSR(backend, problem, bz)
+        function [A_cc, b_c, A_nn, b_n, A_cn, A_nc] = getBlockSystemCSR(backend, problem, model, bz)
             if nargin < 3 || bz == 0
                 bz = problem.countOfType('cell');
             end
