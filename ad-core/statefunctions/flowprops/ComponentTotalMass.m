@@ -35,7 +35,7 @@ classdef ComponentTotalMass <  StateFunction & ComponentProperty
         
         function prop = setMinimumDerivatives(prop, der)
             if ~isa(prop.AutoDiffBackend, 'DiagonalAutoDiffBackend')
-                dispif(mrstVerbose(), 'Minimum derivatives only supported for diagonal backend.');
+                dispif(mrstVerbose(), 'Minimum derivatives only supported for diagonal backend.\n');
                 return;
             end
             prop.minimumDerivatives = der;
