@@ -84,6 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    cxxflags = new_cxxflags; % ignore the original flags - we shouldn't need them
    
    setenv('CXXFLAGS', cxxflags);
+   setenv('DL_LDFLAGS', "-shared"); % get rid of the -Wl,Bsymbolic linker option
 
    % if regexpi(mkoctfile('-p', 'CXX'), 'g\+\+')
    %    % ensure we do not use a more recent compiler, which creates linking problems
@@ -95,6 +96,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if mrstVerbose()
       %mkoctfile('--mex', '-v', '-o', [pth, fsep, caller], ['-I', pth], ['-L', pth], args{:});
       mkoctfile('--mex', '-v', '-o', [pth, fsep, caller], ['-I', pth], args{:});
+      %mkoctfile('--mex', '-v', '-o', [pth, fsep, caller], ['-I', pth], '-c', args{:});
+      %keyboard;
    else
       %mkoctfile('--mex', '-o', [pth, fsep, caller], ['-I', pth], ['-L', pth], args{:});
       mkoctfile('--mex', '-o', [pth, fsep, caller], ['-I', pth], args{:});
