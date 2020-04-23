@@ -111,14 +111,19 @@ classdef TransportModel < WrapperModel
         end
         
         function model = setupStateFunctionGroupings(model, setDefaults)
-            if ~setDefaults
+            if nargin < 2
+                setDefaults = true;
+            end
+            pmodel = model.parentModel;
+            hasFacility = isprop(pmodel, 'FacilityModel') && ~isempty(pmodel.FacilityModel);
+            isTotalSat = strcmpi(model.formulation, 'totalSaturation');
+            if isempty(pmodel.FluxDiscretization)
+                pmodel = pmodel.setupStateFunctionGroupings();
+            elseif ~setDefaults
                 % State functions have already been set up
                 warning('State function models for parent model is already set up.');
                 return
             end
-            pmodel = model.parentModel;
-            hasFacility = isprop(pmodel, 'FacilityModel') && ~isempty(pmodel);
-            isTotalSat = strcmpi(model.formulation, 'totalSaturation');
             fd = pmodel.FluxDiscretization;
             fp = pmodel.FlowPropertyFunctions;
             % Replace existing properties with total flux variants
