@@ -8,6 +8,18 @@ classdef SurfactantComponent < ConcentrationComponent
             % this surfactant model is transport in water phase
             wIx = 1;
             c@ConcentrationComponent('surfactant', wIx);
+            
+            c = c.functionDependsOn('getComponentDensity', 'surfactant',        'state');
+            c = c.functionDependsOn('getComponentDensity', 'ShrinkageFactors',  'PVTPropertyFunctions');
+
+            c = c.functionDependsOn('getComponentMass', {'s', 'surfactant'},    'state');
+            c = c.functionDependsOn('getComponentMass', 'ShrinkageFactors',     'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMass', 'PoreVolume',           'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMass', 'SurfactantAdsorption', 'FlowPropertyFunctions');
+            
+            c = c.functionDependsOn('getComponentMobility', 'surfactant',       'state');
+            c = c.functionDependsOn('getComponentMobility', 'ShrinkageFactors', 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMobility', 'Mobility',         'FlowPropertyFunctions');
         end
 
         function c = getComponentDensity(component, model, state, varargin)

@@ -8,6 +8,20 @@ classdef PolymerComponent < ConcentrationComponent
             % this polymer model is transport in the water phase
             wIx = 1;
             c@ConcentrationComponent('polymer', wIx);
+            
+            c = c.functionDependsOn('getComponentDensity', 'polymer',             'state');
+            c = c.functionDependsOn('getComponentDensity', 'ShrinkageFactors',    'PVTPropertyFunctions');
+
+            c = c.functionDependsOn('getComponentMass', {'s', 'polymer'},         'state');
+            c = c.functionDependsOn('getComponentMass', 'ShrinkageFactors',       'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMass', 'PoreVolume',             'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMass', 'PolymerAdsorption',      'FlowPropertyFunctions');
+            
+            c = c.functionDependsOn('getComponentMobility', 'polymer',            'state');
+            c = c.functionDependsOn('getComponentMobility', 'ShrinkageFactors',   'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMobility', 'Mobility',           'FlowPropertyFunctions');
+            c = c.functionDependsOn('getComponentMobility', 'PolymerEffViscMult', 'FlowPropertyFunctions');
+            c = c.functionDependsOn('getComponentMobility', 'PolymerViscMult',    'FlowPropertyFunctions');
         end
 
 
@@ -46,7 +60,9 @@ classdef PolymerComponent < ConcentrationComponent
         function cmob = getComponentMobility(component, model, state, varargin)
              % We use a Todd-Longstaff model. It implies that the mobility of the
              % polymer is a non-linear function of the polymer concentration.
-             [mob, b, c, effviscmult, pviscmult] = model.getProps(state, 'Mobility', 'ShrinkageFactors', 'polymer', 'PolymerEffViscMult', 'PolymerViscMult');
+             [mob, b, c, effviscmult, pviscmult] = ...
+                 model.getProps(state, 'Mobility', 'ShrinkageFactors', ...
+                     'polymer', 'PolymerEffViscMult', 'PolymerViscMult');
              wIx = 1;
              mobW = mob{wIx};
              bW = b{wIx};
