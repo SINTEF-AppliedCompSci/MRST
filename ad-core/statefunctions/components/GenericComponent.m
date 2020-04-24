@@ -14,7 +14,7 @@ classdef GenericComponent < StateFunctionDependent
         function c = GenericComponent(name)
             c.name = name;
             % Document dependencies internal to grouping
-            c = c.functionDependsOn('getComponentMobility', {'Mobility'});
+            c = c.functionDependsOn('getComponentMobility', {'Mobility'}, 'FlowPropertyFunctions');
             c = c.functionDependsOn('getComponentMobility', {'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
             % State dependencies
             c = c.functionDependsOn('getComponentMass', {'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
