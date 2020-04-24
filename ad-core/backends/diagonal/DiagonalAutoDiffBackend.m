@@ -165,11 +165,11 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             end
         end
         
-        function [A, schur_diag, insert, fill] = applySchurComplementBlockSystemCSR(backend, A, A_nn, A_nc, A_cn, schur_type, w)
-            if nargin < 7
+        function [A, b, schur_diag, insert, fill] = applySchurComplementBlockSystemCSR(backend, A, b, A_nn, A_nc, A_cn, b_n, schur_type, w)
+            if nargin < 9
                 w = 1;
             end
-            if nargin < 6
+            if nargin < 8
                 doRow = true;
                 doSum = false;
             else
@@ -191,9 +191,12 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             n = size(A_nc, 2)/bz;
             if isnumeric(A_nn)
                 n_to_c = A_nn\A_nc;
+                x_n = A_nn\b_n;
             else
                 n_to_c = A_nn(A_nc);
+                x_n = A_nn(b_n);
             end
+            b = b - A_cn*x_n;
             fill = A_cn*n_to_c;
             [row, col, vals] = find(fill);
             cell_row = mod(row-1, n) + 1;

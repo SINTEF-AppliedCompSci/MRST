@@ -55,10 +55,11 @@ classdef AMGCLSolverBlockAD < AMGCLSolverAD
                 % Factor remaining equations
                 [L, U] = lu(A_nn);
                 A_nn_inv = @(x) U\(L\x);
-                if solvePre || solveSchur
+                if solvePre
                     x_n = A_nn_inv(b_n);
                     b = b - A_cn*x_n;
-                    A = backend.applySchurComplementBlockSystemCSR(A, A_nn_inv, A_nc, A_cn, ...
+                elseif solveSchur
+                    [A, b] = backend.applySchurComplementBlockSystemCSR(A, b, A_nn_inv, A_nc, A_cn, b_n, ...
                                                                    solver.schurApproxType, solver.schurWeight);
                 end
             end
