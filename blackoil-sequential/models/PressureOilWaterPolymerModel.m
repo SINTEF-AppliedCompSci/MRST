@@ -63,7 +63,7 @@ classdef PressureOilWaterPolymerModel < OilWaterPolymerModel
                 % thinning. See equations for details.
                 for w=1:numel(state.wellSol)
                     state.wellSol(w).c_prev = ...
-                        drivingForces.W(w).c;
+                        drivingForces.W(w).cp;
                 end
             end
         end

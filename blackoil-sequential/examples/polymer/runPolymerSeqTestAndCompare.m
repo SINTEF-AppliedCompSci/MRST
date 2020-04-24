@@ -1,5 +1,5 @@
 %% Add required modules
-mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat
+mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat blackoil-sequential
 
 %% Setup example
 fn    = 'POLYMER.DATA';
@@ -53,9 +53,7 @@ state0.s(ijk{3} == 2, 2) = .8;
 state0.s(:,1) = 1 - state0.s(:,2); % Enforce s_w + s_o = 1;
 
 % Add zero polymer concentration to the state.
-state0.c    = zeros(G.cells.num, 1);
-state0.cmax = zeros(G.cells.num, 1);
-
+state0.cp    = zeros(G.cells.num, 1);
 
 %% Plot grid
 figure;

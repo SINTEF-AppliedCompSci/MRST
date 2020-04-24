@@ -28,9 +28,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     inj = vertcat(W.sign) == 1;
     injix   = find(inj);
-    polInj = cellfun(@(x)~isempty(x), {W(injix).c});
+    polInj = cellfun(@(x)~isempty(x), {W(injix).cp});
     wPoly = zeros(nnz(injix), 1);
-    wPoly(polInj) = vertcat(W(injix(polInj)).c);
+    wPoly(polInj) = vertcat(W(injix(polInj)).cp);
     wciPoly = rldecode(wPoly, cellfun(@numel, {W(injix).cells}));
 
     % Injection cells

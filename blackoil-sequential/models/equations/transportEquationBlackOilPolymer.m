@@ -228,10 +228,10 @@ if ~isempty(W)
 
     for i = 1:numel(W)
         perfind = perf2well == i;
-        state.wellSol(i).qOs = sum(double(wflux_O(perfind)));
-        state.wellSol(i).qWs = sum(double(wflux_W(perfind)));
-        state.wellSol(i).qGs = sum(double(wflux_G(perfind)));
-        state.wellSol(i).qPs = sum(double(wflux_P(perfind)));
+        state.wellSol(i).qOs = sum(value(wflux_O(perfind)));
+        state.wellSol(i).qWs = sum(value(wflux_W(perfind)));
+        state.wellSol(i).qGs = sum(value(wflux_G(perfind)));
+        state.wellSol(i).qPs = sum(value(wflux_P(perfind)));
     end
 end
 
@@ -300,7 +300,7 @@ if isa(polymer, 'ADI')
     bad     = abs(diag(polymer.jac{is_polymer})) < epsilon;
     polymer(bad) = c(bad);
 end
-bad = double(sW) == 0;
+bad = value(sW) == 0;
 polymer(bad) = c(bad);
 
 names{ix}  = 'polymer';
