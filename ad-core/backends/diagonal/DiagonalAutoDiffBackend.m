@@ -165,7 +165,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             end
         end
         
-        function [A, schur_diag, insert] = applySchurComplementBlockSystemCSR(backend, A, A_nn, A_nc, A_cn, schur_type, w)
+        function [A, schur_diag, insert, fill] = applySchurComplementBlockSystemCSR(backend, A, A_nn, A_nc, A_cn, schur_type, w)
             if nargin < 7
                 w = 1;
             end
@@ -220,7 +220,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
                         ii = col(act) - (derNo-1)*n;
                     end
                     rowsum = accumarray(ii, vals(act), [n, 1]);
-                    sub = (derNo-1)*bz + eqNo;
+                    sub = (eqNo-1)*bz + derNo;
                     schur_diag(sub, :) = schur_diag(sub, :) + rowsum(ix)';
                 end
             end
