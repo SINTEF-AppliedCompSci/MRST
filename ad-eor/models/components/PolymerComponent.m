@@ -20,8 +20,8 @@ classdef PolymerComponent < ConcentrationComponent
             c = c.functionDependsOn('getComponentMobility', 'polymer',            'state');
             c = c.functionDependsOn('getComponentMobility', 'ShrinkageFactors',   'PVTPropertyFunctions');
             c = c.functionDependsOn('getComponentMobility', 'Mobility',           'FlowPropertyFunctions');
-            c = c.functionDependsOn('getComponentMobility', 'PolymerEffViscMult', 'FlowPropertyFunctions');
-            c = c.functionDependsOn('getComponentMobility', 'PolymerViscMult',    'FlowPropertyFunctions');
+            c = c.functionDependsOn('getComponentMobility', 'PolymerEffViscMult', 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMobility', 'PolymerViscMult',    'PVTPropertyFunctions');
         end
 
 
