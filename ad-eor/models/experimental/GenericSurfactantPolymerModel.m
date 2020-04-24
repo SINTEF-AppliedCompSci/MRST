@@ -6,12 +6,6 @@ classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & Exte
     methods
         function model = GenericSurfactantPolymerModel(G, rock, fluid, deck, varargin)
             model = model@ThreePhaseSurfactantPolymerModel(G, rock, fluid, deck, varargin{:});
-            
-            % FIXME: not sure what is the best way to do the following
-            if model.surfactant
-                model.operators.veloc = computeVelocTPFA(G, model.operators.internalConn);
-                model.operators.sqVeloc = computeSqVelocTPFA(G, model.operators.internalConn);
-            end
             model.OutputStateFunctions = {'ComponentTotalMass'};
         end
 
@@ -118,6 +112,10 @@ classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & Exte
                     % Not implemented - fill me in
                     c = SurfactantComponent();
                     model.Components{index} = c;
+                    model.operators.veloc = ...
+                        computeVelocTPFA(model.G, model.operators.internalConn);
+                    model.operators.sqVeloc = ...
+                        computeSqVelocTPFA(model.G, model.operators.internalConn);
                 end
             end
             model = validateModel@ThreePhaseSurfactantPolymerModel(model, varargin{:});
