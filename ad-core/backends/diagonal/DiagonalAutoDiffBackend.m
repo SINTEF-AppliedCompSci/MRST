@@ -76,9 +76,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             if backend.rowMajor
                 out = [out, '-RowMajor'];
             end
-            if backend.modifyOperators
-                out = [out, ' [custom operators]'];
-            else
+            if ~backend.modifyOperators
                 out = [out, ' [matrix product operators]'];
             end
         end
@@ -203,7 +201,9 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             cell_col = mod(col-1, n) + 1;
             keep = cell_row == cell_col;
             ix = unique(cell_row(keep));
-            if ~doSum
+            if doSum
+                % vals(~keep) = -vals(~keep);
+            else
                 row = row(keep);
                 col = col(keep);
                 vals = vals(keep);
