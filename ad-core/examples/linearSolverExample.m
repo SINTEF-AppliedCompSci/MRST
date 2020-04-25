@@ -37,7 +37,9 @@ state0 = initResSol(G, 50*barsa, s0);
 %% Set up model
 fluid = initSimpleADIFluid('c', [1e-6, 1e-5, 1e-3]/barsa, 'n', [2, 2, 2], 'rho', [1000, 500, 100]);
 model = GenericBlackOilModel(G, rock, fluid);
-% model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true);
+model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true, ...
+                                                'deferredAssembly', true, ...
+                                                'rowMajor', true);
 
 tmodel = TransportModel(model);
 pmodel = PressureModel(model);
@@ -66,8 +68,8 @@ ordering = getCellMajorReordering(ncells, ncomp);
 % Pressure
 pproblem = pmodel.getEquations(state0, state0, dt, forces);
 % Skip wells
-pproblem.equations = pproblem.equations(1);
-pproblem.equations{1}.jac = pproblem.equations{1}.jac(1);
+% pproblem.equations = pproblem.equations(1);
+% pproblem.equations{1}.jac = pproblem.equations{1}.jac(1);
 % We can pre-assemble to save a bit of time
 pproblem = pproblem.assembleSystem();
 
@@ -83,13 +85,18 @@ tproblem = tproblem.assembleSystem();
 innerTol = 1e-4;
 block_arg = {'variableOrdering', ordering, 'equationOrdering', ordering};
 base_arg = {'tolerance', tol, 'maxIterations', maxIter, 'keepNumber', ncomp*ncells};
-cpr = CPRSolverAD(base_arg{:});
-cpr_agmg = CPRSolverAD(base_arg{:},'ellipticSolver', AGMGSolverAD('tolerance', innerTol));
-cpr_amgcl = CPRSolverAD(base_arg{:},'ellipticSolver', AMGCLSolverAD('reuseMode', 2, 'tolerance', innerTol));
+cpr_matlab_arg = [base_arg, 'diagonalTol', nan];
+cpr = CPRSolverAD(cpr_matlab_arg{:});
+if hasAGMG
+    cpr_agmg = CPRSolverAD(cpr_matlab_arg{:},'ellipticSolver', AGMGSolverAD('tolerance', innerTol));
+end
+cpr_amgcl = CPRSolverAD(cpr_matlab_arg{:},'ellipticSolver', AMGCLSolverAD('reuseMode', 2, 'tolerance', innerTol));
 cpr_cl = AMGCL_CPRSolverAD(base_arg{:}, block_arg{:});
 cpr_cl_w = AMGCL_CPRSolverAD(base_arg{:}, block_arg{:}, ...
     'coarsening', 'smoothed_aggregation', 'relaxation', 'spai0', ...
     'solver', 'bicgstab', 'npre', 3, 'npost', 3, 'ncycle', 2, 'id', '-tweaked');
+cpr_cl_block = AMGCL_CPRSolverBlockAD(base_arg{:});
+
 %%
 bl = BackslashSolverAD();
 gmilu = GMRES_ILUSolverAD(base_arg{:});
@@ -108,6 +115,7 @@ end
 fi_solvers{end+1} = cpr_amgcl;
 fi_solvers{end+1} = cpr_cl;
 fi_solvers{end+1} = cpr_cl_w;
+fi_solvers{end+1} = cpr_cl_block;
 
 [descr_fi, names_fi] = cellfun(@getDescription, fi_solvers, 'UniformOutput', false);
 % Solving
@@ -132,8 +140,9 @@ amg_stuben = AMGCLSolverAD(parg{:}, 'coarsening', 'ruge_stuben', 'id', '-classic
 amg_aggr = AMGCLSolverAD(parg{:}, 'coarsening', 'aggregation', 'id', '-aggregation');
 amg_smoothed_aggr = AMGCLSolverAD(parg{:}, 'coarsening', 'smoothed_aggregation', 'id', '-smoothed_aggregation');
 amg_smoothed_aggre = AMGCLSolverAD(parg{:}, 'coarsening', 'smoothed_aggr_emin', 'id', '-smoothed_aggr_emin');
-
-agmg = AGMGSolverAD(parg{:});
+if hasAGMG
+    agmg = AGMGSolverAD(parg{:});
+end
 
 p_solvers = {};
 if solveDirect
