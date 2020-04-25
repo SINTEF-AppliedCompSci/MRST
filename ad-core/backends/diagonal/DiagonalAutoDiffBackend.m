@@ -114,9 +114,14 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             % First, get the matrix
             opt = J{1}.divergenceOptions;
             prelim = opt.mex;
-            
             acc = cellfun(@(x) x.accumulation.diagonal, J, 'UniformOutput', false);
             flux = cellfun(@(x) x.flux.diagonal, J, 'UniformOutput', false);
+            if ~backend.rowMajor
+                % MEX routine for assembly assumes rowmajor. Perform
+                % potentially expensive transpose of all block matrices.
+                acc = cellfun(@(x) x', acc, 'UniformOutput', false);
+                flux = cellfun(@(x) x', flux, 'UniformOutput', false);
+            end
             bad = cellfun(@isempty, flux);
             if any(bad)
                 [flux{bad}] = deal(zeros(2*bz, size(model.operators.N, 1)));
