@@ -67,7 +67,7 @@ classdef CPRSolverAD < LinearSolverAD
             % parametrized by oil pressure as the primary variable.
             isOilEq = problem0.indexOfEquationName('oil');
             if any(isOilEq) && ~isOilEq(1)
-                indices = 1:numel(problem0);
+                indices = 1:numeq(problem0);
                 indices(isOilEq) = 1;
                 indices(1)   = find(isOilEq);
                 problem0 = problem0.reorderEquations(indices);
@@ -112,57 +112,60 @@ classdef CPRSolverAD < LinearSolverAD
                 end
             end
             eqs = problem.equations;
-                      
-            isElliptic = false(nCell, cellEqNo);
-            for i = 1:cellEqNo
-                % Find the derivative of current cell block w.r.t the
-                % pressure
-                pressureJacobi = eqs{i}.jac{isPressure};
-                assert(size(eqs{i}.jac{isPressure}, 2) == nCell);
-                pressureDiag  = diag(pressureJacobi);
-                
-                sod = sum(abs(pressureJacobi), 2) - abs(pressureDiag);
-                % Find "bad" equations, i.e. equations where the current
-                % pressure index does not give a good elliptic jacobian
-                isElliptic(pressureDiag./sod > solver.diagonalTol, i) = true;
-            end
-            
-            isElliptic(all(isElliptic == 0, 2), pressureIndex) = true;
-            
-            bad = ~isElliptic(:, pressureIndex);
-            if any(bad)
-                bad = find(bad);
-                % first identify zero diagonal elems of eqs{pressureIndex}
-                isZeroDiag = false(numel(bad), cellEqNo);
+            if isfinite(solver.diagonalTol)
+                isElliptic = false(nCell, cellEqNo);
                 for i = 1:cellEqNo
-                    d = diag(eqs{pressureIndex}.jac{i});
-                    isZeroDiag(:,i) = d(bad)==0;
+                    % Find the derivative of current cell block w.r.t the
+                    % pressure
+                    pressureJacobi = eqs{i}.jac{isPressure};
+                    assert(size(eqs{i}.jac{isPressure}, 2) == nCell);
+                    pressureDiag  = diag(pressureJacobi);
+
+                    sod = sum(abs(pressureJacobi), 2) - abs(pressureDiag);
+                    % Find "bad" equations, i.e. equations where the current
+                    % pressure index does not give a good elliptic jacobian
+                    isElliptic(pressureDiag./sod > solver.diagonalTol, i) = true;
                 end
-                % Switch equations for non-elliptic jacobian components with
-                % some other equation that has an elliptic pressure jacobian
-                [r, c] = find(and(isElliptic(bad, :),~isZeroDiag));
-                sb = numel(bad);
-                if sb == 1
-                    % Find gets confused for a single element
-                    r = r(:);
-                    c = c(:);
-                end
-                replacementInd = accumarray(r, c, [sb, 1], @min);
-                
-                
-                for i = unique(replacementInd)'
-                    if i == pressureIndex
-                        continue
+
+                isElliptic(all(isElliptic == 0, 2), pressureIndex) = true;
+
+                bad = ~isElliptic(:, pressureIndex);
+                if any(bad)
+                    bad = find(bad);
+                    % first identify zero diagonal elems of eqs{pressureIndex}
+                    isZeroDiag = false(numel(bad), cellEqNo);
+                    for i = 1:cellEqNo
+                        d = diag(eqs{pressureIndex}.jac{i});
+                        isZeroDiag(:,i) = d(bad)==0;
                     end
-                    % Standard switching with some overloaded indexing in
-                    % the ad objects
-                    isCurrent = bad(replacementInd == i);
-                    problem.equations{i}(isCurrent) = eqs{pressureIndex}(isCurrent);
-                    problem.equations{pressureIndex}(isCurrent) = eqs{i}(isCurrent);
+                    % Switch equations for non-elliptic jacobian components with
+                    % some other equation that has an elliptic pressure jacobian
+                    [r, c] = find(and(isElliptic(bad, :),~isZeroDiag));
+                    sb = numel(bad);
+                    if sb == 1
+                        % Find gets confused for a single element
+                        r = r(:);
+                        c = c(:);
+                    end
+                    replacementInd = accumarray(r, c, [sb, 1], @min);
+
+
+                    for i = unique(replacementInd)'
+                        if i == pressureIndex
+                            continue
+                        end
+                        % Standard switching with some overloaded indexing in
+                        % the ad objects
+                        isCurrent = bad(replacementInd == i);
+                        problem.equations{i}(isCurrent) = eqs{pressureIndex}(isCurrent);
+                        problem.equations{pressureIndex}(isCurrent) = eqs{i}(isCurrent);
+                    end
                 end
+
+                problem.equations{pressureIndex} = isElliptic(:,1).*eqs{pressureIndex};
+            else
+                isElliptic = true(nCell, cellEqNo);
             end
-            
-            problem.equations{pressureIndex} = isElliptic(:,1).*eqs{pressureIndex};
             for i = 1:cellEqNo
                 % Add together all the equations to get a "pressure
                 % equation" where we know that all submatrices should be as
