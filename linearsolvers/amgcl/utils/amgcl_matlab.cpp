@@ -306,7 +306,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double *rhs;
     double *err;
     double *it_count;
-    mwSize m, n, nnz, m_rhs, n_rhs;
+    mwSize m, n, nnz, m_rhs, n_rhs, m_initial_guess, n_initial_guess;
     mwIndex * cols;
     mwIndex * rows;
     const mxArray * pa;
@@ -318,8 +318,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     if (nrhs == 0 && nlhs == 0){
         mexPrintf("AMGCL is compiled and ready for use.\n");
         return;
-    } else if (nrhs != 6 && nrhs != 7) {
-	    mexErrMsgTxt("6 or 7 input arguments required.\nSyntax: amgcl_matlab(A, b, opts, tol, maxit, solver_id, reuse_id)");
+    } else if (nrhs != 6 && nrhs != 7 && nrhs != 8) {
+	    mexErrMsgTxt("6, 7 or 8 input arguments required.\nSyntax: amgcl_matlab(A, b, opts, tol, maxit, solver_id, reuse_id, x0)");
     } else if (nlhs > 3) {
 	    mexErrMsgTxt("More than three outputs requested!");
     }
@@ -329,6 +329,15 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     m_rhs = mxGetM(prhs[1]);
     n_rhs = mxGetN(prhs[1]);
+    
+    bool has_initial_guess;
+    double *initial_guess;
+    has_initial_guess = (nrhs == 8);
+    if (has_initial_guess){
+        m_initial_guess = mxGetM(prhs[7]);
+        n_initial_guess = mxGetN(prhs[7]);
+    }
+    
     int M = (int)m;
 
     if (!mxIsDouble(prhs[0]) || mxIsComplex(prhs[0]) ||  !mxIsSparse(prhs[0]) ) {
@@ -343,6 +352,10 @@ void mexFunction( int nlhs, mxArray *plhs[],
 	    mexErrMsgTxt("Right hand side must be real double column vector with one entry per row of A.");
         return;
     }
+    if (has_initial_guess && (!mxIsDouble(prhs[7]) || mxIsComplex(prhs[7]) || n_initial_guess != 1 || m_initial_guess != m)) {
+	    mexErrMsgTxt("Initial guess must be real double column vector with one entry per column of A.");
+        return;
+    }
     // First output: Solution column vector
     plhs[0] = mxCreateDoubleMatrix(m, 1, mxREAL);
     // Second output: Residual error
@@ -354,12 +367,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
     err      = mxGetPr(plhs[1]);
     it_count = mxGetPr(plhs[2]);
 
-    cols    = mxGetJc(prhs[0]);
-    rows    = mxGetIr(prhs[0]);
-    entries = mxGetPr(prhs[0]);
-    nnz     = mxGetNzmax(prhs[0]);
-    rhs     = mxGetPr(prhs[1]);
-
+    cols          = mxGetJc(prhs[0]);
+    rows          = mxGetIr(prhs[0]);
+    entries       = mxGetPr(prhs[0]);
+    nnz           = mxGetNzmax(prhs[0]);
+    rhs           = mxGetPr(prhs[1]);
+    if (has_initial_guess){
+        initial_guess = mxGetPr(prhs[7]);
+    }
     // Build system matrix
     const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
     // Get struct with options
@@ -403,6 +418,12 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int    iters;
     double error;
     std::vector<double> x(M, 0.0);
+    if (has_initial_guess){
+        #pragma omp parallel for
+        for(int ix = 0; ix < M; ix++){
+            x[ix] = initial_guess[ix];
+        }
+    }
     switch(reuse_mode){
       case 1:
           // Default: No reuse, delete all if present
