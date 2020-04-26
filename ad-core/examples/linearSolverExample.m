@@ -12,7 +12,7 @@ if ~exist('solveDirect', 'var')
     solveDirect = true;
 end
 
-solveDirect = solveDirect && n^3 <= 100000;
+solveDirect = solveDirect && n^3 <= 50000;
 assert(isscalar(n));
 assert(n <= 100);
 hasAGMG = ~isempty(mrstPath('agmg'));
@@ -57,8 +57,6 @@ dt = 1*year;
 maxIter = 100;
 tol = 1e-6;
 
-getter = @(x, fld) cellfun(@(x) x.(fld), x);
-getData = @(x) [getter(x, 'PreparationTime'); getter(x, 'LinearSolutionTime'); getter(x, 'PostProcessTime')]';
 
 %% Get systems
 problem = model.getEquations(state0, state0, dt, forces);
@@ -128,7 +126,7 @@ for sno = 1:ns
 end
 fprintf('Solve done.\n');
 %% Plot
-[timing_fi, its_fi] = getTiming(reports_fi, getData);
+[timing_fi, its_fi] = getTiming(reports_fi);
 if doPlot
     figure(1 + offset); clf;
     plotLinearTimingsForExample(names_fi, timing_fi, its_fi);
@@ -167,7 +165,7 @@ for sno = 1:nsp
     [dx, result, reports_p{sno}] = solver.solveLinearProblem(pproblem, model);
 end
 %%
-[timing_p, its_p] = getTiming(reports_p, getData);
+[timing_p, its_p] = getTiming(reports_p);
 if doPlot
     figure(2 + offset); clf;
     plotLinearTimingsForExample(names_p, timing_p, its_p);
@@ -204,7 +202,7 @@ for sno = 1:nst
     [dx, result, reports_t{sno}] = solver.solveLinearProblem(tproblem, model);
 end
 %%
-[timing_t, its_t] = getTiming(reports_t, getData);
+[timing_t, its_t] = getTiming(reports_t);
 
 if doPlot
     figure(3 + offset); clf;
@@ -212,7 +210,7 @@ if doPlot
     title('Transport system')
 end
 %%
-function [timing, its] = getTiming(reports, getData)
+function [timing, its] = getTiming(reports)
     timing = getData(reports);
     ok = true(size(timing, 1), 1);
     for i = 1:size(timing, 1)
@@ -256,6 +254,22 @@ function timing = plotLinearTimingsForExample(names, timing, its)
     ylim([0, 1.1*max(tot)]);
 end
 
+function d = getData(r)
+    getter = @(x, fld) cellfun(@(x) x.(fld), x);
+    prep = getter(r, 'PreparationTime');
+    for i = 1:numel(r)
+        x = r{i};
+        if isfield(x, 'BlockAssembly')
+            % Subtract block assembly, since this would normally be
+            % measured as a part of the equations assembly (all other
+            % solvers get a pre-assembled linear system in this benchmark)
+            prep = prep - x.BlockAssembly;
+        end
+    end
+    d = [prep; ...
+         getter(r, 'LinearSolutionTime'); ...
+         getter(r, 'PostProcessTime')]';
+end
 % <html>
 % <p><font size="-1">
 % Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
