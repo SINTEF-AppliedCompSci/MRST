@@ -90,7 +90,7 @@ if hasAGMG
 end
 cpr_amgcl = CPRSolverAD(cpr_matlab_arg{:},'ellipticSolver', AMGCLSolverAD('reuseMode', 2, 'tolerance', innerTol));
 cpr_cl = AMGCL_CPRSolverAD(base_arg{:}, block_arg{:});
-cpr_cl_w = AMGCL_CPRSolverAD(base_arg{:}, block_arg{:}, ...
+cpr_cl_block_w = AMGCL_CPRSolverBlockAD(base_arg{:}, ...
     'coarsening', 'smoothed_aggregation', 'relaxation', 'spai0', ...
     'solver', 'bicgstab', 'npre', 3, 'npost', 3, 'ncycle', 2, 'id', '-tweaked');
 cpr_cl_block = AMGCL_CPRSolverBlockAD(base_arg{:});
@@ -112,8 +112,8 @@ if hasAGMG
 end
 fi_solvers{end+1} = cpr_amgcl;
 fi_solvers{end+1} = cpr_cl;
-fi_solvers{end+1} = cpr_cl_w;
 fi_solvers{end+1} = cpr_cl_block;
+fi_solvers{end+1} = cpr_cl_block_w;
 
 [descr_fi, names_fi] = cellfun(@getDescription, fi_solvers, 'UniformOutput', false);
 % Solving
@@ -181,6 +181,7 @@ amgcl_gs = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', 1, 'relaxation', '
 amgcl_ilu  = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', 1, 'relaxation', 'ilu0', 'id', '-ilu0');
 amgcl_bilu = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'ilu0', 'id', '-ilu0');
 amgcl_bgs = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'gauss_seidel', 'id', '-gs');
+bamgcl_ilu = AMGCLSolverBlockAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'ilu0', 'id', '-ilu0*');
 
 t_solvers = {};
 if solveDirect
@@ -191,6 +192,8 @@ t_solvers{end+1} = amgcl_gs;
 t_solvers{end+1} = amgcl_ilu;
 t_solvers{end+1} = amgcl_bgs;
 t_solvers{end+1} = amgcl_bilu;
+t_solvers{end+1} = bamgcl_ilu;
+
 [descr_t, names_t] = cellfun(@getDescription, t_solvers, 'UniformOutput', false);
 
 nst = numel(t_solvers);
@@ -235,7 +238,9 @@ end
 
 function timing = plotLinearTimingsForExample(names, timing, its)
     bh = bar(timing, 'stacked');
-    legend('Pre', 'Solve', 'Post');
+%     bar(timing);
+    % legend('Pre', 'Solve', 'Post', 'Total');
+    legend('Solve', 'Pre', 'Post');
     set(gca, 'XTickLabel', names, 'TickLabelInterpreter', 'none');
     set(gca, 'XTickLabelRotation', -20)
     tot = sum(timing, 2);
@@ -263,12 +268,13 @@ function d = getData(r)
             % Subtract block assembly, since this would normally be
             % measured as a part of the equations assembly (all other
             % solvers get a pre-assembled linear system in this benchmark)
-            prep = prep - x.BlockAssembly;
+            prep(i) = prep(i) - x.BlockAssembly;
         end
     end
-    d = [prep; ...
-         getter(r, 'LinearSolutionTime'); ...
-         getter(r, 'PostProcessTime')]';
+    solve = getter(r, 'LinearSolutionTime');
+    post = getter(r, 'PostProcessTime');
+    tot = prep + solve + post;
+    d = [solve; prep; post]';
 end
 % <html>
 % <p><font size="-1">
