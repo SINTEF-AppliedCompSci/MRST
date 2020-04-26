@@ -14,18 +14,15 @@ classdef AMGCL_CPRSolverBlockAD < AMGCLSolverBlockAD
     %   `BackslashSolverAD`
 
    properties
-       doApplyScalingCPR % true / false
        pressureScaling % scaling factor for pressure - automatically determined
        diagonalTol = 0.2; % tolerance if strategy ends with _drs
        couplingTol = 0.02; % tolerance for drs
-       decoupling = 'trueIMPES'; % trueimpes, quasiimpes, none
-       strategy = 'mrst'; % mrst, mrst_drs, amgcl, amgcl_drs
+       strategy = 'amgcl'; % amgcl, amgcl_drs
    end
    methods
        function solver = AMGCL_CPRSolverBlockAD(varargin)
             require linearsolvers
             solver = solver@AMGCLSolverBlockAD();
-            solver.doApplyScalingCPR = false;
             solver.reduceToCell = true;
             solver.tolerance    = 1e-6;
 
@@ -50,8 +47,6 @@ classdef AMGCL_CPRSolverBlockAD < AMGCLSolverBlockAD
 
        function problem = prepareProblemCPR(solver, problem, model)
            n = model.G.cells.num;
-           solver.pressureScaling = mean(value(problem.state.pressure));
-
            if solver.amgcl_setup.block_size == 0
                % Solver has not been told about block size, try to compute
                % it from what we are given.
@@ -63,33 +58,12 @@ classdef AMGCL_CPRSolverBlockAD < AMGCLSolverBlockAD
            solver.amgcl_setup.cell_num = model.G.cells.num;
            solver.amgcl_setup.cell_size = n;
 
-
-           % Get and apply scaling
-           if solver.doApplyScalingCPR && strcmpi(solver.decoupling, 'trueimpes')
-               assert(false)
-                if ~isempty(problem.A)
-                    problem = problem.clearSystem();
-                    dispif(solver.verbose, 'System already assembled. CPR will re-assemble!');
-                end
-               scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
-               % Solver will take the sum for us, we just weight each
-               % equation. Note: This is not the entirely correct way
-               % of doing this, as solver could do this by itself.
-               for i = 1:numel(scale)
-                   if ~strcmpi(problem.types{i}, 'cell')
-                       continue
-                   end
-                   ds = value(scale{i});
-                   if (numel(ds) > 1 || any(ds ~= 0))
-                       problem.equations{i} = problem.equations{i}.*scale{i};
-                   end
-               end
-           end
            m = solver.amgcl_setup.block_size;
            assert(m > 0);
 
            switch lower(solver.strategy)
                case {'mrst', 'mrst_drs'}
+                   assert(false, 'Not supported');
                    solver.amgcl_setup.use_drs = true;
                    solver.amgcl_setup.drs_eps_ps = -1e8;
                    solver.amgcl_setup.drs_eps_dd = -1e8;
