@@ -16,7 +16,7 @@ classdef BackslashSolverAD < LinearSolverAD
            solver = merge_options(solver, varargin{:});
        end
        
-       function [result, report] = solveLinearSystem(solver, A, b)
+       function [result, report] = solveLinearSystem(solver, A, b, varargin)
            timer = tic();
            result = A\b;
            t_solve = toc(timer);

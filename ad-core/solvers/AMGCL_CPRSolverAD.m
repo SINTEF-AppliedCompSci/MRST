@@ -36,8 +36,8 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
             solver.amgcl_setup.solver_id = 2;
        end
 
-       function [result, report] = solveLinearSystem(solver, A, b)
-           [result, report] = solver.callAMGCL_MEX(A, b, solver.amgcl_setup.solver_id);
+       function [result, report] = solveLinearSystem(solver, A, b, varargin)
+           [result, report] = solver.callAMGCL_MEX(A, b, solver.amgcl_setup.solver_id, varargin{:});
        end
 
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
@@ -180,13 +180,16 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            end
        end
 
-        function [A, b, scaling] = applyScaling(solver, A, b)
+        function [A, b, scaling, x0] = applyScaling(solver, A, b, x0)
+            if nargin == 3
+                x0 = [];
+            end
             bz = solver.amgcl_setup.block_size;
             nc = solver.amgcl_setup.cell_size;
             psub = (1:bz:(nc*bz - bz + 1))';
 
             if solver.applyLeftDiagonalScaling || solver.applyRightDiagonalScaling
-                [A, b, scaling] = applyScaling@LinearSolverAD(solver, A, b);
+                [A, b, scaling, x0] = applyScaling@LinearSolverAD(solver, A, b, x0);
             elseif numel(solver.pressureScaling) ~= 1 || solver.pressureScaling ~= 1
                 n = size(A, 1);
                 d = ones(n, 1);
@@ -195,6 +198,9 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 I = (1:n)';
                 M = sparse(I, I, d, n, n);
                 A = A*M;
+                if ~isempty(x0)
+                    x0(psub) = x0(psub)./d(psub);
+                end
                 scaling.M = M;
             end
 
