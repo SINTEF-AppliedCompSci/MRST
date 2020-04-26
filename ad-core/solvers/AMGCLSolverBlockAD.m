@@ -41,6 +41,7 @@ classdef AMGCLSolverBlockAD < AMGCLSolverAD
             end
             backend = model.AutoDiffBackend;
             [A, b, A_nn, b_n, A_cn, A_nc] = backend.getBlockSystemCSR(problem, model, bz);
+            t_asm = toc(timer);
             needsReduction = ~isempty(A_nn);
             if needsReduction
                 % We have non-cell equations. We try to do something about
@@ -75,12 +76,13 @@ classdef AMGCLSolverBlockAD < AMGCLSolverAD
             else
                 result = x_c;
             end
-            dx = solver.storeIncrements(problem, result);
-            t_post = toc(timer) - t_solve;
+            t_post = toc(timer) - t_solve - t_prep;
             % Output helpful info
-            report.PreparationTime = t_prep;
+            report.PreparationTime    = t_prep;
             report.LinearSolutionTime = t_solve;
-            report.PostProcessTime = t_post;
+            report.PostProcessTime    = t_post;
+            report.BlockAssembly      = t_asm;
+            dx = solver.storeIncrements(problem, result);
         end
         
         
