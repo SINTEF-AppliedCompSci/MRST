@@ -424,33 +424,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     tetracolrowtbl = crossIndexArray(tetratbl, colrowtbl, {}, 'optpureproduct', true);
     
-    map = TensorMap();
-    map.fromTbl = tetracoltbl;
-    map.toTbl = tetracolrowtbl;
-    map.replaceFromTblfds = {{'coldim', 'rowdim'}};
-    map.mergefds = {'cells', 'faces', 'edges', 'rowdim'};
-    map = map.setup();
-    u = map.eval(u);
-    
-    map = TensorMap();
-    map.fromTbl = tetracoltbl;
-    map.toTbl = tetracolrowtbl;
-    map.mergefds = {'cells', 'faces', 'edges', 'coldim'};
-    map = map.setup();
-    v = map.eval(v);
-    
-    uvcross = u.*v;
-    
     prod = TensorProd();
     prod.tbl1 = colrowcrosstbl;
-    prod.tbl2 = tetracolrowtbl;
-    prod.tbl3 = tetracoltbl;
-    prod.replacefds1 = {{'coldim', 'ind1'}, {'rowdim', 'ind2'}, {'crossdim', 'coldim'}};
-    prod.replacefds2 = {{'coldim', 'ind1'}, {'rowdim', 'ind2'}};
-    prod.reducefds = {'ind1', 'ind2'};
+    prod.tbl2 = tetracoltbl;
+    prod.tbl3 = tetracolrowtbl;
+    prod.replacefds1 = {{'rowdim', 'ind'},  {'crossdim', 'rowdim'}};
+    prod.replacefds2 = {{'coldim', 'ind'}};
+    prod.reducefds = {'ind'};
     prod = prod.setup();
     
-    uvcross = prod.eval(crossvect, uvcross);
+    uvcross = prod.eval(crossvect, u);
+    
+    prod = TensorProd();
+    prod.tbl1 = tetracolrowtbl;
+    prod.tbl2 = tetracoltbl;
+    prod.tbl3 = tetracoltbl;
+    prod.replacefds1 = {{'coldim', 'ind'},  {'rowdim', 'coldim'}};
+    prod.replacefds2 = {{'coldim', 'ind'}};
+    prod.mergefds = {'cells', 'faces', 'edges'};
+    prod.reducefds = {'ind'};
+    prod = prod.setup();
+    
+    uvcross = prod.eval(uvcross, v);
     
     % The volume is equal to the absolute value of the inner-product of w and
     % uvcross.
