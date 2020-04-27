@@ -4,13 +4,18 @@ classdef NumericalPressureReductionFactors < StateFunction
         includeDerivatives = true;
         fullDerivatives    = false;
         checkDerivatives   = false;
+        rowMajor           = false;
     end
     methods
         
         function prf = NumericalPressureReductionFactors(model, varargin)
             prf@StateFunction(model, varargin{:});
             AD = model.AutoDiffBackend;
-            prf.useDiagonalReduction = isa(AD, 'DiagonalAutoDiffBackend') && AD.useMex;
+            isDiag = isa(AD, 'DiagonalAutoDiffBackend');
+            prf.useDiagonalReduction = isDiag && AD.useMex;
+            if isDiag
+                prf.rowMajor = AD.rowMajor;
+            end
         end
         
         function weights = evaluateOnDomain(prop, model, state)
@@ -123,7 +128,11 @@ classdef NumericalPressureReductionFactors < StateFunction
                         diags{i} = diags{i} + extra{i};
                     end
                 end
-                diags = cellfun(@(x) x', diags, 'UniformOutput', false);
+                diags = cellfun(@(x) x, diags, 'UniformOutput', false);
+                if ~prp.rowMajor
+                    diags = cellfun(@(x) x', diags, 'UniformOutput', false);
+                end
+                
                 M = vertcat(diags{:});
                 ncell = size(M, 2);
                 sz = repmat(ncomp, ncell, 1);
