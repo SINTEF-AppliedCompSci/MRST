@@ -325,6 +325,51 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     
+    facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos));
+    facenodetbl.nodes = G.faces.nodes;
+    facenodetbl = IndexArray(facenodetbl); 
+    
+    nnodeperface = diff(G.faces.nodePos);
+    
+    map = TensorMap();
+    map.fromTbl = facetbl;
+    map.toTbl = facenodetbl;
+    map.mergefds = {'faces'};
+    map = map.setup();
+    nodecoef = 1./map.eval(nnodeperface);
+    
+    facenodeverttbl = crossIndexArray(facenodetbl, facetbl, {'faces'});
+    nodeverttbl1 = projIndexArray(facenodeverttbl, {'nodes', 'vertices'});
+    
+    nodeverttbl2 = nodetbl;
+    
+    % sanity check
+    assert(all(strcmp(nodeverttbl1.fdnames, nodeverttbl2.fdnames)), 'inconsistent field names');
+    inds = [nodeverttbl1.inds; nodeverttbl2.inds];
+    fdnames =  nodeverttbl1.fdnames;
+    nodeverttbl = IndexArray([]);
+    nodeverttbl = nodeverttbl.setup(fdnames, inds);
+
+    map = TensorMap();
+    map.fromTbl = facenodeverttbl;
+    map.toTbl = nodeverttbl;
+    map.mergefds = {'nodes', 'vertices'};
+    map = map.setup();
+    
+    barred1 = map.eval(nodecoef);
+        
+    map = TensorMap();
+    map.fromTbl = nodetbl;
+    map.toTbl = nodeverttbl;
+    map.mergefds = {'nodes', 'vertices'};
+    map = map.setup();
+    
+    barred2 = map.eval(ones(nodetbl.num, 1));
+    
+    barred = barred1 + barred2;
+    
+    
+    
     
     return
     
