@@ -1,6 +1,6 @@
 classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & ExtendedReservoirModel
     properties
-        
+        toleranceEOR = 1e-3;
     end
     
     methods
@@ -129,6 +129,34 @@ classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & Exte
                 nph = numel(f);
                 state.flux = zeros(model.G.faces.num, nph);
                 state.flux(model.operators.internalConn, :) = [f{:}];
+            end
+        end
+        
+        function [values, tolerances, names] = getConvergenceValues(model, problem, varargin)
+            [values, tolerances, names] = getConvergenceValues@ThreePhaseSurfactantPolymerModel(model, problem, varargin{:});
+            % Polymer/Surfactant: Scale the convergence criterion to be
+            % dimensionless. Since we have accumulation terms on the form:
+            %    pv * rhoW * c * sW / dt
+            % we can apply the scaling
+            %    dt / (pv * rhoW * c_max)
+            % to get something which has no units and can be compared
+            % against our tolerance for EOR components.
+            dt = problem.dt;
+            pv = model.operators.pv;
+            rhoS = model.fluid.rhoWS(1);
+            cnames = {'polymer', 'surfactant'};
+            cf     = {'cpmax', 'csmax'};
+            for i = 1:numel(cnames)
+                cn = cnames{i};
+                isEOR = strcmpi(names, cn);
+                if any(isEOR)
+                    cmax = model.fluid.(cf{i});
+                    isEq = strcmp(problem.equationNames, cn);
+                    eq = value(problem.equations{isEq});
+                    scale = dt./(pv.*cmax.*rhoS);
+                    values(isEOR) = max(abs(eq.*scale));
+                    tolerances(isEOR) = model.toleranceEOR;
+                end
             end
         end
     end
