@@ -315,9 +315,13 @@ function WCONHIST = makeWCONHIST(WCONHIST_tmp,prodIx,W)
             %    type = 'orat';   
         else
             error();
-        end        
-        WCONHIST{pno,3} = upper(W(wno).type);
+        end
+        vals = W(wno).compi*W(wno).val;
+        WCONHIST{pno,3} = upper(type);
         lims = W(wno).lims;
+        lims.grat=-vals(3);
+        lims.wrat=-vals(1);
+        lims.orat=-vals(2);
         fnms = fieldnames(lims);
         for kn = 1:numel(fnms)
             fnm = fnms{kn};
