@@ -100,7 +100,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     celltbl2 = replacefield(celltbl, {{'vertices', ''}});
     cellcoltbl2 = crossIndexArray(celltbl2, coltbl, {}, 'optpureproduct', true);
-    cellcolrowtbl2 = crossIndexArray(celltbl2, colrowtbl, {}, 'optpureproduct', true);
+    cellcolrowtbl = crossIndexArray(celltbl2, colrowtbl, {}, 'optpureproduct', true);
     
     % We collect the cell, face and node centroids given by the grid structure in
     % vectors that follows the indexing of the indexing tables cellcoltbl,
@@ -329,7 +329,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     dotest = false;
     if dotest
-        % check if we have the invert matrix
+        % check if we have compute the inverse matrix of A
         rowtbl = replacefield(coltbl, {{'coldim', 'rowdim'}});
         tetracolrowtbl = crossIndexArray(tetracoltbl, rowtbl, {}, 'optpureproduct', true);
         prod = TensorProd();
@@ -358,7 +358,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         useit = id>1e-10;
         B = sparse(ind1(useit), ind2(useit), id(useit), tc_num, tc_num);
-        spy(B);
+        spy(B); % looks ok
+        
     end
     
     permmat = permTensor(rock, G.griddim);
@@ -366,7 +367,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     prod = TensorProd();
     prod.tbl1 = tetravertcoltbl;
-    prod.tbl2 = cellcolrowtbl2;
+    prod.tbl2 = cellcolrowtbl;
     prod.tbl3 = tetravertcoltbl;
     prod.replacefds1 = {{'coldim', 'rowdim'}};
     prod.replacefds2 = {{'coldim', 'rowdim', 'interchange'}};
@@ -376,9 +377,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     Kgrad = prod.eval(grad, K);
     
-    cellverttbl = projIndexArray(tetraverttbl, {'cells', 'vertices'});
-    
-    cellvert2tbl = crossIndexArray(cellverttbl, cellverttbl, {'cells'}, 'crossextend', {{'vertices', {'vertices1', 'vertices2'}}});
     tetravert2tbl = crossIndexArray(tetraverttbl, tetraverttbl, {'cells', 'faces', 'edges'}, 'crossextend', {{'vertices', {'vertices1', 'vertices2'}}});
     
     prod = TensorProd();
@@ -392,6 +390,94 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     prod = prod.setup();
     
     gradKgrad = prod.eval(Kgrad, grad);
+
+    % We compute the volumes of the tetrahedras. tetraverttbl is sorted. We use this
+    % now.
+    nt = tetratbl.num;
+    vertlocinds = repmat((1 : coltbl.num)', nt, 1);
+    tetravertloctbl = tetraverttbl.addInd('vertloc', vertlocinds);
+    tetravertloccoltbl = crossIndexArray(tetravertloctbl, coltbl, {}, 'optpureproduct', true);
+    
+    tetraloccoltbls = cell(coltbl.num, 1);
+    for i = 1 : coltbl.num
+        tetraloccoltbls{i}.vertloc = i;
+        tetraloccoltbls{i} = IndexArray(tetraloccoltbls{i});
+        tetraloccoltbls{i} = crossIndexArray(tetraloccoltbls{i}, tetravertloccoltbl, {'vertloc'});
+        
+        map = TensorMap();
+        map.fromTbl = tetravertcoltbl;
+        map.toTbl = tetraloccoltbls{i};
+        map.mergefds = {'cells', 'faces', 'edges', 'vertices', 'coldim'};
+        map = map.setup();
+        tetravects{i} = map.eval(tetravect);
+    end
+
+    u = tetravects{1};
+    v = tetravects{2};
+    w = tetravects{3};
+    
+    % We compute cross-product of u and v
+    
+    crossinds = [1; 3; 2; 3; 2; 1; 2; 1; 3];
+    colrowcrosstbl = colrowtbl.addInd('crossdim', crossinds);
+    crossvect = [0; 1; -1; -1; 0; 1; 1; -1; 0];
+    
+    tetracolrowtbl = crossIndexArray(tetratbl, colrowtbl, {}, 'optpureproduct', true);
+    
+    map = TensorMap();
+    map.fromTbl = tetracoltbl;
+    map.toTbl = tetracolrowtbl;
+    map.replaceFromTblfds = {{'coldim', 'rowdim'}};
+    map.mergefds = {'cells', 'faces', 'edges', 'rowdim'};
+    map = map.setup();
+    u = map.eval(u);
+    
+    map = TensorMap();
+    map.fromTbl = tetracoltbl;
+    map.toTbl = tetracolrowtbl;
+    map.mergefds = {'cells', 'faces', 'edges', 'coldim'};
+    map = map.setup();
+    v = map.eval(v);
+    
+    uvcross = u.*v;
+    
+    prod = TensorProd();
+    prod.tbl1 = colrowcrosstbl;
+    prod.tbl2 = tetracolrowtbl;
+    prod.tbl3 = tetracoltbl;
+    prod.replacefds1 = {{'coldim', 'ind1'}, {'rowdim', 'ind2'}, {'crossdim', 'coldim'}};
+    prod.replacefds2 = {{'coldim', 'ind1'}, {'rowdim', 'ind2'}};
+    prod.reducefds = {'ind1', 'ind2'};
+    prod = prod.setup();
+    
+    uvcross = prod.eval(crossvect, uvcross);
+    
+    % The volume is equal to the absolute value of the inner-product of w and
+    % uvcross.
+    
+    prod = TensorProd();
+    prod.tbl1 = tetracoltbl;
+    prod.tbl2 = tetracoltbl;
+    prod.tbl3 = tetratbl;
+    prod.mergefds = {'cells', 'faces', 'edges'};
+    prod.reducefds = {'coldim'};
+    prod = prod.setup();
+    
+    vol = prod.eval(w, uvcross);
+    vol = abs(vol);
+    
+    map = TensorMap();
+    map.fromTbl = tetratbl;
+    map.toTbl = tetravert2tbl;
+    map.mergefds = {'cells', 'faces', 'edges'};
+    map = map.setup();
+    
+    vol = map.eval(vol);
+    
+    gradKgrad = vol.*gradKgrad;
+    
+    cellverttbl = projIndexArray(tetraverttbl, {'cells', 'vertices'});
+    cellvert2tbl = crossIndexArray(cellverttbl, cellverttbl, {'cells'}, 'crossextend', {{'vertices', {'vertices1', 'vertices2'}}});
 
     map = TensorMap();
     map.fromTbl = tetravert2tbl;
@@ -425,6 +511,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         prod = prod.setup();
         
         newfacecent = prod.eval(nodecoef, nodecent);
+        max(abs(newfacecent - facecent)); % they did not match exactly. We recompute them instead.
         
     end
     
@@ -433,7 +520,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     nodeverttbl2 = nodetbl;
     
-    % sanity check
+    % Sanity check
     assert(all(strcmp(nodeverttbl1.fdnames, nodeverttbl2.fdnames)), 'inconsistent field names');
     inds = [nodeverttbl1.inds; nodeverttbl2.inds];
     fdnames =  nodeverttbl1.fdnames;
@@ -513,7 +600,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     vagstruct = struct('A'   , gradKgrad, ...
                        'tbls', tbls);
-    
+
 end
 
 function iA = invertDiagonalBlocksMex(A, sz)
