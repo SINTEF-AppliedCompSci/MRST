@@ -141,6 +141,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'exp',           false, ...
                  'abs',           false, ...
                  'filterzero',    false, ...
+                 'time',          [],    ...
+                 'dynamicTitle',  false, ...
+                 'title',         '',    ...
                  'logical',       false, ...
                  'outline',       false, ...
                  'pauseTime',     0.150, ...
@@ -215,7 +218,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     ijk = cell(size(G.cartDims));
-    if isfield(G.cells, 'indexMap');
+    if isfield(G.cells, 'indexMap')
         [ijk{:}] = ind2sub(G.cartDims, G.cells.indexMap(1:G.cells.num));
     end
     % Plotting parameters
@@ -534,7 +537,6 @@ function plotHistogram(varargin)
         data_hist = sum(data_hist, 2).^2;
     end
 
-%     figure(histh); clf;
     set(0, 'CurrentFigure', histh);
     clf;
     % Find data
@@ -723,20 +725,17 @@ function replotPatch(varargin)
         cx = caxis();
         yscale = ylim();
     end
-
-
     if strcmpi(get(gridToggle, 'State'), 'on')
         deleteHandle(gridOutline)
         gridOutline = plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', 0.05,...
             'EdgeColor', 1 - get(0, 'DefaultAxesColor'));
-
     else
         if any(ishandle(gridOutline))
             deleteHandle(gridOutline);
         end
     end
 
-    if any(ishandle(vh));
+    if any(ishandle(vh))
         delete(vh);
     end
     if plotAsLine
@@ -761,9 +760,8 @@ function replotPatch(varargin)
         else
             ph = plot(d, style, 'linewidth', linewidth, 'color', color);
         end
-        
     elseif plotAsVector
-        if ishandle(ph);
+        if ishandle(ph)
             set(ph, 'Visible', 'off');
         end
         vh = plotCellVectorData(G, d, subset);
@@ -826,29 +824,35 @@ function replotPatch(varargin)
             caxis([lower(min(dsel)), upper(max(dsel))]);
         end
     end
+    if opt.dynamicTitle
+        if isempty(opt.time)
+            s = sprintf('%s %d/%d', opt.title, ni, N);
+        else
+            s = sprintf('%s %d/%d: %s', opt.title,  ni, N, formatTimeRange(opt.time(ni), 2));
+        end
+    else
+        s = opt.title;
+    end
+    if ~isempty(s)
+        title(s);
+    end
     cax = caxis();
     plotHistogram();
 end
 
 function [d, fun, subset] = getData()
     fun = @(x) x;
-
-
     if absDisplay
         fun = @(x) abs(fun(x));
     end
-
     if tenDisplay
         fun = @(x) 10.^fun(x);
     end
-
     if logDisplay
         fun = @(x) sign(fun(x)).*log10(abs(fun(x)));
     end
-
     subset = initialSelection;
     subset = subset & minmax.active;
-
     if ~isnan(slices)
         subset = subset & slices;
     end
