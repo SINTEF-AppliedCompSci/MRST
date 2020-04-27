@@ -4,12 +4,14 @@
 
 %% Load modules
 
-mrstModule add mpfa vem vag vemmech
+mrstModule add mimetic incomp mpfa vem vag vemmech
 
 %% Setup a Cartesian grid
 
 nx = 10;
 ny = 10;
+% nx = 1;
+% ny = 1;
 nz = 1;
 cartDims = [nx, ny, nz];
 physDims = [nx*100, ny*50, 20];
@@ -25,9 +27,8 @@ rock = makeRock(G, perm*ones(nc, 1), 0.1*ones(nc, 1));
 
 %% Compute the VAG transmissibilities
 
-vagstruct = computeVagTrans(G, rock);
+vagstruct = computeVagTrans2(G, rock);
 
-return
 
 %% Setup system matrix
 
