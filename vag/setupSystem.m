@@ -98,7 +98,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     map.mergefds = {'cells', 'nodes'};
     map = map.setup();
     
-    A12 = map.eval(Atrans);
+    A12 = -map.eval(Atrans);
     
     % setup matrix from A12
     map = TensorMap();
@@ -130,8 +130,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     ind = (1 : nc)';
     invA22m = sparse(ind, ind, invA22, nc, nc);
 
-    % We have
-    % [[A11 , A12] * [[pn] = [[f] [A12', A22]] [pc]] [g]]
+    % We have (written in matrix form)
+    % [[A11 , A12]   *    [[pn]     = [[f]
+    %  [A12', A22]]        [pc]]       [g]]
     % 
     % A22 is diagonal and can be inverted directly. We get
     % pc = invA22*g - invA22*A12'*pn
