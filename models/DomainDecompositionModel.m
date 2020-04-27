@@ -12,7 +12,6 @@ classdef DomainDecompositionModel < WrapperModel
         useGlobalPressureRange = false
         parallel               = false
         storeSubModels         = true;
-        SubdomainModel         = [];
         % Parallel properties
         localModel
         pool    = [];
@@ -32,7 +31,6 @@ classdef DomainDecompositionModel < WrapperModel
                 partition          = model.getPartition(model);
             end
             model.partition = partition;
-%             model.SubdomainModel = @(parentModel, cells, varargin) SubdomainModel(parentModel, cells, varargin{:});            
             % Merge options
             model = merge_options(model, varargin{:});
             % Control input
@@ -42,6 +40,7 @@ classdef DomainDecompositionModel < WrapperModel
                 if strcmpi(model.strategy, 'multiplicative')
                     warning(['Parallel implemetation does not support '       , ...
                              'multiplicative strategy. Changing to additive']);
+                    model.parallel = false;
                 end
             end
             if dynamicPartition || max(partition) > 1000
@@ -298,7 +297,7 @@ classdef DomainDecompositionModel < WrapperModel
             % Make submodel
             verbose  = model.verboseSubmodel;
             cells    = model.partition == i;
-            submodel = SubdomainModel(model.parentModel, cells, 'verbose', verbose == 2);
+            submodel = SubdomainModel(model.parentModel, cells, 'overlap', model.overlap, 'verbose', verbose == 2);
             % Adjust submodel tolerances
             submodel = model.setSubdomainTolerances(submodel);
             % Get linear solver
