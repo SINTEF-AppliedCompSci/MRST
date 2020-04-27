@@ -12,6 +12,7 @@ classdef DomainDecompositionModel < WrapperModel
         useGlobalPressureRange = false
         parallel               = false
         storeSubModels         = true;
+        SubdomainModel         = [];
         % Parallel properties
         localModel
         pool    = [];
@@ -31,6 +32,7 @@ classdef DomainDecompositionModel < WrapperModel
                 partition          = model.getPartition(model);
             end
             model.partition = partition;
+%             model.SubdomainModel = @(parentModel, cells, varargin) SubdomainModel(parentModel, cells, varargin{:});            
             % Merge options
             model = merge_options(model, varargin{:});
             % Control input
@@ -162,7 +164,7 @@ classdef DomainDecompositionModel < WrapperModel
             state0    = stripState(state0);
             sds = model.subdomainSetup;
             lm  = model.localModel;
-            add = @(in1, in2) model.addStates(in1, in2, stateInit);
+            add = model.getAddStatesFun(stateInit);
             ticBytes(model.pool);
             spmd
                 localTimer = tic(); % Time the local solve (db only)
@@ -288,11 +290,8 @@ classdef DomainDecompositionModel < WrapperModel
         end
         
         %-----------------------------------------------------------------%
-        function setup = getSubdomainSetup(model, i, construct)
+        function setup = getSubdomainSetup(model, i)
             setup = struct('Model', [], 'NonlinearSolver', [], 'Number', i);
-            if nargin < 3
-                construct = false;
-            end
             if max(model.partition) > 500
                 return
             end
@@ -307,10 +306,10 @@ classdef DomainDecompositionModel < WrapperModel
             ncomp  = rmodel.getNumberOfComponents();
             ndof   = rmodel.G.cells.num*ncomp;
             if isa(submodel.parentModel, 'ReservoirModel')
-                lsol = selectLinearSolverAD(rmodel, 'verbose', verbose);
+                lsol = selectLinearSolverAD(rmodel, 'verbose', verbose == 1);
             elseif isa(submodel.parentModel, 'PressureModel')
                 if ndof > 1e4
-                    lsol = AMGCLSolverAD('tolerance', 1e-4, 'verbose', verbose);
+                    lsol = AMGCLSolverAD('tolerance', 1e-4, 'verbose', verbose == 1);
                 else
                     lsol = BackslashSolverAD();
                 end
@@ -410,24 +409,8 @@ classdef DomainDecompositionModel < WrapperModel
         end
         
         %-----------------------------------------------------------------%
-        function out = addStates(model, in1, in2, dummyState) %#ok
-            map1 = in1.mappings;
-            map2 = in2.mappings;
-            if isempty(map1) || isempty(map2)
-                if isempty(map2)
-                    out = in1;
-                else
-                    out = in2;
-                end
-                return
-            end
-            substate1 = in1.state;
-            substate2 = in2.state;
-            dummyState = mapState(dummyState, substate1, map1);
-            dummyState = mapState(dummyState, substate2, map2);
-            map      = mergeMappings(map1, map2);
-            substate = getSubState(dummyState, map);
-            out      = struct('state', substate, 'mappings', map);
+        function fun = getAddStatesFun(model, dummyState) %#ok
+            fun = @(in1, in2) addStatesFun(in1, in2, dummyState);
         end
         
     end
@@ -454,6 +437,27 @@ function domains = getLocalDomains(numWorkers, p, i)
     nDomains(end-extra+1:end) = nDomains(end-extra+1:end) - 1;
     domains = [0, cumsum(nDomains)] + 1;
     domains = domains(i):domains(i+1)-1;
+end
+
+%-------------------------------------------------------------------------%
+function out = addStatesFun(in1, in2, dummyState)
+    map1 = in1.mappings;
+    map2 = in2.mappings;
+    if isempty(map1) || isempty(map2)
+        if isempty(map2)
+            out = in1;
+        else
+            out = in2;
+        end
+        return
+    end
+    substate1 = in1.state;
+    substate2 = in2.state;
+    dummyState = mapState(dummyState, substate1, map1);
+    dummyState = mapState(dummyState, substate2, map2);
+    map      = mergeMappings(map1, map2);
+    substate = getSubState(dummyState, map);
+    out      = struct('state', substate, 'mappings', map);
 end
 
 %-------------------------------------------------------------------------%
