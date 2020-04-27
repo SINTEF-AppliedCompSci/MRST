@@ -1,5 +1,6 @@
 function partition = decomposeDomain(model, W, varargin)
     opt = struct('type'          , 'metis', ...
+                 'pdims'         , []     , ...
                  'merge'         , true   , ...
                  'partitionWells', true   , ...
                  'rWell'         , 50     , ...
@@ -35,6 +36,7 @@ function partition = decomposeDomain(model, W, varargin)
     partition = compressPartition(partition);
 end
 
+%-----------------------------------------------------------------%
 function [pw, is_well] = makeWellPartition(model, W, opt)
     G = model.G;
     x = G.cells.centroids;
@@ -60,6 +62,7 @@ function [pw, is_well] = makeWellPartition(model, W, opt)
     pw = compressPartition(pw);
 end
 
+%-----------------------------------------------------------------%
 function [pg, is_grid] = makeGridPartition(model, is_well, opt)
     G  = model.G;
     Gr = removeCells(G, is_well);
@@ -72,14 +75,23 @@ function [pg, is_grid] = makeGridPartition(model, is_well, opt)
             T = getFaceTransmissibility(Gr, rock);
             pg = partitionMETIS(Gr, T, nb);
         case 'cart'
-            n = ceil(sqrt(nb));
-            pdims = ones(1, G.griddim);
-            pdims(1:2) = n;
-            pg = partitionUI(Gr, pdims);
+            pdims = opt.pdims;
+            if isempty(pdims)
+                n = ceil(sqrt(nb));
+                pdims = ones(1, G.griddim);
+                pdims(1:2) = n;
+            end
+            if any(strcmpi(G, 'cartGrid'))
+                pg = partitionUI(Gr, pdims);
+            else
+                pg = partitionCartGrid(pdims*50, pdims);
+                pg = sampleFromBox(Gr, reshape(pg, pdims*50));
+            end
     end
 
 end
 
+%-----------------------------------------------------------------%
 function partition = mergePartition(model, partition, minBlockSize)
     T = getFaceTransmissibility(model.G, model.rock);
     partition = mergeBlocksByConnections(model.G, partition, T, minBlockSize);
