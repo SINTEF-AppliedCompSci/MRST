@@ -242,8 +242,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     tetravect = tetravertcent - tetracellcent;
 
-    dotest = true;
+    dotest = false;
     if dotest
+        % investigate one tetrahedra
         onetetratbl.cells = 1;
         onetetratbl.faces = 1;
         onetetratbl.edges = 2;
@@ -278,11 +279,52 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     map.mergefds = {'cells', 'faces', 'edges', 'coldim'};
     ind2 = getDispatchInd(map);    
     
+    tv_num = tetraverttbl.num;
+    tc_num = tetracoltbl.num;
     A = sparse(ind1, ind2, tetravect, tetraverttbl.num, tetracoltbl.num);
     
     bi = @invertDiagonalBlocksMex;
     sz = repmat(coltbl.num, tetratbl.num, 1);
     invA = bi(A, sz);
+    
+    ind = sub2ind([tc_num, tv_num], ind2, ind1);
+    grad = invA(ind);
+
+    dotest = true;
+    if dotest
+        % check if we have the invert matrix
+        rowtbl = replacefield(coltbl, {{'coldim', 'rowdim'}});
+        tetracolrowtbl = crossIndexArray(tetracoltbl, rowtbl, {}, 'optpureproduct', true);
+        prod = TensorProd();
+        prod.tbl1 = tetravertcoltbl;
+        prod.tbl2 = tetravertcoltbl;
+        prod.tbl3 = tetracolrowtbl;
+        prod.replacefds1 = {{'coldim', 'rowdim'}};
+        prod.mergefds = {'cells', 'faces', 'edges'};
+        prod.reducefds = {'vertices'};
+        prod = prod.setup();
+        
+        id = prod.eval(grad, tetravect);
+        
+        map = TensorMap();
+        tetrarowtbl = replacefield(tetracoltbl, {{'coldim', 'rowdim'}});
+        map.fromTbl = tetrarowtbl;
+        map.toTbl = tetracolrowtbl;
+        map.mergefds = {'cells', 'faces', 'edges', 'rowdim'};
+        ind1 = getDispatchInd(map);
+        
+        map = TensorMap();
+        map.fromTbl = tetracoltbl;
+        map.toTbl = tetracolrowtbl;
+        map.mergefds = {'cells', 'faces', 'edges', 'coldim'};
+        ind2 = getDispatchInd(map);
+
+        useit = id>1e-10;
+        B = sparse(ind1(useit), ind2(useit), id(useit), tc_num, tc_num);
+        spy(B);
+    end
+    
+    
     
     return
     
