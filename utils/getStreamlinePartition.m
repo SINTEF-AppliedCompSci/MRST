@@ -1,7 +1,7 @@
 function partition = getStreamlinePartition(varargin)
     
-    require matlab_bgl
-    opt = struct('state', [], 'W', []);
+    require matlab_bgl streamlines
+    opt = struct('state', [], 'W', [], 'seed', [], 'rwell', 100);
     opt = merge_options(opt, varargin{:});
     partition = @(varargin) get(varargin{:}, opt);
 
@@ -17,13 +17,17 @@ function partition = get(model, state, state0, dt, drivingForces, opt)
         state = opt.state;
     end
     G = rmodel.G;
-    cells = (G.cartDims(1):G.cartDims(1)-1:prod(G.cartDims)-1)';
-    cells = cells(5:10:end);
+    seed = opt.seed;
+    if isempty(opt.seed)
+        seed = (G.cartDims(1):G.cartDims(1)-1:prod(G.cartDims)-1)';
+        seed = seed(5:10:end);
+    end
+        
     
-    SF = pollock(G, state, cells);
-    SR = pollock(G, state, cells, 'reverse', true);
+    SF = pollock(G, state, seed);
+    SR = pollock(G, state, seed, 'reverse', true);
     
-    S = cellfun(@(sf, sr) vertcat(sf, sr), SF, SR, 'UniformOutput', false);
+    S = cellfun(@(sf, sr) vertcat(flipud(sr), sf), SF, SR, 'UniformOutput', false);
     
     x = G.cells.centroids;
     d = nan(G.cells.num, numel(S));
@@ -38,10 +42,9 @@ function partition = get(model, state, state0, dt, drivingForces, opt)
     end
     if ~isempty(W)
         x = G.cells.centroids;
-        rWell = 150;
 %         M = getConnectivityMatrix(rmodel.operators.N);
         for i = 1:numel(W)
-            cells = pdist2(x(W(i).cells,:), x) < rWell;
+            cells = pdist2(x(W(i).cells,:), x) < opt.rwell;
 %             cells = false(rmodel.G.cells.num,1);
 %             cells(W(i).cells) = true;
 %             cell0 = find(cells);
