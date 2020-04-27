@@ -6,7 +6,6 @@ function problem = transformProblem(problem, varargin)
     is_cell = strcmpi(problem.types, 'cell');
     ndof = cellfun(@(eq) numel(value(eq)), problem.equations);
     nc   = ndof(is_cell); nc = nc(1);
-    n    = numel(value(problem.equations{1}));
     ML   = opt.ML;
     MLw  = opt.MLw;
     % Restrict equations
@@ -14,6 +13,7 @@ function problem = transformProblem(problem, varargin)
     for i = 1:problem.numeq
         eq = problem.equations{i};
         if ~isAD
+            n = numel(eq);
             if n == nc
                 % Cell equation (nc)
                 eq = ML*eq;
