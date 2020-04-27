@@ -150,7 +150,11 @@ classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & Exte
                 cn = cnames{i};
                 isEOR = strcmpi(names, cn);
                 if any(isEOR)
-                    cmax = model.fluid.(cf{i});
+                    if isfield(model.fluid, cf{i})
+                        cmax = model.fluid.(cf{i});
+                    else
+                        cmax = 1;
+                    end
                     isEq = strcmp(problem.equationNames, cn);
                     eq = value(problem.equations{isEq});
                     scale = dt./(pv.*cmax.*rhoS);
