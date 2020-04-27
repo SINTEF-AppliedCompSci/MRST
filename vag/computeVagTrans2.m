@@ -117,6 +117,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     facecoltbl = crossIndexArray(facetbl, coltbl, [], 'optpureproduct', true);
     nodecoltbl = crossIndexArray(nodetbl, coltbl, [], 'optpureproduct', true);
 
+    nc = G.cells.num;
+    cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
+    cellfacetbl.faces = G.cells.faces(:, 1);
+    cellfacetbl = IndexArray(cellfacetbl);
+
+    nf = G.faces.num;
+    facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos));
+    facenodetbl.nodes = G.faces.nodes;
+    facenodetbl = IndexArray(facenodetbl); 
+
+    dorecomputefacecentroids = true;
+    if dorecomputefacecentroids
+        % We recompute the face centroids
+        nnodeperface = diff(G.faces.nodePos);
+        
+        map = TensorMap();
+        map.fromTbl = facetbl;
+        map.toTbl = facenodetbl;
+        map.mergefds = {'faces'};
+        map = map.setup();
+        nodecoef = 1./map.eval(nnodeperface);
+        
+        prod = TensorProd();
+        prod.tbl1 = facenodetbl;
+        nodecoltbl2 = replacefield(nodecoltbl, {{'vertices', ''}});
+        facecoltbl2 = replacefield(facecoltbl, {{'vertices', ''}});
+        prod.tbl2 = nodecoltbl2;
+        prod.tbl3 = facecoltbl2;
+        prod.mergefds = {'nodes'};
+        prod = prod.setup();
+        
+        facecent = prod.eval(nodecoef, nodecent);
+    end
     
     map = TensorMap();
     map.fromTbl = cellcoltbl;
@@ -149,15 +182,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % constitute the edge.
     
 
-    nc = G.cells.num;
-    cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
-    cellfacetbl.faces = G.cells.faces(:, 1);
-    cellfacetbl = IndexArray(cellfacetbl);
-
-    nf = G.faces.num;
-    facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos));
-    facenodetbl.nodes = G.faces.nodes;
-    facenodetbl = IndexArray(facenodetbl); 
 
     cellfacenodetbl = crossIndexArray(cellfacetbl, facenodetbl, {'faces'});
     
@@ -377,8 +401,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     gradKgrad = map.eval(gradKgrad);
     
-    %% barycentric reduction
-    
+    %% Barycentric reduction
     
     nnodeperface = diff(G.faces.nodePos);
     
@@ -388,6 +411,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     map.mergefds = {'faces'};
     map = map.setup();
     nodecoef = 1./map.eval(nnodeperface);
+    
+    dotest = true;
+    if dotest 
+        % test consistency of face centroids
+        prod = TensorProd();
+        prod.tbl1 = facenodetbl;
+        nodecoltbl2 = replacefield(nodecoltbl, {{'vertices', ''}});
+        facecoltbl2 = replacefield(facecoltbl, {{'vertices', ''}});
+        prod.tbl2 = nodecoltbl2;
+        prod.tbl3 = facecoltbl2;
+        prod.mergefds = {'nodes'};
+        prod = prod.setup();
+        
+        newfacecent = prod.eval(nodecoef, nodecent);
+        
+    end
     
     facenodeverttbl = crossIndexArray(facenodetbl, facetbl, {'faces'});
     nodeverttbl1 = projIndexArray(facenodeverttbl, {'nodes', 'vertices'});
@@ -441,8 +480,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     gradKgrad = prod.eval(barred, gradKgrad);
     
-    dotest = true;
+    dotest = false;
     if dotest
+        % plot sparsity of matrix gradKgrad
         
         map = TensorMap();
         map.fromTbl = cellnodetbl;
