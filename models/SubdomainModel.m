@@ -3,12 +3,15 @@ classdef SubdomainModel < WrapperModel
     properties
         mappings
         restrictionOperators
+        noflowBC = false;
+        Gp
     end
     
     methods
         %-----------------------------------------------------------------%
         function model = SubdomainModel(parent, cells, varargin)
-            model = model@WrapperModel(parent);            
+            parent = parent.validateModel();
+            model = model@WrapperModel(parent);
             [model, submodelOpt] = merge_options(model, varargin{:});
             model = model.setSubModel(cells, submodelOpt{:});
             model.restrictionOperators = constructRestrictionOperators(model);
@@ -19,6 +22,7 @@ classdef SubdomainModel < WrapperModel
             pmodel = model.getReservoirModel();
             [submodel, map] = getSubModel(pmodel, cells, varargin{:});
             model = model.setReservoirModel(model, submodel);
+            model.Gp = model.G;
             model.G = model.parentModel.G;
             model.mappings = map;
         end
@@ -28,12 +32,14 @@ classdef SubdomainModel < WrapperModel
             % Let parent model assemble equations
             [problem, state] = model.parentModel.getEquations(state0, state, dt, forces, varargin{:});
             % Replace rhs with 0 and Jacobian with identity matrix for all
-            % cells that are not internal
-            ML      = model.restrictionOperators.ML;
-            MR      = model.restrictionOperators.MR;
-            I       = model.restrictionOperators.I;
-            keep    = model.restrictionOperators.keep;
-            problem = transformProblem(problem, 'ML', ML, 'MR', MR, 'B', I, 'zero', ~keep);
+            % external cells
+            keep = model.restrictionOperators.keep;
+            if numel(keep) == numel(value(state.pressure)) && ~model.noflowBC
+                ML      = model.restrictionOperators.ML;
+                MR      = model.restrictionOperators.MR;
+                I       = model.restrictionOperators.I;
+                problem = transformProblem(problem, 'ML', ML, 'MR', MR, 'B', I, 'zero', ~keep);
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -62,7 +68,7 @@ classdef SubdomainModel < WrapperModel
             [convergence, values, names] = checkConvergence@WrapperModel(model, problem, varargin{:});
         end
             
-        %-------------------------------------------------------------------------%
+        %-----------------------------------------------------------------%
         function pmodel = setReservoirModel(model, pmodel, rmodel)
             if ~isa(pmodel.parentModel, 'ReservoirModel')
                 pmodel.parentModel = model.setReservoirModel(pmodel.parentModel, rmodel);
