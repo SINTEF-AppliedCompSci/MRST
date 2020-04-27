@@ -34,7 +34,8 @@ assert(mod(vs(1),opt.blocksize) == 0);
 if(isempty(opt.amgcloptions))
     solver = struct('type','gmres','M',20);
     precond = struct('class','relaxation','type','ilu0','damping',1);
-    options = struct('solver',solver,'precond',precond,'solver_type','regular','write_params',true,'block_size',opt.blocksize,'verbose',true);    
+    options = struct('solver',solver,'precond',precond,'solver_type','regular',...
+        'write_params',true,'block_size',opt.blocksize,'verbosity',0,'reuse_mode',1);    
 else
     options = opt.amgcloptions;
 end
