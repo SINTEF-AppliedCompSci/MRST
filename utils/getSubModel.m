@@ -144,7 +144,7 @@ function submodel = makeSubModel(model, subG, subop, cellMap, opt)
     end
     % Restrict state function groupings
     useDefault = isempty(submodel.FlowPropertyFunctions);
-%     warning('Assuming default state function groupings.');
+    warning('Assuming default state function groupings.');
     submodel = submodel.setupStateFunctionGroupings();
     if ~useDefault
         submodel.FlowPropertyFunctions = submodel.FlowPropertyFunctions.subset(cellMap.keep);
@@ -159,19 +159,22 @@ function discretization = replaceOperators(discretization, submodel)
     % Replace face upstream operator
     faceUpstr = submodel.operators.faceUpstr;
     fun       = @(sf) sf.UpwindDiscretization.setFunctionHandle(faceUpstr);
-    discretization = replaceOperator(discretization, 'UpwindDiscretization', fun);
+    names = {'FaceComponentMobility',   'FaceMobility'};
+    discretization = replaceOperator(discretization, 'UpwindDiscretization', names, fun);
     % Replace kgrad operator (NB: Assuming simple two-point operator here!)
-    tpfa    = TwoPointFluxApproximation(submodel);
-    fun     = @(sf) tpfa;
-    discretization = replaceOperator(discretization, 'PermeabilityGradientDiscretization', fun);
+    tpfa = TwoPointFluxApproximation(submodel);
+    fun  = @(sf) tpfa;
+    names = {'PermeabilityPotentialGradient'};
+    discretization = replaceOperator(discretization, 'PermeabilityGradientDiscretization', names, fun);
     % Replace gradient operator
-    Grad    = submodel.operators.Grad;
-    fun     = @(sf) Grad;
-    discretization = replaceOperator(discretization, 'Grad', fun);
+    Grad = submodel.operators.Grad;
+    fun  = @(sf) Grad;
+    names = {'PressureGradient'};
+    discretization = replaceOperator(discretization, 'Grad', names, fun);
 end
 
 %-------------------------------------------------------------------------%
-function discretization = replaceOperator(discretization, operator, fun)
+function discretization = replaceOperator(discretization, operator, names, fun)
     names = discretization.getNamesOfStateFunctions()';
     for name = names
         sf = discretization.getStateFunction(name{1});
