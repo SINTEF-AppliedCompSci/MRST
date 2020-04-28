@@ -122,7 +122,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     map.mergefds = {'cells', 'nodes'};
     map = map.setup();
     
-    nfaces = map.eval((1 : cellnodefacetbl.num));
+    nfaces = map.eval(ones(cellnodefacetbl.num, 1));
 
     % we setup nfaces indexed along cellnodefacetbl
     map = TensorMap();
@@ -189,8 +189,11 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     if opt.verbose
         fprintf('include face sign ...\n');
     end
-    sgn1 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces1, 1)) - 1;
-    sgn2 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces2, 1)) - 1;
+    cells = mattbl.get('cells');
+    faces1 = mattbl.get('faces1');
+    faces2 = mattbl.get('faces2');
+    sgn1 = 2*(cells == G.faces.neighbors(faces1, 1)) - 1;
+    sgn2 = 2*(cells == G.faces.neighbors(faces2, 1)) - 1;
     nodeM = nodeM.*sgn1.*sgn2;   
     
     if opt.verbose
@@ -202,6 +205,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     map.fromTbl = mattbl;
     map.toTbl = redmattbl;
     map.mergefds = {'nodes', 'faces1', 'faces2'};
+    map = map.setup();
     
     nodeM = map.eval(nodeM);
     
@@ -226,7 +230,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     map.replaceFromTblfds = {{'faces', 'faces2'}};
     map.mergefds = {'nodes', 'faces2'};
     
-    facesind1 = getDispatchInd(map);
+    facesind2 = getDispatchInd(map);
     
     % Assembly of B
     B = sparse(facesind1, ...

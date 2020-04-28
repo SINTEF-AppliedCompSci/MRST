@@ -137,7 +137,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    intfaces = find(~extfaces);
    clear intfacetbl
    intfacetbl.faces = intfaces;
-   intfacetbll = IndexArray(intfacetbl);
+   intfacetbl = IndexArray(intfacetbl);
    
    % setup table with only internal faces
    cellintnodefacetbl = crossIndexArray(cellnodefacetbl, intfacetbl, {'faces'});
@@ -148,18 +148,26 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    fino = cellintnodefacetbl.get('faces');
    cino = cellintnodefacetbl.get('cells');
    sgn = 2*(cino == G.faces.neighbors(fino, 1)) - 1;
-   tbl = cellintnodefacetbl; %alias
+   
+   map = TensorMap();
+   map.fromTbl = cellintnodefacetbl;
+   map.toTbl = cellnodefacetbl;
+   map.mergefds = {'cells', 'nodes', 'faces', 'cnfind'};
+   map = map.setup();
+   
+   sgn = map.eval(sgn);
    
    prod = TensorProd();
-   prod.tbl1 = cellintnodefacetbl;
-   prod.tbl2 = intnodefacetbl;
+   prod.tbl1 = cellnodefacetbl;
+   prod.tbl2 = facenodetbl;
    prod.tbl3 = celltbl;
    prod.reducefds = {'nodes', 'faces'};
    prod = prod.setup();
    
    div_T = SparseTensor();
    div_T = div_T.setFromTensorProd(sign, prod);
-
+   div = div_T.getMatrix();
+   
    %% Invert matrix B
    % The facenode degrees of freedom, as specified by the facenodetbl table, are
    % ordered by nodes first (see implementation below). It means in particular
