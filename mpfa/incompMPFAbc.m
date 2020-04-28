@@ -94,7 +94,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rhs = zeros(size(A, 1), 1);
     
     extfacenodetbl = tbls.extfacenodetbl;
-    extfacenodetbl = extfacenodetbl.addLocInd('efnind');
     
     is_press = strcmpi('pressure', bc.type);
     
@@ -119,16 +118,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         % setup bctbl given external face nodes where the pressure is not given. They
         % correspond to degrees of freedom in A that we have to keep
-        knownbcpind = bcpresstbl.get('efnind');
+        knownbcpind = bcpresstbl.get('extfnind');
         unknownbcpind              = true(extfacenodetbl.num, 1);
         unknownbcpind(knownbcpind) = false;
         unknownbcpind              = find(unknownbcpind);
         
-        efnind = extfacenodetbl.get('efnind');
-        bctbl.efnind = efnind(unknownbcpind);
+        extfnind = extfacenodetbl.get('extfnind');
+        bctbl.extfnind = extfnind(unknownbcpind);
         bctbl = IndexArray(bctbl);
         % expand bctbl with all the indices in extfacenodetbl
-        bctbl = crossIndexArray(bctbl, extfacenodetbl, {'efnind'});
+        bctbl = crossIndexArray(bctbl, extfacenodetbl, {'extfnind'});
         bctbl = bctbl.addLocInd('bcind');
         
         % The degrees of freedom (unknown) that are kept in the system
@@ -206,7 +205,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     map = TensorMap();
     map.fromTbl = bctbl;
     map.toTbl = extfacenodetbl;
-    map.mergefds = {'faces', 'nodes', 'efnind'};
+    map.mergefds = {'faces', 'nodes', 'extfnind'};
     map = map.setup();
     
     unknown_bc_pressure = map.eval(unknown_bc_pressure);
@@ -218,7 +217,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     map = TensorMap();
     map.fromTbl = bcpresstbl;
     map.toTbl = extfacenodetbl;
-    map.mergefds = {'faces', 'nodes', 'efnind'};
+    map.mergefds = {'faces', 'nodes', 'extfnind'};
     map = map.setup();
     
     known_bc_pressure = map.eval(pressvals);

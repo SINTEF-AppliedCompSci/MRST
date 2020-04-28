@@ -106,8 +106,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        loccellfacenodetbl = tbls.cellfacenodetbl;
 
        loccellfacenodetbl = loccellfacenodetbl.removeInd({'cnfind'});
-       locfacenodetbl = locfacenodetbl.removeInd({'fnind'});
-       locface2nodetbl = locface2nodetbl.removeInd({'fnind1', 'fnind2'});
+       locfacenodetbl     = locfacenodetbl.removeInd({'fnind'});
+       locface2nodetbl    = locface2nodetbl.removeInd({'fnind1', 'fnind2'});
        
        % Assembly of B
        prod = TensorProd();
@@ -206,8 +206,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        isintfaces = (intfaces(locfaces) > 0);
        locface_1cell_2tbl.inds = locface_1cell_2tbl.inds(isintfaces, :);
        
-       % map = setupTableMapping(iBdivtbl, locface_1cell_2tbl, {'faces1', ...
-                           % 'cells2'});
        map = TensorMap();
        map.fromTbl = iBdivtbl;
        map.toTbl = locface_1cell_2tbl;

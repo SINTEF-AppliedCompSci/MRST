@@ -205,6 +205,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    Pext_T = Pext_T.setFromTensorProd(efn_sgn, prod);
    Pext = Pext_T.getMatrix();
    
+   extfacenodetbl = extfacenodetbl.addLocInd('extfnind');
    tbls.extfacenodetbl = extfacenodetbl;
    
    %% Assemble the flux operator: From pressure values at the cell center and
