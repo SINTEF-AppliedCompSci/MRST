@@ -1,4 +1,4 @@
-function model = setWENODiscretization(model)
+function model = setWENODiscretization(model, varargin)
     % Set WENO discretization on a model
     isWrapper = isa(model, 'WrapperModel');
     if isWrapper
@@ -6,7 +6,7 @@ function model = setWENODiscretization(model)
     else
         m = model;
     end
-    m = setWENO(m);
+    m = setWENO(m, varargin{:});
     if isWrapper
         model.parentModel = m;
     else
@@ -14,8 +14,8 @@ function model = setWENODiscretization(model)
     end
 end
 
-function model = setWENO(model)
-    weno = WENOUpwindDiscretization(model); % Create WENO
+function model = setWENO(model, varargin)
+    weno = WENOUpwindDiscretization(model, model.G.griddim, varargin{:}); % Create WENO
     if isempty(model.FluxDiscretization)
         model = model.setupStateFunctionGroupings();
     end
