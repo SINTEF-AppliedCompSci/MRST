@@ -560,27 +560,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     gradKgrad = prod.eval(barred, gradKgrad);
     
     dotest = false;
+    
     if dotest
         % plot sparsity of matrix gradKgrad
+        prod = TensorProd();
+        prod.tbl1 = cellnode2tbl;
+        prod.tbl2 = cellnodetbl;
+        prod.tbl3 = cellnodetbl;
+        prod.replacefds1 = {{'nodes1', 'nodes'}};
+        prod.replacefds2 = {{'nodes', 'nodes2'}};
+        prod.mergefds = {'cells'};
+        prod.reducefds = {'nodes2'};
         
-        map = TensorMap();
-        map.fromTbl = cellnodetbl;
-        map.toTbl = cellnode2tbl;
-        map.replaceFromTblfds = {{'nodes', 'nodes1'}};
-        map.mergefds = {'cells', 'nodes1'};
-        ind1 = getDispatchInd(map);
-        
-        map = TensorMap();
-        map.fromTbl = cellnodetbl;
-        map.toTbl = cellnode2tbl;
-        map.replaceFromTblfds = {{'nodes', 'nodes2'}};
-        map.mergefds = {'cells', 'nodes2'};
-        ind2 = getDispatchInd(map);
+        [ind1, ind2] = prod.getDispatchInd();
         
         cn_num = cellnodetbl.num;
         A = sparse(ind1, ind2, gradKgrad, cn_num, cn_num);
         
-        spy(A);
+        spy(A); 
+    
     end
     
     tbls = struct('celltbl', celltbl, ...
