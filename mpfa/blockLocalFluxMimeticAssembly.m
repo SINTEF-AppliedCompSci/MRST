@@ -6,7 +6,7 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
     opt = merge_options(opt, varargin{:});
 
     nodetbl.nodes = nodes;
-    nodetbl.num = numel(nodes);
+    nodetbl = IndexArray(nodetbl);
 
     nc  = G.cells.num;
     nf  = G.faces.num;
@@ -73,8 +73,8 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
     % We compute the product of the permeability tensor K and the normal at each
     % node-face. The normal is weighted by area divided number of nodes the face
     % is dealt with.
-    fno = cellfacenodetbl.faces;
-    cno = cellfacenodetbl.cells;
+    fno = cellfacenodetbl.get('faces');
+    cno = cellfacenodetbl.get('cells');
     numnodes = double(diff(G.faces.nodePos));
     numnodes = numnodes(fno);
     facetNormals = G.faces.normals(fno, :);
@@ -119,7 +119,7 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
     
     % store Kn in matrix form in facePermNormals.
     % we know that 'coldim' is last in the ordering of the multi-index. Hence,
-    facePermNormals = reshape(Kn, 3, [])';
+    facePermNormals = reshape(Kn, coltbl.num, [])';
 
     % Some shortcuts
     cno = cellfacenodetbl.get('cells');
@@ -167,7 +167,8 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
         R     = cellFacetVec(cnfind, :);
         a     = areas(cnfind); % areas of the faces the facets belong to
         v     = vols(cnf_i); % volume of the current cell
-        faces = cellfacenodetbl.faces(cnfind);
+        faces = cellfacenodetbl.get('faces');
+        faces = faces(cnfind);
 
         cellno = cellfacenodetbl.get('cells');
         cellno = cellno(cnf_i);

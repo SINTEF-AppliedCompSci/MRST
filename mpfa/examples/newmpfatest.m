@@ -1,3 +1,4 @@
+clear all
 
 mrstModule add mimetic mpfa incomp
 

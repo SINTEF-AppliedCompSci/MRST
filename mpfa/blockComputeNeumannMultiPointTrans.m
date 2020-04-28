@@ -105,8 +105,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        locface2nodetbl    = tbls.face2nodetbl;
        loccellfacenodetbl = tbls.cellfacenodetbl;
 
-       loccellfacenodetbl = rmfield(loccellfacenodetbl, 'cnfind');
-       locfacenodetbl = rmfield(locfacenodetbl, 'fnind');
+       loccellfacenodetbl = loccellfacenodetbl.removeInd('cnfind');
+       locfacenodetbl = locfacenodetbl.removeInd('fnind');
+       locface2nodetbl = locface2nodetbl.removeInd({'fnind1', 'fnind2'});
        
        % Assembly of B
        prod = TensorProd();
@@ -115,19 +116,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        prod.tbl3 = locfacenodetbl;
        prod.replacefds1 = {{'faces1', 'faces'}};
        prod.replacefds2 = {{'faces', 'faces2'}};
+       prod.mergefds = {'nodes'};
        prod.reducefds = {'faces2'};
        prod = prod.setup();
 
        [ind1, ind2] = prod.getDispatchInd();
        lfn_num = locfacenodetbl.num;
-       Bmat = sparse(ind1, ind2, B, lfn_num, lfn_num)
+       Bmat = sparse(ind1, ind2, B, lfn_num, lfn_num);
        
        % if we know - a priori - that matrix is symmetric, then we remove
        % symmetry loss that has been introduced in assembly.
        if strcmp(opt.ip_compmethod, 'directinverse')
            Bmat = 0.5*(Bmat + Bmat');
        end
-       [~, sz] = rlencode(locfacenodetbl.nodes);
+       nodes = locfacenodetbl.get('nodes');
+       [~, sz] = rlencode(nodes);
        iBmat   = opt.invertBlocks(Bmat, sz);
        % if we know - a priori - that matrix is symmetric, then we remove the loss of
        % symmetry that may have been induced by the numerical inversion.
@@ -136,13 +139,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        end
        
        ind = sub2ind([lfn_num, lfn_num], ind2, ind1);
-       iB = iB(ind);
+       iB = iBmat(ind);
        
        % clean-up and prepare locface2nodetbl for further use in contraction operations
        locface2nodetbl = duplicatefield(locface2nodetbl, {'nodes', {'nodes1', ...
                            'nodes2'}});
-       locface2nodetbl = rmfield(locface2nodetbl, 'fnind1');
-       locface2nodetbl = rmfield(locface2nodetbl, 'fnind2');
        
        % remove external faces from loccellfacenodetbl and locfacenodetbl
        locfaces = loccellfacenodetbl.get('faces');
@@ -173,7 +174,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        prod.tbl1 = locface2nodetbl;
        prod.tbl2 = loccellfacenodetbl;
        prod.replacefds2 = {{'cells', 'cells2'}, {'faces', 'faces2'}, {'nodes', ...
-                   'nodes2'}};
+                           'nodes2'}};
        prod.reducefds = {'faces2', 'nodes2'};
        prod = prod.setup();
        
@@ -184,7 +185,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        prod.tbl1 = loccellfacenodetbl;
        prod.tbl2 = iBdivtbl;
        prod.replacefds1 = {{'cells', 'cells1'}, {'faces', 'faces1'}, {'nodes', ...
-                   'nodes1'}};
+                           'nodes1'}};
        prod.reducefds = {'faces1', 'nodes1'};
        prod = prod.setup();
        
