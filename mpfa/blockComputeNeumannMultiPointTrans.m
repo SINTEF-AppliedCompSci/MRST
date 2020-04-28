@@ -117,10 +117,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        prod.replacefds2 = {{'faces', 'faces2'}};
        prod.reducefds = {'faces2'};
        prod = prod.setup();
-       
-       B_T = SparseTensor();
-       B_T = B_T.setFromTensorProd(B, prod);
-       Bmat = B_T.getMatrix();
+
+       [ind1, ind2] = prod.getDispatchInd();
+       lfn_num = locfacenodetbl.num;
+       Bmat = sparse(ind1, ind2, B, lfn_num, lfn_num)
        
        % if we know - a priori - that matrix is symmetric, then we remove
        % symmetry loss that has been introduced in assembly.
@@ -135,15 +135,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            iBmat = 0.5*(iBmat + iBmat');
        end
        
-       
-       [fnind1, fnind2, iB] = find(iBmat);
-       clear locmattbl
-       locmattbl.fnind1 = fnind1;
-       locmattbl.fnind2 = fnind2;
-       locmattbl.num = numel(locmattbl.fnind1);
-       % map = crossTable(locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
-       iB = tblmap(iB, locmattbl, locface2nodetbl, {'fnind1', 'fnind2'});
-       % clear map;
+       ind = sub2ind([lfn_num, lfn_num], ind2, ind1);
+       iB = iB(ind);
        
        % clean-up and prepare locface2nodetbl for further use in contraction operations
        locface2nodetbl = duplicatefield(locface2nodetbl, {'nodes', {'nodes1', ...
@@ -152,19 +145,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        locface2nodetbl = rmfield(locface2nodetbl, 'fnind2');
        
        % remove external faces from loccellfacenodetbl and locfacenodetbl
-       a = convertTableToArray(loccellfacenodetbl, {'faces', 'cells', ...
-                           'nodes'});
-       locfaces = a(:, 1);
-       isintface = (intfaces(locfaces) > 0);
-       a = a(isintface, :);
-       loccellfacenodetbl = convertArrayToTable(a, {'faces', 'cells', ...
-                           'nodes'});
+       locfaces = loccellfacenodetbl.get('faces');
+       isintfaces = (intfaces(locfaces) > 0);
+       loccellfacenodetbl.inds = loccellfacenodetbl.inds(isintfaces, :);
        
-       a = convertTableToArray(locfacenodetbl, {'faces', 'nodes'});
-       locfaces = a(:, 1);
-       isintface = (intfaces(locfaces) > 0);
-       a = a(isintface, :);
-       locfacenodetbl = convertArrayToTable(a, {'faces', 'nodes'});
+       locfaces = locfacenodetbl.get('faces');
+       isintfaces = (intfaces(locfaces) > 0);
+       locfacenodetbl.inds = locfacenodetbl.inds(isintfaces, :);
 
        if locfacenodetbl.num == 0
            % handle case when all faces are external
@@ -174,7 +161,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            break  
        end
        
-       div = tblmap(facesgn, cellfacetbl, loccellfacenodetbl, {'cells', 'faces'});
+       map = TensorMap();
+       map.fromTbl = cellfacetbl;
+       map.toTbl = loccellfacenodetbl;
+       map.mergefds = {'cells', 'faces'};
+       map = map.setup();
+       
+       div = map.eval(facesgn);
 
        prod = TensorProd();
        prod.tbl1 = locface2nodetbl;
@@ -184,8 +177,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        prod.reducefds = {'faces2', 'nodes2'};
        prod = prod.setup();
        
-       iBdiv = prod.evalProd(iB, div);
-       iBdivtbl = prod.prodtbl;
+       iBdiv = prod.eval(iB, div);
+       iBdivtbl = prod.tbl3;
        
        prod = TensorProd();
        prod.tbl1 = loccellfacenodetbl;
@@ -195,31 +188,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        prod.reducefds = {'faces1', 'nodes1'};
        prod = prod.setup();
        
-       diviBdiv    = prod.evalProd(div, iBdiv);
-       diviBdivtbl = prod.prodtbl;
-
+       diviBdiv    = prod.eval(div, iBdiv);
+       diviBdivtbl = prod.tbl2;
 
        % Aggregate contribution in A
        
-       tbl = diviBdivtbl; %alias
-       locA = sparse(tbl.cells1, tbl.cells2, diviBdiv, nc, nc);
+       cells1 = diviBdivtbl.get('cells1');
+       cells2 = diviBdivtbl.get('cells2');
+       locA = sparse(cells1, cells2, diviBdiv, nc, nc);
        A = A + locA;
        
        % Aggregate contribution in F
-       locface_1cell_2tbl = projTable(iBdivtbl, {'faces1', 'cells2'});
+       locface_1cell_2tbl = projIndexArray(iBdivtbl, {'faces1', 'cells2'});
        % remove external faces
-       a = convertTableToArray(locface_1cell_2tbl, {'faces1', 'cells2'});
-       locfaces = a(:, 1);
-       isintface = (intfaces(locfaces) > 0);
-       a = a(isintface, :);
-       locface_1cell_2tbl = convertArrayToTable(a, {'faces1', 'cells2'});
+       locfaces = locface_1cell_2tbl.get('faces1');
+       isintfaces = (intfaces(locfaces) > 0);
+       locface_1cell_2tbl.inds = locface_1cell_2tbl.inds(isintfaces, :);
        
        % map = setupTableMapping(iBdivtbl, locface_1cell_2tbl, {'faces1', ...
                            % 'cells2'});
-       locF = tblmap(iBdiv, iBdivtbl, locface_1cell_2tbl, {'faces1', ...
-                           'cells2'});
-       tbl  = locface_1cell_2tbl; %alias
-       locF = sparse(tbl.faces1, tbl.cells2, locF, nf, nc);
+       map = TensorMap();
+       map.fromTbl = iBdivtbl;
+       map.toTbl = locface_1cell_2tbl;
+       map.mergefds = {'faces1', 'cells2'};
+       map = map.setup;
+       
+       locF =mamp.eval(iBdiv);
+       
+       faces1 = locface_1cell_2tbl.get('faces1');
+       cells2 = locface_1cell_2tbl.get('cells2');
+       locF = sparse(faces1, cells2, locF, nf, nc);
        F    = F + locF;
        
        if opt.verbose
