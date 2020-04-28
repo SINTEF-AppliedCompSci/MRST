@@ -94,8 +94,6 @@ for i = 1 : numel(pressures)
 end
 
 
-return
-
 %% check flux computations by computing mass directly mass conservation in
 %% each cell
 
@@ -106,31 +104,28 @@ N = G.faces.neighbors;
 
 cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
 cellfacetbl.faces = G.cells.faces(:, 1);
-cellfacetbl.num   = numel(cellfacetbl.cells);
+cellfacetbl = IndexArray(cellfacetbl);
+
+celltbl.cells = (1 : nc)';
+celltbl = IndexArray(celltbl);
 
 facetbl.faces = (1 : nf)';
-facetbl.num   = nf;
+facetbl = IndexArray(facetbl);
 
-sgn = zeros(cellfacetbl.num, 1);
+fno = cellfacetbl.get('faces');
+cno = cellfacetbl.get('cells');
+sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
 
-faces = find(N(facetbl.faces, 1) > 0);
-clear poscellfacetbl
-poscellfacetbl.cells = N(faces, 1);
-poscellfacetbl.faces = faces;
-poscellfacetbl.num   = numel(poscellfacetbl.cells);
-mappos = setupTableMapping(poscellfacetbl, cellfacetbl, {'cells', 'faces'});
-sgn = sgn + mappos*ones(poscellfacetbl.num, 1);
+prod = TensorProd();
+prod.tbl1 = cellfacetbl;
+prod.tbl2 = facetbl;
+prod.tbl3 = celltbl;
+prod.reducefds = {'faces'};
+prod = prod.setup();
 
-faces = find(N(facetbl.faces, 2) > 0);
-clear negcellfacetbl
-negcellfacetbl.cells = N(faces, 2);
-negcellfacetbl.faces = faces;
-negcellfacetbl.num   = numel(negcellfacetbl.cells);
-mapneg = setupTableMapping(negcellfacetbl, cellfacetbl, {'cells', 'faces'});
-sgn = sgn - mapneg*ones(negcellfacetbl.num, 1);
-
-tbl = cellfacetbl; % alias
-div = sparse(tbl.cells, tbl.faces, sgn, nc, nf);
+div_T = SparseTensor();
+div_T = div_T.setFromTensorProd(sgn, prod);
+div = div_T.getMatrix();
 
 clear qs;
 for i = 1 : numel(fluxes)

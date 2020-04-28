@@ -105,8 +105,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        locface2nodetbl    = tbls.face2nodetbl;
        loccellfacenodetbl = tbls.cellfacenodetbl;
 
-       loccellfacenodetbl = loccellfacenodetbl.removeInd('cnfind');
-       locfacenodetbl = locfacenodetbl.removeInd('fnind');
+       loccellfacenodetbl = loccellfacenodetbl.removeInd({'cnfind'});
+       locfacenodetbl = locfacenodetbl.removeInd({'fnind'});
        locface2nodetbl = locface2nodetbl.removeInd({'fnind1', 'fnind2'});
        
        % Assembly of B
@@ -142,7 +142,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        iB = iBmat(ind);
        
        % clean-up and prepare locface2nodetbl for further use in contraction operations
-       locface2nodetbl = duplicatefield(locface2nodetbl, {'nodes', {'nodes1', ...
+       locface2nodetbl = locface2nodetbl.duplicateInd({'nodes', {'nodes1', ...
                            'nodes2'}});
        
        % remove external faces from loccellfacenodetbl and locfacenodetbl
@@ -190,7 +190,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        prod = prod.setup();
        
        diviBdiv    = prod.eval(div, iBdiv);
-       diviBdivtbl = prod.tbl2;
+       diviBdivtbl = prod.tbl3;
 
        % Aggregate contribution in A
        
@@ -214,7 +214,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        map.mergefds = {'faces1', 'cells2'};
        map = map.setup;
        
-       locF =mamp.eval(iBdiv);
+       locF = map.eval(iBdiv);
        
        faces1 = locface_1cell_2tbl.get('faces1');
        cells2 = locface_1cell_2tbl.get('cells2');
