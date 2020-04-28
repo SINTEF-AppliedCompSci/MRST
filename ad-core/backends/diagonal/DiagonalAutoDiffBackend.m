@@ -124,7 +124,8 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             end
             bad = cellfun(@isempty, flux);
             if any(bad)
-                [flux{bad}] = deal(zeros(2*bz, size(model.operators.N, 1)));
+                tmp = flux{bad};
+                [flux{bad}] = deal(zeros(2*bz, size(tmp, 2)));
             end
             
             [colNo, rowPtr, values, n, m] = mexDiscreteDivergenceBlockJac(acc, flux, opt.N,...
