@@ -94,34 +94,46 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rhs = zeros(size(A, 1), 1);
     
     extfacenodetbl = tbls.extfacenodetbl;
-    extfacenodetbl = addLocInd(extfacenodetbl, 'efnind');
+    extfacenodetbl = extfacenodetbl.addLocInd('efnind');
     
     is_press = strcmpi('pressure', bc.type);
+    
     if any(is_press)
+        
         is_well_posed = true;
+        
         bcpresstbl.faces = bc.face(is_press);
-        bcpresstbl.num   = numel(bcpresstbl.faces);
-        bcpresstbl.num   = numel(bcpresstbl.faces);
+        bcpresstbl = IndexArray(bcpresstbl);
         bcpresstbl0 = bcpresstbl;
         pressvals = bc.value(is_press);
-        [~, bcpresstbl] = setupTableMapping(extfacenodetbl, bcpresstbl, ...
-                                                           {'faces'});
-        map = setupTableMapping(bcpresstbl0, bcpresstbl, {'faces'});
-        pressvals = map*pressvals;
         
-        knownbcpind = bcpresstbl.efnind;
+        % bcpresstbl contains indices of external face node where pressure is given
+        bcpresstbl = crossIndexArray(extfacenodetbl, bcpresstbl, {'faces'});
+        map = TensorMap();
+        map.fromTbl = bcpresstbl0;
+        map.toTbl = bcpresstbl;
+        map.mergefds = {'faces'};
+        map = map.setup();
+       
+        pressvals = map.eval(pressvals);
+        
+        % setup bctbl given external face nodes where the pressure is not given. They
+        % correspond to degrees of freedom in A that we have to keep
+        knownbcpind = bcpresstbl.get('efnind');
         unknownbcpind              = true(extfacenodetbl.num, 1);
         unknownbcpind(knownbcpind) = false;
         unknownbcpind              = find(unknownbcpind);
         
-        clear bctbl
-        bctbl.efnind = extfacenodetbl.efnind(unknownbcpind);
-        bctbl.num = numel(bctbl.efnind);
+        efnind = extfacenodetbl.get('efnind');
+        bctbl.efnind = efnind(unknownbcpind);
+        bctbl = IndexArray(bctbl);
+        % expand bctbl with all the indices in extfacenodetbl
+        bctbl = crossIndexArray(bctbl, extfacenodetbl, {'efnind'});
+        bctbl = bctbl.addLocInd('bcind');
         
-        [~, bctbl] = setupTableMapping(bctbl, extfacenodetbl, {'efnind'});
-        bctbl = addLocInd(bctbl, 'bcind');
-        
+        % The degrees of freedom (unknown) that are kept in the system
         unknownpind = [(1 : nc)'; nc + unknownbcpind];
+        % The external degrees of freedom that are known and removed from the system
         knownpind   = nc + knownbcpind;
         
         B   = A(unknownpind, knownpind);
@@ -138,16 +150,37 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     is_flux = strcmpi('flux', bc.type);
     if any(is_flux)
+        
+        % The flux is given on faces and is divided equally on face nodes
+
         facenodetbl = tbls.facenodetbl;
         bcfluxtbl.faces = bc.face(is_flux);
-        bcfluxtbl.num   = numel(bcfluxtbl.faces);
+        bcfluxtbl = IndexArray(bcfluxtbl);
+        
         fluxvals = bc.value(is_flux);
-        map = setupTableMapping(bcfluxtbl, bctbl, {'faces'});
-        nfluxperface = diag(map'*map);
-        fluxvals = (1./nfluxperface).*fluxvals;
-        fluxvals = map*fluxvals;
-        ind = nc + bctbl.bcind;
+        
+        map = TensorMap();
+        map.fromTbl = bctbl;
+        map.toTbl = bcfluxtbl;
+        map.mergefds = {'faces'};
+        map = map.setup();
+        
+        nfluxperface = map.eval(ones(bcflux.num, 1));
+        coef = 1./nfluxperface;
+        
+        prod = TensorMap();
+        prod.tbl1 = bcfluxtbl;
+        prod.tbl2 = bctbl;
+        prod.tbl3 = bctbl;
+        prod.mergefds = {'faces'};
+        prod = prod.setup();
+        
+        fluxvals = prod.eval(coef, fluxvals);
+        
+        bcind = bcctbl.get('bcind');
+        ind = nc + bcind;
         rhs(ind) = rhs(ind) + fluxvals;
+        
     end
 
     nnp = length(rhs); 
@@ -165,13 +198,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     bc_pressure = zeros(extfacenodetbl.num, 1);
     
-    unknown_bc_pressure = x((nc + 1) : nnp); % pressure at boundary
-    map = setupTableMapping(bctbl, extfacenodetbl, {'faces', 'nodes'});
-    unknown_bc_pressure = map*unknown_bc_pressure;
-    bc_pressure = bc_pressure + unknown_bc_pressure;
+    % We recover the computed values of the pressure and insert them in the vector
+    % bc_pressure
     
-    map = setupTableMapping(bcpresstbl, extfacenodetbl, {'faces', 'nodes'});
-    known_bc_pressure = map*pressvals;
+    unknown_bc_pressure = x((nc + 1) : nnp); % pressure at boundary
+    
+    map = TensorMap();
+    map.fromTbl = bctbl;
+    map.toTbl = extfacenodetbl;
+    map.mergefds = {'faces', 'nodes', 'efnind'};
+    map = map.setup();
+    
+    unknown_bc_pressure = map.eval(unknown_bc_pressure);
+    
+    bc_pressure = bc_pressure + unknown_bc_pressure;
+
+    % We insert the given Dirichlet pressure value them in the vector bc_pressure
+    
+    map = TensorMap();
+    map.fromTbl = bcpresstbl;
+    map.toTbl = extfacenodetbl;
+    map.mergefds = {'faces', 'nodes', 'efnind'};
+    map = map.setup();
+    
+    known_bc_pressure = map.eval(pressvals);
     bc_pressure = bc_pressure + known_bc_pressure;    
     
     if opt.outputFlux 

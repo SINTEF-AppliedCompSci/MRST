@@ -80,27 +80,31 @@ fluxes{caseno} = state.flux;
 titles{caseno} = 'mpfa - standard';
 caseno         = caseno + 1;
 
-% mpfa - block
-mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'blocksize', ...
-                                      blocksize, 'verbose', true);
-state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
-p              = state.pressure;
-vec            = [z, p];
-vecs{caseno}   = sortrows(vec);
-fluxes{caseno} = state.flux;
-titles{caseno} = 'mpfa - block';
-caseno         = caseno + 1;
-
-% mpfa - new block
-mpfastruct = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
+domore = false;
+if domore
+    % mpfa - block
+    mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'blocksize', ...
                                          blocksize, 'verbose', true);
-state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
-p              = state.pressure;
-vec            = [z, p];
-vecs{caseno}   = sortrows(vec);
-fluxes{caseno} = state.flux;
-titles{caseno} = 'mpfa - new block';
-caseno         = caseno + 1;
+    state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
+    p              = state.pressure;
+    vec            = [z, p];
+    vecs{caseno}   = sortrows(vec);
+    fluxes{caseno} = state.flux;
+    titles{caseno} = 'mpfa - block';
+    caseno         = caseno + 1;
+
+    % mpfa - new block
+    mpfastruct = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
+                                             blocksize, 'verbose', true);
+    state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
+    p              = state.pressure;
+    vec            = [z, p];
+    vecs{caseno}   = sortrows(vec);
+    fluxes{caseno} = state.flux;
+    titles{caseno} = 'mpfa - new block';
+    caseno         = caseno + 1;
+
+end
 
 close all
 for i = 1 : numel(vecs)
@@ -110,6 +114,8 @@ for i = 1 : numel(vecs)
     ylabel('pressure');
     title(titles{i});
 end
+
+return
 
 %% check flux computations by computing mass directly mass conservation in
 %% each cell

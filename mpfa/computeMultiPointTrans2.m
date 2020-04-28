@@ -122,6 +122,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt);
+   facenodetbl = tbls.facenodetbl;
+   celltbl = tbls.celltbl;
    
    % if we know - a priori - that matrix is symmetric, then we remove
    % symmetry loss that has been introduced in assembly.
@@ -143,8 +145,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % The facenode degrees of freedom, as specified by the facenodetbl table, are
    % ordered by nodes first (see implementation below). It means in particular
    % that the matrix B is, by construction, block diagonal.
-   facenodetbl = tbls.facenodetbl;
-   [~, sz] = rlencode(facenodetbl.nodes); 
+   nodes = facenodetbl.get('nodes');
+   [~, sz] = rlencode(nodes); 
    iB = opt.invertBlocks(B, sz);
 
    if opt.verbose
@@ -159,34 +161,49 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    %% Assemble of the divergence operator, from facenode values to cell value.
    cellnodefacetbl = tbls.cellnodefacetbl;
-   fno = cellnodefacetbl.faces; %alias
-   cno = cellnodefacetbl.cells; %alias
+   
+   fno = cellnodefacetbl.get('faces');
+   cno = cellnodefacetbl.get('cells');
    sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
-   div = sparse(cellnodefacetbl.cells, ...
-                (1 : cellnodefacetbl.num)', ...
-                sgn, ...
-                G.cells.num, ...
-                cellnodefacetbl.num);
-   % reduce from cell-face-node to face-node (equivalent to removing hybridization)
-   op = setupTableMapping(facenodetbl, cellnodefacetbl, {'faces', 'nodes'});
-   div = div*op;
+   
+   prod = TensorProd();
+   prod.tbl1 = cellnodefacetbl;
+   prod.tbl2 = facenodetbl;
+   prod.tbl3 = celltbl;   
+   prod.reducefds = {'nodes', 'faces'};
+   prod = prod.setup();
+   
+   div_T = SparseTensor();
+   div_T = div_T.setFromTensorProd(sgn, prod);
+   div = div_T.getMatrix();
+
    
    %% Assemble the projection operator from facenode values to facenode values
    % on the external faces.
-   fno = cellnodefacetbl.faces; %alias
-   cno = cellnodefacetbl.cells; %alias
-   sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
-
+   
    extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
    faceexttbl.faces = find(extfaces);
-   faceexttbl.num   = numel(faceexttbl.faces);
-   [~, extfacenodetbl] = setupTableMapping(facenodetbl, faceexttbl, {'faces'});
+   faceexttbl = IndexArray(faceexttbl);
+   extfacenodetbl = crossIndexArray(facenodetbl, faceexttbl, {'faces'});
    
-   op     = setupTableMapping(cellnodefacetbl, extfacenodetbl, {'faces', 'nodes'});
-   fn_sgn = op*sgn;
-   map = setupTableMapping(facenodetbl, extfacenodetbl, {'faces', 'nodes'});
-   nfne = extfacenodetbl.num;
-   Pext = sparse(1 : nfne, 1 : nfne, fn_sgn, nfne, nfne)*map;
+   map = TensorMap();
+   map.fromTbl = cellnodefacetbl;
+   map.toTbl = extfacenodetbl;
+   map.mergefds = {'faces', 'nodes'};
+   map = map.setup();
+   
+   efn_sgn = map.eval(sgn);
+   
+   prod = TensorProd();
+   prod.tbl1 = extfacenodetbl;
+   prod.tbl2 = facenodetbl;
+   prod.tbl3 = extfacenodetbl;
+   prod.mergefds = {'faces', 'nodes'};
+   prod = prod.setup();
+   
+   Pext_T = SparseTensor();
+   Pext_T = Pext_T.setFromTensorProd(efn_sgn, prod);
+   Pext = Pext_T.getMatrix();
    
    tbls.extfacenodetbl = extfacenodetbl;
    
@@ -196,9 +213,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    F2 = - iB*Pext';
    F  = [F1, F2];
    facetbl.faces = (1 : G.faces.num)';
-   facetbl.num   = G.faces.num;
-   map = setupTableMapping(facenodetbl, facetbl, {'faces'});
-   F = map*F;
+   facetbl = IndexArray(facetbl);
+   
+   map = TensorMap();
+   map.fromTbl = facenodetbl;
+   map.toTbl = facetbl;
+   map.mergefds = {'faces'};
+   map = map.setup();
+   
+   Aver_T = SparseTensor();
+   Aver_T = Aver_T.setFromTensorMap(map);
+   Aver = Aver_T.getMatrix();
+   
+   F = Aver*F;
    
    %% Assemble the system matrix operaror: The degrees of freedom are the pressure
    % values at the cell center and at the external facenode.
