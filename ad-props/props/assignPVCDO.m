@@ -1,8 +1,8 @@
 function f = assignPVCDO(f, pvcdo, reg)
-    [f.bO, f.muO] = getFunctions(f, pvcdo, reg);
+    [f.bO, f.muO] = getFunctions(pvcdo, reg);
 end
 
-function [bO, muO] = getFunctions(f, PVCDO, reg)
+function [bO, muO] = getFunctions(PVCDO, reg)
     [bO, muO] = deal(cell(1, reg.pvt));
     
     for i = 1:reg.pvt
