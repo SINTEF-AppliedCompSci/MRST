@@ -18,7 +18,8 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
     cellnodetbl     = globtbls.cellnodetbl;
 
     % Restrict cellnodetbl to the nodes blocks (nodes that are sent as argument)
-    [~, cellnodetbl] = setupTableMapping(cellnodetbl, nodetbl, {'nodes'});
+    cellnodetbl = crossIndexArray(cellnodetbl, nodetbl, {'nodes'});
+    
     if cellnodetbl.num == 0
         % may happens when grid contains nodes that do not belong to any faces.
         B = [];
@@ -27,47 +28,41 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
     end
     % Restrict cellfacenodetbl to the node blocks. Each entry of cellfacenodetbl
     % determine a unique facet in a corner
-    [~, cellfacenodetbl] = setupTableMapping(cellnodetbl, cellfacenodetbl, ...
-                                                          {'nodes', 'cells'});
+    cellfacenodetbl = crossIndexArray(cellnodetbl, cellfacenodetbl, {'nodes', ...
+                        'cells'});
     % We order cellnodeface in cell-node-face order. This is done to optimize the
     % for-end loop below.
-    cellnodeface = convertTableToArray(cellfacenodetbl, {'cells', 'nodes', 'faces'});
-    cellnodeface = sortrows(cellnodeface);
-    cellfacenodetbl = convertArrayToTable(cellnodeface, {'cells', 'nodes', 'faces'});
-    cellfacenodetbl = addLocInd(cellfacenodetbl, 'cnfind');
+    cellfacenodetbl = sortIndexArray(cellfacenodetbl, {'cells', 'nodes', 'faces'});
+    cellfacenodetbl = cellfacenodetbl.addLocInd('cnfind');
 
     % We set up the facenode table. It is reordered so that we obtain a diagonal
     % matrix in the local indices.
-    facenodetbl = projTable(cellfacenodetbl, {'nodes', 'faces'});
-    facenode = convertTableToArray(facenodetbl, {'nodes', 'faces'});
-    facenode = sortrows(facenode);
-    facenodetbl = convertArrayToTable(facenode, {'nodes', 'faces'});
-    facenodetbl = addLocInd(facenodetbl, 'fnind');
+    facenodetbl = projIndexArray(cellfacenodetbl, {'nodes', 'faces'});
+    facenodetbl = sortIndexArray(facenodetbl, {'nodes', 'faces'});
+    facenodetbl = facenodetbl.addLocInd('fnind');
 
     % We set up cellface table
-    cellfacetbl = projTable(cellfacenodetbl, {'cells', 'faces'});
+    cellfacetbl = projIndexArray(cellfacenodetbl, {'cells', 'faces'});
 
     % col and row tables for matrices in the spatial dimension (dim).
     coltbl.coldim = (1 : dim)';
-    coltbl.num = dim;
+    coltbl = IndexArray(coltbl);
     rowtbl = coltbl;
     rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
 
     % We set up cell table (only cells that belong to the block).
-    celltbl = projTable(cellnodetbl, {'cells'});
-    celltbl = addLocInd(celltbl, 'cind');
+    celltbl = projIndexArray(cellnodetbl, {'cells'});
+    celltbl = celltbl.addLocInd('cind');
 
     % Nodal scalar product is stored in vector B. The table mattbl
     % specifies how B is stored: a matrix for each "corner" (cell-node
     % pair).
     crossextend = {'faces', {'faces1', 'faces2'}};
-    [~, mattbl] = setupTableMapping(cellfacenodetbl, cellfacenodetbl, {'cells', 'nodes'}, ...
-                                         'crossextend', {crossextend});
+    mattbl= crossIndexArray(cellfacenodetbl, cellfacenodetbl, {'cells', 'nodes'}, ...
+                            'crossextend', {crossextend});
     % We order mattbl in cell-node-face1-face2 order. This is done to optimize
     % for-end loop below
-    orderingmat = convertTableToArray(mattbl, {'cells', 'nodes', 'faces1', 'faces2'});
-    orderingmat = sortrows(orderingmat);
-    mattbl = convertArrayToTable(orderingmat, {'cells', 'nodes', 'faces1', 'faces2'});
+    mattbl = sortIndexArray(mattbl, {'cells', 'nodes', 'faces1', 'faces2'});
 
     B = zeros(mattbl.num, 1);
 
@@ -89,12 +84,10 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
     facetNormals = sgn.*facetNormals; % Outward normals with respect to cell
                                       % in cellnodeface.
 
-    [~, cellnodefacecoltbl] = setupTableMapping(cellfacenodetbl, coltbl, []);
-    a = convertTableToArray(cellnodefacecoltbl, {'cells', 'nodes', 'faces', ...
-                        'coldim', 'cnfind'});
-    a = sortrows(a);
-    cellnodefacecoltbl = convertArrayToTable(a, {'cells', 'nodes', 'faces', ...
-                        'coldim', 'cnfind'});
+    cellnodefacecoltbl = crossIndexArray(cellfacenodetbl, coltbl, {}, 'optpureproduct', true);
+    cellnodefacecoltbl = sortIndexArray(cellnodefacecoltbl, {'cells', 'nodes', ...
+                        'faces', 'coldim', 'cnfind'});
+    
     facetNormals = reshape(facetNormals', [], 1);
 
     if opt.verbose
@@ -103,47 +96,35 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
     % Assemble facePermNormals which corresponds to $Kn$ where n are the *outward*
     % (weighted) normals at the facets
     [fullpermmat, r, c] = permTensor(rock, G.griddim);
-    permmat = fullpermmat(celltbl.cells, :);
+    cells = celltbl.get('cells');
+    permmat = fullpermmat(cells, :);
     perm = reshape(permmat', [], 1);
     % Setup cellcolrow table for the vector perm
-    [~, colrowtbl] = setupTableMapping(coltbl, rowtbl, []);
-    [~, cellcolrowtbl] = setupTableMapping(colrowtbl, celltbl, []);
-    a = convertTableToArray(cellcolrowtbl, {'cells', 'coldim', 'rowdim'});
-    a = sortrows(a);
-    cellcolrowtbl = convertArrayToTable(a, {'cells', 'coldim', 'rowdim'});
-    cellcolrowtbl = addLocInd(cellcolrowtbl, 'ccrind');
+    colrowtbl = crossIndexArray(coltbl, rowtbl, {}, 'optpureproduct', true);
+    cellcolrowtbl = crossIndexArray(celltbl, colrowtbl, {}, 'optpureproduct', true);
+    % cellcolrowtbl = sortIndexArray(cellcolrowtbl, {'cells', 'coldim', 'rowdim'});
+    cellcolrowtbl = cellcolrowtbl.addLocInd('ccrind');
 
-    % Dispatch permeability tensor on cellnodeface
-    [~, cellnodefacecolrowtbl] = setupTableMapping(cellcolrowtbl, cellfacenodetbl, ...
-                                                                 {'cells'});
-    op = setupTableMapping(cellcolrowtbl, cellnodefacecolrowtbl, {'ccrind'}, ...
-                                         'fastunstable', true);
-    perm = op*perm;
-    % Multiply permeability tensor with facetNormals
-    map1 = setupTableMapping(cellnodefacecoltbl, cellnodefacecolrowtbl, ...
-                                           {'cnfind', 'coldim'}, 'fastunstable', ...
-                                           true);
-    Kn = perm.*(map1*facetNormals);
-
-    map2 = setupTableMapping(cellnodefacecolrowtbl, cellnodefacecoltbl, ...
-                                           {'cnfind', {'rowdim', 'coldim'}}, ...
-                                           'fastunstable', true);
-    Kn = map2*Kn;
-
+    prod = TensorProd();
+    prod.tbl1 = cellcolrowtbl;
+    prod.tbl2 = cellnodefacecoltbl;
+    prod.tbl3 = cellnodefacecoltbl;
+    prod.replacefds1 = {{'coldim', 'rowdim', 'interchange'}};
+    prod.replacefds2 = {{'coldim', 'rowdim'}};
+    prod.reducefds = {'rowdim'};
+    prod.mergefds = {'cells'};
+    prod = prod.setup();
+    
+    Kn = prod.eval(perm, facetNormals);
+    
     % store Kn in matrix form in facePermNormals.
-    op = setupTableMapping(cellfacenodetbl, cellnodefacecoltbl, {'cnfind'}, 'fastunstable', true);
-    ind1 = cellfacenodetbl.cnfind;
-    ind1 = op*ind1;
-    op = setupTableMapping(coltbl, cellnodefacecoltbl, {'coldim'}, 'fastunstable', ...
-                                   true);
-    ind2 = (1 : coltbl.num)';
-    ind2 = op*ind2;
-    facePermNormals = sparse(ind1, ind2, Kn, cellfacenodetbl.num, coltbl.num);
+    % we know that 'coldim' is last in the ordering of the multi-index. Hence,
+    facePermNormals = reshape(Kn, 3, [])';
 
     % Some shortcuts
-    cno = cellfacenodetbl.cells;
-    fno = cellfacenodetbl.faces;
-    nno = cellfacenodetbl.nodes;
+    cno = cellfacenodetbl.get('cells');
+    fno = cellfacenodetbl.get('faces');
+    nno = cellfacenodetbl.get('nodes');
     % Default option (opt.eta = 0): Use original face centroids and cell centroids,
     % NOT actual subface centroids. This corresponds to an MPFA method
     % (O-method) R = G.faces.centroids(fno,:) - G.cells.centroids(cno,:);
@@ -154,9 +135,21 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
     areas = G.faces.areas(fno);
     vols  = G.cells.volumes(cno);
 
-    map = setupTableMapping(cellnodetbl, cellfacenodetbl, {'cells', 'nodes'});
-    nfaces = diag(map'*map);
-    nfaces = map*nfaces;
+    map = TensorMap();
+    map.fromTbl = cellfacenodetbl;
+    map.toTbl = cellnodetbl;
+    map.mergefds = {'cells', 'nodes'};
+    map = map.setup();
+    
+    nfaces = map.eval(ones(cellfacenodetbl.num, 1));
+    
+    map = TensorMap();
+    map.fromTbl = cellnodetbl;
+    map.toTbl = cellfacenodetbl;
+    map.mergefds = {'cells', 'nodes'};
+    map = map.setup();
+
+    nfaces = map.eval(nfaces);
 
     cnf_i = 1; % start indice for the cellfacenodetbl index
     mat_i = 1; % start indice for the mattbl index
@@ -176,7 +169,8 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
         v     = vols(cnf_i); % volume of the current cell
         faces = cellfacenodetbl.faces(cnfind);
 
-        cellno = cellfacenodetbl.cells(cnf_i);
+        cellno = cellfacenodetbl.get('cells');
+        cellno = cellno(cnf_i);
         K = reshape(fullpermmat(cellno, :), [dim, dim]);
 
         % Assemble local nodal scalar product
@@ -211,19 +205,31 @@ function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, var
     if opt.verbose
         fprintf('include face sign ...\n');
     end
-    sgn1 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces1, 1)) - 1;
-    sgn2 = 2*(mattbl.cells == G.faces.neighbors(mattbl.faces2, 1)) - 1;
+    
+    cells = mattbl.get('cells');
+    faces1 = mattbl.get('faces1');
+    faces2 = mattbl.get('faces2');
+    
+    sgn1 = 2*(cells == G.faces.neighbors(faces1, 1)) - 1;
+    sgn2 = 2*(cells == G.faces.neighbors(faces2, 1)) - 1;
     B = B.*sgn1.*sgn2;
 
     if opt.verbose
         fprintf('Condensate on nodes ...\n');
     end
     % Condensate on nodes (sum up cell contributions for given node).
-    [~, face2nodetbl] = setupTableMapping(facenodetbl, facenodetbl, {'nodes'}, ...
-                                               'crossextend', {{'faces', {'faces1', ...
-                        'faces2'}}, {'fnind', {'fnind1', 'fnind2'}}});
-    op = setupTableMapping(mattbl, face2nodetbl, {'nodes', 'faces1', 'faces2'});
-    B = op*B;
+    crossextfds = {{'faces', {'faces1', 'faces2'}}, {'fnind', {'fnind1', ...
+                        'fnind2'}}};
+    face2nodetbl = crossIndexArray(facenodetbl, facenodetbl, {'nodes'}, ...
+                                                   'crossextend', crossextfds);
+    
+    map = TensorMap();
+    map.fromTbl = mattbl;
+    map.toTbl = face2nodetbl;
+    map.mergefds = {'nodes', 'faces1', 'faces2'};
+    map = map.setup();
+    
+    B = map.eval(B);
 
     if opt.verbose
         fprintf('Set up matrix ...\n');

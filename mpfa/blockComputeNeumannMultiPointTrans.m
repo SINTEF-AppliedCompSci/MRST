@@ -47,44 +47,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    N = G.faces.neighbors;
    
    facetbl.faces = (1 : nf)';
-   facetbl.num = nf;
+   facetbl = IndexArray(facetbl);
    
    % setup table of cell face index
    cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos));
    cellfacetbl.faces = G.cells.faces(:, 1);
-   cellfacetbl.num   = numel(cellfacetbl.cells);
+   cellfacetbl = IndexArray(cellfacetbl);
 
    % sign of normal (outwards or inwards)
    N = G.faces.neighbors;
-   faces = (1 : nf)';
-
-   intn = N(:, 1) > 0;
-   poscellfacetbl.cells = N(intn, 1);
-   poscellfacetbl.faces = faces(intn);
-   poscellfacetbl.num   = numel(poscellfacetbl.cells);
-   facepossgn = tblmap(ones(poscellfacetbl.num, 1), poscellfacetbl, cellfacetbl, {'cells', 'faces'});
+   fino = cellfacetbl.get('faces');
+   cino = cellfacetbl.get('cells');
+   facesgn = 2*(cino == N(fino, 1)) - 1;
    
-   intn = N(:, 2) > 0;
-   negcellfacetbl.cells = N(intn, 2);
-   negcellfacetbl.faces = faces(intn);
-   negcellfacetbl.num   = numel(negcellfacetbl.cells);
-   facenegsgn = tblmap(ones(negcellfacetbl.num, 1), negcellfacetbl, cellfacetbl, {'cells', 'faces'});
-   
-   facesgn = facepossgn - facenegsgn;
-
    
    % setup table of face node index
    facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos));
    facenodetbl.nodes = G.faces.nodes;
-   facenodetbl.num = numel(facenodetbl.faces);
+   facenodetbl = IndexArray(facenodetbl);
 
-   cellfacenodetbl = crossTable(cellfacetbl, facenodetbl, {'faces'});
+   cellfacenodetbl = crossIndexArray(cellfacetbl, facenodetbl, {'faces'});
    
    % setup table of cell node index
-   cellnodetbl = projTable(cellfacenodetbl, {'cells', 'nodes'});      
+   cellnodetbl = projIndexArray(cellfacenodetbl, {'cells', 'nodes'});      
    
-   extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == ...
-                                                0);
+   extfaces = (N(:, 1) == 0) | (N(:, 2) == 0);
    intfaces = ~extfaces;
    
    A = sparse(nc, nc);
@@ -122,9 +109,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        locfacenodetbl = rmfield(locfacenodetbl, 'fnind');
        
        % Assembly of B
-       Bmat = sparse(locface2nodetbl.fnind1, locface2nodetbl.fnind2, B, ...
-                     locfacenodetbl.num, locfacenodetbl.num);
-
+       prod = TensorProd();
+       prod.tbl1 = locface2nodetbl;
+       prod.tbl2 = locfacenodetbl;
+       prod.tbl3 = locfacenodetbl;
+       prod.replacefds1 = {{'faces1', 'faces'}};
+       prod.replacefds2 = {{'faces', 'faces2'}};
+       prod.reducefds = {'faces2'};
+       prod = prod.setup();
+       
+       B_T = SparseTensor();
+       B_T = B_T.setFromTensorProd(B, prod);
+       Bmat = B_T.getMatrix();
+       
        % if we know - a priori - that matrix is symmetric, then we remove
        % symmetry loss that has been introduced in assembly.
        if strcmp(opt.ip_compmethod, 'directinverse')
@@ -137,6 +134,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        if strcmp(opt.ip_compmethod, 'directinverse')
            iBmat = 0.5*(iBmat + iBmat');
        end
+       
+       
        [fnind1, fnind2, iB] = find(iBmat);
        clear locmattbl
        locmattbl.fnind1 = fnind1;
