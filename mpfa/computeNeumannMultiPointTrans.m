@@ -129,6 +129,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    %% Assemble of the divergence operator, from facenode values to cell value.
    nf = G.faces.num;
+   celltbl = tbls.celltbl;
+   facetbl = tbls.facetbl;
    cellnodefacetbl = tbls.cellnodefacetbl;
    facenodetbl = tbls.facenodetbl;
    facenodetbl = facenodetbl.addLocInd('fnind');
@@ -165,7 +167,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    prod = prod.setup();
    
    div_T = SparseTensor();
-   div_T = div_T.setFromTensorProd(sign, prod);
+   div_T = div_T.setFromTensorProd(sgn, prod);
    div = div_T.getMatrix();
    
    %% Invert matrix B
