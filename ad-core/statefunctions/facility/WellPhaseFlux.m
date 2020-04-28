@@ -1,7 +1,7 @@
 classdef WellPhaseFlux < StateFunction
     % Get phase-flux between well-bore and reservoir
     properties
-
+    allowCrossFlow = true;
     end
     
     methods
@@ -29,7 +29,7 @@ classdef WellPhaseFlux < StateFunction
             production = ~injection & vTdp ~= 0;
             crossflow = (injection & ~isInjector) | ...
                         (production & isInjector);
-            crossflow = crossflow & false;
+            crossflow = crossflow & prop.allowCrossFlow;
             if any(injection)
                 compi = vertcat(W.compi);
                 if any(crossflow)
