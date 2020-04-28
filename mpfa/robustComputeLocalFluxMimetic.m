@@ -31,7 +31,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     % We order cellnodeface in cell-node-face order. This is node to optimize
     % for-end loop below.
     cellnodefacetbl = sortIndexArray(cellnodefacetbl, {'cells', 'nodes', 'faces'});
-    cellnodefacetbl = cellnodefacetbl.addLocInd(cellnodefacetbl, 'cnfind');    
+    cellnodefacetbl = cellnodefacetbl.addLocInd('cnfind');    
     
     % We setup the cell-node table, cellnodetbl. Each entry determine a unique
     % corner
@@ -53,8 +53,8 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
         fprintf('assemble facet normals ...\n');
     end
     
-    fno = cellnodefacetbl.faces;
-    cno = cellnodefacetbl.cells;
+    fno = cellnodefacetbl.get('faces');
+    cno = cellnodefacetbl.get('cells');
     numnodes = double(diff(G.faces.nodePos));
     numnodes = numnodes(fno);
     facetNormals = G.faces.normals(fno, :);
@@ -80,7 +80,8 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     % setup cellcolrow table for the vector perm
     colrowtbl = crossIndexArray(coltbl, rowtbl, {});
     cellcolrowtbl = crossIndexArray(celltbl, colrowtbl, {}, 'optpureproduct', true);
-    cellcolrowtbl = sortTable(cellcolrowtbl, {'cells', 'coldim', 'rowdim'});
+    cellcolrowtbl = sortIndexArray(cellcolrowtbl, {'cells', 'coldim', ...
+                        'rowdim'});
     cellcolrowtbl = cellcolrowtbl.addLocInd('ccrind');
     
     % Multiply perm with facetNormals
@@ -94,7 +95,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     prod.reducefds = {'rowdim'};
     prod = prod.setup();
     
-    Kn = prod.evalProd(perm, facetNormals);
+    Kn = prod.eval(perm, facetNormals);
    
     % store Kn in matrix form in facePermNormals.
     % Note that the indices are, by construction above, sorted.
@@ -149,7 +150,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
         a     = areas(cnfind); % areas of the faces the facets belong to
         v     = vols(cnf_i); % volume of the current cell
         faces = cellnodefacetbl.get('faces');
-        faces = faces(cnfind)
+        faces = faces(cnfind);
         
         cellno = cellnodefacetbl.get('cells');
         cellno = cellno(cnf_i);

@@ -150,7 +150,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    sgn = 2*(cino == G.faces.neighbors(fino, 1)) - 1;
    tbl = cellintnodefacetbl; %alias
    
-   div = sparse(tbl.cells, tbl.fnind, sgn, G.cells.num, facenodetbl.num);
+   prod = TensorProd();
+   prod.tbl1 = cellintnodefacetbl;
+   prod.tbl2 = intnodefacetbl;
+   prod.tbl3 = celltbl;
+   prod.reducefds = {'nodes', 'faces'};
+   prod = prod.setup();
+   
+   div_T = SparseTensor();
+   div_T = div_T.setFromTensorProd(sign, prod);
 
    %% Invert matrix B
    % The facenode degrees of freedom, as specified by the facenodetbl table, are
@@ -168,7 +176,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        B = 0.5*(B + B');
    end
    
-   [~, sz] = rlencode(facenodetbl.nodes); 
+   nodes = facenodetbl.get('nodes');
+   [~, sz] = rlencode(nodes); 
    iB = opt.invertBlocks(B, sz);
    % if we know - a priori - that matrix is symmetric, then we remove the loss of
    % symmetry that may have been introduced by the numerical inversion.
@@ -185,14 +194,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % values at the cell center and at the external facenode.
    A = div*iB*div';
    
-   %% Assemble the flux operator: From pressure values at the cell center and
-   % at the external facenode, compute the fluxes at the faces
+   %% Assemble the flux operator: From pressure values at the cell center, compute the fluxes at the faces
    F = iB*div';
    % mapping from facenode to face
-   intfacenodetbl = crossTable(facenodetbl, intfacetbl, {'faces'});
-   tbl = intfacenodetbl; %alias
-   map = sparse(tbl.faces, tbl.fnind, ones(tbl.num, 1), nf, facenodetbl.num);
-   F = map*F;
+   intfacenodetbl = crossIndexArray(facenodetbl, intfacetbl, {'faces'});
+   
+   map = TensorMap();
+   map.fromTbl = facenodetbl;
+   map.toTbl = facetbl;
+   map.mergefds = {'faces'};
+   map = map.setup();
+   
+   S_T = SparseTensor();
+   S_T = S_T.setFromTensorMap(map);
+   S = S_T.getMatrix();
+   
+   F = S*F;
 
    mpfastruct = struct('div' , div , ...
                        'F'   , F   , ...

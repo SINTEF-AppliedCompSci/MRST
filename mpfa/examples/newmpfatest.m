@@ -69,18 +69,22 @@ titles{caseno}    = 'mpfa - Neumann';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
-% mpfa - well - block
-tic
-mpfastructs{caseno} = blockComputeNeumannMultiPointTrans(G, rock, 'blocksize', ...
-                                                  blocksize,  'eta', 1/3, ...
-                                                  'verbose', isverbose);
-texec = toc;
-states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
-pressures{caseno} = states{caseno}.pressure;
-fluxes{caseno} = states{caseno}.flux;
-titles{caseno} = 'mpfa - Neumann - block';
-fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
-caseno = caseno + 1;
+doblock = false;
+if doblock
+    % mpfa - well - block
+    tic
+    mpfastructs{caseno} = blockComputeNeumannMultiPointTrans(G, rock, 'blocksize', ...
+                                                      blocksize,  'eta', 1/3, ...
+                                                      'verbose', isverbose);
+    texec = toc;
+    states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
+    pressures{caseno} = states{caseno}.pressure;
+    fluxes{caseno} = states{caseno}.flux;
+    titles{caseno} = 'mpfa - Neumann - block';
+    fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
+    caseno = caseno + 1;
+
+end
 
 %% Plotting
 for i = 1 : numel(pressures)
@@ -90,6 +94,9 @@ for i = 1 : numel(pressures)
     title(titles{i});
     colorbar
 end
+
+
+return
 
 %% check flux computations by computing mass directly mass conservation in
 %% each cell
