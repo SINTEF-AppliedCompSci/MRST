@@ -131,24 +131,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nf = G.faces.num;
    cellnodefacetbl = tbls.cellnodefacetbl;
    facenodetbl = tbls.facenodetbl;
-   facenodetbl = addLocInd(facenodetbl, 'fnind');
+   facenodetbl = facenodetbl.addLocInd('fnind');
    
    extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
    intfaces = find(~extfaces);
    clear intfacetbl
    intfacetbl.faces = intfaces;
-   intfacetbl.num = numel(intfaces);
+   intfacetbll = IndexArray(intfacetbl);
    
    % setup table with only internal faces
-   cellintnodefacetbl = crossTable(cellnodefacetbl, intfacetbl, {'faces'});
+   cellintnodefacetbl = crossIndexArray(cellnodefacetbl, intfacetbl, {'faces'});
    % add facenode indexing
-   cellintnodefacetbl = crossTable(cellintnodefacetbl, facenodetbl, {'faces', ...
-                       'nodes'});
+   cellintnodefacetbl = crossIndexArray(cellintnodefacetbl, facenodetbl, ...
+                                        {'faces', 'nodes'});
    
-   fino = cellintnodefacetbl.faces; %alias
-   cino = cellintnodefacetbl.cells; %alias
+   fino = cellintnodefacetbl.get('faces');
+   cino = cellintnodefacetbl.get('cells');
    sgn = 2*(cino == G.faces.neighbors(fino, 1)) - 1;
    tbl = cellintnodefacetbl; %alias
+   
    div = sparse(tbl.cells, tbl.fnind, sgn, G.cells.num, facenodetbl.num);
 
    %% Invert matrix B

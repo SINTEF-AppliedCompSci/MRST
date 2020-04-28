@@ -6,46 +6,46 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     dim = G.griddim;
 
     coltbl.coldim = (1 : dim)';
-    coltbl.num = dim;
+    coltbl = IndexArray(coltbl);
     rowtbl = coltbl;
     rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
 
     celltbl.cells = (1 : nc)';
-    celltbl.num = nc;
+    celltbl = IndexArray((celltbl));
 
     cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
     cellfacetbl.faces = G.cells.faces(:, 1);
-    cellfacetbl.num   = numel(cellfacetbl.cells);
+    cellfacetbl = IndexArray(cellfacetbl);
 
     facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos)); 
     facenodetbl.nodes = G.faces.nodes;
-    facenodetbl.num   = numel(facenodetbl.faces);
+    facenodetbl = IndexArray(facenodetbl);
     % We setup the face-node table and it is ordered along ascending node numbers so
     % that we will have a block structure for the nodal scalar product.
-    facenodetbl = sortTable(facenodetbl, {'nodes', 'faces'});
+    facenodetbl = sortIndexArray(facenodetbl, {'nodes', 'faces'});
     
-    cellnodefacetbl = crossTable(cellfacetbl, facenodetbl, {'faces'});
+    cellnodefacetbl = crossIndexArray(cellfacetbl, facenodetbl, {'faces'});
 
     % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
     % unique facet in a corner
     % We order cellnodeface in cell-node-face order. This is node to optimize
     % for-end loop below.
-    cellnodefacetbl = sortTable(cellnodefacetbl, {'cells', 'nodes', 'faces'});
-    cellnodefacetbl = addLocInd(cellnodefacetbl, 'cnfind');    
+    cellnodefacetbl = sortIndexArray(cellnodefacetbl, {'cells', 'nodes', 'faces'});
+    cellnodefacetbl = cellnodefacetbl.addLocInd(cellnodefacetbl, 'cnfind');    
     
     % We setup the cell-node table, cellnodetbl. Each entry determine a unique
     % corner
-    cellnodetbl = projTable(cellnodefacetbl, {'nodes', 'cells'});
+    cellnodetbl = projIndexArray(cellnodefacetbl, {'nodes', 'cells'});
     
     % Nodal scalar product is stored in vector nodeM
     % mattbl is the table which specifies how nodeM is stored: a matrix for
     % each "corner" (cell-node pair).
     crossextend = {'faces', {'faces1', 'faces2'}};
-    mattbl = crossTable(cellnodefacetbl, cellnodefacetbl, {'cells', 'nodes'}, ...
+    mattbl = crossIndexArray(cellnodefacetbl, cellnodefacetbl, {'cells', 'nodes'}, ...
                         'crossextend', {crossextend});
     % We order mattbl in cell-node-face1-face2 order
     % This is done to optimize for-end loop below
-    mattbl = sortTable(mattbl, {'cells', 'nodes', 'faces1', 'faces2'});
+    mattbl = sortIndexArray(mattbl, {'cells', 'nodes', 'faces1', 'faces2'});
     
     nodeM = zeros(mattbl.num, 1);
 
@@ -64,8 +64,8 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     facetNormals = sgn.*facetNormals; % Outward normals with respect to cell
                                       % in cellnodeface.
     
-    [~, cellnodefacecoltbl] = setupTableMapping(cellnodefacetbl, coltbl, []);
-    cellnodefacecoltbl = sortTable(cellnodefacecoltbl, {'cells', 'nodes', ...
+    cellnodefacecoltbl = crossIndexArray(cellnodefacetbl, coltbl, {}, 'optpureproduct', true);
+    cellnodefacecoltbl = sortIndexArray(cellnodefacecoltbl, {'cells', 'nodes', ...
                         'faces', 'coldim', 'cnfind'});
     facetNormals = reshape(facetNormals', [], 1);
     
@@ -78,35 +78,32 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     permmat = perm;
     perm = reshape(permmat', [], 1);
     % setup cellcolrow table for the vector perm
-    colrowtbl = crossTable(coltbl, rowtbl, []);
-    cellcolrowtbl = crossTable(colrowtbl, celltbl, {});
+    colrowtbl = crossIndexArray(coltbl, rowtbl, {});
+    cellcolrowtbl = crossIndexArray(celltbl, colrowtbl, {}, 'optpureproduct', true);
     cellcolrowtbl = sortTable(cellcolrowtbl, {'cells', 'coldim', 'rowdim'});
-    cellcolrowtbl = addLocInd(cellcolrowtbl, 'ccrind');
+    cellcolrowtbl = cellcolrowtbl.addLocInd('ccrind');
     
     % Multiply perm with facetNormals
     prod = TensorProd();
     prod.tbl1 = cellcolrowtbl;
     prod.tbl2 = cellnodefacecoltbl;
+    prod.tbl3 = cellnodefacecoltbl;
     prod.replacefds1 = {{'coldim', 'temp'}, {'rowdim', 'coldim'}, {'temp', 'rowdim'}};
     prod.replacefds2 = {'coldim', 'rowdim'};
     prod.mergefds = {'cells'};
     prod.reducefds = {'rowdim'};
-    prod.prodtbl = cellnodefacecoltbl;
     prod = prod.setup();
     
     Kn = prod.evalProd(perm, facetNormals);
    
     % store Kn in matrix form in facePermNormals.
-    ind1 = (1 : cellnodefacetbl.num)';
-    ind1 = tblmap(ind1, cellnodefacetbl, cellnodefacecoltbl, {'cells', 'nodes', 'faces'});
-    ind2 = (1 : coltbl.num)';
-    ind2 = tblmap(ind2, coltbl, cellnodefacecoltbl, {'coldim'});
-    facePermNormals = sparse(ind1, ind2, Kn, cellnodefacetbl.num, coltbl.num);
+    % Note that the indices are, by construction above, sorted.
+    facePermNormals = reshape(Kn, coltbl.num, [])';
     
     % Some shortcuts
-    cno = cellnodefacetbl.cells;
-    fno = cellnodefacetbl.faces;
-    nno = cellnodefacetbl.nodes;
+    cno = cellnodefacetbl.get('cells');
+    fno = cellnodefacetbl.get('faces');
+    nno = cellnodefacetbl.get('nodes');
     % Default option (opt.eta = 0): Use original face centroids and cell centroids,
     % NOT actual subface centroids. This corresponds to an MPFA method
     % (O-method) R = G.faces.centroids(fno,:) - G.cells.centroids(cno,:);
@@ -118,9 +115,22 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     vols  = G.cells.volumes(cno);
     
     % number of faces per cell-nodes.
-    nfaces = tblmap(ones(cellnodefacetbl.num, 1), cellnodefacetbl, cellnodetbl, {'cells', 'nodes'}); 
+    map = TensorMap();
+    map.fromTbl = cellnodefacetbl;
+    map.toTbl = cellnodetbl;
+    map.mergefds = {'cells', 'nodes'};
+    map = map.setup();
+    
+    nfaces = map.eval((1 : cellnodefacetbl.num));
+
     % we setup nfaces indexed along cellnodefacetbl
-    nfaces = tblmap(nfaces, cellnodetbl, cellnodefacetbl, {'cells', 'nodes'}); 
+    map = TensorMap();
+    map.fromTbl = cellnodetbl;
+    map.toTbl = cellnodefacetbl;
+    map.mergefds = {'cells', 'nodes'};
+    map = map.setup();
+    
+    nfaces = map.eval(nfaces); 
     
     cnf_i = 1; % start indice for the cellnodefacetbl index
     mat_i = 1; % start indice for the mattbl index
@@ -138,9 +148,12 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
         R     = cellFacetVec(cnfind, :);
         a     = areas(cnfind); % areas of the faces the facets belong to
         v     = vols(cnf_i); % volume of the current cell
-        faces = cellnodefacetbl.faces(cnfind);
+        faces = cellnodefacetbl.get('faces');
+        faces = faces(cnfind)
         
-        cellno = cellnodefacetbl.cells(cnf_i);
+        cellno = cellnodefacetbl.get('cells');
+        cellno = cellno(cnf_i);
+        
         K = reshape(permmat(cellno, :), [dim, dim]);
         
         % Assemble local nodal scalar product 
@@ -183,8 +196,13 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
         fprintf('Condensate on nodes ...\n');
     end    
     % Condensate on nodes (sum up cell contributions for given node).
-    redmattbl = projTable(mattbl, {'nodes', 'faces1', 'faces2'});
-    nodeM = tblmap(nodeM, mattbl, redmattbl, {'nodes', 'faces1', 'faces2'});
+    redmattbl = projIndexArray(mattbl, {'nodes', 'faces1', 'faces2'});
+    map = TensorMap();
+    map.fromTbl = mattbl;
+    map.toTbl = redmattbl;
+    map.mergefds = {'nodes', 'faces1', 'faces2'};
+    
+    nodeM = map.eval(nodeM);
     
     if opt.verbose
         fprintf('Set up matrix ...\n');
@@ -192,10 +210,22 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     % Setup matrix
     % First set up facet indices in the redmattbl table
     fnind = (1 : facenodetbl.num)';
-    facesind1 = tblmap(fnind, facenodetbl, redmattbl, {'nodes', {'faces', ...
-                        'faces1'}});
-    facesind2 = tblmap(fnind, facenodetbl, redmattbl, {'nodes', {'faces', ...
-                        'faces2'}});
+    
+    map = TensorMap();
+    map.fromTbl = facenodetbl;
+    map.toTbl = redmattbl;
+    map.replaceFromTblfds = {{'faces', 'faces1'}};
+    map.mergefds = {'nodes', 'faces1'};
+    
+    facesind1 = getDispatchInd(map);
+    
+    map = TensorMap();
+    map.fromTbl = facenodetbl;
+    map.toTbl = redmattbl;
+    map.replaceFromTblfds = {{'faces', 'faces2'}};
+    map.mergefds = {'nodes', 'faces2'};
+    
+    facesind1 = getDispatchInd(map);
     
     % Assembly of B
     B = sparse(facesind1, ...
