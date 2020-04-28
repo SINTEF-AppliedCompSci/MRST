@@ -15,7 +15,7 @@ function [bO, muO] = getFunctions(PVCDO, reg)
         vbo  = pvcdo(5); % viscosibility
 
         bO{i}  = @(po) exp(co.*(po-por))./bor;
-        muO{i} = @(po) muor.*exp(-(co-vbo).*(po-por));
+        muO{i} = @(po) muor.*exp(vbo.*(po-por));
     end
 end
 
