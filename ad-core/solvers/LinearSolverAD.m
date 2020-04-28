@@ -322,10 +322,10 @@ classdef LinearSolverAD < handle
         
         function [A, b, sys, x0] = reduceLinearSystem(solver, A, b, isAdjoint, x0)
             % Perform Schur complement reduction of linear system
-            if nargin == 3
+            if nargin < 4
                 isAdjoint = false;
             end
-            if nargin == 4
+            if nargin < 5
                 x0 = [];
             end
             if solver.useSparseReduction
