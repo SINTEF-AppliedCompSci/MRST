@@ -6,6 +6,7 @@ classdef WENOUpwindDiscretization < UpwindDiscretization
         interpolateReference = true;% Interpolate in a scaled reference space
         useMatrixProducts = true;   % Faster implementation for many cases
         compactStencil  = true;     % Take only a single connection for multiple neighbors
+        cap = true;                 % Limit values to positive
     end
     
     properties (Access = protected)
@@ -187,6 +188,10 @@ classdef WENOUpwindDiscretization < UpwindDiscretization
             
             dvq = M*(ws.*w);
             q_interp = q_c + dvq;
+            if disc.cap
+                bad = q_interp <= 0;
+                q_interp(bad) = q_c(bad);
+            end
         end
         
         function qv = getFaceValue1D(disc, model, state, flag, cellvalue)
