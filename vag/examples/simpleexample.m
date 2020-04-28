@@ -27,7 +27,7 @@ rock = makeRock(G, perm*ones(nc, 1), 0.1*ones(nc, 1));
 
 %% Compute the VAG transmissibilities
 
-vagstruct = computeVagTrans2(G, rock);
+vagstruct = computeVagTrans(G, rock);
 
 
 %% Setup system matrix
