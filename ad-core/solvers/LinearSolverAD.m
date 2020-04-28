@@ -425,7 +425,7 @@ classdef LinearSolverAD < handle
         end
         
         function [A, b, order, x0] = reorderLinearSystem(solver, A, b, order, x0)
-            if nargin == 4
+            if nargin < 5
                 x0 = [];
             end
             vo = solver.variableOrdering;
