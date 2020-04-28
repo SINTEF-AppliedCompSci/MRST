@@ -327,7 +327,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     ind = sub2ind([tc_num, tv_num], ind2, ind1);
     grad = invA(ind);
 
-    dotest = false;
+    dotest = true;
     if dotest
         % check if we have compute the inverse matrix of A
         rowtbl = replacefield(coltbl, {{'coldim', 'rowdim'}});
@@ -342,22 +342,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         prod = prod.setup();
         
         id = prod.eval(grad, tetravect);
-        
-        map = TensorMap();
-        tetrarowtbl = replacefield(tetracoltbl, {{'coldim', 'rowdim'}});
-        map.fromTbl = tetrarowtbl;
-        map.toTbl = tetracolrowtbl;
-        map.mergefds = {'cells', 'faces', 'edges', 'rowdim'};
-        ind1 = getDispatchInd(map);
-        
-        map = TensorMap();
-        map.fromTbl = tetracoltbl;
-        map.toTbl = tetracolrowtbl;
-        map.mergefds = {'cells', 'faces', 'edges', 'coldim'};
-        ind2 = getDispatchInd(map);
 
+        prod = TensorProd();
+        prod.tbl1 = tetracolrowtbl;
+        prod.tbl2 = tetracoltbl;
+        prod.tbl3 = tetracoltbl;
+        prod.replacefds1 = {{'coldim', 'rowdim', 'interchange'}};
+        prod.replacefds2 = {{'coldim', 'rowdim'}};
+        prod.mergefds = {'cells', 'faces', 'edges'};
+        prod.reducefds = {'rowdim'};
+        prod = prod.setup();
+        
+        id_T = SparseTensor();
+        id_T = id_T.setFromTensorProd(id, prod);
+        B = id_T.getMatrix();
+        
         useit = id>1e-10;
-        B = sparse(ind1(useit), ind2(useit), id(useit), tc_num, tc_num);
         spy(B); % looks ok
         
     end
