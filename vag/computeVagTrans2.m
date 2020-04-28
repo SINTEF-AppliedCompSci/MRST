@@ -303,18 +303,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     end
     
-    % prepare for the blockwise inversion
-    map = TensorMap();
-    map.fromTbl = tetraverttbl;
-    map.toTbl = tetravertcoltbl;
-    map.mergefds = {'cells', 'faces', 'edges', 'vertices'};
-    ind1 = getDispatchInd(map);
+    % Prepare for the blockwise inversion
+    prod = TensorProd();
+    prod.tbl1 = tetravertcoltbl;
+    prod.tbl2 = tetracoltbl;
+    prod.tbl3 = tetraverttbl;
+    prod.mergefds = {'cells', 'faces', 'edges'};
+    prod.reducefds = {'coldim'};
     
-    map = TensorMap();
-    map.fromTbl = tetracoltbl;
-    map.toTbl = tetravertcoltbl;
-    map.mergefds = {'cells', 'faces', 'edges', 'coldim'};
-    ind2 = getDispatchInd(map);    
+    [ind1, ind2] = prod.getDispatchInd();
     
     tv_num = tetraverttbl.num;
     tc_num = tetracoltbl.num;
@@ -327,7 +324,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     ind = sub2ind([tc_num, tv_num], ind2, ind1);
     grad = invA(ind);
 
-    dotest = true;
+    dotest = false;
     if dotest
         % check if we have compute the inverse matrix of A
         rowtbl = replacefield(coltbl, {{'coldim', 'rowdim'}});
