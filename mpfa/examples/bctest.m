@@ -57,7 +57,7 @@ bc.value = value;
 titles = {};
 z = G.cells.centroids(:, dim);
 eta = 1/3;
-blocksize = 10;
+blocksize = 2;
 
 clear vecs fluxes
 caseno = 1;
