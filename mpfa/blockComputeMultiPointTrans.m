@@ -363,17 +363,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            F2 = F2 - locF2;
 
            % We assemble the part corresponding to A22 = Pext*iB*Pext';
-           
+ 
+           % we compute Pext*iB (denoted PextiB)
            prod = TensorProd();
-           prod.tbl1 = iBPexttbl;
-           prod.tbl2 = locextfacenodetbl;
-           prod.replacefds2 = {{'faces', 'faces1'}, ...
+           prod.tbl1 = locextfacenodetbl;
+           prod.tbl2 = locface2nodetbl;
+           prod.replacefds1 = {{'faces', 'faces1'}, ...
                                {'nodes', 'nodes1'}, ...
                                {'extfnind', 'extfnind1'}};
            prod.mergefds = {'faces1', 'nodes1'};
            prod = prod.setup();
            
-           PextiBPext = prod.eval(iBPext, Pext);
+           PextiB = prod.eval(Pext, iB);
+           PextiBtbl = prod.tbl3;
+           
+           % we compute PextiB*Pext' (denoted PextiBPext)
+           
+           prod = TensorProd();
+           prod.tbl1 = PextiBtbl;
+           prod.tbl2 = locextfacenodetbl;
+           prod.replacefds2 = {{'faces', 'faces2'}, ...
+                               {'nodes', 'nodes2'}, ...
+                               {'extfnind', 'extfnind2'}};
+           prod.mergefds = {'faces2', 'nodes2'};
+           prod = prod.setup();
+           
+           PextiBPext = prod.eval(PextiB, Pext);
            PextiBPexttbl = prod.tbl3;
            
            extfnind1 = PextiBPexttbl.get('extfnind1');
