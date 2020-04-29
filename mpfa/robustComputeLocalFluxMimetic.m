@@ -225,7 +225,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     map.replaceFromTblfds = {{'faces', 'faces1'}};
     map.mergefds = {'nodes', 'faces1'};
     
-    facesind1 = getDispatchInd(map);
+    facesind1 = map.getDispatchInd();
     
     map = TensorMap();
     map.fromTbl = facenodetbl;
@@ -233,7 +233,7 @@ function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
     map.replaceFromTblfds = {{'faces', 'faces2'}};
     map.mergefds = {'nodes', 'faces2'};
     
-    facesind2 = getDispatchInd(map);
+    facesind2 = map.getDispatchInd();
     
     % Assembly of B
     B = sparse(facesind1, ...
