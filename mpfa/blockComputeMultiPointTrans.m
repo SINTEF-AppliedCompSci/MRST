@@ -246,18 +246,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
        % Aggregate contribution in F1 (used to compute flux)
        
-       loccellfacetbl = projIndexArray(loccellfacenodetbl, {'cells', 'faces'});
+       faceiBdivtbl = projIndexArray(iBdivtbl, {'cells2', 'faces1'});
        map = TensorMap();
        map.fromTbl = iBdivtbl;
-       map.toTbl = loccellfacetbl;
-       map.replaceFromTblfds = {{'faces1', 'faces'}, {'cells2', 'cells'}};
-       map.mergefds = {'cells', 'faces'};
+       map.toTbl = faceiBdivtbl;
+       map.mergefds = {'cells2', 'faces1'};
        map = map.setup;
 
        locF1 = map.eval(iBdiv);
 
-       faces = loccellfacetbl.get('faces');
-       cells = loccellfacetbl.get('cells');
+       faces = faceiBdivtbl.get('faces1');
+       cells = faceiBdivtbl.get('cells2');
        locF1 = sparse(faces, cells, locF1, nf, nc);
        F1 = F1 + locF1;
 
