@@ -99,7 +99,10 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
                 rsvd = deck.SOLUTION.RSVD{regionIx};
             else
                 assert(isfield(deck.SOLUTION, 'PBVD'));
-                rsSat = model.fluid.rsSat{pvtnum};
+                rsSat = model.fluid.rsSat;
+                if iscell(rsSat)
+                    rsSat = rsSat{pvtnum};
+                end
                 pbvd = deck.SOLUTION.PBVD{regionIx};
                 rsvd = [pbvd(:, 1), rsSat(pbvd(:, 2))];
             end
