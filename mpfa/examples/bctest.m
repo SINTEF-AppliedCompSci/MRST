@@ -1,5 +1,7 @@
 mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing
 
+clear all
+
 %% Define and process geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
 % has dimension 1-by-1-by-1. Because our flow solvers are applicable for
@@ -24,7 +26,8 @@ nc = G.cells.num;
 % permeability $K$, which here is homogeneous, isotropic and equal 100 mD.
 % The fluid has density 1000 kg/m^3 and viscosity 1 cP.
 % We make a non diagonal rock tensor
-rock = makeRock(G, 1e-3*darcy, 1);
+% rock = makeRock(G, 1e-3*darcy, 1);
+rock = makeRock(G, 1, 1);
 
 fluid = initSingleFluid('mu' , 1, ...
                         'rho', 1);
@@ -73,6 +76,7 @@ caseno         = caseno + 1;
 % mpfa - standard
 mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'verbose', true);
 state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
+mpfastruct1 = mpfastruct;
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
@@ -83,6 +87,7 @@ caseno         = caseno + 1;
 % mpfa - new block
 mpfastruct = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
                                          blocksize, 'verbose', true);
+mpfastruct2 = mpfastruct;
 state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
 p              = state.pressure;
 vec            = [z, p];

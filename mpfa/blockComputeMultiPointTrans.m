@@ -156,6 +156,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            fprintf('Starting with block %d/%d ... ', iblock, nblocks);
            tic
        end
+       
        nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
        [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, ...
                                                  'eta', opt.eta, 'ip_compmethod', ...
@@ -177,7 +178,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        locface2nodetbl    = locface2nodetbl.removeInd({'fnind1', 'fnind2'});
 
        % Assembly of B
-              prod = TensorProd();
+       prod = TensorProd();
        prod.tbl1 = locface2nodetbl;
        prod.tbl2 = locfacenodetbl;
        prod.tbl3 = locfacenodetbl;
@@ -381,8 +382,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            
            locA22 = sparse(extfnind1, extfnind2, PextiBPext, next, next);
            A22 = A22 + locA22;
-
+           
        end
+       
+       if iblock == 1
+           filename = 'new';
+           savefiledebug;
+       end
+       
        if opt.verbose
            fprintf('%g seconds\n', toc);
        end
@@ -395,6 +402,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    A = [[A11, A12]; [A21, A22]];
    F = [F1, F2];
+
+   % filename = 'new';
+   % savefiledebug;
    
    mpfastruct = struct('A'   , A, ...
                        'F'   , F, ...
