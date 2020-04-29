@@ -353,42 +353,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            map.mergefds = {'faces1', 'faces2', 'nodes2', 'extfnind2'};
            map = map.setup();
 
-           iBPext = map.eval(iBPext);
+           faceiBPext = map.eval(iBPext);
            
            extfnind = locface_1node_2face_2tbl.get('extfnind2');
            faces = locface_1node_2face_2tbl.get('faces1');
            
-           locF2 = sparse(faces, extfnind, iBPext, nf, next);
+           locF2 = sparse(faces, extfnind, faceiBPext, nf, next);
            
            F2 = F2 - locF2;
 
            % We assemble the part corresponding to A22 = Pext*iB*Pext';
- 
-           % we compute Pext*iB (denoted PextiB)
+           
+           % we compute Pext*iBPext (denoted PextiBPext)
+           
            prod = TensorProd();
            prod.tbl1 = locextfacenodetbl;
-           prod.tbl2 = locface2nodetbl;
+           prod.tbl2 = iBPexttbl;
            prod.replacefds1 = {{'faces', 'faces1'}, ...
                                {'nodes', 'nodes1'}, ...
                                {'extfnind', 'extfnind1'}};
            prod.mergefds = {'faces1', 'nodes1'};
            prod = prod.setup();
            
-           PextiB = prod.eval(Pext, iB);
-           PextiBtbl = prod.tbl3;
-           
-           % we compute PextiB*Pext' (denoted PextiBPext)
-           
-           prod = TensorProd();
-           prod.tbl1 = PextiBtbl;
-           prod.tbl2 = locextfacenodetbl;
-           prod.replacefds2 = {{'faces', 'faces2'}, ...
-                               {'nodes', 'nodes2'}, ...
-                               {'extfnind', 'extfnind2'}};
-           prod.mergefds = {'faces2', 'nodes2'};
-           prod = prod.setup();
-           
-           PextiBPext = prod.eval(PextiB, Pext);
+           PextiBPext = prod.eval(Pext, iBPext);
            PextiBPexttbl = prod.tbl3;
            
            extfnind1 = PextiBPexttbl.get('extfnind1');
