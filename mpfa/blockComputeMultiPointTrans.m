@@ -201,7 +201,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        [~, sz] = rlencode(nodes);
        iBmat   = opt.invertBlocks(Bmat, sz);
 
-       ind = sub2ind([lfn_num, lfn_num], ind2, ind1);
+       ind = sub2ind([lfn_num, lfn_num], ind1, ind2);
        iB = iBmat(ind);
 
        map = TensorMap();
