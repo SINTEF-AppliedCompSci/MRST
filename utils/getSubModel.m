@@ -1,8 +1,9 @@
 function [submodel, mappings] = getSubModel(model, cells, varargin)
     % Make a simulation-ready submodel defined by a subset of the cells in
     % the full model
-    opt = struct('overlap', 0    , ...
-                 'verbose', false);
+    opt = struct('overlap'  , 0    , ...
+                 'verbose'  , false, ...
+                 'plottable', true );
     opt = merge_options(opt, varargin{:});
     % Get cell mappings
     cellMap = getSubCells(model, cells, opt);
@@ -11,11 +12,13 @@ function [submodel, mappings] = getSubModel(model, cells, varargin)
     % Get submodel operators
     subop = getSubOperators(model, cellMap, faceMap);
     % Get subgrid
-    subG = getSubGrid(model, cellMap, faceMap);
+    subG = getSubGrid(model, cellMap, faceMap, opt);
+    % Get subrock
+    subRock = getSubRock(model, cellMap);
     % Make submodel
-    submodel = makeSubModel(model, subG, subop, cellMap, opt);
+    submodel = makeSubModel(model, subG, subRock, subop, cellMap, opt);
     % Trim mappings and make mapping struct
-%     faceMap  = rmfield(faceMap, 'activeConn');
+    faceMap  = rmfield(faceMap, 'activeConn');
     faceMap  = rmfield(faceMap, 'neighbors');
     mappings = struct('cells', cellMap, ...
                       'faces', faceMap);
@@ -81,6 +84,8 @@ function subop = getSubOperators(model, cellMap, faceMap)
     subop.T_all = op.T_all(faceMap.keep);
     % Neighboring connections
     subop.N = cellMap.renum(op.N(faceMap.activeConn, :));
+    % Transpose in case we have a single internal connection
+    if size(subop.N,2) == 1, subop.N = subop.N'; end
     % Div and grad
     subop.M      = sparse((1:nf)'*[1, 1], subop.N, ones(nf,2)*0.5    , nf, nc);
     subop.C      = sparse((1:nf)'*[1, 1], subop.N, ones(nf,1)*[1, -1], nf, nc);
@@ -110,7 +115,7 @@ function subop = getSubOperators(model, cellMap, faceMap)
 end
 
 %-------------------------------------------------------------------------%
-function subG = getSubGrid(model, cellMap, faceMap)
+function subG = getSubGrid(model, cellMap, faceMap, opt)
     % Grid
     subG        = model.G;
     subG.subset = cellMap.keep;
@@ -127,26 +132,42 @@ function subG = getSubGrid(model, cellMap, faceMap)
     subG.faces.num       = nnz(faceMap.keep);
     subG.faces.centroids = subG.faces.centroids(faceMap.keep, :);
     subG.faces.normals   = subG.faces.normals(faceMap.keep, :);
+    subG.faces.areas     = subG.faces.areas(faceMap.keep);
+    subG.faces.tag       = subG.faces.tag(faceMap.keep);
     subG.faces.neighbors = faceMap.neighbors;
+    nfn = diff(subG.faces.nodePos);
+    if opt.plottable
+        faces = find(faceMap.keep);
+        subG.faces.nodes = subG.faces.nodes(mcolon(subG.faces.nodePos(faces), ...
+                                                   subG.faces.nodePos(faces+1)-1,1));
+    end
+    subG.faces.nodePos = cumsum([0; nfn(faceMap.keep)]) + 1;
 end
 
 %-------------------------------------------------------------------------%
-function submodel = makeSubModel(model, subG, subop, cellMap, opt)
+function subRock = getSubRock(model, cellMap)
+    % Extract submodel rock properties
+    subRock = model.rock;
+    subRock.perm = subRock.perm(cellMap.keep,:);
+    subRock.poro = subRock.poro(cellMap.keep);
+end
+
+%-------------------------------------------------------------------------%
+function submodel = makeSubModel(model, subG, subRock, subop, cellMap, opt)
     % Make submodel
     submodel = model;
     submodel.verbose = opt.verbose;
-    % Assign grid and operators
-    submodel.G = subG;
+    % Assign grid, rock, and operators
+    submodel.G         = subG;
+    submodel.rock      = subRock;
     submodel.operators = subop;
     % Update operators in diagonal autodiff backend
     if isa(model.AutoDiffBackend, 'DiagonalAutoDiffBackend')
         submodel = submodel.AutoDiffBackend.updateDiscreteOperators(submodel);
     end
-    % Restrict state function groupings
-    useDefault = isempty(submodel.FlowPropertyFunctions);
-    warning('Assuming default state function groupings.');
-    submodel = submodel.setupStateFunctionGroupings();
-    if ~useDefault
+    % Restrict state function groupings if already set
+    if ~isempty(submodel.getStateFunctionGroupings())
+        warning('Assuming default state function groupings.');
         submodel.FlowPropertyFunctions = submodel.FlowPropertyFunctions.subset(cellMap.keep);
         submodel.PVTPropertyFunctions  = submodel.PVTPropertyFunctions.subset(cellMap.keep);
         submodel.FluxDiscretization    = submodel.FluxDiscretization.subset(cellMap.keep);
