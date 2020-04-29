@@ -80,18 +80,6 @@ fluxes{caseno} = state.flux;
 titles{caseno} = 'mpfa - standard';
 caseno         = caseno + 1;
 
-
-% mpfa - block
-mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'blocksize', ...
-                                     blocksize, 'verbose', true);
-state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
-p              = state.pressure;
-vec            = [z, p];
-vecs{caseno}   = sortrows(vec);
-fluxes{caseno} = state.flux;
-titles{caseno} = 'mpfa - block';
-caseno         = caseno + 1;
-
 % mpfa - new block
 mpfastruct = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
                                          blocksize, 'verbose', true);
@@ -100,7 +88,7 @@ p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
 fluxes{caseno} = state.flux;
-titles{caseno} = 'mpfa - new block';
+titles{caseno} = 'mpfa - block';
 caseno         = caseno + 1;
 
 close all
