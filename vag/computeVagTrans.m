@@ -40,7 +40,7 @@ function vagstruct = computeVagTrans(G, rock)
 
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -58,7 +58,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    %% Setup cell, face, node and vertices indexing tables
+    
+    %% Setup cell, face, node and vertices IndexArray
         
     % NOTE : By vertices, we denote a point that can either be a cell centroid, a
     % face centroid or a node position. The vertices have their own numbering
