@@ -11,7 +11,7 @@ mrstVerbose on
 % We consider a slightly modified version of an example from Klemetsdal et.
 % al, SPE RSC 2019, doi: 10.2118/193934-ms. The setup consists of a
 % quarter five-spot example with CO2, Metahne, and nDecane.
-example0 = MRSTExample('qfs_compositional'); example = example0;
+example0 = MRSTExample('qfs_compositional', 'nstep', 50); example = example0;
 % We will use NLDD for the transport subproblem, so we construct a
 % sequential pressure-transport model
 mrstModule add linearsolvers
@@ -134,7 +134,7 @@ exampleMDD_block_topo.name = [exampleMDD_block_topo.name, '-mdd-block-topo'];
 %% Simulate
 problemMDD_block_topo = exampleMDD_block_topo.getPackedSimulationProblem();
 clearPackedSimulatorOutput(problemMDD_block_topo, 'prompt', true);
-
+simulatePackedProblem(problemMDD_block_topo);
 
 %% Inspect solutions
 [allWellSols, allStates, allReports] ...
