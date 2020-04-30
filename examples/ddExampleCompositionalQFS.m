@@ -23,6 +23,10 @@ problem = example.getPackedSimulationProblem();
 clearPackedSimulatorOutput(problem, 'prompt', true);
 simulatePackedProblem(problem);
 
+%% Inspect results
+[wellSols, states, reports] = getPackedSimulatorOutput(problem);
+example.plot(states);
+
 %%  Set up NLDD
 % We construct disk-segment partition to define the subdomains
 mrstModule add ddc coarsegrid agglom
