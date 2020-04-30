@@ -1,9 +1,50 @@
 function mpfastruct = blockComputeNeumannMultiPointTrans(G, rock, varargin)
+% Block assembly of the multipoint transmissibilities for MPFA for Neumann boundary conditions
+%
+% SYNOPSIS:
+%   function mpfastruct = blockComputeNeumannMultiPointTrans(G, rock, varargin)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   G        - Grid
+%   rock     - Rock data structure (see description in `PermTensor`)
+%   varargin - see below
+%
+% KEYWORD ARGUMENTS:
+%   verbose       - true if verbose
+%   blocksize     - size of the blocks (last block will have different size to adjust to grid)
+%   ip_compmethod - Option sent to blockLocalFluxMimeticAssembly
+%   eta           - Option sent to blockLocalFluxMimeticAssembly
+%   invertBlocks  - Method by which to invert a sequence of small matrices that
+%                   arise in the discretisation.  String.  Must be one of
+%                      - MATLAB -- Use an function implemented purely in MATLAB
+%                                  (the default).
+%    
+%                      - MEX    -- Use two C-accelerated MEX functions to
+%                                  extract and invert, respectively, the blocks
+%                                  along the diagonal of a sparse matrix.  This
+%                                  method is often faster by a significant
+%                                  margin, but relies on being able to build
+%                                  the required MEX functions.
+% RETURNS:
+%
+%   mpfastruct with fields:
+%
+%               'A'   : system matrix 
+%               'F'   : flux operator 
+%               'tbls': table structure
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+
 % Compute multi-point transmissibilities by block around nodes.
 
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

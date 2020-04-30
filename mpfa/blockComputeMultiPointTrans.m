@@ -1,51 +1,32 @@
 function mpfastruct = blockComputeMultiPointTrans(G, rock, varargin)
-%Compute multi-point transmissibilities.
+% Block assembly of the multipoint transmissibilities for MPFA
 %
 % SYNOPSIS:
-%   T = computeMultiPointTrans2(G, rock)
+%   function mpfastruct = blockComputeMultiPointTrans(G, rock, varargin)
 %
-% REQUIRED PARAMETERS:
-%   G       - Grid data structure as described by grid_structure.
+% DESCRIPTION:
 %
-%   rock    - Rock data structure with valid field 'perm'.  The
-%             permeability is assumed to be in measured in units of
-%             metres squared (m^2).  Use function 'darcy' to convert from
-%             (milli)darcies to m^2, e.g.,
+% PARAMETERS:
+%   G        - Grid
+%   rock     - Rock data structure (see description in `PermTensor`)
+%   varargin - see below
 %
-%                 perm = convertFrom(perm, milli*darcy)
-%
-%             if the permeability is provided in units of millidarcies.
-%
-%             The field rock.perm may have ONE column for a scalar
-%             permeability in each cell, TWO/THREE columns for a diagonal
-%             permeability in each cell (in 2/3 D) and THREE/SIX columns
-%             for a symmetric full tensor permeability.  In the latter
-%             case, each cell gets the permeability tensor
-%
-%                 K_i = [ k1  k2 ]      in two space dimensions
-%                       [ k2  k3 ]
-%
-%                 K_i = [ k1  k2  k3 ]  in three space dimensions
-%                       [ k2  k4  k5 ]
-%                       [ k3  k5  k6 ]
-%
-% OPTIONAL PARAMETERS
-%   verbose   - Whether or not to emit informational messages throughout the
-%               computational process.  Default value depending on the
-%               settings of function 'mrstVerbose'.
-%
-%   invertBlocks -
-%               Method by which to invert a sequence of small matrices that
-%               arise in the discretisation.  String.  Must be one of
-%                  - MATLAB -- Use an function implemented purely in MATLAB
-%                              (the default).
-%
-%                  - MEX    -- Use two C-accelerated MEX functions to
-%                              extract and invert, respectively, the blocks
-%                              along the diagonal of a sparse matrix.  This
-%                              method is often faster by a significant
-%                              margin, but relies on being able to build
-%                              the required MEX functions.
+% KEYWORD ARGUMENTS:
+%   verbose       - true if verbose
+%   blocksize     - size of the blocks (last block will have different size to adjust to grid)
+%   ip_compmethod - Option sent to blockLocalFluxMimeticAssembly
+%   eta           - Option sent to blockLocalFluxMimeticAssembly
+%   invertBlocks  - Method by which to invert a sequence of small matrices that
+%                   arise in the discretisation.  String.  Must be one of
+%                      - MATLAB -- Use an function implemented purely in MATLAB
+%                                  (the default).
+%    
+%                      - MEX    -- Use two C-accelerated MEX functions to
+%                                  extract and invert, respectively, the blocks
+%                                  along the diagonal of a sparse matrix.  This
+%                                  method is often faster by a significant
+%                                  margin, but relies on being able to build
+%                                  the required MEX functions.
 %
 % RETURNS:
 %
@@ -57,15 +38,12 @@ function mpfastruct = blockComputeMultiPointTrans(G, rock, varargin)
 %               'F'   : flux operator (from cell and external facenode values to facenode values)
 %               'A'   : system matrix (cell and external facenode degrees of freedom)
 %               'tbls': table structure
-
-% COMMENTS:
-%   PLEASE NOTE: Face normals have length equal to face areas.
+% EXAMPLE:
 %
 % SEE ALSO:
-%   `incompMPFAbc`, `mrstVerbose`.
-
+%
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

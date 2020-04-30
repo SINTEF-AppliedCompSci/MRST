@@ -58,7 +58,7 @@ tic
 T_mpfa = computeMultiPointTransLegacy(G, rock, 'eta', eta);
 texec = toc;
 states{caseno}    = initResSol(G, 0, 1);
-states{caseno}    = incompMPFA(states{caseno}, G, T_mpfa, fluid, 'wells', W);
+states{caseno}    = incompMPFAlegacy(states{caseno}, G, T_mpfa, fluid, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno}    = states{caseno}.flux;
 titles{caseno}    = 'mpfa - legacy';
@@ -69,7 +69,7 @@ caseno = caseno + 1;
 tic
 mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', eta, 'verbose', isverbose);
 texec = toc;
-states{caseno}    = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
+states{caseno}    = incompMPFA(G, mpfastructs{caseno}, W, 'outputFlux', true);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno}    = states{caseno}.flux;
 titles{caseno}    = 'mpfa - Neumann';
@@ -82,7 +82,7 @@ mpfastructs{caseno} = blockComputeNeumannMultiPointTrans(G, rock, 'blocksize', .
                                                   blocksize,  'eta', 1/3, ...
                                                   'verbose', isverbose);
 texec = toc;
-states{caseno} = incompMPFA3(G, mpfastructs{caseno}, W, 'outputFlux', true);
+states{caseno} = incompMPFA(G, mpfastructs{caseno}, W, 'outputFlux', true);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 titles{caseno} = 'mpfa - Neumann - block';

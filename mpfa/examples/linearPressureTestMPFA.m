@@ -74,7 +74,7 @@ caseno = 1;
 % mpfa - Legacy implementation
 T_mpfa = computeMultiPointTransLegacy(G, rock, 'eta', eta);
 state = initResSol(G, 0, 1);
-state = incompMPFA(state, G, T_mpfa, fluid, 'bc', bc);
+state = incompMPFAlegacy(state, G, T_mpfa, fluid, 'bc', bc);
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);

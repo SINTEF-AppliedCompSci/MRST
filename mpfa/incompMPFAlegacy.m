@@ -1,5 +1,5 @@
 function state = incompMPFAlegacy(state, g, T, fluid, varargin)
-%Solve incompressible flow problem (fluxes/pressures) using MPFA-O method.
+% Solve incompressible flow problem (fluxes/pressures) using MPFA-O method.
 %
 % SYNOPSIS:
 %   state = incompMPFAlegacy(state, G, T, fluid)
@@ -116,9 +116,8 @@ function state = incompMPFAlegacy(state, g, T, fluid, varargin)
 % SEE ALSO:
 %   `computeMultiPointTrans`, `addBC`, `addSource`, `addWell`, `initSingleFluid`,
 %   `initResSol`, `initWellSol`, `mrstVerbose`.
-
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -135,8 +134,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-
 % Written by Jostein R. Natvig, SINTEF ICT, 2009.
 
     opt = struct('bc', [], 'src', [], 'wells', [],...

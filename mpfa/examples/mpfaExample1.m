@@ -163,7 +163,7 @@ T_mpfa = computeMultiPointTransLegacy(G, rock,'eta',1/3);
 resSol3 = initState(G, W, 0);
 
 %% Solve MPFA pressure
-resSol3 = incompMPFA(resSol3, G, T_mpfa, fluid, 'wells', W,'bc',bc);
+resSol3 = incompMPFAlegacy(resSol3, G, T_mpfa, fluid, 'wells', W,'bc',bc);
 
 
 %% Plot solutions

@@ -4,7 +4,7 @@ function [T,T_noflow] = computeMultiPointTransLegacy(g, rock, varargin)
 % has the same number of faces as the spatial dimension.
 %
 % SYNOPSIS:
-%   T = computeMultiPointTrans(G, rock)
+%   T = computeMultiPointTransLegacy(G, rock)
 %
 % REQUIRED PARAMETERS:
 %   G       - Grid data structure as described by grid_structure.

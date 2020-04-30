@@ -1,4 +1,32 @@
 function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, varargin)
+% Computes the scalar product matrix for the cell-face-node degrees of freedom for blocks
+%
+% SYNOPSIS:
+%   function [B, tbls] = blockLocalFluxMimeticAssembly(G, rock, globtbls, nodes, varargin)
+%
+% DESCRIPTION: See `computeLocalFluxMimetic`
+%
+% PARAMETERS:
+%   G        - Grid
+%   rock     - Rock data structure (see description in `PermTensor`)
+%   globtbls - Global IndexArrays, for the whole domain
+%   nodes    - A set of nodes that is used to set up the block. 
+%              The matrix B will contain all the face-node degrees of freedom for which the node belongs to the block.
+%   varargin - See below
+%
+% KEYWORD ARGUMENTS:
+%   verbose       - true if verbose
+%   ip_compmethod - Option sent to `computeLocalFluxMimetic`
+%   eta           - Option sent to `computeLocalFluxMimetic`
+%
+% RETURNS:
+%   B    - Scalar product matrix for the block
+%   tbls - Structures with IndexArrays
+%
+% EXAMPLE:
+%
+% SEE ALSO: `computeLocalFluxMimetic`, `blockComputeMultiPointTrans`, `blockComputeNeumannMultiPointTrans`
+%
 
     opt = struct('verbose'      , mrstVerbose, ...
                  'ip_compmethod', 'general'  , ...

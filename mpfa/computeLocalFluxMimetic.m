@@ -1,6 +1,51 @@
-function [B, tbls] = computeLocalFluxMimetic(G, rock, opt)
-
-    % Some short aliases 
+function [B, tbls] = computeLocalFluxMimetic(G, rock, varargin)
+% Computes the scalar product matrix for the cell-face-node degrees of freedom
+%
+% SYNOPSIS:
+%   function [B, tbls] = computeLocalFluxMimetic(G, rock, opt)
+%
+% DESCRIPTION:
+% 
+%  Reference paper : 
+%      title     = {Local flux mimetic finite difference methods},
+%      author    = {Lipnikov, Konstantin and Shashkov, Mikhail and Yotov, Ivan},
+%      journal   = {Numerische Mathematik},
+%      volume    = {112},
+%      number    = {1},
+%      pages     = {115--152},
+%      year      = {2009},
+%      publisher = {Springer}
+% PARAMETERS:
+%   G        - Grid
+%   rock     - Rock data structure (see description in `PermTensor`)
+%   varargin - See below
+%
+% KEYWORD ARGUMENTS:
+%   verbose       - true if verbose
+%   ip_compmethod - Method that is used to compute the scalar product at a corner.
+%                   The possible options for ip_compmethod are
+%                     'general'       : general case, no special requirements on corner
+%                     'nicecorner'    : case where at each corner, number of faces is equal to G.griddim
+%                     'directinverse' : case where at each corner, number of faces is equal to
+%                                       G.griddim AND eta is value such that N*R is diagonal (see Lipnikov reference paper)
+%   eta           - scalar parameter which determines position of continuity point on face-node 
+%                   (see definition of cellFacetVec in code, default value is zero)
+%
+% RETURNS:
+%   B    - Scalar product matrix
+%   tbls - Structures with IndexArrays
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+    
+    opt = struct('verbose'      , mrstVerbose, ...
+                 'ip_compmethod', 'general'  , ...
+                 'eta'          , 0);
+    opt = merge_options(opt, varargin{:});
+    
+    % Some  aliases 
     nc  = G.cells.num;
     nf  = G.faces.num;
     dim = G.griddim;

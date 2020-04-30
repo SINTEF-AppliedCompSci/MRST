@@ -1,33 +1,20 @@
-function state = incompMPFA3(G, mpfastruct, W, varargin)
+function state = incompMPFA(G, mpfastruct, W, varargin)
 % Solve incompressible flow problem (fluxes/pressures) using MPFA-O method.
 % Only Neumann bc and well input (src could be implemented too).
 %
+%
 % SYNOPSIS:
-%   state = incompMPFA3(G, mpfastruct, varargin)
+%   function state = incompMPFA(G, mpfastruct, W, varargin)
 %
 % DESCRIPTION:
-%   This function assembles and solves a (block) system of linear equations
-%   defining interface fluxes and cell pressures at the next time step in a
-%   sequential splitting scheme for the reservoir simulation problem
-%   defined by Darcy's law and a given set of external influences (wells,
-%   sources, and boundary conditions).
 %
-%   This function uses a multi-point flux approximation (MPFA) method with
-%   minimal memory consumption within the constraints of operating on a
-%   fully unstructured polyhedral grid structure.
+% PARAMETERS:
+%   G          - Grid
+%   mpfastruct - Assembly structure as computed by `computeNeumannMultiPointTrans` or `blockComputeNeumannMultiPointTrans`
+%   W          - Well structure as defined by functions 'addWell' and 'assembleWellSystem'
+%   varargin   - see below
 %
-% REQUIRED PARAMETERS:
-%
-%   G,    - Grid and half-transmissibilities as computed by the function
-%            'computeMultiPointTrans'.
-%
-%  mpfastruct - Computed by computeMultiPointTrans2
-%
-% OPTIONAL PARAMETERS:
-%   wells  - Well structure as defined by functions 'addWell' and
-%            'assembleWellSystem'.  May be empty (i.e., W = struct([]))
-%            which is interpreted as a model without any wells.
-%
+% KEYWORD ARGUMENTS:
 %
 %   LinSolve     - Handle to linear system solver software to which the
 %                  fully assembled system of linear equations will be
@@ -38,18 +25,19 @@ function state = incompMPFA3(G, mpfastruct, W, varargin)
 %                  in order to solve a system Ax=b of linear equations.
 %                  Default value: LinSolve = @mldivide (backslash).
 %
-%   MatrixOutput - Save system matrix A as state.A.
-%
-
-%
+%   Verbose      - true if verbose
+%   outputFlux   - If true, add fluxes in state output
+%   MatrixOutput - If true, save system matrix A in the state variable state.A.
+%   
 % RETURNS:
-
+%   state - state updated with pressure values and well solution
+%
+% EXAMPLE:
 %
 % SEE ALSO:
-%   `computeMultiPointTransInt`, `addWell`
-
+%
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

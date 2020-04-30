@@ -1,8 +1,8 @@
-function mpfastruct = computeMultiPointTrans2(G, rock, varargin)
-%Compute multi-point transmissibilities.
+function mpfastruct = computeMultiPointTrans(G, rock, varargin)
+% Compute multi-point transmissibilities for MPFA
 %
 % SYNOPSIS:
-%   T = computeMultiPointTrans2(G, rock)
+%   T = computeMultiPointTrans(G, rock)
 %
 % REQUIRED PARAMETERS:
 %   G       - Grid data structure as described by grid_structure.
