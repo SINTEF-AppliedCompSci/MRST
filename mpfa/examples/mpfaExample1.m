@@ -159,7 +159,7 @@ resSol2 = incompMimetic(resSol2, G, IP, fluid, 'wells', W_mim, 'bc', bc);
 
 %% APPROACH 3: MPFA method
 % Compute the transmisibility matrix for mpfa
-T_mpfa = computeMultiPointTrans(G, rock,'eta',1/3);
+T_mpfa = computeMultiPointTransLegacy(G, rock,'eta',1/3);
 resSol3 = initState(G, W, 0);
 
 %% Solve MPFA pressure

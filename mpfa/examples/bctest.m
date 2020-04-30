@@ -63,7 +63,7 @@ clear vecs fluxes
 caseno = 1;
 
 % mpfa - jostein
-T_mpfa = computeMultiPointTrans(G, rock, 'eta', eta);
+T_mpfa = computeMultiPointTransLegacy(G, rock, 'eta', eta);
 state = initResSol(G, 0, 1);
 state = incompMPFA(state, G, T_mpfa, fluid, 'bc', bc);
 p              = state.pressure;
@@ -74,7 +74,7 @@ titles{caseno} = 'mpfa - jostein';
 caseno         = caseno + 1;
 
 % mpfa - standard
-mpfastruct = computeMultiPointTrans2(G, rock, 'eta', eta, 'verbose', true);
+mpfastruct = computeMultiPointTrans(G, rock, 'eta', eta, 'verbose', true);
 state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
 mpfastruct1 = mpfastruct;
 p              = state.pressure;

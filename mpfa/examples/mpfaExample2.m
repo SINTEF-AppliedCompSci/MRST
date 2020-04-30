@@ -31,7 +31,7 @@ fluid = initSingleFluid('mu' ,    1*centi*poise     , ...
 %% MPFA-O method
 fprintf('MPFA-O method\t... ')
 tic
-T1  = computeMultiPointTrans(G, rock);
+T1  = computeMultiPointTransLegacy(G, rock);
 xr1 = incompMPFA(initResSol(G, 0, 0), G, T1, fluid, ...
                  'bc', bc,'MatrixOutput',true);
 toc

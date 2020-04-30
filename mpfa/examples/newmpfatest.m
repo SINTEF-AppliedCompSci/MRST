@@ -49,7 +49,7 @@ caseno = 1;
 
 % mpfa - jostein
 tic
-T_mpfa = computeMultiPointTrans(G, rock, 'eta', eta);
+T_mpfa = computeMultiPointTransLegacy(G, rock, 'eta', eta);
 texec = toc;
 states{caseno}    = initResSol(G, 0, 1);
 states{caseno}    = incompMPFA(states{caseno}, G, T_mpfa, fluid, 'wells', W);
