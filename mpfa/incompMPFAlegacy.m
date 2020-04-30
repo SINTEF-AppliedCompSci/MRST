@@ -1,9 +1,9 @@
-function state = incompMPFA(state, g, T, fluid, varargin)
+function state = incompMPFAlegacy(state, g, T, fluid, varargin)
 %Solve incompressible flow problem (fluxes/pressures) using MPFA-O method.
 %
 % SYNOPSIS:
-%   state = incompMPFA(state, G, T, fluid)
-%   state = incompMPFA(state, G, T, fluid, 'pn1', pv1, ...)
+%   state = incompMPFAlegacy(state, G, T, fluid)
+%   state = incompMPFAlegacy(state, G, T, fluid, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   This function assembles and solves a (block) system of linear equations
@@ -20,7 +20,7 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %   state  - Reservoir and well solution structure either properly
 %            initialized from functions 'initResSol' and 'initWellSol'
 %            respectively, or the results from a previous call to function
-%            'incompMPFA' and, possibly, a transport solver such as
+%            'incompMPFAlegacy' and, possibly, a transport solver such as
 %            function 'implicitTransport'.
 %
 %   G, T   - Grid and half-transmissibilities as computed by the function
@@ -53,7 +53,7 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %                  Default value: LinSolve = @mldivide (backslash).
 %
 %   MatrixOutput - Whether or not to return the final system matrix 'A' to
-%                  the caller of function 'incompMPFA'.
+%                  the caller of function 'incompMPFAlegacy'.
 %                  Logical.  Default value: MatrixOutput = FALSE.
 %
 %   Verbose      - Whether or not to time portions of and emit informational
@@ -90,7 +90,7 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %   warning is printed in the command window. This warning is printed with
 %   message ID
 %
-%           'incompMPFA:DrivingForce:Missing'
+%           'incompMPFAlegacy:DrivingForce:Missing'
 %
 % EXAMPLE:
 %    G   = computeGeometry(cartGrid([3,3,5]));
@@ -108,7 +108,7 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %    T   = computeMultiPointTrans(G, rock);
 %
 %    state = initState(G, W, 100*barsa);
-%    state = incompMPFA(state, G, T, f, 'bc', bc, 'src', src, ...
+%    state = incompMPFAlegacy(state, G, T, f, 'bc', bc, 'src', src, ...
 %                       'W', W, 'MatrixOutput',true);
 %
 %    plotCellData(G, xr.pressure);
@@ -301,7 +301,7 @@ end
 % -------------------------------------------------------------------------- 
 
 function s = id(s)
-    s = ['incompMPFA:', s]; 
+    s = ['incompMPFAlegacy:', s]; 
 end
 
 % -------------------------------------------------------------------------- 
