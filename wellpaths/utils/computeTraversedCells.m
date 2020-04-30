@@ -41,14 +41,12 @@ opt = struct('faces',                           [], ...
              'duplicateTol',                  nan);
 opt = merge_options(opt, varargin{:});
 
-% Don't consider traj outside bounding box
+% remove part of traj outside grid bounding box
 if ~isfield(G, 'bbox')
     G.bbox = [min(G.nodes.coords); max(G.nodes.coords)];
 end
-isInside = any( bsxfun(@ge, traj, G.bbox(1,:)) & ...
-                bsxfun(@le, traj, G.bbox(2,:)) ,2);
-traj = traj(isInside,:);
-             
+traj = trimTrajectory(traj, G.bbox);
+        
 nseg = size(traj,1)-1;
 
 % get inital relevant subset of faces for whole trajectory
@@ -412,18 +410,28 @@ for k = 1:numel(cell)
 end
 end
 
+%--------------------------------------------------------------------------
 
+function traj = trimTrajectory(traj, bbox)
+% trim trajectory to to relevant region defined by bbox
+% Include each trajectory point that is inside box or is part of segment that 
+% intersects one of the box planes (this does not necessarily remove all 
+% unwanted points, but this is just a rough initial trimming to get rid of 
+% e.g., points along trajectory above formation)  
+np = size(traj,1);
+assert(np >= 2, 'Trajectory needs at least two points');
+isBelow = bsxfun(@le, traj, bbox(1,:));
+isAbove = bsxfun(@ge, traj, bbox(2,:));
+isInside   = all( ~isBelow & ~isAbove ,2);
+isCrossing = any(xor(isAbove(1:np-1,:),isAbove(2:np,:)) | ...
+                 xor(isBelow(1:np-1,:),isBelow(2:np,:)), 2);
+include = isInside | [false; isCrossing] | [isCrossing; false];
 
-
-
-
-
-
-
-
-
-
-
+if ~any(include)
+    error('Trajectory does not intersect the bounding box of the grid');
+end
+traj = traj(include, :);
+end
 
 
 

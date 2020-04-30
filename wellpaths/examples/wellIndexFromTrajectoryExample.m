@@ -1,4 +1,6 @@
 %% Setup a simple layered model
+mrstModule add wellpaths
+
 rng(0);
 [nx, ny, nz] = deal(50, 50, 15);
 G = computeGeometry(processGRDECL(makeModel3([nx ny nz])));
