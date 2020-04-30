@@ -253,7 +253,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     tetraverttbl = IndexArray([]);
     tetraverttbl = tetraverttbl.setup(tetravertfdnames, tetravertinds);
-    tetraverttbl = tetraverttbl.removefield({'nodes1', 'nodes2'});
+    tetraverttbl = tetraverttbl.removeInd({'nodes1', 'nodes2'});
     
     tetraverttbl = sortIndexArray(tetraverttbl, {'cells', 'faces', 'edges', 'vertices'});
     
