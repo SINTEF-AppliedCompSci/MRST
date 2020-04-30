@@ -114,8 +114,8 @@ plotWellSols({wellSolsSeq, wellSolsSeqDD});
 % Resolving nonlinearities locally can be very beneficial. We compare the
 % number of nonlinear iterations used to solve the transport subproblem for
 % each solver
-its   = getIterations(reportsSeq  , 'solver', 'TransportSolver');
-itsDD = getIterations(reportsSeqDD, 'solver', 'TransportSolver');
+its   = getReportOutput(reportsSeq  , 'solver', 'TransportSolver');
+itsDD = getReportOutput(reportsSeqDD, 'solver', 'TransportSolver');
 figure('Position', [0, 0, 800, 400]); hold on
 plot(cumsum(its.total)  , 'LineWidth', 2)
 plot(cumsum(itsDD.total), 'LineWidth', 2)

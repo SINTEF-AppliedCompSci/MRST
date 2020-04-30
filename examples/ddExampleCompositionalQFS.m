@@ -144,7 +144,7 @@ solver = 4; % Choose solver
 example.plot(allStates{solver});
 
 %% Compare nonlinear transport iterations
-its = cellfun(@(r) getIterations(r, 'solver', 'TransportSolver'), allReports, 'UniformOutput', false);
+its = cellfun(@(r) getReportOutput(r, 'solver', 'TransportSolver'), allReports, 'UniformOutput', false);
 itsTot = cellfun(@(it) sum(it.total), its);
 figure('Position', [0,0,800,400]);
 bar(itsTot); h = line([0, 6], repmat(numel(example.schedule.step.val), 1, 2), 'color', 'r', 'linew', 2);

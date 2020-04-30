@@ -87,12 +87,12 @@ cmap = flipud(winter); cmap(1,:) = [1,1,1];
 [bf, c] = boundaryFaces(example.model.G);
 vf = example.model.G.faces.normals(bf,3)./example.model.G.faces.areas(bf) < 1e-10;
 % Plot saturation
-subplot(1,2,1)
+subplot(1,2,1), title('Reference water saturation');
 h = plotCellData(example.model.G, getsw(states{1}, ':'), 'edgeColor', 'none');
 example.setAxisProperties(gca); caxis([0.208, 0.8]); colorbar('Location', 'southoutside');
 plotGrid(subexample.model.G, 'faceColor', 'none', 'edgeAlpha', 0.2); plotFaces(example.model.G, bf(vf));
 % Plot difference
-subplot(1,2,2)
+subplot(1,2,2), title('Difference');
 hd = plotCellData(example.model.G, abs(getsw(states{1}, ':') - getsw(statesSub2Full{1}, ':')), 'edgeColor', 'none');
 example.setAxisProperties(gca); caxis([0, 0.201]); colorbar('Location', 'southoutside');
 plotGrid(subexample.model.G, 'faceColor', 'none', 'edgeAlpha', 0.2); plotFaces(example.model.G, bf(vf));
