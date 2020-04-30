@@ -2,44 +2,53 @@
 // include necessary system headers
 //
 #define _USE_MATH_DEFINES
+#include "matrix.h"
+
 #include <cmath>
 #include <mex.h>
 #include <array>
+#ifndef HAVE_OCTAVE
 #include "matrix.h"
-
-
+#endif
+#include <memory>
+#include <string>
+#include <chrono>
 #include <iostream>
-#include <amgcl/make_solver.hpp>
-#include <amgcl/solver/runtime.hpp>
 
+#include <amgcl/make_solver.hpp>
+#include <amgcl/backend/builtin.hpp>
+// AMG, relaxation etc
 #include <amgcl/amg.hpp>
+#include <amgcl/relaxation/as_preconditioner.hpp>
+// Matrix adapters
 #include <amgcl/adapter/crs_tuple.hpp>
 #include <amgcl/backend/block_crs.hpp>
 #include <amgcl/adapter/zero_copy.hpp>
-#include <amgcl/backend/builtin.hpp>
+// Include runtime parameters
 #include <amgcl/coarsening/runtime.hpp>
 #include <amgcl/relaxation/runtime.hpp>
-#include <amgcl/relaxation/as_preconditioner.hpp>
-#include <string>
-#include <chrono>
+#include <amgcl/solver/runtime.hpp>
 #include <amgcl/preconditioner/runtime.hpp>
 
+// CPR
 #include <amgcl/preconditioner/cpr.hpp>
 #include <amgcl/preconditioner/cpr_drs.hpp>
-#include <boost/property_tree/json_parser.hpp>
-
+// Utilities etc
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
-#include <boost/range/iterator_range_core.hpp>
+#include <boost/preprocessor/cat.hpp>
 
 /* MEX interfaces */
 //#include "amgcl_mex_utils.cpp"
+#include "solve_template.cpp"
 
 /* Block system support */
+//(4)(5)(6)(7)(8)(9)(10)
 #ifndef AMGCL_BLOCK_SIZES
-#  define AMGCL_BLOCK_SIZES (2)(3)(4)(5)(6)(7)(8)(9)(10)
+#  define AMGCL_BLOCK_SIZES (2)(3)
 #endif
+#include "amgcl_block_macros.cpp"
 
 #ifndef SOLVER_BACKEND_BUILTIN
 #  define SOLVER_BACKEND_BUILTIN
@@ -50,15 +59,69 @@
 #include <amgcl/make_block_solver.hpp>
 #include <amgcl/adapter/crs_tuple.hpp>
 
+#ifdef _OPENMP
+   #include <omp.h>
+#else
+   #define omp_get_max_threads() 1
+#endif
+
 typedef amgcl::backend::builtin<double> Backend;
+// Scalar solver
+typedef amgcl::make_solver<
+    amgcl::runtime::preconditioner<Backend>,
+    amgcl::runtime::solver::wrapper<Backend>
+> ScalarSolver;
+
+// Shared pointer for scalar solver
+static std::shared_ptr<ScalarSolver> scalar_solve_ptr(nullptr);
+
+// Pressure solver for CPR
+typedef amgcl::amg<Backend,
+    amgcl::runtime::coarsening::wrapper,
+    amgcl::runtime::relaxation::wrapper
+> PPrecond;
+// Second-stage solver for CPR
+typedef amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
+    SPrecond;
+// Regular CPR
+typedef amgcl::make_solver<
+            amgcl::preconditioner::cpr<PPrecond, SPrecond>,
+            amgcl::runtime::solver::wrapper<Backend>
+            > CPRSolver;
+
+static std::shared_ptr<CPRSolver> cpr_solve_ptr(nullptr);
+
+// CPR with dynamic row sum
+typedef amgcl::make_solver<
+            amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
+            amgcl::runtime::solver::wrapper<Backend>
+            > CPRSolverDRS;
+
+static std::shared_ptr<CPRSolverDRS> cpr_drs_solve_ptr(nullptr);
+
+BOOST_PP_SEQ_FOR_EACH(AMGCL_DEFINE_BLOCK_TYPES, ~, AMGCL_BLOCK_SIZES)
+BOOST_PP_SEQ_FOR_EACH(AMGCL_DEFINE_BLOCK_SOLVER, BlockSolverSize, AMGCL_BLOCK_SIZES)
+BOOST_PP_SEQ_FOR_EACH(AMGCL_DEFINE_BLOCK_CPR_SOLVERS, ~, AMGCL_BLOCK_SIZES)
+
+static void reset_solvers(void){
+    // Reset scalar solver
+    scalar_solve_ptr.reset();
+    // Reset CPR
+    cpr_solve_ptr.reset();
+    // Reset CPR-DRS
+    cpr_drs_solve_ptr.reset();
+    // // Reset basic block solvers
+    BOOST_PP_SEQ_FOR_EACH(AMGCL_RESET_BLOCK_SOLVER, block_solve_ptr, AMGCL_BLOCK_SIZES)
+    // // Reset CPR variants
+    BOOST_PP_SEQ_FOR_EACH(AMGCL_RESET_BLOCK_SOLVER, cpr_block_solve_ptr, AMGCL_BLOCK_SIZES)
+    BOOST_PP_SEQ_FOR_EACH(AMGCL_RESET_BLOCK_SOLVER, cpr_drs_block_solve_ptr, AMGCL_BLOCK_SIZES)
+}
+
+
 
 void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
 	       std::vector<double> b, std::vector<double> & x, double tolerance,
 	       int maxiter, int & iters, double & error, boost::property_tree::ptree prm){
-  
-
-
-
     /***************************************
      * Start AMGCL-link and select options *
      ***************************************/
@@ -79,30 +142,29 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
     auto t1 = std::chrono::high_resolution_clock::now();
     const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
     bool use_drs = prm.get<bool>("use_drs");
+    bool use_blocks = prm.get<bool>("cpr_blocksolver");
     bool verbose = prm.get<int>("verbosity")>0;
     bool write_params = prm.get<bool>("write_params");
-    if(use_drs){
-    
+    bool update_s   =  prm.get<bool>("update_sprecond");
+    bool update_p  =  prm.get<bool>("update_ptransfer");
+    int  block_size = prm.get<int>("block_size");
+    if(use_drs){   
         if(prm.get<int>("verbosity")>10){
             std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_drs_setup.json" << std::endl;
             std::ofstream file("mrst_amgcl_drs_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        amgcl::make_solver<
-	  amgcl::preconditioner::cpr_drs<PPrecond, SPrecond>,
-	  amgcl::runtime::solver::wrapper<Backend>
-	  > solve(matrix, prm);
-        auto t2 = std::chrono::high_resolution_clock::now();
-	
-        if(verbose){
-            std::cout << "CPR setup took "
-                      << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
-                      << " seconds\n";
-        }
-        std::tie(iters, error) = solve(b, x);
-
-        if(verbose){
-            std::cout << solve << std::endl;
+        
+        if(!use_blocks){
+          std::tie(iters, error) = solve_shared_cpr(cpr_drs_solve_ptr, *matrix, b, x, prm, matrix->nrows, update_s, update_p, verbose);
+        }else{
+          switch(block_size){
+            BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_CPR_SOLVER, cpr_drs_block_solve_ptr, AMGCL_BLOCK_SIZES)
+            default:
+                mexErrMsgIdAndTxt("AMGCL:UndefBlockSize",
+                                  "Failure: Block size %d not supported.",
+                                  block_size);
+          }
         }
     }else{
          bool write_params = prm.get<bool>("write_params");
@@ -111,46 +173,20 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
             std::ofstream file("mrst_amgcl_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        amgcl::make_solver<
-            amgcl::preconditioner::cpr<PPrecond, SPrecond>,
-            amgcl::runtime::solver::wrapper<Backend>
-            > solve(matrix, prm);
-
-        auto t2 = std::chrono::high_resolution_clock::now();
-        if(verbose){
-            std::cout << "CPR setup took "
-                      << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
-                      << " seconds\n";
-        }
-        std::tie(iters, error) = solve(b, x);
-
-        if(verbose){
-            std::cout << solve << std::endl;
+        
+	if(!use_blocks){
+	    std::tie(iters, error) = solve_shared_cpr(cpr_solve_ptr, *matrix, b, x, prm, matrix->nrows, update_s, update_p, verbose);
+        }else{
+	    switch(block_size){
+		BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_CPR_SOLVER, cpr_block_solve_ptr, AMGCL_BLOCK_SIZES)
+            default:
+		    mexErrMsgIdAndTxt("AMGCL:UndefBlockSize",
+				      "Failure: Block size %d not supported.",
+				      block_size);
+	    }
         }
     }
 }
-
-
-#define AMGCL_BLOCK_SOLVER(z, data, B)                                           \
-  case B:                                                                        \
-  {                                                                              \
-  Backend::params bprm;							         \
-  typedef amgcl::backend::builtin<amgcl::static_matrix<double, B, B> > BBackend; \
-  amgcl::make_block_solver<						         \
-  amgcl::runtime::preconditioner<BBackend>,                                      \
-  amgcl::runtime::solver::wrapper<BBackend>                                      \
-  > solve(*matrix, prm, bprm);                                                   \
-  auto t2 = std::chrono::high_resolution_clock::now();                           \
-  if(verbose){                                                                   \
-      std::cout << "Solver setup took "                                          \
-                << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0 \
-                << " seconds\n";                                                 \
-  }                                                                              \
-  std::tie(iters, error) = solve(b, x);                                          \    
-  if(verbose){                                                                   \
-      std::cout << solve << std::endl;                                           \
-  }                                                                              \
-  } break;
 
 
 void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const double * entries, 
@@ -161,15 +197,6 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
     /***************************************
      * Start AMGCL-link and select options *
      ***************************************/
-    typedef amgcl::backend::builtin<double> Backend;
-
-    typedef
-    amgcl::amg<Backend, amgcl::runtime::coarsening::wrapper, amgcl::runtime::relaxation::wrapper>
-        PPrecond;
-
-    typedef
-    amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
-            SPrecond;
 
     //boost::property_tree::ptree prm;
     /* Set tolerance */
@@ -190,7 +217,7 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
     }
     int block_size = prm.get<int>("block_size");
     const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
-    bool verbose = prm.get<bool>("verbose");
+    bool verbose = prm.get<int>("verbosity") >0 ;
     switch(block_size){
       case 0:
       case 1:
@@ -206,15 +233,12 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
                       << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
                       << " seconds\n";
         }
-        std::tie(iters, error) = solve(b, x);
-
+	std::tie(iters, error) = solve_shared(scalar_solve_ptr, matrix, b, x, prm, verbose);
         if(verbose){
             std::cout << solve << std::endl;
         }
       } break;
-#if defined(SOLVER_BACKEND_BUILTIN)
-      BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, ~, AMGCL_BLOCK_SIZES)
-#endif
+      BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, block_solve_ptr, AMGCL_BLOCK_SIZES)
       default:
        {
 	 std::cout << "Block size is :" << block_size << std::endl;
@@ -291,6 +315,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     }
 
     std::vector<double> b(n);
+    #pragma omp parallel for
     for(int ix = 0; ix < n; ix++){
         b[ix] = rhs[ix];
     }
@@ -298,15 +323,38 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double error;
     std::vector<double> x(M, 0.0);
     std::string solver_type = prm.get<std::string>("solver_type");
+    int reuse_mode = prm.get<int>("reuse_mode");
+    bool verbose = prm.get<int>("verbosity") >0 ;
+    switch(reuse_mode){
+    case 1:
+	// Default: No reuse, delete all if present
+	reset_solvers();
+	break;
+    case 2:
+	// Perform reuse
+	break;
+    default : mexErrMsgTxt("Unknown reuse mode: Must be 1 for no reuse or 2 for reuse.");
+    }
+
     if( solver_type == "regular"){
       solve_regular(M, cols, rows, entries, b, x, tolerance, maxiter, iters, error, prm);
     }else if(solver_type == "cpr"){
       solve_cpr(M, cols, rows, entries, b, x, tolerance, maxiter, iters, error, prm);
+    }else if(solver_type == "reset"){
+	// Remove shared pointers
+	if(verbose){
+	    std::cout << "Resetting all solvers." << std::endl;
+	}
+	reset_solvers();
     }else{
       std::string msg("Unknown solver_type ");
       msg += solver_type;
       mexErrMsgTxt(msg.c_str());
     }
+    if(reuse_mode == 1){
+      reset_solvers();
+    }    
+    #pragma omp parallel for
     for(int ix=0; ix < M; ix++){
         result[ix] = x[ix];
     }

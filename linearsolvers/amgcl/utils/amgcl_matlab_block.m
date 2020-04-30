@@ -1,4 +1,4 @@
-function varargout = amgcl_matlab(varargin)
+function varargout = amgcl_matlab_block(varargin)
 %MEX-gateway to AMGCL Linear Solver Software
 %
 % For more information about AMGCL, please see:
@@ -112,14 +112,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    OPTS = { '-O' };
 
-   SRC = {'amgcl_matlab.cpp'};
+   SRC = {'amgcl_matlab_block.cpp'};
 
    [CXXFLAGS, LINK, LIBS] = mrstDefaultMexFlags('AMGCL_ASYNCSETUP');
 
    buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
 
    % Call MEX'ed edition.
-   [varargout{1:nargout}] = amgcl_matlab(varargin{:});
+   [varargout{1:nargout}] = amgcl_matlab_block(varargin{:});
 end
 
 %--------------------------------------------------------------------------

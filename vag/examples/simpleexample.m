@@ -4,12 +4,14 @@
 
 %% Load modules
 
-mrstModule add mpfa vem vag vemmech
+mrstModule add mimetic incomp mpfa vem vag vemmech
 
 %% Setup a Cartesian grid
 
 nx = 10;
 ny = 10;
+% nx = 1;
+% ny = 1;
 nz = 1;
 cartDims = [nx, ny, nz];
 physDims = [nx*100, ny*50, 20];
@@ -26,6 +28,7 @@ rock = makeRock(G, perm*ones(nc, 1), 0.1*ones(nc, 1));
 %% Compute the VAG transmissibilities
 
 vagstruct = computeVagTrans(G, rock);
+
 
 %% Setup system matrix
 
@@ -97,7 +100,7 @@ colorbar
 %%
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

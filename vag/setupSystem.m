@@ -31,7 +31,7 @@ function [A, operators] = setupSystem(vagstruct, G)
 %   `computeVagTrans`, `incompVAG`
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -50,70 +50,97 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     
     Atrans = vagstruct.A;
-    cellnode2tbl = vagstruct.cellnode2tbl;
+    tbls = vagstruct.tbls;
     
-    nc = G.cells.num;
-    clear celltbl;
-    celltbl.cells = (1 : nc)';
-    celltbl.num   = nc;
-    celltbl       = addLocInd(celltbl, 'cind');
+    celltbl = tbls.celltbl;
+    nodetbl = tbls.nodetbl;    
+    cellnodetbl = tbls.cellnodetbl;
+    cellnode2tbl = tbls.cellnode2tbl;
+    
+    nc = celltbl.num;
+    nn = nodetbl.num;
+    
+    %% Assembly of A11 (nodes - nodes)
+    node2tbl = projIndexArray(cellnode2tbl, {'nodes1', 'nodes2'});
+    
+    map = TensorMap();
+    map.fromTbl = cellnode2tbl;
+    map.toTbl = node2tbl;
+    map.mergefds = {'nodes1', 'nodes2'};
+    map = map.setup();
+    
+    A11 = map.eval(Atrans);
+    
+    % setup matrix from A11
+    map = TensorMap();
+    map.fromTbl = nodetbl;
+    map.toTbl = node2tbl;
+    map.replaceFromTblfds = {{'nodes', 'nodes1'}};
+    map.mergefds = {'nodes1'};
+    ind1 = getDispatchInd(map);
+    
+    map = TensorMap();
+    map.fromTbl = nodetbl;
+    map.toTbl = node2tbl;
+    map.replaceFromTblfds = {{'nodes', 'nodes2'}};
+    map.mergefds = {'nodes2'};
+    ind2 = getDispatchInd(map);
 
-    nn = G.nodes.num;
-    clear nodetbl;
-    nodetbl.nodes = (1 : nn)';
-    nodetbl.num   = nn;
-    nodetbl       = addLocInd(nodetbl, 'nind');
+    A11m = sparse(ind1, ind2, A11, nn, nn);
+    
 
-    %% Assembly of A11
-    node2tbl = projTable(cellnode2tbl, {'nodes1', 'nodes2'});
-    [~, node2tbl] = setupTableMapping(node2tbl, nodetbl, {{'nodes1', 'nodes'}});
-    node2tbl = replacefield(node2tbl, {'nind', 'nind1'});
-    [~, node2tbl] = setupTableMapping(node2tbl, nodetbl, {{'nodes2', 'nodes'}});
-    node2tbl = replacefield(node2tbl, {'nind', 'nind2'});
+    %% Assembly of A12 (nodes - cells)
+    
+    map = TensorMap();
+    map.fromTbl = cellnode2tbl;
+    map.toTbl = cellnodetbl;
+    map.replaceFromTblfds = {{'nodes1', 'nodes'}};
+    map.mergefds = {'cells', 'nodes'};
+    map = map.setup();
+    
+    A12 = -map.eval(Atrans);
+    
+    % setup matrix from A12
+    map = TensorMap();
+    map.fromTbl = nodetbl;
+    map.toTbl = cellnodetbl;
+    map.mergefds = {'nodes'};
+    ind1 = getDispatchInd(map);
+    
+    map = TensorMap();
+    map.fromTbl = celltbl;
+    map.toTbl = cellnodetbl;
+    map.mergefds = {'cells'};
+    ind2 = getDispatchInd(map);
 
-    map = setupTableMapping(cellnode2tbl, node2tbl, {'nodes1', 'nodes2'});
-    A11 = map*Atrans;
-    tbl = node2tbl;
-    A11m = sparse(tbl.nind1, tbl.nind2, A11, nodetbl.num, nodetbl.num);
+    A12m = sparse(ind1, ind2, A12, nn, nc);
+    
 
-    %% Assembly of A12
-    cellnodetbl = projTable(cellnode2tbl, {'cells', 'nodes1'});
-    [~, cellnodetbl] = setupTableMapping(cellnodetbl, nodetbl, {{'nodes1', 'nodes'}});
-    cellnodetbl = replacefield(cellnodetbl, {'nind', 'nind1'});
+    %% Assembly of A22
 
-    map = setupTableMapping(cellnode2tbl, cellnodetbl, {'cells', 'nodes1'});
-    A12 = -map*Atrans;
-    tbl = cellnodetbl;
-    A12m = sparse(tbl.nind1, tbl.cells, A12, nodetbl.num, celltbl.num);
-
-    %% Assembly of A12
-
-    cell2tbl = duplicatefield(celltbl, {'cells', {'cells1', 'cells2'}});
-    map = setupTableMapping(cellnode2tbl, cell2tbl, {{'cells', 'cells1'}});
-    A22 = map*Atrans;
+    map = TensorMap();
+    map.fromTbl = cellnode2tbl;
+    map.toTbl = celltbl;
+    map.mergefds = {'cells'};
+    map = map.setup();
+    
+    A22 = map.eval(Atrans);
+    
     invA22 = 1./A22;
-    tbl = cell2tbl;
-    invA22m = sparse(tbl.cells1, tbl.cells2, invA22, tbl.num, tbl.num);
+    ind = (1 : nc)';
+    invA22m = sparse(ind, ind, invA22, nc, nc);
 
-    % We have
-    %
-    % [[A11 , A12]  * [[pn]  = [[f]
-    %  [A12', A22]]    [pc]]    [g]] 
+    % We have (written in matrix form)
+    % [[A11 , A12]   *    [[pn]     = [[f]
+    %  [A12', A22]]        [pc]]       [g]]
     % 
-    % A22 is diagonal and can be inverted directly. We get 
-    %
+    % A22 is diagonal and can be inverted directly. We get
     % pc = invA22*g - invA22*A12'*pn
-    %
     % and
-    %
     % A * pn = rhs
-    %
-    % for 
-    %
+    % for
     % A = A11 - A12*invA22*A12'
-    %
-    % and 
-    %
+    % and
     % rhs = f - A12*invA22*g
     %
     
@@ -127,15 +154,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                       'A12', A12, ...
                       'A22', A22);
 
-    % cleaning the tables before exporting
-    cellnodetbl = rmfield(cellnodetbl, 'nind1');
-    cellnodetbl = replacefield(cellnodetbl, {'nodes1', 'nodes'});
-    node2tbl = rmfield(node2tbl, 'nind1');
-    node2tbl = rmfield(node2tbl, 'nind2');
-    
-    tbls = struct('node2tbl'   , node2tbl   , ...
-                  'cellnodetbl', cellnodetbl, ...
-                  'cell2tbl'   , cell2tbl);
+    tbls.node2tbl = node2tbl;
     
     operators.rhsfun   = rhsfun;
     operators.matrices = matrices;

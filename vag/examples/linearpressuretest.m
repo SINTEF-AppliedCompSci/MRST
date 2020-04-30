@@ -8,6 +8,7 @@
 % The VAG scheme is exact for linear pressure field. In this example, we check
 % that this property holds. We use a twisted grid.
 
+clear all
 
 %% Load modules
 
@@ -40,6 +41,8 @@ vagstruct = computeVagTrans(G, rock);
 
 [A, op] = setupSystem(vagstruct, G);
 
+tbls = op.tbls;
+
 rhsfun = op.rhsfun;
 computeCellPressure = op.computeCellPressure;
 
@@ -53,15 +56,12 @@ nodeinflux = zeros(nn, 1);
 rhs = rhsfun(nodeinflux, cellinflux);
 
 % Get nodes on the top and bottom faces to impose boundary conditions
-clear facetbl
-nf = G.faces.num;
-facetbl.faces = (1 : nf)';
-facetbl.num = nf;
+facenodetbl = tbls.facenodetbl;
+celltbl = tbls.celltbl;
+facetbl = tbls.facetbl;
+nodetbl = tbls.nodetbl;
 
-clear facenodetbl
-facenodetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos)');
-facenodetbl.nodes = G.faces.nodes;
-facenodetbl.num = numel(facenodetbl.faces);
+nn = nodetbl.num;
 
 facez = G.faces.centroids(:, 3);
 zmax = max(facez);
@@ -69,42 +69,40 @@ zmin = min(facez);
 zmean = sum(G.cells.centroids(:, 3).*G.cells.volumes)/sum(G.cells.volumes);
 
 topfacetbl.faces = find((facez - zmean) > (1 - 1e-10)*(zmax - zmean));
-topfacetbl.num = numel(topfacetbl.faces);
-[~, topfacenodetbl] = setupTableMapping(topfacetbl, facenodetbl, {'faces'});
-topnodetbl = projTable(topfacenodetbl, {'nodes'});
+topfacetbl = IndexArray(topfacetbl);
+topfacenodetbl = crossIndexArray(topfacetbl, facenodetbl, {'faces'});
+topnodetbl = projIndexArray(topfacenodetbl, {'nodes'});
 
 bottomfacetbl.faces = find((facez - zmean) < (1 - 1e-10)*(zmin - zmean));
-bottomfacetbl.num = numel(bottomfacetbl.faces);
-[~, bottomfacenodetbl] = setupTableMapping(bottomfacetbl, facenodetbl, {'faces'});
-bottomnodetbl = projTable(bottomfacenodetbl, {'nodes'});
+bottomfacetbl = IndexArray(bottomfacetbl);
+bottomfacenodetbl = crossIndexArray(bottomfacetbl, facenodetbl, {'faces'});
+bottomnodetbl = projIndexArray(bottomfacenodetbl, {'nodes'});
 
 ntop = topnodetbl.num;
 nbottom = bottomnodetbl.num;
-clear bcnodetbl
-bcnodetbl.nodes = [topnodetbl.nodes; bottomnodetbl.nodes];
-bcnodetbl.num   = numel(bcnodetbl.nodes);
+
+topnodes = topnodetbl.get('nodes');
+bottomnodes = bottomnodetbl.get('nodes');
+bcnodes = [topnodes; bottomnodes];
 
 pval = 100;
 toppbc = pval*ones(ntop, 1); 
 bottompbc = zeros(nbottom, 1);
 pbc = [toppbc; bottompbc];
 
-clear nodetbl;
-nodetbl.nodes = (1 : nn)';
-nodetbl.num = nn;
-
 intnodes = true(nn, 1);
-intnodes(bcnodetbl.nodes) = false;
+intnodes(bcnodes) = false;
 intnodes = find(intnodes);
+
 clear intnodetbl
 intnodetbl.nodes = intnodes;
 intnodetbl.num = numel(intnodes);
 
-A11 = A(intnodetbl.nodes, intnodetbl.nodes);
-A12 = A(intnodetbl.nodes, bcnodetbl.nodes);
+A11 = A(intnodes, intnodes);
+A12 = A(intnodes, bcnodes);
 
 
-rhs = rhs(intnodetbl.nodes);
+rhs = rhs(intnodes);
 rhs = rhs - A12*pbc;
 
 
@@ -113,8 +111,8 @@ x = A11\rhs;
 
 %% Recover node  pressures
 pn = NaN(nn, 1);
-pn(intnodetbl.nodes) = x;
-pn(bcnodetbl.nodes)  = pbc;
+pn(intnodes) = x;
+pn(bcnodes)  = pbc;
 
 %% Recover cell  pressures
 
@@ -151,7 +149,7 @@ colorbar
 %%
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
