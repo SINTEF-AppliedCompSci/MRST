@@ -110,8 +110,9 @@ classdef DomainDecompositionModel < WrapperModel
                 state.iterations = zeros(model.G.cells.num,1);
             end
             % Get flux from pressure state if it exists
-            if isfield(state, 'statePressure')
-                state.flux = state.statePressure.flux;
+            if isfield(state, 'statePressure') ...
+                && size(state.statePressure.flux,1) == model.G.faces.num
+                assert(all(all(state.flux == state.statePressure.flux)));
             end
             if isfield(state, 'FractionalDerivatives')
                 state = rmfield(state, 'FractionalDerivatives');
@@ -260,11 +261,11 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function model = updateSubdomainSetupParallel(model)
-            partition = model.partition;
+            p = model.partition;
             lm = model.localModel;
             spmd
-                lm.partition = partition;
-                dom = getLocalDomains(lm.NumWorkers, lm.partition, labindex);
+                lm.partition = p;
+                dom = getLocalDomains(lm.NumWorkers, lm.partition.value, labindex);
                 setup = cell(1,numel(dom));
                 for i = 1:numel(dom)
                     setup{i} = lm.getSubdomainSetup(dom(i));
@@ -283,7 +284,9 @@ classdef DomainDecompositionModel < WrapperModel
         function setup = getSubdomainSetup(model, i, compute)
             setup = struct('Model', [], 'NonlinearSolver', [], 'Number', i);
             p = model.partition.value;
-            compute = nargin == 3;
+            if nargin < 3
+                compute = false;
+            end
             if max(p) > 500 && ~compute
                 return
             end
@@ -291,6 +294,11 @@ classdef DomainDecompositionModel < WrapperModel
             verbose  = model.verboseSubmodel;
             cells    = p == i;
             submodel = SubdomainModel(model.parentModel, cells, 'overlap', model.overlap, 'verbose', verbose == 2);
+            if isa(submodel.parentModel, 'SubdomainModel')
+                pmappings = submodel.parentModel.mappings.cells;
+                external = pmappings.external(pmappings.keep) & submodel.mappings.cells.keep;
+                submodel.mappings.cells.external = submodel.mappings.cells.external | external;
+            end
             % Adjust submodel tolerances
             submodel = model.setSubdomainTolerances(submodel);
             % Get linear solver
@@ -360,15 +368,6 @@ classdef DomainDecompositionModel < WrapperModel
                 else
                     model = model.updateSubdomainSetupParallel();
                 end
-            end
-        end
-        
-        %-----------------------------------------------------------------%
-        function p = getPartition(model, varargin)
-            model.partition = model.partition.get(model, varargin{:});
-            if isa(model.parentModel, 'SubdomainModel')
-                external = model.parentModel.mappings.cells.external(model.parentModel.mappings.cells.keep);
-                p = p & ~external;
             end
         end
         
