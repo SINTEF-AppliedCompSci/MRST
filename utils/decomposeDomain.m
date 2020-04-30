@@ -1,10 +1,11 @@
 function partition = decomposeDomain(model, W, varargin)
-    opt = struct('type'          , 'metis', ...
-                 'pdims'         , []     , ...
-                 'merge'         , true   , ...
-                 'partitionWells', true   , ...
-                 'rWell'         , 50     , ...
-                 'minBlockSize'  , -inf   );
+    % Utility functio to get reasonable domain decmposition
+    opt = struct('type'          , 'metis', ... % ... or cart
+                 'pdims'         , []     , ... % Partition dims for cart
+                 'merge'         , true   , ... % Merge small blocks
+                 'partitionWells', true   , ... % Partition wells separately
+                 'rWell'         , 50     , ... % Radius around wells
+                 'minBlockSize'  , -inf   );    % Minimum block size
                  
     opt = merge_options(opt, varargin{:});
     if opt.minBlockSize < 0
