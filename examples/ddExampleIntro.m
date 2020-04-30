@@ -106,13 +106,14 @@ simulatePackedProblem(problemSeq);
 % Hint: The number of iterations used in each subdomain are stored in
 % state.iterations
 [wellSolsSeqDD, statesSeqDD, reportsSeqDD] = getPackedSimulatorOutput(problemSeqDD);
-[wellSolsSeq  , statesSeq  , reportSeq   ] = getPackedSimulatorOutput(problemSeq);
+[wellSolsSeq  , statesSeq  , reportsSeq  ] = getPackedSimulatorOutput(problemSeq);
 exampleSeqDD.plot(statesSeqDD);
+plotWellSols({wellSolsSeq, wellSolsSeqDD});
 
 %% Compare iterations
-% Resolving nonlinearities locally can be very beneficial. We therefore
-% compare the number of nonlinear iterations used to solve the transport
-% subproblem for each solver
+% Resolving nonlinearities locally can be very beneficial. We compare the
+% number of nonlinear iterations used to solve the transport subproblem for
+% each solver
 its   = getIterations(reportsSeq  , 'solver', 'TransportSolver');
 itsDD = getIterations(reportsSeqDD, 'solver', 'TransportSolver');
 figure('Position', [0, 0, 800, 400]); hold on
