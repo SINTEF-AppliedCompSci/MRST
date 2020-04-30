@@ -1,3 +1,9 @@
+%% Simple test where we compare the different implementation (legacy, standard, block assembly)
+%
+% We use Neumann boundary conditions and well injection
+%
+% SEE ALSO : `computeMultiPointTransLegacy`, `computeNeumannMultiPointTrans`, `blockComputeNeumannMultiPointTrans`
+
 clear all
 
 mrstModule add mimetic mpfa incomp
@@ -47,7 +53,7 @@ gravity off
 clear mpfastructs states pressures fluxes titles
 caseno = 1;
 
-% mpfa - jostein
+% mpfa - legacy
 tic
 T_mpfa = computeMultiPointTransLegacy(G, rock, 'eta', eta);
 texec = toc;
@@ -55,7 +61,7 @@ states{caseno}    = initResSol(G, 0, 1);
 states{caseno}    = incompMPFA(states{caseno}, G, T_mpfa, fluid, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno}    = states{caseno}.flux;
-titles{caseno}    = 'mpfa - jostein';
+titles{caseno}    = 'mpfa - legacy';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
