@@ -1,27 +1,35 @@
 classdef SubdomainModel < WrapperModel
-   
+    % Simulation-ready model constructed for a subset of a full model.
+    % Problem equations are constructed assuming Dirichlet BCs for all
+    % boundary faces that are not also a boundary face of the full model
     properties
-        mappings
-        restrictionOperators
-        noflowBC = false;
+        mappings             % Mappings from 
+        restrictionOperators % Operators for restricting equations
+        noflowBC = false;    % Optionally use no-flow BCs
     end
     
     methods
         %-----------------------------------------------------------------%
         function model = SubdomainModel(parent, cells, varargin)
+            % Construct subdomain model
             model = model@WrapperModel(parent);
             [model, submodelOpt] = merge_options(model, varargin{:});
+            % Set the submodel
             model = model.setSubModel(cells, submodelOpt{:});
+            % Construct restriction operators
             model.restrictionOperators = constructRestrictionOperators(model);
         end
         
         %-----------------------------------------------------------------%
         function model = setSubModel(model, cells, varargin)
+            % Set submodel
             rmodel = model.getReservoirModel();
+            % Get submodel of reservoir model from subset
             [submodel, map] = getSubModel(rmodel, cells, varargin{:});
+            % Update reservoir model
             model = model.setReservoirModel(model, submodel);
-            model.G = model.parentModel.G;
-            model.mappings = map;
+            model.G = model.parentModel.G; % Replace grid
+            model.mappings = map;          % Set mappings
         end
         
         %-----------------------------------------------------------------%
@@ -43,7 +51,8 @@ classdef SubdomainModel < WrapperModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             p0 = state.pressure;
             [state, report] = updateState@WrapperModel(model, state, problem, dx, drivingForces);
-            % 
+            % Recompute relative pressure change using global pressure
+            % range in denominator if given
             if isfield(state, 'pressureRange')
                 if isfield(state, 'dpRel')
                     state.dpRel = (state.pressure - p0)./state.pressureRange;
@@ -60,6 +69,8 @@ classdef SubdomainModel < WrapperModel
         %-----------------------------------------------------------------%
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
             if isfield(problem.state, 'globalIteration') && 0
+                % We may want to allow for submodel convergence if the
+                % global iteration is greater than 1 (currently disabled)
                 problem.iterationNo = max(problem.iterationNo, problem.state.globalIteration);
             end
             [convergence, values, names] = checkConvergence@WrapperModel(model, problem, varargin{:});
