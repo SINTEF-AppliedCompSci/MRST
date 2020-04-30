@@ -25,8 +25,20 @@ classdef TrajectoryGUI < handle
     
     methods
         function d = TrajectoryGUI(model, W, varargin)
+            require wellpaths
             opt = struct('style', 'default', 'wellNo', []);
             opt = merge_options(opt, varargin{:});
+            
+            fprintf('\n\n')
+            fprintf('*  press new to create new well\n')
+            fprintf('*  right-click inside axis for drawing options\n')
+            fprintf('*  left-click edge of points to drag\n')
+            fprintf('*  right-click points for options\n')
+            fprintf('*  click save to save well\n')
+            fprintf('*  click launch diagnsotics to view diagnostics for saved well\n')
+            fprintf('\n\n')
+            
+            
             % ------ Create figure window ---------------------------------
             screensize = get( groot, 'Screensize' );
             wsize = .75*screensize(3:4);
@@ -40,7 +52,8 @@ classdef TrajectoryGUI < handle
              d.model.G = addBoundingBoxFields(d.model.G);
             %--------------------------------------------------------------
             itemOpts = {'Parent', d.Figure, 'Visible','off', 'style', opt.style};
-            wsel = WellEditSelector(W, 'wellNames', {W.name}, itemOpts{:});
+            wsel = WellEditSelector(W(end), 'wellNames', {W(end).name}, itemOpts{:});
+            
             
             d.Menu = UIMenu('Title', 'Menu', 'Parent', d.Figure, ...
                              itemOpts{:}, 'items', {wsel});
@@ -66,6 +79,7 @@ classdef TrajectoryGUI < handle
             wsel.launchButton.Callback = @d.launchDiagnostics;
             d.Figure.SizeChangedFcn        = @d.layout;
             d.layout();
+            wsel.popupCallback([], [])
         end
         
         function val = get.wellNo(d)
@@ -122,7 +136,7 @@ classdef TrajectoryGUI < handle
                 x = d.Line3D.trajectory.XData;
                 y = d.Line3D.trajectory.YData;
                 if numel(x) >1
-                    fac = computeVerticalIntersection(d.model.G, [x(:),y(:)]);
+                    fac = computeVerticalGridIntersection(d.model.G, [x(:),y(:)]);
                     if ~isempty(d.Patch2D)&&isvalid(d.Patch2D)
                         set(d.Patch2D, 'Vertices', fac.coords2D, ...
                             'Faces', fac.nodes, ...
@@ -143,18 +157,17 @@ classdef TrajectoryGUI < handle
         
         function viewTraj(d, ~, ~)
             traj = getTrajectory(d);
-            %profile on,
-            t = computeTraversedCells(d.model.G, traj);
-            %profile off, profile report
+            % exit/entry points only given in unprocessed struct (second output)
+            [~, t] = computeTraversedCells(d.model.G, traj); 
             
             fe = figure;hold on
             %caxis([166.9325  336.7537])
             plot3(traj(:,1), traj(:,2), traj(:,3), 'Color', [.4 .4 .4],'LineWidth', 5, 'MarkerSize', 14);
             % cell entry points
-            plot3(t.coord1(:,1), t.coord1(:,2), t.coord1(:,3), '.k','LineWidth', 2, 'MarkerSize', 3);
+            plot3(t.p1(:,1), t.p1(:,2), t.p1(:,3), '.k','LineWidth', 2, 'MarkerSize', 3);
             % cell exit points
-            plot3(t.coord2(:,1), t.coord2(:,2), t.coord2(:,3), '.k','LineWidth', 2, 'MarkerSize', 3);
-            plotCellData(d.model.G, d.ccol, t.cells, 'FaceAlpha', .5, 'EdgeAlpha', .5, 'EdgeColor', [.3 .3 .3])
+            plot3(t.p2(:,1), t.p2(:,2), t.p2(:,3), '.k','LineWidth', 2, 'MarkerSize', 3);
+            plotCellData(d.model.G, d.ccol, t.cell, 'FaceAlpha', .5, 'EdgeAlpha', .5, 'EdgeColor', [.3 .3 .3])
             view(3),daspect([1, 1, .2])
             if numel(d.WNew)>0
                 plotWellData(d.model.G, d.WNew, 'lineplot', true);
@@ -163,16 +176,16 @@ classdef TrajectoryGUI < handle
         
         function saveWell(d, ~, ~)
              traj = getTrajectory(d);
-             t = computeTraversedCells(d.model.G, traj);
+             %t = computeTraversedCells(d.model.G, traj);
              nnew = numel(d.WNew);
              nm   = ['case_', num2str(nnew+1)];
              info = d.Menu.items{1}.wellInfo;
-             seg = abs(t.coord2-t.coord1);
-             w = addWell([], d.model.G, d.model.rock, t.cells, 'name', nm, 'type', info.type, 'sign', ...
-                         info.sign, 'val', info.val, 'refDepth', d.model.G.cells.centroids(t.cells(1),3), ...
-                         'lineSegments', seg);
+             %seg = t.vec;
+             w = addWellFromTrajectory([], d.model.G, d.model.rock, traj, ...
+                    'name', nm, 'type', info.type, 'sign', info.sign, 'val', info.val);
+
              w.trajectory = traj;
-             w.cell_origin = ones(size(t.cells));
+             w.cell_origin = ones(size(w.cells));
              d.WNew = [d.WNew; w];
              d.WellPlotNew{nnew+1} = WellPlotHandle(d.model.G, w, 'Parent', d.Axes1);      
              d.Menu.items{1}.updateWells(d.WNew);

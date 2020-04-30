@@ -22,7 +22,7 @@ classdef InteractiveLine < handle
                 l.smoothing = varargin{1};
                 varargin    = varargin(2:end);
             end
-            opt       = struct('Parent', [], 'Callback', @(src, event)disp('Boo'));
+            opt       = struct('Parent', [], 'Callback', @(src, event)'');
             [opt, other] = merge_options(opt, varargin{:});
             
             pnts = struct('XData', [], 'YData', [], 'ZData', []);
