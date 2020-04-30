@@ -1,5 +1,17 @@
 function problem = transformProblem(problem, varargin)
-    opt = struct('ML', [], 'MR', [], 'MLw', [], 'MRw', [], 'B', [], 'zero', []);
+    % Apply linear transformation to linearized problem
+    % Transforms problem.equations{i} as
+    %
+    %  - ML*A*MR*x   = ML*b  + B if size(A) = [nc, nc],
+    %  - ML*A*MRw*x  = ML*b      if size(A) = [nc, nw],
+    %  - MLw*A*MR*x  = MLw*b     if size(A) = [nw, nc],
+    %  - MLw*A*MRw*x = MLw*b     if size(A) = [nw, nw],
+    %
+    % where A*x = b is the linearized form of the equation i, with respect
+    % to variable set j, nc is the number of grid cells, and nw the number
+    % of wells. Empty input matrices are initialized to 1. B is a function
+    % i and j, initilized to 0 if empty.
+    opt = struct('ML', [], 'MR', [], 'MLw', [], 'MRw', [], 'B', []);
     opt = merge_options(opt, varargin{:});
     opt = checkInputs(opt);
     % Get subset and problem sizes

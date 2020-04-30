@@ -1,4 +1,5 @@
 function [subforces, mappings] = getSubForces(forces, mappings)
+    % Get forces for a subset of a full model
     [subW, subBC, subSRC, keepW, keepBC, keepSRC] = deal([]); %#ok
     % Wells
     if ~isempty(forces.W)

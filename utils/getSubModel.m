@@ -133,7 +133,9 @@ function subG = getSubGrid(model, cellMap, faceMap, opt)
     subG.faces.centroids = subG.faces.centroids(faceMap.keep, :);
     subG.faces.normals   = subG.faces.normals(faceMap.keep, :);
     subG.faces.areas     = subG.faces.areas(faceMap.keep);
-    subG.faces.tag       = subG.faces.tag(faceMap.keep);
+    if isfield(subG.faces, 'tag')
+        subG.faces.tag = subG.faces.tag(faceMap.keep);
+    end
     subG.faces.neighbors = faceMap.neighbors;
     nfn = diff(subG.faces.nodePos);
     if opt.plottable
