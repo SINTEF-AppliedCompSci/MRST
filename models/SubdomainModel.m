@@ -4,13 +4,11 @@ classdef SubdomainModel < WrapperModel
         mappings
         restrictionOperators
         noflowBC = false;
-        Gp
     end
     
     methods
         %-----------------------------------------------------------------%
         function model = SubdomainModel(parent, cells, varargin)
-            parent = parent.validateModel();
             model = model@WrapperModel(parent);
             [model, submodelOpt] = merge_options(model, varargin{:});
             model = model.setSubModel(cells, submodelOpt{:});
@@ -19,10 +17,9 @@ classdef SubdomainModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function model = setSubModel(model, cells, varargin)
-            pmodel = model.getReservoirModel();
-            [submodel, map] = getSubModel(pmodel, cells, varargin{:});
+            rmodel = model.getReservoirModel();
+            [submodel, map] = getSubModel(rmodel, cells, varargin{:});
             model = model.setReservoirModel(model, submodel);
-            model.Gp = model.G;
             model.G = model.parentModel.G;
             model.mappings = map;
         end
@@ -92,7 +89,8 @@ function operators = constructRestrictionOperators(model)
     ML = sparse(1:nc, 1:nc, keep, nc, nc); 
     if isa(model.parentModel.AutoDiffBackend, 'DiagonalAutoDiffBackend')
         model = model.validateModel();
-        ncomp = model.parentModel.getNumberOfComponents();
+        rmodel = model.getReservoirModel();
+        ncomp = rmodel.getNumberOfComponents();
         MR = sparse(1:nc*ncomp, 1:nc*ncomp, repmat(keep, ncomp, 1), nc*ncomp, nc*ncomp);
         I  = @(i,j) sparse(1:nc, (1:nc) + nc*(i-1), ~keep, nc, nc*ncomp);
     else
