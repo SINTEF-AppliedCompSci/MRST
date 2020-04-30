@@ -18,7 +18,9 @@ classdef TopologicalFluxPartition < Partition
             end
             flux = state.flux(model.operators.internalConn,:);
             % Get topological permutation
-            order = getTopologicalPermutation(model.G, flux, 'W', drivingForces.W, 'padWells', partition.wellPadding > 0);
+            order = getTopologicalCellPermutation(model.G, flux, ...
+                                                  'W'       , drivingForces.W          , ...
+                                                  'padWells', partition.wellPadding > 0);
             % Construct blocks
             nc = max(order);
             nb = min(partition.numBlocks, max(order));
