@@ -69,8 +69,8 @@ classdef SubdomainModel < WrapperModel
         %-----------------------------------------------------------------%
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
             if isfield(problem.state, 'globalIteration') && 0
-                % We may want to allow for submodel convergence if the
-                % global iteration is greater than 1 (currently disabled)
+                % We may want to use the global iteration when checking for
+                % subdomain convergence (currently disabled)
                 problem.iterationNo = max(problem.iterationNo, problem.state.globalIteration);
             end
             [convergence, values, names] = checkConvergence@WrapperModel(model, problem, varargin{:});
@@ -78,6 +78,7 @@ classdef SubdomainModel < WrapperModel
             
         %-----------------------------------------------------------------%
         function pmodel = setReservoirModel(model, pmodel, rmodel)
+            % Set reservoir model to the model
             if ~isa(pmodel.parentModel, 'ReservoirModel')
                 pmodel.parentModel = model.setReservoirModel(pmodel.parentModel, rmodel);
                 pmodel.parentModel.G = rmodel.G;
