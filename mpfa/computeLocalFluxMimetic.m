@@ -1,4 +1,4 @@
-function [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt)
+function [B, tbls] = computeLocalFluxMimetic(G, rock, opt)
 
     % Some short aliases 
     nc  = G.cells.num;

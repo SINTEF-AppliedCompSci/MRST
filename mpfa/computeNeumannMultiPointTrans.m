@@ -120,7 +120,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        t0 = tic();
    end
 
-   [B, tbls] = robustComputeLocalFluxMimetic(G, rock, opt);
+   [B, tbls] = computeLocalFluxMimetic(G, rock, opt);
    
    if opt.verbose
        t0 = toc(t0);
