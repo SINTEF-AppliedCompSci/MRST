@@ -1,5 +1,6 @@
 classdef StaticPartition < Partition
-
+    % Static partition based on precomputed partition vector
+    
     properties
     end
     

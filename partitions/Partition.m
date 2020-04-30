@@ -1,34 +1,42 @@
 classdef Partition
-   
+    % Class for generating partitions of a grid based on one or more of the
+    % following: model, state, state0, dt, drivingForces
+    
     properties
-        value           = []
-        numBlocks       = 20;
-        wellPadding     = 1
-        wellPadStrategy = 'topological'
-        process         = false
-        postprocess     = true;
-        updateFrequency = 1;
+        value           = []            % Partition value, one integer for each cell
+        numBlocks       = 20;           % Number of blocks in partition
+        postprocess     = true;         % Postprocess partition (pad wells and call processPartition)
+        process         = false         % Call processParttition after computing
+        wellPadding     = 1             % Padding around wells
+        wellPadStrategy = 'topological' % Well padding strategy
     end
     
     methods
         %-----------------------------------------------------------------%
         function partition = Partition(varargin)
+            % Constructor
             partition = merge_options(partition, varargin{:});
         end
         
         %-----------------------------------------------------------------%
         function partition = get(partition, model, state, state0, dt, drivingForces)
+            % Get partition. This function shold not need to be overloaded
             if ~isempty(partition.value) && ~partition.doCompute(state, state0, dt, drivingForces)
+                % Partition already computed, and should not be recomputed
                 return
             end
+            % Compute partition
             val = partition.compute(model, state, state0, dt, drivingForces);
+            % Postprocess partition
             if ~partition.postprocess
                 partition.value = val;
                 return
-            end 
+            end
+            % Pad wells
             if partition.wellPadding > 0
                 val = partition.padWells(model, val, drivingForces);
             end
+            % Process partition
             if partition.process
                 val = processPartition(model.G, val);
             end
@@ -37,16 +45,19 @@ classdef Partition
         
         %-----------------------------------------------------------------%
         function value = compute(partition, model, state, state0, dt, drivingForces) %#ok
+            % Main function. Subclasses should overload this function
             error('Base class not meant for direct use!');
         end
         
         %-----------------------------------------------------------------%
         function ok = doCompute(partition, model, state, state0, dt, drivingForces) %#ok
+            % Decide if partition should be recomputed
             ok = true;
         end
         
         %-----------------------------------------------------------------%
         function val = padWells(partition, model, val, drivingForces)
+            % Pad wells
             W = drivingForces.W;
             if isempty(W)
                 return
@@ -55,17 +66,17 @@ classdef Partition
                 model = model.getReservoirModel();
             end
             wval = zeros(model.G.cells.num, numel(W));
-            np = accumarray(val, 1);
-            x = model.G.cells.centroids;
-            M = getConnectivityMatrix(model.operators.N);
+            x    = model.G.cells.centroids;
+            C    = getConnectivityMatrix(model.operators.N);
             for i = 1:numel(W)
+                % For each well, add pad of cells
                 val0 = val(W(i).cells);
                 switch partition.wellPadStrategy
                     case 'topological'
                         cells = false(model.G.cells.num,1);
                         cells(W(i).cells) = true;
                         for j = 1:partition.wellPadding
-                            cells = cells | M*cells;
+                            cells = cells | C*cells;
                         end
                     case 'geometric'
                         cells = any(pdist2(x, x(W(i).cells,:)) < partition.wellPadding, 2);
