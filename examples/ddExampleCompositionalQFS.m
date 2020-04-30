@@ -46,10 +46,10 @@ example.plot(partition);
 % do this with the optional input argument ''subdomainTolerances'', where
 % the tolerance names and corresponding reduction factors are given in a
 % struct
-subtol = struct('names', {{'nonlinearTolerance'}}, 'factors', 0.5);
+subtol = {'nonlinearTolerance', 0.5};
 % Subdomain solves can also give verbose outputs by passing 1 (some) or 2
 % (everything) to the optional input argument ''verboseSubmodel''
-ddargs = {'subdomainTolerances', subtol, 'verboseSubmodel', 1};
+ddargs = {'subdomainTol', subtol, 'verboseSubmodel', 1};
 
 %% Adaptive NLDD
 % In adaptive NLDD, we solve each subdomain keeping all other subdomains
