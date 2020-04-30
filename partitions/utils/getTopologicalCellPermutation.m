@@ -1,6 +1,13 @@
-function [order, M, cyclesPresent, cycleSize] = getTopologicalPermutation(G, v, varargin)
-
-    opt = struct('W', [], 'cycleTolerance', -inf, 'padWells', true);
+function [order, M, cyclesPresent, cycleSize] = getTopologicalCellPermutation(G, v, varargin)
+    % Get cell permutation for a grid G based on the topological order
+    % induced by the edges v. Input v has one entry per internal
+    % connection, and may have multiple columns. The sign of an edge is
+    % interpreted in the same way as intercell fluxes.
+    require matlab_bgl
+    opt = struct('W'             , []   , ... % Well structure
+                 'padWells'      , true , ... % Pad wells with one cell
+                 'cycleTolerance', -inf);     % Threshold for edge weight for cycle across single interface
+                 
     opt = merge_options(opt, varargin{:});
 
     N = G.faces.neighbors;
@@ -9,7 +16,7 @@ function [order, M, cyclesPresent, cycleSize] = getTopologicalPermutation(G, v, 
     if isstruct(v)
         v = v.flux(internalConn,:);
     end
-    nonzero = abs(v) > opt.cycleTolerance;
+    nonzero = abs(v) > opt.cycleTolerance; % Disregard cycles if edge weights are very small
     pos = any(v > 0 & nonzero, 2);
     neg = any(v < 0 & nonzero, 2);
     countercurrent = pos & neg;
@@ -23,7 +30,7 @@ function [order, M, cyclesPresent, cycleSize] = getTopologicalPermutation(G, v, 
             if opt.padWells
                 cl = false(G.cells.num,1);
                 cl(opt.W(i).cells) = true;
-                C = getConnectivityMatrix(G.faces.neighbors(all(G.faces.neighbors > 0,2),:));
+                C = getConnectivityMatrix(N);
                 cl = cl | C*cl;
                 cl = find(cl);
             else
