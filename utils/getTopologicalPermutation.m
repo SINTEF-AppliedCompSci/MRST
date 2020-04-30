@@ -1,6 +1,6 @@
 function [order, M, cyclesPresent, cycleSize] = getTopologicalPermutation(G, v, varargin)
 
-    opt = struct('W', [], 'cycleTolerance', -inf);
+    opt = struct('W', [], 'cycleTolerance', -inf, 'padWells', true);
     opt = merge_options(opt, varargin{:});
 
     N = G.faces.neighbors;
@@ -20,7 +20,15 @@ function [order, M, cyclesPresent, cycleSize] = getTopologicalPermutation(G, v, 
     if ~isempty(opt.W)
         % Wells were sent in
         for i = 1:numel(opt.W)
-            cl = opt.W(i).cells;
+            if opt.padWells
+                cl = false(G.cells.num,1);
+                cl(opt.W(i).cells) = true;
+                C = getConnectivityMatrix(G.faces.neighbors(all(G.faces.neighbors > 0,2),:));
+                cl = cl | C*cl;
+                cl = find(cl);
+            else
+                cl = opt.W(i).cells;
+            end
             if numel(cl) > 1
                 cr = cl([end, 1:end-1]);
                 I0 = [I0; cl; cr];
