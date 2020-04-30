@@ -1,21 +1,25 @@
 classdef DomainDecompositionModel < WrapperModel
-   
+    % Nonlinear domain decomposition (NLDD) solver for generic MRST models
     properties
-        partition
-        subdomainSetup
-        strategy               = 'additive'
-        overlap                = 0
-        updateFrequency        = 1
-        verboseSubmodel        = 0
-        subdomainTolerances    = []
-        useGlobalPressureRange = false
-        parallel               = false
-        storeSubModels         = true;
+        strategy = 'additive' % Additive or multiplicative NLDD
+        parallel = false      % Solve subdomains concurrently (additive only)
+        partition             % Partition defining subdomains (instance of class Partition)
+        subdomainSetup        % Cell array of subdomain setups
+        % Subdomain properties
+        overlap         = 0  % Overlap in cells into neighboring subdomains
+        verboseSubmodel = 0  % Verbosity of subdomain model solves:
+                             % 0 <-> none, 1 <-> nonlinear solver, 2 <-> model & nonlinear solver
+        subdomainTol    = [] % Subdomain tolerances relative to parent
+                             % model. Given as cell array on the form
+                             % {'name', fraction}, e.g., {'toleranceCNV', 0.1};
+        useGlobalPressureRange = false % Use pressure range of entire mode
+                                       % for models with relative presure
+                                       % tolerances
         % Parallel properties
-        localModel
-        pool    = [];
-        domains = [];
-        NumWorkers;
+        pool       % Paralell pool
+        domains    % Domains per worker
+        localModel % Local copy of model (one for each worker)
+        NumWorkers % Number of workers
     end
     
     methods
@@ -25,10 +29,12 @@ classdef DomainDecompositionModel < WrapperModel
             model = model@WrapperModel(parent);
             % Set partition
             if isnumeric(partition)
+                % Construct static Partition from partition vector
                 assert(numel(partition) == parent.G.cells.num, ...
                     'Numerical input argument ''partition'' must have G.cells.num entries.')
                 partition = StaticPartition(partition);
             else
+                % Check class
                 assert(isa(partition, 'Partition'));
             end
             model.partition = partition;
@@ -36,13 +42,17 @@ classdef DomainDecompositionModel < WrapperModel
             model = merge_options(model, varargin{:});
             % Control input
             assert(any(strcmpi(model.strategy, {'additive', 'multiplicative'})), ...
-                        'Supported strategies are additive and multiplicative');
+                'Supported strategies are ''additive'' and ''multiplicative''');
             if model.parallel
-                if strcmpi(model.strategy, 'multiplicative')
-                    warning(['Parallel implemetation does not support '       , ...
-                             'multiplicative strategy. Changing to additive']);
-                    model.parallel = false;
-                end
+                % Check if parallel toolbox is avialiable
+                ok = license('test','Distrib_Computing_Toolbox') == 1;
+                if ~ok, msg = 'Parallel computing toolbox not aviailable.'; end
+                % Check strategy
+                ok = ok & ~strcmpi(model.strategy, 'multiplicative');
+                if ~ok, msg = 'Parallel implemetation does not support multiplicative strategy.'; end
+                % Set parallel
+                if ~ok, warning([msg, ' Switching to serial']); end
+                model.parallel = ok;
             end
         end
         
@@ -93,6 +103,8 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function [convergence, values, resnames, state, problem] = convergenceCheck(model, state0, state, dt, drivingForces, iteration, varargin)
+            % Check convergence of the full problem. Note that we evaluate
+            % the residuals without Jacobians
             problem = model.getEquations(state0, state, dt, drivingForces, ...
                                          'ResOnly'   , true              , ...
                                          'iteration' , iteration         , ...
@@ -117,7 +129,7 @@ classdef DomainDecompositionModel < WrapperModel
             if isfield(state, 'FractionalDerivatives')
                 state = rmfield(state, 'FractionalDerivatives');
             end
-            % Use global pressure range when computing dpRela
+            % Use global pressure range when computing dpRel
             if model.useGlobalPressureRange
                 range = max(state.pressure) - min(state.pressure);
                 rmodel = model.getReservoirModel();
@@ -134,6 +146,7 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function [state, report] = solveSubDomains(model, state0, dt, drivingForces, state)
+            % Solve the subdomains
             if ~model.parallel
                 [state, report] = model.solveSubDomainsSerial(state0, dt, drivingForces, state);
             else
@@ -143,6 +156,7 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function [state, report] = solveSubDomainsSerial(model, state0, dt, drivingForces, state)
+            % Solve the subdomains in serial mode
             % Initialize
             iterations = nan(model.G.cells.num,1);
             [stateInit, stateFinal] = deal(state);
@@ -152,11 +166,12 @@ classdef DomainDecompositionModel < WrapperModel
             end
             state = stateFinal;
             % Make step report
-            report = model.makeDomainStepReport('Iterations', iterations);
+            report = model.makeSubdomainStepReport('Iterations', iterations);
         end
         
         %-----------------------------------------------------------------%
         function [state, report] = solveSubDomainsParallel(model, state0, dt, drivingForces, state)
+            % Solve the subdomains in parallel mode using spmd
             % Initialize
             stateInit = stripState(state);
             state0    = stripState(state0);
@@ -193,11 +208,13 @@ classdef DomainDecompositionModel < WrapperModel
             state      = stateFinal{1};
             t_comm     = toc(timer); %#ok
             % Make step report
-            report = model.makeDomainStepReport('Iterations', iterations);
+            report = model.makeSubdomainStepReport('Iterations', iterations);
         end
         
         %-----------------------------------------------------------------%
-        function [stateInit, stateFinal, iterations, varargout] = solveSubDomain(model, setup, state0, dt, drivingForces, stateInit, stateFinal, iterations)            % Get submodel
+        function [stateInit, stateFinal, iterations, varargout] = solveSubDomain(model, setup, state0, dt, drivingForces, stateInit, stateFinal, iterations)
+            % Solve a single subdomain
+            % Get submodel
             if isempty(setup.Model)
                 setup = model.getSubdomainSetup(setup.Number, true);
             end
@@ -227,12 +244,13 @@ classdef DomainDecompositionModel < WrapperModel
                         stateFinal = mapState(stateFinal, substate, mappings);
                     end
                 case 'multiplicative'
-                    % Multiplicative: update initial state
+                    % Multiplicative: update initial and final state
                     [stateInit, stateFinal] = deal(state);
             end
             % Update iterations
             cells = model.partition.value == setup.Number;
             iterations(cells) = subreport.Iterations;
+            % Extra output if requested
             varargout = cell(1,nargout-3);
             if nargout > 3
                 submodel.mappings = mappings;
@@ -244,13 +262,15 @@ classdef DomainDecompositionModel < WrapperModel
         end
         
         %-----------------------------------------------------------------%
-        function report = makeDomainStepReport(model, varargin)%#ok
+        function report = makeSubdomainStepReport(model, varargin)%#ok
+            % Make subdomain step report
             report = struct('Iterations', [], 'WallTime', []);
             report = merge_options(report, varargin{:});
         end
         
         %-----------------------------------------------------------------%
         function model = updateSubdomainSetupSerial(model)
+            % Update subdomain setups in serial mode
             p = model.partition.value;
             setup = cell(max(p),1);
             for i = 1:max(p)
@@ -261,7 +281,8 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function model = updateSubdomainSetupParallel(model)
-            p = model.partition;
+            % Update subdomain setups in parallel mode
+            p  = model.partition;
             lm = model.localModel;
             spmd
                 lm.partition = p;
@@ -282,22 +303,32 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function setup = getSubdomainSetup(model, i, compute)
+            % Get subdomain setup with simulation-ready submodel and
+            % suitable linear and nonlinear solver
             setup = struct('Model', [], 'NonlinearSolver', [], 'Number', i);
             p = model.partition.value;
             if nargin < 3
                 compute = false;
             end
             if max(p) > 500 && ~compute
+                % Don't precomute setups if there are more than 500 of them
                 return
             end
             % Make submodel
-            verbose  = model.verboseSubmodel;
-            cells    = p == i;
-            submodel = SubdomainModel(model.parentModel, cells, 'overlap', model.overlap, 'verbose', verbose == 2);
+            verbose  = model.verboseSubmodel; % Subdomain solve verbosity
+            cells    = p == i;                % Cell subset
+            submodel = SubdomainModel(model.parentModel, cells, ...
+                                      'overlap', model.overlap, ...
+                                      'verbose', verbose == 2);
             if isa(submodel.parentModel, 'SubdomainModel')
-                pmappings = submodel.parentModel.mappings.cells;
-                external = pmappings.external(pmappings.keep) & submodel.mappings.cells.keep;
-                submodel.mappings.cells.external = submodel.mappings.cells.external | external;
+                % Update mapping externals if we parent is also a submodel
+                pmappings = submodel.parentModel.mappings;
+                % Cell mappings
+                cex = pmappings.external(pmappings.cells.keep) & submodel.mappings.cells.keep;
+                submodel.mappings.cells.external = submodel.mappings.cells.external | cex;
+                % Face mappings
+                fex = pmappings.external(pmappings.faces.keep) & submodel.mappings.faces.keep;
+                submodel.mappings.faces.external = submodel.mappings.faces.external | fex;
             end
             % Adjust submodel tolerances
             submodel = model.setSubdomainTolerances(submodel);
@@ -318,13 +349,13 @@ classdef DomainDecompositionModel < WrapperModel
             end
             isTransport = isa(submodel.parentModel, 'TransportModel');
             % Get nonlinear solver
-            nls = NonLinearSolver('minIterations'  , 0                         , ...
-                                  'maxIterations'  , 25                        , ...
-                                  'ErrorOnFailure' , false                     , ...
-                                  'verbose'        , verbose                   , ...
-                                  'useRelaxation'  , isTransport               , ...
-                                  'LinearSolver'   , lsol                      , ...
-                                  'identifier'     , ['SUBDOMAIN ', num2str(i)]);
+            nls = NonLinearSolver('minIterations' , 0                         , ...
+                                  'maxIterations' , 25                        , ...
+                                  'ErrorOnFailure', false                     , ...
+                                  'verbose'       , verbose                   , ...
+                                  'useRelaxation' , isTransport               , ...
+                                  'LinearSolver'  , lsol                      , ...
+                                  'identifier'    , ['SUBDOMAIN ', num2str(i)]);
             % Make subdomain setup
             setup.Model = submodel;
             setup.NonlinearSolver = nls;
@@ -332,8 +363,10 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function model = validateModel(model, varargin)
+            % Validate model
             model = validateModel@WrapperModel(model, varargin{:});
             if model.parallel
+                % Set parallel properties
                 if isempty(model.pool)
                     model.pool = gcp();
                     model.NumWorkers = model.pool.NumWorkers;
@@ -346,8 +379,9 @@ classdef DomainDecompositionModel < WrapperModel
                     rmodel.FacilityModel = [];
                 end
                 spmd
-                   lm = m;
-                   lm.G = lm.parentModel.G;
+                    % Distribute model to all workers
+                    lm = m;
+                    lm.G = lm.parentModel.G;
                 end
                 model.localModel = lm;
                 model = model.updateSubdomainSetupParallel();
@@ -358,6 +392,7 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function [model, state] = prepareTimestep(model, varargin)
+            % Prepare model and state for timestep
             [model, state] = prepareTimestep@WrapperModel(model, varargin{:});
             % Get partition and update subdomain setups
             p0 = model.partition.value;
@@ -373,6 +408,8 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function submodel = setSubFacilityModel(model, submodel, mappings) %#ok
+            % Set facility model of a sumodel from an already set up
+            % facility model for the full model
             rmodel = submodel.getReservoirModel();
             fm = rmodel.FacilityModel;
             fm.ReservoirModel = rmodel;
@@ -396,14 +433,16 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function submodel = setSubdomainTolerances(model, submodel)
-            tolerances = model.subdomainTolerances;
+            % Adjust subdomain tolerances
+            tolerances = model.subdomainTol;
             if isempty(tolerances)
                 return
             end
             rmodel = submodel.getReservoirModel();
-            for i = 1:numel(tolerances.names)
-                if isprop(rmodel, tolerances.names{i})
-                    rmodel.(tolerances.names{i}) = rmodel.(tolerances.names{i}).*tolerances.factors(i);
+            for i = 1:2:numel(tolerances)
+                if isprop(rmodel, tolerances{i})
+                    assert(tolerances{i+1} <= 1, 'Subdomain tolerance fraction must be <= 1')
+                    rmodel.(tolerances{i}) = rmodel.(tolerances{i}).*tolerances{i+1};
                 end
             end
             submodel = submodel.setReservoirModel(submodel, rmodel);
@@ -411,6 +450,7 @@ classdef DomainDecompositionModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function fun = getAddStatesFun(model, dummyState) %#ok
+            % Get function for adding states
             fun = @(in1, in2) addStatesFun(in1, in2, dummyState);
         end
         
@@ -422,6 +462,7 @@ end
 
 %-------------------------------------------------------------------------%
 function state = stripState(state)
+    % Strip state to reduce communication overhead
     fields = {'sMax', 'iterations', 'FacilityState', 'K', ...
         'eos', 'FacilityState', 'switched', 'switchCount', 'dpRel', 'dpAbs'};
     for f = fields
@@ -433,6 +474,7 @@ end
 
 %-------------------------------------------------------------------------%
 function domains = getLocalDomains(numWorkers, p, i)
+    % Compute index vector for local domains on each worker
     nDomains = repmat(ceil(max(p)/numWorkers), 1, numWorkers);
     extra    = sum(nDomains) - max(p);
     nDomains(end-extra+1:end) = nDomains(end-extra+1:end) - 1;
@@ -442,6 +484,7 @@ end
 
 %-------------------------------------------------------------------------%
 function out = addStatesFun(in1, in2, dummyState)
+    % Add up two substates
     map1 = in1.mappings;
     map2 = in2.mappings;
     if isempty(map1) || isempty(map2)
@@ -463,6 +506,7 @@ end
 
 %-------------------------------------------------------------------------%
 function mappings = mergeMappings(mappings1, mappings2)
+    % Merge two subdomain mappings
     if isempty(mappings1)
         mappings1 = mappings2;
     end
