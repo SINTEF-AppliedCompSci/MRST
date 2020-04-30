@@ -43,7 +43,7 @@ classdef SubdomainModel < WrapperModel
                 ML      = model.restrictionOperators.ML;
                 MR      = model.restrictionOperators.MR;
                 I       = model.restrictionOperators.I;
-                problem = transformProblem(problem, 'ML', ML, 'MR', MR, 'B', I, 'zero', ~keep);
+                problem = transformProblem(problem, 'ML', ML, 'MR', MR, 'B', I);
             end
         end
         
