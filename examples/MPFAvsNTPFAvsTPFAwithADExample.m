@@ -1,27 +1,18 @@
-clear all
-close all
-
 %% Combining consistent discretizations with AD-OO
 % We follow example 6.1.2 in the MRST book (see
 % examples/1ph/showInconsistentTPFA in the book module).
 % We create a skewed grid with  two wells where the underlying problem is
 % symmetric. An inconsistent discretization of the fluxes may introduce
 % asymmetry in the production pattern when injecting a fluid.
-mrstModule add ad-core mpfa ad-blackoil compositional ad-props mrst-gui
+mrstModule add ad-core mpfa ad-blackoil compositional ad-props mrst-gui nfvm
 
-% Rectangular reservoir with a skew grid.
-%dims = [41,20];
-dims = [21, 10];
-G = cartGrid(dims, [2, 1]);
-
-%G = triangleGrid(G.nodes.coords);
-
-makeSkew = @(c) c(:, 1) + .4 * (1 - (c(:, 1) - 1).^2) .* (1 - c(:, 2));
-G.nodes.coords(:, 1) = 2 * makeSkew(G.nodes.coords);
-G.nodes.coords(:, 1) = G.nodes.coords(:, 1) * 1000;
-G.nodes.coords(:, 2) = G.nodes.coords(:, 2) * 1000;
-
-G = twister(G, 0.1);
+dims = [41,20];
+G = cartGrid(dims, [2,1]);
+makeSkew = @(c) c(:,1) + .4*(1-(c(:,1)-1).^2).*(1-c(:,2));
+G.nodes.coords(:,1) = 2*makeSkew(G.nodes.coords);
+G.nodes.coords(:, 1) = G.nodes.coords(:, 1)*1000;
+G.nodes.coords(:, 2) = G.nodes.coords(:, 2)*1000;
+G = twister(G);
 G = computeGeometry(G);
 
 % Homogeneous reservoir properties
@@ -79,10 +70,6 @@ end
 dt = [1; 9; repmat(15, 26, 1)] * day;
 schedule = simpleSchedule(dt, 'W', W);
 
-%% Simulate the implicit TPFA base case
-disp('TPFA implicit')
-[wsTPFA, statesTPFA] = simulateScheduleAD(state0, model, schedule);
-
 %% Simulate implicit NTPFA
 disp('NTPFA implicit')
 mrstModule add nfvm
@@ -90,9 +77,13 @@ ratio = 0.0;
 model_ntpfa = setNTPFADiscretization(model, 'myRatio', ratio);
 [wsNTPFA, statesNTPFA] = simulateScheduleAD(state0, model_ntpfa, schedule);
 
+%% Simulate the implicit TPFA base case
+disp('TPFA implicit')
+[wsTPFA, statesTPFA] = simulateScheduleAD(state0, model, schedule);
+
 %% Simulate implicit MPFA
 % The simulator reuses the multipoint transmissibility calculations from
-% the MPFA module. We instansiate a special phase potential difference that
+% the MPFA module. We instantiate a special phase potential difference that
 % is computed using MPFA instead of the regular two-point difference for
 % each face.
 disp('MPFA implicit')
@@ -101,26 +92,9 @@ model_mpfa = setMPFADiscretization(model);
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);
 
 %% Plot the results
-figure
-plotToolbar(G, statesTPFA);
-axis equal
-axis tight
-colorbar
-title('TPFA')
-
-figure
-plotToolbar(G, statesNTPFA)
-axis equal
-axis tight
-colorbar
-title('NTPFA')
-
-figure
-plotToolbar(G, statesMPFA)
-axis equal
-axis tight
-colorbar
-title('MPFA')
+plotter(G, statesTPFA, 'TPFA')
+plotter(G, statesNTPFA, 'NTPFA')
+plotter(G, statesMPFA, 'MPFA')
 
 return
 
@@ -275,4 +249,25 @@ for i = 1:3
         c = G.cells.centroids(W(wno).cells, :);
         plot(c(1), c(2), 'kO', 'markersize', 8, 'markerFaceColor', 'r')
     end
+end
+
+
+function plotter(G, states, name)
+    
+    figure
+    plotToolbar(G, states)
+    axis tight equal
+    colorbar
+    title(name)
+
+    figure, hold on
+    plotCellData(G, states{end}.pressure, 'edgealpha', 0);
+    contour(reshape(G.cells.centroids(:,1), G.cartDims), ...
+            reshape(G.cells.centroids(:,2), G.cartDims), ...
+            reshape(states{end}.pressure, G.cartDims), ...
+            'linewidth', 1, 'color', 'k');
+    axis tight equal
+    colorbar
+    title([name, ' at endtime'])
+    
 end
