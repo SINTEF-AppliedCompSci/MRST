@@ -63,14 +63,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fn = makepath(basepath);
     logfile = makepath(fn, 'simulation.log');
     modlist = problem.Modules;
+    pathmap = capture_mrstpath();
+    pathmap_file = makepath(fn, 'pathmap.mat');
+    save(pathmap_file, 'pathmap');
     save(makepath(fn, 'problem'), 'problem', 'modlist', 'opt');
     matlab_options = build_matlab_options(opt);
     dispif(opt.verbose, 'Ok!\n');
     dispif(opt.verbose, 'Initializing background Matlab session...');
-    str = sprintf('matlab %s -sd "%s" -logfile %s -r "mrstModule add ad-core; simulatePackedProblemStandalone(''%s''); exit()" &', ...
+    str = sprintf('matlab %s -sd "%s" -logfile "%s" -r "pm = load(''%s''); mrstPath(''reregister'', pm.pathmap{:}); clear pm; mrstModule add ad-core; simulatePackedProblemStandalone(''%s''); exit()" &', ...
         matlab_options, ...% Matlab options
         makepath(ROOTDIR()), ...% Startup dir - MRST root
         logfile, ... % Log file path
+        pathmap_file, ...
         fn ... % Problem path
         );
     system(str);
@@ -95,4 +99,12 @@ function str = makepath(varargin)
     if strcmp(seperator, '\')
         str = strrep(str, '\', '\\');
     end
+end
+
+function pathmap = capture_mrstpath()
+    mods  = mrstPath();
+    paths = mrstPath(mods{:});
+
+    pathmap = [ reshape(mods , 1, []) ; ...
+                reshape(paths, 1, []) ];
 end
