@@ -1,4 +1,4 @@
-function interpFace = findHAP(G, rock, bc, debug)
+function interpFace = findHAP(G, rock)
 % Find harmonic averaging points for 2D and 3D grids. Considering both
 % Dirichlet and Neumann boundary conditions
 
@@ -6,12 +6,8 @@ function interpFace = findHAP(G, rock, bc, debug)
 % interpFace.weights: interpolating weights
 % interpFace.fraction: the fraction of cells whose centroid is
 % outside the convex hull
-
-    if nargin == 3
-        debug = false;
-    end
-
     dispif(mrstVerbose, 'findHAP\n');
+
     [K, ~, c] = permTensor(rock, G.griddim);
     interpFace.coords = zeros(G.faces.num, G.griddim);
     interpFace.weights = zeros(G.faces.num, 2);
@@ -63,65 +59,10 @@ function interpFace = findHAP(G, rock, bc, debug)
     
     interpFace.coords(bdry, :) = xA;   
     ex1 = G.faces.neighbors(:, 1) ~= 0;
-    ex2 = G.faces.neighbors(:, 2) ~= 0;
+    %ex2 = G.faces.neighbors(:, 2) ~= 0;
     interpFace.weights(bdry & ex1, 1) = 1;
     interpFace.weights(bdry & ~ex1, 2) = 1;
-
-        
-    % interpFace2 = interpFace;
-
-
-%     K = permTensor(rock, G.griddim);
-%     K = reshape(K', G.griddim, G.griddim, []);
-%     interpFace.coords = zeros(G.faces.num, G.griddim);
-%     interpFace.weights = zeros(G.faces.num, 2);
-%     interpFace.fraction = 0;
-
-%     % Find harmonic averaging point--------------------------------------------
-%     for i_face = 1:G.faces.num
-
-%         c1 = G.faces.neighbors(i_face, 1);
-%         c2 = G.faces.neighbors(i_face, 2);
-%         xf = G.faces.centroids(i_face, :)';
-%         if (all([c1, c2] ~= 0))
-%             K1 = K(:, :, c1);
-%             K2 = K(:, :, c2);
-%             fn = G.faces.normals(i_face, :)';
-%             w1 = K1 * fn;
-%             w2 = K2 * fn;
-%             x1 = G.cells.centroids(c1, :)';
-%             x2 = G.cells.centroids(c2, :)';
-%             xA = x1 + dot(xf-x1, fn) / dot(w1, fn) * w1;
-%             xB = x2 + dot(xf-x2, fn) / dot(w2, fn) * w2;
-%             w1 = norm(w1) / norm(xA-x1);
-%             w2 = norm(w2) / norm(xB-x2);
-%             interpFace.coords(i_face, :) = (w1 * xA + w2 * xB)' / (w1 + w2);
-%             interpFace.weights(i_face, 1) = w1 / (w1 + w2);
-%             interpFace.weights(i_face, 2) = w2 / (w1 + w2);
-%         else
-% %             ind = find(bc.face == i_face, 1);
-%             %ind,bc.type{ind}
-% %             if (strcmpi(bc.type{ind}, 'pressure'))
-% %                 interpFace.coords(i_face, :) = xf';
-% %                 interpFace.weights(i_face, (c2 == 0)+1) = bc.value{ind}(xf);
-% %             else
-%                 c = max(c1, c2);
-%                 K1 = K(:, :, c);
-%                 fn = G.faces.normals(i_face, :)';
-%                 w1 = K1 * fn;
-%                 x1 = G.cells.centroids(c, :)';
-%                 xA = x1 + dot(xf-x1, fn) / dot(w1, fn) * w1;
-%                 interpFace.coords(i_face, :) = xA';
-%                 a = norm(w1) / norm(x1-xA);
-%                 %gN = bc.value{ind}(xf) * G.faces.areas(i_face);
-%                 gN = 0;
-%                 interpFace.weights(i_face, (c1 == 0)+1) = 1;
-%                 interpFace.weights(i_face, (c2 == 0)+1) = -gN / a;
-%                 %interpFace.weights(i_face,(c2==0)+1)=bc.value{ind}(xf); %-gN/a;
-% %             end
-%         end
-%     end
-
+    
     % Count the number of cells whose centroid is outside the convex hull-----
     counter = zeros(G.cells.num, 1);
     for i = 1:G.cells.num
@@ -138,28 +79,6 @@ function interpFace = findHAP(G, rock, bc, debug)
                 counter(i) = mex_inhull(xc, hap, ind, -1e-5);
         end
     end
+
     interpFace.fraction = 1 - sum(counter) / G.cells.num;
-
-    if debug
-
-        % check
-        interpFace
-        interpFace2
-        f = interior;
-        %f = bdry;
-        [norm(interpFace.coords(f,:))-norm(interpFace2.coords(f,:))]
-        [norm(interpFace.weights(f,:))-norm(interpFace2.weights(f,:))]
-        %[norm(interpFace.coords), norm(interpFace2.coords)]
-        %[norm(interpFace.weights), norm(interpFace2.weights)]
-
-        keyboard
-
-        interpFace.fraction
-        figure
-        plotGrid(G)
-        hold on
-        plotCellData(G, counter)
-        plotHAPhull(G, interpFace, ~counter)
-        keyboard
-    end
 end
