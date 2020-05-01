@@ -6,12 +6,12 @@
 % asymmetry in the production pattern when injecting a fluid.
 mrstModule add ad-core mpfa ad-blackoil compositional ad-props mrst-gui nfvm
 
-dims = [41,20];
-G = cartGrid(dims, [2,1]);
-makeSkew = @(c) c(:,1) + .4*(1-(c(:,1)-1).^2).*(1-c(:,2));
-G.nodes.coords(:,1) = 2*makeSkew(G.nodes.coords);
-G.nodes.coords(:, 1) = G.nodes.coords(:, 1)*1000;
-G.nodes.coords(:, 2) = G.nodes.coords(:, 2)*1000;
+dims = [41, 20];
+G = cartGrid(dims, [2, 1]);
+makeSkew = @(c) c(:, 1) + .4 * (1 - (c(:, 1) - 1).^2) .* (1 - c(:, 2));
+G.nodes.coords(:, 1) = 2 * makeSkew(G.nodes.coords);
+G.nodes.coords(:, 1) = G.nodes.coords(:, 1) * 1000;
+G.nodes.coords(:, 2) = G.nodes.coords(:, 2) * 1000;
 G = twister(G);
 G = computeGeometry(G);
 
@@ -22,7 +22,7 @@ pv = sum(poreVolume(G, rock));
 % Symmetric well pattern
 if any(contains(G.type, 'cartGrid'))
     [ii, jj] = gridLogicalIndices(G);
-    c1 = find(ii == ceil(G.cartDims(1)/2) & jj == G.cartDims(2));
+    c1 = find(ii == ceil(G.cartDims(1) / 2) & jj == G.cartDims(2));
     c2 = find(ii == G.cartDims(1) & jj == 1);
     c3 = find(ii == 1 & jj == 1);
 else
@@ -199,10 +199,10 @@ end
 
 %% Interactive plotting
 plotWellSols({wsTPFA, wsNTPFA, wsMPFA, wsExplicit, wsNTPFAExplicit, wsMPFAExplicit}, ...
-    time, ...
-    'datasetnames', ...
-    {'TPFA implicit', 'NTPFA implicit', 'MPFA implicit', ...
-    'TPFA explicit', 'NTPFA explicit', 'MPFA explicit'})
+             time, ...
+             'datasetnames', ...
+             {'TPFA implicit', 'NTPFA implicit', 'MPFA implicit', ...
+              'TPFA explicit', 'NTPFA explicit', 'MPFA explicit'})
 
 %% Plot the front at a chosen time-step
 if useComp
@@ -235,13 +235,13 @@ for i = 1:3
         ei = expl.s(:, 1);
     end
     N = 20;
-    cval = [.5 * movsum(linspace(0, 1, N+1), 2), 1];
+    cval = [.5 * movsum(linspace(0, 1, N + 1), 2), 1];
     figure(i);
     clf;
     hold on
     colormap(flipud([.7 * winter(128).^2 + .3; 1, 1, 1]));
     contourf(x, y, reshape(vi, G.cartDims), cval, 'EdgeColor', 'none');
-    contour(x, y, reshape(ei, G.cartDims), cval(2:end-1), 'k')
+    contour(x, y, reshape(ei, G.cartDims), cval(2:end - 1), 'k')
     plotGrid(G, 'FaceColor', 'none', 'EdgeColor', 0.8*[1, 1, 1], 'EdgeAlpha', 0.25);
 
     axis equal tight off;
@@ -253,7 +253,7 @@ end
 
 
 function plotter(G, states, name)
-    
+
     figure
     plotToolbar(G, states)
     axis tight equal
@@ -262,12 +262,12 @@ function plotter(G, states, name)
 
     figure, hold on
     plotCellData(G, states{end}.pressure, 'edgealpha', 0);
-    contour(reshape(G.cells.centroids(:,1), G.cartDims), ...
-            reshape(G.cells.centroids(:,2), G.cartDims), ...
+    contour(reshape(G.cells.centroids(:, 1), G.cartDims), ...
+            reshape(G.cells.centroids(:, 2), G.cartDims), ...
             reshape(states{end}.pressure, G.cartDims), ...
             'linewidth', 1, 'color', 'k');
     axis tight equal
     colorbar
     title([name, ' at endtime'])
-    
+
 end
