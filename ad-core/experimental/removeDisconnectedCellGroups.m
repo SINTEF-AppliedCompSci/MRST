@@ -59,6 +59,9 @@ function model = renum_model(model, keep, renum)
     model.operators.N = N;
     model.G.cells.centroids = model.G.cells.centroids(keep, :);
     model.G.cells.num = nc;
+    if isfield(model.G.cells, 'indexMap')
+        model.G.cells.indexMap = model.G.cells.indexMap(keep);
+    end
     
     model.rock = cellreduce(model.rock, keep);
     
