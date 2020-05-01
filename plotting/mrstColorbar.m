@@ -56,6 +56,8 @@ if ~exist('verLessThan','file') || verLessThan('matlab','8.4')
 end
 nargs = nargin;
 
+remaxes = gca;
+
 % Is first input argument a graphics handle? If not, assume the colorbar is
 % to be added to the current axes
 if (nargs>0) && (numel(varargin{1})==1) && ishandle(varargin{1})
@@ -86,7 +88,7 @@ else
 end
 
 %opos = get(gca,'OuterPosition');
-oapos = get(gca,'Position');
+oapos = get(ha,'Position');
 
 % Is the first argument a location specifier? If not, use the default
 % value, which is to the south
@@ -140,7 +142,7 @@ end
 
 % Set up a colorbar, insert the histogram in its place, and move the
 % colorbar slightly below/above/left/right of the histogram
-hcb   = colorbar(location); drawnow
+hcb   = colorbar(ha, location); drawnow
 apos  = get(ha, 'Position');
 cpos  = get(hcb,'Position');
 hhpos = histogramPos(cpos);
@@ -159,7 +161,7 @@ hh.BinLimits = limits;
 hh.NumBins   = 50;
 set(hax,'XLim', limits);
 axis off;
-axes(ha);
+axes(remaxes);
 if nargout<2,  clear hax, end
 if nargout~=1, clear hcb, end
 end
