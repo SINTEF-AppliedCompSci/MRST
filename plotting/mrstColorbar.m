@@ -162,8 +162,8 @@ hh.NumBins   = 50;
 set(hax,'XLim', limits);
 axis off;
 axes(remaxes);
-if nargout<2,  clear hax, end
-if nargout~=1, clear hcb, end
+% if nargout<2,  clear hax, end
+% if nargout~=1, clear hcb, end
 end
 
 function newpos=colorbarPos(c, a, location)
