@@ -133,7 +133,9 @@ switch location
         histogramPos = @(x) [x(1) x(2)+.05*x(4) x(3) .9*x(4)];  
     case 'westoutside'
         [az,el] = deal( 90,-90);
-        histogramPos = @(x) [x(1) x(2)+.05*x(4) x(3) .9*x(4)];  
+        histogramPos = @(x) [x(1) x(2)+.05*x(4) x(3) .9*x(4)];
+    otherwise
+        error('Unknown location: %s', location);
 end
 
 % Set up a colorbar, insert the histogram in its place, and move the
