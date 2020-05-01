@@ -1,15 +1,26 @@
 %% trajectoryExampleEgg
-%
-% This example shows how to launch the TrajectoryGUI.
+% This example launches the (limited robustness) TrajectoryGUI for the Egg 
+% model. The GUI enables drawing and draging around well-trajectories which 
+% can be saves as an MRST well structues. Diagnostics for the newly created 
+% wells can be investigated by launcing the DiagnosticsViewer. 
+% 
+% INSTRUCTIONS:
+% *  press new to create new well
+% *  right-click inside axis for drawing options ("along line" is recommend)
+% *  left-click edge of points to drag
+% *  right-click (edge of) points for options
+% *  click view to plot resulting trajectory in 3D and traversed grid cells
+% *  click save to save well(s)
+% *  click launch diagnsotics to view diagnostics for saved well
 
-mrstModule add diagnostics mrst-gui ad-core ad-blackoil
+mrstModule add diagnostics mrst-gui ad-core ad-blackoil wellpaths
 
 gravity off
 tmp = setupEggFn(1);
 [W, model] = deal(tmp.W, tmp.model);
 model.G = computeGeometry(model.G);
 
-d = TrajectoryGUI(model, W)
+d = TrajectoryGUI(model, W);
 
 %%
 % <html>

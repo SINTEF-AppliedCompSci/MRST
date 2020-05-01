@@ -228,8 +228,8 @@ classdef InteractiveLine < handle
             ax.UIContextMenu = m;
             top = uimenu('Parent', m, 'Label', 'Draw points');
             
-            m1 = uimenu('Parent', top, 'Label', 'After last',   'Callback', @(src,event)l.updateMode(src, event, 'afterLast'));
-            m2 = uimenu('Parent', top, 'Label', 'Before first', 'Callback', @(src,event)l.updateMode(src, event, 'beforeFirst'));
+            %m1 = uimenu('Parent', top, 'Label', 'After last',   'Callback', @(src,event)l.updateMode(src, event, 'afterLast'));
+            %m2 = uimenu('Parent', top, 'Label', 'Before first', 'Callback', @(src,event)l.updateMode(src, event, 'beforeFirst'));
             m3 = uimenu('Parent', top, 'Label', 'Along line', 'Callback', @(src,event)l.updateMode(src, event, 'along'));
             m4 = uimenu('Parent', top, 'Label', 'off', 'Callback', @(src,event)l.updateMode(src, event, 'off'));
         end
