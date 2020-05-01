@@ -47,7 +47,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('readFromDisk', true, ...
                  'readWellSolsFromDisk', [], ...
-                 'readReportsFromDisk', []);
+                 'readStatesFromDisk',   [], ...
+                 'readReportsFromDisk',  []);
     opt = merge_options(opt, varargin{:});
     
     if isempty(opt.readWellSolsFromDisk)
@@ -55,6 +56,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     if isempty(opt.readReportsFromDisk)
         opt.readReportsFromDisk = opt.readFromDisk;
+    end
+    if isempty(opt.readStatesFromDisk)
+        opt.readStatesFromDisk = opt.readFromDisk;
     end
     nstep = numel(problem.SimulatorSetup.schedule.step.val);
     
