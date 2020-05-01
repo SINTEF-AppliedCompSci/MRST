@@ -181,8 +181,16 @@ classdef TrajectoryGUI < handle
              nm   = ['case_', num2str(nnew+1)];
              info = d.Menu.items{1}.wellInfo;
              %seg = t.vec;
+             ncompi = numel(d.W(1).compi);
+             if info.sign > 0
+                 compi = [1, ones(1, ncompi-1)];
+             else
+                 compi = ones(1, ncompi)/ncompi;
+             end
+             
              w = addWellFromTrajectory([], d.model.G, d.model.rock, traj, ...
-                    'name', nm, 'type', info.type, 'sign', info.sign, 'val', info.val);
+                    'name', nm, 'type', info.type, 'sign', info.sign, ...
+                    'val', info.val, 'compi', compi);
 
              w.trajectory = traj;
              w.cell_origin = ones(size(w.cells));
@@ -234,6 +242,6 @@ pxy = [d.Line3D.trajectory.XData(:), d.Line3D.trajectory.YData(:)];
 p   = [d.Line2D.trajectory.XData(:), d.Line2D.trajectory.YData(:)];
 lenxy = [0; sqrt(dot(diff(pxy), diff(pxy), 2))];
 %traj = [interp1(fac.cumlength, fac.segments, p(:,1)), p(:,2)];
-traj = [interp1(cumsum(lenxy), pxy, p(:,1)), p(:,2)];
+traj = [interp1(cumsum(lenxy), pxy, p(:,1), 'linear', 'extrap'), p(:,2)];
 end
 
