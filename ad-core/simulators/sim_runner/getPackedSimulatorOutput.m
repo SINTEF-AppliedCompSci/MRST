@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    if ~opt.readFromDisk
+    if ~opt.readStatesFromDisk
         % Just return handlers instead
         states = sh;
     end
