@@ -56,7 +56,10 @@ c = getConstraints(u0, opt);
 history = [];
 % name|obj.val.|contr.|norm proj.grad.|ls-step|ls-its|ls-flag|hessian 
 history = gatherInfo(history, v0, u0, nan, nan, nan, nan, Hi);
-
+if opt.plotEvolution
+    plotInfo(10, history)
+end
+    
 it = 0;
 success = false;
 g = g0;
@@ -126,7 +129,7 @@ end
 function hst = gatherInfo(hst, val, u, pg, alpha, lsit, lsfl, hess)   
 % obj.val | contr | norm proj.grad | ls-step | ls-its | ls-flag | hessian 
 if isempty(hst)
-    hst = struct('val', val, 'u', {u}, 'pg', pg, ...
+    hst = struct('val', val, 'u', {{u}}, 'pg', pg, ...
                  'alpha', alpha, 'lsit', lsit, 'lsfl', lsfl, ...
                  'hess', {hess});
 else

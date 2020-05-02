@@ -40,7 +40,8 @@ classdef AMGCLSolverBlockAD < AMGCLSolverAD
                 solver.amgcl_setup.block_size = bz;
             end
             backend = model.AutoDiffBackend;
-            [A, b, A_nn, b_n, A_cn, A_nc] = backend.getBlockSystemCSR(problem, bz);
+            [A, b, A_nn, b_n, A_cn, A_nc] = backend.getBlockSystemCSR(problem, model, bz);
+            t_asm = toc(timer);
             needsReduction = ~isempty(A_nn);
             if needsReduction
                 % We have non-cell equations. We try to do something about
@@ -55,10 +56,11 @@ classdef AMGCLSolverBlockAD < AMGCLSolverAD
                 % Factor remaining equations
                 [L, U] = lu(A_nn);
                 A_nn_inv = @(x) U\(L\x);
-                if solvePre || solveSchur
+                if solvePre
                     x_n = A_nn_inv(b_n);
                     b = b - A_cn*x_n;
-                    A = backend.applySchurComplementBlockSystemCSR(A, A_nn_inv, A_nc, A_cn, ...
+                elseif solveSchur
+                    [A, b] = backend.applySchurComplementBlockSystemCSR(A, b, A_nn_inv, A_nc, A_cn, b_n, ...
                                                                    solver.schurApproxType, solver.schurWeight);
                 end
             end
@@ -74,12 +76,13 @@ classdef AMGCLSolverBlockAD < AMGCLSolverAD
             else
                 result = x_c;
             end
-            dx = solver.storeIncrements(problem, result);
-            t_post = toc(timer) - t_solve;
+            t_post = toc(timer) - t_solve - t_prep;
             % Output helpful info
-            report.PreparationTime = t_prep;
+            report.PreparationTime    = t_prep;
             report.LinearSolutionTime = t_solve;
-            report.PostProcessTime = t_post;
+            report.PostProcessTime    = t_post;
+            report.BlockAssembly      = t_asm;
+            dx = solver.storeIncrements(problem, result);
         end
         
         

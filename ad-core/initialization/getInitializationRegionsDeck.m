@@ -95,8 +95,17 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
                 rs =  @(p, z) 0*p + model.fluid.rsSat(p_datum);
             end
         else
-            assert(isfield(deck.SOLUTION, 'RSVD'));
-            rsvd = deck.SOLUTION.RSVD{regionIx};
+            if isfield(deck.SOLUTION, 'RSVD')
+                rsvd = deck.SOLUTION.RSVD{regionIx};
+            else
+                assert(isfield(deck.SOLUTION, 'PBVD'));
+                rsSat = model.fluid.rsSat;
+                if iscell(rsSat)
+                    rsSat = rsSat{pvtnum};
+                end
+                pbvd = deck.SOLUTION.PBVD{regionIx};
+                rsvd = [pbvd(:, 1), rsSat(pbvd(:, 2))];
+            end
             F = griddedInterpolant(rsvd(:, 1), rsvd(:, 2), 'linear', 'nearest');
             rs = @(p, z) F(z);
         end

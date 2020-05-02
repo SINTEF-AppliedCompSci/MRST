@@ -24,6 +24,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         all(isfield(deck, {'RUNSPEC', 'SOLUTION'})),   ...
         ['Parameter ''deck'' does not appear to be a ', ...
         'valid ECLIPSE deck']);
+    if ~isfield(deck.RUNSPEC, 'SI')
+        % We use MRST's gravity to initialize. Must be SI units.
+        error('Non-SI units detected. Call ''convertDeckUnits(deck)'' first.')
+    end
     if isfield(deck.SOLUTION, 'EQUIL')
         % Equilibrium regions, initialize via solver
         regions = getInitializationRegionsDeck(model, deck);

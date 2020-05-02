@@ -76,9 +76,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             if backend.rowMajor
                 out = [out, '-RowMajor'];
             end
-            if backend.modifyOperators
-                out = [out, ' [custom operators]'];
-            else
+            if ~backend.modifyOperators
                 out = [out, ' [matrix product operators]'];
             end
         end
@@ -102,7 +100,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
            v = double2GenericAD(v, sample);
         end
         
-        function [A_cc, b_c, A_nn, b_n, A_cn, A_nc] = getBlockSystemCSR(backend, problem, bz)
+        function [A_cc, b_c, A_nn, b_n, A_cn, A_nc] = getBlockSystemCSR(backend, problem, model, bz)
             if nargin < 3 || bz == 0
                 bz = problem.countOfType('cell');
             end
@@ -116,12 +114,18 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             % First, get the matrix
             opt = J{1}.divergenceOptions;
             prelim = opt.mex;
-            
             acc = cellfun(@(x) x.accumulation.diagonal, J, 'UniformOutput', false);
             flux = cellfun(@(x) x.flux.diagonal, J, 'UniformOutput', false);
+            if ~backend.rowMajor
+                % MEX routine for assembly assumes rowmajor. Perform
+                % potentially expensive transpose of all block matrices.
+                acc = cellfun(@(x) x', acc, 'UniformOutput', false);
+                flux = cellfun(@(x) x', flux, 'UniformOutput', false);
+            end
             bad = cellfun(@isempty, flux);
             if any(bad)
-                [flux{bad}] = deal(zeros(2*bz, size(model.operators.N, 1)));
+                tmp = flux{bad};
+                [flux{bad}] = deal(zeros(2*bz, size(tmp, 2)));
             end
             
             [colNo, rowPtr, values, n, m] = mexDiscreteDivergenceBlockJac(acc, flux, opt.N,...
@@ -165,11 +169,11 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             end
         end
         
-        function [A, schur_diag, insert] = applySchurComplementBlockSystemCSR(backend, A, A_nn, A_nc, A_cn, schur_type, w)
-            if nargin < 7
+        function [A, b, schur_diag, insert, fill] = applySchurComplementBlockSystemCSR(backend, A, b, A_nn, A_nc, A_cn, b_n, schur_type, w)
+            if nargin < 9
                 w = 1;
             end
-            if nargin < 6
+            if nargin < 8
                 doRow = true;
                 doSum = false;
             else
@@ -191,16 +195,21 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             n = size(A_nc, 2)/bz;
             if isnumeric(A_nn)
                 n_to_c = A_nn\A_nc;
+                x_n = A_nn\b_n;
             else
                 n_to_c = A_nn(A_nc);
+                x_n = A_nn(b_n);
             end
+            b = b - A_cn*x_n;
             fill = A_cn*n_to_c;
             [row, col, vals] = find(fill);
             cell_row = mod(row-1, n) + 1;
             cell_col = mod(col-1, n) + 1;
             keep = cell_row == cell_col;
             ix = unique(cell_row(keep));
-            if ~doSum
+            if doSum
+                % vals(~keep) = -vals(~keep);
+            else
                 row = row(keep);
                 col = col(keep);
                 vals = vals(keep);
@@ -220,7 +229,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
                         ii = col(act) - (derNo-1)*n;
                     end
                     rowsum = accumarray(ii, vals(act), [n, 1]);
-                    sub = (derNo-1)*bz + eqNo;
+                    sub = (eqNo-1)*bz + derNo;
                     schur_diag(sub, :) = schur_diag(sub, :) + rowsum(ix)';
                 end
             end

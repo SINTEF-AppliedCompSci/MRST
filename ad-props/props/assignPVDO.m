@@ -1,9 +1,9 @@
 function f = assignPVDO(f, pvdo, reg)
-    [f.bO, f.muO] = getFunctions(f, pvdo, reg);
+    [f.bO, f.muO] = getFunctions(pvdo, reg);
 end
 
 
-function [bO, muO] = getFunctions(f, PVDO, reg)
+function [bO, muO] = getFunctions(PVDO, reg)
     [bO, muO] = deal(cell(1, reg.pvt));
     
     for i = 1:reg.pvt

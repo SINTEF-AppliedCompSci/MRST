@@ -12,7 +12,7 @@ if ~exist('solveDirect', 'var')
     solveDirect = true;
 end
 
-solveDirect = solveDirect && n^3 <= 100000;
+solveDirect = solveDirect && n^3 <= 50000;
 assert(isscalar(n));
 assert(n <= 100);
 hasAGMG = ~isempty(mrstPath('agmg'));
@@ -37,7 +37,9 @@ state0 = initResSol(G, 50*barsa, s0);
 %% Set up model
 fluid = initSimpleADIFluid('c', [1e-6, 1e-5, 1e-3]/barsa, 'n', [2, 2, 2], 'rho', [1000, 500, 100]);
 model = GenericBlackOilModel(G, rock, fluid);
-% model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true);
+model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true, ...
+                                                'deferredAssembly', true, ...
+                                                'rowMajor', true);
 
 tmodel = TransportModel(model);
 pmodel = PressureModel(model);
@@ -55,8 +57,6 @@ dt = 1*year;
 maxIter = 100;
 tol = 1e-6;
 
-getter = @(x, fld) cellfun(@(x) x.(fld), x);
-getData = @(x) [getter(x, 'PreparationTime'); getter(x, 'LinearSolutionTime'); getter(x, 'PostProcessTime')]';
 
 %% Get systems
 problem = model.getEquations(state0, state0, dt, forces);
@@ -66,8 +66,8 @@ ordering = getCellMajorReordering(ncells, ncomp);
 % Pressure
 pproblem = pmodel.getEquations(state0, state0, dt, forces);
 % Skip wells
-pproblem.equations = pproblem.equations(1);
-pproblem.equations{1}.jac = pproblem.equations{1}.jac(1);
+% pproblem.equations = pproblem.equations(1);
+% pproblem.equations{1}.jac = pproblem.equations{1}.jac(1);
 % We can pre-assemble to save a bit of time
 pproblem = pproblem.assembleSystem();
 
@@ -83,13 +83,18 @@ tproblem = tproblem.assembleSystem();
 innerTol = 1e-4;
 block_arg = {'variableOrdering', ordering, 'equationOrdering', ordering};
 base_arg = {'tolerance', tol, 'maxIterations', maxIter, 'keepNumber', ncomp*ncells};
-cpr = CPRSolverAD(base_arg{:});
-cpr_agmg = CPRSolverAD(base_arg{:},'ellipticSolver', AGMGSolverAD('tolerance', innerTol));
-cpr_amgcl = CPRSolverAD(base_arg{:},'ellipticSolver', AMGCLSolverAD('reuseMode', 2, 'tolerance', innerTol));
+cpr_matlab_arg = [base_arg, 'diagonalTol', nan];
+cpr = CPRSolverAD(cpr_matlab_arg{:});
+if hasAGMG
+    cpr_agmg = CPRSolverAD(cpr_matlab_arg{:},'ellipticSolver', AGMGSolverAD('tolerance', innerTol));
+end
+cpr_amgcl = CPRSolverAD(cpr_matlab_arg{:},'ellipticSolver', AMGCLSolverAD('reuseMode', 2, 'tolerance', innerTol));
 cpr_cl = AMGCL_CPRSolverAD(base_arg{:}, block_arg{:});
-cpr_cl_w = AMGCL_CPRSolverAD(base_arg{:}, block_arg{:}, ...
+cpr_cl_block_w = AMGCL_CPRSolverBlockAD(base_arg{:}, ...
     'coarsening', 'smoothed_aggregation', 'relaxation', 'spai0', ...
     'solver', 'bicgstab', 'npre', 3, 'npost', 3, 'ncycle', 2, 'id', '-tweaked');
+cpr_cl_block = AMGCL_CPRSolverBlockAD(base_arg{:});
+
 %%
 bl = BackslashSolverAD();
 gmilu = GMRES_ILUSolverAD(base_arg{:});
@@ -107,7 +112,8 @@ if hasAGMG
 end
 fi_solvers{end+1} = cpr_amgcl;
 fi_solvers{end+1} = cpr_cl;
-fi_solvers{end+1} = cpr_cl_w;
+fi_solvers{end+1} = cpr_cl_block;
+fi_solvers{end+1} = cpr_cl_block_w;
 
 [descr_fi, names_fi] = cellfun(@getDescription, fi_solvers, 'UniformOutput', false);
 % Solving
@@ -120,7 +126,7 @@ for sno = 1:ns
 end
 fprintf('Solve done.\n');
 %% Plot
-[timing_fi, its_fi] = getTiming(reports_fi, getData);
+[timing_fi, its_fi] = getTiming(reports_fi);
 if doPlot
     figure(1 + offset); clf;
     plotLinearTimingsForExample(names_fi, timing_fi, its_fi);
@@ -132,8 +138,9 @@ amg_stuben = AMGCLSolverAD(parg{:}, 'coarsening', 'ruge_stuben', 'id', '-classic
 amg_aggr = AMGCLSolverAD(parg{:}, 'coarsening', 'aggregation', 'id', '-aggregation');
 amg_smoothed_aggr = AMGCLSolverAD(parg{:}, 'coarsening', 'smoothed_aggregation', 'id', '-smoothed_aggregation');
 amg_smoothed_aggre = AMGCLSolverAD(parg{:}, 'coarsening', 'smoothed_aggr_emin', 'id', '-smoothed_aggr_emin');
-
-agmg = AGMGSolverAD(parg{:});
+if hasAGMG
+    agmg = AGMGSolverAD(parg{:});
+end
 
 p_solvers = {};
 if solveDirect
@@ -158,7 +165,7 @@ for sno = 1:nsp
     [dx, result, reports_p{sno}] = solver.solveLinearProblem(pproblem, model);
 end
 %%
-[timing_p, its_p] = getTiming(reports_p, getData);
+[timing_p, its_p] = getTiming(reports_p);
 if doPlot
     figure(2 + offset); clf;
     plotLinearTimingsForExample(names_p, timing_p, its_p);
@@ -174,6 +181,7 @@ amgcl_gs = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', 1, 'relaxation', '
 amgcl_ilu  = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', 1, 'relaxation', 'ilu0', 'id', '-ilu0');
 amgcl_bilu = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'ilu0', 'id', '-ilu0');
 amgcl_bgs = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'gauss_seidel', 'id', '-gs');
+bamgcl_ilu = AMGCLSolverBlockAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'ilu0', 'id', '-ilu0*');
 
 t_solvers = {};
 if solveDirect
@@ -184,6 +192,8 @@ t_solvers{end+1} = amgcl_gs;
 t_solvers{end+1} = amgcl_ilu;
 t_solvers{end+1} = amgcl_bgs;
 t_solvers{end+1} = amgcl_bilu;
+t_solvers{end+1} = bamgcl_ilu;
+
 [descr_t, names_t] = cellfun(@getDescription, t_solvers, 'UniformOutput', false);
 
 nst = numel(t_solvers);
@@ -195,7 +205,7 @@ for sno = 1:nst
     [dx, result, reports_t{sno}] = solver.solveLinearProblem(tproblem, model);
 end
 %%
-[timing_t, its_t] = getTiming(reports_t, getData);
+[timing_t, its_t] = getTiming(reports_t);
 
 if doPlot
     figure(3 + offset); clf;
@@ -203,7 +213,7 @@ if doPlot
     title('Transport system')
 end
 %%
-function [timing, its] = getTiming(reports, getData)
+function [timing, its] = getTiming(reports)
     timing = getData(reports);
     ok = true(size(timing, 1), 1);
     for i = 1:size(timing, 1)
@@ -228,7 +238,9 @@ end
 
 function timing = plotLinearTimingsForExample(names, timing, its)
     bh = bar(timing, 'stacked');
-    legend('Pre', 'Solve', 'Post');
+%     bar(timing);
+    % legend('Pre', 'Solve', 'Post', 'Total');
+    legend('Solve', 'Pre', 'Post');
     set(gca, 'XTickLabel', names, 'TickLabelInterpreter', 'none');
     set(gca, 'XTickLabelRotation', -20)
     tot = sum(timing, 2);
@@ -247,6 +259,23 @@ function timing = plotLinearTimingsForExample(names, timing, its)
     ylim([0, 1.1*max(tot)]);
 end
 
+function d = getData(r)
+    getter = @(x, fld) cellfun(@(x) x.(fld), x);
+    prep = getter(r, 'PreparationTime');
+    for i = 1:numel(r)
+        x = r{i};
+        if isfield(x, 'BlockAssembly')
+            % Subtract block assembly, since this would normally be
+            % measured as a part of the equations assembly (all other
+            % solvers get a pre-assembled linear system in this benchmark)
+            prep(i) = prep(i) - x.BlockAssembly;
+        end
+    end
+    solve = getter(r, 'LinearSolutionTime');
+    post = getter(r, 'PostProcessTime');
+    tot = prep + solve + post;
+    d = [solve; prep; post]';
+end
 % <html>
 % <p><font size="-1">
 % Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

@@ -34,9 +34,10 @@ classdef ComponentTotalMass <  StateFunction & ComponentProperty
         end
         
         function prop = setMinimumDerivatives(prop, der)
-            if ~isa(prop.AutoDiffBackend, 'DiagonalAutoDiffBackend')
-                dispif(mrstVerbose(), 'Minimum derivatives only supported for diagonal backend.');
-                return;
+            if nargin < 2
+                % Just set to a very small value, since nothing was
+                % specified.
+                der = 1e-10;
             end
             prop.minimumDerivatives = der;
         end
@@ -50,23 +51,47 @@ classdef ComponentTotalMass <  StateFunction & ComponentProperty
             if isempty(der)
                 return;
             end
-            assert(isa(prop.AutoDiffBackend, 'DiagonalAutoDiffBackend'), ...
-                'Minimum derivatives only supported for diagonals.');
-            rowMajor = prop.AutoDiffBackend.rowMajor;
-            for c = 1:numel(mass)
-                m = mass{c};
-                if isnumeric(m) || size(m.jac{1}.diagonal, 2 - rowMajor) < c
-                    continue
+            nc = numel(mass);
+            if numel(der) == 1
+                der = repmat(der, 1, nc);
+            end
+            isDiag = isa(prop.AutoDiffBackend, 'DiagonalAutoDiffBackend');
+            if isDiag
+                rowMajor = prop.AutoDiffBackend.rowMajor;
+                for c = 1:nc
+                    m = mass{c};
+                    if isnumeric(m) || size(m.jac{1}.diagonal, 2 - rowMajor) < c
+                        continue
+                    end
+                    d = der(c);
+                    if rowMajor
+                        bad = abs(m.jac{1}.diagonal(c, :)) < d;
+                        m.jac{1}.diagonal(c, bad) = d;
+                    else
+                        bad = abs(m.jac{1}.diagonal(:, c)) < d;
+                        m.jac{1}.diagonal(bad, c) = d;
+                    end
+                    mass{c} = m;
                 end
-                d = der(c);
-                if rowMajor
-                    bad = abs(m.jac{1}.diagonal(c, :)) < d;
-                    m.jac{1}.diagonal(c, bad) = d;
-                else
-                    bad = abs(m.jac{1}.diagonal(:, c)) < d;
-                    m.jac{1}.diagonal(bad, c) = d;
+            else
+                for c = 1:nc
+                    m = mass{c};
+                    d = der(c);
+                    if isnumeric(m)
+                        continue;
+                    end
+                    J = m.jac{c};
+                    [n, l] = size(J);
+                    if n ~= l
+                        continue;
+                    end
+                    diagonal = diag(J);
+                    bad = abs(diagonal) < d;
+                    if any(bad)
+                        m.jac{c} = m.jac{c} + sparse(1:n, 1:n, bad.*d, n, n);
+                    end
+                    mass{c} = m;
                 end
-                mass{c} = m;
             end
         end
     end

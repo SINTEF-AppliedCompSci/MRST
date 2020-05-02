@@ -24,7 +24,8 @@ opt     = struct('OilPrice',             1.0 , ...
                  'WaterInjectionCost',   0.1 , ...
                  'DiscountFactor',       0.0 , ...
                  'ComputePartials',      false, ...
-                 'tStep' ,               []);
+                 'tStep' ,               [],   ...
+                 'signChangePenaltyFactor', 0);
 opt     = merge_options(opt, varargin{:});
 
 ro  = opt.OilPrice            / stb;
@@ -56,16 +57,19 @@ for step = 1:numSteps
     sol = wellSols{tSteps(step)};
     qWs  = vertcat(sol.qWs);
     qOs  = vertcat(sol.qOs);
-    injInx  = (vertcat(sol.sign) > 0);
-    status = vertcat(sol.status);
-
+    
     % Remove closed well.
+    status = vertcat(sol.status);
     qWs = qWs(status);
     qOs = qOs(status);
-    injInx = injInx(status);
+    
+    injectors = (vertcat(sol.sign) > 0);
+    injectors = injectors(status);
+    injecting = (qWs + qOs) > 0;
+    sgnCh     = (injectors & ~injecting) | (~injectors & injecting);
+    
     nW  = numel(qWs);
     pBHP = zeros(nW, 1); %place-holder
-
 
     if opt.ComputePartials
         [qWs, qWs, qWs, qOs, ignore] = ...
@@ -77,8 +81,20 @@ for step = 1:numSteps
     dt = dts(step);
     time = time + dt;
 
-    prodInx = ~injInx;
-    obj{step} = ( dt*(1+d)^(-time/year) )*...
-                spones(ones(1, nW))*( (-ro*prodInx).*qOs ...
-                             +(rw*prodInx - ri*injInx).*qWs );
+    penalty = opt.signChangePenaltyFactor;
+    
+    producing = ~injecting;
+    producers = ~injectors;
+    if penalty == 0 || any(~sgnCh)
+        % just compute assuming potential oil injection has cost ro
+        obj{step} = ( dt*(1+d)^(-time/year) )*...
+            spones(ones(1, nW))*( -ro*qOs + (rw*producing - ri*injecting).*qWs );
+    else
+        % penalize signchange by penalty*ro
+        ii = injecting & injectors;
+        pp = producing & producers;
+        obj{step} = ( dt*(1+d)^(-time/year) )*...
+            spones(ones(1, nW))*( -(ro*pp).*qOs + (rw*pp - ri*ii).*qWs - (ro*penalty*sgnCh).*abs(qWs+qOs));
+    end
+end
 end

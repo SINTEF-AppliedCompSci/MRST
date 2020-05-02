@@ -40,6 +40,7 @@ classdef LinearSolverAD < handle
         variableOrdering % Variable ordering to be used for linear solver. Row vector of equal length to the size of the linear system.
         equationOrdering % Equation ordering to be used for linear solver. Row vector of equal length to the size of the linear system.
         id = ''; % Short text string identifying the specific solver. Appended to the short name (see getDescription)
+        initialGuessFun = [];
     end
 
     methods
@@ -65,7 +66,7 @@ classdef LinearSolverAD < handle
             assert(solver.tolerance >= 0);
         end
         
-        function [result, report] = solveLinearSystem(solver, A, b) %#ok
+        function [result, report] = solveLinearSystem(solver, A, b, varargin) %#ok
             % Solve the linear system to a given tolerance
             report = solver.getSolveReport();
             error('Superclass not meant for direct use')
@@ -187,6 +188,7 @@ classdef LinearSolverAD < handle
             lsys = [];
             eliminated = {};
             keepNumber0 = solver.keepNumber;
+            initialGuess = solver.getInitialGuess(problem);
             if solver.reduceToCell && isempty(solver.keepNumber)
                 % Eliminate non-cell variables (well equations etc)
                 s = getSampleAD(problem.equations{:});
@@ -244,6 +246,9 @@ classdef LinearSolverAD < handle
                     else
                         [problem, eliminated] = solver.reduceToVariable(problem, keep);
                     end
+                    if ~isempty(initialGuess{1})
+                        initialGuess = initialGuess(keep);
+                    end
                 end
             end
             problem = problem.assembleSystem();
@@ -251,18 +256,19 @@ classdef LinearSolverAD < handle
 
             % Get linearized system
             [A, b] = problem.getLinearSystem();
+            x0     = vertcat(initialGuess{:});
             % Reduce system (if not already done)
             if isempty(lsys)
-                [A, b, lsys] = solver.reduceLinearSystem(A, b);
+                [A, b, lsys, x0] = solver.reduceLinearSystem(A, b, false, x0);
             end
             % Reorder linear system
-            [A, b, ordering] = solver.reorderLinearSystem(A, b);
+            [A, b, ordering, x0] = solver.reorderLinearSystem(A, b, [], x0);
             % Apply scaling
-            [A, b, scaling] = solver.applyScaling(A, b);
+            [A, b, scaling, x0] = solver.applyScaling(A, b, x0);
 
             t_prepare = toc(timer);
             % Solve the system
-            [result, report] = solver.solveLinearSystem(A, b);
+            [result, report] = solver.solveLinearSystem(A, b, x0);
             t_solve = toc(timer) - t_prepare;
             % Undo scaling
             result = solver.undoScaling(result, scaling);
@@ -314,10 +320,13 @@ classdef LinearSolverAD < handle
             end
         end
         
-        function [A, b, sys] = reduceLinearSystem(solver, A, b, isAdjoint)
+        function [A, b, sys, x0] = reduceLinearSystem(solver, A, b, isAdjoint, x0)
             % Perform Schur complement reduction of linear system
-            if nargin == 3
+            if nargin < 4
                 isAdjoint = false;
+            end
+            if nargin < 5
+                x0 = [];
             end
             if solver.useSparseReduction
                 method = 'sparse';
@@ -333,6 +342,9 @@ classdef LinearSolverAD < handle
                 else
                     % We are solving the untransposed system
                     b = sys.f - sys.C*(sys.E_U\(sys.E_L\sys.h));
+                end
+                if ~isempty(x0)
+                    x0 = x0(1:solver.keepNumber);
                 end
             end
         end
@@ -357,8 +369,11 @@ classdef LinearSolverAD < handle
             end
         end
 
-        function [A, b, scaling] = applyScaling(solver, A, b)
+        function [A, b, scaling, x0] = applyScaling(solver, A, b, x0)
             % Apply left or right diagonal scaling
+            if nargin == 4
+                x0 = [];
+            end
             scaling = struct();
             applyLeft = solver.applyLeftDiagonalScaling;
             applyRight = solver.applyRightDiagonalScaling;
@@ -371,7 +386,10 @@ classdef LinearSolverAD < handle
                 A = M*A;
                 b = M*b;
             else
-                A = A*M;
+                A  = A*M;
+                if ~isempty(x0)
+                    x0 = M\x0;
+                end
             end
             scaling.M = M;
         end
@@ -406,12 +424,14 @@ classdef LinearSolverAD < handle
             end
         end
         
-        function [A, b, order] = reorderLinearSystem(solver, A, b, order)
+        function [A, b, order, x0] = reorderLinearSystem(solver, A, b, order, x0)
+            if nargin < 5
+                x0 = [];
+            end
             vo = solver.variableOrdering;
             eo = solver.equationOrdering;
             hasVar = ~isempty(vo);
             hasEq = ~isempty(eo);
-
             n = size(A, 1);
             if hasVar
                 if isa(vo, 'function_handle')
@@ -438,13 +458,16 @@ classdef LinearSolverAD < handle
                 end
             end
             if hasVar && hasEq
-                A = A(eo, vo);
-                b = b(eo);
+                A  = A(eo, vo);
+                b  = b(eo);
             elseif hasVar
-                A = A(:, vo);
+                A  = A(:, vo);
             elseif hasEq
                 A = A(eo, :);
                 b = b(eo);
+            end
+            if ~isempty(x0)
+                x0 = x0(vo);
             end
             order = struct('variableOrdering', vo, 'equationOrdering', eo);
         end
@@ -558,6 +581,14 @@ classdef LinearSolverAD < handle
             d(~isfinite(d)) = 1;
             I = (1:n)';
             M = sparse(I, I, d, n, n);
+        end
+        
+        function initialGuess = getInitialGuess(solver, problem)
+            if isempty(solver.initialGuessFun)
+                initialGuess = {[]};
+                return
+            end
+            initialGuess = solver.initialGuessFun(problem);
         end
         
         function [d, shortname] = getDescription(solver)

@@ -1,9 +1,9 @@
 function f = assignSOF3(f, sof3, reg)
-    [f.krOW, f.krOG, f.krPts.ow, f.krPts.og] = getFunctions(f, sof3, reg);
+    [f.krOW, f.krOG, f.krPts.ow, f.krPts.og] = getFunctions(sof3, reg);
 
 end
 
-function [krOW, krOG, pts_ow, pts_og] = getFunctions(f, SOF3, reg)
+function [krOW, krOG, pts_ow, pts_og] = getFunctions(SOF3, reg)
     [krOW, krOG] = deal(cell(1, reg.sat));
     
     [pts_ow, pts_og] = deal(zeros(reg.sat, 4));

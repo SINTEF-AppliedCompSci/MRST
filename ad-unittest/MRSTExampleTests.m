@@ -90,6 +90,9 @@ function [names, modules] = getSkippedTests()
         'SPE10SubsetADIExample', ... % Takes too long to run, ad-fi
         'runNorneExample', ... % Takes too long to run
         'diagnosticsPostProcessorWithMRST', ... % GUI example
+        'preprocessDiagnosticsEgg', ... % GUI example
+        'ensembleGUIForEgg', ... % GUI example
+        'trajectoryExampleEgg', ... % GUI example
         'ensemblePackedProblemsExample', ... % Launches Matlab sessions
         '', ...
         'demoPackedProblems'... % Example which launches Matlab sessions

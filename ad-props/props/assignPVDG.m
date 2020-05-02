@@ -1,8 +1,8 @@
 function f = assignPVDG(f, pvdg, reg)
-    [f.bG, f.muG] = getFunctions(f, pvdg, reg);
+    [f.bG, f.muG] = getFunctions(pvdg, reg);
 end
 
-function [bG, muG] = getFunctions(f, PVDG, reg)
+function [bG, muG] = getFunctions(PVDG, reg)
     [bG, muG] = deal(cell(1, reg.pvt));
     
     for i = 1:reg.pvt

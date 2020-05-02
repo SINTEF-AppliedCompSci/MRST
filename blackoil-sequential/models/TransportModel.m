@@ -55,7 +55,7 @@ classdef TransportModel < WrapperModel
                 replacement = 'sT';
                 sT = model.getProp(state, replacement);
                 % Replacing
-                vars{isP} = sT;
+                vars{isP} = sT; % {'pressure', 'sw', 'x'} -> {'st', 'sw', 'x'}
                 names{isP} = replacement;
                 origin{isP} = class(model);
             else
@@ -86,14 +86,14 @@ classdef TransportModel < WrapperModel
         end
         
 
-        function [eqs, names, types, state] = getModelEquations(tmodel, state0, state, dt, drivingForces)
-            model = tmodel.parentModel;
-            [eqs, names, types, state] = model.getModelEquations(state0, state, dt, drivingForces);
-            if strcmpi(tmodel.formulation, 'missingPhase')
+        function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
+            parent = model.parentModel;
+            [eqs, names, types, state] = parent.getModelEquations(state0, state, dt, drivingForces);
+            if strcmpi(model.formulation, 'missingPhase')
                 % Skip the last pseudocomponent/phase! Only
                 % mass-conservative for incompressible problems or with
                 % outer loop enabled
-                cnames = model.getComponentNames();
+                cnames = parent.getComponentNames();
                 subs = true(size(names));
                 subs(strcmpi(names, cnames{end})) = false;
                 eqs = eqs(subs);
@@ -111,14 +111,19 @@ classdef TransportModel < WrapperModel
         end
         
         function model = setupStateFunctionGroupings(model, setDefaults)
-            if ~setDefaults
+            if nargin < 2
+                setDefaults = true;
+            end
+            pmodel = model.parentModel;
+            hasFacility = isprop(pmodel, 'FacilityModel') && ~isempty(pmodel.FacilityModel);
+            isTotalSat = strcmpi(model.formulation, 'totalSaturation');
+            if isempty(pmodel.FluxDiscretization)
+                pmodel = pmodel.setupStateFunctionGroupings();
+            elseif ~setDefaults
                 % State functions have already been set up
                 warning('State function models for parent model is already set up.');
                 return
             end
-            pmodel = model.parentModel;
-            hasFacility = isprop(pmodel, 'FacilityModel') && ~isempty(pmodel);
-            isTotalSat = strcmpi(model.formulation, 'totalSaturation');
             fd = pmodel.FluxDiscretization;
             fp = pmodel.FlowPropertyFunctions;
             % Replace existing properties with total flux variants

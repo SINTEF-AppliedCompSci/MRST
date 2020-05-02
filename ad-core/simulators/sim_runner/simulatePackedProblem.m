@@ -51,10 +51,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('checkTooMany',    true, ...
-                 'continueOnError', true, ...
-                 'restartStep',     nan);
-    opt = merge_options(opt, varargin{:});
     if isstruct(problems)
         problems = {problems};
     end
@@ -62,6 +58,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     assert(iscell(problems));
     
     np = numel(problems);
+    opt = struct('checkTooMany',    true, ...
+                 'continueOnError', np > 1, ...
+                 'restartStep',     nan);
+    opt = merge_options(opt, varargin{:});
+
     ok = true(np, 1);
     status = repmat(struct('Message', '', 'WallTime', [], 'RestartIndex', nan), np, 1);
     for i = 1:np

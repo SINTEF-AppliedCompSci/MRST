@@ -1,7 +1,7 @@
 classdef WellPhaseFlux < StateFunction
     % Get phase-flux between well-bore and reservoir
     properties
-
+    allowCrossFlow = true;
     end
 
     methods
@@ -43,8 +43,8 @@ function q_ph = calculatePhaseRate(Tdp, mobw, map)
     production = ~injection & vTdp ~= 0;
     crossflow = (injection & ~isInjector) | ...
                 (production & isInjector);
-    crossflow = crossflow & false;
-
+    crossflow = crossflow & prop.allowCrossFlow;
+    
     nph = numel(mobw);
     if any(injection)
         compi = vertcat(W.compi);

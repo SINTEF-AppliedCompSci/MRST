@@ -29,7 +29,7 @@ classdef AGMGSolverAD < LinearSolverAD
             solver = merge_options(solver, varargin{:});
        end
        
-       function [result, report] = solveLinearSystem(solver, A, b)
+       function [result, report] = solveLinearSystem(solver, A, b, varargin)
            cleanAfter = false;
            if ~solver.setupDone
                solver.setupSolver(A, b);
@@ -38,10 +38,10 @@ classdef AGMGSolverAD < LinearSolverAD
            % Solve the linear system to a given tolerance
            if solver.reuseSetup
                fn = @(A, b) agmg(A, b, [], solver.tolerance, ...
-                                    solver.maxIterations, [], [], 1);
+                                    solver.maxIterations, [], varargin{:}, 1);
            else
                fn = @(A, b) agmg(A, b, [], solver.tolerance, ...
-                                    solver.maxIterations);
+                                    solver.maxIterations, [], varargin{:});
            end
            [result, flag, relres, iter, resvec] = fn(A, b);
            report = solver.getSolveReport('Converged', flag < 1, ...

@@ -30,7 +30,10 @@ classdef SparseAutoDiffBackend < AutoDiffBackend
         end
         
         function out = getBackendDescription(backend)
-            out = 'Standard ADI (sparse jacobian)';
+            out = 'Sparse';
+            if ~backend.useBlocks
+                out = [out, ' (single matrix)'];
+            end
         end
         
         function varargout = initVariablesAD(backend, varargin)

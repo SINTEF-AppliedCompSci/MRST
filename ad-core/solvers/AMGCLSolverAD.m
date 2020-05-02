@@ -30,8 +30,8 @@ classdef AMGCLSolverAD < LinearSolverAD
             solver.amgcl_setup = getAMGCLMexStruct(extra{:});
        end
        
-       function [result, report] = solveLinearSystem(solver, A, b)
-           [result, report] = solver.callAMGCL_MEX(A, b, 1);
+       function [result, report] = solveLinearSystem(solver, A, b, varargin)
+           [result, report] = solver.callAMGCL_MEX(A, b, 1, varargin{:});
        end
        
        function setCoarsening(solver, varargin)
@@ -75,9 +75,12 @@ classdef AMGCLSolverAD < LinearSolverAD
            [n, name, descr, parameters] = translateOptionsAMGCL(group, solver.amgcl_setup.(fld));
        end
        
-       function [result, report] = callAMGCL_MEX(solver, A, b, id)
+       function [result, report] = callAMGCL_MEX(solver, A, b, id, varargin)
             timer = tic();
-            [result, res, its] = amgcl_matlab(A', b, solver.amgcl_setup, solver.tolerance, solver.maxIterations, id, solver.reuseMode);
+            if ~isempty(varargin) && isempty(varargin{1})
+                varargin = {};
+            end
+            [result, res, its] = amgcl_matlab(A', b, solver.amgcl_setup, solver.tolerance, solver.maxIterations, id, solver.reuseMode, varargin{:});
             t_solve = toc(timer);
             if res > solver.tolerance
                 warning(['Solver did not converge to specified tolerance of %1.3e in %d iterations. ', ...

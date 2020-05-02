@@ -124,9 +124,9 @@ if ~isempty(W)
     bWqP      = cw.*bWqW;
     
     % Store well fluxes
-    wflux_O = double(bOqO);
-    wflux_W = double(bWqW);
-    wflux_P = double(bWqP);
+    wflux_O = value(bOqO);
+    wflux_W = value(bWqW);
+    wflux_P = value(bWqP);
     
     for i = 1:numel(W)
         perfind = perf2well == i;
@@ -203,7 +203,7 @@ if isa(polymer, 'ADI')
     bad     = abs(diag(polymer.jac{is_polymer})) < epsilon;
     polymer(bad) = c(bad);
 end
-bad = double(sW) == 0;
+bad = value(sW) == 0;
 polymer(bad) = c(bad);
 
 names  = {name1, 'polymer'};
@@ -217,7 +217,7 @@ eqs{2} = polymer;
 %                                      {}, {c}, ...
 %                                      drivingForces);
 
-eqs{2} = eqs{2}/fluid.cmax;
+eqs{2} = eqs{2}/fluid.cpmax;
 if ~model.useCNVConvergence
     for i = 1:numel(eqs)
         eqs{i} = eqs{i}.*(dt./op.pv);

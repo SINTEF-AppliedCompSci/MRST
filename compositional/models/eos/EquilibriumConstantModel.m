@@ -7,6 +7,8 @@ classdef EquilibriumConstantModel < EquationOfStateModel
     methods
         function model = EquilibriumConstantModel(G, fluid, k_values)
             model = model@EquationOfStateModel(G, fluid);
+            assert(iscell(k_values));
+            assert(all(cellfun(@(x) isa(x, 'function_handle'), k_values)));
             model.equilibriumConstantFunctions = k_values;
         end
         
