@@ -58,6 +58,7 @@ function [interpFace] = correctHAP(G, interpFace, myRatio)
         d = hap - xf;
         d = sqrt(dot(d, d, 2));
         ind = find(d > R);
+        dispif(mrstVerbose, 'correcting %d HAPs using myRatio=%d\n', numel(ind), myRatio);
         for i = 1:numel(ind)
             interpFace = correctHAP_local(G, ind(i), interpFace, HAP(ind(i), :)', myRatio);
         end

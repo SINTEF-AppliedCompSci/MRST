@@ -15,8 +15,7 @@ classdef NTPFA
 
             % Set up HAP and fluxes
             ntpfa.interpFace = findHAP(model.G, model.rock);
-            disp(['fraction of faces with HAPs outside convex hull ', ...
-                num2str(ntpfa.interpFace.fraction)])
+            dispif(mrstVerbose, 'fraction of faces with HAPs outside convex hull is %d\n', ntpfa.interpFace.fraction);
             ntpfa.interpFace = correctHAP(model.G, ntpfa.interpFace, opt.myRatio);
             ntpfa.OSflux = findOSflux(model.G, model.rock, ntpfa.interpFace);
 
