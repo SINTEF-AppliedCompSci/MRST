@@ -76,10 +76,14 @@ mrstModule add nfvm
 ratio = 0.0;
 model_ntpfa = setNTPFADiscretization(model, 'myRatio', ratio);
 [wsNTPFA, statesNTPFA] = simulateScheduleAD(state0, model_ntpfa, schedule);
+plotter(G, statesNTPFA, 'NTPFA')
 
 %% Simulate the implicit TPFA base case
 disp('TPFA implicit')
 [wsTPFA, statesTPFA] = simulateScheduleAD(state0, model, schedule);
+plotter(G, statesTPFA, 'TPFA')
+
+return
 
 %% Simulate implicit MPFA
 % The simulator reuses the multipoint transmissibility calculations from
@@ -90,13 +94,7 @@ disp('MPFA implicit')
 mrstModule add mpfa
 model_mpfa = setMPFADiscretization(model);
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);
-
-%% Plot the results
-plotter(G, statesTPFA, 'TPFA')
-plotter(G, statesNTPFA, 'NTPFA')
 plotter(G, statesMPFA, 'MPFA')
-
-return
 
 %% Simulate explicit MPFA and explicit TPFA
 model_exp = setTimeDiscretization(model, 'Explicit', 'initialStep', 0.01*day);
