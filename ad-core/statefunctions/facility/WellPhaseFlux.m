@@ -27,7 +27,7 @@ classdef WellPhaseFlux < StateFunction
             % mobility
             mobw = updateMobility(mobw, Tdp, model, state, map); 
 
-            q_ph = calculatePhaseRate(Tdp, mobw, map);
+            q_ph = calculatePhaseRate(Tdp, mobw, map, prop, model);
 
             q_ph = applyOtherEffects(q_ph, Tdp, mobw, model, prop, state, map);
 
@@ -35,7 +35,7 @@ classdef WellPhaseFlux < StateFunction
     end
 end
 
-function q_ph = calculatePhaseRate(Tdp, mobw, map)
+function q_ph = calculatePhaseRate(Tdp, mobw, map, prop, model)
     isInjector = map.isInjector(map.perf2well);
     W = map.W;
     vTdp = value(Tdp);
@@ -118,7 +118,7 @@ function q_ph = applyOtherEffects(q_ph, Tdp, mobw, model, prop, state, map)
         if hasShear
             mobw = applyShearEffectsWell(mobw, q_ph, prop, model.ReservoirModel, state);
 
-            q_ph = calculatePhaseRate(Tdp, mobw, map);
+            q_ph = calculatePhaseRate(Tdp, mobw, map, prop, model);
 
         end
     end
