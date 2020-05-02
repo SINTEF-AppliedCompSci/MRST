@@ -314,7 +314,7 @@ function WCONHIST = makeWCONHIST(WCONHIST_tmp,prodIx,W)
             %elseif(type == 'orat_history')
             %    type = 'orat';   
         else
-            error();
+            error(['This is not a histry mode', type] );
         end
         vals = W(wno).compi*W(wno).val;
         WCONHIST{pno,3} = upper(type);
