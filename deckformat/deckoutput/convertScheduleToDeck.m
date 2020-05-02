@@ -273,8 +273,6 @@ function WCONPROD = makeWCONPROD(WCONPROD_tmp,prodIx,W)
                     case 'thp'
                         WCONPROD{pno,10} = lims.(fnm);
                     case {'resv'}
-                      %case 'resv_history','rate'}
-                    %case {'resv','resv_history'}
                         WCONPROD{pno,8} = abs(lims.(fnm));
                     case 'orat'
                         WCONPROD{pno,4} = abs(lims.(fnm));
@@ -284,7 +282,8 @@ function WCONPROD = makeWCONPROD(WCONPROD_tmp,prodIx,W)
                         WCONPROD{pno,5} = abs(lims.(fnm));
                     case 'lrat'
                         WCONPROD{pno,7} = abs(lims.(fnm));
-                    %case 'default'  
+                    %case 'default'
+                    % this may happen if inactive wells is not removed
                     otherwise
                         error('Not done');
                 end
