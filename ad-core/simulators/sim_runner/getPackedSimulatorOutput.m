@@ -89,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     wellOutputMissing = wantWells && wh.numelData() == 0;
     for i = 1:ndata
-        if nargout > 1 && opt.readFromDisk
+        if nargout > 1 && opt.readStatesFromDisk
             states{i} = sh{i};
         end
         if wantWells && opt.readWellSolsFromDisk
