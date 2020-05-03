@@ -43,9 +43,19 @@ v = Inf;
 %               nm        type     flag    cntr    rate resv bhp thp vfp rv  th ro rw rg               
 WCONINJE_tmp = {'INJE01', 'WATER', 'OPEN', 'RATE', v,   v,   v,   v, 0,  v,  v, v, v, v};
 
+
 % WCONPROD       1        2       3      4    5    6    7    8    9   10  11  12          
 %                nm       flag    cntr   orat wrat grat lrat resv bhp thp vfp lift
 WCONPROD_tmp = {'PROD01', 'OPEN', 'BHP', v,   v,   v,   v,   v,   v,  v,  0   v};
+%%
+% WCONHIST       1        2       3      4    5    6    7    8    9   10  11  12          
+%                nm       flag    cntr   orat wrat grat vfp vlfq thp bhp  
+WCONHIST_tmp = {'PROD01', 'OPEN', 'BHP', v,   v,   v,   0  , 0,  v, ...
+                v};
+
+%nonre
+%GCONINJE
+
 
 %% 
 % phases
@@ -137,7 +147,7 @@ for sno = 1:numel(control)
             end
             COMPDAT{wno}(:, 9) = num2cell(r*2);
             % dir
-            COMPDAT{wno}(:, 13) = num2cell(W(wno).dir(cix));
+            COMPDAT{wno}(:, 13) = num2cell(upper(W(wno).dir(cix)));
         end
     end
     control(sno).COMPDAT = vertcat(COMPDAT{:});
@@ -191,7 +201,8 @@ for sno = 1:numel(control)
                     case 'rate'
                         WCONINJE{ino,5} = abs(lims.(fnm));
                     otherwise
-                        error('Not done');
+                        warning([fnm, ' limit present for injector '])
+                        %error('Not done');
                 end
             end
         end
@@ -203,9 +214,41 @@ for sno = 1:numel(control)
     if isempty(W)
         prodIx = [];
     else
-        prodIx = find([W.sign] < 0);
+        prodIx = [W.sign] < 0;
     end
+    prodIx_pred=prodIx;
+    prodIx_hist=prodIx;
+    for pno=1:numel(prodIx)
+        if(prodIx(pno))
+        wno = pno;%prodIx(pno);
+        is_history= strcmp(lower(W(wno).type),'resv_history');
+        if(is_history)
+            prodIx_pred(wno)=false;
+        else
+            prodIx_hist(wno)=false;
+        end
+        end
+        if(not(W(pno).status))
+            prodIx_pred(wno)=false;
+            prodIx_hist(wno)=false;
+        end
+    end
+    prodIx_pred=find(prodIx_pred);
+    prodIx_hist=find(prodIx_hist);
+    WCONPROD = makeWCONPROD(WCONPROD_tmp,prodIx_pred,W);
+    WCONHIST = makeWCONHIST(WCONHIST_tmp,prodIx_hist,W);
+    control(sno).WCONPROD = WCONPROD;
+    control(sno).WCONHIST = WCONHIST;
+    
+    
+end
+SCHEDULE.control = control;
+end
+%%
+function WCONPROD = makeWCONPROD(WCONPROD_tmp,prodIx,W)
+        
     WCONPROD = repmat(WCONPROD_tmp, [numel(prodIx), 1]);
+    pno=0;
     for pno = 1:numel(prodIx)
         wno = prodIx(pno);
         WCONPROD{pno,1} = W(wno).name;
@@ -224,12 +267,12 @@ for sno = 1:numel(control)
         for kn = 1:numel(fnms)
             fnm = fnms{kn};
             if isfinite(lims.(fnm))
-                switch fnm
+                switch lower(fnm)
                     case 'bhp'
                         WCONPROD{pno,9} = lims.(fnm);
                     case 'thp'
                         WCONPROD{pno,10} = lims.(fnm);
-                    case 'resv'
+                    case {'resv'}
                         WCONPROD{pno,8} = abs(lims.(fnm));
                     case 'orat'
                         WCONPROD{pno,4} = abs(lims.(fnm));
@@ -239,16 +282,68 @@ for sno = 1:numel(control)
                         WCONPROD{pno,5} = abs(lims.(fnm));
                     case 'lrat'
                         WCONPROD{pno,7} = abs(lims.(fnm));
+                    %case 'default'
+                    % this may happen if inactive wells is not removed
                     otherwise
                         error('Not done');
                 end
             end
         end
     end
-    control(sno).WCONPROD = WCONPROD;
 end
-SCHEDULE.control = control;
+function WCONHIST = makeWCONHIST(WCONHIST_tmp,prodIx,W)
+        
+    WCONHIST = repmat(WCONHIST_tmp, [numel(prodIx), 1]);
+    pno=0;
+    for pno = 1:numel(prodIx)
+        wno = prodIx(pno);
+        WCONHIST{pno,1} = W(wno).name;
+        % open/shut
+        if W(wno).status
+            WCONHIST{pno,2}='OPEN';
+        else
+            WCONHIST{pno,2}='SHUT';
+        end
+        % control mode and limits
+        type =  upper(W(wno).type);
+        if(strcmp(lower(type),'resv_history'))
+            type = 'resv';
+            %elseif(type == 'lrat_history')
+            %    type = 'lrat';
+            %elseif(type == 'orat_history')
+            %    type = 'orat';   
+        else
+            error(['This is not a histry mode', type] );
+        end
+        vals = W(wno).compi*W(wno).val;
+        WCONHIST{pno,3} = upper(type);
+        lims = W(wno).lims;
+        lims.grat=-vals(3);
+        lims.wrat=-vals(1);
+        lims.orat=-vals(2);
+        fnms = fieldnames(lims);
+        for kn = 1:numel(fnms)
+            fnm = fnms{kn};
+            if isfinite(lims.(fnm))
+                switch lower(fnm)
+                    case 'bhp'
+                        WCONHIST{pno,10} = lims.(fnm);
+                    case 'thp'
+                        WCONHIST{pno,9} = lims.(fnm);
+                    case 'orat'
+                        WCONHIST{pno,4} = abs(lims.(fnm));
+                    case 'grat'
+                        WCONHIST{pno,6} = abs(lims.(fnm));
+                    case 'wrat'
+                        WCONHIST{pno,5} = abs(lims.(fnm));
+                    otherwise
+                        error('Not done');
+                end
+            end
+        end
+    end
 end
+
 
 %--------------------------------------------------------------------------
 function ix = getUpdateIx(schedule, step, fld, doReduce)

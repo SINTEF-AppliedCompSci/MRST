@@ -45,12 +45,13 @@ if isempty(f)
 end
 fncase = f.case;
 
-[writeCOMPDAT, writeWELSPECS, writeWCONPROD, writeWCONINJE, writeTSTEP] = deal(true);
+[writeCOMPDAT, writeWELSPECS, writeWCONPROD, writeWCONHIST, writeWCONINJE, writeTSTEP] = deal(true);
 if ~isempty(opt.fields)
     opt.onlyWells = true;
     writeWELSPECS = ismember('WELSPECS', opt.fields);
     writeCOMPDAT  = ismember('COMPDAT',  opt.fields);
     writeWCONPROD = ismember('WCONPROD', opt.fields);
+    writeWCONHIST = ismember('WCONHIST', opt.fields);
     writeWCONINJE = ismember('WCONINJE', opt.fields);
     writeTSTEP    = ismember('TSTEP',    opt.fields);
 end
@@ -143,6 +144,18 @@ if isfield(SCHEDULE, 'control')
             fprintf(fid_inc, f.string, regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
             fprintf(fid_inc, '/\n\n');
         end
+        wconhist = SCHEDULE.control(cstep).WCONHIST;
+        if ~isempty(wconhist) && writeWCONHIST
+            wconhist = replace_default(wconhist(:, 1:10)).';
+            fprintf(fid_inc,'%s\n',upper('wconhist'));
+            % WCONPROD       1        2          3           4    5      6      7      8        9      10              
+            %                nm       flag      cntr       orat  wrat   grat   vfptab  alqwell  thp    bhp  
+            fmt = getFmtStr(f.string, f.string, f.string, f.sci, f.sci, f.sci, f.int,   f.int,  f.sci, f.sci,'/');
+            s = sprintf(fmt, wconhist{:});
+            fprintf(fid_inc, f.string, regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
+            fprintf(fid_inc, '/\n\n');
+        end
+        
         
         if writeTSTEP
             ind = SCHEDULE.step.control == cstep;
