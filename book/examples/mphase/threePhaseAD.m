@@ -92,10 +92,10 @@ gravity reset on,
 g     = norm(gravity);
 equil = ode23(@(z,p) g.* rhoO(p), [0, max(G.cells.centroids(:,3))], pR);
 p0    = reshape(deval(equil, G.cells.centroids(:,3)), [], 1);  clear equil
-sW0   = f.sWcon*ones(G.cells.num, 1);
+sW0   = f.krPts.w(1)*ones(G.cells.num, 1);
 sW0   = reshape(sW0,G.cartDims); sW0(:,:,nz)=1; sW0 = sW0(:);
 sG0   = zeros(G.cells.num, 1);
-sG0   = reshape(sG0,G.cartDims); sG0(:,:, 1)=1-f.sWcon; sG0 = sG0(:);
+sG0   = reshape(sG0,G.cartDims); sG0(:,:, 1)=1-f.krPts.w(1); sG0 = sG0(:);
 
 ioip  = sum(pv(p0).*(1-sW0 - sG0).*rhoO(p0));
 igip  = sum(pv(p0).*sG0.*rhoG(p0));
