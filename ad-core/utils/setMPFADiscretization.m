@@ -16,7 +16,7 @@ end
 
 function model = setMPFA(model)
     require mpfa
-    [~, M] = computeMultiPointTrans(model.G, model.rock); % From MPFA code
+    [~, M] = computeMultiPointTransLegacy(model.G, model.rock); % From MPFA code
     Tv = M.rTrans; % Cells -> Inner faces
     Tg = M.rgTrans(model.operators.internalConn, :); % Inner -> Inner
     % Change sign and re-scale operators to fit with AD-OO
