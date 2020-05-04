@@ -1,5 +1,6 @@
 %% Section 5: Adapting cell centroids
 % This section discusses how to adapt grids to cell-centroid constraints.
+colors = get(gca,'colororder');
 
 %% Adaption with/without protection layer
 % The first example compares adaption to a piecewise linear path with and
@@ -13,7 +14,7 @@ for i=1:2
     % Add background sites to the domain
     [CCsites, cGs, protSites, pGs] = lineSites2D(cellConstraints, 0.12, ...
         'protLayer',logical(1-i),'protD', {distance});
-    bgSites = removeConflictPoints([X(:), Y(:)], CCSites, cGs);
+    bgSites = removeConflictPoints([X(:), Y(:)], CCsites, cGs);
     bgSites = removeConflictPoints(bgSites, protSites, pGs);
     sites   = [CCsites; protSites; bgSites];
     bnd     = [0, 0; 1, 0; 1, 1; 0, 1];
@@ -25,10 +26,10 @@ for i=1:2
     plotGrid(G, 'facecolor', 'none')
     hold on
     plotLinePath(cellConstraints,'-','color',colors(4, :), 'linewidth', 3);
-    plot(CCSites(:, 1), CCSites(:,2), '.','markersize',35,'Color',[.5 .5 .7])
-    plot(CCSites(:, 1), CCSites(:,2), '.k','markersize',10)
-    plot(G.cells.centroids(1:size(CCSites, 1), 1), ...
-        G.cells.centroids(1:size(CCSites, 1), 2),...
+    plot(CCsites(:, 1), CCsites(:,2), '.','markersize',35,'Color',[.5 .5 .7])
+    plot(CCsites(:, 1), CCsites(:,2), '.k','markersize',10)
+    plot(G.cells.centroids(1:size(CCsites, 1), 1), ...
+        G.cells.centroids(1:size(CCsites, 1), 2),...
         'xr', 'markersize',10,'linewidth', 2)
     plot(protSites(:, 1), protSites(:, 2),'.','color',colors(2,:),'markersize',15)
     axis equal tight off
