@@ -15,7 +15,7 @@
 % using mrst ResultHandlers.
 %
 
-mrstModule add diagnostics ad-core ad-props mrst-gui
+mrstModule add diagnostics ad-core ad-props ad-blackoil incomp mrst-gui
 
 m = ModelEnsemble('egg', 'nMembers', 50, 'setupFn', @setupEggFn);
 % after initial setup, m = ModelEnsemble('egg') is sufficient
@@ -25,11 +25,9 @@ if numel(m.diagnostics) > 1
     fprintf('Ensemble contains multiple diagnostics scenarios, selecting first\n');
 end
 
-%% Then check if we need to compute diagnostics
-if isempty(m.diagnostics(diagnNo)) || ~isequal(1:50,m.diagnostics(diagnNo).RTD.getValidIds)
-    fprintf('Need to compute diagnostics for all members, might take some time ...')
-    m.computeDiagnostics();
-end
+%% Compute diagnostics
+m.computeDiagnostics();
+
 
 %% Finally we pass the ModelEnsemble object to the EnsembleGUI for interactive
 % plotting and inspection of results.
