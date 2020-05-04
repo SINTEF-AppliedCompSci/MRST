@@ -1,5 +1,5 @@
 %% Section 2.3: Delaunay triangulation
-% We start by demonstrating demonstrating the empty circumcirle principle
+% We start by demonstrating demonstrating the empty circumcircle principle
 % for a Delaunay triangulation (shown in Figure 1)
 figure, hold on
 pts = [ 0, 0; .1,.8; .3,.4; .5,.6; 1, 1; .8,.2]; 
@@ -67,7 +67,7 @@ col   = get(gca,'ColorOrder');
 box   = [-0.1,0;-0.1,1;1,1;1,0;-0.1,0];
 
 dt      = delaunayTriangulation(pts);
-[CC, r] = circumcenter(dt,t);
+[CC, r] = circumcenter(dt);
 theta   = linspace(0,2*pi)';
 X  = repmat(CC(1,:),100,1) + repmat(r(1),100,2).*[cos(theta), sin(theta)];
 
