@@ -83,8 +83,6 @@ disp('TPFA implicit')
 [wsTPFA, statesTPFA] = simulateScheduleAD(state0, model, schedule);
 plotter(G, statesTPFA, 'TPFA')
 
-return
-
 %% Simulate implicit MPFA
 % The simulator reuses the multipoint transmissibility calculations from
 % the MPFA module. We instantiate a special phase potential difference that
@@ -96,10 +94,12 @@ model_mpfa = setMPFADiscretization(model);
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);
 plotter(G, statesMPFA, 'MPFA')
 
+return
+
 %% Simulate explicit MPFA and explicit TPFA
-model_exp = setTimeDiscretization(model, 'Explicit', 'initialStep', 0.01*day);
-model_ntpfa_exp = setTimeDiscretization(model_ntpfa, 'Explicit', 'initialStep', 0.01*day);
-model_mpfa_exp = setTimeDiscretization(model_mpfa, 'Explicit', 'initialStep', 0.01*day);
+model_exp = setTimeDiscretization(model, 'Explicit', 'initialStep');
+model_ntpfa_exp = setTimeDiscretization(model_ntpfa, 'Explicit');
+model_mpfa_exp = setTimeDiscretization(model_mpfa, 'Explicit');
 disp('TPFA explicit')
 [wsExplicit, statesExplicit] = simulateScheduleAD(state0, model_exp, schedule);
 disp('NTPFA explicit')
