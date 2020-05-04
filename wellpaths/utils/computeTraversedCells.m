@@ -344,6 +344,7 @@ else % we have more troublesome intersections
     end
     
     weight = 1./weight;
+    weight(~isfinite(weight)) = 1;
     % reorder according to segment starting points
     [s1, order] = sort(s1);
     [s2, cells] = deal(s2(order), cells(order));
