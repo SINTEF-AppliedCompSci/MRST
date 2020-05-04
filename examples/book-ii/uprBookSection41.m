@@ -7,6 +7,7 @@
 %% Making a constrained grid manually
 % Curve constraint with vertices
 figure
+colors = get(gca,'colororder');
 W = {[0, 0.4; 0.2, 0.5],[0.2, 0.5; 0.4, 0.5],[0.4, 0.5; 0.6, 0.6]};  % Vertices
 v = [0, 0.4; 0.2, 0.5; 0.4, 0.5; 0.6, 0.6];  % Vertices
 plot(v(:,1),v(:,2),'-o','LineWidth',3,'Color',colors(1,:),'MarkerSize',5);
