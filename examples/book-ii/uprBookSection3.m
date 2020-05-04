@@ -16,7 +16,7 @@ G      = pebi(triangleGrid([X(:), Y(:)]));
 figure
 plotGrid(G, 'facecolor', 'none');
 hold on
-plot(sites(:,1), sites(:,2), '.','markersize', 25)
+plot(X(:), Y(:), '.','markersize', 25)
 axis equal off
 
 %% Section 3.2: Optimized Delaunay triangulation
