@@ -60,7 +60,7 @@ function [T,T_noflow] = computeMultiPointTransLegacy(g, rock, varargin)
 %   PLEASE NOTE: Face normals have length equal to face areas.
 %
 % SEE ALSO:
-%   `incompMPFA`, `mrstVerbose`.
+%   `incompMPFAlegacy`, `mrstVerbose`.
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

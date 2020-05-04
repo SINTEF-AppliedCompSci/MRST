@@ -21,7 +21,7 @@ function state = incompMPFAbc(G, mpfastruct, bc, varargin)
 %   G,    - Grid and half-transmissibilities as computed by the function
 %            'computeMultiPointTrans'.
 %
-%  mpfastruct - Computed by computeMultiPointTrans2
+%  mpfastruct - Computed by computeMultiPointTrans
 %
 % OPTIONAL PARAMETERS:
 %   wells  - Well structure as defined by functions 'addWell' and
@@ -55,7 +55,7 @@ function state = incompMPFAbc(G, mpfastruct, bc, varargin)
 
 %
 % SEE ALSO:
-%   `computeMultiPointTrans2`, `addBC`, `addSource`, `addWell`
+%   `computeMultiPointTrans`, `addBC`, `addSource`, `addWell`
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

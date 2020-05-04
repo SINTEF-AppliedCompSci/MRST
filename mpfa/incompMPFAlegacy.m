@@ -24,7 +24,7 @@ function state = incompMPFAlegacy(state, g, T, fluid, varargin)
 %            function 'implicitTransport'.
 %
 %   G, T   - Grid and half-transmissibilities as computed by the function
-%            'computeMultiPointTrans'.
+%            'computeMultiPointTransLegacy'.
 %
 %   fluid  - Fluid object as defined by function 'initSimpleFluid'.
 %
@@ -105,7 +105,7 @@ function state = incompMPFAlegacy(state, g, T, fluid, varargin)
 %    W   = verticalWell(W, G, rock, G.cartDims(1),   G.cartDims(2), ...
 %                       (1:G.cartDims(3)), 'Type', 'bhp', ...
 %                       'Val',  1*barsa(), 'InnerProduct', 'ip_tpf');
-%    T   = computeMultiPointTrans(G, rock);
+%    T   = computeMultiPointTransLegacy(G, rock);
 %
 %    state = initState(G, W, 100*barsa);
 %    state = incompMPFAlegacy(state, G, T, f, 'bc', bc, 'src', src, ...
@@ -114,7 +114,7 @@ function state = incompMPFAlegacy(state, g, T, fluid, varargin)
 %    plotCellData(G, xr.pressure);
 %
 % SEE ALSO:
-%   `computeMultiPointTrans`, `addBC`, `addSource`, `addWell`, `initSingleFluid`,
+%   `computeMultiPointTransLegacy`, `addBC`, `addSource`, `addWell`, `initSingleFluid`,
 %   `initResSol`, `initWellSol`, `mrstVerbose`.
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
