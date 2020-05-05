@@ -104,7 +104,7 @@ dv  = m(ix,:) - t(ix)*v;
 d   = sqrt(dot(dv, dv, 2));
 % include bbox in dv-direction and point max distance to line
 bbp = dot(bsxfun(@plus, fac*bbox(ix,:), r), abs(dv), 2);
-ix2 = d.^2 <= bbp; % squared since we want unit vector dv
+ix2 = d.^2 <= bbp+tol; % squared since we want unit vector dv
 
 % if we are (un)lucky, d is almost zero (line goes through centroid), include
 % this situation
