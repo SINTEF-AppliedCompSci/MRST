@@ -2,6 +2,8 @@
 % This example demonstrates the use of model2deck/writeDeck to create/wtite 
 % ECLIPSE/OPM-type input-decks from deck-structures and/or MRST-models
 
+mrstModule add ad-core
+
 mrstVerbose true 
 
 %% Read and write deck for SPE1
@@ -53,6 +55,3 @@ disp(deck_mrst.EDIT)
 % appropriate simulators. MRST does currently not support initializing a
 % model based on such a deck due to lack of required geometry information
 % (likely to change soon)
-
-
-
