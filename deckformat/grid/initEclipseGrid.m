@@ -46,15 +46,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   opt = struct('mapAxes', false);
+   opt = struct('mapAxes', false,'useMex',false);
    [opt,extra] = merge_options(opt, varargin{:});
 
    % -- Corner point grid -------------------------------------------------
    if all(isfield(deck.GRID, {'COORD', 'ZCORN'})) && ...
          isfield(deck.RUNSPEC, 'DIMENS')
-
+    if(opt.useMex)
+      G = mprocessGRDECL(deck.GRID, 'RepairZCORN', true, extra{:});  
+    else
       G = processGRDECL(deck.GRID, 'RepairZCORN', true, extra{:});
-
+    end
    % -- Tensor product grid -----------------------------------------------
    elseif all(isfield(deck.GRID, {'DXV', 'DYV', 'DZV'}))
       if isfield(deck.GRID, 'DEPTHZ')
