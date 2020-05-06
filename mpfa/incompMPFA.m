@@ -29,7 +29,7 @@ function state = incompMPFA(state, G, mpfaT, fluid, varargin)
 %   varargin - see below
 %
 % OPTIONAL PARAMETERS:
-%   W      - Well structure as defined by functions 'addWell' and
+%   wells  - Well structure as defined by functions 'addWell' and
 %            'assembleWellSystem'.  May be empty (i.e., W = struct([]))
 %            which is interpreted as a model without any wells.
 %

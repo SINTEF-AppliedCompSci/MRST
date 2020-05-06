@@ -14,7 +14,7 @@ function state = incompMPFATensorAssembly(G, mpfastruct, varargin)
 %
 % KEYWORD ARGUMENTS:
 %
-%   W            - Well structure as defined by functions 'addWell'
+%   wells        - Well structure as defined by functions 'addWell'
 %   bc           - Boundary condition structure as defined by function 'addBC'
 %   LinSolve     - Handle to linear system solver software to which the
 %                  fully assembled system of linear equations will be
@@ -37,14 +37,14 @@ function state = incompMPFATensorAssembly(G, mpfastruct, varargin)
 
 
     opt = struct('bc', [], ...
-                 'W', []); 
+                 'wells', []); 
     [opt, extra] = merge_options(opt, varargin{:}); 
     
     if ~isempty(opt.bc)
         bc = opt.bc;
         state = incompMPFANaturalBcTA(G, mpfastruct, bc, extra{:});
-    elseif ~isempty(opt.W)
-        W = opt.W;
+    elseif ~isempty(opt.wells)
+        W = opt.wells;
         state = incompMPFANeumannTA(G, mpfastruct, W, extra{:});        
     else
         error('No stimulation input, either bc or W, given');
@@ -65,7 +65,7 @@ function state = incompMPFANeumannTA(G, mpfastruct, W, varargin)
 % PARAMETERS:
 %   G          - Grid
 %   mpfastruct - Assembly structure as computed by `computeMultiPointTrans` using the `useTensorAssembly` option
-%   W          - Well structure as defined by functions 'addWell'
+%   wells      - Well structure as defined by functions 'addWell'
 %   varargin   - see below
 %
 % KEYWORD ARGUMENTS:
