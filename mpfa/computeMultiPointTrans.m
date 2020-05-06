@@ -6,7 +6,7 @@ function varargout = computeMultiPointTrans(G, rock, varargin)
 %
 % DESCRIPTION:
 % 
-% We follow the approach described in this reference paper:
+% We follow the local flux mimetic approach as described in this reference paper:
 %
 %      title     = {Local flux mimetic finite difference methods},
 %      author    = {Lipnikov, Konstantin and Shashkov, Mikhail and Yotov, Ivan},
@@ -59,8 +59,8 @@ function varargout = computeMultiPointTrans(G, rock, varargin)
 %   useTensorAssembly - If true, uses  tensor assembly 
 %
 %   blocksize         - If non-empty, divide the nodes in block with the given block size and proceed
-%                       with assembly by iteration on the blocks.
-%                       This is necessary in case for large models (get otherwise memory problems with MATLAB)
+%                       with assembly by iterating on the blocks.
+%                       This is necessary in case of large models (get otherwise memory problems with MATLAB)
 %
 %                       Only used/available for tensor assembly version
 %

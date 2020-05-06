@@ -88,7 +88,7 @@ function state = incompMPFA(state, G, mpfaT, fluid, varargin)
 %
 % EXAMPLE: `linearPressureTestMPFA`, `mpfaExample1`, `mpfaExample2`, `mpfatest`
 %
-% SEE ALSO:
+% SEE ALSO: `private/incompMPFAlegacy`, `private/incompMPFATensorAssembly`
 %
 
     opt = struct('useTensorAssembly', false); 

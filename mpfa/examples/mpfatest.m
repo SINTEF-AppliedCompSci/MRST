@@ -1,8 +1,7 @@
 %% Simple test where we compare the different implementation: legacy, tensor assembly, with and without iteration over blocks (necessary for large systems)
 %
-% The test is aimed at Neumann boundary conditions and well injection.
+% The test is aimed at Neumann boundary conditions (no flow) and well injection.
 %
-% SEE ALSO : `computeMultiPointTransLegacy`, `computeNeumannMultiPointTrans`, `blockComputeNeumannMultiPointTrans`
 
 clear all
 

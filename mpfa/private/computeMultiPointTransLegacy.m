@@ -1,14 +1,25 @@
 function [T, T_noflow] = computeMultiPointTransLegacy(g, rock, varargin)
 % Compute multi-point transmissibilities. This is the legacy version.
 %
-% This version can only handle grid cells where corners have the same number of
-% faces as the spatial dimension (this is always the case in 2D but not in
-% 3D). The tensor assembly version (computeMultiPointTransTensorAssembly) can
-% handle the other cases but is slower for the moment (the implementation can be
-% optimized to run faster but this has not been done yet).
-%
 % SYNOPSIS:
 %   T = computeMultiPointTransLegacy(G, rock)
+%
+% DESCRIPTION:
+%
+% We follow the local flux mimetic approach as described in this reference paper:
+%
+%      title     = {Local flux mimetic finite difference methods},
+%      author    = {Lipnikov, Konstantin and Shashkov, Mikhail and Yotov, Ivan},
+%      journal   = {Numerische Mathematik},
+%      volume    = {112},
+%      number    = {1},
+%      pages     = {115--152},
+%      year      = {2009},
+%      publisher = {Springer}
+% 
+% The legacy version can only handle grid cells where corners have the same
+% number of faces as the spatial dimension (this is always the case in 2D but
+% not in 3D). 
 %
 % REQUIRED PARAMETERS:
 %   G       - Grid data structure as described by grid_structure.
@@ -63,8 +74,8 @@ function [T, T_noflow] = computeMultiPointTransLegacy(g, rock, varargin)
 % COMMENTS:
 %   PLEASE NOTE: Face normals have length equal to face areas.
 %
-% SEE ALSO:
-%   `incompMPFAlegacy`, `mrstVerbose`.
+% SEE ALSO: `computeMultiPointTrans`, `private/computeMultiPointTransLegacy`
+%   `incompMPFA`, `computeMultiPointTrans`, `computeMultiPointTransTensorAssembly`
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

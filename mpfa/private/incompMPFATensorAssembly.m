@@ -10,11 +10,12 @@ function state = incompMPFATensorAssembly(G, mpfastruct, varargin)
 % PARAMETERS:
 %   G          - Grid
 %   mpfastruct - Assembly structure as computed by `computeMultiPointTrans` using the `useTensorAssembly` option
-%   W          - Well structure as defined by functions 'addWell' and 'assembleWellSystem'
 %   varargin   - see below
 %
 % KEYWORD ARGUMENTS:
 %
+%   W            - Well structure as defined by functions 'addWell'
+%   bc           - Boundary condition structure as defined by function 'addBC'
 %   LinSolve     - Handle to linear system solver software to which the
 %                  fully assembled system of linear equations will be
 %                  passed.  Assumed to support the syntax
@@ -31,9 +32,7 @@ function state = incompMPFATensorAssembly(G, mpfastruct, varargin)
 % RETURNS:
 %   state - state updated with pressure values and well solution
 %
-% EXAMPLE:
-%
-% SEE ALSO:
+% SEE ALSO: `incomMPFA`, `computeMultiPointTrans`, `private/computeMultiPointTransTensorAssembly`
 %
 
 
@@ -54,6 +53,41 @@ function state = incompMPFATensorAssembly(G, mpfastruct, varargin)
 end
 
 function state = incompMPFANeumannTA(G, mpfastruct, W, varargin)
+% Solve incompressible flow problem (fluxes/pressures) using MPFA-O method for
+% Neumann boundary conditions (no flows) and wells.
+%
+%
+% SYNOPSIS:
+%   function state = incompMPFANeumannTA(G, mpfastruct, W, varargin)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   G          - Grid
+%   mpfastruct - Assembly structure as computed by `computeMultiPointTrans` using the `useTensorAssembly` option
+%   W          - Well structure as defined by functions 'addWell'
+%   varargin   - see below
+%
+% KEYWORD ARGUMENTS:
+%
+%   LinSolve     - Handle to linear system solver software to which the
+%                  fully assembled system of linear equations will be
+%                  passed.  Assumed to support the syntax
+%
+%                        x = LinSolve(A, b)
+%
+%                  in order to solve a system Ax=b of linear equations.
+%                  Default value: LinSolve = @mldivide (backslash).
+%
+%   Verbose      - true if verbose
+%   outputFlux   - If true, add fluxes in state output
+%   MatrixOutput - If true, save system matrix A in the state variable state.A.
+%   
+% RETURNS:
+%   state - state updated with pressure values and well solution
+%
+% SEE ALSO:
+%
 
     opt = struct('LinSolve', @mldivide,...
                  'Verbose', mrstVerbose, ...
@@ -153,44 +187,22 @@ end
 
 
 function state = incompMPFANaturalBcTA(G, mpfastruct, bc, varargin)
-%Solve incompressible flow problem (fluxes/pressures) using MPFA-O method.
+% Solve incompressible flow problem (fluxes/pressures) using MPFA-O method for
+% natural boundary conditions
+%
 %
 % SYNOPSIS:
-%   state = incompMPFA(state, G, T, fluid)
-%   state = incompMPFA(state, G, T, fluid, 'pn1', pv1, ...)
+%   function state = incompMPFANeumannTA(G, mpfastruct, W, varargin)
 %
 % DESCRIPTION:
-%   This function assembles and solves a (block) system of linear equations
-%   defining interface fluxes and cell pressures at the next time step in a
-%   sequential splitting scheme for the reservoir simulation problem
-%   defined by Darcy's law and a given set of external influences (wells,
-%   sources, and boundary conditions).
 %
-%   This function uses a multi-point flux approximation (MPFA) method with
-%   minimal memory consumption within the constraints of operating on a
-%   fully unstructured polyhedral grid structure.
+% PARAMETERS:
+%   G          - Grid
+%   mpfastruct - Assembly structure as computed by `computeMultiPointTrans` using the `useTensorAssembly` option
+%   bc         - Boundary condition structure as defined by function 'addBC'
+%   varargin   - see below
 %
-% REQUIRED PARAMETERS:
-%
-%   G,    - Grid and half-transmissibilities as computed by the function
-%            'computeMultiPointTrans'.
-%
-%  mpfastruct - Computed by computeMultiPointTrans
-%
-% OPTIONAL PARAMETERS:
-%   wells  - Well structure as defined by functions 'addWell' and
-%            'assembleWellSystem'.  May be empty (i.e., W = struct([]))
-%            which is interpreted as a model without any wells.
-%
-%   bc     - Boundary condition structure as defined by function 'addBC'.
-%            This structure accounts for all external boundary conditions to
-%            the reservoir flow.  May be empty (i.e., bc = struct([])) which
-%            is interpreted as all external no-flow (homogeneous Neumann)
-%            conditions.
-%
-%   src    - Explicit source contributions as defined by function
-%            'addSource'.  May be empty (i.e., src = struct([])) which is
-%            interpreted as a reservoir model without explicit sources.
+% KEYWORD ARGUMENTS:
 %
 %   LinSolve     - Handle to linear system solver software to which the
 %                  fully assembled system of linear equations will be
@@ -201,15 +213,16 @@ function state = incompMPFANaturalBcTA(G, mpfastruct, bc, varargin)
 %                  in order to solve a system Ax=b of linear equations.
 %                  Default value: LinSolve = @mldivide (backslash).
 %
-%   MatrixOutput - Save system matrix A as state.A.
-%
-
-%
+%   Verbose      - true if verbose
+%   outputFlux   - If true, add fluxes in state output
+%   MatrixOutput - If true, save system matrix A in the state variable state.A.
+%   
 % RETURNS:
-
+%   state - state updated with pressure values and well solution
 %
 % SEE ALSO:
-%   `computeMultiPointTrans`, `addBC`, `addSource`, `addWell`
+%
+
 
     opt = struct('LinSolve'  , @mldivide  , ...
                  'Verbose'   , mrstVerbose, ...

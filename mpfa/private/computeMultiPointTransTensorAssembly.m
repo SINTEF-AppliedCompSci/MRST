@@ -1,21 +1,32 @@
 function mpfastruct = computeMultiPointTransTensorAssembly(G, rock, varargin)
-    opt = struct('neumann', false);
-    [opt, extra] = merge_options(opt, varargin{:});
-    if opt.neumann
-        mpfastruct = computeMultiPointTransNeumannTA(G, rock, extra{:});
-    else
-        mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, extra{:});
-    end
-    
-end
-
-function mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, varargin)
-% Compute multi-point transmissibilities for MPFA
+% Compute multi-point transmissibilities. The implementation uses a tensor assembly approach
 %
 % SYNOPSIS:
-%   T = computeMultiPointTrans(G, rock)
+%   function mpfastruct = computeMultiPointTransTensorAssembly(G, rock, varargin)
+%
+% DESCRIPTION:
+%
+% We follow the local flux mimetic approach as described in this reference paper:
+%
+%      title     = {Local flux mimetic finite difference methods},
+%      author    = {Lipnikov, Konstantin and Shashkov, Mikhail and Yotov, Ivan},
+%      journal   = {Numerische Mathematik},
+%      volume    = {112},
+%      number    = {1},
+%      pages     = {115--152},
+%      year      = {2009},
+%      publisher = {Springer}
+%
+%  This version can handle grid cells where corners do not have the same number
+%  of faces as the spatial dimension (for example the top corner of a pyramid
+%  with a rectangular base, which has four faces).
+%
+%  The method cannot handle cells where there exists a node that is shared by
+%  two co-planar faces (of the given cell). The local mimetic formulation breaks
+%  down in this case.
 %
 % REQUIRED PARAMETERS:
+%
 %   G       - Grid data structure as described by grid_structure.
 %
 %   rock    - Rock data structure with valid field 'perm'.  The
@@ -40,23 +51,87 @@ function mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, varargin)
 %                       [ k2  k4  k5 ]
 %                       [ k3  k5  k6 ]
 %
+%
+% KEYWORD ARGUMENTS:
+%   neumann       - If true, corresponds to neumann or no flow boundary
+%                   condition. Then, a lighter assembly version is called (the
+%                   assembly output should be used in`incompMPFATensor` with neumann
+%                   option also set to true).
+%
+%   blocksize     - If non-empty, divide the nodes in block with the given block size and proceed
+%                   with assembly by iterating on the blocks.
+%                   This is necessary in case of large models (get otherwise memory problems with MATLAB)
+%
+%   ip_compmethod - Method that is used to compute the scalar product at a corner.
+%                   The possible options for ip_compmethod are
+%                     'general'       : general case, no special requirements on corner
+%                     'nicecorner'    : case where at each corner, number of faces is equal to G.griddim (faster)
+%                     'directinverse' : case where at each corner, number of faces is equal to
+%                                       G.griddim AND eta is value such that N*R is diagonal (see Lipnikov reference paper)
+%                                       (even faster)
+%
+%   eta           - Scalar parameter which determines position of continuity point on face-node 
+%                   (see definition of cellFacetVec in code, default value is zero)
+%
+%   invertBlocks  - Method by which to invert a sequence of small matrices that
+%                   arise in the discretisation.  String.  Must be one of
+%                     - MATLAB -- Use an function implemented purely in MATLAB
+%                                  (the default).
+%    
+%                     - MEX    -- Use two C-accelerated MEX functions to
+%                                  extract and invert, respectively, the blocks
+%                                  along the diagonal of a sparse matrix.  This
+%                                  method is often faster by a significant
+%                                  margin, but relies on being able to build
+%                                  the required MEX functions.
+%   verbose       - Whether or not to emit informational messages throughout the
+%                   computational process.  Default value depending on the
+%                   settings of function 'mrstVerbose'.
+%
+%
+% RETURNS:
+%   mpfastruct with fields:
+%
+%               'iB'  : inverse of scalar product (facenode degrees of freedom)
+%               'div' : divergence operator (facenode values to cell values)
+%               'Pext': projection operator on external facenode values. It
+%                       is signed and return boundary outfluxes (positive if exiting).
+%               'F'   : flux operator (from cell and external facenode values to facenode values)
+%               'A'   : system matrix (cell and external facenode degrees of freedom)
+%               'tbls': table structure
+%
+% EXAMPLE:
+%
+% SEE ALSO: `computeMultiPointTrans`, `private/computeMultiPointTransLegacy`
+%
+
+    opt = struct('neumann', false);
+    [opt, extra] = merge_options(opt, varargin{:});
+    if opt.neumann
+        mpfastruct = computeMultiPointTransNeumannTA(G, rock, extra{:});
+    else
+        mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, extra{:});
+    end
+    
+end
+
+function mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, varargin)
+% Compute multi-point transmissibilities for MPFA with natural boundary conditions
+%
+% SYNOPSIS:
+%   mpfastruct = computeMultiPointTransNaturalBcTA(G, rock)
+%
+% REQUIRED PARAMETERS:
+%   G        - Grid data structure as described by grid_structure.
+%   rock     - Rock data structure 
+%   varargin - See below
+%
 % OPTIONAL PARAMETERS
-%   verbose   - Whether or not to emit informational messages throughout the
-%               computational process.  Default value depending on the
-%               settings of function 'mrstVerbose'.
-%
-%   invertBlocks -
-%               Method by which to invert a sequence of small matrices that
-%               arise in the discretisation.  String.  Must be one of
-%                  - MATLAB -- Use an function implemented purely in MATLAB
-%                              (the default).
-%
-%                  - MEX    -- Use two C-accelerated MEX functions to
-%                              extract and invert, respectively, the blocks
-%                              along the diagonal of a sparse matrix.  This
-%                              method is often faster by a significant
-%                              margin, but relies on being able to build
-%                              the required MEX functions.
+%   verbose      - verbosity
+%   blocksize     - if non-empty, size of the blocks (last block will have different size to adjust to grid)
+%   ip_compmethod - Option sent to blockLocalFluxMimeticAssembly
+%   eta           - Option sent to blockLocalFluxMimeticAssembly
+%   invertBlocks  - Method by which to invert a sequence of small matrices
 %
 % RETURNS:
 %  
@@ -69,31 +144,9 @@ function mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, varargin)
 %               'F'   : flux operator (from cell and external facenode values to facenode values)
 %               'A'   : system matrix (cell and external facenode degrees of freedom)
 %               'tbls': table structure
-   
 % COMMENTS:
 %   PLEASE NOTE: Face normals have length equal to face areas.
 %
-% SEE ALSO:
-%   `incompMPFAbc`, `mrstVerbose`.
-
-%{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
 
 
    opt = struct('verbose'      , mrstVerbose, ...
@@ -272,66 +325,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function mpfastruct = computeMultiPointTransNeumannTA(G, rock, varargin)
-% Compute multi-point transmissibilities for MPFA for Neumann boundary condition.
+% Compute multi-point transmissibilities for MPFA for Neumann boundary condition
+% (no flow).
 %
 % SYNOPSIS:
-%   function mpfastruct = computeNeumannMultiPointTrans(G, rock, varargin)
-%
-% DESCRIPTION:
+%   function mpfastruct = computeMultiPointTransNeumannTA(G, rock, varargin)
 %
 % PARAMETERS:
 %   G        - Grid
-%   rock     - Rock data structure (see description in `PermTensor`)
-%   varargin - see below
+%   rock     - Rock data structure
+%   varargin - See below
 %
 % KEYWORD ARGUMENTS:
 %   verbose       - true if verbose
-%   blocksize     - size of the blocks (last block will have different size to adjust to grid)
+%   blocksize     - if non-empty, size of the blocks (last block will have different size to adjust to grid)
 %   ip_compmethod - Option sent to blockLocalFluxMimeticAssembly
 %   eta           - Option sent to blockLocalFluxMimeticAssembly
-%   invertBlocks  - Method by which to invert a sequence of small matrices that
-%                   arise in the discretisation.  String.  Must be one of
-%                      - MATLAB -- Use an function implemented purely in MATLAB
-%                                  (the default).
-%    
-%                      - MEX    -- Use two C-accelerated MEX functions to
-%                                  extract and invert, respectively, the blocks
-%                                  along the diagonal of a sparse matrix.  This
-%                                  method is often faster by a significant
-%                                  margin, but relies on being able to build
-%                                  the required MEX functions.
+%   invertBlocks  - Method by which to invert a sequence of small matrices 
+%
 % RETURNS:
 %
 %   mpfastruct with fields:
 %
 %               'A'   : system matrix 
 %               'F'   : flux operator 
-%               'tbls': table structure
+%               'tbls': structure of IndexArrays
 %
-% EXAMPLE:
-%
-% SEE ALSO:
-%
-%
-%{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
-
 
    opt = struct('verbose'      , mrstVerbose, ...
                 'blocksize'    , []         , ...
