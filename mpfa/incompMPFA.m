@@ -1,4 +1,4 @@
-function state = incompMPFA(state, G, T, fluid, varargin)
+function state = incompMPFA(state, G, mpfaT, fluid, varargin)
 % Solve incompressible problem with mpfa transmissibilities.
 %
 % Two versions available : 'legacy' (default) and 'tensor Assembly'.
@@ -15,14 +15,12 @@ function state = incompMPFA(state, G, T, fluid, varargin)
     if ~opt.useTensorAssembly
         
         % use legacy implementation
-        state = incompMPFAlegacy(state, G, T, fluid, varargin{:})
+        state = incompMPFAlegacy(state, G, mpfaT, fluid, varargin{:})
     
     else
         
         % use tensor assembly based implementation
-        assert(~isempty(opt.mpfastruct), 'option mpfastruct is required for tensor assembly');
-        mpfastruct = opt.mpfastruct;
-        state = incompMPFATensorAssembly(G, mpfastruct, extra{:});        
+        state = incompMPFATensorAssembly(G, mpfaT, extra{:});        
 
     end
     
