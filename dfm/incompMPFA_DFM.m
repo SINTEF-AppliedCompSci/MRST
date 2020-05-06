@@ -16,14 +16,14 @@ function state = incompMPFA_DFM(state, g, T, fluid, varargin)
 %   minimal memory consumption within the constraints of operating on a
 %   fully unstructured polyhedral grid structure.
 %
-%   The function is modified from the original incompMPFAlegacy to account for
+%   The function is modified from the original incompMPFA (legacy version) to account for
 %   non-neighbor cell-to-cell connections for hybrid cells.
 %
 % REQUIRED PARAMETERS:
 %   state  - Reservoir and well solution structure either properly
 %            initialized from functions 'initResSol' and 'initWellSol'
 %            respectively, or the results from a previous call to function
-%            'incompMPFAlegacy' and, possibly, a transport solver such as
+%            'incompMPFA' (legacy version) and, possibly, a transport solver such as
 %            function 'implicitTransport'.
 %
 %   G, T   - Grid and half-transmissibilities as computed by the function
@@ -114,10 +114,10 @@ function state = incompMPFA_DFM(state, g, T, fluid, varargin)
 %    W   = verticalWell(W, G, rock, G.cartDims(1),   G.cartDims(2), ...
 %                       (1:G.cartDims(3)), 'Type', 'bhp', ...
 %                       'Val',  1*barsa(), 'InnerProduct', 'ip_tpf');
-%    T   = computeMultiPointTransLegacy(G, rock);
+%    T   = computeMultiPointTrans(G, rock);
 %    xr  = initResSol (G, 10);
 %    xw  = initWellSol(G, 10);
-%    [xr,xw] = incompMPFAlegacy(xr, xw, G, T, f, 'bc',bc,'src',src,'wells',W,...
+%    [xr,xw] = incompMPFA(xr, xw, G, T, f, 'bc',bc,'src',src,'wells',W,...
 %                         'MatrixOutput',true);
 %
 %    plotCellData(G, xr.cellPressure);
