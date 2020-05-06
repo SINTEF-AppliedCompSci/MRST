@@ -9,7 +9,7 @@ function state = incompMPFATensorAssembly(G, mpfastruct, varargin)
 %
 % PARAMETERS:
 %   G          - Grid
-%   mpfastruct - Assembly structure as computed by `computeNeumannMultiPointTrans` or `blockComputeNeumannMultiPointTrans`
+%   mpfastruct - Assembly structure as computed by `computeMultiPointTrans` using the `useTensorAssembly` option
 %   W          - Well structure as defined by functions 'addWell' and 'assembleWellSystem'
 %   varargin   - see below
 %
