@@ -1,12 +1,12 @@
 function mpfastruct = computeMultiPointTransTensorAssembly(G, rock, varargin)
     opt = struct('neumann', false)
-   [opt, extra] = merge_options(opt, varargin{:});
-   if opt.neumann
-       mpfastruct = computeMultiPointTransNeumannTA(G, rock, varargin{:})
-   else
-       mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, varargin{:})
-   end
-   
+    [opt, extra] = merge_options(opt, varargin{:});
+    if opt.neumann
+        mpfastruct = computeMultiPointTransNeumannTA(G, rock, extra{:})
+    else
+        mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, extra{:})
+    end
+    
 end
 
 function mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, varargin)
