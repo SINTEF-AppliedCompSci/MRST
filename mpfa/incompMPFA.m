@@ -97,7 +97,7 @@ function state = incompMPFA(state, G, mpfaT, fluid, varargin)
     if ~opt.useTensorAssembly
         
         % use legacy implementation
-        state = incompMPFAlegacy(state, G, mpfaT, fluid, varargin{:})
+        state = incompMPFAlegacy(state, G, mpfaT, fluid, varargin{:});
     
     else
         
