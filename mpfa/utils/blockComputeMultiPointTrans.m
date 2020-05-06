@@ -364,11 +364,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            
        end
        
-       if iblock == 1
-           filename = 'new';
-           savefiledebug;
-       end
-       
        if opt.verbose
            fprintf('%g seconds\n', toc);
        end

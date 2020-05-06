@@ -85,8 +85,11 @@ titles{caseno} = 'mpfa - legacy';
 caseno         = caseno + 1;
 
 %% mpfa - Tensor Assembly implementation (standard)
-
-mpfastruct1 = computeMultiPointTrans(G, rock, 'eta', eta, 'verbose', true, 'useTensorAssembly', true);
+% Options for call to computeMultiPointTrans with block assembly splitted in blocks (necessary for large system)
+opts = {'eta'              , eta      , ...
+        'verbose'          , true     , ...
+        'useTensorAssembly', true};
+mpfastruct1 = computeMultiPointTrans(G, rock, opts{:});
 % Options for incompMPFA for tensor assembly call
 opts = {'useTensorAssembly', true      , ...
         'mpfastruct'       , mpfastruct1, ...
@@ -100,13 +103,18 @@ fluxes{caseno} = state.flux;
 titles{caseno} = 'mpfa - TA - standard';
 caseno         = caseno + 1;
 
-return
-
 %% mpfa - Tensor Assembly implementation - block assembly (necessary for large systems)
-mpfastruct2 = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
-                                         blocksize, 'verbose', true);
-% Update options for incompMPFA call
-opts.mpfastruct = mpfastruct2;
+% Options for call to computeMultiPointTrans with block assembly splitted in blocks (necessary for large system)
+opts = {'eta'              , eta      , ...
+        'blocksize'        , blocksize, ...
+        'verbose'          , true     , ...
+        'useTensorAssembly', true};
+mpfastruct2 = computeMultiPointTrans(G, rock, opts{:});
+% Options for incompMPFA for tensor assembly call
+opts = {'useTensorAssembly', true      , ...
+        'mpfastruct'       , mpfastruct2, ...
+        'bc'               , bc        , ...
+        'outputFlux'       , true};
 state = incompMPFA(state0, G, [], [], opts{:});
 p              = state.pressure;
 vec            = [z, p];

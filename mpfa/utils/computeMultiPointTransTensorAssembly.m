@@ -97,6 +97,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % 'nicecorner'    : case where at each corner, number of faces is equal to G.griddim
    % 'directinverse' : case where at each corner, number of faces is equal to
    %                   G.griddim AND eta is value such that N*R is diagonal (see Lipnikov paper)
+
+   if ~isempty(opt.blocksize)
+       mpfastruct = blockComputeMultiPointTrans(G, rock, varargin{:})
+       return
+   end
    
    switch opt.ip_compmethod
      case {'general', 'nicecorner'}

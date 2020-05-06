@@ -10,6 +10,7 @@ function [T, T_noflow] = computeMultiPointTrans(G, rock, varargin)
 % slower (the implementation will be optimized in the future to run faster).
 %
    opt = struct('useTensorAssembly', false, ...
+                'blocksize', [], ...
                 'neumann', false);
    
    [opt, extra] = merge_options(opt, varargin{:});
@@ -17,11 +18,12 @@ function [T, T_noflow] = computeMultiPointTrans(G, rock, varargin)
    if ~opt.useTensorAssembly
        [T, T_noflow] = computeMultiPointTransLegacy(G, rock, extra{:});
    else
+       blocksize = opt.blocksize;
        if opt.neumann
-           mpfastruct = computeNeumannMultiPointTrans(G, rock, extra{:})
+           mpfastruct = computeNeumannMultiPointTrans(G, rock, 'blocksize', blocksize, extra{:})
            T = mpfastruct;
        else
-           mpfastruct = computeMultiPointTransTensorAssembly(G, rock, extra{:});
+           mpfastruct = computeMultiPointTransTensorAssembly(G, rock, 'blocksize', blocksize, extra{:});
            T = mpfastruct;
        end
    end       

@@ -65,14 +65,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'ip_compmethod', 'general'  , ...
                 'invertBlocks' , 'matlab'   , ...
                 'eta'          , 0);
-
+   
    % possible options for ip_compmethod
    % 'general'       : general case, no special requirements on corner
    % 'nicecorner'    : case where at each corner, number of faces is equal to G.griddim
    % 'directinverse' : case where at each corner, number of faces is equal to
    %                   G.griddim AND eta is value such that N*R is diagonal (see Lipnikov paper)
-   
+
    opt = merge_options(opt, varargin{:});
+   
+   if ~isempty(opt.blocksize)
+       mpfastruct = blockComputeNeumannMultiPointTrans(G, rock, varargin{:});
+       return
+   end
+   
    switch opt.ip_compmethod
      case {'general', 'nicecorner'}
      case 'directinverse'
