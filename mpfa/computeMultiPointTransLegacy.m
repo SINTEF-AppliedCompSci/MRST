@@ -1,7 +1,11 @@
 function [T, T_noflow] = computeMultiPointTransLegacy(g, rock, varargin)
-% Compute multi-point transmissibilities. This is the legacy version (not using
-% tensor assembly routines). It can only handle cases where the corner of a cell
-% has the same number of faces as the spatial dimension.
+% Compute multi-point transmissibilities. This is the legacy version.
+%
+% This version can only handle grid cells where corners have the same number of
+% faces as the spatial dimension (this is always the case in 2D but not in
+% 3D). The tensor assembly version (computeMultiPointTransTensorAssembly) can
+% handle the other cases but is slower for the moment (the implementation can be
+% optimized to run faster but this has not been done yet).
 %
 % SYNOPSIS:
 %   T = computeMultiPointTransLegacy(G, rock)

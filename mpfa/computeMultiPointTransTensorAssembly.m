@@ -1,4 +1,4 @@
-function mpfastruct = computeMultiPointTrans(G, rock, varargin)
+function mpfastruct = computeMultiPointTransTensorAssembly(G, rock, varargin)
 % Compute multi-point transmissibilities for MPFA
 %
 % SYNOPSIS:
