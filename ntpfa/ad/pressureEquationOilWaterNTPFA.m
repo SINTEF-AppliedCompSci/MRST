@@ -51,7 +51,7 @@ T = s.T.*transMult;
 pW = p;
 
 dp = s.Grad(p);
-upc  = (double(dp)<=0);
+upc = (dp.value <= 0);
 [upcw, upco] = deal(upc);
 
 mobW = krW./f.muW(p);
@@ -152,7 +152,7 @@ end
 end
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

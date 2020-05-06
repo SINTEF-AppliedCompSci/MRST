@@ -56,7 +56,7 @@ function [x, err, nIter] = callAMGCL_cpr(A, b, block_size, varargin)
 %   `callAMGCL`, `amgcl_matlab`, `getAMGCLMexStruct`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -79,6 +79,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('isTransposed',   false, ...
                  'cellMajorOrder', false, ...
                  'tolerance',     1e-6, ...
+                 'reuseMode',     1, ...
                  'maxIterations',  0);
     [opt, cl_opts] = merge_options(opt, varargin{:});
         
@@ -98,8 +99,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     t = tic();
-    [x, err, nIter] = ...
-       amgcl_matlab(A, b, amg_opt, opt.tolerance, opt.maxIterations, 2);
+    szb = size(b);
+    if szb(2) > 1
+        % Multiple right-hand-sides
+        x = zeros(szb);
+        if opt.reuseMode == 1
+            resetAMGCL();
+        end
+        [x(:, 1), err, nIter] = ...
+           amgcl_matlab(A, b(:, 1), amg_opt, opt.tolerance, opt.maxIterations, 2, 2);
+        for i = 2:szb(2)
+            [x(:, i), ~, it] = ...
+               amgcl_matlab(A, b(:, i), amg_opt, opt.tolerance, opt.maxIterations, 1, 2);
+           nIter = nIter + it;
+        end
+        nIter = nIter/szb(2);
+        if opt.reuseMode == 1
+            % Clean up
+            resetAMGCL();
+        end
+    else
+        % A single right-hand-side
+        [x, err, nIter] = ...
+           amgcl_matlab(A, b, amg_opt, opt.tolerance, opt.maxIterations, 2, opt.reuseMode);
+    end
     t_solve = toc(t);
     if ~opt.cellMajorOrder
         x(ordering) = x;

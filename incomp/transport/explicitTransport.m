@@ -47,11 +47,10 @@ function state = explicitTransport(state, G, tf, rock, fluid, varargin)
 %   fluid - Fluid data structure as defined in 'fluid_structure'.
 %
 % OPTIONAL PARAMETERS:
-%   wells     - Well structure as defined by function 'addWell'.  This
+%   W         - Well structure as defined by function 'addWell'.  This
 %               structure accounts for all injection and production well
 %               contribution to the reservoir flow.
-%               Default value: wells = [], meaning a model without any
-%               wells.
+%               Default value: W = [], meaning a model without any wells.
 %
 %   bc        - Boundary condition structure as defined by function
 %               'addBC'.  This structure accounts for all external boundary
@@ -88,7 +87,7 @@ function state = explicitTransport(state, G, tf, rock, fluid, varargin)
 %   `twophaseJacobian`, `implicitTransport`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -114,17 +113,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       'max_dt'   , inf        , ...
       'dt_factor', 0.5        , ...
       'wells'    , []         , ...
+      'W'        , []         , ...
       'src'      , []         , ...
       'bc'       , []         , ...
       'dt'       , tf         , ...
-      'Trans'    ,[]          , ...
+      'Trans'    , []         , ...
       'gravity'  , gravity()  , ...
       'satwarn'  , sqrt(eps));
 
    opt = merge_options(opt, varargin{:});
+   opt = treatLegacyForceOptions(opt);
 
 
-   if opt.onlygrav,
+   if opt.onlygrav
       flux = state.flux;
       state.flux = zeros(G.faces.num, 1);
    end
@@ -136,7 +137,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         'Trans', opt.Trans);
 
 
-   if opt.computedt,
+   if opt.computedt
 
       % ---------- Time step estimate from state ---------------
       compi = { 'use_compi', true };
@@ -161,7 +162,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    t  = 0;
    dispif(opt.verbose, 'explicitTransport: Computing transport step in %d substeps\n', ...
          ceil(tf/getdt(state)));
-   while t < tf,
+   while t < tf
       dt      = min(tf-t, getdt(state));
 
       s(:)    = s - F(state, state, dt);
@@ -171,7 +172,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       state.s = [s, 1-s];
 
-      if isfield(state, 'extSat'),
+      if isfield(state, 'extSat')
          % Save minimum saturation for use in modeling of relative
          % permeability hysteresis.
          state.extSat(:,1) = min(state.s(:,1), state.extSat(:,1));
@@ -179,11 +180,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
 
-   if opt.onlygrav,
+   if opt.onlygrav
       state.flux = flux;
    end
 
-   if any(any(isnan(state.s))),
+   if any(any(isnan(state.s)))
       error('explicitTransport: Transport step failed')
    end
 end
@@ -210,7 +211,7 @@ function gflux = getFlux(G, rock, opt)
    nc     = G.cells.num;
    cellNo = rldecode(1 : nc, diff(G.cells.facePos), 2) .';
 
-   if norm(gvec) > 0,
+   if norm(gvec) > 0
 
       % nKg == n' * K * g for all cellfaces.
       nKg    = sum(G.faces.normals(G.cells.faces(:,1), r) .* ...
@@ -227,11 +228,10 @@ end
 %--------------------------------------------------------------------------
 
 function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
-   [mu, rho] = fluid.properties();
+   [rho, kr, mu, dkr] = getIncompProps(state, fluid);
 
    % Compute cell mobility and its derivative
    sat       = state.s;
-   [kr, dkr] = fluid.relperm(sat,state);
    mob       = bsxfun(@rdivide, kr, mu);
 
    % dkr is Jacobian of kr.  We need derivatives with respect to s(:,1),
@@ -254,21 +254,22 @@ function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
    % Find max wave speed from segregation term
    g      = @(mob) mob(:,1).*mob(:,2)./sum(mob, 2);
    s      = linspace(0,1, 101)';
-   ss=struct('s',[s,1-s]);
-   m      = bsxfun(@rdivide, fluid.relperm([s, 1-s],ss), min(mu));
+   ss     = struct('s',[s,1-s]);
+   [rho_loc, kr_loc, mu_loc] = getIncompProps(ss, fluid); %#ok<ASGLU>
+   m      = bsxfun(@rdivide, kr_loc, min(mu_loc, [], 2));
    dg     = max(abs(diff(g(m)))./diff(s));
 
-   wavespeed  = max([wavespeed; abs(dg.*gflux(i).*diff(rho, 1, 2))]  );
+   wavespeed  = max([wavespeed; abs(dg.*gflux(i).*max(diff(rho_loc, 1, 2), [], 1))]  );
 
    % Find max wave speed from advective term for positive sources in
    % interval [s, 1],
    i      = sources > 0;
-   if any(i),
+   if any(i)
       s     = (min(sat(i)) : 0.05 : 1.0)';
-      ss=struct('s',[s,1-s]);
-      if numel(s) > 1,
-         kr    = fluid.relperm([s, 1-s],ss);
-         mob   = bsxfun(@rdivide,  kr, mu);
+      ss    = struct('s',[s,1-s]);
+      if numel(s) > 1
+         [tmp, kr, mu_w] = getIncompProps(ss, fluid); %#ok<ASGLU>
+         mob   = bsxfun(@rdivide,  kr, mu_w);
          f     = bsxfun(@rdivide, mob(:,1), sum(mob, 2));
          maxdf = max(diff(f)./diff(s));
          wavespeed  = max(wavespeed, max(abs(sources(i) .* maxdf)));
@@ -278,11 +279,11 @@ function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
    % Find max wave speed from advective term for negative sources in
    % interval [0, s],
    i      = sources < 0;
-   if any(i),
+   if any(i)
       s     = (max(sat(i)) : -0.05 : 0.0)';
       ss=struct('s',[s,1-s]);
-      if numel(s) > 1,
-         kr    = fluid.relperm([s, 1-s],ss);
+      if numel(s) > 1
+         [kr, mu] = getIncompProps(ss, fluid);
          mob   = bsxfun(@rdivide,  kr, mu);
          f     = bsxfun(@rdivide, mob(:,1), sum(mob, 2));
          maxdf = max(diff(f)./diff(s));
@@ -297,14 +298,14 @@ function s = correct_saturations(s, satwarn)
    % Display error if s > 1+satwarn
    % or s < 0 - satwarn
    i = find(s(:,1) > 1 + satwarn);
-   if ~isempty(i),
+   if ~isempty(i)
       disp('Saturation exceeds 1 in cells:')
       fprintf('%5d %g\n', [i, s(i,1)] .');
       error('explicitTransport: Error larger than satwarn')
    end
 
    i = find(s(:,1) < -satwarn);
-   if ~isempty(i),
+   if ~isempty(i)
       disp('Saturation less than 0 in cells:')
       fprintf('%5d %g\n', [i, s(i,1)] .');
       error('explicitTransport: Error larger than satwarn')

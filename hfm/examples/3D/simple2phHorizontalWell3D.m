@@ -172,7 +172,7 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 % computing the multiscale pressure in the next section.
 
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
-basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
+basis_sb = getMultiscaleBasis(CG, A, 'type', 'msrsb');
 clf; plotToolbar(G,basis_sb.B,'filterzero',true); view(-135,30)
 plotGrid(CG,'FaceColor','none','LineWidth',1);
 axis tight; colormap(jet); colorbar;

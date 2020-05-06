@@ -1,5 +1,5 @@
-function [T,T_noflow] = computeMultiPointTrans(g, rock, varargin)
-%Compute multi-point transmissibilities.
+function mpfastruct = computeMultiPointTrans(G, rock, varargin)
+% Compute multi-point transmissibilities for MPFA
 %
 % SYNOPSIS:
 %   T = computeMultiPointTrans(G, rock)
@@ -34,8 +34,6 @@ function [T,T_noflow] = computeMultiPointTrans(g, rock, varargin)
 %               computational process.  Default value depending on the
 %               settings of function 'mrstVerbose'.
 %
-%   facetrans -
-%
 %   invertBlocks -
 %               Method by which to invert a sequence of small matrices that
 %               arise in the discretisation.  String.  Must be one of
@@ -50,18 +48,25 @@ function [T,T_noflow] = computeMultiPointTrans(g, rock, varargin)
 %                              the required MEX functions.
 %
 % RETURNS:
-%   T - half-transmissibilities for each local face of each grid cell
-%       in the grid.  The number of half-transmissibilities equal the
-%       number of rows in G.cells.faces.
+%  
+%   mpfastruct with fields:
 %
+%               'iB'  : inverse of scalar product (facenode degrees of freedom)
+%               'div' : divergence operator (facenode values to cell values)
+%               'Pext': projection operator on external facenode values. It
+%                       is signed and return boundary outfluxes (positive if exiting).
+%               'F'   : flux operator (from cell and external facenode values to facenode values)
+%               'A'   : system matrix (cell and external facenode degrees of freedom)
+%               'tbls': table structure
+   
 % COMMENTS:
 %   PLEASE NOTE: Face normals have length equal to face areas.
 %
 % SEE ALSO:
-%   `incompMPFA`, `mrstVerbose`.
+%   `incompMPFAbc`, `mrstVerbose`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -80,311 +85,171 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-% Written by Jostein R. Natvig, SINTEF ICT, 2009.
+   opt = struct('verbose'      , mrstVerbose, ...
+                'blocksize'    , []         , ...
+                'ip_compmethod', 'general'  , ...
+                'invertBlocks' , 'matlab'   , ...
+                'eta'          , 0);
 
-   opt = struct('verbose',      mrstVerbose,   ...
-                'facetrans',    zeros([0, 2]), ...
-                'invertBlocks', 'matlab',...
-                'eta',0);
    opt = merge_options(opt, varargin{:});
-   opt.invertBlocks = blockInverter(opt);
-
-   if opt.verbose
-      fprintf('Computing mappings between for subfaces ...\t');
-      t0 = tic;
-   else
-      t0 = [];
-   end
-
-   % Enumerate sub-faces and sub-half-faces.
-   % Create mappings from {cells, nodes, faces} to {subfaces, subhalffaces}.
-
-   [cno, nno, hfno, fno, subfno, subhfno] = createMapping(g);
-
-   tocif(opt.verbose, t0);
-
-   if opt.verbose
-      fprintf('Computing inner product on sub-half-faces ...\t');
-      t0 = tic;
-   end
-
-   [B,R] = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt);
-   B = processFaceTrans(B, g, opt.facetrans(:,1), opt.facetrans(:,2), fno);
-
-   tocif(opt.verbose, t0);
-
-   if opt.verbose
-      fprintf('Computing inverse mixed innerproduct ...\t');
-      t0 = tic;
-   end
-
-   % Create matrices needed to compute transmissibilities
-   s     = 2*(cno==g.faces.neighbors(fno,1))-1;
-   D     = sparse(subhfno, subfno, 1); % Hybrid D matrix
-   Do    = sparse(subhfno, subfno, s); % Mixed  D matrix
-   C     = sparse(subhfno, cno, 1);
-
-   % c1 adds up sub-half-face contributions for each half-face
-   % c1     = sparse(subhfno, hfno, 1);
-
-   % d1 adds up sub-face contributions for each face.
-   counts = accumarray(fno, 1, [g.faces.num, 1]);
-   d1     = sparse(subfno, fno, 1);
-
-   % Note that c1'*D*d1 is equal to the reglar mimetic D matrix.
-
-   % Construct the inverse of the mixed B
-   % In the local-flux mimetic method, the mixed mass matrix DoBDo is block
-   % diagonal with n_i x n_i blocks due to the special form of the hybrid
-   % mass matrix.  Here n_i is the number of cells adjacent to a node in
-   % the grid.
-   DoBDo = Do'*B*Do;
-
-   % Invert DoBDo
-   tmp      = unique([nno, subfno], 'rows');
-   p        = tmp(:,2);
-   P        = sparse(1:numel(p), p, 1, numel(p), numel(p));
-   [sz, sz] = rlencode(tmp(:,1));
-   iDoBDo   = P' * opt.invertBlocks(DoBDo(p, p), sz) * P;
-   clear tmp sz P p
-
-   tocif(opt.verbose, t0);
-
-   if opt.verbose
-      fprintf('Computing multi-point transmissibilities ...\t');
-      t0 = tic;
-   end
-
-
-   % Compute multi-point transmissibilities
-   % for all faces in terms of cell pressures and outer boundary pressures.
-  
-   %T = c1'*Dm*inv(Dm'*B*Dm)*Dm'*[C, -D(:,b)*d1(b,:)];
-    %if(nargout==2)
-  
-   tocif(opt.verbose, t0);
-   % c1'*D*d1 har samme struktur som vanlig D.
-   % T er feil størrelse å returnere dersom gravitasjon skal håndteres
-   % skikkelig.  Gravitasjonsleddet kommer inn som c1'*Dm*iDmBDm*Dm'*f.
-   % Siden gravitasjonsbidraget for all subfaces er likt kan de sikkert
-   % skrives om til c1'*Dm*iDmBDm*Dm'*F*g der F*G=f.
-   %T=struct('T',T,'Tg',Tg,'hfhf',Do*iDoBDo*Do','c1',c1,'D',D,'d1',d1,'C',C,'Do',Do,'R',R,'cno',cno);
-   %{
-    %old structure
-    b = full(sum(D, 1)) == 1;
-    Tg=c1'*Do*iDoBDo*Do';
-    %end
-    T = Tg*[C, -D(:,b)*d1(b,:)];
-    Tg=Tg*c1;
-    T=struct('T',T,'Tg',Tg,'hfhf',Do*iDoBDo*Do','c1',c1,'D',D,'d1',d1,'C',C,'Do',Do,'R',R,'cno',cno);
-   %}
-   sb = full(sum(D, 1)) == 1;
-   %cf_mtrans=Do'*Do*iDoBDo*Do'*[C, -D(:,sb)];
-   cf_mtrans=iDoBDo*Do'*[C, -D(:,sb)];
-   % define div operaor
-   e_div =  [C, -D(:,sb)]'*Do;
-   % multiply fluxes with harmonic mean of mobility
-   % this to avid for re asssembly
-   % to be equivalent coupled reservoir simulation the value of
-   % sum of upwind mobility should be used.
-   %cf_trans_g=Do'*Do*iDoBDo*Do';
-   cf_trans_g=iDoBDo*Do';
-   T=struct('cf_trans',cf_mtrans,...% transmisibility calculate K\grad on mpfa faces form cell pressures and boundary pressures
-            'e_div',e_div,...%calulate div on cells and mpfa fluxes at boundary from mpfa fluxes
-            'cf_trans_g',cf_trans_g,... %calulate gravity contribution form gravity diferences from mpfa half faces
-            'd1',d1,...%mapp from mpfa faces to faces
-            'R',R,...% the continuity points fo for calculating gravity contricutions
-            'cno',cno,...%cno for mpfa faces
-            'counts', counts, ...
-            'sb',sb...%defines the mpfa boundary faces
-            );
-   %
-   if nargout > 1
-       % the usefull trans for  other methods are
-       %Trans =d1'*iDoBDo*Do';
-       % resdused Trans for neumann baundary
-       nc=size(C,2);
-       iface=~sb;
-       Trans=cf_mtrans;%iDoBDo*Do'*[C, -D(:,sb)];
-       A=Trans(iface,1:nc);
-       B=Trans(iface,nc+1:end);
-       C=Trans(~iface,1:nc);
-       D=Trans(~iface,nc+1:end);
-       rTrans = A-B*(D\C);
-       % reduce to internal normal
-
-       %
-       intfaces=~any(g.faces.neighbors==0,2);
-       rTrans = d1(iface,intfaces)'*rTrans; % mpfa trans from cell pressure to internal fluxes
-       N=g.faces.neighbors(intfaces,:);
+   % possible options for ip_compmethod
+   % 'general'       : general case, no special requirements on corner
+   % 'nicecorner'    : case where at each corner, number of faces is equal to G.griddim
+   % 'directinverse' : case where at each corner, number of faces is equal to
+   %                   G.griddim AND eta is value such that N*R is diagonal (see Lipnikov paper)
    
-       % Create transmissibility as a hidden, undocumented output
-       % gravity contributaion 
-       gTrans = iDoBDo*d1; % note that this maps from gravity differences over faces including outer faces.
-       % gravity trans ???
-       rgTrans = gTrans(iface,:) + B*(D\gTrans(~iface,:));
-       rgTrans = d1(iface,intfaces)'*rgTrans;   
-       T_noflow=struct('rTrans',rTrans,...%calculate K\grad from cell pressures assuming no flow boundary 
-       'rgTrans',rgTrans','N',N);%calculate mpfa gravity contribution from "gravity difference between cells and cells to bounary faces" to internal face flux 
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function [cno, nno, hfno, fno, subfno, subhfno] = createMapping(g)
-   % Create mapping from sub-half-face to cell, node, face, half-face and
-   % sub-face
-   cellno   = rldecode(1:g.cells.num, diff(g.cells.facePos), 2) .';
-   col      = 1+(cellno == g.faces.neighbors(g.cells.faces(:,1), 2));
-   nhfaces  = g.cells.facePos(end)-1;
-   hfaces   = accumarray([g.cells.faces(:,1), col], 1:nhfaces);
-   hfaces   = rldecode(hfaces, diff(g.faces.nodePos));
-
-
-   cells    =  rldecode(g.faces.neighbors, diff(g.faces.nodePos));
-   nodes    =  repmat(g.faces.nodes, [2,1]);
-   faces    =  repmat(rldecode(1:g.faces.num, diff(g.faces.nodePos),2)', [2,1]);
-   subfaces =  repmat((1:size(g.faces.nodes,1))', [2,1]);
-   i        =  cells~=0;
-   w        =  [cells(i), nodes(i), hfaces(i), faces(i), subfaces(i)];
-   w        =  double(sortrows(w));
-
-
-   cno     = w(:,1);
-   nno     = w(:,2);
-   hfno    = w(:,3);
-   fno     = w(:,4);
-   subfno  = w(:,5);
-   subhfno = (1:numel(cno))';
-end
-
-function [B,Rvec] = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt)
-   [a, blocksz] = rlencode([cno,nno]);
-   dims         = size(g.nodes.coords, 2);
-   assert(all(blocksz==dims));
-   % Expand centroid differences, normals, signs and permeabilities to
-   %  block-diagonal matrices such that B may be constructed by matrix-matrix
-   %  multiplications:
-   [i,j] = ndgrid(subhfno, 1:dims);
-   j     = bsxfun(@plus, j, rldecode(cumsum(blocksz)-blocksz(1), blocksz));
-
-   % Use original face centroids and cell centroids, NOT actual subface
-   % centroids.  This corresponds to an MPFA method (O-method)
-   %R     = g.faces.centroids(fno,:) - g.cells.centroids(cno,:);
-   Rvec      = g.faces.centroids(fno,:) - g.cells.centroids(cno,:)+...
-            opt.eta*(g.nodes.coords(nno,:)-g.faces.centroids(fno,:));
-   R     = sparse(i,j,Rvec);
-
-   % Subface sign == face sign
-   sgn   = 2*(cno == g.faces.neighbors(fno,1)) -1;
-
-   % Use fraction of face normal as subface normal
-   numnodes = double(diff(g.faces.nodePos));
-   N     = g.faces.normals  (fno,:).*sgn(:,ones(1, dims))./ ...
-           numnodes(fno, ones(1,dims));
-   N     = sparse(i,j,N);
-
-   k     = permTensor(rock, dims);
-
-   assert (size(k,1) == g.cells.num, ...
-          ['Permeability must be defined in active cells only.\n', ...
-           'Got %d tensors, expected %d (== number of cells).'],   ...
-           size(k,1), g.cells.num);
-
-   K     = sparse(i,j,reshape(k(a(:,1),:)', dims, [])');
-   clear k a blocksz sgn
-
-   % Construct B : Invert diagonal blocks of size sz
-   d     = size(g.nodes.coords,2);       % == dims
-   sz    = repmat(d, [size(R, 1)/d, 1]);
-   B     = R * opt.invertBlocks(N*K, sz);
-end
-
-function B = processFaceTrans(B, g, f, t, fno)
-% Modify B to account for face transmissibility (t) for regular faces (f)
-% (a) Distribute 2*t to each half-face such that the harmonic mean
-%     equals t.  (Use 1*t for boundary faces)
-%
-% (b) As an approximation, divide facetrans by number of corners in face
-%     to distribute face transmissibility on each sub-face.
-%
-% (c) Modify B <-- B + diag(1/(2*t)).  This correspond to harmomic
-%     mean when the mimetic innerproduct B is diagonal.
-%
-
-   % (a)
-   invFaceTrans     = zeros(g.faces.num, 1);
-   invFaceTrans (f) = t.*sum(g.faces.neighbors(f,:) ~= 0, 2);
-   invFaceTrans (f) = 1./invFaceTrans (f);
-
-   % (b)
-   numNodes        = diff(g.faces.nodePos);
-   invSubFaceTrans = invFaceTrans(fno).*double(numNodes(fno));
-
-   % (c)
-   B               = B + spdiags(invSubFaceTrans, 0, size(B, 1), size(B, 2));
-end
-
-%--------------------------------------------------------------------------
-
-function bi = blockInverter(opt)
-   if ~ischar(opt.invertBlocks)
-      dispif(opt.verbose, ...
-            ['Unsupported option value of type ''%s'' in ', ...
-             'option ''invertBlocks''. Reset to default ' , ...
-             '(''matlab'')\n'], class(opt.invertBlocks));
-      opt.invertBlocks = 'matlab';
+   opt = merge_options(opt, varargin{:});
+   switch opt.ip_compmethod
+     case {'general', 'nicecorner'}
+     case 'directinverse'
+       isOk = false;
+       if (G.griddim == 2) & (opt.eta == 1/3), isOk = true, end
+       if (G.griddim == 3) & (opt.eta == 1/4), isOk = true, end
+       if ~isOk
+           error(['option values for ip_compmethod and eta are not ' ...
+                  'compatible']);
+       end
+     otherwise
+       error('value of option nodeompcase is not recognized.');
    end
 
-   switch lower(opt.invertBlocks)
-      case {'matlab', 'm', 'builtin'}
-         bi = @invertDiagonalBlocks;
-      case {'mex', 'c', 'accelerated'}
-         bi = @invertDiagonalBlocksMex;
-      otherwise
-         dispif(opt.verbose, ...
-               ['Unsupported value ''%s'' in option ', ...
-                '''invertBlocks''.\nMust be one of ''matlab'' or ', ...
-                '''mex''.\nReset to default (''matlab'').'], ...
-                opt.invertBlocks);
+   opt.invertBlocks = blockInverter(opt);
+   blocksize = opt.blocksize;
 
-         bi = @invertDiagonalBlocks;
-   end
-end
-
-%--------------------------------------------------------------------------
-
-% Matlab code calling mex function invertSmallMatrices.c
-function iA = invertDiagonalBlocksMex(A, sz)
-   sz     = int32(sz);
-   blocks = matrixBlocksFromSparse(A, sz);
-   iA     = blockDiagMatrix(invv(blocks, sz), sz);
-end
-
-%--------------------------------------------------------------------------
-
-% Pure Matlab code using inv
-function iA = invertDiagonalBlocks(A, sz)
-   V = zeros([sum(sz .^ 2), 1]);
-   [p1, p2] = deal(0);
-
-   for b = 1 : numel(sz)
-      n  = sz(b);
-      n2 = n * n;
-      i  = p1 + (1 : n);
-
-      V(p2 + (1 : n2)) = inv(full(A(i, i)));
-
-      p1 = p1 + n;
-      p2 = p2 + n2;
+   if opt.verbose
+       fprintf('Computing inner product on sub-half-faces ... ');
+       t0 = tic();
    end
 
-   iA = blockDiagMatrix(V, sz);
+   [B, tbls] = computeLocalFluxMimetic(G, rock, opt);
+   facenodetbl = tbls.facenodetbl;
+   celltbl = tbls.celltbl;
+   
+   % if we know - a priori - that matrix is symmetric, then we remove
+   % symmetry loss that has been introduced in assembly.
+   if strcmp(opt.ip_compmethod, 'directinverse')
+       B = 0.5*(B + B');
+   end
+   
+   if opt.verbose
+       t0 = toc(t0);
+       fprintf('%g sec\n', t0);
+   end
+   
+   if opt.verbose
+       fprintf('Computing inverse mixed innerproduct... ');
+       t0 = tic();   
+   end
+   
+   %% Invert matrix B
+   % The facenode degrees of freedom, as specified by the facenodetbl table, are
+   % ordered by nodes first (see implementation below). It means in particular
+   % that the matrix B is, by construction, block diagonal.
+   nodes = facenodetbl.get('nodes');
+   [~, sz] = rlencode(nodes); 
+   iB = opt.invertBlocks(B, sz);
+
+   if opt.verbose
+       t0 = toc(t0);   
+       fprintf('%g sec\n', t0);
+   end
+   % if we know - a priori - that matrix is symmetric, then we remove the loss of
+   % symmetry that may have been introduced by the numerical inversion.
+   if strcmp(opt.ip_compmethod, 'directinverse')
+       iB = 0.5*(iB + iB');
+   end
+   
+   %% Assemble of the divergence operator, from facenode values to cell value.
+   cellnodefacetbl = tbls.cellnodefacetbl;
+   
+   fno = cellnodefacetbl.get('faces');
+   cno = cellnodefacetbl.get('cells');
+   sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
+   
+   prod = TensorProd();
+   prod.tbl1 = cellnodefacetbl;
+   prod.tbl2 = facenodetbl;
+   prod.tbl3 = celltbl;   
+   prod.reducefds = {'nodes', 'faces'};
+   prod = prod.setup();
+   
+   div_T = SparseTensor();
+   div_T = div_T.setFromTensorProd(sgn, prod);
+   div = div_T.getMatrix();
+
+   
+   %% Assemble the projection operator from facenode values to facenode values
+   % on the external faces.
+   
+   extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
+   faceexttbl.faces = find(extfaces);
+   faceexttbl = IndexArray(faceexttbl);
+   extfacenodetbl = crossIndexArray(facenodetbl, faceexttbl, {'faces'});
+   
+   map = TensorMap();
+   map.fromTbl = cellnodefacetbl;
+   map.toTbl = extfacenodetbl;
+   map.mergefds = {'faces', 'nodes'};
+   map = map.setup();
+   
+   efn_sgn = map.eval(sgn);
+   
+   prod = TensorProd();
+   prod.tbl1 = extfacenodetbl;
+   prod.tbl2 = facenodetbl;
+   prod.tbl3 = extfacenodetbl;
+   prod.mergefds = {'faces', 'nodes'};
+   prod = prod.setup();
+   
+   Pext_T = SparseTensor();
+   Pext_T = Pext_T.setFromTensorProd(efn_sgn, prod);
+   Pext = Pext_T.getMatrix();
+   
+   extfacenodetbl = extfacenodetbl.addLocInd('extfnind');
+   tbls.extfacenodetbl = extfacenodetbl;
+   
+   %% Assemble the flux operator: From pressure values at the cell center and
+   % at the external facenode, compute the fluxes at the faces
+   F1 = iB*div';
+   F2 = - iB*Pext';
+   F  = [F1, F2];
+   facetbl.faces = (1 : G.faces.num)';
+   facetbl = IndexArray(facetbl);
+   
+   map = TensorMap();
+   map.fromTbl = facenodetbl;
+   map.toTbl = facetbl;
+   map.mergefds = {'faces'};
+   map = map.setup();
+   
+   Aver_T = SparseTensor();
+   Aver_T = Aver_T.setFromTensorMap(map);
+   Aver = Aver_T.getMatrix();
+   
+   F = Aver*F;
+   
+   %% Assemble the system matrix operaror: The degrees of freedom are the pressure
+   % values at the cell center and at the external facenode.
+   %
+   % We have u = iB*div'*p - iB*Pext'*pe
+   % where pe is pressure at external facenode.
+   %
+   
+   A11 = div*iB*div';
+   A12 = -div*iB*Pext';
+   A21 = -Pext*iB*div';
+   A22 = Pext*iB*Pext';
+   A = [[A11, A12]; [A21, A22]];
+
+   % The first equation row (that is [A11, A12]) corresponds to mass conservation and
+   % should equal to source term.
+   % The second equation row (that is [A11, A12]) corresponds to definition of external
+   % flux and should equal -Pext*u, that is boundary facenode fluxes in
+   % inward direction (see definition on Pext: Pext*u returns outward fluxes).
+   mpfastruct = struct('div' , div , ...
+                       'F'   , F   , ...
+                       'A'   , A   , ...
+                       'tbls', tbls);
+   
 end
 
-%--------------------------------------------------------------------------
-
-function A = blockDiagMatrix(V, sz)
-   [I, J] = blockDiagIndex(sz);
-   A      = sparse(I, J, V);
-end

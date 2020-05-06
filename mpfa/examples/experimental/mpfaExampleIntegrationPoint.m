@@ -49,8 +49,8 @@ bc = addBC(bc,yfaces,'pressure',bc_right+rho*G.faces.centroids(yfaces,:)*g_vec);
 %% MPFA-O method
 fprintf('MPFA-O method\t... ')
 tic
-T1  = computeMultiPointTrans(G, rock,'eta',eta);
-xr1 = incompMPFA(initResSol(G, 0, 0), G, T1, fluid, ...
+T1  = computeMultiPointTransLegacy(G, rock,'eta',eta);
+xr1 = incompMPFAlegacy(initResSol(G, 0, 0), G, T1, fluid, ...
                  'bc', bc,'MatrixOutput',true);
 toc
 
@@ -126,7 +126,7 @@ fprintf(['Cell Pressure Error:\n', ...
          err_press(xr1, ref), err_press(xr2, ref), err_press(xr3, ref));
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

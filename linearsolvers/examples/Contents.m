@@ -1,12 +1,13 @@
 % EXAMPLES
 %
 % Files
-%   sequentialAMGCL - Select layer 1
-%   testAMGCL       - Example demonstrating AMGCL on a few test problems
-%   testAMGCL_cpr   - Example demonstrating AMGCL on a few test problems
+%   sequentialAMGCL  - Select layer 1
+%   showOptionsAMGCL - Example demonstrating different options for AMGCL
+%   testAMGCL        - Example demonstrating AMGCL on a few test problems
+%   testAMGCL_cpr    - Example demonstrating AMGCL on a few test problems
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

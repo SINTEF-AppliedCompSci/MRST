@@ -1,10 +1,12 @@
 % Files
-%   constantProperties - Construct fluid property evaluator from constant data
-%   interpRelPermTable - Fast linear interpolation of tabulated relperm function (and derivative)
-%   tabulatedSatFunc   - Construct rel-perm and capillary pressure evaluators from tabulated data
+%   constantProperties         - Construct fluid property evaluator from constant data
+%   getIncompCapillaryPressure - Undocumented Utility Function
+%   getIncompProps             - Undocumented Utility Function
+%   interpRelPermTable         - Fast linear interpolation of tabulated relperm function (and derivative)
+%   tabulatedSatFunc           - Construct rel-perm and capillary pressure evaluators from tabulated data
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

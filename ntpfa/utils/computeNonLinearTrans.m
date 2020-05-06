@@ -1,5 +1,26 @@
-function [T, flux] = computeNonLinearTrans(G, coSet, cellPressure) 
-    if min(double(cellPressure)) < 0
+function [T, flux] = computeNonLinearTrans(G, coSet, cellPressure)
+%Undocumented Utility Function
+
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+    if min(cellPressure.value) < 0
         warning('Negative pressure in cells. Will fall back to linear TPFA.');
     end
     flux = nan;
@@ -157,8 +178,8 @@ function T = computeJumpTransmissibilities(G, coSet, cellPressure)
         end
     end
     assert(all(N_f >= 0));
-    assert(all(double(T{1})>=0))
-    assert(all(double(T{2})>=0))
+    assert(all(T{1}.value>=0))
+    assert(all(T{2}.value>=0))
 end
 
 

@@ -31,8 +31,8 @@ fluid = initSingleFluid('mu' ,    1*centi*poise     , ...
 %% MPFA-O method
 fprintf('MPFA-O method\t... ')
 tic
-T1  = computeMultiPointTrans(G, rock);
-xr1 = incompMPFA(initResSol(G, 0, 0), G, T1, fluid, ...
+T1  = computeMultiPointTransLegacy(G, rock);
+xr1 = incompMPFAlegacy(initResSol(G, 0, 0), G, T1, fluid, ...
                  'bc', bc,'MatrixOutput',true);
 toc
 
@@ -102,7 +102,7 @@ fprintf(['Relative error in cell pressures:\n', ...
          err_press(xr1, p), err_press(xr2, p), err_press(xr3, p));
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

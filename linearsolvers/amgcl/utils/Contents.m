@@ -1,14 +1,17 @@
 % UTILS
 %
 % Files
-%   amgcl_matlab          - MEX-gateway to AMGCL Linear Solver Software
-%   callAMGCL_block       - Invoke AMGCL Linear Solver Software
-%   callAMGCL_cpr         - Invoke AMGCL Linear Solver Software in CPR Mode
-%   getAMGCLMexStruct     - 
-%   translateOptionsAMGCL - Translate AMGCL String Option Value to Integer Code
+%   amgcl                   - Undocumented Utility Function
+%   amgcl_matlab            - MEX-gateway to AMGCL Linear Solver Software
+%   amgcl_matlab_simple     - MEX-gateway to AMGCL Linear Solver Software
+%   callAMGCL_cpr           - Invoke AMGCL Linear Solver Software in CPR Mode
+%   getAMGCLDependencyPaths - Locate AMGCL Build Prerequisites on Current Computer System
+%   getAMGCLMexStruct       - Undocumented Utility Function
+%   resetAMGCL              - Undocumented Utility Function
+%   translateOptionsAMGCL   - Translate AMGCL String Option Value to Integer Code
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

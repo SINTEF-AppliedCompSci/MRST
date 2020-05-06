@@ -22,7 +22,7 @@ function do_solve = checkDrivingForcesIncomp(g, opt)
 %   `incompMimetic`, `incompTPFA`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -44,23 +44,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  any(strcmpi('pressure', opt.bc.type));
    well_bhp    = ~isempty(opt.wells) && ...
                  any(strcmpi('bhp', { opt.wells.type }));
-   if ~(pressure_bc || well_bhp),
+   if ~(pressure_bc || well_bhp)
       sum_rates = 0;
       norm_rates = 0;
-      if ~isempty(opt.wells),
+      if ~isempty(opt.wells)
           rates = vertcat(opt.wells.val);
           sum_rates = sum(rates);
           norm_rates = max(norm_rates, norm(rates, inf));
       end
-      if ~isempty(opt.src),
+      if ~isempty(opt.src)
           sum_rates = sum_rates + sum(opt.src.rate);
           norm_rates = max(norm_rates, norm(opt.src.rate, inf));
       end
-      if ~isempty(opt.bc),
+      if ~isempty(opt.bc)
           sum_rates = sum_rates + sum(opt.bc.value);
           norm_rates = max(norm_rates, norm(opt.bc.value, inf));
       end
-      if abs(sum_rates) > eps(norm_rates),
+      if abs(sum_rates) > 1e-12
          warning('incomp:MassBalance:NotFulfilled', ...
               ['Well rates and flux bc must sum up to 0 \n', ...
                'when there are no bhp constrained wells or pressure bc.'...

@@ -1,4 +1,4 @@
-function n = translateOptionsAMGCL(name, value)
+function [n, name, description, parameter] = translateOptionsAMGCL(name, value)
 %Translate AMGCL String Option Value to Integer Code
 %
 % SYNOPSIS:
@@ -17,7 +17,7 @@ function n = translateOptionsAMGCL(name, value)
 %   `callAMGCL`, `amgcl_matlab`, `getAMGCLMexStruct`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -34,89 +34,96 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-    if ~iscellstr({name, value})
-       error('OptionArgType:Unsupported', ...
-            ['Inputs ''name'' and ''value'' must ', ...
-             'both be character vectors']);
-    end
+    assert(ischar(name), 'First input must be a name');
 
     switch lower(name)
         case 'preconditioner'
-            n = translate_precondtioner(value);
+            choices = {'amg', 'relaxation', 'dummy'};
+            descriptions = {'Algebraic multigrid', ...
+                            'Relaxation as preconditioner', ...
+                            'Dummy (do nothing)'};
+            parameters = cell(1, 3);
 
         case 'coarsening'
-            n = translate_coarsening_scheme(value);
+            choices = {'smoothed_aggregation', 'ruge_stuben', ...
+                       'aggregation', 'smoothed_aggr_emin'};
+            descriptions = {'Smoothed aggregation', ...
+                            'Ruge-Stuben / classic AMG coarsening', ...
+                            'Aggregation with constant interpolation', ...
+                            'Smoothed aggregation (energy minimizing)'};
+            psg = {'aggr_eps_strong', 'aggr_over_interp', 'aggr_relax'};
+            prs = {'rs_eps_strong', 'rs_trunc', 'rs_eps_trunc'};
+            pag = {'aggr_eps_strong', 'aggr_over_interp', 'aggr_relax'};
+            pem = pag;
+            parameters = {psg, prs, pag, pem};
 
         case 'relaxation'
-            n = translate_relaxation_scheme(value);
-
+            choices = {'spai0', 'gauss_seidel', 'ilu0', 'iluk',...
+                       'ilut', 'damped_jacobi', 'spai1', 'chebyshev'};
+            descriptions = {'Sparse approximate inverse of order 0', ...
+                            'Gauss-Seidel smoothing.', ...
+                            'Incomplete LU-factorization with zero fill-in - ILU(0)', ...
+                            'Incomplete LU-factorization of order k - ILU(k)', ...
+                            'Incomplete LU-factorization with thresholding - ILU(t)', ...
+                            'Damped Jacobi smoothing', ...
+                            'Sparse approximate inverse of order 1', ...
+                            'Chebyshev smoothing'};
+            plu = {'ilu_damping'};
+            plk = {'ilu_damping, ilu_k parameter'};
+            plt = {'ilu_damping, ilut_tau'};
+            pj =  {'jacobi_damping'};
+            pch = {'chebyshev_degree', 'chebyshev_lower', 'chebyshev_power_its'};
+            parameters = {{}, {}, plu, plk, plt, pj, {}, pch};
         case 'solver'
-            n = translate_solver_name(value);
-
+            choices = {'bicgstab', 'cg', 'bicgstabl', 'gmres', 'lgmres', 'fgmres', 'idrs'};
+            descriptions = {'Biconjugate gradient stabilized method.', ...
+                            'Conjugate gradient method.', ...
+                            'Biconjugate gradient stabilized method (l variant)', ...
+                            'Generalized minimal residual method', ...
+                            'Generalized minimal residual method', ...
+                            'Generalized minimal residual method (f variant)', ...
+                            'Induced Dimension Reduction method' ...
+                            };
+            pbcg = {'bicgstabl_convex', 'bicgstabl_delta', 'bicgstabl_l'};
+            pgm =  {'gmres_m'};
+            plgm = {'lgmres_always_reset', 'lgmres_k', 'lgmres_store_av'};
+            pdrs = {'idrs_omega', 'idrs_replacement', 'idrs_s'};
+            parameters = {{}, {}, pbcg, pgm, plgm, {}, pdrs};
         otherwise
             error('Option:Unknown', 'Unknown option: ''%s''', name);
     end
+    [n, name, description, parameter] = translate_option(name, choices, descriptions, parameters, value);
 end
 
-%--------------------------------------------------------------------------
 
-function n = translate_precondtioner(value)
-   switch lower(value)
-      case 'amg',        n = 1;
-      case 'relaxation', n = 2;
-      case 'dummy',      n = 3;
-
-      otherwise
-         error('Unknown preconditioner option: ''%s''', value);
+function [index, name, description, option] = translate_option(category, names, descriptions, options, value)
+   index = mapArgument(value, names, category);
+   if ischar(index)
+       name = names;
+       description = descriptions;
+       option = options;
+   else
+       name = names{index};
+       description = descriptions{index};
+       option = options{index};
    end
 end
 
-%--------------------------------------------------------------------------
-
-function n = translate_coarsening_scheme(value)
-   switch lower(value)
-      case 'smoothed_aggregation', n = 1;
-      case 'ruge_stuben',          n = 2;
-      case 'aggregation',          n = 3;
-      case 'smoothed_aggr_emin',   n = 4;
-
-      otherwise
-         error('Unknown coarsening option: ''%s''', value)
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function n = translate_relaxation_scheme(value)
-   switch lower(value)
-      case 'spai0',         n = 1;
-      case 'gauss_seidel',  n = 2;
-      case 'ilu0',          n = 3;
-      case 'iluk',          n = 4;
-      case 'ilut',          n = 5;
-      case 'damped_jacobi', n = 6;
-      case 'spai1',         n = 7;
-      case 'chebyshev',     n = 8;
-
-      otherwise
-         error('Unknown relaxation option: ''%s''', value);
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function n = translate_solver_name(value)
-   switch lower(value)
-      case 'bicgstab',  n = 1;
-      case 'cg',        n = 2;
-      case 'bicgstabl', n = 3;
-      case 'gmres',     n = 4;
-      case 'lgmres',    n = 5;
-      case 'fgmres',    n = 6;
-      case 'idrs',      n = 7;
-
-      otherwise
-         error('Unknown:Solver', 'Unknown solver name: ''%s''', value);
+function index = mapArgument(value, types, groupName)
+   if isempty(value)
+       % Get everything
+       index = ':';
+   elseif ischar(value)
+       % String corresponding to valid option
+       index = find(strcmpi(types, value));
+       if isempty(index)
+           error(['Unknown:', groupName], 'Unknown %s name: ''%s''', ...
+                                            groupName, value);
+       end
+   else
+       % Numeric index
+       index = value;
+       assert(isnumeric(value));
+       assert(isnumeric(value) <= numel(types));
    end
 end

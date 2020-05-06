@@ -79,7 +79,7 @@ function [Res, Jac, gflux, q] = twophaseJacobian(G, state, rock, fluid, varargin
 %   - multipliers for gravity flux.  Handle this in 'getFlux'
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -119,7 +119,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    q = assembleTransportSource(state, fluid, q, G.cells.num, compi{:});
    assert(all(isfinite(q)))
    % Extract (constant) fluid densities.
-   [rho, rho] = fluid.properties(state); %#ok<ASGLU>
+   rho = getIncompProps(state, fluid);
 
    % Compute the gravitational potential (rho_w - rho_o)n·Kg across each
    % face in the grid.
@@ -175,17 +175,14 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, ...
 %  respectively, then the respective (matrix) contributions of each
 %  term is added to elements (i, iw) and (i, io) of the Jacobian matrix.
 
-   if isfield(resSol, 'extSat'),
+   if isfield(resSol, 'extSat')
       % Save extremal values of saturation for hysteresis purposes
       % First column contains minima, second maxima
       resSol.extSat(:,1) = min(resSol.s(:,1), resSol_0.extSat(:,1));
       resSol.extSat(:,2) = max(resSol.s(:,1), resSol_0.extSat(:,2));
    end
-
-   mu        = fluid.properties(resSol);     % viscosity
-   sat       = fluid.saturation(resSol);     % cell saturation
-   [kr, dkr] = fluid.relperm(sat, resSol);
-   m         = bsxfun(@rdivide, kr,  mu);    % mobility in each cell
+   [tmp, kr, mu, dkr]  = getIncompProps(resSol, fluid); %#ok<ASGLU>
+   m = bsxfun(@rdivide, kr,  mu);    % mobility in each cell
 
    % We need derivatives with respect to s(:,1) only.
    dkr(:,end) = -dkr(:,end);
@@ -248,11 +245,9 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, ...
       [id;         iw;       iw;         io;       io], ... %column
       [d;     dFdSiw1; -dFdSiw2;    dFdSio1; -dFdSio2], ... %value
       G.cells.num, G.cells.num);
-
-  if isfield(fluid, 'pc')
-      % added:
-      [dpc, dpc]       = fluid.pc(resSol); %#ok<ASGLU>
-
+  % Get capillary pressure
+  [pc, dpc] = getIncompCapillaryPressure(resSol, fluid);
+  if ~isempty(pc)
       d_p  =      dt.* f_face(:,1).*m_face(:,2).*pcJac(internal);
 
       % d pcflux
@@ -272,7 +267,6 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, ...
          [dFdSipc1_1; -dFdSipc1_2;  -dFdSipc2_1; dFdSipc2_2], ... %value
          G.cells.num, G.cells.num);
    end
-
 
 end
 
@@ -319,12 +313,13 @@ function F = Residual (resSol, resSol_0, dt, fluid, ...
       resSol.extSat(:,1) = min(resSol.s(:,1), resSol_0.extSat(:,1));
       resSol.extSat(:,2) = max(resSol.s(:,1), resSol_0.extSat(:,2));
    end
-
-   mu  = fluid.properties(resSol);
-   sat = fluid.saturation(resSol);
-   kr  = fluid.relperm(sat, resSol);
+   [tmp, kr, mu]  = getIncompProps(resSol, fluid); %#ok<ASGLU>
+   
+%    mu  = fluid.properties(resSol);
+%    sat = fluid.saturation(resSol);
+%    kr  = fluid.relperm(sat, resSol);
    m   = bsxfun(@rdivide, kr, mu);
-   clear mu sat kr
+   clear mu sat kr tmp
 
    neighbors = getNeighbourship(G, 'Topological', true);
    internal = all(neighbors~=0, 2);
@@ -341,7 +336,7 @@ function F = Residual (resSol, resSol_0, dt, fluid, ...
    % For each face k, iw(k) and io(k) is the cell index in which we
    % must evaluate the water and oil mobilities, respectively.
    [iw, io] = findPhaseUpwindCells(m, resSol);
-   if ~any(gflux) && ~isfield(fluid, 'pc'),
+   if ~any(gflux) && ~isfield(fluid, 'pc')
       assert(all(iw == io));
    end
    m_face  = [m(iw, 1) m(io,2)];
@@ -386,8 +381,8 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
       end
    end
 
-   if norm(g) > 0,
-      if isempty(opt.Trans),
+   if norm(g) > 0
+      if isempty(opt.Trans)
         % nKg == n' * K * g *(rho1 - rho2) for all cellfaces.
         nKg    = sum(G.faces.normals(G.cells.faces(:,1), r) .* ...
                    bsxfun(@times, K(cellNo,:), g(c)), 2);
@@ -447,7 +442,11 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
          % Flux contribution of capillary pressure for internal faces
          % pc_flux_ij = A_ij*K_avg*(pc(s_i)-pc(s_j))/nC = harm_c*d_pc,
          % A_ij = area of face.
-         pc_flux = @(rSol) harm_c(~i) .* d_pc(fluid.pc(rSol));
+         if isfield(fluid, 'pc') || isfield(fluid, 'pcOW')
+            pc_flux = @(rSol) harm_c(~i) .* d_pc(getIncompCapillaryPressure(rSol, fluid));
+         else
+            pc_flux = @(rSol) zeros(sum(i), 1);
+         end
 
          % The constant contribution to the Jacobian from the term
          % d/ds( K grad pc) which in flux formulation is
@@ -516,7 +515,7 @@ function [iw, io] = upwindIndices(G, dflux, gflux, pcflux, mob)
    io(c)   = N(c, 1);
    clear a b c N
 
-   if any(any(isnan([iw, io]))),
+   if any(any(isnan([iw, io])))
       mw = nan(size(iw));
       mo = mw;
 

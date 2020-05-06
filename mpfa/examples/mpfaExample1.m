@@ -70,12 +70,12 @@ G = computeGeometry(G);
 % The fluid has density 1000 kg/m^3 and viscosity 1 cP.
 % We make a non diagonal rock tensor
 theta=30*pi/180;
-U=[cos(theta),sin(theta);-sin(theta),cos(theta)];
+U = [cos(theta),sin(theta);-sin(theta),cos(theta)];
 rocktensor = U'*diag([0.1,10])*U;
-rocktensor =[rocktensor(1,1),rocktensor(1,2),rocktensor(2,2)];
+rocktensor = [rocktensor(1,1),rocktensor(1,2),rocktensor(2,2)];
 rock = makeRock(G, rocktensor .* 1e-3*darcy, 1);
-fluid     = initSingleFluid('mu' ,    1*centi*poise     , ...
-                            'rho', 1014*kilogram/meter^3);
+fluid = initSingleFluid('mu' , 1*centi*poise , ...
+                        'rho', 1014*kilogram/meter^3);
 
 gravity off
 
@@ -159,11 +159,11 @@ resSol2 = incompMimetic(resSol2, G, IP, fluid, 'wells', W_mim, 'bc', bc);
 
 %% APPROACH 3: MPFA method
 % Compute the transmisibility matrix for mpfa
-T_mpfa = computeMultiPointTrans(G, rock,'eta',1/3);
+T_mpfa = computeMultiPointTransLegacy(G, rock,'eta',1/3);
 resSol3 = initState(G, W, 0);
 
 %% Solve MPFA pressure
-resSol3 = incompMPFA(resSol3, G, T_mpfa, fluid, 'wells', W,'bc',bc);
+resSol3 = incompMPFAlegacy(resSol3, G, T_mpfa, fluid, 'wells', W,'bc',bc);
 
 
 %% Plot solutions
@@ -213,7 +213,7 @@ displayEndOfDemoMessage(mfilename)
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

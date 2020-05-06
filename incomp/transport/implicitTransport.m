@@ -55,7 +55,7 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %   verbose  - Whether or not time integration progress should be
 %              reported to the screen. Default value: verbose = mrstVerbose.
 %
-%   wells    - Well structure as defined by function 'addWell'.  May be
+%   W        - Well structure as defined by function 'addWell'.  May be
 %              empty (i.e., W = []) which is interpreted as a model without
 %              any wells.
 %
@@ -114,7 +114,7 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %   `explicitTransport`, `private/twophaseJacobian`, `private/newtonRaphson2ph`.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -142,6 +142,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       'tsref'   ,         12    , ...  % Time step refinement
       'resred'  ,         0.99  , ...  % Residual reduction factor
       'wells'   ,         []    ,  ...
+      'W'       ,         []    ,  ...
       'src'     ,         []    ,  ...
       'bc'      ,         []    ,  ...
       'Trans'   ,         []    ,  ...
@@ -152,6 +153,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        );
 
    opt = merge_options(opt, varargin{:});
+   opt = treatLegacyForceOptions(opt);
 
 
    % Error checking -------------------------------------------------------
@@ -228,7 +230,7 @@ function [resSol, res, alph, fail] = linesearch(resSol, ds, target, F, ni)
    fail = true;
    sn = resSol;
    % Geometric line search: seems pretty robust
-   while fail && (i < ni),
+   while fail && (i < ni)
       sn.s(:,1) = capSat(resSol.s(:,1) + pow2(ds, alph));
       %sn.s(:,end) = 1-sum(sn.s(:,1:end-1), 2);
       res  = F(sn);

@@ -36,19 +36,45 @@ function q = assembleTransportSource(state, fluid, q, nc, varargin)
 % SEE ALSO:
 %   `private/computeTransportSourceTerm`.
 
+%{
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
    opt = struct('use_compi', true);
    opt = merge_options(opt, varargin{:});
 
    check_input(q, nc, opt)
 
-   if opt.use_compi && ~all(structfun(@isempty, q)),
+   if opt.use_compi && ~all(structfun(@isempty, q))
       % This problem features source terms (i.e., not a purely
       % gravity-driven problem) and the caller requests scaling injection
       % sources by "water" saturations.
 
       i   = q.flux > 0;
-      mu  = fluid.properties(state);
-      kr  = fluid.relperm(q.compi, state);
+      if isfield(state, 'pressure')
+          p_cell = state.pressure(q.cell);
+      else
+          p_cell = repmat(1*atm, numel(q.cell));
+      end
+      tmpstate = struct('pressure', p_cell, ...
+                        's', q.compi);
+      [tmp, kr, mu]= getIncompProps(tmpstate, fluid); %#ok<ASGLU>
+      clear tmp
       m   = bsxfun(@rdivide, kr, mu);
       f   = m(:,1) ./ sum(m,2);
       q.flux(i) = q.flux(i) .* f(i);
@@ -74,7 +100,7 @@ function check_input(q, nc, opt)
    assert (numel(q.cell) == numel(q.flux), ...
            'There must be one rate for each transport source term');
 
-   if opt.use_compi,
+   if opt.use_compi
       assert (size(q.compi, 1) == numel(q.cell), ...
              ['There must be one injection composition for each ', ...
               'source term when solving transport']);

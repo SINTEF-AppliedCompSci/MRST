@@ -179,7 +179,7 @@ CGf = coarsenGeometry(CGf);
 % or boundary conditions. They are added to the coarse linear system when
 % computing the multiscale pressure in the next section.
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
-basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
+basis_sb = getMultiscaleBasis(CG, A, 'type', 'msrsb');
 clf; plotToolbar(G,basis_sb.B,'filterzero',true); view(-135,30)
 plotGrid(CG, 'FaceColor', 'none', 'linewidth', 1);
 axis tight; colormap(jet); colorbar;

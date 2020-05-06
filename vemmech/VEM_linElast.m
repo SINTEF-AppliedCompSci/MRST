@@ -45,14 +45,9 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 % RETURNS:
 %   uu    - Displacement field
 %   extra - Extra outputs
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -89,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                   'experimental_scaling' , opt.experimental_scaling);
     else
         S = VEM_assemble(G, C, ...
-                         'blocksize'           , opt.blocksize, ...
+                         'blocksize'           , 10000, ...
                          'alpha_scaling'       , opt.alpha_scaling, ...
                          'S'                   , opt.S, ...
                          'experimental_scaling', opt.experimental_scaling);

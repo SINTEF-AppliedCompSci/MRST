@@ -133,7 +133,7 @@ set(h,'Position',get(h,'Position')+[.18 -.08 -.1 0]);
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

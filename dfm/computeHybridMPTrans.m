@@ -2,7 +2,7 @@ function [g,S] = computeHybridMPTrans(g,S)
 % Computes the hybrid-hybrid transmissibilities. Also update the grid and
 % transmissibility structure accordingly.
 %
-% The call to computeMultiPointTrans with hybrid = true gives a
+% The call to computeMultiPointTransLegacy with hybrid = true gives a
 % transmissibility matrix where connections between hybrid cells are
 % represented as boundaries (they are not connectiod). This function
 % modifies the transmissibility matrix to produce connected faces.
@@ -38,7 +38,7 @@ function [g,S] = computeHybridMPTrans(g,S)
 % Pick out the transmissibility.
 T = S.T;
 
-% Assamble the discretization matrix. Cut and paste from incompMPFA
+% Assemble the discretization matrix. Cut and paste from incompMPFAlegacy
 nc     = g.cells.num;
 cellNo = rldecode(1:g.cells.num, diff(g.cells.facePos), 2) .';
 C      = sparse(1:size(g.cells.faces, 1), cellNo, 1);
