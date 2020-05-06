@@ -1,18 +1,29 @@
-function [T, T_noflow] = computeMultiPointTrans(G, rock, varargin)
+function varargout = computeMultiPointTrans(G, rock, varargin)
 % Compute multi-point transmissibilities for MPFA using local flux mimetic approach
 %
 % SYNOPSIS:
-%   function [T, T_noflow] = computeMultiPointTrans(G, rock, varargin)
+%   function varargout = computeMultiPointTrans(G, rock, varargin)
 %
 % DESCRIPTION:
+% 
+% We follow the approach described in this reference paper:
 %
-% Two versions available : 'legacy' (default) and 'tensor Assembly' (use key option `useTensorAssembly`).
+%      title     = {Local flux mimetic finite difference methods},
+%      author    = {Lipnikov, Konstantin and Shashkov, Mikhail and Yotov, Ivan},
+%      journal   = {Numerische Mathematik},
+%      volume    = {112},
+%      number    = {1},
+%      pages     = {115--152},
+%      year      = {2009},
+%      publisher = {Springer}
 %
-% This legacy version is faster. It is limited to a mesh with grid cells where
-% corners have the same number of faces as the spatial dimension (this is always
-% the case in 2D but not in 3D). The tensor assembly version
-% (computeMultiPointTransTensorAssembly) can handle the other cases but is
-% slower (the implementation will be optimized in the future to run faster).
+% Two versions are available : 'legacy' (default) and 'tensor Assembly' (set key option `useTensorAssembly` to true).
+%
+% This legacy version is faster. It is limited to mesh where all the grid cells
+% have corners that have the same number of faces as the spatial dimension (this
+% is always the case in 2D but not in 3D). The tensor assembly version can
+% handle the other cases but is slower (We plan to optimize this implementation
+% in the future to run faster).
 %
 % PARAMETERS:
 %   G       - Grid data structure as described by grid_structure.
@@ -45,19 +56,22 @@ function [T, T_noflow] = computeMultiPointTrans(G, rock, varargin)
 %                       computational process.  Default value depending on the
 %                       settings of function 'mrstVerbose'.
 %
-%   useTensorAssembly - Uses the tensor assembly implemention
+%   useTensorAssembly - If true, uses  tensor assembly 
 %
 %   blocksize         - If non-empty, divide the nodes in block with the given block size and proceed
 %                       with assembly by iteration on the blocks.
 %                       This is necessary in case for large models (get otherwise memory problems with MATLAB)
+%
 %                       Only used/available for tensor assembly version
 %
 %   neumann           - If true, set up the problem for Neumann boundary conditions (no flux). 
 %                       In this case, a lighter implementation is used.
+%
 %                       Only used/available for tensor assembly version
 %   
 %
 %   facetrans         - Accounts for face transmissibilities (see `computeMultiPointTransLegacy`)
+%
 %                       Only used/available for legacy version
 %
 %   invertBlocks      -
@@ -73,9 +87,17 @@ function [T, T_noflow] = computeMultiPointTrans(G, rock, varargin)
 %                              margin, but relies on being able to build
 %                              the required MEX functions.
 % RETURNS:
-%   T - half-transmissibilities for each local face of each grid cell
-%       in the grid.  The number of half-transmissibilities equal the
-%       number of rows in G.cells.faces.
+%   vargout - Two cases : 
+%  
+%      - for legacy : [T, T_noflow]  - half-transmissibilities for each local face of each grid cell
+%                                      in the grid. The number of half-transmissibilities equal the
+%                                      number of rows in G.cells.faces. T_noflow gives the half-transmissibilities 
+%                                      only for internal faces
+% 
+%      - for tensor assembly : [mpfastruct] - Assembly structure as computed by
+%                                             computeMultiPointTransTensorAssembly (contains transmissibilities and
+%                                             IndexArrays). If `neumann` is set to false, extra mappings are returned to 
+%                                             handle the boundary.
 %
 % EXAMPLE:
 %
@@ -88,12 +110,17 @@ function [T, T_noflow] = computeMultiPointTrans(G, rock, varargin)
    
    [opt, extra] = merge_options(opt, varargin{:});
    
-   if ~opt.useTensorAssembly
-       [T, T_noflow] = computeMultiPointTransLegacy(G, rock, extra{:});
+   if (nargout > 1) || ~opt.useTensorAssembly
+       % Uses legacy version
+       [varargout{1:nargout}] = computeMultiPointTransLegacy(G, rock, extra{:});
+       
    else
+       % Uses tensor assembly version
        extra = [extra, {'blocksize', opt.blocksize, 'neumann', opt.neumann}];
-       mpfastruct = computeMultiPointTransTensorAssembly(G, rock, extra{:});
-       T = mpfastruct;
-   end       
+       varargout{1} = computeMultiPointTransTensorAssembly(G, rock, extra{:});
+       
+   end
+   
+
 
 end
