@@ -1,32 +1,32 @@
-function tbl = sortTable(tbl, fds, varargin)
+function tbl = sortIndexArray(tbl, fds, varargin)
 %
 %
 % SYNOPSIS:
-%   tbl = sortTable(tbl, fds, varargin)
+%   tbl = sortIndexArray(tbl, fds, varargin)
 %
-% DESCRIPTION:
-%   Sort in increasing order the rows of indices given by the indexing
-%   table tbl, following the order given by fds. (We use sortrows)
+% DESCRIPTION: . We use function sortrows to sort in increasing order the rows
+% of indices given by the IndexArray tbl, following the order given by fds.
 %
 % PARAMETERS:
-%   tbl      - Indexing table
+%   tbl      - IndexArray
 %   fds      - Field names which give the order of the columns for the row
 %              indexing sort
 %   varargin - 
 %
 % KEYWORD ARGUMENTS:
 %   keepAllFields - We keep all the fields for the table, even those that are
-%                   not given in fds but belong to tbl. The default value is false. This
-%                   option has not been properly tested and we recommend not using it for the moment.
+%                   not given in fds but belong to tbl. The default value is
+%                   false. This option has not been properly tested and we
+%                   recommend not using it for the moment.
 %
 % RETURNS:
-%   tbl - Indexing table that has been sorted by row.
+%   tbl - IndexArray that has been sorted by rows.
 %
-% SEE ALSO:
-%   `setupTableMapping`.
+% SEE ALSO: `IndexArray`, `crossIndexArray`, `projIndexArray`
+%   `crossIndexArray`, `IndexArray`.
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -47,8 +47,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('keepAllFields', false);
     opt = merge_options(opt, varargin{:});
     
-    a = convertTableToArray(tbl, fds);
-    a = sortrows(a);
+    fdnames = tbl.fdnames;
+    [isfd, fdind2] = ismember(fds, fdnames);
+    
+    assert(all(isfd), 'fields not found in IndexArray');
+    
+    inds = tbl.inds;
+    inds = inds(:, fdind2);
+    
+    inds = sortrows(inds);
+    fdnames = fds;
+    
     
     if opt.keepAllFields
         warning('option not really tested yet!');
@@ -61,6 +70,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         fds = {fds{:}, ofds{:}};
     end
+
+    tbl.fdnames = fdnames;
+    tbl.inds = inds;
     
-    tbl = convertArrayToTable(a, fds);
 end
