@@ -1,4 +1,4 @@
-function [T,T_noflow] = computeMultiPointTransLegacy(g, rock, varargin)
+function [T, T_noflow] = computeMultiPointTransLegacy(g, rock, varargin)
 % Compute multi-point transmissibilities. This is the legacy version (not using
 % tensor assembly routines). It can only handle cases where the corner of a cell
 % has the same number of faces as the spatial dimension.
