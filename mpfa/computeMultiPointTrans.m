@@ -18,14 +18,9 @@ function [T, T_noflow] = computeMultiPointTrans(G, rock, varargin)
    if ~opt.useTensorAssembly
        [T, T_noflow] = computeMultiPointTransLegacy(G, rock, extra{:});
    else
-       blocksize = opt.blocksize;
-       if opt.neumann
-           mpfastruct = computeNeumannMultiPointTrans(G, rock, 'blocksize', blocksize, extra{:})
-           T = mpfastruct;
-       else
-           mpfastruct = computeMultiPointTransTensorAssembly(G, rock, 'blocksize', blocksize, extra{:});
-           T = mpfastruct;
-       end
+       extras = [extras, {'blocsize', opt.blocksize, 'neumann', opt.neumann}];
+       mpfastruct = computeMultiPointTransTensorAssembly(G, rock, extra{:})
+       T = mpfastruct;
    end       
 
 end
