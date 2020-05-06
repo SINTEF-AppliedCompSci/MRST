@@ -1,10 +1,10 @@
 function mpfastruct = computeMultiPointTransTensorAssembly(G, rock, varargin)
-    opt = struct('neumann', false)
+    opt = struct('neumann', false);
     [opt, extra] = merge_options(opt, varargin{:});
     if opt.neumann
-        mpfastruct = computeMultiPointTransNeumannTA(G, rock, extra{:})
+        mpfastruct = computeMultiPointTransNeumannTA(G, rock, extra{:});
     else
-        mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, extra{:})
+        mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, extra{:});
     end
     
 end
@@ -110,7 +110,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %                   G.griddim AND eta is value such that N*R is diagonal (see Lipnikov paper)
 
    if ~isempty(opt.blocksize)
-       mpfastruct = blockComputeMultiPointTrans(G, rock, varargin{:})
+       mpfastruct = blockComputeMultiPointTrans(G, rock, varargin{:});
        return
    end
    
