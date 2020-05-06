@@ -76,8 +76,8 @@ mpfastructs{caseno} = computeMultiPointTrans(G, rock, opts{:});
 texec = toc;
 % Options for incompMPFA for tensor assembly call
 incompopts = {'useTensorAssembly', true, ...
-        'W'                , W   , ...
-        'outputFlux'       , true};
+              'W'                , W   , ...
+              'outputFlux'       , true};
 states{caseno}    = incompMPFA(state0, G, mpfastructs{caseno}, [], incompopts{:});
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno}    = states{caseno}.flux;
@@ -94,7 +94,7 @@ opts = {'eta'              , eta      , ...
         'neumann'          , true};
 mpfastructs{caseno} = computeMultiPointTrans(G, rock, opts{:});
 texec = toc;
-states{caseno} = incompMPFA(state0, G, mpfastructs{caseno}, [], opts{:});
+states{caseno} = incompMPFA(state0, G, mpfastructs{caseno}, [], incompopts{:});
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 titles{caseno} = 'mpfa - Neumann - block';
