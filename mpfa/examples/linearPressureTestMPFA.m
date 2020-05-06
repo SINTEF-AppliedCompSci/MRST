@@ -68,13 +68,15 @@ z = G.cells.centroids(:, dim);
 eta = 1/3;
 blocksize = 10;
 
+state0 = initResSol(G, 0, 1);
+
 clear vecs fluxes
 caseno = 1;
 
-% mpfa - Legacy implementation
-T_mpfa = computeMultiPointTransLegacy(G, rock, 'eta', eta);
-state = initResSol(G, 0, 1);
-state = incompMPFAlegacy(state, G, T_mpfa, fluid, 'bc', bc);
+%% mpfa - Legacy implementation
+
+T_mpfa = computeMultiPointTrans(G, rock, 'eta', eta);
+state = incompMPFA(state0, G, T_mpfa, fluid, 'bc', bc);
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
@@ -82,27 +84,33 @@ fluxes{caseno} = state.flux;
 titles{caseno} = 'mpfa - legacy';
 caseno         = caseno + 1;
 
-% mpfa - Standard
-mpfastruct = computeMultiPointTrans(G, rock, 'eta', eta, 'verbose', true);
-state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
-mpfastruct1 = mpfastruct;
+%% mpfa - Tensor Assembly implementation (standard)
+
+mpfastruct1 = computeMultiPointTrans(G, rock, 'eta', eta, 'verbose', true, 'useTensorAssembly');
+% Options for incompMPFA for tensor assembly call
+opts = {'useTensorAssembly', true      , ...
+        'mpfastruct'       , mpfastruct1, ...
+        'bc'               , bc        , ...
+        'outputFlux'       , true};
+state = incompMPFA(state0, G, [], [], opts{:});
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
 fluxes{caseno} = state.flux;
-titles{caseno} = 'mpfa - standard';
+titles{caseno} = 'mpfa - TA - standard';
 caseno         = caseno + 1;
 
-% mpfa - block assembly (necessary for large systems)
-mpfastruct = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
+%% mpfa - Tensor Assembly implementation - block assembly (necessary for large systems)
+mpfastruct2 = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
                                          blocksize, 'verbose', true);
-mpfastruct2 = mpfastruct;
-state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
+% Update options for incompMPFA call
+opts.mpfastruct = mpfastruct2;
+state = incompMPFA(state0, G, [], [], opts{:});
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
 fluxes{caseno} = state.flux;
-titles{caseno} = 'mpfa - block';
+titles{caseno} = 'mpfa - TA - block';
 caseno         = caseno + 1;
 
 close all
