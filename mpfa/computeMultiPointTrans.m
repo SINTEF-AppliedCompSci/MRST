@@ -1,18 +1,18 @@
-function [T, T_noflow] = computeMultiPointTrans(g, rock, varargin)
+function [T, T_noflow] = computeMultiPointTrans(G, rock, varargin)
 
    opt = struct('useTensorAssembly', false, ...
-                'neumann', true);
+                'neumann', false);
    
    [opt, extra] = merge_options(opt, varargin{:});
    
    if ~opt.useTensorAssembly
-       [T, T_noflow] = computeMultiPointTransLegacy(g, rock, extra{:});
+       [T, T_noflow] = computeMultiPointTransLegacy(G, rock, extra{:});
    else
        if opt.neumann
            mpfastruct = computeNeumannMultiPointTrans(G, rock, extra{:})
            T = mpfastruct;
        else
-           mpfatstruct = computeMultiPointTransTensorAssembly(G, rock, extra{:});
+           mpfastruct = computeMultiPointTransTensorAssembly(G, rock, extra{:});
            T = mpfastruct;
        end
    end       

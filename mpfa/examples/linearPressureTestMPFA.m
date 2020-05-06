@@ -86,7 +86,7 @@ caseno         = caseno + 1;
 
 %% mpfa - Tensor Assembly implementation (standard)
 
-mpfastruct1 = computeMultiPointTrans(G, rock, 'eta', eta, 'verbose', true, 'useTensorAssembly');
+mpfastruct1 = computeMultiPointTrans(G, rock, 'eta', eta, 'verbose', true, 'useTensorAssembly', true);
 % Options for incompMPFA for tensor assembly call
 opts = {'useTensorAssembly', true      , ...
         'mpfastruct'       , mpfastruct1, ...
@@ -99,6 +99,8 @@ vecs{caseno}   = sortrows(vec);
 fluxes{caseno} = state.flux;
 titles{caseno} = 'mpfa - TA - standard';
 caseno         = caseno + 1;
+
+return
 
 %% mpfa - Tensor Assembly implementation - block assembly (necessary for large systems)
 mpfastruct2 = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...

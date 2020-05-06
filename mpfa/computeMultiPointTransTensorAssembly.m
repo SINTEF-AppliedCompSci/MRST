@@ -98,7 +98,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % 'directinverse' : case where at each corner, number of faces is equal to
    %                   G.griddim AND eta is value such that N*R is diagonal (see Lipnikov paper)
    
-   opt = merge_options(opt, varargin{:});
    switch opt.ip_compmethod
      case {'general', 'nicecorner'}
      case 'directinverse'
@@ -121,7 +120,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        t0 = tic();
    end
 
-   [B, tbls] = computeLocalFluxMimetic(G, rock, opt);
+   clfmopt = {'verbose'      , opt.verbose  , ...
+              'ip_compmethod', opt.ip_compmethod, ...
+              'eta'          , opt.eta};
+   [B, tbls] = computeLocalFluxMimetic(G, rock, clfmopt{:});
    facenodetbl = tbls.facenodetbl;
    celltbl = tbls.celltbl;
    
