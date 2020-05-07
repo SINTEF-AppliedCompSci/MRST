@@ -21,6 +21,8 @@ function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(mode
 %
 %   s          - Phase saturations per cell, as a nph long array.
 %
+%   b          - Inverse formation volume factors.
+%
 %   bc         - Boundary condition struct, with valid .sat field with
 %                length nph. Typically made using addBC, pside or fluxside.
 %
