@@ -1225,7 +1225,7 @@ function C = findConnections(za, zb)
 C = zeros(0,2);
 j1 = 1;
 j2 = 1;
-for i = 1:numel(za(:,1))-1
+for i = 1 : size(za, 1) - 1
 
     j = min(j1, j2);  % Largest j where both
                       % zb(j,1) < za(i,1) and
