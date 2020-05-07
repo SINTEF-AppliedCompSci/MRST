@@ -11,15 +11,16 @@ function output = getReportOutput(reports, varargin)
     if isa(reports, 'ResultHandler')
         nr = reports.numelData();
     end
-    opt = checkOptions(opt, reports{1});
+    [opt, scalar] = checkOptions(opt, reports{1});
     % Loop through timesteps and get output
-    out = zeros(nr,4);
+    out = cell(nr,1);
     for t = 1:nr
-        out(t,:) = getControlStepReportData(reports{t}, opt);
+        out{t} = getControlStepReportData(reports{t}, opt);
     end
-    output = struct('total', out(:,1), 'wasted', out(:,2), 'cuts', out(:,4));
+    [total, wasted, cuts, steps] = unpack(out, scalar);
+    output = struct('total', total, 'wasted', wasted, 'cuts', cuts);
     if ~isempty(opt.solver)
-        output.steps = out(:,3);
+        output.steps = steps;
     end
 end
 
@@ -27,7 +28,7 @@ end
 % Helpers
 
 %-------------------------------------------------------------------------%
-function opt = checkOptions(opt, sample)
+function [opt, scalar] = checkOptions(opt, sample)
     % Check that requested solver output exists in reports
     if ~isempty(opt.solver) && ~isfield(sample.StepReports{1}.NonlinearReport{1}, opt.solver)
         warning('Did not find %s output in reports, switching to default', opt.solver)
@@ -49,9 +50,26 @@ function opt = checkOptions(opt, sample)
         end
     end
     try % Test by getting controlstep report data from sample
-        getControlStepReportData(sample, opt);
+        v = getControlStepReportData(sample, opt);
     catch
         error('Invalid report outuput requested');
+    end
+    scalar = size(v,1) == 1;
+end
+
+%-------------------------------------------------------------------------%
+function [total, wasted, cuts, steps] = unpack(out, scalar)
+    if scalar
+        out    = cell2mat(out);
+        total  = out(:,1);
+        wasted = out(:,2);
+        cuts   = out(:,4);
+        steps  = out(:,3);
+    else
+        total  = {cellfun(@(v) v(:,1), out, 'UniformOutput', false)};
+        wasted = {cellfun(@(v) v(:,2), out, 'UniformOutput', false)};
+        cuts   = {cellfun(@(v) v(:,4), out, 'UniformOutput', false)};
+        steps  = {cellfun(@(v) v(:,3), out, 'UniformOutput', false)};
     end
 end
 
@@ -66,11 +84,14 @@ function output = getControlStepReportData(report, opt)
     output  = zeros(1,4);
     for i = 1:numel(stepreports)
         out = getStepReportData(stepreports{i}, opt);
-        output(1:3) = output(1:3) + out(1:3);
+        if size(output,1) < size(out,1)
+            output = zeros(size(out,1), 4);
+        end
+        output(:,1:3) = output(:,1:3) + out(:,1:3);
         if numel(out) == 4
-            output(4) = output(4) + out(4);
+            output(:,4) = output(:,4) + out(:,4);
         else
-            output(4) = output(4) + ~stepreports{i}.Converged;
+            output(:,4) = output(:,4) + ~stepreports{i}.Converged;
         end
     end
 end
@@ -94,7 +115,7 @@ function out = getStepReportData(stepreport, opt)
         for i = 1:numel(reports)
             out = out + opt.get(reports{i});
         end
-        out = [out, out.*stepreport.Converged, nan];
+        out = [out, out.*stepreport.Converged, nan(numel(out),1)];
     end
 end
 
