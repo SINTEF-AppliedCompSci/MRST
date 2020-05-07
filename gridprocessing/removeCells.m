@@ -173,6 +173,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       error('In removeCells: Too many nodes removed!');
   end
 
+  if isfield(G.cells, 'cpnodes')
+     pick = cellmap ~= 0;
+     G.cells.cpnodes = reshape(nodemap(G.cells.cpnodes(pick, :)), ...
+                               sum(pick), []);
+
+     if any(any(G.cells.cpnodes == 0))
+        error('CpNodes:ExcessiveNodeRemoval', ...
+             ['Too many nodes removed to preserve corner-point ', ...
+              'vertex structure']);
+     end
+  end
+
   G.type = [G.type, { mfilename }];
 
   cellmap = find(cellmap > 0);

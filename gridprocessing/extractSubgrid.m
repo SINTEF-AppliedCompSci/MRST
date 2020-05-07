@@ -142,6 +142,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          H.cartDims = G.cartDims;
       end
    end
+
+   if isfield(G.cells, 'cpnodes')
+      H.cells.cpnodes = reshape(nc(G.cells.cpnodes(cells(2:end), :)), ...
+                                H.cells.num, []);
+   end
    
    % Record history.
    assert (isfield(G, 'type'), ...
