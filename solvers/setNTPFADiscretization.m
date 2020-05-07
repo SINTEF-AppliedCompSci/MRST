@@ -1,8 +1,5 @@
 function model = setNTPFADiscretization(model, varargin)
 
-    opt = struct('myRatio', []);
-    opt = merge_options(opt, varargin{:});
-
     % Set NTPFA discretization on a model
     isWrapper = isa(model, 'WrapperModel');
     if isWrapper
@@ -11,7 +8,7 @@ function model = setNTPFADiscretization(model, varargin)
         m = model;
     end
 
-    m = setNTPFA(m, opt);
+    m = setNTPFA(m, varargin{:});
 
     if isWrapper
         model.parentModel = m;
@@ -20,14 +17,14 @@ function model = setNTPFADiscretization(model, varargin)
     end
 end
 
-function model = setNTPFA(model, opt)
+function model = setNTPFA(model, varargin)
     require nfvm
 
     if isempty(model.FluxDiscretization)
         model = model.setupStateFunctionGroupings();
     end
 
-    ntpfa = NTPFA(model, opt);
+    ntpfa = NTPFA(model, varargin{:});
 
     % Discrete gradient
     fd = model.FluxDiscretization;

@@ -1,7 +1,7 @@
 classdef NTPFA
     properties
         interpFace % Harmonic averaging points
-        OSflux % One side fluxes
+        OSflux % One-side fluxes
         G
         scale
         internalConn
@@ -10,14 +10,29 @@ classdef NTPFA
 
     methods
 
-        function ntpfa = NTPFA(model, opt)
+        function ntpfa = NTPFA(model, varargin)
             ntpfa.G = model.G;
 
-            % Set up HAP and fluxes
-            ntpfa.interpFace = findHAP(model.G, model.rock);
+            opt = struct('myRatio', [], ...
+                         'interpFace', [], ...
+                         'OSflux', []);
+            opt = merge_options(opt, varargin{:});
+
+            % Set up HAP
+            if isempty(opt.interpFace)
+                ntpfa.interpFace = findHAP(model.G, model.rock);
+                ntpfa.interpFace = correctHAP(model.G, ntpfa.interpFace, opt.myRatio);
+            else
+                ntpfa.interpFace = opt.interpFace;
+            end
             dispif(mrstVerbose, 'fraction of faces with HAPs outside convex hull is %d\n', ntpfa.interpFace.fraction);
-            ntpfa.interpFace = correctHAP(model.G, ntpfa.interpFace, opt.myRatio);
-            ntpfa.OSflux = findOSflux(model.G, model.rock, ntpfa.interpFace);
+
+            % Set up one-sided fluxes
+            if isempty(opt.OSflux)
+                ntpfa.OSflux = findOSflux(model.G, model.rock, ntpfa.interpFace);
+            else
+                ntpfa.OSflux = opt.OSflux;
+            end
 
             ntpfa.scale = -1 ./ model.operators.T;
             ntpfa.internalConn = model.operators.internalConn;
@@ -35,5 +50,5 @@ classdef NTPFA
             end
         end
     end
-    
+
 end
