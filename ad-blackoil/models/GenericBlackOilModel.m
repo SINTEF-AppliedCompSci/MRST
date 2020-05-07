@@ -103,19 +103,16 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
                 state.flux = zeros(model.G.faces.num, nph);
                 state.flux(model.operators.internalConn, :) = [f{:}];
 
-                bc = [];
                 if ~isempty(drivingForces.bc)
-                    bc = drivingForces.bc;
+                    [p, s, mob, rho, b] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ShrinkageFactors');
+                    sat = num2cell(s, [1, size(s, 1)]);               
+                    fSurf = getBoundaryConditionFluxesAD(model, p, sat, mob, rho, b, drivingForces.bc);
+                    idx = model.getPhaseIndices();
+                    fWOG = cell(3, 1);
+                    fWOG(idx > 0) = fSurf;
+
+                    state = model.storeBoundaryFluxes(state, fWOG{1}, fWOG{2}, fWOG{3}, drivingForces);
                 end
-
-                [p, s, mob, rho, b] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ShrinkageFactors');
-                sat = num2cell(s, [1, size(s, 1)]);               
-                fSurf = getBoundaryConditionFluxesAD(model, p, sat, mob, rho, b, bc);
-                idx = model.getPhaseIndices();
-                fWOG = cell(3, 1);
-                fWOG(idx > 0) = fSurf;
-
-                state = model.storeBoundaryFluxes(state, fWOG{1}, fWOG{2}, fWOG{3}, drivingForces);
             end
         end
     end
