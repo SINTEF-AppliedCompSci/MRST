@@ -14,14 +14,23 @@ classdef NTPFA
             ntpfa.G = model.G;
 
             opt = struct('myRatio', [], ...
+                         'OSflux', [], ...
                          'interpFace', [], ...
-                         'OSflux', []);
+                         'saveOSfluxDir', [], ...
+                         'saveInterpFaceDir', []);
             opt = merge_options(opt, varargin{:});
 
             % Set up HAP
             if isempty(opt.interpFace)
-                ntpfa.interpFace = findHAP(model.G, model.rock);
-                ntpfa.interpFace = correctHAP(model.G, ntpfa.interpFace, opt.myRatio);
+                interpFace = findHAP(model.G, model.rock);
+                interpFace = correctHAP(model.G, interpFace, opt.myRatio);
+
+                if ~isempty(opt.saveInterpFaceDir)
+                    save(fullfile(opt.saveInterpFaceDir, 'interpFace.mat'), ...
+                         'interpFace');
+                end
+                
+                ntpfa.interpFace = interpFace;
             else
                 ntpfa.interpFace = opt.interpFace;
             end
@@ -29,7 +38,14 @@ classdef NTPFA
 
             % Set up one-sided fluxes
             if isempty(opt.OSflux)
-                ntpfa.OSflux = findOSflux(model.G, model.rock, ntpfa.interpFace);
+                OSflux = findOSflux(model.G, model.rock, ntpfa.interpFace);
+                
+                if ~isempty(opt.saveOSfluxDir)
+                    save(fullfile(opt.saveOSfluxDir, 'OSflux.mat'), ...
+                         'OSflux');
+                end
+                
+                ntpfa.OSflux = OSflux;
             else
                 ntpfa.OSflux = opt.OSflux;
             end
