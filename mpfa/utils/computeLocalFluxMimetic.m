@@ -37,8 +37,8 @@ function [B, tbls] = computeLocalFluxMimetic(G, rock, varargin)
 %
 % EXAMPLE:
 %
-% SEE ALSO: `computeMultiPointTrans`
-%
+% SEE ALSO: 
+% `computeMultiPointTrans`
     
     opt = struct('verbose'      , mrstVerbose, ...
                  'ip_compmethod', 'general'  , ...

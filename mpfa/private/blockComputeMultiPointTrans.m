@@ -40,7 +40,8 @@ function mpfastruct = blockComputeMultiPointTrans(G, rock, varargin)
 %               'tbls': table structure
 % EXAMPLE:
 %
-% SEE ALSO: `computeMultiPointTrans`, `private/computeMultiPointTransTensorAssembly`
+% SEE ALSO:
+% `computeMultiPointTrans`, `private/computeMultiPointTransTensorAssembly`
 %
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

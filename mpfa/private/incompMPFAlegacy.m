@@ -113,9 +113,9 @@ function state = incompMPFAlegacy(state, g, T, fluid, varargin)
 %
 %    plotCellData(G, xr.pressure);
 %
-% SEE ALSO: `incompMPFA`, `private/incompMPFATensorAssembly`
-%   `computeMultiPointTransLegacy`, `addBC`, `addSource`, `addWell`, `initSingleFluid`,
-%   `initResSol`, `initWellSol`, `mrstVerbose`.
+% SEE ALSO:
+%    `incompMPFA`, `private/incompMPFATensorAsseembly` `computeMultiPointTransLegacy`
+%
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
