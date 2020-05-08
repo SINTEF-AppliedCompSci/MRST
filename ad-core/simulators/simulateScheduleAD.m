@@ -310,7 +310,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         firstEmptyIx = firstEmptyIx + numel(states_step);
 
-        if wantStates
+        if wantStates || ~isempty(opt.afterStepFn)
             states(ind) = states_step;
         end
 
