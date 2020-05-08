@@ -22,19 +22,19 @@ function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, varar
     map.fromTbl = globcelltbl;
     map.toTbl = celltbl;    
     map.mergefds = {'cells'};
-    globcell_from_cell = getDispatchInd(map);
+    globcell_from_cell = map.getDispatchInd();
     
     map = TensorMap();
     map.fromTbl = celltbl;
     map.toTbl = cellnodetbl;
     map.mergefds = {'cells'};
-    cell_from_cellnode = getDispatchInd(map);
+    cell_from_cellnode = map.getDispatchInd();
     
     map = TensorMap();
     map.fromTbl = nodetbl;
     map.toTbl = cellnodetbl;
     map.mergefds = {'nodes'};
-    node_from_cellnode = getDispatchInd(map); 
+    node_from_cellnode = map.getDispatchInd(); 
    
     
     nodefacetbl = crossIndexArray(nodetbl, globnodefacetbl, {'nodes'});
@@ -48,13 +48,13 @@ function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, varar
     map.fromTbl = cellnodetbl;
     map.toTbl = cellnodefacetbl;
     map.mergefds  = {'cells', 'nodes'};
-    cellnode_from_cellnodeface = getDispatchInd(map);
+    cellnode_from_cellnodeface = map.getDispatchInd();
     
     map = TensorMap();
     map.fromTbl = nodefacetbl;
     map.toTbl = cellnodefacetbl;
     map.mergefds = {'faces', 'nodes'};
-    nodeface_from_cellnodeface = getDispatchInd(map);
+    nodeface_from_cellnodeface = map.getDispatchInd();
 
     cellcoltbl = crossIndexArray(celltbl, coltbl, {}); % ordering is cell - col
     nodecoltbl = crossIndexArray(nodetbl, coltbl, {}); % ordering is cell - col

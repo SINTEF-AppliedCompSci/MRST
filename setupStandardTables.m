@@ -54,25 +54,25 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
     map.fromTbl = celltbl;
     map.toTbl = cellnodetbl;
     map.mergefds = {'cells'};
-    cell_from_cellnode = getDispatchInd(map);
+    cell_from_cellnode = map.getDispatchInd();
     
     map = TensorMap();
     map.fromTbl = nodetbl;
     map.toTbl = cellnodetbl;
     map.mergefds = {'nodes'};
-    node_from_cellnode = getDispatchInd(map);
+    node_from_cellnode = map.getDispatchInd();
     
     map = TensorMap();
     map.fromTbl = cellnodetbl;
     map.toTbl = cellnodefacetbl;
     map.mergefds  = {'cells', 'nodes'};
-    cellnode_from_cellnodeface = getDispatchInd(map);
+    cellnode_from_cellnodeface = map.getDispatchInd();
     
     map = TensorMap();
     map.fromTbl = nodefacetbl;
     map.toTbl = cellnodefacetbl;
     map.mergefds = {'faces', 'nodes'};
-    nodeface_from_cellnodeface = getDispatchInd(map);
+    nodeface_from_cellnodeface = map.getDispatchInd();
 
     cellnodecoltbl    = crossIndexArray(cellnodetbl, coltbl, {}, 'virtual', useVirtual);
 
