@@ -271,9 +271,21 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     %
 
     % Compute number of cell per node
-    [~, indstruct] = crossIndexArray(cellnodetbl, nodetbl, {'nodes'});
-    nnodepercell = tblmap1to2(ones(cellnodetbl.num, 1), indstruct);
-    coef   = tblmap2to1(1./nnodepercell, indstruct);
+    map = TensorMap();
+    map.fromTbl = cellnodetbl;
+    map.toTbl = nodetbl;
+    map.mergefds = {'nodes'};
+    map = map.setup();
+    
+    nnodepercell = map.eval(ones(cellnodetbl.num, 1));
+    
+    map = TensorMap();
+    map.fromTbl = nodetbl;
+    map.toTbl = cellnodetbl;
+    map.mergefds = {'nodes'};
+    map = map.setup();
+    
+    coef = map.eval(1./nnodepercell);
 
     % we eliminitate the places (at the boundaries) where the local reconstruction
     % is ill-posed: nodes with one cell in 2d (corners of a Cartesian grid) and
