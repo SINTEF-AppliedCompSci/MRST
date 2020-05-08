@@ -124,6 +124,30 @@ function G = processGRDECL(grdecl, varargin)
 %                             lower neighbour's upper corners.
 %                       Logical.  Default value: RepairZCORN = false.
 %
+%   PreserveCpNodes   - Whether or not to capture the vertex indicies of
+%                       each cell's original corner-point nodes.  If true,
+%                       an additional G.cells.num-by-8 array named
+%                       'cpnodes' containing vertex indicies will be stored
+%                       in the 'cells' substructure of the fully
+%                       constructed grid.  Columns 1:4 are the vertices of
+%                       the "minimum K" surface while columns 5:8 are the
+%                       vertices of the "maximum K" surface.
+%
+%                       The columns are stored in natural ordering of the
+%                       vertices, as demonstrated in the figure below.
+%
+%                            +-----------> I
+%                           /|
+%                          / |     1 --------- 2
+%                         /  |    /|          /|   Column numbers mapped
+%                      J v   |   / |         / |   to vertices in ECLIPSE's
+%                            |  3 --------- 4  |   default right-handed
+%                          K v  |  |        |  |   coordinate system
+%                               |  5 -------|- 6   (origin is top, left,
+%                               | /         | /    back vertex with Z-axis
+%                               |/          |/     pointing down.)
+%                               7 --------- 8
+%
 % RETURNS:
 %   G - Valid grid definition containing connectivity, cell geometry, face
 %       geometry and unique nodes.
@@ -168,7 +192,8 @@ opt = struct('CheckGrid'        , true       , ...
              'RepairZCORN'      , false      , ...
              'SplitDisconnected', true       , ...
              'Tolerance'        , 0.0        , ...
-             'Verbose'          , mrstVerbose);
+             'Verbose'          , mrstVerbose, ...
+             'PreserveCpNodes'  , false);
 opt = merge_options(opt, varargin{:});
 
 
@@ -199,7 +224,7 @@ dispif(opt.Verbose,                                   ...
 X(isnan(X)) = inf;
 Y(isnan(Y)) = inf;
 
-[G, P, B] = create_initial_grid(X, Y, Z);  clear X Y Z
+[G, P, B] = create_initial_grid(X, Y, Z, opt.PreserveCpNodes);  clear X Y Z
 
 % -------------------------------------------------------------------------
 % Process faces with constant i-index
@@ -271,8 +296,6 @@ G = removeCells(G, find(~actnum(:)|diff(G.cells.facePos)==0));
 G.cells.indexMap = G.cells.indexMap-prod(G.cartDims(1:2));
 G.cartDims(3)    = G.cartDims(3)-2;
 G.faces = rmfield(G.faces, 'cellTags');
-
-
 
 % ------------------------------------------------------------------------
 % A sane grid cell has at least four faces
@@ -414,7 +437,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [G, P, B] = create_initial_grid(X, Y, Z)
+function [G, P, B] = create_initial_grid(X, Y, Z, preserve_cpnodes)
    % Find unique points in input.  Unique sorts with most significant
    % number in first column. We must use column order Z, Y, X to obtain
    % natural ordering of points.
@@ -428,6 +451,10 @@ function [G, P, B] = create_initial_grid(X, Y, Z)
    G.cartDims                 = size(X) / 2;
    G.cells.num                = prod(G.cartDims);
    G.cells.indexMap           = (1 : prod(G.cartDims)) .';
+
+   if preserve_cpnodes
+      G.cells.cpnodes = from(create_initial_cpnodes(size(X)));
+   end
 
    % Empty structure used to hold grid
    G.faces.nodes      = [];
@@ -464,6 +491,24 @@ function G = reverseFaceNodes(G, f)
    ix1 = mcolon(G.faces.nodePos(f),     G.faces.nodePos(f+1)-1);
    ix2 = mcolon(G.faces.nodePos(f+1)-1, G.faces.nodePos(f)    , -1);
    G.faces.nodes(ix1) = G.faces.nodes(ix2);
+end
+
+%--------------------------------------------------------------------------
+
+function cpnodes = create_initial_cpnodes(cp_cartdims)
+   % cp_cartdims == 2 .* G.cartDims
+   [i, j, k] = ndgrid(1 : 2);
+   ijk = [ i(:), j(:), k(:) ];
+
+   ix = reshape(1 : prod(cp_cartdims), cp_cartdims);
+   cp = @(nod) reshape(ix(ijk(nod, 1) : 2 : end, ...
+                          ijk(nod, 2) : 2 : end, ...
+                          ijk(nod, 3) : 2 : end), [], 1);
+
+   cpnodes = zeros([prod(cp_cartdims ./ 2), size(ijk, 1)]);
+   for nod = 1 : size(ijk, 1)
+      cpnodes(:, nod) = cp(nod);
+   end
 end
 
 %--------------------------------------------------------------------------

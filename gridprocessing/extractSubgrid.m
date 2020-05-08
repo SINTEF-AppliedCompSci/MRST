@@ -58,15 +58,14 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    % We don't support multi-component grids...
-   if numel(G) > 1,
+   if numel(G) > 1
       error(msgid('Grid:MultiComponent'), ...
             'Cannot extract sub-grid from more than one grid at a time.');
    end
 
-   if islogical(c),
-      if numel(c) == G.cells.num,
+   if islogical(c)
+      if numel(c) == G.cells.num
          c = find(c);
       else
          error(msgid('Mask:WrongSize'), ...
@@ -76,12 +75,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
 
-   if isfield(G.cells, 'numFaces'),
+   if isfield(G.cells, 'numFaces')
       error(msgid('Grid:Cells:numFaces'), ...
             'Grids with ''cells.numFaces'' are no longer supported.');
    end
 
-   if isfield(G.faces, 'numNodes'),
+   if isfield(G.faces, 'numNodes')
       error(msgid('Grid:Faces:numNodes'), ...
             'Grids with ''faces.numNodes'' are no longer supported.');
    end
@@ -133,15 +132,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    H.cells.num = numel(H.cells.facePos) - 1;
    H.nodes.num = size(H.nodes.coords, 1);
 
-   if isfield(G, 'cartDims'),
+   if isfield(G, 'cartDims')
       H.cartDims = nan(size(G.cartDims));
    end
 
-   if isfield(G.cells, 'indexMap'),
+   if isfield(G.cells, 'indexMap')
       H.cells.indexMap = G.cells.indexMap(cells(2:end));
-      if isfield(G, 'cartDims'),
+      if isfield(G, 'cartDims')
          H.cartDims = G.cartDims;
       end
+   end
+
+   if isfield(G.cells, 'cpnodes')
+      H.cells.cpnodes = reshape(nc(G.cells.cpnodes(cells(2:end), :)), ...
+                                H.cells.num, []);
    end
    
    % Record history.
