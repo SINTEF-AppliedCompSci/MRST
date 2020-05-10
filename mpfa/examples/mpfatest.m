@@ -1,8 +1,7 @@
-%% Simple test where we compare the different implementation (legacy, standard, block assembly)
+%% Simple test where we compare the different implementation: legacy, tensor assembly, with and without iteration over blocks (necessary for large systems)
 %
-% We use Neumann boundary conditions and well injection
+% The test is aimed at Neumann boundary conditions (no flow) and well injection.
 %
-% SEE ALSO : `computeMultiPointTransLegacy`, `computeNeumannMultiPointTrans`, `blockComputeNeumannMultiPointTrans`
 
 clear all
 
@@ -53,36 +52,48 @@ gravity off
 clear mpfastructs states pressures fluxes titles
 caseno = 1;
 
-% mpfa - legacy
+state0 = initResSol(G, 0, 1);
+
+%% mpfa - legacy
 tic
-T_mpfa = computeMultiPointTransLegacy(G, rock, 'eta', eta);
+T_mpfa = computeMultiPointTrans(G, rock, 'eta', eta);
 texec = toc;
-states{caseno}    = initResSol(G, 0, 1);
-states{caseno}    = incompMPFAlegacy(states{caseno}, G, T_mpfa, fluid, 'wells', W);
+states{caseno}    = incompMPFA(state0, G, T_mpfa, fluid, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno}    = states{caseno}.flux;
 titles{caseno}    = 'mpfa - legacy';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
-% mpfa - well
+%% mpfa - tensor assembly
 tic
-mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', eta, 'verbose', isverbose);
+opts = {'eta'              , eta      , ...
+        'verbose'          , isverbose, ...
+        'useTensorAssembly', true     , ...
+        'neumann'          , true};
+mpfastructs{caseno} = computeMultiPointTrans(G, rock, opts{:});
 texec = toc;
-states{caseno}    = incompMPFA(G, mpfastructs{caseno}, W, 'outputFlux', true);
+% Options for incompMPFA for tensor assembly call
+incompopts = {'useTensorAssembly', true, ...
+              'wells'            , W   , ...
+              'outputFlux'       , true};
+states{caseno}    = incompMPFA(state0, G, mpfastructs{caseno}, [], incompopts{:});
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno}    = states{caseno}.flux;
 titles{caseno}    = 'mpfa - Neumann';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
-% mpfa - well - block
+%% mpfa - tensor assembly with iterations on blocks (necessary for large system)
 tic
-mpfastructs{caseno} = blockComputeNeumannMultiPointTrans(G, rock, 'blocksize', ...
-                                                  blocksize,  'eta', 1/3, ...
-                                                  'verbose', isverbose);
+opts = {'eta'              , eta      , ...
+        'verbose'          , isverbose, ...
+        'useTensorAssembly', true     , ...
+        'blocksize'        , blocksize, ...
+        'neumann'          , true};
+mpfastructs{caseno} = computeMultiPointTrans(G, rock, opts{:});
 texec = toc;
-states{caseno} = incompMPFA(G, mpfastructs{caseno}, W, 'outputFlux', true);
+states{caseno} = incompMPFA(state0, G, mpfastructs{caseno}, [], incompopts{:});
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 titles{caseno} = 'mpfa - Neumann - block';

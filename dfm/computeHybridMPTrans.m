@@ -2,7 +2,7 @@ function [g,S] = computeHybridMPTrans(g,S)
 % Computes the hybrid-hybrid transmissibilities. Also update the grid and
 % transmissibility structure accordingly.
 %
-% The call to computeMultiPointTransLegacy with hybrid = true gives a
+% The call to computeMultiPointTrans with hybrid = true gives a
 % transmissibility matrix where connections between hybrid cells are
 % represented as boundaries (they are not connectiod). This function
 % modifies the transmissibility matrix to produce connected faces.

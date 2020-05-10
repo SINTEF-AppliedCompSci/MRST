@@ -1,10 +1,31 @@
-function mpfastruct = computeMultiPointTrans(G, rock, varargin)
-% Compute multi-point transmissibilities for MPFA
+function varargout = computeMultiPointTrans(G, rock, varargin)
+% Compute multi-point transmissibilities for MPFA using local flux mimetic approach
 %
 % SYNOPSIS:
-%   T = computeMultiPointTrans(G, rock)
+%   function varargout = computeMultiPointTrans(G, rock, varargin)
 %
-% REQUIRED PARAMETERS:
+% DESCRIPTION:
+% 
+% We follow the local flux mimetic approach as described in this reference paper:
+%
+%      title     = {Local flux mimetic finite difference methods},
+%      author    = {Lipnikov, Konstantin and Shashkov, Mikhail and Yotov, Ivan},
+%      journal   = {Numerische Mathematik},
+%      volume    = {112},
+%      number    = {1},
+%      pages     = {115--152},
+%      year      = {2009},
+%      publisher = {Springer}
+%
+% Two versions are available : 'legacy' (default) and 'tensor Assembly' (set key option `useTensorAssembly` to true).
+%
+% This legacy version is faster. It is limited to mesh where all the grid cells
+% have corners that have the same number of faces as the spatial dimension (this
+% is always the case in 2D but not in 3D). The tensor assembly version can
+% handle the other cases but is slower (We plan to optimize this implementation
+% in the future to run faster).
+%
+% PARAMETERS:
 %   G       - Grid data structure as described by grid_structure.
 %
 %   rock    - Rock data structure with valid field 'perm'.  The
@@ -28,13 +49,32 @@ function mpfastruct = computeMultiPointTrans(G, rock, varargin)
 %                 K_i = [ k1  k2  k3 ]  in three space dimensions
 %                       [ k2  k4  k5 ]
 %                       [ k3  k5  k6 ]
+%   varargin - see below
 %
-% OPTIONAL PARAMETERS
-%   verbose   - Whether or not to emit informational messages throughout the
-%               computational process.  Default value depending on the
-%               settings of function 'mrstVerbose'.
+% KEYWORD ARGUMENTS:
+%   verbose           - Whether or not to emit informational messages throughout the
+%                       computational process.  Default value depending on the
+%                       settings of function 'mrstVerbose'.
 %
-%   invertBlocks -
+%   useTensorAssembly - If true, uses  tensor assembly 
+%
+%   blocksize         - If non-empty, divide the nodes in block with the given block size and proceed
+%                       with assembly by iterating on the blocks.
+%                       This is necessary in case of large models (get otherwise memory problems with MATLAB)
+%
+%                       Only used/available for tensor assembly version
+%
+%   neumann           - If true, set up the problem for Neumann boundary conditions (no flux). 
+%                       In this case, a lighter implementation is used.
+%
+%                       Only used/available for tensor assembly version
+%   
+%
+%   facetrans         - Accounts for face transmissibilities (see `computeMultiPointTransLegacy`)
+%
+%                       Only used/available for legacy version
+%
+%   invertBlocks      -
 %               Method by which to invert a sequence of small matrices that
 %               arise in the discretisation.  String.  Must be one of
 %                  - MATLAB -- Use an function implemented purely in MATLAB
@@ -46,25 +86,23 @@ function mpfastruct = computeMultiPointTrans(G, rock, varargin)
 %                              method is often faster by a significant
 %                              margin, but relies on being able to build
 %                              the required MEX functions.
-%
 % RETURNS:
+%   vargout - Two cases : 
 %  
-%   mpfastruct with fields:
+%      - for legacy : [T, T_noflow]  - half-transmissibilities for each local face of each grid cell
+%                                      in the grid. The number of half-transmissibilities equal the
+%                                      number of rows in G.cells.faces. T_noflow gives the half-transmissibilities 
+%                                      only for internal faces
+% 
+%      - for tensor assembly : [mpfastruct] - Assembly structure as computed by
+%                                             computeMultiPointTransTensorAssembly (contains transmissibilities and
+%                                             IndexArrays). If `neumann` is set to false, extra mappings are returned to 
+%                                             handle the boundary.
 %
-%               'iB'  : inverse of scalar product (facenode degrees of freedom)
-%               'div' : divergence operator (facenode values to cell values)
-%               'Pext': projection operator on external facenode values. It
-%                       is signed and return boundary outfluxes (positive if exiting).
-%               'F'   : flux operator (from cell and external facenode values to facenode values)
-%               'A'   : system matrix (cell and external facenode degrees of freedom)
-%               'tbls': table structure
-   
-% COMMENTS:
-%   PLEASE NOTE: Face normals have length equal to face areas.
+% EXAMPLE:
 %
 % SEE ALSO:
-%   `incompMPFAbc`, `mrstVerbose`.
-
+%
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -84,172 +122,23 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   opt = struct('verbose'      , mrstVerbose, ...
-                'blocksize'    , []         , ...
-                'ip_compmethod', 'general'  , ...
-                'invertBlocks' , 'matlab'   , ...
-                'eta'          , 0);
-
-   opt = merge_options(opt, varargin{:});
-   % possible options for ip_compmethod
-   % 'general'       : general case, no special requirements on corner
-   % 'nicecorner'    : case where at each corner, number of faces is equal to G.griddim
-   % 'directinverse' : case where at each corner, number of faces is equal to
-   %                   G.griddim AND eta is value such that N*R is diagonal (see Lipnikov paper)
+   opt = struct('useTensorAssembly', false, ...
+                'blocksize', [], ...
+                'neumann', false);
    
-   opt = merge_options(opt, varargin{:});
-   switch opt.ip_compmethod
-     case {'general', 'nicecorner'}
-     case 'directinverse'
-       isOk = false;
-       if (G.griddim == 2) & (opt.eta == 1/3), isOk = true, end
-       if (G.griddim == 3) & (opt.eta == 1/4), isOk = true, end
-       if ~isOk
-           error(['option values for ip_compmethod and eta are not ' ...
-                  'compatible']);
-       end
-     otherwise
-       error('value of option nodeompcase is not recognized.');
-   end
-
-   opt.invertBlocks = blockInverter(opt);
-   blocksize = opt.blocksize;
-
-   if opt.verbose
-       fprintf('Computing inner product on sub-half-faces ... ');
-       t0 = tic();
-   end
-
-   [B, tbls] = computeLocalFluxMimetic(G, rock, opt);
-   facenodetbl = tbls.facenodetbl;
-   celltbl = tbls.celltbl;
+   [opt, extra] = merge_options(opt, varargin{:});
    
-   % if we know - a priori - that matrix is symmetric, then we remove
-   % symmetry loss that has been introduced in assembly.
-   if strcmp(opt.ip_compmethod, 'directinverse')
-       B = 0.5*(B + B');
+   if (nargout > 1) || ~opt.useTensorAssembly
+       % Uses legacy version
+       [varargout{1:nargout}] = computeMultiPointTransLegacy(G, rock, extra{:});
+       
+   else
+       % Uses tensor assembly version
+       extra = [extra, {'blocksize', opt.blocksize, 'neumann', opt.neumann}];
+       varargout{1} = computeMultiPointTransTensorAssembly(G, rock, extra{:});
+       
    end
    
-   if opt.verbose
-       t0 = toc(t0);
-       fprintf('%g sec\n', t0);
-   end
-   
-   if opt.verbose
-       fprintf('Computing inverse mixed innerproduct... ');
-       t0 = tic();   
-   end
-   
-   %% Invert matrix B
-   % The facenode degrees of freedom, as specified by the facenodetbl table, are
-   % ordered by nodes first (see implementation below). It means in particular
-   % that the matrix B is, by construction, block diagonal.
-   nodes = facenodetbl.get('nodes');
-   [~, sz] = rlencode(nodes); 
-   iB = opt.invertBlocks(B, sz);
 
-   if opt.verbose
-       t0 = toc(t0);   
-       fprintf('%g sec\n', t0);
-   end
-   % if we know - a priori - that matrix is symmetric, then we remove the loss of
-   % symmetry that may have been introduced by the numerical inversion.
-   if strcmp(opt.ip_compmethod, 'directinverse')
-       iB = 0.5*(iB + iB');
-   end
-   
-   %% Assemble of the divergence operator, from facenode values to cell value.
-   cellnodefacetbl = tbls.cellnodefacetbl;
-   
-   fno = cellnodefacetbl.get('faces');
-   cno = cellnodefacetbl.get('cells');
-   sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
-   
-   prod = TensorProd();
-   prod.tbl1 = cellnodefacetbl;
-   prod.tbl2 = facenodetbl;
-   prod.tbl3 = celltbl;   
-   prod.reducefds = {'nodes', 'faces'};
-   prod = prod.setup();
-   
-   div_T = SparseTensor();
-   div_T = div_T.setFromTensorProd(sgn, prod);
-   div = div_T.getMatrix();
 
-   
-   %% Assemble the projection operator from facenode values to facenode values
-   % on the external faces.
-   
-   extfaces = (G.faces.neighbors(:, 1) == 0) | (G.faces.neighbors(:, 2) == 0);
-   faceexttbl.faces = find(extfaces);
-   faceexttbl = IndexArray(faceexttbl);
-   extfacenodetbl = crossIndexArray(facenodetbl, faceexttbl, {'faces'});
-   
-   map = TensorMap();
-   map.fromTbl = cellnodefacetbl;
-   map.toTbl = extfacenodetbl;
-   map.mergefds = {'faces', 'nodes'};
-   map = map.setup();
-   
-   efn_sgn = map.eval(sgn);
-   
-   prod = TensorProd();
-   prod.tbl1 = extfacenodetbl;
-   prod.tbl2 = facenodetbl;
-   prod.tbl3 = extfacenodetbl;
-   prod.mergefds = {'faces', 'nodes'};
-   prod = prod.setup();
-   
-   Pext_T = SparseTensor();
-   Pext_T = Pext_T.setFromTensorProd(efn_sgn, prod);
-   Pext = Pext_T.getMatrix();
-   
-   extfacenodetbl = extfacenodetbl.addLocInd('extfnind');
-   tbls.extfacenodetbl = extfacenodetbl;
-   
-   %% Assemble the flux operator: From pressure values at the cell center and
-   % at the external facenode, compute the fluxes at the faces
-   F1 = iB*div';
-   F2 = - iB*Pext';
-   F  = [F1, F2];
-   facetbl.faces = (1 : G.faces.num)';
-   facetbl = IndexArray(facetbl);
-   
-   map = TensorMap();
-   map.fromTbl = facenodetbl;
-   map.toTbl = facetbl;
-   map.mergefds = {'faces'};
-   map = map.setup();
-   
-   Aver_T = SparseTensor();
-   Aver_T = Aver_T.setFromTensorMap(map);
-   Aver = Aver_T.getMatrix();
-   
-   F = Aver*F;
-   
-   %% Assemble the system matrix operaror: The degrees of freedom are the pressure
-   % values at the cell center and at the external facenode.
-   %
-   % We have u = iB*div'*p - iB*Pext'*pe
-   % where pe is pressure at external facenode.
-   %
-   
-   A11 = div*iB*div';
-   A12 = -div*iB*Pext';
-   A21 = -Pext*iB*div';
-   A22 = Pext*iB*Pext';
-   A = [[A11, A12]; [A21, A22]];
-
-   % The first equation row (that is [A11, A12]) corresponds to mass conservation and
-   % should equal to source term.
-   % The second equation row (that is [A11, A12]) corresponds to definition of external
-   % flux and should equal -Pext*u, that is boundary facenode fluxes in
-   % inward direction (see definition on Pext: Pext*u returns outward fluxes).
-   mpfastruct = struct('div' , div , ...
-                       'F'   , F   , ...
-                       'A'   , A   , ...
-                       'tbls', tbls);
-   
 end
-

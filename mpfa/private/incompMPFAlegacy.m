@@ -29,7 +29,7 @@ function state = incompMPFAlegacy(state, g, T, fluid, varargin)
 %   fluid  - Fluid object as defined by function 'initSimpleFluid'.
 %
 % OPTIONAL PARAMETERS:
-%   W      - Well structure as defined by functions 'addWell' and
+%   wells  - Well structure as defined by functions 'addWell' and
 %            'assembleWellSystem'.  May be empty (i.e., W = struct([]))
 %            which is interpreted as a model without any wells.
 %
@@ -85,7 +85,7 @@ function state = incompMPFAlegacy(state, g, T, fluid, varargin)
 %
 % NOTE:
 %   If there are no external influences, i.e., if all of the structures
-%   'W', 'bc', and 'src' are empty and there are no effects of gravity,
+%   'wells', 'bc', and 'src' are empty and there are no effects of gravity,
 %   then the input values 'xr' and 'xw' are returned unchanged and a
 %   warning is printed in the command window. This warning is printed with
 %   message ID
@@ -109,13 +109,13 @@ function state = incompMPFAlegacy(state, g, T, fluid, varargin)
 %
 %    state = initState(G, W, 100*barsa);
 %    state = incompMPFAlegacy(state, G, T, f, 'bc', bc, 'src', src, ...
-%                       'W', W, 'MatrixOutput',true);
+%                       'wells', W, 'MatrixOutput',true);
 %
 %    plotCellData(G, xr.pressure);
 %
 % SEE ALSO:
-%   `computeMultiPointTransLegacy`, `addBC`, `addSource`, `addWell`, `initSingleFluid`,
-%   `initResSol`, `initWellSol`, `mrstVerbose`.
+%    `incompMPFA`, `private/incompMPFATensorAsseembly` `computeMultiPointTransLegacy`
+%
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -136,11 +136,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 % Written by Jostein R. Natvig, SINTEF ICT, 2009.
 
-    opt = struct('bc', [], 'src', [], 'wells', [],...
-                 'W', [], ...
-                 'LinSolve', @mldivide,...
-                 'MatrixOutput', false,...
-                 'Verbose', mrstVerbose); 
+    opt = struct('bc'          , []       , ...
+                 'src'         , []       , ...
+                 'wells'       , []       , ...
+                 'LinSolve'    , @mldivide,...
+                 'MatrixOutput', false    ,...
+                 'Verbose'     , mrstVerbose); 
     opt = merge_options(opt, varargin{:});
     opt = treatLegacyForceOptions(opt);
 

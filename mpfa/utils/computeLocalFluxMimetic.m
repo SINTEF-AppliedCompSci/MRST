@@ -2,7 +2,7 @@ function [B, tbls] = computeLocalFluxMimetic(G, rock, varargin)
 % Computes the scalar product matrix for the cell-face-node degrees of freedom
 %
 % SYNOPSIS:
-%   function [B, tbls] = computeLocalFluxMimetic(G, rock, opt)
+%   function [B, tbls] = computeLocalFluxMimetic(G, rock, varargin)
 %
 % DESCRIPTION:
 % 
@@ -37,8 +37,8 @@ function [B, tbls] = computeLocalFluxMimetic(G, rock, varargin)
 %
 % EXAMPLE:
 %
-% SEE ALSO:
-%
+% SEE ALSO: 
+% `computeMultiPointTrans`
     
     opt = struct('verbose'      , mrstVerbose, ...
                  'ip_compmethod', 'general'  , ...

@@ -22,33 +22,32 @@ G = computeGeometry(G);
 
 rock.perm = 0.1*darcy*ones(G.cells.num, 1);
 
-bc  = pside([], G, 'left',  2);
-bc  = pside(bc, G, 'right', 1);
+bc = pside([], G, 'left',  2);
+bc = pside(bc, G, 'right', 1);
 
 fluid = initSingleFluid('mu' ,    1*centi*poise     , ...
                         'rho', 1014*kilogram/meter^3);
 
+state0 = initResSol(G, 0, 0);
 %% MPFA-O method
 fprintf('MPFA-O method\t... ')
 tic
-T1  = computeMultiPointTransLegacy(G, rock);
-xr1 = incompMPFAlegacy(initResSol(G, 0, 0), G, T1, fluid, ...
-                 'bc', bc,'MatrixOutput',true);
+T1  = computeMultiPointTrans(G, rock);
+xr1 = incompMPFA(state0, G, T1, fluid, 'bc', bc, 'MatrixOutput', true);
 toc
 
 %% Mimetic method
 fprintf('Mimetic method\t... ')
 tic
-S = computeMimeticIP(G, rock);
-xr2 = incompMimetic(initResSol(G, 0, 0), G, S, fluid, 'bc', bc);
+S   = computeMimeticIP(G, rock);
+xr2 = incompMimetic(state0, G, S, fluid, 'bc', bc);
 toc
 
 %% TPFA method
 fprintf('TPFA Method\t... ')
 tic
 T2  = computeTrans(G, rock);
-xr3 = incompTPFA(initResSol(G, 0, 0), G, T2, fluid, ...
-                 'bc', bc,'MatrixOutput',true);
+xr3 = incompTPFA(state0, G, T2, fluid, 'bc', bc,'MatrixOutput', true);
 toc
 
 %% Plot solutions
