@@ -22,7 +22,7 @@ function [krG, krOG, pcOG, pts, pts_o, hasPC] = getFunctions(f, SGOF, reg)
         sgof = SGOF{i};
         SG = sgof(:, 1);
         ds = diff(SG);
-        if reg.optimize && all(abs(ds - ds(1)) < sqrt(eps(ds(1))))
+        if isfield(reg, 'optimize') && reg.optimize && all(abs(ds - ds(1)) < sqrt(eps(ds(1))))
             % Uniform grid
             ds = ds(1);
             sgof = [[SG(1) - ds; SG; SG(end) + ds], sgof([1, 1:end, end], 2:end)];

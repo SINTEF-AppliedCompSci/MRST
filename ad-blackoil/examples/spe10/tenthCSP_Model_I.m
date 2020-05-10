@@ -68,7 +68,8 @@ fluid = initSimpleADIFluid('mu'    , [  1, 0.01]*centi*poise, ...
 %%
 % Replace the synthetic relative permeability curves created through
 % function |initSimpleADIFluid| with the real benchmark values.
-fluid_kr = assignSGOF(fluid, kr_deck.PROPS.SGOF, struct('sat', 1));
+fluid_kr = assignSGOF(fluid, kr_deck.PROPS.SGOF, struct('sat', 1, ...
+                                               'interp1d', @interpTable));
 fluid.krG = fluid_kr.krG{1};
 fluid.krO = fluid_kr.krOG{1};              clear fluid_kr
 
