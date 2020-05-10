@@ -114,7 +114,7 @@ else
     nc=G.cells.num;
     % matrix from cells+boundary to hface, where all value on a face is
     % equal (??)
-    TM=computeMultiPointTransLegacy(G, rock);
+    TM=computeMultiPointTrans(G, rock);
     T=TM.T;
     cellNo = rldecode(1:G.cells.num, diff(G.cells.facePos), 2) .';
     b  = any(G.faces.neighbors==0, 2);
