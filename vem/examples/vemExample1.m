@@ -72,8 +72,8 @@ boundary  = [0             0             0             ; ...
              0             gridLimits(2) gridLimits(3)];
 
 points = bsxfun(@times, rand(200, 3), gridLimits);
-        
-G = mirroredPebi(points, boundary);
+
+G = mirroredPebi3D(points, boundary);
 
 %%
 % Having generated the grid structure, we plot the result.
