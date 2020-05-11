@@ -8,19 +8,30 @@
 % <matlab:help('incompTPFA') Two-point flux approximation> (TPFA) mehod.
 
 try
-   require upr vem incomp vemmech
+   require upr vem incomp vemmech coarsegrid
 catch
-   mrstModule add upr vem incomp vemmech
+   mrstModule add upr vem incomp vemmech coarsegrid
 end
 
 %% Define geometry
 % We will use the UPR module to construct a composite PEBI-grid covering
-% the domain $[0, 1000]\times[0, 1000]$, divided into three regions of
+% the domain $[0, 1000]\times[0, 1000]$, divided into four regions of
 % highly varying permeability, with a source placed in the lower left
 % corner, and a sink in the upper right corner. See the UPR module on how
 % to contruct such grids.
-
-[G, c] = producerInjectorGrid();
+n  = 30;   % Number of cells in each axial direction
+l  = 1000; % Physical lenght
+% Cell and face constraints
+vn = [-1, 1]/sqrt(2);
+h = sqrt(2)*l;
+f = @(alpha) bsxfun(@plus, bsxfun(@times, vn*min(alpha, 2-alpha), [-h/2; h/2]), [1,1]/sqrt(2)*alpha*h/2);
+fc = cellfun(@(alpha) f(alpha), num2cell([0.5, 1, 1.5]), 'UniformOutput', false);
+cc = {0.1*l*[1,1], 0.9*l*[1,1]};
+% Make grid
+G = pebiGrid2D(l/n, [l,l], 'faceConstraints', fc, 'cellConstraints', cc);
+% Partition grid into regions
+cells = ones(G.cells.num,1);
+cells = processPartition(G, cells, find(G.faces.tag));
 
 %%
 % Having generated the grid structure, we plot the result.
@@ -69,8 +80,9 @@ KK{4} = K;
 % <matlab:help('makeRock') makeRock>, where we set the porosity to 0.3:
 
 perm = zeros(G.cells.num, 3);
-for i = 1:numel(c)
-    perm(c{i},:) = repmat(KK{i}([1,2,4]), nnz(c{i}), 1);
+for i = 1:max(cells)
+    ix = cells == i;
+    perm(ix,:) = repmat(KK{i}([1,2,4]), nnz(ix), 1);
 end
     
 poro = 0.3;
