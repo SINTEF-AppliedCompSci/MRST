@@ -23,10 +23,11 @@ function rock = initEclipseRock(deck)
 %          transmissibility multiplier data (keywords 'MULTX', 'MULTY',
 %          'MULTZ', 'MULTX-', 'MULTY-', 'MULTZ-'), then those values will
 %          be stored as individual fields in a substructure 'multipliers'.
-%          The field names are lower case and hypens are replaced by
-%          underscores.  For instance, the 'MULTX-' data will be stored as
+%          The field names are lower case without 'MULT' and hypens are
+%          replaced by underscores.  For instance, the 'MULTX-' data will
+%          be stored as
 %
-%             - rock.multipliers.multx_
+%             - rock.multipliers.x_
 %
 %          This function is not aware of time-dependent multipliers that
 %          may be present in the 'SCHEDULE' section.
@@ -72,19 +73,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Permeability tensor.
    rock.perm = getTensor(deck);
 
-   extract_grid_prop = @(prop) reshape(deck.GRID.(prop), [], 1);
-
    % Other properties.
    rockprop = {'PORO', 'NTG'};
    for rockp = reshape(rockprop(isfield(deck.GRID, rockprop)), 1, [])
-      rock.(lower(rockp{1})) = extract_grid_prop(rockp{1});
+      rock.(lower(rockp{1})) = extract_grid_prop(deck, rockp);
    end
 
-   multiplier = strcat('MULT', {'X', 'Y', 'Z'});
-   multiplier = [ multiplier, strcat(multiplier, '_') ];
-   for mult = reshape(multiplier(isfield(deck.GRID, multiplier)), 1, [])
-      rock.multipliers.(lower(mult{1})) = extract_grid_prop(mult{1});
-   end
+   rock = assign_multipliers(rock, deck);
 
    if isfield(deck.PROPS, 'ROCK')
       [rock.cr, rock.pref] = rock_compressibility(deck.PROPS);
@@ -96,6 +91,29 @@ end
 
 %--------------------------------------------------------------------------
 % Private helpers follow.
+%--------------------------------------------------------------------------
+
+function rock = assign_multipliers(rock, deck)
+   compname = @(kw) lower(kw{1}(5 : end));  % MULTX -> x; MULTY_ -> y_
+
+   multiplier = strcat('MULT', {'X', 'Y', 'Z'});
+   multiplier = [ multiplier, strcat(multiplier, '_') ];
+
+   for mult = reshape(multiplier(isfield(deck.GRID, multiplier)), 1, [])
+      rock.multipliers.(compname(mult)) = extract_grid_prop(deck, mult);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function prop = extract_grid_prop(deck, propname)
+   if iscell(propname)
+      propname = propname{1};
+   end
+
+   prop = reshape(deck.GRID.(propname), [], 1);
+end
+
 %--------------------------------------------------------------------------
 
 function rock = getRegions(rock, deck)
