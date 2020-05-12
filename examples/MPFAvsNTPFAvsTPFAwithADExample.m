@@ -15,7 +15,7 @@ makeSkew = @(c) c(:, 1) + .4 * (1 - (c(:, 1) - 1).^2) .* (1 - c(:, 2));
 G.nodes.coords(:, 1) = 2 * makeSkew(G.nodes.coords);
 G.nodes.coords(:, 1) = G.nodes.coords(:, 1) * 1000;
 G.nodes.coords(:, 2) = G.nodes.coords(:, 2) * 1000;
-G = twister(G);
+% G = twister(G);
 G = computeGeometry(G);
 
 % Homogeneous reservoir properties
@@ -78,6 +78,8 @@ disp('AvgMPFA implicit')
 mrstModule add nfvm
 ratio = [];
 model_avgmpfa = setNTPFADiscretization(model, 'myRatio', ratio, 'avgmpfa', true);
+
+ntpfa = AvgNTPFA(model);
 [wsAvgMPFA, statesAvgMPFA] = simulateScheduleAD(state0, model_avgmpfa, schedule);
 plotter(G, statesAvgMPFA, 'AvgMPFA')
 

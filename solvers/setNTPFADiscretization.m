@@ -24,8 +24,15 @@ function model = setNTPFA(model, varargin)
         model = model.setupStateFunctionGroupings();
     end
 
-    ntpfa = NTPFA(model, varargin{:});
-
+    opt = struct('avgmpfa', false);
+    [opt, extra] = merge_options(opt, varargin{:});
+    
+    if opt.avgmpfa
+        ntpfa = AvgNTPFA(model, extra{:});
+    else
+        ntpfa = NTPFA(model, extra{:});
+    end
+    
     % Discrete gradient
     fd = model.FluxDiscretization;
     dp = fd.getStateFunction('PressureGradient');
