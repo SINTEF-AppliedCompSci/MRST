@@ -28,7 +28,7 @@ function model = setNTPFA(model, varargin)
     [opt, extra] = merge_options(opt, varargin{:});
     
     if opt.avgmpfa
-        ntpfa = AvgNTPFA(model, extra{:});
+        ntpfa = AvgMPFA(model, extra{:});
     else
         ntpfa = NTPFA(model, extra{:});
     end

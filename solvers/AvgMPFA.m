@@ -1,14 +1,20 @@
-classdef AvgNTPFA < NTPFA
-% Average NTPFA 
+classdef AvgMPFA < NTPFA
+% Average AvgMPFA
+    
     properties
-        % T is a cell with two matrice from cell pressure values to internal face flux value.
-        % One matrix for each side of the face.
+        
+        % T is a cell structure containing two matrices which compute the fluxes. Each
+        % matrix maps cell pressure values to internal face flux value. We have
+        % one matrix for each side of the face (the first matrix for
+        % G.faces.neighbors(: , 1) and the second for G.faces.neighbors(:, 2)).
+        
         T 
+        
     end
 
     methods
 
-        function avgtpfa = AvgNTPFA(model, varargin)
+        function avgtpfa = AvgMPFA(model, varargin)
             
             avgtpfa = avgtpfa@NTPFA(model, varargin{:});
             G = model.G;
