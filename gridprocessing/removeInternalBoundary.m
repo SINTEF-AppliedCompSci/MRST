@@ -28,7 +28,7 @@ function [G, f] = removeInternalBoundary(G, N)
 %  warped.
 %
 % SEE ALSO:
-%  `makeInteralBoundary`
+%  `makeInternalBoundary`
 
 
 %{
