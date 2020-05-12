@@ -26,7 +26,7 @@ runcases = {'2d-refinement', ...
             '3d-linear'    , ...
             '3d-compaction' };
 
-runcase = '2d-linear';
+runcase = '2d-compaction';
 
 switch runcase
   case '2d-refinement'
@@ -40,7 +40,7 @@ switch runcase
     x = 1/max(x)*x;
     G = tensorGrid(x, y);    
   case {'2d-linear', '2d-compaction'}
-    N = 5;
+    N = 20;
     nx = N; ny = N;
     G = cartGrid([nx, ny], [1, 1]);
     % N = 3;
@@ -88,18 +88,22 @@ rhs = assembly.rhs;
 
 sol = B\rhs;
 
+% we compute the divergence
+divop = assembly.divop;
+divu = divop(sol);
+
 % displacement values at cell centers.
 cellcoltbl = tbls.cellcoltbl;
 n = cellcoltbl.num;
 
 u = sol(1 : n);
 
-plotdeformedgrid = false;
+plotdeformedgrid = true;
 if plotdeformedgrid
     lagmult = sol(n + 1 : end);
     unode = assembly.computeNodeDisp(u, lagmult);
     dim = G.griddim;
-    unvec = reshape(un, dim, [])';
+    unvec = reshape(unode, dim, [])';
 end
 
 dim = G.griddim;
@@ -115,6 +119,11 @@ if doplotsol
     figure
     plotCellData(G, uvec(:, 2));
     titlestr = sprintf('displacement - %s direction, eta=%g', 'y', eta);
+    title(titlestr)
+    colorbar
+    figure
+    plotCellData(G, divu);
+    titlestr = sprintf('divergence, eta=%g', eta);
     title(titlestr)
     colorbar
 end
@@ -184,35 +193,3 @@ if dplotinzdir
     end
 end
 
-return
-
-
-%% plotting
-% 
-close all
-
-unvec = reshape(un, dim, [])';
-figure 
-coef = 1e0;
-plotGridDeformed(G, coef*unvec);
-
-
-% Force where the Dirichlet BC are imposed (the are given by the lagrange
-% multipliers)
-lagmult = sol(n + 1: end);
-
-% Compute displacement at nodes
-
-force = assembly.extforce;
-matrices = assembly.matrices;
-nodaldisp_op = assembly.nodaldisp_op;
-
-invA11 = matrices.invA11;
-D      = matrices.D;
-A12    = matrices.A12;
-
-% displacement values at facenode
-unf = invA11*(force - A12*u + D*lagmult);
-un = nodaldisp_op*unf;
-
-%%

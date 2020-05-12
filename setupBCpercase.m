@@ -49,8 +49,10 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
             linformvals{2} = zeros(n, 1);
             
           case '2d-compaction'
+            extfaces{2} = extfaces{1};
             linforms{2} = repmat([1, 0], n, 1);
-
+            linformvals{2} = zeros(n, 1);
+            
           otherwise
             error('runcase not recognized');
         end

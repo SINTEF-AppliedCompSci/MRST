@@ -6,7 +6,7 @@ mrstModule add mpsaw vemmech mpfa
 N = 5;
 G = cartGrid([N, N], [1 , 1]);
 angle = 10/180*pi;
-angle = 0;
+% angle = 0;
 [G, bcfaces] = rotateGrid(G, angle);
 G = computeGeometry(G);
 
@@ -100,8 +100,6 @@ plotGrid(G, 'facecolor', 'none', 'edgecolor', 'blue');
 plotGridDeformed(G, unode, 'facecolor', 'none', 'edgecolor', 'red');
 axis equal
 
-return
-
 figure
 plotCellData(G, ucell(:, 1));
 title('disp x direction');
@@ -111,5 +109,13 @@ axis equal
 figure
 plotCellData(G, ucell(:, 2));
 title('disp y direction');
+colorbar
+axis equal
+
+divop = assembly.divop;
+divu = divop(sol);
+figure
+plotCellData(G, divu);
+title('divergence of displacement');
 colorbar
 axis equal

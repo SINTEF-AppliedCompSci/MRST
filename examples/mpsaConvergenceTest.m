@@ -96,7 +96,7 @@ for iter1 = 1 : nref
     n = numel(bcfaces);
     bc.linform = [repmat([1, 0], n, 1); ...
                   repmat([0, 1], n, 1)];
-    
+    bc.linformvals = zeros(2*n);
     clear loadstruct
     loadstruct.bc = bc;
     loadstruct.force = rhsMech;
@@ -142,38 +142,38 @@ for iter1 = 1 : nref
     
     [E, nu] = elasticModuloTransform(lambda, mu, 'lam_mu', 'E_nu'); 
     %{
-    if(G.griddim == 2)
-        [E, nu] = LMu2ENu_2D(lambda, mu); 
-        else
-            [E, nu] = LMu2ENu_3D(lambda, mu); 
-            end
-            %} 
-            Ev = repmat(E, G.cells.num, 1); 
-            nuv = repmat(nu, G.cells.num, 1); 
-            C = Enu2C(Ev, nuv, G); 
-            %}
-            %{
-            C = nan(G.cells.num, numel(constit{1})); 
-            for i = 1 : G.cells.num
-                C(i, : ) = constit{i}( : ); 
-                end
-                %}
-                % set all boundary to no displacement
-                faces = find(any(G.faces.neighbors == 0, 2)); 
-                inodes = mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces + 1) - 1); 
-                nodes = unique(G.faces.nodes(inodes)); 
-                el_bc = struct('disp_bc', struct('nodes', nodes, 'uu', zeros(numel(nodes), G.griddim), 'faces', faces,...
-                                                 'uu_face', zeros(numel(nodes), G.griddim), 'mask', true(numel(nodes), G.griddim)),...
-                               'force_bc', []); 
-                load = @(coord) - [mrhs1(coord( :, 1), coord( :, 2)), mrhs2(coord( :, 1), coord( :, 2))]; 
-                
-                tic; [uVEM, extra] = VEM_linElast(G, C, el_bc, load); toc; 
-                deVEM(iter1) = sqrt(sum(sum(bsxfun(@times, (uVEM(G.cells.nodes, : ) - dvec(G.nodes.coords(G.cells.nodes, : ))).^2, G.weights.cell_nodes), 2)))./...
-                    sqrt(sum(sum(bsxfun(@times, dvec(G.nodes.coords(G.cells.nodes, : )).^2, G.weights.cell_nodes), 2))); 
-                % make CC solution with global interface
-                tic; [uu, out] = CC_linElast(G, C, el_bc, load); toc; 
-                
-                
+      if(G.griddim == 2)
+      [E, nu] = LMu2ENu_2D(lambda, mu); 
+      else
+      [E, nu] = LMu2ENu_3D(lambda, mu); 
+      end
+    %} 
+    Ev = repmat(E, G.cells.num, 1); 
+    nuv = repmat(nu, G.cells.num, 1); 
+    C = Enu2C(Ev, nuv, G); 
+    %}
+    %{
+      C = nan(G.cells.num, numel(constit{1})); 
+      for i = 1 : G.cells.num
+      C(i, : ) = constit{i}( : ); 
+      end
+    %}
+    % set all boundary to no displacement
+    faces = find(any(G.faces.neighbors == 0, 2)); 
+    inodes = mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces + 1) - 1); 
+    nodes = unique(G.faces.nodes(inodes)); 
+    el_bc = struct('disp_bc', struct('nodes', nodes, 'uu', zeros(numel(nodes), G.griddim), 'faces', faces,...
+                                     'uu_face', zeros(numel(nodes), G.griddim), 'mask', true(numel(nodes), G.griddim)),...
+                   'force_bc', []); 
+    load = @(coord) - [mrhs1(coord( :, 1), coord( :, 2)), mrhs2(coord( :, 1), coord( :, 2))]; 
+    
+    tic; [uVEM, extra] = VEM_linElast(G, C, el_bc, load); toc; 
+    deVEM(iter1) = sqrt(sum(sum(bsxfun(@times, (uVEM(G.cells.nodes, : ) - dvec(G.nodes.coords(G.cells.nodes, : ))).^2, G.weights.cell_nodes), 2)))./...
+        sqrt(sum(sum(bsxfun(@times, dvec(G.nodes.coords(G.cells.nodes, : )).^2, G.weights.cell_nodes), 2))); 
+    % make CC solution with global interface
+    tic; [uu, out] = CC_linElast(G, C, el_bc, load); toc; 
+    
+    
 end
 
 %% Print convergence rates
