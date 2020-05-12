@@ -40,14 +40,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opt     = struct('OilPrice'              , 100   , ...
                  'WaterProductionCost'   ,  10 , ...
                  'WaterInjectionCost'    ,  10 , ...
-                 'RelativeDiscountFactor', 0  , ...
+                 'DiscountFactor', 0     , ...
                  'ComputePartials',         []);
 opt     = merge_options(opt, varargin{:});
 
 ro      = opt.OilPrice            / stb;
 rw      = opt.WaterProductionCost / stb;
 ri      = opt.WaterInjectionCost  / stb;
-d       = opt.RelativeDiscountFactor;
+d       = opt.DiscountFactor;
 
 %-----------------------------------------------
 computePartials = opt.ComputePartials;
@@ -68,7 +68,7 @@ for step = 2 : numSteps,
     wellSol = simRes(step).wellSol;
     int     = simRes(step).timeInterval;
     dt      = int(2) - int(1);
-    dFac    = (1+d)^(-int(2)/totTime);
+    dFac    = (1+d)^(-int(2)/year);
 
     [wellRates, rateSigns] = getRates(W, wellSol);
     wellCells = vertcat( W.cells );
