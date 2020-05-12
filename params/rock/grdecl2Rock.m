@@ -27,6 +27,16 @@ function rock = grdecl2Rock(grdecl, varargin)
 %            - poro -- Porosity values.  Corresponds to `PORO` keyword.
 %            - ntg  -- Net-to-gross values.  Corresponds to `NTG` keyword.
 %
+%          If, additionally, the input 'grdecl' structure contains
+%          transmissibility multiplier data (keywords 'MULTX', 'MULTY',
+%          'MULTZ', 'MULTX-', 'MULTY-', 'MULTZ-'), then those values will
+%          be stored as individual fields in a substructure 'multipliers'.
+%          The field names are lower case without 'MULT' and hypens are
+%          replaced by underscores.  For instance, the 'MULTX-' data will
+%          be stored as
+%
+%             - rock.multipliers.x_
+%
 % NOTE:
 %   Function `grdecl2Rock` only extracts the raw data values from the input
 %   vectors.  The caller will have to perform any required unit conversion
@@ -60,24 +70,29 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    % Check consistency.
    if ~consistent(grdecl)
       error(msgid('Tensor:Inconsistent'), ...
             'Input tensor is not structurally consistent.');
-   else
-      % Permeability tensor.
-      [rock.perm, actmap] = getTensor(grdecl, varargin{:});
-      rock.perm = rock.perm(actmap, :);
    end
+
+   % Permeability tensor.
+   [rock.perm, actmap] = getTensor(grdecl, varargin{:});
+   rock.perm = rock.perm(actmap, :);
+
+   extract = @(fld) reshape(grdecl.(fld)(actmap), [], 1);
 
    % Other properties.
    rockprop = {'PORO', 'NTG', 'ROCKTYPE'};
-   for i = 1 : numel(rockprop)
-      prop = regexprep(rockprop{i}, '\W', '_');
-      if isfield(grdecl, prop)
-         rock.(lower(prop)) = reshape(grdecl.(prop)(actmap), [], 1);
-      end
+   for fld = reshape(rockprop(isfield(grdecl, rockprop)), 1, [])
+      rock.(lower(fld{1})) = extract(fld{1});
+   end
+
+   cname = @(kw) lower(kw{1}(5 : end));
+   mult  = strcat('MULT', {'X', 'Y', 'Z'});
+   mult  = [ mult, strcat(mult, '_') ];
+   for prop = reshape(mult(isfield(grdecl, mult)), 1, [])
+      rock.multipliers.(cname(prop)) = extract(prop{1});
    end
 end
 
