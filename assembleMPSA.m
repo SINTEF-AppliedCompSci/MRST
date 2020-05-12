@@ -181,7 +181,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     divnodeface_T = SparseTensor('matlabsparse', true);
     divnodeface_T = divnodeface_T.setFromTensorProd(d, prod);
 
-    % divcell_T : cellnodecoltbl -> cellcoltbl
+    % divcell_T : cellnodecolrowtbl -> cellcoltbl
     %
     % the cellcol part of the divergence operator from cellnodecolrowtbl to
     % cellcoltbl is obtained for any u in cellnodecolrowtbl by evaluating the
@@ -518,10 +518,54 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     
     rhs = vertcat(rhs{:});
 
-    assembly = struct('B'           , B       , ...
-                      'rhs'         , rhs     , ...
-                      'extforce'    , extforce, ...
-                      'matrices'    , matrices);
+    % Assembly of operator to compute u_{nodefacecoltbl} from solution of the system
+    % (which consists of the concatenation of u_{cellcol} and lagmult) and
+    % extforce which is a force in nodefacecoltbl
+    %
+    % We have  u_{nodefacecoltbl} = R1*sol + R2*extforce
+    %
+    % where R1 = invA11*[-A12, D] and R2 = invA11
+    
+    R1 = invA11*[-A12, D];
+    R2 = invA11;
+    
+    % The divergence operator (integrated over the volume)
+    % is given by 
+    %
+    %  div[c] = sum (m[f,s] u_[f,n,i] n[c,f,i])
+    %
+    % where u:solution, n:normal, m:area
+    % indices : c:cell, f:face, n:node.
+    
+    % The facetNormals are already weighted with respect to area
+    
+    prod = TensorProd();
+    prod.tbl1 = cellnodefacecoltbl;
+    prod.tbl2 = nodefacecoltbl;
+    prod.tbl3 = celltbl;
+    prod.reducefds = {'faces', 'nodes', 'coldim'};
+    % prod = prod.setup();
+    
+    prod.pivottbl = cellnodefacecoltbl;
+    prod.dispind1 = (1 : cnfc_num)';
+    [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
+    prod.dispind2 = sub2ind([d_num, nf_num], c, nodeface_from_cellnodeface(i));
+    prod.dispind3 = cell_from_cellnode(cellnode_from_cellnodeface(i));
+    prod.issetup = true;
+    
+    div_T = SparseTensor;
+    div_T = div_T.setFromTensorProd(facetNormals, prod);
+    div = div_T.getMatrix();
+    
+    divop = @(sol) divoperator(sol, extforce, R1, R2, div);
+    
+    assembly = struct('B'       , B       , ...
+                      'rhs'     , rhs     , ...
+                      'extforce', extforce, ...
+                      'R1'      , R1      , ...
+                      'R2'      , R2      , ...
+                      'divop'   , divop   , ...
+                      'matrices', matrices);
     
     assembly.computeNodeDisp = @(ucell, lagmult) computeNodeDisp(ucell, lagmult, ...
                                                       invA11, A12, D, extforce, ...
@@ -529,6 +573,12 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     
 end
 
+function divu = divoperator(sol, extforce, R1, R2, div)
+    % Compute nodeface displacement 
+    unf = R1*sol + R2*extforce;
+    % Compute divergence
+    divu = div*unf;
+end
 
 function unode = computeNodeDisp(ucell, lagmult, invA11, A12, D, extforce, ...
                                  nodefacecoltbl, nodecoltbl)
