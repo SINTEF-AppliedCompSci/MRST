@@ -77,7 +77,7 @@ schedule = simpleSchedule(dt, 'W', W);
 disp('AvgMPFA implicit')
 mrstModule add nfvm
 ratio = [];
-model_avgmpfa = setNTPFADiscretization(model, 'myRatio', ratio, 'avgmpfa', true);
+model_avgmpfa = setAvgMPFADiscretization(model, 'myRatio', ratio);
 [wsAvgMPFA, statesAvgMPFA] = simulateScheduleAD(state0, model_avgmpfa, schedule);
 plotter(G, statesAvgMPFA, 'AvgMPFA')
 

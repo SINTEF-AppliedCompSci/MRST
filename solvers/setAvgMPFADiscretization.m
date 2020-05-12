@@ -1,6 +1,6 @@
-function model = setNTPFADiscretization(model, varargin)
+function model = setAvgMPFADiscretization(model, varargin)
 
-    % Set NTPFA discretization on a model
+    % Set AvgMPFA discretization on a model
     isWrapper = isa(model, 'WrapperModel');
     if isWrapper
         m = model.parentModel;
@@ -8,7 +8,7 @@ function model = setNTPFADiscretization(model, varargin)
         m = model;
     end
 
-    m = setNTPFA(m, varargin{:});
+    m = setAvgMPFA(m, varargin{:});
 
     if isWrapper
         model.parentModel = m;
@@ -17,20 +17,19 @@ function model = setNTPFADiscretization(model, varargin)
     end
 end
 
-function model = setNTPFA(model, varargin)
-    
+function model = setAvgMPFA(model, varargin)
     require nfvm
 
     if isempty(model.FluxDiscretization)
         model = model.setupStateFunctionGroupings();
     end
 
-    ntpfa = NTPFA(model, varargin{:});
+    avgmpfa = AvgMPFA(model, varargin{:});
     
     % Discrete gradient
     fd = model.FluxDiscretization;
     dp = fd.getStateFunction('PressureGradient');
-    dp.Grad = @(p) ntpfa.gradient(p);
+    dp.Grad = @(p) avgmpfa.gradient(p);
     fd = fd.setStateFunction('PressureGradient', dp);
 
     % % Gravity potential difference
