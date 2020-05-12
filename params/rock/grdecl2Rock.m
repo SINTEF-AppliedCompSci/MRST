@@ -60,24 +60,28 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    % Check consistency.
    if ~consistent(grdecl)
       error(msgid('Tensor:Inconsistent'), ...
             'Input tensor is not structurally consistent.');
-   else
-      % Permeability tensor.
-      [rock.perm, actmap] = getTensor(grdecl, varargin{:});
-      rock.perm = rock.perm(actmap, :);
    end
+
+   % Permeability tensor.
+   [rock.perm, actmap] = getTensor(grdecl, varargin{:});
+   rock.perm = rock.perm(actmap, :);
+
+   extract = @(fld) reshape(grdecl.(fld)(actmap), [], 1);
 
    % Other properties.
    rockprop = {'PORO', 'NTG', 'ROCKTYPE'};
-   for i = 1 : numel(rockprop)
-      prop = regexprep(rockprop{i}, '\W', '_');
-      if isfield(grdecl, prop)
-         rock.(lower(prop)) = reshape(grdecl.(prop)(actmap), [], 1);
-      end
+   for fld = reshape(rockprop(isfield(grdecl, rockprop)), 1, [])
+      rock.(lower(fld{1})) = extract(fld{1});
+   end
+
+   mult = strcat('MULT', {'X', 'Y', 'Z'});
+   mult = [ mult, strcat(mult, '_') ];
+   for prop = reshape(mult(isfield(grdecl, mult)), 1, [])
+      rock.multipliers.(lower(prop{1})) = extract(prop{1});
    end
 end
 
