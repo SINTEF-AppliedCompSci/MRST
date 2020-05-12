@@ -33,5 +33,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   d = 365 * day();
+   d = 365.2425 * day();
 end
