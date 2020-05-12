@@ -27,6 +27,16 @@ function rock = grdecl2Rock(grdecl, varargin)
 %            - poro -- Porosity values.  Corresponds to `PORO` keyword.
 %            - ntg  -- Net-to-gross values.  Corresponds to `NTG` keyword.
 %
+%          If, additionally, the input 'grdecl' structure contains
+%          transmissibility multiplier data (keywords 'MULTX', 'MULTY',
+%          'MULTZ', 'MULTX-', 'MULTY-', 'MULTZ-'), then those values will
+%          be stored as individual fields in a substructure 'multipliers'.
+%          The field names are lower case without 'MULT' and hypens are
+%          replaced by underscores.  For instance, the 'MULTX-' data will
+%          be stored as
+%
+%             - rock.multipliers.x_
+%
 % NOTE:
 %   Function `grdecl2Rock` only extracts the raw data values from the input
 %   vectors.  The caller will have to perform any required unit conversion
@@ -78,10 +88,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       rock.(lower(fld{1})) = extract(fld{1});
    end
 
-   mult = strcat('MULT', {'X', 'Y', 'Z'});
-   mult = [ mult, strcat(mult, '_') ];
+   cname = @(kw) lower(kw{1}(5 : end));
+   mult  = strcat('MULT', {'X', 'Y', 'Z'});
+   mult  = [ mult, strcat(mult, '_') ];
    for prop = reshape(mult(isfield(grdecl, mult)), 1, [])
-      rock.multipliers.(lower(prop{1})) = extract(prop{1});
+      rock.multipliers.(cname(prop)) = extract(prop{1});
    end
 end
 
