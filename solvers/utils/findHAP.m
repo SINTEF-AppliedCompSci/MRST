@@ -12,12 +12,12 @@ function interpFace = findHAP(G, rock)
     interpFace.coords = zeros(G.faces.num, G.griddim);
     interpFace.weights = zeros(G.faces.num, 2);
     interpFace.fraction = 0;
-    
+
     % Interior faces
     interior = all(G.faces.neighbors ~= 0, 2);
     c1 = G.faces.neighbors(interior, 1);
     c2 = G.faces.neighbors(interior, 2);
-    
+
     n = G.faces.normals(interior, :);
     K1 = K(c1, :);
     K2 = K(c2, :);
@@ -44,7 +44,7 @@ function interpFace = findHAP(G, rock)
     interpFace.weights(interior, 2) = w2;
     interpFace.weights(interior, :) = interpFace.weights(interior, :) ./ (w1 + w2);
 
-    % Boundary faces as Hom Neumann
+    % Boundary faces as hom Neumann
     bdry = ~interior;
     c1 = G.faces.neighbors(bdry, 1);
     c2 = G.faces.neighbors(bdry, 2);
@@ -56,13 +56,12 @@ function interpFace = findHAP(G, rock)
     x1 = G.cells.centroids(cc, :);
     xf = G.faces.centroids(bdry, :);
     xA = x1 + dot(xf-x1, n, 2) ./ dot(w1, n, 2) .* w1;
-    
-    interpFace.coords(bdry, :) = xA;   
+
+    interpFace.coords(bdry, :) = xA;
     ex1 = G.faces.neighbors(:, 1) ~= 0;
-    %ex2 = G.faces.neighbors(:, 2) ~= 0;
     interpFace.weights(bdry & ex1, 1) = 1;
     interpFace.weights(bdry & ~ex1, 2) = 1;
-    
+
     % Count the number of cells whose centroid is outside the convex hull-----
     counter = zeros(G.cells.num, 1);
     for i = 1:G.cells.num

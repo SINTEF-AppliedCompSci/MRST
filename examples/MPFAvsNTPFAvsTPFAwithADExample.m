@@ -4,6 +4,9 @@
 % We create a skewed grid with  two wells where the underlying problem is
 % symmetric. An inconsistent discretization of the fluxes may introduce
 % asymmetry in the production pattern when injecting a fluid.
+clear all
+close all
+
 mrstModule add ad-core mpfa ad-blackoil compositional ad-props mrst-gui nfvm
 
 dims = [41, 20];
@@ -70,10 +73,18 @@ end
 dt = [1; 9; repmat(15, 26, 1)] * day;
 schedule = simpleSchedule(dt, 'W', W);
 
+%% Simulate implicit AvgMPFA
+disp('AvgMPFA implicit')
+mrstModule add nfvm
+ratio = [];
+model_avgmpfa = setNTPFADiscretization(model, 'myRatio', ratio, 'avgmpfa', true);
+[wsAvgMPFA, statesAvgMPFA] = simulateScheduleAD(state0, model_avgmpfa, schedule);
+plotter(G, statesAvgMPFA, 'AvgMPFA')
+
 %% Simulate implicit NTPFA
 disp('NTPFA implicit')
 mrstModule add nfvm
-ratio = 0.0;
+ratio = [];
 model_ntpfa = setNTPFADiscretization(model, 'myRatio', ratio);
 [wsNTPFA, statesNTPFA] = simulateScheduleAD(state0, model_ntpfa, schedule);
 plotter(G, statesNTPFA, 'NTPFA')

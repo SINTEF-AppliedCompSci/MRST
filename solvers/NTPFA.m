@@ -6,6 +6,7 @@ classdef NTPFA
         scale
         internalConn
         nph
+        avgmpfa
     end
 
     methods
@@ -17,9 +18,12 @@ classdef NTPFA
                          'OSflux', [], ...
                          'interpFace', [], ...
                          'saveOSfluxDir', [], ...
-                         'saveInterpFaceDir', []);
+                         'saveInterpFaceDir', [], ...
+                         'avgmpfa', false);
             opt = merge_options(opt, varargin{:});
 
+            ntpfa.avgmpfa = opt.avgmpfa;
+            
             % Set up HAP
             if isempty(opt.interpFace)
                 interpFace = findHAP(model.G, model.rock);
@@ -58,7 +62,7 @@ classdef NTPFA
         function v = gradient(ntpfa, pressure)
             grad = cell(1, ntpfa.nph);
             for i = 1:ntpfa.nph
-                T = TransNTPFA(ntpfa.G, pressure, ntpfa.OSflux);
+                T = TransNTPFA(ntpfa.G, pressure, ntpfa.OSflux, 'avgmpfa', ntpfa.avgmpfa);
                 v = computeFlux(ntpfa.G, pressure, T);
                 v = v(ntpfa.internalConn, :);
                 v = v .* ntpfa.scale;

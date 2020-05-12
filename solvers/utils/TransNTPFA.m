@@ -1,7 +1,10 @@
-function T = TransNTPFA(G, u, OSflux)
+function T = TransNTPFA(G, u, OSflux, varargin)
 % Set up using homogeneous Neumann bcs
     
-    dispif(mrstVerbose, 'TransNTPFA\n');
+    opt = struct('avgmpfa', false);
+    opt = merge_options(opt, varargin{:});
+
+    dispif(mrstVerbose, 'TransNTPFA, AvgMPFA=%d\n', opt.avgmpfa);
     
     T = cell(2, 1);
     
@@ -50,20 +53,24 @@ function T = TransNTPFA(G, u, OSflux)
         tsp{j} = sparse(ii, jj, vv, m, n);
         
         r{j} = tsp{j} * u + tend;
-        
         mu{j} = 0 * r{j} + 0.5;
         T{j} = 0 * r{j};
     end
     
-    epstol = 1e-12 * max(full(max(tsp{1}, [], 2)), full(max(tsp{2}, [], 2)));
-    for j = 1:2
-        ir = abs(r{j}) <= epstol;
-        r{j}(ir) = 0;
+    if ~opt.avgmpfa
+        epstol = 1e-12 * max(full(max(tsp{1}, [], 2)), full(max(tsp{2}, [], 2)));
+        for j = 1:2
+            ir = abs(r{j}) <= epstol;
+            r{j}(ir) = 0;
+        end
+        jj = abs(r{1} + r{2}) > epstol;
+        mu{1}(jj) = r{2}(jj) ./ (r{1}(jj) + r{2}(jj)); 
+        mu{2}(jj) = ones(sum(jj), 1) - mu{1}(jj);
+        assert(all(mu{1} >= 0.0))
+        assert(all(mu{2} >= 0.0))
+        assert(all(mu{1} <= 1.0))
+        assert(all(mu{2} <= 1.0))
     end
-    
-    jj = abs(r{1} + r{2}) > epstol;
-    mu{1}(jj) = r{2}(jj) ./ (r{1}(jj) + r{2}(jj)); 
-    mu{2}(jj) = ones(sum(jj), 1) - mu{1}(jj);
 
     T{1}(internal) = mu{1}(internal) .* tii{1}(internal, 1) + mu{2}(internal) .* tii{2}(internal, 2);
     T{2}(internal) = mu{1}(internal) .* tii{1}(internal, 2) + mu{2}(internal) .* tii{2}(internal, 1);
