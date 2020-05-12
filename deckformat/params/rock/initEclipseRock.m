@@ -19,6 +19,19 @@ function rock = initEclipseRock(deck)
 %            - pref -- Reference pressure for rock compressibility.  Data
 %                      from item one of 'ROCK' keyword.
 %
+%          If, additionally, the input deck's 'GRID' section contains
+%          transmissibility multiplier data (keywords 'MULTX', 'MULTY',
+%          'MULTZ', 'MULTX-', 'MULTY-', 'MULTZ-'), then those values will
+%          be stored as individual fields in a substructure 'multipliers'.
+%          The field names are lower case without 'MULT' and hypens are
+%          replaced by underscores.  For instance, the 'MULTX-' data will
+%          be stored as
+%
+%             - rock.multipliers.x_
+%
+%          This function is not aware of time-dependent multipliers that
+%          may be present in the 'SCHEDULE' section.
+%
 % NOTE:
 %   A given 'rock' field is only created if the corresponding keyword is
 %   present in the input deck.
@@ -51,35 +64,56 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    % Check consistency.
    if ~consistent(deck)
       error(msgid('Tensor:Inconsistent'), ...
             'Input tensor is not structurally consistent.');
-   else
-      % Permeability tensor.
-      rock.perm = getTensor(deck);
    end
+
+   % Permeability tensor.
+   rock.perm = getTensor(deck);
 
    % Other properties.
    rockprop = {'PORO', 'NTG'};
-   for i = 1 : numel(rockprop)
-      prop = regexprep(rockprop{i}, '\W', '_');
-      if isfield(deck.GRID, prop)
-         rock.(lower(prop)) = reshape(deck.GRID.(prop), [], 1);
-      end
+   for rockp = reshape(rockprop(isfield(deck.GRID, rockprop)), 1, [])
+      rock.(lower(rockp{1})) = extract_grid_prop(deck, rockp);
    end
+
+   rock = assign_multipliers(rock, deck);
 
    if isfield(deck.PROPS, 'ROCK')
       [rock.cr, rock.pref] = rock_compressibility(deck.PROPS);
    end
-   
+
    rock = getRegions(rock, deck);
    rock = getScaling(rock, deck);
 end
 
 %--------------------------------------------------------------------------
 % Private helpers follow.
+%--------------------------------------------------------------------------
+
+function rock = assign_multipliers(rock, deck)
+   compname = @(kw) lower(kw{1}(5 : end));  % MULTX -> x; MULTY_ -> y_
+
+   multiplier = strcat('MULT', {'X', 'Y', 'Z'});
+   multiplier = [ multiplier, strcat(multiplier, '_') ];
+
+   for mult = reshape(multiplier(isfield(deck.GRID, multiplier)), 1, [])
+      rock.multipliers.(compname(mult)) = extract_grid_prop(deck, mult);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function prop = extract_grid_prop(deck, propname)
+   if iscell(propname)
+      propname = propname{1};
+   end
+
+   prop = reshape(deck.GRID.(propname), [], 1);
+end
+
 %--------------------------------------------------------------------------
 
 function rock = getRegions(rock, deck)
@@ -109,8 +143,9 @@ function rock = getRegions(rock, deck)
        end
        rock.regions = regions;
    end
-
 end
+
+%--------------------------------------------------------------------------
 
 function rock = getScaling(rock, deck)
    if isfield(deck.RUNSPEC, 'ENDSCALE')
@@ -125,6 +160,7 @@ function rock = getScaling(rock, deck)
    end
 end
 
+%--------------------------------------------------------------------------
 
 function b = consistent(deck)
    k = false([3, 3]);
