@@ -165,7 +165,6 @@ function G = processGRDECL(grdecl, varargin)
 %
 % SEE ALSO:
 %   `readGRDECL`, `processPINCH`, `removeCells`, `checkAndRepairZCORN`.
-%
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

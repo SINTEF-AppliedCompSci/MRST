@@ -6,7 +6,6 @@ function G = computeGeometry(G, varargin)
 %   G = computeGeometry(G, 'pn1', pv1, ...)
 %
 % PARAMETERS:
-%
 %   G       - Grid structure as described by grid_structure.
 %
 % KEYWORD ARGUMENTS:
@@ -50,7 +49,7 @@ function G = computeGeometry(G, varargin)
 %             - normals:   A `G.faces.num` by `G.griddim` array of normals.
 %
 %             - centroids: A `G.faces.num` by `size(G.nodes.coords, 2)`
-%               array of (approximate) face centroids. 
+%               array of (approximate) face centroids.
 %
 % NOTE:
 %   Individual face normals have length (i.e., Euclidian norm) equal to
@@ -100,43 +99,37 @@ assert(isempty(opt.hingenodes) || G.griddim == 3, ...
    'Hinge nodes are only supported for 3D grids.');
 
 % Possibly find neighbors
-if opt.findNeighbors
-   G.faces.neighbors = findNeighbors(G);
-   G = findNormalDirections(G);
-else
+if opt.findNeighbors || ~isfield(G.faces, 'neighbors')
    if ~isfield(G.faces, 'neighbors')
       warning(msgid('GridType:Incomplete'), ...
-         ['No field ''faces.neighbors'' found. ',...
-         'Adding plausible values... proceed with caution!']);
-      G.faces.neighbors = findNeighbors(G);
-      G = findNormalDirections(G);
+             ['No field ''faces.neighbors'' found. ',...
+              'Adding plausible values... proceed with caution!']);
    end
+
+   G.faces.neighbors = findNeighbors(G);
+   G = findNormalDirections(G);
 end
 
 % Main part
 switch G.griddim
-    case 1
-        % 1D grid
-        [faceAreas, faceNormals, faceCentroids, ...
-            cellVolumes, cellCentroids] = geom_1d(G, opt);
+   case 1
+      % 1D grid
+      [faceAreas, faceNormals, faceCentroids, ...
+         cellVolumes, cellCentroids] = geom_1d(G);
 
-    case 2
-        if size(G.nodes.coords,2)==2
-            % 2D grid
-            [faceAreas, faceNormals, faceCentroids, ...
-                cellVolumes, cellCentroids] = geom_2d2(G, opt);
-        else
-            % 2D grid with 3D structure
-            assert(size(G.nodes.coords, 2) == 3)
-            [faceAreas, faceNormals, faceCentroids, ...
-                cellVolumes, cellCentroids] = geom_2d3(G, opt);
-        end
-    case 3
-        % 3D grid
-        [faceAreas, faceNormals, faceCentroids, ...
-            cellVolumes, cellCentroids] = geom_3d(G, opt);
-    otherwise
-        error('Unable to compute geometry for %d dimensions', G.griddim);
+   case 2
+      % 2D grid (two or three space dimensions)
+      [faceAreas, faceNormals, faceCentroids, ...
+         cellVolumes, cellCentroids] = geom_2d(G, opt);
+
+   case 3
+      % 3D grid
+      [faceAreas, faceNormals, faceCentroids, ...
+         cellVolumes, cellCentroids] = geom_3d(G, opt);
+
+   otherwise
+      error(msgid('GridDim:Unsupported'), ...
+            'Unable to compute geometry for %d dimensions', G.griddim);
 end
 
 % Update grid
@@ -203,6 +196,27 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
    cellVolumes   = geom.cell.Volumes;
    cellCentroids = geom.cell.Centroids;
+end
+
+%--------------------------------------------------------------------------
+
+function [faceAreas, faceNormals, faceCentroids, ...
+      cellVolumes, cellCentroids] = geom_2d(G, opt)
+
+   if size(G.nodes.coords, 2) == 2
+      % 2D grid in 2 space dimensions.
+      [faceAreas, faceNormals, faceCentroids, ...
+         cellVolumes, cellCentroids] = geom_2d2(G, opt);
+
+   else
+      % Topologically 2D grid embedded in three space dimensions.
+      assert (size(G.nodes.coords, 2) == 3, ...
+             ['2D grid must be in two space dimensions ', ...
+              'or embedded in three space dimensions']);
+
+      [faceAreas, faceNormals, faceCentroids, ...
+         cellVolumes, cellCentroids] = geom_2d3(G, opt);
+   end
 end
 
 %--------------------------------------------------------------------------
@@ -276,15 +290,18 @@ end
 %--------------------------------------------------------------------------
 
 function [faceAreas, faceNormals, faceCentroids, ...
-      cellVolumes, cellCentroids] = geom_1d(G, opt)
+      cellVolumes, cellCentroids] = geom_1d(G)
   dN = diff(G.faces.neighbors, 1);
   dN(end) = 1;
+
   assert(all(dN(:) == 1) && all(diff(G.nodes.coords) > 0), ...
-      '1D grids require that cells are monotonically increasing with coordinates');
-  faceAreas = ones(G.faces.num, 1);
-  faceNormals = ones(G.faces.num, 1);
+        ['1D grids require that cells are monotonically ', ...
+         'increasing with coordinates']);
+
+  faceAreas     = ones([G.faces.num, 1]);
+  faceNormals   = ones([G.faces.num, 1]);
   faceCentroids = G.nodes.coords;
-  cellVolumes = diff(G.nodes.coords);
+  cellVolumes   = diff(G.nodes.coords);
 
   cellNo = rldecode((1:G.cells.num)', diff(G.cells.facePos));
   cellCentroids = accumarray(cellNo, G.nodes.coords(G.cells.faces(:, 1))) / 2;
