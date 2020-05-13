@@ -32,6 +32,18 @@ function G = computeGeometry(G, varargin)
 %
 %                    Numeric scalar.  Default value: MaxBlockSize = 20e3.
 %
+%   'CpGeometry'   - Whether or not to additionally derive fundamental
+%                    geometric information (cell/face centres and physical
+%                    extent of individual cells) exclusively from the
+%                    cells' initial corner vertices.  Only supported for 3D
+%                    grids in three space dimensions and if the input grid
+%                    additionally provides an explicit mapping from cells
+%                    to corner vertices (structure field `G.cells.cpnodes`).
+%
+%                    Logical.  Default value: CpGeometry = FALSE (do not
+%                    additionally calculate corner-point geometric
+%                    primitives).
+%
 % RETURNS:
 %   G - Grid structure with added fields:
 %
@@ -51,6 +63,22 @@ function G = computeGeometry(G, varargin)
 %             - centroids: A `G.faces.num` by `size(G.nodes.coords, 2)`
 %               array of (approximate) face centroids.
 %
+%       Moreover, if the caller requests `CpGeometry` and the input grid
+%       supports calculating that information then the output grid will in
+%       addition also have the following corner-point geometry fields:
+%
+%          * cells.cpgeometry
+%             - centroids: `G.cells.num` by `size(G.nodes.coords,2)` array
+%               of approximate cell centre coordinates.
+%
+%             - extent: `G.cells.num` by `G.griddim` array of approximate
+%               cell extents.  Derived from Euclidian distances between
+%               face centre points on opposing sides.
+%
+%             - facecentroids: `size(G.cells.faces,1)` by
+%               `size(G.nodes.coords,2)` array of approximate face centre
+%               coordinates, relative to the cells.
+%
 % NOTE:
 %   Individual face normals have length (i.e., Euclidian norm) equal to
 %   the corresponding face areas.  In other words, subject to numerical
@@ -66,7 +94,7 @@ function G = computeGeometry(G, varargin)
 %   `G.faces.neighbors(f,1)` to cell `G.faces.neighbors(f,2)`.
 %
 % SEE ALSO:
-%   `grid_structure`
+%   `grid_structure`, `processGRDECL`.
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
@@ -92,7 +120,8 @@ assert(size(G.faces.nodes, 2)==1);
 opt     = struct('verbose',              mrstVerbose, ...
                  'findNeighbors',        false,       ...
                  'hingenodes',           [],          ...
-                 'MaxBlockSize',         20e3);
+                 'MaxBlockSize',         20e3,        ...
+                 'CpGeometry',           false);
 opt     = merge_options(opt, varargin{:});
 
 assert(isempty(opt.hingenodes) || G.griddim == 3, ...
@@ -126,6 +155,10 @@ switch G.griddim
       % 3D grid
       [faceAreas, faceNormals, faceCentroids, ...
          cellVolumes, cellCentroids] = geom_3d(G, opt);
+
+      if opt.CpGeometry
+         G = add_cp_geometry_if_supported(G);
+      end
 
    otherwise
       error(msgid('GridDim:Unsupported'), ...
@@ -196,6 +229,19 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
    cellVolumes   = geom.cell.Volumes;
    cellCentroids = geom.cell.Centroids;
+end
+
+%--------------------------------------------------------------------------
+
+function G = add_cp_geometry_if_supported(G)
+   if isfield(G.cells, 'cpnodes')
+      G = computeCpGeometry(G);
+
+   else
+      warning(msgid('CpGeometry:InsufficientData'), ...
+             ['Input grid does not have sufficient metadata to ', ...
+              'support ''cp'' geometry (cells.cpnodes missing)']);
+   end
 end
 
 %--------------------------------------------------------------------------
