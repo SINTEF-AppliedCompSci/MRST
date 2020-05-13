@@ -37,6 +37,12 @@ function rock = grdecl2Rock(grdecl, varargin)
 %
 %             - rock.multipliers.x_
 %
+%          Furthermore, if the input 'grdecl', structure contains fault
+%          multiplier data (both of the keywords 'FAULTS' and 'MULTFLT'),
+%          then those values will be copied verbatim to a substructure
+%          'faultdata' and retain their original field names, converted to
+%          lower case, in this substructure.
+%
 % NOTE:
 %   Function `grdecl2Rock` only extracts the raw data values from the input
 %   vectors.  The caller will have to perform any required unit conversion
@@ -93,6 +99,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    mult  = [ mult, strcat(mult, '_') ];
    for prop = reshape(mult(isfield(grdecl, mult)), 1, [])
       rock.multipliers.(cname(prop)) = extract(prop{1});
+   end
+
+   if all(isfield(grdecl, {'FAULTS', 'MULTFLT'}))
+      rock.faultdata = struct('faults' , { grdecl.FAULTS }, ...
+                              'multflt', { grdecl.MULTFLT });
    end
 end
 
