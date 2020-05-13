@@ -213,12 +213,16 @@ classdef GenericAD < ADI
                 end
             elseif isa(u, 'ADI')
                 % Both are AD
-                uv = u.val;
-                vv = v.val;
-                h = u;
-                v_inv = 1./vv;
-                h.val = uv.*v_inv;
-                h.jac = h.timesJac(-h.val.*v_inv, v_inv, u.jac, v.jac);
+                if numel(u.val) == numel(v.val)
+                    uv = u.val;
+                    vv = v.val;
+                    h = u;
+                    v_inv = 1./vv;
+                    h.val = uv.*v_inv;
+                    h.jac = h.timesJac(-h.val.*v_inv, v_inv, u.jac, v.jac);
+                else
+                    h = rdivide@ADI(u,v);
+                end
             else
                 % v is AD
                 vv = v.val;

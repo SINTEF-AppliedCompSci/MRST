@@ -21,17 +21,21 @@ function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(mode
 %
 %   s          - Phase saturations per cell, as a nph long array.
 %
+%   b          - Inverse formation volume factors.
+%
 %   bc         - Boundary condition struct, with valid .sat field with
 %                length nph. Typically made using addBC, pside or fluxside.
 %
 % RETURNS:
-%   qSurf      - Cell array of phase fluxes.
+%   qSurf       - Cell array of phase fluxes at surface conditions.
 %
 %   BCTocellMap - Matrix used to add in bc fluxes to cells. Implemented as
 %                 a matrix to efficiently account for cells with multiple
 %                 faces with boundary conditions.
 %
-%   cells       - The cells affected by boundary conditions.
+%   BCcells     - The cells affected by boundary conditions.
+%
+%   qRes        - Cell array of phase fluxes at reservoir conditions.
 %
 % SEE ALSO:
 %   addBC, pside, fluxside
@@ -86,7 +90,7 @@ nbc = numel(bc.face);
 cellToBCMap = sparse((1:nbc)', BCcells, 1, nbc, G.cells.num);
 BCTocellMap = cellToBCMap';
 
-% Gravity gradient per bc face 
+% Gravity gradient per bc face
 if any(strcmpi(G.type, 'topSurfaceGrid'))
    dzbc = model.gravity(3) * (G.cells.z(BCcells) - G.faces.z(bc.face));
 else
@@ -117,7 +121,7 @@ rhoS = model.getSurfaceDensities();
 totMob = zeros(nbc, 1);
 for i = 1:nph
     % First column is outside, second is inside
-    
+
     % Store pressure on inside and outside
     p_inside   = cellToBCMap*pressure{i};
     p_bnd = p_inside;
@@ -181,7 +185,7 @@ end
 
 rhoAvgF = cell(nph, 1);
 for i = 1:nph
-    if isCompositional && i > model.water        
+    if isCompositional && i > model.water
         if isTransport
             sL = sF{i, 1}./sT{1};
             sR = sF{i, 2}./sT{2};
@@ -200,14 +204,14 @@ end
 if any(isRF)
     mrstModule add blackoil-sequential
     G = cell(1, nph);
-    
+
     mobC = cell(1, nph);
     for i = 1:nph
         G{i} = dzbc.*rhoAvgF{i};
         mobC{i} = vertcat(mobF{i, 2}, mobF{i, 1});
     end
     vT = sum(bc.value, 2);
-    
+
     nf = numel(vT);
     if 0
         upstr = @(flag, v) flag.*v(1:nf, :) + ~flag.*v(nf+1:end, :);
@@ -229,7 +233,7 @@ for i = 1:nph
         'Boundary conditions should have either one value or one value per phase, for each face');
         bc_v = bc.value(:, i);
     end
-    
+
     if isa(totMob, 'ADI')
         sample = totMob;
     else
@@ -237,12 +241,12 @@ for i = 1:nph
     end
     zeroAD = model.AutoDiffBackend.convertToAD(zeros(nbc, 1), sample);
     [q_s, q_r] = deal(zeroAD);
-    
+
     if any(isP)
         % Treat pressure BC
         rhoF = rhoAvgF{i}(isP);
         dP = pressureF{i, 1}(isP) - pressureF{i, 2}(isP) - rhoF.*dzbc(isP);
-        
+
         % Determine if pressure bc are injecting or producing
         injDir = dP > 0;
 
@@ -273,7 +277,7 @@ for i = 1:nph
         end
     end
     % Treat flux / Neumann BC
-    
+
     % ------ Fluxes given at surface conditions ----- %
     injNeu = bc_v > 0;
     if any(isSF)
@@ -317,4 +321,3 @@ for i = 1:nph
     qRes{i} = q_r;
 end
 end
-

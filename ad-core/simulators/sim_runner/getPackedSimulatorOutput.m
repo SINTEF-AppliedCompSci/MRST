@@ -89,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     wellOutputMissing = wantWells && wh.numelData() == 0;
     for i = 1:ndata
-        if nargout > 1 && opt.readFromDisk
+        if nargout > 1 && opt.readStatesFromDisk
             states{i} = sh{i};
         end
         if wantWells && opt.readWellSolsFromDisk
@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    if ~opt.readFromDisk
+    if ~opt.readStatesFromDisk
         % Just return handlers instead
         states = sh;
     end

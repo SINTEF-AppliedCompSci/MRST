@@ -113,7 +113,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             fluidModel = model.fluidModel;
             mechModel  = model.mechModel;
-            [state, fluidReport] = fluidModel.updateState(state, problem, dx, []);
+            [state, fluidReport] = fluidModel.updateState(state, problem, dx, drivingForces);
             [state, mechReport]  = mechModel.updateState(state, problem, dx, []);
             report = [];
         end

@@ -136,7 +136,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         prelim = opt.prelim;
     end
-    
+        
     n1 = N(:, 1);
     n2 = N(:, 2);
     C  = sparse(N, [(1:nf)'; (1:nf)'], ones(nf,1)*[1 -1], nc, nf);
@@ -145,22 +145,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     I_base = [N(:, 1); N(:, 1); N(:, 2); N(:, 2)];
 
     sortIx = struct('C', C, 'J_sorted_index', sortedN, 'I_base', I_base);
+    div_no_mex   = struct('sortIx',             sortIx,...
+                         'mex',                prelim, ...
+                         'useMex',             false, ...
+                         'fn',                 [], ...
+                         'useConservationJac', false, ...
+                         'N', N, 'C', C, 'nf', nf, 'nc', nc);
+    div_mex = div_no_mex;
+    div_mex.useMex = true;
     if opt.print
         fprintf('Operator setup took %g seconds\n', toc());
     end
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Test divergence        %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    f_mex = @() discreteDivergence([], N, face_value_mex, nc, nf, sortIx, gradMat, prelim, true);
-    f_matlab = @() discreteDivergence([], N, face_value, nc, nf, sortIx, gradMat, prelim, false);
+    f_mex = @() discreteDivergence([], face_value_mex, div_mex);
+    f_matlab = @() discreteDivergence([], face_value, div_no_mex);
     f_sparse = @() ops_sparse.Div(face_value_sparse);
     [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'div', 'Discrete divergence', opt, results);
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %      Test DivAcc            %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    f_mex = @() discreteDivergence(cell_value, N, face_value_mex, nc, nf, sortIx, gradMat, prelim, true);
-    f_matlab = @() discreteDivergence(cell_value, N, face_value, nc, nf, sortIx, gradMat, prelim, false);
+    f_mex = @() discreteDivergence(cell_value, face_value_mex, div_mex);
+    f_matlab = @() discreteDivergence(cell_value, face_value, div_no_mex);
     f_sparse = @() ops_sparse.AccDiv(cell_value_sparse, face_value_sparse);
     [~, ~, ~, results] = testFunction(f_mex, f_matlab, f_sparse, 'accdiv', 'Accumulation + divergence', opt, results);
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

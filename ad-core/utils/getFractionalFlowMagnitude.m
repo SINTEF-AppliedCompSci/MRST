@@ -60,9 +60,12 @@ function [F, Q] = getFractionalFlowMagnitudeInternal(model, state)
     F = zeros(nc, (nph-1)*(nph-1));
     for i = 1:nph-1
         frac = mob{i}./mobT;
-        
         offset = (nph-1)*(i-1)+1;
-        F(:, offset:offset+(nph-2)) = frac.jac{1}.diagonal;
+        d = frac.jac{1}.diagonal;
+        if isempty(d)
+            d = zeros(size(d,1), frac.jac{1}.dim(2));
+        end
+        F(:, offset:offset+(nph-2)) = d;
     end
     pc = model.getProp(state, 'CapillaryPressure');
     Q = [];

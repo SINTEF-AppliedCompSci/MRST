@@ -19,7 +19,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('skipConverged', false);
+    opt = struct('skipConverged', false, 'total', false);
     opt = merge_options(opt, varargin{:});
     if isstruct(report)
         report = report.ControlstepReports;
@@ -63,6 +63,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         timings(stepNo) = makeTiming(total, assembly, lsolve, lsolve_prep, rep.Iterations, n_assemblies);
+    end
+    if opt.total
+        % Sum up over all time-steps.
+        fn = fieldnames(timings);
+        tmp = timings(1);
+        for i = 1:numel(fn)
+            f = fn{i};
+            tmp.(f) = sum(vertcat(timings.(f)));
+        end
+        timings = tmp;
     end
 end
 

@@ -2,25 +2,34 @@ classdef PhasePressures < StateFunction
     % Pressure for each phase. Will always return one value for each phase,
     % even if all phases have the same pressure.
     properties
+        has_pc
     end
     
     methods
-        function gp = PhasePressures(varargin)
-            gp@StateFunction(varargin{:});
-            gp = gp.dependsOn({'CapillaryPressure'}, 'FlowPropertyFunctions');
-            gp = gp.dependsOn({'pressure'}, 'state');
+        function gp = PhasePressures(model, varargin)
+            gp@StateFunction(model, varargin{:});
+            f = model.fluid;
+            gp.has_pc = (model.water && model.oil && isfield(f, 'pcOW')) || ...
+                        (model.gas   && model.oil && isfield(f, 'pcOG')) || ...
+                        (~model.oil  &&              isfield(f, 'pcWG'));
+            if gp.has_pc
+                gp = gp.dependsOn({'CapillaryPressure'}, 'FlowPropertyFunctions'); 
+            end
+            gp = gp.dependsOn({'pressure'}, 'state');                   
             gp.label = 'p_\alpha';
         end
         
         function p_phase = evaluateOnDomain(prop, model, state)
-            [p, pc] = model.getProps(state, 'Pressure', 'CapillaryPressure');
-            nph = numel(pc);
+            p = model.getProps(state, 'Pressure');
+            nph = model.getNumberOfPhases();
             p_phase = cell(1, nph);
-            for i = 1:nph
-                if isempty(pc{i})
-                    p_phase{i} = p;
-                else
-                    p_phase{i} = p + pc{i};
+            [p_phase{:}] = deal(p);
+            if prop.has_pc
+                pc = model.getProps(state, 'CapillaryPressure');
+                for i = 1:nph
+                    if ~isempty(pc{i})
+                        p_phase{i} = p_phase{i} + pc{i};
+                    end
                 end
             end
         end
