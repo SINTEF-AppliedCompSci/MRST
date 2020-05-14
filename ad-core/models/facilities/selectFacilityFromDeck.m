@@ -51,20 +51,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         facility.VFPTablesInjector{tno} = VFPTable(vfpinj{tno});
                     end
                 end
-                
-                vfpprod = deck.SCHEDULE.control(cNo).VFPPROD;
-                for tno = 1:numel(vfpprod)
-                    if ~isempty(vfpprod{tno})
-                        if numel(facility.VFPTablesProducer) >= tno
-                            if ~isempty(facility.VFPTablesProducer{tno}) && ~hasWarned
-                                warning('MRST does not presently support overwriting VFP tables');
-                                hasWarned = true;
-                            end
+            end
+            vfpprod = deck.SCHEDULE.control(cNo).VFPPROD;
+            for tno = 1:numel(vfpprod)
+                if ~isempty(vfpprod{tno})
+                    if numel(facility.VFPTablesProducer) >= tno
+                        if ~isempty(facility.VFPTablesProducer{tno}) && ~hasWarned
+                            warning('MRST does not presently support overwriting VFP tables');
+                            hasWarned = true;
                         end
-                        facility.VFPTablesProducer{tno} = VFPTable(vfpprod{tno});
                     end
+                    facility.VFPTablesProducer{tno} = VFPTable(vfpprod{tno});
                 end
-                
             end
         end
     end
