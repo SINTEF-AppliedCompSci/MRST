@@ -83,7 +83,9 @@ function [B, tbls] = computeLocalFluxMimetic(G, rock, varargin)
     
     % We setup the cell-node table, cellnodetbl. Each entry determine a unique
     % corner
-    cellnodetbl = projIndexArray(cellnodefacetbl, {'nodes', 'cells'});
+    cellnodetbl = projIndexArray(cellnodefacetbl, {'cells', 'nodes'});
+    % ordering to optimize for-end loop below
+    cellnodetbl = sortIndexArray(cellnodetbl, {'cells', 'nodes'});
     
     % Nodal scalar product is stored in vector nodeM
     % mattbl is the table which specifies how nodeM is stored: a matrix for
