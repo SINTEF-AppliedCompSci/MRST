@@ -67,6 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Restrict cellnodetbl to the nodes blocks (nodes that are sent as argument)
     cellnodetbl = crossIndexArray(cellnodetbl, nodetbl, {'nodes'});
+    cellnodetbl = sortIndexArray(cellnodetbl, {'cells', 'nodes'});
     
     if cellnodetbl.num == 0
         % may happens when grid contains nodes that do not belong to any faces.
