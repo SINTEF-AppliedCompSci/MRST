@@ -1,19 +1,20 @@
 function OSflux = findOSflux(G, rock, interpFace)
 % Construct one-side fluxes for 2D and 3D grids
-    
-    dispif(mrstVerbose, 'findOSflux\n');
+
+    dispif(mrstVerbose, 'findOSflux... ');
+    timer = tic;
 
     K = permTensor(rock, G.griddim);
     K = reshape(K', G.griddim, G.griddim, []);
     OSflux = cell(G.faces.num, 2);
 
     switch G.griddim
-        
+
       case 2
-        
+
         for i_face = 1 : G.faces.num
 
-            if (all(G.faces.neighbors(i_face, :) ~= 0)) 
+            if (all(G.faces.neighbors(i_face, :) ~= 0))
                 % internal face
                 c1 = G.faces.neighbors(i_face, 1);
                 c2 = G.faces.neighbors(i_face, 2);
@@ -45,15 +46,16 @@ function OSflux = findOSflux(G, rock, interpFace)
                 clear trans;
             end
         end
-        
+
       case 3
-        
+
         for i_face = 1:G.faces.num
-            
-            if (all(G.faces.neighbors(i_face, :) ~= 0)) 
+
+            if (all(G.faces.neighbors(i_face, :) ~= 0))
                 % internal face
                 c1 = G.faces.neighbors(i_face, 1);
                 c2 = G.faces.neighbors(i_face, 2);
+
                 K1 = K(:, :, c1);
                 K2 = K(:, :, c2);
                 w1 = K1 * G.faces.normals(i_face, :)';
@@ -81,10 +83,12 @@ function OSflux = findOSflux(G, rock, interpFace)
             end
         end
     end
+
+    fprintf('done in %1.2f s\n', toc(timer));
 end
 
 function [a, faceA, faceB] = findAB(G, interpFace, c, Kn)
-    
+
     x1 = G.cells.centroids(c, :)';
     theFaces = G.cells.faces(G.cells.facePos(c):G.cells.facePos(c+1)-1, 1);
     myBases = interpFace.coords(theFaces, :);
@@ -151,7 +155,7 @@ function [a, faceA, faceB] = findAB(G, interpFace, c, Kn)
     end
     assert(logical(exist('faceA', 'var')), ...
            ['decomposition failed for cell ', num2str(c)]);
-    
+
 end
 
 function [a, faceA, faceB, faceC] = findABC(G, interpFace, c, Kn)
@@ -234,7 +238,7 @@ function [a, faceA, faceB, faceC] = findABC(G, interpFace, c, Kn)
 
     % Error
     if ~exist('faceA', 'var') %|| nf == 4
-        
+
         figure, hold on
         plotGrid(G, 'facealpha', 0.1);
         plotGrid(G, c)
@@ -249,7 +253,7 @@ function [a, faceA, faceB, faceC] = findABC(G, interpFace, c, Kn)
         trisurf(ind, hap(:, 1), hap(:, 2), hap(:, 3), 'Facecolor', 'cyan', 'facealpha', 0.5)
         in_convex_hull = mex_inhull(xc, hap, ind, 1e-5);
         disp(['in_convex_hull', num2str(in_convex_hull)])
-        
+
         % Plot Kn.
         Gc = extractSubgrid(G, c);
         xmin = min(Gc.nodes.coords);
@@ -266,7 +270,7 @@ function [a, faceA, faceB, faceC] = findABC(G, interpFace, c, Kn)
 end
 
 function [a, xD] = findDnode(G, mycell, myface, Kn)
-    
+
     n1 = G.faces.nodes(G.faces.nodePos(myface));
     n2 = G.faces.nodes(G.faces.nodePos(myface)+1);
     xn1 = G.nodes.coords(n1, :)';

@@ -18,7 +18,7 @@ function model = setNTPFADiscretization(model, varargin)
 end
 
 function model = setNTPFA(model, varargin)
-    
+
     require nfvm
 
     if isempty(model.FluxDiscretization)
@@ -26,7 +26,7 @@ function model = setNTPFA(model, varargin)
     end
 
     ntpfa = NTPFA(model, varargin{:});
-    
+
     % Discrete gradient
     fd = model.FluxDiscretization;
     dp = fd.getStateFunction('PressureGradient');

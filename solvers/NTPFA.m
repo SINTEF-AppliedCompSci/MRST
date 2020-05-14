@@ -18,7 +18,7 @@ classdef NTPFA
                          'interpFace', [], ...
                          'saveOSfluxDir', [], ...
                          'saveInterpFaceDir', []);
-            
+
             opt = merge_options(opt, varargin{:});
 
             % Set up HAP
@@ -30,22 +30,24 @@ classdef NTPFA
                     save(fullfile(opt.saveInterpFaceDir, 'interpFace.mat'), ...
                          'interpFace');
                 end
-                
+
                 ntpfa.interpFace = interpFace;
             else
                 ntpfa.interpFace = opt.interpFace;
             end
-            dispif(mrstVerbose, 'fraction of faces with HAPs outside convex hull is %d\n', ntpfa.interpFace.fraction);
+            dispif(mrstVerbose, ...
+                   'fraction of faces with HAPs outside convex hull is %d\n', ...
+                   ntpfa.interpFace.fraction);
 
             % Set up one-sided fluxes
             if isempty(opt.OSflux)
                 OSflux = findOSflux(model.G, model.rock, ntpfa.interpFace);
-                
+
                 if ~isempty(opt.saveOSfluxDir)
                     save(fullfile(opt.saveOSfluxDir, 'OSflux.mat'), ...
                          'OSflux');
                 end
-                
+
                 ntpfa.OSflux = OSflux;
             else
                 ntpfa.OSflux = opt.OSflux;
