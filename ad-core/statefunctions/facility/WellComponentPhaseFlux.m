@@ -20,7 +20,7 @@ classdef WellComponentPhaseFlux < StateFunction
 
             % Get fluxes and densities + well map needed
             [map, phaseFlux] = prop.getEvaluatedDependencies(state, 'FacilityWellMapping', 'PhaseFlux');
-            componentDensity = model.getProps(state, 'ComponentPhaseDensity');
+            componentPhaseDensity = model.getProps(state, 'ComponentPhaseDensity');
             sc = facility.getProps(state, 'ComponentPhaseFractionInjectors');
             wc = map.cells;
             nperf = numel(wc);
@@ -48,8 +48,8 @@ classdef WellComponentPhaseFlux < StateFunction
                     % Compute production source terms everywhere. We
                     % overwrite the injection/crossflow terms later on.
                     q = phaseFlux{ph};
-                    if ~isempty(componentDensity{c, ph})
-                        rhoc = componentDensity{c, ph}(wc);
+                    if ~isempty(componentPhaseDensity{c, ph})
+                        rhoc = componentPhaseDensity{c, ph}(wc);
                         % Compute production fluxes
                         % TODO: we can move the following outside the for loop else to
                         % save some if conditions

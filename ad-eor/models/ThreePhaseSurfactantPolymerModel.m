@@ -215,10 +215,14 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             % TODO: BAD NAME!
             pp = pp.setStateFunction('PolyViscMult', pviscmult);
             fp = fp.setStateFunction('RelativePermeabilityMultipliers', relpermult);
+            
+            ffd = model.FacilityModel.FacilityFluxDiscretization;
+            ffd = ffd.setStateFunction('WellConMobility', WellConMobilityWithPolymer(model));
 
             model.FlowPropertyFunctions = fp;
             model.PVTPropertyFunctions  = pp;
             model.FluxDiscretization    = fd;
+            model.FacilityModel.FacilityFluxDiscretization = ffd;
 
         end
 
