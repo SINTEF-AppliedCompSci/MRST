@@ -9,6 +9,7 @@ classdef FacilityFluxDiscretization < StateFunctionGrouping
         InjectionSurfaceDensity
         ComponentPhaseFractionInjectors
         WellConMobility
+        WellConCompPhaseDensity
     end
     
     methods
@@ -26,6 +27,7 @@ classdef FacilityFluxDiscretization < StateFunctionGrouping
             group = group.setStateFunction('InjectionSurfaceDensity', InjectionSurfaceDensity(model));
             group = group.setStateFunction('ComponentPhaseFractionInjectors', ComponentPhaseFractionInjectors(model));
             group = group.setStateFunction('WellConMobility', WellConMobility(model));
+            group = group.setStateFunction('WellConCompPhaseDensity', WellConCompPhaseDensity(model));
         end
     end
 end

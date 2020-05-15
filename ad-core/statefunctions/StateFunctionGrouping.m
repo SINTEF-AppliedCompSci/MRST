@@ -276,6 +276,9 @@ classdef StateFunctionGrouping < StateFunctionDependent
                 name = group.functionNames{i};
                 fn = group.getStateFunction(name);
                 % We first check internals (i.e. in same group)
+%                 if isempty(fn)
+%                     fn
+%                 end
                 for j = 1:numel(fn.dependencies)
                     depname = fn.dependencies{j};
                     present = group.hasStateFunction(depname);

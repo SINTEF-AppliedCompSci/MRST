@@ -9,7 +9,7 @@ classdef WellComponentPhaseFlux < StateFunction
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping', 'PhaseFlux', 'ComponentPhaseFractionInjectors'});
             gp = gp.dependsOn({'Density'}, 'PVTPropertyFunctions');
-            gp = gp.dependsOn({'ComponentPhaseDensity'}, 'FlowPropertyFunctions');
+            gp = gp.dependsOn({'WellConCompPhaseDensity'});
             gp.label = 'Q_{i,\alpha}';
         end
         function componentPhaseFlux = evaluateOnDomain(prop, facility, state)
@@ -20,7 +20,7 @@ classdef WellComponentPhaseFlux < StateFunction
 
             % Get fluxes and densities + well map needed
             [map, phaseFlux] = prop.getEvaluatedDependencies(state, 'FacilityWellMapping', 'PhaseFlux');
-            componentPhaseDensity = model.getProps(state, 'ComponentPhaseDensity');
+            wellConCompPhaseDensity = model.getProps(state, 'WellConCompPhaseDensity');
             sc = facility.getProps(state, 'ComponentPhaseFractionInjectors');
             wc = map.cells;
             nperf = numel(wc);
@@ -48,22 +48,8 @@ classdef WellComponentPhaseFlux < StateFunction
                     % Compute production source terms everywhere. We
                     % overwrite the injection/crossflow terms later on.
                     q = phaseFlux{ph};
-                    if ~isempty(componentPhaseDensity{c, ph})
-                        rhoc = componentPhaseDensity{c, ph}(wc);
-                        % Compute production fluxes
-                        % TODO: we can move the following outside the for loop else to
-                        % save some if conditions
-                        % for water phase
-                        if (ph == 1)
-                            if (isprop(model, 'polymer'))
-                                if model.polymer &&  strcmp(model.Components{c}.name,'polymer')
-                                    [effviscmult, pviscmult] = model.getProps(state, 'PolymerEffViscMult', 'PolymerViscMult');
-                                    effvismultw = effviscmult(wc);
-                                    pviscmultw = pviscmult(wc);
-                                    rhoc = rhoc .* effvismultw ./ pviscmultw;
-                                end
-                            end
-                        end
+                    if ~isempty(wellConCompPhaseDensity{c, ph})
+                        rhoc = wellConCompPhaseDensity{c, ph};
                         componentPhaseFlux{c, ph} = rhoc.*q;
                     end
                 end

@@ -192,7 +192,13 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 rppmult = 'PolymerPermReduction';
                 fp = fp.setStateFunction(rppmult, PolymerPermReduction(model));
                 relpermult = relpermult.addMultiplier(model, rppmult, 'W');
-
+                               
+                % if necessary, the following can be moved out similar with
+                % others, currently they are overwritten due to polymer
+                ffd = model.FacilityModel.FacilityFluxDiscretization;
+                ffd = ffd.setStateFunction('WellConMobility', WellConMobilityWithPolymer(model));
+                ffd = ffd.setStateFunction('WellConCompPhaseDensity', WellConCompPhaseDensityWithPolymer(model));
+                model.FacilityModel.FacilityFluxDiscretization = ffd;
             end
 
             if model.surfactant
@@ -216,14 +222,11 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             pp = pp.setStateFunction('PolyViscMult', pviscmult);
             fp = fp.setStateFunction('RelativePermeabilityMultipliers', relpermult);
             
-            ffd = model.FacilityModel.FacilityFluxDiscretization;
-            ffd = ffd.setStateFunction('WellConMobility', WellConMobilityWithPolymer(model));
+
 
             model.FlowPropertyFunctions = fp;
             model.PVTPropertyFunctions  = pp;
-            model.FluxDiscretization    = fd;
-            model.FacilityModel.FacilityFluxDiscretization = ffd;
-
+            model.FluxDiscretization    = fd;            
         end
 
         % --------------------------------------------------------------------%
