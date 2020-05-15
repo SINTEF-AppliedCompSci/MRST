@@ -48,7 +48,7 @@ gmodelsp.nonlinearTolerance = 1e-2;
 
 
 gmodelsp = gmodelsp.validateModel();
-gmodelp.FacilityModel.toleranceWellRate = 1e-2;
+gmodelsp.FacilityModel.toleranceWellRate = 1e-2;
 
 scheduleGSP = schedule;
 
@@ -57,7 +57,7 @@ scheduleGSP = schedule;
                     'NonLinearSolver', nonlinearsolver);
 
 %%
-% props = gmodelp.validateModel();
+% props = gmodelsp.validateModel();
 % groups = props.getStateFunctionGroupings();
 % for i = 1:numel(groups)
 %     figure;

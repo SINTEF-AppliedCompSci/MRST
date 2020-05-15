@@ -173,6 +173,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 fp = fp.setStateFunction('PolymerAdsorption', PolymerAdsorption(model, satreg));
                 fd = fd.setStateFunction('PolymerPhaseFlux' , PolymerPhaseFlux(model));
                 fd = fd.setStateFunction('FaceConcentration', FaceConcentration(model));
+                fd = fd.setStateFunction('ComponentPhaseFlux', ComponentPhaseFluxWithPolymer(model));
 
                 % We set up the water effective viscosity multiplier based on polymer concentration
                 peffmult = 'PolymerEffViscMult';

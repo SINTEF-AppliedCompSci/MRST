@@ -1,11 +1,11 @@
-classdef ComponentPhaseFlux < StateFunction
+classdef ComponentPhaseFluxWithPolymer < StateFunction
     % Flux of each component, in each phase
     properties (Access = protected)
         mobility_name; % Name of state function where component mobility comes from
     end
 
     methods
-        function cf = ComponentPhaseFlux(model, mob_name)
+        function cf = ComponentPhaseFluxWithPolymer(model, mob_name)
             cf@StateFunction(model);
             if nargin < 2
                 mob_name = 'FaceComponentMobility'; 
@@ -29,6 +29,10 @@ classdef ComponentPhaseFlux < StateFunction
                     end
                 end
             end
+            
+
+            % when polymer exist, shear effects might play a role
+            v = applyShearEffects(v, model, state);
         end
     end
 end
