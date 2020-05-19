@@ -103,10 +103,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % -- "Grid" ------------------------------------------------------------
    elseif is_delta_grid(deck)
-      if isfield(deck.GRID, 'NNC')
-         error('Non-neighboring connections not supported.');
-      end
-
       nx = deck.RUNSPEC.DIMENS(1);
       ny = deck.RUNSPEC.DIMENS(2);
       nz = deck.RUNSPEC.DIMENS(3);
@@ -155,6 +151,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       error('Grid not implemented')
    end
 
+   if isfield(deck.GRID, 'NNC')
+      G = merge_nnc(G, processNNC(G, deck.GRID.NNC));
+   end
+
    if isfield(deck.GRID, 'MAPAXES') && opt.mapAxes
       for i = 1 : numel(G)
          G(i).nodes.coords(:,1:2) = ...
@@ -193,4 +193,25 @@ else
     % We were given deltas directly
     dc = reshape(deck.GRID.(du), dims);
 end
+end
+
+%--------------------------------------------------------------------------
+
+function G = merge_nnc(G, nnc)
+   if ~isfield(G, 'nnc')
+      G.nnc = nnc;
+   else
+      G.nnc = do_merge_nnc(G.nnc, nnc);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function nnc = do_merge_nnc(nnc, new)
+   i = ~ismember(sort(new.cells, 2), sort(nnc.cells, 2), 'rows');
+
+   if any(i)
+      nnc.cells = [ nnc.cells ; new.cells(i,:) ];
+      nnc.trans = [ nnc.trans ; new.trans(i) ];
+   end
 end
