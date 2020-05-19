@@ -45,7 +45,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    opt = struct('mapAxes', false, ...
                 'useMex',  false);
    [opt,extra] = merge_options(opt, varargin{:});
@@ -60,6 +59,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          % Use Matlab version
          G = processGRDECL(deck.GRID, 'RepairZCORN', true, extra{:});
      end
+
    % -- Tensor product grid -----------------------------------------------
    elseif all(isfield(deck.GRID, {'DXV', 'DYV', 'DZV'}))
       if isfield(deck.GRID, 'DEPTHZ')
@@ -79,9 +79,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % -- Curvilinear logically Cartesian grid ------------------------------
    % -- FrontSim ----------------------------------------------------------
    elseif all(isfield(deck.GRID, {'COORDX', 'COORDY', 'COORDZ'}))
-      G = buildCoordGrid(deck.GRID);
+      if exist('buildCoordGrid', 'file')
+         % This version of MRST has experimental support for COORD{X,Y,X}.
+         G = buildCoordGrid(deck.GRID);
+      else
+         error('GridType:Unsupported', ...
+               'MRST does not support the COORD{X,Y,Z} grid type');
+      end
 
-   % -- "MRST-output NNC grid" ------------------------------------------------------------
+   % -- "MRST-output NNC grid" --------------------------------------------
    elseif is_nnc_1d_grid(deck)
       nc = max(deck.GRID.cartDims);
       e = deck.EDIT;
@@ -94,6 +100,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       G.faces.num = 0;
       rock = makeRock(G, deck.GRID.PERMX, deck.GRID.PORO);
       G = simGridTPFA(G, rock, 'neighbors', N, 'porv', e.PORV, 'depth', e.DEPTH, 'trans', T);
+
    % -- "Grid" ------------------------------------------------------------
    elseif is_delta_grid(deck)
       if isfield(deck.GRID, 'NNC')
