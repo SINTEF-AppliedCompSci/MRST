@@ -102,6 +102,10 @@ else
    [N, T, T_all, intInx] = user_provided_trans(G, opt.neighbors, opt.trans);
 end
 
+if has_grid_nncs(G)
+   [N, T, T_all, intInx] = add_grid_nncs(N, T, T_all, intInx, G);
+end
+
 if any(T < 0)
    warn_negative_trans(T);
 end
@@ -163,6 +167,21 @@ function [N, T, T_all, intInx] = user_provided_trans(G, N, T)
       T_all = T;
       T     = T(intInx);
    end
+end
+
+%--------------------------------------------------------------------------
+
+function [N, T, T_all, intInx] = add_grid_nncs(N, T, T_all, intInx, G)
+   cells = G.nnc.cells;
+   trans = G.nnc.trans;
+
+   i = ~ (any(cells == 0, 2) | ...
+          ismember(sort(cells, 2), sort(N, 2), 'rows'));
+
+   N      = [ N      ; cells(i, :) ];
+   T      = [ T      ; trans(i) ];
+   T_all  = [ T_all  ; trans(i) ];
+   intInx = [ intInx ; true([sum(i), 1]) ];
 end
 
 %--------------------------------------------------------------------------
@@ -229,6 +248,13 @@ function warn_negative_trans(T)
    warning('Transmissibility:Negative', ...
           ['Negative transmissibilities detected for %d/%d (%.2e %%) ', ...
            'connections.'], nneg, numel(T), 100 * nneg / numel(T));
+end
+
+%--------------------------------------------------------------------------
+
+function tf = has_grid_nncs(G)
+   tf = isfield(G, 'nnc') && isstruct(G.nnc) && ...
+      all(isfield(G.nnc, {'cells', 'trans'}));
 end
 
 %--------------------------------------------------------------------------
