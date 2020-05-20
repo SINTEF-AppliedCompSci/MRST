@@ -31,7 +31,7 @@ G = computeGeometry(G);
 
 % To speed up the processing, one can use a C-accelerated versions of the
 % gridprocessing routines (provided you have a compatible compiler):
-% mrstModule add libgeometry opm_gridprocessing
+% mrstModule add libgeometry deckformat
 % G = mcomputeGeometry(processgrid(grdecl));
 
 %% Get petrophysical data

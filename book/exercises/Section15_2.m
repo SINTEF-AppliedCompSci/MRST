@@ -1,6 +1,6 @@
 %% Exercise 15.2.1
 % Upscale additive properties from SAIGUP
-mrstModule add libgeometry opm_gridprocessing coarsegrid
+mrstModule add libgeometry deckformat coarsegrid
 grdecl=readGRDECL(fullfile(getDatasetPath('SAIGUP'),'SAIGUP.GRDECL'));
 G = mcomputeGeometry(processgrid(grdecl));
 rock = grdecl2Rock(grdecl,G.cells.indexMap);

@@ -165,7 +165,7 @@ usys   = getUnitSystem('METRIC');
 grdecl = convertInputUnits(grdecl, usys);
 % G = processGRDECL(grdecl);
 % G = computeGeometry(G);
-mrstModule add libgeometry opm_gridprocessing
+mrstModule add libgeometry deckformat
 G = mcomputeGeometry(processgrid(grdecl));
 
 % Petrophysics
