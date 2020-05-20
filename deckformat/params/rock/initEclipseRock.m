@@ -32,6 +32,12 @@ function rock = initEclipseRock(deck)
 %          This function is not aware of time-dependent multipliers that
 %          may be present in the 'SCHEDULE' section.
 %
+%          Furthermore, if the input deck's GRID section contains fault
+%          multiplier data (both of the keywords 'FAULTS' and 'MULTFLT'),
+%          then those values will be copied verbatim to a substructure
+%          'faultdata' and retain their original field names, converted to
+%          lower case, in this substructure.
+%
 % NOTE:
 %   A given 'rock' field is only created if the corresponding keyword is
 %   present in the input deck.
@@ -80,6 +86,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    rock = assign_multipliers(rock, deck);
+   rock = assign_fault_multipliers(rock, deck);
 
    if isfield(deck.PROPS, 'ROCK')
       [rock.cr, rock.pref] = rock_compressibility(deck.PROPS);
@@ -101,6 +108,15 @@ function rock = assign_multipliers(rock, deck)
 
    for mult = reshape(multiplier(isfield(deck.GRID, multiplier)), 1, [])
       rock.multipliers.(compname(mult)) = extract_grid_prop(deck, mult);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function rock = assign_fault_multipliers(rock, deck)
+   if all(isfield(deck.GRID, {'FAULTS', 'MULTFLT'}))
+      rock.faultdata = struct('faults' , { deck.GRID.FAULTS }, ...
+                              'multflt', { deck.GRID.MULTFLT });
    end
 end
 
