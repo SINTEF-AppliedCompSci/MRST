@@ -1,4 +1,5 @@
 function assembly = assembleCouplingTerms(G, eta, tbls, mappings)
+    
     opt = struct('bcetazero', true);
     opt = merge_options(opt, varargin{:});
     
@@ -97,6 +98,10 @@ function assembly = assembleCouplingTerms(G, eta, tbls, mappings)
     % Beware of minus sign below
     divconsc_T = divconsc_T.setFromTensorProd(-mg, prod);
     divconsc = divconsc_T.getMatrix();
+    
+    assembly = struct('divfv'    , divfv    , ...
+                      'divconsnf', divconsnf, ...
+                      'divconsc' , divconsc);
     
 end
 
