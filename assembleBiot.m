@@ -13,6 +13,8 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     bcstruct = fluid.bcstruct;
     src      = fluid.src;
     fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varargin)
+
+    % Compute coupling terms
     
     % Recover matrices from mechanic assembly
     mechmat = mechassembly.matrices;
