@@ -46,7 +46,7 @@ function output = runConvSim(G, params, varargin)
                                        true);
     clear bcfacetbl
     
-    [~, nodefacecents] = computeNodeFaceCentroids(G, tbls, eta, 'bcetazero', opt.bcetazero);
+    [~, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', opt.bcetazero);
     
     map = TensorMap();
     map.fromTbl = nodefacecoltbl;

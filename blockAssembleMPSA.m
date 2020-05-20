@@ -121,7 +121,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         
         dim = coltbl.num;
         
-        cellnodefacecents = computeNodeFaceCentroids(G, tbls, eta, 'bcetazero', opt.bcetazero);
+        cellnodefacecents = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', opt.bcetazero);
 
         [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
         ind1 = i;

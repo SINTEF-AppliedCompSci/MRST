@@ -137,7 +137,7 @@ end
 doplotcontpoints = false;
 if doplotcontpoints
     % plot continuity points
-    [~, nodefacecents] = computeNodeFaceCentroids(G, tbls, eta, 'bcetazero', ...
+    [~, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', ...
                                                   bcetazero);
     figure
     hold on

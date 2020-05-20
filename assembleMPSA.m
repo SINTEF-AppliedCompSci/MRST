@@ -256,7 +256,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     
     coef = map.eval(1./nnodepercell);
 
-    % we eliminitate the places (at the boundaries) where the local reconstruction
+    % We eliminitate the places (at the boundaries) where the local reconstruction
     % is ill-posed: nodes with one cell in 2d (corners of a Cartesian grid) and
     % nodes with less the two nodes in 3d (edges of a Cartesian grid);
 

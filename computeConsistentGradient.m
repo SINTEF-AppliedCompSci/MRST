@@ -4,7 +4,7 @@ function g = computeConsistentGradient(G, eta, tbls, mappings, varargin)
     opt = merge_options(opt, varargin{:});
     bcetazero = opt.bcetazero;
     
-    cellnodefacecents = computeNodeFaceCentroids(G, tbls, eta, 'bcetazero', opt.bcetazero);
+    cellnodefacecents = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', opt.bcetazero);
 
     coltbl             = tbls.coltbl;
     cellnodetbl        = tbls.cellnodetbl;

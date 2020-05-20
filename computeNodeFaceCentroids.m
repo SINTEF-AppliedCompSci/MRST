@@ -1,5 +1,5 @@
-function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids(G, tbls, ...
-                                                      eta, varargin)
+function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids(G, eta, ...
+                                                      tbls, varargin)
     opt = struct('bcetazero', false);
     opt = merge_options(opt, varargin{:});
     bcetazero = opt.bcetazero;
