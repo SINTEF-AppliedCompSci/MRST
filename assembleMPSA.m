@@ -52,29 +52,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
 
     %% Construction of tensor g (as defined in paper eq 4.1.2)
 
-    cellnodefacecents = computeNodeFaceCentroids(G, tbls, eta, 'bcetazero', opt.bcetazero);
-
-
-    [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-    ind1 = i;
-    ind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
-
-    cnc_num = cellnodecoltbl.num; 
-    assert(cnc_num == cnf_num, ['This implementation of mpsaw cannot handle ' ...
-                        'this grid']);
-
-    A = sparse(ind1, ind2, cellnodefacecents, cnc_num, cnc_num);
-
-    opt.invertBlocks = 'mex';
-    bi = blockInverter(opt);
-
-    sz = repmat(coltbl.num, cellnodetbl.num, 1);
-    invA = bi(A, sz);
-
-    ind = sub2ind([cnf_num, cnc_num], ind2, ind1);
-    
-    g = invA(ind);
-    
+    g = computeConsistentGradient(G, eta, tbls, mappings, 'bcetazero', opt.bcetazero);
 
     %% Construction of the gradient operator
     %
@@ -142,17 +120,8 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     %% Construction of the divergence operator
     %
     % setup the facet normals
-    fno = cellnodefacetbl.get('faces');
-    cno = cellnodefacetbl.get('cells');
-    numnodes = double(diff(G.faces.nodePos));
-    numnodes = numnodes(fno);
-    facetNormals = G.faces.normals(fno, :);
-    facetNormals = bsxfun(@ldivide, numnodes, facetNormals);
-
-    sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
-    facetNormals = sgn.*facetNormals; % Outward normals with respect to cell
-                                      % in cellnodefacetbl.
-    facetNormals = reshape(facetNormals', [], 1);
+    
+    facetNormals = computeFacetNormals(G, cellnodefacetbl);
 
     % divnodeface_T : cellnodecolrowtbl -> nodefacecoltbl
     %
@@ -446,6 +415,8 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     % We count the number of degrees of freedom that are connected to the same
     % node.
     [nodes, sz] = rlencode(nodefacecoltbl.get('nodes'), 1);
+    opt.invertBlocks = 'mex';
+    bi = blockInverter(opt);
     invA11 = bi(A11, sz);
 
 
@@ -561,6 +532,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     
     assembly = struct('B'       , B       , ...
                       'rhs'     , rhs     , ...
+                      'g'       , g       , ...
                       'extforce', extforce, ...
                       'R1'      , R1      , ...
                       'R2'      , R2      , ...
