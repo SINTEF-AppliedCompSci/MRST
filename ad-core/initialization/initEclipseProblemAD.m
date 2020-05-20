@@ -166,7 +166,8 @@ function model = initializeModel(deck, opt)
         perm_ok = all(rock.perm > opt.permTolerance, 2);
         deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
 
-        G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected);
+        G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected, ...
+                                  'useMex', opt.useMexProcessGrid);
         if numel(G) > 1
             warning('Multiple disconnected grids found. Picking largest.');
             G = G(1);
