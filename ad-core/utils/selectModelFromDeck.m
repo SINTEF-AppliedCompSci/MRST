@@ -88,7 +88,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     model.inputdata = deck;
     if ~isempty(rock)
-        model = model.setupOperators(G, rock, 'deck', deck);
+        model = model.setupOperators(G, rock);
     end
     model.rock = rock;
     model.FacilityModel = selectFacilityFromDeck(deck, model);
