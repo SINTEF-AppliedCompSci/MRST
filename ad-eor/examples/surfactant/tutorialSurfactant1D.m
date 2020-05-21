@@ -23,6 +23,12 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 % 
 
 current_dir = fileparts(mfilename('fullpath'));
+if mrstIsLiveEditorDir(current_dir)
+   % Running in "Live Editor" cell mode.  Fall back to expected location.
+
+   current_dir = fullfile(mrstPath('ad-eor'), 'examples', 'surfactant');
+end
+
 fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
 gravity off
 
@@ -80,10 +86,12 @@ scheduleOW.control(2).W(2).cs = 0;
 figure()
 plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true, 'field', 's:1');
 
-plotWellSols({wellSolsSurfactant,wellSolsOW},cumsum(schedule.step.val));
+plotWellSols({wellSolsSurfactant, wellSolsOW}, ...
+             cumsum(schedule.step.val), ...
+             'DatasetNames', {'Surfactant', 'Water flooding'});
 
 %% Copyright notice
-
+%
 % <html>
 % <p><font size="-1">
 % Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
@@ -109,4 +117,3 @@ plotWellSols({wellSolsSurfactant,wellSolsOW},cumsum(schedule.step.val));
 % <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
 % </font></p>
 % </html>
-
