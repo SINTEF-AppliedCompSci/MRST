@@ -83,7 +83,6 @@ try
    mtransportVE;
    cpp_accel = true;
 catch me
-   d = fileparts(mfilename('fullpath'));
    disp('mex-file for C++ acceleration not found');
    disp(['See ', fullfile(mrstPath('co2lab'),'ve','VEmex','README'),...
       ' for building instructions']);
@@ -146,7 +145,7 @@ while t<T
 
    % Plotting
    fprintf(1,'\b\b\b\b\b\b\b\b\b\b%4d years', convertTo(t,year));
-   if mod(t,dTplot)~= 0 && t<T,
+   if mod(t,dTplot)~= 0 && t<T
       continue
    else
       plotPanelVE(G, Gt, W, sol, t, [vol totVol], opts{:});
