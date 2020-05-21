@@ -59,6 +59,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
     gravity reset on;
 
     mrstModule add deckformat ad-core ad-blackoil ad-props
@@ -82,7 +83,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'deckfn',               [], ...
                  'getSchedule',          true, ...
                  'getInitialState',      true, ...
-                 'SplitDisconnected',    false);
+                 'SplitDisconnected',    false, ...
+                 'PreserveCpNodes',      true);
     [opt, extra] = merge_options(opt, varargin{:});
     if ~isempty(opt.deckfn)
         deck = opt.deckfn(deck);
@@ -167,7 +169,9 @@ function model = initializeModel(deck, opt)
         deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
 
         G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected, ...
-                                  'useMex', opt.useMexProcessGrid);
+                                  'useMex', opt.useMexProcessGrid, ...
+                                  'PreserveCpNodes', ...
+                                  ~opt.useMexProcessGrid && opt.PreserveCpNodes);
         if numel(G) > 1
             warning('Multiple disconnected grids found. Picking largest.');
             G = G(1);
