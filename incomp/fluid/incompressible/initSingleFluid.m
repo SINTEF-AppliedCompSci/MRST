@@ -7,23 +7,26 @@ function fluid = initSingleFluid(varargin)
 % PARAMETERS:
 %   'pn'/pv - List of 'key'/value pairs defining specific fluid
 %             characteristics.  The following parameters must be defined:
-%               - mu  -- Fluid viscosity in units of Pa*s.
-%               - rho -- Fluid density in units of kilogram/meter^3.
+%               - mu    -- Fluid viscosity in units of Pa*s.
+%               - rho   -- Fluid density in units of kilogram/meter^3.
+%               - pahse -- Phase name.  Default value 'W'.  Supported
+%               values are 'W', 'O', and 'G'.
 %
 % RETURNS:
-%   fluid - Fluid data structure as described in 'fluid_structure'
-%           representing the current state of the fluid within the
-%           reservoir model.
+%   fluid - Incompressible fluid data structure that is also compatible
+%           with AD-based solvers.  Supports a single phase, identified by
+%           the 'phase' parameter, only.  Requests for properties of other
+%           phases return empty arrays/objects.
 %
 % EXAMPLE:
 %   fluid = initSingleFluid('mu' ,    1*centi*poise     , ...
 %                           'rho', 1014*kilogram/meter^3);
 %
-%   s = linspace(0, 1, 1001).'; kr = fluid.relperm(s);
+%   s = linspace(0, 1, 1001).'; kr = fluid.krW(s);
 %   plot(s, kr), legend('kr')
 %
 % SEE ALSO:
-%   `fluid_structure`, `initSimpleFluid`, `solveIncompFlow`.
+%   `initSimpleFluid`, `incompTPFA`.
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
@@ -44,18 +47,66 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   opt = struct('mu', [], 'rho', []);
+   opt = struct('mu', [], 'rho', [], 'phase', 'W');
    opt = merge_options(opt, varargin{:});
 
-   assert ((numel(opt.mu) == 1) && (numel(opt.rho) == 1));
+   assert (all([numel(opt.mu), numel(opt.rho)] == 1), ...
+           'Function ''%s'' is supported for single phase only', mfilename);
+
+   phase = upper(opt.phase(1));
+   allph = {'W', 'O', 'G'};
+   phIdx = strcmp(phase, allph);
+
+   if ~any(phIdx)
+      error('PhaseName:Unsupported', ...
+           ['Phase name ''%s'' is unsupported.  Phase name ', ...
+            'must be one of ''W'', ''O'', or ''G''.'], opt.phase);
+   end
+
+   phases = [ {phase}, allph(~phIdx) ];
 
    prop = @(  varargin) properties(opt, varargin{:});
    kr   = @(s,varargin) relperm(s, opt, varargin{:});
 
-   fluid = struct('properties', prop             , ...
-                  'saturation', @(x,varargin) x.s, ...
-                  'relperm'   , kr);
+   % 'P' is identified phase, 'M' is "Missing".
+   [bP , bM ] = recip_fvf();
+   [krP, krM] = relperm_functions();
+   [muP, muM] = viscosity_functions(opt);
+
+   fields = [ strcat('rho', phases, 'S'), ...
+              strcat('b'  , phases),      ...
+              strcat('kr' , phases),      ...
+              strcat('mu' , phases),      ...
+              { 'properties', 'saturation', 'relperm' }];
+
+   values = [ { opt.rho, [] , []  }, ...
+              { bP     , bM , bM  }, ...
+              { krP    , krM, krM }, ...
+              { muP    , muM, muM }, ...
+              { prop, (@(x, varargin) x.s), kr } ];
+
+   fluid = cell2struct(values, fields, 2);
+end
+
+%--------------------------------------------------------------------------
+
+function [bP, bM] = recip_fvf()
+   bP = @(p) 1 + 0*p;  % Incompressible
+   bM = @(p) [];       % Missing
+end
+
+%--------------------------------------------------------------------------
+
+function [krP, krM] = relperm_functions()
+   krP = @(s) 1 + 0*s;  % Single phase => no relative permeability effects.
+   krM = @(s) [];       % Missing
+end
+
+%--------------------------------------------------------------------------
+
+function [muP, muM] = viscosity_functions(opt)
+   muP = @(p) opt.mu + 0*p;
+   muM = @(p) []; % Missing
 end
 
 %--------------------------------------------------------------------------

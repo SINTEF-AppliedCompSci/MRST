@@ -15,9 +15,8 @@ function fluid = initSimpleFluidPc(varargin)
 %                        term, i.e., pc(S) = pc_scale*(1-S)
 %
 % RETURNS:
-%   fluid - Fluid data structure as described in 'fluid_structure'
-%           representing the current state of the fluids within the
-%           reservoir model.
+%   fluid - Incompressible fluid data structure that is also compatible
+%           with AD-based solvers.
 %
 % EXAMPLE:
 %   fluid = initSimpleFluidPc('mu' , [   1,  10]*centi*poise     , ...
@@ -25,13 +24,13 @@ function fluid = initSimpleFluidPc(varargin)
 %                             'n'  , [   2,   2], ...
 %                             'pc_scale', 2*barsa);
 %
-%   s = linspace(0, 1, 101).'; kr = fluid.relperm(s);
-%   subplot(1,2,1), plot(s, kr), legend('kr_1(S)', 'kr_2(S)')
-%   x.s = [s 1-s]; pc = fluid.pc(x);
+%   s = linspace(0, 1, 101).'; krW = fluid.krW(s);  krO = fluid.krO(1-s);
+%   subplot(1,2,1), plot(s, [krW, krO]), legend('kr_1(S)', 'kr_2(S)')
+%   pc = fluid.pcOW(s);
 %   subplot(1,2,2), plot(s, pc); legend('P_c(S)');
 %
 % SEE ALSO:
-%   `fluid_structure`, `initSimpleFluid`, `solveIncompFlow`.
+%   `initSimpleFluid`, `incompTPFA`.
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
@@ -52,27 +51,58 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   opt = struct('mu', [], 'rho', [], 'n', [],'pc_scale',0);
+   opt = struct('mu', [], 'rho', [], 'n', [], 'pc_scale', 0);
    opt = merge_options(opt, varargin{:});
 
-   n_mu = numel(opt.mu); n_rho = numel(opt.rho); n_n = numel(opt.n);
-   assert ((n_mu == 2) && (n_rho == 2) && (n_n == 2));
+   assert (all([numel(opt.mu), numel(opt.rho), numel(opt.n)] == 2), ...
+           'Function ''%s'' is supported for two phases only', mfilename);
 
    prop = @(  varargin) properties(opt, varargin{:});
    kr   = @(s,varargin) relperm(s, opt, varargin{:});
-   pc   = @(state) pc_funct(state,opt);
-   fluid = struct('properties', prop             , ...
-                  'saturation', @(x,varargin) x.s, ...
-                  'relperm'   , kr,...
-                  'pc'        , pc);
+   pc   = @(state) pc_funct_orig(state, opt);
+
+   [bW , bO ] = recip_fvf();
+   [krW, krO] = relperm_functions(opt);
+   [muW, muO] = viscosity_functions(opt);
+   pcOW       = pc_funct(opt);
+
+   fluid = struct('rhoWS', opt.rho(1), 'rhoOS', opt.rho(2), ...
+                  'bW'   , bW        , 'bO'   , bO        , ...
+                  'krW'  , krW       , 'krO'  , krO       , ...
+                  'muW'  , muW       , 'muO'  , muO       , ...
+                  'pcOW' , pcOW,                            ...
+                  'properties',         prop,               ...
+                  'saturation',         @(x, varargin) x.s, ...
+                  'relperm',            kr,                 ...
+                  'pc',                 pc);
 end
-%-------------------------------------------------------------------------
-function varargout = pc_funct(state,opt)
-   ns=numel(state.s(:,1));
-   varargout{1}                 = opt.pc_scale*(1-state.s(:,1)) ;
-   if nargout > 1, varargout{2} = -repmat(opt.pc_scale,ns,1); end
+
+%--------------------------------------------------------------------------
+
+function [bW, bO] = recip_fvf()
+   [bW, bO] = deal(@(p) 1 + 0*p);  % Incompressible
 end
+
+%--------------------------------------------------------------------------
+
+function [krW, krO] = relperm_functions(opt)
+   krW = @(s) s .^ opt.n(1);
+   krO = @(s) s .^ opt.n(2);
+end
+
+%--------------------------------------------------------------------------
+
+function [muW, muO] = viscosity_functions(opt)
+   muW = @(p) opt.mu(1) + 0*p;
+   muO = @(p) opt.mu(2) + 0*p;
+end
+
+%--------------------------------------------------------------------------
+
+function pcOW = pc_funct(opt)
+   pcOW = @(s) opt.pc_scale .* (1 - s);
+end
+
 %--------------------------------------------------------------------------
 
 function varargout = properties(opt, varargin)
@@ -87,16 +117,26 @@ function varargout = relperm(s, opt, varargin)
    s1 = s(:,1); s2 = 1 - s1;
    varargout{1} = [s1 .^ opt.n(1), s2 .^ opt.n(2)];
 
-   if nargout > 1,
+   if nargout > 1
       null = zeros([numel(s1), 1]);
       varargout{2} = [opt.n(1) .* s1 .^ (opt.n(1) - 1), ...
                       null, null                      , ...
                       opt.n(2) .* s2 .^ (opt.n(2) - 1)];
    end
 
-   if nargout > 2,
+   if nargout > 2
       a = opt.n .* (opt.n - 1);
       varargout{3} = [a(1) .* s1 .^ (opt.n(1) - 2), ...
                       a(2) .* s2 .^ (opt.n(2) - 2)];
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function varargout = pc_funct_orig(state, opt)
+   varargout{1} = opt.pc_scale * (1 - state.s(:,1));
+
+   if nargout > 1
+      varargout{2} = -repmat(opt.pc_scale, size(state.s(:,1)));
    end
 end
