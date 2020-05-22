@@ -16,20 +16,19 @@ function fluid = initSimpleFluid(varargin)
 %                        Defaults to 1.
 %
 % RETURNS:
-%   fluid - Fluid data structure as described in 'fluid_structure'
-%           representing the current state of the fluids within the
-%           reservoir model.
+%   fluid - Incompressible fluid data structure that is also compatible
+%           with AD-based solvers.
 %
 % EXAMPLE:
 %   fluid = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
 %                           'rho', [1014, 859]*kilogram/meter^3, ...
 %                           'n'  , [   2,   2]);
 %
-%   s = linspace(0, 1, 1001).'; kr = fluid.relperm(s);
-%   plot(s, kr), legend('kr_1', 'kr_2')
+%   s = linspace(0, 1, 1001).'; krW = fluid.krW(s); krO = fluid.krO(1 - s);
+%   plot(s, [krW, krO]), legend('kr_1', 'kr_2')
 %
 % SEE ALSO:
-%   `fluid_structure`, `solveIncompFlow`.
+%   `initSingleFluid`, `initSimpleFluidJfunc`, `incompTPFA`.
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
@@ -50,10 +49,9 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   opt = struct('mu', [1, 1]*centi*poise, ... 
+   opt = struct('mu' , [1, 1]*centi*poise, ... 
                 'rho', [1, 1]*kilogram/meter^3, ...
-                'n', [1, 1]);
+                'n'  , [1, 1]);
    opt = merge_options(opt, varargin{:});
 
    assert(numel(opt.mu)  == 2, 'Viscosity (mu) must have exactly two entries.');
@@ -62,10 +60,38 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    prop = @(  varargin) properties(opt, varargin{:});
    kr   = @(s,varargin) relperm(s, opt, varargin{:});
+   
+   [bW , bO ] = recip_fvf();
+   [krW, krO] = relperm_functions(opt);
+   [muW, muO] = viscosity_functions(opt);
 
-   fluid = struct('properties', prop             , ...
-                  'saturation', @(x,varargin) x.s, ...
-                  'relperm'   , kr);
+   fluid = struct('rhoWS', opt.rho(1), 'rhoOS', opt.rho(2), ...
+                  'bW'   , bW        , 'bO'   , bO        , ...
+                  'krW'  , krW       , 'krO'  , krO       , ...
+                  'muW'  , muW       , 'muO'  , muO,        ...
+                  'properties',         prop,               ...
+                  'saturation',         @(x, varargin) x.s, ...
+                  'relperm',            kr);
+end
+
+%--------------------------------------------------------------------------
+
+function [bW, bO] = recip_fvf()
+   [bW, bO] = deal(@(p) 1 + 0*p);  % Incompressible
+end
+
+%--------------------------------------------------------------------------
+
+function [krW, krO] = relperm_functions(opt)
+   krW = @(s) s .^ opt.n(1);
+   krO = @(s) s .^ opt.n(2);
+end
+
+%--------------------------------------------------------------------------
+
+function [muW, muO] = viscosity_functions(opt)
+   muW = @(p) opt.mu(1) + 0*p;
+   muO = @(p) opt.mu(2) + 0*p;
 end
 
 %--------------------------------------------------------------------------
