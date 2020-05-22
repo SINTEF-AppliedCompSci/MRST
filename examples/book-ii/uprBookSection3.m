@@ -68,7 +68,7 @@ bndr = [0, 0; 0.5, 0.2;
 isites = 0.2 + 0.6 * rand(60,2);
 
 figure
-nit = [0 3 5 10 20 inf];
+nit = [0 3 5 10 20 200];
 for i=1:numel(nit)
     
     % Call optimization routine
