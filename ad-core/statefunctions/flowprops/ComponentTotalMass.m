@@ -80,6 +80,10 @@ classdef ComponentTotalMass <  StateFunction & ComponentProperty
                     if isnumeric(m)
                         continue;
                     end
+                    if numel(m.jac) < c
+                        % Not matching number of derivatives - stop early
+                        break;
+                    end
                     J = m.jac{c};
                     [n, l] = size(J);
                     if n ~= l
