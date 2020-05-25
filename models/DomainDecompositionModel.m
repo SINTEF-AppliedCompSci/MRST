@@ -123,7 +123,8 @@ classdef DomainDecompositionModel < WrapperModel
             end
             % Get flux from pressure state if it exists
             if isfield(state, 'statePressure') ...
-                && size(state.statePressure.flux,1) == model.G.faces.num
+                && size(state.statePressure.flux,1) == model.G.faces.num ...
+                && isa(model.parentModel, 'TransportModel')
                 assert(all(all(state.flux == state.statePressure.flux)));
             end
             if isfield(state, 'FractionalDerivatives')
@@ -133,15 +134,17 @@ classdef DomainDecompositionModel < WrapperModel
             if model.useGlobalPressureRange
                 range = max(state.pressure) - min(state.pressure);
                 rmodel = model.getReservoirModel();
+                tol = inf;
                 if isprop(rmodel, 'incTolPressure')
                     tol   = rmodel.incTolPressure;
-                    if isinf(tol)
-                        tol = 1e-3;
-                    end
+                end
+                if isinf(tol)
+                    tol = 1e-3;
                 end
                 range = max(range, mean(state.pressure)*tol);
                 state.pressureRange = range;
             end
+%             state = stripState(state);
         end
         
         %-----------------------------------------------------------------%
@@ -463,7 +466,7 @@ end
 %-------------------------------------------------------------------------%
 function state = stripState(state)
     % Strip state to reduce communication overhead
-    fields = {'sMax', 'iterations', 'FacilityState', 'K', ...
+    fields = {'sMax', 'iterations', 'FacilityState', ...
         'eos', 'FacilityState', 'switched', 'switchCount', 'dpRel', 'dpAbs'};
     for f = fields
         if isfield(state, f{1})
