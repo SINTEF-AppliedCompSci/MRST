@@ -3,13 +3,12 @@ classdef WellComponentPhaseFlux < StateFunction
     properties
 
     end
-
+    
     methods
         function gp = WellComponentPhaseFlux(varargin)
             gp@StateFunction(varargin{:});
-            gp = gp.dependsOn({'FacilityWellMapping', 'PhaseFlux', 'ComponentPhaseFractionInjectors'});
+            gp = gp.dependsOn({'FacilityWellMapping', 'PhaseFlux', 'PerforationComponentPhaseDensity'});
             gp = gp.dependsOn({'Density'}, 'PVTPropertyFunctions');
-            gp = gp.dependsOn({'PerforationComponentPhaseDensity'});
             gp.label = 'Q_{i,\alpha}';
         end
         function componentPhaseFlux = evaluateOnDomain(prop, facility, state)
@@ -17,21 +16,22 @@ classdef WellComponentPhaseFlux < StateFunction
             model = facility.ReservoirModel;
             ncomp = model.getNumberOfComponents();
             nph = model.getNumberOfPhases();
-
+            
             % Get fluxes and densities + well map needed
             [map, phaseFlux] = prop.getEvaluatedDependencies(state, 'FacilityWellMapping', 'PhaseFlux');
-            rhow = model.getProps(state, 'PerforationComponentPhaseDensity');
-            sc = facility.getProps(state, 'ComponentPhaseFractionInjectors');
+            componentDensity = model.getProps(state, 'PerforationComponentPhaseDensity');
             wc = map.cells;
+            W = map.W;
+            nw = numel(W);
             nperf = numel(wc);
 
             perfTotalFlux = sum(value(phaseFlux), 2);
-
+            
             wellIsInjector = map.isInjector;
             perfIsInjector = wellIsInjector(map.perf2well);
 
             % Compute flags for flow into well and cross-flow indicators.
-            perfInjecting = perfTotalFlux > 0;
+            perfInjecting = perfTotalFlux > 0;            
 
             % If all perforations have cross-flow, we are dealing with a
             % switched injector. This routine is responsible for computing
@@ -39,17 +39,20 @@ classdef WellComponentPhaseFlux < StateFunction
             % assume that the sign of the well has switched since well
             % management is above this routine's paygrade.
 
-
+            
             % Get phase density if we are injecting
+            surfaceComposition = cell(ncomp, nph);
             componentPhaseFlux = cell(ncomp, nph);
             for c = 1:ncomp
                 % Store well injector composition
+                surfaceComposition(c, :) = model.Components{c}.getPhaseComponentFractionInjection(model, state, W);
                 for ph = 1:nph
                     % Compute production source terms everywhere. We
                     % overwrite the injection/crossflow terms later on.
                     q = phaseFlux{ph};
-                    rhoc = rhow{c, ph};
+                    rhoc = componentDensity{c, ph};
                     if ~isempty(rhoc)
+                        % Compute production fluxes
                         componentPhaseFlux{c, ph} = rhoc.*q;
                     end
                 end
@@ -57,10 +60,13 @@ classdef WellComponentPhaseFlux < StateFunction
             if any(perfIsInjector)
                 massDensity = model.getProp(state, 'Density');
                 injPerforationDensity = cellfun(@(x) x(wc(perfInjecting)), massDensity, 'UniformOutput', false);
-
+                isMass = ~cellfun(@(c) isa(c, 'ConcentrationComponent'), model.Components);
+                rem = cellfun(@isempty, surfaceComposition);
+                [surfaceComposition{rem}] = deal(zeros(nw, 1));
                 for ph = 1:nph
                     q = phaseFlux{ph};
-
+                    
+                    compi = [surfaceComposition{:, ph}];
                     cflux = zeros(nperf, ncomp);
                     for c = 1:ncomp
                         v = componentPhaseFlux{c, ph};
@@ -68,10 +74,6 @@ classdef WellComponentPhaseFlux < StateFunction
                             cflux(:, c) = value(v);
                         end
                     end
-
-                    compi = sc{ph};
-                    comp = model.Components;
-                    isMass = ~cellfun(@(c) isa(c, 'ConcentrationComponent'), comp);
                     compi(:, isMass) = compi(:, isMass)./max(sum(compi(:, isMass),2), 1e-10);
                     compi(:, isMass) = crossFlowMixture(cflux(:, isMass), compi(:, isMass), map);
                     for c = 1:ncomp
