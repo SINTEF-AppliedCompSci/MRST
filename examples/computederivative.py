@@ -1,3 +1,5 @@
+# compute external force for given displacement function
+
 import sympy
 sympy.init_printing(pretty_print=False)
 
