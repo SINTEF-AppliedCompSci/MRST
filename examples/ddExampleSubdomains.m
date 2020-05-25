@@ -56,7 +56,7 @@ end
 plotGrid(example.model.G, cells, 'faceColor', 'none')
 
 %% Construct a submodel of the high-flow region only
-mrstModule add ddc
+mrstModule add domain-decomposition
 submodel = SubdomainModel(example.model, cells);
 % Make subexample
 subexample          = example;
@@ -97,7 +97,7 @@ hd = plotCellData(example.model.G, abs(getsw(states{1}, ':') - getsw(statesSub2F
 example.setAxisProperties(gca); caxis([0, 0.201]); colorbar('Location', 'southoutside');
 plotGrid(subexample.model.G, 'faceColor', 'none', 'edgeAlpha', 0.2); plotFaces(example.model.G, bf(vf));
 colormap(cmap);
-% Loop through for timesteps
+% Loop through timesteps
 for i = 1:numel(statesSub2Full)
     h.FaceVertexCData = getsw(states{i}, c);
     hd.FaceVertexCData = abs(getsw(states{i}, c) - getsw(statesSub2Full{i}, c));

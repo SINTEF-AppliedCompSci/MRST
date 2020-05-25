@@ -29,7 +29,7 @@ example.plot(states);
 
 %%  Set up NLDD
 % We construct disk-segment partition to define the subdomains
-mrstModule add ddc coarsegrid agglom
+mrstModule add domain-decomposition coarsegrid agglom
 x = example.model.G.cells.centroids;
 r = linspace(150,sqrt(2)*1000,7);
 partition1 = sum(sum(x.^2,2) < r.^2,2);

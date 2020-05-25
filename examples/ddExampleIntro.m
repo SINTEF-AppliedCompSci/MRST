@@ -9,8 +9,8 @@ mrstVerbose on
 % We consider the ''qfw_peaks_wo'' example from the example-suite module.
 % This is an inverted five-spot pattern on a permeability field made using
 % tiles of the built-in MATLAB function peaks, creating a beautiful
-% displacement front pattern-
-mrstModule add example-suite
+% displacement front pattern
+mrstModule add example-suite mrst-gui
 n = 47;
 example = MRSTExample('ifs_peaks_wo', 'n', 47, 'tiles', 2);
 example.plot(example.model.rock, 'log10', true);
@@ -23,6 +23,7 @@ example.plot(example.model.rock, 'log10', true);
 % simultaneously. We construct a subdomain problem by means of a
 % SubdomainModel that wrapps around the model. We illustrate this by making
 % a subdomain model consisting of the third quadrant of the full model.
+mrstModule add domain-decomposition
 [ii, jj] = gridLogicalIndices(example.model.G);
 cells = ii > n & jj > n;
 submodel = SubdomainModel(example.model, cells);
