@@ -32,7 +32,7 @@ classdef ImmiscibleComponent < GenericComponent
         end
         
         function c = getPhaseComponentFractionInjection(component, model, state, force)
-            % Get the fraction of the component in each phase (when
+            % Get the volume fraction of the component in each phase (when
             % injecting from outside the domain)
             c = cell(model.getNumberOfPhases(), 1);
             if isfield(force, 'compi')

@@ -73,10 +73,9 @@ classdef PolymerComponent < ConcentrationComponent
              cmob{phaseIndex} = mobP;
          end
 
-        function c = getInjectionConcentration(component, force)
-            c = vertcat(force.cp);
+        function c = getInjectionMassFraction(component, model, force)
+            c = vertcat(force.cp)./model.fluid.rhoWS;
         end
-
     end
 end
 

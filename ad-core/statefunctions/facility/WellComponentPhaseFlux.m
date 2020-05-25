@@ -71,9 +71,9 @@ classdef WellComponentPhaseFlux < StateFunction
 
                     compi = sc{ph};
                     comp = model.Components;
-                    notconc = cellfun(@(c) ~isa(c, 'ConcentrationComponent'), comp);
-                    compi(:, notconc) = compi(:, notconc)./max(sum(compi(:, notconc),2), 1e-10);
-                    compi(:, notconc) = crossFlowMixture(cflux(:, notconc), compi(:, notconc), map);
+                    isMass = ~cellfun(@(c) isa(c, 'ConcentrationComponent'), comp);
+                    compi(:, isMass) = compi(:, isMass)./max(sum(compi(:, isMass),2), 1e-10);
+                    compi(:, isMass) = crossFlowMixture(cflux(:, isMass), compi(:, isMass), map);
                     for c = 1:ncomp
                         if ~isempty(componentPhaseFlux{c, ph})
                             perfCompDens = compi(map.perf2well(perfInjecting), c).*injPerforationDensity{ph};

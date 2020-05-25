@@ -71,8 +71,8 @@ classdef SurfactantComponent < ConcentrationComponent
              cmob{wIx} = mobS;
         end
 
-        function c = getInjectionConcentration(component, force)
-            c = vertcat(force.cs);
+        function c = getInjectionMassFraction(component, model, force)
+            c = vertcat(force.cs)./model.fluid.rhoWS;
         end
 
     end

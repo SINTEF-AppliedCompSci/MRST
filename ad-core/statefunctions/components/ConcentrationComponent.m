@@ -3,13 +3,13 @@ classdef ConcentrationComponent < GenericComponent
     % transported in another phase and affect the property of the phase,
     % but it does not change the mass and density of the phase.
     properties
-        phaseIndex % Index of phase this component is transported in
+        phaseIndices % Indices of phase this component is transported in
     end
 
     methods
-        function c = ConcentrationComponent(name, phase)
+        function c = ConcentrationComponent(name, phases)
             c@GenericComponent(name);
-            c.phaseIndex = phase;
+            c.phaseIndices = phases;
             c = c.functionDependsOn('getComponentDensity', 'Density', 'PVTPropertyFunctions');
         end
        
@@ -22,14 +22,19 @@ classdef ConcentrationComponent < GenericComponent
             else
                 comp_i = vertcat(force.sat);
             end
-            index = component.phaseIndex;
-            c_inj = component.getInjectionConcentration(force);
-            % TODO: the follwing code is using water density explicitly,
-            % how to generialize it
-            ci = comp_i(:, index) .* c_inj./model.fluid.rhoWS;
-            if any(ci ~= 0)
-                c{index} = ci;
+            c_inj = component.getInjectionMassFraction(model, force);
+            for i = 1:numel(component.phaseIndices)
+                index = component.phaseIndices(i);
+                ci = comp_i(:, index) .* c_inj(i);
+                if any(ci ~= 0)
+                    c{index} = ci;
+                end
             end
+        end
+        
+        function c = getInjectionMassFraction(component, model, force)
+            % Get mass fraction for the phases in phaseIndices
+            error('Not supported for base class!');
         end
     end
 end
