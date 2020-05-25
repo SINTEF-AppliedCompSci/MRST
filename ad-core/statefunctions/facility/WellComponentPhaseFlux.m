@@ -7,7 +7,7 @@ classdef WellComponentPhaseFlux < StateFunction
     methods
         function gp = WellComponentPhaseFlux(varargin)
             gp@StateFunction(varargin{:});
-            gp = gp.dependsOn({'FacilityWellMapping', 'PhaseFlux', 'PerforationComponentPhaseDensity'});
+            gp = gp.dependsOn({'FacilityWellMapping', 'PhaseFlux', 'ComponentPhaseDensity'});
             gp = gp.dependsOn({'Density'}, 'PVTPropertyFunctions');
             gp.label = 'Q_{i,\alpha}';
         end
@@ -18,8 +18,7 @@ classdef WellComponentPhaseFlux < StateFunction
             nph = model.getNumberOfPhases();
             
             % Get fluxes and densities + well map needed
-            [map, phaseFlux] = prop.getEvaluatedDependencies(state, 'FacilityWellMapping', 'PhaseFlux');
-            componentDensity = model.getProps(state, 'PerforationComponentPhaseDensity');
+            [map, phaseFlux, componentDensity] = prop.getEvaluatedDependencies(state, 'FacilityWellMapping', 'PhaseFlux', 'ComponentPhaseDensity');
             wc = map.cells;
             W = map.W;
             nw = numel(W);

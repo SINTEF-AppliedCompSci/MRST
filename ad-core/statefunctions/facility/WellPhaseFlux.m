@@ -8,16 +8,16 @@ classdef WellPhaseFlux < StateFunction
         function gp = WellPhaseFlux(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping', ...
-                               'PerforationPressureGradient', ...
+                               'PressureGradient', ...
                                'WellIndex', ...
-                               'PerforationMobility'});
+                               'Mobility'});
             gp.label = 'q_\alpha';
         end
 
         function q_ph = evaluateOnDomain(prop, model, state)
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
-            [dp, wi] = prop.getEvaluatedDependencies(state, 'PerforationPressureGradient', 'WellIndex');
-            mobw = prop.getEvaluatedDependencies(state, 'PerforationMobility');
+            [dp, wi] = prop.getEvaluatedDependencies(state, 'PressureGradient', 'WellIndex');
+            mobw = prop.getEvaluatedDependencies(state, 'Mobility');
 
             Tdp = -wi.*dp;
 
