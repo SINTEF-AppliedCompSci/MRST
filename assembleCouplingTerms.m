@@ -1,4 +1,4 @@
-function assembly = assembleCouplingTerms(G, eta, tbls, mappings)
+function assembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings)
     
     opt = struct('bcetazero', true);
     opt = merge_options(opt, varargin{:});
@@ -15,6 +15,16 @@ function assembly = assembleCouplingTerms(G, eta, tbls, mappings)
     % used to construct the finite volume divergence operator.
     normals = computeFacetNormals(G, cellnodefacetbl);
 
+    % Multiply with Biot's coefficient alpha
+    prod = TensorProd();
+    prod.tbl1 = celltbl;
+    prod.tbl2 = cellnodefacecoltbl;
+    prod.tbl3 = cellnodefacecoltbl;
+    prod.mergefds = {'cells'};
+    prod = prod.setup();
+    
+    normals = prod.eval(alpha, normals);
+    
     %% We setup the finite volume divergence operator
     % divfv : nodefacecoltbl -> celltbl
     
@@ -72,6 +82,16 @@ function assembly = assembleCouplingTerms(G, eta, tbls, mappings)
     prod = prod.setup();
     
     mg = prod.eval(mcoef, g);
+    
+    % Multiply with Biot's coefficient alpha
+    prod = TensorProd();
+    prod.tbl1 = celltbl;
+    prod.tbl2 = cellnodefacecoltbl;
+    prod.tbl3 = cellnodefacecoltbl;
+    prod.mergefds = {'cells'};
+    prod = prod.setup();
+    
+    mg = prod.eval(alpha, mg);
     
     % We assemble divconsnf : nodefacecoltbl -> celltbl
     prod = TensorProd();
