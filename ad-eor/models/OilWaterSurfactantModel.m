@@ -28,9 +28,9 @@ classdef OilWaterSurfactantModel < ThreePhaseSurfactantPolymerModel
 
     methods
 
-        function model = OilWaterSurfactantModel(G, rock, fluid, deck, varargin)
+        function model = OilWaterSurfactantModel(G, rock, fluid, varargin)
 
-            model = model@ThreePhaseSurfactantPolymerModel(G, rock, fluid, deck);
+            model = model@ThreePhaseSurfactantPolymerModel(G, rock, fluid);
             model.surfactant = true;
             model.gas = false;
             model.water = true;
