@@ -96,115 +96,192 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opt = struct('deck', [], 'neighbors', [], 'trans', [], 'porv', []);
 opt = merge_options(opt, varargin{:});
 
-
-T = opt.trans;
-N = opt.neighbors;
-
-op = struct();
-if isempty(T)
-    if isfield(G.faces, 'TRANS')
-        T = G.faces.TRANS;
-    else
-        % half-trans -> trans and reduce to interior
-        T = getFaceTransmissibility(G, rock, opt.deck);
-    end
-    assert(isempty(N))
-    N = G.faces.neighbors;
-    intInx = all(N ~= 0, 2);
-    N  = N(intInx, :);
-    op.T_all = T;
-    T = T(intInx);
+if isempty(opt.trans)
+   [N, T, T_all, intInx] = grid_based_trans(G, rock, opt);
 else
-    % transmissibility is given    
-    if isempty(N)
-        % Get neighbors for internal faces from grid.
-        N  = double(G.faces.neighbors);
-        intInx = all(N ~= 0, 2);
-        N  = N(intInx, :);
-        n_if = sum(intInx);
-     else
-        % neighbors are given        
-        intInx = all(N ~= 0, 2);
-        n_if = sum(intInx);
-        if isfield(G, 'faces')
-            % Try to match given interfaces to actual grid.
-            intInxGrid = all(G.faces.neighbors ~= 0, 2);
-            if sum(intInxGrid) == n_if
-                % Given neighbors correspond to internal interfaces
-                intInx = intInxGrid;
-            elseif n_if == G.faces.num
-                % Given neighbors correspond to *all* interfaces
-                intInx = all(N ~= 0, 2);
-            end
-        end
-    end 
-    if numel(T) == n_if
-        % Internal interface transmissibility
-        op.T_all = zeros(size(intInx));
-        op.T_all(intInx) = T;
-        op.T = T;
-    else
-        % All transmissibilities given
-        assert(numel(T) == numel(intInx));
-        op.T_all = T;
-        T = T(intInx);
-    end
-end
-if any(T<0)
-    warning('Negative transmissibilities detected.')
-end
-op.T = T;
-
-pv = opt.porv;
-if isempty(pv)
-    if isfield(G.cells, 'PORV')
-        pv = G.cells.PORV;
-    else
-        pv = poreVolume(G, rock);
-    end
-    zeropv = find(pv == 0);
-    if ~isempty(zeropv)
-        warning(['I computed zero pore volumes in ', num2str(numel(zeropv)), ...
-            ' cells. Consider adjusting poro / ntg fields or grid.']);
-    end
-end
-op.pv = pv;
-
-% C - (transpose) divergence matrix
-nf = size(N,1);
-nc = numel(op.pv);
-assert(nc == G.cells.num, ...
-    'Dimension mismatch between grid and supplied pore-volumes.');
-C  = sparse( [(1:nf)'; (1:nf)'], N, ones(nf,1)*[1 -1], nf, nc);
-op.C = C;
-op.Grad = @(x) -C*x;
-op.Div  = @(x) C'*x;
-if nf == 0
-    % We have zero faces. Account for Matlab's preference for
-    % reducing expressions of type a + [] to [].
-    op.AccDiv = @(acc, flux) acc;
-    op.Div = @(x) zeros(nc, 1);
-else
-    op.AccDiv = @(acc, flux) acc + C'*flux;
-    op.Div = @(x) C'*x;
+   [N, T, T_all, intInx] = user_provided_trans(G, opt.neighbors, opt.trans);
 end
 
-% faceAvg - as multiplication with matrix
-M  = sparse((1:nf)'*[1 1], N, .5*ones(nf,2), nf, nc);
-op.M = M;
-op.faceAvg = @(x)M*x;
+if has_grid_nncs(G)
+   [N, T, T_all, intInx] = add_grid_nncs(N, T, T_all, intInx, G);
+end
+
+if any(T < 0)
+   warn_negative_trans(T);
+end
+
+op = struct('T' , T,         'T_all',        T_all,  ...
+            'N' , double(N), 'internalConn', intInx, ...
+            'pv', pore_volume(G, rock, opt));
+
+[op, nc, nf] = add_div_grad_operators(op, G, N);
+
+op = add_face_average_operators(op, N, nf, nc);
 
 % faceUpstr - as multiplication with matrix
-upw = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
-op.faceUpstr = upw;
+op.faceUpstr = @(flag, x) faceUpstr(flag, x, N, [nf, nc]);
 
-op.splitFaceCellValue = @(operators, flag, x) splitFaceCellValue(operators, flag, x, [nf, nc]);
-
-% Include neighbor relations
-op.N = N;
-op.internalConn = intInx;
-
+op.splitFaceCellValue = @(operators, flag, x) ...
+   splitFaceCellValue(operators, flag, x, [nf, nc]);
 end
 
+%--------------------------------------------------------------------------
 
+function [N, T, T_all, intInx] = grid_based_trans(G, rock, opt)
+   assert(isempty(opt.neighbors))
 
+   if isfield(G.faces, 'TRANS')
+      T = G.faces.TRANS;
+   else
+      % half-trans -> trans and reduce to interior
+      T = getFaceTransmissibility(G, rock, opt.deck);
+   end
+
+   N      = G.faces.neighbors;
+   intInx = all(N ~= 0, 2);
+
+   T_all = T;
+   N     = N(intInx, :);
+   T     = T(intInx);
+end
+
+%_-------------------------------------------------------------------------
+
+function [N, T, T_all, intInx] = user_provided_trans(G, N, T)
+   % transmissibility is given as input
+   if isempty(N)
+      [N, intInx, n_if] = internal_grid_neighbours(G);
+   else
+      [N, intInx, n_if] = explicit_cell_pairs(N, G);
+   end
+
+   if numel(T) == n_if
+      % Internal interface transmissibility
+      T_all = zeros(size(intInx));
+      T_all(intInx) = T;
+
+   else
+      % All transmissibilities given
+      assert(numel(T) == numel(intInx));
+
+      T_all = T;
+      T     = T(intInx);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function [N, T, T_all, intInx] = add_grid_nncs(N, T, T_all, intInx, G)
+   cells = G.nnc.cells;
+   trans = G.nnc.trans;
+
+   i = ~ (any(cells == 0, 2) | ...
+          ismember(sort(cells, 2), sort(N, 2), 'rows'));
+
+   N      = [ N      ; cells(i, :) ];
+   T      = [ T      ; trans(i) ];
+   T_all  = [ T_all  ; trans(i) ];
+   intInx = [ intInx ; true([sum(i), 1]) ];
+end
+
+%--------------------------------------------------------------------------
+
+function pv = pore_volume(G, rock, opt)
+   pv = opt.porv;
+
+   if isempty(pv)
+      if isfield(G.cells, 'PORV')
+         pv = G.cells.PORV;
+      else
+         pv = poreVolume(G, rock);
+      end
+
+      numzeropv = sum(~ (pv > 0));
+      if numzeropv > 0
+         warning('ZeroPV:InActiveCells', ...
+                ['I computed zero pore volumes in %d cells.  ', ...
+                 'Consider adjusting ''poro''/''ntg'' fields ', ...
+                 'or the grid itself.'], numzeropv);
+      end
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function [op, nc, nf] = add_div_grad_operators(op, G, N)
+   [nc, nf] = deal(numel(op.pv), size(N, 1));
+
+   assert(nc == G.cells.num, ...
+          'Dimension mismatch between grid and supplied pore-volumes.');
+
+   % C - (transpose) divergence matrix
+   C  = sparse([(1:nf)'; (1:nf)'], N, ones(nf, 1) * [1, -1], nf, nc);
+
+   op.C    = C;
+   op.Grad = @(x) -C*x;
+
+   if nf == 0
+      % We have zero faces. Account for Matlab's preference for
+      % reducing expressions of type a + [] to [].
+      op.AccDiv = @(acc, flux) acc;
+      op.Div = @(x) zeros(nc, 1);
+   else
+      op.AccDiv = @(acc, flux) acc + C'*flux;
+      op.Div = @(x) C'*x;
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function op = add_face_average_operators(op, N, nf, nc)
+   M = sparse((1 : nf) .' * [1, 1], N, repmat(0.5, [nf, 2]), nf, nc);
+
+   op.M = M;
+   op.faceAvg = @(x) M*x;
+end
+
+%--------------------------------------------------------------------------
+
+function warn_negative_trans(T)
+   nneg = sum(T < 0);
+
+   warning('Transmissibility:Negative', ...
+          ['Negative transmissibilities detected for %d/%d (%.2e %%) ', ...
+           'connections.'], nneg, numel(T), 100 * nneg / numel(T));
+end
+
+%--------------------------------------------------------------------------
+
+function tf = has_grid_nncs(G)
+   tf = isfield(G, 'nnc') && isstruct(G.nnc) && ...
+      all(isfield(G.nnc, {'cells', 'trans'}));
+end
+
+%--------------------------------------------------------------------------
+
+function [N, intInx, n_if] = internal_grid_neighbours(G)
+   % Get neighbors for internal faces from grid.
+   N      = double(G.faces.neighbors);
+   intInx = all(N ~= 0, 2);
+
+   N    = N(intInx, :);
+   n_if = sum(intInx);
+end
+
+%--------------------------------------------------------------------------
+
+function [N, intInx, n_if] = explicit_cell_pairs(N, G)
+   % neighbors are given
+   intInx = all(N ~= 0, 2);
+   n_if   = sum(intInx);
+
+   if isfield(G, 'faces')
+      % Try to match given interfaces to actual grid.
+      intInxGrid = all(G.faces.neighbors ~= 0, 2);
+
+      if sum(intInxGrid) == n_if
+         % Given neighbors correspond to internal interfaces
+         intInx = intInxGrid;
+      end
+   end
+end

@@ -16,7 +16,7 @@ classdef PressureReductionFactors < StateFunction
             nph = numel(rho);
             w = cell(1, nph);
             for ph = 1:nph
-                w{ph} = rho{ph}./pv; % Scale final pressure equation with pore-volume
+                w{ph} = pv./rho{ph}; % Scale final pressure equation with pore-volume
             end
         end
     end

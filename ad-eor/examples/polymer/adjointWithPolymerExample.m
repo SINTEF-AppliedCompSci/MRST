@@ -23,6 +23,11 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat optimization
 % structures to represent grid, petrophysics, and fluid properties.
 
 current_dir = fileparts(mfilename('fullpath'));
+if mrstIsLiveEditorDir(current_dir)
+   % Running in "Live Editor" cell mode.  Fall back to expected location.
+
+   current_dir = fullfile(mrstPath('ad-eor'), 'examples', 'polymer');
+end
 fn  = fullfile(current_dir, 'POLYMER.DATA');
 
 deck = readEclipseDeck(fn);
@@ -276,7 +281,7 @@ ylabel('stb');
 xlabel('Years');
 
 %% Copyright notice
-
+%
 % <html>
 % <p><font size="-1">
 % Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

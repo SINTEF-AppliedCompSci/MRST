@@ -92,8 +92,9 @@ cpr_amgcl = CPRSolverAD(cpr_matlab_arg{:},'ellipticSolver', AMGCLSolverAD('reuse
 cpr_cl = AMGCL_CPRSolverAD(base_arg{:}, block_arg{:});
 cpr_cl_block_w = AMGCL_CPRSolverBlockAD(base_arg{:}, ...
     'coarsening', 'smoothed_aggregation', 'relaxation', 'spai0', ...
-    'solver', 'bicgstab', 'npre', 3, 'npost', 3, 'ncycle', 2, 'id', '-tweaked');
-cpr_cl_block = AMGCL_CPRSolverBlockAD(base_arg{:});
+    'aggr_eps_strong', 0.1, 'aggr_over_interp', 1.5, ...
+    'solver', 'bicgstab', 'npre', 1, 'npost', 2, 'ncycle', 1, 'id', '-bcsr-tweaked');
+cpr_cl_block = AMGCL_CPRSolverBlockAD(base_arg{:}, 'id', '-bcsr');
 
 %%
 bl = BackslashSolverAD();
@@ -181,7 +182,7 @@ amgcl_gs = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', 1, 'relaxation', '
 amgcl_ilu  = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', 1, 'relaxation', 'ilu0', 'id', '-ilu0');
 amgcl_bilu = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'ilu0', 'id', '-ilu0');
 amgcl_bgs = AMGCLSolverAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'gauss_seidel', 'id', '-gs');
-bamgcl_ilu = AMGCLSolverBlockAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'ilu0', 'id', '-ilu0*');
+bamgcl_ilu = AMGCLSolverBlockAD(topts{:}, base_arg{:}, 'block_size', ncomp, 'relaxation', 'ilu0', 'id', '-bcsr-ilu0');
 
 t_solvers = {};
 if solveDirect

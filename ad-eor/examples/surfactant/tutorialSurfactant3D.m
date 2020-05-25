@@ -16,6 +16,12 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 %
 
 current_dir = fileparts(mfilename('fullpath'));
+if mrstIsLiveEditorDir(current_dir)
+   % Running in "Live Editor" cell mode.  Fall back to expected location.
+
+   current_dir = fullfile(mrstPath('ad-eor'), 'examples', 'surfactant');
+end
+
 fn = fullfile(current_dir, 'SURFACTANT3D.DATA');
 gravity on
 
