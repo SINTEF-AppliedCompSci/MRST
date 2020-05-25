@@ -7,7 +7,6 @@ classdef FacilityFluxDiscretization < StateFunctionGrouping
         WellIndex
         FacilityWellMapping
         InjectionSurfaceDensity
-        ComponentPhaseFractionInjectors
         PerforationMobility
         PerforationComponentPhaseDensity
     end
@@ -25,7 +24,6 @@ classdef FacilityFluxDiscretization < StateFunctionGrouping
             group = group.setStateFunction('WellIndex', WellIndex(model));
             group = group.setStateFunction('FacilityWellMapping', FacilityWellMapping(model));
             group = group.setStateFunction('InjectionSurfaceDensity', InjectionSurfaceDensity(model));
-            group = group.setStateFunction('ComponentPhaseFractionInjectors', ComponentPhaseFractionInjectors(model));
             group = group.setStateFunction('PerforationMobility', PerforationMobility(model));
             group = group.setStateFunction('PerforationComponentPhaseDensity', PerforationComponentPhaseDensity(model));
         end
