@@ -9,7 +9,7 @@ from sympy import pi
 sympy.init_printing(pretty_print=False)
 
 x, y, z = sympy.symbols('x y z')
-mu, lamb, alpha, K = sympy.symbols('mu0 lamb0 alpha K')
+mu, lamb, alpha, K = sympy.symbols('mu lamb alpha K')
 tau, rho = sympy.symbols('tau rho')
 
 dervar = [x, y, z]
@@ -17,13 +17,13 @@ dervar = [x, y, z]
 d = 2
 if d == 3:
     u1 = y*(1 - x)*sin(2*pi*x*y)
-    u2 = x*y**2*cos(x)
+    u2 = x*y**2*cos(2*pi*x)
     u3 = x*y*z
     uvec = list([u1, u2, u3])
     p = u1
 elif d == 2:
     u1 = y*(1 - x)*sin(2*pi*x*y)
-    u2 = y**2*cos(x)
+    u2 = y**2*cos(2*pi*x)
     uvec = list([u1, u2])
     p = u1
 
