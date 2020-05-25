@@ -1,15 +1,13 @@
-classdef WellConMobilityWithPolymer < StateFunction
-       
+classdef PerforationMobilityEOR < PerforationMobility
     properties
         % TODO: this is a duplicated property with WellPhaseFlux
         allowCrossFlow = true;
     end
     
     methods
-        function gp = WellConMobilityWithPolymer(varargin)
-            gp@StateFunction(varargin{:});
+        function gp = PerforationMobilityEOR(varargin)
+            gp@PerforationMobility(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping', 'PerforationPressureGradient', 'WellIndex'});
-            gp = gp.dependsOn({'Mobility'}, 'FlowPropertyFunctions');
             gp.label = '\lambda_{wc}'; 
         end
         

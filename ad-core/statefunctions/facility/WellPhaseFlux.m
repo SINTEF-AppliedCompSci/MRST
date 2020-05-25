@@ -7,14 +7,17 @@ classdef WellPhaseFlux < StateFunction
     methods
         function gp = WellPhaseFlux(varargin)
             gp@StateFunction(varargin{:});
-            gp = gp.dependsOn({'FacilityWellMapping', 'PerforationPressureGradient', 'WellIndex', 'WellConMobility'});
+            gp = gp.dependsOn({'FacilityWellMapping', ...
+                               'PerforationPressureGradient', ...
+                               'WellIndex', ...
+                               'PerforationMobility'});
             gp.label = 'q_\alpha';
         end
 
         function q_ph = evaluateOnDomain(prop, model, state)
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
             [dp, wi] = prop.getEvaluatedDependencies(state, 'PerforationPressureGradient', 'WellIndex');
-            mobw = prop.getEvaluatedDependencies(state, 'WellConMobility');
+            mobw = prop.getEvaluatedDependencies(state, 'PerforationMobility');
 
             Tdp = -wi.*dp;
 

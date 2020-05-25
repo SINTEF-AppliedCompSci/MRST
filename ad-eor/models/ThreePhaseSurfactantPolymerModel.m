@@ -197,8 +197,10 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 % if necessary, the following can be moved out similar with
                 % others, currently they are overwritten due to polymer
                 ffd = model.FacilityModel.FacilityFluxDiscretization;
-                ffd = ffd.setStateFunction('WellConMobility', WellConMobilityWithPolymer(model));
-                ffd = ffd.setStateFunction('WellConCompPhaseDensity', WellConCompPhaseDensityWithPolymer(model));
+                ffd = ffd.setStateFunction('PerforationMobility', PerforationMobilityEOR(model));
+                if model.polymer
+                    ffd = ffd.setStateFunction('PerforationComponentPhaseDensity', PerforationComponentPhaseDensityEOR(model));
+                end
                 model.FacilityModel.FacilityFluxDiscretization = ffd;
             end
 

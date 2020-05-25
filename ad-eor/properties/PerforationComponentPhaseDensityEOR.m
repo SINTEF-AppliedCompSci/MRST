@@ -1,13 +1,12 @@
-classdef WellConCompPhaseDensityWithPolymer < StateFunction
+classdef PerforationComponentPhaseDensityEOR < PerforationComponentPhaseDensity
     % Component density to used for each well connection
     properties
 
     end
     
     methods
-        function gp = WellConCompPhaseDensityWithPolymer(varargin)
-            gp = gp@StateFunction(varargin{:});
-            gp = gp.dependsOn({'ComponentPhaseDensity'}, 'FlowPropertyFunctions');
+        function gp = PerforationComponentPhaseDensityEOR(varargin)
+            gp = gp@PerforationComponentPhaseDensity(varargin{:});
             % TODO: right the follow?
             gp = gp.dependsOn({'PolymerEffViscMult', 'PolymerViscMult'}, 'PVTPropertyFunctions');
             gp = gp.dependsOn({'FacilityWellMapping'});
@@ -16,17 +15,8 @@ classdef WellConCompPhaseDensityWithPolymer < StateFunction
         
         
         function rhoc = evaluateOnDomain(prop, model, state)
-            componentPhaseDensity = model.ReservoirModel.getProps(state, 'ComponentPhaseDensity');
+            rhoc = evaluateOnDomain@PerforationComponentPhaseDensity(prop, model, state);
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
-            function v = ex(x, cells)
-                v = [];
-                if ~isempty(x) 
-                    v=x(cells); 
-                end
-            end
-            f = @(x) ex(x, map.cells);
-            rhoc = cellfun(f, componentPhaseDensity, 'UniformOutput', false);
-            
             for c = 1 : model.getNumberOfComponents()
                 comp = model.ReservoirModel.Components{c};
                 if strcmp(comp.name,'polymer')

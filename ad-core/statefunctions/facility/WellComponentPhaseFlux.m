@@ -9,7 +9,7 @@ classdef WellComponentPhaseFlux < StateFunction
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping', 'PhaseFlux', 'ComponentPhaseFractionInjectors'});
             gp = gp.dependsOn({'Density'}, 'PVTPropertyFunctions');
-            gp = gp.dependsOn({'WellConCompPhaseDensity'});
+            gp = gp.dependsOn({'PerforationComponentPhaseDensity'});
             gp.label = 'Q_{i,\alpha}';
         end
         function componentPhaseFlux = evaluateOnDomain(prop, facility, state)
@@ -20,7 +20,7 @@ classdef WellComponentPhaseFlux < StateFunction
 
             % Get fluxes and densities + well map needed
             [map, phaseFlux] = prop.getEvaluatedDependencies(state, 'FacilityWellMapping', 'PhaseFlux');
-            wellConCompPhaseDensity = model.getProps(state, 'WellConCompPhaseDensity');
+            rhow = model.getProps(state, 'PerforationComponentPhaseDensity');
             sc = facility.getProps(state, 'ComponentPhaseFractionInjectors');
             wc = map.cells;
             nperf = numel(wc);
@@ -48,8 +48,8 @@ classdef WellComponentPhaseFlux < StateFunction
                     % Compute production source terms everywhere. We
                     % overwrite the injection/crossflow terms later on.
                     q = phaseFlux{ph};
-                    if ~isempty(wellConCompPhaseDensity{c, ph})
-                        rhoc = wellConCompPhaseDensity{c, ph};
+                    rhoc = rhow{c, ph};
+                    if ~isempty(rhoc)
                         componentPhaseFlux{c, ph} = rhoc.*q;
                     end
                 end
