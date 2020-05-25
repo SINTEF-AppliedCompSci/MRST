@@ -29,7 +29,7 @@ classdef ComponentPhaseFractionInjectors < StateFunction
             comp = model.Components;
 
             majorComponent = zeros(1, nph);
-            notConcentration = cellfun(@(x) ~x.isConcentration, comp);
+            notConcentration = cellfun(@(x) ~isa(x, 'ConcentrationComponent'), comp);
 
             % TODO: the concept of majorComponent is not totally clear, can
             % be challenging to be extended in the future.

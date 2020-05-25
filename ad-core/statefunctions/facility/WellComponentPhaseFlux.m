@@ -71,7 +71,7 @@ classdef WellComponentPhaseFlux < StateFunction
 
                     compi = sc{ph};
                     comp = model.Components;
-                    notconc = cellfun(@(c)(~c.isConcentration), comp);
+                    notconc = cellfun(@(c) ~isa(c, 'ConcentrationComponent'), comp);
                     compi(:, notconc) = compi(:, notconc)./max(sum(compi(:, notconc),2), 1e-10);
                     compi(:, notconc) = crossFlowMixture(cflux(:, notconc), compi(:, notconc), map);
                     for c = 1:ncomp

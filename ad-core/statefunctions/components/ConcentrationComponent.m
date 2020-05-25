@@ -10,7 +10,6 @@ classdef ConcentrationComponent < GenericComponent
         function c = ConcentrationComponent(name, phase)
             c@GenericComponent(name);
             c.phaseIndex = phase;
-            c.isConcentration = true;
             c = c.functionDependsOn('getComponentDensity', 'Density', 'PVTPropertyFunctions');
         end
        
