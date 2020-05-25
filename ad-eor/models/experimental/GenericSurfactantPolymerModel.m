@@ -4,8 +4,8 @@ classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & Exte
     end
     
     methods
-        function model = GenericSurfactantPolymerModel(G, rock, fluid, deck, varargin)
-            model = model@ThreePhaseSurfactantPolymerModel(G, rock, fluid, deck, varargin{:});
+        function model = GenericSurfactantPolymerModel(G, rock, fluid, varargin)
+            model = model@ThreePhaseSurfactantPolymerModel(G, rock, fluid, varargin{:});
             model.OutputStateFunctions = {'ComponentTotalMass'};
         end
 
