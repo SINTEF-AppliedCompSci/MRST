@@ -31,20 +31,21 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     
     mechprops = props.mechprops;
     K = props.fluidprops;
+    alpha = props.coupprops;
     
     % Assemble mechanic problem
-    mechforces = drivingforces.mechanics;
+    loadstruct = drivingforces.mechanics;
     loadstruct = mechforces.loadstruct;
     mechassembly = assembleMPSA(G, mechprop, loadstruct, eta, tbls, mappings)
     
     % Assemble fluid problem
     fluidforces = drivingforces.fluid;
-    bcstruct = fluid.bcstruct;
-    src      = fluid.src;
+    bcstruct = fluidforces.bcstruct;
+    src      = fluidforces.src;
     fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varargin)
 
     % Assemble coupling terms (finite volume and consistent divergence operators)
-    coupassembly = assembleCouplingTerms(G, eta, tbls, mappings)
+    coupassembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings)
     
     % Recover matrices from mechanic assembly
     mechmat = mechassembly.matrices;
@@ -92,6 +93,8 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     B42 = -A63invA33*A34;
     B42 = -A63invA33*A36;
 
+    
+    assembly = 
 
 end
 
