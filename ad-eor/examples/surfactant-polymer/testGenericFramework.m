@@ -43,7 +43,7 @@ scheduleSP = schedule;
 
 %%
 clear gmodel statesGP wellSolsGP;
-gmodelsp = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, deck, 'disgas', model.disgas, 'vapoil', model.vapoil);
+gmodelsp = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, 'disgas', model.disgas, 'vapoil', model.vapoil);
 gmodelsp.nonlinearTolerance = 1e-2;
 
 

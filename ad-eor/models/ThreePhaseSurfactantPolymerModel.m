@@ -34,14 +34,21 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
     end
 
     methods
-        function model = ThreePhaseSurfactantPolymerModel(G, rock, fluid, deck, varargin)
+        function model = ThreePhaseSurfactantPolymerModel(G, rock, fluid, varargin)
             model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
 
-            runspec = deck.RUNSPEC;
-            check = @(name) isfield(runspec, upper(name)) && runspec.(upper(name));
-
-            model.polymer    = check('POLYMER');
-            model.surfactant = check('SURFACT');
+            
+            if isempty(model.inputdata)
+                % We guess what's present
+                model.polymer = isfield(model.fluid, 'cpMax');
+                model.surfactant = isfield(model.fluid, 'ift');
+            else
+                % We have a deck that explicitly enables features
+                runspec = deck.RUNSPEC;
+                check = @(name) isfield(runspec, upper(name)) && runspec.(upper(name));
+                model.polymer    = check('POLYMER');
+                model.surfactant = check('SURFACT');
+            end
 
             hasSHRATE    = isfield(fluid, 'shrate');
             hasPLYSHLOG  = isfield(fluid, 'plyshlog');
