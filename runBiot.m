@@ -40,7 +40,7 @@ switch runcase
     x = 1/max(x)*x;
     G = tensorGrid(x, y);    
   case {'2d-linear', '2d-compaction'}
-    N = 5;
+    N = 15;
     nx = N; ny = N;
     G = cartGrid([nx, ny], [1, 1]);
     % N = 3;
@@ -64,15 +64,13 @@ dim = G.griddim;
 useVirtual = false;
 [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
 
-
 % Setup mechanical driving forces (volumetric forces and boundary condition)
 loadstruct = setupBCpercase(runcase, G, tbls, mappings);
-
-
-
 % Setup fluid driving forces (source terms and boundary condition)
 
-extfaces = loadstruct.bc.extfaces; % get "external faces" from setupBCpercase
+% get some "external faces" from setupBCpercase
+extfaces = loadstruct.bc.extfaces; 
+extfaces = unique(extfaces);
 
 bcfacetbl.faces = extfaces;
 bcfacetbl = IndexArray(bcfacetbl);
@@ -119,8 +117,11 @@ fluidprops.K = K;
 
 % setup Biot parameter properties
 
-alpha = ones(nc, 1);
-rho = ones(nc, 1);
+alpha = 1;
+rho = 0;
+
+alpha = alpha*ones(nc, 1);
+rho = rho*ones(nc, 1);
 coupprops = struct('alpha', alpha, ...
                    'rho', rho);
 
@@ -130,120 +131,109 @@ props = struct('mechprops' , mechprops , ...
 
 assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings);
 
-fullsystem = assembly.fullsystem;
-
-A = fullsystem.A;
-rhs = fullsystem.rhs;
-
-return
-
-B   = assembly.B  ;
+B = assembly.B;
 rhs = assembly.rhs;
-
 sol = B\rhs;
 
-% we compute the divergence
-divop = assembly.divop;
-divu = divop(sol);
+ncc  = tbls.cellcoltbl.num;
+nc   = tbls.celltbl.num;
+n1 = 1; n2 = ncc;
+ucc  = sol(n1 : n2);
+n1 = n2 + 1; n2 = n1 + nc - 1;
+pc = sol(n1 : n2);
 
-% displacement values at cell centers.
-cellcoltbl = tbls.cellcoltbl;
-n = cellcoltbl.num;
-
-u = sol(1 : n);
-
-plotdeformedgrid = true;
-if plotdeformedgrid
-    lagmult = sol(n + 1 : end);
-    unode = assembly.computeNodeDisp(u, lagmult);
+doplot = true;
+if doplot
     dim = G.griddim;
-    unvec = reshape(unode, dim, [])';
-end
-
-dim = G.griddim;
-uvec = reshape(u, dim, [])';
-
-doplotsol = true;
-if doplotsol
+    uvec = reshape(ucc, dim, [])';
     figure
     plotCellData(G, uvec(:, 1));
     titlestr = sprintf('displacement - %s direction, eta=%g', 'x', eta);
     title(titlestr)
     colorbar
+    
     figure
     plotCellData(G, uvec(:, 2));
     titlestr = sprintf('displacement - %s direction, eta=%g', 'y', eta);
     title(titlestr)
     colorbar
+    
     figure
-    plotCellData(G, divu);
-    titlestr = sprintf('divergence, eta=%g', eta);
+    plotCellData(G, pc);
+    titlestr = sprintf('pressure');
     title(titlestr)
     colorbar
+    
 end
 
+plotdeformedgrid = true;
 if plotdeformedgrid
+    unc = computeNodeDisp(ucc, tbls);
+    unvec = reshape(unc, dim, [])';
     figure 
     coef = 1e0;
     plotGridDeformed(G, coef*unvec);
 end
 
-doplotcontpoints = false;
-if doplotcontpoints
-    % plot continuity points
-    [~, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', ...
-                                                  bcetazero);
-    figure
-    hold on
-    plotGrid(G)
-    nodefacecents = reshape(nodefacecents, dim, [])';
-    if dim == 2
-        plot(nodefacecents(:, 1), nodefacecents(:, 2), '*');
-    else
-        plot3(nodefacecents(:, 1), nodefacecents(:, 2), nodefacecents(:, 3), '*');
-    end
-
-end
-
-printcondest = false;
-if printcondest
-
-    matrices = assembly.matrices;
-
-    A11 = matrices.A11;
-    A12 = matrices.A12;
-    A21 = matrices.A21;
-    A22 = matrices.A22;
-    D   = matrices.D  ;
-
-    Z1 = zeros(size(A22, 1), size(D, 2));
-    Z = zeros(size(D', 1), size(D, 2));
-
-    A = [[A11, A12, -D];
-         [A21, A22,  Z1];
-         [D' , Z1',  Z]];
-
-    fprintf('condest(A): %g\n', condest(A));
-    fprintf('condest(A11): %g\n', condest(A11));
-    fprintf('condest(A22): %g\n', condest(A22));
-    fprintf('condest(B): %g\n', condest(B));
+dosolvefullsystem = true;
+if dosolvefullsystem
     
-end
+    fullsystem = assembly.fullsystem;
 
-dplotinzdir = true;
-if dplotinzdir
-    if strcmp(runcase, '2d-linear')
-        % plot displacement
-        x = G.cells.centroids(:, 1);
-        y = G.cells.centroids(:, 2);
+    A = fullsystem.A;
+    rhs = fullsystem.rhs;
+
+    sol = A\rhs;
+
+    nnfc = tbls.nodefacecoltbl.num;
+    ncc  = tbls.cellcoltbl.num;
+    nnf  = tbls.nodefacetbl.num;
+    nc   = tbls.celltbl.num;
+
+    n1 = 1; n2 = nnfc;
+    unfc = sol(n1 : n2);
+    n1 = n2 + 1; n2 = n1 + ncc - 1;
+    ucc  = sol(n1 : n2);
+    n1 = n2 + 1; n2 = n1 + nnf - 1;
+    pnf = sol(n1 : n2);
+    n1 = n2 + 1; n2 = n1 + nc - 1;
+    pc = sol(n1 : n2);
+
+    %% some plotting
+
+    doplotsol = true;
+    
+    if doplotsol
+        
+        dim = G.griddim;
+        uvec = reshape(ucc, dim, [])';
         figure
-        plot(x, uvec(:, 1), '*');
+        plotCellData(G, uvec(:, 1));
         titlestr = sprintf('displacement - %s direction, eta=%g', 'x', eta);
         title(titlestr)
+        colorbar
+        
         figure
-        plot(y, uvec(:, 2), '*');
+        plotCellData(G, uvec(:, 2));
         titlestr = sprintf('displacement - %s direction, eta=%g', 'y', eta);
         title(titlestr)
+        colorbar
+        
+        figure
+        plotCellData(G, pc);
+        titlestr = sprintf('pressure');
+        title(titlestr)
+        colorbar
+        
     end
-end
 
+    plotdeformedgrid = true;
+    if plotdeformedgrid
+        unc = computeNodeDisp(ucc, tbls);
+        unvec = reshape(unc, dim, [])';
+        figure 
+        coef = 1e0;
+        plotGridDeformed(G, coef*unvec);
+    end
+
+end
