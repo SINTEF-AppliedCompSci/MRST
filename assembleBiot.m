@@ -94,20 +94,22 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     A44 = A44 + A44b_T.getMatrix();
     
     % boundary conditions for the full system
-    fullrhs = vertcat(mechrhs{1} , ...
-                      mechrhs{2} , ...
-                      fluidrhs{1}, ...
-                      fluidrhs{2}, ...
-                      mechrhs{3} , ...
-                      fluidrhs{3});
+    fullrhs = cell(6, 1);
+    fullrhs{1} = mechrhs{1};
+    fullrhs{2} = mechrhs{2};
+    fullrhs{3} = fluidrhs{1};
+    fullrhs{4} = fluidrhs{2};
+    fullrhs{5} = mechrhs{3};
+    fullrhs{6} = fluidrhs{3};
     
-    %          
+    %    
     %        | A11    A12    0      A14    A15    0    |
     %        | A21    A22    0      0      0      0    |
     %  A =   | 0      0      A33    A34    0      A36  |
     %        | A41    A42    A43    A44    0      0    |
     %        | A51    0      0      0      0      0    |
     %        | 0      0      A63    0      0      0    | 
+    %
     
     n1 = tbls.nodefacecoltbl.num;
     n2 = tbls.cellcoltbl.num;
@@ -115,7 +117,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     n4 = tbls.celltbl.num;
     n5 = size(mechrhs{3}, 1);
     n6 = size(fluidrhs{3}, 1);
-    
+
     A1 = [A11, A12, zeros(n1, n3), A14, A15, zeros(n1, n6)];
     A2 = [A21, A22, zeros(n2, n3 + n4 + n5 + n6)];    
     A3 = [zeros(n3, n1 + n2), A33, A34, zeros(n3, n5), A36];
@@ -124,7 +126,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     A6 = [zeros(n6, n1 + n2), A63, zeros(n6, n4 + n5 + n6)];
     
     A = [A1; A2; A3; A4; A5; A6];
-
+    
     %       | B11   B12   B13       |
     %  B =  | B21   B22  B23   B24 |
     %       | B31  B32  B33      |
@@ -155,10 +157,34 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     B42 = -A63invA33*A34;
     B44 = -A63invA33*A36;
 
-    fullsystem.A = A;
-    fullsystem.rhs = fullrhs;
+    % Assemble B matrix
+    n1 = tbls.cellcoltbl.num;
+    n2 = tbls.celltbl.num;
+    n3 = size(mechrhs{3}, 1);
+    n4 = size(fluidrhs{3}, 1);
+    B1 = [B11, B12, B13, zeros(n1, n4)];
+    B2 = [B21, B22, B23, B24];
+    B3 = [B31, B32, B33, zeros(n3, n4)];
+    B4 = [zeros(n4, n1), B42, zeros(n4, n3), B44];
     
-    assembly = struct('fullsystem', fullsystem);
+    B = [B1; B2; B3; B4];
+    
+    % Assembly of right hand side
+    f = fullrhs; % shortcut
+    rhs = cell(4, 1);
+    rhs{1} = f{2} - A21invA11*f{1};
+    rhs{2} = f{4} - A41invA11*f{1} - A43invA33*f{3};
+    rhs{3} = f{5} - A51invA11*f{1};
+    rhs{4} = f{6} - A63invA33*f{3};
+    
+    rhs = vertcat(rhs{:});
+    
+    fullsystem.A = A;
+    fullsystem.rhs = vertcat(fullrhs{:});
+    
+    assembly = struct('B', B, ...
+                      'rhs', rhs, ...
+                      'fullsystem', fullsystem);
     
 end
 
