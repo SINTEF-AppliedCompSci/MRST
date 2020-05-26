@@ -1,0 +1,83 @@
+mrstModule add vemmech mpsaw vem mpfa
+
+clear all
+close all
+
+% Switch this on for perturbed grids
+pert = 0;
+% Test case number (see definitions below)
+testCase = 1;
+% Constant (between 0 and 1) in MPSA and MPFA which defines position of the continuity point
+eta = 1/3;
+
+switch testCase
+  case 1
+    % Cartesian grid
+    gridType = 1;
+  case 2
+    % Cartesian grid
+    gridType = 1;
+    eta = 0;
+  case 3
+    % Triangular grid, 90 degree angles
+    gridType = 2;
+    eta = 1/3;
+  case 4
+    % Equilateral triangles
+    gridType = 3;
+    eta = 1/3;
+end
+
+Nx = [10, 10];
+G = gridForConvTest(Nx, gridType);
+
+d = G.griddim;
+
+% Physical parameters
+mu     = 1;
+lambda = 1;
+alpha  = 1;
+K      = 1;
+tau    = 1;
+rho    = 1;
+
+params = struct('mu'    , mu    , ...
+                'lambda', lambda, ...
+                'alpha' , alpha , ...
+                'K'     , K     , ...
+                'tau'   , tau   , ...
+                'rho'   , rho   , ...
+                'eta'   , eta);
+
+% Compute analytical solution
+[u_fun, p_fun, force_fun, src_fun] = analyticalBiot(d, params);
+
+params.u_fun = u_fun;
+params.p_fun = p_fun;
+params.force_fun = force_fun;
+params.src_fun = src_fun;
+
+% Compute numerical solution
+output = runBiotSim(G, params);
+
+u = output.u;
+p = output.p;
+
+doplot = true;
+if doplot
+    figure
+    plotCellData(G, p);
+    title('Pressure, numerical solution');
+    
+    % prepare input for analytical functions
+    for idim = 1 : d
+        cc{idim} = G.cells.centroids(:, idim);
+    end
+    figure
+    p_exact = p_fun(cc{:});
+    plotCellData(G, p_exact);
+    title('Pressure, analytical solution');
+    
+end
+
+
