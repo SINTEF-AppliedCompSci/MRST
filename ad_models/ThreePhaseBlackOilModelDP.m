@@ -66,6 +66,7 @@ methods
         if isempty(model.FlowPropertyFunctions)
             model.FlowPropertyFunctions = FlowPropertyFunctions(model);
         end
+
         model = validateModel@DualPorosityReservoirModel(model, varargin{:});
     end
     % --------------------------------------------------------------------%

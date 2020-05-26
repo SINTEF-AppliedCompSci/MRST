@@ -54,6 +54,7 @@ properties
     FacilityModel % Facility model used to represent wells
     FlowPropertyFunctions % Grouping for flow properties
     FluxDiscretization % Grouping for flux discretization
+    PVTPropertyFunctions
     Components = {};
     
     %% Dual Porosity properties
@@ -218,6 +219,9 @@ methods
         end
         if isempty(model.FluxDiscretization)
             model.FluxDiscretization = FluxDiscretization(model); %#ok
+        end
+        if isempty(model.PVTPropertyFunctions)
+            model.PVTPropertyFunctions = PVTPropertyFunctions(model); %#ok
         end
     end
 
@@ -471,7 +475,7 @@ methods
 
     function containers = getStateFunctionGroupings(model)
         containers = getStateFunctionGroupings@PhysicalModel(model);
-        extra = {model.FlowPropertyFunctions, model.FluxDiscretization};
+        extra = {model.FlowPropertyFunctions, model.FluxDiscretization, model.PVTPropertyFunctions};
         if ~isempty(model.FacilityModel)
             fm_props = model.FacilityModel.getStateFunctionGroupings();
             extra = [extra, fm_props];
@@ -1486,7 +1490,7 @@ methods
 
     end
 
-    function rhoS = getSurfaceDensities(model)
+    function rhoS = getSurfaceDensities(model, varargin)
         % Get the surface densities of the active phases in canonical
         % ordering (WOG, with any inactive phases removed).
         %
