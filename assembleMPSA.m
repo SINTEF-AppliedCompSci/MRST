@@ -560,7 +560,7 @@ end
 function unode = computeNodeDisp(ucell, lagmult, invA11, A12, D, extforce, ...
                                  nodefacecoltbl, nodecoltbl)
     
-    % unodeface : displace at the nodeface and belongs to nodefacecoltbl
+    % unodeface : displacement at the nodeface, belongs to nodefacecoltbl
     unodeface = invA11*(-A12*ucell + D*lagmult + extforce);
     
     % Setup mapping from nodeface to node
@@ -581,13 +581,8 @@ function unode = computeNodeDisp(ucell, lagmult, invA11, A12, D, extforce, ...
     prod.mergefds = {'nodes', 'coldim'};
     prod = prod.setup();
 
-    nodaldisp_T = SparseTensor('matlabsparse', true);
-    nodaldisp_T = nodaldisp_T.setFromTensorProd(coef, prod);
-
-    M = nodaldisp_T.getMatrix();
-    
     % return displacement at nodes
-    unode = M*unodeface;
+    unode = prod.eval(coef, unodeface);
 end
 
 
