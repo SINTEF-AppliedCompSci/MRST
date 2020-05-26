@@ -9,7 +9,7 @@ from sympy import pi
 sympy.init_printing(pretty_print=False)
 
 x, y, z = sympy.symbols('x y z')
-mu, lamb, alpha, K = sympy.symbols('mu lamb alpha K')
+mu, lambda, alpha, K = sympy.symbols('mu lambda alpha K')
 tau, rho = sympy.symbols('tau rho')
 
 dervar = [x, y, z]
@@ -43,11 +43,11 @@ for i in range(d):
 
 # stress = 2*mu*(symmetric gradient) + lambda*trace(symmetric gradient)*I
 # The example has been designed such that the trace equal zero.
-lambpart = 0
+lambdapart = 0
 for i in range(d):
-    lambpart = lambpart + lamb*(gradu[i][i])
-lambpart = sympy.simplify(lambpart, rational=True)
-# lambpart = 0
+    lambdapart = lambdapart + lambda*(gradu[i][i])
+lambdapart = sympy.simplify(lambdapart, rational=True)
+# lambdapart = 0
 
 stress = []
 for i in range(d):
@@ -55,7 +55,7 @@ for i in range(d):
     for j in range(d):
         s = 2*mu*0.5*(gradu[i][j] + gradu[j][i])
         if i == j:
-            s = s + lambpart
+            s = s + lambdapart
         scomp.append(s)
     stress.append(scomp)
 
@@ -71,7 +71,7 @@ for j in range(d):
 # We compute the equation of conservation of momentum
 momcons = []
 for i in range(d):
-    eq = divsigma[i] + alpha*gradp[i]
+    eq = -divsigma[i] + alpha*gradp[i]
     eq = sympy.simplify(eq)
     momcons.append(eq)
 
@@ -82,5 +82,5 @@ for i in range(d):
 divu = 0
 for i in range(d):
     divu = divu + diff(uvec[i], dervar[i])
-masscons = rho*p + alpha*divu + divgradp
+masscons = rho*p + alpha*divu - divgradp
 masscons = sympy.simplify(masscons)

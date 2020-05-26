@@ -104,11 +104,7 @@ function output = runBiotSim(G, params, varargin)
     for idim = 1 : Nd
         force(:, idim) = force_fun{idim}(cc{:});
     end
-    % note minus sign (matter of convention)
-    force = - bsxfun(@times, G.cells.volumes, force);
-    % figure
-    % quiver(cc{1}, cc{2}, force(:, 1), force(:, 2));
-    
+    force = bsxfun(@times, G.cells.volumes, force);
     % Here, we assume we know the structure of cellcoltbl;
     force = reshape(force', [], 1);
     
