@@ -89,7 +89,11 @@ classdef MRSTExample
         function props = defaultAxisProperties(example)
             % Get default axis properties
             props = struct();
+            % Get grid
             G = example.model.G;
+            if isfield(example.options, 'Gviz')
+                G = example.options.Gviz;
+            end
             % Set XYZLim
             if isfield(G, 'nodes')
                 x = G.nodes.coords;
@@ -135,21 +139,57 @@ classdef MRSTExample
         %-----------------------------------------------------------------%
         function opt = defaultToolbarOptions(example) %#ok
             % Get default toolbar options
-            opt = struct('log10',         false, ...
-                         'exp',           false, ...
-                         'abs',           false, ...
-                         'filterzero',    false, ...
-                         'logical',       false, ...
-                         'outline',       false, ...
-                         'pauseTime',     0.150, ...
-                         'lockCaxis',     false, ...
-                         'plot1d',        false, ...
-                         'plotmarkers',   false, ...
+            opt = struct('log10'        , false, ...
+                         'exp'          , false, ...
+                         'abs'          , false, ...
+                         'filterzero'   , false, ...
+                         'logical'      , false, ...
+                         'outline'      , false, ...
+                         'pauseTime'    , 0.150, ...
+                         'lockCaxis'    , false, ...
+                         'plot1d'       , false, ...
+                         'plotmarkers'  , false, ...
                          'skipAugmented', false, ...
-                         'field',         's:1', ...
-                         'step_index',    1,     ...
-                         'startplayback', false  ...
-                         );
+                         'field'        , 's:1', ...
+                         'step_index'   , 1    , ...
+                         'startplayback', false);
+        end
+        
+        %-----------------------------------------------------------------%
+        function plot(example, v, varargin)
+            % Plot filed v on example grid using plotToolbar
+            opt = struct('Name', '');
+            [opt, extra] = merge_options(opt, varargin{:});
+            Name = example.name;
+            if ~isempty(opt.Name)
+                Name = [Name, ' ', opt.Name];
+            end
+            if nargin == 1
+                v = example.model.rock;
+            end
+            G = example.model.G;
+            if isfield(example.options, 'Gviz')
+                G = example.options.Gviz;
+            end
+            example.figure('Name', Name);
+            plotToolbar(G, v, example.toolbarOptions{:}, extra{:});
+            example.setAxisProperties(gca);
+            W = example.schedule.control(1).W;
+            if ~isempty(W)
+                if G.griddim == 3
+                    plotWell(G, W, 'color', 'k');
+                else
+                    hold on
+                    x = G.cells.centroids(vertcat(W.cells), :);
+                    plot3(x(:,1), x(:,2), ones(size(x,1),1), 'ok', ...
+                         'markerFaceColor', 'w', ...
+                         'markerSize'     , 8  );
+                    hold off
+                end
+            end
+            if G.griddim == 3 && ~all(example.axisProperties.View == [0,90])
+                camlight;
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -173,44 +213,11 @@ classdef MRSTExample
                 lsolver = selectLinearSolverAD(rmodel);
                 opt.LinearSolver = lsolver;
             end
-            extra = horzcat(extra, {'LinearSolver', opt.LinearSolver, 'NonlinearSolver', opt.NonlinearSolver});
+            extra = horzcat(extra, {'LinearSolver'   , opt.LinearSolver   , ...
+                                    'NonlinearSolver', opt.NonlinearSolver});
             problem = packSimulationProblem(                                   ...
                 example.state0, example.model, example.schedule, example.name, ...
                 varargin{:}, 'ExtraArguments', extra);
-        end
-        
-        %-----------------------------------------------------------------%
-        function plot(example, v, varargin)
-            % Plot filed v on example grid using plotToolbar
-            opt = struct('Name', '');
-            [opt, extra] = merge_options(opt, varargin{:});
-            Name = example.name;
-            if ~isempty(opt.Name)
-                Name = [Name, ' ', opt.Name];
-            end
-            if nargin == 1
-                v = example.model.rock;
-            end
-            G = example.model.G;
-            example.figure('Name', Name);
-            plotToolbar(G, v, example.toolbarOptions{:}, extra{:});
-            example.setAxisProperties(gca);
-            W = example.schedule.control(1).W;
-            if ~isempty(W)
-                if G.griddim == 3
-                    plotWell(G, W, 'color', 'k');
-                else
-                    hold on
-                    x = G.cells.centroids(vertcat(W.cells), :);
-                    plot3(x(:,1), x(:,2), ones(size(x,1),1), 'ok', ...
-                         'markerFaceColor', 'w', ...
-                         'markerSize'     , 8  );
-                    hold off
-                end
-            end
-            if G.griddim == 3 && ~all(example.axisProperties.View == [0,90])
-                camlight;
-            end
         end
         
     end
