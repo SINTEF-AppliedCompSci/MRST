@@ -129,6 +129,7 @@ function output = runBiotSim(G, params, varargin)
     bcstruct = struct('bcdirichlet', bcdirichlet, ...
                       'bcneumann'  , bcneumann);
     src = src_fun(cc{:});
+    src = G.cells.volumes.*src;
     fluidforces = struct('bcstruct', bcstruct, ...
                          'src'     , src);
     
