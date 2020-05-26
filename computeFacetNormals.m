@@ -1,5 +1,5 @@
 function facetNormals =  computeFacetNormals(G, cellnodefacetbl)
-    
+% compute facet normals (area weighted)
     fno = cellnodefacetbl.get('faces');
     cno = cellnodefacetbl.get('cells');
     
