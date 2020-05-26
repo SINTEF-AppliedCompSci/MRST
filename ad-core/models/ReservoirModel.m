@@ -102,6 +102,13 @@ methods
         model.outputFluxes = true;
         % Gravity defaults to the global variable
         model.gravity = gravity();
+        if isa(model, 'ExtendedReservoirModel')
+            % Generic class - use extended version
+            model.FacilityModel = ExtendedFacilityModel();
+        else
+            % Legacy class - use base facility
+            model.FacilityModel = FacilityModel();
+        end
         model = merge_options_relaxed(model, varargin{:});
 
         % Base class does not support any phases

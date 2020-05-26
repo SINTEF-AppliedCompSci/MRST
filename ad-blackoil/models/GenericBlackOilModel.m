@@ -60,9 +60,8 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
             %
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.validateModel`
-            if isempty(model.FacilityModel) || ~isa(model.FacilityModel, 'ExtendedFacilityModel')
-                model.FacilityModel = ExtendedFacilityModel(model);
-            end
+            assert(isa(model.FacilityModel, 'ExtendedFacilityModel'), ...
+                'Generic model can only be used with ExtendedFacilityModel.')
             if isempty(model.Components)
                 nph = model.getNumberOfPhases();
                 model.Components = cell(1, nph);
