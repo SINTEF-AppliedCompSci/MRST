@@ -1,7 +1,5 @@
-% 2D Three-Phase Surfactant-Polymer Injection Case
-clc
-clear
-
+%% 2D Three-Phase Surfactant-Polymer Injection Case
+% Test of the generic and legacy solvers for EOR
 mrstModule add ad-core ad-blackoil ad-eor ad-props ...
                deckformat mrst-gui
 
@@ -9,78 +7,40 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props ...
 % The data required for the example
 % The following are all the files needed for this tutorial
 % Two files are the data for the simulation of surfactant polymer flooding.
-current_dir = fullfile(mrstPath('ad-eor'), 'examples', 'surfactant-polymer');
-fn = fullfile(current_dir, 'SURFACTANTPOLYMER2D.DATA');
-gravity reset on;
-
-deck = readEclipseDeck(fn);
-% The deck is using metric system, MRST uses SI unit internally
-deck = convertDeckUnits(deck);
-
+fn = fullfile(mrstPath('ad-eor'), 'examples', 'surfactant-polymer', 'SURFACTANTPOLYMER2D.DATA');
 % Construct physical model, initial state and dynamic well controls.
-[state0, model, schedule] = initEclipseProblemAD(deck);
-
-% Add initial surfactant & polymer concentration
-state0.cp   = zeros([model.G.cells.num, 1]);
-state0.cs   = zeros([model.G.cells.num, 1]);
-state0.cpmax =  zeros([model.G.cells.num, 1]);
-
-%% Select nonlinear and linear solvers
-
-% Using physically normalized residuals for non-linear convergence
-% calcuation.
-model.useCNVConvergence = true;
-
-nonlinearsolver = NonLinearSolver();
-nonlinearsolver.useRelaxation = true;
-nonlinearsolver.maxTimestepCuts = 10;
-%% Full case - for comparison when surfactant is working
+[state0, model, schedule, nls] = initEclipseProblemAD(fn, 'timestepstrategy', 'none');
+arg = {model.G, model.rock, model.fluid, ...
+      'disgas', model.disgas, 'vapoil', model.vapoil,...
+      'inputdata', model.inputdata};
+%% 
+lmodelsp = ThreePhaseSurfactantPolymerModel(arg{:});
 close all, clear statesSP, clear wellSolsSP;
 scheduleSP = schedule;
 [wellSolsSP, statesSP, reportsSP] = ...
-    simulateScheduleAD(state0, model, scheduleSP, ...
-                    'NonLinearSolver', nonlinearsolver);
+    simulateScheduleAD(state0, lmodelsp, scheduleSP, ...
+                    'NonLinearSolver', nls);
 
 %%
 clear gmodel statesGP wellSolsGP;
-gmodelsp = GenericSurfactantPolymerModel(model.G, model.rock, model.fluid, 'disgas', model.disgas, 'vapoil', model.vapoil);
-gmodelsp.nonlinearTolerance = 1e-2;
-
-
-gmodelsp = gmodelsp.validateModel();
-gmodelsp.FacilityModel.toleranceWellRate = 1e-2;
-
+gmodelsp = GenericSurfactantPolymerModel(arg{:});
 scheduleGSP = schedule;
 
 [wellSolsGSP, statesGSP, reportsGSP] = ...
     simulateScheduleAD(state0, gmodelsp, scheduleGSP, ...
-                    'NonLinearSolver', nonlinearsolver);
-
-%%
-% props = gmodelsp.validateModel();
-% groups = props.getStateFunctionGroupings();
-% for i = 1:numel(groups)
-%     figure;
-%     [h,g] = plotStateFunctionGroupings(groups{i},  'label', 'label');
-% %    printStateFunctionGroupingTikz(g);
-%     title(class(groups{i}));
-% end
+                    'NonLinearSolver', nls);
 
 %%
 clear bomodel;
-bomodel = GenericBlackOilModel(model.G, model.rock, model.fluid, 'disgas', model.disgas, 'vapoil', model.vapoil);
-bomodel.nonlinearTolerance = 1e-2;
+bomodel = GenericBlackOilModel(arg{:});
 [wellSolsBO, statesBO, reportsBO] = ...
     simulateScheduleAD(state0, bomodel, schedule, ...
-                    'NonLinearSolver', nonlinearsolver);
-%%
-% props = bomodel.validateModel();
-% groups = props.getStateFunctionGroupings();
-% for i = 1:numel(groups)
-%     figure;
-%     plotStateFunctionGroupings(groups{i},  'label', 'label')
-%     title(class(groups{i}));
-% end
+                    'NonLinearSolver', nls);
 
-%% 
+%% Compare results
 plotWellSols({wellSolsGSP, wellSolsSP, wellSolsBO}, 'datasetnames', {'GenericSP', 'OldModel', 'Blackoil'});
+%% Plot BO model functions
+plotStateFunctionGroupings(bomodel)
+title('Black-oil')
+plotStateFunctionGroupings(gmodelsp)
+title('EOR')
