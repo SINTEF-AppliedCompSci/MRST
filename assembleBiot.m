@@ -79,6 +79,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     
     % We add the diagonal term for the mass conservation equation
     rho = coupprops.rho;
+    rho = G.cells.volumes.*rho;
     
     % This matrix could be easily assembled directly (not using tensor assembly)
     celltbl = tbls.celltbl;
