@@ -8,7 +8,7 @@
 % We check the three implementations (Legacy, standard, block assembly)
 
 
-mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing
+mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing mpsaw
 
 clear all
 close all
