@@ -1,14 +1,42 @@
 function  [description, state0, model, schedule, options, plotOptions] = gravity_segregation(varargin)
-    description = 'Gravity segregation example';
+%Example from the example suite, see description below.
+%
+% SEE ALSO:
+%   `MRSTExample`, `example_template`, `exampleSuiteTutorial`.
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+    % One-line description
+    description ...
+        = ['Gravity segregation example with initially horizontal or ', ...
+           'vertical fluid contact and two- or three-phase immiscible fluids'];
+    if nargout == 1, return; end
+    % Define module dependencies
+    require ad-core ad-props ad-blackoil
+    % Optional input arguments
     options = struct('phases'   , 'WOG'       , ...
                      'ncells'   , 21          , ...
-                     'nstep'    , 100         , ...
+                     'nsteps'   , 100         , ...
                      'type'     , 'horizontal', ...
                      'useRampup', true        );
-    options = merge_options(options, varargin{:});
-    description = [description, ' with ', options.phases                  , ...
-                   ' and initially ', options.type, ' fluid phase contact'];  
-    if nargout == 1, return; end
+    options = merge_options(options, varargin{:});  
+    % Set parameters depending on fluid contact-type
     nph = numel(options.phases);
     options.ncells = options.ncells - rem(options.ncells, nph);
     L = 100*meter;
@@ -26,12 +54,12 @@ function  [description, state0, model, schedule, options, plotOptions] = gravity
             sz         = [300, 500];
             view       = [90,0];
     end
-    
+    % Make model
     gravity reset on
-    G    = cartGrid(cartDims, physDims);
+    G    = cartGrid(cartDims, physDims); % Cartesian grid
     G    = computeGeometry(G);
-    rock = makeRock(G, 1*darcy, 0.3);
-
+    rock = makeRock(G, 1*darcy, 0.3);    % Homogeneous rock
+    % Simple, incompresible fluid
     phases    = 'WOG';
     fluidArgs = {'phases', phases                            , ...
                  'mu'    , [1,5,1]*centi*poise               , ...
@@ -40,16 +68,13 @@ function  [description, state0, model, schedule, options, plotOptions] = gravity
     active = ismember(phases, options.phases);
     fluidArgs(2:2:end) = cellfun(@(arg) arg(active), fluidArgs(2:2:end), 'UniformOutput', false);
     fluid = initSimpleADIFluid(fluidArgs{:}, 'cr', 1e-8);
-
+    % Black-oil model
     model = GenericBlackOilModel(G, rock, fluid, 'water', active(1), ...
                                                  'oil'  , active(2), ...
                                                  'gas'  , active(3));
-
-    d = 1/nph;
-    
+    % Make schedule of five years with options.nsteps timesteps
     time = 5*year;
-    dt   = rampupTimesteps(time, time/options.nstep, 5*options.useRampup);
-
+    dt   = rampupTimesteps(time, time/options.nsteps, 5*options.useRampup);
     schedule = simpleSchedule(dt);
 
     [ii, ~, kk] = gridLogicalIndices(G);
@@ -59,8 +84,9 @@ function  [description, state0, model, schedule, options, plotOptions] = gravity
         case 'horizontal'
             ll = kk;
     end
-
+    % Initial state
     state0 = initResSol(G, 1*atm, zeros(1,nph));
+    d = 1/nph;
     for i = 1:nph
         cells = ll > max(ll)*d*(i-1) & ll <= max(ll)*d*i;
         sat = zeros(1,nph);
@@ -68,8 +94,8 @@ function  [description, state0, model, schedule, options, plotOptions] = gravity
         state0.s(cells,:) = repmat(sat, nnz(cells), 1);
     end
     % Plotting
-    plotOptions = {'PlotBoxAspectRatio', pbar         , ...
-                  'Projection'        , 'orthographic', ...
-                  'View'              , view          , ...
-                  'Size'              , sz            };
+    plotOptions = {'PlotBoxAspectRatio', pbar          , ...
+                   'Projection'        , 'orthographic', ...
+                   'View'              , view          , ...
+                   'Size'              , sz            };
 end

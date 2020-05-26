@@ -69,26 +69,20 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
     % Each example must start with the description, followed by an nargout
     % check that returns if we only asked for the description
     description = 'Example template. Not meant for direct use';
     if nargout == 1, return; end
-    
     % Each example can have any number of optional input arguments, and
     % must return a (possibly empy) options struct
     options = struct('ncells', 2020, 'nstep', 5);
-    options = merge_options(options, varargin{:});
-    
+    options = merge_options(options, varargin{:});  
     % Define any module dependencies for the example. The following are
     % typically always needed
     require ad-core ad-props ad-blackoil
-    
     % Define initial state, model and schedule
     [state0, model, schedule] = deal([]);
-    
     % plotOptions are only by MRSTExample. In case of empty plotOptions,
     % MRSTExample will attempt to set reasonable defaults
     plotOptions = {};
-    
 end

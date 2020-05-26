@@ -1,11 +1,38 @@
 function [description, state0, model, schedule, options, plotOptions] = qfs_wo(varargin)
-    description = 'Quarter five-spot example on Cartesian grid';
+%Example from the example suite, see description below.
+%
+% SEE ALSO:
+%   `MRSTExample`, `example_template`, `exampleSuiteTutorial`.
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+    % One-line description
+    description = 'Quarter five-spot example with two-phase fluid on Cartesian grid';
     if nargout == 1, return; end
-    % Quarter five-spot example on Cartesian grid
-    options = struct('n', 50, 'coarseDims', [2,2], 'nkr', 2);
+    % Define module dependencies
+    require ad-core ad-props ad-blackoil
+    % Optional input arguments
+    options = struct('ncells', 50, ... % Number of cells in x- and y-directions
+                     'nkr'   , 2);     % Brooks-Corey relperm exponent
     options = merge_options(options, varargin{:});
     % Model
-    G     = computeGeometry(cartGrid([1,1]*options.n, [1000, 1000]*meter));
+    G     = computeGeometry(cartGrid([1,1]*options.ncells, [1000, 1000]*meter));
     rock  = makeRock(G, 100*milli*darcy, 0.4);
     fluid = initSimpleADIFluid('phases', 'WO', 'n', [1,1]*options.nkr, 'mu', [1,1]*centi*poise, 'rho', [1,1]);
     model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
