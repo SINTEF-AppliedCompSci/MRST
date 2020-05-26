@@ -7,7 +7,7 @@ classdef PerforationMobilityEOR < PerforationMobility
     methods
         function gp = PerforationMobilityEOR(varargin)
             gp@PerforationMobility(varargin{:});
-            gp = gp.dependsOn({'FacilityWellMapping', 'PerforationPressureGradient', 'WellIndex'});
+            gp = gp.dependsOn({'FacilityWellMapping', 'PressureGradient', 'WellIndex'});
             gp.label = '\lambda_{wc}'; 
         end
         
@@ -16,7 +16,7 @@ classdef PerforationMobilityEOR < PerforationMobility
             mob = model.ReservoirModel.getProps(state, 'Mobility');
             mobw = cellfun(@(x) x(map.cells), mob, 'UniformOutput', false); 
             
-            [dp, wi] = prop.getEvaluatedDependencies(state, 'PerforationPressureGradient', 'WellIndex');
+            [dp, wi] = prop.getEvaluatedDependencies(state, 'PressureGradient', 'WellIndex');
             
             Tdp = -wi.*dp;
             
