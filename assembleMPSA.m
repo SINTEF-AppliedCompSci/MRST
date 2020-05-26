@@ -428,19 +428,26 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     end
     [D, bcvals] = setupNodeFaceBc(bc, G, tbls);
     
+    extforce = loadstruct.extforce;
+    force = loadstruct.force;
+
+    fullrhs{1} = extforce;
+    fullrhs{2} = force;
+    fullrhs{3} = bcvals;
+    
     % the solution is given by the system
     %
     % A = [[A11, A12, -D];
     %      [A21, A22,  0];
     %      [D' , 0  ,  0]];
     %
-    % u = [u  (displacement at nodefacecoltbl);
-    %      u  (displacement at cellcoltbl);
-    %      lagmult];
+    % u = [u (displacement at nodefacecoltbl);
+    %      u (displacement at cellcoltbl);
+    %      lagmult (forces in the linear directions at the boundary)];
     %
-    % f = [extforce  (force at nodefacecoltbl);
-    %      force  (volumetric force at cellcoltbl);
-    %      bcvals (for the linear form at the boundary)];
+    % f = [extforce (force at nodefacecoltbl);
+    %      force    (volumetric force at cellcoltbl);
+    %      bcvals   (for the linear form at the boundary)];
     %
     % A*u = f
     %
@@ -456,6 +463,8 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
                       'A22', A22, ...
                       'D'  , D  , ...
                       'invA11', invA11);
+    matrices.fullrhs = fullrhs;
+    
     % We reduced the system (shur complement) using invA11
     % We obtain system of the form
     %
@@ -476,10 +485,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     B12 = A21*invA11*D;
     B21 = -D'*invA11*A12;
     B22 = D'*invA11*D;
-
-    extforce = loadstruct.extforce;
-    force = loadstruct.force;
-    
 
     B = [[B11, B12]; ...
          [B21, B22]];

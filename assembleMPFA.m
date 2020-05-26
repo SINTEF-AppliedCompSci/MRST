@@ -1,7 +1,4 @@
-function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varargin)
-
-    opt = struct('bcetazero', true);
-    opt = merge_options(opt, varargin{:});
+function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings)
 
     cellnodefacecoltbl = tbls.cellnodefacecoltbl;
     cellcolrowtbl      = tbls.cellcolrowtbl;
@@ -168,19 +165,34 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     bcdirichlet = bcstruct.bcdirichlet;
     [D, bcvals] = setupMpfaNodeFaceBc(bcdirichlet, tbls);
     
+    if ~isempty(bcstruct.bcneumann)
+        error('not yet implemented');
+    else
+        nf_num = nodefacetbl.num;
+        extflux = zeros(nf_num, 1);
+    end
+
+    if isempty(src)
+        src = zeros(celltbl.num, 1);
+    end
+
+    fullrhs{1} = extflux;
+    fullrhs{2} = src;
+    fullrhs{3} = bcvals;
+    
     % the solution is given by the system
     %
     % A = [[A11, A12, -D];
     %      [A21, A22,  0];
     %      [D' , 0  ,  0]];
     %
-    % u = [u  (displacement at nodefacecoltbl);
-    %      u  (displacement at cellcoltbl);
-    %      lagmult];
+    % u = [p (pressure at nodefacetbl);
+    %      p (pressure at celltbl);
+    %      lagmult (flux values Dirichlet boundary)];
     %
-    % f = [extforce  (force at nodefacecoltbl);
-    %      force  (volumetric force at cellcoltbl);
-    %      bcvals (for the linear form at the boundary)];
+    % f = [flux   (flux at nodefacecoltbl);
+    %      src    (source at cellcoltbl);
+    %      bcvals (pressure values at Dirichlet boundary)];
     %
     % A*u = f
     %
@@ -196,6 +208,8 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
                       'A22', A22, ...
                       'D'  , D  , ...
                       'invA11', invA11);
+    
+    matrices.fullrhs = fullrhs;
     
     % We reduced the system (shur complement) using invA11
     % We obtain system of the form
@@ -218,12 +232,6 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     B21 = -D'*invA11*A12;
     B22 = D'*invA11*D;
 
-    if ~isempty(bcstruct.bcneumann)
-        error('not yet implemented');
-    else
-        nf_num = nodefacetbl.num;
-        extflux = zeros(nf_num, 1);
-    end
 
     B = [[B11, B12]; ...
          [B21, B22]];

@@ -71,7 +71,7 @@ bcneumann = [];
 bcstruct = struct('bcdirichlet', bcdirichlet, ...
                   'bcneumann'  , bcneumann);
 
-src = 0; % no source in this case
+src = []; % no source in this case
 
 % setup identity K in cellcolrowtbl
 cellcolrowtbl = tbls.cellcolrowtbl;
