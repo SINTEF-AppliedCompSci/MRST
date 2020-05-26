@@ -73,7 +73,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     
     % Recover the coupling terms
     A14 = coupassembly.divfv;
-    A14 = A14'; % we use the gradient which is the transpose of the div
+    A14 = -A14'; % we use the gradient which is the transpose of minus div
     A41 = coupassembly.divconsnf;
     A42 = coupassembly.divconsc;
     
