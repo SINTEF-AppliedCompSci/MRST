@@ -3,3 +3,4 @@
 * sign of right-handside for mechanicss
 * check bcetazero in runBiotSim
 * rho is not volumetric
+* uniformize interface of computeFacetNormals and computeNodeFaceCentroids
