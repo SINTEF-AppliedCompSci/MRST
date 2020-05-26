@@ -31,8 +31,7 @@ classdef PolymerComponent < ConcentrationComponent
             nph = numel(b);
             c = cell(1, nph);
             % water phase index
-            phaseIndex = component.phaseIndex;
-            c{phaseIndex} = cp .* b{phaseIndex};
+            c{1} = cp .* b{1};
         end
 
         function c = getComponentMass(component, model, state, varargin)
@@ -44,8 +43,8 @@ classdef PolymerComponent < ConcentrationComponent
              nph = model.getNumberOfPhases;
              c = cell(1, nph);
 
-             phaseIndex = component.phaseIndex;
-             bW = b{phaseIndex};
+             wIx = 1;
+             bW = b{wIx};
              sw = model.getProp(state, 'sW');
              % In mobile water
              acc = (1-f.dps).*sw.*cp.*bW;
@@ -54,7 +53,7 @@ classdef PolymerComponent < ConcentrationComponent
              ads = model.getProp(state, 'PolymerAdsorption');
              adsorbed = f.rhoR .* ((1-poro)./poro) .* ads;
 
-             c{phaseIndex} = pv.*(adsorbed + acc);
+             c{wIx} = pv.*(adsorbed + acc);
         end
 
         function cmob = getComponentMobility(component, model, state, varargin)
@@ -63,14 +62,14 @@ classdef PolymerComponent < ConcentrationComponent
              [mob, b, c, effviscmult, pviscmult] = ...
                  model.getProps(state, 'Mobility', 'ShrinkageFactors', ...
                      'polymer', 'PolymerEffViscMult', 'PolymerViscMult');
-             phaseIndex = component.phaseIndex;
-             mobW = mob{phaseIndex};
-             bW = b{phaseIndex};
+             wIx = 1;
+             mobW = mob{wIx};
+             bW = b{wIx};
              mobP = c.*bW.*mobW .* effviscmult ./ pviscmult;
 
              nphase = model.getNumberOfPhases;
              cmob = cell(1, nphase);
-             cmob{phaseIndex} = mobP;
+             cmob{wIx} = mobP;
          end
 
         function c = getInjectionMassFraction(component, model, force)
