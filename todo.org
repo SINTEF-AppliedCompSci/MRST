@@ -2,3 +2,4 @@
 * bcetazero not used for coupling terms
 * sign of right-handside for mechanicss
 * check bcetazero in runBiotSim
+* rho is not volumetric
