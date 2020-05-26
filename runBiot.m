@@ -40,7 +40,7 @@ switch runcase
     x = 1/max(x)*x;
     G = tensorGrid(x, y);    
   case {'2d-linear', '2d-compaction'}
-    N = 20;
+    N = 5;
     nx = N; ny = N;
     G = cartGrid([nx, ny], [1, 1]);
     % N = 3;
@@ -65,12 +65,12 @@ useVirtual = false;
 [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
 
 
-% setup mechanical driving forces (volumetric forces and boundary condition)
+% Setup mechanical driving forces (volumetric forces and boundary condition)
 loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 
 
 
-% setup fluid driving forces (source terms and boundary condition)
+% Setup fluid driving forces (source terms and boundary condition)
 
 extfaces = loadstruct.bc.extfaces; % get "external faces" from setupBCpercase
 
@@ -84,12 +84,12 @@ bcdirichlet = struct('bcnodefacetbl', bcnodefacetbl, ...
                      'bcvals', bcvals);
 bcstruct = struct('bcdirichlet', bcdirichlet, ...
                   'bcneumann'  , bcneumann);
-src = 0;
+src = [];
 
 fluidforces = struct('bcstruct', bcstruct, ...
-                     'sr', src);
+                     'src', src);
 
-% setup Biot's system driving forces
+% Setup Biot's system driving forces
 drivingforces = struct('mechanics', loadstruct, ...
                        'fluid', fluidforces);
 
@@ -114,12 +114,26 @@ map.mergefds = {'coldim', 'rowdim'};
 map = map.setup();
 
 K = [1; 0; 0; 1];
-fluidprops = map.eval(K);
+K = map.eval(K);
+fluidprops.K = K;
 
 % setup Biot parameter properties
 
-props = struct('mechprops' , mechprops, ...
-               'fluidprops', fluidprops);
+alpha = ones(nc, 1);
+rho = ones(nc, 1);
+coupprops = struct('alpha', alpha, ...
+                   'rho', rho);
+
+props = struct('mechprops' , mechprops , ...
+               'fluidprops', fluidprops, ...
+               'coupprops' , coupprops);
+
+assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings);
+
+fullsystem = assembly.fullsystem;
+
+A = fullsystem.A;
+rhs = fullsystem.rhs;
 
 return
 

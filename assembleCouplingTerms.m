@@ -1,12 +1,12 @@
 function assembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings)
     
-    opt = struct('bcetazero', true);
-    opt = merge_options(opt, varargin{:});
-    
     cellnodefacecoltbl = tbls.cellnodefacecoltbl;
     nodefacecoltbl     = tbls.nodefacecoltbl;
     cellnodefacetbl    = tbls.cellnodefacetbl;
-
+    cellnodetbl        = tbls.cellnodetbl;
+    cellcoltbl         = tbls.cellcoltbl;
+    celltbl            = tbls.celltbl;
+    
     % We fetch the vector g, which belongs to cellnodefacecoltbl and is used to
     % construct the consistent divergence operator.
     g = computeConsistentGradient(G, eta, tbls, mappings);
@@ -32,6 +32,7 @@ function assembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings)
     prod.tbl1 = cellnodefacecoltbl;
     prod.tbl2 = nodefacecoltbl;
     prod.tbl3 = celltbl;
+    prod.reducefds = {'nodes', 'faces', 'coldim'};
     prod = prod.setup();
     
     divfv_T = SparseTensor();
@@ -49,7 +50,7 @@ function assembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings)
     map = TensorMap();
     map.fromTbl = cellnodetbl;
     map.toTbl = celltbl;     
-    map.mergefds = {'nodes'};
+    map.mergefds = {'cells'};
     map = map.setup();
     
     nnodespercell = map.eval(ones(cellnodetbl.num, 1));
@@ -72,7 +73,7 @@ function assembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings)
     prod.mergefds = {'cells'};
     prod = prod.setup();
     
-    mcoef = prod.eval(mcoef, vols);
+    mcoef = prod.eval(vols, mcoef);
     
     prod = TensorProd();
     prod.tbl1 = cellnodetbl;
@@ -105,13 +106,13 @@ function assembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings)
     divconsnf_T = divconsnf_T.setFromTensorProd(mg, prod);
     divconsnf = divconsnf_T.getMatrix();
     
-    % We assemble divconsc : celltbl -> celltbl    
+    % We assemble divconsc : cellcoltbl -> celltbl    
     prod = TensorProd();
     prod.tbl1 = cellnodefacecoltbl; 
     prod.tbl2 = cellcoltbl;
     prod.tbl3 = celltbl;
     prod.mergefds = {'cells'};
-    prod.reducefds = {'nodes', 'faces', 'coldim'};
+    prod.reducefds = {'coldim'};
     prod = prod.setup();
     
     divconsc_T = SparseTensor();
