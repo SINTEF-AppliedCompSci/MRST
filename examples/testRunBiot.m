@@ -28,17 +28,17 @@ switch testCase
     eta = 1/3;
 end
 
-Nx = [10, 10];
+Nx = [30, 30];
 G = gridForConvTest(Nx, gridType);
 
 d = G.griddim;
 
 % Physical parameters
 mu     = 1;
-lambda = 1;
+lambda = 0;
 alpha  = 1;
 K      = 1;
-tau    = 1;
+tau    = 1; % (must be set to 1)
 rho    = 1;
 
 params = struct('mu'    , mu    , ...
@@ -63,21 +63,55 @@ output = runBiotSim(G, params);
 u = output.u;
 p = output.p;
 
+dotest = true;
+if dotest
+    tbls = output.tbls;
+    isBoundary = any(G.faces.neighbors == 0, 2); 
+    bcfaces =  find(isBoundary);
+    bcfacetbl.faces = bcfaces;
+    bcfacetbl = IndexArray(bcfacetbl);
+    cellfacetbl = tbls.cellfacetbl;
+    bccellfacetbl = crossIndexArray(cellfacetbl, bcfacetbl, {'faces'});
+    bccelltbl = projIndexArray(bccellfacetbl, {'cells'});
+    bccells = bccelltbl.get('cells');
+    bcp = p(bccells);
+end    
+
 doplot = true;
 if doplot
+    
     figure
     plotCellData(G, p);
     title('Pressure, numerical solution');
     
+    figure
+    plotCellData(G, u(:, 1));
+    title('Displacement, x-direction, numerical solution');
+    
+    figure
+    plotCellData(G, u(:, 2));
+    title('Displacement, y-direction, numerical solution');
+
     % prepare input for analytical functions
     for idim = 1 : d
         cc{idim} = G.cells.centroids(:, idim);
     end
+    
     figure
     p_exact = p_fun(cc{:});
     plotCellData(G, p_exact);
     title('Pressure, analytical solution');
     
+    figure
+    u1_exact = u_fun{1}(cc{:});
+    plotCellData(G, u1_exact);
+    title('Displacement, x-directiom, analytical solution');
+
+    figure
+    u2_exact = u_fun{2}(cc{:});
+    plotCellData(G, u2_exact);
+    title('Displacement, y-directiom, analytical solution');
+
 end
 
 
