@@ -4,7 +4,6 @@ function output = runBiotSim(G, params, varargin)
                  'blocksize' , []         , ...
                  'useVirtual', false      , ...
                  'bcetazero' , false);
-    
     opt = merge_options(opt, varargin{:});
 
     useVirtual = opt.useVirtual;
@@ -121,15 +120,19 @@ function output = runBiotSim(G, params, varargin)
     % Setup mechanical parameters
     mu = mu*ones(Nc, 1);
     lambda = lambda*ones(Nc, 1);
-    mechprops = struct('mu', mu, ...
+    mechprops = struct('mu'  , mu, ...
                        'lambda', lambda);
     
-    % Compute boundary conditions for fluid part (pressure)
+    % Setup boundary conditions for fluid part 
+    % Neumann fluid bc
+    bcneumann = [];
+    % Dirichlet fluid bc
     bcpvals = p_fun(bnfc{:});
-    bcstruct = struct('dirichlet', bcnodefacetbl, ...
-                      'bcvals'   , bcpvals);
-    
-    src = src_fun(cc{:})
+    bcdirichlet = struct('bcnodefacetbl', bcnodefacetbl, ...
+                         'bcvals'       , bcpvals);
+    bcstruct = struct('bcdirichlet', bcdirichlet, ...
+                      'bcneumann'  , bcneumann);
+    src = src_fun(cc{:});
     fluidforces = struct('bcstruct', bcstruct, ...
                          'src'     , src);
     
@@ -183,7 +186,7 @@ function output = runBiotSim(G, params, varargin)
     
     % Pressure values at cell centers.
     celltbl = tbls.celltbl;
-    nc = cellcoltbl.num;
+    nc = celltbl.num;
 
     p = sol(ncc + 1 : ncc + nc);
 
