@@ -3,7 +3,7 @@
 % Files
 %   FacilityWellMapping              - Generate a struct containing a bunch of useful mappings for a given
 %   InjectionSurfaceDensity          - Get injection surface density
-%   PerforationPressureGradient      - Calculate the pressure difference between the reservoir cells and the
+%   PressureGradient                 - Calculate the pressure difference between the reservoir cells and the
 %   WellComponentPhaseFlux           - Component flux in each phase for wells
 %   WellComponentTotalFlux           - Component total flux for wells (with treatment for cross-flow)
 %   WellComponentTotalFluxDensityMix - Component total flux for wells (with treatment for cross-flow)

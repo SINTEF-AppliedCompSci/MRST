@@ -6,14 +6,14 @@ classdef WellPhaseFluxTotalFixed < StateFunction
     methods
         function gp = WellPhaseFluxTotalFixed(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'FacilityWellMapping', 'PerforationPressureGradient', 'WellIndex'});
+            gp = gp.dependsOn({'FacilityWellMapping', 'PressureGradient', 'WellIndex'});
             gp = gp.dependsOn({'Mobility'}, 'FlowPropertyFunctions');
         end
         
         function q_ph = evaluateOnDomain(prop, model, state)
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
             W = map.W;
-            [dp, wi] = prop.getEvaluatedDependencies(state, 'PerforationPressureGradient', 'WellIndex');
+            [dp, wi] = prop.getEvaluatedDependencies(state, 'PressureGradient', 'WellIndex');
             mob = model.ReservoirModel.getProps(state, 'Mobility');
             ws = state.wellSol(map.active);
             qT = sum(vertcat(ws.flux), 2);
