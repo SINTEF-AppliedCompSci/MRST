@@ -9,7 +9,7 @@ from sympy import pi
 sympy.init_printing(pretty_print=False)
 
 x, y, z = sympy.symbols('x y z')
-mu, lambda, alpha, K = sympy.symbols('mu lambda alpha K')
+mu, lamb, alpha, K = sympy.symbols('mu lambda alpha K')
 tau, rho = sympy.symbols('tau rho')
 
 dervar = [x, y, z]
@@ -45,7 +45,7 @@ for i in range(d):
 # The example has been designed such that the trace equal zero.
 lambdapart = 0
 for i in range(d):
-    lambdapart = lambdapart + lambda*(gradu[i][i])
+    lambdapart = lambdapart + lamb*(gradu[i][i])
 lambdapart = sympy.simplify(lambdapart, rational=True)
 # lambdapart = 0
 
