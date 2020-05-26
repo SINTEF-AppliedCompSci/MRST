@@ -41,7 +41,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     % Assemble fluid problem
     fluidforces = drivingforces.fluid;
     bcstruct = fluidforces.bcstruct;
-    src      = fluidforces.src;
+    src = fluidforces.src;
     K = fluidprops.K;
     fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings);
 
