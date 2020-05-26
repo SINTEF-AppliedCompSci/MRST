@@ -37,14 +37,13 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
         function model = ThreePhaseSurfactantPolymerModel(G, rock, fluid, varargin)
             model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
 
-            
             if isempty(model.inputdata)
                 % We guess what's present
-                model.polymer = isfield(model.fluid, 'cpMax');
+                model.polymer = isfield(model.fluid, 'cpmax');
                 model.surfactant = isfield(model.fluid, 'ift');
             else
                 % We have a deck that explicitly enables features
-                runspec = deck.RUNSPEC;
+                runspec = model.inputdata.RUNSPEC;
                 check = @(name) isfield(runspec, upper(name)) && runspec.(upper(name));
                 model.polymer    = check('POLYMER');
                 model.surfactant = check('SURFACT');
@@ -82,7 +81,17 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             [problem, state] = equationsThreePhaseSurfactantPolymer(state0, state, ...
                 model, dt, drivingForces, varargin{:});
         end
-
+        % --------------------------------------------------------------------%
+        function model = validateModel(model, varargin)
+            model = validateModel@ThreePhaseBlackOilModel(model, varargin{:});
+            if model.surfactant && ~isfield(model.operators, 'veloc')
+                % Operators used to compute capillary number
+                G = model.G;
+                model.operators.veloc = computeVelocTPFA(G, model.operators.internalConn);
+                model.operators.sqVeloc = computeSqVelocTPFA(G, model.operators.internalConn);
+            end
+        end
+        
         % --------------------------------------------------------------------%
         function state = validateState(model, state)
             state = validateState@ThreePhaseBlackOilModel(model, state);
@@ -140,7 +149,6 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
 
         % --------------------------------------------------------------------%
         function model = setupStateFunctionGroupings(model, varargin)
-
             model = setupStateFunctionGroupings@ThreePhaseBlackOilModel(model, varargin{:});
 
             fp = model.FlowPropertyFunctions;
@@ -149,7 +157,6 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             pvtreg  = pp.getRegionPVT(model);
             satreg  = fp.getRegionSaturation(model);
             surfreg = fp.getRegionSurfactant(model);
-            % nph = model.getNumberOfPhases();
 
             % We set up EOR viscosities and relative permeabilities. They are computed from
             % the black-oil value by using a multiplier approach, where we have
@@ -200,19 +207,19 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 rppmult = 'PolymerPermReduction';
                 fp = fp.setStateFunction(rppmult, PolymerPermReduction(model));
                 relpermult = relpermult.addMultiplier(model, rppmult, 'W');
-                               
                 % if necessary, the following can be moved out similar with
                 % others, currently they are overwritten due to polymer
-                ffd = model.FacilityModel.FacilityFluxDiscretization;
-                ffd = ffd.setStateFunction('PerforationMobility', PerforationMobilityEOR(model));
-                if model.polymer
-                    ffd = ffd.setStateFunction('PerforationComponentPhaseDensity', PerforationComponentPhaseDensityEOR(model));
+                if ~isempty(model.FacilityModel) && isprop(model.FacilityModel, 'FacilityFluxDiscretization')
+                    ffd = model.FacilityModel.FacilityFluxDiscretization;
+                    ffd = ffd.setStateFunction('PerforationMobility', PerforationMobilityEOR(model));
+                    if model.polymer
+                        ffd = ffd.setStateFunction('PerforationComponentPhaseDensity', PerforationComponentPhaseDensityEOR(model));
+                    end
+                    model.FacilityModel.FacilityFluxDiscretization = ffd;
                 end
-                model.FacilityModel.FacilityFluxDiscretization = ffd;
             end
 
             if model.surfactant
-
                 fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));
                 fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model, satreg));
                 % The EOR relative permeability is set up as the
@@ -231,8 +238,6 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
             % TODO: BAD NAME!
             pp = pp.setStateFunction('PolyViscMult', pviscmult);
             fp = fp.setStateFunction('RelativePermeabilityMultipliers', relpermult);
-            
-
 
             model.FlowPropertyFunctions = fp;
             model.PVTPropertyFunctions  = pp;
@@ -243,29 +248,20 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
         function [fn, index] = getVariableField(model, name, varargin)
             % Get the index/name mapping for the model (such as where
             % pressure or water saturation is located in state)
+            index = ':';
             switch(lower(name))
-                case {'polymer', 'polymermax'}
-                    cp = model.getComponentNames();
-                    index = nnz(strcmpi(cp, 'polymer'));
-                    if strcmpi(name, 'polymer')
-                        fn = 'cp';
-                    else
-                        fn = 'cpmax';
-                    end
-                case {'surfactant', 'surfactantmax'}
-                    cs = model.getComponentNames();
-                    index = nnz(strcmpi(cs, 'surfactant'));
-                    if strcmpi(name, 'surfactant')
-                        fn = 'cs';
-                    else
-                        fn = 'csmax';
-                    end
+                case {'polymer', 'cp'}
+                    fn = 'cp';
+                case {'polymermax', 'cpmax'}
+                    fn = 'cpmax';
+                case {'surfactant', 'cs'}
+                    fn = 'cs';
+                case {'surfactantmax', 'csmax'}
+                    fn = 'csmax';
                 case 'qwpoly'
                     fn = 'qWPoly';
-                    index = ':';
                 case 'qwsft'
                     fn = 'qWSft';
-                    index = ':';
                 otherwise
                     [fn, index] = getVariableField@ThreePhaseBlackOilModel(...
                                     model, name, varargin{:});
