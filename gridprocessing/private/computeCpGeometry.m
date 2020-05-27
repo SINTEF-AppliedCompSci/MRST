@@ -29,7 +29,7 @@ function G = computeCpGeometry(G)
 %              coordinates, relative to the cells.
 %
 % SEE ALSO:
-%   `computeGeometry`, `processGRDECL`.
+%   `computeGeometry`, `processGRDECL`, `getFaceTransmissibility`.
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
