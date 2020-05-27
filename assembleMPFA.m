@@ -1,5 +1,8 @@
-function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings)
+function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varargin)
 
+    opt = struct('bcetazero', true);
+    opt = merge_options(opt, varargin{:});
+    
     cellnodefacecoltbl = tbls.cellnodefacecoltbl;
     cellcolrowtbl      = tbls.cellcolrowtbl;
     
@@ -23,7 +26,7 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings)
     cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
 
     %  g belongs to cellnodefacecoltbl;
-    g = computeConsistentGradient(G, eta, tbls, mappings);
+    g = computeConsistentGradient(G, eta, tbls, mappings, 'bcetazero', opt.bcetazero);
 
     % facetNormals belongs to cellnodefacecoltbl;
     normals = computeFacetNormals(G, cellnodefacetbl);
