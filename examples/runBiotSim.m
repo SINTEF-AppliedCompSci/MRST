@@ -140,6 +140,7 @@ function output = runBiotSim(G, params, varargin)
     for idim = 1 : voigttbl.num
         stress{idim} = stress_fun{idim}(bnfc{:});
     end
+    pneum = p_fun(bnfc{:});
     
     % Reformat stress in bcneumnodefacevoigttbl
     stress = horzcat(stress{:});
@@ -180,6 +181,18 @@ function output = runBiotSim(G, params, varargin)
     prod = prod.setup();
     
     extforce = prod.eval(stress, facetNormals);
+
+    % We add the part due to the Biot pressure
+    apneum = - alpha*pneum;
+    
+    prod = TensorProd();
+    prod.tbl1 = bcneumnodefacetbl;
+    prod.tbl2 = bcneumnodefacecoltbl;
+    prod.tbl3 = bcneumnodefacecoltbl;
+    prod.mergefds = {'nodes', 'faces'};
+    prod = prod.setup();
+
+    extforce = extforce + prod.eval(apneum, facetNormals);
     
     % the format of extforce expected in assembly is in nodefacecoltbl
     map = TensorMap();
