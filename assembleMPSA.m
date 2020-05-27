@@ -66,13 +66,14 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     prod = TensorProd();
     prod.tbl1 = cellnodefacecoltbl;
     prod.tbl2 = nodefacecoltbl;
+    prod.tbl3 = cellnodecolrowtbl;
     prod.replacefds2 = {'coldim', 'rowdim'};
     prod.reducefds   = {'faces'};
     prod.mergefds    = {'nodes'};
-    prod.tbl3 = cellnodecolrowtbl;
 
+
+    prod.pivottbl = cellnodefacecolrowtbl;
     [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
-
     prod.dispind1 = sub2ind([d_num, cnf_num], c, i);
     prod.dispind2 = sub2ind([d_num, cnf_num], r, nodeface_from_cellnodeface(i));
     prod.dispind3 = sub2ind([d_num, d_num, cn_num], r, c, cellnode_from_cellnodeface(i));

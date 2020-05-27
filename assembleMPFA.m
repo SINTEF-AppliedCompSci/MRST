@@ -25,6 +25,24 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     cellcol2row2tbl       = tbls.cellcol2row2tbl;
     cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
 
+    cell_from_cellnode         = mappings.cell_from_cellnode;
+    node_from_cellnode         = mappings.node_from_cellnode;
+    cell_from_cellnodeface     = mappings.cell_from_cellnodeface;
+    cellnode_from_cellnodeface = mappings.cellnode_from_cellnodeface;
+    nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
+    
+    % Some shortcuts
+    c_num     = celltbl.num;
+    n_num     = nodetbl.num;
+    cnf_num   = cellnodefacetbl.num;
+    cnfc_num  = cellnodefacecoltbl.num;
+    cn_num    = cellnodetbl.num;
+    cncr_num  = cellnodecolrowtbl.num;
+    nf_num    = nodefacetbl.num;
+    nfc_num   = nodefacecoltbl.num;
+    cnfcr_num = cellnodefacecolrowtbl.num;
+    d_num     = coltbl.num;
+    
     %  g belongs to cellnodefacecoltbl;
     g = computeConsistentGradient(G, eta, tbls, mappings, 'bcetazero', opt.bcetazero);
 
@@ -40,7 +58,13 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     prod.replacefds2 = {{'coldim', 'rowdim'}};
     prod.mergefds = {'cells'};
     prod.reducefds = {'rowdim'};
-    prod = prod.setup();
+    
+    prod.pivottbl = cellnodefacecolrowtbl;
+    [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
+    prod.dispind1 = sub2ind([d_num, d_num, c_num], r, c, cell_from_cellnodeface(i));
+    prod.dispind2 = sub2ind([d_num, cnf_num], r, i);
+    prod.dispind3 = sub2ind([d_num, cnf_num], c, i);
+    prod.issetup = true;
     
     Kg = prod.eval(K, g);
     

@@ -74,7 +74,9 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
     map.mergefds = {'faces', 'nodes'};
     nodeface_from_cellnodeface = map.getDispatchInd();
 
-    cellnodecoltbl    = crossIndexArray(cellnodetbl, coltbl, {}, 'virtual', useVirtual);
+    cell_from_cellnodeface = cell_from_cellnode(cellnode_from_cellnodeface);
+    
+    cellnodecoltbl = crossIndexArray(cellnodetbl, coltbl, {}, 'virtual', useVirtual);
 
     % not virtual because used in setupBCpercase (could be optimized)
     cellnodefacecoltbl = crossIndexArray(cellnodefacetbl, coltbl, {});
@@ -123,6 +125,7 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
 
     mappings = struct('cell_from_cellnode'        , cell_from_cellnode        , ...
                       'node_from_cellnode'        , node_from_cellnode        , ...
+                      'cell_from_cellnodeface'    , cell_from_cellnodeface    , ...
                       'cellnode_from_cellnodeface', cellnode_from_cellnodeface, ...
                       'nodeface_from_cellnodeface', nodeface_from_cellnodeface);
     
