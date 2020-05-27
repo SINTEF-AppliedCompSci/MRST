@@ -63,39 +63,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     arg = [{G, [], fluid}, varargin];
     if hascomp
+        % Compositional model
         assert(~hassurf, 'Compositional model does not support surfactant');
         assert(~haspoly, 'Compositional model does not support polymer');
         eos = initDeckEOSModel(deck);
         model = GenericNaturalVariablesModel(arg{:}, eos, 'water', haswat);
     elseif haspoly || hassurf
+        % Water-based EOR model (surfactant and/or polymer)
         mrstModule add ad-eor
         model = GenericSurfactantPolymerModel(arg{:},...
                     'water', haswat, 'oil', hasoil, 'gas', hasgas); 
-    elseif haspoly && hassurf
-        % Surfactant-Polymer EOR
-        mrstModule add ad-eor
-        assert(haswat, 'SurfactantPolymer model requires water phase to be present');
-        model = ThreePhaseSurfactantPolymerModel(arg{:});
-    elseif haspoly && ~hassurf
-        % Polymer EOR
-        mrstModule add ad-eor
-        assert(~hassurf, 'Polymer model does not support surfactant');
-        assert(haswat, 'Polymer model requires water phase to be present');
-        if hasgas
-            model = ThreePhaseBlackOilPolymerModel(arg{:});
-        else
-            model = OilWaterPolymerModel(arg{:});
-        end
-    elseif hassurf && ~haspoly
-        % Surfactant EOR
-        mrstModule add ad-eor
-        assert(~haspoly, 'Surfactant model does not support polymer');
-        assert(haswat, 'Surfactant model requires water phase to be present');
-        if hasgas
-            model = ThreePhaseBlackOilSurfactantModel(arg{:});
-        else
-            model = OilWaterSurfactantModel(arg{:});
-        end
     else
         % Blackoil three phase
         model = GenericBlackOilModel(arg{:}, 'water', haswat, 'oil', hasoil, 'gas', hasgas);
