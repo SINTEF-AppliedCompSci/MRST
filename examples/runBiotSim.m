@@ -9,6 +9,7 @@ function output = runBiotSim(G, params, varargin)
     useVirtual = opt.useVirtual;
     
     force_fun = params.force_fun;
+    stress_fun = params.stress_fun;
     src_fun = params.src_fun;
     u_fun = params.u_fun;
     p_fun = params.p_fun;
@@ -21,10 +22,11 @@ function output = runBiotSim(G, params, varargin)
     alpha  = params.alpha;
     rho    = params.rho;
    
-    doVem = false;
     [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
-    coltbl = tbls.coltbl;
-    nodefacetbl = tbls.nodefacetbl;
+    
+    coltbl         = tbls.coltbl;
+    colrowtbl      = tbls.colrowtbl;
+    nodefacetbl    = tbls.nodefacetbl;
     nodefacecoltbl = tbls.nodefacecoltbl;
     
     Nc = G.cells.num; 
@@ -40,47 +42,38 @@ function output = runBiotSim(G, params, varargin)
     isBoundary = any(G.faces.neighbors == 0, 2); 
     bcfaces =  find(isBoundary);
     
-    bcfacetbl.faces = bcfaces;
-    bcfacetbl = IndexArray(bcfacetbl);
-    bcnodefacetbl = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
-    bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, 'optpureproduct', ...
-                                       true);
-    clear bcfacetbl
+    % Detect faces at the right hand-side (x equal to xmin)
+    xmin = min(G.faces.centroids(bcfaces, 1));
+    isxmin = G.faces.centroids(bcfaces, 1) < (xmin + eps);
+    dirfaces  = bcfaces(isxmin);  % Dirichlet faces
+    neumfaces = bcfaces(~isxmin); % Neumann faces
+    
+    bcdirfacetbl.faces = dirfaces;
+    bcdirfacetbl = IndexArray(bcdirfacetbl);
+    bcdirnodefacetbl = crossIndexArray(bcdirfacetbl, nodefacetbl, {'faces'});
+    bcdirnodefacecoltbl = crossIndexArray(bcdirnodefacetbl, coltbl, {}, 'optpureproduct', true);
     
     [~, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', opt.bcetazero);
     
     map = TensorMap();
     map.fromTbl = nodefacecoltbl;
-    map.toTbl = bcnodefacecoltbl;
+    map.toTbl = bcdirnodefacecoltbl;
     map.mergefds = {'nodes', 'faces', 'coldim'};
     map = map.setup();
     
-    bcnodefacecents = map.eval(nodefacecents);
+    bcdirnodefacecents = map.eval(nodefacecents);
     % Here, we assume a given structure of bcnodefacecoltbl:
-    bcnodefacecents = reshape(bcnodefacecents, Nd, [])';
-    bcnum = bcnodefacetbl.num;
-   
-    dotest = false;
-    if dotest
-        % plot continuity points 
-        figure
-        hold on
-        plotGrid(G)
-        nodefacecents = reshape(nodefacecents, Nd, [])';
-        if Nd == 2
-            plot(nodefacecents(:, 1), nodefacecents(:, 2), '*');
-        else
-            plot3(nodefacecents(:, 1), nodefacecents(:, 2), nodefacecents(:, 3), '*');
-        end
-    end
-    
+    bcdirnodefacecents = reshape(bcdirnodefacecents, Nd, [])';
+    bcnum = bcdirnodefacetbl.num;
     
     % Prepare input for analytical functions
     for idim = 1 : Nd
-        bnfc{idim} = bcnodefacecents(:, idim);
+        bnfc{idim} = bcdirnodefacecents(:, idim);
     end
     
-    % Compute boundary conditions for mechanical part
+    % Compute boundary conditions for the mechanical part (Dirichlet and Neumann parts)
+    
+    % 1) Compute Dirichlet part of mechanical bc
     for idim = 1 : Nd
         linform = zeros(bcnum, Nd);
         linform(:, idim) = 1;
@@ -88,17 +81,106 @@ function output = runBiotSim(G, params, varargin)
         linformvals{idim} = u_fun{idim}(bnfc{:});
     end
     
-    bcfaces = bcnodefacetbl.get('faces');
-    bcnodes = bcnodefacetbl.get('nodes');
-    extbcnodefacetbl.faces = repmat(bcfaces, Nd, 1);
-    extbcnodefacetbl.nodes = repmat(bcnodes, Nd, 1);
-    extbcnodefacetbl = IndexArray(extbcnodefacetbl);
+    bcdirfaces = bcdirnodefacetbl.get('faces');
+    bcdirnodes = bcdirnodefacetbl.get('nodes');
+    extbcdirnodefacetbl.faces = repmat(bcdirfaces, Nd, 1);
+    extbcdirnodefacetbl.nodes = repmat(bcdirnodes, Nd, 1);
+    extbcdirnodefacetbl = IndexArray(extbcdirnodefacetbl);
     
-    bc.bcnodefacetbl = extbcnodefacetbl;
+    bc.bcnodefacetbl = extbcdirnodefacetbl;
     bc.linform = vertcat(linforms{:});
     bc.linformvals = vertcat(linformvals{:});
     clear extbcnodefacetbl linforms linformvals
 
+    % 2) Compute Neumann part of mechanical bc
+    
+    bcneumfacetbl.faces = neumfaces;
+    bcneumfacetbl = IndexArray(bcneumfacetbl);
+    bcneumnodefacetbl = crossIndexArray(bcneumfacetbl, nodefacetbl, {'faces'});
+    bcneumnodefacecoltbl = crossIndexArray(bcneumnodefacetbl, coltbl, {}, 'optpureproduct', true);
+    voigttbl.voigtdim = (1 : Nd*(Nd + 1)/2)';
+    voigttbl = IndexArray(voigttbl);
+    bcneumnodefacevoigttbl = crossIndexArray(bcneumnodefacetbl, voigttbl, {}, 'optpureproduct', true);    
+    colrowvoigttbl = colrowtbl;
+    switch Nd
+      case 2;
+        voigtind = [1; 3; 3; 2];
+      case 3
+        voigtind = [1; 6; 5; 6; 3; 4; 5; 4; 3];
+      otherwise
+        error('d not recognized');
+    end
+    colrowvoigttbl = colrowvoigttbl.addInd('voigtdim', voigtind);
+    
+    bcneumnodefacevoigttbl = crossIndexArray(bcneumnodefacetbl, voigttbl, {}, 'optpureproduct', true);
+    bcneumnodefacecolrowvoigttbl = crossIndexArray(bcneumnodefacetbl, colrowvoigttbl, {}, 'optpureproduct', true);
+    
+    % Evaluate analytical stress at bcneumnodefacecents (continuity points at boundary)
+    
+    % We get the continuity points where the stress should be evaluated, they belong to bcnemnodefacecoltbl
+    map = TensorMap();
+    map.fromTbl = nodefacecoltbl;
+    map.toTbl = bcneumnodefacecoltbl;
+    map.mergefds = {'nodes',  'faces', 'coldim'};
+    map = map.setup();
+    
+    bcneumnodefacecents = map.eval(nodefacecents);
+    bcneumnodefacecents = reshape(bcneumnodefacecents, Nd, [])';
+    for idim = 1 : Nd
+        bnfc{idim} = bcneumnodefacecents(:, idim);
+    end
+    for idim = 1 : voigttbl.num
+        stress{idim} = stress_fun{idim}(bnfc{:});
+    end
+    
+    % Reformat stress in bcneumnodefacevoigttbl
+    stress = horzcat(stress{:});
+    stress = reshape(stress', [], 1);
+    
+    % Map stress to bcneumnodefacecolrowvoigttbl
+    map = TensorMap();
+    map.fromTbl = bcneumnodefacevoigttbl;
+    map.toTbl = bcneumnodefacecolrowvoigttbl;
+    map.mergefds = {'nodes', 'faces', 'voigtdim'};
+    map = map.setup();
+    
+    stress = map.eval(stress);
+    
+    % Fetch the normals in bcneumnodefacecoltbl
+    cellnodefacetbl = tbls.cellnodefacetbl;
+    cellnodefacecoltbl = tbls.cellnodefacecoltbl;
+    % facetNormals is in cellnodefacecoltbl;
+    facetNormals =  computeFacetNormals(G, cellnodefacetbl);
+    map = TensorMap();
+    map.fromTbl = cellnodefacecoltbl;
+    map.toTbl = bcneumnodefacecoltbl;
+    map.mergefds = {'nodes', 'faces', 'coldim'};
+    map = map.setup();
+    % now facetNormals is in bcneumnodefacecoltbl
+    facetNormals = map.eval(facetNormals);
+    
+    % We multiplty stress with facetNormals
+    prod = TensorProd();
+    prod.tbl1 = bcneumnodefacecolrowvoigttbl;
+    prod.tbl2 = bcneumnodefacecoltbl;
+    prod.tbl2 = bcneumnodefacecoltbl;
+    prod.replacefds1 = {{'coldim', 'rowdim', 'interchange'}};
+    prod.replacefds2 = {{'coldim', 'rowdim'}};
+    prod.mergefds = {'nodes', 'faces'};
+    prod.reducefds = {'rowdim'};
+    prod = prod.setup();
+    
+    extforce = prod.eval(stress, - facetNormals);
+    
+    % the format of extforce expected in assembly is in nodefacecoltbl
+    map = TensorMap();
+    map.fromTbl = bcneumnodefacecoltbl;
+    map.toTbl = nodefacecoltbl;
+    map.mergefds = {'nodes', 'faces', 'coldim'};
+    map = map.setup();
+    
+    extforce = map.eval(extforce);
+    
     % Compute body force
     force = NaN(Nc, Nd);
     for idim = 1 : Nd
@@ -106,11 +188,11 @@ function output = runBiotSim(G, params, varargin)
     end
     force = bsxfun(@times, G.cells.volumes, force);
     % Here, we assume we know the structure of cellcoltbl;
-    force = reshape(force', [], 1);
-    
+    force = reshape(force', [], 1);    
+        
     loadstruct.bc = bc;
     loadstruct.force = force;
-    loadstruct.extforce = zeros(tbls.nodefacecoltbl.num, 1);
+    loadstruct.extforce = extforce;
     clear bc force
     
     % Setup mechanical parameters
@@ -123,6 +205,25 @@ function output = runBiotSim(G, params, varargin)
     % Neumann fluid bc
     bcneumann = [];
     % Dirichlet fluid bc
+    bcfacetbl.faces = bcfaces;
+    bcfacetbl = IndexArray(bcfacetbl);
+    bcnodefacetbl = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
+    bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, 'optpureproduct', true);
+
+    map = TensorMap();
+    map.fromTbl = nodefacecoltbl;
+    map.toTbl = bcnodefacecoltbl;
+    map.mergefds = {'nodes', 'faces', 'coldim'};
+    map = map.setup();
+     
+    bcnodefacecents = map.eval(nodefacecents);
+    
+    % Here, we assume a given structure of bcnodefacecoltbl:
+    bcnodefacecents = reshape(bcnodefacecents, Nd, [])';
+    % Prepare input for analytical functions
+    for idim = 1 : Nd
+        bnfc{idim} = bcnodefacecents(:, idim);
+    end
     bcpvals = p_fun(bnfc{:});
     bcdirichlet = struct('bcnodefacetbl', bcnodefacetbl, ...
                          'bcvals'       , bcpvals);
