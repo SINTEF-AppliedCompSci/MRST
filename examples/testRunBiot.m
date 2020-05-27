@@ -50,12 +50,13 @@ params = struct('mu'    , mu    , ...
                 'eta'   , eta);
 
 % Compute analytical solution
-[u_fun, p_fun, force_fun, src_fun] = analyticalBiot(d, params);
+output = analyticalBiot(d, params);
 
-params.u_fun = u_fun;
-params.p_fun = p_fun;
-params.force_fun = force_fun;
-params.src_fun = src_fun;
+params.u_fun      = output.u_fun;
+params.p_fun      = output.p_fun;
+params.stress_fun = output.stress_fun;
+params.force_fun  = output.force_fun;
+params.src_fun    = output.src_fun;
 
 % Compute numerical solution
 output = runBiotSim(G, params);
@@ -98,17 +99,17 @@ if doplot
     end
     
     figure
-    p_exact = p_fun(cc{:});
+    p_exact = params.p_fun(cc{:});
     plotCellData(G, p_exact);
     title('Pressure, analytical solution');
     
     figure
-    u1_exact = u_fun{1}(cc{:});
+    u1_exact = params.u_fun{1}(cc{:});
     plotCellData(G, u1_exact);
     title('Displacement, x-directiom, analytical solution');
 
     figure
-    u2_exact = u_fun{2}(cc{:});
+    u2_exact = params.u_fun{2}(cc{:});
     plotCellData(G, u2_exact);
     title('Displacement, y-directiom, analytical solution');
 

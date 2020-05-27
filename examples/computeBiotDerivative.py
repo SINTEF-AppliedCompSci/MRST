@@ -1,4 +1,5 @@
-# compute external force for given displacement and pressure function
+# Compute volumetric force and source term for given displacement
+# and pressure function
 
 import sympy
 from sympy import diff
