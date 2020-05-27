@@ -1,11 +1,8 @@
 %% Linear pressure test
 %
 %
-% The MPFA method is exact for linear pressure field. We impose boundary
-% condition such that the exact solution is linear. The grid is a twisted grid
-% made from a Cartesian grid.
-%
-% We check the three implementations (Legacy, standard, block assembly)
+% The MPFA method is exact for linear pressure field. We impose boundary condition such that the exact solution is linear. The
+% grid is a twisted grid made from a Cartesian grid.
 
 
 mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing mpsaw
@@ -13,13 +10,6 @@ mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing mpsaw
 clear all
 close all
 
-
-%% Define and process geometry
-% Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
-% has dimension 1-by-1-by-1. Because our flow solvers are applicable for
-% general unstructured grids, the Cartesian grid is here represented using
-% an unstructured formate in which cells, faces, nodes, etc. are given
-% explicitly.
 dimcase = 2;
 switch dimcase
   case 2
@@ -88,7 +78,12 @@ K = map.eval(K);
 
 eta = 1/3;
 
-assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings);
+doblock = true;
+if doblock
+    assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'blocksize', 20);
+else
+    assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings);
+end
 
 B = assembly.B;
 rhs = assembly.rhs;

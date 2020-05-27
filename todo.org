@@ -8,4 +8,6 @@
 * switch to neumann also in flow part in runBiot convergence test
 * Change name from runBiotSim to runBiotConvSim (for consistency)
 * Comment on fact that Neumann Biot is special
+* check bcetazero for biot.
+  What do we use? is it consistent between mpsa and mpfa?
 

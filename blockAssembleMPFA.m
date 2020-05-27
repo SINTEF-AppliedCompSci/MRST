@@ -2,8 +2,8 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
 
     opt = struct('verbose'  , mrstVerbose, ...
                  'blocksize', [], ...
-                 'bcetazero', true, ...
-                 'useVirtual', true);
+                 'bcetazero', false, ...
+                 'useVirtual', false);
     opt = merge_options(opt, varargin{:});
     
     useVirtual = opt.useVirtual;
@@ -49,8 +49,6 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
     globcellcol2row2tbl       = globtbls.cellcol2row2tbl;
     globcellnodecol2row2tbl   = globtbls.cellnodecol2row2tbl;
     
-    dim = coltbl.num;
-
     if ~isempty(bcstruct.bcneumann)
         error('not yet implemented');
     else
@@ -59,13 +57,14 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
     end
 
     if isempty(src)
-        src = zeros(celltbl.num, 1);
+        src = zeros(globcelltbl.num, 1);
     end
     
     globsrc = src;
-    globbccdirichlet = bcstruct.bcdirichlet;
-    globbcnodefacetbl = bcdirichlet.bcnodefacetbl;
-    globbcvals = bcdirichlet.bcvals;
+    
+    globbcdirichlet = bcstruct.bcdirichlet;
+    globbcnodefacetbl = globbcdirichlet.bcnodefacetbl;
+    globbcvals        = globbcdirichlet.bcvals;
     
     gnc = globcelltbl.num;
     gnbc = globbcnodefacetbl.num;
@@ -75,7 +74,7 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
     B21 = sparse(gnbc, gnc);
     B22 = sparse(gnbc, gnbc);
 
-    rhscc = zeros(gnc, 1);
+    rhsc  = zeros(gnc, 1);
     rhsbc = zeros(gnbc, 1);
     
     for iblock = 1 : nblocks
@@ -108,7 +107,8 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         nodecolrowtbl         = tbls.nodecolrowtbl;
         cellcol2row2tbl       = tbls.cellcol2row2tbl;
         cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
-
+        cellcolrowtbl   = tbls.cellcolrowtbl;
+        
         %  g belongs to cellnodefacecoltbl;
         g = computeConsistentGradient(G, eta, tbls, mappings);
 
@@ -285,13 +285,14 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         
         extflux = map.eval(globextflux);
 
-                
         locB11 = A22 - A21*invA11*A12;
+        locrhsc = -A21*invA11*extflux; 
         
         if bcterm_exists
             locB12 = A21*invA11*D;
             locB21 = -D'*invA11*A12;
             locB22 = D'*invA11*D;
+            locrhsbc = -D'*invA11*extflux;
         end
 
         % locB11 : celltbl       -> celltbl
@@ -302,36 +303,35 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
 
         nc = celltbl.num;
         map = TensorMap();
-        map.fromTbl = cellcoltbl;
-        map.toTbl = globcellcoltbl;
-        map.mergefds = {'cells', 'coldim'};
+        map.fromTbl = celltbl;
+        map.toTbl = globcelltbl;
+        map.mergefds = {'cells'};
         map = map.setup();
         % map.pivottbl will be cellcoltbl so that dispind2 gives the index of
         % cellcoltbl in globcellcoltbl
         cellind = map.dispind2;
         
         B11 = B11 + sparse(repmat(cellind, 1, nc), repmat(cellind', nc, 1), locB11, gnc, gnc);
+        rhsc(cellind) = rhsc(cellind) + locrhsc;
         
         if bcterm_exists
             nbc = bcnodefacetbl.num;
             B22 = B22 + sparse(repmat(bcind, 1, nbc), repmat(bcind', nbc, 1), locB22, gnbc, gnbc);
             B12 = B12 + sparse(repmat(cellind, 1, nbc), repmat(bcind', nc, 1), locB12, gnc, gnbc);
             B21 = B21 + sparse(repmat(bcind, 1, nc), repmat(cellind', nbc, 1), locB21, gnbc, gnc);
+            rhsbc(bcind) = rhsbc(bcind) + locrhsbc;
         end
-
-        
-        
-        B = [[B11, B12]; ...
-             [B21, B22]];
-        
-        rhs{1} = -A21*invA11*extflux + src; 
-        rhs{2} = -D'*invA11*extflux + bcvals;
-        
-        rhs = vertcat(rhs{:});
-        
-        assembly = struct( 'B'  , B  , ...
-                           'rhs', rhs, ...
-                           'matrices', matrices);
     end
+    
+    B = [[B11, B12]; ...
+         [B21, B22]];
 
+    rhsc = rhsc + globsrc;
+    rhsbc = rhsbc + globbcvals;
+    
+    rhs = [rhsc; ...
+           rhsbc];
+    
+    assembly = struct( 'B'  , B  , ...
+                       'rhs', rhs);    
 end
