@@ -28,7 +28,7 @@ grdecl = readGRDECL(grdecl);
 usys   = getUnitSystem('METRIC');
 grdecl = convertInputUnits(grdecl, usys);
 
-G = processGRDECL(grdecl);
+G = processGRDECL(grdecl, 'PreserveCpNodes', true);
 G = computeGeometry(G(1));
 rock = grdecl2Rock(grdecl, G.cells.indexMap);
 
