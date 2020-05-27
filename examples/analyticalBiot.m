@@ -1,4 +1,4 @@
-function [u, p, force, src] = analyticalBiot(d, params)
+function output = analyticalBiot(d, params)
     
     % d = spatial dimension
     mu = params.mu;
@@ -32,11 +32,11 @@ function [u, p, force, src] = analyticalBiot(d, params)
         %                  | stress{3}, stress{2} |
         %
         % first Voigt component
-        stress{1} = lambda.*y.*(-2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) - sin(2.*pi.*x.*y) + 2.*cos(2.*pi.*x)) + 1.0.*mu.*(4.*pi.*y.^2.*(1 - x).*cos(2.*pi.*x.*y) - 2.*y.*sin(2.*pi.*x.*y));
+        stress{1} = @(x, y) (lambda.*y.*(-2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) - sin(2.*pi.*x.*y) + 2.*cos(2.*pi.*x)) + 1.0.*mu.*(4.*pi.*y.^2.*(1 - x).*cos(2.*pi.*x.*y) - 2.*y.*sin(2.*pi.*x.*y)));
         % second Voigt component
-        stress{2} = lambda.*y.*(-2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) - sin(2.*pi.*x.*y) + 2.*cos(2.*pi.*x)) + 4.0.*mu.*y.*cos(2.*pi.*x);
+        stress{2} = @(x, y) (lambda.*y.*(-2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) - sin(2.*pi.*x.*y) + 2.*cos(2.*pi.*x)) + 4.0.*mu.*y.*cos(2.*pi.*x));
         % third  Voigt component
-        stress{3} = 1.0.*mu.*(2.*pi.*x.*y.*(1 - x).*cos(2.*pi.*x.*y) - 2.*pi.*y.^2.*sin(2.*pi.*x) + (1 - x).*sin(2.*pi.*x.*y));
+        stress{3} = @(x, y) (1.0.*mu.*(2.*pi.*x.*y.*(1 - x).*cos(2.*pi.*x.*y) - 2.*pi.*y.^2.*sin(2.*pi.*x) + (1 - x).*sin(2.*pi.*x.*y)));
       case 3
         error('not yet implemented');
       otherwise
@@ -44,7 +44,12 @@ function [u, p, force, src] = analyticalBiot(d, params)
 
     end
     
-    
+    output.u_fun      = u;
+    output.p_fun      = p;
+    output.force_fun  = force;
+    output.src_fun    = src;
+    output.stress_fun = stress;
     
 end
+
 
