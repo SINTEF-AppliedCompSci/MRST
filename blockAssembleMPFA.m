@@ -255,13 +255,10 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         
         if bcterm_exists
             map = TensorMap();
-            map.fromTbl = bcnodefacetbl;
-            map.toTbl = globbcnodefacetbl;
+            map.fromTbl = globbcnodefacetbl;
+            map.toTbl = bcnodefacetbl;
             map.mergefds = {'nodes', 'faces'};
-            map = map.setup();
-            
-            % pivotspace is bcnodefacetbl. the indices bcind are used below in the insertion into the global matrix.
-            bcind = map.dispind2;
+            bcind = map.getDispatchInd();
         
             clear bcdirichlet;
             bcdirichlet.bcnodefacetbl = bcnodefacetbl;
@@ -297,12 +294,10 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
 
         nc = celltbl.num;
         map = TensorMap();
-        map.fromTbl = celltbl;
-        map.toTbl = globcelltbl;
+        map.fromTbl = globcelltbl;
+        map.toTbl = celltbl;
         map.mergefds = {'cells'};
-        map = map.setup();
-        % map.pivottbl will be celltbl so that dispind2 gives the index of celltbl in globcelltbl
-        cellind = map.dispind2;
+        cellind = map.getDispatchInd();
         
         B11 = B11 + sparse(repmat(cellind, 1, nc), repmat(cellind', nc, 1), locB11, gnc, gnc);
         rhsc(cellind) = rhsc(cellind) + locrhsc;
