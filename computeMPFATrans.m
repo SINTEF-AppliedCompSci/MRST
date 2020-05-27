@@ -80,7 +80,7 @@ eta = 1/3;
 
 doblock = true;
 if doblock
-    assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'blocksize', 20);
+    assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'blocksize', 20, 'verbose', true);
 else
     assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings);
 end
