@@ -49,7 +49,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    set_formation(opt.default_formation, false);
    
    
-   %% Setting up interactive interface
+   % Setting up interactive interface
    
    var.h = figure('KeyPressFcn', @(obj, e) parse_keypress(e.Key));
    set_size(var.h, opt.window_size(1), opt.window_size(2));
@@ -87,7 +87,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         'string', 'uninitialized');
    
    
-   %% Launching by calling redraw function
+   % Launching by calling redraw function
    redraw();
    
    % ============================= HELPER FUNCTIONS =============================
