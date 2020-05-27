@@ -170,7 +170,7 @@ function output = runBiotSim(G, params, varargin)
     prod.reducefds = {'rowdim'};
     prod = prod.setup();
     
-    extforce = prod.eval(stress, - facetNormals);
+    extforce = prod.eval(stress, facetNormals);
     
     % the format of extforce expected in assembly is in nodefacecoltbl
     map = TensorMap();
