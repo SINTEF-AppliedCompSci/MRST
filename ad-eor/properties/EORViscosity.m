@@ -3,7 +3,7 @@ classdef EORViscosity < Viscosity
 % 
 % This viscosity function is defined by multiplying the black-oil viscosity with
 % multipliers where each multiplier correspond to a given EOR process. See
-% SurfactantViscMultiplier and PolymerViscMultiplier.
+% SurfactantViscMultiplier and PolymerEffViscMult.
 %   
 % The statefunction ViscosityMultipliers collects all the multipliers and is
 % setup by the model as a container (see helper class PhaseMultipliers).

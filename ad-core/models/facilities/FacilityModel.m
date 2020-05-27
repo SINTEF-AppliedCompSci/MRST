@@ -51,15 +51,18 @@ classdef FacilityModel < PhysicalModel
     end
 
     methods
-        function model = FacilityModel(reservoirModel, varargin)
+        function model = FacilityModel(varargin)
             model = model@PhysicalModel([]);
+            if mod(nargin, 2) == 1
+                model.ReservoirModel = varargin{1};
+                varargin = varargin(2:end);
+            end
             model.toleranceWellBHP  = 1*barsa;
             model.toleranceWellRate = 1/day;
             model.toleranceWellMS   = 1e-6;
             model.VFPTablesInjector = {};
             model.VFPTablesProducer = {};
             model = merge_options(model, varargin{:});
-            model.ReservoirModel = reservoirModel;
             model.WellModels = {};
         end
         

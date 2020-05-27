@@ -1,81 +1,79 @@
-classdef PolymerComponent < GenericComponent
+classdef PolymerComponent < ConcentrationComponent
     properties
 
     end
-    
+
     methods
         function c = PolymerComponent()
-            c@GenericComponent('polymer');
-        end
-        
-        
-        function c = getComponentDensity(component, model, state, varargin)
-            cp = model.getProp(state, 'polymer');
-            rho = model.getProps(state, 'Density');
-            nph = numel(rho);
-            c = cell(1, nph);
-            c{1} = cp.*rho{1};
-        end
-        
-        function c = getComponentMass(component, model, state, varargin)
-            f = model.fluid;
-            cp = model.getProp(state, 'polymer');
-            rho = model.getProps(state, 'Density');
-            pv = model.getProp(state, 'PoreVolume');
-            
-            nph = numel(rho);
-            c = cell(1, nph);
-            
-            rhoW = rho{1};
-            sw = model.getProp(state, 'sW');
-            % In mobile water 
-            acc = (1-f.dps).*sw.*cp.*rhoW;
-            % Adsorbed part
-            poro = model.rock.poro;
-            ads = model.getProp(state, 'PolymerAdsorption');
-            adsorbed = f.rhoWS.*f.rhoR.*((1-poro)./poro).*ads;
-            
-            c{1} = pv.*(adsorbed + acc);
-        end
-        
-        function cmob = getComponentMobility(component, model, state, varargin)
-        % We use a Todd-Longstaff model. It implies that the mobility of the
-        % polymer is a non-linear function of the polymer concentration.
-            mass = component.getComponentDensity(model, state, varargin{:});
-            [mob, rho, c] = model.getProps(state, 'Mobility', 'Density', 'polymer');
+            % this polymer model is transport in the water phase
             wIx = 1;
-            mobW = mob{wIx};
-            rhoW = rho{wIx};
-            fluid  = model.fluid;
-            mixpar = fluid.mixPar;
-            cpbar  = c/fluid.cpmax;
-            a  = fluid.muWMult(fluid.cpmax).^(1-mixpar);
-            mobP = c.*rhoW.*mobW./(a+(1-a)*cpbar);
+            c@ConcentrationComponent('polymer', wIx);
             
-            nphase = numel(mass);
-            cmob = cell(1, nphase);
-            cmob{wIx} = mobP;
-        end
-        
-        function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
-            % Polymer does not enter into any phase stream
-            nph = model.getNumberOfPhases();
-            c = cell(nph, 1);
+            c = c.functionDependsOn('getComponentDensity', 'polymer',             'state');
+            c = c.functionDependsOn('getComponentDensity', 'ShrinkageFactors',    'PVTPropertyFunctions');
+
+            c = c.functionDependsOn('getComponentMass', {'s', 'polymer'},         'state');
+            c = c.functionDependsOn('getComponentMass', 'ShrinkageFactors',       'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMass', 'PoreVolume',             'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMass', 'PolymerAdsorption',      'FlowPropertyFunctions');
+            
+            c = c.functionDependsOn('getComponentMobility', 'polymer',            'state');
+            c = c.functionDependsOn('getComponentMobility', 'ShrinkageFactors',   'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMobility', 'Mobility',           'FlowPropertyFunctions');
+            c = c.functionDependsOn('getComponentMobility', 'PolymerEffViscMult', 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentMobility', 'PolymerViscMult',    'PVTPropertyFunctions');
         end
 
-        function c = getPhaseComponentFractionInjection(component, model, state, force)
-            c = cell(model.getNumberOfPhases(), 1);
-            if isfield(force, 'compi')
-                comp_i = vertcat(force.compi);
-            else
-                comp_i = vertcat(force.sat);
-            end
-            wIx = 1;
-            cp = vertcat(force.cp);
-            ci = comp_i(:, wIx).*cp;
-            if any(ci ~= 0)
-                c{wIx} = ci;
-            end
+
+        function c = getComponentDensity(component, model, state, varargin)
+            cp = model.getProp(state, 'polymer');
+            b = model.getProps(state, 'ShrinkageFactors');
+            nph = numel(b);
+            c = cell(1, nph);
+            % water phase index
+            c{1} = cp .* b{1};
+        end
+
+        function c = getComponentMass(component, model, state, varargin)
+             f = model.fluid;
+             cp = model.getProp(state, 'polymer');
+             pv = model.getProp(state, 'PoreVolume');
+             b = model.getProps(state, 'ShrinkageFactors');
+
+             nph = model.getNumberOfPhases;
+             c = cell(1, nph);
+
+             wIx = 1;
+             bW = b{wIx};
+             sw = model.getProp(state, 'sW');
+             % In mobile water
+             acc = (1-f.dps).*sw.*cp.*bW;
+             % Adsorbed part
+             poro = model.rock.poro;
+             ads = model.getProp(state, 'PolymerAdsorption');
+             adsorbed = f.rhoR .* ((1-poro)./poro) .* ads;
+
+             c{wIx} = pv.*(adsorbed + acc);
+        end
+
+        function cmob = getComponentMobility(component, model, state, varargin)
+             % We use a Todd-Longstaff model. It implies that the mobility of the
+             % polymer is a non-linear function of the polymer concentration.
+             [mob, b, c, effviscmult, pviscmult] = ...
+                 model.getProps(state, 'Mobility', 'ShrinkageFactors', ...
+                     'polymer', 'PolymerEffViscMult', 'PolymerViscMult');
+             wIx = 1;
+             mobW = mob{wIx};
+             bW = b{wIx};
+             mobP = c.*bW.*mobW .* effviscmult ./ pviscmult;
+
+             nphase = model.getNumberOfPhases;
+             cmob = cell(1, nphase);
+             cmob{wIx} = mobP;
+         end
+
+        function c = getInjectionMassFraction(component, model, force)
+            c = vertcat(force.cp)./model.fluid.rhoWS;
         end
     end
 end

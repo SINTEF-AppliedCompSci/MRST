@@ -45,11 +45,14 @@ classdef ExtendedFacilityModel < FacilityModel
             surfaceRates = cell(1, nph);
             [surfaceRates{:}] = deal(0);
             for c = 1:numel(cflux)
-                composition = model.Components{c}.getPhaseCompositionSurface(model, state, p, temp);
-                for ph = 1:nph
-                    if any(composition{ph})
-                        ci = composition{ph}./surfaceDensity{ph};
-                        surfaceRates{ph} = surfaceRates{ph} + ci.*cflux{c};
+                component = model.Components{c};
+                if ~isa(component, 'ConcentrationComponent')
+                    composition = component.getPhaseCompositionSurface(model, state, p, temp);
+                    for ph = 1:nph
+                        if any(composition{ph})
+                            ci = composition{ph}./surfaceDensity{ph};
+                            surfaceRates{ph} = surfaceRates{ph} + ci.*cflux{c};
+                        end
                     end
                 end
             end

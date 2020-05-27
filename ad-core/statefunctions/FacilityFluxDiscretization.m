@@ -1,12 +1,14 @@
 classdef FacilityFluxDiscretization < StateFunctionGrouping
     properties
-        PhaseFlux
-        ComponentTotalFlux
-        ComponentPhaseFlux
-        PerforationPressureGradient
-        WellIndex
-        FacilityWellMapping
-        InjectionSurfaceDensity
+        PhaseFlux               % Phase flux in well-bore and to reservoir
+        ComponentTotalFlux      % Total mass flux of each component
+        ComponentPhaseFlux      % Mass flux of each component, in each phase
+        ComponentPhaseDensity   % Density of component in connecting cells
+        PressureGradient        % Discrete pressure gradient into well bore
+        WellIndex               % Well connection factor / well index
+        FacilityWellMapping     % Various mappings used to set up wells
+        InjectionSurfaceDensity % Density of injected fluid at surface
+        Mobility                % Phase mobilities in connecting cells
     end
     
     methods
@@ -18,10 +20,12 @@ classdef FacilityFluxDiscretization < StateFunctionGrouping
             ctf.label = 'Q_i';
             group = group.setStateFunction('ComponentTotalFlux', ctf);
             group = group.setStateFunction('ComponentPhaseFlux', WellComponentPhaseFlux(model));
-            group = group.setStateFunction('PerforationPressureGradient', PerforationPressureGradient(model));
+            group = group.setStateFunction('PressureGradient', PerforationPressureGradient(model));
             group = group.setStateFunction('WellIndex', WellIndex(model));
             group = group.setStateFunction('FacilityWellMapping', FacilityWellMapping(model));
             group = group.setStateFunction('InjectionSurfaceDensity', InjectionSurfaceDensity(model));
+            group = group.setStateFunction('Mobility', PerforationMobility(model));
+            group = group.setStateFunction('ComponentPhaseDensity', PerforationComponentPhaseDensity(model));
         end
     end
 end

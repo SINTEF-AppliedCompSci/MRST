@@ -1,38 +1,20 @@
-classdef ImmiscibleComponent < GenericComponent
+classdef ConcentrationComponent < GenericComponent
     % A component description that assumes that the component is
-    % immiscible, i.e. it only exists in one phase that is made up entirely
-    % of that specific component.
+    % transported in another phase and affect the property of the phase,
+    % but it does not change the mass and density of the phase.
     properties
-        phaseIndex % Index of phase this component belongs to
+        phaseIndices % Indices of phase this component is transported in
     end
-    
+
     methods
-        function c = ImmiscibleComponent(name, phase)
+        function c = ConcentrationComponent(name, phases)
             c@GenericComponent(name);
-            c.phaseIndex = phase;
+            c.phaseIndices = phases;
             c = c.functionDependsOn('getComponentDensity', 'Density', 'PVTPropertyFunctions');
         end
-        
-        function c = getComponentDensity(component, model, state, varargin)
-            c = getComponentDensity@GenericComponent(component, model, state, varargin{:});
-            rho = model.getProp(state, 'Density');
-            c{component.phaseIndex} = rho{component.phaseIndex};
-        end
-        
-        function c = getPhaseComposition(component, model, state, varargin)
-            nph = model.getNumberOfPhases();
-            c = cell(nph, 1);
-            c{component.phaseIndex} = 1;
-        end
-        
-        function c = getPhaseCompositionSurface(component, model, state, pressure, temperature)
-            nph = model.getNumberOfPhases();
-            c = cell(nph, 1);
-            c{component.phaseIndex} = 1;
-        end
-        
+       
         function c = getPhaseComponentFractionInjection(component, model, state, force)
-            % Get the volume fraction of the component in each phase (when
+            % Get the fraction of the component in each phase (when
             % injecting from outside the domain)
             c = cell(model.getNumberOfPhases(), 1);
             if isfield(force, 'compi')
@@ -40,11 +22,19 @@ classdef ImmiscibleComponent < GenericComponent
             else
                 comp_i = vertcat(force.sat);
             end
-            index = component.phaseIndex;
-            ci = comp_i(:, index);
-            if any(ci ~= 0)
-                c{index} = ci;
+            c_inj = component.getInjectionMassFraction(model, force);
+            for i = 1:numel(component.phaseIndices)
+                index = component.phaseIndices(i);
+                ci = comp_i(:, index) .* c_inj(i);
+                if any(ci ~= 0)
+                    c{index} = ci;
+                end
             end
+        end
+        
+        function c = getInjectionMassFraction(component, model, force)
+            % Get mass fraction for the phases in phaseIndices
+            error('Not supported for base class!');
         end
     end
 end

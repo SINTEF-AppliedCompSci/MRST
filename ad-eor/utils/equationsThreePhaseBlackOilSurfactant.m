@@ -58,8 +58,6 @@
     opt = merge_options(opt, varargin{:});
 
     % Shorter names for some commonly used parts of the model and forces.
-    G     = model.G;
-    W     = drivingForces.W;
     fluid = model.fluid;
     op    = model.operators;
 
@@ -145,13 +143,6 @@
     [pressures, mob, rho] = model.getProps(state, 'PhasePressures', 'Mobility', 'Density');
     [mobW, mobO, mobG] = deal(mob{:});
     
-    if isfield(fluid, 'pvMultR')
-        pvMult =  fluid.pvMultR(p);
-        pvMult0 = fluid.pvMultR(p0);
-    end
-    pv = pv.*pvMult;
-    pv0 = pv0.*pvMult0;
-
     % Store fluxes / properties for debugging / plotting, if requested.
     if model.outputFluxes
         state = model.storeFluxes(state, vW, vO, vG);
