@@ -77,8 +77,8 @@ grdecl = struct('cartDims', cartDims, ...
                 'ACTNUM'  , actNum );
 
 dispif(mrstVerbose, 'Creating MRST-grid ...');
-try 
-    mrstModule add libgeometry mex opm_gridprocessing
+try
+    mrstModule add libgeometry
     G = mprocessGRDECL(grdecl, 'SplitDisconnected', false);
     G = mcomputeGeometry(G);
 catch
