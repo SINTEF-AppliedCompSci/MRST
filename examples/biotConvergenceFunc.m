@@ -67,13 +67,31 @@ function output = biotConvergenceFunc(params, varargin)
                                                           (uex).^2))));
         perrL2(iter1) = sqrt(sum(sum(bsxfun(@times, vols.^2, (pex - pnum).^2)))) / sqrt(sum(sum(bsxfun(@times, vols.^2, ...
                                                           (pex).^2))));
-            
+        
+        doplot = false;
+        if doplot
+            figure
+            plotCellData(G, pex - pnum);
+            titlename = sprintf('Difference, ref level = %d', iter1);
+            title(titlename);
+            colorbar
+        end
+        
     end
     
-    % displacement for analytical solution (last refinement)
+    % Displacement for analytical solution (last refinement)
     output.uex = uex; 
-    % displacement for mpsa solution (last refinement)
+    % Pressure for analytical solution (last refinement)
+    output.pex = pex;
+    
+    % Displacement for mpsa-mpfa solution (last refinement)
     output.unum = unum;
+    % Pressure for mpsa-mpfa solution (last refinement)
+    output.pnum = pnum;
+
+    % Grid (last refinement)
+    output.G = G;
+    
     % L2 error between analytical and mpsa
     output.uerrL2 = uerrL2;
     output.perrL2 = perrL2;
