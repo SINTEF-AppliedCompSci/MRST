@@ -1,14 +1,14 @@
 classdef FacilityFluxDiscretization < StateFunctionGrouping
     properties
-        PhaseFlux
-        ComponentTotalFlux
-        ComponentPhaseFlux
-        PressureGradient
-        WellIndex
-        FacilityWellMapping
-        InjectionSurfaceDensity
-        Mobility
-        ComponentPhaseDensity
+        PhaseFlux               % Phase flux in well-bore and to reservoir
+        ComponentTotalFlux      % Total mass flux of each component
+        ComponentPhaseFlux      % Mass flux of each component, in each phase
+        ComponentPhaseDensity   % Density of component in connecting cells
+        PressureGradient        % Discrete pressure gradient into well bore
+        WellIndex               % Well connection factor / well index
+        FacilityWellMapping     % Various mappings used to set up wells
+        InjectionSurfaceDensity % Density of injected fluid at surface
+        Mobility                % Phase mobilities in connecting cells
     end
     
     methods
