@@ -42,11 +42,19 @@ function output = runBiotSim(G, params, varargin)
     isBoundary = any(G.faces.neighbors == 0, 2); 
     bcfaces =  find(isBoundary);
     
-    % Detect faces at the right hand-side (x equal to xmin)
+    % Detect faces at each side
     xmin = min(G.faces.centroids(bcfaces, 1));
     isxmin = G.faces.centroids(bcfaces, 1) < (xmin + eps);
-    dirfaces  = bcfaces(isxmin);  % Dirichlet faces
-    neumfaces = bcfaces(~isxmin); % Neumann faces
+    xmax = max(G.faces.centroids(bcfaces, 1));
+    isxmax = G.faces.centroids(bcfaces, 1) > (xmax - eps);
+    ymin = min(G.faces.centroids(bcfaces, 2));
+    isymin = G.faces.centroids(bcfaces, 2) < (ymin + eps);
+    ymax = max(G.faces.centroids(bcfaces, 2));
+    isymax = G.faces.centroids(bcfaces, 2) > (ymax - eps);
+    
+    isdir = (isxmin);
+    dirfaces  = bcfaces(isdir);  % Dirichlet faces
+    neumfaces = bcfaces(~isdir); % Neumann faces
     
     bcdirfacetbl.faces = dirfaces;
     bcdirfacetbl = IndexArray(bcdirfacetbl);
@@ -151,6 +159,7 @@ function output = runBiotSim(G, params, varargin)
     cellnodefacecoltbl = tbls.cellnodefacecoltbl;
     % facetNormals is in cellnodefacecoltbl;
     facetNormals =  computeFacetNormals(G, cellnodefacetbl);
+    
     map = TensorMap();
     map.fromTbl = cellnodefacecoltbl;
     map.toTbl = bcneumnodefacecoltbl;
