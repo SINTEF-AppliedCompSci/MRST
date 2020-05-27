@@ -13,16 +13,15 @@ fn = fullfile(mrstPath('ad-eor'), 'examples', 'surfactant-polymer', 'SURFACTANTP
 arg = {model.G, model.rock, model.fluid, ...
       'disgas', model.disgas, 'vapoil', model.vapoil,...
       'inputdata', model.inputdata};
-%% 
+%%  Run with three-phase surfactant polymer model
 lmodelsp = ThreePhaseSurfactantPolymerModel(arg{:});
-close all, clear statesSP, clear wellSolsSP;
 scheduleSP = schedule;
 [wellSolsSP, statesSP, reportsSP] = ...
     simulateScheduleAD(state0, lmodelsp, scheduleSP, ...
                     'NonLinearSolver', nls);
 
-%%
-clear gmodel statesGP wellSolsGP;
+%% Run with generic surfactant-polymer model
+% Model can use any combination of phases and components.
 gmodelsp = GenericSurfactantPolymerModel(arg{:});
 scheduleGSP = schedule;
 
@@ -30,8 +29,7 @@ scheduleGSP = schedule;
     simulateScheduleAD(state0, gmodelsp, scheduleGSP, ...
                     'NonLinearSolver', nls);
 
-%%
-clear bomodel;
+%% Run just the black-oil case with no EOR effects considered
 bomodel = GenericBlackOilModel(arg{:});
 [wellSolsBO, statesBO, reportsBO] = ...
     simulateScheduleAD(state0, bomodel, schedule, ...
@@ -39,8 +37,10 @@ bomodel = GenericBlackOilModel(arg{:});
 
 %% Compare results
 plotWellSols({wellSolsGSP, wellSolsSP, wellSolsBO}, 'datasetnames', {'GenericSP', 'OldModel', 'Blackoil'});
-%% Plot BO model functions
+%% Plot state function diagrams
+figure;
 plotStateFunctionGroupings(bomodel)
 title('Black-oil')
+figure;
 plotStateFunctionGroupings(gmodelsp)
 title('EOR')
