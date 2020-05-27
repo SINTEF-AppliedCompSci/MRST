@@ -107,7 +107,7 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         nodecolrowtbl         = tbls.nodecolrowtbl;
         cellcol2row2tbl       = tbls.cellcol2row2tbl;
         cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
-        cellcolrowtbl   = tbls.cellcolrowtbl;
+        cellcolrowtbl         = tbls.cellcolrowtbl;
         
         %  g belongs to cellnodefacecoltbl;
         g = computeConsistentGradient(G, eta, tbls, mappings);
@@ -198,14 +198,9 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         A12_T = SparseTensor();
         A12_T = A12_T.setFromTensorProd(A12, prod);
         A12 = A12_T.getMatrix();
-        
-        assembly = struct('A11', A11, ...
-                          'A12', A12, ...
-                          'invA11', invA11);
-        
+
         
         %% Setup A21 matrix (facenode dof -> cell dof)    
-        
         
         map = TensorMap();
         map.fromTbl = cellnodeface2tbl;
@@ -253,27 +248,26 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         % We enforce the Dirichlet boundary conditions as Lagrange multipliers
         bcnodefacetbl = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
         
-        if bcnodefacetbl.num > 0
-            bcterm_exists = true;
+        bcterm_exists = true;
+        if bcnodefacetbl.num == 0
+            bcterm_exists = false;
         end
         
         if bcterm_exists
             map = TensorMap();
-            map.fromTbl = globbcnodefacetbl;
-            map.toTbl = bcnodefacetbl;
+            map.fromTbl = bcnodefacetbl;
+            map.toTbl = globbcnodefacetbl;
             map.mergefds = {'nodes', 'faces'};
             map = map.setup();
-            
-            bcvals = map.eval(globbcvals);
             
             % pivotspace is bcnodefacetbl. the indices bcind are used below in the insertion into the global matrix.
             bcind = map.dispind2;
         
             clear bcdirichlet;
             bcdirichlet.bcnodefacetbl = bcnodefacetbl;
-            bcdirichlet.bcvals = bcvals;
+            bcdirichlet.bcvals = []; % not used locally
             
-            [D, bcvals] = setupMpfaNodeFaceBc(bcdirichlet, tbls);
+            [D, ~] = setupMpfaNodeFaceBc(bcdirichlet, tbls);
             
         end
         
@@ -307,8 +301,7 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         map.toTbl = globcelltbl;
         map.mergefds = {'cells'};
         map = map.setup();
-        % map.pivottbl will be cellcoltbl so that dispind2 gives the index of
-        % cellcoltbl in globcellcoltbl
+        % map.pivottbl will be celltbl so that dispind2 gives the index of celltbl in globcelltbl
         cellind = map.dispind2;
         
         B11 = B11 + sparse(repmat(cellind, 1, nc), repmat(cellind', nc, 1), locB11, gnc, gnc);
@@ -316,11 +309,12 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         
         if bcterm_exists
             nbc = bcnodefacetbl.num;
-            B22 = B22 + sparse(repmat(bcind, 1, nbc), repmat(bcind', nbc, 1), locB22, gnbc, gnbc);
-            B12 = B12 + sparse(repmat(cellind, 1, nbc), repmat(bcind', nc, 1), locB12, gnc, gnbc);
-            B21 = B21 + sparse(repmat(bcind, 1, nc), repmat(cellind', nbc, 1), locB21, gnbc, gnc);
+            B22 = B22 + sparse(repmat(bcind, 1, nbc),   repmat(bcind', nbc, 1),   locB22, gnbc, gnbc);
+            B12 = B12 + sparse(repmat(cellind, 1, nbc), repmat(bcind', nc, 1),    locB12, gnc,  gnbc);
+            B21 = B21 + sparse(repmat(bcind, 1, nc),    repmat(cellind', nbc, 1), locB21, gnbc, gnc);
             rhsbc(bcind) = rhsbc(bcind) + locrhsbc;
         end
+        
     end
     
     B = [[B11, B12]; ...
