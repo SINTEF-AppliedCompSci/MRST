@@ -117,7 +117,7 @@ methods
         model.oil = false;
 
         if doSetup
-            model.operators = setupOperatorsTPFA(G, model.rock, 'deck', model.inputdata);
+            model.operators = setupOperatorsTPFA(G, model.rock);
         end
     end
 

@@ -21,11 +21,8 @@ function op = setupOperatorsTPFA(G, rock, varargin)
 %             details.
 %
 % OPTIONAL PARAMETERS:
-%
-%   'deck'      - deck file containing rock properties
-%
-%   'trans'     - transmissibility for internal faces (if neighbors given) or for all faces (if
-%                 neighbors are not given)
+%   'trans'     - transmissibility for internal faces (if neighbors given)
+%                 or for all faces (if neighbors are not given)
 %
 %   'neighbors' - neighbors for each internal face
 %
@@ -72,7 +69,8 @@ function op = setupOperatorsTPFA(G, rock, varargin)
 %               in size where N(ix, :) contains the cells connected to
 %               face number ix.
 %
-%
+% SEE ALSO:
+%   `computeTrans`, `processGRDECL`.
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
@@ -95,6 +93,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 opt = struct('deck', [], 'neighbors', [], 'trans', [], 'porv', []);
 opt = merge_options(opt, varargin{:});
+
+if ~isempty(opt.deck)
+   warning('DeckOption:Deprecated', ...
+          ['The ''deck'' option is deprecated and inoperative. ', ...
+           'It will be removed in a future version of MRST.']);
+end
 
 if isempty(opt.trans)
    [N, T, T_all, intInx] = grid_based_trans(G, rock, opt);
@@ -134,7 +138,7 @@ function [N, T, T_all, intInx] = grid_based_trans(G, rock, opt)
       T = G.faces.TRANS;
    else
       % half-trans -> trans and reduce to interior
-      T = getFaceTransmissibility(G, rock, opt.deck);
+      T = getFaceTransmissibility(G, rock);
    end
 
    N      = G.faces.neighbors;
