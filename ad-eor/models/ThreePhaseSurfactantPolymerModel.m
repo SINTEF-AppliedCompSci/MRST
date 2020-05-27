@@ -211,9 +211,9 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 % others, currently they are overwritten due to polymer
                 if ~isempty(model.FacilityModel) && isprop(model.FacilityModel, 'FacilityFluxDiscretization')
                     ffd = model.FacilityModel.FacilityFluxDiscretization;
-                    ffd = ffd.setStateFunction('PerforationMobility', PerforationMobilityEOR(model));
+                    ffd = ffd.setStateFunction('Mobility', PerforationMobilityEOR(model));
                     if model.polymer
-                        ffd = ffd.setStateFunction('PerforationComponentPhaseDensity', PerforationComponentPhaseDensityEOR(model));
+                        ffd = ffd.setStateFunction('ComponentPhaseDensity', PerforationComponentPhaseDensityEOR(model));
                     end
                     model.FacilityModel.FacilityFluxDiscretization = ffd;
                 end

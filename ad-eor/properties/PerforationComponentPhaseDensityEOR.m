@@ -19,8 +19,8 @@ classdef PerforationComponentPhaseDensityEOR < PerforationComponentPhaseDensity
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
             for c = 1 : model.getNumberOfComponents()
                 comp = model.ReservoirModel.Components{c};
-                if strcmp(comp.name,'polymer')
-                    wIx = comp.phaseIndex;
+                if strcmp(comp.name, 'polymer')
+                    wIx = 1;
                     % model.ReservoirModel
                     [effviscmult, pviscmult] = model.ReservoirModel.getProps(state, 'PolymerEffViscMult', 'PolymerViscMult');
                     effvismultw = effviscmult(map.cells);
