@@ -294,10 +294,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       var.current_formation = name;
       
       if ~isfield(var.Gt_cached, var.current_formation)
+         wb = waitbar(0,strcat("Loading ",name));
          [Gt, rock] = getFormationTopGrid(var.current_formation, opt.grid_coarsening);
+         waitbar(0.20,wb);
          var.Gt_cached.(var.current_formation).Gt = Gt;
+         waitbar(0.40,wb);
          var.Gt_cached.(var.current_formation).poro = rock.poro;
+         waitbar(0.60,wb);
          var.Gt_cached.(var.current_formation).ta = trapAnalysis(Gt, false);
+         waitbar(0.80,wb);
       end
       
       if any(isnan(var.Gt_cached.(var.current_formation).poro))
@@ -309,6 +314,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       
       if do_redraw
          redraw();
+      end
+      if exist('wb','var')
+        waitbar(1,wb);
+        close(wb);
       end
    end
    
