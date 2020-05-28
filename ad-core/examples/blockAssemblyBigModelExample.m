@@ -11,7 +11,7 @@ mrstModule add libgeometry deckformat
 % discussion and plots.
 %
 % By default, the model will only run a single step. To run the full
-% schedule, set "singleStep = true" before running the script. Note that
+% schedule, set "singleStep = false" before running the script. Note that
 % this will run three long schedules of 132 time-steps each, with a model
 % with over a million cells!
 if ~exist('singleStep', 'var')
