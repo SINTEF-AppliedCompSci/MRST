@@ -406,6 +406,7 @@ classdef PropertyDisplaySelector < UIItem
                             s.maxValue  = curMax;
                             st = tic;
                             s.Callback(src, event);
+                            drawnow limitrate;
                             pause(ps);
                             s.renderTime = .8*s.renderTime + .2*toc(st);
                         end
@@ -455,7 +456,7 @@ else
     inc = sgn*diff(log10(s.playRange))/nframes;
 end
 ps  = dur/nframes - s.renderTime;
-ps  = max(ps, 1e-3);
+ps = max(ps, 1/20);
 end
 
 %{
