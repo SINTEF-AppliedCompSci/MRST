@@ -52,6 +52,12 @@ function output = runBiotConvSim(G, params, varargin)
     isymin = G.faces.centroids(bcfaces, 2) < (ymin + eps);
     ymax = max(G.faces.centroids(bcfaces, 2));
     isymax = G.faces.centroids(bcfaces, 2) > (ymax - eps);
+    if Nd == 3
+        xmin = min(G.faces.centroids(bcfaces, 3));
+        isxmin = G.faces.centroids(bcfaces, 3) < (xmin + eps);
+        xmax = max(G.faces.centroids(bcfaces, 3));
+        isxmax = G.faces.centroids(bcfaces, 3) > (xmax - eps);
+    end
     
     isdir = (isxmin);
     dirfaces  = bcfaces(isdir);  % Dirichlet faces
@@ -115,7 +121,7 @@ function output = runBiotConvSim(G, params, varargin)
       case 2;
         voigtind = [1; 3; 3; 2];
       case 3
-        voigtind = [1; 6; 5; 6; 3; 4; 5; 4; 3];
+        voigtind = [1; 6; 5; 6; 2; 4; 5; 4; 3];
       otherwise
         error('d not recognized');
     end
