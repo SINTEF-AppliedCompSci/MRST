@@ -1,6 +1,6 @@
 function biotConvergenceTest()
-% Script for running convergence test
-% see function mpsaPaperConvergenceFunc
+% Script for running convergence test for MPSA-MPFA Biot
+% see function biotConvergenceFunc
 
 % reference papers:
 % 
@@ -49,7 +49,7 @@ function biotConvergenceTest()
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 4, ...
-                        'Nd'      , 2, ...
+                        'Nd'      , 3, ...
                         'gridtype', 1, ...
                         'eta'     , 0, ...
                         'mu'      , 1, ...
@@ -57,212 +57,40 @@ function biotConvergenceTest()
                         'alpha'   , 1, ...
                         'K'       , 1, ...
                         'tau'     , 1, ...
-                        'rho'     , 0);
+                        'rho'     , 1);
         
         output = biotConvergenceFunc(params);
         plotConv(output, params);
         
-        % savethisfigure(params);
-    end
-    
-
-    %% New Case
-    dothiscase = false;
-    if dothiscase
-        params = struct('nref'    , 6, ...
-                        'Nd'      , 2, ...
-                        'kappa'   , 1, ...
-                        'alpha'   , 0, ...
-                        'gridtype', 2, ... % Triangular grid, 90 degree angles
-                        'eta'     , 1/3);
-        
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
-        figure
-        plotConv(output, params);
-        
-        savethisfigure(params);
-    end
-
-    
-    %% New Case
-    dothiscase = false;
-    if dothiscase
-        params = struct('nref'    , 6, ...
-                        'Nd'      , 2, ...
-                        'kappa'   , 1, ...
-                        'alpha'   , 0, ...
-                        'gridtype', 3, ... % Triangular grid, equi - alternate
-                        'eta'     , 1/3);
-        
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
-        figure
-        plotConv(output, params);
-        
-        savethisfigure(params);
-    end
-
-    %% New Case
-    dothiscase = false;
-    if dothiscase
-        params = struct('nref'    , 6, ...
-                        'Nd'      , 2, ...
-                        'kappa'   , 1, ...
-                        'alpha'   , 0, ...
-                        'gridtype', 4, ... % Triangular grid equi - non alternate
-                        'eta'     , 1/3);
-        
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
-        figure
-        plotConv(output, params);
-        
-        savethisfigure(params);
-    end
-    
-    %% New Case
-    dothiscase = false;
-    if dothiscase
-        params = struct('nref'    , 6, ...
-                        'Nd'      , 2, ...
-                        'kappa'   , 10, ...
-                        'alpha'   , 0, ...
-                        'gridtype', 1, ... % Cartesian Grid
-                        'eta'     , 0);
-        
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
-        figure
-        plotConv(output, params);
-        
-        savethisfigure(params);
-    end
-    
-    %% New Case
-    dothiscase = false;
-    if dothiscase
-        params = struct('nref'    , 6, ...
-                        'Nd'      , 2, ...
-                        'kappa'   , 1, ...
-                        'alpha'   , 10, ...
-                        'gridtype', 1, ... % Cartesian
-                        'eta'     , 0);
-        
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
-        figure
-        plotConv(output, params);
-        
-        savethisfigure(params);
     end
     
     %% New Case
     dothiscase = false;
     if dothiscase
         params = struct('nref'    , 4, ...
-                        'Nd'      , 3, ...
-                        'kappa'   , 1, ...
-                        'alpha'   , 0, ...
-                        'gridtype', 1, ... % Cartesian Grid
-                        'eta'     , 0);
+                        'Nd'      , 2, ...
+                        'gridtype', 2, ...
+                        'eta'     , 0, ...
+                        'mu'      , 1, ...
+                        'lambda'  , 0, ...
+                        'alpha'   , 1, ...
+                        'K'       , 1, ...
+                        'tau'     , 1, ...
+                        'rho'     , 1);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
-                                          500);
-        figure
+        output = biotConvergenceFunc(params);
         plotConv(output, params);
         
-        savethisfigure(params);
     end
     
-    %% New Case
-    dothiscase = false;
-    if dothiscase
-        params = struct('nref'    , 5, ...
-                        'Nd'      , 3, ...
-                        'kappa'   , 10, ...
-                        'alpha'   , 0, ...
-                        'gridtype', 1, ... % Cartesian Grid
-                        'eta'     , 0);
-        
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
-                                          500);
-        figure
-        plotConv(output, params);
-        
-        savethisfigure(params);
-    end
-    
-    %% New Case
-    dothiscase = false;
-    if dothiscase
-        params = struct('nref'    , 5, ...
-                        'Nd'      , 3, ...
-                        'kappa'   , 1, ...
-                        'alpha'   , 10, ...
-                        'gridtype', 1, ... % Cartesian Grid
-                        'eta'     , 0);
-        
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
-                                          500);
-        figure
-        plotConv(output, params);
-        
-        savethisfigure(params);
-    end
-    
-    %% New Case
-    dothiscase = false;
-    if dothiscase
-        params = struct('nref'    , 5, ...
-                        'Nd'      , 3, ...
-                        'kappa'   , 1, ...
-                        'alpha'   , 0, ... % tetras
-                        'gridtype', 5, ... 
-                        'eta'     , 1/3);
-        
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
-                                          100);
-        figure
-        plotConv(output, params);
-        
-        savethisfigure(params);
-    end
-    
-    %% New Case
-    dothiscase = false;
-    if dothiscase
-        params = struct('nref'    , 5, ...
-                        'Nd'      , 3, ...
-                        'kappa'   , 10, ...
-                        'alpha'   , 0, ... % tetras
-                        'gridtype', 5, ... 
-                        'eta'     , 1/3);
-        
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
-                                          100);
-        figure
-        plotConv(output, params);
-        
-        savethisfigure(params);
-    end    
-    
-    %% New Case
-    dothiscase = false;
-    if dothiscase
-        params = struct('nref'    , 5, ...
-                        'Nd'      , 3, ...
-                        'kappa'   , 1, ...
-                        'alpha'   , 10, ... % tetras
-                        'gridtype', 5, ... 
-                        'eta'     , 1/3);
-        
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
-                                          100);
-        figure
-        plotConv(output, params);
-        
-        savethisfigure(params);
-    end    
+
         
 end
 
-function plotConv(output, params)
+function plotConv(output, params, varargin)
+    
+    opt = struct('savefigure', false);
+    opt = merge_options(opt, varargin{:});
     
     uerrL2 = output.uerrL2;
     perrL2 = output.perrL2;
@@ -281,9 +109,13 @@ function plotConv(output, params)
     ylabel('log2(error)', 'fontsize', 18);
     xlabel('-log2(1/N)', 'fontsize', 18);
     title('error displacement');
-    % caseTitle = setCaseTitle(Nd, gridtype, eta, kappa, alpha);
-    % title(caseTitle);    
+    caseTitle = setCaseTitle('displacement', params);
+    title(caseTitle);    
 
+    if opt.savefigure
+        savethisfigure(params);
+    end
+    
     figure
     plot(log2N, log2(perrL2), '*-', 'linewidth', 4);
     ax = gca;
@@ -292,13 +124,22 @@ function plotConv(output, params)
     ylabel('log2(error)', 'fontsize', 18);
     xlabel('-log2(1/N)', 'fontsize', 18);
     title('error pressure');
-    % caseTitle = setCaseTitle(Nd, gridtype, eta, kappa, alpha);
-    % title(caseTitle);    
+    caseTitle = setCaseTitle('pressure', params);
+    title(caseTitle);    
+    
+    if opt.savefigure
+        savethisfigure(params);
+    end
     
 end
 
 
-function casetitle = setCaseTitle(Nd, gridtype, eta, kappa, alpha)
+function casetitle = setCaseTitle(valstr, params)
+    
+    Nd = params.Nd;
+    gridtype = params.gridtype;
+    eta = params.eta;
+    
     dimstr = sprintf('%dD', Nd);
     switch gridtype
       case 1
@@ -313,8 +154,7 @@ function casetitle = setCaseTitle(Nd, gridtype, eta, kappa, alpha)
         gridtypestr = 'Tetrahedrals';
     end
     
-    casetitle = sprintf('%s - %s, \\kappa = %0.3g, \\alpha = %0.3g, \\eta = %0.3g', dimstr, ...
-                        gridtypestr, kappa, alpha, eta);
+    casetitle = sprintf('%s, %s - %s, \\eta = %0.3g', valstr, dimstr, gridtypestr, eta);
         
 end
 
