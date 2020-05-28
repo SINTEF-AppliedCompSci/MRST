@@ -1,54 +1,70 @@
 function [tbls, mappings] = setupStandardTables(G, varargin)
     
-    opt = struct('useVirtual', true);
+    opt = struct('useVirtual', true, ...
+                 'inittbls', []);
     opt = merge_options(opt, varargin{:});
     useVirtual = opt.useVirtual;
     
-    nc  = G.cells.num;
-    nf  = G.faces.num;
-    nn  = G.nodes.num;
-    dim = G.griddim;
+    if ~isempty(opt.inittbls)
+        
+        itbls = opt.inittbls;
+        coltbl          = itbls.coltbl;
+        rowtbl          = itbls.rowtbl;
+        celltbl         = itbls.celltbl;
+        nodetbl         = itbls.nodetbl;
+        cellfacetbl     = itbls.cellfacetbl;
+        nodefacetbl     = itbls.nodefacetbl;
+        cellnodefacetbl = itbls.cellnodefacetbl;
+         
+    else
+        
+        nc  = G.cells.num;
+        nf  = G.faces.num;
+        nn  = G.nodes.num;
+        dim = G.griddim;
 
-    coltbl.coldim = (1 : dim)';
-    coltbl = IndexArray(coltbl);
-    rowtbl = coltbl;
-    rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
+        coltbl.coldim = (1 : dim)';
+        coltbl = IndexArray(coltbl);
+        rowtbl = coltbl;
+        rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
 
-    celltbl.cells = (1 : nc)';
-    celltbl = IndexArray(celltbl);
+        celltbl.cells = (1 : nc)';
+        celltbl = IndexArray(celltbl);
     
-    nodetbl.nodes = (1 : nn)';
-    nodetbl = IndexArray(nodetbl);
+        nodetbl.nodes = (1 : nn)';
+        nodetbl = IndexArray(nodetbl);
+    
+
+        cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
+        cellfacetbl.faces = G.cells.faces(:, 1);
+        cellfacetbl = IndexArray(cellfacetbl);
+        
+        nodefacetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos)); 
+        nodefacetbl.nodes = G.faces.nodes;
+        nodefacetbl = IndexArray(nodefacetbl); 
+    
+        % We setup the face-node table and it is ordered along ascending node numbers so
+        % that we will have a block structure for the nodal scalar product.
+        nodefacetbl = sortIndexArray(nodefacetbl, {'nodes', 'faces'});
+    
+        % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
+        % unique facet in a corner
+        % We order cellnodeface in cell-node-face order. This is node to optimize
+        % for-end loop below.
+        cellnodefacetbl = crossIndexArray(cellfacetbl, nodefacetbl, {'faces'});
+        cellnodefacetbl = sortIndexArray(cellnodefacetbl, {'cells', 'nodes', 'faces'});
+    
+        % We setup the cell-node table, cellnodetbl. Each entry determine a unique
+        % corner
+        cellnodetbl = projIndexArray(cellnodefacetbl, {'nodes', 'cells'});
+        cellnodetbl = sortIndexArray(cellnodetbl, {'cells', 'nodes'});
+    
+    end
     
     cellcoltbl = crossIndexArray(celltbl, coltbl, {}); % ordering is cell - col
-    nodecoltbl = crossIndexArray(nodetbl, coltbl, {}); % ordering is cell - col
-
-    cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
-    cellfacetbl.faces = G.cells.faces(:, 1);
-    cellfacetbl = IndexArray(cellfacetbl);
-    
-    nodefacetbl.faces = rldecode((1 : nf)', diff(G.faces.nodePos)); 
-    nodefacetbl.nodes = G.faces.nodes;
-    nodefacetbl = IndexArray(nodefacetbl); 
-    
-    % We setup the face-node table and it is ordered along ascending node numbers so
-    % that we will have a block structure for the nodal scalar product.
-    nodefacetbl = sortIndexArray(nodefacetbl, {'nodes', 'faces'});
-    
+    nodecoltbl = crossIndexArray(nodetbl, coltbl, {}); % ordering is node - col
     % not virtual because used in setupBCpercase (could be optimized)
     nodefacecoltbl = crossIndexArray(nodefacetbl, coltbl, {});
-
-    % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
-    % unique facet in a corner
-    % We order cellnodeface in cell-node-face order. This is node to optimize
-    % for-end loop below.
-    cellnodefacetbl = crossIndexArray(cellfacetbl, nodefacetbl, {'faces'});
-    cellnodefacetbl = sortIndexArray(cellnodefacetbl, {'cells', 'nodes', 'faces'});
-
-    % We setup the cell-node table, cellnodetbl. Each entry determine a unique
-    % corner
-    cellnodetbl = projIndexArray(cellnodefacetbl, {'nodes', 'cells'});
-    cellnodetbl = sortIndexArray(cellnodetbl, {'cells', 'nodes'});
 
     map = TensorMap();
     map.fromTbl = celltbl;
@@ -114,7 +130,6 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
     
     nodeface_2_from_nodeface2 = map.getDispatchInd();
     
-    %
     
     cellnodecoltbl = crossIndexArray(cellnodetbl, coltbl, {}, 'virtual', useVirtual);
 
@@ -145,7 +160,6 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
     tbls = struct('coltbl'               , coltbl               , ...
                   'celltbl'              , celltbl              , ...
                   'nodetbl'              , nodetbl              , ...
-                  'cellfacetbl'          , cellfacetbl          , ...
                   'cellnodetbl'          , cellnodetbl          , ...
                   'nodefacetbl'          , nodefacetbl          , ...
                   'cellcoltbl'           , cellcoltbl           , ... 
@@ -163,7 +177,7 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
                   'cellcol2row2tbl'      , cellcol2row2tbl      , ...
                   'cellnodecol2row2tbl'  , cellnodecol2row2tbl  , ....
                   'cellnodeface2tbl'     , cellnodeface2tbl     , ...
-                  'cellnodeface2coltbl'     , cellnodeface2coltbl     , ...
+                  'cellnodeface2coltbl'  , cellnodeface2coltbl     , ...
                   'nodeface2tbl'         , nodeface2tbl);
     
     mappings = struct('cell_from_cellnode'               , cell_from_cellnode               , ...
