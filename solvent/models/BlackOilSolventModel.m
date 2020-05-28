@@ -36,6 +36,7 @@ classdef BlackOilSolventModel < ThreePhaseBlackOilModel
                 model.FacilityModel = FacilityModel(model);
             end
             if nargin > 1
+                model.FacilityModel = model.FacilityModel.setReservoirModel(model);
                 W = varargin{1}.W;
                 model.FacilityModel = model.FacilityModel.setupWells(W);
             end
