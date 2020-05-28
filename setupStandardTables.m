@@ -5,28 +5,21 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
     opt = merge_options(opt, varargin{:});
     useVirtual = opt.useVirtual;
     
+    nc  = G.cells.num;
+    nf  = G.faces.num;
+    nn  = G.nodes.num;
+    dim = G.griddim;
+    
     if ~isempty(opt.inittbls)
         
         itbls = opt.inittbls;
-        coltbl          = itbls.coltbl;
-        rowtbl          = itbls.rowtbl;
         celltbl         = itbls.celltbl;
         nodetbl         = itbls.nodetbl;
-        cellfacetbl     = itbls.cellfacetbl;
+        cellnodetbl     = itbls.cellnodetbl;
         nodefacetbl     = itbls.nodefacetbl;
         cellnodefacetbl = itbls.cellnodefacetbl;
          
     else
-        
-        nc  = G.cells.num;
-        nf  = G.faces.num;
-        nn  = G.nodes.num;
-        dim = G.griddim;
-
-        coltbl.coldim = (1 : dim)';
-        coltbl = IndexArray(coltbl);
-        rowtbl = coltbl;
-        rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
 
         celltbl.cells = (1 : nc)';
         celltbl = IndexArray(celltbl);
@@ -34,7 +27,6 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
         nodetbl.nodes = (1 : nn)';
         nodetbl = IndexArray(nodetbl);
     
-
         cellfacetbl.cells = rldecode((1 : nc)', diff(G.cells.facePos)); 
         cellfacetbl.faces = G.cells.faces(:, 1);
         cellfacetbl = IndexArray(cellfacetbl);
@@ -61,6 +53,11 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
     
     end
     
+    coltbl.coldim = (1 : dim)';
+    coltbl = IndexArray(coltbl);
+    rowtbl = coltbl;
+    rowtbl = replacefield(rowtbl, {'coldim', 'rowdim'});
+
     cellcoltbl = crossIndexArray(celltbl, coltbl, {}); % ordering is cell - col
     nodecoltbl = crossIndexArray(nodetbl, coltbl, {}); % ordering is node - col
     % not virtual because used in setupBCpercase (could be optimized)
