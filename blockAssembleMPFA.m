@@ -33,7 +33,6 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
     globcoltbl                = globtbls.coltbl;
     globcelltbl               = globtbls.celltbl;
     globnodetbl               = globtbls.nodetbl;
-    globcellfacetbl           = globtbls.cellfacetbl;
     globcellnodetbl           = globtbls.cellnodetbl;
     globnodefacetbl           = globtbls.nodefacetbl;
     globcellcoltbl            = globtbls.cellcoltbl;
