@@ -72,6 +72,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
             
             model.transportNonLinearSolver.errorOnFailure = false;
+            model.FacilityModel = []; % Handled by subclasses
         end
         
         function [state, report] = stepFunction(model, state, state0, dt,...
