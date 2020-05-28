@@ -15,7 +15,7 @@ tau, rho = sympy.symbols('tau rho')
 
 dervar = [x, y, z]
 
-d = 2
+d = 3
 if d == 3:
     u1 = y*(1 - x)*sin(2*pi*x*y)
     u2 = x*y**2*cos(2*pi*x)
@@ -60,6 +60,15 @@ for i in range(d):
         scomp.append(s)
     stress.append(scomp)
 
+if d == 2:
+    vstress = list([stress[0][0], stress[1][1], stress[0][1]])
+else:
+    vstress = list([stress[0][0],
+                    stress[1][1],
+                    stress[2][2],
+                    stress[1][2],
+                    stress[0][2],
+                    stress[0][1]])
 # We compute the divergence of sigma
 divsigma = []
 for j in range(d):

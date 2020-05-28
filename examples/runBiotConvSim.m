@@ -33,6 +33,7 @@ function output = runBiotConvSim(G, params, varargin)
     Nf = G.faces.num; 
     Nn = G.nodes.num; 
     Nd = G.griddim; 
+    vdim = Nd*(Nd + 1)/2; % voigt dimension
     
     % prepare input for analytical functions
     for idim = 1 : Nd
@@ -106,7 +107,7 @@ function output = runBiotConvSim(G, params, varargin)
     bcneumfacetbl = IndexArray(bcneumfacetbl);
     bcneumnodefacetbl = crossIndexArray(bcneumfacetbl, nodefacetbl, {'faces'});
     bcneumnodefacecoltbl = crossIndexArray(bcneumnodefacetbl, coltbl, {}, 'optpureproduct', true);
-    voigttbl.voigtdim = (1 : Nd*(Nd + 1)/2)';
+    voigttbl.voigtdim = (1 : vdim)';
     voigttbl = IndexArray(voigttbl);
     bcneumnodefacevoigttbl = crossIndexArray(bcneumnodefacetbl, voigttbl, {}, 'optpureproduct', true);    
     colrowvoigttbl = colrowtbl;
@@ -266,7 +267,8 @@ function output = runBiotConvSim(G, params, varargin)
     map.mergefds = {'coldim', 'rowdim'};
     map = map.setup();
 
-    K = [K; 0; 0; K];
+    K = K*eye(Nd);
+    K = reshape(K, [], 1);
     K = map.eval(K);
     fluidprops.K = K;
 
