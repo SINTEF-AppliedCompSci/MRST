@@ -163,7 +163,7 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
                                              % in cell
 
       small = 3e-3;
-      smooth_to_zero = @(x) double(x<small) .* ((x/small).^2 .* (- 2 * x / small + 3)) + double(x>=small) * 1;
+      smooth_to_zero = @(x) value(x<small) .* ((x/small).^2 .* (- 2 * x / small + 3)) + value(x>=small) * 1;
       
       s_fac = smooth_to_zero(sG); % approximately one, but goes to 0 for very small values of sG
       rs_eps = (rsSat - rs) ./ rsSat;
@@ -206,12 +206,12 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
       % saturation.  We use this equation to identify where the real solution
       % would go below minimal allowed saturation.  Lock saturation of the
       % corresponding cells to the minimum value (but not lower).
-      tmp = (s.pv / dt) .* ( double(pvMult) .* (double(min_rs) .* double(bW) ) - ...
+      tmp = (s.pv / dt) .* ( value(pvMult) .* (value(min_rs) .* value(bW) ) - ...
                              pvMult0 .* (rs0 .* bW0 .* sW0 ) ) + ...
-            s.Div(double(rsbWvW)) - double(rate);
-      tmp(wc) = tmp(wc) - double(cqsw);
+            s.Div(value(rsbWvW)) - value(rate);
+      tmp(wc) = tmp(wc) - value(cqsw);
       for i = 1:numel(vals)
-          tmp(cells{i}) = tmp(cells{i}) - vals{i};
+          tmp(cells{i}) = tmp(cells{i}) - value(vals{i});
       end
 
       ilow = tmp > -sqrt(eps); % If so, then min_rs is larger than the
@@ -226,7 +226,7 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
 
       % Identify cells with fully-saturated brine, and ensure saturation does
       % not rise further
-      is_sat = (double(rs) >= double(rsSat)) & (eqs{1} < 0);
+      is_sat = (value(rs) >= value(rsSat)) & (eqs{1} < 0);
       eqs{1}(is_sat) = (rs(is_sat) - rsSat(is_sat)) .* s.pv(is_sat)/dt;
 
 
@@ -243,7 +243,7 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
             pvMult .* bG .* (sGmax - sGmax0) * ...
             f.res_gas ./ (1-f.res_water);
       tmp2 = (s.pv / dt) .* ...
-             pvMult .* double(bG) .* (double(sG) - sGmax0) * ...
+             pvMult .* value(bG) .* (value(sG) - sGmax0) * ...
              f.res_gas ./ (1 - f.res_water) + rate;
 
       % Special case 1: New state remains UNSATURATED, but dissolution too slow to

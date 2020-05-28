@@ -26,13 +26,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Computing position of the h_max interface, consistent with the current
     % value of sGmax.
-    pcmax=f.pcWG(sGmax, p,'sGmax',double(sGmax));       
+    pcmax=f.pcWG(sGmax, p,'sGmax',value(sGmax));       
     h_max=pcmax./drho;
-    assert(all(double(h_max)>=0));
+    assert(all(value(h_max)>=0));
 
     % If the computed value for h_max ever exceeds H, set it to H (while
     % keeping ADI structure if applicable).
-    ind=double(h_max)>G.cells.H;
+    ind=value(h_max)>G.cells.H;
     h_max(ind)=G.cells.H(ind)+h_max(ind)*0;
     
     % Minimal dissolved quantity equals the 'dis_max' value multiplied by the
