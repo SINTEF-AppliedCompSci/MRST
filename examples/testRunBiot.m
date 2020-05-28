@@ -59,7 +59,7 @@ params.force_fun  = output.force_fun;
 params.src_fun    = output.src_fun;
 
 % Compute numerical solution
-output = runBiotSim(G, params);
+output = runBiotConvSim(G, params);
 
 u = output.u;
 p = output.p;

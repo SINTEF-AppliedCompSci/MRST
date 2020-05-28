@@ -42,7 +42,7 @@ function output = biotConvergenceFunc(params, varargin)
 
         Nc = G.cells.num;
         
-        output = runBiotSim(G, params);
+        output = runBiotConvSim(G, params);
         
         % Computed displacement at cell centers
         unum = output.u;
