@@ -45,12 +45,13 @@ schedule = simpleSchedule(timesteps, 'bc', bc);
 %% Fully-implicit
 % The default discretization in MRST is fully-implicit. Consequently, we
 % can use the model as-is.
-implicit = packSimulationProblem(state0, model, schedule, 'immiscible_time', 'Name', 'Fully-Implicit');
+implicit = packSimulationProblem(state0, model, schedule, 'immiscible_time', 'Name', 'FIM', 'Description', 'Fully-implicit');
 %% Explicit solver
 % This solver has a time-step restriction based on the CFL condition in
 % each cell. The solver estimates the time-step before each solution.
 model_explicit = setTimeDiscretization(model, 'explicit', 'verbose', 2);
-explicit = packSimulationProblem(state0, model_explicit, schedule, 'immiscible_time', 'Name', 'Explicit');
+explicit = packSimulationProblem(state0, model_explicit, schedule, 'immiscible_time',...
+                                        'Name', 'EXPL', 'Description', 'Explicit');
 
 fsb = model_explicit.FluxDiscretization.getFlowStateBuilder();
 disp(fsb)
@@ -63,7 +64,8 @@ disp(fsb)
 % estimated composition CFL and saturation CFL to trigger a switch to
 % implicit status can be adjusted.
 model_aim = setTimeDiscretization(model, 'adaptive-implicit', 'verbose', 2);
-aim = packSimulationProblem(state0, model_aim, schedule, 'immiscible_time', 'Name', 'AIM');
+aim = packSimulationProblem(state0, model_aim, schedule, 'immiscible_time', ...
+            'Name', 'AIM', 'Description', 'AIM');
 %% Make an explicit solver with larger CFL limit
 % Since the equation is linear, we can set the NonLinearSolver to use a
 % single step. We bypass the convergence checks and can demonstrate the
@@ -74,7 +76,8 @@ model_explicit_largedt = setTimeDiscretization(model, 'explicit', 'verbose', tru
     'compositionCFL', inf); % Immiscible, saturation cfl is enough
 
 model_explicit_largedt.stepFunctionIsLinear = true; 
-explicit_largedt = packSimulationProblem(state0, model_explicit_largedt, schedule, 'immiscible_time', 'Name', 'Explicit (CFL>1)');
+explicit_largedt = packSimulationProblem(state0, model_explicit_largedt, schedule, ...
+    'immiscible_time', 'Description', 'Explicit (CFL>1)', 'Name', 'EXPL_unstable');
 
 %% Simulate the problems
 problems = {implicit, explicit, aim, explicit_largedt};
@@ -82,10 +85,11 @@ simulatePackedProblem(problems, 'continueOnError', false);
 %% Get output and plot the well results
 % There are oscillations in the well curves. Increasing the CFL limit
 % beyond unity will eventually lead to oscillations.
-[ws, states, reports, names, T] = getMultiplePackedSimulatorOutputs(problems);
+[ws, states, reports] = getMultiplePackedSimulatorOutputs(problems);
+names = cellfun(@(x) x.Description, problems, 'UniformOutput', false);
 %% Plot the results
 % Note oscillations for CFL > 1.
-model = model.setupStateFunctionGroupings();
+model_cfl = model.setupStateFunctionGroupings();
 figure(1);
 for stepNo = 1:numel(schedule.step.val)
     clf; 
@@ -100,7 +104,7 @@ for stepNo = 1:numel(schedule.step.val)
     plotCellData(G, rock.poro);
     dt = schedule.step.val(stepNo);
     state = states{1}{stepNo};
-    cfl = estimateSaturationCFL(model, state, dt);
+    cfl = estimateSaturationCFL(model_cfl, state, dt);
     plotCellData(G, cfl);
     plotCellData(G, ones(G.cells.num, 1), 'Color', 'k');
     legend('Porosity', 'CFL', 'CFL stable limit');
@@ -108,7 +112,6 @@ for stepNo = 1:numel(schedule.step.val)
 end
 %%
 ns = numel(states);
-model = model.setupStateFunctionGroupings();
 figure(1);
 for stepNo = 1:numel(schedule.step.val)
     clf; hold on
@@ -163,18 +166,20 @@ legend(names)
 mrstModule add blackoil-sequential
 modelseq = getSequentialModelFromFI(model);
 
-seq = packSimulationProblem(state0, modelseq, schedule, 'immiscible_time', 'Name', 'Sequential-Implicit');
+seq = packSimulationProblem(state0, modelseq, schedule, 'immiscible_time', 'Description', 'Sequential-Implicit', 'Name', 'SI');
 
 modelseq_explicit = setTimeDiscretization(modelseq, 'explicit', 'verbose', true);
-seq_explicit = packSimulationProblem(state0, modelseq_explicit, schedule, 'immiscible_time', 'Name', 'Sequential-Explicit');
+seq_explicit = packSimulationProblem(state0, modelseq_explicit, schedule, 'immiscible_time', 'Description', 'Sequential-Explicit', 'Name', 'SE');
 
 modelseq_aim = setTimeDiscretization(modelseq, 'explicit', 'verbose', true);
-seq_aim = packSimulationProblem(state0, modelseq_aim, schedule, 'immiscible_time', 'Name', 'Sequential-AIM');
+seq_aim = packSimulationProblem(state0, modelseq_aim, schedule, 'immiscible_time', 'Description', 'Sequential-AIM', 'Name', 'SAIM');
 
 allvariants = {implicit, explicit, aim, seq, seq_explicit, seq_aim};
 simulatePackedProblem(allvariants, 'continueOnError', false);
 
-[ws, states, reports, names, T] = getMultiplePackedSimulatorOutputs(allvariants);
+[ws, states, reports, snames, T] = getMultiplePackedSimulatorOutputs(allvariants);
+names = cellfun(@(x) x.Description, problems, 'UniformOutput', false);
+
 %% Plot the displacement
 % Note that as this example has no changes in mobility or significant
 % compressibility, we can expect the different levels of explicitness to be
