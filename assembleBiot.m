@@ -1,5 +1,8 @@
 function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, varargin)
     
+    opt = struct('assemblyMatrices', false);
+    opt = merge_options(opt, varargin{:});
+    
     % We solve the system
     %
     %  A*u = f
@@ -119,14 +122,16 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     n5 = size(mechrhs{3}, 1);
     n6 = size(fluidrhs{3}, 1);
 
-    A1 = [A11, A12, zeros(n1, n3), A14, A15, zeros(n1, n6)];
-    A2 = [A21, A22, zeros(n2, n3 + n4 + n5 + n6)];    
-    A3 = [zeros(n3, n1 + n2), A33, A34, zeros(n3, n5), A36];
-    A4 = [A41, A42, A43, A44, zeros(n4, n5 + n6)];
-    A5 = [A51, zeros(n5, n2 + n3 + n4 + n5 + n6)];
-    A6 = [zeros(n6, n1 + n2), A63, zeros(n6, n4 + n5 + n6)];
-    
-    A = [A1; A2; A3; A4; A5; A6];
+    if opt.assemblyMatrices
+        A1 = [A11, A12, zeros(n1, n3), A14, A15, zeros(n1, n6)];
+        A2 = [A21, A22, zeros(n2, n3 + n4 + n5 + n6)];    
+        A3 = [zeros(n3, n1 + n2), A33, A34, zeros(n3, n5), A36];
+        A4 = [A41, A42, A43, A44, zeros(n4, n5 + n6)];
+        A5 = [A51, zeros(n5, n2 + n3 + n4 + n5 + n6)];
+        A6 = [zeros(n6, n1 + n2), A63, zeros(n6, n4 + n5 + n6)];
+        
+        A = [A1; A2; A3; A4; A5; A6];
+    end
     
     %       | B11   B12   B13       |
     %  B =  | B21   B22  B23   B24 |
@@ -179,13 +184,15 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     rhs{4} = f{6} - A63invA33*f{3};
     
     rhs = vertcat(rhs{:});
-    
-    fullsystem.A = A;
-    fullsystem.rhs = vertcat(fullrhs{:});
-    
-    assembly = struct('B', B, ...
-                      'rhs', rhs, ...
-                      'fullsystem', fullsystem);
+
+    assembly = struct('B'  , B, ...
+                      'rhs', rhs);
+   
+    if opt.assemblyMatrices
+        fullsystem.A = A;
+        fullsystem.rhs = cat(fullrhs{:});
+        assembly.fullsystem = fullsystem;
+    end    
     
 end
 
