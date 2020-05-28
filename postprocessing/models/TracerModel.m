@@ -49,11 +49,11 @@ classdef TracerModel < ReservoirModel
         
         function model = validateModel(model, varargin)
             if isempty(model.FacilityModel)
-                model.FacilityModel = FacilityModel(model); %#ok
+                model.FacilityModel = FacilityModel(model);
             end
             if nargin > 1
+                model.FacilityModel = model.FacilityModel.setReservoirModel(model);
                 W = varargin{1}.W;
-                %model.FacilityModel.getNumberOfWells = 0
                 model.FacilityModel.WellModels = {};
                 model.FacilityModel = model.FacilityModel.setupWells(W);
             end
