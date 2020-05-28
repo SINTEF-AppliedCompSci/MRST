@@ -8,10 +8,11 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
 %% International Journal for Numerical Methods in Engineering
 %% 2017
 
-    opt = struct('verbose'  , mrstVerbose, ...
-                 'blocksize', [], ...
-                 'bcetazero', true, ...
-                 'useVirtual', true);
+    opt = struct('verbose'    , mrstVerbose, ...
+                 'blocksize'  , []         , ...
+                 'bcetazero'  , true       , ...
+                 'useVirtual' , true       , ...
+                 'extraoutput', false);
     opt = merge_options(opt, varargin{:});
     
     useVirtual = opt.useVirtual;
@@ -356,9 +357,21 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         %
 
         % Compute number of cell per node
-        [~, indstruct] = crossIndexArray(cellnodetbl, nodetbl, {'nodes'});
-        nnodepercell = tblmap1to2(ones(cellnodetbl.num, 1), indstruct);
-        coef = tblmap2to1(1./nnodepercell, indstruct);
+        map = TensorMap();
+        map.fromTbl = cellnodetbl;
+        map.toTbl = nodetbl;
+        map.mergefds = {'nodes'};
+        map = map.setup();
+        
+        nnodepercell = map.eval(ones(cellnodetbl.num, 1));
+        
+        map = TensorMap();
+        map.fromTbl = nodetbl;
+        map.toTbl = cellnodetbl;
+        map.mergefds = {'nodes'};
+        map = map.setup();
+        
+        coef = map.eval(1./nnodepercell);
 
         % we eliminitate the places (at the boundaries) where the local reconstruction
         % is ill-posed: nodes with one cell in 2d (corners of a Cartesian grid) and
@@ -692,43 +705,10 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     assembly = struct('B'       , B  , ...
                       'rhs'     , rhs, ...
                       'extforce', globextforce);
-    
-    dosetupnodemapping = false;
-    if dosetupnodemapping
-        % Setup mapping from face displacement to nodal displacement (by averaging)
-        map = TensorMap();
-        map.fromTbl = globcellnodetbl;
-        map.toTbl   = globnodetbl;
-        map.mergefds = {'nodes'};
-        map = map.setup();
 
-        coef = map.eval(ones(globcellnodetbl.num, 1));
-        coef = 1./coef;
-        
-        map = TensorMap();
-        map.fromTbl = globnodetbl;
-        map.toTbl   = globcellnodecoltbl;
-        map.mergefds = {'nodes'};
-        map = map.setup();
-        
-        coef = map.eval(coef);
-        
-        prod = TensorProd();
-        prod.tbl1 = globcellnodecoltbl;
-        prod.tbl2 = globcellcoltbl;
-        prod.tbl3 = globnodecoltbl;
-        prod.reducefds = {'cells'};
-        prod.mergefds = {'coldim'};
-        prod = prod.setup();
-
-        nodaldisp_T = SparseTensor('matlabsparse', true);
-        nodaldisp_T = nodaldisp_T.setFromTensorProd(coef, prod);
-
-        nodaldisp_op = nodaldisp_T.getMatrix();
-
-        assembly.nodaldisp_op = nodaldisp_op;
-
+    if opt.extraoutput
+        error('not yet implemented for block');
+        assembly.divop = @(sol) mpsaDivOperator(sol, extforce, R1, R2, div);
     end
+    
 end
-
-

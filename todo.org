@@ -1,6 +1,6 @@
 * do not compute twice facets and g
 * bcetazero not used for coupling terms
-* sign of right-handside for mechanicss
+* sign of right-handside for mechanics
 * check bcetazero in runBiotSim
 * rho is not volumetric
 * uniformize interface of computeFacetNormals and computeNodeFaceCentroids
@@ -10,4 +10,9 @@
 * Comment on fact that Neumann Biot is special
 * check bcetazero for biot.
   What do we use? is it consistent between mpsa and mpfa?
+* switch to getDispatchInd in blockAssembleMPSA
+* use computeConsistentGradient in blockAssemblyMPSA
+* add switch for setupTbls (mpfa or mpsa alone)
+* document divoperator and computenodedisp in utils
+* implement divergence for blockMPSA
 

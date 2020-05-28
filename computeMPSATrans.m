@@ -74,13 +74,13 @@ useVirtual = true;
 [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
 loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 
-doblockassembly = false;
+doblockassembly = true;
 if doblockassembly
     assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                 'blocksize', 1000, 'verbose', true);
+                                 'blocksize', 100, 'verbose', true);
 else
     assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                            'bcetazero', bcetazero);
+                            'bcetazero', bcetazero, 'extraoutput', true);
 end
 
 B   = assembly.B  ;
@@ -89,8 +89,10 @@ rhs = assembly.rhs;
 sol = B\rhs;
 
 % we compute the divergence
-divop = assembly.divop;
-divu = divop(sol);
+if ~doblockassembly
+    divop = assembly.divop;
+    divu = divop(sol);
+end
 
 % displacement values at cell centers.
 cellcoltbl = tbls.cellcoltbl;
@@ -101,7 +103,7 @@ u = sol(1 : n);
 plotdeformedgrid = true;
 if plotdeformedgrid
     lagmult = sol(n + 1 : end);
-    unode = assembly.computeNodeDisp(u, lagmult);
+    unode = computeNodeDisp(u, tbls);
     dim = G.griddim;
     unvec = reshape(unode, dim, [])';
 end
@@ -121,11 +123,13 @@ if doplotsol
     titlestr = sprintf('displacement - %s direction, eta=%g', 'y', eta);
     title(titlestr)
     colorbar
-    figure
-    plotCellData(G, divu);
-    titlestr = sprintf('divergence, eta=%g', eta);
-    title(titlestr)
-    colorbar
+    if ~doblockassembly
+        figure 
+        plotCellData(G, divu);
+        titlestr = sprintf('divergence, eta=%g', eta);
+        title(titlestr)
+        colorbar
+    end
 end
 
 if plotdeformedgrid
@@ -152,6 +156,7 @@ if doplotcontpoints
 end
 
 printcondest = false;
+
 if printcondest
 
     matrices = assembly.matrices;

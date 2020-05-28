@@ -1,8 +1,4 @@
 function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varargin)
-    
-    opt = struct('bcetazero', true);
-    opt = merge_options(opt, varargin{:});
-    
 %% Assembly of MPSA-weak
 %%
 %% Reference paper:
@@ -11,10 +7,15 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
 %% International Journal for Numerical Methods in Engineering
 %% 2017
 
+    opt = struct('bcetazero'       , true , ...
+                 'assemblyMatrices', false, ...
+                 'extraoutput'     , false);
+    opt = merge_options(opt, varargin{:});
+    
+    % Recover IndexArrays
     coltbl                = tbls.coltbl;
     celltbl               = tbls.celltbl;
     nodetbl               = tbls.nodetbl;
-    cellfacetbl           = tbls.cellfacetbl;
     cellnodetbl           = tbls.cellnodetbl;
     nodefacetbl           = tbls.nodefacetbl;
     cellcoltbl            = tbls.cellcoltbl;
@@ -534,56 +535,24 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     div_T = div_T.setFromTensorProd(facetNormals, prod);
     div = div_T.getMatrix();
     
-    divop = @(sol) divoperator(sol, extforce, R1, R2, div);
     
     assembly = struct('B'       , B       , ...
                       'rhs'     , rhs     , ...
                       'g'       , g       , ...
                       'extforce', extforce, ...
                       'R1'      , R1      , ...
-                      'R2'      , R2      , ...
-                      'divop'   , divop   , ...
-                      'matrices', matrices);
+                      'R2'      , R2);
     
-    assembly.computeNodeDisp = @(ucell, lagmult) computeNodeDisp(ucell, lagmult, ...
-                                                      invA11, A12, D, extforce, ...
-                                                      nodefacecoltbl, nodecoltbl);
+    if opt.assemblyMatrices
+        assembly.matrices = matrices;
+    end
+    
+    if opt.extraoutput
+        assembly.divop = @(sol) mpsaDivOperator(sol, extforce, R1, R2, div);
+    end
     
 end
 
-function divu = divoperator(sol, extforce, R1, R2, div)
-    % Compute nodeface displacement 
-    unf = R1*sol + R2*extforce;
-    % Compute divergence
-    divu = div*unf;
-end
 
-function unode = computeNodeDisp(ucell, lagmult, invA11, A12, D, extforce, ...
-                                 nodefacecoltbl, nodecoltbl)
-    
-    % unodeface : displacement at the nodeface, belongs to nodefacecoltbl
-    unodeface = invA11*(-A12*ucell + D*lagmult + extforce);
-    
-    % Setup mapping from nodeface to node
-    
-    map = TensorMap();
-    map.fromTbl = nodefacecoltbl;
-    map.toTbl   = nodecoltbl;
-    map.mergefds = {'nodes', 'coldim'};
-    map = map.setup();
-
-    coef = map.eval(ones(nodefacecoltbl.num, 1));
-    coef = 1./coef;
-
-    prod = TensorProd();
-    prod.tbl1 = nodecoltbl;
-    prod.tbl2 = nodefacecoltbl;
-    prod.tbl3 = nodecoltbl;
-    prod.mergefds = {'nodes', 'coldim'};
-    prod = prod.setup();
-
-    % return displacement at nodes
-    unode = prod.eval(coef, unodeface);
-end
 
 

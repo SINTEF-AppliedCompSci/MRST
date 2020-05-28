@@ -76,7 +76,7 @@ eta = 1/3;
 bcetazero = false;
 
 assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', ...
-                        bcetazero);
+                        bcetazero, 'extraoutput', true);
 
 B   = assembly.B  ;
 rhs = assembly.rhs;

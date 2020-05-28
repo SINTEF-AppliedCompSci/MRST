@@ -36,7 +36,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     
     % Assemble mechanic problem
     loadstruct = drivingforces.mechanics;
-    mechassembly = assembleMPSA(G, mechprops, loadstruct, eta, tbls, mappings);
+    mechassembly = assembleMPSA(G, mechprops, loadstruct, eta, tbls, mappings, 'assemblymatrices', true);
     
     % Assemble fluid problem
     fluidforces = drivingforces.fluid;
