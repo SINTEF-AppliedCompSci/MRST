@@ -75,6 +75,46 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
     nodeface_from_cellnodeface = map.getDispatchInd();
 
     cell_from_cellnodeface = cell_from_cellnode(cellnode_from_cellnodeface);
+
+    % for mpfa
+    cellnodeface2tbl = crossIndexArray(cellnodefacetbl, cellnodefacetbl, {'cells', 'nodes'}, 'crossextend', {{'faces', {'faces1', 'faces2'}}});
+    cellnodeface2coltbl = crossIndexArray(cellnodeface2tbl, coltbl, {}, 'virtual', useVirtual);
+    
+    map = TensorMap();
+    map.fromTbl = cellnodefacetbl;
+    map.toTbl = cellnodeface2tbl;
+    map.replaceFromTblfds = {{'faces', 'faces1'}};
+    map.mergefds = {'cells', 'nodes', 'faces1'};
+    
+    cellnodeface_1_from_cellnodeface2 = map.getDispatchInd();
+    
+    map = TensorMap();
+    map.fromTbl = cellnodefacetbl;
+    map.toTbl = cellnodeface2tbl;
+    map.replaceFromTblfds = {{'faces', 'faces2'}};
+    map.mergefds = {'cells', 'nodes', 'faces2'};
+    
+    cellnodeface_2_from_cellnodeface2 = map.getDispatchInd();
+    
+    nodeface2tbl = crossIndexArray(nodefacetbl, nodefacetbl, {'nodes'}, 'crossextend', {{'faces', {'faces1', 'faces2'}}});
+    
+    map = TensorMap();
+    map.fromTbl = nodefacetbl;
+    map.toTbl = nodeface2tbl;
+    map.replaceFromTblfds = {{'faces', 'faces1'}};
+    map.mergefds = {'nodes', 'faces1'};
+    
+    nodeface_1_from_nodeface2 = map.getDispatchInd();
+    
+    map = TensorMap();
+    map.fromTbl = nodefacetbl;
+    map.toTbl = nodeface2tbl;
+    map.replaceFromTblfds = {{'faces', 'faces2'}};
+    map.mergefds = {'nodes', 'faces2'};
+    
+    nodeface_2_from_nodeface2 = map.getDispatchInd();
+    
+    %
     
     cellnodecoltbl = crossIndexArray(cellnodetbl, coltbl, {}, 'virtual', useVirtual);
 
@@ -121,12 +161,25 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
                   'nodecolrowtbl'        , nodecolrowtbl        , ... 
                   'col2row2tbl'          , col2row2tbl          , ... 
                   'cellcol2row2tbl'      , cellcol2row2tbl      , ...
-                  'cellnodecol2row2tbl'  , cellnodecol2row2tbl);
-
-    mappings = struct('cell_from_cellnode'        , cell_from_cellnode        , ...
-                      'node_from_cellnode'        , node_from_cellnode        , ...
-                      'cell_from_cellnodeface'    , cell_from_cellnodeface    , ...
-                      'cellnode_from_cellnodeface', cellnode_from_cellnodeface, ...
-                      'nodeface_from_cellnodeface', nodeface_from_cellnodeface);
+                  'cellnodecol2row2tbl'  , cellnodecol2row2tbl  , ....
+                  'cellnodeface2tbl'     , cellnodeface2tbl     , ...
+                  'cellnodeface2coltbl'     , cellnodeface2coltbl     , ...
+                  'nodeface2tbl'         , nodeface2tbl);
+    
+    mappings = struct('cell_from_cellnode'               , cell_from_cellnode               , ...
+                      'node_from_cellnode'               , node_from_cellnode               , ...
+                      'cell_from_cellnodeface'           , cell_from_cellnodeface           , ...
+                      'cellnode_from_cellnodeface'       , cellnode_from_cellnodeface       , ...
+                      'nodeface_from_cellnodeface'       , nodeface_from_cellnodeface       , ...
+                      'cellnodeface_1_from_cellnodeface2', cellnodeface_1_from_cellnodeface2, ... 
+                      'cellnodeface_2_from_cellnodeface2', cellnodeface_2_from_cellnodeface2, ... 
+                      'nodeface_1_from_nodeface2'        , nodeface_1_from_nodeface2        , ...         
+                      'nodeface_2_from_nodeface2'        , nodeface_2_from_nodeface2);
+    
+    
+    tbls.useVirtual = useVirtual;
     
 end
+                    
+
+
