@@ -12,7 +12,7 @@
 
 
 /*
-  Copyright 2011-2019 SINTEF Digital, Mathematics & Cybernetics.
+  Copyright 2011-2020 SINTEF Digital, Mathematics & Cybernetics.
 */
 
 #include <stdlib.h>

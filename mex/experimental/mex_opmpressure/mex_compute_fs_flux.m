@@ -28,7 +28,7 @@ function varargout = mex_compute_fs_flux(varargin)
 %   `mex_generate_coarsesystem`, `mex_compute_press_flux`.
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
