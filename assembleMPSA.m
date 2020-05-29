@@ -7,6 +7,29 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
 %% International Journal for Numerical Methods in Engineering
 %% 2017
 
+    % the solution is given by the system
+    %
+    % A = [[A11, A12, -D];
+    %      [A21, A22,  0];
+    %      [D' , 0  ,  0]];
+    %
+    % u = [u (displacement at nodefacecoltbl);
+    %      u (displacement at cellcoltbl);
+    %      lagmult (forces in the linear directions at the boundary)];
+    %
+    % f = [extforce (force at nodefacecoltbl);
+    %      force    (volumetric force at cellcoltbl);
+    %      bcvals   (for the linear form at the boundary)];
+    %
+    % A*u = f
+    %
+    % Note: extforce is sparse and should only give contribution at facets
+    % that are at the boundary
+    %
+    % By construction of the method, the matrix A11 is block-diagonal. Hence,
+    % we invert it directly and reduce to a cell-centered scheme.
+    
+    
     opt = struct('bcetazero'       , true , ...
                  'assemblyMatrices', false, ...
                  'extraoutput'     , false);
@@ -437,27 +460,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     fullrhs{2} = force;
     fullrhs{3} = bcvals;
     
-    % the solution is given by the system
-    %
-    % A = [[A11, A12, -D];
-    %      [A21, A22,  0];
-    %      [D' , 0  ,  0]];
-    %
-    % u = [u (displacement at nodefacecoltbl);
-    %      u (displacement at cellcoltbl);
-    %      lagmult (forces in the linear directions at the boundary)];
-    %
-    % f = [extforce (force at nodefacecoltbl);
-    %      force    (volumetric force at cellcoltbl);
-    %      bcvals   (for the linear form at the boundary)];
-    %
-    % A*u = f
-    %
-    % Note: extforce is sparse and should only give contribution at facets
-    % that are at the boundary
-    %
-    % By construction of the method, the matrix A11 is block-diagonal. Hence,
-    % we invert it directly and reduce to a cell-centered scheme.
+
     
     matrices = struct('A11', A11, ...
                       'A12', A12, ...

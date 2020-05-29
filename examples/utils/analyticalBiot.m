@@ -46,19 +46,19 @@ function output = analyticalBiot(d, params)
         
         % Displacement
         u{1} = @(x, y, z) (y.*(1 - x).*sin(2.*pi.*x.*y));
-        u{2} = @(x, y, z) (x.*y.^2.*cos(2.*pi.*x));
+        u{2} = @(x, y, z) (z.*y.^2.*cos(2.*pi.*x));
         u{3} = @(x, y, z) (x.*y.*z);
         
         % Pressure
         p = @(x, y, z) (u{1}(x, y, z));
         
         % Volumetric mechanical force
-        force{1} = @(x, y, z) (-alpha.*y.*(2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) + sin(2.*pi.*x.*y)) - lambda.*y.*(-4.*pi.*x.*sin(2.*pi.*x) + 4.*pi.^2.*y.^2.*(x - 1).*sin(2.*pi.*x.*y) - 4.*pi.*y.*cos(2.*pi.*x.*y) + 2.*cos(2.*pi.*x) + 1) - 8.*pi.*mu.*y.^2.*(pi.*y.*(x - 1).*sin(2.*pi.*x.*y) - cos(2.*pi.*x.*y)) - mu.*y - 2.*mu.*(2.*pi.^2.*x.^2.*y.*(x - 1).*sin(2.*pi.*x.*y) - 2.*pi.*x.*y.*sin(2.*pi.*x) - 2.*pi.*x.*(x - 1).*cos(2.*pi.*x.*y) + y.*cos(2.*pi.*x)));
-        force{2} = @(x, y, z) ( -alpha.*(x - 1).*(2.*pi.*x.*y.*cos(2.*pi.*x.*y) + sin(2.*pi.*x.*y)) + 2.*pi.*lambda.*y.*(-2.*pi.*x.*y.*(x - 1).*sin(2.*pi.*x.*y) + x.*cos(2.*pi.*x.*y) + (x - 1).*cos(2.*pi.*x.*y)) - lambda.*(2.*x.*cos(2.*pi.*x) + x - 2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) - sin(2.*pi.*x.*y)) - 4.*mu.*x.*cos(2.*pi.*x) - mu.*x + mu.*(-4.*pi.^2.*x.*y.^2.*(x - 1).*sin(2.*pi.*x.*y) + 4.*pi.^2.*x.*y.^2.*cos(2.*pi.*x) + 2.*pi.*x.*y.*cos(2.*pi.*x.*y) + 4.*pi.*y.^2.*sin(2.*pi.*x) + 4.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) + sin(2.*pi.*x.*y)));
-        force{3} = @(x, y, z) (0.*x);
+        force{1} = @(x, y, z) (-alpha.*y.*(2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) + sin(2.*pi.*x.*y)) - lambda.*y.*(4.*pi.^2.*y.^2.*(x - 1).*sin(2.*pi.*x.*y) - 4.*pi.*y.*cos(2.*pi.*x.*y) - 4.*pi.*z.*sin(2.*pi.*x) + 1) - 8.*pi.*mu.*y.^2.*(pi.*y.*(x - 1).*sin(2.*pi.*x.*y) - cos(2.*pi.*x.*y)) - mu.*y + 4.*pi.*mu.*(-pi.*x.^2.*y.*(x - 1).*sin(2.*pi.*x.*y) + x.*(x - 1).*cos(2.*pi.*x.*y) + y.*z.*sin(2.*pi.*x)));
+        force{2} = @(x, y, z) (-alpha.*(x - 1).*(2.*pi.*x.*y.*cos(2.*pi.*x.*y) + sin(2.*pi.*x.*y)) + 2.*pi.*lambda.*y.*(-2.*pi.*x.*y.*(x - 1).*sin(2.*pi.*x.*y) + x.*cos(2.*pi.*x.*y) + (x - 1).*cos(2.*pi.*x.*y)) - lambda.*(x - 2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) + 2.*z.*cos(2.*pi.*x) - sin(2.*pi.*x.*y)) - mu.*x - 4.*mu.*z.*cos(2.*pi.*x) + mu.*(-4.*pi.^2.*x.*y.^2.*(x - 1).*sin(2.*pi.*x.*y) + 2.*pi.*x.*y.*cos(2.*pi.*x.*y) + 4.*pi.^2.*y.^2.*z.*cos(2.*pi.*x) + 4.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) + sin(2.*pi.*x.*y)));
+        force{3} = @(x, y, z) (-2.*y.*(lambda + mu).*cos(2.*pi.*x));
         
         % Fluid source term
-        src = @(x, y, z) (-4.*pi.*K.*tau.*x.*(x - 1).*(pi.*x.*y.*sin(2.*pi.*x.*y) - cos(2.*pi.*x.*y)) - 4.*pi.*K.*tau.*y.^2.*(pi.*y.*(x - 1).*sin(2.*pi.*x.*y) - cos(2.*pi.*x.*y)) + alpha.*y.*(2.*x.*cos(2.*pi.*x) + x - 2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) - sin(2.*pi.*x.*y)) - rho.*y.*(x - 1).*sin(2.*pi.*x.*y));
+        src = @(x, y, z) (-4.*pi.*K.*tau.*x.*(x - 1).*(pi.*x.*y.*sin(2.*pi.*x.*y) - cos(2.*pi.*x.*y)) - 4.*pi.*K.*tau.*y.^2.*(pi.*y.*(x - 1).*sin(2.*pi.*x.*y) - cos(2.*pi.*x.*y)) + alpha.*y.*(x - 2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) + 2.*z.*cos(2.*pi.*x) - sin(2.*pi.*x.*y)) - rho.*y.*(x - 1).*sin(2.*pi.*x.*y));
         
         % Stress (we do not follow here the convention that the third should be multiplied by two)
         %
@@ -68,12 +68,12 @@ function output = analyticalBiot(d, params)
         %
         
         % Voigt components
-        stress{1} = @(x, y, z) (lambda.*y.*(2.*x.*cos(2.*pi.*x) + x - 2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) - sin(2.*pi.*x.*y)) + 1.0.*mu.*(4.*pi.*y.^2.*(1 - x).*cos(2.*pi.*x.*y) - 2.*y.*sin(2.*pi.*x.*y)));
-        stress{2} = @(x, y, z) (lambda.*y.*(2.*x.*cos(2.*pi.*x) + x - 2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) - sin(2.*pi.*x.*y)) + 4.0.*mu.*x.*y.*cos(2.*pi.*x));
-        stress{3} = @(x, y, z) (lambda.*y.*(2.*x.*cos(2.*pi.*x) + x - 2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) - sin(2.*pi.*x.*y)) + 2.0.*mu.*x.*y);
-        stress{4} = @(x, y, z) (1.0.*mu.*x.*z);
+        stress{1} = @(x, y, z) (lambda.*y.*(x - 2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) + 2.*z.*cos(2.*pi.*x) - sin(2.*pi.*x.*y)) + 1.0.*mu.*(4.*pi.*y.^2.*(1 - x).*cos(2.*pi.*x.*y) - 2.*y.*sin(2.*pi.*x.*y)));
+        stress{2} = @(x, y, z) (lambda.*y.*(x - 2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) + 2.*z.*cos(2.*pi.*x) - sin(2.*pi.*x.*y)) + 4.0.*mu.*y.*z.*cos(2.*pi.*x));
+        stress{3} = @(x, y, z) (lambda.*y.*(x - 2.*pi.*y.*(x - 1).*cos(2.*pi.*x.*y) + 2.*z.*cos(2.*pi.*x) - sin(2.*pi.*x.*y)) + 2.0.*mu.*x.*y);
+        stress{4} = @(x, y, z) (1.0.*mu.*(x.*z + y.^2.*cos(2.*pi.*x)));
         stress{5} = @(x, y, z) (1.0.*mu.*y.*z);
-        stress{6} = @(x, y, z) (1.0.*mu.*(-2.*pi.*x.*y.^2.*sin(2.*pi.*x) + 2.*pi.*x.*y.*(1 - x).*cos(2.*pi.*x.*y) + y.^2.*cos(2.*pi.*x) + (1 - x).*sin(2.*pi.*x.*y)));
+        stress{6} = @(x, y, z) (1.0.*mu.*(2.*pi.*x.*y.*(1 - x).*cos(2.*pi.*x.*y) - 2.*pi.*y.^2.*z.*sin(2.*pi.*x) + (1 - x).*sin(2.*pi.*x.*y)));
         
       otherwise
         error('d not recognized');

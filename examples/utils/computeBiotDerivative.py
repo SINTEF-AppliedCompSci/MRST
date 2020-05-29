@@ -18,7 +18,7 @@ dervar = [x, y, z]
 d = 3
 if d == 3:
     u1 = y*(1 - x)*sin(2*pi*x*y)
-    u2 = x*y**2*cos(2*pi*x)
+    u2 = z*y**2*cos(2*pi*x)
     u3 = x*y*z
     uvec = list([u1, u2, u3])
     p = u1
