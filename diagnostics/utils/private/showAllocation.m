@@ -2,7 +2,7 @@ function showAllocation(d, src, ax, s2, s3)
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
