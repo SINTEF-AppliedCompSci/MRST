@@ -22,6 +22,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opm = mrstPath('opm-data');
     opm_tests = mrstPath('opm-tests');
+    if isempty(opm) || isempty(opm_tests)
+        fprintf('You must download and register two repositories to proceed.\n');
+        fprintf('Download from github:\n')
+        fprintf('    https://github.com/opm/opm-data\n');
+        fprintf('    https://github.com/opm/opm-tests\n');
+        fprintf('Once downloaded, you must register them mrstPath.\n');
+        fprintf('You may want to add the following to your startup_user:\n');
+        fprintf('mrstPath(''register'', ''opm-data'', ''/path/to/opm-data'')\n');
+        fprintf('mrstPath(''register'', ''opm-tests'', ''/path/to/opm-tests'')\n');
+    end
     assert(~isempty(opm), 'You must register https://github.com/opm/opm-data as a module using mrstPath!');
     assert(~isempty(opm_tests), 'You must register https://github.com/opm/opm-tests as a module using mrstPath!');
     fn = fullfile(opm, name, [caseName, '.DATA']);
