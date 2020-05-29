@@ -66,7 +66,7 @@ model = model.validateModel();
 % fluxes
 xflow = WellComponentTotalVolumeBalanceCrossflow(model);
 xflow.onlyLocalDerivatives = true;
-
+model.FacilityModel.FacilityFluxDiscretization.PhaseFlux.allowCrossFlow = false;
 model.FacilityModel.FacilityFluxDiscretization.ComponentTotalFlux = xflow;
 % Disable flag for interpolation - better behavior
 useFlag = false;
@@ -90,7 +90,7 @@ nls.verbose = false;
 nls.LinearSolver.verbose = false;
 
 problem = packSimulationProblem(state0, model, schedule, 'norne', ...
-    'Name', 'GenericBlackOil_FI_EGRID3', 'nonlinearsolver', nls);
+    'Name', 'GenericBlackOil_FI_EGRID', 'nonlinearsolver', nls);
 
 %% MRST grid     
 simulatePackedProblem(problem, 'continueOnError', false);
@@ -133,7 +133,7 @@ fn = fullfile(mrstDataDirectory(), 'smry_nohyst.mat');
 if ~exist(fn, 'file')
     url = 'https://www.sintef.no/contentassets/124f261f170947a6bc51dd76aea66129/smry_nohyst.mat';
     if exist('websave', 'file')
-        websave(url, fn);
+        websave(fn, url);
     else
         urlwrite(url, fn); %#ok
     end
