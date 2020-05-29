@@ -294,6 +294,7 @@ methods
                 end
                 state = model.updateStateFromIncrement(state, st{1}.*dr, problem, ...
                                                        'rs', inf, drs);
+                state = model.capProperty(state, 'rs', 0);
             end
 
             if model.vapoil
@@ -307,6 +308,7 @@ methods
                 end
                 state = model.updateStateFromIncrement(state, st{2}.*dr, problem, ...
                                                        'rv', inf, drs);
+                state = model.capProperty(state, 'rv', 0);
             end
 
             dso = -(dsg + dsw);
