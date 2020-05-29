@@ -29,6 +29,25 @@ function [p, s] = samplePiecewiseLinear(f, sInit, tolAbs)
 %   [p, s] = samplePiecewiseLinear(@(t)[t.*cos(t), t.*sin(t)], [0 4*pi], 0.1)
 %   plot(p(:,1), p(:,2), 'o-')
 
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 % compute initial points
 assert(numel(sInit)>1, 'Input must contain at least two parameter values (sInit)')
 s = sInit(:);
@@ -92,4 +111,3 @@ function d2 = distSq(p, l)
     % add squared of distance to segment along line
     d2 = d2 + (min(0, t)^2 + max(0, t-1)^2)*v2;
 end
-
