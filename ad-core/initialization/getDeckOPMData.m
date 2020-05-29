@@ -22,8 +22,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opm = mrstPath('opm-data');
     opm_tests = mrstPath('opm-tests');
-    assert(~isempty(opm));
-    assert(~isempty(opm_tests));
+    assert(~isempty(opm), 'You must register https://github.com/opm/opm-data as a module using mrstPath!');
+    assert(~isempty(opm_tests), 'You must register https://github.com/opm/opm-tests as a module using mrstPath!');
     fn = fullfile(opm, name, [caseName, '.DATA']);
     deck = readEclipseDeck(fn);
     
