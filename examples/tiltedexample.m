@@ -3,7 +3,7 @@ close all
 
 mrstModule add mpsaw vemmech mpfa
 
-N = 5;
+N = 20;
 G = cartGrid([N, N], [1 , 1]);
 angle = 10/180*pi;
 % angle = 0;
@@ -89,24 +89,24 @@ n = cellcoltbl.num;
 ucell = sol(1 : n);
 lagmult = sol(n + 1 : end);
 
-unode = assembly.computeNodeDisp(ucell, lagmult);
+unode = computeNodeDisp(ucell, tbls);
 
 dim = G.griddim;
 ucell = reshape(ucell, dim, [])';
 unode = reshape(unode, dim, [])';
 
-figure
+figure(1)
 plotGrid(G, 'facecolor', 'none', 'edgecolor', 'blue');
 plotGridDeformed(G, unode, 'facecolor', 'none', 'edgecolor', 'red');
 axis equal
 
-figure
+figure(2)
 plotCellData(G, ucell(:, 1));
 title('disp x direction');
 colorbar
 axis equal
 
-figure
+figure(3)
 plotCellData(G, ucell(:, 2));
 title('disp y direction');
 colorbar
