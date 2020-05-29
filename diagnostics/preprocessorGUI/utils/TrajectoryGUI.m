@@ -79,7 +79,8 @@ classdef TrajectoryGUI < handle
             wsel.launchButton.Callback = @d.launchDiagnostics;
             d.Figure.SizeChangedFcn        = @d.layout;
             d.layout();
-            wsel.popupCallback([], [])
+            wsel.popupCallback([], []);
+            wsel.typePopup.Enable = 'off';
         end
         
         function val = get.wellNo(d)
@@ -218,16 +219,19 @@ classdef TrajectoryGUI < handle
             [models, wells, names] = deal(cell(1,n));
             if n>1
                 % add closed for first well-list
-                W = [d.W; d.WNew(1)];
-                W(end).status = false;
-                W(end).cstatus = false(size(W(end).cstatus));
-                W(end).type = 'rate';
-                W(end).val = 0;
+                newIx = numel(d.W) + (1:(n-1));
+                W = [d.W; d.WNew];
+                [W(newIx).status] = deal(false);
+                [W(newIx).cstatus] = deal(false(size(W(end).cstatus)));
+                [W(newIx).type] = deal('rate');
+                [W(newIx).val] = deal(0);
                 [models{1}, wells{1}]  = deal(d.model, W);
                 names{1} = 'Base';
                 for k = 2:n
-                    W = [d.W; d.WNew(k-1)];
-                    [models{k}, wells{k}]  = deal(d.model, W);
+                    tmp = W;
+                    tmp(newIx(k-1)) = d.WNew(k-1);
+                    %W = [d.W; d.WNew(k-1)];
+                    [models{k}, wells{k}]  = deal(d.model, tmp);
                     names{k} = ['case ', num2str(k-1)];
                 end
                 DiagnosticsViewer(models,wells, 'modelNames', names);

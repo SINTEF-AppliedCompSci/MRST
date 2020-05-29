@@ -4,14 +4,29 @@
 % can be saves as an MRST well structues. Diagnostics for the newly created 
 % wells can be investigated by launcing the DiagnosticsViewer. 
 % 
-% INSTRUCTIONS:
-% *  press new to create new well
-% *  right-click inside axis for drawing options ("along line" is recommend)
-% *  left-click edge of points to drag
-% *  right-click (edge of) points for options
-% *  click view to plot resulting trajectory in 3D and traversed grid cells
-% *  click save to save well(s)
-% *  click launch diagnsotics to view diagnostics for saved well
+% INSTRUCTIONS
+%
+% To create a new well:
+% * press "New"
+% * right-click inside left-side axis for drawing options ("along line" is recommend). 
+% * This enables you to draw the horizontal path of the well. Use left-click on the points 
+%   to move them, add additional points by left-clicking where you want new points, and 
+%   right-click on the points to delete.
+% * On the right-hand axis you now see a vertical cross section along the horizontal path 
+%   from the left-hand axis. To draw the path of the well onto this cross section , 
+%   right-click in the right-hand axis and choose "Draw points -> along line".
+%
+% To view the well(s):
+% * When you have drawn both a horizontal and cross-sectional well path, you can press the 
+%   "View" button to get a 3D view of the well(s) with the traversered grid cells.
+%
+% Configure and save well:
+% * Specify our well parameters by selecting Type, Control and Value
+% * Save your new well by pressing the "Save" button. It now appears in the topmost dropdown list
+% 
+% Launch diagnostics:
+% * When you are happy with your well(s) and have saved them, launch diagnostics by pressing the 
+%   "Launch diagnostics" button. 
 
 mrstModule add diagnostics mrst-gui ad-core ad-blackoil wellpaths
 
