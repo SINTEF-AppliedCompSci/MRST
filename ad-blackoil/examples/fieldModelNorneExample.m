@@ -130,13 +130,11 @@ wellSols{end+1} = ws_ecl;
 time{end+1} = T_ecl;
 names{end+1} = 'Eclipse (Hysteresis)';
 fn = fullfile(mrstDataDirectory(), 'smry_nohyst.mat');
+
 if ~exist(fn, 'file')
     url = 'https://www.sintef.no/contentassets/124f261f170947a6bc51dd76aea66129/smry_nohyst.mat';
-    if exist('websave', 'file')
-        websave(fn, url);
-    else
-        urlwrite(url, fn); %#ok
-    end
+    dfcn = mrstWebSave();
+    dfcn(fn, url);
 end
 smry = load(fn);
 smry = smry.smry;
