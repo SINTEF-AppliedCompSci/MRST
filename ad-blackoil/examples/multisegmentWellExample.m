@@ -201,6 +201,8 @@ hold off, box on, axis tight, axis(akse), caxis(cax)
 view(50,10), shading interp
 set(gca,'Projection','Perspective');
 
+%% Copyright Notice
+%
 % <html>
 % <p><font size="-1">
 % Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

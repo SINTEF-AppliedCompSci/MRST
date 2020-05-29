@@ -175,7 +175,8 @@ t    = cumsum(schedule.step.val);
 for sNo = 1:numel(wellSol)
     [wellSol{sNo}.qSs] = deal(0);
 end
-plotWellSols({wellSolsWAG, wellSol},{tWAG, t})
+plotWellSols({wellSolsWAG, wellSol},{tWAG, t}, ...
+             'datasetnames', {'WAG', 'Water flooding'});
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

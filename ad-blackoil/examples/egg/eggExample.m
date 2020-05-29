@@ -92,6 +92,8 @@ plotWell(G, W(prod), 'fontsize', 12, 'color', 'r')
 view(-50, 70);
 axis tight off
 
+%% Copyright Notice
+%
 % <html>
 % <p><font size="-1">
 % Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.

@@ -1,15 +1,5 @@
 function f = assignROCKTAB(f, rocktab, reg)
-   if ~iscell(rocktab), rocktab = { rocktab }; end
-
-   Tpv = cellfun(@(x) x(:, [1, 2]), rocktab, 'UniformOutput', false);
-   Ttr = cellfun(@(x) x(:, [1, 3]), rocktab, 'UniformOutput', false);
-
-   regmap = @(p, varargin) ...
-      getRegMap(p, reg.ROCKNUM, reg.ROCKINX, varargin{:});
-
-   f.pvMultR   = @(p, varargin) interpReg(Tpv, p, regmap(p, varargin{:}));
-   f.tranMultR = @(p, varargin) interpReg(Ttr, p, regmap(p, varargin{:}));
-end
+%Undocumented Utility Function
 
 %{
 Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
@@ -29,3 +19,15 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+   if ~iscell(rocktab), rocktab = { rocktab }; end
+
+   Tpv = cellfun(@(x) x(:, [1, 2]), rocktab, 'UniformOutput', false);
+   Ttr = cellfun(@(x) x(:, [1, 3]), rocktab, 'UniformOutput', false);
+
+   regmap = @(p, varargin) ...
+      getRegMap(p, reg.ROCKNUM, reg.ROCKINX, varargin{:});
+
+   f.pvMultR   = @(p, varargin) interpReg(Tpv, p, regmap(p, varargin{:}));
+   f.tranMultR = @(p, varargin) interpReg(Ttr, p, regmap(p, varargin{:}));
+end
