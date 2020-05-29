@@ -73,7 +73,7 @@ O_err = cellfun(@(st1, st2) norm(st1.s(:,2) - st2.s(:,2))./norm(st1.s(:,2)), sta
 %%
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

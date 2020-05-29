@@ -2,7 +2,7 @@ function [eqs, cq_mass, mix_s, status, cstatus, cq_vol] = computeWellContributio
 % Main internal function for computing well equations and source terms
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

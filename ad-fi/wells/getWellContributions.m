@@ -37,7 +37,7 @@ function [eqs, cq_s, sol, Rw] = getWellContributions(W, sol, pBH, q_s, p, rho_s,
 %         if allowCrossFlow is set to true)
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

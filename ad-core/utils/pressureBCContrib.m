@@ -22,7 +22,7 @@ function  [bXqXbc,bc_cell] = pressureBCContrib(G,s,pX,rhoX,mobX,bX,bc)
 end
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

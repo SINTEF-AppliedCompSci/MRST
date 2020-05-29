@@ -2,7 +2,7 @@ function [x, D1, D2] = diagProductMult(v1, v2, x, y, D1, D2)
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
