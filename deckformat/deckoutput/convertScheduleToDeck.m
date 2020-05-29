@@ -23,7 +23,26 @@ function SCHEDULE = convertScheduleToDeck(model, schedule, varargin)
 %                     for a given control step only if changed from previous 
 %                     control step. If false, all data are writted for each 
 %                     step. Default value: true.
-%
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 opt = struct('linearIndex', true, ...
              'reduceOutput', true);
 opt = merge_options(opt,varargin{:});
@@ -47,7 +66,8 @@ WCONINJE_tmp = {'INJE01', 'WATER', 'OPEN', 'RATE', v,   v,   v,   v, 0,  v,  v, 
 % WCONPROD       1        2       3      4    5    6    7    8    9   10  11  12          
 %                nm       flag    cntr   orat wrat grat lrat resv bhp thp vfp lift
 WCONPROD_tmp = {'PROD01', 'OPEN', 'BHP', v,   v,   v,   v,   v,   v,  v,  0   v};
-%%
+
+%
 % WCONHIST       1        2       3      4    5    6    7    8    9   10  11  12          
 %                nm       flag    cntr   orat wrat grat vfp vlfq thp bhp  
 WCONHIST_tmp = {'PROD01', 'OPEN', 'BHP', v,   v,   v,   0  , 0,  v, ...
@@ -56,8 +76,7 @@ WCONHIST_tmp = {'PROD01', 'OPEN', 'BHP', v,   v,   v,   0  , 0,  v, ...
 %nonre
 %GCONINJE
 
-
-%% 
+%
 % phases
 phaseNames = num2cell(model.getPhaseNames);
 for k = 1:numel(phaseNames)
@@ -91,9 +110,9 @@ getIJK = @(c)ind2sub(cartDims, indexMap(c));
 nSteps  = numel(schedule.control);
 cntr    = struct('WELSPECS', {{}}, 'COMPDAT', {{}}, 'WCONINJE', {{}}, 'WCONPROD', {{}});
 control = repmat(cntr, nSteps, 1);
-%%
+
 for sno = 1:numel(control)
-    %% WELSPECS
+    % WELSPECS ------------------------------------------------------------
     W = schedule.control(sno).W;
     ix = getUpdateIx(schedule, sno, 'WELSPECS', reduce);
     WELSPECS = cell(numel(ix), size(WELSPECS_tmp, 2));
@@ -114,8 +133,8 @@ for sno = 1:numel(control)
         % preferred phase
     end
     control(sno).WELSPECS = WELSPECS;
-    
-    %% COMPDAT
+
+    % COMPDAT -------------------------------------------------------------
     ix = getUpdateIx(schedule, sno, 'COMPDAT', reduce);
     COMPDAT = cell(numel(W), 1);
     for wno = 1:numel(W)
@@ -151,8 +170,8 @@ for sno = 1:numel(control)
         end
     end
     control(sno).COMPDAT = vertcat(COMPDAT{:});
-    
-    %% WCONINJE
+
+    % WCONINJE ------------------------------------------------------------
     if isempty(W)
         injIx = [];
     else
@@ -209,8 +228,8 @@ for sno = 1:numel(control)
         %end
     end
     control(sno).WCONINJE = WCONINJE;
-    
-    %% WCONPROD
+
+    % WCONPROD ------------------------------------------------------------
     if isempty(W)
         prodIx = [];
     else
@@ -239,12 +258,13 @@ for sno = 1:numel(control)
     WCONHIST = makeWCONHIST(WCONHIST_tmp,prodIx_hist,W);
     control(sno).WCONPROD = WCONPROD;
     control(sno).WCONHIST = WCONHIST;
-    
-    
 end
+
 SCHEDULE.control = control;
 end
-%%
+
+%--------------------------------------------------------------------------
+
 function WCONPROD = makeWCONPROD(WCONPROD_tmp,prodIx,W)
         
     WCONPROD = repmat(WCONPROD_tmp, [numel(prodIx), 1]);
@@ -291,6 +311,9 @@ function WCONPROD = makeWCONPROD(WCONPROD_tmp,prodIx,W)
         end
     end
 end
+
+%--------------------------------------------------------------------------
+
 function WCONHIST = makeWCONHIST(WCONHIST_tmp,prodIx,W)
         
     WCONHIST = repmat(WCONHIST_tmp, [numel(prodIx), 1]);
@@ -344,8 +367,8 @@ function WCONHIST = makeWCONHIST(WCONHIST_tmp,prodIx,W)
     end
 end
 
-
 %--------------------------------------------------------------------------
+
 function ix = getUpdateIx(schedule, step, fld, doReduce)
 W  = schedule.control(step).W;
 [nw, nconn] = deal(numel(W), arrayfun(@(w)numel(w.cells), W));
@@ -367,4 +390,3 @@ switch fld
         end
 end
 end
-            
