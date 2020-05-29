@@ -3,7 +3,7 @@ function [T_w, T_o] = readUpscaledRelperm(do_plot, bc, grav)
 % show vl and cl
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

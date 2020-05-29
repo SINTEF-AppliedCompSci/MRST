@@ -4,7 +4,7 @@ function [I, report, I_com] = cppMultiscaleBasis(CG, A, varargin)
 % export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

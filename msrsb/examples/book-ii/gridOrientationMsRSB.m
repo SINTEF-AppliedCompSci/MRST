@@ -70,7 +70,7 @@ for i=1:2
     set ([ hf ; hb ], 'Color' , 'k' );
 end
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
