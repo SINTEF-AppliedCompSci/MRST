@@ -2,7 +2,7 @@ function [info, present] = dataset_aquifertest()
 % Info function for the dataset of a 2D oil-water two phase cases with Fetkovich aquifers. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 
 %{
-Copyright 2015-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2015-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
