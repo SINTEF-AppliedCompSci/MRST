@@ -18,6 +18,7 @@ function model = setAvgMPFADiscretization(model, varargin)
 end
 
 function model = setAvgMPFA(model, varargin)
+
     require nfvm
 
     if isempty(model.FluxDiscretization)
@@ -25,7 +26,7 @@ function model = setAvgMPFA(model, varargin)
     end
 
     avgmpfa = AvgMPFA(model, varargin{:});
-    
+
     % Discrete gradient
     fd = model.FluxDiscretization;
     dp = fd.getStateFunction('PressureGradient');
