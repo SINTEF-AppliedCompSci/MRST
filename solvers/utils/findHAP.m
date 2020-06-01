@@ -79,5 +79,6 @@ function interpFace = findHAP(G, rock)
         end
     end
 
+    interpFace.counter = logical(counter);
     interpFace.fraction = 1 - sum(counter) / G.cells.num;
 end
