@@ -150,7 +150,7 @@ function updateColorHist(d)
     if numel(c) == 1 && isprop(c, 'Visible')
         visState = d.colorHAx.Children.Visible;
     end
-    barh(d.colorHAx, bins, counts,'hist','Tag','histogram');
+    barh(d.colorHAx, bins, counts,'hist');
 %     d.colorHAx.XDir = 'reverse';
 %     d.colorHAx.XAxisLocation = 'top';
     d.colorHAx.Tag = 'histogram';    
