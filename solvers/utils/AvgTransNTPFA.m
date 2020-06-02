@@ -20,29 +20,20 @@ function T = AvgTransNTPFA(G, OSflux)
     cells   = cell(2, 1);
     faces   = cell(2, 1);
     weights = cell(2, 1);
+    
     for j = 1 : 2
-        cells{j} = [];
-        faces{j} = [];
-        weights{j} = [];
-    end
-    
-    for i = 1 : nf
+        osflux = OSflux(:, j);
+        % We remove the last entry in each cell (equal to zero, I do not know why.)
+        osflux = cellfun(@(x) x(1 : (end - 1), :), osflux, 'uniformoutput', false);
+        ossizes = cellfun(@(x) size(x), osflux, 'uniformoutput', false);
+        osflux = cell2mat(osflux);
+        cells{j} = osflux(:, 1);
+        weights{j} = osflux(:, 2);
         
-        for j = 1 : 2
-            
-            d = OSflux{i, j};
-            d = d(:, 1 : end);
-            
-            if ~isempty(d)
-                faces{j} = [faces{j}; repmat(i, size(d, 1), 1)];
-                cells{j} = [cells{j}; d(:, 1)];
-                weights{j} = [weights{j}; d(:, 2)];
-            end
-            
-        end
-        
+        ossizes = cell2mat(ossizes);
+        faces{j} = rldecode((1 : nf)', ossizes(:, 1));
     end
-    
+
     lincellfacetbls = cell(2, 1);
     
     for j = 1 : 2
