@@ -21,3 +21,16 @@ In addition, the core module provides:
   - basic reading, parsing, and writing ECLIPSE input data
 
   - various utility routines and functionality
+
+
+To get started we suggest you look at some examples. To list all the examples in mrst core at the matlab command prompt type:
+
+>> mrstExamples()
+
+Each module also has it's own examples which can also be listed, e.g. to list examples for the ad-core module you could type:
+
+>> mrstExamples('ad-core')
+
+
+
+
