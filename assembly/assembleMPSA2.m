@@ -118,7 +118,6 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     prod.tbl3 = nodefacecol2rowtbl;
     prod.replacefds1 ={{'rowdim1', 'rowdim'}};
     prod.replacefds2 ={{'coldim', 'rowdim2'}};
-    prod.mergefds = {'rowdim2'};
     prod.reducefds = {'cells', 'rowdim2'};
     prod = prod.setup();
     
@@ -126,13 +125,13 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     
     % We divide by the number of cell per node
     prod = TensorProd();
-    prod.tbl1 = nodefacecol2rowtbl;    
-    prod.tbl2 = nodetbl;
+    prod.tbl1 = nodetbl;
+    prod.tbl2 = nodefacecol2rowtbl;
     prod.tbl3 = nodefacecol2rowtbl;
     prod.mergefds = {'nodes'};
     prod = prod.setup();
     
-    CAverg = prod.eval(CAverg, 1./ncellpernode);
+    CAverg = prod.eval(1./ncellpernode, CAverg);
     
     %% We include the fix at the boundary when the symmetry condition cannot be imposed.
     
@@ -204,7 +203,6 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     
     nCg = prod.eval(facetNormals, Cg);
     
-
     %% We setup A11
     
     map = TensorMap();
@@ -237,7 +235,6 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     map.replaceFromTblfds = {{'faces1', 'faces'}};
     map.mergefds = {'cells', 'nodes', 'faces', 'coldim1', 'coldim2'};
     map = map.setup();
-    
     
     % note the minus sign
     A12 = map.eval( - nCg);
