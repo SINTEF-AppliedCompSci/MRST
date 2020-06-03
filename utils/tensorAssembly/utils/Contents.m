@@ -1,12 +1,11 @@
-%Routines for computing transmissibilities and defining initial states
+% UTILS
 %
 % Files
-%   accumulateCartesianMultipliers - Compute Face Multipliers From Collection of Cell/Face Multipliers
-%   computeTrans                   - Compute transmissibilities.
-%   getFaceTransmissibility        - Compute face transmissibilities, accounting for input-specific multipliers
-%   initResSol                     - Initialise incompressible reservoir solution data structure
-%   initState                      - Initialise state object for reservoir and wells.
-%   initWellSol                    - Initialize well solution data structure.
+%   compIndexArray    - SYNOPSIS:
+%   crossindconstruct - SYNOPSIS:
+%   replacefield      - SYNOPSIS:
+%   tbldispatch1      - SYNOPSIS:
+%   tbldispatch2      - SYNOPSIS:
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

@@ -12,6 +12,8 @@
 %   dinterpq1                 - Compute derivative of piecewise linear interpolant.
 %   dinterpTable              - Compute derivative of one-dimensional interpolant, possibly using splines.
 %   dispif                    - Produce textual output contingent upon predicate.
+%   evalFunStandalone         - Utility for performing stand-alone function evaluation in new matlab session
+%   evalFunWrapper            - Utility to launch (mrst-)function evaluation in seperate matlab session 
 %   faceFlux2cellFlux         - Transform face-based flux field to cell-based.
 %   faceFlux2cellVelocity     - Transform face-based flux field to one constant velocity per cell.
 %   findFilesSubfolders       - Find all files in a directory hierarchy
@@ -22,19 +24,19 @@
 %   incompHydrostaticPressure - Undocumented Utility Function
 %   initVariablesADI          - Initialize a set of automatic differentiation variables
 %   interpTable               - Interpolate a one-dimensional table, possibly using splines.
-%   invv                      - Compute inverse of sequence of square matrices using LAPACK.
+%   interpTableMEX            - Interpolate a one-dimensional table with MEX acceleration
 %   isCoarseGrid              - Check if a grid is a coarse grid or a fine grid
-%   leastsq_svd               - Solve sequence of linear least squares problems using SVD method
 %   mcolon                    - Compute vector of consecutive indices from separate lower/upper bounds.
-%   md5sum                    - md5sum - Compute md5 check sum of all input arguments
 %   md5sum_fallback           - Alternative implementation of md5sum for systems without C compiler.
 %   merge_options             - Override default control options.
 %   merge_options_relaxed     - A less general version of merge_options focused on specific choices:
 %   moduleGUI                 - Interactive user interface for activation/deactivation of known mrst modules
 %   mrstDataDirectory         - Set or retrieve the current canonical data directory for MRST
 %   mrstDebug                 - Globally control default settings for MRST debugging information.
+%   mrstDefaultMexFlags       - Define Common Compiler and Linker Flags/Libraries for MRST's MEX Functions
 %   mrstExamples              - Discover Example M-Files Pertaining to One or More MRST Modules
 %   mrstExtraDirs             - Get List of Directories Added to MATLAB's Search PATH by MRST
+%   mrstIsLiveEditorDir       - Detect if Script is Run From Live Editor or in Cell Mode
 %   mrstModule                - Query or modify list of activated add-on MRST modules
 %   mrstNargInCheck           - Check number of input arguments to function
 %   mrstOutputDirectory       - Set or retrieve the current canonical data directory for MRST
@@ -45,6 +47,7 @@
 %   msgid                     - Construct Error/Warning message ID by prepending function name.
 %   multiEig                  - Solve sequence of general (unsymmetric) eigenvalue problems using LAPACK
 %   multiSymmEig              - Solve sequence of symmetric eigenvalue problems using LAPACK
+%   propertynames             - Undocumented Utility Function
 %   reduceToDouble            - Reduce ADI variable to double.
 %   require                   - Announce and enforce module dependency.
 %   rldecode                  - Decompress run length encoding of array `A` along dimension `dim`.

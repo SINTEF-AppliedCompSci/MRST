@@ -55,7 +55,7 @@ function varargout = plotWell(G, W, varargin)
 %   Currently, this function only supports three-dimensional grids.
 %
 % SEE ALSO:
-%   `addWell`, `delete`, `patch`, `incompTutorialWells`
+%   `addWell`, `delete`, `patch`, `incompTutorialWells`.
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

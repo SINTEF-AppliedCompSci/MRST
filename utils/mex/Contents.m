@@ -1,12 +1,10 @@
-%Routines for computing transmissibilities and defining initial states
+% MEX
 %
 % Files
-%   accumulateCartesianMultipliers - Compute Face Multipliers From Collection of Cell/Face Multipliers
-%   computeTrans                   - Compute transmissibilities.
-%   getFaceTransmissibility        - Compute face transmissibilities, accounting for input-specific multipliers
-%   initResSol                     - Initialise incompressible reservoir solution data structure
-%   initState                      - Initialise state object for reservoir and wells.
-%   initWellSol                    - Initialize well solution data structure.
+%   invv        - Compute inverse of sequence of square matrices using LAPACK.
+%   leastsq_svd - Solve sequence of linear least squares problems using SVD method
+%   md5sum      - md5sum - Compute md5 check sum of all input arguments
+%   mexInterp1  - Undocumented Utility Function
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

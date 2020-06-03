@@ -74,13 +74,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    % Setup complete, now let MEX do its thing...
-   if(mrstVerbose())
+   if mrstVerbose()
        mex('-v','-outdir', pth, '-output', caller, ...
            ['-I', pth], ['-L', pth], '-largeArrayDims', args{:});      
    else    
        mex('-outdir', pth, '-output', caller, ...
            ['-I', pth], ['-L', pth], '-largeArrayDims', args{:});
    end
+
    if ispc
       % Unconditionally expose output (= caller) to MATLAB environment.
       % This is needed on Windows to avoid infinite loops when BUILDMEX is

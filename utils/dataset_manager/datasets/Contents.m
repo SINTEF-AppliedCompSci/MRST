@@ -11,6 +11,7 @@
 %   dataset_co2atlasbarentssea   - Info function for CO2lab dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_co2atlasnorwegiansea - Info function for CO2lab dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 %   dataset_egg                  - Info function for Egg dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+%   dataset_eor_book_ii          - Info function for a set of water-EOR cases from the second MRST book
 %   dataset_igemsgrids           - Dataset Function for IGEMS Grids
 %   dataset_igemssample          - Dataset Function for IGEMS Sample
 %   dataset_igemssurfaces        - Dataset Function for IGEMS Surfaces

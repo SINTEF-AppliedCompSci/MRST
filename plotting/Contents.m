@@ -4,6 +4,7 @@
 % Files
 %   boundaryFaces         - Extract boundary faces from set of grid cells.
 %   colorbarHist          - Make colorbar with histogram on top
+%   mrstColorbar          - Append a colorbar with an accompanying histogram to the current axis
 %   outlineCoarseGrid     - Impose outline of coarse grid on existing grid plot.
 %   plotBlockAndNeighbors - Plot a coarse block and its neighbours to current axes (reversed Z axis).
 %   plotCellData          - Plot exterior grid faces, coloured by given data, to current axes.
