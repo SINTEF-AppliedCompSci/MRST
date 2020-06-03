@@ -4,6 +4,8 @@
 %   applySuccessivePart - Refine blocks by successively applying static background partitions
 %   mergeBlocks         - Merge blocks in a partitioning that are smaller than the given limit.
 %   mergeBlocks2        - Alternative implementation of Amalgamation 'MERGE' primitive
+%   mergeBlocks3        - Amalgamation 'MERGE' primitive adapted to fault information
+%   mergeBlocks4        - Amalgamation 'MERGE' primitive adapted to fault information
 %   refineBlocks        - Refine blocks for which indicator value exceeds given limit
 %   refineGreedy        - Refine blocks in a partition using a greedy algorithm
 %   refineGreedy2       - Refine blocks in a partition using a greedy algorithm

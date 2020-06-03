@@ -7,8 +7,10 @@
 %   convertRock2Coarse           - Create coarse-scale porosity field for solving transport equation.
 %   convertSource2Coarse         - Accumulate fine-scale source terms to coarse scale
 %   findConfinedBlocks           - Identify coarse blocks confined entirely within a single other block.
+%   localTransmissibilityUpscale - Use local transmissibility upscaling to find non-negative transmissibilities
 %   mergeBlocksByConnections     - Merge blocks based on connection strength
 %   mergeSingleNeighbour         - Undocumented Internal Utility Function
+%   processPartitionSoft         - Split disconnected coarse blocks into new blocks.
 %   removeConfinedBlocks         - Remove singular confined blocks and expose groups of confined blocks
 %   signOfFineFacesOnCoarseFaces - Identify fine-scale flux direction corresponding to coarse-scale outflow
 
