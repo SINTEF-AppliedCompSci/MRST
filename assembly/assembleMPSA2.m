@@ -96,7 +96,8 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     nodefacecol2rowtbl     = projIndexArray(cellnodefacecol2rowtbl, {'nodes', 'faces', 'coldim1', 'coldim2', 'rowdim'});
     cellnodeface2col2tbl   = crossIndexArray(cellnodefacecoltbl, cellnodefacecoltbl, {'cells', 'nodes'}, 'crossextend', {{'faces', ...
                         {'faces1', 'faces2'}}, {'coldim', {'coldim1', 'coldim2'}}});
-    nodeface2col2tbl       = projIndexArray(cellnodeface2col2tbl, {'nodes', 'faces1', 'faces2', 'coldim1', 'coldim2'});
+    nodeface2col2tbl = crossIndexArray(nodefacecoltbl, nodefacecoltbl, {'nodes'}, 'crossextend', {{'faces', {'faces1', 'faces2'}}, ...
+                        {'coldim', {'coldim1', 'coldim2'}}});
     cellnodefacecol2tbl    = replacefield(cellnodefacecolrowtbl, {{'coldim', 'coldim1'}, {'rowdim', 'coldim2'}});
     cellcol2tbl            = crossIndexArray(cellcoltbl, coltbl, {}, 'crossextend', {{'coldim', {'coldim1', 'coldim2'}}});
     
