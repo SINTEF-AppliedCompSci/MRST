@@ -42,7 +42,7 @@ public:
     else
       outputs[0] = apply_operator<double>(cells, op);
 
-    std::cout << "Finished binary operator - now returning to MATLAB." << std::endl;
+    //std::cout << "Finished binary operator - now returning to MATLAB." << std::endl;
   }
 
   template<typename T>
@@ -59,7 +59,7 @@ public:
       apply_binary_op(c1, c2, string(op.begin(), op.end()));
 
     // now convert TensorComp to a return value for MATLAB
-    cout << "applied binary_op, now preparing data for returning to MATLAB." << endl;
+    //cout << "applied binary_op, now preparing data for returning to MATLAB." << endl;
     ArrayFactory factory;
     StructArray result = factory.createStructArray({1,1},
                                                    {"indexnames", "coefs", "ixs"});

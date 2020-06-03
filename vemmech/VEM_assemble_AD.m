@@ -1,6 +1,8 @@
 function [S, operators] = VEM_assemble_AD(G, E, nu, varargin)
 
-   opt = merge_options(struct('extra', []), varargin{:});
+   opt = merge_options(struct('extra'        , [], ...
+                              'alpha_scaling', 1 ), ...
+                       varargin{:});
 
    %% Compute non-AD part
    % compute matrices that do not depend on the (potentially AD) elastic
@@ -11,24 +13,25 @@ function [S, operators] = VEM_assemble_AD(G, E, nu, varargin)
    non_AD_part = compute_geometry_dependent_matrices(G, opt.extra);
    
    %% Compute AD part
-   % Compute tensors that depend on the grid and elastic moduli, but not on
+   % Compute the tensor that depend on the grid and elastic moduli, but not on
    % any of the matrices computed above.
-   AD_part = compute_moduli_dependent_tensors(G, E, nu);
+   D = compute_moduli_dependent_tensor(G, E, nu);
    
    %% Assemble the final matrices
    % Compute the tensors/matrices that depend on both the non-AD and the AD
    % components computed above
-   [S, operators] = final_assembly(non_AD_part, AD_part);
+   [S, operators] = final_assembly(G, non_AD_part, D, opt.alpha_scaling);
    
 end
 
 % ----------------------------------------------------------------------------
-function res = compute_geometry_dependent_matrices(G, pcomp)
+function res = compute_geometry_dependent_matrices(G, precomp)
    
    % If precomputed values are provided, return these and skip the rest of the 
-   if ~isempty(pcomp)
+   if ~isempty(precomp)
       [res.I, res.volmap, res.WC, res.NC, res.PP, res.assemb] = ...
-          deal(pcomp.I, pcomp.volmap, pcomp.WC, pcomp.NC, pcomp.PP, pcomp.assemb);
+          deal(precomp.I, precomp.volmap, precomp.WC, ...
+               precomp.NC, precomp.PP, precomp.assemb);
       return;
    end
    
@@ -36,7 +39,7 @@ function res = compute_geometry_dependent_matrices(G, pcomp)
    % them from the grid.
 
    % first, compute some basic indexing stuff
-   cells = 1:G.cells.num;
+   cells = (1:G.cells.num)';
    inodes = mcolon(G.cells.nodePos(cells), (G.cells.nodePos(cells + 1)-1))';
    nodes = G.cells.nodes(inodes);
    linodes = (1:numel(inodes))';
@@ -55,6 +58,9 @@ function res = compute_geometry_dependent_matrices(G, pcomp)
    for i = 1:G.griddim
       BB(:, i) = accumarray(lcellnum, G.nodes.coords(nodes, i), [numel(cells), 1]); 
    end
+   fac = accumarray(lcellnum, 1, [numel(cells), 1]);
+   BB = bsxfun(@rdivide, BB, fac);
+   
    XB = G.nodes.coords(nodes, :) - BB(lcellnum, :); % coords relative to center
    
    % define identity matrix of the full system size
@@ -152,18 +158,82 @@ end
 
 % ----------------------------------------------------------------------------
 
-function res = compute_moduli_dependent_tensors(G, E, nu)
+function D = compute_moduli_dependent_tensor(G, E, nu)
    
-   D = ;
-   SE = ;
+   if G.griddim==2
+      nufac = [-1,  1, 0; 
+                1, -1, 0; 
+                0,  0, -1];% nu-factor
+      cdiag = diag([1,1, 1/2]); % constant diagonal
+      fac = [1,1,2]';
+   else % G.griddim==3
+      nufac = [-1,  1,  1,  0,  0,  0;
+                1, -1,  1,  0,  0,  0;
+                1,  1, -1,  0,  0,  0;
+                0,  0,  0, -1,  0,  0;
+                0,  0,  0,  0, -1,  0;
+                0,  0,  0,  0,  0, -1];
+      cdiag = diag([1, 1, 1, 1/2, 1/2, 1/2]);
+      fac = [1,1,1,2,2,2]';
+   end
+
+   % C is the elasticity tensor
+   C = (SparseTensor(nufac, {'i', 'j'}) * SparseTensor(nu, {'cell'}) + ...
+        ( SparseTensor(cdiag, {'i', 'j'}) * SparseTensor([], (1:G.cells.num)', {'cell'}))) ^ ...
+       SparseTensor(E ./ (1 + nu) ./ (1 - 2 * nu), {'cell'});
    
-   res.D = D;
-   res.SE = SE;
+   % D is the material property tensor used in the VEM formulation
+   D = C ^ SparseTensor(fac, 'i') ^ SparseTensor(fac, 'j');
+
 end
 
 % ----------------------------------------------------------------------------
 
-function [S, operators] = final_assembly(nad, ad)
-  
-  
+function [S, op] = final_assembly(G, op, D, alpha_scaling)
+
+   % initial indexing stuff
+   if G.griddim == 2
+      nlin = 3; % dimension ov Voigt matrix (and of local linear space)
+   else
+      nlin = 6;
+   end
+   cells = (1:G.cells.num)';
+   nlc = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells); % # of nodes per cell
+   inodes = mcolon(G.cells.nodePos(cells), (G.cells.nodePos(cells + 1)-1))';
+   nldofs = G.griddim * numel(inodes); % number of linear degs. of freedom   
+   
+   % compute trace of D
+   trD = D.contract('i', 'j').asVector({'cell'});
+   
+   % compute trace of Nc'Nc
+   DNC = diag(op.NC' * op.NC);
+   trDNC = sum(reshape(DNC, nlin, []), 1)';  
+   
+   % cannot use rldecode since alpha could be AD.  Use sparse matrix instead
+   %   alpha = rldecode((trD .* G.cells.volumes)./(trDNC), nlc * G.griddim);
+   alpha = sparse((1:sum(nlc)*G.griddim)', rldecode((1:G.cells.num)', nlc*G.griddim), 1) * ...
+           ((trD .* G.cells.volumes)./(trDNC));
+
+   alpha = alpha .* alpha_scaling;
+   
+   SE_AD = SparseTensor(alpha, [(1:nldofs)', (1:nldofs)'], {'i', 'j'}); 
+   SE = SE_AD.asMatrix({'i', 'j'});
+
+   D_all = D.asMatrix({{'cell'}, {'i', 'j'}});
+   D_AD = D;
+   D = reshape(D_all(cells, :)', nlin, [])';
+   [i, j] = blockDiagIndex(nlin * ones(numel(cells), 1), nlin * ones(numel(cells), 1));
+   D = sparse(i, j, reshape(D', [], 1), nlin * numel(cells), nlin * numel(cells));
+   
+   KH = op.volmap * op.WC * D * op.WC' + (op.I - op.PP)' * SE * (op.I - op.PP);
+   
+   S = op.assemb * KH * op.assemb';
+    
+   % adding computed matrices to return structure
+   op.trD = trD;
+   op.SE = SE;
+   op.SE_AD = SE_AD;
+   op.D = D;
+   op.D_AD = D_AD;
+   op.KH = KH;
 end

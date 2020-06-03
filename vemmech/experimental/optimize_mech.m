@@ -20,11 +20,13 @@ function [foptval, uopt, history, uu_opt, extra] = ...
 %             control parameters
 %   obj_fun - objective function to minimize.  Should take the vector of
 %             control variables as its first argument, the computed
-%             displacements as its second argument, and return the following:
+%             displacements as its second argument, and the VEM discretization
+%             ('extra') as its third argument (to avoid need of recomputing
+%             it), and return the following:
 %             + val - the objective value
 %             + du  - partial derivatives of the objective value wrt. control
 %                     variables
-%             + dd  - partial derivatives of the objectiv value wrt. 
+%             + dd  - partial derivatives of the objective value wrt. 
 %                     displacements
 %
 % RETURNS:
@@ -109,45 +111,79 @@ function [foptval, uopt, history, uu_opt, extra] = ...
    end
 end
 
-function [val, grad] = fun_wrapper(u, G, bcfun, efun, nufun, loadfun, obj_fun, extra, ...
-                                   background_forces)
+
+% ----------------------------------------------------------------------------
+function [val, grad] = fun_wrapper(u, G, bcfun, efun, nufun, loadfun, ...
+                                   obj_fun, extra, background_forces)
 
    fprintf('Calling fun_wrapper\n');
-   u = initVariablesADI(u);
+   u = initVariablesADI(value(u));
+
+   ue = initVariablesADI(value(u) + 1e-6 * [1;0]); %@@
    
    bc = bcfun(u);
    E = efun(u);
    nu = nufun(u);
    load = loadfun(u);
-   
+
+   bce = bcfun(ue); % @@
+   Ee = efun(ue); %@@
+   nue = nufun(ue); %@@
+   loade = loadfun(ue); %@@
+
    amgsolver = @(A, b) callAMGCL(A, b, 'relaxation', 'chebyshev', 'solver', 'cg', ...
                               'tolerance', 2e-6, 'maxIterations', 2000);
    
    [dd, extra] = VEM_linElast_AD(G, E, nu, bc, load, ...
-                                 'linsolve', amgsolver, 'extra', extra, ...
+                                 'linsolve', amgsolver, ...
+                                 'extra', extra, ...
                                  'background_forces', background_forces);
+
+   [dde, extrae] = VEM_linElast_AD(G, Ee, nue, bce, loade, ...
+                                 'linsolve', amgsolver, ...
+                                 'extra', extra, ...
+                                 'background_forces', background_forces); %@@
+   dde = dde'; %@@
+   
+   % @@ commented-out for now since we cannot simply re-use the
+   % discretization when E or nu can change
+   % [dd, extra] = VEM_linElast_AD(G, E, nu, bc, load, ...
+   %                               'linsolve', amgsolver, 'extra', extra, ...
+   %                               'background_forces', background_forces);
 
    %dofs = ~extra.disc.isdirdofs; %% exclude dirichlet nodes
 
    dd = dd';
    %dd = dd(dofs);
-   
    [val, oval_du, oval_dd] = obj_fun(value(u), dd(:));
+   
+   % [val, oval_du, oval_dd] = obj_fun(value(u), dd(:), extra);
+   
+   % [valep, oval_duep, oval_ddep] = obj_fun(value(ue), dde(:), extra);
+   % [vale, oval_due, oval_dde] = obj_fun(value(ue), dde(:), extrae);
+   
    
    %% use adjoint to compute gradient
    %   keyboard;
    tic; fprintf('Solving for adjoint.\n');
-   lambda = amgsolver(extra.A, -full(oval_dd));
+   lambda = -1 * amgsolver(extra.A, full(oval_dd));
    %lambda = -extra.A \ oval_dd; % A symmetric, so no transpose necessary
    toc;
    dAdu_dd = extra.Ax_derivs; % @@ check this
-   dbdu = extra.rhs.jac{1};
-   dsys_du = dAdu_dd - dbdu;
-   
+   if isa(extra.rhs, 'ADI')
+      dbdu = extra.rhs.jac{1};
+      dsys_du = dAdu_dd - dbdu;
+   else
+      dsys_du = dAdu_dd;
+   end
+      
    grad = oval_du + dsys_du' * lambda;
+
+   %grad = -grad;
    %grad = grad';
    %grad = oval_du + lambda' * dsys_du;
-   
+   %grad = -grad; %@@@@@@
+
    % invert signs, since the unitBoxBFGS routine maximizes rather than
    % minimizes
    val = -val;

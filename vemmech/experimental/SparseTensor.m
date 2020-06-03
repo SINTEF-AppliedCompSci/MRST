@@ -237,12 +237,24 @@ classdef SparseTensor
          %    self = self.changeIndexName(ixname1, newname);
          % end
          % self = self.changeIndexName(ixname2, newname);
+
+         comp_ix = self.component_with_ix(newname, true);
          
-         % if the contraction only involves a single component, carry it out
-         comp_ix = self.component_with_ix(newname, false);         
-         comp = self.components{comp_ix};
-         comp = SparseTensor.single_component_contraction(comp);
-         self.components{comp_ix} = comp;
+         if numel(comp_ix) == 1
+            % if the contraction only involves a single component, carry it out
+            comp = self.components{comp_ix};
+            comp = SparseTensor.single_component_contraction(comp, [], false);
+            self.components{comp_ix} = comp;
+         else
+            % do only semicontractions, since we need to keep the index around to do the
+            % required multicomponent contractions later
+            assert(numel(comp_ix) ~= 0);
+            for cix = comp_ix
+               comp = self.components{cix};
+               comp = SparseTensor.single_component_contraction(comp, [], true);
+               self.components{cix} = comp;
+            end
+         end
       end
       
       function self = plus(self, other)
@@ -574,12 +586,14 @@ classdef SparseTensor
       function self = complete_simple_contractions(self)
          
          for i = 1:numel(self.components)
-            self.components{i} = SparseTensor.single_component_contraction(self.components{i});
+            self.components{i} = ...
+                SparseTensor.single_component_contraction(self.components{i}, ...
+                                                          [], false);
          end
       end
       
-      function ixname = get_cheapest_pending_contraction(self)
       
+      function ixname = get_cheapest_pending_contraction(self)
          % get all index names for which there are pending contractions
          [~, cixs] = self.indexNames();
          
@@ -587,45 +601,100 @@ classdef SparseTensor
             ixname = [];
             return
          end
-         
+
          % loop through list of possible contractions and pick the cheapest possible one
          cur_lowest_cost = inf;
          for cur_name = cixs
             
-            % check if this contraction is possible at this time
-            comps_ix = self.component_with_ix(cur_name, true);
-            comps = self.components(comps_ix);
-            all_ixnames = cellfun(@(x) x.indexnames, comps, 'uniformoutput', false);
-            all_ixnames = horzcat(all_ixnames{:});
-            [names, ~, pos] = unique(all_ixnames);
-            summation_indices = names(hist(pos, unique(pos))>1);
-            % none of the indices that will be summed within this selection of components
-            % should be present in any of the other components.  Otherwise, we
-            % cannot carry out this contraction at this time
-            other_comps = self.components;
-            other_comps(comps_ix) = [];
-            
-            other_ixnames = cellfun(@(x) x.indexnames, other_comps, 'uniformoutput', false);
-            other_ixnames = unique(horzcat(other_ixnames{:}));
-
-            if numel(other_ixnames) == 0
-               overlap = [];
-            else
-               overlap = intersect(summation_indices, other_ixnames);
+            % determine minimal summation set
+            compset = self.component_with_ix(cur_name, true);
+            summation_ixs = {cur_name};
+            tmp = {};
+            while numel(tmp) ~= numel(compset)
+               tmp = compset;
+               [compset, summation_ixs] = ...
+                   self.comps_with_common_summation_indices(tmp);
             end
             
-            if isempty(overlap)
-               % no overlap with indices outside.  Contraction is possible
-                                       
-               cur_name = cur_name{:}; %#ok
-               cost = self.contraction_cost_estimate(cur_name);
-               if cost < cur_lowest_cost
-                  cur_lowest_cost = cost;
-                  ixname = cur_name;
-               end
+            % @@ the following cost estimate is a heuristic, as it doesn't take into account
+            % the size of the compset and the interaction between different
+            % indices
+            cost = 0;
+            cur_name = cur_name{:}; %#ok
+            for ix = summation_ixs
+               cost = max(cost, self.contraction_cost_estimate(ix));
+            end
+            if cost < cur_lowest_cost
+               cur_lowest_cost = cost;
+               ixname = cur_name;
             end
          end
       end
+      
+      function [compset, summation_ixs] = comps_with_common_summation_indices(self, comp_ix)
+         comps = self.components(comp_ix);
+         all_ixnames = cellfun(@(x) x.indexnames, comps, 'uniformoutput', false);
+         all_ixnames = horzcat(all_ixnames{:});
+         [names, ~, pos] = unique(all_ixnames);
+         summation_ixs = names(hist(pos, unique(pos))>1);
+         
+         compset = [];
+         for i = 1:numel(self.components)
+            if numel(intersect(summation_ixs, self.components{i}.indexnames)) > 0
+               compset = [compset, i]; %#ok
+            end
+         end
+      end
+      
+      
+      % function ixname = get_cheapest_pending_contraction(self)
+      
+      %    % get all index names for which there are pending contractions
+      %    [~, cixs] = self.indexNames();
+         
+      %    if isempty(cixs)
+      %       ixname = [];
+      %       return
+      %    end
+         
+      %    % loop through list of possible contractions and pick the cheapest possible one
+      %    cur_lowest_cost = inf;
+      %    for cur_name = cixs
+            
+      %       % check if this contraction is possible at this time
+      %       comps_ix = self.component_with_ix(cur_name, true);
+      %       comps = self.components(comps_ix);
+      %       all_ixnames = cellfun(@(x) x.indexnames, comps, 'uniformoutput', false);
+      %       all_ixnames = horzcat(all_ixnames{:});
+      %       [names, ~, pos] = unique(all_ixnames);
+      %       summation_indices = names(hist(pos, unique(pos))>1);
+      %       % none of the indices that will be summed within this selection of components
+      %       % should be present in any of the other components.  Otherwise, we
+      %       % cannot carry out this contraction at this time
+      %       other_comps = self.components;
+      %       other_comps(comps_ix) = [];
+            
+      %       other_ixnames = cellfun(@(x) x.indexnames, other_comps, 'uniformoutput', false);
+      %       other_ixnames = unique(horzcat(other_ixnames{:}));
+
+      %       if numel(other_ixnames) == 0
+      %          overlap = [];
+      %       else
+      %          overlap = intersect(summation_indices, other_ixnames);
+      %       end
+            
+      %       if isempty(overlap)
+      %          % no overlap with indices outside.  Contraction is possible
+                                       
+      %          cur_name = cur_name{:}; %#ok
+      %          cost = self.contraction_cost_estimate(cur_name);
+      %          if cost < cur_lowest_cost
+      %             cur_lowest_cost = cost;
+      %             ixname = cur_name;
+      %          end
+      %       end
+      %    end
+      % end
 
       % function ixname = get_cheapest_pending_contraction(self)
       
@@ -655,6 +724,12 @@ classdef SparseTensor
 
          comp_ixs = self.component_with_ix(ixname, true);
          assert(numel(comp_ixs) > 1);
+
+         tmp = {};
+         while numel(tmp) ~= numel(comp_ixs)
+            tmp = comp_ixs;
+            comp_ixs = self.comps_with_common_summation_indices(tmp);
+         end
          
          comps = self.components(comp_ixs);
          other_comps = self.components;
@@ -665,7 +740,10 @@ classdef SparseTensor
          self = SparseTensor([contracted_comp, other_comps]);
          
       end
+            
 
+      
+      
       % function self = two_component_contraction(self, ixname)
          
       %    comp_ixs = self.component_with_ix(ixname, true);
@@ -893,7 +971,7 @@ classdef SparseTensor
          if strcmp(comp.indexnames{idix(1)}, ixname)
             duplicate_ixname = comp.indexnames{idix(2)};
          else
-            duplicate_ixname = comp.indexnames{idix(3)};
+            duplicate_ixname = comp.indexnames{idix(1)};
          end
       end
       
@@ -1158,8 +1236,8 @@ classdef SparseTensor
          end
       end
       
-      function comp = single_component_contraction(comp, ixname)
-         if nargin < 2
+      function comp = single_component_contraction(comp, ixname, semicontract)
+         if isempty(ixname)
             % contract all duplicated indices
             keep = cellfun(@(x) sum(strcmp(x, comp.indexnames)), ...
                            comp.indexnames) == 1;
@@ -1177,12 +1255,18 @@ classdef SparseTensor
                   tmp = comp.ixs(:, cix);
                   keep_entries = tmp(:,1) == tmp(:,2);
                   comp.ixs = comp.ixs(keep_entries, :);
-                  comp.ixs(:, cix) = [];
                   comp.coefs = comp.coefs(keep_entries);
-                  comp.indexnames(cix) = [];
+                  if semicontract
+                     comp.ixs(:, cix(2)) = [];
+                     comp.indexnames(cix(2)) = [];
+                  else
+                     comp.ixs(:, cix) = [];
+                     comp.indexnames(cix) = [];
+                  end
                end
             end
          else 
+            assert(nargin < 3 || ~semicontract); % doesn't make sense for single-index contractions
             % contract one component in one index
             local_ind = strcmp(ixname, comp.indexnames);
 
@@ -1406,7 +1490,7 @@ classdef SparseTensor
                component.ixs = nz(:);
             else
                component.coefs = coefs(:);
-               component.ixs = (1:numel(coefs))';
+               component.ixs = (1:numel(value(coefs)))';
             end
          else
             assert(numel(indexnames)==2);

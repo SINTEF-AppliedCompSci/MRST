@@ -183,6 +183,7 @@ compute_index_ranges(const TensorComp<T>& comp,
   typedef typename TensorComp<T>::Index Index;
   const int elnum = (int)cixnames.size(); // number of multiindex components
   const size_t mixnum = mixs.size() / elnum; // number of multiindices
+  std::vector<std::array<Index, 2>> result(mixnum);
   
   // determine contracting indices present in this component
   std::vector<int> active;
@@ -192,11 +193,19 @@ compute_index_ranges(const TensorComp<T>& comp,
 
   const int actnum = active.size(); // number of active contracting indices in comp
 
+  // return early if component doesn't contain any summation indices
+  if (actnum == 0) {
+    for (size_t i = 0; i != mixnum; ++i)
+      result[i] = {Index(0), Index(comp.ixs().size())};
+    return result;
+  }
+  
   // preparing index vectors for comparison
   std::vector<std::vector<Index>> tmp;
   for (size_t i = 0; i != actnum; ++i)
     tmp.push_back(comp.indexValuesFor(cixnames[active[i]]));
 
+  
   std::vector<Index> comp_ixs;
   for (size_t i = 0; i != tmp[0].size(); ++i) 
     for (int j = 0; j != tmp.size(); ++j)
@@ -211,7 +220,6 @@ compute_index_ranges(const TensorComp<T>& comp,
                                        
 
   // loop through all multiindices and define ranges
-  std::vector<std::array<Index, 2>> result(mixnum);
 
   const auto ixless = [actnum](typename std::vector<Index>::iterator cix,
                                typename std::vector<Index>::iterator mix) {
@@ -362,7 +370,7 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
   std::vector<T> coefs;
   std::vector<Index> indices;
   std::vector<size_t> rstart(ranges.size()), rlen(ranges.size()), running(ranges.size(), 0);
-  std::cout << "Num index combinations: " << N << std::endl;
+  //std::cout << "Num index combinations: " << N << std::endl;
 
   const size_t CONSOLIDATE_TRIGGER = 2000000; // @@ doesn't seem to improve
                                                // overall runtime, but may come
@@ -370,7 +378,7 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
   for (size_t i = 0; i != N; ++i) {
 
     if ( (i+1) % CONSOLIDATE_TRIGGER == 0) {
-      std::cout << "Consolidating for i=" << i << std::endl;
+      //std::cout << "Consolidating for i=" << i << std::endl;
       consolidate_entries(coefs, indices);
     }      
 
@@ -429,7 +437,7 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
   // generate result tensor and add up element with similar indices
   TensorComp<T> result(indexnames, coefs, indices_reordered);
   result.sumEqualIndices();
-  std::cout << "Exiting compute_sums." << std::endl;
+  //std::cout << "Exiting compute_sums." << std::endl;
   
   return result;
 

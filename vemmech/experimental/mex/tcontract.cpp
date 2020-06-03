@@ -38,7 +38,7 @@ public:
     else
       outputs[0] = contract<double>(cells);
 
-    std::cout << "Now returning to MATLAB." << std::endl;
+    //std::cout << "Now returning to MATLAB." << std::endl;
     
   }
 
@@ -53,7 +53,7 @@ public:
 
     const vector<TensorComp<T>> resultcomps = contract_components(comps);
 
-    cout << "Now preparing data for return to MATLAB." << endl;
+    //cout << "Now preparing data for return to MATLAB." << endl;
 
     // convert TensorComp to a return value to put into 'outputs'
     ArrayFactory factory;

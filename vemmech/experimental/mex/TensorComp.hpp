@@ -192,10 +192,10 @@ TensorComp<T>::moveIndicesFirst(const std::vector<std::string>& ixnames)
 template<typename T> inline TensorComp<T>& TensorComp<T>::sumEqualIndices()
 // ----------------------------------------------------------------------------
 {
-  std::cout << "Entering sumEqualIndices. " << std::endl;
+  //std::cout << "Entering sumEqualIndices. " << std::endl;
   sortElementsByIndex(); // ensure equal indices follow each other
 
-  std::cout << "Still in sumEqualIndices - just finished sorting elements." << std::endl;
+  //std::cout << "Still in sumEqualIndices - just finished sorting elements." << std::endl;
   const int N = numIndices();
   std::vector<T> new_coefs;
   std::vector<std::vector<Index>> new_indices(N);
@@ -238,7 +238,7 @@ template<typename T> inline TensorComp<T>& TensorComp<T>::sumEqualIndices()
   coefs_.swap(new_coefs);
   ixs_.swap(all_ixs);
 
-  std::cout << "Finishing sumEqualIndices." << std::endl;
+  //std::cout << "Finishing sumEqualIndices." << std::endl;
   return *this;
 }
 
@@ -284,7 +284,7 @@ TensorComp<T>::sortElementsByIndex(bool descending)
   const size_t Nc = numCoefs();
   const size_t Ni = numIndices();
 
-  std::cout << "Sorting " << Nc << " indices." << std::endl;
+  //std::cout << "Sorting " << Nc << " indices." << std::endl;
   std::vector<const Index*> ptrs(Nc); // first sort pointers, then shuffle data
 
   // make pointers point to first index element of each multiindex
@@ -299,7 +299,7 @@ TensorComp<T>::sortElementsByIndex(bool descending)
               };
 
   if (std::is_sorted(ptrs.begin(), ptrs.end(), comp)) {
-    std::cout << "Already sorted. Returning." << std::endl;
+    //std::cout << "Already sorted. Returning." << std::endl;
     return *this;
   }
   
@@ -323,7 +323,7 @@ TensorComp<T>::sortElementsByIndex(bool descending)
       ptrs[ic] += Nc; // progress pointer to next column of indices
     }
   }
-  std::cout << "Finished!" << std::endl;
+  //std::cout << "Finished!" << std::endl;
   std::swap(coefs_, coefs_sorted);
   std::swap(ixs_, ixs_sorted);
 
