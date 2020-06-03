@@ -4,7 +4,9 @@
 %   FacilityFluxDiscretization - 
 %   FlowPropertyFunctions      - Default grouping for describing a system of flow equations. Contains
 %   FluxDiscretization         - Function grouping for Darcy-type flux discretization. The defaults
+%   PVTPropertyFunctions       - Default grouping for describing a system of flow equations. Contains
 %   StateFunction              - Class for gridded domain properties
+%   StateFunctionDependent     - A virtual class used for multiple inheritance. If a class inherits
 %   StateFunctionGrouping      - A StateFunctionGrouping class is a grouping of interdependent properties.
 
 %{

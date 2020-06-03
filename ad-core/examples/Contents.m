@@ -2,10 +2,13 @@
 %
 % Files
 %   adBuckleyLeverett1D             - Classic Buckley-Leverett Problem: 1D Horizontal Displacement
+%   blockAssemblyBigModelExample    - Large example demonstrating different types of fast assembly in MRST
 %   demoPackedProblems              - Managing simulations: Restart, packed problems and more
 %   differentRegionFunctionsExample - The use of regions: Different functions in different parts of the domain
+%   ensemblePackedProblemsExample   - Managing multiple realizations as packed problems
 %   fluidInspectionExample          - Demonstrate Interactive Plotting of Fluid Properties for AD-solvers
-%   linearSolverExample             - Set up model
+%   linearSolverExample             - 
+%   MPFAvsTPFAwithADExample         - Combining consistent discretizations with AD-OO
 %   stateFunctionTutorial           - Introduction to StateFunctions for the AD-OO framework
 %   wenoExampleAD                   - Set up scenario
 

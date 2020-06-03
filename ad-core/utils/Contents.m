@@ -4,9 +4,11 @@
 %   addPropertyDependence                 - Document dependencies and external dependencies
 %   addFluxesFromSourcesAndBC             - Add in fluxes imposed by sources and face boundary conditions
 %   assignValue                           - Assign values to ADI object by way of indices, without changing jacobians
+%   assignWellValuesFromControl           - Assign wellSol values when values are set as controls
 %   bc2ADbc                               - INTERNAL DEPRECATED FUNCTION: Intentionally undocumented.
 %   checkWellConvergence                  - Compute convergence for wells.
 %   CNV_MBConvergence                     - Compute convergence based on total mass balance and maximum residual mass balance.
+%   calculatePhaseRate                    - Undocumented Utility Function
 %   combineEquations                      - Combine equations. For doubles, this is equivialent to a vertical
 %   compressSchedule                      - Compress schedule to take the longest possible timesteps while honoring controls
 %   computeCpGeometry                     - Undocumented Utility Function
@@ -28,13 +30,14 @@
 %   getCellMajorReordering                - Get equation ordering transforming variable major to cell major ordering
 %   getConvergenceValuesCNV               - Compute convergence based on total mass balance and maximum residual mass balance.
 %   getConvergenceValuesWells             - Undocumented Utility Function
-%   getFaceTransmissibility               - Compute face transmissibilities, accounting for input-specific multipliers
+%   getEquilPC                            - Undocumented Utility Function
 %   getFractionalFlowMagnitude            - Undocumented Utility Function
 %   getGridSYMRCMOrdering                 - Undocumented Utility Function
 %   getMultiDimInterpolator               - Get a multidimensional interpolator (with support for ADI varibles)
 %   getMultipliers                        - Get dynamic multiplier values for reservoir quantities
 %   getPerforationToWellMapping           - Get map from global perforation number to global well index.
 %   getReportMinisteps                    - Get the timesteps used for the ministeps of a report
+%   getReportOutput                       - Get output from report after call to simulateScheduleAD
 %   getSampleAD                           - Utility for getting a AD value if it exists from a list of possible
 %   getSimulationTime                     - Get the global time for a set of states produced by simulateScheduleAD
 %   getSourceFluxesAD                     - Short description
@@ -59,8 +62,12 @@
 %   selectLinearSolverAD                  - Undocumented Utility Function
 %   selectModelFromDeck                   - Select simulation model from a ECLIPSE/FrontSim style input deck
 %   setupOperatorsTPFA                    - Set up helper structure for solvers based on automatic differentiation.
+%   setMPFADiscretization                 - Set MPFA discretization on a model
+%   setTimeDiscretization                 - Set the discretization choice for a model
 %   setWellSign                           - Ensure that wells have a defined sign. Will attempt to guess based on controls.
+%   setWENODiscretization                 - Set WENO discretization on a model
 %   simpleSchedule                        - Make a schedule with varying timesteps and fixed wells/bc/src terms
+%   sizeJac                               - Undocumented Utility Function
 %   splitFaceCellValue                    - Split multi-valued function into cell and face values
 %   splitMatrixForReduction               - Split matrix A and right-hand side into blocks
 %   standaloneSolveAD                     - Solve a single time-step with AD solvers for given forces

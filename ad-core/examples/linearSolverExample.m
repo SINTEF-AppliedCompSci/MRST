@@ -277,6 +277,9 @@ function d = getData(r)
     tot = prep + solve + post;
     d = [solve; prep; post]';
 end
+
+%% Copyright Notice
+%
 % <html>
 % <p><font size="-1">
 % Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

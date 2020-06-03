@@ -4,6 +4,7 @@
 %   buildStateFunctionDigraph               - Undocumented Utility Function
 %   getStateFunctionGroupingDependencyGraph - Get dependency graph for one or more StateFunctionGrouping instances
 %   plotStateFunctionGroupings              - Plot stateFunctionGrouping
+%   printStateFunctionGroupingTikz          - Undocumented Utility Function
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

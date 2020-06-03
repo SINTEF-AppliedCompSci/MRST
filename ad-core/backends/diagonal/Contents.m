@@ -1,6 +1,7 @@
 % DIAGONAL
 %
 % Files
+%   ConservationLawJacobian - Very experimental class for Jacobian of a conservation law
 %   DiagonalAutoDiffBackend - Automatic differentiation backend class (diagonal representation)
 %   DiagonalJacobian        - Diagonal representation of a Jacobian
 %   FixedWidthJacobian      - Structured subset of a diagonal jacobian

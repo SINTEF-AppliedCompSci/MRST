@@ -2,11 +2,14 @@
 %
 % Files
 %   clearPackedSimulatorOutput        - Remove stored data for one or more packed simulation problem
+%   copyPackedProblem                 - Make a copy of a packed problem with a new name and updated
 %   getMultiplePackedSimulatorOutputs - Short description
 %   getPackedSimulatorOutput          - Get output from a packed simulation problem
+%   initEclipsePackedProblemAD        - Set up a packed problem based on Eclipse input with reasonable defaults
 %   monitorBackgroundSimulations      - Monitor simulations running in the background or another session
 %   PackedProblemManager              - Class for managing a set of packed simulation problems. See
 %   packSimulationProblem             - Pack simulation inputs into a single atomic representation of problem
+%   plotPackedProblem                 - Plot simulation results from a packed problem
 %   simulatePackedProblem             - Simulate one or more packed simulation problems
 %   simulatePackedProblemBackground   - Simulate a packed simulation problem as a seperate Matlab thread
 %   simulatePackedProblemStandalone   - Stand-alone solver for running packed problems programmatically

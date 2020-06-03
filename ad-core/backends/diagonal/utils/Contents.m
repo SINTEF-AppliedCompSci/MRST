@@ -1,15 +1,16 @@
 % UTILS
 %
 % Files
-%   diagMult                 - Internal function for diagonal multiplication in AD code
-%   diagProductMult          - Undocumented Utility Function
-%   double2GenericAD         - Convert a double to GenericAD variable, using a sample GenericAD variable for dimensions
-%   getSparseArguments       - Get sparse matrix indices
-%   getSparseBlocks          - Get sparse blocks
-%   incrementSubset          - Update a subset directly
-%   initVariablesAD_diagonal - Diagonal AD initializer
-%   initVariablesAD_oneBlock - Initialize a set of automatic differentiation variables (single block)
-%   matrixDims               - Overloadable version of size
+%   diagMult                         - Internal function for diagonal multiplication in AD code
+%   diagProductMult                  - Undocumented Utility Function
+%   double2GenericAD                 - Convert a double to GenericAD variable, using a sample GenericAD variable for dimensions
+%   getSparseArguments               - Get sparse matrix indices
+%   getSparseBlocks                  - Get sparse blocks
+%   incrementSubset                  - Update a subset directly
+%   initVariablesAD_diagonal         - Diagonal AD initializer
+%   initVariablesAD_diagonalRowMajor - Diagonal AD initializer
+%   initVariablesAD_oneBlock         - Initialize a set of automatic differentiation variables (single block)
+%   matrixDims                       - Overloadable version of size
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

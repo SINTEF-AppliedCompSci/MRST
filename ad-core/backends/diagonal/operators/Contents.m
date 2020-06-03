@@ -1,10 +1,12 @@
 % OPERATORS
 %
 % Files
-%   discreteDivergence - Discrete divergence for the GenericAD library
-%   faceAverage        - Face average operator for the GenericAD library
-%   singlePointUpwind  - Single-point upwind for the GenericAD library
-%   twoPointGradient   - Discrete gradient for the GenericAD library
+%   blockCSRtoSparse              - Convert a block CSR matrix to Matlab's scalar CSC matrix (block-wise
+%   discreteDivergenceDiagonalJac - Undocumented Utility Function
+%   discreteDivergence            - Discrete divergence for the GenericAD library
+%   faceAverage                   - Face average operator for the GenericAD library
+%   singlePointUpwind             - Single-point upwind for the GenericAD library
+%   twoPointGradient              - Discrete gradient for the GenericAD library
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

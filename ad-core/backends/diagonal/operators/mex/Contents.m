@@ -1,10 +1,17 @@
 % MEX
 %
 % Files
+%   buildMexExtensions                     - (Re)build a set of mex extensions located in a specific folder
+%   buildMexOperators                      - Build MEX operators for automatic differentiation
 %   getMexDiscreteDivergenceJacPrecomputes - Undocumented Utility Function
 %   mexDiagonalSparse                      - Undocumented Utility Function
+%   mexDiagMult                            - Undocumented Utility Function
+%   mexDiagProductMult                     - Undocumented Utility Function
+%   mexDiscreteDivergenceBlockJac          - Undocumented Utility Function
 %   mexDiscreteDivergenceJac               - Undocumented Utility Function
+%   mexDiscreteDivergenceVal               - Undocumented Utility Function
 %   mexFaceAverageDiagonalJac              - Undocumented Utility Function
+%   mexFaceAverageVal                      - Undocumented Utility Function
 %   mexSinglePointUpwindDiagonalJac        - Undocumented Utility Function
 %   mexSinglePointUpwindVal                - Undocumented Utility Function
 %   mexTwoPointGradientDiagonalJac         - Undocumented Utility Function

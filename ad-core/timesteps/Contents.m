@@ -1,6 +1,7 @@
 % TIMESTEPS
 %
 % Files
+%   FactorTimeStepSelector         - Time step selector that always tries to increase the time-step
 %   IterationCountTimeStepSelector - Adjust timesteps based with target iteration count, based on history
 %   rampupTimesteps                - Create timesteps that ramp up geometrically
 %   SimpleTimeStepSelector         - Time step selector base class

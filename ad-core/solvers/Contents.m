@@ -1,18 +1,20 @@
 % SOLVERS
 %
 % Files
-%   AMGCL_CPRSolverAD    - Linear solver that calls external compiled multigrid solver
-%   AGMGSolverAD         - Linear solver that calls external compiled multigrid solver
-%   AMGCLSolverAD        - Linear solver that calls external compiled multigrid solver
-%   BackslashSolverAD    - Linear solver that calls standard MATLAB direct solver mldivide "\"
-%   CPRSolverAD          - Solve a problem with a pressure component using constrained a pressure residual method
-%   getNonLinearSolver   - Set up reasonable defaults for the nonlinear solver for a field
-%   GMRES_ILUSolverAD    - Preconditioned GMRES solver.
-%   HandleLinearSolverAD - Simple solver for wrapping functions on the form x = fn(A, b);
-%   LinearizedProblem    - A linearized problem within a non-linear iteration
-%   LinearSolverAD       - Base class for linear solvers in the AD framework
-%   NonLinearSolver      - Generalized Newton-like nonlinear solver
-%   NoOpSolverAD         - Linear solver that does nothing.
+%   AMGCL_CPRSolverAD      - Linear solver that calls external compiled multigrid solver
+%   AMGCL_CPRSolverBlockAD - Linear solver that calls external compiled multigrid solver
+%   AGMGSolverAD           - Linear solver that calls external compiled multigrid solver
+%   AMGCLSolverAD          - Linear solver that calls external compiled multigrid solver
+%   AMGCLSolverBlockAD     - Linear solver that calls external compiled multigrid solver
+%   BackslashSolverAD      - Linear solver that calls standard MATLAB direct solver mldivide "\"
+%   CPRSolverAD            - Solve a problem with a pressure component using constrained a pressure residual method
+%   getNonLinearSolver     - Set up reasonable defaults for the nonlinear solver for a field
+%   GMRES_ILUSolverAD      - Preconditioned GMRES solver.
+%   HandleLinearSolverAD   - Simple solver for wrapping functions on the form x = fn(A, b);
+%   LinearizedProblem      - A linearized problem within a non-linear iteration
+%   LinearSolverAD         - Base class for linear solvers in the AD framework
+%   NonLinearSolver        - Generalized Newton-like nonlinear solver
+%   NoOpSolverAD           - Linear solver that does nothing.
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

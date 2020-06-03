@@ -1,20 +1,20 @@
 % FLUX
 %
 % Files
-%   ComponentPhaseFlux                    - 
-%   ComponentTotalFlux                    - 
-%   FaceComponentMobility                 - 
-%   FaceMobility                          - 
-%   GravityPotentialDifference            - 
-%   PermeabilityGradientDiscretization    - Class defining the discretization of the permeability
-%   PermeabilityPotentialGradient         - 
-%   PhaseFlux                             - 
-%   PhasePotentialDifference              - 
-%   PhaseUpwindFlag                       - 
-%   PressureGradient                      - 
-%   PressureGradientWithThresholdPressure - 
-%   Transmissibility                      - 
-%   TwoPointFluxApproximation             - 
+%   ComponentPhaseFlux                  - Flux of each component, in each phase
+%   ComponentTotalFlux                  - Total flux of all components, summed up over all phases
+%   FaceComponentMobility               - Mobility of the component mass for all components in all phases, with
+%   FaceMobility                        - Phase mobility, with phase upwind (or alternatively some other
+%   GravityPotentialDifference          - Difference in phase potential over a face due to gravity
+%   PermeabilityGradientDiscretization  - Class defining the discretization of the permeability
+%   PermeabilityPotentialGradient       - The difference in potential over a face, multiplied with a
+%   PhaseFlux                           - Phase flux for each phase. The volumetric flux associated with each
+%   PhasePotentialDifference            - The potential difference over each interface, for each phase. This is
+%   PhasePotentialDifferenceThresholded - 
+%   PhaseUpwindFlag                     - Phase-upstream flag for each phase
+%   PressureGradient                    - Gradient of phase pressures for internal faces
+%   Transmissibility                    - Transmissibility for internal faces. May include an optional
+%   TwoPointFluxApproximation           - 
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

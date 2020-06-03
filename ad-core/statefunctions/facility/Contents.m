@@ -1,14 +1,17 @@
 % FACILITY
 %
 % Files
-%   FacilityWellMapping              - Generate a struct containing a bunch of useful mappings for a given
-%   InjectionSurfaceDensity          - Get injection surface density
-%   PressureGradient                 - Calculate the pressure difference between the reservoir cells and the
-%   WellComponentPhaseFlux           - Component flux in each phase for wells
-%   WellComponentTotalFlux           - Component total flux for wells (with treatment for cross-flow)
-%   WellComponentTotalFluxDensityMix - Component total flux for wells (with treatment for cross-flow)
-%   WellIndex                        - Get the well index (productivity or injectivity index, equivialent to
-%   WellPhaseFlux                    - Get phase-flux between well-bore and reservoir
+%   FacilityWellMapping                      - Generate a struct containing a bunch of useful mappings for a given
+%   InjectionSurfaceDensity                  - Get injection surface density
+%   PerforationComponentPhaseDensity         - Component density to used for each well connection
+%   PerforationMobility                      - Mobility in each perforated cell of a well
+%   PerforationPressureGradient              - Calculate the pressure difference between the reservoir cells and the
+%   WellComponentPhaseFlux                   - Component flux in each phase for wells
+%   WellComponentTotalFlux                   - Component total flux for wells (with treatment for cross-flow)
+%   WellComponentTotalFluxDensityMix         - Component total flux for wells (with treatment for cross-flow)
+%   WellComponentTotalVolumeBalanceCrossflow - Component total flux for wells (with treatment for cross-flow)
+%   WellIndex                                - Get the well index (productivity or injectivity index, equivialent to
+%   WellPhaseFlux                            - Get phase-flux between well-bore and reservoir
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

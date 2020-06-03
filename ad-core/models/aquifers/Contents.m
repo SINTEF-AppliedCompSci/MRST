@@ -1,10 +1,8 @@
-% COMPONENTS
+% AQUIFERS
 %
 % Files
-%
-%   ConcentrationComponent - A component description that assumes that the component is
-%   GenericComponent       - The base class that implements all interfaces for a given component.
-%   ImmiscibleComponent    - Specialized interface for immiscible component
+%   AquiferModel          - 
+%   selectAquiferFromDeck - Pick AquiferModel from input deck
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
@@ -24,3 +22,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+

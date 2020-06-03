@@ -1,10 +1,9 @@
-% COMPONENTS
+% UTILS
 %
 % Files
-%
-%   ConcentrationComponent - A component description that assumes that the component is
-%   GenericComponent       - The base class that implements all interfaces for a given component.
-%   ImmiscibleComponent    - Specialized interface for immiscible component
+%   TutorialAdd     - 
+%   TutorialNumber  - 
+%   TutorialProduct - 
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
