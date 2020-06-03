@@ -3,6 +3,26 @@ function [order, M, cyclesPresent, cycleSize] = getTopologicalCellPermutation(G,
     % induced by the edges v. Input v has one entry per internal
     % connection, and may have multiple columns. The sign of an edge is
     % interpreted in the same way as intercell fluxes.
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     require matlab_bgl
     opt = struct('W'             , []   , ... % Well structure
                  'padWells'      , true , ... % Pad wells with one cell
