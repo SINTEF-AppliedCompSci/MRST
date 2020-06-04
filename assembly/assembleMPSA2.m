@@ -105,6 +105,22 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     % Large sparsity than cellnodefacetbl ! 
     cell2nodefacetbl = crossIndexArray(cellnodetbl, cellnodefacetbl, {'nodes'}, 'crossextend', {{'cells', {'cells1', 'cells2'}}});
     cell2nodefacecolrow2tbl = crossIndexArray(cell2nodefacetbl, colrow2tbl, {});
+    cell_1nodeface_1coltbl = replacefield(cellnodefacecoltbl, {{'cells', 'cells1'}, {'faces', 'faces1'}});
+    
+    cell2nodeface_2colrow2tbl = replacefield(cell2nodefacecolrow2tbl, {{'faces', 'faces2'}});
+    cell2nodeface2colrow2tbl = crossIndexArray(cell_1nodeface_1coltbl, cell2nodeface_2colrow2tbl, {'cells1', 'coldim'});
+    cell2nodeface2row2tbl = projIndexArray(cell2nodeface2colrow2tbl, {'cells1', 'cells2', 'nodes', 'faces1', 'faces2', 'rowdim1', 'rowdim2'});
+    cell2nodeface2col2tbl = replacefield(cell2nodeface2row2tbl, {{'rowdim1', 'coldim1'}, {'rowdim2', 'coldim2'}});
+    
+    nodeface2col2tbl = projIndexArray(cell2nodeface2col2tbl, {'nodes', 'faces1', 'faces2', 'coldim1', 'coldim2'});
+    
+    cell_1nodefacecol2tbl = projIndexArray(cell2nodeface2col2tbl, {'cells1', 'nodes', 'faces2', 'coldim1', 'coldim2'});
+    cell_1nodefacecol2tbl = replacefield(cell_1nodefacecol2tbl, {{'cells1', 'cells'}, {'faces2', 'faces'}});
+    
+    cell_2nodefacecol2tbl = projIndexArray(cell2nodeface2col2tbl, {'cells2', 'nodes', 'faces1', 'coldim1', 'coldim2'});
+    cell_2nodefacecol2tbl = replacefield(cell_2nodefacecol2tbl, {{'cells2', 'cells'}, {'faces1', 'faces'}});
+    
+    cell2col2tbl = projIndexArray(cell2nodeface2col2tbl, {'cells1', 'cells2', 'coldim1', 'coldim2'});
     
     % cellnodefacetbl2 = crossIndexArray(nodefacetbl, cellnodetbl, {'nodes'});
     % colrow2tbl = crossIndexArray(colrowtbl, colrowtbl, {'coldim'}, 'crossextend', {{'rowdim', {'rowdim1', 'rowdim2'}}});
@@ -263,17 +279,15 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
         
     end
     
-    return
-    
     %% We multiply Cg with facetNormals
     
     prod = TensorProd();
     prod.tbl1 = cellnodefacecoltbl;
-    prod.tbl2 = cellnodefacecolrow2tbl2;
-    prod.tbl3 = cellnodeface2col2tbl;
-    prod.replacefds1 = {{'faces', 'faces1'}};
+    prod.tbl2 = cell2nodefacecolrow2tbl;
+    prod.tbl3 = cell2nodeface2col2tbl;
+    prod.replacefds1 = {{'cells', 'cells1'}, {'faces', 'faces1'}};
     prod.replacefds2 = {{'rowdim1', 'coldim1'}, {'rowdim2', 'coldim2'}, {'faces', 'faces2'}};
-    prod.mergefds = {'cells', 'nodes'};
+    prod.mergefds = {'cells1', 'nodes'};
     prod.reducefds = {'coldim'};
     prod = prod.setup();
     
@@ -282,7 +296,7 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     %% We setup A11
     
     map = TensorMap();
-    map.fromTbl = cellnodeface2col2tbl;
+    map.fromTbl = cell2nodeface2col2tbl;
     map.toTbl = nodeface2col2tbl;
     map.mergefds = {'nodes', 'faces1', 'faces2', 'coldim1', 'coldim2'};
     map = map.setup();
@@ -306,9 +320,9 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     %% We setup A12
     
     map = TensorMap();
-    map.fromTbl = cellnodeface2col2tbl;
-    map.toTbl = cellnodefacecol2tbl;
-    map.replaceFromTblfds = {{'faces1', 'faces'}};
+    map.fromTbl = cell2nodeface2col2tbl;
+    map.toTbl = cell_2nodefacecol2tbl;
+    map.replaceFromTblfds = {{'faces1', 'faces'}, {'cells2', 'cells'}};
     map.mergefds = {'cells', 'nodes', 'faces', 'coldim1', 'coldim2'};
     map = map.setup();
     
@@ -316,7 +330,7 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     A12 = map.eval( - nCg);
     
     prod = TensorProd();
-    prod.tbl1 = cellnodefacecol2tbl;
+    prod.tbl1 = cell_2nodefacecol2tbl;
     prod.tbl2 = cellcoltbl;
     prod.tbl3 = nodefacecoltbl;
     prod.replacefds1 = {{'coldim1', 'coldim'}};
@@ -331,9 +345,9 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     %% We setup A21
     
     map = TensorMap();
-    map.fromTbl = cellnodeface2col2tbl;
-    map.toTbl = cellnodefacecol2tbl;
-    map.replaceFromTblfds = {{'faces2', 'faces'}};
+    map.fromTbl = cell2nodeface2col2tbl;
+    map.toTbl = cell_1nodefacecol2tbl;
+    map.replaceFromTblfds = {{'faces2', 'faces'}, {'cells1', 'cells'}};
     map.mergefds = {'cells', 'nodes', 'faces', 'coldim1', 'coldim2'};
     map = map.setup();
     
@@ -341,12 +355,15 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     A21 = map.eval( - nCg);
     
     prod = TensorProd();
-    prod.tbl1 = cellnodefacecol2tbl;
+    prod.tbl1 = cell_1nodefacecol2tbl;
     prod.tbl2 = nodefacecoltbl;
     prod.tbl3 = cellcoltbl;
-    prod.replacefds1 = {{'coldim2', 'coldim'}};
-    prod.replacefds2 = {{'coldim', 'coldim1'}};
-    prod.reducefds = {'nodes', 'faces', 'coldim1'};
+    % prod.replacefds1 = {{'coldim2', 'coldim'}};
+    % prod.replacefds2 = {{'coldim', 'coldim1'}};
+    % prod.reducefds = {'nodes', 'faces', 'coldim1'};
+    prod.replacefds1 = {{'coldim1', 'coldim'}};
+    prod.replacefds2 = {{'coldim', 'coldim2'}};
+    prod.reducefds = {'nodes', 'faces', 'coldim2'};
     prod = prod.setup();
     
     A21_T = SparseTensor();
@@ -356,21 +373,20 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     %% We setup A22
     
     map = TensorMap();
-    map.fromTbl = cellnodeface2col2tbl;
-    map.toTbl = cellcol2tbl;
-    map.mergefds = {'cells', 'coldim1', 'coldim2'};
+    map.fromTbl = cell2nodeface2col2tbl;
+    map.toTbl = cell2col2tbl;
+    map.mergefds = {'cells1', 'cells2', 'coldim1', 'coldim2'};
     map = map.setup();
     
     A22 = map.eval(nCg);
     
     prod = TensorProd();
-    prod.tbl1 = cellcol2tbl;
+    prod.tbl1 = cell2col2tbl;
     prod.tbl2 = cellcoltbl;
     prod.tbl3 = cellcoltbl;
-    prod.replacefds1 = {{'coldim1', 'coldim'}};
-    prod.replacefds2 = {{'coldim', 'coldim2'}};
-    prod.mergefds = {'cells'};
-    prod.reducefds = {'coldim2'};
+    prod.replacefds1 = {{'coldim1', 'coldim'}, {'cells1', 'cells'}};
+    prod.replacefds2 = {{'coldim', 'coldim2'}, {'cells', 'cells2'}};
+    prod.reducefds = {'coldim2', 'cells2'};
     prod = prod.setup();
     
     A22_T = SparseTensor();
@@ -385,7 +401,7 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     bi = blockInverter(opt);
     invA11 = bi(A11, sz);
 
-
+    
     % We enforce the boundary conditions as Lagrange multipliers
 
     bc = loadstruct.bc;

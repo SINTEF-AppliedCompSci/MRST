@@ -442,7 +442,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     combCgradcell_T = 0.5*(Cgradcell_T + transaverCgradcell_T);
     % combCgradcell_T = transaverCgradcell_T;    
     
-    debug = true;
+    debug = false;
     if debug
         C1 = combCgradnodeface_T.getMatrix();
         C2 = combCgradcell_T.getMatrix();
