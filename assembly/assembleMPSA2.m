@@ -99,14 +99,25 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     nodefacecolrow2tbl = crossIndexArray(nodefacecolrowtbl, rowtbl, {}, 'crossextend', {{'rowdim', {'rowdim1', 'rowdim2'}}});
     
     % table for dispatching Caverg
-    cellnodefacecolrow2tbl2 = crossIndexArray(nodefacecolrow2tbl, cellnodetbl, {'nodes'});
+    % cellnodefacecolrow2tbl2 = crossIndexArray(nodefacecolrow2tbl, cellnodetbl, {'nodes'});
     
-    cellnodeface2col2tbl   = crossIndexArray(cellnodefacecoltbl, cellnodefacecoltbl, {'cells', 'nodes'}, 'crossextend', {{'faces', ...
-                        {'faces1', 'faces2'}}, {'coldim', {'coldim1', 'coldim2'}}});
-    nodeface2col2tbl = crossIndexArray(nodefacecoltbl, nodefacecoltbl, {'nodes'}, 'crossextend', {{'faces', {'faces1', 'faces2'}}, ...
-                        {'coldim', {'coldim1', 'coldim2'}}});
-    cellnodefacecol2tbl    = replacefield(cellnodefacecolrowtbl, {{'coldim', 'coldim1'}, {'rowdim', 'coldim2'}});
-    cellcol2tbl            = crossIndexArray(cellcoltbl, coltbl, {}, 'crossextend', {{'coldim', {'coldim1', 'coldim2'}}});
+    % Large sparsity than cellnodefacetbl ! 
+    cellnodefacetbl2 = crossIndexArray(nodefacetbl, cellnodetbl, {'nodes'});
+    
+    colrow2tbl = crossIndexArray(colrowtbl, colrowtbl, {'coldim'}, 'crossextend', {{'rowdim', {'rowdim1', 'rowdim2'}}});
+    cellnodefacecolrow2tbl2 = crossIndexArray(cellnodefacetbl2, colrow2tbl, {});
+    
+    % create cellnodeface2col2tbl
+    cellnodeface2tbl = crossIndexArray(cellnodefacetbl2, cellnodefacetbl2, {'cells', 'nodes'}, 'crossextend', { {'faces', ...
+                        {'faces1', 'faces2'}}});
+    col2tbl = crossIndexArray(coltbl, coltbl, {}, 'crossextend', {{'coldim', {'coldim1', 'coldim2'}}});
+    cellnodeface2col2tbl = crossIndexArray(cellnodeface2tbl, col2tbl, {});
+    
+    % create cellnodeface2col2tbl
+    nodeface2col2tbl    = projIndexArray(cellnodeface2col2tbl, {'nodes', 'faces1', 'faces2', 'coldim1', 'coldim2'});
+    cellnodefacecol2tbl = projIndexArray(cellnodeface2col2tbl, {'cells', 'nodes', 'faces1', 'coldim1', 'coldim2'});
+    cellnodefacecol2tbl = replacefield(cellnodefacecol2tbl, {'faces1', 'faces'});
+    cellcol2tbl         = projIndexArray(cellnodeface2col2tbl, {'cells', 'coldim1', 'coldim2'});
     
     prod = TensorProd();
     prod.tbl1 = cellcol2row2tbl;
@@ -197,12 +208,12 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     
     prod = TensorProd();
     prod.tbl1 = cellnodefacecoltbl;
-    prod.tbl2 = cellnodefacecol2rowtbl;
+    prod.tbl2 = cellnodefacecolrow2tbl2;
     prod.tbl3 = cellnodeface2col2tbl;
-    prod.replacefds1 = {{'coldim', 'rowdim'}, {'faces', 'faces1'}};
-    prod.replacefds2 = {{'faces', 'faces2'}};
+    prod.replacefds1 = {{'faces', 'faces1'}};
+    prod.replacefds2 = {{'rowdim1', 'coldim1'}, {'rowdim2', 'coldim2'}, {'faces', 'faces2'}};
     prod.mergefds = {'cells', 'nodes'};
-    prod.reducefds = {'rowdim'};
+    prod.reducefds = {'coldim'};
     prod = prod.setup();
     
     nCg = prod.eval(facetNormals, Cg);
