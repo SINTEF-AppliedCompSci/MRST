@@ -50,11 +50,11 @@ view(90,45)
 % construct a volumetric sandbody. Next, we visualize the different
 % sandbodies that can be constructed based on pairs of depth and thickness
 % maps. Because the grids are large, we will use functionality from the
-% 'opm_gridprocessing' and 'libgeometry' mex-modules to speed up the
+% 'deckformat' and 'libgeometry' mex-modules to speed up the
 % processing.
 
 % Load module
-mrstModule add libgeometry opm_gridprocessing
+mrstModule add libgeometry deckformat
 
 % Count number of sand bodies
 grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening',10);

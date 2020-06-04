@@ -3,7 +3,7 @@ function [ grdecl, G, Gt, rock2D ] = makeJohansenSector()
 
 
     mrstModule add co2lab;
-    moduleCheck('libgeometry','opm_gridprocessing','coarsegrid','matlab_bgl');
+    moduleCheck('libgeometry','deckformat','coarsegrid','matlab_bgl');
 
     %% Load NPD data: sector model
     try
@@ -37,7 +37,4 @@ function [ grdecl, G, Gt, rock2D ] = makeJohansenSector()
     % 2D rock structure
     rock2D.perm = grdecl.PERMX(Gt.cells.indexMap).*milli*darcy;
     rock2D.poro = grdecl.PORO(Gt.cells.indexMap);
-
-
 end
-

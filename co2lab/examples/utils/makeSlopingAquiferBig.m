@@ -74,7 +74,7 @@ grdecl.COORD = lines(:); clear lines
 G = []; 
 if usemex,
    mlist = mrstModule;
-   mrstModule add libgeometry opm_gridprocessing;
+   mrstModule add libgeometry deckformat;
    try
       G = processgrid(grdecl);
       G = mcomputeGeometry(G);

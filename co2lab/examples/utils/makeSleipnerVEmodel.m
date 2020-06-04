@@ -124,7 +124,7 @@ grdecl.ACTNUM(grdecl.PERMX<200) = 0;
 G = [];
 if opt.usemex,
    mlist = mrstModule;
-   mrstModule add libgeometry opm_gridprocessing
+   mrstModule add libgeometry deckformat
    try
       G = processgrid(grdecl);
       G = mcomputeGeometry(G);
