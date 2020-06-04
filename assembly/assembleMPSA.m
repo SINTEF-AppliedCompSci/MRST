@@ -295,7 +295,10 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     fixnodetbl.nodes = find(nnodepercell <= maxnnodepercell);
     fixnodetbl = IndexArray(fixnodetbl);
     
-    coef(coef >= 1/maxnnodepercell) = 0;
+    dobcfix = true;
+    if dobcfix
+        coef(coef >= 1/maxnnodepercell) = 0;
+    end
 
     prod = TensorProd();
     prod.tbl1 = cellnodetbl;
@@ -315,7 +318,8 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     nodeaverage_T = nodeaverage_T.setFromTensorProd(coef, prod);
 
     transnodeaverage_T = trans_T*nodeaverage_T;
-
+    % transnodeaverage_T = nodeaverage_T;
+    
     % We need to dispatch this tensor to cellnodecolrowtbl.
     % Now we have
     % transnodeaverage_T : cellnodecolrowtbl -> cellnodecolrowtbl
@@ -416,16 +420,34 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
 
     %% Assembly
     
-    Cgradnodeface_T = bcfix_T*C_T*gradnodeface_T;
+    if dobcfix
+        Cgradnodeface_T = bcfix_T*C_T*gradnodeface_T;
+    else
+        Cgradnodeface_T = C_T*gradnodeface_T;
+    end
+    
     transaverCgradnodeface_T = transnodeaverage_T*Cgradnodeface_T;
 
     combCgradnodeface_T = 0.5*(Cgradnodeface_T + transaverCgradnodeface_T);
-
-    Cgradcell_T = bcfix_T*C_T*gradcell_T;
+    % combCgradnodeface_T = transaverCgradnodeface_T;
+    
+    if dobcfix
+        Cgradcell_T = bcfix_T*C_T*gradcell_T;
+    else
+        Cgradcell_T = C_T*gradcell_T;
+    end
+    
     transaverCgradcell_T = transnodeaverage_T*Cgradcell_T;
 
     combCgradcell_T = 0.5*(Cgradcell_T + transaverCgradcell_T);
-
+    % combCgradcell_T = transaverCgradcell_T;    
+    
+    debug = true;
+    if debug
+        C1 = combCgradnodeface_T.getMatrix();
+        C2 = combCgradcell_T.getMatrix();
+    end        
+    
     A11 = divnodeface_T*combCgradnodeface_T;
     A12 = divnodeface_T*combCgradcell_T; 
     A21 = divcell_T*combCgradnodeface_T;

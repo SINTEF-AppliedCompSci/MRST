@@ -92,50 +92,51 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     
     ncellpernode = map.eval(ones(cellnodetbl.num, 1));
     
-    rowtbl = tbls.rowtbl;
-    cellnodefacecolrow2tbl = crossIndexArray(cellnodefacecolrowtbl, rowtbl, {}, 'crossextend', {{'rowdim', {'rowdim1', 'rowdim2'}}});
+    colrow2tbl = crossIndexArray(colrowtbl, colrowtbl, {'coldim'}, 'crossextend', {{'rowdim', {'rowdim1', 'rowdim2'}}});
+    cellnodefacecolrow2tbl = crossIndexArray(cellnodefacetbl, colrow2tbl, {});
+    nodefacecolrow2tbl = crossIndexArray(nodefacetbl, colrow2tbl, {});
     
-    nodefacecolrowtbl = crossIndexArray(nodecolrowtbl, nodefacetbl, {'nodes'});
-    nodefacecolrow2tbl = crossIndexArray(nodefacecolrowtbl, rowtbl, {}, 'crossextend', {{'rowdim', {'rowdim1', 'rowdim2'}}});
+    % nodefacecolrowtbl = crossIndexArray(nodecolrowtbl, nodefacetbl, {'nodes'});
+    % nodefacecolrow2tbl = crossIndexArray(nodefacecolrowtbl, rowtbl, {}, 'crossextend', {{'rowdim', {'rowdim1', 'rowdim2'}}});
     
     % table for dispatching Caverg
     % cellnodefacecolrow2tbl2 = crossIndexArray(nodefacecolrow2tbl, cellnodetbl, {'nodes'});
     
     % Large sparsity than cellnodefacetbl ! 
-    cellnodefacetbl2 = crossIndexArray(nodefacetbl, cellnodetbl, {'nodes'});
+    cell2nodefacetbl = crossIndexArray(cellnodetbl, cellnodefacetbl, {'nodes'}, 'crossextend', {{'cells', {'cells1', 'cells2'}}});
+    cell2nodefacecolrow2tbl = crossIndexArray(cell2nodefacetbl, colrow2tbl, {});
     
-    colrow2tbl = crossIndexArray(colrowtbl, colrowtbl, {'coldim'}, 'crossextend', {{'rowdim', {'rowdim1', 'rowdim2'}}});
-    cellnodefacecolrow2tbl2 = crossIndexArray(cellnodefacetbl2, colrow2tbl, {});
+    % cellnodefacetbl2 = crossIndexArray(nodefacetbl, cellnodetbl, {'nodes'});
+    % colrow2tbl = crossIndexArray(colrowtbl, colrowtbl, {'coldim'}, 'crossextend', {{'rowdim', {'rowdim1', 'rowdim2'}}});
+    % cellnodefacecolrow2tbl2 = crossIndexArray(cellnodefacetbl2, colrow2tbl, {});    
     
-    % create cellnodeface2col2tbl
-    cellnodeface2tbl = crossIndexArray(cellnodefacetbl2, cellnodefacetbl2, {'cells', 'nodes'}, 'crossextend', { {'faces', ...
-                        {'faces1', 'faces2'}}});
-    col2tbl = crossIndexArray(coltbl, coltbl, {}, 'crossextend', {{'coldim', {'coldim1', 'coldim2'}}});
-    cellnodeface2col2tbl = crossIndexArray(cellnodeface2tbl, col2tbl, {});
+    % cellnodeface2tbl = crossIndexArray(cellnodefacetbl2, cellnodefacetbl2, {'cells', 'nodes'}, 'crossextend', { {'faces', ...
+                        % {'faces1', 'faces2'}}});
+    % col2tbl = crossIndexArray(coltbl, coltbl, {}, 'crossextend', {{'coldim', {'coldim1', 'coldim2'}}});
+    % cellnodeface2col2tbl = crossIndexArray(cellnodeface2tbl, col2tbl, {});
     
-    % create cellnodeface2col2tbl
-    nodeface2col2tbl    = projIndexArray(cellnodeface2col2tbl, {'nodes', 'faces1', 'faces2', 'coldim1', 'coldim2'});
-    cellnodefacecol2tbl = projIndexArray(cellnodeface2col2tbl, {'cells', 'nodes', 'faces1', 'coldim1', 'coldim2'});
-    cellnodefacecol2tbl = replacefield(cellnodefacecol2tbl, {'faces1', 'faces'});
-    cellcol2tbl         = projIndexArray(cellnodeface2col2tbl, {'cells', 'coldim1', 'coldim2'});
+    % nodeface2col2tbl    = projIndexArray(cellnodeface2col2tbl, {'nodes', 'faces1', 'faces2', 'coldim1', 'coldim2'});
+    % cellnodefacecol2tbl = projIndexArray(cellnodeface2col2tbl, {'cells', 'nodes', 'faces1', 'coldim1', 'coldim2'});
+    % cellnodefacecol2tbl = replacefield(cellnodefacecol2tbl, {'faces1', 'faces'});
+    % cellcol2tbl         = projIndexArray(cellnodeface2col2tbl, {'cells', 'coldim1', 'coldim2'});
     
     prod = TensorProd();
     prod.tbl1 = cellcol2row2tbl;
     prod.tbl2 = cellnodefacecoltbl;
     prod.tbl3 = cellnodefacecolrow2tbl;
-    prod.replacefds1 ={{'coldim1', 'coldim'}};
-    prod.replacefds2 ={{'coldim', 'coldim2'}};
+    prod.replacefds1 = {{'coldim1', 'coldim'}};
+    prod.replacefds2 = {{'coldim', 'coldim2'}};
     prod.mergefds = {'cells'};
     prod.reducefds = {'coldim2'};
     prod = prod.setup();
     
     Cg = prod.eval(C, g);
     
-    % We take average over Cg
+    % We take average over Cg and and obtain CAverg
     prod = TensorProd();
     prod.tbl1 = nodetbl;
     prod.tbl2 = cellnodefacecolrow2tbl;
-    prod.tbl3 = nodefacecolrow2tbl;
+    prod.tbl3 = cellnodefacecolrow2tbl;
     prod.mergefds = {'nodes'};
     prod = prod.setup();
     
@@ -144,65 +145,125 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     %% We take the transpose of CAverg
     
     map = TensorMap();
-    map.fromTbl = nodefacecolrow2tbl;
-    map.toTbl = nodefacecolrow2tbl;
+    map.fromTbl = cellnodefacecolrow2tbl;
+    map.toTbl = cellnodefacecolrow2tbl;
     map.replaceFromTblfds = {{'coldim', 'rowdim1', 'interchange'}};
-    map.mergefds = {'nodes', 'faces', 'coldim', 'rowdim1', 'rowdim2'};
+    map.mergefds = {'cells', 'nodes', 'faces', 'coldim', 'rowdim1', 'rowdim2'};
     map = map.setup();
     
     CAverg = map.eval(CAverg);
     
     %% We include the fix at the boundary when the symmetry condition cannot be imposed.
     
-    switch dim
-      case 2
-        minncellpernode = 1;
-      case 3
-        minncellpernode = 2;
+    dobcfix = true;
+    if dobcfix
+        switch dim
+          case 2
+            minncellpernode = 1;
+          case 3
+            minncellpernode = 2;
+        end
+        
+        bcfix = ones(nodetbl.num, 1);
+        bcfix(ncellpernode <= minncellpernode) = 0;
+        
+        prod = TensorProd();
+        prod.tbl1 = nodetbl;
+        prod.tbl2 = cellnodefacecolrow2tbl;
+        prod.tbl3 = cellnodefacecolrow2tbl;
+        prod.mergefds = {'nodes'};
+        prod = prod.setup();
+        
+        CAverg = prod.eval(bcfix, CAverg);
+        
+        bcfix = ones(nodetbl.num, 1);
+        bcfix(ncellpernode <= minncellpernode) = 2;
+        
+        prod = TensorProd();
+        prod.tbl1 = nodetbl;
+        prod.tbl2 = cellnodefacecolrow2tbl;
+        prod.tbl3 = cellnodefacecolrow2tbl;
+        prod.mergefds = {'nodes'};
+        prod = prod.setup();
+        
+        Cg = prod.eval(bcfix, Cg);
+
     end
     
-    bcfix = ones(nodetbl.num, 1);
-    bcfix(ncellpernode <= minncellpernode) = 0;
-    
-    prod = TensorProd();
-    prod.tbl1 = nodetbl;
-    prod.tbl2 = nodefacecolrow2tbl;
-    prod.tbl3 = nodefacecolrow2tbl;
-    prod.mergefds = {'nodes'};
-    prod = prod.setup();
-    
-    CAverg = prod.eval(bcfix, CAverg);
+    % We map Cg and CAverg in cell2nodefacecolrow2tbl
     
     map = TensorMap();
-    map.fromTbl = nodefacecolrow2tbl;
-    map.toTbl = cellnodefacecolrow2tbl2;
-    map.mergefds = {'nodes', 'faces', 'coldim', 'rowdim1', 'rowdim2'};
+    map.fromTbl = cellnodefacecolrow2tbl;
+    map.toTbl = cell2nodefacecolrow2tbl;
+    map.replaceFromTblfds = {{'cells', 'cells2'}};
+    map.mergefds = {'cells2', 'nodes', 'faces', 'coldim', 'rowdim1', 'rowdim2'};
     map = map.setup();
     
     CAverg = map.eval(CAverg);
     
-    bcfix = ones(nodetbl.num, 1);
-    bcfix(ncellpernode <= minncellpernode) = 2;
+    cells1 = cell2nodefacecolrow2tbl.get('cells1');
+    cells2 = cell2nodefacecolrow2tbl.get('cells2');
+    injcoef = zeros(cell2nodefacecolrow2tbl.num, 1);
+    injcoef(cells1 == cells2) = 1;
     
     prod = TensorProd();
-    prod.tbl1 = nodetbl;
+    prod.tbl1 = cell2nodefacecolrow2tbl;
     prod.tbl2 = cellnodefacecolrow2tbl;
-    prod.tbl3 = cellnodefacecolrow2tbl;
-    prod.mergefds = {'nodes'};
+    prod.tbl3 = cell2nodefacecolrow2tbl;
+    prod.replacefds2 = {{'cells', 'cells1'}};
+    prod.mergefds = {'cells1', 'nodes', 'faces', 'coldim', 'rowdim1', 'rowdim2'};
     prod = prod.setup();
-        
-    Cg = prod.eval(bcfix, Cg);
     
-    map = TensorMap();
-    map.fromTbl = cellnodefacecolrow2tbl;
-    map.toTbl = cellnodefacecolrow2tbl2;
-    map.mergefds = {'cells', 'nodes', 'faces', 'coldim', 'rowdim1', 'rowdim2'};
-    map = map.setup();
-    
-    Cg = map.eval(Cg);
+    Cg = prod.eval(injcoef, Cg);
 
     Cg = 0.5*(Cg + CAverg);
+    % Cg = CAverg;
     
+    debug = true;
+
+    if debug
+        
+        % assemble mappin Cg : nodefacecol -> cellnodecolrow
+        % prod = TensorProd();
+        % prod.tbl1 = cellnodefacecol2rowtbl;
+        % prod.tbl2 = nodefacecoltbl;
+        % prod.tbl3 = cellnodecolrowtbl;
+        % prod.replacefds1 = {{'coldim1', 'coldim'}};
+        % prod.replacefds2 = {{'coldim', 'coldim2'}};
+        % prod.reducefds = {'coldim2'};
+        % prod.mergefds = {'faces', 'nodes'};
+        % prod = prod.setup();
+        
+        prod = TensorProd();
+        prod.tbl1 = cell2nodefacecolrow2tbl;
+        prod.tbl2 = nodefacecoltbl;
+        prod.tbl3 = cellnodecolrowtbl;
+        prod.replacefds1 = {{'cells1', 'cells'}, {'rowdim1', 'rowdim'}};
+        prod.replacefds2 = {{'coldim', 'rowdim2'}};
+        prod.reducefds = {'faces', 'rowdim2'};
+        prod.mergefds = {'nodes'};
+        prod = prod.setup();
+
+        C1_T = SparseTensor();
+        C1_T = C1_T.setFromTensorProd(Cg, prod);
+        C1 = C1_T.getMatrix();
+
+        prod = TensorProd();
+        prod.tbl1 = cell2nodefacecolrow2tbl;
+        prod.tbl2 = cellcoltbl;
+        prod.tbl3 = cellnodecolrowtbl;
+        prod.replacefds1 = {{'cells1', 'cells'}, {'rowdim1', 'rowdim'}};
+        prod.replacefds2 = {{'cells', 'cells2'}, {'coldim', 'rowdim2'}};
+        prod.reducefds = {'cells2', 'rowdim2'};
+        prod = prod.setup();
+
+        C2_T = SparseTensor();
+        C2_T = C2_T.setFromTensorProd(Cg, prod);
+        C2 = C2_T.getMatrix();
+        
+    end
+    
+    return
     
     %% We multiply Cg with facetNormals
     

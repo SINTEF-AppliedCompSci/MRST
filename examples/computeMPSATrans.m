@@ -7,7 +7,7 @@
 %% 2017
 
 clear all
-close all
+% close all
 
 tic
 
@@ -40,8 +40,8 @@ switch runcase
     x = 1/max(x)*x;
     G = tensorGrid(x, y);    
   case {'2d-linear', '2d-compaction'}
-    N = 20;
-    nx = N; ny = N;
+    N = 10;
+    nx = 2; ny = 1;
     G = cartGrid([nx, ny], [1, 1]);
     % N = 3;
     % Nx = N*ones(1, 2);
@@ -70,18 +70,23 @@ mu     = ones(nc, 1);
 prop = struct('lambda', lambda, ...
               'mu', mu);
 
-useVirtual = true;
+useVirtual = false;
 [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
 loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 
-doblockassembly = true;
-if doblockassembly
-    assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                 'blocksize', 100, 'verbose', true);
-else
-    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                            'bcetazero', bcetazero, 'extraoutput', true);
+casetype = '';
+switch casetype
+  case 'blockassembly'
+    assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true);
+  case 'old'
+    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true); 
+  case 'new'
+    assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true);     
 end
+assembly1 = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true); 
+assembly2 = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true);     
+    
+assembly = assembly2;
 
 B   = assembly.B  ;
 rhs = assembly.rhs;
@@ -89,7 +94,7 @@ rhs = assembly.rhs;
 sol = B\rhs;
 
 % we compute the divergence
-if ~doblockassembly
+if strcmp('blockassembly', casetype)
     divop = assembly.divop;
     divu = divop(sol);
 end
@@ -123,7 +128,7 @@ if doplotsol
     titlestr = sprintf('displacement - %s direction, eta=%g', 'y', eta);
     title(titlestr)
     colorbar
-    if ~doblockassembly
+    if strcmp('blockassembly', casetype)
         figure 
         plotCellData(G, divu);
         titlestr = sprintf('divergence, eta=%g', eta);
