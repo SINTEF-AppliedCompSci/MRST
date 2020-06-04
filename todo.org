@@ -15,4 +15,8 @@
 * add switch for setupTbls (mpfa or mpsa alone)
 * document divoperator and computenodedisp in utils
 * implement divergence for blockMPSA
+* In Tensor Assembly, add check when a matrix in matlab format only is multiplied with a matrix in SparseTensor format only.
+  - seems to go wrong (get zero matrix)
+* check definition of g
+  - in assembly, we do reduction of C and g with respect to coldim. Maybe it should be with respecto to rowdim
 
