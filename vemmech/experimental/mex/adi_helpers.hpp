@@ -34,7 +34,6 @@ inline std::vector<std::string> extract_indexnames(const StructArray& comp)  {
 // ----------------------------------------------------------------------------  
 inline Array extract_coefs(const TensorComp<double>& res,
                            std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr) {
-  
   ArrayFactory factory;
   TypedArray<double> coefs =
     factory.createArray<double>(ArrayDimensions{res.coefs().size(), 1},
@@ -43,15 +42,19 @@ inline Array extract_coefs(const TensorComp<double>& res,
   return coefs;
 }
 
+// ----------------------------------------------------------------------------  
 SparseArray<double> make_sparse_(const ArrayDimensions& adim,
                                  const std::vector<double>& elems,
                                  const std::vector<size_t>& rows,
                                  const std::vector<size_t>& cols)
 {
   ArrayFactory factory;
-  auto data_p = factory.createBuffer<double>(elems.size());
-  auto rows_p = factory.createBuffer<size_t>(elems.size());
-  auto cols_p = factory.createBuffer<size_t>(elems.size());
+
+  size_t bufsize = elems.size();
+  
+  auto data_p = factory.createBuffer<double>(bufsize);
+  auto rows_p = factory.createBuffer<size_t>(bufsize);
+  auto cols_p = factory.createBuffer<size_t>(bufsize);
 
   copy(elems.begin(), elems.end(), data_p.get());
   copy(rows.begin(), rows.end(), rows_p.get());
@@ -69,9 +72,9 @@ inline Array extract_coefs(const TensorComp<BasicAD>& res,
   // std::ofstream os("debug.out");
   // res.write(os);
   // os.close();
-  
   ArrayFactory factory;
   const std::vector<BasicAD>& coefs = res.coefs();
+
   // exctracting values
   std::vector<double> vals;
   for (size_t i = 0; i != coefs.size(); ++i)
@@ -80,7 +83,6 @@ inline Array extract_coefs(const TensorComp<BasicAD>& res,
   TypedArray<double> newcoefs =
     factory.createArray<double>(ArrayDimensions{coefs.size(), 1},
                                 &vals[0], &vals[0] + vals.size());
-
   // extracting derivatives
   std::vector<double> elems;
   std::vector<size_t> rows, cols;
@@ -96,12 +98,16 @@ inline Array extract_coefs(const TensorComp<BasicAD>& res,
       }
     }
   }
-      
-  SparseArray<double> sparr = make_sparse_(ArrayDimensions {coefs.size(), num_cols},
-                                           elems, rows, cols);
+  // SparseArray<double> sparr = make_sparse_(ArrayDimensions {coefs.size(), num_cols},
+  //                                          elems, rows, cols);
   std::vector<Array> args;
   args.push_back(newcoefs);
-  args.push_back(sparr);
+  if (elems.size() == 0)
+    args.push_back(factory.createScalar(num_cols)); // workaround memory issue with empty SparseArrays
+  else
+    args.push_back(make_sparse_(ArrayDimensions {coefs.size(), num_cols},
+                                elems, rows, cols));
+    
   Array result = matlabPtr->feval(u"makeadi", args);
   return result;
 }

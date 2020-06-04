@@ -45,7 +45,7 @@ function [foptval, uopt, history, uu_opt, extra] = ...
    mrstModule add optimization linearsolvers;
    
    opt.gradTol = 1e-9; %1e-3;
-   opt.objChangeTol = 1e-10;%1e-5; %@@ might be too tight (much tighter than default
+   opt.objChangeTol = 1e-20;%1e-5; %@@ might be too tight (much tighter than default
                             %in unitBoxBFGS)
    opt.cyclical = []; % indices of cyclical control variables
    opt.extra = []; % if discretization is precomputed, it can be passed in

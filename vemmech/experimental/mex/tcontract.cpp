@@ -50,18 +50,14 @@ public:
       comps.emplace_back( TensorComp<T>{ extract_indexnames(c),
                                           extract_numbers<T>(c, "coefs", matlabPtr),
                                           extract_numbers<size_t>(c, "ixs", matlabPtr)});
-
     const vector<TensorComp<T>> resultcomps = contract_components(comps);
-
     //cout << "Now preparing data for return to MATLAB." << endl;
 
     // convert TensorComp to a return value to put into 'outputs'
     ArrayFactory factory;
     CellArray result = factory.createCellArray({1, resultcomps.size()});
     for (int i = 0; i != resultcomps.size(); ++i) {
-      
       const auto& res = resultcomps[i];
-      
       StructArray entry = factory.createStructArray({1,1},
                                                     {"indexnames", "coefs", "ixs"});
       CellArray indexnames = factory.createCellArray({1, res.numIndices()});
@@ -74,7 +70,6 @@ public:
         factory.createArray<double>(
            ArrayDimensions{res.coefs().size(), res.numIndices()},
            &ixs_double[0], &ixs_double[0] + ixs_double.size());
-
       entry[0]["indexnames"] = indexnames;
       entry[0]["coefs"] = coefs;
       entry[0]["ixs"] = ixs;
