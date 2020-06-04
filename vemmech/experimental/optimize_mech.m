@@ -44,8 +44,8 @@ function [foptval, uopt, history, uu_opt, extra] = ...
 
    mrstModule add optimization linearsolvers;
    
-   opt.gradTol = 1e-3; %1e-3;
-   opt.objChangeTol = 1e-5;%1e-5; %@@ might be too tight (much tighter than default
+   opt.gradTol = 1e-9; %1e-3;
+   opt.objChangeTol = 1e-10;%1e-5; %@@ might be too tight (much tighter than default
                             %in unitBoxBFGS)
    opt.cyclical = []; % indices of cyclical control variables
    opt.extra = []; % if discretization is precomputed, it can be passed in
@@ -119,17 +119,17 @@ function [val, grad] = fun_wrapper(u, G, bcfun, efun, nufun, loadfun, ...
    fprintf('Calling fun_wrapper\n');
    u = initVariablesADI(value(u));
 
-   ue = initVariablesADI(value(u) + 1e-6 * [1;0]); %@@
+   % ue = initVariablesADI(value(u) + 1e-6 * [1;0]); %@@
    
    bc = bcfun(u);
    E = efun(u);
    nu = nufun(u);
    load = loadfun(u);
 
-   bce = bcfun(ue); % @@
-   Ee = efun(ue); %@@
-   nue = nufun(ue); %@@
-   loade = loadfun(ue); %@@
+   % bce = bcfun(ue); % @@
+   % Ee = efun(ue); %@@
+   % nue = nufun(ue); %@@
+   % loade = loadfun(ue); %@@
 
    amgsolver = @(A, b) callAMGCL(A, b, 'relaxation', 'chebyshev', 'solver', 'cg', ...
                               'tolerance', 2e-6, 'maxIterations', 2000);
@@ -139,11 +139,11 @@ function [val, grad] = fun_wrapper(u, G, bcfun, efun, nufun, loadfun, ...
                                  'extra', extra, ...
                                  'background_forces', background_forces);
 
-   [dde, extrae] = VEM_linElast_AD(G, Ee, nue, bce, loade, ...
-                                 'linsolve', amgsolver, ...
-                                 'extra', extra, ...
-                                 'background_forces', background_forces); %@@
-   dde = dde'; %@@
+   % [dde, extrae] = VEM_linElast_AD(G, Ee, nue, bce, loade, ...
+   %                               'linsolve', amgsolver, ...
+   %                               'extra', extra, ...
+   %                               'background_forces', background_forces); %@@
+   % dde = dde'; %@@
    
    % @@ commented-out for now since we cannot simply re-use the
    % discretization when E or nu can change
@@ -186,6 +186,6 @@ function [val, grad] = fun_wrapper(u, G, bcfun, efun, nufun, loadfun, ...
 
    % invert signs, since the unitBoxBFGS routine maximizes rather than
    % minimizes
-   val = -val;
-   grad = -grad;
+   val = -1 * val;
+   grad = -1 * grad;
 end
