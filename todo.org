@@ -19,4 +19,5 @@
   - seems to go wrong (get zero matrix)
 * check definition of g
   - in assembly, we do reduction of C and g with respect to coldim. Maybe it should be with respecto to rowdim
+* Implement object-setup of crossIndexArray with replacefds1 and replacefds2
 
