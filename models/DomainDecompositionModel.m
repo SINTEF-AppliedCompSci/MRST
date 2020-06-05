@@ -45,7 +45,7 @@ classdef DomainDecompositionModel < WrapperModel
                 'Supported strategies are ''additive'' and ''multiplicative''');
             if model.parallel
                 % Check if parallel toolbox is avialiable
-                ok = license('test','Distrib_Computing_Toolbox') == 1;
+                ok = ~isempty(ver('parallel'));
                 if ~ok, msg = 'Parallel computing toolbox not aviailable.'; end
                 % Check strategy
                 ok = ok & ~strcmpi(model.strategy, 'multiplicative');
