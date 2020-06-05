@@ -34,4 +34,3 @@ ef=sqrt(sum(A.*(fa-fh).^2)/sum(A));
 % A(~ind)=G.cells.volumes(max(G.faces.neighbors(~ind,:),[],2));
 % ef=sqrt(sum(A.*(fa-fh).^2)/sum(A.*fa.^2));
 end
-

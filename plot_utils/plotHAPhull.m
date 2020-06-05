@@ -19,11 +19,10 @@ else
     myFaces=G.cells.faces(G.cells.facePos(mycell):G.cells.facePos(mycell+1)-1);
     hap=interpFace.coords(myFaces,:);
     ind=convhull(hap);
-    
+
     plotGrid(G,mycell,'facealpha',0.3);hold on;view(3);
     plot3(x,y,z,'r.','markersize',30);
     plot3(hap(:,1),hap(:,2),hap(:,3),'b.','markersize',30);
     trisurf(ind,hap(:,1),hap(:,2),hap(:,3),'facecolor','g','facealpha',0.5);
 end
 end
-
