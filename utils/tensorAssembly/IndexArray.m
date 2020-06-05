@@ -33,7 +33,7 @@ classdef IndexArray
         isvirtual % The multiple indices are not set up. We keep the fdnames. This
                   % option is used in an optimization setup when the local
                   % indexing is taking care of by the user.
-    
+        vnum      % store size of array if it is virtual
     end
    
     methods
@@ -50,7 +50,8 @@ classdef IndexArray
             opt = struct('fdnames'  , []   , ...
                          'isvirtual', false, ...
                          'tblname'  , []   , ...
-                         'inds'     , []);
+                         'inds'     , [], ...
+                         'num', []);
             opt = merge_options(opt, varargin{:}); 
             
             if ~isempty(structtbl)
@@ -73,13 +74,21 @@ classdef IndexArray
 
             if opt.isvirtual
                 tbl.isvirtual = true;
+                vnum = opt.num;
+                assert(~isempty(vnum), 'In case of virtual table, the size of the index array should be given');
+                tbl.vnum = vnum;
             end
             tbl.tblname = opt.tblname;    
         end
 
         function n = num(tbl)
-        % Gives the number of multiple-indices (size of columns in inds)
-            n = size(tbl.inds, 1);
+            
+        % Gives the number of multiple-indices (size of columns in inds) or the value stored in the table is virtual
+            if tbl.isvirtual
+                n = tbl.vnum;
+            else
+                n = size(tbl.inds, 1);
+            end
         end
         
         function tbl = setup(tbl, fdnames, inds)
