@@ -12,7 +12,7 @@ mrstVerbose on
 % displacement front pattern
 mrstModule add example-suite mrst-gui
 n = 47;
-example = MRSTExample('ifs_peaks_wo', 'n', 47, 'tiles', 2);
+example = MRSTExample('ifs_peaks_wo', 'ncells', n, 'tiles', 2);
 example.plot(example.model.rock, 'log10', true);
 
 %% Submodels
@@ -86,7 +86,7 @@ exampleSeq.name  = [exampleSeq.name, '-seq'];
 % DomainDecompositionModel. This takes the parent model and partition as
 % input arguments. Each subdomain can be solved concurrently, so we do this
 % if we have the parallel computing toolbox at hand.
-parallel = license('test','Distrib_Computing_Toolbox') == 1;
+parallel = ~isempty(ver('parallel'));
 modelSeq.transportModel = DomainDecompositionModel(modelSeq.transportModel, partition, 'parallel', parallel);
 % Make example
 exampleSeqDD       = exampleSeq;

@@ -4,14 +4,14 @@
 % multiplicative NLDD based on topological sorting of the intercell flux
 % graph
 mrstModule add ad-core ad-props ad-blackoil blackoil-sequential ...
-    example-suite mrst-gui
+    example-suite mrst-gui compositional
 mrstVerbose on
 
 %% Get example
 % We consider a slightly modified version of an example from Klemetsdal et.
 % al, SPE RSC 2019, doi: 10.2118/193934-ms. The setup consists of a
 % quarter five-spot example with CO2, Metahne, and nDecane.
-example0 = MRSTExample('qfs_compositional', 'nstep', 50); example = example0;
+example0 = MRSTExample('qfs_compositional', 'nsteps', 50); example = example0;
 % We will use NLDD for the transport subproblem, so we construct a
 % sequential pressure-transport model
 mrstModule add linearsolvers
@@ -42,10 +42,10 @@ partition = mergeBlocksByConnections(example.model.G, partition, example0.model.
 rng(2020), perm = randperm(max(partition))'; partition = perm(partition);
 example.plot(partition);
 % To ensure convergence of the full problem, it is smart to impose a
-% slightly stricter convergence tolerances for the subdomain problems. We
+% slightly stricter convergence tolerance for the subdomain problems. We
 % do this with the optional input argument ''subdomainTolerances'', where
 % the tolerance names and corresponding reduction factors are given in a
-% struct
+% cell array
 subtol = {'nonlinearTolerance', 0.5};
 % Subdomain solves can also give verbose outputs by passing 1 (some) or 2
 % (everything) to the optional input argument ''verboseSubmodel''

@@ -1,7 +1,8 @@
 %% Subdomain example
 % In this example, we show how to construct a submodel of a full model and
 % solve the corresponding subproblem
-mrstModule add example-suite blackoil-sequential spe10 mrst-gui
+mrstModule add ad-core ad-props ad-blackoil blackoil-sequential spe10 ...
+    mrst-gui example-suite
 
 %% Get example
 % Get SPE10 subset
