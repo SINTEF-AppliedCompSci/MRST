@@ -129,13 +129,13 @@ for n=1:nstep
     t = t + dt(n);
     fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
         n, convertTo(t - dt(n), day), convertTo(t, day));
-    
+
     % Newton loop
     resNorm   = 1e99;
     [p0, sW0, sG0] = deal(value(p), value(sW),value(sG));
     nit = 0;
     while (resNorm > tol) && (nit <= maxits)
-        
+
         % Densities and pore volumes
         [rW,rW0,rO,rO0,rG,rG0] = ....
             deal(rhoW(p), rhoW(p0), rhoO(p), rhoO(p0), rhoG(p), rhoG(p0));
@@ -146,7 +146,7 @@ for n=1:nstep
         mobW = krW./muW;
         mobO = krO./muO;
         mobG = krG./muG;
-        
+
         % Pressure differences across each interface
         dp  = grad(p);
         dpW = dp-g*avg(rW).*gradz;
@@ -161,28 +161,28 @@ for n=1:nstep
         vW = -upw(value(dpW) <= 0, rW.*mobW).*T.*dpW;
         vO = -upw(value(dpO) <= 0, rO.*mobO).*T.*dpO;
         vG = -upw(value(dpG) <= 0, rG.*mobG).*T.*dpG;
-        
+
         % Conservation of water and oil
         water = (1/dt(n)).*(vol.*rW.*sW - vol0.*rW0.*sW0) + div(vW);
         oil   = (1/dt(n)).*(vol.*rO.*(1-sW-sG) - vol0.*rO0.*(1-sW0-sG0)) + div(vO);
         gas   = (1/dt(n)).*(vol.*rG.*sG - vol0.*rG0.*sG0) + div(vG);
-        
+
         % Injector: volumetric source term multiplied by surface density
         if useInj
             water(inIx) = water(inIx) - inRate.*rhoWS;
         end
-        
+
         % Producer: replace equations by new ones specifying fixed pressure
         % and zero water saturation
         oil(outIx) = p(outIx) - outPres;
         water(outIx) = sW(outIx);
         gas(outIx)   = sG(outIx);
-        
+
         % Collect and concatenate all equations (i.e., assemble and
         % linearize system)
         eqs = {oil, water, gas};
         eq  = cat(eqs{:});
-        
+
         % Compute Newton update and update variable
         res = eq.val;
         upd = -(eq.jac{1} \ res);
@@ -191,7 +191,7 @@ for n=1:nstep
         %sW.val = max( min(sW.val, 1), 0);
         sG.val = sG.val + upd(gIx);
         %sG.val = max( min(sG.val, 1), 0);
-        
+
         resNorm = norm(res);
         nit     = nit + 1;
         fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
@@ -200,18 +200,18 @@ for n=1:nstep
         error('Newton solves did not converge')
     else % plot
         nits(n) = nit;
-        
+
         figure(1); clf
         subplot(2,1,1)
         plotCellData(G, value(p)/barsa, pargs{:});
         title('Pressure'), view(30, 40);
-        
+
         subplot(2,1,2)
         sg = value(sG); sw = value(sW);
         plotCellData(G,[sg, 1-sg-sw, sw]/1.001+1e-4,pargs{:});             % Avoid color artifacts
         caxis([0, 1]), view(30, 40); title('Saturation')
         drawnow
-        
+
         sol(n+1) = struct('time', t, ...
                           'pressure', value(p), ...
                           'sW', value(sW), ...

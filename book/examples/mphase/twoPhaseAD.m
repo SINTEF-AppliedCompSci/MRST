@@ -65,7 +65,7 @@ legend('Water density', 'Oil density','Location','best')
 % Plot relative permeability
 subplot(1,2,2);
 plot(s, [krW(s), krO(s)],'LineWidth',2);
-legend('krW', 'krO','Location','NorthWest'); 
+legend('krW', 'krO','Location','NorthWest');
 
 %% Extract grid information
 nf = G.faces.num;                                 % Number of faces
@@ -128,13 +128,13 @@ for n=1:nstep
     t = t + dt(n);
     fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
         n, convertTo(t - dt(n), day), convertTo(t, day));
-    
+
     % Newton loop
     resNorm   = 1e99;
     [p0, sW0] = deal(value(p), value(sW));
     nit = 0;
     while (resNorm > tol) && (nit <= maxits)
-        
+
         % Densities and pore volumes
         [rW,rW0,rO,rO0] = deal(rhoW(p), rhoW(p0), rhoO(p), rhoO(p0));
         [vol, vol0]     = deal(pv(p), pv(p0));
@@ -142,7 +142,7 @@ for n=1:nstep
         % Mobility: Relative permeability over constant viscosity
         mobW = krW(sW)./muW;
         mobO = krO(1-sW)./muO;
-        
+
         % Pressure differences across each interface
         dp  = grad(p);
         dpW = dp-g*avg(rW).*gradz;
@@ -155,56 +155,56 @@ for n=1:nstep
         % averaging or downwinding.
         vW  = -upw(value(dpW) <= 0, rW.*mobW).*T.*dpW;
         vO  = -upw(value(dpO) <= 0, rO.*mobO).*T.*dpO;
-        
+
         % Conservation of water and oil
         water = (1/dt(n)).*(vol.*rW.*sW - vol0.*rW0.*sW0) + div(vW);
         oil   = (1/dt(n)).*(vol.*rO.*(1-sW) - vol0.*rO0.*(1-sW0)) + div(vO);
-        
+
         % Injector: volumetric source term multiplied by surface density
         water(inIx) = water(inIx) - inRate.*rhoWS;
-        
+
         % Producer: replace equations by new ones specifying fixed pressure
         % and zero water saturation
         oil(outIx) = p(outIx) - outPres;
         water(outIx)   = sW(outIx);
-        
+
         % Collect and concatenate all equations (i.e., assemble and
         % linearize system)
         eqs = {oil, water};
         eq  = combineEquations(eqs{:});
-        
+
         % Measure condition number
         cnd(i) = condest(eq.jac{1}); i = i+1;                              %#ok<SAGROW>
-        
+
         % Compute Newton update and update variable
         res = eq.val;
         upd = -(eq.jac{1} \ res);
         p.val  = p.val   + upd(pIx);
         sW.val = sW.val + upd(sIx);
         sW.val = max( min(sW.val, 1), 0);
-        
+
         resNorm = norm(res);
         nit     = nit + 1;
         fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
     end
     % Add line with NaN in cnd variable to signify end of time step
-    cnd(i) = NaN; i=i+1;                                                   
-    
+    cnd(i) = NaN; i=i+1;
+
     if nit > maxits
         error('Newton solves did not converge')
     else % plot
         nits(n) = nit;
-        
+
         figure(1); clf
         subplot(2,1,1)
         plotCellData(G, value(p)/barsa, pargs{:});
         title('Pressure'), view(30, 40); caxis([100 250]);
-        
+
         subplot(2,1,2)
         plotCellData(G, 1-value(sW), pargs{:});
         caxis([0, 1]), view(30, 40); title('Saturation')
         drawnow
-        
+
         sol(n+1) = struct('time', t, ...
                           'pressure', value(p), ...
                           's', value(sW));
@@ -219,7 +219,7 @@ figure(2),
 subplot(2,1,2-double(isCompr));
 bar(nits,1,'EdgeColor','r','FaceColor',[.6 .6 1]);
 axis tight, set(gca,'YLim',[0 10]);
-hold on, 
+hold on,
 plotyy(nan,nan,1:numel(dt),dt/day,@plot, ...
     @(x,y) plot(x,y,'-o','MarkerFaceColor',[.6 .6 .6]));
 
@@ -250,7 +250,7 @@ for i=1:nstep+1
     s = sol(i).s;
     clf
     plotCellData(G,1-s,s>1e-3,'EdgeColor','k','EdgeAlpha',.1);
-    plotGrid(g,'EdgeColor','k','FaceColor','none'); 
+    plotGrid(g,'EdgeColor','k','FaceColor','none');
     view(3); plotGrid(G,[inIx; outIx],'FaceColor',[.6 .6 .6]);
     view(30,40); caxis([0 1]); axis tight off
     axis([-.5 Dx+.5 -.5 Dy+.5 -.5 Dz+.5]);

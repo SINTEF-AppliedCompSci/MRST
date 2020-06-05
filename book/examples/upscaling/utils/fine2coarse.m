@@ -6,19 +6,19 @@ function sol = fine2coarse(solf, G, W)
 volf = G.parent.cells.volumes;
 pc = accumarray(G.partition, solf.pressure.*volf)./...
      accumarray(G.partition, volf); % = Gc.volumes
- 
+
 np = size(solf.s,2);
 sc = zeros(G.cells.num, np);
 for k = 1:np
     sc(:,k) = accumarray(G.partition, solf.s(:,k).*volf)./...
               accumarray(G.partition, volf); % = Gc.volumes
 end
-% coarse grid fluxes 
+% coarse grid fluxes
 fluxc = coarsenFlux(G, solf.flux);
 
 % coarse grid face pressure:
-% Since we have no half-trans, there is no unambigous choice for interior 
-% face pressure, pressure for exterior faces can be choosen 'freely', e.g., 
+% Since we have no half-trans, there is no unambigous choice for interior
+% face pressure, pressure for exterior faces can be choosen 'freely', e.g.,
 % use areal averaging
 if isfield(solf, 'facePressure'),
     sfp  = solf.facePressure(G.faces.fconn); % sub face pressures
@@ -33,12 +33,12 @@ else
     pfc = nan(G.faces.num, 1);
 end
 
-% coarse well fluxes (bhp remain the same) 
+% coarse well fluxes (bhp remain the same)
 if ~isempty(W),
     wsc = solf.wellSol;
     for i = 1 : numel(W)
         % standard ...
-        pno = rldecode(1 : numel(W(i).cells), diff(W(i).fcellspos), 2).';     
+        pno = rldecode(1 : numel(W(i).cells), diff(W(i).fcellspos), 2).';
         wsc(i).flux = accumarray(pno, solf.wellSol(i).flux(W(i).fperf));
     end
 else
@@ -49,6 +49,6 @@ end
 sol = struct('pressure',      pc,     ...
               'flux',          fluxc,         ...
               'facePressure',  pfc, ...
-              's',              sc, ... 
+              's',              sc, ...
               'wellSol',       wsc);
 end

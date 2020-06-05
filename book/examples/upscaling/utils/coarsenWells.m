@@ -4,8 +4,8 @@ function Wc = coarsenWells(Gc, W)
 %   Wc = coarsenWells(Gc, W)
 %
 % PARAMETERS:
-%   Gc       - coarse grid 
-%   W        - Well structure compatible with Gc.parent 
+%   Gc       - coarse grid
+%   W        - Well structure compatible with Gc.parent
    Wc = W;
    for i = 1 : numel(W),
       fcells  = W(i).cells;

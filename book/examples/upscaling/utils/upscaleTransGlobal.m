@@ -5,7 +5,7 @@ function [T, W, auxiliaries] = upscaleTransGlobal(G, W, Tf, varargin)
 %   [Wc, Tc, aux] = upscaleTransGlobal(Gc, Wc, Tf,'pn1', pv1, ...)
 %
 % PARAMETERS:
-%   Gc       - coarse grid 
+%   Gc       - coarse grid
 %   Wc       - coarse well structure
 %   Tf       - transmissibility for fine grid
 %
@@ -14,45 +14,45 @@ function [T, W, auxiliaries] = upscaleTransGlobal(G, W, Tf, varargin)
 %          - verbose -- Default value: Verbose = mrstVerbose
 %          - globalFieldCases -- sets type of global fields to be used
 %               'single'    : use single field as determined by Wc (default)
-%               'revolving' : All combinations with one well rate = 1 and the 
+%               'revolving' : All combinations with one well rate = 1 and the
 %                           rest bhp =0
 %               'linear'    : use linear pressure bc in each coardinate
 %                           direction
 %               'custom'    : use custom well-configurations and/or bcs as
-%                             given by 'wells', 'bc'. 
+%                             given by 'wells', 'bc'.
 %          - handleNegative -- handle negative transmissibilities:
 %               'setToZero': (default)
-%               'setToNan' :  
-%               'ignore'   : Leave as is   
+%               'setToNan' :
+%               'ignore'   : Leave as is
 %          - handleUndetermined -- handle undetermined transmissibilities
 %                          (due to fluxes below threshold)
 %               'setToZero': default
 %               'setToNan' :
-%          - fluxThreshold -- Lower relative (wrt max of fineflux) value of 
-%                          coarse face flux in order for transmissibility to 
-%                          be computed. Default = 1e-8. 
-%          - mobility -- Cell of either one or two vectors representing coarse 
+%          - fluxThreshold -- Lower relative (wrt max of fineflux) value of
+%                          coarse face flux in order for transmissibility to
+%                          be computed. Default = 1e-8.
+%          - mobility -- Cell of either one or two vectors representing coarse
 %                        and/or fine mobility field, i.e., {m} or {m1, m2}.
 %                        If only fine-grid mobilities are given, then
 %                        coarse are computed from pv-average. If only
 %                        coarse are given, then fine is computed from
-%                        prolongation. Default = {} (all mobilities are set 
-%                        to one);  
-%          - clustering -- n_wells x 1 vector of indices corresponing to 
+%                        prolongation. Default = {} (all mobilities are set
+%                        to one);
+%          - clustering -- n_wells x 1 vector of indices corresponing to
 %                         well clusters. Sets 'globalFieldCases' to 'revolving'
 %                         and computes global fields from setting rate=1 for one
 %                         well in each cluster and the rest bhp=0. Default []
 %          - wells -- custom list of well structures for global field
 %                         computations. Ignored unless 'globalFieldCases'
 %                         is set to custom.
-%          - bc    -- custom list of boundary conds. See 'wells' above. 
-%          - pv    -- fine grid pore volumes. 
+%          - bc    -- custom list of boundary conds. See 'wells' above.
+%          - pv    -- fine grid pore volumes.
 %                     Default: G.parent.cells.voumes
 %
 % RETURNS:
 %   Tc     - Upscaled transmissibilities
 %   Wc     - Well structure with updated coarse grid well indices
-%   aux    - optional info/variables 
+%   aux    - optional info/variables
 %
 % SEE ALSO:
 %   coarsegrid module, grid_structure
@@ -99,8 +99,8 @@ end
 [T, TW] = handleNonPositiveTrans(T, TW, opt);
 
 % update W
-for k = 1:numel(W), 
-    W(k).WI = TW{k}; 
+for k = 1:numel(W),
+    W(k).WI = TW{k};
 end
 
 % Give axiliary variables as output if required
@@ -135,7 +135,7 @@ switch opt.globalFieldCases
         dim = G.griddim;
         [W_list, bc_list] = deal(cell(1,dim), cell(1,dim));
         [pmin, pmax] = deal(0, 1);
-        
+
         dd  = [1 1 2 2 3 3];
         fac = {'West', 'East', 'North', 'South', 'Top', 'Bottom'};
         val = [pmin,   pmax,   pmin,    pmax,    pmin,  pmax];
@@ -158,7 +158,7 @@ for k = 1:numel(W_list)
                                       'gravity',         [0 0 0], ...
                                       'use_trans',       true);
 end
-end   
+end
 % ------------------------------------------------------------------------
 function [Tl, TWl] = computeTransGlobal(sols, G, W, opt)
 % Compute coarse transmissibilities/WI for given coarse single-phase
@@ -178,7 +178,7 @@ ix_int = all(N, 2);    % interior faces
 for k = 1:numel(sols);
     sc = sols{k};
     minFlux = opt.fluxThreshold*max(abs(sc.flux));
-    ix_f = abs(sc.flux) > minFlux;   
+    ix_f = abs(sc.flux) > minFlux;
     % interior faces:
     ix = and(ix_int, ix_f);
     if nnz(ix) > 0
@@ -197,7 +197,7 @@ for k = 1:numel(sols);
     end
     % wells
     for kw = 1: numel(W)
-        c    = W(kw).cells; 
+        c    = W(kw).cells;
         flux = sc.wellSol(kw).flux;
         dp   = sc.wellSol(kw).pressure - sc.pressure(c);
         mw   = mob(c);
@@ -206,7 +206,7 @@ for k = 1:numel(sols);
     end
 end
 end
-% ------------------------------------------------------------------------   
+% ------------------------------------------------------------------------
 function sol = fine2coarse(solf, G, W, opt)
 % project fine scale solution to coarse grid by volume averageing pressure
 % and summing fluxes
@@ -214,14 +214,14 @@ function sol = fine2coarse(solf, G, W, opt)
 % coarse grid pressure
 pvf = opt.pv;
 pc = accumarray(G.partition, solf.pressure.*pvf)./...
-     accumarray(G.partition, pvf); 
+     accumarray(G.partition, pvf);
 
-% coarse grid fluxes 
+% coarse grid fluxes
 fluxc = coarsenFlux(G, solf.flux);
 
 % coarse grid face pressure:
-% Since we have no half-trans, there is no unambigous choice for interior 
-% face pressure, pressure for exterior faces can be choosen 'freely', e.g., 
+% Since we have no half-trans, there is no unambigous choice for interior
+% face pressure, pressure for exterior faces can be choosen 'freely', e.g.,
 % use areal averaging
 if isfield(solf, 'facePressure'),
     sfp  = solf.facePressure(G.faces.fconn); % sub face pressures
@@ -234,12 +234,12 @@ if isfield(solf, 'facePressure'),
     pfc( all(G.faces.neighbors, 2) ) = nan;
 end
 
-% coarse well fluxes (bhp remain the same) 
+% coarse well fluxes (bhp remain the same)
 if ~isempty(W),
     wsc = solf.wellSol;
     for i = 1 : numel(W)
         % standard ...
-        pno = rldecode(1 : numel(W(i).cells), diff(W(i).fcellspos), 2).';     
+        pno = rldecode(1 : numel(W(i).cells), diff(W(i).fcellspos), 2).';
         wsc(i).flux = accumarray(pno, solf.wellSol(i).flux(W(i).fperf));
     end
 else
@@ -252,10 +252,10 @@ sol = struct('pressure',      pc,     ...
               'facePressure',  pfc, ...
               'wellSol',       wsc);
 end
-% ------------------------------------------------------------------------   
+% ------------------------------------------------------------------------
 function [T, TW] = pickUniqueTrans(Tl, TWl, sols, match_method)
 % check for nans/inf and replace by 0
-ix  = ~isfinite(Tl); 
+ix  = ~isfinite(Tl);
 ixT = all(ix,2); % set these to nan
 Tl(ix) = 0;
 % same for wells:
@@ -270,7 +270,7 @@ wellflux = cell(numel(TWl),1);
 for k = 1:numel(wellflux)
     wellflux{k} = cellfun(@(x)abs(x.wellSol(k).flux), sols, ...
                           'UniformOutput', false );
-    wellflux{k} = horzcat(wellflux{k}{:});                      
+    wellflux{k} = horzcat(wellflux{k}{:});
 end
 
 switch match_method
@@ -278,7 +278,7 @@ switch match_method
         [~, choice] = max(flux, [], 2);
         nf = numel(choice);
         T  = Tl( (1:nf)' + (choice-1)*nf );
-        
+
         TW = cell(1, numel(TWl));
         for k = 1:numel(TW)
             [~, choice] = max(wellflux{k}, [], 2);
@@ -295,10 +295,10 @@ for k = 1:numel(TW)
     TW{k}(ixW{k}) = nan;
 end
 end
-% ------------------------------------------------------------------------       
+% ------------------------------------------------------------------------
 function [T, TW] = handleNonPositiveTrans(T, TW, opt)
 % handle undetermined trans:
-if strcmp(opt.handleUndetermined, 'setToZero') 
+if strcmp(opt.handleUndetermined, 'setToZero')
     ix = isnan(T);
     T(ix) = 0;
     dispif(opt.verbose & nnz(ix)>0, ...
@@ -332,7 +332,7 @@ if ~strcmp(hn, 'ignore')
     end
     if nz > 0
         warning('%d negative well indices: ', hn,  '\n', nn);
-    end   
+    end
 end
 end
 % ------------------------------------------------------------------------
@@ -362,7 +362,7 @@ elseif numel(mobs) == 1
         pvf  = opt.pv;
         mobc = accumarray(G.partition, m.*pvf)./...
                accumarray(G.partition, pvf);
-    elseif numel(m) == G.cells.num 
+    elseif numel(m) == G.cells.num
         mobc = m;
         % produce fine mob by prolonging
         mobf = m(G.partition);
@@ -371,7 +371,7 @@ elseif numel(mobs) == 1
     end
 elseif numel(mobs) == 2
     ix = [1,2];
-    if numel(mobs{1}) <= numel(mobs{2}), ix = [2,1]; end   
+    if numel(mobs{1}) <= numel(mobs{2}), ix = [2,1]; end
     [mobf, mobc] = deal(mobs{ix});
     if or(numel(mobf)~=G.parent.cells.num, numel(mobc)~=G.cells.num)
         error('Mobility vectors should match number of cells in fine and coarse grid')
@@ -381,6 +381,3 @@ else
 end
 opt.mobility = {mobf, mobc};
 end
-
-
-
