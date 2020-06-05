@@ -92,29 +92,31 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     
     ncellpernode = map.eval(ones(cellnodetbl.num, 1));
     
-    cell12nodefacetbl = crossIndexArray(cellnodetbl, cellnodefacetbl, {'nodes'}, 'crossextend', {{'cells', {'cells1', 'cells2'}}});
+    cell12nodeface12tbl = crossIndexArray(cellnodefacetbl, cellnodefacetbl, {'nodes'}, 'crossextend', {{'cells', {'cells1', ...
+                        'cells2'}}, {'faces', {'faces1', 'faces2'}}});
 
-    gen = CrossIndexArrayGenerator();
-    gen.tbl1 = cell12nodefacetbl;
-    gen.tbl2 = cellnodefacetbl;
-    gen.replacefds1 = {{'faces', 'faces2'}};
-    gen.replacefds2 = {{'cells', 'cells1'}, {'faces', 'faces1'}};
-    gen.mergefds = {'cells1', 'nodes'};
-    cell12nodeface12tbl = gen.eval();
+    cell12nodefacetbl = projIndexArray(cell12nodeface12tbl, {'cells1', 'cells2', 'nodes', 'faces2'});
     
+    nodeface12tbl     = projIndexArray(cell12nodeface12tbl, {'nodes', 'faces1', 'faces2'});
+    cell1nodeface2tbl = projIndexArray(cell12nodeface12tbl, {'cells1', 'nodes', 'faces2'});
+    cell2nodeface1tbl = replacefield(cell1nodeface2tbl, {{'cells1', 'cells2'}, {'faces2', 'faces1'}}); % by symmetry
+    cell12tbl         = projIndexArray(cell12nodeface12tbl, {'cells1', 'cells2'});
+    
+    % extend tables in the spatial dimensions.
     colrow12tbl = crossIndexArray(colrowtbl, colrowtbl, {'coldim'}, 'crossextend', {{'rowdim', {'rowdim1', 'rowdim2'}}});
-    cellnodefacecolrow12tbl     = crossIndexArray(cellnodefacetbl, colrow12tbl, {});
-    nodefacecolrow12tbl         = crossIndexArray(nodefacetbl, colrow12tbl, {});
-    cell12nodefacecolrow12tbl   = crossIndexArray(cell12nodefacetbl, colrow12tbl, {});
-    cell12nodeface12colrow12tbl = crossIndexArray(cell12nodeface12tbl, colrow12tbl, {});
-
-    cell12nodeface12row12tbl = projIndexArray(cell12nodeface12colrow12tbl, {'cells1', 'cells2', 'nodes', 'faces1', 'faces2', 'rowdim1', 'rowdim2'});
-    cell12nodeface12col12tbl = replacefield(cell12nodeface12row12tbl, {{'rowdim1', 'coldim1'}, {'rowdim2', 'coldim2'}});
     
-    nodeface12col12tbl     = projIndexArray(cell12nodeface12col12tbl, {'nodes', 'faces1', 'faces2', 'coldim1', 'coldim2'});
-    cell1nodeface2col12tbl = projIndexArray(cell12nodeface12col12tbl, {'cells1', 'nodes', 'faces2', 'coldim1', 'coldim2'});
-    cell2nodeface1col12tbl = projIndexArray(cell12nodeface12col12tbl, {'cells2', 'nodes', 'faces1', 'coldim1', 'coldim2'});
-    cell12col12tbl         = projIndexArray(cell12nodeface12col12tbl, {'cells1', 'cells2', 'coldim1', 'coldim2'});
+    cellnodefacecolrow12tbl     = crossIndexArray(cellnodefacetbl    , colrow12tbl, {});
+    nodefacecolrow12tbl         = crossIndexArray(nodefacetbl        , colrow12tbl, {});
+    cell12nodeface2colrow12tbl   = crossIndexArray(cell12nodefacetbl  , colrow12tbl, {});
+    cell12nodeface12colrow12tbl = crossIndexArray(cell12nodeface12tbl, colrow12tbl, {});
+    
+    col12tbl = crossIndexArray(coltbl, coltbl, {}, 'crossextend', {{'coldim', {'coldim1', 'coldim2'}}});
+    
+    cell12nodeface12col12tbl = crossIndexArray(cell12nodeface12tbl, col12tbl, {});
+    nodeface12col12tbl       = crossIndexArray(nodeface12tbl      , col12tbl, {});
+    cell1nodeface2col12tbl   = crossIndexArray(cell1nodeface2tbl  , col12tbl, {});
+    cell2nodeface1col12tbl   = crossIndexArray(cell2nodeface1tbl  , col12tbl, {});
+    cell12col12tbl           = crossIndexArray(cell12tbl          , col12tbl, {});
     
     %% We include the fix at the boundary when the symmetry condition cannot be imposed.
     
@@ -199,28 +201,28 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     
     CAverg = map.eval(CAverg);
     
-    % We map Cg and CAverg in cell12nodefacecolrow12tbl
+    % We map Cg and CAverg in cell12nodeface2colrow12tbl
     
     map = TensorMap();
     map.fromTbl = cellnodefacecolrow12tbl;
-    map.toTbl = cell12nodefacecolrow12tbl;
-    map.replaceFromTblfds = {{'cells', 'cells2'}};
-    map.mergefds = {'cells2', 'nodes', 'faces', 'coldim', 'rowdim1', 'rowdim2'};
+    map.toTbl = cell12nodeface2colrow12tbl;
+    map.replaceFromTblfds = {{'cells', 'cells2'}, {'faces', 'faces2'}};
+    map.mergefds = {'cells2', 'nodes', 'faces2', 'coldim', 'rowdim1', 'rowdim2'};
     map = map.setup();
     
     CAverg = map.eval(CAverg);
     
-    cells1 = cell12nodefacecolrow12tbl.get('cells1');
-    cells2 = cell12nodefacecolrow12tbl.get('cells2');
-    injcoef = zeros(cell12nodefacecolrow12tbl.num, 1);
+    cells1 = cell12nodeface2colrow12tbl.get('cells1');
+    cells2 = cell12nodeface2colrow12tbl.get('cells2');
+    injcoef = zeros(cell12nodeface2colrow12tbl.num, 1);
     injcoef(cells1 == cells2) = 1;
     
     prod = TensorProd();
-    prod.tbl1 = cell12nodefacecolrow12tbl;
+    prod.tbl1 = cell12nodeface2colrow12tbl;
     prod.tbl2 = cellnodefacecolrow12tbl;
-    prod.tbl3 = cell12nodefacecolrow12tbl;
-    prod.replacefds2 = {{'cells', 'cells1'}};
-    prod.mergefds = {'cells1', 'nodes', 'faces', 'coldim', 'rowdim1', 'rowdim2'};
+    prod.tbl3 = cell12nodeface2colrow12tbl;
+    prod.replacefds2 = {{'cells', 'cells2'}, {'faces', 'faces2'}};
+    prod.mergefds = {'cells2', 'nodes', 'faces2', 'coldim', 'rowdim1', 'rowdim2'};
     prod = prod.setup();
     
     Cg = prod.eval(injcoef, Cg);
@@ -230,10 +232,10 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     %% We multiply Cg with facetNormals
     prod = TensorProd();
     prod.tbl1 = cellnodefacecoltbl;
-    prod.tbl2 = cell12nodefacecolrow12tbl;
+    prod.tbl2 = cell12nodeface2colrow12tbl;
     prod.tbl3 = cell12nodeface12col12tbl;
     prod.replacefds1 = {{'cells', 'cells1'}, {'faces', 'faces1'}};
-    prod.replacefds2 = {{'rowdim1', 'coldim1'}, {'rowdim2', 'coldim2'}, {'faces', 'faces2'}};
+    prod.replacefds2 = {{'rowdim1', 'coldim1'}, {'rowdim2', 'coldim2'}};
     prod.mergefds = {'cells1', 'nodes'};
     prod.reducefds = {'coldim'};
     prod = prod.setup();
