@@ -1,5 +1,5 @@
 function T = AvgTransNTPFA(G, OSflux)
-    
+
     dispif(mrstVerbose, 'AvgTransNTPFA... ');
     timer = tic;
 
@@ -8,22 +8,67 @@ function T = AvgTransNTPFA(G, OSflux)
 
     celltbl.cells = (1 : nc)';
     celltbl = IndexArray(celltbl);
-    
+
     facetbl.faces = (1 : nf)';
     facetbl = IndexArray(facetbl);
-    
+
     internal = (1 : nf)';
     internal(~all(G.faces.neighbors ~= 0, 2)) = [];
     intfacetbl.faces = internal;
     intfacetbl = IndexArray(intfacetbl);
-    
+
     T = cell(2, 1);
-    
-    % We unpack the OSflux to multi-index format using IndexArray
+
+    %% We unpack the OSflux to multi-index format using IndexArray
     cells   = cell(2, 1);
     faces   = cell(2, 1);
     weights = cell(2, 1);
+<<<<<<< HEAD
+    for j = 1 : 2
+        cells{j} = [];
+        faces{j} = [];
+        weights{j} = [];
+    end
+
+    for i = 1 : nf
+
+        for j = 1 : 2
+
+            d = OSflux{i, j};
+            d = d(:, 1 : end);
+
+            if ~isempty(d)
+                faces{j} = [faces{j}; repmat(i, size(d, 1), 1)];
+                cells{j} = [cells{j}; d(:, 1)];
+                weights{j} = [weights{j}; d(:, 2)];
+            end
+
+        end
+
+||||||| 0f1a2c5
+    for j = 1 : 2
+        cells{j} = [];
+        faces{j} = [];
+        weights{j} = [];
+    end
+    
+    for i = 1 : nf
         
+        for j = 1 : 2
+            
+            d = OSflux{i, j};
+            d = d(:, 1 : end);
+            
+            if ~isempty(d)
+                faces{j} = [faces{j}; repmat(i, size(d, 1), 1)];
+                cells{j} = [cells{j}; d(:, 1)];
+                weights{j} = [weights{j}; d(:, 2)];
+            end
+            
+        end
+        
+=======
+    
     for j = 1 : 2
         osflux = OSflux(:, j);
         % We remove the last entry in each cell (equal to zero, I do not know why.)
@@ -32,40 +77,41 @@ function T = AvgTransNTPFA(G, OSflux)
         osflux = cell2mat(osflux);
         cells{j} = osflux(:, 1);
         weights{j} = osflux(:, 2);
-            
+        
         ossizes = cell2mat(ossizes);
         faces{j} = rldecode((1 : nf)', ossizes(:, 1));
+>>>>>>> avgMPFA
     end
-    
+
     lincellfacetbls = cell(2, 1);
-    
+
     for j = 1 : 2
-        
+
         clear lincellfacetbl
         lincellfacetbl.cells = cells{j};
         lincellfacetbl.faces = faces{j};
         lincellfacetbl = IndexArray(lincellfacetbl);
-        
+
         % We only consider the internal faces
         linintcellfacetbl = crossIndexArray(lincellfacetbl, intfacetbl , {'faces'});
-        
+
         map = TensorMap();
         map.fromTbl = lincellfacetbl;
         map.toTbl = linintcellfacetbl;
         map.mergefds = {'cells', 'faces'};
         map = map.setup();
-        
+
         weights{j} = map.eval(weights{j});
         lincellfacetbls{j} = linintcellfacetbl;
-        
+
     end
-    
+
     %% We have to change the weights of the "inward" cell to opposite sign
-    
+
     intfaces = intfacetbl.get('faces');
-    
+
     for j = 1 : 2
-        
+
         clear cellfacetbl;
         cellfacetbl.faces = intfaces;
         cellfacetbl.cells = G.faces.neighbors(intfaces, j);
@@ -76,30 +122,31 @@ function T = AvgTransNTPFA(G, OSflux)
         map.toTbl = lincellfacetbls{j};
         map.mergefds = {'cells', 'faces'};
         map = map.setup();
-        
+
         chsign = logical(map.eval(ones(cellfacetbl.num, 1)));
-        
+
         weights{j}(chsign) = -weights{j}(chsign);
-        
-    end        
-    
+
+    end
+
     %% We setup the flux mappings
-    
+
     for j = 1 : 2
-        
+
         prod = TensorProd();
         prod.tbl1 = lincellfacetbls{j};
         prod.tbl2 = celltbl;
         prod.tbl3 = intfacetbl;
         prod.reducefds = {'cells'};
         prod = prod.setup();
-        
+
         T{j} = SparseTensor();
         T{j} = T{j}.setFromTensorProd(weights{j}, prod);
-        
-        T{j} = T{j}.getMatrix();
-        
-    end
-    
-end
 
+        T{j} = T{j}.getMatrix();
+
+    end
+
+    dispif(mrstVerbose, 'done in %1.2f s\n', toc(timer));
+
+end
