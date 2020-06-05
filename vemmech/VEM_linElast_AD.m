@@ -243,6 +243,7 @@ function ax_derivs = compute_Ax_derivs(G, u, extra, E, nu, gamma, dirdofs)
 
    assert(G.griddim==3);
    N = G.cells.num;
+   vols = G.cells.volumes;
    cpos = reshape(repmat(1:N, 6, 1), [], 1);
    rep6 = sparse((1:6*N)', cpos, 1, 6 * N, N); % repeat each vector entry 6 times
 
@@ -251,26 +252,27 @@ function ax_derivs = compute_Ax_derivs(G, u, extra, E, nu, gamma, dirdofs)
    
    % repeat each entry '3n' times, where 'n' is the number of nodes for a given cell
    repX = sparse((1:dim*sum(nlc))', rldecode((1:N)', nlc * dim), 1); 
-                                                                     
-   D_dE = bsxfun(@rdivide, extra.D, rep6 * value(E));  %  d/dE (D)
+
+   D_dE = extra.D * spdiags(1 ./ (rep6 * value(E)), 0, 6 * N, 6 * N); % divide by E
    
    % we have D = Ds * Dm (where ds is scalar and dm is a matrix)
    Ds = E ./ ((1+nu) .* (1-2*nu)); 
-   Dm = bsxfun(@rdivide, extra.D, rep6 * value(Ds));
+   
+   Dm = extra.D * spdiags(1 ./ (rep6 * value(Ds)), 0, 6 * N, 6 * N); % divide by Ds
    
    % computing d/dnu (D), which makes use of the definitions of Ds and Dm above
    Ds_dnu = E .* (1 + 4 * nu) ./ ( (1+nu) .* (1 - 2 * nu) ).^2;
    
    Dm_dnu = spones(extra.D);
-   Dm_diag = repmat([-1,-1,-1, -4,-4,-4], 1, G.cells.num);
-   Dm_dnu(logical(eye(numel(Dm_diag)))) = Dm_diag;
+   Dm_diag = repmat([-1,-1,-1, -4,-4,-4], 1, N);
+   Dm_dnu(logical(speye(numel(Dm_diag)))) = Dm_diag;
    
-   D_dnu = bsxfun(@times, Dm, rep6 * value(Ds_dnu)) + ...
-           bsxfun(@times, Dm_dnu, rep6 * value(Ds));
+   D_dnu = Dm * spdiags(rep6 * value(Ds_dnu), 0, 6 * N, 6 * N) + ...
+           Dm_dnu * spdiags(rep6 * value(Ds), 0, 6 * N, 6 * N);
    
    DNC = diag(extra.NC' * extra.NC);
    trDNC = sum(reshape(DNC, 6, []), 1)';
-   c = gamma ./ trDNC .* G.cells.volumes; 
+   c = gamma ./ trDNC .* vols; 
    trD = Ds .* 3 .* (3-5*value(nu)); 
    alpha_dE = c .* trD ./ value(E);
    alpha_dnu = - c .* value(E) .* 6 .* (value(nu)-1) .* (5 * value(nu) -1 ) ./ ...
@@ -295,23 +297,24 @@ function ax_derivs = compute_Ax_derivs(G, u, extra, E, nu, gamma, dirdofs)
       
    ImPP = extra.I - extra.PP;
    ax_derivs = sparse(numel(u), num_ders);
+   M = size(repX, 1);
    for i = 1:num_ders
       
       % compute total derivative for each cell
       Kdu = ...
           extra.WC * ( ...
-              bsxfun(@times, D_dE, rep6 * (ejac(:,i) .* G.cells.volumes)) + ...
-              bsxfun(@times, D_dnu, rep6 * (nujac(:,i) .* G.cells.volumes))) * ...
+              D_dE * spdiags(rep6 * (ejac(:, i) .* vols), 0, 6 * N, 6 * N) + ...
+              D_dnu * spdiags(rep6 * (nujac(:, i) .* vols), 0, 6 * N, 6 * N)) * ...
           extra.WC' + ...          
           ImPP' * (...
-              bsxfun(@times, S_dE, repX * ejac(:,i)) + ...
-              bsxfun(@times, S_dnu, repX * nujac(:,i))) * ...
+              S_dE * spdiags(repX * ejac(:, i), 0, M, M) + ...
+              S_dnu * spdiags(repX * nujac(:, i), 0, M, M)) * ...
           ImPP;
       
       % assemble
       Kdu = extra.assemb * Kdu * extra.assemb';
 
-      ax_derivs(:, i) = Kdu * u; % @@ how can we speed up here?
+      ax_derivs(:, i) = Kdu * u; %#ok @@ how can we speed up here?
    end
    ax_derivs = ax_derivs(~dirdofs, :);
 end
@@ -319,7 +322,7 @@ end
 
 function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
 
-    cells  = [1:G.cells.num]';
+    cells  = (1:G.cells.num)';
     inodes = mcolon(G.cells.nodePos(cells), G.cells.nodePos(cells + 1) - 1');
     nodes  = G.cells.nodes(inodes);
 
