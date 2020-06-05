@@ -219,51 +219,6 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     Cg = prod.eval(injcoef, Cg);
 
     Cg = 0.5*(Cg + CAverg);
-    % Cg = CAverg;
-    
-    debug = true;
-
-    if debug
-        
-        % assemble mappin Cg : nodefacecol -> cellnodecolrow
-        % prod = TensorProd();
-        % prod.tbl1 = cellnodefacecol12rowtbl;
-        % prod.tbl2 = nodefacecoltbl;
-        % prod.tbl3 = cellnodecolrowtbl;
-        % prod.replacefds1 = {{'coldim1', 'coldim'}};
-        % prod.replacefds2 = {{'coldim', 'coldim2'}};
-        % prod.reducefds = {'coldim2'};
-        % prod.mergefds = {'faces', 'nodes'};
-        % prod = prod.setup();
-        
-        prod = TensorProd();
-        prod.tbl1 = cell12nodefacecolrow12tbl;
-        prod.tbl2 = nodefacecoltbl;
-        prod.tbl3 = cellnodecolrowtbl;
-        prod.replacefds1 = {{'cells1', 'cells'}, {'rowdim1', 'rowdim'}};
-        prod.replacefds2 = {{'coldim', 'rowdim2'}};
-        prod.reducefds = {'faces', 'rowdim2'};
-        prod.mergefds = {'nodes'};
-        prod = prod.setup();
-
-        C1_T = SparseTensor();
-        C1_T = C1_T.setFromTensorProd(Cg, prod);
-        C1 = C1_T.getMatrix();
-
-        prod = TensorProd();
-        prod.tbl1 = cell12nodefacecolrow12tbl;
-        prod.tbl2 = cellcoltbl;
-        prod.tbl3 = cellnodecolrowtbl;
-        prod.replacefds1 = {{'cells1', 'cells'}, {'rowdim1', 'rowdim'}};
-        prod.replacefds2 = {{'cells', 'cells2'}, {'coldim', 'rowdim2'}};
-        prod.reducefds = {'cells2', 'rowdim2'};
-        prod = prod.setup();
-
-        C2_T = SparseTensor();
-        C2_T = C2_T.setFromTensorProd(Cg, prod);
-        C2 = C2_T.getMatrix();
-        
-    end
     
     %% We multiply Cg with facetNormals
     
@@ -379,15 +334,12 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     A22_T = A22_T.setFromTensorProd(A22, prod);
     A22 = A22_T.getMatrix();
     
-    % Uses the block structure for the local reduction
-    % We count the number of degrees of freedom that are connected to the same
-    % node.
+    % Uses the block structure for the local reduction. We count the number of degrees of freedom that are connected to the same node.
     [nodes, sz] = rlencode(nodefacecoltbl.get('nodes'), 1);
     opt.invertBlocks = 'mex';
     bi = blockInverter(opt);
     invA11 = bi(A11, sz);
 
-    
     % We enforce the boundary conditions as Lagrange multipliers
 
     bc = loadstruct.bc;
@@ -402,8 +354,6 @@ function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, vara
     fullrhs{1} = extforce;
     fullrhs{2} = force;
     fullrhs{3} = bcvals;
-    
-
     
     matrices = struct('A11', A11, ...
                       'A12', A12, ...
