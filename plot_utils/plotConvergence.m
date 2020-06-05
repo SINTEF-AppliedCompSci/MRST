@@ -12,7 +12,7 @@ if(all(x>1))
     figure, loglog(x,ep,'o-','linewidth',2);
     legend(mylegend,'location','best','fontsize',12);
     xlabel('\itn\rm_c');ylabel('\ite_p\rm');grid on
-    
+
     figure, loglog(x,ef,'o-','linewidth',2);
     legend(mylegend,'location','best','fontsize',12);
     xlabel('\itn\rm_c');ylabel('\ite_f\rm');grid on
@@ -27,7 +27,7 @@ else
     legend(mylegend,'location','best','fontsize',12);
     xlabel('log_{2}(1/\ith\rm)');
     ylabel('log_{2}(\ite_p\rm)');grid on
-    
+
     set(figure,'color','w');
     if(isempty(varargin))
         plot(x,log2(ef),'o-','linewidth',2);
@@ -39,4 +39,3 @@ else
     ylabel('log_{2}(\ite_f\rm)');grid on
 end
 end
-

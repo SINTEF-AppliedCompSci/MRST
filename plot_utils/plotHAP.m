@@ -25,8 +25,8 @@ end
 % view(3);grid on
 % hand=trisurf(ind,x,y,z,'facecolor','y');
 % alpha(hand,0.5)
-% 
-% 
+%
+%
 % x=interpFace.coords(theFaces,1);
 % y=interpFace.coords(theFaces,2);
 % xc=G.cells.centroids(mycell,1);
