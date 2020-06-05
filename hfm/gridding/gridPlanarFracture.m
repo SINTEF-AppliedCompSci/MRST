@@ -259,4 +259,3 @@ Gf = computeGeometry(Gf);
 Gf.cells.volumes = abs(Gf.cells.volumes);
 Gf.faces.areas = abs(Gf.faces.areas);
 return
-
