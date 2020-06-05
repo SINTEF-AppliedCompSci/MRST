@@ -221,7 +221,44 @@ classdef TensorMap
             v = accumarray(dispind1, v, [fromTbl.num, 1]);
             
         end
-        
+
+        function isok = checkSetup(map, varargin)
+        % check if the dispatching indices (dispinds) are setup correctly with respect to the pivot IndexArray (prod.pivottbl)
+            
+            pivottbl = map.pivottbl;
+            fromtbl  = map.fromTbl;
+            totbl    = map.toTbl;
+            
+            if ~isempty(map.replaceFromTblfds)
+                fromtbl = replacefield(fromtbl, map.replaceFromTblfds);
+            end
+            
+            if ~isempty(map.replaceToTblfds)
+                totbl = replacefield(totbl, map.replaceToTblfds);
+            end
+            
+            if (nargin > 0) & ~isempty(varargin)
+                pivottbl = replacefield(pivottbl, varargin{1});
+            end
+            
+            dismap = TensorMap();
+            dismap.fromTbl  = fromtbl;
+            dismap.toTbl    = pivottbl;
+            dismap.mergefds = fromtbl.fdnames;
+            dispind1 = dismap.getDispatchInd();
+            
+            isok = all(dispind1 == map.dispind1);
+            
+            dismap = TensorMap();
+            dismap.fromTbl  = totbl;
+            dismap.toTbl    = pivottbl;
+            dismap.mergefds = totbl.fdnames;
+            dispind2 = dismap.getDispatchInd();
+            
+            isok = isok & all(dispind2 == map.dispind2);
+            
+        end
+
         function mat = getMatrix(map)
         % get matlab sparse matrix representation of the mapping in term of the local
         % indices of fromTbl and toTbl.

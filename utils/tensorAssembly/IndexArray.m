@@ -210,7 +210,6 @@ classdef IndexArray
             end
             
             display(tbl.inds(rg, tblinds));
-                
         end
         
     end

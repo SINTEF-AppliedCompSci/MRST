@@ -226,6 +226,57 @@ classdef TensorProd
             end
             
         end
+
+        function isok = checkSetup(prod, varargin)
+        % check if the dispatching indices (dispinds) are setup correctly with respect to the pivot IndexArray (prod.pivottbl)
+            
+            pivottbl = prod.pivottbl;
+            tbl1 = prod.tbl1;
+            tbl2 = prod.tbl2;
+            tbl3 = prod.tbl3;
+            
+            if ~isempty(prod.replacefds1)
+                tbl1 = replacefield(tbl1, prod.replacefds1);
+            end
+            
+            if ~isempty(prod.replacefds2)
+                tbl2 = replacefield(tbl2, prod.replacefds2);
+            end
+            
+            if ~isempty(prod.replacefds3)
+                tbl3 = replacefield(tbl3, prod.replacefds3);
+            end
+            
+            if (nargin > 0) & ~isempty(varargin)
+                pivottbl = replacefield(pivottbl, varargin{1});
+            end
+            
+            map = TensorMap();
+            map.fromTbl = tbl1;
+            map.toTbl = pivottbl;
+            map.mergefds = tbl1.fdnames;
+            dispind1 = map.getDispatchInd();
+            
+            isok = all(dispind1 == prod.dispind1);
+            
+            map = TensorMap();
+            map.fromTbl = tbl2;
+            map.toTbl = pivottbl;
+            map.mergefds = tbl2.fdnames;
+            dispind2 = map.getDispatchInd();
+            
+            isok = isok & all(dispind2 == prod.dispind2);
+            
+            map = TensorMap();
+            map.fromTbl = tbl3;
+            map.toTbl = pivottbl;
+            map.mergefds = tbl3.fdnames;
+            dispind3 = map.getDispatchInd();
+            
+            isok = isok & all(dispind3 == prod.dispind3);
+            
+            
+        end
         
         function [ind1, ind2] = getDispatchInd(prod)
         % In the case where the product is set up to create a bilinear mapping (see
