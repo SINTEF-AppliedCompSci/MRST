@@ -87,26 +87,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     [S, extra] = VEM_assemble_AD(G, E, nu, 'extra', opt.extra, ...
                                  'alpha_scaling', opt.alpha_scaling);
-    
-    % C = Enu2C(value(E), value(nu), G);
-    
-    % if ~isempty(opt.extra)
-    %    % re-use previously computed discretization
-    %    S = opt.extra.S;
-    %    extra = opt.extra;
-    % elseif(opt.add_operators)
-    %    [S, extra] = VEM_assemble(G, C, ...
-    %                              'blocksize'            , opt.blocksize, ...
-    %                              'alpha_scaling'        , opt.alpha_scaling, ...
-    %                              'S'                    , opt.S, ...
-    %                              'experimental_scaling' , opt.experimental_scaling);
-    % else
-    %     S = VEM_assemble(G, C, ...
-    %                      'blocksize'           , opt.blocksize, ...
-    %                      'alpha_scaling'       , opt.alpha_scaling, ...
-    %                      'S'                   , opt.S, ...
-    %                      'experimental_scaling', opt.experimental_scaling);
-    % end
     toc
 
     %% Recalculate "weights" (all are calculated in the assembly, they could
@@ -332,9 +312,10 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
         % Evaluate forces at nodes. The result is weighted, using adjacent
         % cell volume contributions, see paper [Gain et al: doi:10.1016/j.cma.2014.05.005]
 
-        X = G.nodes.coords(nodes, :);
-        w = qcvol;
-        ll = bsxfun(@times, load(X), w)';
+        error('node_force unimplemented for AD version of VEM_linElast');
+        % X = G.nodes.coords(nodes, :);
+        % w = qcvol;
+        % ll = bsxfun(@times, load(X), w)';
 
       case  'cell_force_baric'
         %
@@ -365,17 +346,19 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
             assert(G.griddim == 2)
             w = (vols ./ rldecode(nlc, nlc) + sum(qc_all(inodes, :) .* (XB), 2));
         end
-        ll   = bsxfun(@times, load(X), w)';
+        %ll   = bsxfun(@times, load(X), w)';
+        ll = load ^ SparseTensor(w, {'cn'});
 
       case 'cell_force'
         % Evaluate the force at the cell centroids. Then, for each node, sum up each
         % adjacent cell contributions after weighting them with volume
         % contribution.
 
-        nlc = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);
-        X   = rldecode(G.cells.centroids(cells, :), nlc);
+        %nlc = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);
+        %X   = rldecode(G.cells.centroids(cells, :), nlc);
         w   = qcvol;
-        ll  = bsxfun(@times, load(X), w)';
+        %ll  = bsxfun(@times, load(X), w)';
+        ll = load ^ SparseTensor(w, {'cn'});
 
       case 'dual_grad_type'
         % For the virtual basis, there exists a natural divergence operator (from node
@@ -393,7 +376,10 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
         nlc     = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);
         X       = rldecode(G.cells.centroids(cells, :), nlc);
         rel_vec = -(X-G.nodes.coords(nodes, :));
-        ll      = bsxfun(@times, load(X), qc_all.*rel_vec)';
+        
+        w = qc_all .* rel_vec;
+        ll = load ^ SparseTensor(reshape(w', [], 1), {'cn'});
+        %ll      = bsxfun(@times, load(X), qc_all.*rel_vec)';
 
       otherwise
         error('No such force  calculation')
@@ -401,6 +387,10 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
 
     ndof = G.griddim * G.nodes.num;
     dofs = mcolon(G.griddim * (nodes - 1) + 1, G.griddim * (nodes - 1) + G.griddim)';
-    f    = accumarray(dofs(:), ll(:), [ndof, 1]);
+    
+    f = sparse(dofs(:), (1:numel(dofs))', 1, ndof, numel(dofs)) * ...
+        ll.asVector({'d', 'cn'}, [G.griddim, numel(nodes)]);
+
+    %f    = accumarray(dofs(:), ll(:), [ndof, 1]);
 
 end
