@@ -86,7 +86,7 @@ classdef SparseTensor
              else
                 % intrinsic scalar
                 assert(isscalar(varargin{1}));
-                comp.coefs = varargin{1};
+                comp.coefs = full(varargin{1});
                 comp.ixs = [];
                 comp.indexnames = {};
                 self.components = {comp};
@@ -94,7 +94,7 @@ classdef SparseTensor
            case 2
              % input is in form of a matrix (or vector) and a list of (one or
              % two) index names
-             coefs = varargin{1};
+             coefs = full(varargin{1});
              indexnames = varargin{2}';
              self.components = SparseTensor.make_matrix_tensor(coefs, indexnames);
            case 3
@@ -105,7 +105,7 @@ classdef SparseTensor
                 comp.indexnames = {comp.indexnames};
              end
              comp.ixs = varargin{2};
-             comp.coefs = varargin{1};
+             comp.coefs = full(varargin{1});
              comp.coefs = comp.coefs(:); % ensure column vector
              if isempty(comp.coefs)
                 comp.coefs = ones(size(comp.ixs, 1), 1);
