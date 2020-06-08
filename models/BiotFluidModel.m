@@ -21,7 +21,7 @@ classdef BiotFluidModel < PhysicalModel
             model.bcstruct = bcstruct;
             
             model.operators = setupMpfaOperators(model);
-            
+            model.FluidBiotPropertyFunctions = FluidBiotPropertyFunctions(model);            
         end
         
         function [vars, names, origin] = getPrimaryVariables(model, state)
@@ -40,7 +40,6 @@ classdef BiotFluidModel < PhysicalModel
         function model = setupStateFunctionGroupings(model, varargin)
             
             model = setupStateFunctionGroupings@PhysicalModel(model, varargin{:});
-            model.FluidBiotPropertyFunctions = FluidBiotPropertyFunctions(model);
             
             fp = model.FluidBiotPropertyFunctions;
             % fp = fp.setStateFunction('BasePoreVolume', BlackOilPoreVolume(model));

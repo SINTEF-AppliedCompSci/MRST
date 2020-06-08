@@ -133,8 +133,8 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         A = [A1; A2; A3; A4; A5; A6];
     end
     
-    %       | B11   B12   B13       |
-    %  B =  | B21   B22  B23   B24 |
+    %       | B11  B12  B13      |
+    %  B =  | B21  B22  B23  B24 |
     %       | B31  B32  B33      |
     %       |      B32       B44 |
     
