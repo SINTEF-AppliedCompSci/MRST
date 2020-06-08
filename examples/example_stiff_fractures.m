@@ -86,7 +86,7 @@ end
 
 % Displacement BCs
 % Find the nodes for the different sides and set the boundaray conditions for
-% elastisity.
+% elasticity.
 for i = 1 : 4
     inodes = mcolon(G.faces.nodePos(bc{i}.face), G.faces.nodePos(bc{i}.face + 1) - 1);
     nodes = unique(G.faces.nodes(inodes));
@@ -105,7 +105,7 @@ bc_el_sides{2}.el_bc.disp_bc.mask(:, 2) = false;   % x fixed, y free
 bc_el_sides{3} = bc{3}; 
 bc_el_sides{3}.el_bc.disp_bc.mask(:, :) = true;    % x fixed, y fixed
 bc_el_sides{4} = bc{4}; 
-bc_el_sides{4}.el_bc.disp_bc.mask(:, 2) = false;   % x fixed, y freee
+bc_el_sides{4}.el_bc.disp_bc.mask(:, 2) = false;   % x fixed, y free
 
 % Collect the displacement boundary conditions
 nodes = [];
