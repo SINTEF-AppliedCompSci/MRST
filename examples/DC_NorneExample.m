@@ -16,9 +16,6 @@ opt = struct( 'fluid_model'        , 'water', ...
 
 %% Setup Grid - We use a subset of the Norne grid, which is freely available
 % via the open porous media project: https://opm-project.org/ 
-    if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
-        error('Unable to obtain simulation model subset');
-    end
 
     grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
     grdecl = readGRDECL(grdecl);
