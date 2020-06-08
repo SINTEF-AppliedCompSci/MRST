@@ -1,7 +1,9 @@
 function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varargin)
 
-    opt = struct('bcetazero', true, ...
-                 'dooptimize', true);
+    opt = struct('bcetazero'       , true , ...
+                 'assemblyMatrices', false, ...
+                 'adoperators'     , false, ...
+                 'dooptimize'      , true);
     opt = merge_options(opt, varargin{:});
     
     dooptimize = opt.dooptimize;
@@ -342,13 +344,33 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     B = [[B11, B12]; ...
          [B21, B22]];
     
-    rhs{1} = -A21*invA11*extflux + src; 
-    rhs{2} = -D'*invA11*extflux + bcvals;
+    adrhs{1} = -A21*invA11*extflux + src; 
+    adrhs{2} = -D'*invA11*extflux + bcvals;
     
-    rhs = vertcat(rhs{:});
+    rhs = vertcat(adrhs{:});
     
     assembly = struct( 'B'  , B  , ...
-                       'rhs', rhs, ...
-                       'matrices', matrices);
+                       'rhs', rhs);
+
+    if opt.assemblyMatrices
+        assembly.matrices = matrices;
+    end
+
+    
+    if opt.adoperators
+        
+        adB = cell(2, 2);
+        adB{1, 1} = B11;
+        adB{2, 1} = B21;
+        adB{1, 2} = B12;
+        adB{2, 2} = B22;
+        
+        adoperators.B     = adB;
+        adoperators.rhs   = adrhs;        
+        
+        assembly.adoperators = adoperators;
+        
+    end
+
 end
 

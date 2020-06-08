@@ -32,6 +32,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     
     opt = struct('bcetazero'       , true , ...
                  'assemblyMatrices', false, ...
+                 'adoperators'     , false, ...
                  'extraoutput'     , false);
     opt = merge_options(opt, varargin{:});
     
@@ -512,14 +513,14 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     B12 = A21*invA11*D;
     B21 = -D'*invA11*A12;
     B22 = D'*invA11*D;
-
+    
     B = [[B11, B12]; ...
          [B21, B22]];
     
-    rhs{1} = -A21*invA11*extforce + force; 
-    rhs{2} = -D'*invA11*extforce + bcvals;
+    adrhs{1} = -A21*invA11*extforce + force; 
+    adrhs{2} = -D'*invA11*extforce + bcvals;
     
-    rhs = vertcat(rhs{:});
+    rhs = vertcat(adrhs{:});
 
     % Assembly of operator to compute u_{nodefacecoltbl} from solution of the system
     % (which consists of the concatenation of u_{cellcol} and lagmult) and
@@ -568,10 +569,25 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
                       'R1'      , R1      , ...
                       'R2'      , R2);
     
-    if opt.assemblyMatrices
-        assembly.matrices = matrices;
-    end
+
     
+    if opt.adoperators
+        
+        adB = cell(2, 2);
+        adB{1, 1} = B11;
+        adB{2, 1} = B21;
+        adB{1, 2} = B12;
+        adB{2, 2} = B22;
+        divop = @(sol) mpsaDivOperator(sol, extforce, R1, R2, div);
+        
+        adoperators.B     = adB;
+        adoperators.rhs   = adrhs;        
+        adoperators.divop = divop;
+        
+        assembly.adoperators = adoperators;
+        
+    end
+        
     if opt.extraoutput
         assembly.divop = @(sol) mpsaDivOperator(sol, extforce, R1, R2, div);
     end
