@@ -20,4 +20,10 @@
 * check definition of g
   - in assembly, we do reduction of C and g with respect to coldim. Maybe it should be with respecto to rowdim
 * Implement object-setup of crossIndexArray with replacefds1 and replacefds2
+* in ooad, include setting of continuity point
+  - also bcetazero
+* in ad, include nonisotropic perm in mpfa
+* in ad for fluid, recover directly pv (withou calling tpfa)
+* in setupMpfaOperators, call useVirtual
+* add normalization of D for mpfa also in blockassembly
 
