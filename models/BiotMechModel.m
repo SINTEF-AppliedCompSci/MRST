@@ -48,10 +48,7 @@ classdef BiotMechModel < PhysicalModel
         end
 
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces, varargin)
-            eqs{1} = model.getProp(state, 'MomentumEquations');
-            names = {'momentum'};
-            types = {'mixed'};
-            
+            [eqs, names, types, state] = mechEquations(model, state0, state, dt, drivingForces, varargin);
         end
 
         function [vars, names, origin] = getPrimaryVariables(model, state)
