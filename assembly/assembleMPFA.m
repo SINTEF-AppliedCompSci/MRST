@@ -284,6 +284,11 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
         src = zeros(celltbl.num, 1);
     end
 
+    % scale D
+    fac    = max(max(abs(A11)));
+    D      = fac*D;
+    bcvals = fac*bcvals;
+    
     fullrhs{1} = extflux;
     fullrhs{2} = src;
     fullrhs{3} = bcvals;
@@ -329,7 +334,7 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     % B = [[B11, B12];
     %      [B21, B22]];
     %
-    % u = [u (displacement at celltbl);
+    % u = [p (pressure at celltbl);
     %      lagmult];
     %
     % rhs = [-A21*invA11*extflux;  +  [src;
