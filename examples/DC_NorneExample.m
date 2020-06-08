@@ -2,7 +2,7 @@
 % We make use of the fixed-stress split for solution of the coupled problem
 
 %% Load required modules
-mrstModule add dual-permeability-mech vemmech ad-core ad-mechanics
+mrstModule add dual-continuum-mech vemmech ad-core ad-mechanics ad-props
 
 %% Setup default options
 clear opt

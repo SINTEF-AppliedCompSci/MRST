@@ -13,7 +13,7 @@
 
 
 %% Load required modules
-mrstModule add dual-permeability-mech vemmech ad-core ad-mechanics
+mrstModule add dual-continuum-mech vemmech ad-core ad-mechanics ad-props dual-porosity
 
 
 %% Setup default options

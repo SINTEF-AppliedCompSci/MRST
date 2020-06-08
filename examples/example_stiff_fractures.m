@@ -11,7 +11,7 @@
 
 
 %% Load required modules
-mrstModule add dual-continuum-mech ad-core ad-mechanics dual-porosity
+mrstModule add dual-continuum-mech ad-core ad-mechanics dual-porosity ad-props vemmech
 
 
 %% Setup default options
