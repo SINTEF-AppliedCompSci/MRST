@@ -3,16 +3,16 @@ classdef MomentumEquations < StateFunction
     methods
         function gp = MomentumEquations(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'xd', 'lambmech'}, 'state');
+            gp = gp.dependsOn({'u', 'lambmech'}, 'state');
             gp = gp.dependsOn('BiotGradP');
             gp.label = 'momentum eqs';
         end
         
         function momentumeqs = evaluateOnDomain(prop, model, state)
             
-            G = model.G;
-            op = model.operators;
-            B = op.B;
+            G   = model.G;
+            op  = model.operators;
+            B   = op.B;
             rhs = op.rhs;
             
             u         = model.getProp(state, 'u');

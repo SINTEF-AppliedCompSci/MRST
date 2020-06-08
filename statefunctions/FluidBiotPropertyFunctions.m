@@ -3,21 +3,20 @@ classdef FluidBiotPropertyFunctions < StateFunctionGrouping
     properties 
         
         PoreVolume
-        MassConsEquations
+        Density
         
     end
 
     methods
         
-        function props = MechBiotPropertyFunctions(model)
+        function props = FluidBiotPropertyFunctions(model)
             
             props@StateFunctionGrouping('FluidBiotProps');
             
             pv   = PoreVolume(model);
-            masseqs   = MassConsEquations(model);
-            
-            props = props.setStateFunction('MassConsEquations', masseqs);
+            density   = PoreVolume(model);
             props = props.setStateFunction('PoreVolume', pv);
+            props = props.setStateFunction('Density', density);
             
         end
     end

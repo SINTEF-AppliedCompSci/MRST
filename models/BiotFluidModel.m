@@ -1,43 +1,81 @@
 classdef BiotFluidModel < PhysicalModel
 
     properties
+         
         rock
+        fluid
+        bcstruct
+        
         FluidBiotPropertyFunctions % Grouping for flow properties
     end
     
     methods
-        function model = BiotFluidModel(G, rock, fluid, varargin)
-            model = model@PhysicalModel(G, rock, fluid, varargin{:});
+        
+        function model = BiotFluidModel(G, rock, fluid, bcstruct, varargin)
+            
+            model = model@PhysicalModel(G, varargin{:});
             model = merge_options(model, varargin{:});
             
-            operators = setupMpfaOperators(model);
+            model.rock     = rock;
+            model.fluid    = fluid;
+            model.bcstruct = bcstruct;
+            
+            model.operators = setupMpfaOperators(model);
             
         end
         
+        function [vars, names, origin] = getPrimaryVariables(model, state)
+            [p, lambda] = model.getProps(state, 'pressure', 'lambda');
+            vars = {p, lambda};
+            names = {'pressure', 'lambda'};
+            origin = {class(model)};
+        end
+        
+        
+        function containers = getStateFunctionGroupings(model)
+            containers = getStateFunctionGroupings@PhysicalModel(model);
+            containers = [containers, {model.FluidBiotPropertyFunctions}];
+        end
+        
         function model = setupStateFunctionGroupings(model, varargin)
+            
             model = setupStateFunctionGroupings@PhysicalModel(model, varargin{:});
+            model.FluidBiotPropertyFunctions = FluidBiotPropertyFunctions(model);
             
-            fp = model.FlowPropertyFunctions;
-            fp = fp.setStateFunction('BasePoreVolume', BlackOilPoreVolume(model));
-            fp = fp.setStateFunction('PoreVolume'    , BiotPoreVolume(model));
-            fp = fp.setStateFunction('Dilatation'    , BiotDilatation(model));
+            fp = model.FluidBiotPropertyFunctions;
+            % fp = fp.setStateFunction('BasePoreVolume', BlackOilPoreVolume(model));
+            fp = fp.setStateFunction('PoreVolume', PoreVolume(model));
+            % fp = fp.setStateFunction('Dilatation'    , BiotDilatation(model));
             
-            model.FlowPropertyFunctions = fp;
+            model.FluidBiotPropertyFunctions = fp;
             
         end
         
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces, varargin)
             
-            eqs = fluidequations(model, state0, state, dt, drivingForces, varargin{:});
-            names = {'fluid'};
-            types = {'mixed'};
+            [eqs, names, types, states] = fluidEquations(model, state0, state, dt, drivingForces, varargin{:});
             
         end
- 
+
+        function state = validateState(model, state)
+            state = validateState@PhysicalModel(model, state);
+            if ~isfield(state, 'wellSol')
+                state.wellSol = [];
+            end
+        end
+                
+        
+        function forces = getValidDrivingForces(model)
+            forces = getValidDrivingForces@PhysicalModel(model);
+            % Support for wells
+            forces.W   = [];
+        end
+
+
         function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))
               case {'pressure', 'p'}
-                fn = lower(name);
+                fn = 'pressure';
                 index = ':';
               case {'lambda'}
                 fn = lower(name);
