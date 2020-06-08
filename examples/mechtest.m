@@ -68,7 +68,7 @@ rock.alpha = ones(nc, 1);
 mechmodel = BiotMechModel(G, rock, mech);
 
 state.u = mechmodel.operators.rhs{1}; % Dummy values, just used to get the correct dimension.
-state.lambda = mechmodel.operators.rhs{2}; % Dummy values, just used to get the correct dimension.
+state.lambdamech = mechmodel.operators.rhs{2}; % Dummy values, just used to get the correct dimension.
 
 % The biot term (alpha*(gradient of fluid pressure)) is given
 % equal to zero for testing

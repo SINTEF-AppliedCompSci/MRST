@@ -55,9 +55,9 @@ classdef BiotMechModel < PhysicalModel
         end
 
         function [vars, names, origin] = getPrimaryVariables(model, state)
-            [u, lambda] = model.getProps(state, 'displacement', 'lambda');
-            vars = {u, lambda};
-            names = {'displacement', 'lambda'};
+            [u, lambdamech] = model.getProps(state, 'displacement', 'lambdamech');
+            vars = {u, lambdamech};
+            names = {'displacement', 'lambdamech'};
             origin = {class(model)};
         end
         
@@ -78,9 +78,9 @@ classdef BiotMechModel < PhysicalModel
                 % Displacement
                 fn = 'u';
                 index = ':';
-              case {'lambda'}
+              case {'lambdamech'}
                 % Lagrangian variables for corresponding to the boundary conditions
-                fn = 'lambda';
+                fn = 'lambdamech';
                 index = ':';
               case {'biotgradp'}
                 % external force corresponding to a pressure gradient.

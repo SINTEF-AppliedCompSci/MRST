@@ -25,9 +25,9 @@ classdef BiotFluidModel < PhysicalModel
         end
         
         function [vars, names, origin] = getPrimaryVariables(model, state)
-            [p, lambda] = model.getProps(state, 'pressure', 'lambda');
-            vars = {p, lambda};
-            names = {'pressure', 'lambda'};
+            [p, lambdafluid] = model.getProps(state, 'pressure', 'lambdafluid');
+            vars = {p, lambdafluid};
+            names = {'pressure', 'lambdafluid'};
             origin = {class(model)};
         end
         
@@ -77,7 +77,7 @@ classdef BiotFluidModel < PhysicalModel
               case {'pressure', 'p'}
                 fn = 'pressure';
                 index = ':';
-              case {'lambda'}
+              case {'lambdafluid'}
                 fn = lower(name);
                 index = ':';
               otherwise

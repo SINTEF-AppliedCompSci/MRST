@@ -17,7 +17,7 @@ classdef MomentumEquations < StateFunction
             
             u         = model.getProp(state, 'u');
             biotgradp = model.getProp(state, 'BiotGradP');
-            lambda    = model.getProp(state, 'lambda');
+            lambda    = model.getProp(state, 'lambdamech');
             
             momeqs{1} = B{1,1}*u + B{1,2}*lambda + biotgradp - rhs{1};
             momeqs{2} = B{2,1}*u + B{2,2}*lambda - rhs{2};

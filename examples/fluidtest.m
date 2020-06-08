@@ -90,7 +90,7 @@ schedule.control = struct('W', []);
 %% Setup initial state
 clear initState;
 initState.pressure = pbottom*ones(G.cells.num, 1);
-initState.lambda = zeros(bcnodefacetbl.num, 1);
+initState.lambdafluid = zeros(bcnodefacetbl.num, 1);
 
 solver = NonLinearSolver('maxIterations', 100);
 [wsol, states] = simulateScheduleAD(initState, fluidmodel, schedule, 'nonlinearsolver', solver);

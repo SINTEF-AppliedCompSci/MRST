@@ -9,7 +9,7 @@ function [eqs, names, types, state] = fluidEquations(model, state0, state, dt, d
     
     p      = model.getProp(state, 'p');
     p0     = model.getProp(state0, 'p');
-    lambda = model.getProp(state, 'lambda');
+    lambda = model.getProp(state, 'lambdafluid');
     pv     = model.getProp(state, 'PoreVolume');
 
     fac = max(rhs{2});

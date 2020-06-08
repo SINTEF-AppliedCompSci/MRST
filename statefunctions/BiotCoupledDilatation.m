@@ -8,7 +8,7 @@ classdef BiotCoupledDilatation < StateFunction
         end
         
         function divu = evaluateOnDomain(prop, model, state)
-            [u, lambda] = model.getProps(state, 'displacement', 'lambda');
+            [u, lambda] = model.getProps(state, 'displacement', 'lambdamech');
             divop = model.operators.divop;
             extu = vertcat(u, lambda);
             divu = divop(extu);
