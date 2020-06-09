@@ -569,7 +569,9 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
                       'R1'      , R1      , ...
                       'R2'      , R2);
     
-
+    if opt.assemblyMatrices
+        assembly.matrices = matrices;
+    end
     
     if opt.adoperators
         
