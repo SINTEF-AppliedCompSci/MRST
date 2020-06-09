@@ -78,7 +78,7 @@ K = map.eval(K);
 
 eta = 1/3;
 
-doblock = true;
+doblock = false;
 if doblock
     assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'blocksize', 20, 'verbose', true);
 else

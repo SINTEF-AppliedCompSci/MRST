@@ -3,7 +3,11 @@ function operators = setupBiotOperators(model)
     G = model.G;
     mech  = model.mech;
     fluid = model.fluid;
-    
+    rock  = model.rock;
+
+    %% setup pore volume
+    pv = poreVolume(G, rock);
+
     %% setup mechanic input
     mechprops = mech.prop;
     loadstruct = mech.loadstruct;
@@ -38,17 +42,21 @@ function operators = setupBiotOperators(model)
     fluidforces.bcstruct = bcstruct;
     fluidforces.src = []; % no explicit sources here
     
-    props = struct('mech', mechprops, ...
-                   'fluid', fluidprops);
+    coupprops.rho = 0; % the accumulation term is set within the equation
+    coupprops.alpha = rock.alpha;
+    props = struct('mechprops' , mechprops , ...
+                   'fluidprops', fluidprops, ...
+                   'coupprops' , coupprops);
     
     drivingforces = struct('mechanics', loadstruct, ...
                            'fluid'    , fluidforces);
     
     [tbls, mappings] = setupStandardTables(G);
     
-    assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, varargin)
+    assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, 'adoperators', true);
     
     operators = assembly.adoperators;
-    
+    operators.pv = pv;
+   
 end
 

@@ -1,24 +1,32 @@
 function [eqs, names, types, state] = biotEquations(model, state0, state, dt, drivingForces, varargin)
             
-    G   = model.G;
-    op  = model.operators;
+    G     = model.G;
+    fluid = model.fluid;
+    op    = model.operators;
+
+    pv         = op.pv;
+    divKgradop = op.divKgradop;
+    divuop     = op.divuop;
+    momentop   = op.momentop;
+    mechdirop  = op.mechDirichletop;
+    fluiddirop = op.fluidDirichletop;
     
-    B = op.B;
-    rhs = op.rhs
     
-    u         = model.getProp(state, 'u');
-    biotgradp = model.getProp(state, 'BiotGradP');
-    lm        = model.getProp(state, 'lambdamech');
-    p         = model.getProp(state, 'p');
-    lf        = model.getProp(state, 'lambdafluid');
+    u  = model.getProp(state, 'u');
+    p  = model.getProp(state, 'p');
+    p0 = model.getProp(state0, 'p');
+    lm = model.getProp(state, 'lambdamech');
+    lf = model.getProp(state, 'lambdafluid');
     
-    eqs{1} = B{1,1}*u + B{1,2}*lambda + biotgradp - rhs{1};
-    eqs{2} = B{2,1}*u + B{2,2}*lambda - rhs{2};
-            
-    eqs = vertcat(eqs{:});
-            
-    names = {'momentum'};
-    types = {'mixed'};
+    c = fluid.c;
+    
+    eqs{1} = momentop(u, p, lm);
+    eqs{2} = 1/dt*(c*pv.*(p - p0) + divuop(u, p, lm)) + divKgradop(p, lf);
+    eqs{3} = mechdirop(u, p, lm);
+    eqs{4} = fluiddirop(p, lf);
+    
+    names = {'momentum', 'mass', 'bcmech', 'bcfluid'};
+    types = {'cellcol', 'cell', 'bcmech', 'bcfluid'};
     
 end
 

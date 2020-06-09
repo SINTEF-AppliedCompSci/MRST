@@ -15,7 +15,7 @@ classdef BiotModel < PhysicalModel
         
         function model = BiotModel(G, rock, fluid, mech, varargin)
             
-            model = model@PhysicalModel(G, rock, fluid, varargin{:});
+            model = model@PhysicalModel(G, varargin{:});
             model = merge_options(model, varargin{:});
             
             % Process the grid for mechanical computation
@@ -23,6 +23,7 @@ classdef BiotModel < PhysicalModel
                 model.G = createAugmentedGrid(model.G);
             end
             % Physical properties of rock and fluid
+            model.rock  = rock;
             model.mech  = mech;
             model.fluid = fluid;
             
@@ -46,21 +47,21 @@ classdef BiotModel < PhysicalModel
             model = setupStateFunctionGroupings@PhysicalModel(model, varargin{:});
             
             % Use mechanical coupling in flow equations
-            fp = model.FlowPropertyFunctions;
-            fp = fp.setStateFunction('BasePoreVolume', BlackOilPoreVolume(model));
-            fp = fp.setStateFunction('PoreVolume'    , BiotPoreVolume(model));
-            fp = fp.setStateFunction('Dilatation'    , BiotCoupledDilatation(model));
-            model.FlowPropertyFunctions = fp;
+            % fp = model.FluidBiotPropertyFunctions;
+            % fp = fp.setStateFunction('BasePoreVolume', BlackOilPoreVolume(model));
+            % fp = fp.setStateFunction('PoreVolume'    , BiotPoreVolume(model));
+            % fp = fp.setStateFunction('Dilatation'    , BiotCoupledDilatation(model));
+            % model.FluidBiotPropertyFunctions = fp;
             
             % Use fluid coupling in mechanical equations
-            mp = model.MechBiotPropertyFunctions;
-            mp = mp.setStateFunction('BiotGradP', BiotCoupledGradP(model));
-            model.MechBiotPropertyFunctions = mp;
+            % mp = model.MechBiotPropertyFunctions;
+            % mp = mp.setStateFunction('BiotGradP', BiotCoupledGradP(model));
+            % model.MechBiotPropertyFunctions = mp;
             
         end
         
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces, varargin)
-            [eqs, names, types, state] = biotEquations(model, state0, state, dt, drivingForces, varargin)
+            [eqs, names, types, state] = biotEquations(model, state0, state, dt, drivingForces, varargin);
         end
 
         function [vars, names, origin] = getPrimaryVariables(model, state)

@@ -47,7 +47,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     bcstruct = fluidforces.bcstruct;
     src = fluidforces.src;
     K = fluidprops.K;
-    fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings);
+    fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'assemblymatrices', true);
 
     % Assemble coupling terms (finite volume and consistent divergence operators)
     alpha = coupprops.alpha;
@@ -137,7 +137,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     %       | B11  B12  B13      |
     %  B =  | B21  B22  B23  B24 |
     %       | B31  B32  B33      |
-    %       |      B32       B44 |
+    %       |      B42       B44 |
     
     % 1. row : Momentum equation
     A21invA11 = A21*invA11;
@@ -178,13 +178,13 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     
     % Assembly of right hand side
     f = fullrhs; % shortcut
-    rhs = cell(4, 1);
-    rhs{1} = f{2} - A21invA11*f{1};
-    rhs{2} = f{4} - A41invA11*f{1} - A43invA33*f{3};
-    rhs{3} = f{5} - A51invA11*f{1};
-    rhs{4} = f{6} - A63invA33*f{3};
+    redrhs = cell(4, 1);
+    redrhs{1} = f{2} - A21invA11*f{1};
+    redrhs{2} = f{4} - A41invA11*f{1} - A43invA33*f{3};
+    redrhs{3} = f{5} - A51invA11*f{1};
+    redrhs{4} = f{6} - A63invA33*f{3};
     
-    rhs = vertcat(rhs{:});
+    rhs = vertcat(redrhs{:});
 
     assembly = struct('B'  , B, ...
                       'rhs', rhs);
@@ -195,5 +195,77 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         assembly.fullsystem = fullsystem;
     end    
     
+    if opt.adoperators
+        
+        % setup divKgrad operator
+     
+        divKgrad{1} = - A43invA33*A34 + A44;
+        divKgrad{2} = - A43invA33*A36;
+        divKgradrhs = f{4} - A43invA33*f{3};
+        
+        divKgradop = @(p, lf) divKgradopFunc(p, lf, divKgrad, divKgradrhs);
+
+        % setup divergence operator (for displacement, includes value of Biot coefficient alpha)
+        
+        divu{1} = - A41invA11*A12 + A42;
+        divu{2} = - A41invA11*A14;
+        divu{3} = - A41invA11*A15;
+        divurhs = - A41invA11*f{1};
+        
+        divuop = @(u, p, lf) divuopFunc(u, p, lf, divu, divurhs);
+
+        % setup momentum balance operator 
+       
+        moment{1} = B11;
+        moment{2} = B12;
+        moment{3} = B13;
+        momentrhs = redrhs{1};
+        
+        momentop = @(u, p, lm) momentopFunc(u, p, lm, moment, momentrhs);
+        
+        % setup dirichlet boundary operator for mechanics
+        mechdir{1} = B31;
+        mechdir{2} = B32;
+        mechdir{3} = B33;
+        mechdirrhs = redrhs{3};
+        
+        mechDirichletop = @(u, p, lm) mechdiropFunc(u, p, lm, mechdir, mechdirrhs);
+        
+        % setup dirichlet boundary operator for flow
+        fluiddir{1} = B42;
+        fluiddir{2} = B44;
+        fluiddirrhs = redrhs{4};
+        
+        fluidDirichletop = @(p, lf) fluiddiropFunc(p, lf, fluiddir, fluiddirrhs);
+        
+        adoperators = struct('divKgradop'      , divKgradop      , ...
+                             'divuop'          , divuop          , ...
+                             'momentop'        , momentop        , ...
+                             'fluidDirichletop', fluidDirichletop, ...
+                             'mechDirichletop' , mechDirichletop);
+        
+        assembly.adoperators = adoperators;
+        
+    end    
 end
 
+function divKgrad = divKgradopFunc(p, lf, divKgrad, divKgradrhs)
+    divKgrad = divKgrad{1}*p + divKgrad{2}*lf - divKgradrhs;
+end
+
+
+function divu = divuopFunc(u, p, lm, divu, divurhs)
+    divu = divu{1}*u + divu{2}*p + divu{3}*lm - divurhs;
+end
+
+function moment = momentopFunc(u, p, lm, moment, momentrhs)
+    moment = moment{1}*u + moment{2}*p + moment{3}*lm - momentrhs;
+end
+
+function mechdir = mechdiropFunc(u, p, lm, mechdir, mechdirrhs)
+    mechdir = mechdir{1}*u + mechdir{2}*p + mechdir{3}*lm - mechdirrhs;
+end
+
+function fluiddir = fluiddiropFunc(p, lf, fluiddir, fluiddirrhs)
+    fluiddir = fluiddir{1}*p + fluiddir{2}*lf - fluiddirrhs;
+end

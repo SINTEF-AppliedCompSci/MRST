@@ -1,240 +1,124 @@
 
+clear all
+close all
+
+
 %% Load required modules
 
 mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui
 
-%% Setup default options
-opt = struct('cartDim'            , [100, 10], ...
-             'L'                  , [100, 10], ...
-             'fluid_model'        , 'oil water', ...
-             'method'             , 'fully coupled', ...
-             'bc_case'            , 'bottom fixed', ...
-             'nonlinearTolerance' , 1e-6, ...
-             'splittingTolerance' , 1e-6, ...
-             'verbose'            , false, ...
-             'splittingVerbose'   , false);
-
 %% Setup grid
 
-G = cartGrid(opt.cartDim, opt.L);
+dimcase = 2;
+switch dimcase
+  case 2
+    nx = 10; ny = 10;
+    G = cartGrid([nx, ny]);
+  case 3
+    nx = 4; ny = 3; nz = 5;
+    G = cartGrid([nx, ny, nz]);
+end
+
+G = twister(G, 0.1); 
 G = computeGeometry(G);
+nc = G.cells.num;
+
+%% setup mechanics mech structure (with field prop and loadstruct)
+
+
+lambda = ones(nc, 1);
+mu     = ones(nc, 1);
+
+mechprop = struct('lambda', lambda, ...
+                  'mu', mu);
+
+[tbls, mappings] = setupStandardTables(G);
+runcase = '2d-compaction';
+loadstruct = setupBCpercase(runcase, G, tbls, mappings);
+bc = setupFaceBC(loadstruct.bc, G, tbls);
+loadstruct.bc = bc;
+
+mech.prop = mechprop;
+mech.loadstruct = loadstruct;
 
 %% Setup rock parameters (for flow)
 
 rock.perm = darcy*ones(G.cells.num, 1);
+% rock.perm = ones(G.cells.num, 1);
 rock.poro = 0.3*ones(G.cells.num, 1);
+% this is the Biot parameter which will be used to multiply the given dilatation
+rock.alpha = ones(G.cells.num, 1);
 
-%% Setup fluid parameters from SPE1
+%% Setup flow parameters (with field c and bcstruct)
 
-pRef = 270*barsa;
-switch opt.fluid_model
-  case 'blackoil'
-    pth = getDatasetPath('spe1');
-    fn  = fullfile(pth, 'BENCH_SPE1.DATA');
-    deck = readEclipseDeck(fn);
-    deck = convertDeckUnits(deck);
-    fluid = initDeckADIFluid(deck);
-    if isfield(fluid, 'pcOW')
-        fluid = rmfield(fluid, 'pcOW');
-    end
-    if isfield(fluid, 'pcOG')
-        fluid = rmfield(fluid, 'pcOG');
-    end
+fluid.c = 1e-8;
 
-    % Setup quadratic relative permeabilities, since SPE1 relperm are a bit rough.
-    fluid.krW = @(s) s.^2;
-    fluid.krG = @(s) s.^2;
-    fluid.krOW = @(s) s.^2;
-    fluid.krOG = @(s) s.^2;
-    pRef = deck.PROPS.PVTW(1);
+%% setup bc for pressure
 
-  case {'oil water'}
-    fluid = initSimpleADIFluid('phases', 'WO', 'mu', [1, 10]*centi*poise, ...
-                               'n',  [1, 1], 'rho', [1000, 700]*kilogram/ ...
-                               meter^3, 'c', 1e-10*[1, 1], 'cR', 4e-10, ...
-                               'pRef', pRef);
+ptop    = 2*barsa;
+pbottom = 1*barsa;
 
-  case {'water'}
-    fluid = initSimpleADIFluid('phases', 'W', 'mu', 1*centi*poise, 'rho', ...
-                               1000*kilogram/meter^3, 'c', 1e-10, 'cR', ...
-                               4e-10, 'pRef', pRef);
-  otherwise
-    error('fluid_model  not recognized.');
-end
+dim = G.griddim;
+zface = G.faces.centroids(:, dim);
+maxz = max(zface);
+minz = min(zface);
+bottomfaces = find(G.faces.centroids(:, dim) > (maxz - 1e-4));
+topfaces = find(G.faces.centroids(:, dim) < (minz + 1e-4));
 
+nbf = numel(bottomfaces);
+ntf = numel(topfaces);
+bcfaces = [bottomfaces; topfaces];
+bcvals = ptop*ones(nbf + ntf, 1);
+bcvals(1 : nbf) = pbottom;
 
-%% Setup material parameters for Biot and mechanics
+useVirtual = false;
+[tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
+nodefacetbl = tbls.nodefacetbl;
 
-E     = 1 * giga * Pascal; % Young's module
-nu    = 0.3;               % Poisson's ratio
-alpha = 1;                 % Biot's coefficient
+bcfacetbl.faces = bcfaces;
+bcfacetbl = IndexArray(bcfacetbl);
+bcnodefacetbl = crossIndexArray(nodefacetbl, bcfacetbl, {'faces'});
 
-% Transform these global properties (uniform) to cell values.
-E          = repmat(E, G.cells.num, 1);
-nu         = repmat(nu, G.cells.num, 1);
-rock.alpha = repmat(alpha, G.cells.num, 1);
+map = TensorMap();
+map.fromTbl = bcfacetbl;
+map.toTbl = bcnodefacetbl;
+map.mergefds = {'faces'};
+map = map.setup();
 
+bcvals = map.eval(bcvals);
 
-%% Setup boundary conditions for mechanics (no displacement)
+bcdirichlet = struct('bcnodefacetbl', bcnodefacetbl, ...
+                     'bcvals', bcvals);
+bcneumann = [];
 
-switch opt.bc_case
+bcstruct = struct('bcdirichlet', bcdirichlet, ...
+                  'bcneumann'  , bcneumann);
 
-  case 'no displacement'
-    error('not implemented yet');
-    ind = (G.faces.neighbors(:, 1) == 0 | G.faces.neighbors(:, 2) == 0);
-    ind = find(ind);
-    nodesind = mcolon(G.faces.nodePos(ind), G.faces.nodePos(ind + 1) - 1);
-    nodes = G.faces.nodes(nodesind);
-    bcnodes = zeros(G.nodes.num);
-    bcnodes(nodes) = 1;
-    bcnodes = find(bcnodes == 1);
-    nn = numel(bcnodes);
-    u = zeros(nn, 2);
-    m = ones(nn, 2);
-    disp_bc = struct('nodes', bcnodes, 'uu', u, 'mask', m);
-    force_bc = [];
+fluid.bcstruct = bcstruct;
 
-  case 'bottom fixed'
+%% Setup Biot model
 
-    nx = G.cartDims(1);
-    ny = G.cartDims(2);
-
-    % Find the bottom nodes. On these nodes, we impose zero displacement
-
-    c = zeros(prod(G.cartDims), 1);
-    c(G.cells.indexMap) = (1 : numel(G.cells.indexMap))';
-
-    bc = pside([], G, 'Ymin', 100);
-    bottomfaces = bc.face;
-    indbottom_nodes = mcolon(G.faces.nodePos(bottomfaces), ...
-                             G.faces.nodePos(bottomfaces + 1) - 1);
-    bottom_nodes = G.faces.nodes(indbottom_nodes);
-    bottom_nodes = unique(bottom_nodes);
-
-    nn = numel(bottom_nodes);
-    u = zeros(nn, G.griddim);
-    m = ones(nn, G.griddim);
-    disp_bc = struct('nodes', bottom_nodes, 'uu', u, 'mask', m);
-
-    % Find outer faces that are not at the bottom. On these faces, we impose
-    % a given pressure.
-
-    bc = pside([], G, 'Xmin', 100);
-    bc = pside(bc, G, 'Xmax', 100);
-    bc = pside(bc, G, 'Ymax', 100);
-    sidefaces = bc.face;
-
-    signcoef = (G.faces.neighbors(sidefaces, 1) == 0) - (G.faces.neighbors(sidefaces, ...
-                                                      2) == 0);
-    n = bsxfun(@times, G.faces.normals(sidefaces, :), signcoef./ ...
-               G.faces.areas(sidefaces));
-    force = bsxfun(@times, n, pRef);
-
-    force_bc = struct('faces', sidefaces, 'force', force);
-
-
-  otherwise
-    error('bc_cases not recognized')
-end
-
-el_bc = struct('disp_bc' , disp_bc, ...
-               'force_bc', force_bc);
-
-
-%% Setup load for mechanics
-
-% In this example we do not impose any volumetric force
-loadfun = @(x) (0*x);
-
-%% Gather all the mechanical parameters in a struct
-
-mech = struct('E', E, 'nu', nu, 'el_bc', el_bc, 'load', loadfun);
-
-%% Gravity
-% The gravity in this option affects only the fluid behavior
-gravity off;
-
-%% Setup model
-
-model = BiotModel(G, rock, fluid, mech);
-
-%% Setup wells
-W = [];
-refdepth = min(G.cells.centroids(:, G.griddim)) ;
-
-ind = ceil(G.cartDims/2);
-injcell = sub2ind(G.cartDims, ind(1), ind(2));
-
-warning('off', 'RefDepth:BelowTopConnection');
-
-W = addWell(W, G, rock, injcell, ...
-            'Type'    , 'rate', ...
-            'Val'     , 1e2/day, ...
-            'Sign'    , 1,  ...
-            'Comp_i'  , [0, 0, 1], ... % inject gas
-            'Name'    , 'inj',  ...
-            'refDepth', refdepth);
-
-% W = addWell(W, G, rock, prodcell, ...
-%             'Type'    ,'bhp', ...
-%             'Val'     , pRef, ...
-%             'Sign'    , -1,  ...
-%             'Comp_i'  , [0, 1, 0], ... % one-phase test case
-%             'Name'    , 'prod',  ...
-%             'refDepth', refdepth);
-
-switch opt.fluid_model
-  case 'blackoil'
-    W(1).compi = [0, 0, 1];
-  case 'oil water'
-    W(1).compi = [1 0];
-    W(1).val   = 1e4/day;
-    model.gas = false;
-  case 'water'
-    W(1).compi = [1];
-    W(1).val  = 1e-3/day;
-    model.gas = false;
-    model.oil = false;
-  otherwise
-    error('fluid_model not recognized.')
-end
-
-facilityModel = ExtendedFacilityModel(model);
-facilityModel = facilityModel.setupWells(W);
-model.FacilityModel = facilityModel;
-
+model =  BiotModel(G, rock, fluid, mech);
 
 %% Setup schedule
-schedule.step.val     = [1*day*ones(1, 1); 5*day*ones(20, 1)];
+schedule.step.val = 1e-1*day*ones(10, 1);
 schedule.step.control = ones(numel(schedule.step.val), 1);
-schedule.control      = struct('W', W);
+schedule.control = struct('W', []);
 
 %% Setup initial state
 clear initState;
-initState.pressure = pRef*ones(G.cells.num, 1);
-switch opt.fluid_model
-  case 'blackoil'
-    init_sat = [0, 1, 0];
-    initState.rs  = 0.5*fluid.rsSat(initState.pressure);
-  case 'oil water'
-    init_sat = [0, 1];
-  case 'water'
-    init_sat = [1];
-  otherwise
-    error('fluid_model not recognized.')
-end
-initState.s = ones(G.cells.num, 1)*init_sat;
-initState.xd = zeros(nnz(~model.operators.isdirdofs), 1);
+% fluid
+initState.pressure = pbottom*ones(G.cells.num, 1);
+nlf = size(bcstruct.bcdirichlet.bcvals, 1);
+initState.lambdafluid = zeros(nlf, 1);
+% mech
+cellcoltbl = tbls.cellcoltbl;
+initState.u = zeros(cellcoltbl.num, 1);
+nlm = size(loadstruct.bc.linformvals, 1);
+initState.lambdamech = zeros(nlm, 1);
 
 solver = NonLinearSolver('maxIterations', 100);
 [wsol, states] = simulateScheduleAD(initState, model, schedule, 'nonlinearsolver', solver);
 
-%% plot solution
+%% plot results
 plotToolbar(G, states);
-
-%%
-
-state = states{end};
-d = model.getProp(state, 'Displacement');
-
-
