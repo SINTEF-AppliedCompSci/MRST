@@ -8,22 +8,14 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 
 %% Setup grid
 
-dimcase = 2;
-switch dimcase
-  case 2
-    nx = 10; ny = 10;
-    G = cartGrid([nx, ny]);
-  case 3
-    nx = 4; ny = 3; nz = 5;
-    G = cartGrid([nx, ny, nz]);
-end
-% G = twister(G, 0.1); 
+nx = 10; ny = 10;
+G = cartGrid([nx, ny], [1, 1]);
 G = computeGeometry(G);
 nc = G.cells.num;
 
 %% setup mechanics mech structure (with field prop and loadstruct)
 
-lambda = ones(nc, 1);
+lambda = 0*ones(nc, 1);
 mu     = ones(nc, 1);
 
 mechprop = struct('lambda', lambda, ...
@@ -74,7 +66,7 @@ map.mergefds = {'faces', 'nodes', 'coldim'};
 map = map.setup();
 
 topnormals = map.eval(facetNormals);
-extforce = topnormals;
+extforce = -topnormals;
 
 map = TensorMap();
 map.fromTbl = topnodefacecoltbl;
@@ -97,9 +89,11 @@ mech.loadstruct = loadstruct;
 
 %% Setup rock parameters (for flow)
 
-rock.perm = 100*milli*darcy*ones(G.cells.num, 1);
-rock.poro = 0.25*ones(G.cells.num, 1);
-rock.alpha = 1*ones(G.cells.num, 1);
+% rock.perm = 100*milli*darcy*ones(G.cells.num, 1);
+rock.perm = 1*ones(G.cells.num, 1);
+% rock.poro = 0.25*ones(G.cells.num, 1);
+rock.poro = 1*ones(G.cells.num, 1);
+rock.alpha = 1e-1*ones(G.cells.num, 1);
 
 %% Setup flow parameters (with field c and bcstruct)
 
@@ -142,7 +136,15 @@ fluid.bcstruct = bcstruct;
 model =  BiotModel(G, rock, fluid, mech);
 
 %% Setup schedule
-schedule.step.val = 1e-1*day*ones(30, 1);
+tottime = 1;
+N = 30;
+alpha = 20;
+
+dt = 1/N;
+t = [0 : dt : 1];
+t = tottime/(exp(alpha) - 1)*(exp(alpha*t)- 1);
+
+schedule.step.val = diff(t);
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('W', []);
 
@@ -163,3 +165,4 @@ solver = NonLinearSolver('maxIterations', 100);
 
 %% plot results
 plotToolbar(G, states);
+colorbar
