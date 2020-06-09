@@ -21,16 +21,25 @@
 
 % mrstModule add ad-blackoil deckformat ad-core diagnostics
 mrstModule add diagnostics ad-core ad-blackoil
-%% Get the first 30 realisations of the Egg model
+%% Get the first 10 realisations of the Egg model
 
-realizations = [1:10];
-
-% getModelsEGG returns structures of models and wells for the requested
-% realizations.
+% Here we setup the ensemble using the ModelEnsemble class. 
 % Each ensemble member has a different permeability but all other properties
 % are the same.
 
-[models,wells] = getModelsEGG(realizations);
+m = ModelEnsemble('egg', 'nMembers', 50, 'setupFn', @setupEggFn);
+% after initial setup, m = ModelEnsemble('egg') is sufficient
+
+% Input to the diagnostics viewer is generated using the ensemble class
+% setup function.
+realizations = [1:10];
+
+[models, wells] = deal(cell(1, numel(realizations)));
+for k = 1: numel(realizations)
+    tmp = m.setupFn(k);
+    [models{k}, wells{k}] = deal(tmp.model, tmp.W);
+end
+
 
 %% Setup the two-phase intial condition
 % This has no bearing on the calculation of basic time-of-flight and tracer
@@ -44,6 +53,7 @@ pos = 1 - (gcz - min(gcz))./height;
 oil = pos > 0.1;
 wat = pos < 0.1;
 
+[state0] = deal(cell(1, numel(realizations)));
 
 for i = 1:numel(realizations)
     
@@ -51,7 +61,6 @@ for i = 1:numel(realizations)
     state0{i}.s(wat, 1) = 1;
     state0{i}.s(oil, 2) = 1;
     state0{i}.s = bsxfun(@rdivide, state0{i}.s, sum(state0{i}.s, 2));
-    
 
 end
 
