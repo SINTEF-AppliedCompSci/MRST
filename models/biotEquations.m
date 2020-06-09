@@ -21,7 +21,7 @@ function [eqs, names, types, state] = biotEquations(model, state0, state, dt, dr
     c = fluid.c;
     
     eqs{1} = momentop(u, p, lm);
-    eqs{2} = 1/dt*(c*pv.*(p - p0) + divuop(u, p, lm)) + divKgradop(p, lf);
+    eqs{2} = 1/dt*pv.*(c*(p - p0) + divuop(u, p, lm)) + divKgradop(p, lf);
     eqs{3} = mechdirop(u, p, lm);
     eqs{4} = fluiddirop(p, lf);
     

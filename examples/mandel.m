@@ -8,14 +8,14 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 
 %% Setup grid
 
-nx = 10; ny = 10;
+nx = 100; ny = 5;
 G = cartGrid([nx, ny], [1, 1]);
 G = computeGeometry(G);
 nc = G.cells.num;
 
 %% setup mechanics mech structure (with field prop and loadstruct)
 
-lambda = 0*ones(nc, 1);
+lambda = 1e3*ones(nc, 1);
 mu     = ones(nc, 1);
 
 mechprop = struct('lambda', lambda, ...
@@ -93,7 +93,7 @@ mech.loadstruct = loadstruct;
 rock.perm = 1*ones(G.cells.num, 1);
 % rock.poro = 0.25*ones(G.cells.num, 1);
 rock.poro = 1*ones(G.cells.num, 1);
-rock.alpha = 1e-1*ones(G.cells.num, 1);
+rock.alpha = 1*ones(G.cells.num, 1);
 
 %% Setup flow parameters (with field c and bcstruct)
 
@@ -136,13 +136,13 @@ fluid.bcstruct = bcstruct;
 model =  BiotModel(G, rock, fluid, mech);
 
 %% Setup schedule
-tottime = 1;
-N = 30;
-alpha = 20;
+tottime = 1e-4;
+N = 100;
+alpha = 10;
 
 dt = 1/N;
 t = [0 : dt : 1];
-t = tottime/(exp(alpha) - 1)*(exp(alpha*t)- 1);
+t = tottime/(exp(alpha) - 1)*(exp(alpha*t) - 1);
 
 schedule.step.val = diff(t);
 schedule.step.control = ones(numel(schedule.step.val), 1);
@@ -166,3 +166,20 @@ solver = NonLinearSolver('maxIterations', 100);
 %% plot results
 plotToolbar(G, states);
 colorbar
+
+%% plot results from first row
+figure
+hold on
+ind = (1 : nx)';
+xc = G.cells.centroids(ind, 1);
+for i = 1 : numel(states)
+    pc = states{i}.pressure(ind);
+    plot(xc, pc);
+end
+
+%% plot value at middle 
+figure
+ind = floor(nx/2);
+pmid = cellfun(@(state) state.pressure(ind), states);
+tt = t(2 : end);
+plot(log(tt), pmid, '*');
