@@ -1,6 +1,7 @@
 function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, varargin)
     
-    opt = struct('assemblyMatrices', false);
+    opt = struct('assemblyMatrices', false, ...
+                 'adoperators'     , false);
     opt = merge_options(opt, varargin{:});
     
     % We solve the system

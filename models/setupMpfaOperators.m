@@ -1,7 +1,7 @@
 function operators = setupMpfaOperators(model)
     
     G = model.G;
-    bcstruct = model.bcstruct;
+    bcstruct = model.fluid.bcstruct;
     
     eta = 0;
     bcetazero = false;

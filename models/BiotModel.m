@@ -24,7 +24,7 @@ classdef BiotModel < PhysicalModel
             end
             % Physical properties of rock and fluid
             model.mech  = mech;
-            model.fluid  = fluid;
+            model.fluid = fluid;
             
             % Add mechanical operators  
             model.operators = setupBiotOperators(model);

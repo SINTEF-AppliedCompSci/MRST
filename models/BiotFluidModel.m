@@ -4,21 +4,19 @@ classdef BiotFluidModel < PhysicalModel
          
         rock
         fluid
-        bcstruct
         
         FluidBiotPropertyFunctions % Grouping for flow properties
     end
     
     methods
         
-        function model = BiotFluidModel(G, rock, fluid, bcstruct, varargin)
+        function model = BiotFluidModel(G, rock, fluid, varargin)
             
             model = model@PhysicalModel(G, varargin{:});
             model = merge_options(model, varargin{:});
             
             model.rock     = rock;
             model.fluid    = fluid;
-            model.bcstruct = bcstruct;
             
             model.operators = setupMpfaOperators(model);
             model.FluidBiotPropertyFunctions = FluidBiotPropertyFunctions(model);            

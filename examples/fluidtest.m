@@ -77,10 +77,11 @@ bcneumann = [];
 bcstruct = struct('bcdirichlet', bcdirichlet, ...
                   'bcneumann'  , bcneumann);
 
+fluid.bcstruct = bcstruct;
 
 %% construct model
 
-fluidmodel = BiotFluidModel(G, rock, fluid, bcstruct);
+fluidmodel = BiotFluidModel(G, rock, fluid);
 
 %% Setup schedule
 schedule.step.val = 1e-1*day*ones(10, 1);
