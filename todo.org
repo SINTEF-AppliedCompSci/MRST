@@ -28,4 +28,6 @@
 * add normalization of D for mpfa also in blockassembly
 * Assemble stress operator once for all (not each time it is called)
 * Check stress computation with computeMPSATrans (looks wrong)
+* dynamical boundary condition could be implemented
+  - it would solve the initial state for mandel (we switch from zero to non-zero force)
 
