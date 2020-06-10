@@ -4,20 +4,50 @@ close all
 
 %% Load required modules
 
-mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui
+mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui mpsaw mpfa
 
 %% Setup grid
 
-nx = 100; ny = 5;
-G = cartGrid([nx, ny], [1, 1]);
+physdim = [40, 20] * meter;
+resolution = [40, 20];
+G = cartGrid(resolution, physdim);
 G = computeGeometry(G);
-nc = G.cells.num;
+
+
+% flow parameters
+perm = 100 * milli * darcy;
+muW = 0.89 * milli * Pascal / second;
+poro = 0.25;
+
+% elastic parameters
+young = 1 * giga * Pascal;
+poisson = 0.3;
+
+E = young; nu = poisson; % shortcuts
+lambda = E*nu/((1 + nu)*(1 - 2*nu));
+mu = E/((1 + nu)^2);
+
+alpha = 1; % biot's coefficient
+% alpha = 0;
+
+% for at top
+top_force = 100 * mega * Pascal;
+
+rock.poro  = poro * ones(G.cells.num, 1);
+rock.perm  = (perm/muW) * ones(G.cells.num, 1);
+rock.alpha = alpha * ones(G.cells.num, 1);
+
+% incompressible fluid
+cW = 0; 
+
+% reference pressure on the side
+pref = 0*barsa;
+
 
 %% setup mechanics mech structure (with field prop and loadstruct)
 
-lambda = 1e3*ones(nc, 1);
-mu     = ones(nc, 1);
-
+lambda = lambda*ones(G.cells.num, 1);
+mu = mu*ones(G.cells.num, 1);
 mechprop = struct('lambda', lambda, ...
                   'mu', mu);
 
@@ -87,21 +117,12 @@ loadstruct.force = force;
 mech.prop = mechprop;
 mech.loadstruct = loadstruct;
 
-%% Setup rock parameters (for flow)
-
-% rock.perm = 100*milli*darcy*ones(G.cells.num, 1);
-rock.perm = 1*ones(G.cells.num, 1);
-% rock.poro = 0.25*ones(G.cells.num, 1);
-rock.poro = 1*ones(G.cells.num, 1);
-rock.alpha = 1*ones(G.cells.num, 1);
-
 %% Setup flow parameters (with field c and bcstruct)
 
-fluid.c = 0; % incompressible
+fluid.c = cW; 
 
 % setup boundary condition for flow
 
-pref = 0*barsa;
 
 bcfaces = lateralfaces;
 bcvals = pref*ones(numel(bcfaces));
@@ -136,15 +157,10 @@ fluid.bcstruct = bcstruct;
 model =  BiotModel(G, rock, fluid, mech);
 
 %% Setup schedule
-tottime = 1e-4;
-N = 100;
-alpha = 10;
-
-dt = 1/N;
-t = [0 : dt : 1];
-t = tottime/(exp(alpha) - 1)*(exp(alpha*t) - 1);
-
-schedule.step.val = diff(t);
+tsteps = 100;
+% tsteps = 1;
+duration = 10 * second;
+schedule.step.val = duration/tsteps * ones(tsteps, 1);
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('W', []);
 
@@ -167,10 +183,22 @@ solver = NonLinearSolver('maxIterations', 100);
 plotToolbar(G, states);
 colorbar
 
+u = states{end}.u;
+u = reshape(u, 2, [])';
+
+figure
+plotCellData(G, u(:, 1));
+title('displacenent in x-direction')
+figure
+plotCellData(G, u(:, 2));
+title('displacenent in y-direction')
+
+return
+
 %% plot results from first row
 figure
 hold on
-ind = (1 : nx)';
+ind = (1 : resolution(1))';
 xc = G.cells.centroids(ind, 1);
 for i = 1 : numel(states)
     pc = states{i}.pressure(ind);
@@ -179,7 +207,5 @@ end
 
 %% plot value at middle 
 figure
-ind = floor(nx/2);
+ind = floor(resolution(1)/2);
 pmid = cellfun(@(state) state.pressure(ind), states);
-tt = t(2 : end);
-plot(log(tt), pmid, '*');
