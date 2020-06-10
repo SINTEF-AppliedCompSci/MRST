@@ -1,6 +1,6 @@
 
 clear all
-close all
+% close all
 
 %% Load required modules
 
@@ -8,11 +8,10 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 
 %% Setup grid
 
-physdim = [40, 20] * meter;
+physdim = [20, 20] * meter;
 resolution = [40, 20];
 G = cartGrid(resolution, physdim);
 G = computeGeometry(G);
-
 
 % flow parameters
 perm = 100 * milli * darcy;
@@ -28,7 +27,6 @@ lambda = E*nu/((1 + nu)*(1 - 2*nu));
 mu = E/(2*(1 + nu));
 
 alpha = 1; % biot's coefficient
-% alpha = 0;
 
 % for at top
 top_force = 100 * mega * Pascal;
@@ -43,13 +41,11 @@ cW = 0;
 % reference pressure on the side
 pref = 0*barsa;
 
-
 %% setup mechanics mech structure (with field prop and loadstruct)
 
 lambda = lambda*ones(G.cells.num, 1);
 mu = mu*ones(G.cells.num, 1);
-mechprop = struct('lambda', lambda, ...
-                  'mu', mu);
+mechprop = struct('lambda', lambda, 'mu', mu);
 
 [tbls, mappings] = setupStandardTables(G);
 
@@ -58,10 +54,14 @@ dummy = 0;
 bc = pside([], G, 'Ymax', dummy); 
 topfaces = bc.face;
 bc = pside([], G, 'Xmin', dummy); 
-bc = pside(bc, G, 'Xmax', dummy); 
-lateralfaces = bc.face;
+leftfaces = bc.face;
+bc = pside([], G, 'Xmax', dummy); 
+rightfaces = bc.face;
 bc = pside([], G, 'Ymin', dummy); 
 bottomfaces = bc.face;
+
+lateralfaces = [leftfaces; rightfaces];
+lateralfaces = leftfaces;
 
 % on the bottom, we have rolling condition in x-direction
 bottomlinform = repmat([0, 1], numel(bottomfaces), 1);
@@ -119,16 +119,14 @@ mech.loadstruct = loadstruct;
 
 %% Setup flow parameters (with field c and bcstruct)
 
-fluid.c = cW; 
+fluid.c = cW;
+fluid.src = [];
 
 % setup boundary condition for flow
 
-
-bcfaces = lateralfaces;
+bcfaces = rightfaces;
 bcvals = pref*ones(numel(bcfaces));
 
-useVirtual = false;
-[tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
 nodefacetbl = tbls.nodefacetbl;
 
 bcfacetbl.faces = bcfaces;
@@ -158,8 +156,7 @@ model =  BiotModel(G, rock, fluid, mech);
 
 %% Setup schedule
 tsteps = 100;
-% tsteps = 1;
-duration = 10 * second;
+duration = 1e3 * second;
 schedule.step.val = duration/tsteps * ones(tsteps, 1);
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('W', []);
@@ -179,33 +176,20 @@ initState.lambdamech = zeros(nlm, 1);
 solver = NonLinearSolver('maxIterations', 100);
 [wsol, states] = simulateScheduleAD(initState, model, schedule, 'nonlinearsolver', solver);
 
-%% plot results
+%% plotting
+figure 
 plotToolbar(G, states);
-colorbar
-
-u = states{end}.u;
-u = reshape(u, 2, [])';
 
 figure
-plotCellData(G, u(:, 1));
-title('displacenent in x-direction')
-figure
-plotCellData(G, u(:, 2));
-title('displacenent in y-direction')
-
-return
-
-%% plot results from first row
-figure
-hold on
-ind = (1 : resolution(1))';
-xc = G.cells.centroids(ind, 1);
-for i = 1 : numel(states)
-    pc = states{i}.pressure(ind);
-    plot(xc, pc);
-end
-
-%% plot value at middle 
-figure
-ind = floor(resolution(1)/2);
+ind = 1;
 pmid = cellfun(@(state) state.pressure(ind), states);
+tt = cumsum(schedule.step.val);
+plot(tt, pmid, '*');
+
+figure
+inds = (1 : resolution(1))';
+xc = G.cells.centroids(inds, 1);
+pc = states{end}.pressure(inds);
+plot(xc, pc);
+title('pressure in slide');
+
