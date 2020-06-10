@@ -7,7 +7,7 @@
 %% 2017
 
 clear all
-% close all
+close all
 
 tic
 
@@ -41,7 +41,7 @@ switch runcase
     G = tensorGrid(x, y);    
   case {'2d-linear', '2d-compaction'}
     N = 10;
-    nx = 2; ny = 1;
+    nx = N; ny = N;
     G = cartGrid([nx, ny], [1, 1]);
     % N = 3;
     % Nx = N*ones(1, 2);
@@ -74,19 +74,15 @@ useVirtual = false;
 [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
 loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 
-casetype = '';
+casetype = 'standard';
 switch casetype
   case 'blockassembly'
     assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true);
-  case 'old'
+  case 'standard'
     assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true); 
-  case 'new'
+  case 'experimental'
     assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true);     
 end
-assembly1 = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true); 
-assembly2 = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true);     
-    
-assembly = assembly2;
 
 B   = assembly.B  ;
 rhs = assembly.rhs;
@@ -104,6 +100,14 @@ cellcoltbl = tbls.cellcoltbl;
 n = cellcoltbl.num;
 
 u = sol(1 : n);
+
+docomputestress = true;
+if docomputestress
+    lm = sol((n + 1) : end);
+    stress = assembly.stressop(u, lm);
+    assert(dim == 2, 'only 2d treated here at the moment');
+    stress = reshape(stress, 4, [])';
+end
 
 plotdeformedgrid = true;
 if plotdeformedgrid
@@ -128,6 +132,23 @@ if doplotsol
     titlestr = sprintf('displacement - %s direction, eta=%g', 'y', eta);
     title(titlestr)
     colorbar
+    if docomputestress
+        figure
+        plotCellData(G, stress(:, 1));
+        titlestr = sprintf('stress xx', eta);
+        title(titlestr)
+        colorbar
+        figure
+        plotCellData(G, stress(:, 2));
+        titlestr = sprintf('stress xy', eta);
+        title(titlestr)
+        colorbar
+        figure
+        plotCellData(G, stress(:, 4)); % beware : not Voigts here!
+        titlestr = sprintf('stress yy', eta);
+        title(titlestr)
+        colorbar
+    end
     if strcmp('blockassembly', casetype)
         figure 
         plotCellData(G, divu);
