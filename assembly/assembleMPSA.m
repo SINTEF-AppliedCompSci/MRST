@@ -96,7 +96,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     prod.reducefds   = {'faces'};
     prod.mergefds    = {'nodes'};
 
-
     prod.pivottbl = cellnodefacecolrowtbl;
     [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
     prod.dispind1 = sub2ind([d_num, cnf_num], c, i);
@@ -488,7 +487,17 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     fullrhs{2} = force;
     fullrhs{3} = bcvals;
     
-
+    setupStressOperator = true;
+    if setupStressOperator
+        C1 = combCgradnodeface_T.getMatrix();
+        C2 = combCgradcell_T.getMatrix();
+        C1invA11 = C1*invA11;
+        A13 = -D;
+        
+        stressop = @(u, lm) stressopFunc(u, lm, C1invA11, C2, A12, A13, extforce, tbls);
+        
+    end
+        
     
     matrices = struct('A11', A11, ...
                       'A12', A12, ...
@@ -578,6 +587,10 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
         assembly.matrices = matrices;
     end
     
+    if setupStressOperator
+        assembly.stressop = stressop;
+    end
+    
     if opt.adoperators
         
         adB = cell(2, 2);
@@ -601,6 +614,37 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     
 end
 
-
+function stress = stressopFunc(u, lm, C1invA11, C2, A12, A13, extforce, tbls)
+    
+    Bu  = -C1invA11*A12 + C2;
+    Blm = -C1invA11*A13;
+    R   = -C1invA11*extforce;
+    
+    stress = Bu*u + Blm*lm + R;
+    
+    cellnodecolrowtbl = tbls.cellnodecolrowtbl;
+    cellcolrowtbl = tbls.cellcolrowtbl;
+    cellnodetbl = tbls.cellnodetbl;
+    celltbl = tbls.celltbl;
+    
+    % Compute number of nodes per cells
+    map = TensorMap();
+    map.fromTbl = cellnodetbl;
+    map.toTbl = celltbl;
+    map.mergefds = {'cells'};
+    map = map.setup();
+    
+    nnodepercell = map.eval(ones(cellnodetbl.num, 1));
+    
+    % Compute cell average stress
+    prod = TensorProd();
+    prod.tbl1 = celltbl;
+    prod.tbl2 = cellnodecolrowtbl;
+    prod.tbl3 = cellcolrowtbl;
+    prod.mergefds = {'cells'};
+    prod = prod.setup();
+    stress = prod.eval(1./nnodepercell, stress);
+    
+end
 
 
