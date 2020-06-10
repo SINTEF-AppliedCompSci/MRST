@@ -25,7 +25,7 @@ poisson = 0.3;
 
 E = young; nu = poisson; % shortcuts
 lambda = E*nu/((1 + nu)*(1 - 2*nu));
-mu = E/((1 + nu)^2);
+mu = E/(2*(1 + nu));
 
 alpha = 1; % biot's coefficient
 % alpha = 0;
