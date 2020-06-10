@@ -96,7 +96,7 @@ map.mergefds = {'faces', 'nodes', 'coldim'};
 map = map.setup();
 
 topnormals = map.eval(facetNormals);
-extforce = -topnormals;
+extforce = -top_force*topnormals;
 
 map = TensorMap();
 map.fromTbl = topnodefacecoltbl;
