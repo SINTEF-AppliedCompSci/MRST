@@ -27,4 +27,5 @@
 * in setupMpfaOperators, call useVirtual
 * add normalization of D for mpfa also in blockassembly
 * Assemble stress operator once for all (not each time it is called)
+* Check stress computation with computeMPSATrans (looks wrong)
 
