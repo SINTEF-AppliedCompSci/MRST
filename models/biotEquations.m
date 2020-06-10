@@ -3,7 +3,7 @@ function [eqs, names, types, state] = biotEquations(model, state0, state, dt, dr
     G     = model.G;
     fluid = model.fluid;
     op    = model.operators;
-
+    
     pv         = op.pv;
     divKgradop = op.divKgradop;
     divuop     = op.divuop;
@@ -11,18 +11,30 @@ function [eqs, names, types, state] = biotEquations(model, state0, state, dt, dr
     mechdirop  = op.mechDirichletop;
     fluiddirop = op.fluidDirichletop;
     
-    
     u  = model.getProp(state, 'u');
     p  = model.getProp(state, 'p');
-    p0 = model.getProp(state0, 'p');
     lm = model.getProp(state, 'lambdamech');
     lf = model.getProp(state, 'lambdafluid');
     
-    c = fluid.c;
+    u0  = model.getProp(state0, 'u');
+    p0  = model.getProp(state0, 'p');
+    lm0 = model.getProp(state0, 'lambdamech');
     
-    eqs{1} = momentop(u, p, lm);
-    eqs{2} = 1/dt*pv.*(c*(p - p0) + divuop(u, p, lm)) + divKgradop(p, lf);
-    eqs{3} = mechdirop(u, p, lm);
+    c = fluid.c;
+    fac =  1 / (1e6 * mean(G.cells.volumes));
+    
+    dohorriblehack = true;
+    if dohorriblehack
+        if all(u0 == 0) & all(p0 == 0)
+            divu0 = 0;
+        else
+            divu0 = divuop(u0, p0, lm0);
+        end
+    end 
+    
+    eqs{1} = fac*momentop(u, p, lm);
+    eqs{2} = 1/dt.*(pv.*c.*(p - p0) + (divuop(u, p, lm) - divu0)) + divKgradop(p, lf);
+    eqs{3} = fac*mechdirop(u, p, lm);
     eqs{4} = fluiddirop(p, lf);
     
     names = {'momentum', 'mass', 'bcmech', 'bcfluid'};
