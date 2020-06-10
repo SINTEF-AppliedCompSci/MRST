@@ -29,18 +29,17 @@ function operators = setupBiotOperators(model)
     prod = prod.setup();
 
     K = prod.eval([1; 0; 0; 1], perm);
-    src = []; % no source at this stage
     
     bcstruct = fluid.bcstruct;
     
-    eta = 0;
-    bcetazero = false;
+    eta = model.eta;
+    bcetazero = model.bcetazero;
 
     %% run assembly 
     
     fluidprops.K = K;
     fluidforces.bcstruct = bcstruct;
-    fluidforces.src = []; % no explicit sources here
+    fluidforces.src = fluid.src; % no explicit sources here
     
     coupprops.rho = 0; % the accumulation term is set within the equation
     coupprops.alpha = rock.alpha;

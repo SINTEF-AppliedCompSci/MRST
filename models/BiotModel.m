@@ -5,6 +5,9 @@ classdef BiotModel < PhysicalModel
         rock
         mech
         fluid
+
+        eta
+        bcetazero
         
         % Property container
         MechBiotPropertyFunctions
@@ -26,6 +29,9 @@ classdef BiotModel < PhysicalModel
             model.rock  = rock;
             model.mech  = mech;
             model.fluid = fluid;
+        
+            model.eta = 1/3;
+            model.bcetazero = false;
             
             % Add mechanical operators  
             model.operators = setupBiotOperators(model);
@@ -67,9 +73,9 @@ classdef BiotModel < PhysicalModel
         function [vars, names, origin] = getPrimaryVariables(model, state)
 
             [vars, names, origin] = getPrimaryVariables@PhysicalModel(model, state);
-            [u, lm, p, lf] = model.getProps(state, 'u', 'lambdamech', 'pressure', 'lambdafluid');
-            vars = [vars, {u, lm, p, lf}];
-            names = [names, {'displacement', 'lambdamech', 'pressure', 'lambdafluid'}];
+            [u, p, lm, lf] = model.getProps(state, 'u', 'pressure', 'lambdamech', 'lambdafluid');
+            vars = [vars, {u, p, lm, lf}];
+            names = [names, {'displacement', 'pressure', 'lambdamech', 'lambdafluid'}];
 
             origin = [origin, {class(model)}];
         end
