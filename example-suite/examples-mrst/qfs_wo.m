@@ -1,4 +1,4 @@
-function [description, state0, model, schedule, options, plotOptions] = qfs_wo(varargin)
+function [description, options, state0, model, schedule, plotOptions] = qfs_wo(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -24,13 +24,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     % One-line description
     description = 'Quarter five-spot example with two-phase fluid on Cartesian grid';
-    if nargout == 1, return; end
-    % Define module dependencies
-    require ad-core ad-props ad-blackoil
     % Optional input arguments
     options = struct('ncells', 50, ... % Number of cells in x- and y-directions
                      'nkr'   , 2);     % Brooks-Corey relperm exponent
     options = merge_options(options, varargin{:});
+    if nargout <= 2, return; end
+    % Define module dependencies
+    require ad-core ad-props ad-blackoil
     % Model
     G     = computeGeometry(cartGrid([1,1]*options.ncells, [1000, 1000]*meter));
     rock  = makeRock(G, 100*milli*darcy, 0.4);

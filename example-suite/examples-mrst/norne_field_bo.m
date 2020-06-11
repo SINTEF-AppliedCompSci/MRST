@@ -1,4 +1,4 @@
-function  [description, state0, model, schedule, options, plotOptions] = norne_field_bo(varargin)
+function [description, options, state0, model, schedule, plotOptions] = norne_field_bo(varargin)
 %Example from the example suite, see description below. Warning: This
 %example will likely not run without tweaking the solvers (see
 %`fieldModelNorneExample`).
@@ -28,11 +28,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     description ...
         = ['The full Norne field model. Made available through the ', ...
            'Open Porous Media Project, https://opm-project.org/'    ];
-    if nargout == 1, return; end
+    % Optional input arguments
+    options = struct();
+    if nargout <= 2, return; end
     % Define module dependencies
     require ad-core ad-blackoil ad-props deckformat
-    % Optional input arguments
-    options = struct('Gviz', []); % Sneak in grid for visualization in options
     gravity reset on
     mrstVerbose on
     useMex = true;
@@ -45,7 +45,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [Ge, rock_ecl, Ne, Te] = initGridFromEclipseOutput(init, egrid, 'outputSimGrid', true);
     Gviz = computeGeometry(Ge{1}); % Visualization grid
     Gsim = Ge{2};                  % Simulation grid
-    options.Gviz = Gviz;
     % Rock
     rock = initEclipseRock(deck);
     rock = compressRock(rock, Gsim.cells.indexMap);
@@ -56,7 +55,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     model = GenericBlackOilModel(Gsim, [], fluid, 'disgas', true, 'vapoil', true, 'inputdata', deck);
     % Finally set up the connectivity graph from output
     model.rock = rock;
-    model.operators = setupOperatorsTPFA(Gsim, rock, 'deck', deck, 'neighbors', Ne, 'trans', Te);
+    model.operators = setupOperatorsTPFA(Gsim, rock, 'neighbors', Ne, 'trans', Te);
     % Set up everything
     [state0, model, schedule] = initEclipseProblemAD(deck                      , ...
                                                      'model'           , model , ...
@@ -95,5 +94,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % PLotting
     plotOptions = {'View'              , [85, 30]  , ...
                    'PlotBoxAspectRatio', [1,1,0.3] , ...
-                   'Size'              , [700, 600]};
+                   'Size'              , [700, 600], ...
+                   'visualizationGrid' , Gviz      };
 end

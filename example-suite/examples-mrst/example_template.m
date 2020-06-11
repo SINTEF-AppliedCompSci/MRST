@@ -1,8 +1,8 @@
-function  [description, state0, model, schedule, options, plotOptions] = example_template(varargin)
+function [description, options, state0, model, schedule, plotOptions] = example_template(varargin)
 %Example template for the example suite. 
 %
 % SYNOPSIS:
-%   [description, state0, model, schedule, options, plotOptions] = example_template('pn1', pv1, ...)
+%   [description, options, state0, model, schedule, plotOptions] = example_template('pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   Template for all examples in the example suite. Function names should
@@ -29,13 +29,13 @@ function  [description, state0, model, schedule, options, plotOptions] = example
 %                 and the only input argument if the function is called as
 %                 description = my_example_wog()
 %
-%   state0, model, schedule - Initial state, model, and simulation schedule
-%                             that can be passed to `simulateScheduleAD`
-%
 %   options     - A struct of the optional input parameters, with defaults
 %                 for all arguments that were not passed as optional
 %                 parameters. Returned for convenient access to the example
 %                 configuration.
+%
+%   state0, model, schedule - Initial state, model, and simulation schedule
+%                             that can be passed to `simulateScheduleAD`
 %
 %   plotOptions - Cell array on the form {'pn1', pv1, ...} with arguments
 %                 that can be used in any of the following ways
@@ -69,14 +69,15 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    % Each example must start with the description, followed by an nargout
-    % check that returns if we only asked for the description
+    % Each example must start with the description and options, followed by
+    % an nargout check that returns if we only asked for the description
+    % and options
     description = 'Example template. Not meant for direct use';
-    if nargout == 1, return; end
     % Each example can have any number of optional input arguments, and
     % must return a (possibly empy) options struct
     options = struct('ncells', 2020, 'nstep', 5);
-    options = merge_options(options, varargin{:});  
+    options = merge_options(options, varargin{:});
+    if nargout <= 2, return; end
     % Define any module dependencies for the example. The following are
     % typically always needed
     require ad-core ad-props ad-blackoil

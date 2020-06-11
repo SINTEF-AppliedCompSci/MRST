@@ -1,4 +1,4 @@
-function  [description, state0, model, schedule, options, plotOptions] = gravity_barriers_wog(varargin)
+function [description, options, state0, model, schedule, plotOptions] = gravity_barriers_wog(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -27,13 +27,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         = ['Gravity segregation example with water, oil and gas, and ', ...
            'sealing, horizontal barriers, inspired by Hamon et al, '  , ...
            '2016, doi: 10.1016/j.cma.2016.08.009'                     ];
-    if nargout == 1, return; end
-    % Define module dependencies
-    require ad-core ad-props ad-blackoil
     % Optional input arguments
     options = struct('nsteps'   , 100 , ...
                      'useRampup', true);
     options = merge_options(options, varargin{:});
+    if nargout <= 2, return; end
+    % Define module dependencies
+    require ad-core ad-props ad-blackoil
     % Grid
     gravity reset on
     dims  = [100, 1, 100];       % Cartesian dims

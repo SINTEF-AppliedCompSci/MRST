@@ -1,4 +1,4 @@
-function [description, state0, model, schedule, options, plotOptions] = ifs_peaks_wo(varargin)
+function [description, options, state0, model, schedule, plotOptions] = ifs_peaks_wo(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -26,17 +26,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     description ...
         = ['Inverted five-spot pattern with two-phase fluid and ', ...
            'perm/poro made from repeated pattern of peaks'       ];
-    if nargout == 1, return; end
-    % Define module dependencies
-    require ad-core ad-props ad-blackoil coarsegrid
     % Optional input arguments
     options = struct('ncells', 51, ... % Number of cells in xy for each tile
                      'tiles' , 1 , ... % Number of tiles using peaks (tiles x tiles)
                      'nkr'   , 2 );    % Brooks-Corey relperm exponent
     options = merge_options(options, varargin{:});
     % Adjust so that center well can be placed exactly in model center
-    ncells = options.ncells - rem(options.ncells,2) + 1;
+    options.ncells = options.ncells - rem(options.ncells,2) + 1;
+    if nargout <= 2, return; end
+    % Define module dependencies
+    require ad-core ad-props ad-blackoil coarsegrid
     % We generate perm/poro by combining multiple tiles of peaks
+    ncells = options.ncells;
     partition = partitionCartGrid([1,1]*ncells, [2,2]);
     m = floor(ncells/2)+1;
     partition(m:ncells:end)          = 5;

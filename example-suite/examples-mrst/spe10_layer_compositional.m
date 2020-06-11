@@ -1,4 +1,4 @@
-function [description, state0, model, schedule, options, plotOptions] = spe10_layer_compositional(varargin)    
+function [description, options, state0, model, schedule, plotOptions] = spe10_layer_compositional(varargin)    
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -27,10 +27,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         = ['Water-alternating gas injection in layer 1 of SPE10 Model 2 ', ...
            'using a six-component model. Example from Moncorgé et al, '  , ...
            'J. Comput. Phys, 2018, doi: 10.1016/j.jcp.2018.05.048'       ];
-    if nargout == 1, return; end
     % Optional input arguments
     options = struct('dt', 25*day); % Target timestep length
     options = merge_options(options, varargin{:});
+    if nargout <= 2, return; end
     % Define module dependencies
     require spe10 ad-core ad-props compositional deckformat
     % Load deck

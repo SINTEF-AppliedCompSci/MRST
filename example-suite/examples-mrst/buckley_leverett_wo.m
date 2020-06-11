@@ -1,4 +1,4 @@
-function [description, state0, model, schedule, options, plotOptions] = buckley_leverett_wo(varargin)
+function [description, options, state0, model, schedule, plotOptions] = buckley_leverett_wo(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -24,14 +24,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     % One-line description
     description = 'Two-phase Buckley Leverett displacement';
-    if nargout == 1, return; end
-    % Define module dependencies
-    require ad-core ad-props ad-blackoil
     % Optional input arguments
     options = struct('ncells', 100, ... % Number of cells
                      'nkr'   , 2  , ... % Brooks-Corey relperm exponent
                      'cfl'   , 1  );    % CFL number
     options = merge_options(options, varargin{:});
+    if nargout <= 2, return; end
+    % Define module dependencies
+    require ad-core ad-props ad-blackoil
     % Model
     G     = computeGeometry(cartGrid([options.ncells,1]));
     rock  = makeRock(G, 1, 1);
