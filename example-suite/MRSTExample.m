@@ -10,9 +10,10 @@ classdef MRSTExample
         options     % Options passed to example get (stored for reference)
         verbose     % Verbose flag
         % Properties for plotting
-        figureProperties % Figure propreties (defaults set by constructor)
-        axisProperties   % Axis properties (defaults set by constructor)
-        toolbarOptions   % Options that can be passed to plotToolbar
+        figureProperties  % Figure propreties (defaults set by constructor)
+        axisProperties    % Axis properties (defaults set by constructor)
+        toolbarOptions    % Options that can be passed to plotToolbar
+        visualizationGrid % Optional grid for plotting
     end
     
     methods
@@ -61,6 +62,8 @@ classdef MRSTExample
                 time = toc(timer);
                 fprintf('Example set up in %s\n\n', formatTimeRange(time));
             end
+            % Set visualization grid if given
+            [example, plotOptions] = merge_options(example, plotOptions{:});
             % Set figure properties
             [example.figureProperties, plotOptions]                ...
                 = merge_options(example.defaultFigureProperties(), ...
@@ -70,7 +73,9 @@ classdef MRSTExample
                 = merge_options(example.defaultAxisProperties(), ...
                                 plotOptions{:}                 );
             % Set toolbar options
-            example.toolbarOptions = merge_options(example.defaultToolbarOptions, plotOptions{:});
+            example.toolbarOptions ...
+                = merge_options(example.defaultToolbarOptions(), ...
+                                plotOptions{:}                 );
             names  = fieldnames(example.toolbarOptions);
             values = struct2cell(example.toolbarOptions);
             example.toolbarOptions = cell(1, 2*numel(names));
@@ -111,8 +116,8 @@ classdef MRSTExample
             props = struct();
             % Get grid
             G = example.model.G;
-            if isfield(example.options, 'Gviz')
-                G = example.options.Gviz;
+            if ~isempty(example.visualizationGrid)
+                G = example.visualizationGrid;
             end
             % Set XYZLim
             if isfield(G, 'nodes')
@@ -189,8 +194,8 @@ classdef MRSTExample
                 v = example.model.rock;
             end
             G = example.model.G;
-            if isfield(example.options, 'Gviz')
-                G = example.options.Gviz;
+            if ~isempty(example.visualizationGrid)
+                G = example.visualizationGrid;
             end
             example.figure('Name', Name);
             plotToolbar(G, v, example.toolbarOptions{:}, extra{:});
