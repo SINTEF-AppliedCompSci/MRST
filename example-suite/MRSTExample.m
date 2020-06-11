@@ -125,6 +125,7 @@ classdef MRSTExample
             else
                 props.Projection = 'perspective';
             end
+            props.Box = false;
         end
         
         %-----------------------------------------------------------------%
@@ -196,28 +197,33 @@ classdef MRSTExample
         function problem = getPackedSimulationProblem(example, varargin)
             % Make packed problem with reasonable simulation setup
             opt = struct('LinearSolver'   , [], ...
-                         'NonlinearSolver', []);
-            [opt, varargin] = merge_options(opt, varargin{:});
-            ix = strcmpi('ExtraArguments', varargin);
-            extra = {};
-            if ~isempty(ix)
-                extra = varargin{ix+1};
-                opt   = merge_options(opt, extra{:});
-                varargin(ix:ix+1) = [];
+                         'NonLinearSolver', []);
+            [opt, extra] = merge_options(opt, varargin{:});
+            has_ls  = ~isempty(opt.LinearSolver);    % Linear solver given
+            has_nls = ~isempty(opt.NonLinearSolver); % Nonlinear solver given
+            if has_nls
+                % Check if nonlinear solver has non-default linear solver
+                has_ls = has_ls || ~isa(opt.NonLinearSolver, 'BackslashSolverAD');
             end
-            if isempty(opt.LinearSolver)
+            if ~has_ls
+                % Select apropriate linear solver
                 rmodel = example.model;
                 if isa(rmodel, 'WrapperModel')
                     rmodel = rmodel.getReservoirModel;
                 end
-                lsolver = selectLinearSolverAD(rmodel);
-                opt.LinearSolver = lsolver;
+                opt.LinearSolver = selectLinearSolverAD(rmodel);
             end
-            extra = horzcat(extra, {'LinearSolver'   , opt.LinearSolver   , ...
-                                    'NonlinearSolver', opt.NonlinearSolver});
+            if ~has_nls
+                % Select default nonlinear solver
+                opt.NonLinearSolver = NonLinearSolver('LinearSolver', opt.LinearSolver);
+            elseif ~has_ls
+                % ... or assign linear solver
+                opt.NonLinearSolver.LinearSolver = opt.LinearSolver;
+            end
+            % Pack problem
             problem = packSimulationProblem(                                   ...
                 example.state0, example.model, example.schedule, example.name, ...
-                varargin{:}, 'ExtraArguments', extra);
+                'NonLinearSolver', opt.NonLinearSolver, extra{:}             );
         end
         
     end
