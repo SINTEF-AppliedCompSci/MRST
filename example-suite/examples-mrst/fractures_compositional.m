@@ -1,4 +1,4 @@
-function  [description, state0, model, schedule, options, plotOptions] = fractures_compositional(varargin)
+function [description, options, state0, model, schedule, plotOptions] = fractures_compositional(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -27,11 +27,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         = ['Compositional example with fractures, similar to the ' , ...
            'example from Section 5.2 of Moyner & Tchelepi, SPE J, ', ...
            '23(6), doi: 10.2118/182679-PA'                         ];
-    if nargout == 1, return; end
-    % Define module dependencies
-    require ad-core ad-props compositional
     % Optional input arguments
     options = struct();
+    if nargout <= 2, return; end
+    % Define module dependencies
+    require ad-core ad-props compositional
     % Name tags for fluid model and case
     fluid_name = 'simple';
     % Load the grid and set up petrophysical model

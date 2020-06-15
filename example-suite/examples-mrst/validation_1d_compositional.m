@@ -1,4 +1,4 @@
-function [description, state0, model, schedule, options, plotOptions] = validation_1d_compositional(varargin)
+function [description, options, state0, model, schedule, plotOptions] = validation_1d_compositional(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -26,11 +26,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     description ...
         = ['Example from the compositional module with CO2 injection ', ...
            'into 1D reservoir filled with Decane, CO2 and Methane'    ];
-    if nargout == 1, return; end
-    % Define module dependencies
-    require ad-core ad-props compositional deckformat
     % Optional input arguments
     options = struct();
+    if nargout <= 2, return; end
+    % Define module dependencies
+    require ad-core ad-props compositional deckformat
     pth = getDatasetPath('simplecomp');
     fn  = fullfile(pth, 'SIMPLE_COMP.DATA');
     % Read deck

@@ -1,4 +1,4 @@
-function [description, state0, model, schedule, options, plotOptions] = saigup_wo(varargin)
+function [description, options, state0, model, schedule, plotOptions] = saigup_wo(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -25,11 +25,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % One-line description
     description = ['SAIGUP Model (Manzocchi et al, 2008, doi: 10.1144/1354-079307-790) ', ...
                    'with water injection into reservoir filled with oil and water'      ];
-    if nargout == 1, return; end
-    % Define module dependencies
-    require ad-core ad-props ad-blackoil
     % Optional input arguments
     options = struct();
+    if nargout <= 2, return; end
+    % Define module dependencies
+    require ad-core ad-props ad-blackoil
     % Read grdecl
     gravity reset on
     grdecl = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');

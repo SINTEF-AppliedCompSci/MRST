@@ -1,4 +1,4 @@
-function [description, state0, model, schedule, options, plotOptions] = spe10_wo(varargin)
+function [description, options, state0, model, schedule, plotOptions] = spe10_wo(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -26,13 +26,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     description = ...
         ['SPE10 Model 2 (Christie & Blunt, 2008, SPE Res. Eval. & Eng., ', ...
          'doi: 10.2118/72469-pa) with support for subset of layers'      ];
-    if nargout == 1, return; end
-    % Define module dependencies
-    require ad-core ad-props ad-blackoil spe10
     % Optional input arguments
     options = struct('layers', []); % Layer subset. Either subset of 1:85, 
                                     % 'tarbert', or 'upper_ness'
     [options, spe10Args] = merge_options(options, varargin{:});
+    if nargout <= 2, return; end
+    % Define module dependencies
+    require ad-core ad-props ad-blackoil spe10
     % Pick layer subset
     if isempty(options.layers)
         options.layers = 1:85;

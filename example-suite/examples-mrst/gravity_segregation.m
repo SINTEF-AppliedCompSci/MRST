@@ -1,4 +1,4 @@
-function  [description, state0, model, schedule, options, plotOptions] = gravity_segregation(varargin)
+function [description, options, state0, model, schedule, plotOptions] = gravity_segregation(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -26,9 +26,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     description ...
         = ['Gravity segregation example with initially horizontal or ', ...
            'vertical fluid contact and two- or three-phase immiscible fluids'];
-    if nargout == 1, return; end
-    % Define module dependencies
-    require ad-core ad-props ad-blackoil
     % Optional input arguments
     options = struct('phases'   , 'WOG'       , ...
                      'ncells'   , 21          , ...
@@ -39,6 +36,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Set parameters depending on fluid contact-type
     nph = numel(options.phases);
     options.ncells = options.ncells - rem(options.ncells, nph);
+    if nargout <= 2, return; end
+    % Define module dependencies
+    require ad-core ad-props ad-blackoil
     L = 100*meter;
     switch options.type
         case 'vertical'

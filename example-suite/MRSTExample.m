@@ -10,9 +10,10 @@ classdef MRSTExample
         options     % Options passed to example get (stored for reference)
         verbose     % Verbose flag
         % Properties for plotting
-        figureProperties % Figure propreties (defaults set by constructor)
-        axisProperties   % Axis properties (defaults set by constructor)
-        toolbarOptions   % Options that can be passed to plotToolbar
+        figureProperties  % Figure propreties (defaults set by constructor)
+        axisProperties    % Axis properties (defaults set by constructor)
+        toolbarOptions    % Options that can be passed to plotToolbar
+        visualizationGrid % Optional grid for plotting
     end
     
     methods
@@ -21,7 +22,7 @@ classdef MRSTExample
             % Set example name
             example.name = lower(name);
             % Merge options
-            opt = struct('plot', false, 'verbose', []);
+            opt = struct('plot', false, 'verbose', [], 'readFromDisk', true);
             [opt, varargin]  = merge_options(opt, varargin{:});
             example.verbose = opt.verbose;
             if isempty(opt.verbose), example.verbose = mrstVerbose(); end
@@ -30,17 +31,39 @@ classdef MRSTExample
                 timer = tic();
             end
             [example, extra] = merge_options(example, varargin{:});
+            if opt.readFromDisk
+                % Check if example is already stored on disk
+                [example.description, ...
+                 example.options    ] = feval(lower(name), extra{:});
+                ex = example.load(false);
+                if ~isempty(ex)
+                    % We found it! Early return
+                    example = ex;
+                    if example.verbose
+                        time = toc(timer);
+                        fprintf(['Found a saved version of this example. '        , ...
+                                'Example loaded in %s\n\n'], formatTimeRange(time));
+                    end
+                    return
+                elseif example.verbose
+                    % No luck, we need to set up from scratch
+                    fprintf(['Did not find a saved version of this ', ...
+                             'example, setting up from scratch \n\n']);
+                end
+            end
             [example.description, ... % Example description
+             example.options    , ... % Options for reference
              example.state0     , ... % Initial state
              example.model      , ... % Model
              example.schedule   , ... % Simulation schedule
-             example.options    , ... % Options for reference
              plotOptions        ] ... % Plotting options
                 = feval(lower(name), extra{:});
             if example.verbose
                 time = toc(timer);
                 fprintf('Example set up in %s\n\n', formatTimeRange(time));
             end
+            % Set visualization grid if given
+            [example, plotOptions] = merge_options(example, plotOptions{:});
             % Set figure properties
             [example.figureProperties, plotOptions]                ...
                 = merge_options(example.defaultFigureProperties(), ...
@@ -50,7 +73,9 @@ classdef MRSTExample
                 = merge_options(example.defaultAxisProperties(), ...
                                 plotOptions{:}                 );
             % Set toolbar options
-            example.toolbarOptions = merge_options(example.defaultToolbarOptions, plotOptions{:});
+            example.toolbarOptions ...
+                = merge_options(example.defaultToolbarOptions(), ...
+                                plotOptions{:}                 );
             names  = fieldnames(example.toolbarOptions);
             values = struct2cell(example.toolbarOptions);
             example.toolbarOptions = cell(1, 2*numel(names));
@@ -91,8 +116,8 @@ classdef MRSTExample
             props = struct();
             % Get grid
             G = example.model.G;
-            if isfield(example.options, 'Gviz')
-                G = example.options.Gviz;
+            if ~isempty(example.visualizationGrid)
+                G = example.visualizationGrid;
             end
             % Set XYZLim
             if isfield(G, 'nodes')
@@ -169,8 +194,8 @@ classdef MRSTExample
                 v = example.model.rock;
             end
             G = example.model.G;
-            if isfield(example.options, 'Gviz')
-                G = example.options.Gviz;
+            if ~isempty(example.visualizationGrid)
+                G = example.visualizationGrid;
             end
             example.figure('Name', Name);
             plotToolbar(G, v, example.toolbarOptions{:}, extra{:});
@@ -190,6 +215,59 @@ classdef MRSTExample
             end
             if G.griddim == 3 && ~all(example.axisProperties.View == [0,90])
                 camlight;
+            end
+        end
+        
+        %-----------------------------------------------------------------%
+        function hash = getExampleHash(example)
+            % Get example options as string
+            optnames    = fieldnames(example.options);
+            optval      = struct2cell(example.options);
+            fix         = cellfun(@(v) ~ischar(v), optval);
+            optval(fix) = cellfun(@num2str, optval(fix), 'UniformOutput', false);
+            % Prepend with example name
+            str = cell(1, 1 + 2*numel(optval));
+            str([1, 2:2:end, 3:2:end]) = [{example.name}; optnames; optval];
+            str = horzcat(str{:});
+            try
+                % Calculate hash value
+                md = java.security.MessageDigest.getInstance('SHA-256');
+                hash = sprintf('%2.2x', typecast(md.digest(uint8(str)), 'uint8')');
+            catch
+                % ... fallback using example string
+                hash = str;
+            end
+        end
+        
+        %-----------------------------------------------------------------%
+        function ok = save(example)
+            % Get example hash value
+            hash = example.getExampleHash();
+            % Store in default data directory under 'example-suite'
+            pth = fullfile(mrstDataDirectory(), 'example-suite');
+            save(fullfile(pth, hash), 'example', '-v7.3');
+            ok = true;
+        end
+        
+        %-----------------------------------------------------------------%
+        function ex = load(example, throwError)
+            % Attempt to load example
+            if nargin < 2
+                throwError = true;
+            end
+            % Example is stored with a filename equal to its hash value
+            hash = example.getExampleHash();
+            pth = fullfile(mrstDataDirectory(), 'example-suite');
+            fn = [fullfile(pth, hash), '.mat'];
+            ex = [];
+            if isfile(fn)
+                % The file exists - load it
+                data = load(fn);
+                ex   = data.example;
+            elseif throwError
+                % The file does no exists - throw an error
+                error(['Could not find example '   , ...
+                       'named %s with hash key %s'], example.name, hash);
             end
         end
         

@@ -1,4 +1,4 @@
-function [description, state0, model, schedule, options, plotOptions] = qfs_compositional(varargin)
+function [description, options, state0, model, schedule, plotOptions] = qfs_compositional(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -26,13 +26,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     description = ...
         ['Quarter five-spot with CO2 injection into methane, n-decane, and CO2. '       , ...
          'Slightly modified from Klemetsdal et al, SPE RSC 2019, doi: 10.2118/193934-ms'];
-    if nargout == 1, return; end
-    % Define module dependencies
-    require ad-core ad-props compositional
     % Optional input arguments
     options = struct('ncells', 60, ... % Number of cells in x- and y-directions
                      'nsteps', 100);   % Number of timesteps
     options = merge_options(options, varargin{:});
+    if nargout <= 2, return; end
+    % Define module dependencies
+    require ad-core ad-props compositional
     % Model
     G     = computeGeometry(cartGrid([options.ncells, options.ncells, 1], [1000, 1000, 10]));
     rock  = makeRock(G, 0.1*darcy, 0.25);
