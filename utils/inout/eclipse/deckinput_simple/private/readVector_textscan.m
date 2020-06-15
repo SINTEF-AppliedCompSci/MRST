@@ -72,15 +72,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          % floating-point value (the repeat count).
          assert (isfloat(vec) && ~isempty(vec), 'Internal Logic Error');
 
-         % Tokenize the remainder of the vector's elements.
-         elm = read_vector_elements(vec(end), pos, fid);
-
-         % Parse those elements to numeric values and concatenate to
-         % previously read elements.  The last read element is the first
+         % Parse elements with repeat counts to numeric values and append
+         % to previously read elements.  The last read element is the first
          % repeat count, so we must NOT include that value in the final
          % output returned to the caller.
-         vec = [ vec(1 : (end - 1))         ; ...
-                 parse_vector_elements(elm) ];
+         vec = [ vec(1 : (end - 1)) ; ...
+                 blocked_vector_read(fid, vec(end), pos, ...
+                                     nel - (numel(vec) - 1)) ];
       else
          error('Read:Error', 'Input Error (TEXTSCAN): %s', msg);
       end
@@ -104,9 +102,52 @@ function [v, pos, complete] = read_vector_elements_simple(fid, nel)
    v = arr{1};
 
    % Check if we completed the entire vector read.
+   complete = vector_complete(fid, pos, numel(v), nel);
+end
+
+%--------------------------------------------------------------------------
+
+function v = blocked_vector_read(fid, rpt, pos, nel)
+   % Consistency checking: Verify that encountering a repeat count ('*')
+   % character actually prompted the more involved input routine.  Input
+   % 'pos' is directly before the character that could not be converted
+   % during the simplified vector read.  Seek to that position, read a
+   % single character and verify that that single character actually is the
+   % repeat designator.
+   fseek(fid, pos, 'bof');
+   ast = fscanf(fid, '%c', 1);
+   if ~strcmp(ast, '*') || mod(rpt, 1) ~= 0
+      error('RepeatDesignator:Erroneous', ...
+            'Incorrect Repeat Descriptor.  Expected N*, but got %f%c', ...
+            rpt, ast);
+   end
+
+   blocksize = 500 * 1000;
+
+   % Read at most 'blocksize' elements from FID.
+   [elm, pos] = read_block_vector_elements(fid, blocksize);
+
+   % Re-insert repeat count that was erroneously intepreted as a vector
+   % value into the first token to allow the parsing step to treat this
+   % complete token correctly.
+   elm{1} = sprintf('%d%c%s', rpt, ast, elm{1});
+
+   % Parse elements to numeric values, then loop over blocks until vector
+   % read is complete.
+   v = parse_vector_elements(elm);
+
+   while ~ vector_complete(fid, pos, numel(v), nel)
+      [elm, pos] = read_block_vector_elements(fid, blocksize);
+      v = [ v ; parse_vector_elements(elm) ];                   %#ok<AGROW>
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function complete = vector_complete(fid, pos, num_vec_elm, nel)
    if isfinite(nel)
       % Finite number of vector elements.  Check if we got all of them.
-      complete = numel(v) == nel;
+      complete = num_vec_elm == nel;
    elseif feof(fid)
       % Non-finite element count (i.e., called as readVector(..., inf)).
       % Treat EOF as '/' for ISINF(nel).
@@ -125,7 +166,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function tok = read_vector_elements(rpt, pos, fid)
+function [tok, pos] = read_block_vector_elements(fid, blocksize)
    % Elaborate tokenization of vectors that contain repeat counts of the
    % form
    %      N*value
@@ -147,33 +188,16 @@ function tok = read_vector_elements(rpt, pos, fid)
    % keywords such as 'DXV', 'PERMX', 'PORO', 'ACTNUM' and, possibly,
    % 'ZCORN' and SCHEDULE section keywords such as 'TSTEP'.
 
-   % Consistency checking: Verify that encountering a repeat count ('*')
-   % character actually prompted the more involved input routine.  Input
-   % 'pos' is directly before the character that could not be converted
-   % during the simplified vector read.  Seek to that position, read a
-   % single character and verify that that single character actually is the
-   % repeat designator.
-   fseek(fid, pos, 'bof');
-   ast = fscanf(fid, '%c', 1);
-   if ~strcmp(ast, '*') || mod(rpt, 1) ~= 0
-      error('RepeatDesignator:Erroneous', ...
-           ['Incorrect Repeat Descriptor.  ', ...
-            'Expected N*, but got %f%c'], rpt, ast);
-   end
-
    % Tokenize relevant portion of the input stream.  Read everything up to
-   % the vector terminator '/' (or FEOF or input error), split on blanks
-   % (space, newline, tab) and ignore comment lines ('--' designator).
-   tok = textscan(fid, '%[^/ \n\t]', 'CommentStyle', '--');
+   % and including 'blocksize' elements, the vector terminator '/', FEOF or
+   % input failure-whichever comes first.  Split on blanks (space, newline,
+   % tab) and ignore comment lines ('--' designator).
+   [tok, pos] = textscan(fid, '%[^/ \n\t]', blocksize, ...
+                         'CommentStyle', '--');
 
    % Output from TEXTSCAN is single-element cell array of cellstring of
    % tokens.  Get the actual tokens.
    tok = tok{1};
-
-   % Re-insert repeat count that was erroneously intepreted as a vector
-   % value into the first token to allow the parsing step to treat this
-   % complete token correctly.
-   tok{1} = sprintf('%d%c%s', rpt, ast, tok{1});
 end
 
 %--------------------------------------------------------------------------
