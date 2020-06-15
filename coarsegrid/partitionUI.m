@@ -51,10 +51,10 @@ if ~grid_ok(G)
          'Grid is not a valid grid_structure structure');
 end
 
-if ~any(numel(coarseDim) == [2, 3]) || any(coarseDim < 1)
+if numel(coarseDim) ~= G.griddim || any(coarseDim < 1)
    error(msgid('coarseDim:Invalid'), ...
-        ['Parameter ''coarseDim'' must be a two or three component ', ...
-         'vector\ncontaining strictly positive integers.']);
+        ['Parameter ''coarseDim'' must be a %d component ', ...
+         'vector\ncontaining strictly positive integers.'], G.griddim);
 end
 
 assert(all(coarseDim > 0), ...
