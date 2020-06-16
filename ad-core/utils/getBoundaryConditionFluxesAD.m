@@ -67,8 +67,8 @@ N = G.faces.neighbors(bc.face,:);
 
 % Validation
 assert(size(bc.sat, 2) == nph, ...
-    ['Wrong number of columns in BC sat field: Expected columns', ...
-    num2str(nph), ', but input had ', num2str(size(bc.sat, 2)), ' columns.']);
+    ['Wrong number of columns in BC sat field: Expected ', num2str(nph), ...
+     ' columns, but input had ', num2str(size(bc.sat, 2)), ' columns.']);
 assert(~any(all(N > 0, 2)),'bc on internal boundary');
 
 hasOutsideMob = isfield(bc, 'mob');
