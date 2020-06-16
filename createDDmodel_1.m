@@ -70,7 +70,7 @@ pv= model.operators.pv;
                  if_inj_well(Well_I(j))=0;
 
              else  % if No  Conect to the corresponding injector cell
-                 fprintf(2,'\n+++ Create just conection for wellpair  I%d-P%d\n',Well_I(j), Well_p)
+                 fprintf(2,'\n+++ Create just conection for wellpair  %s-P%s\n',W_ref(Well_I(j)).name, W_ref(Well_p).name)
                  
                  face1_new =  internal_faces + k_new_faces;
                  
@@ -125,8 +125,15 @@ pv= model.operators.pv;
      
  end
  
- indexs.faces = wellpair_faces_inx;
- indexs.cells = wellpair_cells_inx;
+ %% This index are for egg model
+ %% TODO: improve this
+indexs.faces = wellpair_faces_inx;
+indexs.cells = wellpair_cells_inx;
+
+W = W([2 3 4 5  8 6 10 12 1 7 9 11]);
+
+%%
+ 
  
  model.operators =  setupOperatorsTPFA(model.G, model.rock,'neighbors',N,'trans',T,'porv',pv);
  
