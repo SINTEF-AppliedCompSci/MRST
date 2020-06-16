@@ -184,7 +184,7 @@ classdef MRSTExample
         %-----------------------------------------------------------------%
         function plot(example, v, varargin)
             % Plot filed v on example grid using plotToolbar
-            opt = struct('Name', '');
+            opt = struct('Name', '', 'plotWells', true);
             [opt, extra] = merge_options(opt, varargin{:});
             Name = example.name;
             if ~isempty(opt.Name)
@@ -201,9 +201,10 @@ classdef MRSTExample
             plotToolbar(G, v, example.toolbarOptions{:}, extra{:});
             example.setAxisProperties(gca);
             W = example.schedule.control(1).W;
-            if ~isempty(W)
+            if ~isempty(W) && opt.plotWells
                 if G.griddim == 3
-                    plotWell(G, W, 'color', 'k');
+                    plotWell(G, W, 'color' , 'k'                            , ...
+                                   'height', -example.axisProperties.ZLim(1));
                 else
                     hold on
                     x = G.cells.centroids(vertcat(W.cells), :);
