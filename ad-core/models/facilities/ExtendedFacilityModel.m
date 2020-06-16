@@ -185,8 +185,11 @@ classdef ExtendedFacilityModel < FacilityModel
             targets = vertcat(state.wellSol(map.active).val);
 
             % Handle bhp
-            is_bhp = strcmp(well_controls, 'bhp');
-            ctrl_eq(is_bhp) = bhp(is_bhp) - targets(is_bhp);
+            % Since control equation convergence tollerance is given by
+            % toleranceWellRate, we scale bhp-control eqs accordingly
+            is_bhp  = strcmp(well_controls, 'bhp');
+            eqScale = facility.toleranceWellRate/facility.toleranceWellBHP;
+            ctrl_eq(is_bhp) = eqScale*(bhp(is_bhp) - targets(is_bhp));
 
             % Following: Different types of rate controls.
             % Surface total rates
