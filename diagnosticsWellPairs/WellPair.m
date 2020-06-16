@@ -22,9 +22,7 @@ classdef WellPair
        wellpairIx_prod % Producer index in WP
        
        wellpair_name
-       
-       M
-       n
+
     end  
     methods 
         function wp = WellPair(data,WP,D, wp_index ,G , W , varargin)
@@ -83,34 +81,8 @@ classdef WellPair
             
             wp.schedule      = data.schedule;
             
-%             %case1
-%             n =10;
-%                 M = 0.3;
-% 
-%             %case2
-%                 n =2;
-%                 M = 0.9;
-            %case3
-             wp.n = 5;
-             wp.M = 0.3;
-             wp  = fractional_flow(wp);
-% %     
-%             if wp_index ==3
-         %       wp.fw.val=@(x)(x.^n)./(x.^n+M*(1-x).^n);
-         %       wp.fw.diff=@(x)(n*M*((1-x)*x)^(n-1))/((M*(1-x)^n)+(x^n))^2;
-%             else    
-%                 Table{1} = [wp.data.s_avg,wp.data.fw_avg];% it is the saturation and fractional flow table
-%                 wp.fw.val  =@(s)interpReg(Table, s, {':'});    
-%                 wp.fw.diff =@(s)TableDerivative(Table,s); 
-%             end
-        end
-        
-        function wp  = fractional_flow(wp)
-           %n = wp.n;
-           %M = wp.M;
-           wp.fw.val=@(x)(x.^wp.n)./(x.^wp.n+wp.M*(1-x).^wp.n);
-           wp.fw.diff=@(x)(wp.n*wp.M*((1-x)*x)^(wp.n-1))/((wp.M*(1-x)^wp.n)+(x^wp.n))^2;
-        end
+
+        end        
         
         
          function f = plotWellPairVolume(wp,G,data,varargin)
