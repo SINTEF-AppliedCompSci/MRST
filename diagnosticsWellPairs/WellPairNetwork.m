@@ -48,7 +48,7 @@ classdef WellPairNetwork
             edges =edges(:,[2,1]);
             ne = size(edges,1);
     
-            DD.Graph = graph(edges(:,2),edges(:,1),[], {DD.schedule.control.W.name});          
+            DD.Graph = graph(edges(:,2),edges(:,1),[]);          
         end
         
         
@@ -62,8 +62,8 @@ classdef WellPairNetwork
                 pv(i) = DD.wps{i}.volume;
                 TT(i) = DD.wps{i}.Tr;
             end
-            
-            for i = 1:numel(DD.schedule.control.W)
+            n_wells  = numel(DD.schedule.control.W);
+            for i = 1:n_wells
                 cell_number = DD.schedule.control.W(i).cells(1);
                 XData(i) = DD.model.G.cells.centroids(cell_number,1);
                 YData(i) = DD.model.G.cells.centroids(cell_number,2);
@@ -76,7 +76,9 @@ classdef WellPairNetwork
 
                 h2= plotGrid(DD.model.G, 'FaceColor', 'none', 'EdgeAlpha', 0.1), view(2);
                 
-                hold on, pg =  plot(DD.Graph, 'XData',XData,'YData',YData,'ZData',ZData,'LineWidth',10*TT/max(TT)), hold off;
+                hold on, pg =  plot(DD.Graph, 'XData',XData,'YData',YData,'ZData',ZData,'LineWidth',10*TT/max(TT))
+                        labelnode(pg,[1:n_wells],{DD.schedule.control.W.name})
+                hold off;
                 % To have text indicating values with text                
                 % plot(Graph,'EdgeLabel',compose("%5.2e",Graph.Edges.Weight),'LineWidth',10*TT/max(TT))
                
@@ -88,7 +90,9 @@ classdef WellPairNetwork
                 subplot(1,2,2);
                 h2= plotGrid(DD.model.G, 'FaceColor', 'none', 'EdgeAlpha', 0.1), view(2);
                 
-                hold on, pg=plot(DD.Graph,'r','XData',XData,'YData',YData,'ZData',ZData,'LineWidth',10*pv/max(pv)),hold off;
+                hold on, pg=plot(DD.Graph,'r','XData',XData,'YData',YData,'ZData',ZData,'LineWidth',10*pv/max(pv))
+                         labelnode(pg,[1:n_wells],{DD.schedule.control.W.name})
+                hold off;
                 pg.NodeFontSize= 15;
                 axis off ; 
                 title("Pore volume")
