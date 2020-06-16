@@ -39,7 +39,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     tolerances = zeros(size(tmp));
     tolerances(isperf)  = model.toleranceWellRate;
-    tolerances(iswell)  = model.toleranceWellBHP;
+    tolerances(iswell)  = model.toleranceWellRate;
     tolerances(isseg)   = model.toleranceWellMS;
     tolerances(isnode)  = model.toleranceWellMS;
     tolerances(isalpha) =  model.toleranceWellMS;
