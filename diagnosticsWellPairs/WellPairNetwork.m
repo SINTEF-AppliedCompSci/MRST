@@ -120,14 +120,26 @@ classdef WellPairNetwork
         
         
        
-         %% Plot and compare saturation given by the MRST model using flow diagnostic and the DD model
-        function f = plotSaturation(DD,wp_index)    
-            
-            
-               f = figure('Name',DD.wps{wp_index}.wellpair_name);
-                        
-               error('plotSaturation would be re-implemented')           
-
+        function f = plotWellPairsData(DD)    
+             f = figure('Name','Flow rate');
+             tt =  cumsum(DD.schedule.step.val);
+                for i = 1 : numel(DD.wps)
+                    subplot(4,5,i)
+                    plot(tt/day, -DD.wps{i}.data.BFPD*day/stb,'k')
+                     title(DD.wps{i}.wellpair_name);
+                end   
+%              f = figure('Name','Volume');
+%                 for i = 1 : numel(DD.wps)
+%                     subplot(4,5,i)
+%                     plot(tt/day, DD.wps{i}.data.volume,'k')
+%                      title(DD.wps{i}.wellpair_name);
+%                 end
+             f = figure('Name','Average saturation');
+                for i = 1 : numel(DD.wps)
+                    subplot(4,5,i)
+                    plot(tt/day, DD.wps{i}.data.s_avg,'k')
+                     title(DD.wps{i}.wellpair_name);
+                end     
 
         end
             
