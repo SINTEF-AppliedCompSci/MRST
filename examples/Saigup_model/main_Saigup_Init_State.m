@@ -19,25 +19,9 @@ W_ref        = schedule_ref.control.W;
 
  DD = WellPairNetwork(model_ref,schedule_ref,states_ref,state0_ref,wellSols_ref);
  DD =  DD.filter_wps(150*stb/day);
- DD.plotWellPairConnections()
+       DD.plotWellPairConnections()
+       DD.plotWellPairsData()
 
-%%
-
-%load 'Data_and_Diagnostic_SAIGUP.mat'
-
-
-tt =  cumsum(schedule_ref.step.val);
-for i = 1 : numel(DD.wps)
-      subplot(4,5,i)
-    plot(tt/day, -DD.wps{i}.data.BFPD*day/stb,'k')
-     title(DD.wps{i}.wellpair_name);
-end
-figure
-for i = 1 : numel(DD.wps)
-    subplot(4,5,i)
-    plot(tt/day, DD.wps{i}.data.s_avg,'k')
-     title(DD.wps{i}.wellpair_name);
-end
 
 
 %% Two parameter per well pair
@@ -351,9 +335,9 @@ dt = schedule_ref.step.val;
 
  schedule = simpleSchedule(dt(1:70), 'W', W);
 
-         weighting =  {'WaterRateWeight',  1e5, ...
-                       'OilRateWeight',    1e5, ...
-                       'BHPWeight',        1e-3};
+         weighting =  {'WaterRateWeight',  1e3, ...
+                       'OilRateWeight',    1e3, ...
+                       'BHPWeight',        1e-6};
  schedule_0=schedule;
                    
  val{1} = TT/2;
