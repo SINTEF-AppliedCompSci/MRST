@@ -65,6 +65,7 @@ end
 done = false;
 ki   = 1;
 opts = optimset('Display','off', 'TolFun', tolAbs/10);
+warn = false;
 while ~done
     % current points
     pcur = f(s([ki, ki+1],:));
@@ -77,6 +78,7 @@ while ~done
         [sOpt, dMaxSq, flag] = fminbnd(@(s)-distSq(f(s), pcur), s(ki), s(ki+1), opts);
          dMaxSq = -dMaxSq;
         if ~(flag == 1) % if something fails, just choose midpoint
+           warn = true;
            sOpt   = (s(ki) + s(ki+1))/2;
            dMaxSq = distSq(f(sOpt), pcur);
         end
@@ -95,6 +97,9 @@ while ~done
 end
 % recalculate points
 p = f(s);
+if warn
+    warning('fminbnd had problems finding a solution, examination of resulting trajectory is recommended');
+end
 end
 
 % -------------------------------------------------------------------------
