@@ -1,10 +1,5 @@
 function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state0, wellSols_ref,weighting,objScaling)
-
-
-
           
-             %model.rock.perm = p;
-             %model = control2model(p,model,parameters);
              [model,schedule,state0] = control2problem(p,model,schedule,state0, parameters);     
             
              lsolve = AMGCL_CPRSolverAD('maxIterations', 200, 'tolerance', 1e-3);

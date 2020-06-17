@@ -10,7 +10,8 @@ classdef WellPairNetwork
         wps
         wp_flow_filter =  100*stb/day;
         I_filter
-        Graph                
+        Graph
+        I_Graph_index
     end
     methods
         
@@ -45,10 +46,11 @@ classdef WellPairNetwork
            end            
 
             
-            edges =edges(:,[2,1]);
+            
             ne = size(edges,1);
     
-            DD.Graph = graph(edges(:,2),edges(:,1),[]);          
+            DD.Graph = graph(edges(:,1),edges(:,2),[]);   
+            [~, DD.I_Graph_index] = sortrows(edges); % to be used for ordering the wellpair conections          
         end
         
         

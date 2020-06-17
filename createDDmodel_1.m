@@ -24,6 +24,8 @@ pv= model.operators.pv;
   k_faces_zero = vertical_internal_faces;
   
 %%  
+  array_edges_2 = []; % to be used for the ordering the well pairs index conection as in DD.wps, because following the ordering of the graph is not the same
+ ref_order = [];
            W = [];
   faces_zero = []; 
   
@@ -35,6 +37,8 @@ pv= model.operators.pv;
          W = verticalWell(W, model.G, model.rock, model.G.cartDims(1), model.G.cartDims(2), k, ...      
              'Type', W_ref(Well_p).type, 'Val', W_ref(Well_p).val, ... %  SAIGUP model
             'Radius', W_ref(Well_p).r(1),'Name',W_ref(Well_p).name,'Comp_i', W_ref(Well_p).compi,'sign', W_ref(Well_p).sign);
+         ref_order = [ref_order;Well_p];
+
                     %'Type', 'bhp' , 'Val', 395*barsa, ... %  Egg model 
 
          producer_cell = W(end).cells;
@@ -63,6 +67,7 @@ pv= model.operators.pv;
                  W = verticalWell(W, model.G, model.rock, 1, 1, k, ...       
                                     'Type', W_ref(Well_I(j)).type , 'Val',  W_ref(Well_I(j)).val, ... %   
                                     'Radius', W_ref(Well_I(j)).r(1),'Name',W_ref(Well_I(j)).name,'Comp_i', W_ref(Well_I(j)).compi,'sign',W_ref(Well_I(j)).sign);
+                 ref_order = [ref_order;  Well_I(j)];
                  inj_well_cell(Well_I(j)) =  W(end).cells;
                  % Adding the face number to the conection          
                  face_index = [face_index,face1]; 
@@ -113,6 +118,7 @@ pv= model.operators.pv;
                   wellpair_cells_inx{k} = cell_index;
                   wellpair_faces_inx{k} = face_index;
                   k = k+ 1;
+                  array_edges_2 = [array_edges_2;Well_p, Well_I(j) ];
          end
          
         %Here we declared wich edges in the graph related the CURENT
@@ -126,11 +132,12 @@ pv= model.operators.pv;
  end
  
  %% This index are for egg model
- %% TODO: improve this
-indexs.faces = wellpair_faces_inx;
-indexs.cells = wellpair_cells_inx;
+%% Re-order the parameter index following the order in DD.wps
+   [~,I_Graph_index]=sort(array_edges_2(:,1));   
 
-W = W([2 3 4 5  8 6 10 12 1 7 9 11]);
+  indexs.faces = {wellpair_faces_inx{I_Graph_index}};
+  indexs.cells = {wellpair_cells_inx{I_Graph_index}};
+
 
 %%
  
@@ -140,6 +147,9 @@ W = W([2 3 4 5  8 6 10 12 1 7 9 11]);
  % closing horizontal transmisibilities;
   model.operators.T(faces_zero) = 0;
   model_out = model;
+  
+    [~,I]=sort(ref_order,1);
+  W = W(I); %Reordering wells in their original sequence
  %% Plotting the data driven model
   figure
   plotGrid(model.G,'FaceColor', 'none')
