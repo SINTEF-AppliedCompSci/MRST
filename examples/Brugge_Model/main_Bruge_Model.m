@@ -117,7 +117,7 @@ parameters =  {};
 parameters{1} = transmisibility_conection;
 parameters{2}  = porevolume_conection ;
 parameters{3}  = well_IP ;
-parameters{4} = InitalState_cell;
+%parameters{4} = InitalState_cell;
 
 
 % Prepare the model for simulation.
@@ -143,16 +143,16 @@ dt = schedule_ref.step.val;
  schedule = simpleSchedule(dt(1:85), 'W', W);
 
 
-         weighting =  {'WaterRateWeight',  1e5, ...
-                       'OilRateWeight',    2*1e5, ...
-                       'BHPWeight',        1e-4};
+         weighting =  {'WaterRateWeight',  1e2, ...
+                       'OilRateWeight',    2*1e2, ...
+                       'BHPWeight',        1e-6};
  schedule_0=schedule;
  
       
  val{1} = TT/2;
  val{2} = pv/20;
  val{3} = WellIP';
- val{4} = state0.s(:,1);
+ %val{4} = state0.s(:,1);
  
   p0_fd = value2control(val,parameters);
   
@@ -173,8 +173,8 @@ obj_scaling     = abs(misfitVal_0);      % objective scaling
 
 objh = @(p)Simulate_BFGS(p,parameters,model,schedule,state0,  wellSols_ref,weighting,obj_scaling);
 
-[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'gradTol',             1e-1, ...
-                                              'objChangeTol',        5e-2);
+[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'gradTol',             1e-2, ...
+                                              'objChangeTol',        5e-3);
 
 
  schedule = simpleSchedule(dt, 'W', W);
