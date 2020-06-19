@@ -188,7 +188,11 @@ classdef ExtendedFacilityModel < FacilityModel
             % Since control equation convergence tollerance is given by
             % toleranceWellRate, we scale bhp-control eqs accordingly
             is_bhp  = strcmp(well_controls, 'bhp');
-            eqScale = facility.toleranceWellRate/facility.toleranceWellBHP;
+            if isfinite(facility.toleranceWellRate) && isfinite(facility.toleranceWellBHP)
+                eqScale = facility.toleranceWellRate/facility.toleranceWellBHP;
+            else
+                eqScale = 1/(day()*barsa());
+            end
             ctrl_eq(is_bhp) = eqScale*(bhp(is_bhp) - targets(is_bhp));
 
             % Following: Different types of rate controls.
