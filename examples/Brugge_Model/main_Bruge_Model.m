@@ -10,6 +10,7 @@ model_ref    = model;
 states_ref   = states;
 state0_ref   = state0;
 schedule_ref = schedule;
+W_ref        = schedule.control.W;
 
 
 %  
@@ -62,7 +63,7 @@ model = TwoPhaseOilWaterModel(G, rock, fluid);
 %model.gas=false;
 model.OutputStateFunctions = {};
 
-[model,W,indexs] = createDDmodel(model,10,Graph,wells,2);
+[model,W,indexs] = createDDmodel(model,10,DD.Graph,W_ref,2);
 
 
 %% Preparing parameters and scaling values for each one
@@ -179,7 +180,7 @@ objh = @(p)Simulate_BFGS(p,parameters,model,schedule,state0,  wellSols_ref,weigh
  schedule = simpleSchedule(dt, 'W', W);
 
 
- [misfitVal_opt,gradient_opt,wellSols_opt] = Simulate_BFGS(p_opt,parameters,model,schedule,state0_opt, wellSols_ref,weighting,obj_scaling);
+ [misfitVal_opt,gradient_opt,wellSols_opt] = Simulate_BFGS(p_opt,parameters,model,schedule,state0, wellSols_ref,weighting,obj_scaling);
  [misfitVal_0,gradient_0,wellSols_0] = Simulate_BFGS(p0_fd,parameters,model,schedule,state0, wellSols_ref,weighting,obj_scaling);
  
 
