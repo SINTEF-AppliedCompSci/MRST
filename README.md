@@ -9,7 +9,10 @@ This README would normally document whatever steps are necessary to get your app
 
 ### How do I get set up? ###
 
+* ADD /ddmodel and /ddmodel/diagnosticsWellPairs in to the path in Matlab/MRST
+
 * The examples folder has has Three examples
+
 * These examples follows steps:
     * Settup and simulate a full resolution resorvior model
     * Build a network of flowpath base of flow diagnostics
@@ -19,7 +22,7 @@ This README would normally document whatever steps are necessary to get your app
     * Optimize
 
     
-### Overview    
+### Overview  of the main functions 
     * createDDmodel is the function that creates the dd model and there are two versions of it:
         createDDmodel_1 creates models with 1 flowpath for interwell conections and createDDmodel can creates moedls qith 2 or more flowpaths. This implementation would be later improved
         
