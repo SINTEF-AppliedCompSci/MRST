@@ -121,7 +121,6 @@ classdef WellPairNetwork
         
        
         function f = plotWellPairsData(DD,varargin)    
-             f = figure('Name','Flow rate');
              
              opt = struct('subplot',[4 5]);
              
@@ -134,17 +133,20 @@ classdef WellPairNetwork
                  warning('Several well pairs  will not be display. To include more rows n or  collumns m in the figures add a subplot option:  DD.plotWellPairsData("subplot",[m,n]), ');
              end
              tt =  cumsum(DD.schedule.step.val);
+             f = figure('Name','Flow rate');
                 for i = 1 : mn_subplot
                     subplot(m,n,i)
                     plot(tt/day, -DD.wps{i}.data.BFPD*day/stb,'k')
                      title(DD.wps{i}.wellpair_name);
                 end   
-%              f = figure('Name','Volume');
-%                 for i = 1 : numel(DD.wps)
-%                     subplot(4,5,i)
-%                     plot(tt/day, DD.wps{i}.data.volume,'k')
-%                      title(DD.wps{i}.wellpair_name);
-%                 end
+                
+             f = figure('Name','Volume');
+                for i = 1 : mn_subplot
+                    subplot(m,n,i)
+                    plot(tt/day, DD.dataMRST.VV(:,DD.I_filter(i)),'k')
+                     title(DD.wps{i}.wellpair_name);
+                end
+                
              f = figure('Name','Average saturation');
                 for i = 1 :mn_subplot
                     subplot(m,n,i)

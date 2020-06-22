@@ -17,6 +17,7 @@ W_ref        = schedule_ref.control.W;
  DD = WellPairNetwork(model_ref,schedule_ref,states_ref,state,wellSols_ref);
  DD =  DD.filter_wps(1*stb/day);
  DD.plotWellPairConnections()
+ DD.plotWellPairsData('subplot',[4,4])
  
  
  
