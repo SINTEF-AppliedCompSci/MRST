@@ -7,9 +7,12 @@ load 'Brugge_Model_run_sintef.mat'
 
 wellSols_ref =  wellSols;
 model_ref    = model;
-states_ref   = states;
-state0_ref   = state0;
+states_ref   = {states{75:end}}';
+state0_ref   = initState(model.G, schedule.control.W , states{74}.pressure,states{74}.s); 
 schedule_ref = schedule;
+schedule_ref.step.val= schedule_ref.step.val(75:end);
+schedule_ref.step.control= schedule_ref.step.control(75:end);
+
 W_ref        = schedule.control.W;
 
 
@@ -140,7 +143,7 @@ dt = schedule_ref.step.val;
 
  %% Simulating the initial DD model  in the training period
 
- schedule = simpleSchedule(dt(1:85), 'W', W);
+ schedule = simpleSchedule(dt(1:20), 'W', W);
 
 
          weighting =  {'WaterRateWeight',  1e2, ...
