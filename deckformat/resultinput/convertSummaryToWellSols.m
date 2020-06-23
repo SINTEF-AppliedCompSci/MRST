@@ -139,7 +139,7 @@ function wellSols = assign_wellsols(smry, qOs, qWs, qGs, bhp, wns)
 
    ws = struct('name', '', 'bhp', 0, 'qOs', 0, 'qWs', 0, 'qGs', 0);
 
-   wellSols = repmat({repmat(ws, [nw, 1])}, [nt, 1]);
+   wellSols = repmat({repmat(ws, [1, nw])}, [nt, 1]);
 
    for kt = 1:nt
       for kw = 1:nw
