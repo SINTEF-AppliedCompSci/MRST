@@ -1,9 +1,38 @@
 function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varargin)
+%
+%   
+% Before nodal reduction, the solution is given by the system
+%
+% A = [[A11, A12, -D];
+%      [A21, A22,  0];
+%      [D' , 0  ,  0]];
+%
+% u = [pnf     (pressure at nodefacetbl);
+%      pc      (pressure at celltbl);
+%      lagmult (flux values Dirichlet boundary)];
+%
+% f = [flux   (flux at nodefacetbl);
+%      src    (source at celltbl);
+%      bcvals (pressure values at Dirichlet boundary)];
+%
+% A*u = f
+%
+% Note: extforce is sparse and should only give contribution at facets
+% that are at the boundary
+%
+% By construction of the method, the matrix A11 is block-diagonal. Hence,
+% we invert it directly and reduce to a cell-centered scheme.
+% 
+%
+% First, we assemble the matrices A11, A12, A21, A22
 
-    opt = struct('bcetazero'       , true , ...
-                 'assemblyMatrices', false, ...
-                 'adoperators'     , false, ...
-                 'dooptimize'      , true);
+    
+    opt = struct('bcetazero'           , true , ...
+                 'assemblyMatrices'    , false, ...
+                 'adoperators'         , false, ...
+                 'onlyAssemblyMatrices', true , ...
+                 'dooptimize'          , true);
+    
     opt = merge_options(opt, varargin{:});
     
     dooptimize = opt.dooptimize;
@@ -179,11 +208,7 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     A12_T = SparseTensor();
     A12_T = A12_T.setFromTensorProd(A12, prod);
     A12 = A12_T.getMatrix();
-    
-    assembly = struct('A11', A11, ...
-                      'A12', A12, ...
-                      'invA11', invA11);
-    
+
     
     %% Setup A21 matrix (facenode dof -> cell dof)    
     
@@ -293,28 +318,7 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     fullrhs{2} = src;
     fullrhs{3} = bcvals;
     
-    % the solution is given by the system
-    %
-    % A = [[A11, A12, -D];
-    %      [A21, A22,  0];
-    %      [D' , 0  ,  0]];
-    %
-    % u = [p (pressure at nodefacetbl);
-    %      p (pressure at celltbl);
-    %      lagmult (flux values Dirichlet boundary)];
-    %
-    % f = [flux   (flux at nodefacetbl);
-    %      src    (source at celltbl);
-    %      bcvals (pressure values at Dirichlet boundary)];
-    %
-    % A*u = f
-    %
-    % Note: extforce is sparse and should only give contribution at facets
-    % that are at the boundary
-    %
-    % By construction of the method, the matrix A11 is block-diagonal. Hence,
-    % we invert it directly and reduce to a cell-centered scheme.
-    
+        
     matrices = struct('A11', A11, ...
                       'A12', A12, ...
                       'A21', A21, ...
@@ -323,6 +327,11 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
                       'invA11', invA11);
     
     matrices.fullrhs = fullrhs;
+    
+    if opt.onlyAssemblyMatrices
+        assembly.matrices = matrices;
+        return
+    end
     
     % We reduced the system (shur complement) using invA11
     % We obtain system of the form
@@ -377,5 +386,7 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
         
     end
 
+    
+    
 end
 
