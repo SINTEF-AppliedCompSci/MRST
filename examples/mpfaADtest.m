@@ -3,8 +3,8 @@
 mrstModule add ad-core mpfa ad-blackoil compositional ad-props mrst-gui mpsaw
 
 % Rectangular reservoir with a skew grid.
-dims = [41,20];
-G = cartGrid(dims,[2,1]);
+dims = [41, 20];
+G = cartGrid(dims, [2, 1]);
 makeSkew = @(c) c(:,1) + .4*(1-(c(:,1)-1).^2).*(1-c(:,2));
 G.nodes.coords(:,1) = 2*makeSkew(G.nodes.coords);
 G.nodes.coords(:, 1) = G.nodes.coords(:, 1)*1000;
@@ -27,6 +27,7 @@ W = addWell(W, G, rock, find(ii == 1 & jj == 1), 'comp_i', [1, 0], 'type', 'bhp'
 %% We can simulate with either immiscible or compositional fluid physics
 % The example uses the general simulator framework and as such we can
 % easily simulate the same problem with different underlying physics.
+
 gravity reset off;
 fluid = initSimpleADIFluid('cR', 1e-8/barsa, 'rho', [1, 1000, 100]);
 
@@ -52,8 +53,8 @@ else
 end
 % Schedule
 dt = [1; 9; repmat(15, 26, 1)]*day;
-dt = 1e-1*ones(10, 1);
 schedule = simpleSchedule(dt, 'W', W);
+
 %% Simulate the implicit TPFA base case
 % [ws, states] = simulateScheduleAD(state0, model, schedule);
 

@@ -11,7 +11,7 @@ classdef MpfaKgrad < StateFunction
             kgrad = model.operators.mpfaKgrad;
             nph = numel(p_phase);
             v = cell(1, nph);
-            for i = 1:nph
+            for i = 1 : nph
                 v{i} = kgrad*p_phase{i};
             end
         end
