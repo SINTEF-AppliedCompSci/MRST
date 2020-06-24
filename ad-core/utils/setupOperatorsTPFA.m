@@ -2,7 +2,7 @@ function op = setupOperatorsTPFA(G, rock, varargin)
 % Set up helper structure for solvers based on automatic differentiation.
 %
 % SYNOPSIS:
-%   s = setupOperatorsTPFA(G, rock)
+%   op = setupOperatorsTPFA(G, rock)
 %
 % DESCRIPTION:
 %   The automatic differentiation solvers rely on discrete operators for
@@ -29,45 +29,53 @@ function op = setupOperatorsTPFA(G, rock, varargin)
 %   'porv'      - pore volumes for all cells
 %
 % RETURNS:
-%   s        - Operators struct, with discrete operators and derived
-%              quantities:
-%              T_all - Transmissibilities for all interfaces, *including*
-%              (half) transmissibilities for faces on the boundary. One
-%              value per interface.
-%              T - Transmissibilities for all internal interfaces. Internal
-%              interfaces have a cell on both sides.
-%              pv - Pore volumes. See function `poreVolume`. One value per
-%              cell.
-%              C - Transfer matrix between cells and faces. Used to derive
-%              discrete gradient and divergence operators.
-%              faceAvg  - (Function) For each interface, computes the
-%              average value of a quantity defined in the cells. If a face
-%              is connecting two cells, the faceAvg function will
-%              compute the arithmetic average of the values in both cells.
 %
-%   Grad     - Discrete gradient as function handle. Computes the gradient
-%              on each interface via a first order finite difference
-%              approximation using the values of the cells connected to the
-%              face. Note that this discrete gradient does *not* divide by
-%              the distance between the points.
+%   op - Operators struct, with discrete operators and derived quantities:
+%   
+%      T_all - Transmissibilities for all interfaces, *including* (half)
+%      transmissibilities for faces on the boundary. One value per
+%      interface.
 %
-%   Div      - (Function) Discrete divergence. Integrates / sums up
-%              values on the interfaces for all cells to give the
-%              (integrated) divergence per cell.
+%      T - Transmissibilities for all internal interfaces. Internal
+%      interfaces have a cell on both sides.
 %
-%   faceUpstr - (Function) Perform upstream weighting of values. Given a
-%               set of cell wise values and a upstream flag for each
-%               interface, this function will pick the values corresponding
-%               to the position in the neighborship. I.e. if the flag is
-%               true for a given interface, it will select the value in the
-%               FIRST cell connected to the interface x(N(faceNo, 1)).
-%               Otherwise, it will select the SECOND x(N(faceNo, 2)).
-%               Typical usage is for upstream weighting of transported
-%               quantities.
+%      pv - Pore volumes. See function `poreVolume`. One value per cell.
 %
-%   N         - Neighborship structure. Will be number of interfaces by 2
-%               in size where N(ix, :) contains the cells connected to
-%               face number ix.
+%      faceAvg - (Function) For each interface, computes the average value
+%      of a quantity defined in the cells. If a face is connecting two
+%      cells, the faceAvg function will compute the arithmetic average of
+%      the values in both cells.
+%
+%      M - Matrix used to compute face average
+%     
+%      internalConn - flag for internal connections (size G.faces.num)
+%
+%      Grad - (Function) Discrete gradient as function handle. Computes the
+%      gradient on each interface via a first order finite difference
+%      approximation using the values of the cells connected to the
+%      face. Note that this discrete gradient does *not* divide by the
+%      distance between the points.
+%
+%      C - Transfer matrix between cells and faces. Used to derive discrete
+%      gradient and divergence operators.
+%
+%      Div - (Function) Discrete divergence. Integrates / sums up values on
+%      the interfaces for all cells to give the (integrated) divergence per
+%      cell.
+%
+%      AccDiv - (Function) adds accumulation term and discrete divergence term 
+%
+%      faceUpstr - (Function) Perform upstream weighting of values. Given a
+%      set of cell wise values and a upstream flag for each interface, this
+%      function will pick the values corresponding to the position in the
+%      neighborship. I.e. if the flag is true for a given interface, it will
+%      select the value in the FIRST cell connected to the interface
+%      x(N(faceNo, 1)).  Otherwise, it will select the SECOND x(N(faceNo,
+%      2)).  Typical usage is for upstream weighting of transported
+%      quantities.
+%
+%      N - Neighborship structure. Will be number of interfaces by 2 in size
+%      where N(ix, :) contains the cells connected to face number ix.
 %
 % SEE ALSO:
 %   `computeTrans`, `processGRDECL`.
