@@ -1,4 +1,4 @@
-function operators = setupMpfaAdOperator(model)    
+function operators = setupMpfaAdOperators(model)    
     
     %% We setup the usual operators and the mpfa flux operator
     %
