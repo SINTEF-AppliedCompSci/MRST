@@ -3,15 +3,14 @@ classdef BiotCoupledDilatation < StateFunction
     methods
         function gp = BiotCoupledDilatation(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'displacement', 'lambda'}, 'state');
+            gp = gp.dependsOn({, 'displacement', 'pressure', 'extforce', 'lambdamech'}, 'state');
             gp.label = '\nabla\cdot u';
         end
         
         function divu = evaluateOnDomain(prop, model, state)
-            [u, lambda] = model.getProps(state, 'displacement', 'lambdamech');
-            divop = model.operators.divop;
-            extu = vertcat(u, lambda);
-            divu = divop(extu);
+            [u, p, extforce, lm] = model.getProps(state, 'displacement', 'pressure', 'extforce', 'lambdamech');
+            divuop = model.operators.divuop;
+            divu = divuop(u, p, extforce, lm);
         end
     end
 end

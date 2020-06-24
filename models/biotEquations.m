@@ -15,6 +15,7 @@ function [eqs, names, types, state] = biotEquations(model, state0, state, dt, dr
     p  = model.getProp(state, 'p');
     lm = model.getProp(state, 'lambdamech');
     lf = model.getProp(state, 'lambdafluid');
+    ef = model.getProp(state, 'extforce');
     
     u0  = model.getProp(state0, 'u');
     p0  = model.getProp(state0, 'p');
@@ -23,17 +24,20 @@ function [eqs, names, types, state] = biotEquations(model, state0, state, dt, dr
     c = fluid.c;
     fac =  1 / (1e6 * mean(G.cells.volumes));
     
-    dohorriblehack = true;
-    if dohorriblehack
-        if all(u0 == 0) & all(p0 == 0)
-            divu0 = 0;
-        else
-            divu0 = divuop(u0, p0, lm0);
-        end
-    end 
+    % dohorriblehack = true;
+    % if dohorriblehack
+    %     if all(u0 == 0) & all(p0 == 0)
+    %         divu0 = 0;
+    %     else
+    %         divu0 = divuop(u0, p0, lm0);
+    %     end
+    % end 
     
-    eqs{1} = fac*momentop(u, p, lm);
-    eqs{2} = 1/dt.*(pv.*c.*(p - p0) + (divuop(u, p, lm) - divu0)) + divKgradop(p, lf);
+    divu  = model.getProp(state, 'Dilation');
+    divu0 = model.getProp(state0, 'Dilation');
+    
+    eqs{1} = fac*momentop(u, p, lm, ef);
+    eqs{2} = 1/dt.*(pv.*c.*(p - p0) + (divu - divu0)) + divKgradop(p, lf);
     eqs{3} = fac*mechdirop(u, p, lm);
     eqs{4} = fluiddirop(p, lf);
     

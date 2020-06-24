@@ -210,18 +210,20 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         divu{1} = - A41invA11*A12 + A42;
         divu{2} = - A41invA11*A14;
         divu{3} = - A41invA11*A15;
-        divurhs = - A41invA11*f{1};
+        divu{4} = A41invA11;
         
-        divuop = @(u, p, lf) divuopFunc(u, p, lf, divu, divurhs);
+        divuop = @(u, p, extforce, lm) divuopFunc(u, p, lm, extforce, divu);
 
         % setup momentum balance operator 
        
         moment{1} = B11;
         moment{2} = B12;
         moment{3} = B13;
-        momentrhs = redrhs{1};
+        % We have : right-hand side for momentum equation = f{2} - A21invA11*f{1}. Hence, we set
+        moment{4} = A21invA11;
+        momentrhs = f{2};
         
-        momentop = @(u, p, lm) momentopFunc(u, p, lm, moment, momentrhs);
+        momentop = @(u, p, lm, extforce) momentopFunc(u, p, lm, extforce, moment, momentrhs);
         
         % setup dirichlet boundary operator for mechanics
         mechdir{1} = B31;
@@ -254,12 +256,12 @@ function divKgrad = divKgradopFunc(p, lf, divKgrad, divKgradrhs)
 end
 
 
-function divu = divuopFunc(u, p, lm, divu, divurhs)
-    divu = divu{1}*u + divu{2}*p + divu{3}*lm - divurhs;
+function divu = divuopFunc(u, p, lm, extforce, divu)
+    divu = divu{1}*u + divu{2}*p + divu{3}*lm + divu{4}*extforce;
 end
 
-function moment = momentopFunc(u, p, lm, moment, momentrhs)
-    moment = moment{1}*u + moment{2}*p + moment{3}*lm - momentrhs;
+function moment = momentopFunc(u, p, lm, extforce, moment, momentrhs)
+    moment = moment{1}*u + moment{2}*p + moment{3}*lm + moment{4}*extforce - momentrhs;
 end
 
 function mechdir = mechdiropFunc(u, p, lm, mechdir, mechdirrhs)

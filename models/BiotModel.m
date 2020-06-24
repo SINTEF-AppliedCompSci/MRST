@@ -53,16 +53,17 @@ classdef BiotModel < PhysicalModel
             model = setupStateFunctionGroupings@PhysicalModel(model, varargin{:});
             
             % Use mechanical coupling in flow equations
-            % fp = model.FluidBiotPropertyFunctions;
+            % fp = model.FluidBiotPropertyFunctions; 
             % fp = fp.setStateFunction('BasePoreVolume', BlackOilPoreVolume(model));
             % fp = fp.setStateFunction('PoreVolume'    , BiotPoreVolume(model));
-            % fp = fp.setStateFunction('Dilatation'    , BiotCoupledDilatation(model));
+            % fp = fp.setStateFunction('Dilatation', BiotCoupledDilatation(model));
             % model.FluidBiotPropertyFunctions = fp;
             
             % Use fluid coupling in mechanical equations
-            % mp = model.MechBiotPropertyFunctions;
-            % mp = mp.setStateFunction('BiotGradP', BiotCoupledGradP(model));
-            % model.MechBiotPropertyFunctions = mp;
+            mp = model.MechBiotPropertyFunctions;
+            mp = mp.setStateFunction('Dilatation', BiotCoupledDilatation(model));
+            % mp = mp.setStateFunction('Dilatation', BiotCoupledGradP(model));
+            model.MechBiotPropertyFunctions = mp;
             
         end
         
@@ -88,11 +89,19 @@ classdef BiotModel < PhysicalModel
             end
             
         end
+
+        function [model, state] = prepareReportstep(model, state, state0, dT, drivingForces)
+            [model, state] = prepareReportstep@PhysicalModel(model, state, state0, dT, drivingForces);
+            extforce = drivingForces.extforce;
+            state = model.setProp(state, 'extforce', extforce);
+        end
         
         function forces = getValidDrivingForces(model)
             forces = getValidDrivingForces@PhysicalModel(model);
             % Support for wells (needed by simulateScheduleAD)
             forces.W   = [];
+            % mechanical forces
+            forces.extforce = []; 
         end
         
         function [fn, index] = getVariableField(model, name, varargin)
@@ -104,6 +113,10 @@ classdef BiotModel < PhysicalModel
                 index = ':';
               case {'lambdamech'}
                 % Lagrangian variables for corresponding to the boundary conditions
+                fn = lower(name);
+                index = ':';
+              case {'extforce'}
+                % external force
                 fn = lower(name);
                 index = ':';
               case {'pressure', 'p'}
