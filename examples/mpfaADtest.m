@@ -1,10 +1,6 @@
-%% Combining consistent discretizations with AD-OO
-% We follow example 6.1.2 in the MRST book (see
-% examples/1ph/showInconsistentTPFA in the book module).
-% We create a skewed grid with  two wells where the underlying problem is
-% symmetric. An inconsistent discretization of the fluxes may introduce
-% asymmetry in the production pattern when injecting a fluid.
-mrstModule add ad-core mpfa ad-blackoil compositional ad-props mrst-gui
+% Load modules
+
+mrstModule add ad-core mpfa ad-blackoil compositional ad-props mrst-gui mpsaw
 
 % Rectangular reservoir with a skew grid.
 dims = [41,20];
@@ -27,11 +23,13 @@ W = [];
 W = addWell(W, G, rock, find(ii == ceil(G.cartDims(1)/2) & jj == G.cartDims(2)), 'comp_i', [1, 0], 'type', 'rate', 'val', pv/year);
 W = addWell(W, G, rock, find(ii == G.cartDims(1) & jj == 1), 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa);
 W = addWell(W, G, rock, find(ii == 1 & jj == 1), 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa);
+
 %% We can simulate with either immiscible or compositional fluid physics
 % The example uses the general simulator framework and as such we can
 % easily simulate the same problem with different underlying physics.
 gravity reset off;
 fluid = initSimpleADIFluid('cR', 1e-8/barsa, 'rho', [1, 1000, 100]);
+
 if ~exist('useComp', 'var')
     useComp = false;
 end
@@ -54,6 +52,7 @@ else
 end
 % Schedule
 dt = [1; 9; repmat(15, 26, 1)]*day;
+dt = 1e-1*ones(10, 1);
 schedule = simpleSchedule(dt, 'W', W);
 %% Simulate the implicit TPFA base case
 % [ws, states] = simulateScheduleAD(state0, model, schedule);
@@ -65,6 +64,7 @@ schedule = simpleSchedule(dt, 'W', W);
 % each face.
 mrstModule add mpfa
 model_mpfa = MpfaBlackOilModel(G, rock, fluid, 'water', true, 'oil', true, 'gas', false);
+
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);
 
 return

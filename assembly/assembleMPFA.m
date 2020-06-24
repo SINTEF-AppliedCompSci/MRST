@@ -301,6 +301,7 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
                           'A22', A22, ...
                           'invA11', invA11);
         assembly.matrices = matrices;
+        assembly.nKg = nKg;
         return
     end
     

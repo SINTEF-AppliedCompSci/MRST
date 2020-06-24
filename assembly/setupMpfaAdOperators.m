@@ -43,6 +43,7 @@ function operators = setupMpfaAdOperators(model)
     assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'onlyAssemblyMatrices', true);
         
     matrices = assembly.matrices;
+    nKg = assembly.nKg;
     
     invA11 = matrices.invA11;
     A12    = matrices.A12;
@@ -57,14 +58,15 @@ function operators = setupMpfaAdOperators(model)
     intfacetbl = IndexArray(intfacetbl);
     
     map = TensorMap();
-    map.fromTbl = cellfacetbl;
-    map.toTbl = facetbl;
+    map.fromTbl  = cellfacetbl;
+    map.toTbl    = facetbl;
     map.mergefds = {'faces'};
+    map = map.setup();
     
     ncellperface = map.eval(ones(cellfacetbl.num, 1));
     
     cfno = cellfacetbl.get('faces');
-    sgn = 2*(cno == G.faces.neighbors(cfno, 1)) - 1;
+    sgn = 2*(cfno == G.faces.neighbors(cfno, 1)) - 1;
 
     prod = TensorProd();
     prod.tbl1 = facetbl;
@@ -73,7 +75,7 @@ function operators = setupMpfaAdOperators(model)
     prod.mergefds = {'faces'};
     prod = prod.setup();
     
-    wsgn = prod.eval(1/ncellperface, sgn);
+    wsgn = prod.eval(1./ncellperface, sgn);
     
     prod = TensorProd();
     prod.tbl1 = cellfacetbl;
@@ -84,9 +86,25 @@ function operators = setupMpfaAdOperators(model)
     prod = prod.setup();
     
     wnKg = prod.eval(wsgn, nKg);
+
+    gen = CrossIndexArrayGenerator();
+    gen.tbl1 = cellnodeface2tbl;
+    gen.tbl2 = intfacetbl;
+    gen.replacefds2 = {{'faces', 'faces1'}};
+    gen.mergefds = {'faces1'};
+    
+    cellnodeintface2tbl = gen.eval();
+ 
+    map = TensorMap();
+    map.fromTbl = cellnodeface2tbl;
+    map.toTbl = cellnodeintface2tbl;
+    map.mergefds = {'cells', 'nodes', 'faces1', 'faces2'};
+    map = map.setup();
+    
+    wnKg = map.eval(wnKg);
     
     prod = TensorProd();
-    prod.tbl1 = cellnodeface2tbl;
+    prod.tbl1 = cellnodeintface2tbl;
     prod.tbl2 = nodefacetbl;
     prod.tbl3 = intfacetbl;
     prod.replacefds1 = {{'faces1', 'faces'}};
@@ -97,10 +115,10 @@ function operators = setupMpfaAdOperators(model)
     F1_T = SparseTensor();
     F1_T = F1_T.setFromTensorProd(wnKg, prod);
     
-    F1 = F1.getMatrix();
+    F1 = F1_T.getMatrix();
 
     prod = TensorProd();
-    prod.tbl1 = cellnodeface2tbl;
+    prod.tbl1 = cellnodeintface2tbl;
     prod.tbl2 = celltbl;
     prod.tbl3 = intfacetbl;
     prod.replacefds1 = {{'faces1', 'faces'}};
@@ -111,7 +129,7 @@ function operators = setupMpfaAdOperators(model)
     % note the minus sign
     F2_T = F2_T.setFromTensorProd(-wnKg, prod);
     
-    F2 = F2.getMatrix();
+    F2 = F2_T.getMatrix();
     
     %% We set up flux operator 
     %
@@ -126,7 +144,6 @@ function operators = setupMpfaAdOperators(model)
     F = F2 - F1*invA11*A12;
     
     operators = setupOperatorsTPFA(G, rock);
-    operators = rmfield(operators, 'Grad');
     operators.mpfaKgrad = F;
     
 end
