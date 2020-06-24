@@ -4,7 +4,7 @@ function [wellSols, time] = convertSummaryToWellSols(fn, unit)
 % summary file fn. Supperted units are 'metric', 'field'.
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -139,7 +139,7 @@ function wellSols = assign_wellsols(smry, qOs, qWs, qGs, bhp, wns)
 
    ws = struct('name', '', 'bhp', 0, 'qOs', 0, 'qWs', 0, 'qGs', 0);
 
-   wellSols = repmat({repmat(ws, [nw, 1])}, [nt, 1]);
+   wellSols = repmat({repmat(ws, [1, nw])}, [nt, 1]);
 
    for kt = 1:nt
       for kw = 1:nw

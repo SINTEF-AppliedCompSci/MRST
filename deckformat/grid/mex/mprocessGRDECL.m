@@ -47,7 +47,7 @@ function G = mprocessGRDECL(grdecl, varargin)
 %   `readGRDECL`, `processGRDECL`
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -65,10 +65,14 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    opt = struct('Verbose', mrstVerbose, 'Tolerance', 0.0, ...
-                'CheckGrid', true, 'SplitDisconnected', true);
+                'CheckGrid', true, 'SplitDisconnected', true, ...
+                'PreserveCpNodes', false);
    opt = merge_options(opt, varargin{:});
+
+   assert (~opt.PreserveCpNodes, ...
+          ['Function %s does not currently implement the ', ...
+           '''PreserveCpNodes'' option'], mfilename);
 
    if isfield(grdecl, 'ACTNUM') && ...
          ~isa(grdecl.ACTNUM, 'int32')

@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2019 SINTEF Digital, Mathematics & Cybernetics.
+  Copyright 2012-2020 SINTEF Digital, Mathematics & Cybernetics.
 
   This file is part of the Open Porous Media project (OPM).
 

@@ -22,11 +22,10 @@ function writeDeck(deck, directory, varargin)
 %   Remaining options are formats passed to fprintf (see file for details) 
 % 
 % SEE ALSO:
-%   model2Deck, writeShedule
-% 
+%   model2Deck, writeSchedule
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -65,9 +64,10 @@ if ~isa(formats.case, 'function_handle')
 end
 
 % organize directory
-if ~isfolder(directory)
+if ~(exist('isfolder', 'file') && isfolder(directory)) || ~isdir(directory)
     mkdir(directory);
 end
+
 [~, fn] = fileparts(directory);                            
 fn      = fullfile(directory, [upper(fn), '.DATA']);
 
@@ -384,7 +384,7 @@ end
 function dump_pvt(fid,name, dirname, values, f)
 fncase = @upper;
 filename = fncase([name,'.txt']);
-fprintf(fid, ['INCLUDE\n', filename, '/\n\n']);
+fprintf(fid, ['INCLUDE\n''', filename, ''' /\n\n']);
 
 [fid_pvt, msg] = fopen(fullfile(dirname, filename), 'wt');
 if fid_pvt < 0
@@ -487,7 +487,7 @@ fprintf(fid, '/\n\n');
 if newFile
     fclose(fid);
     fprintf(org_fid, '%s\n', 'INCLUDE');
-    fprintf(org_fid, '%s\n', fncase([field, '.txt']));
+    fprintf(org_fid, '''%s''\n', fncase([field, '.txt']));
     fprintf(org_fid, '/\n\n');
 end
 end
@@ -521,7 +521,7 @@ end
 fclose(fid);
 
 fprintf(org_fid, '%s\n', 'INCLUDE');
-fprintf(org_fid, '%s\n', fncase([field, '.txt']));
+fprintf(org_fid, '''%s''\n', fncase([field, '.txt']));
 fprintf(org_fid, '/\n\n');
 end
 

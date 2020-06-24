@@ -6,26 +6,26 @@ function [G, rock, N, T] = initGridFromEclipseOutput(init, grid, varargin)
 %
 % REQUIRED PARAMETERS:
 %   init    - structure obtained by reading INIT-file
-%   grid    - structure obtined by reading EGRID (or GRID) - file 
-% 
+%   grid    - structure obtined by reading EGRID (or GRID) - file
+%
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-% outputSimGrid - if true, output minimal grid representing the eclipse 
-%                 output ("topolgoy") suitable for computing TOF etc., 
-%                 but not for plotting. Output as second component of G. 
+% outputSimGrid - if true, output minimal grid representing the eclipse
+%                 output ("topolgoy") suitable for computing TOF etc.,
+%                 but not for plotting. Output as second component of G.
 %                 Default is false
 % RETURNS:
 % G     -   if outputSimGrid = false, standard MRST-grid
 %           if outputSimGrid = true, G(1) is standard MRST-grid, G(2) is
-%           simulation grid 
-% rock  -   structure compatible with G if nargout < 5, compatible with Gs 
-%           otherwise, but compatible with both unless special situations 
+%           simulation grid
+% rock  -   structure compatible with G if nargout < 5, compatible with Gs
+%           otherwise, but compatible with both unless special situations
 %           where e.g., an aquifer is represented in zero-volume cells
-% N, T  -   Neighbour + transmissiblity list typically not compatible with G, 
-%           but with Gs       
-% Gs    -   Minimal grid directly 
+% N, T  -   Neighbour + transmissiblity list typically not compatible with G,
+%           but with Gs
+% Gs    -   Minimal grid directly
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -45,9 +45,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 opt = struct('outputSimGrid', false);
 opt     = merge_options(opt, varargin{:});
-outputRock  = nargin >= 2;
-outputTrans = nargin >= 3; 
-
+outputRock  = nargout >= 2;
+outputTrans = nargout >= 3;
 
 % units
 units = {'metric', 'field', 'lab'};
@@ -68,7 +67,7 @@ else
     zcorn    = grid.ZCORN.values;
 end
 
-% ACTNUM or PORV > 0 
+% ACTNUM or PORV > 0
 actNum   = and(anGrid, init.PORV.values > 0);
 
 grdecl = struct('cartDims', cartDims, ...
@@ -77,8 +76,8 @@ grdecl = struct('cartDims', cartDims, ...
                 'ACTNUM'  , actNum );
 
 dispif(mrstVerbose, 'Creating MRST-grid ...');
-try 
-    mrstModule add libgeometry mex opm_gridprocessing
+try
+    mrstModule add libgeometry
     G = mprocessGRDECL(grdecl, 'SplitDisconnected', false);
     G = mcomputeGeometry(G);
 catch
@@ -100,9 +99,9 @@ else
     consistentGrids = true;
     eMap = ':';
     eMapInv = ':';
-end   
-G.cells.eMap = eMap; 
-G.cells.eMapInv = eMapInv; 
+end
+G.cells.eMap = eMap;
+G.cells.eMapInv = eMapInv;
 
 G.cells.centroids(:,3) = convertFrom(init.DEPTH.values(eMap), u.length);
 G.cells.PORV           = convertFrom(init.PORV.values(G.cells.indexMap), u.resvolume);
@@ -126,7 +125,7 @@ elseif outputRock % we want rock to match G
         init.PERMZ.values(eMap)], u.perm);
 end
 
-        
+
 % transmissibilities and neighbor-list
 [N, T] = deal([]);
 if outputTrans && ~opt.outputSimGrid
@@ -192,15 +191,15 @@ end
 if isfield(init, 'TRANNNC')
     if isfield(grid, 'NNC1')
         NNC1    = actInx(grid.NNC1.values);
-        NNC2 	= actInx(grid.NNC2.values);
+        NNC2    = actInx(grid.NNC2.values);
     else
         NNC1    = actInx(init.NNC1.values);
-        NNC2 	= actInx(init.NNC2.values);
+        NNC2    = actInx(init.NNC2.values);
     end
     TRANNNC = init.TRANNNC.values;
 else
     NNC1    = [];
-    NNC2 	= [];
+    NNC2        = [];
     TRANNNC = [];
 end
 if nargout < 3
@@ -213,12 +212,12 @@ if nargout < 3
         init.TRANY.values; ...
         init.TRANZ.values; ...
         TRANNNC];
-    
+
     % remove 0-transmissibilities and non-active neighbors (appearing as zeros)
     inx = and(T>0, prod(N,2)>0);
     N = N(inx,:);
     T = T(inx);
-else % do more thorough job and produce index maps 
+else % do more thorough job and produce index maps
     % produce neighbors and corresponding maps for I,J,K and NNC
     % I - direction
     NI  = [(1:nCells)', NX(:)];
@@ -257,13 +256,13 @@ else % do more thorough job and produce index maps
     ix.iNe = inx;
     ix.iN  = (1:nnz(inx))' + numel(ix.iI) + numel(ix.iJ) + numel(ix.iK);
     ix.sN  = 2*isPos(inx) -1;
-    
+
     % produce neighbour list N
     N = [NI(ix.iIe,:); ...
         NJ(ix.iJe,:); ...
         NK(ix.iKe,:); ...
         NN(ix.iNe,:)];
-    
+
     % also transmissibilities if required
     if nargout == 3
         T = [TI(ix.iIe,:); ...

@@ -7,7 +7,7 @@ function [press, s, rs, rv] = equilibration(G, deck, fluid, pix)
 %   `initEclipseState`.
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -24,7 +24,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
 
    assert (isfield(G.cells, 'centroids'), ...
            'Input grid must be equipped with geometric information.');
