@@ -32,7 +32,9 @@ opt=struct('outputdir','output',...
     'np',1,...
     'threads',2,...
     'lineartol',1e-2,...
-    'strongdefaults',true);
+    'strongdefaults',true,...
+    'storagecache',true,...
+    'simulationtype','implicit');
 opt=merge_options(opt,varargin{:});
 % for extra see .XXX.DEBUG of an opm run
 if(opt.np >0)
@@ -46,9 +48,16 @@ if(opt.use_ebos_style)
     opt.output=fullfile(dir);
 else
     if(opt.force_timestep)
-        command=[command, opt.simulator,'  --full-time-step-initially=true --enable-adaptive-time-stepping=false --flow-newton-max-iterations=100 '];
+        command=[command, opt.simulator,' --enable-well-operability-check=false --full-time-step-initially=true --enable-adaptive-time-stepping=false --flow-newton-max-iterations=100 '];
     else
         command=[command, opt.simulator,' --enable-tuning=true '];
+    end
+    command =[command,' --simulation-type=',opt.simulationtype,' '];
+    command = [command,' --solve-welleq-initially=true '];
+    if(opt.storagecache)
+        command =  [command,' --enable-storage-cache=true '];
+    else
+        command =  [command,' --enable-storage-cache=false '];
     end
     if(opt.strongdefaults)
         command =[command,' --tolerance-cnv=0.001 --tolerance-cnv-relaxed=0.001 '];
