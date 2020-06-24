@@ -19,7 +19,7 @@ classdef MpfaBlackOilModel < GenericBlackOilModel
                 model.G = createAugmentedGrid(model.G);
             end
         
-            model.eta = 1/3;
+            model.eta = 0;
             model.bcetazero = false;
             
             % Add mechanical operators  

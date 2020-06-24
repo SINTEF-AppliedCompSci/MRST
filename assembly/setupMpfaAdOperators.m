@@ -134,7 +134,7 @@ function operators = setupMpfaAdOperators(model)
     
     %% We set up flux operator 
     %
-    %  F : celltbl -> facetbl
+    %  F : celltbl -> intfacetbl
     %
     % We assume Neumann boundary condition for flow so that we have
     %
