@@ -7,7 +7,7 @@ classdef MpfaKgrad < StateFunction
         end
         
         function v = evaluateOnDomain(prop, model, state)
-            p_phase = prop.getEvaluatedDependencies(state, 'PhasePotentialDifference');
+            p_phase = model.getProp(state, 'PhasePressures');
             kgrad = model.operators.mpfaKgrad;
             nph = numel(p_phase);
             v = cell(1, nph);

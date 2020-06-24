@@ -15,10 +15,10 @@ function operators = setupMpfaAdOperators(model)
     %  Then, we proceed with the reduction to remove dependency in pnf (pressure at nodefacetbl)
     %
     
-    G = model.G;
-    rock = model.rock;
-    eta = 0;
-    bcetazero = false;
+    G         = model.G;
+    rock      = model.rock;
+    eta       = model.eta;
+    bcetazero = model.bcetazero;
     
     perm = rock.perm;
     
