@@ -65,8 +65,9 @@ function operators = setupMpfaAdOperators(model)
     
     ncellperface = map.eval(ones(cellfacetbl.num, 1));
     
-    cfno = cellfacetbl.get('faces');
-    sgn = 2*(cfno == G.faces.neighbors(cfno, 1)) - 1;
+    cno = cellfacetbl.get('cells');
+    fno = cellfacetbl.get('faces');
+    sgn = 2*(cno == G.faces.neighbors(fno, 1)) - 1;
 
     prod = TensorProd();
     prod.tbl1 = facetbl;
