@@ -64,7 +64,7 @@ schedule = simpleSchedule(dt, 'W', W);
 % is computed using MPFA instead of the regular two-point difference for
 % each face.
 mrstModule add mpfa
-model_mpfa = MpfaBlackOilModel(model);
+model_mpfa = MpfaBlackOilModel(G, rock, fluid, 'water', true, 'oil', true, 'gas', false);
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);
 
 return

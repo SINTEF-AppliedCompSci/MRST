@@ -293,7 +293,17 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     A22_T = SparseTensor();
     A22_T = A22_T.setFromTensorProd(A22, prod);
     A22 = A22_T.getMatrix();
-
+    
+    if opt.onlyAssemblyMatrices
+        matrices = struct('A11', A11, ...
+                          'A12', A12, ...
+                          'A21', A21, ...
+                          'A22', A22, ...
+                          'invA11', invA11);
+        assembly.matrices = matrices;
+        return
+    end
+    
     % We enforce the Dirichlet boundary conditions as Lagrange multipliers
     bcdirichlet = bcstruct.bcdirichlet;
     [D, bcvals] = setupMpfaNodeFaceBc(bcdirichlet, tbls);
@@ -328,11 +338,7 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     
     matrices.fullrhs = fullrhs;
     
-    if opt.onlyAssemblyMatrices
-        assembly.matrices = matrices;
-        return
-    end
-    
+
     % We reduced the system (shur complement) using invA11
     % We obtain system of the form
     %
