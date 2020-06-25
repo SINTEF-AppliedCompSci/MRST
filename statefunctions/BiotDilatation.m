@@ -1,7 +1,7 @@
-classdef BiotCoupledDilatation < StateFunction
+classdef BiotDilatation < StateFunction
     
     methods
-        function gp = BiotCoupledDilatation(model, varargin)
+        function gp = BiotDilatation(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({, 'displacement', 'pressure', 'extforce', 'lambdamech'}, 'state');
             gp.label = '\nabla\cdot u';

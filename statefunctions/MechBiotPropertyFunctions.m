@@ -13,7 +13,7 @@ classdef MechBiotPropertyFunctions < StateFunctionGrouping
             props@StateFunctionGrouping('MechBiotProps');
             
             biotgradp   = BiotGradP(model);
-            dilation    = BiotCoupledDilatation(model);
+            dilation    = BiotDilatation(model);
             stress      = Stress(model);
             strain      = Strain(model);
             

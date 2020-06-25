@@ -51,7 +51,7 @@ classdef BiotModel < PhysicalModel
             model = setupStateFunctionGroupings@PhysicalModel(model, varargin{:});
             
             mp = model.BiotPropertyFunctions;
-            mp = mp.setStateFunction('Dilatation', BiotCoupledDilatation(model));
+            mp = mp.setStateFunction('Dilatation', BiotDilatation(model));
             model.BiotPropertyFunctions = mp;
             
         end

@@ -53,7 +53,6 @@ classdef BiotBlackOilModel < GenericBlackOilModel
             pv = pvtprops.getStateFunction('PoreVolume');
             biotprops = biotprops.setStateFunction('BasePoreVolume', pv);
             pvtprops  = pvtprops.setStateFunction('PoreVolume', BiotPoreVolume(model));
-            biotprops = biotprops.setStateFunction('Dilatation', BiotCoupledDilatation(model));
             
             model.BiotPropertyFunctions = biotprops;
             model.PVTPropertyFunctions  = pvtprops;
