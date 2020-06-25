@@ -58,18 +58,12 @@ dt = [1; 9; repmat(15, 26, 1)]*day;
 schedule = simpleSchedule(dt, 'W', W);
 
 %% Simulate the implicit TPFA base case
-% [ws, states] = simulateScheduleAD(state0, model, schedule);
+[ws, states] = simulateScheduleAD(state0, model, schedule);
 
 %% Simulate implicit MPFA
-% The simulator reuses the multipoint transmissibility calculations from
-% the MPFA module. We instansiate a special phase potential difference that
-% is computed using MPFA instead of the regular two-point difference for
-% each face.
 model_mpfa = MpfaBlackOilModel(G, rock, fluid, 'water', true, 'oil', true, 'gas', false);
 
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);
-
-return
 
 %% Plot the results
 figure;
@@ -78,6 +72,8 @@ title('TPFA')
 figure;
 plotToolbar(G, statesMPFA)
 title('MPFA')
+
+return
 
 %% Plot the producer results
 % We note that there are two choices that impact the accuracy of the
