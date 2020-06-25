@@ -33,6 +33,7 @@ classdef MpfaBlackOilModel < GenericBlackOilModel
             model = setupStateFunctionGroupings@GenericBlackOilModel(model, varargin{:});
             fd = model.FluxDiscretization;
             fd = fd.setStateFunction('PermeabilityPotentialGradient', MpfaKgrad(model));
+            fd = fd.setStateFunction('PhaseUpwindFlag', MpfaPhaseUpwindFlag(model));
             model.FluxDiscretization = fd;
             
         end

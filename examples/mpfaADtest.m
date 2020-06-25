@@ -1,6 +1,6 @@
 % Load modules
 
-mrstModule add ad-core mpfa ad-blackoil compositional ad-props mrst-gui mpsaw
+mrstModule add ad-core ad-blackoil compositional ad-props mrst-gui mpsaw mpfa
 
 % Rectangular reservoir with a skew grid.
 dims = [41, 20];
@@ -16,20 +16,22 @@ G = computeGeometry(G);
 rock = makeRock(G, 100*milli*darcy, .2);
 pv   = sum(poreVolume(G,rock));
 
+pRef = 50*barsa;
+
 % Symmetric well pattern
 [ii, jj] = gridLogicalIndices(G);
 % Injector + two producers
 W = [];
 W = addWell(W, G, rock, find(ii == ceil(G.cartDims(1)/2) & jj == G.cartDims(2)), 'comp_i', [1, 0], 'type', 'rate', 'val', pv/year);
-W = addWell(W, G, rock, find(ii == G.cartDims(1) & jj == 1), 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa);
-W = addWell(W, G, rock, find(ii == 1 & jj == 1), 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa);
+W = addWell(W, G, rock, find(ii == G.cartDims(1) & jj == 1), 'comp_i', [1, 0], 'type', 'bhp', 'val', pRef);
+W = addWell(W, G, rock, find(ii == 1 & jj == 1), 'comp_i', [1, 0], 'type', 'bhp', 'val', pRef);
 
 %% We can simulate with either immiscible or compositional fluid physics
 % The example uses the general simulator framework and as such we can
 % easily simulate the same problem with different underlying physics.
 
 gravity reset off;
-fluid = initSimpleADIFluid('cR', 1e-8/barsa, 'rho', [1, 1000, 100]);
+fluid = initSimpleADIFluid('cR', 1e-8/barsa, 'pRef', pRef);
 
 if ~exist('useComp', 'var')
     useComp = false;
@@ -49,7 +51,7 @@ if useComp
 else
     % Immiscible two-phase
     model = GenericBlackOilModel(G, rock, fluid, 'water', true, 'oil', true, 'gas', false);
-    state0 = initResSol(G, 1*barsa, [0, 1]);
+    state0 = initResSol(G, pRef, [0, 1]);
 end
 % Schedule
 dt = [1; 9; repmat(15, 26, 1)]*day;
@@ -63,7 +65,6 @@ schedule = simpleSchedule(dt, 'W', W);
 % the MPFA module. We instansiate a special phase potential difference that
 % is computed using MPFA instead of the regular two-point difference for
 % each face.
-mrstModule add mpfa
 model_mpfa = MpfaBlackOilModel(G, rock, fluid, 'water', true, 'oil', true, 'gas', false);
 
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);

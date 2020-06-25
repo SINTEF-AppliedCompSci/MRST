@@ -30,7 +30,7 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     opt = struct('bcetazero'           , true , ...
                  'assemblyMatrices'    , false, ...
                  'adoperators'         , false, ...
-                 'onlyAssemblyMatrices', true , ...
+                 'onlyAssemblyMatrices', false, ...
                  'dooptimize'          , true);
     
     opt = merge_options(opt, varargin{:});
@@ -306,29 +306,33 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     end
     
     % We enforce the Dirichlet boundary conditions as Lagrange multipliers
-    bcdirichlet = bcstruct.bcdirichlet;
-    [D, bcvals] = setupMpfaNodeFaceBc(bcdirichlet, tbls);
-    
     if ~isempty(bcstruct.bcneumann)
         error('not yet implemented');
     else
         nf_num = nodefacetbl.num;
         extflux = zeros(nf_num, 1);
     end
+    
 
     if isempty(src)
         src = zeros(celltbl.num, 1);
     end
-
-    % scale D
-    fac    = max(max(abs(A11)));
-    D      = fac*D;
-    bcvals = fac*bcvals;
+    
+    bcdirichlet = bcstruct.bcdirichlet;
+    if ~isempty(bcdirichlet)
+        [D, bcvals] = setupMpfaNodeFaceBc(bcdirichlet, tbls);
+        % scale D
+        fac    = max(max(abs(A11)));
+        D      = fac*D;
+        bcvals = fac*bcvals;
+    else
+        D      = ones(size(A11, 1), 0);
+        bcvals = [];
+    end
     
     fullrhs{1} = extflux;
     fullrhs{2} = src;
     fullrhs{3} = bcvals;
-    
         
     matrices = struct('A11', A11, ...
                       'A12', A12, ...
