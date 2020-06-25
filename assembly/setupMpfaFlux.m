@@ -1,4 +1,17 @@
 function mpfaKgrad = setupMpfaFlux(G, assembly, tbls)
+%
+% we set up the mappings
+%
+%   F1 : nodefacetbl -> intfacetbl 
+%   F2 : celltbl -> intfacetbl
+%
+%  such that the flux u in intfacetbl (interior faces) is given by
+%
+%  u  = [F1  F2] * [ pnf (pressure at nodefacetbl);
+%                    pc  (pressure at celltbl)];
+%
+%  Then, we proceed with the reduction to remove dependency in pnf (pressure at nodefacetbl)
+%
     
     matrices = assembly.matrices;
     nKg = assembly.nKg;

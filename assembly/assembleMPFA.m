@@ -335,6 +335,7 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
         
         matrices.fullrhs = fullrhs;
         assembly.matrices = matrices;
+        assembly.nKg = nKg;
         
         if opt.onlyAssemblyMatrices
             return
