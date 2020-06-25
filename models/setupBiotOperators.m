@@ -52,7 +52,7 @@ function operators = setupBiotOperators(model)
     
     [tbls, mappings] = setupStandardTables(G);
     
-    assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, 'adoperators', true);
+    assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, 'addAdOperators', true);
     
     operators = assembly.adoperators;
     operators.pv = pv;

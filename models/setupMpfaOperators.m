@@ -24,7 +24,7 @@ function operators = setupMpfaOperators(model)
     K = prod.eval([1; 0; 0; 1], perm);
     src = []; % no source at this stage
     
-    assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'adoperators', true);
+    assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'addAdOperators', true);
     
     operators = assembly.adoperators;
     

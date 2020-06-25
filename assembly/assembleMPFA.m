@@ -28,8 +28,8 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
 
     
     opt = struct('bcetazero'           , true , ...
-                 'assemblyMatrices'    , false, ...
-                 'adoperators'         , false, ...
+                 'addAssemblyMatrices' , false, ...
+                 'addAdOperators'      , false, ...
                  'onlyAssemblyMatrices', false, ...
                  'dooptimize'          , true);
     
@@ -294,17 +294,7 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     A22_T = A22_T.setFromTensorProd(A22, prod);
     A22 = A22_T.getMatrix();
     
-    if opt.onlyAssemblyMatrices
-        matrices = struct('A11', A11, ...
-                          'A12', A12, ...
-                          'A21', A21, ...
-                          'A22', A22, ...
-                          'invA11', invA11);
-        assembly.matrices = matrices;
-        assembly.nKg = nKg;
-        return
-    end
-    
+
     % We enforce the Dirichlet boundary conditions as Lagrange multipliers
     if ~isempty(bcstruct.bcneumann)
         error('not yet implemented');
@@ -333,17 +323,25 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     fullrhs{1} = extflux;
     fullrhs{2} = src;
     fullrhs{3} = bcvals;
+    
+    if (opt.onlyAssemblyMatrices | opt.addAssemblyMatrices | opt.addAdOperators)
         
-    matrices = struct('A11', A11, ...
-                      'A12', A12, ...
-                      'A21', A21, ...
-                      'A22', A22, ...
-                      'D'  , D  , ...
-                      'invA11', invA11);
+        matrices = struct('A11', A11, ...
+                          'A12', A12, ...
+                          'A21', A21, ...
+                          'A22', A22, ...
+                          'D'  , D  , ...
+                          'invA11', invA11);
+        
+        matrices.fullrhs = fullrhs;
+        assembly.matrices = matrices;
+        
+        if opt.onlyAssemblyMatrices
+            return
+        end
+        
+    end
     
-    matrices.fullrhs = fullrhs;
-    
-
     % We reduced the system (shur complement) using invA11
     % We obtain system of the form
     %
@@ -374,15 +372,10 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     
     rhs = vertcat(adrhs{:});
     
-    assembly = struct( 'B'  , B  , ...
-                       'rhs', rhs);
-
-    if opt.assemblyMatrices
-        assembly.matrices = matrices;
-    end
-
+    assembly.B = B;
+    assembly.rhs = rhs;
     
-    if opt.adoperators
+    if opt.addAdOperators
         
         adB = cell(2, 2);
         adB{1, 1} = B11;

@@ -32,7 +32,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     
     opt = struct('bcetazero'       , true , ...
                  'assemblyMatrices', false, ...
-                 'adoperators'     , false, ...
+                 'addAdOperators'     , false, ...
                  'extraoutput'     , false);
     opt = merge_options(opt, varargin{:});
     
@@ -591,7 +591,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
         assembly.stressop = stressop;
     end
     
-    if opt.adoperators
+    if opt.addAdOperators
         
         adB = cell(2, 2);
         adB{1, 1} = B11;

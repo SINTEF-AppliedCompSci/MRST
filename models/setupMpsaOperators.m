@@ -10,7 +10,7 @@ function operators = setMpsaOperators(model)
     
     [tbls, mappings] = setupStandardTables(G);
 
-    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'adoperators', true); 
+    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'addAdOperators', true); 
     
     operators = assembly.adoperators;
     

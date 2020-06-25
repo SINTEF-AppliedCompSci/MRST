@@ -1,7 +1,7 @@
 function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, varargin)
     
     opt = struct('assemblyMatrices', false, ...
-                 'adoperators'     , false);
+                 'addAdOperators'  , false);
     opt = merge_options(opt, varargin{:});
     
     % We solve the system
@@ -47,7 +47,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     bcstruct = fluidforces.bcstruct;
     src = fluidforces.src;
     K = fluidprops.K;
-    fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'assemblymatrices', true);
+    fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'addAdOperators', true);
 
     % Assemble coupling terms (finite volume and consistent divergence operators)
     alpha = coupprops.alpha;
@@ -195,7 +195,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         assembly.fullsystem = fullsystem;
     end    
     
-    if opt.adoperators
+    if opt.addAdOperators
         
         % setup divKgrad operator
      
@@ -245,7 +245,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
                              'momentop'        , momentop        , ...
                              'fluidDirichletop', fluidDirichletop, ...
                              'mechDirichletop' , mechDirichletop);
-        
+
         assembly.adoperators = adoperators;
         
     end    
