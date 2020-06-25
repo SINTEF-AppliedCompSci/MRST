@@ -44,8 +44,8 @@ else
 end
 if(opt.use_ebos_style)
     command=[command, opt.simulator,' --ecl-deck-file-name=',deckfile];
-    [dir,case_name,ext]=fileparts(deckfile);
-    opt.output=fullfile(dir);
+    [mydir,case_name,ext]=fileparts(deckfile);
+    opt.output=fullfile(mydir);
 else
     if(opt.force_timestep)
         command=[command, opt.simulator,' --enable-well-operability-check=false --full-time-step-initially=true --enable-adaptive-time-stepping=false --flow-newton-max-iterations=100 '];
@@ -97,6 +97,7 @@ end
 if(opt.do_adjoint)
     delete(fullfile(opt.outputdir,'adjoint_results.txt'))
 end
+delete([fullfile(opt.outputdir,'extra_out'),'/*.txt'])
 disp('MRST runing flow')
 disp(command)
 a = system(command)
@@ -106,7 +107,7 @@ end
 %% make normal output
 if(nargout>0)
     opmdir=fullfile(opt.outputdir);
-    [dir,case_name,ext]=fileparts(deckfile);
+    [mydir,case_name,ext]=fileparts(deckfile);
     ofile=fullfile(opmdir,case_name); 
     %opm_smry = readEclipseSummaryUnFmt(ofile);
     [wellsols_smry, time_smry]  = convertSummaryToWellSols(ofile,'metric');
@@ -121,6 +122,12 @@ if(nargout>0)
         [states_opm,rstrt_opm] = convertRestartToStates(ofile_cap,G,...
         'use_opm',false,'includeWellSols',false,'wellSolsFromRestart',true,...
         'includeFluxes',false,'consistentWellSols',false);
+        files=dir([fullfile(opt.outputdir,'extra_out'),'/*','txt'])
+        sT=cell(numel(files),1);
+        for i = 1:numel(files)
+                sT{i} = load(fullfile(files(i).folder,files(i).name));
+        end
+        extra.sT=sT;
     else
         states_opm=[];
         extra=[];
