@@ -33,8 +33,8 @@ function [eqs, names, types, state] = biotEquations(model, state0, state, dt, dr
     %     end
     % end 
     
-    divu  = model.getProp(state, 'Dilation');
-    divu0 = model.getProp(state0, 'Dilation');
+    divu  = model.getProp(state, 'Dilatation');
+    divu0 = model.getProp(state0, 'Dilatation');
     
     eqs{1} = fac*momentop(u, p, lm, ef);
     eqs{2} = 1/dt.*(pv.*c.*(p - p0) + (divu - divu0)) + divKgradop(p, lf);

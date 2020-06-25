@@ -4,7 +4,7 @@ classdef MechBiotPropertyFunctions < StateFunctionGrouping
         Strain 
         Stress 
         BiotGradP
-        Dilation
+        Dilatation
     end
 
     methods
@@ -20,7 +20,7 @@ classdef MechBiotPropertyFunctions < StateFunctionGrouping
             props = props.setStateFunction('Stress', stress);
             props = props.setStateFunction('Strain', strain);
             props = props.setStateFunction('BiotGradP', biotgradp);
-            props = props.setStateFunction('Dilation', dilation);
+            props = props.setStateFunction('Dilatation', dilation);
             
         end
     end

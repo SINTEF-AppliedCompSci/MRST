@@ -83,7 +83,7 @@ state = mechmodel.initStateFunctionContainers(state);
 
 % sigma  = mechmodel.getProp(state, 'Stress');
 % strain = mechmodel.getProp(state, 'Strain');
-dilation = mechmodel.getProp(state, 'Dilation');
+dilation = mechmodel.getProp(state, 'Dilatation');
 
 plotCellData(G, dilation);
 

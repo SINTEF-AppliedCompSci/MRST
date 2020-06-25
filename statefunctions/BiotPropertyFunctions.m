@@ -1,7 +1,8 @@
 classdef BiotPropertyFunctions < StateFunctionGrouping
     
     properties
-        Dilation
+        Dilatation
+        BasePoreVolume
     end
 
     methods
@@ -9,9 +10,11 @@ classdef BiotPropertyFunctions < StateFunctionGrouping
             
             props@StateFunctionGrouping('BiotProps');
             
-            dilation = BiotCoupledDilatation(model);
+            dilatation = BiotCoupledDilatation(model);
+            pv = PoreVolume(model);
             
-            props = props.setStateFunction('Dilation', dilation);
+            props = props.setStateFunction('Dilatation', dilatation);
+            props = props.setStateFunction('BasePoreVolume', pv);
             
         end
     end
