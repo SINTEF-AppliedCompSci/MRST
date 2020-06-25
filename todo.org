@@ -30,4 +30,6 @@
 * Check stress computation with computeMPSATrans (looks wrong)
 * dynamical boundary condition could be implemented
   - it would solve the initial state for mandel (we switch from zero to non-zero force)
+* check comments in mpfaADtest
+* delete BiotMechModel (now replaced with MechModel)
 
