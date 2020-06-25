@@ -25,21 +25,18 @@ classdef BiotBlackOilModel < GenericBlackOilModel
             % Physical properties of rock and fluid
             model.mech  = mech;
         
-            model.eta = 1/3;
+            model.eta = 0;
             model.bcetazero = false;
             
             % Add mechanical operators  
-            model.operators = setupBiotOperators(model);
+            model.operators = setupBiotAdOperators(model);
 
-            % Add mechanical properties
-            model.MechBiotPropertyFunctions = MechBiotPropertyFunctions(model);
-            model.FluidBiotPropertyFunctions = FluidBiotPropertyFunctions(model);
-
+            model.BiotPropertyFunctions = BiotPropertyFunctions(model);
+            
         end
         
-
         function containers = getStateFunctionGroupings(model)
-            containers = getStateFunctionGroupings@PhysicalModel(model);
+            containers = getStateFunctionGroupings@GenericBlackOilModel(model);
             containers = [containers, {model.BiotPropertyFunctions}];
         end
 
@@ -52,6 +49,7 @@ classdef BiotBlackOilModel < GenericBlackOilModel
             
             pv = pvtprops.getStateFunction('PoreVolume');
             biotprops = biotprops.setStateFunction('BasePoreVolume', pv);
+            biotprops = biotprops.setStateFunction('Dilatation', BiotBlackOilDilatation(model));
             pvtprops  = pvtprops.setStateFunction('PoreVolume', BiotPoreVolume(model));
             
             model.BiotPropertyFunctions = biotprops;
@@ -66,20 +64,11 @@ classdef BiotBlackOilModel < GenericBlackOilModel
         function [vars, names, origin] = getPrimaryVariables(model, state)
 
             [vars, names, origin] = getPrimaryVariables@GenericBlackOilModel(model, state);
-            [u, bp, lm, lf] = model.getProps(state, 'u', 'biotpressure', 'lambdamech', 'lambdafluid');
-            vars = [vars, {u, p, lm, lf}];
-            names = [names, {'displacement', 'biotpressure', 'lambdamech', 'lambdafluid'}];
+            [u, bp, lm] = model.getProps(state, 'u', 'biotpressure', 'lambdamech');
+            vars = [vars, {u, bp, lm}];
+            names = [names, {'displacement', 'biotpressure', 'lambdamech'}];
 
-            origin = [origin, {class(model)}];
-        end
-        
-        function state = validateState(model, state)
-
-            state = validateState@PhysicalModel(model, state);
-            if ~isfield(state, 'wellSol')
-                state.wellSol = []; % (needed by simulateScheduleAD)
-            end
-            
+            origin = [origin, {class(model), class(model), class(model)}];
         end
         
         function [fn, index] = getVariableField(model, name, varargin)
@@ -96,11 +85,8 @@ classdef BiotBlackOilModel < GenericBlackOilModel
               case {'biotpressure', 'bp'}
                 fn = 'biotpressure';
                 index = ':';
-              case {'lambdafluid'}
-                fn = lower(name);
-                index = ':';
               otherwise
-                [fn, index] = getVariableField@PhysicalModel(model, name, varargin{:});
+                [fn, index] = getVariableField@GenericBlackOilModel(model, name, varargin{:});
             end
 
         end

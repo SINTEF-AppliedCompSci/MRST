@@ -5,51 +5,36 @@ function [eqs, names, types, state] = biotBlackOilEquations(model, state0, state
     op    = model.operators;
     
     pv         = op.pv;
-    divKgradop = op.divKgradop;
-    divuop     = op.divuop;
     momentop   = op.momentop;
     mechdirop  = op.mechDirichletop;
-    fluiddirop = op.fluidDirichletop;
     
-    extforce = drivingForces.extforce;
     
     u  = model.getProp(state, 'u');
-    p  = model.getProp(state, 'p');
+    bp = model.getProp(state, 'bp');
     lm = model.getProp(state, 'lambdamech');
-    lf = model.getProp(state, 'lambdafluid');
     
     u0  = model.getProp(state0, 'u');
-    p0  = model.getProp(state0, 'p');
+    bp0 = model.getProp(state0, 'bp');
     lm0 = model.getProp(state0, 'lambdamech');
     
-    c = fluid.c;
-    fac =  1 / (1e6 * mean(G.cells.volumes));
+    p = model.getProp(state, 'pressure');
+
+    fac = 1 / (1e6 * mean(G.cells.volumes));
+    meqs{1} = fac*momentop(u, p, lm);
+    meqs{2} = fac*mechdirop(u, p, lm);
+    meqs{3} = p - bp;
+
+    mnames = {'momentum', 'mechbcs', 'coupling'};
+    mtypes  = {'cells', 'bc', 'cells'};
     
-    % dohorriblehack = true;
-    % if dohorriblehack
-    %     if all(u0 == 0) & all(p0 == 0)
-    %         divu0 = 0;
-    %     else
-    %         divu0 = divuop(u0, p0, lm0);
-    %     end
-    % end 
-    
-    divu  = model.getProp(state, 'Dilation');
-    divu0 = model.getProp(state0, 'Dilation');
-    
-    eqs{1} = fac*momentop(u, p, lm, extforce);
-    eqs{2} = 1/dt.*(pv.*c.*(p - p0) + (divu - divu0)) + divKgradop(p, lf);
-    eqs{3} = fac*mechdirop(u, p, lm);
-    eqs{4} = fluiddirop(p, lf);
-    
-    
-    [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
+    [feqs, flux, fnames, ftypes] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
     src = model.FacilityModel.getComponentSources(state);
+    
     % Treat source or bc terms
     if ~isempty(drivingForces.bc) || ~isempty(drivingForces.src)
         [pressures, sat, mob, rho, rs, rv] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'Rs', 'Rv');
         dissolved = model.getDissolutionMatrix(rs, rv);
-        eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+        feqs = model.addBoundaryConditionsAndSources(feqs, fnames, ftypes, state, ...
                                                     pressures, sat, mob, rho, ...
                                                     dissolved, {}, ...
                                                     drivingForces);
@@ -57,23 +42,23 @@ function [eqs, names, types, state] = biotBlackOilEquations(model, state0, state
 
     % Add aquifer contributions if any.
     if ~isempty(model.AquiferModel)
-        eqs = addAquifersContribution(model.AquiferModel, eqs, names, state, dt);
+        feqs = addAquifersContribution(model.AquiferModel, feqs, fnames, state, dt);
     end
 
     % Add sources
-    eqs = model.insertSources(eqs, src);
+    feqs = model.insertSources(feqs, src);
     % Assemble equations
-    for i = 1:numel(eqs)
-        eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
+    for i = 1:numel(feqs)
+        feqs{i} = model.operators.AccDiv(feqs{i}, flux{i});
     end
     
     % Get facility equations
     [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
-    eqs = [eqs, weqs];
-    names = [names, wnames];
-    types = [types, wtypes];
-    names = {'momentum', 'mass', 'bcmech', 'bcfluid'};
-    types = {'cellcol', 'cell', 'bcmech', 'bcfluid'};
+    
+    eqs = [meqs, feqs, weqs];
+    names = [mnames, fnames, wnames];
+    types = [mtypes, ftypes, wtypes];
+
     
 end
 

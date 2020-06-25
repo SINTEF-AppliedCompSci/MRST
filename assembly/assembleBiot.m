@@ -48,7 +48,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     src = fluidforces.src;
     K = fluidprops.K;
     fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'addAdOperators', true);
-
+    
     % Assemble coupling terms (finite volume and consistent divergence operators)
     alpha = coupprops.alpha;
     coupassembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings);
@@ -196,26 +196,27 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     end    
     
     if opt.addAdOperators
+
+        % Setup fluid flux operator
+        mpfaKgrad = setupMpfaFlux(G, fluidassembly, tbls);
+        fluxop = @(p) fluxFunc(mpfaKgrad);
         
-        % setup divKgrad operator
-     
+        % Setup divKgrad operator
         divKgrad{1} = - A43invA33*A34 + A44;
         divKgrad{2} = - A43invA33*A36;
         divKgradrhs = f{4} - A43invA33*f{3};
         
         divKgradop = @(p, lf) divKgradopFunc(p, lf, divKgrad, divKgradrhs);
 
-        % setup divergence operator (for displacement, includes value of Biot coefficient alpha)
-        
+        % Setup divergence operator (for displacement, includes value of Biot coefficient alpha)
         divu{1} = - A41invA11*A12 + A42;
         divu{2} = - A41invA11*A14;
         divu{3} = - A41invA11*A15;
         divu{4} = A41invA11;
         
-        divuop = @(u, p, extforce, lm) divuopFunc(u, p, lm, extforce, divu);
+        divuop = @(u, p, lm, extforce) divuopFunc(u, p, lm, extforce, divu);
 
-        % setup momentum balance operator 
-       
+        % Setup momentum balance operator 
         moment{1} = B11;
         moment{2} = B12;
         moment{3} = B13;
@@ -225,7 +226,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         
         momentop = @(u, p, lm, extforce) momentopFunc(u, p, lm, extforce, moment, momentrhs);
         
-        % setup dirichlet boundary operator for mechanics
+        % Setup dirichlet boundary operator for mechanics
         mechdir{1} = B31;
         mechdir{2} = B32;
         mechdir{3} = B33;
@@ -233,14 +234,15 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         
         mechDirichletop = @(u, p, lm) mechdiropFunc(u, p, lm, mechdir, mechdirrhs);
         
-        % setup dirichlet boundary operator for flow
+        % Setup dirichlet boundary operator for flow
         fluiddir{1} = B42;
         fluiddir{2} = B44;
         fluiddirrhs = redrhs{4};
         
         fluidDirichletop = @(p, lf) fluiddiropFunc(p, lf, fluiddir, fluiddirrhs);
         
-        adoperators = struct('divKgradop'      , divKgradop      , ...
+        adoperators = struct('fluxop'          , fluxop          , ...
+                             'divKgradop'      , divKgradop      , ...
                              'divuop'          , divuop          , ...
                              'momentop'        , momentop        , ...
                              'fluidDirichletop', fluidDirichletop, ...
@@ -251,10 +253,13 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     end    
 end
 
+function flux = fluxFunc(p, mpfaKgrad)
+   flux = mpfaKgrad*p;
+end
+
 function divKgrad = divKgradopFunc(p, lf, divKgrad, divKgradrhs)
     divKgrad = divKgrad{1}*p + divKgrad{2}*lf - divKgradrhs;
 end
-
 
 function divu = divuopFunc(u, p, lm, extforce, divu)
     divu = divu{1}*u + divu{2}*p + divu{3}*lm + divu{4}*extforce;

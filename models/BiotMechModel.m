@@ -28,6 +28,7 @@ classdef BiotMechModel < PhysicalModel
     end
 
     methods
+        
         function model = BiotMechModel(G, rock, mech, varargin)
             
             model = model@PhysicalModel(G, varargin{:});
@@ -67,7 +68,8 @@ classdef BiotMechModel < PhysicalModel
             model = setupStateFunctionGroupings@PhysicalModel(model, varargin{:});
             model.MechBiotPropertyFunctions = MechBiotPropertyFunctions(model);
         end
-    
+
+        
         function [fn, index] = getVariableField(model, name, varargin)
         % Get the index/name mapping for the model (such as where pressure or water saturation is located in state)
             switch(lower(name))

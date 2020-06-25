@@ -1,16 +1,16 @@
-classdef BiotDilatation < StateFunction
+classdef BiotBlackOilDilatation < StateFunction
     
     methods
-        function gp = BiotDilatation(model, varargin)
+        function gp = BiotBlackOilDilatation(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'displacement', 'pressure', 'extforce', 'lambdamech'}, 'state');
+            gp = gp.dependsOn({'displacement', 'pressure', 'lambdamech'}, 'state');
             gp.label = '\nabla\cdot u';
         end
         
         function divu = evaluateOnDomain(prop, model, state)
-            [u, p, extforce, lm] = model.getProps(state, 'displacement', 'pressure', 'extforce', 'lambdamech');
+            [u, p, lm] = model.getProps(state, 'displacement', 'pressure', 'lambdamech');
             divuop = model.operators.divuop;
-            divu = divuop(u, p, lm, extforce);
+            divu = divuop(u, p, lm);
         end
     end
 end

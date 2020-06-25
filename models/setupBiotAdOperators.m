@@ -1,4 +1,4 @@
-function operators = setupBiotOperators(model)
+function operators = setupBiotAdOperators(model)
     
     G = model.G;
     mech  = model.mech;
@@ -59,9 +59,20 @@ function operators = setupBiotOperators(model)
     [tbls, mappings] = setupStandardTables(G);
     
     assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, 'addAdOperators', true);
+    adoperators = assembly.adoperators;
     
-    operators = assembly.adoperators;
-    operators.pv = pv;
-   
+    operators = setupOperatorsTPFA(G, rock);
+    
+    fullmomentop = adoperators.momentop;
+    fulldivuop = adoperators.divuop;
+    extforce = loadstruct.extforce;
+    momentop = @(u, p, lm) fullmomentop(u, p, lm, extforce);
+    divuop   = @(u, p, lm) fulldivuop(u, p, lm, extforce);
+    
+    operators.momentop = momentop;
+    operators.divuop   = divuop;
+    operators.fluxop   = adoperators.fluxop;
+    operators.mechDirichletop = adoperators.mechDirichletop;
+    
 end
 
