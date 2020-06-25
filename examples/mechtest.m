@@ -62,29 +62,19 @@ loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 mech.prop = prop;
 mech.loadstruct = loadstruct;
 
-rock.alpha = ones(nc, 1);
-
 %% Setup model
-mechmodel = BiotMechModel(G, rock, mech);
+model = MechModel(G, mech);
 
-state.u = mechmodel.operators.rhs{1}; % Dummy values, just used to get the correct dimension.
-state.lambdamech = mechmodel.operators.rhs{2}; % Dummy values, just used to get the correct dimension.
+state = model.solveMechanics();
 
-% The biot term (alpha*(gradient of fluid pressure)) is given
-% equal to zero for testing
-cellcoltbl = tbls.cellcoltbl;
-state.biotgradp = zeros(cellcoltbl.num, 1); 
+u = model.vectorDisplacement(state);
 
-solver = NonLinearSolver(); 
-drivingForces = [];
-[state, failure, report] = solveMinistep(solver, mechmodel, state, state, 0, drivingForces);
+figure(1)
+clf
+plotCellData(G, u(:, 1))
+title('x-displacement')
 
-state = mechmodel.initStateFunctionContainers(state);
-
-% sigma  = mechmodel.getProp(state, 'Stress');
-% strain = mechmodel.getProp(state, 'Strain');
-dilation = mechmodel.getProp(state, 'Dilatation');
-
-plotCellData(G, dilation);
-
-
+figure(2)
+clf
+plotCellData(G, u(:, 2))
+title('y-displacement')
