@@ -5,8 +5,8 @@ clear all
 
 %% Setup geometry
 
-% dims = [41, 20];
-dims = [2, 2];
+dims = [10, 10];
+% dims = [2, 2];
 G = cartGrid(dims, [2, 1]);
 makeSkew = @(c) c(:,1) + .4*(1-(c(:,1)-1).^2).*(1-c(:,2));
 G.nodes.coords(:,1) = 2*makeSkew(G.nodes.coords);
@@ -51,26 +51,12 @@ mechprop = struct('lambda', lambda, 'mu', mu);
 
 [tbls, mappings] = setupStandardTables(G);
 
-% We recover the top, bottom and lateral faces using function pside
-dummy = 0;
-bc = pside([], G, 'Ymax', dummy); 
-topfaces = bc.face;
-bc = pside([], G, 'Xmin', dummy); 
-leftfaces = bc.face;
-bc = pside([], G, 'Xmax', dummy); 
-rightfaces = bc.face;
-bc = pside([], G, 'Ymin', dummy); 
-bottomfaces = bc.face;
+% We set zero displacement at all external faces
 
-lateralfaces = leftfaces;
-
-% on the bottom, we have rolling condition in x-direction
-bottomlinform = repmat([0, 1], numel(bottomfaces), 1);
-% on the lateral walls, we have rolling condition in y-direction
-laterallinform = repmat([1, 0], numel(lateralfaces), 1);
-
-linform  = [bottomlinform; laterallinform];
-extfaces = [bottomfaces; lateralfaces];
+extfaces = find(any(G.faces.neighbors == 0, 2));
+nextf = numel(extfaces);
+extfaces = rldecode(extfaces, 2*ones(nextf, 1));
+linform = repmat([[1, 0]; [0, 1]], nextf, 1);
 bcvals   = zeros(numel(extfaces), 1);
 
 bc = struct('linform'    , linform , ...
@@ -79,39 +65,14 @@ bc = struct('linform'    , linform , ...
 
 bc = setupFaceBC(bc, G, tbls);
 
-% setup vertical force at the top
-
-topfacetbl.faces = topfaces;
-topfacetbl = IndexArray(topfacetbl);
 nodefacecoltbl = tbls.nodefacecoltbl;
-topnodefacecoltbl = crossIndexArray(topfacetbl, nodefacecoltbl, {'faces'});
-
-cellnodefacetbl = tbls.cellnodefacetbl;
-cellnodefacecoltbl = tbls.cellnodefacecoltbl;
-facetNormals = computeFacetNormals(G, cellnodefacetbl);
-
-map = TensorMap();
-map.fromTbl = cellnodefacecoltbl;
-map.toTbl = topnodefacecoltbl;
-map.mergefds = {'faces', 'nodes', 'coldim'};
-map = map.setup();
-
-topnormals = map.eval(facetNormals);
-extforce = -top_force*topnormals;
-
-map = TensorMap();
-map.fromTbl = topnodefacecoltbl;
-map.toTbl = nodefacecoltbl;
-map.mergefds = {'nodes', 'faces', 'coldim'};
-map = map.setup();
-
-extforce = map.eval(extforce);
+extforce = zeros(nodefacecoltbl.num, 1);
 
 cellcoltbl = tbls.cellcoltbl;
 force = zeros(cellcoltbl.num, 1);
 
 loadstruct.bc = bc;
-loadstruct.extforce = zeros(nodefacecoltbl.num, 1); % get the dimension right
+loadstruct.extforce = extforce;
 loadstruct.force = force;
 
 % setup mech structure 
@@ -131,9 +92,8 @@ state0.biotpressure = state0.pressure;
 dt = [1; 9; repmat(15, 26, 1)]*day;
 schedule = simpleSchedule(dt, 'W', W);
 
-[wsMPFA, statesMPFA] = simulateScheduleAD(state0, model, schedule);
+[ws, states] = simulateScheduleAD(state0, model, schedule);
 
-return
 
 %% Plot the results
 figure;
