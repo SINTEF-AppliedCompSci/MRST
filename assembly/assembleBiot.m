@@ -201,6 +201,13 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         mpfaKgrad = setupMpfaFlux(G, fluidassembly, tbls);
         fluxop = @(p) fluxFunc(mpfaKgrad);
         
+        % Setup face node dislpacement operator
+        fndisp{1} = -invA11*A12;
+        fndisp{2} = -invA11*A14;
+        fndisp{3} = -invA11*A15;
+        
+        facenodedispop = @(u, p, lm, extforce) facenodedispopFunc(u, p, lm, extforce, fndisp);
+        
         % Setup divKgrad operator
         divKgrad{1} = - A43invA33*A34 + A44;
         divKgrad{2} = - A43invA33*A36;
@@ -242,6 +249,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         fluidDirichletop = @(p, lf) fluiddiropFunc(p, lf, fluiddir, fluiddirrhs);
         
         adoperators = struct('fluxop'          , fluxop          , ...
+                             'facenodedispop'  , facenodedispop  , ...
                              'divKgradop'      , divKgradop      , ...
                              'divuop'          , divuop          , ...
                              'momentop'        , momentop        , ...
@@ -255,6 +263,10 @@ end
 
 function flux = fluxFunc(p, mpfaKgrad)
    flux = mpfaKgrad*p;
+end
+
+function fndisp = facenodedispopFunc(u, p, lm, extforce, fndisp)
+    fndisp = fndisp{1}*u + fndisp{2}*p + fndisp{3}*lm + extforce;
 end
 
 function divKgrad = divKgradopFunc(p, lf, divKgrad, divKgradrhs)
@@ -276,3 +288,4 @@ end
 function fluiddir = fluiddiropFunc(p, lf, fluiddir, fluiddirrhs)
     fluiddir = fluiddir{1}*p + fluiddir{2}*lf - fluiddirrhs;
 end
+% 

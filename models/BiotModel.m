@@ -11,6 +11,7 @@ classdef BiotModel < PhysicalModel
         
         % Property container
         BiotPropertyFunctions
+        MechPropertyFunctions
     end
 
     methods
@@ -37,22 +38,28 @@ classdef BiotModel < PhysicalModel
 
             % setup properties
             model.BiotPropertyFunctions = BiotPropertyFunctions(model);
-
+            model.MechPropertyFunctions = MechPropertyFunctions(model);
+            
         end
         
 
         function containers = getStateFunctionGroupings(model)
             containers = getStateFunctionGroupings@PhysicalModel(model);
-            containers = [containers, {model.BiotPropertyFunctions}];
+            containers = [containers, {model.BiotPropertyFunctions, model.MechPropertyFunctions}];
         end
 
         function model = setupStateFunctionGroupings(model, varargin) 
             
             model = setupStateFunctionGroupings@PhysicalModel(model, varargin{:});
             
-            mp = model.BiotPropertyFunctions;
-            mp = mp.setStateFunction('Dilatation', BiotDilatation(model));
-            model.BiotPropertyFunctions = mp;
+            bp = model.BiotPropertyFunctions;
+            mp = model.MechPropertyFunctions;
+            
+            bp = bp.setStateFunction('Dilatation', BiotDilatation(model));
+            mp = mp.setStateFunction('FaceNodeDisplacement', FaceNodeDisplacementExtforce(model));
+            
+            model.BiotPropertyFunctions = bp;
+            model.MechPropertyFunctions = mp;
             
         end
         

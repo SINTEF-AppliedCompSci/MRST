@@ -598,11 +598,17 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
         adB{2, 1} = B21;
         adB{1, 2} = B12;
         adB{2, 2} = B22;
+        
         divop = @(sol) mpsaDivOperator(sol, extforce, R1, R2, div);
+        
+        fndisp{1} = -invA11*A12;
+        fndisp{2} = invA11*D;
+        fndispop = @(u, lm) facenodedispopFunc(u, lm, extforce, fndisp);
         
         adoperators.B     = adB;
         adoperators.rhs   = adrhs;        
         adoperators.divop = divop;
+        adoperators.facenodedispop = fndispop;
         
         assembly.adoperators = adoperators;
         
@@ -613,6 +619,11 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     end
     
 end
+
+function fndisp = facenodedispopFunc(u, lm, extforce, fndisp)
+    fndisp = fndisp{1}*u + fndisp{2}*lm + extforce;
+end
+
 
 function stress = stressopFunc(u, lm, C1invA11, C2, A12, A13, extforce, tbls)
     

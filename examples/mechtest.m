@@ -69,6 +69,8 @@ state = model.solveMechanics();
 
 u = model.vectorDisplacement(state);
 
+fnu = model.getProp(state, 'FaceNodeDisplacement');
+
 figure(1)
 clf
 plotCellData(G, u(:, 1))

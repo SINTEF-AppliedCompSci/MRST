@@ -8,7 +8,7 @@ classdef BiotBlackOilModel < GenericBlackOilModel
         bcetazero
         
         BiotPropertyFunctions
-        
+        MechPropertyFunctions        
     end
 
     methods
@@ -32,6 +32,7 @@ classdef BiotBlackOilModel < GenericBlackOilModel
             model.operators = setupBiotAdOperators(model);
 
             model.BiotPropertyFunctions = BiotPropertyFunctions(model);
+            model.MechPropertyFunctions = MechPropertyFunctions(model);
             
         end
         

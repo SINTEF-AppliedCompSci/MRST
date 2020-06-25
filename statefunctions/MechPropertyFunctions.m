@@ -1,6 +1,7 @@
 classdef MechPropertyFunctions < StateFunctionGrouping
     
     properties
+        FaceNodeDisplacement
         Strain 
         Stress 
     end
@@ -11,11 +12,13 @@ classdef MechPropertyFunctions < StateFunctionGrouping
             
             props@StateFunctionGrouping('MechProps');
             
-            stress       = Stress(model);
-            strain       = Strain(model);
+            stress = Stress(model);
+            strain = Strain(model);
+            fndisp = FaceNodeDisplacement(model);
             
             props = props.setStateFunction('Stress', stress);
             props = props.setStateFunction('Strain', strain);
+            props = props.setStateFunction('FaceNodeDisplacement', fndisp);
             
         end
     end

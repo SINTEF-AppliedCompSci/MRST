@@ -181,7 +181,8 @@ fluid.bcstruct = bcstruct;
 
 %% Setup Biot model
 
-model =  BiotModel(G, rock, fluid, mech);
+model = BiotModel(G, rock, fluid, mech);
+model = model.validateModel();
 
 %% Setup schedule
 tsteps = 100;
@@ -205,7 +206,6 @@ initState.extforce = 0*extforce;
 
 solver = NonLinearSolver('maxIterations', 100);
 [wsol, states] = simulateScheduleAD(initState, model, schedule, 'nonlinearsolver', solver);
-
 
 %% Mandel plot
 figure
