@@ -38,7 +38,8 @@ function operators = setupMpfaAdOperators(model)
 
     K = prod.eval([1; 0; 0; 1], perm);
     src = []; % no source at this stage
-    bcstruct = []; % zero neumann bc
+    bcstruct.bcdirichlet = []; % no Dirichlet
+    bcstruct.bcneumann = []; % zero neumann bc
     
     assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'onlyAssemblyMatrices', true);
     mpfaKgrad = setupMpfaFlux(G, assembly, tbls);
