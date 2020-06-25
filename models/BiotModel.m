@@ -10,8 +10,7 @@ classdef BiotModel < PhysicalModel
         bcetazero
         
         % Property container
-        MechBiotPropertyFunctions
-        FluidBiotPropertyFunctions 
+        BiotPropertyFunctions
     end
 
     methods
@@ -33,37 +32,27 @@ classdef BiotModel < PhysicalModel
             model.eta = 1/3;
             model.bcetazero = false;
             
-            % Add mechanical operators  
+            % setup operators
             model.operators = setupBiotOperators(model);
 
-            % Add mechanical properties
-            model.MechBiotPropertyFunctions = MechBiotPropertyFunctions(model);
-            model.FluidBiotPropertyFunctions = FluidBiotPropertyFunctions(model);
+            % setup properties
+            model.BiotPropertyFunctions = BiotPropertyFunctions(model);
 
         end
         
 
         function containers = getStateFunctionGroupings(model)
             containers = getStateFunctionGroupings@PhysicalModel(model);
-            containers = [containers, {model.MechBiotPropertyFunctions, model.FluidBiotPropertyFunctions}];
+            containers = [containers, {model.BiotPropertyFunctions}];
         end
 
         function model = setupStateFunctionGroupings(model, varargin) 
             
             model = setupStateFunctionGroupings@PhysicalModel(model, varargin{:});
             
-            % Use mechanical coupling in flow equations
-            % fp = model.FluidBiotPropertyFunctions; 
-            % fp = fp.setStateFunction('BasePoreVolume', BlackOilPoreVolume(model));
-            % fp = fp.setStateFunction('PoreVolume'    , BiotPoreVolume(model));
-            % fp = fp.setStateFunction('Dilatation', BiotCoupledDilatation(model));
-            % model.FluidBiotPropertyFunctions = fp;
-            
-            % Use fluid coupling in mechanical equations
-            mp = model.MechBiotPropertyFunctions;
+            mp = model.BiotPropertyFunctions;
             mp = mp.setStateFunction('Dilatation', BiotCoupledDilatation(model));
-            % mp = mp.setStateFunction('Dilatation', BiotCoupledGradP(model));
-            model.MechBiotPropertyFunctions = mp;
+            model.BiotPropertyFunctions = mp;
             
         end
         
