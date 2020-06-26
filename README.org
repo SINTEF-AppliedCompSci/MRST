@@ -1,6 +1,6 @@
 #+OPTIONS: toc:nil
 
-* Implementation of MPSA with weak symmetry and poroelasticity
+* Implementation of MPSA with weak symmetry for linear elasticity and poroelasticity
 
   This module provides an implementation of the Multiple Point Stress Approximation (MPSA) using weak symmetry. The method is also
   coupled with MPFA to solve poroelasticity problems.
