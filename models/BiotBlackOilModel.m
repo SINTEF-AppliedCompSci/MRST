@@ -9,6 +9,7 @@ classdef BiotBlackOilModel < GenericBlackOilModel
         
         BiotPropertyFunctions
         MechPropertyFunctions        
+        
     end
 
     methods
@@ -38,23 +39,32 @@ classdef BiotBlackOilModel < GenericBlackOilModel
         
         function containers = getStateFunctionGroupings(model)
             containers = getStateFunctionGroupings@GenericBlackOilModel(model);
-            containers = [containers, {model.BiotPropertyFunctions}];
+            containers = [containers, {model.BiotPropertyFunctions, model.MechPropertyFunctions}];
         end
 
         function model = setupStateFunctionGroupings(model, varargin) 
             
+            model.PVTPropertyFunctions = []; % make sure this ir reset
             model = setupStateFunctionGroupings@GenericBlackOilModel(model, varargin{:});
-            
+           
+            fluxprops = model.FluxDiscretization;
             biotprops = model.BiotPropertyFunctions; 
             pvtprops  = model.PVTPropertyFunctions; 
+            mprops  = model.MechPropertyFunctions;
             
             pv = pvtprops.getStateFunction('PoreVolume');
-            biotprops = biotprops.setStateFunction('BasePoreVolume', pv);
-            biotprops = biotprops.setStateFunction('Dilatation', BiotBlackOilDilatation(model));
-            pvtprops  = pvtprops.setStateFunction('PoreVolume', BiotPoreVolume(model));
+            
+            biotprops = biotprops.setStateFunction('BasePoreVolume'      , pv);
+            biotprops = biotprops.setStateFunction('Dilatation'          , BiotBlackOilDilatation(model));
+            pvtprops  =  pvtprops.setStateFunction('PoreVolume'          , BiotPoreVolume(model));
+            mprops    =    mprops.setStateFunction('FaceNodeDisplacement', BiotFaceNodeDisplacement(model));
+            fluxprops = fluxprops.setStateFunction('PermeabilityPotentialGradient', MpfaKgrad(model));
+            fluxprops = fluxprops.setStateFunction('PhaseUpwindFlag', MpfaPhaseUpwindFlag(model));
             
             model.BiotPropertyFunctions = biotprops;
             model.PVTPropertyFunctions  = pvtprops;
+            model.MechPropertyFunctions = mprops;
+            model.FluxDiscretization    = fluxprops;
             
         end
         

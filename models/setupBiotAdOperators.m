@@ -65,13 +65,18 @@ function operators = setupBiotAdOperators(model)
     
     fullmomentop = adoperators.momentop;
     fulldivuop = adoperators.divuop;
+    fullfacenodedispop = adoperators.facenodedispop;
+
     extforce = loadstruct.extforce;
     momentop = @(u, p, lm) fullmomentop(u, p, lm, extforce);
     divuop   = @(u, p, lm) fulldivuop(u, p, lm, extforce);
+    facenodedispop   = @(u, p, lm) fullfacenodedispop(u, p, lm, extforce);
     
-    operators.momentop = momentop;
-    operators.divuop   = divuop;
-    operators.fluxop   = adoperators.fluxop;
+    operators.momentop        = momentop;
+    operators.divuop          = divuop;
+    operators.facenodedispop  = facenodedispop;
+    operators.fluxop          = adoperators.fluxop;
+    operators.stressop        = adoperators.stressop;
     operators.mechDirichletop = adoperators.mechDirichletop;
     
 end
