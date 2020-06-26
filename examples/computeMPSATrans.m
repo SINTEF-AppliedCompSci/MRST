@@ -9,13 +9,10 @@
 clear all
 close all
 
-tic
-
 % load modules
 mrstModule add mimetic mpsaw incomp vemmech mpfa
 
 eta = 0;
-
 bcetazero = false;
 
 %% Define and process geometry
@@ -56,14 +53,12 @@ switch runcase
     error('runcase not recognized');
 end
 
-% G = twister(G, 0.1);
-% compute Grid geometry
+G = twister(G, 0.1);
 G = computeGeometry(G);
 dim = G.griddim;
 
-% set material properties
+% Set material properties
 nc = G.cells.num;
-
 lambda = ones(nc, 1);
 mu     = ones(nc, 1);
 
@@ -79,7 +74,7 @@ switch casetype
   case 'blockassembly'
     assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true);
   case 'standard'
-    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true); 
+    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true, 'addAdOperators', true); 
   case 'experimental'
     assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true);     
 end
@@ -89,25 +84,20 @@ rhs = assembly.rhs;
 
 sol = B\rhs;
 
-% we compute the divergence
-if strcmp('blockassembly', casetype)
-    divop = assembly.divop;
-    divu = divop(sol);
-end
-
-% displacement values at cell centers.
+% Recover displacement values at cell centers.
 cellcoltbl = tbls.cellcoltbl;
 n = cellcoltbl.num;
-
 u = sol(1 : n);
+% values of Lagrangian corresponding to Dirichlet contraint
+lm = sol((n + 1) : end);
 
-docomputestress = true;
-if docomputestress
-    lm = sol((n + 1) : end);
-    stress = assembly.stressop(u, lm);
-    assert(dim == 2, 'only 2d treated here at the moment');
-    stress = reshape(stress, 4, [])';
-end
+% We compute node-face displacement values
+op = assembly.adoperators;
+unf = op.facenodedispop(u, lm);
+% We compute stress
+stress = op.stressop(unf, u);
+assert(dim == 2, 'only 2d treated here at the moment');
+stress = formatField(stress, dim, 'stress');
 
 plotdeformedgrid = true;
 if plotdeformedgrid
@@ -132,30 +122,21 @@ if doplotsol
     titlestr = sprintf('displacement - %s direction, eta=%g', 'y', eta);
     title(titlestr)
     colorbar
-    if docomputestress
-        figure
-        plotCellData(G, stress(:, 1));
-        titlestr = sprintf('stress xx', eta);
-        title(titlestr)
-        colorbar
-        figure
-        plotCellData(G, stress(:, 2));
-        titlestr = sprintf('stress xy', eta);
-        title(titlestr)
-        colorbar
-        figure
-        plotCellData(G, stress(:, 4)); % beware : not Voigts here!
-        titlestr = sprintf('stress yy', eta);
-        title(titlestr)
-        colorbar
-    end
-    if strcmp('blockassembly', casetype)
-        figure 
-        plotCellData(G, divu);
-        titlestr = sprintf('divergence, eta=%g', eta);
-        title(titlestr)
-        colorbar
-    end
+    figure
+    plotCellData(G, stress(:, 1));
+    titlestr = sprintf('stress xx', eta);
+    title(titlestr)
+    colorbar
+    figure
+    plotCellData(G, stress(:, 2));
+    titlestr = sprintf('stress yy', eta);
+    title(titlestr)
+    colorbar
+    figure
+    plotCellData(G, stress(:, 3)); 
+    titlestr = sprintf('stress xy', eta);
+    title(titlestr)
+    colorbar
 end
 
 if plotdeformedgrid
@@ -181,32 +162,7 @@ if doplotcontpoints
 
 end
 
-printcondest = false;
-
-if printcondest
-
-    matrices = assembly.matrices;
-
-    A11 = matrices.A11;
-    A12 = matrices.A12;
-    A21 = matrices.A21;
-    A22 = matrices.A22;
-    D   = matrices.D  ;
-
-    Z1 = zeros(size(A22, 1), size(D, 2));
-    Z = zeros(size(D', 1), size(D, 2));
-
-    A = [[A11, A12, -D];
-         [A21, A22,  Z1];
-         [D' , Z1',  Z]];
-
-    fprintf('condest(A): %g\n', condest(A));
-    fprintf('condest(A11): %g\n', condest(A11));
-    fprintf('condest(A22): %g\n', condest(A22));
-    fprintf('condest(B): %g\n', condest(B));
-    
-end
-
+%% plot displacement values as function of z. 
 dplotinzdir = true;
 if dplotinzdir
     if strcmp(runcase, '2d-linear')
