@@ -62,6 +62,8 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     A22 = mechmat.A22;
     A15 = -mechmat.D;
     A51 = -A15';
+    C1  = mechmat.C1;
+    C2  = mechmat.C2;
     mechrhs = mechmat.fullrhs;
     
     % Recover matrices from fluid assembly
@@ -197,9 +199,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     
     if opt.addAdOperators
 
-        % Setup fluid flux operator
-        mpfaKgrad = setupMpfaFlux(G, fluidassembly, tbls);
-        fluxop = @(p) fluxFunc(mpfaKgrad);
+        fluxop = fluidassembly.adoperators.fluxop;
         
         % Setup face node dislpacement operator
         fndisp{1} = -invA11*A12;
@@ -208,6 +208,12 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         
         facenodedispop = @(u, p, lm, extforce) facenodedispopFunc(u, p, lm, extforce, fndisp);
         
+        % Setup stress operator
+        aver = cellAverageOperator(tbls, mappings);
+        stress{1} = C1;
+        stress{2} = C2;
+        stressop = @(unf, uc) stressopFunc(unf, uc, stress, aver);
+
         % Setup divKgrad operator
         divKgrad{1} = - A43invA33*A34 + A44;
         divKgrad{2} = - A43invA33*A36;
@@ -215,7 +221,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         
         divKgradop = @(p, lf) divKgradopFunc(p, lf, divKgrad, divKgradrhs);
 
-        % Setup divergence operator (for displacement, includes value of Biot coefficient alpha)
+        % Setup consistent divergence operator (for displacement, includes value of Biot coefficient alpha)
         divu{1} = - A41invA11*A12 + A42;
         divu{2} = - A41invA11*A14;
         divu{3} = - A41invA11*A15;
@@ -250,6 +256,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         
         adoperators = struct('fluxop'          , fluxop          , ...
                              'facenodedispop'  , facenodedispop  , ...
+                             'stressop'        , stressop        , ...
                              'divKgradop'      , divKgradop      , ...
                              'divuop'          , divuop          , ...
                              'momentop'        , momentop        , ...
@@ -261,12 +268,17 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     end    
 end
 
-function flux = fluxFunc(p, mpfaKgrad)
-   flux = mpfaKgrad*p;
-end
 
 function fndisp = facenodedispopFunc(u, p, lm, extforce, fndisp)
     fndisp = fndisp{1}*u + fndisp{2}*p + fndisp{3}*lm + extforce;
+end
+
+function stress = stressopFunc(unf, uc, stress, aver)
+    
+    % get stress at each cell-node region (corner)
+    stress = stress{1}*unf + stress{2}*uc;
+    stress = aver*stress;
+    
 end
 
 function divKgrad = divKgradopFunc(p, lf, divKgrad, divKgradrhs)

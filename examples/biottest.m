@@ -12,7 +12,7 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 dimcase = 2;
 switch dimcase
   case 2
-    nx = 10; ny = 10;
+    nx = 40; ny = 40;
     G = cartGrid([nx, ny]);
   case 3
     nx = 4; ny = 3; nz = 5;
@@ -43,7 +43,7 @@ mech.loadstruct = loadstruct;
 
 %% Setup rock parameters (for flow)
 
-rock.perm = darcy*ones(G.cells.num, 1);
+rock.perm = ones(G.cells.num, 1);
 % rock.perm = ones(G.cells.num, 1);
 rock.poro = 0.3*ones(G.cells.num, 1);
 % this is the Biot parameter which will be used to multiply the given dilatation
@@ -51,25 +51,22 @@ rock.alpha = ones(G.cells.num, 1);
 
 %% Setup flow parameters (with field c and bcstruct)
 
-fluid.c = 1e-8;
+fluid.c = 1;
 
 %% setup bc for pressure
 
-ptop    = 2*barsa;
-pbottom = 1*barsa;
+pbottom = 0*barsa;
 
 dim = G.griddim;
 zface = G.faces.centroids(:, dim);
 maxz = max(zface);
 minz = min(zface);
-bottomfaces = find(G.faces.centroids(:, dim) > (maxz - 1e-4));
-topfaces = find(G.faces.centroids(:, dim) < (minz + 1e-4));
+bottomfaces = find(G.faces.centroids(:, dim) < (minz + 1e-4));
+topfaces = find(G.faces.centroids(:, dim) > (maxz - 1e-4));
 
 nbf = numel(bottomfaces);
-ntf = numel(topfaces);
-bcfaces = [bottomfaces; topfaces];
-bcvals = ptop*ones(nbf + ntf, 1);
-bcvals(1 : nbf) = pbottom;
+bcfaces = bottomfaces; 
+bcvals = pbottom*ones(nbf, 1);
 
 useVirtual = false;
 [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
@@ -101,9 +98,11 @@ fluid.bcstruct = bcstruct;
 model =  BiotModel(G, rock, fluid, mech);
 
 %% Setup schedule
-schedule.step.val = 1e-1*day*ones(10, 1);
+
+schedule.step.val = 1*ones(40, 1);
 schedule.step.control = ones(numel(schedule.step.val), 1);
-schedule.control = struct('W', []);
+extforce = loadstruct.extforce;
+schedule.control = struct('W', [], 'extforce', extforce);
 
 %% Setup initial state
 clear initState;
@@ -116,6 +115,7 @@ cellcoltbl = tbls.cellcoltbl;
 initState.u = zeros(cellcoltbl.num, 1);
 nlm = size(loadstruct.bc.linformvals, 1);
 initState.lambdamech = zeros(nlm, 1);
+initState.extforce = extforce;
 
 solver = NonLinearSolver('maxIterations', 100);
 [wsol, states] = simulateScheduleAD(initState, model, schedule, 'nonlinearsolver', solver);
