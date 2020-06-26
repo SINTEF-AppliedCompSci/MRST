@@ -23,11 +23,6 @@ classdef MechModel < PhysicalModel
             
             model = model@PhysicalModel(G, varargin{:});
 
-            % Process the grid for mechanical computation
-            if ~ismember('createAugmentedGrid', model.G.type)
-                model.G = createAugmentedGrid(model.G);
-            end
-
             % Physical properties of rock and fluid
             model.mech  = mech;
 
@@ -57,12 +52,6 @@ classdef MechModel < PhysicalModel
         function model = setupStateFunctionGroupings(model, varargin)
             model = setupStateFunctionGroupings@PhysicalModel(model, varargin{:});
             model.MechPropertyFunctions = MechPropertyFunctions(model);
-        end
-    
-        function u = vectorDisplacement(model, state)
-            u = model.getProp(state, 'displacement');
-            dim = model.G.griddim;
-            u = reshape(u, dim, [])';
         end
 
         function state = solveMechanics(model)
