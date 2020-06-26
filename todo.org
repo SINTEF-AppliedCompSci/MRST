@@ -35,4 +35,5 @@
 * remove mpsaDivOperator (check if not used anymore)
 * R1 and R2 not used any more in assembleMPSA?
 * comment that computing facenodedisp to get div (for example) is not efficient
+* change in property functions assignment through setupStateFunctionGroupings requires validateModel
 
