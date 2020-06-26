@@ -32,4 +32,7 @@
   - it would solve the initial state for mandel (we switch from zero to non-zero force)
 * check comments in mpfaADtest
 * delete BiotMechModel (now replaced with MechModel)
+* remove mpsaDivOperator (check if not used anymore)
+* R1 and R2 not used any more in assembleMPSA?
+* comment that computing facenodedisp to get div (for example) is not efficient
 
