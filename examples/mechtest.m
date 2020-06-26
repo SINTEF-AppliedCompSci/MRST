@@ -25,8 +25,8 @@ switch runcase
     x = 1/max(x)*x;
     G = tensorGrid(x, y);    
   case {'2d-linear', '2d-compaction'}
-    N = 10;
-    nx = 10; ny = 10;
+    N = 40;
+    nx = N; ny = N;
     G = cartGrid([nx, ny], [1, 1]);
     % N = 3;
     % Nx = N*ones(1, 2);
@@ -56,7 +56,7 @@ prop = struct('lambda', lambda, ...
               'mu', mu);
 
 
-[tbls, mappings] = setupStandardTables(G);
+[tbls, mappings] = setupStandardTables(G, 'useVirtual', false);
 loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 
 mech.prop = prop;
@@ -67,9 +67,33 @@ model = MechModel(G, mech);
 
 state = model.solveMechanics();
 
-u = model.vectorDisplacement(state);
+u = model.getProp(state, 'displacement');
+u = formatField(u, dim, 'u');
 
-fnu = model.getProp(state, 'FaceNodeDisplacement');
+unf = model.getProp(state, 'FaceNodeDisplacement');
+
+cellnodefacecoltbl = tbls.cellnodefacecoltbl;
+nodefacecoltbl = tbls.nodefacecoltbl;
+cellcoltbl = tbls.cellcoltbl;
+
+map = TensorMap();
+map.fromTbl = nodefacecoltbl;
+map.toTbl = cellnodefacecoltbl;
+map.mergefds = {'nodes', 'faces', 'coldim'};
+map = map.setup();
+ucnf = map.eval(unf);
+
+map = TensorMap();
+map.fromTbl = cellnodefacecoltbl;
+map.toTbl = cellcoltbl;
+map.mergefds = {'cells', 'coldim'};
+map = map.setup();
+unf = map.eval(ucnf);
+
+unf = formatField(unf, dim, 'u');
+
+stress = model.getProp(state, 'Stress');
+stress = formatField(stress, dim, 'stress');
 
 figure(1)
 clf
@@ -80,3 +104,28 @@ figure(2)
 clf
 plotCellData(G, u(:, 2))
 title('y-displacement')
+
+figure(3)
+clf
+plotCellData(G, stress(:, 1))
+title('xx-stress')
+
+figure(4)
+clf
+plotCellData(G, stress(:, 2))
+title('yy-stress')
+
+figure(5)
+clf
+plotCellData(G, stress(:, 3))
+title('xy-stress')
+
+figure
+clf
+plotCellData(G, unf(:, 1))
+title('face node x-displacement')
+
+figure
+clf
+plotCellData(G, unf(:, 2))
+title('face node y-displacement')
