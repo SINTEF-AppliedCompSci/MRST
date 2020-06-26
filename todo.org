@@ -1,40 +1,31 @@
-* do not compute twice facets and g
-* bcetazero not used for coupling terms
-* sign of right-handside for mechanics
-* check bcetazero in runBiotSim
+* Do not compute twice facets and g
+* Uniformize interface of computeFacetNormals and computeNodeFaceCentroids
+* The option bcetazero is not used in the computation of the coupling terms 
+* Check bcetazero in runBiotSim
 * rho is not volumetric
-* uniformize interface of computeFacetNormals and computeNodeFaceCentroids
 * In bc for mpsa, rename bc with bcdir?
-* switch to neumann also in flow part in runBiot convergence test
-* Change name from runBiotSim to runBiotConvSim (for consistency)
+* Switch to neumann also in flow part in runBiot convergence test
+* Changed name from runBiotSim to runBiotConvSim (for consistency)
 * Comment on fact that Neumann Biot is special
-* check bcetazero for biot.
+* Check bcetazero for biot.
   What do we use? is it consistent between mpsa and mpfa?
-* switch to getDispatchInd in blockAssembleMPSA
-* use computeConsistentGradient in blockAssemblyMPSA
-* add switch for setupTbls (mpfa or mpsa alone)
-* document divoperator and computenodedisp in utils
-* implement divergence for blockMPSA
+* Switch to getDispatchInd in blockAssembleMPSA
+* Use computeConsistentGradient in blockAssemblyMPSA
+* Add switch for setupStandardTbls (mpfa or mpsa alone)
+* Document divoperator and computenodedisp in utils
+* Implement divergence operator for blockMPSA
 * In Tensor Assembly, add check when a matrix in matlab format only is multiplied with a matrix in SparseTensor format only.
   - seems to go wrong (get zero matrix)
-* check definition of g
-  - in assembly, we do reduction of C and g with respect to coldim. Maybe it should be with respecto to rowdim
-* Implement object-setup of crossIndexArray with replacefds1 and replacefds2
-* in ooad, include setting of continuity point
+* In AD code, include setting of continuity point
+  - parameter eta
   - also bcetazero
-* in ad, include nonisotropic perm in mpfa
-* in ad for fluid, recover directly pv (withou calling tpfa)
-* in setupMpfaOperators, call useVirtual
-* add normalization of D for mpfa also in blockassembly
+* In AD code, include nonisotropic perm in mpfa
+* in AD code for fluid, recover directly pv (without calling tpfa)
+* In setupMpfaOperators, call useVirtual
+* Add normalization of D for mpfa also in blockMPSAAssembly
 * Assemble stress operator once for all (not each time it is called)
-* Check stress computation with computeMPSATrans (looks wrong)
-* dynamical boundary condition could be implemented
-  - it would solve the initial state for mandel (we switch from zero to non-zero force)
-* check comments in mpfaADtest
-* delete BiotMechModel (now replaced with MechModel)
-* remove mpsaDivOperator (check if not used anymore)
 * R1 and R2 not used any more in assembleMPSA?
-* comment that computing facenodedisp to get div (for example) is not efficient
-* change in property functions assignment through setupStateFunctionGroupings requires validateModel
-* remove setupfacebc from assembly
+* Comment that computing facenodedisp to get div (for example) is not efficient
+* Change in property functions assignment through setupStateFunctionGroupings requires validateModel
+* Remove setupfacebc from assembly
 
