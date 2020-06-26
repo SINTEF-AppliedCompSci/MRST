@@ -387,11 +387,18 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
         adoperators.B     = adB;
         adoperators.rhs   = adrhs;        
         
+        % Setup fluid flux operator
+        mpfaKgrad = setupMpfaFlux(G, assembly, tbls);
+        fluxop = @(p) fluxFunc(p, mpfaKgrad);
+        
+        adoperators.fluxop = fluxop;
+        
         assembly.adoperators = adoperators;
         
     end
-
-    
     
 end
 
+function flux = fluxFunc(p, mpfaKgrad)
+   flux = mpfaKgrad*p;
+end

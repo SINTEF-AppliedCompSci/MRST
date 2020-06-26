@@ -41,11 +41,10 @@ function operators = setupMpfaAdOperators(model)
     bcstruct.bcdirichlet = []; % no Dirichlet
     bcstruct.bcneumann = []; % zero neumann bc
     
-    assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'onlyAssemblyMatrices', true);
-    mpfaKgrad = setupMpfaFlux(G, assembly, tbls);
+    assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'addAdOperators', true);
     
     operators = setupOperatorsTPFA(G, rock);
-    operators.mpfaKgrad = mpfaKgrad;
+    operators.fluxop = assembly.adoperators.fluxop;
     
 end
 

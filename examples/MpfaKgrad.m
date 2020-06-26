@@ -8,11 +8,11 @@ classdef MpfaKgrad < StateFunction
         
         function v = evaluateOnDomain(prop, model, state)
             p_phase = model.getProp(state, 'PhasePressures');
-            kgrad = model.operators.mpfaKgrad;
+            fluxop = model.operators.fluxop;
             nph = numel(p_phase);
             v = cell(1, nph);
             for i = 1 : nph
-                v{i} = kgrad*p_phase{i};
+                v{i} = fluxop(p_phase{i});
             end
         end
     end

@@ -1,4 +1,6 @@
 % Load modules
+clear all
+close all
 
 mrstModule add ad-core ad-blackoil compositional ad-props mrst-gui mpsaw mpfa
 
