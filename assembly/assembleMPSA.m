@@ -627,10 +627,10 @@ function fndisp = facenodedispopFunc(u, lm, extforce, fndisp)
 end
 
 function stress = stressopFunc(unf, uc, stress, aver)
-    % get stress at each cell-node region (corner)
+    % Stress at each cell-node region (corner)
     stress = stress{1}*unf + stress{2}*uc;
+    % Compute cell average
     stress = aver*stress;
-    
 end
 
 function cdiv = cdivopFunc(unf, uc, cdiv)
