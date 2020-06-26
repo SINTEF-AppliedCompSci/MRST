@@ -14,9 +14,10 @@ classdef ComponentPhaseFluxFractionalFlow < StateFunction
             [compMob, vT, G, T, fmob, mobT] = prop.getEvaluatedDependencies(state,...
                  'FaceComponentMobility', 'TotalFlux', 'PhaseInterfacePressureDifferences', 'Transmissibility', 'FaceMobility', 'FaceTotalMobility');
             w = 1./mobT;
+            nf = numelValue(vT);
             kgrad = cell(1, nph);
             for i = 1:nph
-                mobG = 0;
+                mobG = zeros(nf, 1);
                 for j = 1:nph
                     if i ~= j
                         mobG = mobG + fmob{j}.*(G{i} - G{j});

@@ -14,7 +14,8 @@ classdef FaceTotalMobility < StateFunction
         end
         function mobT = evaluateOnDomain(prop, model, state)
             mob = prop.getEvaluatedDependencies(state, prop.mobility_name);
-            mobT = 0;
+            nf = numelValue(model.operators.T);
+            mobT = zeros(nf, 1);
             for i = 1:numel(mob)
                 mobT = mobT + mob{i};
             end
