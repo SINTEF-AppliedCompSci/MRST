@@ -1,4 +1,4 @@
-function operators = setMpsaOperators(model)
+function operators = setupMpsaOperators(model)
     
     G = model.G;
     mech = model.mech;
