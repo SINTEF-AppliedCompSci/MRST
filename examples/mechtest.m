@@ -1,4 +1,5 @@
 clear all
+close all
 
 mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui mpsaw mpfa
 
@@ -95,37 +96,36 @@ unf = formatField(unf, dim, 'u');
 stress = model.getProp(state, 'Stress');
 stress = formatField(stress, dim, 'stress');
 
-figure(1)
-clf
+cdiv = model.getProp(state, 'ConsistentDiv');
+
+figure
 plotCellData(G, u(:, 1))
 title('x-displacement')
 
-figure(2)
-clf
+figure
 plotCellData(G, u(:, 2))
 title('y-displacement')
 
-figure(3)
-clf
+figure
 plotCellData(G, stress(:, 1))
 title('xx-stress')
 
-figure(4)
-clf
+figure
 plotCellData(G, stress(:, 2))
 title('yy-stress')
 
-figure(5)
-clf
+figure
 plotCellData(G, stress(:, 3))
 title('xy-stress')
 
 figure
-clf
+plotCellData(G, cdiv)
+title('consistent div')
+
+figure
 plotCellData(G, unf(:, 1))
 title('face node x-displacement')
 
 figure
-clf
 plotCellData(G, unf(:, 2))
 title('face node y-displacement')

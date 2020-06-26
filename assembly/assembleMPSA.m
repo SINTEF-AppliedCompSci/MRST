@@ -105,7 +105,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
 
     gradnodeface_T = SparseTensor('matlabsparse', true);
     gradnodeface_T = gradnodeface_T.setFromTensorProd(g, prod);
-
+    
     % Construction of gradcell_T : cellcoltbl -> cellnodecolrowtbl
     %
     % The cellcol part of the grad operator from cellcoltbl to cellnodecolrowtbl is
@@ -441,11 +441,8 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
 
     combCgradcell_T = 0.5*(Cgradcell_T + transaverCgradcell_T);
     
-    debug = false;
-    if debug
-        C1 = combCgradnodeface_T.getMatrix();
-        C2 = combCgradcell_T.getMatrix();
-    end        
+    C1 = combCgradnodeface_T.getMatrix();
+    C2 = combCgradcell_T.getMatrix();
     
     A11 = divnodeface_T*combCgradnodeface_T;
     A12 = divnodeface_T*combCgradcell_T; 
@@ -486,12 +483,15 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     fullrhs{2} = force;
     fullrhs{3} = bcvals;
     
-    matrices = struct('A11', A11, ...
-                      'A12', A12, ...
-                      'A21', A21, ...
-                      'A22', A22, ...
-                      'D'  , D  , ...
-                      'invA11', invA11);
+    matrices = struct('A11'   , A11   , ...
+                      'A12'   , A12   , ...
+                      'A21'   , A21   , ...
+                      'A22'   , A22   , ...
+                      'D'     , D     , ...
+                      'invA11', invA11, ....
+                      'C1'    , C1    , ....
+                      'C2'    , C2);
+    
     matrices.fullrhs = fullrhs;
     
     % We reduced the system (shur complement) using invA11
@@ -574,7 +574,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
         assembly.matrices = matrices;
     end
     
-    
     if opt.addAdOperators
         
         adB = cell(2, 2);
@@ -585,23 +584,33 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
         
         % Setup divergence operator (dilatation)
         divop = @(sol) mpsaDivOperator(sol, extforce, R1, R2, div);
+
+        % Set up consistent divergence operator (not efficient implementation)
+        alpha = ones(G.cells.num, 1);
+        cassembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings);
+        cdiv{1} = cassembly.divconsnf;
+        cdiv{2} = cassembly.divconsc;
+        cdivop = @(unf, uc) cdivopFunc(unf, uc, cdiv);
         
         % Setup node face displacement operator
         fndisp{1} = -invA11*A12;
         fndisp{2} = invA11*D;
+        fndisp{3} = invA11;
         fndispop = @(u, lm) facenodedispopFunc(u, lm, extforce, fndisp);
         
         % Setup stress operator
-        aver = averageop(tbls, mappings);
-        stress{1} = combCgradnodeface_T.getMatrix();
-        stress{2} = combCgradcell_T.getMatrix();
+        aver = cellAverageOperator(tbls, mappings);
+        stress{1} = C1;
+        stress{2} = C2;
         stressop = @(unf, uc) stressopFunc(unf, uc, stress, aver);
         
         adoperators.B     = adB;
         adoperators.rhs   = adrhs;        
-        adoperators.divop = divop;
+        
+        adoperators.divop          = divop;
+        adoperators.cdivop         = cdivop;
         adoperators.facenodedispop = fndispop;
-        adoperators.stressop = stressop;
+        adoperators.stressop       = stressop;
         
         assembly.adoperators = adoperators;
         
@@ -614,60 +623,17 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
 end
 
 function fndisp = facenodedispopFunc(u, lm, extforce, fndisp)
-    fndisp = fndisp{1}*u + fndisp{2}*lm + extforce;
+    fndisp = fndisp{1}*u + fndisp{2}*lm + fndisp{3}*extforce;
 end
 
-
 function stress = stressopFunc(unf, uc, stress, aver)
-    
     % get stress at each cell-node region (corner)
     stress = stress{1}*unf + stress{2}*uc;
     stress = aver*stress;
     
 end
 
-function aver = averageop(tbls, mappings)
-
-    cellnodecolrowtbl = tbls.cellnodecolrowtbl;
-    cellcolrowtbl = tbls.cellcolrowtbl;
-    cellnodetbl = tbls.cellnodetbl;
-    celltbl = tbls.celltbl;
-    coltbl = tbls.coltbl;
-    
-    cell_from_cellnode = mappings.cell_from_cellnode;
-    
-    % shortcuts
-    d_num = coltbl.num;
-    c_num = celltbl.num;
-    cn_num = cellnodetbl.num;
-    cncr_num = cellnodecolrowtbl.num;
-    
-    % Compute number of nodes per cells
-    map = TensorMap();
-    map.fromTbl = cellnodetbl;
-    map.toTbl = celltbl;
-    map.mergefds = {'cells'};
-    map = map.setup();
-    
-    nnodepercell = map.eval(ones(cellnodetbl.num, 1));
-    
-    % Compute cell average stress
-    prod = TensorProd();
-    prod.tbl1 = celltbl;
-    prod.tbl2 = cellnodecolrowtbl;
-    prod.tbl3 = cellcolrowtbl;
-    prod.mergefds = {'cells'};
-    
-    prod.pivottbl = cellnodecolrowtbl;
-    [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-    prod.dispind1 = cell_from_cellnode(i);
-    prod.dispind2 = (1 : cncr_num)';
-    prod.dispind3 = sub2ind([d_num, d_num, c_num], r, c, cell_from_cellnode(i));
-    prod.issetup = true;
-
-    aver_T = SparseTensor();
-    aver_T = aver_T.setFromTensorProd(1./nnodepercell, prod);
-
-    aver = aver_T.getMatrix();
-    
+function cdiv = cdivopFunc(unf, uc, cdiv)
+    cdiv = cdiv{1}*unf + cdiv{2}*uc;
 end
+
