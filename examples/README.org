@@ -1,0 +1,38 @@
+#+TITLE: Overview over the examples
+#+OPTIONS: toc:nil
+
+* Convergence Tests
+  - The directory [[file:convergencetests.m][~convergencetests~]] contains all the convergence tests.
+   
+* MPSA - Mechanics
+** [[file:assemblyBiotExample.m][~assemblyMpsaExample~]]
+   - Example using bare assembly functionalities.
+** [[file:tiltedExample.m][~tiltedExample~]]
+   - Example using sliding condition in a non-Cartesian direction.
+** [[file:mpsaExample.m][~mpsaExample~]]
+   - use [[file:../models/MechModel.m][~MechModel~]] AD model.
+   - use predefined mechanical test cases ('2d-linear', '2d-refinement', etc.).
+
+* MPFA - Flow
+** [[file:assemblyMpfaExample.m][~assemblyMpfaExample~]]
+   - Example using bare assembly functionalities.
+** [[file:assembleMpfaExample2.m][~assembleMpfaExample2~]]
+   - Example using bare assembly functionalities
+   - use grids from predefined mechanical test cases ('2d-linear', '2d-refinement', etc)
+** [[file:mpfaBlackoilExample.m][~mpfaBlackoilExample~]]
+   - Example that demonstrates grid effects for TPFA and how MPFA remove those.
+   - use [[file:../models/MpfaBlackOilModel.m][~MpfaBlackOilModel~]] AD model.
+     
+* Biot MPSA-MPFA - Poroelasticity
+** [[file:assemblyBiotExample.m][~assemblyBiotExample~]]
+   - use bare assembly functionnalities.
+   - uses mech test cases ('2d-linear', '2d-refinement', etc).
+** [[file:mandelExample.m][~mandelExample~]]
+   - Mandel test case.
+   - use [[file:../models/BiotModel.m][~BiotModel~]] AD model.
+** [[file:biotBlackoilExample.m][~biotBlackoilExample~]]
+   - Same setup as example ~tiltedExample~ showing how method copes with grid effects
+   - use [[file:../models/BiotBlackOilModel.m][~BiotBlackOilModel~]] AD model.
+** [[file:biotExample.m][~biotExample~]]
+   - same setup as mandel test case but using wells and a fixed external force at the top
+   - use [[file:../models/BiotModel.m][~BiotModel~]] AD model
