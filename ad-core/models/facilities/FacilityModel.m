@@ -417,6 +417,8 @@ classdef FacilityModel < PhysicalModel
                         comp = vertcat(wellSol.massfractions);
                         isCOMP(i) = true;
                         variables{i} = reshape(comp(:, 1:end-1), [], 1);
+                    elseif strcmp(names{i}, 'well_temperature')
+                        variables{i} = vertcat(wellSol.T);
                     else
                         variables{i} = vertcat(wellSol.(names{i}));
                     end
