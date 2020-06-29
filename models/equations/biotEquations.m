@@ -24,15 +24,6 @@ function [eqs, names, types, state] = biotEquations(model, state0, state, dt, dr
     c = fluid.c;
     fac =  1 / (1e6 * mean(G.cells.volumes));
     
-    % dohorriblehack = true;
-    % if dohorriblehack
-    %     if all(u0 == 0) & all(p0 == 0)
-    %         divu0 = 0;
-    %     else
-    %         divu0 = divuop(u0, p0, lm0);
-    %     end
-    % end 
-    
     divu  = model.getProp(state, 'Dilatation');
     divu0 = model.getProp(state0, 'Dilatation');
     
