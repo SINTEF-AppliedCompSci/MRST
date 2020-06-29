@@ -669,6 +669,8 @@ classdef SimpleWell < PhysicalModel
                     fn = 'qWs';
                 case 'qss'
                     fn = 'qSs';
+                case {'well_temperature', 't'}
+                    fn = 'T';
                 case 'well_massfractions'
                     fn = 'massfractions';
                     index = ':';

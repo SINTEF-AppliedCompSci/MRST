@@ -163,6 +163,9 @@ for k = 1:numel(W)
     switch tp
         case 'bhp'
             ws(k).bhp = v;
+            if isprop(model, 'thermal') && model.thermal
+                ws(k).T = W(k).T;
+            end
         case 'rate'
             if model.water
                 ws(k).qWs = v*W(k).compi(1);
