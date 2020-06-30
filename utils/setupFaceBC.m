@@ -4,7 +4,7 @@ function nodefacebc = setupFaceBC(bc, G, tbls)
     nodefacecoltbl = tbls.nodefacecoltbl;
     coltbl         = tbls.coltbl;
 
-    % note that bcfacetbl, as constructed below, has repeated indices (same face can
+    % Note that bcfacetbl, as constructed below, has repeated indices (same face can
     % have several linear forms which are imposed on it). We add a local index
     % denoted bcinds, which makes all those (now multiple-)index unique.
     bcfacetbl.faces = bc.extfaces;
