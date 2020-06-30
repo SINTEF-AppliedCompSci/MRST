@@ -27,8 +27,12 @@
 ** [[file:assemblyBiotExample.m][~assemblyBiotExample~]]
    - use bare assembly functionnalities.
    - uses mech test cases ('2d-linear', '2d-refinement', etc).
-** [[file:mandelExample.m][~mandelExample~]]
+** [[file:mandel.m][~mandel~]]
    - Mandel test case.
+   - use [[file:~/Matlab/Projects/project-mpsaw/models/MandelModel.m][~MandelModel~]] AD model.
+** [[file:topforceExample.m][~topforceExample~]]
+   - Test case where a force is applied at the top
+   - The force is given in the schedule
    - use [[file:../models/BiotModel.m][~BiotModel~]] AD model.
 ** [[file:biotBlackoilExample.m][~biotBlackoilExample~]]
    - Same setup as example ~tiltedExample~ showing how method copes with grid effects

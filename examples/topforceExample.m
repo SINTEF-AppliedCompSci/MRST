@@ -169,8 +169,12 @@ model = model.validateModel();
 tsteps = 100;
 duration = 1;
 schedule.step.val = duration/tsteps * ones(tsteps, 1);
-schedule.step.control = ones(numel(schedule.step.val), 1);
-schedule.control = struct('W', [], 'extforce', extforce);
+schedule.step.control = (1 : tsteps)';
+for i = 1 : tsteps
+    coef = i/tsteps;
+    control(i) = struct('W', [], 'extforce', coef*extforce);
+end
+schedule.control = control;
 
 %% Setup initial state
 clear initState;
@@ -188,27 +192,25 @@ initState.extforce = 0*extforce;
 solver = NonLinearSolver('maxIterations', 100);
 [wsol, states] = simulateScheduleAD(initState, model, schedule, 'nonlinearsolver', solver);
 
-%% Mandel plot
+%% Pressure for some selected times
 figure
 clf
-ind = (1 : nx)';
-xc = G.cells.centroids(ind, 1);
+xind = (1 : nx)';
+xc = G.cells.centroids(xind, 1);
 hold on
 
-trep = [0.00001; 0.01; 0.1; 0.5; 1];
-trep = trep/cv;
-tt = cumsum(schedule.step.val);
+inds = 1 : floor(tsteps/5) : tsteps; 
 legends = {};
-for i = 1 : numel(states);
-    if ismembertol(tt(i), trep, 1e-8);
-        p = states{i}.pressure;
-        p = p(ind);
-        plot(xc, p);
-        legends{end + 1} = sprintf('%g', tt(i)*cv);
-    end
+tt = cumsum(schedule.step.val);
+for i = 1 : numel(inds);
+    ind = inds(i);
+    p = states{ind}.pressure;
+    p = p(xind);
+    plot(xc, p);
+    legends{end + 1} = sprintf('time %g s', tt(ind));
 end
 legend(legends{:});
-
+title('Pressure profile at some selected times');
 
 %% plotting
 figure 
@@ -221,12 +223,5 @@ ind = 1;
 pmid = cellfun(@(state) state.pressure(ind), states);
 tt = cumsum(schedule.step.val);
 plot(tt, pmid, '*');
-
-figure
-clf
-inds = (1 : resolution(1))';
-xc = G.cells.centroids(inds, 1);
-pc = states{end}.pressure(inds);
-plot(xc, pc);
-title('pressure in slide');
+title('Pressure evolution at left edge')
 
