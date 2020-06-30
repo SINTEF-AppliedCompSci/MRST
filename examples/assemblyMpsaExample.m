@@ -103,8 +103,7 @@ plotdeformedgrid = true;
 if plotdeformedgrid
     lagmult = sol(n + 1 : end);
     unode = computeNodeDisp(u, tbls);
-    dim = G.griddim;
-    unvec = reshape(unode, dim, [])';
+    unvec = formatField(unode, dim, 'displacement');
 end
 
 dim = G.griddim;
