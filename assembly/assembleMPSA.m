@@ -471,11 +471,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     end
     [D, bcvals] = setupNodeFaceBc(bc, G, tbls);
     
-    %  We scale the constraint equation for the boundary conditions
-    fac    = max(max(abs(A11)));
-    D      = fac*D;
-    bcvals = fac*bcvals;
-    
     extforce = loadstruct.extforce;
     force = loadstruct.force;
 
