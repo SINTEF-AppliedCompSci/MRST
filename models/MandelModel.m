@@ -35,7 +35,7 @@ classdef MandelModel < BiotModel
 
         function [model, state] = prepareReportstep(model, state, state0, dT, drivingForces)
             [model, state] = prepareReportstep@PhysicalModel(model, state, state0, dT, drivingForces);
-            extforce = drivingForces.extforce;
+            avgtopforce = drivingForces.avgtopforce;
             state = model.setProp(state, 'avgtopforce', avgtopforce);
         end
         
@@ -45,6 +45,16 @@ classdef MandelModel < BiotModel
             forces.W   = [];
             % mechanical forces
             forces.avgtopforce = []; 
+        end
+        
+        function model = setupStateFunctionGroupings(model, varargin) 
+            
+            model = setupStateFunctionGroupings@BiotModel(model, varargin{:});
+           
+            biotprops = model.BiotPropertyFunctions;
+            biotprops = biotprops.setStateFunction('Dilatation', BiotBlackOilDilatation(model));
+            model.BiotPropertyFunctions = biotprops;
+            
         end
         
         function [fn, index] = getVariableField(model, name, varargin)
@@ -80,29 +90,65 @@ classdef MandelModel < BiotModel
         
         function operators = setMandelOperators(model)
             
-            op = model.operators;
-            topfaces = model.topfaces;
-            tbls = model.operators.tbls;
+            operators = model.operators;
+            topfaces  = model.topfaces;
+            mech      = model.mech;
+            G         = model.G;
+            
+            tbls = operators.tbls;
+            nodefacetbl = tbls.nodefacetbl;
+            facetbl = tbls.facetbl;
+            
             bc = model.mech.loadstruct.bc;
             
-            % We recover the degrees of freedom that belongs to the top surface
+            % We recover the degrees of freedom that belong to the top surface
             bcnodefacetbl = bc.bcnodefacetbl;
             bcnodefacetbl = bcnodefacetbl.addLocInd('bcinds');
 
             topfacetbl.faces = topfaces;
             topfacetbl = IndexArray(topfacetbl);
 
+            bctopnodefacetbl = crossIndexArray(topfacetbl, bcnodefacetbl, {'faces'});
+            
             map = TensorMap();
-            map.fromTbl = topfacetbl;
-            map.toTbl = bcnodefacetbl;
+            map.fromTbl = nodefacetbl;
+            map.toTbl = facetbl;
             map.mergefds = {'faces'};
             map = map.setup();
-
-            toplambdamech = map.eval(ones(topfacetbl.num, 1));
-            toplambdamech = find(toplambdamech);
             
+            nnodeperface = map.eval(ones(nodefacetbl.num, 1));
+            nfareas = 1/nnodeperface.*(G.faces.areas);
             
+            map = TensorMap();
+            map.fromTbl = facetbl;
+            map.toTbl = bctopnodefacetbl;
+            map.mergefds = {'faces'};
+            map = map.setup();
             
+            R = map.eval(nfareas);
+            
+            map = TensorMap();
+            map.fromTbl = bctopnodefacetbl;
+            map.toTbl = bcnodefacetbl;
+            map.mergefds = {'nodes', 'faces', 'bcinds'};
+            map = map.setup();
+            
+            R = map.eval(R);
+            
+            operators.R = R;
+            
+            % remove dependency in extforce for the divergence operator
+            
+            divuopext = operators.divuop;
+            extforce = mech.loadstruct.extforce;
+            divuop = @(u, p, lm) divuopext(u, p, lm, extforce);
+            operators.divuop = divuop;
+            
+            % same for momentop
+            momentopext = operators.momentop;
+            extforce = mech.loadstruct.extforce;
+            momentop = @(u, p, lm) momentopext(u, p, lm, extforce);
+            operators.momentop = momentop;
             
         end
         

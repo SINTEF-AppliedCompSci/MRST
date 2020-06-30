@@ -1,13 +1,26 @@
 %% Mandel problem
-% Reference : (section 3.2)
+% References : 
 % @article{verruijt2013theory,
 %          title={Theory and problems of poroelasticity},
 %          author={Verruijt, Arnold},
 %          journal={Delft University of Technology},
 %          volume={71},
 %          year={2013}
-%         }
-
+%         } (section 3.2)
+%
+% and
+%
+% @article{mikelic2014numerical,
+%   title={Numerical convergence study of iterative coupling for coupled flow and geomechanics},
+%   author={Mikeli{\'c}, Andro and Wang, Bin and Wheeler, Mary F},
+%   journal={Computational Geosciences},
+%   volume={18},
+%   number={3-4},
+%   pages={325--341},
+%   year={2014},
+%   publisher={Springer}
+% }
+%
 
 clear all
 % close all
@@ -19,8 +32,8 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 %% Setup grid
 
 % physdim = [20, 20] * meter;
-physdim = [1, 1] * meter;
-nx = 5; ny = 3;
+physdim = [1, 1]*meter;
+nx = 200; ny = 10;
 resolution = [nx, ny];
 G = cartGrid(resolution, physdim);
 G = computeGeometry(G);
@@ -157,14 +170,26 @@ fluid.bcstruct = bcstruct;
 model = MandelModel(G, rock, fluid, mech, topfaces);
 model = model.validateModel();
 
-return
 
 %% Setup schedule
 tsteps = 100;
 duration = 1;
-schedule.step.val = duration/tsteps * ones(tsteps, 1);
-schedule.step.control = ones(numel(schedule.step.val), 1);
-schedule.control = struct('W', [], 'extforce', extforce);
+t = duration/tsteps * ones(tsteps, 1);
+tt = [1; 1 + cumsum(t)];
+trepvals = [1e-5; 0.01; 0.1; 0.5; 1];
+cv = 1;
+trep = 1 + trepvals/cv;
+tt = [trep; tt];
+tt = uniquetol(tt, 1e-9);
+tt = [0; tt];
+t = diff(tt);
+schedule.step.val = t;
+
+%%
+schedule.step.control = 2*ones(numel(schedule.step.val), 1);
+schedule.step.control(1) = 1;
+schedule.control(1) = struct('W', [], 'avgtopforce', 0);
+schedule.control(2) = struct('W', [], 'avgtopforce', -1);
 
 %% Setup initial state
 clear initState;
@@ -177,7 +202,8 @@ cellcoltbl = tbls.cellcoltbl;
 initState.u = zeros(cellcoltbl.num, 1);
 nlm = size(loadstruct.bc.linformvals, 1);
 initState.lambdamech = zeros(nlm, 1);
-initState.extforce = 0*extforce;
+initState.avgtopforce = 0;
+initState.vd = 0;
 
 solver = NonLinearSolver('maxIterations', 100);
 [wsol, states] = simulateScheduleAD(initState, model, schedule, 'nonlinearsolver', solver);
@@ -189,20 +215,20 @@ ind = (1 : nx)';
 xc = G.cells.centroids(ind, 1);
 hold on
 
-trep = [0.00001; 0.01; 0.1; 0.5; 1];
-trep = trep/cv;
 tt = cumsum(schedule.step.val);
 legends = {};
 for i = 1 : numel(states);
-    if ismembertol(tt(i), trep, 1e-8);
+    [lia, locb] = ismembertol(tt(i), trep, 1e-8);
+    if lia
         p = states{i}.pressure;
         p = p(ind);
         plot(xc, p);
-        legends{end + 1} = sprintf('%g', tt(i)*cv);
+        legends{end + 1} = sprintf('%g', trepvals(locb));
     end
 end
 legend(legends{:});
 
+return
 
 %% plotting
 figure 
