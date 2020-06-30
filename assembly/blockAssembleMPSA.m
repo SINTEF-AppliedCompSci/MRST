@@ -586,7 +586,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
                         'linform'      , linform      , ...
                         'linformvals'  , linformvals);
             
-            [D, bcvals] = setupNodeFaceBc(bc, G, tbls);
+            [D, bcvals] = setupMpsaNodeFaceBc(bc, G, tbls);
             
         end
         

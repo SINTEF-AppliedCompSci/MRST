@@ -469,7 +469,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     if ~isfield(bc, 'bcnodefacetbl')
         bc = setupFaceBC(bc, G, tbls);
     end
-    [D, bcvals] = setupNodeFaceBc(bc, G, tbls);
+    [D, bcvals] = setupMpsaNodeFaceBc(bc, G, tbls);
     
     extforce = loadstruct.extforce;
     force = loadstruct.force;
