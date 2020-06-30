@@ -20,7 +20,7 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 
 % physdim = [20, 20] * meter;
 physdim = [1, 1] * meter;
-nx = 40;, ny = 20;
+nx = 5; ny = 3;
 resolution = [nx, ny];
 G = cartGrid(resolution, physdim);
 G = computeGeometry(G);
@@ -90,13 +90,16 @@ bottomfaces = bc.face;
 
 lateralfaces = leftfaces;
 
-% on the bottom, we have rolling condition in x-direction
-bottomlinform = repmat([0, 1], numel(bottomfaces), 1);
-% on the lateral walls, we have rolling condition in y-direction
+% At the bottom, we have rolling condition in x-direction
+bottomlinform  = repmat([0, 1], numel(bottomfaces), 1);
+% On the lateral walls, we have rolling condition in y-direction
 laterallinform = repmat([1, 0], numel(lateralfaces), 1);
+% At the top we have an unknown y-displacement but which is constant in x-direction. We incorporate it in the Dirichlet
+% condition and add in the equations an extra variable, see mandelEquations
+toplinform = repmat([0, 1], numel(topfaces), 1);
 
-linform  = [bottomlinform; laterallinform];
-extfaces = [bottomfaces; lateralfaces];
+linform  = [bottomlinform; laterallinform; toplinform];
+extfaces = [bottomfaces; lateralfaces; topfaces];
 bcvals   = zeros(numel(extfaces), 1);
 
 bc = struct('linform'    , linform , ...
@@ -105,42 +108,14 @@ bc = struct('linform'    , linform , ...
 
 bc = setupFaceBC(bc, G, tbls);
 
-% setup vertical force at the top
-
-topfacetbl.faces = topfaces;
-topfacetbl = IndexArray(topfacetbl);
-nodefacecoltbl = tbls.nodefacecoltbl;
-topnodefacecoltbl = crossIndexArray(topfacetbl, nodefacecoltbl, {'faces'});
-
-cellnodefacetbl = tbls.cellnodefacetbl;
-cellnodefacecoltbl = tbls.cellnodefacecoltbl;
-facetNormals = computeFacetNormals(G, cellnodefacetbl);
-
-map = TensorMap();
-map.fromTbl = cellnodefacecoltbl;
-map.toTbl = topnodefacecoltbl;
-map.mergefds = {'faces', 'nodes', 'coldim'};
-map = map.setup();
-
-topnormals = map.eval(facetNormals);
-extforce = -top_force*topnormals;
-
-map = TensorMap();
-map.fromTbl = topnodefacecoltbl;
-map.toTbl = nodefacecoltbl;
-map.mergefds = {'nodes', 'faces', 'coldim'};
-map = map.setup();
-
-extforce = map.eval(extforce);
-
-cellcoltbl = tbls.cellcoltbl;
-force = zeros(cellcoltbl.num, 1);
-
 loadstruct.bc = bc;
-loadstruct.extforce = zeros(nodefacecoltbl.num, 1); % get the dimension right
-loadstruct.force = force;
 
-% setup mech structure 
+nodefacecoltbl = tbls.nodefacecoltbl;
+cellcoltbl = tbls.cellcoltbl;
+loadstruct.extforce = zeros(nodefacecoltbl.num, 1); 
+loadstruct.force = zeros(cellcoltbl.num, 1);
+
+% Setup mech structure 
 mech.prop = mechprop;
 mech.loadstruct = loadstruct;
 
@@ -179,8 +154,10 @@ fluid.bcstruct = bcstruct;
 
 %% Setup Biot model
 
-model = BiotModel(G, rock, fluid, mech);
+model = MandelModel(G, rock, fluid, mech, topfaces);
 model = model.validateModel();
+
+return
 
 %% Setup schedule
 tsteps = 100;

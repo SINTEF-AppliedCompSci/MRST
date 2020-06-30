@@ -20,11 +20,7 @@ classdef BiotModel < PhysicalModel
             
             model = model@PhysicalModel(G, varargin{:});
             model = merge_options(model, varargin{:});
-            
-            % Process the grid for mechanical computation
-            if ~ismember('createAugmentedGrid', model.G.type)
-                model.G = createAugmentedGrid(model.G);
-            end
+
             % Physical properties of rock and fluid
             model.rock  = rock;
             model.mech  = mech;

@@ -1,13 +1,19 @@
 classdef MandelModel < BiotModel
 
 
+    properties
+        topfaces
+    end
+    
 
     methods
         
-        function model = MandelModel(G, rock, fluid, mech, varargin)
+        function model = MandelModel(G, rock, fluid, mech, topfaces, varargin)
             
             model = model@BiotModel(G, rock, fluid, mech, varargin{:});
             model = merge_options(model, varargin{:});
+            model.topfaces = topfaces;
+            model.operators = setMandelOperators(model);
             
         end
         
@@ -71,6 +77,35 @@ classdef MandelModel < BiotModel
             end
 
         end
+        
+        function operators = setMandelOperators(model)
+            
+            op = model.operators;
+            topfaces = model.topfaces;
+            tbls = model.operators.tbls;
+            bc = model.mech.loadstruct.bc;
+            
+            % We recover the degrees of freedom that belongs to the top surface
+            bcnodefacetbl = bc.bcnodefacetbl;
+            bcnodefacetbl = bcnodefacetbl.addLocInd('bcinds');
+
+            topfacetbl.faces = topfaces;
+            topfacetbl = IndexArray(topfacetbl);
+
+            map = TensorMap();
+            map.fromTbl = topfacetbl;
+            map.toTbl = bcnodefacetbl;
+            map.mergefds = {'faces'};
+            map = map.setup();
+
+            toplambdamech = map.eval(ones(topfacetbl.num, 1));
+            toplambdamech = find(toplambdamech);
+            
+            
+            
+            
+        end
+        
 
     end
 

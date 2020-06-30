@@ -15,7 +15,7 @@ function operators = setupBiotOperators(model)
     %% setup flow input
     perm = model.rock.perm;
     
-    assert(numel(perm) == G.cells.num, 'only isotropic perm for the moment');
+    assert(numel(perm) == G.cells.num, 'only isotropic perm for the moment (for simplicity)');
     [tbls, mappings] = setupStandardTables(G, 'useVirtual', false);
 
     celltbl = tbls.celltbl;
@@ -62,6 +62,7 @@ function operators = setupBiotOperators(model)
     
     operators = assembly.adoperators;
     operators.pv = pv;
-   
+    operators.tbls = tbls;
+    
 end
 
