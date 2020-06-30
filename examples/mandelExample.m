@@ -1,13 +1,4 @@
-%% Mandel problem
-% Reference : (section 3.2)
-% @article{verruijt2013theory,
-%          title={Theory and problems of poroelasticity},
-%          author={Verruijt, Arnold},
-%          journal={Delft University of Technology},
-%          volume={71},
-%          year={2013}
-%         }
-
+%% Mandel-like problem
 
 clear all
 % close all
@@ -18,7 +9,6 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 
 %% Setup grid
 
-% physdim = [20, 20] * meter;
 physdim = [1, 1] * meter;
 nx = 40;, ny = 20;
 resolution = [nx, ny];
@@ -26,16 +16,9 @@ G = cartGrid(resolution, physdim);
 G = computeGeometry(G);
 
 % flow parameters
-% perm = 100 * milli * darcy;
-% muW = 0.89 * milli * Pascal / second;
-% poro = 0.25;
 perm = 1;
 muW  = 1;
 poro = 1;
-
-% elastic parameters
-% young = 1 * giga * Pascal;
-% poisson = 0.3;
 
 % Young's modulus
 E = 1;

@@ -79,7 +79,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     
     % Recover the coupling terms
     A14 = coupassembly.divfv;
-    A14 = -A14'; % we use the gradient which is the transpose of minus div
+    A14 = -A14'; % We use the gradient which is the transpose of minus div
     A41 = coupassembly.divconsnf;
     A42 = coupassembly.divconsc;
     
@@ -222,6 +222,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
         divKgradop = @(p, lf) divKgradopFunc(p, lf, divKgrad, divKgradrhs);
 
         % Setup consistent divergence operator (for displacement, includes value of Biot coefficient alpha)
+        % The divergence is volume weighted
         divu{1} = - A41invA11*A12 + A42;
         divu{2} = - A41invA11*A14;
         divu{3} = - A41invA11*A15;

@@ -1,4 +1,5 @@
 %% Mandel problem
+%
 % References : 
 % @article{verruijt2013theory,
 %          title={Theory and problems of poroelasticity},
@@ -33,51 +34,45 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 
 % physdim = [20, 20] * meter;
 physdim = [1, 1]*meter;
-nx = 200; ny = 10;
+nx = 500; ny = 10;
 resolution = [nx, ny];
 G = cartGrid(resolution, physdim);
 G = computeGeometry(G);
 
-% flow parameters
-% perm = 100 * milli * darcy;
-% muW = 0.89 * milli * Pascal / second;
-% poro = 0.25;
+% Flow parameters
 perm = 1;
 muW  = 1;
 poro = 1;
 
-% elastic parameters
-% young = 1 * giga * Pascal;
-% poisson = 0.3;
+% fluid compressibility
+cW = 0; 
 
-% Young's modulus
-E = 1;
+% Bulk's modulus
+K = 1;
 % Poisson's ratio
 nu = 0;
+% Second Lamé parameter (also called Shear modulus and denoted G)
+mu = 3/2*((1 - 2*nu)/(1 + nu))*K;
+Gm = mu;
 
 % First Lamé parameter
-lambda = E*nu/((1 + nu)*(1 - 2*nu));
-% Second Lamé parameter (also called Shear modulus and denoted G)
-mu = E/(2*(1 + nu));
+lambda = K - 2/3*Gm;
 Gm = mu;
-% Bulk modulus K
-K = E/(2*(1 - 2*nu)); 
 
-% consolidation coefficient
+% Consolidation coefficient
 cv = perm/muW*(K + 3*Gm); % see reference verruijt2013theory
 
-alpha = 1; % biot's coefficient
+% biot's coefficient
+alpha = 1;
 
-% for at top
-% top_force = 100 * mega * Pascal;
+% force at top
 top_force = 1;
+
+% setup rock
 
 rock.poro  = poro * ones(G.cells.num, 1);
 rock.perm  = (perm/muW) * ones(G.cells.num, 1);
 rock.alpha = alpha * ones(G.cells.num, 1);
-
-% incompressible fluid
-cW = 0; 
 
 % reference pressure on the side
 pref = 0*barsa;
@@ -170,14 +165,13 @@ fluid.bcstruct = bcstruct;
 model = MandelModel(G, rock, fluid, mech, topfaces);
 model = model.validateModel();
 
-
 %% Setup schedule
+
 tsteps = 100;
 duration = 1;
-t = duration/tsteps * ones(tsteps, 1);
+t = duration/tsteps*ones(tsteps, 1);
 tt = [1; 1 + cumsum(t)];
 trepvals = [1e-5; 0.01; 0.1; 0.5; 1];
-cv = 1;
 trep = 1 + trepvals/cv;
 tt = [trep; tt];
 tt = uniquetol(tt, 1e-9);
@@ -186,10 +180,11 @@ t = diff(tt);
 schedule.step.val = t;
 
 %%
+
 schedule.step.control = 2*ones(numel(schedule.step.val), 1);
 schedule.step.control(1) = 1;
 schedule.control(1) = struct('W', [], 'avgtopforce', 0);
-schedule.control(2) = struct('W', [], 'avgtopforce', -1);
+schedule.control(2) = struct('W', [], 'avgtopforce', top_force);
 
 %% Setup initial state
 clear initState;
@@ -208,7 +203,8 @@ initState.vd = 0;
 solver = NonLinearSolver('maxIterations', 100);
 [wsol, states] = simulateScheduleAD(initState, model, schedule, 'nonlinearsolver', solver);
 
-%% Mandel plot
+%% Mandel plot (pressure profile for some selected values)
+
 figure
 clf
 ind = (1 : nx)';
@@ -228,9 +224,8 @@ for i = 1 : numel(states);
 end
 legend(legends{:});
 
-return
-
 %% plotting
+
 figure 
 clf
 plotToolbar(G, states);
@@ -241,12 +236,7 @@ ind = 1;
 pmid = cellfun(@(state) state.pressure(ind), states);
 tt = cumsum(schedule.step.val);
 plot(tt, pmid, '*');
+title('Pressure evolution at left edge')
 
-figure
-clf
-inds = (1 : resolution(1))';
-xc = G.cells.centroids(inds, 1);
-pc = states{end}.pressure(inds);
-plot(xc, pc);
-title('pressure in slide');
+
 
