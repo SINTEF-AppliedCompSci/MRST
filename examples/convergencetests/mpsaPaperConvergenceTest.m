@@ -1,4 +1,4 @@
-function convergenceTest()
+function mpsaPaperConvergenceTest()
 % Script for running convergence test
 % see function mpsaPaperConvergenceFunc
 
