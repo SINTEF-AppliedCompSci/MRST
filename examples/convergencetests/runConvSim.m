@@ -73,7 +73,6 @@ function output = runConvSim(G, params, varargin)
         end
     end
     
-    
     % Prepare input for analytical functions
     for idim = 1 : Nd
         bnfc{idim} = bcnodefacecents(:, idim);

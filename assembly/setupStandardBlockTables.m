@@ -14,7 +14,7 @@ function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, varar
     cellnodetbl = sortIndexArray(cellnodetbl, {'cells', 'nodes'});
     
     celltbl = projIndexArray(cellnodetbl, {'cells'});
-
+    
     map = TensorMap();
     map.fromTbl = globcelltbl;
     map.toTbl = celltbl;    
@@ -25,14 +25,20 @@ function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, varar
     nodefacetbl = crossIndexArray(nodetbl, globnodefacetbl, {'nodes'});
     nodefacetbl = sortIndexArray(nodefacetbl, {'nodes', 'faces'});    
     
+    facetbl = projIndexArray(nodefacetbl, {'faces'});
+    
     cellnodefacetbl = crossIndexArray(nodetbl, globcellnodefacetbl, {'nodes'});
     cellnodefacetbl = sortIndexArray(cellnodefacetbl, {'cells', 'nodes', ...
                         'faces'});
     
+    cellfacetbl = projIndexArray(cellnodefacetbl, {'cells', 'faces'});
+    
     inittbls = struct('celltbl', celltbl, ...
                       'nodetbl', nodetbl, ...
+                      'facetbl', facetbl, ...
                       'cellnodetbl', cellnodetbl, ...
                       'nodefacetbl', nodefacetbl, ...
+                      'cellfacetbl', cellfacetbl, ...
                       'cellnodefacetbl', cellnodefacetbl);
         
     [tbls, mappings] = setupStandardTables(G, 'inittbls', inittbls, 'useVirtual', useVirtual);

@@ -18,6 +18,7 @@ function [tbls, mappings] = setupStandardTables(G, varargin)
         nodetbl         = itbls.nodetbl;
         cellnodetbl     = itbls.cellnodetbl;
         nodefacetbl     = itbls.nodefacetbl;
+        cellfacetbl     = itbls.cellfacetbl;
         cellnodefacetbl = itbls.cellnodefacetbl;
          
     else

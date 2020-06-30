@@ -35,7 +35,7 @@ function mpsaPaperConvergenceTest()
     if dothiscase
         params = struct('nref'    , 6, ...
                         'Nd'      , 2, ...
-                        'kappa'   , 0, ...
+                        'kappa'   , 1, ...
                         'alpha'   , 0, ...
                         'gridtype', 1, ... % Cartesian
                         'eta'     , 0);
@@ -47,7 +47,6 @@ function mpsaPaperConvergenceTest()
         
         savethisfigure(params);
     end
-    
 
     %% New Case
     dothiscase = true;
