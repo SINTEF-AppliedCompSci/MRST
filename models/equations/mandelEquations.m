@@ -1,5 +1,17 @@
 function [eqs, names, types, state] = mandelEquations(model, state0, state, dt, drivingForces, varargin)
             
+% The mechanical part of the assembly takes the form
+% 
+% | A   -D   0  0 |   |u  |   |  0 |
+% | D'   0   0  R | * |lm | = |  0 |
+% | 0    0   R' 0 |   |vd |   | -F |
+%
+% where u : displacement
+%      lm : Lagrangian multiplier for displacement constraint at boundary
+%      vd : Vertical displacement (scalar value) of the top plate
+%      F  : Total force exterted at the top
+%
+    
     G     = model.G;
     fluid = model.fluid;
     op    = model.operators;
@@ -33,7 +45,7 @@ function [eqs, names, types, state] = mandelEquations(model, state0, state, dt, 
     eqs{2} = 1/dt.*(pv.*c.*(p - p0) + (divu - divu0)) + divKgradop(p, lf);
     eqs{3} = fac*(mechdirop(u, p, lm) - R*vd);
     eqs{4} = fluiddirop(p, lf);
-    eqs{5} = R'*lm - avgtopforce;
+    eqs{5} = R'*lm + avgtopforce;
     
     names = {'momentum', 'mass', 'bcmech', 'bcfluid', 'vertdisp'};
     types = {'cellcol', 'cell', 'bcmech', 'bcfluid', 'vertdisp'};
