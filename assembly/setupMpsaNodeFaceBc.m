@@ -1,5 +1,5 @@
 function [D, bcvals] = setupMpsaNodeFaceBc(bc, G, tbls)
-% the structure bc gives conditions on the nodeface displacement
+    % The structure bc gives conditions on the nodeface displacement
 
     assert(isfield(bc, 'bcnodefacetbl'), ['this function is meant to set ' ...
                         'boundary conditions at the nodeface'])

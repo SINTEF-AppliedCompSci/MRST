@@ -91,19 +91,25 @@ u = sol(1 : n);
 % values of Lagrangian corresponding to Dirichlet contraint
 lm = sol((n + 1) : end);
 
-% We compute node-face displacement values
-op = assembly.adoperators;
-unf = op.facenodedispop(u, lm);
-% We compute stress
-stress = op.stressop(unf, u);
-assert(dim == 2, 'only 2d treated here at the moment');
-stress = formatField(stress, dim, 'stress');
+isstresscomputed = false;
+if strcmp(casetype, 'standard')
+    % We compute node-face displacement values
+    op = assembly.adoperators;
+    unf = op.facenodedispop(u, lm);
+    % We compute stress
+    stress = op.stressop(unf, u);
+    assert(dim == 2, 'only 2d treated here at the moment');
+    stress = formatField(stress, dim, 'stress');
+    isstresscomputed = true;
+end
 
 plotdeformedgrid = true;
 if plotdeformedgrid
     lagmult = sol(n + 1 : end);
     unode = computeNodeDisp(u, tbls);
     unvec = formatField(unode, dim, 'displacement');
+    coef = 1e0;
+    plotGridDeformed(G, coef*unvec);
 end
 
 dim = G.griddim;
@@ -121,28 +127,25 @@ if doplotsol
     titlestr = sprintf('displacement - %s direction, eta=%g', 'y', eta);
     title(titlestr)
     colorbar
-    figure
-    plotCellData(G, stress(:, 1));
-    titlestr = sprintf('stress xx', eta);
-    title(titlestr)
-    colorbar
-    figure
-    plotCellData(G, stress(:, 2));
-    titlestr = sprintf('stress yy', eta);
-    title(titlestr)
-    colorbar
-    figure
-    plotCellData(G, stress(:, 3)); 
-    titlestr = sprintf('stress xy', eta);
-    title(titlestr)
-    colorbar
+    if isstresscomputed
+        figure
+        plotCellData(G, stress(:, 1));
+        titlestr = sprintf('stress xx', eta);
+        title(titlestr)
+        colorbar
+        figure
+        plotCellData(G, stress(:, 2));
+        titlestr = sprintf('stress yy', eta);
+        title(titlestr)
+        colorbar
+        figure
+        plotCellData(G, stress(:, 3)); 
+        titlestr = sprintf('stress xy', eta);
+        title(titlestr)
+        colorbar
+    end
 end
 
-if plotdeformedgrid
-    figure 
-    coef = 1e0;
-    plotGridDeformed(G, coef*unvec);
-end
 
 doplotcontpoints = false;
 if doplotcontpoints
