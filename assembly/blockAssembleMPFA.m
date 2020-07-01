@@ -131,7 +131,8 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         
         K = map.eval(Kglob);
         
-        % We enforce the Dirichlet boundary conditions as Lagrange multipliers
+        % We collect the degrees of freedom in the current block that belongs to the boundary.
+
         bcnodefacetbl = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
         
         bcterm_exists = true;
@@ -198,14 +199,18 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         map.mergefds = {'cells'};
         cellind = map.getDispatchInd();
         
-        B11 = B11 + sparse(repmat(cellind, 1, nc), repmat(cellind', nc, 1), locB11, gnc, gnc);
+        [i, j, v] = find(locB11); 
+        B11 = B11 + sparse(cellind(i), cellind(j), v, gnc, gnc);
         rhsc(cellind) = rhsc(cellind) + locrhsc;
         
         if bcterm_exists
             nbc = bcnodefacetbl.num;
-            B22 = B22 + sparse(repmat(bcind, 1, nbc),   repmat(bcind', nbc, 1),   locB22, gnbc, gnbc);
-            B12 = B12 + sparse(repmat(cellind, 1, nbc), repmat(bcind', nc, 1),    locB12, gnc,  gnbc);
-            B21 = B21 + sparse(repmat(bcind, 1, nc),    repmat(cellind', nbc, 1), locB21, gnbc, gnc);
+            [i, j, v] = find(locB22);
+            B22 = B22 + sparse(bcind(i), bcind(j), v, gnbc, gnbc);
+            [i, j, v] = find(locB12);
+            B12 = B12 + sparse(cellind(i), bcind(j), v, gnc, gnbc);
+            [i, j, v] = find(locB21);
+            B21 = B21 + sparse(bcind(i), cellind(j), v, gnbc, gnc);
             rhsbc(bcind) = rhsbc(bcind) + locrhsbc;
         end
         

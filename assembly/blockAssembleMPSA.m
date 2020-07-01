@@ -45,10 +45,6 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     globforce = loadstruct.force;
 
     globbc = loadstruct.bc;
-    if ~isfield(globbc, 'bcnodefacetbl')
-        globbc = setupFaceBC(globbc, G, globtbls);
-    end
-    
     globbcnodefacetbl = globbc.bcnodefacetbl;        
     globbcnodefacetbl = globbcnodefacetbl.addLocInd('bcinds');    
     globbcnodefacecoltbl = crossIndexArray(globbcnodefacetbl, coltbl, {}, ...
@@ -139,7 +135,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         
         C = map.eval(Cglob);
         
-        % We enforce the boundary conditions as Lagrange multipliers
+        % We collect the degrees of freedom in the current block that belongs to the boundary.
         
         bcnodefacetbl = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', ...
                             'faces'});
@@ -248,24 +244,22 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         
         ncc = cellcoltbl.num;
         
-        B11 = B11 + sparse(repmat(cellind, 1, ncc), repmat(cellind', ncc, 1), ...
-                           locB11, gncc, gncc);
+        [i, j, v] = find(locB11);
+        B11 = B11 + sparse(cellind(i), cellind(j), v, gncc, gncc);
         
         if bcterm_exists
             
             nbc = bcnodefacetbl.num;
+            [i, j, v] = find(locB22);
+            B22 = B22 + sparse(bcind(i), bcind(j), v, gnbc, gnbc);
+            [i, j, v] = find(locB12);
+            B12 = B12 + sparse(cellind(i), bcind(j), v, gncc, gnbc);
+            [i, j, v] = find(locB21);
+            B21 = B21 + sparse(bcind(i), cellind(j), v, gnbc, gncc);
             
-            B22 = B22 + sparse(repmat(bcind, 1, nbc), repmat(bcind', nbc, 1), ...
-                               locB22, gnbc, gnbc);
-
-            B12 = B12 + sparse(repmat(cellind, 1, nbc), repmat(bcind', ncc, 1), ...
-                               locB12, gncc, gnbc);
-            
-            B21 = B21 + sparse(repmat(bcind, 1, ncc), repmat(cellind', nbc, 1), ...
-                               locB21, gnbc, gncc);
         end
         
-        
+        % We get the part of external force that acts on the block
         map = TensorMap();
         map.fromTbl = globnodefacecoltbl;
         map.toTbl = nodefacecoltbl;
