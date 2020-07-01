@@ -16,6 +16,7 @@
 * MPFA - Flow
 ** [[file:assemblyMpfaExample.m][~assemblyMpfaExample~]]
    - Example using bare assembly functionalities.
+   - Test that linear pressure field is computed exactly in a irregular grid
 ** [[file:assembleMpfaExample2.m][~assembleMpfaExample2~]]
    - Example using bare assembly functionalities
    - use grids from predefined mechanical test cases ('2d-linear', '2d-refinement', etc)

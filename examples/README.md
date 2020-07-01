@@ -30,6 +30,7 @@
 ## [`assemblyMpfaExample`](assemblyMpfaExample.m)
 
 -   Example using bare assembly functionalities.
+-   Test that linear pressure field is computed exactly in a irregular grid
 
 
 ## [`assembleMpfaExample2`](assembleMpfaExample2.m)
@@ -53,9 +54,16 @@
 -   uses mech test cases ('2d-linear', '2d-refinement', etc).
 
 
-## [`mandelExample`](mandelExample.m)
+## [`mandel`](mandel.m)
 
 -   Mandel test case.
+-   use [`MandelModel`](file:///home/xavier/Matlab/Projects/project-mpsaw/models/MandelModel.m) AD model.
+
+
+## [`topforceExample`](topforceExample.m)
+
+-   Test case where a force is applied at the top
+-   The force is given in the schedule
 -   use [`BiotModel`](../models/BiotModel.m) AD model.
 
 
