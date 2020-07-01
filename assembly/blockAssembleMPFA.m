@@ -131,19 +131,6 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         
         K = map.eval(Kglob);
         
-        % Setup main assembly matrices
-        dooptimize = useVirtual;
-        opts = struct('eta', eta, ...
-                      'bcetazero', opt.bcetazero, ...
-                      'dooptimize', dooptimize);
-        [matrices, extra] = coreMpfaAssembly(G, K, tbls, mappings, opts);
-    
-        A11 = matrices.A11;
-        A12 = matrices.A12;
-        A21 = matrices.A21;
-        A22 = matrices.A22;
-        invA11 = matrices.invA11;
-
         % We enforce the Dirichlet boundary conditions as Lagrange multipliers
         bcnodefacetbl = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
         
@@ -158,14 +145,27 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
             map.toTbl = bcnodefacetbl;
             map.mergefds = {'nodes', 'faces'};
             bcind = map.getDispatchInd();
-        
+            
             clear bcdirichlet;
             bcdirichlet.bcnodefacetbl = bcnodefacetbl;
             bcdirichlet.bcvals = []; % not used locally
-            
-            [D, ~] = setupMpfaNodeFaceBc(bcdirichlet, tbls);
-            
+        else
+            bcdirichlet = [];
         end
+
+        % Setup main assembly matrices
+        dooptimize = useVirtual;
+        opts = struct('eta', eta, ...
+                      'bcetazero', opt.bcetazero, ...
+                      'dooptimize', dooptimize);
+        [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts);
+    
+        A11 = matrices.A11;
+        A12 = matrices.A12;
+        A21 = matrices.A21;
+        A22 = matrices.A22;
+        D = matrices.D;
+        invA11 = matrices.invA11;
         
         map = TensorMap();
         map.fromTbl = globnodefacetbl;
@@ -189,7 +189,7 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         % locB22 : bcnodefacetbl -> bcnodefacetbl
         % locB12 : bcnodefacetbl -> celltbl
         % locB21 : celltbl       -> bcnodefacetbl 
-        % Above, we recall that these index arrays are all local.
+        % We recall that these index arrays are all local.
 
         nc = celltbl.num;
         map = TensorMap();

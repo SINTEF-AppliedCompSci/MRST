@@ -70,12 +70,13 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     nf_num    = nodefacetbl.num;
     cnfcr_num = cellnodefacecolrowtbl.num;
     d_num     = coltbl.num;
-
+    
     % Setup main assembly matrices
+    bcdirichlet = bcstruct.bcdirichlet;
     opts = struct('eta', eta, ...
                   'bcetazero', opt.bcetazero, ...
                   'dooptimize', dooptimize);
-    [matrices, extra] = coreMpfaAssembly(G, K, tbls, mappings, opts);
+    [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts);
     
     % We enforce the Dirichlet boundary conditions as Lagrange multipliers
     if ~isempty(bcstruct.bcneumann)
@@ -84,24 +85,11 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
         nf_num = nodefacetbl.num;
         extflux = zeros(nf_num, 1);
     end
-    
 
     if isempty(src)
         src = zeros(celltbl.num, 1);
     end
     
-    bcdirichlet = bcstruct.bcdirichlet;
-    if ~isempty(bcdirichlet)
-        [D, bcvals] = setupMpfaNodeFaceBc(bcdirichlet, tbls);
-        % scale D
-        A11 = matrices.A11;
-        fac    = max(max(abs(A11)));
-        D      = fac*D;
-        bcvals = fac*bcvals;
-    else
-        D      = ones(size(A11, 1), 0);
-        bcvals = [];
-    end
     
     fullrhs{1} = extflux;
     fullrhs{2} = src;
@@ -109,9 +97,8 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     
     if (opt.onlyAssemblyMatrices | opt.addAssemblyMatrices | opt.addAdOperators)
         
-        matrices.D = D;
-        matrices.fullrhs = fullrhs;
         assembly.matrices = matrices;
+        matrices.fullrhs = fullrhs;
         assembly.nKg = nKg;
         
         if opt.onlyAssemblyMatrices
@@ -140,6 +127,7 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     A12 = matrices.A12;
     A21 = matrices.A21;
     A22 = matrices.A22;
+    D = matrices.D;
     
     B11 = A22 - A21*invA11*A12;
     B12 = A21*invA11*D;

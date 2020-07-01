@@ -1,4 +1,4 @@
-function [matrices, extra] = coreMpfaAssembly(G, K, tbls, mappings, opts)
+function [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts)
     
     bcetazero = opts.bcetazero;
     eta = opts.eta;
@@ -256,11 +256,19 @@ function [matrices, extra] = coreMpfaAssembly(G, K, tbls, mappings, opts)
     A22_T = A22_T.setFromTensorProd(A22, prod);
     A22 = A22_T.getMatrix();
     
+    if ~isempty(bcdirichlet)
+        [D, bcvals] = setupMpfaNodeFaceBc(bcdirichlet, tbls);
+    else
+        D = ones(size(A11, 1), 0);
+        bcvals = [];
+    end
+
     matrices = struct('invA11', invA11, ...
                       'A11', A11, ...
                       'A12', A12, ...
                       'A21', A21, ...
-                      'A22', A22);
+                      'A22', A22, ...
+                      'D', D);
     
     extra = [];
     
