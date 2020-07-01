@@ -25,7 +25,8 @@ function [D, bcvals] = setupMpsaNodeFaceBc(bc, G, tbls)
     map = map.setup();
     
     nnodeperface = map.eval(ones(nodefacetbl.num, 1));
-    nfareas = 1/nnodeperface.*(G.faces.areas);
+    faces = facetbl.get('faces');
+    nfareas = 1./nnodeperface.*(G.faces.areas(faces));
     
     % We weight the linear form with the area
     prod = TensorProd();
