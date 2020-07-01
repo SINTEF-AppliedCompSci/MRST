@@ -3,12 +3,12 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
     opt = struct('verbose'  , mrstVerbose, ...
                  'blocksize', [], ...
                  'bcetazero', true, ...
-                 'useVirtual', false);
+                 'useVirtual', true);
+    
     opt = merge_options(opt, varargin{:});
     
-    useVirtual = opt.useVirtual;
     blocksize = opt.blocksize;
-    
+    useVirtual = opt.useVirtual;
     
     nn = G.nodes.num;
     nblocks = floor(nn/blocksize);
@@ -68,6 +68,8 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
     gnc = globcelltbl.num;
     gnbc = globbcnodefacetbl.num;
     
+    Kglob = K;
+    
     B11 = sparse(gnc, gnc);
     B12 = sparse(gnc, gnbc);
     B21 = sparse(gnbc, gnc);
@@ -91,12 +93,14 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         
         [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, 'useVirtual', useVirtual);
 
-        celltbl               = tbls.celltbl;
-        nodetbl               = tbls.nodetbl;
-        cellnodetbl           = tbls.cellnodetbl;
-        nodefacetbl           = tbls.nodefacetbl;
-        cellcoltbl            = tbls.cellcoltbl;
-        nodecoltbl            = tbls.nodecoltbl;
+        celltbl     = tbls.celltbl;
+        colrowtbl   = tbls.colrowtbl;
+        nodetbl     = tbls.nodetbl;
+        cellnodetbl = tbls.cellnodetbl;
+        nodefacetbl = tbls.nodefacetbl;
+        cellcoltbl  = tbls.cellcoltbl;
+        nodecoltbl  = tbls.nodecoltbl;
+        
         nodefacecoltbl        = tbls.nodefacecoltbl;
         cellnodefacetbl       = tbls.cellnodefacetbl;
         cellnodecoltbl        = tbls.cellnodecoltbl;
@@ -108,141 +112,37 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
         cellcolrowtbl         = tbls.cellcolrowtbl;
         
-        %  g belongs to cellnodefacecoltbl;
-        g = computeConsistentGradient(G, eta, tbls, mappings);
-
-        % facetNormals belongs to cellnodefacecoltbl;
-        normals = computeFacetNormals(G, cellnodefacetbl);
-
-        % K belongs to cellcolrowtbl
-
-        % Set up product of K (in cellcolrowtbl) with g (in cellnodefacecoltbl)
-        prod = TensorProd();
-        prod.tbl1 = cellcolrowtbl;
-        prod.tbl2 = cellnodefacecoltbl;
-        prod.tbl3 = cellnodefacecoltbl;
-        prod.replacefds2 = {{'coldim', 'rowdim'}};
-        prod.mergefds = {'cells'};
-        prod.reducefds = {'rowdim'};
-        prod = prod.setup();
+        globcell_from_cell = mappings.globcell_from_cell;
         
-        Kg = prod.eval(K, g);
+        map = TensorMap();
+        map.fromTbl = globcellcolrowtbl;
+        map.toTbl = cellcolrowtbl;
+        map.mergefds = {'cells', 'coldim', 'rowdim'};
         
-        % Set up space for local mapping around the nodes.
-        cellnodeface2tbl = crossIndexArray(cellnodefacetbl, cellnodefacetbl, {'cells', 'nodes'}, 'crossextend', {{'faces', {'faces1', 'faces2'}}});
+        map.pivottbl = cellcolrowtbl;
+        c_num = celltbl.num; %shortcut
+        ccr_num = cellcolrowtbl.num; %shortcut
+        cr_num = colrowtbl.num; %shortcut
+        gc_num = globcellcolrowtbl.num; %shortcut
+        [cr, i] = ind2sub([cr_num, c_num], (1 : ccr_num)');
+        map.dispind1 = sub2ind([cr_num, gc_num], cr, globcell_from_cell(i));
+        map.dispind2 = (1 : ccr_num)';
+        map.issetup = true;
         
-        prod = TensorProd();
-        prod.tbl1 = cellnodefacecoltbl;
-        prod.tbl2 = cellnodefacecoltbl;
-        prod.tbl3 = cellnodeface2tbl;
-        prod.replacefds1 = {{'faces', 'faces1'}};
-        prod.replacefds2 = {{'faces', 'faces2'}};
-        prod.mergefds = {'cells', 'nodes'};
-        prod.reducefds = {'coldim'};
-        prod = prod.setup();
+        K = map.eval(Kglob);
         
-        nKg = prod.eval(normals, Kg);
-        
-        nodeface2tbl = crossIndexArray(nodefacetbl, nodefacetbl, {'nodes'}, 'crossextend', {{'faces', {'faces1', 'faces2'}}});
+        % Setup main assembly matrices
+        dooptimize = useVirtual;
+        opts = struct('eta', eta, ...
+                      'bcetazero', opt.bcetazero, ...
+                      'dooptimize', dooptimize);
+        [matrices, extra] = coreMpfaAssembly(G, K, tbls, mappings, opts);
     
-        %% Setup A11 matrix (facenode dof -> facenode dof)
-        
-        map = TensorMap();
-        map.fromTbl = cellnodeface2tbl;
-        map.toTbl = nodeface2tbl;
-        map.mergefds = {'nodes', 'faces1', 'faces2'};
-        map = map.setup();
-        
-        A11 = map.eval(nKg);
-        
-        prod = TensorProd();
-        prod.tbl1 = nodeface2tbl;
-        prod.tbl2 = nodefacetbl;
-        prod.tbl3 = nodefacetbl;
-        prod.replacefds1 = {{'faces1', 'faces'}};
-        prod.replacefds2 = {{'faces', 'faces2'}};
-        prod.mergefds = {'nodes'};
-        prod.reducefds = {'faces2'};
-        prod = prod.setup();
-        
-        A11_T = SparseTensor();
-        A11_T = A11_T.setFromTensorProd(A11, prod);
-        A11 = A11_T.getMatrix();
-        
-        [~, sz] = rlencode(nodefacetbl.get('nodes'), 1);
-        opt.invertBlocks = 'mex';
-        bi = blockInverter(opt);
-        invA11 = bi(A11, sz);
-
-        
-        %% Setup A12 matrix (cell dof -> facenode dof)    
-        
-        map = TensorMap();
-        map.fromTbl = cellnodeface2tbl;
-        map.toTbl = cellnodefacetbl;
-        map.replaceFromTblfds = {{'faces1', 'faces'}};
-        map.mergefds = {'cells', 'nodes', 'faces'};
-        map = map.setup();
-        
-        % beware minus sign here
-        A12 = - map.eval(nKg);
-        
-        prod = TensorProd();
-        prod.tbl1 = cellnodefacetbl;
-        prod.tbl2 = celltbl;
-        prod.tbl3 = nodefacetbl;
-        prod.reducefds = {'cells'};
-        prod = prod.setup();
-        
-        A12_T = SparseTensor();
-        A12_T = A12_T.setFromTensorProd(A12, prod);
-        A12 = A12_T.getMatrix();
-
-        
-        %% Setup A21 matrix (facenode dof -> cell dof)    
-        
-        map = TensorMap();
-        map.fromTbl = cellnodeface2tbl;
-        map.toTbl = cellnodefacetbl;
-        map.replaceFromTblfds = {{'faces2', 'faces'}};
-        map.mergefds = {'cells', 'nodes', 'faces'};
-        map = map.setup();
-        
-        % beware minus sign here
-        A21 = -map.eval(nKg);
-        
-        prod = TensorProd();
-        prod.tbl1 = cellnodefacetbl;
-        prod.tbl2 = nodefacetbl;
-        prod.tbl3 = celltbl;
-        prod.reducefds = {'faces', 'nodes'};
-        prod = prod.setup();
-        
-        A21_T = SparseTensor();
-        A21_T = A21_T.setFromTensorProd(A21, prod);
-        A21 = A21_T.getMatrix();
-        
-        
-        %% Setup A22 matrix (cell dof -> cell dof)    
-        
-        map = TensorMap();
-        map.fromTbl = cellnodeface2tbl;
-        map.toTbl = celltbl;
-        map.mergefds = {'cells'};
-        map = map.setup();
-        
-        A22 = map.eval(nKg);
-        
-        prod = TensorProd();
-        prod.tbl1 = celltbl;
-        prod.tbl2 = celltbl;
-        prod.tbl3 = celltbl;
-        prod.mergefds = {'cells'};
-        prod = prod.setup();
-        
-        A22_T = SparseTensor();
-        A22_T = A22_T.setFromTensorProd(A22, prod);
-        A22 = A22_T.getMatrix();
+        A11 = matrices.A11;
+        A12 = matrices.A12;
+        A21 = matrices.A21;
+        A22 = matrices.A22;
+        invA11 = matrices.invA11;
 
         % We enforce the Dirichlet boundary conditions as Lagrange multipliers
         bcnodefacetbl = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
