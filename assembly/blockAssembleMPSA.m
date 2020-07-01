@@ -122,28 +122,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         
         dim = coltbl.num;
         
-        cellnodefacecents = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', opt.bcetazero);
-
-        [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-        ind1 = i;
-        ind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
-
-        cnc_num = cellnodecoltbl.num;
-        assert(cnc_num == cnf_num, ['This implementation of mpsaw cannot handle ' ...
-                            'this grid']);
-
-        A = sparse(ind1, ind2, cellnodefacecents, cnc_num, cnc_num);
-
-        opt.invertBlocks = 'mex';
-        bi = blockInverter(opt);
-
-        sz = repmat(coltbl.num, cellnodetbl.num, 1);
-        invA = bi(A, sz);
-        
-        ind = sub2ind([cnf_num, cnc_num], ind2, ind1);
-        
-        g = invA(ind);
-    
+        g = computeConsistentGradient(G, eta, tbls, mappings, 'bcetazero', opt.bcetazero);
     
         %% Construction of the gradient operator
         %
@@ -552,6 +531,8 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         % We count the number of degrees of freedom that are connected to the same
         % node.
         [nodes, sz] = rlencode(nodefacecoltbl.get('nodes'), 1);
+        opt.invertBlocks = 'mex';
+        bi = blockInverter(opt);
         invA11 = bi(A11, sz);
 
         % We enforce the boundary conditions as Lagrange multipliers
