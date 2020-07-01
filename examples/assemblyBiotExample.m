@@ -130,7 +130,7 @@ props = struct('mechprops' , mechprops , ...
 casetype = 'blockassembly';
 switch casetype
   case 'blockassembly'
-    assembly = blockAssembleBiot(G, props, drivingforces, eta, tbls, mappings, 'blocksize', 20);
+    assembly = blockAssembleBiot(G, props, drivingforces, eta, tbls, mappings, 'blocksize', 20, 'verbose', true);
   case 'standard'
     assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings);
 end
