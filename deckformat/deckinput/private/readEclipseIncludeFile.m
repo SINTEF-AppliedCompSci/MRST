@@ -197,7 +197,7 @@ function [root, pth, search_fn] = split_filename_path(inc_fn, dirname)
 
    [pth, search_fn, ext] = fileparts(regexprep(inc_fn, dirname, ''));
 
-   if ~strcmp(pth(1), '/')
+   if isempty(pth) || ~strcmp(pth(1), '/')
       root = dirname;
    else
       root = '/';  pth = pth(2:end);
@@ -212,6 +212,8 @@ function fname = ...
       search_filename_case_insensitively(fname, pth, search_fn)
 
    for e = [ regexp(pth, '/', 'split'), { search_fn } ]
+      if isempty(e) || isempty(e{1}) || all(isspace(e{1})), continue; end
+
       d     = dir(fname);
       elems = { d.name };
       ix    = find(strcmpi(elems, e{1}));
