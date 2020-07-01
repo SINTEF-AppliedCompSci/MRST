@@ -28,4 +28,5 @@
 * Comment that computing facenodedisp to get div (for example) is not efficient
 * Change in property functions assignment through setupStateFunctionGroupings requires validateModel
 * Remove setupfacebc from assembly
+* clean-up useVirtual and doptimize logic
 
