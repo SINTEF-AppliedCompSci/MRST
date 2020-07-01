@@ -1,10 +1,12 @@
 function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, globmappings, varargin)
     
-    opt = struct('verbose'    , mrstVerbose, ...
-                 'blocksize'  , []         , ...
-                 'bcetazero'  , true       , ...
-                 'useVirtual' , true       , ...
-                 'extraoutput', false);
+    opt = struct('verbose'         , mrstVerbose, ...
+                 'assemblyMatrices', false      , ...
+                 'addAdOperators'  , false      , ...
+                 'blocksize'       , []         , ...
+                 'bcetazero'       , true       , ...
+                 'useVirtual'      , true       , ...
+                 'extraoutput'     , false);
         
     opt = merge_options(opt, varargin{:});
     
@@ -55,13 +57,34 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
     colrowtbl      = globtbls.colrowtbl;
     col2row2tbl    = globtbls.col2row2tbl;
     
-    globnodetbl        = globtbls.nodetbl;
-    globcellcoltbl     = globtbls.cellcoltbl;
-    globnodecoltbl     = globtbls.nodecoltbl;
-    globcellnodetbl    = globtbls.cellnodetbl;
-    globcellnodecoltbl = globtbls.cellnodecoltbl;
-    globnodefacecoltbl = globtbls.nodefacecoltbl;
-    globcellcol2row2tbl = globtbls.cellcol2row2tbl;
+    globcoltbl                = globtbls.coltbl;
+    globcolrowtbl             = globtbls.colrowtbl;
+    globcol2row2tbl           = globtbls.col2row2tbl;
+    globnodetbl               = globtbls.nodetbl;
+    globcellcoltbl            = globtbls.cellcoltbl;
+    globnodecoltbl            = globtbls.nodecoltbl;
+    globcellnodetbl           = globtbls.cellnodetbl;
+    globcellnodecoltbl        = globtbls.cellnodecoltbl;
+    globnodefacecoltbl        = globtbls.nodefacecoltbl;
+    globcellcol2row2tbl       = globtbls.cellcol2row2tbl;
+    globcellcolrowtbl         = globtbls.cellcolrowtbl;
+    globcoltbl                = globtbls.coltbl;
+    globcelltbl               = globtbls.celltbl;
+    globnodetbl               = globtbls.nodetbl;
+    globcellnodetbl           = globtbls.cellnodetbl;
+    globnodefacetbl           = globtbls.nodefacetbl;
+    globcellcoltbl            = globtbls.cellcoltbl;
+    globnodecoltbl            = globtbls.nodecoltbl;
+    globnodefacecoltbl        = globtbls.nodefacecoltbl;
+    globcellnodefacetbl       = globtbls.cellnodefacetbl;
+    globcellnodecoltbl        = globtbls.cellnodecoltbl;
+    globcellnodecolrowtbl     = globtbls.cellnodecolrowtbl;
+    globcellnodefacecolrowtbl = globtbls.cellnodefacecolrowtbl;
+    globcolrowtbl             = globtbls.colrowtbl;
+    globnodecolrowtbl         = globtbls.nodecolrowtbl;
+    globcol2row2tbl           = globtbls.col2row2tbl;
+    globcellcol2row2tbl       = globtbls.cellcol2row2tbl;
+    globcellnodecol2row2tbl   = globtbls.cellnodecol2row2tbl;
     
     dim = coltbl.num;
     
@@ -70,9 +93,10 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
     fluidprops = props.fluidprops;
     coupprops  = props.coupprops;
    
-    globC = setupStiffnessTensor(mechprops, tbls);
-    globK = fluidprops.K;
+    globC     = setupStiffnessTensor(mechprops, globtbls);
+    globK     = fluidprops.K;
     globalpha = coupprops.alpha;
+    globrho   = coupprops.rho;
     
     loadstruct = drivingforces.mechanics;
     fluidforces = drivingforces.fluid;
@@ -130,10 +154,12 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
     
     for i = 1 : 4
         B{i} = cell(4, 1);
-        bglobnums{i} = bglobtbls{i}.num;
-        rhs{i} = zeros(bglobnums{i});
+        ni = bglobtbls{i}.num;
+        bglobnums{i} = ni;
+        rhs{i} = zeros(ni, 1);
         for j = 1 : 4;
-            B{i}{j} = sparse(bglobnums(i), bglobnums(j));
+            nj = bglobtbls{j}.num;
+            B{i}{j} = sparse(ni, nj);
         end
     end
     
@@ -180,15 +206,16 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         map.mergefds = {'cells', 'coldim1', 'coldim2', 'rowdim1', 'rowdim2'};
         
         map.pivottbl = cellcol2row2tbl;
-        cc2r2_num = cellcol2row2tbl.num; %shortcut
-        c2r2_num = col2row2tbl.num; %shortcut
-        gc_num = globcellcol2row2tbl.num; %shortcut
+        c_num     = celltbl.num;             % shortcut
+        gc_num    = globcellcol2row2tbl.num; % shortcut
+        cc2r2_num = cellcol2row2tbl.num;     % shortcut
+        c2r2_num  = col2row2tbl.num;         % shortcut
         [c2r2, i] = ind2sub([c2r2_num, c_num], (1 : cc2r2_num)');
         map.dispind1 = sub2ind([c2r2_num, gc_num], c2r2, globcell_from_cell(i));
         map.dispind2 = (1 : cc2r2_num)';
         map.issetup = true;
         
-        C = map.eval(Cglob);
+        C = map.eval(globC);
 
         % Obtain permeability values for the block
         map = TensorMap();
@@ -197,16 +224,14 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         map.mergefds = {'cells', 'coldim', 'rowdim'};
         
         map.pivottbl = cellcolrowtbl;
-        c_num = celltbl.num; %shortcut
-        ccr_num = cellcolrowtbl.num; %shortcut
-        cr_num = colrowtbl.num; %shortcut
-        gc_num = globcellcolrowtbl.num; %shortcut
+        ccr_num = cellcolrowtbl.num; % shortcut
+        cr_num = colrowtbl.num;      % shortcut
         [cr, i] = ind2sub([cr_num, c_num], (1 : ccr_num)');
         map.dispind1 = sub2ind([cr_num, gc_num], cr, globcell_from_cell(i));
         map.dispind2 = (1 : ccr_num)';
         map.issetup = true;
         
-        K = map.eval(Kglob);
+        K = map.eval(globK);
         
 
         %% Assembly mechanical part
@@ -221,11 +246,10 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
                 
         if mechbcterm_exists
             
-            bcind = mechbcnodefacetbl.get('bcinds');
+            mechbcinds = mechbcnodefacetbl.get('bcinds');
             mechbcnodefacecoltbl = crossIndexArray(mechbcnodefacetbl, coltbl, {}, 'optpureproduct', true);
-            mechbcnodefacetbl = replacefield(mechbcnodefacetbl, {{'bcinds', ''}});
             
-            linformvals = globlinformvals(bcind, :);
+            linformvals = globlinformvals(mechbcinds, :);
 
             map = TensorMap();
             map.fromTbl = globmechbcnodefacecoltbl;
@@ -236,15 +260,25 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
             linform = map.eval(globlinform);
             linform = reshape(linform, dim, [])';
             
-            mechbc = struct('bcnodefacetbl', mechbcnodefacetbl, ...
+            % we need to remove 'bcinds' field because otherwise they will interfer with later assignment.
+            mechbcnodefacetbl2 = replacefield(mechbcnodefacetbl, {{'bcinds', ''}});
+            mechbc = struct('bcnodefacetbl', mechbcnodefacetbl2, ...
                             'linform'      , linform      , ...
                             'linformvals'  , linformvals);
         end
         
         opts = struct('eta', eta, ...
                       'bcetazero', opt.bcetazero);
-        [mechmatrices, mechbcvals] = coreMpsaAssembly(G, C, mechbc, tbls, mappings, opts);
+        [mechmat, mechbcvals] = coreMpsaAssembly(G, C, mechbc, tbls, mappings, opts);
         
+        invA11 = mechmat.invA11;
+        A11 = mechmat.A11;
+        A12 = mechmat.A12;
+        A21 = mechmat.A21;
+        A22 = mechmat.A22;
+        A15 = -mechmat.D;
+        A51 = -A15';
+
         % We get the part of external and volumetric force that are active in the block
         map = TensorMap();
         map.fromTbl = globnodefacecoltbl;
@@ -277,12 +311,14 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
             map = TensorMap();
             map.fromTbl = globfluidbcnodefacetbl;
             map.toTbl = fluidbcnodefacetbl;
-            map.mergefds = {'nodes', 'faces'};
-            bcind = map.getDispatchInd();
+            map.mergefds = {'faces', 'nodes'};
+            map = map.setup();
             
+            fluidbcvals = map.eval(globfluidbcvals);
+
             clear bcdirichlet;
             bcdirichlet.bcnodefacetbl = fluidbcnodefacetbl;
-            bcdirichlet.bcvals = []; % not used locally
+            bcdirichlet.bcvals = fluidbcvals;
         else
             bcdirichlet = [];
         end
@@ -321,7 +357,7 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         %% Assemble coupling terms (finite volume and consistent divergence operators)
         
         map = TensorMap();
-        map.fromTbl = globcellltbl;
+        map.fromTbl = globcelltbl;
         map.toTbl = celltbl;
         map.mergefds = {'cells'};
         map = map.setup();
@@ -384,10 +420,12 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         
         for i = 1 : 4
             locB{i} = cell(4, 1);
-            bnums{i} = btbls{i}.num;
-            locrhs{i} = zeros(bnums{i});
+            ni = btbls{i}.num;
+            bnums{i} = ni;
+            locrhs{i} = zeros(ni, 1);
             for j = 1 : 4;
-                locB{i}{j} = sparse(bnums(i), bnums(j));
+                ni = btbls{j}.num;
+                locB{i}{j} = sparse(ni, nj);
             end
         end
     
@@ -428,12 +466,13 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         btbls = {cellcoltbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};        
         
         % setup the index mappings (l2ginds)
-        fds = {{'cells', 'coldim'}, {'cells'}, {'bcinds'}, {'bcinds'}};
+        fds = {{'cells', 'coldim'}, {'cells'}, {'faces', 'nodes', 'bcinds'}, {'faces', 'nodes'}};
         l2ginds = cell(4, 1);
         bnums = cell(4, 1);
         for i = 1 : 4
             bnums{i} = btbls{i}.num;
-            map.fromTbl = globtbls{i};
+            map = TensorMap();
+            map.fromTbl = bglobtbls{i};
             map.toTbl = btbls{i};
             map.mergefds = fds{i};
             
@@ -450,7 +489,11 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
                 insB = sparse(indi, indj, v, ni, nj); 
                 B{i}{j} = B{i}{j} + insB;
             end
-            rhs{i}(l2ginds{i}) = locrhs{i};
+            [indi, ~, v] = find(locrhs{i});
+            indi = l2ginds{i}(indi);
+            ni = bglobnums{i};
+            insrhs = sparse(indi, 1, v, ni, 1);
+            rhs{i} = rhs{i} + insrhs;
         end
     end
     

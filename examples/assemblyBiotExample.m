@@ -66,7 +66,8 @@ loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 % Setup fluid driving forces (source terms and boundary condition)
 
 % get some "external faces" from setupBCpercase
-extfaces = loadstruct.bc.extfaces; 
+bcnodefacetbl = loadstruct.bc.bcnodefacetbl; 
+extfaces = bcnodefacetbl.get('faces');
 extfaces = unique(extfaces);
 
 bcfacetbl.faces = extfaces;
@@ -126,7 +127,13 @@ props = struct('mechprops' , mechprops , ...
                'fluidprops', fluidprops, ...
                'coupprops' , coupprops);
 
-assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings);
+casetype = 'blockassembly';
+switch casetype
+  case 'blockassembly'
+    assembly = blockAssembleBiot(G, props, drivingforces, eta, tbls, mappings, 'blocksize', 20);
+  case 'standard'
+    assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings);
+end
 
 B = assembly.B;
 rhs = assembly.rhs;
