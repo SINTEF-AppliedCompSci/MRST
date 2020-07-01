@@ -68,7 +68,7 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
     gnc = globcelltbl.num;
     gnbc = globbcnodefacetbl.num;
     
-    Kglob = K;
+    globK = K;
     
     B11 = sparse(gnc, gnc);
     B12 = sparse(gnc, gnbc);
@@ -129,7 +129,7 @@ function assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, globtbls, globma
         map.dispind2 = (1 : ccr_num)';
         map.issetup = true;
         
-        K = map.eval(Kglob);
+        K = map.eval(globK);
         
         % We collect the degrees of freedom in the current block that belongs to the boundary.
 

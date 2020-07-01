@@ -56,7 +56,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     gncc = globcellcoltbl.num;
     gnbc = globbcnodefacetbl.num;
     
-    Cglob = setupStiffnessTensor(prop, globtbls);
+    globC = setupStiffnessTensor(prop, globtbls);
     
     B11 = sparse(gncc, gncc);
     B12 = sparse(gncc, gnbc);
@@ -133,7 +133,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         map.dispind2 = (1 : cc2r2_num)';
         map.issetup = true;
         
-        C = map.eval(Cglob);
+        C = map.eval(globC);
         
         % We collect the degrees of freedom in the current block that belongs to the boundary.
         
@@ -225,7 +225,6 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
             locB21 = -D'*invA11*A12;
             locB22 = D'*invA11*D;
         end
-        
 
         % locB11 : cellcoltbl    -> cellcoltbl
         % locB22 : bcnodefacetbl -> bcnodefacetbl
