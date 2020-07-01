@@ -81,15 +81,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
                   'bcetazero', opt.bcetazero);
     [matrices, extra] = coreMpsaAssembly(G, C, tbls, mappings, opts);
     
-    % Uses the block structure for the local reduction
-    % We count the number of degrees of freedom that are connected to the same
-    % node.
-    A11 = matrices.A11;
-    [nodes, sz] = rlencode(nodefacecoltbl.get('nodes'), 1);
-    opt.invertBlocks = 'mex';
-    bi = blockInverter(opt);
-    invA11 = bi(A11, sz);
-
     % We enforce the boundary conditions as Lagrange multipliers
 
     bc = loadstruct.bc;
@@ -106,7 +97,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     fullrhs{3} = bcvals;
     
     matrices.D = D;
-    matrices.invA11 = invA11;
     matrices.fullrhs = fullrhs;
     
     % We reduced the system (shur complement) using invA11
@@ -125,7 +115,8 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     % rhs = [-A21*invA11*extforce;  +  [force;
     %        -D'*invA11*extforce  ]     bcvals]
     
-    A12 = matrices.A12; 
+    invA11 = matrices.invA11; 
+    A12 = matrices.A12;
     A21 = matrices.A21;
     A22 = matrices.A22;
     

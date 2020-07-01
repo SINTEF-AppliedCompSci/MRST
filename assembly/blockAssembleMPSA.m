@@ -145,15 +145,8 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         A12 = matrices.A12;
         A21 = matrices.A21;
         A22 = matrices.A22;
-
-        % Uses the block structure for the local reduction
-        % We count the number of degrees of freedom that are connected to the same
-        % node.
-        [nodes, sz] = rlencode(nodefacecoltbl.get('nodes'), 1);
-        opt.invertBlocks = 'mex';
-        bi = blockInverter(opt);
-        invA11 = bi(A11, sz);
-
+        invA11 = matrices.invA11;
+        
         % We enforce the boundary conditions as Lagrange multipliers
         
         bcnodefacetbl = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', ...
