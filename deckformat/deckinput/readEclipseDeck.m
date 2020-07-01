@@ -55,7 +55,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Initialize input deck
    deck = initializeDeck;
-   dirname = fileparts(fn);
+   dirname = directory_name(fid);
 
    % Read input deck
    kw = getEclipseKeyword(fid);
@@ -93,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    fclose(fid);
 
-   if ~any(isfield(deck.RUNSPEC, {'METRIC', 'FIELD', 'LAB'})),
+   if ~any(isfield(deck.RUNSPEC, {'METRIC', 'FIELD', 'LAB'}))
       % Default to METRIC conventions as per ECLIPSE specification.
 
       dispif(mrstVerbose, ...
@@ -106,4 +106,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    assert (sum(isfield(deck.RUNSPEC, {'METRIC', 'FIELD', 'LAB'})) == 1, ...
           ['Exactly one unit system must be specified in ', ...
            'input deck (defaulting to ''METRIC'' conventions).']);
+end
+
+%--------------------------------------------------------------------------
+
+function dname = directory_name(fid)
+   dname = fileparts(fopen(fid));
 end
