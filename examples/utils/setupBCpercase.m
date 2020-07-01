@@ -214,6 +214,8 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
     bc.linform     = vertcat(linforms{:});
     bc.linformvals = vertcat(linformvals{:});
     
+    bc = setupFaceBC(bc, G, tbls);
+    
     loadstruct.bc = bc;
     loadstruct.extforce = extforce;
     loadstruct.force = force;

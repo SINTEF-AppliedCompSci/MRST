@@ -1,4 +1,4 @@
-function [matrices, extra] = coreMpsaAssembly(G, C, tbls, mappings, opts)
+function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, tbls, mappings, opts)
     
     bcetazero = opts.bcetazero;
     eta = opts.eta;
@@ -419,6 +419,9 @@ function [matrices, extra] = coreMpsaAssembly(G, C, tbls, mappings, opts)
     opt.invertBlocks = 'mex';
     bi = blockInverter(opt);
     invA11 = bi(A11, sz);
+
+    %% Matrix for boundary conditions
+    [D, bcvals] = setupMpsaNodeFaceBc(bc, G, tbls);
     
     %%
     % The divergence operator (integrated over the volume)
@@ -453,6 +456,7 @@ function [matrices, extra] = coreMpsaAssembly(G, C, tbls, mappings, opts)
                       'A12'   , A12   , ...
                       'A21'   , A21   , ...
                       'A22'   , A22   , ...
+                      'D'     , D     , ...
                       'invA11', invA11, ...
                       'C1'    , C1    , ...
                       'C2'    , C2    , ...

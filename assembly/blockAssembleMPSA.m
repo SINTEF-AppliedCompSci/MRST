@@ -121,6 +121,8 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         
         dim = coltbl.num;
         
+        % Obtain stiffness values for the block
+        
         map = TensorMap();
         map.fromTbl = globcellcol2row2tbl;
         map.toTbl = cellcol2row2tbl;
@@ -136,16 +138,6 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         map.issetup = true;
         
         C = map.eval(Cglob);
-    
-        opts = struct('eta', eta, ...
-                      'bcetazero', opt.bcetazero);
-        matrices = coreMpsaAssembly(G, C, tbls, mappings, opts);
-
-        A11 = matrices.A11;
-        A12 = matrices.A12;
-        A21 = matrices.A21;
-        A22 = matrices.A22;
-        invA11 = matrices.invA11;
         
         % We enforce the boundary conditions as Lagrange multipliers
         
@@ -178,11 +170,19 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
             bc = struct('bcnodefacetbl', bcnodefacetbl, ...
                         'linform'      , linform      , ...
                         'linformvals'  , linformvals);
-            
-            [D, bcvals] = setupMpsaNodeFaceBc(bc, G, tbls);
-            
         end
-        
+            
+        opts = struct('eta', eta, ...
+                      'bcetazero', opt.bcetazero);
+        [matrices, bcvals] = coreMpsaAssembly(G, C, bc, tbls, mappings, opts);
+
+        A11 = matrices.A11;
+        A12 = matrices.A12;
+        A21 = matrices.A21;
+        A22 = matrices.A22;
+        D = matrices.D;
+        invA11 = matrices.invA11;
+
         % the solution is given by the system
         %
         % A = [[A11, A12, -D];

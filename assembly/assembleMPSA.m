@@ -77,17 +77,10 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
 
     C = setupStiffnessTensor(prop, tbls);
     
+    bc = loadstruct.bc;
     opts = struct('eta', eta, ...
                   'bcetazero', opt.bcetazero);
-    [matrices, extra] = coreMpsaAssembly(G, C, tbls, mappings, opts);
-    
-    % We enforce the boundary conditions as Lagrange multipliers
-
-    bc = loadstruct.bc;
-    if ~isfield(bc, 'bcnodefacetbl')
-        bc = setupFaceBC(bc, G, tbls);
-    end
-    [D, bcvals] = setupMpsaNodeFaceBc(bc, G, tbls);
+    [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, tbls, mappings, opts);
     
     extforce = loadstruct.extforce;
     force = loadstruct.force;
@@ -96,7 +89,6 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     fullrhs{2} = force;
     fullrhs{3} = bcvals;
     
-    matrices.D = D;
     matrices.fullrhs = fullrhs;
     
     % We reduced the system (shur complement) using invA11
@@ -119,6 +111,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     A12 = matrices.A12;
     A21 = matrices.A21;
     A22 = matrices.A22;
+    D = matrices.D;
     
     B11 = A22 - A21*invA11*A12;
     B12 = A21*invA11*D;
