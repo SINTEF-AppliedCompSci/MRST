@@ -1,5 +1,34 @@
 function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, tbls, mappings, opts)
-    
+%% Assembly of MPSA-weak
+%%
+%% Reference paper:
+%% Finite volume methods for elasticity with weak symmetry
+%% Keilegavlen, Eirik and Nordbotten, Jan Martin
+%% International Journal for Numerical Methods in Engineering
+%% 2017
+
+    % the solution is given by the system
+    %
+    % A = [[A11, A12, -D];
+    %      [A21, A22,  0];
+    %      [D' , 0  ,  0]];
+    %
+    % u = [u (displacement at nodefacecoltbl);
+    %      u (displacement at cellcoltbl);
+    %      lagmult (forces in the linear directions at the boundary)];
+    %
+    % f = [extforce (force at nodefacecoltbl);
+    %      force    (volumetric force at cellcoltbl);
+    %      bcvals   (for the linear form at the boundary)];
+    %
+    % A*u = f
+    %
+    % Note: extforce is sparse and should only give contribution at facets
+    % that are at the boundary
+    %
+    % By construction of the method, the matrix A11 is block-diagonal. Hence,
+    % we invert it directly and reduce to a cell-centered scheme.
+        
     bcetazero = opts.bcetazero;
     eta = opts.eta;
     
@@ -53,9 +82,9 @@ function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, tbls, mappings, 
 
     % Construction of gradnodeface_op : nodefacecoltbl -> cellnodecolrowtbl
     %
-    % The nodefacecol part of the grad operator from nodefacecoltbl to
-    % cellnodecolrowtbl is obtained for any u in nodefacecoltbl by using v =
-    % prod.eval(g, u) where prod is defined below
+    % The nodefacecol part of the grad operator from nodefacecoltbl to cellnodecolrowtbl is obtained for any u in
+    % nodefacecoltbl by using v = prod.eval(g, u) where prod is defined below and this is how we set the correspinding
+    % tensor.
     %
     prod = TensorProd();
     prod.tbl1 = cellnodefacecoltbl;
