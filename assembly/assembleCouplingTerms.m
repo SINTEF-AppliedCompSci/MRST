@@ -64,7 +64,8 @@ function assembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings)
     
     mcoef = map.eval(mcoef);
     
-    vols = G.cells.volumes;
+    cno = celltbl.get('cells');
+    vols = G.cells.volumes(cno);
     
     prod = TensorProd();
     prod.tbl1 = celltbl;
