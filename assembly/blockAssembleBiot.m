@@ -130,7 +130,6 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         globsrc = src;
     end
     
-    
     globbcdirichlet = bcstruct.bcdirichlet;
     globfluidbcnodefacetbl = globbcdirichlet.bcnodefacetbl;
     globfluidbcvals = globbcdirichlet.bcvals;
@@ -150,18 +149,36 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
 
     bglobtbls = {globcellcoltbl, globcelltbl, globmechbcnodefacetbl, globfluidbcnodefacetbl};
     
-    B   = cell(4, 1);
-    rhs = cell(4, 1);
-    bglobnums = cell(4, 1);
+    nB = 4;
+    B   = cell(nB, 1);
+    insB = cell(nB, 1);
+    rhs  = cell(nB, 1);
+    bglobnums = cell(nB, 1);
     
-    for i = 1 : 4
-        B{i} = cell(4, 1);
+    for i = 1 : nB
+        B{i} = cell(nB, 1);
+        insB{i} = cell(nB, 1);
         ni = bglobtbls{i}.num;
         bglobnums{i} = ni;
         rhs{i} = zeros(ni, 1);
-        for j = 1 : 4;
+        for j = 1 : nB;
             nj = bglobtbls{j}.num;
             B{i}{j} = sparse(ni, nj);
+            insB{i}{j} = sparse(ni, nj);
+        end
+    end
+    
+    aglobtbls = {globnodefacecoltbl, globcellcoltbl, globnodefacetbl, globcelltbl, globmechbcnodefacetbl, globfluidbcnodefacetbl};
+    nA = 6;
+    A = cell(nA, 1);
+    for i = 1 : nA
+        A{i} = cell(nA, 1);
+        insA{i} = cell(nA, 1);
+        ni = aglobtbls{i}.num;
+        for j = 1 : nA
+            nj = aglobtbls{j}.num;
+            A{i}{j} = sparse(ni, nj);
+            insA{i}{j} = sparse(ni, nj);
         end
     end
     
@@ -234,7 +251,7 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         map.issetup = true;
         
         K = map.eval(globK);
-        
+
 
         %% Assembly mechanical part
         
@@ -268,18 +285,6 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
                             'linform'      , linform      , ...
                             'linformvals'  , linformvals);
         end
-        
-        opts = struct('eta', eta, ...
-                      'bcetazero', opt.bcetazero);
-        [mechmat, mechbcvals] = coreMpsaAssembly(G, C, mechbc, tbls, mappings, opts);
-        
-        invA11 = mechmat.invA11;
-        A11 = mechmat.A11;
-        A12 = mechmat.A12;
-        A21 = mechmat.A21;
-        A22 = mechmat.A22;
-        A15 = -mechmat.D;
-        A51 = -A15';
 
         % We get the part of external and volumetric force that are active in the block
         map = TensorMap();
@@ -298,9 +303,7 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
 
         force = map.eval(globforce);
         
-        %% Assembly of fluid part
-        
-        % We collect the degrees of freedom in the current block that belongs to the boundary.
+        % We collect the degrees of freedom in the current block that belongs to the boundary for the fluid part.
         
         fluidbcnodefacetbl = crossIndexArray(globfluidbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
         
@@ -325,20 +328,6 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
             bcdirichlet = [];
         end
         
-        dooptimize = useVirtual;
-        opts = struct('eta', eta, ...
-                      'bcetazero', opt.bcetazero, ...
-                      'dooptimize', dooptimize);
-        [fluidmat, fluidbcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts);
-        
-        invA33 = fluidmat.invA11;
-        A33 = fluidmat.A11;
-        A34 = fluidmat.A12;
-        A43 = fluidmat.A21;
-        A44 = fluidmat.A22;
-        A36 = -fluidmat.D;
-        A63 = -A36';
-        
         % We get the part of external and volumetric sources that are active in the block
         map = TensorMap();
         map.fromTbl = globnodefacetbl;
@@ -356,6 +345,34 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
 
         src = map.eval(globsrc);
 
+        % Assemble mechanical part
+        
+        opts = struct('eta', eta, ...
+                      'bcetazero', opt.bcetazero);
+        [mechmat, mechbcvals] = coreMpsaAssembly(G, C, mechbc, tbls, mappings, opts);
+        
+        % Assemble fluid part
+
+        dooptimize = useVirtual;
+        opts = struct('eta', eta, ...
+                      'bcetazero', opt.bcetazero, ...
+                      'dooptimize', dooptimize);
+        [fluidmat, fluidbcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts);
+        
+        
+        atbls = {nodefacecoltbl, cellcoltbl, nodefacetbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};
+        nlocA = 6;
+        locA = cell(nlocA, 1);
+        for i = 1 : nlocA
+            locA{i} = cell(4, 1);
+            ni = atbls{i}.num;
+            for j = 1 : nlocA
+                nj = atbls{j}.num;
+                locA{i}{j} = sparse(ni, nj);
+            end
+        end
+
+
         %% Assemble coupling terms (finite volume and consistent divergence operators)
         
         map = TensorMap();
@@ -369,11 +386,32 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         
         coupassembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings);
         
+        % Recover terms from mpsa assembly
+        
+        invA11 = mechmat.invA11;
+        locA{1}{1} = mechmat.A11;
+        locA{1}{2} = mechmat.A12;
+        locA{2}{1} = mechmat.A21;
+        locA{2}{2} = mechmat.A22;
+        locA{1}{5} = -mechmat.D;
+        locA{5}{1} = -locA{1}{5}';
+        
+        % Recover terms from mpfa assembly
+        
+        invA33 = fluidmat.invA11;
+        locA{3}{3} = fluidmat.A11;
+        locA{3}{4} = fluidmat.A12;
+        locA{4}{3} = fluidmat.A21;
+        locA{4}{4} = fluidmat.A22;
+        locA{3}{6} = -fluidmat.D;
+        locA{6}{3} = -locA{3}{6}';
+
         % Recover the coupling terms
-        A14 = coupassembly.divfv;
-        A14 = -A14'; % We use the gradient which is the transpose of minus div
-        A41 = coupassembly.divconsnf;
-        A42 = coupassembly.divconsc;
+        
+        locA{1}{4} = coupassembly.divfv;
+        locA{1}{4} = -locA{1}{4}'; % We use the gradient which is the transpose of minus div
+        locA{4}{1} = coupassembly.divconsnf;
+        locA{4}{2} = coupassembly.divconsc;
     
         % We add the diagonal term for the mass conservation equation
         prod = TensorProd();
@@ -396,7 +434,7 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         
         A44b_T = SparseTensor();
         A44b_T = A44b_T.setFromTensorProd(rho, prod);
-        A44 = A44 + A44b_T.getMatrix();
+        locA{4}{4} = locA{4}{4} + A44b_T.getMatrix();
         
         % boundary conditions for the full system
         fullrhs = cell(6, 1);
@@ -432,29 +470,29 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         end
     
         % 1. row : Momentum equation
-        A21invA11 = A21*invA11;
-        locB{1}{1} = -A21invA11*A12 +  A22;
-        locB{1}{2} = -A21invA11*A14;
-        locB{1}{3} = -A21invA11*A15;
+        A21invA11 = locA{2}{1}*invA11;
+        locB{1}{1} = -A21invA11*locA{1}{2} +  locA{2}{2};
+        locB{1}{2} = -A21invA11*locA{1}{4};
+        locB{1}{3} = -A21invA11*locA{1}{5};
 
         % 2. row : Fluid mass conservation
-        A41invA11 = A41*invA11;
-        A43invA33 = A43*invA33;
-        locB{2}{1} = -A41invA11*A12 + A42;
-        locB{2}{2} = -A41invA11*A14 - A43invA33*A34 + A44;
-        locB{2}{3} = -A41invA11*A15;
-        locB{2}{4} = -A43invA33*A36;
+        A41invA11 = locA{4}{1}*invA11;
+        A43invA33 = locA{4}{3}*invA33;
+        locB{2}{1} = -A41invA11*locA{1}{2} + locA{4}{2};
+        locB{2}{2} = -A41invA11*locA{1}{4} - A43invA33*locA{3}{4} + locA{4}{4};
+        locB{2}{3} = -A41invA11*locA{1}{5};
+        locB{2}{4} = -A43invA33*locA{3}{6};
 
         % 3. row : Mechanic BC
-        A51invA11 = A51*invA11;
-        locB{3}{1} = -A51invA11*A12;
-        locB{3}{2} = -A51invA11*A14;
-        locB{3}{3} = -A51invA11*A15;
+        A51invA11 = locA{5}{1}*invA11;
+        locB{3}{1} = -A51invA11*locA{1}{2};
+        locB{3}{2} = -A51invA11*locA{1}{4};
+        locB{3}{3} = -A51invA11*locA{1}{5};
 
         % 4. row : Fluid BC
-        A63invA33 = A63*invA33;
-        locB{4}{2} = -A63invA33*A34;
-        locB{4}{4} = -A63invA33*A36;
+        A63invA33 = locA{6}{3}*invA33;
+        locB{4}{2} = -A63invA33*locA{3}{4};
+        locB{4}{4} = -A63invA33*locA{3}{6};
 
         % Assembly of right hand side
         f = fullrhs; % shortcut
@@ -488,8 +526,8 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
                 indj = l2ginds{j}(indj);
                 ni = bglobnums{i};
                 nj = bglobnums{j};
-                insB = sparse(indi, indj, v, ni, nj); 
-                B{i}{j} = B{i}{j} + insB;
+                insB{i}{j} = sparse(indi, indj, v, ni, nj); 
+                B{i}{j} = B{i}{j} + insB{i}{j};
             end
             [indi, ~, v] = find(locrhs{i});
             indi = l2ginds{i}(indi);
@@ -497,10 +535,42 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
             insrhs = sparse(indi, 1, v, ni, 1);
             rhs{i} = rhs{i} + insrhs;
         end
+        
+        % setup the index mappings (l2ginds)
+        fds = {{'nodes', 'faces', 'coldim'} , ...
+               {'cells', 'coldim'}          , ...
+               {'nodes', 'faces'}           , ...
+               {'cells'}                    , ...
+               {'faces', 'nodes', 'bcinds'} , ...
+               {'faces', 'nodes'}};
+        
+        al2ginds = cell(nA, 1);
+        bnums = cell(nA, 1);
+        for i = 1 : nA
+            map = TensorMap();
+            map.fromTbl  = aglobtbls{i};
+            map.toTbl    = atbls{i};
+            map.mergefds = fds{i};
+            
+            al2ginds{i} = map.getDispatchInd();
+        end
+        
+        for i = 1 : nA
+            for j = 1 : nA
+                [indi, indj, v] = find(locA{i}{j});
+                indi = al2ginds{i}(indi);
+                indj = al2ginds{j}(indj);
+                ni = aglobtbls{i}.num;
+                nj = aglobtbls{j}.num;
+                insA{i}{j} = sparse(indi, indj, v, ni, nj); 
+                A{i}{j} = A{i}{j} + insA{i}{j};
+            end
+        end
+        
     end
     
     % We concatenate the matrices
-    for i = 1 : 4
+    for i = 1 : nB
         B{i} = horzcat(B{i}{:});
     end
     B = vertcat(B{:});
@@ -508,21 +578,16 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
 
     assembly = struct('B'  , B, ...
                       'rhs', rhs);
-    
-    if opt.assemblyMatrices
-        fullsystem.A = A;
-        fullsystem.rhs = cat(fullrhs{:});
-        assembly.fullsystem = fullsystem;
-    end    
+    assembly.A = A;
     
     if opt.addAdOperators
 
         fluxop = fluidassembly.adoperators.fluxop;
         
         % Setup face node dislpacement operator
-        fndisp{1} = -invA11*A12;
-        fndisp{2} = -invA11*A14;
-        fndisp{3} = -invA11*A15;
+        fndisp{1} = -invA11*locA{1}{2};
+        fndisp{2} = -invA11*locA{1}{4};
+        fndisp{3} = -invA11*locA{1}{5};
         
         facenodedispop = @(u, p, lm, extforce) facenodedispopFunc(u, p, lm, extforce, fndisp);
         
@@ -533,17 +598,17 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         stressop = @(unf, uc) stressopFunc(unf, uc, stress, aver);
 
         % Setup divKgrad operator
-        divKgrad{1} = - A43invA33*A34 + A44;
-        divKgrad{2} = - A43invA33*A36;
+        divKgrad{1} = - A43invA33*locA{3}{4} + locA{4}{4};
+        divKgrad{2} = - A43invA33*locA{3}{6};
         divKgradrhs = f{4} - A43invA33*f{3};
         
         divKgradop = @(p, lf) divKgradopFunc(p, lf, divKgrad, divKgradrhs);
 
         % Setup consistent divergence operator (for displacement, includes value of Biot coefficient alpha)
         % The divergence is volume weighted
-        divu{1} = - A41invA11*A12 + A42;
-        divu{2} = - A41invA11*A14;
-        divu{3} = - A41invA11*A15;
+        divu{1} = - A41invA11*locA{1}{2} + locA{4}{2};
+        divu{2} = - A41invA11*locA{1}{4};
+        divu{3} = - A41invA11*locA{1}{5};
         divu{4} = A41invA11;
         
         divuop = @(u, p, lm, extforce) divuopFunc(u, p, lm, extforce, divu);
