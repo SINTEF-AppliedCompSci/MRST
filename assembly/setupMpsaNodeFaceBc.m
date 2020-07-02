@@ -1,4 +1,4 @@
-function [D, bcvals] = setupMpsaNodeFaceBc(bc, G, tbls)
+function [D, bcvals] = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls)
     % The structure bc gives conditions on the nodeface displacement
 
     assert(isfield(bc, 'bcnodefacetbl'), ['this function is meant to set ' ...
@@ -18,15 +18,8 @@ function [D, bcvals] = setupMpsaNodeFaceBc(bc, G, tbls)
     % linform belongs to bcnodefacecoltbl    
 
     % We compute the (pseudo) area of the nodeface
-    map = TensorMap();
-    map.fromTbl = nodefacetbl;
-    map.toTbl = facetbl;
-    map.mergefds = {'faces'};
-    map = map.setup();
-    
-    nnodeperface = map.eval(ones(nodefacetbl.num, 1));
     faces = facetbl.get('faces');
-    nfareas = 1./nnodeperface.*(G.faces.areas(faces));
+    nfareas = 1./nnodesperface.*(G.faces.areas(faces));
     
     % We weight the linear form with the area
     prod = TensorProd();

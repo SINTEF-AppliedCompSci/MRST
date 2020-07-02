@@ -39,6 +39,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     % Recover IndexArrays
     coltbl                = tbls.coltbl;
     celltbl               = tbls.celltbl;
+    facetbl               = tbls.facetbl;
     nodetbl               = tbls.nodetbl;
     cellnodetbl           = tbls.cellnodetbl;
     nodefacetbl           = tbls.nodefacetbl;
@@ -77,10 +78,18 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
 
     C = setupStiffnessTensor(prop, tbls);
     
+    map = TensorMap();
+    map.fromTbl = nodefacetbl;
+    map.toTbl = facetbl;
+    map.mergefds = {'faces'};
+    map = map.setup();
+    
+    nnodesperface = map.eval(ones(nodefacetbl.num, 1));
+    
     bc = loadstruct.bc;
     opts = struct('eta', eta, ...
                   'bcetazero', opt.bcetazero);
-    [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, tbls, mappings, opts);
+    [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opts);
     
     extforce = loadstruct.extforce;
     force = loadstruct.force;

@@ -31,12 +31,14 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     colrowtbl      = globtbls.colrowtbl;
     col2row2tbl    = globtbls.col2row2tbl;
     
-    globnodetbl        = globtbls.nodetbl;
-    globcellcoltbl     = globtbls.cellcoltbl;
-    globnodecoltbl     = globtbls.nodecoltbl;
-    globcellnodetbl    = globtbls.cellnodetbl;
-    globcellnodecoltbl = globtbls.cellnodecoltbl;
-    globnodefacecoltbl = globtbls.nodefacecoltbl;
+    globnodetbl     = globtbls.nodetbl;
+    globfacetbl     = globtbls.facetbl;
+    globnodefacetbl = globtbls.nodefacetbl;
+    globcellcoltbl  = globtbls.cellcoltbl;
+    globnodecoltbl  = globtbls.nodecoltbl;
+    globcellnodetbl     = globtbls.cellnodetbl;
+    globcellnodecoltbl  = globtbls.cellnodecoltbl;
+    globnodefacecoltbl  = globtbls.nodefacecoltbl;
     globcellcol2row2tbl = globtbls.cellcol2row2tbl;
     
     dim = coltbl.num;
@@ -66,6 +68,16 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     rhscc = zeros(gncc, 1);
     rhsbc = zeros(gnbc, 1);
     
+    % computes number of nodes per face
+    
+    map = TensorMap();
+    map.fromTbl = globnodefacetbl;
+    map.toTbl = globfacetbl;     
+    map.mergefds = {'faces'};
+    map = map.setup();
+    
+    nnodesperface = map.eval(ones(globnodefacetbl.num, 1));
+
     for iblock = 1 : nblocks
 
         %% Construction of tensor g (as defined in paper eq 4.1.2)
@@ -82,6 +94,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
         [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, 'useVirtual', useVirtual);
         
         celltbl               = tbls.celltbl;
+        facetbl               = tbls.facetbl;
         nodetbl               = tbls.nodetbl;
         cellnodetbl           = tbls.cellnodetbl;
         nodefacetbl           = tbls.nodefacetbl;
@@ -167,10 +180,18 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
                         'linform'      , linform      , ...
                         'linformvals'  , linformvals);
         end
-            
+
+        map = TensorMap();
+        map.fromTbl = globfacetbl;
+        map.toTbl = facetbl;
+        map.mergefds = {'faces'};
+        map = map.setup();
+        
+        nnpf = map.eval(nnodesperface);
+        
         opts = struct('eta', eta, ...
                       'bcetazero', opt.bcetazero);
-        [matrices, bcvals] = coreMpsaAssembly(G, C, bc, tbls, mappings, opts);
+        [matrices, bcvals] = coreMpsaAssembly(G, C, bc, nnpf, tbls, mappings, opts);
 
         A11 = matrices.A11;
         A12 = matrices.A12;

@@ -1,4 +1,4 @@
-function assembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings)
+function assembly = assembleCouplingTerms(G, eta, alpha, nnodespercell, tbls, mappings)
     
     cellnodefacecoltbl = tbls.cellnodefacecoltbl;
     nodefacecoltbl     = tbls.nodefacecoltbl;
@@ -47,40 +47,18 @@ function assembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings)
     % We agregate the contribution at each cell corner.
     % We use equal weights mcoef = (1/(number of nodes per cell)*(volume of the cell)).
     
-    map = TensorMap();
-    map.fromTbl = cellnodetbl;
-    map.toTbl = celltbl;     
-    map.mergefds = {'cells'};
-    map = map.setup();
-    
-    nnodespercell = map.eval(ones(cellnodetbl.num, 1));
-    mcoef = 1./nnodespercell;
-    
-    map = TensorMap();
-    map.fromTbl = celltbl;
-    map.toTbl = cellnodetbl;     
-    map.mergefds = {'cells'};
-    map = map.setup();
-    
-    mcoef = map.eval(mcoef);
+    mcoef = 1./nnodespercell;    
     
     cno = celltbl.get('cells');
     vols = G.cells.volumes(cno);
     
+    mcoef = vols/nnodespercell;
+    
     prod = TensorProd();
     prod.tbl1 = celltbl;
-    prod.tbl2 = cellnodetbl;
-    prod.tbl3 = cellnodetbl;
-    prod.mergefds = {'cells'};
-    prod = prod.setup();
-    
-    mcoef = prod.eval(vols, mcoef);
-    
-    prod = TensorProd();
-    prod.tbl1 = cellnodetbl;
     prod.tbl2 = cellnodefacecoltbl;
     prod.tbl3 = cellnodefacecoltbl;
-    prod.mergefds = {'cells', 'nodes'};
+    prod.mergefds = {'cells'};
     prod = prod.setup();
     
     mg = prod.eval(mcoef, g);

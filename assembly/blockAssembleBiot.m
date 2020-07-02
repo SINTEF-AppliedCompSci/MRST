@@ -70,6 +70,7 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
     globcellcolrowtbl         = globtbls.cellcolrowtbl;
     globcoltbl                = globtbls.coltbl;
     globcelltbl               = globtbls.celltbl;
+    globfacetbl               = globtbls.facetbl;
     globnodetbl               = globtbls.nodetbl;
     globcellnodetbl           = globtbls.cellnodetbl;
     globnodefacetbl           = globtbls.nodefacetbl;
@@ -87,7 +88,6 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
     globcellnodecol2row2tbl   = globtbls.cellnodecol2row2tbl;
     
     dim = coltbl.num;
-    
     
     mechprops  = props.mechprops;
     fluidprops = props.fluidprops;
@@ -181,6 +181,24 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
             insA{i}{j} = sparse(ni, nj);
         end
     end
+
+    % we compute the number of nodes per cells
+    map = TensorMap();
+    map.fromTbl = globcellnodetbl;
+    map.toTbl = globcelltbl;     
+    map.mergefds = {'cells'};
+    map = map.setup();
+    
+    nnodespercell = map.eval(ones(globcellnodetbl.num, 1));
+    
+    map = TensorMap();
+    map.fromTbl = globnodefacetbl;
+    map.toTbl = globfacetbl;     
+    map.mergefds = {'faces'};
+    map = map.setup();
+    
+    nnodesperface = map.eval(ones(globnodefacetbl.num, 1));
+    
     
     for iblock = 1 : nblocks
 
@@ -200,6 +218,7 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         celltbl     = tbls.celltbl;
         colrowtbl   = tbls.colrowtbl;
         nodetbl     = tbls.nodetbl;
+        facetbl     = tbls.facetbl;
         cellnodetbl = tbls.cellnodetbl;
         nodefacetbl = tbls.nodefacetbl;
         cellcoltbl  = tbls.cellcoltbl;
@@ -347,9 +366,17 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
 
         % Assemble mechanical part
         
+        map = TensorMap();
+        map.fromTbl = globfacetbl;
+        map.toTbl = facetbl;
+        map.mergefds = {'faces'};
+        map = map.setup();
+        
+        nnpf = map.eval(nnodesperface);
+        
         opts = struct('eta', eta, ...
                       'bcetazero', opt.bcetazero);
-        [mechmat, mechbcvals] = coreMpsaAssembly(G, C, mechbc, tbls, mappings, opts);
+        [mechmat, mechbcvals] = coreMpsaAssembly(G, C, mechbc, nnpf, tbls, mappings, opts);
         
         % Assemble fluid part
 
@@ -383,8 +410,8 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         
         alpha = map.eval(globalpha);
         rho = map.eval(globrho);
-        
-        coupassembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings);
+        nnpc = map.eval(nnodespercell);
+        coupassembly = assembleCouplingTerms(G, eta, alpha, nnpc, tbls, mappings);
         
         % Recover terms from mpsa assembly
         

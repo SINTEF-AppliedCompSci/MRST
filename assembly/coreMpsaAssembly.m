@@ -1,4 +1,4 @@
-function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, tbls, mappings, opts)
+function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opts)
 %% Assembly of MPSA-weak
 %%
 %% Reference paper:
@@ -450,7 +450,7 @@ function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, tbls, mappings, 
     invA11 = bi(A11, sz);
 
     %% Matrix for boundary conditions
-    [D, bcvals] = setupMpsaNodeFaceBc(bc, G, tbls);
+    [D, bcvals] = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls);
     
     %%
     % The divergence operator (integrated over the volume)

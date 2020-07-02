@@ -55,8 +55,29 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, options{:});
     
     % Assemble coupling terms (finite volume and consistent divergence operators)
+    % we need to pass the number of nodes per cell to assembleCouplingTerms
     alpha = coupprops.alpha;
-    coupassembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings);
+
+    cellnodetbl = tbls.cellnodetbl;
+    celltbl = tbls.celltbl;
+    
+    map = TensorMap();
+    map.fromTbl = cellnodetbl;
+    map.toTbl = celltbl;     
+    map.mergefds = {'cells'};
+    map = map.setup();
+    
+    nnodespercell = map.eval(ones(cellnodetbl.num, 1));
+    
+    map = TensorMap();
+    map.fromTbl = celltbl;
+    map.toTbl = cellnodetbl;     
+    map.mergefds = {'cells'};
+    map = map.setup();
+    
+    nnodespercell = map.eval(nnodespercell);
+
+    coupassembly = assembleCouplingTerms(G, eta, alpha, nnodespercell, tbls, mappings);
     
     % Recover matrices from mechanic assembly
     mechmat = mechassembly.matrices;
