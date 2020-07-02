@@ -1,6 +1,7 @@
 function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, varargin)
     
-    opt = struct('assemblyMatrices', false, ...
+    opt = struct('bcetazero'       , true, ...
+                 'assemblyMatrices', false, ...
                  'addAdOperators'  , false);
     opt = merge_options(opt, varargin{:});
     
@@ -40,14 +41,18 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     
     % Assemble mechanic problem
     loadstruct = drivingforces.mechanics;
-    mechassembly = assembleMPSA(G, mechprops, loadstruct, eta, tbls, mappings, 'assemblymatrices', true);
+    options = {'assemblymatrices', true, ...
+               'bcetazero'       , opt.bcetazero};
+    mechassembly = assembleMPSA(G, mechprops, loadstruct, eta, tbls, mappings, options{:});
     
     % Assemble fluid problem
     fluidforces = drivingforces.fluid;
     bcstruct = fluidforces.bcstruct;
     src = fluidforces.src;
     K = fluidprops.K;
-    fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'addAdOperators', true);
+    options = {'addAdOperators', true, ...
+               'bcetazero'     , opt.bcetazero};
+    fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, options{:});
     
     % Assemble coupling terms (finite volume and consistent divergence operators)
     alpha = coupprops.alpha;
