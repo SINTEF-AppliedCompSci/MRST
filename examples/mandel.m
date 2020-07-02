@@ -24,7 +24,7 @@
 %
 
 clear all
-% close all
+close all
 
 %% Load required modules
 
@@ -33,6 +33,7 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 %% Setup grid
 
 % physdim = [20, 20] * meter;
+
 physdim = [1, 1]*meter;
 nx = 500; ny = 10;
 resolution = [nx, ny];
@@ -206,7 +207,6 @@ solver = NonLinearSolver('maxIterations', 100);
 %% Mandel plot (pressure profile for some selected values)
 
 figure
-clf
 ind = (1 : nx)';
 xc = G.cells.centroids(ind, 1);
 hold on
@@ -227,11 +227,9 @@ legend(legends{:});
 %% plotting
 
 figure 
-clf
 plotToolbar(G, states);
 
 figure
-clf
 ind = 1;
 pmid = cellfun(@(state) state.pressure(ind), states);
 tt = cumsum(schedule.step.val);
