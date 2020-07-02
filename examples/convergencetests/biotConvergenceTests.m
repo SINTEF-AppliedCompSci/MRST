@@ -1,4 +1,4 @@
-function biotConvergenceTest()
+function biotConvergenceTests()
 % Script for running convergence test for MPSA-MPFA Biot
 % see function biotConvergenceFunc
 
