@@ -292,11 +292,13 @@ function output = runBiotConvSim(G, params, varargin)
     drivingforces = struct('mechanics', loadstruct, ...
                            'fluid'    , fluidforces);
                            
-  
     if ~isempty(opt.blocksize)
-        error('not yet implemented');
+        options = {'verbose'  , true         , ...
+                   'bcetazero', opt.bcetazero, ...
+                   'blocksize', opt.blocksize};
+        assembly = blockAssembleBiot(G, props, drivingforces, eta, tbls, mappings, options{:});
     else
-        assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings);
+        assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, 'bcetazero', opt.bcetazero);
     end
     
     clear prop loadstruct
