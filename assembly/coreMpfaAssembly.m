@@ -270,6 +270,6 @@ function [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, m
                       'A22', A22, ...
                       'D', D);
     
-    extra = [];
+    extra.nKg = nKg;
     
 end

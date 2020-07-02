@@ -97,9 +97,9 @@ function assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, varar
     
     if (opt.onlyAssemblyMatrices | opt.addAssemblyMatrices | opt.addAdOperators)
         
-        assembly.matrices = matrices;
         matrices.fullrhs = fullrhs;
-        assembly.nKg = nKg;
+        assembly.matrices = matrices;
+        assembly.nKg = extra.nKg;
         
         if opt.onlyAssemblyMatrices
             return
