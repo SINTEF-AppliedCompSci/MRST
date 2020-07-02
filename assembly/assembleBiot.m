@@ -198,7 +198,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
    
     if opt.assemblyMatrices
         fullsystem.A = A;
-        fullsystem.rhs = cat(fullrhs{:});
+        fullsystem.rhs = vertcat(fullrhs{:});
         assembly.fullsystem = fullsystem;
     end    
     
