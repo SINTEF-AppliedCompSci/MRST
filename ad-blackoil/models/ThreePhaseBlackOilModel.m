@@ -417,7 +417,8 @@ methods
         else
             % Very simple scaling factors, uniform over grid
             p = mean(value(state.pressure));
-            useReg = iscell(fluid.bO);
+            pvtreg = model.PVTPropertyFunctions.getRegionPVT(model);
+            useReg = max(pvtreg) ~= min(pvtreg);
             if useReg
                 call = @(x, varargin) x{1}(varargin{:});
             else
