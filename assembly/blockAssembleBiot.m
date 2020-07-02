@@ -150,9 +150,9 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
     bglobtbls = {globcellcoltbl, globcelltbl, globmechbcnodefacetbl, globfluidbcnodefacetbl};
     
     nB = 4;
-    B   = cell(nB, 1);
+    B = cell(nB, 1);
     insB = cell(nB, 1);
-    rhs  = cell(nB, 1);
+    rhs = cell(nB, 1);
     bglobnums = cell(nB, 1);
     
     for i = 1 : nB
@@ -314,14 +314,6 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
 
         extforce = map.eval(globextforce);
         
-        map = TensorMap();
-        map.fromTbl = globcellcoltbl;
-        map.toTbl = cellcoltbl;
-        map.mergefds = {'cells', 'coldim'};
-        map = map.setup();
-
-        force = map.eval(globforce);
-        
         % We collect the degrees of freedom in the current block that belongs to the boundary for the fluid part.
         
         fluidbcnodefacetbl = crossIndexArray(globfluidbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
@@ -356,14 +348,6 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         
         extflux = map.eval(globextflux);
         
-        map = TensorMap();
-        map.fromTbl = globcelltbl;
-        map.toTbl = celltbl;
-        map.mergefds = {'cells'};
-        map = map.setup();
-
-        src = map.eval(globsrc);
-
         % Assemble mechanical part
         
         map = TensorMap();
@@ -388,12 +372,11 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         
         
         atbls = {nodefacecoltbl, cellcoltbl, nodefacetbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};
-        nlocA = 6;
-        locA = cell(nlocA, 1);
-        for i = 1 : nlocA
+        locA = cell(nA, 1);
+        for i = 1 : nA
             locA{i} = cell(4, 1);
             ni = atbls{i}.num;
-            for j = 1 : nlocA
+            for j = 1 : nA
                 nj = atbls{j}.num;
                 locA{i}{j} = sparse(ni, nj);
             end
@@ -409,8 +392,8 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         map = map.setup();
         
         alpha = map.eval(globalpha);
-        rho = map.eval(globrho);
-        nnpc = map.eval(nnodespercell);
+        rho   = map.eval(globrho);
+        nnpc  = map.eval(nnodespercell);
         coupassembly = assembleCouplingTerms(G, eta, alpha, nnpc, tbls, mappings);
         
         % Recover terms from mpsa assembly
@@ -463,12 +446,11 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         A44b_T = A44b_T.setFromTensorProd(rho, prod);
         locA{4}{4} = locA{4}{4} + A44b_T.getMatrix();
         
-        % boundary conditions for the full system
+        % boundary conditions for the full system The volumetric force term (for mechanic) and source term (for fluid) is
+        % added at the end, after the loop on the blocks.
         fullrhs = cell(6, 1);
         fullrhs{1} = extforce;
-        fullrhs{2} = force;
         fullrhs{3} = extflux;
-        fullrhs{4} = src;
         fullrhs{5} = mechbcvals;
         fullrhs{6} = fluidbcvals;
 
@@ -523,8 +505,8 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
 
         % Assembly of right hand side
         f = fullrhs; % shortcut
-        locrhs{1} = f{2} - A21invA11*f{1};
-        locrhs{2} = f{4} - A41invA11*f{1} - A43invA33*f{3};
+        locrhs{1} = - A21invA11*f{1};
+        locrhs{2} = - A41invA11*f{1} - A43invA33*f{3};
         locrhs{3} = f{5} - A51invA11*f{1};
         locrhs{4} = f{6} - A63invA33*f{3};
         
@@ -534,9 +516,9 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         
         % setup the index mappings (l2ginds)
         fds = {{'cells', 'coldim'}, {'cells'}, {'faces', 'nodes', 'bcinds'}, {'faces', 'nodes'}};
-        l2ginds = cell(4, 1);
-        bnums = cell(4, 1);
-        for i = 1 : 4
+        l2ginds = cell(nB, 1);
+        bnums = cell(nB, 1);
+        for i = 1 : nB
             bnums{i} = btbls{i}.num;
             map = TensorMap();
             map.fromTbl = bglobtbls{i};
@@ -546,8 +528,8 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
             l2ginds{i} = map.getDispatchInd();
         end
         
-        for i = 1 : 4
-            for j = 1 : 4
+        for i = 1 : nB
+            for j = 1 : nB
                 [indi, indj, v] = find(locB{i}{j});
                 indi = l2ginds{i}(indi);
                 indj = l2ginds{j}(indj);
@@ -572,7 +554,6 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
                {'faces', 'nodes'}};
         
         al2ginds = cell(nA, 1);
-        bnums = cell(nA, 1);
         for i = 1 : nA
             map = TensorMap();
             map.fromTbl  = aglobtbls{i};
@@ -601,6 +582,9 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         B{i} = horzcat(B{i}{:});
     end
     B = vertcat(B{:});
+    rhs{1} = rhs{1} + globforce;
+    rhs{2} = rhs{2} + globsrc;
+    
     rhs = vertcat(rhs{:});
 
     assembly = struct('B'  , B, ...
