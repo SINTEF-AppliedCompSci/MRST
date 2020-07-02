@@ -126,6 +126,8 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
 
     if isempty(src)
         globsrc = zeros(globcelltbl.num, 1);
+    else
+        globsrc = src;
     end
     
     
