@@ -57,35 +57,14 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
     colrowtbl      = globtbls.colrowtbl;
     col2row2tbl    = globtbls.col2row2tbl;
     
-    globcoltbl                = globtbls.coltbl;
-    globcolrowtbl             = globtbls.colrowtbl;
-    globcol2row2tbl           = globtbls.col2row2tbl;
-    globnodetbl               = globtbls.nodetbl;
     globcellcoltbl            = globtbls.cellcoltbl;
-    globnodecoltbl            = globtbls.nodecoltbl;
     globcellnodetbl           = globtbls.cellnodetbl;
-    globcellnodecoltbl        = globtbls.cellnodecoltbl;
     globnodefacecoltbl        = globtbls.nodefacecoltbl;
-    globcellcol2row2tbl       = globtbls.cellcol2row2tbl;
     globcellcolrowtbl         = globtbls.cellcolrowtbl;
-    globcoltbl                = globtbls.coltbl;
     globcelltbl               = globtbls.celltbl;
     globfacetbl               = globtbls.facetbl;
-    globnodetbl               = globtbls.nodetbl;
-    globcellnodetbl           = globtbls.cellnodetbl;
     globnodefacetbl           = globtbls.nodefacetbl;
-    globcellcoltbl            = globtbls.cellcoltbl;
-    globnodecoltbl            = globtbls.nodecoltbl;
-    globnodefacecoltbl        = globtbls.nodefacecoltbl;
-    globcellnodefacetbl       = globtbls.cellnodefacetbl;
-    globcellnodecoltbl        = globtbls.cellnodecoltbl;
-    globcellnodecolrowtbl     = globtbls.cellnodecolrowtbl;
-    globcellnodefacecolrowtbl = globtbls.cellnodefacecolrowtbl;
-    globcolrowtbl             = globtbls.colrowtbl;
-    globnodecolrowtbl         = globtbls.nodecolrowtbl;
-    globcol2row2tbl           = globtbls.col2row2tbl;
     globcellcol2row2tbl       = globtbls.cellcol2row2tbl;
-    globcellnodecol2row2tbl   = globtbls.cellnodecol2row2tbl;
     
     dim = coltbl.num;
     
