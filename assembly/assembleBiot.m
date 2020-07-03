@@ -60,22 +60,20 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
 
     cellnodetbl = tbls.cellnodetbl;
     celltbl = tbls.celltbl;
+    cell_from_cellnode = mappings.cell_from_cellnode;
     
     map = TensorMap();
     map.fromTbl = cellnodetbl;
     map.toTbl = celltbl;     
     map.mergefds = {'cells'};
-    map = map.setup();
+
+    map.pivottbl = cellnodetbl;
+    ind = (1 : cellnodetbl.num)';
+    map.dispind1 = ind;
+    map.dispind2 = cell_from_cellnode(ind);
+    map.issetup = true;
     
     nnodespercell = map.eval(ones(cellnodetbl.num, 1));
-    
-    map = TensorMap();
-    map.fromTbl = celltbl;
-    map.toTbl = cellnodetbl;     
-    map.mergefds = {'cells'};
-    map = map.setup();
-    
-    nnodespercell = map.eval(nnodespercell);
 
     coupassembly = assembleCouplingTerms(G, eta, alpha, nnodespercell, tbls, mappings);
     
