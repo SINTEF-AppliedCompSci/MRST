@@ -10,10 +10,9 @@ classdef BiotPoreVolume < StateFunction
         
         function pv = evaluateOnDomain(prop, model, state)
             vols = model.G.cells.volumes;
-            alpha = model.rock.alpha;
             
             [pv, divu] = model.getProps(state, 'BasePoreVolume', 'Dilatation');
-            pv = pv + vols.*alpha.*divu;
+            pv = pv + vols.*divu;
             
         end
     end
