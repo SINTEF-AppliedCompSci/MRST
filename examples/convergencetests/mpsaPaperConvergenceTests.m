@@ -17,18 +17,18 @@ function mpsaPaperConvergenceTests()
     mrstModule add vem mpfa mpsaw vemmech libgeometry
 
     close all
+    dosave = true;
+    savecount = 1; % counter for setting up filenames.
+    filerootname = 'mpsaconvoutput';
     
     %% params setting
     % nref     : degree of refinement
-    nref = 3;  % default setting
     % Nd       : dimension (2D or 3D)
     % kappa    : Value of heterogenity in the domain (see paper)
     % alpha    : Parameter to setup Lamé coefficient lambda (lambda = alpha*mu)
-    % gridtype : grid type (see mpsaPaperConvergenceFunc)
+    % gridtype : grid type (see gridForConvTest)
     % eta      : Value used to set the position of the continuity point
     
-    % Possibility to run vem for comparison
-    doVem = false;
 
     %% New Case
     dothiscase = true;
@@ -40,10 +40,15 @@ function mpsaPaperConvergenceTests()
                         'gridtype', 1, ... % Cartesian
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        output = mpsaPaperConvergenceFunc(params);
         figure
         hold on
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end
@@ -58,14 +63,20 @@ function mpsaPaperConvergenceTests()
                         'gridtype', 2, ... % Triangular grid, 90 degree angles
                         'eta'     , 1/3);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        output = mpsaPaperConvergenceFunc(params);
         figure
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end
 
-    
+    return
+
     %% New Case
     dothiscase = true;
     if dothiscase
@@ -76,9 +87,14 @@ function mpsaPaperConvergenceTests()
                         'gridtype', 3, ... % Triangular grid, equi - alternate
                         'eta'     , 1/3);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        output = mpsaPaperConvergenceFunc(params);
         figure
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end
@@ -93,9 +109,14 @@ function mpsaPaperConvergenceTests()
                         'gridtype', 4, ... % Triangular grid equi - non alternate
                         'eta'     , 1/3);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        output = mpsaPaperConvergenceFunc(params);
         figure
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end
@@ -110,9 +131,14 @@ function mpsaPaperConvergenceTests()
                         'gridtype', 1, ... % Cartesian Grid
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        output = mpsaPaperConvergenceFunc(params);
         figure
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end
@@ -127,9 +153,14 @@ function mpsaPaperConvergenceTests()
                         'gridtype', 1, ... % Cartesian
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem);
+        output = mpsaPaperConvergenceFunc(params);
         figure
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end
@@ -144,10 +175,15 @@ function mpsaPaperConvergenceTests()
                         'gridtype', 1, ... % Cartesian Grid
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', ...
                                           500);
         figure
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end
@@ -162,10 +198,15 @@ function mpsaPaperConvergenceTests()
                         'gridtype', 1, ... % Cartesian Grid
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', ...
                                           500);
         figure
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end
@@ -180,10 +221,15 @@ function mpsaPaperConvergenceTests()
                         'gridtype', 1, ... % Cartesian Grid
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', ...
                                           500);
         figure
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end
@@ -198,10 +244,15 @@ function mpsaPaperConvergenceTests()
                         'gridtype', 5, ... 
                         'eta'     , 1/3);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', ...
                                           100);
         figure
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end
@@ -212,14 +263,18 @@ function mpsaPaperConvergenceTests()
         params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
                         'kappa'   , 10, ...
-                        'alpha'   , 0, ... % tetras
-                        'gridtype', 5, ... 
-                        'eta'     , 1/3);
+                        'alpha'   , 0, ... 
+                        'gridtype', 5, ... % tetras
+                        'eta'     , 1/4);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
-                                          100);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', 100);
         figure
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end    
@@ -232,12 +287,16 @@ function mpsaPaperConvergenceTests()
                         'kappa'   , 1, ...
                         'alpha'   , 10, ... % tetras
                         'gridtype', 5, ... 
-                        'eta'     , 1/3);
+                        'eta'     , 1/4);
         
-        output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', ...
-                                          100);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', 100);
         figure
-        plotConv(output, params);
+        plotConvTest(output, params);
+        if dosave
+            filename = sprintf('%s%d.mat', filerootname, savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
         
         savethisfigure(params);
     end    

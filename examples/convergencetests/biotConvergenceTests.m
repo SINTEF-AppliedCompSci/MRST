@@ -29,8 +29,9 @@ function biotConvergenceTests()
     mrstModule add vem mpfa mpsaw vemmech libgeometry
 
     close all
-    dosave = false;
+    dosave = true;
     savecount = 1; % counter for setting up filenames.
+    filerootname = 'biotconvoutput';
     
     % params is a struct with the fields:
     %    Nd       : Spatial dimension (Nd = 2 or 3)
@@ -66,7 +67,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params);
         plotConv(output, params);
         if dosave
-            filename = sprintf('convoutput%d.mat', savecount);
+            filename = sprintf('%s%d.mat', fileroot, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end
@@ -90,7 +91,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params);
         plotConv(output, params);
         if dosave
-            filename = sprintf('convoutput%d.mat', savecount);
+            filename = sprintf('%s%d.mat', fileroot, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end        
@@ -113,7 +114,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params);
         plotConv(output, params);
         if dosave
-            filename = sprintf('convoutput%d.mat', savecount);
+            filename = sprintf('%s%d.mat', fileroot, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end
@@ -136,7 +137,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params);
         plotConv(output, params);
         if dosave
-            filename = sprintf('convoutput%d.mat', savecount);
+            filename = sprintf('%s%d.mat', fileroot, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end
@@ -145,7 +146,7 @@ function biotConvergenceTests()
     %% New Case
     dothiscase = false;
     if dothiscase
-        params = struct('nref'    , 4, ...
+        params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
                         'gridtype', 1, ...
                         'eta'     , 0, ...
@@ -159,7 +160,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params, 'blocksize', 100);
         plotConv(output, params);
         if dosave
-            filename = sprintf('convoutput%d.mat', savecount);
+            filename = sprintf('%s%d.mat', fileroot, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end
@@ -168,7 +169,7 @@ function biotConvergenceTests()
     %% New Case
     dothiscase = false;
     if dothiscase
-        params = struct('nref'    , 4, ...
+        params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
                         'gridtype', 5, ...
                         'eta'     , 1/4, ...
@@ -182,7 +183,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params, 'blocksize', 100);
         plotConv(output, params);
         if dosave
-            filename = sprintf('convoutput%d.mat', savecount);
+            filename = sprintf('%s%d.mat', fileroot, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end
