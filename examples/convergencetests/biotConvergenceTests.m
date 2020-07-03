@@ -75,7 +75,7 @@ function biotConvergenceTests()
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 4, ...
                         'Nd'      , 2, ...
@@ -98,7 +98,7 @@ function biotConvergenceTests()
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 4, ...
                         'Nd'      , 2, ...
@@ -121,7 +121,7 @@ function biotConvergenceTests()
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 4, ...
                         'Nd'      , 2, ...
@@ -144,7 +144,7 @@ function biotConvergenceTests()
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
@@ -167,7 +167,7 @@ function biotConvergenceTests()
     end
     
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 5, ...
                         'Nd'      , 3, ...
