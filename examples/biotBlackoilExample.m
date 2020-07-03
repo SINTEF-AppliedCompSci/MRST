@@ -80,10 +80,10 @@ loadstruct.force = force;
 mech.prop = mechprop;
 mech.loadstruct = loadstruct;
 
-modeltpfa = BiotTpfaBlackOilModel(G, rock, fluid, mech, 'water', true, 'oil', true, 'gas', false);
-modeltpfa.OutputStateFunctions = {'Dilatation', 'Stress'};
-model = BiotBlackOilModel(G, rock, fluid, mech, 'water', true, 'oil', true, 'gas', false);
-model.OutputStateFunctions = {'Dilatation', 'Stress'};
+modelMpfa = BiotBlackOilModel(G, rock, fluid, mech, 'water', true, 'oil', true, 'gas', false);
+modelMpfa.OutputStateFunctions = {'Dilatation', 'Stress'};
+modelTpfa = BiotTpfaBlackOilModel(G, rock, fluid, mech, 'water', true, 'oil', true, 'gas', false);
+modelTpfa.OutputStateFunctions = {'Dilatation', 'Stress'};
 
 mechmodel = MechModel(G, mech);
 statemech = mechmodel.solveMechanics();
@@ -99,26 +99,26 @@ schedule.step.val = dt*ones(nsteps, 1);
 schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('W', W);
 
-[ws, states] = simulateScheduleAD(state0, model, schedule);
-[wstpfa, statestpfa] = simulateScheduleAD(state0, modeltpfa, schedule);
+[ws, statesMpfa] = simulateScheduleAD(state0, modelMpfa, schedule);
+[wstpfa, statesTpfa] = simulateScheduleAD(state0, modelTpfa, schedule);
 
 %% Reformat stress
-for i = 1 : numel(states)
-    stress = model.getProp(states{i}, 'Stress');
+for i = 1 : numel(statesMpfa)
+    stress = modelMpfa.getProp(statesMpfa{i}, 'Stress');
     stress = formatField(stress, G.griddim, 'stress');
-    states{i}.stress = stress;
-    stress = model.getProp(statestpfa{i}, 'Stress');
+    statesMpfa{i}.stress = stress;
+    stress = modelTpfa.getProp(statesTpfa{i}, 'Stress');
     stress = formatField(stress, G.griddim, 'stress');
-    statestpfa{i}.stress = stress;
+    statesTpfa{i}.stress = stress;
 end
 
 %% plot
 figure;
-plotToolbar(G, states);
+plotToolbar(G, statesMpfa);
 title('MPFA')
 
 figure
-plotToolbar(G, statestpfa);
+plotToolbar(G, statesTpfa);
 title('TPFA')
 
 
