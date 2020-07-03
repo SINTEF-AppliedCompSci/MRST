@@ -1,7 +1,10 @@
 % Load modules
 
 mrstModule add ad-core ad-blackoil compositional ad-props mrst-gui mpsaw mpfa
+
 clear all
+close all
+
 
 %% Setup geometry
 
@@ -78,7 +81,7 @@ mech.prop = mechprop;
 mech.loadstruct = loadstruct;
 
 model = BiotBlackOilModel(G, rock, fluid, mech, 'water', true, 'oil', true, 'gas', false);
-model.OutputStateFunctions = {'Dilatation'};
+model.OutputStateFunctions = {'Dilatation', 'Stress'};
 
 mechmodel = MechModel(G, mech);
 statemech = mechmodel.solveMechanics();
@@ -96,8 +99,14 @@ schedule.control = struct('W', W);
 
 [ws, states] = simulateScheduleAD(state0, model, schedule);
 
+%% reformat stress
+for i = 1 : numel(states)
+    stress = model.getProp(states{i}, 'Stress');
+    stress = formatField(stress, G.griddim, 'stress');
+    states{i}.stress = stress;
+end
+
 figure;
 plotToolbar(G, states);
 
-return
 
