@@ -172,7 +172,14 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
 
         % Set up consistent divergence operator (not efficient implementation)
         alpha = ones(G.cells.num, 1);
-        cassembly = assembleCouplingTerms(G, eta, alpha, tbls, mappings);
+        % we need to send number of nodes per cell
+        map = TensorMap();
+        map.fromTbl = cellnodetbl;
+        map.toTbl = celltbl;
+        map.mergefds = {'cells'};
+        map = map.setup();
+        nnodespercell = map.eval(ones(cellnodetbl.num, 1));
+        cassembly = assembleCouplingTerms(G, eta, alpha, nnodespercell, tbls, mappings);
         cdiv{1} = cassembly.divconsnf;
         cdiv{2} = cassembly.divconsc;
         cdivop = @(unf, uc) cdivopFunc(unf, uc, cdiv);
