@@ -67,7 +67,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params);
         plotConv(output, params);
         if dosave
-            filename = sprintf('%s%d.mat', fileroot, savecount);
+            filename = sprintf('%s%d.mat', filerootname, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end
@@ -91,7 +91,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params);
         plotConv(output, params);
         if dosave
-            filename = sprintf('%s%d.mat', fileroot, savecount);
+            filename = sprintf('%s%d.mat', filerootname, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end        
@@ -114,7 +114,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params);
         plotConv(output, params);
         if dosave
-            filename = sprintf('%s%d.mat', fileroot, savecount);
+            filename = sprintf('%s%d.mat', filerootname, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end
@@ -137,7 +137,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params);
         plotConv(output, params);
         if dosave
-            filename = sprintf('%s%d.mat', fileroot, savecount);
+            filename = sprintf('%s%d.mat', filerootname, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end
@@ -160,7 +160,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params, 'blocksize', 100);
         plotConv(output, params);
         if dosave
-            filename = sprintf('%s%d.mat', fileroot, savecount);
+            filename = sprintf('%s%d.mat', filerootname, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end
@@ -183,7 +183,7 @@ function biotConvergenceTests()
         output = biotConvergenceFunc(params, 'blocksize', 100);
         plotConv(output, params);
         if dosave
-            filename = sprintf('%s%d.mat', fileroot, savecount);
+            filename = sprintf('%s%d.mat', filerootname, savecount);
             save(filename, 'params', 'output');
             savecount = savecount + 1;
         end
