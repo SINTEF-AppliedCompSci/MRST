@@ -1,14 +1,17 @@
 function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, globmappings, varargin)
     
     opt = struct('verbose'         , mrstVerbose, ...
-                 'assemblyMatrices', false      , ...
-                 'addAdOperators'  , false      , ...
-                 'blocksize'       , []         , ...
-                 'bcetazero'       , true       , ...
-                 'useVirtual'      , true       , ...
+                 'assemblyMatrices', false, ...
+                 'addAdOperators'  , false, ...
+                 'blocksize'       , []   , ...
+                 'bcetazero'       , true , ...
+                 'useVirtual'      , true , ...
                  'extraoutput'     , false);
         
     opt = merge_options(opt, varargin{:});
+
+    % option 'addAdOperators' not supported for the moment
+    assert(~opt.addAdOperators, 'option not implemented yet');
     
     % We solve the system
     %
@@ -56,15 +59,14 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
     coltbl         = globtbls.coltbl;
     colrowtbl      = globtbls.colrowtbl;
     col2row2tbl    = globtbls.col2row2tbl;
-    
-    globcellcoltbl            = globtbls.cellcoltbl;
-    globcellnodetbl           = globtbls.cellnodetbl;
-    globnodefacecoltbl        = globtbls.nodefacecoltbl;
-    globcellcolrowtbl         = globtbls.cellcolrowtbl;
-    globcelltbl               = globtbls.celltbl;
-    globfacetbl               = globtbls.facetbl;
-    globnodefacetbl           = globtbls.nodefacetbl;
-    globcellcol2row2tbl       = globtbls.cellcol2row2tbl;
+    globcellcoltbl      = globtbls.cellcoltbl;
+    globcellnodetbl     = globtbls.cellnodetbl;
+    globnodefacecoltbl  = globtbls.nodefacecoltbl;
+    globcellcolrowtbl   = globtbls.cellcolrowtbl;
+    globcelltbl         = globtbls.celltbl;
+    globfacetbl         = globtbls.facetbl;
+    globnodefacetbl     = globtbls.nodefacetbl;
+    globcellcol2row2tbl = globtbls.cellcol2row2tbl;
     
     dim = coltbl.num;
     
@@ -126,11 +128,11 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
     %       | lagrange multiplier fluid     |    in globfluidbcnodefacetbl
     
 
+    % Setup the global matrices B  
     bglobtbls = {globcellcoltbl, globcelltbl, globmechbcnodefacetbl, globfluidbcnodefacetbl};
-    
+    nA = 6;
     nB = 4;
     B = cell(nB, 1);
-    insB = cell(nB, 1);
     rhs = cell(nB, 1);
     bglobnums = cell(nB, 1);
     
@@ -143,25 +145,26 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         for j = 1 : nB;
             nj = bglobtbls{j}.num;
             B{i}{j} = sparse(ni, nj);
-            insB{i}{j} = sparse(ni, nj);
         end
     end
     
-    aglobtbls = {globnodefacecoltbl, globcellcoltbl, globnodefacetbl, globcelltbl, globmechbcnodefacetbl, globfluidbcnodefacetbl};
-    nA = 6;
-    A = cell(nA, 1);
-    for i = 1 : nA
-        A{i} = cell(nA, 1);
-        insA{i} = cell(nA, 1);
-        ni = aglobtbls{i}.num;
-        for j = 1 : nA
-            nj = aglobtbls{j}.num;
-            A{i}{j} = sparse(ni, nj);
-            insA{i}{j} = sparse(ni, nj);
+    if opt.assemblyMatrices
+        % for debugging: store the non-reduced system
+        aglobtbls = {globnodefacecoltbl, globcellcoltbl, globnodefacetbl, globcelltbl, globmechbcnodefacetbl, globfluidbcnodefacetbl};
+        A = cell(nA, 1);
+        for i = 1 : nA
+            A{i} = cell(nA, 1);
+            insA{i} = cell(nA, 1);
+            ni = aglobtbls{i}.num;
+            for j = 1 : nA
+                nj = aglobtbls{j}.num;
+                A{i}{j} = sparse(ni, nj);
+                insA{i}{j} = sparse(ni, nj);
+            end
         end
     end
 
-    % we compute the number of nodes per cells
+    % we compute the number of nodes per cells and per faces
     map = TensorMap();
     map.fromTbl = globcellnodetbl;
     map.toTbl = globcelltbl;     
@@ -493,8 +496,11 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         
         btbls = {cellcoltbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};        
         
-        % setup the index mappings (l2ginds)
-        fds = {{'cells', 'coldim'}, {'cells'}, {'faces', 'nodes', 'bcinds'}, {'faces', 'nodes'}};
+        % Setup the index mappings (l2ginds) between local and global (could have been done more efficiently)
+        fds = {{'cells', 'coldim'}, ...
+               {'cells'}, ...
+               {'faces', 'nodes', 'bcinds'}, ...
+               {'faces', 'nodes'}};
         l2ginds = cell(nB, 1);
         bnums = cell(nB, 1);
         for i = 1 : nB
@@ -514,8 +520,8 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
                 indj = l2ginds{j}(indj);
                 ni = bglobnums{i};
                 nj = bglobnums{j};
-                insB{i}{j} = sparse(indi, indj, v, ni, nj); 
-                B{i}{j} = B{i}{j} + insB{i}{j};
+                insB = sparse(indi, indj, v, ni, nj); 
+                B{i}{j} = B{i}{j} + insB;
             end
             [indi, ~, v] = find(locrhs{i});
             indi = l2ginds{i}(indi);
@@ -524,33 +530,35 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
             rhs{i} = rhs{i} + insrhs;
         end
         
-        % setup the index mappings (l2ginds)
-        fds = {{'nodes', 'faces', 'coldim'} , ...
-               {'cells', 'coldim'}          , ...
-               {'nodes', 'faces'}           , ...
-               {'cells'}                    , ...
-               {'faces', 'nodes', 'bcinds'} , ...
-               {'faces', 'nodes'}};
-        
-        al2ginds = cell(nA, 1);
-        for i = 1 : nA
-            map = TensorMap();
-            map.fromTbl  = aglobtbls{i};
-            map.toTbl    = atbls{i};
-            map.mergefds = fds{i};
+        if opt.assemblyMatrices
+            % setup the index mappings (l2ginds)
+            fds = {{'nodes', 'faces', 'coldim'} , ...
+                   {'cells', 'coldim'}          , ...
+                   {'nodes', 'faces'}           , ...
+                   {'cells'}                    , ...
+                   {'faces', 'nodes', 'bcinds'} , ...
+                   {'faces', 'nodes'}};
             
-            al2ginds{i} = map.getDispatchInd();
-        end
-        
-        for i = 1 : nA
-            for j = 1 : nA
-                [indi, indj, v] = find(locA{i}{j});
-                indi = al2ginds{i}(indi);
-                indj = al2ginds{j}(indj);
-                ni = aglobtbls{i}.num;
-                nj = aglobtbls{j}.num;
-                insA{i}{j} = sparse(indi, indj, v, ni, nj); 
-                A{i}{j} = A{i}{j} + insA{i}{j};
+            al2ginds = cell(nA, 1);
+            for i = 1 : nA
+                map = TensorMap();
+                map.fromTbl  = aglobtbls{i};
+                map.toTbl    = atbls{i};
+                map.mergefds = fds{i};
+                
+                al2ginds{i} = map.getDispatchInd();
+            end
+            
+            for i = 1 : nA
+                for j = 1 : nA
+                    [indi, indj, v] = find(locA{i}{j});
+                    indi = al2ginds{i}(indi);
+                    indj = al2ginds{j}(indj);
+                    ni = aglobtbls{i}.num;
+                    nj = aglobtbls{j}.num;
+                    insA{i}{j} = sparse(indi, indj, v, ni, nj); 
+                    A{i}{j} = A{i}{j} + insA{i}{j};
+                end
             end
         end
         
@@ -568,110 +576,11 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
 
     assembly = struct('B'  , B, ...
                       'rhs', rhs);
-    assembly.A = A;
     
-    if opt.addAdOperators
-
-        fluxop = fluidassembly.adoperators.fluxop;
-        
-        % Setup face node dislpacement operator
-        fndisp{1} = -invA11*locA{1}{2};
-        fndisp{2} = -invA11*locA{1}{4};
-        fndisp{3} = -invA11*locA{1}{5};
-        
-        facenodedispop = @(u, p, lm, extforce) facenodedispopFunc(u, p, lm, extforce, fndisp);
-        
-        % Setup stress operator
-        aver = cellAverageOperator(tbls, mappings);
-        stress{1} = C1;
-        stress{2} = C2;
-        stressop = @(unf, uc) stressopFunc(unf, uc, stress, aver);
-
-        % Setup divKgrad operator
-        divKgrad{1} = - A43invA33*locA{3}{4} + locA{4}{4};
-        divKgrad{2} = - A43invA33*locA{3}{6};
-        divKgradrhs = f{4} - A43invA33*f{3};
-        
-        divKgradop = @(p, lf) divKgradopFunc(p, lf, divKgrad, divKgradrhs);
-
-        % Setup consistent divergence operator (for displacement, includes value of Biot coefficient alpha)
-        % The divergence is volume weighted
-        divu{1} = - A41invA11*locA{1}{2} + locA{4}{2};
-        divu{2} = - A41invA11*locA{1}{4};
-        divu{3} = - A41invA11*locA{1}{5};
-        divu{4} = A41invA11;
-        
-        divuop = @(u, p, lm, extforce) divuopFunc(u, p, lm, extforce, divu);
-
-        % Setup momentum balance operator 
-        moment{1} = B11;
-        moment{2} = B12;
-        moment{3} = B13;
-        % We have : right-hand side for momentum equation = f{2} - A21invA11*f{1}. Hence, we set
-        moment{4} = A21invA11;
-        momentrhs = f{2};
-        
-        momentop = @(u, p, lm, extforce) momentopFunc(u, p, lm, extforce, moment, momentrhs);
-        
-        % Setup dirichlet boundary operator for mechanics
-        mechdir{1} = B31;
-        mechdir{2} = B32;
-        mechdir{3} = B33;
-        mechdirrhs = redrhs{3};
-        
-        mechDirichletop = @(u, p, lm) mechdiropFunc(u, p, lm, mechdir, mechdirrhs);
-        
-        % Setup dirichlet boundary operator for flow
-        fluiddir{1} = B42;
-        fluiddir{2} = B44;
-        fluiddirrhs = redrhs{4};
-        
-        fluidDirichletop = @(p, lf) fluiddiropFunc(p, lf, fluiddir, fluiddirrhs);
-        
-        adoperators = struct('fluxop'          , fluxop          , ...
-                             'facenodedispop'  , facenodedispop  , ...
-                             'stressop'        , stressop        , ...
-                             'divKgradop'      , divKgradop      , ...
-                             'divuop'          , divuop          , ...
-                             'momentop'        , momentop        , ...
-                             'fluidDirichletop', fluidDirichletop, ...
-                             'mechDirichletop' , mechDirichletop);
-
-        assembly.adoperators = adoperators;
-        
-    end    
-end
-
-
-function fndisp = facenodedispopFunc(u, p, lm, extforce, fndisp)
-    fndisp = fndisp{1}*u + fndisp{2}*p + fndisp{3}*lm + extforce;
-end
-
-function stress = stressopFunc(unf, uc, stress, aver)
+    if opt.assemblyMatrices
+        assembly.A = A;
+    end
     
-    % get stress at each cell-node region (corner)
-    stress = stress{1}*unf + stress{2}*uc;
-    stress = aver*stress;
-    
+
 end
 
-function divKgrad = divKgradopFunc(p, lf, divKgrad, divKgradrhs)
-    divKgrad = divKgrad{1}*p + divKgrad{2}*lf - divKgradrhs;
-end
-
-function divu = divuopFunc(u, p, lm, extforce, divu)
-    divu = divu{1}*u + divu{2}*p + divu{3}*lm + divu{4}*extforce;
-end
-
-function moment = momentopFunc(u, p, lm, extforce, moment, momentrhs)
-    moment = moment{1}*u + moment{2}*p + moment{3}*lm + moment{4}*extforce - momentrhs;
-end
-
-function mechdir = mechdiropFunc(u, p, lm, mechdir, mechdirrhs)
-    mechdir = mechdir{1}*u + mechdir{2}*p + mechdir{3}*lm - mechdirrhs;
-end
-
-function fluiddir = fluiddiropFunc(p, lf, fluiddir, fluiddirrhs)
-    fluiddir = fluiddir{1}*p + fluiddir{2}*lf - fluiddirrhs;
-end
-% 
