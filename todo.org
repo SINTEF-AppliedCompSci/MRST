@@ -29,4 +29,5 @@
 * Change in property functions assignment through setupStateFunctionGroupings requires validateModel
 * Remove setupfacebc from assembly
 * clean-up useVirtual and doptimize logic
+* improve calls including nnodesperface/cell
 
