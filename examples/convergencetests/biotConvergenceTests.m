@@ -36,10 +36,12 @@ function biotConvergenceTests()
     %    Nd       : Spatial dimension (Nd = 2 or 3)
     %    nref     : number of refinement level
     %    eta      : Value used to set the position of the continuity point
-    %    gridtype : Different grid type can be used, see below
-    %               1 : Cartesian grid
-    %               2 : Triangular grid, 90 degree angles
-    %               3 : Equilateral triangles
+    %    gridtype : Different grid type can be used, (see function gridForConvTest)
+    %               1: Cartesian
+    %               2: Triangles by alternating bisection of triangles
+    %               3: Equilateral triangles
+    %               4: Triangles by uniform bisection
+    %               5: Tetrehedral grid  
     %    mu       : Lame first coefficient
     %    lambda   : Lame second coefficcient
     %    K        : isotropic permeability, value of unique diagonal coefficient
@@ -48,7 +50,7 @@ function biotConvergenceTests()
     %    tau      : time discretization coefficient (should be always set to one)
 
     %% New Case
-    dothiscase = false;
+    dothiscase = true;
     if dothiscase
         params = struct('nref'    , 4, ...
                         'Nd'      , 2, ...
@@ -141,9 +143,32 @@ function biotConvergenceTests()
     end
     
     %% New Case
-    dothiscase = true;
+    dothiscase = false;
     if dothiscase
-        params = struct('nref'    , 3, ...
+        params = struct('nref'    , 4, ...
+                        'Nd'      , 3, ...
+                        'gridtype', 1, ...
+                        'eta'     , 0, ...
+                        'mu'      , 1, ...
+                        'lambda'  , 1, ...
+                        'alpha'   , 1, ...
+                        'K'       , 1, ...
+                        'tau'     , 1, ...
+                        'rho'     , 1);
+        
+        output = biotConvergenceFunc(params, 'blocksize', 100);
+        plotConv(output, params);
+        if dosave
+            filename = sprintf('convoutput%d.mat', savecount);
+            save(filename, 'params', 'output');
+            savecount = savecount + 1;
+        end
+    end
+    
+    %% New Case
+    dothiscase = false;
+    if dothiscase
+        params = struct('nref'    , 4, ...
                         'Nd'      , 3, ...
                         'gridtype', 5, ...
                         'eta'     , 1/4, ...
@@ -162,7 +187,7 @@ function biotConvergenceTests()
             savecount = savecount + 1;
         end
     end
-                              
+                                                            
 end
 
 function plotConv(output, params, varargin)
