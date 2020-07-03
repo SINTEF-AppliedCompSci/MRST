@@ -3,7 +3,7 @@
 mrstModule add ad-core ad-blackoil compositional ad-props mrst-gui mpsaw mpfa
 
 clear all
-close all
+% close all
 
 
 %% Setup geometry
@@ -80,6 +80,8 @@ loadstruct.force = force;
 mech.prop = mechprop;
 mech.loadstruct = loadstruct;
 
+modeltpfa = BiotTpfaBlackOilModel(G, rock, fluid, mech, 'water', true, 'oil', true, 'gas', false);
+modeltpfa.OutputStateFunctions = {'Dilatation', 'Stress'};
 model = BiotBlackOilModel(G, rock, fluid, mech, 'water', true, 'oil', true, 'gas', false);
 model.OutputStateFunctions = {'Dilatation', 'Stress'};
 
@@ -98,15 +100,25 @@ schedule.step.control = ones(numel(schedule.step.val), 1);
 schedule.control = struct('W', W);
 
 [ws, states] = simulateScheduleAD(state0, model, schedule);
+[wstpfa, statestpfa] = simulateScheduleAD(state0, modeltpfa, schedule);
 
-%% reformat stress
+%% Reformat stress
 for i = 1 : numel(states)
     stress = model.getProp(states{i}, 'Stress');
     stress = formatField(stress, G.griddim, 'stress');
     states{i}.stress = stress;
+    stress = model.getProp(statestpfa{i}, 'Stress');
+    stress = formatField(stress, G.griddim, 'stress');
+    statestpfa{i}.stress = stress;
 end
 
+%% plot
 figure;
 plotToolbar(G, states);
+title('MPFA')
+
+figure
+plotToolbar(G, statestpfa);
+title('TPFA')
 
 
