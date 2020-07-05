@@ -44,7 +44,6 @@ W = addWell(W, G, rock, find(ii == 1 & jj == 1), 'radius', 1e-3, 'comp_i', [1, 0
 
 lambda    = 0;
 mu        = 1;
-top_force = 1;
 
 lambda = lambda*ones(G.cells.num, 1);
 mu = mu*ones(G.cells.num, 1);
@@ -55,9 +54,9 @@ mechprop = struct('lambda', lambda, 'mu', mu);
 % We set zero displacement at all external faces
 
 extfaces = find(any(G.faces.neighbors == 0, 2));
-nextf = numel(extfaces);
+nextf    = numel(extfaces);
 extfaces = rldecode(extfaces, 2*ones(nextf, 1));
-linform = repmat([[1, 0]; [0, 1]], nextf, 1);
+linform  = repmat([[1, 0]; [0, 1]], nextf, 1);
 bcvals   = zeros(numel(extfaces), 1);
 
 bc = struct('linform'    , linform , ...
