@@ -18,10 +18,10 @@ function [eqs, names, types, state] = biotCompostionalEquations(model, state0, s
     
     p = model.getProp(state, 'pressure');
 
-    fac = 1 / (1e6 * mean(G.cells.volumes));
+    fac = 1 / (1*barsa * mean(G.cells.volumes));
     meqs{1} = fac*momentop(u, p, lm);
     meqs{2} = fac*mechdirop(u, p, lm);
-    meqs{3} = p - bp;
+    meqs{3} = fac*(p - bp);
 
     mnames = {'momentum', 'mechbcs', 'coupling'};
     mtypes  = {'cells', 'bc', 'cells'};

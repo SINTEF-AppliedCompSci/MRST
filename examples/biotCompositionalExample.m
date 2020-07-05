@@ -19,7 +19,7 @@ G.nodes.coords(:, 2) = G.nodes.coords(:, 2)*1000;
 G = computeGeometry(G);
 
 %% Homogeneous reservoir properties
-alpha = 0.1; % biot's coefficient
+alpha = 1; % biot's coefficient
 
 rock = makeRock(G, 100*milli*darcy, .2);
 rock.alpha = alpha*ones(G.cells.num, 1);
@@ -27,7 +27,10 @@ pv = sum(poreVolume(G, rock));
 
 %% setup fluid and wells 
 
-pRef = 50*barsa;
+[f, info] = getCompositionalFluidCase('verysimple');
+eos = EquationOfStateModel(G, f);
+
+pRef = info.pressure;
 gravity reset off;
 
 fluid = initSimpleADIFluid('cR', 1e-8/barsa, 'rho', [1, 1000, 100]);
@@ -40,8 +43,6 @@ W = addWell(W, G, rock, find(ii == ceil(G.cartDims(1)/2) & jj == G.cartDims(2)),
 W = addWell(W, G, rock, find(ii == G.cartDims(1) & jj == 1), 'comp_i', [1, 0], 'type', 'bhp', 'val', pRef);
 W = addWell(W, G, rock, find(ii == 1 & jj == 1), 'comp_i', [1, 0], 'type', 'bhp', 'val', pRef);
 
-[f, info] = getCompositionalFluidCase('verysimple');
-eos = EquationOfStateModel(G, f);
 
 for i = 1:numel(W)
     W(i).components = info.injection;
@@ -52,8 +53,8 @@ W(1).val = 100*W(1).val;
 
 %% setup mechanics mech structure (with field prop and loadstruct)
 
-lambda = 0;
 mu = 1 * giga * Pascal;
+lambda = 1e3*mu;
 
 lambda = lambda*ones(G.cells.num, 1);
 mu = mu*ones(G.cells.num, 1);
@@ -101,10 +102,11 @@ state0.u = statemech.u;
 state0.lambdamech = statemech.lambdamech;
 state0.biotpressure = state0.pressure;
 
-dt = [0.01; 0.1; 1; 9; repmat(15, 26, 1)]*day;
+dt = [1; 9; repmat(15, 22, 1)]*day;
 schedule = simpleSchedule(dt, 'W', W);
 
-[ws, statesMpfa] = simulateScheduleAD(state0, modelMpfa, schedule);
+solver = NonLinearSolver('maxTimestepCuts', 10);
+[ws, statesMpfa] = simulateScheduleAD(state0, modelMpfa, schedule, 'NonLinearSolver', solver);
 
 % [wstpfa, statesTpfa] = simulateScheduleAD(state0, modelTpfa, schedule);
 
