@@ -61,7 +61,7 @@ classdef BiotTpfaBlackOilModel < GenericBlackOilModel
         end
         
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces, varargin)
-            [eqs, names, types, state] = biotBlackOilEquations(model, state0, state, dt, drivingForces, varargin);
+            [eqs, names, types, state] = biotCompositionalEquations(model, state0, state, dt, drivingForces, varargin);
         end
 
         function [vars, names, origin] = getPrimaryVariables(model, state)

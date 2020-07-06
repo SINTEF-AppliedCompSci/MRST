@@ -1,4 +1,4 @@
-function [eqs, names, types, state] = biotBlackOilEquations(model, state0, state, dt, drivingForces, varargin)
+function [eqs, names, types, state] = biotCompositionalEquations(model, state0, state, dt, drivingForces, varargin)
             
     G     = model.G;
     fluid = model.fluid;
