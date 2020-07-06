@@ -30,7 +30,7 @@ pv = sum(poreVolume(G, rock));
 [f, info] = getCompositionalFluidCase('verysimple');
 eos = EquationOfStateModel(G, f);
 
-pRef = info.pressure;
+pRef = 50*barsa;
 gravity reset off;
 
 fluid = initSimpleADIFluid('cR', 1e-8/barsa, 'rho', [1, 1000, 100]);
@@ -92,8 +92,8 @@ mech.loadstruct = loadstruct;
 
 modelMpfa = BiotCompositionalModel(G, rock, fluid, eos, mech, 'water', false);
 modelMpfa.OutputStateFunctions = {'Dilatation', 'Stress'};
-% modelTpfa = BiotTpfaBlackOilModel(G, rock, fluid, mech, 'water', true, 'oil', true, 'gas', false);
-% modelTpfa.OutputStateFunctions = {'Dilatation', 'Stress'};
+modelTpfa = BiotTpfaCompositionalModel(G, rock, fluid, eos, mech, 'water', false);
+modelTpfa.OutputStateFunctions = {'Dilatation', 'Stress'};
 
 mechmodel = MechModel(G, mech);
 statemech = mechmodel.solveMechanics();
@@ -105,19 +105,17 @@ state0.biotpressure = state0.pressure;
 dt = [1; 9; repmat(15, 22, 1)]*day;
 schedule = simpleSchedule(dt, 'W', W);
 
-solver = NonLinearSolver('maxTimestepCuts', 10);
-[ws, statesMpfa] = simulateScheduleAD(state0, modelMpfa, schedule, 'NonLinearSolver', solver);
-
-% [wstpfa, statesTpfa] = simulateScheduleAD(state0, modelTpfa, schedule);
+[wsmpfa, statesMpfa] = simulateScheduleAD(state0, modelMpfa, schedule);
+[wstpfa, statesTpfa] = simulateScheduleAD(state0, modelTpfa, schedule);
 
 %% Reformat stress
 for i = 1 : numel(statesMpfa)
     stress = modelMpfa.getProp(statesMpfa{i}, 'Stress');
     stress = formatField(stress, G.griddim, 'stress');
     statesMpfa{i}.stress = stress;
-    % stress = modelTpfa.getProp(statesTpfa{i}, 'Stress');
-    % stress = formatField(stress, G.griddim, 'stress');
-    % statesTpfa{i}.stress = stress;
+    stress = modelTpfa.getProp(statesTpfa{i}, 'Stress');
+    stress = formatField(stress, G.griddim, 'stress');
+    statesTpfa{i}.stress = stress;
 end
 
 %% plot
@@ -126,8 +124,8 @@ figure;
 plotToolbar(G, statesMpfa);
 title('MPFA')
 
-% figure
-% plotToolbar(G, statesTpfa);
-% title('TPFA')
+figure
+plotToolbar(G, statesTpfa);
+title('TPFA')
 
 

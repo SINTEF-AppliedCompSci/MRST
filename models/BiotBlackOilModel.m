@@ -19,10 +19,6 @@ classdef BiotBlackOilModel < GenericBlackOilModel
             model = model@GenericBlackOilModel(G, rock, fluid, varargin{:});
             model = merge_options(model, varargin{:});
             
-            % Process the grid for mechanical computation
-            if ~ismember('createAugmentedGrid', model.G.type)
-                model.G = createAugmentedGrid(model.G);
-            end
             % Physical properties of rock and fluid
             model.mech  = mech;
         

@@ -54,12 +54,12 @@ classdef BiotCompositionalModel < GenericOverallCompositionModel
             
             pv = pvtprops.getStateFunction('PoreVolume');
             
-            biotprops = biotprops.setStateFunction('BasePoreVolume'      , pv);
-            biotprops = biotprops.setStateFunction('Dilatation'          , BiotBlackOilDilatation(model));
-            pvtprops  =  pvtprops.setStateFunction('PoreVolume'          , BiotPoreVolume(model));
-            mprops    =    mprops.setStateFunction('FaceNodeDisplacement', BiotFaceNodeDisplacement(model));
+            biotprops = biotprops.setStateFunction('BasePoreVolume'               , pv);
+            biotprops = biotprops.setStateFunction('Dilatation'                   , BiotBlackOilDilatation(model));
+            pvtprops  =  pvtprops.setStateFunction('PoreVolume'                   , BiotPoreVolume(model));
+            mprops    =    mprops.setStateFunction('FaceNodeDisplacement'         , BiotFaceNodeDisplacement(model));
             fluxprops = fluxprops.setStateFunction('PermeabilityPotentialGradient', MpfaKgrad(model));
-            fluxprops = fluxprops.setStateFunction('PhaseUpwindFlag', MpfaPhaseUpwindFlag(model));
+            fluxprops = fluxprops.setStateFunction('PhaseUpwindFlag'              , MpfaPhaseUpwindFlag(model));
             
             model.BiotPropertyFunctions = biotprops;
             model.PVTPropertyFunctions  = pvtprops;
