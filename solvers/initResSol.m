@@ -54,7 +54,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   if nargin <= 2, s0 = 0; end
+   if nargin <= 2, s0 = 1; end
 
    [nc, nf] = deal(G.cells.num, G.faces.num);
    if isfield(G, 'nnc') && isfield(G.nnc, 'cells')
@@ -63,11 +63,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        nf = nf + size(G.nnc.cells, 1);
    end
 
-   if size(s0, 1) == 1,
+   if size(s0, 1) == 1
 
       s0 = repmat(s0(1,:), [nc, 1]);
 
-   elseif size(s0, 1) ~= nc,
+   elseif size(s0, 1) ~= nc
 
       error(msgid('InitSat:Inconsistent'), ...
            ['Initial saturation must either be 1-by-np ', ...
@@ -75,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    end
 
-   if numel(p0) == 1,
+   if numel(p0) == 1
       p0 = repmat(p0, [nc, 1]);
    end
 
@@ -83,17 +83,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'flux',     zeros([nf, 1]), ...
                    's',        s0);
 
-   if nargin == 4,
+   if nargin == 4
       if isa(varargin{1}, 'double') && ...
-         size(varargin{1}, 2) == size(resSol.s, 2),
+         size(varargin{1}, 2) == size(resSol.s, 2)
 
          z = varargin{1};
 
-         if size(z, 1) == 1,
+         if size(z, 1) == 1
 
             z = repmat(z, [nc, 1]);
 
-         elseif size(z, 1) ~= nc,
+         elseif size(z, 1) ~= nc
 
             error(msgid('Mass:WrongSize'), ...
                  ['Surface volume: Expected G.cells.num (=%d) ', ...
