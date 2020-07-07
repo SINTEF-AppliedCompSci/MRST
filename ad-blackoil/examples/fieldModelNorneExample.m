@@ -28,7 +28,7 @@ fluid = initDeckADIFluid(deck, 'useMex', useMex);
 model = GenericBlackOilModel(G_sim, [], fluid, 'disgas', true, 'vapoil', true, 'inputdata', deck);
 % Finally set up the connectivity graph from output
 model.rock = rock;
-model.operators = setupOperatorsTPFA(G_sim, rock, 'deck', deck, 'neighbors', Ne, 'trans', Te);
+model.operators = setupOperatorsTPFA(G_sim, rock, 'neighbors', Ne, 'trans', Te);
 %% Set up everything
 [state0, model, schedule, nls] = initEclipseProblemAD(deck, 'model', model, ...
                                                         'TimestepStrategy', ...
