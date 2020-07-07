@@ -27,9 +27,13 @@ function [eqs, names, types, state] = biotEquations(model, state0, state, dt, dr
     divu  = model.getProp(state, 'Dilatation');
     divu0 = model.getProp(state0, 'Dilatation');
     
+    % momentum conservation
     eqs{1} = fac*momentop(u, p, lm, ef);
+    % mass conservation
     eqs{2} = 1/dt.*(pv.*c.*(p - p0) + (divu - divu0)) + divKgradop(p, lf);
+    % bc constraint for mechanics
     eqs{3} = fac*mechdirop(u, p, lm);
+    % bc constraint for flow
     eqs{4} = fluiddirop(p, lf);
     
     names = {'momentum', 'mass', 'bcmech', 'bcfluid'};
