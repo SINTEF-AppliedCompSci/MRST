@@ -1,7 +1,8 @@
-%% Mandel-like problem
+%% Example where we impose a controled force at the top. The intensity of the force is gradually increased (see setup of
+%% schedule below).
 
 clear all
-% close all
+close all
 
 %% Load required modules
 
@@ -10,7 +11,7 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 %% Setup grid
 
 physdim = [1, 1] * meter;
-nx = 40;, ny = 20;
+nx = 40;, ny = 40;
 resolution = [nx, ny];
 G = cartGrid(resolution, physdim);
 G = computeGeometry(G);
@@ -33,23 +34,20 @@ Gm = mu;
 % Bulk modulus K
 K = E/(2*(1 - 2*nu)); 
 
-% consolidation coefficient
-cv = perm/muW*(K + 3*Gm); % see reference verruijt2013theory
+% Biot's coefficient
+alpha = 1; 
 
-alpha = 1; % biot's coefficient
-
-% for at top
-% top_force = 100 * mega * Pascal;
+% force at the top (maximal value)
 top_force = 1;
 
 rock.poro  = poro * ones(G.cells.num, 1);
 rock.perm  = (perm/muW) * ones(G.cells.num, 1);
 rock.alpha = alpha * ones(G.cells.num, 1);
 
-% incompressible fluid
-cW = 0; 
+% fluid compressibility
+cW = 0; % incompressible
 
-% reference pressure on the side
+% Reference pressure
 pref = 0*barsa;
 
 %% setup mechanics mech structure (with field prop and loadstruct)
@@ -73,6 +71,8 @@ bottomfaces = bc.face;
 
 lateralfaces = leftfaces;
 
+%% Setup the Dirichlet boundary condition for the mechanics
+
 % on the bottom, we have rolling condition in x-direction
 bottomlinform = repmat([0, 1], numel(bottomfaces), 1);
 % on the lateral walls, we have rolling condition in y-direction
@@ -88,7 +88,7 @@ bc = struct('linform'    , linform , ...
 
 bc = setupFaceBC(bc, G, tbls);
 
-% setup vertical force at the top
+%% setup vertical force at the top
 
 topfacetbl.faces = topfaces;
 topfacetbl = IndexArray(topfacetbl);
@@ -123,16 +123,17 @@ loadstruct.bc = bc;
 loadstruct.extforce = zeros(nodefacecoltbl.num, 1); % get the dimension right
 loadstruct.force = force;
 
-% setup mech structure 
+% Setup the mechanical structure (input to to setup model)
 mech.prop = mechprop;
 mech.loadstruct = loadstruct;
 
 %% Setup flow parameters (with field c and bcstruct)
 
 fluid.c = cW;
-fluid.src = [];
+fluid.src = []; % no source
 
-% Setup boundary conditions for flow
+%% Setup boundary conditions for flow
+% We impose a constant pressure on the faces on the right handside.
 
 bcfaces = rightfaces;
 bcvals = pref*ones(numel(bcfaces));
@@ -164,16 +165,25 @@ fluid.bcstruct = bcstruct;
 
 model = BiotModel(G, rock, fluid, mech);
 model = model.validateModel();
+model.OutputStateFunctions = {'Dilatation', 'Stress'};
 
 %% Setup schedule
-tsteps = 100;
-duration = 1;
-schedule.step.val = duration/tsteps * ones(tsteps, 1);
-schedule.step.control = (1 : tsteps)';
-for i = 1 : tsteps
-    coef = i/tsteps;
+% We gradually increase the force exterted at the top
+tsteps1 = 10; 
+duration1 = 1;
+tsteps2 = 10;
+duration2 = 4;
+val1 = (duration1/tsteps1)*ones(tsteps1, 1);
+val2 = linspace(0, 1, tsteps2 + 1)'.^4;
+val2 = duration2*diff(val2);
+
+schedule.step.val = [val1; val2];
+schedule.step.control = [(1 : tsteps1)'; (tsteps1 + 1)*ones(tsteps2, 1)];
+for i = 1 : tsteps1
+    coef = i/tsteps1;
     control(i) = struct('W', [], 'extforce', coef*extforce);
 end
+control(tsteps1 + 1) = struct('W', [], 'extforce', extforce);
 schedule.control = control;
 
 %% Setup initial state
@@ -189,17 +199,17 @@ nlm = size(loadstruct.bc.linformvals, 1);
 initState.lambdamech = zeros(nlm, 1);
 initState.extforce = 0*extforce;
 
-solver = NonLinearSolver('maxIterations', 100);
-[wsol, states] = simulateScheduleAD(initState, model, schedule, 'nonlinearsolver', solver);
+[wsol, states] = simulateScheduleAD(initState, model, schedule);
 
 %% Pressure for some selected times
+
 figure
 clf
 xind = (1 : nx)';
 xc = G.cells.centroids(xind, 1);
 hold on
 
-inds = 1 : floor(tsteps/5) : tsteps; 
+inds = 1 : floor(tsteps1/5) : tsteps1; 
 legends = {};
 tt = cumsum(schedule.step.val);
 for i = 1 : numel(inds);
@@ -211,6 +221,13 @@ for i = 1 : numel(inds);
 end
 legend(legends{:});
 title('Pressure profile at some selected times');
+
+%% Reformat stress
+for i = 1 : numel(states)
+    stress = model.getProp(states{i}, 'Stress');
+    stress = formatField(stress, G.griddim, 'stress');
+    states{i}.stress = stress;
+end 
 
 %% plotting
 figure 
@@ -224,4 +241,8 @@ pmid = cellfun(@(state) state.pressure(ind), states);
 tt = cumsum(schedule.step.val);
 plot(tt, pmid, '*');
 title('Pressure evolution at left edge')
+
+
+
+
 
