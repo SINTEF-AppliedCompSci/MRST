@@ -5,10 +5,7 @@ function T = TransNTPFA(G, u, OSflux)
 
     T = cell(2, 1);
 
-    m = G.faces.num;
-    n = G.cells.num;
-
-    internal = 1:m;
+    internal = 1:G.faces.num;
     internal(~all(G.faces.neighbors ~= 0, 2)) = [];
 
     tii = cell(2, 1);
@@ -17,13 +14,13 @@ function T = TransNTPFA(G, u, OSflux)
     mu = cell(2, 1);
 
     for j = 1:2
-        tend = zeros(m, 1);
-        tii{j} = zeros(m, 2);
-        nij = zeros(m, 1);
+        tend = zeros(G.faces.num, 1);
+        tii{j} = zeros(G.faces.num, 2);
+        nij = zeros(G.faces.num, 1);
 
         % Sweep for sparsity set up
         for i = internal
-            t = OSflux{i, j};
+            t = OSflux{i, j};            
             nij(i) = max(0, size(t, 1) - 3);
             tii{j}(i, 1:2) = [t(1, 2), t(2, 2)];
         end
@@ -35,7 +32,7 @@ function T = TransNTPFA(G, u, OSflux)
         s = [1; cumsum(nij) + 1];
 
         % Don't loop over zero rows
-        nzrows = (1:m);
+        nzrows = 1:G.faces.num;
         nzrows(nij == 0) = [];
 
         for i = nzrows
@@ -47,7 +44,7 @@ function T = TransNTPFA(G, u, OSflux)
             tend(i) = t(end, 2);
         end
 
-        tsp{j} = sparse(ii, jj, vv, m, n);
+        tsp{j} = sparse(ii, jj, vv, G.faces.num, G.cells.num);
 
         r{j} = tsp{j} * u + tend;
         mu{j} = 0 * r{j} + 0.5;
