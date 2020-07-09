@@ -1,14 +1,14 @@
 function [div] = VEM_div(G)
-% Discrete div operator for the virtual element method
+% Discrete divergence operator for the virtual element method
 %
 % SYNOPSIS:
 %   function [div] = VEM_div(G)
 %
-% DESCRIPTION: Computes a discrete div operator. This discrete div operator is a
+% DESCRIPTION: Computes a discrete divergence operator. This discrete divergence operator is a
 % mapping from node-valued displacement vector to cell-valued
 % vector. Node-valued displacement vectors correspond to the degrees of freedom
 % that determine for each cell a displacement function over the cell via the
-% virtual basis function. The discrete div operator that is assembled here
+% virtual basis function. The discrete divergence operator that is assembled here
 % computes the L^2 projection, cell-wise, of this displacement function. For
 % more detail, see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1].
 %
@@ -16,7 +16,7 @@ function [div] = VEM_div(G)
 %   G - Grid struture
 %
 % RETURNS:
-%   div - matrix corresponding to the discrete div operator.
+%   div - matrix corresponding to the discrete divergence operator.
 %
 % EXAMPLE:
 %

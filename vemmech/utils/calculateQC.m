@@ -12,7 +12,7 @@ function [qc, qf, qcvol] = calculateQC(G)
 %
 % RETURNS:
 %   qc    - Elementary assembly integrals : One (3D) vector value in each
-%                                           cell, see (74) in [Gain et al].
+%                                           cell, see (74) in [Gain et al] (not divided by cell volume here in the code).
 %   qf    - Elementary assembly integrals : One scalar value for each face
 %                                           for each node, corresponds to (98) in [Gain et al].
 %   qcvol - Elementary assembly integrals : One scalar value for each node in each cells,
