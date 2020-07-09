@@ -258,6 +258,9 @@ function [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, m
     
     if ~isempty(bcdirichlet)
         [D, bcvals] = setupMpfaNodeFaceBc(bcdirichlet, tbls);
+        coef = max(abs(A11), [], 'all');
+        D = coef*D;
+        bcvals = coef*bcvals;
     else
         D = ones(size(A11, 1), 0);
         bcvals = [];
