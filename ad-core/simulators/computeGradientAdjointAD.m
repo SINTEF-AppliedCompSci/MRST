@@ -102,9 +102,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fprintf('Solving reverse mode step %d of %d\n', nt - step + 1, nt);
         [dg, grad, report] = model.solveAdjoint(linsolve, getState, ...
                                          getObjective, schedule, grad, step);
+        if isa(model.FacilityModel, 'ExtendedFacilityModel')
+            ws = states{step}.wellSol;
+            cntrScale = getControlEqScaling({ws.type}, model.FacilityModel);
+            eqNo      = strcmp('well', report.Types);
+            dg{eqNo}  = cntrScale.*dg{eqNo};
+        end
         gradstep(step, :) = getRequestedGradients(dg, report, opt.ControlVariables);
     end
-    
     
     % Sum up to the control steps
     if ~opt.OutputPerTimestep
@@ -150,3 +155,20 @@ function g = getRequestedGradients(dg, report, wantGradFor)
         end
     end
 end
+
+function sc = getControlEqScaling(tp, facility)
+% In order to produce correct gradients, this scaling must be precisely the
+% same as in the control equation. This is rather shaky!
+sc    = ones(numel(tp), 1);
+is_bhp = strcmp('bhp', tp);
+if any(is_bhp)
+    if isfinite(facility.toleranceWellRate) && isfinite(facility.toleranceWellBHP)
+        eqScale = facility.toleranceWellRate/facility.toleranceWellBHP;
+    else
+        eqScale = 1/(day()*barsa());
+    end
+    sc(is_bhp) = eqScale;
+end
+end
+
+    
