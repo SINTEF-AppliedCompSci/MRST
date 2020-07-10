@@ -147,7 +147,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    command = sprintf('%s %s %s %d', binname, opts, name, n);
    result  = sprintf('%s.part.%d'  , name, n);
 
-   system(command);
+   [stat, output] = system(command);
+
+   if stat ~= 0
+      delete(name);  delete(result);
+      error('Partition:Failure', ...
+           ['Failed to run METIS Graph Partitioner.  Output from ', ...
+            'METIS is\n<%s>\nExit Code: %d (%s)'], output, stat, ...
+            mrstTranslateExitCode(stat));
+   end
 
    delete(name);
 
