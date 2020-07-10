@@ -45,7 +45,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    OPTS = { '-O' };
    SRC  = { 'mrstTranslateExitCode.cpp' };
 
-   [CXXFLAGS, LINK, LIBS] = setupMexOperatorBuildFlags();
+   [CXXFLAGS, LINK, LIBS] = mrstDefaultMexFlags();
 
    buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
 
