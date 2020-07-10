@@ -144,7 +144,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    fclose(fp);
 
-   command = sprintf('%s %s %s %d', binname, opts, name, n);
+   command = sprintf('"%s" %s "%s" %d', binname, opts, name, n);
    result  = sprintf('%s.part.%d'  , name, n);
 
    [stat, output] = system(command);
