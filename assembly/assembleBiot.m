@@ -2,7 +2,8 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     
     opt = struct('bcetazero'       , true, ...
                  'assemblyMatrices', false, ...
-                 'addAdOperators'  , false);
+                 'addAdOperators'  , false, ...
+                 'scalingfactor', []);
     opt = merge_options(opt, varargin{:});
     
     % We solve the system
@@ -35,6 +36,14 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     %       | mechanical bc values |              
     %       | fluid bc values      |
         
+    
+    if ~isempty(opt.scalingfactor)
+        scalingfactor = opt.scalingfactor;
+        usescaling = true;
+    else
+        usescaling = false;
+    end
+    
     mechprops  = props.mechprops;
     fluidprops = props.fluidprops;
     coupprops  = props.coupprops;
@@ -200,6 +209,12 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     B3 = [B31, B32, B33, zeros(n3, n4)];
     B4 = [zeros(n4, n1), B42, zeros(n4, n3), B44];
     
+    fac = 1e-9;
+    if usescaling
+        B1 = scalingfactor*B1;
+        B2 = scalingfactor*B2;
+    end
+    
     B = [B1; B2; B3; B4];
     
     % Assembly of right hand side
@@ -210,6 +225,10 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
     redrhs{3} = f{5} - A51invA11*f{1};
     redrhs{4} = f{6} - A63invA33*f{3};
     
+    if usescaling
+        redrhs{1} = scalingfactor*redrhs{1};
+        redrhs{2} = scalingfactor*redrhs{2};
+    end
     rhs = vertcat(redrhs{:});
 
     assembly = struct('B'  , B, ...
@@ -225,7 +244,7 @@ function assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, v
 
         fluxop = fluidassembly.adoperators.fluxop;
         
-        % Setup face node dislpacement operator
+        % Setup face node displacement operator
         fndisp{1} = -invA11*A12;
         fndisp{2} = -invA11*A14;
         fndisp{3} = -invA11*A15;
