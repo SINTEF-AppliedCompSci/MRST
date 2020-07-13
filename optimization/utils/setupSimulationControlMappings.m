@@ -19,6 +19,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+if ~any(controllableWells)
+    [maps.wellNo, maps.type, u] = deal([]);
+    return;
+end
 
 [nw, ns] = deal(numel(schedule.control(1).W), numel(schedule.control));
 if nargin < 3 || isempty(controllableWells)
