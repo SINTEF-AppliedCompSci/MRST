@@ -1,4 +1,4 @@
-mrstModule add ad-fi diagnostics ad-props spe10 incomp
+mrstModule add ad-fi diagnostics ad-props spe10 incomp optimization
 %clear functions
 
 useBasis = false;
