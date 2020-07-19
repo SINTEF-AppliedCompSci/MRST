@@ -76,7 +76,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    p = regexp(path, escape(pathsep), 'split');
    p = exclude_matlabroot(p);
+   p = exclude_editordir(p);
    p = translate_rootdir(p);
+   p = translate_tempdir(p);
    p = translate_homedir(p);
 
    if nargin > 0
@@ -111,6 +113,15 @@ end
 
 %--------------------------------------------------------------------------
 
+function p = exclude_editordir(p)
+   tdir = escape(fullfile(tempdir(), 'x'));
+
+   m = regexp(p, ['^', tdir(1 : end - 1), '[Ee]ditor_.*'], 'match');
+   p = p(cellfun('isempty', m));
+end
+
+%--------------------------------------------------------------------------
+
 function p = translate_rootdir(p)
    for k = 0 : 2
       up  = repmat({'..'}, [1, k]);
@@ -119,6 +130,12 @@ function p = translate_rootdir(p)
 
       p = regexprep(p, dirstring(src), escape(dst));
    end
+end
+
+%--------------------------------------------------------------------------
+
+function p = translate_tempdir(p)
+   p = regexprep(p, dirstring(tempdir()), 'tempdir');
 end
 
 %--------------------------------------------------------------------------
