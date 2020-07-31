@@ -65,7 +65,7 @@ w2 = @(p) abs(p.dv) <= c2*abs(p0.dv);
 
 % Maximal step-length s.t. u = u0+aMax*d is feasible (should always be >= 1)
 aMax = getAlphaMax(u0, d, c);
-% assert(aMax>1-sqrt(eps)); 
+assert(aMax>1-sqrt(eps)); 
 aMax = max(1, aMax);
 
 % End-points of initial interval
