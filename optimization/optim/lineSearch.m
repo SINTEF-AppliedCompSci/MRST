@@ -65,14 +65,15 @@ w2 = @(p) abs(p.dv) <= c2*abs(p0.dv);
 
 % Maximal step-length s.t. u = u0+aMax*d is feasible (should always be >= 1)
 aMax = getAlphaMax(u0, d, c);
-assert(aMax>1-sqrt(eps));
+% assert(aMax>1-sqrt(eps)); 
 aMax = max(1, aMax);
 
 % End-points of initial interval
 p1 = p0;
 p2 = assignPoint(aMax, -inf, -inf);
 % Initial step-length:
-a  = 1;
+%a  = 1;
+a = min(1, aMax/2);
 
 lineSearchDone   = false;
 it = 0;
@@ -85,7 +86,9 @@ while ~lineSearchDone && it < maxIt
         lineSearchDone = true;
         flag = 1;
     else
-        if (p.a > aMax*(1-sqrt(eps))) && (p.dv > 0) % max step-length reached
+        if (p.a > aMax*(1-sqrt(eps))) && ... % max step-length reached
+               (p.v > p0.v) && ... % the step yielded an improvement
+               (p.dv > 0) % continuing further would improve (but not allowed)
             lineSearchDone  = true;
             flag = -1;
             fprintf('Wolfe conditions not satisfied for this step ...\n');
