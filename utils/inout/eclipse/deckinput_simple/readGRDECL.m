@@ -225,6 +225,13 @@ while ~feof(fid)
             checkDim(cartDims, numCell, kw, fid);
             grdecl.(kw) = readVector(fid, kw, prod(cartDims(1:2) + 1));
 
+         case 'MAPAXES'
+            grdecl.(kw) = readVector(fid, kw, 6);
+
+         case 'MAPUNITS'
+            data = readDefaultedRecord(fid, { 'METRES' });
+            grdecl.(kw) = data{1};  clear data
+
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
                'MINVALUE', 'MULTIPLY'}
             grdecl = ...
@@ -250,6 +257,9 @@ while ~feof(fid)
             tmpl = {'INC', 'INC', 'INC', 'DOWN', 'RIGHT'};
 
             grdecl.(kw) = readDefaultedRecord(fid, tmpl);        clear tmpl
+
+         case 'GRIDUNIT'
+            grdecl.(kw) = readDefaultedRecord(fid, { 'METRES', '' });
 
          otherwise
             if ~isempty(opt.keywords) && any(strcmp(kw, opt.keywords))
