@@ -1,6 +1,8 @@
 // Copyright (C) 2004-2012 Per-Olof Persson. See COPYRIGHT.TXT for details.
 
 #include "mex.h"
+#include "lapack.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -62,8 +64,10 @@ double dellipsoid(double x0,double y0,double z0,double a,double b,double c)
   return d;
 }
 
+#if 0
 extern "C" { void dhseqr_(char*,char*,szint*,szint*,szint*,double*,szint*,double*,
                          double*,void*,szint*,double*,void*,szint*); }
+#endif
 
 void roots(double *pol,double *rr,double *ri,szint n)
 {
@@ -80,7 +84,7 @@ void roots(double *pol,double *rr,double *ri,szint n)
   for (int i=0; i<n; i++)
     H[n*i]=-pol[i+1]/pol[0];
 
-  dhseqr_(&chE,&chN,&n,&o,&n,H,&n,rr,ri,0,&n,work,&n,&info);
+  dhseqr(&chE,&chN,&n,&o,&n,H,&n,rr,ri,0,&n,work,&n,&info);
 
   mxFree(work); mxFree(H);
   if (info!=0)
