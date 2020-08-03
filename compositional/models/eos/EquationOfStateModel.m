@@ -641,7 +641,7 @@ classdef EquationOfStateModel < PhysicalModel
             isLiq = value(L) == 1;
             isVap = value(L) == 0;
             isPure = isLiq | isVap;
-            eqs{end} = double(isLiq | isVap);
+            eqs{end} = zeros(numelValue(L), 1);
             for i = 1:ncomp
                 eqs{i} = z{i} - L.*x{i} - (1-L).*y{i};
                 eqs{i+ncomp} = (f_V{i} - f_L{i});
