@@ -24,7 +24,6 @@
 %
 
 clear all
-close all
 
 %% Load required modules
 
@@ -35,7 +34,7 @@ mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst
 % physdim = [20, 20] * meter;
 
 physdim = [1, 1]*meter;
-nx = 500; ny = 10;
+nx = 200; ny = 10;
 resolution = [nx, ny];
 G = cartGrid(resolution, physdim);
 G = computeGeometry(G);
@@ -47,11 +46,14 @@ poro = 1;
 
 % fluid compressibility
 cW = 0; 
+iM = cW; % iM = 1/M (iM = 0 if fluid is incompressible)
 
+% Mechanical parameters
 % Bulk's modulus
 K = 1;
 % Poisson's ratio
 nu = 0;
+
 % Second Lamé parameter (also called Shear modulus and denoted G)
 mu = 3/2*((1 - 2*nu)/(1 + nu))*K;
 Gm = mu;
@@ -61,13 +63,31 @@ lambda = K - 2/3*Gm;
 Gm = mu;
 
 % Consolidation coefficient
-cv = perm/muW*(K + 3*Gm); % see reference verruijt2013theory
+cv = perm/muW*(K + 4/3*Gm); % see reference verruijt2013theory (3.13)
 
-% biot's coefficient
+% Biot's coefficient
 alpha = 1;
+
+% Coussy value for diffusivity coefficient
+% we have checked that we obtain the same values
+docoussy = false;
+if docoussy
+    iMKu = K*iM + alpha^2; % page 86 (4.66) with iMKu = Ku/M
+    cv = perm/muW*(K + 4/3*mu)/(iMKu + 4/3*mu*iM);
+end
 
 % force at top
 top_force = 1;
+
+% Value of normalized pressure (Coussy), which corresponds to pressure at t = 0
+if docoussy
+    B = alpha/(iMKu); % page 86 (4.68)
+    a = alpha*B*(1 - 2*nu)/3;
+    nuu = (a + nu)/(1 - a); % page 87 (4.71)
+    pnorm = 1/3*B*(1 + nuu)*top_force; % page 143 (5.168)
+else
+    pnorm = top_force/2;
+end
 
 % setup rock
 
@@ -168,14 +188,11 @@ model = model.validateModel();
 
 %% Setup schedule
 
-tsteps = 100;
-duration = 1;
-t = duration/tsteps*ones(tsteps, 1);
-tt = [1; 1 + cumsum(t)];
-trepvals = [1e-5; 0.01; 0.1; 0.5; 1];
-trep = 1 + trepvals/cv;
-tt = [trep; tt];
-tt = uniquetol(tt, 1e-9);
+dt = 1e-4;
+time = 0.05;
+dt = rampupTimesteps(time, dt, 10);
+dtinit = 1; % length of initial phase (top force is equal to zero)
+tt = [dtinit; dtinit + cumsum(dt)];
 tt = [0; tt];
 t = diff(tt);
 schedule.step.val = t;
@@ -206,12 +223,46 @@ solver = NonLinearSolver('maxIterations', 100);
 
 %% Mandel plot (pressure profile for some selected values)
 
-figure
-ind = (1 : nx)';
-xc = G.cells.centroids(ind, 1);
-hold on
+ind1 = (1 : nx)' + floor(ny/2)*nx;
+ind2 = (1 : nx)';
+
+xc = G.cells.centroids(ind1, 1);
+
+xc2 =  G.cells.centroids(ind2, 1);
+assert(all(abs(xc - xc2) <= 1e-12), 'problem');
 
 tt = cumsum(schedule.step.val);
+
+%% check some value
+
+
+figure
+hold on
+
+ttest = 0.04;
+i = find(max(0, tt - (ttest + dtinit)) > 0 , 1);
+
+p = states{i}.pressure;
+p = p(ind1);
+plot(xc, p);
+
+p = states{i}.pressure;
+p = p(ind2);
+plot(xc, p);
+
+t = tt(i);
+params = struct('nu', nu, ...
+                'iM', iM);
+pan = pnorm*analyticmandel(cv*(t - dtinit), xc, params);
+plot(xc, pan);
+
+legend({'numerical1', 'numerical2', 'analytical'});
+
+return
+
+%% 
+
+
 legends = {};
 for i = 1 : numel(states);
     [lia, locb] = ismembertol(tt(i), trep, 1e-8);
@@ -235,6 +286,4 @@ pmid = cellfun(@(state) state.pressure(ind), states);
 tt = cumsum(schedule.step.val);
 plot(tt, pmid, '*');
 title('Pressure evolution at left edge')
-
-
 
