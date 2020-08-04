@@ -7,10 +7,10 @@ function p = analyticmandel(t, x, params, varargin)
     N = opt.num_modes;
     
     nu = params.nu;
-    iM = params.iM;
+    cW = params.cW;
     
     % only incompressible case for the moment
-    assert(iM == 0, 'only consider incompressible case for the moment');
+    assert(cW == 0, 'only consider incompressible case for the moment');
     eta = (1 - nu)/(1 - 2*nu);
     
     % compute values of alphas

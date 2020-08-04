@@ -190,7 +190,7 @@ model = model.validateModel();
 
 dt = 1e-4;
 time = 0.05;
-dt = rampupTimesteps(time, dt, 10);
+dt = rampupTimesteps(time, dt, rampup);
 dtinit = 1; % length of initial phase (top force is equal to zero)
 tt = [dtinit; dtinit + cumsum(dt)];
 tt = [0; tt];
@@ -252,7 +252,7 @@ plot(xc, p);
 
 t = tt(i);
 params = struct('nu', nu, ...
-                'iM', iM);
+                'cW', cW);
 pan = pnorm*analyticmandel(cv*(t - dtinit), xc, params);
 plot(xc, pan);
 
