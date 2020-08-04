@@ -1,7 +1,8 @@
-%% Minimal example that runs SPE1
+%% Minimal example that runs SPE3
+% Note: This is a BLACKOIL version of the SPE3 case.
 mrstModule add ad-blackoil ad-core mrst-gui ad-props deckformat
-pth = getDatasetPath('spe1');
-fn  = fullfile(pth, 'BENCH_SPE1.DATA');
+pth = getDatasetPath('spe3');
+fn  = fullfile(pth, 'BENCH_SPE3.DATA');
 problem = initEclipsePackedProblemAD(fn);
 %% Simulate
 simulatePackedProblem(problem, 'restartStep', 1);
