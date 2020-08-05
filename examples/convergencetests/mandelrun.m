@@ -2,9 +2,10 @@ function output = mandelrun(params)
     
     mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui mpsaw mpfa
 
+    output.params = params;
+    
     %% Setup grid
 
-    
     % discretization parameters
     nx = params.nx;
     ny = params.ny;

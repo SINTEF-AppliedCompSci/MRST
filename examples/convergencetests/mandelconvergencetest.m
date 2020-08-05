@@ -1,8 +1,9 @@
-function output = mandelconvergencetest
+function outputs = mandelconvergencetest
     
-    
+
     %% Spatial convergence
     params = setDefaultParameters();
+    params.rampup = 1;
     ts = params.fixedtsteps;
     nxs = [5; 10; 100];
     nnxs = numel(nxs);
@@ -10,13 +11,16 @@ function output = mandelconvergencetest
     
     close all
     
+    outputs = {};
+    
     for i = 1 : nnxs
         params.nx = nxs(i);
-        output{i} = mandelrun(params);
+        output = mandelrun(params);
+        outputs{end + 1} = output;
         figure
         hold on
-        plotsol(output{i}, params);
-        plotexactsol(output{i}, params, 1e-2);
+        plotsol(output);
+        plotexactsol(output, 1e-2);
         titlestr = sprintf('nx = %d, dt = %g', params.nx, params.dt);
         title(titlestr)
         legstr = arrayfun(@(x) sprintf('%g', x), ts, 'uniformoutput', false);
@@ -34,18 +38,18 @@ function output = mandelconvergencetest
     
     for i = 1 : ndts
         params.dt = dts(i);
-        output{i} = mandelrun(params);
+        output = mandelrun(params);
+        outputs{end + 1} = output;
         figure
         hold on
-        plotsol(output{i}, params);
-        plotexactsol(output{i}, params, 1e-2);
+        plotsol(output);
+        plotexactsol(output, 1e-2);
         titlestr = sprintf('nx = %d, dt = %g', params.nx, params.dt);
         title(titlestr)
         legstr = arrayfun(@(x) sprintf('%g', x), ts, 'uniformoutput', false);
         h = legend(legstr, 'location', 'eastoutside');
     end
     
-    output = [];
 end
 
 function params = setDefaultParameters()
@@ -75,9 +79,9 @@ function params = setDefaultParameters()
 end
 
 
-function plotsol(output, params)
+function plotsol(output)
     
-    [ind, xc] = computexc(output, params);
+    [ind, xc] = computexc(output);
     ps = output.pressures;
     
     for i = 1 : numel(ps)
@@ -87,27 +91,31 @@ function plotsol(output, params)
 
 end
 
-function [ind, xc] = computexc(output, params)
+function [ind, xc] = computexc(output)
     
+    G = output.G;
+    params = output.params;
+    ps = output.pressures;
+
     nx = params.nx;
     ny = params.ny;
-    G = output.G;
-    ps = output.pressures;
     
     ind = (1 : nx)' + floor(ny/2)*nx;
     xc = G.cells.centroids(ind, 1);    
     
 end
 
-function plotexactsol(output, params, dx)
+function plotexactsol(output, dx)
     
     xc = (0 : dx : 1)';
-    ts = params.fixedtsteps;
     
     pnorm  = output.pnorm;
+    params = output.params;
     cv     = output.cv;
     dtinit = output.dtinit;
     
+    ts = params.fixedtsteps;
+
     nts = numel(ts);
     co = get(gca, 'colororder');
 
