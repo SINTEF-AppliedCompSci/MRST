@@ -2,7 +2,7 @@
 #+OPTIONS: toc:nil
 
 * Convergence Tests
-  - The directory [[file:convergencetests.m][~convergencetests~]] contains all the convergence tests.
+  - The directory [[file:convergencetests.m][~convergencetests~]] contains scripts for convergence tests.
    
 * MPSA - Mechanics
 ** [[file:assemblyBiotExample.m][~assemblyMpsaExample.m~]]

@@ -2,7 +2,7 @@
 
 # Convergence Tests
 
--   The directory [`convergencetests`](convergencetests.m) contains all the convergence tests.
+-   The directory [`convergencetests`](convergencetests.m) contains scripts for convergence tests.
 
 
 # MPSA - Mechanics
