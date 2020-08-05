@@ -1,11 +1,10 @@
 function output = mandelconvergencetest
     
+    
+    %% Spatial convergence
     params = setDefaultParameters();
-    
     ts = params.fixedtsteps;
-    
-    % Spatial convergence
-    nxs = [5];
+    nxs = [5; 10; 100];
     nnxs = numel(nxs);
     states = cell(nnxs, 1);
     
@@ -18,14 +17,35 @@ function output = mandelconvergencetest
         hold on
         plotsol(output{i}, params);
         plotexactsol(output{i}, params, 1e-2);
-        titlestr = sprintf('spatial convergence, nx = %d', params.nx);
+        titlestr = sprintf('nx = %d, dt = %g', params.nx, params.dt);
+        title(titlestr)
+        legstr = arrayfun(@(x) sprintf('%g', x), ts, 'uniformoutput', false);
+        h = legend(legstr, 'location', 'eastoutside');
+    end
+    
+    
+    %% Time convergence
+    params = setDefaultParameters();
+    params.rampup = 1;
+    dts = [1e-2; 1e-3];
+    ndts = numel(dts);
+    states = cell(ndts, 1);
+    
+    
+    for i = 1 : ndts
+        params.dt = dts(i);
+        output{i} = mandelrun(params);
+        figure
+        hold on
+        plotsol(output{i}, params);
+        plotexactsol(output{i}, params, 1e-2);
+        titlestr = sprintf('nx = %d, dt = %g', params.nx, params.dt);
         title(titlestr)
         legstr = arrayfun(@(x) sprintf('%g', x), ts, 'uniformoutput', false);
         h = legend(legstr, 'location', 'eastoutside');
     end
     
     output = [];
-    
 end
 
 function params = setDefaultParameters()
@@ -37,7 +57,7 @@ function params = setDefaultParameters()
     params.dt     = 1e-3;
     params.rampup = 10;
     params.fixedtsteps = [1e-5; 0.01; 0.02; 0.03; 0.04; 0.1; 0.5];
-    params.fixedtsteps = [1e-5; 0.01; 0.02; 0.03; 0.04];
+    params.fixedtsteps = [1e-5; 0.01; 0.02; 0.04; 0.08];
     params.totime = params.fixedtsteps(end);
     
     % Flow parameters

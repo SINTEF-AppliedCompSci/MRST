@@ -169,7 +169,7 @@ function output = mandelrun(params)
 
     %% Setup schedule
 
-    dt = rampupTimesteps(totime, dt, 10);
+    dt = rampupTimesteps(totime, dt, rampup);
     dtinit = 1; % length of initial phase (when top force is equal to zero). This phase is necessary for proper initialization
     output.dtinit = dtinit;
     tt = cumsum(dt);
