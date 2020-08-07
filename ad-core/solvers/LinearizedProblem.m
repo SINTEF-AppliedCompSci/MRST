@@ -272,6 +272,25 @@ methods
         index = cellfun(@(x) strcmpi(x, name), problem.equationNames);
     end
     
+    function [dvar, dx, problem] = popIncrement(problem, dx, name)
+        % Get named/logic position update from a set of increments.
+        % Optionally, return dx and problem where the increment has then
+        % been removed.
+        if ischar(name)
+            pos = strcmpi(problem.primaryVariables, name);
+        else
+            pos = name;
+            assert(islogical(pos));
+        end
+        dvar = dx{pos};
+        if nargout > 1
+            dx = dx(~pos);
+            if nargout > 2
+                problem.primaryVariables = problem.primaryVariables(~pos);
+            end
+        end
+    end
+    
     % --------------------------------------------------------------------%
     function [problem, eliminatedEquation] = eliminateVariable(problem, variable)
         % Eliminate a variable from the problem using the equation with
