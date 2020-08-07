@@ -415,8 +415,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 
                 pltfn(x, d, [m, line], 'LineWidth', linew, 'color', c, plotvararg{:});
-                Mv = max(Mv, max(d));
-                mv = min(mv, min(d));
+                Mv = max(Mv, max(d(:)));
+                mv = min(mv, min(d(:)));
                 if get(ctrlplot, 'Value') && isfield(wellsols{i}{1}, 'type')
                     type = cellfun(@(ws) ws(wpos).type, wellsols{i}, 'UniformOutput', false);
                     [types, tmp, ctrl_id] = unique(type);
