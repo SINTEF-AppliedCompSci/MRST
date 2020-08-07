@@ -33,7 +33,12 @@ model.operators = setupEDFMOperatorsTPFA(G, G.rock, tol);
 %% PLOT GRID TO HELP DETERMINE APPROXIMATE WELL LOCATION
 [hm,hf]=plotEDFMgrid(G);
 hm.EdgeAlpha=0;
+hold on
+scatter(27.16, 121, 10, 'r', 'filled');
 view(0,90);
+box on
+xlabel('x [m]')
+ylabel('y [m]')
 
 %% LOCATE NEAREST FRACTURE CELL
 fraccellcent = [27.16,121,0.5]; % Approximate location of well
@@ -74,3 +79,30 @@ loglog(midtime,dp_dlnt);
 grid on
 xlabel('Time (s)')
 ylabel('Pressure derivative (Pa)')
+
+%% PLOT MATRIX RESULTS
+figure;
+plotToolbar(G,states,'lockCaxis',true, 'field', 'pressure');
+caxis([50 100]*barsa);
+colorbar('EastOutside');
+[hm,hf] = plotEDFMgrid(G);
+hm.EdgeAlpha=0;
+hf.EdgeAlpha=0.25;
+xlabel('x [m]')
+ylabel('y [m]')
+view(0, 90);
+axis equal tight
+box on
+
+%% PLOT FRACTURE RESULTS
+figure;
+Gplot = createGplot(G,1,fracplanes);
+plotToolbar(Gplot,states,1+G.Matrix.cells.num:G.cells.num,...
+    'lockCaxis',true, 'field', 'pressure');
+caxis([50 100]*barsa);
+colorbar('EastOutside');
+xlabel('x [m]')
+ylabel('y [m]')
+view(0, 90);
+axis equal tight
+box on

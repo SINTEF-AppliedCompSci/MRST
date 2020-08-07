@@ -92,11 +92,11 @@ boundfaces=findfracboundaryfaces(G,tol);
 % Set pressure differential on opposing boundaries in the x-direction
 deltaP = 50*barsa;
 bc=[];
-bc=pside(bc,G.Matrix,'West',pRef);
+bc=pside(bc,G.Matrix,'East',pRef);
 matwestfaces=bc.face;
-bc=pside(bc,G.Matrix,'East',pRef + deltaP);
-bc=addBC(bc,boundfaces.West,'pressure',150*barsa);
+bc=pside(bc,G.Matrix,'West',pRef + deltaP);
 bc=addBC(bc,boundfaces.East,'pressure',100*barsa);
+bc=addBC(bc,boundfaces.West,'pressure',150*barsa);
 bc.sat=ones(size(bc.face));
 
 %% SETUP SCHEDULE
@@ -107,9 +107,14 @@ schedule = simpleSchedule(1,'bc',bc);
 
 %% PLOT RESULTS
 figure;
-plotCellData(G,states{1}.pressure);
+plotCellData(G,states{1}.pressure,1:G.Matrix.cells.num,...
+    'FaceAlpha',0.5,'EdgeAlpha',0.1);
+plotCellData(G,states{1}.pressure,G.Matrix.cells.num+1:G.cells.num);
 view(30,45);
+caxis([100 150]*barsa);
+colorbar('EastOutside');
 axis equal tight
+box on
 
 %% CALCULATE EQUIVALENT PERMEABILITY
 % Determine flux through western boundary
