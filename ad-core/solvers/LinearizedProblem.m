@@ -282,12 +282,16 @@ methods
             pos = name;
             assert(islogical(pos));
         end
-        dvar = dx{pos};
-        if nargout > 1
-            dx = dx(~pos);
-            if nargout > 2
-                problem.primaryVariables = problem.primaryVariables(~pos);
+        if any(pos)
+            dvar = dx{pos};
+            if nargout > 1
+                dx = dx(~pos);
+                if nargout > 2
+                    problem.primaryVariables = problem.primaryVariables(~pos);
+                end
             end
+        else
+            dvar = [];
         end
     end
     
