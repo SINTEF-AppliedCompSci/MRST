@@ -1,4 +1,3 @@
-
 %% Combining consistent discretizations with AD-OO
 % We follow example 6.1.2 in the MRST book (see
 % examples/1ph/showInconsistentTPFA in the book module).
@@ -10,13 +9,17 @@ close all
 
 mrstModule add ad-core mpfa ad-blackoil compositional ad-props mrst-gui nfvm
 
+% Without twisting the methods should yield the same results
+twist = true;
 dims = [41, 20];
 G = cartGrid(dims, [2, 1]);
-makeSkew = @(c) c(:, 1) + .4 * (1 - (c(:, 1) - 1).^2) .* (1 - c(:, 2));
-G.nodes.coords(:, 1) = 2 * makeSkew(G.nodes.coords);
-G.nodes.coords(:, 1) = G.nodes.coords(:, 1) * 1000;
-G.nodes.coords(:, 2) = G.nodes.coords(:, 2) * 1000;
-G = twister(G);
+if twist
+    makeSkew = @(c) c(:, 1) + .4 * (1 - (c(:, 1) - 1).^2) .* (1 - c(:, 2));
+    G.nodes.coords(:, 1) = 2 * makeSkew(G.nodes.coords);
+    G.nodes.coords(:, 1) = G.nodes.coords(:, 1) * 1000;
+    G.nodes.coords(:, 2) = G.nodes.coords(:, 2) * 1000;
+    G = twister(G);
+end
 G = computeGeometry(G);
 
 % Homogeneous reservoir properties
@@ -38,10 +41,11 @@ else
     c3 = findEnclosingCell(G, [xmax(1) - offset, xmin(2) + offset]);
 end
 % Injector + two producers
+r = 0.005;
 W = [];
-W = addWell(W, G, rock, c1, 'comp_i', [1, 0], 'type', 'rate', 'val', pv/year);
-W = addWell(W, G, rock, c2, 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa);
-W = addWell(W, G, rock, c3, 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa);
+W = addWell(W, G, rock, c1, 'comp_i', [1, 0], 'type', 'rate', 'val', pv/year, 'radius', r);
+W = addWell(W, G, rock, c2, 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa, 'radius', r);
+W = addWell(W, G, rock, c3, 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa, 'radius', r);
 
 %% We can simulate with either immiscible or compositional fluid physics
 % The example uses the general simulator framework and as such we can
