@@ -63,7 +63,7 @@ end
 function [qOs, qWs, qGs, bhp, wns, time] = extract_quantities(smry, u)
    tf   = ':+:+:+:+';   % special field with time-info
 
-   wns  = setdiff(smry.WGNAMES, {tf, 'FIELD', ''}); % well-names
+   wns  = get_well_names(smry); % well-names
    t = smry.get(tf, 'TIME', ':');
    time = reshape(convertFrom(t, u.t), [], 1);
 
@@ -128,7 +128,19 @@ function [qOs, qWs, qGs, bhp, wns, time] = extract_quantities(smry, u)
           end
       end
    end
+end
 
+%--------------------------------------------------------------------------
+
+function wns = get_well_names(smry)
+   wkw = smry.KEYWORDS(~cellfun('isempty', regexp(smry.KEYWORDS, '^W')));
+
+   wns = {};
+   for kw = reshape(wkw, 1, [])
+      wns = [ wns ; reshape(smry.getNms(kw{1}), [], 1) ];       %#ok<AGROW>
+   end
+
+   wns = unique(wns);
 end
 
 %--------------------------------------------------------------------------
