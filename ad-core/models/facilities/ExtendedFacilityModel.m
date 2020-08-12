@@ -214,6 +214,8 @@ classdef ExtendedFacilityModel < FacilityModel
             phases = model.getPhaseNames();
             is_surface_control = false(nact, 1);
             wrates = backend.convertToAD(zeros(nact, 1), bhp);
+            wrates_actual = zeros(nact, 1); % Actual rates into perforations - as doubles
+            surfaceRatesValue = value(surfaceRates);
             for i = 1:nph
                 switch phases(i)
                     case 'W'
@@ -225,6 +227,7 @@ classdef ExtendedFacilityModel < FacilityModel
                 end
                 is_surface_control(act) = true;
                 wrates(act) = wrates(act) + targetRates{i}(act);
+                wrates_actual(act) = wrates_actual(act) + surfaceRatesValue(act, i);
             end
             ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
             % RESV controls are special
@@ -245,7 +248,9 @@ classdef ExtendedFacilityModel < FacilityModel
             
             zeroTarget = targets == 0 & (is_surface_control | is_resv);
             zeroBHP = (is_bhp & sign(surface_value) ~= wsign & wsign ~= 0 & surface_value ~= 0);
-            zeroRates = zeroTarget | zeroBHP;
+            zeroRates = zeroTarget | ... % Actual target zero
+                        zeroBHP | ... % Bad flow direction
+                        (wrates_actual == 0 & is_surface_control); % Rates are zero for controlling rate -> no solution
             if any(zeroRates)
                 q_t = 0;
                 for i = 1:nph
