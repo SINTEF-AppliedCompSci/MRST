@@ -14,7 +14,7 @@ group = group.setStateFunction('G', TutorialAdd('AB', 'XY'));
 disp(group)
 %% Plotting
 clf;
-[h, g] = plotStateFunctionGroupings(group, 'TextArg', {'FontSize', 16, 'horizontalalignment', 'center', 'verticalalignment', 'middle'});
+[h, g] = plotStateFunctionGroupings(group, 'TextArg', {'FontSize', 16, 'horizontalalignment', 'center', 'verticalalignment', 'middle'}, 'includestate', false);
 colormap(brighten(lines, 0.5))
 printStateFunctionGroupingTikz(g)
 %% Show evaluation
