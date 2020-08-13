@@ -31,7 +31,7 @@ opt=struct('outputdir','output',...
     'verbose',true,...
     'np',1,...
     'threads',2,...
-    'lineartol',1e-2,...
+    'lineartol',1e-5,...
     'strongdefaults',true,...
     'storagecache',true,...
     'simulationtype','implicit');
@@ -50,7 +50,7 @@ else
     if(opt.force_timestep)
         command=[command, opt.simulator,' --enable-well-operability-check=false --full-time-step-initially=true --enable-adaptive-time-stepping=false --flow-newton-max-iterations=100 '];
     else
-        command=[command, opt.simulator,' --enable-tuning=true '];
+        command=[command, opt.simulator,' --time-step-control=iterationcount --enable-tuning=false '];
     end
     command =[command,' --simulation-type=',opt.simulationtype,' '];
     command = [command,' --solve-welleq-initially=true '];
@@ -60,7 +60,7 @@ else
         command =  [command,' --enable-storage-cache=false '];
     end
     if(opt.strongdefaults)
-        command =[command,' --tolerance-cnv=0.001 --tolerance-cnv-relaxed=0.001 '];
+        command =[command,' --tolerance-cnv=0.00001 --tolerance-cnv-relaxed=0.0001 --tolerance-wells=0.0001 --project-saturations=true --ds-max=0.2'];
     end
     command =[command,' --linear-solver-reduction=',num2str(opt.lineartol),' '];
     command=[command,' --threads-per-process=',num2str(opt.threads),' '];
@@ -85,7 +85,7 @@ else
         %command=[command,'--use-amg=true -use-cpr=true -use-gmres=true ']
     else
       if(opt.verbose)
-        command = [command,' --flow-linear-solver-verbosity=1 ']
+        command = [command,' --flow-linear-solver-verbosity=0 ']
       end
     end
     command = [command,' --output-dir=',opt.outputdir,' ',deckfile];
@@ -99,10 +99,12 @@ if(opt.do_adjoint)
 end
 delete([fullfile(opt.outputdir,'extra_out'),'/*.txt'])
 disp('MRST runing flow')
+delete([fullfile(opt.outputdir),'*.UNSMRY']);
 disp(command)
 a = system(command)
 if(a~=0)
-    error('funning flow failed')
+    warning('funning flow failed to finnish')
+    %delete([fullfile(opt.outputdir),'*.UNSMRY']);
 end
 %% make normal output
 if(nargout>0)
@@ -125,7 +127,7 @@ if(nargout>0)
         files=dir([fullfile(opt.outputdir,'extra_out'),'/*','txt'])
         sT=cell(numel(files),1);
         for i = 1:numel(files)
-                sT{i} = load(fullfile(files(i).folder,files(i).name));
+             states_opm{i}.sT = load(fullfile(files(i).folder,files(i).name));
         end
         extra.sT=sT;
     else
@@ -136,7 +138,6 @@ if(nargout>0)
     if(opt.do_adjoint)
        adfile = fullfile(opmdir,'adjoint_results.txt');
        fn=fopen(adfile);
-       wnames=fgetl(fn);
        wnames=fgetl(fn);
        fclose(fn);
        wnames=split(wnames(1:end));
@@ -163,7 +164,9 @@ if(nargout>0)
     else
        adjoint=[];
     end
-    
-    reports=struct('ReservoirTime',time_smry,'adjoint',adjoint);
+    reports = readInfoStep([ofile,'.INFOSTEP']);
+    reports.ReservoirTime = time_smry;
+    reports.adjoint = adjoint;
+    %reports=struct('ReservoirTime',time_smry,'adjoint',adjoint);
     states=states_opm;
 end
