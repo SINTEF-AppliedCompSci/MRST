@@ -291,13 +291,7 @@ methods
         else
             % Very simple scaling factors, uniform over grid
             p = mean(value(state.pressure));
-            pvtreg = model.PVTPropertyFunctions.getRegionPVT(model);
-            useReg = max(pvtreg) ~= min(pvtreg);
-            if useReg
-                call = @(x, varargin) x{1}(varargin{:});
-            else
-                call = @(x, varargin) x(varargin{:});
-            end
+            call = @(varargin) model.evalSingle(varargin{:});
             for iter = 1:nNames
                 name = lower(names{iter});
                 switch name
@@ -405,7 +399,15 @@ methods
         end
         components = model.getDissolutionMatrix(rsMax, rvMax);
     end
-    
+end
+
+methods (Access = private)
+    function x = evalSingle(m, fn, varargin)
+        if iscell(fn)
+            fn = fn{1};
+        end
+        x = fn(varargin{:});
+    end
 end
 end
 
