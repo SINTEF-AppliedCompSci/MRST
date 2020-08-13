@@ -1,12 +1,17 @@
 classdef ShrinkageFactors < StateFunction
     % Shrinkage factors that depend only on pressure
     properties
+        usePhasePressures = true;
     end
     
     methods
         function b = ShrinkageFactors(model, varargin)
             b@StateFunction(model, varargin{:});
-            b = b.dependsOn('PhasePressures');
+            if b.usePhasePressures
+                b = b.dependsOn('PhasePressures');
+            else
+                b = b.dependsOn('pressure', 'state');
+            end
             b.label = 'b_\alpha';
         end
         
@@ -14,7 +19,13 @@ classdef ShrinkageFactors < StateFunction
             names = model.getPhaseNames();
             nph = numel(names);
             mu = cell(1, nph);
-            p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
+            if prop.usePhasePressures
+                p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
+            else
+                p_phase = cell(1, nph);
+                p = model.getProp(state, 'pressure');
+                [p_phase{:}] = deal(p);
+            end
             [sample, isAD] = getSampleAD(p_phase{:});
             for ph = 1:nph
                 mu{ph} = prop.evaluatePhaseShrinkageFactor(model, state, names(ph), p_phase{ph});
