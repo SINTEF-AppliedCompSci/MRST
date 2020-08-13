@@ -60,8 +60,8 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             %
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.validateModel`
-            if isempty(model.FacilityModel) || ~isa(model.FacilityModel, 'ExtendedFacilityModel')
-                model.FacilityModel = ExtendedFacilityModel(model);
+            if isempty(model.FacilityModel) || ~isa(model.FacilityModel, 'GenericFacilityModel')
+                model.FacilityModel = GenericFacilityModel(model);
             end
             if isempty(model.Components)
                 f = model.EOSModel.fluid;

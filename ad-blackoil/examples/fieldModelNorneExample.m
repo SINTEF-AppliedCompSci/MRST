@@ -49,7 +49,7 @@ model.toleranceCNV = 1e-2;
 model.toleranceMB = 1e-7;
 
 % Set well tolerances
-model.FacilityModel = ExtendedFacilityModel(model);
+model.FacilityModel = GenericFacilityModel(model);
 model.FacilityModel.toleranceWellBHP = 1e-3;
 model.FacilityModel.toleranceWellRate = 5e-3;
 

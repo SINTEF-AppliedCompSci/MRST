@@ -104,7 +104,7 @@ methods
         model.gravity = gravity();
         if isa(model, 'ExtendedReservoirModel')
             % Generic class - use extended version
-            model.FacilityModel = ExtendedFacilityModel();
+            model.FacilityModel = GenericFacilityModel();
         else
             % Legacy class - use base facility
             model.FacilityModel = FacilityModel();
