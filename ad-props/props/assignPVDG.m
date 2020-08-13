@@ -8,10 +8,13 @@ function [bG, muG] = getFunctions(PVDG, reg)
     for i = 1:reg.pvt
         pvdg = PVDG{i};
         
-        pG = pvdg(:, 1);
-        BG = pvdg(:, 2);
+        bg = 1./pvdg(:, 2);
         mug = pvdg(:, 3);
-        bG{i}  = @(pg) reg.interp1d(pG, 1./BG, pg);
+        % Extend table at lower end
+        pG = [0; pvdg(:, 1)];
+        bg = bg([1, 1:end]);
+        mug = mug([1, 1:end]);
+        bG{i}  = @(pg) reg.interp1d(pG, bg, pg);
         muG{i} = @(pg) reg.interp1d(pG, mug, pg);
     end
 end

@@ -7,19 +7,23 @@ function [bO, muO, rsSat] = getFunctions(PVTO, reg)
     
     for i = 1:reg.pvt
         pvto = PVTO{i};
-        
-        p_bub = pvto.data(pvto.pos(1:end-1),1);
-        rs = pvto.key;
-        
+        % Transform B into reciprocal b = 1/b
         bo = pvto;
         bo.data = [bo.data(:,1), 1./bo.data(:,2)];
-        
+        % Viscosity
         muo = pvto;
         muo.data = [muo.data(:,1), muo.data(:,3)];
-        
+        % Bubble point vs rs table
+        p_bub = pvto.data(pvto.pos(1:end-1),1);
+        rs = pvto.key;
+        % Cap endpoint to avoid interpolating into negative rs for low
+        % pressures. The Rs should by definition go to zero as the pressure
+        % goes towards surface conditions, and by extension, zero.
+        p_t = [0; p_bub];
+        rs_t = [0; rs];
         bO{i} = @(po, rs, flag) interpPVT(bo, po, rs, flag);
         muO{i} = @(po, rs, flag) interpPVT(muo, po, rs, flag);
-        rsSat{i} = @(po) reg.interp1d(p_bub, rs, po);
+        rsSat{i} = @(po) reg.interp1d(p_t, rs_t, po);
     end
 end
 
