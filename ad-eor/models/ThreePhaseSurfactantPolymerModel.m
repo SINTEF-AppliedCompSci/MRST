@@ -153,7 +153,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
 
             fp = model.FlowPropertyFunctions;
             pp = model.PVTPropertyFunctions;
-            fd = model.FluxDiscretization;
+            fd = model.FlowDiscretization;
             pvtreg  = pp.getRegionPVT(model);
             satreg  = fp.getRegionSaturation(model);
             surfreg = fp.getRegionSurfactant(model);
@@ -209,13 +209,13 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 relpermult = relpermult.addMultiplier(model, rppmult, 'W');
                 % if necessary, the following can be moved out similar with
                 % others, currently they are overwritten due to polymer
-                if ~isempty(model.FacilityModel) && isprop(model.FacilityModel, 'FacilityFluxDiscretization')
-                    ffd = model.FacilityModel.FacilityFluxDiscretization;
+                if ~isempty(model.FacilityModel) && isprop(model.FacilityModel, 'FacilityFlowDiscretization')
+                    ffd = model.FacilityModel.FacilityFlowDiscretization;
                     ffd = ffd.setStateFunction('Mobility', PerforationMobilityEOR(model));
                     if model.polymer
                         ffd = ffd.setStateFunction('ComponentPhaseDensity', PerforationComponentPhaseDensityEOR(model));
                     end
-                    model.FacilityModel.FacilityFluxDiscretization = ffd;
+                    model.FacilityModel.FacilityFlowDiscretization = ffd;
                 end
             end
 
@@ -241,7 +241,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
 
             model.FlowPropertyFunctions = fp;
             model.PVTPropertyFunctions  = pp;
-            model.FluxDiscretization    = fd;            
+            model.FlowDiscretization    = fd;            
         end
 
         % --------------------------------------------------------------------%

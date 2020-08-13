@@ -56,7 +56,7 @@ properties
     AquiferModel  % Model used to represent aquifers
     FlowPropertyFunctions % Grouping for flow properties
     PVTPropertyFunctions % Grouping for PVT properties
-    FluxDiscretization % Grouping for flux discretization
+    FlowDiscretization % Grouping for flux discretization
     Components = {};
 end
 
@@ -104,7 +104,7 @@ methods
         model.gravity = gravity();
         if isa(model, 'ExtendedReservoirModel')
             % Generic class - use extended version
-            model.FacilityModel = ExtendedFacilityModel();
+            model.FacilityModel = GenericFacilityModel();
         else
             % Legacy class - use base facility
             model.FacilityModel = FacilityModel();
@@ -162,8 +162,8 @@ methods
         % Define the maximum allowable time-step based on physics or
         % discretization choice
         dt = getMaximumTimestep@PhysicalModel(model, state, state0, dt0, drivingForces);
-        if ~isempty(model.FluxDiscretization)
-            dt_f = model.FluxDiscretization.getMaximumTimestep(model, state, state0, dt0, drivingForces);
+        if ~isempty(model.FlowDiscretization)
+            dt_f = model.FlowDiscretization.getMaximumTimestep(model, state, state0, dt0, drivingForces);
             dt = min(dt, dt_f);
         end
     end
@@ -181,8 +181,8 @@ methods
             [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
             model.FacilityModel = model.FacilityModel.setReservoirModel(model);
         end
-        if ~isempty(model.FluxDiscretization)
-            [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
+        if ~isempty(model.FlowDiscretization)
+            [model.FlowDiscretization, state] = model.FlowDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
         end
     end
 
@@ -222,9 +222,9 @@ methods
             model.PVTPropertyFunctions = PVTPropertyFunctions(model); %#ok
             dispif(model.verbose, ' Ok.\n');
         end
-        if isempty(model.FluxDiscretization)
-            dispif(model.verbose, 'Setting up FluxDiscretization...');
-            model.FluxDiscretization = FluxDiscretization(model); %#ok
+        if isempty(model.FlowDiscretization)
+            dispif(model.verbose, 'Setting up FlowDiscretization...');
+            model.FlowDiscretization = FlowDiscretization(model); %#ok
             dispif(model.verbose, ' Ok.\n');
         end
         if ~isempty(model.FacilityModel)
@@ -235,7 +235,7 @@ methods
     function model = removeStateFunctionGroupings(model)
         model.FlowPropertyFunctions = [];
         model.PVTPropertyFunctions = [];
-        model.FluxDiscretization = [];
+        model.FlowDiscretization = [];
         if ~isempty(model.FacilityModel)
             model.FacilityModel = model.FacilityModel.removeStateFunctionGroupings();
         end
@@ -466,7 +466,7 @@ methods
         containers = getStateFunctionGroupings@PhysicalModel(model);
         extra = {model.FlowPropertyFunctions, ...
                  model.PVTPropertyFunctions, ...
-                 model.FluxDiscretization};
+                 model.FlowDiscretization};
         if ~isempty(model.FacilityModel)
             fm_props = model.FacilityModel.getStateFunctionGroupings();
             extra = [extra, fm_props];

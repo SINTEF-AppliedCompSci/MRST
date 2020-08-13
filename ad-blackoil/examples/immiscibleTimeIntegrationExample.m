@@ -53,7 +53,7 @@ model_explicit = setTimeDiscretization(model, 'explicit', 'verbose', 2);
 explicit = packSimulationProblem(state0, model_explicit, schedule, 'immiscible_time',...
                                         'Name', 'EXPL', 'Description', 'Explicit');
 
-fsb = model_explicit.FluxDiscretization.getFlowStateBuilder();
+fsb = model_explicit.FlowDiscretization.getFlowStateBuilder();
 disp(fsb)
 
 

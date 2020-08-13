@@ -36,11 +36,11 @@ end
 
 function model = setWENO(model, varargin)
     weno = WENOUpwindDiscretization(model, model.G.griddim, varargin{:}); % Create WENO
-    if isempty(model.FluxDiscretization)
+    if isempty(model.FlowDiscretization)
         model = model.setupStateFunctionGroupings();
     end
-    fd = model.FluxDiscretization;
+    fd = model.FlowDiscretization;
     fd = fd.setStateFunction('FaceMobility', FaceMobility(model, weno));
     fd = fd.setStateFunction('FaceComponentMobility', FaceComponentMobility(model, weno));
-    model.FluxDiscretization = fd;
+    model.FlowDiscretization = fd;
 end

@@ -3,7 +3,7 @@
 % Files
 %   combineMSwithRegularWells           - Combine regular and MS wells, accounting for missing fields
 %   computeWellContributionsSingleWell  - Main internal function for computing well equations and source terms
-%   ExtendedFacilityModel               - 
+%   GenericFacilityModel               - 
 %   FacilityModel                       - A model coupling facilities and wells to the reservoir
 %   MultisegmentWell                    - Derived class implementing multisegment wells
 %   nozzleValve                         - Nozzle valve model

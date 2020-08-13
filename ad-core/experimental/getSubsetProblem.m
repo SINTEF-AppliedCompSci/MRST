@@ -288,7 +288,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         submodel.operators = op;
         submodel.G = G;
-        submodel.FluxDiscretization = [];
+        submodel.FlowDiscretization = [];
         submodel.FacilityModel = FacilityModel(submodel);
         submodel.FacilityModel = submodel.FacilityModel.setupWells(subforces.W);
         if isprop(submodel.AutoDiffBackend, 'useMex')

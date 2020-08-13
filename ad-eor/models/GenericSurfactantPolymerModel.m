@@ -37,7 +37,7 @@ classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & Exte
         end
         
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
-            [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
+            [eqs, flux, names, types] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
 
             % Assemble equations and add in sources
@@ -70,8 +70,8 @@ classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & Exte
             %
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.validateModel`
-            if isempty(model.FacilityModel) || ~isa(model.FacilityModel, 'ExtendedFacilityModel')
-                model.FacilityModel = ExtendedFacilityModel(model);
+            if isempty(model.FacilityModel) || ~isa(model.FacilityModel, 'GenericFacilityModel')
+                model.FacilityModel = GenericFacilityModel(model);
             end
             if isempty(model.Components)
                 nph = model.getNumberOfPhases();
@@ -124,7 +124,7 @@ classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & Exte
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@ThreePhaseSurfactantPolymerModel(model, state0, state, dt, drivingForces);
             if model.outputFluxes
-                state_flow = model.FluxDiscretization.buildFlowState(model, state, state0, dt);
+                state_flow = model.FlowDiscretization.buildFlowState(model, state, state0, dt);
                 f = model.getProp(state_flow, 'PhaseFlux');
                 nph = numel(f);
                 state.flux = zeros(model.G.faces.num, nph);

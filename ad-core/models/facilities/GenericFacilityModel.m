@@ -1,4 +1,4 @@
-classdef ExtendedFacilityModel < FacilityModel
+classdef GenericFacilityModel < FacilityModel
     properties
         T = 288.15; % Metric standard conditions
         pressure = 101.325*kilo*Pascal; % Metric standard pressure
@@ -8,7 +8,7 @@ classdef ExtendedFacilityModel < FacilityModel
     end
     
     methods
-        function model = ExtendedFacilityModel(varargin)
+        function model = GenericFacilityModel(varargin)
             model@FacilityModel(varargin{:});
         end
         
@@ -403,7 +403,7 @@ classdef ExtendedFacilityModel < FacilityModel
         
         function containers = getStateFunctionGroupings(model)
             containers = getStateFunctionGroupings@PhysicalModel(model);
-            ffd = model.FacilityFluxDiscretization;
+            ffd = model.FacilityFlowDiscretization;
             if ~isempty(ffd)
                 containers = [containers, {ffd}];
             end

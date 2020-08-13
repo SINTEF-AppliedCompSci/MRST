@@ -94,7 +94,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % inititialize parameters to ADI
     [modelParam, scheduleParam, paramValues] = initModelParametersADI(model, schedule, param);
     % reset discretization/flow functions to account for AD-parameters
-    modelParam.FluxDiscretization = [];
+    modelParam.FlowDiscretization = [];
     modelParam.FlowPropertyFunctions = [];
     modelParam = validateModel(modelParam);
     

@@ -1,4 +1,4 @@
-classdef FacilityFluxDiscretization < StateFunctionGrouping
+classdef FacilityFlowDiscretization < StateFunctionGrouping
     properties
         PhaseFlux               % Phase flux in well-bore and to reservoir
         ComponentTotalFlux      % Total mass flux of each component
@@ -12,7 +12,7 @@ classdef FacilityFluxDiscretization < StateFunctionGrouping
     end
     
     methods
-        function group = FacilityFluxDiscretization(model)
+        function group = FacilityFlowDiscretization(model)
             group@StateFunctionGrouping('FacilityFluxProps');
             
             group = group.setStateFunction('PhaseFlux', WellPhaseFlux(model));

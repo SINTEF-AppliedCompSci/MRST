@@ -112,7 +112,7 @@ title(names{3});
 for i = 2:3
     tmp = problems{i}.SimulatorSetup.model.validateModel();
     disp(names{i});
-    tmp.transportModel.parentModel.FluxDiscretization
+    tmp.transportModel.parentModel.FlowDiscretization
 end
 %% Copyright Notice
 %

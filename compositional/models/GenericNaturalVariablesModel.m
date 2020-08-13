@@ -15,7 +15,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
         
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
             % Discretize
-            [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
+            [eqs, flux, names, types] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
             % Define helper variables
             wat = model.water;
@@ -83,8 +83,8 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
             %
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.validateModel`
-            if isempty(model.FacilityModel) || ~isa(model.FacilityModel, 'ExtendedFacilityModel')
-                model.FacilityModel = ExtendedFacilityModel(model);
+            if isempty(model.FacilityModel) || ~isa(model.FacilityModel, 'GenericFacilityModel')
+                model.FacilityModel = GenericFacilityModel(model);
             end
             if isempty(model.Components)
                 f = model.EOSModel.fluid;
@@ -114,7 +114,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Ext
         
         function model = setupStateFunctionGroupings(model, varargin)
             model = setupStateFunctionGroupings@NaturalVariablesCompositionalModel(model, varargin{:});
-            model.FluxDiscretization.GravityPotentialDifference.saturationWeighting = true;
+            model.FlowDiscretization.GravityPotentialDifference.saturationWeighting = true;
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)

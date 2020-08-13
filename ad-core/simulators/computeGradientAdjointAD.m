@@ -102,7 +102,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fprintf('Solving reverse mode step %d of %d\n', nt - step + 1, nt);
         [dg, grad, report] = model.solveAdjoint(linsolve, getState, ...
                                          getObjective, schedule, grad, step);
-        if isa(model.FacilityModel, 'ExtendedFacilityModel')
+        if isa(model.FacilityModel, 'GenericFacilityModel')
             ws = states{step}.wellSol;
             cntrScale = getControlEqScaling({ws.type}, model.FacilityModel);
             eqNo      = strcmp('well', report.Types);

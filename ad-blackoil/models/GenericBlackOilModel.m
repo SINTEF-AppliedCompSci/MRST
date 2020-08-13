@@ -141,7 +141,7 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
         
         
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
-            [eqs, flux, names, types] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
+            [eqs, flux, names, types] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
             % Treat source or bc terms
             if ~isempty(drivingForces.bc) || ~isempty(drivingForces.src)
@@ -187,8 +187,8 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
             %
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.validateModel`
-            assert(isa(model.FacilityModel, 'ExtendedFacilityModel'), ...
-                'Generic model can only be used with ExtendedFacilityModel.')
+            assert(isa(model.FacilityModel, 'GenericFacilityModel'), ...
+                'Generic model can only be used with GenericFacilityModel.')
             if isempty(model.Components)
                 nph = model.getNumberOfPhases();
                 model.Components = cell(1, nph);
@@ -223,7 +223,7 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
             if model.outputFluxes
-                state_flow = model.FluxDiscretization.buildFlowState(model, state, state0, dt);
+                state_flow = model.FlowDiscretization.buildFlowState(model, state, state0, dt);
                 f = model.getProp(state_flow, 'PhaseFlux');
                 nph = numel(f);
                 state.flux = zeros(model.G.faces.num, nph);

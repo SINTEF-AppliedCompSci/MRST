@@ -5,7 +5,7 @@
 %   CapillaryNumber                        - 
 %   FaceConcentration                      - 
 %   PolymerAdsorption                      - 
-%   PolymerFluxDiscretization              - 
+%   PolymerFlowDiscretization              - 
 %   PolymerPhaseFlux                       - 
 %   PolymerEffViscMult
 %   PolymerViscMult

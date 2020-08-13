@@ -95,7 +95,7 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
             end
             flux = builder.explicitFlux;
             if ~isempty(flux)
-                groups{end+1} = model.FluxDiscretization;
+                groups{end+1} = model.FlowDiscretization;
                 names{end+1} = flux;
             end
         end

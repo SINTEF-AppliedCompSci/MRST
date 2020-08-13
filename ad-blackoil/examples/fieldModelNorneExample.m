@@ -49,12 +49,12 @@ model.toleranceCNV = 1e-2;
 model.toleranceMB = 1e-7;
 
 % Set well tolerances
-model.FacilityModel = ExtendedFacilityModel(model);
+model.FacilityModel = GenericFacilityModel(model);
 model.FacilityModel.toleranceWellBHP = 1e-3;
 model.FacilityModel.toleranceWellRate = 5e-3;
 
 % Reset just in case
-model.FluxDiscretization = [];
+model.FlowDiscretization = [];
 model.FlowPropertyFunctions = [];
 model.PVTPropertyFunctions = [];
 % Best performance
@@ -66,8 +66,8 @@ model = model.validateModel();
 % fluxes
 xflow = WellComponentTotalVolumeBalanceCrossflow(model);
 xflow.onlyLocalDerivatives = true;
-model.FacilityModel.FacilityFluxDiscretization.PhaseFlux.allowCrossFlow = false;
-model.FacilityModel.FacilityFluxDiscretization.ComponentTotalFlux = xflow;
+model.FacilityModel.FacilityFlowDiscretization.PhaseFlux.allowCrossFlow = false;
+model.FacilityModel.FacilityFlowDiscretization.ComponentTotalFlux = xflow;
 % Disable flag for interpolation - better behavior
 useFlag = false;
 model.PVTPropertyFunctions.Viscosity.useSaturatedFlag = useFlag;

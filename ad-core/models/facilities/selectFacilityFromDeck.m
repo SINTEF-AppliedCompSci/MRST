@@ -22,7 +22,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     if isempty(model.FacilityModel)
         if isa(model, 'GenericBlackOilModel')
-            facility = ExtendedFacilityModel(model);
+            facility = GenericFacilityModel(model);
         else
             facility = FacilityModel(model);
         end

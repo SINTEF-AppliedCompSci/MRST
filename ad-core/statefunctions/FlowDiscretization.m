@@ -1,4 +1,4 @@
-classdef FluxDiscretization < StateFunctionGrouping
+classdef FlowDiscretization < StateFunctionGrouping
     % Function grouping for Darcy-type flux discretization. The defaults
     % gives a industry-standard single-point upwind scheme with a two-point
     % flux discretization which emphasizes robustness and efficiency.
@@ -20,7 +20,7 @@ classdef FluxDiscretization < StateFunctionGrouping
     end
     
     methods
-        function props = FluxDiscretization(model)
+        function props = FlowDiscretization(model)
             tpfa = TwoPointFluxApproximation(model);
 
             props@StateFunctionGrouping('FluxProps');

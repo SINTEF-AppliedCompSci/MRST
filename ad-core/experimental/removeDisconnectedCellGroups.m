@@ -69,7 +69,7 @@ function model = renum_model(model, keep, renum)
         'deck', model.inputdata, 'neighbors', N, 'trans', T, 'porv', pv);
     model.FlowPropertyFunctions = [];
     model.PVTPropertyFunctions = [];
-    model.FluxDiscretization = [];
+    model.FlowDiscretization = [];
 end
 
 function schedule = renum_schedule(schedule, keep, renum)

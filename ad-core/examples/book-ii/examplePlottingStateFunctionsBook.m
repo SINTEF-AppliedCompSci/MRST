@@ -44,7 +44,7 @@ clc
 printStateFunctionGroupingTikz(gbos2, h2);
 %% Plot all functions for flux discretization (as symbols)
 groups = bomodel.getStateFunctionGroupings();
-% groups = groups(~cellfun(@(x) isa(x, 'FacilityFluxDiscretization'), groups));
+% groups = groups(~cellfun(@(x) isa(x, 'FacilityFlowDiscretization'), groups));
 figure;
 [h2, gbos2, g] = plotStateFunctionGroupings(groups, 'includeState', false, 'label', 'label');
 %%

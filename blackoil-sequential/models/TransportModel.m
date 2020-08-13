@@ -6,7 +6,7 @@ classdef TransportModel < WrapperModel
     
     methods
         function model = TransportModel(parent, varargin)
-            parent.FluxDiscretization = []; % Remove flux discretization (if setup)
+            parent.FlowDiscretization = []; % Remove flux discretization (if setup)
             model = model@WrapperModel(parent);
             model = merge_options(model, varargin{:});
             model.AutoDiffBackend = parent.AutoDiffBackend;
@@ -117,14 +117,14 @@ classdef TransportModel < WrapperModel
             pmodel = model.parentModel;
             hasFacility = isprop(pmodel, 'FacilityModel') && ~isempty(pmodel.FacilityModel);
             isTotalSat = strcmpi(model.formulation, 'totalSaturation');
-            if isempty(pmodel.FluxDiscretization)
+            if isempty(pmodel.FlowDiscretization)
                 pmodel = pmodel.setupStateFunctionGroupings();
             elseif ~setDefaults
                 % State functions have already been set up
                 warning('State function models for parent model is already set up.');
                 return
             end
-            fd = pmodel.FluxDiscretization;
+            fd = pmodel.FlowDiscretization;
             fp = pmodel.FlowPropertyFunctions;
             % Replace existing properties with total flux variants
             fd = fd.setStateFunction('PhaseFlux', PhaseFluxFixedTotalVelocity(pmodel));
@@ -142,15 +142,15 @@ classdef TransportModel < WrapperModel
                 fp = fp.setStateFunction('ComponentPhaseMass', ComponentPhaseMassTotalSaturation(pmodel));
             end
             % Replace object
-            model.parentModel.FluxDiscretization = fd;
+            model.parentModel.FlowDiscretization = fd;
             model.parentModel.FlowPropertyFunctions = fp;
             if hasFacility
                 % Disable primary variables in transport!
                 model.parentModel.FacilityModel.primaryVariableSet = 'none';
-                fdp = model.parentModel.FacilityModel.FacilityFluxDiscretization;
+                fdp = model.parentModel.FacilityModel.FacilityFlowDiscretization;
                 qf = WellPhaseFluxTotalFixed(model.parentModel);
                 fdp = fdp.setStateFunction('PhaseFlux', qf);
-                model.parentModel.FacilityModel.FacilityFluxDiscretization = fdp;
+                model.parentModel.FacilityModel.FacilityFlowDiscretization = fdp;
                 model.parentModel.FacilityModel.doPostUpdate = false;
             end
         end
