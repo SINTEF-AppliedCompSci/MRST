@@ -43,10 +43,10 @@ end
 function model = setFSB(model, fb)
     assert(isa(model, 'ExtendedReservoirModel'), ...
         'Only the "Generic" class of models support different temporal discretization');
-    if isempty(model.FluxDiscretization)
+    if isempty(model.FlowDiscretization)
         model = model.validateModel();
     end
-    flux = model.FluxDiscretization;
+    flux = model.FlowDiscretization;
     flux = flux.setFlowStateBuilder(fb);
-    model.FluxDiscretization = flux;
+    model.FlowDiscretization = flux;
 end

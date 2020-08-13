@@ -90,7 +90,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     model.G = CG;
     model.rock = rock_c;
     model = model.setupOperators(CG, rock_c, 'neighbors', Nc, 'trans', Tc);
-    model.FluxDiscretization = [];
+    model.FlowDiscretization = [];
 end
 
 function CG = getGrid(G, partition, opt)

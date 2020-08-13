@@ -89,7 +89,7 @@ title('Upstream and downstream mobility dependencies');
 % the flux, which depends on many of these properties.
 df = get(0, 'DefaultFigurePosition');
 figure('Position', df.*[1, 1, 2, 2]);
-tmp = {model.FlowPropertyFunctions, model.FluxDiscretization, model.PVTPropertyFunctions};
+tmp = {model.FlowPropertyFunctions, model.FlowDiscretization, model.PVTPropertyFunctions};
 plotStateFunctionGroupings(tmp);
 title('Flow properties + flow discretization')
 %% Create a compositional model and visualize the property graphs

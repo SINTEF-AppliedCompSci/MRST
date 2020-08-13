@@ -31,7 +31,7 @@ classdef FacilityModel < PhysicalModel
 
     properties
         WellModels % Cell array of instantiated wells
-        FacilityFluxDiscretization
+        FacilityFlowDiscretization
 
         toleranceWellBHP % Convergence tolerance for BHP-type controls
         toleranceWellRate % Convergence tolerance for rate-type controls
@@ -68,15 +68,15 @@ classdef FacilityModel < PhysicalModel
         
         function model = setupStateFunctionGroupings(model, useDefaults)
             if nargin < 2
-                useDefaults = isempty(model.FacilityFluxDiscretization);
+                useDefaults = isempty(model.FacilityFlowDiscretization);
             end
             if useDefaults
-                model.FacilityFluxDiscretization = FacilityFluxDiscretization(model); %#ok
+                model.FacilityFlowDiscretization = FacilityFlowDiscretization(model); %#ok
             end
         end
         
         function model = resetStateFunctionGroupings(model)
-            model.FacilityFluxDiscretization = [];
+            model.FacilityFlowDiscretization = [];
         end
 
         function model = setupWells(model, W, wellmodels)

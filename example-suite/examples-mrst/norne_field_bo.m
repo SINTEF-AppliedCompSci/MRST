@@ -70,7 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     model.FacilityModel.toleranceWellBHP = 1e-3;
     model.FacilityModel.toleranceWellRate = 5e-3;
     % Reset just in case
-    model.FluxDiscretization = [];
+    model.FlowDiscretization = [];
     model.FlowPropertyFunctions = [];
     model.PVTPropertyFunctions = [];
     % Set autodiff backend stuff
@@ -82,7 +82,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % fluxes
     xflow = WellComponentTotalVolumeBalanceCrossflow(model);
     xflow.onlyLocalDerivatives = true;
-    model.FacilityModel.FacilityFluxDiscretization.ComponentTotalFlux = xflow;
+    model.FacilityModel.FacilityFlowDiscretization.ComponentTotalFlux = xflow;
 
     useFlag = false;
     model.PVTPropertyFunctions.Viscosity.useSaturatedFlag = useFlag;

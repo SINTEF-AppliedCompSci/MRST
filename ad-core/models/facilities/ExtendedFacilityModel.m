@@ -403,7 +403,7 @@ classdef ExtendedFacilityModel < FacilityModel
         
         function containers = getStateFunctionGroupings(model)
             containers = getStateFunctionGroupings@PhysicalModel(model);
-            ffd = model.FacilityFluxDiscretization;
+            ffd = model.FacilityFlowDiscretization;
             if ~isempty(ffd)
                 containers = [containers, {ffd}];
             end

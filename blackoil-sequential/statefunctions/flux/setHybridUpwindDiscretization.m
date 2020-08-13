@@ -42,11 +42,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function model = setHybrid(model)
-    if isempty(model.FluxDiscretization)
+    if isempty(model.FlowDiscretization)
         model = model.setupStateFunctionGroupings();
     end
     % Discrete gradient
-    fd = model.FluxDiscretization;
+    fd = model.FlowDiscretization;
     ppu_upwind = PhasePotentialUpwindFlag(model);
     ppu_upwind.includeTotalVelocity = false;
     
@@ -59,5 +59,5 @@ function model = setHybrid(model)
     fd = fd.setStateFunction('FaceTotalMobilityGravity', FaceTotalMobility(model, 'FaceMobilityGravity'));
 
     fd = fd.setStateFunction('ComponentPhaseFlux', ComponentPhaseFluxFractionalFlowHybridUpwind(model));
-    model.FluxDiscretization = fd;
+    model.FlowDiscretization = fd;
 end

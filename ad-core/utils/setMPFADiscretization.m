@@ -47,11 +47,11 @@ function model = setMPFA(model)
     Mg = -Tg.*scale/2;
     assert(all(M.N(:) == model.operators.N(:)), ...
         'Operator neighborship does not match MPFA neighborship. NNC?');
-    if isempty(model.FluxDiscretization)
+    if isempty(model.FlowDiscretization)
         model = model.setupStateFunctionGroupings();
     end
     % Discrete gradient
-    fd = model.FluxDiscretization;
+    fd = model.FlowDiscretization;
     dp = fd.getStateFunction('PressureGradient');
     model.operators.mpfagrad = MPFAGrad;
     dp.Grad = @(x) MPFAGrad*x;
@@ -61,5 +61,5 @@ function model = setMPFA(model)
     dg.weight = Mg;
     fd = fd.setStateFunction('GravityPotentialDifference', dg);
     
-    model.FluxDiscretization = fd;
+    model.FlowDiscretization = fd;
 end

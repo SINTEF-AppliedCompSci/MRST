@@ -41,7 +41,7 @@ classdef PhasePotentialDifferenceThresholded < PhasePotentialDifference
             % Defaulted values must be taken from initial conditions
             pt = gp.pressureThreshold;
             % Temp change to avoid recursion
-            model.FluxDiscretization.PhasePotentialDifference = PhasePotentialDifference(model);
+            model.FlowDiscretization.PhasePotentialDifference = PhasePotentialDifference(model);
             state = model.validateState(state);
             state = model.getStateAD(state, true);
             
