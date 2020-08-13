@@ -76,6 +76,13 @@ methods
         [problem, state] = equationsBlackOil(state0, state, model, dt, drivingForces, varargin{:});
     end
 
+    % --------------------------------------------------------------------%
+    function model = validateModel(model, varargin)
+        model = validateModel@ReservoirModel(model, varargin{:});
+        if (model.disgas || model.vapoil) && ~isfinite(model.minimumPressure)
+            warning('Black-oil case with no lower limit (model.minimumPressure) on pressure may result in convergence issues.');
+        end
+    end
 
     % --------------------------------------------------------------------%
     function state = validateState(model, state)

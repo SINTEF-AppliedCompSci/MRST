@@ -209,6 +209,11 @@ methods
         % Next, validate the facility
         model.FacilityModel = model.FacilityModel.setReservoirModel(model);
         model.FacilityModel = model.FacilityModel.validateModel(varargin{:});
+        if ~isempty(model.inputdata)
+            % We have some kind of input (e.g. a DECK) and the simulation
+            % should have non-negative values
+            model.minimumPressure = 0;
+        end
     end
     
     function model = setupStateFunctionGroupings(model, varargin)
