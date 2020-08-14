@@ -401,8 +401,8 @@ classdef EquationOfStateModel < PhysicalModel
             if ~isfield(state, 'Z_V')
                 state.Z_V = ones(n_cell, 1);
             end
-            if ~isfield(state, 'Z_V')
-                state.Z_V = ones(n_cell, 1);
+            if ~isfield(state, 'Z_L')
+                state.Z_L = ones(n_cell, 1);
             end
             
             if ~isfield(state, 'x')
