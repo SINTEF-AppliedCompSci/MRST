@@ -118,6 +118,10 @@ classdef SparseTensor
          end
       end
 
+      function res = isempty(self)
+      % Return 'true' if the tensor has no nonzero coefs
+         res = any(cellfun(@(comp) isempty(comp.coefs), self.components));
+      end
       
       function self = product(self, other, only_semiproduct)
       % Compute the tensor product of two tensors.  
@@ -402,6 +406,13 @@ classdef SparseTensor
          % ensure the user has actually provided a permutation of all index names
          assert(SparseTensor.is_permutation(self.indexNames(), ixnames));
          
+         % if tensor is empty, return empty vector
+         if self.isempty()
+            v = [];
+            ix = [];
+            return;
+         end
+         
          % fully expand tensor
          self = self.expandall();
 
@@ -440,6 +451,12 @@ classdef SparseTensor
             force_sparse = false;
          end
 
+         % if tensor is empty, return empty matrix
+         if self.isempty()
+            M = [];
+            return;
+         end
+         
          self = self.expandall();
 
          if ~exist('shape', 'var')
