@@ -29,261 +29,73 @@ clear all
 
 mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui mpsaw mpfa
 
-%% Setup grid
-
-% physdim = [20, 20] * meter;
-
-physdim = [1, 1]*meter;
-nx = 200; ny = 10;
-resolution = [nx, ny];
-G = cartGrid(resolution, physdim);
-G = computeGeometry(G);
+% Discretization parameters
+params.nx     = 100;
+params.ny     = 10;
+params.dt     = 1e-3;
+params.rampup = 1;
+params.fixedtsteps = [1e-5; 0.01; 0.02; 0.03; 0.04; 0.1; 0.5];
+params.fixedtsteps = [1e-5; 0.01; 0.02; 0.04; 0.08];
+params.totime = params.fixedtsteps(end);
 
 % Flow parameters
-perm = 1;
-muW  = 1;
-poro = 1;
-
-% fluid compressibility
-cW = 0; 
-iM = cW; % iM = 1/M (iM = 0 if fluid is incompressible)
+params.perm = 1; % permeability
+params.muW  = 1; % viscosity
+params.poro = 1; % porosity
+params.cW = 0; % compressibility
 
 % Mechanical parameters
 % Bulk's modulus
-K = 1;
+params.K = 1;
 % Poisson's ratio
-nu = 0;
+params.nu = 0;
 
-% Second Lamé parameter (also called Shear modulus and denoted G)
-mu = 3/2*((1 - 2*nu)/(1 + nu))*K;
-Gm = mu;
+output = mandelrun(params);
 
-% First Lamé parameter
-lambda = K - 2/3*Gm;
-Gm = mu;
+%% plot of the solutions at different pre-selected times
 
-% Consolidation coefficient
-cv = perm/muW*(K + 4/3*Gm); % see reference verruijt2013theory (3.13)
+G = output.G;
+params = output.params;
+ps = output.pressures;
 
-% Biot's coefficient
-alpha = 1;
+nx = params.nx;
+ny = params.ny;
 
-% Coussy value for diffusivity coefficient
-% we have checked that we obtain the same values
-docoussy = false;
-if docoussy
-    iMKu = K*iM + alpha^2; % page 86 (4.66) with iMKu = Ku/M
-    cv = perm/muW*(K + 4/3*mu)/(iMKu + 4/3*mu*iM);
-end
+ind = (1 : nx)' + floor(ny/2)*nx;
+xc = G.cells.centroids(ind, 1);    
 
-% force at top
-top_force = 1;
-
-% Value of normalized pressure (Coussy), which corresponds to pressure at t = 0
-if docoussy
-    B = alpha/(iMKu); % page 86 (4.68)
-    a = alpha*B*(1 - 2*nu)/3;
-    nuu = (a + nu)/(1 - a); % page 87 (4.71)
-    pnorm = 1/3*B*(1 + nuu)*top_force; % page 143 (5.168)
-else
-    pnorm = top_force/2;
-end
-
-% setup rock
-
-rock.poro  = poro * ones(G.cells.num, 1);
-rock.perm  = (perm/muW) * ones(G.cells.num, 1);
-rock.alpha = alpha * ones(G.cells.num, 1);
-
-% reference pressure on the side
-pref = 0*barsa;
-
-%% setup mechanics mech structure (with field prop and loadstruct)
-
-lambda = lambda*ones(G.cells.num, 1);
-mu = mu*ones(G.cells.num, 1);
-mechprop = struct('lambda', lambda, 'mu', mu);
-
-[tbls, mappings] = setupStandardTables(G);
-
-% We recover the top, bottom and lateral faces using function pside
-dummy = 0;
-bc = pside([], G, 'Ymax', dummy); 
-topfaces = bc.face;
-bc = pside([], G, 'Xmin', dummy); 
-leftfaces = bc.face;
-bc = pside([], G, 'Xmax', dummy); 
-rightfaces = bc.face;
-bc = pside([], G, 'Ymin', dummy); 
-bottomfaces = bc.face;
-
-lateralfaces = leftfaces;
-
-% At the bottom, we have rolling condition in x-direction
-bottomlinform  = repmat([0, 1], numel(bottomfaces), 1);
-% On the lateral walls, we have rolling condition in y-direction
-laterallinform = repmat([1, 0], numel(lateralfaces), 1);
-% At the top we have an unknown y-displacement but which is constant in x-direction. We incorporate it in the Dirichlet
-% condition and add in the equations an extra variable, see mandelEquations
-toplinform = repmat([0, 1], numel(topfaces), 1);
-
-linform  = [bottomlinform; laterallinform; toplinform];
-extfaces = [bottomfaces; lateralfaces; topfaces];
-bcvals   = zeros(numel(extfaces), 1);
-
-bc = struct('linform'    , linform , ...
-            'extfaces'   , extfaces, ...
-            'linformvals', bcvals);
-
-bc = setupFaceBC(bc, G, tbls);
-
-loadstruct.bc = bc;
-
-nodefacecoltbl = tbls.nodefacecoltbl;
-cellcoltbl = tbls.cellcoltbl;
-loadstruct.extforce = zeros(nodefacecoltbl.num, 1); 
-loadstruct.force = zeros(cellcoltbl.num, 1);
-
-% Setup mech structure 
-mech.prop = mechprop;
-mech.loadstruct = loadstruct;
-
-%% Setup flow parameters (with field c and bcstruct)
-
-fluid.c = cW;
-fluid.src = [];
-
-% Setup boundary conditions for flow
-
-bcfaces = rightfaces;
-bcvals = pref*ones(numel(bcfaces));
-
-nodefacetbl = tbls.nodefacetbl;
-
-bcfacetbl.faces = bcfaces;
-bcfacetbl = IndexArray(bcfacetbl);
-bcnodefacetbl = crossIndexArray(nodefacetbl, bcfacetbl, {'faces'});
-
-map = TensorMap();
-map.fromTbl = bcfacetbl;
-map.toTbl = bcnodefacetbl;
-map.mergefds = {'faces'};
-map = map.setup();
-
-bcvals = map.eval(bcvals);
-
-bcdirichlet = struct('bcnodefacetbl', bcnodefacetbl, ...
-                     'bcvals', bcvals);
-bcneumann = [];
-
-bcstruct = struct('bcdirichlet', bcdirichlet, ...
-                  'bcneumann'  , bcneumann);
-
-fluid.bcstruct = bcstruct;
-
-%% Setup Biot model
-
-model = MandelModel(G, rock, fluid, mech, topfaces);
-model = model.validateModel();
-
-%% Setup schedule
-
-dt = 1e-4;
-time = 0.05;
-dt = rampupTimesteps(time, dt, rampup);
-dtinit = 1; % length of initial phase (top force is equal to zero)
-tt = [dtinit; dtinit + cumsum(dt)];
-tt = [0; tt];
-t = diff(tt);
-schedule.step.val = t;
-
-%%
-
-schedule.step.control = 2*ones(numel(schedule.step.val), 1);
-schedule.step.control(1) = 1;
-schedule.control(1) = struct('W', [], 'avgtopforce', 0);
-schedule.control(2) = struct('W', [], 'avgtopforce', top_force);
-
-%% Setup initial state
-clear initState;
-% fluid
-initState.pressure = zeros(G.cells.num, 1);
-nlf = size(bcstruct.bcdirichlet.bcvals, 1);
-initState.lambdafluid = zeros(nlf, 1);
-% mech
-cellcoltbl = tbls.cellcoltbl;
-initState.u = zeros(cellcoltbl.num, 1);
-nlm = size(loadstruct.bc.linformvals, 1);
-initState.lambdamech = zeros(nlm, 1);
-initState.avgtopforce = 0;
-initState.vd = 0;
-
-solver = NonLinearSolver('maxIterations', 100);
-[wsol, states] = simulateScheduleAD(initState, model, schedule, 'nonlinearsolver', solver);
-
-%% Mandel plot (pressure profile for some selected values)
-
-ind1 = (1 : nx)' + floor(ny/2)*nx;
-ind2 = (1 : nx)';
-
-xc = G.cells.centroids(ind1, 1);
-
-xc2 =  G.cells.centroids(ind2, 1);
-assert(all(abs(xc - xc2) <= 1e-12), 'problem');
-
-tt = cumsum(schedule.step.val);
-
-%% check some value
-
-
-figure
-hold on
-
-ttest = 0.04;
-i = find(max(0, tt - (ttest + dtinit)) > 0 , 1);
-
-p = states{i}.pressure;
-p = p(ind1);
-plot(xc, p);
-
-p = states{i}.pressure;
-p = p(ind2);
-plot(xc, p);
-
-t = tt(i);
-params = struct('nu', nu, ...
-                'cW', cW);
-pan = pnorm*analyticmandel(cv*(t - dtinit), xc, params);
-plot(xc, pan);
-
-legend({'numerical1', 'numerical2', 'analytical'});
-
-return
-
-%% 
-
-
-legends = {};
-for i = 1 : numel(states);
-    [lia, locb] = ismembertol(tt(i), trep, 1e-8);
-    if lia
-        p = states{i}.pressure;
-        p = p(ind);
-        plot(xc, p);
-        legends{end + 1} = sprintf('%g', trepvals(locb));
-    end
-end
-legend(legends{:});
-
-%% plotting
+ps = output.pressures;
+ts = params.fixedtsteps;
 
 figure 
-plotToolbar(G, states);
+hold on
 
-figure
-ind = 1;
-pmid = cellfun(@(state) state.pressure(ind), states);
-tt = cumsum(schedule.step.val);
-plot(tt, pmid, '*');
-title('Pressure evolution at left edge')
+for i = 1 : numel(ps)
+    p = ps{i};
+    plot(xc, p(ind), 'linewidth', 2);
+end
+
+% plot the analytical solution (in dotted lines)
+
+dx = 1e-3;
+xc = (0 : dx : 1)';
+
+pnorm  = output.pnorm;
+params = output.params;
+cv     = output.cv;
+dtinit = output.dtinit;
+
+ts = params.fixedtsteps;
+
+nts = numel(ts);
+co = get(gca, 'colororder');
+
+for i = 1 : nts
+    t = ts(i);
+    p = pnorm*analyticmandel(cv*t, xc, params, 'num_modes', 1000);
+    plot(xc, p, ':', 'color', co(i, :), 'linewidth', 1.4);
+end
+
+legstr = arrayfun(@(x) sprintf('%g', x), ts, 'uniformoutput', false);
+h = legend(legstr, 'location', 'eastoutside');
 
