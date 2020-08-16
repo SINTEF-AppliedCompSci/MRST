@@ -47,7 +47,7 @@ normals = reshape(normals', [], 1);
 
 map = TensorMap();
 map.fromTbl = facecoltbl;
-map.toTbl   = extfacecoltbl;
+map.toTbl = extfacecoltbl;
 map.mergefds = {'faces', 'coldim'};
 map = map.setup();
 extFacetNormals = map.eval(normals);
@@ -67,6 +67,8 @@ force = zeros(cellcoltbl.num, 1);
 bc.extfaces    = vertcat(extfaces{:});
 bc.linform     = vertcat(linforms{:});
 bc.linformvals = vertcat(linformvals{:});
+
+bc = setupFaceBC(bc, G, tbls);
 
 loadstruct.bc = bc;
 loadstruct.extforce = extforce;
@@ -112,10 +114,3 @@ title('disp y direction');
 colorbar
 axis equal
 
-divop = assembly.divop;
-divu = divop(sol);
-figure
-plotCellData(G, divu);
-title('divergence of displacement');
-colorbar
-axis equal
