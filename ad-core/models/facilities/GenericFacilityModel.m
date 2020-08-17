@@ -306,11 +306,10 @@ classdef GenericFacilityModel < FacilityModel
             [state, report] = updateState@FacilityModel(model, state, problem, dx, drivingForces);
             if model.doPostUpdate
                 [surfaceRates, surfaceDensity] = model.getSurfaceRates(state);
-                bhp = model.getProp(state, 'BottomHolePressure');
-                
                 names = model.ReservoirModel.getPhaseNames();
                 map = model.getProp(state, 'FacilityWellMapping');
                 actIx = find(map.active);
+                bhp = vertcat(state.wellSol(actIx).bhp);
                 for j = 1:numel(actIx)
                     ix = actIx(j);
                     state.wellSol(ix).bhp = bhp(j);
