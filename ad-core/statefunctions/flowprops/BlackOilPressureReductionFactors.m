@@ -3,6 +3,7 @@ classdef BlackOilPressureReductionFactors < PressureReductionFactors
     properties
         disgas = false;
         vapoil = false;
+        useUndersaturated = [];
     end
     
     methods
@@ -16,6 +17,11 @@ classdef BlackOilPressureReductionFactors < PressureReductionFactors
             w_p.disgas = model.disgas;
             if w_p.disgas
                 w_p = w_p.dependsOn('rs', 'state');
+                if ~w_p.vapoil && isempty(w_p.useUndersaturated)
+                    w_p.useUndersaturated = true;
+                end
+            elseif isempty(w_p.useUndersaturated)
+                w_p.useUndersaturated = false;
             end
             if w_p.vapoil
                 w_p = w_p.dependsOn('rv', 'state');
@@ -29,25 +35,45 @@ classdef BlackOilPressureReductionFactors < PressureReductionFactors
             
             vap = prop.vapoil;
             dis = prop.disgas;
+            if vap || dis
+                oix = model.getPhaseIndex('O');
+                gix = model.getPhaseIndex('G');
+            end
             
-            [act, phInd] = model.getActivePhases();
             if vap
                 rv = model.getProp(state, 'rv');
-                oix = phInd == 2;
             else
                 rv = 0;
             end
             
             if dis
                 rs = model.getProp(state, 'rs');
-                gix = phInd == 3;
+                doUsat = prop.useUndersaturated;
+                if doUsat
+                    assert(~model.vapoil);
+                    oix = model.getPhaseIndex('O');
+                    bo = b{oix};
+                    sg = model.getProp(state, 'sg');
+                    p = model.getProp(state, 'pressure');
+                    usat = value(sg) == 0;
+                    rsAD = initVariablesAD_diagonal(value(rs));
+                    tmp = model.fluid.bO(value(p), rsAD, false(numelValue(rs), 1));
+                    if any(usat)
+                        dbo_drsu = tmp.jac{1}.diagonal(usat);
+                        bou = bo(usat);
+                        rsu = rs(usat);
+                    else
+                        doUsat = false;
+                    end
+                end
             else
+                doUsat = false;
                 rs = 0;
             end
             
             alpha = 1./(1 - dis*vap*rs.*rv);
 
-            nph = sum(act);
+            nph = numel(b);
             w = cell(1, nph);
             names = model.getComponentNames();
             for ph = 1:nph
@@ -56,15 +82,21 @@ classdef BlackOilPressureReductionFactors < PressureReductionFactors
                         f = 1./rho{ph};
                     case 'oil'
                         if dis
-                            f = (alpha./rhoS(ph)).*(1./b{ph} - dis.*rs./b{gix});
+                            rhoOS = rhoS(:, ph);
+                            f = (alpha./rhoOS).*(1./bo - dis.*rs./b{gix});
+                            f(usat) = (1./(rhoOS.*bou)).*(1 + (rsu./bou).*dbo_drsu);
                         else
                             f = 1./rho{ph};
                         end
                     case 'gas'
+                        rhoGS = rhoS(:, ph);
                         if vap
-                            f = (alpha./rhoS(ph)).*(1./b{ph} - vap.*rv./b{oix});
+                            f = (alpha./rhoGS).*(1./b{ph} - vap.*rv./b{oix});
                         else
                             f = 1./rho{ph};
+                            if doUsat
+                                f(usat) = -(1./(rhoGS.*bou.^2)).*dbo_drsu;
+                            end
                         end
                     otherwise
                         f = 0;
