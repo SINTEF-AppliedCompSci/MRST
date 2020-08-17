@@ -64,22 +64,29 @@ classdef NumericalPressureReductionFactors < StateFunction
                         dpi = dwdp(:, i);
                         if any(dpi)
                             Wp = model.AutoDiffBackend.convertToAD(Wp, m);
-                            if isa(Wp.jac{1}, 'DiagonalJacobian')
-                                Wp.jac{1}.diagonal(:, 1) = dpi;
+                            J = Wp.jac{1};
+                            if isa(J, 'DiagonalJacobian')
+                                if J.rowMajor
+                                    J.diagonal(1, :) = dpi;
+                                else
+                                    J.diagonal(:, 1) = dpi;
+                                end
                             else
                                 sz = ncell;
-                                Wp.jac{1} = sparse(1:ncell, 1:ncell, dpi, ncell, sz);
+                                J = sparse(1:ncell, 1:ncell, dpi, ncell, sz);
                             end
-                            
+                            Wp.jac{1} = J;
                         end
                     end
                     tmp = tmp + m.*Wp;
                 end
+                scaler = mean(abs(getDiagonal(tmp, 1)));
                 for derNo = 2:ncomp
                     d = getDiagonal(tmp, derNo);
-                    bad = abs(d) > 1e-8*mean(abs(getDiagonal(tmp, 1)));
+                    bad = abs(d) > 1e-8*scaler;
                     if any(bad)
-                        warning('A_p with respect to variable %d has %d non-zero derivatives.', derNo, sum(bad));
+                        warning('A_p with respect to variable %d has %d non-zero derivatives. Worst: %g Mean: %g', ...
+                                derNo, sum(bad), max(abs(d)), mean(abs(d)));
                     end
                 end
             end
