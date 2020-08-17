@@ -15,10 +15,10 @@ classdef ShrinkageFactors < StateFunction
             b.label = 'b_\alpha';
         end
         
-        function mu = evaluateOnDomain(prop, model, state)
+        function b = evaluateOnDomain(prop, model, state)
             names = model.getPhaseNames();
             nph = numel(names);
-            mu = cell(1, nph);
+            b = cell(1, nph);
             if prop.usePhasePressures
                 p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
             else
@@ -28,12 +28,12 @@ classdef ShrinkageFactors < StateFunction
             end
             [sample, isAD] = getSampleAD(p_phase{:});
             for ph = 1:nph
-                mu{ph} = prop.evaluatePhaseShrinkageFactor(model, state, names(ph), p_phase{ph});
+                b{ph} = prop.evaluatePhaseShrinkageFactor(model, state, names(ph), p_phase{ph});
             end
             if isAD
-                for i = 1:numel(mu)
-                    if ~isa(mu{i}, 'ADI')
-                        mu{i} = model.AutoDiffBackend.convertToAD(mu{i}, sample);
+                for i = 1:numel(b)
+                    if ~isa(b{i}, 'ADI')
+                        b{i} = model.AutoDiffBackend.convertToAD(b{i}, sample);
                     end
                 end
             end
