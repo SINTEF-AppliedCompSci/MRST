@@ -203,8 +203,10 @@ classdef MRSTExample
             W = example.schedule.control(1).W;
             if ~isempty(W) && opt.plotWells
                 if G.griddim == 3
-                    plotWell(G, W, 'color' , 'k'                            , ...
-                                   'height', -example.axisProperties.ZLim(1));
+                    dz = example.axisProperties.ZLim(2) ...
+                       - example.axisProperties.ZLim(1);
+                    plotWell(G, W, 'color' , 'k'   , ...
+                                   'height', 0.15*dz);
                 else
                     hold on
                     x = G.cells.centroids(vertcat(W.cells), :);
@@ -224,6 +226,9 @@ classdef MRSTExample
             % Get example options as string
             optnames    = fieldnames(example.options);
             optval      = struct2cell(example.options);
+            keep        = cellfun(@(v) ischar(v) | isnumeric(v), optval);
+            optval      = optval(keep);
+            optnames    = optnames(keep);
             fix         = cellfun(@(v) ~ischar(v), optval);
             optval(fix) = cellfun(@num2str, optval(fix), 'UniformOutput', false);
             % Prepend with example name
