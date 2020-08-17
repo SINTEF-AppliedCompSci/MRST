@@ -84,7 +84,9 @@ classdef BlackOilPressureReductionFactors < PressureReductionFactors
                         if dis
                             rhoOS = rhoS(:, ph);
                             f = (alpha./rhoOS).*(1./bo - dis.*rs./b{gix});
-                            f(usat) = (1./(rhoOS.*bou)).*(1 + (rsu./bou).*dbo_drsu);
+                            if doUsat
+                                f(usat) = (1./(rhoOS.*bou)).*(1 + (rsu./bou).*dbo_drsu);
+                            end
                         else
                             f = 1./rho{ph};
                         end
