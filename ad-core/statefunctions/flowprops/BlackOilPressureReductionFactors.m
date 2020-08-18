@@ -57,7 +57,7 @@ classdef BlackOilPressureReductionFactors < PressureReductionFactors
                     p = model.getProp(state, 'pressure');
                     usat = value(sg) == 0;
                     rsAD = initVariablesAD_diagonal(value(rs));
-                    tmp = model.fluid.bO(value(p), rsAD, false(numelValue(rs), 1));
+                    tmp = model.PVTPropertyFunctions.ShrinkageFactors.evaluateFunctionOnDomainWithArguments(model.fluid.bO, value(p), rsAD, false(numelValue(rs), 1));
                     if any(usat)
                         dbo_drsu = tmp.jac{1}.diagonal(usat);
                         bou = bo(usat);
@@ -76,28 +76,29 @@ classdef BlackOilPressureReductionFactors < PressureReductionFactors
             nph = numel(b);
             w = cell(1, nph);
             names = model.getComponentNames();
+            pvtreg = model.PVTPropertyFunctions.Density.regions;
             for ph = 1:nph
                 switch names{ph}
                     case 'water'
                         f = 1./rho{ph};
                     case 'oil'
                         if dis
-                            rhoOS = rhoS(:, ph);
+                            rhoOS = rhoS(pvtreg, ph);
                             f = (alpha./rhoOS).*(1./bo - dis.*rs./b{gix});
                             if doUsat
-                                f(usat) = (1./(rhoOS.*bou)).*(1 + (rsu./bou).*dbo_drsu);
+                                f(usat) = (1./(rhoOS(usat).*bou)).*(1 + (rsu./bou).*dbo_drsu);
                             end
                         else
                             f = 1./rho{ph};
                         end
                     case 'gas'
-                        rhoGS = rhoS(:, ph);
+                        rhoGS = rhoS(pvtreg, ph);
                         if vap
                             f = (alpha./rhoGS).*(1./b{ph} - vap.*rv./b{oix});
                         else
                             f = 1./rho{ph};
                             if doUsat
-                                f(usat) = -(1./(rhoGS.*bou.^2)).*dbo_drsu;
+                                f(usat) = -(1./(rhoGS(usat).*bou.^2)).*dbo_drsu;
                             end
                         end
                     otherwise
