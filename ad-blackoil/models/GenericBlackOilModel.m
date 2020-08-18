@@ -1,4 +1,4 @@
-classdef GenericBlackOilModel < ThreePhaseBlackOilModel & ExtendedReservoirModel
+classdef GenericBlackOilModel < ThreePhaseBlackOilModel & GenericReservoirModel
     properties
     end
 

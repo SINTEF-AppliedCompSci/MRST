@@ -9,7 +9,7 @@ function model = getSequentialModelFromFI(fimodel, varargin)
     rock  = fimodel.rock;
     fluid = fimodel.fluid;
     G     = fimodel.G;
-    if isa(fimodel, 'ExtendedReservoirModel')
+    if isa(fimodel, 'GenericReservoirModel')
         % Reset state function groupings
         fimodel = fimodel.removeStateFunctionGroupings();
         pressureModel = PressureModel(fimodel);

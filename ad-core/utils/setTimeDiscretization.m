@@ -41,7 +41,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function model = setFSB(model, fb)
-    assert(isa(model, 'ExtendedReservoirModel'), ...
+    assert(isa(model, 'GenericReservoirModel'), ...
         'Only the "Generic" class of models support different temporal discretization');
     if isempty(model.FlowDiscretization)
         model = model.validateModel();

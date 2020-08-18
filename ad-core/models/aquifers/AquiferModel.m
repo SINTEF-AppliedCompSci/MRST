@@ -131,7 +131,7 @@ classdef AquiferModel < PhysicalModel
             q = computeAquiferFluxes(model, state, dt);
             wind = strcmpi('water', names);
             scale = 1;
-            if isa(model.ReservoirModel, 'ExtendedReservoirModel')
+            if isa(model.ReservoirModel, 'GenericReservoirModel')
                 rhoS  = model.ReservoirModel.getSurfaceDensities();
                 scale = rhoS(wind);
             end

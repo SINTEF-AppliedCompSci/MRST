@@ -1,4 +1,4 @@
-classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & ExtendedReservoirModel
+classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & GenericReservoirModel
     properties
         
     end

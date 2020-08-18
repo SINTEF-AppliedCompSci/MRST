@@ -1,4 +1,4 @@
-classdef ExtendedReservoirModel
+classdef GenericReservoirModel
     properties
     end
     

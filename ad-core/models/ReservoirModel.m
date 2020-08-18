@@ -102,7 +102,7 @@ methods
         model.outputFluxes = true;
         % Gravity defaults to the global variable
         model.gravity = gravity();
-        if isa(model, 'ExtendedReservoirModel')
+        if isa(model, 'GenericReservoirModel')
             % Generic class - use extended version
             model.FacilityModel = GenericFacilityModel();
         else
@@ -1254,7 +1254,7 @@ methods
         % dissolution (rs/rv).
         %
         % For fully compositional problems, this branch will not execute.
-        isMass = isa(model, 'ExtendedReservoirModel');
+        isMass = isa(model, 'GenericReservoirModel');
         for i = 1:numel(s)
             sub = strcmpi(names, longNames{i});
             if any(sub)

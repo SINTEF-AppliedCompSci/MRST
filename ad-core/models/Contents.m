@@ -1,7 +1,7 @@
 % MODELS
 %
 % Files
-%   ExtendedReservoirModel - 
+%   GenericReservoirModel - 
 %   PhysicalModel          - Base class for all AD models. Implements a generic discretized model.
 %   ReservoirModel         - Base class for physical models
 %   WrapperModel           - Wrapper model which can be inherited for operations on the parent

@@ -127,7 +127,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % the uniform facility model, which is vectorized and faster when many
     % wells are present
     cnames = model.getComponentNames();
-    if isempty(cnames) && opt.UniformFacilityModel && ~isa(model, 'ExtendedReservoirModel')
+    if isempty(cnames) && opt.UniformFacilityModel && ~isa(model, 'GenericReservoirModel')
         model.FacilityModel = UniformFacilityModel(model);
     end
     % Set up state

@@ -245,7 +245,7 @@ methods
         % Take averaged pressure for scaling factors
         state = problem.state;
         fluid = model.fluid;
-        isMass = isa(model, 'ExtendedReservoirModel');
+        isMass = isa(model, 'GenericReservoirModel');
         if isMass
             rhoS = model.getSurfaceDensities();
         end

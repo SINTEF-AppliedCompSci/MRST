@@ -1,4 +1,4 @@
-classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & ExtendedReservoirModel
+classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & GenericReservoirModel
     properties
         toleranceEOR = 1e-3;
     end

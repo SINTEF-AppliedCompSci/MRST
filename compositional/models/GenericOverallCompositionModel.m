@@ -1,4 +1,4 @@
-classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel & ExtendedReservoirModel
+classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel & GenericReservoirModel
     properties
         
     end

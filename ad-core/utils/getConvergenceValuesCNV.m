@@ -72,7 +72,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     MB = zeros(1, nph);
     [shortPhase, phaseNames] = model.getPhaseNames();
     dt = problem.dt;
-    isMass = isa(model, 'ExtendedReservoirModel');
+    isMass = isa(model, 'GenericReservoirModel');
     if isMass
         rhoS = model.getSurfaceDensities();
         if size(rhoS, 1) > 1
