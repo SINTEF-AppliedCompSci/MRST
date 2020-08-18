@@ -75,7 +75,7 @@ classdef FacilityModel < PhysicalModel
             end
         end
         
-        function model = resetStateFunctionGroupings(model)
+        function model = removeStateFunctionGroupings(model)
             model.FacilityFlowDiscretization = [];
         end
 
