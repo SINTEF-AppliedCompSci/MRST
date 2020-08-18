@@ -7,6 +7,9 @@ classdef TransportModel < WrapperModel
     methods
         function model = TransportModel(parent, varargin)
             parent.FlowDiscretization = []; % Remove flux discretization (if setup)
+            if isprop(parent, 'FacilityModel') && ~isempty(parent.FacilityModel)
+                parent.FacilityModel.primaryVariableSet = 'none';
+            end
             model = model@WrapperModel(parent);
             model = merge_options(model, varargin{:});
             model.AutoDiffBackend = parent.AutoDiffBackend;
