@@ -70,13 +70,13 @@ loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 
 % Setup fluid driving forces (source terms and boundary condition)
 
-extfaces = loadstruct.bc.extfaces; % get "external faces" from setupBCpercase
-extfaces = unique(extfaces);
-
+bcnodefacetbl = loadstruct.bc.bcnodefacetbl; % get "external faces" from setupBCpercase
+extfaces = unique(bcnodefacetbl.get('faces'));
 bcfacetbl.faces = extfaces;
 bcfacetbl = IndexArray(bcfacetbl);
 nodefacetbl = tbls.nodefacetbl;
 bcnodefacetbl = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
+
 bcvals = zeros(bcnodefacetbl.num, 1);
 bcneumann = [];
 bcdirichlet = struct('bcnodefacetbl', bcnodefacetbl, ...

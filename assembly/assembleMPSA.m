@@ -209,6 +209,7 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     end
         
     if opt.extraoutput
+        div = matrices.div;
         assembly.divop = @(sol) mpsaDivOperator(sol, extforce, R1, R2, div);
     end
     
