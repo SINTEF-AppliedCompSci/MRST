@@ -89,6 +89,7 @@ methods
         [vars, names, origin] = model.getPrimaryVariables(state);
         if init
             [vars{:}] = model.AutoDiffBackend.initVariablesAD(vars{:});
+            state.primaryVariables = names;
         end
         state = model.initStateAD(state, vars, names, origin);
     end
@@ -494,6 +495,9 @@ methods
             end
         end
         state = value(state);
+        if isfield(state, 'primaryVariables')
+            state = rmfield(state, 'primaryVariables');
+        end
     end
 
     function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
