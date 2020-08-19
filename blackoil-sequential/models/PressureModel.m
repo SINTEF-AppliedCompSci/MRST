@@ -5,6 +5,7 @@ classdef PressureModel < WrapperModel
         reductionStrategy;
         pressureIncTolType = 'relative';
         pressureTol = inf;
+        pressureScaling = [];
     end
     
     methods
@@ -39,9 +40,20 @@ classdef PressureModel < WrapperModel
                 otherwise
                     error('Unknown reduction strategy %s', model.reductionStrategy);
             end
-            if init
-                [vars{keep}] = model.AutoDiffBackend.initVariablesAD(vars{keep});
+            pvars = vars(keep);
+            hasScaling = ~isempty(model.pressureScaling);
+            if hasScaling
+                % We have a scaling factor to the pressure derivatives.
+                % Scale first, initialize, then divide away. The next fix
+                % comes in the update function, where the scaling is
+                % re-applied to keep units consistent.
+                pvars{1} = pvars{1}.*model.pressureScaling;
             end
+            if init
+                [pvars{:}] = model.AutoDiffBackend.initVariablesAD(pvars{:});
+                pvars{1} = pvars{1}./model.pressureScaling;
+            end
+            vars(keep) = pvars;
             state = model.initStateAD(state, vars, names, origin);
             % Not all were AD-initialized
             names = names(keep);
@@ -79,11 +91,19 @@ classdef PressureModel < WrapperModel
         end
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            if ~isempty(model.pressureScaling)
+                assert(strcmpi(problem.primaryVariables{1}, 'pressure'));
+                dx{1} = dx{1}./model.pressureScaling;
+            end
             if strcmpi(model.reductionStrategy, 'numerical')
                 state = updateReductionFactorProps(model, state);
             end
             p0 = state.pressure;
             [state, report] = model.parentModel.updateState(state, problem, dx, drivingForces);
+            if model.verbose > 1
+                fprintf('* Pressure: Minimum %f bar, maximum %f bar, mean %f bar\n', mean(p0)/barsa, max(p0)/barsa, mean(p0)/barsa)
+                fprintf('* %d two-phase cells\n', sum(state.s(:, 3) > 0));
+            end
             switch lower(model.pressureIncTolType)
                 case 'relative'
                     range = max(p0) - min(p0);
@@ -156,6 +176,50 @@ classdef PressureModel < WrapperModel
             rhoS = model.parentModel.getSurfaceDensities();
         end
         
+        function checkPressureReduction(model, state0, state, dt, drivingForces)
+            m = model.parentModel;
+            state = m.reduceState(state);
+            
+            state = m.getStateAD(state);
+            [M, w] = m.getProps(state, 'ComponentTotalMass', 'PressureReductionFactors');
+            M0 = m.getProp(state0, 'ComponentTotalMass');
+            e = 0;
+            for i = 1:numel(M)
+                e = e + (M{i} - M0{i}).*w{i}./dt;
+            end
+            pos = 1;
+            pnames = state.primaryVariables;
+            for i = 1:numel(e.jac)
+                J = e.jac{i};
+                if issparse(J)
+                    n = 1;
+                    diagonals = {diag(J)};
+                    names = pnames{pos};
+                    pos = pos + 1;
+                else
+                    n = J.getNumberOfDiagonals();
+                    diagonals = cell(1, n);
+                    names = cell(1, n);
+                    for j = 1:n
+                        diagonals{j} = J.getDiagonalByIndex(j);
+                        names{j} = pnames{pos};
+                        pos = pos + 1;
+                    end
+                end
+                for j = 1:n
+                    d = diagonals{j};
+                    name = names{j};
+                    if strcmpi(name, 'pressure') && ~isempty(model.pressureScaling)
+                        d = d./model.pressureScaling;
+                    end
+                    if ~isempty(d)
+                        fprintf('!! %s: \n * Mean:  %g\n * Min:   %g\n * Max:   %g\n *|Min|:  %g\n *|Mean|: %g\n', ...
+                                 name, mean(d), min(d), max(d), min(abs(d)), mean(abs(d)));
+                    end
+                end
+            end
+        end
+        
         function model = setupStateFunctionGroupings(model, varargin)
             pmodel = model.parentModel;
             pvt = pmodel.PVTPropertyFunctions;
@@ -173,7 +237,6 @@ classdef PressureModel < WrapperModel
             end
             model.parentModel.PVTPropertyFunctions = pvt;
         end
-        
     end
 end
 
