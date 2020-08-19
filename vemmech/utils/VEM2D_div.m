@@ -4,16 +4,14 @@ function [div] = VEM2D_div(G, varargin)
 % SYNOPSIS:
 %   function [div] = VEM2D_div(G)
 %
-% DESCRIPTION: Computes a discrete divergence operator in 2D. This discrete div
-% operator is a mapping from node-valued displacement vector to cell-valued 2D
-% vector. Node-valued displacement vectors correspond to the degrees of freedom
-% that determine for each cell a displacement function over the cell via the
-% virtual basis function. The discrete divergence operator that is assembled here
-% computes the L^2 projection, cell-wise, of this displacement function. For
-% more detail, see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1].
+% DESCRIPTION: Computes a discrete divergence operator in 2D. This discrete div operator is a mapping from node-valued
+% displacement vector to cell-valued 2D vector. Node-valued displacement vectors correspond to the degrees of freedom that
+% determine for each cell a displacement function over the cell via the virtual basis function. The discrete divergence
+% operator that is assembled here computes the divergence of the L^2 projection, cell-wise, of this displacement
+% function. For more detail, see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1].
 %
 % PARAMETERS:
-%   G        - Grid structure
+%   G - Grid structure
 %
 % OPTIONAL PARAMETERS:
 %

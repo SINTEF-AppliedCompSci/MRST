@@ -160,9 +160,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             XX = XX/2; % now XX is q_i
             WR(:, 1:3) = [reshape([1./nlcl, zz]', [], 1), reshape([z, 1./nlcl, z]', [], 1), reshape([zz, 1./nlcl]', [], 1)];
         else
+            % XX is 2*q_i in [Gain et al : doi:10.1016/j.cma.2014.05.005] eqs 77
             XX = bsxfun(@rdivide, qf_all(inodes, :), G.cells.volumes(cellnum));
             WC(:, 1:2) = [reshape([XX(:, 1), z]', [], 1), reshape([z, XX(:, 2)]', [], 1)];
-            XX = XX/2;
+            XX = XX/2; % now XX is q_i
             WR(:, 1:2) = [reshape([1./nlcl, z]', [], 1), reshape([z, 1./nlcl]', [], 1)];
         end
         
