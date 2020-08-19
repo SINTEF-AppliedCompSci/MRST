@@ -1,9 +1,9 @@
 function f = assignPVTO(f, pvto, reg)
-    [f.bO, f.muO, f.rsSat] = getFunctions(pvto, reg);
+    [f.bO, f.muO, f.rsSat, f.pb] = getFunctions(pvto, reg);
 end
 
-function [bO, muO, rsSat] = getFunctions(PVTO, reg)
-    [bO, muO, rsSat] = deal(cell(1, reg.pvt));
+function [bO, muO, rsSat, pb] = getFunctions(PVTO, reg)
+    [bO, muO, rsSat, pb] = deal(cell(1, reg.pvt));
     
     for i = 1:reg.pvt
         pvto = PVTO{i};
@@ -24,6 +24,7 @@ function [bO, muO, rsSat] = getFunctions(PVTO, reg)
         bO{i} = @(po, rs, flag) interpPVT(bo, po, rs, flag);
         muO{i} = @(po, rs, flag) interpPVT(muo, po, rs, flag);
         rsSat{i} = @(po) reg.interp1d(p_t, rs_t, po);
+        pb{i} = @(rsi) reg.interp1d([-1; rs], [p_bub(1); p_bub], rsi);
     end
 end
 
