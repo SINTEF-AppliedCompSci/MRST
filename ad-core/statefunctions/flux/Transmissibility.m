@@ -12,9 +12,15 @@ classdef Transmissibility < StateFunction
                 pp = pp.dependsOn('pressure', 'state');
             end
             pp.label = 'T_f';
+            assert(isfield(model.operators, 'T'));
+            T = model.operators.T;
+            assert(all(isfinite(T)))
+            if any(T < 0)
+                warning('Negative transmissibility in %d interfaces', sum(T < 0));
+            end
         end
         
-        function T = evaluateOnDomain(prop, model, state)
+        function T = evaluateOnDomain(sfn, model, state)
             T = model.operators.T;
             if isfield(model.fluid, 'transMult')
                 p = model.getProps(state, 'pressure');
