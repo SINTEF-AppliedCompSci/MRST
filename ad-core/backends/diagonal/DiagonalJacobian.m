@@ -42,6 +42,21 @@ classdef DiagonalJacobian
             end
         end
         
+        function n = getNumberOfDiagonals(u)
+            n = u.dim(2);
+        end
+        
+        function d = getDiagonalByIndex(u, index)
+            d = u.diagonal;
+            if ~isempty(d)
+                if u.rowMajor
+                    d = d(index, :);
+                else
+                    d = d(:, index);
+                end
+            end
+        end
+
         function D = getDiagonal(u, subs)
             if nargin == 1
                 D = u.diagonal;
