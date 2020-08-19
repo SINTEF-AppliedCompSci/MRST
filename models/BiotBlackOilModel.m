@@ -43,7 +43,7 @@ classdef BiotBlackOilModel < GenericBlackOilModel
             model.PVTPropertyFunctions = []; % make sure this ir reset
             model = setupStateFunctionGroupings@GenericBlackOilModel(model, varargin{:});
            
-            fluxprops = model.FluxDiscretization;
+            fluxprops = model.FlowDiscretization;
             biotprops = model.BiotPropertyFunctions; 
             pvtprops  = model.PVTPropertyFunctions; 
             mprops  = model.MechPropertyFunctions;
@@ -60,7 +60,7 @@ classdef BiotBlackOilModel < GenericBlackOilModel
             model.BiotPropertyFunctions = biotprops;
             model.PVTPropertyFunctions  = pvtprops;
             model.MechPropertyFunctions = mprops;
-            model.FluxDiscretization    = fluxprops;
+            model.FlowDiscretization    = fluxprops;
             
         end
         

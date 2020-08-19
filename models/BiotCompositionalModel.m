@@ -47,7 +47,7 @@ classdef BiotCompositionalModel < GenericOverallCompositionModel
             model.PVTPropertyFunctions = []; % make sure this ir reset
             model = setupStateFunctionGroupings@GenericOverallCompositionModel(model, varargin{:});
            
-            fluxprops = model.FluxDiscretization;
+            fluxprops = model.FlowDiscretization;
             biotprops = model.BiotPropertyFunctions; 
             pvtprops  = model.PVTPropertyFunctions; 
             mprops  = model.MechPropertyFunctions;
@@ -64,7 +64,7 @@ classdef BiotCompositionalModel < GenericOverallCompositionModel
             model.BiotPropertyFunctions = biotprops;
             model.PVTPropertyFunctions  = pvtprops;
             model.MechPropertyFunctions = mprops;
-            model.FluxDiscretization    = fluxprops;
+            model.FlowDiscretization    = fluxprops;
             
         end
         

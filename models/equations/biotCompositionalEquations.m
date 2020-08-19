@@ -27,7 +27,7 @@ function [eqs, names, types, state] = biotCompositionalEquations(model, state0, 
     mnames = {'momentum', 'mechbcs', 'coupling'};
     mtypes  = {'cells', 'bc', 'cells'};
     
-    [feqs, flux, fnames, ftypes] = model.FluxDiscretization.componentConservationEquations(model, state, state0, dt);
+    [feqs, flux, fnames, ftypes] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
     src = model.FacilityModel.getComponentSources(state);
     
     % Treat source or bc terms
