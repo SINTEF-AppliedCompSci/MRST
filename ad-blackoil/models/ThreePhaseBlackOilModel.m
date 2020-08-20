@@ -245,8 +245,8 @@ methods
         % Take averaged pressure for scaling factors
         state = problem.state;
         fluid = model.fluid;
-        isMass = isa(model, 'GenericReservoirModel');
-        if isMass
+        isSurfVol = ~isa(model, 'GenericReservoirModel');
+        if isSurfVol
             rhoS = model.getSurfaceDensities();
         end
         ph = model.getPhaseNames();
@@ -254,47 +254,14 @@ methods
         isg = ph == 'G';
         isw = ph == 'W';
 
-        if (isprop(solver, 'trueIMPES') || isfield(solver, 'trueIMPES')) && solver.trueIMPES
+        if ((isprop(solver, 'trueIMPES') || isfield(solver, 'trueIMPES')) && solver.trueIMPES) || ...
+            isprop(solver, 'decoupling') && strcmpi(solver.decoupling, 'trueIMPES')
             % Rigorous pressure equation (requires lots of evaluations)
-            rs = state.rs;
-            rv = state.rv;
-            cfac = 1./(1 - model.disgas*model.vapoil*rs.*rv);
-            [b, rs, rv] = model.getProps(state, 'ShrinkageFactors', 'rs', 'rv');
-            [bO, bW, bG] = deal(1);
-            if any(isw)
-                bW = b{isw};
-            end
-            if any(iso)
-                bO = b{iso};
-            end
-            if any(isg)
-                bG = b{isg};
-            end
-            for iter = 1:nNames
-                name = lower(names{iter});
-                switch name
-                    case 'oil'
-                        s = cfac.*(1./bO - model.disgas*rs./bG);
-                        if isMass
-                            s = s./rhoS(1, iso);
-                        end
-                    case 'water'
-                        s = 1./bW;
-                        if isMass
-                            s = s./rhoS(1, isw);
-                        end
-                    case 'gas'
-                        s = cfac.*(1./bG - model.vapoil*rv./bO);
-                        if isMass
-                            s = s./rhoS(1, isg);
-                        end
-                    otherwise
-                        continue
-                end
-                sub = strcmpi(problem.equationNames, name);
-                scaling{iter} = s;
-                handled(sub) = true;
-            end
+            w = model.getProp(state, 'PressureReductionFactors');
+            nc = numel(w);
+            subs = 1:nc;
+            scaling(subs) = w;
+            handled(subs) = true;
         else
             % Very simple scaling factors, uniform over grid
             p = mean(value(state.pressure));
@@ -310,15 +277,9 @@ methods
                            bO = call(fluid.bO,p);
                         end
                         s = 1./bO;
-                        if isMass
-                            s = s./rhoS(1, iso);
-                        end
                     case 'water'
                         bW = call(fluid.bW,p);
                         s = 1./bW;
-                        if isMass
-                            s = s./rhoS(1, isw);
-                        end
                     case 'gas'
                         if model.vapoil
                             rv = call(fluid.rvSat, p);
@@ -327,9 +288,6 @@ methods
                             bG = call(fluid.bG, p);
                         end
                         s = 1./bG;
-                        if isMass
-                            s = s./rhoS(1, isg);
-                        end
                     otherwise
                         continue
                 end
@@ -338,6 +296,25 @@ methods
                 handled(sub) = true;
             end
         end
+        % Account for difference in convention. Generic models use mass,
+        % while the older models use surface volumes. The factors are
+        % written for masses.
+        if isSurfVol
+            for iter = 1:nNames
+                name = lower(names{iter});
+                switch name
+                    case 'oil'
+                        scaling{iter} = scaling{iter}.*rhoS(1, iso);
+                    case 'water'
+                        scaling{iter} = scaling{iter}.*rhoS(1, isw);
+                    case 'gas'
+                        scaling{iter} = scaling{iter}.*rhoS(1, isg);
+                    otherwise
+                        continue
+                end
+            end
+        end
+        
         if ~all(handled)
             % Get rest of scaling factors from parent class
             other = getScalingFactorsCPR@ReservoirModel(model, problem, names(~handled));
