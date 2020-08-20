@@ -9,6 +9,7 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
         explicitProps = {}; % setProp capable properties that should be explicit
         initialStep = 1*day;% Timestep used if no fluxes are present
         useInflowForEstimate = false;
+        changeTimestep = true; % Estimate stable step. Can be disabled if you know your steps are small enough.
     end
     
     methods
@@ -17,6 +18,10 @@ classdef ExplicitFlowStateBuilder < FlowStateBuilder
         end
         
         function dt_max = getMaximumTimestep(fsb, fd, model, state, state0, dt, forces)
+            if ~fsb.changeTimestep
+                dt_max = inf;
+                return
+            end
             if fsb.isFirstTimeStep(state)
                 dt_max = fsb.initialStep;
                 return;
