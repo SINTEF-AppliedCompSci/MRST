@@ -141,6 +141,7 @@ function wns = get_well_names(smry)
    end
 
    wns = unique(wns);
+   wns = setdiff(wns, ':+:+:+:+');
 end
 
 %--------------------------------------------------------------------------
