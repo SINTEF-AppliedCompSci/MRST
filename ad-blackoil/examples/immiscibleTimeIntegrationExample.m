@@ -133,6 +133,7 @@ for stepNo = 1:numel(schedule.step.val)
         end
         h(j) = plotCellData(G, states{j}{stepNo}.s(:, 1), 'LineStyle', st, 'LineWidth', lw);
     end
+    set(gca, 'FontSize', 13);
     legend(h, names);
     drawnow
 end
