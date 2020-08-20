@@ -76,7 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isMass
         rhoS = model.getSurfaceDensities();
         if size(rhoS, 1) > 1
-            pvtreg =  model.PVTPropertyFunctions.Density.regions;
+            pvtreg =  model.PVTPropertyFunctions.getRegionPVT(model);
             rhoS = rhoS(pvtreg, :);
         end
     end
