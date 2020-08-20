@@ -76,6 +76,11 @@ classdef BlackOilPressureReductionFactors < PressureReductionFactors
             nph = numel(b);
             w = cell(1, nph);
             names = model.getComponentNames();
+            if isempty(names)
+                % No components defined?
+                names = {'water', 'oil', 'gas'};
+                names = names(model.getActivePhases());
+            end
             pvtreg = model.PVTPropertyFunctions.Density.regions;
             for ph = 1:nph
                 switch names{ph}
