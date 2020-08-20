@@ -42,16 +42,18 @@ classdef PressureModel < WrapperModel
             end
             pvars = vars(keep);
             hasScaling = ~isempty(model.pressureScaling);
-            if hasScaling
-                % We have a scaling factor to the pressure derivatives.
-                % Scale first, initialize, then divide away. The next fix
-                % comes in the update function, where the scaling is
-                % re-applied to keep units consistent.
-                pvars{1} = pvars{1}.*model.pressureScaling;
-            end
             if init
+                if hasScaling
+                    % We have a scaling factor to the pressure derivatives.
+                    % Scale first, initialize, then divide away. The next fix
+                    % comes in the update function, where the scaling is
+                    % divided away to keep units consistent.
+                    pvars{1} = pvars{1}.*model.pressureScaling;
+                end
                 [pvars{:}] = model.AutoDiffBackend.initVariablesAD(pvars{:});
-                pvars{1} = pvars{1}./model.pressureScaling;
+                if hasScaling
+                    pvars{1} = pvars{1}./model.pressureScaling;
+                end
             end
             vars(keep) = pvars;
             state = model.initStateAD(state, vars, names, origin);
