@@ -23,7 +23,7 @@ classdef FlowDiscretization < StateFunctionGrouping
         function props = FlowDiscretization(model)
             tpfa = TwoPointFluxApproximation(model);
 
-            props@StateFunctionGrouping('FluxProps');
+            props@StateFunctionGrouping('FluxDisc');
             % Darcy flux
             props = props.setStateFunction('Transmissibility', Transmissibility(model));
             props = props.setStateFunction('PermeabilityPotentialGradient', PermeabilityPotentialGradient(model, tpfa));
