@@ -22,6 +22,10 @@ classdef WellComponentPhaseFlux < StateFunction
             wc = map.cells;
             W = map.W;
             nw = numel(W);
+            componentPhaseFlux = cell(ncomp, nph);
+            if nw == 0
+                return;
+            end
             nperf = numel(wc);
 
             perfTotalFlux = sum(value(phaseFlux), 2);
@@ -41,7 +45,6 @@ classdef WellComponentPhaseFlux < StateFunction
             
             % Get phase density if we are injecting
             surfaceComposition = cell(ncomp, nph);
-            componentPhaseFlux = cell(ncomp, nph);
             for c = 1:ncomp
                 % Store well injector composition
                 surfaceComposition(c, :) = model.Components{c}.getPhaseComponentFractionInjection(model, state, W);

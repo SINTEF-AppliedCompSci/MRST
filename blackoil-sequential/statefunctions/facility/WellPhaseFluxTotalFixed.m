@@ -12,14 +12,19 @@ classdef WellPhaseFluxTotalFixed < StateFunction
         
         function q_ph = evaluateOnDomain(prop, model, state)
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
-            W = map.W;
-            [dp, wi] = prop.getEvaluatedDependencies(state, 'PressureGradient', 'WellIndex');
             mob = model.ReservoirModel.getProps(state, 'Mobility');
+            nph = numel(mob);
+            q_ph = cell(1, nph);
+            W = map.W;
+            if isempty(W)
+                return
+            end
+            [dp, wi] = prop.getEvaluatedDependencies(state, 'PressureGradient', 'WellIndex');
+            
             ws = state.wellSol(map.active);
             qT = sum(vertcat(ws.flux), 2);
             
             mobw = cellfun(@(x) x(map.cells), mob, 'UniformOutput', false);
-            nph = numel(mob);
             mobt = 0;
             for i = 1:nph
                 mobt = mobt + mobw{i};
@@ -54,7 +59,6 @@ classdef WellPhaseFluxTotalFixed < StateFunction
                     f{i}(injection) = compi_perf(injection, i);
                 end
             end
-            q_ph = cell(1, nph);
             for i = 1:nph
                 q_ph{i} = f{i}.*qT;
             end
