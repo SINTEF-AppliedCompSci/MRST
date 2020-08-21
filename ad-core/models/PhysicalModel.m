@@ -686,24 +686,31 @@ methods
         [linearReport, updateReport, stabilizeReport] = deal(struct());
         if (~(all(convergence) && doneMinIts) && ~outOfIterations)
             % Get increments for Newton solver
-            [dx, ~, linearReport] = linsolver.solveLinearProblem(problem, model);
-            if any(cellfun(@(d) ~all(isfinite(d)), dx))
+            try
+                [dx, ~, linearReport] = linsolver.solveLinearProblem(problem, model);
+                if any(cellfun(@(d) ~all(isfinite(d)), dx))
+                    failure = true;
+                    failureMsg = 'Linear solver produced non-finite values.';
+                end
+            catch ex
                 failure = true;
-                failureMsg = 'Linear solver produced non-finite values.';
+                failureMsg = sprintf('Linear solver failure: %s: %s', ex.identifier, ex.message);
             end
-            % Let the nonlinear solver decide what to do with the
-            % increments to get the best convergence
-            [dx, stabilizeReport] = nonlinsolver.stabilizeNewtonIncrements(model, problem, dx);
-            % Remove AD from state, and remove property containers to avoid
-            % caching issues in update function
-            state = model.reduceState(state, true);
-            if (nonlinsolver.useLinesearch && nonlinsolver.convergenceIssues) || ...
-                nonlinsolver.alwaysUseLinesearch
-                [state, updateReport, stabilizeReport.linesearch] = nonlinsolver.applyLinesearch(model, state0, state, problem, dx, drivingForces, varargin{:});
-            else
-                % Finally update the state. The physical model knows which
-                % properties are actually physically reasonable.
-                [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
+            if ~failure
+                % Let the nonlinear solver decide what to do with the
+                % increments to get the best convergence
+                [dx, stabilizeReport] = nonlinsolver.stabilizeNewtonIncrements(model, problem, dx);
+                % Remove AD from state, and remove property containers to avoid
+                % caching issues in update function
+                state = model.reduceState(state, true);
+                if (nonlinsolver.useLinesearch && nonlinsolver.convergenceIssues) || ...
+                    nonlinsolver.alwaysUseLinesearch
+                    [state, updateReport, stabilizeReport.linesearch] = nonlinsolver.applyLinesearch(model, state0, state, problem, dx, drivingForces, varargin{:});
+                else
+                    % Finally update the state. The physical model knows which
+                    % properties are actually physically reasonable.
+                    [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
+                end
             end
         else
             % Remove AD from state, but keep property containers. The
