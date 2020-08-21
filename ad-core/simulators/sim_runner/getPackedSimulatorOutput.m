@@ -67,7 +67,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rh = problem.OutputHandlers.reports;
     
     ndata = sh.numelData();
-    [ws, states, reports] = deal(cell(ndata, 1));
+    ws =cell(wh.numelData(), 1);
+    states=cell(sh.numelData(),1);
+    reports = cell(rh.numelData(),1);
+    %[ws, states, reports] = deal(cell(ndata, 1));
     wantWells = false;
     for i = 1:numel(problem.SimulatorSetup.schedule.control)
         ctrl = problem.SimulatorSetup.schedule.control(i);
@@ -107,6 +110,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
             end
         end
+    end
+    nr=rh.numelData();
+    for i = 1:nr
         if nargout > 2 && opt.readReportsFromDisk
             try
                 reports{i} = rh{i};
