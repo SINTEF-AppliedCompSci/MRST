@@ -154,7 +154,7 @@ classdef TransportModel < WrapperModel
                 qf = WellPhaseFluxTotalFixed(model.parentModel);
                 fdp = fdp.setStateFunction('PhaseFlux', qf);
                 model.parentModel.FacilityModel.FacilityFlowDiscretization = fdp;
-                model.parentModel.FacilityModel.doPostUpdate = false;
+                model.parentModel.FacilityModel.doPostUpdate = true;
             end
         end
         
