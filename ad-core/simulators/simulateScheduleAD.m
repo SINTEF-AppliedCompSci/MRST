@@ -159,6 +159,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             'The model must be derived from PhysicalModel');
     opt = struct('Verbose',           mrstVerbose(),...
                  'OutputMinisteps',   false, ...
+                 'OutputMinistepsWells', true,...
                  'initialGuess',      {{}}, ...
                  'NonLinearSolver',   [], ...
                  'OutputHandler',     [], ...
@@ -252,7 +253,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         dt = schedule.step.val(i);
         timer = tic();
-        if opt.OutputMinisteps
+        if opt.OutputMinisteps || opt.OutputMinistepsWells
             [state, report, ministeps] = solver.solveTimestep(state0, dt, model, ...
                                             forces{:}, 'controlId', currControl, extraArg{:});
         else
@@ -282,7 +283,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            disp_step_convergence(report.Iterations, t);
         end
         % Handle massaging of output to correct expectation
-        if opt.OutputMinisteps
+        if opt.OutputMinisteps || opt.OutputMinistepsWells
             % We have potentially several ministeps desired as output
             ind = firstEmptyIx:(firstEmptyIx + numel(ministeps) - 1);
             states_step = ministeps;
@@ -292,13 +293,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             states_step = {state};
         end
 
-        wellSols_step = cellfun(@(x) x.wellSol, states_step, ...
-                                'UniformOutput', false);
+        wellSols_step = cellfun(@(x) x.wellSol, ministeps, ...
+                                    'UniformOutput', false);
 
         wellSols(ind) = wellSols_step;
 
         if ~isempty(opt.OutputHandler)
-            opt.OutputHandler{ind + opt.restartStep - 1} = states_step;
+            if(opt.OutputMinisteps)
+                opt.OutputHandler{ind + opt.restartStep - 1} = states_step;
+            else
+                opt.OutputHandler{i + opt.restartStep - 1} = {state};
+            end
         end
         
         if ~isempty(opt.WellOutputHandler)
@@ -311,7 +316,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         firstEmptyIx = firstEmptyIx + numel(states_step);
 
         if wantStates || ~isempty(opt.afterStepFn)
-            states(ind) = states_step;
+            if(opt.OutputMinisteps)
+                states(ind) = states_step;
+            else
+               states(i) = {state}; 
+            end
         end
 
         if wantReport
