@@ -91,24 +91,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fprintf('Did not find data for %s\n', sn);
     end
     wellOutputMissing = wantWells && wh.numelData() == 0;
-    for i = 1:ndata
+    ns = sh.numelData();
+    for i = 1:ns
         if nargout > 1 && opt.readStatesFromDisk
             states{i} = sh{i};
         end
-        if wantWells && opt.readWellSolsFromDisk
+         if wantWells && opt.readWellSolsFromDisk
             if wellOutputMissing
                 if isempty(states{i})
                     ws{i} = sh{i}.wellSol;
                 else
                     ws{i} = states{i}.wellSol;
                 end
-            else
+            end
+         end
+    end
+    nw = wh.numelData();
+    for i=1:nw
+        if wantWells && opt.readWellSolsFromDisk
+            if(not(wellOutputMissing))
                 try
-                    ws{i} = wh{i};
+                 ws{i} = wh{i};
                 catch
-                    ws{i} = states{i}.wellSol;
+                 ws{i} = states{i}.wellSol;
                 end
             end
+           
         end
     end
     nr=rh.numelData();
