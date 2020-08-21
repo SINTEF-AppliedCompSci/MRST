@@ -22,7 +22,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('solver', []                   , ... % Sepcify solver (e.g. TransportSolver)
                  'get'   , []                   , ... % Getter. Can be user-defined function
-                 'type'  , 'nonlinearIterations');    % Used to pick preimplemented getters (se below)
+                 'type'  , 'nonlinearIterations', ... % Used to pick preimplemented getters (se below)
+                 'ministeps', true);                  % ministeps
     opt = merge_options(opt, varargin{:});
     if isfield(reports, 'ControlstepReports')
         reports = reports.ControlstepReports;
@@ -33,9 +34,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     [opt, scalar] = checkOptions(opt, reports{1});
     % Loop through timesteps and get output
-    out = cell(nr,1);
-    for t = 1:nr
-        out{t} = getControlStepReportData(reports{t}, opt);
+    if(opt.ministeps)
+        out = {};
+        for t = 1:nr
+            ns = numel(reports{t}.StepReports);
+            for k = 1:ns
+                outs = getStepReportData(reports{t}.StepReports{k}, opt);
+                out{end+1,1} = [outs,not(reports{t}.StepReports{k}.Converged)];
+            end
+        end         
+    else
+        out = cell(nr,1);
+        for t = 1:nr
+            out{t} = getControlStepReportData(reports{t}, opt);
+        end
     end
     [total, wasted, cuts, steps] = unpack(out, scalar);
     output = struct('total', total, 'wasted', wasted, 'cuts', cuts);
