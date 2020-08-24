@@ -58,7 +58,7 @@ classdef BlackOilPressureReductionFactors < PressureReductionFactors
                     usat = value(sg) == 0;
                     rsAD = initVariablesAD_diagonal(value(rs));
                     tmp = model.PVTPropertyFunctions.ShrinkageFactors.evaluateFunctionOnDomainWithArguments(model.fluid.bO, value(p), rsAD, false(numelValue(rs), 1));
-                    if any(usat)
+                    if any(usat) && isa(tmp, 'ADI')
                         dbo_drsu = tmp.jac{1}.diagonal(usat);
                         bou = bo(usat);
                         rsu = rs(usat);
