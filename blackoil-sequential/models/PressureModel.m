@@ -87,7 +87,7 @@ classdef PressureModel < WrapperModel
         
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
             [model, state] = prepareTimestep@WrapperModel(model, state, state0, dt, drivingForces);
-            state = model.assignReductionFactorProps(state, state0, dt, true);
+            state = model.assignReductionFactorProps(state, state0, dt);
             % Ensure that saturations are normalized
             state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
         end
@@ -103,9 +103,7 @@ classdef PressureModel < WrapperModel
                 assert(strcmpi(problem.primaryVariables{1}, 'pressure'));
                 dx{1} = dx{1}./model.pressureScaling;
             end
-            if strcmpi(model.reductionStrategy, 'numerical')
-                state = model.updateReductionFactorProps(state);
-            end
+            state = model.updateReductionFactorProps(state, true);
             p0 = state.pressure;
             [state, report] = model.parentModel.updateState(state, problem, dx, drivingForces);
             if model.verbose > 1
@@ -247,21 +245,19 @@ classdef PressureModel < WrapperModel
         end
         
         function state = assignReductionFactorProps(model, state, state0, dt)
-            mass0 = model.parentModel.getProp(state0, 'ComponentTotalMass');
-            props = struct('mass0'   , {mass0}, ...
-                           'mass'    , []     , ...
-                           'dt'      , dt     , ...
-                           'pressure', []     , ...
-                           'weights' , []     );
-            state.reductionFactorProps = props;
+            if strcmpi(model.reductionStrategy, 'numerical')
+                mass0 = model.parentModel.getProp(state0, 'ComponentTotalMass');
+                props = struct('mass0'   , {mass0}, ...
+                               'mass'    , []     , ...
+                               'dt'      , dt     , ...
+                               'pressure', []     , ...
+                               'weights' , []     );
+                state.reductionFactorProps = props;
+            end
         end
 
-        function state = updateReductionFactorProps(model, state, overwrite)
-            if nargin == 2
-                overwrite = ~isfield(state, 'reductionFactorProps');
-            end
-            
-            if overwrite
+        function state = updateReductionFactorProps(model, state)
+            if isfield(state, reductionFactorProps)
                 pressure = model.getProp(state, 'pressure');
                 weights  = model.parentModel.getProp(state, 'PressureReductionFactors');
                 mass  = model.parentModel.getProp(state, 'ComponentTotalMass');
