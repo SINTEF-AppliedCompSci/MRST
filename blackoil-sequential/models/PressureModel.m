@@ -103,7 +103,7 @@ classdef PressureModel < WrapperModel
                 assert(strcmpi(problem.primaryVariables{1}, 'pressure'));
                 dx{1} = dx{1}./model.pressureScaling;
             end
-            state = model.updateReductionFactorProps(state, true);
+            state = model.updateReductionFactorProps(state);
             p0 = state.pressure;
             [state, report] = model.parentModel.updateState(state, problem, dx, drivingForces);
             if model.verbose > 1
@@ -257,7 +257,7 @@ classdef PressureModel < WrapperModel
         end
 
         function state = updateReductionFactorProps(model, state)
-            if isfield(state, reductionFactorProps)
+            if isfield(state, 'reductionFactorProps')
                 pressure = model.getProp(state, 'pressure');
                 weights  = model.parentModel.getProp(state, 'PressureReductionFactors');
                 mass  = model.parentModel.getProp(state, 'ComponentTotalMass');
