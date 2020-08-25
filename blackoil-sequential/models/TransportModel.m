@@ -2,14 +2,15 @@ classdef TransportModel < WrapperModel
     properties
         formulation = 'totalSaturation'
         dsMaxTotal = inf;
+        implicitType = 'none';
     end
     
     methods
         function model = TransportModel(parent, varargin)
             parent.FlowDiscretization = []; % Remove flux discretization (if setup)
-            if isprop(parent, 'FacilityModel') && ~isempty(parent.FacilityModel)
-                parent.FacilityModel.primaryVariableSet = 'none';
-            end
+%             if isprop(parent, 'FacilityModel') && ~isempty(parent.FacilityModel)
+%                 parent.FacilityModel.primaryVariableSet = 'none';
+%             end
             model = model@WrapperModel(parent);
             model = merge_options(model, varargin{:});
             model.AutoDiffBackend = parent.AutoDiffBackend;
@@ -57,6 +58,11 @@ classdef TransportModel < WrapperModel
                 % Replace pressure with total saturation
                 replacement = 'sT';
                 sT = model.getProp(state, replacement);
+                impl_cells = model.getImplicitCells(state);
+                if ~isempty(impl_cells)
+                    p = model.getProp(state, 'pressure');
+                    sT(impl_cells) = p(impl_cells);
+                end
                 % Replacing
                 vars{isP} = sT; % {'pressure', 'sw', 'x'} -> {'st', 'sw', 'x'}
                 names{isP} = replacement;
@@ -81,6 +87,12 @@ classdef TransportModel < WrapperModel
             if useTotalSaturation
                 % Set total saturation as well
                 sT = vars{isP};
+                if ~isempty(impl_cells)
+                    p = model.AutoDiffBackend.convertToAD(p, sT);
+                    p(impl_cells) = sT(impl_cells);
+                    state = model.setProp(state, 'pressure', p);
+                    sT(impl_cells) = 1;
+                end
                 state = model.setProp(state, replacement, sT);
             end
             % Finally remove the non-primary values from the list
@@ -147,7 +159,7 @@ classdef TransportModel < WrapperModel
             % Replace object
             model.parentModel.FlowDiscretization = fd;
             model.parentModel.FlowPropertyFunctions = fp;
-            if hasFacility
+            if hasFacility && ~strcmpi(model.implicitType, 'wells')
                 % Disable primary variables in transport!
                 model.parentModel.FacilityModel.primaryVariableSet = 'none';
                 fdp = model.parentModel.FacilityModel.FacilityFlowDiscretization;
@@ -162,14 +174,32 @@ classdef TransportModel < WrapperModel
             [problem, state] = getEquations@PhysicalModel(model, state0, state, dt, drivingForces, varargin{:});
         end
         
-        function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            isS = strcmpi(problem.primaryVariables, 'sT');
-            if any(isS)
-                state = model.updateStateFromIncrement(state, dx, problem, 'sT', inf, model.dsMaxTotal);
-                state = model.capProperty(state, 'sT', 1e-8);
-                dx = dx(~isS);
+        function cells = getImplicitCells(model, state)
+            if strcmpi(model.implicitType, 'wells')
+                fm = model.parentModel.FacilityModel;
+                map = fm.getProp(state, 'FacilityWellMapping');
+                p = model.getProp(state, 'pressure');
+                cells = map.cells;
+            else
+                cells = [];
+                assert(strcmpi(model.implicitType, 'none'));
             end
-            problem.primaryVariables = problem.primaryVariables(~isS);
+        end
+        
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            [dst, dx, problem] = problem.popIncrement(dx, 'sT');
+            if ~isempty(dst)
+                impl_cells = model.getImplicitCells(state);
+                if ~isempty(impl_cells)
+                    dp = zeros(size(dst));
+                    dp(impl_cells) = dst(impl_cells);
+                    pmodel = model.parentModel;
+                    state = model.updateStateFromIncrement(state, dp, problem, 'pressure', pmodel.dpMaxRel, pmodel.dpMaxAbs);
+                    dst(impl_cells) = 0;
+                end
+                state = model.updateStateFromIncrement(state, dst, problem, 'sT', inf, model.dsMaxTotal);
+                state = model.capProperty(state, 'sT', 1e-8);
+            end
             
             [state, report] = model.parentModel.updateState(state, problem, dx, drivingForces);
         end
