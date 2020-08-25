@@ -57,7 +57,12 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
                                      'N', N, 'C', C, 'nf', nf, 'nc', nc);
 
                 model.operators.Div = @(v) discreteDivergence([], v, div_options);
-                model.operators.AccDiv = @(a, v) discreteDivergence(a, v, div_options);
+                if numel(N)
+                    adiv = @(a, v) discreteDivergence(a, v, div_options);
+                else
+                    adiv = @(a, v) a;
+                end
+                model.operators.AccDiv = adiv;
                 % Cell -> Face operators: Grad, upstream and face average
                 model.operators.Grad = @(v) twoPointGradient(N, v, gradMat, backend.useMex);
                 model.operators.faceUpstr = @(flag, v) singlePointUpwind(flag, N, v, backend.useMex);
