@@ -34,9 +34,42 @@ opt=struct('outputdir','output',...
     'lineartol',1e-5,...
     'strongdefaults',true,...
     'storagecache',true,...
-    'simulationtype','implicit');
+    'simulationtype','implicit',...
+    'pressuresolver',[]);
 opt=merge_options(opt,varargin{:});
 % for extra see .XXX.DEBUG of an opm run
+pressureoptions =[];
+if(not(strcmp(opt.simulationtype,'implicit')))
+   if(isempty(opt.pressuresolver))
+       %simple_prec= struct('preconditioner','ILU0','w',1,'n',1);
+       amg = struct('type','amg',...
+                    'maxlevel',10,...
+                    'coarsenTarget',4000,...
+                    'smoother','ILU0', ...
+                    'post_smooth', 1,...
+                    'pre_smooth', 1,...
+                    'gamma', 1,...
+                    'alpha', 0.3,...
+                    'beta', 1e-5,...
+                    'relaxation', 1,...
+                    'skip_isolated',0,...
+                    'verbosity',10);
+                    
+    %Jac failed on norne
+    pressuresolver = struct('tol',1e-6,'maxiter',20, ...
+                              'preconditioner',amg,...
+                              'verbosity',10,...
+                              'blocksize',1,...
+                              'solver','bicgstab');                     
+   else
+       pressuresolver = opt.pressuresolver;
+   end
+   pressuresolverfile = 'tmp_pressuresolver.json';
+   writeJson(pressuresolver,pressuresolverfile);
+   pressureoptions = [' --pressure-solver-json=',pressuresolverfile,' '];
+end
+
+
 if(opt.np >0)
     command = ['mpirun -np ',num2str(opt.np),' '];
 else
@@ -48,9 +81,10 @@ if(opt.use_ebos_style)
     opt.output=fullfile(mydir);
 else
     if(opt.force_timestep)
-        command=[command, opt.simulator,' --enable-well-operability-check=false --full-time-step-initially=true --enable-adaptive-time-stepping=false --flow-newton-max-iterations=100 '];
+        command=[command, opt.simulator,' --enable-well-operability-check=false --full-time-step-initially=false --enable-adaptive-time-stepping=false --flow-newton-max-iterations=20 '];
     else
-        command=[command, opt.simulator,' --time-step-control=iterationcount --enable-tuning=false '];
+        command=[command, opt.simulator,' --enable-well-operability-check=false --full-time-step-initially=false --enable-tuning=false '];
+        % --time-step-control=iterationcount 
     end
     command =[command,' --simulation-type=',opt.simulationtype,' '];
     command = [command,' --solve-welleq-initially=true '];
@@ -60,7 +94,7 @@ else
         command =  [command,' --enable-storage-cache=false '];
     end
     if(opt.strongdefaults)
-        command =[command,' --tolerance-cnv=0.00001 --tolerance-cnv-relaxed=0.0001 --tolerance-wells=0.0001 --project-saturations=true --ds-max=0.2'];
+        command =[command,' --flow-linear-solver-verbosity=1 --use-inner-iterations-wells=false --tolerance-pressure=0.000001 --tolerance-cnv=0.001 --tolerance-cnv-seq=0.0001 --tolerance-cnv-relaxed-seq=0.001 --tolerance-cnv-relaxed=0.01 --tolerance-wells=0.00001 --project-saturations=true --ds-max=0.2'];
     end
     command =[command,' --linear-solver-reduction=',num2str(opt.lineartol),' '];
     command=[command,' --threads-per-process=',num2str(opt.threads),' '];
@@ -89,7 +123,8 @@ else
       end
     end
     command = [command,' --output-dir=',opt.outputdir,' ',deckfile];
-    
+    %' --reuse-pressure-solver=true '
+    command = [command,pressureoptions,' --reuse-pressure-solver=1 ']
 end
 if(opt.no_output)
     command = [command,' >& /dev/null'];
@@ -112,7 +147,7 @@ if(nargout>0)
     [mydir,case_name,ext]=fileparts(deckfile);
     ofile=fullfile(opmdir,case_name); 
     %opm_smry = readEclipseSummaryUnFmt(ofile);
-    [wellsols_smry, time_smry]  = convertSummaryToWellSols(ofile,'metric');
+    [wellsols_smry, time_smry]  = convertSummaryToWellSols(ofile);
     ofile_cap=fullfile(opmdir,upper(case_name));
     casenm=fullfile(opt.outputdir,upper(case_name));
     if(opt.read_states)
