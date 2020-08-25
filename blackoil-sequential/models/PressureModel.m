@@ -110,11 +110,16 @@ classdef PressureModel < WrapperModel
                 fprintf('* Pressure: Minimum %f bar, maximum %f bar, mean %f bar\n', mean(p0)/barsa, max(p0)/barsa, mean(p0)/barsa)
                 fprintf('* %d two-phase cells\n', sum(state.s(:, 3) > 0));
             end
-            switch lower(model.pressureIncTolType)
+            incType = lower(model.pressureIncTolType);
+            if model.parentModel.G.cells.num == 1 && strcmp(incType, 'relative')
+                % Only norm makes sense
+                incType = 'norm';
+            end
+            switch incType
                 case 'relative'
                     range = max(p0) - min(p0);
                     if range == 0
-                        range = 1;
+                        range = norm(p0, inf);
                     end
                     dp = (state.pressure - p0)./range;
                 case 'absolute'
