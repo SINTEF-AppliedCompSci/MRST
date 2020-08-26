@@ -151,7 +151,7 @@ mrstModule add upscaling relperm-upscale
 
 
 if 0
-    mrstModule add blackoil-sequential
+    mrstModule add sequential
     f2 = initSimpleADIFluid('mu', [1, 1, 1]*centi*poise);
     pmodel = PressureOilWaterModel(G, rock, f2);
     [hf, T_c, W_c, rep2] = upscaleTrans(CG, pmodel, ...

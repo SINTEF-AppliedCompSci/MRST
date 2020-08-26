@@ -170,7 +170,7 @@ xlabel('Time step'), ylabel('Runtime [s]');
 % a sequential model and set parameters to get exact mass conservation for
 % a single pass of pressure and transport with the same convergence
 % criterion as the fully-implicit solver
-mrstModule add blackoil-sequential
+mrstModule add sequential
 seqmodel = getSequentialModelFromFI(model);
 
 seqmodel.pressureModel.incTolPressure = 1e-5;

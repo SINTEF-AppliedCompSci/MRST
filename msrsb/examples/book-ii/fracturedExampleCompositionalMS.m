@@ -6,7 +6,7 @@
 % the setup.
 
 mrstModule add ad-core ad-blackoil deckformat msrsb
-mrstModule add ad-props mrst-gui blackoil-sequential
+mrstModule add ad-props mrst-gui sequential
 mrstModule add coarsegrid
 mrstModule add compositional
 mrstModule add linearsolvers
