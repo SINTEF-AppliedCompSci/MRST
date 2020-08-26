@@ -60,7 +60,7 @@ classdef TransportModel < WrapperModel
                 sT = model.getProp(state, replacement);
                 impl_cells = model.getImplicitCells(state);
                 if ~isempty(impl_cells)
-                    p = model.getProp(state, 'pressure');
+                    p = basevars{isP};
                     sT(impl_cells) = p(impl_cells);
                 end
                 % Replacing
@@ -80,21 +80,19 @@ classdef TransportModel < WrapperModel
             end
             if useTotalSaturation
                 basevars(~isP) = vars(~isP);
+                sT = vars{isP};
+                if ~isempty(impl_cells)
+                    p = basevars{isP};
+                    p = model.AutoDiffBackend.convertToAD(p, sT);
+                    p(impl_cells) = sT(impl_cells);
+                    sT(impl_cells) = 1; % Total saturation = 1 in these cells
+                    basevars{isP} = p;
+                end
+                state = model.setProp(state, replacement, sT);
             else
                 basevars(~isP) = vars;
             end
             state = model.initStateAD(state, basevars, basenames, baseorigin);
-            if useTotalSaturation
-                % Set total saturation as well
-                sT = vars{isP};
-                if ~isempty(impl_cells)
-                    p = model.AutoDiffBackend.convertToAD(p, sT);
-                    p(impl_cells) = sT(impl_cells);
-                    state = model.setProp(state, 'pressure', p);
-                    sT(impl_cells) = 1;
-                end
-                state = model.setProp(state, replacement, sT);
-            end
             % Finally remove the non-primary values from the list
             names = names(isPrimaryVariable);
             origin = origin(isPrimaryVariable);
