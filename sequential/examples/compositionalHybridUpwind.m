@@ -1,5 +1,5 @@
 %% Example involving significant gravity effects in a CO2 injection scenario
-mrstModule add compositional ad-core ad-props mrst-gui blackoil-sequential
+mrstModule add compositional ad-core ad-props mrst-gui sequential
 gravity reset on
 %% Essential set up
 BaseName = '2d_water_co2_gravity';

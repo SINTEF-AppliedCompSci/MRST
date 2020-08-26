@@ -8,7 +8,7 @@
 % geological ensemble for reservoir simulation." Geoscience Data Journal
 % 1.2 (2014): 192-195.
 
-mrstModule add ad-core ad-blackoil spe10 blackoil-sequential mrst-gui
+mrstModule add ad-core ad-blackoil spe10 sequential mrst-gui
 
 % Set up pressure and transport linear solvers
 if ~isempty(mrstPath('agmg'))
@@ -20,7 +20,7 @@ end
 tsolver = GMRES_ILUSolverAD();
 % Select layer 1
 layers = 1;
-mrstModule add ad-core ad-blackoil blackoil-sequential spe10
+mrstModule add ad-core ad-blackoil sequential spe10
 
 % The base case for the model is 2000 days. This can be reduced to make the
 % problem faster to run.

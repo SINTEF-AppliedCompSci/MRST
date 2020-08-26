@@ -13,7 +13,7 @@
 % We begin by loading the required modules
 
 mrstModule add ad-core ad-blackoil ad-props ...
-               blackoil-sequential spe10 mrst-gui
+               sequential spe10 mrst-gui
 
 %% Set up grid and rock structure
 % We define a 50x50x1 grid, spanning a 1 km by 1km domain. The porosity is

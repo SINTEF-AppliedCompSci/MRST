@@ -1,5 +1,5 @@
 %% Add required modules
-mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat blackoil-sequential
+mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat sequential
 
 %% Setup example
 fn    = 'POLYMER.DATA';

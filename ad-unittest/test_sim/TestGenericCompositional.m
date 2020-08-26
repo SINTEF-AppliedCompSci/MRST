@@ -15,7 +15,7 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
     methods
         function test = TestGenericCompositional()
             mrstModule reset
-            mrstModule add ad-unittest ad-core ad-blackoil ad-props compositional blackoil-sequential
+            mrstModule add ad-unittest ad-core ad-blackoil ad-props compositional sequential
         end
 
         function [state0, model, schedule] = buildTestCase(test, modelType, includeWater, fluidSystem, backend, varargin)

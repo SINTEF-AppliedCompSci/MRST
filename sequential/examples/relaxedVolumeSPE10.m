@@ -1,4 +1,4 @@
-mrstModule add mrst-gui ad-props ad-core ad-blackoil blackoil-sequential msrsb spe10 coarsegrid
+mrstModule add mrst-gui ad-props ad-core ad-blackoil sequential msrsb spe10 coarsegrid
 %% Set up simulation problem
 totTime = 2000*day;
 

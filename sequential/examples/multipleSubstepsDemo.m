@@ -4,7 +4,7 @@
 % solvers can be configured to have a different time step selection for
 % pressure and transport in order to reduce numerical diffusion from the
 % temporal discretization.
-mrstModule add ad-blackoil ad-core ad-props mrst-gui blackoil-sequential
+mrstModule add ad-blackoil ad-core ad-props mrst-gui sequential
 
 %% Set up model
 % Construct 3D grid with 50 cells in the x-direction

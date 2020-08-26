@@ -2,7 +2,7 @@
 % This is a short example demonstrating how to solve any number of layers
 % of the SPE10, model 2 problem using both a sequential and a fully
 % implicit solver.
-mrstModule add ad-core ad-blackoil spe10 blackoil-sequential mrst-gui
+mrstModule add ad-core ad-blackoil spe10 sequential mrst-gui
 
 % Set up pressure and transport linear solvers
 if ~isempty(mrstPath('agmg'))
@@ -14,7 +14,7 @@ end
 tsolver = GMRES_ILUSolverAD();
 % Select layer 1
 layers = 1;
-mrstModule add ad-core ad-blackoil blackoil-sequential spe10
+mrstModule add ad-core ad-blackoil sequential spe10
 
 % The base case for the model is 2000 days. This can be reduced to make the
 % problem faster to run.

@@ -1,14 +1,17 @@
-mrstModule add deckformat mrst-gui ad-core ad-blackoil ad-props
-mrstModule add blackoil-sequential ad-unittest multiscale-devel
-mrstModule add blackoil-sequential spe10
+mrstModule add deckformat mrst-gui ad-core ad-blackoil 
+mrstModule add sequential ad-unittest
+%multiscale-devel
+mrstModule add sequential spe10 ad-props ad-eor
+
+mrstModule add coarsegrid
 
 %%
+
 totTime = 2000*day;
 gravity reset on
 
-layers = 1:10;
+layers = 1;
 nLayers = numel(layers);
-
 
 coarsefactors = [12 20 5];
 ofs = ceil(coarsefactors(1:2)/2);
@@ -28,9 +31,11 @@ for i = 1:numel(W)
     if isinj
         W(i).val = 3*sum(pv)/totTime;
         W(i).type = 'rate';
+        W(i).c = 4;
     else
         W(i).val = 4000*psia;
         W(i).type = 'bhp';
+        W(i).c = 0;
     end
     W(i).compi = [1 0];
     W(i).sign = 1 - 2*~isinj;
@@ -52,16 +57,26 @@ fluid.krW  = @(s, varargin) s.^2;
 
 
 p0 = 300*barsa;
-fluid.bO = @(p) 0.5 + (p-p0)./(1000*barsa);
+% fluid.bO = @(p) 0.5 + (p-p0)./(1000*barsa);
+c = 1e-4/barsa;
+fluid.bO = @(p, varargin) exp((p-p0)*c);
+%% Add some polymer fluid properties
 
-modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
+polyDeck  = readEclipseDeck('POLYMER.DATA');
+polyDeck  = convertDeckUnits(polyDeck);
+polyFluid = initDeckADIFluid(polyDeck);
 
-
-if ispc
-    datadir = 'D:\jobb\data\';
-else
-    datadir = '/data/';
+fns = {'muWMult','dps','rrf','rhoR','adsInx','adsMax','ads',...
+    'mixPar','cmax'};
+for i=1:numel(fns)
+    fluid.(fns{i}) = polyFluid.(fns{i});
 end
+
+
+%%
+
+% modelfi = TwoPhaseOilWaterModel(G, rock, fluid);
+modelfi = OilWaterPolymerModel(G, rock, fluid);
 
 cdims = ceil(G.cartDims./coarsefactors);
 
@@ -72,6 +87,8 @@ figure;
 plotCellData(G, log10(rock.perm(:, 1)), 'edgec', 'none');
 outlineCoarseGrid(G, p)
 plotWell(G, W)
+
+
 %%
 
 nstep = 50;
@@ -84,11 +101,11 @@ schedule.step.control = ones(size(val));
 schedule.control.W = W;
 
 state = initResSol(G, p0, [.2, .8]);
+state.c    = zeros(G.cells.num, 1);
+state.cmax = zeros(G.cells.num, 1);
 
 
-state.wellSol = initWellSolAD(W, modelfi, state);
-
-% lim = 1;
+% lim = 5;
 % schedule.step.val     = schedule.step.val(1:lim);
 % schedule.step.control = schedule.step.control(1:lim);
 %%
@@ -118,7 +135,9 @@ model = getSequentialModelFromFI(modelfi);
 model.transportNonLinearSolver.useRelaxation = true;
 model.pressureNonLinearSolver.useRelaxation = true;
 
-model.transportNonLinearSolver.LinearSolver = GMRES_ILUSolverAD();
+% model.transportNonLinearSolver.LinearSolver = GMRES_ILUSolverAD();
+model.transportNonLinearSolver.LinearSolver = BackslashSolverAD();
+
 % model.pressureNonLinearSolver.LinearSolver = BackslashSolverAD();
 model.pressureNonLinearSolver.LinearSolver = AGMGSolverAD();
 model.pressureNonLinearSolver.LinearSolver.tolerance = 1e-5;
@@ -147,13 +166,15 @@ schedule_ms = convertReportToSchedule(report_split, schedule);
 % schedule_ms.step.control = schedule.step.control(1);
 
 %%
+[ws, states] = simulateScheduleAD(state, modelfi, schedule_ms);
+%%
 mrstModule add multiscale-devel coarsegrid mrst-experimental
-
-
 
 CG = generateCoarseGrid(G, p);
 CG = coarsenGeometry(CG);
 CG = storeInteractionRegionCart(CG);
+
+
 %%
 rehash
 clear mssolver msmodel MultiscalePressureModel

@@ -3,7 +3,7 @@ mrstModule add ad-unittest
 % testcase = TestSPE1();
 testcase = TestEGG();
 
-mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil blackoil-sequential ad-unittest
+mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil sequential ad-unittest
 
 
 model    = testcase.model;
@@ -31,7 +31,7 @@ solver = NonLinearSolver('timeStepSelector', timestepper, ...
 
 
 clear pressureModel transportModel seqModel
-mrstModule add blackoil-sequential
+mrstModule add sequential
 
 if isa(model, 'TwoPhaseOilWaterModel')
     pressureModel  = PressureOilWaterModel(G, rock, model.fluid);
