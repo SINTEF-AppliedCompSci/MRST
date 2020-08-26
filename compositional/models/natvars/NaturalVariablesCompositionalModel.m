@@ -137,7 +137,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 if model.water
                     ds_relax = ds;
                     ds_relax(:, 1) = ds(:, 1).*min(dsMax./max(abs(ds(:, 1)), [], 2), 1);
-                    ds_relax(:, 2:end) = ds(:, 2:end).*w;
+                    ds_relax(:, 2:end) = bsxfun(@times, ds(:, 2:end), w);
                 else
                     ds_relax = bsxfun(@times, w, ds);
                 end
