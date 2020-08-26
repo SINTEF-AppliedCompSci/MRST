@@ -21,10 +21,12 @@ classdef TransportModel < WrapperModel
                 init = true;
             end
             parent = model.parentModel;
+            impl_cells = model.getImplicitCells(state);
+            wellsActive = ~isempty(impl_cells);
             % Get the AD state for this model
             [basevars, basenames, baseorigin] = model.getPrimaryVariables(state);
             isParent = strcmp(baseorigin, class(parent));
-            isPrimaryVariable = isParent;
+            isPrimaryVariable = isParent | wellsActive;
             % Find saturations
             isS = false(size(basevars));
             nph = parent.getNumberOfPhases();
@@ -58,8 +60,8 @@ classdef TransportModel < WrapperModel
                 % Replace pressure with total saturation
                 replacement = 'sT';
                 sT = model.getProp(state, replacement);
-                impl_cells = model.getImplicitCells(state);
-                if ~isempty(impl_cells)
+                
+                if wellsActive
                     p = basevars{isP};
                     sT(impl_cells) = p(impl_cells);
                 end
@@ -81,7 +83,7 @@ classdef TransportModel < WrapperModel
             if useTotalSaturation
                 basevars(~isP) = vars(~isP);
                 sT = vars{isP};
-                if ~isempty(impl_cells)
+                if wellsActive
                     p = basevars{isP};
                     p = model.AutoDiffBackend.convertToAD(p, sT);
                     p(impl_cells) = sT(impl_cells);
