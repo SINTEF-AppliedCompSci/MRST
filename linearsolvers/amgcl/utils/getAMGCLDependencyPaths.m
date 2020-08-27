@@ -37,7 +37,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('amgcl_rev', 'a551614040f0a7b793b41a4a63386675ca61d8da');
+    opt = struct('amgcl_rev', '7f4206dadfa0755c0495bf49cb743005d3ba154b');
     opt = merge_options(opt, varargin{:});
 
     dep_path  = getDependencyFolder();
