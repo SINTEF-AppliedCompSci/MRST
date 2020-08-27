@@ -209,6 +209,7 @@ void setSolverAMGCL(boost::property_tree::ptree & prm, std::string prefix, solve
     switch(options.solver_id) {
         case 1:
             prm.put(solvertype,  amgcl::runtime::solver::bicgstab);
+            prm.put(prefix + "check_after", true);
             break;
         case 2:
             prm.put(solvertype,  amgcl::runtime::solver::cg);
