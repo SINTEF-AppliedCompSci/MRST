@@ -21,14 +21,14 @@ function model = setNTPFA(model, varargin)
 
     require nfvm
 
-    if isempty(model.FluxDiscretization)
+    if isempty(model.FlowDiscretization)
         model = model.setupStateFunctionGroupings();
     end
 
     ntpfa = NTPFA(model, varargin{:});
 
     % Discrete gradient
-    fd = model.FluxDiscretization;
+    fd = model.FlowDiscretization;
     dp = fd.getStateFunction('PressureGradient');
     dp.Grad = @(p) ntpfa.gradient(p);
     fd = fd.setStateFunction('PressureGradient', dp);
@@ -38,6 +38,6 @@ function model = setNTPFA(model, varargin)
     % dg.weight = Mg;
     % fd = fd.setStateFunction('GravityPotentialDifference', dg);
 
-    model.FluxDiscretization = fd;
+    model.FlowDiscretization = fd;
 
 end

@@ -21,14 +21,14 @@ function model = setAvgMPFA(model, varargin)
 
     require nfvm
 
-    if isempty(model.FluxDiscretization)
+    if isempty(model.FlowDiscretization)
         model = model.setupStateFunctionGroupings();
     end
 
     avgmpfa = AvgMPFA(model, varargin{:});
 
     % Discrete gradient
-    fd = model.FluxDiscretization;
+    fd = model.FlowDiscretization;
     dp = fd.getStateFunction('PressureGradient');
     dp.Grad = @(p) avgmpfa.gradient(p);
     fd = fd.setStateFunction('PressureGradient', dp);
@@ -38,6 +38,6 @@ function model = setAvgMPFA(model, varargin)
     % dg.weight = Mg;
     % fd = fd.setStateFunction('GravityPotentialDifference', dg);
 
-    model.FluxDiscretization = fd;
+    model.FlowDiscretization = fd;
 
 end
