@@ -6,9 +6,9 @@ classdef CPRSolverAD < LinearSolverAD
     %
     % DESCRIPTION:
     %   Solve a linearized problem with a significant elliptic/pressure
-    %   component via a two stage preconditioner for GMRES. By exposing the
-    %   elliptic component as a seperate system, a special elliptic solver can
-    %   be used to handle the highly connected components.
+    %   feature via a two stage preconditioner for GMRES. By exposing the
+    %   elliptic component as a separate system, a special elliptic solver can
+    %   be used to handle the tightly coupled pressure system.
     %
     %   For second stage, ILU(0) is used.
     %
@@ -27,6 +27,7 @@ classdef CPRSolverAD < LinearSolverAD
         diagonalTol % Diagonal tolerance in [0,1].
         ellipticVarName % Name of elliptic-like variable which will be solved using elliptic solver
         trueIMPES % Use true impes decoupling strategy (if supported by model)
+        ellipticSign = -1; % Sign to use for pressure system - negative default for compatibility with AGMG
     end
     methods
         function solver = CPRSolverAD(varargin)
@@ -198,6 +199,7 @@ classdef CPRSolverAD < LinearSolverAD
             else
                 Ap = A(pInx, pInx);
             end
+            Ap = solver.ellipticSign*Ap;
             % Set up elliptic solver
             solver.ellipticSolver = solver.ellipticSolver.setupSolver(Ap, b(pInx));
             prec = @(r) solver.applyTwoStagePreconditioner(r, A, Ap, L, U, pInx);
@@ -275,8 +277,8 @@ classdef CPRSolverAD < LinearSolverAD
         
         function x = applyTwoStagePreconditioner(solver, r, A, Ap, L, U, pInx)
            es = solver.ellipticSolver;
-           tol = es.tolerance;
-           rp = r(pInx);
+           tol_0 = es.tolerance;
+           rp = solver.ellipticSign*r(pInx);
            if isfinite(solver.relativeTolerance)
                % Elliptic solver uses absolute tolerance? We scale the
                % problem based on current value
@@ -291,10 +293,10 @@ classdef CPRSolverAD < LinearSolverAD
                r = r - A*x;
                x = x + U\(L\r);
            catch ex
-               es.tolerance = tol;
+               es.tolerance = tol_0;
                rethrow(ex);
            end
-           es.tolerance = tol;
+           es.tolerance = tol_0;
         end
     end
 end
