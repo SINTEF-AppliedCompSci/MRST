@@ -275,21 +275,26 @@ classdef CPRSolverAD < LinearSolverAD
         
         function x = applyTwoStagePreconditioner(solver, r, A, Ap, L, U, pInx)
            es = solver.ellipticSolver;
-           
+           tol = es.tolerance;
+           rp = r(pInx);
            if isfinite(solver.relativeTolerance)
                % Elliptic solver uses absolute tolerance? We scale the
                % problem based on current value
-               scaled = norm(r)*solver.relativeTolerance;
+               scaled = norm(rp)*solver.relativeTolerance;
                strictest = min(solver.tolerance, solver.relativeTolerance);
                tol = max(scaled, strictest);
                es.tolerance = tol;
            end
            x = zeros(size(r));
-           rp = r(pInx);
-           x(pInx) = es.solveLinearSystem(Ap, rp);
-           solver.ellipticSolver.solveLinearSystem(Ap, rp);
-           r = r - A*x;
-           x = x + U\(L\r);
+           try
+               x(pInx) = es.solveLinearSystem(Ap, rp);
+               r = r - A*x;
+               x = x + U\(L\r);
+           catch ex
+               es.tolerance = tol;
+               rethrow(ex);
+           end
+           es.tolerance = tol;
         end
     end
 end
