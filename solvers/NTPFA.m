@@ -53,7 +53,7 @@ classdef NTPFA
                 ntpfa.OSflux = opt.OSflux;
             end
 
-            ntpfa.scale = -1 ./ model.operators.T;
+            ntpfa.scale = - 1./model.operators.T;
             ntpfa.internalConn = model.operators.internalConn;
             if ismethod(model, 'getActivePhases')
                 ntpfa.nph = sum(model.getActivePhases());

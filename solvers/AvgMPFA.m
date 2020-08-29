@@ -28,13 +28,9 @@ classdef AvgMPFA < NTPFA
             grad = cell(1, ntpfa.nph);
             T = ntpfa.T;
 
-            for i = 1 : ntpfa.nph
+            v = -0.5*(T{1}*pressure - T{2}*pressure);
+            v = v .* ntpfa.scale;
 
-                v = -0.5*(T{1}*pressure - T{2}*pressure);
-                v = v .* ntpfa.scale;
-                grad{i} = v;
-
-            end
         end
     end
 
