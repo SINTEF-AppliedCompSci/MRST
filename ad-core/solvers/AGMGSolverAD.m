@@ -28,6 +28,7 @@ classdef AGMGSolverAD < LinearSolverAD
             solver.reuseSetup = false;
             solver.reduceToCell = true;
             solver = merge_options(solver, varargin{:});
+            solver.verbose = 100
        end
        
        function [result, report] = solveLinearSystem(solver, A, b, varargin)
@@ -37,12 +38,17 @@ classdef AGMGSolverAD < LinearSolverAD
                cleanAfter = true;
            end
            % Solve the linear system to a given tolerance
-           code = 1 + double(solver.singleApply) + double(solver.reuseSetup);
+           if solver.reuseSetup
+               code = 2 + double(solver.singleApply);
+           else
+               assert(~solver.singleApply, 'Cannot use singleApply without reuseSetup.');
+               code = [];
+           end
            [result, flag, relres, iter, resvec] = agmg(A, b,...
                                                        [],... % Restart option (default)
                                                        solver.tolerance, ...
                                                        solver.maxIterations, ...
-                                                       solver.verbose > 1, ... % If verbose > 1, do internal verbose
+                                                       double(solver.verbose > 1), ... % If verbose > 1, do internal verbose
                                                        [], ...
                                                        code);
            report = solver.getSolveReport('Converged', flag < 1, ...
@@ -60,8 +66,12 @@ classdef AGMGSolverAD < LinearSolverAD
        function solver = setupSolver(solver, A, b, varargin)
            % Run setup on a solver for a given system
            if solver.reuseSetup
+               if solver.setupDone
+                   solver = solver.cleanupSolver(A, b);
+               end
                dispif(solver.verbose, 'Setting up AGMG preconditioner...');
-               agmg(A,[],[],[],[],[],[], 1);
+               v = double(solver.verbose > 1);
+               agmg(A, [], [], [], [], v, [], 1);
                solver.setupDone = true;
                dispif(solver.verbose, ' AGMG set up.\n');
            end
@@ -69,9 +79,10 @@ classdef AGMGSolverAD < LinearSolverAD
        
        function  solver = cleanupSolver(solver, A, b, varargin)
            % Clean up solver after use (if needed)
-           if solver.reuseSetup
+           if solver.reuseSetup && solver.setupDone
                dispif(solver.verbose, 'Cleaning up AGMG...');
-               agmg(A,[],[],[],[],[],[], -1);
+               v = double(solver.verbose > 1);
+               agmg(A, [], [], [], [], v, [], -1);
                solver.setupDone = false;
                dispif(solver.verbose, ' AGMG reset.\n');
            end
@@ -81,6 +92,10 @@ classdef AGMGSolverAD < LinearSolverAD
            sn = 'AGMG';
            sn = [sn, solver.id];
            d = 'Aggregation based multigrid (AGMG)';
+       end
+       
+       function delete(solver)
+           solver.cleanupSolver(solver, [], []);
        end
    end
 end
