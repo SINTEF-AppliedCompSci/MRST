@@ -373,15 +373,14 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
         % Such computation has appeared to be more stable, see [Andersen et al: http://arxiv.org/abs/1606.09508v1].
         %
         %
-        error(['the method has been shown to give too high vertial stress ' ...
-               'values for gravity load when thin cells and material contrasts ' ...
-               'are involved.  Investigate.']);
+
         nlc     = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);
         X       = rldecode(G.cells.centroids(cells, :), nlc);
         rel_vec = -(X-G.nodes.coords(nodes, :));
         
         w = qc_all .* rel_vec;
-        ll = load ^ SparseTensor(reshape(w', [], 1), {'cn'});
+        ll = load ^ SparseTensor(w, {'cn', 'd'});
+        %ll = load ^ SparseTensor(reshape(w', [], 1), {'cn'});
         %ll      = bsxfun(@times, load(X), qc_all.*rel_vec)';
 
       otherwise
