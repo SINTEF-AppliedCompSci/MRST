@@ -1,4 +1,4 @@
-function [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, EOSModel, varargin)
+function [L, x, y, Z_L, Z_V, rhoL, rhoV, reports] = standaloneFlash(p, T, z, EOSModel, varargin)
 % Utility for flashing without explicitly forming a state
 %
 % SYNOPSIS:
@@ -45,7 +45,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     state.components = z;
     
     state = EOSModel.validateState(state);
-    state = solver.solveTimestep(state, 1, EOSModel);
+    [state, report] = solver.solveTimestep(state, 1, EOSModel);
     
     L = state.L;
     x = state.x;
@@ -55,6 +55,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nargout > 5
         rhoL = EOSModel.PropertyModel.computeDensity(EOSModel, p, x, Z_L, T, true);
         rhoV = EOSModel.PropertyModel.computeDensity(EOSModel, p, y, Z_V, T, false);
+    end
+    if nargout > 7
+        reports = report.StepReports{1}.NonlinearReport;
     end
 end
 
