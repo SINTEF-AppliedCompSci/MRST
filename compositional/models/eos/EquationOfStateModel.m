@@ -6,7 +6,8 @@ classdef EquationOfStateModel < PhysicalModel
         fluid % CompositionalFluid
         omegaA % Parameter for EOS
         omegaB % Parameter for EOS
-        useNewton % Use Newton based solver for flash. If set to false, successive substitution if used instead.
+        method = 'ssi' % Type of method
+        maxSSI = inf;
         PropertyModel % Model to be used for property evaluations
         selectGibbsMinimum = true; % Use minimum Gibbs energy to select Z
         alpha = [];
@@ -30,7 +31,6 @@ classdef EquationOfStateModel < PhysicalModel
             assert(isa(fluid, 'CompositionalFluid'));
             model.fluid = fluid;
             model.nonlinearTolerance = 1e-4;
-            model.useNewton = false;
             model.PropertyModel = CompositionalPropertyModel(fluid);
             model = model.setType(eosname);
         end
@@ -233,6 +233,8 @@ classdef EquationOfStateModel < PhysicalModel
                 L0(stable & L0 >  0.5) = 1;
                 L0(stable & L0 <= 0.5) = 0;
                 active = ~stable;
+                % Flag stable cells as converged
+                state.eos.converged(stable) = true;
             else
                 Z0_L = state.Z_L;
                 Z0_V = state.Z_V;
@@ -253,14 +255,26 @@ classdef EquationOfStateModel < PhysicalModel
                 z = z(active, :);
                 P = P(active);
                 T = T(active);
-
-                if model.useNewton
-                    % Newton-based solver for equilibrium
-                    [x, y, K, Z_L, Z_V, L, equilvals] = model.newtonCompositionUpdate(P, T, z, K, L);
-                else
-                    % Successive substitution solver for equilibrium
-                    [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
+                flash_method = lower(model.method);
+                switch flash_method
+                    case 'newton'
+                        % Newton-based solver for equilibrium
+                         updatefn = @model.newtonCompositionUpdate;
+                    case 'ssi'
+                        % Successive substitution solver for equilibrium
+                        if iteration > model.maxSSI
+                            % Remaining cells are above SSI threshold,
+                            % switch to Newton
+                            updatefn = @model.newtonCompositionUpdate;
+                            flash_method = 'newton';
+                        else
+                            % Just do SSI as asked
+                            updatefn = @model.substitutionCompositionUpdate;
+                        end
+                    otherwise
+                        error('Unknown flash method %s. Try ''newton'' or ''ssi''.', model.method);
                 end
+                [x, y, K, Z_L, Z_V, L, equilvals] = updatefn(P, T, z, K, L);
                 singlePhase = L == 0 | L == 1;
                 % Single phase cells are converged
                 equilvals(singlePhase, :) = 0;
@@ -304,6 +318,7 @@ classdef EquationOfStateModel < PhysicalModel
                             'ResidualsConverged', resConv, ...
                             'Residuals',    values);
             report.ActiveCells = sum(active);
+            report.Method = flash_method;
         end
         
         function [x, y, K, Z_L, Z_V, L, values] = substitutionCompositionUpdate(model, P, T, z, K, L)
