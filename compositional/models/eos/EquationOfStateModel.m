@@ -206,6 +206,7 @@ classdef EquationOfStateModel < PhysicalModel
             end
             L0 = state.L;
             K0 = state.K;
+            flash_method = lower(model.method);
             % Only apply calculations for cells that have not converged yet
             if iteration == 1
                 x0 = state.x;
@@ -254,7 +255,6 @@ classdef EquationOfStateModel < PhysicalModel
                 z = z(active, :);
                 P = P(active);
                 T = T(active);
-                flash_method = lower(model.method);
                 switch flash_method
                     case 'newton'
                         % Newton-based solver for equilibrium
