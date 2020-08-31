@@ -230,8 +230,7 @@ classdef EquationOfStateModel < PhysicalModel
                 Z0_L = model.computeCompressibilityZ(state.pressure, x0, A_L, B_L, Si_L, Bi, true);
                 Z0_V = model.computeCompressibilityZ(state.pressure, y0, A_V, B_V, Si_V, Bi, false);
                 L0 = model.solveRachfordRice(L0, K0, z);
-                L0(stable & L0 >  0.5) = 1;
-                L0(stable & L0 <= 0.5) = 0;
+                L0(stable) = model.singlePhaseLabel(P(stable), T(stable), z(stable, :));
                 active = ~stable;
                 % Flag stable cells as converged
                 state.eos.converged(stable) = true;
@@ -319,6 +318,16 @@ classdef EquationOfStateModel < PhysicalModel
                             'Residuals',    values);
             report.ActiveCells = sum(active);
             report.Method = flash_method;
+        end
+        
+        function L = singlePhaseLabel(eos, p, T, z)
+            % Li's method for phase labeling
+            Vc = eos.fluid.Vcrit;
+            Tc = eos.fluid.Tcrit;
+            Vz = bsxfun(@times, Vc, z);
+            
+            Tc_est = sum(bsxfun(@times, Vz, Tc), 2)./sum(Vz, 2);
+            L = double(T < Tc_est);
         end
         
         function [x, y, K, Z_L, Z_V, L, values] = substitutionCompositionUpdate(model, P, T, z, K, L)
