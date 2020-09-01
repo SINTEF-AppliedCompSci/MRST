@@ -47,7 +47,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     mw = [1, 1];
     % mw = [model.fluid.rhoOS, model.fluid.rhoGS];
 
-    cfluid = CompositionalFluid({'PseudoOil', 'PseudoGas'}, [nan, nan], [nan, nan], [nan, nan], [nan, nan], mw);
+    cfluid = CompositionalMixture({'PseudoOil', 'PseudoGas'}, [nan, nan], [nan, nan], [nan, nan], [nan, nan], mw);
 
     eos = EquilibriumConstantModel(bomodel.G, cfluid, {K_o, K_g});
     prop = BlackOilPropertyModel({rhoO, rhoG}, {muO, muG}, isStableFn, eos.fluid);

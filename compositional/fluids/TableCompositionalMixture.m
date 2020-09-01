@@ -1,15 +1,15 @@
-classdef TableCompositionalFluid < CompositionalFluid
+classdef TableCompositionalMixture < CompositionalMixture
     % Create MRST compositional from stored tables (taken from CoolProp)
     properties
         
     end
     
     methods
-        function fluid = TableCompositionalFluid(names)
+        function fluid = TableCompositionalMixture(names)
             % Create fluid from names
             %
             % SYNOPSIS:
-            %   f = TableCompositionalFluid({'Methane', 'n-Decane'});
+            %   f = TableCompositionalMixture({'Methane', 'n-Decane'});
             %
             % PARAMETERS:
             %   names - Cell array of valid names. See `getFluidList` for
@@ -24,7 +24,7 @@ classdef TableCompositionalFluid < CompositionalFluid
             [Tcrit, Pcrit, rhocrit, acc, molarMass] = deal(zeros(1, ncomp));
             
             fluids = coolPropFluidsStructs();
-            validChoices = TableCompositionalFluid.getFluidList();
+            validChoices = TableCompositionalMixture.getFluidList();
             
             ok = ismember(lower(names), lower(validChoices));
             
@@ -44,7 +44,7 @@ classdef TableCompositionalFluid < CompositionalFluid
                 molarMass(i) = str.molarmass;
             end
             Vcrit = molarMass./rhocrit;
-            fluid = fluid@CompositionalFluid(names, Tcrit, Pcrit, Vcrit, acc, molarMass);
+            fluid = fluid@CompositionalMixture(names, Tcrit, Pcrit, Vcrit, acc, molarMass);
         end
     end
     methods (Static)

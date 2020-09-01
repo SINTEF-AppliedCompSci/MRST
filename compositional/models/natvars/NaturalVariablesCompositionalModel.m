@@ -19,7 +19,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
     %   fluid     - The flow fluid, containing relative permeabilities,
     %               surface densities and flow properties for the
     %               aqueous/water phase (if present)
-    %   compFluid - CompositionalFluid instance describing the species
+    %   compFluid - CompositionalMixture instance describing the species
     %               present.
     %
     % RETURNS:
@@ -64,8 +64,8 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
         function [dx, dy, increments, vars] = getPhaseCompositionIncrements(model, increments, vars, state)
             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
             
-            ncomp = model.EOSModel.fluid.getNumberOfComponents();
-            cnames = model.EOSModel.fluid.names;
+            ncomp = model.EOSModel.getNumberOfComponents();
+            cnames = model.EOSModel.getComponentNames();
             
             [dx, dy] = deal(zeros(model.G.cells.num, ncomp));
             found = false(ncomp, 1);

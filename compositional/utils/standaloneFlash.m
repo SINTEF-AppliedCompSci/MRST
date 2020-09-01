@@ -64,7 +64,7 @@ end
 function [p, T, z] = expandArguments(eos, p, T, z)
     p = reshape(p, [], 1);
     T = reshape(T, [], 1);
-    ncomp = eos.fluid.getNumberOfComponents();
+    ncomp = eos.getNumberOfComponents();
     assert(size(z, 2) == ncomp, ...
         'Component input must have %d columns (the number of components in the eos)', ncomp);
     np = numel(p);

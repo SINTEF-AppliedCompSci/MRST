@@ -42,7 +42,7 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             s = nph:-1:1;
             s = s./sum(s);
             
-            [compfluid, info] = getCompositionalFluidCase(fluidSystem);
+            [compfluid, info] = getBenchmarkMixture(fluidSystem);
             p = info.pressure;
             p_w = p/2;
 

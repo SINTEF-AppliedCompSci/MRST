@@ -25,7 +25,7 @@ K = K(G.cells.indexMap);
 rock = makeRock(G, K*milli*darcy, 0.2);
 pv = poreVolume(G, rock);
 % Take the SPE5 fluid model (six components)
-[fluid, info] = getCompositionalFluidCase('spe5');
+[fluid, info] = getBenchmarkMixture('spe5');
 
 minP = 0.5*info.pressure;
 totTime = 10*year;

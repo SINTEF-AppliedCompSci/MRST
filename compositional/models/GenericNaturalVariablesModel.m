@@ -39,7 +39,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             end
             % Natural variables part
             twoPhase = model.getTwoPhaseFlag(state);
-            cnames = model.EOSModel.fluid.names;
+            cnames = model.EOSModel.getComponentNames;
             f = model.getProps(state, 'Fugacity');
             f_eqs = cell(1, n_hc);
             f_names = cell(1, n_hc);
@@ -87,8 +87,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 model.FacilityModel = GenericFacilityModel(model);
             end
             if isempty(model.Components)
-                f = model.EOSModel.fluid;
-                names_hc = f.names;
+                names_hc = model.EOSModel.getComponentNames();
                 if model.water
                     names = [names_hc, 'water'];
                 else
@@ -129,8 +128,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
 
         function [vars, names, origin] = getPrimaryVariables(model, state)
             % Get primary variables from state, before a possible
-            % initialization as AD.'
-            compFluid = model.EOSModel.fluid;
+            % initialization as AD.
             % Properties at current timestep
             [p, sW, sO, sG, x, y] = model.getProps(state, ...
                 'pressure', 'water', 'so', 'sg', 'x', 'y');
@@ -149,8 +147,8 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             x = expandMatrixToCell(x);
             y = expandMatrixToCell(y);
 
-            ncomp = compFluid.getNumberOfComponents();
-            [xnames, ynames, cnames] = deal(model.EOSModel.fluid.names);
+            ncomp = model.EOSModel.getNumberOfComponents();
+            [xnames, ynames, cnames] = deal(model.EOSModel.getComponentNames());
             for i = 1:ncomp
                 xnames{i} = ['v_', cnames{i}];
                 ynames{i} = ['w_', cnames{i}];
@@ -207,7 +205,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             is_so = strcmp(names, 'sato');
             is_sg = strcmp(names, 'satg');
                         
-            cnames = model.EOSModel.fluid.names;
+            cnames = model.EOSModel.getComponentNames;
             ncomp = numel(cnames);
             x = cell(1, ncomp);
             w = cell(1, ncomp);
@@ -293,7 +291,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 % two-phase region to ensure invertible
                 % Schur-complement
                 twoPhaseIx = find(twoPhase);
-                cn = model.EOSModel.fluid.names;
+                cn = model.EOSModel.getComponentNames();
                 xInd = strcmpi(primaryVars, ['v_', cn{1}]);
                 sInd = strcmpi(primaryVars, 'sato');
                 offsets = cumsum([0; s.getNumVars()]);

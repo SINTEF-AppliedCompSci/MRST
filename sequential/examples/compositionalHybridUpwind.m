@@ -17,7 +17,7 @@ G = cartGrid(dims, [100, 10, 10]);
 G = computeGeometry(G);
 rock = makeRock(G, [0.1, 0.1, 0.001]*darcy, 0.3); % Kh = 100*Kv
 
-f_eos = TableCompositionalFluid(cnames);
+f_eos = TableCompositionalMixture(cnames);
 ncomp = f_eos.getNumberOfComponents();
 eos = EquationOfStateModel(G, f_eos);
 % Comment out the following to switch to K-values for VLE prediction

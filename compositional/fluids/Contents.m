@@ -2,12 +2,12 @@
 %
 % Files
 %   BlackOilPropertyModel       - Black-oil property model for compositional models
-%   CompositionalFluid          - 
+%   CompositionalMixture          - 
 %   CompositionalPropertyModel  - Property model for compositional models
-%   CoolPropsCompositionalFluid - Create MRST compositional fluid by using the open CoolProp library
-%   getCompositionalFluidCase   - Grab bag of different fluids for use in examples etc
+%   CoolPropsCompositionalMixture - Create MRST compositional fluid by using the open CoolProp library
+%   getBenchmarkMixture   - Grab bag of different fluids for use in examples etc
 %   PropertyModel               - Base class for properties in the compositional module
-%   TableCompositionalFluid     - Create MRST compositional from stored tables (taken from CoolProp)
+%   TableCompositionalMixture     - Create MRST compositional from stored tables (taken from CoolProp)
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

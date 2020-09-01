@@ -17,7 +17,7 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
     %   fluid     - The flow fluid, containing relative permeabilities,
     %               surface densities and flow properties for the
     %               aqueous/water phase (if present)
-    %   compFluid - CompositionalFluid instance describing the species
+    %   compFluid - CompositionalMixture instance describing the species
     %               present.
     %
     % RETURNS:
@@ -98,7 +98,7 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             end
             
             % Components
-            cnames = model.EOSModel.fluid.names;
+            cnames = model.EOSModel.getComponentNames();
             ncomp = numel(cnames);
             ok = false(ncomp, 1);
 

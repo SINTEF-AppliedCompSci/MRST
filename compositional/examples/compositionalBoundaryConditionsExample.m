@@ -35,7 +35,7 @@ acentricFactors = [0.0114 0.2239 0.4884];
 % Mass of components (as MRST uses strict SI, this is in kg/mol)
 molarMass = [0.0160 0.0440 0.1423];
 % Initialize fluid
-fluid = CompositionalFluid(names, Tcrit, Pcrit, Vcrit, acentricFactors, molarMass);
+fluid = CompositionalMixture(names, Tcrit, Pcrit, Vcrit, acentricFactors, molarMass);
 %% Set up initial state and boundar conditions
 % We inject one pore-volume over 20 years. The right side of the domain is
 % fixed at 75 bar.

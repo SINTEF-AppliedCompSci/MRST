@@ -36,7 +36,7 @@ f = model.fluid;
 W = drivingForces.W;
 
 fluid = model.fluid;
-compFluid = model.EOSModel.fluid;
+cnames = model.EOSModel.getComponentNames();
 
 % Properties at current timestep
 [p, sW, z, temp, wellSol] = model.getProps(state, ...
@@ -52,7 +52,7 @@ z0 = expandMatrixToCell(z0);
 [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 ncomp = numel(z);
-cnames = model.EOSModel.fluid.names;
+cnames = model.EOSModel.getComponentNames();
 
 nwellvar = sum(cellfun(@numel, wellVars));
 if model.water
@@ -175,7 +175,7 @@ if woffset
 end
 
 for i = 1:ncomp
-    names{i+woffset} = compFluid.names{i};
+    names{i+woffset} = cnames{i};
     types{i+woffset} = 'cell';
 
     eqs{i+woffset} = (s.pv/dt).*( ...

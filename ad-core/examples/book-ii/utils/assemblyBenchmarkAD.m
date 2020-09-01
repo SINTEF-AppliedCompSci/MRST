@@ -30,7 +30,7 @@ np = numel(physics);
 
 [models, results] = deal(cell(nb, nz, np));
 
-eos = getCompositionalFluidCase('spe5');
+eos = getBenchmarkMixture('spe5');
 pth = getDatasetPath('spe9');
 fn  = fullfile(pth, 'BENCH_SPE9.DATA');
 deck = readEclipseDeck(fn);

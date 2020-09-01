@@ -98,7 +98,7 @@ title('Flow properties + flow discretization')
 % such as fugacity or phase compressibility factors. In addition, the
 % relationship between the ShrinkageFactors and Density
 mrstModule add compositional
-eos = getCompositionalFluidCase('simple');
+eos = getBenchmarkMixture('simple');
 cmodel = GenericNaturalVariablesModel(model.G, model.rock, model.fluid, eos, 'water', true);
 cmodel = cmodel.validateModel();
 

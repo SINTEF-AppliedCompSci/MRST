@@ -64,8 +64,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 model.FacilityModel = GenericFacilityModel(model);
             end
             if isempty(model.Components)
-                f = model.EOSModel.fluid;
-                names_hc = f.names;
+                names_hc = model.EOSModel.CompositionalMixture.names;
                 if model.water
                     names = [names_hc, 'water']; % Put water last
                 else
@@ -111,7 +110,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             z_tol = model.EOSModel.minimumComposition;
             z = ensureMinimumFraction(z, z_tol);
             z = expandMatrixToCell(z);
-            cnames = model.EOSModel.fluid.names;
+            cnames = model.EOSModel.getComponentNames();
             names = [{'pressure'}, cnames(2:end)];
             vars = [p, z(2:end)];
             if model.water
@@ -133,7 +132,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             state = model.setProp(state, 'pressure', vars{isP});
             removed = isP;
             
-            cnames = model.EOSModel.fluid.names;
+            cnames = model.EOSModel.getComponentNames();
             ncomp = numel(cnames);
             z = cell(1, ncomp);
             z_end = 1;

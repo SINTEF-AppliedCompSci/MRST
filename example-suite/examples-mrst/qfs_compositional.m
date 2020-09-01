@@ -39,7 +39,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fluid = initSimpleADIFluid('n'     , [2, 3]    ,...
                                'phases', 'OG'      , ...
                                'rho'   , [100, 100]);
-    [cf, info] = getCompositionalFluidCase('simple');
+    [cf, info] = getBenchmarkMixture('simple');
     model      = GenericOverallCompositionModel(G, rock, fluid, cf, 'water', false);
     % Schedule
     time  = 5*year;

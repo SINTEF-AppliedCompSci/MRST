@@ -2,7 +2,7 @@
 mrstModule add ad-props compositional
 G = cartGrid([200, 200, 1]);
 G = computeGeometry(G);
-cmodel = GenericOverallCompositionModel(G, makeRock(G, 1, 1), initSimpleADIFluid(), getCompositionalFluidCase('spe5'));
+cmodel = GenericOverallCompositionModel(G, makeRock(G, 1, 1), initSimpleADIFluid(), getBenchmarkMixture('spe5'));
 cmodel.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true);
 cmodel = cmodel.validateModel();
 %% Repeated calls will be faster, as values are acached

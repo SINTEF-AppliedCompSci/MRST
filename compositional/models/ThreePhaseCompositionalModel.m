@@ -14,7 +14,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
     %   fluid     - The flow fluid, containing relative permeabilities,
     %               surface densities and flow properties for the
     %               aqueous/water phase (if present)
-    %   compFluid - CompositionalFluid instance describing the species
+    %   compFluid - CompositionalMixture instance describing the species
     %               present.
     %
     % RETURNS:
@@ -37,7 +37,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         function model = ThreePhaseCompositionalModel(G, rock, fluid, compFluid, varargin)
             model = model@ReservoirModel(G, rock, fluid);
             
-            if isa(compFluid, 'CompositionalFluid')
+            if isa(compFluid, 'CompositionalMixture')
                 model.EOSModel = EquationOfStateModel(G, compFluid);
             elseif isa(compFluid, 'EquationOfStateModel')
                 model.EOSModel = compFluid;
@@ -71,7 +71,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         
         function names = getComponentNames(model)
             names = getComponentNames@ReservoirModel(model);
-            names = horzcat(names, model.EOSModel.fluid.names);
+            names = horzcat(names, model.EOSModel.getComponentNames());
         end
         
         function [fn, index] = getVariableField(model, name, varargin)
@@ -104,7 +104,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     fn = 'K';
                     index = ':';
                 otherwise
-                    sub = strcmpi(model.EOSModel.fluid.names, name);
+                    names = model.EOSModel.getComponentNames();
+                    sub = strcmpi(names, name);
                     if any(sub)
                         fn = 'components';
                         index = find(sub);
@@ -118,7 +119,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         function state = validateState(model, state)
             state = validateState@ReservoirModel(model, state);
             ncell = model.G.cells.num;
-            ncomp = model.EOSModel.fluid.getNumberOfComponents();
+            ncomp = model.EOSModel.getNumberOfComponents();
             model.checkProperty(state, 'Components', [ncell, ncomp], [1, 2]);
             assert(all(max(model.getProp(state, 'Components')) <= 1), ...
                 'Initial mole fractions are larger than unity.')

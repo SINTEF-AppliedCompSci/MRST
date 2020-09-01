@@ -19,8 +19,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-    names_hc = model.EOSModel.fluid.names;
+    mixture = model.EOSModel.CompositionalMixture;
+    names_hc = mixture.names;
     hcpos = strcmp(names_hc, name);
     n_hc = numel(names_hc);
     z = zeros(1, n_hc);
@@ -35,5 +35,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         frac = [Lm, Vm];
         rho = [rhoL, rhoV];
     end
-    c = EquationOfStateComponent(name, p, T, ci, frac, rho, model.EOSModel.fluid.molarMass(hcpos));
+    c = EquationOfStateComponent(name, p, T, ci, frac, rho, mixture.molarMass(hcpos));
 end

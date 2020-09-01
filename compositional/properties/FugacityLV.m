@@ -17,7 +17,7 @@ classdef FugacityLV < StateFunction
             p = model.getProps(state, 'pressure');
             [mix, mf, Z] = prop.getEvaluatedDependencies(state, 'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions', 'PhaseCompressibilityFactors');
             
-            ncomp = numel(eos.fluid.names);
+            ncomp = eos.getNumberOfComponents();
             f = cell(ncomp, 2);
             wat = model.water;
             twoPhase = model.getTwoPhaseFlag(state);

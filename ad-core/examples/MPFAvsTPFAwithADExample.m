@@ -38,7 +38,7 @@ end
 
 if useComp
     % Compositional, two-component
-    [f, info] = getCompositionalFluidCase('verysimple');
+    [f, info] = getBenchmarkMixture('verysimple');
     eos = EquationOfStateModel(G, f);
     model = GenericOverallCompositionModel(G, rock, fluid, eos, 'water', false);
     for i = 1:numel(W)

@@ -1,4 +1,4 @@
-classdef CompositionalFluid
+classdef CompositionalMixture
     properties
         Tcrit % Critical temperature in Kelvin
         Pcrit % Critical pressure in Pascal
@@ -13,7 +13,7 @@ classdef CompositionalFluid
     end
     
     methods
-        function fluid = CompositionalFluid(names, Tcrit, Pcrit, Vcrit, acentricFactors, molarMass, varargin)
+        function fluid = CompositionalMixture(names, Tcrit, Pcrit, Vcrit, acentricFactors, molarMass, varargin)
             if nargin == 0
                 disp('Empty fluid - no validation');
                 return
