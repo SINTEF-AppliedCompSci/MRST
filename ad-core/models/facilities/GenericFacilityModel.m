@@ -10,6 +10,7 @@ classdef GenericFacilityModel < FacilityModel
     methods
         function model = GenericFacilityModel(varargin)
             model@FacilityModel(varargin{:});
+            model.setWellTargets = false;
         end
         
         function n = getNumberOfComponents(fm)

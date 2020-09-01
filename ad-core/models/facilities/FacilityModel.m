@@ -40,7 +40,8 @@ classdef FacilityModel < PhysicalModel
 
         VFPTablesInjector % Injector VFP Tables. EXPERIMENTAL.
         VFPTablesProducer % Producer VFP Tables. EXPERIMENTAL.
-        primaryVariableSet = 'standard';
+        primaryVariableSet = 'standard'; % Default: bhp + phase surface rates
+        setWellTargets = true; % Explicitly wellSol values to imposed targets after each iteration
     end
 
     properties (SetAccess = protected)
@@ -1086,9 +1087,11 @@ classdef FacilityModel < PhysicalModel
                 state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces);
                 % Handle the directly assigned values (i.e. can be deduced directly from
                 % the well controls.
-                W = drivingForces.W;
-                phIndices = model.ReservoirModel.getPhaseIndices();
-                state.wellSol = assignWellValuesFromControl(model.ReservoirModel, state.wellSol, W, phIndices(1), phIndices(2), phIndices(3));
+                if model.setWellTargets
+                    W = drivingForces.W;
+                    phIndices = model.ReservoirModel.getPhaseIndices();
+                    state.wellSol = assignWellValuesFromControl(model.ReservoirModel, state.wellSol, W, phIndices(1), phIndices(2), phIndices(3));
+                end
             end
             report = [];
         end
