@@ -1,8 +1,10 @@
 function [fluid, info] = getBenchmarkMixture(name, varargin)
 % Grab bag of different fluids for use in examples etc
+    descr = name;
     switch(lower(name))
         case 'lumped_1'
             % From SPE 79691 ex 5
+            descr = 'Lumped mixture, SPE 79691, example 5, Mallison et al.';
             T_c = [189.515, 304.200, 387.607, 597.497, 698.515, 875.00];
             P_c = [45.2012, 72.90, 40.4196, 33.0150, 17.4525, 11.5372]*atm;
             mw = [16.1594, 44.01, 45.5725, 117.740, 248.827, 481.520]/1000;
@@ -29,6 +31,7 @@ function [fluid, info] = getBenchmarkMixture(name, varargin)
                             'pressure', 225*atm, ...
                             'T', 387.45);
         case 'spe5'
+            descr = 'SPE5 benchmark';
             % Fifth SPE benchmark
             T_c = [343, 665.7, 913.4, 1111.8, 1270.0, 1380.0]*Rankine;
             P_c = [667.8, 616.3, 436.9, 304.0, 200.0, 162.0]*psia;
@@ -137,6 +140,7 @@ function [fluid, info] = getBenchmarkMixture(name, varargin)
         otherwise
             error('Unknown case')
     end
+    fluid.name = descr;
 end
 
 function info = makeInfo(varargin)

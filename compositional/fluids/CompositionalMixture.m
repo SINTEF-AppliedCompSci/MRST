@@ -87,7 +87,7 @@ classdef CompositionalMixture
             fprintf(':\n');
 
             ml = max(max(cellfun(@numel, cnames)), 4);
-            sep = repmat('-', 68, 1);
+            sep = repmat('-', 55 + ml, 1);
             fprintf('  %*s | p_c [Pa] | T_c [K] | V_c [m^3] |  acf  | mw [kg/mol] \n', ml, 'Name');
             fprintf('  %s\n', sep)
             for i = 1:nc
