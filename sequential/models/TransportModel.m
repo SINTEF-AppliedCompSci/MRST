@@ -139,8 +139,9 @@ classdef TransportModel < WrapperModel
                 warning('State function models for parent model is already set up.');
                 return
             end
-            fd = pmodel.FlowDiscretization;
-            fp = pmodel.FlowPropertyFunctions;
+            fd  = pmodel.FlowDiscretization;
+            fp  = pmodel.FlowPropertyFunctions;
+            pvt = pmodel.PVTPropertyFunctions;
             % Replace existing properties with total flux variants
             fd = fd.setStateFunction('PhaseFlux', PhaseFluxFixedTotalVelocity(pmodel));
             fd = fd.setStateFunction('PhaseUpwindFlag', PhasePotentialUpwindFlag(pmodel));
@@ -157,12 +158,13 @@ classdef TransportModel < WrapperModel
                 fp = fp.setStateFunction('ComponentPhaseMass', ComponentPhaseMassTotalSaturation(pmodel));
             end
             % Replace object
-            model.parentModel.FlowDiscretization = fd;
+            model.parentModel.FlowDiscretization    = fd;
             model.parentModel.FlowPropertyFunctions = fp;
+            model.parentModel.PVTPropertyFunctions  = pvt;
             if hasFacility && ~strcmpi(model.implicitType, 'wells')
                 % Disable primary variables in transport!
                 model.parentModel.FacilityModel.primaryVariableSet = 'none';
-                fdp = model.parentModel.FacilityModel.FacilityFlowDiscretization;
+                fdp = pmodel.FacilityModel.FacilityFlowDiscretization;
                 qf = WellPhaseFluxTotalFixed(model.parentModel);
                 fdp = fdp.setStateFunction('PhaseFlux', qf);
                 model.parentModel.FacilityModel.FacilityFlowDiscretization = fdp;
