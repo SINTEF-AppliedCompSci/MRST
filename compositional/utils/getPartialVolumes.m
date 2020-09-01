@@ -53,7 +53,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     ncell = numelValue(state.pressure);
-    ncomp = model.water + numel(model.EOSModel.fluid.names);
+    ncomp = model.water + model.EOSModel.getNumberOfComponents();
     
     [liquid, vapor, twoPhase] = model.getFlag(state);
     singlePhase = liquid | vapor;
