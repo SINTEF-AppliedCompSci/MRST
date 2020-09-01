@@ -59,10 +59,10 @@ function T = TransNTPFA(G, u, OSflux)
     jj = abs(r{1} + r{2}) > epstol;
     mu{1}(jj) = r{2}(jj) ./ (r{1}(jj) + r{2}(jj));
     mu{2}(jj) = ones(sum(jj), 1) - mu{1}(jj);
-    assert(all(mu{1} >= 0.0))
-    assert(all(mu{2} >= 0.0))
-    assert(all(mu{1} <= 1.0))
-    assert(all(mu{2} <= 1.0))
+    assert(all(mu{1} >= 0.0), ['min(mu{1})=', num2str(min(mu{1}.val))])
+    assert(all(mu{2} >= 0.0), ['min(mu{2})=', num2str(min(mu{2}.val))])
+    assert(all(mu{1} <= 1.0), ['max(mu{1})=', num2str(max(mu{1}.val))])
+    assert(all(mu{2} <= 1.0), ['max(mu{2})=', num2str(max(mu{2}.val))])
 
     T{1}(internal) = mu{1}(internal) .* tii{1}(internal, 1) + mu{2}(internal) .* tii{2}(internal, 2);
     T{2}(internal) = mu{1}(internal) .* tii{1}(internal, 2) + mu{2}(internal) .* tii{2}(internal, 1);
