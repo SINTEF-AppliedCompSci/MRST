@@ -74,6 +74,7 @@ function [opt, scalar] = checkOptions(opt, sample)
     catch
         error('Invalid report outuput requested');
     end
+    v = getControlStepReportData(sample, opt);
     scalar = size(v,1) == 1;
 end
 
@@ -135,7 +136,7 @@ function out = getStepReportData(stepreport, opt)
         for i = 1:numel(reports)
             out = out + opt.get(reports{i});
         end
-        out = [out, out.*stepreport.Converged, nan(numel(out),1)];
+        out = [out, out.*(~stepreport.Converged), nan(numel(out),1)];
     end
 end
 
