@@ -45,6 +45,7 @@ classdef TableCompositionalMixture < CompositionalMixture
             end
             Vcrit = molarMass./rhocrit;
             fluid = fluid@CompositionalMixture(names, Tcrit, Pcrit, Vcrit, acc, molarMass);
+            fluid.name = 'CoolProp - Tabulated';
         end
     end
     methods (Static)

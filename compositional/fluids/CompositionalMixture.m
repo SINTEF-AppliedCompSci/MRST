@@ -6,6 +6,7 @@ classdef CompositionalMixture
         acentricFactors % Acentric factors (dimensionless)
         molarMass % Component mass (kg / mol)
         names % Names of each component. Each name must be unique.
+        name % Name of the fluid mixture itself
     end
     
     properties ( Access = protected)
@@ -65,6 +66,60 @@ classdef CompositionalMixture
             assert(size(input, 1) == size(input, 2));
             assert(all(all(input == input')));
             fluid.bic = input;
+        end
+        
+        function disp(mixture)
+            % builtin('disp', mixture);
+            cn = class(mixture);
+            isDesktop = usejava('desktop');
+            if isDesktop
+                fprintf('  <a href="matlab:helpPopup %s">%s</a>:\n', cn, cn);
+            else
+                fprintf('  %s:\n', cn);
+            end
+            fprintf('\n');
+            nc = mixture.getNumberOfComponents();
+            cnames = mixture.names;
+            fprintf('  %d component mixture', nc);
+            if ~isempty(mixture.name)
+                fprintf(' (%s)', mixture.name)
+            end
+            fprintf(':\n');
+
+            ml = max(max(cellfun(@numel, cnames)), 4);
+            sep = repmat('-', 68, 1);
+            fprintf('  %*s | p_c [Pa] | T_c [K] | V_c [m^3] |  acf  | mw [kg/mol] \n', ml, 'Name');
+            fprintf('  %s\n', sep)
+            for i = 1:nc
+                pc = mixture.Pcrit(i);
+                tc = mixture.Tcrit(i);
+                vc = mixture.Vcrit(i);
+                acf = mixture.acentricFactors(i);
+                mw = mixture.molarMass(i);
+                fprintf('  %*s | %1.2e | %3.1f K | %2.3e | %1.3f | %1.7f \n', ...
+                        ml, cnames{i}, pc, tc, vc, acf, mw);
+            end
+            fprintf('  %s\n', sep);
+            bi = mixture.getBinaryInteraction();
+            fprintf('  ');
+            if any(bi(:))
+                fprintf('Binary interaction coefficients:\n');
+                disp(bi);
+            else
+                fprintf('No non-zero binary interaction coefficients.\n')
+            end
+            fprintf('\n');
+            known = {'Pcrit', 'Tcrit', 'Vcrit', 'acentricFactors', 'molarMass', 'names', 'name'};
+            props = properties(mixture);
+            extra = setdiff(props, known);
+            if numel(extra)
+                fprintf('\n  Additional properties:\n');
+                for i = 1:numel(extra)
+                    e = extra{i};
+                    fprintf('  %s (%s)\n', e, class(mixture.(e)));
+                end
+                fprintf('\n');
+            end
         end
     end
     
