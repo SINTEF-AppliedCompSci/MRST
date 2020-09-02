@@ -41,10 +41,11 @@ fluid.rhoOS = 800;
 fluid.rhoGS = 10;
 
 eos = initDeckEOSModel(deck);
+arg = {G, rock, fluid, eos, 'water', false};
 if useNatural
-    model = GenericNaturalVariablesModel(G, rock, fluid, eos.fluid, 'water', false);
+    model = GenericNaturalVariablesModel(arg{:});
 else
-    model = GenericOverallCompositionModel(G, rock, fluid, eos.fluid, 'water', false);
+    model = GenericOverallCompositionModel(arg{:});
 end
 schedule = convertDeckScheduleToMRST(model, deck);
 
@@ -57,7 +58,7 @@ schedule = convertDeckScheduleToMRST(model, deck);
 % The problem is defined at 150 degrees celsius with 75 bar initial
 % pressure. We set up the initial problem and make a call to the flash
 % routines to get correct initial composition.
-ncomp = eos.fluid.getNumberOfComponents();
+ncomp = eos.getNumberOfComponents();
 
 for i = 1:numel(schedule.control.W)
     schedule.control.W(i).lims = [];

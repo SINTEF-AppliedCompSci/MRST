@@ -69,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     scheduleMRST = struct('step', scheduleDeck.step);
     isCompostional = isa(model, 'ThreePhaseCompositionalModel');
     if isCompostional
-        n_hc = model.EOSModel.fluid.getNumberOfComponents();
+        n_hc = model.EOSModel.getNumberOfComponents();
     end
     nc = numel(scheduleDeck.control);
     tmp = cell(nc, 1);
