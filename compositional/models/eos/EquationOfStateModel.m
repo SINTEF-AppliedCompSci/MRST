@@ -14,6 +14,7 @@ classdef EquationOfStateModel < PhysicalModel
         minimumComposition = 1e-8; % Minimum composition value (for numerical stability)
         minimumSaturation  = 1e-8; % Minimum total EOS phase saturation 
         equilibriumConstantFunctions = {};
+        extraOutput = 0;
     end
 
     properties (Access = private)
@@ -188,7 +189,7 @@ classdef EquationOfStateModel < PhysicalModel
         function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, iteration, varargin) %#ok
             % Compute a single step of the solution process for a given
             % equation of state (thermodynamic flash calculation);
-
+            timer = tic();
             T = state.T;
             P = state.pressure;
             nc = numel(P);
@@ -201,7 +202,7 @@ classdef EquationOfStateModel < PhysicalModel
             assert(all(sum(z, 2) > 0.999), ...
                                 'Molar fractions must sum up to unity.')
             assert(iteration > 0);
-
+            [t_flash, t_stability] = deal(0);
             % If we get here, we are using a proper flash
             if iteration == 1
                 % Book-keeping
@@ -230,7 +231,10 @@ classdef EquationOfStateModel < PhysicalModel
                 initSingle = ~twoPhase;
                 stable = initSingle;
                 % Call stability test.
-                [stable(initSingle), x0(initSingle, :), y0(initSingle, :)] = model.performPhaseStabilityTest(state.pressure(initSingle), state.T(initSingle), state.components(initSingle, :), state.K(initSingle, :));
+                ts = tic();
+                [stable(initSingle), x0(initSingle, :), y0(initSingle, :)] = ...
+                    model.performPhaseStabilityTest(state.pressure(initSingle), state.T(initSingle), state.components(initSingle, :), state.K(initSingle, :));
+                t_stability = toc(ts);
                 updatedSingle = initSingle & ~stable;
                 K0(updatedSingle, :) = y0(updatedSingle, :)./x0(updatedSingle, :);
                 acf = model.CompositionalMixture.acentricFactors;
@@ -238,7 +242,7 @@ classdef EquationOfStateModel < PhysicalModel
                 % Solve EOS for each phase
                 Z0_L = model.computeCompressibilityZ(state.pressure, x0, A_L, B_L, Si_L, Bi, true);
                 Z0_V = model.computeCompressibilityZ(state.pressure, y0, A_V, B_V, Si_V, Bi, false);
-                L0 = model.solveRachfordRice(L0, K0, z);
+                L0(~stable) = model.solveRachfordRice(L0(~stable), K0(~stable, :), z(~stable, :));
                 L0(stable) = model.singlePhaseLabel(P(stable), T(stable), z(stable, :));
                 active = ~stable;
                 % Flag stable cells as converged
@@ -281,7 +285,9 @@ classdef EquationOfStateModel < PhysicalModel
                     otherwise
                         error('Unknown flash method %s. Try ''newton'' or ''ssi''.', model.method);
                 end
+                timer_flash = tic();
                 [x, y, K, Z_L, Z_V, L, equilvals] = updatefn(P, T, z, K, L);
+                t_flash = toc(timer_flash);
                 singlePhase = L == 0 | L == 1;
                 % Single phase cells are converged
                 equilvals(singlePhase, :) = 0;
@@ -325,7 +331,13 @@ classdef EquationOfStateModel < PhysicalModel
                             'ResidualsConverged', resConv, ...
                             'Residuals',    values);
             report.ActiveCells = sum(active);
+            if model.extraOutput
+                report.ActiveFlag = active;
+            end
             report.Method = flash_method;
+            report.TotalTime = toc(timer);
+            report.FlashTime = t_flash;
+            report.StabilityTime = t_stability;
         end
         
         function L = singlePhaseLabel(eos, p, T, z)
