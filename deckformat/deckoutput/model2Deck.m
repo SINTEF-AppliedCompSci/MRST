@@ -113,17 +113,86 @@ if(not(opt.gridfromdeck))
     EDIT.PORV  = model.operators.pv;
     EDIT.DEPTH = depth;
 else
-    GRID=deck.GRID;
+    GRID = deck.GRID;
     if(isfield(deck,'EDIT'))
-        EDIT=deck.EDIT;
+        EDIT = deck.EDIT;
     else
-        EDIT=[];
+        EDIT = [];
     end
 end
 % PROPS (from input deck)
-PROPS = [];
 if isfield(deck, 'PROPS')
     PROPS = deck.PROPS;
+else
+    PROPS = [];
+    % Try to build it
+    if model.disgas || model.vapoil
+        error('Creating props only supported for immiscibile (deadoil) case.');
+    end
+    density = [1, 1, 1];
+    f = model.fluid;
+    ns = 20;
+    p = linspace(1, 500, 50)'*barsa;
+    s = linspace(0, 1, ns)';
+    if model.water
+        density(2) = f.rhoWS;
+    end
+    if model.oil
+        density(1) = f.rhoOS;
+    end
+    if model.gas
+        density(3) = f.rhoGS;
+    end
+    PROPS.DENSITY = density;
+    
+    if model.water
+        % PVT table
+        pR = 50*barsa;
+        bWr = f.bW(pR);
+        mur = f.muW(pR);
+        PROPS.PVTW = [pR, bWr, 0, mur, 0];
+    end
+    
+    if model.gas && model.oil
+        % PVT table
+        bg = f.bG(p);
+        mug = f.muG(p);
+        PROPS.PVDG = {[p, 1./bg, mug]};
+        % Saturation table
+        krg = f.krG(s);
+        if isfield(f, 'krOG')
+            krog = f.krO(1-s);
+        else
+            krog = f.krOG(1-s);
+        end
+        if isfield(f, 'pcOG')
+            pc = f.pcOG(s);
+        else
+            pc = zeros(ns, 1);
+        end
+        PROPS.SGOF = {[s, krg, krog, -pc]};
+    end
+    
+    if model.water && model.oil
+        % PVT table
+        bo = f.bG(p);
+        muo = f.muG(p);
+        PROPS.PVDO = {[p, 1./bo, muo]};
+        % Saturation table
+        krw = f.krW(s);
+        if isfield(f, 'krO')
+            krow = f.krO(1-s);
+        else
+            krow = f.krOW(1-s);
+        end
+        if isfield(f, 'pcOW')
+            pc = f.pcOW(s);
+        else
+            pc = zeros(ns, 1);
+        end
+        PROPS.SWOF = {[s, krw, krow, pc]};
+    end
+    deck.PROPS = PROPS;
 end
 
 % REGIONS

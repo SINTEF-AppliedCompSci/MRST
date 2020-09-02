@@ -110,10 +110,13 @@ end
 
 %--- PROPS ----------------------------------------------------------------
 % fixing rock for now for opm runs E300 (?)
-deck.PROPS.ROCK = deck.PROPS.ROCK(:,1:2);
-fprintf(fid, dashedline);
+if isfield(deck.PROPS, 'ROCK')
+    deck.PROPS.ROCK = deck.PROPS.ROCK(:,1:2);
+    fprintf(fid, dashedline);
+end
 fprintf(fid, '%s\n', 'PROPS');
 fprintf(fid, dashedline);
+
 dump_props(fid, directory, deck, formats);
 
 %--- REGIONS --------------------------------------------------------------
