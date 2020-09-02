@@ -59,13 +59,23 @@ function T = TransNTPFA(G, u, OSflux)
     jj = abs(r{1} + r{2}) > epstol;
     mu{1}(jj) = r{2}(jj) ./ (r{1}(jj) + r{2}(jj));
     mu{2}(jj) = ones(sum(jj), 1) - mu{1}(jj);
-    assert(all(mu{1} >= 0.0), ['min(mu{1})=', num2str(min(mu{1}.val))])
-    assert(all(mu{2} >= 0.0), ['min(mu{2})=', num2str(min(mu{2}.val))])
-    assert(all(mu{1} <= 1.0), ['max(mu{1})=', num2str(max(mu{1}.val))])
-    assert(all(mu{2} <= 1.0), ['max(mu{2})=', num2str(max(mu{2}.val))])
+    assert(all(mu{1} >= 0.0), ['min(mu{1})=', num2str(minmax(mu{1}))])
+    assert(all(mu{2} >= 0.0), ['min(mu{2})=', num2str(minmax(mu{2}))])
+    assert(all(mu{1} <= 1.0), ['max(mu{1})=', num2str(minmax(mu{1}))])
+    assert(all(mu{2} <= 1.0), ['max(mu{2})=', num2str(minmax(mu{2}))])
 
     T{1}(internal) = mu{1}(internal) .* tii{1}(internal, 1) + mu{2}(internal) .* tii{2}(internal, 2);
     T{2}(internal) = mu{1}(internal) .* tii{1}(internal, 2) + mu{2}(internal) .* tii{2}(internal, 1);
 
     dispif(mrstVerbose, 'done in %1.2f s\n', toc(timer));
+end
+
+function y = minmax(x)
+
+    if isa(x, 'ADI')
+        y = [min(x.val), max(x.val)];
+    else
+        y = [min(x), max(x)];
+    end
+
 end
