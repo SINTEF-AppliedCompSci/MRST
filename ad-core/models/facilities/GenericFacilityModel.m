@@ -604,7 +604,9 @@ classdef GenericFacilityModel < FacilityModel
                 minimodel.PVTPropertyFunctions = minimodel.PVTPropertyFunctions.subset(cells);
                 minimodel.FlowPropertyFunctions = minimodel.FlowPropertyFunctions.subset(cells);
                 % Avoid using flag for interpolation
-                minimodel.PVTPropertyFunctions.ShrinkageFactors.useSaturatedFlag = true;
+                if isprop(minimodel.PVTPropertyFunctions.ShrinkageFactors, 'useSaturatedFlag')
+                    minimodel.PVTPropertyFunctions.ShrinkageFactors.useSaturatedFlag = true;
+                end
                 b = minimodel.getProp(substate, 'ShrinkageFactors');
                 shrink = 1 - rs.*rv;
                 shrink0 = 1 - rs0.*rv0;
