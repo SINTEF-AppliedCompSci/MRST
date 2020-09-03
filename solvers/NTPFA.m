@@ -53,22 +53,23 @@ classdef NTPFA
                 ntpfa.OSflux = opt.OSflux;
             end
 
-            ntpfa.scale = - 1./model.operators.T;
+            ntpfa.scale = 1./model.operators.T;
             ntpfa.internalConn = model.operators.internalConn;
             if ismethod(model, 'getActivePhases')
                 ntpfa.nph = sum(model.getActivePhases());
             end
         end
 
-        function v = gradient(ntpfa, pressure)
-            v = ntpfa.unscaledGradient(pressure);
-            v = v .* ntpfa.scale;
+        function grad = gradient(ntpfa, pressure)
+            grad = ntpfa.unscaledGradient(pressure);
+            grad = grad .* ntpfa.scale;
         end
         
-        function v = unscaledGradient(ntpfa, pressure)
+        function grad = unscaledGradient(ntpfa, pressure)
             T = TransNTPFA(ntpfa.G, pressure, ntpfa.OSflux);
             v = computeFlux(ntpfa.G, pressure, T);
             v = v(ntpfa.internalConn, :);
+            grad = -v;
         end
     end
 
