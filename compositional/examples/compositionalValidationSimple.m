@@ -94,7 +94,7 @@ data = {states, ref.statesECL, ref.statesGPRS};
 n = min(cellfun(@numel, data));
 names = {'MRST', 'E300', 'AD-GPRS'};
 markers = {'-', '.', '--'};
-cnames = model.EOSModel.fluid.names;
+cnames = model.EOSModel.getComponentNames();
 
 nd = numel(data);
 l = cell(nd*ncomp, 1);
