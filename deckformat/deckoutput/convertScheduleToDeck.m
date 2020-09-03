@@ -233,7 +233,7 @@ for sno = 1:numel(control)
     if isempty(W)
         prodIx = [];
     else
-        prodIx = [W.sign] < 0;
+        prodIx = [W.sign] <= 0;
     end
     prodIx_pred=prodIx;
     prodIx_hist=prodIx;

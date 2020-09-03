@@ -66,6 +66,11 @@ RUNSPEC.SI          = 1;
 RUNSPEC.WELLDIMS    = getWellDims(schedule);
 %RUNSPEC.START       = 734813;
 RUNSPEC.TABDIMS     = getTabDims(deck);
+if isempty(deck)
+    RUNSPEC.TITLE = 'MRSTCASE';
+else
+    RUNSPEC.TITLE = deck.RUNSPEC.TITLE;
+end
 %SATOPTS=[]
 %SATOPTS.DIRECT=0;
 %SATOPTS.HYSTER=0;
