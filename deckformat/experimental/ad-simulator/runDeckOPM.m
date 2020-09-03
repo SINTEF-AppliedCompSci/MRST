@@ -31,10 +31,78 @@ opt=struct('outputdir','output',...
     'verbose',true,...
     'np',1,...
     'threads',2,...
-    'lineartol',1e-2,...
-    'strongdefaults',true);
+    'lineartol',1e-5,...
+    'strongdefaults',true,...
+    'storagecache',true,...
+    'simulationtype','implicit',...
+    'pressuresolver',[],...
+    'linearsolver',[]);
 opt=merge_options(opt,varargin{:});
 % for extra see .XXX.DEBUG of an opm run
+pressureoptions =[];
+
+if(isempty(opt.pressuresolver) || isempty(opt.linearsolver))
+      %simple_prec= struct('preconditioner','ILU0','w',1,'n',1);
+       amg = struct('type','amg',...
+                    'maxlevel',10,...
+                    'coarsenTarget',4000,...
+                    'smoother','ILU0', ...
+                    'post_smooth', 1,...
+                    'pre_smooth', 1,...
+                    'gamma', 1,...
+                    'alpha', 0.3,...
+                    'beta', 1e-5,...
+                    'relaxation', 1,...
+                    'skip_isolated',0,...
+                    'verbosity',10);
+                    
+        %Jac failed on norne
+        pressuresolver = struct('tol',1e-6,'maxiter',20, ...
+                              'preconditioner',amg,...
+                              'verbosity',10,...
+                              'blocksize',1,...
+                              'solver','bicgstab');                     
+   else
+       pressuresolver = opt.pressuresolver;
+end
+if(strcmp(opt.simulationtype,'implicit'))
+   amg = struct('type','amg',...
+                    'maxlevel',10,...
+                    'coarsenTarget',4000,...
+                    'smoother','ILU0', ...
+                    'post_smooth', 1,...
+                    'pre_smooth', 1,...
+                    'gamma', 1,...
+                    'alpha', 0.3,...
+                    'beta', 1e-5,...
+                    'relaxation', 1,...
+                    'skip_isolated',0,...
+                    'verbosity',10);
+                
+   coarsesolver=struct('solver','loopsolver','preconditioner',amg,'maxiter',1,'tol',1e-1);
+   finesmoother=struct('type','ILU0','relaxation',1);
+   cpr = struct('type','cpr',...
+                 'weight_type','trueimpes',...
+                'finesmoother',finesmoother,...
+                'coarsesolver',coarsesolver,...
+                'pressure_var_index',1,...
+                'pre_smooth',1,...
+                'post_smooth',1,...
+                'verbosity',1);                
+   linearsolver = struct('preconditioner',cpr,'solver','bicgstab','tol',1e-4,'verbosity',1) 
+else  
+  preconditioner=struct('type','ILU0','relaxation',1);
+  linearsolver = struct('precontitioner',preconditioner,'solver','bicgstab','tol',1e-5,'maxiter',200,'verbosity',3); 
+end
+linearsolverfile = 'tmp_linearsolver.json';
+writeJson(linearsolver,linearsolverfile);
+pressuresolverfile = 'tmp_pressuresolver.json';
+writeJson(pressuresolver,pressuresolverfile);
+pressureoptions = [' --pressure-solver-json=',pressuresolverfile,' '];
+
+linearsolverconf = [' --linear-solver-configuration=file ',...
+    '--linear-solver-configuration-json-file=',linearsolverfile,' ']
+
 if(opt.np >0)
     command = ['mpirun -np ',num2str(opt.np),' '];
 else
@@ -42,17 +110,27 @@ else
 end
 if(opt.use_ebos_style)
     command=[command, opt.simulator,' --ecl-deck-file-name=',deckfile];
-    [dir,case_name,ext]=fileparts(deckfile);
-    opt.output=fullfile(dir);
+    [mydir,case_name,ext]=fileparts(deckfile);
+    opt.output=fullfile(mydir);
 else
     if(opt.force_timestep)
-        command=[command, opt.simulator,'  --full-time-step-initially=true --enable-adaptive-time-stepping=false --flow-newton-max-iterations=100 '];
+        command=[command, opt.simulator,' --enable-well-operability-check=false --full-time-step-initially=false --enable-adaptive-time-stepping=false --flow-newton-max-iterations=20 '];
     else
-        command=[command, opt.simulator,' --enable-tuning=true '];
+        command=[command, opt.simulator,' --enable-well-operability-check=false --full-time-step-initially=false --enable-tuning=false '];
+        % --time-step-control=iterationcount 
+    end
+    command =[command,' --simulation-type=',opt.simulationtype,' '];
+    command = [command,' --solve-welleq-initially=true '];
+    if(opt.storagecache)
+        command =  [command,' --enable-storage-cache=true '];
+    else
+        command =  [command,' --enable-storage-cache=false '];
     end
     if(opt.strongdefaults)
-        command =[command,' --tolerance-cnv=0.001 --tolerance-cnv-relaxed=0.001 '];
+        command =[command,'  --use-inner-iterations-wells=false --tolerance-pressure=0.000001 --tolerance-cnv=0.001 --tolerance-cnv-seq=0.0001 --tolerance-cnv-relaxed-seq=0.001 --tolerance-cnv-relaxed=0.01 --tolerance-wells=0.00001 --project-saturations=true --ds-max=0.2'];
     end
+    command = [command,linearsolverconf];
+    
     command =[command,' --linear-solver-reduction=',num2str(opt.lineartol),' '];
     command=[command,' --threads-per-process=',num2str(opt.threads),' '];
     if(opt.do_adjoint)
@@ -76,11 +154,12 @@ else
         %command=[command,'--use-amg=true -use-cpr=true -use-gmres=true ']
     else
       if(opt.verbose)
-        command = [command,' --flow-linear-solver-verbosity=1 ']
+        command = [command,' --flow-linear-solver-verbosity=0 ']
       end
     end
     command = [command,' --output-dir=',opt.outputdir,' ',deckfile];
-    
+    %' --reuse-pressure-solver=true '
+    command = [command,pressureoptions,' --reuse-pressure-solver=1 ']
 end
 if(opt.no_output)
     command = [command,' >& /dev/null'];
@@ -88,19 +167,22 @@ end
 if(opt.do_adjoint)
     delete(fullfile(opt.outputdir,'adjoint_results.txt'))
 end
+delete([fullfile(opt.outputdir,'extra_out'),'/*.txt'])
 disp('MRST runing flow')
+delete([fullfile(opt.outputdir),'*.UNSMRY']);
 disp(command)
 a = system(command)
 if(a~=0)
-    error('funning flow failed')
+    warning('funning flow failed to finnish')
+    %delete([fullfile(opt.outputdir),'*.UNSMRY']);
 end
 %% make normal output
 if(nargout>0)
     opmdir=fullfile(opt.outputdir);
-    [dir,case_name,ext]=fileparts(deckfile);
+    [mydir,case_name,ext]=fileparts(deckfile);
     ofile=fullfile(opmdir,case_name); 
     %opm_smry = readEclipseSummaryUnFmt(ofile);
-    [wellsols_smry, time_smry]  = convertSummaryToWellSols(ofile,'metric');
+    [wellsols_smry, time_smry]  = convertSummaryToWellSols(ofile);
     ofile_cap=fullfile(opmdir,upper(case_name));
     casenm=fullfile(opt.outputdir,upper(case_name));
     if(opt.read_states)
@@ -112,6 +194,12 @@ if(nargout>0)
         [states_opm,rstrt_opm] = convertRestartToStates(ofile_cap,G,...
         'use_opm',false,'includeWellSols',false,'wellSolsFromRestart',true,...
         'includeFluxes',false,'consistentWellSols',false);
+        files=dir([fullfile(opt.outputdir,'extra_out'),'/*','txt'])
+        sT=cell(numel(files),1);
+        for i = 1:numel(files)
+             states_opm{i}.sT = load(fullfile(files(i).folder,files(i).name));
+        end
+        extra.sT=sT;
     else
         states_opm=[];
         extra=[];
@@ -120,7 +208,6 @@ if(nargout>0)
     if(opt.do_adjoint)
        adfile = fullfile(opmdir,'adjoint_results.txt');
        fn=fopen(adfile);
-       wnames=fgetl(fn);
        wnames=fgetl(fn);
        fclose(fn);
        wnames=split(wnames(1:end));
@@ -147,7 +234,9 @@ if(nargout>0)
     else
        adjoint=[];
     end
-    
-    reports=struct('ReservoirTime',time_smry,'adjoint',adjoint);
+    reports = readInfoStep([ofile,'.INFOSTEP']);
+    reports.ReservoirTime = time_smry;
+    reports.adjoint = adjoint;
+    %reports=struct('ReservoirTime',time_smry,'adjoint',adjoint);
     states=states_opm;
 end

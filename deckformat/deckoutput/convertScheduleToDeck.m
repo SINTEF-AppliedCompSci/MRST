@@ -302,7 +302,7 @@ function WCONPROD = makeWCONPROD(WCONPROD_tmp,prodIx,W)
                         WCONPROD{pno,5} = abs(lims.(fnm));
                     case 'lrat'
                         WCONPROD{pno,7} = abs(lims.(fnm));
-                    %case 'default'
+                    case 'grup'
                     % this may happen if inactive wells is not removed
                     otherwise
                         error('Not done');
