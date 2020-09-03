@@ -374,7 +374,15 @@ else
       direction(end) = 1;
    end
 end
-Z = G.cells.centroids(cells, :) * direction(1:dims).';
+xyz = G.cells.centroids(cells, :);
+bad = any(~isfinite(xyz), 1);
+if norm(direction(bad))
+    % We allow nan/inf coordinates, but not if the corresponding "down"
+    % direction has magnitude in those dimensions.
+    error('Non-finite centroids in dimensions: %s', num2str(find(bad)));
+end
+xyz(isnan(xyz)) = 0;
+Z = xyz * direction(1:dims).';
 dZ = Z - refDepth;
 if any(dZ < -max(eps(Z), eps(refDepth)))
     warning('RefDepth:BelowTopConnection', ...
