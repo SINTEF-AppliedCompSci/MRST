@@ -41,24 +41,35 @@ classdef PressureModel < WrapperModel
                     error('Unknown reduction strategy %s', model.reductionStrategy);
             end
             pvars = vars(keep);
-            hasScaling = ~isempty(model.pressureScaling);
+            pnames = names(keep);
+            pscale = model.pressureScaling;
+            hasScaling = ~isempty(pscale);
             if init
                 if hasScaling
                     % We have a scaling factor to the pressure derivatives.
                     % Scale first, initialize, then divide away. The next fix
                     % comes in the update function, where the scaling is
                     % divided away to keep units consistent.
-                    pvars{1} = pvars{1}.*model.pressureScaling;
+                    isP = strcmpi(pnames, 'pressure');
+                    pvars{isP} = pvars{isP}.*pscale;
+                    isBHP = strcmpi(pnames, 'bhp');
+                    if any(isBHP)
+                        bhpscale = mean(pscale); % To scalar
+                        pvars{isBHP} = pvars{isBHP}.*bhpscale;
+                    end
                 end
                 [pvars{:}] = model.AutoDiffBackend.initVariablesAD(pvars{:});
                 if hasScaling
-                    pvars{1} = pvars{1}./model.pressureScaling;
+                    pvars{1} = pvars{1}./pscale;
+                    if any(isBHP)
+                        pvars{isBHP} = pvars{isBHP}./bhpscale;
+                    end
                 end
             end
             vars(keep) = pvars;
             state = model.initStateAD(state, vars, names, origin);
             % Not all were AD-initialized
-            names = names(keep);
+            names = pnames;
             origin = origin(keep);
             assert(strcmpi(names{1}, 'pressure'));
         end
@@ -100,8 +111,14 @@ classdef PressureModel < WrapperModel
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             if ~isempty(model.pressureScaling)
-                assert(strcmpi(problem.primaryVariables{1}, 'pressure'));
-                dx{1} = dx{1}./model.pressureScaling;
+                pvar = problem.primaryVariables;
+                isP = strcmpi(pvar, 'pressure');
+                isBHP = strcmp(pvar, 'bhp');
+                pscale = model.pressureScaling;
+                dx{isP} = dx{isP}./pscale;
+                if any(isBHP)
+                    dx{isBHP} = dx{isBHP}./mean(pscale);
+                end
             end
             state = model.updateReductionFactorProps(state);
             p0 = state.pressure;
