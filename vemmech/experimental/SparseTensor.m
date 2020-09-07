@@ -319,6 +319,16 @@ classdef SparseTensor
          
       end
       
+      % Remove all entries containing NaN coefficients
+      function self = pruneNans(self)
+         
+         self = self.expandall();
+         remove_ind = isnan(self.components{1}.coefs);
+         self.components{1}.coefs(remove_ind) = [];
+         self.components{1}.ixs(remove_ind, :) = [];
+      end
+      
+      
       function self = sub(self, ixname, ixval)
       % Return the tensor resulting from fixing one index to one index value.  For
       % instance, if applying this method with the arguments ('i', 3) to the
