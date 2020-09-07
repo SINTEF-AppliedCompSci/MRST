@@ -102,7 +102,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         % A single right-hand-side
         [x, err, nIter] = ...
-           amgcl_matlab(A, b, amg_opt, opt.tolerance, opt.maxIterations, 1, opt.reuseMode);
+           amgcl_matlab(A, b, amg_opt, opt.tolerance, opt.maxIterations, opt.reuseMode);
     end
     t_solve = toc(t);
     if nargout == 1
