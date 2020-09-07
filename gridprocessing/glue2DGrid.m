@@ -265,10 +265,13 @@ function G = cleanup_unused_faces(G)
    
    %% Update G.cells
    
-   for mf = sort(missing_faces, 'descend')
-      target_ixs = G.cells.faces > mf;
-      G.cells.faces(target_ixs) = G.cells.faces(target_ixs) - 1;
-   end
+   N = max([missing_faces(:); G.cells.faces]);
+   reindex = (1:N)';
+   reindex(missing_faces) = [];
+   new_ixs = nan(N,1);
+   new_ixs(reindex) = 1:numel(reindex);
+   G.cells.faces = new_ixs(G.cells.faces);
+   
 end
    
 % ----------------------------------------------------------------------------
