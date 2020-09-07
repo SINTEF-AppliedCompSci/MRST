@@ -65,32 +65,22 @@ transferModel = model.transfer_model_object;
 %% -------------------------------------------------------------------------
 % Initialization of independent variables
 % properties at current timestep, and current iteration level
-[p, pm, wellSol, xd] = model.getProps(state, 'pressure', 'pressure_matrix', 'wellsol', 'xd');
-
+[p, pm, wellSol, xd] = model.getProps(state, 'pressure', 'pressure_matrix', 'wellSol', 'xd');
 % properties at previous timestep
 [p0, pm0, wellSol0, xd0] = model.getProps(state0, 'pressure', 'pressure_matrix', 'wellSol', 'xd');
 
 % well props
-[wellVars, ~, wellMap] = model.fluidModel.FacilityModel.getAllPrimaryVariables(wellSol);
-[frac_index, mat_index] = model.fluidModel.findDPWells(wellSol);
-try
-    [wellVars_mat, ~, wellMap_mat] = ...
-        fluidModel.FacilityModel.getAllPrimaryVariables(wellSol(mat_index,:));
-    if ~opt.reverseMode
-        [p, pm, wellVars{:}, wellVars_mat{:}, xd] = initVariablesADI(p, pm, wellVars{:}, wellVars_mat{:}, xd);
-    else
-        error('Reverse mode AD currently not implemented for DC-mech module')
-    end
-catch ME
-    if (strcmp(ME.identifier, 'MATLAB:badsubscript'))
-        wellVars_mat = {};
-        if ~opt.reverseMode
-            [p, pm, wellVars{:}, wellVars_mat{:}, xd] = initVariablesADI(p, pm, wellVars{:}, wellVars_mat{:}, xd);
-        else
-            error('Reverse mode AD currently not implemented for DC-mech module')
-        end
-    end
+%[frac_index, mat_index] = model.fluidModel.findDCWells(wellSol);
+%[wellVars, ~, wellMap] = model.fluidModel.FacilityModel.getAllPrimaryVariables(wellSol(:,frac_index));
+%mat_index = 2;
+[wellVars, ~, wellMap] = ...
+    model.fluidModel.FacilityModel.getAllPrimaryVariables(wellSol);
+if ~opt.reverseMode
+    [p, pm, wellVars{:}, xd] = initVariablesADI(p, pm, wellVars{:}, xd);
+else
+    error('Reverse mode AD currently not implemented for DC-mech module')
 end
+
 gdz = s.Grad(model.G.cells.centroids) * model.fluidModel.getGravityVector()';
 
 % update state with AD-variables (required for state functions)
@@ -120,6 +110,7 @@ T_f = s.T.*transMult;
 % check for matrix multipliers:
 trMult_m = 1;
 if isfield(f_m, 'tranMultR'), trMult_m = f_m.tranMultR(pm); end
+
 
 %% -------------------------------------------------------------------------
 % Fluid props
@@ -191,25 +182,23 @@ eqs{2} = (model.G.cells.volumes./dt).*( poro_m.*bWm - poro_m0.*bWm0 ) + s.Div(bW
 % Add BCs
 % dummy saturation
 sW = ones(model.G.cells.num, 1);
-[eqs(1), state] = addBoundaryConditionsAndSources(model.fluidModel, eqs(1), names(1), types(1), state, ...
-                                                                 {p}, {sW}, mob(1), rho(1), ...
-                                                                 {}, {}, ...
-                                                                 drivingForces);
-[eqs(2), state] = addBoundaryConditionsAndSources(model.fluidModel, eqs(2), names(2), types(2), state, ...
-                                                                  {pm}, {sW}, mob(2), rho(2), ...
-                                                                  {}, {}, ...
-                                                                  drivingForces);
+[eqs(1), state] = addBoundaryConditionsAndSources(model.fluidModel, ...
+                                                  eqs(1), names(1), types(1), state, ...
+                                                  {p}, {sW}, mob(1), rho(1), ...
+                                                  {}, {}, ...
+                                                  drivingForces);
+[eqs(2), state] = addBoundaryConditionsAndSources(model.fluidModel, ...
+                                                  eqs(2), names(2), types(2), state, ...
+                                                  {pm}, {sW}, mob(2), rho(2), ...
+                                                  {}, {}, ...
+                                                  drivingForces);
 
-% well equations                                                              
-[eqs, names, types, state.wellSol(1,:)] = model.fluidModel.insertWellEquations(eqs, names, types, wellSol0(frac_index,:),...
-                                                                               wellSol(frac_index,:), wellVars, wellMap,...
-                                                                               p, mob(1), rho(1), {}, {}, dt, opt);
-try
-    [eqs, names, types, state.wellSol(2,:)] = model.fluidModel.insertWellEquations(eqs, names, types, wellSol0(mat_index,:),...
-                                                                                   wellSol(mat_index,:), wellVars_mat, wellMap_mat,...
-                                                                                   pm, mob(2), rho(2), {}, {}, dt, opt);
-catch
-    % ignore  
-end
+% Well equations, for now, just implemented from fracture  
+% these need to come from the fluid model!
+[eqs, names, types, state.wellSol] = model.fluidModel.insertWellEquations(...
+                                                          eqs, names, types, wellSol0,...
+                                                          wellSol, wellVars, wellMap,...
+                                                          p, mob(1), rho(1), {}, {}, dt, opt);
+
 
 end

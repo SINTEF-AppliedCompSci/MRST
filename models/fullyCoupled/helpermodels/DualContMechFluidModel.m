@@ -104,7 +104,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
-
             fluidModel = model.fluidModel; 
             mechModel  = model.mechModel;
             [state, fluidReport] = fluidModel.updateState(state, problem, dx, []);

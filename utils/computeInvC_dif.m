@@ -4,7 +4,8 @@ function invC_dif = computeInvC_dif(G, C_m, C_f)
 %   function invC_dif = computeInvC_dif(G, C_m, C_f)
 %
 % DESCRIPTION: 
-%   Function used to calcualte the quantity (C_m - C_f)^-1
+%   Function used to calcualte the quantity (C_m - C_f)^-1 (see Ashworth and
+%   Doster 2020 for further details). 
 %
 % PARAMETERS:
 %   G   - Grid struc

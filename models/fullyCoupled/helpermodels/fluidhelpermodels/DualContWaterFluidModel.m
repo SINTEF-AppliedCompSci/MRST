@@ -1,7 +1,7 @@
 classdef DualContWaterFluidModel < DualContinuumWaterModel
 %
 % SYNOPSIS:
-%   model = DualContWaterFluidModel(G, rock, fluid, rock_matrix, fluid_matrix, varargin)
+%   model = DualContWaterFluidModel(G, rock, fluid, varargin)
 %
 % DESCRIPTION: 
 %   This model is for the fluid part of a fully coupled dual continuum 
@@ -47,7 +47,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function model = DualContWaterFluidModel(G, rock, fluid, varargin)
             model = model@DualContinuumWaterModel(G, rock, fluid);
             model.primaryVarNames = {'pressure', 'pressure_matrix'}; % well variables
-                                                  % not included
+                                                                     % not included
             model = merge_options(model, varargin{:});
         end
 
@@ -70,7 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         function fds = getAllVarsNames(model)
         % List all the variables that are recognized and can be handled by the model
-            fds = {'wellSol', 'pressure', 'pressure_matrix'};
+            fds = {'pressure', 'pressure_matrix', 'wellSol'};
         end
 
         function [state, report] = updateState(model, state, problem, dx, ...
@@ -89,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             dx   = dx(ind);
 
             [state, report] = updateState@DualContinuumWaterModel(model, state, problem, ...
-                                                     dx, drivingForces);
+                                                                  dx, drivingForces);
         end
 
     end

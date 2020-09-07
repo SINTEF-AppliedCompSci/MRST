@@ -63,6 +63,9 @@ Description of folders and files:
 --- anisotropicStiffCoefficientModels: Derived class which instantiates constitutive coefficients using
                                        models in which the continua can show upto orthotropic material
                                        material behaviours.
+NOTE: details on the isotropic and anisotropic stiff coefficient models will be released in a future
+      Ashworth and Doster paper, so if confused just have search on the net for said work. At the 
+      very least we will have tried to put this in arxiv.
 
 - state_functions:
 --- DC_PoroelasticPropertyFunctions: Derived state function grouping class for dual-continuum poroelasticity. 

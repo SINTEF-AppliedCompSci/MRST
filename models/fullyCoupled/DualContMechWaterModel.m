@@ -64,42 +64,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             fluidModel = model.fluidModel; 
             mechModel  = model.mechModel;  
                         
-            % Extract variables and initialise as AD
-            % properties at current timestep
+            % Extract variables and initialise as AD  properties at current timestep
             if ~opt.reverseMode
                 [p, pm, wellSol, xd] = model.getProps(state, 'pressure', 'pressure_matrix',... 
-                                                             'wellSol', 'xd');
-                [p, pm, xd] = initVariablesADI(p, pm, xd);
+                                                     'wellSol', 'xd');
+                [wellVars, wellVarNames, ~] = fluidModel.FacilityModel.getAllPrimaryVariables(wellSol);                                 
+                [p, pm, wellVars{:}, xd] = initVariablesADI(p, pm, wellVars{:}, xd);
             else
                 error('Reverse mode AD currently not implemented for DC-mech module')
             end
             
             % well variables
-            [frac_index, mat_index] = fluidModel.findDPWells(wellSol);
-            [~, wellVarNames, ~] = ...
-                fluidModel.FacilityModel.getAllPrimaryVariables(wellSol(frac_index,:));     
+            %[frac_index, mat_index] = fluidModel.findDCWells(wellSol);   
                         
             % Assemble linearised problem
             [w_eqs, w_eqsnames, w_eqstypes, state] = equationsDCWaterMech(state0, ...
-                                                                       state, model, dt, ... 
-                                                                       drivingForces, ...
-                                                                        'iteration', ...
-                                                                         opt.iteration);
+                                                                          state, model, dt, ... 
+                                                                          drivingForces, ...
+                                                                         'iteration', ...
+                                                                          opt.iteration);
                                                           
             [mech_eqs, mech_eqsnames, mech_eqstypes] = equationsDCPoroMechanics(xd, ...
                                                               mechModel, p, pm);                                                         
             eqs = horzcat(w_eqs, mech_eqs);
             names = {w_eqsnames{:}, mech_eqsnames{:}};
             types = {w_eqstypes{:}, mech_eqstypes{:}};
-            try
-                [~, wellVarNames_mat, ~] = ...
-                fluidModel.FacilityModel.getAllPrimaryVariables(wellSol(mat_index,:));
-                primaryVars = {'pressure', 'pressure_matrix', 'xd', ...
-                                    wellVarNames{:}, wellVarNames_mat{:}};
-            catch
-                primaryVars = {'pressure', 'pressure_matrix', 'xd', ...
-                                wellVarNames{:}};
-            end
+            primaryVars = {'pressure', 'pressure_matrix', wellVarNames{:}, 'xd'};
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
         end       
         

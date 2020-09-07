@@ -35,8 +35,8 @@ function [p_m, p_f, u, states] = simDC_mech(state0, dt, model, bc_f0)
     state0.xd = zeros(nnz(~model.mechModel.operators.isdirdofs), 1);
     state0 = addDerivedQuantities(model.mechModel, state0);
 
-    % Define facilities model, which for this case is empty
-    model.FacilityModel = FacilityModel(model.fluidModel);
+    % define facilities model, which for this case is empty
+    model.FacilityModel = FacilityModel(model.fluidModel); % map facility model from fluidModel up to main model
     
     %% Loop and solve
     for i = 1:n

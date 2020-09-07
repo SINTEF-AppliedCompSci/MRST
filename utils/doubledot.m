@@ -46,13 +46,13 @@ else
 end
 
 % Check which tensor is of rank 4 (if not both)
-    if size(A,2) == nlin^G.griddim && size(B,2) == nlin^G.griddim
+    if size(A,2) == nlin^2 && size(B,2) == nlin^2
         rank4_A = A;
         rank4_B = B;
-    elseif size(A,2) == nlin^G.griddim 
+    elseif size(A,2) == nlin^2 
         rank4 = A;
         rank2 = B;  
-    elseif size(B,2) == nlin^G.griddim 
+    elseif size(B,2) == nlin^2
         rank4 = B;
         rank2 = A;
     else

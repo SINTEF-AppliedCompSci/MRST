@@ -110,7 +110,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 xd = initVariablesADI(xd);
             end
 
-            eqs = equationsDCPoroMechanics(xd, model, constitutiveModel, fluidp, fluidp_matrix);
+            eqs = equationsDCPoroMechanics(xd, model, fluidp, fluidp_matrix);
 
             primaryVars = {'xd'};
             names = {'disp'};

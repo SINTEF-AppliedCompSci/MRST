@@ -61,7 +61,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                               varargin{:});           
         end
         
-        function [frac_index, mat_index] = findDPWells(model, wellSol)
+        function [frac_index, mat_index] = findDCWells(model, wellSol)
         % By definition the dual-continuum model assumes flow from both
         % porosity systems. This function helps to find the wells in
         % wellSol that correspond to matrix and fracture continua. It

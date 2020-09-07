@@ -1,5 +1,5 @@
-%%  Example of a poromechanical dual-continuum simulation on a 2D grid with
-%   void fractures
+%% Example of a poromechanical dual-continuum simulation on a 2D grid with
+%  void fractures
 %
 % The test problem is a uniaxial single-phase consolidation problem, such that the
 % bottom boundary is fixed, and the left, right and top boundaries admit
@@ -21,8 +21,6 @@ mrstModule add dual-continuum-mech ad-core ad-mechanics dual-porosity ad-props v
 opt = struct('cartDims'            , [2, 2], ...
              'L'                  , [10, 10], ...
              'fluid_model'        , 'water', ...
-             'nonlinearTolerance' , 1e-6, ...
-             'splittingTolerance' , 1e-6, ...
              'verbose'            , false);
 
 
@@ -34,7 +32,7 @@ G = computeGeometry(G);
 
 
 %% Setup rock parameters (for flow)
-%fracture
+% fracture
 perm_fracture = 1000*milli*darcy*ones(G.cartDims); 
 rock_fracture = struct('perm', reshape(perm_fracture, [], 1), ...
               'poro', ones(G.cells.num, 1)*0.005,...
@@ -82,7 +80,7 @@ for i = 1:numel(oside)
 end
 
 % Displacement BCs
-% Find the nodes for the different sides and set the boundaray conditions for
+% Find the nodes for the different sides and set the boundary conditions for
 % elasticity.
 for i = 1 : 4
     inodes = mcolon(G.faces.nodePos(bc{i}.face), G.faces.nodePos(bc{i}.face + 1) - 1);
@@ -104,7 +102,7 @@ bc_el_sides{3}.el_bc.disp_bc.mask(:, :) = true;   % x fixed, y fixed, z free
 bc_el_sides{4} = bc{4}; 
 bc_el_sides{4}.el_bc.disp_bc.mask(:, 2) = false;   % x fixed, y free
 
-% Collect the displacement boundary conditions
+% collect the displacement boundary conditions
 nodes = [];
 faces = [];
 mask = [];
@@ -128,12 +126,12 @@ el_bc = struct('disp_bc', disp_bc, 'force_bc', force_bc);
 
 
 %% Gravity
-% The gravity in this option affects only the fluid behavior
+% the gravity in this option affects only the fluid behaviour
 gravity off;
     
 
 %% Setup load for mechanics
-% In this example we do not impose any volumetric force
+% in this example we do not impose any volumetric force
 load = @(x) (0*x);
 
 
@@ -142,7 +140,7 @@ load = @(x) (0*x);
 mech = struct('E', E, 'nu', nu, 'E_m', E_m, 'nu_m', nu_m, 'K_s', K_s, 'el_bc', el_bc, 'load', load);
 
 
-%% Setup model
+%% Setup model object
 fullycoupledOptions = {'verbose', opt.verbose};
 DC_model = DualContMechWaterModel(G, {rock_fracture, rock_matrix}, {fluid_fracture, fluid_matrix}, mech, fullycoupledOptions{:});
 d1 = 0.1; % spacing of fracture set 1
@@ -150,14 +148,15 @@ d2 = d1; % spacing of fracture set 2
 fracture_spacing = repmat([d1,d2],G.cells.num,1);
 shape_factor_name = 'Lim_AzizShapeFactor';
 DC_model.transfer_model_object = SimpleTransferFunction(shape_factor_name, fracture_spacing);
-DC_model = DC_model.validateModel();
+DC_model = DC_model.validateModel(); % needed to instantiate facility model (even if it's empty) for the fluidModel
 
 
 %% Setup initial state and fluid BCs
 pressure = zeros(G.cells.num,1);
-state0 = struct('pressure', pressure, 'pressure_matrix', pressure, 's', ones(G.cells.num, 1), 'swm', ones(G.cells.num, 1));
+state0 = struct('pressure', pressure, 'pressure_matrix', pressure,...
+                's', ones(G.cells.num, 1), 'swm', ones(G.cells.num, 1));
 
-% Need to initiate the fluid bc's, bc's are the same for micro and macro scales 
+% need to initiate the fluid bc's, bc's are the same for micro and macro scales 
 bc_f0 = fluxside([], G, 'WEST', 0, 'sat', 1);
 bc_f0 = fluxside(bc_f0, G, 'EAST', 0,'sat', 1);
 bc_f0 = fluxside(bc_f0, G, 'SOUTH', 0, 'sat', 1);
