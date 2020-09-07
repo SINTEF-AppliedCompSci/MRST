@@ -1,460 +1,436 @@
-function [G, order, f] = glue2DGrid(G1, G2)
-%Connect two 2D grids along common edge
+function G = glue2DGrid(G1, G2, varargin)
+%Connect two 2D grids along common edges
 %
 % SYNOPSIS:
 %    G        = glue2DGrid(G1, G2)
-%   [G, iMap] = glue2DGrid(G1, G2)
 %
 % PARAMETERS:
 %   G1    - First grid to be combined.
 %
 %   G2    - Second grid to be combined.
 %
+% KEYWORD ARGUMENTS:
+%
+%  'tol'   - Define geometric tolerance to determine coincidence between
+%            nodes, and between nodes and edges, between the two grids.
+%            Default is 1e-3.
+%  
 % DESCRIPTION:
 %           Grids must follow definition from 'grid_structure'.  Both input
 %           grids must be strictly two-dimensional both in terms of
 %           `griddim` and in terms of size(nodes.coords, 2).
-%
-% RETURNS:
-%   G    - Resulting grid structure.  Does not contain any Cartesian
-%          information.  In particular, neither the `cells.indexMap` nor
-%          the `cartDims` fields are returned--even when present in both
-%          input grids.
-%
-%          Empty array ([]) if the input grids do not have a common
-%          (non-empty) intersecting edge.
-%
-%   iMap - Input order map.  Two-element vector containing strictly either
-%          [1,2] or [2,1].  This is the order in which the input grids (G1
-%          and G2) are connected along the common intersecting edge.  If
-%          this is [1,2] then the grids are geometrically concatenated as
-%          [G1, G2].  Otherwise, the grids are geometrically concatenated
-%          as [G2, G1].
-%
-%          One possible application of `iMap` is to determine the order in
-%          which to extract the input grid` `indexMap` arrays for purpose
-%          of creating the `indexMap` property for the combined grid `G`.
-%
-%          Empty array ([]) if the input grids do not have a common
-%          (non-empty) intersecting edge.
+%           If the two grids do not share any edges, the resulting
+%           combined grid will represent a topologically disconnected grid.
 %
 % NOTE:
 %   The result grid (`G`) does not provide derived geometric primitives
 %   (e.g., cell volumes).  Such information must be explicitly computed
 %   through a subsequent call to function `computeGeometry`.
 %
-%   To that end, the final step of function glue2DGrid is to order the
-%   faces of all cells in a counter-clockwise cycle.  This sorting process
-%   guarantees that face areas will be positive and that all face normals
-%   will point from the first to the second cell in `G.faces.neighbors`.
-%
-%   This sorting step however is typically quite expensive and there are,
-%   consequently, practical restrictions on the size of the input grids
-%   (i.e., in terms of the number of cells) to function `glue2DGrid`.
-%
 % SEE ALSO:
 %   `computeGeometry`
+   
+   opt.tol = 1e-3;
+   opt = merge_options(opt, varargin{:});
 
-%{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+   %% Insert extra nodes to ensure boundary conformity between the two grids
+   G1_conformal = ensure_conformal_boundaries(G1, G2, opt.tol);
+   G2_conformal = ensure_conformal_boundaries(G2, G1, opt.tol);
+   
+   %% making combined grid (with redundant nodes and faces)
+   G = concatenate_grids(G1_conformal, G2_conformal);
+   
+   %% compute boundary loops (assuming no holes, for now)
+   % a boundary loop is a list of oriented nodes and faces that constitutes a
+   % grid's boundary.
+   loop1 = boundary_loop(G1_conformal);
+   loop2 = boundary_loop(G2_conformal);
+   
+   %% identify coinciding nodes
+   cnodes = coinciding_nodes(G1_conformal, loop1.nodes, ...
+                             G2_conformal, loop2.nodes, opt.tol);
 
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+   %% purging redundant nodes
+   keepnodes = cnodes(:,1);
+   discardnodes = cnodes(:,2) + G1_conformal.nodes.num;
+   
+   % faces
+   issparse = true;
+   m1 = accumarray([(1:numel(G.faces.nodes))', G.faces.nodes], 1, ...
+                   [numel(G.faces.nodes), G.nodes.num], [], 0, issparse);
+   subst = (1:G.nodes.num)';
+   subst(discardnodes) = keepnodes;
+   subst = accumarray([(1:G.nodes.num)', subst], 1, [], [], 0, issparse);
+   subst(:, sum(subst) == 0) = [];
+   
+   [i, ~] = find((m1 * subst)');
+   G.faces.nodes = i;
+   
+   % nodes
+   G.nodes.num = G.nodes.num - numel(discardnodes);
+   G.nodes.coords(discardnodes, :) = [];
+   
+   %% Merge faces, i.e. ensuring neighbor cells share the same faces
+   mergefaces = identify_mergefaces(loop1, loop2, cnodes, G1_conformal.faces.num);
+   
+   for m = mergefaces'
+      G = merge_faces(G, m);
+   end
+   
+   %% Purging remaining, unused faces
+   G = cleanup_unused_faces(G);
+end
 
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+% ----------------------------------------------------------------------------
+function G = concatenate_grids(G1, G2)
+   % make simple concatenated grid, without regards for duplication of nodes/faces
+   
+   % nodes
+   G.nodes.num = G1.nodes.num + G2.nodes.num;
+   G.nodes.coords = [G1.nodes.coords; G2.nodes.coords];
+   
+   % faces
+   G.faces.num = G1.faces.num + G2.faces.num;
+   G.faces.nodePos = (1:G.faces.num + 1)' * 2 - 1;
+   
+   neigh1 = G1.faces.neighbors;
+   neigh2 = G2.faces.neighbors;
+   neigh2(neigh2 ~= 0) = neigh2(neigh2 ~=0) + G1.cells.num;
+   
+   G.faces.neighbors = [neigh1; neigh2];
+   G.faces.nodes = [G1.faces.nodes; G2.faces.nodes + G1.nodes.num];
+   
+   % cells
+   G.cells.num = G1.cells.num + G2.cells.num;
+   G.cells.facePos = [G1.cells.facePos; G2.cells.facePos(2:end) + G1.cells.facePos(end)-1];
+   G.cells.faces = [G1.cells.faces(:,1); G2.cells.faces(:,1) + G1.faces.num];
+   G.cells.indexMap = []; % @@ unused, but added for backwards compatibility
+   
+   % other
+   G.griddim = 2;
+   G.type = { mfilename };
+end
 
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+% ----------------------------------------------------------------------------
+function G = ensure_conformal_boundaries(targetgrid, othergrid, tol)
+% loop through the boundary of 'targetgrid' and insert extra nodes (and split
+% the resulting faces) wherever faces are intersected by boundary nodes from
+% 'othergird' (away from its own boundary nodes).  The end result is a grid
+% where the only boundary intersections with 'othergrid' are in terms of
+% overlapping nodes, never nodes that intersect faces.
 
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+   boundary_faces = @(G) find(prod(G.faces.neighbors, 2) == 0);
+   boundary_nodes = @(G) ...
+       unique(G.faces.nodes(mcolon(G.faces.nodePos(boundary_faces(G)),...
+                                   G.faces.nodePos(boundary_faces(G)+1)-1)));
 
-   check_input(G1, G2);
+   bfaces       = boundary_faces(targetgrid);
+   bnodes       = boundary_nodes(targetgrid);
+   bnodes_other = boundary_nodes(othergrid);
+   
+   % eliminate nodes that are already coinciding between the two grids
+   cnodes = coinciding_nodes(othergrid, bnodes_other, targetgrid, bnodes, tol);
+   bnodes_other = setdiff(bnodes_other, cnodes(:,1));
+   
+   bo_coords = othergrid.nodes.coords(bnodes_other, :);
 
-   [bb{1:2}]  = deal(bounding_box(G1), bounding_box(G2));
-   [lft, abo] = deal(left(bb{:}), above(bb{:}));
+   % intersections between nodes in 'bnodes_other' and faces in 'bfaces'
+   [ifaces, ipoints] = point_face_isect(bfaces, targetgrid, bo_coords, tol);
+   
+   % inserting new nodes and faces
+   G = targetgrid;
+   G.cells.faces = G.cells.faces(:,1); % remove 'tags'
+   unique_ifaces = unique(ifaces);
 
-   if xor(lft ~= 0, abo ~= 0),
-      % G1 either left/right or above/below G2.  Proceed accordingly.
-      assert (sum(sum(bsxfun(@eq, [lft; abo], [1, 2]))) == 1, ...
-              'Internal error.');
+   for ui = unique_ifaces(:)'
+   
+      % determine point(s) to insert
+      ins_pts = ipoints(ifaces == ui, :);
+      num_new_pts = size(ins_pts, 1);
+      
+      % determine affected cell (should be only one), and sorting new points
+      % along the affected edge
+      assert(prod(G.faces.neighbors(ui, :), 2) == 0);
+      cell = sum(G.faces.neighbors(ui, :));
+      face_nodes = G.faces.nodes(mcolon(G.faces.nodePos(ui), G.faces.nodePos(ui+1)-1));
+      ins_pts = order_points(ins_pts, G.nodes.coords(face_nodes(1), :));
+      
+      % updating nodes
+      old_nodenum = G.nodes.num;
+      G.nodes.num = G.nodes.num + num_new_pts;
+      G.nodes.coords = [G.nodes.coords; ins_pts];
+      
+      % updating faces (add new faces - the old one will be purged later)
+      old_facenum = G.faces.num;
+      G.faces.num = G.faces.num + num_new_pts + 1;
+      
+      seq = repmat(old_nodenum+1:G.nodes.num, 2, 1);
+      seq = [face_nodes(1); seq(:); face_nodes(2)];
+      if G.faces.neighbors(ui, 1) == 0 
+         % face normal pointing into cell -> reverse order of replacement
+         % faces to preserve consistent ordering of faces within cell
+         seq = reshape(fliplr(reshape(seq, 2, [])),[] ,1);
+      end
+      G.faces.nodes = [G.faces.nodes; seq];
+      G.faces.nodePos = [G.faces.nodePos; ...
+                         (2:2:2*(num_new_pts+1))' + G.faces.nodePos(end)];
+      G.faces.neighbors = [G.faces.neighbors; ...
+                          repmat(G.faces.neighbors(ui,:), num_new_pts + 1, 1)];
 
-      if lft ~= 0,
-         [connect, ord] = deal(@glue_left , lft);
+      % updating cells
+      facenums = diff(G.cells.facePos);
+      f_ix = find(G.cells.faces == ui);  assert(numel(f_ix) == 1);
+      G.cells.faces = [G.cells.faces(1:f_ix-1);
+                       (old_facenum + 1 : old_facenum + num_new_pts + 1)';
+                       G.cells.faces(f_ix+1:end)];
+      facenums(cell) = facenums(cell) + num_new_pts;
+      G.cells.facePos = cumsum([1; facenums(:)]);
+   end
+
+   G = cleanup_unused_faces(G);
+end
+
+% ----------------------------------------------------------------------------
+function pts = order_points(pts, ref_point)
+% order points in increasing distance from reference point
+
+   dists = sqrt(sum((pts - ref_point).^2, 2));
+   [~, order] = sort(dists);
+   pts = pts(order, :);
+end
+
+% ----------------------------------------------------------------------------
+function [ifaces, ipoints] = point_face_isect(faces, G, pts, tol)
+% Detect intersections (within 'tol') between the indicated faces of G and
+% the points whose 2D coords are given by 'pts'.
+   
+   nstart = G.faces.nodes(G.faces.nodePos(faces));
+   nend   = G.faces.nodes(G.faces.nodePos(faces) + 1);
+   
+   s1 = G.nodes.coords(nstart,:);
+   s2 = G.nodes.coords(nend, :);
+   
+   % unit vector along face direction
+   fdir = s2 - s1;
+   fdir = fdir ./ sqrt(sum(fdir.^2, 2)) ; % normalize
+   
+   [ifaces, ipoints] = deal([]);
+   for p = pts'
+      % vector from first face node to point (not normalized)
+      pdir = p' - s1;
+      
+      % compute projected distance from 'p' to line passing through s1 and s2
+      delta = fdir(:,2) .* pdir(:,1) - pdir(:,2) .* fdir(:, 1); 
+      
+      ixs = find(abs(delta) < tol);
+
+      if ~isempty(ixs)
+         % point may be on a line on which several faces lie, but in the end,
+         % only (zero or) one face should be intersected
+
+         for i = ixs(:)'
+            % check that intersection takes place within segment
+            s = fdir(i,:);
+            v1 = p' - s1(i,:);
+            v2 = p' - s2(i,:);
+         
+            if sum(v1.*s) > 0 && sum(v2.* (-s)) > 0
+               ifaces = [ifaces; faces(i)]; %#ok
+               ipoints = [ipoints; p']; %#ok
+               break; % we found the intersection, there shouldn't be more
+            end
+         end
+      end
+   end
+end
+
+% ----------------------------------------------------------------------------
+function G = cleanup_unused_faces(G)
+% Remove unused faces from G (i.e. those not referenced by any cell), and
+% re-number the remaining faces to avoid gaps in numbering.
+   
+   missing_faces = setdiff(1:G.faces.num, G.cells.faces);
+
+   %% update G.faces
+   G.faces.num = G.faces.num - numel(missing_faces);
+   G.faces.neighbors(missing_faces, :) = [];
+   
+   num_nodes = diff(G.faces.nodePos);
+   num_nodes(missing_faces) = [];
+   G.faces.nodePos = cumsum([1; num_nodes]);
+   nodes = reshape(G.faces.nodes, 2, [])';
+   nodes(missing_faces, :) = [];
+   nodes = nodes';
+   G.faces.nodes = nodes(:);
+   
+   %% Update G.cells
+   
+   for mf = sort(missing_faces, 'descend')
+      target_ixs = G.cells.faces > mf;
+      G.cells.faces(target_ixs) = G.cells.faces(target_ixs) - 1;
+   end
+end
+   
+% ----------------------------------------------------------------------------
+function G = merge_faces(G, merge)
+% Merge grid faces given in first column of 'merge' with the corresponding faces
+% given by the second column.  Leave both faces in place (although one will
+% remain unused).  (Unused faces can be purged later by a call to
+% 'cleanup_unused_faces'.)
+
+   %% update faces.neighbors
+   cell = sum(G.faces.neighbors(merge(1), :));
+   
+   tmp = G.faces.neighbors(merge(2),:);
+   assert(prod(tmp, 2) == 0);
+   tmp(tmp == 0) = cell;
+   G.faces.neighbors(merge(2),:) = tmp;
+
+   %% update G.cells.faces
+   G.cells.faces(G.cells.faces == merge(1)) = merge(2);
+end
+
+% ----------------------------------------------------------------------------
+function mergefaces = identify_mergefaces(loop1, loop2, cnodes, offset)
+% From the two loops 'loop1' and 'loop2', identify boundary face pairs that
+% should be merged.  Such face-pairs are identified by each of the two faces
+% in the pair having start- and end-nodes that coincide geometrically with
+% that of the other (such nodes are already identified and provided by the
+% 'cnodes' table).
+   
+   mergefaces = [];
+   
+   fnodes1 = [loop1.nodes, circshift(loop1.nodes, -1)];
+   fnodes2 = [loop2.nodes, circshift(loop2.nodes, -1)];
+   
+   tally1 = fnodes1;
+   tally2 = fnodes2;
+
+   for c = cnodes'
+      tally1(tally1 == c(1)) = 0;
+      tally2(tally2 == c(2)) = 0;
+   end
+   
+   f1_merges = find(sum(tally1, 2) == 0);
+   f2_merges = find(sum(tally2, 2) == 0);
+   assert(numel(f1_merges) == numel(f2_merges));
+   
+   for f1_cur = f1_merges(:)'
+   
+      % find counterpart face in loop2
+      nodes1 = fnodes1(f1_cur,:);
+      nodes2 = [cnodes(cnodes(:,1) == nodes1(2), 2), ...
+                cnodes(cnodes(:,1) == nodes1(1), 2)];
+      
+      f2_cur = find(prod(fnodes2 == nodes2, 2));
+      assert(numel(f2_cur) == 1); % there should be exactly one matching face
+      
+      mergefaces = [mergefaces; [loop1.faces(f1_cur), loop2.faces(f2_cur) + offset]];
+   end
+end
+
+% ----------------------------------------------------------------------------
+function cnodes = coinciding_nodes(G1, n1, G2, n2, tol)
+% determine which of the nodes 'n1' in grid 'G1' and 'n2' in grid 'G2' that
+% overlap within the given geometric tolerance.
+   
+   pts1 = G1.nodes.coords(n1, :);
+   pts2 = G2.nodes.coords(n2, :);
+   
+   % @@ the below could likely be made more efficient
+   dx2 = (pts1(:,1)' - pts2(:,1)).^2;
+   dy2 = (pts1(:,2)' - pts2(:,2)).^2;
+   
+   dist = sqrt(dx2 + dy2);
+   
+   [i, j] = find(dist < tol);
+   
+   cnodes = [n1(j), n2(i)];
+end
+
+% ----------------------------------------------------------------------------
+function loop = boundary_loop(G)
+% determine all boundary nodes and edges of a grid, and list them in
+% counterclockwise order
+
+   % identify all boundary faces
+   bfaces = find(prod(G.faces.neighbors, 2) == 0);
+   
+   % all faces should have exactly two nodes
+   assert(unique(diff(G.faces.nodePos)) == 2);
+
+   bnodes = reshape(G.faces.nodes, 2, [])';
+   bnodes = bnodes(bfaces,:);
+   
+   % loop as long as there are remaining faces
+   n_indices = bfaces * 0;
+   f_indices = bfaces * 0;
+   
+   f_indices(1) = bfaces(1);
+   n_indices(1) = bnodes(1, 1);
+   
+   bfaces(1) = nan;
+   
+   count = 1;
+   fix = 1;
+   
+   while true
+      
+      if n_indices(count) == bnodes(fix, 1)
+         side = 2;
       else
-         [connect, ord] = deal(@glue_above, abo);
+         side = 1;
       end
-
-      t     = { G1 , G2 };
-      order = [ ord, 3 - ord ];  % 3 - ord == (2 - ord) + 1
-      [G,f]     = connect(t{order});
-
-      G.type = { mfilename };
-      G_old=G;
-      % get read of extra nodes HACK???
-      [coords,ii,jj]=unique(G_old.nodes.coords,'rows');
-      G=G_old;
-      G.nodes.coords=coords;
-      G.nodes.num=numel(ii);
-      G.faces.nodes=jj(G.faces.nodes);
-   else
-      % G1 is neither left/right nor above/below G2 or BOTH of those
-      % conditions simultaneously satisfied (single common point?).
-      %
-      % This means that no geometric connection between the two grids is
-      % possible.  Return an empty result to indicate glue failure.
-      G     = [];
-      order = [];
-
-      if mrstVerbose,
-         n1 = inputname(1);  if isempty(n1), n1 = 'G1'; end
-         n2 = inputname(2);  if isempty(n2), n2 = 'G2'; end
-
-         fprintf(['Grids ''%s'' and ''%s'' don''t have a common', ...
-                  'non-empty edge. Connection impossible.\n'], n1, n2);
-      end
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function check_input(G1, G2)
-   assert (all([G1.griddim, G2.griddim] == 2) && ...
-           all([size(G1.nodes.coords, 2), ...
-                size(G2.nodes.coords, 2)] == 2) && ...
-           all(diff(G1.faces.nodePos) == 2) && ...
-           all(diff(G2.faces.nodePos) == 2), ...
-           'Function ''%s'' is only supported in two space dimensions', ...
-           mfilename);
-
-   if (size(G1.cells.faces, 2) == 1) || (size(G2.cells.faces, 2) == 1),
-      error(msgid('cfDirection:Missing'), ...
-           ['Function ''%s'' requires direction information for ', ...
-            'cell faces.'], mfilename);
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function bb = bounding_box(G)
-   c  = G.nodes.coords;
-   bb = [ min(c, [], 1) ; max(c, [], 1) ];
-end
-
-%--------------------------------------------------------------------------
-
-function c = left(bb1, bb2)
-   c = position_impl(bb1, bb2, 1);
-end
-
-%--------------------------------------------------------------------------
-
-function c = above(bb1, bb2)
-   c = position_impl(bb1, bb2, 2);
-end
-
-%--------------------------------------------------------------------------
-
-function c = position_impl(bb1, bb2, col)
-   m = [ bb1(1, col) , bb2(1, col) ];  % Minimum coordinate
-   M = [ bb1(2, col) , bb2(2, col) ];  % Maximum coordinate
-
-   x = [ M(1) == m(2) , ...  % bb1 "left" of bb2
-         m(1) == M(2) ];     % bb2 "left" of bb1
-
-   c = find(x);
-
-   if numel(c) ~= 1,
-      % Neither is "left" of the other or both are "left" of the other.
-      c = 0;
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function [G,f] = glue_left(G1, G2)
-% G1 left of G2.  Glue along common vertical edge.
-   tag = [ 2, 1 ]; % Type 2 on left, 1 on right
-   col = 2;        % Vertical edge => column 2
-
-   [G,f] = glue_impl(G1, G2, tag, col);
-end
-
-%--------------------------------------------------------------------------
-
-function [G,f] = glue_above(G1, G2)
-% G1 above G2.  Glue along common horizontal edge
-   tag = [ 4, 3 ]; % Type 4 on upper, 3 on lower
-   col = 1;        % Horizontal edge => column 1
-
-   [G,f] = glue_impl(G1, G2, tag, col);
-end
-
-%--------------------------------------------------------------------------
-
-
-function [G,f] = glue_impl(G1, G2, tag, col)
-   [f1, n1, i1, x1] = select_bfaces(G1, tag(1));
-   [f2, n2, i2, x2] = select_bfaces(G2, tag(2));
-
-   common   = intersection(x1, x2, col);
-   affected = @(x) between(common(1), common(2), x(:, col));
-
-   fnod = @(G, f)       G.faces.nodes(node_indices(G, f));
-   lfe  = @(G, f, i)    i(reshape(fnod(G, f), 2, []) .');
-   elim = @(G, f, i, a) f(sum(a(lfe(G, f, i)), 2) > 0);
-
-   % Identify all nodes along common intersection.
-   fe1 = elim(G1, f1, i1, affected(x1));
-   il  = i1(fnod(G1, fe1));  xl = x1(il, col);
-
-   fe2 = elim(G2, f2, i2, affected(x2));
-   ir  = i2(fnod(G2, fe2));  xr = x2(ir, col);
-
-   [N, ii] = intersection_topology(G1, G2, fe1, fe2, xl, xr);
-   inodes  = intersection_geometry(G1.nodes.num, ii, n1, n2, il, ir);
-
-   % Remove existing grid faces affected by common intersection.
-   H1 = removeFaces(G1, fe1);
-   H2 = removeFaces(G2, fe2);
-
-   G = concat_grids(H1, H2);
-
-   if col==1
-      in = flipud(reshape(inodes,2,[])); inodes = in(:);
-   end
-
-   [G,f] = addFaces(G, inodes, repmat(2, [size(N, 1), 1]), N);
-end
-
-%--------------------------------------------------------------------------
-
-function [N, ii] = intersection_topology(G1, G2, f1, f2, xl, xr)
-   mby2 = @(a) reshape(a, 2, []) .';
-
-   [u, ii, iu] = unique([xl ; xr], 'first');
-
-   left     = mby2(iu(1 : numel(xl)));
-   [ol, ol] = sort(left(:,1));                                  %#ok<ASGLU>
-   left     = left(ol, :);
-
-   right    = mby2(iu((numel(xl) + 1) : end));
-   [or, or] = sort(right(:,1));                                 %#ok<ASGLU>
-   right    = right(or, :);
-
-   merge = NaN([numel(u) - 1, 2]);
-   pl    = 1;
-   pr    = 1;
-
-   ix = diff(right,1,2)<0; right(ix,:) = right(ix,[2 1]);
-   ix = diff(left, 1,2)<0; left (ix,:) = left (ix,[2 1]);
-
-   for ival = 1 : (numel(u) - 1),
-      % Left pointer
-      [merge, pl] = record_interval(merge, pl, ival, 1, ol, left(pl,:));
-
-      % Right pointer
-      [merge, pr] = record_interval(merge, pr, ival, 2, or, right(pr,:));
-   end
-
-   bf2cell = @(G, f) sum(double(G.faces.neighbors(f, :)), 2);
-
-   N = merge;
-   i = ~isnan(N(:,1));
-   N(i,1) = bf2cell(G1, f1(N(i,1)));
-
-   i = ~isnan(N(:,2));
-   N(i,2) = G1.cells.num + bf2cell(G2, f2(N(i,2)));
-
-   N(isnan(N)) = 0;
-end
-
-%--------------------------------------------------------------------------
-
-function inodes = intersection_geometry(nn1, ii, n1, n2, i1, i2)
-   n1 = find(n1);
-   n2 = find(n2);
-
-   ni1 = numel(i1);
-   p1  = ii <= ni1;
-
-   inodes = zeros(size(ii));
-   inodes(  p1) = n1(i1(ii(  p1)));
-   inodes(~ p1) = n2(i2(ii(~ p1) - ni1)) + nn1;
-
-   % Double internal nodes to account for beginning *and* end of intervals.
-   inodes = inodes(1 + fix((1 : 2*(numel(inodes) - 1)) ./ 2));
-end
-
-%--------------------------------------------------------------------------
-
-function [f, n, i, x] = select_bfaces(G, tag)
-   bf        = boundary_faces(G);
-   cf        = G.cells.faces(bf.i, :);
-   f         = cf(bf.e(cf(:,1)) & (cf(:,2) == tag), 1);
-   %f         = cf(bf.e(cf(:,1)), 1);
-   [n, i, x] = face_nodes(G, f);
-end
-
-%--------------------------------------------------------------------------
-
-function bf = boundary_faces(G)
-   e = any(G.faces.neighbors == 0, 2);
-
-   c = false([G.cells.num, 1]);
-   c(sum(G.faces.neighbors(e, :), 2)) = true;
-   c = find(c);
-
-   i = mcolon(G.cells.facePos(  c  ), ...
-              G.cells.facePos(c + 1) - 1);
-
-   bf = struct('e', e, 'c', c, 'i', reshape(i, [], 1));
-end
-
-%--------------------------------------------------------------------------
-
-function [n, i, x] = face_nodes(G, f)
-   n = false([G.nodes.num, 1]);
-   i = NaN  (size(n));
-
-   p = node_indices(G, f);
-
-   n(G.faces.nodes(p)) = true;
-
-   i(n) = 1 : sum(n);
-   x    = G.nodes.coords(n, :);
-end
-
-%--------------------------------------------------------------------------
-
-function i = node_indices(G, f)
-   i = mcolon(G.faces.nodePos(f), G.faces.nodePos(f + 1) - 1);
-end
-
-%--------------------------------------------------------------------------
-
-function common = intersection(x1, x2, col)
-   lo = @(x) min(x(:, col), [], 1);
-   hi = @(x) max(x(:, col), [], 1);
-
-   common = [ max(lo(x1), lo(x2)) , ...
-              min(hi(x1), hi(x2)) ];
-
-   assert (common(1) < common(2), 'Non-empty intersection?');
-end
-
-%--------------------------------------------------------------------------
-
-function tf = between(lo, hi, x)
-   assert (lo < hi, 'Internal error');
-   tf = ~(x < lo) & ~(hi < x);
-end
-
-%--------------------------------------------------------------------------
-
-function [merge, k] = record_interval(merge, k, ival, col, o, x)
-   [lo, hi] = deal(x(1), x(2));
-
-   if (lo <= ival) && (ival < hi),
-      % ival subset of [lo, hi).  Record that fact.
-      merge(ival, col) = o(k);
-   end
-
-   if (hi == ival + 1) && (k < numel(o)),
-      k = k + 1;
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function G = concat_grids(G1, G2)
-   cells = concat_cells(G1, G2);
-   faces = concat_faces(G1, G2);
-   nodes = concat_nodes(G1, G2);
-
-   G = struct('nodes'  , nodes, ...
-              'cells'  , cells, ...
-              'faces'  , faces, ...
-              'griddim', 2);
-end
-
-%--------------------------------------------------------------------------
-
-function cells = concat_cells(G1, G2)
-   fpos    = concat_pos(G1.cells.facePos, G2.cells.facePos);
-   fadd    = zeros([1, size(G2.cells.faces, 2)]);
-   fadd(1) = G1.faces.num;
-   faces   = [G1.cells.faces; bsxfun(@plus, G2.cells.faces, fadd)];
-
-   num  = G1.cells.num + G2.cells.num;
-   imap = []; % Concatenated grids have no sensible indexMap.
-
-   %tag=[];
-   if(isfield(G1.cells,'tag'))
-       tag=G1.cells.tag;
-   else
-       tag=zeros(G1.cells.num,1);
-   end
-   if(isfield(G2.cells,'tag'))
-       tag=[tag;G2.cells.tag];
-   else
-       tag=[tag;zeros(G2.cells.num,1)];
-   end
-   cells = struct('num'     , num  , ...
-                  'facePos' , fpos , ...
-                  'faces'   , faces, ...
-                  'indexMap', imap,...
-                  'tag',tag);
-end
-
-%--------------------------------------------------------------------------
-
-function faces = concat_faces(G1, G2)
-   num   = G1.faces.num + G2.faces.num;
-   npos  = concat_pos(G1.faces.nodePos, G2.faces.nodePos);
-   nods  = [G1.faces.nodes; G1.nodes.num + G2.faces.nodes];
-
-   remap = [ 0 ; G1.cells.num + (1 : G2.cells.num).' ];
-   neigh = [double(G1.faces.neighbors); ...
-            remap(G2.faces.neighbors + 1)];
-
-   faces = struct('num'      , num  , ...
-                  'nodePos'  , npos , ...
-                  'nodes'    , nods , ...
-                  'neighbors', neigh);
-
-   tag = [];
-   if isfield(G1.faces, 'tag') || isfield(G2.faces, 'tag'),
-      tag = zeros([faces.num, 1]);
-
-      if isfield(G1.faces, 'tag'),
-         tag(1 : G1.faces.num)         = G1.faces.tag;
-      end
-
-      if isfield(G2.faces, 'tag'),
-         tag((G1.faces.num + 1) : end) = G2.faces.tag;
+      
+      count = count + 1;
+      n_indices(count) = bnodes(fix, side);
+
+      bnodes(fix,:) = nan;
+      
+      fix = find(sum(bnodes == n_indices(count), 2), 1);
+      
+      f_indices(count) = bfaces(fix);
+      bfaces(fix) = nan;
+      if all(isnan(bfaces))
+         break;
       end
    end
 
-   if ~isempty(tag),
-      faces.tag = tag;
+   if ~all(isnan(bfaces))
+      % @@ support shouldn't be too hard to implement if needed
+      error('Internal boundaries not yet supported');
    end
+   
+   % ensure clockwise orientation
+   xy = G.nodes.coords(n_indices, :);
+   
+   if loop_orientation(xy(:,1), xy(:,2)) < 0
+      n_indices = flipud(n_indices);
+      f_indices = circshift(flipud(f_indices), -1);
+   end
+   
+   loop.nodes = n_indices;
+   loop.faces = f_indices;
 end
 
-%--------------------------------------------------------------------------
-
-function nodes = concat_nodes(G1, G2)
-   nodes = struct('num'   , G1.nodes.num + G2.nodes.num, ...
-                  'coords', [G1.nodes.coords; G2.nodes.coords]);
-end
-
-%--------------------------------------------------------------------------
-
-function pos = concat_pos(p1, p2)
-   pos = [ p1(1 : (end - 1)) ; cumsum([ p1(end) ; diff(p2) ]) ];
+% ----------------------------------------------------------------------------
+function orient = loop_orientation(x, y)
+% Check if loop is clockwise (orient = 1) or counterclockwise (orient = -1)
+   
+   x = [x; x(1)];
+   y = [y; y(1)];
+   
+   % ensure a pair number of elements
+   if mod(numel(x), 2) == 1
+      x = [x;x(1)];
+      y = [y;y(1)];
+   end
+   
+   i = (1:numel(x)-2)';
+   i_p1 = i + 1;
+   i_p2 = i + 2;
+   
+   area = sum (x(i_p1) .* (y(i_p2) - y(i)) + y(i_p1) .* (x(i) - x(i_p2))) / 2;
+   
+   orient = sign(area);
 end
