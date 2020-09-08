@@ -427,7 +427,8 @@ classdef SparseTensor
          self = self.expandall();
 
          % compute index order
-         num_entries = size(self.components{1}.ixs, 1);
+         %num_entries = size(self.components{1}.ixs, 1);
+         num_entries = numel(value(self.components{1}.coefs));
          perm = SparseTensor.get_permutation(self.components{1}.indexnames,...
                                              ixnames);
          
@@ -1368,7 +1369,14 @@ classdef SparseTensor
       function tensor = apply_binary_operator(t1, t2, op)
          [t1, t2] = SparseTensor.make_tensors_compatible(t1, t2);
          assert(numel(t1.components) == 1); % should also be the case for t2 by now
-         
+
+         % if the tensors are scalars, we avoid calling 'tbinaroyop'
+         if numel(t1.indexNames()) == 0
+            tensor = SparseTensor(op(t1.components{1}.coefs, ...
+                                     t2.components{1}.coefs));
+            return;
+         end
+
          if isequal(op, @plus)
             optxt = '+';
          elseif isequal(op, @minus)
@@ -1380,7 +1388,7 @@ classdef SparseTensor
          else
             error('Unknown binary operator.');
          end
-         
+
          comp = tbinaryop([t1.components, t2.components], optxt);
          
          tensor = SparseTensor(comp);
