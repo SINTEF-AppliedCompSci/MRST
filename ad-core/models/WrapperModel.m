@@ -85,8 +85,8 @@ classdef WrapperModel < PhysicalModel
             model.parentModel.checkStateFunctionDependencies();
         end
         
-        function forces = validateDrivingForces(model, forces)
-            forces = model.parentModel.validateDrivingForces(forces);
+        function forces = validateDrivingForces(model, forces, varargin)
+            forces = model.parentModel.validateDrivingForces(forces, varargin{:});
         end
         
         function groupings = getStateFunctionGroupings(model)
