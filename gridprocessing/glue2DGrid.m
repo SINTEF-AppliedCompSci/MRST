@@ -93,10 +93,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    G.nodes.num = G.nodes.num - numel(discardnodes);
    G.nodes.coords(discardnodes, :) = [];
 
-   % Merge faces, i.e. ensuring neighbor cells share the same faces
+   % Merge faces, i.e. ensuring neighbor cells share the same faces.
+   % Result array 'mergefaces' is m-by-2.
    mergefaces = identify_mergefaces(loop1, loop2, cnodes, G1_conformal.faces.num);
 
-   for m = reshape(mergefaces, 1, [])
+   for m = mergefaces.'
       G = merge_faces(G, m);
    end
 
