@@ -216,6 +216,25 @@ methods
         end
     end
     
+    function ctrl = validateDrivingForces(model, ctrl, index)
+        nph = model.getNumberOfPhases();
+        if ~isempty(ctrl.W)
+            for i = 1:numel(ctrl.W)
+                w = ctrl.W(i);
+                assert(isfield(w, 'compi'), 'Missing compi field in wells for control %d.', index);
+                if ~all(size(w.compi) == [1, nph])
+                    error(['Well .compi field must contain 1 by %d entries for a %d-phase model.', ...
+                           '\nControl %d, well %s (#%d) provided %d by %d entries.'], ...
+                          nph, nph, index, w.name, i, size(w.compi, 1), size(w.compi, 2));
+                end
+                compi = w.compi;
+                if sum(compi) ~= 1
+                    error('Well %s (#%d) for control %d has .compi that does not sum to one.', w.name, i, index);
+                end
+            end
+        end
+    end
+    
     function model = setupStateFunctionGroupings(model, varargin)
         if isempty(model.FlowPropertyFunctions)
             dispif(model.verbose, 'Setting up FlowPropertyFunctions...');
