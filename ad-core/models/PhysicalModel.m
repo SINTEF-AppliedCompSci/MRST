@@ -349,11 +349,11 @@ methods
         assert(all(schedule.step.val >= 0), ...
             'Negative time-steps present in schedule.step.val');
         for i = 1:numel(schedule.control)
-            schedule.control(i) = model.validateDrivingForces(schedule.control(i));
+            schedule.control(i) = model.validateDrivingForces(schedule.control(i), i);
         end
     end
 
-    function forces = validateDrivingForces(model, forces)
+    function forces = validateDrivingForces(model, forces, index)
         validforces = model.getValidDrivingForces();
         fn_valid = fieldnames(validforces);
         fn = fieldnames(forces);
