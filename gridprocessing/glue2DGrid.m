@@ -72,10 +72,8 @@ function G = glue2DGrid(G1, G2, varargin)
    
    %% Merge faces, i.e. ensuring neighbor cells share the same faces
    mergefaces = identify_mergefaces(loop1, loop2, cnodes, G1_conformal.faces.num);
-   
-   for m = mergefaces'
-      G = merge_faces(G, m);
-   end
+
+   G = merge_all_faces(G, mergefaces);
    
    %% Purging remaining, unused faces
    G = cleanup_unused_faces(G);
@@ -273,24 +271,30 @@ function G = cleanup_unused_faces(G)
    G.cells.faces = new_ixs(G.cells.faces);
    
 end
-   
+
 % ----------------------------------------------------------------------------
-function G = merge_faces(G, merge)
-% Merge grid faces given in first column of 'merge' with the corresponding faces
-% given by the second column.  Leave both faces in place (although one will
-% remain unused).  (Unused faces can be purged later by a call to
-% 'cleanup_unused_faces'.)
 
-   %% update faces.neighbors
-   cell = sum(G.faces.neighbors(merge(1), :));
+function G = merge_all_faces(G, mfaces)
+% Merge grid faces given in first column of 'mfaces' with the corresponding ones
+% in the second column.  Leave both faces in place (although the ones in the
+% first column will remain unused).  Unused faces can be purged later by a
+% call to 'cleanup_unused_faces'.
+
+   cells = sum(G.faces.neighbors(mfaces(:,1), :), 2);
    
-   tmp = G.faces.neighbors(merge(2),:);
-   assert(prod(tmp, 2) == 0);
-   tmp(tmp == 0) = cell;
-   G.faces.neighbors(merge(2),:) = tmp;
-
+   %% Update faces.neighbors
+   tmp = G.faces.neighbors(mfaces(:,2), :);
+   tmp = reshape(tmp', [], 1);
+   assert(numel(cells) == sum(tmp==0));
+   tmp(tmp==0) = cells;
+   tmp = reshape(tmp, 2, [])';
+   G.faces.neighbors(mfaces(:,2), :) = tmp;
+   
    %% update G.cells.faces
-   G.cells.faces(G.cells.faces == merge(1)) = merge(2);
+   reindex = (1:max(G.cells.faces(:)))';
+   reindex(mfaces(:, 1)) = mfaces(:,2);
+   G.cells.faces = reindex(G.cells.faces);
+   
 end
 
 % ----------------------------------------------------------------------------
