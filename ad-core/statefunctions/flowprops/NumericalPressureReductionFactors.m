@@ -2,7 +2,6 @@ classdef NumericalPressureReductionFactors < StateFunction
     properties
         useDiagonalReduction
         includeDerivatives = true;
-        fullDerivatives    = false;
         checkDerivatives   = false;
         rowMajor           = false;
     end
@@ -29,15 +28,15 @@ classdef NumericalPressureReductionFactors < StateFunction
             factor = state.reductionFactorProps;
             factor.mass = mass;
             factor.pressure0 = factor.pressure;
-            factor.pressure = p;
+            factor.pressure = value(p);
             % Weights at current and previous iteration
             w      = prop.getWeights(factor, dt, ncell, ncomp);
             w_prev = state.reductionFactorProps.weights;
             % Get derivatives of weights wrt pressure
             % Construct AD weights
             pAD = state.pressure;
-            isAD = isa(pAD, 'ADI') && prop.includeDerivatives;
-            if isAD
+            isAD = isa(pAD, 'ADI');
+            if isAD && prop.includeDerivatives
                 dwdp = prop.getWeightDerivatives(w, w_prev, factor);
                 hasWeights = ~isempty(dwdp);
             else
@@ -111,30 +110,6 @@ classdef NumericalPressureReductionFactors < StateFunction
                 scale = 1/barsa;
                 % scale = sum(M(1:ncomp:end-ncomp+1, :), 1);
                 b(1:ncomp:end-ncomp+1) = scale;
-                if prp.fullDerivatives && ~isempty(factor.weights)
-                    masses = value(mass');
-                    masses0 = value(mass0');
-                    dm = masses - masses0;
-                    dm(abs(dm) < 1e-8) = 0;
-                    % Matrix entries
-                    maindiag = zeros(ncell, ncomp);
-                    for i = 1:ncomp
-                        d = getDiagonal(mass{i}, i);
-                        e = masses.*d./dm(:, i);
-                        e(~isfinite(e)) = 0;
-                        extra{i} = e;
-                        maindiag(:, i) = d;
-                    end
-                    % Right-hand side
-                    w0 = sum(factor.weights, 2);
-                    b_extra = bsxfun(@times, maindiag./dm, w0);
-                    b_extra(~isfinite(b_extra)) = 0;
-                    b_extra = b_extra';
-                    b = b + b_extra(:);
-                    for i = 1:ncomp
-                        diags{i} = diags{i} + extra{i};
-                    end
-                end
                 diags = cellfun(@(x) x, diags, 'UniformOutput', false);
                 if ~prp.rowMajor
                     diags = cellfun(@(x) x', diags, 'UniformOutput', false);
@@ -186,24 +161,18 @@ classdef NumericalPressureReductionFactors < StateFunction
         function dwdp = getWeightDerivatives(prop, w, w0, factor)
             % Compute weight derivatives by numerical differentiation
             if ~isempty(w0)
-                dw = w - w0;
-                if prop.fullDerivatives
-                    masses = factor.mass;
-                    m0 = value(factor.mass0');
-                    m  = value(masses');
-                    dm = m - m0;
-                    dm(abs(dm) < 1e-8) = 0;
-                    dwdm = bsxfun(@rdivide, dw, dm);
-                    for i = 1:size(dwdm, 2)
-                        dwdm(:, i) = dwdm(:, i).*getDiagonal(masses{i}, i);
-                    end
-                    dwdp = dwdm;
-                else
-                    p0 = factor.pressure0;
-                    p  = factor.pressure;
-                    dp = p - p0;
-                    dwdp = bsxfun(@rdivide, dw, dp);
-                end
+                p0 = factor.pressure0;
+                p  = factor.pressure;
+                dp = p - p0;
+                % Perform scaling to ensure zero derivatives:
+                % Weights are determined up to a arbitrary constant. The
+                % constant is not arbitrary when we take the derivatives
+                % with a finite-difference.
+                m = value(factor.mass');
+                a = sum(m.*value(w), 2)./sum(m.*value(w0), 2); 
+                dw = w - a.*w0;
+                % Forward difference
+                dwdp = bsxfun(@rdivide, dw, dp);
                 dwdp(~isfinite(dwdp)) = 0;
             else
                 dwdp = [];

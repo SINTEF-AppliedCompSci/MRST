@@ -6,6 +6,7 @@ classdef PressureModel < WrapperModel
         pressureIncTolType = 'relative';
         pressureTol = inf;
         pressureScaling = [];
+        laggedStateFunctions = [];
     end
     
     methods
@@ -72,8 +73,27 @@ classdef PressureModel < WrapperModel
             names = pnames;
             origin = origin(keep);
             assert(strcmpi(names{1}, 'pressure'));
+            if isfield(state, 'laggedStateFunctions')
+                % Overwrite initialized contained contents with lagged
+                % properties
+                fn = fieldnames(state.laggedStateFunctions);
+                for i = 1:numel(fn)
+                    fld = fn{i};
+                    tmp = state.laggedStateFunctions.(fld);
+                    sfn = fieldnames(tmp);
+                    for j = 1:numel(sfn)
+                        n = sfn{j};
+                        state.(fld).(n) = state.laggedStateFunctions.(fld).(n);
+                    end
+                end
+            end
         end
 
+        function model = validateModel(model, varargin)
+            model = validateModel@WrapperModel(model, varargin{:});
+        end
+
+        
         function [eqs, names, types, state] = getModelEquations(pmodel, state0, state, dt, drivingForces)
             model = pmodel.parentModel;
             ncomp = model.getNumberOfComponents();
@@ -90,7 +110,8 @@ classdef PressureModel < WrapperModel
             eqs = [{pressure_equation}, eqs(subs)];
             names = ['pressure', names(subs)];
             types = ['cell', types(subs)];
-        end
+            state = pmodel.updateReductionFactorProps(state);
+       end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             [problem, state] = getEquations@PhysicalModel(model, state0, state, dt, drivingForces, varargin{:});
@@ -101,6 +122,42 @@ classdef PressureModel < WrapperModel
             state = model.assignReductionFactorProps(state, state0, dt);
             % Ensure that saturations are normalized
             state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
+            % Check for lagged functions - from previous iteration of
+            % pressure transport loop, or previous timestep, depending on
+            % if the model is linear.
+            lfd = model.laggedStateFunctions;
+            if ~isempty(lfd)
+                % Loop over all groups of lagged state functions and store
+                % them in a special field so that they can be set in
+                % initStateAD and avoid recomputation
+                fn = fieldnames(lfd);
+                tmp = state;
+                for i = 1:numel(fn)
+                    f = fn{i};
+                    lagged = lfd.(f);
+                    nlag = numel(lagged);
+                    if nlag
+                        sfg = model.parentModel.(f);
+                        fld = sfg.getStateFunctionContainerName();
+                        if ~isfield(tmp, fld)
+                            tmp = sfg.initStateFunctionContainer(tmp);
+                        end
+                        for j = 1:nlag
+                            [~, tmp] = sfg.get(model.parentModel, tmp, lagged{j});
+                        end
+                        % Remove other intermediate values that we do not
+                        % want to lag! Also, remove caching status.
+                        v = struct(tmp.(fld));
+                        sfn = fieldnames(v);
+                        for j = 1:numel(sfn)
+                            if ~any(strcmp(sfn{j}, lagged))
+                                v = rmfield(v, sfn{j});
+                            end
+                        end
+                        state.laggedStateFunctions.(fld) = v;
+                    end
+                end
+            end
         end
         
         function state = validateState(model, state)
@@ -110,9 +167,10 @@ classdef PressureModel < WrapperModel
 
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            pvar = problem.primaryVariables;
+            isP = strcmpi(pvar, 'pressure');
+
             if ~isempty(model.pressureScaling)
-                pvar = problem.primaryVariables;
-                isP = strcmpi(pvar, 'pressure');
                 isBHP = strcmp(pvar, 'bhp');
                 pscale = model.pressureScaling;
                 dx{isP} = dx{isP}./pscale;
@@ -120,33 +178,18 @@ classdef PressureModel < WrapperModel
                     dx{isBHP} = dx{isBHP}./mean(pscale);
                 end
             end
-            state = model.updateReductionFactorProps(state);
             p0 = state.pressure;
             [state, report] = model.parentModel.updateState(state, problem, dx, drivingForces);
             if model.verbose > 1
-                fprintf('* Pressure: Minimum %f bar, maximum %f bar, mean %f bar\n', mean(p0)/barsa, max(p0)/barsa, mean(p0)/barsa)
-                fprintf('* %d two-phase cells\n', sum(state.s(:, 3) > 0));
+                fprintf('* Pressure: Minimum %f bar, maximum %f bar, mean %f bar\n', min(p0)/barsa, max(p0)/barsa, mean(p0)/barsa)
+                sg = model.parentModel.getProp(state, 'sg');
+                fprintf('* %d two-phase cells\n', sum(sg > 0));
             end
-            incType = lower(model.pressureIncTolType);
-            if model.parentModel.G.cells.num == 1 && strcmp(incType, 'relative')
-                % Only norm makes sense
-                incType = 'norm';
+            if any(isP)
+                state.pressureChange = dx{isP};
+            else
+                state.pressureChange = zeros(size(p0));
             end
-            switch incType
-                case 'relative'
-                    range = max(p0) - min(p0);
-                    if range == 0
-                        range = norm(p0, inf);
-                    end
-                    dp = (state.pressure - p0)./range;
-                case 'absolute'
-                    dp = state.pressure - p0;
-                case 'norm'
-                    dp = (state.pressure - p0)/norm(state.pressure, inf);
-                otherwise
-                    error('Unknown pressure increment %s', model.pressureIncTolType);
-            end
-            state.pressureChange = dp;
         end
         
         function  [convergence, values, names] = checkConvergence(model, problem)
@@ -172,7 +215,29 @@ classdef PressureModel < WrapperModel
             if useITol
                 % Check the increment tolerance  for pressure
                 if problem.iterationNo > 1 && ~isnan(problem.iterationNo)
-                    dp = norm(problem.state.pressureChange, inf);
+                    incType = lower(model.pressureIncTolType);
+                    if model.parentModel.G.cells.num == 1 && strcmp(incType, 'relative')
+                        % Only norm makes sense
+                        incType = 'norm';
+                    end
+                    dp = problem.state.pressureChange;
+                    switch incType
+                        case 'relative'
+                            p0 = value(problem.state.pressure);
+                            range = max(p0) - min(p0);
+                            if range == 0
+                                range = norm(p0, inf);
+                            end
+                            scale = range;
+                        case 'absolute'
+                            % Do nothing
+                            scale = 1;
+                        case 'norm'
+                            scale = norm(state.pressure, inf);
+                        otherwise
+                            error('Unknown pressure increment %s', model.pressureIncTolType);
+                    end
+                    dp = norm(dp./scale, inf);
                 else
                     dp = inf;
                 end
@@ -185,18 +250,19 @@ classdef PressureModel < WrapperModel
         function [state, report] = updateAfterConvergence(model, varargin)
             [state, report] = updateAfterConvergence@WrapperModel(model, varargin{:});
             % Clean up internal fields
-            if isfield(state, 'statePressure')
-                state = rmfield(state, 'statePressure');
+            removeFields = {'laggedStateFunctions', ...
+                            'statePressure', ...
+                            'pressureChange', ...
+                            'reductionFactorProps'};
+            for i = 1:numel(removeFields)
+                f = removeFields{i};
+                if isfield(state, f)
+                    state = rmfield(state, f);
+                end
             end
             if isfield(state, 'sT')
                 state.sT = sum(value(state.s), 2);
             end
-            if isfield(state, 'pressureChange')
-                state = rmfield(state, 'pressureChange');
-            end
-            if isfield(state, 'reductionFactorProps')
-                state = rmfield(state, 'reductionFactorProps');
-            end 
             state.statePressure = state;
         end
         
@@ -260,6 +326,8 @@ classdef PressureModel < WrapperModel
                     if ~isa(rf, 'NumericalPressureReductionFactors')
                         pvt = pvt.setStateFunction('PressureReductionFactors', NumericalPressureReductionFactors(pmodel));
                     end
+                case 'preselected'
+                    % Do nothing.
                 otherwise
                     error('Unknown reduction strategy');
             end
@@ -283,10 +351,30 @@ classdef PressureModel < WrapperModel
                 pressure = model.getProp(state, 'pressure');
                 weights  = model.parentModel.getProp(state, 'PressureReductionFactors');
                 mass  = model.parentModel.getProp(state, 'ComponentTotalMass');
-                state.reductionFactorProps.pressure = pressure;
+                state.reductionFactorProps.pressure = value(pressure);
                 state.reductionFactorProps.weights = value(weights');
                 state.reductionFactorProps.mass = value(mass');
             end
+        end
+        
+        function model = setLaggedTerms(model, type)
+            if isstruct(type)
+                lt = type;
+            else
+                switch lower(type)
+                    case 'none'
+                        lt = struct('FlowPropertyFunctions', {{}}, ...
+                                    'PVTPropertyFunctions', {{}}, ...
+                                    'FlowDiscretization', {{}});
+                    case 'mobilities'
+                        lt = struct('FlowPropertyFunctions', {{'Mobility', 'ComponentMobility'}}, ...
+                                    'PVTPropertyFunctions', {{}}, ...
+                                    'FlowDiscretization', {{}});
+                    otherwise
+                        error('Bad type %s', type);
+                end
+            end
+            model.laggedStateFunctions = lt;
         end
 
     end
