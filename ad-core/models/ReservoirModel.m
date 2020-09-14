@@ -232,7 +232,7 @@ methods
                               nph, nph, index, w.name, i, size(w.compi, 1), size(w.compi, 2));
                     end
                     compi = w.compi;
-                    if sum(compi) ~= 1
+                    if abs(sum(compi) - 1) > 1e-8
                         error('Well %s (#%d) for control %d has .compi that does not sum to one.', w.name, i, index);
                     end
                 end
