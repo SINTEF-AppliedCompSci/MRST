@@ -206,10 +206,10 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             end
             state = model.setProp(state, 's', s);
         end
-      
-        function forces = validateDrivingForces(model, forces)
-            forces = validateDrivingForces@OverallCompositionCompositionalModel(model, forces);
-            forces = validateCompositionalForces(model, forces);
+
+        function forces = validateDrivingForces(model, forces, varargin)
+            forces = validateDrivingForces@OverallCompositionCompositionalModel(model, forces, varargin{:});
+            forces = validateCompositionalForces(model, forces, varargin{:});
         end
     end
 end

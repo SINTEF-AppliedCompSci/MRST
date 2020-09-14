@@ -1,4 +1,4 @@
-function forces = validateCompositionalForces(model, forces)
+function forces = validateCompositionalForces(model, forces, it)
 %Undocumented Utility Function
 
 %{

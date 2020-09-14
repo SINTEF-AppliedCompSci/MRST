@@ -277,9 +277,9 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
         end
 
-        function forces = validateDrivingForces(model, forces)
-            forces = validateDrivingForces@NaturalVariablesCompositionalModel(model, forces);
-            forces = validateCompositionalForces(model, forces);
+        function forces = validateDrivingForces(model, forces, varargin)
+            forces = validateDrivingForces@NaturalVariablesCompositionalModel(model, forces, varargin{:});
+            forces = validateCompositionalForces(model, forces, varargin{:});
         end
         
         function problem = setupLinearizedProblem(model, eqs, types, names, primaryVars, state, dt)
