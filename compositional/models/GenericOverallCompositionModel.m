@@ -129,6 +129,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
 
         function state = initStateAD(model, state, vars, names, origin)
             isP = strcmp(names, 'pressure');
+            isAD = any(cellfun(@(x) isa(x, 'ADI'), vars));
             state = model.setProp(state, 'pressure', vars{isP});
             removed = isP;
             
@@ -149,7 +150,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             end
             z{fill} = z_end;
             state = model.setProp(state, 'components', z);
-            if isa(state.pressure, 'ADI') || isa(z{1}, 'ADI')
+            if isAD
                 [state.x, state.y, state.L, state.FractionalDerivatives] = ...
                     model.EOSModel.getPhaseFractionAsADI(state, state.pressure, state.T, state.components);
             end
@@ -172,10 +173,18 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             % Set up state with remaining variables
             state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
             
-            % Now that props have been set up, we can get the saturations
-            Z = model.getProps(state, 'PhaseCompressibilityFactors');
-            Z_L = Z{offset+1};
-            Z_V = Z{offset+2};
+            % Now that props have been set up, we can compute the
+            % saturations from the mole fractions.
+            if isAD
+                % We must get the version with derivatives
+                Z = model.getProps(state, 'PhaseCompressibilityFactors');
+                Z_L = Z{offset+1};
+                Z_V = Z{offset+2};
+            else
+                % Already stored in state - no derivatives needed
+                Z_L = state.Z_L;
+                Z_V = state.Z_V;
+            end
             
             L = state.L;
             volL = L.*Z_L;

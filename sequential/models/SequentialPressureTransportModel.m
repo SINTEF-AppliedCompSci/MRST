@@ -300,8 +300,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
             dt = min(dt_p, dt_t);
         end
         
-        function forces = validateDrivingForces(model, forces)
-           forces = model.pressureModel.validateDrivingForces(forces);
+        function forces = validateDrivingForces(model, forces, varargin)
+           forces = model.pressureModel.validateDrivingForces(forces, varargin{:});
         end
         
     end
