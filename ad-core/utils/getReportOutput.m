@@ -142,7 +142,7 @@ end
 
 %-------------------------------------------------------------------------%
 function iterations = getNonLinearIterations(report)
-    % Count as one iteration if we acutally solved the Newton step, not
+    % Count as one iteration if we actually solved the Newton step, not
     % just checked for convergence
     iterations = report.Solved;
 end
@@ -159,7 +159,7 @@ end
 
 %-------------------------------------------------------------------------%
 function iterations = getLinearIterations(report)
-    % Get total nonlinear iterations if we acutally solved the Newton step,
+    % Get total nonlinear iterations if we actually solved the Newton step,
     % not just checked for convergence
     iterations = 0;
     if report.Solved
@@ -169,7 +169,7 @@ end
 
 %-------------------------------------------------------------------------%
 function time = getLinearSolverTime(report)
-    % Get total nonlinear iterations if we acutally solved the Newton step,
+    % Get total nonlinear iterations if we actually solved the Newton step,
     % not just checked for convergence
     time = 0;
     if report.Solved && isfield(report, 'LinearSolver') && isfield(report.LinearSolver, 'SolverTime')
