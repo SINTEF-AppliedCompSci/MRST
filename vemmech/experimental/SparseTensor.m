@@ -95,6 +95,9 @@ classdef SparseTensor
              % input is in form of a matrix (or vector) and a list of (one or
              % two) index names
              coefs = full(varargin{1});
+             if isa(coefs, 'ADI')
+                coefs.val = full(coefs.val);
+             end
              indexnames = varargin{2}';
              self.components = SparseTensor.make_matrix_tensor(coefs, indexnames);
            case 3
@@ -111,7 +114,10 @@ classdef SparseTensor
                 comp.coefs = ones(size(comp.ixs, 1), 1);
              elseif isscalar(comp.coefs) && ~isa(comp.coefs, 'ADI')
                 comp.coefs = comp.coefs * ones(size(comp.ixs,1), 1);
+             elseif isa(comp.coefs, 'ADI')
+                comp.coefs.val = full(comp.coefs.val); % avoid sparse ADI 
              end
+             
              self = SparseTensor(comp);
            otherwise
              error('Unsupported arguments to constructor.');
@@ -403,6 +409,24 @@ classdef SparseTensor
          end
          cixnames = unique(cixnames);
       end
+      
+      
+      function v = asFullVector(self, ixnames, shape)
+      % Same as call to 'asVector', but ensures that the returned vector is
+      %_not_ sparse.
+         if ~exist('shape', 'var')
+            v = self.asVector(ixnames);
+         else
+            v = self.asVector(ixnames, shape);
+         end
+         
+         if isa(v, 'ADI')
+            v.val = full(v.val);
+         else
+            v = full(v);
+         end
+      end
+      
       
       % since there may be some zeroes in the coefs that are eliminated by
       % the call to sparse, we also return the 1D indices, to let the user

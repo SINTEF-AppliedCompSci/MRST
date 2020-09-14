@@ -2,7 +2,6 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
-#include <fstream>
 
 #include "TensorComp.hpp"
 #include "binaryop_algo.hpp"

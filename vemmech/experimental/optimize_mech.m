@@ -45,7 +45,7 @@ function [foptval, uopt, history, uu_opt, extra] = ...
    mrstModule add optimization linearsolvers;
    
    opt.gradTol = 1e-9; %1e-3;
-   opt.objChangeTol = 1e-10;%1e-5; %@@ might be too tight (much tighter than default
+   opt.objChangeTol = 1e-10;%1e-10;%1e-5; %@@ might be too tight (much tighter than default
                             %in unitBoxBFGS)
    opt.cyclical = []; % indices of cyclical control variables
    opt.extra = []; % if discretization is precomputed, it can be passed in
@@ -68,10 +68,11 @@ function [foptval, uopt, history, uu_opt, extra] = ...
 
    % handle cyclical variables that have hit against the imposed box boundary
    small = 1e-2;
+   bnd_tol = 1e-4;
    if ~isempty(opt.cyclical)
       
-      ixs_1 = uopt(opt.cyclical) == 1;
-      ixs_0 = uopt(opt.cyclical) == 0;
+      ixs_1 = abs(1 - uopt(opt.cyclical)) < bnd_tol;
+      ixs_0 = uopt(opt.cyclical) < bnd_tol;
       
       while any([ixs_1(:) ;ixs_0(:)]) && ...
              (history.pg(end) > opt.gradTol || isnan(history.pg(end)))
@@ -82,7 +83,10 @@ function [foptval, uopt, history, uu_opt, extra] = ...
          u = uopt;
          u(opt.cyclical(ixs_1)) = 0+small;
          u(opt.cyclical(ixs_0)) = 1-small;
-         [foptval, uopt, history] = unitBoxBFGS(u, funwrap, 'stepInit', small);
+         [foptval, uopt, history] = unitBoxBFGS(u, funwrap, ...
+                                                'gradTol', opt.gradTol, ...
+                                                'objChangeTol', opt.objChangeTol, ...
+                                                'stepInit', small);
          ixs_1 = uopt(opt.cyclical) == 1;
          ixs_0 = uopt(opt.cyclical) == 0;
 
@@ -99,7 +103,7 @@ function [foptval, uopt, history, uu_opt, extra] = ...
       load = loadfun(uopt);
 
       amgsolver = @(A, b) callAMGCL(A, b, 'relaxation', 'chebyshev', 'solver', 'cg', ...
-                                    'tolerance', 2e-6, 'maxIterations', 2000);
+                                    'tolerance', 2e-6, 'maxIterations', 8000);
       if nargout == 4
          uu_opt = VEM_linElast_AD(G, E, nu, bc, load, 'linsolve', amgsolver, ...
                                   'extra', opt.extra, 'background_forces', opt.background_forces);
@@ -125,7 +129,7 @@ function [val, grad] = fun_wrapper(u, G, bcfun, efun, nufun, loadfun, ...
    load = loadfun(u);
 
    amgsolver = @(A, b) callAMGCL(A, b, 'relaxation', 'chebyshev', 'solver', 'cg', ...
-                              'tolerance', 2e-6, 'maxIterations', 2000);
+                              'tolerance', 2e-6, 'maxIterations', 8000);
    
    [dd, extra] = VEM_linElast_AD(G, E, nu, bc, load, ...
                                  'linsolve', amgsolver, ...
@@ -134,8 +138,8 @@ function [val, grad] = fun_wrapper(u, G, bcfun, efun, nufun, loadfun, ...
                                  %'force_method', 'cell_force', ...
    dd = dd';
 
-   [val, oval_du, oval_dd] = obj_fun(value(u), dd(:));
-   
+   [val, oval_du, oval_dd] = obj_fun(value(u), dd(:), extra);
+
    
    %% use adjoint to compute gradient
    tic; fprintf('Solving for adjoint.\n');
@@ -156,4 +160,18 @@ function [val, grad] = fun_wrapper(u, G, bcfun, efun, nufun, loadfun, ...
    % minimizes
    val = -1 * val;
    grad = -1 * grad;
+
+   % % take care of possible scaling issue if derivatives become unreasonable
+   % % large (may typically happen at very first step if initial guess is
+   % 'bad')
+   
+   if norm(grad) > 1./sqrt(eps)
+      grad = grad / sqrt(norm(grad));
+   end
+   
+   % max_deriv_val = 1e6;
+   % grad(grad > max_deriv_val) = max_deriv_val;
+   % grad(grad < -max_deriv_val) = -max_deriv_val;
+   
+   
 end
