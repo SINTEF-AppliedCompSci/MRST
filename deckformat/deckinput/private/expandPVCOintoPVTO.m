@@ -26,6 +26,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     for i = 1:ntab
         tloc = tbl{i};
+        % Table contains: 
+        % Pb, Rs, B, mu, compressibility, viscosibility
+        tloc = tloc(:, [2, 1, 3:6]);
         npts = size(tloc, 1);
         
         nd = npts*(1 + ndp);
@@ -40,9 +43,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         satix(1:(ndp+1):(nd - ndp)) = true;
         
         sat_tbl = tloc(:, 2:4);
-        
+        c = tloc(:, 5:6);
+        usat_tbl = makeUsatTable(sat_tbl, c, dp);
         t.data(satix, :) = sat_tbl;
-        t.data(~satix, :) = makeUsatTable(sat_tbl, tloc(:, 5:6), dp);
+        t.data(~satix, :) = usat_tbl;
         t.pos = (1:(1+ndp):(nd + 1))';
         
         T{i} = t;
