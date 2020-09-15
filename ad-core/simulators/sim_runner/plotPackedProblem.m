@@ -43,6 +43,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    mrstModule add mrst-gui
     warg = {'color',    [1.0, 0.2, 0.2], ...
             'color2',   [0.2, 0.2, 1.0], ...
             'fontsize', 12};
