@@ -55,7 +55,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
     if numel(xc) == 1
-        xc = repmat(xc, size(x));
+        xc = repmat(xc, size(x0));
     end
     % x0: before
     % x: after
