@@ -76,11 +76,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    T = cell([ntab, 1]);
 
-   for i = 1 : ntab,
+   for i = 1 : ntab
       t    = create_table(ncol);
       done = false;
 
-      while ~done,
+      while ~done
          data      = read_record(fid);
          [t, done] = append_data(t, data, ncol);
       end
@@ -94,7 +94,7 @@ end
 function data = read_record(fid)
    data = readRecordString(fid);
 
-   if isempty(data) || all(isspace(data)),
+   if isempty(data) || all(isspace(data))
       data = [];
    else
       data = sscanf(data, '%f');
@@ -115,14 +115,14 @@ function [t, done] = append_data(t, data, ncol)
    nd   = numel(data);
    done = nd == 0;
 
-   if ~done,
+   if ~done
       assert (mod(nd, ncol) == 1);
 
       cpty = size(t.data, 1);
       nrow = floor(nd / ncol);
       p    = t.pos(end) + nrow;
 
-      if p > cpty,
+      if p > cpty
          % Extend storage space.
          t.data(2*p, 1 : ncol) = 0;
       end
@@ -136,7 +136,7 @@ end
 %--------------------------------------------------------------------------
 
 function t = finish_table(t)
-   if numel(t.pos) == 1,
+   if numel(t.pos) == 1
       % Empty table.
       t.pos = [];
    else
