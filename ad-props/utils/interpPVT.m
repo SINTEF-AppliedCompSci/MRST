@@ -1,6 +1,9 @@
 function [yi, dyidxi, dyidvi] = interpPVT(T, xi, vi, flag)
 % Interpolate PVT-type curves
 compDer = (nargout>1);
+if numelValue(flag) == 1
+    flag = repmat(flag, numelValue(xi), 1);
+end
 if isa(T, 'function_handle')
     if compDer
         [yi, dyidxi, dyidvi] = T(xi, vi, flag);
