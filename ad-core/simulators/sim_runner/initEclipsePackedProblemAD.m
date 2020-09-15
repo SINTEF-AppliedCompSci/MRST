@@ -51,7 +51,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     [state0, model, schedule, nls] = initEclipseProblemAD(deck, extra{:});
     if isempty(opt.name)
-        name = model.inputdata.RUNSPEC.TITLE;
+        if isfield(model.inputdata.RUNSPEC, 'TITLE')
+            name = model.inputdata.RUNSPEC.TITLE;
+        else
+            s = randi(26, 1, 20);
+            letters = 'a':'z';
+            name = letters(s);
+        end
     else
         name = opt.name;
     end
