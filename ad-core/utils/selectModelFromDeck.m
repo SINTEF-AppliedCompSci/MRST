@@ -79,6 +79,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     % Set blackoil specific features
     if isa(model, 'ThreePhaseBlackOilModel') && isfield(deck, 'RUNSPEC')
+        if check('BLACKOIL')
+            model.disgas = isfield(deck.PROPS, 'PVTO');
+            model.vapoil = isfield(deck.PROPS, 'PVTG');
+        end
         if isfield(deck.RUNSPEC, 'VAPOIL')
             model.vapoil = deck.RUNSPEC.VAPOIL;
         end
