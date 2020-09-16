@@ -131,17 +131,19 @@ function w = readWellSpec(fid, w)
 
    WellSpec = readDefaultedKW(fid, template);
 
-   if ~isempty(WellSpec),
+   if ~isempty(WellSpec)
       WellSpec = toDouble(WellSpec, numeric);
 
-      if ~isempty(w.WELSPECS),
+      if ~isempty(w.WELSPECS)
          [tf, loc] = ismember(WellSpec(:,1), w.WELSPECS(:,1));
          ws = w.WELSPECS;
-         if any(tf),
+         if any(tf)
             ws(loc(tf),:) = WellSpec(tf,:);
          end
+
          WellSpec = [ws; WellSpec(~tf,:)];
       end
+
       w.WELSPECS = WellSpec;
    end
 end
@@ -160,7 +162,7 @@ function w = readCompDat(fid, w)
    numeric  = [2:5, 7:11, 14];
    compdat  = toDouble(readDefaultedKW(fid, template), numeric);
 
-   if isempty(w.COMPDAT),
+   if isempty(w.COMPDAT)
       % No existing completion records.  Assign this data.
       w.COMPDAT = compdat;
    else
@@ -178,13 +180,13 @@ function w = readCompDat(fid, w)
 
       % Note: We do currently not support well lists ('*NAME') or well
       % templates ('NAME*') in this processing.
-      if ~ all(cellfun(@isempty, regexp(new.well, '^\*|\*$', 'match'))),
+      if ~ all(cellfun(@isempty, regexp(new.well, '^\*|\*$', 'match')))
          error('WLIST:Unsupp', ...
                'MRST does not support well lists or templates in COMPDAT');
       end
 
       [memb, loc] = ismember(new.well, ext.well);
-      if ~ any(memb),
+      if ~ any(memb)
          % New records do not describe any existing completions.  Just
          % append the new records to the existing ones.
          w.COMPDAT = [ w.COMPDAT ; compdat ];
@@ -286,7 +288,7 @@ function w = readWConInje(fid, w)
 
    data = readDefaultedKW(fid, template);
 
-   if ~isempty(data),
+   if ~isempty(data)
       data = toDouble(data, numeric);
 
       w = assignControlRecords(w, data, 'WCONINJE');
@@ -360,9 +362,9 @@ function w = readWelOpen(fid, w)
    change_well = all([data{3:end}] < 0);
    
    if change_well
-       for kw = { 'WCONINJ', 'WCONINJE', 'WCONINJH' },
+       for kw = { 'WCONINJ', 'WCONINJE', 'WCONINJH' }
           if isfield(w, kw{1}) && ...
-                ~ (isempty(data) || isempty(w.(kw{1}))),
+                ~ (isempty(data) || isempty(w.(kw{1})))
 
              [ix, pos, rec] = matchWells(data(:,1), w.(kw{1})(:,1));
 
@@ -372,9 +374,9 @@ function w = readWelOpen(fid, w)
           end
        end
 
-       for kw = { 'WCONPROD', 'WCONHIST' },
+       for kw = { 'WCONPROD', 'WCONHIST' }
           if isfield(w, kw{1}) && ...
-                ~ (isempty(data) || isempty(w.(kw{1}))),
+                ~ (isempty(data) || isempty(w.(kw{1})))
 
              [ix, pos, rec] = matchWells(data(:,1), w.(kw{1})(:,1));
 
@@ -395,7 +397,9 @@ function w = readWelOpen(fid, w)
    else
        for recNo = 1:size(data, 1)
            well_name = data{recNo, 1};
-           [ix, pos, rec] = matchWells({well_name}, w.COMPDAT(:,1));
+           [rec, rec, rec] = ...
+              matchWells({well_name}, w.COMPDAT(:,1)); %#ok<ASGLU>
+
            active = true(size(rec));
 
            for i = 2:4
@@ -409,15 +413,17 @@ function w = readWelOpen(fid, w)
            if hi_bnd < 0
                hi_bnd = inf;
            end
+
            perfnum = (1:numel(rec))';
            active = active & (perfnum >= low_bnd & perfnum <= hi_bnd);
            [w.COMPDAT{rec(active), 6}] = deal(data{recNo, 2});
        end
+
        data = [];
    end
 
-   if ~ isempty(data),
-      if all(strncmpi('*', data(:,1), 1)),
+   if ~ isempty(data)
+      if all(strncmpi('*', data(:,1), 1))
          dispif(mrstVerbose, 'Well LIST ignored in ''WELOPEN''\n');
       else
          error('Internal error processing ''WELOPEN''');
@@ -435,7 +441,7 @@ function w = readWelSegs(fid, w)
              'NaN', 'NaN', '0.0', '0.0', '0.0' };
 
    r1 = readDefaultedRecord(fid, r1);
-   if ~ any(strcmp(r1{5}, { 'INC', 'ABS' })),
+   if ~ any(strcmp(r1{5}, { 'INC', 'ABS' }))
       error('WELSEGS:DefaultTubing', ...
             'Item 5 (tubing type information) cannot be defaulted');
    end
@@ -444,16 +450,16 @@ function w = readWelSegs(fid, w)
    r1 = toDouble(r1, numeric);
 
    i = NaN;
-   if ~ isempty(w.WELSEGS),
+   if ~ isempty(w.WELSEGS)
       i = find(strcmp(w.WELSEGS(:,1), r1{1}));
       if isempty(i), i = NaN; end
    end
 
    defaulted = isnan([r1{numeric}]);
-   if any(defaulted),
+   if any(defaulted)
       def = numeric(defaulted);
 
-      if ~ isnan(i),
+      if ~ isnan(i)
          r1(def) = w.WELSEGS{i,2}.header(def);
       else
          r1(def) = { 0.0 };
@@ -476,8 +482,8 @@ function w = readWelSegs(fid, w)
 
    % Defaulted segment volume (V = A*L).
    k = c == 10;
-   if any(k),
-      if strcmp(r1{5}, 'ABS'),
+   if any(k)
+      if strcmp(r1{5}, 'ABS')
          n = cellfun(@(b, e) e - b + 1, rest(r(k), 1), rest(r(k), 2), ...
                      'UniformOutput', false);
 
@@ -513,7 +519,7 @@ function w = readWelSegs(fid, w)
 
    sgmt = struct('header', { r1(2:end) }, 'segments', { rest });
 
-   if isnan(i),
+   if isnan(i)
       w.WELSEGS = [ w.WELSEGS ; { r1{1}, sgmt } ];
    else
       w.WELSEGS{i,2} = sgmt;
@@ -536,13 +542,13 @@ function w = readGConInje(fid, w)
 
    gconinje = w.GCONINJE;
 
-   if ~ isempty(gconinje),
+   if ~ isempty(gconinje)
       [i, j] = blockDiagIndex(size(gconinje, 1), size(data, 1));
 
       m = strcmpi(gconinje(i, 1), data(j, 1)) & ...
           strcmpi(gconinje(i, 2), data(j, 2));
 
-      if any(m),
+      if any(m)
          ij = [ i(m), j(m) ];
 
          assert (size(unique(ij, 'rows'), 1) == size(ij, 1), ...
@@ -591,11 +597,11 @@ function w = readGEcon(fid, w)
 
    gecon = w.GECON;
 
-   if ~ isempty(gecon),
+   if ~ isempty(gecon)
       [i, j] = blockDiagIndex(size(gecon, 1), size(data, 1));
       m      = strcmpi(gecon(i, 1), data(j, 1));
 
-      if any(m),
+      if any(m)
          ij = [ i(m), j(m) ];
 
          assert (size(unique(ij, 'rows'), 1) == size(ij, 1), ...
@@ -634,11 +640,11 @@ function w = readGrupNet(fid, w)
 
    grpnet = w.GRUPNET;
 
-   if ~ isempty(grpnet),
+   if ~ isempty(grpnet)
       [i, j] = blockDiagIndex(size(grpnet, 1), size(data, 1));
       m      = strcmpi(grpnet(i, 1), data(j, 1));
 
-      if any(m),
+      if any(m)
          ij = [ i(m), j(m) ];
 
          grpnet(ij(:,1), :) = data(ij(:,2), :);
@@ -713,13 +719,13 @@ function w = readWelTarg(fid, w)
 
    data = toDouble(data, numeric);
 
-   if ~ all(isfinite([ data{:,3} ])),
+   if ~ all(isfinite([ data{:,3} ]))
       error('MRST does not support defaulting Item 3 of ''WELTARG''');
    end
 
-   for ikw = { 'WCONINJE', 'WCONINJH' },
+   for ikw = { 'WCONINJE', 'WCONINJH' }
       if isfield(w, ikw{1}) && ...
-            ~ (isempty(data) || isempty(w.(ikw{1}))),
+            ~ (isempty(data) || isempty(w.(ikw{1})))
          inje = struct('RATE', 5, 'RESV', 6, 'BHP', 7);
 
          ix = ismember(data(:,1), w.(ikw{1})(:,1));
@@ -727,11 +733,11 @@ function w = readWelTarg(fid, w)
          data(ix,:) = [];
 
          fn = fieldnames(inje);
-         for i = injectors,
+         for i = injectors
             well = i{1};
             mode = i{2};
 
-            if ~ any(strcmp(mode, fn)),
+            if ~ any(strcmp(mode, fn))
                warning('Inj:Targ:Unsupp', ...
                       ['Injection target mode ''%s'' unsupported', ...
                        '/ignored for well ''%s'' in ''WELTARG''.'], ...
@@ -746,9 +752,9 @@ function w = readWelTarg(fid, w)
       end
    end
 
-   for pkw = { 'WCONPROD', 'WCONHIST' },
+   for pkw = { 'WCONPROD', 'WCONHIST' }
       if isfield(w, pkw{1}) && ...
-            ~ (isempty(data) || isempty(w.(pkw{1}))),
+            ~ (isempty(data) || isempty(w.(pkw{1})))
          prod = struct('ORAT',  4, 'WRAT', 5, 'GRAT', 6, 'LRAT', 7, ...
                        'CRAT', 19, 'RESV', 8, 'BHP' , 9);
 
@@ -757,11 +763,11 @@ function w = readWelTarg(fid, w)
          data(ix,:) = [];
 
          fn = fieldnames(prod);
-         for i = producers,
+         for i = producers
             well = i{1};
             mode = i{2};
 
-            if ~ any(strcmp(mode, fn)),
+            if ~ any(strcmp(mode, fn))
                warning('Prod:Targ:Unsupp', ...
                       ['Production target mode ''%s'' unsupported', ...
                        '/ignored for well ''%s'' in ''WELTARG''.'], ...
@@ -807,8 +813,8 @@ end
 %--------------------------------------------------------------------------
 
 function w = remove(w, name, exkw)
-   for kw = reshape(exkw, 1, []),
-      if isfield(w, kw{1}) && ~isempty(w.(kw{1})),
+   for kw = reshape(exkw, 1, [])
+      if isfield(w, kw{1}) && ~isempty(w.(kw{1}))
          w.(kw{1})(ismember(w.(kw{1})(:,1), name), :) = [];
       end
    end
@@ -889,7 +895,7 @@ function w = handleOverlapCompdat(w, compdat, memb, loc, ext, new)
    handled  = false(size(new.r));  % New records handled in overlap
    append   = cell([0, size(w.COMPDAT, 2)]);  % Accumulated result, overlap
 
-   for o = reshape(find(memb), 1, []),
+   for o = reshape(find(memb), 1, [])
       wij = [ w.WELSPECS{strcmp(new.well{o}, w.WELSPECS(:,1)), 3:4} ];
       assert (numel(wij) == 2);
 
@@ -913,7 +919,7 @@ function w = handleOverlapCompdat(w, compdat, memb, loc, ext, new)
       nloc = reshape(vertcat(ncd{j, 2:5}), [], 4);
 
       k = all(oloc == nloc, 2);
-      if any(k),
+      if any(k)
          % New records pertain to (some) existing records.  Update those.
          assert (size(unique([i(k), j(k)], 'rows'), 1) == sum(k), ...
                  'Multi-to-multi match not supported');
@@ -970,7 +976,7 @@ function t = expand(t, ij)
    lo = vertcat(t{:,4});
    hi = vertcat(t{:,5});
 
-   if any(hi > lo),
+   if any(hi > lo)
       % Single record accounts for more than one completion.  Expand to
       % 1-to-1 ratio of records-to-completions.
 
