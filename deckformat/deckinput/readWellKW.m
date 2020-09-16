@@ -162,6 +162,19 @@ function w = readCompDat(fid, w)
    numeric  = [2:5, 7:11, 14];
    compdat  = toDouble(readDefaultedKW(fid, template), numeric);
 
+   wname = w.WELSPECS(:,1);
+   patt  = strrep(compdat(:,1), '*', '.*');
+
+   [i, j] = blockDiagIndex(numel(wname), numel(patt));
+   match  = ~ cellfun('isempty', regexp( ...
+                      reshape(wname(i), numel(wname), []), ...
+                      reshape(patt (j), [], numel(patt))));
+
+   count   = accumarray(j(match), 1, [numel(patt), 1], [], 1);
+   compdat = rldecode(compdat, count, 1);
+
+   compdat(:, 1) = wname(i(match));
+
    if isempty(w.COMPDAT)
       % No existing completion records.  Assign this data.
       w.COMPDAT = compdat;
