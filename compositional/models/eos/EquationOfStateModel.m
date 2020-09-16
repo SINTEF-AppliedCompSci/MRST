@@ -579,13 +579,6 @@ classdef EquationOfStateModel < PhysicalModel
             if isempty(Z_V)
                 Z_V = model.computeCompressibilityZ(P, y, A_V, B_V, Si_V, Bi, false);
             end
-            if iscell(x)
-                s = getSampleAD(P, T, x{:}, y{:});
-                if isa(s, 'ADI')
-                    Z_L = model.AutoDiffBackend.convertToAD(Z_L, s);
-                    Z_V = model.AutoDiffBackend.convertToAD(Z_V, s);
-                end
-            end
             Z_L = model.setZDerivatives(Z_L, A_L, B_L, varargin{:});
             Z_V = model.setZDerivatives(Z_V, A_V, B_V, varargin{:});
             f_L = model.computeFugacity(P, x, Z_L, A_L, B_L, Si_L, Bi);
@@ -973,14 +966,17 @@ classdef EquationOfStateModel < PhysicalModel
             % where u is some primary variable, we can still obtain
             % derivatives without making any assumptions other than the EOS
             % being a cubic polynomial
-            if isnumeric(Z)
-                % This function does nothing if Z is double.
+            S = getSampleAD(A, B);
+            if isnumeric(S)
+                % This function does nothing if A, B are both doubles.
                 return;
             end
 
             backend = model.AutoDiffBackend;
             isDiagonal = isa(backend, 'DiagonalAutoDiffBackend');
-            
+            if isnumeric(Z)
+                Z = backend.convertToAD(Z, S);
+            end
             if nargin < 5
                 if isDiagonal
                     cellJacMap = cell(Z.offsets(end)-1, 1);
