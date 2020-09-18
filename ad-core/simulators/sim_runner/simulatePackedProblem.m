@@ -22,6 +22,9 @@ function [ok, status] = simulatePackedProblem(problems, varargin)
 %                  overwriting any previously simulated results from that
 %                  step on.
 %
+%   plot         - Plot everything using plotPackedProblem after simulation
+%                  is done.
+%
 % RETURNS:
 %   ok     - Flag for each case indicating a successful run.
 %   status - Structs containing some information about each case (possible
@@ -60,6 +63,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     np = numel(problems);
     opt = struct('checkTooMany',    true, ...
                  'continueOnError', np > 1, ...
+                 'plot',            false, ...
                  'restartStep',     nan);
     opt = merge_options(opt, varargin{:});
 
@@ -160,5 +164,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         status(i).Message = msg;
         status(i).WallTime = toc(timer);
         status(i).RestartIndex = restartStep;
+    end
+    if opt.plot
+        plotPackedProblem(problem);
     end
 end
