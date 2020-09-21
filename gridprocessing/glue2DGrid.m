@@ -147,8 +147,9 @@ function G = ensure_conformal_boundaries(targetgrid, othergrid, tol)
    boundary_faces = @(G) find(any(G.faces.neighbors == 0, 2));
 
    boundary_nodes0 = @(G, bf) ...
-      unique(G.faces.nodes(G.faces.nodes(mcolon(G.faces.nodePos(bf), ...
-                                                G.faces.nodePos(bf + 1) - 1))));
+      unique(G.faces.nodes(mcolon(G.faces.nodePos(bf), ...
+                                  G.faces.nodePos(bf + 1) - 1)));
+   
    boundary_nodes = @(G) boundary_nodes0(G, boundary_faces(G));
 
    bfaces       = boundary_faces(targetgrid);
