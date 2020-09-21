@@ -419,6 +419,20 @@ classdef UIMenu < handle
             m.destributeItems()
         end
         
+        function m = insertItem(m, item, pos)
+            % insert menu item at specified position (or at end if defaulted)
+            ni = numel(m.items);
+            if nargin < 3
+                pos = ni+1;
+            end
+            assert(pos <= ni+1, 'Menu item position exceeds total number of items')
+            item.Parent = m.panel;
+            item.level  = m.level +1;
+            m.items     = [m.items(1:pos-1), {item}, m.items(pos:end)];
+            m.Children  = [m.Children(1:pos-1); item.panel; m.Children(pos:end)];
+            m.destributeItems();
+        end
+             
         function resize(m, ~, ~)
             p = m.CurrentPoint;
             f = figureParent(m);
