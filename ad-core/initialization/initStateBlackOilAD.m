@@ -41,7 +41,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         state.rv = zeros(G.cells.num, 1);
     end
     if compositional
-        ncomp = model.EOSModel.fluid.getNumberOfComponents();
+        ncomp = model.EOSModel.CompositionalMixture.getNumberOfComponents();
         state.components = zeros(G.cells.num, ncomp);
         state.T = zeros(G.cells.num, 1);
     end
