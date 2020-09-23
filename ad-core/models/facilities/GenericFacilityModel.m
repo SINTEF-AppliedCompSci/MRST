@@ -309,10 +309,9 @@ classdef GenericFacilityModel < FacilityModel
                 [surfaceRates, surfaceDensity] = model.getSurfaceRates(state);
                 names = model.ReservoirModel.getPhaseNames();
                 map = model.getProp(state, 'FacilityWellMapping');
-                actIx = find(map.active);
-                bhp = vertcat(state.wellSol(actIx).bhp);
-                for j = 1:numel(actIx)
-                    ix = actIx(j);
+                bhp = vertcat(state.wellSol(map.active).bhp);
+                for j = 1:numel(map.active)
+                    ix = map.active(j);
                     state.wellSol(ix).bhp = bhp(j);
                     for i = 1:numel(surfaceRates)
                         state.wellSol(ix).(['q', names(i), 's']) = surfaceRates{i}(j);
