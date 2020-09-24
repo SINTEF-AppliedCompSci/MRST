@@ -139,7 +139,12 @@ function [mult, varargin] = get_multipliers(multargname, G, rock, varargin)
    end
 
    if any(isfield(rock, {'multipliers', 'faultdata'}))
-      mult = incorporate_rock_multipliers(mult, G, rock);
+      if size(G.cells.faces, 2) < 2
+          warning(['Unable to process faults - G.cells.faces does not ', ...
+                   'contain direction data as second column.']);
+      else
+          mult = incorporate_rock_multipliers(mult, G, rock);
+      end
    end
 end
 
