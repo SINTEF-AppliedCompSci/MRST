@@ -1,4 +1,4 @@
-function yi = interpTableMEX(X, Y, xi, varargin)
+function [yi, der] = interpTableMEX(X, Y, xi, varargin)
 %Interpolate a one-dimensional table with MEX acceleration
 %
 % SYNOPSIS:
@@ -52,7 +52,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     
     if isnumeric(xi)
-        yi = mexInterp1(X, Y, xi);
+        if nargout > 1
+            [yi, der] = mexInterp1(X, Y, xi);
+        else
+            yi = mexInterp1(X, Y, xi);
+        end
     else
         yi = xi;
         [yi.val, der] = mexInterp1(X, Y, xi.val, varargin{:});
