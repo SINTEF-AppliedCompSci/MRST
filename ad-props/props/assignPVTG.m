@@ -11,6 +11,10 @@ function [bG, muG, rvSat] = getFunctions(PVTG, reg)
         rv = pvtg.data(pvtg.pos(1:end-1),1);
         p_vap = pvtg.key;
         
+        % Cap endpoint (rv -> 0 at surface conditions)
+        p_t = [0; p_vap];
+        rv_t = [0; rv];
+
         bg = pvtg;
         bg.data = [bg.data(:,1), 1./bg.data(:,2)];
         bg = preprocessTablePVT(bg);
@@ -18,13 +22,10 @@ function [bG, muG, rvSat] = getFunctions(PVTG, reg)
         mug = pvtg;
         mug.data = [mug.data(:,1), mug.data(:,3)];
         mug = preprocessTablePVT(mug);
-
-        bG{i} = @(pg, rv, flag) interpPVT(bg, rv, pg, flag, reg.pvtMethod, reg.useMex);
-        muG{i} = @(pg, rv, flag) interpPVT(mug, rv, pg, flag, reg.pvtMethod, reg.useMex);
         
-        % Cap endpoint (rv -> 0 at surface conditions)
-        p_t = [0; p_vap];
-        rv_t = [0; rv];
+        m = reg.pvtMethodGas;
+        bG{i} = @(pg, rv, flag) interpPVT(bg, rv, pg, flag, m, reg.useMex);
+        muG{i} = @(pg, rv, flag) interpPVT(mug, rv, pg, flag, m, reg.useMex);
         rvSat{i} = @(pg) reg.interp1d(p_t, rv_t, pg);
     end
 end

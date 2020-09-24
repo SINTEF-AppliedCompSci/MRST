@@ -51,34 +51,17 @@ function [yi, dyidxi, dyidvi] = interpolate(T, xi, vi, sat, method, compDer, use
         end
     else
         yi = zeros(size(xi));
-        if compDer
-            dyidxi = zeros(size(xi));
-            dyidvi = zeros(size(xi));
-        else
-            dyidxi = [];
-            dyidvi = [];
-        end
-        tabSat = T.data(T.pos(1:end-1),:);
-
+        dyidxi = zeros(size(xi));
+        dyidvi = zeros(size(xi));
         if isempty(xi)
             [yi, dyidxi, dyidvi] = deal([]);
             return;
         else
+            % Shouldn't extrapolate downwards on saturated curve - assume
+            % that this is somehow undersaturated.
+            sat(value(xi) < T.sat.x(1)) = false;
             usat = ~sat;
-            
-            satarg = {tabSat(:, 1), tabSat(:, 2), xi(sat)};
-            if useMex
-                if compDer
-                    [yi(sat), dyidxi(sat)]  = interpTableMEX(satarg{:});
-                else
-                    yi(sat) = interpTableMEX(satarg{:});
-                end
-            else
-                yi(sat)  = interpTable(satarg{:});
-                if compDer
-                    dyidxi(sat) = dinterpq1(satarg{:});
-                end
-            end
+            [yi(sat), dyidxi(sat)] = interp1_internal(T.sat.x, T.sat.F, xi(sat), compDer, useMex);
             if any(usat)
                 if compDer
                     [yi(usat), dyidxi(usat), dyidvi(usat)] = interp2DPVT_local(T, xi(usat), vi(usat), method, useMex);
