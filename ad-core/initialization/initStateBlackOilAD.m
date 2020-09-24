@@ -48,7 +48,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     watIx = model.getPhaseIndex('W');
     oilIx = model.getPhaseIndex('O');
     gasIx = model.getPhaseIndex('G');
-    refIx = 1 + model.oil;
+    % Reference phase should be oil if present, otherwise it we assume it
+    % to be gas, then just the first phase
+    if model.oil
+        refIx = oilIx;
+    elseif model.gas
+        refIx = gasIx;
+    else
+        refIx = 1;
+    end
 
     pressures = zeros(G.cells.num, nph);
     touched = false(G.cells.num, 1);
