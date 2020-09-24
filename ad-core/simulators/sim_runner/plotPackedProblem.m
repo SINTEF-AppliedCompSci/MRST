@@ -47,10 +47,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     warg = {'color',    [1.0, 0.2, 0.2], ...
             'color2',   [0.2, 0.2, 1.0], ...
             'fontsize', 12};
+    if iscell(problem)
+        p = problem{1};
+    else
+        p = problem;
+    end
     opt = struct('readFromDisk', false,  ...
                  'plotStates',   true,   ...
                  'view',         [],     ...
-                 'name',         problem.BaseName, ...
+                 'name',         p.BaseName, ...
                  'wellArg',      {warg}, ...
                  'gridArg',      {{}},   ...
                  'wsArg',        {{}},   ...
@@ -58,21 +63,40 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'plotWell',     true,   ...
                  'plotWellSols', true);
     opt = merge_options(opt, varargin{:});
-    if isempty(opt.time)
-        opt.time = cumsum(problem.SimulatorSetup.schedule.step.val);
-    end
-    if opt.plotStates
-        gh = plotReservoir(problem, opt);
+    if iscell(problem)
+        if opt.plotWellSols
+            wh = plotWellSols(problem, opt.wsArg{:});
+        else
+            wh = nan;
+        end
+        if opt.plotStates
+            np = numel(problem);
+            gh = nan(np, 1);
+            for i = 1:np
+                p = problem{i};
+                nstr = sprintf('%s (%s)', p.BaseName, p.Name);
+                gh(i) = plotPackedProblem(p, varargin{:}, 'plotWellSols', false, 'name', nstr);
+            end
+        else
+            gh = nan;
+        end
     else
-        gh = nan;
-    end
-    
-    if opt.plotWellSols
-        ws = problem.OutputHandlers.wellSols;
-        wh = plotWellSols(ws(:), opt.time, opt.wsArg{:});
-        set(gcf, 'Name', opt.name);
-    else
-        wh = nan;
+        if isempty(opt.time)
+            opt.time = cumsum(problem.SimulatorSetup.schedule.step.val);
+        end
+        if opt.plotStates
+            gh = plotReservoir(problem, opt);
+        else
+            gh = nan;
+        end
+
+        if opt.plotWellSols
+            ws = problem.OutputHandlers.wellSols;
+            wh = plotWellSols(ws(:), opt.time, opt.wsArg{:});
+            set(gcf, 'Name', opt.name);
+        else
+            wh = nan;
+        end
     end
 end
 
