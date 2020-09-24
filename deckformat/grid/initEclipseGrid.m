@@ -54,7 +54,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          isfield(deck.RUNSPEC, 'DIMENS')
      if opt.useMex
          % Use MEX accelerated version
-         G = mprocessGRDECL(deck.GRID, 'RepairZCORN', true, extra{:});
+         G = mprocessGRDECL(deck.GRID, extra{:});
      else
          % Use Matlab version
          G = processGRDECL(deck.GRID, 'RepairZCORN', true, extra{:});
