@@ -251,6 +251,9 @@ classdef MRSTExample
             hash = example.getExampleHash();
             % Store in default data directory under 'example-suite'
             pth = fullfile(mrstDataDirectory(), 'example-suite');
+            if ~exist(pth, 'dir')
+                mkdir(pth)
+            end
             save(fullfile(pth, hash), 'example', '-v7.3');
             ok = true;
         end
