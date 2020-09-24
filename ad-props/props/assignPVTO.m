@@ -10,9 +10,12 @@ function [bO, muO, rsSat, pb] = getFunctions(PVTO, reg)
         % Transform B into reciprocal b = 1/b
         bo = pvto;
         bo.data = [bo.data(:,1), 1./bo.data(:,2)];
+        bo = preprocessTablePVT(bo);
+
         % Viscosity
         muo = pvto;
         muo.data = [muo.data(:,1), muo.data(:,3)];
+        muo = preprocessTablePVT(muo);
         % Bubble point vs rs table
         p_bub = pvto.data(pvto.pos(1:end-1),1);
         rs = pvto.key;
@@ -21,8 +24,8 @@ function [bO, muO, rsSat, pb] = getFunctions(PVTO, reg)
         % goes towards surface conditions, and by extension, zero.
         p_t = [0; p_bub];
         rs_t = [0; rs];
-        bO{i} = @(po, rs, flag) interpPVT(bo, po, rs, flag);
-        muO{i} = @(po, rs, flag) interpPVT(muo, po, rs, flag);
+        bO{i} = @(po, rs, flag) interpPVT(bo, po, rs, flag, reg.pvtMethod, reg.useMex);
+        muO{i} = @(po, rs, flag) interpPVT(muo, po, rs, flag, reg.pvtMethod, reg.useMex);
         rsSat{i} = @(po) reg.interp1d(p_t, rs_t, po);
         pb{i} = @(rsi) reg.interp1d([-1; rs], [p_bub(1); p_bub], rsi);
     end

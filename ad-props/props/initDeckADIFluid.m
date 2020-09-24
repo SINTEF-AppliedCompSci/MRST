@@ -63,69 +63,77 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-% this only work for full deck or first region.
-opt = struct('G',               [], ...
-             'region_method',   'deck', ...
-             'singleRegion',    [], ...
-             'resamplePoly',    0, ...
-             'prange',          [], ...
-             'useMex',          false, ...
-             'optimize',        false, ...
-             'interp1d',        [], ...
-             'regionOverride',  struct());
- 
-opt = merge_options(opt,varargin{:});
-reg = getRegions(deck, opt);
-% Pass interpolation along with regions to avoid breaking interface
-if opt.optimize && opt.resamplePoly == 0
-    opt.resamplePoly = 20;
-end
-if isempty(opt.interp1d)
-    if opt.useMex
-        reg.interp1d = @interpTableMEX;
-        reg.interp1d_uniform = @(X, F, x) interpTableMEX(X, F, x, 3);
+    % this only work for full deck or first region.
+    opt = struct('G',               [], ...
+                 'region_method',   'deck', ...
+                 'singleRegion',    [], ...
+                 'resamplePoly',    0, ...
+                 'pvtMethod',       'parallel', ...
+                 'prange',          [], ...
+                 'ignoreErrors',    true, ...
+                 'useMex',          false, ...
+                 'optimize',        false, ...
+                 'interp1d',        [], ...
+                 'regionOverride',  struct());
+
+    opt = merge_options(opt,varargin{:});
+    reg = getRegions(deck, opt);
+    % Pass interpolation along with regions to avoid breaking interface
+    if opt.optimize && opt.resamplePoly == 0
+        opt.resamplePoly = 20;
+    end
+    if isempty(opt.interp1d)
+        if opt.useMex
+            reg.interp1d = @interpTableMEX;
+            reg.interp1d_uniform = @(X, F, x) interpTableMEX(X, F, x, 3);
+        else
+            reg.interp1d = @interpTable;
+            reg.interp1d_uniform = reg.interp1d;
+        end
     else
-        reg.interp1d = @interpTable;
+        reg.interp1d = opt.interp1d;
         reg.interp1d_uniform = reg.interp1d;
     end
-else
-    reg.interp1d = opt.interp1d;
-    reg.interp1d_uniform = reg.interp1d;
-end
-reg.prange = opt.prange;
-reg.optimize = opt.optimize; % Perform additional optimizations for large cases
-if isempty(reg.prange)
-   reg.prange = get_pressures(deck, opt);
-end
-
-fluid = struct();
-
-% Properties
-props = deck.PROPS;
-
-for fld = assignable_fields(prioritise(fieldnames(props)))
-   try
-      fluid = feval(['assign', fld{1}], fluid, props.(fld{1}), reg);
-   catch ME
-      warning(msgid('Assign:Failed'), ...
-             ['Could not assign property ''%s''. ', ...
-              'Encountered error: ''%s'''], fld{1}, ME.message);
-   end
-end
-
-fn = fieldnames(fluid);
-for i = 1:numel(fn)
-    f = fn{i};
-    if iscell(fluid.(f)) && numel(fluid.(f)) == 1
-        fluid.(f) = fluid.(f){1};
+    reg.pvtMethod = opt.pvtMethod;
+    reg.prange = opt.prange;
+    reg.useMex = opt.useMex;
+    reg.optimize = opt.optimize; % Perform additional optimizations for large cases
+    if isempty(reg.prange)
+       reg.prange = get_pressures(deck, opt);
     end
-end
-if isfield(deck.RUNSPEC, 'GAS') && any(fluid.rhoGS == 0)
-    fluid.rhoGS(fluid.rhoGS == 0) = 1;
-end
-if isfield(deck.RUNSPEC, 'OIL') && any(fluid.rhoOS == 0)
-    fluid.rhoOS(fluid.rhoOS == 0) = 1;
-end
+
+    fluid = struct();
+
+    % Properties
+    props = deck.PROPS;
+
+    for fld = assignable_fields(prioritise(fieldnames(props)))
+        try
+            fluid = feval(['assign', fld{1}], fluid, props.(fld{1}), reg);
+        catch ME
+            if opt.ignoreErrors
+                warning(msgid('Assign:Failed'), ...
+                    ['Could not assign property ''%s''. ', ...
+                    'Encountered error: ''%s'''], fld{1}, ME.message);
+            else
+                rethrow(ME);
+            end
+        end
+    end
+
+    fn = fieldnames(fluid);
+    for i = 1:numel(fn)
+        f = fn{i};
+        if iscell(fluid.(f)) && numel(fluid.(f)) == 1
+            fluid.(f) = fluid.(f){1};
+        end
+    end
+    if isfield(deck.RUNSPEC, 'GAS') && any(fluid.rhoGS == 0)
+        fluid.rhoGS(fluid.rhoGS == 0) = 1;
+    end
+    if isfield(deck.RUNSPEC, 'OIL') && any(fluid.rhoOS == 0)
+        fluid.rhoOS(fluid.rhoOS == 0) = 1;
+    end
 end
 
 %--------------------------------------------------------------------------
