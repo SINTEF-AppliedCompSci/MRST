@@ -10,7 +10,7 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
 %
 % This model essentially overwrites the member function stepFunction. There, the
 % mechanic equations are solved for a given pore (fluid) pressure. Then, a
-% strain-pressure relation is established (see computeMechTerm member function)
+% strain-pressure relation is established (see uvcomputeMechTerm member function)
 % assuming that the total stress is constant. Finally, the fluid equation is
 % solved.
 %
@@ -176,7 +176,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % preserved.
 
             mechModel = model.mechModel;
-            stress = mechModel.operators.stress*(state.xd);
+            %stress = mechModel.operators.stress*(state.xd);
+            
+            uvec = state.u;
+            if isa( state.xd, 'ADI')
+               uvec = double2ADI(uvec, state.xd);
+            end
+            uvec(~mechModel.operators.isdirdofs) = state.xd;
+            stress = mechModel.operators.global_stress * uvec;
+            
             p = state.pressure;
 
             invCi = mechModel.mech.invCi;
