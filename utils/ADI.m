@@ -574,41 +574,6 @@ classdef ADI
           u.jac = u.lMultDiag(dydu, u.jac);
       end
 
-      %--------------------------------------------------------------------
-      function h = interpPVT(T, x, v, flag)
-          % Interpolate special PVT table with region support
-          if ~isa(x,'ADI') %u is a scalar/matrix
-              h = v;
-              [h.val, ~, dydv] = interpPVT(T, x, v.val, flag);
-              h.jac = h.lMultDiag(dydv, v.jac);
-          elseif ~isa(v,'ADI') %v is a scalar
-              h = x;
-              [h.val, dydx] = interpPVT(T, x.val, v, flag);
-              h.jac = h.lMultDiag(dydx, x.jac);
-          else
-              h = x;
-              [h.val, dydx, dydv] = interpPVT(T, x.val, v.val, flag);
-              h.jac = h.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
-          end
-      end
-      
-      function h = interpRegPVT(T, x, v, flag, reginx)
-          % Interpolate special PVT table with region support
-          if ~isa(x,'ADI') %u is a scalar/matrix
-              h = v;
-              [h.val, ~, dydv] = interpRegPVT(T, x, v.val, flag, reginx);
-              h.jac = h.lMultDiag(dydv, v.jac);
-          elseif ~isa(v,'ADI') %v is a scalar
-              h = x;
-              [h.val, dydx] = interpRegPVT(T, x.val, v, flag, reginx);
-              h.jac = h.lMultDiag(dydx, x.jac);
-          else
-              h = x;
-              [h.val, dydx, dydv] = interpRegPVT(T, x.val, v.val, flag, reginx);
-              h.jac = h.timesJac(dydx, dydv, v.jac, x.jac); % note order of input
-          end
-      end
-
       function h = interpTable(X, Y, x, varargin)
           % Interpolate in a table
           h = x;
