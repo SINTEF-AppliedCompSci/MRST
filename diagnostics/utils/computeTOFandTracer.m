@@ -207,6 +207,10 @@ function flux = getTotalWellSolFlux(wellSol)
     for i = 1:nw
         ws = wellSol(i);
         f = sum(ws.flux);
+        % if status is false, set flux to zero
+        if isfield(ws, 'status') && ~isempty(ws.status)
+            f = f*ws.status;
+        end 
         if isempty(f) || f == 0 && ( isfield(ws, 'sign') && ~isempty(ws.sign) )
             % If we have a sign for well and there is no flux defined, set
             % it to a small value of right sign instead.
