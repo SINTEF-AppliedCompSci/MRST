@@ -2,6 +2,7 @@ classdef CellDataPatch < handle
     properties
         fastMode = false % is set to true, only slices are plotted, not lids
         logScale  = false;
+        patchOpt  = {};
     end
     properties (SetAccess = protected)
         patchMain      % standard patch (for non-play mode)
@@ -12,7 +13,6 @@ classdef CellDataPatch < handle
         lid_ix    = [] % used for resetting color/filter
         patchType      % 'single', 'multiple' 
         binMeans  = [] % means of bins 
-        patchOpt  = {};
         sliceThreshold = 10;
     end
     properties (SetAccess = immutable)
