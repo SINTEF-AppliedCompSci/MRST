@@ -31,6 +31,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         incTolComposition % Increment tolerance for composition
         useIncTolComposition % If true, use increment tolerance for composition. Otherwise, use mass-balance.
         fugacityTolerance % Tolerance for fugacity equality (in units 1/barsa)
+        liquidPhase = 'O';
+        vaporPhase = 'G';
     end
     
     methods
@@ -74,6 +76,30 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             names = horzcat(names, model.EOSModel.getComponentNames());
         end
         
+        function ix = getLiquidIndex(model)
+            ph = model.getPhaseNames();
+            ix = find(ph == model.liquidPhase);
+        end
+
+        function ix = getVaporIndex(model)
+            ph = model.getPhaseNames();
+            ix = find(ph == model.vaporPhase);
+        end
+        
+        function ix = getEoSPhaseIndices(model)
+            ix = [model.getLiquidIndex, model.getVaporIndex];
+        end
+        
+        function [ph, varargout] = getNonEoSPhases(model)
+            varargout = cell(1, nargout-1);
+            [ph, varargout{1:end}] = model.getPhaseNames();
+            act = ph ~= model.liquidPhase & ph ~= model.vaporPhase;
+            ph = ph(act);
+            for i = 1:nargout-1
+                varargout{i} = varargout{i}(act);
+            end
+        end
+
         function [fn, index] = getVariableField(model, name, varargin)
             switch(lower(name))
                 case {'z', 'components'}
@@ -190,14 +216,19 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             Z_L = state.Z_L;
             Z_V = state.Z_V;
             sL = L.*Z_L./(L.*Z_L + (1-L).*Z_V);
-            sV = 1 - sL;
-            if model.water
-                sW = state.s(:, 1);
-                void = (1 - sW);
-                state.s = [sW, void.*sL, void.*sV];
-            else
-                state.s = [sL, sV];
+            void = 1;
+            nph = model.getNumberOfPhases();
+            if nph > 2
+                ph = getNonEoSPhases(model);
+                for i = 1:numel(ph)
+                    void = void - model.getProp(state, ['s', ph(i)]);
+                end
             end
+            l = model.liquidPhase;
+            v = model.vaporPhase;
+            state = model.setProp(state, ['s', l], void.*sL);
+            state = model.setProp(state, ['s', v], void.*(1-sL));
+
             assert(all(all(state.s >= 0)), 'Negative saturations after flash.');
         end
     
@@ -267,12 +298,11 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             
             z_well = model.getProp(well.W, 'components');
             mf_well = model.EOSModel.getMassFraction(z_well);
-            
-            lix = model.water + 1;
-            vix = lix + 1;
-            cqLs = qMass{lix};
-            cqVs = qMass{vix};
-            ncell = numel(value(cqLs));
+            l = model.getLiquidIndex();
+            v = model.getVaporIndex();
+            cqLs = qMass{l};
+            cqVs = qMass{v};
+            ncell = numelValue(cqLs);
 
             N = numel(compSrc);
             compSrc = [compSrc, cell(1, ncomp)];
@@ -320,7 +350,11 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     end
                     qC = zeros(size(cells));
                     for ph = 1:2
-                        ix = ph + model.water;
+                        if ph == 1
+                            ix = model.liquidPhase;
+                        else
+                            ix = model.vaporPhase;
+                        end
                         q_ph = src.phaseMass{ix};
                         inj = q_ph > 0;
 
@@ -403,7 +437,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             scaling = getScalingFactorsCPR@ReservoirModel(model, problem, names, solver);
         end
 
-        function [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureLiquid, pureVapor, twoPhase)
+        function [sL, sV] = setMinimumTwoPhaseSaturations(model, state, sW, sL, sV, pureLiquid, pureVapor, twoPhase)
             % Set a minumum phase saturation value for the EOS-governed
             % phases. This may be required for numerical stability, as the
             % component-in-phase conservation equations degenerate when the
@@ -420,27 +454,26 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 end
                 sT = sum(state.s, 2);
                 if any(pureVapor)
-                    sG(pureVapor) = sT(pureVapor) - sW(pureVapor);
-
+                    sV(pureVapor) = sT(pureVapor) - sW(pureVapor);
                 end
                 
                 if any(mustHaveVapor)
-                    if isa(sG, 'ADI')
-                        sG.val(mustHaveVapor) = max(sG.val(mustHaveVapor), stol);
+                    if isa(sV, 'ADI')
+                        sV.val(mustHaveVapor) = max(sV.val(mustHaveVapor), stol);
                     else
-                        sG(mustHaveVapor) = max(sG(mustHaveVapor), stol);
+                        sV(mustHaveVapor) = max(sV(mustHaveVapor), stol);
                     end
                 end
                 
                 if any(pureLiquid)
-                    sO(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
+                    sL(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
                 end
                 
                 if any(mustHaveLiquid)
-                    if isa(sO, 'ADI')
-                        sO.val(mustHaveLiquid) = max(sO.val(mustHaveLiquid), stol);
+                    if isa(sL, 'ADI')
+                        sL.val(mustHaveLiquid) = max(sL.val(mustHaveLiquid), stol);
                     else
-                        sO(mustHaveLiquid) = max(sO(mustHaveLiquid), stol);
+                        sL(mustHaveLiquid) = max(sL(mustHaveLiquid), stol);
                     end
                 end
             end
@@ -450,8 +483,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             model = validateModel@ReservoirModel(model, varargin{:});
             % Use matching AD backends for EOS and for flow model
             model.EOSModel.AutoDiffBackend = model.AutoDiffBackend;
-            assert(model.gas, 'Gaseous phase must be present for compositional');
-            assert(model.oil, 'Oileic phase must be present for compositional');
+            % assert(model.gas, 'Gaseous phase must be present for compositional');
+            % assert(model.oil, 'Oileic phase must be present for compositional');
         end
         
         function model = setupStateFunctionGroupings(model, varargin)
@@ -520,28 +553,31 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 names_comp = names_comp(~strcmp(names_comp, 'water'));
                 names_comp = cellfun(@(x) ['d', x], names_comp, 'UniformOutput', false);
             else
+                phix = model.getEoSPhaseIndices();
                 tol_comp = model.nonlinearTolerance;
-                massT = sum(mass(:, model.water+1:end), 2);
+                massT = sum(mass(:, phix), 2);
                 scale = dt./massT;
                 if model.water
-                    maxEOSSat = sum(s(:, model.water+1:end), 2);
+                    maxEOSSat = sum(s(:, phix), 2);
                     scale(maxEOSSat < 1e-4) = 0;
                 end
                 v_comp = cellfun(@(x) norm(scale.*value(x), inf), problem.equations(isComponent));
                 names_comp = names(isComponent);
             end
             tol_comp = repmat(tol_comp, size(v_comp));
-            
-            if model.water
-                isWater = strcmpi(names, 'water');
-                if any(isWater)
-                    rhoW = rho(:, 1);
-                    scale_w = dt./(pv.*rhoW);                
-                    v_water = value(problem.equations{isWater}).*scale_w;
-                    v_comp = [v_comp, norm(v_water, inf)];
-                    tol_comp = [tol_comp, model.toleranceCNV];
-                    isComponent(isWater) = true;
-                    names_comp = [names_comp, 'water'];
+            [shortnames, snames] = model.getNonEoSPhases();
+            phnames = model.getPhaseNames();
+            for i = 1:numel(shortnames)
+                sn = snames{i};
+                isSimplePhase = strcmpi(names, sn);
+                if any(isSimplePhase)
+                    rhoi = rho(:, phnames == shortnames(i));
+                    scale_w = dt./(pv.*rhoi);                
+                    w_simple = value(problem.equations{isSimplePhase}).*scale_w;
+                    v_comp = [v_comp, norm(w_simple, inf)]; %#ok
+                    tol_comp = [tol_comp, model.toleranceCNV]; %#ok
+                    isComponent(isSimplePhase) = true;
+                    names_comp = [names_comp, sn]; %#ok
                 end
             end
        end
@@ -549,13 +585,13 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
        function [v_f, tol_f, names_f, isFugacity] = getFugacityConvergenceValues(model, problem)
             % Check fugacity constraints if present
             isFugacity = strcmpi(problem.types, 'fugacity');
-            if model.water
-                state = problem.state;
-                s = value(model.getProp(state, 's'));
-                scale = sum(s(state.flag == 0, model.water+1:end), 2);
-            else
-                scale = 1;
-            end
+            phix = model.getEoSPhaseIndices();
+            state = problem.state;
+            s = value(model.getProp(state, 's'));
+            % Scale by amount of EoS phases (equations are meaningless if
+            % none are present)
+            scale = sum(s(state.flag == 0, phix), 2);
+
             v_f = cellfun(@(x) norm(value(x).*scale, inf), problem.equations(isFugacity));
             tol_f = repmat(model.fugacityTolerance, size(v_f));
             names_f = problem.equationNames(isFugacity);
