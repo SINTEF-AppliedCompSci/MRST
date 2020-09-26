@@ -7,7 +7,9 @@ classdef CompositionalDensity < StateFunction
     methods
         function gp = CompositionalDensity(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
+            gp = gp.dependsOn({'PhasePressures',...
+                               'PhaseCompressibilityFactors',...
+                               'ComponentPhaseMoleFractions'});
             gp = gp.dependsOn({'pressure', 'T'}, 'state');
             gp.label = '\rho_\alpha';
         end
@@ -16,10 +18,9 @@ classdef CompositionalDensity < StateFunction
             [p, T] = model.getProps(state, 'pressure', 'temperature');
             [p_phase, Z, mf] = prop.getEvaluatedDependencies(state, ...
                 'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions');
-            hasWater = model.water;
             
-            L_ix = 1+model.water;
-            V_ix = L_ix + 1;
+            L_ix = model.getLiquidIndex();
+            V_ix = model.getVaporIndex();
             
             x = mf(1:end-hasWater, L_ix);
             y = mf(1:end-hasWater, V_ix);

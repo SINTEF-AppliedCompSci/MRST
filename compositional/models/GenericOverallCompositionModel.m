@@ -105,17 +105,22 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
 
         function [vars, names, origin] = getPrimaryVariables(model, state)
             % Get primary variables from state, before a possible
-            % initialization as AD.'
-            [p, sW, z] = model.getProps(state, 'pressure', 'sW', 'z');
+            % initialization as AD.
+            [p, z] = model.getProps(state, 'pressure', 'z');
             z_tol = model.EOSModel.minimumComposition;
             z = ensureMinimumFraction(z, z_tol);
             z = expandMatrixToCell(z);
             cnames = model.EOSModel.getComponentNames();
             names = [{'pressure'}, cnames(2:end)];
             vars = [p, z(2:end)];
-            if model.water
-                names = [names, {'sW'}];
-                vars = [vars, {sW}];
+            extra = model.getNonEoSPhaseNames();
+            ne = numel(extra);
+            enames = cell(1, ne);
+            esats = cell(1, ne);
+            for i = 1:ne
+                sn = ['s', extra(i)];
+                enames{i} = sn;
+                esats{i} = model.getProp(state, sn);
             end
             origin = cell(1, numel(names));
             [origin{:}] = deal(class(model));
@@ -162,14 +167,23 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 state = model.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
                 removed = removed | isF;
             end
-            if model.water
-                isWater = strcmp(names, 'sW');
-                sW = vars{isWater};
-                removed(isWater) = true;
-                offset = 1;
-            else
-                offset = 0;
+            nph = model.getNumberOfPhases();
+            phnames = model.getPhaseNames();
+            s = cell(1, nph);
+            extra = model.getNonEoSPhaseNames();
+            ne = numel(extra);
+            void = 1;
+            for i = 1:ne
+                sn = ['s', extra(i)];
+                isVar = strcmp(names, sn);
+                si = vars{isVar};
+                removed(isVar) = true;
+                void = void - si;
+                
+                s{phnames == extra{i}} = si;
             end
+            li = model.getLiquidIndex();
+            vi = model.getVaporIndex();
             % Set up state with remaining variables
             state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
             
@@ -178,8 +192,8 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             if isAD
                 % We must get the version with derivatives
                 Z = model.getProps(state, 'PhaseCompressibilityFactors');
-                Z_L = Z{offset+1};
-                Z_V = Z{offset+2};
+                Z_L = Z{li};
+                Z_V = Z{vi};
             else
                 % Already stored in state - no derivatives needed
                 Z_L = state.Z_L;
@@ -193,17 +207,10 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             sL = volL./volT;
             sV = volV./volT;
             
-            if model.water
-                [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
-                void = 1 - sW;
-                sL = sL.*void;
-                sV = sV.*void;
-                [sL, sV] = model.setMinimumTwoPhaseSaturations(state, sW, sL, sV, pureLiquid, pureVapor, twoPhase);
-
-                s = {sW, sL, sV};
-            else
-                s = {sL, sV};
-            end
+            [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+            sL = sL.*void;
+            sV = sV.*void;
+            [s{li}, s{vi}] = model.setMinimumTwoPhaseSaturations(state, sW, sL, sV, pureLiquid, pureVapor, twoPhase);
             state = model.setProp(state, 's', s);
         end
 
