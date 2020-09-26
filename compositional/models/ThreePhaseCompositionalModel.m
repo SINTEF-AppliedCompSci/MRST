@@ -90,7 +90,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             ix = [model.getLiquidIndex, model.getVaporIndex];
         end
         
-        function [ph, varargout] = getNonEoSPhases(model)
+        function [ph, varargout] = getNonEoSPhaseNames(model)
             varargout = cell(1, nargout-1);
             [ph, varargout{1:end}] = model.getPhaseNames();
             act = ph ~= model.liquidPhase & ph ~= model.vaporPhase;
@@ -219,7 +219,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             void = 1;
             nph = model.getNumberOfPhases();
             if nph > 2
-                ph = getNonEoSPhases(model);
+                ph = getNonEoSPhaseNames(model);
                 for i = 1:numel(ph)
                     void = void - model.getProp(state, ['s', ph(i)]);
                 end
@@ -565,7 +565,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 names_comp = names(isComponent);
             end
             tol_comp = repmat(tol_comp, size(v_comp));
-            [shortnames, snames] = model.getNonEoSPhases();
+            [shortnames, snames] = model.getNonEoSPhaseNames();
             phnames = model.getPhaseNames();
             for i = 1:numel(shortnames)
                 sn = snames{i};
