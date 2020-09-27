@@ -101,7 +101,6 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                 'water', includeWater, ...
                 'AutoDiffBackend', auto};
             isLegacy = false;
-            isSeq = false;
             switch lower(modelType)
                 case 'natural'
                     model = GenericNaturalVariablesModel(arg{:});
@@ -117,12 +116,10 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                     model = NaturalVariablesCompositionalModel(arg{:});
                     model = getSequentialModelFromFI(model);
                     isLegacy = true;
-                    isSeq = true;
                 case 'overall-legacy-si'
                     model = OverallCompositionCompositionalModel(arg{:});
                     model = getSequentialModelFromFI(model);
                     isLegacy = true;
-                    isSeq = true;
                 case 'natural-si'
                     parent = GenericNaturalVariablesModel(arg{:});
                     pmodel = PressureModel(parent);
@@ -151,20 +148,8 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             for i = 1:numel(W)
                 W(i).components = info.injection;
             end
-            L = opt.phases(1);
-            V = opt.phases(2);
-            if isSeq
-                if isLegacy
-                    model.pressureModel.liquidPhase = L;
-                    model.pressureModel.vaporPhase = V;
-                else
-                    model.pressureModel.parentModel.liquidPhase = L;
-                    model.pressureModel.parentModel.vaporPhase = V;
-                end
-            else
-                model.liquidPhase = L;
-                model.vaporPhase = V;
-            end
+            model.liquidPhase = opt.phases(1);
+            model.vaporPhase = opt.phases(2);
             ok_sim = ok_sim && ~(isLegacy && ~defaultedPhases);
             if ok_sim
                 schedule = simpleSchedule(time, 'W', W);

@@ -20,7 +20,7 @@ classdef ComponentPhaseMoleFractionsLV < StateFunction
             end
             % Ncomp by nph matrix. The eos components get the two-phase
             % distribution and the immiscible components get the identity
-            nph = numel(x);
+            nph = model.getNumberOfPhases();
             ncomp = model.getNumberOfComponents();
             nc = model.G.cells.num;
             v = cell(ncomp, nph);
