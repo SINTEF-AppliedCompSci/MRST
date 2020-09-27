@@ -132,14 +132,14 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             w = min(w_sat, w_xy);
             % Update sat
             capunit = @(x) min(max(x, 0), 1);
+            nph = model.getNumberOfPhases();
+            isEosPhase = false(1, nph);
+            isEoSPhase(model.getEoSPhaseIndices) = true;
+
             if any(ds(:) ~= 0)
-                if model.water
-                    ds_relax = ds;
-                    ds_relax(:, 1) = ds(:, 1).*min(dsMax./max(abs(ds(:, 1)), [], 2), 1);
-                    ds_relax(:, 2:end) = bsxfun(@times, ds(:, 2:end), w);
-                else
-                    ds_relax = bsxfun(@times, w, ds);
-                end
+                ds_relax = ds;
+                ds_relax(:, ~isEoSPhase) = ds(:, ~isEoSPhase).*min(dsMax./max(abs(ds(:, ~isEoSPhase)), [], 2), 1);
+                ds_relax(:, isEosPhase) = bsxfun(@times, ds(:, isEosPhase), w);
                 s_uncap = state.s + ds_relax;
                 if model.allowLargeSaturations
                     state.s = max(s_uncap, 0);
@@ -179,9 +179,8 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             problem.primaryVariables = vars;
             [state, report] = updateState@ThreePhaseCompositionalModel(model, state, problem, dx, drivingForces);
             state = model.flashPhases(state, state0, s_uncap, xyUpdated, problem.iterationNo);
-            ix = model.getEoSPhaseIndices();
             sT = sum(state.s, 2);
-            sT_hc = sum(state.s(:, ix), 2);
+            sT_hc = sum(state.s(:, isEoSPhase), 2);
             s_hc = sT_hc./sT;
             dx = model.computeChange(deltax, s_hc);
             dy = model.computeChange(deltay, s_hc);
@@ -290,12 +289,11 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             end
             % From this, define the minimum saturation
             sMin = tol.*sMax;
-            if model.water
-                % Ensure that there is a little bit of everything
-                sMax = sMax - s_nonhc;
-                sMax = max(sMax, 1e-8);
-            end
-            
+            % Ensure that there is a little bit of everything if
+            % non-EoS phases exist
+            sMax = sMax - s_nonhc;
+            sMax = max(sMax, 1e-8);
+
             ds_oswitch = sMin(toEpsLiq);
             ds_gswitch = sMin(toEpsVap);
             
@@ -366,7 +364,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             sL = sL./sT;
             sV = sV./sT;
             
-            % Only water
+            % Only non-EoS-phases
             missingPhases = sT == 0;
             sL(missingPhases) = state.L(missingPhases);
             sV(missingPhases) = 1-state.L(missingPhases);

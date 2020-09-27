@@ -454,14 +454,14 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             scaling = getScalingFactorsCPR@ReservoirModel(model, problem, names, solver);
         end
 
-        function [sL, sV] = setMinimumTwoPhaseSaturations(model, state, sW, sL, sV, pureLiquid, pureVapor, twoPhase)
+        function [sL, sV] = setMinimumTwoPhaseSaturations(model, state, s_rem, sL, sV, pureLiquid, pureVapor, twoPhase)
             % Set a minumum phase saturation value for the EOS-governed
             % phases. This may be required for numerical stability, as the
             % component-in-phase conservation equations degenerate when the
             % saturations are zero. The minimum value is taken from the
             % configured value i nthe EOS.
             stol = model.EOSModel.minimumSaturation;
-            if model.water
+            if any(value(s_rem) > 0)
                 if nargin > 7
                     mustHaveVapor = pureVapor | twoPhase;
                     mustHaveLiquid = pureLiquid | twoPhase;
@@ -471,7 +471,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 end
                 sT = sum(state.s, 2);
                 if any(pureVapor)
-                    sV(pureVapor) = sT(pureVapor) - sW(pureVapor);
+                    sV(pureVapor) = sT(pureVapor) - s_rem(pureVapor);
                 end
                 
                 if any(mustHaveVapor)
@@ -483,7 +483,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 end
                 
                 if any(pureLiquid)
-                    sL(pureLiquid) = sT(pureLiquid) - sW(pureLiquid);
+                    sL(pureLiquid) = sT(pureLiquid) - s_rem(pureLiquid);
                 end
                 
                 if any(mustHaveLiquid)
@@ -548,7 +548,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
        function [v_comp, tol_comp, names_comp, isComponent] = getComponentConvergenceValues(model, problem)
             % Check convergence criterion of components
             isComponent = false(size(problem.equations));
-            cnames = model.getComponentNames();
+            cnames = model.EOSModel.getComponentNames();
             names = problem.equationNames;
             
             % Get state, timestep length
@@ -558,9 +558,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             s = value(model.getProp(state, 's'));
             pv = value(model.getProp(state, 'PoreVolume'));
             mass = bsxfun(@times, pv, rho.*s);
-            if model.water
-                cnames = cnames(~strcmpi(cnames, 'water'));
-            end
             ncomp = numel(cnames);
             for i = 1:ncomp
                 f = strcmpi(names, cnames{i});
@@ -568,6 +565,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     isComponent(f) = true;
                 end
             end
+            [shortnames, snames] = model.getNonEoSPhaseNames();
             if model.useIncTolComposition
                 if problem.iterationNo == 1
                     v_comp = inf(1, ncomp);
@@ -576,14 +574,14 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 end
                 tol_comp = model.incTolComposition;
                 names_comp = model.getComponentNames();
-                names_comp = names_comp(~strcmp(names_comp, 'water'));
+                names_comp = names_comp(~ismember(names_comp, snames));
                 names_comp = cellfun(@(x) ['d', x], names_comp, 'UniformOutput', false);
             else
                 phix = model.getEoSPhaseIndices();
                 tol_comp = model.nonlinearTolerance;
                 massT = sum(mass(:, phix), 2);
                 scale = dt./massT;
-                if model.water
+                if numel(snames)
                     maxEOSSat = sum(s(:, phix), 2);
                     scale(maxEOSSat < 1e-4) = 0;
                 end
@@ -591,7 +589,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 names_comp = names(isComponent);
             end
             tol_comp = repmat(tol_comp, size(v_comp));
-            [shortnames, snames] = model.getNonEoSPhaseNames();
             phnames = model.getPhaseNames();
             for i = 1:numel(shortnames)
                 sn = snames{i};

@@ -19,7 +19,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             src = model.FacilityModel.getComponentSources(state);
             % Assemble equations and add in sources
             [pressures, sat, mob, rho, X] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ComponentPhaseMassFractions');
-            comps = cellfun(@(x, y) {x, y}, X(:, 1+model.water), X(:, 2+model.water), 'UniformOutput', false);
+            comps = cellfun(@(x, y) {x, y}, X(:, model.getLiquidIndex), X(:, model.getVaporIndex), 'UniformOutput', false);
             
             
             eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...

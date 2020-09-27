@@ -39,11 +39,16 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             rock = makeRock(G, 1*darcy, 0.5);
 
             nph = 2 + includeWater;
-
-            inj = 1:nph;
+            uniform = true;
+            if uniform
+                inj = ones(1, nph);
+            else
+                inj = 1:nph;
+            end
             inj = inj./sum(inj);
             
-            s = nph:-1:1;
+%             s = nph:-1:1;
+            s = ones(1, nph);
             s = s./sum(s);
             
             [compfluid, info] = getBenchmarkMixture(fluidSystem);
@@ -51,13 +56,21 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             p_w = p/2;
 
             eos = EquationOfStateModel(G, compfluid);
-            state0 = initCompositionalState(G, info.pressure, info.temp, s, info.initial, eos);
-            
-            nkr = [2, 3, 4];
-            mu = [1, 5, 0.1]*centi*poise;
-            rhoS = [1000, 10, 10];
-            c = [0, 1e-7, 1e-4]/barsa;
-            
+%             state0 = initCompositionalState(G, info.pressure, info.temp, s, info.initial, eos);
+            nc = G.cells.num;
+            e = @(x) repmat(x, nc, 1);
+            state0 = struct('pressure', e(info.pressure), 'T', e(info.T), 's', e(s), 'components', e(info.initial));
+            if uniform
+                nkr = [2, 2, 2];
+                mu = [1, 1, 1]*centi*poise;
+                rhoS = [10, 10, 10];
+                c = [1e-7, 1e-7, 1e-7]/barsa;
+            else
+                nkr = [2, 3, 4];
+                mu = [1, 5, 0.1]*centi*poise;
+                rhoS = [1000, 10, 10];
+                c = [0, 1e-7, 1e-4]/barsa;
+            end
             ph = 'wog';
             act = [includeWater, true, true];
             
@@ -140,11 +153,12 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             pv = poreVolume(G, rock);
             irate = 0.1*sum(pv)/time;
 
+            z = min(G.cells.centroids(:, 3));
             W = [];
             W = verticalWell(W, G, rock, 1, 1, [], 'comp_i', inj, ...
-                            'val', irate, 'type', 'rate');
+                            'val', irate, 'type', 'rate', 'refDepth', z);
             W = verticalWell(W, G, rock, opt.dims(1), opt.dims(2), [], ...
-                            'comp_i', inj, 'val', p_w, 'type', 'bhp');
+                            'comp_i', inj, 'val', p_w, 'type', 'bhp', 'refDepth', z);
             for i = 1:numel(W)
                 W(i).components = info.injection;
             end

@@ -32,7 +32,6 @@ classdef PhaseCompressibilityFactorsLV < StateFunction
             
             L_mix = mix{L_ix};
             V_mix = mix{V_ix};
-            s = getSampleAD(p, x{:}, y{:});
             
             Z_L = eos.computeCompressibilityZ(p, x, L_mix.A, L_mix.B, L_mix.Si, L_mix.Bi, true);
             Z_L = eos.setZDerivatives(Z_L, L_mix.A, L_mix.B, arg{:});

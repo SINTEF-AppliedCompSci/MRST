@@ -17,13 +17,8 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             % Discretize
             [eqs, flux, names, types] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
-            % Define helper variables
-            wat = model.water;
-            ncomp = numel(names);
-            n_hc = ncomp - wat;
-            
             [pressures, sat, mob, rho, X] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ComponentPhaseMassFractions');
-            comps = cellfun(@(x, y) {x, y}, X(:, 1+model.water), X(:, 2+model.water), 'UniformOutput', false);
+            comps = cellfun(@(x, y) {x, y}, X(:, model.getLiquidIndex), X(:, model.getVaporIndex), 'UniformOutput', false);
             
             
             eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
@@ -38,6 +33,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
             end
             % Natural variables part
+            n_hc = model.EOSModel.getNumberOfComponents();
             twoPhase = model.getTwoPhaseFlag(state);
             cnames = model.EOSModel.getComponentNames;
             f = model.getProps(state, 'Fugacity');

@@ -59,5 +59,4 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         state.s = sHydrocarbon;
     end
-    
 end
