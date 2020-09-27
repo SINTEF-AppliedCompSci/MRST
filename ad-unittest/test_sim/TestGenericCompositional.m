@@ -146,6 +146,8 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             for i = 1:numel(W)
                 W(i).components = info.injection;
             end
+            model.liquidPhase = opt.phases(1);
+            model.vaporPhase = opt.phases(2);
             ok_sim = ok_sim && ~(isLegacy && ~defaultedPhases);
             if ok_sim
                 schedule = simpleSchedule(time, 'W', W);

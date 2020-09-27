@@ -21,9 +21,16 @@ classdef FugacityLV < StateFunction
             f = cell(ncomp, 2);
             wat = model.water;
             twoPhase = model.getTwoPhaseFlag(state);
+            isEoS = model.getEoSComponentMask();
+
             for i = 1:2
-                xy = mf(1:end-wat, i + wat)';
-                m = mix{i+wat};
+                if i == 1
+                    phix = model.getLiquidIndex();
+                else
+                    phix = model.getVaporIndex();
+                end
+                xy = mf(isEoS, phix)';
+                m = mix{phix};
                 if i == 2 && prop.useCompactEvaluation && ~all(twoPhase)
                     [~, ~, twoPhase] = model.getFlag(state);
                     fi = f(:, 1);

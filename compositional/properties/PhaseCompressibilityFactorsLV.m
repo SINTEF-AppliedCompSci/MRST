@@ -21,14 +21,14 @@ classdef PhaseCompressibilityFactorsLV < StateFunction
             end
             nph = model.getNumberOfPhases();
             eos = model.EOSModel;
-            wat = model.water;
             p = model.getProps(state, 'pressure');
             [mix, mf] = prop.getEvaluatedDependencies(state, 'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions');
-            L_ix = 1+wat;
-            V_ix = L_ix + 1;
+            L_ix = model.getLiquidIndex();
+            V_ix = model.getVaporIndex();
+            isEoS = model.getEoSComponentMask();
             
-            x = mf(1:end-wat, L_ix);
-            y = mf(1:end-wat, V_ix);
+            x = mf(isEoS, L_ix);
+            y = mf(isEoS, V_ix);
             
             L_mix = mix{L_ix};
             V_mix = mix{V_ix};
@@ -64,8 +64,8 @@ classdef PhaseCompressibilityFactorsLV < StateFunction
             v = cell(1, nph);
             v{L_ix} = Z_L;
             v{V_ix} = Z_V;
-            if model.water
-                v{1} = ones(numelValue(Z_L), 1);
+            if nph > 2
+                [v{cellfun(@isempty, v)}] = deal(ones(numelValue(Z_L), 1));
             end
         end
     end

@@ -29,7 +29,7 @@ classdef ComponentPhaseMoleFractionsLV < StateFunction
             [v{isEoS, model.getVaporIndex()}] = y{:};
             for cNo = find(~isEoS)
                 ix = model.Components{cNo}.phaseIndex;
-                v{ix, cNo} = ones(nc, 1);
+                v{cNo, ix} = ones(nc, 1);
             end
         end
     end

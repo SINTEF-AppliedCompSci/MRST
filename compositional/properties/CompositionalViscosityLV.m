@@ -1,55 +1,57 @@
-classdef CompositionalViscosityLV < StateFunction
+classdef CompositionalViscosityLV < Viscosity
     properties
         useCompactEvaluation = true;
     end
     
     methods
         function gp = CompositionalViscosityLV(model, varargin)
-            gp@StateFunction(model, varargin{:});
+            gp@Viscosity(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
             gp = gp.dependsOn({'pressure', 'temperature'}, 'state');
             gp.label = '\mu_\alpha';
         end
         
         function mu = evaluateOnDomain(prop, model, state)
-            [act, phInd] = model.getActivePhases();
-            nph = sum(act);
+            ph_names = model.getPhaseNames();
+            nph = numel(ph_names);
             mu = cell(1, nph);
             
             [p, T] = model.getProps(state, 'pressure', 'T');
             [Z, mf] = prop.getEvaluatedDependencies(state, 'PhaseCompressibilityFactors',...
                                                            'ComponentPhaseMoleFractions');
-            oix = phInd == 2;
-            gix = phInd == 3;
-            wat = model.water;
-            x = mf(1:end-wat, oix);
-            y = mf(1:end-wat, gix);
+            L_ix = model.getLiquidIndex();
+            V_ix = model.getVaporIndex();
+            isEoS = model.getEoSComponentMask();
 
-            if model.water
-                p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
-                wix = phInd == 1;
-                pw = p_phase{wix};
-                mu{wix} = prop.evaluateFluid(model, 'muW', pw);
-            end
+            x = mf(isEoS, L_ix);
+            y = mf(isEoS, V_ix);
+
             eos = model.EOSModel;
             pm = eos.PropertyModel;
-            mu{oix} = pm.computeViscosity(eos, p, x, Z{oix}, T, true);
+            mu{L_ix} = pm.computeViscosity(eos, p, x, Z{L_ix}, T, true);
             
             twoPhase = model.getTwoPhaseFlag(state);
             if prop.useCompactEvaluation && ~all(twoPhase)
-                muV = mu{oix};
+                muV = mu{L_ix};
                 if any(twoPhase)
                     if iscell(y)
                         y = cellfun(@(x) x(twoPhase), y, 'uniformoutput', false);
                     else
                         y = y(twoPhase, :);
                     end
-                    muV(twoPhase) = pm.computeViscosity(eos, p(twoPhase), y, Z{gix}(twoPhase), T(twoPhase), false);
+                    muV(twoPhase) = pm.computeViscosity(eos, p(twoPhase), y, Z{V_ix}(twoPhase), T(twoPhase), false);
                 end
             else
-                muV = pm.computeViscosity(eos, p, y, Z{gix}, T, false);
+                muV = pm.computeViscosity(eos, p, y, Z{V_ix}, T, false);
             end
-            mu{gix} = muV;
+            mu{V_ix} = muV;
+            % Deal with non-flash components
+            for i = 1:nph
+                if i == L_ix || i == V_ix
+                    continue
+                end
+                mu{i} = prop.evaluatePhaseViscosity(model, state, ph_names(i), p);
+            end
         end
     end
 end
