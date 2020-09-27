@@ -27,9 +27,16 @@ classdef ComponentPhaseMoleFractionsLV < StateFunction
             isEoS = model.getEoSComponentMask();
             [v{isEoS, model.getLiquidIndex()}] = x{:};
             [v{isEoS, model.getVaporIndex()}] = y{:};
-            for cNo = find(~isEoS)
-                ix = model.Components{cNo}.phaseIndex;
-                v{cNo, ix} = ones(nc, 1);
+            if ~all(isEoS)
+                if isa(model, 'GenericReservoirModel')
+                    for cNo = find(~isEoS)
+                        ix = model.Components{cNo}.phaseIndex;
+                        v{cNo, ix} = ones(nc, 1);
+                    end
+                else
+                    % Just water - first component
+                    v{1, 1} = ones(nc, 1);
+                end
             end
         end
     end

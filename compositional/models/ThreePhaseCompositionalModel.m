@@ -79,7 +79,11 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
         function isEoS = getEoSComponentMask(model)
             if isempty(model.Components)
                 % Old, non-generic version
-                isEoS = [~model.water, true(1, model.getNumberOfComponents()-1)];
+                nc = model.EOSModel.getNumberOfComponents();
+                isEoS = true(1, nc + model.water);
+                if model.water
+                    isEoS(1) = false;
+                end
             else
                 isEoS = cellfun(@(x) isa(x, 'EquationOfStateComponent'), model.Components);
             end

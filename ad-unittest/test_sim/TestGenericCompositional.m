@@ -10,7 +10,7 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                      'overall-legacy',...
                      'natural-legacy-si', ...
                      'overall-legacy-si'};
-        phases = {[], 'GO', 'WO', 'WG'};                 
+        phases = {'OG', 'GO', 'WO', 'WG'};                 
     end
     
     methods
@@ -32,10 +32,7 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             else
                 gravity reset off
             end
-            defaultedPhases = isempty(opt.phases);
-            if defaultedPhases
-                opt.phases = 'OG';
-            end
+            defaultedPhases = strcmp(opt.phases, 'OG');
 
             G = cartGrid(opt.dims, opt.physDims);
             G = computeGeometry(G);
