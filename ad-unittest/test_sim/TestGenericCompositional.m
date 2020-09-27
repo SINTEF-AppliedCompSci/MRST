@@ -10,6 +10,7 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                      'overall-legacy',...
                      'natural-legacy-si', ...
                      'overall-legacy-si'};
+        phases = {[], 'GO', 'WO', 'WG'};                 
     end
     
     methods
@@ -22,12 +23,18 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             opt = struct('dims', [2, 2, 2], ...
                          'physDims', [1000, 1000, 10], ...
                          'gravity', true, ...
+                         'phases', [], ...
                          'useAMGCL', false);
             opt = merge_options(opt, varargin{:});
+            ok_sim = true;
             if opt.gravity
                 gravity reset on
             else
                 gravity reset off
+            end
+            defaultedPhases = isempty(opt.phases);
+            if defaultedPhases
+                opt.phases = 'OG';
             end
 
             G = cartGrid(opt.dims, opt.physDims);
@@ -63,10 +70,22 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                                        'cR', 1e-12/barsa, ...
                                        'c', c(act), ...
                                        'n', nkr(act));
-            fluid = rmfield(fluid, 'bO');
-            fluid = rmfield(fluid, 'bG');
-            fluid = rmfield(fluid, 'muO');
-            fluid = rmfield(fluid, 'muG');
+            if any(opt.phases == 'O')
+                fluid = rmfield(fluid, 'bO');
+                fluid = rmfield(fluid, 'muO');
+            end
+            if any(opt.phases == 'G')
+                fluid = rmfield(fluid, 'bG');
+                fluid = rmfield(fluid, 'muG');
+            end
+            if any(opt.phases == 'W')
+                if includeWater
+                    fluid = rmfield(fluid, 'bW');
+                    fluid = rmfield(fluid, 'muW');
+                else
+                    ok_sim = false;
+                end
+            end
             switch lower(backend)
                 case 'diagonal'
                     auto = DiagonalAutoDiffBackend('useMex', false);
@@ -81,21 +100,26 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             arg = {G, rock, fluid, eos, ...
                 'water', includeWater, ...
                 'AutoDiffBackend', auto};
+            isLegacy = false;
             switch lower(modelType)
                 case 'natural'
                     model = GenericNaturalVariablesModel(arg{:});
                 case 'natural-legacy'
                     model = NaturalVariablesCompositionalModel(arg{:});
+                    isLegacy = true;
                 case 'overall'
                     model = GenericOverallCompositionModel(arg{:});
                 case 'overall-legacy'
                     model = OverallCompositionCompositionalModel(arg{:});
+                    isLegacy = true;
                 case 'natural-legacy-si'
                     model = NaturalVariablesCompositionalModel(arg{:});
                     model = getSequentialModelFromFI(model);
+                    isLegacy = true;
                 case 'overall-legacy-si'
                     model = OverallCompositionCompositionalModel(arg{:});
                     model = getSequentialModelFromFI(model);
+                    isLegacy = true;
                 case 'natural-si'
                     parent = GenericNaturalVariablesModel(arg{:});
                     pmodel = PressureModel(parent);
@@ -122,20 +146,27 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
             for i = 1:numel(W)
                 W(i).components = info.injection;
             end
-            schedule = simpleSchedule(time, 'W', W);
+            ok_sim = ok_sim && ~(isLegacy && ~defaultedPhases);
+            if ok_sim
+                schedule = simpleSchedule(time, 'W', W);
+            else
+                schedule = [];
+            end
         end
         
-        function [ws, states, reports] = testMultiPhase(test, modelType, includeWater, fluidSystem, backend, varargin)
+        function [ws, states, reports] = testMultiPhase(test, modelType, includeWater, fluidSystem, backend, phases, varargin)
             fprintf('Testing fluid "%s" with %s model and %s backend\n', fluidSystem, modelType, backend);
-            [state0, model, schedule] = test.buildTestCase(modelType, includeWater, fluidSystem, backend, varargin{:});
-            [ws, states, reports] = simulateScheduleAD(state0, model, schedule);
+            [state0, model, schedule] = test.buildTestCase(modelType, includeWater, fluidSystem, backend, 'phases', phases, varargin{:});
+            if ~isempty(schedule)
+                [ws, states, reports] = simulateScheduleAD(state0, model, schedule);
+            end
         end
     end
     
     methods (Test)
-        function varargout = compositionalTest(test, modelType, includeWater, fluidSystem, backend)
+        function varargout = compositionalTest(test, modelType, includeWater, fluidSystem, backend, phases)
             varargout = cell(nargout, 1);
-            [varargout{:}] = testMultiPhase(test, modelType, includeWater, fluidSystem, backend);
+            [varargout{:}] = testMultiPhase(test, modelType, includeWater, fluidSystem, backend, phases);
         end
     end
 end

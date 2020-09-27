@@ -76,6 +76,10 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             names = horzcat(names, model.EOSModel.getComponentNames());
         end
         
+        function isEoS = getEoSComponentMask(model)
+            isEoS = cellfun(@(x) isa(x, 'EquationOfStateComponent'), model.Components);
+        end
+        
         function ix = getLiquidIndex(model)
             ph = model.getPhaseNames();
             ix = find(ph == model.liquidPhase);
