@@ -135,15 +135,15 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             % Get primary variables from state, before a possible
             % initialization as AD.
             % Properties at current timestep
-            [p, sW, sO, sG, x, y] = model.getProps(state, ...
-                'pressure', 'water', 'so', 'sg', 'x', 'y');
+            [p, sL, sV, x, y] = model.getProps(state, ...
+                'pressure', 'sL', 'sV', 'x', 'y');
             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
 
             if 1
                 stol = 1e-6;
-                pureWater = sO + sG < stol;
-                sO(~pureVapor & pureWater) = stol;
-                sG(~pureLiquid & pureWater) = stol;
+                pureNonEoS = sL + sV < stol;
+                sL(~pureVapor & pureNonEoS) = stol;
+                sV(~pureLiquid & pureNonEoS) = stol;
             end
             z_tol = model.EOSModel.minimumComposition;
 
@@ -168,12 +168,12 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 for i = 1:(ncomp-1)
                     w{i} = y{i}(twoPhase);
                 end
-                so = sO(twoPhase);
-                sg = sG(twoPhase);
+                sl = sL(twoPhase);
+                sv = sV(twoPhase);
             else
                 w = cell(1, ncomp-1);
-                so = {[]};
-                sg = {[]};
+                sl = {[]};
+                sv = {[]};
             end
 
             if not(isempty(model.FacilityModel))
@@ -185,12 +185,14 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             
             component_names = xnames(1:end-1);
             comps = x(1:end-1);
-            if model.water
-                component_names = [component_names, 'satw'];
-                comps = [comps, sW];
+            extra = model.getNonEoSPhaseNames();
+            for i = 1:numel(extra)
+                ns = ['s', extra(i)];
+                component_names = [component_names, ns]; %#ok
+                comps = [comps, model.getProp(state, ns)]; %#ok
             end
-            vars = [p, comps, v, so, w, sg];
-            names = ['pressure', component_names, n, 'sato', ynames(1:end-1), 'satg'];
+            vars = [p, comps, v, sl, w, sv];
+            names = ['pressure', component_names, n, 'sL', ynames(1:end-1), 'sV'];
 
             offset = numel(component_names) + 1;
             origin = cell(1, numel(vars));
@@ -207,8 +209,8 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             cellJacMap = cell(nvar, 1);
             s = getSampleAD(vars{:});
             
-            is_so = strcmp(names, 'sato');
-            is_sg = strcmp(names, 'satg');
+            is_sl = strcmpi(names, 'sl');
+            is_sv = strcmpi(names, 'sv');
                         
             cnames = model.EOSModel.getComponentNames;
             ncomp = numel(cnames);
@@ -242,31 +244,40 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             state = model.setProps(state, ...
                 {'liquidMoleFractions', 'vaporMoleFractions'}, {x, y});
             % Deal with saturations
-            [sO, sG] = model.getProps(state, 'sO', 'sG');
-            sO = model.AutoDiffBackend.convertToAD(sO, s);
-            sG = model.AutoDiffBackend.convertToAD(sG, s);
+            [sL, sV] = model.getProps(state, 'sL', 'sV');
+            sL = model.AutoDiffBackend.convertToAD(sL, s);
+            sV = model.AutoDiffBackend.convertToAD(sV, s);
             if any(twoPhase)
-                % Set oil/liquid saturation in two-phase cells
-                so = vars{is_so};
-                sO(twoPhase) = so;
-                % Set gas/vapor saturation in two-phase cells
-                sg = vars{is_sg};
-                sG(twoPhase) = sg;
-                cellJacMap{is_sg} = twoPhaseIx;
-                cellJacMap{is_so} = twoPhaseIx;
+                % Set liquid saturation in two-phase cells
+                sL(twoPhase) = vars{is_sl};
+                % Set vapor saturation in two-phase cells
+                sV(twoPhase) = vars{is_sv};
+                cellJacMap{is_sv} = twoPhaseIx;
+                cellJacMap{is_sl} = twoPhaseIx;
             end
-            removed(is_sg | is_so) = true;
+            removed(is_sv | is_sl) = true;
             
-            if model.water
-                is_sw = strcmp(names, 'satw');
-                sW = vars{is_sw};
-                
-                [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureLiquid, pureVapor);
-                removed(is_sw) = true;
-                sat = {sW, sO, sG};
-            else
-                sat = {sO, sG};
+            phases = model.getPhaseNames();
+            nph = numel(phases);
+            sat = cell(1, nph);
+            if nph > 2
+                extra = model.getNonEoSPhaseNames();
+                s_e = 0;
+                ne = numel(extra);
+                for i = 1:ne
+                    e = extra(i);
+                    is_s = strcmpi(names, ['s', e]);
+                    S = vars{is_s};
+                    % Add to sat
+                    s_e = s_e + S;
+                    sat{phases == e} = S;
+                    removed(is_s) = true;
+                end
+                [sL, sV] = setMinimumTwoPhaseSaturations(model, state, s_e, sL, sV, pureLiquid, pureVapor);
             end
+            sat{model.getLiquidIndex} = sL;
+            sat{model.getVaporIndex} = sV;
+
             state = model.setProp(state, 's', sat);
 
             if ~isempty(model.FacilityModel)
@@ -298,7 +309,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 twoPhaseIx = find(twoPhase);
                 cn = model.EOSModel.getComponentNames();
                 xInd = strcmpi(primaryVars, ['v_', cn{1}]);
-                sInd = strcmpi(primaryVars, 'sato');
+                sInd = strcmpi(primaryVars, 'sL');
                 offsets = cumsum([0; s.getNumVars()]);
                 reorder = 1:offsets(end);
                 start = offsets(xInd) + twoPhaseIx;

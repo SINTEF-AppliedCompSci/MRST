@@ -110,11 +110,11 @@ sg = sG(freeGas);
 if model.water
     [p, x{1:ncomp-1}, sW, wellvars{:}, so, w{1:ncomp-1}, sg] = initfn(...
      p, x{1:ncomp-1}, sW, wellvars{:}, so, w{1:ncomp-1}, sg);
-    primaryVars = {'pressure', xnames{1:end-1}, 'satw', wellVarNames{:}, 'sato', ynames{1:end-1}, 'satg'};
+    primaryVars = {'pressure', xnames{1:end-1}, 'sw', wellVarNames{:}, 'sl', ynames{1:end-1}, 'sv'};
 else
     [p, x{1:ncomp-1}, wellvars{:}, so, w{1:ncomp-1}, sg] = initfn(...
      p, x{1:ncomp-1}, wellvars{:}, so, w{1:ncomp-1}, sg);
-    primaryVars = {'pressure', xnames{1:end-1}, wellVarNames{:}, 'sato', ynames{1:end-1}, 'satg'};
+    primaryVars = {'pressure', xnames{1:end-1}, wellVarNames{:}, 'sl', ynames{1:end-1}, 'sv'};
     sW = zeros(model.G.cells.num, 1);
 end
 sample = p;

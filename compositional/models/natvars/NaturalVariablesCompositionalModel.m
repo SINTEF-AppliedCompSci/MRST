@@ -50,7 +50,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             nph = numel(phases);
             ds = zeros(model.G.cells.num, nph);
             for i = 1:nph
-                [ds(:, i), dx, vars] = getSatUpdateInternal(model, ['sat', phases(i)], dx, vars, twoPhase);
+                [ds(:, i), dx, vars] = getSatUpdateInternal(model, phases(i), dx, vars, twoPhase);
             end
             if nph > 2
                 li = model.getLiquidIndex();
@@ -468,9 +468,15 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
     
     methods(Access=protected)
         function [ds, dx, vars] = getSatUpdateInternal(model, name, dx, vars, twoPhase)
-            dsgix = strcmpi(vars, name);
-            if any(dsgix)
-                ds_tmp = dx{dsgix};
+            if strcmpi(name, model.liquidPhase)
+                name = 'L';
+            elseif strcmpi(name, model.vaporPhase)
+                name = 'V';
+            end
+            sn = ['s', name];
+            isdS = strcmpi(vars, sn);
+            if any(isdS)
+                ds_tmp = dx{isdS};
                 if numel(ds_tmp) == nnz(twoPhase)
                     ds = zeros(model.G.cells.num, 1);
                     ds(twoPhase) = ds_tmp;
@@ -478,8 +484,9 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                     assert(numel(ds_tmp) == model.G.cells.num);
                     ds = ds_tmp;
                 end
-                [vars, removed] = model.stripVars(vars, name);
+                [vars, removed] = model.stripVars(vars, sn);
                 dx = dx(~removed);
+                assert(any(removed))
             else
                 ds = zeros(model.G.cells.num, 1);
             end

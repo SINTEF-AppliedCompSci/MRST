@@ -142,6 +142,10 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 case {'k', 'equilibriumconstants'}
                     fn = 'K';
                     index = ':';
+                case 'sl'
+                    [fn, index] = getVariableField@ReservoirModel(model, ['s', model.liquidPhase], varargin{:});
+                case 'sv'
+                    [fn, index] = getVariableField@ReservoirModel(model, ['s', model.vaporPhase], varargin{:});
                 otherwise
                     names = model.EOSModel.getComponentNames();
                     sub = strcmpi(names, name);
