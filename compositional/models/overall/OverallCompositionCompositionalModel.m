@@ -88,15 +88,19 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             var0 = problem.primaryVariables;
             vars = var0;
             removed = false(size(vars));
-            
-            wix = strcmpi(vars, 'sW');
-            if any(wix)
-                state = model.updateStateFromIncrement(state, dx{wix}, problem, 'sW', inf, model.dsMaxAbs);
-                state = model.capProperty(state, 'sW', 0, 1);
-                removed(wix) = true;
-                vars = vars(~wix);
+            s_hc = 1;
+            extraPhases = model.getNonEoSPhaseNames();
+            for i = 1:numel(extraPhases)
+                sn = ['s', extraPhases(i)];
+                phaseIx = strcmpi(vars, sn);
+                if any(phaseIx)
+                    state = model.updateStateFromIncrement(state, dx{phaseIx}, problem, sn, inf, model.dsMaxAbs);
+                    state = model.capProperty(state, sn, 0, 1);
+                    removed(phaseIx) = true;
+                    vars = vars(~phaseIx);
+                end
+                s_hc = s_hc - model.getProp(state, sn);
             end
-            
             % Components
             cnames = model.EOSModel.getComponentNames();
             ncomp = numel(cnames);
@@ -123,11 +127,6 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
 
                     rm = rm - (z(:, i) - z0);
                 end
-            end
-            if model.water
-                s_hc  = 1 - state.s(:, 1);
-            else
-                s_hc = 1;
             end
             if any(ok)
                 % We had components as active variables somehow
@@ -165,7 +164,7 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             twoPhase = state.L < 1 & state.L > 0;
             switched = twoPhase0 ~= twoPhase;
             
-            dispif(model.verbose > 1, '%d gas, %d oil, %d two-phase\n', nnz(state.L == 0), nnz(state.L == 1), nnz(twoPhase));
+            dispif(model.verbose > 1, '%d pure liquid, %d pure vapor, %d two-phase\n', nnz(state.L == 0), nnz(state.L == 1), nnz(twoPhase));
             state.switchCount = state.switchCount + double(switched);
             % Set minimum phase composition
             state.x = ensureMinimumFraction(state.x, minz);

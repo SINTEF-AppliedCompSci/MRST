@@ -64,12 +64,16 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 model.FacilityModel = GenericFacilityModel(model);
             end
             if isempty(model.Components)
-                names_hc = model.EOSModel.CompositionalMixture.names;
-                if model.water
-                    names = [names_hc, 'water']; % Put water last
-                else
-                    names = names_hc;
+                names_eos = model.EOSModel.getComponentNames();
+                % Add in additional immiscible phases
+                [sn_regular, phases_regular] = model.getNonEoSPhaseNames();
+                nreg = numel(sn_regular);
+                enames = cell(1, nreg);
+                for i = 1:nreg
+                    enames{i} = phases_regular{i};
                 end
+                names = [names_eos, enames];
+                
                 nc = numel(names);
                 model.Components = cell(1, nc);
                 p = model.FacilityModel.pressure;
@@ -77,8 +81,9 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 for ci = 1:nc
                     name = names{ci};
                     switch name
-                        case 'water'
-                            c = ImmiscibleComponent('water', 1);
+                        case {'water', 'oil', 'gas'}
+                            ix = model.getPhaseIndex(upper(name(1)));
+                            c = ImmiscibleComponent(name, ix);
                         otherwise
                             c = getEOSComponent(model, p, T, name, ci);
                     end
@@ -99,7 +104,17 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 f = model.getProp(state, 'PhaseFlux');
                 nph = numel(f);
                 state.flux = zeros(model.G.faces.num, nph);
-                state.flux(model.operators.internalConn, :) = [f{:}];
+                state.flux(model.operators.internalConn, :) = value(f);
+                if ~isempty(drivingForces.bc)
+                    [p, s, mob, rho, b] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ShrinkageFactors');
+                    sat = num2cell(s, [1, size(s, 1)]);               
+                    [~, ~, ~, fRes] = getBoundaryConditionFluxesAD(model, p, sat, mob, rho, b, drivingForces.bc);
+                    idx = model.getActivePhases();
+                    fWOG = cell(3, 1);
+                    fWOG(idx) = fRes;
+
+                    state = model.storeBoundaryFluxes(state, fWOG{1}, fWOG{2}, fWOG{3}, drivingForces);
+                end
             end
         end
 
@@ -111,17 +126,17 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             z = ensureMinimumFraction(z, z_tol);
             z = expandMatrixToCell(z);
             cnames = model.EOSModel.getComponentNames();
-            names = [{'pressure'}, cnames(2:end)];
-            vars = [p, z(2:end)];
             extra = model.getNonEoSPhaseNames();
             ne = numel(extra);
             enames = cell(1, ne);
-            esats = cell(1, ne);
+            evars = cell(1, ne);
             for i = 1:ne
                 sn = ['s', extra(i)];
                 enames{i} = sn;
-                esats{i} = model.getProp(state, sn);
+                evars{i} = model.getProp(state, sn);
             end
+            names = [{'pressure'}, cnames(2:end), enames];
+            vars = [p, z(2:end), evars];
             origin = cell(1, numel(names));
             [origin{:}] = deal(class(model));
             if ~isempty(model.FacilityModel)
@@ -180,7 +195,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 removed(isVar) = true;
                 void = void - si;
                 
-                s{phnames == extra{i}} = si;
+                s{phnames == extra(i)} = si;
             end
             li = model.getLiquidIndex();
             vi = model.getVaporIndex();
@@ -210,7 +225,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
             sL = sL.*void;
             sV = sV.*void;
-            [s{li}, s{vi}] = model.setMinimumTwoPhaseSaturations(state, sW, sL, sV, pureLiquid, pureVapor, twoPhase);
+            [s{li}, s{vi}] = model.setMinimumTwoPhaseSaturations(state, 1 - void, sL, sV, pureLiquid, pureVapor, twoPhase);
             state = model.setProp(state, 's', s);
         end
 

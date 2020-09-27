@@ -87,12 +87,16 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 model.FacilityModel = GenericFacilityModel(model);
             end
             if isempty(model.Components)
-                names_hc = model.EOSModel.getComponentNames();
-                if model.water
-                    names = [names_hc, 'water'];
-                else
-                    names = names_hc;
+                names_eos = model.EOSModel.getComponentNames();
+                % Add in additional immiscible phases
+                [sn_regular, phases_regular] = model.getNonEoSPhaseNames();
+                nreg = numel(sn_regular);
+                enames = cell(1, nreg);
+                for i = 1:nreg
+                    enames{i} = phases_regular{i};
                 end
+                names = [names_eos, enames];
+                
                 nc = numel(names);
                 model.Components = cell(1, nc);
                 p = model.FacilityModel.pressure;
@@ -100,8 +104,9 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 for ci = 1:nc
                     name = names{ci};
                     switch name
-                        case 'water'
-                            c = ImmiscibleComponent('water', 1);
+                        case {'water', 'oil', 'gas'}
+                            ix = model.getPhaseIndex(upper(name(1)));
+                            c = ImmiscibleComponent(name, ix);
                         otherwise
                             c = getEOSComponent(model, p, T, name, ci);
                     end

@@ -496,8 +496,17 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             model = validateModel@ReservoirModel(model, varargin{:});
             % Use matching AD backends for EOS and for flow model
             model.EOSModel.AutoDiffBackend = model.AutoDiffBackend;
-            % assert(model.gas, 'Gaseous phase must be present for compositional');
-            % assert(model.oil, 'Oileic phase must be present for compositional');
+            isGeneric = isa(model, 'GenericReservoirModel');
+            if isGeneric
+                phases = model.getPhaseNames;
+                assert(any(phases == model.liquidPhase));
+                assert(any(phases == model.vaporPhase));
+            else
+                assert(strcmp(model.liquidPhase, 'O'))
+                assert(strcmp(model.vaporPhase, 'G'))
+                assert(model.gas, 'Gaseous phase must be present for compositional');
+                assert(model.oil, 'Oileic phase must be present for compositional');
+            end
         end
         
         function model = setupStateFunctionGroupings(model, varargin)
