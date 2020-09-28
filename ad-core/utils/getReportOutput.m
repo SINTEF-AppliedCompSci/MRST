@@ -101,8 +101,11 @@ function output = getControlStepReportData(report, opt)
     % output(2) = total data for steps that did not result in covergence
     % output(3) = steps for stepreport if ~isempty(opt.solver)
     % output(4) = timestep cuts for control step
-    stepreports = report.StepReports;
     output  = zeros(1,4);
+    if ~isfield(report, 'StepReports')
+        return
+    end
+    stepreports = report.StepReports;
     for i = 1:numel(stepreports)
         out = getStepReportData(stepreports{i}, opt);
         if size(output,1) < size(out,1)
