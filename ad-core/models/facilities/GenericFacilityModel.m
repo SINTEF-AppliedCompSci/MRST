@@ -44,7 +44,7 @@ classdef GenericFacilityModel < FacilityModel
             surfaceDensity = facility.getProp(state, 'InjectionSurfaceDensity');
             nph = model.getNumberOfPhases();
             surfaceRates = cell(1, nph);
-            [surfaceRates{:}] = deal(0);
+            [surfaceRates{:}] = deal(zeros(numelValue(cflux{1}), 1));
             for c = 1:numel(cflux)
                 component = model.Components{c};
                 if ~isa(component, 'ConcentrationComponent')
