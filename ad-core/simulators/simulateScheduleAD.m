@@ -103,6 +103,16 @@ function [wellSols, states, schedulereport] = ...
 %                        See `getPlotAfterStep` for more information and
 %                        `howtoAddPlotHook` for a worked example.
 %
+%   'processOutputFn'  - Function handle to an optional function that
+%                        processes the simulation output (wellSols, states
+%                        and reports) before they are stored to state using
+%                        the output handlers. Allows for storing only data
+%                        of interest, which is useful when dealing with
+%                        large models. Changes made to the output by this
+%                        function are only applied to the data that is
+%                        stored, and will not affect what is passed on to
+%                        the next timestep.
+%
 %   'controlLogicFn'   - Function handle to optional function that will be
 %                        called after each step enabling schedule updates to 
 %                        be triggered on specified events. Input arguemnts:
@@ -166,6 +176,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'ReportHandler',     [], ...
                  'afterStepFn',       [], ...
                  'controlLogicFn',    [], ...
+                 'processOutputFn',   [], ...
                  'restartStep',       1, ...
                  'LinearSolver',      []);
 
@@ -296,7 +307,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                 'UniformOutput', false);
 
         wellSols(ind) = wellSols_step;
-
+        
+        if ~isempty(opt.processOutputFn)
+            [states_step, wellSols_step, report] = opt.processOutputFn(states_step, wellSols_step, report);
+        end
+        
         if ~isempty(opt.OutputHandler)
             opt.OutputHandler{ind + opt.restartStep - 1} = states_step;
         end
