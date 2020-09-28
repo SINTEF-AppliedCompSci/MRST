@@ -595,8 +595,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 isSimplePhase = strcmpi(names, sn);
                 if any(isSimplePhase)
                     rhoi = rho(:, phnames == shortnames(i));
-                    scale_w = dt./(pv.*rhoi);                
-                    w_simple = value(problem.equations{isSimplePhase}).*scale_w;
+                    scale_s = dt./(pv.*rhoi);                
+                    w_simple = value(problem.equations{isSimplePhase}).*scale_s;
                     v_comp = [v_comp, norm(w_simple, inf)]; %#ok
                     tol_comp = [tol_comp, model.toleranceCNV]; %#ok
                     isComponent(isSimplePhase) = true;

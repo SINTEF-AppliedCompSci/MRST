@@ -19,7 +19,6 @@ classdef FugacityLV < StateFunction
             
             ncomp = eos.getNumberOfComponents();
             f = cell(ncomp, 2);
-            wat = model.water;
             twoPhase = model.getTwoPhaseFlag(state);
             isEoS = model.getEoSComponentMask();
 
@@ -38,14 +37,14 @@ classdef FugacityLV < StateFunction
                         xy = cellfun(@(x) x(twoPhase), xy, 'UniformOutput', false);
                         Si = cellfun(@(x) x(twoPhase), m.Si, 'UniformOutput', false);
                         Bi = cellfun(@(x) x(twoPhase), m.Bi, 'UniformOutput', false);
-                        f_2ph = model.EOSModel.computeFugacity(p(twoPhase), xy, Z{i+wat}(twoPhase), m.A(twoPhase), m.B(twoPhase), Si, Bi);
+                        f_2ph = model.EOSModel.computeFugacity(p(twoPhase), xy, Z{phix}(twoPhase), m.A(twoPhase), m.B(twoPhase), Si, Bi);
                         for j = 1:numel(fi)
                             fi{j}(twoPhase) = f_2ph{j};
                         end
                     end
                     f(:, i) = fi;
                 else
-                    f(:, i) = model.EOSModel.computeFugacity(p, xy, Z{i+wat}, m.A, m.B, m.Si, m.Bi);
+                    f(:, i) = model.EOSModel.computeFugacity(p, xy, Z{phix}, m.A, m.B, m.Si, m.Bi);
                 end
             end
         end
