@@ -192,8 +192,8 @@ function submodel = makeSubModel(model, subG, subRock, subop, cellMap, opt)
         warning('Assuming default state function groupings.');
         submodel.FlowPropertyFunctions = submodel.FlowPropertyFunctions.subset(cellMap.keep);
         submodel.PVTPropertyFunctions  = submodel.PVTPropertyFunctions.subset(cellMap.keep);
-        submodel.FluxDiscretization    = submodel.FluxDiscretization.subset(cellMap.keep);
-        submodel.FluxDiscretization    = replaceOperators(submodel.FluxDiscretization, submodel);
+        submodel.FlowDiscretization    = submodel.FlowDiscretization.subset(cellMap.keep);
+        submodel.FlowDiscretization    = replaceOperators(submodel.FlowDiscretization, submodel);
     end
 end
 
