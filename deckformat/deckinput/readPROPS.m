@@ -173,8 +173,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %            prp.(kw) = feval(['complete', kw], prp.(kw));
 
          case 'PVTW'
-            tmpl(1:5) = { '0.0' };
-            data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
+            tmpl      = repmat({ '0.0' }, [1, 5]);
+            data      = readFixedNumRecords(fid, tmpl, ntpvt);
             prp.(kw)  = to_double(data);  clear tmpl
 
          case 'RKTRMDIR'
