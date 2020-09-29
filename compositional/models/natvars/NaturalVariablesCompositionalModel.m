@@ -32,6 +32,8 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
         reduceLinearSystem = true; % Return ReducedLinearizedSystem instead of LinearizedSystemAD
         maxPhaseChangesNonLinear = inf; % Maximum number of phase transitions for a given cell, during a nonlinear step (experimental option)
         checkStableTransition = false;
+        saturationEpsilon = 1e-6;
+        flashFromSinglePhase = false;
     end
     
     methods
@@ -133,7 +135,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             % Update sat
             capunit = @(x) min(max(x, 0), 1);
             nph = model.getNumberOfPhases();
-            isEosPhase = false(1, nph);
+            isEosPhase = true(1, nph);
             isEoSPhase(model.getEoSPhaseIndices) = true;
 
             if any(ds(:) ~= 0)
@@ -216,6 +218,13 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             stable = act;
             [stable(act), x(act, :), y(act, :)] =...
                 model.EOSModel.performPhaseStabilityTest(p(act, :), T(act, :), z(act, :), K(act, :));
+            flashOut = model.flashFromSinglePhase;
+            if flashOut
+                fi = ~stable & act;
+                substate = struct('pressure', p(fi), 'T', T(fi), 'components', z(fi, :), ...
+                                  'K', K(fi, :), 's', state.s(fi, :), 'L', state.L(fi));
+                substate = model.computeFlash(substate);
+            end
             % Special check - we lock cells in single-phase region if a
             % slightly dangerous debug option is enabled.
             locked = state.switchCount > model.maxPhaseChangesNonLinear;
@@ -223,11 +232,11 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             % Begun calculating new saturations
             sL = state.s(:, liquidIndex);
             sV = state.s(:, vaporIndex);
-            tol = 1e-8;
+            tol = model.saturationEpsilon;
             % We introduce a small amount of the previously missing fluid
             % in the unstable cells
-            toEpsLiq = isVapor0 & ~stable;
-            toEpsVap = isLiquid0 & ~stable;
+            toEpsLiq = isVapor0 & ~stable & ~flashOut;
+            toEpsVap = isLiquid0 & ~stable & ~flashOut;
             % Un-capped saturation (indicating phase transition to
             % single-phase state)
             sL_uncap = s_uncap(:, liquidIndex);
@@ -340,6 +349,16 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 % liquid fraction
                 state.components = bsxfun(@times, state.x, state.L) + bsxfun(@times, state.y, (1-state.L));
             end
+            if flashOut
+                fn = fieldnames(substate);
+                for i = 1:numel(fn)
+                    f = fn{i};
+                    v = substate.(f);
+                    if isnumeric(v)
+                        state.(f)(fi, :) = v;
+                    end
+                end
+            end
             % Check if we have any disasterous cells. Should not really
             % happen.
             bad = all(state.s == 0, 2);
@@ -354,7 +373,6 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 fprintf('%d 2ph, %d oil, %d gas [%d switched, %d locked]\n', ...
                 nnz(state.flag == 0), nnz(state.flag == 1), nnz(state.flag == 2), nnz(state.switched), nnz(locked));
             end
-            
         end
         
         function state = updateSecondaryProperties(model, state)
