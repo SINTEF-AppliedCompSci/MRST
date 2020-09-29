@@ -123,7 +123,17 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 f = model.getProp(state, 'PhaseFlux');
                 nph = numel(f);
                 state.flux = zeros(model.G.faces.num, nph);
-                state.flux(model.operators.internalConn, :) = [f{:}];
+                state.flux(model.operators.internalConn, :) = value(f);
+                if ~isempty(drivingForces.bc)
+                    [p, s, mob, rho, b] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ShrinkageFactors');
+                    sat = expandMatrixToCell(s);
+                    [~, ~, ~, fRes] = getBoundaryConditionFluxesAD(model, p, sat, mob, rho, b, drivingForces.bc);
+                    idx = model.getActivePhases();
+                    fWOG = cell(3, 1);
+                    fWOG(idx) = fRes;
+
+                    state = model.storeBoundaryFluxes(state, fWOG{1}, fWOG{2}, fWOG{3}, drivingForces);
+                end
             end
         end
 
