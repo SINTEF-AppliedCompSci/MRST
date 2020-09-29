@@ -368,9 +368,9 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     qC = zeros(size(cells));
                     for ph = 1:2
                         if ph == 1
-                            ix = model.liquidPhase;
+                            ix = model.getLiquidIndex();
                         else
-                            ix = model.vaporPhase;
+                            ix = model.getVaporIndex();
                         end
                         q_ph = src.phaseMass{ix};
                         inj = q_ph > 0;
