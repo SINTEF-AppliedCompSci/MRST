@@ -137,7 +137,7 @@ opt = struct('mu',       [], ...
              'smin',     [0 0 0], ...
              'phases',   'WOG');
 opt = merge_options(opt, varargin{:});
-if isempty(opt.mu)
+if isempty(opt.mu) && opt.blackoil
     opt.mu = [1, 1, 1];
     warning('Defaulted viscosity to unit value (1000 centipoise) for all phases.')
 end
