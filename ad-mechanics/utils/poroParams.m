@@ -34,6 +34,10 @@ function [res, rel_hist, residuals, eqs] = poroParams(phi, uniform, varargin)
 % 'nu_u'      - Poisson's ratio (undrained)
 % 'G'         - Shear modulus (drained and undrained)
 %   
+% If the equation solver was not able to satisfy the full set of poroelastic
+% relations, a warning is shown.  Usually, this is because the user has
+% over-specified the problem with incompatible parameter values.
+% 
 % SYNOPSIS:
 %   function [res, rel_hist, residuals, eqs] = poroParams(phi, uniform, varargin)
 %
@@ -295,8 +299,11 @@ end
 
 function rel = setup_relations(phi)
 
+% The relations are all taken from:
+% Wang, H.F., "Theory of linear poroelasticity", Princeton Series in
+% Geophysics, Princeton University Press, NJ (2000).
    
-%relfun = @(carray, fun) struct('args', {carray}, 'f', fun);
+   %relfun = @(carray, fun) struct('args', {carray}, 'f', fun);
    
    % Standard relations in linear elasticity (drained)
    rel = [relfun({'K',   'lambda', 'G'},  @(K,   lambda, G) 1/K - 1/(lambda + 2*G/3));                ...
