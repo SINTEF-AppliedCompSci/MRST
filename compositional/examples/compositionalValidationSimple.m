@@ -22,55 +22,7 @@ mrstModule add compositional deckformat ad-core ad-props
 if ~exist('useNatural', 'var')
     useNatural = true;
 end
-
-pth = getDatasetPath('simplecomp');
-fn  = fullfile(pth, 'SIMPLE_COMP.DATA');
-% Read deck
-deck = readEclipseDeck(fn);
-deck = convertDeckUnits(deck);
-% Set up grid
-G = initEclipseGrid(deck);
-G = computeGeometry(G);
-
-% Set up rock
-rock  = initEclipseRock(deck);
-rock  = compressRock(rock, G.cells.indexMap);
-fluid = initDeckADIFluid(deck);
-% Define some surface densities
-fluid.rhoOS = 800;
-fluid.rhoGS = 10;
-
-eos = initDeckEOSModel(deck);
-arg = {G, rock, fluid, eos, 'water', false};
-if useNatural
-    model = GenericNaturalVariablesModel(arg{:});
-else
-    model = GenericOverallCompositionModel(arg{:});
-end
-schedule = convertDeckScheduleToMRST(model, deck);
-
-% Manually set the injection composition
-[schedule.control.W.components] = deal([0, 1, 0]);
-% Injection is pure gas
-[schedule.control.W.compi] = deal([1, 0]);
-
-%% Set up initial state
-% The problem is defined at 150 degrees celsius with 75 bar initial
-% pressure. We set up the initial problem and make a call to the flash
-% routines to get correct initial composition.
-ncomp = eos.getNumberOfComponents();
-
-for i = 1:numel(schedule.control.W)
-    schedule.control.W(i).lims = [];
-end
-
-% Initial conditions
-z0 = [0.6, 0.1, 0.3];
-T = 150 + 273.15;
-p = 75*barsa;
-
-state0 = initCompositionalState(G, p, T, 1, z0, eos);
-
+[state0, model, schedule, ref] = setupSimpleCompositionalExample(useNatural);
 %% Simulate the schedule
 % Note that as the problem has 500 control steps, this may take some time
 % (upwards of 4 minutes).
@@ -86,11 +38,11 @@ state0 = initCompositionalState(G, p, T, 1, z0, eos);
 % simulator. We observe good agreement between all three simulators, with
 % the minor differences can likely be accounted for by harmonizing the
 % tolerances and sub-timestepping strategy for the different simulators.
+ncomp = model.EOSModel.getNumberOfComponents();
 
 lf = get(0, 'DefaultFigurePosition');
 h = figure('Position', lf + [0, 0, 350, 0]);
-ref = load(fullfile(pth, 'comparison.mat'));
-data = {states, ref.statesECL, ref.statesGPRS};
+data = {states, ref.statesECL(2:end), ref.statesGPRS};
 n = min(cellfun(@numel, data));
 names = {'MRST', 'E300', 'AD-GPRS'};
 markers = {'-', '.', '--'};
@@ -189,9 +141,9 @@ for i = 1:5:numel(states)
 end
 axis off
 
-text(0, 0, model.EOSModel.fluid.names{1}, 'verticalalignment', 'top', 'horizontalalignment', 'right')
-text(1, 0, model.EOSModel.fluid.names{2}, 'verticalalignment', 'top', 'horizontalalignment', 'left')
-text(0.5, sqrt(3)/2, model.EOSModel.fluid.names{3}, 'verticalalignment', 'bottom', 'horizontalalignment', 'center')
+text(0, 0, cnames{1}, 'verticalalignment', 'top', 'horizontalalignment', 'right')
+text(1, 0, cnames{2}, 'verticalalignment', 'top', 'horizontalalignment', 'left')
+text(0.5, sqrt(3)/2, cnames{3}, 'verticalalignment', 'bottom', 'horizontalalignment', 'center')
 
 
 text(mapx(0.5, 0.5, 0), mapy(0.5, 0.5, 0), '0.5', 'verticalalignment', 'top', 'horizontalalignment', 'center')
