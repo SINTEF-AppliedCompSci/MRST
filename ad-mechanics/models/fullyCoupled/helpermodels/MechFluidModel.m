@@ -118,6 +118,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             report = [];
         end
 
+        function ctrl = validateDrivingForces(model, ctrl, index)
+            fluidmodel = model.fluidModel;
+            ctrl = fluidmodel.validateDrivingForces(ctrl, index);
+        end
+
         function model = validateModel(model, varargin)
             if isempty(model.FacilityModel)
                 warning('The MechFluidModel has an empty FacilityModel');
