@@ -146,8 +146,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         function model = validateModel(model, varargin)
-            if isempty(model.FacilityModel)
-                error('The MechFluidSplitModel requires to have an iniatilized FacilityModel')
+            if isempty(model.FacilityModel) || isempty(model.FacilityModel.ReservoirModel)
+               model.FacilityModel = FacilityModel(model);
+               %error('The MechFluidSplitModel requires to have an iniatilized FacilityModel')
             end
             model.fluidModel.FacilityModel        = model.FacilityModel;
             if isempty(model.operators)

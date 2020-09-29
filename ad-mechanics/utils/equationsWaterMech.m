@@ -121,6 +121,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     eqs{1} = (1 ./ dt) .* (effPorVol .* bW - effPorVol0.* f.bW(p0)) + ...
              s.Div(bWvW);
 
+    [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, {p}, ...
+                                               {rhoW}, {mobW}, {1}, ...
+                                               drivingForces);
+
+    if model.outputFluxes
+       state = model.storeBoundaryFluxes(state, qRes, [], [], drivingForces);
+    end
+    
     names = {'water'};
     types = {'cell'};
 
