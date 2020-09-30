@@ -41,7 +41,6 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             f_names = cell(1, n_hc);
             f_types = cell(1, n_hc);
             
-            s_closure = [];
             
             for i = 1:n_hc
                 if any(twoPhase)
@@ -49,18 +48,13 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 end
                 f_names{i} = ['f_', cnames{i}];
                 f_types{i} = 'fugacity';
-                s = model.getProp(state, 's');
-                s_closure = ones(sum(twoPhase), 1);
-                for phNo = 1:numel(s)
-                    s_closure = s_closure - s{phNo}(twoPhase);
-                end
             end
             % Get facility equations
             [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
             % Finally assemble
-            eqs = [eqs, weqs, f_eqs, {s_closure}];
-            names = [names, wnames, f_names, 'volclosure'];
-            types = [types, wtypes, f_types, 'saturation'];
+            eqs = [eqs, weqs, f_eqs];
+            names = [names, wnames, f_names];
+            types = [types, wtypes, f_types];
         end
         
         function names = getComponentNames(model)
@@ -175,11 +169,9 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                     w{i} = y{i}(twoPhase);
                 end
                 sl = sL(twoPhase);
-                sv = sV(twoPhase);
             else
                 w = cell(1, ncomp-1);
                 sl = {[]};
-                sv = {[]};
             end
 
             if not(isempty(model.FacilityModel))
@@ -197,8 +189,8 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 component_names = [component_names, ns]; %#ok
                 comps = [comps, model.getProp(state, ns)]; %#ok
             end
-            vars = [p, comps, v, sl, w, sv];
-            names = ['pressure', component_names, n, 'sL', ynames(1:end-1), 'sV'];
+            vars = [p, comps, v, sl, w];
+            names = ['pressure', component_names, n, 'sL', ynames(1:end-1)];
 
             offset = numel(component_names) + 1;
             origin = cell(1, numel(vars));
@@ -250,36 +242,49 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             state = model.setProps(state, ...
                 {'liquidMoleFractions', 'vaporMoleFractions'}, {x, y});
             % Deal with saturations
-            [sL, sV] = model.getProps(state, 'sL', 'sV');
-            sL = model.AutoDiffBackend.convertToAD(sL, s);
-            sV = model.AutoDiffBackend.convertToAD(sV, s);
-            if any(twoPhase)
-                % Set liquid saturation in two-phase cells
-                sL(twoPhase) = vars{is_sl};
-                % Set vapor saturation in two-phase cells
-                sV(twoPhase) = vars{is_sv};
-                cellJacMap{is_sv} = twoPhaseIx;
-                cellJacMap{is_sl} = twoPhaseIx;
-            end
-            removed(is_sv | is_sl) = true;
-            
             phases = model.getPhaseNames();
             nph = numel(phases);
+            sE = zeros(model.G.cells.num, 1);
             sat = cell(1, nph);
             if nph > 2
                 extra = model.getNonEoSPhaseNames();
-                s_e = 0;
                 ne = numel(extra);
                 for i = 1:ne
                     e = extra(i);
                     is_s = strcmpi(names, ['s', e]);
                     S = vars{is_s};
                     % Add to sat
-                    s_e = s_e + S;
+                    sE = sE + S;
                     sat{phases == e} = S;
                     removed(is_s) = true;
                 end
-                [sL, sV] = setMinimumTwoPhaseSaturations(model, state, s_e, sL, sV, pureLiquid, pureVapor);
+            end
+            % EoS values
+            [sL, sV] = model.getProps(state, 'sL', 'sV');
+            if any(twoPhase)
+                sL = model.AutoDiffBackend.convertToAD(sL, s);
+                sV = model.AutoDiffBackend.convertToAD(sV, s);
+                if nph > 2
+                    if any(pureLiquid)
+                        sL(pureLiquid) = 1 - sE(pureLiquid);
+                    end
+                    if any(pureVapor)
+                        sV(pureVapor) = 1 - sE(pureVapor);
+                    end
+                end
+                % Set liquid saturation in two-phase cells
+                sl = vars{is_sl};
+                sL(twoPhase) = sl;
+                % Set vapor saturation in two-phase cells
+                sV(twoPhase) = 1 - sl - sE(twoPhase);
+                if nph == 2
+                    cellJacMap{is_sl} = twoPhaseIx;
+                end
+            end
+            removed(is_sv | is_sl) = true;
+
+            if nph > 2
+                [sL, sV] = model.setMinimumTwoPhaseSaturations(state, sE, sL, sV, pureLiquid, pureVapor);
             end
             sat{model.getLiquidIndex} = sL;
             sat{model.getVaporIndex} = sV;
