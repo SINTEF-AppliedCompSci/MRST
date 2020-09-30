@@ -55,9 +55,9 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             for i = 1:nph
                 [ds(:, i), dx, vars, isFound(i)] = getSatUpdateInternal(model, phases(i), dx, vars, twoPhase);
             end
-            if any(~isFound)
-                assert(sum(~isFound) == 1)
-                ds(:, ~isFound) = -sum(ds(:, isFound), 2);
+            missing = ~isFound;
+            if sum(missing) == 1
+                ds(:, missing) = -sum(ds(:, isFound), 2);
             end
             if nph > 2
                 li = model.getLiquidIndex();

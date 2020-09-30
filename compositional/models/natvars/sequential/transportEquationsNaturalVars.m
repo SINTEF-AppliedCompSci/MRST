@@ -76,14 +76,14 @@ if model.water
         [X, x{1:ncomp-1}, sW, w{1:ncomp-1}, so] = model.AutoDiffBackend.initVariablesAD(...
          X, x{1:ncomp-1}, sW, w{1:ncomp-1}, so);
     end
-    primaryVars = {'sGsO', xnames{1:end-1}, 'satw', ynames{1:end-1}, 'sl'};
+    primaryVars = {'sGsO', xnames{1:end-1}, 'sW', ynames{1:end-1}, 'sL'};
 
 else
     if ~opt.resOnly
         [X, x{1:ncomp-1}, w{1:ncomp-1}, so] = model.AutoDiffBackend.initVariablesAD(...
          X, x{1:ncomp-1}, w{1:ncomp-1}, so);
     end
-    primaryVars = {'sGsO', xnames{1:end-1}, ynames{1:end-1}, 'sl'};
+    primaryVars = {'sGsO', xnames{1:end-1}, ynames{1:end-1}, 'sL'};
 end
 z = expandMatrixToCell(z);
 
