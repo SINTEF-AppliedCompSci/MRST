@@ -168,9 +168,15 @@ classdef TestGenericCompositional < matlab.unittest.TestCase
                 if isLegacy
                     model.pressureModel.liquidPhase = L;
                     model.pressureModel.vaporPhase = V;
+                    
+                    model.pressureModel.liquidPhase = L;
+                    model.transportModel.vaporPhase = V;
                 else
                     model.pressureModel.parentModel.liquidPhase = L;
-                    model.pressureModel.parentModel.vaporPhase = V;
+                    model.transportModel.parentModel.vaporPhase = V;
+                    
+                    model.pressureModel.parentModel.liquidPhase = L;
+                    model.transportModel.parentModel.vaporPhase = V;
                 end
             else
                 model.liquidPhase = L;
