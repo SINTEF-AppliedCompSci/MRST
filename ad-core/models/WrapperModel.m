@@ -92,6 +92,10 @@ classdef WrapperModel < PhysicalModel
         function groupings = getStateFunctionGroupings(model)
             groupings = model.parentModel.getStateFunctionGroupings();
         end
+        
+        function [values, tolerances, names] = getConvergenceValues(model, varargin)
+            [values, tolerances, names] = model.parentModel.getConvergenceValues(varargin{:});
+        end
 
         function rmodel = getReservoirModel(model)
             rmodel = model.parentModel;
