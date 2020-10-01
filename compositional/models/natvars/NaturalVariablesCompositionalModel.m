@@ -19,7 +19,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
     %   fluid     - The flow fluid, containing relative permeabilities,
     %               surface densities and flow properties for the
     %               aqueous/water phase (if present)
-    %   compFluid - CompositionalMixture instance describing the species
+    %   mixture   - CompositionalMixture instance describing the species
     %               present.
     %
     % RETURNS:
@@ -28,17 +28,17 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
     % SEE ALSO:
     %   `ThreePhaseCompositionalModel`, `OverallCompositionCompositionalModel`
     properties
-        allowLargeSaturations = false; % Allow sum of saturations larger than unity (experimental option)
-        reduceLinearSystem = true; % Return ReducedLinearizedSystem instead of LinearizedSystemAD
+        allowLargeSaturations = false;  % Allow sum of saturations larger than unity (experimental option)
+        reduceLinearSystem = true;      % Return ReducedLinearizedSystem instead of LinearizedSystemAD
         maxPhaseChangesNonLinear = inf; % Maximum number of phase transitions for a given cell, during a nonlinear step (experimental option)
-        checkStableTransition = false;
-        saturationEpsilon = 1e-6;
-        flashFromSinglePhase = false;
+        checkStableTransition = false;  % Do not transition to single-phase if stable
+        saturationEpsilon = 1e-6;       % Epsilon for saturation during phase change
+        flashFromSinglePhase = false;   % Perform flash for cells existing single-phase
     end
     
     methods
-        function model = NaturalVariablesCompositionalModel(G, rock, fluid, compFluid, varargin)
-            model = model@ThreePhaseCompositionalModel(G, rock, fluid, compFluid, varargin{:});
+        function model = NaturalVariablesCompositionalModel(G, rock, fluid, mixture, varargin)
+            model = model@ThreePhaseCompositionalModel(G, rock, fluid, mixture, varargin{:});
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
