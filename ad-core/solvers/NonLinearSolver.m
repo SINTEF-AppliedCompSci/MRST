@@ -241,7 +241,7 @@ classdef NonLinearSolver < handle
                 else
                     % Model did not converge, we are in some kind of
                     % trouble.
-                    stopNow = dt <= dtMin || failure;
+                    stopNow = dt <= dtMin || (failure && solver.continueOnFailure);
                     
                     if ~(stopNow && solver.continueOnFailure)
                         if acceptCount == 0
