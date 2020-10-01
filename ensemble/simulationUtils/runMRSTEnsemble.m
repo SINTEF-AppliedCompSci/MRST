@@ -4,8 +4,8 @@ function runMRSTEnsemble(ensemble, vargin)
     opts = struct('clearPackedSimulationOutput', 'true');
     [opts, extra] = merge_options(opts, vargin{:});
     
-    for i=1:ensemble.num
-        ensemble.runSimulation(i, opts);
+    for seed=1:ensemble.num
+        ensemble.simulateEnsembleMember(seed, opts);
     end
     
 end

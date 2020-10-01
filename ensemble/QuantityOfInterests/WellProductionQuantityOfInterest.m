@@ -52,7 +52,14 @@ classdef WellProductionQuantityOfInterest < QuantityOfInterestBase
                 
         end
         
-        
+        function ok = validateQoI(qoi, baseProblem)
+            % Check that the configs that is inserted to the constructor 
+            % makes sense for the base problem in the ensemble
+            
+            
+            ok = false
+            
+        end
         
         function wellOutputs = getQoI(wellQoI, problem)
             % getQoI reads the result files of the given problem and
@@ -84,6 +91,7 @@ classdef WellProductionQuantityOfInterest < QuantityOfInterestBase
                 wellOutputs = sum(wellOutputs, 2);
             end
             
+            % save to file?
             
         end
     end

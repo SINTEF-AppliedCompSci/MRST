@@ -148,8 +148,12 @@ classdef MRSTEnsemble < MRSTExample
         end
                
         %-----------------------------------------------------------------%
-        function runSimulation(ensemble, seed, vargin)
+        function simulateEnsembleMember(ensemble, seed, vargin)
             % run simulation for ensemble member that corresponds to seed
+            
+            % TODO: Check if QoI exists
+            %     if so - return
+            
             
             opt = struct('clearPackedSimulationOutput', 'true');
             [opt, extra] = merge_options(opt, vargin{:});
@@ -162,7 +166,7 @@ classdef MRSTEnsemble < MRSTExample
             ensemble.qoi.save(currentQoI);
             
             if opt.clearPackedSimulationOutput
-                clearPackedSimulatorOutput(problem, 'prompt', false));
+                clearPackedSimulatorOutput(problem, 'prompt', false);
             end
             
         end
