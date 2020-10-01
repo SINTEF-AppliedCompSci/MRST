@@ -20,7 +20,7 @@ ensembleSize = 20;
 %% Run the base problem if we wish
 % Simulate and plot it for illustration:
 simulateAndPlotExample = true;
-rerunBaseProblemFromScratch = true;
+rerunBaseProblemFromScratch = false;
 if simulateAndPlotExample
     baseExample = MRSTExample(baseProblemName, baseProblemOptions{:});
     problem = baseExample.getPackedSimulationProblem();
@@ -46,7 +46,14 @@ stoch = StochasticRockConfigurations(configData);
 
 %% Select quantity of interest class
 
-qoiName = 'WellProductionQuantityOfInterest';
-qoiOptions = {'cumulative', true, 'numTimesteps', 10};
+qoi = WellProductionQuantityOfInterest('cumulative', true, 'numTimesteps', 10);
+
+
+%% Create the ensemble
+
+ensemble = MRSTEnsemble(baseProblemName, stoch, qoi);
+
+%% Run the ensemble
+
 
 

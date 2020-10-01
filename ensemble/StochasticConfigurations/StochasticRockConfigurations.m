@@ -39,8 +39,6 @@ classdef StochasticRockConfigurations < StochasticConfigurations
             
             specificProblem.SimulatorSetup.model = problem.SimulatorSetup.model.removeStateFunctionGroupings();
             
-            
-            
         end        
         
         

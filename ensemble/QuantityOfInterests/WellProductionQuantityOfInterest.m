@@ -15,9 +15,15 @@ classdef WellProductionQuantityOfInterest < QuantityOfInterestBase
     end
     
     methods
-        function wellQoI = WellProductionQuantityOfInterest(simulatorSetup, varargin)
+        function wellQoI = WellProductionQuantityOfInterest(varargin)
             wellQoI = wellQoI@QuantityOfInterestBase();
             wellQoI = merge_options(wellQoI, varargin{:});
+        end
+        
+        function wellQoI = validateQoI(wellQoI, baseProblem)
+            % Check that the configs that are inserted to the constructor 
+            % makes sense for the base problem for the ensemble, and
+            % updates reminding fields.
             
             % Either, we provide the indices of the chosen wells,
             % or the names. If wellIndices is provided, any wellNames input
@@ -25,15 +31,15 @@ classdef WellProductionQuantityOfInterest < QuantityOfInterestBase
             if ~isempty(wellQoI.wellIndices)
                 wellQoI.wellNames = cell(numel(wellQoI.wellIndices, 1));
                 for wi = 1:numel(wellQoI.wellIndices)
-                    wellQoI.wellNames{wi} = simulatorSetup.schedule.control.W(wi).name;
+                    wellQoI.wellNames{wi} = baseProblem.SimulatorSetup.schedule.control.W(wi).name;
                 end
             else
-                numWellsTotal = numel(simulatorSetup.schedule.control.W);
+                numWellsTotal = numel(baseProblem.SimulatorSetup.schedule.control.W);
                 wellQoI.wellIndices = zeros(1, numel(wellQoI.wellNames));
                 for wi = 1:numel(wellQoI.wellNames)
                     found = false;
                     for j = 1:numWellsTotal
-                        if strcmp(wellQoI.wellNames{wi}, simulatorSetup.schedule.control.W(j).name);
+                        if strcmp(wellQoI.wellNames{wi}, baseProblem.SimulatorSetup.schedule.control.W(j).name);
                             wellQoI.wellIndices(wi) = j;
                             found = true;
                             break
@@ -43,21 +49,12 @@ classdef WellProductionQuantityOfInterest < QuantityOfInterestBase
                 end
             end % well names and indices
             
-            wellQoI.timesteps = simulatorSetup.schedule.step.val;
+            wellQoI.timesteps = baseProblem.SimulatorSetup.schedule.step.val;
             if ~isempty(wellQoI.numTimesteps)
                 wellQoI.timesteps = wellQoI.timesteps(1:wellQoI.numTimesteps);
             else
                 wellQoI.numTimesteps = numel(wellQoI.timesteps);
             end
-                
-        end
-        
-        function ok = validateQoI(qoi, baseProblem)
-            % Check that the configs that is inserted to the constructor 
-            % makes sense for the base problem in the ensemble
-            
-            
-            ok = false
             
         end
         
