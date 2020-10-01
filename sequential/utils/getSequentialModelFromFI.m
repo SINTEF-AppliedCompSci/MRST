@@ -1,5 +1,7 @@
 function model = getSequentialModelFromFI(fimodel, varargin)
 % For a given fully implicit model, output the corresponding pressure/transport model 
+    opt = struct('useAcceleration', false, 'outerLoop', false);
+    [opt, varargin] = merge_options(opt, varargin{:});
     if isa(fimodel, 'SequentialPressureTransportModel')
         % User gave us a sequential model! We do not know why, but in that
         % case we just return it straight back.
@@ -80,8 +82,12 @@ function model = getSequentialModelFromFI(fimodel, varargin)
         pressureModel.operators = fimodel.operators;
         transportModel.operators = fimodel.operators;
     end
-    
-    model = SequentialPressureTransportModel(pressureModel, transportModel, varargin{:});
+    arg = {pressureModel, transportModel, 'stepFunctionIsLinear', ~opt.outerLoop, varargin{:}};
+    if opt.useAcceleration
+        model = AcceleratedSequentialModel(arg{:});
+    else
+        model = SequentialPressureTransportModel(arg{:});
+    end
 end
 
 %{
