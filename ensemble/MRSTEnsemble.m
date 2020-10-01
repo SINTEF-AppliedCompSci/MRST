@@ -76,7 +76,7 @@ classdef MRSTEnsemble < MRSTExample
             ensemble.stochasticConfigs = stochasticConfigs;
             ensemble.num = stochasticConfigs.num;
             
-            ensemble.qoi = qoi;
+            ensemble.qoi = qoi.validateQoI(ensemble.baseProblem);
             
             ensemble.setUpDataDirectory();
             
