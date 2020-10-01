@@ -1,32 +1,27 @@
-function [description, options, state0, model, schedule, plotOptions] = ensemble_base_problem_1d_reservoir(varargin)
-% Creates a 1D model with two-phase flow between an injector and a
-% producer.
+function [description, options, state0, model, schedule, plotOptions] = ensemble_base_problem_3d_reservoir(varargin)
+% Creates a 3D model with two-phase flow between two injectors and two
+% producers.
 %
 % SYNOPSIS:
 %   [description, options, state0, model, schedule, plotOptions] = base_function_1d_reservoir('pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   
-%   Very simple example that generates a 1D reservoir with a two-phase flow
-%   problem. It has an injector at one side, and a producer in the other.
-%   May be used as a stand-alone example definition, or to construct an 
-%   instance of `MRSTExample` as 
-%   example = MRSTExample('ensemble_base_problem_1D_reservoir');
-%   The main purpose of this example at the time of writing is as a minimal
-%   problem for ensemble simulation.
-%
+%   Very simple example that generates a 3D reservoir with a two-phase flow
+%   problem. It has two injectors and two producers, of which one of the
+%   injectors are not in a corner. May be used as a stand-alone example 
+%   definition, or to construct an instance of `MRSTExample` as 
+%   example = MRSTExample('ensemble_base_problem_3D_reservoir');
+%   At the time of writing, the main purpose is to use this example for a
+%   base in an example ensemble simulation.
 %
 % OPTIONAL PARAMETERS:
-%   This example supports the following optional parameters:
-%   'ncells'     - Number of cells
-%   'nsteps'     - Number of timesteps
-%   'dt_in_days' - Target timestep length in days
-%   'length'     - Length of reservoir in meters
+%   This example currently does not take any optional inputs
 %
 % RETURNS:
 %   description - One-line example description, displayed in list-examples,
 %                 and the only input argument if the function is called as
-%                 description = ensemble_base_problem_1D_reservoir()
+%                 description = my_example_wog()
 %
 %   options     - A struct of the optional input parameters, with defaults
 %                 for all arguments that were not passed as optional
@@ -72,22 +67,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Each example must start with the description and options, followed by
     % an nargout check that returns if we only asked for the description
     % and options
-    description = 'two-phase flow in 1D reservoir between injector and producer';
+    description = 'two-phase flow in fixed 3D reservoir between two injectors and two producers';
     
     % Each example can have any number of optional input arguments, and
     % must return a (possibly empy) options struct
-    options = struct('ncells', 30, 'nstep', 15, 'dt_in_days', 30, 'length', 205);
-    options = merge_options(options, varargin{:});
+    options = struct();
     if nargout <= 2, return; end
     
     
     % Define any module dependencies for the example. The following are
     % typically always needed
-    require ad-core ad-props ad-blackoil %incomp
+    require ad-core ad-props ad-blackoil incomp
     
     %% Define model
-    length = options.length; 
-    G = cartGrid([options.ncells, 1, 1], [length, length/5, length/5]*meter^3);
+    length = 275; 
+    G = cartGrid([10, 6, 4], [length, length/5, length/5]*meter^3);
     G = computeGeometry(G);
     
     % Define rock and fluid
@@ -111,15 +105,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
     %% Schedule
     % Add wells
-    W = verticalWell([], G, rock, 1, 1, [1], ...
+    W = verticalWell([], G, rock, 3, 3, [1], ...
         'Type', 'rate', 'Val', 300*meter^3/day, ...
         'Radius', 0.1, 'Name', 'I1', 'Comp_i', [1, 0], 'sign', 1);
 
-    W = verticalWell(W, G, rock, G.cartDims(1), 1, [1], ...
+    W = verticalWell(W, G, rock, 1, G.cartDims(2), [2], ...
+        'Type', 'rate', 'Val', 300*meter^3/day, ...
+        'Radius', 0.1, 'Name', 'I2', 'Comp_i', [1, 0], 'sign', 1);
+
+    W = verticalWell(W, G, rock, G.cartDims(1), 1, [3], ...
         'Type', 'bhp', 'Val', 150*barsa, ...
         'Radius', 0.1, 'Name', 'P1', 'Comp_i', [0, 1], 'sign', -1);
-    
-    ts = ones(15, 1)*options.dt_in_days*day;
+
+    W = verticalWell(W, G, rock, G.cartDims(1), G.cartDims(2), [4], ...
+        'Type', 'bhp', 'Val', 150*barsa, ...
+        'Radius', 0.1, 'Name', 'P2', 'Comp_i', [0, 1], 'sign', -1);
+
+    ts = ones(15, 1)*30*day;
     schedule = simpleSchedule(ts, 'W', W);
     
     %% Initial state (state0)
