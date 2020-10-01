@@ -11,7 +11,7 @@ classdef StochasticConfigurations
     methods
         
         function stochasticConfigurations = StochasticConfigurations()
-            %error('Template class not meant for direct use!');
+            % Intentionally empty
         end
         
         function specificProblem = getProblem(stochasticConfigurations, baseProblem, seed)
@@ -20,6 +20,14 @@ classdef StochasticConfigurations
             % random generator or an index of data.
             error('Template class not meant for direct use!');
         end
+        
+        function config = sampleConfiguration(stochasticConfiguration, seed)
+            % Generates a random configuration on the fly, possibly by 
+            % setting the random seed according to the provided seed.
+            
+            error('Template class not meant for direct use!');
+        end
+        
     end
 end
     

@@ -23,6 +23,7 @@ classdef MRSTEnsemble < MRSTExample
     %                     to read and store the relevant simulation results
     %                     from the ensemble
     %
+    % 
     %
     % OPTIONAL PARAMETERS:
     %   directory       - Path to where we store results when simulating
@@ -46,6 +47,7 @@ classdef MRSTEnsemble < MRSTExample
         num
         stochasticConfigs
         qoi
+        qoiOptions
         
         directory % getPath() See MonteCarloSimulator.m
         storeOutput = false

@@ -9,16 +9,15 @@ classdef QuantityOfInterestBase
     methods
         
         function quantityOfInterestBase = QuantityOfInterestBase()
-            %error('Template class not meant for direct use!');
-            % Some silly comment just to get another checksum and more
+            % Constructor is intentionally empty
         end
         
         function ok = save(quantityOfInterestBase, path, qoi)
             error('Implementation missing');
         end
         
-        function qoi = getQOI(quantityOfInterestBase, problem)
-            % getQOI reads the result files of the given problem and
+        function qoi = getQoI(quantityOfInterestBase, problem)
+            % getQoI reads the result files of the given problem and
             % extracts the quantity of interest, which is returned.
             error('Template class not meant for direct use!');
         end
