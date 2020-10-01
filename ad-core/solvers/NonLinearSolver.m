@@ -53,7 +53,7 @@ classdef NonLinearSolver < handle
         oscillationThreshold = 1.0 % Fraction of non-converged values that must oscillate/stagnate before relaxation is activated
         
         useLinesearch = false % True to enable line-search in residual
-        alwaysUseLinesearch = false % Debug option to always use line search
+        alwaysUseStabilization = false % Debug option to always use line search or relaxation
         linesearchReductionFactor = 1/2 % Reduction factor for each step in LS
         linesearchDecreaseFactor = 1 % Required reduction factor in residual (default 1)
         linesearchMaxIterations = 10 % Max iterations in linesearch
@@ -377,7 +377,7 @@ classdef NonLinearSolver < handle
                 end
                 prev_best = stepReport.Residuals;
                 
-                if solver.useRelaxation || solver.useLinesearch
+                if solver.useRelaxation || solver.useLinesearch || solver.alwaysUseStabilization
                     % Store residual history during nonlinear loop to detect
                     % stagnation or oscillations in residuals.
                     if i == 1

@@ -703,8 +703,8 @@ methods
                 % Remove AD from state, and remove property containers to avoid
                 % caching issues in update function
                 state = model.reduceState(state, true);
-                if (nonlinsolver.useLinesearch && nonlinsolver.convergenceIssues) || ...
-                    nonlinsolver.alwaysUseLinesearch
+                is_struggling = nonlinsolver.alwaysUseStabilization || nonlinsolver.convergenceIssues;
+                if is_struggling && nonlinsolver.useLinesearch
                     [state, updateReport, stabilizeReport.linesearch] = nonlinsolver.applyLinesearch(model, state0, state, problem, dx, drivingForces, varargin{:});
                 else
                     % Finally update the state. The physical model knows which
