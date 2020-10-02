@@ -1,23 +1,33 @@
 classdef TableCompositionalMixture < CompositionalMixture
-    % Create MRST compositional from stored tables (taken from CoolProp)
+    % Create MRST compositional mixture from stored tables (taken from CoolProp)
     properties
         
     end
     
     methods
-        function fluid = TableCompositionalMixture(names)
+        function mix = TableCompositionalMixture(names, outnames)
             % Create fluid from names
             %
             % SYNOPSIS:
             %   f = TableCompositionalMixture({'Methane', 'n-Decane'});
             %
             % PARAMETERS:
-            %   names - Cell array of valid names. See `getFluidList` for
-            %           valid names.
+            %   names    - Cell array of valid names. See `getFluidList` for
+            %              valid names.
+            %   outnames - The names the components will have in output
+            %              (optional).
             % RETURNS:
-            %   fluid - Initialized fluid.
+            %   mix - Initialized compositional mixture.
             if ischar(names)
                 names = {names};
+            end
+            if nargin == 1
+                outnames = names;
+            else
+                if ischar(outnames)
+                    outnames = {outnames};
+                end
+                assert(numel(names) == numel(outnames))
             end
             
             ncomp = numel(names);
@@ -44,8 +54,8 @@ classdef TableCompositionalMixture < CompositionalMixture
                 molarMass(i) = str.molarmass;
             end
             Vcrit = molarMass./rhocrit;
-            fluid = fluid@CompositionalMixture(names, Tcrit, Pcrit, Vcrit, acc, molarMass);
-            fluid.name = 'CoolProp - Tabulated';
+            mix = mix@CompositionalMixture(outnames, Tcrit, Pcrit, Vcrit, acc, molarMass);
+            mix.name = 'CoolProp - Tabulated';
         end
     end
     methods (Static)
