@@ -48,7 +48,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             model.EOSModel.verbose = false;
             model.EOSNonLinearSolver = getDefaultFlashNonLinearSolver();
             
-            model.nonlinearTolerance = 0.01;
+            model.nonlinearTolerance = 1e-3;
             model.incTolPressure = 1e-3;
             model.useIncTolComposition = false;
             model.incTolComposition = 1e-3;
