@@ -2,22 +2,20 @@ classdef MRSTEnsemble < MRSTExample
     % Class that facilitates ensembles in MRST.
     %
     % SYNOPSIS:
-    %   ensembles = Ensemble(baseProblem, configurations, qoi)
+    %   ensembles = Ensemble(baseProblem, samples, qoi)
     %
     % DESCRIPTION:
-    %   Extension of `PhysicalModel` class to accomodate reservoir-specific
-    %   features such as fluid and rock as well as commonly used phases and
-    %   variables.
-    %
+    %   Extension of `MRSTExample` class to accomodate ensembles of models.
+    % 
     % REQUIRED PARAMETERS:
     %   baseProblemName - Name of function that generates the base problem,
     %                     containing all aspects that are common between
     %                     all ensemble members
     %
-    %   configurations  - Configuration object, holding the the specific
-    %                     configurations for the individual ensemble
-    %                     parameters, and the mapping of such a
-    %                     configuration to the baseProblem
+    %   samples         - Sample object, holding what is the specific
+    %                     configurations for each individual ensemble
+    %                     member, and the mapping of such a sampel onto the
+    %                     baseProblem
     %
     %   qoi             - Quantity of interest object, with functionality
     %                     to read and store the relevant simulation results
@@ -45,7 +43,7 @@ classdef MRSTEnsemble < MRSTExample
     properties
         baseProblem
         num
-        stochasticConfigs
+        samples
         qoi
         qoiOptions
         
@@ -63,7 +61,7 @@ classdef MRSTEnsemble < MRSTExample
     
     methods
         %-----------------------------------------------------------------%
-        function ensemble = MRSTEnsemble(baseProblemName, stochasticConfigs, ...
+        function ensemble = MRSTEnsemble(baseProblemName, samples, ...
                 qoi, varargin)
             %ENSEMBLE Create an ensemble object based on a baseProblem and
             % a set of parameters/variables/properties specific to each
@@ -73,8 +71,8 @@ classdef MRSTEnsemble < MRSTExample
 
             ensemble.baseProblem = ensemble.getPackedSimulationProblem();
             
-            ensemble.stochasticConfigs = stochasticConfigs;
-            ensemble.num = stochasticConfigs.num;
+            ensemble.samples = samples;
+            ensemble.num = samples.num;
             
             ensemble.qoi = qoi.validateQoI(ensemble.baseProblem);
             
@@ -118,10 +116,10 @@ classdef MRSTEnsemble < MRSTExample
             % Todo: Implement getters for hash values of stochConfigs
             % and qois that uniquely identifies their setup
             
-            stochConfigClass = class(ensemble.stochasticConfigs);
+            samplesClass = class(ensemble.samples);
             qoiClass    = class(ensemble.qoi);
             numMembers = num2str(ensemble.num);
-            unhashedstr = lower(horzcat(stochConfigClass, qoiClass, numMembers));
+            unhashedstr = lower(horzcat(samplesClass, qoiClass, numMembers));
             try
                 % Calculate hash value
                 md = java.security.MessageDigest.getInstance('SHA-256');
@@ -158,7 +156,7 @@ classdef MRSTEnsemble < MRSTExample
             opt = struct('clearPackedSimulationOutput', 'true');
             [opt, extra] = merge_options(opt, vargin{:});
             
-            problem = ensemble.stochasticConfigs.getProblem(...
+            problem = ensemble.samples.getSampleProblem(...
                 ensemble.baseProblem, seed);
             ensemble.solve(problem);
             

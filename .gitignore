@@ -3,8 +3,6 @@
 # Learn more about .gitignore:
 #     https://www.atlassian.com/git/tutorials/saving-changes/gitignore
 
-# Autosave matlab files
-*.asv
 
 # Node artifact files
 node_modules/
@@ -51,5 +49,7 @@ Thumbs.db
 *.mov
 *.wmv
 
+# matlab 
+*.asv
 *.mat
 *.m~
