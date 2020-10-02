@@ -37,16 +37,24 @@ classdef BaseQoI
             % Get quantity of interest for a given problem
             % TODO: Check that problem has been simulated successfully, and
             % issue a warning if it is not
-            ids  = qoi.ResultHandler.getValidIds();
             seed = str2double(problem.OutputHandlers.states.dataFolder);
-            if any(ids == seed)
+            if qoi.isComputed(seed)
                 % QoI already computed - read from file
                 u = qoi.ResultHandler{seed};
             else
                 % Compute QoI and store to file
-                u = qoi.computeQoI(problem);
-                qoi.ResultHandler{seed} = u;
+                u  = qoi.computeQoI(problem);
+                us = u; % Handle special case when u is a cell array
+                if iscell(us), us = {us}; end
+                qoi.ResultHandler{seed} = us;
             end 
+        end
+        
+        %-----------------------------------------------------------------%
+        function ok = isComputed(qoi, seed)
+            % Check if qoi for a given seed it computed
+            ids = qoi.ResultHandler.getValidIds();
+            ok  = any(ids == seed);
         end
         
         %-----------------------------------------------------------------%
