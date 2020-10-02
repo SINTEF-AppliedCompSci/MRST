@@ -65,6 +65,15 @@ classdef BaseSamples
             % given by the seed
             sampleData = samples.getSample(seed, baseProblem);
             problem    = samples.setSample(sampleData, baseProblem);
+            % Set output directory for the sample
+            problem.OutputHandlers.wellSols.dataFolder = num2str(seed);
+            problem.OutputHandlers.states.dataFolder   = num2str(seed);
+            problem.OutputHandlers.reports.dataFolder  = num2str(seed);
+            % Check if data directory exists, and make it if it does'nt
+            dataDir = problem.OutputHandlers.states.getDataPath();
+            if ~exist(dataDir, 'dir')
+                mkdir(dataDir);
+            end
         end
         
     end
