@@ -42,7 +42,7 @@ for i = 1:ensembleSize
     configData{i}.permeability = configData{i}.porosity.^3.*(1e-5)^2./(0.81*72*(1-configData{i}.porosity).^2);
 end
 
-stoch = StochasticRockConfigurations(configData);
+samples = RockSamples('data', configData);
 
 %% Select quantity of interest class
 
@@ -51,7 +51,7 @@ qoi = WellProductionQuantityOfInterest('cumulative', true, 'numTimesteps', 10);
 
 %% Create the ensemble
 
-ensemble = MRSTEnsemble(baseProblemName, stoch, qoi, baseProblemOptions{:});
+ensemble = MRSTEnsemble(baseProblemName, samples, qoi, baseProblemOptions{:});
 
 %% Run the ensemble
 
