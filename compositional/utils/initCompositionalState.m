@@ -65,6 +65,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     [sL, sV] = eos.computeSaturations(nan, nan, state.x, state.y, state.L, state.Z_L, state.Z_V);
     sz = size(s0, 2);
+    if size(s0, 1) == 1
+        s0 = repmat(s0, G.cells.num, 1);
+    end
     if hasModel
         % We know the model and can then figure out what phase goes where.
         nph = model.getNumberOfPhases();
@@ -92,7 +95,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % We do not know what kind of model we have, just assume that the
         % water phase is the non-EoS
         assert(sz > 1, 'Must have multiple columns in saturations');
-        ix = [2, 3];
+        ix = [1, 2] + double(sz > 2);
         fill = sum(s0, 2) - sum(s0(:, ix), 2);
     end
     s0(:, ix) = bsxfun(@times, 1 - fill, [sL, sV]);
