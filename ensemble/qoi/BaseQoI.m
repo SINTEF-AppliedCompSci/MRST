@@ -15,7 +15,13 @@ classdef BaseQoI
         
         %-----------------------------------------------------------------%
         function qoi = validateQoI(qoi, problem)
+            % Function that potentially updates the object with properties
+            % from the baseProblem.
+            % This function is for instance called from in the 
+            % MRSTEnsemble constructor.
             
+            % Intentionally empty, as it in its simplest form just returns
+            % itself.
         end
         
         %-----------------------------------------------------------------%
