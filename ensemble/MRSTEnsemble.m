@@ -134,39 +134,24 @@ classdef MRSTEnsemble < MRSTExample
         function dataPath = getDataPath(ensemble)
             dataPath = ensemble.directory;
         end
-        
-        %-----------------------------------------------------------------%
-        function ok = saveQOI(ensemble, problem, seed, qoi)
-            error('not implemented');
-            
-            % construct the directory for the given problem's qoi
-            qoi_path = 'something';
-            ensemble.qoi.save(qoi)
-            
-        end
                
         %-----------------------------------------------------------------%
         function simulateEnsembleMember(ensemble, seed, vargin)
-            % run simulation for ensemble member that corresponds to seed
-            
-            % TODO: Check if QoI exists
-            %     if so - return
-            
-            
-            opt = struct('clearPackedSimulationOutput', 'true');
-            [opt, extra] = merge_options(opt, vargin{:});
-            
-            problem = ensemble.samples.getSampleProblem(...
-                ensemble.baseProblem, seed);
+            % Run simulation for ensemble member that corresponds to seed
+            if ensemble.qoi.isComputed(seed)
+                % QoI is already computed - nothing to do here!
+                return;
+            end
+            % Set up sample problem from seed
+            problem = ensemble.samples.getSampleProblem(ensemble.baseProblem, seed);
+            % Solve problem
             ensemble.solve(problem);
-            
-            currentQoI = ensemble.qoi.getQOI(problem);
-            ensemble.qoi.save(currentQoI);
-            
+            % Compute QoI
+            ensemble.qoi.getQoI(problem);
             if opt.clearPackedSimulationOutput
+                % Clear problem output
                 clearPackedSimulatorOutput(problem, 'prompt', false);
             end
-            
         end
     end
 end

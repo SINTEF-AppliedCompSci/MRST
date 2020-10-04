@@ -19,6 +19,7 @@ classdef ReservoirStateQoI < BaseQoI
         
         %-----------------------------------------------------------------%
         function qoi = validateQoI(qoi, problem)
+            qoi = validateQoI@BaseQoI(qoi, problem);
             qoi.dx = problem.SimulatorSetup.model.G.cells.volumes;
             if strcmpi(qoi.time, ':')
                 qoi.time = cumsum(problem.SimulatorSetup.schedule.step.val);
@@ -33,8 +34,7 @@ classdef ReservoirStateQoI < BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function u = getQoI(qoi, problem)
-            qoi = qoi.validateQoI(problem);
+        function u = computeQoI(qoi, problem)
             nt = numel(qoi.time);
             u  = cell(nt,1);
             states   = problem.OutputHandlers.states;
