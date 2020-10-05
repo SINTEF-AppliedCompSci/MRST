@@ -2,7 +2,7 @@ classdef WellQoI < BaseQoI
     
     properties
         fldname      = 'qOs'
-        wells    = {'P1'} % This can either be a cell array of well 
+        wells    = 1 % This can either be a cell array of well 
                                % names or indices.
         numTimesteps
         cumulative   = false % Cumulative production
