@@ -55,28 +55,40 @@ classdef MRSTEnsemble < MRSTExample
         solve = @(problem) simulatePackedProblem(problem); 
         
         
-        
+        parallel = true;
+        maxWorkers = 4;
+        spmdEnsemble;
         
     end
     
     methods
         %-----------------------------------------------------------------%
-        function ensemble = MRSTEnsemble(baseProblemName, samples, ...
+        function ensemble = MRSTEnsemble(name, samples, ...
                 qoi, varargin)
             %ENSEMBLE Create an ensemble object based on a baseProblem and
             % a set of parameters/variables/properties specific to each
             % ensemble member
             
-            ensemble = ensemble@MRSTExample(baseProblemName, varargin{:});
-
-            ensemble.baseProblem = ensemble.getPackedSimulationProblem();
+            opt = struct('Directory', []);
+            [opt, extra] = merge_options(opt, varargin{:});
+            
+            ensemble = ensemble@MRSTExample(name, extra{:});
+            if isempty(opt.Directory)
+                opt.Directory = fullfile(mrstOutputDirectory(), 'ensemble', ensemble.name);
+            end
+            ensemble.baseProblem = ensemble.getPackedSimulationProblem('Directory', opt.Directory, 'Name', 'baseProblem');
             
             ensemble.samples = samples;
             ensemble.num = samples.num;
             
             ensemble.qoi = qoi.validateQoI(ensemble.baseProblem);
             
-            ensemble.setUpDataDirectory();
+            if ensemble.parallel
+                spmd
+                    spmdEnsemble = ensemble;
+                end
+                ensemble.spmdEnsemble = spmdEnsemble;
+            end
             
         end
         
@@ -132,11 +144,11 @@ classdef MRSTEnsemble < MRSTExample
         
         %-----------------------------------------------------------------%
         function dataPath = getDataPath(ensemble)
-            dataPath = ensemble.directory;
+            dataPath = ensemble.baseProblem.OutputHandlers.states.dataDirectory();
         end
                
         %-----------------------------------------------------------------%
-        function simulateEnsembleMember(ensemble, seed, vargin)
+        function simulateEnsembleMember(ensemble, seed, varargin)
             % Run simulation for ensemble member that corresponds to seed
             if ensemble.qoi.isComputed(seed)
                 % QoI is already computed - nothing to do here!
@@ -148,13 +160,71 @@ classdef MRSTEnsemble < MRSTExample
             ensemble.solve(problem);
             % Compute QoI
             ensemble.qoi.getQoI(problem);
-            if opt.clearPackedSimulationOutput
-                % Clear problem output
-                clearPackedSimulatorOutput(problem, 'prompt', false);
+        end
+        
+        %-----------------------------------------------------------------%
+        function simulateEnsembleMembers(ensemble, range, varargin)
+            if isscalar(range)
+                ids = ensemble.qoi.ResultHandler.getValidIds();
+                if isempty(ids), ids = 0; end
+                range = (1:range) + max(ids);
+            end
+            n        = ceil(numel(range)/ensemble.maxWorkers);
+            rangePos = repmat(n, ensemble.maxWorkers, 1);
+            extra    = sum(rangePos) - numel(range);
+            rangePos(end-extra+1:end) = rangePos(end-extra+1:end) - 1;
+            rangePos = cumsum([0; rangePos]) + 1;
+            if ensemble.parallel
+                ensemble.simulateEnsembleMembersParallel(range, rangePos);
+            else
+                ensemble.simulateEnsembleMembersBackground(range, rangePos);
             end
         end
+        
+        %-----------------------------------------------------------------%
+        function simulateEnsembleMembersCore(ensemble, range)
+           for seed = reshape(range, 1, [])
+               ensemble.simulateEnsembleMember(seed);
+           end
+        end
+        
+        %-----------------------------------------------------------------%
+        function simulateEnsembleMembersParallel(ensemble, range, rangePos)
+            spmdEns = ensemble.spmdEnsemble;
+            spmd
+                spmdRange = range(rangePos(labindex):rangePos(labindex+1)-1);
+                spmdEns.simulateEnsembleMembersCore(spmdRange);
+            end
+        end
+        
+        %-----------------------------------------------------------------%
+        function simulateEnsembleMembersBackground(ensemble, range, rangePos)
+            error('Not implemented yet!');
+%             fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
+%             if ~exist(fn, 'file')
+%                 save(fn, 'ensemble');
+%             end
+%             pathmap = capture_mrstpath();
+%             loadCommand = sprintf('load("%s");', fn);
+%             mrstPathCommand = sprintf('mrstPath(''reregister'', %s)', pathmap{:});
+%             for i = 1:numel(rangePos)-1
+%                 r = range(rangePos(i):rangePos(i+1)-1);
+%                 runCommand = sprintf('ensemble.simulateEnsemblesCore([%s]);', num2str(r));
+%                 command    = sprintf('%s %s %s ', mrstPathCommand, loadCommand, runCommand);
+%                 command    = sprintf('%s %s ', loadCommand, runCommand);
+%                 runCommandsBackground(command, 'matlab_arg', '', 'linux_arg', '');
+%             end
+        end
+        
     end
 end
 
+function pathmap = capture_mrstpath()
+    mods  = mrstPath();
+    paths = mrstPath(mods{:});
+
+    pathmap = [ reshape(mods , 1, []) ; ...
+                reshape(paths, 1, []) ];
+end
 
 
