@@ -45,7 +45,7 @@ classdef BaseQoI
                 % Compute QoI and store to file
                 u  = qoi.computeQoI(problem);
                 us = u; % Handle special case when u is a cell array
-                if iscell(us), us = {us}; end
+                if iscell(us), us = {us}; end 
                 qoi.ResultHandler{seed} = us;
             end 
         end

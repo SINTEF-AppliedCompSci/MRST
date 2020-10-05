@@ -19,7 +19,8 @@ ensembleSize = 20;
 
 %% Run the base problem if we wish
 % Simulate and plot it for illustration:
-simulateAndPlotExample = true;
+simulateExample = true;
+plotExample = false;
 rerunBaseProblemFromScratch = false;
 if simulateAndPlotExample
     baseExample = MRSTExample(baseProblemName, baseProblemOptions{:});
@@ -30,7 +31,9 @@ if simulateAndPlotExample
     simulatePackedProblem(problem);
 
     [wellSols, states, reports] = getPackedSimulatorOutput(problem);
-    baseExample.plot(states);
+    if plotExample
+        baseExample.plot(states);
+    end
 end
 
 
@@ -46,7 +49,7 @@ samples = RockSamples('data', configData);
 
 %% Select quantity of interest class
 
-qoi = WellProductionQuantityOfInterest('cumulative', true, 'numTimesteps', 10);
+qoi = WellQoI('cumulative', true, 'numTimesteps', 10);
 
 
 %% Create the ensemble

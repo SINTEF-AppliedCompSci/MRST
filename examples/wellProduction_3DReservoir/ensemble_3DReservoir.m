@@ -12,13 +12,15 @@ mrstVerbose off
 % ensemble
 
 baseProblemName = 'ensemble_base_problem_3d_reservoir';
+baseProblemOptions = {};
 
 ensembleSize = 20;
 
 
 %% Run the base problem if we wish
 % Simulate and plot it for illustration:
-simulateAndPlotExample = true;
+simulateExample = true;
+plotSimulation = false;
 rerunBaseProblemFromScratch = false;
 if simulateAndPlotExample
     baseExample = MRSTExample(baseProblemName);
@@ -29,7 +31,9 @@ if simulateAndPlotExample
     simulatePackedProblem(problem);
 
     [wellSols, states, reports] = getPackedSimulatorOutput(problem);
-    baseExample.plot(states);
+    if plotSimulation
+        baseExample.plot(states);
+    end
 end
 
 %% Select and populate samples for stochastic configurations class
@@ -46,8 +50,8 @@ rockSamples = RockSamples('data', configData);
 
 %% Select quantity of interest class
 
-qoi = WellProductionQuantityOfInterest(...
-    'wellNames', {'P1', 'P2'}, ...
+qoi = WellQoI(...
+    'wells', {'P1', 'P2'}, ...
     'cumulative', false, ...
     'numTimesteps', []);
 
