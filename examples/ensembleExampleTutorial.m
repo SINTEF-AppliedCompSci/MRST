@@ -127,31 +127,13 @@ ensemble = MRSTEnsemble(example, samplesRH, qoiState);
 %% Simulate the ensemble
 ensemble.simulateEnsembleMembers(1:ensembleSize);
 
-%%
+%% Plot results
 close all
-example.figure();
-hold on
 [x,y] = ndgrid(linspace(0,1000, example.options.ncells));
 s_avg = 0;
 for i = 1:ensembleSize
     s = ensemble.qoi.ResultHandler{i}{2};
-    contour(x, y, reshape(s, example.model.G.cartDims),1, 'LineColor', [1,1,1]*0.7, 'LineWidth', 1);
+    if rem(i, 10) == 0, example.plot(s); colormap(bone); caxis([0,1]); end
     s_avg = (s_avg.*(i-1) + s)./i;
 end
-contour(x, y, reshape(s_avg, example.model.G.cartDims),1, 'LineColor', 'k', 'LineWidth', 2);
-
-example.setAxisProperties(gca);
-box on
-
-%%
-
-
-%%
-
-ensemble.simulateEnsembleMember(11);
-%%
-ensemble.simulateEnsembleMembers(10);
-
-%%
-[wsellSols, states, reports] = getPackedSimulatorOutput(problem);
-example.plot(states);
+example.plot(s_avg); colormap(bone);  caxis([0,1]);
