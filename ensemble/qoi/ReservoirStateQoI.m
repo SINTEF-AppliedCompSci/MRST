@@ -1,8 +1,7 @@
 classdef ReservoirStateQoI < BaseQoI
     
     properties
-        field = 's'
-        index = 1
+        name = 'sW'
         cells = ':'
         time  = inf
         
@@ -54,8 +53,7 @@ classdef ReservoirStateQoI < BaseQoI
         
         %-----------------------------------------------------------------%
         function u = getStateValue(qoi, model, state)
-            u = model.getProp(state, qoi.field);
-            u = u(:, qoi.index);
+            u = model.getProp(state, qoi.name);
         end
         
         %-----------------------------------------------------------------%
