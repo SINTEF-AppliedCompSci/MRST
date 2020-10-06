@@ -22,8 +22,10 @@ ensembleSize = 20;
 simulateExample = true;
 plotExample = false;
 rerunBaseProblemFromScratch = false;
-if simulateAndPlotExample
-    baseExample = MRSTExample(baseProblemName, baseProblemOptions{:});
+
+baseExample = MRSTExample(baseProblemName, baseProblemOptions{:});
+
+if simulateExample
     problem = baseExample.getPackedSimulationProblem();
     if rerunBaseProblemFromScratch
         clearPackedSimulatorOutput(problem);
@@ -41,22 +43,46 @@ end
 
 configData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
-    configData{i}.porosity = gaussianField([numCells 1 1], [0.2 0.4]); 
-    configData{i}.permeability = configData{i}.porosity.^3.*(1e-5)^2./(0.81*72*(1-configData{i}.porosity).^2);
+    configData{i}.poro = gaussianField(baseExample.model.G.cartDims, [0.2 0.4]); 
+    configData{i}.perm = configData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-configData{i}.poro).^2);
 end
 
 samples = RockSamples('data', configData);
 
 %% Select quantity of interest class
 
-qoi = WellQoI('cumulative', true, 'numTimesteps', 10);
+qoi = WellQoI('wellNames', {'P1'}, 'cumulative', false, 'numTimesteps', 10);
 
 
 %% Create the ensemble
 
-ensemble = MRSTEnsemble(baseProblemName, samples, qoi, baseProblemOptions{:});
+ensemble = MRSTEnsemble(baseExample, samples, qoi, ... 
+    ... %'directory', uniqueDirectory, ...
+    'simulationType', 'parallel', ...
+    'maxWorkers', 8);
 
-%% Run the ensemble
 
+%% Run ensemble
+ensemble.simulateAllEnsembleMembers();
+
+%% Gather result
+t = cumsum(ensemble.qoi.timesteps);
+production = cell(ensembleSize, 1);
+meanProduction = zeros(numel(t), 1);
+for i = 1:ensembleSize
+    production{i} = ensemble.qoi.ResultHandler{i}{1};
+    meanProduction = meanProduction + production{i};
+end
+meanProduction = meanProduction/ensembleSize();
+
+%% Plot results
+
+figure
+hold on
+for i = 1:ensembleSize
+    plot(t, production{i},  'color', [1 1 1]*0.6);
+end
+plot(t, meanProduction, 'color', 'red');
+title(strcat('Oil production from ', ensemble.qoi.wellNames(1)));
 
 
