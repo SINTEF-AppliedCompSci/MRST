@@ -5,21 +5,24 @@ classdef MRSTEnsemble
     %   ensembles = Ensemble(baseProblem, samples, qoi)
     %
     % DESCRIPTION:
-    %   Extension of `MRSTExample` class to accomodate ensembles of models.
+    %   This class is used to organize, run and post-process ensemble
+    %   simulations in MRST. It can be used for a varity of problems, such
+    %   as uncertainty quantification or history matching.
     % 
     % REQUIRED PARAMETERS:
-    %   baseProblemName - Name of function that generates the base problem,
-    %                     containing all aspects that are common between
-    %                     all ensemble members
+    %   mrstExample - Instance of MRSTExample, or a name that generates a
+    %                 MRSTExample, that serves as a baseProblem for the
+    %                 ensemble, containing all aspects that are common
+    %                 between all ensemble members.
     %
-    %   samples         - Sample object, holding what is the specific
-    %                     configurations for each individual ensemble
-    %                     member, and the mapping of such a sampel onto the
-    %                     baseProblem
+    %   samples     - Sample object, holding what is the specific
+    %                 configurations for each individual ensemble
+    %                 member, and the mapping of such a sampel onto the
+    %                 baseProblem
     %
-    %   qoi             - Quantity of interest object, with functionality
-    %                     to read and store the relevant simulation results
-    %                     from the ensemble
+    %   qoi         - Quantity of interest object, with functionality
+    %                 to read and store the relevant simulation results
+    %                 from the ensemble
     %
     % 
     %
@@ -27,13 +30,29 @@ classdef MRSTEnsemble
     %   directory       - Path to where we store results when simulating
     %                     the ensemble. Automatically generated if not
     %                     provided
+    %                     Default: mrstOutputDirectory()/ensemble/baseProblemName
     %
     %   storeOutput     - Boolean. If false, the simulation results will be
     %                     deleted after qoi is obtained.
+    %                     Default: false
     %
     %   solve           - Function handle for simulating/running an
     %                     ensemble member.
     %                     Default: @simulatePackedProblem(problem)
+    %
+    %   simulationType  - String to control how to run the ensemble.
+    %                     Acceptable values:
+    %                       'serial'     - No parallelization
+    %                       'parallel'   - Run ensemble in parallel using 
+    %                           the Parallel Computing Toolbox
+    %                       'background' - Run ensemble members by spawning
+    %                           new matlab sessions in the background
+    %
+    %   maxWorkers      - Maximum number of parallel workers to use for
+    %                     processing the ensemble members
+    %
+    %   extra parameters that are passed on to the MRSTExample class, in
+    %   case mrstExample is a string.
     %
     % RETURNS:
     %   Class instance.
@@ -45,7 +64,6 @@ classdef MRSTEnsemble
         num
         samples
         qoi
-        qoiOptions
         
         directory % getPath() See MonteCarloSimulator.m
         storeOutput = false
@@ -62,18 +80,17 @@ classdef MRSTEnsemble
     
     methods
         %-----------------------------------------------------------------%
-        function ensemble = MRSTEnsemble(name, samples, ...
-                qoi, varargin)
+        function ensemble = MRSTEnsemble(mrstExample, samples, qoi, varargin)
             %ENSEMBLE Create an ensemble object based on a baseProblem and
             % a set of parameters/variables/properties specific to each
             % ensemble member
             
             [ensemble, extra] = merge_options(ensemble, varargin{:});
             
-            if isa(name, 'MRSTExample')
-                ensemble.setup = name;
+            if isa(mrstExample, 'MRSTExample')
+                ensemble.setup = mrstExample;
             else
-                ensemble.setup = MRSTExample(name, extra{:});
+                ensemble.setup = MRSTExample(mrstExample, extra{:});
             end
             if isempty(ensemble.directory)
                 ensemble.directory = fullfile(mrstOutputDirectory(), 'ensemble', ensemble.setup.name);
@@ -123,43 +140,6 @@ classdef MRSTEnsemble
         end
         
         %-----------------------------------------------------------------%
-        function setUpDataDirectory(ensemble)
-            % Set up directory path, while also checking if it exists and
-            % if there are already computed samples
-            if isempty(ensemble.directory)
-                example_hash = ensemble.getExampleHash();
-                ensemble_hash = ensemble.getEnsembleHash();
-                ensemble.directory = fullfile(mrstOutputDirectory(), ...
-                    'ensemble', example_hash, ensemble_hash);
-            end
-            % Check if output directory exists
-            dataPath = ensemble.getDataPath();
-            if ~exist(dataPath, 'dir')
-                mkdir(dataPath);
-            end
-        end
-        
-        %-----------------------------------------------------------------%
-        function hash = getEnsembleHash(ensemble)
-            % Get unique hash value for this Ensemble setup
-            % Todo: Implement getters for hash values of stochConfigs
-            % and qois that uniquely identifies their setup
-            
-            samplesClass = class(ensemble.samples);
-            qoiClass    = class(ensemble.qoi);
-            numMembers = num2str(ensemble.num);
-            unhashedstr = lower(horzcat(samplesClass, qoiClass, numMembers));
-            try
-                % Calculate hash value
-                md = java.security.MessageDigest.getInstance('SHA-256');
-                hash = sprintf('%2.2x', typecast(md.digest(uint8(unhashedstr)), 'uint8')');
-            catch
-                % ... fallback using example string
-                hash = unhashedstr;
-            end
-        end
-        
-        %-----------------------------------------------------------------%
         function dataPath = getDataPath(ensemble)
             dataPath = ensemble.directory();
         end
@@ -195,7 +175,7 @@ classdef MRSTEnsemble
             rangePos = cumsum([0; rangePos]) + 1;
             switch ensemble.simulationType
                 case 'serial'
-                    ensemble.simulateEnsembleMembersParallel(range, rangePos);
+                    ensemble.simulateEnsembleMembersSerial(range, rangePos);
                 case 'parallel'
                     ensemble.simulateEnsembleMembersParallel(range, rangePos);
                 case 'background'
