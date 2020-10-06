@@ -2,8 +2,9 @@ classdef WellQoI < BaseQoI
     
     properties
         fldname      = 'qOs'
-        wells    = 1 % This can either be a cell array of well 
-                               % names or indices.
+        wellIndices  = 1
+        wellNames    
+                               
         numTimesteps
         cumulative   = false % Cumulative production
         total        = false % Total production
@@ -25,6 +26,30 @@ classdef WellQoI < BaseQoI
             
             qoi = validateQoI@BaseQoI(qoi, problem);
             
+            % Either, we provide the indices of the chosen wells, or their
+            % names. If wellNames are provided, any wellIndices input is
+            % overwritten
+            if ~isempty(qoi.wellNames)
+                numWellsTotal = numel(problem.SimulatorSetup.schedule.control.W);
+                qoi.wellIndices = zeros(1, numel(qoi.wellNames));
+                for wi = 1:numel(qoi.wellNames)
+                    found = false;
+                    for j = 1:numWellsTotal
+                        if strcmp(qoi.wellNames{wi}, problem.SimulatorSetup.schedule.control.W(j).name);
+                            qoi.wellIndices(wi) = j;
+                            found = true;
+                            break
+                        end
+                    end
+                    assert(found, 'Did not find given well name');
+                end
+            else
+                qoi.wellNames = cell(numel(qoi.wellIndices, 1));
+                for wi = 1:numel(qoi.wellIndices)
+                    qoi.wellNames{wi} = problem.SimulatorSetup.schedule.control.W(wi).name;
+                end
+            end % well names and indices
+            
             qoi.timesteps = problem.SimulatorSetup.schedule.step.val;
             if ~isempty(qoi.numTimesteps)
                 qoi.timesteps = qoi.timesteps(1:qoi.numTimesteps);
@@ -42,7 +67,7 @@ classdef WellQoI < BaseQoI
 
             % Organize as matrix with dimensions:
             % (numTimesteps, numWells, numFields)
-            wellOutputs = getWellOutput(wellSols, qoi.fldname, qoi.wells);
+            wellOutputs = getWellOutput(wellSols, qoi.fldname, qoi.wellNames);
 
             dt = getTimestepsFromProblem(problem);
             
@@ -59,11 +84,11 @@ classdef WellQoI < BaseQoI
                 wellOutputs = cumsum(wellOutputs.*dt,1);
             end
             
-            if qoi.combined && numel(qoi.wells) > 1
+            if qoi.combined && numel(qoi.wellNames) > 1
                 wellOutputs = sum(wellOutputs, 2);
             end
             
-            u = wellOutputs;
+            u = {wellOutputs};
             
         end
         

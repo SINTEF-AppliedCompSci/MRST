@@ -144,6 +144,8 @@ classdef MRSTEnsemble
             dataPath = ensemble.directory();
         end
                
+        
+        
         %-----------------------------------------------------------------%
         function simulateEnsembleMember(ensemble, seed, varargin)
             % Run simulation for ensemble member that corresponds to seed
@@ -159,6 +161,11 @@ classdef MRSTEnsemble
             ensemble.solve(problem);
             % Compute QoI
             ensemble.qoi.getQoI(problem);
+            
+            if ~ensemble.storeOutput
+                clearPackedSimulatorOutput(problem, 'prompt', false);
+            end
+            
         end
         
         %-----------------------------------------------------------------%
@@ -181,6 +188,13 @@ classdef MRSTEnsemble
                 case 'background'
                     ensemble.simulateEnsembleMembersBackground(range, rangePos);
             end
+        end
+        
+        %-----------------------------------------------------------------%
+        function simulateAllEnsembleMembers(ensemble, varargin)
+            assert(~isinf(ensemble.num), ...
+                'Ensemble size not define, please use ensemble.simulateEnsembleMembers(range) instead');
+            ensemble.simulateEnsembleMembers(1:ensemble.num, varargin);
         end
         
         %-----------------------------------------------------------------%
