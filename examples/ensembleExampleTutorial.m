@@ -23,7 +23,7 @@ example = MRSTExample('qfs_wo');
 % problem setup and seed for controlling the random number generator, so we
 % make a functio n handle taking in these arguments.
 generatorFn = @(problem, seed) ...
-    generateRockSample(example.model.G.cartDims, 'seed', seed);
+    generateRockSample(problem.model.G.cartDims, 'seed', seed);
 % The class RockSamples implements routines for getting stochastic rock
 % realizations, and setting the to the model. The latter also includes
 % updating all model operators depending on the rock.
@@ -85,10 +85,10 @@ disp(qoiState);
 % All QoIs related to well output are implemented in WellOutputQoI. This
 % class the function getWellOutput to get the results from the well
 % solutions, and therefore has properties inputs of this function:
-% 'fldnames' is field name of interest stored on wellSol, whereas 'wells'
-% is the well number(s) or well names. The latter can therefore be a vector
-% of well numbers, of a cell array of well names.
-qoiWell = WellQoI('fldname', 'qOs', 'wells', 2);
+% 'fldnames' is field name of interest stored on wellSol, whereas 'wellIndices'
+% is a vector with the well number(s). An alternative to 'wellIndices' is to 
+% provide 'wellNames' instead as a cell array of well names.
+qoiWell = WellQoI('fldname', 'qOs', 'wellIndices', 2);
 disp(qoiWell);
 
 %% Running a single sample
@@ -103,9 +103,19 @@ problem = samplesCell.setSample(data, problem);  % Set sample to problem
 % Inspect rock sample
 example.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
 simulatePackedProblem(problem); % Simulate
+
+% To inspect the quantities of interest directly, we first need to
+% match the configurations of the QoI objects with the configurations of
+% the problem at hand. Note that this step is done automatically within the 
+% MRSTEnsemble class.
+qoiStateValidated = qoiState.validateQoI(problem);
+qoiWellValidated  = qoiWell.validateQoI(problem);
+disp(qoiStateValidated);
+disp(qoiWellValidated);
+
 % Quantities of interest are computed from the problem
-sat = qoiState.computeQoI(problem); % Water saturation after 200 days
-qOs = qoiWell.computeQoI(problem);  % Producer water cut
+sat = qoiStateValidated.computeQoI(problem); % Water saturation after 200 days
+qOs = qoiWellValidated.computeQoI(problem);  % Producer water cut
 
 %% Plot the results
 close all
