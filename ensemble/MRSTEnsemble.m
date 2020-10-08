@@ -110,6 +110,15 @@ classdef MRSTEnsemble
         function ensemble = prepareEnsemble(ensemble)
             switch ensemble.simulationType
                 case 'parallel'
+                    % Check if we have started a parallel session already,
+                    % and whether it has the correct number of workers
+                    if isempty(gcp('nocreate'))
+                        parpool(ensemble.maxWorkers);
+                    elseif gcp('nocreate').NumWorkers ~= ensemble.maxWorkers
+                        delete(gcp);
+                        parpool(ensemble.maxWorkers);
+                    end
+                    
                     spmd
                         spmdEns = ensemble;
                     end
