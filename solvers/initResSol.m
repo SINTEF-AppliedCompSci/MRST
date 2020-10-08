@@ -53,7 +53,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    if nargin <= 2, s0 = 1; end
 
    [nc, nf] = deal(G.cells.num, G.faces.num);
@@ -64,15 +63,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if size(s0, 1) == 1
-
       s0 = repmat(s0(1,:), [nc, 1]);
-
    elseif size(s0, 1) ~= nc
-
       error(msgid('InitSat:Inconsistent'), ...
            ['Initial saturation must either be 1-by-np ', ...
             'or (G.cells.num (=%d))-by-np.'], nc);
-
    end
 
    if numel(p0) == 1
@@ -85,30 +80,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if nargin == 4
       if isa(varargin{1}, 'double') && ...
-         size(varargin{1}, 2) == size(resSol.s, 2)
-
+              size(varargin{1}, 2) == size(resSol.s, 2)
          z = varargin{1};
-
          if size(z, 1) == 1
-
             z = repmat(z, [nc, 1]);
-
          elseif size(z, 1) ~= nc
-
             error(msgid('Mass:WrongSize'), ...
                  ['Surface volume: Expected G.cells.num (=%d) ', ...
                   'rows. Got %d.'], nc, size(z, 1));
-
          end
-
          resSol.z = z;
       else
-
          warning(msgid('Mass:Inconsistent'), ...
                 ['Initial mass (surface volume) must be ', ...
                  '(SIZE(s,2) (=%d))-column DOUBLE array (ignored).'], ...
                  size(resSol.s, 2));
-
       end
    end
 end
