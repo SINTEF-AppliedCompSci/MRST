@@ -38,33 +38,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opt = struct('state',           [], ..., 
              'pressure', 200*barsa, ...
              'rs',             nan, ...
-             'rv',             nan, ...
-             'unitBFactors',  nan);
+             'rv',             nan);
 
 opt = merge_options(opt, varargin{:});
 
 if ~isempty(opt.state)
-    p = mean(opt.pressure);    
+    p = mean(opt.state.pressure);
 else
     p = mean(opt.pressure);
 end
 
 if model.disgas
     if ~isempty(opt.state)
-        rs = mean(state.rs);
+        rs = mean(opt.state.rs);
     else
         rs = mean(opt.rs);
     end
-    assert(~isempty(rs), 'RS can''t be defaulted for model with disolved gas')
+    assert(any(isnan(rs)), 'RS can''t be defaulted for model with disolved gas')
 end
 
 if model.vapoil
     if ~isempty(opt.state)
-        rv = mean(state.rv);
+        rv = mean(opt.state.rv);
     else
         rv = mean(opt.rv);
     end
-    assert(~isempty(rs), 'RV can''t be defaulted for model with vaporized oil')
+    assert(any(isnan(rv)), 'RV can''t be defaulted for model with vaporized oil')
 end
 
 fluid = model.fluid;
