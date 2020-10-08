@@ -192,7 +192,7 @@ for k = 1:numel(memberIx)
     end
     
     % convert to incompressible fluid
-    model.fluid = convertToIncompressibleFluid(model, 'state', state0);
+    model.fluid = convertToIncompFluid(model, 'state', state0);
     
     % handle well controls
     [W, bc, src] = getControl(opt.control, W);   
