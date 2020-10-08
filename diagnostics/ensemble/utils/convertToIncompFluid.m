@@ -1,8 +1,8 @@
-function fluid_incomp = convertToIncompressibleFluid(model, varargin)
+function fluid_incomp = convertToIncompFluid(model, varargin)
 % Simple fluid-coverter setting pressure-dependent values constant  
 %
 % SYNOPSIS:
-%   fluid_incomp = convertToIncompressibleFluid(model, pn1, pv1, ...)
+%   fluid_incomp = convertToIncompFluid(model, pn1, pv1, ...)
 %
 % DESCRIPTION:
 %  
