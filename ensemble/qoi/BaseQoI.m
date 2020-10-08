@@ -69,6 +69,19 @@ classdef BaseQoI
             n = abs(u);
         end
         
+        %-----------------------------------------------------------------%
+        function plotEnsemble(qoi, ensemble)
+            % Create a meaningful plot of the ensemble based
+            % on the relevant QoI.
+            error('Template class not meant for direct use!');
+        end
+        
+        %-----------------------------------------------------------------%
+        function getEnsembleMean(qoi, ensemble)
+            % Compute the mean quantity of interest for the given ensemble
+            error('Template class not meant for direct use!');
+        end
+            
     end
 end
     

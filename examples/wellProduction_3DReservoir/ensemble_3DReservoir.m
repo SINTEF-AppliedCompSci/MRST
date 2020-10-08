@@ -3,7 +3,7 @@
 % 3D reservoirs with two phases (oil and water).
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp
+    example-suite incomp ensemble
 
 mrstVerbose off
 
@@ -55,6 +55,7 @@ rockSamples = RockSamples('data', configData);
 
 qoi = WellQoI(...
     'wellNames', {'P1', 'P2'}, ...
+    'fldname', {'qOs', 'qWs'}, ...
     'cumulative', false, ...
     'numTimesteps', []);
 
@@ -66,39 +67,13 @@ uniqueDirectory = fullfile(mrstOutputDirectory(), 'ensemble', 'unique', datestr(
 ensemble = MRSTEnsemble(baseExample, rockSamples, qoi, ...
     ... %'directory', uniqueDirectory, ...
     'simulationType', 'parallel', ...
-    'maxWorkers', 8);
+    'maxWorkers', 8, ...
+    'deleteOldResults', true, ...
+    'verbose', true);
 
 %% Run ensemble
 ensemble.simulateAllEnsembleMembers();
 
-%% Gather result
-t = cumsum(baseExample.schedule.step.val);
-p1_production = cell(ensembleSize, 1);
-p2_production = cell(ensembleSize, 2);
-meanProduction = zeros(numel(t), 2);
-for i = 1:ensembleSize
-    results = ensemble.qoi.ResultHandler{i}{1};
-    meanProduction = meanProduction + results;
-    p1_production{i} = results(:,1);
-    p2_production{i} = results(:,2);
-end
-meanProduction = meanProduction/ensembleSize();
-
 %% Plot results
+ensemble.qoi.plotEnsemble(ensemble);
 
-figure
-subplot(2,1,1);
-hold on
-for i = 1:ensembleSize
-    plot(t, p1_production{i},  'color', [1 1 1]*0.6);
-end
-plot(t, meanProduction(:,1), 'color', 'red');
-title(strcat('Oil production from ', ensemble.qoi.wellNames(1)));
-
-subplot(2,1,2);
-hold on 
-for i = 1:ensembleSize
-    plot(t, p2_production{i},  'color', [1 1 1]*0.6);
-end
-plot(t, meanProduction(:,2), 'color', 'red');
-title(strcat('Oil production from ', ensemble.qoi.wellNames(2)));

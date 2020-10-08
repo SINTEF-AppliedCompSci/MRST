@@ -1,7 +1,7 @@
 classdef WellQoI < BaseQoI
     
     properties
-        fldname      = 'qOs'
+        fldname      = {'qOs'}
         wellIndices  = 1
         wellNames    
                                
@@ -92,7 +92,42 @@ classdef WellQoI < BaseQoI
             
         end
         
+        function mean_u = getEnsembleMean(qoi, ensemble)
+            mean_u = zeros(numel(qoi.timesteps), numel(qoi.wellNames), numel(qoi.fldname));
+            for i = 1:ensemble.num
+                mean_u = mean_u + ensemble.qoi.ResultHandler{i}{1};
+            end
+            mean_u = mean_u / ensemble.num;
+        end
         
+        function plotEnsemble(qoi, ensemble)
+            % Plots well properties for the ensemble and ensemble mean.
+            % Creates one figure per field
+            % Organizes results from each well in a subplot
+            
+            num_fields = numel(qoi.fldname);
+            num_wells  = numel(qoi.wellNames);
+            
+            num_wells_horizontal = ceil(sqrt(num_wells));
+            num_wells_vertical   = ceil(num_wells/num_wells_horizontal);
+            
+            mean_qoi = qoi.getEnsembleMean(ensemble);
+            
+            t = cumsum(qoi.timesteps);
+            for fld = 1:num_fields
+                figure
+                for w = 1:num_wells
+                    subplot(num_wells_horizontal, num_wells_vertical, w)
+                    hold on
+                    for i = 1:ensemble.num
+                        plot(t, ensemble.qoi.ResultHandler{i}{1}(:,w,fld),   'color', [1 1 1]*0.6);
+                    end
+                    plot(t, mean_qoi(:, w, fld), 'color', 'red')
+                    title(strcat(qoi.fldname{fld}, " for well ", qoi.wellNames{w}));
+                end
+            end
+            
+        end
         
     end
 end

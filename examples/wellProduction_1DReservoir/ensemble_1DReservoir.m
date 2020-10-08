@@ -3,7 +3,7 @@
 % two phases (oil and water).
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp
+    example-suite incomp ensemble
 
 mrstVerbose off
 
@@ -51,7 +51,8 @@ samples = RockSamples('data', configData);
 
 %% Select quantity of interest class
 
-qoi = WellQoI('wellNames', {'P1'}, 'cumulative', false, 'numTimesteps', 10);
+qoi = WellQoI('wellNames', {'P1'}, 'cumulative', false, 'numTimesteps', 10, ...
+    'fldname', {'qOs', 'qWs'});
 
 
 %% Create the ensemble
@@ -59,30 +60,15 @@ qoi = WellQoI('wellNames', {'P1'}, 'cumulative', false, 'numTimesteps', 10);
 ensemble = MRSTEnsemble(baseExample, samples, qoi, ... 
     ... %'directory', uniqueDirectory, ...
     'simulationType', 'parallel', ...
-    'maxWorkers', 8);
+    'maxWorkers', 8, ...
+    'verbose', true, ...
+    'deleteOldResults', true...
+    );
 
 
 %% Run ensemble
 ensemble.simulateAllEnsembleMembers();
 
-%% Gather result
-t = cumsum(ensemble.qoi.timesteps);
-production = cell(ensembleSize, 1);
-meanProduction = zeros(numel(t), 1);
-for i = 1:ensembleSize
-    production{i} = ensemble.qoi.ResultHandler{i}{1};
-    meanProduction = meanProduction + production{i};
-end
-meanProduction = meanProduction/ensembleSize();
-
 %% Plot results
-
-figure
-hold on
-for i = 1:ensembleSize
-    plot(t, production{i},  'color', [1 1 1]*0.6);
-end
-plot(t, meanProduction, 'color', 'red');
-title(strcat('Oil production from ', ensemble.qoi.wellNames(1)));
-
+ensemble.qoi.plotEnsemble(ensemble);
 
