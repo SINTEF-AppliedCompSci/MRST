@@ -27,29 +27,34 @@ classdef MRSTEnsemble
     % 
     %
     % OPTIONAL PARAMETERS:
-    %   directory       - Path to where we store results when simulating
-    %                     the ensemble. Automatically generated if not
-    %                     provided
-    %                     Default: mrstOutputDirectory()/ensemble/baseProblemName
+    %   directory        - Path to where we store results when simulating
+    %                      the ensemble. Automatically generated if not
+    %                      provided
+    %                      Default: mrstOutputDirectory()/ensemble/baseProblemName
     %
-    %   storeOutput     - Boolean. If false, the simulation results will be
-    %                     deleted after qoi is obtained.
-    %                     Default: false
+    %   storeOutput      - Boolean. If false, the simulation results will be
+    %                      deleted after qoi is obtained.
+    %                      Default: false
     %
-    %   solve           - Function handle for simulating/running an
-    %                     ensemble member.
-    %                     Default: @simulatePackedProblem(problem)
+    %   solve            - Function handle for simulating/running an
+    %                      ensemble member.
+    %                      Default: @simulatePackedProblem(problem)
     %
-    %   simulationType  - String to control how to run the ensemble.
-    %                     Acceptable values:
-    %                       'serial'     - No parallelization
-    %                       'parallel'   - Run ensemble in parallel using 
-    %                           the Parallel Computing Toolbox
-    %                       'background' - Run ensemble members by spawning
-    %                           new matlab sessions in the background
+    %   simulationType   - String to control how to run the ensemble.
+    %                      Acceptable values:
+    %                        'serial'     - No parallelization
+    %                        'parallel'   - Run ensemble in parallel using 
+    %                            the Parallel Computing Toolbox
+    %                        'background' - Run ensemble members by spawning
+    %                            new matlab sessions in the background
     %
-    %   maxWorkers      - Maximum number of parallel workers to use for
-    %                     processing the ensemble members
+    %   maxWorkers       - Maximum number of parallel workers to use for
+    %                      processing the ensemble members
+    %
+    %   verbose          - Boolean (default: false). Print some extra info
+    %
+    %   deleteOldResults - Boolean (default: false). Delete any old
+    %                      simulation results that might exist.
     %
     %   extra parameters that are passed on to the MRSTExample class, in
     %   case mrstExample is a string.
@@ -67,6 +72,7 @@ classdef MRSTEnsemble
         
         directory % getPath() See MonteCarloSimulator.m
         storeOutput = false
+        deleteOldResults = false
         
         
         % Function handle for solving a given problem
@@ -75,6 +81,8 @@ classdef MRSTEnsemble
         simulationType = 'background';
         maxWorkers = 4;
         spmdEnsemble;
+        
+        verbose = false
         
     end
     
@@ -92,10 +100,15 @@ classdef MRSTEnsemble
             else
                 ensemble.setup = MRSTExample(mrstExample, extra{:});
             end
+            
+            % Set up directory
             if isempty(ensemble.directory)
                 ensemble.directory = fullfile(mrstOutputDirectory(), 'ensemble', ensemble.setup.name);
             end
-%             ensemble.baseProblem = ensemble.getPackedSimulationProblem('Directory', opt.Directory, 'Name', 'baseProblem');
+            if ensemble.deleteOldResults && exist(ensemble.directory, 'dir')
+                rmdir(ensemble.directory, 's');
+            end
+            
             
             ensemble.samples = samples;
             ensemble.num = samples.num;
@@ -160,6 +173,9 @@ classdef MRSTEnsemble
             % Run simulation for ensemble member that corresponds to seed
             if ensemble.qoi.isComputed(seed)
                 % QoI is already computed - nothing to do here!
+                if ensemble.verbose
+                    disp(strcat("Simulation for ", num2str(seed), " found on disc"));
+                end
                 return;
             end
             % Get base problem
