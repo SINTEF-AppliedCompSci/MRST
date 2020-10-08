@@ -14,8 +14,6 @@ function [state, diagnostics] = computePressureAndDiagnostics(model, varargin)
 % 'state0' -        Base state (used for mobility-calculations in case of 
 %                   non-empty fluid)
 %
-% 'fluid'  -        Fluid (non-AD-type) for passing to incompTPFA
-%
 % 'wells'  -        Well-structure passed on to incompTPFA
 %
 % 'ellipticSolver'- Linear solver passed to incompTPFA
@@ -59,20 +57,13 @@ opt = struct('D',                        [], ...
              'processCycles',     true, ...
              'firstArrival',      true);
 
-[opt, rest] = merge_options(opt, varargin{:}); 
+opt = merge_options(opt, varargin{:}); 
 
 if ~isempty(opt.state0)
     state0 = opt.state0;
 else
     state0 = initResSol(model.G, 200*barsa);
 end
-
-% if ~isempty(opt.fluid)
-%     fluid = opt.fluid;
-% else
-%     fluid = initSingleFluid('mu' ,         1*centi*poise, ...
-%                             'rho', 1014*kilogram/meter^3);
-% end
 
 W = opt.wells;
 if isempty(W)
@@ -85,7 +76,7 @@ isActive = vertcat(W.status);
 if ~isempty(opt.state)
     state = opt.state;
 else
-    model.fluid = convertToIncompressibleFluid(model, 'state', state0);
+    model.fluid = convertToIncompFluid(model, 'state', state0);
     state = incompTPFA(state0, model.G, model.operators.T_all, model.fluid, ...
                        'wells', W(isActive), 'LinSolve', opt.ellipticSolver, ...
                        'use_trans', true);
@@ -109,13 +100,11 @@ else
                                  'processCycles',     true, ...
                                  'firstArrival',      true);
 end
-
 if ~isempty(opt.WP)
     WP = opt.WP;
 else
     WP = computeWellPairs(state, model.G, model.rock, W, D);
 end
-
 diagnostics = struct('D', D, 'WP', WP);
          
 % compute well-communication matrix
