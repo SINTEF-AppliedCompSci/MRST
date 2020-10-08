@@ -45,15 +45,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    state = initResSol(G, p0, varargin{:});
 
-   if ~isempty(W),
+   if ~isempty(W)
       state.wellSol = initWellSol(W, p0);
 
-      if nargin > 3,
+      if nargin > 3
          s0 = varargin{1};
 
          try
             compi = vertcat(W.compi);
-         catch                                                         %#ok
+         catch
             error('Well compositions are inconsistently specified');
          end
 
