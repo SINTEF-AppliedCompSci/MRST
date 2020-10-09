@@ -561,8 +561,12 @@ classdef ADI
 
       %--------------------------------------------------------------------
 
-      function horzcat(varargin)
-          error('Operation horzcat does not supported for class ADI.')
+      function h = horzcat(varargin)
+          if nargin > 1
+              error('Operation horzcat is not supported for class ADI.');
+          else
+              h = varargin{1};
+          end
       end
 
       %--------------------------------------------------------------------
