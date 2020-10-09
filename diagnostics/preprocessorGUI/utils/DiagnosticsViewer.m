@@ -630,7 +630,7 @@ classdef DiagnosticsViewer < handle
                         %                                          'injectorIx', iIx, 'producerIx', pIx);
                         PORVIx = arrayfun(@(x) strcmp(x.name,'PORV'),d.Data{m}.static);
                         PORV = d.Data{m}.static(PORVIx).values;
-                        dist = computeRTD(d.Data{m}.states, d.Data{m}.G, PORV, ...
+                        dist = computeRTD(d.Data{m}.states, d.Data{m}.Gs, PORV, ...
                             d.Data{m}.diagnostics.D, d.Data{m}.diagnostics.WP, ...
                             d.Data{m}.wells, ...
                             'injectorIx', iIx, 'producerIx', pIx);
@@ -1497,6 +1497,19 @@ classdef DiagnosticsViewer < handle
         end
         % -----------------------------------------------------------------
         
+        function d = switchTransparancy(d, st)
+            if strcmp(st, 'on')
+                alp = [.2, .5];
+            else
+                alp = [1, 1];
+            end
+            d.outlineGrid.EdgeAlpha = alp(1);
+            d.Patch.patchMain.EdgeAlpha = alp(2);
+            ii = find(strcmp(d.Patch.patchOpt, 'EdgeAlpha'));
+            if numel(ii) == 1
+                d.Patch.patchOpt{ii+1} = alp(2);
+            end
+        end
         
         
     end
@@ -1595,6 +1608,10 @@ lh = uitoggletool(tb,'CData',getIcon('light.png'), 'Separator', 'off', 'State', 
 lh.OnCallback = @(src, event)lightOnOff(src, event, d, 'on');
 lh.OffCallback = @(src, event)lightOnOff(src, event, d, 'off');
 
+lh = uitoggletool(tb,'CData',getIcon('alpha.png'), 'Separator', 'on', 'State', 'on', ...
+                   'TooltipString', 'Enable/disable transparancy (disable for faster rendering)');
+lh.OnCallback = @(src, event)alphaOnOff(src, event, d, 'on');
+lh.OffCallback = @(src, event)alphaOnOff(src, event, d, 'off');
 
 aspFac = 1.2;
 zp = uipushtool(tb,'CData',getIcon('z_plus.png'), 'Separator', 'on', ...
@@ -1609,6 +1626,11 @@ end
 function outlineOnOff(~, ~, d, st)
 d.outlineGrid.Visible = st;
 end
+
+function alphaOnOff(~,~,d,st)
+d.switchTransparancy(st);
+end
+
 function lightOnOff(~, ~, d, st)
 if isvalid(d.camlight)
     d.camlight.Visible = st;

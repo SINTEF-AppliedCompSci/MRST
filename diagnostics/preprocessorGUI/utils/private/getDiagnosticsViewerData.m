@@ -24,8 +24,9 @@ opt = struct('wellSolFields', [],...
     'state0', [],...
      'D',     [], ...
      'state', [], ...
-     'WP',     [], ...  
-     'wellCommunication',        []);
+     'WP',    [], ...  
+     'wellCommunication',     [], ...
+     'G',     []) ;
 opt = merge_options(opt, varargin{:});
 
 [state0, state, D, WP, wellCommunication] = deal([]);
@@ -66,7 +67,16 @@ for k = 1:numel(models)
     Data{k}.wells      = wells{k};
     Data{k}.wellSol    = states.wellSol;
     Data{k}.wsdata     = getDataFromIncompTPFAWellSol(wells{k},states.wellSol);
-    Data{k}.G          = model.G;
+    Data{k}.Gs         = model.G;
+    if isempty(opt.G)
+        Data{k}.G = model.G;
+    else
+        if iscell(opt.G)
+            Data{k}.G = opt.G{k};
+        else
+            Data{k}.G = opt.G;
+        end
+    end
 end
 
 % update limits
@@ -102,16 +112,17 @@ props   = cell(1,numel(keywordlist));
 for i = 1:numel(keywordlist)
     kw = keywordlist{i};
     [nm{propIdx},unit] = getUnit(kw);
-    
-    % Sum all fluxes and cdp for each well.
-    data = arrayfun(@(x) sum(x.(kw)),ws);
-    data = convertTo(data,unit);
-    if strcmp(nm{propIdx},'m^3/day')
-        data = abs(data);
+    if ~strcmp(unit, '-')
+        % Sum all fluxes and cdp for each well.
+        data = arrayfun(@(x) sum(sum(x.(kw))),ws);
+        data = convertTo(data,unit);
+        if strcmp(nm{propIdx},'m^3/day')
+            data = abs(data);
+        end
+        wsdata.(kw)    = data;
+        props{propIdx} = kw;
+        propIdx        = propIdx + 1;
     end
-    wsdata.(kw)    = data;
-    props{propIdx} = kw;
-    propIdx        = propIdx + 1;
 end
 
 wsdata.props     = props;
@@ -123,7 +134,7 @@ wsdata.timesteps = 1;
 
 function [nm,u] = getUnit(kw)
 switch kw 
-    case 'pressure'
+    case {'pressure', 'bhp'}
         nm  = 'barsa';  u = barsa();
     case 'cdp'
         nm  = 'barsa';  u = barsa();
