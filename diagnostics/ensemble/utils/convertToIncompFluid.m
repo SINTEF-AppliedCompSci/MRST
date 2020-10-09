@@ -69,29 +69,51 @@ end
 fluid = model.fluid;
 fluid_incomp = fluid;
 
-if model.disgas
-    fluid_incomp.bO  = @(x1, x2)fluid.bO(p, rs) + 0*x1;
-    fluid_incomp.muO = @(x1, x2)fluid.muO(p, rs) + 0*x1;
-elseif model.oil
-    fluid_incomp.bO  = @(x1)fluid.bO(p) + 0*x1;
-    fluid_incomp.muO = @(x1)fluid.muO(p) + 0*x1;
-end
-
-if model.vapoil
-    fluid_incomp.bG  = @(x1, x2)fluid.bG(p, rv) + 0*x1;
-    fluid_incomp.muG = @(x1, x2)fluid.muG(p, rv) + 0*x1;
-elseif model.gas
-    fluid_incomp.bG  = @(x1)fluid.bG(p) + 0*x1;
-    fluid_incomp.muG = @(x1)fluid.muG(p) + 0*x1;
-end
-
 if model.water
-    fluid_incomp.bW  = @(x1)fluid.bW(p) + 0*x1;
-    fluid_incomp.muW = @(x1)fluid.muW(p) + 0*x1;
+    fluid_incomp.bW  = setConstant(fluid.bW, p);
+    fluid_incomp.muW = setConstant(fluid.muW, p);
+end
+
+if model.oil
+    arg = {p};
+    if model.disgas
+        arg = [arg, {rs}];
+    end
+    fluid_incomp.bO  = setConstant(fluid.bO, arg{:});
+    fluid_incomp.muO = setConstant(fluid.muO, arg{:});
+end
+
+if model.gas
+    arg = {p};
+    if model.vapoil
+        arg = [arg, {rv}];
+    end
+    fluid_incomp.bG  = setConstant(fluid.bG, arg{:});
+    fluid_incomp.muG = setConstant(fluid.muG, arg{:});
 end
 
 if isfield(fluid, 'pvMultR')
-    fluid_incomp.pvMultR = @(x1)fluid.pvMultR(p) + 0*x1;
+    fluid_incomp.pvMultR = setConstant(fluid.pvMultR, p); 
 end
     
+end
+
+
+function fn_incomp = setConstant(fn, varargin)
+if ~iscell(fn)
+    if nargin == 1
+        fn_incomp = @(x)fn(varargin{:})+0*x;
+    else
+        fn_incomp = @(x1, x2)fn(varargin{:})+0*x1;
+    end
+else
+    fn_incomp = cell(1, numel(fn));
+    for k = 1:numel(fn)
+        if nargin == 1
+            fn_incomp{k} = @(x)fn{k}(varargin{:})+0*x;
+        else
+            fn_incomp{k} = @(x1, x2)fn{k}(varargin{:})+0*x1;
+        end
+    end
+end
 end
