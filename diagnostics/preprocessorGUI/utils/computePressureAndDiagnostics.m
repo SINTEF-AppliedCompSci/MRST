@@ -62,7 +62,7 @@ opt = merge_options(opt, varargin{:});
 if ~isempty(opt.state0)
     state0 = opt.state0;
 else
-    state0 = initResSol(model.G, 200*barsa);
+    state0 = defaultInitState(model, 200*barsa);
 end
 
 W = opt.wells;
@@ -116,3 +116,26 @@ else
 end
     
 end
+
+function state0 = defaultInitState(model, p0)
+assert(model.oil, 'Defaulting initial state requires oil phase present');
+nc = model.G.cells.num; 
+np = model.getNumberOfPhases;
+
+p = ones(nc,1)*p0;
+s = zeros(nc,np);
+s(:, model.getPhaseIndex('O')) = 1;
+
+state0 = struct('pressure', p, 's', s);
+if model.disgas
+    state0.rs = model.fluid.rsSat(p);
+end
+if model.vapoil
+    state0.rs = model.fluid.rvSat(p);
+end
+end
+
+
+
+
+
