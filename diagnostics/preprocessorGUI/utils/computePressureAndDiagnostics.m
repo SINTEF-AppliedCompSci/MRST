@@ -131,7 +131,7 @@ if model.disgas
     state0.rs = model.fluid.rsSat(p);
 end
 if model.vapoil
-    state0.rs = model.fluid.rvSat(p);
+    state0.rv = model.fluid.rvSat(p);
 end
 end
 
