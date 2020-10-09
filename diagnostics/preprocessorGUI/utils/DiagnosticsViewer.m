@@ -38,11 +38,9 @@ classdef DiagnosticsViewer < handle
     
     methods
         function d = DiagnosticsViewer(models,wells,varargin)
-            
-            
+           
             % ------ Load modules -----------------------------------------
             mrstModule add incomp mrst-gui
-            
             
             % ------ Set options ------------------------------------------
             opt = struct('style', 'default',...
@@ -65,10 +63,10 @@ classdef DiagnosticsViewer < handle
                 'String', '', ...
                 'FontWeight', 'bold', ...
                 'HorizontalAlignment','left');
-%                 'BackgroundColor', [.5 .5 .5],...
-%                 'ForegroundColor',[1 1 1],...
-
-
+            %                 'BackgroundColor', [.5 .5 .5],...
+            %                 'ForegroundColor',[1 1 1],...
+            
+            
             % ------ Setup messageBar --- ---------------------------------
             d.messageBar = uicontrol('Parent', d.Figure, ...
                 'Style', 'text', ...
@@ -77,14 +75,14 @@ classdef DiagnosticsViewer < handle
                 'String', '', ...
                 'FontWeight', 'bold', ...
                 'HorizontalAlignment','left');
-%                 'BackgroundColor', [.5 .5 .5],...
-%                 'ForegroundColor',[1 1 1],...
+            %                 'BackgroundColor', [.5 .5 .5],...
+            %                 'ForegroundColor',[1 1 1],...
 
-            
-            
+
             % ------ Setup model names --- ---------------------------------
             
             if isempty(opt.modelNames)
+                modelNames = cell(1,numel(models));
                 for i = 1:numel(models)
                     modelNames{i} = strcat('m',string(i));
                 end
@@ -106,15 +104,13 @@ classdef DiagnosticsViewer < handle
             end
             
             opt.modelNames = cellfun(@(x) char(x), opt.modelNames,'UniformOutput',false);
-
             
             
-            % ------ Run diagnostics and get data -------------------------            
+            % ------ Run diagnostics and get data -------------------------
             d.Data = getDiagnosticsViewerData(models,wells,extraOpt{:});
             d.maxTOF = opt.maxTOF;
             d.injColors = d.Data{1}.injColors;
             d.prodColors = d.Data{1}.prodColors;
-            
             
             
             % ------ Selectors for time steps and wells -------------------
@@ -128,25 +124,24 @@ classdef DiagnosticsViewer < handle
             selector3D.wsel = WellSelector(...
                 'injectors', {d.Data{1}.diagnostics.WP.inj.name}, ...
                 'producers', {d.Data{1}.diagnostics.WP.prod.name}, itemOpts{:});
-%             
-%             selector3D.wsel.communicationMatrix= getGlobalCommunicationMatrix(d);
-            
             
             
             % ------ Selector for properties in 3D plot -------------------
-            d.Props = struct('static',  struct('name', {{d.Data{m}.static.name}},  'limits', {{d.Data{m}.static.limits}}), ...
+            d.Props = struct(...
+                'static',  struct('name', {{d.Data{m}.static.name}},  'limits', {{d.Data{m}.static.limits}}), ...
                 'dynamic', struct('name', {{d.Data{m}.dynamic.name}}, 'limits', {{d.Data{m}.dynamic.limits}}), ...
                 'diagnostics', struct('name', {{'TOF forward', 'TOF backward', ...
-                'Residence time', 'Tracer forward', ...
-                'Tracer backward', 'Tracer product', ...
-                'Sweep regions', 'Drainage regions', ...
-                'First arrival forward', 'First arrival backward'}}, ...
+                                                'Residence time', 'Tracer forward', ...
+                                                'Tracer backward', 'Tracer product', ...
+                                                'Sweep regions', 'Drainage regions', ...
+                                                'First arrival forward', 'First arrival backward'}}, ...
                 'limits', {{[0 1.001*d.maxTOF/year], [0 1.001*d.maxTOF/year], ...
-                [0 2.001*d.maxTOF/year], [0 1], [0 1], [0 1], [], [], ...
-                [0 1.001*d.maxTOF/year], [0 1.001*d.maxTOF/year]}}), ...
+                            [0 2.001*d.maxTOF/year], [0 1], [0 1], [0 1], [], [], ...
+                            [0 1.001*d.maxTOF/year], [0 1.001*d.maxTOF/year]}}), ...
                 'computed', struct('name', {{}}, 'limits', {{}}));
             d.currentDiagnostics = emptyDiagnostics(d);
-            selector3D.psel = PropertyDisplaySelector('props', d.Props, itemOpts{:}, 'includeLogSwitch', true, 'statisticsForAll',true);
+            selector3D.psel = PropertyDisplaySelector('props', d.Props, ...
+                itemOpts{:}, 'includeLogSwitch', true, 'statisticsForAll',true);
             
             % ------ Selector for property filter in 3D -------------------
             selector3D.fsel = PropertyDisplaySelector( ...
@@ -175,22 +170,16 @@ classdef DiagnosticsViewer < handle
                 'includeAvgSwitch', true, itemOpts{:});
             
             % ------ Selector for summary output  -------------------------
-            %             if (strcmp(d.simOrigin,'ECLIPSE'))
-            %                 selector2D.ssel = SummarySelector(d.Data.summary, itemOpts{:});
-            %             else
             selector2D.ssel = WellSolSelector(d.Data{m}.wsdata.wellNames, ...
                 d.Data{m}.wsdata.props, d.Data{m}.wsdata.times, itemOpts{:}, ...
-                'showPlotWSButton',false, 'Title', 'Plot simulation output');
-            %             end
-            
+                'showPlotWSButton',false, 'Title', 'Plot simulation output'); 
             
             % ------ Selector for RTD distribution  -----------------------
             selector2D.dsel = TracerSelector(itemOpts{:});
             
-            
             % ------ Selector for fluid distribution ----------------------
             a = struct('name', {{d.Data{1}.dynamic.name}});
-            b = struct('name',{{a.name{2:end}}});
+            b = struct('name',{a.name(2:end)});
             fdprops = cellfun(@(x) strcat(x(2:end),' injector distribution'),b.name, 'UniformOutput', false);
             d.fdprops = [{'none'}, {'All phases'}, fdprops];
             
@@ -217,15 +206,15 @@ classdef DiagnosticsViewer < handle
             % sub-menu for diagnostics plots
             m4 = UIMenu('Title', 'Multiphase Analysis', 'Parent', d.Figure, ...
                 itemOpts{:}, 'items', {selector2D.fdsel}, ...
-                'collapseDirection', 'down');  
+                'collapseDirection', 'down');
             
             % main menu
             d.Menu = UIMenu('Title', 'Menu', 'Parent', d.Figure, ...
                 itemOpts{:}, 'items', {m0, m2, m1, m3, m4});
             
             
-            % set different bkcolor of each sub-menu ,select some light
-            % colors
+            % set different background color of each sub-menu: to this end,
+            % select some light colors
             tt = [251 180 76; 58 152 216; 42 187 155; 252 121 122]./255;
             tt = [tt; tatarizeMap];
             for k =1:numel(d.Menu.items)
@@ -244,17 +233,11 @@ classdef DiagnosticsViewer < handle
             [d.Axes2DL, d.Axes2DR] = addAxesContextMenu(d.Axes2DL, d.Axes2DR);
             
             
-%             % ----- Collapse submenues whose function do not yet make sense 
-%             selector3D.wsel.collapse  = 1;
-            
             % ----- Collapse all menus except model selection menu --------
-
             m1.collapse = 1;
             m2.collapse = 1;
             m3.collapse = 1;
             m4.collapse = 1;
-            
-%             
             for  f = reshape(fieldnames(selector2D),1, [])
                 selector2D.(f{1}).collapse = 1;
             end
@@ -269,18 +252,18 @@ classdef DiagnosticsViewer < handle
             d.interactiveModes           = setInteractiveModes(d.Axes3D);
             
             % ------ Show model with static property ----------------------
-            
             d.Patch = CellDataPatch(d.Data{1}.G, d.Data{1}.static(1).values, ...
                 'Parent', d.Axes3D, 'EdgeColor', [.3 .3 .3], ...
                 'EdgeAlpha', .5, 'BackFaceLighting', 'lit');
             d.Patch = addPatchContextMenu(d.Patch);
             d.Figure.CurrentAxes = d.Axes3D;
-            d.outlineGrid = plotGrid(d.Data{m}.G, 'FaceColor', 'none', 'EdgeAlpha', 0.15, 'EdgeColor', [.3 .3 .3]);
+            d.outlineGrid = plotGrid(d.Data{m}.G, 'FaceColor', 'none', ...
+                                     'EdgeAlpha', 0.15, 'EdgeColor', [.3 .3 .3]);
             axis(d.Axes3D, 'tight', 'vis3d', 'off');
             d.Axes3D.ZDir = 'reverse';
             view(d.Axes3D, 3);
             daspect(d.Axes3D, [1 1 .2]);
-
+ 
             % ------ Add colorbar with histogram --------------------------
             d.colorBar = colorbar(d.Axes3D, 'WestOutside', 'AxisLocation', 'in');
             set(d.colorBar, 'Position',[.24 .8 .01 .19], 'Units', 'pixels', 'Xaxis', 'left');
@@ -290,8 +273,6 @@ classdef DiagnosticsViewer < handle
             % ------ Construct 2D plot axes -------------------------------
             axis(d.Axes2DL,'off');
             axis(d.Axes2DR,'off');
-            
-            
             
             % ------ Switch back to 3D plot axes and plot wells -----------
             % add extra toolbar stuff
@@ -314,7 +295,7 @@ classdef DiagnosticsViewer < handle
             
             % ------ Set callbacks for 3D axes ----------------------------
             selector3D.modsel.Callback = @(src, event) d.modelCallback(src, event, selector3D, selector2D);
-            selector3D.modsel.modelViewerButtonCallback = @(src, event) d.modelViewerButtonCallback(src, event, selector3D);            
+            selector3D.modsel.modelViewerButtonCallback = @(src, event) d.modelViewerButtonCallback(src, event, selector3D);
             selector3D.psel.Callback = @(src, event) d.displayPropCallback(src, event, selector3D);
             selector3D.wsel.Callback = @(src, event) d.interactionRegionCallback(src, event, selector2D, selector3D);
             selector3D.fsel.Callback = @(src, event) d.filterPropCallback(src, event, selector3D);
@@ -322,16 +303,15 @@ classdef DiagnosticsViewer < handle
             d.infoTextBox.Callback = @(src,event) d.modelInfoDisplayCallback(src, event, selector3D);
             
             % ------ Set callbacks for 2D axes ----------------------------
-            selector2D.msel.Callback      = @(src, event)d.measureCallback(src, event, selector2D, selector3D);
-            selector2D.asel.Callback      = @(src, event)d.allocationCallback(src, event, selector2D, selector3D);
+            selector2D.msel.Callback = @(src, event) d.measureCallback(src, event, selector2D, selector3D);
+            selector2D.asel.Callback = @(src, event) d.allocationCallback(src, event, selector2D, selector3D);
             
-            selector2D.ssel.Callback      = @(src, event)d.wellSolCallback(src, event, selector2D, selector3D);
-            selector2D.ssel.plotWellSolCallback      = @(src, event)d.plotWellSolCallback(src, event, selector3D);
+            selector2D.ssel.Callback            = @(src, event) d.wellSolCallback(src, event, selector2D, selector3D);
+            selector2D.ssel.plotWellSolCallback = @(src, event) d.plotWellSolCallback(src, event, selector3D);
             
-            selector2D.ssel.regCallback   = @(src, event)d.selectWellsForSummary(src, event, selector2D, selector3D);
-            selector2D.dsel.Callback      = @(src, event)d.distributionCallback(src, event, selector2D, selector3D);
-
-            selector2D.fdsel.Callback      = @(src, event)d.fluidDistributionCallback(src, event, selector2D, selector3D);
+            selector2D.ssel.regCallback = @(src, event) d.selectWellsForSummary(src, event, selector2D, selector3D);
+            selector2D.dsel.Callback    = @(src, event) d.distributionCallback(src, event, selector2D, selector3D);
+            selector2D.fdsel.Callback   = @(src, event) d.fluidDistributionCallback(src, event, selector2D, selector3D);
             
             % ------ Do initial callback for 3D axes ----------------------
             selector3D.psel.Callback([], [])
@@ -377,18 +357,16 @@ classdef DiagnosticsViewer < handle
         end
         % -----------------------------------------------------------------
         function displayPropCallback(d, src, event, s3) %#ok<*INUSL>
-            
-         m = getSelectedModelIndex(d,s3);
-            
-         switch s3.psel.typeIx
+            m = getSelectedModelIndex(d,s3);
+            switch s3.psel.typeIx
                 case 1  % static property
                     if numel(m) == 1
                         displayVals = d.Data{m}.static(s3.psel.propIx).values;
-                        lims = d.Data{m}.static(s3.psel.propIx).limits;                        
+                        lims = d.Data{m}.static(s3.psel.propIx).limits;
                     else
                         d.messageBar.String  = '';
-                        stat = s3.psel.statPopup.String{s3.psel.statIx};        
-                        cval = zeros(numel(d.Data{m(1)}.static(s3.psel.propIx).values),numel(m));                        
+                        stat = s3.psel.statPopup.String{s3.psel.statIx};
+                        cval = zeros(numel(d.Data{m(1)}.static(s3.psel.propIx).values),numel(m));
                         for j = 1:numel(m)
                             cval(:,j) = d.Data{m(j)}.static(s3.psel.propIx).values;
                         end
@@ -458,9 +436,8 @@ classdef DiagnosticsViewer < handle
         end
         % -----------------------------------------------------------------
         function filterPropCallback(d, src, event, s3)
-            
             m = getSelectedModelIndex(d,s3);
-            
+
             if ~strcmp(s3.fsel.playMode, 'stop')
                 d.Patch.value = s3.fsel.maxValue;
             else
@@ -475,17 +452,12 @@ classdef DiagnosticsViewer < handle
                 end
                 switch s3.fsel.typeIx
                     case 1  % static property
-                        if numel(m)>1
-                            m = m(1);
-%                             d.messageBar.String  = strcat('Multiple models selected. Displaying data for model: ',...
-%                                 s3.modsel.modelNames{m});
-                        end
+                        if numel(m)>1, m = m(1); end
                         fval = d.Data{m}.static(s3.fsel.propIx).values;
                         
                     case 2  % dynamic property
                         if numel(m) == 1
                             fval = d.Data{m}.dynamic(s3.fsel.propIx).values;
-                            
                         else  % multiple time steps
                             d.messageBar.String = '';
                             stat = s3.fsel.statPopup.String{s3.fsel.statIx};
@@ -507,7 +479,6 @@ classdef DiagnosticsViewer < handle
                     case 4 % computed prop
                         if ~isempty(d.Props.computed.name)
                             fval = d.Data{m}.computed(s3.fsel.propIx).values;
-                            %lims        = d.Data.computed(s3.psel.propIx).limits;
                         else % no computed properties return to static
                             d.messageBar.String = 'No computed values available';
                             s3.fsel.typeIx = 1;
@@ -630,9 +601,7 @@ classdef DiagnosticsViewer < handle
             end
             cla(ax, 'reset');
             if numel(wsel.injectorIx) ~= 1 || numel(modsel.ix) ~= 1
-%                 axis(ax, 'off')
-%                 text(0,0,'Please select{\bf one} injector and{\bf one} model.,','Parent' ,ax);
-                    d.messageBar.String = 'Please select  one injector and  one model.';
+                d.messageBar.String = 'Please select  one injector and  one model.';
                 return
             else
                 d.messageBar.String = '';
@@ -701,95 +670,54 @@ classdef DiagnosticsViewer < handle
             leg={};
             nameIx = zeros(numel(nms),1);
             for l = 1:numel(nms)
-                nameIx(l) = find(strcmp(d.Data{1}.wsdata.wellNames, nms(l))); 
+                nameIx(l) = find(strcmp(d.Data{1}.wsdata.wellNames, nms(l)));
             end
-            
             
             if isempty(prps)
-                %axis(ax,'off');
-            else
-                if nargin < 6
-                    cla(ax, 'reset');
-                end
-                
-                hold(ax, 'on')
-                values = zeros(numel(m),numel(nms));
-                
-                if numel(m)>1
-                    for k = 1:numel(m)
-                        for l = 1:numel(nms)
-%                             nameIx = find(strcmp(d.Data{m(k)}.wsdata.wellNames, nms(l)));
-%                             
-%                             
-                            values(k,l) = d.Data{m(k)}.wsdata.(prps{1})(:,nameIx(l));
-                            %                         time =  d.Data{m}.wsdata.times;
-                            groupnames{k} = s3.modsel.modelNames{m(k)};
-                            
-                        end
-                        
-                    end
-                    leg = {};
-                    for l = 1:numel(nms)
-%                         nameIx = find(strcmp(d.Data{1}.wsdata.wellNames, nms(l)));
-                        %                     leg = [leg, {[d.Data{1}.wsdata.wellNames{nameIx},' - ', prps{1}, ' [', d.Data{1}.wsdata.units{propIx(1)}, ']']}];
-                        leg = [leg {[d.Data{1}.wsdata.wellNames{nameIx(l)}]}];
-                    end
-                else
-                    for l = 1:numel(nms)
-%                         nameIx = find(strcmp(d.Data{m}.wsdata.wellNames, nms(l)));
-                        
-                        
-                        values(1,l) = d.Data{m}.wsdata.(prps{1})(:,nameIx(l));
-                        %                         time =  d.Data{m}.wsdata.times;
-                        
-                    end
-                    groupnames= nms;
-                end
-                
-                
-                colors = [d.Data{1}.injColors; d.Data{1}.prodColors];
-                
-                
-                
-                
-                h=bar(ax, categorical(groupnames),values,'grouped','FaceColor','flat');
-                hold(ax,'on');
-                if numel(m)>1
-                    for k = 1:size(values,2)
-                        h(k).CData = colors(nameIx(k),:);
-                    end
-                else
-                    h.CData = colors(nameIx,:);
-                end
-                
-                %                         text(h.XData, h.YData, cellstr(num2str(m.LC(:),'%.4f')), ...
-                %                             'HorizontalAlignment', 'center', ...
-                %                             'VerticalAlignment','bottom', 'FontSize', 8);
-                %                         set(ax,'XTickLabel', ...
-                %                             {datestr(d.Data.time.cur(tsel.ix) , 'mm.dd.yy')});
-                %                         set(ax,'XTickLabelRotation',45,'FontSize',8);
-                
-                
-                
-                %                         plot(ax, time, values, 'LineWidth', 2);
-                %                         leg = [leg, {[d.Data{m}.wsdata.wellNames{nameIx},' - ', prps{l}, ...
-                %                             ' [', d.Data{m}.wsdata.units{propIx(l)}, ']']}]; %#ok
-                
-                %                     end
-                
-                
-                
-                if ~isempty(leg)
-                    %xlabel('time [years]')
-                    legend(ax, leg, 'Interpreter', 'none')
-                end
-                ylabel(ax, {[prps{1}, ' [', d.Data{1}.wsdata.units{propIx(1)}, ']']})
-                
+                return;
             end
+            if nargin < 6,  cla(ax, 'reset'); end
+            
+            hold(ax, 'on')
+            values = zeros(numel(m),numel(nms));
+            
+            if numel(m)>1
+                for k = numel(m):-1:1
+                    for l = 1:numel(nms)
+                        values(k,l) = d.Data{m(k)}.wsdata.(prps{1})(:,nameIx(l));
+                    end
+                    groupnames{k} = s3.modsel.modelNames{m(k)};
+                end
+                leg = {};
+                for l = numel(nms):-1:1
+                    leg(l) = {[d.Data{1}.wsdata.wellNames{nameIx(l)}]};
+                end
+            else
+                for l = 1:numel(nms)
+                    values(1,l) = d.Data{m}.wsdata.(prps{1})(:,nameIx(l));
+                end
+                groupnames= nms;
+            end
+            
+            colors = [d.Data{1}.injColors; d.Data{1}.prodColors];
+            
+            h=bar(ax, categorical(groupnames),values,'grouped','FaceColor','flat');
+            hold(ax,'on');
+            if numel(m)>1
+                for k = 1:size(values,2)
+                    h(k).CData = colors(nameIx(k),:);
+                end
+            else
+                h.CData = colors(nameIx,:);
+            end
+            if ~isempty(leg)
+                %xlabel('time [years]')
+                legend(ax, leg, 'Interpreter', 'none')
+            end
+            ylabel(ax, {[prps{1}, ' [', d.Data{1}.wsdata.units{propIx(1)}, ']']})
         end
         
         function modelViewerButtonCallback(d, src, event, s3)
-
             m = getSelectedModelIndex(d,s3);
             if numel(m) > 16
                 d.messageBar.String = 'Please select fewer than 16 models.';
@@ -799,13 +727,14 @@ classdef DiagnosticsViewer < handle
             end
             
             % Get data
+            cval = cell(1,numel(m));
             switch s3.psel.typeIx
                 case 1
                     prop = 'static';
                     for j = 1:numel(m)
                         cval{j} = d.Data{m(j)}.(prop)(s3.psel.propIx).values;
                     end
-                    plottitle = d.Data{1}.(prop)(s3.psel.propIx).name;                  
+                    plottitle = d.Data{1}.(prop)(s3.psel.propIx).name;
                 case 2
                     prop = 'dynamic';
                     for j = 1:numel(m)
@@ -815,7 +744,7 @@ classdef DiagnosticsViewer < handle
                 case 3
                     prop = s3.psel.propPopup.String{s3.psel.propIx};
                     for j = 1:numel(m)
-                        [d, vals , lims, flag] = extractSelectedDiagnosticsSingleModel(d, prop, m(j), s3.wsel);                     
+                        [d, vals , ~, flag] = extractSelectedDiagnosticsSingleModel(d, prop, m(j), s3.wsel);
                         if flag
                             cval{j} = vals;
                         else
@@ -832,11 +761,7 @@ classdef DiagnosticsViewer < handle
             end
             
             % Set colorbar limits
-            lims = [];
-            for i = 1:numel(cval)
-                lims = [lims max(cval{i}) min(cval{i})];
-            end
-            clims = [min(lims) max(lims)];
+            clims = [min(cellfun(@min,cval)) max(cellfun(@max,cval))];
             
             if s3.psel.logSwitch
                 isLog = true;
@@ -848,26 +773,20 @@ classdef DiagnosticsViewer < handle
                     end
                 end
                 if isLog
-                    for i = 1:numel(cval)
-                        cval{i} = log10(cval{i});
-                    end
+                    cval  = cellfun(@log10, cval, 'UniformOutput', false);
                     clims = log10(clims);
                 end
             else
                 isLog = false;
             end
             
-
-            
             % Plot figure
-            
-            [fh,ax] = plotMultipleLinkedModels(d.Data{m(1)}.G,cval,clims,...
-                d.Patch.cells, s3.modsel.modelNames(m),isLog,s3,d.Data{1}.wells,...
-                d.injColors,d.prodColors,plottitle,d.Axes3D.View, d.Axes3D.CLim,...
-                'camlight',d.camlight,'outlineGrid',d.outlineGrid);
-               % 'filterMinVal',s3.fsel.minValue,'filterMaxVal',s3.fsel.maxValue);
-
-        end        
+            plotMultipleLinkedModels( d.Data{m(1)}.G, cval, clims,...
+                d.Patch.cells, s3.modsel.modelNames(m), isLog, s3, d.Data{1}.wells,...
+                d.injColors, d.prodColors, plottitle, d.Axes3D.View, d.Axes3D.CLim,...
+                'camlight', d.camlight, 'outlineGrid', d.outlineGrid);
+            % 'filterMinVal',s3.fsel.minValue,'filterMaxVal',s3.fsel.maxValue);   
+        end
         
         function plotWellSolCallback(d, src, event, s3)
             m = getSelectedModelIndex(d,s3);
@@ -882,7 +801,7 @@ classdef DiagnosticsViewer < handle
         
         % -----------------------------------------------------------------
         function fluidDistributionCallback(d, src, event, s2, s3)
-
+            
             if s2.fdsel.panelNo==1
                 [ax, ix] = deal(d.Axes2DL, s2.fdsel.leftIx);
             else
@@ -895,7 +814,7 @@ classdef DiagnosticsViewer < handle
                 return
             else
                 d.messageBar.String = "";
-            end   
+            end
             
             if numel(s3.wsel.producerIx)<1
                 d.messageBar.String = strcat("No producer selected. Please select one producer.");
@@ -905,14 +824,7 @@ classdef DiagnosticsViewer < handle
                 return
             else
                 d.messageBar.String = "";
-            end   
-            
-            
-            
-            
-            
-            
-            
+            end
             switch ix
                 case 1
                     axis(ax, 'off')
@@ -928,7 +840,7 @@ classdef DiagnosticsViewer < handle
             
         end
         % -----------------------------------------------------------------
-        function modelInfoDisplayCallback(d, src, event, s3)        
+        function modelInfoDisplayCallback(d, src, event, s3)
             
             txt = d.getModelInfoString(s3);
             nlines = numel(strsplit(txt,'\n'));
@@ -937,7 +849,7 @@ classdef DiagnosticsViewer < handle
             
         end
         % -----------------------------------------------------------------
-        function startPlayCallback(d, src, event)
+        function startPlayCallback(d, src)
             % set mouse pointer to wait-mode
             fsel = src.Parent.UserData;
             mtfnc  = d.Figure.WindowButtonMotionFcn;
@@ -971,13 +883,13 @@ classdef DiagnosticsViewer < handle
             mPos   = d.Menu.Position;
             mPos   = [5, fip(4)-mPos(4)-1, mw, mPos(4)];
             mPos(3) = max(mPos(3), sp);
-%             aPos2D = [mw+sp, 2*sp, (fip(3)-mw-4*sp)/2, ah];
-            aPos2D = [mw+sp, 2.5*sp, (fip(3)-mw-4*sp)/2, ah];            
+            %             aPos2D = [mw+sp, 2*sp, (fip(3)-mw-4*sp)/2, ah];
+            aPos2D = [mw+sp, 2.5*sp, (fip(3)-mw-4*sp)/2, ah];
             aPos2D(4) = max(aPos2D(4), 0);
             aPos2DL = aPos2D; aPos2DL([1 3]) = aPos2DL([1 3]) + [sp -sp];
             aPos2DR = aPos2D; aPos2DR(1) = aPos2D(1)+aPos2D(3)+2*sp;
-%             aPos3D = [mw+sp, 2*sp+ah, fip(3)-mw-2*sp, fip(4)-3*sp-ah];
-            aPos3D = [mw+sp, 2.5*sp+ah, fip(3)-mw-2*sp, fip(4)-3*sp-ah];            
+            %             aPos3D = [mw+sp, 2*sp+ah, fip(3)-mw-2*sp, fip(4)-3*sp-ah];
+            aPos3D = [mw+sp, 2.5*sp+ah, fip(3)-mw-2*sp, fip(4)-3*sp-ah];
             cbh    = max(50, min(300, fip(4)-2*sp));
             cbw    = 27;
             % Colorbar left, next to menu
@@ -1063,12 +975,7 @@ classdef DiagnosticsViewer < handle
             p = d.Figure.CurrentPoint;
             if p(1) <= mw + sp
                 if p(1) <= mw % inside menu panel
-                    %                     dy = arrayfun(@(x)x.Position(2), d.Menu.panel.Children)-p(2);
-                    %                     if any(and(dy > 0,dy <= 5))
-                    %                         set(d.Figure,'Pointer','top');
-                    %                     else
                     set(d.Figure,'Pointer','arrow');
-                    %                     end
                 elseif ~any(structfun(@(x)strcmp(x.Enable, 'on'), d.interactiveModes)) % resize not allowed in interactive mode
                     set(d.Figure,'Pointer','left');
                 else
@@ -1117,7 +1024,7 @@ classdef DiagnosticsViewer < handle
                     h=barh(ax, z, a,'stacked','BarWidth',1, 'EdgeColor','none');
                 else
                     h=area(ax, z, a, eps,'EdgeColor','none'); axis(ax,'tight');
-%                     ax.View(90,-90);
+                    %                     ax.View(90,-90);
                     args = {'XDir', 'XLim'};
                 end
             end
@@ -1134,20 +1041,13 @@ classdef DiagnosticsViewer < handle
             alloc = cat(3, tmp{:});
             alloc = cumsum(alloc(end:-1:1,:,:), 1);
             z     = (size(alloc,1):-1:1).';
-            hold(ax,'on');
-            
-            
+            hold(ax,'on');         
             for i = 1:size(alloc,3)
                 s = abs(sum(alloc(:,:,i)));
                 mm = max(s);
                 pltbarsIx = find(s>0.01*mm);
-%                 pltalloc = pltbars.*alloc(:,:,i);
                 pltalloc = alloc(:,pltbarsIx,i);
-%                 if ~pltbars(end)
-%                     pltalloc = 
-%                 end
                 h=bar3h(ax, z, pltalloc,'stacked');
-     
                 for j=1:numel(h)
                     set(h(j), 'xdata', get(h(j),'xdata')+i-1, ...
                         'FaceColor', cmap(pltbarsIx(j),:),'EdgeAlpha',.5);
@@ -1228,7 +1128,7 @@ classdef DiagnosticsViewer < handle
                 set(lgn,'FontSize',8);
             end
             ax.XLabel.String = '\phi';
-            ax.YLabel.String = 'F';            
+            ax.YLabel.String = 'F';
         end
         % -----------------------------------------------------------------
         function showSweep(d, ax, modsel, tsel, wsel)
@@ -1306,7 +1206,7 @@ classdef DiagnosticsViewer < handle
             hold(ax,'off'); axis(ax,'tight');
             set(ax,'XLim',[0 min(5,max(m.tDt(:)))]);
             ax.XLabel.String = 't_D';
-            ax.YLabel.String = 'E_v';      
+            ax.YLabel.String = 'E_v';
         end
         % -----------------------------------------------------------------
         function showLorenz(d, ax, modsel, tsel, wsel)
@@ -1325,7 +1225,7 @@ classdef DiagnosticsViewer < handle
                     'HorizontalAlignment', 'center', ...
                     'VerticalAlignment','bottom', 'FontSize', 8);
                 set(ax,'XTickLabelRotation',45);
-                ax.YLabel.String = 'L_c';   
+                ax.YLabel.String = 'L_c';
                 
             elseif singlePlot
                 h=bar(ax, m.LC,'LineWidth',1, ...
@@ -1334,10 +1234,9 @@ classdef DiagnosticsViewer < handle
                 text(h.XData, h.YData, cellstr(num2str(m.LC(:),'%.4f')), ...
                     'HorizontalAlignment', 'center', ...
                     'VerticalAlignment','bottom', 'FontSize', 8);
-                set(ax,'XTickLabel', ...
-                    {modsel.modelNames{modsel.ix}});
+                set(ax,'XTickLabel', modsel.modelNames(modsel.ix));
                 set(ax,'XTickLabelRotation',45,'FontSize',8);
-                ax.YLabel.String = 'L_c';   
+                ax.YLabel.String = 'L_c';
             elseif nM<4
                 n = size(m.LC,1);
                 h=bar(ax, m.LC,'LineWidth',1, ...
@@ -1356,7 +1255,7 @@ classdef DiagnosticsViewer < handle
                 end
                 set(ax,'XTickLabel',m.names,'FontSize',8);
                 if n>8, set(ax,'XAxisLocation','top','XTickLabelRotation',45), end
-                ax.YLabel.String = 'L_c';   
+                ax.YLabel.String = 'L_c';
             else
                 n = size(m.LC,1);
                 bar3(ax,m.LC); view(-80,20)
@@ -1365,11 +1264,11 @@ classdef DiagnosticsViewer < handle
                     [m.LCt m.LCt]','Color','r','LineWidth',2);
                 set(ax,'YTickLabel',m.names,'FontSize',8)
                 if numel(m.names)>8, set(ax,'YTickLabelRotation',45), end
-                ax.ZLabel.String = 'L_c';   
+                ax.ZLabel.String = 'L_c';
             end
             if ~isempty(m.wellName), title(['Well: ' m.wellName]); end
             hold(ax,'off'); axis(ax,'on', 'normal');
-             
+            
         end
         % -----------------------------------------------------------------
         function PlotTOFArrival(d, ax, modsel, tsel, wsel, extendTime)
@@ -1383,10 +1282,8 @@ classdef DiagnosticsViewer < handle
             state = d.Data{m}.states;
             
             [data,tof] = getAllPhaseTOFDistributions(state, W, pv, prodIx, D);
-            
-  
             h = area(ax, tof, data);
-            
+
             phcol = {[.4 .4 1],[.3 0 0], [.5 1 .5]};
             for ph = 1:numel(h)
                 set(h(ph), 'FaceColor', phcol{ph});
@@ -1396,16 +1293,15 @@ classdef DiagnosticsViewer < handle
             hold(ax,'off'); axis(ax,'tight');
             ax.XLabel.String = 'TOF distance in years';
             
-            phnamesFull = {d.fdprops{3:end}};
-            phnames = cellfun(@(x) x(1:3),phnamesFull, 'UniformOutput',false);       
+            phnamesFull = d.fdprops(3:end);
+            phnames = cellfun(@(x) x(1:3),phnamesFull, 'UniformOutput',false);
             
-            legend(ax, phnames, 'Location', 'Northwest');   
-             set(ax, 'XLim', [0, extendTime]);
+            legend(ax, phnames, 'Location', 'Northwest');
+            set(ax, 'XLim', [0, extendTime]);
         end
         
         % -----------------------------------------------------------------
         function PlotPhaseTOFArrivals(d, ax, modsel, tsel, wsel, phase, extendTime)
-            
             m = modsel.ix;
             W = d.Data{m}.wells;
             PORVIx = arrayfun(@(x) strcmp(x.name,'PORV'),d.Data{m}.static);
@@ -1425,70 +1321,48 @@ classdef DiagnosticsViewer < handle
                 injIx = find(ix).';
             end
             
-            
             [data,tof,tof_ix] = getAllPhaseTOFDistributions(state, W, pv, prodIx, D);
             
             [sphase,~] = getIndividualPhaseTOFDistributions(data,tof,tof_ix,injIx,D,phase);
             
             % Add 0 to start to make plot look better
             h = area(ax, [0; tof], [zeros(1,size(sphase,2)); sphase]);
-
             for ph = 1:numel(h)
                 set(h(ph), 'FaceColor', d.injColors(injIx(ph),:));
-                
             end
-            
-            %axis([min(tof_sub), max(tof_sub), 0, 1])
             hold(ax,'off'); axis(ax,'tight');
             ax.XLabel.String = 'TOF distance in years';
             ax.YLabel.String = 'm^3';
             set(ax, 'XLim', [0, extendTime]);
-            
-            
             ymax = 0;
             for i  = 1:numel(h)
                 ymax = ymax + h(i).YData(end);
             end
-            if ymax > 0;
-                set(ax, 'YLim', [0, ymax+ymax.*0.01]);           
+            if ymax > 0
+                set(ax, 'YLim', [0, ymax+ymax.*0.01]);
             end
             wnames = arrayfun(@(x) x.label.String, d.WellPlot.injectors(injIx), ...
                 'UniformOutput',false);
             
-            legend(ax, wnames, 'Location', 'Northwest');            
-
-        end        
+            legend(ax, wnames, 'Location', 'Northwest');
+        end
         
-        % -----------------------------------------------------------------       
+        % -----------------------------------------------------------------
         function infoStr = getModelInfoString(d,s3)
-
-            m = getSelectedModelIndex(d,s3);
-
+            m = getSelectedModelIndex(d,s3);           
             plotProp3D = s3.psel.propPopup.String{s3.psel.propIx};
-            plotType3D = s3.psel.typePopup.String{s3.psel.typeIx}; 
+            plotType3D = s3.psel.typePopup.String{s3.psel.typeIx};
             if numel(m) > 1
                 plotStat3D = s3.psel.statPopup.String{s3.psel.statIx};
             else
                 plotStat3D = "n/a";
             end
-
+            
             infoStr1 = sprintf("Displayed Models:\n");
             infoStr2 = sprintf('    %s\n',s3.modsel.modelNames{m});
             infoStr3 = sprintf("\nDisplayed Property: \n    %s (%s) \nStatistic: \n    %s", ...
                 plotProp3D, plotType3D, plotStat3D);
-%             infoStr4 = sprintf("Injectors:\n");
-%             if numel(s3.wsel.injectorIx)>1
-%                 infoStr5 = sprintf("    %s\n",s3.wsel.injSelector.String{s3.wsel.injectorIx});
-%             else
-%                 infoStr5 = sprintf("    none\n")
-%             end
-%             infoStr6 = sprintf("Producers:\n");
-%             if numel(s3.wsel.producerIx)>1
-%                 infoStr7 = sprintf("    %s\n",s3.wsel.prodSelector.String{s3.wsel.producerIx});   
-%             else
-%                 infoStr7 = sprintf("    none\n")
-%             end
-            infoStr = strcat(infoStr1,infoStr2,infoStr3);        
+            infoStr = strcat(infoStr1,infoStr2,infoStr3);
             
         end
         
@@ -1524,7 +1398,7 @@ classdef DiagnosticsViewer < handle
         function updateColorHist(d)
             vals = d.Patch.colorData(d.Patch.cells);
             lims = d.Axes3D.CLim;
-            [counts,bins] = hist(vals, linspace(lims(1), lims(2),25));
+            [counts,bins] = hist(vals, linspace(lims(1), lims(2),26));
             visState = 'on';
             c = d.colorHAx.Children;
             if numel(c) == 1 && isprop(c, 'Visible')
@@ -1533,7 +1407,7 @@ classdef DiagnosticsViewer < handle
             barh(d.colorHAx, bins, counts,'hist');
             axis(d.colorHAx,'tight', 'off');
             h = findobj(d.colorHAx,'Type','patch');
-            set(h,'FaceColor','none','EdgeColor',[.2 .2 .2], 'Visible', visState);
+            set(h,'FaceColor',[.8 .9 1],'EdgeColor',[.2 .2 .3], 'Visible', visState);
         end
         % -----------------------------------------------------------------
         function updateColorBar(d, s3, lims, islog)
@@ -1592,13 +1466,10 @@ classdef DiagnosticsViewer < handle
             end
         end
         
-        % -----------------------------------------------------------------
-        
+        % -----------------------------------------------------------------    
         function wellCommunication = getGlobalCommunicationMatrix(d)
-            
-            % Finds max connection between each well pair for all 
-            % models.            
-            
+            % Finds max connection between each well pair for all
+            % models.
             nM = numel(d.Data);
             allCom = zeros([size(d.Data{1}.diagnostics.wellCommunication) nM]);
             for i = 1:nM
@@ -1609,12 +1480,9 @@ classdef DiagnosticsViewer < handle
         end
         
         % -----------------------------------------------------------------
-        
         function wellCommunication = getSelectedModelCommunicationMatrix(d,s3)
-            
             % Finds max connection between each well pair for all selected
             % models.
-
             if isempty(s3.modsel.ix)
                 return
             else
@@ -1625,26 +1493,16 @@ classdef DiagnosticsViewer < handle
                     allCom(:,:,i) = d.Data{m(i)}.diagnostics.wellCommunication;
                 end
                 wellCommunication = max(allCom,[],3);
-
-%                     wellCommunication = mean(allCom,3);                
-
-                
-            end
+             end
         end
- 
         % -----------------------------------------------------------------
-     
+        
         
         
     end
 end % --- END POSTPROCESSDIAGNOSICS ---------------------------------------
 
 %% -- UTILITY FUNCTIONS ---------------------------------------------------
-
-
-
-
-
 function s = emptyDiagnostics(d)
 s = struct('name', '', 'values', []);
 str = d.Props.diagnostics.name;
@@ -1663,16 +1521,6 @@ else
         lims(1) = lims(2)*10^(-oom);
         vals = max(vals, lims(1));
     end
-end
-end
-% -----------------------------------------------------------------
-function str = getTStepStrings(t_cur, t_prev)
-formatOut = 'mmm dd, yyyy';
-n = numel(t_cur);
-str = cellfun(@(x)datestr(x, formatOut), mat2cell(t_cur, ones(1, n)), 'UniformOutput', false);
-if nargin > 1
-    strp = cellfun(@(x)datestr(x, formatOut), mat2cell(t_prev, ones(1, n)), 'UniformOutput', false);
-    str  = cellfun(@(x,y)[x,' - ',y], strp, str, 'UniformOutput', false);
 end
 end
 % -----------------------------------------------------------------
@@ -1722,7 +1570,7 @@ for k = 1:nax
 end
 end
 % -----------------------------------------------------------------
-function copyToFig(src, event, ax) %#ok
+function copyToFig(src, event, ax) 
 f_new = figure;
 new = copyobj([ax, ax.Legend], f_new);
 ax  = findobj(new, 'Type', 'axes');
