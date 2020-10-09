@@ -23,6 +23,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opt = struct('outputdir',         [], ...
              'multiple',        true, ...
              'maxTOF',     500*year);
+opt = merge_options(opt, varargin{:});
 
 [restartdir, prefx] = fileparts(casenm);
 
