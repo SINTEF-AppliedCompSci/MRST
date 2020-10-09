@@ -28,25 +28,25 @@ function out = setupEggFn(n, mode)
         mode = 'simulation';
     end
     out = struct('model', [], 'state0', [], 'W', [], 'schedule', [], 'simOpts', {{}});
-    if n <= 50
-        deck = getDeckEGG('realization', n);
-        G = initEclipseGrid(deck);
-        G = computeGeometry(G);
-        
-        if strcmp(mode, 'simulation')
-            [out.state0, out.model, out.schedule, nonlinear] = initEclipseProblemAD(deck, 'G', G, 'TimestepStrategy', 'none', 'useMex', true);
-            out.simOpts  = {'NonLinearSolver', nonlinear};
-            out.W = out.schedule.control(1).W;
-        else % diagnostics
-            rock  = initEclipseRock(deck);
-            rock  = compressRock(rock, G.cells.indexMap);
-            fluid = initDeckADIFluid(deck);
-            out.model = selectModelFromDeck(G, rock, fluid, deck);
-            schedule = convertDeckScheduleToMRST(model, deck);
-            out.W = schedule.control(1).W;
-        end
-    end
 
+    deck = getDeckEGG('realization', n);
+    G = initEclipseGrid(deck);
+    G = computeGeometry(G);
+
+    if strcmp(mode, 'simulation')
+        [out.state0, out.model, out.schedule, nonlinear] = ...
+            initEclipseProblemAD(deck, 'G', G, ...
+            'TimestepStrategy', 'none', 'useMex', true);
+        out.simOpts  = {'NonLinearSolver', nonlinear};
+        out.W = out.schedule.control(1).W;
+    else % diagnostics
+        rock  = initEclipseRock(deck);
+        rock  = compressRock(rock, G.cells.indexMap);
+        fluid = initDeckADIFluid(deck);
+        out.model = selectModelFromDeck(G, rock, fluid, deck);
+        schedule = convertDeckScheduleToMRST(model, deck);
+        out.W = schedule.control(1).W;
+    end
 end
 
 %{
