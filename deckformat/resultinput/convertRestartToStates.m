@@ -314,7 +314,7 @@ if isfield(G.cells, 'eMap')
 end
 
 % make consistent wellSols
-if opt.consistentWellSols
+if opt.consistentWellSols && opt.includeWellSols
     states = makeWellSolsConsistent(states);
     % handle closing of wells and crossflow
     states = processWellStates(states, opt);
@@ -334,14 +334,16 @@ if opt.includeMobilities
     nn = size(n,1);
     C  = sparse(n, repmat((1:nn)' , [1 2]), 1, G.cells.num, nn);
     for k = 1:numel(states)
-        wc = vertcat(states{k}.wellSol.cells);
         qa = C*abs(states{k}.flux(ie,:));
-        % need some tricks since only total well-flux is given
-        % q_ph = q_ph^r + q_ph^w
-        qwr    = qa(wc,:);
-        qw_tot = abs(vertcat(states{k}.wellSol.flux));
-        sqw    = max(sum(qwr, 2) + qw_tot, 100*eps*max(qw_tot));
-        qa(wc,:) = bsxfun(@rdivide, qwr, 1-qw_tot./sqw);
+        if isfield(states{k}, 'wellSol') && ~isempty(states{k}.wellSol)
+            wc = vertcat(states{k}.wellSol.cells);
+            % need some tricks since only total well-flux is given
+            % q_ph = q_ph^r + q_ph^w
+            qwr    = qa(wc,:);
+            qw_tot = abs(vertcat(states{k}.wellSol.flux));
+            sqw    = max(sum(qwr, 2) + qw_tot, 100*eps*max(qw_tot));
+            qa(wc,:) = bsxfun(@rdivide, qwr, 1-qw_tot./sqw);
+        end
         sq = sum(qa,2);
         sq = max(sq, 100*eps*max(sq));
         states{k}.mob = bsxfun(@rdivide, qa, sq);
