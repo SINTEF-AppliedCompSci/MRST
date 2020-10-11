@@ -83,16 +83,17 @@ else
 end
 
 if numel(state.wellSol) ~= numel(W)
+    % typically the case if solved with incompTPFA
     ws = repmat(state.wellSol(1), [1, numel(W)]);
     ws(isActive) = state.wellSol;
-else
-    ws = state.wellSol;
+    zix = find(~isActive);
+    for k = 1:numel(zix)
+        ws(zix(k)).flux = zeros(numel(W(zix(k)).cells), 1);
+    end
+    state.wellSol = ws;
 end
-zix = find(~isActive);
-for k = 1:numel(zix)
-    ws(zix(k)).flux = zeros(numel(W(zix(k)).cells), 1);
-end
-state.wellSol = ws;
+
+
 
 %% diagnostics part    
 if ~isempty(opt.D)
