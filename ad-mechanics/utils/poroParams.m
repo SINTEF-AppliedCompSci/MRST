@@ -101,7 +101,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % If uniform grains, we know that K_phi = K_s, so we add this relation
    if uniform
       relations = [relations;
-                   relfun({'K_s', 'K_phi'},   @(K_s, K_phi) K_s - K_phi)];
+                   relfun({'K_s', 'K_phi'},   @(K_s, K_phi) 1/K_s - 1/K_phi)];
    end
    
    % Compute all possible parameters based on data provided
