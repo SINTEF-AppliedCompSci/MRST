@@ -77,3 +77,30 @@ ensemble.simulateAllEnsembleMembers();
 %% Plot results
 ensemble.qoi.plotEnsemble(ensemble);
 
+
+
+
+
+%% Create another ensemble using stochastic well indices
+% ---------------------
+wellSampleData = cell(ensembleSize, 1);
+for i = 1:ensembleSize
+    wellSampleData{i}.WI = rand(1,4)*1e-11;
+end
+
+wellSamples = WellSamples('data', wellSampleData);
+
+%% Define new ensemble
+ensemble = MRSTEnsemble(baseExample, wellSamples, qoi, ...
+    ... %'directory', uniqueDirectory, ...
+    'simulationType', 'parallel', ...
+    'maxWorkers', 8, ...
+    'deleteOldResults', true, ...
+    'verbose', true);
+
+%% Simulate and plot
+ensemble.simulateAllEnsembleMembers();
+
+%%
+ensemble.qoi.plotEnsemble(ensemble);
+
