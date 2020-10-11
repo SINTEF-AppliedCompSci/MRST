@@ -145,7 +145,7 @@ nStepsTot   = sum(nsteps);
 [dist.t, dist.values] = deal(nan(nStepsTot+1, nreg));
 
 % setup system
-[sysmat, qp_well, tr0, pv] = setupSystemComponents(state, G, pv, W, sub, inj, prod, opt.reverse);
+[sysmat, qp_well, tr0, pv, cix] = setupSystemComponents(state, G, pv, W, sub, inj, prod, opt.reverse);
 
 tr = tr0;
 [ni, np] = deal(numel(iix), numel(pix));
@@ -160,11 +160,11 @@ end
 if opt.computeSaturations
     % get region total and water volumes
     if ~opt.reverse
-        pv_reg  = bsxfun(@times, D.ptracer(sub,pix), pv);
-        pvw_reg = bsxfun(@times, pv_reg, state.s(sub,1));
+        pv_reg  = bsxfun(@times, D.ptracer(cix,pix), pv);
+        pvw_reg = bsxfun(@times, pv_reg, state.s(cix,1));
     else
-        pv_reg  = bsxfun(@times, D.itracer(sub,pix), pv);
-        pvw_reg = bsxfun(@times, pv_reg, state.s(sub,1));
+        pv_reg  = bsxfun(@times, D.itracer(cix,pix), pv);
+        pvw_reg = bsxfun(@times, pv_reg, state.s(cix,1));
     end
     % initial saturation
     sats = vals; 
@@ -232,8 +232,8 @@ if opt.computeSaturations
     for ik = 1:numel(iix)
         for pk = 1:numel(pix)
             ix = ix +1;
-            V_ip  = D.itracer(sub,ik).*D.ptracer(sub,pk).*pv;
-            Vw_ip = V_ip.*state.s(sub, 1);
+            V_ip  = D.itracer(cix,ik).*D.ptracer(cix,pk).*pv;
+            Vw_ip = V_ip.*state.s(cix, 1);
             if ~opt.reverse
                 dist.sw0(:, ix)    = sats{ik}(:, pk);
             else
@@ -248,7 +248,7 @@ dist.reverse = opt.reverse;
 end
 
 % ------------------------------------------------------------------------
-function [sysmat, qp_well, tr0, pv] = setupSystemComponents(state, G, pv, W, sub, inj, prod, reverse)
+function [sysmat, qp_well, tr0, pv, cix] = setupSystemComponents(state, G, pv, W, sub, inj, prod, reverse)
 if reverse
     [inj, prod] = deal(prod, inj);
 end
