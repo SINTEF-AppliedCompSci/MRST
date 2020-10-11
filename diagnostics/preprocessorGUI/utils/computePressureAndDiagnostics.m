@@ -82,8 +82,12 @@ else
                        'use_trans', true);
 end
 
-ws = repmat(state.wellSol(1), [1, numel(W)]);
-ws(isActive) = state.wellSol;
+if numel(state.wellSol) ~= numel(W)
+    ws = repmat(state.wellSol(1), [1, numel(W)]);
+    ws(isActive) = state.wellSol;
+else
+    ws = state.wellSol;
+end
 zix = find(~isActive);
 for k = 1:numel(zix)
     ws(zix(k)).flux = zeros(numel(W(zix(k)).cells), 1);
