@@ -1,3 +1,16 @@
+%% Purpose of this script
+% This script is the accompanying software for the first and second examples
+% discussed in Chapter 14, "A Brief Introduction to Poroelasticity and
+% Simulation of Coupled Geomechanics and Flow in MRST", of the book "Advanced
+% Modelling with the MATLAB Reservoir Simulation Toolbox (MRST)". The script
+% sets up and run a simulation of Terzaghi's problem, first described by 
+% Karl Terzaghi in:
+%
+% Terzaghi K. (1925) Erdbaumechanik auf Bodenphysikalischer Grundlage, Deuticke:
+% Leipzig
+%
+
+
 %% Load necessary modules
 mrstModule add vemmech
 gravity off; % set to gravity 'on' to include gravity.  Be aware that the
@@ -167,17 +180,26 @@ bc.value = repmat(pRef, numel(top_faces), 1); %#ok
 bc.sat   = ones(numel(top_faces), 1);
 
 % computing characteristic time
-Ks = K / (1 - alpha);  % grain compressibility
-H = K / alpha;
-S_sigma = (1 / K - 1 / Ks) + poro * (1 / Kf - 1 / Ks); % specific storage 
-                                                       % coef. at constant
-                                                       % stress
-R = 1 / S_sigma;
-B = R / H;                                    % Skempton's coefficient
-eta = (1 - 2 * nu) / (2 * (1 - nu)) * alpha;  % poroelastic stress parameter
-S = S_sigma * (1 - 4 * eta * B / 3);          % uniaxial specific storage
 
-c = perm / (fluid.muW(pRef) * S); % uniaxial hydraulic diffusivity
+% The sequence of poroelastic parameters to compute to derive S (which we
+% need to compute characteristic time) would be:
+
+% Ks = K / (1 - alpha);  % grain compressibility
+% H = K / alpha;
+% S_sigma = (1 / K - 1 / Ks) + poro * (1 / Kf - 1 / Ks); % specific storage 
+%                                                        % coef. at constant
+%                                                        % stress
+% R = 1 / S_sigma;
+% B = R / H;                                    % Skempton's coefficient
+% eta = (1 - 2 * nu) / (2 * (1 - nu)) * alpha;  % poroelastic stress parameter
+% S = S_sigma * (1 - 4 * eta * B / 3);          % uniaxial specific storage
+
+% To avoid going through all the steps listed above, we use the utility
+% script 'poroParams', which lets us derive all the poroelastic parameters
+% that can be specified based on the information available:
+params = poroParams(poro, true, 'E', E, 'nu', nu, 'alpha', alpha, 'K_f', Kf);
+
+c = perm / (fluid.muW(pRef) * params.S); % uniaxial hydraulic diffusivity
 tau = c / L^2; % dimensionless time
 
 tinystep = 1e-5;
@@ -195,9 +217,13 @@ schedule = ...
 [~, states, report] = simulateScheduleAD(initState, model, schedule);
 
 % compute max pressure (undrained response pressure)
-GG = E / (2 + 2 * nu);  % shear modulus
-gamma = eta / (GG * S); % loading efficiency
-pmax = top_force * gamma;
+
+% without using poroParams(), the computation of gamma would be:
+
+% GG = E / (2 + 2 * nu);  % shear modulus
+% gamma = eta / (GG * S); % loading efficiency
+
+pmax = top_force * params.gamma;
 
 % plot development of column pressure profile over time
 z_cells = [1:G.cells.num/layers:G.cells.num]'; %#ok
@@ -228,10 +254,14 @@ set(gcf, 'position', [0, 0, 840, 640])
 w_0 = w_top(2);
 
 % theoretical initial displacement
-S_epsilon = S_sigma - alpha^2/K;
-Kvu = alpha / (gamma * S_epsilon);
 
-w_0_theoretical = top_force * L / Kvu;
+% if we didn't make use of poroParams(), the computation would be:
+
+% S_epsilon = S_sigma - alpha^2/K;
+% Kvu = alpha / (gamma * S_epsilon);
+% w_0_theoretical = top_force * L / Kvu;
+
+w_0_theoretical = top_force * L / params.K_vu;
 
 rel_err = (w_0 - w_0_theoretical)/w_0;
 

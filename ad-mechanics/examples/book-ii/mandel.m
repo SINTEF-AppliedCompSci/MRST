@@ -1,3 +1,14 @@
+%% Purpose of this script
+% This script is the accompanying software for the third example discussed in
+% Chapter 14, "A Brief Introduction to Poroelasticity and Simulation of Coupled
+% Geomechanics and Flow in MRST", of the book "Advanced Modelling with the
+% MATLAB Reservoir Simulation Toolbox (MRST)". The script sets up and run a
+% simulation of Mandel's problem, first described by Jean Mandel in:
+% 
+% Mandel, J. (1953) "Consolidation des sols (étude mathématique)"
+% Géotechnique 3, 287-299.
+%
+
 %% Include necessary modules
 mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech
 gravity off; % we do not consider gravity in this example
@@ -100,22 +111,14 @@ initState.pressure = pRef * ones(G.cells.num, 1);
 initState.xd = zeros(nnz(mech_unknowns), 1);
 initState = addDerivedQuantities(model.mechModel, initState);
 
-% compute characteristic time scale (L^2/c)
+%%compute characteristic time scale (L^2/c)
 
-K = E / (3 * (1 - 2 * nu));                  % bulk modulus
-eta = (1 - 2 * nu) / (2 * (1 - nu)) * alpha; % poroelastic stress parameter
-Ks = K / (1 - alpha);                        % grain compressibility
-Kf = 1/cW;                                   % fluid incompressibility
-S_sigma = (1 / K - 1 / Ks) + poro * (1 / Kf - 1 / Ks); % specific storage 
-                                                       % coef. at constant
-                                                       % stress
-R = 1 / S_sigma; 
-H = K / alpha;
-B = R / H;                           % Skempton's coefficient
-S = S_sigma * (1 - 4 * eta * B / 3); % uniaxial specific storage
-c = perm / (muW * S);                % uniaxial hydraulic diffusivity
+% we need to compute S (uniaxial specific storage).  One quick way to 
+% do this is to call 'poroParams' with the parameters we already have.
+params = poroParams(poro, true, 'E', E, 'alpha', alpha, 'nu', nu, 'K_f', 1/cW);
 
-Tchar = L^2 / c;                 % charateristic time
+c = perm / (muW * params.S);
+Tchar = L^2 / c; % charateristic time
 
 %% Run simulation
 
