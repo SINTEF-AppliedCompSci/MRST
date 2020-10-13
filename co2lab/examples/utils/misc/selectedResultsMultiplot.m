@@ -3,7 +3,7 @@ function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
     % background variables can be: h|h_max|pressure|rs|sGmax|s|smax|totalCO2
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -29,7 +29,7 @@ function [s, h, hmax]  = normalizeValuesVE(g_top, sol, fluid, varargin)
 %             grid. Contains g_top.cells.num elements.
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

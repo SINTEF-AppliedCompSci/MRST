@@ -3,7 +3,7 @@ function [vX, bX, mobX, rhoX, upc, dpX] = ...
    % Function to compute phase fluxes, volume factors, mobilities,
    % densities, upstream indices and pressure gradients
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

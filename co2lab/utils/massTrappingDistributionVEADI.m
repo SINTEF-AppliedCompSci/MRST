@@ -39,7 +39,7 @@ function [masses, masses_0] = massTrappingDistributionVEADI(Gt, p, sG, sW, h, h_
 %   masses_0 (optional) - masses in terms of one value per grid cell of Gt
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -4,7 +4,7 @@ function min_rs= minRs(p,sG,sGmax,f, G)
 % the column that contains CO2 (whether free-flowing or residual) is assumed
 % to be saturated with CO2.
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
