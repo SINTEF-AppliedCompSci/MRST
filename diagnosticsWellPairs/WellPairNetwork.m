@@ -49,8 +49,15 @@ classdef WellPairNetwork
             
             ne = size(edges,1);
     
-            DD.Graph = graph(edges(:,1),edges(:,2),[]);   
-            [~, DD.I_Graph_index] = sortrows(edges); % to be used for ordering the wellpair conections          
+            DD.Graph = graph(edges(:,1),edges(:,2),[]);
+            DD.Graph.Nodes.Indx =(1:numel(DD.schedule.control.W))'; % Adding a Well Index
+            DD.Graph.Nodes.Type =0*(1:12)'+1; %1:= Well node,  Imaginary node := 0
+            for iw = 1 : numel(DD.schedule.control.W)
+                DD.Graph.Nodes.Well_Name{iw} = DD.schedule.control.W(iw).name;
+            end
+            
+            [~, DD.I_Graph_index] = sortrows(edges); % to be used for ordering the wellpair conections 
+            
         end
         
         
