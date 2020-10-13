@@ -32,8 +32,8 @@ baseExample = MRSTExample(baseProblemName, ...
 
 %% Run the base problem if we wish
 % Simulate and plot it for illustration:
-simulateExample = true;
-plotSimulation = true;
+simulateExample = false;
+plotSimulation = false;
 rerunBaseProblemFromScratch = true;
 
 problem = baseExample.getPackedSimulationProblem();
@@ -65,9 +65,43 @@ if simulateExample
     end
 end
                       
+%% Define samples that give different rock properties for each connection
 
-           
+rockData = cell(ensembleSize, 1);
+for i = 1:ensembleSize
+    tmpPoro = zeros(1,4);
+    for j = 1:4
+        while tmpPoro(j) > 0.4 || tmpPoro(j) < 0.2
+            tmpPoro(j) = 0.3 + randn(1)*0.1;
+        end
+    end
+    rockData{i}.poro = tmpPoro;
+    rockData{i}.perm = rockData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-rockData{i}.poro).^2);
+end
 
-                      
+%% Create sample object
+rockSamples = NetworkRockSamples('data', rockData, ...
+                                 'connectionIndices', baseExample.options.connectionIndices);
+
+%% Create QoI
+qoi = WellQoI(...
+    'wellNames', {'P1', 'P2'}, ...
+    'fldname', {'qOs', 'qWs'}, ...
+    'cumulative', false, ...
+    'numTimesteps', []);
+
+
+%% Create the ensemble
+ensemble = MRSTEnsemble(baseExample, rockSamples, qoi, ...
+    'simulationType', 'parallel', ...
+    'maxWorkers', 8, ...
+    'deleteOldResults', true, ...
+    'verbose', true);
+
+%% Run ensemble
+ensemble.simulateAllEnsembleMembers();
+
+%% Plot results
+ensemble.qoi.plotEnsemble(ensemble);
 
                       
