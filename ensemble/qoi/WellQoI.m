@@ -35,7 +35,7 @@ classdef WellQoI < BaseQoI
                 for wi = 1:numel(qoi.wellNames)
                     found = false;
                     for j = 1:numWellsTotal
-                        if strcmp(qoi.wellNames{wi}, problem.SimulatorSetup.schedule.control.W(j).name);
+                        if strcmp(qoi.wellNames{wi}, problem.SimulatorSetup.schedule.control.W(j).name)
                             qoi.wellIndices(wi) = j;
                             found = true;
                             break

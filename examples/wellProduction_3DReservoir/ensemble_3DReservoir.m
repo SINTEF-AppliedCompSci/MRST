@@ -43,13 +43,13 @@ end
 
 %% Select and populate samples for stochastic configurations class
 
-configData = cell(ensembleSize, 1);
+rockData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
-    configData{i}.poro = gaussianField(baseExample.model.G.cartDims, [0.2 0.4]); 
-    configData{i}.perm = configData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-configData{i}.poro).^2);
+    rockData{i}.poro = gaussianField(baseExample.model.G.cartDims, [0.2 0.4]); 
+    rockData{i}.perm = rockData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-rockData{i}.poro).^2);
 end
 
-rockSamples = RockSamples('data', configData);
+rockSamples = RockSamples('data', rockData);
 
 %% Select quantity of interest class
 
@@ -92,6 +92,33 @@ wellSamples = WellSamples('data', wellSampleData);
 
 %% Define new ensemble
 ensemble = MRSTEnsemble(baseExample, wellSamples, qoi, ...
+    ... %'directory', uniqueDirectory, ...
+    'simulationType', 'parallel', ...
+    'maxWorkers', 8, ...
+    'deleteOldResults', true, ...
+    'verbose', true);
+
+%% Simulate and plot
+ensemble.simulateAllEnsembleMembers();
+
+%%
+ensemble.qoi.plotEnsemble(ensemble);
+
+%% Create an ensemble that combines both sampling strategies
+% ---------------------
+
+% We first organize our precomputed samples in a struct that is supported
+% by the combined sample class
+comboData = cell(ensembleSize, 1);
+for i = 1:ensembleSize
+    comboData{i}.rock = rockData{i};
+    comboData{i}.well = wellSampleData{i};
+end
+
+comboSamples = WellRockSamples('data', comboData);
+
+%% Define new ensemble
+ensemble = MRSTEnsemble(baseExample, comboSamples, qoi, ...
     ... %'directory', uniqueDirectory, ...
     'simulationType', 'parallel', ...
     'maxWorkers', 8, ...
