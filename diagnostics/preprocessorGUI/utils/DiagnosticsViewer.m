@@ -767,7 +767,11 @@ classdef DiagnosticsViewer < handle
             end
             
             % Set colorbar limits
-            clims = [min(cellfun(@min,cval)) max(cellfun(@max,cval))];
+            if size(cval{1},2)==3
+                clims = [0 1];
+            else
+                clims = [min(cellfun(@min,cval)) max(cellfun(@max,cval))];
+            end
             
             if s3.psel.logSwitch
                 isLog = true;
