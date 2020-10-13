@@ -566,9 +566,15 @@ classdef DiagnosticsViewer < handle
                     if isempty(s3.modsel.ix)
                         axis(ax,'off'); resetValue = true;
                     else
-                        d.showSweep(ax, s3.modsel, 1, s3.wsel);
+                        d.showFracRecovery(ax, s3.modsel, 1, s3.wsel);
                     end
                 case 4
+                    if isempty(s3.modsel.ix)
+                        axis(ax,'off'); resetValue = true;
+                    else
+                        d.showSweep(ax, s3.modsel, 1, s3.wsel);
+                    end
+                case 5
                     if isempty(s3.modsel.ix)
                         axis(ax,'off'); resetValue = true;
                     else
@@ -1153,6 +1159,84 @@ classdef DiagnosticsViewer < handle
             end
             ax.XLabel.String = '\phi';
             ax.YLabel.String = 'F';
+        end
+        % -----------------------------------------------------------------
+        function showFracRecovery(d, ax, modsel, tsel, wsel)
+            if isempty(modsel.ix), return, end
+            m = getDynamicMeasures(d, modsel, wsel);
+            
+            singleInj  = numel(wsel.injectorIx)==1;
+            singleProd = numel(wsel.producerIx)==1;
+            singlePlot = singleInj && singleProd;
+            lw = 0.5+singlePlot*1.5; np=0;
+            nM = numel(modsel.ix);
+            if nM==1
+                if singleInj
+                    colM = d.prodColors(wsel.producerIx,:);
+                elseif singleProd
+                    colM = d.injColors(wsel.injectorIx,:);
+                else
+                    colM = get(gca,'ColorOrder');
+                end
+                colM = [1 0 0; colM]; lw = 1;
+            elseif nM < 8
+                colM = get(gca,'ColorOrder');
+            else
+                colM = colorcube(nM+1);
+            end
+            hold(ax,'on');
+            for n=1:nM
+                % Plot fractional recovery for the whole regions
+                col = colM(n,:);
+                if ~singlePlot
+                    plot(ax,m.tDt(:,n),1-m.Ft(:,n), ...
+                        'LineWidth',2,'Color',col,'DisplayName',  modsel.modelNames{modsel.ix(n)});
+                end
+                if ~m.computePairs, continue; end
+                
+                % Plot fractional recovery for individual wall pairs. For multiple time
+                % steps, these lines are plotted using a lighter color. For a
+                % single time step, we compute using different colors
+                hold(ax,'on');
+                np = size(m.tD,2);
+                if nM>1
+                    if ~singlePlot
+                        col = repmat(.5*(col + [.6 .6 .6]), np, 1);
+                    end
+                elseif np<size(colM,1)
+                    col = colM(2:end,:);
+                else
+                    col = colorcube(np+1);
+                end
+                for i=1:np
+                    plot(ax,m.tD(:,i,n),1-m.F(:,i,n),'Color',col(i,:), 'LineWidth',lw, 'DisplayName', m.names{i});
+                end
+            end
+            if ~isempty(m.wellName)
+                title(ax,['Well: ' m.wellName]);
+            end
+            if singlePlot
+                title(ax,['Well-pair: ' m.wellName ',' m.names{:}]);
+                lgn = legend(ax,  modsel.modelNames{modsel.ix});
+                set(lgn,'FontSize',8);
+            elseif nM<2
+                if np == 0
+                    lgn = legend(ax,  modsel.modelNames{modsel.ix});
+                else
+                    lgn = legend(ax);
+                end
+                set(lgn,'FontSize',8);
+                
+            else
+                hax = get(ax,'Children');
+                lgn = legend(hax(np+1:np+1:end), ...
+                    modsel.modelNames{modsel.ix});
+                set(lgn,'FontSize',8);
+            end
+            hold(ax,'off'); axis(ax,'tight');
+            set(ax,'XLim',[0 min(5,max(m.tDt(:)))]);
+            ax.XLabel.String = 't_D';
+            ax.YLabel.String = '1-F';
         end
         % -----------------------------------------------------------------
         function showSweep(d, ax, modsel, tsel, wsel)
