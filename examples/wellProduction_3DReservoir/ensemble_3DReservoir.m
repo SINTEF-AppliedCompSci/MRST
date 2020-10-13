@@ -3,7 +3,7 @@
 % 3D reservoirs with two phases (oil and water).
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble
+    example-suite incomp ensemble 
 
 mrstVerbose off
 
