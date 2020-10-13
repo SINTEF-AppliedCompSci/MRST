@@ -161,7 +161,7 @@ classdef DiagnosticsViewer < handle
             selector3D.fsel.Max = d.Data{m}.static(1).limits(2);
             
             % ------ Selector for heterogeneity measures ------------------
-            d.Measures = {{'none', 'F-Phi plot', ...
+            d.Measures = {{'none', 'F-Phi plot', 'Fractional recovery', ...
                 'Sweep efficiency', 'Lorenz coefficient'}};
             selector2D.msel = DynamicMeasureSelector('props', d.Measures, itemOpts{:});
             
@@ -186,9 +186,10 @@ classdef DiagnosticsViewer < handle
             % ------ Selector for fluid distribution ----------------------
             a = struct('name', {{d.Data{1}.dynamic.name}});
             b = struct('name',{a.name(2:end)});
-            fdprops = cellfun(@(x) strcat(x(2:end),' injector distribution'),b.name, 'UniformOutput', false);
-            d.fdprops = [{'none'}, {'All phases'}, fdprops];
-            
+            fdprops = cellfun(@(x) strcat({'Producer: '}, x(2:end),' volumes'),b.name, 'UniformOutput', false);
+            d.fdprops = [{'none'}, {'Producer: all phases'}, horzcat(fdprops{:})];
+            fdprops = cellfun(@(x) strcat({'Injector: '}, x(2:end),' volumes'),b.name, 'UniformOutput', false);
+            d.fdprops = [d.fdprops, {'Injector: all phases'}, horzcat(fdprops{:})];
             selector2D.fdsel = TracerSelector('Title','Fluid Distributions','props',d.fdprops,itemOpts{:});
             
             % ------ Create menu(s) ---------------------------------------
@@ -818,34 +819,47 @@ classdef DiagnosticsViewer < handle
                 [ax, ix] = deal(d.Axes2DR, s2.fdsel.rightIx);
             end
             cla(ax, 'reset');
+            d.messageBar.String = "";
             
+            % If first menu option ('none'): clear axis and return
+            if ix==1
+                axis(ax, 'off');
+                return;
+            end
+            % If more than one model selected, clear axis and return
             if numel(s3.modsel.ix)>1
                 d.messageBar.String = strcat("Multiple models selected. Please select only one model.");
                 return
-            else
-                d.messageBar.String = "";
             end
             
-            if numel(s3.wsel.producerIx)<1
-                d.messageBar.String = strcat("No producer selected. Please select one producer.");
+            if ix<5
+                wellIx = s3.wsel.producerIx;
+                wtype = 'producer';
+            else
+                wellIx = s3.wsel.injectorIx;
+                wtype  = 'injector';
+            end
+            
+            if numel(wellIx)<1
+                d.messageBar.String = ['No ',wtype,' selected. Please select one ',wtype,'.'];
                 return
-            elseif numel(s3.wsel.producerIx)>1
-                d.messageBar.String = strcat("Multiple producers selected. Please select one producer.");
+            elseif numel(wellIx)>1
+                d.messageBar.String = ['Multiple ',wtype,'s selected. Please select one ',wtype,'.'];
                 return
             else
                 d.messageBar.String = "";
             end
             switch ix
-                case 1
-                    axis(ax, 'off')
-                    return
-                case 2
+                case {2,5}
                     % Plot fluid  arrivals
                     hold(ax,'off');
-                    d.PlotTOFArrival(ax, s3.modsel, 1, s3.wsel, s2.fdsel.extendTime);
+                    d.PlotTOFArrival(ax, s3.modsel, 1, wellIx, wtype, s2.fdsel.extendTime);
+                case {3,4}
+                    d.PlotPhaseTOFArrivals(ax, s3.modsel, 1, s3.wsel, wtype, ix-2, s2.fdsel.extendTime);
+                case {6,7}
+                    d.PlotPhaseTOFArrivals(ax, s3.modsel, 1, s3.wsel, wtype, ix-5, s2.fdsel.extendTime);
                 otherwise
-                    hold(ax,'off');
-                    d.PlotPhaseTOFArrivals(ax, s3.modsel, 1, s3.wsel, ix-2, s2.fdsel.extendTime);
+                    error('fluidDistributionCallback: something is wrong');
             end
             
         end
@@ -1281,17 +1295,15 @@ classdef DiagnosticsViewer < handle
             
         end
         % -----------------------------------------------------------------
-        function PlotTOFArrival(d, ax, modsel, tsel, wsel, extendTime)
+        function PlotTOFArrival(d, ax, modsel, tsel, wellIx, wellType, extendTime)
             
             m = modsel.ix;
-            W = d.Data{m}.wells;
             PORVIx = arrayfun(@(x) strcmp(x.name,'PORV'),d.Data{m}.static);
             pv = d.Data{m}.static(PORVIx).values;
-            prodIx = wsel.producerIx;
             D = d.Data{m}.diagnostics.D;
             state = d.Data{m}.states;
             
-            [data,tof] = getAllPhaseTOFDistributions(state, W, pv, prodIx, D);
+            [data,tof] = getAllPhaseTOFDistributions(state, pv, wellIx, wellType, D);
             h = area(ax, tof, data);
 
             phcol = {[.4 .4 1],[.3 0 0], [.5 1 .5]};
@@ -1303,42 +1315,57 @@ classdef DiagnosticsViewer < handle
             hold(ax,'off'); axis(ax,'tight');
             ax.XLabel.String = 'TOF distance in years';
             
-            phnamesFull = d.fdprops(3:end);
-            phnames = cellfun(@(x) x(1:3),phnamesFull, 'UniformOutput',false);
-            
-            legend(ax, phnames, 'Location', 'Northwest');
+            phnames = {d.Data{1}.dynamic.name};
+            legend(ax, phnames(2:end), 'Location', 'Northwest');
             set(ax, 'XLim', [0, extendTime]);
         end
         
         % -----------------------------------------------------------------
-        function PlotPhaseTOFArrivals(d, ax, modsel, tsel, wsel, phase, extendTime)
-            m = modsel.ix;
-            W = d.Data{m}.wells;
+        function PlotPhaseTOFArrivals(d, ax, modsel, tsel, wsel, wtype, phase, extendTime)
+            m      = modsel.ix;
             PORVIx = arrayfun(@(x) strcmp(x.name,'PORV'),d.Data{m}.static);
-            pv = d.Data{m}.static(PORVIx).values;
-            prodIx = wsel.producerIx;
-            injIx = wsel.injectorIx;
-            D = d.Data{m}.diagnostics.D;
-            state = d.Data{m}.states;
-            
-            if isempty(injIx)
-                % Autodetect wpairs
-                com = wsel.communicationMatrix;
+            pv     = d.Data{m}.static(PORVIx).values;
+            D      = d.Data{m}.diagnostics.D;
+            state  = d.Data{m}.states;
+            switch wtype
+                case 'producer'
+                    wellIx1   = wsel.producerIx;
+                    wellIx2   = wsel.injectorIx;
+                    com       = wsel.communicationMatrix;
+                    colors    = d.injColors;
+                    wpNames   = d.WellPlot.injectors;
+                    influence = D.itracer;
+               case 'injector'
+                    wellIx1   = wsel.injectorIx;
+                    wellIx2   = wsel.producerIx;
+                    com       = wsel.communicationMatrix';
+                    colors    = d.prodColors;
+                    wpNames   = d.WellPlot.producers;
+                    influence = D.ptracer;
+                otherwise
+                    error('Incorrect well type');
+            end
+                      
+            % If communicating wells are not selected: autodetect well-pairs
+            if isempty(wellIx2)
                 tot = sum(com(:));
                 n   = max(size(com));
                 com = com > (wsel.communicationLimit/100)*tot/n;
-                ix = logical(sum(com(:,prodIx), 2));
-                injIx = find(ix).';
+                ix = logical(sum(com(:,wellIx1), 2));
+                wellIx2 = find(ix).';
             end
             
-            [data,tof,tof_ix] = getAllPhaseTOFDistributions(state, W, pv, prodIx, D);
-            
-            [sphase,~] = getIndividualPhaseTOFDistributions(data,tof,tof_ix,injIx,D,phase);
+            % Compute phase distributions of individual phases
+            [data,tof,tof_ix] = getAllPhaseTOFDistributions(state, pv, wellIx1, wtype, D);
+            itr = influence(tof_ix, :);
+            itr = [itr 1-sum(itr,2)];
+            sphase = bsxfun(@times, data(:, phase), itr(:,wellIx2));
+            sphase = cumsum(sphase);
             
             % Add 0 to start to make plot look better
             h = area(ax, [0; tof], [zeros(1,size(sphase,2)); sphase]);
             for ph = 1:numel(h)
-                set(h(ph), 'FaceColor', d.injColors(injIx(ph),:));
+                set(h(ph), 'FaceColor', colors(wellIx2(ph),:));
             end
             hold(ax,'off'); axis(ax,'tight');
             ax.XLabel.String = 'TOF distance in years';
@@ -1351,7 +1378,7 @@ classdef DiagnosticsViewer < handle
             if ymax > 0
                 set(ax, 'YLim', [0, ymax+ymax.*0.01]);
             end
-            wnames = arrayfun(@(x) x.label.String, d.WellPlot.injectors(injIx), ...
+            wnames = arrayfun(@(x) x.label.String, wpNames(wellIx2), ...
                 'UniformOutput',false);
             
             legend(ax, wnames, 'Location', 'Northwest');
