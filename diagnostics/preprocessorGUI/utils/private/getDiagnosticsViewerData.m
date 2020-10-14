@@ -1,4 +1,4 @@
-function Data = getDiagnosticsViewerData(models,wells,varargin)
+function Data = getDiagnosticsViewerData(models,wells,initStates,varargin)
 %Undocumented Utility Function
 
 %{
@@ -29,12 +29,13 @@ opt = struct('wellSolFields', [],...
      'G',     []) ;
 opt = merge_options(opt, varargin{:});
 
-[state0, state, D, WP, wellCommunication] = deal([]);
+[state, D, WP, wellCommunication] = deal([]);
 Data     = cell(1,numel(models));
 fldnames = {'PORO', 'PERMX', 'PERMY', 'PERMZ', 'DEPTH', 'PORV'};
 for k = 1:numel(models)
     model = models{k};
-
+    state0 = initStates{k};
+    
     if ~isempty(opt.state0),  state0 = opt.state0{k}; end
     if ~isempty(opt.D),       D      = opt.D{k};      end
     if ~isempty(opt.state),   state  = opt.state{k};  end  

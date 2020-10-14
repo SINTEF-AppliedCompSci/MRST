@@ -40,7 +40,7 @@ classdef DiagnosticsViewer < handle
         function d = DiagnosticsViewer(arg1,arg2,varargin)
            
             % ------ Extract models ---------------------------------------
-            [models,wells] = extractInput(arg1, arg2);
+            [models,wells,states0] = extractInput(arg1, arg2);
             
             % ------ Load modules -----------------------------------------
             mrstModule add incomp mrst-gui
@@ -112,7 +112,7 @@ classdef DiagnosticsViewer < handle
             % ------ Run diagnostics and get data -------------------------
             fprintf(1,'---------------------------------------\n') 
             fprintf(1,'Starting to compute diagnostics\n');
-            d.Data = getDiagnosticsViewerData(models,wells,extraOpt{:});
+            d.Data = getDiagnosticsViewerData(models,wells,states0,extraOpt{:});
             d.maxTOF = opt.maxTOF;
             d.injColors = d.Data{1}.injColors;
             d.prodColors = d.Data{1}.prodColors;
@@ -1632,22 +1632,27 @@ classdef DiagnosticsViewer < handle
 end % --- END POSTPROCESSDIAGNOSICS ---------------------------------------
 
 %% -- UTILITY FUNCTIONS ---------------------------------------------------
-function [models,wells] = extractInput(arg1, arg2)
+function [models,wells,states0] = extractInput(arg1, arg2)
 if iscell(arg1) && iscell(arg2)
-    models = arg1;
-    wells  = arg2;
+    models  = arg1;
+    wells   = arg2;
+    states0 = cell(size(arg1));
 elseif isa(arg1,'ModelEnsemble') && isnumeric(arg2)
-  [models, wells] = deal(cell(1,numel(arg2)));
-  fprintf(1,'Starting to extract ensemble members\n');
-  for k = 1:numel(arg2)
-    fprintf(1,'  member no %d ... ', arg2(k));
-    tmp = arg1.setupFn(arg2(k));
-    [models{k}, wells{k}] = deal(tmp.model, tmp.W);
-    fprintf(1,'done\n');
-  end
-  fprintf(1,'Extracted %d ensemble members\n', numel(arg2));
+    [models, wells, states0] = deal(cell(1,numel(arg2)));
+    fprintf(1,'Starting to extract ensemble members\n');
+    for k = 1:numel(arg2)
+        fprintf(1,'  member no %d ... ', arg2(k));
+        tmp       = arg1.setupFn(arg2(k));
+        models{k} = tmp.model;
+        wells{k}  = tmp.W;
+        if isfield(tmp, 'state0')
+            states0{k} = tmp.state0;
+        end
+        fprintf(1,'done\n');
+    end
+    fprintf(1,'Extracted %d ensemble members\n', numel(arg2));
 else
-    error('Incorrect input specification of model ensemble'); 
+    error('Incorrect input specification of model ensemble');
 end
 end
 % -----------------------------------------------------------------
