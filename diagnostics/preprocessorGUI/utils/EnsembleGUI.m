@@ -695,15 +695,19 @@ classdef EnsembleGUI < handle
         function launchDiagnosticsViewerForSelected(d)
             nSel = nnz(d.memberSelection);
             if any(nSel)
+                fprintf(1,'Starting to extract ensemble members\n');
                 [models, wells, state0] = deal(cell(1, nSel));
                 ii = find(d.memberSelection);
                 for k = 1:nSel
+                    fprintf(1,'  member no %d ... ', ii(k));
                     tmp = d.m.setupFn(ii(k));
                     [models{k}, wells{k}] = deal(tmp.model, tmp.W);
                     if isfield(tmp, 'state0')
                         state0{k} = tmp.state0;
                     end
+                    fprintf(1,'done\n');
                 end
+                fprintf(1,'Extracted %d ensemble members\n', nSel);
                 d.diagnosticsViewerHandle = DiagnosticsViewer(models, wells, 'modelNames',{d.names{ii}}, 'state0', state0);
             end
         end
