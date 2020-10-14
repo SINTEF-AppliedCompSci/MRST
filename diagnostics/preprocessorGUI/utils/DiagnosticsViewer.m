@@ -11,8 +11,6 @@ classdef DiagnosticsViewer < handle
         infoTextBox
         injColors
         prodColors
-        G
-        Gs
         WellPlot
         Data
         Menu
@@ -483,7 +481,7 @@ classdef DiagnosticsViewer < handle
                     if ~isempty(d.currentInteractionRegion)
                         d.Patch.cells = d.currentInteractionRegion;
                     else
-                        d.Patch.cells = 1:d.G.cells.num;
+                        d.Patch.cells = 1:d.Data{1}.G.cells.num;
                     end
                     return
                 end
