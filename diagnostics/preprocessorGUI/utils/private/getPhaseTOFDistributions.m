@@ -74,7 +74,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     data = cumsum(data);
     
     % use approx 50 points in plot
-    di   = ceil(numel(tof)/50);
+    di   = ceil(numel(tof)/250);
     tof    = tof(1:di:end);
     tof_ix    = tof_ix(1:di:end);
     data = data(1:di:end, :);

@@ -1452,7 +1452,7 @@ classdef DiagnosticsViewer < handle
             set(ax, 'XLim', [0, min(ax.XLim(2),extendTime)]);
             ymax = 0;
             for i  = 1:numel(h)
-                ymax = ymax + h(i).YData(end);
+                ymax = ymax + interp1(h(i).XData, h(i).YData, ax.XLim(2));
             end
             if ymax > 0
                 set(ax, 'YLim', [0, ymax+ymax.*0.01]);
