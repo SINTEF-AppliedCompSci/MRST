@@ -45,21 +45,21 @@ switch prop
             d = extractTOFForward(d, ms, injIx, prodIx);
         end
         vals = d.currentDiagnostics(1).values;
-        lims = [0 d.maxTOF/year];
+        lims = [0 min(max(vals(:)), d.maxTOF/year)];
         
     case d.currentDiagnostics(2).name % TOF backward
         if isempty(d.currentDiagnostics(2).values)
             d = extractTOFBackward(d, ms, injIx, prodIx);
         end
         vals = d.currentDiagnostics(2).values;
-        lims = [0 d.maxTOF/year];
+        lims = [0 min(max(vals(:)), d.maxTOF/year)];
         
     case d.currentDiagnostics(3).name % Residence time
         if isempty(d.currentDiagnostics(3).values)
             d = extractResidenceTime(d, ms, injIx, prodIx);
         end
         vals = d.currentDiagnostics(3).values;
-        lims = [0 2*d.maxTOF/year];
+        lims = [0 min(max(vals(:)),2*d.maxTOF/year)];
         
     case d.currentDiagnostics(4).name % Tracer forward
         if isempty(d.currentDiagnostics(4).values)
