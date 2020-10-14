@@ -36,9 +36,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     gravity reset on
     mrstVerbose on
     useMex = true;
+    [deck, output] = getDeckOPMData('norne', 'NORNE_ATW2013');    
     opm = mrstPath('opm-tests');
     assert(~isempty(opm), 'You must register https://github.com/opm/opm-tests as a module!');
-    [deck, output] = getDeckOPMData('norne', 'NORNE_ATW2013');
     % Build model from EGRID/INIT files
     egrid = readEclipseOutputFileUnFmt([output.opm.location, '.EGRID']);
     init  = readEclipseOutputFileUnFmt([output.opm.location, '.INIT']);
