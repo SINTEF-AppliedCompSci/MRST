@@ -1387,7 +1387,7 @@ classdef DiagnosticsViewer < handle
             D = d.Data{m}.diagnostics.D;
             state = d.Data{m}.states;
             
-            [data,tof] = getAllPhaseTOFDistributions(state, pv, wellIx, wellType, D);
+            [data,tof] = getPhaseTOFDistributions(state, pv, wellIx, wellType, [], [], D);
             h = area(ax, tof, data);
 
             phcol = {[.4 .4 1],[.3 0 0], [.5 1 .5]};
@@ -1401,7 +1401,7 @@ classdef DiagnosticsViewer < handle
             
             phnames = {d.Data{1}.dynamic.name};
             legend(ax, phnames(2:end), 'Location', 'Northwest');
-            set(ax, 'XLim', [0, extendTime]);
+            set(ax, 'XLim', [0, min(ax.XLim(2),extendTime)]);
         end
         
         % -----------------------------------------------------------------
@@ -1418,14 +1418,12 @@ classdef DiagnosticsViewer < handle
                     com       = wsel.communicationMatrix;
                     colors    = d.injColors;
                     wpNames   = d.WellPlot.injectors;
-                    influence = D.itracer;
-               case 'injector'
+                case 'injector'
                     wellIx1   = wsel.injectorIx;
                     wellIx2   = wsel.producerIx;
                     com       = wsel.communicationMatrix';
                     colors    = d.prodColors;
                     wpNames   = d.WellPlot.producers;
-                    influence = D.ptracer;
                 otherwise
                     error('Incorrect well type');
             end
@@ -1440,11 +1438,8 @@ classdef DiagnosticsViewer < handle
             end
             
             % Compute phase distributions of individual phases
-            [data,tof,tof_ix] = getAllPhaseTOFDistributions(state, pv, wellIx1, wtype, D);
-            itr = influence(tof_ix, :);
-            itr = [itr 1-sum(itr,2)];
-            sphase = bsxfun(@times, data(:, phase), itr(:,wellIx2));
-            sphase = cumsum(sphase);
+            [sphase,tof] = ...
+                getPhaseTOFDistributions(state, pv, wellIx1, wtype, phase, wellIx2, D);
             
             % Add 0 to start to make plot look better
             h = area(ax, [0; tof], [zeros(1,size(sphase,2)); sphase]);
@@ -1454,7 +1449,7 @@ classdef DiagnosticsViewer < handle
             hold(ax,'off'); axis(ax,'tight');
             ax.XLabel.String = 'TOF distance in years';
             ax.YLabel.String = 'm^3';
-            set(ax, 'XLim', [0, extendTime]);
+            set(ax, 'XLim', [0, min(ax.XLim(2),extendTime)]);
             ymax = 0;
             for i  = 1:numel(h)
                 ymax = ymax + h(i).YData(end);
