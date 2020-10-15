@@ -20,16 +20,20 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('includeOverlap', false, ...
-                 'mapCellFields' , true , ...
-                 'mapFaceFields' , false, ...
-                 'mapWellSol'    , true );
+    opt = struct('includeOverlap' , false, ...
+                 'includeExternal', false, ...
+                 'mapCellFields'  , true , ...
+                 'mapFaceFields'  , false, ...
+                 'mapWellSol'     , true );
     opt = merge_options(opt, varargin{:});
     if opt.mapCellFields
         % Map cell fields
         glob_cells = mappings.cells.internal;
         if opt.includeOverlap
             glob_cells = glob_cells | mappings.cells.overlap;
+        end
+        if opt.includeExternal
+            glob_cells = glob_cells | mappings.cells.external;
         end
         loc_cells = glob_cells(mappings.cells.keep);
         fields = union(mappings.cells.fields, {'dpRel', 'dpAbs'});
@@ -40,6 +44,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         glob_faces = mappings.faces.internal;
         if opt.includeOverlap
             glob_faces = glob_faces | mappings.faces.overlap;
+        end
+        if opt.includeExternal
+            glob_faces = glob_faces | mappings.faces.external;
         end
         loc_faces = glob_faces(mappings.faces.keep);
         fields = mappings.faces.fields;
