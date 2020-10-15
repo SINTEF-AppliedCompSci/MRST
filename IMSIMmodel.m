@@ -18,8 +18,8 @@ classdef IMSIMmodel
             pv= model.operators.pv;
             
             number_of_vertical_faces = (nc-1)*size(Graph.Edges.EndNodes,1); %Internal faces
-            T(number_of_vertical_faces :end) = 0;
-            Graph.Nodes.Face_Indx =0*(1:13)';%TODO: check this
+            T(number_of_vertical_faces+1 :end) = 0;
+            Graph.Nodes.Face_Indx =0*(1:12)';%TODO: check this
 
 
             nf =  nc -1;
