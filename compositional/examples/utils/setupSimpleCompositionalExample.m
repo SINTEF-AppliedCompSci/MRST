@@ -69,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     T = 150 + 273.15;
     p = 75*barsa;
 
-    state0 = initCompositionalState(G, p, T, 1, z0, eos);
+    state0 = initCompositionalState(G, p, T, [1, 0], z0, eos);
     if nargout > 3
         ref = load(fullfile(pth, 'comparison.mat'));
     end
