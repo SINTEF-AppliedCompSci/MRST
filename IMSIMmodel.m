@@ -19,7 +19,7 @@ classdef IMSIMmodel
             
             number_of_vertical_faces = (nc-1)*size(Graph.Edges.EndNodes,1); %Internal faces
             T(number_of_vertical_faces+1 :end) = 0;
-            Graph.Nodes.Face_Indx =0*(1:12)';%TODO: check this
+            Graph.Nodes.Face_Indx =0*(1:numnodes(Graph))';%TODO: check this, include general counts for nodes
 
 
             nf =  nc -1;
