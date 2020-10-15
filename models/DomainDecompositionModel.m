@@ -121,12 +121,7 @@ classdef DomainDecompositionModel < WrapperModel
             if iteration == 1
                 state.iterations = zeros(model.G.cells.num,1);
             end
-            % Get flux from pressure state if it exists
-            if isfield(state, 'statePressure') ...
-                && size(state.statePressure.flux,1) == model.G.faces.num ...
-                && isa(model.parentModel, 'TransportModel')
-                assert(all(all(state.flux == state.statePressure.flux)));
-            end
+            % Remove fractional derivatives if they exist
             if isfield(state, 'FractionalDerivatives')
                 state = rmfield(state, 'FractionalDerivatives');
             end
@@ -400,7 +395,8 @@ classdef DomainDecompositionModel < WrapperModel
             % Get partition and update subdomain setups
             p0 = model.partition.value;
             model.partition = model.partition.get(model, varargin{:});
-            if isempty(p0) || any(p0 ~= model.partition.value)
+            if isempty(p0) || numel(p0) ~= numel(model.partition.value) ...
+                           || any(p0 ~= model.partition.value)
                 if ~model.parallel
                     model = model.updateSubdomainSetupSerial();
                 else
