@@ -5,6 +5,7 @@ classdef DomainDecompositionModel < WrapperModel
         parallel = false      % Solve subdomains concurrently (additive only)
         partition             % Partition defining subdomains (instance of class Partition)
         subdomainSetup        % Cell array of subdomain setups
+        submodelFn            % Function handle to set submodel. Empty will default to using SubdomainModel
         % Subdomain properties
         overlap         = 0  % Overlap in cells into neighboring subdomains
         verboseSubmodel = 0  % Verbosity of subdomain model solves:
@@ -315,9 +316,13 @@ classdef DomainDecompositionModel < WrapperModel
             % Make submodel
             verbose  = model.verboseSubmodel; % Subdomain solve verbosity
             cells    = p == i;                % Cell subset
-            submodel = SubdomainModel(model.parentModel, cells, ...
-                                      'overlap', model.overlap, ...
-                                      'verbose', verbose == 2);
+            if isempty(model.submodelFn)
+                submodel = SubdomainModel(model.parentModel, cells, ...
+                                          'overlap', model.overlap, ...
+                                          'verbose', verbose == 2);
+            else
+                submodel = model.submodelFn(model, cells);
+            end
             if isa(submodel.parentModel, 'SubdomainModel')
                 % Update mapping externals if we parent is also a submodel
                 pmappings = submodel.parentModel.mappings;
