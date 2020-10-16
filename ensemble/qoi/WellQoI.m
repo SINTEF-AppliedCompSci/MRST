@@ -135,6 +135,14 @@ classdef WellQoI < BaseQoI
             
         end
         
+        function n = norm(qoi, u)
+            if ~qoi.total
+                n = cellfun(@(u) sum(u.*qoi.timesteps), u);
+            else
+                n = norm@BaseQoI(qoi, u);
+            end
+        end
+        
     end
 end
 
