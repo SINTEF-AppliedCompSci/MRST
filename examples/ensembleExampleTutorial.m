@@ -135,12 +135,10 @@ xlim([0, time(end)]), box on, grid on, xlabel('Time (days)');
 % arguments to the example can be passed just as in the MRSTExample class.
 ensemble = MRSTEnsemble(example, samplesRH, qoiState  , ...
                         'directory'     , dataDir     , ...
-                        'simulationType', 'background', ...
-                        'matlabBinary'  , '/usr/bin/matlab2019b');
+                        'simulationType', 'background');
 
 %% Simulate the ensemble
 ensemble.simulateEnsembleMembers(4, 'plotProgress', true);
-
 
 %% Plot results
 close all
