@@ -30,7 +30,7 @@ function [status, str] = evalFunWrapper(fn, args, varargin)
 %                    (default true)
 %
 %  singleCompThread - Option indicating whether new session should be run
-%                    using single computatinal thread (default true)
+%                     using single computational thread (default true)
 %
 %  matlabOpts      - String of matlab startup options. Default: see below
 % 
