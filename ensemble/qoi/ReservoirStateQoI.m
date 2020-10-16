@@ -65,6 +65,46 @@ classdef ReservoirStateQoI < BaseQoI
             n = sum(n);
         end
         
+        %-----------------------------------------------------------------%
+        function plotQoI(qoi, ensemble, u, varargin)
+            opt = struct('isMean'   , false      , ...
+                         'threshold', [-inf, inf], ...
+                         'contour'  , false      , ...
+                         'numLines' , 10         );
+            [opt, extra] = merge_options(opt, varargin{:});
+            if iscell(u)
+                cellfun(@(u) qoi.plotQoI(u), u);
+                return
+            end
+            if isa(ensemble, 'MRSTEnsemble')
+                setup = ensemble.setup;
+            elseif isa(ensemble, 'MRSTExample')
+                setup = ensmeble;
+            else
+                error(['Input ensemble must either be an instance of ', ...
+                      'class ''MRSTEnsemble'' or ''MRSTExample'''     ]);
+            end
+            if ~opt.contour
+                subs = u >= opt.threshold(1) & u <= opt.threshold(2);
+                keep = qoi.cells & subs;
+                plotCellData(setup.model.G, u(keep), keep, extra{:});
+            else
+                assert(setup.model.G.griddim == 2 && ...
+                       any(strcmpi(setup.model.G.type, 'cartGrid')), ...
+                       'Contour plotting requires Cartesian 2D grid')
+                uc = nan(setup.model.G.cells.num, 1);
+                uc(qoi.cells) = u;
+                uc = reshape(uc, setup.model.G.cartDims);
+                xMin = min(setup.model.G.cells.centroids);
+                xMax = max(setup.model.G.cells.centroids);
+                x = linspace(xMin(1), xMax(1), setup.model.G.cartDims(1));
+                y = linspace(xMin(2), xMax(2), setup.model.G.cartDims(2));
+                color = [1,1,1]*0.8*(1-opt.isMean); % Plot mean in distinct color
+                contour(x, y, uc, opt.numLines, extra{:}, 'color', color);
+            end
+            setup.setAxisProperties(gca);
+        end
+        
     end
     
 end
