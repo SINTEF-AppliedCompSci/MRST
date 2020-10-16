@@ -2,7 +2,7 @@ classdef WellQoI < BaseQoI
     
     properties
         fldname      = {'qOs'}
-        wellIndices  = 1
+        wellIndices
         wellNames    
                                
         numTimesteps
@@ -14,42 +14,45 @@ classdef WellQoI < BaseQoI
     
     methods
         
+        %-----------------------------------------------------------------%
         function qoi = WellQoI(varargin)
             qoi = qoi@BaseQoI();
             qoi = merge_options(qoi, varargin{:});
+            % Check input
+            assert(xor(isempty(qoi.wellIndices), isempty(qoi.wellNames)), ...
+                'Please provide either well indices or well names');
         end
         
+        %-----------------------------------------------------------------%
         function qoi = validateQoI(qoi, problem)
-            % Check that the configs that are inserted to the constructor 
+            % Check that the configs that are inserted to the constructor
             % makes sense for the base problem for the ensemble, and
-            % updates reminding fields.
-            
+            % updates remaining fields.
             qoi = validateQoI@BaseQoI(qoi, problem);
-            
             % Either, we provide the indices of the chosen wells, or their
-            % names. If wellNames are provided, any wellIndices input is
-            % overwritten
+            % names. In either case, we find the other.
+            names = {problem.SimulatorSetup.schedule.control(1).W.name};
             if ~isempty(qoi.wellNames)
-                numWellsTotal = numel(problem.SimulatorSetup.schedule.control.W);
-                qoi.wellIndices = zeros(1, numel(qoi.wellNames));
-                for wi = 1:numel(qoi.wellNames)
-                    found = false;
-                    for j = 1:numWellsTotal
-                        if strcmp(qoi.wellNames{wi}, problem.SimulatorSetup.schedule.control.W(j).name)
-                            qoi.wellIndices(wi) = j;
-                            found = true;
-                            break
-                        end
-                    end
-                    assert(found, 'Did not find given well name');
-                end
+                % Find well indices
+                ix = cellfun(@(wn) find(strcmpi(wn, names)), ...
+                                    qoi.wellNames, 'UniformOutput', false);
+                % Verify that all wells exist in schedule
+                found = ~cellfun(@isempty, ix);
+                assert(all(found), 'Did not find well %s in schedule', ...
+                                                qoi.wellNames{~found});
+                % Assign well indices
+                qoi.wellIndices = cell2mat(ix);
+            elseif ~isempty(qoi.wellIndices)
+                % Verify well indices
+                assert(min(qoi.wellIndices) >= 1 && max(qoi.wellIndices) <= numel(names), ...
+                    'Well indices must be in the range [1, numel(W)] = [1, %d]', numel(names));
+                % Find well names
+                qoi.wellNames = names(qoi.wellIndices);
             else
-                qoi.wellNames = cell(numel(qoi.wellIndices, 1));
-                for wi = 1:numel(qoi.wellIndices)
-                    qoi.wellNames{wi} = problem.SimulatorSetup.schedule.control.W(wi).name;
-                end
-            end % well names and indices
-            
+                % We should never get here
+                error('Please provide either well names or well indices');
+            end
+            % Get timesteps
             qoi.timesteps = problem.SimulatorSetup.schedule.step.val;
             if ~isempty(qoi.numTimesteps)
                 qoi.timesteps = qoi.timesteps(1:qoi.numTimesteps);
@@ -58,6 +61,7 @@ classdef WellQoI < BaseQoI
             end
         end
         
+        %-----------------------------------------------------------------%
         function u = computeQoI(qoi, problem)
             % Reads the well solutions from the given problem and extract
             % the relevant data, which is then saved to file.
@@ -91,7 +95,8 @@ classdef WellQoI < BaseQoI
             u = {wellOutputs};
             
         end
-        
+
+        %-----------------------------------------------------------------%
         function mean_u = getEnsembleMean(qoi, ensemble)
             mean_u = zeros(numel(qoi.timesteps), numel(qoi.wellNames), numel(qoi.fldname));
             for i = 1:ensemble.num
@@ -100,6 +105,7 @@ classdef WellQoI < BaseQoI
             mean_u = mean_u / ensemble.num;
         end
         
+        %-----------------------------------------------------------------%
         function plotEnsemble(qoi, ensemble)
             % Plots well properties for the ensemble and ensemble mean.
             % Creates one figure per field
@@ -132,7 +138,9 @@ classdef WellQoI < BaseQoI
     end
 end
 
-
+%-------------------------------------------------------------------------%
+% Helpers
+%-------------------------------------------------------------------------%
 function dt = getTimestepsFromProblem(problem)
     reports = reshape(problem.OutputHandlers.reports(:), [], 1);
     dt = zeros(numel(reports),1);
