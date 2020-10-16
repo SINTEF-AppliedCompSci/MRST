@@ -4,6 +4,7 @@ mrstVerbose on
 
 %%
 example = MRSTExample('qfs_wo');
+problem = example.getPackedSimulationProblem();
 
 %% Generate an ensemble
 % The stochastic component (or uncertain parameter) of any ensemble
@@ -23,7 +24,7 @@ example = MRSTExample('qfs_wo');
 % problem setup and seed for controlling the random number generator, so we
 % make a functio n handle taking in these arguments.
 generatorFn = @(problem, seed) ...
-    generateRockSample(problem.model.G.cartDims, 'seed', seed);
+    generateRockSample(problem.SimulatorSetup.model.G.cartDims, 'seed', seed);
 % The class RockSamples implements routines for getting stochastic rock
 % realizations, and setting the to the model. The latter also includes
 % updating all model operators depending on the rock.
@@ -37,10 +38,10 @@ disp(samplesFn);
 %% Using a cell array of precomputed samples
 % To illustrate how we can use precomputed rock samples, we use the same
 % function to generate an ensemble of 200 realizations.
-ensembleSize = 50;
+ensembleSize = 200;
 data         = cell(ensembleSize, 1);
 for i = 1:ensembleSize
-    data{i} = generateRockSample(example.model.G.cartDims, 'seed', i);
+    data{i} = generatorFn(problem, i);
 end
 samplesCell = RockSamples('data', data);
 % This time, the 'generatorFn' property is empty, whereas the 'data'
@@ -78,7 +79,7 @@ disp(samplesRH);
 % model.getProp, whereas the 'time' input is the time at which we want the
 % quantity. The may be a vector, and for each element, the class will pick
 % the timestep correponding to the closest timestamp.
-qoiState = ReservoirStateQoI('name', 'sW', 'time', [20, 200, 700]*day);
+qoiState = ReservoirStateQoI('name', 'sW', 'time', [20, 300, 700]*day);
 disp(qoiState);
 
 %% Well output QoIs
@@ -121,7 +122,7 @@ qOs = qoiWellValidated.computeQoI(problem);  % Producer water cut
 close all
 example.plot(sat); colormap(bone);
 time = cumsum(example.schedule.step.val)/day;
-figure(), plot(time, qOs*day, 'LineWidth', 1.5); % Convert to days
+figure(), plot(time, qOs{1}*day, 'LineWidth', 1.5); % Convert to days
 xlim([0, time(end)]), box on, grid on, xlabel('Time (days)');
 
 %% Set up the ensemble
@@ -132,7 +133,7 @@ xlim([0, time(end)]), box on, grid on, xlabel('Time (days)');
 % up MRSTExample, or the name of an MRSTExample function. In the latter
 % case, MRSTEnsemble will first set up the example, and optional input
 % arguments to the example can be passed just as in the MRSTExample class.
-ensemble = MRSTEnsemble(example, samplesRH, qoiState);
+ensemble = MRSTEnsemble(example, samplesRH, qoiState, 'simulationType', 'parallel');
 
 %% Simulate the ensemble
 ensemble.simulateEnsembleMembers(1:ensembleSize);
@@ -143,7 +144,7 @@ close all
 s_avg = 0;
 for i = 1:ensembleSize
     s = ensemble.qoi.ResultHandler{i}{2};
-    if rem(i, 10) == 0, example.plot(s); colormap(bone); caxis([0,1]); end
+    if rem(i, 10) == 0, example.plot(s); colormap(jet); caxis([0,1]); end
     s_avg = (s_avg.*(i-1) + s)./i;
 end
-example.plot(s_avg); colormap(bone);  caxis([0,1]);
+example.plot(s_avg); colormap(jet);  caxis([0,1]);
