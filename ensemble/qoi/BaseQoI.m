@@ -106,31 +106,39 @@ classdef BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function h = plotEnsembleQoI(qoi, problem, range)
+        function h = plotEnsembleQoI(qoi, ensemble, varargin)
             % Create a meaningful plot of the ensemble based on the
             % relevant QoI
-            if nargin < 2, problem = []; end
-            if nargin < 3, range = inf;  end
-            [u_mean, u] = qoi.computeMean(range);
+            if nargin < 2, ensemble = []; end 
+            opt = struct('range', inf);
+            [opt, extra] = merge_options(opt, varargin{:});
+            [u_mean, u] = qoi.computeMean(opt.range);
             numQoIs    = numel(u_mean);
             numSamples = numel(u);
             for i = 1:numQoIs
-                h = figure(); hold on
-                for j = 1:numSamples
-                    qoi.plotQoI(problem, u{j}{i});
+                if ~isempty(ensemble)
+                    h = ensemble.setup.figure();
+                else
+                    h = figure();
                 end
-                qoi.plotQoI(problem, u_mean{i}, 'isMean', true);
+                hold on
+                for j = 1:numSamples
+                    qoi.plotQoI(ensemble, u{j}{i}, extra{:});
+                end
+                qoi.plotQoI(ensemble, u_mean{i}, 'isMean', true, extra{:});
                 hold off
             end
         end
         
         %-----------------------------------------------------------------%
-        function plotQoI(qoi, problem, u, varargin)
-            % Plot QoI u onto current figure
+        function plotQoI(qoi, ensemble, u, varargin)
+            % Plot a single QoI u onto current figure. This function is
+            % meant to be implemented on a per-class-basis to generate
+            % suitable plots for the QoI in question.
             warning(['Method plotQoI is not implemented for this QoI. ', ...
                      'Using simple 1d plotting']                       );
             % Optional input arguments. Can be used to pass arguments
-            % directly to e.g., plotCellData
+            % directly to e.g., plot or plotCellData
             opt = struct('isMean', false);
             [opt, extra] = merge_options(opt, varargin{:});
             color = [1,1,1]*0.8*(1-opt.isMean); % Plot mean in distinct color
