@@ -285,15 +285,16 @@ classdef MRSTEnsemble
                     fprintf(repmat('-', 1, numel('Ensemble member ') + nr + 3 + 100 + 10))
                     fprintf('\n');
                     for i = 1:numel(range)
+                        p = min(progress(i), 1);
                         fprintf(['Ensemble member ', em, ': |'], range(i));
-                        fprintf(repmat('=', 1, round(progress(i)*100))    );
-                        fprintf(repmat(' ', 1, round((1-progress(i))*100)));
-                        fprintf('| %6.2f %% \n', progress(i)*100);
+                        fprintf(repmat('=', 1, round(p*100))    );
+                        fprintf(repmat(' ', 1, round((1-p)*100)));
+                        fprintf('| %6.2f %% \n', p*100);
                     end
                     fprintf(repmat('-', 1, 100 + numel('Ensemble member ') + nr + 3 + 10))
                     fprintf('\n');
                     pause(0.5)
-                    if all(progress == 1), break; end
+                    if all(isinf(progress)), break; end
                 end
             end
         end
@@ -306,7 +307,7 @@ classdef MRSTEnsemble
             for i = 1:numel(range)
                 if exist(fullfile(ensemble.directory(), ...
                                   ['qoi', num2str(range(i)), '.mat']), 'file')
-                    progress(i) = 1;
+                    progress(i) = inf;
                     continue
                 end
                 dataDir = fullfile(ensemble.directory(), num2str(range(i)));
