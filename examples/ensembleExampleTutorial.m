@@ -1,5 +1,5 @@
 mrstModule add ad-core ad-props ad-blackoil example-suite ensemble ...
-    mrst-gui co2store
+    mrst-gui
 mrstVerbose on
 
 %%
@@ -133,10 +133,14 @@ xlim([0, time(end)]), box on, grid on, xlabel('Time (days)');
 % up MRSTExample, or the name of an MRSTExample function. In the latter
 % case, MRSTEnsemble will first set up the example, and optional input
 % arguments to the example can be passed just as in the MRSTExample class.
-ensemble = MRSTEnsemble(example, samplesRH, qoiState, 'simulationType', 'parallel');
+ensemble = MRSTEnsemble(example, samplesRH, qoiState  , ...
+                        'directory'     , dataDir     , ...
+                        'simulationType', 'background', ...
+                        'matlabBinary'  , '/usr/bin/matlab2019b');
 
 %% Simulate the ensemble
-ensemble.simulateEnsembleMembers(1:ensembleSize);
+ensemble.simulateEnsembleMembers(4, 'plotProgress', true);
+
 
 %% Plot results
 close all
@@ -148,3 +152,6 @@ for i = 1:ensembleSize
     s_avg = (s_avg.*(i-1) + s)./i;
 end
 example.plot(s_avg); colormap(jet);  caxis([0,1]);
+
+%%
+uu = qoiWellValidated.computeMean(1:1000);
