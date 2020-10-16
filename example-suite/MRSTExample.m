@@ -19,6 +19,7 @@ classdef MRSTExample
     methods
         %-----------------------------------------------------------------%
         function example = MRSTExample(name, varargin)
+            if nargin == 0, return; end
             % Set example name
             example.name = lower(name);
             % Merge options
