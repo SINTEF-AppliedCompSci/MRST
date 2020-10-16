@@ -96,7 +96,7 @@ end
 % Set matlab binary
 mbin = opt.matlabBinary;
 if isempty(mbin)
-    mbin = 'matlab';
+    mbin = fullfile(matlabroot(), 'bin', 'matlab');
 end
 
 % handle matlab options
