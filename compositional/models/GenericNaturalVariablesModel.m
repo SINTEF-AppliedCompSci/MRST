@@ -112,7 +112,7 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-            [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
+            [state, report] = updateAfterConvergence@ThreePhaseCompositionalModel(model, state0, state, dt, drivingForces);
             if model.outputFluxes
                 f = model.getProp(state, 'PhaseFlux');
                 nph = numel(f);

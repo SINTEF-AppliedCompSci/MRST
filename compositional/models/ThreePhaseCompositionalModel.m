@@ -406,13 +406,12 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     end
                 end
             end
-            
-            if isfield(state, 'dz')
-                state = rmfield(state, 'dz');
-            end
-            
-            if isfield(state, 'eos')
-                state = rmfield(state, 'eos');
+            tmpflds = {'dz', 'eos', 'dpRel', 'dpAbs', 'switched', 'switchCount'};
+            for fld = tmpflds
+                f = fld{1};
+                if isfield(state, f)
+                    state = rmfield(state, f);
+                end
             end
         end
         
