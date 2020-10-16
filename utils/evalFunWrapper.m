@@ -68,6 +68,7 @@ opt = struct('progressFileNm',       '', ...
              'pathList',           {{}}, ...
              'background',         true, ...
              'singleCompThread',   true, ...
+             'matlabBinary',         '', ...
              'matlabOpts',           '', ...
              'exitWhenDone',       true);         
 opt = merge_options(opt, varargin{:});
@@ -90,6 +91,12 @@ if ~isempty(fnm)
     if ~flag
         return;
     end
+end
+
+% Set matlab binary
+mbin = opt.matlabBinary;
+if isempty(mbin)
+    mbin = 'matlab';
 end
 
 % handle matlab options
@@ -121,10 +128,10 @@ if ~opt.background
 end
 
 % Add extra space to be sure
-[mopt, sdopt, stopt, expr, bgopt] = addBlanks(mopt, sdopt, stopt, expr, bgopt);
+[mbin, mopt, sdopt, stopt, expr, bgopt] = addBlanks(mbin, mopt, sdopt, stopt, expr, bgopt);
 
 % final string for pass to system
-str = ['matlab ', mopt, sdopt, stopt, '-r', expr, bgopt];
+str = [mbin, mopt, sdopt, stopt, '-r', expr, bgopt];
 
 status = system(str);
 end
