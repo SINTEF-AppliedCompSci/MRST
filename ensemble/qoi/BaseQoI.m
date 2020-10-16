@@ -74,7 +74,7 @@ classdef BaseQoI
             % Check if we have computed any QoIs so far
             assert(~isempty(qoi.ResultHandler), 'No QoIs computed yet!')
             ids = qoi.ResultHandler.getValidIds();
-            if nargin < 2 || isinf(range)
+            if nargin < 2 || any(isinf(range))
                 % No range give, compute mean for all QoIs
                 range = ids;
             else
