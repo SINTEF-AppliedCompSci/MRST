@@ -57,6 +57,9 @@ rhoW = 1000 * kilogram / meter^3;     % fluid density
 cW = 1.0e-10 * Pascal^-1;             % fluid compressibility
 pRef = 0;                             % reference pressure (zero)
 
+% Conceptually, the fluid object created below treats fluid compressibility as
+% an exponential function, but with physically realistic values for 'cW', we
+% remain within the regime of linear compressibility to an excellent approximation.
 fluid = initSimpleADIFluid('phases' , 'W'  , ... % only water phase
                            'mu'     , muW  , ...
                            'rho'    , rhoW , ...
