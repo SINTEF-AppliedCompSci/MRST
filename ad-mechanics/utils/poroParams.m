@@ -95,13 +95,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nans = cell(size(pnames)); [nans{:}] = deal(nan);
    params = merge_options(cell2struct(nans, pnames, 2), varargin{:});
    
+   params = rescale_params(params, 'reverse', false); % rescale for numerical robustness
+   
    % Specifying relations
    relations = setup_relations(phi);
    
    % If uniform grains, we know that K_phi = K_s, so we add this relation
    if uniform
       relations = [relations;
-                   relfun({'K_s', 'K_phi'},   @(K_s, K_phi) K_s - K_phi)];
+                   relfun({'K_s', 'K_phi'},   @(K_s, K_phi) 1/K_s - 1/K_phi)];
    end
    
    % Compute all possible parameters based on data provided
@@ -138,9 +140,38 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       warning(['Some residuals did not vanish.  Input parameters might overspecify ' ...
                'system.']); 
    end
-      
+   
+   params = rescale_params(params, 'reverse', true); % rescale for numerical robustness
+   
    eqs       = relations;
    res       = params;
+   
+end
+
+% ----------------------------------------------------------------------------
+function params = rescale_params(params, varargin)
+   opt.reverse = false;
+   opt = merge_options(opt, varargin{:});
+   
+   modfac = 1/1e7; % scaling factor for moduli
+   comprfac = 1/modfac; % scaling factor for compressibilities
+
+   if opt.reverse
+      modfac = 1/modfac;
+      comprfac = 1/comprfac;
+   end
+   
+   modnames = {'K', 'H', 'R', 'M', 'K_s', 'K_p', 'K_f', 'K_phi', 'K_v', 'K_u', ...
+               'K_vu', 'E', 'E_u', 'lambda', 'lambda_u', 'G'};
+   comprnames = {'S', 'S_sigma', 'S_epsilon', 'S_gamma', 'c_m'};
+   
+   for m = modnames
+      params.(m{:}) = params.(m{:}) * modfac;
+   end
+
+   for m = comprnames
+      params.(m{:}) = params.(m{:}) * comprfac;
+   end
    
 end
 
