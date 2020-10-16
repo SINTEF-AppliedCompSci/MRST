@@ -78,11 +78,15 @@ classdef MRSTEnsemble
         % Function handle for solving a given problem
         solve = @(problem) simulatePackedProblem(problem); 
         
-        simulationType = 'background';
+        simulationType = 'serial';
         maxWorkers = 4;
         spmdEnsemble;
         
         verbose = false
+        
+        evalFn       = @simulateEnsembleMembersStandalone
+        matlabBinary = ''
+        plotProgress
         
     end
     
@@ -174,7 +178,7 @@ classdef MRSTEnsemble
             if ensemble.qoi.isComputed(seed)
                 % QoI is already computed - nothing to do here!
                 if ensemble.verbose
-                    disp(strcat("Simulation for ", num2str(seed), " found on disc"));
+                    disp(strcat("Simulation for ", num2str(seed), " found on disk"));
                 end
                 return;
             end
@@ -207,11 +211,11 @@ classdef MRSTEnsemble
             rangePos = cumsum([0; rangePos]) + 1;
             switch ensemble.simulationType
                 case 'serial'
-                    ensemble.simulateEnsembleMembersSerial(range, rangePos);
+                    ensemble.simulateEnsembleMembersSerial(range, rangePos, varargin{:});
                 case 'parallel'
-                    ensemble.simulateEnsembleMembersParallel(range, rangePos);
+                    ensemble.simulateEnsembleMembersParallel(range, rangePos, varargin{:});
                 case 'background'
-                    ensemble.simulateEnsembleMembersBackground(range, rangePos);
+                    ensemble.simulateEnsembleMembersBackground(range, rangePos, varargin{:});
             end
         end
         
@@ -244,17 +248,73 @@ classdef MRSTEnsemble
         end
         
         %-----------------------------------------------------------------%
-        function simulateEnsembleMembersBackground(ensemble, range, rangePos)
-%             error('Not implemented yet!');
-            pathmap = capture_mrstpath();
-            loadCmd = sprintf('load("%s");', fn);
-            mrstPathCommand = sprintf('mrstPath(''reregister'', %s)', pathmap{:});
+        function simulateEnsembleMembersBackground(ensemble, range, rangePos, varargin)
+            opt = struct('plotProgress', false);
+            opt = merge_options(opt, varargin{:});
+            % Get path to mat file hodling the ensemble
+            fileName = fullfile(ensemble.getDataPath(), 'ensemble.mat');
+            % Make progress filename
+            progressFileNm = @(r) fullfile(ensemble.getDataPath(), ...
+                        ['log', '_', num2str(r(1)), '_', num2str(r(end)), '.mat']);
+            % Get active MRST modules
+            moduleList = mrstModule();
+            n = 0; % Counter number of spawned sessions
             for i = 1:numel(rangePos)-1
+                % Get local range
                 r = range(rangePos(i):rangePos(i+1)-1);
-                runCmd = sprintf('ensemble.simulateEnsemblesCore([%s]);', num2str(r));
-%                 command    = sprintf('%s %s %s ', mrstPathCommand, loadCmd, runCommand);
-%                 command    = sprintf('%s %s ', loadCmd, runCommand);
-                runCommandsBackground({loadCmd, runCmd}, 'matlab_arg', '', 'linux_arg', '');
+                if isempty(r), continue; end
+                n = n+1;
+                % Spawn new MATLAB session
+                evalFunWrapper(ensemble.evalFn, {fileName, r}         , ...
+                               'progressFileNm', progressFileNm(r)    , ...
+                               'moduleList'    , moduleList           , ...
+                               'matlabBinary'  , ensemble.matlabBinary);
+            end
+            fprintf(['Started %d new Matlab sessions. ', ...
+                     'Waiting for simulations ...\n'  ], n);
+            pause(0.1);
+            if opt.plotProgress
+                nr = numel(num2str(max(range)));
+                em = ['%', num2str(nr), 'u'];    
+                while true
+                    progress = ensemble.getEnsembleMemberProgress(range);
+                    % TODO: Implement function for plotting progress 
+                    % plotEnsembleSimulationProgress(h, ensemble, progress)
+                    clc;
+                    fprintf('Simulating ensemble members ... \n')
+                    fprintf(repmat('-', 1, numel('Ensemble member ') + nr + 3 + 100 + 10))
+                    fprintf('\n');
+                    for i = 1:numel(range)
+                        fprintf(['Ensemble member ', em, ': |'], range(i));
+                        fprintf(repmat('=', 1, round(progress(i)*100))    );
+                        fprintf(repmat(' ', 1, round((1-progress(i))*100)));
+                        fprintf('| %6.2f %% \n', progress(i)*100);
+                    end
+                    fprintf(repmat('-', 1, 100 + numel('Ensemble member ') + nr + 3 + 10))
+                    fprintf('\n');
+                    pause(0.5)
+                    if all(progress == 1), break; end
+                end
+            end
+        end
+        
+        %-----------------------------------------------------------------%
+        function progress = getEnsembleMemberProgress(ensemble, range)
+            if nargin < 2, range = ensemble.num; end
+            progress = zeros(numel(range),1);
+            nsteps   = numel(ensemble.setup.schedule.step.val);
+            for i = 1:numel(range)
+                if exist(fullfile(ensemble.directory(), ...
+                                  ['qoi', num2str(range(i)), '.mat']), 'file')
+                    progress(i) = 1;
+                    continue
+                end
+                dataDir = fullfile(ensemble.directory(), num2str(range(i)));
+                if ~exist(dataDir, 'dir')
+                    continue;
+                end
+                files = ls(dataDir);
+                progress(i) = numel(regexp(files, 'state\d+\.mat', 'match'))/nsteps;
             end
         end
         
