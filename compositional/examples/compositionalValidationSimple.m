@@ -23,10 +23,17 @@ if ~exist('useNatural', 'var')
     useNatural = true;
 end
 [state0, model, schedule, ref] = setupSimpleCompositionalExample(useNatural);
+if useNatural
+    name = 'Natural';
+else
+    name = 'Overall';
+end
+problem = packSimulationProblem(state0, model, schedule, 'simple_comp', 'name', name);
 %% Simulate the schedule
 % Note that as the problem has 500 control steps, this may take some time
 % (upwards of 4 minutes).
-[ws, states, rep] = simulateScheduleAD(state0, model, schedule);
+simulatePackedProblem(problem);
+[ws, states, rep] = getPackedSimulatorOutput(problem);
 %% Comparison plots with existing simulators
 % The same problem was defined into two other simulators: Eclipse 300
 % (which is a commercial simulator) and AD-GPRS (Stanford's research
@@ -57,7 +64,7 @@ for i = 1:nd
 end
 lw = [1, 2, 2];
 colors = lines(ncomp);
-for step = 1:n
+for step = 1:n % 180 for plot in book
     figure(h); clf; hold on
     for i = 1:numel(data)
         s = data{i}{step};
@@ -69,8 +76,9 @@ for step = 1:n
             plot(comp(:, j), markers{i}, 'linewidth', lw(i), 'color', colors(j, :));
         end
     end
-    legend(l, 'location', 'eastoutside');
+    legend(l, 'location', 'north', 'numcolumns', 3);
     ylim([0, 1]);
+    ylabel('z')
     drawnow
 end
 %% Compare pressure and saturations
