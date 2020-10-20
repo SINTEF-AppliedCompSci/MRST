@@ -5,6 +5,7 @@ This MATLAB package was developed to facilitate the compositional modeling of na
 This shale module requires the opensource MATLAB Reservoir Simulation Toolkit (http://www.sintef.no/projectweb/mrst/). 
 
 Easiest way to get started with this package is to clone and extract it into the modules folder in MRST, and then run the cases in the "examples" folder. These include:
+
    gangiPlot       - Plots the Gangi Permeability correction factor
    
    langmuirPlot    - Plots the Langmuir Isotherm
