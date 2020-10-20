@@ -6,13 +6,21 @@ This shale module requires the opensource MATLAB Reservoir Simulation Toolkit (h
 
 Easiest way to get started with this package is to clone and extract it into the modules folder in MRST, and then run the cases in the "examples" folder. These include:
    gangiPlot       - Plots the Gangi Permeability correction factor
+   
    langmuirPlot    - Plots the Langmuir Isotherm
+   
    stochasticFracs - Generates stochastic fractures
+   
    compositional3D - Illustrates use of hfm + compositional module 
+   
    sorption        - Illustrates effect of Sorption
+   
    diffusion       - Illustrates effect of Diffusion
+   
    gangi           - Illustrates effect of a pressure-dependent permeability
+   
    eagleFord       - Application of pEDFM with fractured shale reservoirs 
+   
    eagleFordEDFM   - Application of EDFM with fractured shale reservoirs
 
 Please feel free to leave us any questions using the "Issues" tab above.
