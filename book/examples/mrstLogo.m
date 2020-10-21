@@ -1,4 +1,6 @@
-load mrst-logo.mat;
+f = repmat(imread('mrst.png')==255,[1 1 10]);
+G = removeCells(cartGrid([45 195 10]), find(f(:)));
+load('mrst-logo'); K = double(K);
 p = .05 + .3*(K(G.cells.indexMap)-30)/600;
 rock = makeRock(G, p.^3.*(1e-5)^2./(0.81*72*(1-p).^2), p);
 figure('Position',[440 290 860 500]);
@@ -43,7 +45,7 @@ plotGrid(G,'EdgeAlpha',.1,'FaceColor','none'); axis off
 mrstModule add coarsegrid streamlines
 cla
 p = partitionUI(G,[1 1 G.cartDims(3)]);
-plotCellData(G,D.ppart,p>1,'EdgeAlpha',.1,'EdgeColor','k','FaceAlpha',.6);
+plotCellData(G,D.ppart,p>1,'EdgeColor','none','FaceAlpha',.6);
 ip = find( (abs(G.cells.centroids(:,1)-15.5)<.6) & (p==1) & ...
    ((G.cells.centroids(:,2)<35) | (G.cells.centroids(:,2)>65)));
 h=streamline(pollock(G,state,ip(1:1:end),'reverse',true)); 
@@ -52,3 +54,5 @@ h=streamline(pollock(G,state,ip(1:1:end)));
 set(h,'Color',.4*[1 1 1],'LineWidth',.5);
 plotWell(G,W,'Color','k','FontSize',0,'height',12,'radius',2);
 set(gca,'dataasp',[1.25 2 .4]); zoom(1.2)
+set(gca,'Clipping','off')
+colormap(jet)
