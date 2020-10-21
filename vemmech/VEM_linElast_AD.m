@@ -193,12 +193,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     uu = reshape(u, G.griddim, [])';
 
     if(nargout == 2)
-        extra.A    = A;
-        extra.S    = S;
+        extra.A    = A;  
+        extra.S    = S;  
+        extra.KH = []; % remove, for memory resons
         extra.rhs  = rhs;
         vdiv       = VEM_div(G);
-        extra.disc = struct('A'         , A                        , ...
-                            'isdirdofs' , isdirdofs                , ...
+        extra.disc = struct('isdirdofs' , isdirdofs                , ...
                             'rhs'       , rhs                      , ...
                             'V_dir'     , u_bc                     , ...
                             'ovol_div'  , vdiv                     , ...
@@ -206,6 +206,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             'div'       , vdiv(:    , ~isdirdofs)  , ...
                             'divrhs'    , vdiv * u_bc);
         if isa(E, 'ADI') || isa(nu, 'ADI')
+           A = []; % release A, for memory reasons
+           S = []; % release S, for memory reasons
+           qc_all = [];  % release, for memory reasons
+           vdiv = []; % release, for memory reasons
+           
            % we must add derivatives of system matrix with respect to
            % material parameters
            assert(~opt.experimental_scaling) % @@ derivative for experimental

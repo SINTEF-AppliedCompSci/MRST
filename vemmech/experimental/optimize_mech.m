@@ -138,6 +138,7 @@ function [val, grad] = fun_wrapper(u, G, bcfun, efun, nufun, loadfun, ...
                                  %'force_method', 'cell_force', ...
    dd = dd';
 
+   fprintf('Calling obj_fun\n');
    [val, oval_du, oval_dd] = obj_fun(value(u), dd(:), extra);
 
    
