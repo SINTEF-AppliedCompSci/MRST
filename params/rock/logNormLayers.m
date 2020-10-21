@@ -85,11 +85,11 @@ opt = struct('Verbose', mrstVerbose, ...
              'sz',      [9, 3, 3], ...
              'std',     4.5);
 
-if all(size(N) == [1,2]) && mod(nargin, 2),
+if all(size(N) == [1,2]) && mod(nargin, 2)
    N = [N, 1];
    M = 1;
 else
-   if nargin==1,
+   if nargin==1
       M = 1;
    else
       M = varargin{1};
@@ -100,52 +100,52 @@ opt = merge_options(opt, varargin{:});
 rand_layers = @(m,n) unique([1, fix(1 + rand([1,m-1])*(n-1)), n+1]);
 
 % Process input parameters
-if ~isempty(opt.indices),
+if ~isempty(opt.indices)
    L = opt.indices;
-   if (max(L)~=N(3)+1) || any(diff(L)<=0) || any(L<0),
+   if (max(L)~=N(3)+1) || any(diff(L)<=0) || any(L<0)
       error(msgid('NumLayers:Iconsistent'), ...
          'Inconsistent values. L must increase in [1,%d]', N(3)+1);
-   elseif numel(L)>N(3)+1,
+   elseif numel(L)>N(3)+1
       error(msgid('NumLayers:Excessive'), ...
            ['Number of requested permeability layers (%d) ', ...
             'exceeds number of model layers (%d).'], L(end), N(3));
-   elseif numel(L)~=numel(M)+1,
+   elseif numel(L)~=numel(M)+1
       error(msgid('NumLayers:Inconsistent'),...
          'Incorrect input: numel(M) should be equal numel(L)-1');
    end
    lmean = M(:);
-elseif (nargin < 2) || isempty(M),
+elseif (nargin < 2) || isempty(M)
    L = [1:N(3), N(3)+1];  lmean = [];
-elseif numel(M) == 1,
+elseif numel(M) == 1
    % i.e., only the number of layers is specified
-   if M > N(3),
+   if M > N(3)
       error(msgid('NumLayers:Excessive'), ...
            ['Number of requested permeability layers (%d) ', ...
             'exceeds number of model layers (%d).'], M, N(3));
    end
-   if M < 0,
+   if M < 0
       L = [1, N(3)+1];
-   elseif M == N(3),
+   elseif M == N(3)
       L = 1 : N(3) + 1;
    else
       L = [];
-      while numel(L) < M + 1,
+      while numel(L) < M + 1
          L = rand_layers(M, N(3));
       end
    end
    lmean = [];
 else
    % i.e., a mean is specified per layer
-   if numel(M) > N(3),
+   if numel(M) > N(3)
       error(msgid('NumLayers:Excessive'), ...
            ['Number of requested permeability layers (%d) ', ...
             'exceeds number of model layers (%d).'], numel(M), N(3));
    end
-   if numel(M) == N(3),
+   if numel(M) == N(3)
       L = 1 : N(3) + 1;
    else
       L = [];
-      while numel(L) < numel(M) + 1,
+      while numel(L) < numel(M) + 1
          L = rand_layers(numel(M), N(3));
       end
    end
@@ -153,27 +153,27 @@ else
 end
 
 % check input
-if numel(opt.a)~=1,
+if numel(opt.a)~=1
    error(msgid('a:wrong'), 'Optimal parameter <a> not scalar');
 end
-if numel(opt.b)~=1,
+if numel(opt.b)~=1
    error(msgid('b:wrong'), 'Optimal parameter <b> not scalar');
 end
-if numel(opt.sigma)~=1,
+if numel(opt.sigma)~=1
    error(msgid('std:wrong'), 'Optimal parameter <sigma> not scalar');
 end
 
 % Generate layers
-if opt.Verbose,
+if opt.Verbose
    fprintf('\nGenerating lognormal, layered permeability\n  Layers: [ ');
 end
-for i = 1 : length(L)-1,
+for i = 1 : length(L)-1
     n = L(i+1) - L(i);
     k = smooth3(randn([N(1:2), n+2]) - opt.a*randn(1), ...
                 'gaussian', opt.sz, opt.std);
     k = exp(opt.b + opt.sigma*k);
     k = k(:,:,2:n+1);
-    if numel(lmean) > 0,
+    if numel(lmean) > 0
        K(:,:,L(i):L(i+1)-1) = lmean(i)*k / mean(k(:));
     else
        K(:,:,L(i):L(i+1)-1) = k;
@@ -182,7 +182,7 @@ for i = 1 : length(L)-1,
 end
 K = K(:);
 
-if opt.Verbose,
+if opt.Verbose
    fprintf(']\n');
    fprintf('  min: %g, max: %g [mD], ratio: %g\n\n', ...
            min(K), max(K), max(K) / min(K));
