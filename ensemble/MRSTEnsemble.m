@@ -211,9 +211,9 @@ classdef MRSTEnsemble
             rangePos = cumsum([0; rangePos]) + 1;
             switch ensemble.simulationType
                 case 'serial'
-                    ensemble.simulateEnsembleMembersSerial(range, rangePos, varargin{:});
+                    ensemble.simulateEnsembleMembersSerial(range, rangePos);
                 case 'parallel'
-                    ensemble.simulateEnsembleMembersParallel(range, rangePos, varargin{:});
+                    ensemble.simulateEnsembleMembersParallel(range, rangePos);
                 case 'background'
                     ensemble.simulateEnsembleMembersBackground(range, rangePos, varargin{:});
             end
