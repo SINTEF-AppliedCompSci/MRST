@@ -20,8 +20,8 @@ Where to start?
 
 Documentation: 
 
-	March et al., A Unified Framework for Fractured Reservoirs, 2020/2021 (Chapter in the upcoming MRST 		
-    book 'Advanced modelling with MRST', preprint available upon request)
+	March et al., A Unified Framework for Flow Simulation in Fractured Reservoirs, 2021 (Chapter in the upcoming MRST 		
+    book 'Advanced Modelling with MATLAB Reservoir Simulation Toolbox (MRST)', preprint available upon request)
 
 Who do I talk to?
 
