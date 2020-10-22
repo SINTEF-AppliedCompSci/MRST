@@ -237,12 +237,10 @@ function ax_derivs = compute_Ax_derivs(G, u, extra, E, nu, gamma, dirdofs)
    
    % repeat each entry '3n' times, where 'n' is the number of nodes for a given cell
    repX = sparse((1:dim*sum(nlc))', rldecode((1:N)', nlc * dim), 1); 
-
    D_dE = extra.D * spdiags(1 ./ (rep6 * value(E)), 0, 6 * N, 6 * N); % divide by E
    
    % we have D = Ds * Dm (where ds is scalar and dm is a matrix)
    Ds = E ./ ((1+nu) .* (1-2*nu)); 
-   
    Dm = extra.D * spdiags(1 ./ (rep6 * value(Ds)), 0, 6 * N, 6 * N); % divide by Ds
    
    % computing d/dnu (D), which makes use of the definitions of Ds and Dm above
@@ -251,7 +249,7 @@ function ax_derivs = compute_Ax_derivs(G, u, extra, E, nu, gamma, dirdofs)
    Dm_dnu = spones(extra.D);
    Dm_diag = repmat([-1,-1,-1, -4,-4,-4], 1, N);
    Dm_dnu(logical(speye(numel(Dm_diag)))) = Dm_diag;
-   
+
    D_dnu = Dm * spdiags(rep6 * value(Ds_dnu), 0, 6 * N, 6 * N) + ...
            Dm_dnu * spdiags(rep6 * value(Ds), 0, 6 * N, 6 * N);
    
@@ -262,8 +260,112 @@ function ax_derivs = compute_Ax_derivs(G, u, extra, E, nu, gamma, dirdofs)
    alpha_dE = c .* trD ./ value(E);
    alpha_dnu = - c .* value(E) .* 6 .* (value(nu)-1) .* (5 * value(nu) -1 ) ./ ...
                                     ( (value(nu) + 1) .* (1 - 2 * value(nu)) ).^2;
+
    S_dE = spdiags(repX * value(alpha_dE), 0, size(repX, 1), size(repX, 1)); 
    S_dnu = spdiags(repX * value(alpha_dnu), 0, size(repX, 1), size(repX, 1)); 
+   
+   % compute derivatives based on control variables
+   ejac = []; nujac = [];
+   if isa(E, 'ADI')
+      ejac = [E.jac{:}];
+   end
+   if isa(nu, 'ADI')
+      nujac = [nu.jac{:}];
+   end
+   if isempty(ejac)
+      ejac = 0 * nujac;
+   elseif isempty(nujac)
+      nujac = 0 * ejac;
+   end
+   num_ders = size(ejac, 2);
+      
+   ImPP = extra.I - extra.PP;
+   
+   EJ = ejac .* vols;
+   NJ = nujac.* vols;
+   
+   ax_derivs_E = extra.assemb * (extra.WC * D_dE * extra.WC') * ...
+                                ((repX * EJ) .* (extra.assemb' * u)); 
+   ax_derivs_nu = extra.assemb * (extra.WC * D_dnu * extra.WC') * ...
+                                ((repX * NJ) .* (extra.assemb' * u)); 
+   ax_derivs_stability_E  = extra.assemb * ...
+                            (ImPP' * S_dE * ImPP) * ...
+                            ((repX * ejac) .* (extra.assemb' * u));
+   ax_derivs_stability_nu = extra.assemb * ...
+                            (ImPP' * S_dnu * ImPP) * ...
+                            ((repX * nujac) .* (extra.assemb' * u));
+   ax_derivs = ax_derivs_E + ax_derivs_nu + ...
+               ax_derivs_stability_E + ax_derivs_stability_nu;
+   ax_derivs = ax_derivs(~dirdofs, :);
+   
+   % M = size(repX, 1);
+   % for i = 1:num_ders
+      
+   %    Kdu = ...
+   %        extra.WC * ( ...
+   %            D_dE * spdiags(rep6 * (ejac(:, i) .* vols), 0, 6 * N, 6 * N) + ...
+   %            D_dnu * spdiags(rep6 * (nujac(:, i) .* vols), 0, 6 * N, 6 * N)) * ...
+   %        extra.WC' + ...          
+   %        ImPP' * (...
+   %            S_dE * spdiags(repX * ejac(:, i), 0, M, M) + ...
+   %            S_dnu * spdiags(repX * nujac(:, i), 0, M, M)) * ...
+   %        ImPP;
+      
+   %    % assemble
+   %    ax_derivs(:, i) = extra.assemb * (Kdu * (extra.assemb' * u)); %#ok
+            
+   %    % Kdu = extra.assemb * Kdu * extra.assemb';
+   %    % ax_derivs(:, i) = Kdu * u; %#ok @@ how can we speed up here?
+   % end
+   % ax_derivs = ax_derivs(~dirdofs, :);
+end
+
+function ax_derivs = compute_Ax_derivs_old(G, u, extra, E, nu, gamma, dirdofs)
+
+   assert(G.griddim==3);
+   N = G.cells.num;
+   vols = G.cells.volumes;
+   cpos = reshape(repmat(1:N, 6, 1), [], 1);
+   rep6 = sparse((1:6*N)', cpos, 1, 6 * N, N); % repeat each vector entry 6 times
+
+   nlc = diff(G.cells.nodePos);
+   dim = 3;
+   
+   % repeat each entry '3n' times, where 'n' is the number of nodes for a given cell
+   repX = sparse((1:dim*sum(nlc))', rldecode((1:N)', nlc * dim), 1); 
+
+   D_dE = extra.D ./ (rep6 * value(E)); % divide by E
+   %D_dE = extra.D * spdiags(1 ./ (rep6 * value(E)), 0, 6 * N, 6 * N); % divide by E
+   
+   % we have D = Ds * Dm (where ds is scalar and dm is a matrix)
+   Ds = E ./ ((1+nu) .* (1-2*nu)); 
+   
+   Dm = extra.D ./ (rep6 * value(Ds)); % divide by Ds
+   %Dm = extra.D * spdiags(1 ./ (rep6 * value(Ds)), 0, 6 * N, 6 * N); % divide by Ds
+   
+   % computing d/dnu (D), which makes use of the definitions of Ds and Dm above
+   Ds_dnu = E .* (1 + 4 * nu) ./ ( (1+nu) .* (1 - 2 * nu) ).^2;
+   
+   Dm_dnu = spones(extra.D);
+   Dm_diag = repmat([-1,-1,-1, -4,-4,-4], 1, N);
+   Dm_dnu(logical(speye(numel(Dm_diag)))) = Dm_diag;
+
+   D_dnu = Dm .* (rep6 * value(Ds_dnu)) + Dm_dnu .* (rep6 * value(Ds));
+   % D_dnu = Dm * spdiags(rep6 * value(Ds_dnu), 0, 6 * N, 6 * N) + ...
+   %         Dm_dnu * spdiags(rep6 * value(Ds), 0, 6 * N, 6 * N);
+   
+   DNC = diag(extra.NC' * extra.NC);
+   trDNC = sum(reshape(DNC, 6, []), 1)';
+   c = gamma ./ trDNC .* vols; 
+   trD = Ds .* 3 .* (3-5*value(nu)); 
+   alpha_dE = c .* trD ./ value(E);
+   alpha_dnu = - c .* value(E) .* 6 .* (value(nu)-1) .* (5 * value(nu) -1 ) ./ ...
+                                    ( (value(nu) + 1) .* (1 - 2 * value(nu)) ).^2;
+
+   S_dE = repX * value(alpha_dE);
+   S_dnu = repX * value(alpha_dnu);
+   %S_dE = spdiags(repX * value(alpha_dE), 0, size(repX, 1), size(repX, 1)); 
+   %S_dnu = spdiags(repX * value(alpha_dnu), 0, size(repX, 1), size(repX, 1)); 
    
    % compute derivatives based on control variables
    ejac = []; nujac = [];
@@ -286,20 +388,28 @@ function ax_derivs = compute_Ax_derivs(G, u, extra, E, nu, gamma, dirdofs)
    for i = 1:num_ders
       
       % compute total derivative for each cell
-      Kdu = ...
-          extra.WC * ( ...
-              D_dE * spdiags(rep6 * (ejac(:, i) .* vols), 0, 6 * N, 6 * N) + ...
-              D_dnu * spdiags(rep6 * (nujac(:, i) .* vols), 0, 6 * N, 6 * N)) * ...
-          extra.WC' + ...          
-          ImPP' * (...
-              S_dE * spdiags(repX * ejac(:, i), 0, M, M) + ...
-              S_dnu * spdiags(repX * nujac(:, i), 0, M, M)) * ...
-          ImPP;
+      Kdu = extra.WC * (D_dE .* (rep6 * (ejac(:, i) .* vols)) + ...
+                        D_dnu .* (rep6 * (nujac(:, i) .* vols))) * ...
+            extra.WC' + ...
+            (ImPP' .* (S_dE .* (repX * ejac(:, i)) + ...
+                     S_dnu .* (repX * nujac(:, i)))) * ...
+            ImPP;
+      
+      % Kdu = ...
+      %     extra.WC * ( ...
+      %         D_dE * spdiags(rep6 * (ejac(:, i) .* vols), 0, 6 * N, 6 * N) + ...
+      %         D_dnu * spdiags(rep6 * (nujac(:, i) .* vols), 0, 6 * N, 6 * N)) * ...
+      %     extra.WC' + ...          
+      %     ImPP' * (...
+      %         S_dE * spdiags(repX * ejac(:, i), 0, M, M) + ...
+      %         S_dnu * spdiags(repX * nujac(:, i), 0, M, M)) * ...
+      %     ImPP;
       
       % assemble
-      Kdu = extra.assemb * Kdu * extra.assemb';
-
-      ax_derivs(:, i) = Kdu * u; %#ok @@ how can we speed up here?
+      ax_derivs(:, i) = extra.assemb * (Kdu * (extra.assemb' * u)); %#ok
+            
+      % Kdu = extra.assemb * Kdu * extra.assemb';
+      % ax_derivs(:, i) = Kdu * u; %#ok @@ how can we speed up here?
    end
    ax_derivs = ax_derivs(~dirdofs, :);
 end
