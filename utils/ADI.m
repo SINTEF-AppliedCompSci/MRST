@@ -187,7 +187,7 @@ classdef ADI
               h = v;
               h.val = u*h.val;
               h.jac = h.mtimesJac(u, h.jac);
-          elseif ~isa(v,'ADI') %v is a scalar
+          elseif ~isa(v,'ADI') && isscalar(v)
               h = mtimes(v,u);
           else % special case where either u or v has single value
               if numel(u.val) == 1
@@ -236,7 +236,7 @@ classdef ADI
 
       function h = mrdivide(u,v)
           % Right matrix divide: `h=u/v`
-         if ~isa(v,'ADI') %v is a scalar
+         if ~isa(v,'ADI') && isscalar(v) 
             h = mtimes(u, 1/v);
          else
             error('Operation not supported');
