@@ -482,7 +482,10 @@ classdef NonLinearSolver < handle
             % to this value.
             [val0, tol, names] = model.getConvergenceValues(problem0);
             val0 = val0./tol;
-            if isempty(solver.linesearchResidualScaling)
+            if numel(solver.linesearchResidualScaling) ~= numel(tol)
+                % Set scaling proportional to tolerances so that different
+                % magnitude tolerances (e.g. pressures in bar vs unit
+                % scaling) can be weighted together
                 solver.linesearchResidualScaling = tol;
             end
             ok = val0 <= 1;
