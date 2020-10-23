@@ -10,6 +10,8 @@ classdef WellQoI < BaseQoI
         total        = false % Total production
         combined     = false % Combine all wells, or give per well values.
         timesteps
+        
+        historyMatchFromTimestep = 1 
     end
     
     methods
@@ -144,6 +146,8 @@ classdef WellQoI < BaseQoI
         end
         
         %-----------------------------------------------------------------%
+        % Functions related to history matching
+        %-----------------------------------------------------------------%
         function u = getObservationVector(qoi, varargin)
             
             opt = struct('vectorize', true);
@@ -164,16 +168,17 @@ classdef WellQoI < BaseQoI
             assert(size(u,3) == numel(qoi.fldname), ...
                 'The observation does not match the number of fldnames in QoI');
             
-            u = u(1:qoi.numTimesteps, :, :);
+            u = u(qoi.historyMatchFromTimestep:qoi.numTimesteps, :, :);
             if opt.vectorize
                 u = qoi2vector(u);
             end
         end
         
         %-----------------------------------------------------------------%
-        function u = getQoIVector(qoi, problem)
-            u = qoi.getQoI(problem);
-            u = qoi2vector(u{1});
+        function u = getQoIVector(qoi, seed)
+            u = qoi.ResultHandler{seed}{1};
+            u = u(qoi.historyMatchFromTimestep:qoi.numTimesteps, :, :);
+            u = qoi2vector(u);
         end
             
         %-----------------------------------------------------------------%

@@ -60,6 +60,8 @@ end
 
 %% Select and populate samples for the stochastic components in the ensemble
 
+ensembleSize = 20;
+
 configData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
     configData{i}.poro = gaussianField(trueExample.model.G.cartDims, [0.2 0.4]); 
@@ -75,22 +77,10 @@ samples = RockSamples('data', configData);
 qoi = WellQoI('wellNames', {'P1'}, 'fldname', {'qOs'}, ...
                   'observationResultHandler', observationResultHandler, ...
                   'observationCov', obsStdDev^2);
-qoi = qoi.validateQoI(trueProblem);
-
-
-
-
-
-
-
-
-
-
 
 %% Create the ensemble
-ensembleSize = 20;
 
-ensemble = MRSTEnsemble(trueExample, samples, trueQoI, ... 
+ensemble = MRSTHistoryMatchingEnsemble(trueExample, samples, qoi, ... 
     ... %'directory', uniqueDirectory, ...
     'simulationType', 'parallel', ...
     'maxWorkers', 8, ...
@@ -99,9 +89,17 @@ ensemble = MRSTEnsemble(trueExample, samples, trueQoI, ...
     );
 
 
+%% Displaying the observations and observation error cov through the ensemble
+disp('observation vector')
+ensemble.qoi.getObservationVector()
+disp('observation error covariance matrix')
+ensemble.qoi.getObservationErrorCov()
+
+
 %% Run ensemble
 ensemble.simulateAllEnsembleMembers();
 
-%% Plot results
-ensemble.qoi.plotEnsemble(ensemble);
+%% Get simulated observations
+disp('simulated observations')
+ensemble.getEnsembleQoI()
 
