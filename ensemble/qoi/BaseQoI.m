@@ -4,6 +4,20 @@ classdef BaseQoI
     
     properties
         ResultHandler % Handler for writing/reading QoIs to/from file
+        
+        %% Properties related to history matching
+        observationResultHandler   % Full path to a file that holds observations.
+                          % This file must be on a format that matches the
+                          % given QoI class
+        observationCov    % Observation error covariance matrix, several  
+                          % forms might be valid depending on the relevant
+                          % QoI implementation. This can be either
+                          % - scalar: uncorrelated observation with the
+                          % same variance
+                          % - vector: Uncorrelated observations, but
+                          % different values for different parts of the QoI
+                          % - matrix: The full error covariance matrix
+        
     end
     
     methods
@@ -30,7 +44,16 @@ classdef BaseQoI
             % Check that output is stored with the correct name
             assert(strcmp(qoi.ResultHandler.dataPrefix, 'qoi'), ...
                    'ResultHandler data prefix must be ''qoi''.');
+               
+            % Validation related to history matching
+            if ~isempty(qoi.observationResultHandler)
+                assert(~isempty(qoi.observationCov), ...
+                    'Observation error covariance matrix must be provided along with observationResultHandler');
+            
+            end
         end
+        
+
         
         %-----------------------------------------------------------------%
         function u = getQoI(qoi, problem)
@@ -179,7 +202,29 @@ classdef BaseQoI
                 end
             end
         end
+        
+        %-----------------------------------------------------------------%
+        function u = getObservationVector(qoi)
+            % Returns the observation as a single vector. Typically for use
+            % in history matching
+            error('Template class not meant for direct use!');
+        end
+        
+        %-----------------------------------------------------------------%
+        function u = getQoIVector(qoi, problem)
+            % Returns the qoi as a single vector for use in history
+            % matching. In that setting, the QoI represents the simulated
+            % equivalent to the observation.
+            error('Template class not meant for direct use!');
+        end
             
+        %-----------------------------------------------------------------%
+        function R = getObservationErrorCov(qoi)
+            % Returns the full observation error covariance matrix
+            error('Template class not meant for direct use!');
+        end
+            
+        
     end
 end
     

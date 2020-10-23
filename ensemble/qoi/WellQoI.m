@@ -126,9 +126,9 @@ classdef WellQoI < BaseQoI
                     subplot(num_wells_horizontal, num_wells_vertical, w)
                     hold on
                     for i = 1:ensemble.num
-                        plot(t, ensemble.qoi.ResultHandler{i}{1}(:,w,fld),   'color', [1 1 1]*0.6);
+                        plot(t, ensemble.qoi.ResultHandler{i}{1}(1:qoi.numTimesteps,w,fld),   'color', [1 1 1]*0.6);
                     end
-                    plot(t, mean_qoi(:, w, fld), 'color', 'red')
+                    plot(t, mean_qoi(1:qoi.numTimesteps, w, fld), 'color', 'red')
                     title(strcat(qoi.fldname{fld}, " for well ", qoi.wellNames{w}));
                 end
             end
@@ -143,12 +143,101 @@ classdef WellQoI < BaseQoI
             end
         end
         
-    end
+        %-----------------------------------------------------------------%
+        function u = getObservationVector(qoi, varargin)
+            
+            opt = struct('vectorize', true);
+            [opt, extra] = merge_options(opt, varargin{:});
+            
+            % Check that the observation is valid
+            assert(~isempty(qoi.observationResultHandler), ...
+                'qoi.observationResultHandler is missing');
+            assert(numel(qoi.observationResultHandler.getValidIds) > 0, ...
+                'No available data in the observationResultHandler');
+            
+            u = qoi.observationResultHandler{1};
+            
+            assert(size(u,1) <= qoi.numTimesteps, ...
+                'The observation has too few timesteps to match the QoI class');
+            assert(size(u,2) == numel(qoi.wellNames), ...
+                'The observation does not match the number of wells in QoI');
+            assert(size(u,3) == numel(qoi.fldname), ...
+                'The observation does not match the number of fldnames in QoI');
+            
+            u = u(1:qoi.numTimesteps, :, :);
+            if opt.vectorize
+                u = qoi2vector(u);
+            end
+        end
+        
+        %-----------------------------------------------------------------%
+        function u = getQoIVector(qoi, problem)
+            u = qoi.getQoI(problem);
+            u = qoi2vector(u{1});
+        end
+            
+        %-----------------------------------------------------------------%
+        function R = getObservationErrorCov(qoi)
+            
+            assert(~isempty(qoi.observationCov), ...
+                'qoi.observationCov is missing');
+            
+            % Check how observationCov matches the observation
+            u = qoi.getObservationVector('vectorize', false);
+            u_vec = qoi2vector(u);
+            numObs = size(u,1);
+            
+            if isscalar(qoi.observationCov)
+                R = speye(numObs)*qoi.observationCov;
+            
+            elseif isvector(qoi.observationCov)
+                rdiag = [];
+            
+                if numel(qoi.observationCov) == numel(qoi.fldnames)*numel(qoi.wellNames)
+                    for w = 1:numel(qoi.wellNames)
+                        for f = 1:numel(qoi.fldnames)
+                            covindex = w*(numel(qoi.fldnames-1)) + f;
+                            rdiag = [rdiag ; repmat(qoi.observationCov(covindex), [size(u,1), 1])];
+                        end
+                    end  
+                elseif numel(qoi.observationCov) == numel(qoi.fldnames)
+                    % Assume that there are different covariances for each
+                    % fieldName
+                    for w = 1:numel(qoi.wellNames)
+                        for f = 1:numel(qoi.fldnames)
+                            rdiag = [rdiag ; repmat(qoi.observationCov(f), [size(u,1), 1])];
+                        end
+                    end    
+                elseif numel(qoi.observationCov) == numObs
+                    rdiag = qoi.observationCov;
+                end
+                assert(numel(rdiag) == numObs, ...
+                    'Wrong number of diagonal elements after mapping the vector in qoi.observationCov');
+                R = sparse([1:numObs], [1:numObs], rdiag, numObs, numObs); 
+                
+            else % observationCov is matrix
+                assert(all(size(qoi.observationCov) == [numObs, numObs]), ...
+                    'The matrix in qoi.observationCov is of wrong size');
+                R = qoi.observationCov;
+            end
+        end
+        
+    end % methods
+    
+
 end
 
 %-------------------------------------------------------------------------%
 % Helpers
 %-------------------------------------------------------------------------%
+function u = qoi2vector(u)
+    % For multiple fields and wells, this vectorization will result in
+    % u = [ (well1, field1), (well1, field2), (well2, field1), (well2,
+    % field2) ...]
+    
+    u = u(:);
+end
+
 function dt = getTimestepsFromProblem(problem)
     reports = reshape(problem.OutputHandlers.reports(:), [], 1);
     dt = zeros(numel(reports),1);

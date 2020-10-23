@@ -183,7 +183,7 @@ classdef MRSTEnsemble
                 return;
             end
             % Get base problem
-            baseProblem = ensemble.getBaseProblem;
+            baseProblem = ensemble.getBaseProblem();
             % Set up sample problem from seed
             problem = ensemble.samples.getSampleProblem(baseProblem, seed);
             % Solve problem
