@@ -7,7 +7,7 @@ classdef CompositionalViscosityLV < Viscosity
         function gp = CompositionalViscosityLV(model, varargin)
             gp@Viscosity(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
-            gp = gp.dependsOn({'pressure', 'temperature'}, 'state');
+            gp = gp.dependsOn({'pressure', 'T'}, 'state');
             gp.label = '\mu_\alpha';
         end
         
