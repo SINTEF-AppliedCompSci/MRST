@@ -1,13 +1,18 @@
 classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
     
     properties
-        % Inherited from MRSTEnsemble only
+        
+        % Most properties inherited from MRSTEnsemble
+        
+        historyMatchingIteration = 1 
+        
+        
     end
     
     methods
-        function MRSTHistoryMatchingEnsemble()
-        
-        
+        %function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
+        %    ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, varargin{:});
+        %end
         
         function ensembleQoI = getEnsembleQoI(ensemble, varargin)
             opt = struct('perturb', false);
@@ -41,7 +46,20 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             end
         end
         
-        %function simulated
+        function ensembleSamples = getEnsembleSamples(ensemble)
+            % Collect all samples in a matrix so that each column represent
+            % the sample for a single ensemble member.
+            
+            ensembleSamples = ensemble.samples.getSampleVectors();
+        end
+        
+        %-----------------------------------------------------------------%
+        function defaultPath = getDefaultPath(ensemble)
+            defaultPath = fullfile(mrstOutputDirectory(), 'historyMatching', ...
+                ensemble.setup.name, num2str(ensemble.historyMatchingIteration));
+        end
+                
+        
     end
 end
 

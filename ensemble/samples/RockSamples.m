@@ -74,7 +74,7 @@ classdef RockSamples < BaseSamples
                     'Inconsistent permeability dimensions');
                 % Porosity should be [nc, 1]
                 assert(numel(sampleData.poro) == model.G.cells.num, ...
-                    'Inconsistent pororisy dimensions');
+                    'Inconsistent porosity dimensions');
             else
                 % Sample data is defined on in a cube assumed to be the
                 % bounding box of model.G
@@ -84,12 +84,60 @@ classdef RockSamples < BaseSamples
                 assert((numel(sampleData.perm) == 1 || ...
                         numel(sampleData.perm) == model.G.griddim) && ...
                         all(cellfun(@(perm) ndims(perm) == model.G.griddim, sampleData.perm)), ...
-                    'Inconsistent pororisy dimensions');
+                    'Inconsistent permeability dimensions');
                 assert(ndims(sampleData.poro) == model.G.griddim, ...
-                    'Inconsistent pororisy dimensions');
+                    'Inconsistent porosity dimensions');
                 type = 'sampleFromBox';
             end
         end
+        
+        
+        %-----------------------------------------------------------------%
+        % Functions related to history matching
+        %-----------------------------------------------------------------%
+        function sampleVectors = getSampleVectors(samples)
+            
+            assert(~isempty(samples.data), ...
+                'This function only work with pre-generated samples');
+            
+            assert(numel(samples.data{1}.poro) == numel(samples.data{1}.perm), ...
+                'Inconsistent permeability and porosity sizes');
+            
+            numCells = numel(samples.data{1}.poro);
+            sampleVectors = zeros(2*numCells, samples.num);
+            
+            for i = 1:samples.num
+                if samples.transformSampleVectors
+                    % Logarithmic transform of permeability 
+                    perm = convertTo(samples.data{i}.perm(:), milli*darcy);
+                    sampleVectors(1:numCells, i) = log(perm);
+                else
+                    sampleVectors(1:numCells, i) = samples.data{i}.perm(:);
+                end
+                sampleVectors(numCells+1:numCells*2, i) = samples.data{i}.poro(:);
+            end
+        end
+        
+        function samples = setSampleVectors(samples, newSampleVectors)
+            
+            assert(size(newSampleVectors, 2) == samples.num, ...
+                'number of columns of new samples does not match ensemble size');
+            numCells = numel(samples.data{1}.poro);
+            assert(size(newSampleVectors, 1) == numCells*2, ...
+                'number of rows of new sample does not match old sample size');
+            
+            for i = 1:samples.num
+                if samples.transformSampleVectors
+                    perm = exp(newSampleVectors(1:numCells, i));
+                    samples.data{i}.perm(:) = convertFrom(perm, milli*darcy);
+                else
+                    samples.data{i}.perm(:) = newSampleVectors(1:numCells, i);
+                end
+                samples.data{i}.poro(:) = newSampleVectors(numCells+1:numCells*2, i);
+            end
+            
+        end
+           
         
     end
     

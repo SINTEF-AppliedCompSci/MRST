@@ -10,6 +10,12 @@ classdef BaseSamples
                     %        information about storage location and names. See
                     %        ResultHandler class and <EXAMPLE> for details
         generatorFn % Function for generating a stochastic sample
+       
+        %% Properties related to history matching
+        transformSampleVectors = true % Boolean. Indicates whether the sample vectors
+                                      % should be transformed to make them more
+                                      % suitable for history matching
+        
     end
     
     methods
@@ -75,7 +81,27 @@ classdef BaseSamples
                 mkdir(dataDir);
             end
         end
+
+        %-----------------------------------------------------------------%
+        % Functions related to history matching
+        %-----------------------------------------------------------------%
+        function sampleVectors = getSampleVectors(samples)
+            % Structure the samples in a matrix so that each column
+            % consists of the sampled parameters of its corresponding
+            % ensemble member.
+            
+            error('Template class not meant for direct use!');        
+        end
         
+        function samples = setSampleVectors(samples, newSampleVectors)
+            % Replaces the samples based on the provided sample vectors.
+            % The columns in newSampleVectors should represent parameter
+            % values for individual ensemble members, and should be on the
+            % same structure as what is provided by 'getSampleVectors()'
+            
+            error('Template class not meant for direct use!');
+        end
+           
     end
 end
     

@@ -204,6 +204,8 @@ classdef BaseQoI
         end
         
         %-----------------------------------------------------------------%
+        % Functions related to history matching
+        %-----------------------------------------------------------------%
         function u = getObservationVector(qoi)
             % Returns the observation as a single vector. Typically for use
             % in history matching

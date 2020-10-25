@@ -60,7 +60,7 @@ end
 
 %% Select and populate samples for the stochastic components in the ensemble
 
-ensembleSize = 20;
+ensembleSize = 23;
 
 configData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
@@ -82,7 +82,7 @@ qoi = WellQoI('wellNames', {'P1'}, 'fldname', {'qOs'}, ...
 
 ensemble = MRSTHistoryMatchingEnsemble(trueExample, samples, qoi, ... 
     ... %'directory', uniqueDirectory, ...
-    'simulationType', 'parallel', ...
+    'simulationType', 'serial', ...
     'maxWorkers', 8, ...
     'verbose', true, ...
     'deleteOldResults', true...
@@ -101,5 +101,8 @@ ensemble.simulateAllEnsembleMembers();
 
 %% Get simulated observations
 disp('simulated observations')
-ensemble.getEnsembleQoI()
+size(ensemble.getEnsembleQoI())
+
+%% Get the matrix of ensemble samples 
+size(ensemble.getEnsembleSamples())
 

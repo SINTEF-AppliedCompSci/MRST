@@ -107,7 +107,7 @@ classdef MRSTEnsemble
             
             % Set up directory
             if isempty(ensemble.directory)
-                ensemble.directory = fullfile(mrstOutputDirectory(), 'ensemble', ensemble.setup.name);
+                ensemble.directory = ensemble.getDefaultPath();
             end
             if ensemble.deleteOldResults && exist(ensemble.directory, 'dir')
                 rmdir(ensemble.directory, 's');
@@ -169,8 +169,11 @@ classdef MRSTEnsemble
         function dataPath = getDataPath(ensemble)
             dataPath = ensemble.directory();
         end
-               
-        
+              
+        %-----------------------------------------------------------------%
+        function defaultPath = getDefaultPath(ensemble)
+            defaultPath = fullfile(mrstOutputDirectory(), 'ensemble', ensemble.setup.name);
+        end
         
         %-----------------------------------------------------------------%
         function simulateEnsembleMember(ensemble, seed, varargin)
