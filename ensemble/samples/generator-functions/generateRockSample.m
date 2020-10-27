@@ -7,7 +7,8 @@ function sample = generateRockSample(N, varargin)
                  'seed'             , []             , ...
                  'covarianceFun'    , []             , ...
                  'correlationLength', 0.3            , ...
-                 'smooth'           , false          );
+                 'smooth'           , false          , ...
+                 'toVector'         , false          );
     opt = merge_options(opt, varargin{:});
 
     fun = setCovarianceFun(opt);
@@ -16,9 +17,11 @@ function sample = generateRockSample(N, varargin)
         rng(opt.seed);
     end
     
-    N_tmp = max(N, [2,2]);
-    p = GaussianProcessND(N_tmp, fun);
-    p = p(1:N(1), 1:N(2));
+    if numel(N) - nnz(N == 1) == 1
+        p = GaussianProcess1D(N, fun);
+    else
+        p = GaussianProcessND(N, fun);
+    end
     
     p = p - mean(p(:));
     p = p./std(p(:));
@@ -26,6 +29,10 @@ function sample = generateRockSample(N, varargin)
     perm = 10.^(log10(opt.avg_perm) + p.*opt.std_perm);
     poro = opt.avg_poro + p.*opt.std_poro;
     poro = max(poro, opt.min_poro);
+    
+    if opt.toVector
+        perm = perm(:); poro = poro(:);
+    end
     
     sample = struct('perm', perm, 'poro', poro);
 end
