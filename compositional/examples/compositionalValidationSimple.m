@@ -52,7 +52,7 @@ h = figure('Position', lf + [0, 0, 350, 0]);
 data = {states, ref.statesECL(2:end), ref.statesGPRS};
 n = min(cellfun(@numel, data));
 names = {'MRST', 'E300', 'AD-GPRS'};
-markers = {'-', '.', '--'};
+markers = {'-', '--', '--'};
 cnames = model.EOSModel.getComponentNames();
 
 nd = numel(data);
@@ -62,7 +62,7 @@ for i = 1:nd
         l{(i-1)*ncomp + j} = [names{i}, ' ', cnames{j}];
     end
 end
-lw = [1, 2, 2];
+lw = [.5, 2.5, 5];
 colors = lines(ncomp);
 for step = 1:n % 180 for plot in book
     figure(h); clf; hold on
@@ -86,7 +86,7 @@ end
 % that the prediction of phase behavior is accurate.
 
 colors = lines(ncomp + 2);
-for step = 1:n
+for step = 180 % 1:n
     figure(h); clf; hold on
     for i = 1:2
         s = data{i}{step};
@@ -95,7 +95,7 @@ for step = 1:n
             linewidth = 1;
         else
             marker = '--';
-            linewidth = 2;
+            linewidth = 2.5;
         end
         hs = plot(s.s(:, 2), marker, 'color', [0.913, 0.172, 0.047], 'linewidth', linewidth, 'color', colors(1, :));
         p = s.pressure./max(s.pressure);
@@ -142,10 +142,9 @@ mapx = @(x, y, z) (1/2)*(2*y + z)./(x + y+ z);
 mapy = @(x, y, z) (sqrt(3)/2)*z./(x + y+ z);
 
 colors = parula(numel(states));
-for i = 1:5:numel(states)
+for i = 1:20:numel(states)
     C = states{i}.components;
     plot(mapx(C(:, 1), C(:, 2), C(:, 3)), mapy(C(:, 1), C(:, 2), C(:, 3)), '-', 'color', colors(i, :))
-    
 end
 axis off
 
