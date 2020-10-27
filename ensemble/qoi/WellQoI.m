@@ -148,7 +148,32 @@ classdef WellQoI < BaseQoI
         %-----------------------------------------------------------------%
         % Functions related to history matching
         %-----------------------------------------------------------------%
-        function u = getObservationVector(qoi, varargin)
+        
+        function [obs, scaling] = getObservationAndScaling(qoi, varargin) 
+            
+            opt = struct('vectorize', true );
+            [opt, extra] = merge_options(opt, varargin{:});
+            
+            obs = qoi.getObservationVector('vectorize', false);
+            
+            scaling = zeros(size(obs));
+            numwells = size(obs,2);
+            numfields = size(obs, 3);
+            for w = 1:numwells
+                for f = 1:numfields
+                    scaling(:, w, f) = max(abs(obs(:, w, f)));
+                end
+            end
+            
+            if opt.vectorize
+                obs = qoi2vector(obs);
+                scaling = qoi2vector(scaling);
+            end
+    
+        end
+        
+        %-----------------------------------------------------------------%
+        function obs = getObservationVector(qoi, varargin)
             
             opt = struct('vectorize', true);
             [opt, extra] = merge_options(opt, varargin{:});
@@ -159,18 +184,18 @@ classdef WellQoI < BaseQoI
             assert(numel(qoi.observationResultHandler.getValidIds) > 0, ...
                 'No available data in the observationResultHandler');
             
-            u = qoi.observationResultHandler{1};
+            obs = qoi.observationResultHandler{1};
             
-            assert(size(u,1) <= qoi.numTimesteps, ...
+            assert(size(obs,1) <= qoi.numTimesteps, ...
                 'The observation has too few timesteps to match the QoI class');
-            assert(size(u,2) == numel(qoi.wellNames), ...
+            assert(size(obs,2) == numel(qoi.wellNames), ...
                 'The observation does not match the number of wells in QoI');
-            assert(size(u,3) == numel(qoi.fldname), ...
+            assert(size(obs,3) == numel(qoi.fldname), ...
                 'The observation does not match the number of fldnames in QoI');
             
-            u = u(qoi.historyMatchFromTimestep:qoi.numTimesteps, :, :);
+            obs = obs(qoi.historyMatchFromTimestep:qoi.numTimesteps, :, :);
             if opt.vectorize
-                u = qoi2vector(u);
+                obs = qoi2vector(obs);
             end
         end
         

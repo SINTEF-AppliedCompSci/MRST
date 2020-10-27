@@ -17,8 +17,8 @@ trueProblemOptions = {'ncells', numCells, ...
                       'rngseed', 1};
                   
 directoryTruth = fullfile(mrstOutputDirectory(), ...
-                          'historyMatching', ...
-                          ensemble.setup.name, 'truth');
+                          'historyMatching', 'truth', ...
+                          trueProblemName);
                   
 trueExample = MRSTExample(trueProblemName, trueProblemOptions{:});
 trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
@@ -90,8 +90,8 @@ ensemble = MRSTHistoryMatchingEnsemble(trueExample, samples, qoi, ...
 
 
 %% Displaying the observations and observation error cov through the ensemble
-disp('observation vector')
-ensemble.qoi.getObservationVector()
+disp('observation and scaling vector')
+[obsVector, obsScaling] = ensemble.qoi.getObservationAndScaling()
 disp('observation error covariance matrix')
 ensemble.qoi.getObservationErrorCov()
 
@@ -105,4 +105,42 @@ size(ensemble.getEnsembleQoI())
 
 %% Get the matrix of ensemble samples 
 size(ensemble.getEnsembleSamples())
+
+%% Do history matching
+disp('updated sample object:')
+updatedSamples = ensemble.doHistoryMatching()
+
+
+%% Create a new ensemble with updated samples
+updatedEnsemble = MRSTHistoryMatchingEnsemble(trueExample, updatedSamples, qoi, ... 
+    ... %'directory', uniqueDirectory, ...
+    'simulationType', 'serial', ...
+    'maxWorkers', 8, ...
+    'verbose', true, ...
+    'deleteOldResults', false, ...
+    'historyMatchingIteration', 2 ...
+    );
+
+%% Run new ensemble
+updatedEnsemble.simulateAllEnsembleMembers();
+
+%% Plot first ensemble
+ensemble.qoi.plotEnsemble(ensemble);
+
+%% Plot updated ensemble
+updatedEnsemble.qoi.plotEnsemble(updatedEnsemble);
+
+
+%% Plot diff between the qois
+figure
+hold on
+for i = 1:ensemble.num
+    plot(updatedEnsemble.qoi.ResultHandler{i}{1} - ensemble.qoi.ResultHandler{i}{1})
+end
+
+
+
+
+
+
 
