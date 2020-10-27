@@ -60,12 +60,12 @@ WELSPECS_tmp = {'INJE01', 'I', 1, 1, NaN, 'WATER', 0, 'STD', 'SHUT', 'YES', 0, '
 v = Inf;
 % WCONINJE      1         2        3       4       5    6    7   8   9   10  11 12 13 14    
 %               nm        type     flag    cntr    rate resv bhp thp vfp rv  th ro rw rg               
-WCONINJE_tmp = {'INJE01', 'WATER', 'OPEN', 'RATE', v,   v,   v,   v, 0,  v,  v, v, v, v};
+WCONINJE_tmp = {'INJE01', 'WATER', 'SHUT', 'RATE', v,   v,   v,   v, 0,  v,  v, v, v, v};
 
 
 % WCONPROD       1        2       3      4    5    6    7    8    9   10  11  12          
 %                nm       flag    cntr   orat wrat grat lrat resv bhp thp vfp lift
-WCONPROD_tmp = {'PROD01', 'OPEN', 'BHP', v,   v,   v,   v,   v,   v,  v,  0   v};
+WCONPROD_tmp = {'PROD01', 'SHUT', 'BHP', v,   v,   v,   v,   v,   v,  v,  0   v};
 
 %
 % WCONHIST       1        2       3      4    5    6    7    8    9   10  11  12          
