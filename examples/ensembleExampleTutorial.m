@@ -24,7 +24,7 @@ problem = example.getPackedSimulationProblem();
 % problem setup and seed for controlling the random number generator, so we
 % make a functio n handle taking in these arguments.
 generatorFn = @(problem, seed) ...
-    generateRockSample(problem.SimulatorSetup.model.G.cartDims, 'seed', seed);
+    generateRockSample(example.model.G.cartDims, 'seed', seed, 'toVector', true);
 % The class RockSamples implements routines for getting stochastic rock
 % realizations, and setting the to the model. The latter also includes
 % updating all model operators depending on the rock.
@@ -65,6 +65,23 @@ samplesRH = RockSamples('data', rh); % Set up rock samples
 % 'num' property says 50, but the 'data' property is now the ResultHandler
 % we just created.
 disp(samplesRH);
+
+%% Inspect ensemble subset
+% We have now defined all ingredients necessary to set up an instance of
+% the ensemble class. First, however, we set up and simulate a single
+% sample to illustrate the different steps.
+data    = samplesCell.getSample(13, problem);   % Get sample numer 13
+problem = samplesCell.setSample(data, problem);  % Set sample to problem
+% Like the rock structure of a model, the sample has a perm and poro field
+disp(data);
+% Inspect rock samples
+example.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
+for i = 1:5
+    data    = samplesCell.getSample(i, problem);   % Get sample number i
+    problem = samplesCell.setSample(data, problem); % Set sample to problem
+    % Inspect rock sample
+    example.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
+end
 
 %% Quantity of interest
 % The quantity that we are interested in from an ensemble simulation is
@@ -124,6 +141,14 @@ example.plot(sat); colormap(bone);
 time = cumsum(example.schedule.step.val)/day;
 figure(), plot(time, qOs{1}*day, 'LineWidth', 1.5); % Convert to days
 xlim([0, time(end)]), box on, grid on, xlabel('Time (days)');
+
+%%
+close all
+qoiWellValidated.plotQoI(example, qOs{1});
+for i = 1:numel(sat)
+    example.figure();
+    qoiStateValidated.plotQoI(example, sat{i});
+end
 
 %% Set up the ensemble
 % The MRSTEnsemble class conveniently gathers the problem setup, the
