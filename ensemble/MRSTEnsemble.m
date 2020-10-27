@@ -72,21 +72,19 @@ classdef MRSTEnsemble
         
         directory % getPath() See MonteCarloSimulator.m
         storeOutput = false
-        deleteOldResults = false
         
         
         % Function handle for solving a given problem
         solve = @(problem) simulatePackedProblem(problem); 
         
         simulationType = 'serial';
-        maxWorkers = 4;
+        maxWorkers = maxNumCompThreads();
         spmdEnsemble;
         
         verbose = false
         
         evalFn       = @simulateEnsembleMembersStandalone
         matlabBinary = ''
-        plotProgress
         
     end
     
@@ -96,51 +94,72 @@ classdef MRSTEnsemble
             %ENSEMBLE Create an ensemble object based on a baseProblem and
             % a set of parameters/variables/properties specific to each
             % ensemble member
-            
             [ensemble, extra] = merge_options(ensemble, varargin{:});
-            
+            opt          = struct('reset', false);
+            [opt, extra] = merge_options(opt, extra{:});
+            % Set example. This defines the base problem
             if isa(mrstExample, 'MRSTExample')
+                % Example given
                 ensemble.setup = mrstExample;
             else
+                % Example name given - set up example
                 ensemble.setup = MRSTExample(mrstExample, extra{:});
             end
-            
             % Set up directory
             if isempty(ensemble.directory)
-                ensemble.directory = fullfile(mrstOutputDirectory(), 'ensemble', ensemble.setup.name);
+                ensemble.directory = fullfile(mrstOutputDirectory(), ...
+                                              'ensemble', ensemble.setup.name);
             end
-            if ensemble.deleteOldResults && exist(ensemble.directory, 'dir')
-                rmdir(ensemble.directory, 's');
-            end
-            
-            
+            % Set samples
             ensemble.samples = samples;
-            ensemble.num = samples.num;
-            
-            baseProblem = ensemble.getBaseProblem();
+            ensemble.num     = samples.num;
+            % Validate qoi
+            baseProblem  = ensemble.getBaseProblem();
             ensemble.qoi = qoi.validateQoI(baseProblem);
-            
+            % Delete existing results if requested
+            if opt.reset
+                ensemble.reset('prompt', false);
+            end
+            % Prepare ensemble
             ensemble = ensemble.prepareEnsemble();
-            
         end
         
+        %-----------------------------------------------------------------%
         function ensemble = prepareEnsemble(ensemble)
+            if strcmpi(ensemble.simulationType, 'serial')
+                warning(['Serial ensemble simulations will take a '     , ...
+                         'long time, and should only be used for '      , ...
+                         'debugging or small ensembles. Consider '      , ...
+                         'using ''background'' or ''parallel'' instead.'])
+            end
+            
+            if strcmpi(ensemble.simulationType, 'parallel')
+                % Check if parallel toolbox is avialiable
+                if isempty(ver('parallel'))
+                    warning(['Parallel computing toolbox not aviailable. ', ...
+                             'Switching to background simulation']        );
+                    ensemble.simulationType = 'background';
+                end
+            end
+            
             switch ensemble.simulationType
                 case 'parallel'
-                    % Check if we have started a parallel session already,
-                    % and whether it has the correct number of workers
+                    % Use parallel toolbox. Check if we have started a
+                    % parallel session already, and whether it has the
+                    % correct number of workers
                     if isempty(gcp('nocreate'))
                         parpool(ensemble.maxWorkers);
                     elseif gcp('nocreate').NumWorkers ~= ensemble.maxWorkers
                         delete(gcp);
                         parpool(ensemble.maxWorkers);
                     end
-                    
+                    % Communicate ensemble to all workers
                     spmd
                         spmdEns = ensemble;
                     end
                     ensemble.spmdEnsemble = spmdEns;
                 case 'background'
+                    % Run simulations in background sessions
                     fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
                     if ~exist(fn, 'file')
                         save(fn, 'ensemble');
@@ -148,16 +167,50 @@ classdef MRSTEnsemble
             end
         end
         
-        function problem = getBaseProblem(ensemble)
-            problem = ensemble.setup.getPackedSimulationProblem('Directory', ensemble.directory, 'Name', 'baseProblem');
+        %-----------------------------------------------------------------%
+        function ensemble = reset(ensemble, varargin)
+            opt = struct('prompt', true);
+            opt = merge_options(opt, varargin{:});
+            dataPath = ensemble.getDataPath();
+            if ~exist(dataPath, 'dir'), return, end
+            if opt.prompt
+                prompt = sprintf(['Delete all data for %s? (sample '    , ...
+                                  'data will not be deleted) y/n [n]: '], ...
+                                              ensemble.setup.name     );
+                if ~strcmpi(input(prompt, 's'), 'y')
+                    fprintf('Ok, will not remove files.\n');
+                    return
+                end
+            end
+            % Delete QoIs
+            ensemble.qoi.ResultHandler.resetData();
+            % Delet base problem folder
+            if exist(fullfile(dataPath, 'baseProblem'), 'dir')
+                rmdir(fullfile(dataPath, 'baseProblem'), 's');
+            end
+            % Delete ensemble file
+            if exist(fullfile(dataPath, 'ensemble.mat'), 'file')
+                delete(fullfile(dataPath, 'ensemble.mat'));
+            end
+            list = ls(dataPath);
+            % Delete sample output directories
+            samp = regexp(list, '\d+\s', 'match');
+            samp = cellfun(@str2num, samp);
+            for s = samp
+                rmdir(fullfile(dataPath, num2str(s)), 's');
+            end
+            % Delete log files (background simulations only)
+            logs = regexp(list, 'log_\d+_\d+.mat', 'match');
+            for l = logs
+                delete(fullfile(dataPath, l{1}));
+            end
+            % Prepare ensemble
+            ensemble = ensemble.prepareEnsemble();
         end
         
         %-----------------------------------------------------------------%
-        function memberProblem = getProblem(ensemble, i)
-            % Get the specific problem with configurations for ensemble 
-            % member i
-            assert(i > 0 && i <= ensemble.num, 'illegal ensemble ID');
-            memberProblem = ensemble.configurations.getProblem(i);
+        function problem = getBaseProblem(ensemble)
+            problem = ensemble.setup.getPackedSimulationProblem('Directory', ensemble.directory, 'Name', 'baseProblem');
         end
         
         %-----------------------------------------------------------------%
@@ -169,8 +222,6 @@ classdef MRSTEnsemble
         function dataPath = getDataPath(ensemble)
             dataPath = ensemble.directory();
         end
-               
-        
         
         %-----------------------------------------------------------------%
         function simulateEnsembleMember(ensemble, seed, varargin)
@@ -190,11 +241,10 @@ classdef MRSTEnsemble
             ensemble.solve(problem);
             % Compute QoI
             ensemble.qoi.getQoI(problem);
-            
+            % Clear output if requested
             if ~ensemble.storeOutput
                 clearPackedSimulatorOutput(problem, 'prompt', false);
             end
-            
         end
         
         %-----------------------------------------------------------------%
@@ -211,9 +261,9 @@ classdef MRSTEnsemble
             rangePos = cumsum([0; rangePos]) + 1;
             switch ensemble.simulationType
                 case 'serial'
-                    ensemble.simulateEnsembleMembersSerial(range, rangePos);
+                    ensemble.simulateEnsembleMembersSerial(range, rangePos, varargin{:});
                 case 'parallel'
-                    ensemble.simulateEnsembleMembersParallel(range, rangePos);
+                    ensemble.simulateEnsembleMembersParallel(range, rangePos, varargin{:});
                 case 'background'
                     ensemble.simulateEnsembleMembersBackground(range, rangePos, varargin{:});
             end
@@ -234,7 +284,7 @@ classdef MRSTEnsemble
         end
 
         %-----------------------------------------------------------------%
-        function simulateEnsembleMembersSerial(ensemble, range, rangePos)
+        function simulateEnsembleMembersSerial(ensemble, range, rangePos, varargin)
             ensemble.simulateEnsembleMembersCore(range);
         end
         
@@ -272,30 +322,8 @@ classdef MRSTEnsemble
             end
             fprintf(['Started %d new Matlab sessions. ', ...
                      'Waiting for simulations ...\n'  ], n);
-            pause(0.1);
             if opt.plotProgress
-                nr = numel(num2str(max(range)));
-                em = ['%', num2str(nr), 'u'];    
-                while true
-                    progress = ensemble.getEnsembleMemberProgress(range);
-                    % TODO: Implement function for plotting progress 
-                    % plotEnsembleSimulationProgress(h, ensemble, progress)
-                    clc;
-                    fprintf('Simulating ensemble members ... \n')
-                    fprintf(repmat('-', 1, numel('Ensemble member ') + nr + 3 + 100 + 10))
-                    fprintf('\n');
-                    for i = 1:numel(range)
-                        p = min(progress(i), 1);
-                        fprintf(['Ensemble member ', em, ': |'], range(i));
-                        fprintf(repmat('=', 1, round(p*100))    );
-                        fprintf(repmat(' ', 1, round((1-p)*100)));
-                        fprintf('| %6.2f %% \n', p*100);
-                    end
-                    fprintf(repmat('-', 1, 100 + numel('Ensemble member ') + nr + 3 + 10))
-                    fprintf('\n');
-                    pause(0.5)
-                    if all(isinf(progress)), break; end
-                end
+                ensemble.plotProgress(range);
             end
         end
         
@@ -306,7 +334,7 @@ classdef MRSTEnsemble
             nsteps   = numel(ensemble.setup.schedule.step.val);
             for i = 1:numel(range)
                 if exist(fullfile(ensemble.directory(), ...
-                                  ['qoi', num2str(range(i)), '.mat']), 'file')
+                        [ensemble.qoi.ResultHandler.dataPrefix, num2str(range(i)), '.mat']), 'file')
                     progress(i) = inf;
                     continue
                 end
@@ -317,6 +345,29 @@ classdef MRSTEnsemble
                 files = ls(dataDir);
                 progress(i) = numel(regexp(files, 'state\d+\.mat', 'match'))/nsteps;
             end
+        end
+        
+        %-----------------------------------------------------------------%
+        function plotProgress(ensemble, range)
+            [h_progress, h_qoi] = deal([]);
+            n = 0;
+            while true
+                pause(0.1);
+                progress = ensemble.getEnsembleMemberProgress(range);
+                h_progress = plotEnsembleProgress(ensemble, progress, range, h_progress);
+                if ensemble.qoi.ResultHandler.numelData > n
+                    h_qoi = ensemble.plotQoI(h_qoi);
+                    n = ensemble.qoi.ResultHandler.numelData;
+                end
+                drawnow
+                if all(isinf(progress)), break; end
+            end
+        end
+        
+        %-----------------------------------------------------------------%
+        function h = plotQoI(ensemble, h)
+            if nargin < 2, h = []; end
+            h = ensemble.qoi.plotEnsembleQoI(ensemble, h);
         end
         
     end
