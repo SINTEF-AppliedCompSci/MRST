@@ -17,8 +17,7 @@ classdef EquationOfStateComponent < GenericComponent
             c.surfacePhaseDensityPure = density;
             c.molarMass = mw;
             c = c.functionDependsOn('getPhaseComposition', {'ComponentPhaseMassFractions'}, 'PVTPropertyFunctions');
-            c = c.functionDependsOn('getComponentDensity', {'Density'}, 'PVTPropertyFunctions');
-
+            c = c.functionDependsOn('getComponentDensity', {'Density','ComponentPhaseMassFractions'}, 'PVTPropertyFunctions');
         end
         
         function c = getComponentDensity(component, model, state, varargin)
