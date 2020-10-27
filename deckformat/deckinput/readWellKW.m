@@ -162,18 +162,26 @@ function w = readCompDat(fid, w)
    numeric  = [2:5, 7:11, 14];
    compdat  = toDouble(readDefaultedKW(fid, template), numeric);
 
-   wname = w.WELSPECS(:,1);
-   patt  = strrep(compdat(:,1), '*', '.*');
+   is_patt = ~cellfun('isempty', strfind(compdat(:,1), '*'));  %#ok<STRCL1>
+   if any(is_patt)
+      wname = w.WELSPECS(:,1);
+      patt  = strrep(compdat(is_patt, 1), '*', '.*');
 
-   [i, j] = blockDiagIndex(numel(wname), numel(patt));
-   match  = ~ cellfun('isempty', regexp( ...
-                      reshape(wname(i), numel(wname), []), ...
-                      reshape(patt (j), [], numel(patt))));
+      [i, j] = blockDiagIndex(numel(wname), numel(patt));
+      match  = ~ cellfun('isempty', regexp( ...
+                         reshape(wname(i), numel(wname), []), ...
+                         reshape(patt (j), [], numel(patt))));
 
-   count   = accumarray(j(match), 1, [numel(patt), 1], [], 1);
-   compdat = rldecode(compdat, count, 1);
+      count          = ones([size(compdat, 1), 1]);
+      count(is_patt) = accumarray(j(match), 1, [numel(patt), 1], [], 1);
 
-   compdat(:, 1) = wname(i(match));
+      pos     = cumsum([1 ; count]);
+      patt_ix = find(is_patt);
+      patt_ix = mcolon(pos(patt_ix), pos(patt_ix + 1) - 1);
+
+      compdat = rldecode(compdat, count, 1);
+      compdat(patt_ix, 1) = wname(i(match));
+   end
 
    if isempty(w.COMPDAT)
       % No existing completion records.  Assign this data.
