@@ -79,7 +79,7 @@ classdef ReservoirStateQoI < BaseQoI
             if isa(ensemble, 'MRSTEnsemble')
                 setup = ensemble.setup;
             elseif isa(ensemble, 'MRSTExample')
-                setup = ensmeble;
+                setup = ensemble;
             else
                 error(['Input ensemble must either be an instance of ', ...
                       'class ''MRSTEnsemble'' or ''MRSTExample'''     ]);
