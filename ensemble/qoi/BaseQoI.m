@@ -14,22 +14,25 @@ classdef BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function qoi = validateQoI(qoi, problem)
+        function qoi = validateQoI(qoi, problem, varargin)
             % Validate the quantity of interest. BaseQoI sets up an
             % appropriate ResultHandler, so that all subclass
             % implementations of this function should start with
             % qoi = validateQoI@BaseQoI(qoi, problem);
+            opt = struct('qoiNo', []);
+            opt = merge_options(opt, varargin{:});
             if isempty(qoi.ResultHandler)
+                prefix = ['qoi', num2str(opt.qoiNo), '_'];
                 % Set up ResultHandler. By default, data is stored in the
                 % the dataDirectory of the problem output handler
                 dataDir = problem.OutputHandlers.states.dataDirectory;
                 qoi.ResultHandler = ResultHandler('dataDirectory', dataDir, ...
                                                   'dataFolder'   , ''     , ...
-                                                  'dataPrefix'   , 'qoi' ); %#ok
+                                                  'dataPrefix'   ,  prefix); %#ok
             end
             % Check that output is stored with the correct name
-            assert(strcmp(qoi.ResultHandler.dataPrefix, 'qoi'), ...
-                   'ResultHandler data prefix must be ''qoi''.');
+            assert(strcmp(qoi.ResultHandler.dataPrefix(1:3), 'qoi'), ...
+                   'ResultHandler data prefix must begin with ''qoi''.');
         end
         
         %-----------------------------------------------------------------%
@@ -106,40 +109,48 @@ classdef BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function h = plotEnsembleQoI(qoi, ensemble, varargin)
+        function h = plotEnsembleQoI(qoi, ensemble, h, varargin)
             % Create a meaningful plot of the ensemble based on the
             % relevant QoI
-            if nargin < 2, ensemble = []; end 
             opt = struct('range', inf);
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u] = qoi.computeMean(opt.range);
             numQoIs    = numel(u_mean);
             numSamples = numel(u);
+            if nargin < 2,               ensemble = [];      end
+            if nargin < 3 || isempty(h), h = nan(numQoIs,1); end
             for i = 1:numQoIs
-                if ~isempty(ensemble)
-                    h = ensemble.setup.figure();
+                if isnan(h(i))
+                    if ~isempty(ensemble)
+                        h(i) = ensemble.setup.figure();
+                    else
+                        h(i) = figure();
+                    end
                 else
-                    h = figure();
+                    set(0, 'CurrentFigure', h(i)), clf(h(i))
                 end
                 hold on
                 for j = 1:numSamples
-                    qoi.plotQoI(ensemble, u{j}{i}, extra{:});
+                    qoi.plotQoI(ensemble, u{j}{i}, 'isMean', false, extra{:});
                 end
-                qoi.plotQoI(ensemble, u_mean{i}, 'isMean', true, extra{:});
+                qoi.plotQoI(ensemble, u_mean{i}, extra{:});
                 hold off
             end
         end
         
         %-----------------------------------------------------------------%
         function plotQoI(qoi, ensemble, u, varargin)
-            % Plot a single QoI u onto current figure. This function is
-            % meant to be implemented on a per-class-basis to generate
-            % suitable plots for the QoI in question.
-            warning(['Method plotQoI is not implemented for this QoI. ', ...
-                     'Using simple 1d plotting']                       );
+            % Plot a single QoI u in current figure. This function is meant
+            % to be implemented on a per-class-basis to generate suitable
+            % plots for the QoI in question.
+            warning('BaseQoI:notImplemented', ['Method plotQoI is not '    , ...
+                    'implemented for this QoI - using simple 1d plotting. ', ...
+                    'This warning message will be turned off for '         , ...
+                    'subsequent calls.']                                   );
+            warning('off', 'BaseQoI:notImplemented');
             % Optional input arguments. Can be used to pass arguments
             % directly to e.g., plot or plotCellData
-            opt = struct('isMean', false);
+            opt = struct('isMean', true);
             [opt, extra] = merge_options(opt, varargin{:});
             color = [1,1,1]*0.8*(1-opt.isMean); % Plot mean in distinct color
             plot(u, 'lineWidth', 2, 'color', color, extra{:});
