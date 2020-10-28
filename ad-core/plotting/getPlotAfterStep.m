@@ -73,7 +73,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'plotReservoir',   true, ...
                  'view',            [],   ...
                  'wells',           [],   ...
-                 'useTimesteps',    false);
+                 'useTimesteps',    false, ...
+                 'plotWellSolArgs', {{}});
     [opt, extra] = merge_options(opt, varargin{:});
     
     G = model.G;
@@ -93,9 +94,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         ws0 = {ws; ws};
         if opt.useTimesteps
-            [hwell, injectWell] = plotWellSols(ws0, schedule.step.val([1,1]));
+            [hwell, injectWell] = plotWellSols(ws0, schedule.step.val([1,1]), opt.plotWellSolArgs{:});
         else
-            [hwell, injectWell] = plotWellSols(ws0);
+            [hwell, injectWell] = plotWellSols(ws0, opt.plotWellSolArgs{:});
         end
     else
         [hwell, injectWell] = deal(nan);
