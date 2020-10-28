@@ -40,7 +40,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('pressureRange', [], 'regNo', 1);
+    opt = struct('pressureRange', [], 'regNo', 1, 'field', []);
     opt = merge_options(opt, varargin{:});
     fn = fieldnames(model.fluid);
     for propno = 1:numel(fn)
@@ -138,8 +138,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               'Style', 'listbox',...
               'String', names, 'Callback', @drawPlot, ...
               'Position',[0 0 1 1]);
-    
           
+    if ~isempty(opt.field)
+        v = find(strcmpi(opt.field, names));
+        if isempty(v), v = 1; end
+        set(propsel, 'Value', v);
+    end
 
     function drawPlot(src, event)                                          %#ok<*INUSD>
         axis(plotaxis);
