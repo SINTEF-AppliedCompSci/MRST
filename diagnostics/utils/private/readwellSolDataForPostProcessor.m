@@ -73,7 +73,7 @@ for i = 1:numel(keywordlist)
     [nm{propIdx},unit] = getUnit(kw);
     
     for j = 1:numel(ws)
-         data =  convertTo([ws{j}.(kw)],unit);
+         data =  convertTo([ws{j}.(kw)],unit).*[ws{j}.status];
          if strcmp(nm{propIdx},'m^3/day')
              data = abs(data);
          end
