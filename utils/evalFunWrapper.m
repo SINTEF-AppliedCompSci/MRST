@@ -97,6 +97,8 @@ end
 mbin = opt.matlabBinary;
 if isempty(mbin)
     mbin = fullfile(matlabroot(), 'bin', 'matlab');
+    % Support folder names with spaces (e.g., 'Program Files' on win)
+    mbin = strcat('"', mbin, '"');
 end
 
 % handle matlab options
