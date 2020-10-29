@@ -215,7 +215,7 @@ classdef WellQoI < BaseQoI
             % Check how observationCov matches the observation
             u = qoi.getObservationVector('vectorize', false);
             u_vec = qoi2vector(u);
-            numObs = size(u,1);
+            numObs = size(u_vec,1);
             
             if isscalar(qoi.observationCov)
                 R = speye(numObs)*qoi.observationCov;

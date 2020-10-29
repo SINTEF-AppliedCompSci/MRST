@@ -52,6 +52,92 @@ classdef WellSamples < BaseSamples
         end
         
         
+             
+        %-----------------------------------------------------------------%
+        % Functions related to history matching
+        %-----------------------------------------------------------------%
+        function sampleVectors = getSampleVectors(samples)
+
+            assert(~isempty(samples.data), ...
+                'This function only work with pre-generated samples');
+            
+            
+            wellIsField = isfield(samples.data{1}, 'well');
+            if wellIsField
+                sampleFields = fieldnames(samples.data{1}.well);
+                numWells = numel(samples.data{1}.well.(sampleFields{1}));
+            else
+                sampleFields = fieldnames(samples.data{1});
+                numWells = numel(samples.data{1}.(sampleFields{1}));
+            end
+            numFields = numel(sampleFields);
+            
+            sampleVectors = zeros(numFields*numWells, samples.num);
+            
+            for i = 1:samples.num
+                for f = 1:numFields
+                    field = sampleFields{f};
+                    startIndex = (f-1)*numWells + 1;
+                    endIndex   = f*numWells;
+                    
+                    if wellIsField
+                        fieldData = samples.data{i}.well.(field);
+                    else
+                        fieldData = samples.data{i}.(field);
+                    end
+                    
+                    if strcmp(field, 'WI') && samples.transformSampleVectors
+                        % Logarithmic transform of well production indices
+                         sampleVectors(startIndex:endIndex, i)= log(fieldData);
+                    else
+                        sampleVectors(startIndex:endIndex, i) = fieldData;
+                    end
+                end
+            end
+        end
+        
+        function samples = setSampleVectors(samples, newSampleVectors)
+            
+            assert(size(newSampleVectors, 2) == samples.num, ...
+                'number of columns of new samples does not match ensemble size');
+            
+            wellIsField = isfield(samples.data{1}, 'well');
+            if wellIsField
+                sampleFields = fieldnames(samples.data{1}.well);
+                numWells = numel(samples.data{1}.well.(sampleFields{1}));
+            else
+                sampleFields = fieldnames(samples.data{1});
+                numWells = numel(samples.data{1}.(sampleFields{1}));
+            end
+            numFields = numel(sampleFields);
+            
+            assert(size(newSampleVectors, 1) == numWells*numFields, ...
+                'number of rows of new sample does not match old sample size');
+            
+            for i = 1:samples.num
+                for f = 1:numFields
+                    field = sampleFields{f};
+                    startIndex = (f-1)*numWells + 1;
+                    endIndex   = f*numWells;
+
+                    if strcmp(field, 'WI') && samples.transformSampleVectors
+                        % Logarithmic transform of well production indices
+                        fieldData = exp(newSampleVectors(startIndex:endIndex, i));
+                    else
+                        fieldData = newSampleVectors(startIndex:endIndex, i);
+                    end
+                    
+                    if wellIsField
+                        samples.data{i}.well.(field)(:) = fieldData;
+                    else
+                        samples.data{i}.(field)(:) = fieldData;
+                    end
+                end
+            end           
+        end
+        
+        
+        
     end
 end
 

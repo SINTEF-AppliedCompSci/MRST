@@ -96,25 +96,38 @@ classdef RockSamples < BaseSamples
         % Functions related to history matching
         %-----------------------------------------------------------------%
         function sampleVectors = getSampleVectors(samples)
-            
             assert(~isempty(samples.data), ...
                 'This function only work with pre-generated samples');
             
-            assert(numel(samples.data{1}.poro) == numel(samples.data{1}.perm), ...
+            exampleRock = samples.data{1};
+            rockIsField = isfield(exampleRock, 'rock');
+            if rockIsField
+                exampleRock = samples.data{1}.rock;
+            end
+            
+            
+            assert(numel(exampleRock.poro) == numel(exampleRock.perm), ...
                 'Inconsistent permeability and porosity sizes');
             
-            numCells = numel(samples.data{1}.poro);
+            numCells = numel(exampleRock.poro);
             sampleVectors = zeros(2*numCells, samples.num);
             
             for i = 1:samples.num
+                
+                if rockIsField
+                    rockData = samples.data{i}.rock;
+                else
+                    rockData = samples.data{i};
+                end
+                
                 if samples.transformSampleVectors
                     % Logarithmic transform of permeability 
-                    perm = convertTo(samples.data{i}.perm(:), milli*darcy);
+                    perm = convertTo(rockData.perm(:), milli*darcy);
                     sampleVectors(1:numCells, i) = log(perm);
                 else
-                    sampleVectors(1:numCells, i) = samples.data{i}.perm(:);
+                    sampleVectors(1:numCells, i) = rockData.perm(:);
                 end
-                sampleVectors(numCells+1:numCells*2, i) = samples.data{i}.poro(:);
+                sampleVectors(numCells+1:numCells*2, i) = rockData.poro(:);
             end
         end
         
@@ -122,18 +135,35 @@ classdef RockSamples < BaseSamples
             
             assert(size(newSampleVectors, 2) == samples.num, ...
                 'number of columns of new samples does not match ensemble size');
-            numCells = numel(samples.data{1}.poro);
+            
+            rockIsField = isfield(samples.data{1}, 'rock');
+            
+            if rockIsField
+                numCells = numel(samples.data{1}.rock.poro);
+            else
+                numCells = numel(samples.data{1}.poro);
+            end
+            
             assert(size(newSampleVectors, 1) == numCells*2, ...
                 'number of rows of new sample does not match old sample size');
             
             for i = 1:samples.num
+                
                 if samples.transformSampleVectors
                     perm = exp(newSampleVectors(1:numCells, i));
-                    samples.data{i}.perm(:) = convertFrom(perm, milli*darcy);
+                    permData = convertFrom(perm, milli*darcy);
                 else
-                    samples.data{i}.perm(:) = newSampleVectors(1:numCells, i);
+                    permData = newSampleVectors(1:numCells, i);
                 end
-                samples.data{i}.poro(:) = newSampleVectors(numCells+1:numCells*2, i);
+                poroData = newSampleVectors(numCells+1:numCells*2, i);
+
+                if rockIsField
+                    samples.data{i}.rock.perm(:) = permData;
+                    samples.data{i}.rock.poro(:) = poroData;
+                else
+                    samples.data{i}.perm(:) = permData;
+                    samples.data{i}.poro(:) = poroData;
+                end
             end
             
         end

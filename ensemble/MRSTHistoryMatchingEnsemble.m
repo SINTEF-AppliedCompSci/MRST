@@ -25,7 +25,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             [obs, ensembleObs, R] = ensemble.applyScaling(obs, ensembleObs, R, scaling);
             [obs, ensembleObs, R] = ensemble.removeObsoleteObservations(obs, ensembleObs, R);
             
-            ensembleObs = ensemble.perturbEnsembleQoI(ensembleObs);
+            ensembleObs = ensemble.perturbEnsembleQoI(ensembleObs, R);
             
             ensembleParameters = ensemble.getEnsembleSamples();
             
@@ -73,7 +73,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             end
         end
         
-        function ensembleQoI = perturbEnsembleQoI(ensemble, ensembleQoI)
+        function ensembleQoI = perturbEnsembleQoI(ensemble, ensembleQoI, R)
             % Add unbiased observation error across the ensemle according
             % to the observation error covariance 
             
@@ -85,7 +85,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             obserror = obserror ./ std(obserror, 0, 2);
 
             ensembleQoI = ensembleQoI ...
-                + sqrt(ensemble.qoi.getObservationErrorCov())*obserror;
+                + sqrt(R)*obserror;
         end
         
         %-----------------------------------------------------------------%

@@ -206,6 +206,17 @@ classdef BaseQoI
         %-----------------------------------------------------------------%
         % Functions related to history matching
         %-----------------------------------------------------------------%
+        function [obs, scaling] = getObservationAndScaling(qoi, varargin)
+            % Returns the observation and values that shows how these
+            % observations should be scaled for best results in history
+            % matching. Optional parameters are:
+            %  - 'vectorize': If true, the outputs will be one dimensional 
+            %         vectors, or they will be structured as the given QoI.
+
+            error('Template class not meant for direct use!');
+        end
+            
+            
         function u = getObservationVector(qoi)
             % Returns the observation as a single vector. Typically for use
             % in history matching
