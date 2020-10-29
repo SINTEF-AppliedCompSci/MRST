@@ -195,13 +195,13 @@ classdef MRSTEnsemble
             end
             list = ls(dataPath);
             % Delete sample output directories
-            samp = regexp(list, '\d+\s', 'match');
+            samp = folderRegexp(list, '\d+\s', 'match');
             samp = cellfun(@str2num, samp);
             for s = samp
                 rmdir(fullfile(dataPath, num2str(s)), 's');
             end
             % Delete log files (background simulations only)
-            logs = regexp(list, 'log_\d+_\d+.mat', 'match');
+            logs = folderRegexp(list, 'log_\d+_\d+.mat', 'match');
             for l = logs
                 delete(fullfile(dataPath, l{1}));
             end
@@ -274,7 +274,7 @@ classdef MRSTEnsemble
         function simulateAllEnsembleMembers(ensemble, varargin)
             assert(~isinf(ensemble.num), ...
                 'Ensemble size not define, please use ensemble.simulateEnsembleMembers(range) instead');
-            ensemble.simulateEnsembleMembers(1:ensemble.num, varargin);
+            ensemble.simulateEnsembleMembers(1:ensemble.num, varargin{:});
         end
         
         %-----------------------------------------------------------------%
@@ -357,7 +357,7 @@ classdef MRSTEnsemble
                     continue;
                 end
                 files = ls(dataDir);
-                progress(i) = numel(regexp(files, 'state\d+\.mat', 'match'))/nsteps;
+                progress(i) = numel(folderRegexp(files, 'state\d+\.mat', 'match'))/nsteps;
             end
         end
         
@@ -387,6 +387,17 @@ classdef MRSTEnsemble
     end
 end
 
+%% Helpers
+function matches = folderRegexp(list, expression, outputFormat)
+    if size(list, 1) > 1
+        % Windows behavior
+        % Pad with a space at the end and reshape into a single
+        % long string.
+        pad = repmat(' ', size(list, 1), 1);
+        list = reshape([list, pad]', 1, []);
+    end
+    matches = regexp(list, expression, outputFormat);
+end
 
 
 
