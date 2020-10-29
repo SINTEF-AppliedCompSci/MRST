@@ -86,6 +86,7 @@ classdef MRSTEnsemble
         evalFn       = @simulateEnsembleMembersStandalone
         matlabBinary = ''
         
+        verboseSimulation = false
     end
     
     methods
@@ -263,7 +264,7 @@ classdef MRSTEnsemble
                 case 'serial'
                     ensemble.simulateEnsembleMembersSerial(range, rangePos, varargin{:});
                 case 'parallel'
-                    ensemble.simulateEnsembleMembersParallel(range, rangePos, varargin{:});
+                    ensemble.simulateEnsembleMembersParallel(range, rangePos);
                 case 'background'
                     ensemble.simulateEnsembleMembersBackground(range, rangePos, varargin{:});
             end
@@ -278,9 +279,21 @@ classdef MRSTEnsemble
         
         %-----------------------------------------------------------------%
         function simulateEnsembleMembersCore(ensemble, range)
-           for seed = reshape(range, 1, [])
-               ensemble.simulateEnsembleMember(seed);
+           range = reshape(range, 1, []);
+           for i = 1:numel(range)
+               seed = range(i);
+               
+               progress = floor(100*(i-1)/numel(range));
+               fprintf('(%d%%)\tSimulating ensemble member %d among ensemble members %d to %d...\n', ...
+                       progress, seed, range(1), range(end))                    
+               
+               if ensemble.verboseSimulation
+                   ensemble.simulateEnsembleMember(seed);
+               else
+                   evalc('ensemble.simulateEnsembleMember(seed)');
+               end
            end
+           fprintf('(100%%)\tDone simulating ensemble members %d to %d \n', range(1), range(end));
         end
 
         %-----------------------------------------------------------------%
@@ -295,6 +308,7 @@ classdef MRSTEnsemble
                 spmdRange = range(rangePos(labindex):rangePos(labindex+1)-1);
                 spmdEns.simulateEnsembleMembersCore(spmdRange);
             end
+            fprintf('simulateEnsembleMembersParallel completed\n');
         end
         
         %-----------------------------------------------------------------%
