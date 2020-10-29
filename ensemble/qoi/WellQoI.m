@@ -117,7 +117,7 @@ classdef WellQoI < BaseQoI
             if is_timeseries
                 time = cumsum(qoi.dt)./opt.timescale;
                 if qoi.cumulative
-                    u = cumsum(u.*qoi.timesteps).*opt.timescale;
+                    u = cumsum(u.*qoi.dt).*opt.timescale;
                 else
                     u = u.*opt.timescale;
                 end
@@ -129,6 +129,44 @@ classdef WellQoI < BaseQoI
                 end
             end
         end
+        
+         function h = plotEnsembleQoI(qoi, ensemble, h, varargin)
+            % Plots well properties for the ensemble and ensemble mean.
+            % Creates one figure per field
+            % Organizes results from each well in a subplot
+            opt = struct('timescale', day);
+            [opt, extra] = merge_options(opt, varargin{:});
+            
+            num_fields = numel(qoi.fldname);
+            num_wells  = numel(qoi.wellNames);
+            
+            num_wells_horizontal = ceil(sqrt(num_wells));
+            num_wells_vertical   = ceil(num_wells/num_wells_horizontal);
+            
+            [mean_qoi, qois] = qoi.computeMean();
+            
+            t = cumsum(qoi.dt)./opt.timescale;
+            for fld = 1:num_fields
+                if num_fields == 1
+                    h = figure;
+                else
+                    h{fld} = figure;
+                end
+                for w = 1:num_wells
+                    subplot(num_wells_horizontal, num_wells_vertical, w);
+                    hold on
+                    for i = 1:ensemble.num
+                        plot(t, qois{i}{1}(:,w,fld), 'color', [1 1 1]*0.6, extra{:});
+                    end
+                    plot(t, mean_qoi{1}(:, w, fld), 'color', 'red', extra{:});
+                    xlabel(sprintf('Time (%s)', formatTime(opt.timescale)));
+                    ylabel(sprintf('%s', qoi.fldname{fld}))
+                    title(strcat(qoi.fldname{fld}, " for well ", qoi.wellNames{w}));
+                end
+            end
+            
+        end
+        
         
         %-----------------------------------------------------------------%
         function n = norm(qoi, u)
