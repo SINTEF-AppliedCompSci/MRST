@@ -1,6 +1,10 @@
 %% Ensemble of 3D reservoirs
-% This is a minimal example (and a sanity test) for creating an ensemble of
-% 3D reservoirs with two phases (oil and water).
+% Whereas this also serves as a minimal example, it demonstrates how to use
+% different sample classes and combine them so that an ensemble has
+% uncertain parameters related to different properties in the model
+% (uncertain rock and uncertain well properties).
+% To show this we create a small ensemble of a 3D reservoir modelling two
+% phase flow (oil and water) between two injectors and two producers.
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
     example-suite incomp ensemble 
@@ -12,17 +16,15 @@ mrstVerbose off
 
 %% Choose a base problem and ensemble size
 % The base problem contains all properties that are common throughout the
-% ensemble
+% ensemble, and here we have implemented our own super simple example (see 
+% example_template.m for the MRSTExample template).
 
 baseProblemName = 'ensemble_base_problem_3d_reservoir';
 baseProblemOptions = {};
 
-ensembleSize = 20;
 
-
-%% Run the base problem if we wish
-% Simulate and plot it for illustration:
-simulateExample = true;
+% Change these flags to investigate the baseExample
+simulateExample = false;
 plotSimulation = false;
 rerunBaseProblemFromScratch = false;
 
@@ -41,7 +43,13 @@ if simulateExample
     end
 end
 
-%% Select and populate samples for stochastic configurations class
+%% an ensemble of stochastic rock realizations 
+% RockSamples is a superclass of BaseSamples, and thereby implements all
+% the sample functionality required to map new rock data to the base
+% problem. Here, we precompute 20 rock realizations and use these as
+% stochastic samples.
+
+ensembleSize = 20;
 
 rockData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
@@ -52,37 +60,42 @@ end
 rockSamples = RockSamples('data', rockData);
 
 %% Select quantity of interest class
+% We here demonstrates how the WellQoI class can be used to store
+% production information for two fields for both producers.
 
 qoi = WellQoI(...
     'wellNames', {'P1', 'P2'}, ...
     'fldname', {'qOs', 'qWs'}, ...
-    'cumulative', false, ...
-    'numTimesteps', []);
-
-%% Define a unique folder in case we want to redo the simulations
-uniqueDirectory = fullfile(mrstOutputDirectory(), 'ensemble', 'unique', datestr(datetime('now'), 'yymmdd_hhMMss'));
+    'cumulative', false);
 
 
-%% Create the ensemble
-ensemble = MRSTEnsemble(baseExample, rockSamples, qoi, ...
-    ... %'directory', uniqueDirectory, ...
+%% Create ensemble
+% Combining the baseExample, the rock samples and the well QoI.
+% We will run the ensemble in parallel across 8 workers, and we choose to
+% delete any existing simulation results and run the ensemble from scratch
+
+rockEnsemble = MRSTEnsemble(baseExample, rockSamples, qoi, ...
     'simulationType', 'parallel', ...
     'maxWorkers', 8, ...
-    'deleteOldResults', true, ...
+    'reset', true, ...
     'verbose', true);
 
 %% Run ensemble
-ensemble.simulateAllEnsembleMembers();
+rockEnsemble.simulateAllEnsembleMembers();
 
 %% Plot results
-ensemble.qoi.plotEnsemble(ensemble);
+rockEnsemble.plotQoI();
 
 
 
 
+%-------------------------------------------------------------------------%
+%% Create another ensemble using stochastic well indices.
+% The class WellSamples are used in the same way as RockSamples, and are
+% also a superclass of BaseSamples. Instead of rock properties, however,
+% its data property now holds well properties. In this example, we have
+% stochastic well production indices (WI).
 
-%% Create another ensemble using stochastic well indices
-% ---------------------
 wellSampleData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
     wellSampleData{i}.WI = rand(1,4)*1e-11;
@@ -91,24 +104,28 @@ end
 wellSamples = WellSamples('data', wellSampleData);
 
 %% Define new ensemble
-ensemble = MRSTEnsemble(baseExample, wellSamples, qoi, ...
-    ... %'directory', uniqueDirectory, ...
+wellEnsemble = MRSTEnsemble(baseExample, wellSamples, qoi, ...
     'simulationType', 'parallel', ...
     'maxWorkers', 8, ...
-    'deleteOldResults', true, ...
+    'reset', true, ...
     'verbose', true);
 
 %% Simulate and plot
-ensemble.simulateAllEnsembleMembers();
+wellEnsemble.simulateAllEnsembleMembers();
 
-%%
-ensemble.qoi.plotEnsemble(ensemble);
+%% Plot result 
+wellEnsemble.plotQoI();
 
-%% Create an ensemble that combines both sampling strategies
-% ---------------------
+%-------------------------------------------------------------------------%
+%% Create another ensemble that combines both sampling strategies
+% Finally, we want to run an ensemble that has stochastic rock properties
+% AND stochastic well properties. To achieve this, we have implemented the
+% class WellRockSamples that is a superclass of both WellSamples and
+% RockSamples. 
+% The data property in this class expects to have a cell array of structs
+% with fields rock and well, both these being structs with rock properties
+% and well properties, respectively.
 
-% We first organize our precomputed samples in a struct that is supported
-% by the combined sample class
 comboData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
     comboData{i}.rock = rockData{i};
@@ -118,16 +135,15 @@ end
 comboSamples = WellRockSamples('data', comboData);
 
 %% Define new ensemble
-ensemble = MRSTEnsemble(baseExample, comboSamples, qoi, ...
-    ... %'directory', uniqueDirectory, ...
+comboEnsemble = MRSTEnsemble(baseExample, comboSamples, qoi, ...
     'simulationType', 'parallel', ...
     'maxWorkers', 8, ...
-    'deleteOldResults', true, ...
+    'reset', true, ...
     'verbose', true);
 
 %% Simulate and plot
-ensemble.simulateAllEnsembleMembers();
+comboEnsemble.simulateAllEnsembleMembers();
 
 %%
-ensemble.qoi.plotEnsemble(ensemble);
+comboEnsemble.plotQoI();
 
