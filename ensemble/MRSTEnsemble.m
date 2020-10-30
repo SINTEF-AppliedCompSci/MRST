@@ -1,4 +1,4 @@
-classdef MRSTEnsemble
+classdef MRSTEnsemble < handle
     % Class that facilitates ensembles in MRST.
     %
     % SYNOPSIS:
@@ -47,20 +47,20 @@ classdef MRSTEnsemble
     %   'solve' - Function handle for simulating/running an ensemble
     %             member.
     %             Default: @simulatePackedProblem(problem)
-    %   'simulationType' - String to control how to run the ensemble.
-    %                      Acceptable values:
-    %                      'serial'     - No parallelization (default)
-    %                      'parallel'   - Run ensemble in parallel using 
-    %                          the Parallel Computing Toolbox,
-    %                      'background' - Run ensemble members by spawning
-    %                         new matlab sessions in the background.
+    %   'simulationStrategy' - String to control how to run the ensemble.
+    %                          Acceptable values:
+    %                       'serial'     - No parallelization (default)
+    %                       'parallel'   - Run ensemble in parallel using 
+    %                           the Parallel Computing Toolbox,
+    %                       'background' - Run ensemble members by spawning
+    %                           new matlab sessions in the background.
     %   'maxWorkers' - Maximum number of parallel workers to use for
     %                  processing the ensemble members (default is system
     %                  dependent)
     %   'verbose' - Boolean (default: true). Print some extra info
     %   'verboseSimulation' - Boolean (default: false). Print the output of
     %                         each ensemble member simulation   
-    %   'matlabBinary' - If the 'simulationType' is set to 'background',
+    %   'matlabBinary' - If 'simulationStrategy' is set to 'background',
     %                    it is possible to provide a specific location of
     %                    the matlab binary (typically used if you have
     %                    several matlab installations on your system).
@@ -91,9 +91,9 @@ classdef MRSTEnsemble
         % Function handle for solving a given problem
         solve = @(problem) simulatePackedProblem(problem); 
         
-        simulationType = 'serial';
+        simulationStrategy = 'serial';
         maxWorkers = maxNumCompThreads();
-        spmdEnsemble; % Used for 'simulationType' = 'parallel'
+        spmdEnsemble; % Used for 'simulationStrategy' = 'parallel'
         
         verbose = true
         verboseSimulation = false
@@ -133,58 +133,11 @@ classdef MRSTEnsemble
                 ensemble.reset('prompt', false);
             end
             % Prepare ensemble
-            ensemble = ensemble.prepareEnsemble();
+            ensemble.prepareEnsembleSimulation();
         end
-        
+               
         %-----------------------------------------------------------------%
-        function ensemble = prepareEnsemble(ensemble)
-            % Set parameters related to possible parallel execution scheme
-            % for simulating the ensemble members. 
-            % Called by the constructor.
-            
-            if strcmpi(ensemble.simulationType, 'serial')
-                warning(['Serial ensemble simulations will take a '     , ...
-                         'long time, and should only be used for '      , ...
-                         'debugging or small ensembles. Consider '      , ...
-                         'using ''background'' or ''parallel'' instead.'])
-            end
-            
-            if strcmpi(ensemble.simulationType, 'parallel')
-                % Check if parallel toolbox is avialiable
-                if isempty(ver('parallel'))
-                    warning(['Parallel computing toolbox not aviailable. ', ...
-                             'Switching to background simulation']        );
-                    ensemble.simulationType = 'background';
-                end
-            end
-            
-            switch ensemble.simulationType
-                case 'parallel'
-                    % Use parallel toolbox. Check if we have started a
-                    % parallel session already, and whether it has the
-                    % correct number of workers
-                    if isempty(gcp('nocreate'))
-                        parpool(ensemble.maxWorkers);
-                    elseif gcp('nocreate').NumWorkers ~= ensemble.maxWorkers
-                        delete(gcp);
-                        parpool(ensemble.maxWorkers);
-                    end
-                    % Communicate ensemble to all workers
-                    spmd
-                        spmdEns = ensemble;
-                    end
-                    ensemble.spmdEnsemble = spmdEns;
-                case 'background'
-                    % Run simulations in background sessions
-                    fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
-                    if ~exist(fn, 'file')
-                        save(fn, 'ensemble');
-                    end
-            end
-        end
-        
-        %-----------------------------------------------------------------%
-        function ensemble = reset(ensemble, varargin)
+        function reset(ensemble, varargin)
             % Deletes any old results so that we can start the ensemble
             % simulation fra scratch.
             
@@ -224,7 +177,7 @@ classdef MRSTEnsemble
                 delete(fullfile(dataPath, l{1}));
             end
             % Prepare ensemble
-            ensemble = ensemble.prepareEnsemble();
+            ensemble.prepareEnsembleSimulation();
         end
         
         %-----------------------------------------------------------------%
@@ -249,6 +202,20 @@ classdef MRSTEnsemble
         end
         
         %-----------------------------------------------------------------%
+        function h = plotQoI(ensemble, h)
+            % Creates plot(s) of the quantity of interest for all simulated
+            % ensemble members
+            %
+            % SYNOPSIS:
+            %   h = ensemble.plotQoI();
+            %
+            % OPTIONAL PARAMETERS:
+            %   h - Figure handle 
+            if nargin < 2, h = []; end
+            h = ensemble.qoi.plotEnsembleQoI(ensemble, h);
+        end
+        
+        %-----------------------------------------------------------------%
         function simulateEnsembleMember(ensemble, seed, varargin)
             % Run simulation for a specific ensemble member.
             %
@@ -258,6 +225,7 @@ classdef MRSTEnsemble
             % PARAMETERS:
             %   seed - Integer specifying which ensemble member to run.
             %
+            
             
             if ensemble.qoi.isComputed(seed)
                 % QoI is already computed - nothing to do here!
@@ -281,59 +249,109 @@ classdef MRSTEnsemble
         end
         
         %-----------------------------------------------------------------%
-        function simulateEnsembleMembers(ensemble, range, varargin)
+        function simulateEnsembleMembers(ensemble, varargin)
             % Run simulations for a set of ensemble members
             %
             % SYNOPSIS:
-            %   ensemble.simulateEnsembleMembers(range);
+            %   ensemble.simulateEnsembleMembers();
+            %   ensemble.simulateEnsembleMembers(20:30);
             %
-            % PARAMETERS:
-            %   range - Specifies which ensemble members to run either as a
-            %           vector or scalar.
-            %       vector: The seeds (ids) for the ensemble members that
-            %           will be simulated
-            %       scalar: Number of ensemble members to simulate. If
-            %           results for some ensemble members already exist, an
-            %           additional 'range' number of members will be run.
-            if isscalar(range)
+            % OPTIONAL PARAMETERS:
+            %   'range' - Specifies which ensemble members to run either as
+            %             a vector or scalar.
+            %           vector: The seeds (ids) for the ensemble members 
+            %               that will be simulated
+            %           scalar: Number of ensemble members to simulate. If
+            %               results for some ensemble members already exist,
+            %               an dditional 'range' number of members will be 
+            %               run.
+            
+            opt = struct('range', inf);
+            [opt, extra] = merge_options(opt, varargin{:});
+                        
+            if nargin < 2
+                assert(~isinf(ensemble.num), ...
+                    'Ensemble size not define, please use ensemble.simulateEnsembleMembers(range) instead');
+                opt.range = 1:ensemble.num;
+            end
+            
+            if isscalar(opt.range)
                 ids = ensemble.qoi.ResultHandler.getValidIds();
                 if isempty(ids), ids = 0; end
-                range = (1:range) + max(ids);
+                opt.range = (1:opt.range) + max(ids);
             end
-            n        = ceil(numel(range)/ensemble.maxWorkers);
+            n        = ceil(numel(opt.range)/ensemble.maxWorkers);
             rangePos = repmat(n, ensemble.maxWorkers, 1);
-            extra    = sum(rangePos) - numel(range);
+            extra    = sum(rangePos) - numel(opt.range);
             rangePos(end-extra+1:end) = rangePos(end-extra+1:end) - 1;
             rangePos = cumsum([0; rangePos]) + 1;
-            switch ensemble.simulationType
+            switch ensemble.simulationStrategy
                 case 'serial'
-                    ensemble.simulateEnsembleMembersSerial(range, rangePos, varargin{:});
+                    ensemble.simulateEnsembleMembersSerial(opt.range, varargin{:});
                 case 'parallel'
-                    ensemble.simulateEnsembleMembersParallel(range, rangePos);
+                    ensemble.simulateEnsembleMembersParallel(opt.range, rangePos, varargin{:});
                 case 'background'
-                    ensemble.simulateEnsembleMembersBackground(range, rangePos, varargin{:});
+                    ensemble.simulateEnsembleMembersBackground(opt.range, rangePos, varargin{:});
             end
         end
         
+    end % methods
+    
+    methods (Access = protected)
+        
         %-----------------------------------------------------------------%
-        function simulateAllEnsembleMembers(ensemble, varargin)
-            % Run simulations for all ensemble members
-            %
-            % SYNOPSIS:
-            %   ensemble.simulateAllEnsembleMembers();
-            %
-            % NOTE:
-            %   Does not work if stochastic samples are generated on the
-            %   fly with a generatorFn. If so, see
-            %   `ensemble.simulateEnsembleMembers(range)`
-            assert(~isinf(ensemble.num), ...
-                'Ensemble size not define, please use ensemble.simulateEnsembleMembers(range) instead');
-            ensemble.simulateEnsembleMembers(1:ensemble.num, varargin{:});
+        function prepareEnsembleSimulation(ensemble)
+            % INTERNAL
+            % Set parameters related to possible parallel execution scheme
+            % for simulating the ensemble members. 
+            % Called by the constructor.
+            
+            if strcmpi(ensemble.simulationStrategy, 'serial')
+                warning(['Serial ensemble simulations will take a '     , ...
+                         'long time, and should only be used for '      , ...
+                         'debugging or small ensembles. Consider '      , ...
+                         'using ''background'' or ''parallel'' instead.'])
+            end
+            
+            if strcmpi(ensemble.simulationStrategy, 'parallel')
+                % Check if parallel toolbox is avialiable
+                if isempty(ver('parallel'))
+                    warning(['Parallel computing toolbox not aviailable. ', ...
+                             'Switching to background simulation']        );
+                    ensemble.simulationStrategy = 'background';
+                end
+            end
+            
+            switch ensemble.simulationStrategy
+                case 'parallel'
+                    % Use parallel toolbox. Check if we have started a
+                    % parallel session already, and whether it has the
+                    % correct number of workers
+                    if isempty(gcp('nocreate'))
+                        parpool(ensemble.maxWorkers);
+                    elseif gcp('nocreate').NumWorkers ~= ensemble.maxWorkers
+                        delete(gcp);
+                        parpool(ensemble.maxWorkers);
+                    end
+                    
+                    if ~all(exist(ensemble.spmdEnsemble)) %#ok
+                        % Communicate ensemble to all workers
+                        spmd
+                            spmdEns = ensemble;
+                        end
+                        ensemble.spmdEnsemble = spmdEns;
+                    end
+                case 'background'
+                    % Run simulations in background sessions
+                    fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
+                    if ~exist(fn, 'file')
+                        save(fn, 'ensemble');
+                    end
+            end
         end
         
         %-----------------------------------------------------------------%
         function simulateEnsembleMembersCore(ensemble, range)
-            % INTERNAL
             % Runs simulations according to the given range.
             
            range = reshape(range, 1, []);
@@ -362,22 +380,24 @@ classdef MRSTEnsemble
         end
 
         %-----------------------------------------------------------------%
-        function simulateEnsembleMembersSerial(ensemble, range, rangePos, varargin)
-            % INTERNAL 
+        function simulateEnsembleMembersSerial(ensemble, range, varargin)
             % Runs simulation for the given range in a serial configuration
             % (no parallel processing).
             ensemble.simulateEnsembleMembersCore(range);
         end
         
         %-----------------------------------------------------------------%
-        function simulateEnsembleMembersParallel(ensemble, range, rangePos)
-            % INTERNAL
+        function simulateEnsembleMembersParallel(ensemble, range, rangePos, varargin)
             % Runs simulation of ensemble members according to range across
             % parallel workers. The subset of range given to each worker is
             % specified by rangePos.
             %
             % NOTE:
             %   This function requires the Parallel Computing Toolbox.
+            
+            % Check that the parpool and spmdEnsemble is valid
+            ensemble.prepareEnsembleSimulation()
+            
             spmdEns = ensemble.spmdEnsemble;
             spmd
                 spmdRange = range(rangePos(labindex):rangePos(labindex+1)-1);
@@ -388,7 +408,6 @@ classdef MRSTEnsemble
         
         %-----------------------------------------------------------------%
         function simulateEnsembleMembersBackground(ensemble, range, rangePos, varargin)
-            % INTERNAL
             % Runs simulation of ensemble members according to range by
             % launching matlab sessions in the background. Each matlab
             % session is responsible of running a subset of the ensemble
@@ -424,7 +443,6 @@ classdef MRSTEnsemble
         
         %-----------------------------------------------------------------%
         function progress = getEnsembleMemberProgress(ensemble, range)
-            % INTERNAL 
             % Utility function for monitoring the progression of an
             % ensemble member that is being run right now.
             if nargin < 2, range = ensemble.num; end
@@ -447,10 +465,9 @@ classdef MRSTEnsemble
         
         %-----------------------------------------------------------------%
         function plotProgress(ensemble, range)
-            % INTERNAL
             % Utility function for showing the progress of simulating a
             % range of ensemble members. Only available for
-            % 'simulationType' = 'background'.
+            % 'simulationStrategy' = 'background'.
             [h_progress, h_qoi] = deal([]);
             n = 0;
             while true
@@ -466,19 +483,7 @@ classdef MRSTEnsemble
             end
         end
         
-        %-----------------------------------------------------------------%
-        function h = plotQoI(ensemble, h)
-            % Creates plot(s) of the quantity of interest for all simulated
-            % ensemble members
-            %
-            % SYNOPSIS:
-            %   h = ensemble.plotQoI();
-            %
-            % OPTIONAL PARAMETERS:
-            %   h - ??
-            if nargin < 2, h = []; end
-            h = ensemble.qoi.plotEnsembleQoI(ensemble, h);
-        end
+
         
     end
 end
