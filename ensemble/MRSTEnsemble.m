@@ -267,7 +267,7 @@ classdef MRSTEnsemble < handle
             %               run.
             
             opt = struct('range', inf);
-            [opt, extra] = merge_options(opt, varargin{:});
+            [opt, extraOpt] = merge_options(opt, varargin{:});
                         
             if nargin < 2
                 assert(~isinf(ensemble.num), ...
@@ -287,13 +287,43 @@ classdef MRSTEnsemble < handle
             rangePos = cumsum([0; rangePos]) + 1;
             switch ensemble.simulationStrategy
                 case 'serial'
-                    ensemble.simulateEnsembleMembersSerial(opt.range, varargin{:});
+                    ensemble.simulateEnsembleMembersSerial(opt.range, extraOpt{:});
                 case 'parallel'
-                    ensemble.simulateEnsembleMembersParallel(opt.range, rangePos, varargin{:});
+                    ensemble.simulateEnsembleMembersParallel(opt.range, rangePos, extraOpt{:});
                 case 'background'
-                    ensemble.simulateEnsembleMembersBackground(opt.range, rangePos, varargin{:});
+                    ensemble.simulateEnsembleMembersBackground(opt.range, rangePos, extraOpt{:});
             end
         end
+        
+        %-----------------------------------------------------------------%
+        function simulateEnsembleMembersCore(ensemble, range)
+            % Runs simulations according to the given range.
+            
+           range = reshape(range, 1, []);
+           for i = 1:numel(range)
+               seed = range(i);
+               
+               % Print info
+               if ensemble.verbose
+                   progress = floor(100*(i-1)/numel(range));
+                   fprintf('(%d%%)\tSimulating ensemble member %d among ensemble members %d to %d...\n', ...
+                           progress, seed, range(1), range(end))                    
+               end
+               
+               % Run simulation
+               if ensemble.verboseSimulation
+                   ensemble.simulateEnsembleMember(seed);
+               else
+                   evalc('ensemble.simulateEnsembleMember(seed)');
+               end
+           end
+           
+           % Print info
+           if ensemble.verbose
+               fprintf('(100%%)\tDone simulating ensemble members %d to %d \n', range(1), range(end));
+           end
+        end
+
         
     end % methods
     
@@ -350,35 +380,6 @@ classdef MRSTEnsemble < handle
             end
         end
         
-        %-----------------------------------------------------------------%
-        function simulateEnsembleMembersCore(ensemble, range)
-            % Runs simulations according to the given range.
-            
-           range = reshape(range, 1, []);
-           for i = 1:numel(range)
-               seed = range(i);
-               
-               % Print info
-               if ensemble.verbose
-                   progress = floor(100*(i-1)/numel(range));
-                   fprintf('(%d%%)\tSimulating ensemble member %d among ensemble members %d to %d...\n', ...
-                           progress, seed, range(1), range(end))                    
-               end
-               
-               % Run simulation
-               if ensemble.verboseSimulation
-                   ensemble.simulateEnsembleMember(seed);
-               else
-                   evalc('ensemble.simulateEnsembleMember(seed)');
-               end
-           end
-           
-           % Print info
-           if ensemble.verbose
-               fprintf('(100%%)\tDone simulating ensemble members %d to %d \n', range(1), range(end));
-           end
-        end
-
         %-----------------------------------------------------------------%
         function simulateEnsembleMembersSerial(ensemble, range, varargin)
             % Runs simulation for the given range in a serial configuration

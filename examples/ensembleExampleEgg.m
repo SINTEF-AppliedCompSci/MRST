@@ -25,11 +25,11 @@ qoiVal = qoi.validateQoI(problem);
 qOs    = qoiVal.computeQoI(problem);
 
 %%
-ensemble = MRSTEnsemble(example, samples, qoi, 'simulationType', 'background');
+ensemble = MRSTEnsemble(example, samples, qoi, 'simulationStrategy', 'background');
 
 %%
 close all
-ensemble.simulateEnsembleMembers(20, 'plotProgress', true);
+ensemble.simulateEnsembleMembers('range', 20, 'plotProgress', true);
 
 %%
-ensemble.qoi.plotEnsembleQoI(ensemble);
+ensemble.plotQoI(ensemble);
