@@ -1,6 +1,17 @@
 classdef BaseQoI
     % Template class for extracting a quantity of interest from a simulated
     % problem.
+    %
+    % NOTE:
+    %   Not intended for direct use.
+    %
+    % DESCRIPTION:
+    %   This class (and its super classes) is used within a MRSTEnsemble
+    %   to extract, store, and work with quantities of interest. 
+    %   This base class defines functions 
+    %
+    % SEE ALSO:
+    %   `WellQoI`, `ReservoirStateQoI`, `MRSTExample`, `BaseSamples`
     
     properties
         ResultHandler % Handler for writing/reading QoIs to/from file
@@ -19,6 +30,13 @@ classdef BaseQoI
             % appropriate ResultHandler, so that all subclass
             % implementations of this function should start with
             % qoi = validateQoI@BaseQoI(qoi, problem);
+            %
+            % SYNOPSIS:
+            %   qoi = qoi.validateQoI(problem)
+            %
+            % PARAMETERS:
+            %   problem - An mrst problem of the same nature as what this
+            %             QoI class will be used for.
             opt = struct('qoiNo', []);
             opt = merge_options(opt, varargin{:});
             if isempty(qoi.ResultHandler)
@@ -37,9 +55,22 @@ classdef BaseQoI
         
         %-----------------------------------------------------------------%
         function u = getQoI(qoi, problem)
-            % Get quantity of interest for a given problem
-            % TODO: Check that problem has been simulated successfully, and
-            % issue a warning if it is not
+            % Get quantity of interest (QoI) for a given problem. The 
+            % structure of the relevant QoI is given by the implementation
+            % of qoi.computeQoI(problem).
+            %
+            % SYNOPSIS:
+            %   u = qoi.getQoI(problem)
+            %
+            % PARAMETERS:
+            %   problem - The specific problem for which we will extract
+            %             relevant quantity of interest. 
+            %
+            % RETURNS:
+            %   u - quantity of interest for the given problem
+            %
+            % See also:
+            %    `qoi.computeQoI(problem)`
             seed = str2double(problem.OutputHandlers.states.dataFolder);
             if qoi.isComputed(seed)
                 % QoI already computed - read from file
@@ -47,6 +78,10 @@ classdef BaseQoI
             else
                 % Compute QoI and store to file
                 u  = qoi.computeQoI(problem);
+
+                % TODO: Check that problem has been simulated successfully, and
+                % issue a warning if it is not
+                
                 us = u; % Handle special case when u is a cell array
                 if iscell(us), us = {us}; end 
                 qoi.ResultHandler{seed} = us;
@@ -56,6 +91,9 @@ classdef BaseQoI
         %-----------------------------------------------------------------%
         function ok = isComputed(qoi, seed)
             % Check if qoi for a given seed it computed
+            %
+            % SYNOPSIS:
+            %   ok = qoi.isComputed(seed)
             ids = qoi.ResultHandler.getValidIds();
             ok  = any(ids == seed);
         end
@@ -63,17 +101,43 @@ classdef BaseQoI
         %-----------------------------------------------------------------%
         function u = computeQoI(qoi, problem) %#ok
             % Compute quantity of interest for a given problem
+            %
+            % SYNOPSIS:
+            %   u = qoi.computeQoI(problem)
             error('Template class not meant for direct use!');
         end
         
         %-----------------------------------------------------------------%
         function n = norm(qoi, u) %#ok
-            % Compute norm of the quantity of interest
+            % Compute norm n of the quantity of interest u.
+            % 
+            % SYNOPSIS
+            %   n = qoi.norm(u)
+            %
             n = abs(u);
         end
         
         %-----------------------------------------------------------------%
         function [u_mean, u] = computeMean(qoi, range)
+            % Computes the mean according to the ensemble given by the
+            % range of ensemble member IDs (if any).
+            %
+            % SYNOPSIS:
+            %   u_mean = qoi.computeMean(range)
+            %   [u_mean, u] = qoi.computeMean(range)
+            %
+            % OPTINAL PARAMETERS:
+            %   range - A range of ensemble IDs enabling the possibility to
+            %           compute the mean only for a part of the ensemble.
+            %           If not provided, all available QoI's will be used
+            %           to compute the mean.
+            %
+            % RETURNS:
+            %   u_mean - Mean values of the quantity of interest
+            %   u      - Cell array of the QoIs for the individual ensemble
+            %            members.
+
+            
             % Check if we have computed any QoIs so far
             assert(~isempty(qoi.ResultHandler), 'No QoIs computed yet!')
             ids = qoi.ResultHandler.getValidIds();
@@ -112,6 +176,18 @@ classdef BaseQoI
         function h = plotEnsembleQoI(qoi, ensemble, h, varargin)
             % Create a meaningful plot of the ensemble based on the
             % relevant QoI
+            %
+            % SYNOPSIS:
+            %   h = qoi.plotEnsembleQoI(ensemble, h);
+            %
+            % OPTIONAL PARAMETERS:
+            %   ensemble - ensemble of which this QoI object of.
+            %   h        - Figure handle
+            %   'range'  - Subset of ensemble member IDs, if only parts of
+            %              the ensemble is to be plotted.
+            %   Extra parameters might depending on the actual QoI and
+            %   others acceptable for `plot`.
+            
             opt = struct('range', inf);
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u] = qoi.computeMean(opt.range);
@@ -158,7 +234,12 @@ classdef BaseQoI
         
         %-----------------------------------------------------------------%
         function h = plotQoIHistogram(qoi, edges, varargin)
-            % Plot histogram of QoIs, or norm(QoI) if QoI is nonscalar
+            % Plots the distribution of the QoI of the ensemble in the form
+            % of a histogram. If the QoI is nonscalar, norm(QoI) is used.
+            %
+            % SYNOPSIS:
+            %   h = plotQoIHistogram(egdes, ...)
+            %
             if nargin < 2, edges = 10; end
             opt = struct('range'      , inf  , ...
                          'log10'      , false, ...
@@ -194,3 +275,6 @@ classdef BaseQoI
     end
 end
     
+%{
+#COPYRIGHT#
+%}

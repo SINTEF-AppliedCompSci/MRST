@@ -1,5 +1,36 @@
 classdef WellQoI < BaseQoI
-    
+    % Class for extracting well related quantity of interests from
+    % (an ensemble of) simulated problems.
+    %
+    % DESCRIPTION:
+    %   This class is used within a MRSTEnsemble to extract, store, and 
+    %   work with quantities of interest related to well solutions.
+    %
+    % SYNOPSIS
+    %   qoi = WellQoI('wellNames', {'P1', 'P2'}, ...);
+    %   qoi = WellQoI('wellIndices', [3 4], ...);
+    %
+    % PARAMETERS
+    %   'wellNames' - Names of the wells that we are interested in
+    %   'wellIndices' - Indices of the wells that we are interested in
+    % 
+    %    Either 'wellNames' or 'wellIndices' must be provided. If both are
+    %    provided, 'wellIndices' is ignored.
+    %
+    % OPTIONAL PARAMETERS
+    %   'fldname' - cell array of the well output fields that we are
+    %               interested in. Valid values are well solution field
+    %               names. Default: {'qOs'}
+    %   'cumulative' - Quantity of interest is cumulative production data
+    %                  per well. Default: false
+    %   'total' - Quantity of interest is total production data (scalar per
+    %             field and well). Default: false
+    %   'combined' - Quantity of interest is combined production data over
+    %                the given wells. Default: false
+    %
+    % 
+    % SEE ALSO:
+    %   `BaseQoI`, `ReservoirStateQoI`, `MRSTExample`, `BaseSamples`
     properties
         fldname      = {'qOs'} % Well output field names
         wellIndices            % Well indices
@@ -28,6 +59,21 @@ classdef WellQoI < BaseQoI
             % Check that the configs that are inserted to the constructor
             % makes sense for the base problem for the ensemble, and
             % updates remaining fields.
+            %
+            % SYNOPSIS:
+            %   qoi = qoi.validateQoI(problem)
+            %
+            % PARAMETERS:
+            %   problem - MRST problem that is representative for the
+            %             (ensemble member) problems that will be used with
+            %             this QoI instance. Especially, the well setups
+            %             should be representative, as well as the
+            %             production schedule.
+            %
+            % NOTE:
+            %   When used in an MRSTEnsemble, this function is called by
+            %   the ensemble constructor.
+            
             qoi = validateQoI@BaseQoI(qoi, problem);
             % Either, we provide the indices of the chosen wells, or their
             % names. In either case, we find the other.
@@ -66,7 +112,14 @@ classdef WellQoI < BaseQoI
         %-----------------------------------------------------------------%
         function u = computeQoI(qoi, problem)
             % Reads the well solutions from the given problem and extract
-            % the relevant data, which is then saved to file.
+            % the relevant data.
+            %
+            % SYNOPSIS:
+            %   u = qoi.computeQoI(problem)
+            %
+            % PARAMETERS:
+            %   problem - The specific problem for which to compute the QoI
+            
             % Read well solutions
             wellSols = reshape(problem.OutputHandlers.wellSols(:), [], 1);
             % Organize as matrix with dimensions:
@@ -93,19 +146,6 @@ classdef WellQoI < BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function wellOutput = interpolateWellOutput(qoi, dtProblem, wellOutput)
-            % Get base problem and current problem timestamps
-            timeProblem = [0; cumsum(dtProblem)];
-            timeBase    = [0; cumsum(qoi.dt)   ];
-            % Compute overlap
-            t   = bsxfun(@min, timeBase(2:end)  , timeProblem(2:end)'  );
-            t0  = bsxfun(@max, timeBase(1:end-1), timeProblem(1:end-1)');
-            psi = max(t - t0, 0)./qoi.dt;
-            % Integrate
-            wellOutput = psi*wellOutput;
-        end
-            
-        %-----------------------------------------------------------------%
         function plotQoI(qoi, ensemble, u, varargin) %#ok
             % Plot a single well QoI u in current figure.
             opt = struct('isMean'   , true, ...
@@ -130,10 +170,11 @@ classdef WellQoI < BaseQoI
             end
         end
         
-         function h = plotEnsembleQoI(qoi, ensemble, h, varargin)
+        function h = plotEnsembleQoI(qoi, ensemble, h, varargin)
             % Plots well properties for the ensemble and ensemble mean.
-            % Creates one figure per field
-            % Organizes results from each well in a subplot
+            % Creates one figure per field, and organizes results from each
+            % well in a subplot.
+            
             opt = struct('timescale', day);
             [opt, extra] = merge_options(opt, varargin{:});
             
@@ -178,6 +219,28 @@ classdef WellQoI < BaseQoI
         end
         
     end
+    
+    methods (Access = protected)
+    
+        %-----------------------------------------------------------------%
+        function wellOutput = interpolateWellOutput(qoi, dtProblem, wellOutput)
+            % If wellOutput is given with time intervals dtProblem, this
+            % function can be used to give wellOutputs at the timesteps 
+            % found in qoi.dt
+            
+            % Get base problem and current problem timestamps
+            timeProblem = [0; cumsum(dtProblem)];
+            timeBase    = [0; cumsum(qoi.dt)   ];
+            % Compute overlap
+            t   = bsxfun(@min, timeBase(2:end)  , timeProblem(2:end)'  );
+            t0  = bsxfun(@max, timeBase(1:end-1), timeProblem(1:end-1)');
+            psi = max(t - t0, 0)./qoi.dt;
+            % Integrate
+            wellOutput = psi*wellOutput;
+        end
+            
+    end
+    
 end
 
 %-------------------------------------------------------------------------%
@@ -210,3 +273,7 @@ function str = formatTime(timescale)
         str = str{1};
     end
 end
+
+%{
+#COPYRIGHT#
+%}
