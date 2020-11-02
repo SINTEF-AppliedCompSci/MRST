@@ -163,14 +163,25 @@ classdef BaseQoI
             end
             for i = 2:numel(range)
                 u_tmp = qoi.ResultHandler{range(i)};
-                for j = 1:numel(u_tmp)
-                    u_mean{j} = computeMean(u_mean{j}, u_tmp{j}, i-1, 1);
+                
+                if iscell(u_mean{1})
+                    for j = 1:numel(u_mean)
+                        for k = 1:numel(u_mean{j})
+                            u_mean{j}{k} = computeMean(u_mean{j}{k}, u_tmp{j}{k}, i-1, 1);
+                        end
+                    end
+                else
+                    for j = 1:numel(u_mean)
+                        u_mean{j} = computeMean(u_mean{j}, u_tmp{j}, i-1, 1);
+                    end
                 end
+                
                 if nargout > 1
                     u{i} = u_tmp;
                 end
             end
         end
+        
         
         %-----------------------------------------------------------------%
         function h = plotEnsembleQoI(qoi, ensemble, h, varargin)
@@ -192,25 +203,40 @@ classdef BaseQoI
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u] = qoi.computeMean(opt.range);
             numQoIs    = numel(u_mean);
+            numSubQoIs = 1;
+                        
+            plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u{i}, ...
+                'cellNo', i, varargin{:});
+            
+            if iscell(u_mean{1})
+                numSubQoIs = numel(u_mean{1});
+                plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u{i}{k}, ...
+                    'cellNo', i, 'subCellNo', k, varargin{:});
+            end
+            
             numSamples = numel(u);
             if nargin < 2,               ensemble = [];      end
-            if nargin < 3 || isempty(h), h = nan(numQoIs,1); end
+            if nargin < 3 || isempty(h), h = nan(numQoIs*numSubQoIs,1); end
             for i = 1:numQoIs
-                if isnan(h(i))
-                    if ~isempty(ensemble)
-                        h(i) = ensemble.setup.figure();
+                for k = 1:numSubQoIs
+                    figureId = (i-1)*numSubQoIs + k;
+                    if isnan(h(figureId))
+                        if ~isempty(ensemble)
+                            h(figureId) = ensemble.setup.figure();
+                        else
+                            h(figureId) = figure();
+                        end
                     else
-                        h(i) = figure();
+                        set(0, 'CurrentFigure', h(figureId)), clf(h(figureId))
                     end
-                else
-                    set(0, 'CurrentFigure', h(i)), clf(h(i))
+                    
+                    hold on
+                    for j = 1:numSamples
+                        plotQoI(u{j}, i, k, 'isMean', false, extra{:});
+                    end
+                    plotQoI(u_mean, i, k, extra{:});
+                    hold off
                 end
-                hold on
-                for j = 1:numSamples
-                    qoi.plotQoI(ensemble, u{j}{i}, 'isMean', false, extra{:});
-                end
-                qoi.plotQoI(ensemble, u_mean{i}, extra{:});
-                hold off
             end
         end
         

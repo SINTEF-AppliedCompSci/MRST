@@ -188,20 +188,21 @@ end
 % The optional parameter 'reset' is used to delete any existing results and
 % start the ensemble simulation from scratch.
 ensemble = MRSTEnsemble(example, samplesRH, qoiState  , ...
-                        'directory'     , dataDir     , ...
-                        'simulationType', 'background'  , ...
-                        'reset'         , true);
+                        'directory'         , dataDir     , ...
+                        'simulationStrategy', 'background'  , ...
+                        'reset'             , false);
                     
 %% Simulate the ensemble
 % All ensemble members can now be executed with a single line of code and 
 % if the 'background' parallelization mode is selected, we show a progress
 % bar indicating when the various
-ensemble.simulateAllEnsembleMembers('plotProgress', true);
+ensemble.simulateEnsembleMembers('plotProgress', true);
 
 % It is also possible to run only a subset of the ensemble members by
 % calling the function 
 %      ensemble.simulationEnsembleMembers(20:30 'plotProgress', true);
 % for a given range of ensemble members (here ensemble members 20 to 30).
+
 
 %% Plot results
 close all

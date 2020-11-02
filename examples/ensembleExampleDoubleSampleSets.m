@@ -75,16 +75,19 @@ qoi = WellQoI(...
 % delete any existing simulation results and run the ensemble from scratch
 
 rockEnsemble = MRSTEnsemble(baseExample, rockSamples, qoi, ...
-    'simulationStrategy', 'parallel', ...
+    'simulationStrategy', 'background', ...
     'maxWorkers', 8, ...
     'reset', true, ...
     'verbose', true);
 
 %% Run ensemble
-rockEnsemble.simulateEnsembleMembers();
+rockEnsemble.simulateEnsembleMembers('plotProgress', true);
 
 %% Plot results
 rockEnsemble.plotQoI();
+
+%% Plot well results with subplots
+rockEnsemble.qoi.plotEnsembleWellQoI(ensemble);
 
 
 
@@ -142,7 +145,7 @@ comboEnsemble = MRSTEnsemble(baseExample, comboSamples, qoi, ...
     'verbose', true);
 
 %% Simulate and plot
-comboEnsemble.simulateEnsembleMembers();
+comboEnsemble.simulateAllEnsembleMembers();
 
 %%
 comboEnsemble.plotQoI();

@@ -124,45 +124,73 @@ classdef WellQoI < BaseQoI
             wellSols = reshape(problem.OutputHandlers.wellSols(:), [], 1);
             % Organize as matrix with dimensions:
             % (numTimesteps, numWells, numFields)
-            u = getWellOutput(wellSols, qoi.fldname, qoi.wellNames);
+            uMatrix = getWellOutput(wellSols, qoi.fldname, qoi.wellNames);
+            
             % Compute total or cumulative if requested
             dtProblem = getTimestepsFromProblem(problem);
             if qoi.total
-                u = sum(u.*dtProblem,1);
+                uMatrix = sum(uMatrix.*dtProblem,1);
             elseif qoi.cumulative
-                u = cumsum(u.*dtProblem,1);
+                uMatrix = cumsum(uMatrix.*dtProblem,1);
             end
             % Compute combined output from all wells if requested
             if qoi.combined && numel(qoi.wellNames) > 1
-                u = sum(u, 2);
+                uMatrix = sum(uMatrix, 2);
             end
+            
             % If we have a time series and the problem was simulated with
             % different timesteps than the base problem, interpolate well
             % output onto base problem timesteps
             if numel(qoi.dt) ~= numel(dtProblem) && ~qoi.total
                 u = qoi.interpolateWellOutput(dtProblem, u);
             end
-            u = {u};
+            
+            % Organizing u as a cell array per well of cell array per field
+            u = {};
+            numFields = numel(qoi.fldname);
+            numWells = numel(qoi.wellNames);
+            if qoi.combined
+                numWells = 1;
+            end
+
+            for w = 1:numWells
+                for f = 1:numFields
+                    u{w}{f} = uMatrix(:, w, f);
+                end
+            end
+            
+            %u = {u};
         end
         
         %-----------------------------------------------------------------%
         function plotQoI(qoi, ensemble, u, varargin) %#ok
             % Plot a single well QoI u in current figure.
-            opt = struct('isMean'   , true, ...
-                         'timescale', day , ...
-                         'labels'   , true);
+            opt = struct('isMean'    , true, ...
+                         'timescale' , day , ...
+                         'labels'    , true, ...
+                         'title'     , true, ...
+                         'cellNo'    , 1, ...
+                         'subCellNo' , 1);
             [opt, extra] = merge_options(opt, varargin{:});
+            
+            plotOpt = struct('lineWidth', 2);
+            [plotOpt, extra] = merge_options(plotOpt, extra{:});
+            
             color = [1,1,1]*0.8*(1-opt.isMean); % Plot mean in distinct color
             is_timeseries = true;
             if is_timeseries
                 time = cumsum(qoi.dt)./opt.timescale;
-                if qoi.cumulative
-                    u = cumsum(u.*qoi.dt).*opt.timescale;
-                else
-                    u = u.*opt.timescale;
-                end
-                plot(time, u, 'lineWidth', 2, 'color', color, extra{:});
+                plot(time, u, 'color', color, ...
+                     'lineWidth', plotOpt.lineWidth, ...
+                     extra{:});
                 xlim([time(1), time(end)]);
+                if opt.title
+                    if qoi.combined
+                        title(sprintf('Combined produced %s', qoi.fldname{opt.subCellNo}));
+                    else
+                        title(sprintf('%s for well %s', qoi.fldname{opt.subCellNo}, qoi.wellNames{opt.cellNo}));
+                    end
+                end
                 if opt.labels
                     xlabel(sprintf('Time (%s)', formatTime(opt.timescale)));
                     ylabel(sprintf('%s', qoi.fldname{1}));
@@ -170,7 +198,7 @@ classdef WellQoI < BaseQoI
             end
         end
         
-        function h = plotEnsembleQoI(qoi, ensemble, h, varargin)
+        function h = plotEnsembleWellQoI(qoi, ensemble, h, varargin)
             % Plots well properties for the ensemble and ensemble mean.
             % Creates one figure per field, and organizes results from each
             % well in a subplot.
@@ -178,8 +206,13 @@ classdef WellQoI < BaseQoI
             opt = struct('timescale', day);
             [opt, extra] = merge_options(opt, varargin{:});
             
+            numQoIs = numel(qoi.ResultHandler.getValidIds());
+            
             num_fields = numel(qoi.fldname);
             num_wells  = numel(qoi.wellNames);
+            if qoi.combined
+                num_wells = 1;
+            end
             
             num_wells_horizontal = ceil(sqrt(num_wells));
             num_wells_vertical   = ceil(num_wells/num_wells_horizontal);
@@ -189,17 +222,21 @@ classdef WellQoI < BaseQoI
             t = cumsum(qoi.dt)./opt.timescale;
             for fld = 1:num_fields
                 if num_fields == 1
-                    h = figure;
+                    if isnan(h)
+                        h = figure;
+                    else
+                        set(0, 'CurrentFigure', h), clf(h)
+                    end
                 else
                     h{fld} = figure;
                 end
                 for w = 1:num_wells
                     subplot(num_wells_horizontal, num_wells_vertical, w);
                     hold on
-                    for i = 1:ensemble.num
-                        plot(t, qois{i}{1}(:,w,fld), 'color', [1 1 1]*0.6, extra{:});
+                    for i = 1:numQoIs
+                        plot(t, qois{i}{w}{fld}, 'color', [1 1 1]*0.6, extra{:});
                     end
-                    plot(t, mean_qoi{1}(:, w, fld), 'color', 'red', extra{:});
+                    plot(t, mean_qoi{w}{fld}, 'color', 'red', extra{:});
                     xlabel(sprintf('Time (%s)', formatTime(opt.timescale)));
                     ylabel(sprintf('%s', qoi.fldname{fld}))
                     title(strcat(qoi.fldname{fld}, " for well ", qoi.wellNames{w}));
@@ -221,7 +258,7 @@ classdef WellQoI < BaseQoI
     end
     
     methods (Access = protected)
-    
+        
         %-----------------------------------------------------------------%
         function wellOutput = interpolateWellOutput(qoi, dtProblem, wellOutput)
             % If wellOutput is given with time intervals dtProblem, this
@@ -237,8 +274,7 @@ classdef WellQoI < BaseQoI
             psi = max(t - t0, 0)./qoi.dt;
             % Integrate
             wellOutput = psi*wellOutput;
-        end
-            
+        end     
     end
     
 end

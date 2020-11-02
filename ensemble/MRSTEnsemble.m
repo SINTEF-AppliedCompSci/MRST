@@ -202,7 +202,7 @@ classdef MRSTEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        function h = plotQoI(ensemble, h)
+        function h = plotQoI(ensemble, varargin)
             % Creates plot(s) of the quantity of interest for all simulated
             % ensemble members
             %
@@ -210,9 +210,10 @@ classdef MRSTEnsemble < handle
             %   h = ensemble.plotQoI();
             %
             % OPTIONAL PARAMETERS:
-            %   h - Figure handle 
-            if nargin < 2, h = []; end
-            h = ensemble.qoi.plotEnsembleQoI(ensemble, h);
+            %   'h' - Figure handle 
+            opt = struct('h', []);
+            [opt, extra] = merge_options(opt, varargin{:});
+            h = ensemble.qoi.plotEnsembleQoI(ensemble, opt.h, extra{:});
         end
         
         %-----------------------------------------------------------------%
@@ -485,7 +486,7 @@ classdef MRSTEnsemble < handle
                 progress = ensemble.getEnsembleMemberProgress(range);
                 h_progress = plotEnsembleProgress(ensemble, progress, range, h_progress);
                 if ensemble.qoi.ResultHandler.numelData > n
-                    h_qoi = ensemble.plotQoI(h_qoi);
+                    h_qoi = ensemble.plotQoI('h', h_qoi);
                     n = ensemble.qoi.ResultHandler.numelData;
                 end
                 drawnow
