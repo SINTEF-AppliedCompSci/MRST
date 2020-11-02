@@ -17,7 +17,7 @@
 %
 
 %% Load required modules
-mrstModule add dual-continuum-mech vemmech ad-core ad-mechanics ad-props
+mrstModule add dual-continuum-mech dual-porosity vemmech ad-core ad-mechanics ad-props mrst-gui
 
 %% Setup default options
 clear opt
@@ -43,8 +43,8 @@ G = processGRDECL(grdecl);
 G = G(1);
 G = computeGeometry(G);   
 
-%plotGrid(G)
-%view(3)
+plotGrid(G)
+view(3)
 
 
 %% Setup rock parameters (for flow)
@@ -157,7 +157,7 @@ gravity off;
 load = @(x) (0*x);
 
 
- %% Gather all the mechanical parameters in a struct
+%% Gather all the mechanical parameters in a struct
 mech = struct('E', E, 'nu', nu, 'E_m', E_m, 'nu_m', nu_m, 'K_s', K_s, 'el_bc', el_bc, 'load', load);
 
 
@@ -221,14 +221,16 @@ DC_model.FacilityModel = FacilityModel(DC_model.fluidModel).setupWells(W);
 
 % setup schedule and simulate
 dt = [1*day*ones(1,5),5*day*ones(1,30)];
-schedule = simpleSchedule(dt, 'bc_f', bc_f, 'W', W);
+schedule = simpleSchedule(dt, 'bc', bc_f, 'W', W);
 [wellSols, states, schedulereport] = simulateScheduleAD(initState, DC_model, schedule);
 states = [{initState};states];
 
-% visualise
+%% visualise
 figure
 plotToolbar(DC_model.G, states, 'outline', true);
 plotWell(G,W, 'fontsize', 0);
 axis off
 caxis([0 1.8E7])
 view(1,40);
+
+plotWellSols(wellSols,'field','qWr')

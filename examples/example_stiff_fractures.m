@@ -178,6 +178,8 @@ semilogx(time, sum(p_m,1)./G.cells.num, '-', 'linewidth', 1.5)
 hold on
 semilogx(time, sum(p_f,1)./G.cells.num, '-d', 'linewidth', 1.5, 'markersize', 6)
 hold on
+xlabel('time [s]')
+ylabel('average pressure [Pa]')
 legend('matrix', 'fracture')
 title('Results for the intrinsic fracture stiffness simulation')
 
