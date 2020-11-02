@@ -268,18 +268,27 @@ classdef MRSTEnsemble < handle
             
             opt = struct('range', inf);
             [opt, extraOpt] = merge_options(opt, varargin{:});
-                        
-            if nargin < 2
+                                    
+            if isinf(opt.range)
                 assert(~isinf(ensemble.num), ...
                     'Ensemble size not define, please use ensemble.simulateEnsembleMembers(range) instead');
                 opt.range = 1:ensemble.num;
             end
             
+            assert(max(opt.range) <= ensemble.num, ...
+                'Requested more simulations than available ensemble members');
+            
             if isscalar(opt.range)
                 ids = ensemble.qoi.ResultHandler.getValidIds();
-                if isempty(ids), ids = 0; end
+                if isempty(ids)
+                    ids = 0;
+                elseif ids(end) + opt.range > ensemble.num
+                    warning("requested ensemble members plus already computed ensemble members are more than ensemble size. Proceeding by trying to simulate the last 'range' ensemble members.")
+                    ids = ensemble.num - opt.range;
+                end
                 opt.range = (1:opt.range) + max(ids);
             end
+            
             n        = ceil(numel(opt.range)/ensemble.maxWorkers);
             rangePos = repmat(n, ensemble.maxWorkers, 1);
             extra    = sum(rangePos) - numel(opt.range);
