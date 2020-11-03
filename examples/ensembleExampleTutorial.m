@@ -153,14 +153,14 @@ example.plot(sat); colormap(bone);
 
 % Oil production rate
 time = cumsum(example.schedule.step.val)/day;
-figure(), plot(time, qOs{1}*day, 'LineWidth', 1.5); % Convert to days
+figure(), plot(time, qOs{1}{1}*day, 'LineWidth', 1.5); % Convert to days
 xlim([0, time(end)]), box on, grid on, xlabel('Time (days)');
 
 %% Plot the results using QoI functionality
 % ... or, we can plot the results using the plotting functions in the QoI
 % classes.
 close all
-qoiWellValidated.plotQoI(example, qOs{1});
+qoiWellValidated.plotQoI(example, qOs{1}{1});
 for i = 1:numel(sat)
     example.figure();
     qoiStateValidated.plotQoI(example, sat{i});
@@ -188,10 +188,10 @@ end
 %      system, this option is changed to 'background'.
 % The optional parameter 'reset' is used to delete any existing results and
 % start the ensemble simulation from scratch.
-ensemble = MRSTEnsemble(example, samplesRH, qoiState  , ...
+ensemble = MRSTEnsemble(example, samplesRH, qoiState      , ...
                         'directory'         , dataDir     , ...
-                        'simulationStrategy', 'background'  , ...
-                        'reset'             , false);
+                        'simulationStrategy', 'background', ...
+                        'reset'             , false       );
 
 %% Simulate the ensemble
 % All ensemble members can now be executed with a single line of code and 
