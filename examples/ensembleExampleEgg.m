@@ -41,3 +41,7 @@ ensemble.simulateEnsembleMembers('range', 20, 'plotProgress', true);
 
 %% Plot the QoI
 ensemble.plotQoI();
+
+%% References
+% [1] Jansen, J. D., et al., "The egg model–a geological ensemble for
+% reservoir simulation." 'Geoscience Data Journal 1.2 (2014): 192-195.'
