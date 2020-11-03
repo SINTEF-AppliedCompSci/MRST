@@ -1,4 +1,11 @@
 function [description, options, state0, model, schedule, plotOptions] = egg_wo(varargin)
+% Creates problem components defined by a deck.
+% For use with MRSTExample
+
+%{
+#COPYRIGHT#
+%}
+
     % One-line description
     description = '';
     % Optional input arguments

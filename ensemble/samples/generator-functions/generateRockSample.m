@@ -1,4 +1,43 @@
 function sample = generateRockSample(N, varargin)
+% Generate a sample from random rock properties of dimension N
+%
+% SYNOPSIS:
+%   sample = generateRockSample(N);
+%   sample = generateRockSample(N, 'seed', seed, 'toVector', true);
+%
+% REQUIRED PARAMETERS:
+%   N - Grid dimensions of the model
+%
+% OPTIONAL PARAMETERS:
+%   'seed' - Seed for the random generator
+%   'toVector' - Organize perm and poro as one-dimensional vectors.
+%                Default: false
+%   'avg_perm', 'std_perm' - mean and standard deviation of the log of the
+%                            permeability. Default: 100*milli*darcy, 0.5
+%   'avg_poro', 'std_poro' - mean and standard deviation of the porosity.
+%                            Default: 0.5, 0.1
+%   'min_poro' - minimum value of the porosity. Default: 1e-3
+%   'covarianceFun' - Covariance function for the Gaussian process
+%   'correlationLength' - Correlation length if no covarianceFun is
+%                         provided. Default: 0.3
+%   'smooth' - Smooth covariance in case no covarianceFun is provided.
+%              Default: false
+%
+% RETURNS:
+%   sample - a struct with fields 'perm' and 'poro', holding the grid's
+%            permeability and porosity, respectively.
+% 
+% EXAMPLE:
+%   ensembleExampleTutorial
+%
+% SEE ALSO
+%   GaussianProcessND
+
+%{
+#COPYRIGHT#
+%}
+
+
     opt = struct('avg_perm'         , 100*milli*darcy, ...
                  'std_perm'         , 0.5            , ...
                  'avg_poro'         , 0.5            , ...

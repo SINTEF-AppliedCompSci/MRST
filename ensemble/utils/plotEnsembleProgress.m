@@ -1,4 +1,10 @@
 function h = plotEnsembleProgress(ensemble, progress, range, h, varargin)
+% Utility function for creating progress bars for running ensembles.
+
+%{
+#COPYRIGHT#
+%}
+
     opt = struct('width' , 800, ...
                  'height', 50 , ...
                  'onlyActive', true);

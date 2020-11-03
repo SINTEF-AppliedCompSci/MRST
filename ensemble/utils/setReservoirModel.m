@@ -1,6 +1,11 @@
 function model = setReservoirModel(model, rmodel)
-    % Set the underlying reservoir model to a model.
-    % This function probably belongs in ad-core
+% Set the underlying reservoir model to a model.
+% This function probably belongs in ad-core
+
+%{
+#COPYRIGHT#
+%}
+
     if isa(model, 'SequentialPressureTransportModel')
         % Model is a sequential implicit model - set reservoir model for
         % pressure and transport by recursion
