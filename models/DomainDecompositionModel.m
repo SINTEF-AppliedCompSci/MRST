@@ -134,7 +134,7 @@ classdef DomainDecompositionModel < WrapperModel
             % Use global pressure range when computing dpRel
             if model.useGlobalPressureRange
                 range = max(state.pressure) - min(state.pressure);
-                rmodel = model.getReservoirModel();
+                rmodel = getReservoirModel(model);
                 tol = inf;
                 if isprop(rmodel, 'incTolPressure')
                     tol   = rmodel.incTolPressure;
@@ -349,7 +349,7 @@ classdef DomainDecompositionModel < WrapperModel
             % Adjust submodel tolerances
             submodel = model.setSubdomainTolerances(submodel);
             % Get linear solver
-            rmodel = submodel.getReservoirModel();
+            rmodel = getReservoirModel(submodel);
             ncomp  = rmodel.getNumberOfComponents();
             ndof   = rmodel.G.cells.num*ncomp;
             if isa(submodel.parentModel, 'ReservoirModel')
@@ -390,7 +390,7 @@ classdef DomainDecompositionModel < WrapperModel
                 model = validateModel@WrapperModel(model, varargin{:});
                 m   = model;
                 m.G = [];
-                rmodel = m.getReservoirModel();
+                rmodel = getReservoirModel(m);
                 if isfield(rmodel, 'FacilityModel')
                     rmodel.FacilityModel = [];
                 end
@@ -427,7 +427,7 @@ classdef DomainDecompositionModel < WrapperModel
         function submodel = setSubFacilityModel(model, submodel, mappings) %#ok
             % Set facility model of a sumodel from an already set up
             % facility model for the full model
-            rmodel = submodel.getReservoirModel();
+            rmodel = getReservoirModel(submodel);
             fm = rmodel.FacilityModel;
             fm.ReservoirModel = rmodel;
             fm.ReservoirModel.FacilityModel = [];
@@ -444,7 +444,7 @@ classdef DomainDecompositionModel < WrapperModel
         %-----------------------------------------------------------------%
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             % TODO: Technically only necessary to compute FacilityFluxProps
-            rmodel = model.getReservoirModel();
+            rmodel = getReservoirModel(model);
             if rmodel.FacilityModel.outputFluxes && ~isempty(state.wellSol)
                 [~, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true);
                 state = model.reduceState(state, false);
@@ -459,7 +459,7 @@ classdef DomainDecompositionModel < WrapperModel
             if isempty(tolerances)
                 return
             end
-            rmodel = submodel.getReservoirModel();
+            rmodel = getReservoirModel(submodel);
             for i = 1:2:numel(tolerances)
                 if isprop(rmodel, tolerances{i})
                     assert(tolerances{i+1} <= 1, 'Subdomain tolerance fraction must be <= 1')

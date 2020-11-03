@@ -23,7 +23,7 @@ classdef SubdomainModel < WrapperModel
         %-----------------------------------------------------------------%
         function model = setSubModel(model, cells, varargin)
             % Set submodel
-            rmodel = model.getReservoirModel();
+            rmodel = getReservoirModel(model);
             % Get submodel of reservoir model from subset
             [submodel, map] = getSubModel(rmodel, cells, varargin{:});
             % Update reservoir model
@@ -101,7 +101,7 @@ function operators = constructRestrictionOperators(model)
     ML = sparse(1:nc, 1:nc, keep, nc, nc); 
     if isa(model.parentModel.AutoDiffBackend, 'DiagonalAutoDiffBackend')
         model = model.validateModel();
-        rmodel = model.getReservoirModel();
+        rmodel = getReservoirModel(model);
         ncomp = rmodel.getNumberOfComponents();
         MR = sparse(1:nc*ncomp, 1:nc*ncomp, repmat(keep, ncomp, 1), nc*ncomp, nc*ncomp);
         I  = @(i,j) sparse(1:nc, (1:nc) + nc*(i-1), ~keep, nc, nc*ncomp);
