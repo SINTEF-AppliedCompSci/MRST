@@ -46,11 +46,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     if ~isempty(opt.W)
         % Wells were sent in
+        C = getConnectivityMatrix(N);
         for i = 1:numel(opt.W)
             if opt.padWells
                 cl = false(G.cells.num,1);
                 cl(opt.W(i).cells) = true;
-                C = getConnectivityMatrix(N);
                 cl = cl | C*cl;
                 cl = find(cl);
             else
@@ -67,6 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     cyclesPresent = any(cycleSize > 1);
 end
 
+%-------------------------------------------------------------------------%
 function [order, M, cycle_size] = perform_topo_sort(G, I0, J0, countercurrent)
     nc = G.cells.num;
     M = sparse(I0, J0, 1, nc, nc);
