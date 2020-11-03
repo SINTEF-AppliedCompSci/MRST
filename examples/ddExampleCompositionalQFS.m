@@ -3,15 +3,15 @@
 % decomposition (NLDD), and show how we can obtain optimal ordering for
 % multiplicative NLDD based on topological sorting of the intercell flux
 % graph
-mrstModule add ad-core ad-props ad-blackoil blackoil-sequential ...
-    example-suite mrst-gui compositional
+mrstModule add ad-core ad-props ad-blackoil sequential example-suite ...
+    mrst-gui compositional
 mrstVerbose on
 
 %% Get example
 % We consider a slightly modified version of an example from Klemetsdal et.
 % al, SPE RSC 2019, doi: 10.2118/193934-ms. The setup consists of a
 % quarter five-spot example with CO2, Metahne, and nDecane.
-example0 = MRSTExample('qfs_compositional', 'nsteps', 50); example = example0;
+example0 = MRSTExample('qfs_compositional', 'nsteps', 60); example = example0;
 % We will use NLDD for the transport subproblem, so we construct a
 % sequential pressure-transport model
 mrstModule add linearsolvers

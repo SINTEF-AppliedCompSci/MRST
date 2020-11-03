@@ -76,7 +76,7 @@ example.plot(partition); % Plot subdomain partition
 % Additive NLDD tends to converge poorly for elliptic problems. We therfore
 % use sequential splitting, and use additive NLDD for the transport
 % subproblem.
-mrstModule add blackoil-sequential
+mrstModule add sequential
 modelSeq = getSequentialModelFromFI(example.model);
 % Make sequential example
 exampleSeq       = example;
