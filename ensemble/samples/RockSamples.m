@@ -1,8 +1,50 @@
 classdef RockSamples < BaseSamples
+    % Class for holding stochastic samples that represent uncertain rock
+    % properties for an MRSTEnsemble.
+    %
+    % DESCRIPTION:
+    %   This class is an extention of `BaseSamples` and is used within a 
+    %   MRSTEnsemble to organize stochastic rock properties. These rock 
+    %   properties can either be pre-computed or generated on the fly.
+    % 
+    % SYNOPSIS
+    %   samples = RockSamples('data', data);
+    %   samples = RockSamples('generatorFn', generatorFn);
+    %
+    % OPTIONAL PARAMETERS
+    %   'data' - precomputed sample data. Supported formats:
+    %               * Cell array of data samples
+    %               * Instance of ResultHandler class with
+    %                 information about storage location and names. See
+    %                 ResultHandler class for details
+    %
+    %   'generatorFn' - Function for generating a stochastic sample
+    % 
+    % NOTE:
+    %   Either 'data' or 'generatorFn' must be provided.
+    %   Each sample should consist of a struct with the fields 'perm' and 
+    %   'poro'.
+    %
+    % SEE ALSO:
+    %   `WellSamples`, `DeckSamples`, `BaseSamples`, `MRSTExample`, `BaseQoI`
 
     methods
         %-----------------------------------------------------------------%
         function problem = setSample(samples, sampleData, problem)
+            % Applies the sample realization of the rock properties to a 
+            % problem.
+            %
+            % SYNOPSIS:
+            %   problem = sample.setSample(sampleData, problem)
+            %
+            % PARAMETERS:
+            %   sampleData - The data for the specific sample realization.
+            %
+            %   problem - The problem which the sampleData will be applied
+            %             to.
+            % RETURNS:
+            %   problem - A problem representing a single ensemble member
+            
             % Get model
             model  = problem.SimulatorSetup.model;
             rmodel = getReservoirModel(model);
@@ -15,8 +57,14 @@ classdef RockSamples < BaseSamples
             problem.SimulatorSetup.model = model;
         end
         
+    end
+    
+    methods (Access = protected)
         %-----------------------------------------------------------------%
         function model = mapRockProps(samples, model, sampleData)
+            % Utility function for mapping the sample data to the actuel
+            % rock model.
+            
             [sampleData, type] = samples.validateSample(model, sampleData);
             switch type
                 case 'standard'
@@ -52,6 +100,10 @@ classdef RockSamples < BaseSamples
         
         %-----------------------------------------------------------------%
         function [sampleData, type] = validateSample(samples, model, sampleData)
+            % Utility function for checking that th sample data is a valid
+            % rock property, and evaluate how it should be mapped to the
+            % model from the base problem.
+            
             % Check that sample has perm and poro field
             assert(isfield(sampleData, 'perm') && isfield(sampleData, 'poro'), ...
                 'Rock sample must have a perm and poro field');
@@ -94,3 +146,7 @@ classdef RockSamples < BaseSamples
     end
     
 end
+
+%{
+#COPYRIGHT#
+%}

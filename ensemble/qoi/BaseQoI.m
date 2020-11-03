@@ -8,7 +8,7 @@ classdef BaseQoI
     % DESCRIPTION:
     %   This class (and its super classes) is used within a MRSTEnsemble
     %   to extract, store, and work with quantities of interest. 
-    %   This base class defines functions 
+    %   This base class defines the main API for interacting with QoI's.
     %
     % SEE ALSO:
     %   `WellQoI`, `ReservoirStateQoI`, `MRSTExample`, `BaseSamples`

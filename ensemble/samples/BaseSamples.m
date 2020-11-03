@@ -1,6 +1,20 @@
 classdef BaseSamples
     % Template class for holding the stochastic samples relevant for all
     % ensemble members in an MRSTEnsemble
+    %
+    % NOTE:
+    %   Not intended for direct use.
+    %
+    % DESCRIPTION:
+    %   This class (and its super classes) is used within a MRSTEnsemble
+    %   to organize the stochastic component/variables/parameters that
+    %   separates the ensemble members.
+    %   This base class defines the main API for interacting with such
+    %   samples.
+    %
+    % SEE ALSO:
+    %   `RockSamples`, `WellSamples`, `DeckSamples`, `MRSTExample`, `BaseQoI`
+    
     
     properties
         num = inf   % inf means that we can sample new ensemble members on the fly
@@ -16,6 +30,7 @@ classdef BaseSamples
         
         %-----------------------------------------------------------------%
         function samples = BaseSamples(varargin)
+            
             % Class constructor.
             samples = merge_options(samples, varargin{:});
             assert(xor(isempty(samples.data), isempty(samples.generatorFn))        , ...
@@ -37,7 +52,60 @@ classdef BaseSamples
         end
         
         %-----------------------------------------------------------------%
+        function problem = getSampleProblem(samples, baseProblem, seed)
+            % Takes a realization of the sample according to the seed and
+            % applies it to the baseProblem, thus creating a self standing
+            % problem definition of an ensemble member.
+            %
+            % SYNOPSIS:
+            %   problem = sample.getSampleProblem(baseProblem, seed)
+            %
+            % PARAMETERS:
+            %   baseProblem - An MRST problem containing all but the
+            %                 stochastic component
+            %   seed        - Uniquely identify the sample realization that
+            %                 will be applied. Is either the index of the
+            %                 data (ensemble member id), or the seed for
+            %                 the random generator.
+            %
+            % RETURNS:
+            %   problem - A problem representing a single ensemble member
+            
+            % Based on the baseProblem, create a problem with sample
+            % given by the seed
+            sampleData = samples.getSample(seed, baseProblem);
+            problem    = samples.setSample(sampleData, baseProblem);
+            % Set output directory for the sample
+            problem.OutputHandlers.wellSols.dataFolder = num2str(seed);
+            problem.OutputHandlers.states.dataFolder   = num2str(seed);
+            problem.OutputHandlers.reports.dataFolder  = num2str(seed);
+            % Check if data directory exists, and make it if it does'nt
+            dataDir = problem.OutputHandlers.states.getDataPath();
+            if ~exist(dataDir, 'dir')
+                mkdir(dataDir);
+            end
+        end
+        
+        
+        %-----------------------------------------------------------------%
         function sampleData = getSample(samples, seed, problem)
+            % Get a single sample realization based on the seed.
+            %
+            % SYNOPSIS:
+            %   sampleData = sample.getSample(seed, problem)
+            %
+            % PARAMETERS:
+            %   seed    - Uniquely identify the sample realization that
+            %             will be applied. Is either the index of the data
+            %             (ensemble member id), or the seed for the random
+            %             generator.
+            %   problem - The problem for which to apply the sample. Only
+            %             used for generating data through a function on
+            %             the fly.
+            %
+            % RETURNS:
+            %   sampleData - The data of the sample realization 
+            
             % Get a simple sample based on the seed, which is the seed for
             % the random generator or an index of data. Second input
             % argument ''problem'' is only needed if samples are computed
@@ -54,28 +122,32 @@ classdef BaseSamples
         
         %-----------------------------------------------------------------%
         function problem = setSample(samples, sampleData, problem) %#ok
+            % Applies the sample data realization to a problem.
+            %
+            % SYNOPSIS:
+            %   problem = sample.setSample(sampleData, problem)
+            %
+            % PARAMETERS:
+            %   sampleData - The data for the specific sample realization.
+            %
+            %   problem - The problem which the sampleData will be applied
+            %             to.
+            % RETURNS:
+            %   problem - A problem representing a single ensemble member
+            %
+            % NOTE:
+            %   This function must be implemented by each specific sample
+            %   type.
+            
             % Set sampleData to the problem. The specific implementation of
             % this function depends on the type of sample
             error('Template class not meant for direct use!');
         end
         
-        %-----------------------------------------------------------------%
-        function problem = getSampleProblem(samples, baseProblem, seed)
-            % Based on the baseProblem, create a problem with sample
-            % given by the seed
-            sampleData = samples.getSample(seed, baseProblem);
-            problem    = samples.setSample(sampleData, baseProblem);
-            % Set output directory for the sample
-            problem.OutputHandlers.wellSols.dataFolder = num2str(seed);
-            problem.OutputHandlers.states.dataFolder   = num2str(seed);
-            problem.OutputHandlers.reports.dataFolder  = num2str(seed);
-            % Check if data directory exists, and make it if it does'nt
-            dataDir = problem.OutputHandlers.states.getDataPath();
-            if ~exist(dataDir, 'dir')
-                mkdir(dataDir);
-            end
-        end
-        
+
     end
 end
     
+%{
+#COPYRIGHT#
+%}
