@@ -25,7 +25,8 @@ problem = example.getPackedSimulationProblem();
 % problem setup and seed for controlling the random number generator, so we
 % make a function handle taking in these arguments.
 generatorFn = @(problem, seed) ...
-    generateRockSample(example.model.G.cartDims, 'seed', seed, 'toVector', true);
+    generateRockSample(problem.SimulatorSetup.model.G.cartDims, ...
+                                           'seed', seed, 'toVector', true);
 
 % The class RockSamples implements routines for getting stochastic rock
 % realizations, and setting such a sample to the model. The latter also 
@@ -191,7 +192,7 @@ ensemble = MRSTEnsemble(example, samplesRH, qoiState  , ...
                         'directory'         , dataDir     , ...
                         'simulationStrategy', 'background'  , ...
                         'reset'             , false);
-                    
+
 %% Simulate the ensemble
 % All ensemble members can now be executed with a single line of code and 
 % if the 'background' parallelization mode is selected, we show a progress
@@ -220,3 +221,7 @@ end
 example.plot(s_avg); colormap(jet);  caxis([0,1]);
 title('Water saturation after 300 days, ensemble avg');
 
+%% References
+% [1] "Simulation of Stationary Gaussian Processes in [0, 1]^d", Andrew
+% Wood and Grace Chan, Journal of Computational and Graphical Statistics,
+% Vol.3 Number 4 (1994), pages 409-432
