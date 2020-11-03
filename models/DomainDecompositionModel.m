@@ -126,6 +126,11 @@ classdef DomainDecompositionModel < WrapperModel
             if isfield(state, 'FractionalDerivatives')
                 state = rmfield(state, 'FractionalDerivatives');
             end
+            % Remove statePressure
+            if isfield(state, 'statePressure')
+                state = rmfield(state, 'statePressure');
+            end
+            
             % Use global pressure range when computing dpRel
             if model.useGlobalPressureRange
                 range = max(state.pressure) - min(state.pressure);
@@ -159,13 +164,15 @@ classdef DomainDecompositionModel < WrapperModel
             % Initialize
             iterations = nan(model.G.cells.num,1);
             [stateInit, stateFinal] = deal(state);
+            subreports = cell(max(model.partition.value), 1);
             for i = 1:max(model.partition.value)
                 % Solve subdomain
-                [stateInit, stateFinal, iterations] = model.solveSubDomain(model.subdomainSetup{i}, state0, dt, drivingForces, stateInit, stateFinal, iterations);
+                [stateInit, stateFinal, subreports{i}, iterations] = model.solveSubDomain(model.subdomainSetup{i}, state0, dt, drivingForces, stateInit, stateFinal, iterations);
             end
             state = stateFinal;
             % Make step report
-            report = model.makeSubdomainStepReport('Iterations', iterations);
+            report = model.makeSubdomainStepReport('Iterations', iterations  , ...
+                                                   'subreports', {subreports});
         end
         
         %-----------------------------------------------------------------%
@@ -183,9 +190,10 @@ classdef DomainDecompositionModel < WrapperModel
                 map        = [];
                 stateFinal = stateInit;
                 iterations = zeros(lm.G.cells.num,1);
+                subreports = cell(numel(lm.domains),1);
                 for i = 1:numel(lm.domains)
                     % Solve subdomain
-                    [stateInit, stateFinal, iterations, submodel] = lm.solveSubDomain(sds{i}, state0, dt, drivingForces, stateInit, stateFinal, iterations);
+                    [stateInit, stateFinal, subreports{i}, iterations, submodel] = lm.solveSubDomain(sds{i}, state0, dt, drivingForces, stateInit, stateFinal, iterations);
                     map = mergeMappings(map, submodel.mappings);
                 end
                 t_localSolve = toc(localTimer);
@@ -207,11 +215,14 @@ classdef DomainDecompositionModel < WrapperModel
             state      = stateFinal{1};
             t_comm     = toc(timer); %#ok
             % Make step report
-            report = model.makeSubdomainStepReport('Iterations', iterations);
+            subreports = subreports(:);
+            subreports = vertcat(subreports{:});
+            report = model.makeSubdomainStepReport('Iterations', iterations  , ...
+                                                   'subreports', {subreports});
         end
         
         %-----------------------------------------------------------------%
-        function [stateInit, stateFinal, iterations, varargout] = solveSubDomain(model, setup, state0, dt, drivingForces, stateInit, stateFinal, iterations)
+        function [stateInit, stateFinal, subreport, iterations, varargout] = solveSubDomain(model, setup, state0, dt, drivingForces, stateInit, stateFinal, iterations)
             % Solve a single subdomain
             % Get submodel
             if isempty(setup.Model)
@@ -249,6 +260,8 @@ classdef DomainDecompositionModel < WrapperModel
             % Update iterations
             cells = model.partition.value == setup.Number;
             iterations(cells) = subreport.Iterations;
+            % Store number of subdomain cells in subreport
+            subreport.nc = nnz(mappings.cells.internal);
             % Extra output if requested
             varargout = cell(1,nargout-3);
             if nargout > 3
@@ -263,7 +276,7 @@ classdef DomainDecompositionModel < WrapperModel
         %-----------------------------------------------------------------%
         function report = makeSubdomainStepReport(model, varargin)%#ok
             % Make subdomain step report
-            report = struct('Iterations', [], 'WallTime', []);
+            report = struct('Iterations', [], 'subreports', [], 'WallTime', []);
             report = merge_options(report, varargin{:});
         end
         
@@ -417,6 +430,7 @@ classdef DomainDecompositionModel < WrapperModel
             rmodel = submodel.getReservoirModel();
             fm = rmodel.FacilityModel;
             fm.ReservoirModel = rmodel;
+            fm.ReservoirModel.FacilityModel = [];
             fm.WellModels = fm.WellModels(mappings.wells.keep);
             for i = 1:numel(fm.WellModels)
                 fm.WellModels{i}.doUpdatePressureDrop = false;
@@ -430,8 +444,11 @@ classdef DomainDecompositionModel < WrapperModel
         %-----------------------------------------------------------------%
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             % TODO: Technically only necessary to compute FacilityFluxProps
-            [~, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true);
-            state = model.reduceState(state, false);
+            rmodel = model.getReservoirModel();
+            if rmodel.FacilityModel.outputFluxes && ~isempty(state.wellSol)
+                [~, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true);
+                state = model.reduceState(state, false);
+            end
             [state, report] = model.parentModel.updateAfterConvergence(state0, state, dt, drivingForces);
         end
         
