@@ -229,7 +229,12 @@ classdef DomainDecompositionModel < WrapperModel
                 setup = model.getSubdomainSetup(setup.Number, true);
             end
             submodel = setup.Model;
-            mappings = submodel.mappings;
+            is_seq = isa(submodel, 'SequentialPressureTransportModel');
+            if is_seq
+                mappings = submodel.pressureModel.mappings;
+            else
+                mappings = submodel.mappings;
+            end
             % Get subdomain forces
             [subforces, mappings] = getSubForces(drivingForces, mappings);
             % Set facility model
@@ -265,7 +270,12 @@ classdef DomainDecompositionModel < WrapperModel
             % Extra output if requested
             varargout = cell(1,nargout-3);
             if nargout > 3
-                submodel.mappings = mappings;
+                if is_seq
+                    submodel.pressureModel.mappings  = mappings;
+                    submodel.transportModel.mappings = mappings;
+                else
+                    submodel.mappings = mappings;
+                end
                 varargout{1} = submodel;
                 varargout{2} = state;
                 varargout{3} = substate0;
@@ -427,6 +437,12 @@ classdef DomainDecompositionModel < WrapperModel
         function submodel = setSubFacilityModel(model, submodel, mappings) %#ok
             % Set facility model of a sumodel from an already set up
             % facility model for the full model
+            if isa(submodel, 'SequentialPressureTransportModel')
+                submodel.pressureModel  = model.setSubFacilityModel(submodel.pressureModel , mappings);
+                submodel.transportModel = model.setSubFacilityModel(submodel.transportModel, mappings);
+                submodel.parentModel    = model.setSubFacilityModel(submodel.parentModel, mappings);
+                return
+            end
             rmodel = getReservoirModel(submodel);
             fm = rmodel.FacilityModel;
             fm.ReservoirModel = rmodel;
