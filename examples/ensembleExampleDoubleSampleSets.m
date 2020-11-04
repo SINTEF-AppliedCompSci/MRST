@@ -138,7 +138,7 @@ comboSamples = WellRockSamples('data', comboData);
 % tensor products of all parent samples. In effect, this means that we use a
 % different seed to get each parent sample. If this is false, we use the
 % same seed to get all parent samples.
-compSamples = CompositeSamples({rockSamples, wellSamples}, 'tensorProduct', true);
+compSamples = CompositeSamples({rockSamples, wellSamples}, 'tensorProduct', false);
 
 %% Define new ensemble
 compEnsemble = MRSTEnsemble(baseExample, compSamples, qoi, ...
@@ -148,7 +148,10 @@ compEnsemble = MRSTEnsemble(baseExample, compSamples, qoi, ...
     'verbose', true);
 
 %% Simulate and plot
-compEnsemble.simulateEnsembleMembers('range', 1:20:compSamples.num, 'plotProgress', true);
+compEnsemble.simulateEnsembleMembers('plotProgress', true);
 
 %% Plot results
-close all, compEnsemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
+color = lines(2); color = color(2,:);
+close all, compEnsemble.plotQoI('subplots'  , true      , ...
+                                'subplotDir', 'vertical', ...
+                                'color'     , color     );
