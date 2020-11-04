@@ -192,7 +192,7 @@ classdef WellQoI < BaseQoI
                 end
                 if opt.labels
                     xlabel(sprintf('Time (%s)', formatTime(opt.timescale)));
-                    ylabel(sprintf('%s', qoi.fldname{1}));
+                    ylabel(sprintf('%s', qoi.fldname{opt.subCellNo}));
                 end
             end
         end
