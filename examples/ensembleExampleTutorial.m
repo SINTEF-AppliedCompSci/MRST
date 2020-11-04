@@ -197,13 +197,12 @@ ensemble = MRSTEnsemble(example, samplesRH, qoiState      , ...
 % All ensemble members can now be executed with a single line of code and 
 % if the 'background' parallelization mode is selected, we show a progress
 % bar indicating when the various
-ensemble.simulateEnsembleMembers('plotProgress', true);
+close all, ensemble.simulateEnsembleMembers('plotProgress', true);
 
 % It is also possible to run only a subset of the ensemble members by
 % calling the function 
 %      ensemble.simulationEnsembleMembers(20:30 'plotProgress', true);
 % for a given range of ensemble members (here ensemble members 20 to 30).
-
 
 %% Plot results
 close all
