@@ -7,8 +7,8 @@ classdef MRSTEnsemble < handle
     % DESCRIPTION:
     %   This class is used to organize, set-up, run and post-process 
     %   ensemble simulations in MRST. It can be used for a varity of 
-    %   problems, such as uncertainty quantification, optimization, and
-    %   history matching.
+    %   problems, such as uncertainty quantification, optimization under 
+    %   uncertainty, and history matching.
     % 
     % REQUIRED PARAMETERS:
     %   mrstExample - Instance of MRSTExample, or a function name that 
