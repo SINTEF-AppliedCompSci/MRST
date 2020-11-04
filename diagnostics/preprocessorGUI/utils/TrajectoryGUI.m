@@ -168,8 +168,16 @@ classdef TrajectoryGUI < handle
             plot3(t.p1(:,1), t.p1(:,2), t.p1(:,3), '.k','LineWidth', 2, 'MarkerSize', 3);
             % cell exit points
             plot3(t.p2(:,1), t.p2(:,2), t.p2(:,3), '.k','LineWidth', 2, 'MarkerSize', 3);
-            plotCellData(d.model.G, d.ccol, t.cell, 'FaceAlpha', .5, 'EdgeAlpha', .5, 'EdgeColor', [.3 .3 .3])
+            plotCellData(d.model.G, d.ccol, t.cell, 'FaceAlpha', .5, 'EdgeAlpha', .5, 'EdgeColor', 'r')
             view(3),daspect([1, 1, .2])
+            
+            % Add extra cell layer
+            N = getNeighbourship(d.model.G);
+            A = getConnectivityMatrix(N,true,d.model.G.cells.num);
+            show = zeros(d.model.G.cells.num,1); show(t.cell)=1;
+            K=false(d.model.G.cartDims(3),1); K(1:2:end)=true;
+            [ijk{1:3}] = ind2sub(d.model.G.cartDims, d.model.G.cells.indexMap);
+            h = plotCellData(d.model.G,d.ccol,(A*A*A*show>0)&(show==0)&(K(ijk{3})),'FaceAlpha',.8);
             if numel(d.WNew)>0
                 plotWellData(d.model.G, d.WNew, 'lineplot', true);
             end
