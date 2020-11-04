@@ -31,6 +31,7 @@ classdef WellQoI < BaseQoI
     % 
     % SEE ALSO:
     %   `BaseQoI`, `ReservoirStateQoI`, `MRSTExample`, `BaseSamples`
+    
     properties
         fldname      = {'qOs'} % Well output field names
         wellIndices            % Well indices
@@ -142,24 +143,24 @@ classdef WellQoI < BaseQoI
             % different timesteps than the base problem, interpolate well
             % output onto base problem timesteps
             if numel(qoi.dt) ~= numel(dtProblem) && ~qoi.total
-                u = qoi.interpolateWellOutput(dtProblem, u);
+                uMatrix = qoi.interpolateWellOutput(dtProblem, uMatrix);
             end
             
             % Organizing u as a cell array per well of cell array per field
-            u = {};
             numFields = numel(qoi.fldname);
             numWells = numel(qoi.wellNames);
             if qoi.combined
                 numWells = 1;
             end
 
+            u = cell(numWells,1);
+            [u{:}] = deal(cell(numFields,1));
             for w = 1:numWells
                 for f = 1:numFields
                     u{w}{f} = uMatrix(:, w, f);
                 end
             end
-            
-            %u = {u};
+
         end
         
         %-----------------------------------------------------------------%
@@ -169,21 +170,19 @@ classdef WellQoI < BaseQoI
                          'timescale' , day , ...
                          'labels'    , true, ...
                          'title'     , true, ...
-                         'cellNo'    , 1, ...
-                         'subCellNo' , 1);
+                         'cellNo'    , 1   , ...
+                         'subCellNo' , 1   );
             [opt, extra] = merge_options(opt, varargin{:});
-            
-            plotOpt = struct('lineWidth', 2);
-            [plotOpt, extra] = merge_options(plotOpt, extra{:});
             
             color = [1,1,1]*0.8*(1-opt.isMean); % Plot mean in distinct color
             is_timeseries = true;
             if is_timeseries
                 time = cumsum(qoi.dt)./opt.timescale;
-                plot(time, u, 'color', color, ...
-                     'lineWidth', plotOpt.lineWidth, ...
-                     extra{:});
+                plot(time, u, 'color'    , color, ...
+                              'lineWidth', 2    , ...
+                               extra{:}         );
                 xlim([time(1), time(end)]);
+                box on, grid on
                 if opt.title
                     if qoi.combined
                         title(sprintf('Combined produced %s', qoi.fldname{opt.subCellNo}));
@@ -198,6 +197,7 @@ classdef WellQoI < BaseQoI
             end
         end
         
+        %-----------------------------------------------------------------%
         function h = plotEnsembleWellQoI(qoi, ensemble, h, varargin)
             % Plots well properties for the ensemble and ensemble mean.
             % Creates one figure per field, and organizes results from each
