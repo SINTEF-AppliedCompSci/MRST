@@ -11,8 +11,8 @@ mrstVerbose on
 example = MRSTExample('egg_wo');
 % Extract interesting part of the schedule
 steps = cumsum(example.schedule.step.val) <= 1500*day;
-example.schedule.step.val     = example.schedule.step.val(ix);
-example.schedule.step.control = example.schedule.step.val(ix);
+example.schedule.step.val     = example.schedule.step.val(steps);
+example.schedule.step.control = example.schedule.step.val(steps);
 % Plot setup
 example.plot(example.model.rock, 'log10', true); colormap(pink);
 
