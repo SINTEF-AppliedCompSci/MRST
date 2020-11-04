@@ -15,7 +15,6 @@ classdef BaseSamples
     % SEE ALSO:
     %   `RockSamples`, `WellSamples`, `DeckSamples`, `MRSTExample`, `BaseQoI`
     
-    
     properties
         num = inf   % inf means that we can sample new ensemble members on the fly
         data        % precomputed sample data. Supported formats:
@@ -30,8 +29,8 @@ classdef BaseSamples
         
         %-----------------------------------------------------------------%
         function samples = BaseSamples(varargin)
-            
             % Class constructor.
+            if nargin == 0, return; end
             samples = merge_options(samples, varargin{:});
             assert(xor(isempty(samples.data), isempty(samples.generatorFn))        , ...
                    'Please provide either a generatorFn or precomputed sample data');
