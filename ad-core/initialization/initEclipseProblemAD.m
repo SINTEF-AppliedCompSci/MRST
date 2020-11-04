@@ -202,6 +202,6 @@ function model = initializeModel(deck, opt)
     
     rock  = compressRock(rock, G.cells.indexMap);
     model = selectModelFromDeck(G, rock, fluid, deck, ...
-                                'UseLegacyModels', opt.UseLegacyModels);
+                                'UseLegacyModels', opt.useLegacyModels);
     model.dpMaxRel = 0.2;
 end
