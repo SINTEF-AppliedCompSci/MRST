@@ -186,6 +186,9 @@ classdef MRSTEnsemble < handle
             % of the stochastic samples.
             
             problem = ensemble.setup.getPackedSimulationProblem('Directory', ensemble.directory, 'Name', 'baseProblem');
+            if ~isempty(ensemble.samples.processProblemFn)
+                problem = ensemble.samples.processProblemFn(problem);
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -225,9 +228,7 @@ classdef MRSTEnsemble < handle
             %
             % PARAMETERS:
             %   seed - Integer specifying which ensemble member to run.
-            %
-            
-            
+            %            
             if ensemble.qoi.isComputed(seed)
                 % QoI is already computed - nothing to do here!
                 if ensemble.verbose
@@ -493,9 +494,7 @@ classdef MRSTEnsemble < handle
                 if all(isinf(progress)), break; end
             end
         end
-        
-
-        
+                
     end
 end
 

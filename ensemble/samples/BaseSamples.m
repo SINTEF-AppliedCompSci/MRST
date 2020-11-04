@@ -16,13 +16,17 @@ classdef BaseSamples
     %   `RockSamples`, `WellSamples`, `DeckSamples`, `MRSTExample`, `BaseQoI`
     
     properties
-        num = inf   % inf means that we can sample new ensemble members on the fly
-        data        % precomputed sample data. Supported formats:
-                    %      * Cell array of data samples
-                    %      * Instance of ResultHandler class with
-                    %        information about storage location and names. See
-                    %        ResultHandler class and <EXAMPLE> for details
-        generatorFn % Function for generating a stochastic sample
+        num = inf        % inf means that we can sample new ensemble
+                         % members on the fly
+        data             % precomputed sample data. Supported formats:
+                         %      * Cell array of data samples
+                         %      * Instance of ResultHandler class with
+                         %        information about storage location and
+                         %        names. See ResultHandler class and
+                         %        <EXAMPLE> for details
+        generatorFn      % Function for generating a stochastic sample
+        processProblemFn % Function handle to for processing problem after
+                         % sample has been set. Default: empty
     end
     
     methods
@@ -74,6 +78,10 @@ classdef BaseSamples
             % given by the seed
             sampleData = samples.getSample(seed, baseProblem);
             problem    = samples.setSample(sampleData, baseProblem);
+            if ~isempty(samples.processProblemFn)
+                % Process problem
+                problem = samples.processProblemFn(problem);
+            end
             % Set output directory for the sample
             problem.OutputHandlers.wellSols.dataFolder = num2str(seed);
             problem.OutputHandlers.states.dataFolder   = num2str(seed);
