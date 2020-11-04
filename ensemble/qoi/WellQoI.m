@@ -203,6 +203,12 @@ classdef WellQoI < BaseQoI
         end
         
         %-----------------------------------------------------------------%
+        function h = figure(qoi, ensemble, varargin) %#ok
+            % Create figure for plotting QoI
+            h = figure(varargin{:});
+        end
+        
+        %-----------------------------------------------------------------%
         function h = plotEnsembleWellQoI(qoi, ensemble, h, varargin)
             % Plots well properties for the ensemble and ensemble mean.
             % Creates one figure per field, and organizes results from each

@@ -203,9 +203,9 @@ classdef BaseQoI
                          'subplots'  , false       , ...
                          'subplotDir', 'horizontal');
             [opt, extra] = merge_options(opt, varargin{:});
-            [u_mean, u] = qoi.computeMean(opt.range);
-            numQoIs    = numel(u_mean);
-            numSubQoIs = 1;
+            [u_mean, u]  = qoi.computeMean(opt.range);
+            numQoIs      = numel(u_mean);
+            numSubQoIs   = 1;
                         
             plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u{i}, ...
                 'cellNo', i, varargin{:});
@@ -239,11 +239,7 @@ classdef BaseQoI
                         figureId = (i-1)*numSubQoIs + k;
                     end
                     if isnan(h(figureId))
-                        if ~isempty(ensemble)
-                            h(figureId) = ensemble.setup.figure();
-                        else
-                            h(figureId) = figure();
-                        end
+                        h(figureId) = qoi.figure(ensemble);
                     else
                         set(0, 'CurrentFigure', h(figureId));
                         if ~opt.subplots, clf(h(figureId)); end
@@ -277,6 +273,16 @@ classdef BaseQoI
             [opt, extra] = merge_options(opt, varargin{:});
             color = [1,1,1]*0.8*(1-opt.isMean); % Plot mean in distinct color
             plot(u, 'lineWidth', 2, 'color', color, extra{:});
+        end
+        
+        %-----------------------------------------------------------------%
+        function h = figure(qoi, ensemble, varargin) %#ok
+            % Create figure for plotting QoI
+            if nargin < 2 || isempty(ensemble)
+                h = figure(varargin{:});
+            else
+                h = ensemble.setup.figure();
+            end
         end
         
         %-----------------------------------------------------------------%
