@@ -9,6 +9,11 @@ mrstVerbose on
 
 %% Set up base problem
 example = MRSTExample('egg_wo');
+% Extract interesting part of the schedule
+steps = cumsum(example.schedule.step.val) <= 1500*day;
+example.schedule.step.val     = example.schedule.step.val(ix);
+example.schedule.step.control = example.schedule.step.val(ix);
+% Plot setup
 example.plot(example.model.rock, 'log10', true); colormap(pink);
 
 %% Set up samples
@@ -18,29 +23,32 @@ generatorFn = @(problem, seed) getDeckEGG('realization', seed-1);
 % The class DeckSamples implements what we need for setting up samples from
 % a deck file. The class uses `initEclipseProblemAD` to set up the problem,
 % and extra input arguments to this function can be provided in the class
-% property initArgs. The property gridFromDeck is used to determine if the
-% simulation grid should be constructed from the deck, or taken from the
-% base problem.
-samples = DeckSamples('generatorFn', generatorFn, 'num', 101);
+% property `initArgs`. The property `gridFromDeck` is used to determine if
+% the simulation grid should be constructed from the deck, or taken from
+% the base problem.
+processProblemFn = @(problem) getSubSchedule(problem, steps);
+samples = DeckSamples('generatorFn'     , generatorFn     , ... % Generator function
+                      'processProblemFn', processProblemFn, ... % Get subschedule
+                      'num'             , 101             );    % Number of samples
 disp(samples)
 
 %% Set up QoI
 % For our QoI, we choose the total oil production rate
 is_prod = vertcat(example.schedule.control(1).W.sign) < 0;
-qoi = WellQoI('wellIndices', is_prod, 'fldname', 'qOs', 'combined', true);
+qoi = WellQoI('wellIndices', is_prod, 'fldname', 'qOs');
 
 %% Set up ensemble
 ensemble = MRSTEnsemble(example, samples, qoi, ...
                'simulationStrategy', 'background'); % Run in the background
 
 %% Simulate the ensemble members
-% We simulate 20 samples. Each time the code in this block is called, 20
-% new samples will be simulated. To reset the ensemble data, call
-% ensemble.reset();
-ensemble.simulateEnsembleMembers('range', 20, 'plotProgress', true);
+% We simulate 8 samples. Each time the code in this block is called, 8 new
+% samples will be simulated until all ensemble memebers have been run. To
+% reset the ensemble data, call ensemble.reset();
+ensemble.simulateEnsembleMembers('range', 8, 'plotProgress', true);
 
 %% Plot the QoI
-ensemble.plotQoI();
+close all, ensemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
 
 %% References
 % [1] Jansen, J. D., et al., "The egg model–a geological ensemble for
