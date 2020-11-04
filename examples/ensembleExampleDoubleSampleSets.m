@@ -5,14 +5,10 @@
 % (uncertain rock and uncertain well properties).
 % To show this we create a small ensemble of a 3D reservoir modelling two
 % phase flow (oil and water) between two injectors and two producers.
-
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
     example-suite incomp ensemble 
 
 mrstVerbose off
-
-
-
 
 %% Choose a base problem and ensemble size
 % The base problem contains all properties that are common throughout the
@@ -28,7 +24,7 @@ simulateExample = false;
 plotSimulation = false;
 rerunBaseProblemFromScratch = false;
 
-baseExample = MRSTExample(baseProblemName);
+baseExample = MRSTExample(baseProblemName, baseProblemOptions{:});
 
 if simulateExample
     problem = baseExample.getPackedSimulationProblem();
@@ -84,15 +80,15 @@ rockEnsemble = MRSTEnsemble(baseExample, rockSamples, qoi, ...
 rockEnsemble.simulateEnsembleMembers('plotProgress', true);
 
 %% Plot results
-rockEnsemble.plotQoI();
+% Set optional input argument `subplots` to `true` to plot each QoI field
+% for all wells in the same figure on top of each other (`subplotDir =
+% 'vertical'`) or side-by-side ((`subplotDir =  'horizontal'`)
+rockEnsemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
 
 %% Plot well results with subplots
-rockEnsemble.qoi.plotEnsembleWellQoI(ensemble);
+% WellQoIs also have custom plotting functionality
+rockEnsemble.qoi.plotEnsembleWellQoI(rockEnsemble);
 
-
-
-
-%-------------------------------------------------------------------------%
 %% Create another ensemble using stochastic well indices.
 % The class WellSamples are used in the same way as RockSamples, and are
 % also a superclass of BaseSamples. Instead of rock properties, however,
@@ -108,7 +104,7 @@ wellSamples = WellSamples('data', wellSampleData);
 
 %% Define new ensemble
 wellEnsemble = MRSTEnsemble(baseExample, wellSamples, qoi, ...
-    'simulationStrategy', 'parallel', ...
+    'simulationStrategy', 'background', ...
     'maxWorkers', 8, ...
     'reset', true, ...
     'verbose', true);
@@ -117,9 +113,8 @@ wellEnsemble = MRSTEnsemble(baseExample, wellSamples, qoi, ...
 wellEnsemble.simulateEnsembleMembers();
 
 %% Plot result 
-wellEnsemble.plotQoI();
+wellEnsemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
 
-%-------------------------------------------------------------------------%
 %% Create another ensemble that combines both sampling strategies
 % Finally, we want to run an ensemble that has stochastic rock properties
 % AND stochastic well properties. To achieve this, we have implemented the
@@ -128,25 +123,32 @@ wellEnsemble.plotQoI();
 % The data property in this class expects to have a cell array of structs
 % with fields rock and well, both these being structs with rock properties
 % and well properties, respectively.
-
 comboData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
     comboData{i}.rock = rockData{i};
     comboData{i}.well = wellSampleData{i};
 end
-
 comboSamples = WellRockSamples('data', comboData);
 
+%% Create another ensemble that combines both sampling strategies
+% Finally, we want to run an ensemble that has stochastic rock properties
+% AND stochastic well properties. This is conveniently implemented in the
+% `CompositeSamples` class, where we can combine any number of parent
+% samples. The optional input argument `tensorProduct = true` uses all
+% tensor products of all parent samples. In effect, this means that we use a
+% different seed to get each parent sample. If this is false, we use the
+% same seed to get all parent samples.
+compSamples = CompositeSamples({rockSamples, wellSamples}, 'tensorProduct', true);
+
 %% Define new ensemble
-comboEnsemble = MRSTEnsemble(baseExample, comboSamples, qoi, ...
-    'simulationStrategy', 'parallel', ...
+compEnsemble = MRSTEnsemble(baseExample, compSamples, qoi, ...
+    'simulationStrategy', 'background', ...
     'maxWorkers', 8, ...
     'reset', true, ...
     'verbose', true);
 
 %% Simulate and plot
-comboEnsemble.simulateAllEnsembleMembers();
+compEnsemble.simulateEnsembleMembers('range', 1:20:compSamples.num, 'plotProgress', true);
 
-%%
+%% Plot results
 comboEnsemble.plotQoI();
-
