@@ -27,7 +27,12 @@ classdef RockSamples < BaseSamples
     %
     % SEE ALSO:
     %   `WellSamples`, `DeckSamples`, `BaseSamples`, `MRSTExample`, `BaseQoI`
-
+    
+    properties
+        updateWells = true % Update well indices based on updated rock 
+        WIargs      = {}   % Extra arguments passed to `computeWellIndex`
+    end
+    
     methods
         %-----------------------------------------------------------------%
         function problem = setSample(samples, sampleData, problem)
@@ -55,6 +60,12 @@ classdef RockSamples < BaseSamples
             % Replace problem model
             model = setReservoirModel(model, rmodel);
             problem.SimulatorSetup.model = model;
+            if samples.updateWells
+                % Update well indices
+                schedule = problem.SimulatorSetup.schedule;
+                schedule = samples.updateWellIndices(rmodel, schedule);
+                problem.SimulatorSetup.schedule = schedule;
+            end
         end
         
     end
@@ -140,6 +151,23 @@ classdef RockSamples < BaseSamples
                 assert(ndims(sampleData.poro) == model.G.griddim, ...
                     'Inconsistent pororisy dimensions');
                 type = 'sampleFromBox';
+            end
+        end
+        
+        %-----------------------------------------------------------------%
+        function schedule = updateWellIndices(samples, model, schedule) %#ok
+            % Update well indices for all wells based on sample rock
+            % properties.
+            updateWI = @(W) computeWellIndex(model.G, model.rock, W.r, W.cells, ...
+                                             'Dir', W.dir, samples.WIargs{:});
+            for i = 1:numel(schedule.control)
+                if isfield(schedule.control(i), 'W')
+                    W = schedule.control(i).W;
+                    for j = 1:numel(W)
+                        W(j).WI = updateWI(W(j));
+                    end
+                    schedule.control(i).W = W;
+                end
             end
         end
         
