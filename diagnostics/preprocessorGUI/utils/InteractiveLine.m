@@ -59,12 +59,12 @@ classdef InteractiveLine < handle
             
             l.trajectory  = line('Visible', 'off', 'Marker', 'none', ...
                                  'DeleteFcn', @(src, event)l.delete, other{:}, ...
-                                 'Parent', l.Parent);
+                                 'Parent', l.Parent, 'PickableParts', 'none');
             %if ~isempty(pnts.XData)
                 l.trajectory.XData = pnts.XData;
                 l.trajectory.YData = pnts.YData;
             %end
-            if isempty(pnts.ZData)
+            if ~isempty(pnts.ZData)
                 l.trajectory.ZData = pnts.ZData;
             end
             
