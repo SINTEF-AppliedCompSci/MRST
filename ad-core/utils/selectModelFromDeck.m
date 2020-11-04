@@ -20,15 +20,23 @@ function model = selectModelFromDeck(G, rock, fluid, deck, varargin)
 %   deck       - Parsed input deck, typically from readEclipseDeck.
 %
 % OPTIONAL PARAMETERS:
-%    Any - Any extra arguments passed onto the model constructor directly.
+%    useLegacyModels - Whether or not to construct the original, monolithic
+%                      physical models.  Stop-gap solution until all
+%                      examples have been ported to the Generic* framework
+%                      and only supported for three-phase black-oil
+%                      w/polymer (`ThreePhaseBlackOilPolymerModel`).
+%
+%    Any - All other key/value pair arguments are passed directly on to the
+%          model constructor.
 %
 % RETURNS:
 %   model      - Subclass of `PhysicalModel` approprioate for passing along
 %                to `simulateScheduleAD`.
 %
 % SEE ALSO:
-%   `ThreePhaseBlackOilModel`, `TwoPhaseOilWaterModel`,
-%   `OilWaterPolymerModel`
+%   `GenericBlackOilModel`, `ThreePhaseBlackOilModel`,
+%   `TwoPhaseOilWaterModel`, `OilWaterPolymerModel`,
+%   `ThreePhaseBlackOilPolymerModel`.
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
@@ -51,6 +59,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     require ad-blackoil
 
+    opt = struct('useLegacyModels', false);
+    [opt, extra] = merge_options(opt, varargin{:});
+
     rs = deck.RUNSPEC;
     check = @(name) isfield(rs, upper(name)) && rs.(upper(name));
 
@@ -60,8 +71,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     haspoly = check('polymer');
     hassurf = check('surfact');
     hascomp = check('comps');
-    
-    arg = [{G, [], fluid}, varargin];
+
+    arg = [{G, [], fluid}, extra];
     if hascomp
         % Compositional model
         assert(~hassurf, 'Compositional model does not support surfactant');
@@ -71,8 +82,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     elseif haspoly || hassurf
         % Water-based EOR model (surfactant and/or polymer)
         mrstModule add ad-eor
-        model = GenericSurfactantPolymerModel(arg{:},...
-                    'water', haswat, 'oil', hasoil, 'gas', hasgas); 
+        if opt.useLegacyModels
+           model = ThreePhaseBlackOilPolymerModel(arg{:}, ...
+                       'water', haswat, 'oil', hasoil, 'gas', hasgas);
+        else
+           model = GenericSurfactantPolymerModel(arg{:},...
+                       'water', haswat, 'oil', hasoil, 'gas', hasgas);
+        end
     else
         % Blackoil three phase
         model = GenericBlackOilModel(arg{:}, 'water', haswat, 'oil', hasoil, 'gas', hasgas);

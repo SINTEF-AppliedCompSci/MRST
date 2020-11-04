@@ -49,7 +49,8 @@ deck = readEclipseDeck(files{1});
 deck = convertDeckUnits(deck);
 
 % Construct physical model, initial state and dynamic well controls.
-[state0, model, schedule] = initEclipseProblemAD(deck);
+[state0, model, schedule] = ...
+   initEclipseProblemAD(deck, 'UseLegacyModels', true);
 
 % Add polymer concentration
 state0.cp   = zeros([model.G.cells.num, 1]);

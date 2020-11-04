@@ -9,7 +9,8 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat
 gravity reset on;
 bookdir = getDatasetPath('EOR_Book_II');
 fn      = fullfile(bookdir,'conformanceSPE10','SPE10_MODEL2.DATA');
-[state0, model, schedule, nlsolver] = initEclipseProblemAD(fn);
+[state0, model, schedule, nlsolver] = ...
+   initEclipseProblemAD(fn, 'UseLegacyModels', true);
 model.rock.poro = max(model.rock.poro,1e-4);
 [wellSolsSP, statesSP, reportsSP] =  ...
     simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nlsolver);

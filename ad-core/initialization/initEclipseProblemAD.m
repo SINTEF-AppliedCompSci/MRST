@@ -25,6 +25,12 @@ function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varar
 %   getInitialState    - Create initial state from deck (EQUIL or direct
 %                        assignment of initial conditions)
 %   splitDisconnected  - Passed onto processGRDECl.
+%   useLegacyModels    - Whether or not to construct the original,
+%                        monolithic physical models.  Stop-gap solution
+%                        until all examples have been ported to the
+%                        Generic* framework and only supported for
+%                        three-phase black-oil w/polymer
+%                        (`ThreePhaseBlackOilPolymerModel`).
 %
 % RETURNS:
 %   state0    - Initial state.
@@ -86,7 +92,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'getSchedule',          true, ...
                  'getInitialState',      true, ...
                  'SplitDisconnected',    false, ...
-                 'PreserveCpNodes',      true);
+                 'PreserveCpNodes',      true, ...
+                 'useLegacyModels',      false);
     [opt, extra] = merge_options(opt, varargin{:});
     if ~isempty(opt.deckfn)
         deck = opt.deckfn(deck);
@@ -194,6 +201,7 @@ function model = initializeModel(deck, opt)
                                    'pvtMethodOil', opt.pvtMethodOil);
     
     rock  = compressRock(rock, G.cells.indexMap);
-    model = selectModelFromDeck(G, rock, fluid, deck);
+    model = selectModelFromDeck(G, rock, fluid, deck, ...
+                                'UseLegacyModels', opt.UseLegacyModels);
     model.dpMaxRel = 0.2;
 end
