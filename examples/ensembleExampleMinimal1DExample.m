@@ -48,13 +48,14 @@ for i = 1:ensembleSize
     configData{i}.perm = configData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-configData{i}.poro).^2);
 end
 
-samples = RockSamples('data', configData)
+samples = RockSamples('data', configData);
+disp(samples);
 
 %% Select quantity of interest class
 
 qoi = WellQoI('wellNames', {'P1'}, 'cumulative', true, ...
-    'fldname', {'qOs', 'qWs'})
-
+    'fldname', {'qOs', 'qWs'});
+disp(qoi);
 
 %% Create the ensemble
 
@@ -63,12 +64,11 @@ ensemble = MRSTEnsemble(baseExample, samples, qoi, ...
     'maxWorkers', 8, ...
     'verbose', true, ...
     'reset', true ...
-    )
-
+    );
+disp(ensemble);
 
 %% Run ensemble
 ensemble.simulateEnsembleMembers('plotProgress', true);
 
 %% Plot results
-ensemble.plotQoI();
-
+close all, ensemble.plotQoI();
