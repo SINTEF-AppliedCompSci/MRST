@@ -44,7 +44,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         p2w = getPerforationToWellMapping(W(aw));
         comp = vertcat(W(aw).tracer);
         comp = comp(p2w, :);
-        cmap = sparse(wc,[1:numel(wc)]',1,model.G.cells.num,numel(wc));
+        cmap = sparse(wc, 1:numel(wc), 1, model.G.cells.num, numel(wc));
         inj = qT > 0;
     end
 
