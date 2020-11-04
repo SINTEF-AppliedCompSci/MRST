@@ -368,6 +368,12 @@ classdef MRSTEnsemble < handle
                     % Use parallel toolbox. Check if we have started a
                     % parallel session already, and whether it has the
                     % correct number of workers
+                    if ensemble.maxWorkers > maxNumCompThreads()
+                        warning(['Requested number of workes is greater ' , ...
+                                 'than maxNumCompThreads (%d) reducing.'  ], ...
+                                 maxNumCompThreads()                       );
+                        ensemble.maxWorkers = maxNumCompThreads();
+                    end
                     if isempty(gcp('nocreate'))
                         parpool(ensemble.maxWorkers);
                     elseif gcp('nocreate').NumWorkers ~= ensemble.maxWorkers
