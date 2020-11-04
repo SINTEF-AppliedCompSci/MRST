@@ -208,17 +208,12 @@ ensemble.simulateEnsembleMembers('plotProgress', true);
 %% Plot results
 close all
 [x,y] = ndgrid(linspace(0,1000, example.options.ncells));
-s_avg = 0;
-for i = 1:ensembleSize
-    s = ensemble.qoi.ResultHandler{i}{2};
-    if rem(i, 10) == 0
-        example.plot(s); colormap(jet); caxis([0,1]); 
-        title(sprintf('Water saturation after 300 days, member %d', i));
-    end
-    s_avg = (s_avg.*(i-1) + s)./i;
+[s_avg, s] = ensemble.qoi.computeMean();
+for i = 1:10:ensembleSize
+    example.plot(s{i}{2}); caxis([0,1]);
+    title(sprintf('Water saturation after 300 days, member %d', i));
 end
-
-example.plot(s_avg); colormap(jet);  caxis([0,1]);
+example.plot(s_avg{2}); caxis([0,1]);
 title('Water saturation after 300 days, ensemble avg');
 
 %% References
