@@ -85,10 +85,6 @@ rockEnsemble.simulateEnsembleMembers('plotProgress', true);
 % 'vertical'`) or side-by-side ((`subplotDir =  'horizontal'`)
 close all, rockEnsemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
 
-%% Plot well results with subplots
-% WellQoIs also have custom plotting functionality
-rockEnsemble.qoi.plotEnsembleWellQoI(rockEnsemble);
-
 %% Create another ensemble using stochastic well indices.
 % The class WellSamples are used in the same way as RockSamples, and are
 % also a superclass of BaseSamples. Instead of rock properties, however,
@@ -112,7 +108,7 @@ wellEnsemble = MRSTEnsemble(baseExample, wellSamples, qoi, ...
 %% Simulate and plot
 wellEnsemble.simulateEnsembleMembers('plotProgress', true);
 
-%% Plot result 
+%% Plot result
 close all, wellEnsemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
 
 %% Create another ensemble that combines both sampling strategies
