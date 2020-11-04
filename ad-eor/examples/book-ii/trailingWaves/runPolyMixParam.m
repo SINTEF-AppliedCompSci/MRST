@@ -17,8 +17,7 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat
 gravity reset on;
 bookdir = getDatasetPath('eor_book_ii');
 fn = fullfile(bookdir,'trailingWaves','MixPar25.DATA');
-[state0, model, schedule, nlsolver] = ...
-   initEclipseProblemAD(fn, 'UseLegacyModels', true);
+[state0, model, schedule, nlsolver] = initEclipseProblemAD(fn);
 
 %% Run simulations with various mixture parameters
 mixPar = [1:-.025:.9 .85 .8 .6 0];

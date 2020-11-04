@@ -9,8 +9,7 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 gravity reset on;
 bookdir = getDatasetPath('eor_book_ii');
 fn      = fullfile(bookdir,'macrodisp','2layer','polymerTwoLayer.DATA');
-[state0, model, schedule, nonlinear] = ...
-   initEclipseProblemAD(fn, 'UseLegacyModels', true);
+[state0, model, schedule, nonlinear] = initEclipseProblemAD(fn);
 model.usingShear = false;
 
 fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true, ...

@@ -29,8 +29,7 @@ mrstVerbose off
 gravity reset on;
 bookdir  = getDatasetPath('eor_book_ii');
 fn       = fullfile(bookdir,'validation', '2D', 'SURFACTANTPOLYMER2D.DATA');
-[state0, model, schedule, nlsolver] = ...
-   initEclipseProblemAD(fn, 'UseLegacyModels', true);
+[state0, model, schedule, nlsolver] = initEclipseProblemAD(fn);
 [wellSolsSP, statesSP, reportSP] =  ...
     simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nlsolver);
 

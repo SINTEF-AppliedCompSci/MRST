@@ -27,8 +27,7 @@ deck.GRID.PORO  = rock.poro;
 deck.GRID.PERMX = rock.perm(:,1);
 deck.GRID.PERMY = rock.perm(:,2);
 deck.GRID.PERMZ = rock.perm(:,3);
-[state0, model, schedule] = ...
-   initEclipseProblemAD(deck, 'UseLegacyModels', true);
+[state0, model, schedule] = initEclipseProblemAD(deck);
 model.AutoDiffBackend = SparseAutoDiffBackend;
 model.usingShear      = false;
 [ws, states, rep]     = simulateScheduleAD(state0, model, schedule);
@@ -42,8 +41,7 @@ deck.GRID.PORO  = rock.poro;
 deck.GRID.PERMX = rock.perm(:,1);
 deck.GRID.PERMY = rock.perm(:,2);
 deck.GRID.PERMZ = rock.perm(:,3);
-[state0, modelNA, scheduleNA] = ...
-   initEclipseProblemAD(deck, 'UseLegacyModels', true);
+[state0, modelNA, scheduleNA] = initEclipseProblemAD(deck);
 modelNA.AutoDiffBackend = SparseAutoDiffBackend;
 modelNA.usingShear      = false;
 [wsNA, statesNA, repNA] = simulateScheduleAD(state0, modelNA, scheduleNA);

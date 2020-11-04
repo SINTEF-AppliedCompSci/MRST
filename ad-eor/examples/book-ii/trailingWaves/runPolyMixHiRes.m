@@ -10,8 +10,7 @@ mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat
 gravity reset on;
 bookdir = getDatasetPath('eor_book_ii');
 fn = fullfile(bookdir,'trailingWaves','MixPar400.DATA');
-[state0, model, schedule, nlsolver] = ...
-   initEclipseProblemAD(fn, 'UseLegacyModels', true);
+[state0, model, schedule, nlsolver] = initEclipseProblemAD(fn);
 model.fluid.mixPar = 0.85;
 [~, states] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nlsolver);
 
@@ -23,8 +22,7 @@ plot(model.G.cells.centroids(:,1),states{end}.cp(:,1),'LineWidth',2);
 
 %% Run simulation with 50 cells
 fn = fullfile(bookdir,'trailingWaves','MixPar50.DATA');
-[state0, model, schedule, nlsolver] = ...
-   initEclipseProblemAD(fn, 'UseLegacyModels', true);
+[state0, model, schedule, nlsolver] = initEclipseProblemAD(fn);
 model.fluid.mixPar = 0.85;
 [~, states] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nlsolver);
 

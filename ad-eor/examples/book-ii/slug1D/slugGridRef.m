@@ -34,8 +34,7 @@ lt = {'-','--','-.', ':','-o'};
 qOvals = zeros(3,2);
 for i=1:numel(nx)
     fn = fullfile(bookdir,'slug1D',sprintf('SP_1D_%d.DATA',nx(i)));
-    [state0, model, schedule, nonlinear] = ...
-       initEclipseProblemAD(fn, 'UseLegacyModels', true);
+    [state0, model, schedule, nonlinear] = initEclipseProblemAD(fn);
     [ws1, states1, rep1] = ...
         simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nonlinear);
     qOs1 = cellfun(@(x) x(2).qOs, ws1,'UniformOutput',false);
