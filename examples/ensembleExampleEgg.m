@@ -48,7 +48,8 @@ ensemble = MRSTEnsemble(example, samples, qoi, ...
 ensemble.simulateEnsembleMembers('range', 8, 'plotProgress', true);
 
 %% Plot the QoI
-close all, ensemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
+color = lines(7); color = color(end,:);
+close all, ensemble.plotQoI('subplots', true, 'subplotDir', 'vertical', 'color', color);
 
 %% References
 % [1] Jansen, J. D., et al., "The egg model–a geological ensemble for
