@@ -14,20 +14,20 @@ classdef CompositeSamples < BaseSamples
     %   `RockSamples`, `WellSamples`, `DeckSamples`, `MRSTExample`, `BaseQoI`
     
     properties
-        parentSamples        % Cell array of samples making up the 
-                             % composite sample
-        tensorProduct = true % Use all combinations of all parent samples. 
-                             % Seed will be interpreted as a linear index
-                             % into the multiindex space spanned by all
-                             % possible tensor products of 
-                             % (1:n1) x (1:n2) x ... x (1:nm),
-                             % where ni = parentSamples{i}.num
-                             % It is up to the user to ensure that this 
-                             % makes sense, e.g., that samples are 
-                             % stochastically independent.
-                             % If false, the same seed is used to generate
-                             % all parent samples. This requires that the
-                             % parentSamples.num are equal.
+        parentSamples         % Cell array of samples making up the 
+                              % composite sample
+        tensorProduct = false % If false, the same seed is used to generate
+                              % all parent samples. This requires that the
+                              % parentSamples.num are equal. If true, use
+                              % all combinations of all parent samples.
+                              % Seed will be interpreted as a linear index
+                              % into the multiindex space spanned by all
+                              % possible tensor products of
+                              % (1:n1) x (1:n2) x ... x (1:nm),
+                              % where ni =parentSamples{i}.num
+                              % It is up to the user to ensure that this 
+                              % makes sense, e.g., that samples are 
+                              % stochastically independent.
     end
     
     methods
@@ -65,7 +65,7 @@ classdef CompositeSamples < BaseSamples
             end
         end
         
-        %-----------------------------------------------------------------%'
+        %-----------------------------------------------------------------%
         % Utilities for getting parentSample information
         %-----------------------------------------------------------------%
         
