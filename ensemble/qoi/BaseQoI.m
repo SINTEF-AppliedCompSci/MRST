@@ -199,7 +199,9 @@ classdef BaseQoI
             %   Extra parameters might depending on the actual QoI and
             %   others acceptable for `plot`.
             
-            opt = struct('range', inf);
+            opt = struct('range'     , inf         , ...
+                         'subplots'  , false       , ...
+                         'subplotDir', 'horizontal');
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u] = qoi.computeMean(opt.range);
             numQoIs    = numel(u_mean);
@@ -215,11 +217,27 @@ classdef BaseQoI
             end
             
             numSamples = numel(u);
-            if nargin < 2,               ensemble = [];      end
-            if nargin < 3 || isempty(h), h = nan(numQoIs*numSubQoIs,1); end
+            if nargin < 2, ensemble = []; end
+            if nargin < 3 || isempty(h)
+                if opt.subplots
+                    h = nan(numSubQoIs,1);
+                    switch opt.subplotDir
+                        case 'vertical'
+                            nr = numQoIs; nc = 1;
+                        case 'horizontal'
+                            nr = 1; nc = numQoIs;
+                    end
+                else
+                    h = nan(numQoIs*numSubQoIs,1);
+                end
+            end
             for i = 1:numQoIs
                 for k = 1:numSubQoIs
-                    figureId = (i-1)*numSubQoIs + k;
+                    if opt.subplots
+                        figureId = k;
+                    else
+                        figureId = (i-1)*numSubQoIs + k;
+                    end
                     if isnan(h(figureId))
                         if ~isempty(ensemble)
                             h(figureId) = ensemble.setup.figure();
@@ -227,9 +245,12 @@ classdef BaseQoI
                             h(figureId) = figure();
                         end
                     else
-                        set(0, 'CurrentFigure', h(figureId)), clf(h(figureId))
+                        set(0, 'CurrentFigure', h(figureId));
+                        if ~opt.subplots, clf(h(figureId)); end
                     end
-                    
+                    if opt.subplots
+                        subplot(nr, nc, i);
+                    end
                     hold on
                     for j = 1:numSamples
                         plotQoI(u{j}, i, k, 'isMean', false, extra{:});
