@@ -83,7 +83,7 @@ rockEnsemble.simulateEnsembleMembers('plotProgress', true);
 % Set optional input argument `subplots` to `true` to plot each QoI field
 % for all wells in the same figure on top of each other (`subplotDir =
 % 'vertical'`) or side-by-side ((`subplotDir =  'horizontal'`)
-rockEnsemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
+close all, rockEnsemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
 
 %% Plot well results with subplots
 % WellQoIs also have custom plotting functionality
@@ -110,10 +110,10 @@ wellEnsemble = MRSTEnsemble(baseExample, wellSamples, qoi, ...
     'verbose', true);
 
 %% Simulate and plot
-wellEnsemble.simulateEnsembleMembers();
+wellEnsemble.simulateEnsembleMembers('plotProgress', true);
 
 %% Plot result 
-wellEnsemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
+close all, wellEnsemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
 
 %% Create another ensemble that combines both sampling strategies
 % Finally, we want to run an ensemble that has stochastic rock properties
@@ -151,4 +151,4 @@ compEnsemble = MRSTEnsemble(baseExample, compSamples, qoi, ...
 compEnsemble.simulateEnsembleMembers('range', 1:20:compSamples.num, 'plotProgress', true);
 
 %% Plot results
-comboEnsemble.plotQoI();
+close all, compEnsemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
