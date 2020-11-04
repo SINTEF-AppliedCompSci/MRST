@@ -25,7 +25,11 @@ generatorFn = @(problem, seed) getDeckEGG('realization', seed-1);
 % and extra input arguments to this function can be provided in the class
 % property `initArgs`. The property `gridFromDeck` is used to determine if
 % the simulation grid should be constructed from the deck, or taken from
-% the base problem.
+% the base problem. We are only interested in simulating the first 1500
+% days. Since `initEclipseProblemAD` will set up the schedule from deck, we
+% must postporcess the problem after setting the sample in order to extract
+% the subschedule. We do this with the optional input argument
+% `processProblemFn`.
 processProblemFn = @(problem) getSubSchedule(problem, steps);
 samples = DeckSamples('generatorFn'     , generatorFn     , ... % Generator function
                       'processProblemFn', processProblemFn, ... % Get subschedule
@@ -50,6 +54,7 @@ ensemble.simulateEnsembleMembers('range', 8, 'plotProgress', true);
 %% Plot the QoI
 color = lines(7); color = color(end,:);
 close all, ensemble.plotQoI('subplots', true, 'subplotDir', 'vertical', 'color', color);
+f = gcf; f.Position(4) = f.Position(4)*2;
 
 %% References
 % [1] Jansen, J. D., et al., "The egg model–a geological ensemble for
