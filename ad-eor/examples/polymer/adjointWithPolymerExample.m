@@ -215,7 +215,7 @@ nDigits = floor(log10(numel(statesPolymer) - 1)) + 1;
 subplot(1,3,[1 2])
 plotGrid(G, 'facea', 0,'edgea', .05, 'edgec', 'k'); plotWell(G,W);
 axis tight off, view(6,60), hs = [];
-for i = 1 : numel(statesPolymer) - 1,
+for i = 1 : numel(statesPolymer) - 1
     injp  = wellSolsPolymer{i}(3);
     injow = wellSolsOW{i}(3);
     state = statesPolymer{i + 1};
