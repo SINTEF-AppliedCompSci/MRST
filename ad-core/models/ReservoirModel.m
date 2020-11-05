@@ -221,19 +221,37 @@ methods
         if ~isempty(ctrl.W)
             for i = 1:numel(ctrl.W)
                 w = ctrl.W(i);
+                isProd = w.sign < 0;
                 if nph == 1
                     % Only sensible choice
                     ctrl.W(i).compi = 1;
                 else
                     assert(isfield(w, 'compi'), 'Missing compi field in wells for control %d.', index);
                     if ~all(size(w.compi) == [1, nph])
-                        error(['Well .compi field must contain 1 by %d entries for a %d-phase model.', ...
-                               '\nControl %d, well %s (#%d) provided %d by %d entries.'], ...
-                              nph, nph, index, w.name, i, size(w.compi, 1), size(w.compi, 2));
+                        if isempty(w.compi) && isProd
+                            % Producer - we just set arbitrary values
+                            dispif(model.verbose, 'Well %d, control %d: Defaulting producer compi field.\n', i, index);
+                            w.compi = repmat(1/nph, 1, nph);
+                        else
+                            error(['Well .compi field must contain 1 by %d entries for a %d-phase model.', ...
+                                   '\nControl %d, well %s (#%d) provided %d by %d entries.'], ...
+                                  nph, nph, index, w.name, i, size(w.compi, 1), size(w.compi, 2));
+                        end
                     end
                     compi = w.compi;
                     if abs(sum(compi) - 1) > 1e-8
-                        error('Well %s (#%d) for control %d has .compi that does not sum to one.', w.name, i, index);
+                        if isProd
+                            s = sum(compi);
+                            if s > 0
+                                dispif(model.verbose, 'Well %d, control %d: Normalizing producer compi field.\n', i, index);
+                                w.compi = bsxfun(@rdivide, w.compi, s);
+                            else
+                                dispif(model.verbose, 'Well %d, control %d: Defaulting producer compi field.\n', i, index);
+                                w.compi = repmat(1/nph, 1, nph);
+                            end
+                        else
+                            error('Well %s (#%d) for control %d has .compi that does not sum to one.', w.name, i, index);
+                        end
                     end
                 end
             end
