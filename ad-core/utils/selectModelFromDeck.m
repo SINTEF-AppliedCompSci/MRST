@@ -82,12 +82,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     elseif haspoly || hassurf
         % Water-based EOR model (surfactant and/or polymer)
         mrstModule add ad-eor
-        if opt.useLegacyModels
-           model = ThreePhaseBlackOilPolymerModel(arg{:}, ...
-                       'water', haswat, 'oil', hasoil, 'gas', hasgas);
-        else
-           model = GenericSurfactantPolymerModel(arg{:},...
-                       'water', haswat, 'oil', hasoil, 'gas', hasgas);
+        if ~opt.useLegacyModels
+            model = GenericSurfactantPolymerModel(arg{:},...
+                'water', haswat, 'oil', hasoil, 'gas', hasgas);
+        elseif haspoly && hassurf
+            % Surfactant-Polymer EOR
+            assert(haswat, 'SurfactantPolymer model requires water phase to be present');
+            model = ThreePhaseSurfactantPolymerModel(arg{:});
+        elseif haspoly && ~hassurf
+            % Polymer EOR
+            assert(haswat, 'Polymer model requires water phase to be present');
+            if hasgas
+                model = ThreePhaseBlackOilPolymerModel(arg{:});
+            else
+                model = OilWaterPolymerModel(arg{:});
+            end
+        elseif hassurf && ~haspoly
+            % Surfactant EOR
+            assert(haswat, 'Surfactant model requires water phase to be present');
+            if hasgas
+                model = ThreePhaseBlackOilSurfactantModel(arg{:});
+            else
+                model = OilWaterSurfactantModel(arg{:});
+            end
         end
     else
         % Blackoil three phase
