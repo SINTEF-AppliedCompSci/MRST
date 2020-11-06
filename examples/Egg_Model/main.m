@@ -1,4 +1,4 @@
-mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization
+mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization ddmodel
 
  
 %% Run EGG field simulation
