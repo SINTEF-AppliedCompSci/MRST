@@ -25,8 +25,8 @@ classdef WellPairNetwork
                 = computeWellPairsData(model,schedule,states,state,wellSols);
             
             % Taking information for each wellpair conection
-           for wp_index = 1 : size(DD.WP.pairIx,1)
-               DD.wps_all{wp_index} = WellPair(DD.dataMRST,DD.WP,DD.D,...
+           for wp_index = 1 : size(DD.WP{end}.pairIx,1)
+               DD.wps_all{wp_index} = WellPair(DD.dataMRST,DD.WP{end},DD.D{end},...
                                     wp_index,model.G,schedule.control.W);
            end
            
@@ -50,10 +50,14 @@ classdef WellPairNetwork
             ne = size(edges,1);
     
             DD.Graph = graph(edges(:,1),edges(:,2),[]);
-            DD.Graph.Nodes.Indx =(1:numel(DD.schedule.control.W))'; % Adding a Well Index
-            DD.Graph.Nodes.Type =0*(1:12)'+1; %1:= Well node,  Imaginary node := 0
-            for iw = 1 : numel(DD.schedule.control.W)
-                DD.Graph.Nodes.Well_Name{iw} = DD.schedule.control.W(iw).name;
+            num_nodes = numel(DD.schedule.control(1).W);%TODO what happens with diferent wellls numbers on each set of control
+            Nodes = (1:num_nodes)';
+            Nodes =  table(Nodes);
+            DD.Graph.Nodes = Nodes;
+            DD.Graph.Nodes.Indx =(1:num_nodes)';%TODO % Adding a Well Index
+            DD.Graph.Nodes.Type =0*(1:num_nodes)'+1; %1:= Well node,  Imaginary node := 0
+            for iw = 1 : num_nodes 
+                DD.Graph.Nodes.Well_Name{iw} = DD.schedule.control(1).W(iw).name;
             end
             
             [~, DD.I_Graph_index] = sortrows(edges); % to be used for ordering the wellpair conections 
@@ -71,9 +75,9 @@ classdef WellPairNetwork
                 pv(i) = DD.wps{i}.volume;
                 TT(i) = DD.wps{i}.Tr;
             end
-            n_wells  = numel(DD.schedule.control.W);
+            n_wells  = numel(DD.schedule.control(1).W);
             for i = 1:n_wells
-                cell_number = DD.schedule.control.W(i).cells(1);
+                cell_number = DD.schedule.control(1).W(i).cells(1);
                 XData(i) = DD.model.G.cells.centroids(cell_number,1);
                 YData(i) = DD.model.G.cells.centroids(cell_number,2);
                 ZData(i) = DD.model.G.cells.centroids(cell_number,3);
@@ -86,7 +90,7 @@ classdef WellPairNetwork
                 h2= plotGrid(DD.model.G, 'FaceColor', 'none', 'EdgeAlpha', 0.1), view(2);
                 
                 hold on, pg =  plot(DD.Graph, 'XData',XData,'YData',YData,'ZData',ZData,'LineWidth',10*TT/max(TT))
-                        labelnode(pg,[1:n_wells],{DD.schedule.control.W.name})
+                        labelnode(pg,[1:n_wells],{DD.schedule.control(1).W.name})
                 hold off;
                 % To have text indicating values with text                
                 % plot(Graph,'EdgeLabel',compose("%5.2e",Graph.Edges.Weight),'LineWidth',10*TT/max(TT))
@@ -100,7 +104,7 @@ classdef WellPairNetwork
                 h2= plotGrid(DD.model.G, 'FaceColor', 'none', 'EdgeAlpha', 0.1), view(2);
                 
                 hold on, pg=plot(DD.Graph,'r','XData',XData,'YData',YData,'ZData',ZData,'LineWidth',10*pv/max(pv))
-                         labelnode(pg,[1:n_wells],{DD.schedule.control.W.name})
+                         labelnode(pg,[1:n_wells],{DD.schedule.control(1).W.name})
                 hold off;
                 pg.NodeFontSize= 15;
                 axis off ; 
@@ -154,12 +158,12 @@ classdef WellPairNetwork
                      title(DD.wps{i}.wellpair_name);
                 end
                 
-             f = figure('Name','Average saturation');
-                for i = 1 :mn_subplot
-                    subplot(m,n,i)
-                    plot(tt/day, DD.wps{i}.data.s_avg,'k')
-                     title(DD.wps{i}.wellpair_name);
-                end     
+%              f = figure('Name','Average saturation');
+%                 for i = 1 :mn_subplot
+%                     subplot(m,n,i)
+%                     plot(tt/day, DD.wps{i}.data.s_avg,'k')
+%                      title(DD.wps{i}.wellpair_name);
+%                 end     
 
         end
             
