@@ -59,15 +59,50 @@ problem = packSimulationProblem(state, model, schedule, 'EGG_realization_0_segre
  
 
  
+ 
  %% Flow diagnostics
     Df  = computeTOFandTracer(statexd, model.G, model.rock, 'wells', Wdf);
     WPf = computeWellPairs(statexd, model.G, model.rock, Wdf, Df);
  salloc = cellfun(@sum, {WPf.inj.alloc}, 'UniformOutput',false);
  wellCommunication = vertcat(salloc{:});
 
- %[d] = DiagnosticsViewer({model},{Wdf},'state0',{statexd});
- %%  PostProcesinf FlowDiagnostics
+ [d] = DiagnosticsViewer({model},{Wdf},'state0',{statexd});
+  %%  PostProcesinf Initial Saturation
 
+ D = d.Data{1}.diagnostics.D;
+ 
+ % For each wellpair
+ i_producer = 1;  % P1.1 
+ 
+    btof = D.ptof(:,i_producer);
+    s = d.Data{1}.states.s(:,1);
+    [btof, ix] = sort(btof);
+    s = s(ix);
+    
+    pv = d.Data{1}.static(6).values;
+    pv=pv(ix);
+    target =cumsum(s.*pv)./cumsum(pv);
+    
+    NN= 6610;
+    indexes = 1:100:NN;
+    
+    x = pv(indexes);
+    y = target(indexes);%s(indexes);
+
+    yy = spline(x,y,btof(1:NN));
+    
+    
+    
+    figure    
+    subplot(1,2,1);
+    plot(btof/year,target,x/year,y,'or');
+    legend('Cumulative Saturation', 'linear interpolation')
+    
+    %derivate = diff(yy)./diff(pv(1:NN));
+    subplot(1,2,2);
+    plot(btof(1:NN-1)/year,s(1:NN-1),'o');
+    
+ %%  PostProcesinf FlowDiagnostics
 
  nit   = numel(Df.inj);
  npt   = numel(Df.prod);
