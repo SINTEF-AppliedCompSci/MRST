@@ -46,4 +46,4 @@ problem = packSimulationProblem(state, model, schedule, 'EGG_realization_0_segre
 %% Run simulation
  [wellSols, states, reports] = getPackedSimulatorOutput(problem);
     
- % d = PostProcessDiagnosticsMRST(problem);
+  d = PostProcessDiagnosticsMRST(problem);
