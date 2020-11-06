@@ -23,7 +23,7 @@ title('Pore Volume')
 
 subplot(1,3,3)
 
-barh(categorical({W.name}) ,[val{3}';val_opt{3}'])
+barh(categorical(Graph.Nodes.Well_name) ,[val{3}';val_opt{3}'])
 set(gca,'YDir','reverse')
 title('WI')
 
@@ -45,7 +45,7 @@ title('Pore Volume')
 
 subplot(1,3,3)
 
-barh(categorical({W.name}) ,[p0_fd(2*n_edges+1:end)';p_opt(2*n_edges+1:end)'])
+barh(categorical(Graph.Nodes.Well_name) ,[p0_fd(2*n_edges+1:end)';p_opt(2*n_edges+1:end)'])
 set(gca,'YDir','reverse')
 title('Pore Volume')
 
