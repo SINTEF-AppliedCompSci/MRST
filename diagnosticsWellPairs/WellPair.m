@@ -73,11 +73,11 @@ classdef WellPair
             wp.data.BHP_inf  = data.BHP_inf(:,wp_index);
             wp.data.BHP_prod = data.BHP_prod(:,wp_index);
             
-            wp.data.s_avg    = data.s_avg(:,wp_index);
-            wp.data.s_avg_0    = data.s_avg_0(wp_index);
+           % wp.data.s_avg    = data.s_avg(:,wp_index);
+          %  wp.data.s_avg_0    = data.s_avg_0(wp_index);
 
             wp.data.fw_avg   = data.fw_avg(:,wp_index);
-            wp.data.lambda   = data.lambda(:,wp_index);
+%            wp.data.lambda   = data.lambda(:,wp_index);
             
             wp.schedule      = data.schedule;
             
@@ -90,7 +90,7 @@ classdef WellPair
              plotGrid(G,'FaceColor','none', 'EdgeAlpha', 0.2);
              view(3), axis tight
              plotCellData(G, data,wp.domain);
-             plotWell(G,wp.schedule.control.W([wp.WellSolsIx_inj,wp.WellSolsIx_prod]));
+             plotWell(G,wp.schedule(1).control.W([wp.WellSolsIx_inj,wp.WellSolsIx_prod]));
              
          end
         function f =plotWellPairData(wp,varargin)
@@ -100,13 +100,13 @@ classdef WellPair
                    ylabel('f_w');  xlabel('S_w');
             %legend(WP_pairs_names,'Orientation','vertical','Location','SouthEast')
 
-            subplot(1,3,2); plot(cumsum(wp.schedule.step.val)/day,wp.data.DP/barsa,'.')
+            subplot(1,3,2); plot(cumsum(wp.schedule(1).step.val)/day,wp.data.DP/barsa,'.')
                    ylabel('Dp [bar]');  xlabel('time [days]');
 
             subplot(1,3,3);             
-                   plot(cumsum(wp.schedule.step.val)/day, -wp.data.BFPD*day/stb,'.k',...
-                        cumsum(wp.schedule.step.val)/day, -wp.data.BFPD.*wp.data.fw_avg*day/stb,'.b',...
-                        cumsum(wp.schedule.step.val)/day, -wp.data.BFPD.*(1-wp.data.fw_avg)*day/stb,'.r');
+                   plot(cumsum(wp.schedule(1).step.val)/day, -wp.data.BFPD*day/stb,'.k',...
+                        cumsum(wp.schedule(1).step.val)/day, -wp.data.BFPD.*wp.data.fw_avg*day/stb,'.b',...
+                        cumsum(wp.schedule(1).step.val)/day, -wp.data.BFPD.*(1-wp.data.fw_avg)*day/stb,'.r');
                     ylabel('STB');  xlabel('time [days]');
             legend('Well pair BFPD','Well pair BWPF','Well pair BOPD','Orientation','vertical','Location','SouthEast')
         end
