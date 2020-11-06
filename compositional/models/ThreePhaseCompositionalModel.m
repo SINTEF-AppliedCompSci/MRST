@@ -397,11 +397,16 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 for i = 1:numel(names)
                     names{i} = names{i}(isstrprop(names{i}, 'alphanum'));
                 end
+                isGeneric = isa(model, 'GenericReservoirModel');
                 ncomp = numel(names);
                 for i = 1:numel(state.wellSol)
                     for j = 1:ncomp
                         if state.wellSol(i).status
-                            state.wellSol(i).(names{j}) = sum(state.wellSol(i).components(:, j));
+                            if isGeneric
+                                state.wellSol(i).(names{j}) = sum(state.wellSol(i).ComponentTotalFlux(:, j));
+                            else
+                                state.wellSol(i).(names{j}) = sum(state.wellSol(i).components(:, j));
+                            end
                         end
                     end
                 end
