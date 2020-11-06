@@ -99,7 +99,7 @@ classdef IMSIMmodel
 %                 W_in(iw).cstatus =W_in(iw).cstatus(1) ;
 %                 W_in(iw).cell_origin =W_in(iw).cell_origin(1) ;
 %                 
-                
+                iw
                 W = verticalWell(W, model.G, model.rock, model.G.cartDims(1), model.G.cartDims(2), 1, ...      
              'Type', W_in(iw).type, 'Val', W_in(iw).val, ... %  SAIGUP model
             'Radius',W_in(iw).r(1),'Name',W_in(iw).name,'Comp_i', W_in(iw).compi,'sign', W_in(iw).sign);
@@ -124,10 +124,10 @@ classdef IMSIMmodel
                                                       'porv',pv);
                                                   
              %% Plotting the data driven model
-              figure
-              plotGrid(obj.model.G,'FaceColor', 'none')
-              plotWell(obj.model.G,obj.W)
-              view(0,0)
+%               figure
+%               plotGrid(obj.model.G,'FaceColor', 'none')
+%               plotWell(obj.model.G,obj.W)
+%               view(0,0)
       
         end        
         function outputArg = method1(obj,inputArg)

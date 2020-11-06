@@ -174,7 +174,7 @@ classdef GPSNet
                 if isempty(data)
                     plotWell(G,obj.W)
                 else
-                   assert (size(data, 2) == G.cells.num, ...
+                   assert (size(data,1) == G.cells.num, ...
                    'The DATA should have one value for each grid cell in output.'); 
                    
                     plotCellData(G,data, 'EdgeAlpha', 0.1)
