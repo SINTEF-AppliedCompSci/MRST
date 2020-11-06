@@ -19,7 +19,7 @@ classdef NatVarsShaleModel < NaturalVariablesCompositionalModel
     %   fluid     - The flow fluid, containing relative permeabilities,
     %               surface densities and flow properties for the
     %               aqueous/water phase (if present)
-    %   compFluid - CompositionalFluid instance describing the species
+    %   compFluid - CompositionalMixture instance describing the species
     %               present.
     %
     % RETURNS:

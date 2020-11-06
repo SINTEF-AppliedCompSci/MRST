@@ -1,4 +1,4 @@
-classdef SorbedCompositionalFluid < TableCompositionalFluid
+classdef SorbedCompositionalFluid < TableCompositionalMixture
     % Create MRST compositional from stored tables (taken from CoolProp)
     properties
         isotherm % isotherm parameters describing fluid in the nanopores
@@ -16,7 +16,7 @@ classdef SorbedCompositionalFluid < TableCompositionalFluid
             %           valid names.
             % RETURNS:
             %   fluid - Initialized fluid.
-            fluid = fluid@TableCompositionalFluid(names);
+            fluid = fluid@TableCompositionalMixture(names);
             %OMO Edit: incorporate the isotherm into the fluid object
             fluid.isotherm = isotherm;
         end

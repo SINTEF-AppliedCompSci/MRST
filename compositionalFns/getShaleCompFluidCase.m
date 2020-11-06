@@ -12,7 +12,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
             V_c = Z_c.*8.314.*T_c./P_c;
             
             names = {'N2/CH4', 'CO2', 'C2-5', 'C6-13', 'C14-24', 'C25-80'};
-            fluid = CompositionalFluid(names, T_c, P_c, V_c, acc, mw);
+            fluid = CompositionalMixture(names, T_c, P_c, V_c, acc, mw);
             
             bic = [0.11883, 0, 0, 0,0, 0;...
                    0.00070981, 0.15,0, 0, 0, 0; ...
@@ -39,7 +39,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
             V_c = Z_c.*8.314.*T_c./P_c;
             
             names = {'C1', 'C3', 'C6', 'C10', 'C15', 'C20'};
-            fluid = CompositionalFluid(names, T_c, P_c, V_c, acc, mw);
+            fluid = CompositionalMixture(names, T_c, P_c, V_c, acc, mw);
             
             ncomp = numel(names);
             bic = zeros(ncomp, ncomp);
@@ -64,7 +64,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
                             'pressure', 75*barsa, ...
                             'temp', 273.15 + 50);
                         
-            fluid = TableCompositionalFluid(names);
+            fluid = TableCompositionalMixture(names);
             
 %             ChemPropsDB = ChemicalProps(names);
 %             bic = ChemPropsDB.bic;
@@ -80,7 +80,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
                             'pressure', 75*barsa, ...
                             'temp', 273.15 + 50);
                         
-            fluid = TableCompositionalFluid(names);
+            fluid = TableCompositionalMixture(names);
 
         case {'liquid_initial', 'vapor_initial'}
             names = {'Oxygen', 'Water'};
@@ -96,11 +96,11 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
                             'pressure', 75*barsa, ...
                             'temp', 273.15 + 30);
                         
-            fluid = TableCompositionalFluid(names);
+            fluid = TableCompositionalMixture(names);
             fluid.names{2} = 'H2O';
             fluid.names{1} = 'O2';
         case 'watertracer'
-            fluid = TableCompositionalFluid({'water', 'water'});
+            fluid = TableCompositionalMixture({'water', 'water'});
             info = makeInfo('injection', [1, 0], ...
                             'initial',   [0, 1], ...
                             'pressure', 75*barsa, ...
@@ -117,7 +117,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
             order = 1:3;
             info.injection = info.injection(order);
             info.initial = info.initial(order);
-            fluid = TableCompositionalFluid(names(order));
+            fluid = TableCompositionalMixture(names(order));
             
 %             ChemPropsDB = ChemicalProps(names);
 %             bic = ChemPropsDB.bic;
@@ -125,7 +125,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
             
         case 'verysimple'
             names = {'CarbonDioxide', 'n-Decane'};
-            fluid = TableCompositionalFluid(names);
+            fluid = TableCompositionalMixture(names);
             info = makeInfo('injection', [1, 0], ...
                             'initial',   [0.1, 0.9], ...
                             'pressure', 75*barsa, ...
@@ -136,7 +136,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
 %             fluid = fluid.setBinaryInteraction(bic);
         case 'onlydecane'
             names = {'n-Decane'};
-            fluid = TableCompositionalFluid(names);
+            fluid = TableCompositionalMixture(names);
             info = makeInfo('injection', [1], ...
                             'initial',   [1], ...
                             'pressure', 75*barsa, ...
@@ -144,7 +144,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
                          
         case 'watermethane'
             names = {'Methane', 'Water'};
-            fluid = TableCompositionalFluid(names);
+            fluid = TableCompositionalMixture(names);
             info = makeInfo('injection', [1, 0], ...
                             'initial',   [0.01, 0.99], ...
                             'pressure', 75*barsa, ...
@@ -153,14 +153,14 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
                         
         case 'onlymethane'
             names = {'Methane'};
-            fluid = TableCompositionalFluid(names);
+            fluid = TableCompositionalMixture(names);
             info = makeInfo('injection', [1], ...
                             'initial',   [1], ...
                             'pressure', 5000*psia, ...
                             'temp', 366.48);
         case 'c1c2'
             names = {'Methane','Ethane'};
-            fluid = TableCompositionalFluid(names);
+            fluid = TableCompositionalMixture(names);
             info = makeInfo('injection', [0.999 0.001], ...
                             'initial',   [0.999 0.001], ...
                             'pressure', 5000*psia, ...
@@ -172,7 +172,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
             names = {'Methane', 'Ethane', 'n-Propane'};
             %Pressure in Pa in first column, rho_sL in kg/m^3 in 2nd column
             isotherm = [10769611, 2.99;  5591648, 4.86; 5819175, 9.56];
-            fluid = SorbedCompositionalFluid(names,isotherm');   
+            fluid = SorbedCompositionalFluid(names,isotherm');
             
             Di=[2.8,2.5,1.9]*10^-7; %SPE-175074-MS
             
@@ -195,7 +195,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
             %OMO: Edit added a couple of hydrocarbon mixtures
             % 3 component light-gas mixture
             names = {'Methane', 'Ethane', 'n-Propane'};
-            fluid = TableCompositionalFluid(names);
+            fluid = TableCompositionalMixture(names);
             
             ncomp = numel(names);
             bic = zeros(ncomp, ncomp);
@@ -225,7 +225,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
             Parachor = [74.8	107.7	151.9	189.6	250.2	350.2	590	1216.8];
             
             names = {'C1','C2','C3','C4','C5-C6','C7-C12','C13-C21','C22-C80'};
-            fluid = CompositionalFluid(names, T_c, P_c, V_c, acc, mw);
+            fluid = CompositionalMixture(names, T_c, P_c, V_c, acc, mw);
             
             ncomp = numel(names);
             bic = zeros(ncomp, ncomp);
@@ -251,7 +251,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
             Parachor = [78	41	77	171.07	297.42	661.45];
             
             names = {'CO2','N2','C1','C2-C5','C6-C10','C11+'};
-            fluid = CompositionalFluid(names, T_c, P_c, V_c, acc, mw);
+            fluid = CompositionalMixture(names, T_c, P_c, V_c, acc, mw);
             
             ncomp = numel(names);
             bic = zeros(ncomp, ncomp);
@@ -285,7 +285,7 @@ function [fluid, info] = getShaleCompFluidCase(name, varargin)
             Parachor = [77 145.2 250 306 686.3];
             
             names = {'C1','C2-C4','C5-C7','C8-C9','C10+'};
-            fluid = CompositionalFluid(names, T_c, P_c, V_c, acc, mw);
+            fluid = CompositionalMixture(names, T_c, P_c, V_c, acc, mw);
             
             ncomp = numel(names);
             bic = zeros(ncomp, ncomp);

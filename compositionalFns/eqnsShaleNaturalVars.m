@@ -36,7 +36,7 @@ W = drivingForces.W;
 
 
 fluid = model.fluid;
-compFluid = model.EOSModel.fluid;
+compFluid = model.EOSModel.CompositionalMixture;
 % Properties at current timestep
 [p, sW, sO, sG, x, y, z, temp, wellSol] = model.getProps(state, ...
     'pressure', 'water', 'so', 'sg', 'x', 'y', 'z', 'T', 'wellSol');
@@ -76,7 +76,7 @@ if opt.staticWells
     wellvars = {[]};
 end
 ncomp = compFluid.getNumberOfComponents();
-[xnames, ynames, cnames] = deal(model.EOSModel.fluid.names);
+[xnames, ynames, cnames] = deal(model.EOSModel.CompositionalMixture.names);
 for i = 1:ncomp
     xnames{i} = ['v_', cnames{i}];
     ynames{i} = ['w_', cnames{i}];
@@ -110,11 +110,11 @@ sg = sG(freeGas);
 if model.water
     [p, x{1:ncomp-1}, sW, wellvars{:}, so, w{1:ncomp-1}, sg] = initfn(...
      p, x{1:ncomp-1}, sW, wellvars{:}, so, w{1:ncomp-1}, sg);
-    primaryVars = {'pressure', xnames{1:end-1}, 'satw', wellVarNames{:}, 'sato', ynames{1:end-1}, 'satg'};
+    primaryVars = {'pressure', xnames{1:end-1}, 'sw', wellVarNames{:}, 'sl', ynames{1:end-1}, 'sv'};
 else
     [p, x{1:ncomp-1}, wellvars{:}, so, w{1:ncomp-1}, sg] = initfn(...
      p, x{1:ncomp-1}, wellvars{:}, so, w{1:ncomp-1}, sg);
-    primaryVars = {'pressure', xnames{1:end-1}, wellVarNames{:}, 'sato', ynames{1:end-1}, 'satg'};
+    primaryVars = {'pressure', xnames{1:end-1}, wellVarNames{:}, 'sl', ynames{1:end-1}, 'sv'};
     sW = zeros(model.G.cells.num, 1);
 end
 sample = p;
@@ -347,10 +347,10 @@ fluxes = cell(ncomp, 1);
 %HR-OMO edit: modified the accumulation term in the mass balance equation
     %to include the contributions of the adsorption in shale formation.
 if isfield(model.G.rock, 'shaleMechanisms') && isfield(model.G.rock.shaleMechanisms,'sorption')
-    sumIso = y{1}./model.EOSModel.fluid.isotherm(1,1);
-    sumIso0 = y0*(1./model.EOSModel.fluid.isotherm(1,:)');
+    sumIso = y{1}./model.EOSModel.CompositionalMixture.isotherm(1,1);
+    sumIso0 = y0*(1./model.EOSModel.CompositionalMixture.isotherm(1,:)');
     for ii=2:numel(y)
-        sumIso = sumIso + y{ii}./model.EOSModel.fluid.isotherm(1,ii);
+        sumIso = sumIso + y{ii}./model.EOSModel.CompositionalMixture.isotherm(1,ii);
     end
 end
 
@@ -364,7 +364,7 @@ for i = 1:ncomp
         eqs{i} = (1/dt).*( ...
             rhoO.*pv.*sO.*xM{i} - rhoO0.*pv0.*sO0.*xM0{i} + ...
             rhoG.*pv.*sG.*yM{i} - rhoG0.*pv0.*sG0.*yM0{i}+...
-            (s.gv.*model.EOSModel.fluid.isotherm(2,i)./model.EOSModel.fluid.isotherm(1,i)).*...
+            (s.gv.*model.EOSModel.CompositionalMixture.isotherm(2,i)./model.EOSModel.CompositionalMixture.isotherm(1,i)).*...
             ((y{i}.*p)./(1+p.*sumIso)- (y0(:,i).*p0)./(1+p0.*sumIso0) )  );
 
     else
