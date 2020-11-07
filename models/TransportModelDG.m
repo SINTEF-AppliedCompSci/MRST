@@ -394,7 +394,7 @@ classdef TransportModelDG < TransportModel
             pmodel = model.parentModel;
             [acc, flux, cellflux, names, types] = pmodel.FlowDiscretization.componentConservationEquations(pmodel, state, state0, dt);
             state.wellStateDG = rmfield(state.wellStateDG, 'FlowProps');
-            state.wellStateDG = rmfield(state.wellStateDG, 'FluxProps');
+            state.wellStateDG = rmfield(state.wellStateDG, 'FluxDisc');
             src = pmodel.FacilityModel.getComponentSources(state.wellStateDG);
             % Treat source or bc terms
             if ~isempty(drivingForces.bc) || ~isempty(drivingForces.src)
