@@ -7,7 +7,7 @@
 % scheme and better resolution of the trailing linear waves.
 
 %% Add modules
-mrstModule add dg ad-core ad-props ad-blackoil blackoil-sequential
+mrstModule add dg ad-core ad-props ad-blackoil sequential
 
 %% Set up problem
 % Construct grid, compute geometry and cell dimensions, and set

@@ -4,7 +4,7 @@
 % results
 
 %% Add modules
-mrstModule add dg spe10 ad-props ad-core ad-blackoil blackoil-sequential
+mrstModule add dg spe10 ad-props ad-core ad-blackoil sequential
 
 %% Set up fine-scale model
 % We extract part of layer 51 of SPE10 2
