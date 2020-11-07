@@ -362,7 +362,7 @@ classdef TransportModelDG < TransportModel
         function model = setupStateFunctionGroupings(model, default)
             if ~default
                 % State functions have already been set up
-                assert(isa(model.parentModel.FluxDiscretization, 'FluxDiscretizationDG'));
+                assert(isa(model.parentModel.FlowDiscretization, 'FluxDiscretizationDG'));
                 return
             end
             model = setupStateFunctionGroupings@TransportModel(model, default);
@@ -384,7 +384,7 @@ classdef TransportModelDG < TransportModel
             end
             model.parentModel.PVTPropertyFunctions = pvt;
             % Adjust flux discretization
-            model.parentModel.FluxDiscretization = FluxDiscretizationDG(pModel);
+            model.parentModel.FlowDiscretization = FluxDiscretizationDG(pModel);
         end
     
         %-----------------------------------------------------------------%
@@ -392,7 +392,7 @@ classdef TransportModelDG < TransportModel
             % Get model equations
             state0 = model.evaluateBaseVariables(state0);
             pmodel = model.parentModel;
-            [acc, flux, cellflux, names, types] = pmodel.FluxDiscretization.componentConservationEquations(pmodel, state, state0, dt);
+            [acc, flux, cellflux, names, types] = pmodel.FlowDiscretization.componentConservationEquations(pmodel, state, state0, dt);
             state.wellStateDG = rmfield(state.wellStateDG, 'FlowProps');
             state.wellStateDG = rmfield(state.wellStateDG, 'FluxProps');
             src = pmodel.FacilityModel.getComponentSources(state.wellStateDG);
@@ -455,10 +455,10 @@ classdef TransportModelDG < TransportModel
 %             bcStateDG0 = model.getStateDG(state0, cells, faces, false);
             % Get flow state (either bcStateDG or bcStateDG0)
             fsb = FlowStateBuilderDG();
-            bcStateDG = fsb.build(model.parentModel.FluxDiscretization, model.parentModel, bcStateDG, [], []);
+            bcStateDG = fsb.build(model.parentModel.FlowDiscretization, model.parentModel, bcStateDG, [], []);
 %             bcStateDG  = model.parentModel.FluxDiscretization.buildFlowState(model.parentModel, bcStateDG, bcStateDG0, dt);
             % Compute boundary condition fluxes
-            model.parentModel = model.parentModel.FluxDiscretization.expandRegions(model.parentModel, 'cells', bcStateDG.cells);
+            model.parentModel = model.parentModel.FlowDiscretization.expandRegions(model.parentModel, 'cells', bcStateDG.cells);
             q = computeBoundaryFluxesDG(model.parentModel, bcStateDG, bc);
         end
         

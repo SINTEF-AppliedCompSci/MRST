@@ -1,4 +1,4 @@
-classdef FluxDiscretizationDG < FluxDiscretization
+classdef FluxDiscretizationDG < FlowDiscretization
    
     properties
         ComponentTotalVelocity
@@ -9,12 +9,12 @@ classdef FluxDiscretizationDG < FluxDiscretization
     methods
         function fd = FluxDiscretizationDG(model)
             % Initialize
-            fd = fd@FluxDiscretization(model);
-            % Copy over properties from model.FluxDiscretization
-            if ~isempty(model.FluxDiscretization)
-                names = model.FluxDiscretization.getNamesOfStateFunctions();
+            fd = fd@FlowDiscretization(model);
+            % Copy over properties from model.FlowDiscretization
+            if ~isempty(model.FlowDiscretization)
+                names = model.FlowDiscretization.getNamesOfStateFunctions();
                 for i = 1:numel(names)
-                    p = model.FluxDiscretization.getStateFunction(names{i});
+                    p = model.FlowDiscretization.getStateFunction(names{i});
                     fd = fd.setStateFunction(names{i}, p);
                 end
             end
@@ -74,9 +74,9 @@ classdef FluxDiscretizationDG < FluxDiscretization
             fpprops = expandPropsRegions(fpprops, cells);
             model.FlowPropertyFunctions = fpprops;
             
-            fdprops = model.FluxDiscretization;
+            fdprops = model.FlowDiscretization;
             fdprops = expandPropsRegions(fdprops, cells);
-            model.FluxDiscretization = fdprops;
+            model.FlowDiscretization = fdprops;
             
         end
         
