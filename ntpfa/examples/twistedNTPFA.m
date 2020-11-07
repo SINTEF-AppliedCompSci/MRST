@@ -1,6 +1,6 @@
 gravity off
 mrstModule add ntpfa ad-core ad-blackoil ad-props ...
-               blackoil-sequential mimetic incomp vem upr
+               sequential mimetic incomp vem upr
 
 dims = [15, 15];
 pdims = [1, 1];
