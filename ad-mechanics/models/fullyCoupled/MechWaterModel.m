@@ -4,8 +4,9 @@ classdef MechWaterModel < MechFluidModel
 % SYNOPSIS:
 %   model = MechWaterModel(G, rock, fluid, mech_problem, varargin)
 %
-% DESCRIPTION: Model for fully coupled mechanical fluid simulation. The fluid model
-% is a single phase model.
+% DESCRIPTION:
+%   Model for fully coupled mechanical fluid simulation. The fluid model is
+%   a single phase model.
 %
 % PARAMETERS:
 %   G            - grid structure
@@ -16,10 +17,12 @@ classdef MechWaterModel < MechFluidModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runNorneExample
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-% SEE ALSO: MechBlackOilModel.m, MechOilWaterModel, MechFluidModel
-%
+% SEE ALSO:
+%   MechBlackOilModel, MechOilWaterModel, MechFluidModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -41,10 +44,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     methods
         function model = MechWaterModel(G, rock, fluid, mech_problem, varargin)
-
             model = model@MechFluidModel(G, rock, fluid, mech_problem, ...
-                                         varargin{:});
-
+                                         'water', true, varargin{:});
         end
 
         function fluidModel = setupFluidModel(model)

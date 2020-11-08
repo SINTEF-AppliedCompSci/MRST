@@ -4,9 +4,10 @@ classdef WaterFixedStressFluidModel < WaterModel
 % SYNOPSIS:
 %   model = WaterFixedStressFluidModel(G, rock, fluid, varargin)
 %
-% DESCRIPTION: This model handles the fluid equations of the splitting scheme
-% and setup a single phase water fluid model. The model is used in the fixed
-% stress splitting model.
+% DESCRIPTION:
+%   This model handles the fluid equations of the splitting scheme and
+%   setup a single phase water fluid model. The model is used in the
+%   fixed stress splitting model.
 %
 % PARAMETERS:
 %   G        - Grid
@@ -17,10 +18,12 @@ classdef WaterFixedStressFluidModel < WaterModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runNorneExample
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-% SEE ALSO: WaterModel, MechFluidFixedStressSplitModel, MechFluidSplitModel
-%
+% SEE ALSO:
+%   WaterModel, MechFluidFixedStressSplitModel, MechFluidSplitModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 

@@ -4,8 +4,9 @@ function [eqs, names, types] = equationsPoroMechanics(x, model, fluidp)
 % SYNOPSIS:
 %   function [eqs, names, types] = equationsPoroMechanics(x, model, fluidp)
 %
-% DESCRIPTION: Assemble the residual equations for the mechanical system. The
-% function takes fluid input, given by the pore pressure.
+% DESCRIPTION:
+%   Assemble the residual equations for the mechanical system. The
+%   function takes fluid input, given by the pore pressure.
 %
 % PARAMETERS:
 %   x      - Displacement
@@ -18,10 +19,9 @@ function [eqs, names, types] = equationsPoroMechanics(x, model, fluidp)
 %   names - The name of each equations
 %   types - The type of each equations
 %
-% EXAMPLE: 
-%
-% SEE ALSO: MechBlackOilModel, MechOilWaterModel, MechWaterModel
-%
+% SEE ALSO:
+%   MechBlackOilModel, MechOilWaterModel, MechWaterModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -41,7 +41,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    
     G = model.G;
     s = model.operators;
     alpha = model.rock.alpha;

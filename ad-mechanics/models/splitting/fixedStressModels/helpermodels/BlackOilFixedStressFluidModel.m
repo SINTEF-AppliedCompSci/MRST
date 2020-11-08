@@ -4,9 +4,10 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
 % SYNOPSIS:
 %   model = BlackOilFixedStressFluidModel(G, rock, fluid, varargin)
 %
-% DESCRIPTION: This model handles the fluid equations of the splitting scheme
-% and setup a blackoil fluid model. The model is used in the fixed stress splitting
-% model.
+% DESCRIPTION:
+%   This model handles the fluid equations of the splitting scheme and
+%   setup a blackoil fluid model. The model is used in the fixed
+%   stress splitting model.
 %
 % PARAMETERS:
 %   G        - Grid
@@ -17,10 +18,12 @@ classdef BlackOilFixedStressFluidModel < ThreePhaseBlackOilModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runNorneExample
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-% SEE ALSO: ThreePhaseBlackOilModel, MechFluidFixedStressSplitModel, MechFluidSplitModel
-%
+% SEE ALSO:
+%   ThreePhaseBlackOilModel, MechFluidFixedStressSplitModel, MechFluidSplitModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 

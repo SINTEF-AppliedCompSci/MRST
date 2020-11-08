@@ -293,7 +293,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         W(1).compi = [1 0];
         W(1).val   = 1e4/day;
       case 'water'
-        W(1).compi = [1];
+        W(1).compi = 1;
         W(1).val  = 1e-3/day;
       otherwise
         error('fluid_model not recognized.')

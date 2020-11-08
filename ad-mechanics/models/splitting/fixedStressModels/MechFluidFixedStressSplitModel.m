@@ -4,16 +4,16 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
 % SYNOPSIS:
 %   MechFluidFixedStressSplitModel(G, rock, fluid, mech_problem, varargin)
 %
-% DESCRIPTION: Model for the fixed stress splitting method. The model contains a
-% mechanic and fluid model, see MechFluidSplitModel. Different fluid models can
-% be used, see setupFluidModel member function.
+% DESCRIPTION:
+%   Model for the fixed stress splitting method. The model contains a
+%   mechanic and fluid model, see MechFluidSplitModel. Different fluid
+%   models can be used, see setupFluidModel member function.
 %
-% This model essentially overwrites the member function stepFunction. There, the
-% mechanic equations are solved for a given pore (fluid) pressure. Then, a
-% strain-pressure relation is established (see uvcomputeMechTerm member function)
-% assuming that the total stress is constant. Finally, the fluid equation is
-% solved.
-%
+%   This model essentially overwrites the member function stepFunction.
+%   There, the mechanic equations are solved for a given pore (fluid)
+%   pressure. Then, a strain-pressure relation is established (see
+%   uvcomputeMechTerm member function) assuming that the total stress is
+%   constant. Finally, the fluid equation is solved.
 %
 % PARAMETERS:
 %   G            - grid structure
@@ -25,12 +25,13 @@ classdef MechFluidFixedStressSplitModel < MechFluidSplitModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runNorneExample 
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-% SEE ALSO: MechFluidSplitModel and the fluid models
-% BlackOilFixedStressFluidModel, OilWaterFixedStressFluidModel,
-% WaterFixedStressFluidModel
-%
+% SEE ALSO:
+%   MechFluidSplitModel, BlackOilFixedStressFluidModel,
+%   OilWaterFixedStressFluidModel, WaterFixedStressFluidModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -49,8 +50,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-
 
     methods
         function model = MechFluidFixedStressSplitModel(G, rock, fluid, ...

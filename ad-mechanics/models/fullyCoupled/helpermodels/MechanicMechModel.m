@@ -4,9 +4,10 @@ classdef MechanicMechModel < MechanicModel
 % SYNOPSIS:
 %   model = MechanicMechModel(G, rock, mech_problem, varargin)
 %
-% DESCRIPTION: This model is for the mechanical part of a fully coupled
-% model. It adds some few functionalities that are needed to couple the solver
-% with a fluid model.
+% DESCRIPTION:
+%   This model is for the mechanical part of a fully coupled model. It
+%   adds some few functionalities that are needed to couple the solver
+%   with a fluid model.
 %
 % PARAMETERS:
 %   G            - Grid structure
@@ -16,10 +17,12 @@ classdef MechanicMechModel < MechanicModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runNorneExample
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-% SEE ALSO: MechBlackOilModel, MechOilWaterModel, MechWaterModel  
-%
+% SEE ALSO:
+%   MechBlackOilModel, MechOilWaterModel, MechWaterModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 

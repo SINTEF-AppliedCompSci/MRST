@@ -28,10 +28,12 @@ function [eqs, names, types, state] = equationsWaterMech(p0, state0, p, wellVars
 %   types - The type of each equations
 %   state - Some field related to well control of the state variables may be updated.
 %
-% EXAMPLE: run2DCase, runNorneExample
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-% SEE ALSO: equationsWater
-%
+% SEE ALSO:
+%   equationsWater
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -50,7 +52,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
 
     % Note that state is given only for output
     opt = struct('iteration', -1, ...

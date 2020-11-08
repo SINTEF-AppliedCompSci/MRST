@@ -4,13 +4,12 @@ classdef MechFluidSplitModel < ReservoirModel
 % SYNOPSIS:
 %   model = MechFluidSplitModel(G, rock, fluid, mech_problem, varargin)
 %
-% DESCRIPTION: Base class for mechanics-flow splitting models. It offers the
-% Possibility to implement different splitting. For the moment, only
-% fixed-stress splitting is implemented. The model contains a mechanical and
-% fluid model, which can independently handle the mechanical and fluid systems
-% of equations.
-%
-
+% DESCRIPTION:
+%   Base class for mechanics-flow splitting models. It offers the
+%   possibility to implement different splitting. For the moment, only
+%   fixed-stress splitting is implemented. The model contains a mechanical
+%   and fluid model, which can independently handle the mechanical and
+%   fluid systems of equations.
 %
 % PARAMETERS:
 %   G            - Grid structure
@@ -21,10 +20,12 @@ classdef MechFluidSplitModel < ReservoirModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runNorneExample
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-% SEE ALSO: MechFluidFixedStressSplitModel
-%
+% SEE ALSO:
+%   MechFluidFixedStressSplitModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -43,6 +44,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
     properties
         % Mechanical model used in the splitting
         mechModel;
@@ -61,7 +63,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         splittingTolerance
         % Splitting verbose
         splittingVerbose
-
     end
 
     methods
@@ -72,25 +73,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                          'splittingVerbose', false);
             [opt, rest] = merge_options(opt, varargin{:});
             fluidModelType = opt.fluidModelType;
+
             model = model@ReservoirModel(G, rest{:});
             if opt.splittingVerbose
                 model.verbose = true;
             end
-
 
             % Process the grid for mechanical computation
             if ~ismember('createAugmentedGrid', model.G.type)
                 model.G = createAugmentedGrid(model.G);
             end
 
+            model.water = ...
+               ~isempty(regexp(fluidModelType, '\<(water|blackoil)\>', 'once'));
+
+            model.oil = ...
+               ~isempty(regexp(fluidModelType, '\<(oil|blackoil)\>', 'once'));
+
+            model.gas = ...
+               ~isempty(regexp(fluidModelType, '\<blackoil\>', 'once'));
+
             % Different fluid models may be used. This base class should be
             % derived for each of those. See e.g. WaterFixedStressFluidModel.m
             % (fixed stress splitting with water phase).
-            model.fluidModel = model.setupFluidModel(rock, fluid, opt.fluidModelType, ...
-                                                           'extraWellSolOutput', ...
-                                                           false, rest{:});
+            model.fluidModel = model.setupFluidModel(rock, fluid, ...
+                                                     fluidModelType, ...
+                                                     'extraWellSolOutput', ...
+                                                     false, rest{:});
             model.fluidfds = model.fluidModel.getAllVarsNames();
-
 
             model.mechModel = MechanicModel(model.G, rock, mech_problem, ...
                                             rest{:});
@@ -100,7 +110,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             model.mech_solver = NonLinearSolver();
             model.fluid_solver = NonLinearSolver();
-
         end
 
         function fluidModel = setupFluidModel(model, rock, fluid, fluidModelType, ...

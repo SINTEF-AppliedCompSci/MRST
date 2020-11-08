@@ -4,8 +4,9 @@ classdef MechOilWaterModel < MechFluidModel
 % SYNOPSIS:
 %   model = MechOilWaterModel(G, rock, fluid, mech_problem, ...
 %
-% DESCRIPTION: Model for fully coupled mechanical fluid simulation. The fluid model
-% is a two phase oil-water model.
+% DESCRIPTION:
+%   Model for fully coupled mechanical fluid simulation. The fluid
+%   model is a two phase oil-water model.
 %
 % PARAMETERS:
 %   G            - grid structure
@@ -16,11 +17,12 @@ classdef MechOilWaterModel < MechFluidModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runNorneExample
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-%
-% SEE ALSO: MechBlackOilModel.m, MechWaterModel, MechFluidModel
-%
+% SEE ALSO:
+%   MechBlackOilModel, MechWaterModel, MechFluidModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 

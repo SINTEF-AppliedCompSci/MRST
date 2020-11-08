@@ -4,8 +4,9 @@ classdef MechBlackOilModel < MechFluidModel
 % SYNOPSIS:
 %   model = MechBlackOilModel(G, rock, fluid, mech_problem, varargin)
 %
-% DESCRIPTION: Model for fully coupled mechanical fluid simulation. The fluid model
-% is a blackoil model.
+% DESCRIPTION:
+%   Model for fully coupled mechanical fluid simulation. The fluid
+%   model is a blackoil model.
 %
 % PARAMETERS:
 %   G            - grid structure
@@ -16,10 +17,12 @@ classdef MechBlackOilModel < MechFluidModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runNorneExample
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-% SEE ALSO: MechOilWaterModel, MechWaterModel, MechFluidModel
-%
+% SEE ALSO:
+%   MechOilWaterModel, MechWaterModel, MechFluidModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -38,7 +41,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
 
     methods
         function model = MechBlackOilModel(G, rock, fluid, mech_problem, varargin)

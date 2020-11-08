@@ -3,10 +3,11 @@ function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, 
 % SYNOPSIS:
 %   function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, x, rs, rv, st, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
 %
-% DESCRIPTION: This function is very similar to equationsBlackOil. The
-% difference here is that it also takes as input mechanical terms, and the ADI
-% initialization is not done here but by the model in the getEquations member
-% function.
+% DESCRIPTION:
+%   This function is very similar to equationsBlackOil. The difference
+%   here is that it also takes as input mechanical terms, and the ADI
+%   initialization is not done here but by the model in the
+%   getEquations member function.
 %
 % PARAMETERS:
 %   state0        - State at previous time step
@@ -32,11 +33,6 @@ function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, 
 %   names - The name of each equations
 %   types - The type of each equations
 %   state - Some field related to well control of the state variables may be updated.
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

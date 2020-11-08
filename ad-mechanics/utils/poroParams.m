@@ -87,7 +87,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    % Specifying names of poroelastic parameters and capturing those provided
    % by user
    pnames = parameter_names();
