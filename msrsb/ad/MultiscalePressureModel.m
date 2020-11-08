@@ -13,7 +13,7 @@ classdef MultiscalePressureModel < ReservoirModel
         
         function model = MultiscalePressureModel(G, rock, fluid, pmodel, mssolver, varargin)
             model = model@ReservoirModel(G, rock, fluid);
-
+            [model.water, model.oil, model.gas] = deal(pmodel.water, pmodel.oil, pmodel.gas);
             model.useMex = false;
             model.pressureModel = pmodel;
             model.multiscaleSolver = mssolver;

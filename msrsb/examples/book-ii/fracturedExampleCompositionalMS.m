@@ -27,7 +27,7 @@ rock.perm(G.cells.tag > 0) = 10*darcy;
 pv   = poreVolume(G, rock);
 
 % Define fluid and PVT model
-[cf, info] = getCompositionalFluidCase(fluid_name);
+[cf, info] = getBenchmarkMixture(fluid_name);
 eos   =  EquationOfStateModel(G, cf);
 fluid = initSimpleADIFluid('rho', [1000, 500, 500], ...
                        'mu', [1, 1, 1]*centi*poise, ...
