@@ -188,13 +188,6 @@ classdef BlackOilSolventModel < ThreePhaseBlackOilModel
         end
 
         % --------------------------------------------------------------------%
-        function rhoS = getSurfaceDensities(model)
-            active = model.getActivePhases();
-            props = {'rhoWS', 'rhoOS', 'rhoGS', 'rhoSS'};
-            rhoS = cellfun(@(x) model.fluid.(x), props(active));
-        end
-
-        % --------------------------------------------------------------------%
         function state = storeFluxes(model, state, vW, vO, vG, vS)
             % Utility function for storing the interface fluxes in the state
             isActive = model.getActivePhases();
