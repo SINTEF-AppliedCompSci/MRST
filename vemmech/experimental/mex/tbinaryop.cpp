@@ -1,4 +1,5 @@
 #include <fstream> //@@ for debugging
+#include <assert.h> //@@ for debugging
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -18,16 +19,16 @@ using namespace std;
 class MexFunction : public matlab::mex::Function {
 
 public:
-  MexFunction() : matlabPtr(getEngine()) {}
+  MexFunction() {}; //: matlabPtr(getEngine()) {}
 
   // Input should be:
   // inputs[0] - cell array with two tensor components that are /compatible/,
   //             i.e. they have the same index names and index orders.
   // inputs[1] - string indicating the binary operation ('-', '+', '*', '/')
   void operator() (ArgumentList outputs, ArgumentList inputs) {
-
+    
     checkArguments(outputs, inputs);
-
+    
     const CellArray cells = inputs[0];
     const CharArray op = inputs[1];
     if (cells.getNumberOfElements() != 2)
@@ -48,11 +49,11 @@ public:
   StructArray apply_operator(const CellArray& cells, const CharArray& op) {
 
     const auto c1 = TensorComp<T>(extract_indexnames(cells[0]),
-                                  extract_numbers<T>(cells[0], "coefs", matlabPtr),
-                                  extract_numbers<size_t>(cells[0], "ixs", matlabPtr));
+                                  extract_numbers<T>(cells[0], "coefs", getEngine()),
+                                  extract_numbers<size_t>(cells[0], "ixs", getEngine()));
     const auto c2 = TensorComp<T>(extract_indexnames(cells[1]),
-                                  extract_numbers<T>(cells[1], "coefs", matlabPtr),
-                                  extract_numbers<size_t>(cells[1], "ixs", matlabPtr));
+                                  extract_numbers<T>(cells[1], "coefs", getEngine()),
+                                  extract_numbers<size_t>(cells[1], "ixs", getEngine()));
 
     const TensorComp<T> resultcomp =
       apply_binary_op(c1, c2, string(op.begin(), op.end()));
@@ -68,7 +69,7 @@ public:
       indexnames[j] = factory.createCharArray(resultcomp.indexNames()[j]);
 
     
-    Array coefs = extract_coefs(resultcomp, matlabPtr);
+    Array coefs = extract_coefs(resultcomp, getEngine());
 
     // TypedArray<double> coefs =
     //   factory.createArray<double>(ArrayDimensions {resultcomp.coefs().size(), 1},
@@ -118,25 +119,27 @@ public:
   
   
   void checkArguments(ArgumentList outputs, ArgumentList inputs) {
-  
+
+    if (inputs.size() != 2)
+      raiseError("There should be exactly two arguments to tbinaryop.");
+    
     if (inputs.empty() || inputs[0].getType() != ArrayType::CELL)
       raiseError("First argument should be a cell array with two components.");
 
     if (inputs[1].getType() != ArrayType::CHAR)
       raiseError("Second argument should be a string.");
-
   }
 
-  void raiseError(const string& str) const
+  void raiseError(const string& str) 
   {
     ArrayFactory factory;
-    matlabPtr->feval(u"error",
-                     0,
-                     vector<Array>({ factory.createScalar(str)}));
+    getEngine()->feval(u"error",
+                       0,
+                       vector<Array>({ factory.createScalar(str)}));
   }
 
 private:
-  std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr;
+  // std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr;
 };
 
   

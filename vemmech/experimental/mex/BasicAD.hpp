@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 // #include <string> // @@debug
+#include <assert.h>
 
 class BasicAD
 {
@@ -31,10 +32,14 @@ public:
   void operator=(const BasicAD& rhs) {BasicAD tmp(rhs); this->swap(tmp);}
 
   double val() const { return val_;}
+  
   const std::vector<double> derivs() const {
     std::vector<double> derivs(num_derivs_, 0);
-    for (size_t i = 0; i != deriv_ixs_.size(); ++i)
+    assert(deriv_vals_.size() == deriv_ixs_.size());
+    for (size_t i = 0; i != deriv_ixs_.size(); ++i) {
+      assert(deriv_ixs_[i] < derivs.size());
       derivs[deriv_ixs_[i]] = deriv_vals_[i];
+    }
     return derivs;
   }
 
@@ -105,13 +110,15 @@ private:
     std::vector<double> other_derivs = rhs.derivs();
     if (derivs.size() < other_derivs.size())
       derivs.insert(derivs.end(), other_derivs.size() - derivs.size(), 0);
-
+    assert(derivs.size() >= other_derivs.size());
+    
     auto target = derivs.begin();
     for (auto it = other_derivs.begin(); it != other_derivs.end(); ++it, ++target)
       *target += *it * factor;
 
     // resetting internal data related to derivatives
     num_derivs_ = (num_derivs_ > rhs.num_derivs_) ? num_derivs_ : rhs.num_derivs_;
+    assert(num_derivs_ == derivs.size());
     deriv_vals_.clear();
     deriv_ixs_.clear();
     for (size_t i = 0; i != derivs.size(); ++i) {
