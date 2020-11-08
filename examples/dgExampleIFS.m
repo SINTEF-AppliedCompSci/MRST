@@ -5,7 +5,7 @@
 
 %% Add modules
 mrstModule add dg upr vem vemmech spe10 ad-props ad-core ad-blackoil ...
-    blackoil-sequential
+    sequential
 
 %% Set up fine-scale model
 % We extract the lower half of layer 13 of SPE10 2

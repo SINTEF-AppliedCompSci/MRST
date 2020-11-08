@@ -4,7 +4,7 @@
 % compare higher-order discontinuous Galerkin methods with the standard
 % finite-volume discretization.
 
-mrstModule add dg ad-core ad-props ad-blackoil blackoil-sequential
+mrstModule add dg ad-core ad-props ad-blackoil sequential
 saveeps = @(a,b) disp(b);  % Dummy function
 
 %% Set up problem

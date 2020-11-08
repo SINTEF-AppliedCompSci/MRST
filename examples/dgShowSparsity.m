@@ -2,7 +2,7 @@
 % This example compares the sparsity patterns of dG(0)/SPU and dG(1) for
 % a small PEBI grid and shows how one can use potential ordering to permute
 % the systems to (block)triangular form.
-mrstModule add upr dg ad-core ad-props ad-blackoil blackoil-sequential
+mrstModule add upr dg ad-core ad-props ad-blackoil sequential
 
 %% Set up the model and compute a pressure solution
 % We construct a PEBI grid using a function from the UPR module, specify a

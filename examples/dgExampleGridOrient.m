@@ -7,7 +7,7 @@
 % acceptable pressure solution.
 
 %% Add modules
-mrstModule add dg ad-core ad-props ad-blackoil blackoil-sequential
+mrstModule add dg ad-core ad-props ad-blackoil sequential
 
 %%
 gravity reset off

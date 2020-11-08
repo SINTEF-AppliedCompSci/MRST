@@ -7,7 +7,7 @@
 % scheme and better resolution of the trailing linear waves.
 
 %% Add modules
-mrstModule add dg ad-core ad-props ad-blackoil blackoil-sequential
+mrstModule add dg ad-core ad-props ad-blackoil sequential
 
 %% Set up problem
 % Construct grid, compute geometry and cell dimensions, and set
@@ -53,7 +53,7 @@ hold all
 % Use standard discretization in MRST: single-point upwind (SPU)
 tmodel = TransportModel(model);
 tmodel = tmodel.validateModel();
-tmodel.parentModel.FluxDiscretization.ComponentPhaseFlux = ComponentPhaseFluxFractionalFlowSimple(model);
+tmodel.parentModel.FlowDiscretization.ComponentPhaseFlux = ComponentPhaseFluxFractionalFlowSimple(model);
 [~, stSPUi, repSPUi] = simulateScheduleAD(state0, tmodel, schedule);
 plot(G.cells.centroids(:,1),stSPUi{end}.s(:,1),'.','MarkerSize',20);
 
@@ -61,18 +61,18 @@ plot(G.cells.centroids(:,1),stSPUi{end}.s(:,1),'.','MarkerSize',20);
 tmodelDGi = TransportModelDG(model, 'degree', [1,0]);
 tmodelDGi.storeUnlimited = true;
 tmodelDGi = tmodelDGi.validateModel();
-tmodelDGi.parentModel.FluxDiscretization.ComponentPhaseFlux = ComponentPhaseFluxFractionalFlowSimple(model);
-tmodelDGi.parentModel.FluxDiscretization.ComponentPhaseVelocity = ComponentPhaseVelocityFractionalFlowSimpleDG(model);
+tmodelDGi.parentModel.FlowDiscretization.ComponentPhaseFlux = ComponentPhaseFluxFractionalFlowSimple(model);
+tmodelDGi.parentModel.FlowDiscretization.ComponentPhaseVelocity = ComponentPhaseVelocityFractionalFlowSimpleDG(model);
 [~, stDGi, repDGi] = simulateScheduleAD(state0, tmodelDGi, schedule);
 plot(G.cells.centroids(:,1),stDGi{end}.s(:,1),'.','MarkerSize',20);
 
 %% SPU explicit
 tmodel3 = tmodel.validateModel;
-flux = tmodel3.parentModel.FluxDiscretization;
+flux = tmodel3.parentModel.FlowDiscretization;
 fb   = ExplicitFlowStateBuilder();
 %fb    = AdaptiveImplicitFlowStateBuilder();
 flux = flux.setFlowStateBuilder(fb);
-tmodel3.parentModel.FluxDiscretization = flux;
+tmodel3.parentModel.FlowDiscretization = flux;
 [~, stSPUe, repSPUe] = simulateScheduleAD(state0, tmodel3, schedule);
 plot(G.cells.centroids(:,1),stSPUe{end}.s(:,1),'.','MarkerSize',20);
  
