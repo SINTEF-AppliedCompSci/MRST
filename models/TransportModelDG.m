@@ -362,7 +362,7 @@ classdef TransportModelDG < TransportModel
         function model = setupStateFunctionGroupings(model, default)
             if ~default
                 % State functions have already been set up
-                assert(isa(model.parentModel.FlowDiscretization, 'FluxDiscretizationDG'));
+                assert(isa(model.parentModel.FlowDiscretization, 'FlowDiscretizationDG'));
                 return
             end
             model = setupStateFunctionGroupings@TransportModel(model, default);
@@ -384,7 +384,7 @@ classdef TransportModelDG < TransportModel
             end
             model.parentModel.PVTPropertyFunctions = pvt;
             % Adjust flux discretization
-            model.parentModel.FlowDiscretization = FluxDiscretizationDG(pModel);
+            model.parentModel.FlowDiscretization = FlowDiscretizationDG(pModel);
         end
     
         %-----------------------------------------------------------------%

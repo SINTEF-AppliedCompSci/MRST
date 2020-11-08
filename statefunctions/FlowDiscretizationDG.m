@@ -1,4 +1,4 @@
-classdef FluxDiscretizationDG < FlowDiscretization
+classdef FlowDiscretizationDG < FlowDiscretization
    
     properties
         ComponentTotalVelocity
@@ -7,7 +7,7 @@ classdef FluxDiscretizationDG < FlowDiscretization
     end
     
     methods
-        function fd = FluxDiscretizationDG(model)
+        function fd = FlowDiscretizationDG(model)
             % Initialize
             fd = fd@FlowDiscretization(model);
             % Copy over properties from model.FlowDiscretization
