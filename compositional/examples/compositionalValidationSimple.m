@@ -129,7 +129,7 @@ end
 mrstModule add mrst-gui
 for i = 1:nd
     figure;
-    plotToolbar(G, data{i}, 'plot1d', true);
+    plotToolbar(model.G, data{i}, 'plot1d', true);
     title(names{i});
 end
 
