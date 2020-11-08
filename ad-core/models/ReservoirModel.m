@@ -136,9 +136,11 @@ methods
             model.checkProperty(state, 'Saturation', [nc, nPh], [1, 2]);
         end
         if isfield(state, 's')
-            sv = value(state.s);
-            assert(all(abs(sum(sv, 2) - 1) < 1e-8), ...
-                'Saturations must sum up to unity in each cell when provided.');
+            sT = sum(value(state.s), 2);
+            offunity = abs(sT - 1) > 1e-8;
+            if any(offunity)
+                warning('Saturations deviate from unity in %d cells', sum(offunity));
+            end
         end
         if ~isempty(model.FacilityModel)
             state = model.FacilityModel.validateState(state);
