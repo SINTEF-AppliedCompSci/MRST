@@ -194,7 +194,12 @@ classdef DomainDecompositionModel < WrapperModel
                 for i = 1:numel(lm.domains)
                     % Solve subdomain
                     [stateInit, stateFinal, subreports{i}, iterations, submodel] = lm.solveSubDomain(sds{i}, state0, dt, drivingForces, stateInit, stateFinal, iterations);
-                    map = mergeMappings(map, submodel.mappings);
+                    if isa(submodel, 'SequentialPressureTransportModel');
+                        mappings = submodel.pressureModel.mappings;
+                    else
+                        mappings = submodel.mappings;
+                    end
+                    map = mergeMappings(map, mappings);
                 end
                 t_localSolve = toc(localTimer);
                 % Sum iterations and gather on worker 1
@@ -342,7 +347,7 @@ classdef DomainDecompositionModel < WrapperModel
             if isempty(model.submodelFn)
                 submodel = SubdomainModel(model.parentModel, cells, ...
                                           'overlap', model.overlap, ...
-                                          'verbose', verbose == 2);
+                                          'verbose', verbose > 1  );
             else
                 submodel = model.submodelFn(model, cells);
             end
