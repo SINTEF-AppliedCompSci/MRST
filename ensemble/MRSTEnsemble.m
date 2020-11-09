@@ -355,9 +355,9 @@ classdef MRSTEnsemble < handle
             end
             
             if strcmpi(ensemble.simulationStrategy, 'parallel')
-                % Check if parallel toolbox is avialiable
+                % Check if parallel toolbox is availiable
                 if isempty(ver('parallel'))
-                    warning(['Parallel computing toolbox not aviailable. ', ...
+                    warning(['Parallel computing toolbox not available. ', ...
                              'Switching to background simulation']        );
                     ensemble.simulationStrategy = 'background';
                 end

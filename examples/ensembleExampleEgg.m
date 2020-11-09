@@ -27,7 +27,7 @@ generatorFn = @(problem, seed) getDeckEGG('realization', seed-1);
 % the simulation grid should be constructed from the deck, or taken from
 % the base problem. We are only interested in simulating the first 1500
 % days. Since `initEclipseProblemAD` will set up the schedule from deck, we
-% must postporcess the problem after setting the sample in order to extract
+% must postprocess the problem after setting the sample in order to extract
 % the subschedule. We do this with the optional input argument
 % `processProblemFn`.
 processProblemFn = @(problem) getSubSchedule(problem, steps);
