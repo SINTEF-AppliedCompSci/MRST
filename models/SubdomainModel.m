@@ -101,8 +101,12 @@ function operators = constructRestrictionOperators(model)
     ML = sparse(1:nc, 1:nc, keep, nc, nc); 
     if isa(model.parentModel.AutoDiffBackend, 'DiagonalAutoDiffBackend')
         model = model.validateModel();
-        rmodel = getReservoirModel(model);
-        ncomp = rmodel.getNumberOfComponents();
+        if isa(model.parentModel, 'PressureModel')
+            ncomp = 1;
+        else
+            rmodel = getReservoirModel(model);
+            ncomp = rmodel.getNumberOfComponents();
+        end
         MR = sparse(1:nc*ncomp, 1:nc*ncomp, repmat(keep, ncomp, 1), nc*ncomp, nc*ncomp);
         I  = @(i,j) sparse(1:nc, (1:nc) + nc*(i-1), ~keep, nc, nc*ncomp);
     else
