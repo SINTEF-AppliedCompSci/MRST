@@ -1,5 +1,5 @@
 function state = mapState(state, substate, mappings, varargin)
-    % Map substate to a full state
+% Map substate to a full state
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
