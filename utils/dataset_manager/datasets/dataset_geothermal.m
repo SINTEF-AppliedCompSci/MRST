@@ -1,5 +1,5 @@
 function [info, present] = dataset_geothermal()
-% Info function for Johansen dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+% Info function for geothermal dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
