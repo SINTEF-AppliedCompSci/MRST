@@ -34,8 +34,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Define module dependencies
     require spe10 ad-core ad-props compositional deckformat
     % Load deck
-    fldr = fullfile(mrstDataDirectory(), 'arthur_2d');
-    fn = fullfile(fldr, 'TEST1.DATA');
+    fn = fullfile(getDatasetPath('SPE10_Layer_Compositional'), 'TEST1.DATA');
     deck = readEclipseDeck(fn);
     deck = convertDeckUnits(deck);
     % Get grid
