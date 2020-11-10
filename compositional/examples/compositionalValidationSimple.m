@@ -1,21 +1,21 @@
-%% Compare MRST results with other simulators
-% This example is a two-phase compositional problem where CO2 is injected
-% into a mixture of CO2, Methane and Decane. The problem consists of 1000
-% cells and is one dimensional for ease of visualization. The problem is
-% divided into a large number of timesteps to ensure that the different
-% simulators take approximately the same timesteps.
+%% Validation of MRST against two other simulators
+% This example is a two-phase compositional problem in which CO2 is
+% injected into a mixture of CO2, Methane, and Decane. The problem consists
+% of 1000 cells and is one-dimensional for ease of visualization. The
+% problem is divided into a large number of time steps to ensure that the
+% different simulators take approximately the same timesteps.
 %
 % The problem is challenging in terms of fluid physics because the pressure
 % is relatively low, which makes the phase behavior highly pressure
 % dependent and all components exist in both phases. Since the wells are
-% set to bottom hole pressure controls, the fluid volume injected is
-% dependent on correctly calculating the mobility and densities in the
-% medium.
+% set to bottom-hole pressure controls, the fluid volume injected depends
+% on correctly calculating the mobility and densities in the medium.
 %
 % MRST uses the Peng-Robinson equation of state by default and the Lohrenz,
-% Bray and Clark (LBC) correlation to determine viscosities for both
+% Bray, and Clark (LBC) correlation to determine viscosities for both
 % phases.
 mrstModule add compositional deckformat ad-core ad-props
+
 %% Set up model
 % MRST includes both natural variables and overall composition. This toggle
 % can switch between the modes.
@@ -26,14 +26,16 @@ end
 if useNatural
     name = 'Natural';
 else
-    name = 'Overall';
+    name = 'Overall'; %#ok<UNRCH>
 end
 problem = packSimulationProblem(state0, model, schedule, 'simple_comp', 'name', name);
+
 %% Simulate the schedule
 % Note that as the problem has 500 control steps, this may take some time
 % (upwards of 4 minutes).
 simulatePackedProblem(problem);
 [ws, states, rep] = getPackedSimulatorOutput(problem);
+
 %% Comparison plots with existing simulators
 % The same problem was defined into two other simulators: Eclipse 300
 % (which is a commercial simulator) and AD-GPRS (Stanford's research
@@ -64,8 +66,9 @@ for i = 1:nd
 end
 lw = [.5, 2.5, 5];
 colors = lines(ncomp);
+figure(h)
 for step = 1:n % 180 for plot in book
-    figure(h); clf; hold on
+    cla; hold on
     for i = 1:numel(data)
         s = data{i}{step};
         comp = s.components;
@@ -81,6 +84,7 @@ for step = 1:n % 180 for plot in book
     ylabel('z')
     drawnow
 end
+
 %% Compare pressure and saturations
 % We also plot a more detailed comparison between MRST and E300 to show
 % that the prediction of phase behavior is accurate.
@@ -111,7 +115,7 @@ for step = 180 % 1:n
         for j = 1:ncomp
             htmp = plot(comp(:, j), marker, 'linewidth', linewidth, 'color', colors(j + 2, :));
             if i == 1
-                handles = [handles; htmp];
+                handles = [handles; htmp]; %#ok<AGROW>
             end
         end
         if i == 2
