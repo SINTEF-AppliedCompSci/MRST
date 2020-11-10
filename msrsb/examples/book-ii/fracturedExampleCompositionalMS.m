@@ -277,7 +277,7 @@ axis tight, xlabel('Time [days]'), ylabel('kg/day')
 ax1 = gca;
 ax2 = axes('position',get(gca,'position'),'visible','off');
 legend(ax1, h(1,2:end), names,'Location','East')
-legend(ax2, h(:,1), model.EOSModel.fluid.names,'Location','SouthEast');
+legend(ax2, h(:,1), model.EOSModel.getComponentNames,'Location','SouthEast');
 set([ax1 ax2],'FontSize',12); title('Component production');
 
 %% Estimate and plot the maximum CFL numbers of the whole simulation
