@@ -2,8 +2,9 @@ function [p, A] = partitionMETIS(G, T, n, varargin)
 %Partition grid according to connection strengths
 %
 % SYNOPSIS:
-%   p = partitionMETIS(G, T, n)
-%   p = partitionMETIS(G, T, n, 'pn1', pv1, ...)
+%    p     = partitionMETIS(G, T, n)
+%    p     = partitionMETIS(G, T, n, 'pn1', pv1, ...)
+%   [p, A] = partitionMETIS(...)
 %
 % PARAMETERS:
 %   G - Grid structure.
@@ -14,24 +15,23 @@ function [p, A] = partitionMETIS(G, T, n, varargin)
 %   n - Number of blocks into which to partition the grid 'G'.
 %
 % OPTIONAL PARAMETERS:
-%
-%  ufactor - Percentage overweight allowed in coarse blocks. Examples:
+%   ufactor - Percentage overweight allowed in coarse blocks. Examples:
 %                   1.01: Largest difference in cells per coarse block is
 %                         equal to or less than 1%.
 %
 %                   1.50: Largest difference in cells per coarse block is
 %                         equal to or less than 50%. (DEFAULT)
 %
-%  no2hop  - Do not use multiple hops when coarsening. Passed onto METIS.
+%   no2hop  - Do not use multiple hops when coarsening. Passed onto METIS.
 %
-%  seed    - METIS seeding parameter to create consistent results for given
-%            platform. Default: 0.
+%   seed    - METIS seeding parameter to create consistent results for
+%             given platform. Default: 0.
 %
-%  ncuts   - Passed onto METIS.
+%   ncuts   - Passed onto METIS.
 %
-%  useLog  - Log_10 transform transmissibilities before creating connection
-%            matrix. This can be useful when transmissibilities vary
-%            by several orders of magnitude locally.
+%   useLog  - Log_10 transform transmissibilities before creating
+%             connection matrix. This can be useful when transmissibilities
+%             vary by several orders of magnitude locally.
 %
 % RETURNS:
 %   p - Partition vector.  Contains no empty or multiply connected blocks.
@@ -59,7 +59,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
 
    require coarsegrid incomp
 
