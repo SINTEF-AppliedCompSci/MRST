@@ -53,7 +53,7 @@ properties
     gravity % Vector for the gravitational force
     FacilityModel % Facility model used to represent wells
     FlowPropertyFunctions % Grouping for flow properties
-    FluxDiscretization % Grouping for flux discretization
+    FlowDiscretization % Grouping for flux discretization
     PVTPropertyFunctions
     Components = {};
     
@@ -173,8 +173,8 @@ methods
         % Define the maximum allowable time-step based on physics or
         % discretization choice
         dt = getMaximumTimestep@PhysicalModel(model, state, state0, dt, drivingForces);
-        if ~isempty(model.FluxDiscretization)
-            dt = model.FluxDiscretization.getMaximumTimestep(model, state, state0, dt, drivingForces);
+        if ~isempty(model.FlowDiscretization)
+            dt = model.FlowDiscretization.getMaximumTimestep(model, state, state0, dt, drivingForces);
         end
     end
 
@@ -190,8 +190,8 @@ methods
         if ~isempty(drivingForces.W)
             [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
         end
-        if ~isempty(model.FluxDiscretization)
-            [model.FluxDiscretization, state] = model.FluxDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
+        if ~isempty(model.FlowDiscretization)
+            [model.FlowDiscretization, state] = model.FlowDiscretization.prepareTimestep(model, state, state0, dt, drivingForces);
         end
     end
 
@@ -217,8 +217,8 @@ methods
         if isempty(model.FlowPropertyFunctions)
             model.FlowPropertyFunctions = FlowPropertyFunctions(model); %#ok
         end
-        if isempty(model.FluxDiscretization)
-            model.FluxDiscretization = FluxDiscretization(model); %#ok
+        if isempty(model.FlowDiscretization)
+            model.FlowDiscretization = FlowDiscretization(model); %#ok
         end
         if isempty(model.PVTPropertyFunctions)
             model.PVTPropertyFunctions = PVTPropertyFunctions(model); %#ok
@@ -475,7 +475,7 @@ methods
 
     function containers = getStateFunctionGroupings(model)
         containers = getStateFunctionGroupings@PhysicalModel(model);
-        extra = {model.FlowPropertyFunctions, model.FluxDiscretization, model.PVTPropertyFunctions};
+        extra = {model.FlowPropertyFunctions, model.FlowDiscretization, model.PVTPropertyFunctions};
         if ~isempty(model.FacilityModel)
             fm_props = model.FacilityModel.getStateFunctionGroupings();
             extra = [extra, fm_props];
