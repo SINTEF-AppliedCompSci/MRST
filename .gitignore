@@ -53,3 +53,8 @@ Thumbs.db
 *.asv
 *.mat
 *.m~
+*.png
+*.pdf
+*.tex
+*.gz
+*.aux

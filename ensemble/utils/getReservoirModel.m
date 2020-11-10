@@ -1,6 +1,11 @@
 function rmodel = getReservoirModel(model)
-    % Get the underlying reservoir model from a model.
-    % This function probably belongs in ad-core
+% Get the underlying reservoir model from a model.
+% This function probably belongs in ad-core
+
+%{
+#COPYRIGHT#
+%}
+
     rmodel = model;
     if isa(rmodel, 'SequentialPressureTransportModel')
         % We have a sequential implicit model, use pressure parent model

@@ -1,5 +1,22 @@
 classdef ReservoirStateQoI < BaseQoI
-    
+     % Class for extracting state related quantity of interests from (an
+     % ensemble of) reservoir simulation problems.
+    %
+    % DESCRIPTION:
+    %   This class is used within a MRSTEnsemble to extract, store, and 
+    %   work with quantities of interest related to the reservoir state
+    %
+    % SYNOPSIS
+    %   qoi = ReservoirStateQoI(...);
+    %
+    % OPTIONAL PARAMETERS
+    %   'name' - Name of the reservoir state variable we are interested in.
+    %            Default: 'sW'.
+    %   'cells' - range of cells that we are interested in. Default: ':'
+    %   'time' - At what simulation time we want to store the QoI.
+    % 
+    % SEE ALSO:
+    %   `BaseQoI`, `WellQoI`, `MRSTExample`, `BaseSamples`
     properties
         name = 'sW'
         cells = ':'
@@ -18,6 +35,21 @@ classdef ReservoirStateQoI < BaseQoI
         
         %-----------------------------------------------------------------%
         function qoi = validateQoI(qoi, problem)
+            % Check that the configs that are inserted to the constructor
+            % makes sense for the base problem for the ensemble, and
+            % updates remaining fields.
+            %
+            % SYNOPSIS:
+            %   qoi = qoi.validateQoI(problem)
+            %
+            % PARAMETERS:
+            %   problem - MRST problem that is representative for the
+            %             (ensemble member) problems that will be used with
+            %             this QoI instance.
+            %
+            % NOTE:
+            %   When used in an MRSTEnsemble, this function is called by
+            %   the ensemble constructor.
             qoi = validateQoI@BaseQoI(qoi, problem);
             qoi.dx = problem.SimulatorSetup.model.G.cells.volumes;
             if strcmpi(qoi.time, ':')
@@ -34,6 +66,15 @@ classdef ReservoirStateQoI < BaseQoI
         
         %-----------------------------------------------------------------%
         function u = computeQoI(qoi, problem)
+            % Reads the simulation state solutions from the given problem
+            % and extract the relevant data.
+            %
+            % SYNOPSIS:
+            %   u = qoi.computeQoI(problem)
+            %
+            % PARAMETERS:
+            %   problem - The specific problem for which to compute the QoI
+            
             nt = numel(qoi.time);
             u  = cell(nt,1);
             states   = problem.OutputHandlers.states;
@@ -46,15 +87,6 @@ classdef ReservoirStateQoI < BaseQoI
             end
         end
         
-        %-----------------------------------------------------------------%
-        function n = findTimestep(qoi, schedule, time)
-            [~, n] = min(abs(cumsum(schedule.step.val) - time));
-        end
-        
-        %-----------------------------------------------------------------%
-        function u = getStateValue(qoi, model, state)
-            u = model.getProp(state, qoi.name);
-        end
         
         %-----------------------------------------------------------------%
         function n = norm(qoi, u)
@@ -67,10 +99,15 @@ classdef ReservoirStateQoI < BaseQoI
         
         %-----------------------------------------------------------------%
         function plotQoI(qoi, ensemble, u, varargin)
-            opt = struct('isMean'   , false      , ...
-                         'threshold', [-inf, inf], ...
-                         'contour'  , false      , ...
-                         'numLines' , 10         );
+            % Plot a single well QoI u in current figure.
+            opt = struct('isMean'    , false      , ...
+                         'threshold' , [-inf, inf], ...
+                         'contour'   , false      , ...
+                         'labels'    , true       , ...
+                         'title'     , true       , ...
+                         'numLines'  , 10         , ...
+                         'cellNo'    , 1          , ...
+                         'subCellNo' , 1);
             [opt, extra] = merge_options(opt, varargin{:});
             if iscell(u)
                 cellfun(@(u) qoi.plotQoI(u), u);
@@ -79,7 +116,7 @@ classdef ReservoirStateQoI < BaseQoI
             if isa(ensemble, 'MRSTEnsemble')
                 setup = ensemble.setup;
             elseif isa(ensemble, 'MRSTExample')
-                setup = ensmeble;
+                setup = ensemble;
             else
                 error(['Input ensemble must either be an instance of ', ...
                       'class ''MRSTEnsemble'' or ''MRSTExample'''     ]);
@@ -102,9 +139,34 @@ classdef ReservoirStateQoI < BaseQoI
                 color = [1,1,1]*0.8*(1-opt.isMean); % Plot mean in distinct color
                 contour(x, y, uc, opt.numLines, extra{:}, 'color', color);
             end
+            if opt.title
+                title(sprintf('%s after %d simulation days', qoi.name, qoi.time(opt.cellNo)/day));
+            end
             setup.setAxisProperties(gca);
         end
         
     end
     
+    methods (Access = protected)
+        %-----------------------------------------------------------------%
+        function n = findTimestep(qoi, schedule, time)
+            % Utility function to get the solution index of the requested
+            % simulation time
+            [~, n] = min(abs(cumsum(schedule.step.val) - time));
+        end
+        
+        %-----------------------------------------------------------------%
+        function u = getStateValue(qoi, model, state)
+            % Utility to function to extract the correct field from a given
+            % state object
+            u = model.getProp(state, qoi.name);
+        end
+        
+
+    end
+    
 end
+
+%{
+#COPYRIGHT#
+%}

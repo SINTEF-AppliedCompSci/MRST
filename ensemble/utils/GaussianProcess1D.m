@@ -38,7 +38,9 @@ function res = GaussianProcess1D(N, corr_fun)
 % SEE ALSO:
 % GaussianProcessND - multivariate version of this function
 
-   
+%{
+#COPYRIGHT#
+%}
 
    % Determine size and eigenvalues of the circulant covariance matrix C.  
    lambda = determine_circulant_covariance_matrix_eigenvalues(N, corr_fun);

@@ -37,6 +37,9 @@ function res = GaussianProcessND(N, corr_fun)
 % SEE ALSO:
 % GaussianProcess1D - the one-dimensional version of this function
 
+%{
+#COPYRIGHT#
+%}
 
   % Determine size and eigenvalues of the block-circulant covariance matrix C
   lambda = determine_circular_covariance_matrix_eigenvalues(N, corr_fun);

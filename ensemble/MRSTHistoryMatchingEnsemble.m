@@ -4,15 +4,25 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         
         % Most properties inherited from MRSTEnsemble
         
-        historyMatchingIteration = 1 
+        historyMatchingIteration = 1
+        esmdaIteration = 1
         
+        mainDirectory; 
+        alpha = [1];
+        % Folders are organized as follows:
+        % mainDirectory/historyMatchingIteration/esmdaIteration/<ensemble_data>
         
     end
     
     methods
-        %function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
-        %    ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, varargin{:});
-        %end
+        function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
+            ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, varargin{:});
+            
+            % Update folder structure according to alpha/iteration
+            ensemble.mainDirectory = ensemble.directory;
+            ensemble.directory = ensemble.getIterationPath();
+            
+        end
         
         %-----------------------------------------------------------------%
         function updatedSample = doHistoryMatching(ensemble)
@@ -105,7 +115,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         
         %-----------------------------------------------------------------%
         function [obs, ensembleObs, R] = removeObsoleteObservations(ensemble, obs, ensembleObs, R)
-            
+                
             % Following the removal structure as the old EnKF module.
             
             remove1 = find(max(abs(repmat(obs,1,ensemble.num) - ensembleObs),[],2) < eps);
@@ -125,16 +135,26 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         %-----------------------------------------------------------------%
         function defaultPath = getDefaultPath(ensemble)
             
-            mainFolder = fullfile(mrstOutputDirectory(), 'historyMatching', ensemble.setup.name);
-            if ensemble.deleteOldResults && exist(mainFolder, 'dir')
-                rmdir(mainFolder, 's');
+            defaultPath = fullfile(mrstOutputDirectory(), 'historyMatching', ensemble.setup.name);
+            if ensemble.deleteOldResults && exist(ensemble.mainDirectory, 'dir')
+                rmdir(ensemble.mainDirectory, 's');
             end
-                        
-            defaultPath = fullfile(mrstOutputDirectory(), 'historyMatching', ...
-                ensemble.setup.name, num2str(ensemble.historyMatchingIteration));
+        end
+        
+        %-----------------------------------------------------------------%
+        function iterationDataPath = getIterationPath(ensemble)
+            iterationDataPath = fullfile(ensemble.mainDirectory, ... 
+                                         num2str(ensemble.historyMatchingIteration), ...
+                                         num2str(ensemble.esmdaIteration));
         end
                 
-        
+        %-----------------------------------------------------------------%
+        function reset(ensemble, varargin)
+            reset@MRSTEnsemble(ensemble, varargin{:});
+            
+            % TODO: Check that all subfolders are correctly removed here.
+        end 
     end
 end
+
 

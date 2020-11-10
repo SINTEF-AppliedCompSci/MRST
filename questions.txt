@@ -1,7 +1,0 @@
-Questions/thoughts during implementations
-
-[ ] Should the MRSTEnsemble class be a handle class?
-    This means that we can use setters to avoid unneccessary copying. 
-    Consider, e.g., using the ensemble in history matching and passing a
-    complete new set of stochasticConfigurations.
-

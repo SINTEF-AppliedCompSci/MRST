@@ -1,6 +1,36 @@
 classdef WellSamples < BaseSamples
     % Class that holds an ensemble of sampled well-related properties and
-    % methods to apply such samples to a given problem.
+    % methods to apply such samples to a given problem. 
+    % For use with an MRSTEnsemble.
+    %
+    % DESCRIPTION:
+    %   This class is an extention of `BaseSamples` and is used within a 
+    %   MRSTEnsemble to organize stochastic well properties. These well 
+    %   properties can either be pre-computed or generated on the fly.
+    % 
+    % SYNOPSIS
+    %   samples = WellSamples('data', data);
+    %   samples = WellSamples('generatorFn', generatorFn);
+    %
+    % OPTIONAL PARAMETERS
+    %   'data' - precomputed sample data. Supported formats:
+    %               * Cell array of data samples
+    %               * Instance of ResultHandler class with
+    %                 information about storage location and names. See
+    %                 ResultHandler class for details
+    %
+    %   'generatorFn' - Function for generating a stochastic sample
+    %
+    %   'wells' - Names or indices of wells that the samples should be
+    %             applied to.
+    % 
+    % NOTE:
+    %   Either 'data' or 'generatorFn' must be provided.
+    %   Each sample should consist of a struct with the fields that are
+    %   also found in the typical well schedule struct in MRST.
+    %
+    % SEE ALSO:
+    %   `RockSamples`, `DeckSamples`, `BaseSamples`, `MRSTExample`, `BaseQoI`
     
     properties
         % Inherits properties from BaseSamples only.
@@ -12,8 +42,19 @@ classdef WellSamples < BaseSamples
         
         %-----------------------------------------------------------------%
         function problem = setSample(samples, sampleData, problem)
-            % Returns a new problem that combines the input sampleData with
-            % the input problem.
+            % Applies the sample realization of the well properties to a 
+            % problem.
+            %
+            % SYNOPSIS:
+            %   problem = sample.setSample(sampleData, problem)
+            %
+            % PARAMETERS:
+            %   sampleData - The data for the specific sample realization.
+            %
+            %   problem - The problem which the sampleData will be applied
+            %             to.
+            % RETURNS:
+            %   problem - A problem representing a single ensemble member
             
             % We assume that all parameters in the samplData are found in
             % the well control of the problem
@@ -140,4 +181,3 @@ classdef WellSamples < BaseSamples
         
     end
 end
-
