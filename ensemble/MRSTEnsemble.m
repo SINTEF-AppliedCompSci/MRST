@@ -117,10 +117,9 @@ classdef MRSTEnsemble < handle
                 % Example name given - set up example
                 ensemble.setup = MRSTExample(mrstExample, extra{:});
             end
-            % Set up directory
-            if isempty(ensemble.directory)
-                ensemble.directory = ensemble.getDefaultPath();
-            end
+            
+            ensemble.setUpDirectory();
+            
             % Set samples
             ensemble.samples = samples;
             ensemble.num     = samples.num;
@@ -343,6 +342,16 @@ classdef MRSTEnsemble < handle
     end % methods
     
     methods (Access = protected)
+        
+        %-----------------------------------------------------------------%
+        function setUpDirectory(ensemble)
+            % Set up directory name correctly.
+            % This function is mainly provided so that sub-classes can
+            % define other directory structures.
+            if isempty(ensemble.directory)
+                ensemble.directory = ensemble.getDefaultPath();
+            end
+        end
         
         %-----------------------------------------------------------------%
         function prepareEnsembleSimulation(ensemble)

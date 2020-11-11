@@ -223,7 +223,8 @@ classdef BaseQoI
             
             opt = struct('range'     , inf         , ...
                          'subplots'  , false       , ...
-                         'subplotDir', 'horizontal');
+                         'subplotDir', 'horizontal', ...
+                         'clearFigure', true);
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u]  = qoi.computeMean(opt.range);
             numQoIs      = numel(u_mean);
@@ -264,7 +265,9 @@ classdef BaseQoI
                         h(figureId) = qoi.figure(ensemble);
                     else
                         set(0, 'CurrentFigure', h(figureId));
-                        if ~opt.subplots, clf(h(figureId)); end
+                        if ~opt.subplots && opt.clearFigure
+                            clf(h(figureId));
+                        end
                     end
                     if opt.subplots
                         subplot(nr, nc, i);
@@ -275,6 +278,12 @@ classdef BaseQoI
                     end
                     plotQoI(u_mean, i, k, extra{:});
                     hold off
+                    
+                    % Stack the lines so that the mean(s) come on top
+                    chi = get(gca, 'Children');
+                    numLines = numel(chi);
+                    meansInStack = 1:(ensemble.num+1):numLines;
+                    uistack(chi(meansInStack), 'top');
                 end
             end
         end

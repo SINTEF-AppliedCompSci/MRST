@@ -45,17 +45,22 @@ trueQoI = WellQoI('wellNames', {'P1'}, 'fldname', {'qOs'});
 trueQoI = trueQoI.validateQoI(trueProblem);
 trueObservations = trueQoI.getQoI(trueProblem);
 
-% Define observation uncertainty 
-obsStdDev = 0.0004;
 
 % Create a separate ResultHandler for the observations 
 observationResultHandler = trueQoI.ResultHandler;
 observationResultHandler.dataPrefix = 'observedQoI';
 
+% Define observation uncertainty 
+obsStdDev = 0.0004;
+
 % Add some observation noise and store output
 if numel(observationResultHandler.getValidIds) < 1
-    observations = trueObservations{1} + randn(size(trueObservations{1}))*obsStdDev;
-    observationResultHandler{1} = {observations};
+    for w = 1:numel(trueQoI.wellNames)
+        for f = 1:numel(trueQoI.fldname)
+            perturbedObservations{w}{f} = trueObservations{w}{f} + randn(size(trueObservations{w}{f}))*obsStdDev;
+        end
+    end
+    observationResultHandler{1} = {perturbedObservations};
 end
 
 %% Select and populate samples for the stochastic components in the ensemble
@@ -68,7 +73,7 @@ for i = 1:ensembleSize
     configData{i}.perm = configData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-configData{i}.poro).^2);
 end
 
-samples = RockSamples('data', configData);
+samples = RockSamples('data', configData)
 
 %% Select quantity of interest class matching the what we have as observations
 % We validate the QoI with the trueProblem, since this will be our ensemble
@@ -76,28 +81,28 @@ samples = RockSamples('data', configData);
 
 qoi = WellQoI('wellNames', {'P1'}, 'fldname', {'qOs'}, ...
                   'observationResultHandler', observationResultHandler, ...
-                  'observationCov', obsStdDev^2);
+                  'observationCov', obsStdDev^2)
 
 %% Create the ensemble
 
 ensemble = MRSTHistoryMatchingEnsemble(trueExample, samples, qoi, ... 
     ... %'directory', uniqueDirectory, ...
-    'simulationType', 'parallel', ...
+    'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
     'verbose', true, ...
-    'deleteOldResults', true...
+    'reset', true...
     );
 
 
 %% Displaying the observations and observation error cov through the ensemble
 disp('observation and scaling vector')
-[obsVector, obsScaling] = ensemble.qoi.getObservationAndScaling()
+[obsVector, obsScaling] = ensemble.qoi.getObservationAndScaling();
 disp('observation error covariance matrix')
 ensemble.qoi.getObservationErrorCov()
 
 
 %% Run ensemble
-ensemble.simulateAllEnsembleMembers();
+ensemble.simulateEnsembleMembers();
 
 %% Get simulated observations
 disp('simulated observations')
@@ -114,28 +119,31 @@ updatedSamples = ensemble.doHistoryMatching()
 %% Create a new ensemble with updated samples
 updatedEnsemble = MRSTHistoryMatchingEnsemble(trueExample, updatedSamples, qoi, ... 
     ... %'directory', uniqueDirectory, ...
-    'simulationType', 'parallel', ...
+    'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
     'verbose', true, ...
-    'deleteOldResults', false, ...
+    'reset', false, ...
     'historyMatchingIteration', 2 ...
     );
 
 %% Run new ensemble
-updatedEnsemble.simulateAllEnsembleMembers();
+updatedEnsemble.simulateEnsembleMembers();
 
 %% Plot first ensemble
-ensemble.qoi.plotEnsemble(ensemble);
+h = ensemble.plotQoI('color', [0.1 0.6 0.4]);
 
 %% Plot updated ensemble
-updatedEnsemble.qoi.plotEnsemble(updatedEnsemble);
+updatedEnsemble.plotQoI('h', h, 'color', [0.8 0.2 0], 'clearFigure', false);
+
+%% Plot first ensemble
+ensemble.plotQoI('h', h, 'clearFigure', false, 'color', [0.1 0.6 0.4]);
 
 
 %% Plot diff between the qois
 figure
 hold on
 for i = 1:ensemble.num
-    plot(updatedEnsemble.qoi.ResultHandler{i}{1} - ensemble.qoi.ResultHandler{i}{1})
+    plot(updatedEnsemble.qoi.ResultHandler{i}{1}{1} - ensemble.qoi.ResultHandler{i}{1}{1})
 end
 
 

@@ -15,15 +15,9 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
     end
     
     methods
-        function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
-            ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, varargin{:});
-            
-            % Update folder structure according to alpha/iteration
-            ensemble.mainDirectory = ensemble.directory;
-            ensemble.directory = ensemble.getIterationPath();
-            
-        end
         
+  
+                
         %-----------------------------------------------------------------%
         function updatedSample = doHistoryMatching(ensemble)
             
@@ -136,9 +130,9 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         function defaultPath = getDefaultPath(ensemble)
             
             defaultPath = fullfile(mrstOutputDirectory(), 'historyMatching', ensemble.setup.name);
-            if ensemble.deleteOldResults && exist(ensemble.mainDirectory, 'dir')
-                rmdir(ensemble.mainDirectory, 's');
-            end
+            %if ensemble.reset && exist(ensemble.mainDirectory, 'dir')
+            %    rmdir(ensemble.mainDirectory, 's');
+            %end
         end
         
         %-----------------------------------------------------------------%
@@ -150,10 +144,39 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
                 
         %-----------------------------------------------------------------%
         function reset(ensemble, varargin)
-            reset@MRSTEnsemble(ensemble, varargin{:});
+            % Reset the simulation by simply removing the entire result
+            % folder (and subfolders) for the case (including iterations
+            % and sub-iterations).
             
-            % TODO: Check that all subfolders are correctly removed here.
+            % TODO: Align it with reset@MRSTEnsemble somehow...
+            
+            opt = struct('prompt', true);
+            opt = merge_options(opt, varargin{:});
+            if ~exist(ensemble.mainDirectory, 'dir'), return, end
+            if opt.prompt
+                prompt = sprintf(['Delete all data for %s? y/n [n]: '], ...
+                                              ensemble.setup.name     );
+                if ~strcmpi(input(prompt, 's'), 'y')
+                    fprintf('Ok, will not remove files.\n');
+                    return
+                end
+            end
+            rmdir(ensemble.mainDirectory, 's');
         end 
+    end
+    
+    methods (Access = protected)
+        
+        %-----------------------------------------------------------------%
+       function setUpDirectory(ensemble)
+            % Set up directory name correctly.
+
+            if isempty(ensemble.directory)
+                ensemble.directory = ensemble.getDefaultPath();
+            end
+            ensemble.mainDirectory = ensemble.directory;
+            ensemble.directory = ensemble.getIterationPath();
+       end
     end
 end
 
