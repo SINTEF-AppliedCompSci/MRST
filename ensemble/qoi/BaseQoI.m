@@ -244,14 +244,16 @@ classdef BaseQoI
             if nargin < 3 || isempty(h)
                 if opt.subplots
                     h = nan(numSubQoIs,1);
-                    switch opt.subplotDir
-                        case 'vertical'
-                            nr = numQoIs; nc = 1;
-                        case 'horizontal'
-                            nr = 1; nc = numQoIs;
-                    end
                 else
                     h = nan(numQoIs*numSubQoIs,1);
+                end
+            end
+            if opt.subplots
+                switch opt.subplotDir
+                    case 'vertical'
+                        nr = numQoIs; nc = 1;
+                    case 'horizontal'
+                        nr = 1; nc = numQoIs;
                 end
             end
             for i = 1:numQoIs
