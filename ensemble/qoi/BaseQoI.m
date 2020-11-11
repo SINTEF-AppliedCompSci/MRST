@@ -224,7 +224,9 @@ classdef BaseQoI
             opt = struct('range'     , inf         , ...
                          'subplots'  , false       , ...
                          'subplotDir', 'horizontal', ...
-                         'clearFigure', true);
+                         'clearFigure', true       , ...
+                         'plotObservation', true   , ...
+                         'legend'     , {{}} );
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u]  = qoi.computeMean(opt.range);
             numQoIs      = numel(u_mean);
@@ -278,14 +280,17 @@ classdef BaseQoI
                     for j = 1:numSamples
                         plotQoI(u{j}, i, k, 'isMean', false, extra{:});
                     end
-                    plotQoI(u_mean, i, k, extra{:});
+                    plotQoI(u_mean, i, k, extra{:}, 'tag', 'mean');
+                    
+                    if opt.plotObservation && ~isempty(qoi.observationResultHandler)
+                        obs = qoi.getObservationVector('vectorize', false);
+                        plotQoI(obs, i, k, 'isObservation', true, 'tag', 'obs', extra{:});
+                    end
+                    
                     hold off
                     
                     % Stack the lines so that the mean(s) come on top
-                    chi = get(gca, 'Children');
-                    numLines = numel(chi);
-                    meansInStack = 1:(ensemble.num+1):numLines;
-                    uistack(chi(meansInStack), 'top');
+                    qoi.organizePlots(opt.legend);
                 end
             end
         end
@@ -318,6 +323,40 @@ classdef BaseQoI
             end
         end
         
+        %-----------------------------------------------------------------%
+        function organizePlots(qoi, legendText) %#ok
+            % Ensure that the line representing the mean comes on top, but
+            % still under the observations, if any.
+            lines = get(gca, 'Children');
+            meansID = [];
+            obsID = [];
+            for line=1:numel(lines)
+                if strcmp(lines(line).Tag, 'mean')
+                    meansID = [meansID, line]; 
+                end
+                if strcmp(lines(line).Tag, 'obs')
+                    obsID = [obsID, line];
+                end
+            end
+            uistack(lines(meansID), 'top');
+            if ~isempty(obsID)
+                uistack(lines(obsID), 'top');
+            end
+            
+            % Legend is added as
+            % legend([chi(obsID(1)); chi(meansID)], {'Obs', 'It N', ..., 'It 2', 'It 1'})
+
+            if ~isempty(legendText)
+                if numel(legendText) == numel(meansID)+1 && ~isempty(obsID)
+                    legend([lines(obsID(1)); lines(meansID)], legendText, 'Location', 'Best');
+                elseif numel(legendText) == numel(meansID)
+                    legend(lines(meansID), legendText, 'Location', 'Best');
+                else
+                    warning('mismatch between number of legendText and elements to name');
+                end
+            end    
+        end
+            
         %-----------------------------------------------------------------%
         function h = plotQoIHistogram(qoi, edges, varargin)
             % Plots the distribution of the QoI of the ensemble in the form
@@ -372,7 +411,7 @@ classdef BaseQoI
         end
             
             
-        function u = getObservationVector(qoi)
+        function u = getObservationVector(qoi, varargin)
             % Returns the observation as a single vector. Typically for use
             % in history matching
             error('Template class not meant for direct use!');
