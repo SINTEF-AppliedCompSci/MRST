@@ -18,7 +18,7 @@ directoryTruth = fullfile(mrstOutputDirectory(), ...
                           'historyMatching', 'truth', ...
                           trueProblemName);
                       
-trueExample = MRSTExample(trueProblemName, trueProblemOptions{:});
+trueExample = MRSTExample(trueProblemName);
 trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
 
 plotExample = false;
@@ -41,8 +41,7 @@ end
 trueQoI = WellQoI(...
     'wellNames', {'P1', 'P2'}, ...
     'fldname', {'qOs', 'qWs'}, ...
-    'cumulative', false, ...
-    'numTimesteps', []);
+    'cumulative', false);
 
 trueQoI = trueQoI.validateQoI(trueProblem);
 trueObservations = trueQoI.getQoI(trueProblem);
@@ -56,15 +55,19 @@ observationResultHandler.dataPrefix = 'observedQoI';
 
 % Add some observation noise and store output
 if numel(observationResultHandler.getValidIds) < 1
-    observations = trueObservations{1} + randn(size(trueObservations{1}))*obsStdDev;
-    observationResultHandler{1} = {observations};
+    for w = 1:numel(trueQoI.wellNames)
+        for f = 1:numel(trueQoI.fldname)
+            perturbedObservations{w}{f} = trueObservations{w}{f} + randn(size(trueObservations{w}{f}))*obsStdDev;
+        end
+    end
+    observationResultHandler{1} = {perturbedObservations};
 end
 
 
 
 %% Select and populate samples for stochastic configurations class
 
-ensembleSize = 23;
+ensembleSize = 70;
 
 
 rockData = cell(ensembleSize, 1);
@@ -88,9 +91,9 @@ qoi = WellQoI('wellNames', {'P1', 'P2'}, ...
 %% Create the ensemble
 originalRockEnsemble = MRSTHistoryMatchingEnsemble(trueExample, rockSamples, qoi, ...
     ... %'directory', uniqueDirectory, ...
-    'simulationType', 'parallel', ...
+    'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
-    'deleteOldResults', true, ...
+    'reset', true, ...
     'verbose', true);
 
 %% Displaying the observations and observation error cov through the ensemble
@@ -100,7 +103,7 @@ disp('observation error covariance matrix')
 originalRockEnsemble.qoi.getObservationErrorCov()
 
 %% Run ensemble
-originalRockEnsemble.simulateAllEnsembleMembers();
+originalRockEnsemble.simulateEnsembleMembers();
 
 %% Get simulated observations
 disp('simulated observations')
@@ -118,7 +121,7 @@ updatedRockSamples = originalRockEnsemble.doHistoryMatching()
 %% Create a new ensemble with updated samples
 updatedRockEnsemble = MRSTHistoryMatchingEnsemble(trueExample, updatedRockSamples, qoi, ...
     ... %'directory', uniqueDirectory, ...
-    'simulationType', 'parallel', ...
+    'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
     'historyMatchingIteration', 2 ...
     );
@@ -126,12 +129,13 @@ updatedRockEnsemble = MRSTHistoryMatchingEnsemble(trueExample, updatedRockSample
 
 
 %% Run new ensemble
-updatedRockEnsemble.simulateAllEnsembleMembers();
+updatedRockEnsemble.simulateEnsembleMembers();
 
 %% Plot original and updated ensemble results
-originalRockEnsemble.qoi.plotEnsemble(originalRockEnsemble);
+h = originalRockEnsemble.plotQoI('color', [0 0 1], 'subplots', true);
 
-updatedRockEnsemble.qoi.plotEnsemble(updatedRockEnsemble);
+updatedRockEnsemble.plotQoI('h', h, 'color', [1 0 0], ...
+    'subplots', true, 'clearFigure', false);
 
 %% Investigate change in samples 
 
@@ -146,13 +150,13 @@ updatedWellQoI = updatedRockEnsemble.getEnsembleQoI();
 
 figure
 hold on
-for i = 1:ensemble.num
+for i = 1:originalRockEnsemble.num
     plot(updatedRockParameters(:,i) - originalRockParameters(:,i))
 end
 
 figure
 hold on
-for i = 1:ensemble.num
+for i = 1:originalRockEnsemble.num
     plot(updatedWellQoI(:,i) - originalWellQoI(:,i))
 end
 
@@ -177,13 +181,13 @@ wellSamples = WellSamples('data', wellSampleData);
 %% Define new ensemble
 originalWellEnsemble = MRSTHistoryMatchingEnsemble(trueExample, wellSamples, qoi, ...
     ... %'directory', uniqueDirectory, ...
-    'simulationType', 'parallel', ...
+    'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
-    'deleteOldResults', true, ...
+    'reset', true, ...
     'verbose', true);
 
 %% Simulate
-originalWellEnsemble.simulateAllEnsembleMembers();
+originalWellEnsemble.simulateEnsembleMembers();
 
 %% Do history matching
 updatedWellSamples = originalWellEnsemble.doHistoryMatching()
@@ -191,18 +195,19 @@ updatedWellSamples = originalWellEnsemble.doHistoryMatching()
 %% Create a new ensemble with updated samples
 updatedWellEnsemble = MRSTHistoryMatchingEnsemble(trueExample, updatedWellSamples, qoi, ...
     ... %'directory', uniqueDirectory, ...
-    'simulationType', 'parallel', ...
+    'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
     'historyMatchingIteration', 2 ...
     );
 
 %% Run new ensemble
-updatedWellEnsemble.simulateAllEnsembleMembers();
+updatedWellEnsemble.simulateEnsembleMembers();
 
 %% Plot original and updated ensemble results
-originalWellEnsemble.qoi.plotEnsemble(originalWellEnsemble);
+h = originalWellEnsemble.plotQoI('color', [0 0 1], 'subplots', true);
 
-updatedWellEnsemble.qoi.plotEnsemble(updatedWellEnsemble);
+updatedWellEnsemble.plotQoI('h', h, 'color', [1 0 0], ...
+    'subplots', true, 'clearFigure', false);
 
 %% Investigate change in samples 
 
@@ -216,13 +221,13 @@ updatedWellQoI = updatedWellEnsemble.getEnsembleQoI();
 
 figure
 hold on
-for i = 1:ensemble.num
+for i = 1:originalWellEnsemble.num
     plot(updatedWellParameters(:,i) - originalWellParameters(:,i))
 end
 
 figure
 hold on
-for i = 1:ensemble.num
+for i = 1:originalWellEnsemble.num
     plot(updatedWellQoI(:,i) - originalWellQoI(:,i))
 end
 
@@ -253,13 +258,13 @@ comboSamples = WellRockSamples('data', comboData);
 %% Define new ensemble
 originalComboEnsemble = MRSTHistoryMatchingEnsemble(trueExample, comboSamples, qoi, ...
     ... %'directory', uniqueDirectory, ...
-    'simulationType', 'parallel', ...
+    'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
-    'deleteOldResults', true, ...
+    'reset', true, ...
     'verbose', true);
 
 %% Simulate and plot
-originalComboEnsemble.simulateAllEnsembleMembers();
+originalComboEnsemble.simulateEnsembleMembers();
 
 %% Do history matching
 updatedComboSamples = originalComboEnsemble.doHistoryMatching()
@@ -267,15 +272,16 @@ updatedComboSamples = originalComboEnsemble.doHistoryMatching()
 %% Create a new ensemble with updated samples
 updatedComboEnsemble = MRSTHistoryMatchingEnsemble(trueExample, updatedComboSamples, qoi, ...
     ... %'directory', uniqueDirectory, ...
-    'simulationType', 'parallel', ...
+    'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
     'historyMatchingIteration', 2 ...
     );
 
 %% Run new ensemble
-updatedComboEnsemble.simulateAllEnsembleMembers();
+updatedComboEnsemble.simulateEnsembleMembers();
 
 %% Plot original and updated ensemble results
-originalComboEnsemble.qoi.plotEnsemble(originalComboEnsemble);
+h = originalComboEnsemble.plotQoI('color', [0 0 1], 'subplots', true);
 
-updatedComboEnsemble.qoi.plotEnsemble(updatedComboEnsemble);
+updatedComboEnsemble.plotQoI('h', h, 'color', [1 0 0], ...
+    'subplots', true, 'clearFigure', false);
