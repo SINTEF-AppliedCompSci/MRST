@@ -146,21 +146,6 @@ originalWellQoI = originalRockEnsemble.getEnsembleQoI();
 updatedWellQoI = updatedRockEnsemble.getEnsembleQoI();
 
 
-%% 
-
-figure
-hold on
-for i = 1:originalRockEnsemble.num
-    plot(updatedRockParameters(:,i) - originalRockParameters(:,i))
-end
-
-figure
-hold on
-for i = 1:originalRockEnsemble.num
-    plot(updatedWellQoI(:,i) - originalWellQoI(:,i))
-end
-
-
 
 
 
@@ -216,20 +201,6 @@ updatedWellParameters = updatedWellEnsemble.getEnsembleSamples();
 
 originalWellQoI = originalWellEnsemble.getEnsembleQoI();
 updatedWellQoI = updatedWellEnsemble.getEnsembleQoI();
-
-
-
-figure
-hold on
-for i = 1:originalWellEnsemble.num
-    plot(updatedWellParameters(:,i) - originalWellParameters(:,i))
-end
-
-figure
-hold on
-for i = 1:originalWellEnsemble.num
-    plot(updatedWellQoI(:,i) - originalWellQoI(:,i))
-end
 
 
 
