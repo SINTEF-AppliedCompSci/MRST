@@ -3,7 +3,6 @@ clear;
 clc;
 close all;
 
-mrstModule clear;
 mrstModule add ad-blackoil ad-core ad-props mrst-gui
 
 %% Set up grid
