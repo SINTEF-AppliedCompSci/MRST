@@ -5,21 +5,60 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         % Most properties inherited from MRSTEnsemble
         
         historyMatchingIteration = 1
-        esmdaIteration = 1
+        historyMatchingSubIteration = 1
+        esmdaIterations = 1
         
         mainDirectory; 
         alpha = [1];
         % Folders are organized as follows:
-        % mainDirectory/historyMatchingIteration/esmdaIteration/<ensemble_data>
+        % mainDirectory/historyMatchingIteration/historyMatchingSubIteration/<ensemble_data>
+        
+        qoiArchive = {{}};
         
     end
     
     methods
         
+        %-----------------------------------------------------------------%
+        function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
+            ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, varargin{:});
+            
+            % Check that the history-matching-specific input values make
+            % sense
+            if ensemble.esmdaIterations == 1
+                % esmdaIterations not specified, set it according to alpha
+                ensemble.esmdaIterations = numel(ensemble.alpha);
+            elseif numel(ensemble.alpha) == 1 && ensemble.alpha == 1
+                % alpha not specified, set it according to esmdaIterations
+                ensemble.alpha = ones(1, ensemble.esmdaIterations)*ensemble.esmdaIterations;
+            end
+            assert(ensemble.esmdaIterations == numel(ensemble.alpha), ...
+                'Number of ES-MDA iterations do not match number of alpha values');
+            assert(sum(1./ensemble.alpha) > 0.999 && sum(1./ensemble.alpha) < 1.001, ...
+                '1/alpha does not sum to 1');
+        end
+        
   
                 
         %-----------------------------------------------------------------%
-        function updatedSample = doHistoryMatching(ensemble)
+        function doHistoryMatching(ensemble)
+            
+            for i = 1:ensemble.esmdaIterations
+                if i > 1
+                    ensemble.simulateEnsembleMembers();
+                end
+                
+                if ensemble.verbose, fprintf('Starting history matching iteration (%d, %d)\n', ensemble.historyMatchingIteration, ensemble.historyMatchingSubIteration); end
+                updatedSamples = ensemble.doHistoryMatchingSingle(ensemble.alpha(i));
+                if ensemble.verbose, fprintf('Done history matching iteration (%d, %d)\n', ensemble.historyMatchingIteration, ensemble.historyMatchingSubIteration); end
+                
+                ensemble.updateHistoryMatchingIterations(updatedSamples);
+            end
+        end
+        
+        
+        %-----------------------------------------------------------------%
+        function updatedSample = doHistoryMatchingSingle(ensemble, alpha)
             
             % Get observations, obs error cov, and scaling factors
             [obs, scaling] = ensemble.qoi.getObservationAndScaling();
@@ -27,18 +66,53 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             R = ensemble.qoi.getObservationErrorCov();
             
             [obs, ensembleObs, R] = ensemble.applyScaling(obs, ensembleObs, R, scaling);
-            [obs, ensembleObs, R] = ensemble.removeObsoleteObservations(obs, ensembleObs, R);
+            [obs, ensembleObs, alphaR] = ensemble.removeObsoleteObservations(obs, ensembleObs, alpha*R);
             
-            ensembleObs = ensemble.perturbEnsembleQoI(ensembleObs, R);
+            ensembleObs = ensemble.perturbEnsembleQoI(ensembleObs, alphaR);
             
             ensembleParameters = ensemble.getEnsembleSamples();
             
-            analysisParameters = ensemble.enkf(ensembleParameters, obs, ensembleObs, R);
+            analysisParameters = ensemble.enkf(ensembleParameters, obs, ensembleObs, alphaR);
             
             updatedSample = ensemble.samples.setSampleVectors(analysisParameters);            
         end
 
-        
+        %-----------------------------------------------------------------%
+        function updateHistoryMatchingIterations(ensemble, updatedSamples)
+            % This function is called after we have update the ensemble 
+            
+            ensemble.samples = updatedSamples;
+            
+            % Store QoI
+            ensemble.qoiArchive{ensemble.historyMatchingIteration}{ensemble.historyMatchingSubIteration} = ensemble.qoi;
+            
+            if ensemble.historyMatchingSubIteration == ensemble.esmdaIterations
+                ensemble.historyMatchingIteration = ensemble.historyMatchingIteration + 1;
+                ensemble.historyMatchingSubIteration = 1;
+            else
+                ensemble.historyMatchingSubIteration = ensemble.historyMatchingSubIteration + 1;
+            end
+            
+            ensemble.directory = ensemble.getIterationPath();
+            
+            % Clear the QoI result handler so that it can be recreated
+            % pointing to the new result directory
+            ensemble.qoi.ResultHandler = []; 
+            baseProblem = ensemble.getBaseProblem();
+            ensemble.qoi = ensemble.qoi.validateQoI(baseProblem);
+            
+            ensemble.prepareEnsembleSimulation('force', true);
+            
+            %if numel(ensemble.spmdEnsemble) > 0 && strcmp(ensemble.simulationStrategy, 'parallel')
+            %    % Call recursively on spmdEnsembles (if any)
+            %    spmdEns = ensemble.spmdEnsemble;
+            %    spmd
+            %        spmdEns.updateHistoryMatchingIterations(updatedSamples);
+            %    end
+            %end
+        end
+
+        %-----------------------------------------------------------------%
         function xF = enkf(ensemble, xF, obs, obsE, R)
            
             % Mixing the notation of the old EnKF module and the review
@@ -60,6 +134,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         end
         
         
+        %-----------------------------------------------------------------%
         function ensembleQoI = getEnsembleQoI(ensemble)
             
             % Check that all ensemble members are computed
@@ -77,6 +152,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             end
         end
         
+        %-----------------------------------------------------------------%
         function ensembleQoI = perturbEnsembleQoI(ensemble, ensembleQoI, R)
             % Add unbiased observation error across the ensemle according
             % to the observation error covariance 
@@ -139,7 +215,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         function iterationDataPath = getIterationPath(ensemble)
             iterationDataPath = fullfile(ensemble.mainDirectory, ... 
                                          num2str(ensemble.historyMatchingIteration), ...
-                                         num2str(ensemble.esmdaIteration));
+                                         num2str(ensemble.historyMatchingSubIteration));
         end
                 
         %-----------------------------------------------------------------%

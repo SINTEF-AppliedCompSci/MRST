@@ -354,11 +354,14 @@ classdef MRSTEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        function prepareEnsembleSimulation(ensemble)
+        function prepareEnsembleSimulation(ensemble, varargin)
             % INTERNAL
             % Set parameters related to possible parallel execution scheme
             % for simulating the ensemble members. 
             % Called by the constructor.
+            
+            opt = struct('force', false);
+            opt = merge_options(opt, varargin{:});
             
             if strcmpi(ensemble.simulationStrategy, 'serial')
                 warning(['Serial ensemble simulations will take a '     , ...
@@ -394,7 +397,7 @@ classdef MRSTEnsemble < handle
                         parpool(ensemble.maxWorkers);
                     end
                     
-                    if ~all(exist(ensemble.spmdEnsemble)) %#ok
+                    if ~all(exist(ensemble.spmdEnsemble)) || opt.force %#ok
                         % Communicate ensemble to all workers
                         spmd
                             spmdEns = ensemble;
@@ -404,7 +407,7 @@ classdef MRSTEnsemble < handle
                 case 'background'
                     % Run simulations in background sessions
                     fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
-                    if ~exist(fn, 'file')
+                    if ~exist(fn, 'file') || opt.force
                         save(fn, 'ensemble');
                     end
             end
