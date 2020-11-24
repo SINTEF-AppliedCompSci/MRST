@@ -1,10 +1,30 @@
 function output = mandelrun(params)
+%Undocumented Utility Function
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     
     mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui mpsaw mpfa
 
     output.params = params;
     
-    %% Setup grid
+    % Setup grid
 
     % discretization parameters
     nx = params.nx;
@@ -80,7 +100,7 @@ function output = mandelrun(params)
     % reference pressure on the side
     pref = 0*barsa;
 
-    %% setup mechanics mech structure (with field prop and loadstruct)
+    % setup mechanics mech structure (with field prop and loadstruct)
 
     lambda = lambda*ones(G.cells.num, 1);
     mu = mu*ones(G.cells.num, 1);
@@ -130,7 +150,7 @@ function output = mandelrun(params)
     mech.prop = mechprop;
     mech.loadstruct = loadstruct;
 
-    %% Setup flow parameters (with field c and bcstruct)
+    % Setup flow parameters (with field c and bcstruct)
 
     fluid.c = cW;
     fluid.src = [];
@@ -163,12 +183,12 @@ function output = mandelrun(params)
 
     fluid.bcstruct = bcstruct;
 
-    %% Setup Biot model
+    % Setup Biot model
 
     model = MandelModel(G, rock, fluid, mech, topfaces);
     model = model.validateModel();
 
-    %% Setup schedule
+    % Setup schedule
 
     dt = rampupTimesteps(totime, dt, rampup);
     dtinit = 1; % length of initial phase (when top force is equal to zero). This phase is necessary for proper initialization
@@ -180,14 +200,14 @@ function output = mandelrun(params)
     t = diff([0; tt]);
     schedule.step.val = t;
 
-    %%
+    %
 
     schedule.step.control = 2*ones(numel(schedule.step.val), 1);
     schedule.step.control(1) = 1;
     schedule.control(1) = struct('W', [], 'avgtopforce', 0);
     schedule.control(2) = struct('W', [], 'avgtopforce', top_force);
 
-    %% Setup initial state
+    % Setup initial state
     clear initState;
     % fluid
     initState.pressure = zeros(G.cells.num, 1);
@@ -217,5 +237,4 @@ function output = mandelrun(params)
     end
 
     output.pressures = pressures;
-    
 end

@@ -1,11 +1,30 @@
 function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opts)
-%% Assembly of MPSA-weak
-%%
-%% Reference paper:
-%% Finite volume methods for elasticity with weak symmetry
-%% Keilegavlen, Eirik and Nordbotten, Jan Martin
-%% International Journal for Numerical Methods in Engineering
-%% 2017
+% Assembly of MPSA-weak
+%
+% Reference paper:
+% Finite volume methods for elasticity with weak symmetry
+% Keilegavlen, Eirik and Nordbotten, Jan Martin
+% International Journal for Numerical Methods in Engineering
+% 2017
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     % the solution is given by the system
     %
@@ -73,11 +92,11 @@ function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, t
         
     dim = coltbl.num;
     
-    %% Construction of tensor g (as defined in paper eq 4.1.2)
+    % Construction of tensor g (as defined in paper eq 4.1.2)
     
     g = computeConsistentGradient(G, eta, tbls, mappings, 'bcetazero', bcetazero);
     
-    %% Construction of the gradient operator
+    % Construction of the gradient operator
     %
 
     % Construction of gradnodeface_op : nodefacecoltbl -> cellnodecolrowtbl
@@ -144,7 +163,7 @@ function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, t
     gradcell_T = SparseTensor('matlabsparse', true);
     gradcell_T = gradcell_T.setFromTensorProd(greduced, prod);
 
-    %% Construction of the divergence operator
+    % Construction of the divergence operator
     %
     % setup the facet normals
 
@@ -219,8 +238,8 @@ function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, t
     divcell_T = SparseTensor('matlabsparse', true);
     divcell_T = divcell_T.setFromTensorProd(dreduced, prod);
 
-    %% Construction of transpose operator for matrices at nodes (that are
-    %% elements of nodecolrowtbl)
+    % Construction of transpose operator for matrices at nodes (that are
+    % elements of nodecolrowtbl)
     %
     %  trans_T: nodecolrowtbl -> nodecolrowtbl
 
@@ -259,7 +278,7 @@ function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, t
     trans_T = SparseTensor('matlabsparse', true);
     trans_T = trans_T.setFromTensorProd(ones(symcol2row2tbl.num, 1), prod);
 
-    %% Construction of nodal average for cellnode tensor
+    % Construction of nodal average for cellnode tensor
     %
     % transnodeaverage_T : cellnodecolrowtbl -> nodecolrowtbl
     %
@@ -342,7 +361,7 @@ function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, t
 
     transnodeaverage_T = celldispatch_T*transnodeaverage_T;
 
-    %% We need to multiply by 2 at the place where we discarded the symmetry requirement
+    % We need to multiply by 2 at the place where we discarded the symmetry requirement
 
     coef = ones(nodetbl.num, 1);
     coef(fixnodetbl.get('nodes')) = 2;
@@ -378,7 +397,7 @@ function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, t
     bcfix_T = SparseTensor('matlabsparse', true);
     bcfix_T = bcfix_T.setFromTensorProd(coef, prod);
 
-    %% Construction of the stiffness operator
+    % Construction of the stiffness operator
     %
     % C_T : cellnodecolrowtbl -> cellnodecolrowtbl
     %
@@ -419,7 +438,7 @@ function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, t
     C_T = SparseTensor('matlabsparse', true);
     C_T = C_T.setFromTensorProd(C, prod);
 
-    %% Assembly
+    % Assembly
 
     Cgradnodeface_T = bcfix_T*C_T*gradnodeface_T;
     transaverCgradnodeface_T = transnodeaverage_T*Cgradnodeface_T;
@@ -449,10 +468,10 @@ function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, t
     bi = blockInverter(opt);
     invA11 = bi(A11, sz);
 
-    %% Matrix for boundary conditions
+    % Matrix for boundary conditions
     [D, bcvals] = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls);
     
-    %%
+    %
     % The divergence operator (integrated over the volume)
     % is given by 
     %

@@ -1,7 +1,5 @@
 %% Verruijt
 
-clear all
-
 N = 20;
 dx = N/1000;
 x = (0 : dx : N)';

@@ -1,5 +1,25 @@
 function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, globmappings, varargin)
-    
+%Undocumented Utility Function
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('verbose'         , mrstVerbose, ...
                  'assemblyMatrices', false, ...
                  'addAdOperators'  , false, ...
@@ -183,8 +203,7 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
     
     
     for iblock = 1 : nblocks
-
-        %% Construction of tensor g (as defined in paper eq 4.1.2)
+        % Construction of tensor g (as defined in paper eq 4.1.2)
         nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
 
         clear nodetbl;
@@ -254,7 +273,7 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         K = map.eval(globK);
 
 
-        %% Assembly mechanical part
+        % Assembly mechanical part
         
         % We collect the degrees of freedom in the current block that belongs to the boundary.
         mechbcnodefacetbl = crossIndexArray(globmechbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
@@ -365,7 +384,7 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         end
 
 
-        %% Assemble coupling terms (finite volume and consistent divergence operators)
+        % Assemble coupling terms (finite volume and consistent divergence operators)
         
         map = TensorMap();
         map.fromTbl = globcelltbl;
@@ -436,8 +455,8 @@ function assembly = blockAssembleBiot(G, props, drivingforces, eta, globtbls, gl
         fullrhs{5} = mechbcvals;
         fullrhs{6} = fluidbcvals;
 
-        %% We proceed with the local reduction
-        
+        % We proceed with the local reduction
+        %
         %          | locB{1}{1}  locB{1}{2}  locB{1}{3}             |
         %  locB =  | locB{2}{1}  locB{2}{2}  locB{2}{3}  locB{2}{4} |
         %          | locB{3}{1}  locB{3}{2}  locB{3}{3}             |

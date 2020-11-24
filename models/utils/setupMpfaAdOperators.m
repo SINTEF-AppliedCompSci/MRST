@@ -1,35 +1,53 @@
 function operators = setupMpfaAdOperators(model)    
-    
-    %% We setup the usual operators and the mpfa flux operator
-    %
-    % we set up the mappings
-    %
-    %   F1 : nodefacetbl -> intfacetbl 
-    %   F2 : celltbl -> intfacetbl
-    %
-    %  such that the flux u in intfacetbl (interior faces) is given by
-    %
-    %  u  = [F1  F2] * [ pnf (pressure at nodefacetbl);
-    %                    pc  (pressure at celltbl)];
-    %
-    %  Then, we proceed with the reduction to remove dependency in pnf (pressure at nodefacetbl)
-    %
-    
+% We setup the usual operators and the mpfa flux operator
+%
+% we set up the mappings
+%
+%   F1 : nodefacetbl -> intfacetbl
+%   F2 : celltbl -> intfacetbl
+%
+%  such that the flux u in intfacetbl (interior faces) is given by
+%
+%  u  = [F1  F2] * [ pnf (pressure at nodefacetbl);
+%                    pc  (pressure at celltbl)];
+%
+%  Then, we proceed with the reduction to remove dependency in pnf
+%  (pressure at nodefacetbl)
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     G         = model.G;
     rock      = model.rock;
     eta       = model.eta;
     bcetazero = model.bcetazero;
-    
+
     perm = rock.perm;
-    
+
     assert(numel(perm) == G.cells.num, 'only isotropic perm for the moment');
-    
+
     [tbls, mappings] = setupStandardTables(G, 'useVirtual', false);
 
     celltbl = tbls.celltbl;
     colrowtbl = tbls.colrowtbl;
     cellcolrowtbl = tbls.cellcolrowtbl;%
-    
+
     prod = TensorProd();
     prod.tbl1 = colrowtbl;
     prod.tbl2 = celltbl;
@@ -40,11 +58,9 @@ function operators = setupMpfaAdOperators(model)
     src = []; % no source at this stage
     bcstruct.bcdirichlet = []; % no Dirichlet
     bcstruct.bcneumann = []; % zero neumann bc
-    
+
     assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'addAdOperators', true);
-    
+
     operators = setupOperatorsTPFA(G, rock);
     operators.fluxop = assembly.adoperators.fluxop;
-    
 end
-

@@ -1,4 +1,24 @@
 function [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts)
+%Undocumented Utility Function
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     
     bcetazero = opts.bcetazero;
     eta = opts.eta;
@@ -88,7 +108,7 @@ function [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, m
     nKg = prod.eval(normals, Kg);
     
     
-    %% Setup A11 matrix (facenode dof -> facenode dof)
+    % Setup A11 matrix (facenode dof -> facenode dof)
     
     map = TensorMap();
     map.fromTbl = cellnodeface2tbl;
@@ -128,7 +148,7 @@ function [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, m
     invA11 = bi(A11, sz);
 
     
-    %% Setup A12 matrix (cell dof -> facenode dof)    
+    % Setup A12 matrix (cell dof -> facenode dof)
    
     map = TensorMap();
     map.fromTbl = cellnodeface2tbl;
@@ -172,9 +192,8 @@ function [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, m
     A12 = A12_T.getMatrix();
 
     
-    %% Setup A21 matrix (facenode dof -> cell dof)    
-    
-   
+    % Setup A21 matrix (facenode dof -> cell dof)
+
     map = TensorMap();
     map.fromTbl = cellnodeface2tbl;
     map.toTbl = cellnodefacetbl;
@@ -216,8 +235,8 @@ function [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, m
     A21 = A21_T.getMatrix();
     
     
-    %% Setup A22 matrix (cell dof -> cell dof)    
-   
+    % Setup A22 matrix (cell dof -> cell dof)
+
     map = TensorMap();
     map.fromTbl = cellnodeface2tbl;
     map.toTbl = celltbl;

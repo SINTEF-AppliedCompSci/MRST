@@ -1,12 +1,30 @@
 function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globmappings, varargin)
-    
-%% Assembly of MPSA-weak
-%%
-%% Reference paper:
-%% Finite volume methods for elasticity with weak symmetry
-%% Keilegavlen, Eirik and Nordbotten, Jan Martin
-%% International Journal for Numerical Methods in Engineering
-%% 2017
+% Assembly of MPSA-weak
+%
+% Reference paper:
+% Finite volume methods for elasticity with weak symmetry
+% Keilegavlen, Eirik and Nordbotten, Jan Martin
+% International Journal for Numerical Methods in Engineering
+% 2017
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     opt = struct('verbose'    , mrstVerbose, ...
                  'blocksize'  , []         , ...
@@ -79,8 +97,7 @@ function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globma
     nnodesperface = map.eval(ones(globnodefacetbl.num, 1));
 
     for iblock = 1 : nblocks
-
-        %% Construction of tensor g (as defined in paper eq 4.1.2)
+        % Construction of tensor g (as defined in paper eq 4.1.2)
         nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
 
         clear nodetbl;

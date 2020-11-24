@@ -1,13 +1,12 @@
 %% Linear pressure test
 %
 %
-% The MPFA method is exact for linear pressure field. We impose boundary condition such that the exact solution is linear. The
-% grid is a twisted grid made from a Cartesian grid.
-
+% The MPFA method is exact for linear pressure field. We impose boundary
+% condition such that the exact solution is linear. The grid is a twisted
+% grid made from a Cartesian grid.
 
 mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing mpsaw
 
-clear all
 close all
 
 dimcase = 2;
@@ -105,3 +104,31 @@ plot(z, p);
 xlabel('z');
 ylabel('pressure');
 title('linear test');
+
+%% Copyright Notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

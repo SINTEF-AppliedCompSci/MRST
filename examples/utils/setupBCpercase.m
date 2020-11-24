@@ -1,5 +1,24 @@
 function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
-%% Boundary conditions
+% Boundary conditions
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     % One linear form per Dirichlet condition
 
@@ -34,25 +53,23 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
     switch runcase
         
       case {'2d-refinement', '2d-linear', '2d-compaction'}
-        
         extfaces{1} = find(G.faces.centroids(:, 2) == 0);
         n = numel(extfaces{1});
         linforms{1} = repmat([0, 1], n, 1);
         linformvals{1} = zeros(n, 1);
-        
+
         switch runcase
-            
           case {'2d-linear', '2d-refinement'}
             extfaces{2} = find(G.faces.centroids(:, 1) == 0);
             n = numel(extfaces{2});
             linforms{2} = repmat([1, 0], n, 1);
             linformvals{2} = zeros(n, 1);
-            
+
           case '2d-compaction'
             extfaces{2} = extfaces{1};
             linforms{2} = repmat([1, 0], n, 1);
             linformvals{2} = zeros(n, 1);
-            
+
           otherwise
             error('runcase not recognized');
         end
@@ -88,10 +105,10 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
         [~, fdind] = ismember(fds, cellnodefacecoltbl.fdnames);
         extcellnodefacemat = cellnodefacecoltbl.inds(:, fdind);
         extcellnodefacemat = extcellnodefacemat(ind, 1 : 3);
-        
+
         extcellnodefacetbl = IndexArray([]);
         extcellnodefacetbl = extcellnodefacetbl.setup(fds, extcellnodefacemat);
-        
+
         extnodeface_from_extcellnodeface = w(ind);
         cellnodeface_from_extcellnodeface = ind;
 
@@ -139,9 +156,8 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
             force = tblmap(force, coltbl, sourcetbl, {'coldim'});
             force = tblmap(force, sourcetbl, cellcoltbl, {'cells', 'coldim'});
         end
-      
+
       case {'3d-linear', '3d-compaction'}
-        
         switch runcase
           case '3d-linear'
             for i = 1 : 3
@@ -177,7 +193,7 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
                 linformvals{i} = zeros(n, 1); 
             end
         end
-            
+
         % Setup force at top, in opposite normal direction
         y = G.faces.centroids(:, 3);
         ymax = max(y);
@@ -193,10 +209,10 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
         map.fromTbl  = cellnodefacecoltbl;
         map.toTbl    = extnodefacecoltbl;
         map.mergefds = {'faces', 'nodes', 'coldim'};
-        
+
         map = map.setup();
         extFacetNormals = map.eval(facetNormals);
-        
+
         map = TensorMap();
         map.fromTbl = extnodefacecoltbl;
         map.toTbl = nodefacecoltbl;
@@ -204,22 +220,18 @@ function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
 
         map = map.setup();
         extforce = map.eval(-extFacetNormals);
-      
+
       otherwise
         error('runcase not recognized');
-        
     end
 
     bc.extfaces    = vertcat(extfaces{:});
     bc.linform     = vertcat(linforms{:});
     bc.linformvals = vertcat(linformvals{:});
-    
+
     bc = setupFaceBC(bc, G, tbls);
-    
+
     loadstruct.bc = bc;
     loadstruct.extforce = extforce;
     loadstruct.force = force;
-    
 end
-
-
