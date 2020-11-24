@@ -55,11 +55,6 @@ classdef TwoPhaseWaterGasModel < ThreePhaseBlackOilModel
            state.sGmax = max(0,state.sGmax);
         end
         
-        % ----------------------------------------------------------------------------
-        function rhoS = getSurfaceDensities(model)
-           rhoS = [model.fluid.rhoWS, model.fluid.rhoGS];
-        end
-        
         % --------------------------------------------------------------------%
         function scaling = getScalingFactorsCPR(model, problem, names, solver)
             % Get approximate, impes-like pressure scaling factors
