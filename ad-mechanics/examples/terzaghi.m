@@ -1,4 +1,4 @@
-f%% Purpose of this script
+%% Purpose of this script
 % This script is the accompanying software for the first and second examples
 % discussed in Chapter 14, "A Brief Introduction to Poroelasticity and
 % Simulation of Coupled Geomechanics and Flow in MRST", of the book "Advanced
