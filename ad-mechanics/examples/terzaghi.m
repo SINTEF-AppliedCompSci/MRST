@@ -1,4 +1,4 @@
-%% Purpose of this script
+f%% Purpose of this script
 % This script is the accompanying software for the first and second examples
 % discussed in Chapter 14, "A Brief Introduction to Poroelasticity and
 % Simulation of Coupled Geomechanics and Flow in MRST", of the book "Advanced
@@ -8,8 +8,6 @@
 %
 % Terzaghi K. (1925) Erdbaumechanik auf Bodenphysikalischer Grundlage, Deuticke:
 % Leipzig
-%
-
 
 %% Load necessary modules
 mrstModule add vemmech
@@ -268,3 +266,31 @@ rel_err = (w_0 - w_0_theoretical)/w_0;
 fprintf('Expected init. displacement: %1.5f m.\n', w_0_theoretical)
 fprintf('Measured displacement: %1.5f m\n', w_0);
 fprintf('Relative error: %1.2e\n', rel_err);
+
+%% Copyright Notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
