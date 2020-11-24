@@ -193,7 +193,9 @@ classdef TensorMap
         end
         
         function inds = getDispatchInd(map)
-        % Compute dispatching indices
+        % Compute dispatching indices: For an index i in map.toTbl gives the index number in map.fromTbl that will be sent to i
+        % by the mapping map
+            
             map = map.setup();
             
             ind1 = map.dispind1;
