@@ -25,7 +25,11 @@ function fix = getFacesCloseToSegment(G, seg, varargin)
 %
 % 'faceIx'  : consider only subset of grids faces (default all)
 % 'fac'     : "Closeness"-factor. Default is 2/3 which is sufficient to 
-%             gurantee that output includes all faces intersected by segment  
+%             gurantee that output includes all faces intersected by segment 
+% 'projVec' : project points to a plane orthogonal to projVec. E.g., if
+%             projVec = [0 0 1], fix will be faces that are 'close' to seg
+%             in the xy-plane (disrgarding the z-coordinate). Default:
+%             empty. 
 %
 % RETURNS
 %  fix      : resulting index of grid faces 
@@ -52,21 +56,28 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-opt = struct('faceIx',      [], ...
-             'fac',        2/3, ...
-             'tol',  sqrt(eps), ...
-             'subsets',     []);
+opt = struct('faceIx',          [], ...
+             'fac',            2/3, ...
+             'tol',      sqrt(eps), ...
+             'projVec',         [], ...
+             'radius',        inf);
 
 opt = merge_options(opt, varargin{:});
 tol = opt.tol;
 
-[dims, faceIx] = deal(':');
-
-if size(seg,2) < 3
-    dims = 1:2;
+if size(G.nodes.coords,2) == 3 && size(seg, 2) == 2
+    seg(:,3) = 0;
 end
+
+%[dims, faceIx] = deal(':');
+
+%if size(seg,2) < 3
+%    dims = 1:2;
+%end
 if ~isempty(opt.faceIx)
     faceIx = opt.faceIx;
+else
+    faceIx = ':';
 end
 
 if ~isfield(G.faces, 'bbox')
@@ -74,8 +85,33 @@ if ~isfield(G.faces, 'bbox')
     G = addBoundingBoxFields(G);
 end
 
-bbox = G.faces.bbox(faceIx, dims);
-cent = G.faces.centroids(faceIx, dims);
+% deal with projections
+isProj = ~isempty(opt.projVec);
+if isProj
+    pv = opt.projVec;
+    % check if pv is canonical direction, and if so reduce to 2D for slight
+    % performance improvement
+    [pv, dims] = checkCanonical(pv);
+    if ~isempty(dims)
+        bbox = G.faces.bbox(faceIx, dims);
+        cent = G.faces.centroids(faceIx, dims);
+        seg  = seg(:, dims);
+    else % non-canonical direction
+        pv = pv(:);
+        pv = pv/norm(pv);
+        bbox = G.faces.bbox(faceIx,:);
+        % might be rotation so account for 'worst case'
+        %bbox = sqrt(3)*abs(bbox -(bbox*pv)*pv');
+        % Think through this, commented out line not fully robust 
+        bbox = sqrt(3)*bbox;
+        cent = G.faces.centroids(faceIx, :);
+        cent = cent - (cent*pv)*pv';
+        seg  = seg  - (seg*pv)*pv';
+    end
+else
+    bbox = G.faces.bbox(faceIx, :);
+    cent = G.faces.centroids(faceIx, :);
+end
 
 
 % if more than one segment, find a line of best fit
@@ -102,7 +138,7 @@ v    = diff(seg);
 
 % all centroids relative to p1
 m  = bsxfun(@minus, cent, p1);
-% t-values for projections to line t*v 
+% t-values for projections to line p1 + t*v 
 t  = (m*v')/(v*v');
 % extra length due to 2/3*bbox
 
@@ -137,5 +173,20 @@ if ischar(faceIx)
     fix = ix;
 else
     fix = faceIx(ix);
+end
+end
+
+function [pv, dims] = checkCanonical(pv)
+dims = [];
+ix   = abs(pv) > 0;
+if nnz(ix) == 1
+    switch find(ix)
+            case 1
+                dims = [2,3];
+            case 2
+                dims = [1,3];
+            case 3
+                dims = [1,2];
+    end
 end
 end
