@@ -15,14 +15,18 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         
         qoiArchive = {{}};
         
+        originalSchedule
+        
     end
     
     methods
         
         %-----------------------------------------------------------------%
-        function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
-            ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, varargin{:});
-            
+        %function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
+        % 
+        %    ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, varargin{:});
+        
+        function midConstructor(ensemble)
             % Check that the history-matching-specific input values make
             % sense
             if ensemble.esmdaIterations == 1
@@ -36,6 +40,8 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
                 'Number of ES-MDA iterations do not match number of alpha values');
             assert(sum(1./ensemble.alpha) > 0.999 && sum(1./ensemble.alpha) < 1.001, ...
                 '1/alpha does not sum to 1');
+            
+            ensemble.originalSchedule = ensemble.setup.schedule;
         end
         
   
@@ -203,6 +209,18 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         end
         
         %-----------------------------------------------------------------%
+        function updateHistoryMatchingInterval(ensemble, historyMatchDtRange)
+            % takes a range of step 
+            ensemble.qoi.historyMatchDtRange = historyMatchDtRange;
+            ensemble.qoi.dt = ensemble.originalSchedule.step.val(1:historyMatchDtRange(end));
+            
+            ensemble.setup.schedule.step.val = ensemble.originalSchedule.step.val(1:historyMatchDtRange(end));
+            ensemble.setup.schedule.step.control = ensemble.originalSchedule.step.control(1:historyMatchDtRange(end));
+
+            ensemble.prepareEnsembleSimulation('force', true);
+        end
+        
+        %-----------------------------------------------------------------%
         function defaultPath = getDefaultPath(ensemble)
             
             defaultPath = fullfile(mrstOutputDirectory(), 'historyMatching', ensemble.setup.name);
@@ -238,8 +256,49 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
                 end
             end
             rmdir(ensemble.mainDirectory, 's');
-        end 
-    end
+        end     
+    
+        %-----------------------------------------------------------------%
+        function h = plotQoI(ensemble, varargin)
+            % Creates plot(s) of the quantity of interest for all simulated
+            % ensemble members
+            %
+            % SYNOPSIS:
+            %   h = ensemble.plotQoI();
+            %
+            % OPTIONAL PARAMETERS:
+            %   'h' - Figure handle 
+            opt = struct('h', [], ...
+                         'color', [], ... % color input will for now be ignored
+                         'subIterations', false, ... 
+                         'iterations', true, ...
+                         'plotObservation', true);
+            [opt, extra] = merge_options(opt, varargin{:});
+            
+            cmap = tatarizeMap();
+            ci = 1;
+            
+            h = opt.h;
+            if opt.iterations
+                for i = 1:numel(ensemble.qoiArchive)
+                    for j = 1:ensemble.esmdaIterations 
+                        if opt.subIterations || j == ensemble.esmdaIterations 
+                            h = ensemble.qoiArchive{i}{j}.plotEnsembleQoI(ensemble, h, ...
+                                                                          'color', cmap(ci, :), ...
+                                                                          'plotObservation', false, ...
+                                                                          extra{:});
+                            ci = ci + 1;
+                        end
+                    end
+                end
+            end
+            h = ensemble.qoi.plotEnsembleQoI(ensemble, h, ...
+                                             'color', cmap(ci, :), ...
+                                             'plotObservation', opt.plotObservation, ...
+                                             extra{:});
+        end
+    
+    end % public methods
     
     methods (Access = protected)
         

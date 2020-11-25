@@ -130,10 +130,23 @@ classdef MRSTEnsemble < handle
             if opt.reset
                 ensemble.reset('prompt', false);
             end
+            
+            ensemble.midConstructor();
+            
             % Prepare ensemble
             ensemble.prepareEnsembleSimulation();
         end
-               
+        
+        %-----------------------------------------------------------------%
+        function midConstructor(ensemble) %#ok
+            % This function is called from the constructor and can be used
+            % by sub-classes to implement sub-class specific functionality
+            % in the constructor (i.e., after merging the input varargin,
+            % but before calling prepareEnsembleSimulation() ).
+            
+            % Intentionally empty for MRSTEnsemble        
+        end
+        
         %-----------------------------------------------------------------%
         function reset(ensemble, varargin)
             % Deletes any old results so that we can start the ensemble
@@ -321,7 +334,7 @@ classdef MRSTEnsemble < handle
                if ensemble.verbose
                    progress = floor(100*(i-1)/numel(range));
                    fprintf('(%d%%)\tSimulating ensemble member %d among ensemble members %d to %d...\n', ...
-                           progress, seed, range(1), range(end))                    
+                           progress, seed, range(1), range(end))     
                end
                
                % Run simulation

@@ -45,7 +45,7 @@ classdef WellQoI < BaseQoI
         
 
         dt % Timestep sizes
-        % TODO: Property timestep is removed
+        
     end
     
     methods
@@ -146,11 +146,15 @@ classdef WellQoI < BaseQoI
                 uMatrix = sum(uMatrix, 2);
             end
             
-            % If we have a time series and the problem was simulated with
-            % different timesteps than the base problem, interpolate well
-            % output onto base problem timesteps
-            if numel(qoi.dt) ~= numel(dtProblem) && ~qoi.total
-                uMatrix = qoi.interpolateWellOutput(dtProblem, uMatrix);
+            % Note: WellOutput interpolation is not done if the QoI is used
+            % for historyMatching
+            if numel(qoi.dt) == numel(qoi.historyMatchDtRange)
+                % If we have a time series and the problem was simulated with
+                % different timesteps than the base problem, interpolate well
+                % output onto base problem timesteps
+                if numel(qoi.dt) ~= numel(dtProblem) && ~qoi.total
+                    uMatrix = qoi.interpolateWellOutput(dtProblem, uMatrix);
+                end
             end
             
             % Organizing u as a cell array per well of cell array per field
@@ -184,7 +188,8 @@ classdef WellQoI < BaseQoI
                          'title'         , true   , ...
                          'cellNo'        , 1      , ...
                          'subCellNo'     , 1      , ...
-                         'isObservation' , false);
+                         'isObservation' , false  , ...
+                         'observationIndices', [] );
             [opt, extra] = merge_options(opt, varargin{:});
             
             color = opt.color; % Plot mean in distinct color
@@ -198,11 +203,19 @@ classdef WellQoI < BaseQoI
                 
                 time = cumsum(qoi.dt)./opt.timescale;
                 if opt.isObservation
-                    plot(time(qoi.historyMatchDtRange), u, 'x', 'color', [0 0 0], extra{:});
+                    if isempty(opt.observationIndices)
+                        plot(time, u, 'x', 'color', [0 0 0], extra{:});
+                    else
+                        plot(time(opt.observationIndices), u(opt.observationIndices), 'x', 'color', [0 0 0], extra{:});
+                        unobservedIndices = setdiff(1:numel(u),opt.observationIndices);
+                        if ~isempty(unobservedIndices)
+                            plot(time(unobservedIndices), u(unobservedIndices), 'o', 'color', [0 0 0], extra{:});
+                        end
+                    end
                 else
-                    plot(time, u, 'color'    , color, ...
-                                  'lineWidth', opt.lineWidth    , ...
-                                   extra{:}         );
+                    plot(time(1:numel(u)), u, 'color'    , color, ...
+                                              'lineWidth', opt.lineWidth, ...
+                                               extra{:}         );
                 end
                 
                 xlim([time(1), time(end)]);
@@ -336,7 +349,7 @@ classdef WellQoI < BaseQoI
             assert(numel(obs{1}) == numel(qoi.fldname), ...
                 'The observation does not match the number of fldnames in QoI');
             
-            assert(numel(obs{1}{1}) <= numel(qoi.dt), ...
+            assert(numel(obs{1}{1}) >= numel(qoi.dt), ...
                 'The observation has too many timesteps to match the QoI class');
             
             obs = qoi.extractHistoryMatchingTimestep(obs);
@@ -404,7 +417,7 @@ classdef WellQoI < BaseQoI
     methods (Access = protected)
         
         %-----------------------------------------------------------------%
-        function wellOutput = interpolateWellOutput(qoi, dtProblem, wellOutput)
+        function wellOutputOut = interpolateWellOutput(qoi, dtProblem, wellOutput)
             % If wellOutput is given with time intervals dtProblem, this
             % function can be used to give wellOutputs at the timesteps 
             % found in qoi.dt
@@ -417,7 +430,14 @@ classdef WellQoI < BaseQoI
             t0  = bsxfun(@max, timeBase(1:end-1), timeProblem(1:end-1)');
             psi = max(t - t0, 0)./qoi.dt;
             % Integrate
-            wellOutput = psi*wellOutput;
+            if numel(size(wellOutput)) == 3
+                wellOutputOut = zeros(numel(qoi.dt), size(wellOutput,2), size(wellOutput,3));
+                for i=1:size(wellOutput, 3)
+                    wellOutputOut(:,:,i) = psi*wellOutput(:,:,i);
+                end
+            else
+                wellOutputOut = psi*wellOutput;
+            end
         end     
         
         %-----------------------------------------------------------------%
