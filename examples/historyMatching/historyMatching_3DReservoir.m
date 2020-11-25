@@ -92,7 +92,7 @@ qoi = WellQoI('wellNames', {'P1', 'P2'}, ...
 
 
 %% Create the ensemble
-originalRockEnsemble = MRSTHistoryMatchingEnsemble(trueExample, rockSamples, qoi, ...
+rockEnsemble = MRSTHistoryMatchingEnsemble(trueExample, rockSamples, qoi, ...
     'directory', fullfile(topDirectory, 'rock'), ...
     'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
@@ -101,51 +101,33 @@ originalRockEnsemble = MRSTHistoryMatchingEnsemble(trueExample, rockSamples, qoi
 
 %% Displaying the observations and observation error cov through the ensemble
 disp('observation and scaling vector')
-[obsVector, obsScaling] = originalRockEnsemble.qoi.getObservationAndScaling()
+[obsVector, obsScaling] = rockEnsemble.qoi.getObservationAndScaling()
 disp('observation error covariance matrix')
-originalRockEnsemble.qoi.getObservationErrorCov()
+rockEnsemble.qoi.getObservationErrorCov()
 
 %% Run ensemble
-originalRockEnsemble.simulateEnsembleMembers();
+rockEnsemble.simulateEnsembleMembers();
 
 %% Get simulated observations
 disp('simulated observations')
-size(originalRockEnsemble.getEnsembleQoI())
+size(rockEnsemble.getEnsembleQoI())
 
 %% Get the matrix of ensemble samples 
-size(originalRockEnsemble.getEnsembleSamples())
+size(rockEnsemble.getEnsembleSamples())
 
-%% Do history matching
+%% Do history matching and thereby update the samples in the ensemble
 disp('updated sample object:')
-updatedRockSamples = originalRockEnsemble.doHistoryMatching()
+rockEnsemble.doHistoryMatching()
 
 
-
-%% Create a new ensemble with updated samples
-updatedRockEnsemble = MRSTHistoryMatchingEnsemble(trueExample, updatedRockSamples, qoi, ...
-    'directory', fullfile(topDirectory, 'rock'), ...
-    'simulationStrategy', 'parallel', ...
-    'maxWorkers', 8, ...
-    'historyMatchingIteration', 2 ...
-    );
-
-
-
-%% Run new ensemble
-updatedRockEnsemble.simulateEnsembleMembers();
+%% Run ensemble with new samples
+rockEnsemble.simulateEnsembleMembers();
 
 %% Plot original and updated ensemble results
-h = originalRockEnsemble.plotQoI('color', [0 0 1], 'subplots', true);
+%h = rockEnsemble.plotQoI('color', [0 0 1], 'subplots', true);
 
-updatedRockEnsemble.plotQoI('h', h, 'color', [1 0 0], ...
-    'subplots', true, 'clearFigure', false, ...
+rockEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
     'legend', {'observations', 'posterior mean', 'prior mean'});
-
-
-
-
-
-
 
 
 
@@ -162,7 +144,7 @@ end
 wellSamples = WellSamples('data', wellSampleData);
 
 %% Define new ensemble
-originalWellEnsemble = MRSTHistoryMatchingEnsemble(trueExample, wellSamples, qoi, ...
+wellEnsemble = MRSTHistoryMatchingEnsemble(trueExample, wellSamples, qoi, ...
     'directory', fullfile(topDirectory, 'well'), ...
     'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
@@ -170,27 +152,16 @@ originalWellEnsemble = MRSTHistoryMatchingEnsemble(trueExample, wellSamples, qoi
     'verbose', true);
 
 %% Simulate
-originalWellEnsemble.simulateEnsembleMembers();
+wellEnsemble.simulateEnsembleMembers();
 
 %% Do history matching
-updatedWellSamples = originalWellEnsemble.doHistoryMatching()
-
-%% Create a new ensemble with updated samples
-updatedWellEnsemble = MRSTHistoryMatchingEnsemble(trueExample, updatedWellSamples, qoi, ...
-    'directory', fullfile(topDirectory, 'well'), ...
-    'simulationStrategy', 'parallel', ...
-    'maxWorkers', 8, ...
-    'historyMatchingIteration', 2 ...
-    );
+wellEnsemble.doHistoryMatching()
 
 %% Run new ensemble
-updatedWellEnsemble.simulateEnsembleMembers();
+wellEnsemble.simulateEnsembleMembers();
 
 %% Plot original and updated ensemble results
-h = originalWellEnsemble.plotQoI('color', [0 0 1], 'subplots', true);
-
-updatedWellEnsemble.plotQoI('h', h, 'color', [1 0 0], ...
-    'subplots', true, 'clearFigure', false, ...
+wellEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
     'legend', {'observations', 'posterior mean', 'prior mean'});
 
 
@@ -216,7 +187,7 @@ end
 comboSamples = WellRockSamples('data', comboData);
 
 %% Define new ensemble
-originalComboEnsemble = MRSTHistoryMatchingEnsemble(trueExample, comboSamples, qoi, ...
+comboEnsemble = MRSTHistoryMatchingEnsemble(trueExample, comboSamples, qoi, ...
     'directory', fullfile(topDirectory, 'combo'), ...
     'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
@@ -224,25 +195,14 @@ originalComboEnsemble = MRSTHistoryMatchingEnsemble(trueExample, comboSamples, q
     'verbose', true);
 
 %% Simulate and plot
-originalComboEnsemble.simulateEnsembleMembers();
+comboEnsemble.simulateEnsembleMembers();
 
 %% Do history matching
-updatedComboSamples = originalComboEnsemble.doHistoryMatching()
-
-%% Create a new ensemble with updated samples
-updatedComboEnsemble = MRSTHistoryMatchingEnsemble(trueExample, updatedComboSamples, qoi, ...
-    'directory', fullfile(topDirectory, 'combo'), ...
-    'simulationStrategy', 'parallel', ...
-    'maxWorkers', 8, ...
-    'historyMatchingIteration', 2 ...
-    );
+comboEnsemble.doHistoryMatching()
 
 %% Run new ensemble
-updatedComboEnsemble.simulateEnsembleMembers();
+comboEnsemble.simulateEnsembleMembers();
 
 %% Plot original and updated ensemble results
-h = originalComboEnsemble.plotQoI('color', [0 0 1], 'subplots', true);
-
-updatedComboEnsemble.plotQoI('h', h, 'color', [1 0 0], ...
-    'subplots', true, 'clearFigure', false, ...
+comboEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
     'legend', {'observations', 'posterior mean', 'prior mean'});

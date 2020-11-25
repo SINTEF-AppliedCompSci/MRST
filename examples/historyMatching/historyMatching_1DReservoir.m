@@ -113,37 +113,21 @@ size(ensemble.getEnsembleSamples())
 
 %% Do history matching
 disp('updated sample object:')
-updatedSamples = ensemble.doHistoryMatching()
+ensemble.doHistoryMatching()
 
-
-%% Create a new ensemble with updated samples
-updatedEnsemble = MRSTHistoryMatchingEnsemble(trueExample, updatedSamples, qoi, ... 
-    ... %'directory', uniqueDirectory, ...
-    'simulationStrategy', 'parallel', ...
-    'maxWorkers', 8, ...
-    'verbose', true, ...
-    'reset', false, ...
-    'historyMatchingIteration', 2 ...
-    );
 
 %% Run new ensemble
-updatedEnsemble.simulateEnsembleMembers();
+ensemble.simulateEnsembleMembers();
 
-%% Plot first ensemble
-h = ensemble.plotQoI('color', [0.1 0.6 0.4]);
-
-%% Plot updated ensemble
-updatedEnsemble.plotQoI('h', h, 'color', [0.8 0.2 0], 'clearFigure', false);
-
-%% Plot first ensemble
-ensemble.plotQoI('h', h, 'clearFigure', false, 'color', [0.1 0.6 0.4]);
+%% Plot 
+ensemble.plotQoI('clearFigure', false);
 
 
 %% Plot diff between the qois
 figure
 hold on
 for i = 1:ensemble.num
-    plot(updatedEnsemble.qoi.ResultHandler{i}{1}{1} - ensemble.qoi.ResultHandler{i}{1}{1})
+    plot(ensemble.qoi.ResultHandler{i}{1}{1} - ensemble.qoiArchive{{1}}.ResultHandler{i}{1}{1})
 end
 
 
