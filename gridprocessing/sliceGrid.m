@@ -400,7 +400,7 @@ ix.new.faces([cutFaceIx; nf + (1:nf2)']) = 2;
 ix.new.faces(nf + nf2 + (1:nc2)) = 3;
 ix.new.faces(sliceFaces) = 3; 
 % new cell to old cell map
-ix.parent = struct('cells', [(1:nc)'; cutCellIx]);
+ix.parent = struct('cells', [(1:nc)'; cutCellIx], 'faces', [(1:nf)'; cutFaceIx; zeros(nc2,1)]);
 end
 
 %--------------------------------------------------------------------------

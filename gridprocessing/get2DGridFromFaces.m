@@ -18,6 +18,9 @@ cellNo = rldecode((1:numel(f))', nn);
 [~,j]      = sortrows(e);
 k(j)       = 1:numel(j);
 [edges, n] = rlencode(e(j,:));
+if any(n>2)
+    warning('get2DGridFromFaces needs updatating, currently assumes 2<= faces per segment ');
+end
 edgenum    = rldecode((1:size(edges,1))', n);
 edgenum    = edgenum(k);
 edgesign   = i(:,1);

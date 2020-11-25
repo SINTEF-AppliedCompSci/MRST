@@ -35,13 +35,13 @@ plotGrid(G,'FaceAlpha', .1, 'EdgeAlpha', .5), view(3), camlight
 x = (-1:.5:21)';
 points = [x, 10+5*cos(.2*x), .2*x];
 cutDir = [0 -.5 1];
-[G, ix, g21] = sliceGrid(G, points, 'cutDir', cutDir);
-plotFaces(G, ix.new.faces==3, 'FaceColor', 'm', 'FaceAlpha', 1, 'EdgeAlpha', .2);
+[G, ix1, g21] = sliceGrid(G, points, 'cutDir', cutDir);
+plotFaces(G, ix1.new.faces==3, 'FaceColor', 'm', 'FaceAlpha', 1, 'EdgeAlpha', .2);
 %
 points = [x, x, 2.8 + 2*sin(.7*x) + .05*x];
 cutDir = [1, -1, 0.1];
-[G, ix, g22] = sliceGrid(G, points, 'cutDir', cutDir, 'radius', inf);
-plotFaces(G, ix.new.faces==3, 'FaceColor', 'c', 'FaceAlpha', 1, 'EdgeAlpha', .2);
+[G, ix2, g22] = sliceGrid(G, points, 'cutDir', cutDir, 'radius', inf);
+plotFaces(G, ix2.new.faces==3, 'FaceColor', 'c', 'FaceAlpha', 1, 'EdgeAlpha', .2);
 chk = checkGrid(G)
 %%
 % 2D grid-slices are not yet connected to single grid
@@ -56,6 +56,14 @@ rs = incompTPFA(initState(g22,[],0), g22, ones(nnz(g22.faces.neighbors>0),1)*dar
 figure, axis off 
 plotCellData(g22, rs.pressure), view([1 -2 10]), camlight
 
+%% make combined 2D-grid of g21,g22
+cutfac = ix2.new.faces == 3;
+parfac = ix2.parent.faces;
+cutfac(parfac>0) = cutfac(parfac>0) | ix1.new.faces(parfac(parfac>0)) == 3;
+% will give warning: needs updating
+g = get2DGridFromFaces(G, cutfac);
+g = repairNormals(computeGeometry(g));
+figure, axis off, plotGrid(g),view([1 -2 10]), camlight
 
 %% Slicing of 2D grids follow same procedure (needs 3D coordinates)
 G = cartGrid([50 50], [100, 100]);
