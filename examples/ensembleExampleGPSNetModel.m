@@ -9,7 +9,7 @@
 % homogeneous rock properties) and well production indices.
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble ddmodel diagnostics
+    example-suite incomp ensemble dd-models diagnostics
 
 mrstVerbose off
 
@@ -81,27 +81,25 @@ end
 
 %% Create sample object
 rockSamples = NetworkRockSamples('data', rockData, ...
-                                 'connectionIndices', baseExample.options.connectionIndices);
+                                 'connectionIndices', baseExample.options.connectionIndices)
 
 %% Create QoI
 qoi = WellQoI(...
     'wellNames', {'P1', 'P2'}, ...
-    'fldname', {'qOs', 'qWs'}, ...
-    'cumulative', false, ...
-    'numTimesteps', []);
+    'fldname', {'qOs', 'qWs'});
 
 
 %% Create the ensemble
 ensemble = MRSTEnsemble(baseExample, rockSamples, qoi, ...
-    'simulationType', 'parallel', ...
+    'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
-    'deleteOldResults', true, ...
+    'reset', true, ...
     'verbose', true);
 
 %% Run ensemble
-ensemble.simulateAllEnsembleMembers();
+ensemble.simulateEnsembleMembers();
 
 %% Plot results
-ensemble.qoi.plotEnsemble(ensemble);
+ensemble.plotQoI('subplots', true);
 
                       

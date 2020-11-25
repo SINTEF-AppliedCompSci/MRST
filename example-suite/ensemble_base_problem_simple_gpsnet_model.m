@@ -86,7 +86,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Define any module dependencies for the example. The following are
     % typically always needed
-    require ad-core ad-props ad-blackoil incomp ddmodel ensemble diagnostics
+    require ad-core ad-props ad-blackoil incomp dd-models ensemble diagnostics
     
     %% Define model
     % Create full 3D reservoir based on a full 3D example reservoir 
