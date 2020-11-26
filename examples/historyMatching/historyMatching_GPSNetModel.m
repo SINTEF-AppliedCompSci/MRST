@@ -67,7 +67,7 @@ observationResultHandler.dataPrefix = 'observedQoI';
 % Need to build a new ResultHandler from scratch, so that we do not
 % overwrite the dataPrefix property of observationResultHandler
 truthResultHandler = ResultHandler('dataPrefix', 'trueQoI', ...
-                                   'writeToDisk', truthResultHandler.writeToDisk,...
+                                   'writeToDisk', observationResultHandler.writeToDisk,...
                                    'dataDirectory', observationResultHandler.dataDirectory, ...
                                    'dataFolder', observationResultHandler.dataFolder, ...
                                    'cleardir', false);
@@ -149,4 +149,56 @@ rockEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
     'plotTruth', true, ...
     'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});
 
-                      
+                
+
+
+
+
+
+
+
+
+%% History match with both rock properties and well indices
+
+
+wellSampleData = cell(ensembleSize, 1);
+for i = 1:ensembleSize
+    wellSampleData{i}.WI = rand(1,4)*1e-11;
+end
+wellSamples = WellSamples('data', wellSampleData);
+
+compSamples = CompositeSamples({rockSamples, wellSamples}, 'tensorProduct', false);
+
+
+%% Create combo ensemble
+compEnsemble = MRSTHistoryMatchingEnsemble(baseExample, compSamples, qoi, ...
+    'directory', fullfile(topDirectory, 'compRockWI'), ...
+    'simulationStrategy', 'parallel', ...
+    'maxWorkers', 8, ...
+    'reset', true, ...
+    'verbose', true)
+
+%% Run ensemble
+compEnsemble.simulateEnsembleMembers();
+
+%% Get simulated observations
+disp('simulated observations: ')
+size(compEnsemble.getEnsembleQoI())
+
+%% Get the matrix of ensemble samples 
+disp('Matrix of ensemble samples (parameters):')
+size(compEnsemble.getEnsembleSamples())
+
+
+%% Do history matching
+compEnsemble.doHistoryMatching()
+
+%% Run new ensemble
+compEnsemble.simulateEnsembleMembers();
+
+
+%% Plot original and updated ensemble results
+compEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
+    'cmapName', 'lines', ...
+    'plotTruth', true, ...
+    'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});
