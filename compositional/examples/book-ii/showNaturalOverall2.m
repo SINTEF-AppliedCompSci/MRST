@@ -12,7 +12,7 @@
 %     original value of 303.15 K. Default: 0
 %   - p_offset gives hw much you want to offset the pressure from the
 %     original value of 50 bar. Default: 0
-mrstModule add compositional
+mrstModule add compositional ad-core ad-props
 mrstVerbose on
 
 %% Construct the two simulation models

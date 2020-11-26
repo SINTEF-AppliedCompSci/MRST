@@ -20,7 +20,7 @@
 % The example is discussed in Section 8.5.4 of the second MRST book:
 % Advanced Modelling with the MATLAB Reservoir Simulation Toolbox (MRST),
 % Cambridge University Press, 2021. 
-mrstModule add compositional ad-core linearsolvers
+mrstModule add compositional ad-core ad-props linearsolvers
 
 %% Setup the cases as packed problems
 pressures = [70, 90, 100, 110, 120, 130, 150];
