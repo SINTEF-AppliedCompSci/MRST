@@ -286,7 +286,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             cmap = feval(opt.cmapName, max(numPlots, opt.cmapRealizationsMin));
             
             h = opt.h;
-            if opt.iterations
+            if opt.iterations && ~isempty(ensemble.qoiArchive{1})
                 for i = 1:numel(ensemble.qoiArchive)
                     for j = 1:ensemble.esmdaIterations 
                         if opt.subIterations || j == ensemble.esmdaIterations 
