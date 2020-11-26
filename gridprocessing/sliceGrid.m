@@ -1,79 +1,86 @@
 function [G, gix, G_slice] = sliceGrid(G, pnts, varargin)
 opt = struct('onlyFaces',  false, ...
-             'topoSplit',  true, ...
-             'mcompute',   true);
+    'topoSplit',  true, ...
+    'mcompute',   true);
 [opt, opt2] = merge_options(opt, varargin{:});
 % others passed on to computeGridSlice
 
-% hard-set some opts that are required or not yet compatible with
-% grid-processing
-poly = computeGridSlicePolygons(G, pnts, opt2{:}, ...
-                        'removePartialCuts'      , true, ...  
-                        'outputForGridProcessing', true, ...
-                        'removeRepeated',          false);
-if G.griddim == 2
-    [opt.topoSplit, opt.mcompute] = deal(false);
-end
+[pntsList, optList] = handleMultInput(pnts, opt2);
 
-if isempty(poly)
-    warning('Slicing produced empty set, grid unchanged')
-    [gix, G_slice] = deal([]);
-    return
-end
-if nargout >= 3 && G.griddim == 2
-    warning('Output of 1D slice-grid not supported');
-    G_slice = [];
-end
 
-[cutFaces, cutCells, coords, sliceFaces] = extractGridInfoFromPolygons(G, poly);
-
-[ncOld, nfOld] = deal(G.cells.num, G.faces.num);
-% don't update grid in case of no cutcells, but return gix, in case of
-% sliceFaces
-if ~isempty(cutCells.ix)    
-    % add coords to grid
-    nNodesOrig = G.nodes.num;
-    G.nodes.coords = [G.nodes.coords; coords];
-    G.nodes.num    = size(G.nodes.coords, 1);
-    % update node numbers. Deal with special case where node points to
-    % grid-node (negative index)
-    for kn = 1:size(cutFaces.nodes,2)
-        nix = cutFaces.nodes(:,kn) < 0;
-        cutFaces.nodes(nix, kn)  = -cutFaces.nodes(nix, kn);
-        cutFaces.nodes(~nix, kn) =  cutFaces.nodes(~nix, kn) + nNodesOrig;
+for k = 1:numel(pntsList)
+    % hard-set some opts that are required or not yet compatible with
+    % grid-processing
+    poly = computeGridSlicePolygons(G, pntsList{k}, optList{k}{:}, ...
+        'removePartialCuts'      , true, ...
+        'outputForGridProcessing', true, ...
+        'removeRepeated',          false);
+    if G.griddim == 2
+        [opt.topoSplit, opt.mcompute] = deal(false);
     end
-    nix = cutCells.nodes < 0;
-    cutCells.nodes(nix)  = -cutCells.nodes(nix);
-    cutCells.nodes(~nix) =  cutCells.nodes(~nix) + nNodesOrig;
-  
-    % Perform actual grid splitting/cutting
-    [G, isSplit]  = splitFaces(G, cutFaces, cutCells);
-    if ~opt.onlyFaces
-        [G, isCut, sliceFaces] = splitCells(G, cutCells, sliceFaces, opt.topoSplit);
-    else
-        isCut      = [];
-        sliceFaces = [];
-    end    
-    % reset type
-    G.type = {'cutCellGrid'};
-    % recompute geometry / bbox
-    if opt.mcompute
-        G = mcomputeGeometry(G);
-    else
-        G = computeGeometry(G);
+    
+    if isempty(poly)
+        warning('Slicing produced empty set, grid unchanged')
+        [gix, G_slice] = deal([]);
+        return
     end
-    G = addBoundingBoxFields(G);
-    if any(G.cells.volumes == 0)
-        nz = nnz(G.cells.volumes == 0);
-        warning('Procedure produced %d cells with zero volume\n%s', nz, ...
+    if nargout >= 3 && G.griddim == 2
+        warning('Output of 1D slice-grid not supported');
+        G_slice = [];
+    end
+    
+    [cutFaces, cutCells, coords, sliceFaces] = extractGridInfoFromPolygons(G, poly);
+    
+    [ncOld, nfOld] = deal(G.cells.num, G.faces.num);
+    % don't update grid in case of no cutcells, but return gix, in case of
+    % sliceFaces
+    if ~isempty(cutCells.ix)
+        % add coords to grid
+        nNodesOrig = G.nodes.num;
+        G.nodes.coords = [G.nodes.coords; coords];
+        G.nodes.num    = size(G.nodes.coords, 1);
+        % update node numbers. Deal with special case where node points to
+        % grid-node (negative index)
+        for kn = 1:size(cutFaces.nodes,2)
+            nix = cutFaces.nodes(:,kn) < 0;
+            cutFaces.nodes(nix, kn)  = -cutFaces.nodes(nix, kn);
+            cutFaces.nodes(~nix, kn) =  cutFaces.nodes(~nix, kn) + nNodesOrig;
+        end
+        nix = cutCells.nodes < 0;
+        cutCells.nodes(nix)  = -cutCells.nodes(nix);
+        cutCells.nodes(~nix) =  cutCells.nodes(~nix) + nNodesOrig;
+        
+        % Perform actual grid splitting/cutting
+        [G, isSplit]  = splitFaces(G, cutFaces, cutCells);
+        if ~opt.onlyFaces
+            [G, isCut, sliceFaces] = splitCells(G, cutCells, sliceFaces, opt.topoSplit);
+        else
+            isCut      = [];
+            sliceFaces = [];
+        end
+        % reset type
+        G.type = {'cutCellGrid'};
+        % recompute geometry / bbox
+        if opt.mcompute
+            G = mcomputeGeometry(G);
+        else
+            G = computeGeometry(G);
+        end
+        G = addBoundingBoxFields(G);
+        if any(G.cells.volumes == 0)
+            nz = nnz(G.cells.volumes == 0);
+            warning('Procedure produced %d cells with zero volume\n%s', nz, ...
                 'Known issue: slicing precisely on boundary face');
+        end
+    else
+        [isSplit, isCut] = deal([]);
     end
-else
-    [isSplit, isCut] = deal([]);
+    if k == 1
+        gix = [];
+    end
+    gix = getIndices(ncOld, nfOld, cutCells.ix(isCut), cutFaces.ix(isSplit), sliceFaces, gix);
 end
-gix = getIndices(ncOld, nfOld, cutCells.ix(isCut), cutFaces.ix(isSplit), sliceFaces);
 % create 2D slice-grid if requested
-
 if nargout >= 3 && G.griddim == 3
     G_slice = get2DGridFromFaces(G, gix.new.faces == 3);
 end
@@ -83,8 +90,8 @@ end
 function [G, validIx, sliceFaces] = splitCells(G, cutCells, sliceFaces, topoSplit)
 cix = cutCells.ix;
 nc  = numel(cix);
-% We store faces for the two new cells in cfo (replacing original) and cfn 
-%(new cell) 
+% We store faces for the two new cells in cfo (replacing original) and cfn
+%(new cell)
 [cfo, cfn] = deal(cell(nc, 1)); % old/new cell-faces
 nodePos    = cumsum([1;cutCells.nNodes]);
 facePos    = G.cells.facePos;
@@ -98,7 +105,7 @@ for k = 1:nc
     % get original cell-faces
     fix = facePos(c):(facePos(c+1)-1);
     fo = G.cells.faces(fix);
-
+    
     nix = nodePos(k):(nodePos(k+1)-1);
     ccn = cutCells.nodes(nix);
     
@@ -140,8 +147,8 @@ for k = 1:nc
         validNum = validNum +1;
     else
         % attempt to cut cell along face or partial cut
-        % in case cut along face there should be a unique face with unique 
-        % flag  
+        % in case cut along face there should be a unique face with unique
+        % flag
         if topoSplit && success
             if success
                 if nnz(flag) >= G.griddim
@@ -189,7 +196,7 @@ end
 if partcount >0
     dispif(mrstVerbose, 'Ignored processing of %d partially cut cells \n', partcount);
 end
-if topofail >0 
+if topofail >0
     dispif(mrstVerbose, 'Topological split failed for %d out of %d cells \n', topofail, nc);
 end
 % include info for new faces
@@ -218,17 +225,17 @@ end
 function [G, validIx] = splitFaces(G, cutFaces, cutCells)
 [fix, cix] = deal(cutFaces.ix, cutCells.ix);
 [nf , nc ] = deal(numel(fix), numel(cix));
-% Need to update original and create new face-nodes for cutfaces  
+% Need to update original and create new face-nodes for cutfaces
 [fno, fnn] = deal(cell(nf,1));
-% Need to update original cell-faces for cutcells 
-cfo   = cell(nc, 1); 
+% Need to update original cell-faces for cutcells
+cfo   = cell(nc, 1);
 cfpos = G.cells.facePos;
 for kc = 1:numel(cfo)
     ic = cfpos(cix(kc)):(cfpos(cix(kc)+1)-1);
     cfo{kc} = G.cells.faces(ic, 1);
 end
-% Need to account for that additonal (non-cutcell) neighboring cells are 
-% influenced. At most one per face.   
+% Need to account for that additonal (non-cutcell) neighboring cells are
+% influenced. At most one per face.
 [cixe, cfe] = deal(cell(nf,1));
 % create look-up index for cut-cells
 cutCellIx  = zeros(G.cells.num,1);
@@ -299,7 +306,7 @@ for k = 1:nf
         end
     end
 end
-% reduce list of influenced 'non-cutcell' cells/cellfaces 
+% reduce list of influenced 'non-cutcell' cells/cellfaces
 ri = cellfun(@isempty, cixe);
 [cfe, cixe] = deal(cfe(~ri), vertcat(cixe{~ri}));
 
@@ -323,14 +330,14 @@ end
 
 %--------------------------------------------------------------------------
 function [flag, success, isClean] = topologicalCellSplit(n1, n2, pos, isOut)
-% comparing node-lists for two adjacent faces, there should be at least two 
-% common (potentially more as a result of snapping ?) adjecant nodes, set 
-% flag according to 
+% comparing node-lists for two adjacent faces, there should be at least two
+% common (potentially more as a result of snapping ?) adjecant nodes, set
+% flag according to
 % true  : node order same and isOut/node order reverse and ~isOut
 % if face is not ajecent to n1 it gets the same sign as any other of its
 % ajecent faces (iteratively)
 success = true;
-nAdj  = zeros(size(n1));  
+nAdj  = zeros(size(n1));
 nf      = numel(pos)-1;
 flag    = false(nf, 1);
 found   = false(nf, 1);
@@ -385,22 +392,41 @@ end
 end
 
 %--------------------------------------------------------------------------
-function ix = getIndices(nc, nf, cutCellIx, cutFaceIx, sliceFaces)
+function ix = getIndices(nc, nf, cutCellIx, cutFaceIx, sliceFaces, ixp)
 [nc2, nf2] = deal(numel(cutCellIx), numel(cutFaceIx));
-% set split cells/faces to false
-ix.old = struct('cells', true(nc,1), 'faces', true(nf,1));
-ix.old.cells(cutCellIx) = false;
-ix.old.faces(cutFaceIx) = false;
+if isempty(ixp)
+    [nc_orig, nf_orig] = deal(nc, nf);
+    ix.old    = struct('cells', true(nc,1), 'faces', true(nf,1));
+    ix.new    = struct('cells', ones(nc+nc2,1), 'faces', ones(nf+nf2+nc2,1));
+    ix.parent = struct('cells', [(1:nc)'; cutCellIx], 'faces', [(1:nf)'; cutFaceIx; zeros(nc2,1)]);
+else
+    [nc_orig, nf_orig] = deal(numel(ixp.old.cells), numel(ixp.old.faces));
+    ix.old    = ixp.old;
+    ix.new    = struct('cells', [ixp.new.cells; ones(nc2, 1)], ...
+                       'faces', [ixp.new.faces; ones(nf2+nc2, 1)]);
+    %ix.parent = struct('cells', [ixp.parent.cells; cutCellIx], ...
+    %                   'faces', [ixp.parent.faces; cutFaceIx; zeros(nc2,1)]);
+    ix.parent = struct('cells', [(1:nc)'; cutCellIx], 'faces', [(1:nf)'; cutFaceIx; zeros(nc2,1)]);
+end
 
-ix.new = struct('cells', ones(nc+nc2,1), 'faces', ones(nf+nf2+nc2,1));
+% set split cells/faces to false
+ix.old.cells(cutCellIx(cutCellIx < nc_orig)) = false;
+ix.old.faces(cutFaceIx(cutFaceIx < nf_orig)) = false;
+
 % set new/updated cells to 2
 ix.new.cells([cutCellIx; nc + (1:nc2)']) = 2;
 % set new/updated faces to 2, faces along plane to 3
 ix.new.faces([cutFaceIx; nf + (1:nf2)']) = 2;
 ix.new.faces(nf + nf2 + (1:nc2)) = 3;
-ix.new.faces(sliceFaces) = 3; 
-% new cell to old cell map
-ix.parent = struct('cells', [(1:nc)'; cutCellIx], 'faces', [(1:nf)'; cutFaceIx; zeros(nc2,1)]);
+ix.new.faces(sliceFaces) = 3;
+if ~isempty(ixp)
+    pfac   = ix.parent.faces;
+    pfacix = pfac > 0; 
+    ix.new.faces(pfacix) = max(ix.new.faces(pfacix), ixp.new.faces(pfac(pfacix)));
+    pcel   = ix.parent.cells;
+    pcelix = pcel > 0;
+    ix.new.cells(pcelix) = max(ix.new.cells(pcelix), ixp.new.cells(pcel(pcelix)));
+end
 end
 
 %--------------------------------------------------------------------------
@@ -423,4 +449,67 @@ w  = zeros(nw,1);
 w(ix2) = v(ix1);
 w(ixn) = vertcat(vi{:});
 end
-    
+
+%--------------------------------------------------------------------------
+function [p, opt] = handleMultInput(p, opt)
+hasNormal = true;
+dpos = find(strcmp(opt(1:2:end), 'cutDir'));
+if ~isempty(dpos)
+    v = opt{2*dpos};
+    hasNormal = false;
+end
+npos = find(strcmp(opt(1:2:end), 'normal'));
+if ~isempty(npos)
+    if ~hasNormal
+        warning('Ignoring optionial input ''normal'' since non-empty cut-direction');
+    else
+        v = opt{2*npos};
+        hasNormal = true;
+    end
+end
+hasRadii = false;
+rpos     = find(strcmp(opt(1:2:end), 'radius'));
+if ~isempty(rpos)
+    r = opt{2*rpos};
+    hasRadii = size(r,1) > 1;
+    if hasRadii && ~iscell(r)
+        r = mat2cell(r, [ones(numel(r),size(r,2)), 1]);
+    end
+end 
+if ~iscell(v)
+    nv = size(v,1);
+    v  = mat2cell(v, ones(nv,1), 3);
+end
+if ~iscell(p)
+    np = size(p,1);
+    if hasNormal % individual point
+        p = mat2cell(p, ones(np,1), 3);
+    else
+        p = {p};
+    end
+end
+[np, nv] = deal(numel(p), numel(v));
+num = max([np, nv]);
+if num > 1
+    if np == 1
+        p = repmat(p, [num, 1]);
+    elseif nv == 1
+        v = repmat(v, [num, 1]);
+    end
+end
+[np, nv] = deal(numel(p), numel(v));
+assert(np==nv && (~hasRadii || np == numel(r)), 'Can''t work out input');
+optlist = repmat({opt}, [num, 1]);
+for k = 1:num
+    if ~hasNormal
+        pos = dpos;
+    else
+        pos = npos;
+    end
+    optlist{k}{2*pos} = v{k};
+    if hasRadii
+        optlist{k}{2*rpos} = r{k};
+    end
+end
+opt = optlist;
+end

@@ -1,15 +1,29 @@
 function g = get2DGridFromFaces(G, f)
+% Make a surface grid from a subset of grid faces. Since we may have
+% crossing faces (>2 faces for an edge), add a sign indicator for 
+% g.cells.faces. Keep same node-orientation of (2D grid) cells as the 
+% original (3D grid) faces 
 if islogical(f)
     f = find(f); 
 end
 [nix1, nix2, faceNo] = getFaceSegments(G, f);
 % make local node-index
-map = sparse(G.nodes.num,1);
-map([nix1;nix2]) = 1;
-nNodes = sum(map);
-map(map>0) = (1:nNodes)';
-segs = [map(nix1), map(nix2)];
+mapN = sparse(G.nodes.num,1);
+mapN([nix1;nix2]) = 1;
+nNodes = nnz(mapN);
+mapN(mapN>0) = (1:nNodes)';
+segs = full([mapN(nix1), mapN(nix2)]);
 [~, nn] = rlencode(faceNo);
+
+% make local cellNo (3D faceNo)
+mapF        = sparse(G.faces.num,1);
+mapF(faceNo)= 1;
+nCells     =  nnz(mapF);
+mapF(mapF>0) = (1:nCells);
+cellNo     = full(mapF(faceNo));
+
+sgn = nix1 < nix2;
+
 
 cellNo = rldecode((1:numel(f))', nn);
 % cut from makePlanarGrid.m --------------------------------------------- 
@@ -31,13 +45,14 @@ neigh      = zeros(size(edges));
 neigh(p)   = cellNo;
 %------------------------------------------------------------------------
 nf = size(edges,1);
-g.nodes = struct('num', nf, 'coords', G.nodes.coords(map>0, :));
+g.nodes = struct('num', nf, 'coords', G.nodes.coords(mapN>0, :));
 g.faces = struct('num', nf, 'nodePos', (1:2:(2*nf+1))', 'neighbors', neigh, ...
                  'tag', zeros(nf, 1), 'nodes', reshape(edges', [], 1));
 g.cells = struct('num', numel(f), 'facePos', cumsum([1; nn]), 'indexMap', nan(numel(f),1), ...
                  'parent', f, 'faces', [edgenum, zeros(numel(edgenum),1)]);
 g.griddim = 2;
 g.type = {'sliceGrid'};
+g.faces.isX = n>2;
 end    
 
 % -------------------------------------------------------------------------

@@ -56,14 +56,19 @@ rs = incompTPFA(initState(g22,[],0), g22, ones(nnz(g22.faces.neighbors>0),1)*dar
 figure, axis off 
 plotCellData(g22, rs.pressure), view([1 -2 10]), camlight
 
-%% make combined 2D-grid of g21,g22
-cutfac = ix2.new.faces == 3;
-parfac = ix2.parent.faces;
-cutfac(parfac>0) = cutfac(parfac>0) | ix1.new.faces(parfac(parfac>0)) == 3;
-% will give warning: needs updating
-g = get2DGridFromFaces(G, cutfac);
+%% multiple input
+G = addBoundingBoxFields(computeGeometry(cartGrid([20 20 5], [20, 20, 5])));
+x = (-1+eps:.5:21)';
+p1 = [x, 10+5*cos(.2*x), 0*x];
+p2 =  [x, x, 2.8 + 2*sin(.7*x) + .05*x];
+sh = 8*[0, 1, 0];
+pp = {p1 - sh, p1, p1 + sh,  p2};
+dd = {[0 -.5 1], [0 -.5 1], [0 -.5 1], [1, -1, 0.1]};
+% production of 2D-grid gives warning: needs updating
+[Gs, ix, g] = sliceGrid(G, pp, 'cutDir', dd, 'radius', inf);
 g = repairNormals(computeGeometry(g));
-figure, axis off, plotGrid(g),view([1 -2 10]), camlight
+figure, axis off equal vis3d, plotGrid(g, 'FaceAlpha', .8, 'EdgeAlpha', .5),view([1 -2 10]), camlight
+plotFaces(g, g.faces.isX, 'LineWidth', 4, 'EdgeColor', 'b')
 
 %% Slicing of 2D grids follow same procedure (needs 3D coordinates)
 G = cartGrid([50 50], [100, 100]);
