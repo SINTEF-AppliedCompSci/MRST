@@ -219,13 +219,16 @@ classdef MRSTEnsemble < handle
             ids    = ensemble.qoi.ResultHandler.getValidIds();
             sample = ensemble.qoi.ResultHandler{ids(1)};
             if isscalar(sample{1})
+                if ~isempty(opt.h), clf(opt.h); end
                 n = min(ceil(numel(ids)/3), 10);
-                h = ensemble.qoi.plotQoIHistogram('edges'      , n   , ...
+                h = ensemble.qoi.plotQoIHistogram(opt.h, ...
+                                                  'edges'      , n   , ...
                                                   'includeMean', true, ...
                                                   extra{:}           );
             else
                 h = ensemble.qoi.plotEnsembleQoI(ensemble, opt.h, extra{:});
             end
+            drawnow
         end
         
         %-----------------------------------------------------------------%
