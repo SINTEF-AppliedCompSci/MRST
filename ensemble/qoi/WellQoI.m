@@ -189,6 +189,7 @@ classdef WellQoI < BaseQoI
                          'cellNo'        , 1      , ...
                          'subCellNo'     , 1      , ...
                          'isObservation' , false  , ...
+                         'isTruth'       , false  , ...
                          'observationIndices', [] );
             [opt, extra] = merge_options(opt, varargin{:});
             
@@ -212,6 +213,8 @@ classdef WellQoI < BaseQoI
                             plot(time(unobservedIndices), u(unobservedIndices), 'o', 'color', [0 0 0], extra{:});
                         end
                     end
+                elseif opt.isTruth
+                    plot(time, u, 'o', 'color', [1 1 1].*0.5, extra{:});
                 else
                     plot(time(1:numel(u)), u, 'color'    , color, ...
                                               'lineWidth', opt.lineWidth, ...
@@ -324,11 +327,22 @@ classdef WellQoI < BaseQoI
     
         end
         
+        
+        %-----------------------------------------------------------------%
+        function obs = getTrueObservation(qoi, varargin)
+            % Check that the observation is valid
+            assert(~isempty(qoi.truthResultHandler), ...
+                'qoi.truthResultHandler is missing');
+            assert(numel(qoi.truthResultHandler.getValidIds) > 0, ...
+                'No available data in the truthResultHandler');
+            
+            resultHandler = qoi.truthResultHandler;
+            obs = qoi.getResultHandlerVector(resultHandler, varargin{:});
+            
+        end
+        
         %-----------------------------------------------------------------%
         function obs = getObservationVector(qoi, varargin)
-            
-            opt = struct('vectorize', true);
-            [opt, extra] = merge_options(opt, varargin{:});
             
             % Check that the observation is valid
             assert(~isempty(qoi.observationResultHandler), ...
@@ -336,7 +350,17 @@ classdef WellQoI < BaseQoI
             assert(numel(qoi.observationResultHandler.getValidIds) > 0, ...
                 'No available data in the observationResultHandler');
             
-            obs = qoi.observationResultHandler{1};
+            resultHandler = qoi.observationResultHandler;
+            obs = qoi.getResultHandlerVector(resultHandler, varargin{:});
+        end
+            
+        %-----------------------------------------------------------------%
+        function obs = getResultHandlerVector(qoi, resultHandler, varargin)
+            opt = struct('vectorize', true, ...
+                         'extractHMTimesteps', true);
+            [opt, extra] = merge_options(opt, varargin{:});
+            
+            obs = resultHandler{1};
             
             if ~qoi.combined
                 assert(numel(obs) == numel(qoi.wellNames), ...
@@ -352,7 +376,9 @@ classdef WellQoI < BaseQoI
             assert(numel(obs{1}{1}) >= numel(qoi.dt), ...
                 'The observation has too many timesteps to match the QoI class');
             
-            obs = qoi.extractHistoryMatchingTimestep(obs);
+            if opt.extractHMTimesteps
+                obs = qoi.extractHistoryMatchingTimestep(obs);
+            end
             if opt.vectorize
                 obs = qoi.qoi2vector(obs);
             end

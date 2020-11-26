@@ -17,9 +17,10 @@ classdef BaseQoI
         ResultHandler % Handler for writing/reading QoIs to/from file
         
         %% Properties related to history matching
-        observationResultHandler   % Full path to a file that holds observations.
-                          % This file must be on a format that matches the
-                          % given QoI class
+        observationResultHandler % Result handler that holds observations.
+        truthResultHandler       % Result handler that holds the true data. 
+                          % The data read by these result handler must be 
+                          % on a format that matches the given QoI class.
         observationCov    % Observation error covariance matrix, several  
                           % forms might be valid depending on the relevant
                           % QoI implementation. This can be either
@@ -226,6 +227,7 @@ classdef BaseQoI
                          'subplotDir', 'horizontal', ...
                          'clearFigure', true       , ...
                          'plotObservation', true   , ...
+                         'plotTruth', false        , ...
                          'legend'     , {{}} );
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u]  = qoi.computeMean(opt.range);
@@ -287,6 +289,11 @@ classdef BaseQoI
                         plotQoI(obs, i, k, 'isObservation', true, 'tag', 'obs', extra{:});
                     end
                     
+                    if opt.plotTruth && ~isempty(qoi.truthResultHandler)
+                        truth = qoi.getTrueObservation('vectorize', false);
+                        plotQoI(truth, i, k, 'isTruth', true, 'tag', 'truth', extra{:}); 
+                    end
+                    
                     hold off
                     
                     % Stack the lines so that the mean(s) come on top
@@ -330,25 +337,35 @@ classdef BaseQoI
             lines = get(gca, 'Children');
             meansID = [];
             obsID = [];
+            truthID = [];
             for line=1:numel(lines)
                 if strcmp(lines(line).Tag, 'mean')
                     meansID = [meansID, line]; 
-                end
-                if strcmp(lines(line).Tag, 'obs')
+                elseif strcmp(lines(line).Tag, 'obs')
                     obsID = [obsID, line];
+                elseif strcmp(lines(line).Tag, 'truth')
+                    truthID = [truthID, line];
                 end
             end
             uistack(lines(meansID), 'top');
+            if ~isempty(truthID)
+                uistack(lines(truthID), 'top');
+            end
             if ~isempty(obsID)
                 uistack(lines(obsID), 'top');
             end
+            
             
             % Legend is added as
             % legend([chi(obsID(1)); chi(meansID)], {'Obs', 'It N', ..., 'It 2', 'It 1'})
 
             if ~isempty(legendText)
                 if numel(legendText) == numel(meansID)+1 && ~isempty(obsID)
-                    legend([lines(obsID(1)); lines(meansID)], legendText, 'Location', 'Best');
+                    legend([lines(obsID(1)); lines(meansID)], ...
+                           legendText, 'Location', 'Best');
+                elseif numel(legendText) == numel(meansID)+2 && ~isempty(obsID) && ~isempty(truthID)
+                    legend([lines(obsID(1)); lines(truthID(1)); lines(meansID)], ...
+                           legendText, 'Location', 'Best');
                 elseif numel(legendText) == numel(meansID)
                     legend(lines(meansID), legendText, 'Location', 'Best');
                 else
