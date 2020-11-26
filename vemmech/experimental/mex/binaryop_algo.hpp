@@ -5,9 +5,11 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <assert.h>
 
 #include "TensorComp.hpp"
 #include "multiix_tools.hpp"
+
 
 
 // ----------------------------------------------------------------------------
@@ -33,6 +35,9 @@ apply_add_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
 
   std::vector<Index> ixs1(t1.ixs());  transpose(ixs1, Ni);  // @@ perhaps reimplement if
   std::vector<Index> ixs2(t2.ixs());  transpose(ixs2, Ni);  // copying become too memory-intensive 
+
+  assert(ixs1.size() == Ni * t1.coefs().size());
+  assert(ixs2.size() == Ni * t2.coefs().size());
   
   auto t1_ix_iter = ixs1.begin();
   auto t1_ix_iter_end = ixs1.end();
@@ -78,6 +83,8 @@ apply_add_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
     }
   }
 
+  assert(target_coefs.size() * Ni == target_ixs.size());
+
   transpose(target_ixs, target_coefs.size());
   return TensorComp<T>(t1.indexNames(), target_coefs, target_ixs);
 }
@@ -95,6 +102,9 @@ apply_subtract_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
 
   std::vector<Index> ixs1(t1.ixs());  transpose(ixs1, Ni);  // @@ perhaps reimplement if
   std::vector<Index> ixs2(t2.ixs());  transpose(ixs2, Ni);  // copying become too memory-intensive 
+
+  assert(ixs1.size() == Ni * t1.coefs().size());
+  assert(ixs2.size() == Ni * t2.coefs().size());
   
   auto t1_ix_iter = ixs1.begin();
   auto t1_ix_iter_end = ixs1.end();
@@ -139,7 +149,7 @@ apply_subtract_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
       t2_ix_iter += Ni; // t2_ix_iter was already advanced in the loop above
     }
   }
-
+  assert(target_coefs.size() == Ni * target_ixs.size());
   transpose(target_ixs, target_coefs.size());
   return TensorComp<T>(t1.indexNames(), target_coefs, target_ixs);
 }
@@ -157,6 +167,9 @@ apply_mul_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
 
   std::vector<Index> ixs1(t1.ixs());  transpose(ixs1, Ni);  // @@ perhaps reimplement if
   std::vector<Index> ixs2(t2.ixs());  transpose(ixs2, Ni);  // copying become too memory-intensive 
+
+  assert(ixs1.size() == Ni * t1.coefs().size());
+  assert(ixs2.size() == Ni * t2.coefs().size());
   
   auto t1_ix_iter = ixs1.begin();
   auto t1_ix_iter_end = ixs1.end();
@@ -192,6 +205,8 @@ apply_mul_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
     }
   }
 
+  assert(target_coefs.size() == Ni * target_ixs.size());
+  
   transpose(target_ixs, target_coefs.size());
   return TensorComp<T>(t1.indexNames(), target_coefs, target_ixs);
 }
@@ -209,6 +224,9 @@ apply_div_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
 
   std::vector<Index> ixs1(t1.ixs());  transpose(ixs1, Ni);  // @@ perhaps reimplement if
   std::vector<Index> ixs2(t2.ixs());  transpose(ixs2, Ni);  // copying become too memory-intensive 
+
+  assert(ixs1.size() == Ni * t1.coefs().size());
+  assert(ixs2.size() == Ni * t2.coefs().size());
   
   auto t1_ix_iter = ixs1.begin();
   auto t1_ix_iter_end = ixs1.end();
@@ -244,6 +262,8 @@ apply_div_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
     }
   }
 
+  assert(target_coefs.size() == Ni * target_ixs.size());
+  
   transpose(target_ixs, target_coefs.size());
   return TensorComp<T>(t1.indexNames(), target_coefs, target_ixs);
 }
@@ -260,6 +280,8 @@ apply_binary_op(TensorComp<T> t1,
   t1.sortElementsByIndex();
   t2.sortElementsByIndex();
 
+  assert(t1.numIndices() == t2.numIndices());
+  
   // do operator dispatch at once, to avoid checks at each iteration
   // (e.g. whether the operator is symmetrical)
   if (operator_name == "+")

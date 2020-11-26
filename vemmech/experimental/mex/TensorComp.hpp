@@ -5,10 +5,11 @@
 #include <vector>
 #include <string>
 #include <tuple>
-//#include <algorithm>
-#include <parallel/algorithm>  //@@ gcc_specific
+#include <algorithm>
+//#include <parallel/algorithm>  //@@ gcc_specific
 #include <array>
 #include <set>
+#include <cmath>
 #include <assert.h>
 
 // ============================================================================
@@ -144,8 +145,10 @@ TensorComp<T>::indexValuesFor(const std::string& ixname) const
 // ----------------------------------------------------------------------------
 {
   for (int i = 0; i != indexNames().size(); ++i)
-    if (ixname == indexNames()[i])
+    if (ixname == indexNames()[i]) {
+      assert( (i+1) * numCoefs() <= ixs_.size());
       return std::vector<Index>(&ixs_[i * numCoefs()], &ixs_[(i+1) * numCoefs()]);
+    }      
   return std::vector<Index>();
 }
 
@@ -167,6 +170,7 @@ TensorComp<T>::numUniqueValuesFor(int ix) const
 // ----------------------------------------------------------------------------
 {
   const size_t N = numCoefs();
+  assert(ix < numIndices());
   return std::set<Index>(&ixs_[ix*N], &ixs_[(ix+1)*N]).size();
 }
 
@@ -303,8 +307,8 @@ TensorComp<T>::sortElementsByIndex(bool descending)
     return *this;
   }
   
-  //std::sort(ptrs.begin(), ptrs.end(), comp);
-  __gnu_parallel::sort(ptrs.begin(), ptrs.end(), comp);
+  std::sort(ptrs.begin(), ptrs.end(), comp);
+  //__gnu_parallel::sort(ptrs.begin(), ptrs.end(), comp);
 
   if (descending)
     std::reverse(ptrs.begin(), ptrs.end());

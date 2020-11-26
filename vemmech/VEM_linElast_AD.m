@@ -215,8 +215,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            % material parameters
            assert(~opt.experimental_scaling) % @@ derivative for experimental
                                              % scaling not yet implemented
+           tic; fprintf('compute Ax_derivs\n');
            extra.Ax_derivs = compute_Ax_derivs(G, u, extra, E, nu, opt.alpha_scaling, ...
                                                isdirdofs);
+           toc;
         else
            extra.Ax_derivs = 0;
         end
