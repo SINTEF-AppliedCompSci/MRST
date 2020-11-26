@@ -106,8 +106,8 @@ localNodePos = localNodePos(ia);
 tValue       = tValue(ia);
 
 % OK with strict tollerance here (end t-values should be exactly 0/1)
-onNodeTol    = sqrt(eps);
-onGridNode = tValue < onNodeTol | onNodeTol > 1 - sqrt(eps);
+onNodeTol  = sqrt(eps);
+onGridNode = tValue < onNodeTol | tValue > 1 - onNodeTol;
 
 % collect unique faces and number of occurances (2 for 3D, 1 for 2D)
 [fix, nn] = rlencode(faceIx);
@@ -140,11 +140,12 @@ for k = 1:numel(fix)
                 % etc.
                 expr = round(2*localNodePos(curIx) + ~onNode + 2*tv.*onNode);
                 locpos = mod(expr-1, 2*nf) + 1;
-                % to by a valid cut, there needs to be at least one node
+                % to be a valid cut, there needs to be at least one node
                 % between the two intersections, hence distance in locpos
-                % greater than or equal to 2
+                % greater than to 2 (since at least one of the intersection 
+                % points lie on a node)
                 dist   = min(mod([diff(locpos), diff(locpos([2,1]))], 2*nf));
-                if dist >= 2
+                if dist > 2
                     isSplitFace(k) = true;
                 end
                 % identify coinciding node(s)
