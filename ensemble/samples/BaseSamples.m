@@ -33,7 +33,8 @@ classdef BaseSamples
         transformSampleVectors = true % Boolean. Indicates whether the sample vectors
                                       % should be transformed to make them more
                                       % suitable for history matching
-        
+                                      
+                                      
     end
     
     methods
@@ -161,6 +162,39 @@ classdef BaseSamples
         %-----------------------------------------------------------------%
         % Functions related to history matching
         %-----------------------------------------------------------------%
+        function sampleSize = getSampleSize(samples)
+            % Returns the size of a sample realization.
+            % Note that this function does not work properly if a
+            % generatorFn is used for generating samples on the fly, and
+            % will in those cases return -1.
+            
+            if isempty(samples.data)
+                sampleSize = -1;
+                return;
+            end
+            
+            function ssize = getElementSize(c)
+                ssize = 0;
+                if isnumeric(c)
+                    ssize = numel(c);
+                elseif iscell(c)
+                    for i=1:numel(c)
+                        ssize = ssize + getElementSize(c{i});
+                    end
+                elseif isstruct(c)
+                    fn = fieldnames(c);
+                    for i=1:numel(fn)
+                        ssize = ssize + getElementSize(c.(fn{i}));
+                    end
+                else
+                    assert(false, 'Found unexpected element');
+                end
+            end
+            
+            sampleSize = getElementSize(samples.data{1});  
+        end
+        
+        
         function sampleVectors = getSampleVectors(samples)
             % Structure the samples in a matrix so that each column
             % consists of the sampled parameters of its corresponding
