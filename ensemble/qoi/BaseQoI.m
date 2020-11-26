@@ -287,7 +287,7 @@ classdef BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function h = plotQoIHistogram(qoi, varargin)
+        function [hf, hh] = plotQoIHistogram(qoi, hf, varargin)
             % Plots the distribution of the QoI of the ensemble in the form
             % of a histogram. If the QoI is nonscalar, norm(QoI) is used.
             %
@@ -311,13 +311,15 @@ classdef BaseQoI
                 n_mean = log10(abs(n_mean));
                 n      = log10(abs(n));
             end
+            if isempty(hf), hf = figure(); end
             for i = 1:numQoIs
                 % Plot each QoI in separate figure
-                h = histogram(n(:,i), opt.edges, extra{:});
+                set(0, 'CurrentFigure', hf);
+                hh = histogram(n(:,i), opt.edges, extra{:});
                 if opt.includeMean
                     % Plot mean as vertical, dashed line
                     hold on
-                    plot([n_mean(i), n_mean(i)], h.Parent.YLim, '--k', 'lineWidth', 1);
+                    plot([n_mean(i), n_mean(i)], hh.Parent.YLim, '--k', 'lineWidth', 1);
                     hold off
                 end
                 if opt.includeRMSE
