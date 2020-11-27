@@ -1,4 +1,4 @@
-function [uu, extra] = VEM_linElast_AD(G, E, nu, el_bc, load, salt, varargin)
+function [uu, extra] = VEM_linElast_AD(G, E, nu, el_bc, load, varargin)
 % Assemble and solve the linear elasticity equations using VEM
 %
 % SYNOPSIS:
@@ -85,7 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt.add_operators = opt.add_operators && nargout>1;
     tic; fprintf('Assembling system.\n');
     
-    [S, extra] = VEM_assemble_AD(G, E, nu, salt, 'extra', opt.extra, ...
+    [S, extra] = VEM_assemble_AD(G, E, nu, 'extra', opt.extra, ...
                                  'alpha_scaling', opt.alpha_scaling);
     toc
 

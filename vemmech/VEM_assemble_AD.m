@@ -1,4 +1,4 @@
-function [S, operators] = VEM_assemble_AD(G, E, nu, salt, varargin)
+function [S, operators] = VEM_assemble_AD(G, E, nu,  varargin)
 
    opt = merge_options(struct('extra'        , [], ...
                               'alpha_scaling', 1 ), ...
@@ -12,7 +12,7 @@ function [S, operators] = VEM_assemble_AD(G, E, nu, salt, varargin)
    % recomputed, only forwarded.    
    % If 'salt' is not empty, these matrices will include a modified WC
    % system with only compressive modes
-   non_AD_part = compute_geometry_dependent_matrices(G, salt, opt.extra);
+   non_AD_part = compute_geometry_dependent_matrices(G, opt.extra);
    
    %% Compute AD part
    % Compute the tensor that depend on the grid and elastic moduli, but not on
@@ -27,7 +27,7 @@ function [S, operators] = VEM_assemble_AD(G, E, nu, salt, varargin)
 end
 
 % ----------------------------------------------------------------------------
-function res = compute_geometry_dependent_matrices(G, salt,precomp)
+function res = compute_geometry_dependent_matrices(G,precomp)
    
    % If precomputed values are provided, return these and skip the rest of the 
    if ~isempty(precomp)
@@ -49,18 +49,6 @@ function res = compute_geometry_dependent_matrices(G, salt,precomp)
    nlc = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells); % # of nodes per cell
    lcellnum = rldecode((1:numel(cells))', nlc);
    
-   % second, provide the coresponding salt stuff   
-   isSalt = false;
-   if ~isempty(salt)
-       isSalt = true;
-       salt_cells =  salt.salt_cells;   
-       nSlt = numel(salt_cells);
-       if nSlt == numel(cells)
-           warning('ful salty  domain: the system is  singular');
-       end
-       % get the nodes within the salt domain
-       inodes_salt = mcolon(G.cells.nodePos(salt_cells), (G.cells.nodePos(salt_cells + 1)-1))';
-   end
 
    if G.griddim == 2
       nlin = 3; % dimension ov Voigt matrix (and of local linear space)
@@ -143,12 +131,7 @@ function res = compute_geometry_dependent_matrices(G, salt,precomp)
       
    for i = 1:numel(perm)
       tmp = XX(:, perm{i});
-      WR(:, G.griddim + i) = reshape(bsxfun(@times, tmp, nrv{i})', [], 1);      
-      % We remove the shear stress modes (last three components) of WC
-      % and we keep the regularization part 
-      if isSalt
-          tmp(inodes_salt,:) = 0;
-      end      
+      WR(:, G.griddim + i) = reshape(bsxfun(@times, tmp, nrv{i})', [], 1);          
       WC(:, G.griddim + i) = reshape(bsxfun(@times, tmp, nrc{i})', [], 1);
    end
    
