@@ -11,7 +11,7 @@
 %   computeGeometry         - Add geometry information (centroids, volumes, areas) to a grid
 %   extended_grid_structure - Extended grid structure 
 %   extractSubgrid          - Construct valid grid definition from subset of existing grid cells.
-%   glue2DGrid              - Connect two 2D grids along common edge
+%   glue2DGrid              - Connect two 2D grids along common edges
 %   grid_structure          - Grid structure used in the MATLAB Reservoir Simulation Toolbox.
 %   grdeclXYZ               - Get corner-point pillars and coordinates in alternate format
 %   hexahedralGrid          - Construct valid grid definition from points and list of hexahedra
