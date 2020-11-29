@@ -11,6 +11,7 @@
 %   interpReg            - Interpolate data (with region support)
 %   interpRegPVT         - Interpolate PVT-type curves with region support
 %   interpRegular2DTable - 
+%   preprocessTablePVT   - Undocumented Utility Function
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

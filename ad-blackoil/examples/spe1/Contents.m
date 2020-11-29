@@ -2,6 +2,7 @@
 %
 % Files
 %   blackoilTutorialSPE1 - The Odeh Benchmark (SPE1) 
+%   simulateSPE1         - Minimal example that runs SPE1
 %   timestepControlDemo  - Automated Time-Step Control
 
 %{

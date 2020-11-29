@@ -4,7 +4,7 @@
 %
 %   ConcentrationComponent - A component description that assumes that the component is
 %   GenericComponent       - The base class that implements all interfaces for a given component.
-%   ImmiscibleComponent    - Specialized interface for immiscible component
+%   ImmiscibleComponent    - Specialized interface for an immiscible component
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

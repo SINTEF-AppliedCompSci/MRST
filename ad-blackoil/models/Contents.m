@@ -1,7 +1,7 @@
 % MODELS
 %
 % Files
-%   AquiferBlackOilModel    - 
+
 %   GenericBlackOilModel    - 
 %   ThreePhaseBlackOilModel - Three phase with optional dissolved gas and vaporized oil
 %   TwoPhaseOilWaterModel   - Two phase oil/water system without dissolution

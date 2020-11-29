@@ -1,6 +1,7 @@
 % Files
 %   assignDENSITY     - dens of size ntpvtx3
 %   assignGRAVITY     - Define Fluid Densites from API and Specific Fluid Gravity
+%   assignEHYSTR      - Assigns flags for hysteresis computation, as well as input options for
 %   assignMISC        - 
 %   assignMSFN        - 
 %   assignOILVIST     - Compute tables (static data)
@@ -20,7 +21,7 @@
 %   assignPVTO        - 
 %   assignPVTW        - 
 %   assignROCK        - 
-%   assignROCKTAB     - 
+%   assignROCKTAB     - Undocumented Utility Function
 %   assignRSCONSTT    - 
 %   assignRelPerm     - 
 %   assignRelPermScal - 
@@ -36,7 +37,7 @@
 %   assignSPECROCK    - Compute tables (static data)
 %   assignSSFN        - 
 %   assignSURFADS     - 
-%   assignSURFCAPD    - 
+%   assignSURFCAPD    - Polymer shear thinning/thickening
 %   assignSURFROCK    - 
 %   assignSURFST      - 
 %   assignSURFVISC    - 

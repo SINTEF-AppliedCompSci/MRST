@@ -1,9 +1,14 @@
 % BOOK-II
 %
 % Files
+%   backendOptionsExample             - 
 %   blockAssemblyExample              - Example demonstrating deferred assembly (WIP)
+%   exampleBenchmarkBackends          - Benchmarking performance of different AD backends
 %   examplePlottingStateFunctionsBook - Set up a compositional test model
 %   exampleStateFunctionsBook         - 
+%   parallelScalingAD                 - Parallel scaling of AD assembly
+%   showADBenchmarkAssembly           - 
+%   showConceptualAD                  - 
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
@@ -23,4 +28,3 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-

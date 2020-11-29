@@ -10,7 +10,7 @@
 %   linearSolverExample             - 
 %   MPFAvsTPFAwithADExample         - Combining consistent discretizations with AD-OO
 %   stateFunctionTutorial           - Introduction to StateFunctions for the AD-OO framework
-%   wenoExampleAD                   - Set up scenario
+%   wenoExampleAD                   - 
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

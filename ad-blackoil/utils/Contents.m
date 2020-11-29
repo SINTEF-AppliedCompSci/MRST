@@ -1,9 +1,7 @@
 % UTILS
 %
 % Files
-%   assignWellValuesFromControl       - Assign wellSol values when values are set as controls
 %   calculateHydrocarbonsFromStatusBO - Compute solution variables for the gas/oil/rs/rv-variable in black-oil
-%   computeAquiferFluxes              - Undocumented Utility Function
 %   computeFlashBlackOil              - Compute flash for a black-oil model with disgas/vapoil
 %   computeInitAquifer                - Undocumented Utility Function
 %   equationsBlackOil                 - Generate linearized problem for the black-oil equations
