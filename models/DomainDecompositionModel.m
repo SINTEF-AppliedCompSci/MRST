@@ -171,8 +171,8 @@ classdef DomainDecompositionModel < WrapperModel
             end
             state = stateFinal;
             % Make step report
-            report = model.makeSubdomainStepReport('Iterations', iterations  , ...
-                                                   'subreports', {subreports});
+            report = model.makeSubdomainStepReport('Iterations', iterations, ...
+                                                   'subreports', subreports);
         end
         
         %-----------------------------------------------------------------%
@@ -222,8 +222,8 @@ classdef DomainDecompositionModel < WrapperModel
             % Make step report
             subreports = subreports(:);
             subreports = vertcat(subreports{:});
-            report = model.makeSubdomainStepReport('Iterations', iterations  , ...
-                                                   'subreports', {subreports});
+            report = model.makeSubdomainStepReport('Iterations', iterations, ...
+                                                   'subreports', subreports);
         end
         
         %-----------------------------------------------------------------%
@@ -476,6 +476,12 @@ classdef DomainDecompositionModel < WrapperModel
         %-----------------------------------------------------------------%
         function submodel = setSubdomainTolerances(model, submodel)
             % Adjust subdomain tolerances
+            if isa(submodel, 'SequentialPressureTransportModel')
+                submodel.pressureModel  = model.setSubdomainTolerances(submodel.pressureModel);
+                submodel.transportModel = model.setSubdomainTolerances(submodel.transportModel);
+                submodel.parentModel    = model.setSubdomainTolerances(submodel.parentModel);
+                return
+            end
             tolerances = model.subdomainTol;
             if isempty(tolerances)
                 return
