@@ -1,6 +1,12 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Here I run an example that use the same low Network flownet uses with
+% zero ditional nodes
+% 
+% The new IMSIMmodel creates a model form a given graph
+% Limitation: One node per well
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%55
 mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization
 
- 
 %% Run EGG field simulation
 Settup_Egg_simulation 
  
