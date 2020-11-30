@@ -169,9 +169,20 @@ end
 %-------------------------------------------------------------------------%
 function subRock = getSubRock(model, cellMap)
     % Extract submodel rock properties
-    subRock = model.rock;
-    subRock.perm = subRock.perm(cellMap.keep,:);
-    subRock.poro = subRock.poro(cellMap.keep);
+    subRock = getSubRockFields(model.rock, cellMap);
+end
+
+%-------------------------------------------------------------------------%
+function subRock = getSubRockFields(rock, cellMap)
+    fnames = reshape(fieldnames(rock), 1, []);
+    subRock = rock;
+    for f = fnames
+        if size(rock.(f{1}),1) == numel(cellMap.keep)
+            subRock.(f{1}) = rock.(f{1})(cellMap.keep,:);
+        elseif isstruct(rock.(f{1}))
+            subRock.(f{1}) = getSubRockFields(rock.(f{1}), cellMap);
+        end
+    end
 end
 
 %-------------------------------------------------------------------------%
