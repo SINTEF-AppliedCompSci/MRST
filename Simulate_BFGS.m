@@ -1,5 +1,10 @@
-function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state0, wellSols_ref,weighting,objScaling)
-          
+function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state0, wellSols_ref,weighting,objScaling,varargin)
+    opt = struct('Verbose',           mrstVerbose(),...
+                 'Gradient',   'AdjointAD');
+
+    opt = merge_options(opt, varargin{:});     
+ 
+
              [model,schedule,state0] = control2problem(p,model,schedule,state0, parameters);     
             
              lsolve = AMGCL_CPRSolverAD('maxIterations', 200, 'tolerance', 1e-3);
@@ -33,10 +38,20 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
         end
         %Lets Assume param{4} is for state0
 
-        gradient = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
+        switch opt.Gradient
+                case 'AdjointAD'
+                gradient = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
                                              'Parameters'    , {params{1:3}}, ...
                                              'ParameterTypes', {paramTypes{1:3}},...
                                              'initStateSensitivity',initStateSensitivity);
+                case  'PerturbationAD'
+                gradient = computeGradientPerturbationAD(state0, states, model, schedule, objh, ...
+                                             'Parameters'    , {params{1:3}}, ...
+                                             'ParameterTypes', {paramTypes{1:3}},...
+                                             'initStateSensitivity',initStateSensitivity);
+            otherwise   
+                warning('Greadient method %s is not implemented',opt.Gradient)
+        end
                                          
 
         
