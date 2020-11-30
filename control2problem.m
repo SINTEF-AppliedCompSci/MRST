@@ -88,8 +88,10 @@ for k = 1:np
                    Indx = parameters{k}.Indx;
                    for i = 1 : size(parameters{k}.Indx,1)                      
                    [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2)); 
-                       schedule.control.W(Indx(i,1)).WI(Indx(i,2)) = u(reel + i-1)...
+                    for kk = 1 : numel( schedule.control)
+                       schedule.control(kk).W(Indx(i,1)).WI(Indx(i,2)) = u(reel + i-1)...
                                                          *(umax-umin)+umin;
+                    end
                    end
                    reel = reel + size(parameters{k}.Indx,1);
                  otherwise

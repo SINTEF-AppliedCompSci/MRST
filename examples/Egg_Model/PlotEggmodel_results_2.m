@@ -1,6 +1,6 @@
 %load paper_EGG_Model_40.mat
 
-close all
+%close all
 for i = 1:numel(schedule.step.val)
      for p = 9:12
         qw_ref(i,p-8) = wellSols_ref{i}(p).qWs;
@@ -35,7 +35,7 @@ markersize = 10;
  xlabel('days'); ylabel('STB');
  %ylim([0 4000])
  title('Water production')
- T = cumsum(dt(1:40))/day; %your point goes here 
+ T = cumsum(dt(1:48))/day; %your point goes here 
  hl = line([T(end) T(end)],get(hs,'YLim'),'Color', 150*[1 1 1]/255,'LineStyle','--','HandleVisibility','off');
  set(hl,'LineWidth',lineSize)
  %text(T(end),'Training data')
