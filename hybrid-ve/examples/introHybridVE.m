@@ -4,8 +4,8 @@
 % the results.
 %
 % For more information see:
-% Møyner, O., & Nilsen, H. M. (2019). Multiresolution coupled vertical 
-% equilibrium model for fast flexible simulation of CO2 storage. 
+% Møyner, O., & Nilsen, H. M. (2019). Multiresolution coupled vertical
+% equilibrium model for fast flexible simulation of CO2 storage.
 % Computational Geosciences, 23(1), 1-20.
 
 %% Add modules

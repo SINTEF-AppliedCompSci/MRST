@@ -4,15 +4,14 @@
 % hybrid VE, coarse scale and simple (non-hybrid) VE simulations.
 %
 % For more information see:
-% Møyner, O., & Nilsen, H. M. (2019). Multiresolution coupled vertical 
-% equilibrium model for fast flexible simulation of CO2 storage. 
+% Møyner, O., & Nilsen, H. M. (2019). Multiresolution coupled vertical
+% equilibrium model for fast flexible simulation of CO2 storage.
 % Computational Geosciences, 23(1), 1-20.
 
 %% Add modules
 gravity reset on;
 mrstModule add ad-core ad-blackoil ad-props co2lab matlab_bgl coarsegrid;
 mrstModule add mrst-gui
-
 
 %% Setup case
 % First we set up the finescale simulation. This is moved to a separate
