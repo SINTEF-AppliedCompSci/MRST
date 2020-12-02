@@ -41,7 +41,7 @@ end
 %% Generate observations 
 % Define a QOI for storing the relevant qoi for our problem
 
-trueQoI = WellQoI('wellNames', {'P1'}, 'fldname', {'qOs'});
+trueQoI = WellQoIHM('wellNames', {'P1'}, 'fldname', {'qOs'});
 trueQoI = trueQoI.validateQoI(trueProblem);
 trueObservations = trueQoI.getQoI(trueProblem);
 
@@ -79,7 +79,7 @@ samples = RockSamples('data', configData)
 % We validate the QoI with the trueProblem, since this will be our ensemble
 % base problem as well.
 
-qoi = WellQoI('wellNames', {'P1'}, 'fldname', {'qOs'}, ...
+qoi = WellQoIHM('wellNames', {'P1'}, 'fldname', {'qOs'}, ...
                   'observationResultHandler', observationResultHandler, ...
                   'observationCov', obsStdDev^2)
 
@@ -91,7 +91,7 @@ ensemble = MRSTHistoryMatchingEnsemble(trueExample, samples, qoi, ...
     'maxWorkers', 8, ...
     'verbose', true, ...
     'reset', true...
-    );
+    )
 
 
 %% Displaying the observations and observation error cov through the ensemble
@@ -127,7 +127,7 @@ ensemble.plotQoI('clearFigure', false);
 figure
 hold on
 for i = 1:ensemble.num
-    plot(ensemble.qoi.ResultHandler{i}{1}{1} - ensemble.qoiArchive{{1}}.ResultHandler{i}{1}{1})
+    plot(ensemble.qoi.ResultHandler{i}{1}{1} - ensemble.qoiArchive{1}{1}.ResultHandler{i}{1}{1})
 end
 
 

@@ -16,20 +16,6 @@ classdef BaseQoI
     properties
         ResultHandler % Handler for writing/reading QoIs to/from file
         
-        %% Properties related to history matching
-        observationResultHandler % Result handler that holds observations.
-        truthResultHandler       % Result handler that holds the true data. 
-                          % The data read by these result handler must be 
-                          % on a format that matches the given QoI class.
-        observationCov    % Observation error covariance matrix, several  
-                          % forms might be valid depending on the relevant
-                          % QoI implementation. This can be either
-                          % - scalar: uncorrelated observation with the
-                          % same variance
-                          % - vector: Uncorrelated observations, but
-                          % different values for different parts of the QoI
-                          % - matrix: The full error covariance matrix
-        
     end
     
     methods
@@ -66,12 +52,6 @@ classdef BaseQoI
             % Check that output is stored with the correct name
             assert(strcmp(qoi.ResultHandler.dataPrefix(1:3), 'qoi'), ...
                    'ResultHandler data prefix must begin with ''qoi''.');               
-            % Validation related to history matching
-            if ~isempty(qoi.observationResultHandler)
-                assert(~isempty(qoi.observationCov), ...
-                    'Observation error covariance matrix must be provided along with observationResultHandler');
-            
-            end
         end
         
 
@@ -94,7 +74,7 @@ classdef BaseQoI
             %
             % See also:
             %    `qoi.computeQoI(problem)`
-            seed = str2double(problem.OutputHandlers.states.dataFolder);
+            seed = qoi.problem2seed(problem);
             if qoi.isComputed(seed)
                 % QoI already computed - read from file
                 u = qoi.ResultHandler{seed};
@@ -284,16 +264,6 @@ classdef BaseQoI
                     end
                     plotQoI(u_mean, i, k, extra{:}, 'tag', 'mean');
                     
-                    if opt.plotObservation && ~isempty(qoi.observationResultHandler)
-                        obs = qoi.getObservationVector('vectorize', false);
-                        plotQoI(obs, i, k, 'isObservation', true, 'tag', 'obs', extra{:});
-                    end
-                    
-                    if opt.plotTruth && ~isempty(qoi.truthResultHandler)
-                        truth = qoi.getTrueObservation('vectorize', false);
-                        plotQoI(truth, i, k, 'isTruth', true, 'tag', 'truth', extra{:}); 
-                    end
-                    
                     hold off
                     
                     % Stack the lines so that the mean(s) come on top
@@ -336,8 +306,6 @@ classdef BaseQoI
             % still under the observations, if any.
             lines = get(gca, 'Children');
             meansID = [];
-            obsID = [];
-            truthID = [];
             for line=1:numel(lines)
                 if strcmp(lines(line).Tag, 'mean')
                     meansID = [meansID, line]; 
@@ -414,40 +382,59 @@ classdef BaseQoI
             end
         end
         
-        %-----------------------------------------------------------------%
-        % Functions related to history matching
-        %-----------------------------------------------------------------%
-        function [obs, scaling] = getObservationAndScaling(qoi, varargin)
-            % Returns the observation and values that shows how these
-            % observations should be scaled for best results in history
-            % matching. Optional parameters are:
-            %  - 'vectorize': If true, the outputs will be one dimensional 
-            %         vectors, or they will be structured as the given QoI.
+        
 
-            error('Template class not meant for direct use!');
-        end
+        %-----------------------------------------------------------------%
+        function u = getQoIVector(qoi, in, varargin)
+            % Returns the qoi as a single vector.
+            % Input can either be a seed or a problem.
             
+            opt = struct('dtIndices', [], ...
+                         'vectorize', true);
+            [opt, extra] = merge_options(opt, varargin{:});
             
-        function u = getObservationVector(qoi, varargin)
-            % Returns the observation as a single vector. Typically for use
-            % in history matching
-            error('Template class not meant for direct use!');
+            if isnumeric(in)
+                % input is seed
+                seed = in;
+                assert(qoi.isComputed(seed), ...
+                    'getQoIVector can only be called with seed when the problem is computed');
+                
+                u = qoi.ResultHandler{seed};
+            else
+                % in is problem
+                problem = in;
+                u = getQoI(qoi, problem);
+            end
+            
+            u = qoi.qoi2vector(u, 'dtIndices', opt.dtIndices, 'vectorize', opt.vectorize); 
         end
         
         %-----------------------------------------------------------------%
-        function u = getQoIVector(qoi, problem)
-            % Returns the qoi as a single vector for use in history
-            % matching. In that setting, the QoI represents the simulated
-            % equivalent to the observation.
+        function u = qoi2vector(qoi, u, varargin)
+            % Transform u from the standard qoi form to a single vector.
+            
             error('Template class not meant for direct use!');
         end
-            
+        
+    end % methods
+    
+    
+    methods (Access = protected)
+        
         %-----------------------------------------------------------------%
-        function R = getObservationErrorCov(qoi)
-            % Returns the full observation error covariance matrix
+        function seed = problem2seed(qoi, problem)
+            seed = str2double(problem.OutputHandlers.states.dataFolder);
+        end
+        
+        
+           
+        %-----------------------------------------------------------------%
+        function u = extractTimesteps(qoi, u, dtIndices)
+            % Only keep some of the time indices of u as specified by the
+            % dtIndices input.
+        
             error('Template class not meant for direct use!');
         end
-            
         
     end
 end

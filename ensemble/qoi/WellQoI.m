@@ -40,9 +40,6 @@ classdef WellQoI < BaseQoI
         cumulative   = false % Cumulative production
         total        = false % Total production
         combined     = false % Combine all wells, or give per well values.
-        
-        historyMatchDtRange
-        
 
         dt % Timestep sizes
         
@@ -110,11 +107,7 @@ classdef WellQoI < BaseQoI
                 % We should never get here
                 error('Please provide either well names or well indices');
             end
-            % Get timesteps
-            qoi.dt = problem.SimulatorSetup.schedule.step.val;
-            if isempty(qoi.historyMatchDtRange)
-                qoi.historyMatchDtRange = 1:numel(qoi.dt);
-            end
+
         end
         
         %-----------------------------------------------------------------%
@@ -146,15 +139,11 @@ classdef WellQoI < BaseQoI
                 uMatrix = sum(uMatrix, 2);
             end
             
-            % Note: WellOutput interpolation is not done if the QoI is used
-            % for historyMatching
-            if numel(qoi.dt) == numel(qoi.historyMatchDtRange)
-                % If we have a time series and the problem was simulated with
-                % different timesteps than the base problem, interpolate well
-                % output onto base problem timesteps
-                if numel(qoi.dt) ~= numel(dtProblem) && ~qoi.total
-                    uMatrix = qoi.interpolateWellOutput(dtProblem, uMatrix);
-                end
+            % If we have a time series and the problem was simulated with
+            % different timesteps than the base problem, interpolate well
+            % output onto base problem timesteps
+            if numel(qoi.dt) ~= numel(dtProblem) && ~qoi.total
+                uMatrix = qoi.interpolateWellOutput(dtProblem, uMatrix);
             end
             
             % Organizing u as a cell array per well of cell array per field
@@ -187,10 +176,8 @@ classdef WellQoI < BaseQoI
                          'labels'        , true   , ...
                          'title'         , true   , ...
                          'cellNo'        , 1      , ...
-                         'subCellNo'     , 1      , ...
-                         'isObservation' , false  , ...
-                         'isTruth'       , false  , ...
-                         'observationIndices', [] );
+                         'subCellNo'     , 1);
+            
             [opt, extra] = merge_options(opt, varargin{:});
             
             color = opt.color; % Plot mean in distinct color
@@ -203,23 +190,9 @@ classdef WellQoI < BaseQoI
             if is_timeseries
                 
                 time = cumsum(qoi.dt)./opt.timescale;
-                if opt.isObservation
-                    if isempty(opt.observationIndices)
-                        plot(time, u, 'x', 'color', [0 0 0], extra{:});
-                    else
-                        plot(time(opt.observationIndices), u(opt.observationIndices), 'x', 'color', [0 0 0], extra{:});
-                        unobservedIndices = setdiff(1:numel(u),opt.observationIndices);
-                        if ~isempty(unobservedIndices)
-                            plot(time(unobservedIndices), u(unobservedIndices), 'o', 'color', [0 0 0], extra{:});
-                        end
-                    end
-                elseif opt.isTruth
-                    plot(time, u, 'o', 'color', [1 1 1].*0.5, extra{:});
-                else
-                    plot(time(1:numel(u)), u, 'color'    , color, ...
-                                              'lineWidth', opt.lineWidth, ...
-                                               extra{:}         );
-                end
+                plot(time(1:numel(u)), u, 'color'    , color, ...
+                                          'lineWidth', opt.lineWidth, ...
+                                           extra{:}         );
                 
                 xlim([time(1), time(end)]);
                 box on, grid on
@@ -304,136 +277,40 @@ classdef WellQoI < BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        % Functions related to history matching
-        %-----------------------------------------------------------------%
-        
-        function [obs, scaling] = getObservationAndScaling(qoi, varargin) 
-            
-            opt = struct('vectorize', true );
-            [opt, extra] = merge_options(opt, varargin{:});
-            
-            obs = qoi.getObservationVector('vectorize', false);
-            
-            for w = 1:numel(qoi.wellNames)
-                for f = 1:numel(qoi.fldname)
-                    scaling{w}{f} = ones(size(obs{w}{f}(:)))*max(abs(obs{w}{f}(:)));
-                end
-            end
-            
-            if opt.vectorize
-                obs = qoi.qoi2vector(obs);
-                scaling = qoi.qoi2vector(scaling);
-            end
-    
-        end
-        
-        
-        %-----------------------------------------------------------------%
-        function obs = getTrueObservation(qoi, varargin)
-            % Check that the observation is valid
-            assert(~isempty(qoi.truthResultHandler), ...
-                'qoi.truthResultHandler is missing');
-            assert(numel(qoi.truthResultHandler.getValidIds) > 0, ...
-                'No available data in the truthResultHandler');
-            
-            resultHandler = qoi.truthResultHandler;
-            obs = qoi.getResultHandlerVector(resultHandler, varargin{:});
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function obs = getObservationVector(qoi, varargin)
-            
-            % Check that the observation is valid
-            assert(~isempty(qoi.observationResultHandler), ...
-                'qoi.observationResultHandler is missing');
-            assert(numel(qoi.observationResultHandler.getValidIds) > 0, ...
-                'No available data in the observationResultHandler');
-            
-            resultHandler = qoi.observationResultHandler;
-            obs = qoi.getResultHandlerVector(resultHandler, varargin{:});
-        end
-            
-        %-----------------------------------------------------------------%
-        function obs = getResultHandlerVector(qoi, resultHandler, varargin)
+        function u = qoi2vector(qoi, u, varargin)
             opt = struct('vectorize', true, ...
-                         'extractHMTimesteps', true);
+                         'dtIndices', []);
             [opt, extra] = merge_options(opt, varargin{:});
-            
-            obs = resultHandler{1};
-            
+                        
             if ~qoi.combined
-                assert(numel(obs) == numel(qoi.wellNames), ...
+                assert(numel(u) == numel(qoi.wellNames), ...
                     'The observation does not match the number of wells in QoI');
             else
-                assert(numel(obs) == 1, ...
+                assert(numel(u) == 1, ...
                     'The observation contains several wells, but the QoI is supposed to be combined values');
             end
             
-            assert(numel(obs{1}) == numel(qoi.fldname), ...
+            assert(numel(u{1}) == numel(qoi.fldname), ...
                 'The observation does not match the number of fldnames in QoI');
             
-            assert(numel(obs{1}{1}) >= numel(qoi.dt), ...
+            assert(numel(u{1}{1}) >= numel(qoi.dt), ...
                 'The observation has too many timesteps to match the QoI class');
             
-            if opt.extractHMTimesteps
-                obs = qoi.extractHistoryMatchingTimestep(obs);
+            if ~isempty(opt.dtIndices)
+                u = qoi.extractTimestep(u, opt.dtIndices);
             end
+            
             if opt.vectorize
-                obs = qoi.qoi2vector(obs);
-            end
-        end
-        
-        %-----------------------------------------------------------------%
-        function u = getQoIVector(qoi, seed)
-            u = qoi.ResultHandler{seed};
-            u = qoi.extractHistoryMatchingTimestep(u);
-            u = qoi.qoi2vector(u);
-        end
-            
-        %-----------------------------------------------------------------%
-        function R = getObservationErrorCov(qoi)
-            
-            assert(~isempty(qoi.observationCov), ...
-                'qoi.observationCov is missing');
-            
-            % Check how observationCov matches the observation
-            u = qoi.getObservationVector('vectorize', false);
-            u_vec = qoi.qoi2vector(u);
-            numObs = size(u_vec,1);
-            
-            if isscalar(qoi.observationCov)
-                R = speye(numObs)*qoi.observationCov;
-            
-            elseif isvector(qoi.observationCov)
-                rdiag = [];
-            
-                if numel(qoi.observationCov) == numel(qoi.fldnames)*numel(qoi.wellNames)
-                    for w = 1:numel(qoi.wellNames)
-                        for f = 1:numel(qoi.fldnames)
-                            covindex = w*(numel(qoi.fldnames-1)) + f;
-                            rdiag = [rdiag ; repmat(qoi.observationCov(covindex), [numel(u{w}{f}), 1])];
-                        end
-                    end  
-                elseif numel(qoi.observationCov) == numel(qoi.fldnames)
-                    % Assume that there are different covariances for each
-                    % fieldName
-                    for w = 1:numel(qoi.wellNames)
-                        for f = 1:numel(qoi.fldnames)
-                            rdiag = [rdiag ; repmat(qoi.observationCov(f), [numel(u{w}{f}), 1])];
-                        end
-                    end    
-                elseif numel(qoi.observationCov) == numObs
-                    rdiag = qoi.observationCov;
+                % For multiple fields and wells, this vectorization will result in
+                % u = [ (well1, field1), (well1, field2), (well2, field1), (well2,
+                % field2) ...]
+                u_tmp = [];
+                for w = 1:numel(qoi.wellNames)
+                    for f = 1:numel(qoi.fldname)
+                        u_tmp = cat(1, u_tmp, u{w}{f});
+                    end
                 end
-                assert(numel(rdiag) == numObs, ...
-                    'Wrong number of diagonal elements after mapping the vector in qoi.observationCov');
-                R = sparse([1:numObs], [1:numObs], rdiag, numObs, numObs); 
-                
-            else % observationCov is matrix
-                assert(all(size(qoi.observationCov) == [numObs, numObs]), ...
-                    'The matrix in qoi.observationCov is of wrong size');
-                R = qoi.observationCov;
+                u = u_tmp;
             end
         end
         
@@ -441,6 +318,7 @@ classdef WellQoI < BaseQoI
     
     
     methods (Access = protected)
+                
         
         %-----------------------------------------------------------------%
         function wellOutputOut = interpolateWellOutput(qoi, dtProblem, wellOutput)
@@ -467,35 +345,18 @@ classdef WellQoI < BaseQoI
         end     
         
         %-----------------------------------------------------------------%
-        function u = extractHistoryMatchingTimestep(qoi, u)
+        function u = extractTimestep(qoi, u, dtRange)
             % u is now u{well}{field}(time)
             for w = 1:numel(qoi.wellNames)
                 for f = 1:numel(qoi.fldname)
-                    u{w}{f} = u{w}{f}(qoi.historyMatchDtRange);
+                    u{w}{f} = u{w}{f}(dtRange);
                 end
             end
         end
         
-        %-----------------------------------------------------------------%
-        function u = qoi2vector(qoi, u)
-            % For multiple fields and wells, this vectorization will result in
-            % u = [ (well1, field1), (well1, field2), (well2, field1), (well2,
-            % field2) ...]
-            u_tmp = [];
-            for w = 1:numel(qoi.wellNames)
-                for f = 1:numel(qoi.fldname)
-                    u_tmp = cat(1, u_tmp, u{w}{f});
-                end
-            end
-            u = u_tmp;
-        end
-
-    
-    
+       
     end
     
-            
-
     
 end
 
