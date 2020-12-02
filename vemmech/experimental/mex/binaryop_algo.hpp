@@ -32,7 +32,7 @@ apply_add_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
   typedef typename TensorComp<T>::Index Index;
   const int Ni = t1.numIndices();
   assert(t2.numIndices() == Ni); // components should be compatible
-
+  
   std::vector<Index> ixs1(t1.ixs());  transpose(ixs1, Ni);  // @@ perhaps reimplement if
   std::vector<Index> ixs2(t2.ixs());  transpose(ixs2, Ni);  // copying become too memory-intensive 
 
@@ -49,10 +49,10 @@ apply_add_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
 
   std::vector<T> target_coefs;
   std::vector<typename TensorComp<T>::Index> target_ixs;
-
+  
   while (t1_ix_iter != t1_ix_iter_end ||
          t2_ix_iter != t2_ix_iter_end) {
-
+    
     if (t1_ix_iter == t1_ix_iter_end) {
       target_coefs.push_back(*t2_coef_iter++);
       for (int i = 0; i != Ni; ++i)
@@ -76,15 +76,14 @@ apply_add_op(const TensorComp<T>& t1, const TensorComp<T>& t2)
       target_coefs.push_back(*t1_coef_iter + *t2_coef_iter);
       for (int i = 0; i != Ni; ++i)
         target_ixs.push_back(*t1_ix_iter++);
-
+      
       ++t1_coef_iter;
       ++t2_coef_iter;
       t2_ix_iter += Ni; // t2_ix_iter was already advanced in the loop above
     }
   }
-
+  
   assert(target_coefs.size() * Ni == target_ixs.size());
-
   transpose(target_ixs, target_coefs.size());
   return TensorComp<T>(t1.indexNames(), target_coefs, target_ixs);
 }

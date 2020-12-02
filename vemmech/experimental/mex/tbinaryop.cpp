@@ -26,21 +26,28 @@ public:
   //             i.e. they have the same index names and index orders.
   // inputs[1] - string indicating the binary operation ('-', '+', '*', '/')
   void operator() (ArgumentList outputs, ArgumentList inputs) {
-    
+
+    //std::cout << "Check arguments." << std::endl;
     checkArguments(outputs, inputs);
     
     const CellArray cells = inputs[0];
     const CharArray op = inputs[1];
+
+    //std::cout << "getNumberOfELements." << std::endl;
     if (cells.getNumberOfElements() != 2)
       raiseError("tbinaryop takes exactly two components as input.");
-    
+
     // if either of the two components uses ADI, then ADI must be used throughout
+    //std::cout << "check adi." << std::endl;
     const bool use_adi = check_adi(cells[0]) || check_adi(cells[1]);
 
-    if (use_adi)
+    if (use_adi) {
+      //std::cout << "apply adi" << std::endl;
       outputs[0] = apply_operator<BasicAD>(cells, op);
-    else
+    } else { 
+      //std::cout << "apply double" << std::endl;
       outputs[0] = apply_operator<double>(cells, op);
+    }
 
     //std::cout << "Finished binary operator - now returning to MATLAB." << std::endl;
   }
@@ -48,16 +55,20 @@ public:
   template<typename T>
   StructArray apply_operator(const CellArray& cells, const CharArray& op) {
 
+    //std::cout << "1" << std::endl;
     const auto c1 = TensorComp<T>(extract_indexnames(cells[0]),
                                   extract_numbers<T>(cells[0], "coefs", getEngine()),
                                   extract_numbers<size_t>(cells[0], "ixs", getEngine()));
+    //std::cout << "2" << std::endl;
     const auto c2 = TensorComp<T>(extract_indexnames(cells[1]),
                                   extract_numbers<T>(cells[1], "coefs", getEngine()),
                                   extract_numbers<size_t>(cells[1], "ixs", getEngine()));
+    //std::cout << "3" << std::endl;
 
     const TensorComp<T> resultcomp =
       apply_binary_op(c1, c2, string(op.begin(), op.end()));
 
+    //std::cout << "4" << std::endl;
     // now convert TensorComp to a return value for MATLAB
     //cout << "applied binary_op, now preparing data for returning to MATLAB." << endl;
     ArrayFactory factory;
@@ -86,7 +97,8 @@ public:
     result[0]["indexnames"] = indexnames;
     result[0]["coefs"] = coefs;
     result[0]["ixs"] = ixs;
-
+    //std::cout << "5" << std::endl;
+    
     return result;
   }
   

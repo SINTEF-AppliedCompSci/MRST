@@ -1013,7 +1013,7 @@ classdef SparseTensor
          assert(~SparseTensor.is_contracting_ix(ixname));
          comp = self.components{self.component_with_ix(ixname)};
          idix = SparseTensor.identical_indices(comp, ixname);
-         if numel(idix) == 1
+         if numel(idix) == 1 || isempty(comp.coefs())
             dupname = self.next_unused_contr_ix_name();
             self = self.duplicateIndex(ixname, dupname);
             duplicate_ixname = dupname;
@@ -1541,7 +1541,7 @@ classdef SparseTensor
             component.coefs = coefs;
             component.ixs = [];
          elseif numel(indexnames)==1
-            assert(isvector(coefs));
+            assert(isvector(coefs) || isempty(coefs));
             if issparse(coefs)
                nz = find(coefs);
                component.coefs = coefs(nz);

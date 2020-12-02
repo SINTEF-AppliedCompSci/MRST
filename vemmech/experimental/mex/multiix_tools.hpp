@@ -71,6 +71,10 @@ template<typename Index>
 void transpose(std::vector<Index>& vals, size_t num_cols)
 // ----------------------------------------------------------------------------
 {
+  if (num_cols == 0)
+    // nothing to do
+    return;
+  
   const size_t num_rows = vals.size() / num_cols;
   assert(num_rows * num_cols == vals.size());
   std::vector<Index> result(vals.size());
