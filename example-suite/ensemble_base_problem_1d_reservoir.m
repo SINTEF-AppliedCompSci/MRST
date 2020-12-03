@@ -22,6 +22,7 @@ function [description, options, state0, model, schedule, plotOptions] = ensemble
 %   'nsteps'     - Number of timesteps
 %   'dt_in_days' - Target timestep length in days
 %   'length'     - Length of reservoir in meters
+%   'rngseed'    - Seed for the generation of random porosity
 %
 % RETURNS:
 %   description - One-line example description, displayed in list-examples,
@@ -76,7 +77,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Each example can have any number of optional input arguments, and
     % must return a (possibly empy) options struct
-    options = struct('ncells', 30, 'nstep', 15, 'dt_in_days', 30, 'length', 205);
+    options = struct('ncells', 30, ...
+                     'nstep', 15, ...
+                     'dt_in_days', 30, ...
+                     'length', 205, ...
+                     'rngseed', -1);
     options = merge_options(options, varargin{:});
     if nargout <= 2, return; end
     
@@ -91,6 +96,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     G = computeGeometry(G);
     
     % Define rock and fluid
+    if options.rngseed > 0
+        rng(options.rngseed);
+    end
     porosity = gaussianField(G.cartDims, [0.2 0.4]); 
     permeability = porosity.^3.*(1e-5)^2./(0.81*72*(1-porosity).^2);
     rock = makeRock(G, permeability(:), porosity(:));

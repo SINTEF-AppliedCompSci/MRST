@@ -67,7 +67,6 @@ classdef RockSamples < BaseSamples
                 problem.SimulatorSetup.schedule = schedule;
             end
         end
-        
     end
     
     methods (Access = protected)
@@ -137,7 +136,7 @@ classdef RockSamples < BaseSamples
                     'Inconsistent permeability dimensions');
                 % Porosity should be [nc, 1]
                 assert(numel(sampleData.poro) == model.G.cells.num, ...
-                    'Inconsistent pororisy dimensions');
+                    'Inconsistent porosity dimensions');
             else
                 % Sample data is defined on in a cube assumed to be the
                 % bounding box of model.G
@@ -147,13 +146,15 @@ classdef RockSamples < BaseSamples
                 assert((numel(sampleData.perm) == 1 || ...
                         numel(sampleData.perm) == model.G.griddim) && ...
                         all(cellfun(@(perm) ndims(perm) == model.G.griddim, sampleData.perm)), ...
-                    'Inconsistent pororisy dimensions');
+                    'Inconsistent permeability dimensions');
                 assert(ndims(sampleData.poro) == model.G.griddim, ...
-                    'Inconsistent pororisy dimensions');
+                    'Inconsistent porosity dimensions');
                 type = 'sampleFromBox';
             end
         end
         
+        
+           
         %-----------------------------------------------------------------%
         function schedule = updateWellIndices(samples, model, schedule) %#ok
             % Update well indices for all wells based on sample rock

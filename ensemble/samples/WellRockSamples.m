@@ -67,6 +67,7 @@ classdef WellRockSamples < WellSamples & RockSamples
         end
         
         
+        
     end
 end
 

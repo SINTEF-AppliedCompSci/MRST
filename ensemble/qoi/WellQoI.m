@@ -39,9 +39,10 @@ classdef WellQoI < BaseQoI
 
         cumulative   = false % Cumulative production
         total        = false % Total production
-        combined     = false % Combine all wells, or give per well values
-        
+        combined     = false % Combine all wells, or give per well values.
+
         dt % Timestep sizes
+        
     end
     
     methods
@@ -106,8 +107,10 @@ classdef WellQoI < BaseQoI
                 % We should never get here
                 error('Please provide either well names or well indices');
             end
+            
             % Get timesteps
             qoi.dt = problem.SimulatorSetup.schedule.step.val;
+
         end
         
         %-----------------------------------------------------------------%
@@ -147,6 +150,8 @@ classdef WellQoI < BaseQoI
             end
             
             % Organizing u as a cell array per well of cell array per field
+            % E.g, the value for field f at well w at time t will be in 
+            % u{w}{f}(t)
             numFields = numel(qoi.fldname);
             numWells = numel(qoi.wellNames);
             if qoi.combined
@@ -166,26 +171,32 @@ classdef WellQoI < BaseQoI
         %-----------------------------------------------------------------%
         function plotQoI(qoi, ensemble, u, varargin) %#ok
             % Plot a single well QoI u in current figure.
-            opt = struct('color'     , [0,0,0], ...
-                         'alpha'     , 0.8    , ...
-                         'isMean'    , true   , ...
-                         'timescale' , day    , ...
-                         'labels'    , true   , ...
-                         'title'     , true   , ...
-                         'cellNo'    , 1      , ...
-                         'subCellNo' , 1      );
+            opt = struct('color'         , [0,0,0], ...
+                         'lineWidth'     , 2      , ...
+                         'alpha'         , 0.8    , ...
+                         'isMean'        , true   , ...
+                         'timescale'     , day    , ...
+                         'labels'        , true   , ...
+                         'title'         , true   , ...
+                         'cellNo'        , 1      , ...
+                         'subCellNo'     , 1);
+            
             [opt, extra] = merge_options(opt, varargin{:});
             
             color = opt.color; % Plot mean in distinct color
             if ~opt.isMean
                 color = color.*(1-opt.alpha) + opt.alpha;
             end
+            
+            
             is_timeseries = true;
             if is_timeseries
+                
                 time = cumsum(qoi.dt)./opt.timescale;
-                plot(time, u, 'color'    , color, ...
-                              'lineWidth', 2    , ...
-                               extra{:}         );
+                plot(time(1:numel(u)), u, 'color'    , color, ...
+                                          'lineWidth', opt.lineWidth, ...
+                                           extra{:}         );
+                
                 xlim([time(1), time(end)]);
                 box on, grid on
                 if opt.title
@@ -259,19 +270,69 @@ classdef WellQoI < BaseQoI
         
         %-----------------------------------------------------------------%
         function n = norm(qoi, u)
+            % TODO: This function doesn't really work since we have u{well}{field}[t]...
+            
             if ~qoi.total
-                n = cellfun(@(u) sum(u.*qoi.dt), u);
+                n = 0;
+                for w = 1:numel(qoi.wellNames)
+                    for f = 1:numel(qoi.fldname)
+                        n = n + sum(u{w}{f}.*qoi.dt);
+                    end
+                end
             else
                 n = norm@BaseQoI(qoi, u);
             end
         end
         
-    end
+        %-----------------------------------------------------------------%
+        function u = qoi2vector(qoi, u, varargin)
+            opt = struct('vectorize', true, ...
+                         'dtIndices', []);
+            [opt, extra] = merge_options(opt, varargin{:});
+                        
+            if ~qoi.combined
+                assert(numel(u) == numel(qoi.wellNames), ...
+                    'The observation does not match the number of wells in QoI');
+            else
+                assert(numel(u) == 1, ...
+                    'The observation contains several wells, but the QoI is supposed to be combined values');
+            end
+            
+            assert(numel(u{1}) == numel(qoi.fldname), ...
+                'The observation does not match the number of fldnames in QoI');
+            
+            %assert(numel(u{1}{1}) >= numel(qoi.dt), ...
+            %    'The qoi has too few many timesteps to match the QoI class');
+            
+            if ~isempty(opt.dtIndices)
+                assert(numel(u{1}{1}) >= opt.dtIndices(end), ...
+                    'The qoi has too few elements to extract the requested dtIndices');
+                
+                u = qoi.extractTimestep(u, opt.dtIndices);
+            end
+            
+            if opt.vectorize
+                % For multiple fields and wells, this vectorization will result in
+                % u = [ (well1, field1), (well1, field2), (well2, field1), (well2,
+                % field2) ...]
+                u_tmp = [];
+                for w = 1:numel(qoi.wellNames)
+                    for f = 1:numel(qoi.fldname)
+                        u_tmp = cat(1, u_tmp, u{w}{f});
+                    end
+                end
+                u = u_tmp;
+            end
+        end
+        
+    end % methods
+    
     
     methods (Access = protected)
+                
         
         %-----------------------------------------------------------------%
-        function wellOutput = interpolateWellOutput(qoi, dtProblem, wellOutput)
+        function wellOutputOut = interpolateWellOutput(qoi, dtProblem, wellOutput)
             % If wellOutput is given with time intervals dtProblem, this
             % function can be used to give wellOutputs at the timesteps 
             % found in qoi.dt
@@ -284,15 +345,37 @@ classdef WellQoI < BaseQoI
             t0  = bsxfun(@max, timeBase(1:end-1), timeProblem(1:end-1)');
             psi = max(t - t0, 0)./qoi.dt;
             % Integrate
-            wellOutput = psi*wellOutput;
+            if numel(size(wellOutput)) == 3
+                wellOutputOut = zeros(numel(qoi.dt), size(wellOutput,2), size(wellOutput,3));
+                for i=1:size(wellOutput, 3)
+                    wellOutputOut(:,:,i) = psi*wellOutput(:,:,i);
+                end
+            else
+                wellOutputOut = psi*wellOutput;
+            end
         end     
+        
+        %-----------------------------------------------------------------%
+        function u = extractTimestep(qoi, u, dtRange)
+            % u is now u{well}{field}(time)
+            for w = 1:numel(qoi.wellNames)
+                for f = 1:numel(qoi.fldname)
+                    u{w}{f} = u{w}{f}(dtRange);
+                end
+            end
+        end
+        
+       
     end
+    
     
 end
 
 %-------------------------------------------------------------------------%
 % Helpers
 %-------------------------------------------------------------------------%
+
+
 
 %-------------------------------------------------------------------------%
 function dt = getTimestepsFromProblem(problem)

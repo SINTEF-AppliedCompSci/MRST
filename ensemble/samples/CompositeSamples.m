@@ -79,31 +79,37 @@ classdef CompositeSamples < BaseSamples
             n = cellfun(@(samples) samples.num, samples.parentSamples);
         end
         
+        
+      
     end
     
+    
+    
+    methods(Access=protected)
+        %-------------------------------------------------------------------------%
+        function sampleData = compositeGeneratorFn(samples, problem, seed)
+            % Function for getting a composite sample
+            sampleData = struct();
+            if samples.tensorProduct
+                % Create tensor product mapping and find parentSeeds
+                n      = num2cell(samples.numParentSamples);
+                n      = cellfun(@(n) 1:n, n, 'UniformOutput', false);
+                [n{:}] = ndgrid(n{:}); 
+                n      = cellfun(@(n) n(:), n, 'UniformOutput', false);
+                parentSeed = cellfun(@(n) n(seed), n);
+            else
+                % Parent seeds are equal to seed
+                parentSeed = repmat(seed, samples.numParents, 1);
+            end
+            for i = 1:samples.numParents
+                % Store parent sample data with field name [class, 'Data']
+                parentData = samples.parentSamples{i}.getSample(parentSeed(i), problem);
+                sampleData.([class(samples.parentSamples{i}), 'Data']) = parentData;
+            end
+        end
+    end
 end
 
-%-------------------------------------------------------------------------%
-function sampleData = compositeGeneratorFn(samples, problem, seed)
-    % Function for getting a composite sample
-    sampleData = struct();
-    if samples.tensorProduct
-        % Create tensor product mapping and find parentSeeds
-        n      = num2cell(samples.numParentSamples);
-        n      = cellfun(@(n) 1:n, n, 'UniformOutput', false);
-        [n{:}] = ndgrid(n{:}); 
-        n      = cellfun(@(n) n(:), n, 'UniformOutput', false);
-        parentSeed = cellfun(@(n) n(seed), n);
-    else
-        % Parent seeds are equal to seed
-        parentSeed = repmat(seed, samples.numParents, 1);
-    end
-    for i = 1:samples.numParents
-        % Store parent sample data with field name [class, 'Data']
-        parentData = samples.parentSamples{i}.getSample(parentSeed(i), problem);
-        sampleData.([class(samples.parentSamples{i}), 'Data']) = parentData;
-    end
-end
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

@@ -16,6 +16,7 @@ classdef BaseSamples
     %   `RockSamples`, `WellSamples`, `DeckSamples`, `MRSTExample`, `BaseQoI`
     
     properties
+
         num = inf        % inf means that we can sample new ensemble
                          % members on the fly
         data             % precomputed sample data. Supported formats:
@@ -27,6 +28,8 @@ classdef BaseSamples
         generatorFn      % Function for generating a stochastic sample
         processProblemFn % Function handle to for processing problem after
                          % sample has been set. Default: empty
+    
+        
     end
     
     methods
@@ -93,7 +96,6 @@ classdef BaseSamples
             end
         end
         
-        
         %-----------------------------------------------------------------%
         function sampleData = getSample(samples, seed, problem)
             % Get a single sample realization based on the seed.
@@ -150,8 +152,10 @@ classdef BaseSamples
             % this function depends on the type of sample
             error('Template class not meant for direct use!');
         end
-        
 
+
+     
+        
     end
 end
     

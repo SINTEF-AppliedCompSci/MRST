@@ -15,6 +15,7 @@ classdef BaseQoI
     
     properties
         ResultHandler % Handler for writing/reading QoIs to/from file
+        
     end
     
     methods
@@ -51,8 +52,10 @@ classdef BaseQoI
             end
             % Check that output is stored with the correct name
             assert(strcmp(qoi.ResultHandler.dataPrefix(1:3), 'qoi'), ...
-                   'ResultHandler data prefix must begin with ''qoi''.');
+                   'ResultHandler data prefix must begin with ''qoi''.');               
         end
+        
+
         
         %-----------------------------------------------------------------%
         function u = getQoI(qoi, problem)
@@ -72,7 +75,7 @@ classdef BaseQoI
             %
             % See also:
             %    `qoi.computeQoI(problem)`
-            seed = str2double(problem.OutputHandlers.states.dataFolder);
+            seed = qoi.problem2seed(problem);
             if qoi.isComputed(seed)
                 % QoI already computed - read from file
                 u = qoi.ResultHandler{seed};
@@ -202,7 +205,9 @@ classdef BaseQoI
             
             opt = struct('range'     , inf         , ...
                          'subplots'  , false       , ...
-                         'subplotDir', 'horizontal');
+                         'subplotDir', 'horizontal', ...
+                         'clearFigure', true       , ...
+                         'legend'     , {{}} );
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u]  = qoi.computeMean(opt.range);
             numQoIs      = numel(u_mean);
@@ -222,14 +227,16 @@ classdef BaseQoI
             if nargin < 3 || isempty(h)
                 if opt.subplots
                     h = nan(numSubQoIs,1);
-                    switch opt.subplotDir
-                        case 'vertical'
-                            nr = numQoIs; nc = 1;
-                        case 'horizontal'
-                            nr = 1; nc = numQoIs;
-                    end
                 else
                     h = nan(numQoIs*numSubQoIs,1);
+                end
+            end
+            if opt.subplots
+                switch opt.subplotDir
+                    case 'vertical'
+                        nr = numQoIs; nc = 1;
+                    case 'horizontal'
+                        nr = 1; nc = numQoIs;
                 end
             end
             for i = 1:numQoIs
@@ -243,7 +250,9 @@ classdef BaseQoI
                         h(figureId) = qoi.figure(ensemble);
                     else
                         set(0, 'CurrentFigure', h(figureId));
-                        if ~opt.subplots, clf(h(figureId)); end
+                        if ~opt.subplots && opt.clearFigure
+                            clf(h(figureId));
+                        end
                     end
                     if opt.subplots
                         subplot(nr, nc, i);
@@ -252,8 +261,12 @@ classdef BaseQoI
                     for j = 1:numSamples
                         plotQoI(u{j}, i, k, 'isMean', false, extra{:});
                     end
-                    plotQoI(u_mean, i, k, extra{:});
+                    plotQoI(u_mean, i, k, extra{:}, 'tag', 'mean');
+                    
                     hold off
+                    
+                    % Stack the lines so that the mean(s) come on top
+                    qoi.organizePlots(opt.legend);
                 end
             end
         end
@@ -286,6 +299,31 @@ classdef BaseQoI
             end
         end
         
+        %-----------------------------------------------------------------%
+        function organizePlots(qoi, legendText) %#ok
+            % Ensure that the line representing the mean comes on top, but
+            % still under the observations, if any.
+            lines = get(gca, 'Children');
+            meansID = [];
+            for line=1:numel(lines)
+                if strcmp(lines(line).Tag, 'mean')
+                    meansID = [meansID, line]; 
+                end
+            end
+            uistack(lines(meansID), 'top');
+            
+            % Legend is added as
+            % legend([chi(meansID)], {'It N', ..., 'It 2', 'It 1'})
+
+            if ~isempty(legendText)
+                if numel(legendText) == numel(meansID)
+                    legend(lines(meansID), legendText, 'Location', 'Best');
+                else
+                    warning('mismatch between number of legendText and elements to name');
+                end
+            end    
+        end
+            
         %-----------------------------------------------------------------%
         function [hf, hh] = plotQoIHistogram(qoi, hf, varargin)
             % Plots the distribution of the QoI of the ensemble in the form
@@ -327,7 +365,61 @@ classdef BaseQoI
                 end
             end
         end
+        
+        
+
+        %-----------------------------------------------------------------%
+        function u = getQoIVector(qoi, in, varargin)
+            % Returns the qoi as a single vector.
+            % Input can either be a seed or a problem.
             
+            opt = struct('dtIndices', [], ...
+                         'vectorize', true);
+            [opt, extra] = merge_options(opt, varargin{:});
+            
+            if isnumeric(in)
+                % input is seed
+                seed = in;
+                assert(qoi.isComputed(seed), ...
+                    'getQoIVector can only be called with seed when the problem is computed');
+                
+                u = qoi.ResultHandler{seed};
+            else
+                % in is problem
+                problem = in;
+                u = getQoI(qoi, problem);
+            end
+            
+            u = qoi.qoi2vector(u, 'dtIndices', opt.dtIndices, 'vectorize', opt.vectorize); 
+        end
+        
+        %-----------------------------------------------------------------%
+        function u = qoi2vector(qoi, u, varargin)
+            % Transform u from the standard qoi form to a single vector.
+            
+            error('Template class not meant for direct use!');
+        end
+        
+    end % methods
+    
+    
+    methods (Access = protected)
+        
+        %-----------------------------------------------------------------%
+        function seed = problem2seed(qoi, problem)
+            seed = str2double(problem.OutputHandlers.states.dataFolder);
+        end
+        
+        
+           
+        %-----------------------------------------------------------------%
+        function u = extractTimesteps(qoi, u, dtIndices)
+            % Only keep some of the time indices of u as specified by the
+            % dtIndices input.
+        
+            error('Template class not meant for direct use!');
+        end
+        
     end
 end
     

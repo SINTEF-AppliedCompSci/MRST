@@ -117,11 +117,9 @@ classdef MRSTEnsemble < handle
                 % Example name given - set up example
                 ensemble.setup = MRSTExample(mrstExample, extra{:});
             end
-            % Set up directory
-            if isempty(ensemble.directory)
-                ensemble.directory = fullfile(mrstOutputDirectory(), ...
-                                              'ensemble', ensemble.setup.name);
-            end
+            
+            ensemble.setUpDirectory();
+            
             % Set samples
             ensemble.samples = samples;
             ensemble.num     = samples.num;
@@ -132,10 +130,23 @@ classdef MRSTEnsemble < handle
             if opt.reset
                 ensemble.reset('prompt', false);
             end
+            
+            ensemble.midConstructor();
+            
             % Prepare ensemble
             ensemble.prepareEnsembleSimulation();
         end
-               
+        
+        %-----------------------------------------------------------------%
+        function midConstructor(ensemble) %#ok
+            % This function is called from the constructor and can be used
+            % by sub-classes to implement sub-class specific functionality
+            % in the constructor (i.e., after merging the input varargin,
+            % but before calling prepareEnsembleSimulation() ).
+            
+            % Intentionally empty for MRSTEnsemble        
+        end
+        
         %-----------------------------------------------------------------%
         function reset(ensemble, varargin)
             % Deletes any old results so that we can start the ensemble
@@ -203,6 +214,11 @@ classdef MRSTEnsemble < handle
         function dataPath = getDataPath(ensemble)
             dataPath = ensemble.directory();
         end
+              
+        %-----------------------------------------------------------------%
+        function defaultPath = getDefaultPath(ensemble)
+            defaultPath = fullfile(mrstOutputDirectory(), 'ensemble', ensemble.setup.name);
+        end
         
         %-----------------------------------------------------------------%
         function h = plotQoI(ensemble, varargin)
@@ -249,7 +265,7 @@ classdef MRSTEnsemble < handle
                 return;
             end
             % Get base problem
-            baseProblem = ensemble.getBaseProblem;
+            baseProblem = ensemble.getBaseProblem();
             % Set up sample problem from seed
             problem = ensemble.samples.getSampleProblem(baseProblem, seed);
             % Solve problem
@@ -330,7 +346,7 @@ classdef MRSTEnsemble < handle
                if ensemble.verbose
                    progress = floor(100*(i-1)/numel(range));
                    fprintf('(%d%%)\tSimulating ensemble member %d among ensemble members %d to %d...\n', ...
-                           progress, seed, range(1), range(end))                    
+                           progress, seed, range(1), range(end))     
                end
                
                % Run simulation
@@ -353,11 +369,24 @@ classdef MRSTEnsemble < handle
     methods (Access = protected)
         
         %-----------------------------------------------------------------%
-        function prepareEnsembleSimulation(ensemble)
+        function setUpDirectory(ensemble)
+            % Set up directory name correctly.
+            % This function is mainly provided so that sub-classes can
+            % define other directory structures.
+            if isempty(ensemble.directory)
+                ensemble.directory = ensemble.getDefaultPath();
+            end
+        end
+        
+        %-----------------------------------------------------------------%
+        function prepareEnsembleSimulation(ensemble, varargin)
             % INTERNAL
             % Set parameters related to possible parallel execution scheme
             % for simulating the ensemble members. 
             % Called by the constructor.
+            
+            opt = struct('force', false);
+            opt = merge_options(opt, varargin{:});
             
             if strcmpi(ensemble.simulationStrategy, 'serial')
                 warning(['Serial ensemble simulations will take a '     , ...
@@ -393,7 +422,7 @@ classdef MRSTEnsemble < handle
                         parpool(ensemble.maxWorkers);
                     end
                     
-                    if ~all(exist(ensemble.spmdEnsemble)) %#ok
+                    if ~all(exist(ensemble.spmdEnsemble)) || opt.force %#ok
                         % Communicate ensemble to all workers
                         spmd
                             spmdEns = ensemble;
@@ -403,7 +432,7 @@ classdef MRSTEnsemble < handle
                 case 'background'
                     % Run simulations in background sessions
                     fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
-                    if ~exist(fn, 'file')
+                    if ~exist(fn, 'file') || opt.force
                         save(fn, 'ensemble');
                     end
             end
