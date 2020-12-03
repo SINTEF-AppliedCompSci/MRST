@@ -107,6 +107,9 @@ classdef WellQoI < BaseQoI
                 % We should never get here
                 error('Please provide either well names or well indices');
             end
+            
+            % Get timesteps
+            qoi.dt = problem.SimulatorSetup.schedule.step.val;
 
         end
         
@@ -267,7 +270,7 @@ classdef WellQoI < BaseQoI
         
         %-----------------------------------------------------------------%
         function n = norm(qoi, u)
-            % TODO: This function doesn't really work...
+            % TODO: This function doesn't really work since we have u{field}{well}...
             
             if ~qoi.total
                 n = cellfun(@(u) sum(u.*qoi.dt), u);
