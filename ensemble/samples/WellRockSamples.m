@@ -67,26 +67,6 @@ classdef WellRockSamples < WellSamples & RockSamples
         end
         
         
-        %-----------------------------------------------------------------%
-        % Functions related to history matching
-        %-----------------------------------------------------------------%
-        function sampleVectors = getSampleVectors(samples)
-            sampleVectorsRocks = getSampleVectors@RockSamples(samples);
-            sampleVectorsWells = getSampleVectors@WellSamples(samples);
-            
-            sampleVectors = [sampleVectorsRocks; sampleVectorsWells];
-            
-        end
-            
-        function samples = setSampleVectors(samples, newSampleVectors)
-            
-            numCells = numel(samples.data{1}.rock.poro);
-            
-            samples = setSampleVectors@RockSamples(samples, ...
-                                                   newSampleVectors(1:2*numCells, :));
-            samples = setSampleVectors@WellSamples(samples, ...
-                                                   newSampleVectors(2*numCells+1:end, :));
-         end
         
     end
 end

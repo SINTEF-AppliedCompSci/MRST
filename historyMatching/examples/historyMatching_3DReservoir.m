@@ -79,7 +79,7 @@ for i = 1:ensembleSize
     rockData{i}.perm = rockData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-rockData{i}.poro).^2);
 end
 
-rockSamples = RockSamples('data', rockData);
+rockSamples = RockSamplesHM('data', rockData);
 
 %% Select quantity of interest class matching the what we have as observations
 % We validate the QoI with the trueProblem, since this will be our ensemble
@@ -134,6 +134,8 @@ rockEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
 
 
 
+
+
 %% Create another ensemble using stochastic well indices
 % ---------------------
 wellSampleData = cell(ensembleSize, 1);
@@ -141,7 +143,7 @@ for i = 1:ensembleSize
     wellSampleData{i}.WI = rand(1,4)*1e-11;
 end
 
-wellSamples = WellSamples('data', wellSampleData);
+wellSamples = WellSamplesHM('data', wellSampleData);
 
 %% Define new ensemble
 wellEnsemble = MRSTHistoryMatchingEnsemble(trueExample, wellSamples, qoi, ...
@@ -176,15 +178,8 @@ wellEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
 %% Create an ensemble that combines both sampling strategies
 % ---------------------
 
-% We first organize our precomputed samples in a struct that is supported
-% by the combined sample class
-comboData = cell(ensembleSize, 1);
-for i = 1:ensembleSize
-    comboData{i}.rock = rockData{i};
-    comboData{i}.well = wellSampleData{i};
-end
+comboSamples = CompositeSamplesHM({rockSamples, wellSamples}, 'tensorProduct', false)
 
-comboSamples = WellRockSamples('data', comboData);
 
 %% Define new ensemble
 comboEnsemble = MRSTHistoryMatchingEnsemble(trueExample, comboSamples, qoi, ...

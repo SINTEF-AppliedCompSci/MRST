@@ -73,7 +73,7 @@ for i = 1:ensembleSize
     configData{i}.perm = configData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-configData{i}.poro).^2);
 end
 
-samples = RockSamples('data', configData)
+samples = RockSamplesHM('data', configData)
 
 %% Select quantity of interest class matching the what we have as observations
 % We validate the QoI with the trueProblem, since this will be our ensemble

@@ -55,8 +55,8 @@ if plotExample
 end
 
 % Read and store the observations in a QoI object
-trueQoI = WellQoI('wellNames', {'P1', 'P2'}, ...
-                  'fldname', {'qOs', 'qWs'});
+trueQoI = WellQoIHM('wellNames', {'P1', 'P2'}, ...
+                    'fldname', {'qOs', 'qWs'});
 trueQoI = trueQoI.validateQoI(trueProblem);
 
 % Create a separate ResultHandler for the observations 
@@ -105,11 +105,11 @@ for i = 1:ensembleSize
 end
 
 %% Create sample object
-rockSamples = NetworkRockSamples('data', rockData, ...
-                                 'connectionIndices', baseExample.options.connectionIndices)
+rockSamples = NetworkRockSamplesHM('data', rockData, ...
+                                   'connectionIndices', baseExample.options.connectionIndices)
 
 %% Create QoI, with the observations
-qoi = WellQoI(...
+qoi = WellQoIHM(...
     'wellNames', {'P1', 'P2'}, ...
     'fldname', {'qOs', 'qWs'}, ...
     'observationResultHandler', observationResultHandler, ...
@@ -165,9 +165,9 @@ wellSampleData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
     wellSampleData{i}.WI = rand(1,4)*1e-11;
 end
-wellSamples = WellSamples('data', wellSampleData);
+wellSamples = WellSamplesHM('data', wellSampleData);
 
-compSamples = CompositeSamples({rockSamples, wellSamples}, 'tensorProduct', false);
+compSamples = CompositeSamplesHM({rockSamples, wellSamples}, 'tensorProduct', false);
 
 
 %% Create combo ensemble

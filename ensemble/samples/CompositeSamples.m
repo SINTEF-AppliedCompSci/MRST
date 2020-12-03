@@ -80,61 +80,33 @@ classdef CompositeSamples < BaseSamples
         end
         
         
-        %-----------------------------------------------------------------%
-        % Functions related to history matching
-        %-----------------------------------------------------------------%
-        function sampleSize = getSampleSize(samples)
-            parentSizes = cellfun(@(samples) samples.getSampleSize(), samples.parentSamples);
-            sampleSize = sum(parentSizes);
-        end
-        
-        %-----------------------------------------------------------------%
-        function sampleVectors = getSampleVectors(samples)
-            
-            sampleVectors = samples.parentSamples{1}.getSampleVectors();
-            
-            for i = 2:numel(samples.parentSamples)
-                sampleVectors = [sampleVectors ; ...
-                                 samples.parentSamples{i}.getSampleVectors()];
-            end
-        end
-        
-        %-----------------------------------------------------------------%
-        function samples = setSampleVectors(samples, newSampleVectors)
-            parentSizes = cellfun(@(samples) samples.getSampleSize(), samples.parentSamples);          
-            sInd = [0 cumsum(parentSizes)];
-            for i = 1:numel(samples.parentSamples)
-                samples.parentSamples{i} = samples.parentSamples{i}.setSampleVectors(newSampleVectors((sInd(i)+1):sInd(i+1), :));
-            end
-            
-            % Reset generator function so that the new samples are used
-            fn = @(problem, seed) compositeGeneratorFn(samples, problem, seed);
-            samples.generatorFn = fn;
-        end
-        
-        
+      
     end
     
+    
+    
+    methods(Access=protected)
+        %-------------------------------------------------------------------------%
+        function sampleData = compositeGeneratorFn(samples, problem, seed)
+            % Function for getting a composite sample
+            sampleData = struct();
+            if samples.tensorProduct
+                % Create tensor product mapping and find parentSeeds
+                n      = num2cell(samples.numParentSamples);
+                n      = cellfun(@(n) 1:n, n, 'UniformOutput', false);
+                [n{:}] = ndgrid(n{:}); 
+                n      = cellfun(@(n) n(:), n, 'UniformOutput', false);
+                parentSeed = cellfun(@(n) n(seed), n);
+            else
+                % Parent seeds are equal to seed
+                parentSeed = repmat(seed, samples.numParents, 1);
+            end
+            for i = 1:samples.numParents
+                % Store parent sample data with field name [class, 'Data']
+                parentData = samples.parentSamples{i}.getSample(parentSeed(i), problem);
+                sampleData.([class(samples.parentSamples{i}), 'Data']) = parentData;
+            end
+        end
+    end
 end
 
-%-------------------------------------------------------------------------%
-function sampleData = compositeGeneratorFn(samples, problem, seed)
-    % Function for getting a composite sample
-    sampleData = struct();
-    if samples.tensorProduct
-        % Create tensor product mapping and find parentSeeds
-        n      = num2cell(samples.numParentSamples);
-        n      = cellfun(@(n) 1:n, n, 'UniformOutput', false);
-        [n{:}] = ndgrid(n{:}); 
-        n      = cellfun(@(n) n(:), n, 'UniformOutput', false);
-        parentSeed = cellfun(@(n) n(seed), n);
-    else
-        % Parent seeds are equal to seed
-        parentSeed = repmat(seed, samples.numParents, 1);
-    end
-    for i = 1:samples.numParents
-        % Store parent sample data with field name [class, 'Data']
-        parentData = samples.parentSamples{i}.getSample(parentSeed(i), problem);
-        sampleData.([class(samples.parentSamples{i}), 'Data']) = parentData;
-    end
-end
