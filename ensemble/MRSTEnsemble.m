@@ -232,7 +232,19 @@ classdef MRSTEnsemble < handle
             %   'h' - Figure handle 
             opt = struct('h', []);
             [opt, extra] = merge_options(opt, varargin{:});
-            h = ensemble.qoi.plotEnsembleQoI(ensemble, opt.h, extra{:});
+            ids    = ensemble.qoi.ResultHandler.getValidIds();
+            sample = ensemble.qoi.ResultHandler{ids(1)};
+            if isscalar(sample{1})
+                if ~isempty(opt.h), clf(opt.h); end
+                n = min(ceil(numel(ids)/3), 10);
+                h = ensemble.qoi.plotQoIHistogram(opt.h, ...
+                                                  'edges'      , n   , ...
+                                                  'includeMean', true, ...
+                                                  extra{:}           );
+            else
+                h = ensemble.qoi.plotEnsembleQoI(ensemble, opt.h, extra{:});
+            end
+            drawnow
         end
         
         %-----------------------------------------------------------------%
@@ -384,9 +396,9 @@ classdef MRSTEnsemble < handle
             end
             
             if strcmpi(ensemble.simulationStrategy, 'parallel')
-                % Check if parallel toolbox is avialiable
+                % Check if parallel toolbox is availiable
                 if isempty(ver('parallel'))
-                    warning(['Parallel computing toolbox not aviailable. ', ...
+                    warning(['Parallel computing toolbox not available. ', ...
                              'Switching to background simulation']        );
                     ensemble.simulationStrategy = 'background';
                 end
@@ -547,5 +559,20 @@ end
 
 
 %{
-#COPYRIGHT#
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}

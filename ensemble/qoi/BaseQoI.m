@@ -21,8 +21,9 @@ classdef BaseQoI
     methods
         
         %-----------------------------------------------------------------%
-        function qoi = BaseQoI()
-            % Constructor is intentionally empty
+        function qoi = BaseQoI(varargin)
+            % Constructor only parses optional input arguments
+            qoi = merge_options(qoi, varargin{:});
         end
         
         %-----------------------------------------------------------------%
@@ -117,7 +118,7 @@ classdef BaseQoI
             % SYNOPSIS
             %   n = qoi.norm(u)
             %
-            n = abs(u);
+            n = abs(u{1});
         end
         
         %-----------------------------------------------------------------%
@@ -282,7 +283,7 @@ classdef BaseQoI
             warning('off', 'BaseQoI:notImplemented');
             % Optional input arguments. Can be used to pass arguments
             % directly to e.g., plot or plotCellData
-            opt = struct('isMean', true);
+            opt = struct('isMean', true, 'cellNo', 1, 'subCellNo', 1);
             [opt, extra] = merge_options(opt, varargin{:});
             color = [1,1,1]*0.8*(1-opt.isMean); % Plot mean in distinct color
             plot(u, 'lineWidth', 2, 'color', color, extra{:});
@@ -341,15 +342,15 @@ classdef BaseQoI
         end
             
         %-----------------------------------------------------------------%
-        function h = plotQoIHistogram(qoi, edges, varargin)
+        function [hf, hh] = plotQoIHistogram(qoi, hf, varargin)
             % Plots the distribution of the QoI of the ensemble in the form
             % of a histogram. If the QoI is nonscalar, norm(QoI) is used.
             %
             % SYNOPSIS:
             %   h = plotQoIHistogram(egdes, ...)
             %
-            if nargin < 2, edges = 10; end
             opt = struct('range'      , inf  , ...
+                         'edges'      , 10   , ...
                          'log10'      , false, ...
                          'includeMean', false, ...
                          'includeRMSE', false);
@@ -365,13 +366,15 @@ classdef BaseQoI
                 n_mean = log10(abs(n_mean));
                 n      = log10(abs(n));
             end
+            if isempty(hf), hf = figure(); end
             for i = 1:numQoIs
                 % Plot each QoI in separate figure
-                h = histogram(n(:,i), edges, extra{:});
+                set(0, 'CurrentFigure', hf);
+                hh = histogram(n(:,i), opt.edges, extra{:});
                 if opt.includeMean
                     % Plot mean as vertical, dashed line
                     hold on
-                    plot([n_mean(i), n_mean(i)], h.Parent.YLim, '--k', 'lineWidth', 1);
+                    plot([n_mean(i), n_mean(i)], hh.Parent.YLim, '--k', 'lineWidth', 1);
                     hold off
                 end
                 if opt.includeRMSE
@@ -438,5 +441,20 @@ classdef BaseQoI
 end
     
 %{
-#COPYRIGHT#
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
