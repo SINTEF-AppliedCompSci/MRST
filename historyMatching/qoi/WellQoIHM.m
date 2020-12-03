@@ -169,9 +169,11 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                 end
             end
             
+            % The call to getObservationVector already extracts the correct
+            % time indices, so we must avoid doing the same again here
             if opt.vectorize
-                obs = qoi.qoi2vector(obs);
-                scaling = qoi.qoi2vector(scaling);
+                obs = qoi.qoi2vector(obs, 'dtIndices', []);
+                scaling = qoi.qoi2vector(scaling, 'dtIndices', []);
             end
     
         end
@@ -185,7 +187,7 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
             
             % Check how observationCov matches the observation
             u = qoi.getObservationVector('vectorize', false);
-            u_vec = qoi.qoi2vector(u);
+            u_vec = qoi.qoi2vector(u, 'dtIndices', []);
             numObs = size(u_vec,1);
             
             if isscalar(qoi.observationCov)

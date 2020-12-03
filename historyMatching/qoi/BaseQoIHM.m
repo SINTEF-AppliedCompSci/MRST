@@ -69,7 +69,6 @@ classdef BaseQoIHM
         
         %-----------------------------------------------------------------%
         % Functions related to history matching
-            
         %-----------------------------------------------------------------%
         function obs = getObservationVector(qoi, varargin)
             
@@ -83,6 +82,18 @@ classdef BaseQoIHM
             obs = qoi.qoi2vector(obs, varargin{:});
         end
         
+        %-----------------------------------------------------------------%
+        function truth = getTrueObservation(qoi, varargin)
+            
+            % Check that the observation is valid
+            assert(~isempty(qoi.truthResultHandler), ...
+                'qoi.observationResultHandler is missing');
+            assert(numel(qoi.truthResultHandler.getValidIds) > 0, ...
+                'No available data in the observationResultHandler');
+            
+            truth = qoi.truthResultHandler{1};
+            truth = qoi.qoi2vector(truth, varargin{:});
+        end
         
         %-----------------------------------------------------------------%
         function [obs, scaling] = getObservationAndScaling(qoi, varargin)

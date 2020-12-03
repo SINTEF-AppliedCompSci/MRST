@@ -293,10 +293,13 @@ classdef WellQoI < BaseQoI
             assert(numel(u{1}) == numel(qoi.fldname), ...
                 'The observation does not match the number of fldnames in QoI');
             
-            assert(numel(u{1}{1}) >= numel(qoi.dt), ...
-                'The observation has too many timesteps to match the QoI class');
+            %assert(numel(u{1}{1}) >= numel(qoi.dt), ...
+            %    'The qoi has too few many timesteps to match the QoI class');
             
             if ~isempty(opt.dtIndices)
+                assert(numel(u{1}{1}) >= opt.dtIndices(end), ...
+                    'The qoi has too few elements to extract the requested dtIndices');
+                
                 u = qoi.extractTimestep(u, opt.dtIndices);
             end
             
