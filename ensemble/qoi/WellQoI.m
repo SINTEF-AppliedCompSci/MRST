@@ -270,10 +270,15 @@ classdef WellQoI < BaseQoI
         
         %-----------------------------------------------------------------%
         function n = norm(qoi, u)
-            % TODO: This function doesn't really work since we have u{field}{well}...
+            % TODO: This function doesn't really work since we have u{well}{field}[t]...
             
             if ~qoi.total
-                n = cellfun(@(u) sum(u.*qoi.dt), u);
+                n = 0;
+                for w = 1:numel(qoi.wellNames)
+                    for f = 1:numel(qoi.fldname)
+                        n = n + sum(u{w}{f}.*qoi.dt);
+                    end
+                end
             else
                 n = norm@BaseQoI(qoi, u);
             end

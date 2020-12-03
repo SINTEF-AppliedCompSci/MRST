@@ -308,32 +308,15 @@ classdef BaseQoI
             for line=1:numel(lines)
                 if strcmp(lines(line).Tag, 'mean')
                     meansID = [meansID, line]; 
-                elseif strcmp(lines(line).Tag, 'obs')
-                    obsID = [obsID, line];
-                elseif strcmp(lines(line).Tag, 'truth')
-                    truthID = [truthID, line];
                 end
             end
             uistack(lines(meansID), 'top');
-            if ~isempty(truthID)
-                uistack(lines(truthID), 'top');
-            end
-            if ~isempty(obsID)
-                uistack(lines(obsID), 'top');
-            end
-            
             
             % Legend is added as
-            % legend([chi(obsID(1)); chi(meansID)], {'Obs', 'It N', ..., 'It 2', 'It 1'})
+            % legend([chi(meansID)], {'It N', ..., 'It 2', 'It 1'})
 
             if ~isempty(legendText)
-                if numel(legendText) == numel(meansID)+1 && ~isempty(obsID)
-                    legend([lines(obsID(1)); lines(meansID)], ...
-                           legendText, 'Location', 'Best');
-                elseif numel(legendText) == numel(meansID)+2 && ~isempty(obsID) && ~isempty(truthID)
-                    legend([lines(obsID(1)); lines(truthID(1)); lines(meansID)], ...
-                           legendText, 'Location', 'Best');
-                elseif numel(legendText) == numel(meansID)
+                if numel(legendText) == numel(meansID)
                     legend(lines(meansID), legendText, 'Location', 'Best');
                 else
                     warning('mismatch between number of legendText and elements to name');
