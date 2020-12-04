@@ -29,7 +29,6 @@ classdef OperatorSamples < BaseSamples
     % SEE ALSO:
     %   `RockSamples`, `DeckSamples`, `BaseSamples`, `MRSTExample`, `BaseQoI`
     
-    
     methods
         %-----------------------------------------------------------------%
         function problem = setSample(samples, sampleData, problem)

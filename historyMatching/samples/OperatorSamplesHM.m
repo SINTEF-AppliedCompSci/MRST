@@ -7,6 +7,9 @@ classdef OperatorSamplesHM < BaseSamplesHM & OperatorSamples
     % should be compatible with the data properties expected in RockSamples
     % and WellSamples, respectively.
 
+    properties
+        pvScale = 100;
+    end
     
     methods
         
@@ -52,8 +55,13 @@ classdef OperatorSamplesHM < BaseSamplesHM & OperatorSamples
                     end
                 end
                 if porevolumeIsField
-                    sampleVectors(vectorSizeT+1:vectorSizeT+vectorSizePv, i) = ...
-                        samples.data{i}.pv;
+                    if samples.transformSampleVectors
+                        sampleVectors(vectorSizeT+1:vectorSizeT+vectorSizePv, i) = ...
+                            samples.data{i}.pv./samples.pvScale;
+                    else
+                        sampleVectors(vectorSizeT+1:vectorSizeT+vectorSizePv, i) = ...
+                            samples.data{i}.pv;
+                    end
                 end
             end
         end
@@ -88,7 +96,13 @@ classdef OperatorSamplesHM < BaseSamplesHM & OperatorSamples
                     end
                 end
                 if porevolumeIsField
-                    samples.data{i}.pv(:) = abs(newSampleVectors(vectorSizeT+1:vectorSizeT+vectorSizePv, i));
+                    if samples.transformSampleVectors
+                        samples.data{i}.pv(:) = ...
+                            abs(newSampleVectors(vectorSizeT+1:vectorSizeT+vectorSizePv, i)).*samples.pvScale;
+                    else
+                        samples.data{i}.pv(:) = ...
+                            abs(newSampleVectors(vectorSizeT+1:vectorSizeT+vectorSizePv, i));
+                    end
                 end
             end
         end
