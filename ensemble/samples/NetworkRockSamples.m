@@ -1,11 +1,10 @@
 classdef NetworkRockSamples < RockSamples
-    % Class that combines ensemble configurations for both rock samples and
-    % well samples.
+    % Class that maps RockSamples to a network-type reduced reservoir model
+    % (GPSNet, INSIM, etc). It has the same properties as RockSamples,
+    % along with an additional connectionIndices property that tells us how
+    % to map the values from samples.data to the different connections.
     %
-    % The data property for this class is expected to be a cell array with
-    % structs containing the fields 'rock' and 'well', and each of them
-    % should be compatible with the data properties expected in RockSamples
-    % and WellSamples, respectively.
+
     
     properties
         % Inherited properties only
@@ -17,6 +16,9 @@ classdef NetworkRockSamples < RockSamples
         
         %-----------------------------------------------------------------%
         function problem = setSample(samples, sampleData, problem)
+            
+            assert(~isempty(samples.connectionIndices), ...
+                'Not able to map sampleData to problem since no connection indices given');
             
             numConnections = numel(samples.connectionIndices.cells);
             assert(numel(sampleData.poro) == numConnections, ...
