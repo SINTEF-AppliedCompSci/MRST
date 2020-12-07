@@ -115,6 +115,7 @@ function header = read_meta(fid)
       block_size = -1;
       type_prec  = NaN;
       ok         = false;
+
    else
       nel  = fread(fid, 1, 'int32', 'ieee-be');
       type = fread(fid, 4, 'uint8=>char') .';
@@ -122,7 +123,7 @@ function header = read_meta(fid)
       name = strtrim(name);
 
       if nel > 0
-         [type_size, type] = get_type_characteristics(type);
+         [type_size, type] = get_type_characteristics(type, name);
          block_size        = get_block_size(type);
          type_prec         = get_type_prec (type, type_size, block_size);
       else
@@ -190,7 +191,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [size, type] = get_type_characteristics(type)
+function [size, type] = get_type_characteristics(type, name)
    if any(strcmp(type, {'INTE', 'REAL', 'LOGI'}))
       size = 4;
 
@@ -203,7 +204,8 @@ function [size, type] = get_type_characteristics(type)
 
    else
       error('ElmType:UnSupp', ...
-            'Vector Element Type ''%s'' is not Supported', type);
+           ['Vector Element Type ''%s'' is not Supported ', ...
+            'for Vector ''%s''.'], type, name);
    end
 end
 

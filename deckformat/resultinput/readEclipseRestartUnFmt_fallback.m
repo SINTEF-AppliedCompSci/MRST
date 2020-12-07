@@ -63,9 +63,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       rsspec = [];
    end
 
-   rstfiles  = matchResultFiles(dname, [fp, '\.X\d{4}']);
+   rstfiles = matchResultFiles(dname, [fp, '\.X\d{4}']);
    if ~isempty(rstfiles)
-       rstrt     = readEclipseRestart(rstfiles, rstReader, opt);
+       rstrt = readEclipseRestart(rstfiles, rstReader, opt);
    else
        rstfile = fullfile(dname, [fp, '.UNRST']);
        rstrt   = readEclipseOutputFileUnFmt(rstfile, 'cellOutput', true);

@@ -50,10 +50,9 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    rstrt = [];
 
-   for f = reshape(files, 1, []),
+   for f = reshape(files, 1, [])
       item = rstReader(f{1});
 
       rstrt = append_restart_data(rstrt, item, opt);
@@ -63,18 +62,18 @@ end
 %--------------------------------------------------------------------------
 
 function rstrt = append_restart_data(rstrt, item, opt)
-   if ~isempty(opt.RestartFields),
+   if ~isempty(opt.RestartFields)
       fields = opt.RestartFields;
    else
       fields = fieldnames(item);
    end
 
-   for f = reshape(fields, 1, []),
+   for f = reshape(fields, 1, [])
       fld = f{1};
 
       if ~isfield(rstrt, fld), rstrt.(fld) = {}; end
 
-      if  isfield(item, fld),
+      if  isfield(item, fld)
          rstrt.(fld) = [rstrt.(fld), { item.(fld).values }];
       end
    end
