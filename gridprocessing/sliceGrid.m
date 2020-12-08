@@ -1,12 +1,16 @@
 function [G, gix, G_slice] = sliceGrid(G, pnts, varargin)
+% Generate cut-cell-grid (G) and lower dim grid G_slice from slices/cuts 
+% defined by pnts and optional inputs 'normal' or 'cutDir' as described in 
+% computeGridSlicePolygons.m. For multiple cuts/slices list (cell) of pnts
+% and corresponding normal/cutDir are supported. See 
+% computeGridSlicePolygons.m for further info on optional params.
 opt = struct('onlyFaces',  false, ...
-    'topoSplit',  true, ...
-    'mcompute',   true);
+             'topoSplit',  true, ...
+             'mcompute',   true);
 [opt, opt2] = merge_options(opt, varargin{:});
 % others passed on to computeGridSlice
 
 [pntsList, optList] = handleMultInput(pnts, opt2);
-
 
 for k = 1:numel(pntsList)
     % hard-set some opts that are required or not yet compatible with
@@ -260,36 +264,41 @@ for k = 1:nf
         ix1 = 1:p(1);
         ix2 = (p(1)+1):p(2);
         ix3 = (p(2)+1):numel(no);
-        fno{k} = [nn(1); no(ix2); nn(2)];
-        fnn{k} = [nn(2); no(ix3); no(ix1); nn(1)];
+        if cutFaces.isTrueSplit(k)
+            fno{k} = [nn(1); no(ix2); nn(2)];
+            fnn{k} = [nn(2); no(ix3); no(ix1); nn(1)];
+        else % just add nodes to current face
+            fno{k} = [no(ix1); nn(1); no(ix2); nn(2); no(ix3)];
+        end
     elseif G.griddim == 2
-        fno{k} = [no(1); nn];
-        fnn{k} = [nn;    no(2)];
+        if cutFaces.isTrueSplit(k)
+            fno{k} = [no(1); nn];
+            fnn{k} = [nn;    no(2)];
+        else
+            fno{k} = [no(1); nn; no(2)];
+        end
     end
     % if new nodes hit grid-nodes, we get repeated fno, fix this
-    validSplit = true;
+    validNewFace = true;
     isSame = [false; diff(fno{k}) == 0];
     if any(isSame)
         fno{k}(isSame) = [];
-        if numel(fno{k}) < G.griddim
-            fno{k} = no;
-            fnn{k} = [];
-            validSplit = false;
-        end
     end
     isSame = [false; diff(fnn{k}) == 0];
     if any(isSame)
         fnn{k}(isSame) = [];
-        if numel(fnn{k}) < G.griddim
-            fno{k} = no;
-            fnn{k} = [];
-            validSplit = false;
-        end
     end
-    validCount = validCount + validSplit;
-    if validSplit
-        % temporary update centroids (used in splitCells)
-        G.faces.centroids(f,:) = mean(G.nodes.coords(fno{k},:));
+    if numel(fno{k}) < G.griddim
+        [fno{k}, fnn{k}] = deal(fnn{k}, fno{k});
+    end
+    if numel(fnn{k}) < G.griddim
+        fnn{k} = [];
+        validNewFace = false;
+    end
+    validCount = validCount + validNewFace;
+    % temporary update face-center (used in splitCells)
+    G.faces.centroids(f,:) = mean(G.nodes.coords(fno{k},:));
+    if validNewFace
         centN(k,:) = mean(G.nodes.coords(fnn{k},:));
         % neighboring cells need to update their cellfaces
         c = G.faces.neighbors(f,:);
@@ -320,7 +329,8 @@ G.faces.tag       = [G.faces.tag; zeros(nf,1)];
 % temporary centroids
 G.faces.centroids = [G.faces.centroids; centN(validIx,:)];
 % update facenodes/nodepos
-[n1, np1] = replaceEntries(G.faces.nodes, fno(validIx), fix(validIx), G.faces.nodePos);
+%[n1, np1] = replaceEntries(G.faces.nodes, fno(validIx), fix(validIx), G.faces.nodePos);
+[n1, np1] = replaceEntries(G.faces.nodes, fno, fix, G.faces.nodePos);
 G.faces.nodePos = [np1; np1(end) + cumsum(cellfun(@numel, fnn(validIx)))];
 G.faces.nodes   = [n1; vertcat(fnn{validIx})];
 % update cellfaces/facepos for cutcells and potenial extras
@@ -347,18 +357,21 @@ for k = 1:nf
     if numel(ia) >= 2
         if numel(ia) == 2
             startIx = 2 - (diff(ia)==1);
+            chkIx = 1:2;
         else
             % special case might occur for overlapping faces
-            ii = find(abs(diff(ia))~=1);
-            if isempty(ii)
-                startIx = 1;
-            else
-                startIx = ii+1;
-            end
+            startIx = [abs(diff(ia))==1; ia(1)==1 && ia(end)==numel(n1)];
+            chkIx = find(startIx, 1, 'first') + (0:1);    
+            %ii = find(abs(diff(ia))~=1);
+            %if isempty(ii)
+            %    startIx = 1:numel(ia)-1;
+            %else
+            %    startIx = mod(ii+(1:numel(ia)-1), ;
+            %end
         end
         nAdj(ia(startIx)) = nAdj(ia(startIx)) + 1;
-        s1 = mod(diff(ia([1,2])), numel(n1)) == 1;
-        s2 = mod(diff(ib([1,2])), numel(nb)) == 1;
+        s1 = mod(diff(ia(chkIx)), numel(n1)) == 1;
+        s2 = mod(diff(ib(chkIx)), numel(nb)) == 1;
         flag(k)  = (s1==s2) == isOut(k);
         found(k) = true;
     end

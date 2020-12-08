@@ -3,6 +3,7 @@ function g = get2DGridFromFaces(G, f)
 % crossing faces (>2 faces for an edge), add a sign indicator for 
 % g.cells.faces. Keep same node-orientation of (2D grid) cells as the 
 % original (3D grid) faces 
+
 if islogical(f)
     f = find(f); 
 end
@@ -16,13 +17,10 @@ segs = full([mapN(nix1), mapN(nix2)]);
 [~, nn] = rlencode(faceNo);
 
 % make local cellNo (3D faceNo)
-mapF        = sparse(G.faces.num,1);
-mapF(faceNo)= 1;
-nCells     =  nnz(mapF);
-mapF(mapF>0) = (1:nCells);
-cellNo     = full(mapF(faceNo));
-
-sgn = nix1 < nix2;
+% mapF        = sparse(G.faces.num,1);
+% mapF(faceNo)= 1;
+% nCells     =  nnz(mapF);
+% mapF(mapF>0) = (1:nCells);
 
 
 cellNo = rldecode((1:numel(f))', nn);

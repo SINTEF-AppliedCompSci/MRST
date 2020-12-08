@@ -44,7 +44,8 @@ cutDir = [1, -1, 0.1];
 plotFaces(G, ix2.new.faces==3, 'FaceColor', 'c', 'FaceAlpha', 1, 'EdgeAlpha', .2);
 chk = checkGrid(G)
 %%
-% 2D grid-slices are not yet connected to single grid
+% 2D grid-slices can be connected, but neighbor list does not currently make 
+% sense for cross-faces
 mrstModule add incomp
 g22 = repairNormals(computeGeometry(g22));
 rock = makeRock(g22, 100*milli*darcy, 1);
@@ -59,16 +60,23 @@ plotCellData(g22, rs.pressure), view([1 -2 10]), camlight
 %% multiple input
 G = addBoundingBoxFields(computeGeometry(cartGrid([20 20 5], [20, 20, 5])));
 x = (-1+eps:.5:21)';
-p1 = [x, 10+5*cos(.2*x), 0*x];
+p1 = [x, 10+5*cos(.2*x), .3*x];
 p2 =  [x, x, 2.8 + 2*sin(.7*x) + .05*x];
-sh = 8*[0, 1, 0];
+sh = 7*[0, 1, 0];
 pp = {p1 - sh, p1, p1 + sh,  p2};
 dd = {[0 -.5 1], [0 -.5 1], [0 -.5 1], [1, -1, 0.1]};
 % production of 2D-grid gives warning: needs updating
 [Gs, ix, g] = sliceGrid(G, pp, 'cutDir', dd, 'radius', inf);
 g = repairNormals(computeGeometry(g));
-figure, axis off equal vis3d, plotGrid(g, 'FaceAlpha', .8, 'EdgeAlpha', .5),view([1 -2 10]), camlight
-plotFaces(g, g.faces.isX, 'LineWidth', 4, 'EdgeColor', 'b')
+figure,
+plotCellData(Gs, Gs.cells.volumes), view(3), camlight
+axis off equal vis3d, camproj perspective
+figure, 
+plotCellData(g, Gs.faces.centroids(g.cells.parent,3), ...
+    'FaceAlpha', 1, 'EdgeAlpha', .6); 
+axis off equal vis3d, camproj perspective
+plotFaces(g, g.faces.isX, 'LineWidth', 3, 'EdgeColor', 'm')
+view([2 1 3]), drawnow, camlight headlight
 
 %% Slicing of 2D grids follow same procedure (needs 3D coordinates)
 G = cartGrid([50 50], [100, 100]);

@@ -2,82 +2,39 @@ function [cutFaces, cutCells, coords, sliceFaces] = extractGridInfoFromPolygons(
 % Identyfy unique coords, later remove/ignore those coinciding with grid nodes
 [coords, ~, uix] = uniquetol(p.coords3D, sqrt(eps), 'ByRows', true);
 uix   = uix'; % case single poly
-% map to unique coords, keep original for indexing into tValue,faceIx etc.
-nodesMUC = uix(p.nodes);
-nodesM   = p.nodes;
-cellIx   = p.cellIx;
-%check for equal polygons modulo repeated nodes and rotation of vertices
-[~, ia] = unique(canonicalPoly(nodesMUC), 'rows');
-if numel(ia) ~= size(nodesM,1)
-    nodesMUC  = nodesMUC(ia,:);
-    nodesM    = nodesM(ia,:);
-    cellIx    = p.cellIx(ia,:);
-end
+p.nodes = uix(:);
+% rotate nodes such that equal node numbers are adjacent (e.g., not first and last)
+p = rotatePolygonNodes(p);
 sliceFaces = [];
-%{
-Earlier version did not work robustly, forward identifying slice-faces to
-cutGrid 
---------
-sliceFaces = [];
-cellIx     = p.cellIx;
-% two equal polygons indicate a slice along a face, remove these, but
-% record in sliceFaces
-if numel(ia) ~= numel(ib)
-     npol = accumarray(ib, ones(size(ib)));
-%     if any(np>2)
-%         warning('Problematic face: >2 neighbors??')
-%     end
-     keep = npol(ib) == 1;
-%     [~, pairOrder] = sort(ib(~keep));
-%     pairOrder = [pairOrder(1:2:end), pairOrder(2:2:end)];
-%     cellPairs = cellIx(~keep);
-%     cellPairs = cellPairs(pairOrder);
-%     sliceFaces = facesFromNeighbors(G, cellPairs);
-    % update poly-info
-    nodesMUC  = nodesMUC(keep,:);
-    nodesM   = nodesM(keep,:);
-    cellIx = cellIx(keep,:);
-    % update additional fields
-   % flds = {'nodes'};
-   % for k  =1: numel(flds)
-   %     p.(flds{k}) = p.(flds{k})(keep,:);
-   % end
-end
-%}
-%--------------------------------------------------------------------------
 
 % cut-cells are those beeing split by non-degenerate polygons
-nPoly = size(nodesM, 1);
+nPoly = numel(p.nodePos)-1; 
 if nPoly == 0
-     [coords, g2] = deal([]);
+     coords = [];
      [cutFaces, cutCells] = deal(struct('ix', []));
     return
 end
-% index to first appearance of node
-uniqueIx = [true(nPoly, 1), abs(diff(nodesMUC, [], 2))>0];
-nNodes = sum(uniqueIx, 2);
+% index to first appearence of node
+uniqueIx = [true; diff(p.cellIx) | diff(p.nodes)]; 
+polyNo   = rldecode( (1:nPoly)', diff(p.nodePos));
+nNodes   = accumarray(polyNo, uniqueIx);
 % disregard degenerates
 validPoly  = nNodes > G.griddim -1;
-% update
-nodesMUC    = nodesMUC(validPoly, :);
-nodesM     = nodesM(validPoly, :);
-uniqueIx   = uniqueIx(validPoly, :);
-% vectorize
-nodesUC  = reshape(nodesMUC', [], 1);
-cellIx   = cellIx(validPoly);   
+uniqueIx   = uniqueIx & validPoly(polyNo);
+% cellIx per polygon
+cellIx   = p.cellIx(p.nodePos(validPoly));   
 % update
 nNodes  = nNodes(validPoly);
-
 % unique represenation for polygon inside cut-cell
-nodes_cut  = nodesUC(uniqueIx');
-% compute additional required geometry
+nodes_cut  = p.nodes(uniqueIx);
+% compute additional required geometry (not needed in case of topo split)
 if G.griddim == 3
     [normals, areas] = computeCutCellNormals(coords, nodes_cut, nNodes);
 elseif G.griddim == 2
     % Assume for now planar grid. Need normal to plane
     pn = getPlaneNormal(G);
-    dispif(mrstVerbose, 'WARNING: assuming 2D-grid is planar, needs updating\n%s', ...
-                        '(extractGridInfoFromPlygons.m)');
+    %dispif(mrstVerbose, 'WARNING: assuming 2D-grid is planar, needs updating\n%s', ...
+    %                    '(extractGridInfoFromPlygons.m)');
     [normals, areas] = computeCutCellNormals(coords, nodes_cut, nNodes, pn);
 end
 
@@ -90,21 +47,12 @@ cutCells = struct('ix',       cellIx, ...
 %--------------------------------------------------------------------------
 % cut-faces are those beeing split by line-segments not along face
 % segments
-% local face-node index corresponding to start of cut segment
-locIx = p.nodeIx(:,1); 
-% expand to each polygon segment
-localNodePos  = reshape(locIx(nodesM)', [], 1);
-tValue        = reshape(p.tValue(nodesM)', [], 1);
-faceIx        = reshape(p.faceIx(nodesM)', [], 1);
-
-
 % find face-node pairs
-[sr, ia]    = unique([faceIx, nodesUC], 'rows');
-[faceIx, nodesUC] = deal(sr(:,1), sr(:,2));         % reset nodesUC here?
+[sr, ia] = unique([p.faceIx, p.nodes], 'rows');
+[faceIx, nodes] = deal(sr(:,1), sr(:,2));      
 % update
-localNodePos = localNodePos(ia); 
-tValue       = tValue(ia);
-
+localNodePos = p.locPos(ia);
+tValue       = p.tValue(ia);
 % OK with strict tollerance here (end t-values should be exactly 0/1)
 onNodeTol  = sqrt(eps);
 onGridNode = tValue < onNodeTol | tValue > 1 - onNodeTol;
@@ -113,10 +61,15 @@ onGridNode = tValue < onNodeTol | tValue > 1 - onNodeTol;
 [fix, nn] = rlencode(faceIx);
 fixPos    = cumsum([1;nn]);
 
-% keep track of split-faces, problems and coords coincinding with grid-nodes
+% keep track of which faces needs updating, and coords coincinding with 
+% grid-nodes. A face could need updating without beeing split, e.g., just
+% add a single node.
+isUpdateFace    = false(size(fix));
 isSplitFace     = false(size(fix));
-unexpectedCount = 0;
+
+undefinedCount = 0;
 coordOnNode     = nan(size(coords,1), 1);
+coordOnNode(nodes) = p.snapNode(ia); 
 for k = 1:numel(fix)
     if nn(k) == G.griddim-1
         curIx = fixPos(k):fixPos(k+1)-1;
@@ -128,6 +81,9 @@ for k = 1:numel(fix)
             % as a result of snapping)
             tv = tValue(curIx);
             onNode  = onGridNode(curIx);
+            if any(~onNode)
+                isUpdateFace(k) = true;
+            end
             nodePos = G.faces.nodePos(fix(k) + [0 1]');
             fnodes  = G.faces.nodes(nodePos(1):(nodePos(2)-1));
             if G.griddim == 3
@@ -151,24 +107,24 @@ for k = 1:numel(fix)
                 % identify coinciding node(s)
                 for kc = 1:2
                     if onNode(kc)
-                        coordno = nodesUC(curIx(kc));
+                        coordno = nodes(curIx(kc));
                         coordOnNode(coordno) = fnodes(locpos(kc)/2);
                     end
                 end
             elseif G.griddim == 2
                 if round(tv) == 0
-                    coordno = nodesUC(curIx);
+                    coordno = nodes(curIx);
                     coordOnNode(coordno) = fnodes(1);
                 end
             end
         end
     elseif nn(k) >= 2
-        unexpectedCount = unexpectedCount +1;
+        undefinedCount = undefinedCount +1;
     end
 end
-if unexpectedCount > 0
-    dispif(mrstVerbose, 'Ignoring %d face-splits due to unknown cause ...\n', ...
-            unexpectedCount);
+if undefinedCount > 0
+    dispif(mrstVerbose, 'Found %d undefined face-splits, assumed co-planar.\n', ...
+            undefinedCount);
 end
 
 % if there are any coords on grid-nodes, we need to remove the corresponding
@@ -179,7 +135,7 @@ if ~all(isnan(coordOnNode))
     nodeNo = coordOnNode(coix);
     % we could remove these coords, but don't bother now (stowaways)
     % use convention that negative node-no points to grid node, positive to
-    % poly-node
+    % (new) poly-node
     nodeReIndex(coix) = -nodeNo;
 end
     
@@ -187,16 +143,20 @@ end
 cutCells.nodes = nodeReIndex(cutCells.nodes);
 
 % make cut-faces
-ix = cumsum([1;nn]);
-ix = ix(isSplitFace);
+ix         = cumsum([1;nn]);
+updIx      = isSplitFace | isUpdateFace;
+nonSplitIx = ~isSplitFace & isUpdateFace;
+ix         = ix(updIx);
 if G.griddim == 3
-    cutFaces = struct('ix',      fix(isSplitFace), ...
-        'nodes',   nodeReIndex([nodesUC(ix), nodesUC(ix+1)]), ...
-        'nodePos', [localNodePos(ix), localNodePos(ix+1)]);
+    cutFaces = struct('ix',          fix(updIx), ...
+                      'nodes',       nodeReIndex([nodes(ix), nodes(ix+1)]), ...
+                      'nodePos',     [localNodePos(ix), localNodePos(ix+1)], ...
+                      'isTrueSplit', ~nonSplitIx(updIx));
 elseif G.griddim == 2
-    cutFaces = struct('ix',      fix(isSplitFace), ...
-        'nodes',   nodeReIndex(nodesUC(ix)), ...
-        'nodePos', localNodePos(ix));
+    cutFaces = struct('ix',           fix(isSplitFace), ...
+                      'nodes',        nodeReIndex(nodes(ix)), ...
+                      'nodePos',      localNodePos(ix), ...
+                      'isTrueSplit', ~nonSplitIx(updIx));
 end
 end
 
@@ -252,6 +212,7 @@ next(p(2:end) - 1) = p(1 : end-1);
 next = n(next);
 end
 %----------------------------------------------------------------------
+%{
 function ncan = canonicalPoly(n)
 % remove repeated and rotate to smallest index first
 np  = size(n,1);
@@ -267,105 +228,83 @@ for k = 1:np
 end
 ncan = vertcat(c{:});
 end
-
-%--------------------------------------------------------------------------
-%{
-function f = facesFromNeighbors(G, c)
-if all(size(c)==[2,1])
-    c = c';
-end
-nf = size(c,1);
-f  = nan(nf,1);
-fp = G.cells.facePos;
-nFailed = 0;
-for k =1:nf
-    [c1, c2] = deal(c(k,1), c(k,2));
-    if c1 == c2
-        error('something wrong')
-    else
-        ix1 = fp(c1):(fp(c1+1)-1);
-        ix2 = fp(c2):(fp(c2+1)-1);
-        r = intersect(G.cells.faces(ix1), G.cells.faces(ix2));
-        if ~(numel(r)==1)
-            % disregard this situation, might be just a degenerate polygon
-            % since validation is not done yet
-            nFailed = nFailed +1;
-        else
-            f(k) = r;
+%}
+%----------------------------------------------------------------------
+function p = rotatePolygonNodes(p)
+    % check if first and last node are equal
+    ii = find( p.nodes(p.nodePos( 1:(end-1) )) == ...
+               p.nodes(p.nodePos(2:end)-1) );
+    if ~isempty(ii)
+        ni = numel(ii);
+        [ix, rix] = deal(cell(ni, 1));
+        for k = 1:ni
+            ix{k} = (p.nodePos(ii(k)) : p.nodePos(ii(k)+1)-1)';
+            n1 = p.nodes(ix{k}(1));
+            for shift = numel(ix{k})-1:-1:1
+                if p.nodes(ix{k}(shift))~=n1
+                    break
+                end
+            end
+            if ~(shift==1)
+                rix{k} = ix{k}([shift+1:end, 1:shift]);
+            else % all nodes equal
+                [rix{k}, ix{k}] = deal([]);
+            end
+        end
+        [ix, rix] = deal(vertcat(ix{:}), vertcat(rix{:}));
+        % rotate index of all relevant fields
+        fn = fieldnames(p);
+        for k = 1:numel(fn)
+            if size(p.(fn{k}),1) == numel(p.nodes)
+                p.(fn{k})(ix) = p.(fn{k})(rix);
+            end
         end
     end
 end
-if nFailed > 0
-    dispif(mrstVerbose, 'Sub-function ''facesFromNeighbors'' in %s%s', ...
-          '''extractGridInfo'' failed \n to identify %d faces.,', ...
-          '(Not critical information)\n' , nFailed);
-end
-f = f(~isnan(f));
-end
-%}
-%--------------------------------------------------------------------------
+    
 %{
-Not currently used, but maybe useful
-
-function g = createSliceGrid(G, cutCells, coords)
-cix   = cutCells.ix;
-nc    = numel(cix);
-nn    = cutCells.nNodes;
-nodes = cutCells.nodes;
-% need to check for neagative node-indices for which we must collect coords
-% from G
-nix = nodes < 0;
-if any(nix)
-    [gnodes, ia, ib] = unique(-nodes(nix));
-    ngNo = max(0, max(nodes)) + (1:numel(ia))';
-    nodes(nix) = ngNo(ib);
-    coords = [coords; G.nodes.coords(gnodes,:)];
+WORK IN PROGRESS!
+function p = processNonConformalSnapping(G, p, uniqueIx, nNodes, cellIx)
+% To be valid, a cut can maximally share one segment with each cell-face or
+% be equal to one of the cell faces.
+% Only consider those with >= 3 snapped nodes
+polyNo = rldecode( (1:numel(nNodes))', nNodes);
+nSnap    = accumarray(polyNo, ~isnan(p.snapNode(uniqueIx)));
+checkIx  = find(nSnap >= 3);
+if ~isempty(checkIx)
+    facePos = G.cells.facePos;
+    nodePos = G.faces.nodePos;
+    polyNodes = something;
+    for k = 1:numel(checkIx)
+        c  = cellIx(checkIx(k));
+        fp = facePos(c):(facePos(c+1)-1);
+        f  = G.cells.faces(fp);
+        for kf = 1:numel(f)
+            np = nodePos(f(kf)):(nodePos(f(kf)+1)-1);
+            n  = G.faces.nodes(np);
+            isSame = ismember(n, polyNodes);
+            if nnz(isSame) >= 3
+                i1 = 1;
+                for kn = 1:numel(n)
+                    if isSame(kn)
+                        i2 = kn;
+                    else
+                        if i2-i1 >= 2
+                            % we have >= three consecutive
+                            % remove intermediate nodes from cutcell
+                            i1+1:i2-1
+                            % add intermediate nodes to cutFaces
+                            i1:i2 
+                        else
+                            [i1, i2] = deal(kn);
+                        end
+                    end
+                end
+            end
+        end
+    end
 end
-% need segments
-s1 = nodes;
-pos = cumsum([1;nn(1:end)]);
-s2  = getNext(s1, pos);
-%s2 = [s1(2:end);nan];
-%first = cumsum([1;nn(1:end-1)]);
-%last  = cumsum(nn);
-%s2(last) = s1(first);
-segs = [s1, s2];
-cellNo = rldecode((1:nc)', nn);
-% cut from makePlanarGrid --------------------------------------------- 
-% Identify unique edges
-[e,i]      = sort(segs, 2);
-[~,j]      = sortrows(e);
-k(j)       = 1:numel(j);
-[edges, n] = rlencode(e(j,:));
-edgenum    = rldecode((1:size(edges,1))', n);
-edgenum    = edgenum(k);
-edgesign   = i(:,1);
-
-% Identify neigbors assuming two per edge...
-p          = sub2ind(size(edges), edgenum, edgesign);
-neigh      = zeros(size(edges));
-neigh(p)   = cellNo;
-%----------------------------------------------------------------------
-g.nodes = struct('num', size(coords,1), 'coords', coords);
-nf = size(edges,1);
-g.faces = struct('num', nf, 'nodePos', (1:2:(2*nf+1))', 'neighbors', neigh, ...
-                 'tag', zeros(nf, 1), 'nodes', reshape(edges', [], 1));
-g.cells = struct('num', nc, 'facePos', cumsum([1; nn]), 'indexMap', nan(nc,1), ...
-                 'parent', cix, 'faces', [edgenum, zeros(numel(edgenum),1)]);
-g.griddim = 2;
-g.type = {'sliceGrid'};
-vst = mrstVerbose;
-mrstVerbose(0);
-g = computeGeometry(g);
-g = repairNormals(g);
-mrstVerbose(vst);
-% normals need to be fixed!
-g.type = [g.type, {'faulty face-normals'}]; 
-g.faces.normals = nan;
-% add cell normals
-g.cells.normals = cutCells.normals;
-end    
-%}
-%----------------------------------------------------------------------
-
+end
+%}                            
+                
 

@@ -92,12 +92,13 @@ opt = struct('faceIx',                      [], ...
              'removePartialCuts',        false, ...
              'outputForGridProcessing',  false, ...
              'tol',                       1e-6, ...
-             'parallellTol',              1e-6);
-opt = merge_options(opt, varargin{:});
+             'parallellTol',              1e-6, ...
+             'snapTol',                      0);
+opt = merge_options(opt, varargin{:}); 
 
 [seg, cutDir, r, opt] = processInput(G, coord, opt);
 
-[tol, parTol] = deal(opt.tol, opt.parallellTol);
+[tol, parTol, snapTol] = deal(opt.tol, opt.parallellTol, opt.snapTol);
 
 % Add face bounding boxes if not present
 if ~isfield(G.faces, 'bbox')
@@ -112,16 +113,10 @@ if nseg > 1
 else
     fix0 = [];
 end
-% prealocate for polygon vertices, coord along segment, 
-[p, t, fno, clamp] = deal(cell(1, nseg));
-if opt.outputForGridProcessing
-   [sval, snap, nix] = deal(cell(1, nseg));
-end
-
-% doSnap = snapTol > 0;
-%if doSnap
-%    [six, sp] = deal(cell(1, nseg));
-% end
+% prealocate for polygon vertices, p is coord, t length along segment
+intsec = repmat(struct('p', [], 'faceNo', [], 'nodePos', [], ...
+                       't', [], 'sValue', [], 'isClamped', [], ...
+                       'snapNode', []), [nseg, 1]);
 ts     = 0;
 np     = size(coord, 1);
 cumlen = zeros(nseg+1, 1);
@@ -137,8 +132,7 @@ for k = 1:nseg
     %end
     
     % Collect all segments for current set of faces
-    [p1, p2, faceNo, nodeIx] = getFaceSegments(G, fix, opt.outputForGridProcessing);
-    
+    segments = getFaceSegments(G, fix, opt.outputForGridProcessing);
     v  = diff(curseg);
     vu = v(:)/norm(v(:));
     % cut-plane : n'x = d 
@@ -147,55 +141,32 @@ for k = 1:nseg
     d = curseg(1,:)*n;
     
     % Compute segment - plane intersections
-    [pcur, faceNoIx, sValue, snapIx, snapCoord] = getPlaneIntersections(p1, p2, n, d, tol, parTol);
-        
+    intsec(k) = getPlaneIntersections(intsec(k), segments, n, d, tol, parTol, snapTol);
     if np >= 2
         % For a given segment remove intersections that don't project to 0 < t < tmax 
         % except for first and last segments where points are clamped  
         [isFirst, isLast] = deal(k == 1, k == nseg);
-        [pcur, tcur, isRemoved, isClamped] = clampSides(pcur, curseg, r, cutDir, n, isFirst, isLast, opt.removePartialCuts);
+        intsec(k) = clampSides(intsec(k), curseg, r, cutDir, n, isFirst, isLast, opt.removePartialCuts);
     else
         % clamping/removing is only performed if r's are finite
-        [pcur, tcur, isRemoved, isClamped] = clampEllipsoid(pcur, curseg, r, cutDir, opt.removePartialCuts);
-    end
-    
-    if any(isRemoved)
-        faceNoIx = faceNoIx(~isRemoved);
-        sValue   = sValue(~isRemoved);
-        snapIx   = snapIx(~isRemoved);
-        %if doSnap
-        %    [snapIx, snapCoord] = deal(snapIx(~isRemoved), snapCoord(~isRemoved));
-        %end
+        intsec(k) = clampEllipsoid(intsec(k), curseg, r, cutDir, opt.removePartialCuts);
     end
     % keep track of parameter t along segments
-    tcur        = ts + tcur;      % t's for current intersections
+    intsec(k).t = ts + intsec(k).t;
     ts          = ts + norm(v);   % final t for current segment
     cumlen(k+1) = ts;
-    [p{k}, t{k}, fno{k}, clamp{k}] = deal(pcur, tcur, faceNo(faceNoIx), isClamped);
-    % extra output
-    if opt.outputForGridProcessing
-        [sval{k}, snap{k}, nix{k}] = deal(sValue, snapIx, nodeIx(faceNoIx));
-    end
 end
 
 % Collect and reshape -----------------------------------------------------
-[p, t, fno, clamp] = deal(vertcat(p{:}), vertcat(t{:}), vertcat(fno{:}), vertcat(clamp{:}));
-if opt.outputForGridProcessing
-    [sval, snap, nix] = deal(vertcat(sval{:}), vertcat(snap{:}), vertcat(nix{:}));
-end
-% if doSnap
-%     [six, sp] = deal(vertcat(six{:}), vertcat(sp{:}));
-% end
+intsec = vertcatStructFields(intsec);
 
 % Reshape intersection info to all intersected grid cells
-cno   = G.faces.neighbors(fno,:); 
+cno   = G.faces.neighbors(intsec.faceNo,:); 
 isPos = cno > 0;
 cno   = [cno(isPos(:,1),1); cno(isPos(:,2),2)];
 pix   = [find(isPos(:,1)); find(isPos(:,2))];
-[p, t, clamp] = deal(p(pix,:), t(pix), clamp(pix));
-if opt.outputForGridProcessing
-    [fno, nix, sval] = deal(fno(pix), nix(pix), sval(pix));
-end
+
+intsec = reindexNonEmpty(intsec, pix);
 
 if isempty(cno)
     polygons = [];
@@ -217,8 +188,8 @@ nvert   = accumarray(cno_loc, ones(size(cno_loc)), [numel(cix), 1]);
 
 % project intersection points onto 2D (t, p_cut) -plane and orient polygon 
 % vertices accoring to angle wrt poly center
-p_cut = p*cutDir - seg(1,:)*cutDir;
-pp    = [t, p_cut];
+p_cut = intsec.p*cutDir - seg(1,:)*cutDir;
+pp    = [intsec.t, p_cut];
 cent  = [accumarray(cno_loc, pp(:,1)), accumarray(cno_loc, pp(:,2))]./nvert;
 rp    = pp - cent(cno_loc,:);
 theta = atan2(rp(:,2), rp(:,1));
@@ -242,7 +213,7 @@ nvert  = accumarray(cno_loc, ones(size(cno_loc)), [numel(cix), 1]);
 if opt.removeDegenerates || opt.removeFullyClamped
     nfixed = 1;
     if opt.removeFullyClamped
-        nfixed = accumarray(cno_loc, ~clamp(order), [numel(cix), 1]);
+        nfixed = accumarray(cno_loc, ~intsec.isClamped(order), [numel(cix), 1]);
     end
     isDeg = false;
     if opt.removeDegenerates
@@ -257,41 +228,54 @@ if opt.removeDegenerates || opt.removeFullyClamped
 end
 
 % Assemble output ---------------------------------------------------------
+intsec = reindexNonEmpty(intsec, order);
+p_cut = p_cut(order);
+% do snapping:
+if ~isempty(intsec.snapNode)
+    ii = ~isnan(intsec.snapNode);
+    if any(ii)
+        intsec.p(ii,:) = G.nodes.coords(intsec.snapNode(ii),:);
+    end
+end
 
-[p, p_cut, t] = deal(p(order,:), p_cut(order), t(order));
 cno = cix(cno_loc);
 
-
 % Construct polygonal info
-maxp  = max(nvert); 
+maxp  = max(nvert);
 npol  = numel(nvert);
 cumc  = cumsum(nvert);
 pos   = [1; cumc(1:end-1)+1];
-nodes = zeros(npol, maxp);
-cl    = (1:numel(cno))';
-for k = 1:maxp
-   nodes(:,k) =  cl(min(pos+k-1, cumc));
-end
-
-polygons = struct('nodes',           nodes, ...
-                  'coords3D',            p, ... 
-                  'coords2D',   [t, p_cut], ...
-                  'cellIx',    cix(polyIx), ...
-                  'segments',          seg, ...
-                  'cumlength',      cumlen);
-if opt.outputForGridProcessing
-    polygons.faceIx = fno(order);
-    polygons.nodeIx = nix(order,:);
-    %polygons.theta  = theta(order);
-    polygons.tValue = sval(order);
-    polygons.snapIx = [];%snap(order);
-    polygons.normal = n;  % not needed
+if ~opt.outputForGridProcessing
+    % arrange nodes in matrix for use in patch
+    nodes = zeros(npol, maxp);
+    cl    = (1:numel(cno))';
+    for k = 1:maxp
+        nodes(:,k) =  cl(min(pos+k-1, cumc));
+    end
+    polygons = struct('nodes',                nodes, ...
+                      'coords3D',          intsec.p, ...
+                      'coords2D', [intsec.t, p_cut], ...
+                      'cellIx',         cix(polyIx), ...
+                      'segments',               seg, ...
+                      'cumlength',           cumlen);
+else
+    cellIx = rldecode(cix(polyIx), nvert);
+    polygons = struct('nodePos',         [1;cumc+1], ...
+                      'coords3D',          intsec.p, ...
+                      'coords2D', [intsec.t, p_cut], ...
+                      'cellIx',              cellIx, ...
+                      'segments',               seg, ...
+                      'cumlength',           cumlen, ...
+                      'faceIx',       intsec.faceNo, ...
+                      'locPos',      intsec.nodePos, ...
+                      'tValue',       intsec.sValue, ...
+                      'snapNode',   intsec.snapNode);
 end
 end
 
 % -------------------------------------------------------------------------
 % -------------------------------------------------------------------------
-function [p1, p2, faceNo, nodeIx] = getFaceSegments(G, f, outputNodeIndex)
+function segments = getFaceSegments(G, f, outputNodeIndex)
 [np1, np2] = deal(G.faces.nodePos(f), G.faces.nodePos(f+1));
 nNodes = np2-np1;
 nSeg   = numel(nNodes);
@@ -304,53 +288,69 @@ next(locpos(2 : end) - 1) = locpos(1 : end-1);
 
 p1 = G.nodes.coords(nodes,:);
 p2 = G.nodes.coords(nodes(next),:);
-nodeIx = [];
+[nodeNo, nodeIx] = deal([]);
 if outputNodeIndex
+    nodeNo = [nodes, nodes(next)];
     nix1 = mcolon(ones(nSeg, 1), nNodes)';
     nix2 = nix1(next);
     nodeIx = [nix1, nix2];
 end
+segments = struct('p1', p1, 'p2', p2, 'faceNo', faceNo, ...
+                  'nodeNo', nodeNo, 'nodeIx', nodeIx);
 end
+
 % -------------------------------------------------------------------------
-function [p, ix, t, six, sp] = getPlaneIntersections(p1, p2, n, d, tol, parTol)
+function intsec = getPlaneIntersections(intsec, segments, n, d, segTolRel, parTol, segTolAbs)
 % compute intersection points of line-segments with plane
+[p1, p2] = deal(segments.p1, segments.p2);
 v  = p2-p1;
 normv = sqrt(sum(v.^2,2));
 
 vn = v*n;
 %ok = abs(vn) > parTol*norm(max(v));
 ok = abs(vn) > parTol*normv;
-t  = nan(size(vn));
-t(ok)  = -(p1(ok,:)*n-d)./vn(ok);
+s  = nan(size(vn));
+s(ok)  = -(p1(ok,:)*n-d)./vn(ok);
 if ~all(ok) % check if in plane
     ii = abs((p1(~ok,:)*n-d)./d) < parTol;
     if any(ii)
         tii     =  nan(size(ii));
         tii(ii) = 0;
-        t(~ok)  = tii;
+        s(~ok)  = tii;
     end
 end
 % Might want to consider a tollerance in next line but this will 
 % potentially screw up later logic. However, if there is a finite 
 % tol such that tol/(magnitude of coordinates) is sufficenlty 
 % many orders og magnitude larger than eps, this should be OK 
-ix = find(t>=0 & t <= 1);
-t  = t(ix);
-p  = p1(ix,:) + bsxfun(@times, t, v(ix,:));
-sp = []; % not currently considered
-if tol == 0
-    [six, sp] = deal([]);
+ix = find(s>=0 & s <= 1);
+s  = s(ix);
+p  = p1(ix,:) + bsxfun(@times, s, v(ix,:));
+if (segTolRel > 0 || segTolAbs > 0) && ~isempty(s)
+    snapNode = nan(size(s));
+    tolr = 0;
+    if segTolAbs > 0
+        tolr = segTolAbs./normv(ix);
+    end
+    tol = max(segTolRel, tolr);
+    six0 = s <= min(tol, .5);
+    six1 = s >  max(1-tol, .5);
+    s(six0) = 0;
+    s(six1) = 1;
+    if ~isempty(segments.nodeNo)
+        snapNode(six0) = segments.nodeNo(ix(six0),1);
+        snapNode(six1) = segments.nodeNo(ix(six1),2);
+    end
 else
-    six0    = t < tol;
-    t(six0) = 0;
-    p(six0) = p1((ix(six0))); % hard-set to prevent round-offs
-    
-    six1    = t > 1-tol;
-    t(six1) = 1;
-    p(six0) = p2((ix(six0))); % hard-set to prevent round-offs
-    six = six0 | six1;
+    snapNode = [];
 end
-
+intsec.p        = p;
+intsec.faceNo   = segments.faceNo(ix);
+if ~isempty(segments.nodeIx)
+    intsec.nodePos  = segments.nodeIx(ix, 1);
+end
+intsec.snapNode = snapNode;
+intsec.sValue   = s;
 end
 
 % -------------------------------------------------------------------------
@@ -432,9 +432,10 @@ end
 %}
 
 % -------------------------------------------------------------------------
-function [p, t, removed, clamped] = clampSides(p, seg, r, cutDir, n, isFirst, isLast, deleteOutside)
+function intsec = clampSides(intsec, seg, r, cutDir, n, isFirst, isLast, deleteOutside)
 % clamp point p to t-endpoint te: p->p+(te-v.p)v
 removed = false;
+p = intsec.p;
 clamped = false(size(p,1), 1);
 segProj = seg - (seg*cutDir)*cutDir';
 v  = diff(segProj)';
@@ -479,22 +480,22 @@ if ~isempty(r) && isfinite(r)
         removed = removed | ix;
     end
 end
+intsec.t = t;
+intsec.p = p;
+intsec.isClamped = clamped;
 if any(removed)
-    p = p(~removed,:);
-    t = t(~removed);
-    if any(clamped)
-        clamped = clamped(~removed);
-    end
+    intsec = reindexNonEmpty(intsec, ~removed);
 end
 end
 
 % -------------------------------------------------------------------------
-function [p ,t, removed, clamped] = clampEllipsoid(p, seg, r2, cutDir, deleteOutside)
+function intsec = clampEllipsoid(intsec, seg, r2, cutDir, deleteOutside)
 % center at the middle of the segment
 c  = mean(seg);
 v  = diff(seg);
 vu = v(:)/norm(v);
 removed = false;
+p = intsec.p;
 clamped = false(size(p,1), 1);
 if ~isempty(r2) && isfinite(r2)
     r1 = norm(v)/2;
@@ -510,12 +511,17 @@ if ~isempty(r2) && isfinite(r2)
         p(ix,:) = p(ix,:) - shift*X';
         clamped = ix;
     else
-        p = p(~ix,:);
+        %p = p(~ix,:);
         removed = ix;
     end
 end
+intsec.isClamped = clamped;
+intsec.p = p;
+if any(removed)
+    intsec = reindexNonEmpty(intsec, ~removed);
+end
 % also get length along segment
-t = p*vu - seg(1,:)*vu;
+intsec.t = intsec.p*vu - seg(1,:)*vu;
 end
 
 % -------------------------------------------------------------------------    
@@ -545,21 +551,22 @@ v  = [v1/r(1), v2/r(2)];
 end
 
 %----------------------------------------------------------------------
-%{
-function pn = getPlaneNormal(G)
-    if isfield(G.cells, 'normal')
-        pn = G.cells.normal(1,:)';
-    else
-        % find normal of any cell
-        if ~isfield(G.cells, 'volumes')
-            G = computeGeometry(G);
-        end
-        [~, c] = max(G.cells.volumes);
-        fNo = G.cells.facePos(c):(G.cells.facePos(c+1)-1);
-        f   = G.cells.faces(fNo);
-        v   = diff(G.faces.centroids(f,:));
-        pn  = sum(cross(v(1:end-1,:), v(2:end,:),2));
-        pn = pn(:)/norm(pn);
+function s = reindexNonEmpty(s, ix)
+fn = fieldnames(s);
+for k = 1:numel(fn)
+    if ~isempty(s.(fn{k}))
+        s.(fn{k}) = s.(fn{k})(ix,:);
     end
 end
-%}
+end
+
+%----------------------------------------------------------------------
+function s = vertcatStructFields(s)
+fn = fieldnames(s);
+for k = 1:numel(fn)
+    tmp.(fn{k}) = vertcat(s.(fn{k}));
+end
+s = tmp;
+end
+
+
