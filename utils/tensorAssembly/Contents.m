@@ -1,13 +1,14 @@
 % TENSORASSEMBLY
 %
 % Files
-%   crossIndexArray - SYNOPSIS:
-%   IndexArray      - Class used to store multiple-indices.
-%   projIndexArray  - SYNOPSIS:
-%   sortIndexArray  - SYNOPSIS:
-%   SparseTensor    - SYNOPSIS:
-%   TensorMap       - SYNOPSIS:
-%   TensorProd      - SYNOPSIS:
+%   crossIndexArray          - SYNOPSIS:
+%   CrossIndexArrayGenerator - 
+%   IndexArray               - Class used to store multiple-indices.
+%   projIndexArray           - SYNOPSIS:
+%   sortIndexArray           - SYNOPSIS:
+%   SparseTensor             - SYNOPSIS:
+%   TensorMap                - SYNOPSIS:
+%   TensorProd               - SYNOPSIS:
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
