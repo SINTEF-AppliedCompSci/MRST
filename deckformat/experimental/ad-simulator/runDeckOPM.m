@@ -36,12 +36,13 @@ opt=struct('outputdir','output',...
     'storagecache',true,...
     'simulationtype','implicit',...
     'pressuresolver',[],...
-    'linearsolver',[]);
+    'linearsolver',[],...
+    'end_step',1000000000);
 opt=merge_options(opt,varargin{:});
 % for extra see .XXX.DEBUG of an opm run
 pressureoptions =[];
 
-if(isempty(opt.pressuresolver) || isempty(opt.linearsolver))
+if(isempty(opt.pressuresolver))
       %simple_prec= struct('preconditioner','ILU0','w',1,'n',1);
        amg = struct('type','amg',...
                     'maxlevel',10,...
@@ -65,6 +66,7 @@ if(isempty(opt.pressuresolver) || isempty(opt.linearsolver))
    else
        pressuresolver = opt.pressuresolver;
 end
+if(isempty(opt.linearsolver))
 if(strcmp(opt.simulationtype,'implicit'))
    amg = struct('type','amg',...
                     'maxlevel',10,...
@@ -93,6 +95,9 @@ if(strcmp(opt.simulationtype,'implicit'))
 else  
   preconditioner=struct('type','ILU0','relaxation',1);
   linearsolver = struct('precontitioner',preconditioner,'solver','bicgstab','tol',1e-5,'maxiter',200,'verbosity',3); 
+end
+else
+    linearsolver=opt.linearsolver;
 end
 linearsolverfile = 'tmp_linearsolver.json';
 writeJson(linearsolver,linearsolverfile);
@@ -170,6 +175,7 @@ end
 delete([fullfile(opt.outputdir,'extra_out'),'/*.txt'])
 disp('MRST runing flow')
 delete([fullfile(opt.outputdir),'*.UNSMRY']);
+command = [command,' --end-step=',num2str(opt.end_step)]
 disp(command)
 a = system(command)
 if(a~=0)
