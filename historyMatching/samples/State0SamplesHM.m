@@ -75,32 +75,4 @@ classdef State0SamplesHM < BaseSamplesHM & State0Samples
         
     end
     
-    methods (Access = protected)
-        function sizes = getSizes(samples)
-            sizeInitSw = 0;
-            sizeInitSo = 0;
-            sizeInitSg = 0;
-            sizePressure = 0;
-            sizeFlux = 0;
-            
-            if isfield(samples.data{1}, 'initSw')
-                sizeInitSw = numel(samples.data{1}.initSw);
-            end
-            if isfield(samples.data{1}, 'initSo')
-                sizeInitSo = numel(samples.data{1}.initSo);
-            end
-            if isfield(samples.data{1}, 'initSg')
-                sizeInitSg = numel(samples.data{1}.initSg);
-            end
-            if isfield(samples.data{1}, 'pressure')
-                sizePressure = numel(samples.data{1}.pressure);
-            end
-            if isfield(samples.data{1}, 'flux')
-                sizeFlux = numel(samples.data{1}.flux);
-            end
-            
-            sizes = [sizeInitSw, sizeInitSo, sizeInitSg, sizePressure, sizeFlux];
-        end
-
-    end
 end

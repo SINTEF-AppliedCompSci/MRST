@@ -68,58 +68,18 @@ classdef State0Samples < BaseSamples
             
             % Initial saturation
             if (initSwIsField || initSoIsField || initSgIsField)
-            
-                numPhases = size(problem.SimulatorSetup.state0.s, 2);
-                
+                numPhases = size(problem.SimulatorSetup.state0.s, 2);       
+                sampleData = samples.fillInitialSaturation(sampleData, numPhases, ...
+                                                           initSwIsField, initSoIsField, initSgIsField);
                 if (numPhases == 3)
-                    assert(initSwIsField + initSoIsField + initSgIsField > 1, ...
-                        'Three phase initial conditions require that two of the phases are given in sampleData. Currently, only one phase is available.');
-                    if (initSwIsField && initSoIsField && initSgIsField)
-                        assert(all(sampleData.initSw + sampleData.initSo + sampleData.initSg == 1), ...
-                            'Three phase initial saturation does not sum to 1');
-                        problem.SimulatorSetup.state0.s(:, :) = ...
-                            [sampleData.initSw(:) sampleData.initSo(:) sampleData.initSg(:)];
-                        
-                    else %(initSwIsField + initSoIsField + initSgIsField == 2)
-                        if (initSwIsField && initSoIsField)
-                            initSg = 1 - sampleData.initSw - sampleData.initSo;
-                            problem.SimulatorSetup.state0.s(:, :) = ...
-                                [sampleData.initSw(:) sampleData.initSo(:) initSg(:)];
-                        elseif (initSwIsField && initSgIsField)
-                            initSo = 1 - sampleData.initSw - sampleData.initSg;
-                            problem.SimulatorSetup.state0.s(:, :) = ...
-                                [sampleData.initSw(:) initSo(:) sampleData.initSg(:)];
-                        else %(initSoIsField && initSgIsField)
-                            initSw = 1 - sampleData.initSg - sampleData.initSo;
-                            problem.SimulatorSetup.state0.s(:, :) = ...
-                                [initSw(:) sampleData.initSo(:) sampleData.initSg(:)];
-                        end
-                    end
-                    
+                    problem.SimulatorSetup.state0.s(:, :) = ...
+                        [sampleData.initSw(:) sampleData.initSo(:) sampleData.initSg(:)];
                 elseif (numPhases == 2)
-                    assert(~initSgIsField, 'Initial gas can not be used for two-phase problems');
-                    
-                    if (initSwIsField && initSoIsField)
-                        assert(all(sampleData.initSw + sampleData.initSo == 1), ...
-                            'Two phase initial saturation does not sum to 1 for two phase problem');
-                        problem.SimulatorSetup.state0.s(:, :) = ...
-                            [sampleData.initSw(:) sampleData.initSo(:)];
-                    else % initSw or initSo
-                        if initSwIsField
-                            initSo = 1 - sampleData.initSw;
-                            problem.SimulatorSetup.state0.s(:, :) = ...
-                                [sampleData.initSw(:) initSo(:)];
-                        else % initSoIsField
-                            initSw = 1 - sampleData.initSo;
-                            problem.SimulatorSetup.state0.s(:, :) = ...
-                                 [initSw(:) sampleData.initSo(:)];
-                        end
-                    end
-                    
+                    problem.SimulatorSetup.state0.s(:, :) = ...
+                         [sampleData.initSw(:) sampleData.initSo(:)];
                 end
                 
             end % if initial saturation
-            
             
             % Pressure
             if pressureIsField
@@ -136,6 +96,74 @@ classdef State0Samples < BaseSamples
         
     end
     
+    methods (Access = protected)
+        function sizes = getSizes(samples)
+            sizeInitSw = 0;
+            sizeInitSo = 0;
+            sizeInitSg = 0;
+            sizePressure = 0;
+            sizeFlux = 0;
+            
+            if isfield(samples.data{1}, 'initSw')
+                sizeInitSw = numel(samples.data{1}.initSw);
+            end
+            if isfield(samples.data{1}, 'initSo')
+                sizeInitSo = numel(samples.data{1}.initSo);
+            end
+            if isfield(samples.data{1}, 'initSg')
+                sizeInitSg = numel(samples.data{1}.initSg);
+            end
+            if isfield(samples.data{1}, 'pressure')
+                sizePressure = numel(samples.data{1}.pressure);
+            end
+            if isfield(samples.data{1}, 'flux')
+                sizeFlux = numel(samples.data{1}.flux);
+            end
+            
+            sizes = [sizeInitSw, sizeInitSo, sizeInitSg, sizePressure, sizeFlux];
+        end
+        
+        function sampleData = fillInitialSaturation(samples, sampleData, numPhases, ...
+                                                    initSwIsField, initSoIsField, initSgIsField)
+
+            if (numPhases == 3)
+                assert(initSwIsField + initSoIsField + initSgIsField > 1, ...
+                    'Three phase initial conditions require that two of the phases are given in sampleData. Currently, only one phase is available.');
+                if (initSwIsField && initSoIsField && initSgIsField)
+                    assert(all(sampleData.initSw + sampleData.initSo + sampleData.initSg == 1), ...
+                        'Three phase initial saturation does not sum to 1');
+                    % Nothing to do, sampleData is fine.
+                    
+                else %(initSwIsField + initSoIsField + initSgIsField == 2)
+                    if (initSwIsField && initSoIsField)
+                        sampleData.initSg = 1 - sampleData.initSw - sampleData.initSo;
+                    elseif (initSwIsField && initSgIsField)
+                        sampleData.initSo = 1 - sampleData.initSw - sampleData.initSg;
+                    else %(initSoIsField && initSgIsField)
+                        sampleData.initSw = 1 - sampleData.initSg - sampleData.initSo;
+                    end
+                end
+
+            elseif (numPhases == 2)
+                assert(~initSgIsField, 'Initial gas can not be used for two-phase problems');
+
+                if (initSwIsField && initSoIsField)
+                    assert(all(sampleData.initSw + sampleData.initSo == 1), ...
+                        'Two phase initial saturation does not sum to 1 for two phase problem');
+                     % Nothing to do, sampleData is fine.
+               else % initSw or initSo
+                    if initSwIsField
+                        sampleData.initSo = 1 - sampleData.initSw;
+                    else % initSoIsField
+                        sampleData.initSw = 1 - sampleData.initSo;
+                    end
+                end
+
+            end % if numphases
+        end
+                
+
+    end
 end
 
 %{
