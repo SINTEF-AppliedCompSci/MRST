@@ -71,7 +71,7 @@ classdef FracturedDomainManager
             
             %% State function groupings
             model.FlowPropertyFunctions = FracturedDomainFlowPropertyFunctions(model);
-            model.FluxDiscretization = FracturedDomainFluxDiscretization(model);
+            model.FlowDiscretization = FracturedDomainFluxDiscretization(model);
             
             %% TODO: there is a problem when outputFluxex = 1
             model.outputFluxes = 0;
