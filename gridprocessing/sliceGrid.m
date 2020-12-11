@@ -6,7 +6,7 @@ function [G, gix, G_slice] = sliceGrid(G, pnts, varargin)
 % computeGridSlicePolygons.m for further info on optional params.
 opt = struct('onlyFaces',  false, ...
              'topoSplit',  true, ...
-             'mcompute',   true);
+             'mcompute',   exist('mcomputeGeometry', 'file') > 0);
 [opt, opt2] = merge_options(opt, varargin{:});
 % others passed on to computeGridSlice
 
@@ -66,6 +66,7 @@ for k = 1:numel(pntsList)
         G.type = {'cutCellGrid'};
         % recompute geometry / bbox
         if opt.mcompute
+            require libgeometry
             G = mcomputeGeometry(G);
         else
             G = computeGeometry(G);
