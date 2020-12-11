@@ -30,6 +30,7 @@ opt = struct('cells', false, ...
              'faces', true);
 opt = merge_options(opt, varargin{:});
 
+gdim = size(G.nodes.coords, 2);
 % cells (cellNodes fails for e.g., Olympus)
 if opt.cells
     cno  = cellNodes(G);
@@ -39,7 +40,7 @@ if opt.cells
     minIx = npos(1:end-1);
     maxIx = npos(2:end)-1;
     bbox = nan(G.cells.num, G.griddim);
-    for d = 1:G.griddim
+    for d = 1:gdim
         tmp = sortrows([cno(:,1), G.nodes.coords(cno(:,3),d)]);
         bbox(:,d) = tmp(maxIx, 2) - tmp(minIx, 2);
     end
@@ -54,7 +55,7 @@ if opt.faces
     minIx = npos(1:end-1);
     maxIx = npos(2:end)-1;
     bbox = nan(G.faces.num, G.griddim);
-    for d = 1:G.griddim
+    for d = 1:gdim
         tmp = sortrows([fno(:,1), G.nodes.coords(G.faces.nodes, d)]);
         bbox(:,d) = tmp(maxIx, 2) - tmp(minIx, 2);
     end

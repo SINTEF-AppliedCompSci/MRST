@@ -60,9 +60,8 @@ nseg = size(segments,1)-1;
 % pick intial candidate subset of faces
 if nseg > 1
     fix0 = getFacesCloseToSegment(G, segments);
-    subsets = [];
 else
-    [fix0, subsets] = deal([]);
+    [fix0] = deal([]);
 end
 
 [p, t, fno] = deal(cell(1, nseg));
@@ -71,7 +70,7 @@ ts = 0;
 cumlen = zeros(nseg+1, 1);
 for k = 1:nseg
     curseg = segments([k, k+1],:);
-    fix = getFacesCloseToSegment(G, curseg, 'faceIx', fix0, 'subsets', subsets);
+    fix = getFacesCloseToSegment(G, curseg, 'faceIx', fix0);
     
     [p1, p2, faceNo] = getFaceSegments(G, fix);
     
