@@ -129,11 +129,11 @@ function settings = firstTimeSetup(settings, isDesktop, doWizard)
                 name = folders{i};
                 helpstr = sprintf('Choose current %s:\n%s', name, folderTexts{i});
                 result = triplePrompt(name, helpstr, {true, false}, {'Select new', 'Keep current'}, 'Keep current');
-                if result
+                if ~isnan(result) && result
                     current = settings.(name);
                     selpath = uigetdir(current, sprintf('Set new MRST directory: %s', name));
+                    settings.(name) = selpath;
                 end
-                settings.(name) = selpath;
             end
         else
             % Use simple version
@@ -153,7 +153,11 @@ end
 
 function result = triplePrompt(head, txt, choices, labels, default)
     answer = questdlg(txt, head, labels{:}, default);
-    result = choices{strcmp(labels, answer)};
+    if isempty(answer)
+        result = nan;
+    else
+        result = choices{strcmp(labels, answer)};
+    end
 end
 
 function wasYes = prompt(head, txt, isDesktop)
