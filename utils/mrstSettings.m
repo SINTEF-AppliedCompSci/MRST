@@ -70,7 +70,10 @@ function varargout = mrstSettings(verb, varargin)
                 varargout{1} = SETTINGS;
             else
                 checkSetting(SETTINGS, sarg);
-                varargout{1} = SETTINGS.(sarg);
+                varargout{1} = SETTINGS.(sarg).value;
+                if nargout > 1
+                    varargout{2} = SETTINGS.(sarg);
+                end
             end
         case 'list'
             % Default
