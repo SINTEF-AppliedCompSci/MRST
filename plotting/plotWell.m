@@ -131,7 +131,7 @@ for w = 1 : nW
       dir = 's';
    end
 
-   % Generate a cylinder rotatet according to major direction
+   % Generate a cylinder rotated according to major direction
    [XW,YW,ZW] = deal([]);
    for i=1:numel(dir)
       switch lower(dir(i))
