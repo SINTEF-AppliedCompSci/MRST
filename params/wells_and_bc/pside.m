@@ -106,7 +106,7 @@ opt = struct('sat', 1, 'range', []);
 opt = merge_options(opt, varargin{:});
 sat = opt.sat;
 
-ix = boundaryFaceIndices(G, side, I1, I2, opt.range);
+ix = boundaryFaceIndices(G, side, I1, I2, opt.range, mfilename());
 
 assert (any(numel(pressure) == [1, numel(ix)]));
 assert (isempty(sat) || any(size(sat,1) == [1, numel(ix)]));
