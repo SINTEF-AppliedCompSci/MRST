@@ -1,4 +1,4 @@
-function ix = boundaryFaceIndices(G, direction, i1, i2, i3)
+function ix = boundaryFaceIndices(G, direction, i1, i2, i3, caller)
 %Retrieve face indices belonging to subset of global outer faces.
 %
 % SYNOPSIS:
@@ -20,6 +20,8 @@ function ix = boundaryFaceIndices(G, direction, i1, i2, i3)
 %           These groups correspond to the cardinal directions mentioned as
 %           the first alternative in each group.
 %
+% OPTIONAL PARAMETERS:
+%
 %   i1,i2 - Index ranges for local (in-plane) axes one and two,
 %           respectively.  An empty index range ([]) is interpreted as
 %           covering the entire corresponding local axis of 'side' in the
@@ -36,10 +38,6 @@ function ix = boundaryFaceIndices(G, direction, i1, i2, i3)
 % RETURNS:
 %   ix    - Required face indices.
 %
-% NOTE:
-%   This function is mainly intended for internal use by functions fluxside
-%   and pside.  Its calling interface may change more frequently than those
-%   of the *side functions.
 %
 % SEE ALSO:
 %   `fluxside`, `pside`.
@@ -63,17 +61,27 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-st = dbstack(1);
-try
-   caller = st(1).name;
-catch  %#ok
-   caller = 'BASE:BoundaryConditions';
+if nargin < 3
+    i1 = [];
+else
+    i1 = reshape(i1, [], 1);
+end
+if nargin < 4
+    i2 = [];
+else
+    i2 = reshape(i2, [], 1);
+end
+if nargin < 5
+    i3 = [];
+else
+    i3 = reshape(i3, [], 1);
 end
 
-i1 = reshape(i1, [], 1);
-i2 = reshape(i2, [], 1);
-i3 = reshape(i3, [], 1);
+if nargin < 6
+    % Undocumented input - used to preserve the ID in errors/warnings from
+    % pside/fluxside.
+    caller = mfilename();
+end
 
 %--------------------------------------------------------------------------
 % Extract all faces of cells within the given subset.
@@ -175,8 +183,13 @@ if G.griddim == 2
 end
 [cIJK{1:3}] = ind2sub(dims, double(G.cells.indexMap(cells)));
 
-if isempty(i1), i1 = 1:dims(d1); end
-if isempty(i2), i2 = 1:dims(d2); end
+if isempty(i1)
+    i1 = 1:dims(d1);
+end
+
+if isempty(i2)
+    i2 = 1:dims(d2);
+end
 
 % Determine whether or not a given cell is within the required subset
 %
