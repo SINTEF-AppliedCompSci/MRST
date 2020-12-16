@@ -321,8 +321,12 @@ function allowDL = checkDownload(setDefaults)
     testurl = 'https://www.sintef.no/contentassets/efe341cda156406aa06bc8e6a149aa26/DL_TEST.zip';
     if setDefaults
         out = mrstOutputDirectory();
-        unzip(testurl, out);
-        allowDL = exist(fullfile(out, 'DL_TEST.txt'), 'file') > 0;
+        try
+            unzip(testurl, out);
+            allowDL = exist(fullfile(out, 'DL_TEST.txt'), 'file') > 0;
+        catch
+            allowDL = false;
+        end
     else
         allowDL = true;
     end
@@ -331,14 +335,18 @@ end
 function useMEX = checkCompiler(setDefaults)
     useMEX = false;
     if setDefaults
-        compilers = mex.getCompilerConfigurations();
-        for i = 1:numel(compilers)
-            l = compilers(i).Language;
-            useMEX = useMEX || strcmp(l, 'C') || strcmp(l, 'C++');
-            if useMEX
-                % We found a C/C++ compiler. Abort.
-                break;
+        try
+            compilers = mex.getCompilerConfigurations();
+            for i = 1:numel(compilers)
+                l = compilers(i).Language;
+                useMEX = useMEX || strcmp(l, 'C') || strcmp(l, 'C++');
+                if useMEX
+                    % We found a C/C++ compiler. Abort.
+                    break;
+                end
             end
+        catch
+            % useMEX should be false
         end
     end
 end
