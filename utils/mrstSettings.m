@@ -1,4 +1,23 @@
 function varargout = mrstSettings(verb, varargin)
+% Example:
+% % Equal to list
+% mrstSettings()
+% % List current settings
+% mrstSettings('list')
+% % Reset and do set up
+% mrstSettings('setup', 'reset-no-check')
+% % Reset settings (after prompt) and do setup
+% mrstSettings('setup', 'reset')
+% % Perform setup wizard
+% mrstSettings('setup')
+% % Set option
+% mrstSettings('set', 'useMEX', true)
+% % Query a setting
+% useMEX = mrstSettings('get', 'useMEX');
+% % Query setting and output extra info
+% [useMEX, d] = mrstSettings('get', 'useMEX');
+% disp(d)
+
     persistent SETTINGS
     isDesktop = usejava('desktop'); % Check for GUI etc
     need_save = false;
