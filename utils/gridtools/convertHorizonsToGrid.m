@@ -84,7 +84,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'layers',          [], ... % Number of cells in each layer
                  'method',          'linear', ...
                  'extrapMethod',    'none', ...
-                 'repairFunction',  []...
+                 'doRepair',        true, ...
+                 'repairFunction',  [],...
+                 'repairFunction2', [] ...
                  ); 
     opt = merge_options(opt, varargin{:});
     n_horizons = numel(horizons);
@@ -116,13 +118,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Go through each layer between a pair of horizons and add 
     z_horizons = cellfun(@(h) interpolate(h, x, y, opt), horizons, 'UniformOutput', false);
-    if ~isempty(opt.repairFunction)
-        for i = 2:numel(horizons)
-            bad = isnan(z_horizons{i});
-            z_horizons{i} = opt.repairFunction(z_horizons{i}, z_horizons{i-1});
-            % Preserve NaN values
-            z_horizons{i}(bad) = nan;
-        end
+    if opt.doRepair
+        z_horizons = repair(z_horizons, opt.repairFunction, 2:n_horizons, -1);
+        z_horizons = repair(z_horizons, opt.repairFunction2, n_horizons-1:-1:1, 1);
     end
     z_prev = z_horizons{1};
     layerIndex = 1;
@@ -168,6 +166,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     grdecl.ACTNUM = int32(isfinite(cell_bad));
     grdecl.ZCORN(isnan(grdecl.ZCORN)) = inf;
     grdecl.COORD(isnan(grdecl.COORD)) = inf;
+end
+
+function z = repair(z, fn, iter, offset)
+    if isempty(fn)
+        fn = @(layer, other) layer;
+    end
+    for i = iter
+        self = z{i};
+        other = z{i+offset};
+        if offset < 0
+            delay = isinf(self);
+            self(delay) = other(delay);
+        end
+        bad = isnan(self);
+        self = fn(self, other);
+        % Preserve NaN values
+        self(bad) = nan;
+        z{i} = self; % Replace
+    end
 end
 
 function F = interpolate(horizon, x, y, opt)
