@@ -32,6 +32,7 @@ classdef MRSTExample
                 timer = tic();
             end
             [example, extra] = merge_options(example, varargin{:});
+            extra ={extra{:},'name',example.name};
             if opt.readFromDisk
                 % Check if example is already stored on disk
                 [example.description, ...
@@ -326,7 +327,7 @@ classdef MRSTExample
             end
             % Pack problem
             problem = packSimulationProblem(                                   ...
-                example.state0, example.model, example.schedule, example.name, ...
+                example.state0, example.model, example.schedule, example.description, ...
                 'NonLinearSolver', opt.NonLinearSolver, extra{:}             );
         end
         
