@@ -47,7 +47,7 @@ classdef WellPair
 
             wp.length       = norm(position_prod(end,:)-position_inj(end,:)); % TODO this line should be inprove to consider horizontal wells and vertical wells with diferent completions
             
-            wp.num_1D_cells    = 30;
+            wp.num_1D_cells    = 10;
             
             wp.dx              = wp.length /wp.num_1D_cells;
             
@@ -61,7 +61,7 @@ classdef WellPair
 %                                    data.fw_avg(:,wp_index),...
 %                                    s,'nearest','extrap') ;  
                                
-            wp.Tr = data.Tr(wp_index);                
+            wp.Tr = data.Tr(end,wp_index);                
             
             wp.data.BFPD = data.BFPD(:,wp_index);
             wp.data.BWPD = data.BWPD(:,wp_index);
