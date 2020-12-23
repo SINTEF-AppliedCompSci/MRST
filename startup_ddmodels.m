@@ -1,3 +1,3 @@
 pth = fileparts(mfilename('fullpath'));
-mrstPath('register', 'dd-models', pth);
-mrstModule add dd-models
+mrstPath('register', 'network-models', pth);
+mrstModule add network-models
