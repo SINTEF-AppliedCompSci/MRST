@@ -17,6 +17,7 @@ classdef WellPairNetwork
         
         function DD = WellPairNetwork(model,schedule,states,state,wellSols,varargin)
             
+        mrstModule add diagnostics
             
             
             DD.model    = model;
