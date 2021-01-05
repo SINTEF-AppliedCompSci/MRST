@@ -1,19 +1,19 @@
-mrstModule add network-models ad-core ad-props ad-blackoil
+mrstModule add network-models ad-core ad-props ad-blackoil optimization
 
 %ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization ddmodel
 
 
 %% Run EGG field simulation
-Setting_up_Olympus 
+%Setting_up_Olympus 
  
 %% Defining reference observations
 
-wellSols_ref =  wellSols;
-model_ref    = model;
+wellSols_ref = wellSols;
+model_ref    = problem.SimulatorSetup.model;
 states_ref   = states;
-schedule_ref = schedule;
+schedule_ref = problem.SimulatorSetup.schedule;
 W_ref        = schedule_ref.control.W;
-state0_ref   = state0;
+state0_ref   = problem.SimulatorSetup.state0;
 
 %%  Compute diagnostics 
 
@@ -31,17 +31,17 @@ state0_ref   = state0;
 
 %% Creatting data driven model
 
-L = 435;
+L = 4350;
 G = cartGrid([10, 1,numedges(DD.Graph)], [L, L/5 ,L/5]*meter^3);
 G = computeGeometry(G);
 
 
-%fluid =  model_ref.fluid;
-fluid =  initSimpleADIFluid('phases', 'WO',...
-                            'mu' , [ 0.398, 3.5]*centi*poise,...
-                            'rho', [1020, 850]*kilogram/meter^3, ...
-                            'n' , [ 2, 2]);
-rock = makeRock(G, 1000*milli*darcy, 0.1);
+fluid =  model_ref.fluid;
+% fluid =  initSimpleADIFluid('phases', 'WO',...
+%                             'mu' , [ 0.398, 3.5]*centi*poise,...
+%                             'rho', [1020, 850]*kilogram/meter^3, ...
+%                             'n' , [ 2, 2]);
+rock = makeRock(G, 200*milli*darcy, 0.2);
 
 gravity off
 model = GenericBlackOilModel(G, rock, fluid);
@@ -101,8 +101,8 @@ parameters{3}  = well_IP ;
 %% Prepare the model for simulation.
 
 model = model.validateModel();
-state0 = initState(G, W , 200*barsa,[0.2, 0.8]); 
-dt = schedule.step.val;
+state0 = initState(G, W , 200*barsa,[0.1, 0.9]); 
+dt = schedule_ref.step.val;
 
  %% Simulating the initial DD model
 
@@ -123,3 +123,23 @@ dt = schedule.step.val;
  [misfitVal_0,gradient,wellSols_0,states_0] = Simulate_BFGS(p0_fd,parameters,model,schedule_0,state0, wellSols_ref,weighting,1);          
   plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,schedule_0.step.val})
   
+  
+%% Optimization
+  
+obj_scaling     = abs(misfitVal_0);      % objective scaling  
+objh = @(p)Simulate_BFGS(p,parameters,model,schedule_0,state0,  wellSols_ref,weighting,obj_scaling);
+
+[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'gradTol',             1e-2, ...
+                                              'objChangeTol',        0.5e-3);
+                                          
+%% Simulating all simulation time
+ schedule = simpleSchedule(dt, 'W', W);
+ 
+ [misfitVal_opt,gradient_opt,wellSols_opt] = Simulate_BFGS(p_opt,parameters,model,schedule,state0, wellSols_ref,weighting,obj_scaling);
+
+  [misfitVal_0,gradient_0,wellSols_0] = Simulate_BFGS(p0_fd,parameters,model,schedule,state0, wellSols_ref,weighting,obj_scaling);
+
+
+
+plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,schedule.step.val,schedule.step.val})
+legend('reference model','initial DD model','optimize DD model')                                          
