@@ -11,7 +11,7 @@ classdef GPSNet
     
     methods
         function obj = GPSNet(model,nc,Graph,W_in,Levels)
-            %IMSIMMODEL Construct an instance of this class
+            %GPSNet 
             
             %TODO: get numedges and numlevels and numcros and define and model
             % using fluid and rock
