@@ -107,20 +107,23 @@ dt = schedule.step.val;
                        'BHPWeight',        1e-5};
  schedule_0=schedule;
  
-                  
+  val ={}              
   val{1} = TT;
   val{2} = pv/10;
   val{3} = WellIP;
   p0_fd = value2control(val,parameters);
  
-  
- [misfitVal_0,gradient,wellSols_0,states_0] = Simulate_BFGS(p0_fd,parameters,model,schedule_0,state0, wellSols_ref,weighting,1);          
-  plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,schedule_0.step.val})
+ %objh = @(tstep) obj(model.G, wellSols, schedule, wellSols_ref, true, tstep);%'computePartials', true, 'tstep', tstep, weighting{:});
+ obj = @(G, wellSols, schedule, wellSols_ref, tt, tstep) matchObservedOW(G, wellSols, schedule, wellSols_ref,...
+           'computePartials', tt, 'tstep', tstep, weighting{:});
+ [misfitVal_0,gradient,wellSols_0,states_0] = Simulate_BFGS(p0_fd,parameters,model,schedule_0,state0, wellSols_ref, 1, obj);          
+ 
+ plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,schedule_0.step.val})
   
   %% Optimization
   
 obj_scaling     = abs(misfitVal_0);      % objective scaling  
-objh = @(p)Simulate_BFGS(p,parameters,model,schedule_0,state0,  wellSols_ref,weighting,obj_scaling);
+objh = @(p)Simulate_BFGS(p,parameters,model,schedule_0,state0,  wellSols_ref, obj_scaling, obj);
 
 [v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'gradTol',             1e-2, ...
                                               'objChangeTol',        0.5e-3);
