@@ -134,37 +134,36 @@ classdef EquationOfStateModel < PhysicalModel
             end
             p = value(p); A = value(A); B = value(B);
                 
-            if ~model.selectGibbsMinimum
+            if model.selectGibbsMinimum
+                Z0 = model.solveCubicEOS(A, B);
+                bad = bsxfun(@lt, Z0, B);
+                Z0(bad) = nan;
+
+                candidates = isfinite(Z0);
+                numRoots = sum(candidates, 2);
+                single = numRoots == 1;
+                multiple = ~single;
+                Z = max(Z0, [], 2);
+                if any(multiple)
+                    Z_max = max(Z0(multiple, :), [], 2);
+                    Z_min = min(Z0(multiple, :), [], 2);
+                    xi = xy(multiple, :);
+
+                    [~, phi] = model.computeFugacity(p(multiple), xi, Z_max, A(multiple), B(multiple), Si(multiple, :), Bi(multiple, :));
+                    g_max = sum(phi.*xi, 2);
+                    [~, phi] = model.computeFugacity(p(multiple), xi, Z_min, A(multiple), B(multiple), Si(multiple, :), Bi(multiple, :));
+                    g_min = sum(phi.*xi, 2);
+                    Zi = Z_max;
+                    smallest = g_min < g_max;
+                    Zi(smallest) = Z_min(smallest);
+                    Z(multiple) = Zi;
+                end
+            else
                 if isLiquid
                     Z = computeLiquidZ(model, A, B);
                 else
                     Z = computeVaporZ(model, A, B);
                 end
-                return
-            end
-            
-            Z0 = model.solveCubicEOS(A, B);
-            bad = bsxfun(@lt, Z0, B);
-            Z0(bad) = nan;
-            
-            candidates = isfinite(Z0);
-            numRoots = sum(candidates, 2);
-            single = numRoots == 1;
-            multiple = ~single;
-            Z = max(Z0, [], 2);
-            if any(multiple)
-                Z_max = max(Z0(multiple, :), [], 2);
-                Z_min = min(Z0(multiple, :), [], 2);
-                xi = xy(multiple, :);
-                
-                [~, phi] = model.computeFugacity(p(multiple), xi, Z_max, A(multiple), B(multiple), Si(multiple, :), Bi(multiple, :));
-                g_max = sum(phi.*xi, 2);
-                [~, phi] = model.computeFugacity(p(multiple), xi, Z_min, A(multiple), B(multiple), Si(multiple, :), Bi(multiple, :));
-                g_min = sum(phi.*xi, 2);
-                Zi = Z_max;
-                smallest = g_min < g_max;
-                Zi(smallest) = Z_min(smallest);
-                Z(multiple) = Zi;
             end
         end
         
