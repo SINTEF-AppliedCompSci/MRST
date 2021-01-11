@@ -1,4 +1,4 @@
-mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization ddmodel
+mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization ddmodel network-models
 
  
 %% Run EGG field simulation
@@ -114,16 +114,16 @@ dt = schedule.step.val;
   p0_fd = value2control(val,parameters);
  
  %objh = @(tstep) obj(model.G, wellSols, schedule, wellSols_ref, true, tstep);%'computePartials', true, 'tstep', tstep, weighting{:});
- obj = @(G, wellSols, schedule, wellSols_ref, tt, tstep) matchObservedOW(G, wellSols, schedule, wellSols_ref,...
+ obj = @(model, states, schedule, states_ref, tt, tstep) matchObservedOW(model, states, schedule, states_ref,...
            'computePartials', tt, 'tstep', tstep, weighting{:});
- [misfitVal_0,gradient,wellSols_0,states_0] = Simulate_BFGS(p0_fd,parameters,model,schedule_0,state0, wellSols_ref, 1, obj);          
+ [misfitVal_0,gradient,wellSols_0,states_0] = Simulate_BFGS(p0_fd,parameters,model,schedule_0,state0, states_ref, 1, obj);          
  
  plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,schedule_0.step.val})
   
   %% Optimization
   
 obj_scaling     = abs(misfitVal_0);      % objective scaling  
-objh = @(p)Simulate_BFGS(p,parameters,model,schedule_0,state0,  wellSols_ref, obj_scaling, obj);
+objh = @(p)Simulate_BFGS(p,parameters,model,schedule_0,state0,  states_ref, obj_scaling, obj);
 
 [v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'gradTol',             1e-2, ...
                                               'objChangeTol',        0.5e-3);
@@ -132,9 +132,9 @@ objh = @(p)Simulate_BFGS(p,parameters,model,schedule_0,state0,  wellSols_ref, ob
 %% Simulating all simulation time
  schedule = simpleSchedule(dt, 'W', W);
  
- [misfitVal_opt,gradient_opt,wellSols_opt] = Simulate_BFGS(p_opt,parameters,model,schedule,state0, wellSols_ref,weighting,obj_scaling);
+ [misfitVal_opt,gradient_opt,wellSols_opt] = Simulate_BFGS(p_opt,parameters,model,schedule,state0, states_ref, obj_scaling, obj);
 
-  [misfitVal_0,gradient_0,wellSols_0] = Simulate_BFGS(p0_fd,parameters,model,schedule,state0, wellSols_ref,weighting,obj_scaling);
+ [misfitVal_0,gradient_0,wellSols_0] = Simulate_BFGS(p0_fd,parameters,model,schedule,state0, states_ref,obj_scaling, obj);
 
 
 

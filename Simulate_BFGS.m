@@ -1,4 +1,4 @@
-function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state0, wellSols_ref,objScaling, obj, varargin)
+function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state0, states_ref,objScaling, obj, varargin)
     opt = struct('Verbose',           mrstVerbose(),...
                  'Gradient',   'AdjointAD');
 
@@ -14,12 +14,12 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
                 lsolve.setSolver('bicgstab');
              solver = NonLinearSolver('LinearSolver',AMGCL_CPRSolverAD(),'continueOnFailure',true);
              
-            [ wellSols,states] = simulateScheduleAD(state0, model, schedule);
+            [ wellSols,states, schedulereport, model] = simulateScheduleAD(state0, model, schedule);
         
 % compute misfit function value (first each summand corresonding to each time-step)
-    misfitVals = obj(model.G, wellSols, schedule, wellSols_ref, false, []);
+    misfitVals = obj(model, states, schedule, states_ref, false, []);
     
-    objh = @(tstep) obj(model.G, wellSols, schedule, wellSols_ref, true, tstep);%'computePartials', true, 'tstep', tstep, weighting{:});
+    objh = @(tstep) obj(model, states, schedule, states_ref, true, tstep);%'computePartials', true, 'tstep', tstep, weighting{:});
 
 % sum values to obtiain scalar objective 
     misfitVal = (objScaling - sum(vertcat(misfitVals{:}))) / objScaling ;
