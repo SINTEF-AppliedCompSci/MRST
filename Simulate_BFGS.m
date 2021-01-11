@@ -14,7 +14,7 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
                 lsolve.setSolver('bicgstab');
              solver = NonLinearSolver('LinearSolver',AMGCL_CPRSolverAD(),'continueOnFailure',true);
              
-            [ wellSols,states, schedulereport, model] = simulateScheduleAD(state0, model, schedule);
+            [ wellSols,states, schedulereport, model] = simulateScheduleAD(state0, model, schedule,'NonLinearSolver',solver);
         
 % compute misfit function value (first each summand corresonding to each time-step)
     misfitVals = obj(model, states, schedule, states_ref, false, []);
