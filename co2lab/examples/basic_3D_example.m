@@ -96,7 +96,7 @@ inj_rate = 1.5 * mega * 1e3 / year / fluid.rhoGS;
 W = [];
 
 % Add a well to the set
-W = addWell([], G, rock, wc, ...
+W = addWell(W, G, rock, wc, ...
             'refDepth', G.cells.centroids(wc, 3), ... % BHP reference depth
             'type', 'rate', ...  % inject at constant rate
             'val', inj_rate, ... % volumetric injection rate
