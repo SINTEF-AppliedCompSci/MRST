@@ -251,6 +251,9 @@ classdef DomainDecompositionModel < WrapperModel
             nls      = setup.NonlinearSolver;
             forceArg = getDrivingForces(submodel, subforces);
             [substate, subreport] = nls.solveTimestep(substate0, dt, submodel, 'initialGuess', substateInit, forceArg{:});
+            % Ensure submodel is returned with everything set up
+            submodel = submodel.prepareReportstep(substate0, substate0, dt, subforces);
+            % Return initial state if we did'nt converge
             if ~subreport.Converged
                substate = substateInit; 
             end
@@ -368,10 +371,10 @@ classdef DomainDecompositionModel < WrapperModel
             ncomp  = rmodel.getNumberOfComponents();
             ndof   = rmodel.G.cells.num*ncomp;
             if isa(submodel.parentModel, 'ReservoirModel')
-                lsol = selectLinearSolverAD(rmodel, 'verbose', verbose == 1);
+                lsol = selectLinearSolverAD(rmodel, 'verbose', verbose > 0);
             elseif isa(submodel.parentModel, 'PressureModel')
                 if ndof > 1e4
-                    lsol = AMGCLSolverAD('tolerance', 1e-4, 'verbose', verbose == 1);
+                    lsol = AMGCLSolverAD('tolerance', 1e-4, 'verbose', verbose > 0);
                 else
                     lsol = BackslashSolverAD();
                 end
@@ -383,7 +386,7 @@ classdef DomainDecompositionModel < WrapperModel
             nls = NonLinearSolver('minIterations' , 0                         , ...
                                   'maxIterations' , 25                        , ...
                                   'ErrorOnFailure', false                     , ...
-                                  'verbose'       , verbose                   , ...
+                                  'verbose'       , verbose > 0               , ...
                                   'useRelaxation' , isTransport               , ...
                                   'LinearSolver'  , lsol                      , ...
                                   'identifier'    , ['SUBDOMAIN ', num2str(i)]);
