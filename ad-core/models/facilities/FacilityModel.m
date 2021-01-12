@@ -961,9 +961,9 @@ classdef FacilityModel < PhysicalModel
         end
 
         function  [var, state] = getFacilityProp(model, state, name)
-            names={'qGs','qWs','qOs','bhp'};
-            mask = strcmp(name,names);
-            if(any(mask))
+            %names={'qGs','qWs','qOs','bhp','well_temperature'};
+            %mask = strcmp(name,names);
+            %if(any(mask))
                 var=[];
                 mnames=state.names;
                 mask=strcmp(name,mnames);
@@ -971,9 +971,9 @@ classdef FacilityModel < PhysicalModel
                     ind = find(mask);
                     var = state.primaryVariables{ind};
                 end
-            else
-                error('Not a valid name for facility prop')
-            end
+            %else
+            %    error('Not a valid name for facility prop')
+            %end
          end
 
         function isVarWell = getWellVariableMap(model, wf, ws)
