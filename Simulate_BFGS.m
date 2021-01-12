@@ -1,20 +1,21 @@
 function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state0, states_ref,objScaling, obj, varargin)
     opt = struct('Verbose',           mrstVerbose(),...
-                 'Gradient',   'AdjointAD');
+                 'Gradient',   'AdjointAD',...
+                 'NonlinearSolver', []);
 
     opt = merge_options(opt, varargin{:});     
  
 
              [model,schedule,state0] = control2problem(p,model,schedule,state0, parameters);     
             
-             lsolve = AMGCL_CPRSolverAD('maxIterations', 200, 'tolerance', 1e-3);
-                lsolve.setSRelaxation('ilu0');
-                % We can set coarsening and solver options as well
-                lsolve.setCoarsening('aggregation');
-                lsolve.setSolver('bicgstab');
-             solver = NonLinearSolver('LinearSolver',AMGCL_CPRSolverAD(),'continueOnFailure',true);
+             %lsolve = AMGCL_CPRSolverAD('maxIterations', 200, 'tolerance', 1e-3);
+             %   lsolve.setSRelaxation('ilu0');
+             % We can set coarsening and solver options as well
+             %   lsolve.setCoarsening('aggregation');
+             %    lsolve.setSolver('bicgstab');
+             %solver = NonLinearSolver('LinearSolver',AMGCL_CPRSolverAD(),'continueOnFailure',true);
              
-            [ wellSols,states, schedulereport, model] = simulateScheduleAD(state0, model, schedule,'NonLinearSolver',solver);
+            [ wellSols,states, schedulereport, model] = simulateScheduleAD(state0, model, schedule,'NonLinearSolver',opt.NonlinearSolver);
         
 % compute misfit function value (first each summand corresonding to each time-step)
     misfitVals = obj(model, states, schedule, states_ref, false, []);
@@ -41,16 +42,49 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
         switch opt.Gradient
                 case 'AdjointAD'
                 gradient = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
-                                             'Parameters'    , {params{1:3}}, ...
-                                             'ParameterTypes', {paramTypes{1:3}},...
+                                             'Parameters'    , {params{:}}, ...
+                                             'ParameterTypes', {paramTypes{:}},...
                                              'initStateSensitivity',initStateSensitivity);
-                case  'PerturbationAD'
-                gradient = computeGradientPerturbationAD(state0, states, model, schedule, objh, ...
-                                             'Parameters'    , {params{1:3}}, ...
-                                             'ParameterTypes', {paramTypes{1:3}},...
-                                             'initStateSensitivity',initStateSensitivity);
+                 case  'PerturbationAD'
+                       gradient = computeGradientPerturbationAD(state0, states, model, schedule, objh, ...
+                                                     'Parameters'    , {params{:}}, ...
+                                                     'ParameterTypes', {paramTypes{:}},...
+                                                     'initStateSensitivity',initStateSensitivity);                               
+                case  'PerturbationADNUM'
+                    % do manual pertubuation of the defiend control variabels
+                    eps_scale=1e-4;
+                    p_org=p;
+                    val=nan(size(p));
+                    dp=nan(size(p));
+                    for i=1:numel(p)
+                        p_pert=p_org;
+                        dp(i) = p_pert(i)*eps_scale;
+                        p_pert(i) = p_pert(i) + dp(i);
+                        val(i) = Simulate_BFGS(p_pert,parameters,model,schedule,state0, states_ref,objScaling, obj, 'Gradient', 'none' );
+                    end
+                    gradient= (val-misfitVal)./dp;
+                    varargout{1} =   gradient;  % Adjoinf functions gives the negative of the Gradient                                   
+                    if nargout > 2
+                        varargout{2} = wellSols;
+                        if nargout > 3
+                            varargout{3} = states;
+                        end
+                    end
+                    return
+                case 'none'
+                    % No gradient caluculations to used for numerical
+                    % differentiation
+                    varargout{1} =   NaN ;  % Adjoinf functions gives the negative of the Gradient                                   
+                    if nargout > 2
+                        varargout{2} = wellSols;
+                    if nargout > 3
+                        varargout{3} = states;
+                    end
+                    return
+                end
+
             otherwise   
-                warning('Greadient method %s is not implemented',opt.Gradient)
+                error('Greadient method %s is not implemented',opt.Gradient)
         end
                                          
 
