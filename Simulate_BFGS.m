@@ -1,12 +1,13 @@
-function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state0, states_ref,objScaling, obj, varargin)
+function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model_org,schedule_org,state0_org, states_ref,objScaling, obj, varargin)
     opt = struct('Verbose',           mrstVerbose(),...
                  'Gradient',   'AdjointAD',...
-                 'NonlinearSolver', []);
+                 'NonlinearSolver', [],...
+                 'pertub',1e-4);
 
     opt = merge_options(opt, varargin{:});     
  
 
-             [model,schedule,state0] = control2problem(p,model,schedule,state0, parameters);     
+             [model,schedule,state0] = control2problem(p,model_org,schedule_org,state0_org, parameters);     
             
              %lsolve = AMGCL_CPRSolverAD('maxIterations', 200, 'tolerance', 1e-3);
              %   lsolve.setSRelaxation('ilu0');
@@ -24,6 +25,7 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
 
 % sum values to obtiain scalar objective 
     misfitVal = (objScaling - sum(vertcat(misfitVals{:}))) / objScaling ;
+    %misfitVal = - sum(vertcat(misfitVals{:})) / objScaling ;
     
     if nargout > 1 % then the gradient is required
         np = numel(parameters);
@@ -41,7 +43,7 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
 
         switch opt.Gradient
                 case 'AdjointAD'
-                gradient = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
+                       gradient = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
                                              'Parameters'    , {params{:}}, ...
                                              'ParameterTypes', {paramTypes{:}},...
                                              'initStateSensitivity',initStateSensitivity);
@@ -52,15 +54,15 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
                                                      'initStateSensitivity',initStateSensitivity);                               
                 case  'PerturbationADNUM'
                     % do manual pertubuation of the defiend control variabels
-                    eps_scale=1e-4;
+                    eps_scale=1e-2;
                     p_org=p;
                     val=nan(size(p));
                     dp=nan(size(p));
                     for i=1:numel(p)
                         p_pert=p_org;
-                        dp(i) = p_pert(i)*eps_scale;
+                        dp(i) = max(p_pert(i)*eps_scale,eps_scale);
                         p_pert(i) = p_pert(i) + dp(i);
-                        val(i) = Simulate_BFGS(p_pert,parameters,model,schedule,state0, states_ref,objScaling, obj, 'Gradient', 'none' );
+                        val(i) = Simulate_BFGS(p_pert,parameters,model_org,schedule,state0, states_ref,objScaling, obj, 'Gradient', 'none' );
                     end
                     gradient= (val-misfitVal)./dp;
                     varargout{1} =   gradient;  % Adjoinf functions gives the negative of the Gradient                                   
@@ -70,6 +72,7 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
                             varargout{3} = states;
                         end
                     end
+                    
                     return
                 case 'none'
                     % No gradient caluculations to used for numerical
@@ -94,18 +97,17 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
         for k = 1:np
             switch paramsDist{k}
                 case 'cell' %parameter disstribution per cell
+                    dBox   = boxLims{k}(2) - boxLims{k}(1);
+                    Indx = parameters{k}.Indx;
                     switch params{k}
-                            case 'porevolume'
-                               I_pv = parameters{k}.Indx;
-                               dBox   = boxLims{k}(2) - boxLims{k}(1);
-                               scaled_gradient{k} = (dBox/objScaling)*gradient.porevolume(I_pv);
+                            case {'porevolume'}
+                               scaled_gradient{k} = (dBox/objScaling)*gradient.porevolume(Indx);
                             case 'initSw'
-                               I_sw = parameters{k}.Indx;
-                               dBox   = boxLims{k}(2) - boxLims{k}(1);
-                               scaled_gradient{k} = (dBox/objScaling)*gradient.init.sW(I_sw);   
+                               scaled_gradient{k} = (dBox/objScaling)*gradient.init.sW(Indx);   
                             otherwise
-                               warning('Parameter %s is not implemented',params{k})
+                               error('Parameter %s is not implemented',params{k})
                     end
+                    reel = reel +  length(parameters{k}.Indx);
                case  'connection'     
                    switch params{k}
                             case 'transmissibility'
@@ -119,7 +121,7 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
                                for i =  1 : numel(parameters{k}.Indx)
                                    I_pv = parameters{k}.Indx{i};
                                    dBox   = boxLims{k}(i,2) - boxLims{k}(i,1);
-                                   scaled_grad_pv(i,1) = (dBox/objScaling)*sum(gradient.porevolume(I_pv));
+                                   scaled_grad_pv(i,1) = (dBox/objScaling)*sum(gradient.porevolume(I_pv));                                                      
                                end                               
                                scaled_gradient{k} = scaled_grad_pv; 
                             case 'permeability'
@@ -136,22 +138,38 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
                                end                               
                                scaled_gradient{k} = scaled_grad_perm;                                   
                             otherwise
-                               warning('Parameter %s is not implemented',params{k})
+                               error('Parameter %s is not implemented',params{k})
                    end
+                   for i =  1 : numel(parameters{k}.Indx)
+                       [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2)); 
+                       val =  p(reel + i-1)*(umax-umin)+umin; 
+                       switch parameters{k}.type
+                           case 'value'
+                                
+                           case 'multiplier'
+                               scaled_gradient{k}(i,1) =   scaled_gradient{k}(i,1)/val;
+                           otherwise
+                               error('Type not valid: %s ', parameters{k}.type);
+                       end           
+                   end
+                   reel = reel + numel(parameters{k}.Indx) ;
                 case 'general'
                    switch params{k}
                             case 'transmissibility'
                                 I_Tr =  parameters{k}.Indx;
                                  dBox   = boxLims{k}(2) - boxLims{k}(1);
                                 scaled_gradient{k} = (dBox/objScaling)*sum(gradient.transmissibility(I_Tr));
+                                reel = reel +1;
                             case 'porevolume'
                                 I_pv =  parameters{k}.Indx;
                                 dBox   = boxLims{k}(2) - boxLims{k}(1);
                                 scaled_gradient{k} = (dBox/objScaling)*sum(gradient.porevolume(I_pv));
+                                reel = reel +1;
                             case 'permeability'
                                 I_perm =  parameters{k}.Indx;
                                 dBox   = boxLims{k}(2) - boxLims{k}(1);
                                 scaled_gradient{k} = (dBox/objScaling)*sum(gradient.permx(I_perm));
+                                reel = reel +1;
                             case 'conntrans'
                                 I_wi =  parameters{k}.Indx;
                                 for i =  1 : size(parameters{k}.Indx,1)
@@ -159,12 +177,13 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
                                     scaled_grad_well(i,1) = (dBox/objScaling)*gradient.conntrans(i);
                                 end
                                 scaled_gradient{k} = scaled_grad_well;
+                                reel = reel + size(parameters{k}.Indx,1);
                             otherwise
                                warning('Parameter %s is not implemented',params{k})
                    end
               otherwise
             warning('Parameter distribution %s is not implemented',paramDist{k})
-           end
+            end
         end
         % Concatenate distributed gradient
         varargout{1} =   vertcat(scaled_gradient{:}) ;  % Adjoinf functions gives the negative of the Gradient                                   
@@ -172,6 +191,9 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model,schedule,state
             varargout{2} = wellSols;
             if nargout > 3
                 varargout{3} = states;
+                if nargout > 4
+                    varargout{4} = model;
+                end
             end
          end
     end

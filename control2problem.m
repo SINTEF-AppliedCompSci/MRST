@@ -28,7 +28,7 @@ for k = 1:np
                    reel = reel + m ;                   
                 %case {'swl', 'swcr', 'swu', 'sowcr'}  
                 otherwise
-                   warning('Parameter %s is not implemented',param{k})
+                   error('Parameter %s is not implemented',param{k})
             end
         case  'connection'
             switch parameters{k}.name
@@ -36,8 +36,15 @@ for k = 1:np
                    for i =  1 : numel(parameters{k}.Indx)
                        [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2)); 
                        Indx = parameters{k}.Indx{i};
-                       model.operators.T(Indx) =  u(reel + i-1)...
-                                      *(umax-umin)+umin;
+                       val =  u(reel + i-1)*(umax-umin)+umin;
+                       switch parameters{k}.type
+                           case 'value'
+                                model.operators.T(Indx) =  val;
+                           case 'multiplier'
+                               model.operators.T(Indx) = model.operators.T(Indx)*val;
+                           otherwise
+                               error('Type not valid: %s ', parameters{k}.type);
+                       end              
                    end
                    reel = reel + numel(parameters{k}.Indx) ;
                 case 'porevolume'
@@ -45,8 +52,15 @@ for k = 1:np
                    for i =  1 : numel(parameters{k}.Indx)
                        [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2)); 
                        Indx = parameters{k}.Indx{i};
-                       model.operators.pv(Indx) =  u(reel + i-1)...
-                                      *(umax-umin)+umin;
+                       val =  u(reel + i-1)*(umax-umin)+umin;
+                       switch parameters{k}.type
+                           case 'value'
+                                model.operators.pv(Indx) =  val;
+                           case 'multiplier'
+                               model.operators.pv(Indx) = model.operators.pv(Indx)*val;
+                           otherwise
+                               error('Type not valid: %s ', parameters{k}.type);
+                       end                         
                    end
                    reel = reel + numel(parameters{k}.Indx) ;
                 case 'permeability'
