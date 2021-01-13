@@ -12,7 +12,6 @@ classdef StateFunctionGrouping < StateFunctionDependent
     % These functions represent additional properties which can be
     % dependencies of the intrinsics properties.
     properties
-        validationLevel = 0; % Level of validation checking performed. Performance hit > 0!
     end
     
     properties (Access = protected)
@@ -21,6 +20,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
         functionTypes % Indicator of property (0 for class member "intrinsic", 1 for stored)
         extraFunctions = {}; % Additional properties, not present as class properties
         excludedFields % Class properties which are not intended as functions
+        validationLevel = 0; % Level of validation checking performed. Performance hit > 0!
     end
     
     methods
@@ -403,6 +403,10 @@ classdef StateFunctionGrouping < StateFunctionDependent
                     props = props.setStateFunction(name, fn);
                 end
             end
+        end
+        
+        function group = setValidationLevel(group, level)
+            group.validationLevel = level;
         end
     end
     methods (Access = protected)
