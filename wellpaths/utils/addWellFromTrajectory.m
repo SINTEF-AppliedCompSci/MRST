@@ -26,7 +26,7 @@ opt = struct('faces',                  [], ...
              'exteriorFaceCorrection', false, ...
              'refDepth',               []);
 [opt, other] = merge_options(opt, varargin{:});
-assert(G.griddim == 3, 'Function only comaptible with 3D grids.');
+assert(G.griddim == 3, 'Function only compatible with 3D grids.');
 assert(size(traj,2)==3, 'Trajectory is expected to be nx3 array.');
 
 if ~isfield(G.faces, 'bbox')
@@ -36,6 +36,9 @@ end
 tmp = computeTraversedCells(G, traj, 'faces', opt.faces, ...
             'exteriorFaceCorrection', opt.exteriorFaceCorrection);
 
+if isempty(tmp.cell)
+    error('Did not find any traversed cells for trajectory.');
+end
 
 if isempty(opt.refDepth) && isfield(G.cells, 'centroids')
     opt.refDepth = G.cells.centroids(tmp.cell(1), 3);
