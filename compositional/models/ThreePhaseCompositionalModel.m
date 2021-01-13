@@ -184,6 +184,19 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 end
             end
         end
+        
+        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin)
+            if ~isfield(state, 'dpRel')
+                % Set dpRel if it is not present (typically at the very
+                % first iteration)
+                if nonlinsolver.minIterations > 0
+                    state.dpRel = inf(model.G.cells.num, 1);
+                else
+                    state.dpRel = zeros(model.G.cells.num, 1);
+                end
+            end
+            [state, report] = stepFunction@ReservoirModel(model, state, state0, dt, drivingForces, linsolver, nonlinsolver, iteration, varargin{:});
+        end
 
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             p0 = state.pressure;
@@ -270,7 +283,9 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             names = horzcat(names_comp, names_rest, names_f, names_wells);
             % Pressure tolerances
             if any(strcmpi(problem.primaryVariables, 'pressure'))
-                if isfield(problem.state, 'dpRel') && problem.iterationNo > 1
+                % Check if dpRel is present (has been set in stepFunction,
+                % but we may have come here from somewhere else)
+                if isfield(problem.state, 'dpRel')
                     dp = norm(problem.state.dpRel, inf);
                 else
                     dp = inf;
