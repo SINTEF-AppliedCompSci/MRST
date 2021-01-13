@@ -5,6 +5,7 @@ classdef Viscosity < StateFunction
             mu@StateFunction(model, varargin{:});
             mu = mu.dependsOn('PhasePressures');
             mu.label = '\mu_\alpha';
+            mu.outputRange = [0, inf];
         end
         
         function mu = evaluateOnDomain(prop, model, state)
