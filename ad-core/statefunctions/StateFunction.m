@@ -151,30 +151,31 @@ classdef StateFunction
             if ~iscell(output)
                 output = {output};
             end
+            checkJacobian = level > 2;
             for i = 1:numel(output)
                 o = output{i};
                 if ~prop.allowNaN
-                    prop.validateOutputInternal(o, i, level, 'NaN values', @isnan);
+                    prop.validateOutputInternal(o, i, level, 'NaN values', @isnan, checkJacobian);
                 end
                 if ~prop.allowInf
-                    prop.validateOutputInternal(o, i, level, 'Inf values', @isinf);
+                    prop.validateOutputInternal(o, i, level, 'Inf values', @isinf, checkJacobian);
                 end
                 lower = prop.outputRange(1);
                 upper = prop.outputRange(2);
                 if isfinite(lower)
                     str = sprintf('Value less than %f', lower);
-                    prop.validateOutputInternal(o, i, level, str, @(x) x < lower);
+                    prop.validateOutputInternal(o, i, level, str, @(x) x < lower, false);
                 end
                 if isfinite(upper)
                     str = sprintf('Value larger than %f', upper);
-                    prop.validateOutputInternal(o, i, level, str, @(x) x > upper);
+                    prop.validateOutputInternal(o, i, level, str, @(x) x > upper, false);
                 end
             end
         end
     end
     
     methods (Access = protected)
-        function validateOutputInternal(prop, o, columnIndex, level, descr, test)
+        function validateOutputInternal(prop, o, columnIndex, level, descr, test, checkJacobian)
             v = value(o);
             if isnumeric(v)
                 bad = test(v);
@@ -194,7 +195,7 @@ classdef StateFunction
                         end
                     end
                 end
-                if level > 1 && isa(o, 'ADI')
+                if checkJacobian && isa(o, 'ADI')
                     % Check AD values too.
                     for jacNo = 1:numel(o.jac)
                         bad = test(nonzeros(sparse(o.jac{jacNo})));
