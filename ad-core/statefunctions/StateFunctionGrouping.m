@@ -12,7 +12,6 @@ classdef StateFunctionGrouping < StateFunctionDependent
     % These functions represent additional properties which can be
     % dependencies of the intrinsics properties.
     properties
-        
     end
     
     properties (Access = protected)
@@ -21,6 +20,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
         functionTypes % Indicator of property (0 for class member "intrinsic", 1 for stored)
         extraFunctions = {}; % Additional properties, not present as class properties
         excludedFields % Class properties which are not intended as functions
+        validationLevel = 0; % Level of validation checking performed. Performance hit > 0!
     end
     
     methods
@@ -178,21 +178,24 @@ classdef StateFunctionGrouping < StateFunctionDependent
             v = expandIfUniform(v);
         end
 
-        function state = evaluateStateFunction(props, model, state, name)
+        function state = evaluateStateFunction(sfg, model, state, name)
             % Force evaluation of a property, assuming all dependencies are
             % met. If all dependencies are not met, use
             % evaluateStateFunctionWithDependencies or simply get.
-            struct_name = props.structName;
+            struct_name = sfg.structName;
             if isstruct(state) && ~isfield(state, struct_name)
-                props_struct = props.getStateFunctionContainer();
+                props_struct = sfg.getStateFunctionContainer();
             else
                 props_struct = state.(struct_name);
             end
-            prop = props.getStateFunction(name);
+            prop = sfg.getStateFunction(name);
             if isempty(prop.structName)
-                prop.structName = props.structName;
+                prop.structName = sfg.structName;
             end
             props_struct.(name) = prop.evaluateOnDomain(model, state);
+            if sfg.validationLevel > 0
+                prop.validateOutput(props_struct.(name), sfg.validationLevel);
+            end
             if nargout > 0
                 state.(struct_name) = props_struct;
             end
@@ -400,6 +403,10 @@ classdef StateFunctionGrouping < StateFunctionDependent
                     props = props.setStateFunction(name, fn);
                 end
             end
+        end
+        
+        function group = setValidationLevel(group, level)
+            group.validationLevel = level;
         end
     end
     methods (Access = protected)
