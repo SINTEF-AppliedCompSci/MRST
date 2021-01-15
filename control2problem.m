@@ -63,6 +63,25 @@ for k = 1:np
                        end                         
                    end
                    reel = reel + numel(parameters{k}.Indx) ;
+                case 'conntrans'                  
+                   for i = 1 : numel(parameters{k}.Indx)
+                       Indx = parameters{k}.Indx{i};
+                       [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2));
+                       val = u(reel + i-1)*(umax-umin)+umin;
+                       for ii=1:size(Indx,1)
+                          for kk = 1 : numel( schedule.control)
+                               switch parameters{k}.type
+                                    case 'value'
+                                        schedule.control(kk).W(Indx(ii,1)).WI(Indx(ii,2)) = val;
+                                    case 'multiplier'
+                                        schedule.control(kk).W(Indx(ii,1)).WI(Indx(ii,2)) = schedule.control(kk).W(Indx(ii,1)).WI(Indx(ii,2))*val;
+                                   otherwise
+                                        error('Type not valid: %s ', parameters{k}.type);
+                               end
+                          end
+                       end    
+                   end                   
+                   reel = reel + numel(parameters{k}.Indx);   
                 case 'permeability'
                     % Asing a porevolume to each chanel
                    for i =  1 : numel(parameters{k}.Indx)
@@ -78,7 +97,7 @@ for k = 1:np
                    end
                    reel = reel + numel(parameters{k}.Indx) ;
                 otherwise
-                   warning('Parameter %s is not implemented',param{k})
+                   error('Parameter %s is not implemented',param{k})
             end
       case  'general'    
              switch parameters{k}.name
@@ -101,18 +120,25 @@ for k = 1:np
                 case 'conntrans'
                    Indx = parameters{k}.Indx;
                    for i = 1 : size(parameters{k}.Indx,1)                      
-                   [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2)); 
-                    for kk = 1 : numel( schedule.control)
-                       schedule.control(kk).W(Indx(i,1)).WI(Indx(i,2)) = u(reel + i-1)...
-                                                         *(umax-umin)+umin;
-                    end
-                   end
+                       [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2));
+                       val = u(reel + i-1)*(umax-umin)+umin;
+                       for kk = 1 : numel( schedule.control)
+                           switch parameters{k}.type
+                            case 'value'
+                                schedule.control(kk).W(Indx(i,1)).WI(Indx(i,2)) = val;
+                            case 'multiplier'
+                                schedule.control(kk).W(Indx(i,1)).WI(Indx(i,2)) = schedule.control(kk).W(Indx(i,1)).WI(Indx(i,2))*val;
+                            otherwise
+                               error('Type not valid: %s ', parameters{k}.type);
+                           end
+                        end
+                   end                   
                    reel = reel + size(parameters{k}.Indx,1);
                  otherwise
-                   warning('Parameter %s is not implemented',param{k}) 
+                   error('Parameter %s is not implemented',param{k}) 
              end
       otherwise
-           warning('Parameter distribution %s is not implemented',paramDist{k})
+           error('Parameter distribution %s is not implemented',parameters{k}.distribution)
       end
 end
 % Concatenate in a column vector

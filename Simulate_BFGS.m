@@ -62,7 +62,7 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model_org,schedule_o
                         p_pert=p_org;
                         dp(i) = max(p_pert(i)*eps_scale,eps_scale);
                         p_pert(i) = p_pert(i) + dp(i);
-                        val(i) = Simulate_BFGS(p_pert,parameters,model_org,schedule,state0, states_ref,objScaling, obj, 'Gradient', 'none' );
+                        val(i) = Simulate_BFGS(p_pert,parameters,model_org,schedule_org,state0_org, states_ref,objScaling, obj, 'Gradient', 'none' );
                     end
                     gradient= (val-misfitVal)./dp;
                     varargout{1} =   gradient;  % Adjoinf functions gives the negative of the Gradient                                   
@@ -108,7 +108,8 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model_org,schedule_o
                                error('Parameter %s is not implemented',params{k})
                     end
                     reel = reel +  length(parameters{k}.Indx);
-               case  'connection'     
+               case  'connection'
+                   reel_old=reel;
                    switch params{k}
                             case 'transmissibility'
                                for i =  1 : numel(parameters{k}.Indx)
@@ -117,13 +118,15 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model_org,schedule_o
                                    scaled_grad_tr(i,1) = (dBox/objScaling)*sum(gradient.transmissibility(I_Tr));
                                end                               
                                scaled_gradient{k} = scaled_grad_tr;
+                               reel = reel + numel(parameters{k}.Indx) ;
                             case 'porevolume'
                                for i =  1 : numel(parameters{k}.Indx)
                                    I_pv = parameters{k}.Indx{i};
                                    dBox   = boxLims{k}(i,2) - boxLims{k}(i,1);
                                    scaled_grad_pv(i,1) = (dBox/objScaling)*sum(gradient.porevolume(I_pv));                                                      
                                end                               
-                               scaled_gradient{k} = scaled_grad_pv; 
+                               scaled_gradient{k} = scaled_grad_pv;
+                               reel = reel + numel(parameters{k}.Indx) ;
                             case 'permeability'
                                for i =  1 : numel(parameters{k}.Indx)
                                    I_perm = parameters{k}.Indx{i};
@@ -136,13 +139,23 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model_org,schedule_o
                                    end
                                    scaled_grad_perm(i,1) = (dBox/objScaling)*sum(gradient.permx(I_perm));
                                end                               
-                               scaled_gradient{k} = scaled_grad_perm;                                   
+                               scaled_gradient{k} = scaled_grad_perm;
+                               reel = reel + numel(parameters{k}.Indx) ;
+                            case 'conntrans'                              
+                                for i =  1 : numel(parameters{k}.Indx)
+                                    indx=parameters{k}.Indx{i};
+                                    dBox   = boxLims{k}(i,2) - boxLims{k}(i,1);
+                                    scaled_grad_well(i,1) = (dBox/objScaling)*sum(gradient.conntrans(indx(:,3)));
+                                end
+                                scaled_gradient{k} = scaled_grad_well;
+                                reel = reel + numel(parameters{k}.Indx)
                             otherwise
                                error('Parameter %s is not implemented',params{k})
                    end
-                   for i =  1 : numel(parameters{k}.Indx)
+                   
+                   for i =  1 : (reel-reel_old)
                        [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2)); 
-                       val =  p(reel + i-1)*(umax-umin)+umin; 
+                       val =  p(reel_old + i-1)*(umax-umin)+umin; 
                        switch parameters{k}.type
                            case 'value'
                                 
@@ -152,7 +165,7 @@ function [misfitVal,varargout] = Simulate_BFGS(p,parameters,model_org,schedule_o
                                error('Type not valid: %s ', parameters{k}.type);
                        end           
                    end
-                   reel = reel + numel(parameters{k}.Indx) ;
+                   
                 case 'general'
                    switch params{k}
                             case 'transmissibility'
