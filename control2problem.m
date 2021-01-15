@@ -32,35 +32,29 @@ for k = 1:np
             end
         case  'connection'
             switch parameters{k}.name
-                case 'transmissibility'
+                
+                case {'transmissibility','porevolume'}
+                    % handle mapping of names
+                   switch parameters{k}.name
+                       case 'transmissibility'
+                          fname='T'
+                       case 'porevolume'
+                          fname='pv' 
+                       otherwise
+                           error()                           
+                   end                    
                    for i =  1 : numel(parameters{k}.Indx)
                        [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2)); 
                        Indx = parameters{k}.Indx{i};
                        val =  u(reel + i-1)*(umax-umin)+umin;
                        switch parameters{k}.type
                            case 'value'
-                                model.operators.T(Indx) =  val;
+                                model.operators.(fname)(Indx) =  val;
                            case 'multiplier'
-                               model.operators.T(Indx) = model.operators.T(Indx)*val;
+                               model.operators.(fname)(Indx) = model.operators.(fname)(Indx)*val;
                            otherwise
                                error('Type not valid: %s ', parameters{k}.type);
                        end              
-                   end
-                   reel = reel + numel(parameters{k}.Indx) ;
-                case 'porevolume'
-                    % Asing a porevolume to each chanel
-                   for i =  1 : numel(parameters{k}.Indx)
-                       [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2)); 
-                       Indx = parameters{k}.Indx{i};
-                       val =  u(reel + i-1)*(umax-umin)+umin;
-                       switch parameters{k}.type
-                           case 'value'
-                                model.operators.pv(Indx) =  val;
-                           case 'multiplier'
-                               model.operators.pv(Indx) = model.operators.pv(Indx)*val;
-                           otherwise
-                               error('Type not valid: %s ', parameters{k}.type);
-                       end                         
                    end
                    reel = reel + numel(parameters{k}.Indx) ;
                 case 'conntrans'                  
@@ -91,9 +85,17 @@ for k = 1:np
                             model.rock.perm(Indx,1) = 10.^(u(reel + i-1)...
                                                           *(umax-umin)+umin);
                        else 
-                            model.rock.perm(Indx,1) =  u(reel + i-1)...
+                            val =  u(reel + i-1)...
                                       *(umax-umin)+umin;
-                       end
+                            switch parameters{k}.type
+                                case 'value'
+                                    model.rock.perm(Indx,1) =  val;
+                                case 'multiplier'
+                                    model.rock.perm(Indx,1) = model.rock.perm(Indx,1)*val;
+                                otherwise
+                                    error('Type not valid: %s ', parameters{k}.type);
+                            end             
+                       end                       
                    end
                    reel = reel + numel(parameters{k}.Indx) ;
                 otherwise
