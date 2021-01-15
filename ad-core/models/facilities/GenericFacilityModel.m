@@ -88,9 +88,9 @@ classdef GenericFacilityModel < FacilityModel
             if strcmpi(primary_choice, 'explicit')
                 nph = model.getNumberOfPhases();
                 ph = model.getPhaseNames();
+                warning("Assuming flow rates of all phases in wells are first");
                 q_s = state.FacilityState.primaryVariables(1:nph);
-                bh = state.FacilityState.primaryVariables{end};
-                
+                bh= model.FacilityModel.getFacilityProp(state.FacilityState,'bhp');                
                 [bhp] = facility.getProps(state, 'BottomHolePressure');
                 [surfaceRates] = facility.getSurfaceRates(state);
                 [eqs, names, types] = deal(cell(1, nph+1));
@@ -111,6 +111,7 @@ classdef GenericFacilityModel < FacilityModel
             % Approximate scaling to get the tolerance in terms of
             % reservoir rates. Otherwise, e.g. gas phases may be very
             % differently scaled.
+            warning("Scaling may brake adjoint");
             rhoR = value(model.getProps(state0, 'Density'));
             rhoScale = bsxfun(@rdivide, value(rhoS), mean(rhoR, 1));
             % One equation for each phase corresponding to the volumetric
@@ -119,6 +120,7 @@ classdef GenericFacilityModel < FacilityModel
             switch lower(primary_choice)
                 case 'standard'
                     % This is a temporary hack!
+                    warning("Assuming flow rates of all phases in wells are first");
                     q_s = state.FacilityState.primaryVariables(1:nph);
                     [eqs, names, types] = deal(cell(1, nph+1));
                     for ph = 1:nph
