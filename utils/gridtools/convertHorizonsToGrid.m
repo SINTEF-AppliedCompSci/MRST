@@ -111,11 +111,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         ndims = [opt.dims(1:2), n_layers] + 1;
     end
+    [X, Y, Z] = getCoordinates(horizons, ndims, opt);
+    ndims = size(X); % Recalculate in case of refinement etc
     dims = ndims - 1;
     grdecl = struct();
     grdecl.cartDims = reshape(dims, 1, []);
-    
-    [X, Y, Z] = getCoordinates(horizons, ndims, opt);
     % x, y is uniform for all layers
     x = squeeze(X(:, :, 1));
     y = squeeze(Y(:, :, 2));
