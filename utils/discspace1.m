@@ -115,7 +115,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 X = refine(:, 1);
                 Xs = (X - d1)./(d2 - d1);
                 Xs = [Xs; 1];
-                Y = cumsum([0; refine(:, 2)]);
+                delta = diff([X; d2]);
+                Y = cumsum([0; refine(:, 2).*delta]);
                 Y = Y./Y(end);
                 
                 new = linspace(Y(1), Y(end), N);
