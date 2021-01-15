@@ -1,4 +1,4 @@
-function [val, der, wellSols, states] = evalObjective(u, obj, state0, model, schedule, scaling)
+function [val, der, wellSols, states] = evalObjective(u, obj, state0, model, schedule_org, scaling, varargin)
 % Objective (and gradient) evaluation function based on input control vector u
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
@@ -18,6 +18,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+opt=struct('Gradient','adjoint','pertub',1e-3)
+opt = merge_options(opt,varargin{:});
 minu = min(u);
 maxu = max(u);
 if or(minu < -eps , maxu > 1+eps)
@@ -32,22 +34,46 @@ else
 end
 
 % update schedule:
-schedule = control2schedule(u, schedule, scaling);
+schedule = control2schedule(u, schedule_org, scaling);
 
 % run simulation:
-[wellSols, states] = simulateScheduleAD(state0, model, schedule);
+[wellSols, states,schedule_new, model] = simulateScheduleAD(state0, model, schedule);
+
+%% should we fix the time stepping ??
+% schedule.step = schedule_new.step
 
 % compute objective:
-vals = obj(wellSols, schedule);
+vals = obj(model, states, schedule);
 val  = sum(cell2mat(vals))/objScaling;
 
 % run adjoint:
 if nargout > 1
-    objh = @(tstep)obj(wellSols, schedule, 'ComputePartials', true, 'tStep', tstep);
-    g    = computeGradientAdjointAD(state0, states, model, schedule, objh);
-    % scale gradient:
-    der = scaleGradient(g, schedule, boxLims, objScaling);
-    der = vertcat(der{:});
+    switch opt.Gradient
+        case 'adjoint'
+            objh = @(tstep)obj(model, states, schedule, 'ComputePartials', true, 'tStep', tstep);
+            g    = computeGradientAdjointAD(state0, states, model, schedule, objh);
+            % scale gradient:
+            der = scaleGradient(g, schedule, boxLims, objScaling);
+            der = vertcat(der{:});
+        case 'numerical'
+            u_org=u;
+            val_pert = nan(size(u));
+            dp=nan(size(u));
+            for i=1:numel(u)
+                u_pert=u_org;                
+                if(abs(u_pert(i))>0)
+                    dp(i) = u_pert(i)*opt.pertub;
+                else
+                    dp(i) = opt.pertub;
+                end
+                u_pert(i) = u_pert(i) + dp(i);
+                val_pert(i) = evalObjective(u_pert, obj, state0, model, schedule_org, scaling)
+                der = (val_pert-val)./dp;
+            end
+            
+        otherwise
+            error('Gradient method %s not implemented',opt.Gradient);
+    end
 end
 end
 

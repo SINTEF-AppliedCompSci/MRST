@@ -25,7 +25,7 @@ npvopts = {'OilPrice',             ro , ...
            'WaterInjectionCost',  rwi , ...
            'DiscountFactor',        d};
 
-obj = @(wellSols, schedule, varargin)NPVOW(G, wellSols, schedule, varargin{:}, npvopts{:});
+obj = @(model, states, schedule, varargin)NPVOW(model, states, schedule,varargin{:}, npvopts{:});
 % Get function handle for objective evaluation
 f = @(u)evalObjective(u, obj, state0, model, schedule, scaling);
 

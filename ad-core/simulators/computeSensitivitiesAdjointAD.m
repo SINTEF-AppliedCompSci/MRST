@@ -140,10 +140,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
     
     % multiply by value if type is multiplier:
+    assert(all(strcmp(pTypes, 'multiplier') | strcmp(pTypes, 'value')))
+    
     multIx = find(strcmp(pTypes, 'multiplier'));
     for k = 1:numel(multIx)
         sens.(param{multIx(k)}) = sens.(param{multIx(k)}).*paramValues{multIx(k)};
     end
+        
+    
     
     % add regularization term
     if ~isempty(opt.Regularization)
@@ -274,29 +278,29 @@ end
 end
 
 
-function sens = addRegularizationSens(sens, param, pTypes, model, modelBase, reg)
-warning('Regularization not tested ...')
-np = numel(param);
-for k = 1:np
-    switch param{k}
-        case 'transmissibility'
-            dparam = model.operators.T - modelBase.operators.T; 
-            if strcmp(pTypes{k}, 'multiplyer')
-                dparam = dparam./model.operators.T;
-            end
-        case 'porevolume'
-            dparam = model.operators.pv - modelBase.operators.pv; 
-            if strcmp(pTypes{k}, 'multiplyer')
-                dparam = dparam./model.operators.pv;
-            end
-    end
-    if any(~isfinite(dparam))
-        dparam(~isfinite(dparam)) = 0;
-    end
-    
-    sens{k} = sens{k} + reg{k}*dparam;
-end
-end
+% function sens = addRegularizationSens(sens, param, pTypes, model, modelBase, reg)
+% warning('Regularization not tested ...')
+% np = numel(param);
+% for k = 1:np
+%     switch param{k}
+%         case 'transmissibility'
+%             dparam = model.operators.T - modelBase.operators.T; 
+%             if strcmp(pTypes{k}, 'multiplyer')
+%                 dparam = dparam./model.operators.T;
+%             end
+%         case 'porevolume'
+%             dparam = model.operators.pv - modelBase.operators.pv; 
+%             if strcmp(pTypes{k}, 'multiplyer')
+%                 dparam = dparam./model.operators.pv;
+%             end
+%     end
+%     if any(~isfinite(dparam))
+%         dparam(~isfinite(dparam)) = 0;
+%     end
+%     
+%     sens{k} = sens{k} + reg{k}*dparam;
+% end
+
 
 function ti = perm2directionalTrans(model, p, cdir)
 % special utility function for calculating transmissibility along coordinate direction cdir

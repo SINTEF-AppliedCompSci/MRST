@@ -72,7 +72,7 @@ for step = 1:numSteps
         state = model.getStateAD( states{tSteps(step)}, init);
         qWs=model.FacilityModel.getFacilityProp(state.FacilityState,'qWs');
         qOs=model.FacilityModel.getFacilityProp(state.FacilityState,'qOs');
-        bhp=model.FacilityModel.getFacilityProp(state.FacilityState,'qWs');
+        bhp=model.FacilityModel.getFacilityProp(state.FacilityState,'bhp');
      else
         state = states{tSteps(step)};
         [qWs, qOs, bhp] = deal( vertcatIfPresent(state.wellSol, 'qWs', nw), ...
