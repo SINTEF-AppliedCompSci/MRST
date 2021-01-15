@@ -19,9 +19,9 @@ for k = 1:np
        case  'connection' 
             switch parameters{k}.name
                 case {'transmissibility','porevolume','permeability','conntrans'} 
-                  for i =  1 : size(parameters{k}.Indx,1)
+                  for i =  1 : numel(parameters{k}.Indx)
                       [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2)); 
-                      %Indx = parameters{k}.Indx{i};
+                      Indx = parameters{k}.Indx{i};
                       ui(i,1)   = (val{k}(i)-umin)./(umax-umin);
                   end                  
                   u{k} = ui;  
