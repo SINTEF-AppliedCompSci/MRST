@@ -218,20 +218,21 @@ parameters{2}  = porevolume_conection ;
                 'OilRateWeight',    1e7, ...
                 'BHPWeight',        1e-5};
 
- obj = @(model, states, schedule, states_ref, tt, tstep) matchObservedOW(model, states, schedule, states_ref,...
+ obj = @(model, states, schedule, states_ref, tt, tstep) matchObservedOW(model, states, schedule, states_fine_scale,...
            'computePartials', tt, 'tstep', tstep, weighting{:});
-       
- [misfitVal_0,gradient,wellSols_0,states_0] = evaluateMatch(p0_ups,parameters,model_coarse_scale,schedule,state0, states_fine_scale, 1, obj);    
 
- 
+ objScaling = 1;       
+ [misfitVal_0,gradient,wellSols_0,states_0] = evaluateMatch(p0_ups,obj,state0,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);
+
+                                                           
 
   
 obj_scaling     = abs(misfitVal_0);      % objective scaling  
-objh = @(p)evaluateMatch(p,parameters,model_coarse_scale,schedule,state0,  states_fine_scale, obj_scaling, obj);
+objh = @(p)evaluateMatch(p, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
 
 [v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'gradTol',             1e-2, ...
                                               'objChangeTol',        0.5e-3);
-[misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch(p_opt,parameters,model_coarse_scale,schedule,state0, states_fine_scale, obj_scaling, obj);
+[misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
  
 
 plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
@@ -239,25 +240,25 @@ plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
               'datasetnames',{'fine scale model','initial upscaled model','history matched upscaled model'},...
               'linestyles', {'o', '--', '-'})
 
- %% Optimization 2:  non upscaled coarse model
+ %% Optimization 2:  initial upscaled model with a ramdom perturbation
  
  
 % Scailing the parameters to the interval [0,1]
   val = {};              
-  val{1} = 0*TT+mean(TT);
-  val{2} = 0*pv+mean(pv);
+  val{1} = TT+0.5*(rand(size(TT))-0.5).*TT;
+  val{2} = pv+0.5*(rand(size(pv))-0.5).*pv;
   %val{3} = 0*WellIP+ mean(WellIP);
   p0_mean = value2control(val,parameters);
  
        
- [misfitVal_0,gradient,wellSols_0_mean,states_0] = evaluateMatch(p0_mean,parameters,model_coarse_scale,schedule,state0, states_fine_scale, 1, obj);    
+ [misfitVal_0,gradient,wellSols_0_mean,states_0] = evaluateMatch(p0_mean,obj,state0,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);
 
 obj_scaling     = abs(misfitVal_0);      % objective scaling  
-objh = @(p)evaluateMatch(p,parameters,model_coarse_scale,schedule,state0,  states_fine_scale, obj_scaling, obj);
+objh = @(p)evaluateMatch(p,obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
 
 [v, p_opt, history] = unitBoxBFGS(p0_mean, objh,'gradTol',             1e-2, ...
                                               'objChangeTol',        0.5e-3);
-[misfitVal_opt,gradient_opt,wellSols_opt_mean] = evaluateMatch(p_opt,parameters,model_coarse_scale,schedule,state0, states_fine_scale, obj_scaling, obj);
+[misfitVal_opt,gradient_opt,wellSols_opt_mean] = evaluateMatch(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
 
 
 plotWellSols({wellSols_fine_scale,wellSols_0_mean,wellSols_opt_mean,wellSols_0,wellSols_opt},...
