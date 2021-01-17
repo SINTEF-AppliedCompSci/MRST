@@ -1,4 +1,4 @@
-mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization ddmodel network-models
+mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization network-models
 
  
 %% Run EGG field simulation
@@ -107,7 +107,7 @@ dt = schedule.step.val;
                        'BHPWeight',        1e-5};
  schedule_0=schedule;
  
-  val ={}              
+  val ={};           
   val{1} = TT;
   val{2} = pv/10;
   val{3} = WellIP;
