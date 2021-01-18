@@ -117,7 +117,7 @@ if nargout > 1 % then the gradient is required
                     case {'transmissibility','porevolume','conntrans','permeability'}
                         for i =  1 : numel(parameters{k}.Indx)
                             if(strcmp('conntrans',params{k}))
-                                Indx=parameters{k}.Indx{i}(:,3);%% neeed the perforation numbering
+                                Indx=parameters{k}.Indx{i}(:,2);%% neeed the perforation numbering
                             else
                                 Indx = parameters{k}.Indx{i};
                             end
