@@ -249,7 +249,7 @@ plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
   val = {};              
   val{1} = TT+0.5*(rand(size(TT))-0.5).*TT;
   val{2} = pv+0.5*(rand(size(pv))-0.5).*pv;
-  val{3} = 0*WellIP+ mean(WellIP);
+  val{3} = WellIP+ 0.5*(rand(size(WellIP))-0.5).*WellIP;
   p0_mean = value2control(val,parameters);
  
        
