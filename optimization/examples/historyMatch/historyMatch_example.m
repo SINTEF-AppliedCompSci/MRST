@@ -247,9 +247,9 @@ plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
  
 % Scailing the parameters to the interval [0,1]
   val = {};              
-  val{1} = TT+0.5*(rand(size(TT))-0.5).*TT;
-  val{2} = pv+0.5*(rand(size(pv))-0.5).*pv;
-  val{3} = WellIP+ 0.5*(rand(size(WellIP))-0.5).*WellIP;
+  val{1} = TT+(rand(size(TT))-0.5).*TT;
+  val{2} = pv+(rand(size(pv))-0.5).*pv;
+  val{3} = WellIP+ (rand(size(WellIP))-0.5).*WellIP;
   p0_mean = value2control(val,parameters);
  
        
@@ -265,7 +265,7 @@ objh = @(p)evaluateMatch(p,obj, state0, model_coarse_scale, schedule, obj_scalin
 [misfitVal_opt,gradient_opt,wellSols_opt_mean] = evaluateMatch(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
 
 
-plotWellSols({wellSols_fine_scale,wellSols_0_mean,wellSols_opt_mean,wellSols_0,wellSols_opt},...
+plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt,wellSols_0_mean,wellSols_opt_mean},...
               {schedule.step.val,schedule.step.val,schedule.step.val,schedule.step.val,schedule.step.val},...
-              'datasetnames',{'fine scale model','initial coarse model','history matched coarse model','initial upscaled model','history matched upscaled model'},...
+              'datasetnames',{'fine scale model','initial upscaled model','history matched upscaled model','perturbed upscaled model','history matched perturbed upscaled model'},...
               'linestyles', {'o', '--', '-','--', '-'})
