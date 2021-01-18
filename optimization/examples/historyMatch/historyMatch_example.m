@@ -181,7 +181,7 @@ well_boxlimits = [ 0.1*WellIP , ...
           well_IP = struct('name','conntrans',...
                                    'type','value',...
                                    'boxLims', well_boxlimits,...
-                                   'distribution','connection',...
+                                   'distribution','general',...
                                    'Indx',well_index);
 
 
@@ -201,7 +201,7 @@ well_boxlimits = [ 0.1*WellIP , ...
 parameters =  {};                          
 parameters{1} = transmisibility_conection;
 parameters{2}  = porevolume_conection ;
-%parameters{3}  = well_IP ;
+parameters{3}  = well_IP ;
 
  %% Optimization 1: upscaled coarse model
  
@@ -210,7 +210,7 @@ parameters{2}  = porevolume_conection ;
   val = {};              
   val{1} = TT;
   val{2} = pv;
-  %val{3} = WellIP;
+  val{3} = WellIP;
   p0_ups = value2control(val,parameters);
  
 % Defining the weights to evaluate the match
@@ -231,7 +231,8 @@ obj_scaling     = abs(misfitVal_0);      % objective scaling
 objh = @(p)evaluateMatch(p, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
 
 [v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'gradTol',             1e-2, ...
-                                              'objChangeTol',        0.5e-3);
+                                              'objChangeTol',        0.5e-3,...
+                                              'stepIncreaseTol',     4);
 [misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
  
 
@@ -247,7 +248,7 @@ plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
   val = {};              
   val{1} = TT+0.5*(rand(size(TT))-0.5).*TT;
   val{2} = pv+0.5*(rand(size(pv))-0.5).*pv;
-  %val{3} = 0*WellIP+ mean(WellIP);
+  val{3} = 0*WellIP+ mean(WellIP);
   p0_mean = value2control(val,parameters);
  
        
