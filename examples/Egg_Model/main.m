@@ -50,10 +50,12 @@ model.OutputStateFunctions = {};
 WellIP = [];
 cell = [];
 well_index = []; 
-levels = 1;        
-for  i = 1:12
+levels = 1;   
+well_index_2 = {};
+for  i = 1:numel(W)
     for l = 1 : levels
         well_index = [well_index; i,l];
+        well_index_2{i} = [i,l];
     end
     WellIP = [WellIP; W(i).WI(1)];
 end
@@ -116,14 +118,15 @@ dt = schedule.step.val;
  %objh = @(tstep) obj(model.G, wellSols, schedule, wellSols_ref, true, tstep);%'computePartials', true, 'tstep', tstep, weighting{:});
  obj = @(model, states, schedule, states_ref, tt, tstep) matchObservedOW(model, states, schedule, states_ref,...
            'computePartials', tt, 'tstep', tstep, weighting{:});
- [misfitVal_0,gradient,wellSols_0,states_0] = Simulate_BFGS(p0_fd,parameters,model,schedule_0,state0, states_ref, 1, obj);          
+       
+ [misfitVal_0,gradient,wellSols_0,states_0] = evaluateMatch(p0_fd,obj,state0,model,schedule_0,1,parameters, states_ref);          
  
  plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,schedule_0.step.val})
   
   %% Optimization
   
 obj_scaling     = abs(misfitVal_0);      % objective scaling  
-objh = @(p)Simulate_BFGS(p,parameters,model,schedule_0,state0,  states_ref, obj_scaling, obj);
+objh = @(p)evaluateMatch(p,obj,state0,model,schedule_0,obj_scaling,parameters,states_ref);
 
 [v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'gradTol',             1e-2, ...
                                               'objChangeTol',        0.5e-3);
@@ -132,10 +135,9 @@ objh = @(p)Simulate_BFGS(p,parameters,model,schedule_0,state0,  states_ref, obj_
 %% Simulating all simulation time
  schedule = simpleSchedule(dt, 'W', W);
  
- [misfitVal_opt,gradient_opt,wellSols_opt] = Simulate_BFGS(p_opt,parameters,model,schedule,state0, states_ref, obj_scaling, obj);
+ [misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch(p_opt,obj,state0,model,schedule,obj_scaling,parameters, states_ref);
 
- [misfitVal_0,gradient_0,wellSols_0] = Simulate_BFGS(p0_fd,parameters,model,schedule,state0, states_ref,obj_scaling, obj);
-
+ [misfitVal_0,gradient_0,wellSols_0] = evaluateMatch(p0_fd,obj,state0,model,schedule,obj_scaling,parameters, states_ref);
 
 
 plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,schedule.step.val,schedule.step.val})

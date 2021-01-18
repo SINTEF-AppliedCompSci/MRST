@@ -35,7 +35,7 @@ markersize = 10;
  xlabel('days'); ylabel('STB');
  %ylim([0 4000])
  title('Water production')
- T = cumsum(dt(1:48))/day; %your point goes here 
+ T = cumsum(dt(1:40))/day; %your point goes here 
  hl = line([T(end) T(end)],get(hs,'YLim'),'Color', 150*[1 1 1]/255,'LineStyle','--','HandleVisibility','off');
  set(hl,'LineWidth',lineSize)
  %text(T(end),'Training data')
