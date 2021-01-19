@@ -1,4 +1,4 @@
-function showAllocation(d, src, ax, s2, s3)
+function showAllocation(d, ax, s2, s3)
 %Undocumented Utility Function
 
 %{
@@ -20,19 +20,20 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-ts = s3.tsel.ix;
+mIx = s3.modsel.ix;
+nM = numel(mIx);
 [iIx, pIx] = deal(s3.wsel.injectorIx, s3.wsel.producerIx);
 
 if s2.asel.panelNo == 1
     src   = s2.asel.leftPopup;
-    doAvg = s2.asel.leftSwitch && numel(ts)>1;
+    doAvg = s2.asel.leftSwitch && numel(mIx)>1;
 else
     src   = s2.asel.rightPopup;
-    doAvg = s2.asel.rightSwitch && numel(ts)>1;
+    doAvg = s2.asel.rightSwitch && numel(mIx)>1;
 end
 
 if doAvg
-    WP_avg = timeAverageWellPairDiagnostics(d, ts);
+    WP_avg = modelAverageWellPairDiagnostics(d, mIx);
 end
 
 switch src.Value
@@ -44,220 +45,330 @@ switch src.Value
 
     case 3  % Injector volumes
         if numel(iIx)~=1
-            text(0,.1,'Injector volumes:','Parent', ax);
-            text(0,0,'Please select{\bf one} injector only','Parent',ax);
-            axis(ax,'off'); return
+%             text(0,.1,'Injector volumes:','Parent', ax);
+%             text(0,0,'Please select{\bf one} injector only','Parent',ax);
+%             axis(ax,'off'); return
+            d.messageBar.String = 'Please select one injector only';
+            return
+        else
+            d.messageBar.String = '';
         end
-        if numel(ts)==1 || doAvg
+        names = d.WellPlot.producerNames;
+        if nM==1 || doAvg
             if doAvg
                 wp = WP_avg;
             else
-                wp = d.Data.diagnostics(ts).WP;
+                wp = d.Data{mIx}.diagnostics.WP;
             end
             d.plotPie(ax, wp.vols(wp.pairIx(:,1)==iIx), ...
-                arrayfun(@(x) x.label.String, ...
-                d.WellPlot.producers, 'UniformOutput',false), ...
-                d.Data.prodColors);
+                d.WellPlot.producerNames, ...
+                d.Data{mIx(1)}.prodColors);
+            title(ax,d.WellPlot.injectorNames{iIx});              
         else
-            names= arrayfun(@(x) x.label.String, d.WellPlot.producers,'UniformOutput',false);    
-            vols = zeros(numel(names),numel(ts));
-            for i=1:numel(ts)
-                wp = d.Data.diagnostics(ts(i)).WP;
-                vols(:,i) = wp.vols(wp.pairIx(:,1)==iIx);
-            end
-            h = area(ax,vols');
-            for i=1:numel(h)
-                set(h(i),'FaceColor', d.Data.prodColors(i,:));
-            end
-            if numel(ts)>10
-                ds = round(numel(ts)/10);
-                ts = ts(1:ds:numel(ts));
-            end
-            set(ax,'XTick', ts, 'XTickLabel', ...
-                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
-            set(ax,'XTickLabelRotation',30,'FontSize',8);
-            axis(ax,'tight')
-            set(h,'HitTest','off');        
-        end
-        title(ax,d.WellPlot.injectors(iIx).label.String, 'Interpreter','none');
+            plotVolsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,'injectors');
+        end            
 
     case 4  % Injector allocation
         if numel(iIx)~=1
-            text(0,.1,'Injector allocation:','Parent', ax);
-            text(0,0,'Please select{\bf one} injector only','Parent',ax);
-            axis(ax,'off'); return
+%             text(0,.1,'Injector allocation:','Parent', ax);
+%             text(0,0,'Please select{\bf one} injector only','Parent',ax);
+%             axis(ax,'off'); return
+            d.messageBar.String = 'Please select one injector only';  
+            return
+        else
+            d.messageBar.String = '';
         end
-        names= arrayfun(@(x) x.label.String, d.WellPlot.producers,'UniformOutput',false);
+        names = d.WellPlot.producerNames;
         names{end+1}='reservoir';
-        if numel(ts)==1 || doAvg
+        if nM == 1 || doAvg
             if doAvg
                 inj = WP_avg.inj(iIx);
             else
-                inj = d.Data.diagnostics(ts).WP.inj(iIx);
+                inj = d.Data{mIx}.diagnostics.WP.inj(iIx);
             end
             d.plotPie(ax, abs(sum([inj.alloc, inj.ralloc],1)), ...
-                names, d.Data.prodColors);
+                names, d.Data{mIx(1)}.prodColors);
+            title(ax,d.WellPlot.injectorNames{iIx});
+
         else
-            alloc = zeros(numel(names),numel(ts));
-            for i=1:numel(ts)
-                inj = d.Data.diagnostics(ts(i)).WP.inj(iIx);
-                alloc(:,i) = abs(sum([inj.alloc, inj.ralloc],1))';
-            end
-            h = area(ax,alloc');
-            for i=1:numel(h)
-                set(h(i),'FaceColor', d.Data.prodColors(i,:));
-            end
-            if numel(ts)>10
-                ds = round(numel(ts)/10);
-                ts = ts(1:ds:numel(ts));
-            end
-            set(ax,'XTick', ts, 'XTickLabel', ...
-                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
-            set(ax,'XTickLabelRotation',30,'FontSize',8);
-            axis(ax,'tight')
-            set(h,'HitTest','off');
+            plotAllocsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,'injectors');
         end
-        title(ax,d.WellPlot.injectors(iIx).label.String);
 
     case 5  % PLT plot (production logging tool)
         if numel(iIx)~=1
-            text(0,.1,'Injector profile:','Parent', ax);
-            text(0,0,'Please select{\bf one} injector','Parent',ax);
-            axis(ax,'off'); return
-        elseif numel(ts)==1 || doAvg
+%             text(0,.1,'Injector allocation:','Parent', ax);
+%             text(0,0,'Please select{\bf one} injector only','Parent',ax);
+%             axis(ax,'off'); return
+            d.messageBar.String = 'Please select one injector only';  
+            return
+        elseif nM==1 || doAvg
+            d.messageBar.String = '';
             if doAvg
                 injAlloc = WP_avg.inj(iIx);
             else
-                injAlloc = d.Data.diagnostics(ts).WP.inj(iIx);
+                injAlloc = d.Data{mIx}.diagnostics.WP.inj(iIx);
             end
-            d.plotPLT(ax, injAlloc, d.Data.prodColors);
+            d.plotPLT(ax, injAlloc, d.Data{mIx(1)}.prodColors);
+            wplIx = getWellsForLegend(injAlloc.alloc,0.001);      
+            
+            legend(ax, ax.Children(d.WellPlot.nProd+1-wplIx), ...
+                d.WellPlot.producerNames(wplIx));            
         else
-            d.plotPLT3D(ax, arrayfun(@(x) x.WP.inj(iIx),...
-                d.Data.diagnostics(ts),'UniformOutput',false), ...
-                false, d.Data.prodColors);
-            if numel(ts)>10
-                ds = round(numel(ts)/10);
-                ts = ts(1:ds:numel(ts));
+            d.messageBar.String = '';
+            [injAlloc, wplIxAll] = deal(cell(nM,1));
+            for i = 1:nM
+                injAlloc{i} = d.Data{mIx(i)}.diagnostics.WP.inj(iIx);
+                wplIxAll{i} = getWellsForLegend(injAlloc{i}.alloc,0.01);                
             end
-            set(ax,'XTick', ts, 'XTickLabel', ...
-                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
-            set(ax,'XTickLabelRotation',-30,'FontSize',8);
+
+            d.plotPLT3D(ax, injAlloc, ...
+                false, d.Data{mIx(1)}.prodColors);
+            
+            ll = fliplr([wplIxAll{:}]);
+            wplIx = unique([wplIxAll{:}]);
+            goIx =arrayfun(@(x) find(ll == x,1),wplIx);
+
+            legend(ax, ax.Children(goIx), ...
+                d.WellPlot.producerNames(wplIx), 'Location', 'Best');            
+
         end
-        title(ax,d.WellPlot.injectors(iIx).label.String);
-        if ~isempty(pIx)
-            legend(ax, ax.Children(numel(d.WellPlot.producers)+1-pIx), ...
-                arrayfun(@(x) x.label.String, d.WellPlot.producers(pIx),'UniformOutput',false));
-        end
+        title(ax,d.WellPlot.injectorNames{iIx});
+
+
+       
 
     case 6  % Producer volumes
         if numel(pIx)~=1
-            text(0,.1,'Producer volumes:','Parent', ax);
-            text(0,0,'Please select{\bf one} producer only','Parent', ax);
-            axis(ax,'off'); return
+%             text(0,.1,'Injector allocation:','Parent', ax);
+%             text(0,0,'Please select{\bf one} injector only','Parent',ax);
+%             axis(ax,'off'); return
+            d.messageBar.String = 'Please select one producer only';  
+            return
+        else
+            d.messageBar.String = '';
         end
-        if numel(ts)==1 || doAvg
+        names= d.WellPlot.injectorNames;
+        if nM==1 || doAvg
             if doAvg
                 wp = WP_avg;
             else
-                wp = d.Data.diagnostics(ts).WP;
+                wp = d.Data{mIx}.diagnostics.WP;
             end
             d.plotPie(ax, wp.vols(wp.pairIx(:,2)==pIx), ...
-                arrayfun(@(x) x.label.String, ...
-                d.WellPlot.injectors,'UniformOutput',false), ...
-                d.Data.injColors);
+                names, d.Data{mIx(1)}.injColors);
+            title(ax,d.WellPlot.producerNames{pIx});            
         else
-            names= arrayfun(@(x) x.label.String, d.WellPlot.injectors,'UniformOutput',false);    
-            vols = zeros(numel(names),numel(ts));
-            for i=1:numel(ts)
-                wp = d.Data.diagnostics(ts(i)).WP;
-                vols(:,i) = wp.vols(wp.pairIx(:,2)==pIx);
-            end
-            h = area(ax,vols');
-            for i=1:numel(h)
-                set(h(i),'FaceColor', d.Data.injColors(i,:));
-            end
-            if numel(ts)>10
-                ds = round(numel(ts)/10);
-                ts = ts(1:ds:numel(ts));
-            end
-            set(ax,'XTick', ts, 'XTickLabel', ...
-                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
-            set(ax,'XTickLabelRotation',30,'FontSize',8);
-            axis(ax,'tight')
-            set(h,'HitTest','off');        
+            plotVolsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,'producers');
         end
             
-        title(ax,d.WellPlot.producers(pIx).label.String);
 
     case 7  % Producer allocation
         if numel(pIx)~=1
-            text(0,.1,'Producer allocation:','Parent', ax);
-            text(0,0,'Please select{\bf one} producer only','Parent', ax);
-            axis(ax,'off'); return
+%             text(0,.1,'Injector allocation:','Parent', ax);
+%             text(0,0,'Please select{\bf one} injector only','Parent',ax);
+%             axis(ax,'off'); return
+            d.messageBar.String = 'Please select one producer only';  
+            return
+        else   
+            d.messageBar.String = '';
         end
-        names = arrayfun(@(x) x.label.String, d.WellPlot.injectors,'UniformOutput',false);
+        names = d.WellPlot.injectorNames; 
         names{end+1}='reservoir';
-        if numel(ts)==1 || doAvg
+        if nM == 1 || doAvg
             if doAvg
                 prod = WP_avg.prod(pIx);
             else
-                prod = d.Data.diagnostics(ts).WP.prod(pIx);
+                prod = d.Data{mIx}.diagnostics.WP.prod(pIx);
             end
             d.plotPie(ax, abs(sum([prod.alloc, prod.ralloc],1)), ...
-                names, d.Data.injColors);
+                names, d.Data{mIx(1)}.injColors);
+            title(ax,d.WellPlot.producerNames{pIx});
         else
-            alloc = zeros(numel(names),numel(ts));
-            for i=1:numel(ts)
-                prod = d.Data.diagnostics(ts(i)).WP.prod(pIx);
-                alloc(:,i) = abs(sum([prod.alloc, prod.ralloc],1))';
-            end
-            h = area(ax,alloc');
-            for i=1:numel(h)
-                set(h(i),'FaceColor', d.Data.injColors(i,:));
-            end
-            if numel(ts)>10
-                ds = round(numel(ts)/10);
-                ts = ts(1:ds:numel(ts));
-            end
-            set(ax,'XTick', ts, 'XTickLabel', ...
-                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
-            set(ax,'XTickLabelRotation',30,'FontSize',8);
-            axis(ax,'tight')
-            set(h,'HitTest','off');
-       end
-       title(ax,d.WellPlot.producers(pIx).label.String);
+            plotAllocsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,'producers');
+        end
+
 
     case 8  % PLT plot (production logging tool)
         if numel(pIx)~=1
-            text(0,.1,'Producer profile:','Parent', ax);
-            text(0,0,'Please select{\bf one} producer','Parent', ax);
-            axis(ax,'off'); return
-        elseif numel(ts)==1 || doAvg
+%             text(0,.1,'Injector allocation:','Parent', ax);
+%             text(0,0,'Please select{\bf one} injector only','Parent',ax);
+%             axis(ax,'off'); return
+            d.messageBar.String = 'Please select one producer only';  
+            return
+        elseif nM==1 || doAvg
+            d.messageBar.String = '';
             if doAvg
                 prodAlloc = WP_avg.prod(pIx);
             else
-                prodAlloc = d.Data.diagnostics(ts).WP.prod(pIx);
+                prodAlloc = d.Data{mIx}.diagnostics.WP.prod(pIx);
             end
-            d.plotPLT(ax, prodAlloc, d.Data.injColors);
+            d.plotPLT(ax, prodAlloc, d.Data{mIx(1)}.injColors);
+            wplIx = getWellsForLegend(prodAlloc.alloc,0.001);
+            
+            legend(ax, ax.Children(d.WellPlot.nInj+1-wplIx), ...
+                d.WellPlot.injectorNames(wplIx));
         else
-            d.plotPLT3D(ax,arrayfun(@(x) x.WP.prod(pIx),...
-                d.Data.diagnostics(ts),'UniformOutput',false), ...
-                true, d.Data.injColors);
-            if numel(ts)>10
-                ds = round(numel(ts)/10);
-                ts = ts(1:ds:numel(ts));
+            d.messageBar.String = '';
+            [prodAlloc, wplIxAll] = deal(cell(nM,1));
+            for i = 1:nM
+                prodAlloc{i} = d.Data{mIx(i)}.diagnostics.WP.prod(pIx);
+                wplIxAll{i} = getWellsForLegend(prodAlloc{i}.alloc,0.01);
             end
-            set(ax,'XTick', ts, 'XTickLabel', ...
-                {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
-            set(ax,'XTickLabelRotation',-30,'FontSize',8);
+            
+            d.plotPLT3D(ax,prodAlloc, ...
+                true, d.Data{mIx(1)}.injColors);
+            if nM >10
+                ds = round(nM/10);
+                 set(ax,'XTick', 1:ds:nM, 'XTickLabel', ...
+                     {s3.modsel.modelNames{1:ds:nM}});
+            else
+                set(ax,'XTick', 1:nM, 'XTickLabel', ...
+                     {s3.modsel.modelNames{mIx}});
+            end
+            set(ax,'XTickLabelRotation',-10,'FontSize',8);
+            
+            ll = fliplr([wplIxAll{:}]);
+            wplIx = unique([wplIxAll{:}]);
+            goIx =arrayfun(@(x) find(ll == x,1),wplIx);
+            
+            
+            legend(ax,  ax.Children(goIx), ...
+                d.WellPlot.injectorNames(wplIx), 'Location', 'Best');
         end
-        title(ax,d.WellPlot.producers(pIx).label.String);
-        if ~isempty(iIx)
-            legend(ax, ax.Children(numel(d.WellPlot.injectors)+1-iIx), ...
-                arrayfun(@(x) x.label.String, d.WellPlot.injectors(iIx),'UniformOutput',false));
+        title(ax,d.WellPlot.producerNames{pIx});
+        
+    case 9
+        
+        percentageConnection =  zeros(size(d.Data{1}.diagnostics.wellCommunication));
+        for i = 1:nM
+              
+
+           com = d.Data{mIx(i)}.diagnostics.wellCommunication;
+           tot = sum(com(:));
+           n   = max(size(com));
+           com = com > (1/100)*tot/n;
+
+        
+            percentageConnection = percentageConnection + (com > 0);
         end
+        
+        percentageConnection = percentageConnection./nM;   
+
+        showWellCommunicationPercentage(d, ax, percentageConnection);
 
     otherwise
         disp('functionality not implemented yet');
 end
+end
+
+function wplIx = getWellsForLegend(data,threshold)
+    s = abs(sum(data));
+    mm = max(s);
+    wplIx = find(s>threshold*mm);
+end
+
+
+
+function plotVolsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,welltype)
+
+    if strcmp(welltype,'injectors')
+        idx = 1;
+        t2 = 'producers';
+        nWell = d.WellPlot.nProd;
+        i1 = iIx;
+        nm = d.WellPlot.injectorNames{iIx};
+        % i2 = pIx;
+        cmap = d.Data{mIx(1)}.prodColors;            
+    elseif strcmp(welltype,'producers')
+        idx = 2;
+        t2 = 'injectors';
+        nWell = d.WellPlot.nInj;
+        i1 = pIx;
+        nm = d.WellPlot.producerNames{pIx};
+        % i2 = iIx;
+        cmap = d.Data{mIx(1)}.injColors;           
+    else
+        disp('Unknown welltype')
+        return
+    end
+    
+    nM = numel(mIx);
+    vols = zeros(nM,numel(names));
+    wplIxAll = cell(nM,1);
+    for i=1:nM
+        wp = d.Data{mIx(i)}.diagnostics.WP; 
+        vols(i,:) = wp.vols(wp.pairIx(:,idx)==i1);
+        wplIxAll{i} = getWellsForLegend(vols,0.01);           
+    end
+    
+    h=bar(ax, vols,'stacked');
+    for i=1:numel(h)
+        set(h(i),'FaceColor', cmap(i,:));
+    end
+    
+    set(ax,'XTickLabel', ...
+         {s3.modsel.modelNames{mIx}});
+    set(ax,'XTickLabelRotation',30,'FontSize',8);
+    
+    wplIx = unique([wplIxAll{:}]);    
+    
+%     names= arrayfun(@(x) x.label.String, d.WellPlot.(t2),'UniformOutput',false);
+%     names{end+1}='reservoir';
+    
+    legend(ax,  ax.Children(nWell+1-wplIx), ...
+        names{wplIx});            
+    axis(ax,'tight')
+    set(h,'HitTest','off');   
+    title(ax,nm, 'Interpreter','none');            
+end
+
+function plotAllocsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,welltype)
+
+    if strcmp(welltype,'injectors')
+        t2 = 'producers';
+        i1 = iIx;
+        % i2 = pIx;
+        iflux = 'inj';
+        cmap = d.Data{mIx(1)}.prodColors;      
+        nwell = d.WellPlot.nProd;
+        nm    = d.WellPlot.injectorNames{i1};
+    elseif strcmp(welltype,'producers')
+        t2 = 'injectors';
+        i1 = pIx;
+        % i2 = iIx;
+        iflux = 'prod';
+        cmap = d.Data{mIx(1)}.injColors;    
+        nwell = d.WellPlot.nInj;
+        nm    = d.WellPlot.producerNames{i1};
+    else
+        disp('Unknown welltype')
+        return
+    end
+
+    nM = numel(mIx);
+    alloc = zeros(nM,numel(names));
+    wplIxAll = cell(nM,1);
+    for i=1:nM
+        inj = d.Data{mIx(i)}.diagnostics.WP.(iflux)(i1);
+        alloc(i,:) = abs(sum([inj.alloc, inj.ralloc],1))';
+        wplIxAll{i} = getWellsForLegend(alloc,0.001);        
+    end
+    
+    h=bar(ax, alloc,'stacked');
+    for i=1:numel(h)
+            set(h(i),'FaceColor', cmap(i,:));
+    end
+    
+    set(ax,'XTickLabel', ...
+         {s3.modsel.modelNames{mIx}});
+    set(ax,'XTickLabelRotation',30,'FontSize',8);
+    
+    wplIx = unique([wplIxAll{:}]);
+    
+
+    legend(ax,  ax.Children(nwell+2-wplIx), ...
+        names{wplIx});     
+       
+    axis(ax,'tight')    
+    title(ax, nm, 'Interpreter','none');            
 end

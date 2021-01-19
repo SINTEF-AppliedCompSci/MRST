@@ -44,9 +44,10 @@ classdef DiagnosticsViewer < handle
             mrstModule add incomp mrst-gui
             
             % ------ Set options ------------------------------------------
-            opt = struct('style', 'default',...
-                'modelNames', [], ...
-                'maxTOF', 500*year);
+            opt = struct('style',          'default',...
+                         'modelNames',     [], ...
+                         'maxTOF',         500*year, ...
+                         'includeAverage', true);
             [opt, extraOpt] = merge_options(opt, varargin{:});
             
             % ------ Create figure window ---------------------------------
@@ -174,7 +175,7 @@ classdef DiagnosticsViewer < handle
             selector2D.asel = DynamicMeasureSelector(...
                 'Title','Well allocations', ...
                 'props', d.Allocation, ...
-                'includeAvgSwitch', true, itemOpts{:});
+                'includeAvgSwitch', opt.includeAverage, itemOpts{:});
             
             % ------ Selector for summary output  -------------------------
             selector2D.ssel = WellSolSelector(d.Data{m}.wsdata.wellNames, ...
@@ -299,7 +300,7 @@ classdef DiagnosticsViewer < handle
             d = addExtraTools(d);
             
             % finally wells
-            d.WellPlot = WellPlotHandle(d.Data{m}.G, d.Data{m}.wells, ...
+            d.WellPlot = WellPlotHandle(d.Data{m}.G, cellfun(@(data)data.wells, d.Data, 'UniformOutput', false), ...
                 'Visible', 'off', 'Parent', d.Axes3D);
             for i=1:numel(d.WellPlot.producers)
                 d.WellPlot.producers(i).label.FontSize = 8;
@@ -379,6 +380,7 @@ classdef DiagnosticsViewer < handle
                 if numel(m) == 1
                     % some stat-stuff
                 end
+                d.WellPlot.visibleCases = m;
                 d.displayPropCallback(src, event, s3);
                 d.interactionRegionCallback(src, event, s2, s3);
                 s3.wsel.communicationMatrix = getSelectedModelCommunicationMatrix(d,s3);
@@ -649,7 +651,7 @@ classdef DiagnosticsViewer < handle
                 m = modsel.ix;
                 [iIx, pIx] = deal(s3.wsel.injectorIx, s3.wsel.producerIx);
                 if isempty(pIx)
-                    pIx = 1:numel(d.WellPlot.producers);
+                    pIx = 1:d.WellPlot.nProd;%    1:numel(d.WellPlot.producers);
                 end
                 switch ix
                     case 1
@@ -676,7 +678,8 @@ classdef DiagnosticsViewer < handle
                 end
                 ylabel(ax, 'Tracer rate');
                 ax.XLabel.String = 'TOF distance in years';
-                wn = arrayfun(@(x)x.label.String, d.WellPlot.producers(pIx), 'UniformOutput', false);
+                %wn = arrayfun(@(x)x.label.String, d.WellPlot.producers(pIx), 'UniformOutput', false);
+                wn = d.WellPlot.producerNames(pIx);
                 legend(ax, wn, 'Location','northeast', 'Interpreter', 'none')
                 set(ax, 'FontSize', 10)
                 set(ax, 'XLim', [0, s2.dsel.extendTime]);
@@ -940,7 +943,7 @@ classdef DiagnosticsViewer < handle
             aPos2DR = aPos2D; aPos2DR(1) = aPos2D(1)+aPos2D(3)+2*sp;
             aPos3D = [mw+sp, 2.5*sp+ah, fip(3)-mw-2*sp, fip(4)-3*sp-ah];
             cbh    = max(50, min(300, fip(4)-2*sp));
-            cbw    = 27;
+            cbw    = 37;
 
             % Colorbar left, next to menu
             aPosCB = [mw+2*sp,       fip(4)-cbh-sp, cbw, cbh];
@@ -1087,22 +1090,22 @@ classdef DiagnosticsViewer < handle
         end
         % -----------------------------------------------------------------
         function plotPLT3D(d, ax, inj, reverseY, cmap)
-            tmp = cellfun(@(x) x.alloc, inj, 'UniformOutput', false);
-            alloc = cat(3, tmp{:});
-            alloc = cumsum(alloc(end:-1:1,:,:), 1);
-            z     = (size(alloc,1):-1:1).';
+            alloc   = cellfun(@(x) cumsum(x.alloc(end:-1:1,:), 1), inj, 'UniformOutput', false);
             hold(ax,'on');         
-            for i = 1:size(alloc,3)
-                s = abs(sum(alloc(:,:,i)));
+            for i = 1:numel(alloc)
+                s = abs(sum(alloc{i}));
                 mm = max(s);
                 pltbarsIx = find(s>0.01*mm);
-                pltalloc = alloc(:,pltbarsIx,i);
-                h=bar3h(ax, z, pltalloc,'stacked');
-                for j=1:numel(h)
-                    set(h(j), 'xdata', get(h(j),'xdata')+i-1, ...
-                        'FaceColor', cmap(pltbarsIx(j),:),'EdgeAlpha',.5);
+                if any(pltbarsIx)
+                    pltalloc = alloc{i}(:,pltbarsIx);
+                    z     = (size(alloc{i},1):-1:1).';
+                    h=bar3h(ax, z, pltalloc,'stacked');
+                    for j=1:numel(h)
+                        set(h(j), 'xdata', get(h(j),'xdata')+i-1, ...
+                            'FaceColor', cmap(pltbarsIx(j),:),'EdgeAlpha',.5);
+                    end
+                    set(h,'HitTest','off')
                 end
-                set(h,'HitTest','off')
             end
             box(ax,'on'); grid(ax,'on'); view(ax,[140,20]); axis(ax,'tight');
             set(ax,'Xdir','reverse');
@@ -1437,13 +1440,13 @@ classdef DiagnosticsViewer < handle
                     wellIx2   = wsel.injectorIx;
                     com       = wsel.communicationMatrix;
                     colors    = d.injColors;
-                    wpNames   = d.WellPlot.injectors;
+                    wnames   = d.WellPlot.injectorNames;
                 case 'injector'
                     wellIx1   = wsel.injectorIx;
                     wellIx2   = wsel.producerIx;
                     com       = wsel.communicationMatrix';
                     colors    = d.prodColors;
-                    wpNames   = d.WellPlot.producers;
+                    wnames   = d.WellPlot.producerNames;
                 otherwise
                     error('Incorrect well type');
             end
@@ -1477,10 +1480,7 @@ classdef DiagnosticsViewer < handle
             if ymax > 0
                 set(ax, 'YLim', [0, ymax+ymax.*0.01]);
             end
-            wnames = arrayfun(@(x) x.label.String, wpNames(wellIx2), ...
-                'UniformOutput',false);
-            
-            legend(ax, wnames, 'Location', 'Northwest');
+            legend(ax, wnames(wellIx2), 'Location', 'Northwest');
         end
         
         % -----------------------------------------------------------------
@@ -1516,11 +1516,11 @@ classdef DiagnosticsViewer < handle
         function setColormap3D(d, str)
             if ~strcmp(str, d.colormap3D)
                 if strcmp(str, 'injectors')
-                    ninj = numel(d.WellPlot.injectors);
+                    ninj = d.WellPlot.nInj;
                     cmap = d.injColors(1:ninj,:);
                     colormap(d.Axes3D, cmap);
                 elseif strcmp(str, 'producers')
-                    nprod = numel(d.WellPlot.producers);
+                    nprod = d.WellPlot.nProd;
                     cmap = d.prodColors(1:nprod,:);
                     colormap(d.Axes3D, cmap);
                 else
@@ -1567,13 +1567,13 @@ classdef DiagnosticsViewer < handle
                 %d.colorHAx.Position(1) = d.colorBar.Position(1)+d.colorBar.Position(3)+10;
             else
                 if  s3.psel.propIx == 7 % sweep regions
-                    ninj = numel(d.WellPlot.injectors);
+                    ninj = d.WellPlot.nInj;
                     d.setColormap3D('injectors');
                     cb.Ticks = (.5:ninj)/ninj;
                     cb.TickLabels = s3.wsel.injSelector.String;
                     cb.Limits = [0 1];
                 elseif s3.psel.propIx == 8 % drainage regions
-                    nprod = numel(d.WellPlot.producers);
+                    nprod = d.WellPlot.nProd;
                     d.setColormap3D('producers');
                     cb.Ticks = (.5:nprod)/nprod;
                     cb.TickLabels = s3.wsel.prodSelector.String;

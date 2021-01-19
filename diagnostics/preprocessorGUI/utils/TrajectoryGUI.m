@@ -187,7 +187,7 @@ classdef TrajectoryGUI < handle
              traj = getTrajectory(d);
              %t = computeTraversedCells(d.model.G, traj);
              nnew = numel(d.WNew);
-             nm   = ['case_', num2str(nnew+1)];
+             nm   = ['NEW-WELL [', char('A'+nnew), ']'];
              info = d.Menu.items{1}.wellInfo;
              %seg = t.vec;
              ncompi = numel(d.W(1).compi);
@@ -226,23 +226,24 @@ classdef TrajectoryGUI < handle
             n = numel(d.WNew)+1;
             [models, wells, names] = deal(cell(1,n));
             if n>1
+                % trim off suffix
                 % add closed for first well-list
-                newIx = numel(d.W) + (1:(n-1));
-                W = [d.W; d.WNew];
-                [W(newIx).status] = deal(false);
-                [W(newIx).cstatus] = deal(false(size(W(end).cstatus)));
-                [W(newIx).type] = deal('rate');
-                [W(newIx).val] = deal(0);
-                [models{1}, wells{1}]  = deal(d.model, W);
+                newIx = numel(d.W) + 1;%(1:(n-1));
+                 tmp = [d.W; d.WNew(1)];
+                 tmp(end).name = 'NEW-WELL';
+                [tmp(newIx).status] = deal(false);
+                [tmp(newIx).cstatus] = deal(false(size(tmp(end).cstatus)));
+                [tmp(newIx).type] = deal('rate');
+                [tmp(newIx).val] = deal(0);
+                [models{1}, wells{1}]  = deal(d.model, tmp);
                 names{1} = 'Base';
                 for k = 2:n
-                    tmp = W;
-                    tmp(newIx(k-1)) = d.WNew(k-1);
-                    %W = [d.W; d.WNew(k-1)];
+                    tmp = [d.W; d.WNew(k-1)];
+                    tmp(end).name = 'NEW_WELL';
                     [models{k}, wells{k}]  = deal(d.model, tmp);
                     names{k} = ['case ', num2str(k-1)];
                 end
-                DiagnosticsViewer(models,wells, 'modelNames', names);
+                DiagnosticsViewer(models,wells, 'modelNames', names, 'includeAverage', false);
             end
         end
         
