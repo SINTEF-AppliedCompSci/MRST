@@ -32,8 +32,13 @@ classdef SummarySelector < UIItem
                          'Title',           'Simulation output');
             
             [opt, extraOpt] = merge_options(opt, varargin{:});
-            
-            [names, props, time, name2prop] = processSummary(smry);         
+            if ~isempty(smry)
+                [names, props, time, name2prop] = processSummary(smry);
+            else
+                [names, props] = deal('Not Available');
+                time = 0;
+                name2prop = [];
+            end
             
             nameSelector = uicontrol('Parent', [], 'Style', 'listbox',  'Max', 2, 'Min', 0, ...
                                      'Value', [], 'String', names, 'Visible', 'off');
@@ -62,19 +67,21 @@ classdef SummarySelector < UIItem
             s.fixedHeight = true;
             s.nameSubsetIx = (1:numel(s.names))';
             % main callback
-            s.Callback    = opt.Callback;
-            s.regCallback = opt.regCallback;
-            % item callbacks
-            nameSelector.Callback = @s.nameCallback;
-            propSelector.Callback = @s.propCallback;
-            [leftButton.Callback, rightButton.Callback] = deal(@s.buttonCallback);
-            regionSwitch.Callback = @s.regionCallback;
-            
-            s.nameSelector = nameSelector;
-            s.propSelector = propSelector;
-            s.leftButton   = leftButton;
-            s.rightButton  = rightButton;
-            s.regionSwitch = regionSwitch;
+            if ~isempty(smry)
+                s.Callback    = opt.Callback;
+                s.regCallback = opt.regCallback;
+                % item callbacks
+                nameSelector.Callback = @s.nameCallback;
+                propSelector.Callback = @s.propCallback;
+                [leftButton.Callback, rightButton.Callback] = deal(@s.buttonCallback);
+                regionSwitch.Callback = @s.regionCallback;
+                
+                s.nameSelector = nameSelector;
+                s.propSelector = propSelector;
+                s.leftButton   = leftButton;
+                s.rightButton  = rightButton;
+                s.regionSwitch = regionSwitch;
+            end
             
             % set visible
             s.Visible = opt.Visible;            
