@@ -31,7 +31,7 @@ model.operators.pv = model_ref.operators.pv.*0.8;
 % run ref model
 [ws_ref, states_ref, r_ref] = simulateScheduleAD(state0, model_ref, schedule);
 % run model
-[ws, states, r, model] = simulateScheduleAD(state0, model, schedule);
+[ws, states, r] = simulateScheduleAD(state0, model, schedule);
 
 % plot well solutions for the two models
 plotWellSols({ws_ref, ws}, {r_ref.ReservoirTime, r.ReservoirTime}, ...
@@ -51,7 +51,8 @@ misfitVal = sum(vertcat(misfitVals{:}));
 fprintf('Current misfit value: %6.4e\n', misfitVal)
 
 % setup (per time step) mismatch function handle for passing on to adjoint sim
-objh = @(tstep)matchObservedOW(model, states, schedule, states_ref, 'computePartials', true, 'tstep', tstep, weighting{:});
+objh = @(tstep,model, state) matchObservedOW(model, states, schedule, states_ref,...
+    'computePartials', true, 'tstep', tstep, weighting{:},'state',state);
 
 % run adjoint to compute sensitivities of misfit wrt params
 % choose parameters, get multiplier sensitivities except for endpoints

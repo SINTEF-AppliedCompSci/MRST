@@ -18,7 +18,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-opt=struct('Gradient','adjoint','pertub',1e-3)
+opt=struct('Gradient','adjoint','pertub',1e-3);
 opt = merge_options(opt,varargin{:});
 minu = min(u);
 maxu = max(u);
@@ -37,8 +37,9 @@ end
 schedule = control2schedule(u, schedule_org, scaling);
 
 % run simulation:
-[wellSols, states,schedule_new, model] = simulateScheduleAD(state0, model, schedule);
-
+[wellSols, states,report] = simulateScheduleAD(state0, model, schedule);
+timesteps = getReportMinisteps(report);
+assert(all(timesteps == schedule.step.val));
 %% should we fix the time stepping ??
 % schedule.step = schedule_new.step
 
@@ -50,7 +51,7 @@ val  = sum(cell2mat(vals))/objScaling;
 if nargout > 1
     switch opt.Gradient
         case 'adjoint'
-            objh = @(tstep)obj(model, states, schedule, 'ComputePartials', true, 'tStep', tstep);
+            objh = @(tstep,model, state) obj(model, states, schedule, 'ComputePartials', true, 'tStep', tstep,'state', state);
             g    = computeGradientAdjointAD(state0, states, model, schedule, objh);
             % scale gradient:
             der = scaleGradient(g, schedule, boxLims, objScaling);

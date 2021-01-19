@@ -24,6 +24,8 @@ opt     = struct('WaterRateWeight',     [] , ...
                  'BHPWeight',           [] , ...
                  'ComputePartials',     false, ...
                  'tStep' ,              [], ...
+                 'state',               [],...
+                 'from_states',         true,...% can be false for generic models
                  'matchOnlyProducers',  false);
              
 opt     = merge_options(opt, varargin{:});
@@ -66,10 +68,12 @@ for step = 1:numSteps
     [ww, wo, wp] = getWeights(qWs_obs, qOs_obs, bhp_obs, opt);
                                    
      if opt.ComputePartials
-         %[~, ~, qWs, qOs, bhp] = ...
-        %  initVariablesADI(p, sW, qWs, qOs, bhp);
-        init=true;
-        state = model.getStateAD( states{tSteps(step)}, init);
+        if(opt.from_states)
+            init=true;
+            state = model.getStateAD( states{tSteps(step)}, init);
+        else
+            state = opt.state;
+        end
         qWs=model.FacilityModel.getFacilityProp(state.FacilityState,'qWs');
         qOs=model.FacilityModel.getFacilityProp(state.FacilityState,'qOs');
         bhp=model.FacilityModel.getFacilityProp(state.FacilityState,'bhp');

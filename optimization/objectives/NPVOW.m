@@ -25,6 +25,8 @@ opt     = struct('OilPrice',             1.0 , ...
                  'DiscountFactor',       0.0 , ...
                  'ComputePartials',      false, ...
                  'tStep' ,               [],   ...
+                 'state',                 [], ...
+                 'from_states',          true,...
                  'signChangePenaltyFactor', 0);
 opt     = merge_options(opt, varargin{:});
 
@@ -61,8 +63,12 @@ for step = 1:numSteps
     if opt.ComputePartials
          %[~, ~, qWs, qOs, bhp] = ...
         %  initVariablesADI(p, sW, qWs, qOs, bhp);
-        init=true;
-        state = model.getStateAD( states{tSteps(step)}, init);
+        if(opt.from_states) 
+            init=true;
+            state = model.getStateAD( states{tSteps(step)}, init);
+        else
+            state = opt.state;
+        end
         qWs=model.FacilityModel.getFacilityProp(state.FacilityState,'qWs');
         qOs=model.FacilityModel.getFacilityProp(state.FacilityState,'qOs');
      else

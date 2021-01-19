@@ -3,23 +3,32 @@ function [misfitVal,varargout] = evaluateMatch(p,obj,state0_org,model_org,schedu
     'Gradient',   'AdjointAD',...
     'NonlinearSolver', [],...
     'AdjointLinearSolver',[],...
-    'pertub',1e-4);
+    'pertub',1e-4,...
+    'stepchange',false);
 
 opt = merge_options(opt, varargin{:});
 
 
 [model,schedule,state0] = control2problem(p,model_org,schedule_org,state0_org, parameters);
 
-[ wellSols,states, schedulereport, model] = simulateScheduleAD(state0, model, schedule,'NonLinearSolver',opt.NonlinearSolver);
+[ wellSols,states, report] = simulateScheduleAD(state0, model, schedule,'NonLinearSolver',opt.NonlinearSolver);
 
+timesteps = getReportMinisteps(report);
+if(not(all(timesteps==schedule.step.val)))
+    if(opt.stepchange)
+        error('Correct use of adjoint with stepchange not implemented');
+    else
+        warning('Timestep cuts may gives appriximate adjoint')
+    end
+end
 %% should we do ??
 % schedule.step = schedulereport.step;
 
 
 % compute misfit function value (first each summand corresonding to each time-step)
-misfitVals = obj(model, states, schedule, states_ref, false, []);
+misfitVals = obj(model, states, schedule, states_ref, false, [],[]);
 
-objh = @(tstep) obj(model, states, schedule, states_ref, true, tstep);%'computePartials', true, 'tstep', tstep, weighting{:});
+objh = @(tstep,model,state) obj(model, states, schedule, states_ref, true, tstep, state);%'computePartials', true, 'tstep', tstep, weighting{:});
 
 % sum values to obtiain scalar objective
 misfitVal = (objScaling - sum(vertcat(misfitVals{:}))) / objScaling ;
@@ -184,9 +193,6 @@ if nargout > 1 % then the gradient is required
         varargout{2} = wellSols;
         if nargout > 3
             varargout{3} = states;
-            if nargout > 4
-                varargout{4} = model;
-            end
         end
     end
 end

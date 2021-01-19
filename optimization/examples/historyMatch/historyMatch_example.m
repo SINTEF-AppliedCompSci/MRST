@@ -218,8 +218,8 @@ parameters{3}  = well_IP ;
                 'OilRateWeight',    1e6, ...
                 'BHPWeight',        1e-5};
 
- obj = @(model, states, schedule, states_ref, tt, tstep) matchObservedOW(model, states, schedule, states_fine_scale,...
-           'computePartials', tt, 'tstep', tstep, weighting{:});
+ obj = @(model, states, schedule, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule, states_fine_scale,...
+           'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
 
  objScaling = 1;       
  [misfitVal_0,gradient,wellSols_0,states_0] = evaluateMatch(p0_ups,obj,state0,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);
