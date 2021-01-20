@@ -66,13 +66,13 @@ classdef StateFunctionGrouping < StateFunctionDependent
 
         function prop = getStateFunction(props, name)
             % Get named property function (case-sensitive)
-            [present, sub] = props.hasStateFunction(name);
-            if ~present
-                error('%s is not known to this instance of the %s StateFunctionGrouping', name, class(props));
-            end
-            if props.functionTypes(sub) == 0
+            if isprop(props, name)
                 prop = props.(name);
             else
+                [present, sub] = props.hasStateFunction(name);
+                if ~present
+                    error('%s is not known to this instance of the %s StateFunctionGrouping', name, class(props));
+                end
                 extrasub = sub(props.functionTypes == 1);
                 prop = props.extraFunctions{extrasub};
             end
