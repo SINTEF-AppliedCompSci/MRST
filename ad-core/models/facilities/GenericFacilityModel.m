@@ -31,47 +31,7 @@ classdef GenericFacilityModel < FacilityModel
             end
             src = struct('value', {val}, 'cells', map.cells);
         end
-        
-        function varargout = getControlVariables(facility, state, varargin)
-            % Helper function to get (possible) control values for all
-            % active wells. This function will always prioritize primary
-            % variables (AD status) over doubles used for controls.
-            varargout = cell(1, nargout);
-            wstatus = [];
-            hasFS = isfield(state, 'FacilityState');
-            if hasFS
-                fs = state.FacilityState;
-            end
-            for i = 1:nargout
-                s = varargin{i};
-                if strcmpi(s, 'surfaceRates') || strcmpi(s, 'q_s')
-                    % Ask for all phase rates, bundled up
-                    names = facility.ReservoirModel.getPhaseNames();
-                    nph = numel(names);
-                    tmp = cell(1, nph);
-                    qnames = arrayfun(@(x) ['q', x, 's'], names, 'UniformOutput', false);
-                    [tmp{:}] = facility.getControlVariables(state, qnames{:});
-                    varargout{i} = tmp;
-                else
-                    if hasFS
-                        pv = strcmpi(fs.names, s);
-                        if any(pv)
-                            % We found it!
-                            varargout{i} = fs.primaryVariables{pv};
-                            continue
-                        end
-                    end
-                    % We didn't find it in primary variables, fall back to
-                    % wellSols for non-AD values
-                    if isempty(wstatus)
-                        wstatus = vertcat(state.wellSol.status);
-                        tmp = vertcat(state.wellSol.(s));
-                        varargout{i} = tmp(wstatus);
-                    end
-                end
-            end
-        end
-        
+                
         function [surfaceRates, surfaceDensity] = getSurfaceRates(facility, state)
             [cflux, map] = facility.getProps(state, 'ComponentTotalFlux', 'FacilityWellMapping');
             model = facility.ReservoirModel;
@@ -130,7 +90,7 @@ classdef GenericFacilityModel < FacilityModel
             if strcmpi(primary_choice, 'explicit')
                 nph = model.getNumberOfPhases();
                 ph = model.getPhaseNames();
-                [q_s, bh] = facility.getControlVariables(state, 'q_s', 'bhp');
+                [q_s, bh] = facility.getProps(state, 'q_s', 'bhp');
                 
                 [bhp] = facility.getProps(state, 'BottomHolePressure');
                 [surfaceRates] = facility.getSurfaceRates(state);
@@ -159,7 +119,7 @@ classdef GenericFacilityModel < FacilityModel
             [sn, phnames] = model.getPhaseNames();
             switch lower(primary_choice)
                 case 'standard'
-                    q_s = facility.getControlVariables(state, 'q_s');
+                    q_s = facility.getProp(state, 'q_s');
                     [eqs, names, types] = deal(cell(1, nph+1));
                     for ph = 1:nph
                         eqs{ph} = (q_s{ph} - surfaceRates{ph}).*rhoScale(:, ph);
@@ -210,7 +170,7 @@ classdef GenericFacilityModel < FacilityModel
             end
             % Set up AD for control equations
             nact = numel(map.active);
-            bhp = facility.getControlVariables(state, 'bhp');
+            bhp = facility.getProp(state, 'bhp');
             backend = model.AutoDiffBackend;
             % Equation for well matching correct control
             ctrl_eq = backend.convertToAD(zeros(nact, 1), bhp);
