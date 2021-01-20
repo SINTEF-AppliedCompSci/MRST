@@ -259,7 +259,7 @@ classdef WellPlotHandle < handle
             upd     =  stat ~= s.statusExtended.inj;
             upd     = upd & getVisibleInjectorsExtended(s);
             if any(upd)
-                fn = fieldnames(s.injectors);
+                fn = {'connector', 'body'};
                 for k = 1:numel(fn)
                     set([s.injectors(upd & ~stat).(fn{k})], 'Color', s.closedColor);
                     set([s.injectors(upd &  stat).(fn{k})], 'Color', s.injectorColor);
@@ -272,7 +272,7 @@ classdef WellPlotHandle < handle
             upd     =  stat ~= s.statusExtended.prod;
             upd     = upd & getVisibleProducersExtended(s);
             if any(upd)
-                fn = fieldnames(s.producers);
+                fn = {'connector', 'body'};
                 for k = 1:numel(fn)
                     set([s.producers(upd & ~stat).(fn{k})], 'Color', s.closedColor);
                     set([s.producers(upd &  stat).(fn{k})], 'Color', s.producerColor);
@@ -303,7 +303,10 @@ function W = addTrajectories(W, G, np)
 % quadratic curve
 
 for k = 1:numel(W)
-    c  = G.cells.centroids(W(k).cells, :);
+    c  = G.cells.centroids(W(k).cells(W(k).cstatus), :);
+    if isempty(c)
+        c  = G.cells.centroids(W(k).cells(1), :);
+    end
     dim = G.griddim;
     if dim < 3
         c = [c, zeros(size(c, 1), 3 - dim)];
