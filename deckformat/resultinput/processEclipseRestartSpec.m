@@ -66,7 +66,10 @@ unit = unit{ih(3)};
 [t, d] = deal(rsspec.TIME.values, rsspec.ITIME.values);
 nSteps = numel(t);
 date = reshape(d, [numel(d)/nSteps, nSteps])';
+% report number (needed for multiple restart)
+repNum = date(:,1);
 date = date(:, 2:4);
+
 
 % determine restart type (unified or multiple)
 firstField = rsspec.NAME.values{1};
@@ -110,7 +113,7 @@ end
 spec = struct('time', t, 'date', date, 'unit', unit, ...
                'type', type, 'keywords', {keywords}, ...
                'pointers', {pointers}, 'prec', {prec}, ...
-               'num', {num});
+               'num', {num}, 'repNum', repNum);
 
 
 % Add file-names in case multiple output
@@ -128,19 +131,20 @@ if strcmp(type, 'multiple')
         num = num+1;
     end
     nspec = numel(spec.time);
-    if ~issorted(fnms)
-        [fnms, six] = sort(fnms);
-        num = num(six);
+    if ~issorted(num)
+        [fnms, six] = sort(num);
+        fnms = fnms(six);
     end
     fnms = cellfun(@(fn)fullfile(fileparts(prefix), fn), fnms(ix), ...
                    'UniformOutput', false);
     if numel(fnms)==nspec % we  have all steps
         spec.fnames = sort(fnms);
-    else % we have some subset
-        assert(nspec >= max(num), ...
+    else % we have some subset, match to repNum
+        subix = ismember(spec.repNum, num);
+        assert(nnz(subix) == numel(num), ...
              'Unable to match multiple restart-files to RSSPEC');
         spec.fnames = cell(1, nspec);
-        spec.fnames(num) = fnms;
+        spec.fnames(subix) = fnms;
     end
 end
 
