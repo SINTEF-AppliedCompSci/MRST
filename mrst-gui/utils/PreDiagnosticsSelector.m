@@ -22,7 +22,8 @@ classdef PreDiagnosticsSelector < UIItem
             opt = struct('Parent',          [], ...
                          'Visible',         'on', ...
                          'Title', 'Select time-steps for diagnostics', ...
-                         'restartInfo', []);
+                         'restartInfo', [], ...
+                         'sub', []);
             [opt, extraOpt] = merge_options(opt, varargin{:});
 
             % get times in days:
@@ -33,6 +34,9 @@ classdef PreDiagnosticsSelector < UIItem
 
             n = numel(t);
             t_date   = cellfun(@(x)datestr(x, 'mmm dd, yyyy'), mat2cell(t, ones(1, n)), 'UniformOutput', false); 
+            if ~isempty(opt.sub)
+                [t, t_date] = deal(t(opt.sub), t_date(opt.sub));
+            end
             
             selector  = uicontrol('Parent', [], 'Style', 'listbox',  'Max', 2, 'Min', 0, ...
                                        'Value', [], 'String', t_date, 'Visible', 'off');

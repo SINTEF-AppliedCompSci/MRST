@@ -19,16 +19,19 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+sub = (1:numel(info.time))';
+if isfield(info, 'fnames') % multiple restart
+    sub = find(~cellfun(@isempty, info.fnames));
+end
 d = dialog('Resize', 'on');
-s = PreDiagnosticsSelector('Parent', d, 'restartInfo', info);
+s = PreDiagnosticsSelector('Parent', d, 'restartInfo', info, 'sub', sub);
 d.CloseRequestFcn = @setSteps;
 d.SizeChangedFcn  = @updateSize;
 uiwait(d)
 
     function setSteps(src, event)
-    steps = s.ix;
-    delete(d)
+        steps = sub(s.ix);s
+        delete(d)
     end
 
     function updateSize(src, event)
