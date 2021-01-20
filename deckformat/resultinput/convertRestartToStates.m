@@ -232,7 +232,9 @@ for k = 1:numel(tr)
 
     % date
     states{k}.date = rstrt.INTEHEAD{k}(65:67)';
-    states{k}.index = rstrt.SEQNUM{k};
+    if isfield(rstrt, 'SEQNUM')
+        states{k}.index = rstrt.SEQNUM{k};
+    end
 
     % rs/rv
     if isfield(rstrt, 'RS')

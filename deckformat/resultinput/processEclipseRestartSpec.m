@@ -118,14 +118,32 @@ if strcmp(type, 'multiple')
     f    = dir([prefix, '.X*']);
     fnms = {f.name};
     pattern = '.X[0-9][0-9][0-9][0-9]';
-    ix = ~cellfun(@isempty, regexp(fnms, pattern));
-    fnms = sort(fnms(ix));
-    fnms = cellfun(@(fn)fullfile(fileparts(prefix), fn), fnms, ...
-            'UniformOutput', false);
-    assert(numel(fnms)==numel(spec.time), ...
-        'Unable to match multiple restart-files to RSSPEC');
-    spec.fnames = fnms;
+    mtch = regexp(fnms, pattern, 'match');
+    ix   =  ~cellfun(@isempty, mtch);
+    if ~all(ix)
+        [mtch, fnms] = deal(mtch(ix), fnms(ix));
+    end
+    num  = cellfun(@(c)str2double(c{1}(3:end)), mtch);
+    if min(num) == 0
+        num = num+1;
+    end
+    nspec = numel(spec.time);
+    if ~issorted(fnms)
+        [fnms, six] = sort(fnms);
+        num = num(six);
+    end
+    fnms = cellfun(@(fn)fullfile(fileparts(prefix), fn), fnms(ix), ...
+                   'UniformOutput', false);
+    if numel(fnms)==nspec % we  have all steps
+        spec.fnames = sort(fnms);
+    else % we have some subset
+        assert(nspec >= max(num), ...
+             'Unable to match multiple restart-files to RSSPEC');
+        spec.fnames = cell(1, nspec);
+        spec.fnames(num) = fnms;
+    end
 end
+
 
 % Process possible multiple time appearing ZTRACER 
 for k = 1:numel(spec.time)
