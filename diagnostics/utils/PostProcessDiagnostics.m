@@ -262,7 +262,7 @@ classdef PostProcessDiagnostics < handle
             % finally wells
 %             d.WellPlot = WellPlotHandle(d.G, d.Data.states{1}.wellSol, ...
 %                'Visible', 'off', 'Parent', d.Axes3D);            
-            d.WellPlot = WellPlotHandle(d.G, d.Data.wells{1}, ...
+            d.WellPlot = WellPlotHandle(d.G, d.Data.wells, ...
                'Visible', 'off', 'Parent', d.Axes3D);
             for i=1:numel(d.WellPlot.producers)
                 d.WellPlot.producers(i).label.FontSize = 8;
@@ -475,6 +475,7 @@ classdef PostProcessDiagnostics < handle
         function interactionRegionCallback(d, src, event, s2, s3)
             d.WellPlot.visibleInjectors = s3.wsel.injectorIx;
             d.WellPlot.visibleProducers = s3.wsel.producerIx;
+            d.WellPlot.visibleCases     = s3.tsel.ix;
             if isprop(src,'Style') && all(strncmp(src.Style,'checkbox',6))
                return;
             end
@@ -506,7 +507,7 @@ classdef PostProcessDiagnostics < handle
             % gray to indicate not up-to-date
             d.Axes2DL.Color = [.85 .85 .85];%d.Figure.Color;
             d.Axes2DR.Color = [.85 .85 .85];%d.Figure.Color;
-            if s2.ssel.regionSwitch.Value == 1
+            if ~isempty(s2.ssel.regionSwitch) && s2.ssel.regionSwitch.Value == 1
                s2.ssel.regCallback(src, event)
             end
         end
@@ -563,7 +564,7 @@ classdef PostProcessDiagnostics < handle
               d.resetSelectors(s2, 'asel', 'rightIx');
            end
            cla(ax, 'reset');
-           showAllocation(d, src, ax, s2, s3)
+           showAllocation(d, ax, s2, s3)
         end
         % -----------------------------------------------------------------
         function distributionCallback(d, src, event, s2, s3)
@@ -1122,12 +1123,10 @@ classdef PostProcessDiagnostics < handle
         function setColormap3D(d, str)
             if ~strcmp(str, d.colormap3D)
                 if strcmp(str, 'injectors')
-                    ninj = numel(d.WellPlot.injectors);
-                    cmap = d.Data.injColors(1:ninj,:);
+                    cmap = d.Data.injColors(1:d.WellPlot.nInj,:);
                     colormap(d.Axes3D, cmap);
                 elseif strcmp(str, 'producers')
-                    nprod = numel(d.WellPlot.producers);
-                    cmap = d.Data.prodColors(1:nprod,:);
+                    cmap = d.Data.prodColors(1:d.WellPlot.nProd,:);
                     colormap(d.Axes3D, cmap);
                 else
                     colormap(d.Axes3D, str);
@@ -1173,13 +1172,13 @@ classdef PostProcessDiagnostics < handle
                 %d.colorHAx.Position(1) = d.colorBar.Position(1)+d.colorBar.Position(3)+10;
             else
                 if  s3.psel.propIx == 7 % sweep regions
-                    ninj = numel(d.WellPlot.injectors);
+                    ninj = d.WellPlot.nInj;
                     d.setColormap3D('injectors');
                     cb.Ticks = (.5:ninj)/ninj;
                     cb.TickLabels = s3.wsel.injSelector.String;
                     cb.Limits = [0 1];
                 elseif s3.psel.propIx == 8 % drainage regions
-                    nprod = numel(d.WellPlot.producers);
+                    nprod = d.WellPlot.nProd;
                     d.setColormap3D('producers');
                     cb.Ticks = (.5:nprod)/nprod;
                     cb.TickLabels = s3.wsel.prodSelector.String;
