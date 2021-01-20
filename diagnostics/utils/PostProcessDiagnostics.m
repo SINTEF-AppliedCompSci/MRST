@@ -564,7 +564,7 @@ classdef PostProcessDiagnostics < handle
               d.resetSelectors(s2, 'asel', 'rightIx');
            end
            cla(ax, 'reset');
-           showAllocation(d, ax, s2, s3)
+           showAllocation(d, src, ax, s2, s3)
         end
         % -----------------------------------------------------------------
         function distributionCallback(d, src, event, s2, s3)
