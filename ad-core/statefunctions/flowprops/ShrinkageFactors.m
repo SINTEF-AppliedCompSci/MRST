@@ -13,6 +13,7 @@ classdef ShrinkageFactors < StateFunction
                 b = b.dependsOn('pressure', 'state');
             end
             b.label = 'b_\alpha';
+            b.outputRange = [0, inf];
         end
         
         function b = evaluateOnDomain(prop, model, state)

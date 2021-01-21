@@ -71,11 +71,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'modelBase', []);
     opt = merge_options(opt, varargin{:});
     
-    % check that OutputStateFunctions is empty, give warning if not 
-    if ~isempty(model.OutputStateFunctions)
-        warning('Model property ''OutputStateFunctions'' is non-empty, this may result in incorrect sensitivities.');
-    end
-    
     getState = @(i) getStateFromInput(schedule, states, state0, i);
     
     if isempty(opt.LinearSolver)
@@ -175,6 +170,8 @@ function eqdth = partialWRTparam(model, getState, schedule, step)
     if step == 1
         before = model.validateState(before);
     end
+    % initialize before-state in case it contains cached properties
+    before = model.getStateAD(before, false);
     
     problem = model.getEquations(before, current, dt, forces, 'iteration', inf, 'resOnly', true);
     eqdth   = problem.equations;

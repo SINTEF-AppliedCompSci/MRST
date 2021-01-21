@@ -10,6 +10,7 @@ classdef Mobility < StateFunction
             gp = gp.dependsOn({'RelativePermeability'});
             gp = gp.dependsOn('Viscosity', 'PVTPropertyFunctions');
             gp.label = '\lambda_\alpha';
+            gp.outputRange = [0, inf];
         end
         function mob = evaluateOnDomain(prop, model, state)
             kr = prop.getEvaluatedDependencies(state, 'RelativePermeability');
@@ -33,12 +34,6 @@ classdef Mobility < StateFunction
             % Check for negative values
             mv = cellfun(@(x) min(value(x)), mob);
             isAD = cellfun(@(x) isa(x, 'ADI'), mob);
-            if any(mv < 0)
-                if model.verbose > 1
-                    warning('Negative mobilities detected! Capping to zero.')
-                end
-                mob = cellfun(@(x) max(x, 0), mob, 'UniformOutput', false);
-            end
             if any(isAD) && ~all(isAD)
                 s = mob(isAD);
                 s = s{1};
