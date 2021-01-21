@@ -93,12 +93,22 @@ classdef FacilityModel < PhysicalModel
                 [tmp{:}] = facility.getProps(state, qnames{:});
                 p = tmp;
             else
-                [s, index] = facility.getVariableField(name, false);
-                if isfield(state, 'FacilityState')
+                hasFState = isfield(state, 'FacilityState');
+                if hasFState
                     fs = state.FacilityState;
-                    pv = strcmpi(fs.names, s);
+                    pv = strcmpi(fs.names, name);
                     if any(pv)
                         % We found it!
+                        p = fs.primaryVariables{pv};
+                        return
+                    end
+                end
+                % It could be stored under the variable field as well,
+                % check that too
+                [s, index] = facility.getVariableField(name, false);
+                if hasFState
+                    pv = strcmpi(fs.names, s);
+                    if any(pv)
                         p = fs.primaryVariables{pv};
                         return
                     end
