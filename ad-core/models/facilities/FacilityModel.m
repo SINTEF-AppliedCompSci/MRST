@@ -107,7 +107,8 @@ classdef FacilityModel < PhysicalModel
                 % wellSols for non-AD values
                 if isfield(state.wellSol, s)
                     wstatus = vertcat(state.wellSol.status);
-                    p = vertcat(state.wellSol(wstatus).(s)(:, index));
+                    p = arrayfun(@(x) x.(s)(:, index), state.wellSol(wstatus), 'UniformOutput', false);
+                    p = vertcat(p{:});
                 else
                     [p, state] = getProp@PhysicalModel(facility, state, name);
                 end
