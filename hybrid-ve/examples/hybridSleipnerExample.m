@@ -15,7 +15,7 @@
 
 
 %% Add modules
-mrstModule add co2lab wellpaths ad-core ad-props ad-blackoil deckformat coarsegrid libgeometry matlab_bgl mrst-gui
+mrstModule add sleipner co2lab wellpaths ad-core ad-props ad-blackoil deckformat coarsegrid libgeometry matlab_bgl mrst-gui
 
 %% Get full grid
 % The full model grid is read in from a .grdecl file. Within the function 
@@ -209,7 +209,8 @@ states_finescale = convertMultiVEStates(pVE.SimulatorSetup.model, states);
 % Plot results interactively using the plotToolbar function
 plotToolbar(pVE.SimulatorSetup.model.G.parent, states_finescale)
 
-% Plot CO2 saturation at the top of each layer at the end of the simulation
+%% Plot CO2 saturation at the top of each layer at the end of the simulation
+
 figure()
 for i = 1:9
     subplot(3,3,i)
