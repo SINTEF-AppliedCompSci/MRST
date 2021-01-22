@@ -107,7 +107,8 @@ classdef FacilityModel < PhysicalModel
                 % wellSols for non-AD values
                 if isfield(state.wellSol, s)
                     wstatus = vertcat(state.wellSol.status);
-                    p = vertcat(state.wellSol(wstatus).(s)(:, index));
+                    p = vertcat(state.wellSol(wstatus).(s));
+                    p = p(:,index);
                 else
                     [p, state] = getProp@PhysicalModel(facility, state, name);
                 end
@@ -1012,21 +1013,21 @@ classdef FacilityModel < PhysicalModel
             end
         end
 
-        function  [var, state] = getFacilityProp(model, state, name)
-            %names={'qGs','qWs','qOs','bhp','well_temperature'};
-            %mask = strcmp(name,names);
-            %if(any(mask))
-                var=[];
-                mnames=state.names;
-                mask=strcmp(name,mnames);
-                if(any(mask))
-                    ind = find(mask);
-                    var = state.primaryVariables{ind};
-                end
-            %else
-            %    error('Not a valid name for facility prop')
-            %end
-         end
+%         function  [var, state] = getFacilityProp(model, state, name)
+%             %names={'qGs','qWs','qOs','bhp','well_temperature'};
+%             %mask = strcmp(name,names);
+%             %if(any(mask))
+%                 var=[];
+%                 mnames=state.names;
+%                 mask=strcmp(name,mnames);
+%                 if(any(mask))
+%                     ind = find(mask);
+%                     var = state.primaryVariables{ind};
+%                 end
+%             %else
+%             %    error('Not a valid name for facility prop')
+%             %end
+%          end
 
         function isVarWell = getWellVariableMap(model, wf, ws)
             % Get mapping indicating which variable belong to each well
