@@ -147,16 +147,23 @@ s = smry.data(rInx, ms);
 end
 
 function rInx = getRowInx(smry, nm, kw)
+nm_multi = iscellstr(nm) && (numel(nm) > 1);
+kw_multi = iscellstr(kw) && (numel(kw) > 1);
+assert (~ (nm_multi && kw_multi), ...
+       ['At most one of Keyword or Entity may be a cell array ', ...
+        'of character vectors']);
 nlist = numel(smry.kInx);
 if ~isempty(nm)
-    i = find(strcmp(smry.WGNAMES, nm));
-    rInxN = (smry.nInx==i);
+    if ischar(nm), nm = { nm }; end
+    pick  = string_lookup(smry.WGNAMES, nm);
+    rInxN = pick(smry.nInx);
 else
     rInxN = true(nlist, 1);
 end
 if ~isempty(kw)
-    j = find(strcmp(smry.KEYWORDS, kw));
-    rInxK = (smry.kInx==j);
+    if ischar(kw), kw = { kw }; end
+    pick  = string_lookup(smry.KEYWORDS, kw);
+    rInxK = pick(smry.kInx);
 else
     rInxK = true(nlist, 1);
 end
@@ -168,4 +175,12 @@ rInx = getRowInx(smry, nm, kw);
 u = smry.UNITS{rInx};
 end
 
+%--------------------------------------------------------------------------
 
+function pick = string_lookup(list, search)
+ncol = numel(search);
+[i, j] = blockDiagIndex(numel(list), ncol);
+match = strcmp(reshape(list(i)  , [], ncol), ...
+               reshape(search(j), [], ncol));
+pick = any(match, 2);
+end
