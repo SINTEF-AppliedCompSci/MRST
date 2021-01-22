@@ -93,8 +93,8 @@ classdef FacilityModel < PhysicalModel
                 [tmp{:}] = facility.getProps(state, qnames{:});
                 p = tmp;
             else
-                [s, index] = facility.getVariableField(name, false);
-                if isfield(state, 'FacilityState')
+                hasFState = isfield(state, 'FacilityState');
+                if hasFState
                     fs = state.FacilityState;
                     pv = strcmpi(fs.names, s);
                     if any(pv)
@@ -487,9 +487,6 @@ classdef FacilityModel < PhysicalModel
             map = struct('isBHP', isBHP, 'isRate', isRate);
         end
 
-   
-        
-        
         function [variables, names, wellmap] = getExtraPrimaryVariables(model, wellSol)
             % Get additional primary variables (not in the basic set)
             %
@@ -1012,22 +1009,6 @@ classdef FacilityModel < PhysicalModel
                 wellSol(wNo) = model.WellModels{wNo}.updateWellSol(wellSol(wNo), wellVars(act), dxw, model.ReservoirModel);
             end
         end
-
-%         function  [var, state] = getFacilityProp(model, state, name)
-%             %names={'qGs','qWs','qOs','bhp','well_temperature'};
-%             %mask = strcmp(name,names);
-%             %if(any(mask))
-%                 var=[];
-%                 mnames=state.names;
-%                 mask=strcmp(name,mnames);
-%                 if(any(mask))
-%                     ind = find(mask);
-%                     var = state.primaryVariables{ind};
-%                 end
-%             %else
-%             %    error('Not a valid name for facility prop')
-%             %end
-%          end
 
         function isVarWell = getWellVariableMap(model, wf, ws)
             % Get mapping indicating which variable belong to each well
