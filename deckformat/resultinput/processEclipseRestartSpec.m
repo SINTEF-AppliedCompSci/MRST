@@ -132,7 +132,7 @@ if strcmp(type, 'multiple')
     end
     nspec = numel(spec.time);
     if ~issorted(num)
-        [fnms, six] = sort(num);
+        [num, six] = sort(num);
         fnms = fnms(six);
     end
     fnms = cellfun(@(fn)fullfile(fileparts(prefix), fn), fnms(ix), ...
