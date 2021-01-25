@@ -1,5 +1,99 @@
 function [smry, smspec] = readEclipseSummaryUnFmt(prefix, keyWords)
-%Undocumented utility function
+%Input Summary Vectors From Unformatted ECLIPSE Result Files
+%
+% SYNOPSIS:
+%    smry          = readEclipseSummaryUnFmt(prefix)
+%    smry          = readEclipseSummaryUnFmt(prefix, keywords)
+%   [smry, smspec] = readEclipseSummaryUnFmt(...)
+%
+% PARAMETERS:
+%   prefix   - Casename prefix (character vector) such that
+%                 [ prefix, '.SMSPEC' ]
+%              names the corresponding summary specification file.  This
+%              function knows about both unified (*.UNSMRY) and separate
+%              (*.S000n) summary result files.
+%
+%   keywords - List, represented as a cell-array of character vectors, of
+%              summary vector names to load from the result set.  OPTIONAL.
+%              Load all summary results if not present.
+%
+% RETURNS:
+%   smry   - Summary result aggregation structure.  Contains at least the
+%            following fields:
+%              - WGNAMES  - List (cell-array of character vectors) of named
+%                           entities (e.g., wells or groups) in the result
+%                           set.  Typically contains at least the
+%                           "sentinel"/no-name string ':+:+:+:+' associated
+%                           to vectors that don't have a name (e.g., TIME).
+%
+%              - KEYWORDS - List (cell-array of character vectors) of named
+%                           summary vector keywords (e.g., 'TIME' or 'WOPT').
+%
+%              - UNITS    - List (cell-array of character vectors) of named
+%                           summary vector units.
+%
+%              - nInx     - Name index.  Index into WGNAMES.
+%
+%              - kInx     - Keyword index.  Index into KEYWORDS.
+%
+%              - data     - Summary results.  Data(i,j) is the numerical
+%                           value of summary vector
+%                              [KEYWORDS{kInx(i)}, ':', WGNAMES{nInx(i)}]
+%                           at time (ministep) 'j'.
+%
+%              - get      - Result data accessor.  Function handle.  Must be
+%                           called as
+%                              x = smry.get(names, keywords, ministeps)
+%                           in which 'names' is a named entity (e.g., a
+%                           well), 'keywords' is a set of summary vectors
+%                           for that named entity, and 'ministeps' is the
+%                           set of ministeps (columns) for which to extract
+%                           the result values.  If 'ministeps' is an empty
+%                           array or the character vector ':' (colon), then
+%                           returns all time values for the selected
+%                           summary vector.
+%
+%                           Either of 'names' or 'keywords', but not both,
+%                           may be a cell-array of character vectors in
+%                           which case GET will return a single vector
+%                           (e.g., oil production rate) for multiple named
+%                           entities or multiple vectors for a single named
+%                           entity.  The values are returned in the same
+%                           order as the input cell-array.
+%
+%              - getUnit  - Unit string accessor.  Function handle.  Must
+%                           be called as
+%                              ustr = smry.getUnit(name, keyword)
+%                           which will return the appropriate unit string
+%                           for the named summary vector.
+%
+%   smspec - Raw summary specification structure as defined by function
+%            `readEclipseOutputFileUnFmt`.
+%
+% EXAMPLES:
+%   smry = readEclipseSummaryUnFmt('CASE');
+%
+%   % 1) Plot well-level oil production rate for all wells named PROD*.
+%   time  = smry.get(repmat(':+', [1, 4]), 'TIME', []); % name = ':+:+:+:+'
+%   wells = regexp(smry.WGNAMES, '^PROD');
+%   wells = smry.WGNAMES(~ cellfun('isempty', wells));
+%
+%   wopr = smry.get(wells, 'WOPR', []);
+%   plot(time, wopr, 'x-')
+%   title(['Oil Production Rate [', smry.getUnit(wells{1}, 'WOPR'), ']'])
+%   legend(wells, 'Location', 'Best')
+%
+%   % 2) Plot oil, water, and liquid production rate for well PROD1.
+%   time = smry.get(repmat(':+', [1, 4]), 'TIME', []); % name = ':+:+:+:+'
+%   kws  = {'WOPR', 'WWPR', 'WLPR'};
+%
+%   wxpr = smry.get('PROD1', kws, []);
+%   plot(time, wxpr, 'x-')
+%   title('Production Rates')
+%   legend(kws, 'Location', 'Best')
+%
+% SEE ALSO:
+%   readEclipseOutputFileUnFmt, readEclipseRestartUnFmt.
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
@@ -139,28 +233,43 @@ kws    = smry.KEYWORDS(kwPos);
 end
 
 function s = getData(smry, nm, kw, ms)
-rInx = getRowInx(smry, nm, kw);
+[rInx, order] = getRowInx(smry, nm, kw);
 if isempty(ms) || (ischar(ms) && strcmp(ms, ':'))
    ms = 1 : size(smry.data, 2);
 end
 s = smry.data(rInx, ms);
+s = s(order,:);
 end
 
-function rInx = getRowInx(smry, nm, kw)
+function [rInx, order] = getRowInx(smry, nm, kw)
+nm_multi = iscellstr(nm) && (numel(nm) > 1);
+kw_multi = iscellstr(kw) && (numel(kw) > 1);
+assert (~ (nm_multi && kw_multi), ...
+       ['At most one of Keyword or Entity may be a cell array ', ...
+        'of character vectors']);
 nlist = numel(smry.kInx);
 if ~isempty(nm)
-    i = find(strcmp(smry.WGNAMES, nm));
-    rInxN = (smry.nInx==i);
+    if ischar(nm), nm = { nm }; end
+    [pick, nm_order] = string_lookup(smry.WGNAMES, nm);
+    rInxN = pick(smry.nInx);
 else
     rInxN = true(nlist, 1);
 end
 if ~isempty(kw)
-    j = find(strcmp(smry.KEYWORDS, kw));
-    rInxK = (smry.kInx==j);
+    if ischar(kw), kw = { kw }; end
+    [pick, kw_order] = string_lookup(smry.KEYWORDS, kw);
+    rInxK = pick(smry.kInx);
 else
     rInxK = true(nlist, 1);
 end
 rInx = and(rInxN, rInxK);
+if nm_multi
+    order = nm_order;
+elseif kw_multi
+    order = kw_order;
+else
+    order = (1 : sum(rInx)) .';
+end
 end
 
 function u = getUnit(smry, nm, kw)
@@ -168,4 +277,16 @@ rInx = getRowInx(smry, nm, kw);
 u = smry.UNITS{rInx};
 end
 
+%--------------------------------------------------------------------------
 
+function [pick, order] = string_lookup(list, search)
+ncol = numel(search);
+[i, j] = blockDiagIndex(numel(list), ncol);
+match = strcmp(reshape(list(i)  , [], ncol), ...
+               reshape(search(j), [], ncol));
+pick = any(match, 2);
+[row, ~] = find(match);
+[~, reverse_order] = sort(row);
+order = zeros(size(reverse_order));
+order(reverse_order) = 1 : numel(reverse_order);
+end
