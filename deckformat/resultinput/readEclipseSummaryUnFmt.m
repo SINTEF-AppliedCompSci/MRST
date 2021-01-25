@@ -139,14 +139,15 @@ kws    = smry.KEYWORDS(kwPos);
 end
 
 function s = getData(smry, nm, kw, ms)
-rInx = getRowInx(smry, nm, kw);
+[rInx, order] = getRowInx(smry, nm, kw);
 if isempty(ms) || (ischar(ms) && strcmp(ms, ':'))
    ms = 1 : size(smry.data, 2);
 end
 s = smry.data(rInx, ms);
+s = s(order,:);
 end
 
-function rInx = getRowInx(smry, nm, kw)
+function [rInx, order] = getRowInx(smry, nm, kw)
 nm_multi = iscellstr(nm) && (numel(nm) > 1);
 kw_multi = iscellstr(kw) && (numel(kw) > 1);
 assert (~ (nm_multi && kw_multi), ...
@@ -155,19 +156,26 @@ assert (~ (nm_multi && kw_multi), ...
 nlist = numel(smry.kInx);
 if ~isempty(nm)
     if ischar(nm), nm = { nm }; end
-    pick  = string_lookup(smry.WGNAMES, nm);
+    [pick, nm_order] = string_lookup(smry.WGNAMES, nm);
     rInxN = pick(smry.nInx);
 else
     rInxN = true(nlist, 1);
 end
 if ~isempty(kw)
     if ischar(kw), kw = { kw }; end
-    pick  = string_lookup(smry.KEYWORDS, kw);
+    [pick, kw_order] = string_lookup(smry.KEYWORDS, kw);
     rInxK = pick(smry.kInx);
 else
     rInxK = true(nlist, 1);
 end
 rInx = and(rInxN, rInxK);
+if nm_multi
+    order = nm_order;
+elseif kw_multi
+    order = kw_order;
+else
+    order = (1 : sum(rInx)) .';
+end
 end
 
 function u = getUnit(smry, nm, kw)
@@ -177,10 +185,14 @@ end
 
 %--------------------------------------------------------------------------
 
-function pick = string_lookup(list, search)
+function [pick, order] = string_lookup(list, search)
 ncol = numel(search);
 [i, j] = blockDiagIndex(numel(list), ncol);
 match = strcmp(reshape(list(i)  , [], ncol), ...
                reshape(search(j), [], ncol));
 pick = any(match, 2);
+[row, ~] = find(match);
+[~, reverse_order] = sort(row);
+order = zeros(size(reverse_order));
+order(reverse_order) = 1 : numel(reverse_order);
 end
