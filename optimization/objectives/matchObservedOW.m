@@ -74,14 +74,16 @@ for step = 1:numSteps
         else
             state = opt.state;
         end
-        qWs=model.FacilityModel.getFacilityProp(state.FacilityState,'qWs');
-        qOs=model.FacilityModel.getFacilityProp(state.FacilityState,'qOs');
-        bhp=model.FacilityModel.getFacilityProp(state.FacilityState,'bhp');
+        qWs=model.FacilityModel.getProp(state,'qWs');
+        qOs=model.FacilityModel.getProp(state,'qOs');
+        bhp=model.FacilityModel.getProp(state,'bhp');
+        assert(not(isnumeric(qWs))); 
      else
         state = states{tSteps(step)};
         [qWs, qOs, bhp] = deal( vertcatIfPresent(state.wellSol, 'qWs', nw), ...
                                 vertcatIfPresent(state.wellSol, 'qOs', nw), ...
                                 vertcatIfPresent(state.wellSol, 'bhp', nw) );
+       assert(isnumeric(qWs));                     
      end
     
     dt = dts(step);

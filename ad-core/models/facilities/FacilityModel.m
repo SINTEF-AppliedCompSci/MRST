@@ -93,6 +93,7 @@ classdef FacilityModel < PhysicalModel
                 [tmp{:}] = facility.getProps(state, qnames{:});
                 p = tmp;
             else
+                [s, index] = facility.getVariableField(name, false);
                 hasFState = isfield(state, 'FacilityState');
                 if hasFState
                     fs = state.FacilityState;

@@ -69,8 +69,9 @@ for step = 1:numSteps
         else
             state = opt.state;
         end
-        qWs=model.FacilityModel.getFacilityProp(state.FacilityState,'qWs');
-        qOs=model.FacilityModel.getFacilityProp(state.FacilityState,'qOs');
+        qWs=model.FacilityModel.getProp(state,'qWs');
+        qOs=model.FacilityModel.getProp(state,'qOs');
+        assert(not(isnumeric(qWs)));
      else
         state = states{tSteps(step)};
         [qWs, qOs] = deal( vertcat(state.wellSol.qWs), ...

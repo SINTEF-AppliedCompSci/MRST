@@ -42,8 +42,8 @@ plotSchedules(schedule_opt, 'singlePlot', true, 'boxConst', [li;li;lp;lp] )
 model  = TwoPhaseOilWaterModel(G, rock, fluid);
 % Set initial state and run simulations:
 state0 = initResSol(G, 200*barsa, [0, 1]);
-[wellSols, states, ~, model]         = simulateScheduleAD(state0, model, schedule);
-[wellSols_opt, states_opt, ~, model_opt] = simulateScheduleAD(state0, model, schedule_opt);
+[wellSols, states]         = simulateScheduleAD(state0, model, schedule);
+[wellSols_opt, states_opt] = simulateScheduleAD(state0, model, schedule_opt);
 %%
 % Plot oil and water production for producer wells for both scenarios:
 dtime = schedule.step.val/day;
@@ -158,7 +158,7 @@ legend('Base', 'Optimal', 'Location', 'northwest')
 %% Visualize adjoint gradient for base simulation.
 % We compute the gradient by performing an adjoint simulation w.r.t to the 
 % NPV-objective. 
-objh = @(tstep)NPVOW(model, states, schedule, 'ComputePartials', true, 'tStep', tstep, npvopts{:});
+objh = @(tstep,model, state) NPVOW(model, states, schedule, 'ComputePartials', true, 'tStep', tstep, npvopts{:});
 g     = computeGradientAdjointAD(state0, states, model, schedule, objh);
 
 % We visualize the obtained gradient in a shedule-plot. Actual gradient
