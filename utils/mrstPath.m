@@ -466,12 +466,20 @@ function dname = canonicalise_dirname(dname)
    %
    pth = fileparts(fullfile(dname, '.'));
 
-   if isdir(pth)
-      % Use the side effect that function WHAT, in the case of an input
-      % argument that names an existing directory, also resolves symbolic
-      % links and special directories DOT and DOTDOT (i.e., '.' and '..').
-      w     = what(pth);
-      dname = w.path;
+   if isdir(pth) %#ok
+      if exist('OCTAVE_VERSION', 'builtin') > 0
+         % For Octave, do the slightly dirty jump in paths to resolve any
+         % relative specification of the path. We should get the absolute
+         % path, and return to where we were before.
+         odir = cd(pth);
+         dname = cd(odir);
+      else
+         % Use the side effect that function WHAT, in the case of an input
+         % argument that names an existing directory, also resolves symbolic
+         % links and special directories DOT and DOTDOT (i.e., '.' and '..').
+         w     = what(pth);
+         dname = w.path;
+      end
    else
       try
          % Input directory (dname) does not (yet?) exist.  Try Java's
