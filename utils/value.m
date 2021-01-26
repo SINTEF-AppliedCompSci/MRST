@@ -40,7 +40,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         xv = x;
     elseif iscell(x)
         sz = size(x);
-        xv = cellfun(@value, x, 'UniformOutput', false);
+        xv = applyFunction(@value, x);
         if sz(1) == 1
             % Cell arrays are converted to matrices
             xv = [xv{:}];
