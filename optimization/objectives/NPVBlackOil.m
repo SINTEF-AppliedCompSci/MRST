@@ -67,10 +67,10 @@ for step = 1:numSteps
         %  initVariablesADI(p, sW, qWs, qOs, bhp);
         init=true;
         state = model.getStateAD( states{tSteps(step)}, init);
-        qWs=model.FacilityModel.getFacilityProp(state.FacilityState,'qWs');
-        qOs=model.FacilityModel.getFacilityProp(state.FacilityState,'qOs');
-        qGs=model.FacilityModel.getFacilityProp(state.FacilityState,'qGs');
-        bhp=model.FacilityModel.getFacilityProp(state.FacilityState,'bhp');
+        qWs=model.FacilityModel.getProp(state,'qWs');
+        qOs=model.FacilityModel.getProp(state,'qOs');
+        qGs=model.FacilityModel.getProp(state,'qGs');
+        bhp=model.FacilityModel.getProp(state,'bhp');
      else
         state = states{tSteps(step)};
         [qWs, qOs, qGs, bhp] = deal( vertcatIfPresent(state.wellSol, 'qWs', nw), ...
