@@ -36,11 +36,12 @@ classdef WellPlotHandle < handle
         
         function s = WellPlotHandle(G, W, varargin)
             opt = struct('Parent',     [], ...
-                         'Visible',              'on', ...      % all wells visible
-                         'visibleCases',            1, ...
-                         'injectorColor',  [.2 .2 .7], ...
-                         'producerColor',  [.7 .2 .2], ...
-                         'closedColor',    [.7 .7 .7]);      % default grey
+                         'Visible',                      'on', ...      % all wells visible
+                         'visibleCases',                     1, ...
+                         'injectorColor',           [.2 .2 .7], ...
+                         'producerColor',           [.7 .2 .2], ...
+                         'closedColor',             [.7 .7 .7], ...     % default grey
+                         'distinguishConnectionStatus',  false); 
             [opt, extraOpt] = merge_options(opt, varargin{:});
               
             if isempty(opt.Parent)
@@ -59,10 +60,10 @@ classdef WellPlotHandle < handle
             s.injectorNames = arrayfun(@(x)x.name, W{1}(isInj), 'UniformOutput', false);
             s.producerNames = arrayfun(@(x)x.name, W{1}(~isInj), 'UniformOutput', false);
                         
-            [Ws, s.map] = getWellSuperset(W);
+            [Ws, s.map] = getWellSuperset(W, opt.distinguishConnectionStatus);
 
             if ~isfield(Ws(1), 'trajectory')
-                Ws = addTrajectories(Ws, G, 10);
+                Ws = addTrajectories(Ws, G, 10, opt.distinguishConnectionStatus);
             end
             
             isInj = [Ws.sign]>0;
@@ -298,12 +299,16 @@ for k = 1:numel(fn)
 end
 end
     
-function W = addTrajectories(W, G, np)
+function W = addTrajectories(W, G, np, connOpt)
 % add well trajectory for plotting, currently just np points along a single
 % quadratic curve
 
 for k = 1:numel(W)
-    c  = G.cells.centroids(W(k).cells(W(k).cstatus), :);
+    cst = W(k).cstatus;
+    if ~connOpt
+        cst = true(size(cst));
+    end
+    c  = G.cells.centroids(W(k).cells(cst), :);
     if isempty(c)
         c  = G.cells.centroids(W(k).cells(1), :);
     end
@@ -345,7 +350,7 @@ end
 
 
 
-function [W, map] = getWellSuperset(cases)
+function [W, map] = getWellSuperset(cases, distinguishConnectionStatus)
 % well-names are assumed to be the same for each case (might want to check this)
 nw    = numel(cases{1});
 isInj = [cases{1}.sign] > 0;
@@ -360,7 +365,7 @@ status         = false(nw, nc);
 for kw = 1:nw
     for kc = 1:nc
         w = cases{kc}(kw);
-        [uniqueWells{kw}, hit] = mergeWells(uniqueWells{kw}, w);
+        [uniqueWells{kw}, hit] = mergeWells(uniqueWells{kw}, w, distinguishConnectionStatus);
         if hit == 0
             if isInj(kw)
                 ci = ci + 1;
@@ -397,10 +402,10 @@ map = struct('inj',       mapi,             'prod',      mapp, ...
                             'prod', status(~isInj,:).*mapp));
 end
 
-function [W, hit] = mergeWells(W, w)
+function [W, hit] = mergeWells(W, w, connFlag)
 hit = 0;
 for k = 1:numel(W)
-    if isSameWell(W(k), w)
+    if isSameWell(W(k), w, connFlag)
         hit = k;
         break;
     end
@@ -410,10 +415,14 @@ if hit == 0
 end
 end
 
-function b = isSameWell(w1, w2)
+function b = isSameWell(w1, w2, connFlag)
 b = false;
 if numel(w1.cells) == numel(w2.cells)
-    b = all(w1.cstatus.*w1.cells == w2.cstatus.*w2.cells);
+    if connFlag
+        b = all(w1.cstatus.*w1.cells == w2.cstatus.*w2.cells);
+    else
+        b = all(w1.cells == w2.cells);
+    end
 end
 end
 
