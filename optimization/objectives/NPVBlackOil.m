@@ -1,4 +1,4 @@
-function obj = NPVBlackOil(G, wellSols, schedule, varargin)
+function obj = NPVBlackOil(model, states, schedule, varargin)
 % Compute net present value of a schedule with well solutions
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
@@ -39,9 +39,9 @@ d   = opt.DiscountFactor;
 
 
 % pressure and saturaton vectors just used for place-holding
-p  = zeros(G.cells.num, 1);
-sW = zeros(G.cells.num, 1);
-x  = zeros(G.cells.num, 1);
+%p  = zeros(G.cells.num, 1);
+%sW = zeros(G.cells.num, 1);
+%x  = zeros(G.cells.num, 1);
 
 dts   = schedule.step.val;
 
@@ -59,29 +59,42 @@ end
 obj = repmat({[]}, numSteps, 1);
 
 for step = 1:numSteps
-    sol = wellSols{tSteps(step)};
-    qWs  = vertcat(sol.qWs);
-    qOs  = vertcat(sol.qOs);
-    qGs  = vertcat(sol.qGs);
-    injInx  = (vertcat(sol.sign) > 0);
-    status = vertcat(sol.status);
-
-    % Remove closed well.
-    qWs = qWs(status);
-    qOs = qOs(status);
-    qGs = qGs(status);
-    injInx = injInx(status);
-    nW  = numel(qWs);
-    pBHP = zeros(nW, 1); %place-holder
+    %sol = wellSols{tSteps(step)};
+    state = states{tSteps(step)};
+    nw = numel([state.wellSol.bhp]);
+    if opt.ComputePartials
+         %[~, ~, qWs, qOs, bhp] = ...
+        %  initVariablesADI(p, sW, qWs, qOs, bhp);
+        init=true;
+        state = model.getStateAD( states{tSteps(step)}, init);
+        qWs=model.FacilityModel.getProp(state,'qWs');
+        qOs=model.FacilityModel.getProp(state,'qOs');
+        qGs=model.FacilityModel.getProp(state,'qGs');
+        bhp=model.FacilityModel.getProp(state,'bhp');
+     else
+        state = states{tSteps(step)};
+        [qWs, qOs, qGs, bhp] = deal( vertcatIfPresent(state.wellSol, 'qWs', nw), ...
+                                vertcatIfPresent(state.wellSol, 'qOs', nw), ...
+                                vertcatIfPresent(state.wellSol, 'qGs', nw),...
+                                vertcatIfPresent(state.wellSol, 'bhp', nw) );        
+        injInx  = (vertcat(sol.sign) > 0);
+        status = vertcat(sol.status);
+        qWs = qWs(status);
+        qOs = qOs(status);
+        qGs = qGs(status);
+        injInx = injInx(status);
+    end
+    %nW  = numel(qWs);
+    %pBHP = zeros(nW, 1); %place-holder
   
     
 
-    if opt.ComputePartials
-        [qWs, qWs, qWs, qWs, qOs, qGs, ignore] = ...
-           initVariablesADI(p, sW, x, qWs, qOs, qGs, pBHP);       %#ok
-
-        clear ignore
-    end
+    %if opt.ComputePartials
+    %    [qWs, qWs, qWs, qWs, qOs, qGs, ignore] = ...
+    %       initVariablesADI(p, sW, x, qWs, qOs, qGs, pBHP);       %#ok
+    %
+    %    clear ignore
+    %end
 
     dt = dts(step);
     time = time + dt;

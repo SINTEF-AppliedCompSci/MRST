@@ -1,4 +1,4 @@
-function obj = matchObservedOW(G, wellSols, schedule, observed, varargin)
+function obj = matchObservedOW(model, states, schedule, observed, varargin)
 % Compute mismatch-function 
 
 %{
@@ -24,14 +24,16 @@ opt     = struct('WaterRateWeight',     [] , ...
                  'BHPWeight',           [] , ...
                  'ComputePartials',     false, ...
                  'tStep' ,              [], ...
+                 'state',               [],...
+                 'from_states',         true,...% can be false for generic models
                  'matchOnlyProducers',  false);
              
 opt     = merge_options(opt, varargin{:});
 
 
 % pressure and saturaton vectors just used for place-holding
-p  = zeros(G.cells.num, 1);
-sW = zeros(G.cells.num, 1);
+%p  = zeros(G.cells.num, 1);
+%sW = zeros(G.cells.num, 1);
 
 dts   = schedule.step.val;
 totTime = sum(dts);
@@ -49,13 +51,13 @@ end
 obj = repmat({[]}, numSteps, 1);
 
 for step = 1:numSteps
-    sol = wellSols{tSteps(step)};
-    [qWs, qOs, bhp] = deal(vertcat(sol.qWs), vertcat(sol.qOs), vertcat(sol.bhp) );
-    nw = numel(bhp);
+    %sol = wellSols{tSteps(step)};
+    %[qWs, qOs, bhp] = deal(vertcat(sol.qWs), vertcat(sol.qOs), vertcat(sol.bhp) );
     sol_obs = observed{tSteps(step)};
-    [qWs_obs, qOs_obs, bhp_obs] = deal( vertcatIfPresent(sol_obs, 'qWs', nw), ...
-                                        vertcatIfPresent(sol_obs, 'qOs', nw), ...
-                                        vertcatIfPresent(sol_obs, 'bhp', nw) );
+    nw = numel([sol_obs.wellSol.bhp]);
+    [qWs_obs, qOs_obs, bhp_obs] = deal( vertcatIfPresent(sol_obs.wellSol, 'qWs', nw), ...
+                                        vertcatIfPresent(sol_obs.wellSol, 'qOs', nw), ...
+                                        vertcatIfPresent(sol_obs.wellSol, 'bhp', nw) );
 
     if opt.matchOnlyProducers
         matchCases = (vertcat(sol.sign) < 0);
@@ -66,10 +68,24 @@ for step = 1:numSteps
     [ww, wo, wp] = getWeights(qWs_obs, qOs_obs, bhp_obs, opt);
                                    
      if opt.ComputePartials
-         [~, ~, qWs, qOs, bhp] = ...
-           initVariablesADI(p, sW, qWs, qOs, bhp);                    
+        if(opt.from_states)
+            init=true;
+            state = model.getStateAD( states{tSteps(step)}, init);
+        else
+            state = opt.state;
+        end
+        qWs=model.FacilityModel.getProp(state,'qWs');
+        qOs=model.FacilityModel.getProp(state,'qOs');
+        bhp=model.FacilityModel.getProp(state,'bhp');
+        assert(not(isnumeric(qWs))); 
+     else
+        state = states{tSteps(step)};
+        [qWs, qOs, bhp] = deal( vertcatIfPresent(state.wellSol, 'qWs', nw), ...
+                                vertcatIfPresent(state.wellSol, 'qOs', nw), ...
+                                vertcatIfPresent(state.wellSol, 'bhp', nw) );
+       assert(isnumeric(qWs));                     
      end
-
+    
     dt = dts(step);
     obj{step} = (dt/(totTime*nnz(matchCases)^2))*sum( ...
                                 (ww*matchCases.*(qWs-qWs_obs)).^2 + ...

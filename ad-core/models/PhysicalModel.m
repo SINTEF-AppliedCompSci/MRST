@@ -867,7 +867,7 @@ methods
             problem_p = [];
         end
         [gradient, result, rep] = solver.solveAdjointProblem(problem_p,...
-                                    problem, gradient, getObj(stepNo), model);
+                                    problem, gradient, getObj(stepNo,model,problem.state), model);
         report = struct();
         report.Types = problem.types;
         report.LinearSolverReport = rep;

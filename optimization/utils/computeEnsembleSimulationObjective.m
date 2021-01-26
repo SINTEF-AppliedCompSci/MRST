@@ -54,7 +54,7 @@ end
 % end
 
 % list of objective functions (possibly empty)
-obj = @(G, ws, schedule, varargin)opt.objective(G, ws, schedule, varargin{:}, objectiveOpts{:});
+obj = @(model, states, schedule, varargin)opt.objective(model, states, schedule, varargin{:}, objectiveOpts{:});
 
 
 for k = 1:numel(opt.memberIx)
@@ -95,7 +95,7 @@ for k = 1:numel(opt.memberIx)
         
         value = [];
         if ok
-            vals = obj(model.G, ws, schedule);
+            vals = obj(model, states, schedule);
             value  = sum(vertcat(vals{:}));
         end
         objFileNm = [func2str(opt.objective), '.mat'];
@@ -107,7 +107,7 @@ for k = 1:numel(opt.memberIx)
         if computeGradient
             gradient = [];
             if ok
-                objh = @(tstep)obj(model.G, ws, schedule, 'ComputePartials', true, 'tStep', tstep);
+                objh = @(tstep, model, state)obj(model, states, schedule, 'ComputePartials', true, 'tStep', tstep,'state', state);
                 gradient = computeGradientAdjointAD(state0, states, model, schedule, objh, 'OutputPerTimestep', true);%, 'LinearSolver', linSolve);
                 gradient = processAdjointGradients(gradient, ws, 'controlIx', schedule.step.control);
             end

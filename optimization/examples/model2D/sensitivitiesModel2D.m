@@ -45,13 +45,14 @@ weighting =  {'WaterRateWeight',     [], ...
               'BHPWeight',           0};
    
 % compute misfit function value (first each summand corresonding to each time-step)
-misfitVals = matchObservedOW(G, ws, schedule, ws_ref, weighting{:});
+misfitVals = matchObservedOW(model, states, schedule, states_ref, weighting{:});
 % sum values to obtiain scalar objective 
 misfitVal = sum(vertcat(misfitVals{:}));
 fprintf('Current misfit value: %6.4e\n', misfitVal)
 
 % setup (per time step) mismatch function handle for passing on to adjoint sim
-objh = @(tstep)matchObservedOW(G, ws, schedule, ws_ref, 'computePartials', true, 'tstep', tstep, weighting{:});
+objh = @(tstep,model, state) matchObservedOW(model, states, schedule, states_ref,...
+    'computePartials', true, 'tstep', tstep, weighting{:},'state',state);
 
 % run adjoint to compute sensitivities of misfit wrt params
 % choose parameters, get multiplier sensitivities except for endpoints

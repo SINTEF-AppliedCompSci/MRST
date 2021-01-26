@@ -135,8 +135,8 @@ end
 % Net present value (NPV) is the sum (integral) of discounted net cash
 % flows. Hence, for positive cash-flows, NPV is increasing.
 close all
-vals     = cell2mat(NPVOW(G, wellSols, schedule, npvopts{:}));
-vals_opt = cell2mat(NPVOW(G, wellSols_opt, schedule_opt, npvopts{:}));
+vals     = cell2mat(NPVOW(model, states, schedule, npvopts{:}));
+vals_opt = cell2mat(NPVOW(model, states_opt, schedule_opt, npvopts{:}));
 % Plot discounted net cashflow $/day: 
 figure,  plot(time, vals./dtime, '--b','LineWidth', 2);
 hold on, plot(time, vals_opt./dtime, '-b','LineWidth', 2);
@@ -158,7 +158,7 @@ legend('Base', 'Optimal', 'Location', 'northwest')
 %% Visualize adjoint gradient for base simulation.
 % We compute the gradient by performing an adjoint simulation w.r.t to the 
 % NPV-objective. 
-objh = @(tstep)NPVOW(G, wellSols, schedule, 'ComputePartials', true, 'tStep', tstep, npvopts{:});
+objh = @(tstep,model, state) NPVOW(model, states, schedule, 'ComputePartials', true, 'tStep', tstep, npvopts{:});
 g     = computeGradientAdjointAD(state0, states, model, schedule, objh);
 
 % We visualize the obtained gradient in a shedule-plot. Actual gradient
