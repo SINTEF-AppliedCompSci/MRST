@@ -61,7 +61,7 @@ if mod(numel(varargin), 2) == 1  % file-name provided
     if ~strcmp(ext, 'EGRID')
         filenm = fullfile(pth, [nm, '.', 'EGRID']);
     end
-    opt = merge_options(opt, varargin{2:end});
+    [opt, extraOpt] = merge_options(opt, varargin{2:end});
 else
     [fn, pth] = uigetfile('*.EGRID', 'Select ECLIPSE output grid file (EGRID)');
     if ~isempty(fn) && ischar(fn)
@@ -69,7 +69,7 @@ else
     else
         return;
     end
-    opt = merge_options(opt, varargin{:});
+    [opt, extraOpt] = merge_options(opt, varargin{:});
 end
 assert(exist(filenm, 'file')>0, sprintf('Unable to find file %s', filenm));
 [pth, nm] = fileparts(filenm);
@@ -120,5 +120,5 @@ catch
     warning('Not able to read summary for selected case ...\n')
 end
 
-d = PostProcessDiagnostics(d,precomp,'style',opt.style);
+d = PostProcessDiagnostics(d,precomp,'style',opt.style, extraOpt{:});
 

@@ -39,5 +39,5 @@ end
 
 function bol = filterfunc(src, ~)
 %bol = isa(src,'matlab.ui.container.Panel') || isa(src,'matlab.ui.Figure')
-bol = ~any(strcmp(src.Type, {'axes', 'patch'}));
+bol = ~any(strcmp(src.Type, {'axes', 'patch', 'line'}));
 end

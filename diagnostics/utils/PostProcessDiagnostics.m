@@ -72,8 +72,10 @@ classdef PostProcessDiagnostics < handle
     end
 
     methods
-        function d = PostProcessDiagnostics(dinput,precomp,varargin)
-            opt = struct('style', 'default');
+        function d = PostProcessDiagnostics(dinput, precomp, varargin)
+            opt = struct('style',            'default', ... 
+                         'lightWeightOutline',  false);
+            opt = merge_options(opt, varargin{:});
             
             
             % Combine structures
@@ -235,7 +237,15 @@ classdef PostProcessDiagnostics < handle
                'EdgeAlpha', .5, 'BackFaceLighting', 'lit');
             d.Patch = addPatchContextMenu(d.Patch);
             d.Figure.CurrentAxes = d.Axes3D;
-            d.outlineGrid = plotGrid(d.G, 'FaceColor', 'none', 'EdgeAlpha', 0.15, 'EdgeColor', [.3 .3 .3]);
+            if ~opt.lightWeightOutline || ~all(d.G.faces.tag > 0)
+                d.outlineGrid = plotGrid(d.G, 'FaceColor', 'none', 'EdgeAlpha', 0.15, 'EdgeColor', [.3 .3 .3]);
+            else % hack to plot outline using 'Outline'-option
+                f = prod(d.G.faces.neighbors,2) == 0 & d.G.faces.tag ==3;
+                tmp = plotFaces(d.G, f, 'FaceColor', 'none', 'EdgeColor', 'none', 'Outline', true);
+                delete(tmp);
+                d.outlineGrid = d.Axes3D.Children(1);
+                d.outlineGrid.Color = [.3 .3 .3 .1];
+            end
             axis(d.Axes3D, 'tight', 'vis3d', 'off');
             d.Axes3D.ZDir = 'reverse';
             view(d.Axes3D, 3);
@@ -1202,7 +1212,9 @@ classdef PostProcessDiagnostics < handle
             else
                 alp = [1, 1];
             end
-            d.outlineGrid.EdgeAlpha = alp(1);
+            if isprop(d.outlineGrid, 'EdgeAlpha')
+                d.outlineGrid.EdgeAlpha = alp(1);
+            end
             d.Patch.patchMain.EdgeAlpha = alp(2);
             ii = find(strcmp(d.Patch.patchOpt, 'EdgeAlpha'));
             if numel(ii) == 1
