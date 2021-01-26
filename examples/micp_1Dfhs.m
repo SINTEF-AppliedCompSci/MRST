@@ -120,12 +120,12 @@ M(1,1) = 20*hour;
 M(1,2) = Q1;
 M(2,1) = 40*hour; 
 M(2,2) = Q2; 
-M(3,1) = 100*hour; 
+M(3,1) = 140*hour; 
 M(3,2) = Q1;
 M(3,3) = fluid.omax;
-M(4,1) = 120*hour;
+M(4,1) = 160*hour;
 M(4,2) = Q1;
-M(5,1) = 140*hour; 
+M(5,1) = 180*hour; 
 M(5,2) = Q2; 
 M(6,1) = 230*hour; 
 M(6,2) = Q1;
@@ -371,8 +371,8 @@ ylabel('$|\Delta K/K_0|$ [$\%$]','FontSize',9,'Interpreter','latex');
 grid on
 title('Permeability','FontSize',9,'FontName','Arial','Interpreter','latex')
 cb=legend('$t^I_1=\;\;20\;$h','$t^I_2=\;\;40\;$h', ...
-               '$t^I_3=100\;$h$\qquad \qquad \qquad$','$t^I_4=120\;$h', ...
-               '$t^I_5=140\;$h','$t^I_6=230\;$h$\qquad \qquad \qquad$', ...
+               '$t^I_3=140\;$h$\qquad \qquad \qquad$','$t^I_4=160\;$h', ...
+               '$t^I_5=180\;$h','$t^I_6=230\;$h$\qquad \qquad \qquad$', ...
                     '$t^I_7=250\;$h','$t^I_8=270\;$h','$t^I_9=500\;$h', ...
                      'Location','best','Interpreter','latex','FontSize',9);
 set(cb,'position',[.5 .67 .01 .15]);
