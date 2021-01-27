@@ -103,12 +103,16 @@ function setSolverOrderingReduction(model, lsolve, ncomp, opt)
 end
 
 function ok = checkAMGCL()
-    [A, b] = getTestSystem();
-    try
-        callAMGCL(A, b);
-        ok = true;
-    catch
-        disp('AMGCL test failed. May not be compiled.');
+    if mrstSettings('get', 'useMEX')
+        [A, b] = getTestSystem();
+        try
+            callAMGCL(A, b);
+            ok = true;
+        catch
+            disp('AMGCL test failed. May not be compiled.');
+            ok = false;
+        end
+    else
         ok = false;
     end
 end

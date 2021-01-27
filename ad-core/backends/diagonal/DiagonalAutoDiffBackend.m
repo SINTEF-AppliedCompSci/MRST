@@ -19,7 +19,7 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
 
     properties
         modifyOperators = true; % Update the operators and use custom versions that return `FixedWidthJacobian` instances
-        useMex = false;
+        useMex = mrstSettings('get', 'useMEX');
         rowMajor = false;
         deferredAssembly = false;
     end
