@@ -1,31 +1,31 @@
 %% sensitivitiesModel2D - analyse sensitivity capabilities 
 
-mrstModule add ad-core ad-blackoil ad-props optimization spe10 mrst-gui
+mrstModule add ad-core ad-blackoil ad-props optimization spe10 mrst-gui deckformat
 
 % Setup model -> grid, rock, schedule, fluid etc
 setupModel2D
 %% Reset fluid to include scaling:
-% $s_w -> \frac{s_w-swcr}{swu-swcr}$
-% $s_o -> \frac{s_o-sowcr}{1-swl-sowcr}$
-fluid = initSimpleScaledADIFluid('mu',    [.3, 5, 0]*centi*poise, ...
-                                 'rho',   [1000, 700, 0]*kilogram/meter^3, ...
-                                 'n',     [2, 2, 0], ...
-                                 'swl',   0.10*ones(G.cells.num,1), ...
-                                 'swcr',  0.15*ones(G.cells.num,1), ...
-                                 'sowcr', 0.12*ones(G.cells.num,1), ...
-                                 'swu',   0.90*ones(G.cells.num,1));
-                                 
-                       
+fluid = initSimpleADIFluid('mu',    [.3, 5, 0]*centi*poise, ...
+                           'rho',   [1000, 700, 0]*kilogram/meter^3, ...
+                           'n',     [2, 2, 0]);
+                             
+% saturation scaling
+fluid.krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
+
+scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
 % Create model-object of class TwoPhaseOilWaterModel
-model_ref  = TwoPhaseOilWaterModel(G, rock, fluid, 'OutputStateFunctions', {});                       
+model_ref = TwoPhaseOilWaterModel(G, rock, fluid);                       
+model_ref = imposeRelpermScaling(model_ref, scaling{:});
+
 
 % Set initial state and run simulation:
-state0 = initResSol(G, 200*barsa, [.15, .85]); 
+state0 = initResSol(G, 200*barsa, [0, 1]); 
 
 % Set up a perturbed model with different pv and perm:
 rock1 = rock;
 rock1.perm = rock.perm*1.1;
-model = TwoPhaseOilWaterModel(G, rock1, fluid, 'OutputStateFunctions', {});       
+model = TwoPhaseOilWaterModel(G, rock1, fluid);   
+model = imposeRelpermScaling(model, scaling{:});
 model.operators.pv = model_ref.operators.pv.*0.8;
 
 % run ref model
@@ -56,7 +56,7 @@ objh = @(tstep,model, state) matchObservedOW(model, states, schedule, states_ref
 
 % run adjoint to compute sensitivities of misfit wrt params
 % choose parameters, get multiplier sensitivities except for endpoints
-params      = {'porevolume', 'permeability', 'swl',   'swcr',  'sowcr', 'swu'}; 
+params      = {'porevolume', 'permeability', 'swcr',  'sowcr', 'krw',   'kro'}; 
 paramTypes  = {'multiplier', 'multiplier',   'value', 'value', 'value', 'value'};   
 
 sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
@@ -72,7 +72,7 @@ subplot(2,2,3), plotCellData(G, sens.permx, 'EdgeColor', 'none'), colorbar,title
 subplot(2,2,4), plotCellData(G, sens.permy, 'EdgeColor', 'none'), colorbar,title('PermY multiplier sensitivity');
 %% Rel-perm end-point sensitivities
 figure,
-nms = {'Lower S_w', 'Critical S_w', 'Critical S_o', 'Upper S_w'};
+nms = {'swcr', 'sowcr', 'krw-max', 'kro-max'};
 for k = 1:4
     subplot(2,2,k), plotCellData(G, sens.(params{k+2}), 'EdgeColor', 'none'), colorbar,title(nms{k});
 end
@@ -90,13 +90,6 @@ subplot(1,2,1), plotCellData(G,  cellAverage(G, sens.transmissibility), 'EdgeCol
 subplot(1,2,2), plot(sens.conntrans, '--o', 'MarkerSize', 14); title('Well connection trans multiplier sensitivity')
 a = gca; a.XTick = 1:4;  a.XTickLabel = {W.name}; a.XLim; a.XLim = [.5 4.5];
 
-
-model.fluid = initSimpleScaledADIFluid(model.fluid, 'swl', zeros(G.cells.num,1), ...
-                                                    'swcr', zeros(G.cells.num,1), ...
-                                                    'sowcr', zeros(G.cells.num,1), ...
-                                                    'swu', ones(G.cells.num,1));
-sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
-                                     'Parameters'    , {'swl', 'swcr', 'sowcr', 'swu'});
 
 %%
 % <html>
