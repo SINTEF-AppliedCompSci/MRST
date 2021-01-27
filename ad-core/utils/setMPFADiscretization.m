@@ -43,8 +43,8 @@ function model = setMPFA(model)
     % definition of gradient.
     T = getFaceTransmissibility(model.G, model.rock);
     scale = -1./(2*T(model.operators.internalConn));
-    MPFAGrad = Tv.*scale;
-    Mg = -Tg.*scale/2;
+    MPFAGrad = bsxfun(@times, Tv, scale);
+    Mg = -bsxfun(@times, Tg, scale/2);
     assert(all(M.N(:) == model.operators.N(:)), ...
         'Operator neighborship does not match MPFA neighborship. NNC?');
     if isempty(model.FlowDiscretization)
