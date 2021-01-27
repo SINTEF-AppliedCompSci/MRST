@@ -28,7 +28,13 @@ if(G.griddim==2)
 else
     lindim=6;
 end
+
+% stress = (op.D * op.WC' + op.volmap * (op.SE * (op.I - op.PP)));
+% stress = reshape(stress * op.assemb' * reshape(uu', [], 1), lindim, [])';
+
 stress=reshape(op.D*op.WC'*op.assemb'*reshape(uu',[],1),lindim,[])';
+
+
 if(opt.do_patch)
   stress=patchRecovery(G,stress);
 end
