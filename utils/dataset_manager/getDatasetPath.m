@@ -58,13 +58,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('download',          true, ...
-                 'askBeforeDownload', true, ...
+    opt = struct('download',           mrstSettings('get', 'allowDL'), ...
+                 'askBeforeDownload',  mrstSettings('get', 'promptDL'), ...
                  'skipAvailableCheck', false);
     opt = merge_options(opt, varargin{:});
     [info, present] = getDatasetInfo(name);
 
-    if present || opt.skipAvailableCheck,
+    if present || opt.skipAvailableCheck
         % Return path to dataset
         pth = fullfile(mrstDataDirectory(), info.name);
     else
