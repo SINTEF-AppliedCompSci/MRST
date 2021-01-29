@@ -127,11 +127,35 @@ classdef StateFunction
         
         function varargout = getEvaluatedDependencies(prop, state, varargin)
             % Get evaluated values from local dependencies (belonging to
-            % same PropertyFunctions grouping)
+            % same StateFunctionGroupings class)
             varargout = cell(nargout, 1);
             s = struct(state.(prop.structName));
             for i = 1:nargout
                 v = s.(varargin{i});
+                v = expandIfUniform(v);
+                varargout{i} = v;
+            end
+        end
+        
+        function varargout = getEvaluatedExternals(prop, model, state, varargin)
+            % Get evaluated values from external dependencies (from other
+            % StateFunctionGroupings class)
+            varargout = cell(nargout, 1);
+            for i = 1:nargout
+                nm = varargin{i};
+                isSub = nm == '.';
+                if any(isSub)
+                    % Syntax GroupingName.StateFunctionName
+                    pos = find(isSub);
+                    group = nm(1:(pos-1));
+                    nm = nm((pos+1):end);
+                else
+                    pos = arrayfun(@(x) strcmp(x.name, nm), prop.externals);
+                    group = prop.externals(pos).grouping;
+                end
+                struct_name = model.(group).getStateFunctionContainerName();
+                s = struct(state.(struct_name));
+                v = s.(nm);
                 v = expandIfUniform(v);
                 varargout{i} = v;
             end
