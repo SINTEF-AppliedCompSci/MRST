@@ -151,7 +151,7 @@ if nargout > 1 % then the gradient is required
                 
             case 'general'
                 switch params{k}
-                    case {'transmissibility','porevolume','permx'}
+                    case {'transmissibility','porevolume','permx','swcr'}
                         indx =  parameters{k}.Indx;
                         dBox   = boxLims{k}(2) - boxLims{k}(1);
                         scaled_gradient{k} = (dBox/objScaling)*sum(gradient.(params{k})(indx));

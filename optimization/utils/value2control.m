@@ -31,13 +31,16 @@ for k = 1:np
             end
        case 'general'
              switch parameters{k}.name
-                case {'transmissibility','porevolume','permeability'}
+                case {'transmissibility','porevolume','permeability',...
+                      'swl','swcr', 'swu', 'sgl', ...
+                      'sgcr','sgu','sowcr','sogcr',...
+                      'krw','kro','krg'}
                   [umin, umax] = deal(parameters{k}.boxLims(1), parameters{k}.boxLims(2)); 
                   ui   = val{k};
                   u{k} = (ui-umin)./(umax-umin); 
                   ui   =[];
                case 'conntrans'                    
-                   for i =  1 : size(parameters{k}.Indx,1)    
+                  for i =  1 : size(parameters{k}.Indx,1)    
                       [umin, umax] = deal(parameters{k}.boxLims(i,1), parameters{k}.boxLims(i,2)); 
                       ui(i,1)   = (val{k}(i)-umin)./(umax-umin);
                   end                  

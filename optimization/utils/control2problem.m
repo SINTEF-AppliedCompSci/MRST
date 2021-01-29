@@ -126,6 +126,13 @@ for k = 1:np
                    model.rock.perm = 0*model.rock.perm + u(reel)...
                                        *(umax-umin)+umin; 
                    reel = reel + 1;
+                 case {'swl','swcr', 'swu', 'sgl', ...
+                       'sgcr','sgu','sowcr','sogcr',...
+                       'krw','kro','krg'}
+                   [umin, umax] = deal(parameters{k}.boxLims(1), parameters{k}.boxLims(2)); 
+                   scaling = {upper(parameters{k}.name), u(k)...
+                                                        *(umax-umin)+umin};
+                   model = imposeRelpermScaling(model, scaling{:});
                 case 'conntrans'
                    Indx = parameters{k}.Indx;
                    for i = 1 : size(parameters{k}.Indx,1)                      
