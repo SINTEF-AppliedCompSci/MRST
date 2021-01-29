@@ -34,8 +34,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   if numel(G) > 0,
-      if ~isfield(G(1), 'type'),
+   if numel(G) > 0
+      if ~isfield(G(1), 'type')
          warning(msgid('GridType:Unknown'),                         ...
                 ['Input grid has no known type. ',                  ...
                  'I''ll assume it arose from the primordial soup...']);
@@ -43,19 +43,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          [ G.type ] = deal( {'Primordial Soup'} );
       end
 
-      for k = 1 : numel(G),
-         if size(G(k).nodes.coords, 2) ~= 3,
+      for k = 1 : numel(G)
+         if size(G(k).nodes.coords, 2) ~= 3
             error(['Function ''%s'' is only supported in three ', ...
                    'space dimensions.'], mfilename);
          end
 
          [fa, fc, fn, cc, cv] = mex_compute_geometry(G(k));
 
-         if ~ all(fa > 0),
+         if ~ all(fa > 0)
             warning(msgid('FaceAre:NonPositive'), ...
                     'Face area negative or zero');
          end
-         if ~ all(cv > 0),
+         if ~ all(cv > 0)
             warning(msgid('CellVolume:NonPositive'), ...
                     'Cell volume negative or zero');
          end

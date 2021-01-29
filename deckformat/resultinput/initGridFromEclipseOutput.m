@@ -113,7 +113,9 @@ G.cells.DZ    = convertFrom(init.DZ.values(eMap), u.length);
 % ECLIPSE-grid, rock is directly given by init
 if opt.outputSimGrid || (consistentGrids && outputRock)
     rock.poro = init.PORO.values;
-    rock.ntg  = init.NTG.values;
+    if isfield(init, 'NTG')
+        rock.ntg  = init.NTG.values;
+    end
     rock.perm = convertFrom([init.PERMX.values, ...
         init.PERMY.values, ...
         init.PERMZ.values], u.perm);

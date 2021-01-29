@@ -49,7 +49,7 @@ function [pts, present] = getRelPermScaling(deck, nc, prefix, phase)
    connate = [prefix, 'S', phase, 'L'];
    crit = [prefix, 'S', phase, 'CR'];
    maxs = [prefix, 'S', phase, 'U'];
-   if strcmpi(phase, 'wo') || strcmpi(phase, 'og')
+   if strcmpi(phase, 'ow') || strcmpi(phase, 'og')
       % OW or OG relperm has same maximum value
       maxv = [prefix, 'KRO'];
    else

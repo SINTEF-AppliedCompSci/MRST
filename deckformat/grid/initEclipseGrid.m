@@ -45,10 +45,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   opt = struct('mapAxes', false, ...
-                'useMex',  false);
-   [opt,extra] = merge_options(opt, varargin{:});
-
+   opt = struct('mapAxes',      false, ...
+                'removeZeroPV', false, ...
+                'useMex',       false);
+   [opt, extra] = merge_options(opt, varargin{:});
    % -- Corner point grid -------------------------------------------------
    if all(isfield(deck.GRID, {'COORD', 'ZCORN'})) && ...
          isfield(deck.RUNSPEC, 'DIMENS')
@@ -156,10 +156,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if isfield(deck.GRID, 'MAPAXES') && opt.mapAxes
-      for i = 1 : numel(G)
+      for i = 1:numel(G)
          G(i).nodes.coords(:,1:2) = ...
             mapAxes(G(i).nodes.coords(:,1:2), deck.GRID.MAPAXES);
       end
+   end
+
+   if opt.removeZeroPV
+       mask = true(prod(deck.GRID.cartDims), 1);
+       if isfield(deck.GRID, 'PORO')
+           mask = mask & deck.GRID.PORO > 0;
+       end
+       if isfield(deck.GRID, 'PORV')
+           mask = mask & deck.GRID.PORV > 0;
+       end
+       for i = 1:numel(G)
+           G(i) = extractSubgrid(G(i), mask(G(i).cells.indexMap));
+       end
    end
 end
 

@@ -66,7 +66,10 @@ unit = unit{ih(3)};
 [t, d] = deal(rsspec.TIME.values, rsspec.ITIME.values);
 nSteps = numel(t);
 date = reshape(d, [numel(d)/nSteps, nSteps])';
+% report number (needed for multiple restart)
+repNum = date(:,1);
 date = date(:, 2:4);
+
 
 % determine restart type (unified or multiple)
 firstField = rsspec.NAME.values{1};
@@ -110,7 +113,7 @@ end
 spec = struct('time', t, 'date', date, 'unit', unit, ...
                'type', type, 'keywords', {keywords}, ...
                'pointers', {pointers}, 'prec', {prec}, ...
-               'num', {num});
+               'num', {num}, 'repNum', repNum);
 
 
 % Add file-names in case multiple output
@@ -118,14 +121,33 @@ if strcmp(type, 'multiple')
     f    = dir([prefix, '.X*']);
     fnms = {f.name};
     pattern = '.X[0-9][0-9][0-9][0-9]';
-    ix = ~cellfun(@isempty, regexp(fnms, pattern));
-    fnms = sort(fnms(ix));
-    fnms = cellfun(@(fn)fullfile(fileparts(prefix), fn), fnms, ...
-            'UniformOutput', false);
-    assert(numel(fnms)==numel(spec.time), ...
-        'Unable to match multiple restart-files to RSSPEC');
-    spec.fnames = fnms;
+    mtch = regexp(fnms, pattern, 'match');
+    ix   =  ~cellfun(@isempty, mtch);
+    if ~all(ix)
+        [mtch, fnms] = deal(mtch(ix), fnms(ix));
+    end
+    num  = cellfun(@(c)str2double(c{1}(3:end)), mtch);
+    if min(num) == 0
+        num = num+1;
+    end
+    nspec = numel(spec.time);
+    if ~issorted(num)
+        [num, six] = sort(num);
+        fnms = fnms(six);
+    end
+    fnms = cellfun(@(fn)fullfile(fileparts(prefix), fn), fnms(ix), ...
+                   'UniformOutput', false);
+    if numel(fnms)==nspec % we  have all steps
+        spec.fnames = sort(fnms);
+    else % we have some subset, match to repNum
+        subix = ismember(spec.repNum, num);
+        assert(nnz(subix) == numel(num), ...
+             'Unable to match multiple restart-files to RSSPEC');
+        spec.fnames = cell(1, nspec);
+        spec.fnames(subix) = fnms;
+    end
 end
+
 
 % Process possible multiple time appearing ZTRACER 
 for k = 1:numel(spec.time)

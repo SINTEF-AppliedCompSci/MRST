@@ -107,7 +107,12 @@ function rock = assign_multipliers(rock, deck)
    multiplier = [ multiplier, strcat(multiplier, '_') ];
 
    for mult = reshape(multiplier(isfield(deck.GRID, multiplier)), 1, [])
-      rock.multipliers.(compname(mult)) = extract_grid_prop(deck, mult);
+      mlt = extract_grid_prop(deck, mult);
+      bad = sum(~isfinite(mlt));
+      if bad > 0
+         warning('%d non-finite values in multiplier ''%s''', bad, mult{1});
+      end
+      rock.multipliers.(compname(mult)) = mlt;
    end
 end
 

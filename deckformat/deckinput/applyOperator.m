@@ -74,17 +74,26 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [rec, tmpl, b] = get_record(fid, tmpl, gridBox);
 
    while ~isequal(rec, tmpl)
-      if ~isfield(sect, rec{1})
+      target = rec{1};
+      if ~isfield(sect, target)
          switch kw
-            case 'ADD'     , sect.(rec{1}) = zeros([m, 1]);
-            case 'MULTIPLY', sect.(rec{1}) = ones ([m, 1]);
-            case 'EQUALS'  , sect.(rec{1}) = nan  ([m, 1]);
-
+            case 'ADD'
+                sect.(target) = zeros([m, 1]);
+            case 'MULTIPLY'
+                sect.(target) = ones([m, 1]);
+            case 'EQUALS'
+                if regexpi(target, 'MULT\w+')
+                    % Multipliers should be initialized as one
+                    v = ones([m, 1]);
+                else
+                    v = nan([m, 1]);
+                end
+                sect.(target) = v;
             otherwise
                warning(msgid('Default:Unavailable'), ...
                      ['No reasonable initial value for operator ', ...
                       '''%s'' applied to undefined array ''%s''.'], ...
-                      kw, rec{1});
+                      kw, target);
          end
       end
 
