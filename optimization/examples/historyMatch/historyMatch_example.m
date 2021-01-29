@@ -99,7 +99,11 @@ model_fine_scale = model_fine_scale.validateModel();
 dt = [1 ,1 ,2 5 10 , 10*ones(1,10)]*day();
 schedule = simpleSchedule(dt, 'W', W);
 
-[wellSols_fine_scale,states_fine_scale] = simulateScheduleAD(state0, model_fine_scale, schedule);
+
+%% Run simulation
+problem = packSimulationProblem(state0, model_fine_scale, schedule, 'model_fine_scale');
+[ok, status] = simulatePackedProblem(problem);
+[wellSols_fine_scale, states_fine_scale] = getPackedSimulatorOutput(problem);
 
 
 %% Coarse-scale model
