@@ -78,12 +78,26 @@ model.inputdata = struct(...
 
 % check rel-perm names
 if model.oil &&  isfield(model.fluid, 'krO')
-    if (~model.water || isfield(model.fluid, 'krOW')) && ...
-       (~model.gas   || isfield(model.fluid, 'krOG')) 
-        model.fluid = rmfield(model.fluid, 'krO');  
+    fluid = model.fluid;
+    if ~model.gas && model.water && ~isfield(fluid, 'krOW')
+        fluid.krOW = fluid.krO;
+        if isfield(fluid.krPts, 'o')
+            fluid.krPts.ow = fluid.krPts.o;
+        end
+    end
+    if ~model.water && model.gas && ~isfield(fluid, 'krOG')
+        fluid.krOG = fluid.krG;
+        if isfield(fluid.krPts, 'o')
+            fluid.krPts.og = fluid.krPts.o;
+        end
+    end
+    if (~model.water || isfield(fluid, 'krOW')) && ...
+       (~model.gas   || isfield(fluid, 'krOG')) 
+        model.fluid = rmfield(fluid, 'krO');  
     else
         warning('Scaling of ''krO''-function ignored');
     end
+    model.fluid = fluid;
 end
 end
 
