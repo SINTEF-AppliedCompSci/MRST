@@ -1,15 +1,16 @@
 classdef ModelParameter
     properties
         name
-        type          = 'value';
-        boxLims
-        distribution  = 'cell';
-        Indx
-        scaling       = 'linear'
-        initialValue
-        belongsTo                % model/well
-        location                 % e.g., 'model.operators.T'
-        n
+        type          = 'value'; % 'value'/'multiplier'
+        boxLims                  % upper/lower value(s) for parameters
+        distribution  = 'cell';  % not sure we need this one
+        Indx                     % 
+        scaling       = 'linear' % 'linear'/'log'
+        initialValue             % only used for multipliers
+        belongsTo                % model/well/state0
+        location                 % e.g., {'operators', ''}
+        n                        % number of 
+        lumping                  % 
     end
     
     methods
@@ -27,6 +28,7 @@ classdef ModelParameter
             if strcmp(p.type, 'multiplier')
                 pval = pval./p.initialValue;
             end
+            pval = collapseLumps(p, pval, @mean);
             if strcmp(p.scaling, 'linear')
                 vs = (pval-p.boxLims(:,1))./diff(p.boxLims, [], 2);
             elseif strcmp(p.scaling, 'log')
@@ -43,6 +45,7 @@ classdef ModelParameter
                 logLims = log(p.boxLims);
                 pval = exp(vs.*diff(logLims, [], 2) + logLims(:,1));
             end
+            pval = expandLumps(pval);
             if strcmp(p.type, 'multiplier')
                 pval = pval.*p.initialValue;
             end
@@ -51,6 +54,7 @@ classdef ModelParameter
         function gs = scaleGradient(p, g, pval)
             % map gradient wrt param to gradient vs "control"-vector
             % parameter value pval only needed for log-scalings
+            g = collapseLumps(p, g, @sum);
             if strcmp(p.scaling, 'linear')
                 if strcmp(p.type, 'value')
                     gs = g.*diff(p.boxLims, [], 2);
@@ -58,7 +62,7 @@ classdef ModelParameter
                     gs = (g.*p.initialValue).*diff(p.boxLims, [], 2);
                 end
             elseif strcmp(p.scaling, 'log')
-                gs = (g.*pval).*diff(p.boxLims, [], 2);
+                gs = (g.*pval).*log(diff(p.boxLims, [], 2));
             end
         end
         
@@ -118,9 +122,12 @@ classdef ModelParameter
             end
         end
         
-        function m = getMultiplerValue(p, problem)
+        function m = getMultiplerValue(p, problem, doLump)
             if strcmp(p.type, 'multiplier')
                 m = p.getParameterValue(problem)./p.initialValue;
+                if nargin == 3 && doLump
+                    m = collapseLumps(p, m, @mean);
+                end
             else
                 error('Parameter %s is not of type ''multiplier''', p.name);
             end
@@ -245,3 +252,17 @@ kw  = struct('SWL',   [1,1], 'SWCR',  [1,2], 'SWU', [1,3], ...
 map = struct('ph', {phOpts}, 'kw', kw);
 end
 
+function v = collapseLumps(p, v, op)
+% do ommitnan for safety
+fn = @(x)op(x, 'omitnan');
+if ~isempty(p.lumping) || ~isnumeric(p.lumping)
+    v = accumarray(p.lumping, [], fn);
+end
+end
+
+function v = expandLumps(p, v)
+if ~isempty(p.lumping) || ~isnumeric(p.lumping)
+    v = v(p.lumping);
+end
+end
+    
