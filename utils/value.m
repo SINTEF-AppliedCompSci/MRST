@@ -36,7 +36,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    if isnumeric(x) || islogical(x)
+    if isnumeric(x) || islogical(x) || ischar(x)
         xv = x;
     elseif iscell(x)
         sz = size(x);
