@@ -44,9 +44,10 @@ https://doi.org/10.1007/s10596-017-9624-5.
 
 ## Cite
 If you use ad-micp, please cite:
-* Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E. Practical approaches 
-to study microbially induced calcite precipitation at the field scale.
-Submitted.
+* Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E., 2021. 
+Practical approaches to study microbially induced calcite precipitation 
+at the field scale. Int. J. Greenh. Gas Control 106, 103256.
+https://doi.org/10.1016/j.ijggc.2021.103256.
 
 ## Contact
 David Landa-Marbán (dmar@norceresearch.no).
