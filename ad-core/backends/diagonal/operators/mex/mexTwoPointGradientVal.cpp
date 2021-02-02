@@ -39,7 +39,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     plhs[0] = mxCreateDoubleMatrix(nf, m, mxREAL);
     double * result = mxGetPr(plhs[0]);
 
-     #pragma omp parallel for schedule(static)
+     #pragma omp parallel for
      for(int i=0;i<nf;i++){
          int left = N[i] - 1;
          int right = N[i + nf] - 1;
@@ -48,22 +48,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
 
         }
     }
-     /*
-    for(int j=0;j<m;j++){
-        for(int i=0;i<2*nf;i++){
-            int cell_inx = N[i]-1;
-            double v = value[cell_inx +  j*nc];
-            if(i<nf){
-                #pragma omp atomic
-                result[i + j*nf] -= v;
-            }else{
-                #pragma omp atomic
-                result[i%nf + j*nf] += v;
-            }
-        }
-    }
-
-     */
     return;
 }
 

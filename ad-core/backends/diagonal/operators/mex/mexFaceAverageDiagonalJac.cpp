@@ -13,7 +13,7 @@
 
 template <bool rowMajor>
 void faceAverageJac(const int nf, const int nc, const int m, const double* diagonal, const double* N, double* result) {
-#pragma omp parallel for schedule(static)
+#pragma omp parallel
     for (int face = 0; face < nf; face++) {
         int left = N[face] - 1;
         int right = N[face + nf] - 1;

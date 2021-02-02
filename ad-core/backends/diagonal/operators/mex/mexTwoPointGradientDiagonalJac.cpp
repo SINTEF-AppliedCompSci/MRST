@@ -12,7 +12,7 @@
 
 template <int m>
 void gradientJacColMajor(const int nf, const int nc, const double * diagonal, const double * N, double * result){
-    #pragma omp parallel for schedule(static)
+    #pragma omp parallel for
     for (int i = 0; i < nf; i++) {
         int left = N[i] - 1;
         int right = N[i + nf] - 1;
@@ -26,27 +26,7 @@ void gradientJacColMajor(const int nf, const int nc, const double * diagonal, co
 
 template <int m>
 void gradientJacRowMajor(const int nf, const int nc, const double* diagonal, const double* N, double* result) {
-    /*
-#pragma omp parallel
-    {
-#pragma omp for nowait schedule(static)
-        for (int i = 0; i < nf; i++) {
-            int cell = N[i] - 1;
-            for (int j = 0; j < m; j++) {
-                result[i * 2 * m + j] = -diagonal[m * cell + j];
-            }
-        }
-#pragma omp for nowait schedule(static)
-        for (int i = 0; i < nf; i++) {
-            int cell = N[i + nf] - 1;
-            for (int j = 0; j < m; j++) {
-                result[(i * 2 + 1) * m + j] = diagonal[m * cell + j];
-            }
-        }
-    }
-    return;
-    */
-#pragma omp parallel for schedule(static)
+    #pragma omp parallel for
     for (int i = 0; i < nf; i++) {
         int left = N[i] - 1;
         int right = N[i + nf] - 1;
