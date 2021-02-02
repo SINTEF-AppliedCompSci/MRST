@@ -51,10 +51,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'readReportsFromDisk',  []);
     opt = merge_options(opt, varargin{:});
     
-   
-    ctrl = problem.SimulatorSetup.schedule.control(1);
-    [~, fstruct] = problem.SimulatorSetup.model.getDrivingForces(ctrl);
-    model = problem.SimulatorSetup.model.validateModel(fstruct);
+    if nargout > 3
+        ctrl = problem.SimulatorSetup.schedule.control(1);
+        [~, fstruct] = problem.SimulatorSetup.model.getDrivingForces(ctrl);
+        model = problem.SimulatorSetup.model.validateModel(fstruct);
+    end
     
     if isempty(opt.readWellSolsFromDisk)
         opt.readWellSolsFromDisk = opt.readFromDisk;
