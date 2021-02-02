@@ -139,8 +139,16 @@ set(gca,'Position',[.56 .075 .315 .9])
  %% Simulating on coarse-scale model
  % After upscailing we create a coarse model and we compare the production
  % results between the fine scaled and coarse scale models
+ 
+%fluid_2 = fluid;
+%fluid_2 .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
+%scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
+%scaling = {'SWL', .2, 'SWCR', .2, 'SWU', .8, 'SOWCR', .2, 'KRW', 1, 'KRO', 1};
+
 model_coarse_scale = GenericBlackOilModel(CG, crock, fluid);
 model_coarse_scale.gas=false;
+%model_coarse_scale = imposeRelpermScaling(model_coarse_scale, scaling{:});
+
 model_coarse_scale.OutputStateFunctions = {};
 model_coarse_scale = model_coarse_scale.validateModel();
  
@@ -200,12 +208,22 @@ well_boxlimits = [ 0.1*WellIP , ...
                                    'type','value',...
                                    'boxLims',Pv_boxlimits,...
                                    'distribution','cell',...
-                                   'Indx',1:numel(pv));                                                                
+                                   'Indx',1:numel(pv));
+
+%params      = {'porevolume', 'permeability', 'swcr',  'sowcr', 'krw',   'kro'}; 
+%paramTypes  = {'multiplier', 'multiplier',   'value', 'value', 'value', 'value'};   
+                               
+         swcr = struct('name','swcr',...
+                       'type','value',...
+                       'boxLims',[0.15 0.3],...
+                       'distribution','general',...
+                       'Indx',1:9);  
                                
 parameters =  {};                          
 parameters{1} = transmisibility_conection;
-parameters{2}  = porevolume_conection ;
-parameters{3}  = well_IP ;
+parameters{2} = porevolume_conection ;
+parameters{3} = well_IP ;
+%parameters{4} = swcr;
 
  %% Optimization 1: upscaled coarse model
  
@@ -215,6 +233,7 @@ parameters{3}  = well_IP ;
   val{1} = TT;
   val{2} = pv;
   val{3} = WellIP;
+  %val{4} = 0.2;
   p0_ups = value2control(val,parameters);
  
 % Defining the weights to evaluate the match
@@ -254,6 +273,7 @@ plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
   val{1} = TT+(rand(size(TT))-0.5).*TT;
   val{2} = pv+(rand(size(pv))-0.5).*pv;
   val{3} = WellIP+ (rand(size(WellIP))-0.5).*WellIP;
+  %val{4} = 0.1;
   p0_mean = value2control(val,parameters);
  
        
