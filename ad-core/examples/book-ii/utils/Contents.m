@@ -1,9 +1,11 @@
 % UTILS
 %
 % Files
-%   TutorialAdd     - 
-%   TutorialNumber  - 
-%   TutorialProduct - 
+%   assemblyBenchmarkAD       - Undocumented Utility Function
+%   benchmarkAutoDiffBackends - Benchmark routine that compares the execution speed and correctness of AD backends
+%   TutorialAdd               - 
+%   TutorialNumber            - 
+%   TutorialProduct           - 
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.

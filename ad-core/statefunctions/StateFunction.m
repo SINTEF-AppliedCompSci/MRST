@@ -9,6 +9,12 @@ classdef StateFunction
         label
     end
 
+    properties (Access = protected)
+        outputRange = [-inf, inf];
+        allowInf = false;
+        allowNaN = false;
+    end
+    
     methods
         function prop = StateFunction(model, varargin)
             if nargin > 0
@@ -121,13 +127,110 @@ classdef StateFunction
         
         function varargout = getEvaluatedDependencies(prop, state, varargin)
             % Get evaluated values from local dependencies (belonging to
-            % same PropertyFunctions grouping)
+            % same StateFunctionGroupings class)
             varargout = cell(nargout, 1);
             s = struct(state.(prop.structName));
             for i = 1:nargout
                 v = s.(varargin{i});
                 v = expandIfUniform(v);
                 varargout{i} = v;
+            end
+        end
+        
+        function varargout = getEvaluatedExternals(prop, model, state, varargin)
+            % Get evaluated values from external dependencies (from other
+            % StateFunctionGroupings class)
+            varargout = cell(nargout, 1);
+            for i = 1:nargout
+                nm = varargin{i};
+                isSub = nm == '.';
+                if any(isSub)
+                    % Syntax GroupingName.StateFunctionName
+                    pos = find(isSub);
+                    group = nm(1:(pos-1));
+                    nm = nm((pos+1):end);
+                else
+                    pos = arrayfun(@(x) strcmp(x.name, nm), prop.externals);
+                    group = prop.externals(pos).grouping;
+                end
+                struct_name = model.(group).getStateFunctionContainerName();
+                s = struct(state.(struct_name));
+                v = s.(nm);
+                v = expandIfUniform(v);
+                varargout{i} = v;
+            end
+        end
+        
+        function validateOutput(prop, output, level)
+            % Check the outputs at runtime, with more expensive checks
+            % occuring for higher levels
+            if level == 0
+                return
+            end
+            if isstruct(output)
+                % Do nothing. Currently not checking structs
+                return;
+            end
+            % Wrap in cell if not already wrapped
+            if ~iscell(output)
+                output = {output};
+            end
+            checkJacobian = level > 2;
+            for i = 1:numel(output)
+                o = output{i};
+                if ~prop.allowNaN
+                    prop.validateOutputInternal(o, i, level, 'NaN values', @isnan, checkJacobian);
+                end
+                if ~prop.allowInf
+                    prop.validateOutputInternal(o, i, level, 'Inf values', @isinf, checkJacobian);
+                end
+                lower = prop.outputRange(1);
+                upper = prop.outputRange(2);
+                if isfinite(lower)
+                    str = sprintf('Value less than %f', lower);
+                    prop.validateOutputInternal(o, i, level, str, @(x) x < lower, false);
+                end
+                if isfinite(upper)
+                    str = sprintf('Value larger than %f', upper);
+                    prop.validateOutputInternal(o, i, level, str, @(x) x > upper, false);
+                end
+            end
+        end
+    end
+    
+    methods (Access = protected)
+        function validateOutputInternal(prop, o, columnIndex, level, descr, test, checkJacobian)
+            v = value(o);
+            if isnumeric(v)
+                bad = test(v);
+                numbad = sum(bad);
+                if numbad > 0
+                    nv = numel(v);
+                    warning(['Bad output: %s in %d of %d (%1.2f%%) entries for', ...
+                             ' state function ''%s'' in column %d'],...
+                            descr, numbad, nv, numbad/nv, class(prop), columnIndex);
+                    if level > 2
+                        tmp = find(bad);
+                        nl = min(numbad, level);
+                        fprintf('%d first bad entries:\n', nl);
+                        for j = 1:nl
+                            index = tmp(j);
+                            fprintf('%d: %f\n', index, v(index));
+                        end
+                    end
+                end
+                if checkJacobian && isa(o, 'ADI')
+                    % Check AD values too.
+                    for jacNo = 1:numel(o.jac)
+                        bad = test(nonzeros(sparse(o.jac{jacNo})));
+                        numbad = sum(bad);
+                        if numbad > 0
+                            warning(['Bad Jacobian: %s in %d entries for', ...
+                                     ' state function ''%s'' column %d Jacobian %d'],...
+                                    descr, numbad, class(prop), columnIndex, jacNo);
+                        end
+                    end
+                end
             end
         end
     end

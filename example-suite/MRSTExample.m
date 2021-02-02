@@ -19,6 +19,7 @@ classdef MRSTExample
     methods
         %-----------------------------------------------------------------%
         function example = MRSTExample(name, varargin)
+            if nargin == 0, return; end
             % Set example name
             example.name = lower(name);
             % Merge options
@@ -182,7 +183,7 @@ classdef MRSTExample
         end
         
         %-----------------------------------------------------------------%
-        function plot(example, v, varargin)
+        function h = plot(example, v, varargin)
             % Plot filed v on example grid using plotToolbar
             opt = struct('Name', '', 'plotWells', true);
             [opt, extra] = merge_options(opt, varargin{:});
@@ -193,31 +194,47 @@ classdef MRSTExample
             if nargin == 1
                 v = example.model.rock;
             end
-            G = example.model.G;
-            if ~isempty(example.visualizationGrid)
+            h = example.figure('Name', Name);
+            G = example.getVisualizationGrid();
+            plotToolbar(G, v, example.toolbarOptions{:}, extra{:});
+            if opt.plotWells
+                example.plotWells();
+            end
+            example.setAxisProperties(gca);
+            if G.griddim == 3 && ~all(example.axisProperties.View == [0,90])
+                camlight;
+            end
+        end
+        
+        %-----------------------------------------------------------------%
+        function G = getVisualizationGrid(example)
+            if isempty(example.visualizationGrid)
+                G = example.model.G;
+            else
                 G = example.visualizationGrid;
             end
-            example.figure('Name', Name);
-            plotToolbar(G, v, example.toolbarOptions{:}, extra{:});
-            example.setAxisProperties(gca);
+        end
+        
+        %-----------------------------------------------------------------%
+        function h = plotWells(example, varargin)
             W = example.schedule.control(1).W;
-            if ~isempty(W) && opt.plotWells
+            if ~isempty(W)
+                G = example.getVisualizationGrid();
                 if G.griddim == 3
                     dz = example.axisProperties.ZLim(2) ...
                        - example.axisProperties.ZLim(1);
-                    plotWell(G, W, 'color' , 'k'   , ...
-                                   'height', 0.15*dz);
+                    h = plotWell(G, W, 'color' , 'k'    , ...
+                                       'height', 0.15*dz, ...
+                                       varargin{:}      );
                 else
                     hold on
                     x = G.cells.centroids(vertcat(W.cells), :);
-                    plot3(x(:,1), x(:,2), ones(size(x,1),1), 'ok', ...
-                         'markerFaceColor', 'w', ...
-                         'markerSize'     , 8  );
+                    h = plot(x(:,1), x(:,2)   , 'ok', ...
+                             'markerFaceColor', 'w' , ...
+                             'markerSize'     , 8   , ...
+                             varargin{:}            );
                     hold off
                 end
-            end
-            if G.griddim == 3 && ~all(example.axisProperties.View == [0,90])
-                camlight;
             end
         end
         
@@ -251,6 +268,9 @@ classdef MRSTExample
             hash = example.getExampleHash();
             % Store in default data directory under 'example-suite'
             pth = fullfile(mrstDataDirectory(), 'example-suite');
+            if ~exist(pth, 'dir')
+                mkdir(pth)
+            end
             save(fullfile(pth, hash), 'example', '-v7.3');
             ok = true;
         end

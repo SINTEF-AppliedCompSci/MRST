@@ -16,10 +16,15 @@ classdef PhaseMixingCoefficientsLV < StateFunction
             eos = model.EOSModel;
             [p, T] = model.getProps(state, 'pressure', 'temperature');
             xy = prop.getEvaluatedDependencies(state, 'ComponentPhaseMoleFractions');
-            wat = model.water;
-            x = xy(1:end-wat, 1 + wat);
-            y = xy(1:end-wat, 2 + wat);
-            acf = eos.fluid.acentricFactors;
+            L_ix = model.getLiquidIndex();
+            V_ix = model.getVaporIndex();
+            isEoS = model.getEoSComponentMask();
+            nph = size(xy, 2);
+            v = cell(1, nph);
+            
+            x = xy(isEoS, L_ix);
+            y = xy(isEoS, V_ix);
+            acf = eos.CompositionalMixture.acentricFactors;
             
             [A_ij, Bi] = eos.getMixingParameters(p, T, acf, iscell(x));
             [Si_L, A_L, B_L] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
@@ -41,13 +46,8 @@ classdef PhaseMixingCoefficientsLV < StateFunction
                 [Si_V, A_V, B_V] = eos.getPhaseMixCoefficients(y, A_ij, Bi);
             end
             
-            L = struct('Si', {Si_L}, 'A', {A_L}, 'B', {B_L}, 'Bi', {Bi}, 'A_ij', {A_ij});
-            V = struct('Si', {Si_V}, 'A', {A_V}, 'B', {B_V}, 'Bi', {Bi}, 'A_ij', {A_ij});
-            if model.water
-                v = {struct(); L; V};
-            else
-                v = {L; V};
-            end
+            v{L_ix} = struct('Si', {Si_L}, 'A', {A_L}, 'B', {B_L}, 'Bi', {Bi}, 'A_ij', {A_ij});
+            v{V_ix} = struct('Si', {Si_V}, 'A', {A_V}, 'B', {B_V}, 'Bi', {Bi}, 'A_ij', {A_ij});
         end
     end
 end

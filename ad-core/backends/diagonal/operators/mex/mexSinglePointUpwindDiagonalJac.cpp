@@ -40,66 +40,12 @@ void upwindJacColMajor(const int nf, const int nc, const mxLogical * flag, const
 
 template <int m>
 void upwindJacRowMajor(const int nf, const int nc, const mxLogical* flag, const double* diagonal, const double* N, double* result) {
-    /*
-#pragma omp parallel for schedule(static)
-    for (int face = 0; face < nf; face++) {
-        int cell_inx, offset;
-        if (flag[face]) {
-            cell_inx = N[face] - 1;
-            offset = 0;
-        }
-        else {
-            cell_inx = N[face + nf] - 1;
-            offset = m;
-        }
-        for (int der = 0; der < m; der++) {
-            result[face * 2 * m + der + offset] = diagonal[m * cell_inx + der];
-        }
-    }
-    */
-    /**/
 
-    /*
-#pragma omp parallel
-    {
-    #pragma omp for schedule(static) nowait
-            for (int face = 0; face < nf; face++) {
-                if (!flag[face]) {
-                    continue;
-                }
-                int cell = N[face] - 1;
-                for (int der = 0; der < m; der++) {
-                    result[face * 2 * m + der] = diagonal[m * cell + der];
-                }
-                // memcpy(&result[face * 2 * m + m * do_up], &diagonal[m * cell_inx], m * sizeof(double));
-            }
-    #pragma omp for schedule(static)
-            for (int face = 0; face < nf; face++) {
-                if (flag[face]) {
-                    continue;
-                }
-                int cell = N[face + nf] - 1;
-                for (int der = 0; der < m; der++) {
-                    result[(face * 2 + 1 )* m + der] = diagonal[m * cell + der];
-                }
-                // memcpy(&result[face * 2 * m + m * do_up], &diagonal[m * cell_inx], m * sizeof(double));
-            }
-
-    }
-
-    */
-    
 #pragma omp parallel for schedule(static)
     for (int face = 0; face < nf; face++) {
         bool do_up = !flag[face];
         int cell_inx = N[face + do_up * nf] - 1;
         copyElements<m>(face * 2 * m + m * do_up, m * cell_inx, diagonal, result);
-        /*
-        for (int der = 0; der < m; der++) {
-            result[face * 2 * m + der + m * do_up] = diagonal[m * cell_inx + der];
-        }
-        */
-        // memcpy(&result[face * 2 * m + m * do_up], &diagonal[m * cell_inx], m * sizeof(double));
     }
 }
 
@@ -343,15 +289,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
         default:
             mexErrMsgTxt("%d derivatives not supported by backend.");
         }
-        /*
-        if (1) {
-            auto t3 = TIME_NOW();
-            auto p_input = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
-            auto p_alloc = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-            auto p_compute = std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
-            mexPrintf("Input %d us, alloc %d us, compute %d us\n", p_input, p_alloc, p_compute);
-        }
-        */
     }
     return;
 }

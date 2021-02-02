@@ -1,4 +1,4 @@
-function forces = validateCompositionalForces(model, forces)
+function forces = validateCompositionalForces(model, forces, it)
 %Undocumented Utility Function
 
 %{
@@ -49,8 +49,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function [rho, comp] = getSurfaceParameters(model, W, rhoL, rhoV, x, y, L, Z_L, Z_V, Z)
-    wat = model.water;
+function [rho, compi] = getSurfaceParameters(model, W, rhoL, rhoV, x, y, L, Z_L, Z_V, Z)
+    hc = model.getEoSPhaseIndices();
+    nph = model.getNumberOfPhases();
     if false
         % Use flash
         [sL, sV] = eos.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
@@ -63,16 +64,19 @@ function [rho, comp] = getSurfaceParameters(model, W, rhoL, rhoV, x, y, L, Z_L, 
         isEOS = cellfun(@(x) isa(x, 'EquationOfStateComponent'), model.Components);
         val = cellfun(@(x) x.surfacePhaseMassFractions, model.Components(isEOS), 'UniformOutput', false)';
         val = vertcat(val{:});
-        val = val(:, (1+wat):end);
+        val = val(:, hc);
         comp = sum(bsxfun(@times, val, Z'), 1);
     end
-    if wat
+    rho = model.getSurfaceDensities();
+    rho(model.getLiquidIndex()) = rhoL;
+    rho(model.getVaporIndex()) = rhoV;
+    if numel(hc) < nph
         assert(~isempty(W.compi), ...
-            'W.compi must be present for compositional flow with water phase.');
-        sW = W.compi(1);
-        comp = [sW, comp.*(1-sW)];
-        rho = [model.fluid.rhoWS, rhoL, rhoV];
+            'W.compi must be present for compositional flow with immiscible phases.');
+        tmp = sum(W.compi(hc));
+        compi = W.compi;
+        compi(hc) = tmp.*comp;
     else
-        rho = [rhoL, rhoV];
+        compi = comp;
     end
 end

@@ -43,7 +43,7 @@ classdef EOSSeparator < BasicSeparator
             useAD = isa(z{1}, 'ADI') || isa(p, 'ADI') || isa(temp, 'ADI');
             if useAD
                 [x, y, L] = eos.getPhaseFractionAsADI(state, p, temp, z);
-                acf = eos.fluid.acentricFactors;
+                acf = eos.CompositionalMixture.acentricFactors;
                 [A_ij, Bi] = eos.getMixingParameters(p, temp, acf, true);
                 [~, A_L, B_L] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
                 [~, A_V, B_V] = eos.getPhaseMixCoefficients(y, A_ij, Bi);

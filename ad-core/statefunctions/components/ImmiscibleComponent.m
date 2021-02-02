@@ -1,7 +1,9 @@
 classdef ImmiscibleComponent < GenericComponent
-    % A component description that assumes that the component is
-    % immiscible, i.e. it only exists in one phase that is made up entirely
-    % of that specific component.
+    % Specialized interface for an immiscible component
+    %
+    % The component description assumes that the component is immiscible,
+    % i.e. it only exists in one phase that is made up entirely of that
+    % specific component.
     properties
         phaseIndex % Index of phase this component belongs to
     end

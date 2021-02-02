@@ -17,13 +17,8 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             % Discretize
             [eqs, flux, names, types] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
-            % Define helper variables
-            wat = model.water;
-            ncomp = numel(names);
-            n_hc = ncomp - wat;
-            
             [pressures, sat, mob, rho, X] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ComponentPhaseMassFractions');
-            comps = cellfun(@(x, y) {x, y}, X(:, 1+model.water), X(:, 2+model.water), 'UniformOutput', false);
+            comps = cellfun(@(x, y) {x, y}, X(:, model.getLiquidIndex), X(:, model.getVaporIndex), 'UniformOutput', false);
             
             
             eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
@@ -38,14 +33,14 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
             end
             % Natural variables part
+            n_hc = model.EOSModel.getNumberOfComponents();
             twoPhase = model.getTwoPhaseFlag(state);
-            cnames = model.EOSModel.fluid.names;
+            cnames = model.EOSModel.getComponentNames;
             f = model.getProps(state, 'Fugacity');
             f_eqs = cell(1, n_hc);
             f_names = cell(1, n_hc);
             f_types = cell(1, n_hc);
             
-            s_closure = [];
             
             for i = 1:n_hc
                 if any(twoPhase)
@@ -53,18 +48,13 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 end
                 f_names{i} = ['f_', cnames{i}];
                 f_types{i} = 'fugacity';
-                s = model.getProp(state, 's');
-                s_closure = ones(sum(twoPhase), 1);
-                for phNo = 1:numel(s)
-                    s_closure = s_closure - s{phNo}(twoPhase);
-                end
             end
             % Get facility equations
             [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
             % Finally assemble
-            eqs = [eqs, weqs, f_eqs, {s_closure}];
-            names = [names, wnames, f_names, 'volclosure'];
-            types = [types, wtypes, f_types, 'saturation'];
+            eqs = [eqs, weqs, f_eqs];
+            names = [names, wnames, f_names];
+            types = [types, wtypes, f_types];
         end
         
         function names = getComponentNames(model)
@@ -87,13 +77,16 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 model.FacilityModel = GenericFacilityModel(model);
             end
             if isempty(model.Components)
-                f = model.EOSModel.fluid;
-                names_hc = f.names;
-                if model.water
-                    names = [names_hc, 'water'];
-                else
-                    names = names_hc;
+                names_eos = model.EOSModel.getComponentNames();
+                % Add in additional immiscible phases
+                [sn_regular, phases_regular] = model.getNonEoSPhaseNames();
+                nreg = numel(sn_regular);
+                enames = cell(1, nreg);
+                for i = 1:nreg
+                    enames{i} = phases_regular{i};
                 end
+                names = [names_eos, enames];
+                
                 nc = numel(names);
                 model.Components = cell(1, nc);
                 p = model.FacilityModel.pressure;
@@ -101,8 +94,9 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 for ci = 1:nc
                     name = names{ci};
                     switch name
-                        case 'water'
-                            c = ImmiscibleComponent('water', 1);
+                        case {'water', 'oil', 'gas'}
+                            ix = model.getPhaseIndex(upper(name(1)));
+                            c = ImmiscibleComponent(name, ix);
                         otherwise
                             c = getEOSComponent(model, p, T, name, ci);
                     end
@@ -118,29 +112,38 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-            [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
+            [state, report] = updateAfterConvergence@ThreePhaseCompositionalModel(model, state0, state, dt, drivingForces);
             if model.outputFluxes
                 f = model.getProp(state, 'PhaseFlux');
                 nph = numel(f);
                 state.flux = zeros(model.G.faces.num, nph);
-                state.flux(model.operators.internalConn, :) = [f{:}];
+                state.flux(model.operators.internalConn, :) = value(f);
+                if ~isempty(drivingForces.bc)
+                    [p, s, mob, rho, b] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ShrinkageFactors');
+                    sat = expandMatrixToCell(s);
+                    [~, ~, ~, fRes] = getBoundaryConditionFluxesAD(model, p, sat, mob, rho, b, drivingForces.bc);
+                    idx = model.getActivePhases();
+                    fWOG = cell(3, 1);
+                    fWOG(idx) = fRes;
+
+                    state = model.storeBoundaryFluxes(state, fWOG{1}, fWOG{2}, fWOG{3}, drivingForces);
+                end
             end
         end
 
         function [vars, names, origin] = getPrimaryVariables(model, state)
             % Get primary variables from state, before a possible
-            % initialization as AD.'
-            compFluid = model.EOSModel.fluid;
+            % initialization as AD.
             % Properties at current timestep
-            [p, sW, sO, sG, x, y] = model.getProps(state, ...
-                'pressure', 'water', 'so', 'sg', 'x', 'y');
+            [p, sL, sV, x, y] = model.getProps(state, ...
+                'pressure', 'sL', 'sV', 'x', 'y');
             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
 
             if 1
                 stol = 1e-6;
-                pureWater = sO + sG < stol;
-                sO(~pureVapor & pureWater) = stol;
-                sG(~pureLiquid & pureWater) = stol;
+                pureNonEoS = sL + sV < stol;
+                sL(~pureVapor & pureNonEoS) = stol;
+                sV(~pureLiquid & pureNonEoS) = stol;
             end
             z_tol = model.EOSModel.minimumComposition;
 
@@ -149,8 +152,8 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             x = expandMatrixToCell(x);
             y = expandMatrixToCell(y);
 
-            ncomp = compFluid.getNumberOfComponents();
-            [xnames, ynames, cnames] = deal(model.EOSModel.fluid.names);
+            ncomp = model.EOSModel.getNumberOfComponents();
+            [xnames, ynames, cnames] = deal(model.EOSModel.getComponentNames());
             for i = 1:ncomp
                 xnames{i} = ['v_', cnames{i}];
                 ynames{i} = ['w_', cnames{i}];
@@ -165,12 +168,10 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 for i = 1:(ncomp-1)
                     w{i} = y{i}(twoPhase);
                 end
-                so = sO(twoPhase);
-                sg = sG(twoPhase);
+                sl = sL(twoPhase);
             else
                 w = cell(1, ncomp-1);
-                so = {[]};
-                sg = {[]};
+                sl = {[]};
             end
 
             if not(isempty(model.FacilityModel))
@@ -182,12 +183,14 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             
             component_names = xnames(1:end-1);
             comps = x(1:end-1);
-            if model.water
-                component_names = [component_names, 'satw'];
-                comps = [comps, sW];
+            extra = model.getNonEoSPhaseNames();
+            for i = 1:numel(extra)
+                ns = ['s', extra(i)];
+                component_names = [component_names, ns]; %#ok
+                comps = [comps, model.getProp(state, ns)]; %#ok
             end
-            vars = [p, comps, v, so, w, sg];
-            names = ['pressure', component_names, n, 'sato', ynames(1:end-1), 'satg'];
+            vars = [p, comps, v, sl, w];
+            names = ['pressure', component_names, n, 'sL', ynames(1:end-1)];
 
             offset = numel(component_names) + 1;
             origin = cell(1, numel(vars));
@@ -204,10 +207,10 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             cellJacMap = cell(nvar, 1);
             s = getSampleAD(vars{:});
             
-            is_so = strcmp(names, 'sato');
-            is_sg = strcmp(names, 'satg');
+            is_sl = strcmpi(names, 'sl');
+            is_sv = strcmpi(names, 'sv');
                         
-            cnames = model.EOSModel.fluid.names;
+            cnames = model.EOSModel.getComponentNames;
             ncomp = numel(cnames);
             x = cell(1, ncomp);
             w = cell(1, ncomp);
@@ -239,31 +242,53 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             state = model.setProps(state, ...
                 {'liquidMoleFractions', 'vaporMoleFractions'}, {x, y});
             % Deal with saturations
-            [sO, sG] = model.getProps(state, 'sO', 'sG');
-            sO = model.AutoDiffBackend.convertToAD(sO, s);
-            sG = model.AutoDiffBackend.convertToAD(sG, s);
+            phases = model.getPhaseNames();
+            nph = numel(phases);
+            sE = zeros(model.G.cells.num, 1);
+            sat = cell(1, nph);
+            if nph > 2
+                extra = model.getNonEoSPhaseNames();
+                ne = numel(extra);
+                for i = 1:ne
+                    e = extra(i);
+                    is_s = strcmpi(names, ['s', e]);
+                    S = vars{is_s};
+                    % Add to sat
+                    sE = sE + S;
+                    sat{phases == e} = S;
+                    removed(is_s) = true;
+                end
+            end
+            % EoS values
+            [sL, sV] = model.getProps(state, 'sL', 'sV');
             if any(twoPhase)
-                % Set oil/liquid saturation in two-phase cells
-                so = vars{is_so};
-                sO(twoPhase) = so;
-                % Set gas/vapor saturation in two-phase cells
-                sg = vars{is_sg};
-                sG(twoPhase) = sg;
-                cellJacMap{is_sg} = twoPhaseIx;
-                cellJacMap{is_so} = twoPhaseIx;
+                sL = model.AutoDiffBackend.convertToAD(sL, s);
+                sV = model.AutoDiffBackend.convertToAD(sV, s);
+                if nph > 2
+                    if any(pureLiquid)
+                        sL(pureLiquid) = 1 - sE(pureLiquid);
+                    end
+                    if any(pureVapor)
+                        sV(pureVapor) = 1 - sE(pureVapor);
+                    end
+                end
+                % Set liquid saturation in two-phase cells
+                sl = vars{is_sl};
+                sL(twoPhase) = sl;
+                % Set vapor saturation in two-phase cells
+                sV(twoPhase) = 1 - sl - sE(twoPhase);
+                if nph == 2
+                    cellJacMap{is_sl} = twoPhaseIx;
+                end
             end
-            removed(is_sg | is_so) = true;
-            
-            if model.water
-                is_sw = strcmp(names, 'satw');
-                sW = vars{is_sw};
-                
-                [sO, sG] = setMinimumTwoPhaseSaturations(model, state, sW, sO, sG, pureLiquid, pureVapor);
-                removed(is_sw) = true;
-                sat = {sW, sO, sG};
-            else
-                sat = {sO, sG};
+            removed(is_sv | is_sl) = true;
+
+            if nph > 2
+                [sL, sV] = model.setMinimumTwoPhaseSaturations(state, sE, sL, sV, pureLiquid, pureVapor);
             end
+            sat{model.getLiquidIndex} = sL;
+            sat{model.getVaporIndex} = sV;
+
             state = model.setProp(state, 's', sat);
 
             if ~isempty(model.FacilityModel)
@@ -279,9 +304,9 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
         end
 
-        function forces = validateDrivingForces(model, forces)
-            forces = validateDrivingForces@NaturalVariablesCompositionalModel(model, forces);
-            forces = validateCompositionalForces(model, forces);
+        function forces = validateDrivingForces(model, forces, varargin)
+            forces = validateDrivingForces@NaturalVariablesCompositionalModel(model, forces, varargin{:});
+            forces = validateCompositionalForces(model, forces, varargin{:});
         end
         
         function problem = setupLinearizedProblem(model, eqs, types, names, primaryVars, state, dt)
@@ -293,9 +318,9 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
                 % two-phase region to ensure invertible
                 % Schur-complement
                 twoPhaseIx = find(twoPhase);
-                cn = model.EOSModel.fluid.names;
+                cn = model.EOSModel.getComponentNames();
                 xInd = strcmpi(primaryVars, ['v_', cn{1}]);
-                sInd = strcmpi(primaryVars, 'sato');
+                sInd = strcmpi(primaryVars, 'sL');
                 offsets = cumsum([0; s.getNumVars()]);
                 reorder = 1:offsets(end);
                 start = offsets(xInd) + twoPhaseIx;

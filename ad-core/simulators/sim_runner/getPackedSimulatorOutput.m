@@ -1,4 +1,4 @@
-function [ws, states, reports] = getPackedSimulatorOutput(problem, varargin)
+function [ws, states, reports, model] = getPackedSimulatorOutput(problem, varargin)
 %Get output from a packed simulation problem
 %
 % SYNOPSIS:
@@ -50,6 +50,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'readStatesFromDisk',   [], ...
                  'readReportsFromDisk',  []);
     opt = merge_options(opt, varargin{:});
+    
+    if nargout > 3
+        ctrl = problem.SimulatorSetup.schedule.control(1);
+        [~, fstruct] = problem.SimulatorSetup.model.getDrivingForces(ctrl);
+        model = problem.SimulatorSetup.model.validateModel(fstruct);
+    end
     
     if isempty(opt.readWellSolsFromDisk)
         opt.readWellSolsFromDisk = opt.readFromDisk;

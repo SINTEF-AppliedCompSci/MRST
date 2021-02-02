@@ -4,8 +4,9 @@ classdef MechOilWaterModel < MechFluidModel
 % SYNOPSIS:
 %   model = MechOilWaterModel(G, rock, fluid, mech_problem, ...
 %
-% DESCRIPTION: Model for fully coupled mechanical fluid simulation. The fluid model
-% is a two phase oil-water model.
+% DESCRIPTION:
+%   Model for fully coupled mechanical fluid simulation. The fluid
+%   model is a two phase oil-water model.
 %
 % PARAMETERS:
 %   G            - grid structure
@@ -16,11 +17,12 @@ classdef MechOilWaterModel < MechFluidModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runNorneExample
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-%
-% SEE ALSO: MechBlackOilModel.m, MechWaterModel, MechFluidModel
-%
+% SEE ALSO:
+%   MechBlackOilModel, MechWaterModel, MechFluidModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -87,7 +89,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                             xd);
             end
 
-            [mechTerm, fluidp] = computeCouplingTerms(model, p0, xd0, p, xd);
+            [mechTerm, fluidp] = computeCouplingTerms(model, p0, xd0, p, xd, ...
+                                                      state0.u, state.u);
 
             [ow_eqs, ow_eqsnames, ow_eqstypes, state] = equationsOilWaterMech( ...
                                                               p0, sW0, state0, ...
@@ -151,7 +154,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                             xd);
             end
 
-            [mechTerm, fluidp] = computeCouplingTerms(model, p0, xd0, p, xd);
+            [mechTerm, fluidp] = computeCouplingTerms(model, p0, xd0, p, xd, ...
+                                                      state0.u, state.u);
 
             [ow_eqs, ow_eqsnames, ow_eqstypes, state] = equationsOilWaterMech( ...
                                                               p0, sW0, state0, ...
@@ -181,16 +185,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         function [mechTerm, fluidp] = computeCouplingTerms(model, p0, ...
-                                                           xd0, p, xd)
+                                                           xd0, p, xd, u0, u)
 
-            G = model.G;
-            op = model.mechModel.operators;
-            fluidp = p;
-            mechTerm.new = (op.div*xd)./(G.cells.volumes);;
-            mechTerm.old = (op.div*xd)./(G.cells.volumes);
-            % Note that the opmech.div returns the divergence integrated over cells. That is
-            % why we divide by the cell's volumes
-
+           G = model.G;
+           op = model.mechModel.operators;
+           fluidp = p;
+           
+           if isa(xd, 'ADI')
+              u = double2ADI(u, xd);
+              u(~op.isdirdofs) = xd;  % to ensure correct derivatives
+           end
+           
+           mechTerm.new = (op.ovol_div*u)./(G.cells.volumes);
+           mechTerm.old = (op.ovol_div*u0)./(G.cells.volumes);
+            
+           % Note that the opmech.div returns the divergence integrated over cells. That is
+           % why we divide by the cell's volumes
+            
         end
 
 

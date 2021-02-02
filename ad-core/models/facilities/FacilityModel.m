@@ -40,7 +40,8 @@ classdef FacilityModel < PhysicalModel
 
         VFPTablesInjector % Injector VFP Tables. EXPERIMENTAL.
         VFPTablesProducer % Producer VFP Tables. EXPERIMENTAL.
-        primaryVariableSet = 'standard';
+        primaryVariableSet = 'standard'; % Default: bhp + phase surface rates
+        setWellTargets = true; % Explicitly wellSol values to imposed targets after each iteration
     end
 
     properties (SetAccess = protected)
@@ -77,6 +78,69 @@ classdef FacilityModel < PhysicalModel
         
         function model = removeStateFunctionGroupings(model)
             model.FacilityFlowDiscretization = [];
+        end
+        
+        function [p, state] = getProp(facility, state, name)
+            % Helper function to get (possible) control values for all
+            % active wells. This function will always prioritize primary
+            % variables (AD status) over doubles used for controls.
+            if strcmpi(name, 'surfaceRates') || strcmpi(name, 'q_s')
+                % Ask for all phase rates, bundled up
+                names = facility.ReservoirModel.getPhaseNames();
+                nph = numel(names);
+                tmp = cell(1, nph);
+                qnames = arrayfun(@(x) ['q', x, 's'], names, 'UniformOutput', false);
+                [tmp{:}] = facility.getProps(state, qnames{:});
+                p = tmp;
+            else
+                hasFState = isfield(state, 'FacilityState');
+                if hasFState
+                    fs = state.FacilityState;
+                    pv = strcmpi(fs.names, name);
+                    if any(pv)
+                        % We found it!
+                        p = fs.primaryVariables{pv};
+                        return
+                    end
+                end
+                % It could be stored under the variable field as well,
+                % check that too
+                [s, index] = facility.getVariableField(name, false);
+                if hasFState
+                    pv = strcmpi(fs.names, s);
+                    if any(pv)
+                        p = fs.primaryVariables{pv};
+                        return
+                    end
+                end
+                % We didn't find it in primary variables, fall back to
+                % wellSols for non-AD values
+                if isfield(state.wellSol, s)
+                    wstatus = vertcat(state.wellSol.status);
+                    p = arrayfun(@(x) x.(s)(:, index), state.wellSol(wstatus), 'UniformOutput', false);
+                    p = vertcat(p{:});
+                else
+                    [p, state] = getProp@PhysicalModel(facility, state, name);
+                end
+            end
+        end
+        
+        function [fn, index] = getVariableField(model, name, varargin)
+            index = ':';
+            names = model.ReservoirModel.getPhaseNames();
+            if strcmp(name(1), 'q')
+                qnames = arrayfun(@(x) ['q', x, 's'], names, 'UniformOutput', false);
+            else
+                qnames = {};
+            end
+            switch name
+                case 'bhp'
+                    fn = name;
+                case qnames
+                    fn = name;
+                otherwise
+                    [fn, index] = getVariableField@PhysicalModel(model, name, varargin{:});
+            end
         end
 
         function model = setupWells(model, W, wellmodels)
@@ -1086,9 +1150,11 @@ classdef FacilityModel < PhysicalModel
                 state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces);
                 % Handle the directly assigned values (i.e. can be deduced directly from
                 % the well controls.
-                W = drivingForces.W;
-                phIndices = model.ReservoirModel.getPhaseIndices();
-                state.wellSol = assignWellValuesFromControl(model.ReservoirModel, state.wellSol, W, phIndices(1), phIndices(2), phIndices(3));
+                if model.setWellTargets
+                    W = drivingForces.W;
+                    phIndices = model.ReservoirModel.getPhaseIndices();
+                    state.wellSol = assignWellValuesFromControl(model.ReservoirModel, state.wellSol, W, phIndices(1), phIndices(2), phIndices(3));
+                end
             end
             report = [];
         end

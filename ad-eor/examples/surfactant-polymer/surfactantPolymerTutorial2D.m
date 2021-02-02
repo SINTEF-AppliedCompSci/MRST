@@ -32,7 +32,8 @@ deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
 
 % Construct physical model, initial state and dynamic well controls.
-[state0, model, schedule] = initEclipseProblemAD(deck);
+[state0, model, schedule] = ...
+   initEclipseProblemAD(deck, 'UseLegacyModels', true);
 
 model = model.validateModel();
 figure

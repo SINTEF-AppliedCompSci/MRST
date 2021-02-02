@@ -15,9 +15,9 @@ classdef ComponentPhaseMassFractionsLV < StateFunction
             moles = prop.getEvaluatedDependencies(state, 'ComponentPhaseMoleFractions');
             
             mass = moles;
-            wat = model.water;
+            isEoS = model.getEoSComponentMask();
             for i = 1:size(mass, 2)
-                mass(1:end-wat, i) = eos.getMassFraction(moles(1:end-wat, i));
+                mass(isEoS, i) = eos.getMassFraction(moles(isEoS, i));
             end
         end
     end

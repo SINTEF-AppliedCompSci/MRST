@@ -1,4 +1,4 @@
-function [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(p, T, z, EOSModel, varargin)
+function [L, x, y, Z_L, Z_V, rhoL, rhoV, reports] = standaloneFlash(p, T, z, EOSModel, varargin)
 % Utility for flashing without explicitly forming a state
 %
 % SYNOPSIS:
@@ -45,7 +45,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     state.components = z;
     
     state = EOSModel.validateState(state);
-    state = solver.solveTimestep(state, 1, EOSModel);
+    [state, report] = solver.solveTimestep(state, 1, EOSModel);
     
     L = state.L;
     x = state.x;
@@ -56,12 +56,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         rhoL = EOSModel.PropertyModel.computeDensity(EOSModel, p, x, Z_L, T, true);
         rhoV = EOSModel.PropertyModel.computeDensity(EOSModel, p, y, Z_V, T, false);
     end
+    if nargout > 7
+        reports = report.StepReports{1}.NonlinearReport;
+    end
 end
 
 function [p, T, z] = expandArguments(eos, p, T, z)
     p = reshape(p, [], 1);
     T = reshape(T, [], 1);
-    ncomp = eos.fluid.getNumberOfComponents();
+    ncomp = eos.getNumberOfComponents();
     assert(size(z, 2) == ncomp, ...
         'Component input must have %d columns (the number of components in the eos)', ncomp);
     np = numel(p);

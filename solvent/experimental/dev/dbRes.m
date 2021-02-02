@@ -1,4 +1,4 @@
-mrstModule add ad-core ad-eor ad-blackoil ad-props blackoil-sequential matlab_bgl
+mrstModule add ad-core ad-eor ad-blackoil ad-props sequential matlab_bgl
 
 gravity reset on
 

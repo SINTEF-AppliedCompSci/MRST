@@ -3,7 +3,7 @@
 % Files
 %   combineMSwithRegularWells           - Combine regular and MS wells, accounting for missing fields
 %   computeWellContributionsSingleWell  - Main internal function for computing well equations and source terms
-%   GenericFacilityModel               - 
+%   GenericFacilityModel                - 
 %   FacilityModel                       - A model coupling facilities and wells to the reservoir
 %   MultisegmentWell                    - Derived class implementing multisegment wells
 %   nozzleValve                         - Nozzle valve model
@@ -35,3 +35,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+

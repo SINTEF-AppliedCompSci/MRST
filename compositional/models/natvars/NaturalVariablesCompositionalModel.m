@@ -19,7 +19,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
     %   fluid     - The flow fluid, containing relative permeabilities,
     %               surface densities and flow properties for the
     %               aqueous/water phase (if present)
-    %   compFluid - CompositionalFluid instance describing the species
+    %   mixture   - CompositionalMixture instance describing the species
     %               present.
     %
     % RETURNS:
@@ -28,15 +28,17 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
     % SEE ALSO:
     %   `ThreePhaseCompositionalModel`, `OverallCompositionCompositionalModel`
     properties
-        allowLargeSaturations = false; % Allow sum of saturations larger than unity (experimental option)
-        reduceLinearSystem = true; % Return ReducedLinearizedSystem instead of LinearizedSystemAD
+        allowLargeSaturations = false;  % Allow sum of saturations larger than unity (experimental option)
+        reduceLinearSystem = true;      % Return ReducedLinearizedSystem instead of LinearizedSystemAD
         maxPhaseChangesNonLinear = inf; % Maximum number of phase transitions for a given cell, during a nonlinear step (experimental option)
-        checkStableTransition = false;
+        checkStableTransition = false;  % Do not transition to single-phase if stable
+        saturationEpsilon = 1e-6;       % Epsilon for saturation during phase change
+        flashFromSinglePhase = false;   % Perform flash for cells existing single-phase
     end
     
     methods
-        function model = NaturalVariablesCompositionalModel(G, rock, fluid, compFluid, varargin)
-            model = model@ThreePhaseCompositionalModel(G, rock, fluid, compFluid, varargin{:});
+        function model = NaturalVariablesCompositionalModel(G, rock, fluid, mixture, varargin)
+            model = model@ThreePhaseCompositionalModel(G, rock, fluid, mixture, varargin{:});
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
@@ -46,26 +48,31 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
         
         function [ds, dx, vars] = getSaturationIncrements(model, dx, vars, state)
             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
-            % ----------------------- GAS PHASE --------------------------%
-            [dsG, dx, vars] = getSatUpdateInternal(model, 'satg', dx, vars, twoPhase);
-            [dsO, dx, vars] = getSatUpdateInternal(model, 'sato', dx, vars, twoPhase);
-            [dsW, dx, vars] = getSatUpdateInternal(model, 'satw', dx, vars, twoPhase);
-            if model.water
-                if ~any(strcmpi(vars, 'sGsO'))
-                    dsO(pureLiquid) = -dsW(pureLiquid);
-                    dsG(pureVapor) = -dsW(pureVapor);
-                end
-                ds = [dsW, dsO, dsG];
-            else
-                ds = [dsO, dsG];
+            phases = model.getPhaseNames();
+            nph = numel(phases);
+            ds = zeros(model.G.cells.num, nph);
+            isFound = false(1, nph);
+            for i = 1:nph
+                [ds(:, i), dx, vars, isFound(i)] = getSatUpdateInternal(model, phases(i), dx, vars, twoPhase);
+            end
+            missing = ~isFound;
+            if sum(missing) == 1
+                ds(:, missing) = -sum(ds(:, isFound), 2);
+            end
+            if nph > 2
+                li = model.getLiquidIndex();
+                vi = model.getVaporIndex();
+                tmp = value(ds);
+                ds(pureLiquid, li) = -sum(tmp(pureLiquid, :), 2);
+                ds(pureVapor, vi) = -sum(tmp(pureVapor, :), 2);
             end
         end
 
         function [dx, dy, increments, vars] = getPhaseCompositionIncrements(model, increments, vars, state)
             [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
             
-            ncomp = model.EOSModel.fluid.getNumberOfComponents();
-            cnames = model.EOSModel.fluid.names;
+            ncomp = model.EOSModel.getNumberOfComponents();
+            cnames = model.EOSModel.getComponentNames();
             
             [dx, dy] = deal(zeros(model.G.cells.num, ncomp));
             found = false(ncomp, 1);
@@ -98,13 +105,13 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             [ds, dx, vars] = model.getSaturationIncrements(dx, vars, state);
             [deltax, deltay, dx, vars] = model.getPhaseCompositionIncrements(dx, vars, state);
             
-            [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+            pureLiquid = model.getFlag(state);
             mixvar = strcmpi(vars, 'sGsO');
             if any(mixvar)
                 % Sequential implicit stuff
                 dMix = dx{mixvar};
-                ds(~pureLiquid, end) = dMix(~pureLiquid);
-                ds(pureLiquid, end-1) = dMix(pureLiquid);
+                ds(~pureLiquid, model.getVaporIndex()) = dMix(~pureLiquid);
+                ds(pureLiquid, model.getLiquidIndex()) = dMix(pureLiquid);
                 [vars, removed] = model.stripVars(vars, 'sGsO');
                 dx = dx(~removed);
             end
@@ -113,7 +120,6 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             state0 = state;
-            dx0 = dx;
             vars = problem.primaryVariables;
             if model.allowLargeSaturations
                 dsMax = max(sum(state.s, 2), 1).*model.dsMaxAbs;
@@ -133,14 +139,14 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             w = min(w_sat, w_xy);
             % Update sat
             capunit = @(x) min(max(x, 0), 1);
+            nph = model.getNumberOfPhases();
+            isEosPhase = true(1, nph);
+            isEoSPhase(model.getEoSPhaseIndices) = true;
+
             if any(ds(:) ~= 0)
-                if model.water
-                    ds_relax = ds;
-                    ds_relax(:, 1) = ds(:, 1).*min(dsMax./max(abs(ds(:, 1)), [], 2), 1);
-                    ds_relax(:, 2:end) = ds(:, 2:end).*w;
-                else
-                    ds_relax = bsxfun(@times, w, ds);
-                end
+                ds_relax = ds;
+                ds_relax(:, ~isEoSPhase) = ds(:, ~isEoSPhase).*min(dsMax./max(abs(ds(:, ~isEoSPhase)), [], 2), 1);
+                ds_relax(:, isEosPhase) = bsxfun(@times, ds(:, isEosPhase), w);
                 s_uncap = state.s + ds_relax;
                 if model.allowLargeSaturations
                     state.s = max(s_uncap, 0);
@@ -180,13 +186,9 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             problem.primaryVariables = vars;
             [state, report] = updateState@ThreePhaseCompositionalModel(model, state, problem, dx, drivingForces);
             state = model.flashPhases(state, state0, s_uncap, xyUpdated, problem.iterationNo);
-
-            if model.water
-                sT = sum(state.s, 2);
-                s_hc = (sT - state.s(:, 1))./sT;
-            else
-                s_hc = 1;
-            end
+            sT = sum(state.s, 2);
+            sT_hc = sum(state.s(:, isEoSPhase), 2);
+            s_hc = sT_hc./sT;
             dx = model.computeChange(deltax, s_hc);
             dy = model.computeChange(deltay, s_hc);
             dz = model.computeChange(state.components - state0.components, s_hc);
@@ -197,8 +199,8 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             isTransport = isa(model, 'TransportNaturalVariablesModel');
             isPressure = isa(model, 'PressureNaturalVariablesModel');
             
-            oilIndex = 1 + model.water;
-            gasIndex = 2 + model.water;
+            liquidIndex = model.getLiquidIndex();
+            vaporIndex = model.getVaporIndex();
             % Get pressure, temperature and compositions
             [p, T, K, x, y] = model.getProps(state, 'pressure', 'temperature', 'K', 'x', 'y');
             % Get indicators for phase state at linearization which gave us
@@ -221,61 +223,68 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             stable = act;
             [stable(act), x(act, :), y(act, :)] =...
                 model.EOSModel.performPhaseStabilityTest(p(act, :), T(act, :), z(act, :), K(act, :));
+            flashOut = model.flashFromSinglePhase;
+            if flashOut
+                fi = ~stable & act;
+                substate = struct('pressure', p(fi), 'T', T(fi), 'components', z(fi, :), ...
+                                  'K', K(fi, :), 's', state.s(fi, :), 'L', state.L(fi));
+                substate = model.computeFlash(substate);
+            end
             % Special check - we lock cells in single-phase region if a
             % slightly dangerous debug option is enabled.
             locked = state.switchCount > model.maxPhaseChangesNonLinear;
             stable(locked) = true;
             % Begun calculating new saturations
-            sO = state.s(:, oilIndex);
-            sG = state.s(:, gasIndex);
-            tol = 1e-8;
+            sL = state.s(:, liquidIndex);
+            sV = state.s(:, vaporIndex);
+            tol = model.saturationEpsilon;
             % We introduce a small amount of the previously missing fluid
             % in the unstable cells
-            toEpsOil = isVapor0 & ~stable;
-            toEpsGas = isLiquid0 & ~stable;
+            toEpsLiq = isVapor0 & ~stable & ~flashOut;
+            toEpsVap = isLiquid0 & ~stable & ~flashOut;
             % Un-capped saturation (indicating phase transition to
             % single-phase state)
-            sO_uncap = s_uncap(:, oilIndex);
-            sG_uncap = s_uncap(:, gasIndex);
-            if model.water
-                sW = state.s(:, 1);
-            else
-                sW = 0*sO;
+            sL_uncap = s_uncap(:, liquidIndex);
+            sV_uncap = s_uncap(:, vaporIndex);
+            s_nonhc = 0;
+            nhc = model.getNonEoSPhaseNames();
+            for i = 1:numel(nhc)
+                s_nonhc = s_nonhc + model.getProp(state, ['s', nhc(i)]);
             end
             % Transition to single-phase
-            toOnlyOil = isTwoPh0 & sG_uncap <= 0;
-            toOnlyGas = isTwoPh0 & sO_uncap <= 0;
+            toOnlyLiq = isTwoPh0 & sV_uncap <= 0;
+            toOnlyVap = isTwoPh0 & sL_uncap <= 0;
             % Optionally check if we are transitionining INTO a stable
             % state.
             if model.checkStableTransition
-                toPure = toOnlyOil | toOnlyGas;
-                stable_next = false(size(toOnlyGas));
+                toPure = toOnlyLiq | toOnlyVap;
+                stable_next = false(size(toOnlyVap));
                 stable_next(toPure) = model.EOSModel.performPhaseStabilityTest(p(toPure, :), T(toPure, :), z(toPure, :), K(toPure, :));
                 
-                badGas = ~stable_next & toOnlyGas;
-                badOil = ~stable_next & toOnlyOil;
+                badVap = ~stable_next & toOnlyVap;
+                badLiq = ~stable_next & toOnlyLiq;
                 
-                toOnlyGas(badGas) = false;
-                toOnlyOil(badOil) = false;
+                toOnlyVap(badVap) = false;
+                toOnlyLiq(badLiq) = false;
                 
-                toEpsOil(badGas) = true;
-                toEpsGas(badOil) = true;
+                toEpsLiq(badVap) = true;
+                toEpsVap(badLiq) = true;
             end
             % Something very strange is going on - pick the liquid or vapor
             % state arbitrarily
-            bad = toOnlyOil & toOnlyGas;
+            bad = toOnlyLiq & toOnlyVap;
             if any(bad)
-                gasLargest = abs(state0.s(:, oilIndex)) < abs(state0.s(:, gasIndex));
-                toOnlyGas(bad &  gasLargest) = true;
-                toOnlyGas(bad & ~gasLargest) = false;
-                toOnlyOil(bad & ~gasLargest) = true;
-                toOnlyOil(bad &  gasLargest) = false;
+                vapLargest = abs(state0.s(:, liquidIndex)) < abs(state0.s(:, vaporIndex));
+                toOnlyVap(bad &  vapLargest) = true;
+                toOnlyVap(bad & ~vapLargest) = false;
+                toOnlyLiq(bad & ~vapLargest) = true;
+                toOnlyLiq(bad &  vapLargest) = false;
             end
             % New phase flags
-            isPureLiquid = (stable & isLiquid0) | toOnlyOil;
-            isPureVapor  = (stable & isVapor0 & ~isPureLiquid)  | toOnlyGas;
+            isPureLiquid = (stable & isLiquid0) | toOnlyLiq;
+            isPureVapor  = (stable & isVapor0 & ~isPureLiquid)  | toOnlyVap;
             % Cells switched to two-phase
-            switched_to_twophase = toEpsOil | toEpsGas;
+            switched_to_twophase = toEpsLiq | toEpsVap;
             if any(switched_to_twophase)
                 x_switched = x(switched_to_twophase, :);
                 y_switched = y(switched_to_twophase, :);
@@ -285,7 +294,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 state.x(switched_to_twophase, :) = x_switched;
                 state.y(switched_to_twophase, :) = y_switched;
             end
-            state.switchCount = state.switchCount + double(switched_to_twophase | toOnlyGas | toOnlyOil);
+            state.switchCount = state.switchCount + double(switched_to_twophase | toOnlyVap | toOnlyLiq);
             % What is the maximum allowable total saturation?
             if model.allowLargeSaturations
                 sMax = sum(state.s, 2);
@@ -294,37 +303,33 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             end
             % From this, define the minimum saturation
             sMin = tol.*sMax;
-            if model.water
-                % Ensure that there is a little bit of everything
-                sMax = sMax - sW;
-                sMax = max(sMax, 1e-8);
-            end
-            
-            ds_oswitch = sMin(toEpsOil);
-            ds_gswitch = sMin(toEpsGas);
-            
-            sG(toEpsOil) = sMax(toEpsOil) - ds_oswitch;
-            sO(toEpsGas) = sMax(toEpsGas) - ds_gswitch;
+            % Ensure that there is a little bit of everything if
+            % non-EoS phases exist
+            sMax = sMax - s_nonhc;
+            sMax = max(sMax, 1e-8);
 
-            sO(toEpsOil) = ds_oswitch;
-            sG(toEpsGas) = ds_gswitch;
+            ds_oswitch = sMin(toEpsLiq);
+            ds_gswitch = sMin(toEpsVap);
+            
+            sL(toEpsVap) = sMax(toEpsVap) - ds_gswitch;
+            sV(toEpsLiq) = sMax(toEpsLiq) - ds_oswitch;
+
+            sL(toEpsLiq) = ds_oswitch;
+            sV(toEpsVap) = ds_gswitch;
             % Set single-phase saturations
-            sO(isPureVapor) = 0;
-            sG(isPureLiquid) = 0;
+            sL(isPureVapor) = 0;
+            sV(isPureLiquid) = 0;
             if isTransport
                 % Specific logic for transport model
-                sO(toOnlyOil) = sMax(toOnlyOil);
-                sG(toOnlyGas) = sMax(toOnlyGas);
+                sL(toOnlyLiq) = sMax(toOnlyLiq);
+                sV(toOnlyVap) = sMax(toOnlyVap);
             else
-                sO(isPureLiquid) = sMax(isPureLiquid);
-                sG(isPureVapor) = sMax(isPureVapor);
+                sL(isPureLiquid) = sMax(isPureLiquid);
+                sV(isPureVapor) = sMax(isPureVapor);
             end
+            state = model.setProp(state, ['s', model.vaporPhase], sV);
+            state = model.setProp(state, ['s', model.liquidPhase], sL);
 
-            if model.water
-                state.s = [sW, sO, sG];
-            else
-                state.s = [sO, sG];
-            end
             state = model.setFlag(state, isPureLiquid, isPureVapor);
             
             if isPressure
@@ -349,34 +354,43 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 % liquid fraction
                 state.components = bsxfun(@times, state.x, state.L) + bsxfun(@times, state.y, (1-state.L));
             end
+            if flashOut
+                fn = fieldnames(substate);
+                for i = 1:numel(fn)
+                    f = fn{i};
+                    v = substate.(f);
+                    if isnumeric(v)
+                        state.(f)(fi, :) = v;
+                    end
+                end
+            end
             % Check if we have any disasterous cells. Should not really
             % happen.
             bad = all(state.s == 0, 2);
             if any(bad)
                 unset = sMax;
-                state.s(bad & isPureVapor, gasIndex) = unset(bad & isPureVapor);
-                state.s(bad & isPureLiquid, oilIndex) = unset(bad & isPureLiquid);
-                state.s(bad & isTwoPh, gasIndex) = unset(bad & isTwoPh)/2;
-                state.s(bad & isTwoPh, oilIndex) = unset(bad & isTwoPh)/2;
+                state.s(bad & isPureVapor, vaporIndex) = unset(bad & isPureVapor);
+                state.s(bad & isPureLiquid, liquidIndex) = unset(bad & isPureLiquid);
+                state.s(bad & isTwoPh, vaporIndex) = unset(bad & isTwoPh)/2;
+                state.s(bad & isTwoPh, liquidIndex) = unset(bad & isTwoPh)/2;
             end
             if model.verbose > 1
                 fprintf('%d 2ph, %d oil, %d gas [%d switched, %d locked]\n', ...
                 nnz(state.flag == 0), nnz(state.flag == 1), nnz(state.flag == 2), nnz(state.switched), nnz(locked));
             end
-            
         end
         
         function state = updateSecondaryProperties(model, state)
-            sO = state.s(:, 1 + model.water);
-            sG = state.s(:, 2 + model.water);
-            sT = sO + sG;
-            sO = sO./sT;
-            sG = sG./sT;
+            sL = state.s(:, model.getLiquidIndex());
+            sV = state.s(:, model.getVaporIndex());
+            sT = sL + sV;
+            sL = sL./sT;
+            sV = sV./sT;
             
-            % Only water
+            % Only non-EoS-phases
             missingPhases = sT == 0;
-            sO(missingPhases) = state.L(missingPhases);
-            sG(missingPhases) = 1-state.L(missingPhases);
+            sL(missingPhases) = state.L(missingPhases);
+            sV(missingPhases) = 1-state.L(missingPhases);
             x = state.x;
             y = state.y;
             z = state.components;
@@ -395,7 +409,7 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
             else
                 rhoO = model.PropertyModel.computeMolarDensity(eos, p, x, Z_L, temp, true);
                 rhoG = model.PropertyModel.computeMolarDensity(eos, p, y, Z_V, temp, false);
-                L = rhoO.*sO./(rhoO.*sO + rhoG.*sG);
+                L = rhoO.*sL./(rhoO.*sL + rhoG.*sV);
                 state.L = double(L);
             end
             
@@ -404,8 +418,8 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
         end
 
         
-        function [xM,  yM,  rhoO,  rhoG,  muO,  muG, f_L, f_V,...
-                  xM0, yM0, rhoO0, rhoG0] = ...
+        function [xM,  yM,  rhoL,  rhoV, muL,  muV, f_L, f_V,...
+                  xM0, yM0, rhoL0, rhoV0] = ...
                   getTimestepPropertiesEoS(model, state, state0, p, temp, x, y, z, sO, sG, cellJacMap)
             eos = model.EOSModel;
             if isempty(eos.equilibriumConstantFunctions)
@@ -422,16 +436,15 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                 end
             end
 
-            [xM, rhoO, muO] = model.getFlowPropsNatural(p, x, Z_L, temp, true);
-            [yM, rhoG, muG] = model.getFlowPropsNatural(p, y, Z_V, temp, false);
+            [xM, rhoL, muL] = model.getFlowPropsNatural(p, x, Z_L, temp, true);
+            [yM, rhoV, muV] = model.getFlowPropsNatural(p, y, Z_V, temp, false);
             
             [p0, temp0, x0, y0] = model.getProps(state0, 'pressure', 'T', 'x', 'y');
             x0 = expandMatrixToCell(x0);
             y0 = expandMatrixToCell(y0);
 
-            [xM0, rhoO0] = model.getFlowPropsNatural(p0, x0, state0.Z_L, temp0, true);
-            [yM0, rhoG0] = model.getFlowPropsNatural(p0, y0, state0.Z_V, temp0, false);
-
+            [xM0, rhoL0] = model.getFlowPropsNatural(p0, x0, state0.Z_L, temp0, true);
+            [yM0, rhoV0] = model.getFlowPropsNatural(p0, y0, state0.Z_V, temp0, false);
         end
         
         function [xM, rho, mu] = getFlowPropsNatural(model, p, x, Z, T, isLiquid)
@@ -475,10 +488,17 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
     end
     
     methods(Access=protected)
-        function [ds, dx, vars] = getSatUpdateInternal(model, name, dx, vars, twoPhase)
-            dsgix = strcmpi(vars, name);
-            if any(dsgix)
-                ds_tmp = dx{dsgix};
+        function [ds, dx, vars, found] = getSatUpdateInternal(model, name, dx, vars, twoPhase)
+            if strcmpi(name, model.liquidPhase)
+                name = 'L';
+            elseif strcmpi(name, model.vaporPhase)
+                name = 'V';
+            end
+            sn = ['s', name];
+            isdS = strcmpi(vars, sn);
+            found = any(isdS);
+            if found
+                ds_tmp = dx{isdS};
                 if numel(ds_tmp) == nnz(twoPhase)
                     ds = zeros(model.G.cells.num, 1);
                     ds(twoPhase) = ds_tmp;
@@ -486,8 +506,9 @@ classdef NaturalVariablesCompositionalModel < ThreePhaseCompositionalModel
                     assert(numel(ds_tmp) == model.G.cells.num);
                     ds = ds_tmp;
                 end
-                [vars, removed] = model.stripVars(vars, name);
+                [vars, removed] = model.stripVars(vars, sn);
                 dx = dx(~removed);
+                assert(any(removed))
             else
                 ds = zeros(model.G.cells.num, 1);
             end

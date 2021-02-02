@@ -4,7 +4,8 @@ function state = computeInitDisp(model, state, uu, varargin)
 % SYNOPSIS:
 %   function state = computeInitDisp(model, state, uu, varargin)
 %
-% DESCRIPTION: Compute the initial displacement
+% DESCRIPTION:
+%   Compute the initial displacement
 %
 % PARAMETERS:
 %   model    - Model that contains a mechanical model (model.mechModel)
@@ -17,11 +18,7 @@ function state = computeInitDisp(model, state, uu, varargin)
 %
 % RETURNS:
 %   state - State updated with computed mechanical variables.
-%
-% EXAMPLE:
-%
-% SEE ALSO:
-%
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -40,7 +37,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
 
     opt = struct('mech_equil', true, ...
                  'pressure'  , []   );

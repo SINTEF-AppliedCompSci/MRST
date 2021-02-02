@@ -39,7 +39,7 @@ W = verticalWell(W, G, rock, nx, ny, [], ...
 % which is then displaced by the injection of pure CO2.
 
 nkr = 2;
-[fluid, info] = getCompositionalFluidCase(casename);
+[fluid, info] = getBenchmarkMixture(casename);
 flowfluid = initSimpleADIFluid('n', [nkr, nkr, nkr], 'rho', [1000, 800, 10]);
 
 gravity reset on

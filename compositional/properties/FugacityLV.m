@@ -17,13 +17,19 @@ classdef FugacityLV < StateFunction
             p = model.getProps(state, 'pressure');
             [mix, mf, Z] = prop.getEvaluatedDependencies(state, 'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions', 'PhaseCompressibilityFactors');
             
-            ncomp = numel(eos.fluid.names);
+            ncomp = eos.getNumberOfComponents();
             f = cell(ncomp, 2);
-            wat = model.water;
             twoPhase = model.getTwoPhaseFlag(state);
+            isEoS = model.getEoSComponentMask();
+
             for i = 1:2
-                xy = mf(1:end-wat, i + wat)';
-                m = mix{i+wat};
+                if i == 1
+                    phix = model.getLiquidIndex();
+                else
+                    phix = model.getVaporIndex();
+                end
+                xy = mf(isEoS, phix)';
+                m = mix{phix};
                 if i == 2 && prop.useCompactEvaluation && ~all(twoPhase)
                     [~, ~, twoPhase] = model.getFlag(state);
                     fi = f(:, 1);
@@ -31,14 +37,14 @@ classdef FugacityLV < StateFunction
                         xy = cellfun(@(x) x(twoPhase), xy, 'UniformOutput', false);
                         Si = cellfun(@(x) x(twoPhase), m.Si, 'UniformOutput', false);
                         Bi = cellfun(@(x) x(twoPhase), m.Bi, 'UniformOutput', false);
-                        f_2ph = model.EOSModel.computeFugacity(p(twoPhase), xy, Z{i+wat}(twoPhase), m.A(twoPhase), m.B(twoPhase), Si, Bi);
+                        f_2ph = model.EOSModel.computeFugacity(p(twoPhase), xy, Z{phix}(twoPhase), m.A(twoPhase), m.B(twoPhase), Si, Bi);
                         for j = 1:numel(fi)
                             fi{j}(twoPhase) = f_2ph{j};
                         end
                     end
                     f(:, i) = fi;
                 else
-                    f(:, i) = model.EOSModel.computeFugacity(p, xy, Z{i+wat}, m.A, m.B, m.Si, m.Bi);
+                    f(:, i) = model.EOSModel.computeFugacity(p, xy, Z{phix}, m.A, m.B, m.Si, m.Bi);
                 end
             end
         end

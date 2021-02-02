@@ -40,9 +40,18 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('pressureRange', []);
+    opt = struct('pressureRange', [], 'regNo', 1, 'field', []);
     opt = merge_options(opt, varargin{:});
-
+    fn = fieldnames(model.fluid);
+    for propno = 1:numel(fn)
+        f = fn{propno};
+        lfn = model.fluid.(f);
+        if iscell(lfn)
+            index = min(numel(lfn), opt.regNo);
+            fprintf('Multiple regions found for %s. Only plotting region %d.\n', f, index);
+            model.fluid.(f) = lfn{index};
+        end
+    end
     if isempty(opt.pressureRange)
         p0 = max(model.minimumPressure, 0.1*barsa);
         p1 = min(model.maximumPressure, 600*barsa);
@@ -129,8 +138,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               'Style', 'listbox',...
               'String', names, 'Callback', @drawPlot, ...
               'Position',[0 0 1 1]);
-    
           
+    if ~isempty(opt.field)
+        v = find(strcmpi(opt.field, names));
+        if isempty(v), v = 1; end
+        set(propsel, 'Value', v);
+    end
 
     function drawPlot(src, event)                                          %#ok<*INUSD>
         axis(plotaxis);
@@ -163,7 +176,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if vapoil
             rvMax = f.rvSat(p, arg{:});
         end
-        % n = sum(model.getActivePhases);
 
         legflag = false(size(fields));
         legh = zeros(size(fields));

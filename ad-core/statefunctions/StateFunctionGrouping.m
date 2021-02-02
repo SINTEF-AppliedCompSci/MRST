@@ -12,7 +12,6 @@ classdef StateFunctionGrouping < StateFunctionDependent
     % These functions represent additional properties which can be
     % dependencies of the intrinsics properties.
     properties
-        
     end
     
     properties (Access = protected)
@@ -21,6 +20,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
         functionTypes % Indicator of property (0 for class member "intrinsic", 1 for stored)
         extraFunctions = {}; % Additional properties, not present as class properties
         excludedFields % Class properties which are not intended as functions
+        validationLevel = 0; % Level of validation checking performed. Performance hit > 0!
     end
     
     methods
@@ -178,21 +178,24 @@ classdef StateFunctionGrouping < StateFunctionDependent
             v = expandIfUniform(v);
         end
 
-        function state = evaluateStateFunction(props, model, state, name)
+        function state = evaluateStateFunction(sfg, model, state, name)
             % Force evaluation of a property, assuming all dependencies are
             % met. If all dependencies are not met, use
             % evaluateStateFunctionWithDependencies or simply get.
-            struct_name = props.structName;
+            struct_name = sfg.structName;
             if isstruct(state) && ~isfield(state, struct_name)
-                props_struct = props.getStateFunctionContainer();
+                props_struct = sfg.getStateFunctionContainer();
             else
                 props_struct = state.(struct_name);
             end
-            prop = props.getStateFunction(name);
+            prop = sfg.getStateFunction(name);
             if isempty(prop.structName)
-                prop.structName = props.structName;
+                prop.structName = sfg.structName;
             end
             props_struct.(name) = prop.evaluateOnDomain(model, state);
+            if sfg.validationLevel > 0
+                prop.validateOutput(props_struct.(name), sfg.validationLevel);
+            end
             if nargout > 0
                 state.(struct_name) = props_struct;
             end
@@ -202,24 +205,39 @@ classdef StateFunctionGrouping < StateFunctionDependent
             % Evaluate property, and all required dependencies in state.
             prop = props.getStateFunction(name);
             state = props.evaluateDependencies(model, state, prop.dependencies);
+            state = props.evaluateExternalDependencies(model, state, prop.externals);
             state = props.evaluateStateFunction(model, state, name);
         end
         
-        function ok = isStateFunctionEvaluated(props, model, state, name)
+        function ok = isStateFunctionEvaluated(props, model, state, dep)
             % Check if property is present in cache.
-            nm = props.structName;
-            if isfield(state, nm)
-                % Cache is present, but this specific property is not
-                % necessarily present
-                if ~isfield(state.(nm), name)
-                    error(['Did not find %s in %s field. %s does not appear', ...
-                        ' to belong to %s. Check your dependencies.'], ...
-                        name, nm, name, class(props));
+            if ischar(dep)
+                % Internal dependency - same group
+                nm = props.structName;
+                if isfield(state, nm)
+                    % Cache is present, but this specific property is not
+                    % necessarily present
+                    if ~isfield(state.(nm), dep)
+                        error(['Did not find %s in %s field. %s does not appear', ...
+                            ' to belong to %s. Check your dependencies.'], ...
+                            dep, nm, dep, class(props));
+                    end
+                    ok = structPropEvaluated(state.(nm), dep);
+                else
+                    % Cache object is missing, we have no properties
+                    ok = false;
                 end
-                ok = structPropEvaluated(state.(nm), name);
             else
-                % Cache object is missing, we have no properties
-                ok = false;
+                % External dependency - either state or some other function
+                % group belonging to the model
+                if strcmp(dep.grouping, 'state')
+                    ok = true;
+                elseif isprop(model, dep.grouping)
+                    ok = model.(dep.grouping).isStateFunctionEvaluated(model, state, dep.name);
+                else
+                    % Assumed to found somewhere else.
+                    ok = true;
+                end
             end
         end
         
@@ -235,6 +253,26 @@ classdef StateFunctionGrouping < StateFunctionDependent
                 name = names{i};
                 if ~isStateFunctionEvaluated(props, model, state, name)
                     state = props.evaluateStateFunctionWithDependencies(model, state, name);
+                end
+            end
+        end
+        
+        function state = evaluateExternalDependencies(props, model, state, externals)
+            % Internal function for evaluating a list external of dependencies, in
+            % an ordered fashion.
+            % PARAMETERS:
+            %   props - class instance
+            %   model - model instance used to initialize the state
+            %   state - state used to evaluate dependencies
+            %   names - ordered struct array of all external dependencies
+            for i = 1:numel(externals)
+                dep = externals(i);
+                if strcmpi(dep.grouping, 'state')
+                    % Do nothing
+                    continue
+                end
+                if ~isStateFunctionEvaluated(props, model, state, dep)
+                    state = model.(dep.grouping).evaluateStateFunctionWithDependencies(model, state, dep.name);
                 end
             end
         end
@@ -400,6 +438,10 @@ classdef StateFunctionGrouping < StateFunctionDependent
                     props = props.setStateFunction(name, fn);
                 end
             end
+        end
+        
+        function group = setValidationLevel(group, level)
+            group.validationLevel = level;
         end
     end
     methods (Access = protected)

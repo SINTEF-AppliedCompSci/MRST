@@ -85,12 +85,16 @@ classdef WrapperModel < PhysicalModel
             model.parentModel.checkStateFunctionDependencies();
         end
         
-        function forces = validateDrivingForces(model, forces)
-            forces = model.parentModel.validateDrivingForces(forces);
+        function forces = validateDrivingForces(model, forces, varargin)
+            forces = model.parentModel.validateDrivingForces(forces, varargin{:});
         end
         
         function groupings = getStateFunctionGroupings(model)
             groupings = model.parentModel.getStateFunctionGroupings();
+        end
+        
+        function [values, tolerances, names] = getConvergenceValues(model, varargin)
+            [values, tolerances, names] = model.parentModel.getConvergenceValues(varargin{:});
         end
 
         function rmodel = getReservoirModel(model)

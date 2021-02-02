@@ -59,10 +59,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     state.s = s;
     if isfield(state, 'components')
-        state_f = model.computeFlash(state, inf);
-        
-        rhoL = model.PropertyModel.computeMolarDensity(state.pressure, state_f.x, state_f.Z_L, state.T, true);
-        rhoV = model.PropertyModel.computeMolarDensity(state.pressure, state_f.y, state_f.Z_V, state.T, false);
+        rhoL = model.PropertyModel.computeMolarDensity(model.EOSModel, state.pressure, state_f.x, state_f.Z_L, state.T, true);
+        rhoV = model.PropertyModel.computeMolarDensity(model.EOSModel, state.pressure, state_f.y, state_f.Z_V, state.T, false);
         % Get saturations for hydrocarbon-like phases
         [sL, sV] = model.getProps(state_f, 'so', 'sg');
         % Calculate total molar density
@@ -77,7 +75,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             N_c(:, i) = accumarray(p, N_f(:, i))./pvc;
         end
         state.components = bsxfun(@rdivide, N_c, sum(N_c, 2));
-        
         flds = {'L', 'x', 'y', 'K', 'K', 'Z_L', 'Z_V', 'mixing', 'flag', 'eos'};
         for i = 1:numel(flds)
             f = flds{i};
@@ -117,5 +114,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     if isfield(state, 'FlowProps')
         state = rmfield(state, 'FlowProps');
+    end
+    if isfield(state, 'components')
+        % Flash compositional variables
+        state = model.computeFlash(state, inf);
     end
 end

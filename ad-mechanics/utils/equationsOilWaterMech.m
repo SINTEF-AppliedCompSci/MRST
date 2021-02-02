@@ -7,8 +7,6 @@ function [eqs, names, types, state] = equationsOilWaterMech(p0, sW0, state0, ...
 % SYNOPSIS:
 %   function [eqs, names, types, state] = equationsOilWaterMech(p0, sW0, state0, p, sW, wellVars, state, model, dt, mechTerm, drivingForces, varargin)
 %
-% DESCRIPTION:
-%
 % PARAMETERS:
 %   p0            - pressure   (for previous time step)  
 %   sW0           - saturation (for previous time step)
@@ -31,41 +29,11 @@ function [eqs, names, types, state] = equationsOilWaterMech(p0, sW0, state0, ...
 %   types - The type of each equations
 %   state - Some field related to well control of the state variables may be updated.
 %
-% EXAMPLE: run2DCase, runNorneExample
-%
-% SEE ALSO: equationOilWater
-%
-
-%
-%
-%
-% PARAMETERS:
-%   p             - Pressure
-%   sW            - Saturation
-%   wellVars      - Well variables
-%   state         - State at given time step
-%   p0            - Pressure (for previous time step)
-%   sW0           - Saturation (for previous time step)
-%   state0        - State at given time step (for previous time step)
-%   model         - Model class instance that is used.
-%   dt            - Time step
-%   mechTerm      - Mechanical input which will enter the computation of the
-%                   effective porosity
-%   drivingForces - Structure that gathers the well parameters and boundary conditions.
-%
-% RETURNS:
-%   eqs   - The residual values as ADI variables (that is with the Jacobian)
-%           if the inputs were also ADI.
-%   names - The name of each equations
-%   types - The type of each equations
-%   state - Some field related to well control of the state variables may be updated.
-%
 % EXAMPLE:
+%   run2DCase, runNorneExample
 %
-% SEE ALSO: equationOilWater
-%
-
-% Equation for oil water system that also takes input from mechanics.
+% SEE ALSO:
+%   equationOilWater.
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
@@ -85,7 +53,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
 
     % Note that state is given only for output
     opt = struct('iteration', -1, ...

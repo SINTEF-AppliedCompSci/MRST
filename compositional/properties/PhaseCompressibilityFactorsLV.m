@@ -21,21 +21,19 @@ classdef PhaseCompressibilityFactorsLV < StateFunction
             end
             nph = model.getNumberOfPhases();
             eos = model.EOSModel;
-            wat = model.water;
             p = model.getProps(state, 'pressure');
             [mix, mf] = prop.getEvaluatedDependencies(state, 'PhaseMixingCoefficients', 'ComponentPhaseMoleFractions');
-            L_ix = 1+wat;
-            V_ix = L_ix + 1;
+            L_ix = model.getLiquidIndex();
+            V_ix = model.getVaporIndex();
+            isEoS = model.getEoSComponentMask();
             
-            x = mf(1:end-wat, L_ix);
-            y = mf(1:end-wat, V_ix);
+            x = mf(isEoS, L_ix);
+            y = mf(isEoS, V_ix);
             
             L_mix = mix{L_ix};
             V_mix = mix{V_ix};
-            s = getSampleAD(p, x{:}, y{:});
             
             Z_L = eos.computeCompressibilityZ(p, x, L_mix.A, L_mix.B, L_mix.Si, L_mix.Bi, true);
-            Z_L = model.AutoDiffBackend.convertToAD(Z_L, s);
             Z_L = eos.setZDerivatives(Z_L, L_mix.A, L_mix.B, arg{:});
             twoPhase = model.getTwoPhaseFlag(state);
             if prop.useCompactEvaluation && ~all(twoPhase) 
@@ -59,15 +57,14 @@ classdef PhaseCompressibilityFactorsLV < StateFunction
                 end
             else
                 Z_V = eos.computeCompressibilityZ(p, y, V_mix.A, V_mix.B, V_mix.Si, V_mix.Bi, false);
-                Z_V = model.AutoDiffBackend.convertToAD(Z_V, s);
                 Z_V = eos.setZDerivatives(Z_V, V_mix.A, V_mix.B, arg{:});
             end
             
             v = cell(1, nph);
             v{L_ix} = Z_L;
             v{V_ix} = Z_V;
-            if model.water
-                v{1} = ones(numelValue(Z_L), 1);
+            if nph > 2
+                [v{cellfun(@isempty, v)}] = deal(ones(numelValue(Z_L), 1));
             end
         end
     end

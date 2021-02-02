@@ -4,8 +4,9 @@ classdef MechBlackOilModel < MechFluidModel
 % SYNOPSIS:
 %   model = MechBlackOilModel(G, rock, fluid, mech_problem, varargin)
 %
-% DESCRIPTION: Model for fully coupled mechanical fluid simulation. The fluid model
-% is a blackoil model.
+% DESCRIPTION:
+%   Model for fully coupled mechanical fluid simulation. The fluid
+%   model is a blackoil model.
 %
 % PARAMETERS:
 %   G            - grid structure
@@ -16,10 +17,12 @@ classdef MechBlackOilModel < MechFluidModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runNorneExample
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-% SEE ALSO: MechOilWaterModel, MechWaterModel, MechFluidModel
-%
+% SEE ALSO:
+%   MechOilWaterModel, MechWaterModel, MechFluidModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -38,7 +41,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
 
     methods
         function model = MechBlackOilModel(G, rock, fluid, mech_problem, varargin)
@@ -104,7 +106,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                                xd);
             end
 
-            [mechTerm, fluidp] = computeCouplingTerms(model, p0, xd0, p, xd);
+            [mechTerm, fluidp] = computeCouplingTerms(model, p0, xd0, p, xd, ...
+                                                      state0.u, state.u);
 
             [bo_eqs, bo_eqsnames, bo_eqstypes, state] = equationsBlackOilMech(state0, ...
                                                               st0, p, sW, x, ...
@@ -132,19 +135,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         end
         
-        function [mechTerm, fluidp] = computeCouplingTerms(model, p0, ...
-                                                              xd0, p, xd)
+        function [mechTerm, fluidp] = ...
+           computeCouplingTerms(model, p0, xd0, p, xd, u0, u)
 
-            G = model.G;
-            op = model.mechModel.operators;
-            fluidp = p;
-            mechTerm.old = (op.div*xd0)./(G.cells.volumes);
-            mechTerm.new = (op.div*xd)./(G.cells.volumes);
-            % Note that the opmech.div returns the divergence integrated over cells. That is
-            % why we divide by the cell's volumes.
-
+           G = model.G;
+           op = model.mechModel.operators;
+           fluidp = p;
+           
+           if isa(xd, 'ADI')
+              u = double2ADI(u, xd);
+              u(~op.isdirdofs) = xd;  % to ensure correct derivatives
+           end
+           
+           mechTerm.new = (op.ovol_div*u)./(G.cells.volumes);
+           mechTerm.old = (op.ovol_div*u0)./(G.cells.volumes);
+           
+           % Note that the opmech.div returns the divergence integrated over cells. That is
+           % why we divide by the cell's volumes.
+           
         end
-
-
     end
 end

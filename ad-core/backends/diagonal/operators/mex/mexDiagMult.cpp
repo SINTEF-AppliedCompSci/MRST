@@ -16,7 +16,7 @@ void diagMult(const size_t n, const V_type* v, const double* D, double* out) {
 
 template <class V_type>
 void diagMult(const size_t n, const size_t m, const V_type * v, const double* D, double* out) {
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for
     for (int i = 0; i < n; i++) {
         const double vi = v[i];
         for (int j = i * m; j < (i + 1) * m; j++) {

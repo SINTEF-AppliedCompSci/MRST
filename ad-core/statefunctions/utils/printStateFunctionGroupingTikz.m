@@ -29,8 +29,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('edgeDraw',    true, ...
                  'drawGroups',  true, ...
                  'inner',       'tree layout, grow = right', ...
-                 'outer',       'tree layout');
+                 'outer',       'tree layout', ...
+                 'file',        []);
     opt = merge_options(opt, varargin{:});
+    if isempty(opt.file)
+        fp = 1;
+    else
+        fp = fopen(opt.file,'w');
+    end
     % Tikz version of plotStateFunctionGrouping
     outer = opt.outer;
     inner = opt.inner;
@@ -74,7 +80,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     ng = numel(uniqueGroups);
     
-    fprintf(['\\documentclass[tikz,border=5pt]{standalone}\n', ...
+    fprintf(fp, ['\\documentclass[tikz,border=5pt]{standalone}\n', ...
             '\\usepackage{tikz}\n', ...
             '\\usetikzlibrary{graphdrawing.layered}\n', ...
             '\\usetikzlibrary{positioning,shapes}\n', ...
@@ -88,9 +94,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             '\\usegdlibrary{layered, trees, force, circular, phylogenetics}\n', ...
             '\\begin{document}\n']);
     
-    fprintf('\\tikzstyle{propbox}=[rounded rectangle, draw = black]\n');
-    fprintf('\\tikzstyle{propedge}=[>={Stealth[round,sep,bend]}, line width = 1pt, draw = black!30, line width = 1pt, draw = black!30, -Stealth]\n');
-    fprintf('\\tikzstyle{groupbox}=[font=\\bfseries \\Large, rounded corners, opacity=0.4]\n');
+    fprintf(fp, '\\tikzstyle{propbox}=[rounded rectangle, draw = black]\n');
+    fprintf(fp, '\\tikzstyle{propedge}=[>={Stealth[round,sep,bend]}, line width = 1pt, draw = black!30, line width = 1pt, draw = black!30, -Stealth]\n');
+    fprintf(fp, '\\tikzstyle{groupbox}=[font=\\bfseries \\Large, rounded corners, opacity=0.4]\n');
     
     colors = [228, 26, 28; ...
               55, 126, 184;...
@@ -102,51 +108,54 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     for i = 1:ng
         c1 = colors(i, :);
         c2 = brighten(c1, 0.5);
-        fprintf('\\tikzstyle{%s}=[propbox, fill={%s}]\n', uniqueGroups{i}, formatRGB(c2));
-        fprintf('\\tikzstyle{%sEdge}=[propedge, draw={%s}]\n', uniqueGroups{i}, formatRGB(c1));
+        fprintf(fp, '\\tikzstyle{%s}=[propbox, fill={%s}]\n', uniqueGroups{i}, formatRGB(c2));
+        fprintf(fp, '\\tikzstyle{%sEdge}=[propedge, draw={%s}]\n', uniqueGroups{i}, formatRGB(c1));
     end
-    fprintf('\\tikz[]{\n');
-    fprintf('\\graph[%s, nodes={propbox}, edges={propedge}, node distance = %dcm]{\n', outer, node_dist);
+    fprintf(fp, '\\tikz[]{\n');
+    fprintf(fp, '\\graph[%s, nodes={propbox}, edges={propedge}, node distance = %dcm]{\n', outer, node_dist);
     active = false(size(edges, 1), 1);
     doSub = opt.drawGroups;
     
     for gno = 1:ng
         group = uniqueGroups{gno};
         if doSub
-            fprintf('%s[font=\\bfseries \\Large] // [%s,  edges={%sEdge}] {\n', group, inner, group);
+            fprintf(fp, '%s[font=\\bfseries \\Large] // [%s,  edges={%sEdge}] {\n', group, inner, group);
         end
         sub = find(strcmp(groupNames, group));
         % Draw nodes
         for index = 1:numel(sub)
             i = sub(index);
-            fprintf('%d [%s, as=%s], \n', i, group, nodeNames{i});
+            fprintf(fp, '%d [%s, as=%s], \n', i, group, nodeNames{i});
         end
-        act = drawEdges(nodes, edges, groupNames, group, [], []);
+        act = drawEdges(fp, nodes, edges, groupNames, group, [], []);
         active = active | act;
         if doSub
-            fprintf('},\n');
+            fprintf(fp, '},\n');
         end
     end
     % Draw edges
     edgecolors = colors;
     if ~opt.edgeDraw
-        drawEdges(nodes, edges(~active, :), groupNames, [], 'densely dashed, opacity = 0.5', edgecolors, uniqueGroups);
+        drawEdges(fp, nodes, edges(~active, :), groupNames, [], 'densely dashed, opacity = 0.5', edgecolors, uniqueGroups);
     end
-    fprintf('};\n');
-    fprintf('\\begin{scope}[on background layer]\n');
+    fprintf(fp, '};\n');
+    fprintf(fp, '\\begin{scope}[on background layer]\n');
     if opt.edgeDraw
-        drawEdges(nodes, edges(~active, :), groupNames, [], 'propedge, densely dashed, opacity = 0.5', edgecolors, uniqueGroups, true);
+        drawEdges(fp, nodes, edges(~active, :), groupNames, [], 'propedge, densely dashed, opacity = 0.5', edgecolors, uniqueGroups, true);
     end
     % Draw background boxes
     if doSub
         for gno = 1:ng
             group = uniqueGroups{gno};
-            fprintf('\t\\draw[%s, groupbox]\n', group);
-            fprintf('\t(%s.north east) rectangle (%s.south west);\n', group, group);
+            fprintf(fp, '\t\\draw[%s, groupbox]\n', group);
+            fprintf(fp, '\t(%s.north east) rectangle (%s.south west);\n', group, group);
         end
     end
-    fprintf('\\end{scope}\n');
-    fprintf('}\n\\end{document}\n');
+    fprintf(fp, '\\end{scope}\n');
+    fprintf(fp, '}\n\\end{document}\n');
+    if ~isempty(opt.file)
+        fclose(fp);
+    end
 end
 
 function istex = checkLaTeX(x)
@@ -159,8 +168,8 @@ function istex = checkLaTeX(x)
     end
 end
 
-function drawn = drawEdges(nodes, edges, groups, group, stylearg, colors, allgroups, asSep)
-    if nargin < 8
+function drawn = drawEdges(fp, nodes, edges, groups, group, stylearg, colors, allgroups, asSep)
+    if nargin < 9
         asSep = false;
     end
     ne = size(edges, 1);
@@ -187,9 +196,9 @@ function drawn = drawEdges(nodes, edges, groups, group, stylearg, colors, allgro
             arg = ['[', arg, ']'];
         end
         if asSep
-            fprintf('\\draw%s (%d) -> (%d);\n', arg, start, stop)
+            fprintf(fp, '\\draw%s (%d) -> (%d);\n', arg, start, stop);
         else
-            fprintf('%d -> %s %d, \n', start, arg, stop)
+            fprintf(fp, '%d -> %s %d, \n', start, arg, stop);
         end
     end
 end

@@ -8,6 +8,7 @@
 %   blackoilTutorialMexAcceleration  - Example demonstrating accelerated assembly for faster simulation
 %   blackoilTutorialOnePhase         - Example: Depletion of a closed or open reservoir compartment
 %   blackoilTutorialPlotHook         - Example demonstrating in-situ plotting capabilities in MRST-AD
+%   fieldModelNorneExample           - Example demonstrating how to run the Norne field model in MRST
 %   immiscibleTimeIntegrationExample - 
 %   multisegmentWellExample          - Multi-segment well example based on SPE 1 benchmark model
 %   simulatorWorkflowExample         - Workflow example for MRST-AD

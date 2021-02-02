@@ -49,7 +49,7 @@ void divergenceJac(const int nf, const int nc,
     const double* accumulation, const double* diagonal,
     double* pr, mwIndex* ir, mwIndex* jc) {
     int mv = facePos[nc];
-    #pragma omp parallel for schedule(dynamic, 512)
+    #pragma omp parallel for
     for (int cell = 0; cell < nc; cell++) {
         // Each cell has number of connections equal to the number of half-
         // faces for that cell plus itself multiplied by the block size
@@ -72,7 +72,6 @@ void divergenceJac(const int nf, const int nc,
                 else {
                     pr[dpos] = accumulation[cell * m + der];
                 }
-                
             }
             else {
                 /* Not sure if this bit is needed - but the Matlab docs
@@ -721,31 +720,3 @@ void mexFunction( int nlhs, mxArray *plhs[],
     }
 }
 
-
-/*
-if (c < 0) {
-    // Low entry, corresponding to N(f, 1)
-    for (int der = 0; der < m; der++) {
-        int sparse_offset = jc[cell + nc * der];
-        double v = diagonal[f * 2 * m + der];
-        // Set row entry
-        ir[sparse_offset + i] = -c;
-        pr[sparse_offset + i] = -v;
-        // Set corresponding diagonal entry
-        pr[sparse_offset + diag] += v;
-    }
-
-}
-else {
-    // High entry, corresponding to N(f, 2)
-    for (int der = 0; der < m; der++) {
-        int sparse_offset = jc[cell + nc * der];
-        double v = diagonal[(f * 2 + 1)* m + der];
-        // Set row entry
-        ir[sparse_offset + i] = c;
-        pr[sparse_offset + i] = v;
-        // Set corresponding diagonal entry
-        pr[sparse_offset + diag] -= v;
-    }
-}
-*/

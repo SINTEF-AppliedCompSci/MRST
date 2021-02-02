@@ -7,7 +7,9 @@ classdef CompositionalDensity < StateFunction
     methods
         function gp = CompositionalDensity(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions'});
+            gp = gp.dependsOn({'PhasePressures',...
+                               'PhaseCompressibilityFactors',...
+                               'ComponentPhaseMoleFractions'});
             gp = gp.dependsOn({'pressure', 'T'}, 'state');
             gp.label = '\rho_\alpha';
         end
@@ -16,13 +18,14 @@ classdef CompositionalDensity < StateFunction
             [p, T] = model.getProps(state, 'pressure', 'temperature');
             [p_phase, Z, mf] = prop.getEvaluatedDependencies(state, ...
                 'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions');
-            hasWater = model.water;
+            phases = model.getPhaseNames();
+            nph = numel(phases);
+            L_ix = model.getLiquidIndex();
+            V_ix = model.getVaporIndex();
+            isEoS = model.getEoSComponentMask();
             
-            L_ix = 1+model.water;
-            V_ix = L_ix + 1;
-            
-            x = mf(1:end-hasWater, L_ix);
-            y = mf(1:end-hasWater, V_ix);
+            x = mf(isEoS, L_ix);
+            y = mf(isEoS, V_ix);
             eos = model.EOSModel;
             pm = eos.PropertyModel;
             rhoL = pm.computeDensity(eos, p, x, Z{L_ix}, T, true);
@@ -40,14 +43,17 @@ classdef CompositionalDensity < StateFunction
             else
                 rhoV = pm.computeDensity(eos, p, y, Z{V_ix}, T, false);
             end
-            
-            if hasWater
-                f = model.fluid;
-                bW = prop.evaluateFluid(model, 'bW', p_phase{1});
-                rhoW = f.rhoWS.*bW;
-                rho = {rhoW, rhoL, rhoV};
-            else
-                rho = {rhoL, rhoV};
+            rho = cell(1, nph);
+            rho{L_ix} = rhoL;
+            rho{V_ix} = rhoV;
+            for i = 1:nph
+                if i == L_ix || i == V_ix
+                    continue
+                end
+                sn = phases(i);
+                b = prop.evaluateFluid(model, ['b', sn], p_phase{i});
+                rhoS = model.fluid.(['rho', sn, 'S']);
+                rho{i} = rhoS.*b;
             end
         end
     end

@@ -4,14 +4,12 @@ classdef MechanicModel < PhysicalModel
 % boundary conditions and body forces for mechanics, but also a fluid
 % pressure, which enters the mechanical equation as grad(pressure).
 %
-% Even if the equations are linear, we will use the standard nonlinear solver
-% to solve the system. It does not make any significant difference as the the
-% solver will converge in one Newton step.
+% Even if the equations are linear, we will use the standard nonlinear
+% solver to solve the system. It does not make any significant
+% difference as the the solver will converge in one Newton step.
 %
 % SYNOPSIS:
 %   model = MechanicModel(G, rock, mech_problem, varargin)
-%
-% DESCRIPTION:
 %
 % PARAMETERS:
 %   G            - Grid structure
@@ -21,10 +19,13 @@ classdef MechanicModel < PhysicalModel
 % RETURNS:
 %   class instance
 %
-% EXAMPLE: run2DCase, runNorneExample
+% EXAMPLE:
+%   run2DCase, runNorneExample
 %
-% SEE ALSO: MechBlackOilModel.m, MechOilWaterModel.m, MechWaterModel.m, MechFluidFixedStressSplitModel.m
-%
+% SEE ALSO:
+%   MechBlackOilModel, MechOilWaterModel, MechWaterModel,
+%   MechFluidFixedStressSplitModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 

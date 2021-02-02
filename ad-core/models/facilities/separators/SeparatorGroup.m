@@ -4,7 +4,7 @@ classdef SeparatorGroup
         separators
         topologicalOrder
         surfaceSeparator
-        mode = 'mass'
+        mode = 'moles'
     end
     
     properties (Access = protected)

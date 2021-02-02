@@ -202,7 +202,7 @@ for i = 1:nph
 end
 
 if any(isRF)
-    mrstModule add blackoil-sequential
+    mrstModule add sequential
     G = cell(1, nph);
 
     mobC = cell(1, nph);

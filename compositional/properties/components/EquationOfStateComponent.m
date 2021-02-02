@@ -17,8 +17,7 @@ classdef EquationOfStateComponent < GenericComponent
             c.surfacePhaseDensityPure = density;
             c.molarMass = mw;
             c = c.functionDependsOn('getPhaseComposition', {'ComponentPhaseMassFractions'}, 'PVTPropertyFunctions');
-            c = c.functionDependsOn('getComponentDensity', {'Density'}, 'PVTPropertyFunctions');
-
+            c = c.functionDependsOn('getComponentDensity', {'Density','ComponentPhaseMassFractions'}, 'PVTPropertyFunctions');
         end
         
         function c = getComponentDensity(component, model, state, varargin)
@@ -69,9 +68,8 @@ classdef EquationOfStateComponent < GenericComponent
             index = component.componentIndex;
             ci = comp_i(:, index);
             if any(ci ~= 0)
-                for i = (1+model.water):nph
-                    c{i} = ci;
-                end
+                c{model.getLiquidIndex()} = ci;
+                c{model.getVaporIndex()} = ci;
             end
         end
     end

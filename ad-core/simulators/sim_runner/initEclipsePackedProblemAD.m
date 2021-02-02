@@ -46,14 +46,19 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('name', []);
+    opt = struct('BaseName', [], 'Name', []);
     [opt, extra] = merge_options(opt, varargin{:});
     
     [state0, model, schedule, nls] = initEclipseProblemAD(deck, extra{:});
-    if isempty(opt.name)
-        name = model.inputdata.RUNSPEC.TITLE;
-    else
-        name = opt.name;
+    name = opt.BaseName;
+    if isempty(name)
+        if isfield(model.inputdata.RUNSPEC, 'TITLE')
+            name = model.inputdata.RUNSPEC.TITLE;
+        else
+            s = randi(26, 1, 20);
+            letters = 'a':'z';
+            name = letters(s);
+        end
     end
-    problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls);
+    problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls, 'name', opt.Name);
 end

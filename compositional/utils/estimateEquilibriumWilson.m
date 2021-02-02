@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    acf = eos.fluid.acentricFactors;
+    acf = eos.CompositionalMixture.acentricFactors;
     % Estimate equilibrium constants using Wilson equation
     [Pr, Tr] = eos.getReducedPT(p, T, false);
     K = exp(5.37.*(bsxfun(@times, 1 + acf, 1 - 1./Tr)))./Pr;

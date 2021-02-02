@@ -19,7 +19,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             src = model.FacilityModel.getComponentSources(state);
             % Assemble equations and add in sources
             [pressures, sat, mob, rho, X] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ComponentPhaseMassFractions');
-            comps = cellfun(@(x, y) {x, y}, X(:, 1+model.water), X(:, 2+model.water), 'UniformOutput', false);
+            comps = cellfun(@(x, y) {x, y}, X(:, model.getLiquidIndex), X(:, model.getVaporIndex), 'UniformOutput', false);
             
             
             eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
@@ -64,13 +64,16 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 model.FacilityModel = GenericFacilityModel(model);
             end
             if isempty(model.Components)
-                f = model.EOSModel.fluid;
-                names_hc = f.names;
-                if model.water
-                    names = [names_hc, 'water']; % Put water last
-                else
-                    names = names_hc;
+                names_eos = model.EOSModel.getComponentNames();
+                % Add in additional immiscible phases
+                [sn_regular, phases_regular] = model.getNonEoSPhaseNames();
+                nreg = numel(sn_regular);
+                enames = cell(1, nreg);
+                for i = 1:nreg
+                    enames{i} = phases_regular{i};
                 end
+                names = [names_eos, enames];
+                
                 nc = numel(names);
                 model.Components = cell(1, nc);
                 p = model.FacilityModel.pressure;
@@ -78,8 +81,9 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 for ci = 1:nc
                     name = names{ci};
                     switch name
-                        case 'water'
-                            c = ImmiscibleComponent('water', 1);
+                        case {'water', 'oil', 'gas'}
+                            ix = model.getPhaseIndex(upper(name(1)));
+                            c = ImmiscibleComponent(name, ix);
                         otherwise
                             c = getEOSComponent(model, p, T, name, ci);
                     end
@@ -95,29 +99,44 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-            [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
+            [state, report] = updateAfterConvergence@ThreePhaseCompositionalModel(model, state0, state, dt, drivingForces);
             if model.outputFluxes
                 f = model.getProp(state, 'PhaseFlux');
                 nph = numel(f);
                 state.flux = zeros(model.G.faces.num, nph);
-                state.flux(model.operators.internalConn, :) = [f{:}];
+                state.flux(model.operators.internalConn, :) = value(f);
+                if ~isempty(drivingForces.bc)
+                    [p, s, mob, rho, b] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ShrinkageFactors');
+                    sat = expandMatrixToCell(s);
+                    [~, ~, ~, fRes] = getBoundaryConditionFluxesAD(model, p, sat, mob, rho, b, drivingForces.bc);
+                    idx = model.getActivePhases();
+                    fWOG = cell(3, 1);
+                    fWOG(idx) = fRes;
+
+                    state = model.storeBoundaryFluxes(state, fWOG{1}, fWOG{2}, fWOG{3}, drivingForces);
+                end
             end
         end
 
         function [vars, names, origin] = getPrimaryVariables(model, state)
             % Get primary variables from state, before a possible
-            % initialization as AD.'
-            [p, sW, z] = model.getProps(state, 'pressure', 'sW', 'z');
+            % initialization as AD.
+            [p, z] = model.getProps(state, 'pressure', 'z');
             z_tol = model.EOSModel.minimumComposition;
             z = ensureMinimumFraction(z, z_tol);
             z = expandMatrixToCell(z);
-            cnames = model.EOSModel.fluid.names;
-            names = [{'pressure'}, cnames(2:end)];
-            vars = [p, z(2:end)];
-            if model.water
-                names = [names, {'sW'}];
-                vars = [vars, {sW}];
+            cnames = model.EOSModel.getComponentNames();
+            extra = model.getNonEoSPhaseNames();
+            ne = numel(extra);
+            enames = cell(1, ne);
+            evars = cell(1, ne);
+            for i = 1:ne
+                sn = ['s', extra(i)];
+                enames{i} = sn;
+                evars{i} = model.getProp(state, sn);
             end
+            names = [{'pressure'}, cnames(2:end), enames];
+            vars = [p, z(2:end), evars];
             origin = cell(1, numel(names));
             [origin{:}] = deal(class(model));
             if ~isempty(model.FacilityModel)
@@ -130,10 +149,11 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
 
         function state = initStateAD(model, state, vars, names, origin)
             isP = strcmp(names, 'pressure');
+            isAD = any(cellfun(@(x) isa(x, 'ADI'), vars));
             state = model.setProp(state, 'pressure', vars{isP});
             removed = isP;
             
-            cnames = model.EOSModel.fluid.names;
+            cnames = model.EOSModel.getComponentNames();
             ncomp = numel(cnames);
             z = cell(1, ncomp);
             z_end = 1;
@@ -150,7 +170,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             end
             z{fill} = z_end;
             state = model.setProp(state, 'components', z);
-            if isa(state.pressure, 'ADI') || isa(z{1}, 'ADI')
+            if isAD
                 [state.x, state.y, state.L, state.FractionalDerivatives] = ...
                     model.EOSModel.getPhaseFractionAsADI(state, state.pressure, state.T, state.components);
             end
@@ -162,21 +182,38 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
                 state = model.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
                 removed = removed | isF;
             end
-            if model.water
-                isWater = strcmp(names, 'sW');
-                sW = vars{isWater};
-                removed(isWater) = true;
-                offset = 1;
-            else
-                offset = 0;
+            nph = model.getNumberOfPhases();
+            phnames = model.getPhaseNames();
+            s = cell(1, nph);
+            extra = model.getNonEoSPhaseNames();
+            ne = numel(extra);
+            void = 1;
+            for i = 1:ne
+                sn = ['s', extra(i)];
+                isVar = strcmp(names, sn);
+                si = vars{isVar};
+                removed(isVar) = true;
+                void = void - si;
+                
+                s{phnames == extra(i)} = si;
             end
+            li = model.getLiquidIndex();
+            vi = model.getVaporIndex();
             % Set up state with remaining variables
             state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
             
-            % Now that props have been set up, we can get the saturations
-            Z = model.getProps(state, 'PhaseCompressibilityFactors');
-            Z_L = Z{offset+1};
-            Z_V = Z{offset+2};
+            % Now that props have been set up, we can compute the
+            % saturations from the mole fractions.
+            if isAD
+                % We must get the version with derivatives
+                Z = model.getProps(state, 'PhaseCompressibilityFactors');
+                Z_L = Z{li};
+                Z_V = Z{vi};
+            else
+                % Already stored in state - no derivatives needed
+                Z_L = state.Z_L;
+                Z_V = state.Z_V;
+            end
             
             L = state.L;
             volL = L.*Z_L;
@@ -185,23 +222,16 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             sL = volL./volT;
             sV = volV./volT;
             
-            if model.water
-                [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
-                void = 1 - sW;
-                sL = sL.*void;
-                sV = sV.*void;
-                [sL, sV] = model.setMinimumTwoPhaseSaturations(state, sW, sL, sV, pureLiquid, pureVapor, twoPhase);
-
-                s = {sW, sL, sV};
-            else
-                s = {sL, sV};
-            end
+            [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+            sL = sL.*void;
+            sV = sV.*void;
+            [s{li}, s{vi}] = model.setMinimumTwoPhaseSaturations(state, 1 - void, sL, sV, pureLiquid, pureVapor, twoPhase);
             state = model.setProp(state, 's', s);
         end
-      
-        function forces = validateDrivingForces(model, forces)
-            forces = validateDrivingForces@OverallCompositionCompositionalModel(model, forces);
-            forces = validateCompositionalForces(model, forces);
+
+        function forces = validateDrivingForces(model, forces, varargin)
+            forces = validateDrivingForces@OverallCompositionCompositionalModel(model, forces, varargin{:});
+            forces = validateCompositionalForces(model, forces, varargin{:});
         end
     end
 end

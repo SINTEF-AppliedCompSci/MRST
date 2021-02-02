@@ -1,4 +1,4 @@
-mrstModule add ad-core ad-blackoil ad-props blackoil-sequential linearsolvers agmg
+mrstModule add ad-core ad-blackoil ad-props sequential linearsolvers agmg
 %% Set up model
 if ~exist('n', 'var')
     n = 40;

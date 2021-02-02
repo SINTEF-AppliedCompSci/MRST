@@ -38,7 +38,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    ncomp = model.fluid.getNumberOfComponents();
+    ncomp = model.getNumberOfComponents();
     ncell = numel(L);
 
     z = ensureMinimumFraction(z);

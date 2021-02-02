@@ -12,7 +12,7 @@ s = model.operators;
 W = drivingForces.W;
 
 fluid = model.fluid;
-compFluid = model.EOSModel.fluid;
+mixture = model.EOSModel.CompositionalMixture;
 
 % Properties at current timestep
 [sT, p, sW, z, temp, wellSol] = model.getProps(state, ...
@@ -27,7 +27,7 @@ z = expandMatrixToCell(z);
 z0 = expandMatrixToCell(z0);
 
 ncomp = numel(z);
-cnames = model.EOSModel.fluid.names;
+cnames = model.EOSModel.getComponentNames();
 
 init = @(varargin) model.AutoDiffBackend.initVariablesAD(varargin{:});
 if model.water
@@ -137,7 +137,7 @@ pv0 = pvMult0.*model.operators.pv;
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, ncomp + model.water));
 for i = 1:ncomp
-    names{i} = compFluid.names{i};
+    names{i} = mixture.names{i};
     types{i} = 'cell';
     eqs{i} = (1/dt).*(pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
                       pv.*rhoG.*sG.*yM{i} - pv0.*rhoG0.*sG0.*yM0{i});
@@ -177,7 +177,7 @@ if ~isempty(W)
     perf2well = getPerforationToWellMapping(W);
     wc    = vertcat(W.cells);
     w_comp = vertcat(W.components);
-    a = w_comp(perf2well, :).*repmat(compFluid.molarMass, numel(wc), 1);
+    a = w_comp(perf2well, :).*repmat(mixture.molarMass, numel(wc), 1);
     w_comp = bsxfun(@rdivide, a, sum(a, 2));
 
     isInj = wflux > 0;

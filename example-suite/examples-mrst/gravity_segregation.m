@@ -52,7 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             physDims   = [1, 1, L];
             pbar       = [0.2,0.2,1];
             sz         = [300, 500];
-            view       = [90,0];
+            view       = [120,25];
     end
     % Make model
     gravity reset on
@@ -94,8 +94,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         state0.s(cells,:) = repmat(sat, nnz(cells), 1);
     end
     % Plotting
-    plotOptions = {'PlotBoxAspectRatio', pbar          , ...
-                   'Projection'        , 'orthographic', ...
-                   'View'              , view          , ...
-                   'Size'              , sz            };
+    plotOptions = {'PlotBoxAspectRatio', pbar         , ...
+                   'Projection'        , 'perspective', ...
+                   'View'              , view         , ...
+                   'Size'              , sz           };
 end

@@ -6,7 +6,9 @@
 mrstModule add compositional ad-core linearsolvers ad-props
 useBC = false; % Use BC instead of wells
 includeWater = false; % Include aqueous phase
-useNatural = true; % Use natural variables formulation
+if ~exist('useNatural', 'var')
+    useNatural = true; % Use natural variables formulation
+end
 % Define a problem
 gravity reset on
 nx = 30;
@@ -25,7 +27,7 @@ K = K(G.cells.indexMap);
 rock = makeRock(G, K*milli*darcy, 0.2);
 pv = poreVolume(G, rock);
 % Take the SPE5 fluid model (six components)
-[fluid, info] = getCompositionalFluidCase('spe5');
+[fluid, info] = getBenchmarkMixture('spe5');
 
 minP = 0.5*info.pressure;
 totTime = 10*year;
@@ -69,7 +71,7 @@ flowfluid = initSimpleADIFluid('rho', [1000, 500, 500], ...
 % the best speed is found.
 arg = {G, rock, flowfluid, fluid, 'water', includeWater};
 diagonal_backend = DiagonalAutoDiffBackend('modifyOperators', true);
-mex_backend = DiagonalAutoDiffBackend('modifyOperators', true, 'useMex', true);
+mex_backend = DiagonalAutoDiffBackend('modifyOperators', true, 'useMex', true, 'rowMajor', true);
 sparse_backend = SparseAutoDiffBackend();
 
 if useNatural

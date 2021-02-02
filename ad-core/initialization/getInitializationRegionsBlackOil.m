@@ -88,6 +88,7 @@ function rhoO = getOilDensity(model, p, z, rs, pvtnum)
     f = model.fluid;
     bO = getFunction(f, 'bO', pvtnum);
     if model.disgas
+        p = max(p, model.minimumPressure);
         assert(~isempty(rs), 'Disgas model must have rs specified as optional argument');
         if isa(rs, 'function_handle')
             rs = rs(p, z);
@@ -105,6 +106,7 @@ function rhoG = getGasDensity(model, p, z, rv, pvtnum)
     f = model.fluid;
     bG = getFunction(f, 'bG', pvtnum);
     if model.vapoil
+        p = max(p, model.minimumPressure);
         assert(~isempty(rv), 'Vapoil model must have rv specified as optional argument');
         if isa(rv, 'function_handle')
             rv = rv(p, z);

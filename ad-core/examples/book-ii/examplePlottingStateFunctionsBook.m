@@ -2,17 +2,20 @@
 mrstModule add ad-props compositional
 G = cartGrid([200, 200, 1]);
 G = computeGeometry(G);
-cmodel = GenericOverallCompositionModel(G, makeRock(G, 1, 1), initSimpleADIFluid(), getCompositionalFluidCase('spe5'));
-cmodel.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true);
-cmodel = cmodel.validateModel();
-%% Repeated calls will be faster, as values are acached
+cmodel = GenericOverallCompositionModel(G, makeRock(G, 1, 1), initSimpleADIFluid(), getBenchmarkMixture('spe5'));
+cmodel = cmodel.validateModel(); % Set up groups
+%% Set up a compositional state
+useAD = false;
 statec = initCompositionalState(G, 10*barsa,  273.15 + 30, [0.3, 0.4, 0.3], rand(1, 6), cmodel.EOSModel);
 stateAD = cmodel.validateState(statec);
-stateAD = cmodel.getStateAD(stateAD);
-
+stateAD = cmodel.getStateAD(stateAD, useAD); % No AD initialization
+% Show the initialized container
+disp(stateAD.PVTProps)
+%% Evaluate density twice - second call is cached
 fprintf('First evaluation: '); tic(); rho = cmodel.getProp(stateAD, 'Density'); toc();
 fprintf('Second evaluation: '); tic(); rho = cmodel.getProp(stateAD, 'Density'); toc();
-
+%% Show the PVT property cache after evaluation
+disp(stateAD.PVTProps)
 %% Plot density relations for a compositional model
 figure;
 [~, gcomp] = plotStateFunctionGroupings(cmodel,'Stop', 'Density', 'includeState', false);

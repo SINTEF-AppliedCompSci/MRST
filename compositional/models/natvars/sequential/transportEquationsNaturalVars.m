@@ -12,7 +12,7 @@ s = model.operators;
 W = drivingForces.W;
 
 fluid = model.fluid;
-compFluid = model.EOSModel.fluid;
+mixture = model.EOSModel.CompositionalMixture;
 
 % Properties at current timestep
 [p, sW, sO, sG, x, y, temp, wellSol] = model.getProps(state, ...
@@ -50,8 +50,8 @@ x = ensureMinimumFraction(x);
 x = expandMatrixToCell(x);
 y = expandMatrixToCell(y);
 
-ncomp = model.EOSModel.fluid.getNumberOfComponents();
-[xnames, ynames, cnames] = deal(model.EOSModel.fluid.names);
+ncomp = model.EOSModel.getNumberOfComponents();
+[xnames, ynames, cnames] = deal(model.EOSModel.getComponentNames());
 for i = 1:ncomp
     xnames{i} = ['v_', cnames{i}];
     ynames{i} = ['w_', cnames{i}];
@@ -76,14 +76,14 @@ if model.water
         [X, x{1:ncomp-1}, sW, w{1:ncomp-1}, so] = model.AutoDiffBackend.initVariablesAD(...
          X, x{1:ncomp-1}, sW, w{1:ncomp-1}, so);
     end
-    primaryVars = {'sGsO', xnames{1:end-1}, 'satw', ynames{1:end-1}, 'sato'};
+    primaryVars = {'sGsO', xnames{1:end-1}, 'sW', ynames{1:end-1}, 'sL'};
 
 else
     if ~opt.resOnly
         [X, x{1:ncomp-1}, w{1:ncomp-1}, so] = model.AutoDiffBackend.initVariablesAD(...
          X, x{1:ncomp-1}, w{1:ncomp-1}, so);
     end
-    primaryVars = {'sGsO', xnames{1:end-1}, ynames{1:end-1}, 'sato'};
+    primaryVars = {'sGsO', xnames{1:end-1}, ynames{1:end-1}, 'sL'};
 end
 z = expandMatrixToCell(z);
 
@@ -257,7 +257,7 @@ pv0 = pvMult0.*model.operators.pv;
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, 2*ncomp + model.water));
 for i = 1:ncomp
-    names{i} = compFluid.names{i};
+    names{i} = mixture.names{i};
     types{i} = 'cell';
     eqs{i} = (1/dt).*( ...
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
@@ -293,7 +293,7 @@ if ~isempty(W)
     perf2well = getPerforationToWellMapping(W);
     wc    = vertcat(W.cells);
     w_comp = vertcat(W.components);
-    a = w_comp(perf2well, :).*repmat(compFluid.molarMass, numel(wc), 1);
+    a = w_comp(perf2well, :).*repmat(mixture.molarMass, numel(wc), 1);
     w_comp = bsxfun(@rdivide, a, sum(a, 2));
 
     isInj = wflux > 0;
@@ -369,7 +369,7 @@ end
 
 for i = 1:ncomp
     ix = i + ncomp + model.water;
-    names{ix}= ['f_', compFluid.names{i}];
+    names{ix}= ['f_', mixture.names{i}];
     types{ix} = 'fugacity';
     eqs{ix} = (f_L{i}(twoPhase) - f_V{i}(twoPhase))/barsa;
     absent = state.components(twoPhase, i) <= 10*z_tol;

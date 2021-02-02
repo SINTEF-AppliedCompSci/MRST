@@ -34,8 +34,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Define module dependencies
     require spe10 ad-core ad-props compositional deckformat
     % Load deck
-    fldr = fullfile(mrstDataDirectory(), 'arthur_2d');
-    fn = fullfile(fldr, 'TEST1.DATA');
+    fn = fullfile(getDatasetPath('SPE10_Layer_Compositional'), 'TEST1.DATA');
     deck = readEclipseDeck(fn);
     deck = convertDeckUnits(deck);
     % Get grid
@@ -50,7 +49,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     inj_comp =  [1.0 0.0 0.0 0.0 0.0 0.0];
     p_std = 14.7*psia;
     T_std = 288.7;
-    mc = sum(inj_comp.*eos.fluid.molarMass);
+    mc = sum(inj_comp.*eos.CompositionalMixture.molarMass);
     R = 8.3144598;
     rhoL = p_std/(R*T_std);
     rhoL = rhoL.*mc;
@@ -58,7 +57,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fluid.rhoOS = rhoL;
     fluid.rhoGS = rhoV;
     % Make model
-    model = GenericOverallCompositionModel(G, rock, fluid, eos.fluid, 'water', true);
+    model = GenericOverallCompositionModel(G, rock, fluid, eos.CompositionalMixture, 'water', true);
     model.AutoDiffBackend = DiagonalAutoDiffBackend();
     % Get schedule
     schedule = convertDeckScheduleToMRST(model, deck);

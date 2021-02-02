@@ -41,14 +41,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         state.rv = zeros(G.cells.num, 1);
     end
     if compositional
-        ncomp = model.EOSModel.fluid.getNumberOfComponents();
+        ncomp = model.EOSModel.CompositionalMixture.getNumberOfComponents();
         state.components = zeros(G.cells.num, ncomp);
         state.T = zeros(G.cells.num, 1);
     end
     watIx = model.getPhaseIndex('W');
     oilIx = model.getPhaseIndex('O');
     gasIx = model.getPhaseIndex('G');
-    refIx = 1 + model.oil;
+    % Reference phase should be oil if present, otherwise it we assume it
+    % to be gas, then just the first phase
+    if model.oil
+        refIx = oilIx;
+    elseif model.gas
+        refIx = gasIx;
+    else
+        refIx = 1;
+    end
 
     pressures = zeros(G.cells.num, nph);
     touched = false(G.cells.num, 1);

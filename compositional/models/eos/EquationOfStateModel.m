@@ -3,16 +3,18 @@ classdef EquationOfStateModel < PhysicalModel
     % equation of state with Newton and successive substitution solvers, as
     % well as standard functions for computing density and viscosity.
     properties
-        fluid % CompositionalFluid
+        CompositionalMixture % CompositionalMixture
         omegaA % Parameter for EOS
         omegaB % Parameter for EOS
-        useNewton % Use Newton based solver for flash. If set to false, successive substitution if used instead.
+        method = 'ssi' % Type of method
+        maxSSI = inf;
         PropertyModel % Model to be used for property evaluations
         selectGibbsMinimum = true; % Use minimum Gibbs energy to select Z
         alpha = [];
         minimumComposition = 1e-8; % Minimum composition value (for numerical stability)
         minimumSaturation  = 1e-8; % Minimum total EOS phase saturation 
         equilibriumConstantFunctions = {};
+        extraOutput = 0;
     end
 
     properties (Access = private)
@@ -27,14 +29,21 @@ classdef EquationOfStateModel < PhysicalModel
                 eosname = 'PR';
             end
             model = model@PhysicalModel(G);
-            assert(isa(fluid, 'CompositionalFluid'));
-            model.fluid = fluid;
+            assert(isa(fluid, 'CompositionalMixture'));
+            model.CompositionalMixture = fluid;
             model.nonlinearTolerance = 1e-4;
-            model.useNewton = false;
             model.PropertyModel = CompositionalPropertyModel(fluid);
             model = model.setType(eosname);
         end
+        
+        function n = getNumberOfComponents(model)
+            n = model.CompositionalMixture.getNumberOfComponents();
+        end
 
+        function n = getComponentNames(model)
+            n = model.CompositionalMixture.names;
+        end
+        
         function Z = solveCubicEOS(model, A, B)
             % Peng Robinson equation of state in form used by Coats
             [E2, E1, E0] = model.getCubicCoefficients(A, B);
@@ -125,37 +134,36 @@ classdef EquationOfStateModel < PhysicalModel
             end
             p = value(p); A = value(A); B = value(B);
                 
-            if ~model.selectGibbsMinimum
+            if model.selectGibbsMinimum
+                Z0 = model.solveCubicEOS(A, B);
+                bad = bsxfun(@lt, Z0, B);
+                Z0(bad) = nan;
+
+                candidates = isfinite(Z0);
+                numRoots = sum(candidates, 2);
+                single = numRoots == 1;
+                multiple = ~single;
+                Z = max(Z0, [], 2);
+                if any(multiple)
+                    Z_max = max(Z0(multiple, :), [], 2);
+                    Z_min = min(Z0(multiple, :), [], 2);
+                    xi = xy(multiple, :);
+
+                    [~, phi] = model.computeFugacity(p(multiple), xi, Z_max, A(multiple), B(multiple), Si(multiple, :), Bi(multiple, :));
+                    g_max = sum(phi.*xi, 2);
+                    [~, phi] = model.computeFugacity(p(multiple), xi, Z_min, A(multiple), B(multiple), Si(multiple, :), Bi(multiple, :));
+                    g_min = sum(phi.*xi, 2);
+                    Zi = Z_max;
+                    smallest = g_min < g_max;
+                    Zi(smallest) = Z_min(smallest);
+                    Z(multiple) = Zi;
+                end
+            else
                 if isLiquid
                     Z = computeLiquidZ(model, A, B);
                 else
                     Z = computeVaporZ(model, A, B);
                 end
-                return
-            end
-            
-            Z0 = model.solveCubicEOS(A, B);
-            bad = bsxfun(@lt, Z0, B);
-            Z0(bad) = nan;
-            
-            candidates = isfinite(Z0);
-            numRoots = sum(candidates, 2);
-            single = numRoots == 1;
-            multiple = ~single;
-            Z = max(Z0, [], 2);
-            if any(multiple)
-                Z_max = max(Z0(multiple, :), [], 2);
-                Z_min = min(Z0(multiple, :), [], 2);
-                xi = xy(multiple, :);
-                
-                [~, phi] = model.computeFugacity(p(multiple), xi, Z_max, A(multiple), B(multiple), Si(multiple, :), Bi(multiple, :));
-                g_max = sum(phi.*xi, 2);
-                [~, phi] = model.computeFugacity(p(multiple), xi, Z_min, A(multiple), B(multiple), Si(multiple, :), Bi(multiple, :));
-                g_min = sum(phi.*xi, 2);
-                Zi = Z_max;
-                smallest = g_min < g_max;
-                Zi(smallest) = Z_min(smallest);
-                Z(multiple) = Zi;
             end
         end
         
@@ -180,20 +188,20 @@ classdef EquationOfStateModel < PhysicalModel
         function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, iteration, varargin) %#ok
             % Compute a single step of the solution process for a given
             % equation of state (thermodynamic flash calculation);
-
+            timer = tic();
             T = state.T;
             P = state.pressure;
             nc = numel(P);
             assert(all(P >= 0))
             
             z = state.components;
-            ncomp = model.fluid.getNumberOfComponents();
+            ncomp = model.getNumberOfComponents();
             
             % Basic assertions
             assert(all(sum(z, 2) > 0.999), ...
                                 'Molar fractions must sum up to unity.')
             assert(iteration > 0);
-
+            [t_flash, t_stability] = deal(0);
             % If we get here, we are using a proper flash
             if iteration == 1
                 % Book-keeping
@@ -206,6 +214,7 @@ classdef EquationOfStateModel < PhysicalModel
             end
             L0 = state.L;
             K0 = state.K;
+            flash_method = lower(model.method);
             % Only apply calculations for cells that have not converged yet
             if iteration == 1
                 x0 = state.x;
@@ -221,18 +230,22 @@ classdef EquationOfStateModel < PhysicalModel
                 initSingle = ~twoPhase;
                 stable = initSingle;
                 % Call stability test.
-                [stable(initSingle), x0(initSingle, :), y0(initSingle, :)] = model.performPhaseStabilityTest(state.pressure(initSingle), state.T(initSingle), state.components(initSingle, :), state.K(initSingle, :));
+                ts = tic();
+                [stable(initSingle), x0(initSingle, :), y0(initSingle, :)] = ...
+                    model.performPhaseStabilityTest(state.pressure(initSingle), state.T(initSingle), state.components(initSingle, :), state.K(initSingle, :));
+                t_stability = toc(ts);
                 updatedSingle = initSingle & ~stable;
                 K0(updatedSingle, :) = y0(updatedSingle, :)./x0(updatedSingle, :);
-                acf = model.fluid.acentricFactors;
+                acf = model.CompositionalMixture.acentricFactors;
                 [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
                 % Solve EOS for each phase
                 Z0_L = model.computeCompressibilityZ(state.pressure, x0, A_L, B_L, Si_L, Bi, true);
                 Z0_V = model.computeCompressibilityZ(state.pressure, y0, A_V, B_V, Si_V, Bi, false);
-                L0 = model.solveRachfordRice(L0, K0, z);
-                L0(stable & L0 >  0.5) = 1;
-                L0(stable & L0 <= 0.5) = 0;
+                L0(~stable) = model.solveRachfordRice(L0(~stable), K0(~stable, :), z(~stable, :));
+                L0(stable) = model.singlePhaseLabel(P(stable), T(stable), z(stable, :));
                 active = ~stable;
+                % Flag stable cells as converged
+                state.eos.converged(stable) = true;
             else
                 Z0_L = state.Z_L;
                 Z0_V = state.Z_V;
@@ -253,14 +266,27 @@ classdef EquationOfStateModel < PhysicalModel
                 z = z(active, :);
                 P = P(active);
                 T = T(active);
-
-                if model.useNewton
-                    % Newton-based solver for equilibrium
-                    [x, y, K, Z_L, Z_V, L, equilvals] = model.newtonCompositionUpdate(P, T, z, K, L);
-                else
-                    % Successive substitution solver for equilibrium
-                    [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
+                switch flash_method
+                    case 'newton'
+                        % Newton-based solver for equilibrium
+                         updatefn = @model.newtonCompositionUpdate;
+                    case 'ssi'
+                        % Successive substitution solver for equilibrium
+                        if iteration > model.maxSSI
+                            % Remaining cells are above SSI threshold,
+                            % switch to Newton
+                            updatefn = @model.newtonCompositionUpdate;
+                            flash_method = 'newton';
+                        else
+                            % Just do SSI as asked
+                            updatefn = @model.substitutionCompositionUpdate;
+                        end
+                    otherwise
+                        error('Unknown flash method %s. Try ''newton'' or ''ssi''.', model.method);
                 end
+                timer_flash = tic();
+                [x, y, K, Z_L, Z_V, L, equilvals] = updatefn(P, T, z, K, L);
+                t_flash = toc(timer_flash);
                 singlePhase = L == 0 | L == 1;
                 % Single phase cells are converged
                 equilvals(singlePhase, :) = 0;
@@ -295,7 +321,7 @@ classdef EquationOfStateModel < PhysicalModel
             failureMsg = '';
             values_converged = values <= model.nonlinearTolerance;
             if model.verbose
-                printConvergenceReport(model.fluid.names, values, values_converged, iteration);
+                printConvergenceReport(model.CompositionalMixture.names, values, values_converged, iteration);
             end
             report = model.makeStepReport(...
                             'Failure',      failure, ...
@@ -304,6 +330,23 @@ classdef EquationOfStateModel < PhysicalModel
                             'ResidualsConverged', resConv, ...
                             'Residuals',    values);
             report.ActiveCells = sum(active);
+            if model.extraOutput
+                report.ActiveFlag = active;
+            end
+            report.Method = flash_method;
+            report.TotalTime = toc(timer);
+            report.FlashTime = t_flash;
+            report.StabilityTime = t_stability;
+        end
+        
+        function L = singlePhaseLabel(eos, p, T, z)
+            % Li's method for phase labeling
+            Vc = eos.CompositionalMixture.Vcrit;
+            Tc = eos.CompositionalMixture.Tcrit;
+            Vz = bsxfun(@times, Vc, z);
+            
+            Tc_est = sum(bsxfun(@times, Vz, Tc), 2)./sum(Vz, 2);
+            L = double(T < Tc_est);
         end
         
         function [x, y, K, Z_L, Z_V, L, values] = substitutionCompositionUpdate(model, P, T, z, K, L)
@@ -417,21 +460,22 @@ classdef EquationOfStateModel < PhysicalModel
             if nargin < 4
                 useCell = true;
             end
-            
+            Tc = model.CompositionalMixture.Tcrit;
+            Pc = model.CompositionalMixture.Pcrit;
             if useCell
-                n = model.fluid.getNumberOfComponents();
+                n = model.CompositionalMixture.getNumberOfComponents();
                 Tr = cell(1, n);
                 Pr = cell(1, n);
                 
-                Ti = 1./model.fluid.Tcrit;
-                Pi = 1./model.fluid.Pcrit;
+                Ti = 1./Tc;
+                Pi = 1./Pc;
                 for i = 1:n
                     Tr{i} = T.*Ti(i);
                     Pr{i} = P.*Pi(i);
                 end
             else
-                Tr = bsxfun(@rdivide, T, model.fluid.Tcrit);
-                Pr = bsxfun(@rdivide, P, model.fluid.Pcrit);
+                Tr = bsxfun(@rdivide, T, Tc);
+                Pr = bsxfun(@rdivide, P, Pc);
             end
         end
         
@@ -441,7 +485,7 @@ classdef EquationOfStateModel < PhysicalModel
             end
             
             % Calculate intermediate values for fugacity computation
-            ncomp = model.fluid.getNumberOfComponents();
+            ncomp = model.getNumberOfComponents();
             [Pr, Tr] = model.getReducedPT(P, T, useCell);
 
             if useCell
@@ -496,7 +540,7 @@ classdef EquationOfStateModel < PhysicalModel
                 otherwise
                     error('Unknown eos type: %d', model.eosType);
             end
-            bic = model.fluid.getBinaryInteraction();
+            bic = model.CompositionalMixture.getBinaryInteraction();
             if useCell
                 A_ij = cell(ncomp, ncomp);
                 for i = 1:ncomp
@@ -527,19 +571,12 @@ classdef EquationOfStateModel < PhysicalModel
         end
       
         function [Z_L, Z_V, f_L, f_V] = getCompressibilityAndFugacity(model, P, T, x, y, z, Z_L, Z_V, varargin)
-            [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
+            [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.CompositionalMixture.acentricFactors);
             if isempty(Z_L)
                 Z_L = model.computeCompressibilityZ(P, x, A_L, B_L, Si_L, Bi, true);
             end
             if isempty(Z_V)
                 Z_V = model.computeCompressibilityZ(P, y, A_V, B_V, Si_V, Bi, false);
-            end
-            if iscell(x)
-                s = getSampleAD(P, T, x{:}, y{:});
-                if isa(s, 'ADI')
-                    Z_L = model.AutoDiffBackend.convertToAD(Z_L, s);
-                    Z_V = model.AutoDiffBackend.convertToAD(Z_V, s);
-                end
             end
             Z_L = model.setZDerivatives(Z_L, A_L, B_L, varargin{:});
             Z_V = model.setZDerivatives(Z_V, A_V, B_V, varargin{:});
@@ -599,7 +636,7 @@ classdef EquationOfStateModel < PhysicalModel
         function [f, phi] = computeFugacity(model, p, x, Z, A, B, Si, Bi)
             % Compute fugacity based on EOS coefficients
             [m1, m2] = model.getEOSCoefficients();
-            ncomp = model.fluid.getNumberOfComponents();
+            ncomp = model.getNumberOfComponents();
             if iscell(x)
                 [f, phi] = deal(cell(1, ncomp));
                 a1 = -log(Z-B);
@@ -682,7 +719,7 @@ classdef EquationOfStateModel < PhysicalModel
             else
                 [dLdpTz, dxdpTz, dydpTz] = model.getPhaseFractionDerivativesPTZ(state, twoPhase);
             end
-            ncomp = model.fluid.getNumberOfComponents();
+            ncomp = model.getNumberOfComponents();
             
             p2ph = p(twoPhase);
             T2ph = T(twoPhase);
@@ -731,7 +768,7 @@ classdef EquationOfStateModel < PhysicalModel
             Z_V = state.Z_V(cells);
             % A few constants
             ncell = numel(p);
-            ncomp = model.fluid.getNumberOfComponents();
+            ncomp = model.getNumberOfComponents();
             [xAD, yAD, zAD] = deal(cell(1, ncomp));
             
             fullZ = true;
@@ -867,17 +904,18 @@ classdef EquationOfStateModel < PhysicalModel
         
         function frac = getMoleFraction(model, massfraction)
             % Convert mass fraction to molar fraction
+            mm = model.CompositionalMixture.molarMass;
             if iscell(massfraction)
                 ncomp = numel(massfraction);
                 moles = cell(1, ncomp);
                 totMole = 0;
                 for i = 1:numel(massfraction)
-                    moles{i} = massfraction{i}./model.fluid.molarMass(i);
+                    moles{i} = massfraction{i}./mm(i);
                     totMole = totMole + moles{i};
                 end
                 frac = cellfun(@(x) x./totMole, moles, 'UniformOutput', false);
             else
-                moles = bsxfun(@times, massfraction, 1./model.fluid.molarMass);
+                moles = bsxfun(@times, massfraction, 1./mm);
                 frac = bsxfun(@rdivide, moles, sum(moles, 2));
             end
         end
@@ -891,7 +929,7 @@ classdef EquationOfStateModel < PhysicalModel
                 for i = 1:ncomp
                     mi = molfraction{i};
                     if ~isempty(mi)
-                        mass{i} = model.fluid.molarMass(i).*molfraction{i};
+                        mass{i} = model.CompositionalMixture.molarMass(i).*molfraction{i};
                         totMass = totMass + mass{i};
                     end
                 end
@@ -902,7 +940,7 @@ classdef EquationOfStateModel < PhysicalModel
                     end
                 end
             else
-                mass = bsxfun(@times, molfraction, model.fluid.molarMass);
+                mass = bsxfun(@times, molfraction, model.CompositionalMixture.molarMass);
                 frac = bsxfun(@rdivide, mass, sum(mass, 2));
             end
         end
@@ -927,14 +965,17 @@ classdef EquationOfStateModel < PhysicalModel
             % where u is some primary variable, we can still obtain
             % derivatives without making any assumptions other than the EOS
             % being a cubic polynomial
-            if isnumeric(Z)
-                % This function does nothing if Z is double.
+            S = getSampleAD(A, B);
+            if isnumeric(S)
+                % This function does nothing if A, B are both doubles.
                 return;
             end
 
             backend = model.AutoDiffBackend;
             isDiagonal = isa(backend, 'DiagonalAutoDiffBackend');
-            
+            if isnumeric(Z)
+                Z = backend.convertToAD(Z, S);
+            end
             if nargin < 5
                 if isDiagonal
                     cellJacMap = cell(Z.offsets(end)-1, 1);
@@ -1086,12 +1127,7 @@ classdef EquationOfStateModel < PhysicalModel
                     pureLiquid = L == 1;
                 end
             end
-            if size(state, 2) > 2
-                pureWater = sum(state.s(:, 2:end), 2) == 0;
-                pureVapor(pureWater) = false;
-                pureLiquid(pureWater) = true;
-            end
-            
+
             pureVapor(pureLiquid) = false;
             state.flag = 1*pureLiquid + 2*pureVapor;
         end

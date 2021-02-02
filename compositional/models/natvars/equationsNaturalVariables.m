@@ -36,7 +36,7 @@ W = drivingForces.W;
 
 
 fluid = model.fluid;
-compFluid = model.EOSModel.fluid;
+mixture = model.EOSModel.CompositionalMixture;
 % Properties at current timestep
 [p, sW, sO, sG, x, y, z, temp, wellSol] = model.getProps(state, ...
     'pressure', 'water', 'so', 'sg', 'x', 'y', 'z', 'T', 'wellSol');
@@ -75,8 +75,8 @@ y = expandMatrixToCell(y);
 if opt.staticWells
     wellvars = {[]};
 end
-ncomp = compFluid.getNumberOfComponents();
-[xnames, ynames, cnames] = deal(model.EOSModel.fluid.names);
+ncomp = mixture.getNumberOfComponents();
+[xnames, ynames, cnames] = deal(mixture.names);
 for i = 1:ncomp
     xnames{i} = ['v_', cnames{i}];
     ynames{i} = ['w_', cnames{i}];
@@ -110,11 +110,11 @@ sg = sG(freeGas);
 if model.water
     [p, x{1:ncomp-1}, sW, wellvars{:}, so, w{1:ncomp-1}, sg] = initfn(...
      p, x{1:ncomp-1}, sW, wellvars{:}, so, w{1:ncomp-1}, sg);
-    primaryVars = {'pressure', xnames{1:end-1}, 'satw', wellVarNames{:}, 'sato', ynames{1:end-1}, 'satg'};
+    primaryVars = {'pressure', xnames{1:end-1}, 'sw', wellVarNames{:}, 'sl', ynames{1:end-1}, 'sv'};
 else
     [p, x{1:ncomp-1}, wellvars{:}, so, w{1:ncomp-1}, sg] = initfn(...
      p, x{1:ncomp-1}, wellvars{:}, so, w{1:ncomp-1}, sg);
-    primaryVars = {'pressure', xnames{1:end-1}, wellVarNames{:}, 'sato', ynames{1:end-1}, 'satg'};
+    primaryVars = {'pressure', xnames{1:end-1}, wellVarNames{:}, 'sl', ynames{1:end-1}, 'sv'};
     sW = zeros(model.G.cells.num, 1);
 end
 sample = p;
@@ -287,7 +287,7 @@ fluxes = cell(ncomp, 1);
 
 compFlux = zeros(model.G.faces.num, ncomp);
 for i = 1:ncomp
-    names{i} = compFluid.names{i};
+    names{i} = mixture.names{i};
     types{i} = 'cell';
     eqs{i} = (1/dt).*( ...
                     pv.*rhoO.*sO.*xM{i} - pv0.*rhoO0.*sO0.*xM0{i} + ...
@@ -351,7 +351,7 @@ eq_offset = nwelleqs + ncomp + model.water;
 for i = 1:ncomp
     eqs{i} = s.AccDiv(eqs{i}, fluxes{i});
     ix = i + eq_offset;
-    names{ix}= ['f_', compFluid.names{i}];
+    names{ix}= ['f_', mixture.names{i}];
     types{ix} = 'fugacity';
     if isfield(model.fluid, 'alpha')
         a = model.fluid.alpha{i}(p, temp, z);

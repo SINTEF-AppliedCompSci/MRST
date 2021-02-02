@@ -10,6 +10,7 @@
 %   CNV_MBConvergence                     - Compute convergence based on total mass balance and maximum residual mass balance.
 %   calculatePhaseRate                    - Undocumented Utility Function
 %   combineEquations                      - Combine equations. For doubles, this is equivialent to a vertical
+%   combineSchedules                      - Combine multiple schedules to form a schedule with multiple controls
 %   compressSchedule                      - Compress schedule to take the longest possible timesteps while honoring controls
 %   computeCpGeometry                     - Undocumented Utility Function
 %   computeSourcesAndBoundaryConditionsAD - Compute phase-pseudocomponent source terms (compatible with AD codes)
@@ -18,14 +19,17 @@
 %   convertIncompWellSols                 - Convert wellSols from incomp module to format used in ad-core/ad-blackoil
 %   convertReportToSchedule               - Create a new schedule based on actual ministeps from a simulation report
 %   convertReservoirFluxesToSurface       - Compute surface fluxes from reservoir fluxes
+%   criticalPointChop                     - Perform one or two-sided stability chop for an updated value
 %   crossFlowMixture                      - Undocumented Utility Function
 %   crossFlowMixtureDensity               - Undocumented Utility Function
 %   double2ADI                            - Convert a double to ADI variable, using a sample ADI variable for dimensions
 %   estimateCompositionCFL                - Undocumented Utility Function
 %   estimateSaturationCFL                 - Undocumented Utility Function
 %   expandIfUniform                       - Utility which reverses "value" compaction. If given a matrix (logical
+%   expandMatrixToCell                    - Expand a matrix into cell arrays. Typical usage: Converting state
 %   faceUpstr                             - Perform single-point upwinding of cell values to face
 %   fastInterpTable                       - Fast interpolation of table, using griddedInterpolant
+%   filterSchedule                        - Filter unused controls from a schedule
 %   getBoundaryConditionFluxesAD          - Get boundary condition fluxes for a given set of values
 %   getCellMajorReordering                - Get equation ordering transforming variable major to cell major ordering
 %   getConvergenceValuesCNV               - Compute convergence based on total mass balance and maximum residual mass balance.
@@ -38,6 +42,7 @@
 %   getPerforationToWellMapping           - Get map from global perforation number to global well index.
 %   getReportMinisteps                    - Get the timesteps used for the ministeps of a report
 %   getReportOutput                       - Get output from report after call to simulateScheduleAD
+%   getReservoirModel                     - Get the underlying reservoir model of a WrapperModel
 %   getSampleAD                           - Utility for getting a AD value if it exists from a list of possible
 %   getSimulationTime                     - Get the global time for a set of states produced by simulateScheduleAD
 %   getSourceFluxesAD                     - Short description
@@ -63,6 +68,7 @@
 %   selectModelFromDeck                   - Select simulation model from a ECLIPSE/FrontSim style input deck
 %   setupOperatorsTPFA                    - Set up helper structure for solvers based on automatic differentiation.
 %   setMPFADiscretization                 - Set MPFA discretization on a model
+%   setReservoirModel                     - Set the underlying reservoir model of a WrapperModel
 %   setTimeDiscretization                 - Set the discretization choice for a model
 %   setWellSign                           - Ensure that wells have a defined sign. Will attempt to guess based on controls.
 %   setWENODiscretization                 - Set WENO discretization on a model

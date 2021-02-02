@@ -1,4 +1,4 @@
-function obj = NPVOW(G, wellSols, schedule, varargin)
+function obj = NPVOW(model, states, schedule, varargin)
 % Compute net present value of a schedule with well solutions
 
 %{
@@ -25,6 +25,8 @@ opt     = struct('OilPrice',             1.0 , ...
                  'DiscountFactor',       0.0 , ...
                  'ComputePartials',      false, ...
                  'tStep' ,               [],   ...
+                 'state',                 [], ...
+                 'from_states',          true,...
                  'signChangePenaltyFactor', 0);
 opt     = merge_options(opt, varargin{:});
 
@@ -35,8 +37,8 @@ d   = opt.DiscountFactor;
 
 
 % pressure and saturaton vectors just used for place-holding
-p  = zeros(G.cells.num, 1);
-sW = zeros(G.cells.num, 1);
+%p  = zeros(G.cells.num, 1);
+%sW = zeros(G.cells.num, 1);
 
 dts   = schedule.step.val;
 
@@ -54,30 +56,36 @@ end
 obj = repmat({[]}, numSteps, 1);
 
 for step = 1:numSteps
-    sol = wellSols{tSteps(step)};
-    qWs  = vertcat(sol.qWs);
-    qOs  = vertcat(sol.qOs);
     
-    % Remove closed well.
-    status = vertcat(sol.status);
-    qWs = qWs(status);
-    qOs = qOs(status);
+    state = states{tSteps(step)};
+    nW = numel([state.wellSol.bhp]);
+    status = vertcat(state.wellSol.status);
+    if opt.ComputePartials
+         %[~, ~, qWs, qOs, bhp] = ...
+        %  initVariablesADI(p, sW, qWs, qOs, bhp);
+        if(opt.from_states) 
+            init=true;
+            state = model.getStateAD( states{tSteps(step)}, init);
+        else
+            state = opt.state;
+        end
+        qWs=model.FacilityModel.getProp(state,'qWs');
+        qOs=model.FacilityModel.getProp(state,'qOs');
+        assert(not(isnumeric(qWs)));
+     else
+        state = states{tSteps(step)};
+        [qWs, qOs] = deal( vertcat(state.wellSol.qWs), ...
+                           vertcat(state.wellSol.qOs));        
+        qWs = qWs(status);
+        qOs = qOs(status);
+    end
+
     
-    injectors = (vertcat(sol.sign) > 0);
+    injectors = (vertcat(state.wellSol.sign) > 0);
     injectors = injectors(status);
     injecting = (qWs + qOs) > 0;
     sgnCh     = (injectors & ~injecting) | (~injectors & injecting);
     
-    nW  = numel(qWs);
-    pBHP = zeros(nW, 1); %place-holder
-
-    if opt.ComputePartials
-        [qWs, qWs, qWs, qOs, ignore] = ...
-           initVariablesADI(p, sW, qWs, qOs, pBHP);                    %#ok
-
-        clear ignore
-    end
-
     dt = dts(step);
     time = time + dt;
 

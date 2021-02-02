@@ -1,6 +1,6 @@
 classdef StateFunctionDependent
     % A virtual class used for multiple inheritance. If a class inherits
-    % from this class, it can use the function functionDependsOn to
+    % from this class, it can use the function function dependsOn to
     % document which member functions depend on specific state functions.
     properties (Access = protected)
         functionDependencies = struct();

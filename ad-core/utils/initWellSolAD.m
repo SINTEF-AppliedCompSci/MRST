@@ -99,8 +99,8 @@ if isprop(model, 'thermal') && model.thermal
      [ws(:).T] = deal(0); % Thermal model
 end
 
-if isprop(model, 'compositionalFluid') % Compositional model
-     ncomp = model.compositionalFluid.getNumberOfComponents();
+if isprop(model, 'EOSModel') % Compositional model
+     ncomp = model.EOSModel.getNumberOfComponents();
 	 [ws(:).components] = deal(zeros(1, ncomp));
 end
 

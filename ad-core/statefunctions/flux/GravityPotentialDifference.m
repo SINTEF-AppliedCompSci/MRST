@@ -19,7 +19,8 @@ classdef GravityPotentialDifference < StateFunction
             nph = sum(act);
             
             gRhoDz = cell(1, nph);
-            if norm(model.gravity) > 0
+            nf = size(model.operators.N, 1);
+            if norm(model.gravity) > 0 && nf > 0
                 gdz = -model.getGravityGradient();
                 nm = model.getPhaseNames();
                 rho = model.getProp(state, 'Density');
@@ -34,7 +35,6 @@ classdef GravityPotentialDifference < StateFunction
                     gRhoDz{i} = rhof.*gdz;
                 end
             else
-                nf = size(model.operators.N, 1);
                 [gRhoDz{:}] = deal(zeros(nf, 1));
             end
             w = prop.weight;

@@ -13,8 +13,8 @@ classdef Transmissibility < StateFunction
             end
             pp.label = 'T_f';
             assert(isfield(model.operators, 'T'));
-            T = model.operators.T;
-            %assert(all(isfinite(T)))
+            T = value(model.operators.T);
+            assert(all(isfinite(T)))
             if any(T < 0)
                 warning('Negative transmissibility in %d interfaces', sum(T < 0));
             end

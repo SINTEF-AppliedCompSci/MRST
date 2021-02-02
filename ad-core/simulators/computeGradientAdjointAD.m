@@ -106,7 +106,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ws = states{step}.wellSol;
             cntrScale = getControlEqScaling({ws.type}, model.FacilityModel);
             eqNo      = strcmp('well', report.Types);
-            dg{eqNo}  = cntrScale.*dg{eqNo};
+            st        = vertcat(ws.status);
+            dg{eqNo}  = cntrScale(st).*dg{eqNo};
         end
         gradstep(step, :) = getRequestedGradients(dg, report, opt.ControlVariables);
     end

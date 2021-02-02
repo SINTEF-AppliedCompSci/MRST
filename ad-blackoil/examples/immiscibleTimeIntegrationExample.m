@@ -164,7 +164,7 @@ legend(names)
 % alternative is to use a sequential solver which first solves pressure,
 % and then solves the transport equations either entirely or fully
 % implicitly.
-mrstModule add blackoil-sequential
+mrstModule add sequential
 modelseq = getSequentialModelFromFI(model);
 
 seq = packSimulationProblem(state0, modelseq, schedule, 'immiscible_time', 'Description', 'Sequential-Implicit', 'Name', 'SI');

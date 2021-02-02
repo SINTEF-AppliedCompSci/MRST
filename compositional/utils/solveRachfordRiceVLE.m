@@ -34,6 +34,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     % Ensure minimum value - equations degenerate when any component = 0.
     z = max(z, opt.min_z);
+    nz = size(z, 1);
+    % Allow special case - single set of K-values for all components
+    if size(K, 1) < nz && size(K, 1) == 1
+        K = repmat(K, size(z, 1), 1);
+    end
     % Lowest bound for solution
     V_min = 1./(1 - max(K, [], 2));
     % Largest bound for solution
@@ -49,7 +54,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             V(bad_init) = (V_min(bad_init) + V_max(bad_init))/2;
         end
     end
-    sz = [size(V, 1), size(K, 1), size(z, 1)];
+    sz = [size(V, 1), size(K, 1), nz];
     assert(all(sz == max(sz)), ...
         'K, L (if not empty) and z inputs must all have equal number of rows.');
     n_V = numel(V);

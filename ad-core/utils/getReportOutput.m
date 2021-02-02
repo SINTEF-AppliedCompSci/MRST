@@ -89,6 +89,7 @@ function [opt, scalar] = checkOptions(opt, sample)
     catch
         error('Invalid report outuput requested');
     end
+    v = getControlStepReportData(sample, opt);
     scalar = size(v,1) == 1;
 end
 
@@ -115,8 +116,11 @@ function output = getControlStepReportData(report, opt)
     % output(2) = total data for steps that did not result in covergence
     % output(3) = steps for stepreport if ~isempty(opt.solver)
     % output(4) = timestep cuts for control step
-    stepreports = report.StepReports;
     output  = zeros(1,4);
+    if ~isfield(report, 'StepReports')
+        return
+    end
+    stepreports = report.StepReports;
     for i = 1:numel(stepreports)
         out = getStepReportData(stepreports{i}, opt);
         if size(output,1) < size(out,1)
@@ -150,13 +154,13 @@ function out = getStepReportData(stepreport, opt)
         for i = 1:numel(reports)
             out = out + opt.get(reports{i});
         end
-        out = [out, out.*stepreport.Converged, nan(numel(out),1)];
+        out = [out, out.*(~stepreport.Converged), nan(numel(out),1)];
     end
 end
 
 %-------------------------------------------------------------------------%
 function iterations = getNonLinearIterations(report)
-    % Count as one iteration if we acutally solved the Newton step, not
+    % Count as one iteration if we actually solved the Newton step, not
     % just checked for convergence
     iterations = report.Solved;
 end
@@ -173,7 +177,7 @@ end
 
 %-------------------------------------------------------------------------%
 function iterations = getLinearIterations(report)
-    % Get total nonlinear iterations if we acutally solved the Newton step,
+    % Get total nonlinear iterations if we actually solved the Newton step,
     % not just checked for convergence
     iterations = 0;
     if report.Solved
@@ -183,7 +187,7 @@ end
 
 %-------------------------------------------------------------------------%
 function time = getLinearSolverTime(report)
-    % Get total nonlinear iterations if we acutally solved the Newton step,
+    % Get total nonlinear iterations if we actually solved the Newton step,
     % not just checked for convergence
     time = 0;
     if report.Solved && isfield(report, 'LinearSolver') && isfield(report.LinearSolver, 'SolverTime')

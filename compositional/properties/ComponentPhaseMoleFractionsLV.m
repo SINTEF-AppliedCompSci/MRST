@@ -18,17 +18,25 @@ classdef ComponentPhaseMoleFractionsLV < StateFunction
             if ~iscell(y)
                 y = expandMatrixToCell(y);
             end
-            if model.water
-                ncomp = numel(x) + 1;
-                nc = model.G.cells.num;
-                u = ones(nc, 1);
-                x = [x, {[]}];
-                y = [y, {[]}];
-                w = cell(1, ncomp);
-                w{end} = u;
-                v = [w', x', y'];
-            else
-                v = [x', y'];
+            % Ncomp by nph matrix. The eos components get the two-phase
+            % distribution and the immiscible components get the identity
+            nph = model.getNumberOfPhases();
+            ncomp = model.getNumberOfComponents();
+            nc = model.G.cells.num;
+            v = cell(ncomp, nph);
+            isEoS = model.getEoSComponentMask();
+            [v{isEoS, model.getLiquidIndex()}] = x{:};
+            [v{isEoS, model.getVaporIndex()}] = y{:};
+            if ~all(isEoS)
+                if isa(model, 'GenericReservoirModel')
+                    for cNo = find(~isEoS)
+                        ix = model.Components{cNo}.phaseIndex;
+                        v{cNo, ix} = ones(nc, 1);
+                    end
+                else
+                    % Just water - first component
+                    v{1, 1} = ones(nc, 1);
+                end
             end
         end
     end

@@ -29,7 +29,7 @@ void divergenceJacBlock(const int nf, const int nc, const int njac,
     double* pr, size_t * ir, size_t * jc) {
     int mv = facePos[nc];
     int jac_val_width = nder * njac;
-#pragma omp parallel for schedule(dynamic, 512)
+    #pragma omp parallel for
     for (int cell = 0; cell < nc; cell++) {
         // Each cell has number of connections equal to the number of half-
         // faces for that cell plus itself multiplied by the block size
@@ -150,41 +150,19 @@ void mexFunction(int nlhs, mxArray* plhs[],
     bool rowMajor = mxGetScalar(prhs[8]);
     size_t n_jacs = mxGetNumberOfElements(faceJac);
 
-
-    
-    // mexPrintf("Cell %d: %d -> %d\n", cell, start + der, cell * nder + der);
-    // std::vector<bool> hasAccumulation;
     std::vector<double*> cellDiagonals;
     std::vector<double*> faceDiagonals;
 
-
     for (int jacNo = 0; jacNo < n_jacs; jacNo++) {
-        /*
-
-        mxArray* tmp2 = mxGetCell(&faceJacs[jacNo], jacNo);
-        cellDiagonals[jacNo] = (double*)mxGetPr(tmp1);
-        faceDiagonals[jacNo] = (double*)mxGetPr(tmp2);
-        */
         cellDiagonals.push_back(mxGetPr(mxGetCell(prhs[0], jacNo)));
         faceDiagonals.push_back(mxGetPr(mxGetCell(prhs[1], jacNo)));
     }
-    /*
-    double* accumulation = mxGetPr(accJac);
-    double* diagonal = mxGetPr(faceJac);
-    */
 
     int nf = mxGetM(prhs[2]);
     int nc = mxGetM(prhs[3]) - 1;
     int nhf = mxGetM(prhs[4]);
 
-    // mexPrintf("%d Jacobians, %d derivatives, %d faces and %d cells\n", n_jacs, nder, nf, nc);
-
-    // int n_acc = mxGetNumberOfElements(accJac);
-
-    // bool has_accumulation = n_acc > 0;
-
     int m = nder;
-    // mexPrintf("Matrix has dimensions %d by %d. There are %d faces and %d cells (%d interfaces, %d derivatives)\n", nrows, ncols, nf, nc, nf_in, m);
 
     // Each cell has one self-connection plus the number of half-faces
     mwSize nzmax = (facePos[nc] + nc);
@@ -253,31 +231,3 @@ void mexFunction(int nlhs, mxArray* plhs[],
     }
 }
 
-
-/*
-if (c < 0) {
-    // Low entry, corresponding to N(f, 1)
-    for (int der = 0; der < m; der++) {
-        int sparse_offset = jc[cell + nc * der];
-        double v = diagonal[f * 2 * m + der];
-        // Set row entry
-        ir[sparse_offset + i] = -c;
-        pr[sparse_offset + i] = -v;
-        // Set corresponding diagonal entry
-        pr[sparse_offset + diag] += v;
-    }
-
-}
-else {
-    // High entry, corresponding to N(f, 2)
-    for (int der = 0; der < m; der++) {
-        int sparse_offset = jc[cell + nc * der];
-        double v = diagonal[(f * 2 + 1)* m + der];
-        // Set row entry
-        ir[sparse_offset + i] = c;
-        pr[sparse_offset + i] = v;
-        // Set corresponding diagonal entry
-        pr[sparse_offset + diag] -= v;
-    }
-}
-*/

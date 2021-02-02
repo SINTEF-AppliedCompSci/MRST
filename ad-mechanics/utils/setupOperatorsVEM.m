@@ -4,8 +4,9 @@ function operators = setupOperatorsVEM(G, C, el_bc, load, alpha_scaling, S)
 % SYNOPSIS:
 %   function operators = setupOperatorsVEM(G, C, el_bc, load, alpha_scaling, S)
 %
-% DESCRIPTION: Assemble the discretization operators for the mechanical
-% system, using VEM.
+% DESCRIPTION:
+%   Assemble the discretization operators for the mechanical system,
+%   using VEM.
 %
 % PARAMETERS:
 %   G             - Grid structure
@@ -19,10 +20,9 @@ function operators = setupOperatorsVEM(G, C, el_bc, load, alpha_scaling, S)
 % RETURNS:
 %   operators - Structure with the VEM discretization operators.
 %
-% EXAMPLE:
-%
-% SEE ALSO: VEM_linElast, MechanicalModel 
-%
+% SEE ALSO:
+%   VEM_linElast, MechanicalModel
+
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -41,7 +41,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
 
     [~, extra] = VEM_linElast(G                    , ...
                               C                   , ...

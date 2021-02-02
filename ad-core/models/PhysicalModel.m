@@ -349,11 +349,11 @@ methods
         assert(all(schedule.step.val >= 0), ...
             'Negative time-steps present in schedule.step.val');
         for i = 1:numel(schedule.control)
-            schedule.control(i) = model.validateDrivingForces(schedule.control(i));
+            schedule.control(i) = model.validateDrivingForces(schedule.control(i), i);
         end
     end
 
-    function forces = validateDrivingForces(model, forces)
+    function forces = validateDrivingForces(model, forces, index)
         validforces = model.getValidDrivingForces();
         fn_valid = fieldnames(validforces);
         fn = fieldnames(forces);
@@ -703,8 +703,8 @@ methods
                 % Remove AD from state, and remove property containers to avoid
                 % caching issues in update function
                 state = model.reduceState(state, true);
-                if (nonlinsolver.useLinesearch && nonlinsolver.convergenceIssues) || ...
-                    nonlinsolver.alwaysUseLinesearch
+                is_struggling = nonlinsolver.alwaysUseStabilization || nonlinsolver.convergenceIssues;
+                if is_struggling && nonlinsolver.useLinesearch
                     [state, updateReport, stabilizeReport.linesearch] = nonlinsolver.applyLinesearch(model, state0, state, problem, dx, drivingForces, varargin{:});
                 else
                     % Finally update the state. The physical model knows which
@@ -867,7 +867,7 @@ methods
             problem_p = [];
         end
         [gradient, result, rep] = solver.solveAdjointProblem(problem_p,...
-                                    problem, gradient, getObj(stepNo), model);
+                                    problem, gradient, getObj(stepNo,model,problem.state), model);
         report = struct();
         report.Types = problem.types;
         report.LinearSolverReport = rep;

@@ -25,8 +25,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % One-line description
     description = 'Quarter five-spot example with two-phase fluid on Cartesian grid';
     % Optional input arguments
-    options = struct('ncells', 50, ... % Number of cells in x- and y-directions
-                     'nkr'   , 2);     % Brooks-Corey relperm exponent
+    options = struct('ncells', 50    , ... % Number of cells in x- and y-directions
+                     'time'  , 2*year, ... % Total injection time
+                     'dt'    , 30*day, ... % Timestep length
+                     'pvi'   , 1     , ... % Pore volumes injected
+                     'nkr'   , 2     );    % Brooks-Corey relperm exponent
     options = merge_options(options, varargin{:});
     if nargout <= 2, return; end
     % Define module dependencies
@@ -37,14 +40,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fluid = initSimpleADIFluid('phases', 'WO', 'n', [1,1]*options.nkr, 'mu', [1,1]*centi*poise, 'rho', [1,1]);
     model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
     % Wells
-    time = 2*year;
-    rate = sum(poreVolume(G, rock))/time;
+    rate = options.pvi*sum(poreVolume(G, rock))/options.time;
     bhp  = 50*barsa;
     W = [];
     W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate, 'comp_i', [1,0]);
     W = addWell(W, G, rock, G.cells.num, 'type', 'bhp', 'val', bhp, 'comp_i', [1,0]);
     % Schedule
-    schedule = simpleSchedule(rampupTimesteps(time, 30*day), 'W', W);
+    schedule = simpleSchedule(rampupTimesteps(options.time, options.dt), 'W', W);
     % Initial state
     state0      = initResSol(G, 10*barsa, [0,1]);
     % Default plotting

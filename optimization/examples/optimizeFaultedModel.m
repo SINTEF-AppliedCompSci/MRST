@@ -79,7 +79,7 @@ npvopts     = {'OilPrice',             60.0 , ...
                'WaterProductionCost',   7.0 , ...
                'WaterInjectionCost',    7.0 , ...
                'DiscountFactor',        0.1 };
-v_base  = NPVOW(G, wellSols_base, schedule_base, npvopts{:});
+v_base  = NPVOW(model, states_base, schedule_base, npvopts{:});
 v_base  = cell2mat(v_base);
 t_base  = cumsum(schedule_base.step.val);
 figure, plot(convertTo(t_base,day), cumsum(v_base), '-o', 'LineWidth', 2);
@@ -93,7 +93,7 @@ scaling.obj     = sum(v_base);    % objective scaling
 % Get initial scaled controls 
 u_base = schedule2control(schedule_base, scaling);
 % Define objective function with above options
-obj = @(wellSols, schedule, varargin)NPVOW(G, wellSols, schedule, varargin{:}, npvopts{:});
+obj = @(model, states, schedule, varargin)NPVOW(model, states, schedule, varargin{:}, npvopts{:});
 % Get function handle for objective evaluation
 f = @(u)evalObjective(u, obj, state0, model, schedule, scaling);
 
@@ -116,7 +116,7 @@ linIneqS = setupConstraints(linIneq, schedule, scaling);
 %% Evaluate evolution of NPV for optimal schedule and compare with base
 schedule_opt = control2schedule(u_opt, schedule, scaling);
 [wellSols_opt, states_opt] = simulateScheduleAD(state0, model, schedule_opt);
-v_opt  = NPVOW(G, wellSols_opt, schedule_opt, npvopts{:});
+v_opt  = NPVOW(model, states_opt, schedule_opt, npvopts{:});
 v_opt  = cell2mat(v_opt);
 t_opt  = cumsum(schedule_opt.step.val);
 figure, plot(convertTo([t_base, t_opt],day), cumsum([v_base, v_opt]), '-o', 'LineWidth', 2);

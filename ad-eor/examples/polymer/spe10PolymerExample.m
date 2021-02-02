@@ -26,7 +26,7 @@ files = fullfile(getDatasetPath('BlackoilPolymer2D', 'download', true), fname);
 % check to make sure the files are complete
 e = cellfun(@(pth) exist(pth, 'file') == 2, files);
 
-if ~all(e),
+if ~all(e)
     pl = ''; if sum(e) ~= 1, pl = 's'; end
     msg = sprintf('Missing data file%s\n', pl);
     msg = [msg, sprintf('  * %s\n', fname{~e})];

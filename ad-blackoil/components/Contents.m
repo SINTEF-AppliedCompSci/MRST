@@ -1,8 +1,8 @@
 % COMPONENTS
 %
 % Files
-%   GasComponent - 
-%   OilComponent - 
+%   GasComponent - A black-oil component description of the gas type, which modifies the
+%   OilComponent - A black-oil component description of the oil type, which modifies the
 
 %{
 Copyright 2009-2018 SINTEF Digital, Applied Mathematics.

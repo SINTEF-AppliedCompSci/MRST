@@ -8,7 +8,7 @@ classdef TestGenericBO < matlab.unittest.TestCase
     methods
         function test = TestGenericBO()
             mrstModule reset
-            mrstModule add ad-unittest ad-core ad-blackoil ad-props blackoil-sequential
+            mrstModule add ad-unittest ad-core ad-blackoil ad-props sequential
         end
 
         function [ws, states, rep] = testMultiPhase(test, strategy, phases, backend, varargin)

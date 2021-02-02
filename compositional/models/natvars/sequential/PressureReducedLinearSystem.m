@@ -98,8 +98,9 @@ classdef PressureReducedLinearSystem < ReducedLinearizedSystem
             [dx, dy, ds, dL, twoPhase] = getUpdatesFromPressure(m, problem.state, dp);
 %             dp(twoPhase) = dp(twoPhase).*wcomp;
             
-            w_var = cellfun(@(x) ['w_', x], m.EOSModel.fluid.names, 'uniformoutput', false);
-            v_var = cellfun(@(x) ['v_', x], m.EOSModel.fluid.names, 'uniformoutput', false);
+            cnames = m.EOSModel.getComponentNames();
+            w_var = cellfun(@(x) ['w_', x], cnames, 'uniformoutput', false);
+            v_var = cellfun(@(x) ['v_', x], cnames, 'uniformoutput', false);
             assert(strcmp(problem.primaryVariables{1}, 'pressure'))
             
             

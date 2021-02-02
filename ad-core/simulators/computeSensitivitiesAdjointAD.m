@@ -71,11 +71,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'modelBase', []);
     opt = merge_options(opt, varargin{:});
     
-    % check that OutputStateFunctions is empty, give warning if not 
-    if ~isempty(model.OutputStateFunctions)
-        warning('Model property ''OutputStateFunctions'' is non-empty, this may result in incorrect sensitivities.');
-    end
-    
     getState = @(i) getStateFromInput(schedule, states, state0, i);
     
     if isempty(opt.LinearSolver)
@@ -145,10 +140,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
     
     % multiply by value if type is multiplier:
+    assert(all(strcmp(pTypes, 'multiplier') | strcmp(pTypes, 'value')))
+    
     multIx = find(strcmp(pTypes, 'multiplier'));
     for k = 1:numel(multIx)
         sens.(param{multIx(k)}) = sens.(param{multIx(k)}).*paramValues{multIx(k)};
     end
+        
+    
     
     % add regularization term
     if ~isempty(opt.Regularization)
@@ -175,6 +174,8 @@ function eqdth = partialWRTparam(model, getState, schedule, step)
     if step == 1
         before = model.validateState(before);
     end
+    % initialize before-state in case it contains cached properties
+    before = model.getStateAD(before, false);
     
     problem = model.getEquations(before, current, dt, forces, 'iteration', inf, 'resOnly', true);
     eqdth   = problem.equations;
@@ -193,6 +194,7 @@ end
 function [model, schedule, paramValues] = initModelParametersADI(model, schedule, param)
 np = numel(param);
 m = cell(1, np);
+scalerMap = getScalerMap();
 % in stage 1, set values, in stage 2, initialize ADI
 for stage = 1:2
     for k = 1:np
@@ -250,18 +252,27 @@ for stage = 1:2
                     ncon = arrayfun(@(x)numel(x.WI), W);
                     for step = 1:numel(schedule.control)
                         ix = 0;
-                        for wn = 1:numel(W) 
+                        for wn = 1:numel(W)
                             schedule.control(step).W(wn).WI = m{k}(ix + (1:ncon(wn))');
                             ix = ix + ncon(wn);
                         end
                     end
                 end
-            case {'swl', 'swcr', 'swu', 'sowcr'}  
-                if stage == 1
-                    m{k} = model.fluid.(param{k});
-                else
-                    % reset fluid-functions
-                    model.fluid = initSimpleScaledADIFluid(model.fluid, param{k}, m{k});
+            otherwise
+                if ismember(upper(param{k}), {'SWL', 'SWCR', 'SWU', 'SGL', ...
+                        'SGCR', 'SGU', 'SOWCR', 'SOGCR', 'KRW', 'KRO', 'KRG'})
+                    ix = scalerMap.kw.(upper(param{k}));
+                    [ph, col] = deal(scalerMap.ph{ix(1)}, ix(2));
+                    if stage == 1
+                        m{k} = model.rock.krscale.drainage.(ph)(:,col);
+                        assert(~any(isnan(m{k})), ...
+                        'Field %s appears not to be an active parameter for the model', ...
+                        param{k});
+                    else
+                        % init scalers as ADI
+                        model = setADIScalers(model, m{k}, ph, col);
+                        %model.fluid = initSimpleScaledADIFluid(model.fluid, param{k}, m{k});
+                    end
                 end
         end
     end
@@ -277,29 +288,29 @@ end
 end
 
 
-function sens = addRegularizationSens(sens, param, pTypes, model, modelBase, reg)
-warning('Regularization not tested ...')
-np = numel(param);
-for k = 1:np
-    switch param{k}
-        case 'transmissibility'
-            dparam = model.operators.T - modelBase.operators.T; 
-            if strcmp(pTypes{k}, 'multiplyer')
-                dparam = dparam./model.operators.T;
-            end
-        case 'porevolume'
-            dparam = model.operators.pv - modelBase.operators.pv; 
-            if strcmp(pTypes{k}, 'multiplyer')
-                dparam = dparam./model.operators.pv;
-            end
-    end
-    if any(~isfinite(dparam))
-        dparam(~isfinite(dparam)) = 0;
-    end
-    
-    sens{k} = sens{k} + reg{k}*dparam;
-end
-end
+% function sens = addRegularizationSens(sens, param, pTypes, model, modelBase, reg)
+% warning('Regularization not tested ...')
+% np = numel(param);
+% for k = 1:np
+%     switch param{k}
+%         case 'transmissibility'
+%             dparam = model.operators.T - modelBase.operators.T; 
+%             if strcmp(pTypes{k}, 'multiplyer')
+%                 dparam = dparam./model.operators.T;
+%             end
+%         case 'porevolume'
+%             dparam = model.operators.pv - modelBase.operators.pv; 
+%             if strcmp(pTypes{k}, 'multiplyer')
+%                 dparam = dparam./model.operators.pv;
+%             end
+%     end
+%     if any(~isfinite(dparam))
+%         dparam(~isfinite(dparam)) = 0;
+%     end
+%     
+%     sens{k} = sens{k} + reg{k}*dparam;
+% end
+
 
 function ti = perm2directionalTrans(model, p, cdir)
 % special utility function for calculating transmissibility along coordinate direction cdir
@@ -333,7 +344,8 @@ for k = 1:numel(param)
     p = param{k};
     pix = pix+1;
     switch p
-        case {'transmissibility', 'porevolume', 'conntrans', 'swl', 'swcr', 'swu', 'sowcr'}
+        case {'transmissibility', 'porevolume', 'conntrans', 'swl', 'swcr', 'swu', 'sowcr', ...
+              'sogcr', 'sgl', 'sgcr', 'sgu', 'krw', 'kro', 'krg' }
             param_proc{pix} = param{k};
             types_proc{pix} = types{k};
         case 'permeability'
@@ -352,3 +364,24 @@ if any(strcmp(param_proc, 'transmissibility')) && any(strcmp(param_proc, 'permx'
 end 
 end
 
+function map = getScalerMap()
+phOpts = {'w', 'ow', 'g', 'og'};
+kw  = struct('SWL',   [1,1], 'SWCR',  [1,2], 'SWU', [1,3], ...
+             'SGL',   [3,1], 'SGCR',  [3,2], 'SGU', [3,3], ...
+             'SOWCR', [2,2], 'SOGCR', [4,2], ...
+             'KRW',   [1,4], 'KRO',   [2,4], 'KRG', [3,4]);
+map = struct('ph', {phOpts}, 'kw', kw);
+end
+
+function model = setADIScalers(model, m, ph, col)
+% rel-perm-code assumes scalers are ordered in columns of matrix, imitate
+% this by functions
+d  = model.rock.krscale.drainage;
+nc = model.G.cells.num;
+if ~isfield(d, 'tmp') || ~isfield(d.tmp, ph)
+    d.tmp.(ph) = mat2cell(d.(ph), nc, ones(1,4));
+end
+d.tmp.(ph){col} = m;
+d.(ph) = @(cells, col)d.tmp.(ph){col}(cells);
+model.rock.krscale.drainage = d;
+end

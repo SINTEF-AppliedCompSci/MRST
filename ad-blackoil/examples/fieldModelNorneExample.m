@@ -90,7 +90,7 @@ nls.verbose = false;
 nls.LinearSolver.verbose = false;
 
 problem = packSimulationProblem(state0, model, schedule, 'norne', ...
-    'Name', 'GenericBlackOil_FI_EGRID', 'nonlinearsolver', nls);
+    'Name', 'GenericBlackOil_EGRID', 'nonlinearsolver', nls);
 
 %% MRST grid     
 simulatePackedProblem(problem, 'continueOnError', false);
@@ -151,6 +151,63 @@ title('OPM');
 figure;
 plotToolbar(G_viz, states);
 title('MRST');
+
+%% Plot oil and gas rates
+dt = schedule.step.val;
+
+figure('position', 1e3*[ 1.0000    1.0977    0.8563    0.2403]);
+hold on
+for i = 1:2
+    if i == 1
+        wd = ws;
+        t = T;
+    else
+        wd = ws_nohyst;
+        t = T_nohyst;
+    end
+    dti = diff([0; t]);
+    if isfield(wd{1}, 'status')
+        status = getWellOutput(wd, 'status');
+    else
+        status = true;
+    end
+    getRates = @(x) max(-getWellOutput(wd, x).*status, 0);
+    
+    qo = getRates('qOs');
+    qg = getRates('qGs');
+    qw = getRates('qWs');
+
+    qot = sum(qo, 2)/stb;
+    qwt = sum(qw, 2)/stb;
+    qgt = sum(qg, 2)/(1e3*ft^3);
+    
+    if i == 1
+        plotarg = {'Linewidth', 2};
+        style = '--';
+    else
+        plotarg = {};
+        style = '-';
+    end
+    t = t/day;
+    % Uncomment next line to get the cumulati
+    % fn = @(x) cumsum(x.*dti, 1);
+    fn = @(x) x;
+    e = 0.5;
+    plot(t, fn(qot), style, 'color', [1, e, e], plotarg{:});
+    plot(t, fn(qwt), style, 'color', [e, e, 1], plotarg{:});
+    plot(t, fn(qgt), style, 'color', [e, 1, e], plotarg{:});
+    legend('Oil (stb)', 'Water (stb)', 'Gas (mscf)', 'location', 'northwest')
+    axis tight
+    xlabel('Time (days)');
+end
+%% Plot model with wells
+k = rock.perm(:, 1);
+figure;
+plotCellData(G_viz, log10(k))
+plotWell(G_viz, schedule.control(1).W, 'color', 'r', 'color2', 'b', 'FontSize', 8);
+view(70, 30);
+mrstColorbar(gca, k, 'southoutside', true);
+axis tight
 
 %% Copyright Notice
 %

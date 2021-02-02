@@ -22,7 +22,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     nls = NonLinearSolver();
     nls.verbose = -1;
-    nls.maxIterations = 100;
+    nls.maxIterations = 500;
     nls.maxTimestepCuts = 0;
     nls.useRelaxation = true;
     nls.continueOnFailure = true;
