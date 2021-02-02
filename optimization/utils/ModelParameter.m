@@ -45,7 +45,7 @@ classdef ModelParameter
                 logLims = log(p.boxLims);
                 pval = exp(vs.*diff(logLims, [], 2) + logLims(:,1));
             end
-            pval = expandLumps(pval);
+            pval = expandLumps(p,pval);
             if strcmp(p.type, 'multiplier')
                 pval = pval.*p.initialValue;
             end
