@@ -237,7 +237,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                     disp   ('********************************');
                     fprintf('* Final residuals after %d iterations:\n', report.StepReports{1}.Iterations);
                     for i = 1:numel(report.StepReports{1}.NonlinearReport{end}.Residuals)
-                        fprintf('* %s: %1.4g \n', model.EOSModel.fluid.names{i},....
+                        fprintf('* %s: %1.4g \n', model.EOSModel.CompositionalMixture.names{i},....
                                 report.StepReports{1}.NonlinearReport{end}.Residuals(i))
                     end
                 end
