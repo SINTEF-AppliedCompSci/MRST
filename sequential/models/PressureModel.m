@@ -233,7 +233,7 @@ classdef PressureModel < WrapperModel
                             % Do nothing
                             scale = 1;
                         case 'norm'
-                            scale = norm(state.pressure, inf);
+                            scale = norm(value(problem.state.pressure), inf);
                         otherwise
                             error('Unknown pressure increment %s', model.pressureIncTolType);
                     end
