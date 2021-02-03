@@ -202,6 +202,7 @@ function submodel = makeSubModel(model, subG, subRock, subop, cellMap, opt)
     if ~isempty(submodel.getStateFunctionGroupings())
         warning('Assuming default state function groupings.');
         submodel.FlowPropertyFunctions = submodel.FlowPropertyFunctions.subset(cellMap.keep);
+        submodel.FlowPropertyFunctions = submodel.FlowPropertyFunctions.subset(':');
         submodel.PVTPropertyFunctions  = submodel.PVTPropertyFunctions.subset(cellMap.keep);
         submodel.FlowDiscretization    = submodel.FlowDiscretization.subset(cellMap.keep);
         submodel.FlowDiscretization    = replaceOperators(submodel.FlowDiscretization, submodel);
