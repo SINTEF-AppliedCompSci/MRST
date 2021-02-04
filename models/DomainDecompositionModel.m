@@ -13,9 +13,14 @@ classdef DomainDecompositionModel < WrapperModel
         subdomainTol    = [] % Subdomain tolerances relative to parent
                              % model. Given as cell array on the form
                              % {'name', fraction}, e.g., {'toleranceCNV', 0.1};
-        useGlobalPressureRange = false % Use pressure range of entire mode
-                                       % for models with relative presure
-                                       % tolerances
+                             % NOTE: For compositional models, EOS
+                             % nonlinear tolerance can be adjusted by using
+                             % {'toleranceEOS', fraction}.
+        useGlobalPressureRange = true % Use pressure range of entire model
+                                      % for models with relative presure
+                                      % tolerances
+        acceptanceFactor = 1 % Assume converged if we are past iteration 3
+                             % and all(values < acceptanceFactor*tolerances)
         % Parallel properties
         pool       % Paralell pool
         domains    % Domains per worker
@@ -114,6 +119,11 @@ classdef DomainDecompositionModel < WrapperModel
             problem.drivingForces = drivingForces;
             % Check convergence
             [convergence, values, resnames] = model.parentModel.checkConvergence(problem);
+            if problem.iterationNo > 3 && model.acceptanceFactor > 1
+                [~, tolerances] = model.parentModel.getConvergenceValues(problem);
+                almost = values < model.acceptanceFactor*tolerances;
+                convergence(almost) = true;
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -247,6 +257,7 @@ classdef DomainDecompositionModel < WrapperModel
             % Get subdomain states
             [substateInit, mappings] = getSubState(stateInit, mappings);
             substate0                = getSubState(state0   , mappings);
+            submodel.mappings = mappings;
             % Solve timestep
             nls      = setup.NonlinearSolver;
             forceArg = getDrivingForces(submodel, subforces);
@@ -344,6 +355,10 @@ classdef DomainDecompositionModel < WrapperModel
                 % Don't precomute setups if there are more than 500 of them
                 return
             end
+            % Remove FacilityModel.ReservoirModel
+            rmodel = getReservoirModel(model);
+            rmodel.FacilityModel.ReservoirModel = [];
+            model = setReservoirModel(model, rmodel);
             % Make submodel
             verbose  = model.verboseSubmodel; % Subdomain solve verbosity
             cells    = p == i;                % Cell subset
@@ -492,10 +507,17 @@ classdef DomainDecompositionModel < WrapperModel
             rmodel = getReservoirModel(submodel);
             for i = 1:2:numel(tolerances)
                 if isprop(rmodel, tolerances{i})
-                    assert(tolerances{i+1} <= 1, 'Subdomain tolerance fraction must be <= 1')
+                    assert(tolerances{i+1} <= 1, ...
+                               'Subdomain tolerance fraction must be <= 1')
                     rmodel.(tolerances{i}) = rmodel.(tolerances{i}).*tolerances{i+1};
                 end
             end
+            % Handle EOS tolerance
+            ix = find(strcmpi(tolerances, 'toleranceEOS'));
+            if any(ix) && isa(rmodel, 'ThreePhaseCompositionalModel')
+                rmodel.EOSModel.nonlinearTolerance ...
+                    = tolerances{ix+1}*rmodel.EOSModel.nonlinearTolerance;
+            end 
             submodel = submodel.setReservoirModel(submodel, rmodel);
         end
         
