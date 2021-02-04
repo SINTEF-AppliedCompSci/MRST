@@ -277,6 +277,19 @@ classdef ADI
       end
 
       %--------------------------------------------------------------------
+      function h = polyval(p,v)
+          % Element-wise poewr. `h=u.^v`
+         if ~isa(p,'ADI') % v is a scalar and u is ADI
+             h = v;
+             h.val = polyval(p,v.val);
+             h.jac = v.lMultDiag(polyval(polyder(p),v.val),v.jac);
+             assert(isa(v,'ADI'));
+         else
+             error("polyval with adi coefficents not valid")
+         end
+      end
+      
+      %--------------------------------------------------------------------
 
       function h = rdivide(u,v)
           % Right element-wise division: `h = u./v`
