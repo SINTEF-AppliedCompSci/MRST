@@ -181,7 +181,9 @@ function iterations = getLinearIterations(report)
     % not just checked for convergence
     iterations = 0;
     if report.Solved
-        iterations = report.LinearSolver.Iterations;
+        if(isfield(report.LinearSolver,'Iterations'))
+            iterations = report.LinearSolver.Iterations;
+        end
     end
 end
 
