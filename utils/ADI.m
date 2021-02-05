@@ -277,6 +277,18 @@ classdef ADI
       end
 
       %--------------------------------------------------------------------
+      function h = polyval(p,v)
+         if ~isa(p,'ADI') % p should be intigers and v adi
+             h = v;
+             h.val = polyval(p,v.val);
+             h.jac = v.lMultDiag(polyval(polyder(p),v.val),v.jac);
+             assert(isa(v,'ADI'));
+         else
+             error("polyval with adi coefficents not valid")
+         end
+      end
+      
+      %--------------------------------------------------------------------
 
       function h = rdivide(u,v)
           % Right element-wise division: `h = u./v`
