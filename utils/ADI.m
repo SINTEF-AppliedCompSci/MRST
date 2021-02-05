@@ -278,8 +278,7 @@ classdef ADI
 
       %--------------------------------------------------------------------
       function h = polyval(p,v)
-          % Element-wise poewr. `h=u.^v`
-         if ~isa(p,'ADI') % v is a scalar and u is ADI
+         if ~isa(p,'ADI') % p should be intigers and v adi
              h = v;
              h.val = polyval(p,v.val);
              h.jac = v.lMultDiag(polyval(polyder(p),v.val),v.jac);
