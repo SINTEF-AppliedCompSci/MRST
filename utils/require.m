@@ -94,7 +94,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               'before activation through ''mrstModule add''.'];
       end
 
-      throwAsCaller(MException('MRST:MissingModule', '%s\n%s',e, a));
+      if exist('OCTAVE_VERSION', 'builtin') > 0
+         error('MRST:MissingModule', '%s\n%s', e, a);
+      else
+         throwAsCaller(MException('MRST:MissingModule', '%s\n%s', e, a));
+      end
    end
 end
 

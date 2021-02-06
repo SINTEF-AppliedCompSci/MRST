@@ -36,6 +36,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Display welcome message
    mrstStartupMessage();
+
+   % Attempt to load settings - and perform first-time setup if required.
+   settings = mrstSettings(); %#ok
 end
 
 %--------------------------------------------------------------------------

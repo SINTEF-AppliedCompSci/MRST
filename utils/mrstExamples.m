@@ -176,10 +176,14 @@ function print_examples(module, allfiles)
    sep = regexptranslate('escape', [filesep, 'examples', filesep]);
 
    ex  = cellfun(@(p) p(2), regexp(allfiles, sep, options{:}));
-   prt = [ reshape(allfiles, 1, []) ; ...
-           reshape(ex,       1, []) ];
-
-   fprintf('    <a href="matlab: edit ''%s''">%s</a>\n', prt{:});
+   if usejava('desktop')
+      prt = [ reshape(allfiles, 1, []) ; ...
+              reshape(ex,       1, []) ];
+      fprintf('    <a href="matlab: edit ''%s''">%s</a>\n', prt{:});
+   else
+      prt = reshape(ex, 1, []);
+      fprintf('    %s\n', prt{:});
+   end
 end
 
 %--------------------------------------------------------------------------
