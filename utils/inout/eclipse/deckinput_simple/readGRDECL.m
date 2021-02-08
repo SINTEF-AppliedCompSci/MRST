@@ -133,6 +133,8 @@ while ~feof(fid)
 
    if ~feof(fid)
       dispif(opt.verbose, 'Reading keyword ''%s''\n', kw);
+      t0 = tic();
+
       switch kw
          case {'SPECGRID', 'DIMENS'}
             t = fscanf(fid, '%f', 3) .';
@@ -269,10 +271,13 @@ while ~feof(fid)
                unrec = [unrec, {kw}]; %#ok
             end
       end
+
+      t0 = toc(t0);
+      dispif(opt.verbose, '  -> Done [%.2f s]\n', t0);
    end
 end
-unrec = unique(unrec);
 
+unrec = unique(unrec);
 grdecl.UnhandledKeywords = unrec;
 
 fclose(fid);
