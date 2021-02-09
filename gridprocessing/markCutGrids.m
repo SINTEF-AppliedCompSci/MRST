@@ -78,8 +78,7 @@ function m = markCutGrids(G, faceStatus, varargin)
         neighs = neighs(idx, :);
 
         % Form adjacency matrix
-        A = sparse(neighs(:,1), neighs(:,2), 1, G.cells.num, G.cells.num);
-        g = graph(A + A');
+        g = graph(neighs(:,1), neighs(:,2));
         m = conncomp(g)';
 
     end
