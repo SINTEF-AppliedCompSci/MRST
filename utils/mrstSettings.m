@@ -29,8 +29,14 @@ function varargout = mrstSettings(verb, varargin)
             need_save = true;
         end
     end
-    if nargin == 0
-        verb = 'list';
+    if nargin == 0 
+        if nargout == 1
+            % Early termination
+            varargout = {SETTINGS};
+            return
+        else
+            verb = 'list';
+        end
     end
     if nargin < 2
         sarg = '';
@@ -288,7 +294,14 @@ function storeSettings(settings)
 end
 
 function pth = getSettingsPath()
-    pth = fullfile(ROOTDIR(), 'settings.mat');
+    if exist('OCTAVE_VERSION', 'builtin') > 0
+        % Use different set of settings for Octave in case someone is using
+        % the same folder with both Matlab and Octave.
+        fn = 'settings_octave.mat';
+    else
+        fn = 'settings.mat';
+    end
+    pth = fullfile(ROOTDIR(), fn);
 end
 
 function checkSetting(SETTINGS, setting)

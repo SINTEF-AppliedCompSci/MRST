@@ -11,10 +11,14 @@ opt = struct('onlyFaces',  false, ...
 % others passed on to computeGridSlice
 
 [pntsList, optList] = handleMultInput(pnts, opt2);
-
-for k = 1:numel(pntsList)
+timer = tic();
+npts = numel(pntsList);
+for k = 1:npts
     % hard-set some opts that are required or not yet compatible with
     % grid-processing
+    dispif(npts > 1 && mrstVerbose(), ...
+        'Performing slice %d of %d\n', k, npts);
+
     poly = computeGridSlicePolygons(G, pntsList{k}, optList{k}{:}, ...
         'removePartialCuts'      , true, ...
         'outputForGridProcessing', true, ...
@@ -85,6 +89,7 @@ for k = 1:numel(pntsList)
     end
     gix = getIndices(ncOld, nfOld, cutCells.ix(isCut), cutFaces.ix(isSplit), sliceFaces, gix);
 end
+dispif(mrstVerbose(), 'Performed %d slices in %fs\n', npts, toc(timer));
 % create 2D slice-grid if requested
 if nargout >= 3 && G.griddim == 3
     G_slice = get2DGridFromFaces(G, gix.new.faces == 3);

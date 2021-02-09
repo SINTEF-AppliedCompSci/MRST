@@ -36,11 +36,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    if isnumeric(x) || islogical(x)
+    if isnumeric(x) || islogical(x) || ischar(x)
         xv = x;
     elseif iscell(x)
         sz = size(x);
-        xv = cellfun(@value, x, 'UniformOutput', false);
+        xv = applyFunction(@value, x);
         if sz(1) == 1
             % Cell arrays are converted to matrices
             xv = [xv{:}];
@@ -54,6 +54,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         xv = x;
+    elseif isprop(x, 'val')
+        % If the object somehow has the property '.val' we use that. Note
+        % that this is partially to fix an Octave bug when using function
+        % handles on classes.
+        xv = x.val;
     else
         xv = x;
     end
