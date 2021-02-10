@@ -31,7 +31,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
             % Check if running Octave. Octave does not support querying
             % the properties of a class under construction. For this reason
             % we perform a check and hope for the best.
-            isOctave = exist("OCTAVE_VERSION", "builtin") > 0;
+            isOctave = mrstPlatform('octave');
             if ~isOctave
                 group = group.setInternalNames();
             end
@@ -371,8 +371,8 @@ classdef StateFunctionGrouping < StateFunctionDependent
             canPlot = ~isempty(iname); % Make sure that the variable is defined in workspace
             fprintf('  ');
             name = class(props);
-            isDesktop = usejava('desktop');
-            if isDesktop
+            allowRichText = mrstPlatform('richtext');
+            if allowRichText
                 fprintf('<a href="matlab:helpPopup %s">%s</a> (<a href="matlab:edit %s.m">edit</a>', name, name, name);
                 if canPlot
                     fprintf('|<a href="matlab:figure;plotStateFunctionGroupings(%s)">plot</a>', iname);
@@ -408,7 +408,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
 
                     cl = class(fn);
                     fprintf('    %*s: ', len, names{index});
-                    if isDesktop
+                    if allowRichText
                         fprintf('<a href="matlab:helpPopup %s">%s</a>', cl, cl);
                         fprintf(' (<a href="matlab:edit %s.m">edit</a>', cl);
                         if canPlot
