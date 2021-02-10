@@ -1,22 +1,62 @@
 function varargout = mrstSettings(verb, varargin)
-% Example:
-% % Equal to list
-% mrstSettings()
-% % List current settings
-% mrstSettings('list')
-% % Reset and do set up
-% mrstSettings('setup', 'reset-no-check')
-% % Reset settings (after prompt) and do setup
-% mrstSettings('setup', 'reset')
-% % Perform setup wizard
-% mrstSettings('setup')
-% % Set option
-% mrstSettings('set', 'useMEX', true)
-% % Query a setting
-% useMEX = mrstSettings('get', 'useMEX');
-% % Query setting and output extra info
-% [useMEX, d] = mrstSettings('get', 'useMEX');
-% disp(d)
+%Configure persistent settings for MRST for advanced functionality
+%
+% SYNOPSIS:
+%   useMEX = mrstSettings('get', 'useMEX')
+%   mrstSettings('set', 'useMEX', useMEX)
+%
+% REQUIRED PARAMETERS:
+%   verb - Must be one of:
+%            'get'   - Get the value of a setting. Second input should be a
+%                      string, with the name of a valid setting.
+%            'set'   - Set the value of a setting. The second input is the
+%                      new value.
+%            'setup' - Perform a full setup of all possible settings.
+%
+%
+% RETURNS:
+%   out - If verb is 'get', the value of the settings. If called with no
+%         input arguments, the output will be a struct of all current
+%         settings. Other input arguments will result in an error.
+%
+% EXAMPLE:
+%   % Equal to list
+%   mrstSettings()
+%   % List current settings
+%   mrstSettings('list')
+%   % Reset and do set up
+%   mrstSettings('setup', 'reset-no-check')
+%   % Reset settings (after prompt) and do setup
+%   mrstSettings('setup', 'reset')
+%   % Perform setup wizard
+%   mrstSettings('setup')
+%   % Set option
+%   mrstSettings('set', 'useMEX', true)
+%   % Query a setting
+%   useMEX = mrstSettings('get', 'useMEX');
+%   % Query setting and output extra info
+%   [useMEX, d] = mrstSettings('get', 'useMEX');
+%   disp(d)
+%
+
+%{
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     persistent SETTINGS
     isDesktop = usejava('desktop'); % Check for GUI etc
