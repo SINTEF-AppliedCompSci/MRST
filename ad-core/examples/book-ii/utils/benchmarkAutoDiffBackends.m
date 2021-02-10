@@ -47,7 +47,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         [models, model] = gen_models(model, backends, opt);
         nb = numel(backends);
         results = cell(1, nb);
-        rng(0);
+        if exist('rng', 'file')
+            rng(0);
+        end
         variables = cell(1, opt.block_size);
         [variables{:}] = deal(rand(model.G.cells.num, 1));
 
