@@ -94,25 +94,14 @@ function s = get_config(ver_struct, varargin)
     ver_struct = ver_struct(1); % Just in case.
     name = ver_struct.Name;
     ver_char = ver_struct.Version;
-    if exist('strsplit', 'file')
-        tmp = strsplit(ver_char, '.');
-        v1 = tmp{1};
-        v2 = tmp{2};
-    else
-        dots = find(ver_char == '.');
-        if numel(dots) > 1
-            ver_char = ver_char(1:dots(2)-1);
-        end
-        v1 = ver_char(1:(dots(1)-1));
-        v2 = ver_char(dots(1)+1:end);
+    v = sscanf(ver_struct.Version, '%d.%d.%d');
+    if numel(v) < 2
+        v = [v; zeros(2 - numel(v), 1)];
     end
-    major = str2double(v1);
-    minor = str2double(v2);
-
     s = struct('platform',      name, ...
                'version',       ver_char, ...
-               'major',         major, ...
-               'minor',         minor, ...
+               'major',         v(1), ...
+               'minor',         v(2), ...
                'octave',        strcmpi(name, 'octave'), ...
                'matlab',        strcmpi(name, 'matlab'), ...
                'os',            os, ...
