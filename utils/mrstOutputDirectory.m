@@ -63,6 +63,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         newDir = varargin{1};
         assert(ischar(newDir), 'Output directory must be a string');
 
+        newDir = getCanonicalPath(newDir);
         if isdir(newDir)
             munlock
             OUTPUTDIR = newDir;

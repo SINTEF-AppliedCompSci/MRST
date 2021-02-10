@@ -322,7 +322,7 @@ function cache = register_modules(cache, mods)
    root = ROOTDIR;
 
    cmp         = match_algorithm;
-   canonical   = @canonicalise_dirname;
+   canonical   = @getCanonicalPath;
    dir_is_same = @(d1, d2) cmp(canonical(d1), canonical(d2));
 
    if ~ dir_is_same(dsrc{1}, root)
@@ -456,41 +456,6 @@ end
 
 function cache = map_to_cache(cache)
    % Identity, no-op
-end
-
-%--------------------------------------------------------------------------
-
-function dname = canonicalise_dirname(dname)
-   % The FULLFILE(dname, '.') construct is to transparently handle presence
-   % or absence of a terminating FILESEP on 'dname'.
-   %
-   pth = fileparts(fullfile(dname, '.'));
-
-   if isdir(pth) %#ok
-      if exist('OCTAVE_VERSION', 'builtin') > 0
-         % For Octave, do the slightly dirty jump in paths to resolve any
-         % relative specification of the path. We should get the absolute
-         % path, and return to where we were before.
-         odir = cd(pth);
-         dname = cd(odir);
-      else
-         % Use the side effect that function WHAT, in the case of an input
-         % argument that names an existing directory, also resolves symbolic
-         % links and special directories DOT and DOTDOT (i.e., '.' and '..').
-         w     = what(pth);
-         dname = w.path;
-      end
-   else
-      try
-         % Input directory (dname) does not (yet?) exist.  Try Java's
-         % getCanonicalPath() to resolve any intermediate pathname
-         % components.
-         dname = java.io.File(pth).getCanonicalPath();
-      catch
-         % Java not available (-nojvm?).  Punt back to caller.
-         dname = pth;
-      end
-   end
 end
 
 %--------------------------------------------------------------------------
