@@ -102,10 +102,14 @@ end
 %--------------------------------------------------------------------------
 
 function vnorm = create_vector_norm_function()
-    if ~exist('verLessThan', 'file') || verLessThan('matlab', '9.3.0')
+    persistent has_vecnorm
+    if isempty(has_vecnorm)
+        has_vecnorm = exist('vecnorm', 'file');
+    end
+    if has_vecnorm
+        vnorm = @(x) vecnorm(x, 2, 2);
+    else
         % Fall-back for 'vecnorm'; introduced in MATLAB 9.3.0 (R2017b)
         vnorm = @(x) sqrt(sum(x.^2, 2));
-    else
-        vnorm = @(x) vecnorm(x, 2, 2);
     end
 end
