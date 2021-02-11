@@ -1,4 +1,8 @@
-graphics_toolkit fltk; %use fltk as backend
+try
+    graphics_toolkit fltk; %use fltk as backend
+catch
+    
+end
 struct_levels_to_print(0); % nicet output of structs
 
 % dispatch('regexp','my_regexp');%overload regexp
