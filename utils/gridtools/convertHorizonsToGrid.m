@@ -195,8 +195,12 @@ function F = interpolate(horizon, x, y, opt)
     X = horizon.x;
     Y = horizon.y;
     Z = horizon.z;
-    T = griddedInterpolant(X, Y, Z, opt.method, opt.extrapMethod);
-    F = T(x, y);
+    if exist('griddedInterpolant', 'file')
+        T = griddedInterpolant(X, Y, Z, opt.method, opt.extrapMethod);
+        F = T(x, y);
+    else
+        F = griddata(X, Y, Z, x, y, opt.method);
+    end
 end
 
 function checkDeltaZ(dz)
