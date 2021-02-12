@@ -159,7 +159,7 @@ classdef NonLinearSolver < handle
             % Number of accepted steps
             acceptCount = 0;
             t_local = 0;
-
+            t_start = state0.t;
             isFinalMinistep = false;
             state0_inner = state0;
             % Previous state for a given timestep
@@ -225,7 +225,7 @@ classdef NonLinearSolver < handle
                     state_prev = state0_inner;
                     state0_inner = state;
                     acceptCount = acceptCount + 1;
-
+                    state.t =t_start+t_local; 
                     if wantMinistates
                         % Output each substep
                         nm = numel(ministates);
