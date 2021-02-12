@@ -25,6 +25,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
     end
     
     methods
+        %-----------------------------------------------------------------%
         function model = SequentialPressureTransportModel(pressureModel, transportModel, varargin)
             model = model@ReservoirModel(transportModel.G);
             model.pressureModel  = pressureModel;
@@ -77,6 +78,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             model.FacilityModel = []; % Handled by subclasses
         end
         
+        %-----------------------------------------------------------------%
         function [state, report] = stepFunction(model, state, state0, dt,...
                                                 drivingForces, linsolve, nls,...
                                                 iteration, varargin)
@@ -135,6 +137,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
         end
         
+        %-----------------------------------------------------------------%
         function [state, pressure_state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] = solvePressureTransport(model, state, state0, dt, drivingForces, nls, iteration)
            % Solve pressure and transport sequentially
             psolver = model.pressureNonLinearSolver;
@@ -217,6 +220,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end 
         end
         
+        %-----------------------------------------------------------------%
         function [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration, pressure_state)
             resnames = {};
             [converged, values] = deal([]);
@@ -281,6 +285,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
         end
         
+        %-----------------------------------------------------------------%
         function varargout = getActivePhases(model)
             % Transport model solves for saturations, so that is where the
             % active phases are defined
@@ -288,12 +293,14 @@ classdef SequentialPressureTransportModel < ReservoirModel
             [varargout{:}] = model.transportModel.getActivePhases();
         end
         
+        %-----------------------------------------------------------------%
         function state = validateState(model, state)
             % Pressure comes first, so validate that.
             state = model.pressureModel.validateState(state);
             state = model.transportModel.validateState(state);
         end
 
+        %-----------------------------------------------------------------%
         function [model, state] = updateForChangedControls(model, state, forces)
             [model.pressureModel, state] = model.pressureModel.updateForChangedControls(state, forces);
             model.transportModel         = model.transportModel.updateForChangedControls(state, forces);
@@ -302,6 +309,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
         end
 
+        %-----------------------------------------------------------------%
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
             [model.pressureModel, state] = model.pressureModel.prepareTimestep(state, state0, dt, drivingForces);
             model.transportModel         = model.transportModel.prepareTimestep(state, state0, dt, drivingForces);
@@ -310,6 +318,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
         end
 
+        %-----------------------------------------------------------------%
         function [model, state] = prepareReportstep(model, state, state0, dt, drivingForces)
             [model.pressureModel, state] = model.pressureModel.prepareReportstep(state, state0, dt, drivingForces);
             model.transportModel         = model.transportModel.prepareReportstep(state, state0, dt, drivingForces);
@@ -318,6 +327,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
         end
 
+        %-----------------------------------------------------------------%
         function model = validateModel(model, varargin)
             if isprop(model.pressureModel, 'extraWellSolOutput')
                 model.pressureModel.extraWellSolOutput = true;
@@ -330,20 +340,22 @@ classdef SequentialPressureTransportModel < ReservoirModel
             return
         end
 
+        %-----------------------------------------------------------------%
         function [fn, index] = getVariableField(model, name, varargin)
             [fn, index] = model.pressureModel.getVariableField(name, varargin{:});
         end
         
+        %-----------------------------------------------------------------%
         function dt = getMaximumTimestep(model, state, state0, dt, drivingForces)
             dt_p = model.pressureModel.getMaximumTimestep(state, state0, dt, drivingForces);
             dt_t = model.transportModel.getMaximumTimestep(state, state0, dt, drivingForces);
             dt = min(dt_p, dt_t);
         end
         
+        %-----------------------------------------------------------------%
         function forces = validateDrivingForces(model, forces, varargin)
            forces = model.pressureModel.validateDrivingForces(forces, varargin{:});
         end
-        
     end
 end
 
