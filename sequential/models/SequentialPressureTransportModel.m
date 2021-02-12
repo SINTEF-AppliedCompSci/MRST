@@ -7,7 +7,6 @@ classdef SequentialPressureTransportModel < ReservoirModel
         pressureNonLinearSolver % NonLinearSolver instance used for pressure updates
         transportNonLinearSolver % NonLinearSolver instance used for saturation/mole fraction updates
 
-
         reupdatePressure % Update pressure based on new mobilities before proceeding to next step
         
         % The following are convergence criteria for the outer loop. To
@@ -20,6 +19,9 @@ classdef SequentialPressureTransportModel < ReservoirModel
         incTolSaturation = 1e-3; % Tolerance for change in saturations in transport for convergence. 
         outerCheckParentConvergence = true; % Use parentModel, if present, to check convergence
         outerCheckPressureConvergence = false; % Check the pressure equation after transport
+        relaxationThreshold = inf; % Outer iteration threshold before we enforce relaxation.
+                                   % Setting this to < inf will relpace any relaxation computed by
+                                   % the outer nonlinear solver with nls.minRelaxation.
     end
     
     methods
@@ -184,6 +186,10 @@ classdef SequentialPressureTransportModel < ReservoirModel
                     tsolver.solveTimestep(state0, dt, model.transportModel,...
                                 'initialGuess', state, ...
                                 forceArg{:});
+                if iteration > model.relaxationThreshold
+                    % Enforce relaxation if we are past threshold iteration
+                    nls.relaxationParameter = nls.minRelaxation;
+                end
                 if ~model.stepFunctionIsLinear && ... % Outer loop enabled
                     nls.relaxationParameter ~= 1 % And we should relax
                     % Apply relaxation to global increment if outer solver
