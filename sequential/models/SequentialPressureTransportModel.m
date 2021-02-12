@@ -184,14 +184,24 @@ classdef SequentialPressureTransportModel < ReservoirModel
                     tsolver.solveTimestep(state0, dt, model.transportModel,...
                                 'initialGuess', state, ...
                                 forceArg{:});
-                w = nls.relaxationParameter;
                 if ~model.stepFunctionIsLinear && ... % Outer loop enabled
                     nls.relaxationParameter ~= 1 % And we should relax
                     % Apply relaxation to global increment if outer solver
                     % requires it
-                    state.s = (1-w).*state.s + w.*pressure_state.s;
-                    if isfield(state, 'sT')
-                        state.sT = (1-w).*state.sT + w;
+                    [~, names, origin] = model.transportModel.getStateAD(state, false);
+                    keep = strcmpi(origin, class(getReservoirModel(model))) ...
+                                       | strcmpi(origin, 'TransportModel');
+                    names = names(keep);
+                    w = nls.relaxationParameter;
+                    for n = names
+                        name = n{1};
+                        if any(strcmpi(name, {'sW', 'sO', 'sG'}))
+                            name = 's';
+                        end
+                        vp = model.transportModel.getProp(pressure_state, name);
+                        vt = model.transportModel.getProp(state, name);
+                        v  = (1-w)*vp + w*vt;
+                        state = model.transportModel.setProp(state, name, v);
                     end
                 end
                 transport_ok = transportReport.Converged;
