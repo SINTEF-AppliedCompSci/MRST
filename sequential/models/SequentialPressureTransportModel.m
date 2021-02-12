@@ -233,6 +233,12 @@ classdef SequentialPressureTransportModel < ReservoirModel
             % that the assumption of fixed total velocity is reasonable
             % up to some tolerance.
             if ~isempty(model.parentModel) && model.outerCheckParentConvergence
+                rmodel = getReservoirModel(model.parentModel);
+                if isa(rmodel, 'ThreePhaseCompositionalModel')
+                    % Disable pressure increment convergence measure
+                    rmodel.incTolPressure = inf;
+                    model.parentModel = setReservoirModel(model.parentModel, rmodel);
+                end
                 state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
                 [problem, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
                 state = model.parentModel.reduceState(state, false);
