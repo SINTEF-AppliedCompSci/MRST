@@ -137,11 +137,17 @@ classdef SequentialPressureTransportModel < ReservoirModel
            % Solve pressure and transport sequentially
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
-            if iteration > 1 && isprop(model.pressureModel, 'FacilityModel') ...
-                             && ~isempty(model.pressureModel.FacilityModel)
-                for i = 1:numel(model.pressureModel.FacilityModel.WellModels)
-                    model.pressureModel.FacilityModel.WellModels{i}.doUpdatePressureDrop = false;
+            % Disable connection pressure drop update after first iteration
+            prmodel = getReservoirModel(model.pressureModel);
+            trmodel = getReservoirModel(model.transportModel);
+            if iteration > 1 && isprop(prmodel, 'FacilityModel') ...
+                             && ~isempty(prmodel.FacilityModel)
+                for i = 1:numel(prmodel.FacilityModel.WellModels)
+                    prmodel.FacilityModel.WellModels{i}.doUpdatePressureDrop = false;
+                    trmodel.FacilityModel.WellModels{i}.doUpdatePressureDrop = false;
                 end
+                model.pressureModel  = setReservoirModel(model.pressureModel, prmodel);
+                model.transportModel = setReservoirModel(model.transportModel, trmodel);
             end
             % Get the forces used in the step
             forceArg = model.pressureModel.getDrivingForces(drivingForces);
