@@ -227,6 +227,8 @@ classdef WellPlotHandle < handle
             val = s.caseIx;
         end
 
+        %------------------------------------------------------------------
+        
         function [ixs, stat] = sub2super(s, ix, tp)
             if strcmp(tp, 'inj')
                 ixs = false(numel(s.injectors),1);
@@ -288,6 +290,18 @@ classdef WellPlotHandle < handle
         
         function ix = getVisibleProducersExtended(s)
             ix = arrayfun(@(x)strcmp(x.label.Visible, 'on'), s.producers);
+        end
+        
+        function delete(s)
+            tp   = {'injectors', 'producers'};
+            flds = {'label', 'connector', 'body'};
+            for kt = 1:numel(tp)
+                for kw = 1:numel(s.(tp{kt}))
+                    for kf = 1:numel(flds)
+                        delete(s.(tp{kt})(kw).(flds{kf}));
+                    end
+                end
+            end
         end
     end
 end
