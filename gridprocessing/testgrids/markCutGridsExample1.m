@@ -3,7 +3,7 @@
 clear all
 close all
 
-legacy = verLessThan('matlab', '8.6') | false;
+legacy = verLessThan('matlab', '8.6');
 
 nx = 5;
 physdims = [1, 1, 1];
