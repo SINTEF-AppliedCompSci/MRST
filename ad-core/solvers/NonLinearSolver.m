@@ -159,7 +159,7 @@ classdef NonLinearSolver < handle
             % Number of accepted steps
             acceptCount = 0;
             t_local = 0;
-            t_start = state0.t;
+            t_start = state0.time;
             isFinalMinistep = false;
             state0_inner = state0;
             % Previous state for a given timestep
@@ -178,7 +178,7 @@ classdef NonLinearSolver < handle
             timestepFailure = false;
             % Start with control-step
             dt = dT;
-            while ~done
+            while ~done && not(drivingForces.stopFunc(model,state))
                 if timestepFailure
                     dt_selector = stepsel.cutTimestep(dt_prev, dt, model, solver, state_prev, state0_inner, drivingForces);
                 else
@@ -225,7 +225,7 @@ classdef NonLinearSolver < handle
                     state_prev = state0_inner;
                     state0_inner = state;
                     acceptCount = acceptCount + 1;
-                    state.t =t_start+t_local; 
+                    state.time =t_start+t_local; 
                     if wantMinistates
                         % Output each substep
                         nm = numel(ministates);

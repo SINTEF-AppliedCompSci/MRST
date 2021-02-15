@@ -113,8 +113,6 @@ function [wellSols, states, schedulereport] = ...
 %                        stored, and will not affect what is passed on to
 %                        the next timestep.
 %
-%   'stopFunction '    - Function handler @(model,state) which can return
-%                        true to stop simulation 
 %   
 %   'controlLogicFn'   - Function handle to optional function that will be
 %                        called after each step enabling schedule updates to 
@@ -182,7 +180,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'controlLogicFn',    [], ...
                  'processOutputFn',   [], ...
                  'restartStep',       1, ...
-                 'stopFunction',         @(model,state) false,...
                  'LinearSolver',      []);
 
     opt = merge_options(opt, varargin{:});
@@ -245,7 +242,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     state = model.validateState(initState);
     dispif(opt.Verbose, 'Initial state ok. Ready to begin simulation.\n')
     if(not(isfield(state,'t')))
-        state.t=0;
+        state.time=0;
     end
     failure = false;
     simtime = zeros(nSteps, 1);
@@ -339,10 +336,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if wantStates || ~isempty(opt.afterStepFn)
             if(opt.OutputMinisteps)
                 states(ind) = states_step;
-                assert(states_step{end}.t == sum(schedule.step.val(1:i)));
+                %assert(states_step{end}.time == sum(schedule.step.val(1:i)));
             else
                states(i) = {state}; 
-               assert(state.t==sum(schedule.step.val(1:i)));
+               %assert(state.time==sum(schedule.step.val(1:i)));
             end
         end
 
@@ -357,12 +354,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 break
             end
         end
-        if opt.stopFunction(model,state)
-           warning('Aborted simulation at given stopFunc(state)');
-           break;
+        if fstruct.stopFunc(model,state)
+            break;
         end
     end
-
+    
     if wantReport
         reports = reports(~cellfun(@isempty, reports));
 
