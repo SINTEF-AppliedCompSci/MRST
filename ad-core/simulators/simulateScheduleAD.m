@@ -264,11 +264,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         dt = schedule.step.val(i);
         timer = tic();
         if opt.OutputMinisteps
-            [state, report, ministeps] = solver.solveTimestep(state0, dt, model, ...
+            [state, report, substates] = solver.solveTimestep(state0, dt, model, ...
                                             forces{:}, 'controlId', currControl, extraArg{:});
         else
             [state, report] = solver.solveTimestep(state0, dt, model,...
                                             forces{:}, 'controlId', currControl, extraArg{:});
+            substates = {state};
         end
 
         t = toc(timer);
@@ -293,33 +294,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.Verbose
            disp_step_convergence(report.Iterations, t);
         end
-        % Handle massaging of output to correct expectation
+        
         if opt.OutputMinisteps
-            % We have potentially several ministeps desired as output
-            ind = firstEmptyIx:(firstEmptyIx + numel(ministeps) - 1);
-            states_step = ministeps;
+            % We have potentially several ministeps desired as output and
+            % we need to offset the pointer to the first array accordingly.
+            ind = firstEmptyIx:(firstEmptyIx + numel(substates) - 1);
+            firstEmptyIx = firstEmptyIx + numel(substates);
         else
-            % We just want the control step
+            % Each control step has exactly one state.
             ind = i;
-            states_step = {state};
         end
-        firstEmptyIx = firstEmptyIx + numel(states_step);
-
-        wellSols_step = cellfun(@(x) x.wellSol, states_step, ...
-                                    'UniformOutput', false);
+        wellSols_step = getWellSols(substates);
 
         if ~isempty(opt.processOutputFn)
-            [states_step, wellSols_step, report] = opt.processOutputFn(states_step, wellSols_step, report);
+            [substates, wellSols_step, report] = opt.processOutputFn(substates, wellSols_step, report);
         end
         % Store output in handlers, if configured
-        writeOutput(opt.OutputHandler, ind, states_step)
-        writeOutput(opt.WellOutputHandler, ind, wellSols_step)
-        writeOutput(opt.ReportHandler, i, report)
+        writeOutput(opt.OutputHandler, opt, ind, substates)
+        writeOutput(opt.WellOutputHandler, opt, ind, wellSols_step)
+        writeOutput(opt.ReportHandler, opt, i, report)
         
         % Handle outputs from function
         wellSols(ind) = wellSols_step;
         if wantStates
-            states(ind) = states_step;
+            states(ind) = substates;
         end
         if wantReport
             reports{i} = report;
@@ -353,7 +351,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                   nSteps, formatTimeRange((sum(simtime))));
 end
 
-function writeOutput(handler, pos, values)
+%--------------------------------------------------------------------------
+function ws = getWellSols(states)
+    ns = numel(states);
+    ws = cell(ns, 1);
+    for i = 1:ns
+        if isfield(states{i}, 'wellSol')
+            ws{i} = states{i}.wellSol;
+        end
+    end
+end
+
+%--------------------------------------------------------------------------
+
+function writeOutput(handler, opt, pos, values)
     if ~isempty(handler)
         handler(pos + opt.restartStep - 1) = values; %#ok This is a handle class instance.
     end
