@@ -200,7 +200,7 @@ classdef NonLinearSolver < handle
                             solver.getId(), formatTimeRange(dt), dt / dT * 100, t_local / dT * 100)
                 end
                 % Increment the time
-                state.time = t_local + dt;
+                state.time = t_start + t_local + dt;
                 % Solve the ministep
                 [state, failure, tmp] = ...
                     solveMinistep(solver, model, state, state0_inner, dt, drivingForces);
