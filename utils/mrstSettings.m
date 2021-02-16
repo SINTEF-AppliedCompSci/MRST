@@ -71,9 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     if nargin == 0 
         if nargout == 1
-            % Early termination
-            varargout = {SETTINGS};
-            return
+            verb = '';
         else
             verb = 'list';
         end
@@ -143,6 +141,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         case 'list'
             % Default
             listSettings(SETTINGS, isDesktop)
+        case ''
+            varargout{1} = SETTINGS;
         otherwise
             error('Unknown verb ''%s''.', verb);
     end
