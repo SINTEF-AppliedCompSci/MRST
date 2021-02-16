@@ -149,6 +149,7 @@ classdef NonLinearSolver < handle
 
             converged = false;
             done = false;
+            early_done = false;
 
             % Number of nonlinear iterations total
             itCount = 0;
