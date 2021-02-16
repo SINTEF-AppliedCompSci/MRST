@@ -244,7 +244,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     simtime = zeros(nSteps, 1);
     prevControl = nan;
     firstEmptyIx = 1;
-    stepOffset = opt.restartStep - 1;
     for i = 1:nSteps
         step_header(i);
         state0 = state;
@@ -304,7 +303,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ind = i;
             states_step = {state};
         end
-        insertStepPos = ind + stepOffset;
         firstEmptyIx = firstEmptyIx + numel(states_step);
 
         wellSols_step = cellfun(@(x) x.wellSol, states_step, ...
@@ -314,9 +312,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [states_step, wellSols_step, report] = opt.processOutputFn(states_step, wellSols_step, report);
         end
         % Store output in handlers, if configured
-        writeOutput(opt.OutputHandler, insertStepPos, states_step)
-        writeOutput(opt.WellOutputHandler, insertStepPos, wellSols_step)
-        writeOutput(opt.ReportHandler, i + stepOffset, report)
+        writeOutput(opt.OutputHandler, ind, states_step)
+        writeOutput(opt.WellOutputHandler, ind, wellSols_step)
+        writeOutput(opt.ReportHandler, i, report)
         
         % Handle outputs from function
         wellSols(ind) = wellSols_step;
@@ -357,7 +355,7 @@ end
 
 function writeOutput(handler, pos, values)
     if ~isempty(handler)
-        handler(pos) = values; %#ok This is a handle class instance.
+        handler(pos + opt.restartStep - 1) = values; %#ok This is a handle class instance.
     end
 end
 
