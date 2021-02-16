@@ -266,10 +266,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.OutputMinisteps
             [state, report, substates] = solver.solveTimestep(state0, dt, model, ...
                                             forces{:}, 'controlId', currControl, extraArg{:});
+            % We have potentially several ministeps desired as output and
+            % we need to offset the pointer to the first array accordingly.
+            ind = firstEmptyIx:(firstEmptyIx + numel(substates) - 1);
+            firstEmptyIx = firstEmptyIx + numel(substates);
         else
             [state, report] = solver.solveTimestep(state0, dt, model,...
                                             forces{:}, 'controlId', currControl, extraArg{:});
+            % Single state requested for dt. We set values accordingly.
             substates = {state};
+            ind = i;
         end
 
         t = toc(timer);
@@ -294,18 +300,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.Verbose
            disp_step_convergence(report.Iterations, t);
         end
-        
-        if opt.OutputMinisteps
-            % We have potentially several ministeps desired as output and
-            % we need to offset the pointer to the first array accordingly.
-            ind = firstEmptyIx:(firstEmptyIx + numel(substates) - 1);
-            firstEmptyIx = firstEmptyIx + numel(substates);
-        else
-            % Each control step has exactly one state.
-            ind = i;
-        end
+        % Get wellSols, if they exist
         wellSols_step = getWellSols(substates);
-
+        % Process output before proceeding
         if ~isempty(opt.processOutputFn)
             [substates, wellSols_step, report] = opt.processOutputFn(substates, wellSols_step, report);
         end
@@ -314,7 +311,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         writeOutput(opt.WellOutputHandler, opt, ind, wellSols_step)
         writeOutput(opt.ReportHandler, opt, i, report)
         
-        % Handle outputs from function
+        % Write to the cell arrays that will be outputs from the function
         wellSols(ind) = wellSols_step;
         if wantStates
             states(ind) = substates;
