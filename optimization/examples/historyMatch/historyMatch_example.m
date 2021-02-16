@@ -20,87 +20,35 @@ mrstModule add agglom upscaling coarsegrid...
 
 use_trans = true;
 
-%% Make model
+%% Setting up the fine-scale model
 % We make a small model that consists of two different facies with
 % contrasting petrophysical properties. 
 % Two injectors and two producers are
 % placed in the corner at diferent depths.
-G  = computeGeometry(cartGrid([40 20 15]));
-K1 = gaussianField(G.cartDims, [200 2000]);
-p1 = K1(:)*1e-4 + .2;
-K1 = K1(:)*milli*darcy;
-K2 = gaussianField(G.cartDims, [10 500]);
-p2 = K2(:)*1e-4 + .2;
-K2 = K2(:)*milli*darcy;
 
-rad1 = G.cells.centroids(:,1).^2 + .5*G.cells.centroids(:,2).^2 ...
-   + (G.cells.centroids(:,3)-2).^2;
-rad2 = .5*(G.cells.centroids(:,1)-40).^2 + 2*G.cells.centroids(:,2).^2 ...
-   + 2*(G.cells.centroids(:,3)-2).^2;
+[model_fine_scale, W, state0] = simpleModelForHMExample();
+ model_fine_scale.gas=false;
+ model_fine_scale.OutputStateFunctions = {};
+ model_fine_scale = model_fine_scale.validateModel();
 
-ind = ((rad1>600) & (rad1<1500)) | ((rad2>700) & (rad2<1400));
-rock.perm = K2(:);
-rock.perm(ind) = K1(ind);
-rock.perm = bsxfun(@times, rock.perm, [1 1 1]);
-rock.poro = p2(:);
-rock.poro(ind) = p1(ind);
-pv = poreVolume(G, rock);
-
-W = verticalWell([], G, rock, 4, 17, 4:10, 'Comp_i', [1 0], ...
-   'Type', 'rate', 'Val', 100*stb/day, 'Name', 'I1');
-W = verticalWell(W, G, rock, 2, 3, 1:6, 'Comp_i', [1 0], ...
-    'Type', 'rate', 'Val', 100*stb/day, 'Name', 'I2');
-W = verticalWell(W,  G, rock, 35, 3, 1:8, 'Comp_i', [0 1], ...
-   'Type', 'bhp', 'Val', 95*barsa, 'Name', 'P1');
-W = verticalWell(W,  G, rock, 35, 17, 8:15, 'Comp_i', [0 1], ...
-   'Type', 'bhp', 'Val', 95*barsa, 'Name', 'P2');
 
 figure(1); clf,
 set(gcf,'Position', [860 450 840 400],'PaperPositionMode','auto');
 subplot(1,2,1);
-plotCellData(G,rock.poro,'EdgeAlpha',.5); view(3);
-title('Porosity')
-plotWell(G,W,'Color','k'); axis off tight
-pax = [min(rock.poro) max(rock.poro)];
-[hc,hh] = colorbarHist(rock.poro, pax,'West');
+plotCellData(model_fine_scale.G,model_fine_scale.rock.poro,'EdgeAlpha',.5); view(3);
+title('Fine-scale model porosity')
+plotWell(model_fine_scale.G,W,'Color','k'); axis off tight
+pax = [min(model_fine_scale.rock.poro) max(model_fine_scale.rock.poro)];
+[hc,hh] = colorbarHist(model_fine_scale.rock.poro, pax,'West');
 pos = get(hh,'Position'); set(hh,'Position', pos - [.01 0 0 0]);
 pos = get(hc,'Position'); set(hc,'Position', pos - [.03 0 0 0]);
 set(gca,'Position',[.12 .075 .315 .9])
 
-%% Setting up the fine-scale model
-% Transmissibility
-hT = computeTrans(G, rock);
-trans = 1 ./ accumarray(G.cells.faces(:,1), 1 ./ hT, [G.faces.num, 1]);
 
-% Fluid model
-fluid = initSimpleADIFluid('phases', 'WO',... %Fluid phase
-                           'mu' , [1, 10]*centi*poise     , ...%Viscosity
-                           'rho', [1014, 859]*kilogram/meter^3, ...%Surface density [kg/m^3]
-                           'n', [2 2]);
-% Optional fluid parameters                                              
-                           %'c', 1e-4/barsa,... %Fluid compressibility
-                           %'cR', 1e-5/barsa); % Rock compressibility
-                           
-                           %fluid.bO = @(p, varargin) exp((p/barsa - 100)*0.01);
-                           
-% Initial state
-s0 = [0.2,0.8];
-p0 = 100*barsa;
-state0  = initState(G, W,p0,s0);
-
-% Create fine scaled model
-model_fine_scale = GenericBlackOilModel(G, rock, fluid);
-model_fine_scale.gas=false;
-model_fine_scale.OutputStateFunctions = {};
-model_fine_scale = model_fine_scale.validateModel();
-
- %% Simulating on fine-scale model
- 
+%% Run simulation for fine-scale model
 dt = [1 ,1 ,2 5 10 , 10*ones(1,10)]*day();
 schedule = simpleSchedule(dt, 'W', W);
 
-
-%% Run simulation
 problem = packSimulationProblem(state0, model_fine_scale, schedule, 'model_fine_scale');
 [ok, status] = simulatePackedProblem(problem);
 [wellSols_fine_scale, states_fine_scale] = getPackedSimulatorOutput(problem);
@@ -117,6 +65,14 @@ problem = packSimulationProblem(state0, model_fine_scale, schedule, 'model_fine_
     % solution that has the largest flux orthogonal to the face to compute the
     % upscaled transmissibility. For the wells, we use specific well
     % conditions and use least squares for the flux.
+    
+    
+G = model_fine_scale.G;
+rock =  model_fine_scale.rock;
+fluid = model_fine_scale.fluid;
+
+hT = computeTrans(G, rock);
+
 p  = partitionCartGrid(G.cartDims, [3 3 1]);
 CG = coarsenGeometry(generateCoarseGrid(G, p));
 
@@ -127,6 +83,8 @@ crock.perm = upscalePerm(G, CG, rock);
 
 figure(1); subplot(1,2,2); cla
 plotCellData(CG,crock.poro,'EdgeColor','none');
+title('Coarse-scale model porosity')
+
 plotFaces(CG, boundaryFaces(CG),...
    'EdgeColor', [0.4 0.4 0.4],'EdgeAlpha',.5, 'FaceColor', 'none'); view(3);
 plotWell(G,W,'Color','k'); axis off tight
@@ -152,6 +110,8 @@ model_coarse_scale.gas=false;
 model_coarse_scale.OutputStateFunctions = {};
 model_coarse_scale = model_coarse_scale.validateModel();
  
+s0 = [0,1];
+p0 = 100*barsa;
 state0  = initState(CG, WC,p0,s0);
 
 schedule = simpleSchedule(dt, 'W', WC);
@@ -235,11 +195,11 @@ parameters{3} = well_IP ;
   val{3} = WellIP;
   %val{4} = 0.2;
   p0_ups = value2control(val,parameters);
- 
+             
 % Defining the weights to evaluate the match
-  weighting =  {'WaterRateWeight',  1e6, ...
-                'OilRateWeight',    1e6, ...
-                'BHPWeight',        1e-5};
+weighting =  {'WaterRateWeight',  (10/day)^-1, ...
+              'OilRateWeight',    (10/day)^-1, ...
+              'BHPWeight',        (100*barsa)^-1};            
 
  obj = @(model, states, schedule, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule, states_fine_scale,...
            'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
@@ -282,7 +242,7 @@ plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
 obj_scaling     = abs(misfitVal_0);      % objective scaling  
 objh = @(p)evaluateMatch(p,obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
 
-[v, p_opt, history] = unitBoxBFGS(p0_mean, objh,'gradTol',             1e-2, ...
+[v, p_opt, history] = unitBoxBFGS(p0_mean, objh,'gradTol',            1e-2, ...
                                               'objChangeTol',        0.5e-3,...
                                               'wolfe1',             0.5e-0, ...
                                               'wolfe2',              0.9);
