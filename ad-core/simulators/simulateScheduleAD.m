@@ -218,7 +218,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     nSteps = numel(schedule.step.val);
     [wellSols, states, reports] = deal(cell(nSteps, 1));
-    wantStates = nargout > 1;
+    wantStates = nargout > 1 || ~isempty(opt.afterStepFn);
     wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
 
     % Check if model is self-consistent and set up for current BC type
@@ -244,6 +244,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     simtime = zeros(nSteps, 1);
     prevControl = nan;
     firstEmptyIx = 1;
+    stepOffset = opt.restartStep - 1;
     for i = 1:nSteps
         step_header(i);
         state0 = state;
@@ -303,41 +304,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ind = i;
             states_step = {state};
         end
+        insertStepPos = ind + stepOffset;
+        firstEmptyIx = firstEmptyIx + numel(states_step);
 
         wellSols_step = cellfun(@(x) x.wellSol, states_step, ...
                                     'UniformOutput', false);
 
-        wellSols(ind) = wellSols_step;
-        
         if ~isempty(opt.processOutputFn)
             [states_step, wellSols_step, report] = opt.processOutputFn(states_step, wellSols_step, report);
         end
+        % Store output in handlers, if configured
+        writeOutput(opt.OutputHandler, insertStepPos, states_step)
+        writeOutput(opt.WellOutputHandler, insertStepPos, wellSols_step)
+        writeOutput(opt.ReportHandler, i + stepOffset, report)
         
-        if ~isempty(opt.OutputHandler)
-            if(opt.OutputMinisteps)
-                opt.OutputHandler{ind + opt.restartStep - 1} = states_step;
-            else
-                opt.OutputHandler{i + opt.restartStep - 1} = {state};
-            end
+        % Handle outputs from function
+        wellSols(ind) = wellSols_step;
+        if wantStates
+            states(ind) = states_step;
         end
-        
-        if ~isempty(opt.WellOutputHandler)
-            opt.WellOutputHandler{ind + opt.restartStep - 1} = wellSols_step;
-        end
-        
-        if ~isempty(opt.ReportHandler)
-            opt.ReportHandler{i + opt.restartStep - 1} = report;
-        end
-        firstEmptyIx = firstEmptyIx + numel(states_step);
-
-        if wantStates || ~isempty(opt.afterStepFn)
-            if(opt.OutputMinisteps)
-                states(ind) = states_step;
-            else
-               states(i) = {state}; 
-            end
-        end
-
         if wantReport
             reports{i} = report;
         end
@@ -368,6 +353,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     fprintf('*** Simulation complete. Solved %d control steps in %s ***\n',...
                                   nSteps, formatTimeRange((sum(simtime))));
+end
+
+function writeOutput(handler, pos, values)
+    if ~isempty(handler)
+        handler(pos) = values; %#ok This is a handle class instance.
+    end
 end
 
 %--------------------------------------------------------------------------
