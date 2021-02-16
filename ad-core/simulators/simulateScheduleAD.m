@@ -130,10 +130,10 @@ function [wellSols, states, schedulereport] = ...
 %                       
 % RETURNS:
 %   wellSols         - Well solution at each control step (or timestep if
-%                      'OutputMinisteps' is enabled.
+%                      'OutputMinisteps' is enabled.)
 %
 %   states           - State at each control step (or timestep if
-%                      'OutputMinisteps' is enabled.
+%                      'OutputMinisteps' is enabled.)
 %
 %   schedulereport   - Report for the simulation. Contains detailed info for
 %                      the whole schedule run, as well as arrays containing
@@ -170,7 +170,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             'The model must be derived from PhysicalModel');
     opt = struct('Verbose',           mrstVerbose(),...
                  'OutputMinisteps',   false, ...
-                 'OutputMinistepsWells', true,...
                  'initialGuess',      {{}}, ...
                  'NonLinearSolver',   [], ...
                  'OutputHandler',     [], ...
@@ -264,7 +263,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         dt = schedule.step.val(i);
         timer = tic();
-        if opt.OutputMinisteps || opt.OutputMinistepsWells
+        if opt.OutputMinisteps
             [state, report, ministeps] = solver.solveTimestep(state0, dt, model, ...
                                             forces{:}, 'controlId', currControl, extraArg{:});
         else
@@ -295,7 +294,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            disp_step_convergence(report.Iterations, t);
         end
         % Handle massaging of output to correct expectation
-        if opt.OutputMinisteps || opt.OutputMinistepsWells
+        if opt.OutputMinisteps
             % We have potentially several ministeps desired as output
             ind = firstEmptyIx:(firstEmptyIx + numel(ministeps) - 1);
             states_step = ministeps;
@@ -305,7 +304,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             states_step = {state};
         end
 
-        wellSols_step = cellfun(@(x) x.wellSol, ministeps, ...
+        wellSols_step = cellfun(@(x) x.wellSol, states_step, ...
                                     'UniformOutput', false);
 
         wellSols(ind) = wellSols_step;
@@ -334,10 +333,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if wantStates || ~isempty(opt.afterStepFn)
             if(opt.OutputMinisteps)
                 states(ind) = states_step;
-                %assert(states_step{end}.time == sum(schedule.step.val(1:i)));
             else
                states(i) = {state}; 
-               %assert(state.time==sum(schedule.step.val(1:i)));
             end
         end
 
