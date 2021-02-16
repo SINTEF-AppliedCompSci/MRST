@@ -3,7 +3,8 @@ opt = struct('cellDim',        [40, 20, 15], ...
              'physDim',        [40, 20, 15], ...
              'fluid',                    [], ...
              'seed',                      0);
-             
+
+opt = merge_options(opt, varargin{:});         
 %% Make model
 % We make a small model that consists of two different facies with
 % contrasting petrophysical properties. Two injectors and two producers are
