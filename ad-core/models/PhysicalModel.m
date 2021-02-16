@@ -249,7 +249,11 @@ methods
         %           the process.
         %
 
-        % Any state is valid for base class
+        % We just add the time field if missing.
+        if ~isfield(state, 'time')
+            state.time = 0;
+        end
+        % Any state is valid for base class.
         return
     end
 
@@ -1290,7 +1294,7 @@ methods
         %   forces - A struct with any number of fields. The fields must be
         %            present, but they can be empty.
         %
-        forces = struct();
+        forces = struct('stopFunction', @(model, state, state_prev) false);
     end
 
 

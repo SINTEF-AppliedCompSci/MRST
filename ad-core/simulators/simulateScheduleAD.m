@@ -241,9 +241,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     dispif(opt.Verbose, 'Validating initial state...\n')
     state = model.validateState(initState);
     dispif(opt.Verbose, 'Initial state ok. Ready to begin simulation.\n')
-    if(not(isfield(state,'t')))
-        state.time=0;
-    end
     failure = false;
     simtime = zeros(nSteps, 1);
     prevControl = nan;
@@ -277,7 +274,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         t = toc(timer);
         simtime(i) = t;
-
+        % Abort simulation
         if ~report.Converged
             warning('NonLinear:Failure', ...
                    ['Nonlinear solver aborted, ', ...
@@ -286,6 +283,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             break;
         end
 
+        % Apply control logic
         if ~isempty(opt.controlLogicFn)
             [schedule, report, isAltered] = opt.controlLogicFn(state, schedule, report, i);
             if isAltered
@@ -354,7 +352,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 break
             end
         end
-        if fstruct.stopFunc(model,state)
+        if report.EarlyStop
+            dispif(opt.Verbose, 'Termination triggered by stopFunction in control step %d of %d\n', i, nSteps);
             break;
         end
     end
