@@ -410,9 +410,10 @@ classdef NonLinearSolver < handle
                     isOk = stepReport.ResidualsConverged;
                     isOscillating = solver.checkForOscillations(res, i);
                     isStagnated = solver.checkForStagnation(res, i);
+                    isIncreasing = solver.checkForIncrease(res, i);
                     % We will use relaxations if all non-converged residuals are
                     % either stagnating or oscillating.
-                    bad = (isOscillating | isStagnated);
+                    bad = (isOscillating | isStagnated | isIncreasing);
                     rfactor = solver.oscillationThreshold;
                     relax = sum(bad & ~isOk) >= rfactor*sum(~isOk) && ~all(isOk);
                     if relax
@@ -563,6 +564,20 @@ classdef NonLinearSolver < handle
             next = res(index,     :);
 
             isStagnated = abs(next - prev)./prev < solver.stagnateTol;
+        end
+        
+        function isIncreasing = checkForIncrease(solver, res, index)
+        % Check if residuals are increasing. Residuals are flagged as
+        % increasing if the relative change is positive and larger than
+        % the tolerance.
+            if index < 2
+                isIncreasing = false(1, size(res, 2));
+                return
+            end
+            prev = res(index - 1, :);
+            next = res(index,     :);
+
+            isIncreasing = (next - prev)./prev > solver.stagnateTol;
         end
 
         function str = getId(solver)
