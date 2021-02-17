@@ -32,7 +32,7 @@ use_trans = true;
  model_fine_scale = model_fine_scale.validateModel();
 
 
-figure(1); clf,
+figure(1), movegui('northwest'); clf,
 set(gcf,'Position', [860 450 840 400],'PaperPositionMode','auto');
 subplot(1,2,1);
 plotCellData(model_fine_scale.G,model_fine_scale.rock.poro,'EdgeAlpha',.5); view(3);
@@ -43,7 +43,7 @@ pax = [min(model_fine_scale.rock.poro) max(model_fine_scale.rock.poro)];
 pos = get(hh,'Position'); set(hh,'Position', pos - [.01 0 0 0]);
 pos = get(hc,'Position'); set(hc,'Position', pos - [.03 0 0 0]);
 set(gca,'Position',[.12 .075 .315 .9])
-
+drawnow
 
 %% Run simulation for fine-scale model
 dt = [1 ,1 ,2 5 10 , 10*ones(1,10)]*day();
@@ -81,7 +81,9 @@ crock.perm = upscalePerm(G, CG, rock);
 [~,~,WC]   = upscaleTrans(CG, hT, 'match_method', 'lsq_flux', ...
                           'bc_method', 'wells_simple', 'wells', W);                     
 
-figure(1); subplot(1,2,2); cla
+figure(1), movegui('northwest');
+subplot(1,2,2); cla
+
 plotCellData(CG,crock.poro,'EdgeColor','none');
 title('Coarse-scale model porosity')
 
@@ -92,7 +94,7 @@ plotWell(G,W,'Color','k'); axis off tight
 pos = get(hh,'Position'); set(hh,'Position', pos + [.01 0 0 0]);
 pos = get(hc,'Position'); set(hc,'Position', pos + [.02 0 0 0]);
 set(gca,'Position',[.56 .075 .315 .9])
-
+drawnow
 
  %% Simulating on coarse-scale model
  % After upscailing we create a coarse model and we compare the production
@@ -117,139 +119,90 @@ state0  = initState(CG, WC,p0,s0);
 schedule = simpleSchedule(dt, 'W', WC);
 [wellSols_coarse_scale,states_coarse_scale] = simulateScheduleAD(state0, model_coarse_scale, schedule);
 
-figure
-plotWellSols({wellSols_fine_scale,wellSols_coarse_scale},{schedule.step.val,schedule.step.val})
-
+summary_plots = plotWellSols({wellSols_fine_scale,wellSols_coarse_scale},{schedule.step.val,schedule.step.val});
+movegui('northeast')
+drawnow
 %% Preparing parameters and scaling values for each one
 % We define each parameters well index transmisibility, pore volume, and
 % it's scailing values.
 
+prob = struct('model', model_coarse_scale, 'schedule', schedule, 'state0', state0);
 
-% Well index
-WellIP = [];
-cell = [];
-well_index = []; 
-levels = 1;
-well_index_2 = {};
-for  i = 1:numel(WC)
-    for l = 1 : levels
-        well_index = [well_index; i,l];
-        well_index_2{i} = i;
-    end
-    
-    WellIP = [WellIP; WC(i).WI(1)];
+parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits', [.01 1.5]);
+parameters{2} = ModelParameter(prob, 'name', 'porevolume','relativeLimits', [.01 3]);
+parameters{3} = ModelParameter(prob, 'name', 'transmissibility','relativeLimits', [.1 2]);
+%% 
+values = applyFunction(@(p)p.getParameterValue(prob), parameters);
+% scale values
+u = cell(size(values));
+for k = 1:numel(u)
+    u{k} = parameters{k}.scale(values{k});
 end
-
-% Transmisibility and porosity 
-TT =  model_coarse_scale.operators.T;
-pv =  model_coarse_scale.operators.pv;
-
-Tr_boxlimits = [0.1*min(TT) ; 1.2*max(TT)]';
-Pv_boxlimits = [0.1*min(pv); 1.2*max(pv)]';
-well_boxlimits = [ 0.1*WellIP , ...
-                     2*WellIP];
-
-              
-          well_IP = struct('name','conntrans',...
-                                   'type','value',...
-                                   'boxLims', well_boxlimits,...
-                                   'distribution','general',...
-                                   'Indx',well_index);
-
-
-          transmisibility_conection = struct('name','transmissibility',...
-                                   'type','value',...
-                                   'boxLims', Tr_boxlimits ,...
-                                   'distribution','cell',...
-                                   'Indx',1:numel(TT));
-                               
-
-          porevolume_conection = struct('name','porevolume',...
-                                   'type','value',...
-                                   'boxLims',Pv_boxlimits,...
-                                   'distribution','cell',...
-                                   'Indx',1:numel(pv));
-
-%params      = {'porevolume', 'permeability', 'swcr',  'sowcr', 'krw',   'kro'}; 
-%paramTypes  = {'multiplier', 'multiplier',   'value', 'value', 'value', 'value'};   
-                               
-         swcr = struct('name','swcr',...
-                       'type','value',...
-                       'boxLims',[0.15 0.3],...
-                       'distribution','general',...
-                       'Indx',1:9);  
-                               
-parameters =  {};                          
-parameters{1} = transmisibility_conection;
-parameters{2} = porevolume_conection ;
-parameters{3} = well_IP ;
-%parameters{4} = swcr;
-
- %% Optimization 1: upscaled coarse model
- 
- 
-% Scailing the parameters to the interval [0,1]
-  val = {};              
-  val{1} = TT;
-  val{2} = pv;
-  val{3} = WellIP;
-  %val{4} = 0.2;
-  p0_ups = value2control(val,parameters);
-             
+p0_ups = vertcat(u{:});  
+  
 % Defining the weights to evaluate the match
-weighting =  {'WaterRateWeight',  (10/day)^-1, ...
-              'OilRateWeight',    (10/day)^-1, ...
+weighting =  {'WaterRateWeight',  (20/day)^-1, ...
+              'OilRateWeight',    (20/day)^-1, ...
               'BHPWeight',        (100*barsa)^-1};            
 
  obj = @(model, states, schedule, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule, states_fine_scale,...
            'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
 
  objScaling = 1;       
- [misfitVal_0,gradient,wellSols_0,states_0] = evaluateMatch(p0_ups,obj,state0,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);
+ [misfitVal_0,gradient,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);
 
                                                            
 
   
 obj_scaling     = abs(misfitVal_0);      % objective scaling  
-objh = @(p)evaluateMatch(p, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
+objh = @(p)evaluateMatch_simple(p, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
 
+figure(10).reset; movegui('south');
 [v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'gradTol',             1e-2, ...
                                               'objChangeTol',        0.5e-3,...
-                                              'wolfe1',             0.5e-0, ...
-                                              'wolfe2',              0.9);
-[misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
+                                              'maxIt',               8);
+[misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
  
-
+figure(summary_plots.Number)
 plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
               {schedule.step.val,schedule.step.val,schedule.step.val},...
               'datasetnames',{'fine scale model','initial upscaled model','history matched upscaled model'},...
-              'linestyles', {'o', '--', '-'})
-
+              'linestyles', {'o', '--', '-'},...
+              'figure',summary_plots.Number)
+drawnow
  %% Optimization 2:  initial upscaled model with a ramdom perturbation
  
  
-% Scailing the parameters to the interval [0,1]
-  val = {};              
-  val{1} = TT+(rand(size(TT))-0.5).*TT;
-  val{2} = pv+(rand(size(pv))-0.5).*pv;
-  val{3} = WellIP+ (rand(size(WellIP))-0.5).*WellIP;
-  %val{4} = 0.1;
-  p0_mean = value2control(val,parameters);
+% Adding a perturmation to the initial values
+  for k = 1:numel(u)
+    values{k} =  values{k}+1.5*(rand(size(values{k}))-0.5).*values{k};
+    prob = parameters{k}.setParameterValue(prob,values{k});
+    u{k} = parameters{k}.scale(values{k});
+  end
+  p0_mean = vertcat(u{:});
+  model_coarse_scale = prob.model;
+  schedule = prob.schedule;
+  state0   = prob.state0;
  
        
- [misfitVal_0,gradient,wellSols_0_mean,states_0] = evaluateMatch(p0_mean,obj,state0,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);
+ [misfitVal_0,gradient,wellSols_0_mean,states_0] = evaluateMatch_simple(p0_mean,obj,state0,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);
 
 obj_scaling     = abs(misfitVal_0);      % objective scaling  
-objh = @(p)evaluateMatch(p,obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
+objh = @(p)evaluateMatch_simple(p,obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
 
+gco(figure(10))
+figure(10).reset, movegui('south')
 [v, p_opt, history] = unitBoxBFGS(p0_mean, objh,'gradTol',            1e-2, ...
                                               'objChangeTol',        0.5e-3,...
-                                              'wolfe1',             0.5e-0, ...
-                                              'wolfe2',              0.9);
-[misfitVal_opt,gradient_opt,wellSols_opt_mean] = evaluateMatch(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
+                                              'maxIt',               4);
+[misfitVal_opt,gradient_opt,wellSols_opt_mean] = evaluateMatch_simple(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
 
-
+%clf(summary_plots)
+figure(summary_plots.Number)
+% gcbf(figure(summary_plots.Number))
+% summary_plots
 plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt,wellSols_0_mean,wellSols_opt_mean},...
               {schedule.step.val,schedule.step.val,schedule.step.val,schedule.step.val,schedule.step.val},...
               'datasetnames',{'fine scale model','initial upscaled model','history matched upscaled model','perturbed upscaled model','history matched perturbed upscaled model'},...
-              'linestyles', {'o', '--', '-','--', '-'})
+              'linestyles', {'o', '--', '-','--', '-'},...
+              'figure',summary_plots.Number)
