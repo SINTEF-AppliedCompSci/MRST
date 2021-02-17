@@ -73,8 +73,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rh = problem.OutputHandlers.reports;
     
     ndata = sh.numelData();
-    ws =cell(wh.numelData(), 1);
-    states=cell(sh.numelData(),1);
+    ws = cell(wh.numelData(), 1);
+    states = cell(sh.numelData(),1);
     reports = cell(rh.numelData(),1);
     %[ws, states, reports] = deal(cell(ndata, 1));
     wantWells = false;

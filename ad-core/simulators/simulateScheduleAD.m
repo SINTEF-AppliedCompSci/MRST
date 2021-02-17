@@ -178,21 +178,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'afterStepFn',       [], ...
                  'controlLogicFn',    [], ...
                  'processOutputFn',   [], ...
-                 'restartStep',       1, ...
+                 'restartStep',       1,  ...
+                 'outputOffset',      [], ...
                  'LinearSolver',      []);
 
     opt = merge_options(opt, varargin{:});
 
     %----------------------------------------------------------------------
     tm = [0 ; reshape(cumsum(schedule.step.val), [], 1)];
-    if opt.restartStep ~= 1
+    restart = opt.restartStep;
+    if restart ~= 1
+        T0 = sum(schedule.step.val(1:restart-1));
+        if isfield(initState, 'time') && abs(initState.time - T0) > 10*eps(sum(schedule.step.val))
+            warning('Time mismatch in initial state for restart. Expected %s, got %s.\n', ...
+                formatTimeRange(T0), formatTimeRange(initState.time));
+        end
         nStep = numel(schedule.step.val);
-        assert(numel(opt.restartStep) == 1 && ...
-               opt.restartStep <= nStep &&...
-               opt.restartStep > 1, ...
+        assert(numel(restart) == 1 && ...
+               restart <= nStep &&...
+               restart > 1, ...
         ['Restart step must be an index between 1 and ', num2str(nStep), '.']);
-        schedule.step.control = schedule.step.control(opt.restartStep:end);
-        schedule.step.val = schedule.step.val(opt.restartStep:end);
+        schedule.step.control = schedule.step.control(restart:end);
+        schedule.step.val = schedule.step.val(restart:end);
     end
     if opt.Verbose
        simulation_header(numel(tm)-1, tm(end));
@@ -309,7 +316,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Store output in handlers, if configured
         writeOutput(opt.OutputHandler, opt, ind, substates)
         writeOutput(opt.WellOutputHandler, opt, ind, wellSols_step)
-        writeOutput(opt.ReportHandler, opt, i, report)
+        writeOutput(opt.ReportHandler, opt, i, report, false)
         
         % Write to the cell arrays that will be outputs from the function
         wellSols(ind) = wellSols_step;
@@ -361,9 +368,16 @@ end
 
 %--------------------------------------------------------------------------
 
-function writeOutput(handler, opt, pos, values)
+function writeOutput(handler, opt, pos, values, useOffset)
+    if nargin < 5
+        useOffset = true;
+    end
+    offset = opt.outputOffset;
+    if isempty(offset) || ~useOffset
+        offset = opt.restartStep;
+    end
     if ~isempty(handler)
-        handler(pos + opt.restartStep - 1) = values; %#ok This is a handle class instance.
+        handler(pos + offset - 1) = values; %#ok This is a handle class instance.
     end
 end
 
@@ -402,7 +416,11 @@ end
 %--------------------------------------------------------------------------
 
 function disp_step_convergence(its, cputime)
-   if its ~= 1, pl_it = 's'; else pl_it = ''; end
+    if its ~= 1
+        pl_it = 's';
+    else
+        pl_it = '';
+    end
 
    fprintf(['Completed %d iteration%s in %2.2f seconds ', ...
             '(%2.2fs per iteration)\n\n'], ...
