@@ -205,8 +205,10 @@ classdef ResultHandler < handle
                 l = regexp(l,'\s+','split');
                 for i = 1:numel(l)
                     line = l{i};
-                    [s, e] = regexp(line, [handler.dataPrefix, '\d+']);
-                    if isempty(s); continue; end
+                    [s, e] = regexp(line, ['^', handler.dataPrefix, '\d+']);
+                    if isempty(s)
+                        continue;
+                    end
                     ids = [ids, str2double(line((s+numel(handler.dataPrefix)):e))];
                 end
                 ids = sort(ids);
