@@ -100,14 +100,20 @@ drawnow
  % After upscailing we create a coarse model and we compare the production
  % results between the fine scaled and coarse scale models
  
-%fluid_2 = fluid;
-%fluid_2 .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
-%scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
+fluid_2 = fluid;
+fluid_2 .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
+scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
 %scaling = {'SWL', .2, 'SWCR', .2, 'SWU', .8, 'SOWCR', .2, 'KRW', 1, 'KRO', 1};
 
-model_coarse_scale = GenericBlackOilModel(CG, crock, fluid);
+model_coarse_scale = GenericBlackOilModel(CG, crock, fluid_2);
 model_coarse_scale.gas=false;
-%model_coarse_scale = imposeRelpermScaling(model_coarse_scale, scaling{:});
+
+% Expanding for fluid parameters calibration. 
+%TODO can be done without
+% this?
+%TODO: If krtscaling if not define and they are going to be parameters we should
+%inicilize as in line 103 with fluid_2
+model_coarse_scale = imposeRelpermScaling(model_coarse_scale, scaling{:});
 
 model_coarse_scale.OutputStateFunctions = {};
 model_coarse_scale = model_coarse_scale.validateModel();
@@ -128,9 +134,20 @@ drawnow
 
 prob = struct('model', model_coarse_scale, 'schedule', schedule, 'state0', state0);
 
-parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits', [.01 1.5]);
-parameters{2} = ModelParameter(prob, 'name', 'porevolume','relativeLimits', [.01 3]);
-parameters{3} = ModelParameter(prob, 'name', 'transmissibility','relativeLimits', [.1 2]);
+ parameters{1} = ModelParameter(prob, 'name', 'swl');
+ parameters{2} = ModelParameter(prob, 'name', 'sowcr');
+ parameters{3} = ModelParameter(prob, 'name', 'swcr');
+ parameters{4} = ModelParameter(prob, 'name', 'kro');
+ parameters{5} = ModelParameter(prob, 'name', 'krw');
+ 
+ parameters{6} = ModelParameter(prob, 'name', 'conntrans','relativeLimits', [.01 1.5]);
+ parameters{7} = ModelParameter(prob, 'name', 'porevolume','relativeLimits', [.01 3]);
+ parameters{8} = ModelParameter(prob, 'name', 'transmissibility','relativeLimits', [.1 2]);
+
+
+
+
+
 %% 
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
@@ -160,7 +177,7 @@ objh = @(p)evaluateMatch_simple(p, obj, state0, model_coarse_scale, schedule, ob
 figure(10).reset; movegui('south');
 [v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'gradTol',             1e-2, ...
                                               'objChangeTol',        0.5e-3,...
-                                              'maxIt',               8);
+                                              'maxIt',               30);
 [misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
  
 figure(summary_plots.Number)
