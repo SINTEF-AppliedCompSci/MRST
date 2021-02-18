@@ -26,6 +26,9 @@ classdef GenericComponent < StateFunctionDependent
             % these are internally consistent.
             c = component.getComponentDensity(model, state);
             rho = model.getProp(state, 'Density');
+            if ~iscell(rho)
+                rho = {rho};
+            end
             for ph = 1:numel(c)
                 if ~isempty(c{ph})
                     c{ph} = c{ph}./rho{ph};
@@ -54,7 +57,9 @@ classdef GenericComponent < StateFunctionDependent
             % the cell.
             density = component.getComponentDensity(model, state, varargin{:});
             mob = model.getProp(state, 'Mobility');
-            
+            if ~iscell(mob)
+                mob = {mob};
+            end
             nphase = numel(density);
             cmob = cell(1, nphase);
             for i = 1:nphase

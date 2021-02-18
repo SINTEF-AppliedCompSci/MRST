@@ -18,6 +18,9 @@ classdef ImmiscibleComponent < GenericComponent
         function c = getComponentDensity(component, model, state, varargin)
             c = getComponentDensity@GenericComponent(component, model, state, varargin{:});
             rho = model.getProp(state, 'Density');
+            if ~iscell(rho)
+                rho = {rho};
+            end
             c{component.phaseIndex} = rho{component.phaseIndex};
         end
         
