@@ -32,6 +32,10 @@ function [status, str] = evalFunWrapper(fn, args, varargin)
 %  singleCompThread - Option indicating whether new session should be run
 %                     using single computational thread (default true)
 %
+%  matlabBinary    - Command to start external Matlab-session. Default is  
+%                    fullfile(matlabroot(), 'bin', 'matlab'), e.g., same
+%                    Matlab-version as the one currently running.
+%
 %  matlabOpts      - String of matlab startup options. Default: see below
 % 
 %  exitWhenDone    - Exit/quit new session when computation is done 
@@ -99,6 +103,15 @@ if isempty(mbin)
     mbin = fullfile(matlabroot(), 'bin', 'matlab');
     % Support folder names with spaces (e.g., 'Program Files' on win)
     mbin = strcat('"', mbin, '"');
+    % If 'matlabBinary' is defaulted on a Windows-system, force background-option 
+    % to be false to avoid opening of additional cmd.exe-window(s). To enable 
+    % backgrounds-calls on Windows-systems (e.g., such that main command-window 
+    % will wait for external session to finnish) setting option 'matlabBinary'
+    % to 'matlab' can be used, allthough this will launch default version 
+    % (as of R2020b/Windows 10 Enterprise/Pro).
+    if ispc
+        opt.background = false;
+    end
 end
 
 % handle matlab options
