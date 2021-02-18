@@ -63,7 +63,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     np = numel(problems);
     opt = struct('checkTooMany',    true, ...
                  'continueOnError', np > 1, ...
-                 'plot',            false, ...
+ 		         'plot',            false, ...
                  'restartStep',     nan);
     opt = merge_options(opt, varargin{:});
 
@@ -72,25 +72,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     for i = 1:np
         problem = problems{i};
         % Unpack base case
-        schedule = problem.SimulatorSetup.schedule;
-        state0 = problem.SimulatorSetup.state0;
-        model = problem.SimulatorSetup.model;
         nls = problem.SimulatorSetup.NonLinearSolver;
+        doMinisteps = problem.SimulatorSetup.OutputMinisteps;
         
         state_handler = problem.OutputHandlers.states;
         wellSol_handler = problem.OutputHandlers.wellSols;
         report_handler = problem.OutputHandlers.reports;
 
-        nstep = numel(schedule.step.val);
-        ndata = state_handler.numelData();
         ok = true;
-        doSim = true;
-        msg = '';
-        if opt.checkTooMany
-            % This is a serious error!
-            assert(ndata <= nstep, 'Too much data exists for %s! Problem may have been redefined.', problems{i}.Name);
-        end
-        
+
         firstLine = sprintf(' Case "%s" (%s)',...
                 problem.BaseName, problem.Name);
         secondLine = sprintf(' Description: "%s"',...
@@ -110,34 +100,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fprintf(printstr, firstLine);
         fprintf(printstr, secondLine);
         fprintf(lim);
-        if ~isnan(opt.restartStep)
-            restartStep = opt.restartStep;
-            if ndata < restartStep - 1
-                msg = sprintf('Restart step %d was specified, but step %d is not complete! Aborting.', restartStep, restartStep-1);
-                doSim = false;
-                if ~opt.continueOnError
-                    error(msg); %#ok
-                end
+        [state0, model, schedule, restartStep, restartOffset, msg] = getRestart(problem, opt);
+        if isnan(restartStep)
+            if opt.continueOnError
+                fprintf(msg);
+            else
+                error(msg);
             end
-            if restartStep > 1
-                state0 = state_handler{restartStep-1};
-            end
-        elseif ndata == nstep
-            fprintf('-> Complete output found, nothing to do here.\n');
-            % Already run!
-            doSim = false;
-            restartStep = nan;
-        elseif ndata == 0
-            fprintf('-> No output found, starting from first step...\n');
-            restartStep = 1;
-        else
-            fprintf('-> Partial output found, starting from step %d of %d...\n', ndata+1, nstep);
-            state0 = state_handler{ndata};
-            restartStep = ndata + 1;
         end
-
         timer = tic();
-        if doSim
+        if isfinite(restartStep)
             mods = mrstModule();
             try
                 mrstModule('add', problem.Modules{:});
@@ -146,7 +118,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                             'OutputHandler', state_handler, ...
                                                             'WellOutputHandler', wellSol_handler, ...
                                                             'ReportHandler', report_handler, ...
-                                                            problem.SimulatorSetup.ExtraArguments{:});
+                                                            'outputOffset', restartOffset, ...
+                                                            problem.SimulatorSetup.ExtraArguments{:}, ...
+                                                            'OutputMinisteps', doMinisteps);
             catch ex
                 mrstModule('reset', mods{:});
                 msg = ex.message;
@@ -167,5 +141,95 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     if opt.plot
         plotPackedProblem(problem);
+    end
+end
+
+function [state0, model, schedule, restart, outoffset, msg] = getRestart(problem, opt)
+    schedule = problem.SimulatorSetup.schedule;
+    model = problem.SimulatorSetup.model;
+    state0 = problem.SimulatorSetup.state0;
+    T = cumsum(schedule.step.val);
+    
+    state_handler = problem.OutputHandlers.states;
+    doMinisteps = problem.SimulatorSetup.OutputMinisteps;
+    nstep = numel(schedule.step.val);
+    ndata = state_handler.numelData();
+    msg = '';
+    outoffset = [];
+    if opt.checkTooMany && ~doMinisteps
+        % This is a serious error!
+        assert(ndata <= nstep, 'Too much data exists for %s! Problem may have been redefined.', problem.Name);
+    end
+    restart = opt.restartStep;
+    if ndata == 0
+        endstate = state0;
+        state0.time = 0;
+    else
+        endstate = state_handler{ndata};
+    end
+    autoRestart = isnan(restart);
+    if autoRestart
+        % No restart specified. We need to figure out where to pick up the
+        % simulation, or if it is already done, determined from whatever
+        % data is available.
+        if ndata == 0
+            % We start from the beginning
+            restart = 1;
+        elseif (ndata >= nstep && ~doMinisteps) || (endstate.time >= T(end) && doMinisteps)
+            % The simulation is already done
+            restart = inf;
+        else
+            % We have a partial simulation. Find last complete step, and
+            % then grab that state as the restart.
+            if doMinisteps
+                % Find last state, then find the corresponding control step
+                last = find(T <= endstate.time, 1, 'last');
+                if isempty(last)
+                    restart = 1;
+                else
+                    restart = last + 1;
+                    [state0, outoffset] = state_handler.getByTime(T(last));
+                    outoffset = outoffset + 1;
+                end
+            else
+                restart = ndata + 1;
+                state0 = endstate;
+            end
+        end
+    elseif restart > 1
+        % Requested specific restart step. We only need to do something if
+        % restart > 1. Otherwise, state0 + restart = 1 is fine.
+        T_prev = T(restart-1);
+        if endstate.time < T_prev
+            % This is bad!
+            msg = sprintf('Restart step %d was specified, but step %d is not complete! Aborting.', restart, restart-1);
+            restart = nan;
+        elseif doMinisteps
+            [state0, outoffset] = state_handler.getByTime(T_prev);
+            outoffset = outoffset + 1;
+        else
+            state0 = state_handler{restart-1};
+        end
+    end
+    % Might happen for floating point comparisons of ministep time?
+    if isempty(state0)
+        restart = nan;
+        msg = 'Internal error. Restart state not found.';
+    end
+    % Print out some messages
+    if isinf(restart)
+        fprintf('-> Complete output found, nothing to do here.\n');
+    elseif restart == 1
+        if autoRestart
+            fprintf('-> No output found. Starting from first step...\n');
+        else
+            fprintf('-> Starting from first step as requested...\n');
+        end
+    else
+        if autoRestart
+            fprintf('-> Partial output found. Starting from step %d of %d...\n', restart, nstep);
+        else
+            fprintf('-> Partial output found. Starting from requested step %d of %d...\n', restart, nstep);
+        end
     end
 end

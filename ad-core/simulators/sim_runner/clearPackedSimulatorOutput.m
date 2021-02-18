@@ -85,8 +85,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             w.resetData();
         else
             s.resetData(range);
-            r.resetData(range);
-            w.resetData(range);
+            r.resetData(range(range <= nr));
+            w.resetData(range(range <= nw));
         end
         dispif(doPrint, ' Files removed.\n');
     end

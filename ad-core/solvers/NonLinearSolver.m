@@ -149,6 +149,7 @@ classdef NonLinearSolver < handle
 
             converged = false;
             done = false;
+            early_done = false;
 
             % Number of nonlinear iterations total
             itCount = 0;
@@ -159,7 +160,7 @@ classdef NonLinearSolver < handle
             % Number of accepted steps
             acceptCount = 0;
             t_local = 0;
-
+            t_start = state0.time;
             isFinalMinistep = false;
             state0_inner = state0;
             % Previous state for a given timestep
@@ -199,13 +200,16 @@ classdef NonLinearSolver < handle
                     fprintf('%sSolving ministep : %s (%1.2f %% of control step, control step currently %1.2f %% complete)\n',...
                             solver.getId(), formatTimeRange(dt), dt / dT * 100, t_local / dT * 100)
                 end
+                % Increment the time
+                state.time = t_start + t_local + dt;
+                % Solve the ministep
                 [state, failure, tmp] = ...
                     solveMinistep(solver, model, state, state0_inner, dt, drivingForces);
 
                 % Store timestep info
                 converged = tmp.Converged;
                 its = tmp.Iterations;
-                tmp.LocalTime = t_local + dt;
+                tmp.LocalTime = state.time;
                 reports{end+1} = tmp; %#ok
                 clear tmp
                 if ~isFinalMinistep || dt/dt_choice > 0.9
@@ -225,7 +229,6 @@ classdef NonLinearSolver < handle
                     state_prev = state0_inner;
                     state0_inner = state;
                     acceptCount = acceptCount + 1;
-
                     if wantMinistates
                         % Output each substep
                         nm = numel(ministates);
@@ -295,7 +298,11 @@ classdef NonLinearSolver < handle
                    end
                     isFinalMinistep = false;
                 end
-                done = isFinalMinistep && converged;
+                % Custom function determines that we have stopped.
+                early_done = drivingForces.stopFunction(model, state, state0_inner);
+                % We are either done early, or done with the final step in
+                % the time interval
+                done = early_done || (isFinalMinistep && converged);
             end
 
             if acceptCount ~= 1
@@ -317,9 +324,10 @@ classdef NonLinearSolver < handle
                    itCount, formatTimeRange(time/itCount, 2));
             % Truncate reports from step functions
             reports = reports(~cellfun(@isempty, reports));
-            report = struct('Iterations',           itCount,...
-                            'Converged',            converged,...
-                            'WallTime',             time, ...
+            report = struct('Iterations',           itCount,    ...
+                            'Converged',            converged,  ...
+                            'EarlyStop',            early_done, ...
+                            'WallTime',             time,       ...
                             'MinistepCuttingCount', cuttingCount);
             % Add seperately because struct constructor interprets cell
             % arrays as repeated structs.

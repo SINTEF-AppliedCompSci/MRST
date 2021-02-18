@@ -113,6 +113,7 @@ function [wellSols, states, schedulereport] = ...
 %                        stored, and will not affect what is passed on to
 %                        the next timestep.
 %
+%   
 %   'controlLogicFn'   - Function handle to optional function that will be
 %                        called after each step enabling schedule updates to 
 %                        be triggered on specified events. Input arguemnts:
@@ -129,10 +130,10 @@ function [wellSols, states, schedulereport] = ...
 %                       
 % RETURNS:
 %   wellSols         - Well solution at each control step (or timestep if
-%                      'OutputMinisteps' is enabled.
+%                      'OutputMinisteps' is enabled.)
 %
 %   states           - State at each control step (or timestep if
-%                      'OutputMinisteps' is enabled.
+%                      'OutputMinisteps' is enabled.)
 %
 %   schedulereport   - Report for the simulation. Contains detailed info for
 %                      the whole schedule run, as well as arrays containing
@@ -177,21 +178,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'afterStepFn',       [], ...
                  'controlLogicFn',    [], ...
                  'processOutputFn',   [], ...
-                 'restartStep',       1, ...
+                 'restartStep',       1,  ...
+                 'outputOffset',      [], ...
                  'LinearSolver',      []);
 
     opt = merge_options(opt, varargin{:});
 
     %----------------------------------------------------------------------
     tm = [0 ; reshape(cumsum(schedule.step.val), [], 1)];
-    if opt.restartStep ~= 1
+    restart = opt.restartStep;
+    if restart ~= 1
+        T0 = sum(schedule.step.val(1:restart-1));
+        if isfield(initState, 'time') && abs(initState.time - T0) > 10*eps(sum(schedule.step.val))
+            warning('Time mismatch in initial state for restart. Expected %s, got %s.\n', ...
+                formatTimeRange(T0), formatTimeRange(initState.time));
+        end
         nStep = numel(schedule.step.val);
-        assert(numel(opt.restartStep) == 1 && ...
-               opt.restartStep <= nStep &&...
-               opt.restartStep > 1, ...
+        assert(numel(restart) == 1 && ...
+               restart <= nStep &&...
+               restart > 1, ...
         ['Restart step must be an index between 1 and ', num2str(nStep), '.']);
-        schedule.step.control = schedule.step.control(opt.restartStep:end);
-        schedule.step.val = schedule.step.val(opt.restartStep:end);
+        schedule.step.control = schedule.step.control(restart:end);
+        schedule.step.val = schedule.step.val(restart:end);
     end
     if opt.Verbose
        simulation_header(numel(tm)-1, tm(end));
@@ -217,7 +225,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     nSteps = numel(schedule.step.val);
     [wellSols, states, reports] = deal(cell(nSteps, 1));
-    wantStates = nargout > 1;
+    wantStates = nargout > 1 || ~isempty(opt.afterStepFn);
     wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
 
     % Check if model is self-consistent and set up for current BC type
@@ -239,7 +247,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     dispif(opt.Verbose, 'Validating initial state...\n')
     state = model.validateState(initState);
     dispif(opt.Verbose, 'Initial state ok. Ready to begin simulation.\n')
-
     failure = false;
     simtime = zeros(nSteps, 1);
     prevControl = nan;
@@ -264,16 +271,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         dt = schedule.step.val(i);
         timer = tic();
         if opt.OutputMinisteps
-            [state, report, ministeps] = solver.solveTimestep(state0, dt, model, ...
+            [state, report, substates] = solver.solveTimestep(state0, dt, model, ...
                                             forces{:}, 'controlId', currControl, extraArg{:});
+            % We have potentially several ministeps desired as output and
+            % we need to offset the pointer to the first array accordingly.
+            ind = firstEmptyIx:(firstEmptyIx + numel(substates) - 1);
+            firstEmptyIx = firstEmptyIx + numel(substates);
         else
             [state, report] = solver.solveTimestep(state0, dt, model,...
                                             forces{:}, 'controlId', currControl, extraArg{:});
+            % Single state requested for dt. We set values accordingly.
+            substates = {state};
+            ind = i;
         end
 
         t = toc(timer);
         simtime(i) = t;
-
+        % Abort simulation
         if ~report.Converged
             warning('NonLinear:Failure', ...
                    ['Nonlinear solver aborted, ', ...
@@ -282,6 +296,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             break;
         end
 
+        % Apply control logic
         if ~isempty(opt.controlLogicFn)
             [schedule, report, isAltered] = opt.controlLogicFn(state, schedule, report, i);
             if isAltered
@@ -292,43 +307,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.Verbose
            disp_step_convergence(report.Iterations, t);
         end
-        % Handle massaging of output to correct expectation
-        if opt.OutputMinisteps
-            % We have potentially several ministeps desired as output
-            ind = firstEmptyIx:(firstEmptyIx + numel(ministeps) - 1);
-            states_step = ministeps;
-        else
-            % We just want the control step
-            ind = i;
-            states_step = {state};
-        end
-
-        wellSols_step = cellfun(@(x) x.wellSol, states_step, ...
-                                'UniformOutput', false);
-
-        wellSols(ind) = wellSols_step;
-        
+        % Get wellSols, if they exist
+        wellSols_step = getWellSols(substates);
+        % Process output before proceeding
         if ~isempty(opt.processOutputFn)
-            [states_step, wellSols_step, report] = opt.processOutputFn(states_step, wellSols_step, report);
+            [substates, wellSols_step, report] = opt.processOutputFn(substates, wellSols_step, report);
         end
+        % Store output in handlers, if configured
+        writeOutput(opt.OutputHandler, opt, ind, substates)
+        writeOutput(opt.WellOutputHandler, opt, ind, wellSols_step)
+        writeOutput(opt.ReportHandler, opt, i, report, false)
         
-        if ~isempty(opt.OutputHandler)
-            opt.OutputHandler{ind + opt.restartStep - 1} = states_step;
+        % Write to the cell arrays that will be outputs from the function
+        wellSols(ind) = wellSols_step;
+        if wantStates
+            states(ind) = substates;
         end
-        
-        if ~isempty(opt.WellOutputHandler)
-            opt.WellOutputHandler{ind + opt.restartStep - 1} = wellSols_step;
-        end
-        
-        if ~isempty(opt.ReportHandler)
-            opt.ReportHandler{i + opt.restartStep - 1} = report;
-        end
-        firstEmptyIx = firstEmptyIx + numel(states_step);
-
-        if wantStates || ~isempty(opt.afterStepFn)
-            states(ind) = states_step;
-        end
-
         if wantReport
             reports{i} = report;
         end
@@ -340,8 +334,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 break
             end
         end
+        if report.EarlyStop
+            dispif(opt.Verbose, 'Termination triggered by stopFunction in control step %d of %d\n', i, nSteps);
+            break;
+        end
     end
-
+    
     if wantReport
         reports = reports(~cellfun(@isempty, reports));
 
@@ -355,6 +353,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     fprintf('*** Simulation complete. Solved %d control steps in %s ***\n',...
                                   nSteps, formatTimeRange((sum(simtime))));
+end
+
+%--------------------------------------------------------------------------
+function ws = getWellSols(states)
+    ns = numel(states);
+    ws = cell(ns, 1);
+    for i = 1:ns
+        if isfield(states{i}, 'wellSol')
+            ws{i} = states{i}.wellSol;
+        end
+    end
+end
+
+%--------------------------------------------------------------------------
+
+function writeOutput(handler, opt, pos, values, useOffset)
+    if nargin < 5
+        useOffset = true;
+    end
+    offset = opt.outputOffset;
+    if isempty(offset) || ~useOffset
+        offset = opt.restartStep;
+    end
+    if ~isempty(handler)
+        handler(pos + offset - 1) = values; %#ok This is a handle class instance.
+    end
 end
 
 %--------------------------------------------------------------------------
@@ -392,7 +416,11 @@ end
 %--------------------------------------------------------------------------
 
 function disp_step_convergence(its, cputime)
-   if its ~= 1, pl_it = 's'; else pl_it = ''; end
+    if its ~= 1
+        pl_it = 's';
+    else
+        pl_it = '';
+    end
 
    fprintf(['Completed %d iteration%s in %2.2f seconds ', ...
             '(%2.2fs per iteration)\n\n'], ...

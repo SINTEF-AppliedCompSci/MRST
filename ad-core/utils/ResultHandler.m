@@ -110,7 +110,7 @@ classdef ResultHandler < handle
         
         function n = numelData(handler)
             if handler.writeToDisk
-                n = numel(handler.getValidIds);
+                n = numel(handler.getValidIds());
             elseif handler.storeInMemory
                 n = numel(handler.data); 
             else
@@ -133,21 +133,7 @@ classdef ResultHandler < handle
                     % Methods and so on can be dispatched to matlab
                     [varargout{1:nargout}] = builtin('subsref', handler, s);
                 case {'()', '{}'}
-                    if handler.storeInMemory
-                        [varargout{1:nargout}] = builtin('subsref', handler.data, s);
-                        return
-                    end
-                    
-                    if handler.writeToDisk
-                        sub = s(1).subs{1};
-                        if ischar(sub) && strcmp(sub, ':')
-                            sub = 1:handler.numelData();
-                        end
-                        tmp = handler.readFromFile(sub);
-                        s(1).subs{1} = 1:numel(sub);
-                        [varargout{1:nargout}] = builtin('subsref', tmp, s);
-                        return
-                    end
+                    [varargout{1:nargout}] = handler.getData_private(s);
             end
             
         end
@@ -219,8 +205,10 @@ classdef ResultHandler < handle
                 l = regexp(l,'\s+','split');
                 for i = 1:numel(l)
                     line = l{i};
-                    [s, e] = regexp(line, [handler.dataPrefix, '\d+']);
-                    if isempty(s); continue; end
+                    [s, e] = regexp(line, ['^', handler.dataPrefix, '\d+']);
+                    if isempty(s)
+                        continue;
+                    end
                     ids = [ids, str2double(line((s+numel(handler.dataPrefix)):e))];
                 end
                 ids = sort(ids);
@@ -288,6 +276,90 @@ classdef ResultHandler < handle
             else
                 state0 = [];
                 restartStep = 1;
+            end
+        end
+        
+        function [s, index] = getByTime(handler, time, tol, varargin)
+            % Get by time, within some tolerance
+            if nargin < 3
+                tol = 1e-3;
+            end
+            [s, index] = handler.getFirstByFunction(@(x) abs(x.time-time) < tol, varargin{:});
+        end
+
+        function [state, index, dist] = getClosestByTime(handler, time, reverse)
+            % Find closest by time (iterating through all states)
+            if nargin < 3
+                reverse = false;
+            end
+            indices = 1:handler.numelData();
+            if reverse
+                indices = indices(end:-1:1);
+            end
+            dist = inf;
+            state = [];
+            index = [];
+            for ix = indices
+                s = handler.getData(ix);
+                next_dist = abs(time - s.time);
+                fprintf('time: %g - %g = %g\n', time, s.time, next_dist)
+                if next_dist > dist
+                    break;
+                end
+                state = s;
+                dist = next_dist;
+                index = ix;
+            end
+        end
+
+
+        function [s, index] = getFirstByFunction(handler, fn, reverse)
+            % Seek in the handler data, returing the first entry that
+            % fullfills an anonymous function. Can seek forward or
+            % backwards.
+            if nargin < 3
+                reverse = false;
+            end
+            found = false;
+            indices = 1:handler.numelData();
+            if reverse
+                indices = indices(end:-1:1);
+            end
+            for index = indices
+                s = handler.getData(index);
+                if fn(s)
+                    found = true;
+                    break;
+                end
+            end
+            if ~found
+                s = [];
+                index = [];
+            end
+        end
+        
+        function varargout = getData(handler, index)
+            [varargout{1:nargout}] = handler.getData_private(struct('type', '{}', 'subs', {{index}}));
+        end
+    end
+    
+    methods (Access = protected)
+
+        function varargout = getData_private(handler, s)
+            if handler.storeInMemory
+                [varargout{1:nargout}] = builtin('subsref', handler.data, s);
+                return
+            end
+
+            if handler.writeToDisk
+                sub = s(1).subs{1};
+                if ischar(sub) && strcmp(sub, ':')
+                    sub = 1:handler.numelData();
+                end
+                tmp = handler.readFromFile(sub);
+                s(1).subs{1} = 1:numel(sub);
+                [varargout{1:nargout}] = builtin('subsref', tmp, s);
+                return
             end
         end
     end
