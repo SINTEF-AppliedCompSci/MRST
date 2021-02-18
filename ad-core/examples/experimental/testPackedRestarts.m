@@ -55,3 +55,9 @@ simulatePackedProblem(problem_restart, 'restartStep', 10)
 t = cellfun(@(x) x.time, states);
 figure(1); clf
 plot(t)
+%%
+[~, states] = getPackedSimulatorOutput(problem_restart);
+%%
+problems = {problem, problem_restart};
+[ws, states, reports, names, T, grids, act] = getMultiplePackedSimulatorOutputs(problems, 'minSteps', 20);
+

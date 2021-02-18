@@ -66,7 +66,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isempty(opt.readStatesFromDisk)
         opt.readStatesFromDisk = opt.readFromDisk;
     end
-    nstep = numel(problem.SimulatorSetup.schedule.step.val);
+    dt = problem.SimulatorSetup.schedule.step.val;
+    nstep = numel(dt);
     
     sh = problem.OutputHandlers.states;
     wh = problem.OutputHandlers.wellSols;
@@ -89,7 +90,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nstep == ndata
         fprintf('Found complete data for %s: %d steps present\n', sn, ndata);
     elseif ndata > nstep
-        warning('Found too much data for %s: %d of %d steps present. Case may have been redefined!\n', sn, ndata, nstep);
+        endstate = states{ndata};
+        if isfield(endstate, 'time') && endstate.time > sum(dt)
+            warning('Found too much data for %s: %d of %d steps present. Case may have been redefined!\n', sn, ndata, nstep);
+        else
+            fprintf('Found complete data for %s: %d steps present\n', sn, ndata);
+        end
     elseif ndata > 0
         fprintf('Found partial data for %s: %d of %d steps present\n', sn, ndata, nstep);
     else
