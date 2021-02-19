@@ -79,7 +79,6 @@ classdef MRSTEnsembleV2 < BaseEnsemble
     %   `MRSTExample`, `BaseSamples`, `BaseQoI`
     
     properties
-        setup
         qoi
         storeOutput
     end
@@ -93,22 +92,21 @@ classdef MRSTEnsembleV2 < BaseEnsemble
                           'storeOutput',       false, ...
                           'exampleArgs',       {{}});
             [opt, other] = merge_options(opt, varargin{:});
-            % Call BaseEnsemble with name
-            name     = getExampleName(mrstExample);  
-            ensemble = ensemble@BaseEnsemble(samples, other{:}, ...
-                                        'name', name, ...
-                                        'reset', false, ...  
-                                        'prepareSimulation', false);
-            
             % Set example. This defines the base problem
             if isa(mrstExample, 'MRSTExample')
                 % Example given
-                ensemble.setup = mrstExample;
+                setup = mrstExample;
             else
                 % Example name given - set up example
-                ensemble.setup = MRSTExample(mrstExample, opt.exampleArgs{:});
+                setup = MRSTExample(mrstExample, opt.exampleArgs{:});
             end
-            ensemble.name = ensemble.setup.name;
+            
+            % Call BaseEnsemble
+            ensemble = ensemble@BaseEnsemble(samples, other{:}, ...
+                                        'reset',             false, ...  
+                                        'prepareSimulation', false, ...
+                                        'setup',             setup);
+            
             ensemble.storeOutput = opt.storeOutput;
             
             % Validate qoi
@@ -117,7 +115,7 @@ classdef MRSTEnsembleV2 < BaseEnsemble
             % Delete existing results if requested
             if opt.reset
                 ensemble.reset('prompt', false, ...
-                               'prepareSimulation', opt.prepareSimulation);
+                               'prepareSimulation', false);
             end
             
             % Prepare ensemble
@@ -135,27 +133,12 @@ classdef MRSTEnsembleV2 < BaseEnsemble
             % call reset at BaseEnsemble (don't do prepareSimulation)
             flag = ensemble.reset@BaseEnsemble(extra{:}, 'prepareSimulation', false);
             if flag
-                dataPath = ensemble.getDataPath();
                 % Delete QoIs
                 ensemble.qoi.ResultHandler.resetData();
-                % Delete base problem folder
-                if exist(fullfile(dataPath, 'baseProblem'), 'dir')
-                    rmdir(fullfile(dataPath, 'baseProblem'), 's');
-                end
                 % Prepare ensemble
                 if opt.prepareSimulation
                     ensemble.prepareEnsembleSimulation();
                 end
-            end
-        end
-        
-        %-----------------------------------------------------------------%
-        function problem = getBaseProblem(ensemble)
-            % Returns the base problem in its pure form, without using any
-            % of the stochastic samples.        
-            problem = ensemble.setup.getPackedSimulationProblem('Directory', ensemble.directory, 'Name', 'baseProblem');
-            if ~isempty(ensemble.samples.processProblemFn)
-                problem = ensemble.samples.processProblemFn(problem);
             end
         end
         
@@ -177,8 +160,13 @@ classdef MRSTEnsembleV2 < BaseEnsemble
                 return;
             end
             problem = ensemble.simulateEnsembleMember@BaseEnsemble(seed, varargin{:});
-            % Compute QoI
-            ensemble.qoi.getQoI(problem);
+            if ensemble.getSimulationStatus(seed) > 0
+                % Compute QoI
+                ensemble.qoi.getQoI(problem);
+            else
+                warning('Could not compute QOI for seed %d due to failed simulation', ...
+                        seed);
+            end
             % Clear output if requested
             if ~ensemble.storeOutput
                 clearPackedSimulatorOutput(problem, 'prompt', false);

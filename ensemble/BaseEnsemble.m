@@ -20,10 +20,17 @@ classdef BaseEnsemble < handle
     %             ensemble member simulations.
     %
     % OPTIONAL PARAMETERS:
+    %   'name'      - Ensemble name. If not provided and 'setup' is provided, 
+    %                 setup.name will be used.
+    %   'setup'     - Common settings for all ensemble members, e.g., an
+    %                 MRSTExample or a class/struct containing 
+    %                 getPackedSimulationProblem (see method getBaseProblem 
+    %                 for usage). If left empty, sample-property must provide 
+    %                 entire setup of sample problems (see method getSampleProblem) 
     %   'directory' - Path to where we store results when simulating
     %                 the ensemble. Automatically generated if not provided
     %                 Default:
-    %                 mrstOutputDirectory()/ensemble/mrstExample.name
+    %                 mrstOutputDirectory()/ensemble/ensemble.name
     %   'reset' - Boolean (default: false). Will delete any old results
     %             existing in the 'directory' so that any simulation
     %             results related to the new ensemble will have to be
@@ -64,10 +71,10 @@ classdef BaseEnsemble < handle
     
     properties
         name
+        directory
+        setup
         num
-        samples
-        
-        directory 
+        samples 
         % Function handle for solving a given problem
         solve = @(problem) simulatePackedProblem(problem); 
         
@@ -82,21 +89,24 @@ classdef BaseEnsemble < handle
         
         backgroundEvalFn = @simulateEnsembleMembersStandalone
         matlabBinary = ''  
+
+        hasBaseProblem
     end
+        
     
     methods
         %-----------------------------------------------------------------%
         function ensemble = BaseEnsemble(samples, varargin)
             [ensemble, extra] = merge_options(ensemble, varargin{:});
-            if isempty(ensemble.name)
-                error('Property ''name'' cannot be defaulted for BaseEnsemble');
-            end
+            ensemble.setupName();
+            ensemble.setUpDirectory();
+            % if there is a setup, this will provide the base-problem
+            ensemble.hasBaseProblem = ~isempty(ensemble.setup);
+            % other options
             opt = struct('reset',              false, ...
                          'prepareSimulation',  true,  ...
-                         'statusFolder',       'status');
+                         'statusFolder',       ''); 
             opt = merge_options(opt, extra{:});
-            
-            ensemble.setUpDirectory();
             
             % Set samples
             ensemble.samples = samples;
@@ -109,14 +119,14 @@ classdef BaseEnsemble < handle
             if opt.reset
                 ensemble.reset('prompt',            false, ...
                                'prepareSimulation', false);
-                % reset simulation status handler
-                ensemble.setupSimulationStatusHandler(opt.statusFolder);
             end
             
             % Prepare ensemble
             if opt.prepareSimulation
                 ensemble.prepareEnsembleSimulation();
             end
+            
+            ensemble.checkSetup();
         end
         
         %-----------------------------------------------------------------%
@@ -145,6 +155,10 @@ classdef BaseEnsemble < handle
             if exist(fullfile(dataPath, 'ensemble.mat'), 'file')
                 delete(fullfile(dataPath, 'ensemble.mat'));
             end
+            % Delete base problem folder
+            if exist(fullfile(dataPath, 'baseProblem'), 'dir')
+                rmdir(fullfile(dataPath, 'baseProblem'), 's');
+            end
             list = ls(dataPath);
             % Delete sample output directories
             samp = folderRegexp(list, '\d+\s', 'match');
@@ -164,12 +178,32 @@ classdef BaseEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        %{ 
         function problem = getBaseProblem(ensemble)
-             This functions is not defined for BaseEnsemble-class but it is
-             accounted for that it may exist for sub-classes 
+            if ensemble.hasBaseProblem
+                % Returns the base problem in its pure form, without using any
+                % of the stochastic samples.
+                problem = ensemble.setup.getPackedSimulationProblem('Directory', ensemble.directory, 'Name', 'baseProblem');
+                if ~isempty(ensemble.samples.processProblemFn)
+                    problem = ensemble.samples.processProblemFn(problem);
+                end
+            else
+                error('Ensemble has not been set up with a base-problem');
+            end
         end
-       %}  
+        
+        %-----------------------------------------------------------------%
+        function problem = getSampleProblem(ensemble, seed)
+                if ensemble.hasBaseProblem
+                    % setup using base-problem
+                    baseProblem = ensemble.getBaseProblem();
+                    problem     = ensemble.samples.getSampleProblem(baseProblem, seed);
+                else
+                    % setup without base-problem (path for result-handler must 
+                    % be provided
+                    problem = ensemble.samples.getSampleProblem(ensemble.directory, seed);
+                end
+        end
+        
         %-----------------------------------------------------------------%
         function ensemble = setSolver(ensemble, solve)
             % Updates the function used for simulating the individual
@@ -210,7 +244,7 @@ classdef BaseEnsemble < handle
             flag = double(ensemble.hasSimulationOutput(range));
             if any(flag)
                 for k = reshape(find(flag), 1, [])
-                    if ~ensemble.simulationStatus{k}.success
+                    if ~ensemble.simulationStatus{range(k)}.success
                         flag(k) = -1;
                     end
                 end
@@ -262,35 +296,32 @@ classdef BaseEnsemble < handle
             %
             % PARAMETERS:
             %   seed - Integer specifying which ensemble member to run.
-            %            
-            if ensemble.hasSimulationOutput(seed)
+            %   
+            doSolve       =  ~ensemble.hasSimulationOutput(seed);
+            outputProblem = nargout > 0;
+            
+            if ~doSolve 
                 % simulation is done - nothing to do here!
                 if ensemble.verbose
                     fprintf('Simulation output for seed %d found on disk (skipping)\n',  seed);
                 end
-                return;
-            end
-            % Get base problem if ensemble has one
-            if ismethod(ensemble, 'getBaseProblem')
-                baseProblem = ensemble.getBaseProblem();
-                problem     = ensemble.samples.getSampleProblem(baseProblem, seed);
+                if outputProblem
+                    varargout{1} = ensemble.getSampleProblem(seed);
+                end
             else
-                % if sample sets up problem directly from seed, path for
-                % result-handler must be provided
-                problem = ensemble.samples.getSampleProblem(ensemble.directory, seed);
-            end
-                            
-            % Solve problem
-            status = struct('success', true, 'message', []);
-            try
-                ensemble.solve(problem);
-            catch me
-                status.success = false;
-                status.message = me;
-            end
-            ensemble.simulationStatus{seed} = status;
-            if nargout == 1
-                varargout{1} = problem;
+                problem = ensemble.getSampleProblem(seed);
+                % Solve problem
+                status = struct('success', true, 'message', []);
+                try
+                    ensemble.solve(problem);
+                catch me
+                    status.success = false;
+                    status.message = me;
+                end
+                ensemble.simulationStatus{seed} = status;
+                if outputProblem
+                    varargout{1} = problem;
+                end
             end
         end
         
@@ -378,6 +409,24 @@ classdef BaseEnsemble < handle
                fprintf('(100%%)\tDone simulating ensemble members %d to %d \n', range(1), range(end));
            end
         end
+        
+        %-----------------------------------------------------------------%
+        function checkSetup(ensemble)
+            s = ensemble.setup;
+            if ~isempty(s)
+                if isstruct(s)
+                    ok = isfield(s, 'getPackedSimulationProblem');
+                elseif isobject(s)
+                    ok = ismethod(s, 'getPackedSimulationProblem');
+                else 
+                    error('Unexpected format of setup: %s', class(s));
+                end
+                if ~ok
+                    error('Property ''status'' does not contain required %s', ...
+                          'field/prop ''getPackedSimulationProblem''');
+                end
+            end
+        end
 
         
     end % methods
@@ -385,7 +434,21 @@ classdef BaseEnsemble < handle
     methods (Access = protected)
         
         %-----------------------------------------------------------------%
+        function setupName(ensemble)
+            if isempty(ensemble.name)
+                % fetch name from setup 
+                if ~isempty(ensemble.setup)
+                    ensemble.name = ensemble.setup.name;
+                else
+                    error('Property ''name'' cannot be defaulted for BaseEnsemble');
+                end
+            end
+        end
+        
+        %-----------------------------------------------------------------%
         function setUpDirectory(ensemble)
+            % if ensemble has setup, fetch
+            
             % Set up directory name correctly.
             % This function is mainly provided so that sub-classes can
             % define other directory structures.
@@ -396,11 +459,17 @@ classdef BaseEnsemble < handle
             
         %-----------------------------------------------------------------%
         function setupSimulationStatusHandler(ensemble, subFolder)
+            if isempty(subFolder)
+                % setup in main folder
+                [ddir, dfolder] = fileparts(ensemble.directory);
+            else
+                [ddir, dfolder] = deal(ensemble.directory, subFolder);
+            end
             ensemble.simulationStatus = ...
-                ResultHandler('dataPrefix',    'status', ...
+                ResultHandler('dataPrefix',    'simulationStatus', ...
                               'writeToDisk',   true, ...
-                              'dataDirectory', ensemble.directory, ...
-                              'dataFolder',    subFolder, ...
+                              'dataDirectory', ddir, ...
+                              'dataFolder',    dfolder, ...
                               'cleardir',      false);
         end         
         %-----------------------------------------------------------------% 
