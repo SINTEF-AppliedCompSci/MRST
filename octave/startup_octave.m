@@ -5,6 +5,12 @@ catch
 end
 struct_levels_to_print(0); % nicet output of structs
 
+% remove recurring warning triggered by out workaround to Octaves
+% incomplete support for classes
+warn_id = 'Octave:classdef-to-struct';
+warning('off', warn_id);
+
+
 % dispatch('regexp','my_regexp');%overload regexp
 % dispatch('error','my_error');
 

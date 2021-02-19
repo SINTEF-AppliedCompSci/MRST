@@ -56,6 +56,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Compute caller function and containing M file.
    st = dbstack(1, '-completenames');
+   
+   % some versions of octave include 'buildmex' in the stack trace returned
+   % by 'dbstack'
+   if strcmpi(st(1).name, 'buildmex')
+      st = st(2:end);
+   end
+
    try
       caller =           st(1).name ;
       pth    = fileparts(st(1).file);
@@ -77,13 +84,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Determine CXX flags
    
-   [args, new_cxxflags] = extract_cxx_flags_from_args(args);
+   [args, new_cxxflags] = extract_cflags_from_args('cxxflags', args);
+   [args, new_cflags] = extract_cflags_from_args('cflags', args);
 
    cxxflags_orig = mkoctfile('-p', 'CXXFLAGS');
+   cflags_orig = mkoctfile('-p', 'CFLAGS');
    %cxxflags = [cxxflags_orig(1:end-1), ' ', new_cxxflags];
    cxxflags = new_cxxflags; % ignore the original flags - we shouldn't need them
+   cflags = [new_cflags, ' -std=c99']; % add c99 flag to avoid problems with mex.h
+                                      % containing c++-style comments
    
    setenv('CXXFLAGS', cxxflags);
+   setenv('CFLAGS', cflags);
    setenv('DL_LDFLAGS', "-shared"); % get rid of the -Wl,Bsymbolic linker option
 
    % if regexpi(mkoctfile('-p', 'CXX'), 'g\+\+')
@@ -104,29 +116,54 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
       
    setenv('CXXFLAGS', cxxflags_orig(1:end-1));
+   setenv('CFLAGS', cflags_orig(1:end-1));
    
    rehash
 end
 
 %--------------------------------------------------------------------------
-function [args, new_cxxflags] = extract_cxx_flags_from_args(args)
+function [args, new_flags] = extract_cflags_from_args(flag, args)
 
-   new_cxxflags = ''; % default return value is an empty string
+   new_flags = ''; % default return value is an empty string
    
-   % determine arguments that gives CXXFLAGS
-   cxxflag_ind = find(cellfun(@(x) numel(x) >= 8 && strcmpi('cxxflags', x(1:8)), args));
+   % determine arguments that gives 'flag' (CXXFLAGS or CFLAGS)
+   flag_ind = find(cellfun(@(x) numel(x) >= 8 && strcmpi(flag, x(1:numel(flag))), args));
    
-   if isempty(cxxflag_ind)
+   if isempty(flag_ind)
       return;
    end
 
-   assert(numel(cxxflag_ind) == 1);
+   assert(numel(flag_ind) == 1);
    
-   str = args{cxxflag_ind};
-   args(cxxflag_ind) = [];
-   if any(str=='-')
-      new_cxxflags = str(strfind(str, '-')(1):end);
+   str = args{flag_ind};
+
+   % check if multiple entries need to be concatenated
+   if any(str=='"')
+      % this entry is just the beginning of a longer set of options that should be concatenated
+
+     %  search for end of flag list
+     end_ix = find(arrayfun(@(n) any(n{:}=='"'), args(flag_ind:end)));
+     if numel(end_ix) > 1
+       end_ix = end_ix(2); % otherwise, remain at end_ix(1), which equals flag_ind
+     end
+     
+     flagargs = args(flag_ind:end_ix);
+     args(flag_ind:end_ix) = [];
+     new_flags = horzcat(arrayfun(@(n) [n{:}, ' '], flagargs, 'uniformoutput', false){:});
+     % remove quotes and what becomes before
+     tmp = find(new_flags=='"');
+     new_flags = new_flags(tmp(1)+1:tmp(2)-1);
+     % remove possible reference to $CFLAGS or $CXXFLAGS
+     new_flags = erase(erase(new_flags, '$CFLAGS'), '$CXXFLAGS');
+     
+  else
+     % the specification of flags is limited to this single entry
+     args(flag_ind) = [];
+     if any(str=='-')
+       new_flags = str(strfind(str, '-')(1):end);
+     end
    end
+   
 end
 
 %--------------------------------------------------------------------------

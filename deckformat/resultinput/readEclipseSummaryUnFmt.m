@@ -142,8 +142,8 @@ else
     rowInx = (1:numel(nameList))';
 end
 
-[names, nInx, nInx] = unique(nameList);                                %#ok
-[kwrds, kInx, kInx] = unique(kwrdList);                                %#ok
+[names, nInxOrder, nInx] = unique(nameList);
+[kwrds, kInxOrder, kInx] = unique(kwrdList);
 nlist  = numel(nameList);
 
 smry_file = [prefix, '.UNSMRY'];
@@ -194,14 +194,16 @@ for f = reshape(smry_files, 1, [])
     fclose(fid);
 end
 
-smry.WGNAMES  = names;
-smry.KEYWORDS = kwrds;
-smry.UNITS    = smspec.UNITS.values;
-smry.STARTDAT = smspec.STARTDAT.values([3 2 1])';
-smry.nInx     = nInx;
-smry.kInx     = kInx;
-smry.data     = data(:, 1:curStep);
-smry.ministep = ministeps(1:curStep);
+smry.WGNAMES   = names;
+smry.KEYWORDS  = kwrds;
+smry.UNITS     = smspec.UNITS.values;
+smry.STARTDAT  = smspec.STARTDAT.values([3 2 1])';
+smry.nInx      = nInx;
+smry.nInxOrder = nInxOrder;
+smry.kInx      = kInx;
+smry.kInxOrder = kInxOrder;
+smry.data      = data(:, 1:curStep);
+smry.ministep  = ministeps(1:curStep);
 
 smry = addSmryFuncs(smry);
 
@@ -250,14 +252,14 @@ assert (~ (nm_multi && kw_multi), ...
 nlist = numel(smry.kInx);
 if ~isempty(nm)
     if ischar(nm), nm = { nm }; end
-    [pick, nm_order] = string_lookup(smry.WGNAMES, nm);
+    [pick, nm_order] = string_lookup(smry.WGNAMES, smry.nInxOrder, nm);
     rInxN = pick(smry.nInx);
 else
     rInxN = true(nlist, 1);
 end
 if ~isempty(kw)
     if ischar(kw), kw = { kw }; end
-    [pick, kw_order] = string_lookup(smry.KEYWORDS, kw);
+    [pick, kw_order] = string_lookup(smry.KEYWORDS, smry.kInxOrder, kw);
     rInxK = pick(smry.kInx);
 else
     rInxK = true(nlist, 1);
@@ -279,14 +281,14 @@ end
 
 %--------------------------------------------------------------------------
 
-function [pick, order] = string_lookup(list, search)
+function [pick, result_order] = string_lookup(list, list_order, search)
 ncol = numel(search);
 [i, j] = blockDiagIndex(numel(list), ncol);
 match = strcmp(reshape(list(i)  , [], ncol), ...
                reshape(search(j), [], ncol));
 pick = any(match, 2);
 [row, ~] = find(match);
-[~, reverse_order] = sort(row);
-order = zeros(size(reverse_order));
-order(reverse_order) = 1 : numel(reverse_order);
+[~, reverse] = sort(list_order(row));
+result_order = zeros(size(reverse));
+result_order(reverse) = 1 : numel(reverse);
 end
