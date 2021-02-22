@@ -26,7 +26,7 @@ if nargout > 1
     varargout{1} = vertcat(scaledGradient{:})/objScaling;
 end
 if nargout > 2
-    [varargout{3:4}] = deal(wellSols, states);
+    [varargout{2:3}] = deal(wellSols, states);
 end
 end
     
