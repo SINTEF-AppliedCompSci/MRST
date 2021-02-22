@@ -138,36 +138,7 @@ classdef ModelParameter
             np = numel(pval);
             u = cell(np,1);
             for k = 1:np
-                switch p.distribution
-                    case 'cell' %parameter distribution per cell
-                        switch p.name
-                            case {'porevolume','initSw','transmissibility'}
-                                u = p.scale(pval);
-                            otherwise
-                                error('Parameter %s is not implemented',p.name)
-                        end
-                    case  'connection'
-                        switch p.name
-                            case {'transmissibility','porevolume','permeability','conntrans'}
-                                u = p.scale(pval);
-                            otherwise
-                                error('Parameter %s is not implemented',p.name)
-                        end
-                    case 'general'
-                        switch p.name
-                            case {'transmissibility','porevolume','permeability',...
-                                    'swl','swcr', 'swu', 'sgl', ...
-                                    'sgcr','sgu','sowcr','sogcr',...
-                                    'krw','kro','krg'}
-                                u = p.scale(pval);
-                            case 'conntrans'
-                                u = p.scale(pval);
-                            otherwise
-                                error('Parameter %s is not implemented',p.name)
-                        end
-                    otherwise
-                        error('Parameter distribution %s is not implemented',p.distribution)
-                end
+                                u = p.scale(pval);                          
             end
         end
     end
