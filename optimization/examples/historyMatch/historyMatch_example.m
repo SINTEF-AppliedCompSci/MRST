@@ -102,8 +102,10 @@ drawnow
  
 fluid_2 = fluid;
 fluid_2 .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
-scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
+scaling = {'SWL', .4, 'SWCR', .4, 'SWU', .8, 'SOWCR', .2, 'KRW', .6, 'KRO', .6};
 %scaling = {'SWL', .2, 'SWCR', .2, 'SWU', .8, 'SOWCR', .2, 'KRW', 1, 'KRO', 1};
+%reference fluid scaling = {'SWL', 0, 'SWCR', 0, 'SWU', 1.0, 'SOWCR', 0, 'KRW', 1, 'KRO', 1};
+
 
 model_coarse_scale = GenericBlackOilModel(CG, crock, fluid_2);
 model_coarse_scale.gas=false;
@@ -125,6 +127,9 @@ state0  = initState(CG, WC,p0,s0);
 schedule = simpleSchedule(dt, 'W', WC);
 [wellSols_coarse_scale,states_coarse_scale] = simulateScheduleAD(state0, model_coarse_scale, schedule);
 
+
+%load Fluid_HM
+
 summary_plots = plotWellSols({wellSols_fine_scale,wellSols_coarse_scale},{schedule.step.val,schedule.step.val});
 movegui('northeast')
 drawnow
@@ -134,21 +139,20 @@ drawnow
 
 prob = struct('model', model_coarse_scale, 'schedule', schedule, 'state0', state0);
 
- parameters{1} = ModelParameter(prob, 'name', 'swl');
- parameters{2} = ModelParameter(prob, 'name', 'sowcr');
- parameters{3} = ModelParameter(prob, 'name', 'swcr');
- parameters{4} = ModelParameter(prob, 'name', 'kro');
- parameters{5} = ModelParameter(prob, 'name', 'krw');
- 
- parameters{6} = ModelParameter(prob, 'name', 'conntrans','relativeLimits', [.01 1.5]);
- parameters{7} = ModelParameter(prob, 'name', 'porevolume','relativeLimits', [.01 3]);
- parameters{8} = ModelParameter(prob, 'name', 'transmissibility','relativeLimits', [.1 2]);
+n_cells =  model_coarse_scale.G.cells.num;
+% Fluid Parameters
+ parameters{1} = ModelParameter(prob, 'name', 'swl','lumping',ones(n_cells,1),'boxLims',[0.00 0.5]);
+ parameters{2} = ModelParameter(prob, 'name', 'swcr','lumping',ones(n_cells,1),'boxLims',[0.0 0.5]);
+ parameters{3} = ModelParameter(prob, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
+ parameters{4} = ModelParameter(prob, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
+% Well, porevolume and transmisibility
+ parameters{5} = ModelParameter(prob, 'name', 'conntrans','relativeLimits', [.01 1.5]);
+ parameters{6} = ModelParameter(prob, 'name', 'porevolume','relativeLimits', [.01 3]);
+ parameters{7} = ModelParameter(prob, 'name', 'transmissibility','relativeLimits', [.1 2]);
 
 
+ %% Optimization 1:  
 
-
-
-%% 
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
 u = cell(size(values));
@@ -158,24 +162,22 @@ end
 p0_ups = vertcat(u{:});  
   
 % Defining the weights to evaluate the match
-weighting =  {'WaterRateWeight',  (20/day)^-1, ...
-              'OilRateWeight',    (20/day)^-1, ...
+weighting =  {'WaterRateWeight',  (10/day)^-1, ...
+              'OilRateWeight',    (10/day)^-1, ...
               'BHPWeight',        (100*barsa)^-1};            
 
  obj = @(model, states, schedule, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule, states_fine_scale,...
            'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
 
  objScaling = 1;       
- [misfitVal_0,gradient,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);
-
-                                                           
+ [misfitVal_0,gradient_0,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);                                                          
 
   
 obj_scaling     = abs(misfitVal_0);      % objective scaling  
 objh = @(p)evaluateMatch_simple(p, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
 
 figure(10).reset; movegui('south');
-[v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'gradTol',             1e-2, ...
+[v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'gradTol',             1e-4, ...
                                               'objChangeTol',        0.5e-3,...
                                               'maxIt',               30);
 [misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
@@ -187,39 +189,4 @@ plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
               'linestyles', {'o', '--', '-'},...
               'figure',summary_plots.Number)
 drawnow
- %% Optimization 2:  initial upscaled model with a ramdom perturbation
- 
- 
-% Adding a perturmation to the initial values
-  for k = 1:numel(u)
-    values{k} =  values{k}+1.5*(rand(size(values{k}))-0.5).*values{k};
-    prob = parameters{k}.setParameterValue(prob,values{k});
-    u{k} = parameters{k}.scale(values{k});
-  end
-  p0_mean = vertcat(u{:});
-  model_coarse_scale = prob.model;
-  schedule = prob.schedule;
-  state0   = prob.state0;
- 
-       
- [misfitVal_0,gradient,wellSols_0_mean,states_0] = evaluateMatch_simple(p0_mean,obj,state0,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);
 
-obj_scaling     = abs(misfitVal_0);      % objective scaling  
-objh = @(p)evaluateMatch_simple(p,obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
-
-gco(figure(10))
-figure(10).reset, movegui('south')
-[v, p_opt, history] = unitBoxBFGS(p0_mean, objh,'gradTol',            1e-2, ...
-                                              'objChangeTol',        0.5e-3,...
-                                              'maxIt',               4);
-[misfitVal_opt,gradient_opt,wellSols_opt_mean] = evaluateMatch_simple(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
-
-%clf(summary_plots)
-figure(summary_plots.Number)
-% gcbf(figure(summary_plots.Number))
-% summary_plots
-plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt,wellSols_0_mean,wellSols_opt_mean},...
-              {schedule.step.val,schedule.step.val,schedule.step.val,schedule.step.val,schedule.step.val},...
-              'datasetnames',{'fine scale model','initial upscaled model','history matched upscaled model','perturbed upscaled model','history matched perturbed upscaled model'},...
-              'linestyles', {'o', '--', '-','--', '-'},...
-              'figure',summary_plots.Number)
