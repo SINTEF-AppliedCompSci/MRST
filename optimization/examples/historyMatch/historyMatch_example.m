@@ -103,18 +103,12 @@ drawnow
 fluid_2 = fluid;
 fluid_2 .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
 scaling = {'SWL', .4, 'SWCR', .4, 'SWU', .8, 'SOWCR', .2, 'KRW', .6, 'KRO', .6};
-%scaling = {'SWL', .2, 'SWCR', .2, 'SWU', .8, 'SOWCR', .2, 'KRW', 1, 'KRO', 1};
-%reference fluid scaling = {'SWL', 0, 'SWCR', 0, 'SWU', 1.0, 'SOWCR', 0, 'KRW', 1, 'KRO', 1};
 
 
 model_coarse_scale = GenericBlackOilModel(CG, crock, fluid_2);
 model_coarse_scale.gas=false;
 
 % Expanding for fluid parameters calibration. 
-%TODO can be done without
-% this?
-%TODO: If krtscaling if not define and they are going to be parameters we should
-%inicilize as in line 103 with fluid_2
 model_coarse_scale = imposeRelpermScaling(model_coarse_scale, scaling{:});
 
 model_coarse_scale.OutputStateFunctions = {};
@@ -126,9 +120,6 @@ state0  = initState(CG, WC,p0,s0);
 
 schedule = simpleSchedule(dt, 'W', WC);
 [wellSols_coarse_scale,states_coarse_scale] = simulateScheduleAD(state0, model_coarse_scale, schedule);
-
-
-%load Fluid_HM
 
 summary_plots = plotWellSols({wellSols_fine_scale,wellSols_coarse_scale},{schedule.step.val,schedule.step.val});
 movegui('northeast')
@@ -145,13 +136,14 @@ n_cells =  model_coarse_scale.G.cells.num;
  parameters{2} = ModelParameter(prob, 'name', 'swcr','lumping',ones(n_cells,1),'boxLims',[0.0 0.5]);
  parameters{3} = ModelParameter(prob, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
  parameters{4} = ModelParameter(prob, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
-% Well, porevolume and transmisibility
+
+ % Well, porevolume and transmisibility
  parameters{5} = ModelParameter(prob, 'name', 'conntrans','relativeLimits', [.01 1.5]);
  parameters{6} = ModelParameter(prob, 'name', 'porevolume','relativeLimits', [.01 3]);
  parameters{7} = ModelParameter(prob, 'name', 'transmissibility','relativeLimits', [.1 2]);
 
 
- %% Optimization 1:  
+ %% Optimization :  History Matching
 
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
