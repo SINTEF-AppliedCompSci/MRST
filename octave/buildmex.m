@@ -149,19 +149,21 @@ function [args, new_flags] = extract_cflags_from_args(flag, args)
      
      flagargs = args(flag_ind:end_ix);
      args(flag_ind:end_ix) = [];
-     new_flags = horzcat(arrayfun(@(n) [n{:}, ' '], flagargs, 'uniformoutput', false){:});
+     tmp = arrayfun(@(n) [n{:}, ' '], flagargs, 'uniformoutput', false);
+     new_flags = horzcat(tmp{:});
      % remove quotes and what becomes before
      tmp = find(new_flags=='"');
      new_flags = new_flags(tmp(1)+1:tmp(2)-1);
      % remove possible reference to $CFLAGS or $CXXFLAGS
      new_flags = erase(erase(new_flags, '$CFLAGS'), '$CXXFLAGS');
      
-  else
-     % the specification of flags is limited to this single entry
-     args(flag_ind) = [];
-     if any(str=='-')
-       new_flags = str(strfind(str, '-')(1):end);
-     end
+   else
+      % the specification of flags is limited to this single entry
+      args(flag_ind) = [];
+      if any(str=='-')
+         tmp = strfind(str, '-');
+         new_flags = str(tmp(1):end);
+      end
    end
    
 end
