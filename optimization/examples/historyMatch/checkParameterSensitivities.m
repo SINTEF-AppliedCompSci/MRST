@@ -16,10 +16,15 @@ fluid = initSimpleADIFluid('phases', 'WO',... %Fluid phase
                            'mu' , [.3, 3]*centi*poise     , ...%Viscosity
                            'rho', [1014, 859]*kilogram/meter^3, ...%Surface density [kg/m^3]
                            'n', [2 2]);
+fluid = fluid;
+fluid .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
+scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
+
 c = 1e-5/barsa;
 p_ref = 200*barsa;
 fluid.bO = @(p) exp((p - p_ref)*c);
 model = GenericBlackOilModel(G, rock, fluid, 'gas', false, 'OutputStateFunctions', false);
+model = imposeRelpermScaling(model, scaling{:});
 
 %% wells/schedule
 W = [];
@@ -60,9 +65,17 @@ end
 %% parameter options
 prob = struct('model', model, 'schedule', schedule, 'state0', state0);
 
-parameters{1} = ModelParameter(prob, 'name', 'conntrans');
-parameters{2} = ModelParameter(prob, 'name', 'porevolume');
-parameters{3} = ModelParameter(prob, 'name', 'transmissibility');
+n_cells =  model.G.cells.num;
+% Fluid Parameters
+ parameters{1} = ModelParameter(prob, 'name', 'swl','lumping',ones(n_cells,1));
+ parameters{2} = ModelParameter(prob, 'name', 'swcr','lumping',ones(n_cells,1));
+ parameters{3} = ModelParameter(prob, 'name', 'kro','lumping',ones(n_cells,1));
+ parameters{4} = ModelParameter(prob, 'name', 'krw','lumping',ones(n_cells,1));
+% Well, porevolume and transmisibility
+ parameters{5} = ModelParameter(prob, 'name', 'conntrans');
+ parameters{6} = ModelParameter(prob, 'name', 'porevolume');
+ parameters{7} = ModelParameter(prob, 'name', 'transmissibility');
+
 %% 
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
