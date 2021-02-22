@@ -191,7 +191,11 @@ if strcmp(p.belongsTo, 'model')
     if strcmp(p.type, 'multiplier')
         p.initialValue = v;
     end
-    p.n = numel(v);
+    if ~isempty(p.lumping) || ~isnumeric(p.lumping)
+        p.n = numel(unique(p.lumping)); %Number of unique parameters
+    else
+        p.n =  numel(v);
+    end
 elseif strcmp(p.belongsTo, 'well')
     % we only have WI at the moment so this is a special case
     assert(strcmp(p.name, 'conntrans'), 'Needs updating for: %s', p.name);
@@ -256,7 +260,7 @@ function v = collapseLumps(p, v, op)
 % do ommitnan for safety
 fn = @(x)op(x, 'omitnan');
 if ~isempty(p.lumping) || ~isnumeric(p.lumping)
-    v = accumarray(p.lumping, [], fn);
+    v = accumarray(p.lumping,v, [], fn);
 end
 end
 
