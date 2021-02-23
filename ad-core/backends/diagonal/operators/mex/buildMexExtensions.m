@@ -19,7 +19,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    assert(islogical(rebuild))
     [filenames, paths] = get_names(names, varargin{:});
     
     if rebuild
@@ -51,6 +51,7 @@ function [names, paths] = get_names(names, varargin)
     if ~iscell(names)
         names = {names};
     end
+    isOctave = mrstPlatform('octave');
     n = numel(names);
     ext = mexext();
     if nargin == 1
@@ -66,7 +67,16 @@ function [names, paths] = get_names(names, varargin)
         pth = varargin{1};
         for i = 1:n
             n = names{i};
-            paths{i} = fullfile(pth, sprintf('%s.%s', n, ext));
+            if isOctave
+                if is_octfile(sprintf('%s.%s', n, 'cpp'))
+                    fe = 'oct';
+                else
+                    fe = ext;
+                end
+            else
+                fe = ext;
+            end
+            paths{i} = fullfile(pth, sprintf('%s.%s', n, fe));
         end
     end
 end
@@ -87,4 +97,9 @@ function delete_compiled_files(names, paths)
         end
     end
     rehash
+end
+
+function ok = is_octfile(filename)
+    tmp = fileread(filename);
+    ok = ~isempty(strfind(tmp, 'DEFUN_DLD')); %#ok
 end
