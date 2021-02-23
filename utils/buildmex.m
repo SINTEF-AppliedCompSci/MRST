@@ -151,15 +151,24 @@ function buildmex_octave(pth, args, caller)
     % end
 
     fsep = filesep;
-    if mrstVerbose()
-        %mkoctfile('--mex', '-v', '-o', [pth, fsep, caller], ['-I', pth], ['-L', pth], args{:});
-        mkoctfile('--mex', '-v', '-o', [pth, fsep, caller], ['-I', pth], args{:});
-        %mkoctfile('--mex', '-v', '-o', [pth, fsep, caller], ['-I', pth], '-c', args{:});
-        %keyboard;
+    fp = [pth, fsep, caller];
+    if exist([fp, '.cpp'], 'file')
+        cpath = [fp, '.cpp'];
     else
-        %mkoctfile('--mex', '-o', [pth, fsep, caller], ['-I', pth], ['-L', pth], args{:});
-        mkoctfile('--mex', '-o', [pth, fsep, caller], ['-I', pth], args{:});
+        cpath = [fp, '.c'];
     end
+    if is_octfile(cpath)
+        fprintf('Building OCT-file\n');
+        arg = {};
+    else
+        fprintf('Building MEX-file\n');
+        arg = {'--mex'};
+    end
+
+    if mrstVerbose()
+        arg{end+1} = '-v';
+    end
+    mkoctfile(arg{:}, '-o', fp, ['-I', pth], args{:});
 
     setenv('CXXFLAGS', cxxflags_orig(1:end-1));
     setenv('CFLAGS', cflags_orig(1:end-1));
@@ -213,6 +222,19 @@ function args = canonicalise_filenames(pth, varargin)
                 args{k} = fname;
             end
         end
+    end
+end
+%--------------------------------------------------------------------------
+
+function ok = is_octfile(filename)
+    if exist(filename, 'file')
+        % If the file exists, we read the entire thing and look for the
+        % magic signature (and hope noone got too create with formatting or
+        % preprocessor)
+        tmp = fileread(filename);
+        ok = ~isempty(strfind(tmp, 'DEFUN_DLD')); %#ok
+    else
+        ok = false;
     end
 end
 
