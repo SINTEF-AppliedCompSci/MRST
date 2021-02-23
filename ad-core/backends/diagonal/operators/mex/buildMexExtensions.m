@@ -88,6 +88,9 @@ function delete_compiled_files(names, paths)
         if exist(fp, 'file')
             fprintf('Removing MEX file %s ', n)
             clear(n);
+            if mrstPlatform('octave')
+                autoload(n, pwd(), 'remove');
+            end
             delete(fp);
             if exist(fp, 'file')
                 fprintf('-> FAILURE. Unable to delete. Is it loaded in another session?\n');
