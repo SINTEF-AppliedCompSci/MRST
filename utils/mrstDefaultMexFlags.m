@@ -64,8 +64,12 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   if nargin == 0,     defines = {}; end
-   if ischar(defines), defines = {defines}; end
+   if nargin == 0
+       defines = {};
+   end
+   if ischar(defines)
+       defines = {defines};
+   end
 
    [LINK, mwlib, iomp5] = link_libraries();
 
@@ -90,18 +94,24 @@ end
 function [LINK, mwlib, iomp5] = link_libraries()
    arch = computer('arch');
 
-   if ispc()
-      mwlib = @(lib) ...
-         fullfile(matlabroot, 'extern', 'lib', arch, ...
-                  'microsoft', ['libmw', lib, '.lib']);
+   if mrstPlatform('matlab')
+       if ispc()
+          mwlib = @(lib) ...
+             fullfile(matlabroot, 'extern', 'lib', arch, ...
+                      'microsoft', ['libmw', lib, '.lib']);
 
-      LINK  = { ['-L', fullfile(matlabroot, 'bin', arch) ] };
-      iomp5 = { 'libiomp5md.lib' };
+          LINK  = { ['-L', fullfile(matlabroot, 'bin', arch) ] };
+          iomp5 = { 'libiomp5md.lib' };
 
+       else
+          mwlib = @(lib) ['-lmw', lib];
+          LINK  = { ['-L', fullfile(matlabroot, 'sys', 'os', arch)] };
+          iomp5 = { '-liomp5' };
+       end
    else
-      mwlib = @(lib) ['-lmw', lib];
-      LINK  = { ['-L', fullfile(matlabroot, 'sys', 'os', arch)] };
-      iomp5 = { '-liomp5' };
+        mwlib = @(lib) ['-l', lib];
+        LINK = {};
+        iomp5 = { '-liomp5' };
    end
 end
 
@@ -130,23 +140,28 @@ end
 %--------------------------------------------------------------------------
 
 function [CXXFLAGS, LINK, iomp5] = compile_flags_gcc(defines, LINK, iomp5)
-   compile_native = '-march=native';
-   if ispc()
-      compile_native = '';
-   end
+    compile_native = '-march=native';
+    if ispc()
+        compile_native = '';
+    end
 
-   CXXFLAGS = ...
-      { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE ', ...
-         formatDefs('-', defines), ' -fPIC -O3 -std=c++11 ', ...
-         '-ffast-math ', compile_native, ' -fopenmp'] };
+    CXXFLAGS = ...
+        { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE ', ...
+        formatDefs('-', defines), ' -fPIC -O3 -std=c++11 ', ...
+        '-ffast-math ', compile_native, ' -fopenmp'] };
 
-   if ispc() || gcc_need_builtin_openmp()
-      % Could be MinGW or similar on Windows or a GCC version that's too
-      % new to integrate nicely with MATLAB's bundled copy of Intel's
-      % OpenMP runtime libraries.  Use compiler's OpenMP runtime library.
-      LINK  = [ LINK, 'LDFLAGS="$LDFLAGS -fopenmp"' ];
-      iomp5 = {};
-   end
+    if ispc() || gcc_need_builtin_openmp()
+        % Could be MinGW or similar on Windows or a GCC version that's too
+        % new to integrate nicely with MATLAB's bundled copy of Intel's
+        % OpenMP runtime libraries.  Use compiler's OpenMP runtime library.
+        if mrstPlatform('matlab')
+            LINK  = [ LINK, 'LDFLAGS="$LDFLAGS -fopenmp"' ];
+        else
+            % Octave uses different setup, drop LDFLAGS
+            LINK  = [ LINK, '-fopenmp' ];
+        end
+        iomp5 = {};
+    end
 end
 
 %--------------------------------------------------------------------------
@@ -314,8 +329,12 @@ end
 %--------------------------------------------------------------------------
 
 function cname = compiler_short_name()
-   cfg   = compiler_config();
-   cname = cfg.ShortName;
+   if mrstPlatform('matlab')
+       cfg   = compiler_config();
+       cname = cfg.ShortName;
+   else
+       cname = mkoctfile('-p', 'CXX');
+   end
 end
 
 %--------------------------------------------------------------------------
