@@ -9,8 +9,19 @@
 #endif
 #include <iostream>
 
-/* MEX gateway */
+void faceAverage(const int nf, const int nc, const int dim, const double* value, const double* N, double* result) {
+    #pragma omp parallel for schedule(static)
+    for(int i=0;i<nf;i++){
+        int left = N[i] - 1;
+        int right = N[i + nf] - 1;
+        for(int j =0; j<dim; j++){
+            result[i+nf*j] = 0.5*(value[left + nc*j] + value[right + nc * j]);
+        }
+    }
+}
 
+
+/* MEX gateway */
 void mexFunction( int nlhs, mxArray *plhs[], 
 		  int nrhs, const mxArray *prhs[] )
      
@@ -37,15 +48,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int nf = mxGetM(prhs[1]);
     plhs[0] = mxCreateDoubleMatrix(nf, dim, mxREAL);
     double * result = mxGetPr(plhs[0]);
-    
-    #pragma omp parallel for schedule(static)
-    for(int i=0;i<nf;i++){
-        int left = N[i] - 1;
-        int right = N[i + nf] - 1;
-        for(int j =0; j<dim; j++){
-            result[i+nf*j] = 0.5*(value[left + nc*j] + value[right + nc * j]);
-        }
-    }
+    faceAverage(nf, nc, dim, value, N, result);
+
     return;
 }
 
