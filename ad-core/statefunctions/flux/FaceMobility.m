@@ -15,7 +15,7 @@ classdef FaceMobility < StateFunction & UpwindProperty
                 upwind_name = 'PhaseUpwindFlag';
             end
             fm@StateFunction(model);
-            fm@UpwindProperty(upstr)
+            fm@UpwindProperty(upstr);
             fm.upwind_name = upwind_name;
             fm = fm.dependsOn(upwind_name);
             fm = fm.dependsOn('Mobility', 'FlowPropertyFunctions');
