@@ -2,13 +2,17 @@
 // include necessary system headers
 //
 #include <cmath>
-#include <mex.h>
 #include <array>
 #ifdef _OPENMP
     #include <omp.h>
 #endif
 #include <iostream>
-
+#ifdef MRST_OCTEXT
+    #include <octave/oct.h>
+    #include <octave/dMatrix.h>
+#else
+    #include <mex.h>
+#endif
 
 // INPUTS:
 //  - cell_diagonal<double> [nc x m] if column major or [m x nc] if row major)
@@ -43,6 +47,8 @@ const char* dimensionCheck(const int nc, const int nrows, const int ncols, int &
     if(nrows != nc && ncols != nc){
         status_code = -5;
         return "Malformed input. No dimension of input matrix matches number of cells: Dimensions of diagonal matrix does not fit either RowMajor or ColMajor";
+    } else {
+        return "";
     }
 }
 
@@ -73,149 +79,208 @@ void faceAverageJac(const int nf, const int nc, const double* diagonal, const do
 
 template <bool rowMajor>
 void faceAverageJacMain(const int m, const int nf, const int nc, const double * diagonal, const double * N, double * result){
-        switch (m) {
-            case 1:
-                faceAverageJac<1, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 2:
-                faceAverageJac<2, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 3:
-                faceAverageJac<3, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 4:
-                faceAverageJac<4, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 5:
-                faceAverageJac<5, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 6:
-                faceAverageJac<6, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 7:
-                faceAverageJac<7, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 8:
-                faceAverageJac<8, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 9:
-                faceAverageJac<9, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 10:
-                faceAverageJac<10, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 11:
-                faceAverageJac<11, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 12:
-                faceAverageJac<12, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 13:
-                faceAverageJac<13, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 14:
-                faceAverageJac<14, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 15:
-                faceAverageJac<15, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 16:
-                faceAverageJac<16, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 17:
-                faceAverageJac<17, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 18:
-                faceAverageJac<18, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 19:
-                faceAverageJac<19, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 20:
-                faceAverageJac<20, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 21:
-                faceAverageJac<21, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 22:
-                faceAverageJac<22, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 23:
-                faceAverageJac<23, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 24:
-                faceAverageJac<24, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 25:
-                faceAverageJac<25, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 26:
-                faceAverageJac<26, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 27:
-                faceAverageJac<27, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 28:
-                faceAverageJac<28, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 29:
-                faceAverageJac<29, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            case 30:
-                faceAverageJac<30, rowMajor>(nf, nc, diagonal, N, result);
-                break;
-            default:
-                faceAverageJac<rowMajor>(nf, nc, m, diagonal, N, result);
-        }
+    switch (m) {
+        case 1:
+            faceAverageJac<1, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 2:
+            faceAverageJac<2, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 3:
+            faceAverageJac<3, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 4:
+            faceAverageJac<4, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 5:
+            faceAverageJac<5, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 6:
+            faceAverageJac<6, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 7:
+            faceAverageJac<7, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 8:
+            faceAverageJac<8, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 9:
+            faceAverageJac<9, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 10:
+            faceAverageJac<10, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 11:
+            faceAverageJac<11, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 12:
+            faceAverageJac<12, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 13:
+            faceAverageJac<13, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 14:
+            faceAverageJac<14, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 15:
+            faceAverageJac<15, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 16:
+            faceAverageJac<16, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 17:
+            faceAverageJac<17, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 18:
+            faceAverageJac<18, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 19:
+            faceAverageJac<19, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 20:
+            faceAverageJac<20, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 21:
+            faceAverageJac<21, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 22:
+            faceAverageJac<22, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 23:
+            faceAverageJac<23, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 24:
+            faceAverageJac<24, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 25:
+            faceAverageJac<25, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 26:
+            faceAverageJac<26, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 27:
+            faceAverageJac<27, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 28:
+            faceAverageJac<28, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 29:
+            faceAverageJac<29, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 30:
+            faceAverageJac<30, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        default:
+            faceAverageJac<rowMajor>(nf, nc, m, diagonal, N, result);
+    }
 }
 
+#ifdef MRST_OCTEXT
+    /* OCT gateway */
+    DEFUN_DLD (mexFaceAverageDiagonalJac, args, nargout,
+               "Face average operator for MRST - diagonal Jacobian.")
+    {
+        const int nrhs = args.length();
+        const int nlhs = nargout;
 
-/* MEX gateway */
-void mexFunction( int nlhs,       mxArray *plhs[], 
-		          int nrhs, const mxArray *prhs[] )
-     
-{ 
-    int status_code = 0;
-    auto msg = inputCheck(nrhs, nlhs, status_code);
-    if(status_code < 0){
-        // Some kind of error
-        mexErrMsgTxt(msg);
-    } else if (status_code == 1){
-        // Early return
+        int status_code = 0;
+        auto msg = inputCheck(nrhs, nlhs, status_code);
+        
+        if(status_code < 0){
+            // Some kind of error
+            error(msg);
+        } else if (status_code == 1){
+            // Early return
+            return octave_value_list();
+        }
+        
+        const NDArray diagonal_nd = args(0).array_value();
+        const NDArray N_nd = args(1).array_value();
+
+        const double * diagonal = diagonal_nd.data();
+        const double * N = N_nd.data();
+
+        bool rowMajor = args(3).scalar_value();
+        int nc = args(2).scalar_value();
+        int nf = N_nd.rows();
+
+        int nrows = diagonal_nd.rows();
+        int ncols = diagonal_nd.cols();
+
+
+        int status_code2 = 0;
+        auto msg2 = dimensionCheck(nc, nrows, ncols, status_code2);
+        if(status_code2 < 0){
+            // Some kind of error
+            error(msg2);
+        }
+        // bool rowMajor = ncols == nc;
+        int outrow, outcol, m;
+        if(rowMajor){
+            m = nrows;
+            outrow = 2*m;
+            outcol = nf;
+        }else{
+            m = ncols;
+            outrow = nf;
+            outcol = 2*m;
+        }
+        NDArray output({outrow, outcol}, 0);
+        double * result = output.fortran_vec();
+        if (rowMajor){
+            faceAverageJacMain<true>(m, nf, nc, diagonal, N, result);
+        }else{
+            faceAverageJacMain<false>(m, nf, nc, diagonal, N, result);
+        }
+        return octave_value (output);
+    }
+#else
+    /* MEX gateway */
+    void mexFunction( int nlhs,       mxArray *plhs[], 
+                    int nrhs, const mxArray *prhs[] )
+        
+    { 
+        int status_code = 0;
+        auto msg = inputCheck(nrhs, nlhs, status_code);
+        if(status_code < 0){
+            // Some kind of error
+            mexErrMsgTxt(msg);
+        } else if (status_code == 1){
+            // Early return
+            return;
+        }
+        double * diagonal = mxGetPr(prhs[0]);
+        double * N = mxGetPr(prhs[1]);
+        bool rowMajor = mxGetScalar(prhs[3]);
+
+        int nc = mxGetScalar(prhs[2]);
+        int nf = mxGetM(prhs[1]);
+
+        // Dimensions of diagonals - figure out if we want row or column major solver
+        int nrows = mxGetM(prhs[0]);
+        int ncols = mxGetN(prhs[0]);
+
+        int status_code2 = 0;
+        auto msg2 = dimensionCheck(nc, nrows, ncols, status_code2);
+        if(status_code2 < 0){
+            // Some kind of error
+            mexErrMsgTxt(msg2);
+        }
+        if (nrows == nc) {
+            // ColMajor
+            int m = ncols;
+            plhs[0] = mxCreateDoubleMatrix(nf, 2 * m, mxREAL);
+            double* result = mxGetPr(plhs[0]);
+            faceAverageJacMain<false>(m, nf, nc, diagonal, N, result);
+        }
+        else if (ncols == nc){
+            // RowMajor
+            int m = nrows;
+            plhs[0] = mxCreateDoubleMatrix(2 * m, nf, mxREAL);
+            double* result = mxGetPr(plhs[0]);
+            faceAverageJacMain<true>(m, nf, nc, diagonal, N, result);
+        }
         return;
     }
-    double * diagonal = mxGetPr(prhs[0]);
-    double * N = mxGetPr(prhs[1]);
-    bool rowMajor = mxGetScalar(prhs[3]);
-
-    int nc = mxGetScalar(prhs[2]);
-    int nf = mxGetM(prhs[1]);
-
-    // Dimensions of diagonals - figure out if we want row or column major solver
-    int nrows = mxGetM(prhs[0]);
-    int ncols = mxGetN(prhs[0]);
-
-    int status_code2 = 0;
-    auto msg2 = dimensionCheck(nc, nrows, ncols, status_code2);
-    if(status_code2 < 0){
-        // Some kind of error
-        mexErrMsgTxt(msg2);
-    }
-    if (nrows == nc) {
-        // ColMajor
-        int m = ncols;
-        plhs[0] = mxCreateDoubleMatrix(nf, 2 * m, mxREAL);
-        double* result = mxGetPr(plhs[0]);
-        faceAverageJacMain<false>(m, nf, nc, diagonal, N, result);
-    }
-    else if (ncols == nc){
-        // RowMajor
-        int m = nrows;
-        plhs[0] = mxCreateDoubleMatrix(2 * m, nf, mxREAL);
-        double* result = mxGetPr(plhs[0]);
-        faceAverageJacMain<true>(m, nf, nc, diagonal, N, result);
-    }
-    return;
-}
-
+#endif
 
