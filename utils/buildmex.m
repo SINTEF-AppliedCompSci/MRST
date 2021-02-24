@@ -159,7 +159,7 @@ function buildmex_octave(pth, args, caller)
     end
     if is_octfile(cpath)
         fprintf('Building OCT-file\n');
-        arg = {};
+        arg = {'-DMRST_OCTEXT'};
     else
         fprintf('Building MEX-file\n');
         arg = {'--mex'};
