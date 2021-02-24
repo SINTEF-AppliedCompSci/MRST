@@ -91,18 +91,16 @@ const char* inputCheck(const int nin, const int nout, int & status_code){
     { 
         // In: Cell value (nc x d), N (nf x 2)
         // Out: Face value of (nf x d)
-        if (nrhs == 0) {
-            if (nlhs > 0) {
-                mexErrMsgTxt("Cannot give outputs with no inputs.");
-            }
-            // We are being called through compilation testing. Just do nothing. 
-            // If the binary was actually called, we are good to go.
+        int status_code = 0;
+        auto msg = inputCheck(nrhs, nlhs, status_code);
+        if(status_code < 0){
+            // Some kind of error
+            mexErrMsgTxt(msg);
+        }else if (status_code == 1){
+            // Early return
             return;
-        } else if (nrhs != 2) {
-            mexErrMsgTxt("2 input arguments required."); 
-        } else if (nlhs > 1) {
-            mexErrMsgTxt("Wrong number of output arguments."); 
-        } 
+        }
+
         double * value = mxGetPr(prhs[0]);
         double * N = mxGetPr(prhs[1]);
 
