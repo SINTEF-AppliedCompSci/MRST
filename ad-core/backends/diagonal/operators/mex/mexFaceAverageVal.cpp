@@ -2,16 +2,17 @@
 // include necessary system headers
 //
 #include <cmath>
-// #include <mex.h>
 #include <array>
 #ifdef _OPENMP
     #include <omp.h>
 #endif
 #include <iostream>
-//#ifdef OCTAVE_VERSION
+#ifdef MRST_OCTEXT
     #include <octave/oct.h>
     #include <octave/dMatrix.h>
-//#endif
+#else
+    #include <mex.h>
+#endif
 void faceAverage(const int nf, const int nc, const int dim, const double* value, const double* N, double* result) {
     #pragma omp parallel for schedule(static)
     for(int i=0;i<nf;i++){
@@ -23,8 +24,8 @@ void faceAverage(const int nf, const int nc, const int dim, const double* value,
     }
 }
 
-/* OCT gateway */
-// #ifdef OCTAVE_VERSION
+#ifdef MRST_OCTEXT
+    /* OCT gateway */
     DEFUN_DLD (mexFaceAverageVal, args, nargout,
                "Face average operator for MRST - value only.")
     {
@@ -70,40 +71,38 @@ void faceAverage(const int nf, const int nc, const int dim, const double* value,
        faceAverage(nf, nc, dim, value, N, result);
        return octave_value (output);
     }
-// #endif
+#else
+    /* MEX gateway */
+    void mexFunction( int nlhs, mxArray *plhs[], 
+              int nrhs, const mxArray *prhs[] )
 
+    { 
+        // In: Cell value (nc x d), N (nf x 2)
+        // Out: Face value of (nf x d)
+        if (nrhs == 0) {
+            if (nlhs > 0) {
+                mexErrMsgTxt("Cannot give outputs with no inputs.");
+            }
+            // We are being called through compilation testing. Just do nothing. 
+            // If the binary was actually called, we are good to go.
+            return;
+        } else if (nrhs != 2) {
+            mexErrMsgTxt("2 input arguments required."); 
+        } else if (nlhs > 1) {
+            mexErrMsgTxt("Wrong number of output arguments."); 
+        } 
+        double * value = mxGetPr(prhs[0]);
+        double * N = mxGetPr(prhs[1]);
 
+        int dim = mxGetN(prhs[0]);
+        int nc = mxGetM(prhs[0]);
+        int nf = mxGetM(prhs[1]);
+        plhs[0] = mxCreateDoubleMatrix(nf, dim, mxREAL);
+        double * result = mxGetPr(plhs[0]);
+        faceAverage(nf, nc, dim, value, N, result);
 
-// /* MEX gateway */
-// void mexFunction( int nlhs, mxArray *plhs[], 
-// 		  int nrhs, const mxArray *prhs[] )
-//      
-// { 
-//     // In: Cell value (nc x d), N (nf x 2)
-//     // Out: Face value of (nf x d)
-//     if (nrhs == 0) {
-//         if (nlhs > 0) {
-//             mexErrMsgTxt("Cannot give outputs with no inputs.");
-//         }
-//         // We are being called through compilation testing. Just do nothing. 
-//         // If the binary was actually called, we are good to go.
-//         return;
-//     } else if (nrhs != 2) {
-// 	    mexErrMsgTxt("2 input arguments required."); 
-//     } else if (nlhs > 1) {
-// 	    mexErrMsgTxt("Wrong number of output arguments."); 
-//     } 
-//     double * value = mxGetPr(prhs[0]);
-//     double * N = mxGetPr(prhs[1]);
-// 
-//     int dim = mxGetN(prhs[0]);
-//     int nc = mxGetM(prhs[0]);
-//     int nf = mxGetM(prhs[1]);
-//     plhs[0] = mxCreateDoubleMatrix(nf, dim, mxREAL);
-//     double * result = mxGetPr(plhs[0]);
-//     faceAverage(nf, nc, dim, value, N, result);
-// 
-//     return;
-// }
+        return;
+    }
+#endif
 
 
