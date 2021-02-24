@@ -71,6 +71,105 @@ void faceAverageJac(const int nf, const int nc, const double* diagonal, const do
     faceAverageJac<rowMajor>(nf, nc, m, diagonal, N, result);
 }
 
+template <bool rowMajor>
+void faceAverageJacMain(const int m, const int nf, const int nc, const double * diagonal, const double * N, double * result){
+        switch (m) {
+            case 1:
+                faceAverageJac<1, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 2:
+                faceAverageJac<2, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 3:
+                faceAverageJac<3, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 4:
+                faceAverageJac<4, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 5:
+                faceAverageJac<5, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 6:
+                faceAverageJac<6, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 7:
+                faceAverageJac<7, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 8:
+                faceAverageJac<8, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 9:
+                faceAverageJac<9, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 10:
+                faceAverageJac<10, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 11:
+                faceAverageJac<11, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 12:
+                faceAverageJac<12, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 13:
+                faceAverageJac<13, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 14:
+                faceAverageJac<14, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 15:
+                faceAverageJac<15, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 16:
+                faceAverageJac<16, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 17:
+                faceAverageJac<17, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 18:
+                faceAverageJac<18, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 19:
+                faceAverageJac<19, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 20:
+                faceAverageJac<20, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 21:
+                faceAverageJac<21, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 22:
+                faceAverageJac<22, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 23:
+                faceAverageJac<23, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 24:
+                faceAverageJac<24, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 25:
+                faceAverageJac<25, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 26:
+                faceAverageJac<26, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 27:
+                faceAverageJac<27, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 28:
+                faceAverageJac<28, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 29:
+                faceAverageJac<29, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            case 30:
+                faceAverageJac<30, rowMajor>(nf, nc, diagonal, N, result);
+                break;
+            default:
+                faceAverageJac<rowMajor>(nf, nc, m, diagonal, N, result);
+        }
+}
+
+
 /* MEX gateway */
 void mexFunction( int nlhs,       mxArray *plhs[], 
 		          int nrhs, const mxArray *prhs[] )
@@ -107,203 +206,14 @@ void mexFunction( int nlhs,       mxArray *plhs[],
         int m = ncols;
         plhs[0] = mxCreateDoubleMatrix(nf, 2 * m, mxREAL);
         double* result = mxGetPr(plhs[0]);
-        // faceAverageJac<false>(nf, nc, m, diagonal, N, result);
-        switch (m) {
-            case 1:
-                faceAverageJac<1, false>(nf, nc, diagonal, N, result);
-                break;
-            case 2:
-                faceAverageJac<2, false>(nf, nc, diagonal, N, result);
-                break;
-            case 3:
-                faceAverageJac<3, false>(nf, nc, diagonal, N, result);
-                break;
-            case 4:
-                faceAverageJac<4, false>(nf, nc, diagonal, N, result);
-                break;
-            case 5:
-                faceAverageJac<5, false>(nf, nc, diagonal, N, result);
-                break;
-            case 6:
-                faceAverageJac<6, false>(nf, nc, diagonal, N, result);
-                break;
-            case 7:
-                faceAverageJac<7, false>(nf, nc, diagonal, N, result);
-                break;
-            case 8:
-                faceAverageJac<8, false>(nf, nc, diagonal, N, result);
-                break;
-            case 9:
-                faceAverageJac<9, false>(nf, nc, diagonal, N, result);
-                break;
-            case 10:
-                faceAverageJac<10, false>(nf, nc, diagonal, N, result);
-                break;
-            case 11:
-                faceAverageJac<11, false>(nf, nc, diagonal, N, result);
-                break;
-            case 12:
-                faceAverageJac<12, false>(nf, nc, diagonal, N, result);
-                break;
-            case 13:
-                faceAverageJac<13, false>(nf, nc, diagonal, N, result);
-                break;
-            case 14:
-                faceAverageJac<14, false>(nf, nc, diagonal, N, result);
-                break;
-            case 15:
-                faceAverageJac<15, false>(nf, nc, diagonal, N, result);
-                break;
-            case 16:
-                faceAverageJac<16, false>(nf, nc, diagonal, N, result);
-                break;
-            case 17:
-                faceAverageJac<17, false>(nf, nc, diagonal, N, result);
-                break;
-            case 18:
-                faceAverageJac<18, false>(nf, nc, diagonal, N, result);
-                break;
-            case 19:
-                faceAverageJac<19, false>(nf, nc, diagonal, N, result);
-                break;
-            case 20:
-                faceAverageJac<20, false>(nf, nc, diagonal, N, result);
-                break;
-            case 21:
-                faceAverageJac<21, false>(nf, nc, diagonal, N, result);
-                break;
-            case 22:
-                faceAverageJac<22, false>(nf, nc, diagonal, N, result);
-                break;
-            case 23:
-                faceAverageJac<23, false>(nf, nc, diagonal, N, result);
-                break;
-            case 24:
-                faceAverageJac<24, false>(nf, nc, diagonal, N, result);
-                break;
-            case 25:
-                faceAverageJac<25, false>(nf, nc, diagonal, N, result);
-                break;
-            case 26:
-                faceAverageJac<26, false>(nf, nc, diagonal, N, result);
-                break;
-            case 27:
-                faceAverageJac<27, false>(nf, nc, diagonal, N, result);
-                break;
-            case 28:
-                faceAverageJac<28, false>(nf, nc, diagonal, N, result);
-                break;
-            case 29:
-                faceAverageJac<29, false>(nf, nc, diagonal, N, result);
-                break;
-            case 30:
-                faceAverageJac<30, false>(nf, nc, diagonal, N, result);
-                break;
-            default:
-                faceAverageJac<false>(nf, nc, m, diagonal, N, result);
-        }
+        faceAverageJacMain<false>(m, nf, nc, diagonal, N, result);
     }
     else if (ncols == nc){
         // RowMajor
         int m = nrows;
         plhs[0] = mxCreateDoubleMatrix(2 * m, nf, mxREAL);
         double* result = mxGetPr(plhs[0]);
-        // faceAverageJac<true>(nf, nc, m, diagonal, N, result);
-        switch (m) {
-        case 1:
-            faceAverageJac<1, true>(nf, nc, diagonal, N, result);
-            break;
-        case 2:
-            faceAverageJac<2, true>(nf, nc, diagonal, N, result);
-            break;
-        case 3:
-            faceAverageJac<3, true>(nf, nc, diagonal, N, result);
-            break;
-        case 4:
-            faceAverageJac<4, true>(nf, nc, diagonal, N, result);
-            break;
-        case 5:
-            faceAverageJac<5, true>(nf, nc, diagonal, N, result);
-            break;
-        case 6:
-            faceAverageJac<6, true>(nf, nc, diagonal, N, result);
-            break;
-        case 7:
-            faceAverageJac<7, true>(nf, nc, diagonal, N, result);
-            break;
-        case 8:
-            faceAverageJac<8, true>(nf, nc, diagonal, N, result);
-            break;
-        case 9:
-            faceAverageJac<9, true>(nf, nc, diagonal, N, result);
-            break;
-        case 10:
-            faceAverageJac<10, true>(nf, nc, diagonal, N, result);
-            break;
-        case 11:
-            faceAverageJac<11, true>(nf, nc, diagonal, N, result);
-            break;
-        case 12:
-            faceAverageJac<12, true>(nf, nc, diagonal, N, result);
-            break;
-        case 13:
-            faceAverageJac<13, true>(nf, nc, diagonal, N, result);
-            break;
-        case 14:
-            faceAverageJac<14, true>(nf, nc, diagonal, N, result);
-            break;
-        case 15:
-            faceAverageJac<15, true>(nf, nc, diagonal, N, result);
-            break;
-        case 16:
-            faceAverageJac<16, true>(nf, nc, diagonal, N, result);
-            break;
-        case 17:
-            faceAverageJac<17, true>(nf, nc, diagonal, N, result);
-            break;
-        case 18:
-            faceAverageJac<18, true>(nf, nc, diagonal, N, result);
-            break;
-        case 19:
-            faceAverageJac<19, true>(nf, nc, diagonal, N, result);
-            break;
-        case 20:
-            faceAverageJac<20, true>(nf, nc, diagonal, N, result);
-            break;
-        case 21:
-            faceAverageJac<21, true>(nf, nc, diagonal, N, result);
-            break;
-        case 22:
-            faceAverageJac<22, true>(nf, nc, diagonal, N, result);
-            break;
-        case 23:
-            faceAverageJac<23, true>(nf, nc, diagonal, N, result);
-            break;
-        case 24:
-            faceAverageJac<24, true>(nf, nc, diagonal, N, result);
-            break;
-        case 25:
-            faceAverageJac<25, true>(nf, nc, diagonal, N, result);
-            break;
-        case 26:
-            faceAverageJac<26, true>(nf, nc, diagonal, N, result);
-            break;
-        case 27:
-            faceAverageJac<27, true>(nf, nc, diagonal, N, result);
-            break;
-        case 28:
-            faceAverageJac<28, true>(nf, nc, diagonal, N, result);
-            break;
-        case 29:
-            faceAverageJac<29, true>(nf, nc, diagonal, N, result);
-            break;
-        case 30:
-            faceAverageJac<30, true>(nf, nc, diagonal, N, result);
-            break;
-        default:
-            faceAverageJac<true>(nf, nc, m, diagonal, N, result);
-
-        }
+        faceAverageJacMain<true>(m, nf, nc, diagonal, N, result);
     }
     return;
 }
