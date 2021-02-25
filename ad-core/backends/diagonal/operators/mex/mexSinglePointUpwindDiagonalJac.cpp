@@ -2,13 +2,19 @@
 // include necessary system headers
 //
 #include <cmath>
-#include <mex.h>
 #include <array>
 #ifdef _OPENMP
     #include <omp.h>
 #endif
 #include <iostream>
 #include <chrono>
+#ifdef MRST_OCTEXT
+    #include <octave/oct.h>
+    #include <octave/dMatrix.h>
+#else
+    #include <mex.h>
+#endif
+
 #define TIME_NOW std::chrono::high_resolution_clock::now
 
 // INPUTS:
@@ -56,8 +62,8 @@ void zeroElements(const int offset_face, const int m, double * facedata) {
 }
 
 /* Templated function for main operation */
-template <bool rowMajor>
-void upwindJac(const int nf, const int nc, const int m, const mxLogical* flag, const double* diagonal, const double* N, double* result) {
+template <bool rowMajor, class logic_type>
+void upwindJac(const int nf, const int nc, const int m, const logic_type* flag, const double* diagonal, const double* N, double* result) {
     if (rowMajor){
         #pragma omp parallel for schedule(static)
         for (int face = 0; face < nf; face++) {
@@ -98,9 +104,9 @@ void upwindJac(const int nf, const int nc, const int m, const mxLogical* flag, c
     }
 }
 
-template <int m, bool rowMajor>
-void upwindJac(const int nf, const int nc, const mxLogical* flag, const double* diagonal, const double* N, double* result) {
-    upwindJac<rowMajor>(nf, nc, m, flag, diagonal, N, result);
+template <int m, bool rowMajor, class logic_type>
+void upwindJac(const int nf, const int nc, const logic_type * flag, const double* diagonal, const double* N, double* result) {
+    upwindJac<rowMajor, logic_type>(nf, nc, m, flag, diagonal, N, result);
 }
 
 template <bool rowMajor, class logic_type>
@@ -201,53 +207,110 @@ void upwindJacMain(const int m, const int nf, const int nc, const logic_type * f
     }
 }
 
+#ifdef MRST_OCTEXT
+    /* OCT gateway */
+    DEFUN_DLD (mexSinglePointUpwindDiagonalJac, args, nargout,
+               "Single point upwind operator for MRST - diagonal Jacobian.")
+    {
+        //auto start = high_resolution_clock::now(); 
 
-/* MEX gateway */
+        const int nrhs = args.length();
+        const int nlhs = nargout;
 
-void mexFunction( int nlhs, mxArray *plhs[], 
-		  int nrhs, const mxArray *prhs[] )
-     
-{ 
-    int status_code = 0;
-    auto msg = inputCheck(nrhs, nlhs, status_code);
-    if(status_code < 0){
-        // Some kind of error
-        mexErrMsgTxt(msg);
-    } else if (status_code == 1){
-        // Early return
+        int status_code = 0;
+        auto msg = inputCheck(nrhs, nlhs, status_code);
+        
+        if(status_code < 0){
+            // Some kind of error
+            error(msg);
+        } else if (status_code == 1){
+            // Early return
+            return octave_value_list();
+        }
+        
+        const NDArray diagonal_nd = args(0).array_value();
+        const NDArray N_nd = args(1).array_value();
+
+        const double * diagonal = diagonal_nd.data();
+        const double * N = N_nd.data();
+
+        bool rowMajor = args(4).scalar_value();
+        int nc = args(3).scalar_value();
+        int nf = N_nd.rows();
+
+        int nrows = diagonal_nd.rows();
+        int ncols = diagonal_nd.cols();
+
+        const NDArray flag_nd = args(2).array_value();
+        const double * flag = flag_nd.data();
+
+        int outrow, outcol, m;
+        if(rowMajor){
+            m = nrows;
+            outrow = 2*m;
+            outcol = nf;
+        }else{
+            m = ncols;
+            outrow = nf;
+            outcol = 2*m;
+        }
+        NDArray output({outrow, outcol});
+        double * result = output.fortran_vec();
+
+        if (rowMajor){
+            upwindJacMain<true, double>(m, nf, nc, flag, diagonal, N, result);
+        } else {
+            upwindJacMain<false, double>(m, nf, nc, flag, diagonal, N, result);
+        }
+        return octave_value (output);
+    }
+#else
+    /* MEX gateway */
+    void mexFunction( int nlhs, mxArray *plhs[], 
+            int nrhs, const mxArray *prhs[] )
+        
+    { 
+        int status_code = 0;
+        auto msg = inputCheck(nrhs, nlhs, status_code);
+        if(status_code < 0){
+            // Some kind of error
+            mexErrMsgTxt(msg);
+        } else if (status_code == 1){
+            // Early return
+            return;
+        }
+        double* diagonal = mxGetPr(prhs[0]);
+        double* N = mxGetPr(prhs[1]);
+        mxLogical* flag = mxGetLogicals(prhs[2]);
+        int nc = mxGetScalar(prhs[3]);
+        int nf = mxGetM(prhs[1]);
+
+        bool rowMajor = mxGetScalar(prhs[4]);
+
+        // Dimensions of diagonals - figure out if we want row or column major solver
+        int nrows = mxGetM(prhs[0]);
+        int ncols = mxGetN(prhs[0]);
+
+        int outrow, outcol, m;
+        if(rowMajor){
+            m = nrows;
+            outrow = 2*m;
+            outcol = nf;
+        } else {
+            m = ncols;
+            outrow = nf;
+            outcol = 2*m;
+        }
+        plhs[0] = mxCreateUninitNumericMatrix(outrow, outcol, mxDOUBLE_CLASS, mxREAL);
+        // plhs[0] = mxCreateDoubleMatrix(outrow, outcol, mxREAL);
+        double* result = mxGetPr(plhs[0]);
+        if (rowMajor){
+            upwindJacMain<true, mxLogical>(m, nf, nc, flag, diagonal, N, result);
+        } else {
+            upwindJacMain<false, mxLogical>(m, nf, nc, flag, diagonal, N, result);
+        }
         return;
     }
-    double* diagonal = mxGetPr(prhs[0]);
-    double* N = mxGetPr(prhs[1]);
-    mxLogical* flag = mxGetLogicals(prhs[2]);
-    int nc = mxGetScalar(prhs[3]);
-    int nf = mxGetM(prhs[1]);
-
-    bool rowMajor = mxGetScalar(prhs[4]);
-
-    // Dimensions of diagonals - figure out if we want row or column major solver
-    int nrows = mxGetM(prhs[0]);
-    int ncols = mxGetN(prhs[0]);
-
-    int outrow, outcol, m;
-    if(rowMajor){
-        m = nrows;
-        outrow = 2*m;
-        outcol = nf;
-    } else {
-        m = ncols;
-        outrow = nf;
-        outcol = 2*m;
-    }
-    plhs[0] = mxCreateUninitNumericMatrix(outrow, outcol, mxDOUBLE_CLASS, mxREAL);
-    // plhs[0] = mxCreateDoubleMatrix(outrow, outcol, mxREAL);
-    double* result = mxGetPr(plhs[0]);
-    if (rowMajor){
-        upwindJacMain<true, mxLogical>(m, nf, nc, flag, diagonal, N, result);
-    } else {
-        upwindJacMain<false, mxLogical>(m, nf, nc, flag, diagonal, N, result);
-    }
-    return;
-}
+#endif
 
 
