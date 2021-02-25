@@ -49,6 +49,131 @@ const char* dimensionCheck(const int nc, const int nrows, const int ncols, int &
 
 
 /* Templated function for main operation */
+template <bool rowMajor>
+void gradientJac(const int nf, const int nc, const int m, const double * diagonal, const double * N, double * result){
+    #pragma omp parallel for
+    for (int i = 0; i < nf; i++) {
+        int left = N[i] - 1;
+        int right = N[i + nf] - 1;
+        for (int j = 0; j < m; j++) {
+            if (rowMajor) {
+                result[i * 2 * m + j] = -diagonal[m * left + j];
+                result[i * 2 * m + j + m] = diagonal[m * right + j];
+
+            } else {
+                result[j * nf + i]      = -diagonal[nc * j + left];
+                result[j * nf + i + m*nf] =  diagonal[nc * j + right];
+            }
+        }
+    }
+    return;
+}
+
+template <int m, bool rowMajor>
+void gradientJac(const int nf, const int nc, const double* diagonal, const double* N, double* result) {
+    gradientJac<rowMajor>(nf, nc, m, diagonal, N, result);
+}
+
+template <bool rowMajor>
+void gradientJacMain(const int m, const int nf, const int nc, const double * diagonal, const double * N, double * result){
+    switch (m) {
+        case 1:
+            gradientJac<1, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 2:
+            gradientJac<2, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 3:
+            gradientJac<3, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 4:
+            gradientJac<4, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 5:
+            gradientJac<5, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 6:
+            gradientJac<6, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 7:
+            gradientJac<7, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 8:
+            gradientJac<8, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 9:
+            gradientJac<9, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 10:
+            gradientJac<10, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 11:
+            gradientJac<11, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 12:
+            gradientJac<12, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 13:
+            gradientJac<13, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 14:
+            gradientJac<14, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 15:
+            gradientJac<15, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 16:
+            gradientJac<16, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 17:
+            gradientJac<17, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 18:
+            gradientJac<18, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 19:
+            gradientJac<19, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 20:
+            gradientJac<20, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 21:
+            gradientJac<21, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 22:
+            gradientJac<22, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 23:
+            gradientJac<23, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 24:
+            gradientJac<24, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 25:
+            gradientJac<25, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 26:
+            gradientJac<26, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 27:
+            gradientJac<27, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 28:
+            gradientJac<28, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 29:
+            gradientJac<29, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        case 30:
+            gradientJac<30, rowMajor>(nf, nc, diagonal, N, result);
+            break;
+        default:
+            gradientJac<rowMajor>(nf, nc, m, diagonal, N, result);
+    }
+}
+
+
+/*
 template <int m>
 void gradientJacColMajor(const int nf, const int nc, const double * diagonal, const double * N, double * result){
     #pragma omp parallel for
@@ -76,6 +201,7 @@ void gradientJacRowMajor(const int nf, const int nc, const double* diagonal, con
     }
     return;
 }
+*/
 /* MEX gateway */
 void mexFunction( int nlhs, mxArray *plhs[], 
 		  int nrhs, const mxArray *prhs[] )
@@ -102,205 +228,23 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int nrows = mxGetM(prhs[0]);
     int ncols = mxGetN(prhs[0]);
 
-    // mexPrintf("Matrix has dimensions %d by %d. There are %d faces and %d cells\n", nrows, ncols, nf, nc);
-    if (rowMajor) {
-        // RowMajor
-        int m = nrows;
-        plhs[0] = mxCreateDoubleMatrix(2 * m, nf, mxREAL);
-        double* result = mxGetPr(plhs[0]);
-        switch (m) {
-        case 1:
-            gradientJacRowMajor<1>(nf, nc, diagonal, N, result);
-            break;
-        case 2:
-            gradientJacRowMajor<2>(nf, nc, diagonal, N, result);
-            break;
-        case 3:
-            gradientJacRowMajor<3>(nf, nc, diagonal, N, result);
-            break;
-        case 4:
-            gradientJacRowMajor<4>(nf, nc, diagonal, N, result);
-            break;
-        case 5:
-            gradientJacRowMajor<5>(nf, nc, diagonal, N, result);
-            break;
-        case 6:
-            gradientJacRowMajor<6>(nf, nc, diagonal, N, result);
-            break;
-        case 7:
-            gradientJacRowMajor<7>(nf, nc, diagonal, N, result);
-            break;
-        case 8:
-            gradientJacRowMajor<8>(nf, nc, diagonal, N, result);
-            break;
-        case 9:
-            gradientJacRowMajor<9>(nf, nc, diagonal, N, result);
-            break;
-        case 10:
-            gradientJacRowMajor<10>(nf, nc, diagonal, N, result);
-            break;
-        case 11:
-            gradientJacRowMajor<11>(nf, nc, diagonal, N, result);
-            break;
-        case 12:
-            gradientJacRowMajor<12>(nf, nc, diagonal, N, result);
-            break;
-        case 13:
-            gradientJacRowMajor<13>(nf, nc, diagonal, N, result);
-            break;
-        case 14:
-            gradientJacRowMajor<14>(nf, nc, diagonal, N, result);
-            break;
-        case 15:
-            gradientJacRowMajor<15>(nf, nc, diagonal, N, result);
-            break;
-        case 16:
-            gradientJacRowMajor<16>(nf, nc, diagonal, N, result);
-            break;
-        case 17:
-            gradientJacRowMajor<17>(nf, nc, diagonal, N, result);
-            break;
-        case 18:
-            gradientJacRowMajor<18>(nf, nc, diagonal, N, result);
-            break;
-        case 19:
-            gradientJacRowMajor<19>(nf, nc, diagonal, N, result);
-            break;
-        case 20:
-            gradientJacRowMajor<20>(nf, nc, diagonal, N, result);
-            break;
-        case 21:
-            gradientJacRowMajor<21>(nf, nc, diagonal, N, result);
-            break;
-        case 22:
-            gradientJacRowMajor<22>(nf, nc, diagonal, N, result);
-            break;
-        case 23:
-            gradientJacRowMajor<23>(nf, nc, diagonal, N, result);
-            break;
-        case 24:
-            gradientJacRowMajor<24>(nf, nc, diagonal, N, result);
-            break;
-        case 25:
-            gradientJacRowMajor<25>(nf, nc, diagonal, N, result);
-            break;
-        case 26:
-            gradientJacRowMajor<26>(nf, nc, diagonal, N, result);
-            break;
-        case 27:
-            gradientJacRowMajor<27>(nf, nc, diagonal, N, result);
-            break;
-        case 28:
-            gradientJacRowMajor<28>(nf, nc, diagonal, N, result);
-            break;
-        case 29:
-            gradientJacRowMajor<29>(nf, nc, diagonal, N, result);
-            break;
-        case 30:
-            gradientJacRowMajor<30>(nf, nc, diagonal, N, result);
-            break;
-        default:
-            mexErrMsgTxt("%d derivatives not supported by backend.");
-        }
+    int outrow, outcol, m;
+    if(rowMajor){
+        m = nrows;
+        outrow = 2*m;
+        outcol = nf;
     } else {
-        // ColMajor
-        int m = ncols;
-        plhs[0] = mxCreateDoubleMatrix(nf, 2 * m, mxREAL);
-        double* result = mxGetPr(plhs[0]);
-        switch (m) {
-        case 1:
-            gradientJacColMajor<1>(nf, nc, diagonal, N, result);
-            break;
-        case 2:
-            gradientJacColMajor<2>(nf, nc, diagonal, N, result);
-            break;
-        case 3:
-            gradientJacColMajor<3>(nf, nc, diagonal, N, result);
-            break;
-        case 4:
-            gradientJacColMajor<4>(nf, nc, diagonal, N, result);
-            break;
-        case 5:
-            gradientJacColMajor<5>(nf, nc, diagonal, N, result);
-            break;
-        case 6:
-            gradientJacColMajor<6>(nf, nc, diagonal, N, result);
-            break;
-        case 7:
-            gradientJacColMajor<7>(nf, nc, diagonal, N, result);
-            break;
-        case 8:
-            gradientJacColMajor<8>(nf, nc, diagonal, N, result);
-            break;
-        case 9:
-            gradientJacColMajor<9>(nf, nc, diagonal, N, result);
-            break;
-        case 10:
-            gradientJacColMajor<10>(nf, nc, diagonal, N, result);
-            break;
-        case 11:
-            gradientJacColMajor<11>(nf, nc, diagonal, N, result);
-            break;
-        case 12:
-            gradientJacColMajor<12>(nf, nc, diagonal, N, result);
-            break;
-        case 13:
-            gradientJacColMajor<13>(nf, nc, diagonal, N, result);
-            break;
-        case 14:
-            gradientJacColMajor<14>(nf, nc, diagonal, N, result);
-            break;
-        case 15:
-            gradientJacColMajor<15>(nf, nc, diagonal, N, result);
-            break;
-        case 16:
-            gradientJacColMajor<16>(nf, nc, diagonal, N, result);
-            break;
-        case 17:
-            gradientJacColMajor<17>(nf, nc, diagonal, N, result);
-            break;
-        case 18:
-            gradientJacColMajor<18>(nf, nc, diagonal, N, result);
-            break;
-        case 19:
-            gradientJacColMajor<19>(nf, nc, diagonal, N, result);
-            break;
-        case 20:
-            gradientJacColMajor<20>(nf, nc, diagonal, N, result);
-            break;
-        case 21:
-            gradientJacColMajor<21>(nf, nc, diagonal, N, result);
-            break;
-        case 22:
-            gradientJacColMajor<22>(nf, nc, diagonal, N, result);
-            break;
-        case 23:
-            gradientJacColMajor<23>(nf, nc, diagonal, N, result);
-            break;
-        case 24:
-            gradientJacColMajor<24>(nf, nc, diagonal, N, result);
-            break;
-        case 25:
-            gradientJacColMajor<25>(nf, nc, diagonal, N, result);
-            break;
-        case 26:
-            gradientJacColMajor<26>(nf, nc, diagonal, N, result);
-            break;
-        case 27:
-            gradientJacColMajor<27>(nf, nc, diagonal, N, result);
-            break;
-        case 28:
-            gradientJacColMajor<28>(nf, nc, diagonal, N, result);
-            break;
-        case 29:
-            gradientJacColMajor<29>(nf, nc, diagonal, N, result);
-            break;
-        case 30:
-            gradientJacColMajor<30>(nf, nc, diagonal, N, result);
-            break;
-        default:
-            mexErrMsgTxt("%d derivatives not supported by backend.");
-        }
+        m = ncols;
+        outrow = nf;
+        outcol = 2*m;
+    }
+    // plhs[0] = mxCreateDoubleMatrix(outrow, outcol, mxREAL);
+    plhs[0] = mxCreateUninitNumericMatrix(outrow, outcol, mxDOUBLE_CLASS, mxREAL);
+    double* result = mxGetPr(plhs[0]);
+    if (rowMajor){
+        gradientJacMain<true>(m, nf, nc, diagonal, N, result);
+    } else {
+        gradientJacMain<false>(m, nf, nc, diagonal, N, result);
     }
     return;
 }
