@@ -10,8 +10,8 @@
 #include <iostream>
 #include <chrono>
 
-template <int m, bool colMajor, bool lower>
-void copyFaceData(const int c, const int nf, const int diag, const int passed, const int sparse_mult, const int cell_offset, const int f, const int fl, const double* diagonal, double* pr, mwIndex* ir, mwIndex* jc) {
+template <bool colMajor, bool lower>
+void copyFaceData(const int c, const int nf, const int m, const int diag, const int passed, const int sparse_mult, const int cell_offset, const int f, const int fl, const double* diagonal, double* pr, mwIndex* ir, mwIndex* jc) {
     for (int der = 0; der < m; der++) {
         double v;
         int sparse_offset = der * sparse_mult + cell_offset;
@@ -42,8 +42,8 @@ void copyFaceData(const int c, const int nf, const int diag, const int passed, c
     }
 }
 
-template <int m, bool has_accumulation, bool colMajor>
-void divergenceJac(const int nf, const int nc,
+template <bool has_accumulation, bool colMajor>
+void divergenceJac(const int nf, const int nc, const int m,
     const double* N, const double* facePos, const double* faces,
     const double* cells, const double* cells_ix,
     const double* accumulation, const double* diagonal,
@@ -93,14 +93,159 @@ void divergenceJac(const int nf, const int nc,
             int sparse_mult = mv + nc;
             // Copy the data from face jacobian stored in diagonal
             if (c < 0) {
-                copyFaceData<m, colMajor, true>(c, nf, diag, passed, sparse_mult, cell_offset, f, fl, diagonal, pr, ir, jc);
+                copyFaceData<colMajor, true>(c, nf, m, diag, passed, sparse_mult, cell_offset, f, fl, diagonal, pr, ir, jc);
             }
             else {
-                copyFaceData<m, colMajor, false>(c, nf, diag, passed, sparse_mult, cell_offset, f, fl, diagonal, pr, ir, jc);
+                copyFaceData<colMajor, false>(c, nf, m, diag, passed, sparse_mult, cell_offset, f, fl, diagonal, pr, ir, jc);
             }
         }
     }
 }
+
+template <int m, bool has_accumulation, bool colMajor>
+void divergenceJac(const int nf, const int nc,
+    const double* N, const double* facePos, const double* faces,
+    const double* cells, const double* cells_ix,
+    const double* accumulation, const double* diagonal,
+    double* pr, mwIndex* ir, mwIndex* jc) {
+        divergenceJac<has_accumulation, colMajor>(nf, nc, m, N, facePos, faces, cells, cells_ix, accumulation, diagonal, pr, ir, jc);
+}
+
+
+template <bool has_accumulation, bool colMajor>
+void divergenceJacMain(const int nf, const int nc, const int m,
+    const double* N, const double* facePos, const double* faces,
+    const double* cells, const double* cells_ix,
+    const double* accumulation, const double* diagonal,
+    double* pr, mwIndex* ir, mwIndex* jc){
+    switch (m) {
+    case 1:
+        divergenceJac<1, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 2:
+        divergenceJac<2, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 3:
+        divergenceJac<3, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 4:
+        divergenceJac<4, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 5:
+        divergenceJac<5, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 6:
+        divergenceJac<6, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 7:
+        divergenceJac<7, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 8:
+        divergenceJac<8, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 9:
+        divergenceJac<9, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 10:
+        divergenceJac<10, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 11:
+        divergenceJac<11, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 12:
+        divergenceJac<12, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 13:
+        divergenceJac<13, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 14:
+        divergenceJac<14, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 15:
+        divergenceJac<15, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 16:
+        divergenceJac<16, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 17:
+        divergenceJac<17, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 18:
+        divergenceJac<18, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 19:
+        divergenceJac<19, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 20:
+        divergenceJac<20, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 21:
+        divergenceJac<21, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 22:
+        divergenceJac<22, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 23:
+        divergenceJac<23, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 24:
+        divergenceJac<24, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 25:
+        divergenceJac<25, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 26:
+        divergenceJac<26, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 27:
+        divergenceJac<27, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 28:
+        divergenceJac<28, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 29:
+        divergenceJac<29, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    case 30:
+        divergenceJac<30, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+        break;
+    default:
+        divergenceJac<has_accumulation, colMajor>(nf, nc, m, N, facePos, faces, cells, cells_ix,
+            accumulation, diagonal, pr, ir, jc);
+}
+
+}
+
 
 /* MEX gateway */
 
@@ -204,519 +349,22 @@ void mexFunction( int nlhs, mxArray *plhs[],
         double* four = mxGetPr(plhs[4]);
         four[0] = nc * m;
     }
-    if (rowMajor) {
-        // RowMajor
-        if (has_accumulation) {
-            // mexPrintf("Row major, with accumulation: %d by %d.\n", nc, nf);
-            switch (m) {
-                case 1:
-                    divergenceJac<1, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
+    if (rowMajor){
+        if(has_accumulation){
+            divergenceJacMain<true, false>(nf, nc, m, N, facePos, faces, cells, cells_ix,
                         accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 2:
-                    divergenceJac<2, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
+        }else{
+            divergenceJacMain<false, false>(nf, nc, m, N, facePos, faces, cells, cells_ix,
                         accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 3:
-                    divergenceJac<3, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 4:
-                    divergenceJac<4, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 5:
-                    divergenceJac<5, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 6:
-                    divergenceJac<6, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 7:
-                    divergenceJac<7, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 8:
-                    divergenceJac<8, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 9:
-                    divergenceJac<9, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 10:
-                    divergenceJac<10, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 11:
-                    divergenceJac<11, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 12:
-                    divergenceJac<12, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 13:
-                    divergenceJac<13, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 14:
-                    divergenceJac<14, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 15:
-                    divergenceJac<15, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 16:
-                    divergenceJac<16, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 17:
-                    divergenceJac<17, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 18:
-                    divergenceJac<18, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 19:
-                    divergenceJac<19, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 20:
-                    divergenceJac<20, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 21:
-                    divergenceJac<21, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 22:
-                    divergenceJac<22, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 23:
-                    divergenceJac<23, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 24:
-                    divergenceJac<24, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 25:
-                    divergenceJac<25, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 26:
-                    divergenceJac<26, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 27:
-                    divergenceJac<27, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 28:
-                    divergenceJac<28, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 29:
-                    divergenceJac<29, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 30:
-                    divergenceJac<30, true, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                default:
-                    mexErrMsgTxt("%d derivatives not supported by backend.");
-            }
-        }
-        else {
-            // mexPrintf("Row major, without accumulation: %d by %d.\n", nc, nf);
-            switch (m) {
-                case 1:
-                    divergenceJac<1, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 2:
-                    divergenceJac<2, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 3:
-                    divergenceJac<3, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 4:
-                    divergenceJac<4, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 5:
-                    divergenceJac<5, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 6:
-                    divergenceJac<6, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 7:
-                    divergenceJac<7, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 8:
-                    divergenceJac<8, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 9:
-                    divergenceJac<9, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 10:
-                    divergenceJac<10, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 11:
-                    divergenceJac<11, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 12:
-                    divergenceJac<12, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 13:
-                    divergenceJac<13, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 14:
-                    divergenceJac<14, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 15:
-                    divergenceJac<15, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 16:
-                    divergenceJac<16, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 17:
-                    divergenceJac<17, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 18:
-                    divergenceJac<18, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 19:
-                    divergenceJac<19, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 20:
-                    divergenceJac<20, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 21:
-                    divergenceJac<21, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 22:
-                    divergenceJac<22, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 23:
-                    divergenceJac<23, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 24:
-                    divergenceJac<24, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 25:
-                    divergenceJac<25, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 26:
-                    divergenceJac<26, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 27:
-                    divergenceJac<27, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 28:
-                    divergenceJac<28, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 29:
-                    divergenceJac<29, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 30:
-                    divergenceJac<30, false, false>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                default:
-                    mexErrMsgTxt("%d derivatives not supported by backend.");
-            }
-        }
-    } else if (nrows == nf) {
-        // ColMajor
-        if (has_accumulation) {
-            // mexPrintf("Column major, with accumulation: %d by %d.\n", nc, nf);
-            switch (m) {
-                case 1:
-                    divergenceJac<1, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 2:
-                    divergenceJac<2, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 3:
-                    divergenceJac<3, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 4:
-                    divergenceJac<4, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 5:
-                    divergenceJac<5, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 6:
-                    divergenceJac<6, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 7:
-                    divergenceJac<7, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 8:
-                    divergenceJac<8, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 9:
-                    divergenceJac<9, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 10:
-                    divergenceJac<10, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 11:
-                    divergenceJac<11, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 12:
-                    divergenceJac<12, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 13:
-                    divergenceJac<13, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 14:
-                    divergenceJac<14, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 15:
-                    divergenceJac<15, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 16:
-                    divergenceJac<16, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 17:
-                    divergenceJac<17, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 18:
-                    divergenceJac<18, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 19:
-                    divergenceJac<19, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 20:
-                    divergenceJac<20, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 21:
-                    divergenceJac<21, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 22:
-                    divergenceJac<22, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 23:
-                    divergenceJac<23, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 24:
-                    divergenceJac<24, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 25:
-                    divergenceJac<25, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 26:
-                    divergenceJac<26, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 27:
-                    divergenceJac<27, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 28:
-                    divergenceJac<28, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 29:
-                    divergenceJac<29, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 30:
-                    divergenceJac<30, true, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                default:
-                    mexErrMsgTxt("%d derivatives not supported by backend.");
-            }
-        } else {
-            // mexPrintf("Column major, without accumulation: %d by %d.\n", nc, nf);
-            switch (m) {
-                case 1:
-                    divergenceJac<1, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 2:
-                    divergenceJac<2, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 3:
-                    divergenceJac<3, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 4:
-                    divergenceJac<4, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 5:
-                    divergenceJac<5, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 6:
-                    divergenceJac<6, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 7:
-                    divergenceJac<7, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 8:
-                    divergenceJac<8, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 9:
-                    divergenceJac<9, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 10:
-                    divergenceJac<10, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 11:
-                    divergenceJac<11, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 12:
-                    divergenceJac<12, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 13:
-                    divergenceJac<13, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 14:
-                    divergenceJac<14, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 15:
-                    divergenceJac<15, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 16:
-                    divergenceJac<16, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 17:
-                    divergenceJac<17, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 18:
-                    divergenceJac<18, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 19:
-                    divergenceJac<19, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 20:
-                    divergenceJac<20, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 21:
-                    divergenceJac<21, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 22:
-                    divergenceJac<22, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 23:
-                    divergenceJac<23, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 24:
-                    divergenceJac<24, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 25:
-                    divergenceJac<25, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 26:
-                    divergenceJac<26, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 27:
-                    divergenceJac<27, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 28:
-                    divergenceJac<28, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 29:
-                    divergenceJac<29, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                case 30:
-                    divergenceJac<30, false, true>(nf, nc, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-                    break;
-                default:
-                    mexErrMsgTxt("%d derivatives not supported by backend.");
-            }
         }
     } else {
-    mexErrMsgTxt("Dimensions of face diagonal matrix does not fit either RowMajor or ColMajor.");
+        if(has_accumulation){
+            divergenceJacMain<true, true>(nf, nc, m, N, facePos, faces, cells, cells_ix,
+                        accumulation, diagonal, pr, ir, jc);
+        }else{
+            divergenceJacMain<false, true>(nf, nc, m, N, facePos, faces, cells, cells_ix,
+                        accumulation, diagonal, pr, ir, jc);
+        }
     }
 }
 
