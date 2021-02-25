@@ -52,7 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Setting up interactive interface
    
    var.h = figure('KeyPressFcn', @(obj, e) parse_keypress(e.Key));
-   set_size(var.h, opt.window_size(1), opt.window_size(2));
+   set_size(var.h, opt.window_size);
    
    % Graphical window
    var.ax = axes('parent', var.h, 'position', [0.05, 0.12, 0.5, 0.87]);
@@ -227,7 +227,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                              'units', 'normalized', ...
                              'position', [0.1, 0.07, 0.8 0.1], ...
                              'HandleVisibility', 'off'); %#ok
-
       r2 = uicontrol(bgroup, 'style',  'radiobutton', ...
                              'string', 'formation thickness (m)', ...
                              'units', 'normalized', ...
@@ -430,10 +429,12 @@ end
 
 % ----------------------------------------------------------------------------
 
-function h = set_size(h, res_x, res_y)
+function h = set_size(h, res)
 % Utility function to resize a graphical window
    
-   pos = get(h, 'position');
-   set(h, 'position', [pos(1:2), res_x, res_y]);
+   pos  = get(h, 'position');
+   screensize = get(0,'screensize');
+   res = min([res; screensize(3:4)-[0 85]]);
+   set(h, 'position', [min([pos(1:2); screensize(3:4)-res-[0 85]]) res]);
    
 end
