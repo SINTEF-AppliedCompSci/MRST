@@ -37,7 +37,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   for module = reshape(varargin, 1, []),
+   for module = reshape(varargin, 1, [])
       m = module{1};
 
       try
