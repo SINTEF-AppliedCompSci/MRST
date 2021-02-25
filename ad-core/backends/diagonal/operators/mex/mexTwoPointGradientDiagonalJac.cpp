@@ -2,12 +2,18 @@
 // include necessary system headers
 //
 #include <cmath>
-#include <mex.h>
 #include <array>
 #ifdef _OPENMP
     #include <omp.h>
 #endif
 #include <iostream>
+#ifdef MRST_OCTEXT
+    #include <octave/oct.h>
+    #include <octave/dMatrix.h>
+#else
+    #include <mex.h>
+#endif
+
 // INPUTS:
 //  - cell_diagonal<double> [nc x m] if column major or [m x nc] if row major)
 //  - N<double>             [nf x 2]
@@ -173,80 +179,108 @@ void gradientJacMain(const int m, const int nf, const int nc, const double * dia
 }
 
 
-/*
-template <int m>
-void gradientJacColMajor(const int nf, const int nc, const double * diagonal, const double * N, double * result){
-    #pragma omp parallel for
-    for (int i = 0; i < nf; i++) {
-        int left = N[i] - 1;
-        int right = N[i + nf] - 1;
-        for (int j = 0; j < m; j++) {
-            result[j * nf + i]      = -diagonal[nc * j + left];
-            result[j * nf + i + m*nf] =  diagonal[nc * j + right];
-        }
-    }
-    return;
-}
 
-template <int m>
-void gradientJacRowMajor(const int nf, const int nc, const double* diagonal, const double* N, double* result) {
-    #pragma omp parallel for
-    for (int i = 0; i < nf; i++) {
-        int left = N[i] - 1;
-        int right = N[i + nf] - 1;
-        for (int j = 0; j < m; j++) {
-            result[i * 2 * m + j] = -diagonal[m * left + j];
-            result[i * 2 * m + j + m] = diagonal[m * right + j];
+#ifdef MRST_OCTEXT
+    /* OCT gateway */
+    DEFUN_DLD (mexTwoPointGradientDiagonalJac, args, nargout,
+               "Two point gradient average operator for MRST - diagonal Jacobian.")
+    {
+        //auto start = high_resolution_clock::now(); 
+
+        const int nrhs = args.length();
+        const int nlhs = nargout;
+
+        int status_code = 0;
+        auto msg = inputCheck(nrhs, nlhs, status_code);
+        
+        if(status_code < 0){
+            // Some kind of error
+            error(msg);
+        } else if (status_code == 1){
+            // Early return
+            return octave_value_list();
         }
+        
+        const NDArray diagonal_nd = args(0).array_value();
+        const NDArray N_nd = args(1).array_value();
+
+        const double * diagonal = diagonal_nd.data();
+        const double * N = N_nd.data();
+
+        bool rowMajor = args(3).scalar_value();
+        int nc = args(2).scalar_value();
+        int nf = N_nd.rows();
+
+        int nrows = diagonal_nd.rows();
+        int ncols = diagonal_nd.cols();
+
+        int outrow, outcol, m;
+        if(rowMajor){
+            m = nrows;
+            outrow = 2*m;
+            outcol = nf;
+        }else{
+            m = ncols;
+            outrow = nf;
+            outcol = 2*m;
+        }
+        NDArray output({outrow, outcol});
+        double * result = output.fortran_vec();
+
+        if (rowMajor){
+            gradientJacMain<true>(m, nf, nc, diagonal, N, result);
+        }else{
+            gradientJacMain<false>(m, nf, nc, diagonal, N, result);
+        }
+        return octave_value (output);
     }
-    return;
-}
-*/
-/* MEX gateway */
-void mexFunction( int nlhs, mxArray *plhs[], 
-		  int nrhs, const mxArray *prhs[] )
-     
-{ 
-    int status_code = 0;
-    auto msg = inputCheck(nrhs, nlhs, status_code);
-    if(status_code < 0){
-        // Some kind of error
-        mexErrMsgTxt(msg);
-    } else if (status_code == 1){
-        // Early return
+#else
+    /* MEX gateway */
+    void mexFunction( int nlhs, mxArray *plhs[], 
+            int nrhs, const mxArray *prhs[] )
+        
+    { 
+        int status_code = 0;
+        auto msg = inputCheck(nrhs, nlhs, status_code);
+        if(status_code < 0){
+            // Some kind of error
+            mexErrMsgTxt(msg);
+        } else if (status_code == 1){
+            // Early return
+            return;
+        }
+
+        double * diagonal = mxGetPr(prhs[0]);
+        double * N = mxGetPr(prhs[1]);
+        bool rowMajor = mxGetScalar(prhs[3]);
+
+        int nc = mxGetScalar(prhs[2]);
+        int nf = mxGetM(prhs[1]);
+
+        // Dimensions of diagonals - figure out if we want row or column major solver
+        int nrows = mxGetM(prhs[0]);
+        int ncols = mxGetN(prhs[0]);
+
+        int outrow, outcol, m;
+        if(rowMajor){
+            m = nrows;
+            outrow = 2*m;
+            outcol = nf;
+        } else {
+            m = ncols;
+            outrow = nf;
+            outcol = 2*m;
+        }
+        // plhs[0] = mxCreateDoubleMatrix(outrow, outcol, mxREAL);
+        plhs[0] = mxCreateUninitNumericMatrix(outrow, outcol, mxDOUBLE_CLASS, mxREAL);
+        double* result = mxGetPr(plhs[0]);
+        if (rowMajor){
+            gradientJacMain<true>(m, nf, nc, diagonal, N, result);
+        } else {
+            gradientJacMain<false>(m, nf, nc, diagonal, N, result);
+        }
         return;
     }
-
-    double * diagonal = mxGetPr(prhs[0]);
-    double * N = mxGetPr(prhs[1]);
-    bool rowMajor = mxGetScalar(prhs[3]);
-
-    int nc = mxGetScalar(prhs[2]);
-    int nf = mxGetM(prhs[1]);
-
-    // Dimensions of diagonals - figure out if we want row or column major solver
-    int nrows = mxGetM(prhs[0]);
-    int ncols = mxGetN(prhs[0]);
-
-    int outrow, outcol, m;
-    if(rowMajor){
-        m = nrows;
-        outrow = 2*m;
-        outcol = nf;
-    } else {
-        m = ncols;
-        outrow = nf;
-        outcol = 2*m;
-    }
-    // plhs[0] = mxCreateDoubleMatrix(outrow, outcol, mxREAL);
-    plhs[0] = mxCreateUninitNumericMatrix(outrow, outcol, mxDOUBLE_CLASS, mxREAL);
-    double* result = mxGetPr(plhs[0]);
-    if (rowMajor){
-        gradientJacMain<true>(m, nf, nc, diagonal, N, result);
-    } else {
-        gradientJacMain<false>(m, nf, nc, diagonal, N, result);
-    }
-    return;
-}
+#endif
 
 
