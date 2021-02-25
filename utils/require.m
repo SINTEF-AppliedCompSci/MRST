@@ -41,14 +41,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [ignore, active] = modules(modlist);   %#ok
    [ignore, needed] = modules(varargin);  %#ok
 
-   if ~isempty(active),
+   if ~isempty(active)
       % 'Missing' is the subset of 'needed' modules @NOT in 'active'.
       missing = subset_op(needed, active, @not);
    else
       missing = needed;
    end
 
-   if ~isempty(missing),
+   if ~isempty(missing)
       [ignore, i, ignore] = unique(missing);  %#ok
       missing = missing(sort(i)); % SORT by *LAST* occurrence of ind. module
 
@@ -68,13 +68,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       if sum(known) > 1, plural = 's are'; end
 
-      if any(known),
+      if any(known)
          klist = missing(known);
          a = sprintf(['The %s module%s known to MRST and may be ', ...
                       'activated using\n\n\tmrstModule add%s'], ...
                       quote_list(klist), plural, stringify_list(klist));
 
-         if sum(known) < numel(missing),
+         if sum(known) < numel(missing)
             plural = '';
             if sum(known) < numel(missing) - 1, plural = 's'; end
 
@@ -84,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       else
          plural1 = '';
          plural2 = ' is';
-         if numel(missing) > 1,
+         if numel(missing) > 1
             plural1 = 'se';
             plural2 = 's are';
          end
@@ -124,10 +124,10 @@ end
 function s = quote_list(v)
    assert (iscellstr(v), 'List must be cell array of strings');
 
-   if numel(v) == 1,
+   if numel(v) == 1
       s = ['''', v{1}, ''''];
-   elseif numel(v) > 1,
-      if numel(v) > 2,
+   elseif numel(v) > 1
+      if numel(v) > 2
          sep = ', ';
       else
          sep = ' ';
@@ -145,9 +145,9 @@ end
 function s = stringify_list(v)
    assert (iscellstr(v), 'List must be cell array of strings');
 
-   if numel(v) == 1,
+   if numel(v) == 1
       s = [' ', v{1}];
-   elseif numel(v) > 1,
+   elseif numel(v) > 1
       s = sprintf(' %s', v{:});
    else
       s = '';
