@@ -77,7 +77,7 @@ const char* inputCheck(const int nin, const int nout, int & status_code){
         
         int nf = nsz(0);
 
-        NDArray output({nf, dim}, 0);
+        NDArray output({nf, dim});
         double * result = output.fortran_vec();
 
        faceAverage(nf, nc, dim, value, N, result);
@@ -107,7 +107,8 @@ const char* inputCheck(const int nin, const int nout, int & status_code){
         int dim = mxGetN(prhs[0]);
         int nc = mxGetM(prhs[0]);
         int nf = mxGetM(prhs[1]);
-        plhs[0] = mxCreateDoubleMatrix(nf, dim, mxREAL);
+        // plhs[0] = mxCreateDoubleMatrix(nf, dim, mxREAL);
+        plhs[0] = mxCreateUninitNumericMatrix(nf, dim, mxDOUBLE_CLASS, mxREAL);
         double * result = mxGetPr(plhs[0]);
         faceAverage(nf, nc, dim, value, N, result);
 

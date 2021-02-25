@@ -8,8 +8,47 @@
     #include <omp.h>
 #endif
 #include <iostream>
-/* Templated function for main operation */
+// INPUTS:
+//  - cell_diagonal<double> [nc x m] if column major or [m x nc] if row major)
+//  - N<double>             [nf x 2]
+//  - nc<double>            [scalar]
+//  - rowMajor<bool>        [scalar]
+// OUTPUT:
+//  - face_diagonal<double> [nf x 2*m] if column major or [2*m x nf] if row major
+const char* inputCheck(const int nin, const int nout, int & status_code){
+    if (nin == 0) {
+        if (nout > 0) {
+            status_code = -1;
+            return "Cannot give outputs with no inputs.";
+        }
+        // We are being called through compilation testing. Just do nothing.
+        // If the binary was actually called, we are good to go.
+        status_code = 1;
+        return "";
+    } else if (nin != 4) {
+        status_code = -2;
+        return "4 input arguments required: Diagonal, N, number of cells and rowMajor bool";
+    } else if (nout > 1) {
+        status_code = -3;
+        return "Too many outputs requested. Function has a single output argument.";
+    } else {
+        // All ok.
+        status_code = 0;
+        return "";
+    }
+}
 
+const char* dimensionCheck(const int nc, const int nrows, const int ncols, int & status_code){
+    if(nrows != nc && ncols != nc){
+        status_code = -5;
+        return "Malformed input. No dimension of input matrix matches number of cells: Dimensions of diagonal matrix does not fit either RowMajor or ColMajor";
+    } else {
+        return "";
+    }
+}
+
+
+/* Templated function for main operation */
 template <int m>
 void gradientJacColMajor(const int nf, const int nc, const double * diagonal, const double * N, double * result){
     #pragma omp parallel for
@@ -42,29 +81,22 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		  int nrhs, const mxArray *prhs[] )
      
 { 
-    // INPUTS:
-    //  - cell_diagonal<double> [nc x m] if column major or [m x nc] if row major)
-    //  - N<double>             [nf x 2]
-    //  - nc<double>            [scalar]
-    // OUTPUT:
-    //  - face_diagonal<double> [nf x 2*m] if column major or [2*m x nf] if row major
-    if (nrhs == 0) {
-        if (nlhs > 0) {
-            mexErrMsgTxt("Cannot give outputs with no inputs.");
-        }
-        // We are being called through compilation testing. Just do nothing. 
-        // If the binary was actually called, we are good to go.
+    int status_code = 0;
+    auto msg = inputCheck(nrhs, nlhs, status_code);
+    if(status_code < 0){
+        // Some kind of error
+        mexErrMsgTxt(msg);
+    } else if (status_code == 1){
+        // Early return
         return;
-    } else if (nrhs != 4) {
-        mexErrMsgTxt("4 input arguments required: Diagonal, N, number of cells and rowMajor bool");
-    } else if (nlhs > 1) {
-        mexErrMsgTxt("Too many outputs requested. Function has a single output argument.");
     }
-    double* diagonal = mxGetPr(prhs[0]);
-    double* N = mxGetPr(prhs[1]);
+
+    double * diagonal = mxGetPr(prhs[0]);
+    double * N = mxGetPr(prhs[1]);
+    bool rowMajor = mxGetScalar(prhs[3]);
+
     int nc = mxGetScalar(prhs[2]);
     int nf = mxGetM(prhs[1]);
-    bool rowMajor = mxGetScalar(prhs[3]);
 
     // Dimensions of diagonals - figure out if we want row or column major solver
     int nrows = mxGetM(prhs[0]);

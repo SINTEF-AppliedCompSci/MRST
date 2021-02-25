@@ -21,6 +21,7 @@
 //  - cell_diagonal<double> [nc x m] if column major or [m x nc] if row major)
 //  - N<double>             [nf x 2]
 //  - nc<double>            [scalar]
+//  - rowMajor<bool>        [scalar]
 // OUTPUT:
 //  - face_diagonal<double> [nf x 2*m] if column major or [2*m x nf] if row major
 const char* inputCheck(const int nin, const int nout, int & status_code){
