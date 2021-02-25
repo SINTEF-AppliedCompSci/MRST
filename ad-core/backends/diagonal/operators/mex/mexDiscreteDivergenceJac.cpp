@@ -10,6 +10,39 @@
 #include <iostream>
 #include <chrono>
 
+// In: 
+// acc diagonal (nc x m) or empty
+// face diagonal (nf x 2*m)
+// N (nf x 2)
+// facePos (nc+1 x 1)
+// faces (length facePos(end)-1)
+// cells
+// cells_ix
+// rowMajor (boolean)
+// Out: either single sparse or the five sparse constructor inputs (I, J, V, n, m)
+const char* inputCheck(const int nin, const int nout, int & status_code){
+    if (nin == 0) {
+        if (nout > 0) {
+            status_code = -1;
+            return "Cannot give outputs with no inputs.";
+        }
+        // We are being called through compilation testing. Just do nothing.
+        // If the binary was actually called, we are good to go.
+        status_code = 1;
+        return "";
+    } else if (nin != 8) {
+        status_code = -2;
+        return "8 input arguments required.";
+    } else if (nout != 5 && nout != 1) {
+        status_code = -3;
+        return "Function must either produce five dense outputs (I, J, V, n, m) or a single sparse output (sparse matrix).";
+    } else {
+        // All ok.
+        status_code = 0;
+        return "";
+    }
+}
+
 template <bool colMajor, bool lower>
 void copyFaceData(const int c, const int nf, const int m, const int diag, const int passed, const int sparse_mult, const int cell_offset, const int f, const int fl, const double* diagonal, double* pr, mwIndex* ir, mwIndex* jc) {
     for (int der = 0; der < m; der++) {
@@ -254,26 +287,16 @@ void mexFunction( int nlhs, mxArray *plhs[],
      
 { 
     auto t0 = std::chrono::high_resolution_clock::now();
-    // In: 
-    // cell diagonal (nc x m) or empty
-    // diagonal (nf x 2*m)
-    // N (nf x 2)
-    // facePos (nc+1 x 1)
-    // faces (length facePos(end)-1)
-    // rowMajor
-    // Out: I, J, V
-    if (nrhs == 0) {
-        if (nlhs > 0) {
-            mexErrMsgTxt("Cannot give outputs with no inputs.");
-        }
-        // We are being called through compilation testing. Just do nothing. 
-        // If the binary was actually called, we are good to go.
+    int status_code = 0;
+    auto msg = inputCheck(nrhs, nlhs, status_code);
+    if(status_code < 0){
+        // Some kind of error
+        mexErrMsgTxt(msg);
+    } else if (status_code == 1){
+        // Early return
         return;
-    } else if (nrhs != 8) {
-	    mexErrMsgTxt("8 input arguments required."); 
-    } else if (nlhs != 5 && nlhs != 1 && nlhs != 0) {
-        mexErrMsgTxt("Function must either produce five dense outputs (I, J, V, n, m) or a single sparse output (sparse matrix).");
     }
+    // Parse inputs
     bool output_sparse = nlhs < 2;
     const mxArray * accJac   = prhs[0];
     const mxArray * faceJac  = prhs[1];
