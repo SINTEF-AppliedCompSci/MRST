@@ -161,10 +161,10 @@ faultFaces2D = diag( facesMat(cells2D_1+1, cells2D_2+1) );
 
 % boundary 3D
 nx = G.cartDims(1); ny=G.cartDims(2); nz=G.cartDims(3);
-ix1 = boundaryFaceIndices(G, 'BACK', 1:nx-6, 1:4, 1:nz);
-ix2 = boundaryFaceIndices(G, 'LEFT', 1:20,   1:ny, 1:nz);
-ix3 = boundaryFaceIndices(G, 'RIGHT', 1:nx, ny-10:ny, 1:nz);
-ix4 = boundaryFaceIndices(G, 'FRONT', 1:nx/2-8, ny/2:ny, 1:nz);
+ix1 = searchForBoundaryFaces(G, 'BACK', 1:nx-6, 1:4, 1:nz);
+ix2 = searchForBoundaryFaces(G, 'LEFT', 1:20,   1:ny, 1:nz);
+ix3 = searchForBoundaryFaces(G, 'RIGHT', 1:nx, ny-10:ny, 1:nz);
+ix4 = searchForBoundaryFaces(G, 'FRONT', 1:nx/2-8, ny/2:ny, 1:nz);
 
 if opt.do_plot
    figure;
@@ -182,10 +182,10 @@ bcIx = [ix1; ix2; ix3; ix4];
 
 % boundary 2D
 nx = Gt.cartDims(1); ny=Gt.cartDims(2);
-ix1 = boundaryFaceIndices(Gt, 'BACK',  1:nx-6, 1:4, []);
-ix2 = boundaryFaceIndices(Gt, 'LEFT',  1:20, 1:ny,  []);
-ix3 = boundaryFaceIndices(Gt, 'RIGHT', 1:nx, ny-10:ny, []);
-ix4 = boundaryFaceIndices(Gt, 'FRONT', 1:nx/2-8, ny/2:ny, []);
+ix1 = searchForBoundaryFaces(Gt, 'BACK',  1:nx-6, 1:4, []);
+ix2 = searchForBoundaryFaces(Gt, 'LEFT',  1:20, 1:ny,  []);
+ix3 = searchForBoundaryFaces(Gt, 'RIGHT', 1:nx, ny-10:ny, []);
+ix4 = searchForBoundaryFaces(Gt, 'FRONT', 1:nx/2-8, ny/2:ny, []);
 
 %remove faces connected to main fault
 % ix1 = ix1(Gt.faces.centroids(ix1,2)>6.714*1e6); 

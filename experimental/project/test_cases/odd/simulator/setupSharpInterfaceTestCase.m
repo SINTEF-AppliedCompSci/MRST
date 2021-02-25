@@ -167,7 +167,7 @@ end
 %%                                                                              
 function pface = facePressures(Gt, p, side, grav, rhoW)
            
-    ix = boundaryFaceIndices(Gt, side, [1:Gt.cartDims(1)], [1:Gt.cartDims(2)], []);
+    ix = searchForBoundaryFaces(Gt, side, 1:Gt.cartDims(1), 1:Gt.cartDims(2), []);
     % identifying indices of the cells containing these faces
     assert(prod(double(Gt.faces.neighbors(ix,:)), 2) == 0); % 
     cell_ix = sum(Gt.faces.neighbors(ix, :), 2);

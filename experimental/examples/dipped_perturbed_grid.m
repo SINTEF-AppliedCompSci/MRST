@@ -73,9 +73,9 @@ function Gt = dipped_perturbed_grid(varargin)
     
     % Alter the external boundaries to ensure trap regions do not touch
     % edges (i.e., forces co2 to spill out along these sides)
-    finx_sb = boundaryFaceIndices(G,'South');
-    finx_nb = boundaryFaceIndices(G,'North');
-    finx_eb = boundaryFaceIndices(G,'East');
+    finx_sb = searchForBoundaryFaces(G,'South');
+    finx_nb = searchForBoundaryFaces(G,'North');
+    finx_eb = searchForBoundaryFaces(G,'East');
     [n_sb, ~] = gridFaceNodes(G, finx_sb);
     [n_nb, ~] = gridFaceNodes(G, finx_nb);
     [n_eb, ~] = gridFaceNodes(G, finx_eb);

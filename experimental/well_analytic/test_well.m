@@ -78,7 +78,7 @@ W = addWell([], G, rock, cells, 'Radius',0.3,'Dir',wdir,'Val',1e6/year,'Type','r
 sides={'Xmin','Xmax','Ymin','Ymax'}
 faces=[];
 for i=1:numel(sides)
-    faces=[faces;boundaryFaceIndices(G,sides{i})];
+    faces=[faces;searchForBoundaryFaces(G,sides{i})];
 end
 bc=addBC([],faces,'pressure',0*barsa);
 

@@ -129,10 +129,10 @@ clear cells2D_1 cells2D_2 facesMat faultFaces2D
 
 % boundary 3D
 nx = G.cartDims(1); ny=G.cartDims(2); nz=G.cartDims(3);
-ix1 = boundaryFaceIndices(G, 'BACK', 1:nx-6, 1:4, 1:nz);
-ix2 = boundaryFaceIndices(G, 'LEFT', 1:20,   1:ny, 1:nz);
-ix3 = boundaryFaceIndices(G, 'RIGHT', 1:nx, ny-10:ny, 1:nz);
-ix4 = boundaryFaceIndices(G, 'FRONT', 1:nx/2-8, ny/2:ny, 1:nz);
+ix1 = searchForBoundaryFaces(G, 'BACK', 1:nx-6, 1:4, 1:nz);
+ix2 = searchForBoundaryFaces(G, 'LEFT', 1:20,   1:ny, 1:nz);
+ix3 = searchForBoundaryFaces(G, 'RIGHT', 1:nx, ny-10:ny, 1:nz);
+ix4 = searchForBoundaryFaces(G, 'FRONT', 1:nx/2-8, ny/2:ny, 1:nz);
 
 figure;
 subplot(1,2,1)
@@ -150,10 +150,10 @@ clear ix1 ix2 ix3 ix4
 
 % boundary 3D
 nx = G_c.cartDims(1); ny=G_c.cartDims(2); nz=G_c.cartDims(3);
-ix1 = boundaryFaceIndices(G_c, 'BACK', 1:nx-6, 1:4, 1:nz);
-ix2 = boundaryFaceIndices(G_c, 'LEFT', 1:20,   1:ny, 1:nz);
-ix3 = boundaryFaceIndices(G_c, 'RIGHT', 1:nx, ny-10:ny, 1:nz);
-ix4 = boundaryFaceIndices(G_c, 'FRONT', 1:nx/2-8, ny/2:ny, 1:nz);
+ix1 = searchForBoundaryFaces(G_c, 'BACK', 1:nx-6, 1:4, 1:nz);
+ix2 = searchForBoundaryFaces(G_c, 'LEFT', 1:20,   1:ny, 1:nz);
+ix3 = searchForBoundaryFaces(G_c, 'RIGHT', 1:nx, ny-10:ny, 1:nz);
+ix4 = searchForBoundaryFaces(G_c, 'FRONT', 1:nx/2-8, ny/2:ny, 1:nz);
 
 figure;
 subplot(1,2,1)
@@ -170,10 +170,10 @@ clear ix1 ix2 ix3 ix4
 
 % boundary 2D
 nx = G_top.cartDims(1); ny=G_top.cartDims(2);
-ix1 = boundaryFaceIndices(G_top, 'BACK',  1:nx-6, 1:4, []);
-ix2 = boundaryFaceIndices(G_top, 'LEFT',  1:20, 1:ny,  []);
-ix3 = boundaryFaceIndices(G_top, 'RIGHT', 1:nx, ny-10:ny, []);
-ix4 = boundaryFaceIndices(G_top, 'FRONT', 1:nx/2-8, ny/2:ny, []);
+ix1 = searchForBoundaryFaces(G_top, 'BACK',  1:nx-6, 1:4, []);
+ix2 = searchForBoundaryFaces(G_top, 'LEFT',  1:20, 1:ny,  []);
+ix3 = searchForBoundaryFaces(G_top, 'RIGHT', 1:nx, ny-10:ny, []);
+ix4 = searchForBoundaryFaces(G_top, 'FRONT', 1:nx/2-8, ny/2:ny, []);
 
 %remove faces connected to main fault
 ix1 = ix1(G_top.faces.centroids(ix1,2)>6.714*1e6);
