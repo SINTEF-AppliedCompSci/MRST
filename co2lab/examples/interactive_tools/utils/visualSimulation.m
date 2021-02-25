@@ -40,7 +40,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       
    %% Setting up interactive interface
    iface.h = figure();
-   set_size(iface.h, opt.window_size(1), opt.window_size(2));
+   set_size(iface.h, opt.window_size);
 
    % Graphical window
    iface.ax = axes('parent', iface.h, 'position', [.05 .20 .90 .76]);
@@ -82,7 +82,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %% Run simulation
 
    [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule, ...
-                                                     'afterStepFn', @after_step_callback);%#ok
+                                                     'afterStepFn', @after_step_callback);
    
    % check that context still exists
    if ~ishandle(iface.h)
@@ -144,7 +144,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              % data(data < opt.h_min_threshold) = NaN;
            case 'pressure'
              data = states{state_ix}.pressure;
-           case 'overpressure', %'pressure'
+           case 'overpressure' %'pressure'
              data = states{state_ix}.pressure - initState.pressure; % visualize overpressure
            case {'h', 'plume_s_avg'}
              p = states{state_ix}.pressure;
@@ -182,7 +182,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   'MarkerFaceColor',[0 0 0]);
          end
          
-         plotCellData(model.G, data); colorbar;
+         plotCellData(model.G, data, 'EdgeAlpha',.1); colorbar;
          
          if ~isempty(opt.trap_outlines)
             plotFaces(model.G, opt.trap_outlines, 'edgecolor', 'r', ...
@@ -247,10 +247,12 @@ end
 
 % ----------------------------------------------------------------------------
 
-function h = set_size(h, res_x, res_y)
+function h = set_size(h, res)
 % Utility function to resize a graphical window
    
-   pos = get(h, 'position');
-   set(h, 'position', [pos(1:2), res_x, res_y]);
+   pos  = get(h, 'position');
+   screensize = get(0,'screensize');
+   res = min([res; screensize(3:4)-[0 85]]);
+   set(h, 'position', [min([pos(1:2); screensize(3:4)-res-[0 85]]) res]);
    
 end
