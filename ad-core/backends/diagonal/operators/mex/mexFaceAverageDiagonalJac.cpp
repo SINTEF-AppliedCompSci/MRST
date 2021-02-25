@@ -14,6 +14,9 @@
     #include <mex.h>
 #endif
 
+//#include <chrono> 
+//using namespace std::chrono; 
+
 // INPUTS:
 //  - cell_diagonal<double> [nc x m] if column major or [m x nc] if row major)
 //  - N<double>             [nf x 2]
@@ -180,6 +183,8 @@ void faceAverageJacMain(const int m, const int nf, const int nc, const double * 
     DEFUN_DLD (mexFaceAverageDiagonalJac, args, nargout,
                "Face average operator for MRST - diagonal Jacobian.")
     {
+        //auto start = high_resolution_clock::now(); 
+
         const int nrhs = args.length();
         const int nlhs = nargout;
 
@@ -225,13 +230,23 @@ void faceAverageJacMain(const int m, const int nf, const int nc, const double * 
             outrow = nf;
             outcol = 2*m;
         }
-        NDArray output({outrow, outcol}, 0);
+        //auto setup = high_resolution_clock::now(); 
+        NDArray output({outrow, outcol});
+        //auto alloc = high_resolution_clock::now(); 
         double * result = output.fortran_vec();
+        //auto ptr = high_resolution_clock::now(); 
+
         if (rowMajor){
             faceAverageJacMain<true>(m, nf, nc, diagonal, N, result);
         }else{
             faceAverageJacMain<false>(m, nf, nc, diagonal, N, result);
         }
+        //auto compute = high_resolution_clock::now(); 
+        //auto t_setup = duration_cast<microseconds>(setup - start);
+        //auto t_alloc = duration_cast<microseconds>(alloc - setup);
+        //auto t_ptr = duration_cast<microseconds>(ptr - alloc);
+        //auto t_compute = duration_cast<microseconds>(compute - ptr);
+        //octave_stdout << "OCTAVE: Setup: " << t_setup.count()/1000 << " ms, alloc: " << t_alloc.count()/1000 << " ms ptr " << t_ptr.count()/1000 << " ms compute " << t_compute.count()/1000 << " ms." << std::endl;
         return octave_value (output);
     }
 #else
@@ -266,19 +281,23 @@ void faceAverageJacMain(const int m, const int nf, const int nc, const double * 
             // Some kind of error
             mexErrMsgTxt(msg2);
         }
-        if (nrows == nc) {
-            // ColMajor
-            int m = ncols;
-            plhs[0] = mxCreateDoubleMatrix(nf, 2 * m, mxREAL);
-            double* result = mxGetPr(plhs[0]);
-            faceAverageJacMain<false>(m, nf, nc, diagonal, N, result);
+        int outrow, outcol, m;
+        if(rowMajor){
+            m = nrows;
+            outrow = 2*m;
+            outcol = nf;
+        } else {
+            m = ncols;
+            outrow = nf;
+            outcol = 2*m;
         }
-        else if (ncols == nc){
-            // RowMajor
-            int m = nrows;
-            plhs[0] = mxCreateDoubleMatrix(2 * m, nf, mxREAL);
-            double* result = mxGetPr(plhs[0]);
+        // plhs[0] = mxCreateDoubleMatrix(outrow, outcol, mxREAL);
+        plhs[0] = mxCreateUninitNumericMatrix(outrow, outcol, mxDOUBLE_CLASS, mxREAL);
+        double* result = mxGetPr(plhs[0]);
+        if (rowMajor){
             faceAverageJacMain<true>(m, nf, nc, diagonal, N, result);
+        } else {
+            faceAverageJacMain<false>(m, nf, nc, diagonal, N, result);
         }
         return;
     }
