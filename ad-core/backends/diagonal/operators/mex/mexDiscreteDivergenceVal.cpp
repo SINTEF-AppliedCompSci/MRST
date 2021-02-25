@@ -10,8 +10,34 @@
 #include <iostream>
 #include <chrono>
 
-/* MEX gateway */
+template <bool has_accumulation> // nc, accumulation, flux, faces, facePos, N, result
+void divergenceVal(const int nc, const double * accumulation, const double * flux, const double * faces,
+                   const double * facePos, const double * N, double * result){
+    #pragma omp parallel for
+    for (int cell = 0; cell < (int)nc; cell++) {
+        // Each cell has number of connections equal to the number of half-
+        // faces for that cell plus itself multiplied by the block size
+        double v;
+        if(has_accumulation){
+            v = accumulation[cell];
+        }else{
+            v = 0;
+        }
+        for (int i = facePos[cell]; i < facePos[cell+1]; i++){
+            int f = faces[i];
+            double f_v = flux[f];
+            if(N[f] == cell+1){
+                // Positive flux is out
+                v += f_v;
+            }else{
+                v -= f_v;
+            }
+        }
+        result[cell] = v;
+    }
+}
 
+/* MEX gateway */
 void mexFunction( int nlhs, mxArray *plhs[], 
 		  int nrhs, const mxArray *prhs[] )
      
@@ -49,27 +75,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
     bool has_accumulation = n_acc > 0;
     double * accumulation = mxGetPr(prhs[0]);
     
-    plhs[0] = mxCreateDoubleMatrix(nc, 1, mxREAL);
+    plhs[0] = mxCreateUninitNumericMatrix(nc, 1, mxDOUBLE_CLASS, mxREAL);
+    // plhs[0] = mxCreateDoubleMatrix(nc, 1, mxREAL);
+
     double * result = mxGetPr(plhs[0]);
-    #pragma omp parallel for
-    for (int cell = 0; cell < (int)nc; cell++) {
-        // Each cell has number of connections equal to the number of half-
-        // faces for that cell plus itself multiplied by the block size
-        double v = 0;
-        if(has_accumulation){
-            v = accumulation[cell];
-        }
-        for (int i = facePos[cell]; i < facePos[cell+1]; i++){
-            int f = faces[i];
-            double f_v = flux[f];
-            if(N[f] == cell+1){
-                // Positive flux is out
-                v += f_v;
-            }else{
-                v -= f_v;
-            }
-        }
-        result[cell] = v;
+    if(has_accumulation){
+        divergenceVal<true>(nc, accumulation, flux, faces, facePos, N, result);
+    }else{
+        divergenceVal<false>(nc, accumulation, flux, faces, facePos, N, result);
     }
 }
 
