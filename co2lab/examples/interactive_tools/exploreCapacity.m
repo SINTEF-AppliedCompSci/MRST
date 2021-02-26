@@ -349,23 +349,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % Report total trapping figures
       set(rep_area, 'string', capacity_report());
       
+      ealpha = 0.05; % edge alpha value
+      
       % Determine what to plot
       switch (get(get(buttons, 'selectedobject'), 'String'))
       
         case 'caprock depth (m)'
-          plotCellData(Gt.parent, Gt.cells.z, 'edgealpha', 0.2);
+          plotCellData(Gt.parent, Gt.cells.z, 'edgealpha', ealpha);
           colorbar; rotate3d on;
           
         case 'formation thickness (m)'
-          plotCellData(Gt.parent, Gt.cells.H, 'edgealpha', 0.2);
+          plotCellData(Gt.parent, Gt.cells.H, 'edgealpha', ealpha);
           colorbar; rotate3d on;          
           
         case 'caprock temperature (C)'
-          plotCellData(Gt.parent, compute_temperature(), 'edgealpha', 0.2);
+          plotCellData(Gt.parent, compute_temperature(), 'edgealpha', ealpha);
           colorbar; rotate3d on;          
           
         case 'caprock pressure (MPa)'
-          plotCellData(Gt.parent, compute_pressure() / 1e6, 'edgealpha', 0.2);
+          plotCellData(Gt.parent, compute_pressure() / 1e6, 'edgealpha', ealpha);
           colorbar; rotate3d on;          
           
         case 'caprock topography'
@@ -375,12 +377,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         case 'caprock co2 density (kg/m3)'
           t = opt.seafloor_temp + (Gt.cells.z - opt.seafloor_depth) .* opt.temp_gradient ./ 1000;
           p = (Gt.cells.z * opt.water_density * norm(gravity)) .* (1+opt.press_deviation/100);
-          plotCellData(Gt.parent, var.co2.rho(p, t + 273.15), 'edgealpha', 0.2);
+          plotCellData(Gt.parent, var.co2.rho(p, t + 273.15), 'edgealpha', ealpha);
           colorbar; rotate3d on;
         case 'total capacity (tonnes/m2)'
           [~, strap, btrap_res, btrap_dis] = recompute_trapcap();
           tot_cap = (strap + btrap_res + btrap_dis) ./ Gt.cells.volumes ./ 1e3;
-          plotCellData(Gt.parent, tot_cap, 'edgealpha', 0.2);
+          plotCellData(Gt.parent, tot_cap, 'edgealpha', ealpha);
           colorbar; rotate3d on;
         case 'structural trap capacity (Mt)'
           trapcells = ta.traps~=0;
@@ -389,13 +391,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           trapcap_tot = ones(size(ta.traps)) * NaN;
           trapcap_tot(trapcells) = trapcaps(ta.traps(trapcells));
           
-          plotGrid(Gt.parent, 'facecolor','none', 'edgealpha', 0.1);
+          plotGrid(Gt.parent, 'facecolor','none', 'edgealpha', ealpha);
           plotCellData(Gt.parent, trapcap_tot/1e3/1e6, 'edgecolor','none'); 
           colorbar; rotate3d on;
 
         case 'reachable structural capacity (Mt)'
           cumul_trap = compute_cumul_trapcap();
-          plotCellData(Gt.parent, cumul_trap/1e9, 'edgealpha', 0.2);
+          plotCellData(Gt.parent, cumul_trap/1e9, 'edgealpha', ealpha);
           colorbar; rotate3d on;
       end
       %      plotGrid(var.Gt_cached.(var.current_formation).Gt);
