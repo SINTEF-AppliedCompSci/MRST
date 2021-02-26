@@ -345,13 +345,17 @@ void divergenceJacMain(const int nf, const int nc, const int m,
         }
         // Each cell has one self-connection plus the number of half-faces, multiplied by block size
         octix nzmax = (facePos[nc] + nc)*m;
+        double * pr;
+        octix * ir;
+        octix * jc;
+        SparseMatrix jacobian (nc, nc*m, nzmax);
+        pr = jacobian.data();
+        ir = jacobian.ridx();
+        jc = jacobian.cidx();
+
         if (!output_sparse) {
             error("Non-sparse output not yet supported in OCT-mode.");
         }
-        SparseMatrix jacobian (nc, nc*m, nzmax);
-        double * pr = jacobian.data();
-        octave_idx_type * ir = jacobian.ridx();
-        octave_idx_type * jc = jacobian.cidx();
 
         if (rowMajor){
             if(has_accumulation){
