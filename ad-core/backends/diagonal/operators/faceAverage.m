@@ -32,6 +32,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         v.jac = cellfun(@(x) avgJac(x, N, nc, useMex), v.jac, 'UniformOutput', false);
+    elseif useMex
+        v = mexFaceAverageVal(v, N);
     else
         v = 0.5*(v(N(:, 1), :) + v(N(:, 2), :));
     end
