@@ -46,7 +46,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isempty(traps)
        traps = 1:max(res.traps);
     end
-    
+
+    v = zeros(numel(traps), 1);
     for i = 1:numel(traps)
         ind     = res.traps == traps(i);
         z       = Gt.cells.z(ind);
