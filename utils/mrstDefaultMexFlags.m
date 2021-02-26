@@ -119,10 +119,18 @@ end
 
 function [CXXFLAGS, iomp5] = compile_flags_msvc(defines, iomp5)
    % Note explicit /EHsc to enable C++ exception handling
+   omp = mrstSettings('get', 'useOMP');
+   if omp
+       omp_str = '/openmp ';
+       iomp5    = { ['LINKFLAGS=$LINKFLAGS ', ...
+                     '/nodefaultlib:vcomp ', iomp5{1} ]};
+   else
+       omp_str = '';
+       iomp5 = {'LINKFLAGS=$LINKFLAGS '};
+   end
+       
    CXXFLAGS = { ['COMPFLAGS=/EHsc /MD ', formatDefs('/', defines), ...
-                 ' /openmp /wd4715 /fp:fast /O2 /bigobj'] };
-   iomp5    = { ['LINKFLAGS=$LINKFLAGS ', ...
-                 '/nodefaultlib:vcomp ', iomp5{1} ]};
+                 sprintf(' %s/wd4715 /fp:fast /O2 /bigobj', omp_str)] };
 end
 
 %--------------------------------------------------------------------------
@@ -141,14 +149,21 @@ end
 
 function [CXXFLAGS, LINK, iomp5] = compile_flags_gcc(defines, LINK, iomp5)
     compile_native = '-march=native';
+    omp = mrstSettings('get', 'useOMP');
     if ispc()
         compile_native = '';
+    end
+    if omp
+        omp_str = ' -fopenmp';
+    else
+        omp_str = '';
+        iomp5 = {};
     end
 
     CXXFLAGS = ...
         { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE ', ...
         formatDefs('-', defines), ' -fPIC -O3 -std=c++11 ', ...
-        '-ffast-math ', compile_native, ' -fopenmp'] };
+        '-ffast-math ', compile_native, omp_str] };
     if mrstPlatform('matlab')
         need_builtin_openmp = ispc() || gcc_need_builtin_openmp();
     else
@@ -159,10 +174,10 @@ function [CXXFLAGS, LINK, iomp5] = compile_flags_gcc(defines, LINK, iomp5)
         % new to integrate nicely with MATLAB's bundled copy of Intel's
         % OpenMP runtime libraries.  Use compiler's OpenMP runtime library.
         if mrstPlatform('matlab')
-            LINK  = [ LINK, 'LDFLAGS="$LDFLAGS -fopenmp"' ];
+            LINK  = [ LINK, sprintf('LDFLAGS="$LDFLAGS %s"', omp_str)];
         else
             % Octave uses different setup, drop LDFLAGS
-            LINK  = [ LINK, '-fopenmp' ];
+            LINK  = [ LINK, omp_str ];
         end
         iomp5 = {};
     end
