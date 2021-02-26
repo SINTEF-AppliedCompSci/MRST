@@ -149,8 +149,12 @@ function [CXXFLAGS, LINK, iomp5] = compile_flags_gcc(defines, LINK, iomp5)
         { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE ', ...
         formatDefs('-', defines), ' -fPIC -O3 -std=c++11 ', ...
         '-ffast-math ', compile_native, ' -fopenmp'] };
-
-    if ispc() || gcc_need_builtin_openmp()
+    if mrstPlatform('matlab')
+        need_builtin_openmp = ispc() || gcc_need_builtin_openmp();
+    else
+        need_builtin_openmp = true;
+    end
+    if need_builtin_openmp
         % Could be MinGW or similar on Windows or a GCC version that's too
         % new to integrate nicely with MATLAB's bundled copy of Intel's
         % OpenMP runtime libraries.  Use compiler's OpenMP runtime library.
