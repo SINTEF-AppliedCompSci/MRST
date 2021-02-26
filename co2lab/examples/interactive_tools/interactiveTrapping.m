@@ -380,6 +380,7 @@ function plotMain(Gt, res, bf, atlasdata)
         end
         light('position', [max(Gt.cells.centroids) sgn*4*max(Gt.cells.z)],'Style','local');
         lighting phong
+        material dull
     end
     if trap==0, return, end;
     
