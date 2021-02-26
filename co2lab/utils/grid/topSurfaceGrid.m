@@ -3,7 +3,7 @@ function [Gt, G, transMult] = topSurfaceGrid(G)
 %ijk-index (e.g., a corner-point grid or a logically Cartesian grid)
 %
 % SYNOPSIS:
-%   [Gt,G] = topSurfaceGrid(G)
+%   [Gt,G,transMult] = topSurfaceGrid(G)
 %
 % PARAMETERS:
 %   G       - 3D grid as described by grid_structure.
@@ -44,6 +44,9 @@ function [Gt, G, transMult] = topSurfaceGrid(G)
 %      corresponding to Gt. Important to use this 3D grid when doing
 %      comparisons or if 2D data is mapped back to 3D grid.
 %
+%   transMult - array of transmissibility multipliers, one per face in Gt,
+%      which accounts for the fact that neighboring stacks of grid cells
+%      may be only partially overlapping.
 %
 % FIELDS in a 2D top-surface grid:
 %
