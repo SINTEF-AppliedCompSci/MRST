@@ -2,13 +2,18 @@
 // include necessary system headers
 //
 #include <cmath>
-#include <mex.h>
 #include <array>
 #ifdef _OPENMP
     #include <omp.h>
 #endif
 #include <iostream>
-#include <chrono>
+#ifdef MRST_OCTEXT
+    #include <octave/oct.h>
+    #include <octave/dMatrix.h>
+    #define octix octave_idx_type
+#else
+    #include <mex.h>
+#endif
 
 // In: 
 // acc diagonal (nc x m) or empty
@@ -43,8 +48,9 @@ const char* inputCheck(const int nin, const int nout, int & status_code){
     }
 }
 
-template <bool colMajor, bool lower>
-void copyFaceData(const int c, const int nf, const int m, const int diag, const int passed, const int sparse_mult, const int cell_offset, const int f, const int fl, const double* diagonal, double* pr, mwIndex* ir, mwIndex* jc) {
+template <bool colMajor, bool lower, class index_t>
+void copyFaceData(const int c, const int nf, const int m, const int diag, const int passed, 
+                const int sparse_mult, const int cell_offset, const int f, const int fl, const double* diagonal, double* pr, index_t* ir, index_t* jc) {
     for (int der = 0; der < m; der++) {
         double v;
         int sparse_offset = der * sparse_mult + cell_offset;
@@ -75,12 +81,12 @@ void copyFaceData(const int c, const int nf, const int m, const int diag, const 
     }
 }
 
-template <bool has_accumulation, bool colMajor>
+template <bool has_accumulation, bool colMajor, class index_t>
 void divergenceJac(const int nf, const int nc, const int m,
     const double* N, const double* facePos, const double* faces,
     const double* cells, const double* cells_ix,
     const double* accumulation, const double* diagonal,
-    double* pr, mwIndex* ir, mwIndex* jc) {
+    double* pr, index_t* ir, index_t* jc) {
     int mv = facePos[nc];
     #pragma omp parallel for
     for (int cell = 0; cell < nc; cell++) {
@@ -135,22 +141,22 @@ void divergenceJac(const int nf, const int nc, const int m,
     }
 }
 
-template <int m, bool has_accumulation, bool colMajor>
+template <int m, bool has_accumulation, bool colMajor, class index_t>
 void divergenceJac(const int nf, const int nc,
     const double* N, const double* facePos, const double* faces,
     const double* cells, const double* cells_ix,
     const double* accumulation, const double* diagonal,
-    double* pr, mwIndex* ir, mwIndex* jc) {
+    double* pr, index_t* ir, index_t* jc) {
         divergenceJac<has_accumulation, colMajor>(nf, nc, m, N, facePos, faces, cells, cells_ix, accumulation, diagonal, pr, ir, jc);
 }
 
 
-template <bool has_accumulation, bool colMajor>
+template <bool has_accumulation, bool colMajor, class index_t>
 void divergenceJacMain(const int nf, const int nc, const int m,
     const double* N, const double* facePos, const double* faces,
     const double* cells, const double* cells_ix,
     const double* accumulation, const double* diagonal,
-    double* pr, mwIndex* ir, mwIndex* jc){
+    double* pr, index_t* ir, index_t* jc){
     switch (m) {
     case 1:
         divergenceJac<1, has_accumulation, colMajor>(nf, nc, N, facePos, faces, cells, cells_ix,
@@ -279,115 +285,199 @@ void divergenceJacMain(const int nf, const int nc, const int m,
 
 }
 
+#ifdef MRST_OCTEXT
+    /* OCT gateway */
+    DEFUN_DLD (mexDiscreteDivergenceJac, args, nargout,
+               "Discrete divergence operator for MRST - diagonal Jacobian.")
+    {
+        int status_code = 0;
+        auto msg = inputCheck(args.length(), nargout, status_code);
+        
+        if(status_code < 0){
+            // Some kind of error
+            error(msg);
+        } else if (status_code == 1){
+            // Early return
+            return octave_value_list();
+        }
+        bool output_sparse = nargout < 2;
+        // Jacobians
+        const NDArray accJac   = args(0).array_value();
+        const NDArray faceJac  = args(1).array_value();
 
-/* MEX gateway */
+        const double * accumulation = accJac.data();
+        const double * diagonal = faceJac.data();
+        // Grid structure
+        const NDArray N_nd   = args(2).array_value();
+        const double * N       = N_nd.data();
+        const NDArray facePos_nd = args(3).array_value();
+        const double * facePos = facePos_nd.data();
+        const NDArray faces_nd = args(4).array_value();
+        const double * faces   = faces_nd.data();
+        const double * cells   = args(5).array_value().data();
+        const double * cells_ix = args(6).array_value().data();
+        bool rowMajor = args(7).scalar_value();
 
-void mexFunction( int nlhs, mxArray *plhs[], 
-		  int nrhs, const mxArray *prhs[] )
-     
-{ 
-    auto t0 = std::chrono::high_resolution_clock::now();
-    int status_code = 0;
-    auto msg = inputCheck(nrhs, nlhs, status_code);
-    if(status_code < 0){
-        // Some kind of error
-        mexErrMsgTxt(msg);
-    } else if (status_code == 1){
-        // Early return
-        return;
+        octix nrows = faceJac.rows();
+        octix ncols = faceJac.cols();
+
+        octix nf = N_nd.rows();
+        octix nc = facePos_nd.rows()-1;
+        octix nhf = faces_nd.rows();
+        octix n_acc = accJac.numel();
+
+        bool has_accumulation = n_acc > 0;
+
+        octix m, nf_in;
+        if (rowMajor) {
+            m = nrows / 2;
+            nf_in = ncols;
+        } else {
+            m = ncols / 2;
+            nf_in = nrows;
+        }
+        if(has_accumulation && n_acc != m*nc){
+            error("Accumulation term diagonal was provided, but dimensions are incorrect.");
+        }
+
+        if(nf_in != nf){
+            error("Face inputs do not match.");
+        }
+        // Each cell has one self-connection plus the number of half-faces, multiplied by block size
+        octix nzmax = (facePos[nc] + nc)*m;
+        if (!output_sparse) {
+            error("Non-sparse output not yet supported in OCT-mode.");
+        }
+        SparseMatrix jacobian (nc, nc*m, nzmax);
+        double * pr = jacobian.data();
+        octave_idx_type * ir = jacobian.ridx();
+        octave_idx_type * jc = jacobian.cidx();
+
+        if (rowMajor){
+            if(has_accumulation){
+                divergenceJacMain<true, false>(nf, nc, m, N, facePos, faces, cells, cells_ix,
+                            accumulation, diagonal, pr, ir, jc);
+            }else{
+                divergenceJacMain<false, false>(nf, nc, m, N, facePos, faces, cells, cells_ix,
+                            accumulation, diagonal, pr, ir, jc);
+            }
+        } else {
+            if(has_accumulation){
+                divergenceJacMain<true, true>(nf, nc, m, N, facePos, faces, cells, cells_ix,
+                            accumulation, diagonal, pr, ir, jc);
+            }else{
+                divergenceJacMain<false, true>(nf, nc, m, N, facePos, faces, cells, cells_ix,
+                            accumulation, diagonal, pr, ir, jc);
+            }
+        }
+        return octave_value(jacobian);
     }
-    // Parse inputs
-    bool output_sparse = nlhs < 2;
-    const mxArray * accJac   = prhs[0];
-    const mxArray * faceJac  = prhs[1];
-    double * N       = mxGetPr(prhs[2]);
-    double * facePos = mxGetPr(prhs[3]);
-    double * faces   = mxGetPr(prhs[4]);
-    double * cells   = mxGetPr(prhs[5]);
-    double * cells_ix = mxGetPr(prhs[6]);
-    bool rowMajor = mxGetScalar(prhs[7]);
+#else
+    /* MEX gateway */
+    void mexFunction( int nlhs, mxArray *plhs[], 
+            int nrhs, const mxArray *prhs[] )
+        
+    { 
+        int status_code = 0;
+        auto msg = inputCheck(nrhs, nlhs, status_code);
+        if(status_code < 0){
+            // Some kind of error
+            mexErrMsgTxt(msg);
+        } else if (status_code == 1){
+            // Early return
+            return;
+        }
+        // Parse inputs
+        bool output_sparse = nlhs < 2;
+        const mxArray * accJac   = prhs[0];
+        const mxArray * faceJac  = prhs[1];
+        const double * N       = mxGetPr(prhs[2]);
+        const double * facePos = mxGetPr(prhs[3]);
+        const double * faces   = mxGetPr(prhs[4]);
+        const double * cells   = mxGetPr(prhs[5]);
+        const double * cells_ix = mxGetPr(prhs[6]);
+        bool rowMajor = mxGetScalar(prhs[7]);
 
-    // Dimensions of diagonals - figure out if we want row or column major solver
-    int nrows = mxGetM(faceJac);
-    int ncols = mxGetN(faceJac);
+        // Dimensions of diagonals - figure out if we want row or column major solver
+        int nrows = mxGetM(faceJac);
+        int ncols = mxGetN(faceJac);
 
 
-    /* Diagonal of accumulation term */
-    double * accumulation = mxGetPr(accJac);
-    /* Diagonal of fluxes */
-    double * diagonal = mxGetPr(faceJac);
+        /* Diagonal of accumulation term */
+        const double * accumulation = mxGetPr(accJac);
+        /* Diagonal of fluxes */
+        const double * diagonal = mxGetPr(faceJac);
 
-    int nf = mxGetM(prhs[2]);
-    int nc = mxGetM(prhs[3])-1;
-    int nhf = mxGetM(prhs[4]);
-    int n_acc = mxGetNumberOfElements(accJac);
-    
-    bool has_accumulation = n_acc > 0;
-    
-    int m, nf_in;
-    if (rowMajor) {
-        m = nrows / 2;
-        nf_in = ncols;
-    } else {
-        m = ncols / 2;
-        nf_in = nrows;
-    }
-    // mexPrintf("Matrix has dimensions %d by %d. There are %d faces and %d cells (%d interfaces, %d derivatives)\n", nrows, ncols, nf, nc, nf_in, m);
-    if(has_accumulation && n_acc != m*nc){
-        mexErrMsgTxt("Accumulation term diagonal was provided, but dimensions are incorrect.");
-    }
+        int nf = mxGetM(prhs[2]);
+        int nc = mxGetM(prhs[3])-1;
+        int nhf = mxGetM(prhs[4]);
+        int n_acc = mxGetNumberOfElements(accJac);
+        
+        bool has_accumulation = n_acc > 0;
+        
+        int m, nf_in;
+        if (rowMajor) {
+            m = nrows / 2;
+            nf_in = ncols;
+        } else {
+            m = ncols / 2;
+            nf_in = nrows;
+        }
+        // mexPrintf("Matrix has dimensions %d by %d. There are %d faces and %d cells (%d interfaces, %d derivatives)\n", nrows, ncols, nf, nc, nf_in, m);
+        if(has_accumulation && n_acc != m*nc){
+            mexErrMsgTxt("Accumulation term diagonal was provided, but dimensions are incorrect.");
+        }
 
-    if(nf_in != nf){
-        mexErrMsgTxt("Face inputs do not match.");
-    }
-    // Each cell has one self-connection plus the number of half-faces, multiplied by block size
-    mwSize nzmax = (facePos[nc] + nc)*m;
-    // printf("%d cells %d faces, %d half-faces and %d derivatives \n", nc, nf, nhf, m);
-    // Row indices, zero-indexed (direct entries)
-    mwIndex* ir;
-    // Column indices, zero-indexed, offset encoded of length m*nc + 1
-    mwIndex* jc;
-    // Entries
-    double* pr;
-    if (output_sparse) {
-        plhs[0] = mxCreateSparse(nc, nc * m, nzmax, mxREAL);
-
-        pr = mxGetPr(plhs[0]);
-        ir = mxGetIr(plhs[0]);
-        jc = mxGetJc(plhs[0]);
-    }
-    else {
-        plhs[0] = mxCreateNumericMatrix(nzmax, 1, mxUINT64_CLASS, mxREAL); // We have no way of allocating mwIndex (size_t). So we hope for the best and allocate uint64...
-        plhs[1] = mxCreateNumericMatrix(m*nc+1, 1, mxUINT64_CLASS, mxREAL);
-        plhs[2] = mxCreateDoubleMatrix(nzmax, 1, mxREAL);
-        ir = (mwIndex*)mxGetData(plhs[0]);
-        jc = (mwIndex*)mxGetData(plhs[1]);
+        if(nf_in != nf){
+            mexErrMsgTxt("Face inputs do not match.");
+        }
+        // Each cell has one self-connection plus the number of half-faces, multiplied by block size
+        mwSize nzmax = (facePos[nc] + nc)*m;
+        // Row indices, zero-indexed (direct entries)
+        mwIndex* ir;
+        // Column indices, zero-indexed, offset encoded of length m*nc + 1
+        mwIndex* jc;
         // Entries
-        pr = mxGetPr(plhs[2]);
-        plhs[3] = mxCreateDoubleMatrix(1, 1, mxREAL);
-        plhs[4] = mxCreateDoubleMatrix(1, 1, mxREAL);
+        double* pr;
+        if (output_sparse) {
+            plhs[0] = mxCreateSparse(nc, nc * m, nzmax, mxREAL);
 
-        double* three = mxGetPr(plhs[3]);
-        three[0] = nc;
-        double* four = mxGetPr(plhs[4]);
-        four[0] = nc * m;
-    }
-    if (rowMajor){
-        if(has_accumulation){
-            divergenceJacMain<true, false>(nf, nc, m, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-        }else{
-            divergenceJacMain<false, false>(nf, nc, m, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
+            pr = mxGetPr(plhs[0]);
+            ir = mxGetIr(plhs[0]);
+            jc = mxGetJc(plhs[0]);
         }
-    } else {
-        if(has_accumulation){
-            divergenceJacMain<true, true>(nf, nc, m, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-        }else{
-            divergenceJacMain<false, true>(nf, nc, m, N, facePos, faces, cells, cells_ix,
-                        accumulation, diagonal, pr, ir, jc);
-        }
-    }
-}
+        else {
+            plhs[0] = mxCreateNumericMatrix(nzmax, 1, mxUINT64_CLASS, mxREAL); // We have no way of allocating mwIndex (size_t). So we hope for the best and allocate uint64...
+            plhs[1] = mxCreateNumericMatrix(m*nc+1, 1, mxUINT64_CLASS, mxREAL);
+            plhs[2] = mxCreateDoubleMatrix(nzmax, 1, mxREAL);
+            ir = (mwIndex*)mxGetData(plhs[0]);
+            jc = (mwIndex*)mxGetData(plhs[1]);
+            // Entries
+            pr = mxGetPr(plhs[2]);
+            plhs[3] = mxCreateDoubleMatrix(1, 1, mxREAL);
+            plhs[4] = mxCreateDoubleMatrix(1, 1, mxREAL);
 
+            double* three = mxGetPr(plhs[3]);
+            three[0] = nc;
+            double* four = mxGetPr(plhs[4]);
+            four[0] = nc * m;
+        }
+        if (rowMajor){
+            if(has_accumulation){
+                divergenceJacMain<true, false>(nf, nc, m, N, facePos, faces, cells, cells_ix,
+                            accumulation, diagonal, pr, ir, jc);
+            }else{
+                divergenceJacMain<false, false>(nf, nc, m, N, facePos, faces, cells, cells_ix,
+                            accumulation, diagonal, pr, ir, jc);
+            }
+        } else {
+            if(has_accumulation){
+                divergenceJacMain<true, true>(nf, nc, m, N, facePos, faces, cells, cells_ix,
+                            accumulation, diagonal, pr, ir, jc);
+            }else{
+                divergenceJacMain<false, true>(nf, nc, m, N, facePos, faces, cells, cells_ix,
+                            accumulation, diagonal, pr, ir, jc);
+            }
+        }
+    }
+#endif
