@@ -16,12 +16,13 @@ function [G, rock, bcIx, Gt, rock2D, bcIxVE] = makeJohansenVEgrid(varargin)
 %  offshore the south-west coast of Norway. We consider a sector model that
 %  has been constructed based on available seismic and well data and stored
 %  in the Eclipse input format (GRDECL). The model has five vertical layers
-%  in the Johansen formation and five shale layers above and one below in
-%  the Dunhil and Amundsen formations. The shale layers are removed and we
-%  construct a 2D grid of the top surface, assuming that the major
-%  fault is sealing. Moreover, we identify all outer boundaries that are
-%  open to flow. A more thorough presentation of the geological model can be
-%  found in the script <matlab:edit('showJohansen.m') showJohansen.m>
+%  in the Johansen formation and in addition there are five shale layers
+%  above and one below in the Dunhil and Amundsen formations. The shale
+%  layers are removed and we construct a 2D grid of the top surface,
+%  assuming that the major fault is sealing. Moreover, we identify all
+%  outer boundaries that are open to flow. A more thorough presentation of
+%  the geological model can be found in the script
+%  <matlab:edit('showJohansen.m') showJohansen.m>
 %
 %  The grid and rock structured constructed in the following can be used for
 %  subsequent 3D and/or VE simulations of CO2 injection and migration and
