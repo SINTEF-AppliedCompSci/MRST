@@ -55,10 +55,10 @@ const char* dimensionCheck(const int nc, const int nrows, const int ncols, int &
         return "";
     }
 }
-
+/* Templated function for main operation */
 template <bool rowMajor>
 void faceAverageJac(const int nf, const int nc, const int m, const double* diagonal, const double* N, double* result) {
-#pragma omp parallel
+#pragma omp parallel for
     for (int face = 0; face < nf; face++) {
         int left = N[face] - 1;
         int right = N[face + nf] - 1;
