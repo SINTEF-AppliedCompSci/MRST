@@ -69,13 +69,11 @@ const char* inputCheck(const int nin, const int nout, int & status_code){
         
         const double * value = value_nd.data();
         const double * N = N_nd.data();
-        const dim_vector sz = value_nd.dims();
-        const dim_vector nsz = N_nd.dims();
         
-        int dim = sz(1);
-        int nc = sz(0);
+        int dim = value_nd.cols();
+        int nc = value_nd.rows();
         
-        int nf = nsz(0);
+        int nf = N_nd.rows();
 
         NDArray output({nf, dim});
         double * result = output.fortran_vec();

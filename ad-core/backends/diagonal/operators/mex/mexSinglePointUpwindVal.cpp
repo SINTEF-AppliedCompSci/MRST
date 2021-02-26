@@ -19,7 +19,7 @@
 
 template <class logic_type> 
 void upwind(const int nf, const int nc, const int dim, const double* value, const double* N, const logic_type * flag, double* result) {
-     #pragma omp parallel for
+    #pragma omp parallel for
     for(int i=0;i<nf;i++){
         int fpos = i + nf;
         if(flag[i]){
