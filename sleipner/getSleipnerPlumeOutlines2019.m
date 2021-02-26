@@ -65,7 +65,7 @@ plist{9} = [2,1];
 function [plumes,depths] = getPlumeOutlinesAllLayers()
 % Read in plume outlines for 2019 Sleipner layered model
 datafolder = fullfile(getDatasetPath('sleipner2019'),...
-    'sleipner_plumes_boundaries','Sleipner_Plumes_Boundaries','data');
+    'Sleipner_Plumes_Boundaries','data');
 
 filelist = dir(fullfile(datafolder,'L*'))
 for k = 1 : length(filelist)

@@ -47,7 +47,7 @@ G = addBoundingBoxFields(G);
 
 
 datafolder = fullfile(getDatasetPath('sleipner2019'),...
-    'well_data','well_data','data','Wells_released_2011');
+    'well_data','data','Wells_released_2011');
 
 % Get well trajectories
 

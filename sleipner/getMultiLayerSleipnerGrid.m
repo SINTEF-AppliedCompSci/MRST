@@ -36,7 +36,7 @@ opt = struct('coarseDimXY',[]);
 opt = merge_options(opt, varargin{:});
 
 datafolder = fullfile(getDatasetPath('sleipner2019'),...
-    'sleipner_reference_model_2019_grid','Sleipner_Reference_Model_2019_Grid','data');
+    'Sleipner_Reference_Model_2019_Grid','data');
 
 grdecl = readGRDECL(fullfile(datafolder, 'Sleipner_Reference_Model.grdecl'));
 
