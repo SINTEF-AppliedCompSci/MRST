@@ -154,7 +154,7 @@ function [CXXFLAGS, LINK, iomp5] = compile_flags_gcc(defines, LINK, iomp5)
         compile_native = '';
     end
     if omp
-        omp_str = ' -fopenmp';
+        omp_str = '-fopenmp';
     else
         omp_str = '';
         iomp5 = {};
