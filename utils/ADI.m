@@ -626,7 +626,7 @@ classdef ADI
       end
    end
    
-   methods (Access=protected, Static)
+   methods (Static)
         %**************************************************************************
         %-------- Helper functions involving Jacobians  ---------------------------
         %**************************************************************************
