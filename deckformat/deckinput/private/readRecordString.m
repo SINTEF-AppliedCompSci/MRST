@@ -119,7 +119,7 @@ function [data, done] = append_line(data, lin)
    end
 
    lin  = assembleString(S);
-   data = [data, ' ', lin];
+   data = [char(data), ' ', lin];
 end
 
 %--------------------------------------------------------------------------
