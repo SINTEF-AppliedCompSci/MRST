@@ -160,6 +160,9 @@ classdef NonLinearSolver < handle
             % Number of accepted steps
             acceptCount = 0;
             t_local = 0;
+            if ~isfield(state0, 'time')
+                state0.time = 0;
+            end
             t_start = state0.time;
             isFinalMinistep = false;
             state0_inner = state0;
