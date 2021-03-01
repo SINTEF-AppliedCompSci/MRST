@@ -90,10 +90,12 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   if ~exist('verLessThan', 'file') || verLessThan('matlab', '8.3.0')
-      error(['Automated Build Script for ''amgcl_matlab'' is not ', ...
-             'Supported in MATLABs prior to 8.3.0 (R2014a)']);
-   end
+    if mrstPlatform('matlab')
+        if ~exist('verLessThan', 'file') || verLessThan('matlab', '8.3.0')
+            error(['Automated Build Script for ''amgcl_matlab'' is not ', ...
+                'Supported in MATLABs prior to 8.3.0 (R2014a)']);
+        end
+    end
 
    [AMGCLPATH, BOOSTPATH] = getAMGCLDependencyPaths();
    if ~valid_global_path(AMGCLPATH)

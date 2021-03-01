@@ -166,15 +166,16 @@ end
 %--------------------------------------------------------------------------
 
 function status = do_download_library(msg)
-    isDesktop = usejava('desktop');
-
-    if isDesktop
-        title = 'Missing dependency';
-        choice = questdlg(msg, title, 'Yes', 'No', 'Yes');
+    if mrstSettings('promptDL')
+        if mrstPlatform('desktop')
+            title = 'Missing dependency';
+            choice = questdlg(msg, title, 'Yes', 'No', 'Yes');
+        else
+            disp(msg);
+            choice = input(' y/n [y]: ', 's');
+        end
+        status = strcmpi(choice, 'y') || strcmpi(choice, 'yes');
     else
-        disp(msg);
-        choice = input(' y/n [y]: ', 's');
+        status = true;
     end
-
-    status = strcmpi(choice, 'y') || strcmpi(choice, 'yes');
 end
