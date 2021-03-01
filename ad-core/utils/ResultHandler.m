@@ -202,7 +202,7 @@ classdef ResultHandler < handle
                     pad = repmat(' ', size(l, 1), 1);
                     l = reshape([l, pad]', 1, []);
                 end
-                l = regexp(l,'\s+','split');
+                l = regexp(char(l), '\s+', 'split');
                 for i = 1:numel(l)
                     line = l{i};
                     [s, e] = regexp(line, ['^', handler.dataPrefix, '\d+']);
