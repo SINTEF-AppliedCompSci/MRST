@@ -268,7 +268,7 @@ classdef GenericAD < ADI
         end
     end
     
-    methods (Access=protected, Static)
+    methods (Static)
         
         function J = uminusJac(J1)
             J = cellfun(@uminus, J1, 'UniformOutput', false);
