@@ -67,6 +67,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Didn't manage to load them - we are restarting
             SETTINGS = firstTimeSetup(SETTINGS, isDesktop);
             need_save = true;
+        else
+            % We have added some settings between MRST sessions. Won't
+            % happen in a release, but might happen when migrating settings
+            % files between MRST releases or for developers. We just copy
+            % over the default value and print a notification when this
+            % happens.
+            default = getDefaultMRSTSettings(false);
+            f = fieldnames(SETTINGS);
+            df = fieldnames(default);
+            missing = setdiff(df, f);
+            for i = 1:numel(missing)
+                nm = missing{i}; 
+                v = default.(nm);
+                if isstruct(v)
+                    fprintf('New setting discovered: %s. Setting default value: %s\n', nm, v.value);
+                end
+                SETTINGS.(nm) = v; 
+            end
+            need_save = numel(missing) > 0;
         end
     end
     if nargin == 0 
