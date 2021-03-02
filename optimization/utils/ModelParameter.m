@@ -10,7 +10,8 @@ classdef ModelParameter
         belongsTo                % model/well/state0
         location                 % e.g., {'operators', ''}
         n                        % number of 
-        lumping                  % 
+        lumping                  %
+        initial_val
     end
     
     methods
@@ -28,7 +29,7 @@ classdef ModelParameter
             if strcmp(p.type, 'multiplier')
                 pval = pval./p.initialValue;
             end
-            pval = collapseLumps(p, pval, @mean);
+            %pval = collapseLumps(p, pval, @mean);
             if strcmp(p.scaling, 'linear')
                 vs = (pval-p.boxLims(:,1))./diff(p.boxLims, [], 2);
             elseif strcmp(p.scaling, 'log')
@@ -45,7 +46,7 @@ classdef ModelParameter
                 logLims = log(p.boxLims);
                 pval = exp(vs.*diff(logLims, [], 2) + logLims(:,1));
             end
-            pval = expandLumps(p,pval);
+            %pval = expandLumps(p,pval);
             if strcmp(p.type, 'multiplier')
                 pval = pval.*p.initialValue;
             end
@@ -88,18 +89,22 @@ classdef ModelParameter
         function v = getModelParameterValue(p, model)
             assert(strcmp(p.belongsTo, 'model'))
             v = getfield(model, p.location{:});
-            if ~isempty(p.Indx) || ~isnumeric(p.Indx)
-                v = v(p.Indx);
-            end
+            v = collapseLumps(p, v, @mean);
+%             if ~isempty(p.Indx) || ~isnumeric(p.Indx)
+%                 v = v(p.Indx); %TODO: posible problem: p.Indx{:} must be cell array wit roww vectors
+%                 %v = v(horzcat(p.Indx{:})); %TODO: posible problem: p.Indx{:} must be cell array wit roww vectors
+%                 v = collapseLumps(p, v, @mean);
+%             end
         end
         
         function model = setModelParameterValue(p, model, v)
             assert(strcmp(p.belongsTo, 'model'))
+            tmp = getfield(model, p.location{:});            
+            v = expandLumps(p,v,tmp);
             if ~isempty(p.Indx) || ~isnumeric(p.Indx)
                 model = setfield(model, p.location{:}, v);
-            else
-                tmp = getfield(model, p.location{:});
-                tmp(p.Indx) = v;
+            else                
+                tmp = v;
                 model = setfield(model, p.location{:}, tmp);
             end
         end
@@ -148,6 +153,7 @@ function p = setupDefaults(p, problem, opt)
 rlim = opt.relativeLimits;
 range = @(x)[min(min(x)), max(max(x))];
 if strcmp(p.belongsTo, 'model')
+    p.initial_val = getfield(problem.model, p.location{:});
     v = p.getModelParameterValue(problem.model);
     if isempty(p.boxLims)
         if strcmp(p.type, 'value')
@@ -163,7 +169,7 @@ if strcmp(p.belongsTo, 'model')
         p.initialValue = v;
     end
     if ~isempty(p.lumping) || ~isnumeric(p.lumping)
-        p.n = numel(unique(p.lumping)); %Number of unique parameters
+        p.n = numel(unique(p.lumping(~isnan(p.lumping)))); %Number of unique parameters
     else
         p.n =  numel(v);
     end
@@ -228,16 +234,35 @@ map = struct('ph', {phOpts}, 'kw', kw);
 end
 
 function v = collapseLumps(p, v, op)
-% do ommitnan for safety
+% do ommitnan for safety on v
 fn = @(x)op(x, 'omitnan');
+
 if ~isempty(p.lumping) || ~isnumeric(p.lumping)
-    v = accumarray(p.lumping,v, [], fn);
+    v = accumarray_nan(p.lumping,v,fn); % lumping may have Nan values
 end
 end
 
-function v = expandLumps(p, v)
-if ~isempty(p.lumping) || ~isnumeric(p.lumping)
-    v = v(p.lumping);
-end
+function model_val = expandLumps(p, v, model_val)
+    if ~isempty(p.lumping) || ~isnumeric(p.lumping)        
+        for i =  1:length(model_val)
+            if ~isnan(p.lumping(i))
+                model_val(i,1) = v(p.lumping(i));
+            end
+        end
+    else 
+        model_val = v;
+    end
 end
     
+function v = accumarray_nan(subs,val, fn)
+    if any(isnan(subs))
+       subs(isnan(subs)) = 0;
+       for i = 1:length(unique(subs))-1
+           Indx = find(subs==i);
+           v(i,1) = fn(val(Indx));
+       end
+    else
+       v = accumarray(subs,val,[],fn);
+    end
+end
+
