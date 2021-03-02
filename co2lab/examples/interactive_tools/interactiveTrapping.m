@@ -380,6 +380,7 @@ function plotMain(Gt, res, bf, atlasdata)
         end
         light('position', [max(Gt.cells.centroids) sgn*4*max(Gt.cells.z)],'Style','local');
         lighting phong
+        material dull
     end
     if trap==0, return, end;
     
@@ -581,13 +582,14 @@ function runSimulation(Gt, res, src, event) %#ok<INUSD>
     stni  = linkedSlider(ph, [10 bottom + 2*25 + 10], 1, 400, 25, 'Time steps');
     smig  = linkedSlider(ph, [10 bottom + 5*25 + 10], 0, 10000, 2450, 'Migration time (years)');
     stnm  = linkedSlider(ph, [10 bottom + 4*25 + 10], 1, 1000, 245, 'Time steps');
-    spres = linkedSlider(ph, [10 bottom + 6*25 + 20], 300, 1000, 300, 'Pressure (bar)');
+    spres = linkedSlider(ph, [10 bottom + 6*25 + 20], 50, 1000, 200, 'Pressure (bar)');
 
     % Rough CO2 volume estimate for the reservoir to ensure that the
     % scrollbar shows something (numerically) sensibile
     estco2vol = 500*.3*sum(Gt.cells.volumes.*Gt.cells.H)/1e9;
+    maxrate = min(20,estco2vol/50);
     
-    sco2 = linkedSlider(ph, [10 bottom + 7*25 + 20], 0, estco2vol/50, estco2vol/10000, 'CO2 rate (Mt/year)');
+    sco2 = linkedSlider(ph, [10 bottom + 7*25 + 20], 0, maxrate, maxrate*0.05, 'CO2 rate (Mt/year)');
     
     uicontrol(ph, 'Style', 'pushbutton', 'Position', [100, 5, 100, 40], 'string', 'Simulate!', 'callback', @(src, event) uiresume(fi))
     uicontrol(ph, 'Style', 'pushbutton', 'Position', [240, 5, 100, 40], 'string', 'Abort', 'callback', @(src, event) abortSim()) 
