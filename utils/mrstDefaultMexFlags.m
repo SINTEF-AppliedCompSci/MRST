@@ -150,16 +150,16 @@ end
 function [CXXFLAGS, LINK, iomp5] = compile_flags_gcc(defines, LINK, iomp5)
     compile_native = '-march=native';
     omp = mrstSettings('get', 'useOMP');
-    if ispc()
-        compile_native = '';
-    end
     if omp
         omp_str = '-fopenmp';
+        compile_native = [compile_native, ' '];
     else
         omp_str = '';
         iomp5 = {};
     end
-
+    if ispc()
+        compile_native = '';
+    end
     CXXFLAGS = ...
         { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE ', ...
         formatDefs('-', defines), ' -fPIC -O3 -std=c++11 ', ...

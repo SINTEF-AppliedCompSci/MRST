@@ -168,7 +168,10 @@ function buildmex_octave(pth, args, caller)
     if mrstVerbose()
         arg{end+1} = '-v';
     end
-    mkoctfile(arg{:}, '-o', fp, ['-I', pth], args{:});
+    [out, status] = mkoctfile(arg{:}, '-o', fp, ['-I', pth], args{:});
+    if status ~= 0
+       error('Unable to build: %s: mkoctfile returned message: "%s"', fp, out);
+    end
 
     setenv('CXXFLAGS', cxxflags_orig(1:end-1));
     setenv('CFLAGS', cflags_orig(1:end-1));
