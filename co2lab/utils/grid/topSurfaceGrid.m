@@ -451,8 +451,8 @@ function [Gt, ffaces] = stitch_neighbors(Gt, ffaces, I, J)
    Gt.faces.nodes = reshape(transpose(new_fnodes), [], 1);
    Gt.faces.num = length(Gt.faces.nodes)/2;
    Gt.faces.nodePos = (1:2:(numel(Gt.faces.nodes)+1))';
-   Gt.faces.z = mean([Gt.nodes.z(Gt.faces.nodes(Gt.faces.nodePos(1:end-2))), ...
-                      Gt.nodes.z(Gt.faces.nodes(Gt.faces.nodePos(2:end-1)))]);
+   Gt.faces.z = mean([Gt.nodes.z(Gt.faces.nodes(Gt.faces.nodePos(1:end-1))), ...
+                      Gt.nodes.z(Gt.faces.nodes(Gt.faces.nodePos(1:end-1)+1))], 2);
 
    % Updating Gt cells and fault face indexing
    Gt.cells.faces = nfix(Gt.cells.faces);
