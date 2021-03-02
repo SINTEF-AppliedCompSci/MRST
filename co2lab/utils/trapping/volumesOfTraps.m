@@ -47,7 +47,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        traps = 1:max(res.traps);
     end
 
-    v = zeros(numel(traps), 1);
+%     v = zeros(numel(traps), 1);
+    v = zeros(1,numel(traps));    
     for i = 1:numel(traps)
         ind     = res.traps == traps(i);
         z       = Gt.cells.z(ind);
