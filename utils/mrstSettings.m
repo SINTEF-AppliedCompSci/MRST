@@ -67,6 +67,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Didn't manage to load them - we are restarting
             SETTINGS = firstTimeSetup(SETTINGS, isDesktop);
             need_save = true;
+        else
+            % We have added some settings between MRST sessions. Won't
+            % happen in a release, but might happen when migrating settings
+            % files between MRST releases or for developers. We just copy
+            % over the default value and print a notification when this
+            % happens.
+            default = getDefaultMRSTSettings(false);
+            f = fieldnames(SETTINGS);
+            df = fieldnames(default);
+            missing = setdiff(df, f);
+            for i = 1:numel(missing)
+                nm = missing{i}; 
+                v = default.(nm);
+                if isstruct(v)
+                    fprintf('New setting discovered: %s. Setting default value: %s\n', nm, v.value);
+                end
+                SETTINGS.(nm) = v; 
+            end
+            need_save = numel(missing) > 0;
         end
     end
     if nargin == 0 
@@ -361,12 +380,16 @@ function opts = getDefaultMRSTSettings(setDefaults)
               
     useMEX = checkCompiler(setDefaults);
     allowDL = checkDownload(setDefaults);
+    useOpenMP = ~strcmpi(mrstPlatform('os'), 'macos');
 
     opts = setDefaultSetting(opts, 'useMEX', 'Use MEX-acceleration', ...
         ['Parts of MRST can be accelerated with compiled extensions (MEX-acceleration).', ...
         ' This requires a C/C++ compiler to be set up with Matlab (see ''mex -setup'' for more details). ', ...
         'Enabling this option will let MRST attempt to compile MEX files when needed. Building of such files can still be triggered manually.'], ...
         useMEX);
+    opts = setDefaultSetting(opts, 'useOMP', 'Use OpenMP when using MEX-acceleration', ...
+        ['Many MEX extensions include OpenMP support for parallelization. Enable this if you have OpenMP installed.'], ...
+        useOpenMP);
     opts = setDefaultSetting(opts, 'promptMEX', 'Prompt before building MEX-extensions', ...
         'MRST normally asks before attempting to build MEX extensions. If disabled, building happens automatically without user input.', false);
     opts = setDefaultSetting(opts, 'allowDL', 'Download files from the internet', ...

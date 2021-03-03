@@ -31,15 +31,23 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    persistent isOctave
+    persistent isOctave isfolder_safe
     if isempty(isOctave)
-        isOctave =  exist('OCTAVE_VERSION', 'builtin') > 0;
+        isOctave = mrstPlatform('octave');
+    end
+    if isempty(isfolder_safe)
+        isfolder_safe = exist('isfolder', 'builtin') || exist('isfolder', 'file');
     end
     % The FULLFILE(dname, '.') construct is to transparently handle presence
     % or absence of a terminating FILESEP on 'dname'.
     %
     pth = fileparts(fullfile(path_string, '.'));
-    present = isdir(pth); %#ok
+    if isfolder_safe
+       present = isfolder(pth); %#ok
+    else
+       present = isdir(pth); %#ok
+    end
+
     if isOctave
         % OCTAVE
         % Use builtin routines
