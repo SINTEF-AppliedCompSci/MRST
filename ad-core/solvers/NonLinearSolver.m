@@ -570,7 +570,7 @@ classdef NonLinearSolver < handle
         % Check if residuals are increasing. Residuals are flagged as
         % increasing if the relative change is positive and larger than
         % the tolerance.
-            if index < 2
+            if index < 3
                 isIncreasing = false(1, size(res, 2));
                 return
             end
