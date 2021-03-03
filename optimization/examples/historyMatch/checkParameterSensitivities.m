@@ -1,6 +1,6 @@
 %% Simple script for validation of parameter sensitivities
 
-mrstModule add ad-core ad-blackoil ad-props optimization spe10
+mrstModule add ad-core ad-blackoil ad-props optimization spe10 deckformat
 
 
 %% Setup simple model
@@ -66,15 +66,17 @@ end
 prob = struct('model', model, 'schedule', schedule, 'state0', state0);
 
 n_cells =  model.G.cells.num;
+n_faces =  length(model.operators.T);
 % Fluid Parameters
  parameters{1} = ModelParameter(prob, 'name', 'swl','lumping',ones(n_cells,1));
  parameters{2} = ModelParameter(prob, 'name', 'swcr','lumping',ones(n_cells,1));
- parameters{3} = ModelParameter(prob, 'name', 'kro','lumping',ones(n_cells,1));
- parameters{4} = ModelParameter(prob, 'name', 'krw','lumping',ones(n_cells,1));
+ parameters{3} = ModelParameter(prob, 'name', 'swu','lumping',ones(n_cells,1));
+ parameters{4} = ModelParameter(prob, 'name', 'kro','lumping',ones(n_cells,1));
+ parameters{5} = ModelParameter(prob, 'name', 'krw','lumping',ones(n_cells,1));
 % Well, porevolume and transmisibility
- parameters{5} = ModelParameter(prob, 'name', 'conntrans');
- parameters{6} = ModelParameter(prob, 'name', 'porevolume');
- parameters{7} = ModelParameter(prob, 'name', 'transmissibility');
+ parameters{6} = ModelParameter(prob, 'name', 'conntrans');
+ parameters{7} = ModelParameter(prob, 'name', 'porevolume','lumping',[ones(round(n_cells/3),1);2*ones(n_cells-round(n_cells/3),1)]);
+ parameters{8} = ModelParameter(prob, 'name', 'transmissibility','lumping',[1:n_faces]');
 
 %% 
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
