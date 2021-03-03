@@ -248,7 +248,7 @@ classdef DiagonalJacobian
                     end
                     if x.isZero
                         x = x.sparse();
-                        x(subs, :) = x(subs, :) + v;
+                        x(subs, :) = x(subs, :) + sparse(v);
                         return
                     end
                     % Get subset, check individual values

@@ -70,7 +70,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     facePos = cumsum([1; ps]);
 
     localCellIndex = zeros(G.cells.num, 1);
+    dispif(mrstVerbose(), 'Starting MEX divergence preparation.\n');
     for i = 1:G.cells.num
+        if mod(i, 1000) == 0
+            dispif(mrstVerbose(), '%d of %d cells processed.\n', i, G.cells.num)
+        end
         loc = facePos(i):facePos(i+1)-1;
         ca = cells(loc);
         [~, ix] = sort(abs(ca));
@@ -84,8 +88,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmp = numel(ca);
         end
         localCellIndex(i) = tmp;
-
     end
+    dispif(mrstVerbose(), 'Done with MEX divergence preparation.\n');
     % Need to sort cells as well
     fpos0 = facePos-1;
     faces = faces - 1;

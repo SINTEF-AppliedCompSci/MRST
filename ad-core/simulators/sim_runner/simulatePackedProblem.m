@@ -161,7 +161,7 @@ function [state0, model, schedule, restart, outoffset, msg] = getRestart(problem
         assert(ndata <= nstep, 'Too much data exists for %s! Problem may have been redefined.', problem.Name);
     end
     restart = opt.restartStep;
-    if ndata == 0
+    if ndata == 0 || restart <= 1
         endstate = state0;
         state0.time = 0;
     else
