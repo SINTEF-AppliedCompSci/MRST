@@ -87,15 +87,21 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+   persistent old_version
+   if isempty(old_version)
+       if mrstPlatform('matlab')
+           old_version = ~exist('verLessThan', 'file') || verLessThan('matlab', '7.14');
+       else
+           % Assume recent octave for the time being.
+           old_version = false;
+       end
+   end
    if isempty(a)
       [c, ia, ic] = deal([]);
       return
    end
 
-   if force_fallback(varargin{:}) || ...
-         ~exist('verLessThan', 'file') || ...
-         verLessThan('matlab', '7.14')
+   if force_fallback(varargin{:}) || old_version
 
       % Caller explicitly requested that the fall-back option be used or
       % we're currently targeting an older release of MATLAB.  Feature
