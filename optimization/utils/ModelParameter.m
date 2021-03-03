@@ -29,7 +29,6 @@ classdef ModelParameter
             if strcmp(p.type, 'multiplier')
                 pval = pval./p.initialValue;
             end
-            %pval = collapseLumps(p, pval, @mean);
             if strcmp(p.scaling, 'linear')
                 vs = (pval-p.boxLims(:,1))./diff(p.boxLims, [], 2);
             elseif strcmp(p.scaling, 'log')
@@ -46,7 +45,6 @@ classdef ModelParameter
                 logLims = log(p.boxLims);
                 pval = exp(vs.*diff(logLims, [], 2) + logLims(:,1));
             end
-            %pval = expandLumps(p,pval);
             if strcmp(p.type, 'multiplier')
                 pval = pval.*p.initialValue;
             end
@@ -90,23 +88,14 @@ classdef ModelParameter
             assert(strcmp(p.belongsTo, 'model'))
             v = getfield(model, p.location{:});
             v = collapseLumps(p, v, @mean);
-%             if ~isempty(p.Indx) || ~isnumeric(p.Indx)
-%                 v = v(p.Indx); %TODO: posible problem: p.Indx{:} must be cell array wit roww vectors
-%                 %v = v(horzcat(p.Indx{:})); %TODO: posible problem: p.Indx{:} must be cell array wit roww vectors
-%                 v = collapseLumps(p, v, @mean);
-%             end
         end
         
         function model = setModelParameterValue(p, model, v)
             assert(strcmp(p.belongsTo, 'model'))
             tmp = getfield(model, p.location{:});            
-            v = expandLumps(p,v,tmp);
-            if ~isempty(p.Indx) || ~isnumeric(p.Indx)
+            v = expandLumps(p,v,tmp); 
                 model = setfield(model, p.location{:}, v);
-            else                
-                tmp = v;
-                model = setfield(model, p.location{:}, tmp);
-            end
+
         end
         
         function v = getWellParameterValue(p, W, cellOutput)
@@ -153,7 +142,6 @@ function p = setupDefaults(p, problem, opt)
 rlim = opt.relativeLimits;
 range = @(x)[min(min(x)), max(max(x))];
 if strcmp(p.belongsTo, 'model')
-    p.initial_val = getfield(problem.model, p.location{:});
     v = p.getModelParameterValue(problem.model);
     if isempty(p.boxLims)
         if strcmp(p.type, 'value')
