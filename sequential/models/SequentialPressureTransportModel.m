@@ -89,7 +89,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             converged = converged_step;
             if converged && ~model.stepFunctionIsLinear
                 [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration, pressure_state);
-                if transportReport.Iterations == 0
+                if transportReport.Iterations == 0 && ~model.outerCheckParentConvergence
                     % If the transport did not do anything, we are
                     % effectively converged, even if the values of the
                     % outer residual are not converged. This must be
@@ -199,8 +199,12 @@ classdef SequentialPressureTransportModel < ReservoirModel
                     % requires it
                     [~, names, origin] = model.transportModel.getStateAD(state, false);
                     keep = strcmpi(origin, class(getReservoirModel(model))) ...
-                                       | strcmpi(origin, 'TransportModel');
+                                       | strcmpi(origin, 'TransportModel');    
                     names = names(keep);
+                    if isprop(model.transportModel, 'implicitType') ...
+                        && strcmpi(model.transportModel.implicitType, 'wells')
+                        names = [names, 'pressure'];
+                    end
                     w = nls.relaxationParameter;
                     for n = names
                         name = n{1};
@@ -281,7 +285,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
 
             converged = converged | iteration > model.maxOuterIterations;
             if model.verbose
-                printConvergenceReport(resnames, values, converged, iteration);
+                printConvergenceReport(resnames, values, converged, iteration, converged);
             end
         end
         
@@ -356,6 +360,16 @@ classdef SequentialPressureTransportModel < ReservoirModel
         function forces = validateDrivingForces(model, forces, varargin)
            forces = model.pressureModel.validateDrivingForces(forces, varargin{:});
         end
+        
+        %-----------------------------------------------------------------%
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            if ~isempty(model.parentModel)
+                [state, report] = model.parentModel.updateAfterConvergence(state0, state, dt, drivingForces);
+            else
+                report = [];
+            end
+        end
+        
     end
 end
 
