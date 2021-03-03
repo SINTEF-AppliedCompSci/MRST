@@ -273,7 +273,12 @@ end
 %--------------------------------------------------------------------------
 
 function cache = register_root(cache, mods)
-   i = cellfun(@isdir, mods);
+   if exist('isfolder', 'builtin') || exist('isfolder', 'file')
+      i = cellfun(@isfolder, mods);
+   else
+      i = cellfun(@isdir, mods);
+   end
+   
    if ~ all(i)
       suffix = 'y';  if sum(~i) ~= 1, suffix = 'ies'; end
 
