@@ -45,7 +45,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rmodel = model;
     if isa(rmodel, 'SequentialPressureTransportModel')
         % We have a sequential implicit model, use pressure model
-        rmodel = model.pressureModel;
+        if isempty(model.parentModel)
+            rmodel = model.pressureModel;
+        end
     end
     while isprop(rmodel, 'parentModel')
         % We have a WrapperModel - travers to the bottom of the hierarchy
