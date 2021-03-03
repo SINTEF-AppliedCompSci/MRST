@@ -197,31 +197,49 @@ classdef SequentialPressureTransportModel < ReservoirModel
                     nls.relaxationParameter ~= 1 % And we should relax
                     % Apply relaxation to global increment if outer solver
                     % requires it
-                    [~, names, origin] = model.transportModel.getStateAD(state, false);
-                    keep = strcmpi(origin, class(getReservoirModel(model))) ...
-                                       | strcmpi(origin, 'TransportModel');    
-                    names = names(keep);
-                    if isprop(model.transportModel, 'implicitType') ...
-                        && strcmpi(model.transportModel.implicitType, 'wells')
-                        names = [names, 'pressure'];
-                    end
-                    w = nls.relaxationParameter;
-                    for n = names
-                        name = n{1};
-                        if any(strcmpi(name, {'sW', 'sO', 'sG'}))
-                            name = 's';
-                        end
-                        vp = model.transportModel.getProp(pressure_state, name);
-                        vt = model.transportModel.getProp(state, name);
-                        v  = (1-w)*vp + w*vt;
-                        state = model.transportModel.setProp(state, name, v);
-                    end
+                    state = model.applyRelaxation(state, pressure_state, nls);
                 end
                 transport_ok = transportReport.Converged;
             else
                 transport_ok = false;
                 transportReport = [];
             end 
+        end
+        
+        %-----------------------------------------------------------------%
+        function state = applyRelaxation(model, state, pressureState, nls)
+            % Figure out which variables where updated in the transport step
+            [~, names, origin] = model.transportModel.getStateAD(state, false);
+            % Exclude everything that is not reservoir variables
+            keep = strcmpi(origin, class(getReservoirModel(model.transportModel))) ...
+                               | strcmpi(origin, 'TransportModel');    
+            names = names(keep);
+            % Add pressure if we solver well equations during transport
+            if isprop(model.transportModel, 'implicitType') ...
+                && strcmpi(model.transportModel.implicitType, 'wells')
+                names = [names, 'pressure'];
+            end
+            % Make sure all satuartions are relaxed
+            isS = cellfun(@(name) any(strcmpi(name, {'sW', 'sO', 'sG'})), names);
+            if any(isS)
+                names = names(~isS);
+                names = [names, 's'];
+            end
+            % Handle blackoil-specific variable switching
+            isX = strcmpi(names, 'x');
+            if any(isX)
+                names = names(~isX);
+                names = [names, 'rs', 'rv'];
+            end
+            % Apply relaxation
+            w = nls.relaxationParameter;
+            for n = names
+                name = n{1};
+                vp = model.transportModel.getProp(pressureState, name);
+                vt = model.transportModel.getProp(state, name);
+                v  = (1-w)*vp + w*vt;
+                state = model.transportModel.setProp(state, name, v);
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -363,7 +381,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
         
         %-----------------------------------------------------------------%
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-            if ~isempty(model.parentModel)
+            if ~isempty(model.parentModel) && ~model.stepFunctionIsLinear ...
+                && model.outerCheckParentConvergence
                 [state, report] = model.parentModel.updateAfterConvergence(state0, state, dt, drivingForces);
             else
                 report = [];
