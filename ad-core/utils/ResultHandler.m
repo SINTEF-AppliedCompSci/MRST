@@ -88,7 +88,7 @@ classdef ResultHandler < handle
                     end
                 end
                 try
-                    d = ls(fullfile(p, [handler.dataPrefix, '*.mat']));
+                    d = ls(fullfile(p, [handler.dataPrefix, handler.getExtension(true)]));
                     if ~isempty(d)
                         if ~handler.cleardir
                             dispif(handler.verbose > 1, ...
@@ -233,12 +233,26 @@ classdef ResultHandler < handle
             dispif(handler.verbose, 'Deleting data at %s\n', p);
         end
         
+        function ext = getExtension(handler, wc)
+            if nargin < 2
+                % Prefix with wildcard
+                wc = false;
+            end
+            if mrstPlatform('matlab')
+                ext = '.mat';
+            else
+                ext = '_oct.mat';
+            end
+            if wc
+                ext = ['*', ext];
+            end
+        end
+        
         function p = getDataPath(handler, i)
-            
             p = fullfile(handler.dataDirectory, handler.dataFolder);
             if nargin > 1
                 assert(numel(i) == 1 && isnumeric(i));
-                p = fullfile(p, [handler.dataPrefix, num2str(i), '.mat']);
+                p = fullfile(p, [handler.dataPrefix, num2str(i), handler.getExtension()]);
             end
         end
         
@@ -247,7 +261,7 @@ classdef ResultHandler < handle
                 handler.data = {};
                 if handler.writeToDisk
                     p = handler.getDataPath();
-                    fp = fullfile(p, [handler.dataPrefix, '*.mat']);
+                    fp = fullfile(p, [handler.dataPrefix, handler.getExtension(true)]);
                     delete(fp);
                 end
             else
@@ -260,7 +274,7 @@ classdef ResultHandler < handle
                     end
                     p = handler.getDataPath();
                     for i = 1:numel(subs)
-                        fp = fullfile(p, [handler.dataPrefix, num2str(subs(i)), '.mat']);
+                        fp = fullfile(p, [handler.dataPrefix, num2str(subs(i)), handler.getExtension()]);
                         delete(fp);
                     end
                 end
