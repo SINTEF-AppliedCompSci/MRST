@@ -79,7 +79,7 @@ void divergenceJacBlock(const int nf, const int nc, const int njac,
             }
             // Iterate over derivatives
             int sparse_mult = mv + nc;
-            ir[row_start + f_i] = abs(c);
+            ir[row_start + f_i] = abs(c)-1;
 
             int face_start = (row_start + f_i) * nder * njac;
             int diag_start = global_diag_pos * nder * njac;

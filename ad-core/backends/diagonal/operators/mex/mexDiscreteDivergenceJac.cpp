@@ -132,10 +132,10 @@ void divergenceJac(const int nf, const int nc, const int m,
             int sparse_mult = mv + nc;
             // Copy the data from face jacobian stored in diagonal
             if (c < 0) {
-                copyFaceData<colMajor, true>(c, nf, m, diag, passed, sparse_mult, cell_offset, f, fl, diagonal, pr, ir, jc);
+                copyFaceData<colMajor, true>(c+1, nf, m, diag, passed, sparse_mult, cell_offset, f, fl, diagonal, pr, ir, jc);
             }
             else {
-                copyFaceData<colMajor, false>(c, nf, m, diag, passed, sparse_mult, cell_offset, f, fl, diagonal, pr, ir, jc);
+                copyFaceData<colMajor, false>(c-1, nf, m, diag, passed, sparse_mult, cell_offset, f, fl, diagonal, pr, ir, jc);
             }
         }
     }
