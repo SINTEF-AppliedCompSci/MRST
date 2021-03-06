@@ -159,23 +159,22 @@ function tf = is_directory(elm)
    if exist('isfolder', 'builtin')
       tf = isfolder(elm);
    else
-      tf = isdir(elm);
+      tf = isdir(elm); %#ok
    end
 end
 
 %--------------------------------------------------------------------------
 
 function status = do_download_library(msg)
-    if mrstSettings('promptDL')
-        if mrstPlatform('desktop')
-            title = 'Missing dependency';
-            choice = questdlg(msg, title, 'Yes', 'No', 'Yes');
-        else
-            disp(msg);
-            choice = input(' y/n [y]: ', 's');
-        end
-        status = strcmpi(choice, 'y') || strcmpi(choice, 'yes');
-    else
-        status = true;
-    end
+    status = mrstSettings('get', 'allowDL');
+    if status && mrstSettings('get', 'promptDL')
+       if mrstPlatform('desktop')
+           title = 'Missing dependency';
+           choice = questdlg(msg, title, 'Yes', 'No', 'Yes');
+       else
+           disp(msg);
+           choice = input(' y/n [y]: ', 's');
+       end
+       status = strcmpi(choice, 'y') || strcmpi(choice, 'yes');
+   end
 end
