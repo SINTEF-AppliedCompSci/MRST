@@ -2,6 +2,7 @@ function [partition, isWell] = makeWellPartition(G, W, varargin)
 
     opt = struct('rWell'     , 20      , ...
                  'type'      , 'metric', ...
+                 'use2d'     , false   , ...
                  'splitWells', true    );
     opt = merge_options(opt, varargin{:});
     
@@ -11,7 +12,8 @@ function [partition, isWell] = makeWellPartition(G, W, varargin)
         N = N(all(N>0,2),:);
         M = getConnectivityMatrix(N);
     end
-        x = G.cells.centroids;
+    if opt.use2d, cix = 1:2; else, cix = ':'; end
+    x = G.cells.centroids(:, cix);
     for i = 1:numel(W)
         switch opt.type
             case 'metric'
@@ -41,10 +43,10 @@ function [partition, isWell] = makeWellPartition(G, W, varargin)
                 end
             end
         end
-        isWell = partition > 0;
-        partition = compressPartition(partition);
+        partition = compressPartition(partition)-1;
     else
         partition(any(p,2)) = 1;
     end
+    isWell = partition > 0;
     
 end
