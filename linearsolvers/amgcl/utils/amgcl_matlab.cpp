@@ -53,7 +53,6 @@
 #  define SOLVER_BACKEND_BUILTIN
 #endif
 
-#define GET_STRUCT_SCALAR(pa, fld) (mxGetScalar(mxGetField(pa, 0, fld)))
 #include <amgcl/backend/builtin.hpp>
 #include <amgcl/value_type/static_matrix.hpp>
 #include <amgcl/adapter/block_matrix.hpp>
