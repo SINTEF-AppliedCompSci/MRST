@@ -165,7 +165,11 @@ function files = move_all_to_dest(files, repo, opt)
       % with full user-specified SHA-1 string.
       match = dir(fullfile(stage, [comp{end}, '-', opt.revision, '*']));
    end
-
+   if mrstPlatform('octave')
+       % We need the Octave module, otherwise different behavior for dir on
+       % that platform will lead to issues here.
+       require octave;
+   end
    if numel(match) == 1
       % Typical case.  SHA-1 unique in first 'nchar' characters.
       odir = fullfile(stage, match.name);
