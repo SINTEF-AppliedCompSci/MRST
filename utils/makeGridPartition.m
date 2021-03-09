@@ -1,4 +1,4 @@
-function [pg, cells] = makeGridPartition(model, cells, varargin)
+function [partition, cells] = makeGridPartition(model, cells, varargin)
     opt = struct('type'        , 'metis', ...
                  'minBlockSize', []     , ...
                  'pdims'       , []     );
@@ -7,7 +7,7 @@ function [pg, cells] = makeGridPartition(model, cells, varargin)
     Gr = removeCells(G, ~cells);
     Gr = computeGeometry(Gr);
     if isempty(opt.minBlockSize)
-        opt.minBlockSize = Gr.cells.num/20;
+        opt.minBlockSize = G.cells.num/20;
     end
     nb = Gr.cells.num/opt.minBlockSize;
     switch opt.type
@@ -31,5 +31,15 @@ function [pg, cells] = makeGridPartition(model, cells, varargin)
                 pg = sampleFromBox(Gr, reshape(pg, pdims*50));
             end
     end
+    pg = compressPartition(pg);
+    pg = mergePartition(Gr, pg, opt.minBlockSize);
+    partition = zeros(G.cells.num, 1);
+    partition(cells) = pg;
 
+end
+
+%-----------------------------------------------------------------%
+function partition = mergePartition(G, partition, minBlockSize)
+    T = G.faces.areas;
+    partition = mergeBlocksByConnections(G, partition, T, minBlockSize);
 end
