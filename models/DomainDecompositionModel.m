@@ -159,7 +159,9 @@ classdef DomainDecompositionModel < WrapperModel
         end
         
         %-----------------------------------------------------------------%
-        function [state, report] = solveSubDomains(model, state0, dt, drivingForces, state)
+        function [state, report] = solveSubDomains(model, state0, dt, drivingForces, state) 
+            rmodel = getReservoirModel(model);
+            state = rmodel.reduceState(state, true);
             % Solve the subdomains
             if ~model.parallel
                 [state, report] = model.solveSubDomainsSerial(state0, dt, drivingForces, state);
@@ -257,7 +259,6 @@ classdef DomainDecompositionModel < WrapperModel
             % Get subdomain states
             [substateInit, mappings] = getSubState(stateInit, mappings);
             substate0                = getSubState(state0   , mappings);
-            submodel.mappings = mappings;
             % Solve timestep
             nls      = setup.NonlinearSolver;
             forceArg = getDrivingForces(submodel, subforces);
@@ -402,7 +403,8 @@ classdef DomainDecompositionModel < WrapperModel
                                   'maxIterations' , 25                        , ...
                                   'ErrorOnFailure', false                     , ...
                                   'verbose'       , verbose > 0               , ...
-                                  'useRelaxation' , isTransport               , ...
+                                  'useRelaxation' , true                      , ...
+                                  'useLineSearch' , isTransport               , ...
                                   'LinearSolver'  , lsol                      , ...
                                   'identifier'    , ['SUBDOMAIN ', num2str(i)]);
             % Make subdomain setup
@@ -457,13 +459,15 @@ classdef DomainDecompositionModel < WrapperModel
         end
         
         %-----------------------------------------------------------------%
-        function submodel = setSubFacilityModel(model, submodel, mappings) %#ok
+        function submodel = setSubFacilityModel(model, submodel, mappings)
             % Set facility model of a sumodel from an already set up
             % facility model for the full model
             if isa(submodel, 'SequentialPressureTransportModel')
                 submodel.pressureModel  = model.setSubFacilityModel(submodel.pressureModel , mappings);
                 submodel.transportModel = model.setSubFacilityModel(submodel.transportModel, mappings);
-                submodel.parentModel    = model.setSubFacilityModel(submodel.parentModel, mappings);
+                if ~isempty(submodel.parentModel)
+                    submodel.parentModel = model.setSubFacilityModel(submodel.parentModel, mappings);
+                end
                 return
             end
             rmodel = getReservoirModel(submodel);
@@ -477,7 +481,7 @@ classdef DomainDecompositionModel < WrapperModel
                 fm.WellModels{i}.W.cells = mappings.cells.renum(fm.WellModels{i}.W.cells);
             end
             rmodel.FacilityModel = fm;
-            submodel = submodel.setReservoirModel(submodel, rmodel);
+            submodel = setReservoirModel(submodel, rmodel);
         end
         
         %-----------------------------------------------------------------%
@@ -497,7 +501,9 @@ classdef DomainDecompositionModel < WrapperModel
             if isa(submodel, 'SequentialPressureTransportModel')
                 submodel.pressureModel  = model.setSubdomainTolerances(submodel.pressureModel);
                 submodel.transportModel = model.setSubdomainTolerances(submodel.transportModel);
-                submodel.parentModel    = model.setSubdomainTolerances(submodel.parentModel);
+                if ~isempty(submodel.parentModel)
+                    submodel.parentModel = model.setSubdomainTolerances(submodel.parentModel);
+                end
                 return
             end
             tolerances = model.subdomainTol;
@@ -518,7 +524,7 @@ classdef DomainDecompositionModel < WrapperModel
                 rmodel.EOSModel.nonlinearTolerance ...
                     = tolerances{ix+1}*rmodel.EOSModel.nonlinearTolerance;
             end 
-            submodel = submodel.setReservoirModel(submodel, rmodel);
+            submodel = setReservoirModel(submodel, rmodel);
         end
         
         %-----------------------------------------------------------------%
