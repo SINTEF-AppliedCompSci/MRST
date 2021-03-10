@@ -38,6 +38,8 @@ classdef ResultHandler < handle
         % calling handler{51} will store a file as "state51" if dataprefix
         % is 'state'
         dataPrefix
+        % Extension used (default: .mat for Matlab, _oct.mat for Octave)
+        extension
         % Flags passed on to MATLAB builtin 'save'. Consider '-v7' if
         % results are huge.
         saveflags
@@ -60,9 +62,13 @@ classdef ResultHandler < handle
             handler.dataDirectory = fullfile(mrstOutputDirectory(), 'tmp');
             handler.dataPrefix = 'state';
             handler.dataFolder = 'cache';
+            if mrstPlatform('matlab')
+                handler.extension = '.mat';
+            else
+                handler.extension = '_oct.mat';
+            end
             handler.saveflags = '';
             handler.cleardir = false;
-            
             handler.verbose = mrstVerbose();
             
             handler = merge_options(handler, varargin{:});
@@ -203,9 +209,10 @@ classdef ResultHandler < handle
                     l = reshape([l, pad]', 1, []);
                 end
                 l = regexp(char(l), '\s+', 'split');
+                ext = handler.getExtension();
                 for i = 1:numel(l)
                     line = l{i};
-                    [s, e] = regexp(line, ['^', handler.dataPrefix, '\d+']);
+                    [s, e] = regexp(line, ['^', handler.dataPrefix, '\d+', ext]);
                     if isempty(s)
                         continue;
                     end
@@ -238,11 +245,7 @@ classdef ResultHandler < handle
                 % Prefix with wildcard
                 wc = false;
             end
-            if mrstPlatform('matlab')
-                ext = '.mat';
-            else
-                ext = '_oct.mat';
-            end
+            ext = handler.extension;
             if wc
                 ext = ['*', ext];
             end
