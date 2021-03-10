@@ -21,12 +21,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    persistent isOctave;
-    if isempty(isOctave)
-        isOctave = mrstPlatform('octave');
-    end
     if nargin < 6
-        fullFactor = isOctave;
+        fullFactor = false;
     end
     if nargin < 5
         doFactor = true;
@@ -56,7 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if fullFactor
             % Call full outputs to emulate backslash (and avoid warnings on
             % Octave.)
-            [sys.E_L, sys.E_U, p, q, d] = lu(sys.E); %#ok
+            [sys.E_L, sys.E_U, sys.P, sys.Q, sys.D] = lu(sys.E);
         else
             [sys.E_L, sys.E_U] = lu(sys.E);
         end
