@@ -45,7 +45,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   if exist('OCTAVE_VERSION', 'builtin')
+   if mrstPlatform('octave')
       % We're targeting Octave.  Use original (slow) rV impl.
       vec = readVectorOld(fid, field, nel);
    else
