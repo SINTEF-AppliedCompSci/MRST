@@ -261,14 +261,16 @@ classdef NonLinearSolver < handle
                         end
                     end
                     msg = [solver.getId(), 'Did not find a solution: '];
+                    msg_fail = '';
                     if failure
                         % Failure means something is seriously wrong,
                         % and we should abort the entire control step
                         % immediately. The last report should include a
                         % FailureMsg field that tells the user what
                         % went wrong.
+                        msg_fail = reports{end}.NonlinearReport{end}.FailureMsg;
                         msg = [msg, 'Model step resulted in failure state. Reason: ', ...
-                               reports{end}.NonlinearReport{end}.FailureMsg]; %#ok<AGROW>
+                               msg_fail]; %#ok<AGROW>
                     else
                         msg = [msg, 'Maximum number of substeps stopped timestep reduction']; %#ok<AGROW>
                     end
@@ -291,11 +293,20 @@ classdef NonLinearSolver < handle
                         end
                     else
                         if solver.verbose >= 0
-                            % Beat timestep with a hammer
-                            fprintf(['%sSolver did not converge in %d iterations',...
-                                    ' for timestep of length %s. Cutting timestep.\n'],...
-                                    solver.getId(), its - 1, formatTimeRange(dt));
+                            if failure
+                                fprintf(['%sSolver failure after %d iterations',...
+                                        ' for timestep of length %s. Cutting timestep.\n', ...
+                                        'Failure reason: %s\nCutting timestep.\n'],...
+                                        solver.getId(), its - 1, formatTimeRange(dt), msg_fail);
+                            else
+                                fprintf(['%sSolver did not converge in %d iterations',...
+                                        ' for timestep of length %s. Cutting timestep.\n'],...
+                                        solver.getId(), its - 1, formatTimeRange(dt));
+                            end
                         end
+                        % Flag as time-step failure. The time-step selector
+                        % will then try to cut the time-step, normally by a
+                        % significant reduction.
                         timestepFailure = true;
                         cuttingCount = cuttingCount + 1;
                    end
