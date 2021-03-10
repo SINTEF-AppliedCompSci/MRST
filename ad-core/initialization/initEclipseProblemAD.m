@@ -131,6 +131,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', opt.useMex, 'rowMajor', opt.rowMajorAD);
         case 'sparse'
             % Do nothing, this is default;
+        otherwise
+            error('Unknown backend string %s', opt.AutoDiffBackend);
     end
     % If components are not present and all wells are simple, we can use
     % the uniform facility model, which is vectorized and faster when many
