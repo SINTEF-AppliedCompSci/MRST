@@ -9,7 +9,7 @@ struct_levels_to_print(0); % nicet output of structs
 % incomplete support for classes
 warn_id = 'Octave:classdef-to-struct';
 warning('off', warn_id);
-
+warning('off', 'Octave:lu:sparse_input')
 
 % dispatch('regexp','my_regexp');%overload regexp
 % dispatch('error','my_error');
