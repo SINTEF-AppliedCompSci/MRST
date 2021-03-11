@@ -24,17 +24,29 @@ classdef GasComponent < ImmiscibleComponent
             c = getPhaseComposition@ImmiscibleComponent(component, model, state, varargin{:});
         end
 
-        function c = getComponentDensity(component, model, state)
-            c = getComponentDensity@ImmiscibleComponent(component, model, state);
+        function c = getComponentDensity(component, model, state, varargin)
             if component.disgas || component.vapoil % Check for black-oil behavior
-                b = model.getProps(state, 'ShrinkageFactors');
                 phasenames = model.getPhaseNames();
+                nph = numel(phasenames);
+                c = cell(nph, 1);
+                b = model.getProps(state, 'ShrinkageFactors');
                 gix = (phasenames == 'G');
                 reg = model.PVTPropertyFunctions.getRegionPVT(model);
                 rhoGS = model.getSurfaceDensities(reg, gix);
                 if component.vapoil % Component density is not phase density
                     bG = b{gix};
                     c{gix} = rhoGS.*bG;
+                else
+                    if nargin == 3
+                        rho = model.getProp(state, 'Density');
+                    else
+                        rho = varargin{1};
+                    end
+                    if nph == 1
+                        c{1} = rho;
+                    else
+                        c{gix} = rho{gix};
+                    end
                 end
                 if component.disgas % There is mass of gas in oileic phase
                     oix = (phasenames == 'O');
@@ -42,6 +54,8 @@ classdef GasComponent < ImmiscibleComponent
                     rs = model.getProp(state, 'rs');
                     c{oix} = rs.*rhoGS.*bO;
                 end
+            else
+                c = getComponentDensity@ImmiscibleComponent(component, model, state, varargin{:});
             end
         end
     end

@@ -39,19 +39,17 @@ classdef GenericComponent < StateFunctionDependent
         function mass = getComponentMass(component, model, state, varargin)
             % Mass of component in each phase
             % saturation * pore-volume * component mass density
-            pv = model.getProp(state, 'PoreVolume');
-            mass = component.getComponentDensity(model, state, varargin{:});
-            ph = model.getPhaseNames();
+            [s, pv, rho] = component.unpackMassArguments(model, state, varargin);
+            mass = component.getComponentDensity(model, state, rho);
             % Iterate over phases and weight by pore-volume and saturation
             for i = 1:numel(mass)
                 if ~isempty(mass{i})
-                    s = model.getProp(state, ['s', ph(i)]);
-                    mass{i} = s.*pv.*mass{i};
+                    mass{i} = s{i}.*pv.*mass{i};
                 end
             end
         end
         
-        function cmob = getComponentMobility(component, model, state, varargin)
+        function cmob = getComponentMobility(component, model, state, mob, rho)
             % The amount of mobile mass in the cell. For most models, this
             % is just the mobility multiplied with the component density in
             % the cell.
@@ -69,7 +67,7 @@ classdef GenericComponent < StateFunctionDependent
             end
         end
         
-        function c = getComponentDensity(component, model, state)
+        function c = getComponentDensity(component, model, state, rho)
             % Density of component in each phase (mass per unit of volume)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
@@ -94,7 +92,19 @@ classdef GenericComponent < StateFunctionDependent
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
         end
-
+        
+        function [s, pv, rho] = unpackMassArguments(component, model, state, arg)
+            if isempty(arg)
+                s = model.getProp(state, 's');
+                pv = model.getProp(state, 'PoreVolume');
+                rho = model.getProp(state, 'Density');
+            else
+                [s, pv, rho] = deal(arg{:});
+            end
+            if ~iscell(s)
+                s = expandMatrixToCell(s);
+            end
+        end
     end
 end
 

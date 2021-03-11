@@ -1,7 +1,7 @@
 classdef ComponentPhaseMass < StateFunction & ComponentProperty
     % Mass of each component, in each phase.
     properties
-
+        includeStandard = true;
     end
     
     methods
@@ -9,13 +9,23 @@ classdef ComponentPhaseMass < StateFunction & ComponentProperty
             gp@StateFunction(model, varargin{:});
             gp@ComponentProperty(model, 'getComponentMass');
             gp.label = 'M_{i,\alpha}';
+            if gp.includeStandard
+                gp = gp.dependsOn({'Density', 'PoreVolume'}, 'PVTPropertyFunctions');
+            end
         end
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents();
             nph = model.getNumberOfPhases();
+            if prop.includeStandard
+                [rho, pv] = prop.getEvaluatedExternals(model, state, 'Density', 'PoreVolume');
+                s = model.getProp(state, 's');
+                extra = {s, pv, rho};
+            else
+                extra = {};
+            end
             v = cell(ncomp, nph);
             for c = 1:ncomp
-                v(c, :) = model.Components{c}.getComponentMass(model, state);
+                v(c, :) = model.Components{c}.getComponentMass(model, state, extra{:});
             end
         end
     end
