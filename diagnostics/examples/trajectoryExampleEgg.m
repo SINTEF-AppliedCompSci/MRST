@@ -32,10 +32,10 @@ mrstModule add diagnostics mrst-gui ad-core ad-blackoil wellpaths
 
 gravity off
 tmp = setupEggFn(1);
-[W, model] = deal(tmp.W, tmp.model);
+[W, model, state0] = deal(tmp.W, tmp.model, tmp.state0);
 model.G = computeGeometry(model.G);
 
-d = TrajectoryGUI(model, W);
+d = TrajectoryGUI(model, W, 'state0', state0);
 
 %%
 % <html>
