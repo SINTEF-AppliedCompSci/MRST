@@ -20,7 +20,7 @@ classdef ImmiscibleComponent < GenericComponent
                 rho = model.getProp(state, 'Density');
             end
             if ~iscell(rho)
-                rho = {rho};
+                rho = expandMatrixToCell(rho);
             end
             c = getComponentDensity@GenericComponent(component, model, state, rho);
             c{component.phaseIndex} = rho{component.phaseIndex};
