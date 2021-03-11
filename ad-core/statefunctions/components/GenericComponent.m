@@ -49,15 +49,12 @@ classdef GenericComponent < StateFunctionDependent
             end
         end
         
-        function cmob = getComponentMobility(component, model, state, mob, rho)
+        function cmob = getComponentMobility(component, model, state, varargin)
             % The amount of mobile mass in the cell. For most models, this
             % is just the mobility multiplied with the component density in
             % the cell.
-            density = component.getComponentDensity(model, state, varargin{:});
-            mob = model.getProp(state, 'Mobility');
-            if ~iscell(mob)
-                mob = {mob};
-            end
+            [mob, rho] = component.unpackMobilityArguments(model, state, varargin);
+            density = component.getComponentDensity(model, state, rho);
             nphase = numel(density);
             cmob = cell(1, nphase);
             for i = 1:nphase
@@ -103,6 +100,21 @@ classdef GenericComponent < StateFunctionDependent
             end
             if ~iscell(s)
                 s = expandMatrixToCell(s);
+            end
+        end
+        
+        function [mob, rho] = unpackMobilityArguments(component, model, state, arg)
+            if isempty(arg)
+                mob = model.getProp(state, 'Mobility');
+                rho = model.getProp(state, 'Density');
+            else
+                [mob, rho] = deal(arg{:});
+            end
+            if ~iscell(mob)
+                mob = expandMatrixToCell(mob);
+            end
+            if ~iscell(rho)
+                rho = expandMatrixToCell(rho);
             end
         end
     end
