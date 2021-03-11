@@ -20,7 +20,7 @@ classdef PressureGradient < StateFunction
             if model.FlowPropertyFunctions.CapillaryPressure.pcPresent(model)
                 % We have different phase pressures, call gradient once for
                 % each phase
-                p = model.getProp(state, 'PhasePressures');
+                p = prop.getEvaluatedExternals(model, state, 'PhasePressures');
                 for i = 1:nph
                     dp{i} = prop.Grad(p{i});
                 end
