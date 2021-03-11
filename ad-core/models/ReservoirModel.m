@@ -281,6 +281,13 @@ methods
         end
     end
     
+    function model = setStateFunctionEvaluationMode(model, mode)
+        model = setStateFunctionEvaluationMode@PhysicalModel(model, mode);
+        if ~isempty(model.FacilityModel)
+            model.FacilityModel = model.FacilityModel.setStateFunctionEvaluationMode(mode);
+        end
+    end
+    
     function model = removeStateFunctionGroupings(model)
         model.FlowPropertyFunctions = [];
         model.PVTPropertyFunctions = [];

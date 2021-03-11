@@ -992,6 +992,10 @@ methods
         model.stateFunctionEvaluationMode = mode;
     end
     
+    function mode = getStateFunctionEvaluationMode(model)
+        mode = model.stateFunctionEvaluationMode;
+    end
+    
     function model = setupStateFunctionGraph(model)
         require matlab_bgl
         groups = model.getStateFunctionGroupings();
