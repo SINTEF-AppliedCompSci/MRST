@@ -70,6 +70,8 @@ classdef ModelParameter
                 v = p.getModelParameterValue(problem.model);
             elseif strcmp(p.belongsTo, 'well')
                 v = p.getWellParameterValue(problem.schedule.control(1).W);
+            elseif strcmp(p.belongsTo, 'state0')
+                v = p.getState0ParameterValue(problem.state0);
             end
         end
                 
@@ -81,6 +83,8 @@ classdef ModelParameter
                     problem.schedule.control(k).W = ...
                         p.setWellParameterValue(problem.schedule.control(k).W, v);
                 end
+            elseif strcmp(p.belongsTo, 'state0')
+                problem.state0 = p.setState0ParameterValue(problem.state0, v);
             end
         end
         
@@ -116,6 +120,19 @@ classdef ModelParameter
             end
         end
         
+        function v = getState0ParameterValue(p, state0)
+            assert(strcmp(p.belongsTo, 'state0'))
+            v = getfield(state0, p.location{:});            
+            v = collapseLumps(p, v(:,1), @mean);
+        end
+        
+        function state0 = setState0ParameterValue(p, state0, v)
+            assert(strcmp(p.belongsTo, 'state0'))
+            tmp = getfield(state0, p.location{:});            
+            v = expandLumps(p,v,tmp(:,1)); 
+            state0 = setfield(state0, p.location{:}, [v,1-v]);
+        end
+        
         function m = getMultiplerValue(p, problem, doLump)
             if strcmp(p.type, 'multiplier')
                 m = p.getParameterValue(problem)./p.initialValue;
@@ -141,8 +158,8 @@ end
 function p = setupDefaults(p, problem, opt)
 rlim = opt.relativeLimits;
 range = @(x)[min(min(x)), max(max(x))];
-if strcmp(p.belongsTo, 'model')
-    v = p.getModelParameterValue(problem.model);
+if (strcmp(p.belongsTo, 'model') || strcmp(p.belongsTo, 'state0'))
+    v = getParameterValue(p, problem);
     if isempty(p.boxLims)
         if strcmp(p.type, 'value')
             p.boxLims = range(v).*rlim;
@@ -201,6 +218,12 @@ function [belongsTo, location] = setupAddress(name)
         case 'conntrans'
             belongsTo = 'well';
             location = {'WI'};
+        case 'initsw'
+            belongsTo = 'state0';
+            location = {'s'};
+        case 'p0'
+            belongsTo = 'state0';
+            location = {'pressure'};
         case {'swl', 'swcr', 'swu', 'sowcr', 'sogcr', 'sgl', 'sgcr', ...
               'sgu', 'krw', 'kro', 'krg'}
             map = getScalerMap();
