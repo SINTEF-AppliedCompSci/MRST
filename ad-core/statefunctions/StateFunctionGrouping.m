@@ -217,7 +217,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
                 if isfield(state, nm)
                     % Cache is present, but this specific property is not
                     % necessarily present
-                    if ~isfield(state.(nm), dep)
+                    if props.validationLevel && ~isfield(state.(nm), dep)
                         error(['Did not find %s in %s field. %s does not appear', ...
                             ' to belong to %s. Check your dependencies.'], ...
                             dep, nm, dep, class(props));
