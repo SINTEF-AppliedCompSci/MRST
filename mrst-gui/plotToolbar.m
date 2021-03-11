@@ -1,4 +1,4 @@
- function varargout = plotToolbar(Grid, dataset, varargin)
+ function varargout = plotToolbar(Grid, inputdata, varargin)
 %Plot one or more datasets with interactive tools for visualization
 %
 % SYNOPSIS:
@@ -160,24 +160,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     isscalar = false;
     
-    N = numel(dataset);
-    accessdata = @(x) dataset(x);
-    if isPlottable(dataset) && max(size(dataset)) == G.cells.num
-        if size(dataset, 2) == 1
+    N = numel(inputdata);
+    accessdata = @(x) inputdata(x);
+    if isPlottable(inputdata) && max(size(inputdata)) == G.cells.num
+        if size(inputdata, 2) == 1
             isscalar = true;
         end
-        dataset = struct('values', dataset);
+        inputdata = struct('values', inputdata);
         N = 1;
-        accessdata = @(x) dataset;
-    elseif iscell(dataset)
-        if all(cellfun(@isPlottable, dataset))
+        accessdata = @(x) inputdata;
+    elseif iscell(inputdata)
+        if all(cellfun(@isPlottable, inputdata))
             % Transform into structs
-            dataset = cellfun(@(x) struct('data', x), dataset, 'UniformOutput', false);
+            inputdata = cellfun(@(x) struct('data', x), inputdata, 'UniformOutput', false);
         end
-        accessdata = @(x) dataset{x};
-    elseif strcmpi(class(dataset), 'ResultHandler')
-        N = dataset.numelData();
-        accessdata = @(x) dataset{x};
+        accessdata = @(x) inputdata{x};
+    elseif strcmpi(class(inputdata), 'ResultHandler')
+        N = inputdata.numelData();
+        accessdata = @(x) inputdata{x};
     end
 
     datasetname = inputname(2);
@@ -384,11 +384,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      if numel(varargin)
          ni = varargin{1};
      end
-     dataset = newDataset;
-     if iscell(dataset)
-         d = dataset{ni};
+     inputdata = newDataset;
+     if iscell(inputdata)
+         d = inputdata{ni};
      else
-         d = dataset(ni);
+         d = inputdata(ni);
      end
      data = readStructField(d, selectionName);
      
@@ -437,7 +437,7 @@ function addSelector(ix)
         dsheight = .06;
         hmod = .1;
         subplot('Position', [hmod, dsheight + hmod, 1 - 2*hmod, 1-dsheight - 2*hmod]);
-        datasetSelector(G, dataset, ...
+        datasetSelector(G, inputdata, ...
             'Parent', gcf, ...
             'Location', [0, 0, 1, dsheight], ...
             'Callback', @selectdata, ...
@@ -897,7 +897,7 @@ function [d, fun, subset] = getData()
 end
 
 
- end
+end
 
 function handleFigureResize(src, event)
     sel = findobj(src, 'Tag', 'mrst-datasetselector');
@@ -920,9 +920,16 @@ end
 
 function cdata = geticon(name)
     n = mfilename('fullpath');
-    tmp = regexp(n, filesep, 'split');
+    if exist('strsplit', 'file')
+        tmp = strsplit(n, filesep);
+    else
+        tmp = regexp(n, filesep, 'split');
+    end
     icon = fullfile(tmp{1:end-1}, 'icons', [name '.gif']);
     [cdata, map] = imread(icon);
+    if islogical(cdata)
+        cdata = uint8(255*cdata);
+    end
     map((map(:,1)+map(:,2)+map(:,3)==3)) = NaN;
     cdata = ind2rgb(cdata,map);
 end
