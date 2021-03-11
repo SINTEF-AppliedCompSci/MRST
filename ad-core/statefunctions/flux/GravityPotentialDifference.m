@@ -23,7 +23,7 @@ classdef GravityPotentialDifference < StateFunction
             if norm(model.gravity) > 0 && nf > 0
                 gdz = -model.getGravityGradient();
                 nm = model.getPhaseNames();
-                rho = model.getProp(state, 'Density');
+                rho = prop.getEvaluatedExternals(model, state, 'Density');
                 avg = model.operators.faceAvg;
                 for i = 1:nph
                     if prop.saturationWeighting

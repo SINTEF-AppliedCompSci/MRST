@@ -14,7 +14,7 @@ classdef Mobility < StateFunction
         end
         function mob = evaluateOnDomain(prop, model, state)
             kr = prop.getEvaluatedDependencies(state, 'RelativePermeability');
-            mu = model.getProp(state, 'Viscosity');
+            mu = prop.getEvaluatedExternals(model, state, 'Viscosity');
             mob = cellfun(@(x, y) x./y, kr, mu, 'UniformOutput', false);
             if isfield(model.fluid, 'tranMultR')
                 % Pressure dependent mobility multiplier 

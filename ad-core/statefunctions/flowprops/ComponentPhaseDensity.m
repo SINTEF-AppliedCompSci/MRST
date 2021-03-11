@@ -1,7 +1,7 @@
 classdef ComponentPhaseDensity < StateFunction & ComponentProperty
     % Component density in each cell for each phase
     properties
-
+        includeStandard = true;
     end
     
     methods
@@ -9,13 +9,26 @@ classdef ComponentPhaseDensity < StateFunction & ComponentProperty
             gp@StateFunction(model, varargin{:});
             gp@ComponentProperty(model, 'getComponentDensity');
             gp.label = '\rho_\alpha x_{i,\alpha}';
+            if gp.includeStandard
+                gp = gp.dependsOn('Density', 'PVTPropertyFunctions');
+            end
         end
         function v = evaluateOnDomain(prop, model, state)
-            ncomp = model.getNumberOfComponents;
-            nph = model.getNumberOfPhases;
+            ncomp = model.getNumberOfComponents();
+            nph = model.getNumberOfPhases();
             v = cell(ncomp, nph);
+            extra = prop.getExtraArguments(model, state);
             for c = 1:ncomp
-                v(c, :) = model.Components{c}.getComponentDensity(model, state);
+                v(c, :) = model.Components{c}.getComponentDensity(model, state, extra{:});
+            end
+        end
+        
+        function extra = getExtraArguments(prop, model, state)
+            if prop.includeStandard
+                [rho] = prop.getEvaluatedExternals(model, state, 'Density');
+                extra = {rho};
+            else
+                extra = {};
             end
         end
     end

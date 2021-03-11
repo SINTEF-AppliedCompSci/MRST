@@ -23,17 +23,20 @@ classdef GenericFacilityModel < FacilityModel
         end
         
         function src = getComponentSources(facility, state)
-            map = facility.getProps(state, 'FacilityWellMapping');
+            fp = facility.FacilityFlowDiscretization;
+            map = fp.get(facility, state, 'FacilityWellMapping');
             if isempty(map.W)
                 val = [];
             else
-                val = facility.getProps(state, 'ComponentTotalFlux');
+                val = fp.get(facility, state, 'ComponentTotalFlux');
             end
             src = struct('value', {val}, 'cells', map.cells);
         end
                 
         function [surfaceRates, surfaceDensity] = getSurfaceRates(facility, state)
-            [cflux, map] = facility.getProps(state, 'ComponentTotalFlux', 'FacilityWellMapping');
+            fp = facility.FacilityFlowDiscretization;
+            cflux = fp.get(facility, state, 'ComponentTotalFlux');
+            map = fp.get(facility, state, 'FacilityWellMapping');
             model = facility.ReservoirModel;
             for c = 1:numel(cflux)
                 % Sum over each well
@@ -42,7 +45,7 @@ classdef GenericFacilityModel < FacilityModel
             % We use a simple, but fast approach based on the
             % individual components' preference at different conditions
             [p, temp] = facility.getSurfaceConditions();
-            surfaceDensity = facility.getProp(state, 'InjectionSurfaceDensity');
+            surfaceDensity = fp.get(facility, state, 'InjectionSurfaceDensity');
             nph = model.getNumberOfPhases();
             surfaceRates = cell(1, nph);
             [surfaceRates{:}] = deal(zeros(numelValue(cflux{1}), 1));
@@ -80,7 +83,8 @@ classdef GenericFacilityModel < FacilityModel
 
         function [eqs, names, types, state] = getModelEquations(facility, state0, state, dt, drivingForces)
             model = facility.ReservoirModel;
-            map = facility.getProps(state, 'FacilityWellMapping');
+            fp = facility.FacilityFlowDiscretization;
+            map = fp.get(facility, state, 'FacilityWellMapping');
             primary_choice = facility.primaryVariableSet;
             varNone = strcmpi(primary_choice, 'none');
             if isempty(map.W) || varNone
@@ -227,7 +231,6 @@ classdef GenericFacilityModel < FacilityModel
             ctrl_eq(is_surface_control) = wrates(is_surface_control) - targets(is_surface_control);
             % RESV controls are special
             if any(is_resv)
-                map = facility.getProp(state, 'FacilityWellMapping');
                 rho = cellfun(@(x) x.ControlDensity, facility.WellModels(map.active), 'UniformOutput', false);
                 rho = vertcat(rho{is_resv});
                 resv_rates = 0;
@@ -255,7 +258,7 @@ classdef GenericFacilityModel < FacilityModel
             end
 
             if any(is_volume)
-                phase_flux = facility.getProps(state, 'PhaseFlux');
+                phase_flux = fp.get(facility, state, 'PhaseFlux');
                 total_flux = 0;
                 for i = 1:numel(phase_flux)
                     total_flux = total_flux + phase_flux{i};

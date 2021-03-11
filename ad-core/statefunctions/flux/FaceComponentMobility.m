@@ -23,7 +23,7 @@ classdef FaceComponentMobility < StateFunction & UpwindProperty
         
         function mobf = evaluateOnDomain(prop, model, state)
             flag = prop.getEvaluatedDependencies(state, prop.upwind_name);
-            mob = model.getProps(state, 'ComponentMobility');
+            mob = prop.getEvaluatedExternals(model, state, 'ComponentMobility');
             [ncomp, nph] = size(mob);
             mobf = cell(ncomp, nph);
             for c = 1:ncomp

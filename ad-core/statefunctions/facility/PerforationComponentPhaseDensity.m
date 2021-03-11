@@ -13,7 +13,9 @@ classdef PerforationComponentPhaseDensity < StateFunction
         end
         
         function rhoc = evaluateOnDomain(prop, model, state)
-            rhoc = model.ReservoirModel.getProps(state, 'ComponentPhaseDensity');
+            rm = model.ReservoirModel;
+            fpr = rm.FlowPropertyFunctions;
+            rhoc = fpr.get(rm, state, 'ComponentPhaseDensity');
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
             for i = 1:numel(rhoc)
                 if ~isempty(rhoc{i})

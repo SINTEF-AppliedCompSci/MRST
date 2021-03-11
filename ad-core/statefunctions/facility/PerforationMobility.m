@@ -13,7 +13,7 @@ classdef PerforationMobility < StateFunction
         
         function mobw = evaluateOnDomain(prop, model, state)
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
-            mob = model.ReservoirModel.getProps(state, 'Mobility');
+            mob = prop.getEvaluatedExternals(model.ReservoirModel, state, 'Mobility');
             mobw = cellfun(@(x) x(map.cells), mob, 'UniformOutput', false);            
         end
     end   
