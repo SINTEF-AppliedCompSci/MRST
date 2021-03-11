@@ -513,6 +513,9 @@ methods
         if isfield(state, 'primaryVariables')
             state = rmfield(state, 'primaryVariables');
         end
+        if isfield(state, 'evaluated')
+            state = rmfield(state, 'evaluated');
+        end
     end
 
     function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
@@ -1020,6 +1023,7 @@ methods
             dispif(model.verbose > 1, 'Evaluating %s.%s (%d of %d)\n', group, name, i, nf);
             [~, state] = groups{gix}.get(models{gix}, state, name);
         end
+        state.evaluated = true;
     end
     
     function [groupings, names, models] = getStateFunctionGroupings(model)

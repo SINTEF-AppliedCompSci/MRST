@@ -171,8 +171,10 @@ classdef StateFunctionGrouping < StateFunctionDependent
             % evaluations if required. Repeated calls to get within the
             % same AD-initialization of state for the same property will
             % not result in evaluations (caching)
-            if ~props.isStateFunctionEvaluated(model, state, name)
-                state = props.evaluateStateFunctionWithDependencies(model, state, name);
+            if ~isfield(state, 'evaluated')
+                if ~props.isStateFunctionEvaluated(model, state, name)
+                    state = props.evaluateStateFunctionWithDependencies(model, state, name);
+                end
             end
             v = state.(props.structName).(name);
             v = expandIfUniform(v);
