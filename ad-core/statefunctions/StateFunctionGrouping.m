@@ -203,6 +203,21 @@ classdef StateFunctionGrouping < StateFunctionDependent
             end
         end
         
+        function state = evaluateStateFunctionUnsafe(sfg, model, state, name)
+            % Evaluate if missing, assuming that:
+            % - Struct is here.
+            % - No validation should be performed.
+            prop = sfg.getStateFunction(name);
+            if isempty(prop.structName)
+                prop.structName = sfg.structName;
+            end
+            props_struct = state.(sfg.structName);
+            if isempty(props_struct.(name))
+                props_struct.(name) = prop.evaluateOnDomain(model, state);
+            end
+        end
+
+        
         function state = evaluateStateFunctionWithDependencies(props, model, state, name)
             % Evaluate property, and all required dependencies in state.
             prop = props.getStateFunction(name);

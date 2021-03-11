@@ -1021,7 +1021,7 @@ methods
             group = g.GroupNames{gix};
             name = g.FunctionNames{index};
             dispif(model.verbose > 1, 'Evaluating %s.%s (%d of %d)\n', group, name, i, nf);
-            [~, state] = groups{gix}.get(models{gix}, state, name);
+            state = groups{gix}.evaluateStateFunctionUnsafe(models{gix}, state, name);
         end
         state.evaluated = true;
     end
