@@ -54,12 +54,15 @@ switch src.Value
             else
                 wp = d.Data.diagnostics(ts).WP;
             end
-            d.plotPie(ax, wp.vols(wp.pairIx(:,1)==iIx), ...
-                arrayfun(@(x) x.label.String, ...
-                d.WellPlot.producers, 'UniformOutput',false), ...
-                d.Data.prodColors);
+%             d.plotPie(ax, wp.vols(wp.pairIx(:,1)==iIx), ...
+%                 arrayfun(@(x) x.label.String, ...
+%                 d.WellPlot.producers, 'UniformOutput',false), ...
+%                 d.Data.prodColors);
+              d.plotPie(ax, wp.vols(wp.pairIx(:,1)==iIx), ...
+                d.WellPlot.producerNames, d.Data.prodColors);
         else
-            names= arrayfun(@(x) x.label.String, d.WellPlot.producers,'UniformOutput',false);    
+            %names= arrayfun(@(x) x.label.String, d.WellPlot.producers,'UniformOutput',false);   
+            names= d.WellPlot.producerNames;    
             vols = zeros(numel(names),numel(ts));
             for i=1:numel(ts)
                 wp = d.Data.diagnostics(ts(i)).WP;
@@ -79,15 +82,16 @@ switch src.Value
             axis(ax,'tight')
             set(h,'HitTest','off');        
         end
-        title(ax,d.WellPlot.injectors(iIx).label.String, 'Interpreter','none');
-
+        %title(ax,d.WellPlot.injectors(iIx).label.String, 'Interpreter','none');
+        title(ax,d.WellPlot.injectorNames(iIx), 'Interpreter','none');
     case 4  % Injector allocation
         if numel(iIx)~=1
             text(0,.1,'Injector allocation:','Parent', ax);
             text(0,0,'Please select{\bf one} injector only','Parent',ax);
             axis(ax,'off'); return
         end
-        names= arrayfun(@(x) x.label.String, d.WellPlot.producers,'UniformOutput',false);
+        names = d.WellPlot.producerNames;    
+        %arrayfun(@(x) x.label.String, d.WellPlot.producers,'UniformOutput',false);
         names{end+1}='reservoir';
         if numel(ts)==1 || doAvg
             if doAvg
@@ -117,8 +121,8 @@ switch src.Value
             axis(ax,'tight')
             set(h,'HitTest','off');
         end
-        title(ax,d.WellPlot.injectors(iIx).label.String);
-
+        %title(ax,d.WellPlot.injectors(iIx).label.String);
+        title(ax,d.WellPlot.injectorNames(iIx));
     case 5  % PLT plot (production logging tool)
         if numel(iIx)~=1
             text(0,.1,'Injector profile:','Parent', ax);
@@ -143,10 +147,12 @@ switch src.Value
                 {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
             set(ax,'XTickLabelRotation',-30,'FontSize',8);
         end
-        title(ax,d.WellPlot.injectors(iIx).label.String);
+        %title(ax,d.WellPlot.injectors(iIx).label.String);
+        title(ax,d.WellPlot.injectorNames(iIx));
         if ~isempty(pIx)
-            legend(ax, ax.Children(numel(d.WellPlot.producers)+1-pIx), ...
-                arrayfun(@(x) x.label.String, d.WellPlot.producers(pIx),'UniformOutput',false));
+%             legend(ax, ax.Children(numel(d.WellPlot.producers)+1-pIx), ...
+%                 arrayfun(@(x) x.label.String, d.WellPlot.producers(pIx),'UniformOutput',false));
+              legend(ax, ax.Children(d.WellPlot.nProd+1-pIx), d.WellPlot.producerNames(pIx));
         end
 
     case 6  % Producer volumes
@@ -161,12 +167,15 @@ switch src.Value
             else
                 wp = d.Data.diagnostics(ts).WP;
             end
+%             d.plotPie(ax, wp.vols(wp.pairIx(:,2)==pIx), ...
+%                 arrayfun(@(x) x.label.String, ...
+%                 d.WellPlot.injectors,'UniformOutput',false), ...
+%                 d.Data.injColors);
             d.plotPie(ax, wp.vols(wp.pairIx(:,2)==pIx), ...
-                arrayfun(@(x) x.label.String, ...
-                d.WellPlot.injectors,'UniformOutput',false), ...
-                d.Data.injColors);
+                d.WellPlot.injectorNames, d.Data.injColors);
         else
-            names= arrayfun(@(x) x.label.String, d.WellPlot.injectors,'UniformOutput',false);    
+            %names= arrayfun(@(x) x.label.String, d.WellPlot.injectors,'UniformOutput',false);    
+            names = d.WellPlot.injectorNames;
             vols = zeros(numel(names),numel(ts));
             for i=1:numel(ts)
                 wp = d.Data.diagnostics(ts(i)).WP;
@@ -187,15 +196,16 @@ switch src.Value
             set(h,'HitTest','off');        
         end
             
-        title(ax,d.WellPlot.producers(pIx).label.String);
-
+        %title(ax,d.WellPlot.producers(pIx).label.String);
+        title(ax,d.WellPlot.producerNames(pIx));
     case 7  % Producer allocation
         if numel(pIx)~=1
             text(0,.1,'Producer allocation:','Parent', ax);
             text(0,0,'Please select{\bf one} producer only','Parent', ax);
             axis(ax,'off'); return
         end
-        names = arrayfun(@(x) x.label.String, d.WellPlot.injectors,'UniformOutput',false);
+        %names = arrayfun(@(x) x.label.String, d.WellPlot.injectors,'UniformOutput',false);
+        names = d.WellPlot.injectorNames;
         names{end+1}='reservoir';
         if numel(ts)==1 || doAvg
             if doAvg
@@ -225,8 +235,8 @@ switch src.Value
             axis(ax,'tight')
             set(h,'HitTest','off');
        end
-       title(ax,d.WellPlot.producers(pIx).label.String);
-
+       %title(ax,d.WellPlot.producers(pIx).label.String);
+       title(ax,d.WellPlot.producerNames(pIx));
     case 8  % PLT plot (production logging tool)
         if numel(pIx)~=1
             text(0,.1,'Producer profile:','Parent', ax);
@@ -251,13 +261,16 @@ switch src.Value
                 {datestr(d.Data.time.cur(ts) , 'mm.dd.yy')});
             set(ax,'XTickLabelRotation',-30,'FontSize',8);
         end
-        title(ax,d.WellPlot.producers(pIx).label.String);
+        %title(ax,d.WellPlot.producers(pIx).label.String);
+        title(ax,d.WellPlot.producerNames(pIx));
         if ~isempty(iIx)
-            legend(ax, ax.Children(numel(d.WellPlot.injectors)+1-iIx), ...
-                arrayfun(@(x) x.label.String, d.WellPlot.injectors(iIx),'UniformOutput',false));
+%             legend(ax, ax.Children(numel(d.WellPlot.injectors)+1-iIx), ...
+%                 arrayfun(@(x) x.label.String, d.WellPlot.injectors(iIx),'UniformOutput',false));
+            legend(ax, ax.Children(d.WellPlot.nInj+1-iIx), d.WellPlot.injectorNames(iIx));
         end
 
     otherwise
         disp('functionality not implemented yet');
 end
 end
+

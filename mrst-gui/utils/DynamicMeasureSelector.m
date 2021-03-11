@@ -117,16 +117,22 @@ classdef DynamicMeasureSelector < UIItem
             s.leftAvgSwitch.Value = double(val);
         end
         function val = get.leftSwitch(s)
-            val = logical(s.leftAvgSwitch.Value);
+            val = false;
+            if ~isempty(s.leftAvgSwitch)
+                val = logical(s.leftAvgSwitch.Value);
+            end
         end
         
         function set.rightSwitch(s, val)
             s.rightAvgSwitch.Value = double(val);
         end
         function val = get.rightSwitch(s)
-            val = logical(s.rightAvgSwitch.Value);
+            val = false;
+            if ~isempty(s.rightAvgSwitch)
+                val = logical(s.rightAvgSwitch.Value);
+            end
         end
-   
+        
         function leftCallback(s, src, event)
             %s.leftIx = s.leftPopup.Value;
             s.panelNo = 1;

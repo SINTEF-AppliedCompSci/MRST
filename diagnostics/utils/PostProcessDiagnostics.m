@@ -72,8 +72,10 @@ classdef PostProcessDiagnostics < handle
     end
 
     methods
-        function d = PostProcessDiagnostics(dinput,precomp,varargin)
-            opt = struct('style', 'default');
+        function d = PostProcessDiagnostics(dinput, precomp, varargin)
+            opt = struct('style',            'default', ... 
+                         'lightWeightOutline',  false);
+            opt = merge_options(opt, varargin{:});
             
             
             % Combine structures
@@ -235,7 +237,15 @@ classdef PostProcessDiagnostics < handle
                'EdgeAlpha', .5, 'BackFaceLighting', 'lit');
             d.Patch = addPatchContextMenu(d.Patch);
             d.Figure.CurrentAxes = d.Axes3D;
-            d.outlineGrid = plotGrid(d.G, 'FaceColor', 'none', 'EdgeAlpha', 0.15, 'EdgeColor', [.3 .3 .3]);
+            if ~opt.lightWeightOutline || ~all(d.G.faces.tag > 0)
+                d.outlineGrid = plotGrid(d.G, 'FaceColor', 'none', 'EdgeAlpha', 0.15, 'EdgeColor', [.3 .3 .3]);
+            else % hack to plot outline using 'Outline'-option
+                f = prod(d.G.faces.neighbors,2) == 0 & d.G.faces.tag ==3;
+                tmp = plotFaces(d.G, f, 'FaceColor', 'none', 'EdgeColor', 'none', 'Outline', true);
+                delete(tmp);
+                d.outlineGrid = d.Axes3D.Children(1);
+                d.outlineGrid.Color = [.3 .3 .3 .1];
+            end
             axis(d.Axes3D, 'tight', 'vis3d', 'off');
             d.Axes3D.ZDir = 'reverse';
             view(d.Axes3D, 3);
@@ -262,7 +272,7 @@ classdef PostProcessDiagnostics < handle
             % finally wells
 %             d.WellPlot = WellPlotHandle(d.G, d.Data.states{1}.wellSol, ...
 %                'Visible', 'off', 'Parent', d.Axes3D);            
-            d.WellPlot = WellPlotHandle(d.G, d.Data.wells{1}, ...
+            d.WellPlot = WellPlotHandle(d.G, d.Data.wells, ...
                'Visible', 'off', 'Parent', d.Axes3D);
             for i=1:numel(d.WellPlot.producers)
                 d.WellPlot.producers(i).label.FontSize = 8;
@@ -475,6 +485,7 @@ classdef PostProcessDiagnostics < handle
         function interactionRegionCallback(d, src, event, s2, s3)
             d.WellPlot.visibleInjectors = s3.wsel.injectorIx;
             d.WellPlot.visibleProducers = s3.wsel.producerIx;
+            d.WellPlot.visibleCases     = s3.tsel.ix;
             if isprop(src,'Style') && all(strncmp(src.Style,'checkbox',6))
                return;
             end
@@ -506,7 +517,7 @@ classdef PostProcessDiagnostics < handle
             % gray to indicate not up-to-date
             d.Axes2DL.Color = [.85 .85 .85];%d.Figure.Color;
             d.Axes2DR.Color = [.85 .85 .85];%d.Figure.Color;
-            if s2.ssel.regionSwitch.Value == 1
+            if ~isempty(s2.ssel.regionSwitch) && s2.ssel.regionSwitch.Value == 1
                s2.ssel.regCallback(src, event)
             end
         end
@@ -878,7 +889,7 @@ classdef PostProcessDiagnostics < handle
                  h=barh(ax, z, a,'stacked','BarWidth',1, 'EdgeColor','none');
               else
                  h=area(ax, z, a, eps,'EdgeColor','none'); axis(ax,'tight');
-                 view(90,-90);
+                 view(ax, 90,-90);
                  args = {'XDir', 'XLim'};
               end
            end
@@ -1122,12 +1133,10 @@ classdef PostProcessDiagnostics < handle
         function setColormap3D(d, str)
             if ~strcmp(str, d.colormap3D)
                 if strcmp(str, 'injectors')
-                    ninj = numel(d.WellPlot.injectors);
-                    cmap = d.Data.injColors(1:ninj,:);
+                    cmap = d.Data.injColors(1:d.WellPlot.nInj,:);
                     colormap(d.Axes3D, cmap);
                 elseif strcmp(str, 'producers')
-                    nprod = numel(d.WellPlot.producers);
-                    cmap = d.Data.prodColors(1:nprod,:);
+                    cmap = d.Data.prodColors(1:d.WellPlot.nProd,:);
                     colormap(d.Axes3D, cmap);
                 else
                     colormap(d.Axes3D, str);
@@ -1173,13 +1182,13 @@ classdef PostProcessDiagnostics < handle
                 %d.colorHAx.Position(1) = d.colorBar.Position(1)+d.colorBar.Position(3)+10;
             else
                 if  s3.psel.propIx == 7 % sweep regions
-                    ninj = numel(d.WellPlot.injectors);
+                    ninj = d.WellPlot.nInj;
                     d.setColormap3D('injectors');
                     cb.Ticks = (.5:ninj)/ninj;
                     cb.TickLabels = s3.wsel.injSelector.String;
                     cb.Limits = [0 1];
                 elseif s3.psel.propIx == 8 % drainage regions
-                    nprod = numel(d.WellPlot.producers);
+                    nprod = d.WellPlot.nProd;
                     d.setColormap3D('producers');
                     cb.Ticks = (.5:nprod)/nprod;
                     cb.TickLabels = s3.wsel.prodSelector.String;
@@ -1203,7 +1212,9 @@ classdef PostProcessDiagnostics < handle
             else
                 alp = [1, 1];
             end
-            d.outlineGrid.EdgeAlpha = alp(1);
+            if isprop(d.outlineGrid, 'EdgeAlpha')
+                d.outlineGrid.EdgeAlpha = alp(1);
+            end
             d.Patch.patchMain.EdgeAlpha = alp(2);
             ii = find(strcmp(d.Patch.patchOpt, 'EdgeAlpha'));
             if numel(ii) == 1

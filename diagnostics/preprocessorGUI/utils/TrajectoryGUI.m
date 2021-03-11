@@ -1,43 +1,51 @@
 classdef TrajectoryGUI < handle
     properties
-        Figure
-        Axes1
-        Axes2
-        WellPlotOrig
-        WellPlotNew = [];
-        Data
-        Menu
         model
-        W
-        ccol
+        state0
+        wellCases
+        Data
+        % graphics
+        Figure
+        Axes1               % left axis  
+        Axes2               % right axis
+        WellPlot1
+        WellPlot2
+        Menu
         Patch3D
-        Patch2D
-        Line3D
-        Line2D
-        WNew
+        subGrid             % grid for subregion            
+        ccol                % colordata for patch
+        gradientVectors     = gobjects;
+        % special graphics
+        xyRegion            % interactive xy-subregion
+        lineOnSlice         % interactive trajectory with slice    
+        trajInMain          % 'copy' of trajectory in Axes1
+        trajInMainPnt       % interactive point in Axes1
+        % selectors
+        caseSelector
+        wellSelector
+        sliceSelector
+        propertySelector
+        proxySelector
+        %
+        interactiveModes    % struct with rotate/zoom/pan - options        
         layoutParams   = struct('menuWidth',        300, ...
                                 'itemSpace',         40, ...
                                 'includeToolTips', true);
+        wellAuxiliaries     % aux well-view/plotting variables
+        % proxy-related
+        obj
+        objValues
     end
     properties (Dependent)
+        caseNo
         wellNo
     end
     
     methods
         function d = TrajectoryGUI(model, W, varargin)
             require wellpaths
-            opt = struct('style', 'default', 'wellNo', []);
+            opt = struct('style', 'default', 'state0', [], 'objective', []);
             opt = merge_options(opt, varargin{:});
-            
-            fprintf('\n\n')
-            fprintf('*  press new to create new well\n')
-            fprintf('*  right-click inside axis for drawing options\n')
-            fprintf('*  left-click edge of points to drag\n')
-            fprintf('*  right-click points for options\n')
-            fprintf('*  click save to save well\n')
-            fprintf('*  click launch diagnsotics to view diagnostics for saved well\n')
-            fprintf('\n\n')
-            
             
             % ------ Create figure window ---------------------------------
             screensize = get( groot, 'Screensize' );
@@ -45,170 +53,409 @@ classdef TrajectoryGUI < handle
             wsize = [screensize(3:4)-wsize*1.1, wsize];
             d.Figure = limitedToolbarFigure('Position', wsize);
             
-            d.model = model;
-            d.W = W;
-            d.W = addTrajectories(d.W, d.model.G, 10);
+            d.model  = model;
+            d.state0 = opt.state0;
+            d.wellCases{1} = addTrajectories(W, d.model.G, 10);
+            d.wellAuxiliaries = repmat(struct('nPoints', [], 'rPos', []), ...
+                                       [numel(W), 1]);
             % add fields for faster comp
-             d.model.G = addBoundingBoxFields(d.model.G);
+            d.model.G = addBoundingBoxFields(d.model.G);
+            % check objective
+            hasObj = false;
+            if ~isempty(opt.objective)
+                if isa(opt.objective, 'DiagnosticsObjective')
+                    d.obj = opt.objective;
+                    hasObj = true;
+                else
+                    warning('Objective of unsupported type, disregarded');
+                end
+            end
+            % get cell-data
+            d.Data = getCellData(model, d.state0);
+            props  = struct('static', struct('name', {{d.Data.name}}, ...
+                                             'limits', {{d.Data.limits}}));
             %--------------------------------------------------------------
             itemOpts = {'Parent', d.Figure, 'Visible','off', 'style', opt.style};
-            wsel = WellEditSelector(W(end), 'wellNames', {W(end).name}, itemOpts{:});
             
+            csel = WellCaseSelector(itemOpts{:});
+            wsel = WellEditSelectorNew(d.wellCases{1}, 'wellNames', ...
+                {d.wellCases{1}.name}, itemOpts{:});
+            ssel = TrajectorySliceSelector(itemOpts{:});
+            psel = PropertyDisplaySelector('props', props, itemOpts{:}, ...
+                        'includeLogSwitch', true, ...
+                        'includeFilter',    true);
+            xsel = ProxySelector('Parent', d.Figure);      
             
             d.Menu = UIMenu('Title', 'Menu', 'Parent', d.Figure, ...
-                             itemOpts{:}, 'items', {wsel});
+                itemOpts{:}, 'items', {csel, wsel, ssel, psel, xsel});
             
+            tt = [251 180 76; 58 152 216; 42 187 155; 252 121 122; 155, 89, 182]./255;
+            tt = [tt; tatarizeMap];
+            for k =1:numel(d.Menu.items)
+                d.Menu.items{k}.BackgroundColor = tt(k,:);
+                try
+                    d.Menu.items{k}.titleColor = 'w';
+                catch
+                    d.Menu.items{k}.ForegroundColor = 'w';
+                end
+            end
             % setup axes
             d.Axes1 = axes('Parent', d.Figure, 'Units', 'pixels', 'ZDir', 'reverse');
-            %d.Axes1 = addAxesContextMenu(d.Axes1);
-            d.Axes2 = axes('Parent', d.Figure, 'Units', 'pixels', 'YDir', 'reverse');
-            %d.Axes2 = addAxesContextMenu(d.Axes2);
-            d.ccol = model.rock.perm(:,1);
+            d.Axes2 = axes('Parent', d.Figure, 'Units', 'pixels', 'ZDir', 'reverse');
+            d.ccol  = model.rock.perm(:,1);
             d.Patch3D = CellDataPatch(model.G, d.ccol, ...
-                                     'Parent', d.Axes1, 'EdgeColor', [.3 .3 .3], ...
-                                     'FaceAlpha', .2, 'EdgeAlpha', .3, ...
-                                     'BackFaceLighting', 'lit', ...
-                                     'Hittest', 'off');
-            
-            d.WellPlotOrig = WellPlotHandle(model.G, W, 'Parent', d.Axes1);                    
-            d.WNew = [];
-            
-            wsel.newButton.Callback = @d.putXYLine;
-            wsel.viewButton.Callback = @d.viewTraj;
-            wsel.saveButton.Callback = @d.saveWell;
-            wsel.launchButton.Callback = @d.launchDiagnostics;
+                'Parent', d.Axes2, 'EdgeColor', [.3 .3 .3], ...
+                'FaceAlpha', .2, 'EdgeAlpha', .3, ...
+                'BackFaceLighting', 'lit', ...
+                'Hittest', 'off');
+            d.updateWellPlots();
+            % setup interactive modes
+            d.interactiveModes = setCustomInteractiveModes(d.Figure);
+            d.interactiveModes.rotate3d.setAllowAxesRotate(d.Axes2, false);
+            % Callbacks
+            wsel.changedCallback = @d.enableSelectorsCallback;
+            wsel.Callback        = @d.wellSelectorCallback;
+            csel.Callback        = @d.caseSelectorCallback;
+            ssel.Callback        = @d.sliceControlCallback;
+            psel.Callback        = @d.propertySelectorCallback;
+            xsel.Callback        = @d.proxySelectorCallback;
             d.Figure.SizeChangedFcn        = @d.layout;
             d.layout();
-            wsel.popupCallback([], []);
-            wsel.typePopup.Enable = 'off';
-        end
-        
-        function val = get.wellNo(d)
-            val = 1;
-        end
-    
-        %%-----------------------------------------------------------------
-        function xyLine(d, ~, ~)
-            w = d.WNew(d.wellNo);
-            pnts = w.trajectory(:, 1:2);
-            pnts = uniquetol(pnts, 'ByRows', true);
-            if size(pnts, 1) == 1
-                dx = d.Axes1.XLim;
-                pnts = [pnts(1)+[dx/5; -dx/5], pnts(2)*ones(2,1)];
-            end
-            if ~isempty(d.Line3D)&&isvalid(d.Line3D)
-                delete(d.Line3D);
-            end
-            d.Line3D = InteractiveLine('XData', pnts(:,1), 'YData', pnts(:,2), 'Parent', d.Axes1);
-            d.Line3D.Callback = @d.crossSection;
-        end
-        
-        %%-----------------------------------------------------------------
-        function putXYLine(d, ~, ~)
-            xx = d.Axes1.XLim;
-            yy = d.Axes1.YLim;
-            pnts = [mean(xx) yy(1); mean(xx) yy(2)];
-            if ~isempty(d.Line3D)&&isvalid(d.Line3D)
-                delete(d.Line3D);
-            end
-            if ~isempty(d.Line2D)&&isvalid(d.Line2D)
-                delete(d.Line2D);
-            end
-            d.Line3D = InteractiveLine('XData', pnts(:,1), 'YData', pnts(:,2), 'Parent', d.Axes1);
-            d.crossSection();
-            d.Line3D.Callback = @d.crossSection;
-            d.empty2DLine();
-            d.Line2D.smoothing = 'pchip';
-            d.Axes2.XLimMode = 'auto';
-            d.Axes2.YLimMode = 'auto';
-        end
-        
-        %%-----------------------------------------------------------------
-        function empty2DLine(d, ~, ~)
-            if ~isempty(d.Line2D)&&isvalid(d.Line2D)
-                delete(d.Line2D);
-            end
-            d.Line2D = InteractiveLine('Parent', d.Axes2, 'Callback', '');
-            d.Line2D.drawMode = 'along';
-        end
             
-        function crossSection(d, ~, ~)
-            if ~isempty(d.Line3D)&&isvalid(d.Line3D)
-                x = d.Line3D.trajectory.XData;
-                y = d.Line3D.trajectory.YData;
-                if numel(x) >1
-                    fac = computeVerticalGridIntersection(d.model.G, [x(:),y(:)]);
-                    if ~isempty(d.Patch2D)&&isvalid(d.Patch2D)
-                        set(d.Patch2D, 'Vertices', fac.coords2D, ...
-                            'Faces', fac.nodes, ...
-                            'FaceVertexCData', d.ccol(fac.cellIx));
-                    else
-                        %if ~isempty(d.Line3D)&&isvalid(d.Line3D)
-                        %    delete(d.Patch2D);
-                        %end
-                        d.Patch2D = patch('Vertices', fac.coords2D, 'Faces', fac.nodes, 'FaceColor', 'flat', 'EdgeColor', [.7 .7 .7], ...
-                            'EdgeAlpha', .5, 'FaceVertexCData', d.ccol(fac.cellIx), 'Parent', d.Axes2, 'HitTest', 'off');
-                        uistack(d.Patch2D, 'bottom')
+            wsel.typePopup.Enable = 'off';
+            d.wellSelector  = wsel;
+            d.caseSelector  = csel;
+            d.sliceSelector = ssel;
+            d.propertySelector = psel;
+            d.proxySelector = xsel;
+            
+            % run callback for first selection
+            d.wellSelectorCallback();
+            % set various graphics
+            axis(d.Axes1, 'vis3d');
+            view(d.Axes1, 3);
+            daspect(d.Axes1, [1 1 .4]);
+            zoom(d.Axes1, .7)
+            zoom(d.Axes1, 'reset')
+            set(d.Axes1, {'XLimMode', 'YLimMode', 'ZLimMode'}, {'manual','manual','manual'});
+            zl = d.Axes1.ZLim;
+            d.Axes1.ZLim = zl + [-.15 .15]*diff(zl, [], 2);
+            % select PERMX for display
+            d.propertySelector.propIx = 2;
+            d.propertySelector.Callback();
+            if ~hasObj
+                d.proxySelector.Visible = 'off';
+            end
+        end
+        
+        function set.wellNo(d, val)
+            d.wellSelector.wellNo = val;
+        end
+        function val = get.wellNo(d)
+            val = d.wellSelector.wellNo;
+        end
+        
+        function set.caseNo(d, val)
+            d.caseSelector.ix = val;
+        end
+        function val = get.caseNo(d)
+            val = d.caseSelector.ix;
+        end
+        
+       %-------------------------------------------------------------------
+       % Don't allow case-selection until well-changes are saved/reset
+        function enableSelectorsCallback(d, src, event)
+            if strcmp(d.wellSelector.enableSaveReset, 'on')
+                d.caseSelector.Enable = 'off';
+            else
+               d.caseSelector.Enable = 'all';
+            end
+        end
+        
+        %-----------------------------------------------------------------
+        function caseSelectorCallback(d, src, event)
+            switch src.Tag
+                case 'select'
+                    d.wellSelector.updateWells(d.wellCases{d.caseNo(1)});
+                    d.updateWellPlots();
+                    d.WellPlot1.visibleCases = d.caseNo;
+                    d.WellPlot2.visibleCases = d.caseNo;
+                case 'new'
+                    % copy current case
+                    ncase = numel(d.wellCases);
+                    d.wellCases = d.wellCases([1:ncase, d.caseNo]);
+                    d.wellSelector.updateWells(d.wellCases{d.caseNo});
+                    d.updateWellPlots();
+                    d.WellPlot1.visibleCases = d.caseNo;
+                    d.WellPlot2.visibleCases = d.caseNo;
+                    %d.wellAuxiliaries = d.wellAuxiliaries([1:ncase, d.caseNo]);
+                case 'delete'
+                    d.wellCases(d.caseNo) = [];
+                    d.objValues(intersect(d.caseNo, 1:numel(d.objValues))) = [];
+                    d.updateWellPlots();
+                    d.WellPlot1.visibleCases = 1;
+                    d.WellPlot2.visibleCases = 1;
+                case 'launch'
+                    casenm = d.caseSelector.listbox.String;
+                    DiagnosticsViewer(repmat({d.model}, [1, numel(casenm)]), ...
+                        d.wellCases, 'modelNames', casenm, 'includeAverage', false, ...
+                        'state0', repmat({d.state0}, [1, numel(casenm)]));
+
+            end
+            %delete(d.gradientVectors);
+        end
+        
+        %-----------------------------------------------------------------
+        function wellSelectorCallback(d, src, event)
+            if nargin == 1
+                % accept empty input
+                [src, event] = deal(d.wellSelector.wellPopup, []);
+            end
+            switch src.Tag
+                case 'name'
+                    d.updateXYRegion(src, event);
+                    %delete(d.gradientVectors);
+                case 'save'
+                    isNew = d.wellNo > numel(d.wellCases{d.caseNo});
+                    % update trajectory
+                    tmp  = d.wellSelector.W(d.wellNo);
+                    traj = d.lineOnSlice.trajectory;
+                    tmp  = updateWellTrajectory(d.model, tmp, traj);
+                    d.wellCases{d.caseNo}(d.wellNo) = tmp;
+                    d.wellSelector.W(d.wellNo) = tmp;
+                    if isNew % add well to other cases and set shut
+                        for kc = 1:numel(d.wellCases)
+                            if kc ~= d.caseNo % set to shut
+                                d.wellCases{kc}(d.wellNo) = d.wellSelector.W(d.wellNo);
+                                d.wellCases{kc}(d.wellNo).status = false;
+                            end
+                        end
+                        d.wellAuxiliaries(d.wellNo) = struct('nPoints', d.sliceSelector.nPnt, ...
+                                                             'rPos',    d.xyRegion.Position);   
                     end
-                    d.Axes2.XLimMode = 'auto';
-                    d.Axes2.YLimMode = 'auto';
+                    d.updateWellPlots();
+                    d.WellPlot1.visibleCases = d.caseNo;
+                    d.WellPlot2.visibleCases = d.caseNo;
+                    d.wellSelector.enableSaveReset = 'off';
+                    % remove previously computed objectives
+                    d.objValues{d.caseNo} = [];
+            end
+        end
+        
+        %-----------------------------------------------------------------
+        function updateXYRegion(d, src, event)
+            if strcmp(src.Style, 'popupmenu')
+                [cno, wno] = deal(d.caseNo, d.wellNo);
+                if isempty(d.wellAuxiliaries(wno).rPos) 
+                    c = d.model.G.cells.centroids(d.wellCases{cno(1)}(wno).cells,:);
+                    dd = 100;
+                    [minp, maxp] = deal(min(c(:,1:2))-dd, max(c(:,1:2))+dd);
+                    d.wellAuxiliaries(wno).rPos = [minp, maxp-minp];
+                end
+                pos = d.wellAuxiliaries(wno).rPos;
+                if ~isempty(d.xyRegion)
+                    d.xyRegion.Position = pos;
+                else
+                    d.xyRegion = InteractiveRectangle('Position', pos, 'Parent', d.Axes2);
+                    d.xyRegion.Callback = @d.updateTrajectory;
+                end
+            end
+            d.updateTrajectory(src,event);
+            d.updateTrajInMainPnt(src,event);
+            d.wellSelector.enableSaveReset = 'off';
+            %
+        end
+        
+        %-----------------------------------------------------------------
+        function updateTrajectory(d, src, event)
+            pos = d.xyRegion.Position;
+            d.wellAuxiliaries(d.wellNo).rPos = pos;
+            [xlim, ylim] = deal([pos(1), pos(1)+pos(3)], [pos(2), pos(2)+pos(4)]);
+            cc = d.model.G.cells.centroids;
+            cix = (cc(:,1) >= xlim(1) & cc(:,1) <= xlim(2)) &...
+                (cc(:,2) >= ylim(1) & cc(:,2) <= ylim(2));
+            d.subGrid = extractSubgrid(d.model.G, cix);
+            set(d.Axes1, {'XLim', 'YLim'}, {xlim, ylim});
+            zoom(d.Figure, 'reset');
+            % end
+            if ~isa(src, 'matlab.ui.Figure') || isempty(d.lineOnSlice)% redraw trajectory
+                if ~isempty(d.lineOnSlice) && isvalid(d.lineOnSlice)
+                    d.switchInteractionOff();
+                    delete(d.lineOnSlice);
+                end
+                if numel(d.caseNo) == 1
+                    coord = d.wellCases{d.caseNo}(d.wellNo).trajectory;
+                    d.lineOnSlice = InteractiveLineOnSurf(d.subGrid, 'XData', coord(:,1), ...
+                        'YData', coord(:,2), 'ZData', coord(:,3), 'Parent', d.Axes1, ...
+                        'colorData', d.ccol(cix));
+                    if isempty(d.wellAuxiliaries(d.wellNo).nPoints)
+                        d.wellAuxiliaries(d.wellNo).nPoints = ...
+                            d.sliceSelector.nPnt;
+                    else
+                        d.sliceSelector.nPnt = d.wellAuxiliaries(d.wellNo).nPoints;
+                    end
+                    d.sliceControlCallback();
+                    d.lineOnSlice.Callback = @d.updateTrajInMainPnt;
+                end
+            elseif isvalid(d.lineOnSlice) % just update grid and slice
+                d.lineOnSlice.G = d.subGrid;
+                d.lineOnSlice.colorData = d.ccol(cix);
+                d.lineOnSlice.updateSlice();
+            end
+            
+        end
+        %-----------------------------------------------------------------
+        function sliceControlCallback(d, src, event)
+            ssel = d.sliceSelector;
+            if nargin < 2 %update all
+                d.lineOnSlice.setAngle(ssel.angle);
+                d.lineOnSlice.redistributePoints(ssel.nPnt);
+                d.lineOnSlice.slice.FaceAlpha = ssel.alpha;
+                d.lineOnSlice.slice.EdgeAlpha = ssel.alpha;
+            else
+                if ~isempty(d.lineOnSlice)
+                    switch src.Tag
+                        case 'angle'
+                            d.lineOnSlice.setAngle(ssel.angle);
+                        case 'nPnt'
+                            d.lineOnSlice.redistributePoints(ssel.nPnt);
+                            d.wellAuxiliaries(d.wellNo).nPoints = ssel.nPnt;
+                        case 'alpha'
+                            d.lineOnSlice.slice.FaceAlpha = ssel.alpha;
+                            d.lineOnSlice.slice.EdgeAlpha = ssel.alpha;
+                    end
                 end
             end
         end
+        %-----------------------------------------------------------------
+        function propertySelectorCallback(d, src, event)
+            pix = d.propertySelector.propIx;
+            [v, lims] = deal(d.Data(pix).values, d.Data(pix).limits);
+            d.Patch3D.cells = d.propertySelector.minValue <= v & ...
+                              d.propertySelector.maxValue >= v;
+            if d.propertySelector.logSwitch
+                [lims, v, flag] = makeSafeForLog(lims, v, 5);
+                if ~flag % values not good for log-plot, reset switch
+                    d.propertySelector.logSwitchBox.Value = 0;
+                else
+                    [lims, v] = deal(log10(lims), log10(v));
+                end
+            end
+            d.ccol = v;
+            d.Patch3D.colorData = v;
+            d.lineOnSlice.colorData = v(d.subGrid.cells.global);
+            d.lineOnSlice.updateSlice();
+            set([d.Axes1, d.Axes2], 'CLim', lims);
+        end
         
-        function viewTraj(d, ~, ~)
-            traj = getTrajectory(d);
-            % exit/entry points only given in unprocessed struct (second output)
-            [~, t] = computeTraversedCells(d.model.G, traj); 
-            
-            fe = figure;hold on
-            %caxis([166.9325  336.7537])
-            plot3(traj(:,1), traj(:,2), traj(:,3), 'Color', [.4 .4 .4],'LineWidth', 5, 'MarkerSize', 14);
-            % cell entry points
-            plot3(t.p1(:,1), t.p1(:,2), t.p1(:,3), '.k','LineWidth', 2, 'MarkerSize', 3);
-            % cell exit points
-            plot3(t.p2(:,1), t.p2(:,2), t.p2(:,3), '.k','LineWidth', 2, 'MarkerSize', 3);
-            plotCellData(d.model.G, d.ccol, t.cell, 'FaceAlpha', .5, 'EdgeAlpha', .5, 'EdgeColor', 'r')
-            view(3),daspect([1, 1, .2])
-            
-            % Add extra cell layer
-            N = getNeighbourship(d.model.G);
-            A = getConnectivityMatrix(N,true,d.model.G.cells.num);
-            show = zeros(d.model.G.cells.num,1); show(t.cell)=1;
-            K=false(d.model.G.cartDims(3),1); K(1:2:end)=true;
-            [ijk{1:3}] = ind2sub(d.model.G.cartDims, d.model.G.cells.indexMap);
-            h = plotCellData(d.model.G,d.ccol,(A*A*A*show>0)&(show==0)&(K(ijk{3})),'FaceAlpha',.8);
-            if numel(d.WNew)>0
-                plotWellData(d.model.G, d.WNew, 'lineplot', true);
+        %-----------------------------------------------------------------
+        
+        function proxySelectorCallback(d, src, event)
+            if nargin == 1
+                % interpret this as case has been updated -> delete
+                % computed proxy-info
+                d.objValues{d.caseNo} = [];
+                d.proxySelector.slider.Enable = 'off';
+                delete(d.gradientVectors);
+            else
+                switch src.Tag
+                    case 'objective'
+                        % compute any uncomputed objectives
+                        cix = d.caseSelector.ix;
+                        for k = cix
+                            if numel(d.objValues) < k || isempty(d.objValues{k})
+                                d.objValues{k} = d.obj.compute(d.wellCases{k}, 'computeGradient', false);
+                            end
+                        end
+                        % plot resulting values
+                        plotObjectiveValues(d.objValues(cix), d.caseSelector.listbox.String(cix));
+                    case 'gradient'
+                        if numel(d.caseNo) > 1
+                            fprintf('Please select single case for gradient computations');
+                            return
+                        end
+                        % compute if needed
+                        try 
+                            hasGrad = ~isempty(d.objValues{d.caseNo}.gradient.position{d.wellNo});
+                        catch
+                            hasGrad = false;
+                        end
+                        if ~hasGrad
+                            W = d.wellCases{d.caseNo};
+                            W = rmfield(W, 'trajectory'); 
+                            W(d.wellNo).posControl = setupPositionControl(d.model.G, W(d.wellNo), d.lineOnSlice);
+                            
+                            if ~(numel(d.objValues) < d.caseNo || isempty(d.objValues{d.caseNo}))
+                                tmp = d.obj.compute(W, 'computeGradient', true, ...
+                                    'state', d.objValues{d.caseNo}.state, ...
+                                    'D',     d.objValues{d.caseNo}.D);
+                                g = tmp.gradient.position{d.wellNo};
+                                d.objValues{d.caseNo}.gradient.position{d.wellNo} = g;
+                            else
+                                d.objValues{d.caseNo} = d.obj.compute(W, 'computeGradient', true);
+                                g = d.objValues{d.caseNo}.gradient.position{d.wellNo};
+                            end
+                            % scale grad according to axis limits
+                            d.objValues{d.caseNo}.gradPlotScale{d.wellNo} = ...
+                                getGradPlotScaling(g, get(d.Axes1, {'XLim', 'YLim', 'ZLim'}));
+                        end
+                        d.showGradientVectors();
+                        d.proxySelector.slider.Enable = 'on';
+                    case 'slider'
+                        d.moveTrajAlongGradient(d.proxySelector.slider.Value);
+                end
             end
         end
-        
-        function saveWell(d, ~, ~)
-             traj = getTrajectory(d);
-             %t = computeTraversedCells(d.model.G, traj);
-             nnew = numel(d.WNew);
-             nm   = ['case_', num2str(nnew+1)];
-             info = d.Menu.items{1}.wellInfo;
-             %seg = t.vec;
-             ncompi = numel(d.W(1).compi);
-             if info.sign > 0
-                 compi = [1, ones(1, ncompi-1)];
-             else
-                 compi = ones(1, ncompi)/ncompi;
-             end
-             
-             w = addWellFromTrajectory([], d.model.G, d.model.rock, traj, ...
-                    'name', nm, 'type', info.type, 'sign', info.sign, ...
-                    'val', info.val, 'compi', compi);
-
-             w.trajectory = traj;
-             w.cell_origin = ones(size(w.cells));
-             d.WNew = [d.WNew; w];
-             d.WellPlotNew{nnew+1} = WellPlotHandle(d.model.G, w, 'Parent', d.Axes1);      
-             d.Menu.items{1}.updateWells(d.WNew);
-             d.Menu.items{1}.wellPopup.Value = numel(d.WNew);
+        %-----------------------------------------------------------------
+        function updateTrajInMainPnt(d, src, event)
+            if ~isempty(d.lineOnSlice) && isvalid(d.lineOnSlice)
+                l = d.lineOnSlice.trajectory;
+                [x,y] = deal(l.XData(1), l.YData(1));
+                if isempty(d.trajInMainPnt) && ~isempty(x)
+                    d.trajInMainPnt = InteractivePoint('Parent', d.Axes2, 'XData', x, 'YData', y, ...
+                        'Callback', @d.moveWellXY, ...
+                        'moveCallback', @d.updateTrajInMain);
+                else
+                    d.trajInMainPnt.Position = [x,y];
+                end
+                d.updateTrajInMain(src, event);
+                d.wellSelector.enableSaveReset = 'on';
+            end
         end
-        
+        %-----------------------------------------------------------------
+        function updateWellPlots(d)
+            d.WellPlot1 = WellPlotHandle(d.model.G, d.wellCases, 'Parent', d.Axes1);
+            d.WellPlot2 = WellPlotHandle(d.model.G, d.wellCases, 'Parent', d.Axes2);
+            d.WellPlot1.closedColor = 'none';
+            d.WellPlot2.closedColor = 'none';
+            d.WellPlot1 = setSpecialWellPlotProps(d.WellPlot1);
+        end
+        %-----------------------------------------------------------------
+        function updateTrajInMain(d, src, event)
+            if ~isempty(d.lineOnSlice)
+                l = d.lineOnSlice.trajectory;
+                [x,y,z] = deal(l.XData, l.YData, l.ZData);
+                p = d.trajInMainPnt.Position;
+                x = x + (p(1)-x(1));
+                y = y + (p(2)-y(1));
+                if isempty(d.trajInMain) && ~isempty(x)
+                    d.trajInMain = line('Parent', d.Axes2, 'XData', x, 'YData', y, 'ZData', z, ...
+                        'Color', 'm', 'LineWidth', 3);
+                else
+                    set(d.trajInMain, {'XData', 'YData', 'ZData'}, {x,y,z});
+                end
+            end
+        end
+        %-----------------------------------------------------------------
+        function moveWellXY(d, src, event)
+            p = d.trajInMainPnt.Position;
+            [x,y] = deal(d.lineOnSlice.XData, d.lineOnSlice.YData);
+            d.lineOnSlice.XData = x + (p(1)-x(1));
+            d.lineOnSlice.YData = y + (p(2)-y(1));
+            d.lineOnSlice.resetLinePoints();
+            d.lineOnSlice.updateSlice();
+        end
+        %-----------------------------------------------------------------
         function layout(d, ~, ~)
             [mw, sp] = deal(d.layoutParams.menuWidth, d.layoutParams.itemSpace);
             fip    = d.Figure.Position;
@@ -221,34 +468,88 @@ classdef TrajectoryGUI < handle
             d.Axes1.Position = aPos1;
             d.Axes2.Position = aPos2;
         end
-        
+        %-----------------------------------------------------------------
         function launchDiagnostics(d, ~, ~)
             n = numel(d.WNew)+1;
             [models, wells, names] = deal(cell(1,n));
             if n>1
+                % trim off suffix
                 % add closed for first well-list
-                newIx = numel(d.W) + (1:(n-1));
-                W = [d.W; d.WNew];
-                [W(newIx).status] = deal(false);
-                [W(newIx).cstatus] = deal(false(size(W(end).cstatus)));
-                [W(newIx).type] = deal('rate');
-                [W(newIx).val] = deal(0);
-                [models{1}, wells{1}]  = deal(d.model, W);
+                newIx = numel(d.W) + 1;%(1:(n-1));
+                tmp = [d.W; d.WNew(1)];
+                tmp(end).name = 'NEW-WELL';
+                [tmp(newIx).status] = deal(false);
+                [tmp(newIx).cstatus] = deal(false(size(tmp(end).cstatus)));
+                [tmp(newIx).type] = deal('rate');
+                [tmp(newIx).val] = deal(0);
+                [models{1}, wells{1}]  = deal(d.model, tmp);
                 names{1} = 'Base';
                 for k = 2:n
-                    tmp = W;
-                    tmp(newIx(k-1)) = d.WNew(k-1);
-                    %W = [d.W; d.WNew(k-1)];
+                    tmp = [d.W; d.WNew(k-1)];
+                    tmp(end).name = 'NEW_WELL';
                     [models{k}, wells{k}]  = deal(d.model, tmp);
                     names{k} = ['case ', num2str(k-1)];
                 end
-                DiagnosticsViewer(models,wells, 'modelNames', names);
+                DiagnosticsViewer(models,wells, 'modelNames', names, 'includeAverage', false);
             end
         end
-        
+        %-----------------------------------------------------------------
+        function d = switchInteractionOff(d)
+            modes = fieldnames(d.interactiveModes);
+            for k =1 : numel(modes)
+                d.interactiveModes.(modes{k}).enable = 'off';
+            end
+        end
+        %-----------------------------------------------------------------
+        function showGradientVectors(d)
+            if ~isempty(d.gradientVectors) && any(isvalid(d.gradientVectors))
+                delete(d.gradientVectors);
+            end
+            x = d.lineOnSlice.XData(:);
+            y = d.lineOnSlice.YData(:);
+            z = d.lineOnSlice.ZData(:);
+            g = d.objValues{d.caseNo}.gradient.position{d.wellNo};
+            gsc = g*d.objValues{d.caseNo}.gradPlotScale{d.wellNo};
+            [u,v,w] = deal(gsc(1:3:end), gsc(2:3:end), gsc(3:3:end));
+            cap = @(x,lims)max(lims(1),min(lims(2),x));
+            u = cap(x+u, d.Axes1.XLim)-x;
+            v = cap(y+v, d.Axes1.YLim)-y;
+            w = cap(z+w, d.Axes1.ZLim)-z;
+            hold(d.Axes1, 'on')
+            d.gradientVectors(1) = quiver3(d.Axes1,x,y,z,u,v,w, 'k', 'LineWidth', 2, ...
+                'AutoScale', 'off', 'PickableParts', 'none', 'MaxHeadSize', .5);
+            ngr = sqrt(sum(reshape(g, 3, []).^2));
+            str = arrayfun(@(x)sprintf('  %1.2d $/m', x), ngr, 'UniformOutput', false);
+            [d.gradientVectors(2 + (1:numel(x)))] = ...
+                text(d.Axes1, x+u/2,y+v/2,z+w/2, str, 'BackgroundColor', [.92 .92 .92], ...
+                    'PickableParts', 'none');
+            hold(d.Axes1, 'off')
+            %hold(d.Axes2, 'on')
+            d.gradientVectors(2) = copyobj(d.gradientVectors(1),d.Axes2);
+            %d.gradientVectors(2).Parent = d.Axes2;
+            %hold(d.Axes2, 'off')
+        end
+        %-----------------------------------------------------------------
+        function moveTrajAlongGradient(d, val)
+            if isvalid(d.lineOnSlice)
+                gv = d.gradientVectors(1);
+                cap = @(x,lims)max(lims(1),min(lims(2),x));
+                d.lineOnSlice.XData = cap(gv.XData + val*gv.UData, d.Axes1.XLim);
+                d.lineOnSlice.YData = cap(gv.YData + val*gv.VData, d.Axes1.YLim);
+                d.lineOnSlice.ZData = cap(gv.ZData + val*gv.WData, d.Axes1.ZLim);
+                d.lineOnSlice.resetLinePoints();
+                %ngr = sqrt(sum(reshape(d.objValues{d.caseNo}.gradient.position{d.wellNo}, 3, []).^2));
+                %dp  = val*[gv.UData(:), gv.VData(:), gv.WData(:)].';
+                %dp  = sqrt(sum(dp.^2));
+                %inc = sum(ngr.*dp);
+                %d.proxySelector.increaseText.String = ...
+                %    sprintf('%1.2d $ / %2.1d %%', inc, 100*inc/d.objValues{d.caseNo}.value);
+            end
+        end
     end
 end
-
+%--------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 function traj = getTrajectory(d)
 pxy = [d.Line3D.trajectory.XData(:), d.Line3D.trajectory.YData(:)];
 p   = [d.Line2D.trajectory.XData(:), d.Line2D.trajectory.YData(:)];
@@ -256,6 +557,103 @@ lenxy = [0; sqrt(dot(diff(pxy), diff(pxy), 2))];
 %traj = [interp1(fac.cumlength, fac.segments, p(:,1)), p(:,2)];
 traj = [interp1(cumsum(lenxy), pxy, p(:,1), 'linear', 'extrap'), p(:,2)];
 end
+%--------------------------------------------------------------------------
+function wp= setSpecialWellPlotProps(wp)
+tp = {'injectors', 'producers'};
+for k =1:numel(tp)
+    % don't show well-names outside region
+    set([wp.(tp{k}).label], 'Clipping', 'on');
+    % don't interfere with interactivity
+    set([wp.(tp{k}).connector], 'PickableParts', 'none');
+    set([wp.(tp{k}).body], 'PickableParts', 'none');
+    set([wp.(tp{k}).label], 'PickableParts', 'none');
+end
+% 'shade' color
+wp.injectorColor = 1-.5*(1-wp.injectorColor);
+wp.producerColor = 1-.5*(1-wp.producerColor);
+end
+%--------------------------------------------------------------------------
+function w = updateWellTrajectory(model, w, traj)
+if isgraphics(traj, 'Line')
+    traj = [traj.XData(:), traj.YData(:), traj.ZData(:)];
+end
+status = w.status;
+opts = {'Name', w.name, 'Type', w.type, 'Val', w.val, 'Sign', w.sign, ...
+        'lims', w.lims, 'Radius', w.r(1), 'compi', w.compi};
+w  = addWellFromTrajectory([], model.G, model.rock, traj, ...
+                    'exteriorFaceCorrection', true, opts{:});
+w.status = status;
+w.trajectory = traj;
+if isempty(w.cells)
+    nc = 0;
+else
+    nc = numel(w.cells);
+end
+w.cell_origin = ones(nc, 1);
+end
+%--------------------------------------------------------------------------
+function plotObjectiveValues(res, nms)
+figure, ax = gca;
+title('Proxy values')
+v = cellfun(@(r)r.value, res);
+plot(ax, v, '--o', 'MarkerSize', 12, 'LineWidth', 2);
+ax.XTick = 1:numel(v);
+ax.XTickLabel = nms;
+set(ax, 'FontSize', 14);
+ax.XLim = [.5, numel(v)+.5];
+end
+%--------------------------------------------------------------------------
+function ps = setupPositionControl(G, w, ls)
+pSize = [16 16 8];
+cPnts = [ls.XData(:), ls.YData(:), ls.ZData(:)];
+ps    = WellPositionControl(G, 'w', w, 'perturbationSize', pSize, ...
+            'controlPoints', cPnts, 'nPoints', size(cPnts,1));
+end
+%--------------------------------------------------------------------------
+function sc = getGradPlotScaling(g, axLims)
+fac = .2;
+axLims = vertcat(axLims{:});
+axLims = repmat(axLims, numel(g)/3, 1);
+rl     = max(abs(g)./diff(axLims, [], 2));
+sc     = fac/rl;
+end
+%--------------------------------------------------------------------------
+function data = getCellData(model, state)
+tmp.PORO = model.rock.poro;
+tmp.PERMX = model.rock.perm(:,1);
+tmp.PERMY = model.rock.perm(:,2);
+tmp.PERMZ = model.rock.perm(:,3);
+tmp.DEPTH = model.G.cells.centroids(:,3);
+tmp.PORV  = poreVolume(model.G,model.rock);
+if ~isempty(state)
+    if model.water
+        tmp.SWATINIT = state.s(:, model.getPhaseIndex('W'));
+    end
+    if model.oil
+        tmp.SOILINIT = state.s(:, model.getPhaseIndex('O'));
+    end
+    if model.gas
+        tmp.SGASINIT = state.s(:, model.getPhaseIndex('G'));
+    end
+end
+names = fieldnames(tmp);
+vals  = applyFunction(@(nm)tmp.(nm), names);
+lims  = applyFunction(@(v)[min(v)*(1-sqrt(eps)), max(v)*(1+sqrt(eps))], vals);
+data  = struct('name', names, 'values', vals, 'limits', lims);
+end
+% -----------------------------------------------------------------
+function [lims, vals, flag] = makeSafeForLog(lims, vals, oom)
+if lims(2) <= 0
+    flag = false;
+else
+    flag = true;
+    if lims(1) <= 0 || lims(1) < lims(2)*10^(-oom)
+        lims(1) = lims(2)*10^(-oom);
+        vals = max(vals, lims(1));
+    end
+end
+end
+    
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
@@ -275,3 +673,42 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+
+ %%-----------------------------------------------------------------
+        %         function xyLine(d, ~, ~)
+        %             w = d.WNew(d.wellNo);
+        %             pnts = w.trajectory(:, 1:2);
+        %             pnts = uniquetol(pnts, 'ByRows', true);
+        %             if size(pnts, 1) == 1
+        %                 dx = d.Axes1.XLim;
+        %                 pnts = [pnts(1)+[dx/5; -dx/5], pnts(2)*ones(2,1)];
+        %             end
+        %             if ~isempty(d.Line3D)&&isvalid(d.Line3D)
+        %                 d.switchInteractionOff();
+        %                 delete(d.Line3D);
+        %             end
+        %             d.Line3D = InteractiveLine('XData', pnts(:,1), 'YData', pnts(:,2), 'Parent', d.Axes1);
+        %             d.Line3D.Callback = @d.crossSection;
+        %         end
+        
+        %%-----------------------------------------------------------------
+        %         function putXYLine(d, ~, ~)
+        %             xx = d.Axes1.XLim;
+        %             yy = d.Axes1.YLim;
+        %             pnts = [mean(xx) yy(1); mean(xx) yy(2)];
+        %             if ~isempty(d.Line3D)&&isvalid(d.Line3D)
+        %                 delete(d.Line3D);
+        %             end
+        %             if ~isempty(d.Line2D)&&isvalid(d.Line2D)
+        %                 delete(d.Line2D);
+        %             end
+        %             d.Line3D = InteractiveLine('XData', pnts(:,1), 'YData', pnts(:,2), 'Parent', d.Axes1);
+        %             d.crossSection();
+        %             d.Line3D.Callback = @d.crossSection;
+        %             d.empty2DLine();
+        %             d.Line2D.smoothing = 'pchip';
+        %             d.Axes2.XLimMode = 'auto';
+        %             d.Axes2.YLimMode = 'auto';
+        %         end
+        %-----------------------------------------------------------------

@@ -53,7 +53,7 @@ switch src.Value
         else
             d.messageBar.String = '';
         end
-        names= arrayfun(@(x) x.label.String, d.WellPlot.producers,'UniformOutput',false);
+        names = d.WellPlot.producerNames;
         if nM==1 || doAvg
             if doAvg
                 wp = WP_avg;
@@ -61,10 +61,9 @@ switch src.Value
                 wp = d.Data{mIx}.diagnostics.WP;
             end
             d.plotPie(ax, wp.vols(wp.pairIx(:,1)==iIx), ...
-                arrayfun(@(x) x.label.String, ...
-                d.WellPlot.producers, 'UniformOutput',false), ...
+                d.WellPlot.producerNames, ...
                 d.Data{mIx(1)}.prodColors);
-            title(ax,d.WellPlot.injectors(iIx).label.String);              
+            title(ax,d.WellPlot.injectorNames{iIx});              
         else
             plotVolsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,'injectors');
         end            
@@ -79,7 +78,7 @@ switch src.Value
         else
             d.messageBar.String = '';
         end
-        names= arrayfun(@(x) x.label.String, d.WellPlot.producers,'UniformOutput',false);
+        names = d.WellPlot.producerNames;
         names{end+1}='reservoir';
         if nM == 1 || doAvg
             if doAvg
@@ -89,7 +88,7 @@ switch src.Value
             end
             d.plotPie(ax, abs(sum([inj.alloc, inj.ralloc],1)), ...
                 names, d.Data{mIx(1)}.prodColors);
-            title(ax,d.WellPlot.injectors(iIx).label.String);
+            title(ax,d.WellPlot.injectorNames{iIx});
 
         else
             plotAllocsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,'injectors');
@@ -112,8 +111,8 @@ switch src.Value
             d.plotPLT(ax, injAlloc, d.Data{mIx(1)}.prodColors);
             wplIx = getWellsForLegend(injAlloc.alloc,0.001);      
             
-            legend(ax, ax.Children(numel(d.WellPlot.producers)+1-wplIx), ...
-                arrayfun(@(x) x.label.String, d.WellPlot.producers(wplIx),'UniformOutput',false));            
+            legend(ax, ax.Children(d.WellPlot.nProd+1-wplIx), ...
+                d.WellPlot.producerNames(wplIx));            
         else
             d.messageBar.String = '';
             [injAlloc, wplIxAll] = deal(cell(nM,1));
@@ -130,11 +129,10 @@ switch src.Value
             goIx =arrayfun(@(x) find(ll == x,1),wplIx);
 
             legend(ax, ax.Children(goIx), ...
-                arrayfun(@(x) x.label.String, d.WellPlot.producers(wplIx), ...
-                'UniformOutput',false), 'Location', 'Best');            
+                d.WellPlot.producerNames(wplIx), 'Location', 'Best');            
 
         end
-        title(ax,d.WellPlot.injectors(iIx).label.String);
+        title(ax,d.WellPlot.injectorNames{iIx});
 
 
        
@@ -149,7 +147,7 @@ switch src.Value
         else
             d.messageBar.String = '';
         end
-        names= arrayfun(@(x) x.label.String, d.WellPlot.injectors,'UniformOutput',false);
+        names= d.WellPlot.injectorNames;
         if nM==1 || doAvg
             if doAvg
                 wp = WP_avg;
@@ -157,10 +155,8 @@ switch src.Value
                 wp = d.Data{mIx}.diagnostics.WP;
             end
             d.plotPie(ax, wp.vols(wp.pairIx(:,2)==pIx), ...
-                arrayfun(@(x) x.label.String, ...
-                d.WellPlot.injectors,'UniformOutput',false), ...
-                d.Data{mIx(1)}.injColors);
-            title(ax,d.WellPlot.producers(pIx).label.String);            
+                names, d.Data{mIx(1)}.injColors);
+            title(ax,d.WellPlot.producerNames{pIx});            
         else
             plotVolsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,'producers');
         end
@@ -176,7 +172,7 @@ switch src.Value
         else   
             d.messageBar.String = '';
         end
-        names = arrayfun(@(x) x.label.String, d.WellPlot.injectors,'UniformOutput',false);
+        names = d.WellPlot.injectorNames; 
         names{end+1}='reservoir';
         if nM == 1 || doAvg
             if doAvg
@@ -186,7 +182,7 @@ switch src.Value
             end
             d.plotPie(ax, abs(sum([prod.alloc, prod.ralloc],1)), ...
                 names, d.Data{mIx(1)}.injColors);
-            title(ax,d.WellPlot.producers(pIx).label.String);
+            title(ax,d.WellPlot.producerNames{pIx});
         else
             plotAllocsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,'producers');
         end
@@ -209,8 +205,8 @@ switch src.Value
             d.plotPLT(ax, prodAlloc, d.Data{mIx(1)}.injColors);
             wplIx = getWellsForLegend(prodAlloc.alloc,0.001);
             
-            legend(ax, ax.Children(numel(d.WellPlot.injectors)+1-wplIx), ...
-                arrayfun(@(x) x.label.String, d.WellPlot.injectors(wplIx),'UniformOutput',false));
+            legend(ax, ax.Children(d.WellPlot.nInj+1-wplIx), ...
+                d.WellPlot.injectorNames(wplIx));
         else
             d.messageBar.String = '';
             [prodAlloc, wplIxAll] = deal(cell(nM,1));
@@ -237,10 +233,9 @@ switch src.Value
             
             
             legend(ax,  ax.Children(goIx), ...
-                arrayfun(@(x) x.label.String, d.WellPlot.injectors(wplIx), ...
-                'UniformOutput',false), 'Location', 'Best');
+                d.WellPlot.injectorNames(wplIx), 'Location', 'Best');
         end
-        title(ax,d.WellPlot.producers(pIx).label.String);
+        title(ax,d.WellPlot.producerNames{pIx});
         
     case 9
         
@@ -279,13 +274,17 @@ function plotVolsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,welltype)
     if strcmp(welltype,'injectors')
         idx = 1;
         t2 = 'producers';
+        nWell = d.WellPlot.nProd;
         i1 = iIx;
+        nm = d.WellPlot.injectorNames{iIx};
         % i2 = pIx;
         cmap = d.Data{mIx(1)}.prodColors;            
     elseif strcmp(welltype,'producers')
         idx = 2;
         t2 = 'injectors';
+        nWell = d.WellPlot.nInj;
         i1 = pIx;
+        nm = d.WellPlot.producerNames{pIx};
         % i2 = iIx;
         cmap = d.Data{mIx(1)}.injColors;           
     else
@@ -316,11 +315,11 @@ function plotVolsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,welltype)
 %     names= arrayfun(@(x) x.label.String, d.WellPlot.(t2),'UniformOutput',false);
 %     names{end+1}='reservoir';
     
-    legend(ax,  ax.Children(numel(d.WellPlot.(t2))+1-wplIx), ...
+    legend(ax,  ax.Children(nWell+1-wplIx), ...
         names{wplIx});            
     axis(ax,'tight')
     set(h,'HitTest','off');   
-    title(ax,d.WellPlot.(welltype)(i1).label.String, 'Interpreter','none');            
+    title(ax,nm, 'Interpreter','none');            
 end
 
 function plotAllocsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,welltype)
@@ -330,13 +329,17 @@ function plotAllocsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,welltype)
         i1 = iIx;
         % i2 = pIx;
         iflux = 'inj';
-        cmap = d.Data{mIx(1)}.prodColors;            
+        cmap = d.Data{mIx(1)}.prodColors;      
+        nwell = d.WellPlot.nProd;
+        nm    = d.WellPlot.injectorNames{i1};
     elseif strcmp(welltype,'producers')
         t2 = 'injectors';
         i1 = pIx;
         % i2 = iIx;
         iflux = 'prod';
-        cmap = d.Data{mIx(1)}.injColors;        
+        cmap = d.Data{mIx(1)}.injColors;    
+        nwell = d.WellPlot.nInj;
+        nm    = d.WellPlot.producerNames{i1};
     else
         disp('Unknown welltype')
         return
@@ -363,9 +366,9 @@ function plotAllocsMultipleModels(d,ax,s3,mIx,iIx,pIx,names,welltype)
     wplIx = unique([wplIxAll{:}]);
     
 
-    legend(ax,  ax.Children(numel(d.WellPlot.(t2))+2-wplIx), ...
+    legend(ax,  ax.Children(nwell+2-wplIx), ...
         names{wplIx});     
        
     axis(ax,'tight')    
-    title(ax,d.WellPlot.(welltype)(i1).label.String, 'Interpreter','none');            
+    title(ax, nm, 'Interpreter','none');            
 end

@@ -437,7 +437,7 @@ classdef UIMenu < handle
             p = m.CurrentPoint;
             f = figureParent(m);
             motionFcn     = f.WindowButtonMotionFcn;
-            
+            upFcn         = f.WindowButtonUpFcn;
 %             if false %p(1) >= d.panel.Position(3)-5
 %                 offset = d.panel.Position(3)-p(1);
 %                 f.WindowButtonMotionFcn = {@dragHorisontally, offset};
@@ -478,6 +478,7 @@ classdef UIMenu < handle
             
             function clearMotionFcn(src, event)
                 f.WindowButtonMotionFcn = motionFcn;
+                f.WindowButtonUpFcn     = upFcn;
                 set(f,'Pointer','arrow')
             end
         end
