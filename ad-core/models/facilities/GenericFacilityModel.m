@@ -473,8 +473,10 @@ classdef GenericFacilityModel < FacilityModel
                     if model.gas
                         q_g = wellSol.qGs;
                     end
-                    if isprop(model, 'solvent') && model.solvent
-                        q_sl = wellSol.qSs;
+                    if isfield(wellSol, 'qSs')
+                        if ~isempty(wellSol.qSs)
+                            q_sl = wellSol.qSs;
+                        end
                     end
                     flags = [value(bhp) < lims.bhp,  ...
                         q_o          < lims.orat, ...

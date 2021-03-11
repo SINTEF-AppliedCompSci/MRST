@@ -232,11 +232,12 @@ classdef StateFunctionGrouping < StateFunctionDependent
                 % group belonging to the model
                 if strcmp(dep.grouping, 'state')
                     ok = true;
-                elseif isprop(model, dep.grouping)
-                    ok = model.(dep.grouping).isStateFunctionEvaluated(model, state, dep.name);
                 else
-                    % Assumed to found somewhere else.
-                    ok = true;
+                    try
+                        ok = model.(dep.grouping).isStateFunctionEvaluated(model, state, dep.name);
+                    catch
+                        ok = true;
+                    end
                 end
             end
         end
