@@ -262,7 +262,7 @@ classdef WellPlotHandle < handle
             upd     =  stat ~= s.statusExtended.inj;
             upd     = upd & getVisibleInjectorsExtended(s);
             if any(upd)
-                fn = {'connector', 'body'};
+                fn = {'connector', 'body', 'label'};
                 for k = 1:numel(fn)
                     set([s.injectors(upd & ~stat).(fn{k})], 'Color', s.closedColor);
                     set([s.injectors(upd &  stat).(fn{k})], 'Color', s.injectorColor);

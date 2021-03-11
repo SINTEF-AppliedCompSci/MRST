@@ -889,7 +889,7 @@ classdef PostProcessDiagnostics < handle
                  h=barh(ax, z, a,'stacked','BarWidth',1, 'EdgeColor','none');
               else
                  h=area(ax, z, a, eps,'EdgeColor','none'); axis(ax,'tight');
-                 view(90,-90);
+                 view(ax, 90,-90);
                  args = {'XDir', 'XLim'};
               end
            end
