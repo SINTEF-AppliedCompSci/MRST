@@ -269,18 +269,17 @@ classdef GenericAD < ADI
     end
     
     methods (Static)
-        
-        function J = uminusJac(J1)
-            J = cellfun(@uminus, J1, 'UniformOutput', false);
-        end
-        
+
         %--------------------------------------------------------------------------
         
         function J = plusJac(J1, J2)
             nv1 = matrixDims(J1{1},1);
             nv2 = matrixDims(J2{1},1);
             if  nv1 == nv2
-                J = cellfun(@plus, J1, J2, 'UniformOutput', false);
+                J = J1;
+                for i = 1:numel(J1)
+                    J{i} = J{i} + J2{i};
+                end
             else     % only other legal option is that nv1 = 1 or nv2 =1
                 if nv1 == 1
                     J = cell(1, numel(J1));
@@ -300,7 +299,10 @@ classdef GenericAD < ADI
             nv1 = matrixDims(J1{1},1);
             nv2 = matrixDims(J2{1},1);
             if  nv1 == nv2
-                J = cellfun(@minus, J1, J2, 'UniformOutput', false);
+                J = J1;
+                for i = 1:numel(J)
+                    J{i} = J{i} - J2{i};
+                end
             else     % only other legal option is that nv1 = 1 or nv2 =1
                 if nv1 == 1
                     J = cell(1, numel(J1));
