@@ -63,6 +63,11 @@ properties
     OutputStateFunctions = {};
 end
 
+properties (Access = protected)
+    stateFunctionEvaluationMode = 'lazy';
+    stateFunctionGraph = [];
+end
+
 methods
     function model = PhysicalModel(G, varargin)
         model.nonlinearTolerance = 1e-6;
@@ -92,6 +97,9 @@ methods
             state.primaryVariables = names;
         end
         state = model.initStateAD(state, vars, names, origin);
+        if strcmpi(model.stateFunctionEvaluationMode, 'full')
+            state = model.evaluateAllStateFunctions(state);
+        end
     end
 
     function [state, names, origin] = getReverseStateAD(model, varargin)
@@ -290,6 +298,9 @@ methods
         % allow it to modify any discrete operators (if applicable)
         model = model.AutoDiffBackend.updateDiscreteOperators(model);
         model = model.setupStateFunctionGroupings();
+        if strcmpi(model.stateFunctionEvaluationMode, 'full')
+            model = model.setupStateFunctionGraph();
+        end
     end
     
     function model = setupStateFunctionGroupings(model, setDefaults) %#ok
@@ -325,7 +336,7 @@ methods
         %
         % SYNOPSIS:
         %   model = model.removeStateFunctionGroupings();
-
+        model.stateFunctionGraph = [];
         dispif(model.verbose, ...
             'Resetting StateFunctionGroupings attached to class of type %s\n',...
             class(model));
@@ -971,8 +982,46 @@ methods
         end
     end
 
-    function groupings = getStateFunctionGroupings(model)
-        groupings = {};
+    function model = setStateFunctionEvaluationMode(model, mode)
+        switch lower(mode)
+            case {'lazy', 'full'}
+                dispif(model.verbose, 'Setting evaluation mode to "%s"\n', mode);
+            otherwise
+                error('Unknown mode %s', mode);
+        end
+        model.stateFunctionEvaluationMode = mode;
+    end
+    
+    function model = setupStateFunctionGraph(model)
+        require matlab_bgl
+        groups = model.getStateFunctionGroupings();
+        graph = getStateFunctionGroupingDependencyGraph(groups{:});
+        to = topological_order(sparse(graph.C));
+        isState = graph.GroupIndex == find(strcmpi(graph.GroupNames, 'state'));
+        graph.TopologicalOrder = to;
+        graph.EvaluationOrder = to(~isState(to));
+        model.stateFunctionGraph = graph;
+    end
+    
+    function state = evaluateAllStateFunctions(model, state)
+        [groups, names, models] = model.getStateFunctionGroupings();
+        g = model.stateFunctionGraph;
+        assert(~isempty(g));
+        nf = numel(g.EvaluationOrder);
+        for i = 1:nf
+            index = g.EvaluationOrder(i);
+            gix = g.GroupIndex(index);
+            group = g.GroupNames{gix};
+            name = g.FunctionNames{index};
+            dispif(model.verbose > 1, 'Evaluating %s.%s (%d of %d)\n', group, name, i, nf);
+            [~, state] = groups{gix}.get(models{gix}, state, name);
+        end
+    end
+    
+    function [groupings, names, models] = getStateFunctionGroupings(model)
+        groupings = {}; % Groups
+        names = {};     % Name in model
+        models = {};    % Model or submodel they belong to
     end
 
     function checkStateFunctionDependencies(model)

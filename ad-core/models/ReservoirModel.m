@@ -511,17 +511,21 @@ methods
         end
     end
 
-    function containers = getStateFunctionGroupings(model)
-        containers = getStateFunctionGroupings@PhysicalModel(model);
-        extra = {model.FlowPropertyFunctions, ...
-                 model.PVTPropertyFunctions, ...
-                 model.FlowDiscretization};
+    function [groups, names, models] = getStateFunctionGroupings(model)
+        [groups, names, models] = getStateFunctionGroupings@PhysicalModel(model);
+        enames = {'FlowPropertyFunctions', 'PVTPropertyFunctions', 'FlowDiscretization'};
+        egroups = applyFunction(@(x) model.(x), enames);
+        emodels = applyFunction(@(x) model, enames);
         if ~isempty(model.FacilityModel)
-            fm_props = model.FacilityModel.getStateFunctionGroupings();
-            extra = [extra, fm_props];
+            [fm_groups, fm_names, fm_models] = model.FacilityModel.getStateFunctionGroupings();
+            egroups = [egroups, fm_groups];
+            enames = [enames, fm_names];
+            emodels = [emodels, {model.FacilityModel}];
         end
-        extra = extra(~cellfun(@isempty, extra));
-        containers = [containers, extra];
+        active = ~cellfun(@isempty, egroups);
+        groups = [groups, egroups(active)];
+        names = [names, enames(active)];
+        models = [models, emodels(active)];
     end
     % --------------------------------------------------------------------%
     function names = getComponentNames(model) %#ok
