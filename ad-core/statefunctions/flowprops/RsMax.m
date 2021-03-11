@@ -8,22 +8,12 @@ classdef RsMax < StateFunction
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn('pressure', 'state');
             gp.label = 'R_s^{max}';
+            gp.outputRange = [0, inf];
         end
         
         function rsSat = evaluateOnDomain(prop, model, state)
             p = model.getProp(state, 'pressure');
-            if model.disgas
-                rsSat = prop.evaluateFluid(model, 'rsSat', p);
-                v = value(rsSat);
-                if any(v < 0)
-                    if model.verbose > 1
-                        warning('Negative RsMax detected in %d points', sum(v < 0));
-                    end
-                    rsSat = max(rsSat, 0);
-                end
-            else
-                rsSat = 0*p;
-            end
+            rsSat = prop.evaluateFluid(model, 'rsSat', p);
         end
     end
 end
