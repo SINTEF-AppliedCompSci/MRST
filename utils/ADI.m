@@ -630,9 +630,10 @@ classdef ADI
         %**************************************************************************
         %-------- Helper functions involving Jacobians  ---------------------------
         %**************************************************************************
-
-        function J = uminusJac(J1)
-            J = cellfun(@uminus, J1, 'UniformOutput', false);
+        function J = uminusJac(J)
+            for i = 1:numel(J)
+                J{i} = -J{i};
+            end
         end
 
         %--------------------------------------------------------------------------
@@ -650,7 +651,10 @@ classdef ADI
         nv1 = size(J1{1},1);
         nv2 = size(J2{1},1);
         if  nv1 == nv2
-            J = cellfun(@plus, J1, J2, 'UniformOutput', false);
+            J = J1;
+            for i = 1:numel(J1)
+                J{i} = J{i} + J2{i};
+            end
         else     % only other legal option is that nv1 = 1 or nv2 =1
             if nv1 == 1
                 J = cell(1, numel(J1));
