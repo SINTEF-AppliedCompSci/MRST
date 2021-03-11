@@ -105,7 +105,12 @@ classdef CPRSolverAD < LinearSolverAD
             nCell = problem.getEquationVarNum(1);
             
             % Get and apply scaling
-            scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
+            if solver.trueIMPES
+                stype = 'trueIMPES';
+            else
+                stype = 'simple';
+            end
+            scale = model.getScalingFactorsCPR(problem, problem.equationNames, stype);
             
             for i = 1:numel(scale)
                 if numelValue(scale{i}) > 1 || scale{i} ~= 0

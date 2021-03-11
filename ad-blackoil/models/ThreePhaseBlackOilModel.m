@@ -361,8 +361,11 @@ methods
     end
     
     % --------------------------------------------------------------------%
-    function scaling = getScalingFactorsCPR(model, problem, names, solver)
+    function scaling = getScalingFactorsCPR(model, problem, names, type)
         % Get approximate, impes-like pressure scaling factors
+        if nargin < 4
+            type = 'trueimpes';
+        end
         nNames = numel(names);
         
         scaling = cell(nNames, 1);
@@ -380,47 +383,48 @@ methods
         isg = ph == 'G';
         isw = ph == 'W';
 
-        if ((isprop(solver, 'trueIMPES') || isfield(solver, 'trueIMPES')) && solver.trueIMPES) || ...
-            isprop(solver, 'decoupling') && strcmpi(solver.decoupling, 'trueIMPES')
-            % Rigorous pressure equation (requires lots of evaluations)
-            w = model.getProp(state, 'PressureReductionFactors');
-            nc = numel(w);
-            subs = 1:nc;
-            scaling(subs) = w;
-            handled(subs) = true;
-        else
-            % Very simple scaling factors, uniform over grid
-            p = mean(value(state.pressure));
-            call = @(varargin) model.evalSingle(varargin{:});
-            for iter = 1:nNames
-                name = lower(names{iter});
-                switch name
-                    case 'oil'
-                        if model.disgas
-                           rs = call(fluid.rsSat, p);
-                           bO = call(fluid.bO,p, rs, true);
-                        else
-                           bO = call(fluid.bO,p);
-                        end
-                        s = 1./bO;
-                    case 'water'
-                        bW = call(fluid.bW,p);
-                        s = 1./bW;
-                    case 'gas'
-                        if model.vapoil
-                            rv = call(fluid.rvSat, p);
-                            bG = call(fluid.bG, p, rv, true);
-                        elseif model.gas
-                            bG = call(fluid.bG, p);
-                        end
-                        s = 1./bG;
-                    otherwise
-                        continue
+        switch lower(type)
+            case 'trueimpes'
+                % Rigorous pressure equation (requires lots of evaluations)
+                w = model.getProp(state, 'PressureReductionFactors');
+                nc = numel(w);
+                subs = 1:nc;
+                scaling(subs) = w;
+                handled(subs) = true;
+            otherwise
+                % Simplified analytical weighting factors, evaluated with
+                % the averaged grid.
+                p = mean(value(state.pressure));
+                call = @(varargin) model.evalSingle(varargin{:});
+                for iter = 1:nNames
+                    name = lower(names{iter});
+                    switch name
+                        case 'oil'
+                            if model.disgas
+                               rs = call(fluid.rsSat, p);
+                               bO = call(fluid.bO,p, rs, true);
+                            else
+                               bO = call(fluid.bO,p);
+                            end
+                            s = 1./bO;
+                        case 'water'
+                            bW = call(fluid.bW,p);
+                            s = 1./bW;
+                        case 'gas'
+                            if model.vapoil
+                                rv = call(fluid.rvSat, p);
+                                bG = call(fluid.bG, p, rv, true);
+                            elseif model.gas
+                                bG = call(fluid.bG, p);
+                            end
+                            s = 1./bG;
+                        otherwise
+                            continue
+                    end
+                    sub = strcmpi(problem.equationNames, name);
+                    scaling{iter} = s;
+                    handled(sub) = true;
                 end
-                sub = strcmpi(problem.equationNames, name);
-                scaling{iter} = s;
-                handled(sub) = true;
-            end
         end
         % Account for difference in convention. Generic models use mass,
         % while the older models use surface volumes. The factors are
