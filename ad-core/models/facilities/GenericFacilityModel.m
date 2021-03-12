@@ -403,8 +403,10 @@ classdef GenericFacilityModel < FacilityModel
             ffd = model.(name);
             if ~isempty(ffd)
                 groups = [groups, {ffd}];
-                names = [names, {name}];
-                models = [models, {model}];
+                if nargout > 1
+                    names = [names, {name}];
+                    models = [models, {model}];
+                end
             end
         end
         
