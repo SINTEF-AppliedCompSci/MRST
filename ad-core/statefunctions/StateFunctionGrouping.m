@@ -171,10 +171,8 @@ classdef StateFunctionGrouping < StateFunctionDependent
             % evaluations if required. Repeated calls to get within the
             % same AD-initialization of state for the same property will
             % not result in evaluations (caching)
-            if ~isfield(state, 'evaluated')
-                if ~props.isStateFunctionEvaluated(model, state, name)
-                    state = props.evaluateStateFunctionWithDependencies(model, state, name);
-                end
+            if ~props.isStateFunctionEvaluated(model, state, name)
+                state = props.evaluateStateFunctionWithDependencies(model, state, name);
             end
             v = state.(props.structName).(name);
             v = expandIfUniform(v);
@@ -228,7 +226,9 @@ classdef StateFunctionGrouping < StateFunctionDependent
         
         function ok = isStateFunctionEvaluated(props, model, state, dep)
             % Check if property is present in cache.
-            if ischar(dep)
+            if isfield(state, 'evaluated')
+                ok = true;
+            elseif ischar(dep)
                 % Internal dependency - same group
                 nm = props.structName;
                 if isfield(state, nm)

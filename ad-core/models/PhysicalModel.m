@@ -1015,13 +1015,19 @@ methods
         g = model.stateFunctionGraph;
         assert(~isempty(g));
         nf = numel(g.EvaluationOrder);
+        dbg = model.verbose > 1;
         for i = 1:nf
             index = g.EvaluationOrder(i);
             gix = g.GroupIndex(index);
             group = g.GroupNames{gix};
             name = g.FunctionNames{index};
-            dispif(model.verbose > 1, 'Evaluating %s.%s (%d of %d)\n', group, name, i, nf);
+            if dbg
+                timer = tic();
+            end
             state = groups{gix}.evaluateStateFunctionUnsafe(models{gix}, state, name);
+            if dbg
+                fprintf('Evaluated %s.%s (%d of %d, %1.4gs)\n', group, name, i, nf, toc(timer));
+            end
         end
         state.evaluated = true;
     end
