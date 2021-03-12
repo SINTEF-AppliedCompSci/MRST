@@ -28,7 +28,7 @@ classdef OilComponent < ImmiscibleComponent
                 phasenames = model.getPhaseNames();
                 nph = numel(phasenames);
                 c = cell(nph, 1);
-                b = model.getProps(state, 'ShrinkageFactors');
+                b = model.PVTPropertyFunctions.get(model, state, 'ShrinkageFactors');
                 oix = (phasenames == 'O');
                 reg = model.PVTPropertyFunctions.getRegionPVT(model);
                 rhoOS = model.getSurfaceDensities(reg, oix);

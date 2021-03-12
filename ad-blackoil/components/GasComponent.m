@@ -29,7 +29,7 @@ classdef GasComponent < ImmiscibleComponent
                 phasenames = model.getPhaseNames();
                 nph = numel(phasenames);
                 c = cell(nph, 1);
-                b = model.getProps(state, 'ShrinkageFactors');
+                b = model.PVTPropertyFunctions.get(model, state, 'ShrinkageFactors');
                 gix = (phasenames == 'G');
                 reg = model.PVTPropertyFunctions.getRegionPVT(model);
                 rhoGS = model.getSurfaceDensities(reg, gix);
