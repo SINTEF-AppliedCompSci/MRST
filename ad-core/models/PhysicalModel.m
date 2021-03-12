@@ -1021,6 +1021,7 @@ methods
         assert(~isempty(g));
         nf = numel(g.EvaluationOrder);
         dbg = model.verbose > 1;
+        state.evaluated = true;
         for i = 1:nf
             index = g.EvaluationOrder(i);
             gix = g.GroupIndex(index);
@@ -1034,7 +1035,6 @@ methods
                 fprintf('Evaluated %s.%s (%d of %d, %1.4gs)\n', group, name, i, nf, toc(timer));
             end
         end
-        state.evaluated = true;
     end
     
     function [groupings, names, models] = getStateFunctionGroupings(model)
