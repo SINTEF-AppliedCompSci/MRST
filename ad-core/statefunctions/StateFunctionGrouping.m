@@ -123,13 +123,16 @@ classdef StateFunctionGrouping < StateFunctionDependent
             assert(ischar(name));
             group = group.setInternalNames();
             sub = strcmp(group.functionNames, name);
+            prop.structName = group.structName;
             if any(sub)
                 % We are replacing an existing property
                 ptypes = group.functionTypes;
                 type = ptypes(sub);
                 if type == 0
                     % Class property ("intrinsic"), just replace directly
-                    group.(name) = prop;
+                    % group.(name) = prop;
+                    sr = struct('subs', name, 'type', '.');
+                    group = builtin('subsasgn', group, sr, prop);
                 else
                     % This property was not found, we are adding extending
                     % the list of extra properties
@@ -142,6 +145,14 @@ classdef StateFunctionGrouping < StateFunctionDependent
                 group.functionNames = [group.functionNames; name];
                 group.functionTypes = [group.functionTypes; 1];
                 group.extraFunctions{end+1, 1} = prop;
+            end
+        end
+        
+        function group = subsasgn(group, sub, val)
+            if strcmp(sub.type, '.')
+                group = group.setStateFunction(sub.subs, val);
+            else
+                group = builtin('subsasgn', group, sub, val);
             end
         end
 
@@ -189,9 +200,6 @@ classdef StateFunctionGrouping < StateFunctionDependent
                 props_struct = state.(struct_name);
             end
             prop = sfg.getStateFunction(name);
-            if isempty(prop.structName)
-                prop.structName = sfg.structName;
-            end
             props_struct.(name) = prop.evaluateOnDomain(model, state);
             if sfg.validationLevel > 0
                 prop.validateOutput(props_struct.(name), sfg.validationLevel);
@@ -206,9 +214,6 @@ classdef StateFunctionGrouping < StateFunctionDependent
             % - Struct is here.
             % - No validation should be performed.
             prop = sfg.getStateFunction(name);
-            if isempty(prop.structName)
-                prop.structName = sfg.structName;
-            end
             props_struct = state.(sfg.structName);
             if isempty(props_struct.(name))
                 props_struct.(name) = prop.evaluateOnDomain(model, state);
