@@ -999,14 +999,19 @@ methods
         mode = model.stateFunctionEvaluationMode;
     end
     
-    function model = setupStateFunctionGraph(model)
-        require matlab_bgl
-        groups = model.getStateFunctionGroupings();
-        graph = getStateFunctionGroupingDependencyGraph(groups{:});
-        to = topological_order(sparse(graph.C));
-        isState = graph.GroupIndex == find(strcmpi(graph.GroupNames, 'state'));
-        graph.TopologicalOrder = to;
-        graph.EvaluationOrder = to(~isState(to));
+    function [model, graph] = setupStateFunctionGraph(model, graph)
+        if nargin == 1
+            graph = model.stateFunctionGraph;
+        end
+        if isempty(graph)
+            require matlab_bgl
+            groups = model.getStateFunctionGroupings();
+            graph = getStateFunctionGroupingDependencyGraph(groups{:});
+            to = topological_order(sparse(graph.C));
+            isState = graph.GroupIndex == find(strcmpi(graph.GroupNames, 'state'));
+            graph.TopologicalOrder = to;
+            graph.EvaluationOrder = to(~isState(to));
+        end
         model.stateFunctionGraph = graph;
     end
     
