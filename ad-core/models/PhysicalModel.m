@@ -999,9 +999,13 @@ methods
         mode = model.stateFunctionEvaluationMode;
     end
     
-    function [model, graph] = setupStateFunctionGraph(model, graph)
-        if nargin == 1
+    function [model, graph] = setupStateFunctionGraph(model, varargin)
+        ne = numel(varargin);
+        if mod(ne, 2) == 0
             graph = model.stateFunctionGraph;
+        else
+            graph = varargin{1};
+            varargin = varargin(2:end);
         end
         if isempty(graph)
             require matlab_bgl
@@ -1011,6 +1015,29 @@ methods
             isState = graph.GroupIndex == find(strcmpi(graph.GroupNames, 'state'));
             graph.TopologicalOrder = to;
             graph.EvaluationOrder = to(~isState(to));
+        end
+        if ne
+            opt = struct('filter', {{}});
+            opt = merge_options(opt, varargin{:});
+            
+            % Filtering logic
+            eo = graph.EvaluationOrder;
+            fn = graph.FunctionNames(eo);
+            gn = graph.GroupNames(graph.GroupIndex(eo));
+
+            skip = false(numel(eo), 1);
+            for i = 1:numel(opt.filter)
+                f = opt.filter{i};
+                tmp = strsplit(f, '.');
+                if numel(tmp) == 2
+                    loc = strcmpi(fn, tmp{2}) & strcmpi(gn, tmp{1});
+                else
+                    assert(numel(tmp) == 1);
+                    loc = strcmpi(fn, tmp{1});
+                end
+                skip = skip | loc;
+            end
+            graph.EvaluationOrder(skip) = [];
         end
         model.stateFunctionGraph = graph;
     end
