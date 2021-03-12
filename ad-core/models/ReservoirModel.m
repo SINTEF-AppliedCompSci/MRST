@@ -526,15 +526,15 @@ methods
         egroups = applyFunction(@(x) model.(x), enames);
         if full
             emodels = applyFunction(@(x) model, enames);
-            names = tmp{2};
-            models = tmp{3};
+            names = tmp{1};
+            models = tmp{2};
         end
         if ~isempty(model.FacilityModel)
             [fm_groups, tmp{:}] = model.FacilityModel.getStateFunctionGroupings();
             egroups = [egroups, fm_groups];
             if full
-                enames = [enames, tmp{2}];
-                emodels = [emodels, tmp{3}];
+                enames = [enames, tmp{1}];
+                emodels = [emodels, tmp{2}];
             end
         end
         active = ~cellfun(@isempty, egroups);
