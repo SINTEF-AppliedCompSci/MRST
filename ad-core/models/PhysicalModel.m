@@ -986,11 +986,13 @@ methods
     end
 
     function model = setStateFunctionEvaluationMode(model, mode)
+        % Set evaluation mode for state functions
         switch lower(mode)
             case {'lazy', 'full'}
                 dispif(model.verbose, 'Setting evaluation mode to "%s"\n', mode);
             otherwise
-                error('Unknown mode %s', mode);
+                error(['Unknown mode ''%s''. Possible options are:\n  - ''lazy'' for evaluation when needed\n', ...
+                       '  - ''full'' for pre-evaluation of all properties.'], mode);
         end
         model.stateFunctionEvaluationMode = mode;
     end
@@ -1000,6 +1002,8 @@ methods
     end
     
     function [model, graph] = setupStateFunctionGraph(model, varargin)
+        % Set up the state function dependency graph to allow for
+        % single-pass evaluation
         ne = numel(varargin);
         if mod(ne, 2) == 0
             graph = model.stateFunctionGraph;
@@ -1043,6 +1047,8 @@ methods
     end
     
     function state = evaluateAllStateFunctions(model, state)
+        % Evaluate ALL state functions, provided that the graph has been
+        % initialized via setupStateFunctionGraph.
         [groups, names, models] = model.getStateFunctionGroupings();
         g = model.stateFunctionGraph;
         assert(~isempty(g));
