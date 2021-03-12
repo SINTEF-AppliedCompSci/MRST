@@ -397,11 +397,16 @@ classdef GenericFacilityModel < FacilityModel
             end
         end
         
-        function containers = getStateFunctionGroupings(model)
-            containers = getStateFunctionGroupings@PhysicalModel(model);
-            ffd = model.FacilityFlowDiscretization;
+        function [groups, names, models] = getStateFunctionGroupings(model)
+            [groups, names, models] = getStateFunctionGroupings@PhysicalModel(model);
+            name = 'FacilityFlowDiscretization';
+            ffd = model.(name);
             if ~isempty(ffd)
-                containers = [containers, {ffd}];
+                groups = [groups, {ffd}];
+                if nargout > 1
+                    names = [names, {name}];
+                    models = [models, {model}];
+                end
             end
         end
         

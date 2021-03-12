@@ -63,6 +63,11 @@ properties
     OutputStateFunctions = {};
 end
 
+properties (Access = protected)
+    stateFunctionEvaluationMode = 'lazy';
+    stateFunctionGraph = [];
+end
+
 methods
     function model = PhysicalModel(G, varargin)
         model.nonlinearTolerance = 1e-6;
@@ -92,6 +97,9 @@ methods
             state.primaryVariables = names;
         end
         state = model.initStateAD(state, vars, names, origin);
+        if strcmpi(model.stateFunctionEvaluationMode, 'full')
+            state = model.evaluateAllStateFunctions(state);
+        end
     end
 
     function [state, names, origin] = getReverseStateAD(model, varargin)
@@ -290,6 +298,9 @@ methods
         % allow it to modify any discrete operators (if applicable)
         model = model.AutoDiffBackend.updateDiscreteOperators(model);
         model = model.setupStateFunctionGroupings();
+        if strcmpi(model.stateFunctionEvaluationMode, 'full')
+            model = model.setupStateFunctionGraph();
+        end
     end
     
     function model = setupStateFunctionGroupings(model, setDefaults) %#ok
@@ -325,7 +336,7 @@ methods
         %
         % SYNOPSIS:
         %   model = model.removeStateFunctionGroupings();
-
+        model.stateFunctionGraph = [];
         dispif(model.verbose, ...
             'Resetting StateFunctionGroupings attached to class of type %s\n',...
             class(model));
@@ -501,6 +512,9 @@ methods
         state = value(state);
         if isfield(state, 'primaryVariables')
             state = rmfield(state, 'primaryVariables');
+        end
+        if isfield(state, 'evaluated')
+            state = rmfield(state, 'evaluated');
         end
     end
 
@@ -971,8 +985,95 @@ methods
         end
     end
 
-    function groupings = getStateFunctionGroupings(model)
-        groupings = {};
+    function model = setStateFunctionEvaluationMode(model, mode)
+        % Set evaluation mode for state functions
+        switch lower(mode)
+            case {'lazy', 'full'}
+                dispif(model.verbose, 'Setting evaluation mode to "%s"\n', mode);
+            otherwise
+                error(['Unknown mode ''%s''. Possible options are:\n  - ''lazy'' for evaluation when needed\n', ...
+                       '  - ''full'' for pre-evaluation of all properties.'], mode);
+        end
+        model.stateFunctionEvaluationMode = mode;
+    end
+    
+    function mode = getStateFunctionEvaluationMode(model)
+        mode = model.stateFunctionEvaluationMode;
+    end
+    
+    function [model, graph] = setupStateFunctionGraph(model, varargin)
+        % Set up the state function dependency graph to allow for
+        % single-pass evaluation
+        ne = numel(varargin);
+        if mod(ne, 2) == 0
+            graph = model.stateFunctionGraph;
+        else
+            graph = varargin{1};
+            varargin = varargin(2:end);
+        end
+        if isempty(graph)
+            require matlab_bgl
+            groups = model.getStateFunctionGroupings();
+            graph = getStateFunctionGroupingDependencyGraph(groups{:});
+            to = topological_order(sparse(graph.C));
+            isState = graph.GroupIndex == find(strcmpi(graph.GroupNames, 'state'));
+            graph.TopologicalOrder = to;
+            graph.EvaluationOrder = to(~isState(to));
+        end
+        if ne
+            opt = struct('filter', {{}});
+            opt = merge_options(opt, varargin{:});
+            
+            % Filtering logic
+            eo = graph.EvaluationOrder;
+            fn = graph.FunctionNames(eo);
+            gn = graph.GroupNames(graph.GroupIndex(eo));
+
+            skip = false(numel(eo), 1);
+            for i = 1:numel(opt.filter)
+                f = opt.filter{i};
+                tmp = strsplit(f, '.');
+                if numel(tmp) == 2
+                    loc = strcmpi(fn, tmp{2}) & strcmpi(gn, tmp{1});
+                else
+                    assert(numel(tmp) == 1);
+                    loc = strcmpi(fn, tmp{1});
+                end
+                skip = skip | loc;
+            end
+            graph.EvaluationOrder(skip) = [];
+        end
+        model.stateFunctionGraph = graph;
+    end
+    
+    function state = evaluateAllStateFunctions(model, state)
+        % Evaluate ALL state functions, provided that the graph has been
+        % initialized via setupStateFunctionGraph.
+        [groups, names, models] = model.getStateFunctionGroupings();
+        g = model.stateFunctionGraph;
+        assert(~isempty(g));
+        nf = numel(g.EvaluationOrder);
+        dbg = model.verbose > 1;
+        state.evaluated = true;
+        for i = 1:nf
+            index = g.EvaluationOrder(i);
+            gix = g.GroupIndex(index);
+            group = g.GroupNames{gix};
+            name = g.FunctionNames{index};
+            if dbg
+                timer = tic();
+            end
+            state = groups{gix}.evaluateStateFunctionUnsafe(models{gix}, state, name);
+            if dbg
+                fprintf('Evaluated %s.%s (%d of %d, %1.4gs)\n', group, name, i, nf, toc(timer));
+            end
+        end
+    end
+    
+    function [groupings, names, models] = getStateFunctionGroupings(model)
+        groupings = {}; % Groups
+        names = {};     % Name in model
+        models = {};    % Model or submodel they belong to
     end
 
     function checkStateFunctionDependencies(model)

@@ -281,6 +281,13 @@ methods
         end
     end
     
+    function model = setStateFunctionEvaluationMode(model, mode)
+        model = setStateFunctionEvaluationMode@PhysicalModel(model, mode);
+        if ~isempty(model.FacilityModel)
+            model.FacilityModel = model.FacilityModel.setStateFunctionEvaluationMode(mode);
+        end
+    end
+    
     function model = removeStateFunctionGroupings(model)
         model.FlowPropertyFunctions = [];
         model.PVTPropertyFunctions = [];
@@ -511,17 +518,31 @@ methods
         end
     end
 
-    function containers = getStateFunctionGroupings(model)
-        containers = getStateFunctionGroupings@PhysicalModel(model);
-        extra = {model.FlowPropertyFunctions, ...
-                 model.PVTPropertyFunctions, ...
-                 model.FlowDiscretization};
-        if ~isempty(model.FacilityModel)
-            fm_props = model.FacilityModel.getStateFunctionGroupings();
-            extra = [extra, fm_props];
+    function [groups, names, models] = getStateFunctionGroupings(model)
+        full = nargout > 1;
+        tmp = cell(1, nargout-1);
+        [groups, tmp{:}] = getStateFunctionGroupings@PhysicalModel(model);
+        enames = {'FlowPropertyFunctions', 'PVTPropertyFunctions', 'FlowDiscretization'};
+        egroups = applyFunction(@(x) model.(x), enames);
+        if full
+            emodels = applyFunction(@(x) model, enames);
+            names = tmp{1};
+            models = tmp{2};
         end
-        extra = extra(~cellfun(@isempty, extra));
-        containers = [containers, extra];
+        if ~isempty(model.FacilityModel)
+            [fm_groups, tmp{:}] = model.FacilityModel.getStateFunctionGroupings();
+            egroups = [egroups, fm_groups];
+            if full
+                enames = [enames, tmp{1}];
+                emodels = [emodels, tmp{2}];
+            end
+        end
+        active = ~cellfun(@isempty, egroups);
+        groups = [groups, egroups(active)];
+        if full
+            names = [names, enames(active)];
+            models = [models, emodels(active)];
+        end
     end
     % --------------------------------------------------------------------%
     function names = getComponentNames(model) %#ok
