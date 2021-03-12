@@ -9,6 +9,7 @@ classdef ModelParameter
         initialValue             % only used for multipliers
         belongsTo                % model/well/state0
         location                 % e.g., {'operators', ''}
+        grad_location            % e.g., {'init',''}
         n                        % number of 
         lumping                  %
         initial_val
@@ -18,7 +19,7 @@ classdef ModelParameter
         function p = ModelParameter(problem, varargin)
             [p, extra] = merge_options(p, varargin{:});
             assert(~isempty(p.name), 'Parameter name can''t be defaulted');
-            [p.belongsTo, p.location] = setupAddress(p.name);
+            [p.belongsTo, p.location, p.grad_location] = setupAddress(p.name);
             opt = struct('relativeLimits', [.5 2]);
             opt = merge_options(opt, extra{:});
             p = setupDefaults(p, problem, opt);
@@ -129,8 +130,11 @@ classdef ModelParameter
         function state0 = setState0ParameterValue(p, state0, v)
             assert(strcmp(p.belongsTo, 'state0'))
             tmp = getfield(state0, p.location{:});            
-            v = expandLumps(p,v,tmp(:,1)); 
-            state0 = setfield(state0, p.location{:}, [v,1-v]);
+            v = expandLumps(p,v,tmp(:,1));
+            if strcmp(lower(p.name), 'initsw')
+                    v = [v,1-v]; %TODO: extend it to more phases
+            end
+            state0 = setfield(state0, p.location{:},v);
         end
         
         function m = getMultiplerValue(p, problem, doLump)
@@ -206,11 +210,12 @@ end
 end
 
 
-function [belongsTo, location] = setupAddress(name)
+function [belongsTo, location, grad_location] = setupAddress(name)
     belongsTo = 'model';
+    grad_location = {name};
     switch lower(name)
         case 'transmissibility'
-            location = {'operators', 'T'};
+            location = {'operators', 'T'};            
         case 'permeability'
             location = {'rock', 'perm'};
         case 'porevolume'
@@ -221,9 +226,11 @@ function [belongsTo, location] = setupAddress(name)
         case 'initsw'
             belongsTo = 'state0';
             location = {'s'};
+            grad_location = {'init','sW'};
         case 'p0'
             belongsTo = 'state0';
             location = {'pressure'};
+            grad_location = {'init','pressure'};
         case {'swl', 'swcr', 'swu', 'sowcr', 'sogcr', 'sgl', 'sgcr', ...
               'sgu', 'krw', 'kro', 'krg'}
             map = getScalerMap();

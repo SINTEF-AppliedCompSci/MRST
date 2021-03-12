@@ -8,7 +8,7 @@ ignore_these = zeros(numel(parameters),1);
 for k = 1:numel(parameters)
     pval    = parameters{k}.unscale(p{k});
     prob = parameters{k}.setParameterValue(prob, pval);
-    if strcmp(parameters{k}.name,'initSw')
+    if (strcmp(parameters{k}.name,'initSw')||strcmp(parameters{k}.name,'p0'))
         initStateSensitivity = true;
         ignore_these(k)=1;
     end    
@@ -25,14 +25,10 @@ if nargout > 1
                 'Parameters'    , applyFunction(@(x)x.name, {parameters{~ignore_these}}),...
                 'initStateSensitivity',initStateSensitivity);
     % do scaling of gradient
-    nms = applyFunction(@(x)x.name, parameters);
+    nms = applyFunction(@(x)x.grad_location, parameters);
     scaledGradient = cell(numel(nms), 1);
     for k = 1:numel(nms)
-        if strcmp(parameters{k}.name,'initSw')
-            scaledGradient{k} = parameters{k}.scaleGradient(gradient.init.sW, p{k});
-        else
-            scaledGradient{k} = parameters{k}.scaleGradient(gradient.(nms{k}), p{k});
-        end
+            scaledGradient{k} = parameters{k}.scaleGradient( getfield(gradient, nms{k}{:}), p{k});
     end
     varargout{1} = vertcat(scaledGradient{:})/objScaling;
 end
