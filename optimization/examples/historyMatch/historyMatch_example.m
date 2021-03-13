@@ -134,13 +134,14 @@ n_cells =  model_coarse_scale.G.cells.num;
 % Fluid Parameters
  parameters{1} = ModelParameter(prob, 'name', 'swl','lumping',ones(n_cells,1),'boxLims',[0.00 0.5]);
  parameters{2} = ModelParameter(prob, 'name', 'swcr','lumping',ones(n_cells,1),'boxLims',[0.0 0.5]);
- parameters{3} = ModelParameter(prob, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
- parameters{4} = ModelParameter(prob, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
+ parameters{3} = ModelParameter(prob, 'name', 'swu','lumping',ones(n_cells,1),'boxLims',[0.55 1.0]);
+ parameters{4} = ModelParameter(prob, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
+ parameters{5} = ModelParameter(prob, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
 
  % Well, porevolume and transmisibility
- parameters{5} = ModelParameter(prob, 'name', 'conntrans','relativeLimits', [.01 1.5]);
- parameters{6} = ModelParameter(prob, 'name', 'porevolume','relativeLimits', [.01 3]);
- parameters{7} = ModelParameter(prob, 'name', 'transmissibility','relativeLimits', [.1 2]);
+ parameters{6} = ModelParameter(prob, 'name', 'conntrans','relativeLimits', [.01 7]);
+ parameters{7} = ModelParameter(prob, 'name', 'porevolume','relativeLimits', [.01 3]);
+ parameters{8} = ModelParameter(prob, 'name', 'transmissibility','relativeLimits', [.1 2]);
 
 
  %% Optimization :  History Matching
@@ -169,9 +170,7 @@ obj_scaling     = abs(misfitVal_0);      % objective scaling
 objh = @(p)evaluateMatch_simple(p, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
 
 figure(10).reset; movegui('south');
-[v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'gradTol',             1e-4, ...
-                                              'objChangeTol',        0.5e-3,...
-                                              'maxIt',               30);
+[v, p_opt, history] = unitBoxBFGS(p0_ups, objh)
 [misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
  
 figure(summary_plots.Number)
