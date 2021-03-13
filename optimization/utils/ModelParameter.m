@@ -5,6 +5,7 @@ classdef ModelParameter
         boxLims                  % upper/lower value(s) for parameters
         distribution  = 'cell';  % not sure we need this one
         Indx                     % 
+        WIndx
         scaling       = 'linear' % 'linear'/'log'
         initialValue             % only used for multipliers
         belongsTo                % model/well/state0
@@ -131,7 +132,7 @@ classdef ModelParameter
             assert(strcmp(p.belongsTo, 'state0'))
             tmp = getfield(state0, p.location{:});            
             v = expandLumps(p,v,tmp(:,1));
-            if strcmp(lower(p.name), 'initsw')
+            if strcmp(p.name, 'initSw')
                     v = [v,1-v]; %TODO: extend it to more phases
             end
             state0 = setfield(state0, p.location{:},v);
@@ -162,26 +163,31 @@ end
 function p = setupDefaults(p, problem, opt)
 rlim = opt.relativeLimits;
 range = @(x)[min(min(x)), max(max(x))];
-if (strcmp(p.belongsTo, 'model') || strcmp(p.belongsTo, 'state0'))
+if (strcmp(p.belongsTo, 'model') || strcmp(p.belongsTo, 'state0'))     
+    
+    if isempty(p.Indx)
+        if  ~isempty(p.lumping) || ~isnumeric(p.lumping)
+            p.n = numel(unique(p.lumping(~isnan(p.lumping))));           
+            for k = 1 : p.n
+                p.Indx{k} = find(p.lumping == k);
+            end
+        end        
+    end
     v = getParameterValue(p, problem);
+    p.n = numel(v);
+        
     if isempty(p.boxLims)
         if strcmp(p.type, 'value')
             p.boxLims = range(v).*rlim;
         else
             p.boxLims = rlim;
         end
-    end
-    if isempty(p.Indx)
-        p.Indx = ':';
-    end
+    end       
+
     if strcmp(p.type, 'multiplier')
         p.initialValue = v;
     end
-    if ~isempty(p.lumping) || ~isnumeric(p.lumping)
-        p.n = numel(unique(p.lumping(~isnan(p.lumping)))); %Number of unique parameters
-    else
-        p.n =  numel(v);
-    end
+
 elseif strcmp(p.belongsTo, 'well')
     % we only have WI at the moment so this is a special case
     assert(strcmp(p.name, 'conntrans'), 'Needs updating for: %s', p.name);
@@ -197,10 +203,10 @@ elseif strcmp(p.belongsTo, 'well')
             p.boxLims = repmat(rlim, sum(nconn), 1);
         end
     end
-    if isempty(p.Indx)
-        wno   = rldecode((1:numel(W))', nconn(:));
-        cno   = mcolon(ones(numel(W),1), nconn);
-        p.Indx = [wno(:), cno(:)];
+    if isempty(p.WIndx)
+        wno     = rldecode((1:numel(W))', nconn(:));
+        cno     = mcolon(ones(numel(W),1), nconn);
+        p.WIndx =  [wno(:), cno(:)];
     end
     if strcmp(p.type, 'multiplier')
         p.initalValue = vertcat(W.WI);
@@ -251,36 +257,58 @@ kw  = struct('SWL',   [1,1], 'SWCR',  [1,2], 'SWU', [1,3], ...
 map = struct('ph', {phOpts}, 'kw', kw);
 end
 
-function v = collapseLumps(p, v, op)
+function v_out = collapseLumps(p, v_in, op)
 % do ommitnan for safety on v
 fn = @(x)op(x, 'omitnan');
 
-if ~isempty(p.lumping) || ~isnumeric(p.lumping)
-    v = accumarray_nan(p.lumping,v,fn); % lumping may have Nan values
-end
+%Collapse using lumping
+        %if ~isempty(p.lumping) || ~isnumeric(p.lumping)
+        %    v = accumarray_nan(p.lumping,v,fn); % lumping may have Nan values
+        %end
+        
+%Collapse using Indx
+    if ~isempty(p.Indx)
+        v_out = zeros(p.n,1); 
+        for k = 1:p.n
+            v_out(k) = fn(v_in(p.Indx{k}));
+        end
+    else
+        v_out = v_in;
+    end
 end
 
-function model_val = expandLumps(p, v, model_val)
-    if ~isempty(p.lumping) || ~isnumeric(p.lumping)        
-        for i =  1:length(model_val)
-            if ~isnan(p.lumping(i))
-                model_val(i,1) = v(p.lumping(i));
-            end
+function v_out = expandLumps(p, v_in, model_val)
+%     if ~isempty(p.lumping) || ~isnumeric(p.lumping)        
+%         for i =  1:length(model_val)
+%             if ~isnan(p.lumping(i))
+%                 model_val(i,1) = v(p.lumping(i));
+%             end
+%         end
+%     else 
+%         model_val = v;
+%     end
+    v_out = model_val;
+    if ~isempty(p.Indx)
+        for k = 1:p.n
+            v_out(p.Indx{k}) = v_in(k);
         end
-    else 
-        model_val = v;
+    else
+        v_out = v_in;
     end
+         
+        
+
 end
     
-function v = accumarray_nan(subs,val, fn)
-    if any(isnan(subs))
-       subs(isnan(subs)) = 0;
-       for i = 1:length(unique(subs))-1
-           Indx = find(subs==i);
-           v(i,1) = fn(val(Indx));
-       end
-    else
-       v = accumarray(subs,val,[],fn);
-    end
-end
+% function v = accumarray_nan(subs,val, fn)
+%     if any(isnan(subs))
+%        subs(isnan(subs)) = 0;
+%        for i = 1:length(unique(subs))-1
+%            Indx = find(subs==i);
+%            v(i,1) = fn(val(Indx));
+%        end
+%     else
+%        v = accumarray(subs,val,[],fn);
+%     end
+% end
 
