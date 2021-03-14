@@ -129,7 +129,7 @@ opt = struct('bc',                  [], ...
              'processCycles',    false, ...
              'computeWellTOFs',  false, ...
              'firstArrival',     false, ...
-             'splitBoundary',     true, ...
+             'splitBoundary',    false, ...
              'partitionBoundary',   []);
 opt = merge_options(opt, varargin{:});
 if opt.firstArrival
@@ -155,13 +155,13 @@ if any(D.inj)
 end
 D.prod = find(~iwells & opt.tracerWells);
 prodcells = {};
-if any(D.inj)
+if any(D.prod)
     prodcells = opt.wells(D.prod).cells;
 end
 % Handle boundary conditions
 hasBC = ~isempty(opt.bc);
 if hasBC
-    [D.in, D.out, incells, outcells] = setupBoundaryPartitions(G, opt);
+    [D.in, D.out, incells, outcells] = setupBoundaryPartitions(G, state, opt);
 else
     [incells, outcells] = deal({});
 end
@@ -182,7 +182,7 @@ t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells,  ...
    'tracer', [injcells, incells], 'solver', opt.solver, ...
    'maxTOF', opt.maxTOF, 'processCycles', opt.processCycles, ...
    'computeWellTOFs', opt.computeWellTOFs,                   ...
-   'firstArrival', opt.firstArrival);
+   'firstArrival', opt.firstArrival, 'bc', opt.bc);
 D.tof     = t(:,1);
 [nw, ni] = deal(numel(D.inj), numel(incells));
 D.itracer = t(:,2:nw+1);
@@ -207,7 +207,7 @@ end
 % set 'non-traced' cells to zero
 D.ipart(val==0) = 0;
 if hasBC
-    [val,D.inpart] = max(D.itracer,[],2);
+    [val,D.inpart] = max(D.intracer,[],2);
     D.inpart(val==0) = 0;
 end
 
@@ -217,7 +217,7 @@ t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
    'solver', opt.solver, 'maxTOF', opt.maxTOF, ...
    'processCycles', opt.processCycles, ...
    'computeWellTOFs', opt.computeWellTOFs, ...
-   'firstArrival', opt.firstArrival);
+   'firstArrival', opt.firstArrival, 'bc', opt.bc);
 D.tof(:,2) = t(:,1);
 [nw, no] = deal(numel(D.prod), numel(outcells));
 D.ptracer  = t(:,2:nw+1);
@@ -284,10 +284,12 @@ end
 
 %--------------------------------------------------------------------------
 
-function [inpart, outpart, incells, outcells] = setupBoundaryPartitions(state, opt)
+function [inpart, outpart, incells, outcells] = setupBoundaryPartitions(G, state, opt)
 bc = opt.bc;
 f  = bc.face;
-c  = max(G.faces.neighbors(f,:), [], 2);
+neig = G.faces.neighbors(f,:);
+c  = max(neig, [], 2);
+fsgn = 2*(c == neig(:,1))-1;
 p  = opt.partitionBoundary;
 if isempty(p)
     p = ones(numel(f), 1);
@@ -298,20 +300,20 @@ if any(~(p>=1))
     ix = p>=1;
     [p, f, c] = deal(p(ix), f(ix), c(ix));
 end
-bflux = state.flux(f); 
+bflux = -state.flux(f).*fsgn; 
 maxp = max(p);
 if opt.splitBoundary
     % treat all bounadries as both injecting and producing
     [inpart, outpart] = deal(1:maxp);
     pix = bflux >= 0;
-    np  = accumarray(p(pix),  ones(maxp,1));
-    nn  = accumarray(p(~pix), ones(maxp,1)); 
+    np  = accumarray(p(pix),  ones(nnz(pix),1));
+    nn  = accumarray(p(~pix), ones(nnz(~pix),1)); 
     incells  = mat2cell(c(pix),  np, 1);
     outcells = mat2cell(c(~pix), nn, 1);
 else
     % distribute partitions to out/in according to net flow 
-    sgn   = accumarray(bflux, p);
-    n     = accumarray(p, ones(maxp,1));
+    sgn   = accumarray(p, bflux);
+    n     = accumarray(p, ones(size(p)));
     cells = mat2cell(c, n, 1);
     [inpart, outpart] = deal(find(sgn>0), find(sgn<0));
     [incells, outcells] = deal(cells(inpart), cells(outpart));
