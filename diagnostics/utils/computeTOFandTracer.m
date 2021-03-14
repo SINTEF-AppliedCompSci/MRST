@@ -68,6 +68,14 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %           components in flux graph by considering Dulmage-Mendelsohn
 %           decomposition (dmperm). Recommended for highly cyclic flux
 %           fields. Only takes effect if 'allowInf' is set to false.
+% 
+%   partitionBoundary - For non-empty bc, vector of (bin-) integers 
+%           corresponding to a partitioning of bc.faces into subsets
+%           for individual tracer/tof - computations. Default (empty) 
+%           corresponding to a single bin.  
+% 
+%   splitBoundary - For non-empty bc, split boundary (bins) into 
+%           inflow/outflow subset of faces. 
 %
 % RETURNS:
 %   D - struct that contains the basis for computing flow diagnostics:
@@ -84,7 +92,13 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %       'ptracer' - steady-state tracer distribution for producers
 %       'ppart'   - tracer partition for producers
 %       'pfa'     - first-arrival time for producers
-
+%     For non-empty bc, additional fields
+%       '[in/out]'       - list of inflow/outflow boundary partitions
+%       '[in/out]tracer' - steady-state tracer distribution for 
+%                          inflow/outflow boundary partitions
+%       '[in/out]part'   - tracer partition for inflow/outflow
+%       '[in/out]tof'    - forward/backward for individual boundary bins
+%       '[in/out]fa'     - first-arrival for inflow/outflow boundary bins
 %{
 Copyright 2009-2018 SINTEF Digital, Applied Mathematics.
 
@@ -106,15 +120,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
 % Process optional parameters
-opt = struct('bc', [],                ...
-             'src', [],               ...
-             'wells', [],             ...
-             'tracerWells', [],       ...
-             'solver', [],            ...
-             'maxTOF', [],            ...
-             'processCycles', false,  ...
-             'computeWellTOFs', false, ...
-             'firstArrival', false);
+opt = struct('bc',                  [], ...
+             'src',                 [], ...
+             'wells',               [], ...
+             'tracerWells',         [], ...
+             'solver',              [], ...
+             'maxTOF',              [], ...
+             'processCycles',    false, ...
+             'computeWellTOFs',  false, ...
+             'firstArrival',     false, ...
+             'splitBoundary',     true, ...
+             'partitionBoundary',   []);
 opt = merge_options(opt, varargin{:});
 if opt.firstArrival
   opt.computeWellTOFs = true;
@@ -133,12 +149,26 @@ opt.tracerWells = opt.tracerWells(:)';
 wflux = getTotalWellSolFlux(state.wellSol);
 iwells = wflux > 0;
 D.inj  = find( iwells & opt.tracerWells);
+injcells = {};
+if any(D.inj)
+    injcells = {opt.wells(D.inj).cells};
+end
 D.prod = find(~iwells & opt.tracerWells);
-
+prodcells = {};
+if any(D.inj)
+    prodcells = opt.wells(D.prod).cells;
+end
+% Handle boundary conditions
+hasBC = ~isempty(opt.bc);
+if hasBC
+    [D.in, D.out, incells, outcells] = setupBoundaryPartitions(G, opt);
+else
+    [incells, outcells] = deal({});
+end
 % Check that we actually have a meaningful TOF scenario. If all wells are
 % shut off, return Inf.
 sum_flux = cell2mat(arrayfun(@(x) sum(abs(x.flux)), state.wellSol, 'UniformOutput', false));
-if (sum(sum_flux) == 0.0)
+if (sum(sum_flux) == 0.0) && ~hasBC
     D.tof = Inf(G.cells.num, 2);
     D.itracer = NaN(G.cells.num, numel(D.inj));
     D.ipart = NaN(G.cells.num, 1);
@@ -149,47 +179,79 @@ end
 
 % Compute time-of-flight and tracer partition from injectors
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells,  ...
-   'tracer', {opt.wells(D.inj).cells}, 'solver', opt.solver, ...
+   'tracer', [injcells, incells], 'solver', opt.solver, ...
    'maxTOF', opt.maxTOF, 'processCycles', opt.processCycles, ...
    'computeWellTOFs', opt.computeWellTOFs,                   ...
    'firstArrival', opt.firstArrival);
 D.tof     = t(:,1);
-D.itracer = t(:,2:numel(D.inj)+1);
+[nw, ni] = deal(numel(D.inj), numel(incells));
+D.itracer = t(:,2:nw+1);
+if hasBC
+    D.intracer = t(:, nw+2:nw+ni+1);
+end
 if opt.computeWellTOFs
-    D.itof = t(:, numel(D.inj)+2:2*numel(D.inj)+1);
+    curix = nw+ni +1;
+    D.itof = t(:, curix +1:curix+nw);
+    if hasBC
+        D.intof = t(:, curix+nw+1:curix+nw+ni);
+    end
     if opt.firstArrival
-        D.ifa = t(:, 2*numel(D.inj)+2:end);
+        curix = curix + nw + ni;
+        D.ifa = t(:, curix+1:curix+nw);
+        if hasBC
+            D.infa = t(:, curix+nw+1:end);
+        end
     end
 end
 [val,D.ipart] = max(D.itracer,[],2); %#ok<*ASGLU>
 % set 'non-traced' cells to zero
 D.ipart(val==0) = 0;
+if hasBC
+    [val,D.inpart] = max(D.itracer,[],2);
+    D.inpart(val==0) = 0;
+end
 
 % Compute time-of-flight and tracer partition from producers
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
-   'tracer', {opt.wells(D.prod).cells}, 'reverse', true, ...
+   'tracer', [prodcells, outcells], 'reverse', true, ...
    'solver', opt.solver, 'maxTOF', opt.maxTOF, ...
    'processCycles', opt.processCycles, ...
    'computeWellTOFs', opt.computeWellTOFs, ...
    'firstArrival', opt.firstArrival);
 D.tof(:,2) = t(:,1);
-D.ptracer  = t(:,2:numel(D.prod)+1);
+[nw, no] = deal(numel(D.prod), numel(outcells));
+D.ptracer  = t(:,2:nw+1);
+if hasBC
+    D.outtracer = t(:, nw+2:nw+no+1);
+end
 if opt.computeWellTOFs
-    D.ptof = t(:, numel(D.prod)+2:2*numel(D.prod)+1);
+    curix = nw+no +1;
+    D.ptof = t(:, curix +1:curix+nw);
+    if hasBC
+        D.outtof = t(:, curix+nw+1:curix+nw+no);
+    end
     if opt.firstArrival
-       D.pfa = t(:, 2*numel(D.prod)+2 : end);
+        curix = curix + nw + ni;
+        D.pfa = t(:, curix+1:curix+nw);
+        if hasBC
+            D.outfa = t(:, curix+nw+1:end);
+        end
     end
 end
 [val,D.ppart] = max(D.ptracer,[],2);
 D.ppart(val==0) = 0;
+if hasBC
+    [val,D.outpart] = max(D.outtracer,[],2);
+    D.outpart(val==0) = 0;
+end
 end
 
 %--------------------------------------------------------------------------
 
 function check_input(G, rock, opt)
-   assert(~isempty(opt.wells), 'Wells are required for computeTOFandTracer');
+   assert(~isempty(opt.wells) || ~isempty(opt.bc), ...
+          'Wells or boundary structure are required for computeTOFandTracer');
    assert(isempty(opt.src), 'Source terms not supported yet');
-   assert(isempty(opt.bc),  'Boundary conditions not supported yet');
 
    assert (isfield(rock, 'poro')         && ...
            numel(rock.poro)==G.cells.num,   ...
@@ -218,4 +280,41 @@ function flux = getTotalWellSolFlux(wellSol)
         end
         flux(i) = f;
     end
+end
+
+%--------------------------------------------------------------------------
+
+function [inpart, outpart, incells, outcells] = setupBoundaryPartitions(state, opt)
+bc = opt.bc;
+f  = bc.face;
+c  = max(G.faces.neighbors(f,:), [], 2);
+p  = opt.partitionBoundary;
+if isempty(p)
+    p = ones(numel(f), 1);
+end
+assert(numel(p)==numel(f), 'Boundary partition must correspond to bc.faces');
+% check if partition is only a subset
+if any(~(p>=1))
+    ix = p>=1;
+    [p, f, c] = deal(p(ix), f(ix), c(ix));
+end
+bflux = state.flux(f); 
+maxp = max(p);
+if opt.splitBoundary
+    % treat all bounadries as both injecting and producing
+    [inpart, outpart] = deal(1:maxp);
+    pix = bflux >= 0;
+    np  = accumarray(p(pix),  ones(maxp,1));
+    nn  = accumarray(p(~pix), ones(maxp,1)); 
+    incells  = mat2cell(c(pix),  np, 1);
+    outcells = mat2cell(c(~pix), nn, 1);
+else
+    % distribute partitions to out/in according to net flow 
+    sgn   = accumarray(bflux, p);
+    n     = accumarray(p, ones(maxp,1));
+    cells = mat2cell(c, n, 1);
+    [inpart, outpart] = deal(find(sgn>0), find(sgn<0));
+    [incells, outcells] = deal(cells(inpart), cells(outpart));
+end
+[incells, outcells] = deal(reshape(incells, 1, []), reshape(outcells, 1, []));
 end
