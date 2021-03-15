@@ -156,7 +156,7 @@ end
 D.prod = find(~iwells & opt.tracerWells);
 prodcells = {};
 if any(D.prod)
-    prodcells = opt.wells(D.prod).cells;
+    prodcells = {opt.wells(D.prod).cells};
 end
 % Handle boundary conditions
 hasBC = ~isempty(opt.bc);
@@ -303,7 +303,7 @@ end
 bflux = -state.flux(f).*fsgn; 
 maxp = max(p);
 if opt.splitBoundary
-    % treat all bounadries as both injecting and producing
+    % treat all boundary partitions as both injecting and producing
     [inpart, outpart] = deal(1:maxp);
     pix = bflux >= 0;
     np  = accumarray(p(pix),  ones(nnz(pix),1));
@@ -315,7 +315,7 @@ else
     sgn   = accumarray(p, bflux);
     n     = accumarray(p, ones(size(p)));
     cells = mat2cell(c, n, 1);
-    [inpart, outpart] = deal(find(sgn>0), find(sgn<0));
+    [inpart, outpart] = deal(find(sgn>=0), find(sgn<0));
     [incells, outcells] = deal(cells(inpart), cells(outpart));
 end
 [incells, outcells] = deal(reshape(incells, 1, []), reshape(outcells, 1, []));
