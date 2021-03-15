@@ -46,14 +46,26 @@ s.pan.ButtonDownFilter = @filterfunc;
 s.rotate3d = rotate3d(fig);
 s.rotate3d.ButtonDownFilter = @filterfunc;
 % set mode context menus
-s.zoom.ContextMenu     = getModeContextMenu(s, ax, 'zLabel', 'Zoom off');
-s.pan.ContextMenu      = getModeContextMenu(s, ax, 'pLabel', 'Pan off');
-s.rotate3d.ContextMenu = getModeContextMenu(s, ax, 'rLabel', 'Rotate off');
-% set axes context menus/style
-for k = 1:numel(ax)
-    ax(k).ContextMenu = getModeContextMenu(s, ax);
-    if ~verLessThan('matlab', '9.1')
-        setAxes3DPanAndZoomStyle(s.zoom, ax(k), 'camera');
+setMenus = true;
+if isprop(ax(1), 'ContextMenu')
+    cmenu = 'ContextMenu';
+elseif isprop(ax(1), 'UIContextMenu')
+    cmenu = 'UIContextMenu';
+else
+    warning('Unable to set axes/zoom/pan/ratate context menus');
+    setMenus = false;
+end
+
+if setMenus
+    s.zoom.(cmenu)     = getModeContextMenu(s, ax, 'zLabel', 'Zoom off');
+    s.pan.(cmenu)      = getModeContextMenu(s, ax, 'pLabel', 'Pan off');
+    s.rotate3d.(cmenu) = getModeContextMenu(s, ax, 'rLabel', 'Rotate off');
+    % set axes context menus/style
+    for k = 1:numel(ax)
+        ax(k).(cmenu) = getModeContextMenu(s, ax);
+        if ~verLessThan('matlab', '9.1')
+            setAxes3DPanAndZoomStyle(s.zoom, ax(k), 'camera');
+        end
     end
 end
 end
