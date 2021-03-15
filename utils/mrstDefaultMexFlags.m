@@ -1,4 +1,4 @@
-function [CXXFLAGS, LINK, LIBS] = mrstDefaultMexFlags(defines)
+function [CXXFLAGS, LINK, LIBS] = mrstDefaultMexFlags(varargin)
 %Define Common Compiler and Linker Flags/Libraries for MRST's MEX Functions
 %
 % SYNOPSIS:
@@ -63,10 +63,15 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-   if nargin == 0
+   if mod(nargin, 2) == 1
+       defines = varargin{1};
+       varargin = varargin(2:end);
+   else
        defines = {};
    end
+   opt = struct('mwlibs', {{'lapack', 'blas'}});
+   opt = merge_options(opt, varargin{:});
+   
    if ischar(defines)
        defines = {defines};
    end
@@ -86,7 +91,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       report_error_unsupported_archictecture();
    end
 
-   LIBS = [ iomp5, { mwlib('lapack'), mwlib('blas') } ];
+   LIBS = [ iomp5, applyFunction(mwlib, opt.mwlibs) ];
 end
 
 %--------------------------------------------------------------------------
