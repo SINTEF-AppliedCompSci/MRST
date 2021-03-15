@@ -142,7 +142,7 @@ function buildmex_octave(pth, args, caller)
 
     setenv('CXXFLAGS', cxxflags);
     setenv('CFLAGS', cflags);
-    setenv('DL_LDFLAGS', "-shared"); % get rid of the -Wl,Bsymbolic linker option
+    % setenv('DL_LDFLAGS', '-shared'); % get rid of the -Wl,Bsymbolic linker option
 
     % if regexpi(mkoctfile('-p', 'CXX'), 'g\+\+')
     %    % ensure we do not use a more recent compiler, which creates linking problems
