@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     SRC = {'amgcl_matlab_block.cpp'};
     
-    [CXXFLAGS, LINK, LIBS] = mrstDefaultMexFlags('AMGCL_ASYNCSETUP');
+    [CXXFLAGS, LINK, LIBS] = mrstDefaultMexFlags('AMGCL_ASYNCSETUP', 'mwlibs', {});
     
     buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
     
