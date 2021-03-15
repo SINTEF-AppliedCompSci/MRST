@@ -293,12 +293,12 @@ classdef InteractiveLineOnSurf < handle
                
         function addAxisContextMenu(l)
             ax = l.Parent;
-            if isempty(ax.ContextMenu)
-                m  = uicontextmenu('Parent', ax.Parent);
-                ax.UIContextMenu = m;
-            else
-                m = ax.ContextMenu;
+            if isprop(ax, 'ContextMenu')
+                cmenu = 'ContextMenu';
+            elseif isprop(ax(1), 'UIContextMenu')
+                cmenu = 'UIContextMenu';
             end
+            m = ax.(cmenu);
             top = uimenu('Parent', m, 'Label', 'Draw points');
             
             %m1 = uimenu('Parent', top, 'Label', 'After last',   'Callback', @(src,event)l.updateMode(src, event, 'afterLast'));
@@ -356,10 +356,15 @@ classdef InteractiveLineOnSurf < handle
             end
             if isvalid(l.Parent)
                 ax = l.Parent;
-                if numel(ax.ContextMenu.Children) >= 2
-                    delete(ax.ContextMenu.Children(1));
+                if isprop(ax, 'ContextMenu')
+                    cmenu = 'ContextMenu';
+                elseif isprop(ax, 'UIContextMenu')
+                    cmenu = 'UIContextMenu';
+                end
+                if numel(ax.(cmenu).Children) >= 2
+                    delete(ax.(cmenu).Children(1));
                 else
-                    l.Parent.UIContextMenu = gobjects(0);
+                    l.Parent.(cmenu) = gobjects(0);
                 end
                 l.Parent.ButtonDownFcn = '';
                 
