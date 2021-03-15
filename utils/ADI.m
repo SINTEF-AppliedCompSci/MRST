@@ -66,7 +66,7 @@ classdef ADI
       end
 
       %--------------------------------------------------------------------
-      function h = numval(u)
+      function h = numelValue(u)
           % Get number of values. Equivalent of `numel` for doubles. We do
           % not overload numel directly as it is not recommended by
           % Mathworks.
