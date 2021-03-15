@@ -21,12 +21,12 @@
 
 
 // template <int m, bool has_accumulation, bool colMajor>
-template <int nder>
+template <int nder, class idx_type>
 void divergenceJacBlock(const int nf, const int nc, const int njac,
     const double* facePos, const double* faces,
     const double* cells, const double* cells_ix,
     std::vector<double*> &cellDiagonals, std::vector<double*> &faceDiagonals,
-    double* pr, size_t * ir, size_t * jc) {
+    double* pr, idx_type * ir, idx_type * jc) {
     int mv = facePos[nc];
     int jac_val_width = nder * njac;
     #pragma omp parallel for
@@ -56,9 +56,7 @@ void divergenceJacBlock(const int nf, const int nc, const int njac,
             double* accumulation = cellDiagonals[jacNo];
             for (int der = 0; der < nder; der++) {
                 pr[start + der] = accumulation[cell*nder + der];
-                
             }
-            
         }
 
         for (int fl = 0; fl < n_local_hf; fl++) {
@@ -168,15 +166,15 @@ void mexFunction(int nlhs, mxArray* plhs[],
     mwSize nzmax = (facePos[nc] + nc);
     // printf("%d cells %d faces, %d half-faces and %d derivatives \n", nc, nf, nhf, m);
     // Row indices, zero-indexed (direct entries)
-    size_t* ir;
+    mwIndex* ir;
     // Column indices, zero-indexed, offset encoded of length m*nc + 1
-    size_t* jc;
+    mwIndex* jc;
     // Entries
     double* pr;
 
     plhs[0] = mxCreateNumericMatrix(nzmax, 1, mxUINT64_CLASS, mxREAL); // We have no way of allocating mwIndex (size_t). So we hope for the best and allocate uint64...
     plhs[1] = mxCreateNumericMatrix(nc + 1, 1, mxUINT64_CLASS, mxREAL);
-    plhs[2] = mxCreateDoubleMatrix(n_jacs * nder, nzmax, mxREAL);
+    plhs[2] = mxCreateUninitNumericMatrix(n_jacs * nder, nzmax, mxDOUBLE_CLASS, mxREAL);
     ir = (mwIndex*)mxGetData(plhs[0]);
     jc = (mwIndex*)mxGetData(plhs[1]);
     // Entries
