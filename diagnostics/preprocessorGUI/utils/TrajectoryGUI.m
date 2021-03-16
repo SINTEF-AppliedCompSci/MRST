@@ -364,6 +364,8 @@ classdef TrajectoryGUI < handle
                         cix = d.caseSelector.ix;
                         for k = cix
                             if numel(d.objValues) < k || isempty(d.objValues{k})
+                                % reset wellmodels in case number of wells have changed
+                                d.obj.model.parentModel.parentModel.FacilityModel.WellModels = {};
                                 d.objValues{k} = d.obj.compute(d.wellCases{k}, 'computeGradient', false);
                             end
                         end
@@ -384,7 +386,7 @@ classdef TrajectoryGUI < handle
                             W = d.wellCases{d.caseNo};
                             W = rmfield(W, 'trajectory'); 
                             W(d.wellNo).posControl = setupPositionControl(d.model.G, W(d.wellNo), d.lineOnSlice);
-                            
+                            d.obj.model.parentModel.parentModel.FacilityModel.WellModels = {};
                             if ~(numel(d.objValues) < d.caseNo || isempty(d.objValues{d.caseNo}))
                                 tmp = d.obj.compute(W, 'computeGradient', true, ...
                                     'state', d.objValues{d.caseNo}.state, ...
