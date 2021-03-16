@@ -30,6 +30,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % execute this file.
    run_local();
 
+   % Run platform (Octave/Matlab) specific startup routines
+   run_platform_specific();
+   
    % Automatically load selected modules for backwards compatibility.
    autoload = {};
    load_compat_modules(autoload);
@@ -54,14 +57,28 @@ function build_mrst_path_tree
 
    m = fullfile(d, 'modules');
    p = split_path(genpath(d));
+   % Remove octave_only folders from path
+   oct_only = ~cellfun(@isempty, regexp(p, 'octave_only'));
 
    i =     strncmp(m, p, length(m));
    i = i | ~cellfun(@isempty, regexp(p, '\.(git|hg|svn)'));
    i = i | ~cellfun(@isempty, regexp(p, '3rdparty'));
    i = i | ~cellfun(@isempty, regexp(p, 'output'));
    i = i | cellfun(@isempty, p);
+   i = i | oct_only;
 
    addpath(p{~i});
+   if mrstPlatform('octave')
+       % If we are on Octave, we add in the octave_only paths at the end to
+       % ensure that they can overwrite any of the core files where needed.
+       % We first turn off the shadowing warning since we may have
+       % compatibility fixes included in this folder.
+       os = 'Octave:shadowed-function';
+       warnstate = warning('query', os);
+       warning('off', os);
+       addpath(p{oct_only});
+       warning(warnstate);
+   end
 
    % Add modules as module root directory
    mrstPath('addroot', m);
@@ -121,5 +138,15 @@ function run_local
 
    if exist(local, 'file') == 2
       run(local);
+   end
+end
+
+function run_platform_specific()
+   if mrstPlatform('octave')
+       local = fullfile(rootdir, 'utils', 'octave_only', 'startup_octave.m');
+
+       if exist(local, 'file') == 2
+          run(local);
+       end
    end
 end
