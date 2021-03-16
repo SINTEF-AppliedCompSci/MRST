@@ -67,13 +67,17 @@ classdef WellPlotHandle < handle
             end
             
             isInj = [Ws.sign]>0;
-            s.injectors  = plotWellData(G, Ws(isInj), extraOpt{:}, 'linePlot', true, 'color', s.iColor);
+            s.injectors  = plotWellData(G, Ws(isInj), extraOpt{:}, ...
+                'linePlot', true, 'color', s.iColor, ...
+                'labelBackgroundColor',[.75 .75 .75],'labelFontSize',8);
             s.injectors  = setParents(s.injectors(:), opt.Parent);
             set([s.injectors.label], 'interpreter', 'none')
             s.statusExtended.inj = true(numel(s.injectors),1);
             
             
-            s.producers = plotWellData(G, Ws(~isInj), extraOpt{:}, 'linePlot', true, 'color', s.pColor);
+            s.producers = plotWellData(G, Ws(~isInj), extraOpt{:}, ...
+                'linePlot', true, 'color', s.pColor, ...
+                'labelBackgroundColor',[.75 .75 .75],'labelFontSize',8);
             s.producers = setParents(s.producers(:), opt.Parent);
             set([s.producers.label], 'interpreter', 'none')
             s.statusExtended.prod = true(numel(s.producers),1);
