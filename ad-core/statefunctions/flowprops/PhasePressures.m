@@ -25,7 +25,7 @@ classdef PhasePressures < StateFunction
             p_phase = cell(1, nph);
             [p_phase{:}] = deal(p);
             if prop.has_pc
-                pc = model.getProps(state, 'CapillaryPressure');
+                pc = prop.getEvaluatedExternals(model, state, 'CapillaryPressure');
                 for i = 1:nph
                     if ~isempty(pc{i})
                         p_phase{i} = p_phase{i} + pc{i};

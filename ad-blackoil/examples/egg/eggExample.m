@@ -13,7 +13,7 @@ realization = 0;
 [G, rock, fluid, deck] = setupEGG('realization', realization);
 [state, model, schedule, nonlinear] = initEclipseProblemAD(deck, 'G', G, 'TimestepStrategy', 'none');
 %% Run simulation
-[wellSols, states] = simulateScheduleAD(state, model, schedule, 'NonLinearSolver', nonlinear);
+[wellSols, states, report] = simulateScheduleAD(state, model, schedule, 'NonLinearSolver', nonlinear);
 %% Plot the injector BHP and the well oil and water rates
 % Since the injectors are rate controlled and the producers are pressure
 % controlled, we can plot the quantities that vary. We also plot the water

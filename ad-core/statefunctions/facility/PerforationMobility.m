@@ -12,8 +12,9 @@ classdef PerforationMobility < StateFunction
         end
         
         function mobw = evaluateOnDomain(prop, model, state)
+            rm = model.ReservoirModel;
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
-            mob = model.ReservoirModel.getProps(state, 'Mobility');
+            mob = rm.FlowPropertyFunctions.get(rm, state, 'Mobility');
             mobw = cellfun(@(x) x(map.cells), mob, 'UniformOutput', false);            
         end
     end   

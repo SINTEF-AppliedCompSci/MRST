@@ -131,6 +131,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', opt.useMex, 'rowMajor', opt.rowMajorAD);
         case 'sparse'
             % Do nothing, this is default;
+        otherwise
+            error('Unknown backend string %s', opt.AutoDiffBackend);
     end
     % If components are not present and all wells are simple, we can use
     % the uniform facility model, which is vectorized and faster when many
@@ -174,7 +176,7 @@ function model = initializeModel(deck, opt)
         else
             pv = rock.poro;
         end
-        perm_ok = all(rock.perm > opt.permTolerance, 2);
+        perm_ok = any(rock.perm > opt.permTolerance, 2);
         deck.GRID.ACTNUM = double(deck.GRID.ACTNUM > 0 & pv > 0 & perm_ok);
 
         G = initEclipseGrid(deck, 'SplitDisconnected', opt.SplitDisconnected, ...

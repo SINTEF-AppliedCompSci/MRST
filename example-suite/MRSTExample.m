@@ -185,7 +185,7 @@ classdef MRSTExample
         %-----------------------------------------------------------------%
         function h = plot(example, v, varargin)
             % Plot filed v on example grid using plotToolbar
-            opt = struct('Name', '', 'plotWells', true);
+            opt = struct('Name', '', 'plotWells', true, 'camlight', true);
             [opt, extra] = merge_options(opt, varargin{:});
             Name = example.name;
             if ~isempty(opt.Name)
@@ -201,7 +201,8 @@ classdef MRSTExample
                 example.plotWells();
             end
             example.setAxisProperties(gca);
-            if G.griddim == 3 && ~all(example.axisProperties.View == [0,90])
+            if opt.camlight && G.griddim == 3 ...
+                    && ~all(example.axisProperties.View == [0,90])
                 camlight;
             end
         end
@@ -216,14 +217,15 @@ classdef MRSTExample
         end
         
         %-----------------------------------------------------------------%
-        function h = plotWells(example, varargin)
+        function varargout = plotWells(example, varargin)
             W = example.schedule.control(1).W;
             if ~isempty(W)
                 G = example.getVisualizationGrid();
                 if G.griddim == 3
                     dz = example.axisProperties.ZLim(2) ...
                        - example.axisProperties.ZLim(1);
-                    h = plotWell(G, W, 'color' , 'k'    , ...
+                    varargout = cell(nargout, 1);
+                    [varargout{:}] = plotWell(G, W, 'color' , 'k'    , ...
                                        'height', 0.15*dz, ...
                                        varargin{:}      );
                 else

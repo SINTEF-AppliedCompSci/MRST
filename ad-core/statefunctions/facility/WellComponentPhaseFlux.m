@@ -60,7 +60,7 @@ classdef WellComponentPhaseFlux < StateFunction
                 end
             end
             if any(perfIsInjector)
-                massDensity = model.getProp(state, 'Density');
+                massDensity = model.PVTPropertyFunctions.get(model, state, 'Density');
                 injPerforationDensity = cellfun(@(x) x(wc(perfInjecting)), massDensity, 'UniformOutput', false);
                 isMass = ~cellfun(@(c) isa(c, 'ConcentrationComponent'), model.Components);
                 rem = cellfun(@isempty, surfaceComposition);

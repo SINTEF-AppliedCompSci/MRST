@@ -19,8 +19,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    nc = numelValue(v);
     if isa(v, 'GenericAD')
+        nc = numel(v.val);
         if useMex
             v.val = mexFaceAverageVal(v.val, N);
         else
@@ -30,8 +30,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 v.val = 0.5*sum(v.val(N), 2);
             end
         end
-        
         v.jac = cellfun(@(x) avgJac(x, N, nc, useMex), v.jac, 'UniformOutput', false);
+    elseif useMex
+        v = mexFaceAverageVal(v, N);
     else
         v = 0.5*(v(N(:, 1), :) + v(N(:, 2), :));
     end

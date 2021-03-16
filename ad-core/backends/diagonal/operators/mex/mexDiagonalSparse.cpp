@@ -13,7 +13,7 @@
 template <bool rowMajor, typename indexType>
 void jac_to_sparse(const int l, const int n, const int m, const double* diagonal, const double* subset,
     double* pr, indexType* ir, indexType* jc) {
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for
     for (int index = 0; index < l * n; index++) {
         mwIndex ji, ii;
         double d;
@@ -38,38 +38,6 @@ void jac_to_sparse(const int l, const int n, const int m, const double* diagonal
     jc[l*n] = l*n;
 }
 
-/*
-template <int has_subset>
-void sparse_rowmajor(const int l, const int n, const int m, const int ncols, const double* diagonal, const double* subset,
-    double* pr, mwIndex* ir, mwIndex* jc) {
-    if (!has_subset) {
-#pragma omp parallel for schedule(static)
-        for (int index = 0; index < l * n; index++) {
-            // One entry per column
-            jc[index] = index;
-            // Column index
-            ir[index] = index % m;
-            // Actual derivative
-            pr[index] = diagonal[index];
-        }
-        // Final entry, one per column
-        jc[ncols] = ncols;
-    }
-    else {
-#pragma omp parallel for schedule(static)
-        for (int index = 0; index < m * n; index++) {
-            // One entry per column
-            jc[index] = index;
-            // Column index
-            ir[index] = index % m;
-            // Actual derivative
-            pr[index] = diagonal[index];
-        }
-        // Final entry, one per column
-        jc[ncols] = ncols;
-    }
-}
-*/
 void mexFunction( int nlhs, mxArray *plhs[], 
 		  int nrhs, const mxArray *prhs[] )
      

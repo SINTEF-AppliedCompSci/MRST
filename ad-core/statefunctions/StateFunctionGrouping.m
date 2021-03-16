@@ -31,7 +31,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
             % Check if running Octave. Octave does not support querying
             % the properties of a class under construction. For this reason
             % we perform a check and hope for the best.
-            isOctave = exist("OCTAVE_VERSION", "builtin") > 0;
+            isOctave = mrstPlatform('octave');
             if ~isOctave
                 group = group.setInternalNames();
             end
@@ -123,13 +123,16 @@ classdef StateFunctionGrouping < StateFunctionDependent
             assert(ischar(name));
             group = group.setInternalNames();
             sub = strcmp(group.functionNames, name);
+            prop.structName = group.structName;
             if any(sub)
                 % We are replacing an existing property
                 ptypes = group.functionTypes;
                 type = ptypes(sub);
                 if type == 0
                     % Class property ("intrinsic"), just replace directly
-                    group.(name) = prop;
+                    % group.(name) = prop;
+                    sr = struct('subs', name, 'type', '.');
+                    group = builtin('subsasgn', group, sr, prop);
                 else
                     % This property was not found, we are adding extending
                     % the list of extra properties
@@ -142,6 +145,14 @@ classdef StateFunctionGrouping < StateFunctionDependent
                 group.functionNames = [group.functionNames; name];
                 group.functionTypes = [group.functionTypes; 1];
                 group.extraFunctions{end+1, 1} = prop;
+            end
+        end
+        
+        function group = subsasgn(group, sub, val)
+            if strcmp(sub.type, '.')
+                group = group.setStateFunction(sub.subs, val);
+            else
+                group = builtin('subsasgn', group, sub, val);
             end
         end
 
@@ -189,9 +200,6 @@ classdef StateFunctionGrouping < StateFunctionDependent
                 props_struct = state.(struct_name);
             end
             prop = sfg.getStateFunction(name);
-            if isempty(prop.structName)
-                prop.structName = sfg.structName;
-            end
             props_struct.(name) = prop.evaluateOnDomain(model, state);
             if sfg.validationLevel > 0
                 prop.validateOutput(props_struct.(name), sfg.validationLevel);
@@ -200,6 +208,17 @@ classdef StateFunctionGrouping < StateFunctionDependent
                 state.(struct_name) = props_struct;
             end
         end
+        
+        function state = evaluateStateFunctionUnsafe(sfg, model, state, name)
+            % Evaluate if missing, assuming that:
+            % - Struct is here.
+            % - No validation should be performed.
+            % - May re-evaluate the state function
+            prop = sfg.getStateFunction(name);
+            props_struct = state.(sfg.structName);
+            props_struct.(name) = prop.evaluateOnDomain(model, state);
+        end
+
         
         function state = evaluateStateFunctionWithDependencies(props, model, state, name)
             % Evaluate property, and all required dependencies in state.
@@ -211,13 +230,15 @@ classdef StateFunctionGrouping < StateFunctionDependent
         
         function ok = isStateFunctionEvaluated(props, model, state, dep)
             % Check if property is present in cache.
-            if ischar(dep)
+            if isfield(state, 'evaluated')
+                ok = true;
+            elseif ischar(dep)
                 % Internal dependency - same group
                 nm = props.structName;
                 if isfield(state, nm)
                     % Cache is present, but this specific property is not
                     % necessarily present
-                    if ~isfield(state.(nm), dep)
+                    if props.validationLevel && ~isfield(state.(nm), dep)
                         error(['Did not find %s in %s field. %s does not appear', ...
                             ' to belong to %s. Check your dependencies.'], ...
                             dep, nm, dep, class(props));
@@ -232,11 +253,12 @@ classdef StateFunctionGrouping < StateFunctionDependent
                 % group belonging to the model
                 if strcmp(dep.grouping, 'state')
                     ok = true;
-                elseif isprop(model, dep.grouping)
-                    ok = model.(dep.grouping).isStateFunctionEvaluated(model, state, dep.name);
                 else
-                    % Assumed to found somewhere else.
-                    ok = true;
+                    try
+                        ok = model.(dep.grouping).isStateFunctionEvaluated(model, state, dep.name);
+                    catch
+                        ok = true;
+                    end
                 end
             end
         end
@@ -371,8 +393,8 @@ classdef StateFunctionGrouping < StateFunctionDependent
             canPlot = ~isempty(iname); % Make sure that the variable is defined in workspace
             fprintf('  ');
             name = class(props);
-            isDesktop = usejava('desktop');
-            if isDesktop
+            allowRichText = mrstPlatform('richtext');
+            if allowRichText
                 fprintf('<a href="matlab:helpPopup %s">%s</a> (<a href="matlab:edit %s.m">edit</a>', name, name, name);
                 if canPlot
                     fprintf('|<a href="matlab:figure;plotStateFunctionGroupings(%s)">plot</a>', iname);
@@ -408,7 +430,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
 
                     cl = class(fn);
                     fprintf('    %*s: ', len, names{index});
-                    if isDesktop
+                    if allowRichText
                         fprintf('<a href="matlab:helpPopup %s">%s</a>', cl, cl);
                         fprintf(' (<a href="matlab:edit %s.m">edit</a>', cl);
                         if canPlot

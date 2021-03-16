@@ -108,7 +108,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                     problem = problem.clearSystem();
                     dispif(solver.verbose, 'System already assembled. CPR will re-assemble!');
                 end
-               scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
+               scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver.decoupling);
                % Solver will take the sum for us, we just weight each
                % equation. Note: This is not the entirely correct way
                % of doing this, as solver could do this by itself.

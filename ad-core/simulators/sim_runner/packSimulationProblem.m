@@ -119,19 +119,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     problem.BaseName = BaseName;
     problem.Name = opt.Name;
     problem.Description = opt.Description;
-    
+    % OutputMinisteps needs to be treated specially by the packed problems.
+    % We get the value and remove it from the extra arguments so it is
+    % stored in a single location.
+    simopt = struct('OutputMinisteps', false);
+    [simopt, extra] = merge_options(simopt, opt.ExtraArguments{:});
     sim = struct('state0', state0, ...
                  'model', model, ...
                  'schedule', schedule, ...
+                 'OutputMinisteps', simopt.OutputMinisteps, ...
                  'NonLinearSolver', opt.NonLinearSolver, ...
-                 'ExtraArguments', {opt.ExtraArguments});
-    
-    
+                 'ExtraArguments', {extra});
     problem.SimulatorSetup = sim;
     problem.Modules = opt.Modules;
 
+    % We keep a separate prefix for substeps in case someone decides to
+    % initialize a simulation problem twice with the same name and
+    % different setting for output.
+    if sim.OutputMinisteps
+        simprefix = 'sub';
+    else
+        simprefix = '';
+    end
     
-    makeHandler = @(prefix) ResultHandler('dataPrefix', prefix, ...
+    makeHandler = @(prefix) ResultHandler('dataPrefix', [simprefix, prefix], ...
                                           'writeToDisk', true,...
                                           'dataDirectory', opt.Directory, ...
                                           'dataFolder', problem.Name, ...
@@ -141,5 +152,4 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     problem.OutputHandlers.states   = makeHandler('state');
     problem.OutputHandlers.reports  = makeHandler('report');
     problem.OutputHandlers.wellSols = makeHandler('wellSols');
-    
 end

@@ -8,7 +8,8 @@ classdef TwoPointFluxApproximation < PermeabilityGradientDiscretization
         end
 
         function v = getPermeabilityGradient(tpfa, model, state, dp)
-            T = model.getProp(state, 'transmissibility');
+            fd = model.FlowDiscretization;
+            T = fd.get(model, state, 'Transmissibility');
             v = T.*dp;
         end
     end

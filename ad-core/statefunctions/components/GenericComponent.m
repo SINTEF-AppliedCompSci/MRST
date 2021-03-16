@@ -26,6 +26,9 @@ classdef GenericComponent < StateFunctionDependent
             % these are internally consistent.
             c = component.getComponentDensity(model, state);
             rho = model.getProp(state, 'Density');
+            if ~iscell(rho)
+                rho = {rho};
+            end
             for ph = 1:numel(c)
                 if ~isempty(c{ph})
                     c{ph} = c{ph}./rho{ph};
@@ -36,14 +39,12 @@ classdef GenericComponent < StateFunctionDependent
         function mass = getComponentMass(component, model, state, varargin)
             % Mass of component in each phase
             % saturation * pore-volume * component mass density
-            pv = model.getProp(state, 'PoreVolume');
-            mass = component.getComponentDensity(model, state, varargin{:});
-            ph = model.getPhaseNames();
+            [s, pv, rho] = component.unpackMassArguments(model, state, varargin);
+            mass = component.getComponentDensity(model, state, rho);
             % Iterate over phases and weight by pore-volume and saturation
             for i = 1:numel(mass)
                 if ~isempty(mass{i})
-                    s = model.getProp(state, ['s', ph(i)]);
-                    mass{i} = s.*pv.*mass{i};
+                    mass{i} = s{i}.*pv.*mass{i};
                 end
             end
         end
@@ -52,9 +53,8 @@ classdef GenericComponent < StateFunctionDependent
             % The amount of mobile mass in the cell. For most models, this
             % is just the mobility multiplied with the component density in
             % the cell.
-            density = component.getComponentDensity(model, state, varargin{:});
-            mob = model.getProp(state, 'Mobility');
-            
+            [mob, rho] = component.unpackMobilityArguments(model, state, varargin);
+            density = component.getComponentDensity(model, state, rho);
             nphase = numel(density);
             cmob = cell(1, nphase);
             for i = 1:nphase
@@ -64,7 +64,7 @@ classdef GenericComponent < StateFunctionDependent
             end
         end
         
-        function c = getComponentDensity(component, model, state)
+        function c = getComponentDensity(component, model, state, rho)
             % Density of component in each phase (mass per unit of volume)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
@@ -89,7 +89,34 @@ classdef GenericComponent < StateFunctionDependent
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
         end
-
+        
+        function [s, pv, rho] = unpackMassArguments(component, model, state, arg)
+            if isempty(arg)
+                s = model.getProp(state, 's');
+                pv = model.getProp(state, 'PoreVolume');
+                rho = model.getProp(state, 'Density');
+            else
+                [s, pv, rho] = deal(arg{:});
+            end
+            if ~iscell(s)
+                s = expandMatrixToCell(s);
+            end
+        end
+        
+        function [mob, rho] = unpackMobilityArguments(component, model, state, arg)
+            if isempty(arg)
+                mob = model.getProp(state, 'Mobility');
+                rho = model.getProp(state, 'Density');
+            else
+                [mob, rho] = deal(arg{:});
+            end
+            if ~iscell(mob)
+                mob = expandMatrixToCell(mob);
+            end
+            if ~iscell(rho)
+                rho = expandMatrixToCell(rho);
+            end
+        end
     end
 end
 

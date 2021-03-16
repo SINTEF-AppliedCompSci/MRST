@@ -1,15 +1,15 @@
-#include <mex.h>
-
-#ifndef HAVE_OCTAVE
-#include "blas.h"
-#endif
-
 #include <omp.h>
 #include <chrono>
 #include <iostream>
 
-#if !defined(_WIN32)
-#define dscal dscal_
+#ifdef MRST_OCTEXT
+    #include <octave/oct.h>
+    #include <octave/dMatrix.h>
+#else
+    #include <mex.h>
+    #ifndef HAVE_OCTAVE
+        #include "blas.h"
+    #endif
 #endif
 
 // #define operation diagMultBLAS
@@ -44,105 +44,82 @@ void diagProductMultScalar(const size_t n, const double* v1, const double* D1,
     }
 }
 
-
-void mexFunction(int nlhs, mxArray* plhs[],
-    int nrhs, const mxArray* prhs[])
-
-{
-    if (nrhs == 0) {
-        if (nlhs > 0) {
-            mexErrMsgTxt("Cannot give outputs with no inputs.");
+#ifdef MRST_OCTEXT
+    /* OCT gateway */
+    DEFUN_DLD (mexDiagProductMult, args, nargout,
+               "mexDiagProductMult (see ADI.diagProductMult)")
+    {
+        const int nrhs = args.length();
+        const int nlhs = nargout;
+        if (nrhs == 0) {
+            if (nlhs > 0) {
+                error("Cannot give outputs with no inputs.");
+            }
+            // We are being called through compilation testing. Just do nothing. 
+            // If the binary was actually called, we are good to go.
+            return octave_value_list();
         }
-        // We are being called through compilation testing. Just do nothing. 
-        // If the binary was actually called, we are good to go.
-        return;
-    }
-    // In: diagonal (m x nc), v (nc x 1)
-    int n = mxGetN(prhs[0]);
-    int m = mxGetM(prhs[0]);
-    bool rowMajor = mxGetScalar(prhs[4]);
+        // D, v, B, w, rowMajor
 
-    if (!rowMajor) {
-        mexErrMsgTxt("Column major not supported for this mex file.");
-    }
-    const double* v_ptr = mxGetPr(prhs[1]);
-    const double* w_ptr = mxGetPr(prhs[3]);
+        // Matrices
+        const NDArray D_nd = args(0).array_value();
+        const NDArray B_nd = args(2).array_value();
+        // Vectors
+        const NDArray v_nd = args(1).array_value();
+        const NDArray w_nd = args(3).array_value();
 
-    double* d_ptr = mxGetPr(prhs[0]);
-    double* b_ptr = mxGetPr(prhs[2]);
+        // D
+        int m = D_nd.rows();
+        int n = D_nd.cols();
+        // D+B ptrs
+        const double * d_ptr = D_nd.data();
+        const double * b_ptr = B_nd.data();
+        // v+w ptrs
+        const double* v_ptr = v_nd.data();
+        const double* w_ptr = w_nd.data();
 
-    plhs[0] = mxCreateDoubleMatrix(m, n, mxREAL);
-    double* out_ptr = mxGetPr(plhs[0]);
-    diagProductMult(n, m, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-    /*
-    switch (m) {
-        case 0:
-            break;
-        case 1:
-            diagProductMultScalar(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 2:
-            operation<2>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 3:
-            operation<3>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 4:
-            operation<4>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 5:
-            operation<5>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 6:
-            operation<6>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 7:
-            operation<7>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 8:
-            operation<8>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 9:
-            operation<9>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 10:
-            operation<10>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 11:
-            operation<11>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 12:
-            operation<12>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 13:
-            operation<13>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 14:
-            operation<14>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 15:
-            operation<15>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 16:
-            operation<16>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 17:
-            operation<17>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 18:
-            operation<18>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 19:
-            operation<19>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        case 20:
-            operation<20>(n, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
-            break;
-        default:
-            mexPrintf("%d derivatives not supported by backend.", m);
-            mexErrMsgTxt("Not supported.");
-            break;
+        bool rowMajor = args(4).scalar_value();
+
+        if (!rowMajor) {
+            error("Column major not supported for this mex file.");
         }
-        */
-};
+
+        NDArray output({m, n});
+        double * out_ptr = output.fortran_vec();
+
+        diagProductMult(n, m, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
+        return octave_value (output);
+    }
+#else
+    void mexFunction(int nlhs, mxArray* plhs[],
+        int nrhs, const mxArray* prhs[])
+
+    {
+        if (nrhs == 0) {
+            if (nlhs > 0) {
+                mexErrMsgTxt("Cannot give outputs with no inputs.");
+            }
+            // We are being called through compilation testing. Just do nothing. 
+            // If the binary was actually called, we are good to go.
+            return;
+        }
+        // In: diagonal (m x nc), v (nc x 1)
+        int n = mxGetN(prhs[0]);
+        int m = mxGetM(prhs[0]);
+        bool rowMajor = mxGetScalar(prhs[4]);
+
+        if (!rowMajor) {
+            mexErrMsgTxt("Column major not supported for this mex file.");
+        }
+        const double* v_ptr = mxGetPr(prhs[1]);
+        const double* w_ptr = mxGetPr(prhs[3]);
+
+        double* d_ptr = mxGetPr(prhs[0]);
+        double* b_ptr = mxGetPr(prhs[2]);
+
+        plhs[0] = mxCreateUninitNumericMatrix(m, n, mxDOUBLE_CLASS, mxREAL);
+        double* out_ptr = mxGetPr(plhs[0]);
+        diagProductMult(n, m, v_ptr, d_ptr, w_ptr, b_ptr, out_ptr);
+    };
+#endif
 

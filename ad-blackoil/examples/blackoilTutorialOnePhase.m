@@ -70,7 +70,7 @@ schedule2 = simpleSchedule(diff(linspace(0,5*day,41)), 'W', W);
 % we first set a constant pressure, and call on a solver from |ad-core| to
 % compute vertical equilibrium.
 state = initResSol(G, pR); % Constant pressure
-state.wellSol  = initWellSolAD([], wModel, state);      % No well initially
+state = wModel.validateState(state);
 
 % Vertical equilibrium
 verbose = false;

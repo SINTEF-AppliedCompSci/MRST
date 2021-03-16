@@ -18,6 +18,7 @@ classdef Transmissibility < StateFunction
             if any(T < 0)
                 warning('Negative transmissibility in %d interfaces', sum(T < 0));
             end
+            pp.outputRange = [0, inf];
         end
         
         function T = evaluateOnDomain(sfn, model, state)

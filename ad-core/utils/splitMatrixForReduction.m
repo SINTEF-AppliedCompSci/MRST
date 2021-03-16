@@ -1,4 +1,4 @@
-function sys = splitMatrixForReduction(A, b, n, strategy, doFactor)
+function sys = splitMatrixForReduction(A, b, n, strategy, doFactor, fullFactor)
 % Split matrix A and right-hand side into blocks
 %  A = [B, C] b = [f] 
 %      [D, E]     [h]
@@ -21,7 +21,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    if nargin < 6
+        fullFactor = false;
+    end
     if nargin < 5
         doFactor = true;
     end
@@ -47,7 +49,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if doFactor
         % Perform LU-factorization of E to make it easier to form the
         % reduced Schur complement
-        [sys.E_L, sys.E_U] = lu(sys.E);
+        if fullFactor
+            % Call full outputs to emulate backslash (and avoid warnings on
+            % Octave.)
+            [sys.E_L, sys.E_U, sys.P, sys.Q, sys.D] = lu(sys.E);
+        else
+            [sys.E_L, sys.E_U] = lu(sys.E);
+        end
     end
 end
 

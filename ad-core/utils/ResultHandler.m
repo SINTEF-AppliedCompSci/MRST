@@ -38,6 +38,8 @@ classdef ResultHandler < handle
         % calling handler{51} will store a file as "state51" if dataprefix
         % is 'state'
         dataPrefix
+        % Extension used (default: .mat for Matlab, _oct.mat for Octave)
+        extension
         % Flags passed on to MATLAB builtin 'save'. Consider '-v7' if
         % results are huge.
         saveflags
@@ -60,9 +62,13 @@ classdef ResultHandler < handle
             handler.dataDirectory = fullfile(mrstOutputDirectory(), 'tmp');
             handler.dataPrefix = 'state';
             handler.dataFolder = 'cache';
+            if mrstPlatform('matlab')
+                handler.extension = '.mat';
+            else
+                handler.extension = '_oct.mat';
+            end
             handler.saveflags = '';
             handler.cleardir = false;
-            
             handler.verbose = mrstVerbose();
             
             handler = merge_options(handler, varargin{:});
@@ -88,7 +94,7 @@ classdef ResultHandler < handle
                     end
                 end
                 try
-                    d = ls(fullfile(p, [handler.dataPrefix, '*.mat']));
+                    d = ls(fullfile(p, [handler.dataPrefix, handler.getExtension(true)]));
                     if ~isempty(d)
                         if ~handler.cleardir
                             dispif(handler.verbose > 1, ...
@@ -110,7 +116,7 @@ classdef ResultHandler < handle
         
         function n = numelData(handler)
             if handler.writeToDisk
-                n = numel(handler.getValidIds);
+                n = numel(handler.getValidIds());
             elseif handler.storeInMemory
                 n = numel(handler.data); 
             else
@@ -133,21 +139,7 @@ classdef ResultHandler < handle
                     % Methods and so on can be dispatched to matlab
                     [varargout{1:nargout}] = builtin('subsref', handler, s);
                 case {'()', '{}'}
-                    if handler.storeInMemory
-                        [varargout{1:nargout}] = builtin('subsref', handler.data, s);
-                        return
-                    end
-                    
-                    if handler.writeToDisk
-                        sub = s(1).subs{1};
-                        if ischar(sub) && strcmp(sub, ':')
-                            sub = 1:handler.numelData();
-                        end
-                        tmp = handler.readFromFile(sub);
-                        s(1).subs{1} = 1:numel(sub);
-                        [varargout{1:nargout}] = builtin('subsref', tmp, s);
-                        return
-                    end
+                    [varargout{1:nargout}] = handler.getData_private(s);
             end
             
         end
@@ -216,11 +208,14 @@ classdef ResultHandler < handle
                     pad = repmat(' ', size(l, 1), 1);
                     l = reshape([l, pad]', 1, []);
                 end
-                l = regexp(l,'\s+','split');
+                l = regexp(char(l), '\s+', 'split');
+                ext = handler.getExtension();
                 for i = 1:numel(l)
                     line = l{i};
-                    [s, e] = regexp(line, [handler.dataPrefix, '\d+']);
-                    if isempty(s); continue; end
+                    [s, e] = regexp(line, ['^', handler.dataPrefix, '\d+', ext]);
+                    if isempty(s)
+                        continue;
+                    end
                     ids = [ids, str2double(line((s+numel(handler.dataPrefix)):e))];
                 end
                 ids = sort(ids);
@@ -245,12 +240,22 @@ classdef ResultHandler < handle
             dispif(handler.verbose, 'Deleting data at %s\n', p);
         end
         
+        function ext = getExtension(handler, wc)
+            if nargin < 2
+                % Prefix with wildcard
+                wc = false;
+            end
+            ext = handler.extension;
+            if wc
+                ext = ['*', ext];
+            end
+        end
+        
         function p = getDataPath(handler, i)
-            
             p = fullfile(handler.dataDirectory, handler.dataFolder);
             if nargin > 1
                 assert(numel(i) == 1 && isnumeric(i));
-                p = fullfile(p, [handler.dataPrefix, num2str(i), '.mat']);
+                p = fullfile(p, [handler.dataPrefix, num2str(i), handler.getExtension()]);
             end
         end
         
@@ -259,7 +264,7 @@ classdef ResultHandler < handle
                 handler.data = {};
                 if handler.writeToDisk
                     p = handler.getDataPath();
-                    fp = fullfile(p, [handler.dataPrefix, '*.mat']);
+                    fp = fullfile(p, [handler.dataPrefix, handler.getExtension(true)]);
                     delete(fp);
                 end
             else
@@ -272,7 +277,7 @@ classdef ResultHandler < handle
                     end
                     p = handler.getDataPath();
                     for i = 1:numel(subs)
-                        fp = fullfile(p, [handler.dataPrefix, num2str(subs(i)), '.mat']);
+                        fp = fullfile(p, [handler.dataPrefix, num2str(subs(i)), handler.getExtension()]);
                         delete(fp);
                     end
                 end
@@ -288,6 +293,90 @@ classdef ResultHandler < handle
             else
                 state0 = [];
                 restartStep = 1;
+            end
+        end
+        
+        function [s, index] = getByTime(handler, time, tol, varargin)
+            % Get by time, within some tolerance
+            if nargin < 3
+                tol = 1e-3;
+            end
+            [s, index] = handler.getFirstByFunction(@(x) abs(x.time-time) < tol, varargin{:});
+        end
+
+        function [state, index, dist] = getClosestByTime(handler, time, reverse)
+            % Find closest by time (iterating through all states)
+            if nargin < 3
+                reverse = false;
+            end
+            indices = 1:handler.numelData();
+            if reverse
+                indices = indices(end:-1:1);
+            end
+            dist = inf;
+            state = [];
+            index = [];
+            for ix = indices
+                s = handler.getData(ix);
+                next_dist = abs(time - s.time);
+                fprintf('time: %g - %g = %g\n', time, s.time, next_dist)
+                if next_dist > dist
+                    break;
+                end
+                state = s;
+                dist = next_dist;
+                index = ix;
+            end
+        end
+
+
+        function [s, index] = getFirstByFunction(handler, fn, reverse)
+            % Seek in the handler data, returing the first entry that
+            % fullfills an anonymous function. Can seek forward or
+            % backwards.
+            if nargin < 3
+                reverse = false;
+            end
+            found = false;
+            indices = 1:handler.numelData();
+            if reverse
+                indices = indices(end:-1:1);
+            end
+            for index = indices
+                s = handler.getData(index);
+                if fn(s)
+                    found = true;
+                    break;
+                end
+            end
+            if ~found
+                s = [];
+                index = [];
+            end
+        end
+        
+        function varargout = getData(handler, index)
+            [varargout{1:nargout}] = handler.getData_private(struct('type', '{}', 'subs', {{index}}));
+        end
+    end
+    
+    methods (Access = protected)
+
+        function varargout = getData_private(handler, s)
+            if handler.storeInMemory
+                [varargout{1:nargout}] = builtin('subsref', handler.data, s);
+                return
+            end
+
+            if handler.writeToDisk
+                sub = s(1).subs{1};
+                if ischar(sub) && strcmp(sub, ':')
+                    sub = 1:handler.numelData();
+                end
+                tmp = handler.readFromFile(sub);
+                s(1).subs{1} = 1:numel(sub);
+                [varargout{1:nargout}] = builtin('subsref', tmp, s);
+                return
             end
         end
     end

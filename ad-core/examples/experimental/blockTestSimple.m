@@ -4,48 +4,22 @@
 % model with more than a million cells.
 mrstModule add ad-core ad-blackoil ad-props mrst-gui coarsegrid linearsolvers
 mrstModule add libgeometry deckformat
+mrstModule add matlab_bgl
 
+gravity off
 %% Build simulation model
-% The simulation model is built manually. Here, we only give the necessary
-% statements and refer to the original example in the MRST book for
-% discussion and plots.
-%
-% By default, the model will only run a single step. To run the full
-% schedule, set "singleStep = false" before running the script. Note that
-% this will run three long schedules of 132 time-steps each, with a model
-% with over a million cells!
 if ~exist('singleStep', 'var')
     singleStep = true;
 end
-rng(0);
-layers = [30 60 30];
-dims = [100 100 sum(layers)];
-[xmax,ymax, n]  = deal(1000*meter, 1000*meter, 30);
-[x, y]  = meshgrid(linspace(0,xmax,n+1), linspace(0,ymax,n+1));
-[x, y]  = deal(x',y');
-dome    = 1-exp(sqrt((x - xmax/2).^2 + (y - ymax/2).^2)*1e-3);
-[xn,yn] = deal(pi*x/xmax,pi*y/ymax);
-perturb = sin(5*xn) + .5*sin(4*xn+6*yn) + cos(.25*xn*yn./pi^2) + cos(3*yn);
-perturb = perturb/3.5;
-[h, hr] = deal(8,1);
-zt      = 50 + h*perturb + rand(size(x))*hr - 20*dome;
-zb      = zt + 30;
-zmb     = min(zb + 4 + 0.01*x - 0.020*y + hr*rand(size(x)), zb);
-zmt     = max(zb -15 + 0.01*x - 0.025*y + hr*rand(size(x)), zt);
-
-horizons = {struct('x', x, 'y', y, 'z', zt), ...
-            struct('x', x, 'y', y, 'z', zmt), ...
-            struct('x', x, 'y', y, 'z', zmb), ...
-            struct('x', x, 'y', y, 'z', zb)};
-grdecl   = convertHorizonsToGrid(horizons, 'dims', dims, 'layers', layers);
-
-G = mprocessGRDECL(grdecl);
-G = mcomputeGeometry(G);
-
-% Petrophysics
-rng(357371);
-[K,L] = logNormLayers(G.cartDims, [100 400 10 50]*milli*darcy);
-K     = K(G.cells.indexMap);
+if ~exist('dims', 'var')
+    dims = [100, 100, 120];
+end
+if ~exist('mode', 'var')
+    mode = 'lazy';
+end
+G = cartGrid(dims);
+G = computeGeometry(G);
+K     = 0.1*darcy;
 perm  = [K, K, 0.1*K];
 rock  = makeRock(G, perm, 0.3);
 %% Define wells and three-phase fluid model
@@ -60,16 +34,16 @@ nz = G.cartDims(3);
 W = [];
 W = verticalWell(W, G, rock, offset, offset, 1,...
                 'Name', 'P1', 'comp_i', [1 0 0], 'sign', -1,...
-                'Val', 250*barsa, 'Type', 'bhp', 'refDepth', 50);
+                'Val', 250*barsa, 'Type', 'bhp', 'refDepth', 50, 'refDepth', -1);
 W = verticalWell(W, G, rock,  offset, floor(G.cartDims(1)/2)+3, 1,...
                 'Name', 'P2', 'comp_i', [1 0 0], 'sign', -1,...
-                'Val', 250*barsa, 'Type', 'bhp', 'refDepth', 50);
+                'Val', 250*barsa, 'Type', 'bhp', 'refDepth', 50, 'refDepth', -1);
 W = verticalWell(W, G, rock, offset, G.cartDims(2) - offset/2, K, ...
                 'Name', 'P3', 'comp_i', [1 0 0], 'sign', -1, ...
-                'Val', 250*barsa, 'Type', 'bhp', 'refDepth', 50);
+                'Val', 250*barsa, 'Type', 'bhp', 'refDepth', 50, 'refDepth', -1);
 W = verticalWell(W, G, rock, G.cartDims(1)-5, offset, K,...
                 'Name', 'I1', 'comp_i', [1 0 0], ...
-                'Val', injRate, 'Type', 'rate', 'refDepth', 50);
+                'Val', injRate, 'Type', 'rate', 'refDepth', 50, 'refDepth', -1);
 
 % Three-phase template model with constant oil compressibility
 fluid = initSimpleADIFluid('mu',    [1, 5, 0.1]*centi*poise, ...
@@ -81,48 +55,45 @@ p_ref    = 300*barsa;
 gravity reset on
 model = GenericBlackOilModel(G, rock, fluid);
 
-region = getInitializationRegionsBlackOil(model, [90, 60]*meter, ...
-            'datum_depth', 10*meter, 'datum_pressure', p_ref);
-state0 = initStateBlackOilAD(model, region);
+state0 = initResSol(G, p_ref, [0, 0.5, 0.5]);
 
 % Define simulation schedule and set solver parameters
 timesteps = rampupTimesteps(simTime, 30*day, 10);
 if singleStep
     timesteps = timesteps(1);
-    casename = 'BlockAssemblyExampleSingleStep';
+    caseName = 'BlockAssemblySimpleTestSingleStep';
 else
-    casename = 'BlockAssemblyExample';
+    caseName = 'BlockAssemblySimpleTest';
 end
 schedule = simpleSchedule(timesteps, 'W', W);
-
-%% Plot initial setup
-figure;
-plotToolbar(G, state0);
-plotWell(G, W);
 %% Create packed problem handle
 % The model is the only variation between the different solvers.
 % Parametrize by the model.
-packer = @(model, name, varargin) packSimulationProblem(state0, model, schedule, casename, 'name', name, varargin{:});
+packer = @(model, name, varargin) packSimulationProblem(state0, model, schedule, caseName, 'name', name, varargin{:});
 %% Sparse backend - default MRST setup
-[model_sparse, nls] = setup_solver(model, 'sparse');
+[model_sparse, nls] = setupBlockTestSolver(model, 'sparse', mode);
 sparse_problem = packer(model_sparse, 'sparse-backend', 'NonLinearSolver', nls, 'description', 'Sparse');
+simulatePackedProblem(sparse_problem, 'restartStep', 1);
+
 %% Diagonal backend with MEX acceleration
 % Faster version of AD that uses an intermediate diagonal representation
 % and MEX acceleration to improve speed. Can generally replace the sparse
 % version.
-[model_diag, nls] = setup_solver(model, 'diagonal');
-diag_problem = packer(model_diag, 'diagonal-backend', 'NonLinearSolver', nls, 'description', 'Diagonal');
+[model_diag, nls] = setupBlockTestSolver(model, 'diagonal', mode);
+diag_problem = packer(model_diag, 'diag-backend', 'NonLinearSolver', nls, 'description', 'Diagonal');
+simulatePackedProblem(diag_problem, 'restartStep', 1);
 %% Block-diagonal backend with MEX acceleration
 % The fastest option, that assembles directly into AMGCL block matrices.
 % Needs special linear solvers, and is limited in the complexity of
 % non-reservoir equations. At the moment, the treatment in these
 % solvers are only reliable when wells have a single cell each, or when the
 % flow is driven by boundary conditions and sources.
-[model_blockdiag, nls] = setup_solver(model, 'diagonal-block');
-block_problem = packer(model_blockdiag, 'diagonal-backend-block', 'NonLinearSolver', nls, 'description', 'DiagonalBlock');
+[model_blockdiag, nls] = setupBlockTestSolver(model, 'diagonal-block', mode);
+block_problem = packer(model_blockdiag, 'block-backend', 'NonLinearSolver', nls, 'description', 'DiagonalBlock');
+simulatePackedProblem(block_problem, 'restartStep', 1);
+
 %% Simulate the problems
 problems = {sparse_problem, diag_problem, block_problem};
-simulatePackedProblem(problems);
 %% Get output
 [ws, states, reports, names] =...
     getMultiplePackedSimulatorOutputs(problems, 'readStatesFromDisk', false);
@@ -132,6 +103,10 @@ descr = cellfun(@(x) x.Description, problems, 'UniformOutput', false);
 timings = cellfun(@(x) getReportTimings(x, 'total', true), reports);
 d = arrayfun(@(x) [x.Assembly./x.NumberOfAssemblies, [x.LinearSolve, x.LinearSolvePrep]./x.Iterations],...
                     timings, 'UniformOutput', false);
+if ~mrstPlatform('gui')
+    return
+end
+%% Plot time spent
 figure;
 bar(vertcat(d{:}))
 set(gca, 'XTickLabel', names)
@@ -159,34 +134,6 @@ if numel(tot{1}) > 1
     xlabel('Timestep number')
     ylabel('Time [s]')
 end
-%% Setup routine used in script
-function [model, nls] = setup_solver(model, type)
-    nls = getNonLinearSolver(model);
-    % We already have a short initial time-step
-    nls.timeStepSelector.firstRampupStepRelative = 1;
-    arg = {'tolerance', 1e-3, 'relaxation', 'ilu0', 'solver', 'bicgstab'};
-    linsolve = AMGCL_CPRSolverAD(arg{:});
-    linsolve.doApplyScalingCPR = false;
-    linsolve.strategy = 'amgcl';
-    nls.LinearSolver = linsolve;
-    switch type
-        case 'legacy'
-            model = ThreePhaseBlackOilModel(model.G, model.rock, model.fluid, 'disgas', false, 'vapoil', false);
-        case 'sparse'
-            model.AutoDiffBackend = AutoDiffBackend();
-        case 'diagonal'
-            model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true, 'rowMajor', true);
-        case 'diagonal-block'
-            model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true, 'rowMajor', true, 'deferredAssembly', true);
-            lsolve_block = AMGCL_CPRSolverBlockAD(arg{:});
-            nls.LinearSolver = lsolve_block;
-    end
-    model = model.validateModel();
-    ctm = model.FlowPropertyFunctions.ComponentTotalMass;
-    ctm = ctm.setMinimumDerivatives([1e-10, 1e-6, 1e-6]);
-    model.FlowPropertyFunctions.ComponentTotalMass = ctm;
-end
-
 %% Copyright Notice
 %
 % <html>

@@ -51,10 +51,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'readReportsFromDisk',  []);
     opt = merge_options(opt, varargin{:});
     
-   
-    ctrl = problem.SimulatorSetup.schedule.control(1);
-    [~, fstruct] = problem.SimulatorSetup.model.getDrivingForces(ctrl);
-    model = problem.SimulatorSetup.model.validateModel(fstruct);
+    if nargout > 3
+        ctrl = problem.SimulatorSetup.schedule.control(1);
+        [~, fstruct] = problem.SimulatorSetup.model.getDrivingForces(ctrl);
+        model = problem.SimulatorSetup.model.validateModel(fstruct);
+    end
     
     if isempty(opt.readWellSolsFromDisk)
         opt.readWellSolsFromDisk = opt.readFromDisk;
@@ -65,14 +66,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isempty(opt.readStatesFromDisk)
         opt.readStatesFromDisk = opt.readFromDisk;
     end
-    nstep = numel(problem.SimulatorSetup.schedule.step.val);
+    dt = problem.SimulatorSetup.schedule.step.val;
+    nstep = numel(dt);
     
     sh = problem.OutputHandlers.states;
     wh = problem.OutputHandlers.wellSols;
     rh = problem.OutputHandlers.reports;
     
     ndata = sh.numelData();
-    [ws, states, reports] = deal(cell(ndata, 1));
+    ws = cell(wh.numelData(), 1);
+    states = cell(sh.numelData(),1);
+    reports = cell(rh.numelData(),1);
     wantWells = false;
     for i = 1:numel(problem.SimulatorSetup.schedule.control)
         ctrl = problem.SimulatorSetup.schedule.control(i);
@@ -86,32 +90,48 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nstep == ndata
         fprintf('Found complete data for %s: %d steps present\n', sn, ndata);
     elseif ndata > nstep
-        warning('Found too much data for %s: %d of %d steps present. Case may have been redefined!\n', sn, ndata, nstep);
+        endstate = states{ndata};
+        if isfield(endstate, 'time') && endstate.time > sum(dt)
+            warning('Found too much data for %s: %d of %d steps present. Case may have been redefined!\n', sn, ndata, nstep);
+        else
+            fprintf('Found complete data for %s: %d steps present\n', sn, ndata);
+        end
     elseif ndata > 0
         fprintf('Found partial data for %s: %d of %d steps present\n', sn, ndata, nstep);
     else
         fprintf('Did not find data for %s\n', sn);
     end
     wellOutputMissing = wantWells && wh.numelData() == 0;
-    for i = 1:ndata
+    ns = sh.numelData();
+    for i = 1:ns
         if nargout > 1 && opt.readStatesFromDisk
             states{i} = sh{i};
         end
-        if wantWells && opt.readWellSolsFromDisk
+         if wantWells && opt.readWellSolsFromDisk
             if wellOutputMissing
                 if isempty(states{i})
                     ws{i} = sh{i}.wellSol;
                 else
                     ws{i} = states{i}.wellSol;
                 end
-            else
+            end
+         end
+    end
+    nw = wh.numelData();
+    for i = 1:nw
+        if wantWells && opt.readWellSolsFromDisk
+            if ~wellOutputMissing
                 try
                     ws{i} = wh{i};
                 catch
                     ws{i} = states{i}.wellSol;
                 end
             end
+           
         end
+    end
+    nr = rh.numelData();
+    for i = 1:nr
         if nargout > 2 && opt.readReportsFromDisk
             try
                 reports{i} = rh{i};

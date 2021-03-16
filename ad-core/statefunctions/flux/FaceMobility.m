@@ -15,7 +15,7 @@ classdef FaceMobility < StateFunction & UpwindProperty
                 upwind_name = 'PhaseUpwindFlag';
             end
             fm@StateFunction(model);
-            fm@UpwindProperty(upstr)
+            fm@UpwindProperty(upstr);
             fm.upwind_name = upwind_name;
             fm = fm.dependsOn(upwind_name);
             fm = fm.dependsOn('Mobility', 'FlowPropertyFunctions');
@@ -24,7 +24,7 @@ classdef FaceMobility < StateFunction & UpwindProperty
         
         function fmob = evaluateOnDomain(prop, model, state)
             flag = prop.getEvaluatedDependencies(state, prop.upwind_name);
-            mob = model.getProp(state, 'Mobility');
+            mob = prop.getEvaluatedExternals(model, state, 'Mobility');
             nph = numel(mob);
             fmob = cell(1, nph);
             for i = 1:nph
