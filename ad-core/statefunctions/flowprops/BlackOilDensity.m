@@ -41,13 +41,6 @@ classdef BlackOilDensity < StateFunction
                     rho{gix} = rho{gix} + rv.*b{gix}.*rhoS(:, oix);
                 end
             end
-            mv = cellfun(@(x) min(value(x)), rho);
-            if any(mv <= 0)
-                if model.verbose > 1
-                    warning('Negative densities detected! Capping to 1e-12.')
-                end
-                rho = cellfun(@(x) max(x, 1e-12), rho, 'UniformOutput', false);
-            end
         end
     end
 end
