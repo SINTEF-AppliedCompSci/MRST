@@ -1442,7 +1442,7 @@ methods
             names = names(phases);
         end
         rhoS = value(arrayfun(@(x) model.fluid.(['rho', x, 'S'])', names, 'UniformOutput', false));
-        if nargin > 1 && size(rhoS, 1) > 1 && ~isempty(regions)
+        if nargin > 1 && ~isempty(regions)
             rhoS = rhoS(regions, :);
         end
     end

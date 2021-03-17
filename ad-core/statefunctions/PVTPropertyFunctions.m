@@ -2,6 +2,7 @@ classdef PVTPropertyFunctions < StateFunctionGrouping
     % Default grouping for describing a system of flow equations. Contains
     % basic properties like mobility, density, component total mass etc.
     properties
+        SurfaceDensity % Density at surface conditions (1 x nphase)
         Density % Phase density (1 x nphase)
         ShrinkageFactors % b = 1/B for each phase (1 x nphase)
         Viscosity % Phase viscosity (1 x nphase)
@@ -35,7 +36,7 @@ classdef PVTPropertyFunctions < StateFunctionGrouping
                 bfactors = ShrinkageFactors(model, pvt);
                 w_p = PressureReductionFactors(model);
             end
-            
+            props = props.setStateFunction('SurfaceDensity', SurfaceDensity(model, pvt));
             props = props.setStateFunction('Viscosity', mu);
             props = props.setStateFunction('ShrinkageFactors', bfactors);
             props = props.setStateFunction('PressureReductionFactors', w_p);

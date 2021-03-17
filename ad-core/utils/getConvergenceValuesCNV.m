@@ -64,7 +64,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     pv = pvt.get(model, state, 'PoreVolume');
     % Value of pore-volume and total pore-volume
     pv = value(pv);
-    pvt = sum(pv);
+    pvtot = sum(pv);
     if isfield(state, 'cnvscale')
         pv = pv.*state.cnvscale;
     end
@@ -76,11 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     dt = problem.dt;
     isMass = isa(model, 'GenericReservoirModel');
     if isMass
-        rhoS = model.getSurfaceDensities();
-        if size(rhoS, 1) > 1
-            pvtreg =  model.PVTPropertyFunctions.getRegionPVT(model);
-            rhoS = rhoS(pvtreg, :);
-        end
+        rhoS = pvt.get(model, state, 'SurfaceDensity');
     end
     active = true(nph, 1);
     for ph = 1:nph
@@ -89,7 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if active(ph)
             eq = value(problem.equations{eq_ix});
             if isMass
-                eq = eq./rhoS(:, ph);
+                eq = eq./value(rhoS{ph});
             end
             if isempty(b{ph})
                 B = 1;
@@ -102,7 +98,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [mv, m_ix] = max(abs(eq)./pv);
             CNV(ph) = B_avg*dt*mv;
             % Total mass balance error
-            MB(ph) = abs(B_avg*sum(eq))/pvt;
+            MB(ph) = abs(B_avg*sum(eq))/pvtot;
             evaluated(eq_ix) = true;
             if v > 1
                 fprintf('CNV_%s: %d is the worst cell at %g\n',...

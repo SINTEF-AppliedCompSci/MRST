@@ -13,7 +13,9 @@ classdef OilComponent < ImmiscibleComponent
             c@ImmiscibleComponent(name, gasIndex);
             c.disgas = disgas;
             c.vapoil = vapoil;
-            c = c.functionDependsOn('getComponentDensity', 'ShrinkageFactors', 'PVTPropertyFunctions');
+            c = c.functionDependsOn('getComponentDensity', ...
+                                    {'ShrinkageFactors', 'SurfaceDensity'},...
+                                    'PVTPropertyFunctions');
             if vapoil
                 c = c.functionDependsOn('getComponentDensity', 'rv', 'state');
             end
@@ -28,10 +30,11 @@ classdef OilComponent < ImmiscibleComponent
                 phasenames = model.getPhaseNames();
                 nph = numel(phasenames);
                 c = cell(nph, 1);
-                b = model.PVTPropertyFunctions.get(model, state, 'ShrinkageFactors');
+                pvt = model.PVTPropertyFunctions;
+                b = pvt.get(model, state, 'ShrinkageFactors');
+                rhoS = pvt.get(model, state, 'SurfaceDensity');
                 oix = (phasenames == 'O');
-                reg = model.PVTPropertyFunctions.getRegionPVT(model);
-                rhoOS = model.getSurfaceDensities(reg, oix);
+                rhoOS = rhoS{oix};
                 if component.disgas % Component density is not phase density
                     bO = b{oix};
                     c{oix} = rhoOS.*bO;

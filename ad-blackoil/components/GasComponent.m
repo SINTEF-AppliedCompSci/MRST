@@ -29,10 +29,11 @@ classdef GasComponent < ImmiscibleComponent
                 phasenames = model.getPhaseNames();
                 nph = numel(phasenames);
                 c = cell(nph, 1);
-                b = model.PVTPropertyFunctions.get(model, state, 'ShrinkageFactors');
+                pvt = model.PVTPropertyFunctions;
+                b = pvt.get(model, state, 'ShrinkageFactors');
                 gix = (phasenames == 'G');
-                reg = model.PVTPropertyFunctions.getRegionPVT(model);
-                rhoGS = model.getSurfaceDensities(reg, gix);
+                rhoS = pvt.get(model, state, 'SurfaceDensity');
+                rhoGS = rhoS{gix};
                 if component.vapoil % Component density is not phase density
                     bG = b{gix};
                     c{gix} = rhoGS.*bG;
