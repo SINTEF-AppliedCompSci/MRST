@@ -1,7 +1,6 @@
 classdef ComponentMobility < StateFunction & ComponentProperty
     % Class implementing the mobility for each component and phase
     properties
-        includeStandard = true;
     end
     
     methods
@@ -9,22 +8,12 @@ classdef ComponentMobility < StateFunction & ComponentProperty
             gp@StateFunction(model, varargin{:});
             gp@ComponentProperty(model, 'getComponentMobility');
             gp.label = '\lambda_{i, \alpha}';
-            if gp.includeStandard
-                gp = gp.dependsOn('Density', 'PVTPropertyFunctions');
-                gp = gp.dependsOn('Mobility');
-            end
         end
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents;
             nph = model.getNumberOfPhases;
             v = cell(ncomp, nph);
-            if prop.includeStandard
-                rho = prop.getEvaluatedExternals(model, state, 'Density');
-                mob = prop.getEvaluatedDependencies(state, 'Mobility');
-                extra = {mob, rho};
-            else
-                extra = {};
-            end
+            extra = prop.getExtraArguments(model, state);
             for i = 1:ncomp
                 v(i, :) = model.Components{i}.getComponentMobility(model, state, extra{:});
             end

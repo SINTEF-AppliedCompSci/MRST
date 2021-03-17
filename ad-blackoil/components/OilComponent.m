@@ -31,24 +31,15 @@ classdef OilComponent < ImmiscibleComponent
                 nph = numel(phasenames);
                 c = cell(nph, 1);
                 pvt = model.PVTPropertyFunctions;
-                b = pvt.get(model, state, 'ShrinkageFactors');
                 rhoS = pvt.get(model, state, 'SurfaceDensity');
                 oix = (phasenames == 'O');
                 rhoOS = rhoS{oix};
+                [~, ~, rho, b] = component.unpackMassArguments(model, state, varargin);
                 if component.disgas % Component density is not phase density
                     bO = b{oix};
                     c{oix} = rhoOS.*bO;
                 else
-                    if nargin == 3
-                        rho = model.getProp(state, 'Density');
-                    else
-                        rho = varargin{1};
-                    end
-                    if nph == 1
-                        c{1} = rho;
-                    else
-                        c{oix} = rho{oix};
-                    end
+                    c{oix} = rho{oix};
                 end
                 if component.vapoil % There is mass of oil in gaseous phase
                     gix = (phasenames == 'G');
