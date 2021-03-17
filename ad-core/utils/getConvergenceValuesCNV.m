@@ -59,7 +59,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     v = model.verbose;
 
     evaluated = false(1, numeq(problem));
-    [b, pv] = model.getProps(state, 'ShrinkageFactors', 'PoreVolume');
+    pvt = model.PVTPropertyFunctions;
+    b = pvt.get(model, state, 'ShrinkageFactors');
+    pv = pvt.get(model, state, 'PoreVolume');
     % Value of pore-volume and total pore-volume
     pv = value(pv);
     pvt = sum(pv);
