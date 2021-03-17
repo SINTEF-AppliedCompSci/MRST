@@ -83,7 +83,7 @@ function varargout = interp2DPVT_local(T, xi, vi, method, useMex)
         case 'linshift'
             [varargout{:}] = interp2DPVT_linshift(T, xi, vi, useMex);
         otherwise
-            assert('Invalid interpolation strategy');
+            error('Invalid interpolation strategy');
     end
 end
 
