@@ -74,6 +74,14 @@ classdef SequentialPressureTransportModel < ReservoirModel
                                 solver_prm.transportLinearSolver;
             end
             
+            if model.outerCheckParentConvergence
+                % Parent model decides outer convergence - cutting only
+                % transport does not make sense
+                model.transportNonLinearSolver.maxTimestepCuts = 0;
+                % Checking saturation increment is not necessary
+                model.incTolSaturation = inf;
+            end
+            
             model.transportNonLinearSolver.errorOnFailure = false;
             model.FacilityModel = []; % Handled by subclasses
         end
