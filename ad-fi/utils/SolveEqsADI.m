@@ -30,7 +30,7 @@ if useBasis
     end
 end
 
-numVars = cellfun(@numval, eqs)';
+numVars = cellfun(@numelValue, eqs)';
 cumVars = cumsum(numVars);
 ii = [[1;cumVars(1:end-1)+1], cumVars];
 
