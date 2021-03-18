@@ -497,7 +497,6 @@ classdef DiagonalJacobian
             else
                 x = plus(y, x);
             end
-            
         end
         
         function x = times(x, y)
@@ -687,11 +686,10 @@ classdef DiagonalJacobian
             if dim == 2 || ...
                     any(cellfun(@isnumeric, varargin)) ||...
                     any(cellfun(@(x) isa(x, 'FixedWidthJacobian'), varargin))
-                nz = zeros(numel(varargin), 1);
+                nz = zeros(1, numel(varargin));
                 for i = 1:numel(varargin)
                     nz(i) = nnz(varargin{i});
                 end
-                % nz = cellfun(@nnz, varargin);
                 cz = cumsum([0, nz]);
                 [I, J, V] = deal(zeros(sum(nz), 1));
                 [N, M] = deal(0);
