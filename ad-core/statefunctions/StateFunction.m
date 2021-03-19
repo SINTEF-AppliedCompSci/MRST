@@ -13,6 +13,7 @@ classdef StateFunction
         outputRange = [-inf, inf];
         allowInf = false;
         allowNaN = false;
+        isSingleRegion = false; % There are multiple regions in fluid, but only a single one is used in practice.
     end
     
     methods
@@ -27,6 +28,7 @@ classdef StateFunction
                 end
                 prop = merge_options(prop, varargin{:});
             end
+            prop.isSingleRegion = isempty(prop.regions) || numel(unique(prop.regions)) == 1;
         end
 
         function value = evaluateOnDomain(prop, model, state)
@@ -81,7 +83,6 @@ classdef StateFunction
         
         function v = evaluateFunctionCellSubset(prop, fn, subset, varargin)
             % Evaluate specific function on a given subset
-
             if iscell(fn)
                 local_region = prop.regions;
                 if isempty(local_region)
@@ -91,25 +92,30 @@ classdef StateFunction
                            ' An region must be provided when', ...
                            ' the input function is a cell array'], class(prop));
                 end
-                if isnumeric(subset) || islogical(subset)
-                    local_region = local_region(subset);
-                end
-                % We have multiple regions and have to evaluate for each
-                % subregion
-                nc = size(prop.regions, 1);
-                isCell = cellfun(@(x) numelValue(x) == nc, varargin);
-                [sample, isAD] = getSampleAD(varargin{:});
-                v = zeros(numel(local_region), 1);
-                if isAD
-                    v = prop.AutoDiffBackend.convertToAD(v, sample);
-                end
-                for reg = 1:numel(fn)
-                    act = local_region == reg;
-                    arg = varargin;
-                    carg = cellfun(@(x) x(act), arg(isCell), 'UniformOutput', false);
-                    [arg{isCell}] = carg{:};
-                    if any(act)
-                        v(act) = fn{reg}(arg{:});
+                if prop.isSingleRegion
+                    lr = local_region(1);
+                    v = fn{lr}(varargin{:});
+                else
+                    if isnumeric(subset) || islogical(subset)
+                        local_region = local_region(subset);
+                    end
+                    % We have multiple regions and have to evaluate for each
+                    % subregion
+                    nc = size(prop.regions, 1);
+                    isCell = cellfun(@(x) numelValue(x) == nc, varargin);
+                    [sample, isAD] = getSampleAD(varargin{:});
+                    v = zeros(numel(local_region), 1);
+                    if isAD
+                        v = prop.AutoDiffBackend.convertToAD(v, sample);
+                    end
+                    for reg = 1:numel(fn)
+                        act = local_region == reg;
+                        arg = varargin;
+                        carg = cellfun(@(x) x(act), arg(isCell), 'UniformOutput', false);
+                        [arg{isCell}] = carg{:};
+                        if any(act)
+                            v(act) = fn{reg}(arg{:});
+                        end
                     end
                 end
             else
