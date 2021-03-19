@@ -17,21 +17,29 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
             props@StateFunctionGrouping('FlowProps');
             sat = props.getRegionSaturation(model);
             % Saturation properties
-            pc = BlackOilCapillaryPressure(model, sat);
-            kr = BaseRelativePermeability(model, sat);
-            if ~isempty(model.inputdata)
+            
+            deck = model.inputdata;
+            hasDeck = ~isempty(deck);
+            if hasDeck
                 % We may have recieved a deck. Check for endpoint scaling
-                deck = model.inputdata;
-
                 % Scaling is active and can impact rel.perm and pc
                 do_scaling = isfield(deck.RUNSPEC, 'ENDSCALE');
-                pc.scalingActive = do_scaling;
-                kr.scalingActive = do_scaling;
-
                 % Set number of points for scaling
                 three_point = isfield(deck.PROPS, 'SCALECRS') && strcmpi(deck.PROPS.SCALECRS{1}(1), 'y');
-                kr.relpermPoints = 2 + three_point;
-                
+                % kr.relpermPoints = 2 + three_point;
+                krarg = {'relpermPoints', 2 + three_point};
+                scalearg = {'scalingActive', do_scaling};
+            else
+                scalearg = {};
+                krarg = {};
+            end
+            % Relative permeability
+            kr = BaseRelativePermeability(model, sat, scalearg{:}, krarg{:});
+            props = props.setStateFunction('RelativePermeability', kr);
+            
+            % Capillary pressure
+            pc = BlackOilCapillaryPressure(model, sat, scalearg{:});
+            if hasDeck
                 if isfield(deck.GRID, 'JFUNC')
                     jf = deck.GRID.JFUNC;
                     jtype = jf{1};
@@ -52,7 +60,6 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
                 end
             end
             props = props.setStateFunction('CapillaryPressure', pc);
-            props = props.setStateFunction('RelativePermeability', kr);
             props = props.setStateFunction('Mobility', Mobility(model, sat));
 
             % Components

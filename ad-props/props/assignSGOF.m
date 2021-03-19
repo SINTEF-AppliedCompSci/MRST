@@ -34,9 +34,10 @@ function [krG, krOG, pcOG, pts, pts_o, hasPC] = getFunctions(f, SGOF, reg)
         SG = sgof(:, 1);
         pc = sgof(:, 4);
         hasPC = hasPC || any(pc ~= 0);
-        SG_plus_swcon = SG + swcon;
+        SG_plus_swcon = SG(end:-1:1) + swcon;
+        krog = sgof(end:-1:1, 3);
         krG{i} = @(sg) interp(SG, sgof(:, 2), sg);
-        krOG{i} = @(so) interp(SG_plus_swcon, sgof(:, 3), 1-so);
+        krOG{i} = @(so) interp(1-SG_plus_swcon, krog, so);
         pcOG{i} = @(sg) interp(SG, pc, sg);
     end
 end

@@ -29,24 +29,16 @@ classdef GasComponent < ImmiscibleComponent
                 phasenames = model.getPhaseNames();
                 nph = numel(phasenames);
                 c = cell(nph, 1);
-                b = model.PVTPropertyFunctions.get(model, state, 'ShrinkageFactors');
+                pvt = model.PVTPropertyFunctions;
                 gix = (phasenames == 'G');
-                reg = model.PVTPropertyFunctions.getRegionPVT(model);
-                rhoGS = model.getSurfaceDensities(reg, gix);
+                rhoS = pvt.get(model, state, 'SurfaceDensity');
+                rhoGS = rhoS{gix};
+                [~, ~, rho, b] = component.unpackMassArguments(model, state, varargin);
                 if component.vapoil % Component density is not phase density
                     bG = b{gix};
                     c{gix} = rhoGS.*bG;
                 else
-                    if nargin == 3
-                        rho = model.getProp(state, 'Density');
-                    else
-                        rho = varargin{1};
-                    end
-                    if nph == 1
-                        c{1} = rho;
-                    else
-                        c{gix} = rho{gix};
-                    end
+                    c{gix} = rho{gix};
                 end
                 if component.disgas % There is mass of gas in oileic phase
                     oix = (phasenames == 'O');

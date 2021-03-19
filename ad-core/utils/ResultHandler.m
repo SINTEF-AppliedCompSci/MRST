@@ -210,15 +210,18 @@ classdef ResultHandler < handle
                 end
                 l = regexp(char(l), '\s+', 'split');
                 ext = handler.getExtension();
-                for i = 1:numel(l)
+                pref = handler.dataPrefix;
+                nline = numel(l);
+                ids = nan(1, nline);
+                for i = 1:nline
                     line = l{i};
-                    [s, e] = regexp(line, ['^', handler.dataPrefix, '\d+', ext]);
+                    s = sscanf(line, [pref, '%d', ext]);
                     if isempty(s)
                         continue;
                     end
-                    ids = [ids, str2double(line((s+numel(handler.dataPrefix)):e))];
+                    ids(i) = s;
                 end
-                ids = sort(ids);
+                ids = sort(ids(~isnan(ids)));
                 return
             end
             

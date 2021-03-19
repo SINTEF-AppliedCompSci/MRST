@@ -3,6 +3,8 @@ classdef SaturationProperty
     % scaling
     properties
         scalingActive = false;
+        swcon = [];
+        scalers
     end
     
     properties (Access = protected)
@@ -10,11 +12,36 @@ classdef SaturationProperty
     end
 
     methods
+        function prop = storeConnateWater(prop, model, varargin)
+            prop.swcon = prop.getConnateWater(model, varargin{:});
+        end
+
+        function prop = storeScalers(prop, model, varargin)
+            % Store scalers in state function for faster evaluation
+            r = model.rock;
+            if isfield(r, 'krscale')
+                tmp = struct();
+                for type = reshape(fieldnames(r.krscale), 1, [])
+                    t = type{1};
+                    fn = fieldnames(r.krscale.(t));
+                    s = struct();
+                    for i = 1:numel(fn)
+                        f = fn{i};
+                        s.(f) = prop.getScalers(model, f, ':', t);
+                    end
+                    tmp.(t) = s;
+                end
+                prop.scalers = tmp;
+            end
+        end
+        
         function swcon = getConnateWater(prop, model, state)
             % Get the connate water in each cell of the domain. This may
             % come from either the fluid or the rock, depending if the
             % scaling is active.
-            if prop.scalingActive && ...
+            if ~isempty(prop.swcon)
+                swcon = prop.swcon;
+            elseif prop.scalingActive && ...
                     isfield(model.rock, 'krscale') && ...
                     isfield(model.rock.krscale.drainage, 'w')
                 % Connate water in rock, endpoint scaling
@@ -38,17 +65,14 @@ classdef SaturationProperty
             if nargin < 4
                 drainage = true;
             end
-
             if drainage
                 satnum = prop.regions_imbibition;
             else
                 satnum = prop.regions;
             end
-
             if isempty(satnum)
                 satnum = 1;
             end
-
             phases = model.getPhaseNames();
             nph = numel(phases);
             s_min = zeros(size(satnum));
@@ -67,6 +91,46 @@ classdef SaturationProperty
                     else
                         s_min(i) = pts.(ph)(satnum, 2);
                     end
+                end
+            end
+        end
+
+        function scaler = getScalers(prop, model, phase, cells, type)
+            % Get the scalers for a given phase(pair), cells and type
+            if nargin < 5
+                type = 'drainage';
+            end
+            if nargin < 4
+                cells = ':';
+            end
+            if isempty(prop.scalers)
+                pts = model.rock.krscale.(type);
+                reg = prop.regions(cells);
+                npts = prop.relpermPoints;
+                f = model.fluid;
+                if npts == 2
+                    [m, c, p, k] = prop.getTwoPointScalers(pts, phase, reg, f, cells);
+                elseif npts == 3
+                    [m, c, p, k] = prop.getThreePointScalers(pts, phase, reg, f, cells);
+                else
+                    error('Unknown number of scaling points');
+                end
+                scaler = struct('m', {m},...
+                                'c', {c}, ...
+                                'p', {p}, ...
+                                'k', {k}, ...
+                                'k_max_m', k{2}./k{1}, ...
+                                'points', npts);
+            else
+                % We already had it stored, we can just retrieve and pick
+                % the subset.
+                scaler = prop.scalers.(type).(phase);
+                if ~ischar(cells)
+                    for f = {'m', 'c', 'p', 'k'}
+                        fi = f{1};
+                        scaler.(fi) = applyFunction(@(x) x(cells, :), scaler.(fi));
+                    end
+                    scaler.k_max_m = scaler.k_max_m(cells);
                 end
             end
         end
@@ -142,6 +206,8 @@ classdef SaturationProperty
 
                     SU   = 1 - SGL - SWL;
                     su = 1 - sgl - swl;
+                otherwise
+                    error('No valid scalers for phase %s', ph);
             end
             [scr, SCR] = get(ph, CR);
 

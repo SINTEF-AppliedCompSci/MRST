@@ -114,13 +114,13 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
             nj = numel(eqs{1}.jac);
             c_sub = 1:bz; % Assuming cell equations come first
             cell_eq = eqs(c_sub);
-            J = cellfun(@(x) x.jac{1}, cell_eq, 'UniformOutput', false);
+            J = applyFunction(@(x) x.jac{1}, cell_eq);
             
             % First, get the matrix
             opt = J{1}.divergenceOptions;
             prelim = opt.mex;
-            acc = cellfun(@(x) x.accumulation.diagonal, J, 'UniformOutput', false);
-            flux = cellfun(@(x) x.flux.diagonal, J, 'UniformOutput', false);
+            acc = applyFunction(@(x) x.accumulation.diagonal, J);
+            flux = applyFunction(@(x) x.flux.diagonal, J);
             if ~backend.rowMajor
                 % MEX routine for assembly assumes rowmajor. Perform
                 % potentially expensive transpose of all block matrices.

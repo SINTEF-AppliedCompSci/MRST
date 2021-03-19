@@ -29,8 +29,11 @@ function [krW, krOW, pcOW, pts_w, pts_ow, hasPC] = getFunctions(SWOF, reg)
         SW = swof(:, 1);
         pc = swof(:, 4);
         hasPC = hasPC || any(pc ~= 0);
+        % Reverse krO table to be increasing and given with respect to so
+        krow = swof(end:-1:1, 3);
+        SO = 1 - SW(end:-1:1);
         krW{i} = @(sw) interp(SW, swof(:, 2), sw);
-        krOW{i} = @(so) interp(SW, swof(:, 3), 1-so);
+        krOW{i} = @(so) interp(SO, krow, so);
         pcOW{i} = @(sw) interp(SW, pc, sw);
     end
 end

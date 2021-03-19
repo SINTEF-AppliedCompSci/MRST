@@ -15,7 +15,7 @@ function [cW, muWr, bW_fn, muW_fn] = getFunctions(pvtw, reg)
         muwr = muWr(pvtnum);
         bW_fn{pvtnum}= getFunction(@(pw) bW(pw, cW(pvtnum), bwr, pwr), reg);
         if vbw > 0
-            muW_fn{pvtnum} = @(pw) muW(pw, pwr, muwr, vbw);
+            muW_fn{pvtnum} = getFunction(@(pw) muW(pw, pwr, muwr, vbw), reg);
         else
             muW_fn{pvtnum} = @(pw) repmat(muwr, numelValue(pw), 1);
         end

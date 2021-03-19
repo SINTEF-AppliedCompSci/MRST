@@ -10,25 +10,37 @@ classdef PressureGradient < StateFunction
             gp = gp.dependsOn('PhasePressures', 'PVTPropertyFunctions');
             gp = gp.dependsOn('pressure', 'state');
             gp.label = '\nabla p_\alpha';
-            gp.Grad = model.operators.Grad;
         end
+
         function dp = evaluateOnDomain(prop, model, state)
             act = model.getActivePhases();
             nph = sum(act);
             
             dp = cell(1, nph);
+            grad = prop.getGrad(model);
             if model.FlowPropertyFunctions.CapillaryPressure.pcPresent(model)
                 % We have different phase pressures, call gradient once for
                 % each phase
                 p = prop.getEvaluatedExternals(model, state, 'PhasePressures');
                 for i = 1:nph
-                    dp{i} = prop.Grad(p{i});
+                    dp{i} = grad(p{i});
                 end
             else
                 % There is no capillary pressure and a single gradient for
                 % the unique pressure is sufficient
                 p = model.getProp(state, 'pressure');
-                [dp{:}] = deal(prop.Grad(p));
+                [dp{:}] = deal(grad(p));
+            end
+        end
+
+        function dg = getGrad(prop, model)
+            if isempty(prop.Grad)
+                % Just grab the current model's operator
+                dg = model.operators.Grad;
+            else
+                % We have an overwritten gradient operator stored in this
+                % function
+                dg = prop.Grad;
             end
         end
     end

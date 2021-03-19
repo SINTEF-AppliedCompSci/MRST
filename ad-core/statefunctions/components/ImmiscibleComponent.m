@@ -15,14 +15,13 @@ classdef ImmiscibleComponent < GenericComponent
             c = c.functionDependsOn('getComponentDensity', 'Density', 'PVTPropertyFunctions');
         end
         
-        function c = getComponentDensity(component, model, state, rho)
+        function c = getComponentDensity(component, model, state, extra)
             if nargin < 4
                 rho = model.getProp(state, 'Density');
+            else
+                rho = extra.rho;
             end
-            if ~iscell(rho)
-                rho = expandMatrixToCell(rho);
-            end
-            c = getComponentDensity@GenericComponent(component, model, state, rho);
+            c = getComponentDensity@GenericComponent(component, model, state, extra);
             c{component.phaseIndex} = rho{component.phaseIndex};
         end
         

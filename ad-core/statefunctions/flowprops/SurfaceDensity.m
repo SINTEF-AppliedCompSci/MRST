@@ -1,22 +1,18 @@
-classdef ComponentMobility < StateFunction & ComponentProperty
-    % Class implementing the mobility for each component and phase
+classdef SurfaceDensity < StateFunction
+    % Phase density at surface conditions in each cell
     properties
     end
     
     methods
-        function gp = ComponentMobility(model, varargin)
-            gp@StateFunction(model, varargin{:});
-            gp@ComponentProperty(model, 'getComponentMobility');
-            gp.label = '\lambda_{i, \alpha}';
+        function rhoS = SurfaceDensity(model, varargin)
+            rhoS@StateFunction(model, varargin{:});
+            rhoS.label = '\rho_{\alpha S}';
+            rhoS.outputRange = [0, inf];
         end
-        function v = evaluateOnDomain(prop, model, state)
-            ncomp = model.getNumberOfComponents;
-            nph = model.getNumberOfPhases;
-            v = cell(ncomp, nph);
-            extra = prop.getExtraArguments(model, state);
-            for i = 1:ncomp
-                v(i, :) = model.Components{i}.getComponentMobility(model, state, extra{:});
-            end
+        
+        function rhoS = evaluateOnDomain(prop, model, state)
+            rhoS = model.getSurfaceDensities(prop.regions);
+            rhoS = expandMatrixToCell(rhoS);
         end
     end
 end
