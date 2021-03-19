@@ -153,9 +153,13 @@ classdef StateFunction
                     pos = arrayfun(@(x) strcmp(x.name, nm), prop.externals);
                     group = prop.externals(pos).grouping;
                 end
-                struct_name = model.(group).getStateFunctionContainerName();
-                s = struct(state.(struct_name));
-                v = s.(nm);
+                if strcmp(group, 'state')
+                    v = model.getProp(state, nm);
+                else
+                    struct_name = model.(group).getStateFunctionContainerName();
+                    s = struct(state.(struct_name));
+                    v = s.(nm);
+                end
                 v = expandIfUniform(v);
                 varargout{i} = v;
             end
