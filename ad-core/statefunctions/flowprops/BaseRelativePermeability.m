@@ -14,6 +14,13 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
             if isfield(model.fluid, 'ehystr')
                 warning('Hysteresis is not supported by %s', class(gp));
             end
+            if model.water && model.oil && ~isfield(model.fluid, 'krO')
+                % We then need connate water. Precompute it.
+                gp = gp.storeConnateWater(model);
+            end
+            if gp.scalingActive
+                gp = gp.storeScalers(model);
+            end
         end
 
         function kr = evaluateOnDomain(prop, model, state)
@@ -100,22 +107,20 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
                 cells = ':';
             end
             fn = model.fluid.(['kr', upper(phase)]);
-            f = model.fluid;
             if prop.scalingActive
-                reg = prop.regions;
-                if ~isempty(reg)
-                    reg = reg(cells);
-                end
-                [ss, kr_max_m] = prop.scaleSaturation(model.rock.krscale.drainage, phase, reg, f, s, cells);
+                [ss, kr_max_m] = prop.scaleSaturation(model, s, phase, cells, 'drainage');
                 kr = kr_max_m.*prop.evaluateFunctionCellSubset(fn, cells, ss);
             else
                 kr = prop.evaluateFunctionCellSubset(fn, cells, s);
             end
         end
 
-        function [s_scale, k_max_m] = scaleSaturation(prop, pts, phase, reg, f, s, cells)
-            if nargin  < 7
+        function [s_scale, k_max_m] = scaleSaturation(prop, model, s, phase, cells, type)
+            if nargin  < 6
                 cells = ':';
+            end
+            if nargin  < 7
+                type = 'drainage';
             end
             if ischar(cells)
                 cells = prop.cell_subset;
@@ -123,23 +128,25 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
                 assert(isnumeric(cells));
                 cells = cells(prop.cell_subset);
             end
-            if prop.relpermPoints == 2 % 2-point
-                [m, c, p, k] = prop.getTwoPointScalers(pts, phase, reg, f, cells);
-                ix1 = s < p{1};
-                ix2 = s >= p{2};
-                ix  = ~or(ix1,ix2);
+            sv = value(s);
+            scaler = prop.getScalers(model, phase, cells, type);
+            [p, c, m] = deal(scaler.p, scaler.c, scaler.m);
+            n_pts = numel(p);
+            if n_pts == 2 % 2-point
+                ix1 = sv < p{1};
+                ix2 = sv >= p{2};
+                ix  = ix1 | ix2;
                 s_scale = (ix.*m).*s + (ix.*c + ix2);
-            elseif prop.relpermPoints == 3
-                [m, c, p, k] = prop.getThreePointScalers(pts, phase, reg, f, cells);
-                ix1 = and(s >= p{1}, s < p{2});
-                ix2 = and(s >= p{2}, s < p{3});
-                ix3 = s >= p{3};
+            elseif n_pts == 3
+                ix1 = sv >= p{1} & sv < p{2};
+                ix2 = sv >= p{2} & sv < p{3};
+                ix3 = sv >= p{3};
                 a = ix1.*m{1} + ix2.*m{2};
                 s_scale = a.*s + ix1.*c{1} + ix2.*c{2} + ix3;
             else
                 error('Unknown number of scaling points');
             end
-            k_max_m = k{2}./k{1};
+            k_max_m = scaler.k_max_m;
         end
 
         function [state, chopped] = applyImmobileChop(prop, model, state, state0)
