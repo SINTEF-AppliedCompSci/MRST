@@ -24,6 +24,8 @@ classdef SaturationProperty
                 for type = reshape(fieldnames(r.krscale), 1, [])
                     t = type{1};
                     fn = fieldnames(r.krscale.(t));
+                    fn_f = fieldnames(model.fluid.krPts);
+                    fn = intersect(fn, fn_f);
                     s = struct();
                     for i = 1:numel(fn)
                         f = fn{i};
