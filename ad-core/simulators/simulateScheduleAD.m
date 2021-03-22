@@ -210,15 +210,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     solver = opt.NonLinearSolver;
     if isempty(solver)
         solver = NonLinearSolver('linearSolver', opt.LinearSolver);
-    elseif ~isempty(opt.LinearSolver)
-        % We got a nonlinear solver, but we still want to override the
-        % actual linear solver passed to the higher level schedule function
-        % we're currently in.
-        assert (isa(opt.LinearSolver, 'LinearSolverAD'), ...
-               ['Passed linear solver is not an instance ', ...
-                'of LinearSolverAD class!'])
+    else
+        assert(isa(solver, 'NonLinearSolver'), ...
+               ['Passed nonlinear solver is not an instance ', ...
+                'of NonLinearSolver class!'])
+        if ~isempty(opt.LinearSolver)
+            % We got a nonlinear solver, but we still want to override the
+            % actual linear solver passed to the higher level schedule function
+            % we're currently in.
+            assert (isa(opt.LinearSolver, 'LinearSolverAD'), ...
+                   ['Passed linear solver is not an instance ', ...
+                    'of LinearSolverAD class!'])
 
-        solver.LinearSolver = opt.LinearSolver;
+            solver.LinearSolver = opt.LinearSolver;
+        end
     end
     % Reset timestep selector in case it was used previously.
     solver.timeStepSelector.reset();
