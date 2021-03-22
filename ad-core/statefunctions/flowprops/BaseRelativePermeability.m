@@ -135,7 +135,7 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
             if n_pts == 2 % 2-point
                 ix1 = sv < p{1};
                 ix2 = sv >= p{2};
-                ix  = ix1 | ix2;
+                ix  = ~(ix1 | ix2);
                 s_scale = (ix.*m).*s + (ix.*c + ix2);
             elseif n_pts == 3
                 ix1 = sv >= p{1} & sv < p{2};
