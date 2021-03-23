@@ -14,7 +14,8 @@ classdef InjectionSurfaceDensity < StateFunction
         function rhoS = evaluateOnDomain(prop, facility, state)
             model = facility.ReservoirModel;
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
-            rhoSr = prop.getEvaluatedExternals(model, state, 'SurfaceDensity');
+            % rhoSr = prop.getEvaluatedExternals(model, state, 'SurfaceDensity');
+            rhoSr = model.PVTPropertyFunctions.get(model, state, 'SurfaceDensity');
             W = map.W;
             % We take the surface density for the first well cell,
             % regardless of active or inactive status for that
