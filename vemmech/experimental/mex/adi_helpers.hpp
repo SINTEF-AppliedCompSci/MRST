@@ -78,9 +78,7 @@ SparseArray<double> make_sparse_(const ArrayDimensions& adim,
 // ----------------------------------------------------------------------------  
 inline Array extract_coefs(const TensorComp<BasicAD>& res,
                            std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr) {
-  // std::ofstream os("debug.out");
-  // res.write(os);
-  // os.close();
+
   ArrayFactory factory;
   const std::vector<BasicAD>& coefs = res.coefs();
 

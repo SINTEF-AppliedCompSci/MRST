@@ -143,11 +143,13 @@ int TensorComp<T>::indexPos(const std::string& name) const
 template<typename T> inline std::vector<typename TensorComp<T>::Index>
 TensorComp<T>::indexValuesFor(const std::string& ixname) const
 // ----------------------------------------------------------------------------
-{
+{ 
   for (int i = 0; i != indexNames().size(); ++i)
     if (ixname == indexNames()[i]) {
       assert( (i+1) * numCoefs() <= ixs_.size());
-      return std::vector<Index>(&ixs_[i * numCoefs()], &ixs_[(i+1) * numCoefs()]);
+      const auto startpos = ixs_.begin() + i * numCoefs();
+      const auto endpos = ixs_.begin() + (i+1) * numCoefs();
+      return std::vector<Index>(startpos, endpos);
     }      
   return std::vector<Index>();
 }
@@ -159,7 +161,7 @@ TensorComp<T>::numUniqueValuesFor(const std::string& ixname) const
 {
   const auto it = std::find(indexNames().begin(), indexNames().end(), ixname);
 
-  return (it == indexNames().end()) ?
+  return(it == indexNames().end()) ?
     0 :
     numUniqueValuesFor(it - indexNames().begin());
 }
@@ -170,8 +172,12 @@ TensorComp<T>::numUniqueValuesFor(int ix) const
 // ----------------------------------------------------------------------------
 {
   const size_t N = numCoefs();
+
   assert(ix < numIndices());
-  return std::set<Index>(&ixs_[ix*N], &ixs_[(ix+1)*N]).size();
+  const auto startpos = ixs_.begin() + (ix*N);
+  const auto endpos = ixs_.begin() + ((ix+1)*N);
+
+  return std::set<Index>(startpos, endpos).size();
 }
 
 // ----------------------------------------------------------------------------
@@ -252,7 +258,8 @@ template<typename T> inline TensorComp<T>&
 TensorComp<T>::sortIndicesByNumber(bool descending)
 // ----------------------------------------------------------------------------
 {
-  typedef std::tuple<size_t, std::string, size_t> ICount; // index name included to ensure unique sort
+  // index name included to ensure unique sort
+  typedef std::tuple<size_t, std::string, size_t> ICount; 
 
   // determine unique entries in for each index
   std::vector<ICount> num_uniques(numIndices());
@@ -277,7 +284,6 @@ TensorComp<T>::sortIndicesByNumber(bool descending)
     perm[i] = std::get<2>(num_uniques[i]);
 
   return permuteIndices(perm);
-  
 }
 
 // ----------------------------------------------------------------------------
@@ -330,53 +336,8 @@ TensorComp<T>::sortElementsByIndex(bool descending)
   //std::cout << "Finished!" << std::endl;
   std::swap(coefs_, coefs_sorted);
   std::swap(ixs_, ixs_sorted);
-
   return *this;
 }
-
-// // ----------------------------------------------------------------------------
-// template<typename T> inline TensorComp<T>&
-// TensorComp<T>::sortElementsByIndex_old(bool descending)
-// // ----------------------------------------------------------------------------
-// {
-//   //std::cout << "Sorting : " << numCoefs() << " coefficients." << std::endl;
-//   using Ivec = std::vector<Index>;
-//   Ivec elem(numIndices()+1, 0);
-//   std::vector<Ivec> tmp_sort(numCoefs(), elem);
-//   const size_t Nc = numCoefs();
-//   const size_t Ni = numIndices();
-//   for (int cix = 0; cix != Nc; ++cix) {
-//     for (int i = 0; i != Ni; ++i)
-//       tmp_sort[cix][i] = ixs_[i * Nc + cix];
-//     tmp_sort[cix][Ni] = cix;
-//   }
-
-//   std::sort(tmp_sort.begin(), tmp_sort.end(),
-//             [](const Ivec& v1, const Ivec& v2) {
-//               for (int i = 0; i != v1.size(); ++i)
-//                 if (v1[i] != v2[i])
-//                   return (v1[i] < v2[i]);
-//               return true;
-//             });
-
-//   if (descending)
-//     std::reverse(tmp_sort.begin(), tmp_sort.end());
-  
-//   // copy sorted indices back
-//   for (int cix = 0; cix != Nc; ++cix)
-//     for (int i = 0; i != Ni; ++i)
-//       ixs_[i * Nc + cix] = tmp_sort[cix][i];
-  
-//   // sorting coefs
-//   std::vector<T> coefs_sorted(coefs_.size());
-//   for (int cix = 0; cix != Nc; ++cix)
-//     coefs_sorted[cix] = coefs_[tmp_sort[cix][Ni]];
-
-//   std::swap(coefs_, coefs_sorted);
-
-//   return *this;
-  
-// }
   
 // ----------------------------------------------------------------------------
 template<typename T> template<typename Indexable> inline bool
@@ -402,7 +363,9 @@ TensorComp<T>::permuteIndices(const Indexable perm)
   
   const size_t N = numCoefs();
   for (int i = 0; i != numIndices(); ++i) {
-    std::copy(&ixs_[perm[i] * N], &ixs_[(perm[i] + 1) * N], &result[i*N]);
+    const auto startpos = ixs_.begin() + perm[i] * N;
+    const auto endpos = ixs_.begin() + (perm[i] + 1) * N;
+    std::copy(startpos, endpos, &result[i*N]);
     ixnames_new[i] = indexNames()[perm[i]];
   }
   std::swap(ixs_, result);

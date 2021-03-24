@@ -21,24 +21,23 @@ identify_contracting_multiindex(const std::vector<TensorComp<T>>& comps)
     std::copy(c.indexNames().begin(),
               c.indexNames().end(),
               std::back_inserter(all_ixs));
-
+  
   // identify repeated indices
   std::set<std::string> contr_ixs;
   std::sort(all_ixs.begin(), all_ixs.end());
   for (int i = 0; i != all_ixs.size()-1; ++i)
     if (all_ixs[i] == all_ixs[i+1])
       contr_ixs.insert(all_ixs[i]);
-
   // converting into a vector
   const std::vector<std::string> cixs(contr_ixs.begin(), contr_ixs.end());
-
   
   // determine order of indices (start index should have highest number of
   // unique values)
   std::vector<size_t> ix_numvals(cixs.size(), 0);
-  for (int i = 0; i != cixs.size(); ++i)
-    for (const auto& c : comps)
+  for (int i = 0; i != cixs.size(); ++i) 
+    for (const auto& c : comps) 
       ix_numvals[i] = std::max(ix_numvals[i], c.numUniqueValuesFor(cixs[i]));
+
 
   std::vector<std::array<int, 2>> sort_ix;
   for (int i = 0; i != ix_numvals.size(); ++i)
@@ -50,11 +49,12 @@ identify_contracting_multiindex(const std::vector<TensorComp<T>>& comps)
   std::vector<int> perm(sort_ix.size());
   std::transform(sort_ix.begin(), sort_ix.end(), perm.begin(),
                  [](const std::array<int, 2>& el) {return el[1];});
-    
+
   std::vector<std::string> sorted_ixs(cixs.size());
   for (int i = 0; i != cixs.size(); ++i)
     sorted_ixs[i] = cixs[perm[i]];
   //return cixs;
+
   return sorted_ixs;
   
 }
@@ -184,7 +184,7 @@ compute_index_ranges(const TensorComp<T>& comp,
   const int elnum = (int)cixnames.size(); // number of multiindex components
   const size_t mixnum = mixs.size() / elnum; // number of multiindices
   std::vector<std::array<Index, 2>> result(mixnum);
-  
+
   // determine contracting indices present in this component
   std::vector<int> active;
   for (int i = 0; i != elnum; ++i)
@@ -199,13 +199,12 @@ compute_index_ranges(const TensorComp<T>& comp,
       result[i] = {Index(0), Index(comp.ixs().size())};
     return result;
   }
-  
+
   // preparing index vectors for comparison
   std::vector<std::vector<Index>> tmp;
-  for (size_t i = 0; i != actnum; ++i)
+  for (size_t i = 0; i != actnum; ++i) 
     tmp.push_back(comp.indexValuesFor(cixnames[active[i]]));
-
-  
+    
   std::vector<Index> comp_ixs;
   for (size_t i = 0; i != tmp[0].size(); ++i) 
     for (int j = 0; j != tmp.size(); ++j)
@@ -217,7 +216,6 @@ compute_index_ranges(const TensorComp<T>& comp,
       mix_ixs.push_back(mixs[i*elnum + active[j]]);
 
   const auto reindex = sort_multiindex(mix_ixs, actnum);
-                                       
 
   // loop through all multiindices and define ranges
 
@@ -232,7 +230,7 @@ compute_index_ranges(const TensorComp<T>& comp,
   auto cit = comp_ixs.begin();
 
   for (auto mit = mix_ixs.begin(); mit != mix_ixs.end(); mit += actnum) {
-    
+
     const int ix = (mit - mix_ixs.begin()) / actnum;
 
     // check if this is a repeat of last iterations values for mit
@@ -240,7 +238,6 @@ compute_index_ranges(const TensorComp<T>& comp,
       result[ix] = result[ix-1];
       continue;
     }
-          
     // advance counter until multiindex is found
     while (ixless(cit, mit) && cit < comp_ixs.end())
       cit += actnum;
@@ -251,7 +248,7 @@ compute_index_ranges(const TensorComp<T>& comp,
     // if we got here, the two indices are equal
     result[ix][0] = (cit - comp_ixs.begin()) / actnum;
 
-    while (!ixless(mit, cit) && cit < comp_ixs.end())
+    while (cit < comp_ixs.end() && !ixless(mit, cit)) 
       cit += actnum;
 
     result[ix][1] = (cit - comp_ixs.begin()) / actnum;
@@ -263,7 +260,6 @@ compute_index_ranges(const TensorComp<T>& comp,
     result_reorder[reindex[i]] = result[i];
 
   std::swap(result, result_reorder);
-  
   return result;
 }
 
@@ -376,12 +372,10 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
                                                // overall runtime, but may come
                                                // in handy if memory runs low
   for (size_t i = 0; i != N; ++i) {
-
     if ( (i+1) % CONSOLIDATE_TRIGGER == 0) {
       //std::cout << "Consolidating for i=" << i << std::endl;
       consolidate_entries(coefs, indices);
     }      
-
     bool skip = false;
     for (int j = 0; j < ranges.size() && !skip; ++j) {
       running[j] = 0;
@@ -393,7 +387,6 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
     if (skip)
       continue; // no (value) for this element
 
-    
     while (running[0] != rlen[0]) {
 
       T new_coef = 1;
@@ -403,10 +396,10 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
         const Index cur_ix2 = cur_ix * free_indices_num[j];
         
         new_coef *= comps[j].coefs()[cur_ix];
-        
-        indices.insert(indices.end(),
-                       &(free_indices[j].first[cur_ix2]),
-                       &(free_indices[j].first[cur_ix2 + free_indices_num[j]]));
+
+        const auto startpos = free_indices[j].first.begin() + cur_ix2;
+        const auto endpos =   startpos + free_indices_num[j];
+        indices.insert(indices.end(), startpos, endpos);
       }
       
       coefs.push_back(new_coef);
@@ -427,18 +420,16 @@ compute_sums(const std::vector<TensorComp<T>>& comps,
 
   const size_t num_free_ix_values = indices.size() / num_free_indices;
 
-  
   std::vector<Index> indices_reordered(indices.size());
   size_t pos = 0;
   for (size_t j = 0; j != num_free_indices; ++j)
     for (size_t i = 0; i != num_free_ix_values; ++i)
       indices_reordered[pos++] = indices[i * num_free_indices + j];
-  
+
   // generate result tensor and add up element with similar indices
   TensorComp<T> result(indexnames, coefs, indices_reordered);
   result.sumEqualIndices();
-  //std::cout << "Exiting compute_sums." << std::endl;
-  
+
   return result;
 
 }
@@ -450,18 +441,19 @@ std::vector<TensorComp<T>> contract_components(std::vector<TensorComp<T>> comps)
 {
   using std::cout;
   using std::endl;
+
   typedef typename TensorComp<T>::Index Index;
   // identify contracting indices; sort them according to number of unique values
-    const std::vector<std::string> cixs(identify_contracting_multiindex(comps));
+  const std::vector<std::string> cixs(identify_contracting_multiindex(comps));
 
   // Determine which components will control the iteration of each index in the
   // multiindex.  
   const auto mix_comp = identify_comps_for_multiix_iteration(comps, cixs);
 
   // prepare components for iteration  by sorting index order and coefficient properly
-  for (int i = 0; i != comps.size(); ++i)  
+  for (int i = 0; i != comps.size(); ++i) 
     comps[i].sortIndicesByNumber(true).moveIndicesFirst(cixs).sortElementsByIndex();
-    
+
   // identify all possible multiindex values and corresponding entry ranges in
   // components
   const std::vector<Index> mix = compute_multiindices(cixs, mix_comp, comps);
@@ -475,6 +467,7 @@ std::vector<TensorComp<T>> contract_components(std::vector<TensorComp<T>> comps)
   TensorComp<T> summed_tensor = compute_sums(comps, comp_ranges, cixs);
 
   std::vector<TensorComp<T>> result(1, summed_tensor);
+
   return result;
   //return comps; // @@ implement properly
 }

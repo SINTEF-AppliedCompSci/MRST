@@ -26,6 +26,7 @@ public:
   void operator() (ArgumentList outputs, ArgumentList inputs) {
 
     checkArguments(outputs, inputs);
+
     const CellArray cells = inputs[0];
 
     // if at least one compoent uses ADI, then ADI must be used throughout
@@ -35,11 +36,8 @@ public:
 
     if (use_adi) 
       outputs[0] = contract<BasicAD>(cells);
-    else
+    else 
       outputs[0] = contract<double>(cells);
-
-    //std::cout << "Now returning to MATLAB." << std::endl;
-    
   }
 
   template<typename T>
@@ -51,12 +49,13 @@ public:
                                           extract_numbers<T>(c, "coefs", matlabPtr),
                                           extract_numbers<size_t>(c, "ixs", matlabPtr)});
     const vector<TensorComp<T>> resultcomps = contract_components(comps);
-    //cout << "Now preparing data for return to MATLAB." << endl;
 
     // convert TensorComp to a return value to put into 'outputs'
     ArrayFactory factory;
     CellArray result = factory.createCellArray({1, resultcomps.size()});
+
     for (int i = 0; i != resultcomps.size(); ++i) {
+    
       const auto& res = resultcomps[i];
       StructArray entry = factory.createStructArray({1,1},
                                                     {"indexnames", "coefs", "ixs"});

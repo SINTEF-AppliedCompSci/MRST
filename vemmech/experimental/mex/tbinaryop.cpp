@@ -102,34 +102,6 @@ public:
     return result;
   }
   
-
-    // ofstream os("saved.comps");
-    // os << 2 << '\n';
-    // c1.write(os);
-    // c2.write(os);
-    // os.close();
-
-  // // ----------------------------------------------------------------------------
-  // vector<string> extract_indexnames_(const StructArray& comp)  {
-  //   const CellArray ixnames = comp[0][string("indexnames")];
-
-  //   vector<string> result;    
-  //   for (const CharArray name : ixnames) 
-  //     result.emplace_back(string(name.begin(), name.end()));
-    
-  //   return result;
-  // }
-  
-  // // ----------------------------------------------------------------------------
-  // template<typename T>
-  // vector<T> extract_numbers_(const StructArray& comp, const string field) {
-  //   const TypedArray<double> arr = comp[0][field];
-  //   vector<T> result;
-  //   copy(arr.begin(), arr.end(), back_inserter(result));
-  //   return result;
-  // }
-  
-  
   void checkArguments(ArgumentList outputs, ArgumentList inputs) {
 
     if (inputs.size() != 2)

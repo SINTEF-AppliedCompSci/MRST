@@ -12,18 +12,21 @@ function [S, operators] = VEM_assemble_AD(G, E, nu,  varargin)
    % recomputed, only forwarded.    
    % If 'salt' is not empty, these matrices will include a modified WC
    % system with only compressive modes
+   fprintf('-- non_AD_part.\n');
    non_AD_part = compute_geometry_dependent_matrices(G, opt.extra);
    
    %% Compute AD part
    % Compute the tensor that depend on the grid and elastic moduli, but not on
    % any of the matrices computed above.
+   fprintf('-- AD part.\n');
    D = compute_moduli_dependent_tensor(G, E, nu);
    
    %% Assemble the final matrices
    % Compute the tensors/matrices that depend on both the non-AD and the AD
    % components computed above
+   fprintf('-- final assembly\n');
    [S, operators] = final_assembly(G, non_AD_part, D, opt.alpha_scaling);
-   
+   fprintf('-- assembly finished.\n');
 end
 
 % ----------------------------------------------------------------------------
@@ -206,37 +209,46 @@ function [S, op] = final_assembly(G, op, D, alpha_scaling)
    nldofs = G.griddim * numel(inodes); % number of linear degs. of freedom   
    
    % compute trace of D
+   fprintf('----Compute trace of D\n');
    trD = D.contract('i', 'j').asVector({'cell'});
    
    % compute trace of Nc'Nc
+   fprintf('----Compute trace of Nc''Nc');
    DNC = diag(op.NC' * op.NC);
    trDNC = sum(reshape(DNC, nlin, []), 1)';  
    
    % cannot use rldecode since alpha could be AD.  Use sparse matrix instead
    %   alpha = rldecode((trD .* G.cells.volumes)./(trDNC), nlc * G.griddim);
+   fprintf('----Compute alpha\n')
    alpha = sparse((1:sum(nlc)*G.griddim)', rldecode((1:G.cells.num)', nlc*G.griddim), 1) * ...
            ((trD .* G.cells.volumes)./(trDNC));
 
    alpha = alpha .* alpha_scaling;
    
+   fprintf('----Compute SE\n')
    SE_AD = SparseTensor(alpha, [(1:nldofs)', (1:nldofs)'], {'i', 'j'}); 
    SE = SE_AD.asMatrix({'i', 'j'});
 
+   fprintf('----Compute D\n')
    D_all = D.asMatrix({{'cell'}, {'i', 'j'}});
    D_AD = D;
    D = reshape(D_all(cells, :)', nlin, [])';
    [i, j] = blockDiagIndex(nlin * ones(numel(cells), 1), nlin * ones(numel(cells), 1));
+   fprintf('----Final step of computing D\n');
    D = sparse(i, j, reshape(D', [], 1), nlin * numel(cells), nlin * numel(cells));
-   
+   fprintf('----computing KH\n');
    KH = op.volmap * op.WC * D * op.WC' + (op.I - op.PP)' * SE * (op.I - op.PP);
    
+   fprintf('----computing S\n');
    S = op.assemb * KH * op.assemb';
     
    % adding computed matrices to return structure
+   fprintf('----preparing return structure.\n');
    op.trD = trD;
    op.SE = SE;
    op.SE_AD = SE_AD;
    op.D = D;
    op.D_AD = D_AD;
    op.KH = KH;
+   fprintf('---- all set\n');
 end
