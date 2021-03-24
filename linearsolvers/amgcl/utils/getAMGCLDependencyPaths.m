@@ -19,10 +19,25 @@ function [amgclpath, boostpath] = getAMGCLDependencyPaths(varargin)
 %   `githubDownload`, `amgcl_matlab`, `callAMGCL`.
 
 %{
-#COPYRIGHT#
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('amgcl_rev', 'a551614040f0a7b793b41a4a63386675ca61d8da');
+    opt = struct('amgcl_rev', '4f260881c7158bc5aede881f5f0ed272df2ab580');
     opt = merge_options(opt, varargin{:});
 
     dep_path  = getDependencyFolder();
@@ -144,22 +159,22 @@ function tf = is_directory(elm)
    if exist('isfolder', 'builtin')
       tf = isfolder(elm);
    else
-      tf = isdir(elm);
+      tf = isdir(elm); %#ok
    end
 end
 
 %--------------------------------------------------------------------------
 
 function status = do_download_library(msg)
-    isDesktop = usejava('desktop');
-
-    if isDesktop
-        title = 'Missing dependency';
-        choice = questdlg(msg, title, 'Yes', 'No', 'Yes');
-    else
-        disp(msg);
-        choice = input(' y/n [y]: ', 's');
-    end
-
-    status = strcmpi(choice, 'y') || strcmpi(choice, 'yes');
+    status = mrstSettings('get', 'allowDL');
+    if status && mrstSettings('get', 'promptDL')
+       if mrstPlatform('desktop')
+           title = 'Missing dependency';
+           choice = questdlg(msg, title, 'Yes', 'No', 'Yes');
+       else
+           disp(msg);
+           choice = input(' y/n [y]: ', 's');
+       end
+       status = strcmpi(choice, 'y') || strcmpi(choice, 'yes');
+   end
 end

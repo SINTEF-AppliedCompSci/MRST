@@ -1,8 +1,7 @@
-%% Simple test where we compare the different implementation (legacy, standard, block assembly)
+%% Simple test where we compare the different implementation: legacy, tensor assembly, with and without iteration over blocks (necessary for large systems)
 %
-% We use Neumann boundary conditions and well injection
+% The test is aimed at Neumann boundary conditions (no flow) and well injection.
 %
-% SEE ALSO : `computeMultiPointTransLegacy`, `computeNeumannMultiPointTrans`, `blockComputeNeumannMultiPointTrans`
 
 clear all
 
@@ -53,36 +52,48 @@ gravity off
 clear mpfastructs states pressures fluxes titles
 caseno = 1;
 
-% mpfa - legacy
+state0 = initResSol(G, 0, 1);
+
+%% mpfa - legacy
 tic
-T_mpfa = computeMultiPointTransLegacy(G, rock, 'eta', eta);
+T_mpfa = computeMultiPointTrans(G, rock, 'eta', eta);
 texec = toc;
-states{caseno}    = initResSol(G, 0, 1);
-states{caseno}    = incompMPFAlegacy(states{caseno}, G, T_mpfa, fluid, 'wells', W);
+states{caseno}    = incompMPFA(state0, G, T_mpfa, fluid, 'wells', W);
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno}    = states{caseno}.flux;
 titles{caseno}    = 'mpfa - legacy';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
-% mpfa - well
+%% mpfa - tensor assembly
 tic
-mpfastructs{caseno} = computeNeumannMultiPointTrans(G, rock, 'eta', eta, 'verbose', isverbose);
+opts = {'eta'              , eta      , ...
+        'verbose'          , isverbose, ...
+        'useTensorAssembly', true     , ...
+        'neumann'          , true};
+mpfastructs{caseno} = computeMultiPointTrans(G, rock, opts{:});
 texec = toc;
-states{caseno}    = incompMPFA(G, mpfastructs{caseno}, W, 'outputFlux', true);
+% Options for incompMPFA for tensor assembly call
+incompopts = {'useTensorAssembly', true, ...
+              'wells'            , W   , ...
+              'outputFlux'       , true};
+states{caseno}    = incompMPFA(state0, G, mpfastructs{caseno}, [], incompopts{:});
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno}    = states{caseno}.flux;
 titles{caseno}    = 'mpfa - Neumann';
 fprintf('Done with %s in %g sec\n', titles{caseno}, texec);
 caseno = caseno + 1;
 
-% mpfa - well - block
+%% mpfa - tensor assembly with iterations on blocks (necessary for large system)
 tic
-mpfastructs{caseno} = blockComputeNeumannMultiPointTrans(G, rock, 'blocksize', ...
-                                                  blocksize,  'eta', 1/3, ...
-                                                  'verbose', isverbose);
+opts = {'eta'              , eta      , ...
+        'verbose'          , isverbose, ...
+        'useTensorAssembly', true     , ...
+        'blocksize'        , blocksize, ...
+        'neumann'          , true};
+mpfastructs{caseno} = computeMultiPointTrans(G, rock, opts{:});
 texec = toc;
-states{caseno} = incompMPFA(G, mpfastructs{caseno}, W, 'outputFlux', true);
+states{caseno} = incompMPFA(state0, G, mpfastructs{caseno}, [], incompopts{:});
 pressures{caseno} = states{caseno}.pressure;
 fluxes{caseno} = states{caseno}.flux;
 titles{caseno} = 'mpfa - Neumann - block';
@@ -146,4 +157,30 @@ for i = 1 : numel(fluxes)
     xlabel('cell number');
 end
 
-
+%% Copyright Notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

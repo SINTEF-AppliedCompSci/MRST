@@ -16,12 +16,12 @@
 %   squareGrid             - SYNOPSIS:
 %   squareLayersTest       - SYNOPSIS:
 %   squareTest             - Different test cases for linear elasticity on square domains
-%   VEM2D_div              - Discrete div operator for the virtual element method in 2D
-%   VEM3D_div              - Discrete div operator for the virtual element method in 3D
-%   VEM_div                - Discrete div operator for the virtual element method
+%   VEM2D_div              - Discrete divergence operator for the virtual element method in 2D
+%   VEM3D_div              - Discrete divergence operator for the virtual element method in 3D
+%   VEM_div                - Discrete divergence operator for the virtual element method
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

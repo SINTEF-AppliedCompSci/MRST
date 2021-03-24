@@ -1,8 +1,7 @@
-mrstModule add ad-core ad-blackoil spe10 blackoil-sequential mrst-gui linearsolvers
+mrstModule add ad-core ad-blackoil spe10 sequential mrst-gui linearsolvers
 
 % Select layer 1
 layers = 1;
-mrstModule add ad-core ad-blackoil blackoil-sequential spe10
 
 % The base case for the model is 2000 days. This can be reduced to make the
 % problem faster to run.
@@ -34,7 +33,7 @@ solver = NonLinearSolver('timeStepSelector', stepSel);
 %%
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

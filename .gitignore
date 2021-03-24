@@ -4,3 +4,4 @@
 *.ps
 *.tmp
 linearsolvers/amgcl/dependencies/*
+linearsolvers/examples/*.json

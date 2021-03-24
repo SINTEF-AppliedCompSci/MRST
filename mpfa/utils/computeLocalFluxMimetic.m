@@ -2,7 +2,7 @@ function [B, tbls] = computeLocalFluxMimetic(G, rock, varargin)
 % Computes the scalar product matrix for the cell-face-node degrees of freedom
 %
 % SYNOPSIS:
-%   function [B, tbls] = computeLocalFluxMimetic(G, rock, opt)
+%   function [B, tbls] = computeLocalFluxMimetic(G, rock, varargin)
 %
 % DESCRIPTION:
 % 
@@ -35,11 +35,28 @@ function [B, tbls] = computeLocalFluxMimetic(G, rock, varargin)
 %   B    - Scalar product matrix
 %   tbls - Structures with IndexArrays
 %
-% EXAMPLE:
-%
-% SEE ALSO:
-%
-    
+% SEE ALSO: 
+%   `computeMultiPointTrans`.
+
+%{
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('verbose'      , mrstVerbose, ...
                  'ip_compmethod', 'general'  , ...
                  'eta'          , 0);
@@ -83,7 +100,9 @@ function [B, tbls] = computeLocalFluxMimetic(G, rock, varargin)
     
     % We setup the cell-node table, cellnodetbl. Each entry determine a unique
     % corner
-    cellnodetbl = projIndexArray(cellnodefacetbl, {'nodes', 'cells'});
+    cellnodetbl = projIndexArray(cellnodefacetbl, {'cells', 'nodes'});
+    % ordering to optimize for-end loop below
+    cellnodetbl = sortIndexArray(cellnodetbl, {'cells', 'nodes'});
     
     % Nodal scalar product is stored in vector nodeM
     % mattbl is the table which specifies how nodeM is stored: a matrix for
@@ -349,4 +368,3 @@ function M = node_ip3(N, K, d, volE)
     
     M = (volE/mE)*(invN'*K*invN);
 end
-

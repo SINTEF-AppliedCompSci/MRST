@@ -16,7 +16,7 @@ function state = incompTPFA_DFM(state, G, T, fluid, varargin)
 %   minimal memory consumption within the constraints of operating on a
 %   fully unstructured polyhedral grid structure.
 %
-%   The function is modified from the original incompMPFAlegacy to account for
+%   The function is modified from the original incompMPFA (legacy version) to account for
 %   non-neighbor cell-to-cell connections for hybrid cells.
 %
 % NOTE:

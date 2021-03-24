@@ -52,6 +52,7 @@
 #ifndef SOLVER_BACKEND_BUILTIN
 #  define SOLVER_BACKEND_BUILTIN
 #endif
+
 #include <amgcl/backend/builtin.hpp>
 #include <amgcl/value_type/static_matrix.hpp>
 #include <amgcl/adapter/block_matrix.hpp>
@@ -122,18 +123,20 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
         int maxiter, int & iters, double & error){
 
     // CPR settings
-    bool update_s   = mxGetScalar(mxGetField(pa, 0, "update_sprecond"));
-    bool update_p   = mxGetScalar(mxGetField(pa, 0, "update_ptransfer"));
-    bool use_blocks = mxGetScalar(mxGetField(pa, 0, "cpr_blocksolver"));
-    int block_size  = mxGetScalar(mxGetField(pa, 0, "block_size"));
-    int active_rows = mxGetScalar(mxGetField(pa, 0, "active_rows"));
-    bool use_drs    = mxGetScalar(mxGetField(pa, 0, "use_drs"));
+    // bool update_s   = mxGetScalar(mxGetField(pa, 0, "update_sprecond"));
+    bool update_s = GET_STRUCT_SCALAR(pa, "update_sprecond");
+    bool update_p   = GET_STRUCT_SCALAR(pa, "update_ptransfer");
+    bool use_blocks = GET_STRUCT_SCALAR(pa, "cpr_blocksolver");
+    int block_size  = GET_STRUCT_SCALAR(pa, "block_size");
+    int active_rows = GET_STRUCT_SCALAR(pa, "active_rows");
+    bool use_drs    = GET_STRUCT_SCALAR(pa, "use_drs");
+    
     // Pressure and global relaxation choices
-    int relax_p_id  = mxGetScalar(mxGetField(pa, 0, "relaxation"));
-    int relax_s_id  = mxGetScalar(mxGetField(pa, 0, "s_relaxation"));
+    int relax_p_id  = GET_STRUCT_SCALAR(pa, "relaxation");
+    int relax_s_id  = GET_STRUCT_SCALAR(pa, "s_relaxation");
     // Various settings
-    bool verbose      = mxGetScalar(mxGetField(pa, 0, "verbose"));
-    bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
+    bool verbose      = GET_STRUCT_SCALAR(pa, "verbose");
+    bool write_params = GET_STRUCT_SCALAR(pa, "write_params");
     /*****************************************
      * Begin building parameter tree for CPR *
      ****************************************/
@@ -170,8 +173,8 @@ void solve_cpr(int n, const M matrix, const mxArray * pa,
      *        Solve problem                *
      ***************************************/
     if(use_drs){
-        double dd = mxGetScalar(mxGetField(pa, 0, "drs_eps_dd"));
-        double ps = mxGetScalar(mxGetField(pa, 0, "drs_eps_ps"));
+        double dd = GET_STRUCT_SCALAR(pa, "drs_eps_dd");
+        double ps = GET_STRUCT_SCALAR(pa, "drs_eps_ps");
         prm.put("precond.eps_dd", dd);
         prm.put("precond.eps_ps", ps);
 
@@ -224,10 +227,10 @@ void solve_regular(int n, const M matrix, const mxArray * pa,
         const std::vector<double> & b, std::vector<double> & x, double tolerance,
         int maxiter, int & iters, double & error){
     // Get parameters from struct
-    int relax_id      = mxGetScalar(mxGetField(pa, 0, "relaxation"));
-    bool verbose      = mxGetScalar(mxGetField(pa, 0, "verbose"));
-    bool write_params = mxGetScalar(mxGetField(pa, 0, "write_params"));
-    int precond_id    = mxGetScalar(mxGetField(pa, 0, "preconditioner"));
+    int relax_id      = GET_STRUCT_SCALAR(pa, "relaxation");
+    bool verbose      = GET_STRUCT_SCALAR(pa, "verbose");
+    bool write_params = GET_STRUCT_SCALAR(pa, "write_params");
+    int precond_id    = GET_STRUCT_SCALAR(pa, "preconditioner");
     std::string relaxParam;
     /***************************************
      *   Build parameter tree for solver   *
@@ -280,7 +283,7 @@ void solve_regular(int n, const M matrix, const mxArray * pa,
       std::ofstream file("mrst_regular_setup.json");
       boost::property_tree::json_parser::write_json(file, prm);
     }
-    int block_size = mxGetScalar(mxGetField(pa, 0, "block_size"));
+    int block_size = GET_STRUCT_SCALAR(pa, "block_size");
     switch(block_size){
       case 0:
       case 1:
@@ -382,9 +385,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
     double tolerance       = mxGetScalar(prhs[3]);
     int maxiter            = (int)mxGetScalar(prhs[4]);
     int solver_strategy_id = (int)mxGetScalar(prhs[5]);
-    bool verbose           = mxGetScalar(mxGetField(pa, 0, "verbose"));
-    int nthreads           = mxGetScalar(mxGetField(pa, 0, "nthreads"));
-    int block_size         = mxGetScalar(mxGetField(pa, 0, "block_size"));
+    bool verbose           = GET_STRUCT_SCALAR(pa, "verbose");
+    int nthreads           = GET_STRUCT_SCALAR(pa, "nthreads");
+    int block_size         = GET_STRUCT_SCALAR(pa, "block_size");
     int reuse_mode;
     if(nrhs == 7){
       reuse_mode = (int)mxGetScalar(prhs[6]);

@@ -41,6 +41,7 @@ function mpfastruct = blockComputeMultiPointTrans(G, rock, varargin)
 % EXAMPLE:
 %
 % SEE ALSO:
+% `computeMultiPointTrans`, `private/computeMultiPointTransTensorAssembly`
 %
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
@@ -362,11 +363,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            locA22 = sparse(extfnind1, extfnind2, PextiBPext, next, next);
            A22 = A22 + locA22;
            
-       end
-       
-       if iblock == 1
-           filename = 'new';
-           savefiledebug;
        end
        
        if opt.verbose

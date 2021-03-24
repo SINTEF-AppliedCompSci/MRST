@@ -14,9 +14,9 @@ function [qf, qf_vol] = calculateQF(G)
 %
 %   qf     -    Elementary assembly integrals : One (2D) vector value in each cell,
 %               which corresponds to the two components of the integral of the
-%               basis function in each coordinate over the faces (see (74) in
+%               basis function in each coordinate over the cell faces (see (74) in
 %               [Gain et al: doi:10.1016/j.cma.2014.05.005], then faces there
-%               correspond to edges here).
+%               correspond to edges here. We do not divide by 2*(cell volume) here).
 %   qf_vol -    Elementary assembly integrals : one scalar value for each
 %               node, wich corresponds to the weights that are used to
 %               compute th L^2 projection, see VEM_linElast.m
@@ -28,7 +28,7 @@ function [qf, qf_vol] = calculateQF(G)
 %
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

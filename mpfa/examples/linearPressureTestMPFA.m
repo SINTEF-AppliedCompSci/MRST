@@ -8,7 +8,7 @@
 % We check the three implementations (Legacy, standard, block assembly)
 
 
-mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing
+mrstModule add ad-core ad-props incomp mrst-gui mpfa
 
 clear all
 
@@ -68,13 +68,15 @@ z = G.cells.centroids(:, dim);
 eta = 1/3;
 blocksize = 10;
 
+state0 = initResSol(G, 0, 1);
+
 clear vecs fluxes
 caseno = 1;
 
-% mpfa - Legacy implementation
-T_mpfa = computeMultiPointTransLegacy(G, rock, 'eta', eta);
-state = initResSol(G, 0, 1);
-state = incompMPFAlegacy(state, G, T_mpfa, fluid, 'bc', bc);
+%% mpfa - Legacy implementation
+
+T_mpfa = computeMultiPointTrans(G, rock, 'eta', eta);
+state = incompMPFA(state0, G, T_mpfa, fluid, 'bc', bc);
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
@@ -82,27 +84,41 @@ fluxes{caseno} = state.flux;
 titles{caseno} = 'mpfa - legacy';
 caseno         = caseno + 1;
 
-% mpfa - Standard
-mpfastruct = computeMultiPointTrans(G, rock, 'eta', eta, 'verbose', true);
-state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
-mpfastruct1 = mpfastruct;
+%% mpfa - Tensor Assembly implementation (standard)
+% Options for call to computeMultiPointTrans with block assembly splitted in blocks (necessary for large system)
+opts = {'eta'              , eta      , ...
+        'verbose'          , true     , ...
+        'useTensorAssembly', true};
+mpfastruct1 = computeMultiPointTrans(G, rock, opts{:});
+% Options for incompMPFA for tensor assembly call
+opts = {'useTensorAssembly', true      , ...
+        'bc'               , bc        , ...
+        'outputFlux'       , true};
+state = incompMPFA(state0, G, mpfastruct1, [], opts{:});
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
 fluxes{caseno} = state.flux;
-titles{caseno} = 'mpfa - standard';
+titles{caseno} = 'mpfa - TA - standard';
 caseno         = caseno + 1;
 
-% mpfa - block assembly (necessary for large systems)
-mpfastruct = blockComputeMultiPointTrans(G, rock, 'eta', eta, 'blocksize', ...
-                                         blocksize, 'verbose', true);
-mpfastruct2 = mpfastruct;
-state = incompMPFAbc(G, mpfastruct, bc, 'outputFlux', true);
+%% mpfa - Tensor Assembly implementation - block assembly (necessary for large systems)
+% Options for call to computeMultiPointTrans with block assembly splitted in blocks (necessary for large system)
+opts = {'eta'              , eta      , ...
+        'blocksize'        , blocksize, ...
+        'verbose'          , true     , ...
+        'useTensorAssembly', true};
+mpfastruct2 = computeMultiPointTrans(G, rock, opts{:});
+% Options for incompMPFA for tensor assembly call
+opts = {'useTensorAssembly', true      , ...
+        'bc'               , bc        , ...
+        'outputFlux'       , true};
+state = incompMPFA(state0, G, mpfastruct2, [], opts{:});
 p              = state.pressure;
 vec            = [z, p];
 vecs{caseno}   = sortrows(vec);
 fluxes{caseno} = state.flux;
-titles{caseno} = 'mpfa - block';
+titles{caseno} = 'mpfa - TA - block';
 caseno         = caseno + 1;
 
 close all
@@ -113,3 +129,31 @@ for i = 1 : numel(vecs)
     ylabel('pressure');
     title(titles{i});
 end
+
+%% Copyright Notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

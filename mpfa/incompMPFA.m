@@ -1,20 +1,49 @@
-function state = incompMPFA(G, mpfastruct, W, varargin)
-% Solve incompressible flow problem (fluxes/pressures) using MPFA-O method.
-% Only Neumann bc and well input (src could be implemented too).
+function state = incompMPFA(state, G, mpfaT, fluid, varargin)
+% Solve incompressible problem with mpfa transmissibilities.
 %
 %
 % SYNOPSIS:
-%   function state = incompMPFA(G, mpfastruct, W, varargin)
+%   function state = incompMPFA(state, G, mpfaT, fluid, varargin)
 %
 % DESCRIPTION:
 %
-% PARAMETERS:
-%   G          - Grid
-%   mpfastruct - Assembly structure as computed by `computeNeumannMultiPointTrans` or `blockComputeNeumannMultiPointTrans`
-%   W          - Well structure as defined by functions 'addWell' and 'assembleWellSystem'
-%   varargin   - see below
+% Two versions available : 'legacy' (default) and 'tensor Assembly'.
 %
-% KEYWORD ARGUMENTS:
+% The legacy version is faster. It is limited to a mesh with grid cells where
+% corners have the same number of faces as the spatial dimension (this is always
+% the case in 2D but not in 3D). The tensor assembly version
+% (computeMultiPointTransTensorAssembly) can handle the other cases but is
+% slower (the implementation will be optimized in the future to run faster).%
+%
+% PARAMETERS:
+%   state  - Reservoir and well solution structure either properly
+%            initialized from functions 'initResSol' and 'initWellSol'
+%            respectively, or the results from a previous call to function
+%            'incompMPFAlegacy' and, possibly, a transport solver such as
+%            function 'implicitTransport'.
+%
+%            not used in `tensor Assembly` version
+%   G        - Grid
+%   mpfaT    - transmissibilities (or assembly structure) as computed by computeMultiPointTrans
+%   fluid  - Fluid object as defined by function 'initSimpleFluid' (not used for tensor assembly).
+%   varargin - see below
+%
+% OPTIONAL PARAMETERS:
+%   wells  - Well structure as defined by functions 'addWell' and
+%            'assembleWellSystem'.  May be empty (i.e., W = struct([]))
+%            which is interpreted as a model without any wells.
+%
+%   bc     - Boundary condition structure as defined by function 'addBC'.
+%            This structure accounts for all external boundary conditions to
+%            the reservoir flow.  May be empty (i.e., bc = struct([])) which
+%            is interpreted as all external no-flow (homogeneous Neumann)
+%            conditions.
+%
+%   src    - Explicit source contributions as defined by function
+%            'addSource'.  May be empty (i.e., src = struct([])) which is
+%            interpreted as a reservoir model without explicit sources.
+%
+%            (not supported yet in case of tensor assembly)
 %
 %   LinSolve     - Handle to linear system solver software to which the
 %                  fully assembled system of linear equations will be
@@ -25,17 +54,42 @@ function state = incompMPFA(G, mpfastruct, W, varargin)
 %                  in order to solve a system Ax=b of linear equations.
 %                  Default value: LinSolve = @mldivide (backslash).
 %
-%   Verbose      - true if verbose
-%   outputFlux   - If true, add fluxes in state output
-%   MatrixOutput - If true, save system matrix A in the state variable state.A.
-%   
+%   MatrixOutput - Whether or not to return the final system matrix 'A' to
+%                  the caller of function 'incompMPFA'.
+%                  Logical.  Default value: MatrixOutput = FALSE.
+%
+%   Verbose      - Whether or not to time portions of and emit informational
+%                  messages throughout the computational process.
+%                  Logical.  Default value dependent on global verbose
+%                  setting in function 'mrstVerbose'.
+%
 % RETURNS:
-%   state - state updated with pressure values and well solution
+%   state - contains following fields:
 %
-% EXAMPLE:
+%             - pressure         -- Pressure values for all cells in the
+%                                   discretised reservoir model, 'G'.
+%             - boundaryPressure -- Pressure values for all boundary interfaces in
+%                                   the discretised reservoir model, 'G'.
+%                                   (not returned in `tensor assembly` version)
+%             - flux             -- Flux across global interfaces corresponding to
+%                                   the rows of 'G.faces.neighbors'.
+%             - A                -- System matrix.  Only returned if specifically
+%                                   requested by setting option 'MatrixOutput'.
+%             - wellSol          -- Well solution structure array, one element for each well in the
+%                                    model, with new values for the fields:
+%    
+%                 - flux     -- Perforation fluxes through all perforations for
+%                               corresponding well.  The fluxes are interpreted
+%                               as injection fluxes, meaning positive values
+%                               correspond to injection into reservoir while
+%                               negative values mean production/extraction out of
+%                               reservoir.
+%                 - pressure -- Well pressure.
 %
-% SEE ALSO:
+% EXAMPLE: `linearPressureTestMPFA`, `mpfaExample1`, `mpfaExample2`, `mpfatest`
 %
+% SEE ALSO: 
+% `private/incompMPFAlegacy`, `private/incompMPFATensorAssembly`
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -55,99 +109,22 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('LinSolve', @mldivide,...
-                 'Verbose', mrstVerbose, ...
-                 'outputFlux', false, ...
-                 'MatrixOutput', false); 
-    opt = merge_options(opt, varargin{:}); 
-
-    is_well_posed = false; % changed to true if pressure is set through well
-                           % or boundary conditions.
-    nc = G.cells.num; 
+    opt = struct('useTensorAssembly', false); 
+    [opt, extra] = merge_options(opt, varargin{:});
     
-    A = mpfastruct.A;
+    if ~opt.useTensorAssembly
+        
+        % use legacy implementation
+        state = incompMPFAlegacy(state, G, mpfaT, fluid, varargin{:});
     
-    nw  = length(W); 
+    else
+        
+        % use tensor assembly based implementation
+        state = incompMPFATensorAssembly(G, mpfaT, extra{:});        
 
-    rhs = sparse(nc + nw, 1); 
-    C   = cell(nw, 1); 
-    B   = cell(nw, 1);
-    D   = sparse(nc, 1); 
-    d   = sparse(nc, 1);
-    
-    for k = 1 : nw
-        wc = W(k).cells; 
-        nwc = numel(wc); 
-        w = k + nc; 
-        wi = W(k).WI; 
-
-        d(wc) = d(wc) + wi;
-        if strcmpi(W(k).type, 'bhp')
-            is_well_posed = true;
-            bhp = W(k).val;
-            % wimax = max(wi);
-            wimax = 1;
-            rhs(w)  = rhs(w) + wimax*sum(wi)*bhp; 
-            rhs(wc) = rhs(wc) + wi.*bhp; 
-            C{k}    = wimax*sparse(ones(nwc, 1), wc, wi, 1, nc);
-            B{k}    = sparse(nc, 1);
-            D(k)    = wimax; 
-        elseif strcmpi(W(k).type, 'rate')
-            rate   = W(k).val;
-            rhs(w) = rhs(w) - rate;
-            B{k}   = - sparse(wc, ones(nwc, 1), wi, nc, 1);
-            C{k}   = sparse(ones(nwc, 1), wc, wi, 1, nc);
-            D(k)   = - sum(wi); 
-        else
-            error('Unsupported well type.'); 
-        end
     end
     
-    
-    C = vertcat(C{:}); 
-    B = horzcat(B{:}); 
-    D = spdiags(D, 0, nw, nw); 
-    A = [A, B; C D]; 
-    A = A + sparse(1:nc, 1:nc, d, size(A, 1), size(A, 2)); 
 
 
-    if ~is_well_posed
-        A(1) = 2*A(1); 
-    end
-
-    rhs = full(rhs);
-    x = opt.LinSolve(A, rhs); 
-
-    % --------------------------------------------------------------------- 
-    dispif(opt.Verbose, 'Computing fluxes, face pressures etc...\t\t'); 
-    pressure = x(1 : nc); 
-    wellvars = x((nc + 1) : end);
-    
-
-    state.pressure = pressure;
-    if opt.outputFlux 
-        F    = mpfastruct.F;
-        flux = F*pressure;
-        state.flux = flux;
-    end
-    
-    for k = 1 : nw
-        if strcmpi(W(k).type, 'bhp')
-            pw = W(k).val;
-        elseif strcmpi(W(k).type, 'rate')
-            pw = wellvars(k);
-        else
-            error('Unsupported well type.'); 
-        end
-        wc = W(k).cells;
-        wi = W(k).WI;
-        state.wellSol(k).flux = wi.*(pw - pressure(wc));
-        state.wellSol(k).pressure = pw;
-    end
-    
-    if opt.MatrixOutput
-        state.A = A;
-    end
 end
-
 

@@ -72,7 +72,7 @@ function varargout = amgcl_matlab_block(varargin)
 %   `callAMGCL`, `getAMGCLMexStruct`.
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -90,40 +90,42 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   if ~exist('verLessThan', 'file') || verLessThan('matlab', '8.3.0')
-      error(['Automated Build Script for ''amgcl_matlab'' is not ', ...
-             'Supported in MATLABs prior to 8.3.0 (R2014a)']);
-   end
-
-   [AMGCLPATH, BOOSTPATH] = getAMGCLDependencyPaths();
-   if ~valid_global_path(AMGCLPATH)
-      error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
-             '''AMGCLPATH'' Variable is Set in Current MATLAB Session.', ...
-             ' For detailed build instructions, see "help amgcl_matlab".']);
-   end
-
-   if ~valid_global_path(BOOSTPATH)
-      error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
-             '''BOOSTPATH'' Variable is Set in Current MATLAB Session.', ...
-             ' For detailed build instructions, see "help amgcl_matlab".']);
-   end
-
-   INCLUDE = strcat('-I', { BOOSTPATH, AMGCLPATH });
-
-   OPTS = { '-O' };
-
-   SRC = {'amgcl_matlab_block.cpp'};
-
-   [CXXFLAGS, LINK, LIBS] = mrstDefaultMexFlags('AMGCL_ASYNCSETUP');
-
-   buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
-
-   % Call MEX'ed edition.
-   [varargout{1:nargout}] = amgcl_matlab_block(varargin{:});
+    if mrstPlatform('matlab')
+        if ~exist('verLessThan', 'file') || verLessThan('matlab', '8.3.0')
+            error(['Automated Build Script for ''amgcl_matlab'' is not ', ...
+                'Supported in MATLABs prior to 8.3.0 (R2014a)']);
+        end
+    end
+    
+    [AMGCLPATH, BOOSTPATH] = getAMGCLDependencyPaths();
+    if ~valid_global_path(AMGCLPATH)
+        error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
+            '''AMGCLPATH'' Variable is Set in Current MATLAB Session.', ...
+            ' For detailed build instructions, see "help amgcl_matlab".']);
+    end
+    
+    if ~valid_global_path(BOOSTPATH)
+        error(['Cannot Build AMGCL MEX Gateway Unless GLOBAL ', ...
+            '''BOOSTPATH'' Variable is Set in Current MATLAB Session.', ...
+            ' For detailed build instructions, see "help amgcl_matlab".']);
+    end
+    
+    INCLUDE = strcat('-I', { BOOSTPATH, AMGCLPATH });
+    
+    OPTS = { '-O' };
+    
+    SRC = {'amgcl_matlab_block.cpp'};
+    
+    [CXXFLAGS, LINK, LIBS] = mrstDefaultMexFlags('AMGCL_ASYNCSETUP', 'mwlibs', {});
+    
+    buildmex(OPTS{:}, INCLUDE{:}, CXXFLAGS{:}, SRC{:}, LINK{:}, LIBS{:});
+    
+    % Call MEX'ed edition.
+    [varargout{1:nargout}] = amgcl_matlab_block(varargin{:});
 end
 
 %--------------------------------------------------------------------------
 
 function tf = valid_global_path(p)
-   tf = ~isempty(p) && ischar(p) && isdir(p);
+    tf = ~isempty(p) && ischar(p) && isdir(p);
 end

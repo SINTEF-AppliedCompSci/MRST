@@ -47,6 +47,7 @@
 //(4)(5)(6)(7)(8)(9)(10)
 #ifndef AMGCL_BLOCK_SIZES
 #  define AMGCL_BLOCK_SIZES (2)(3)
+//#  define AMGCL_BLOCK_SIZES (2)(3)//(4)(5)(6)(7)(8)(9)(10)
 #endif
 #include "amgcl_block_macros.cpp"
 
@@ -157,6 +158,9 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
         
         if(!use_blocks){
           std::tie(iters, error) = solve_shared_cpr(cpr_drs_solve_ptr, *matrix, b, x, prm, matrix->nrows, update_s, update_p, verbose);
+          if(verbose){
+              std::cout << *cpr_drs_solve_ptr << std::endl;
+          }
         }else{
           switch(block_size){
             BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_CPR_SOLVER, cpr_drs_block_solve_ptr, AMGCL_BLOCK_SIZES)
@@ -165,7 +169,11 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
                                   "Failure: Block size %d not supported.",
                                   block_size);
           }
+          // if(verbose){
+          //     std::cout << cpr_drs_block_solve_ptr << std::endl;
+          // }
         }
+
     }else{
          bool write_params = prm.get<bool>("write_params");
          if(write_params){
@@ -176,6 +184,9 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
         
 	if(!use_blocks){
 	    std::tie(iters, error) = solve_shared_cpr(cpr_solve_ptr, *matrix, b, x, prm, matrix->nrows, update_s, update_p, verbose);
+             if(verbose){
+                     std::cout << *cpr_solve_ptr << std::endl;
+             }
         }else{
 	    switch(block_size){
 		BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_CPR_SOLVER, cpr_block_solve_ptr, AMGCL_BLOCK_SIZES)
@@ -185,6 +196,7 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
 				      block_size);
 	    }
         }
+   
     }
 }
 
@@ -222,11 +234,6 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
       case 0:
       case 1:
       {
-        amgcl::make_solver<
-            amgcl::runtime::preconditioner<Backend>,
-            amgcl::runtime::solver::wrapper<Backend>
-        > solve(* matrix, prm);
-
         auto t2 = std::chrono::high_resolution_clock::now();
         if(verbose){
             std::cout << "Solver setup took "
@@ -235,10 +242,10 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
         }
 	std::tie(iters, error) = solve_shared(scalar_solve_ptr, matrix, b, x, prm, verbose);
         if(verbose){
-            std::cout << solve << std::endl;
+            std::cout << *scalar_solve_ptr << std::endl;
         }
       } break;
-      BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, block_solve_ptr, AMGCL_BLOCK_SIZES)
+       BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, block_solve_ptr, AMGCL_BLOCK_SIZES)
       default:
        {
 	 std::cout << "Block size is :" << block_size << std::endl;

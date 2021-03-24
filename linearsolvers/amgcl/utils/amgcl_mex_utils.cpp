@@ -1,3 +1,5 @@
+#define GET_STRUCT_SCALAR(pa, fld) (mxGetScalar(mxGetField(pa, 0, fld)))
+
 /* Relaxation */
 struct relax_opts {
     int relax_id;
@@ -20,23 +22,23 @@ void setRelaxationStructMex(relax_opts &opt, const mxArray * pa, std::string pre
     /* Convert mex struct pointer to struct for amg */
     std::string tmp;
     tmp = prefix + "relaxation";
-    opt.relax_id = (int)mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    opt.relax_id = (int)GET_STRUCT_SCALAR(pa,tmp.c_str());
     tmp = prefix + "ilut_p";
-    opt.ilut_p = (int)mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    opt.ilut_p = (int)GET_STRUCT_SCALAR(pa,tmp.c_str());
     tmp = prefix + "ilut_tau";
-    opt.ilut_tau = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    opt.ilut_tau = GET_STRUCT_SCALAR(pa,tmp.c_str());
     tmp = prefix + "iluk_k";
-    opt.iluk_k = (int)mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    opt.iluk_k = (int)GET_STRUCT_SCALAR(pa,tmp.c_str());
     tmp = prefix + "ilu_damping";
-    opt.ilu_damping = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    opt.ilu_damping = GET_STRUCT_SCALAR(pa,tmp.c_str());
     tmp = prefix + "jacobi_damping";
-    opt.jacobi_damping = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    opt.jacobi_damping = GET_STRUCT_SCALAR(pa,tmp.c_str());
     tmp = prefix + "chebyshev_degree";
-    opt.chebyshev_degree = (int)mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    opt.chebyshev_degree = (int)GET_STRUCT_SCALAR(pa,tmp.c_str());
     tmp = prefix + "chebyshev_lower";
-    opt.chebyshev_lower = mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    opt.chebyshev_lower = GET_STRUCT_SCALAR(pa,tmp.c_str());
     tmp = prefix + "chebyshev_power_iters";
-    opt.chebyshev_power_iters = (int)mxGetScalar(mxGetField(pa, 0, tmp.c_str()));
+    opt.chebyshev_power_iters = (int)GET_STRUCT_SCALAR(pa,tmp.c_str());
 }
 
 
@@ -101,25 +103,25 @@ struct amg_opts {
 
 void setCoarseningStructMex(amg_opts &c_opt, const mxArray * pa){
     /* Convert mex struct pointer to struct for amg */
-    c_opt.coarsen_id = (int)mxGetScalar(mxGetField(pa, 0, "coarsening"));
-    c_opt.coarse_enough = (int)mxGetScalar(mxGetField(pa, 0, "coarse_enough"));
-    c_opt.direct_coarse = mxGetScalar(mxGetField(pa, 0, "direct_coarse"));
-    c_opt.max_levels = (int)mxGetScalar(mxGetField(pa, 0, "max_levels"));
+    c_opt.coarsen_id = (int)GET_STRUCT_SCALAR(pa,"coarsening");
+    c_opt.coarse_enough = (int)GET_STRUCT_SCALAR(pa,"coarse_enough");
+    c_opt.direct_coarse = GET_STRUCT_SCALAR(pa,"direct_coarse");
+    c_opt.max_levels = (int)GET_STRUCT_SCALAR(pa,"max_levels");
     /* Define cycle */
-    c_opt.ncycle = (int)mxGetScalar(mxGetField(pa, 0, "ncycle"));
-    c_opt.npre = (int)mxGetScalar(mxGetField(pa, 0, "npre"));
-    c_opt.npost = (int)mxGetScalar(mxGetField(pa, 0, "npost"));
-    c_opt.pre_cycles = (int)mxGetScalar(mxGetField(pa, 0, "pre_cycles"));
+    c_opt.ncycle = (int)GET_STRUCT_SCALAR(pa,"ncycle");
+    c_opt.npre = (int)GET_STRUCT_SCALAR(pa,"npre");
+    c_opt.npost = (int)GET_STRUCT_SCALAR(pa,"npost");
+    c_opt.pre_cycles = (int)GET_STRUCT_SCALAR(pa,"pre_cycles");
     /* Coarsening options for general aggregation */
-    c_opt.aggr_eps_strong = mxGetScalar(mxGetField(pa, 0, "aggr_eps_strong"));
+    c_opt.aggr_eps_strong = GET_STRUCT_SCALAR(pa,"aggr_eps_strong");
     /* Regular aggregation */
-    c_opt.aggr_over_interp = mxGetScalar(mxGetField(pa, 0, "aggr_over_interp"));
+    c_opt.aggr_over_interp = GET_STRUCT_SCALAR(pa,"aggr_over_interp");
     /* Smoothed aggregation */
-    c_opt.aggr_relax = mxGetScalar(mxGetField(pa, 0, "aggr_relax"));
+    c_opt.aggr_relax = GET_STRUCT_SCALAR(pa,"aggr_relax");
     /* Coarsening options for Ruge-Stuben coarsening */
-    c_opt.rs_eps_strong = mxGetScalar(mxGetField(pa, 0, "rs_eps_strong"));
-    c_opt.rs_trunc = mxGetScalar(mxGetField(pa, 0, "rs_trunc"));
-    c_opt.rs_eps_trunc = mxGetScalar(mxGetField(pa, 0, "rs_eps_trunc"));
+    c_opt.rs_eps_strong = GET_STRUCT_SCALAR(pa,"rs_eps_strong");
+    c_opt.rs_trunc = GET_STRUCT_SCALAR(pa,"rs_trunc");
+    c_opt.rs_eps_trunc = GET_STRUCT_SCALAR(pa,"rs_eps_trunc");
 }
 
 void setCoarseningAMGCL(boost::property_tree::ptree & prm, std::string prefix, amg_opts options){
@@ -190,17 +192,17 @@ struct solver_opts {
 };
 
 void setSolverStructMex(solver_opts &opt, const mxArray * pa){
-    opt.solver_id = (int)mxGetScalar(mxGetField(pa, 0, "solver"));
-    opt.L = (int)mxGetScalar(mxGetField(pa, 0, "bicgstabl_l"));
-    opt.M = (int)mxGetScalar(mxGetField(pa, 0, "gmres_m"));
-    opt.K = (int)mxGetScalar(mxGetField(pa, 0, "lgmres_k"));
-    opt.S = (int)mxGetScalar(mxGetField(pa, 0, "idrs_s"));
-    opt.delta = mxGetScalar(mxGetField(pa, 0, "bicgstabl_delta"));
-    opt.omega = mxGetScalar(mxGetField(pa, 0, "idrs_omega"));
-    opt.convex = mxGetScalar(mxGetField(pa, 0, "bicgstabl_convex"));
-    opt.always_reset = mxGetScalar(mxGetField(pa, 0, "lgmres_always_reset"));
-    opt.store_Av = mxGetScalar(mxGetField(pa, 0, "lgmres_store_av"));
-    opt.replace = mxGetScalar(mxGetField(pa, 0, "idrs_replacement"));
+    opt.solver_id = (int)GET_STRUCT_SCALAR(pa,"solver");
+    opt.L = (int)GET_STRUCT_SCALAR(pa,"bicgstabl_l");
+    opt.M = (int)GET_STRUCT_SCALAR(pa,"gmres_m");
+    opt.K = (int)GET_STRUCT_SCALAR(pa,"lgmres_k");
+    opt.S = (int)GET_STRUCT_SCALAR(pa,"idrs_s");
+    opt.delta = GET_STRUCT_SCALAR(pa,"bicgstabl_delta");
+    opt.omega = GET_STRUCT_SCALAR(pa,"idrs_omega");
+    opt.convex = GET_STRUCT_SCALAR(pa,"bicgstabl_convex");
+    opt.always_reset = GET_STRUCT_SCALAR(pa,"lgmres_always_reset");
+    opt.store_Av = GET_STRUCT_SCALAR(pa,"lgmres_store_av");
+    opt.replace = GET_STRUCT_SCALAR(pa,"idrs_replacement");
 }
 
 
@@ -209,6 +211,7 @@ void setSolverAMGCL(boost::property_tree::ptree & prm, std::string prefix, solve
     switch(options.solver_id) {
         case 1:
             prm.put(solvertype,  amgcl::runtime::solver::bicgstab);
+            prm.put(prefix + "check_after", true);
             break;
         case 2:
             prm.put(solvertype,  amgcl::runtime::solver::cg);

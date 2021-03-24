@@ -18,27 +18,29 @@ function fluid = initSimpleFluidJfunc(varargin)
 %                          J-function for capillary pressure
 %
 % RETURNS:
-%   fluid - Fluid data structure as described in 'fluid_structure'
-%           representing the current state of the fluids within the
-%           reservoir model.
+%   fluid - Incompressible fluid data structure that is also compatible
+%           with AD-based solvers.
 %
 % EXAMPLE:
-%     G = computeGeometry(cartGrid([40,5,1],[1000 500 1]));
-%     state.s = G.cells.centroids(:,1)/1000;
-%     p = G.cells.centroids(:,2)*.001;
-%     rock = makeRock(G, p.^3.*(1e-5)^2./(0.81*72*(1-p).^2), p);
+%     G = computeGeometry(cartGrid([40, 5, 1], [1000, 500, 1]));
+%     s = G.cells.centroids(:,1) / 1000;
+%     p = G.cells.centroids(:,2) * 0.001;
+%
+%     rock = makeRock(G, p.^3 .* (1e-5)^2 ./ (0.81 * 72 * (1-p).^2), p);
+%
 %     fluid = initSimpleFluidJfunc('mu' , [   1,  10]*centi*poise     , ...
 %            'rho', [1014, 859]*kilogram/meter^3, ...
 %            'n'  , [   2,   2], ...
-%            'surf_tension',10*barsa/sqrt(0.1/(100*milli*darcy)),...
-%            'rock',rock);
-%     plot(state.s, fluid.pc(state)/barsa,'o');
+%            'surf_tension', 10*barsa / sqrt(0.1 / (100*milli*darcy)), ...
+%            'rock', rock);
+%
+%     plot(s, convertTo(fluid.pcOW(s), barsa), 'o')
 %
 % SEE ALSO:
-%   `fluid_structure`, `initSimpleFluid`, `initSimpleFluidPc`, `solveIncompFlow`.
+%   `initSimpleFluid`, `initSimpleFluidPc`, `incompTPFA`.
 
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -56,29 +58,60 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   opt = struct('mu', [], 'rho', [], 'n', [],'rock',[],'surf_tension',[]);
+   opt = struct('mu', [], 'rho', [], 'n', [], ...
+                'rock', [], 'surf_tension', []);
    opt = merge_options(opt, varargin{:});
 
-   n_mu = numel(opt.mu); n_rho = numel(opt.rho); n_n = numel(opt.n);
-   assert ((n_mu == 2) && (n_rho == 2) && (n_n == 2));
+   assert (all([numel(opt.mu), numel(opt.rho), numel(opt.n)] == 2), ...
+           'Function ''%s'' is supported for two phases only', mfilename);
 
    prop = @(  varargin) properties(opt, varargin{:});
    kr   = @(s,varargin) relperm(s, opt, varargin{:});
-   pc   = @(state) pc_funct(state,opt);
-   fluid = struct('properties', prop             , ...
-                  'saturation', @(x,varargin) x.s, ...
-                  'relperm'   , kr,...
-                  'pc'        , pc);
+   pc   = @(state) pc_funct_orig(state, opt);
+
+   [bW , bO ] = recip_fvf();
+   [krW, krO] = relperm_functions(opt);
+   [muW, muO] = viscosity_functions(opt);
+   pcOW       = pc_funct(opt);
+
+   fluid = struct('rhoWS', opt.rho(1), 'rhoOS', opt.rho(2), ...
+                  'bW'   , bW        , 'bO'   , bO        , ...
+                  'krW'  , krW       , 'krO'  , krO       , ...
+                  'muW'  , muW       , 'muO'  , muO       , ...
+                  'pcOW' , pcOW,                            ...
+                  'properties',         prop,               ...
+                  'saturation',         @(x, varargin) x.s, ...
+                  'relperm',            kr,                 ...
+                  'pc',                 pc);
 end
-%-------------------------------------------------------------------------
-function varargout = pc_funct(state,opt)
-   ns=numel(state.s(:,1));
-   jfunc=(1-state.s(:,1));
-   scale=opt.surf_tension*sqrt(opt.rock.poro./opt.rock.perm);
-   varargout{1}                 = scale.*jfunc;
-   if nargout > 1, varargout{2} = -repmat(scale,ns,1); end
+
+%--------------------------------------------------------------------------
+
+function [bW, bO] = recip_fvf()
+   [bW, bO] = deal(@(p) 1 + 0*p);  % Incompressible
 end
+
+%--------------------------------------------------------------------------
+
+function [krW, krO] = relperm_functions(opt)
+   krW = @(s) s .^ opt.n(1);
+   krO = @(s) s .^ opt.n(2);
+end
+
+%--------------------------------------------------------------------------
+
+function [muW, muO] = viscosity_functions(opt)
+   muW = @(p) opt.mu(1) + 0*p;
+   muO = @(p) opt.mu(2) + 0*p;
+end
+
+%--------------------------------------------------------------------------
+
+function pcOW = pc_funct(opt)
+   scale = opt.surf_tension * sqrt(opt.rock.poro ./ opt.rock.perm);
+   pcOW  = @(s) scale .* (1 - s);
+end
+
 %--------------------------------------------------------------------------
 
 function varargout = properties(opt, varargin)
@@ -93,16 +126,25 @@ function varargout = relperm(s, opt, varargin)
    s1 = s(:,1); s2 = 1 - s1;
    varargout{1} = [s1 .^ opt.n(1), s2 .^ opt.n(2)];
 
-   if nargout > 1,
+   if nargout > 1
       null = zeros([numel(s1), 1]);
       varargout{2} = [opt.n(1) .* s1 .^ (opt.n(1) - 1), ...
                       null, null                      , ...
                       opt.n(2) .* s2 .^ (opt.n(2) - 1)];
    end
 
-   if nargout > 2,
+   if nargout > 2
       a = opt.n .* (opt.n - 1);
       varargout{3} = [a(1) .* s1 .^ (opt.n(1) - 2), ...
                       a(2) .* s2 .^ (opt.n(2) - 2)];
    end
+end
+
+%--------------------------------------------------------------------------
+
+function varargout = pc_funct_orig(state, opt)
+   scale = opt.surf_tension * sqrt(opt.rock.poro ./ opt.rock.perm);
+
+   varargout{1}                 = scale .* (1 - state.s(:,1));
+   if nargout > 1, varargout{2} = -repmat(scale, size(state.s(:,1))); end
 end

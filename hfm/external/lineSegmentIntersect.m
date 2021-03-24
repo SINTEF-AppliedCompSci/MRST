@@ -124,4 +124,3 @@ out.parAdjacencyMatrix = PAR_B;
 out.coincAdjacencyMatrix= COINC_B;
 
 end
-

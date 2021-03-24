@@ -38,10 +38,7 @@ function mpfastruct = blockComputeNeumannMultiPointTrans(G, rock, varargin)
 % EXAMPLE:
 %
 % SEE ALSO:
-%
-
-% Compute multi-point transmissibilities by block around nodes.
-
+%  `computeMultiPointTrans`, `private/computeMultiPointTransTensorAssembly`
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
