@@ -1004,45 +1004,73 @@ methods
     function [model, graph] = setupStateFunctionGraph(model, varargin)
         % Set up the state function dependency graph to allow for
         % single-pass evaluation
+        opt = struct('filter', {{}}, ... 
+                     'filter_origin', []);
         ne = numel(varargin);
         if mod(ne, 2) == 0
             graph = model.stateFunctionGraph;
         else
             graph = varargin{1};
             varargin = varargin(2:end);
+            ne = ne - 1;
         end
-        if isempty(graph)
+        opt = merge_options(opt, varargin{:});
+        if isempty(opt.filter_origin)
+            opt.filter_origin = 'all';
+        end
+
+        [groups, names, origin] = model.getStateFunctionGroupings();
+        if isempty(graph) || ne
             require matlab_bgl
-            groups = model.getStateFunctionGroupings();
+            org = opt.filter_origin;
+            if iscell(org)
+                % We got a list of classes to keep
+                keep = false(size(groups));
+                for i = 1:numel(org)
+                    keep = keep | cellfun(@(x) isa(x, org{i}), origin);
+                end
+            else
+                switch lower(org)
+                    case 'all'
+                        % Do nothing
+                        keep = true(size(groups));
+                    case 'self'
+                        % Limit groups to owned by own class
+                        keep = cellfun(@(x) strcmp(class(model), class(x)), origin);
+                    otherwise
+                        error('No such origin filter %s', org);
+                end
+            end
+            
+            [groups, names, origin] = deal(groups(keep), names(keep), origin(keep)); %#ok
+            
             graph = getStateFunctionGroupingDependencyGraph(groups{:});
             to = topological_order(sparse(graph.C));
             isState = graph.GroupIndex == find(strcmpi(graph.GroupNames, 'state'));
             graph.TopologicalOrder = to;
             graph.EvaluationOrder = to(~isState(to));
         end
-        if ne
-            opt = struct('filter', {{}});
-            opt = merge_options(opt, varargin{:});
-            
-            % Filtering logic
-            eo = graph.EvaluationOrder;
-            fn = graph.FunctionNames(eo);
-            gn = graph.GroupNames(graph.GroupIndex(eo));
-
-            skip = false(numel(eo), 1);
-            for i = 1:numel(opt.filter)
-                f = opt.filter{i};
-                tmp = strsplit(f, '.');
-                if numel(tmp) == 2
-                    loc = strcmpi(fn, tmp{2}) & strcmpi(gn, tmp{1});
+        % Filtering logic
+        eo = graph.EvaluationOrder;
+        fn = graph.FunctionNames(eo);
+        gn = graph.GroupNames(graph.GroupIndex(eo));
+        skip = false(numel(eo), 1);
+        for i = 1:numel(opt.filter)
+            f = opt.filter{i};
+            tmp = strsplit(f, '.');
+            if numel(tmp) == 2
+                if strcmpi(tmp{2}, '*')
+                    loc = strcmpi(gn, tmp{1});
                 else
-                    assert(numel(tmp) == 1);
-                    loc = strcmpi(fn, tmp{1});
+                    loc = strcmpi(fn, tmp{2}) & strcmpi(gn, tmp{1});
                 end
-                skip = skip | loc;
+            else
+                assert(numel(tmp) == 1);
+                loc = strcmpi(fn, tmp{1});
             end
-            graph.EvaluationOrder(skip) = [];
+            skip = skip | loc;
         end
+        graph.EvaluationOrder(skip) = [];
         model.stateFunctionGraph = graph;
     end
     
