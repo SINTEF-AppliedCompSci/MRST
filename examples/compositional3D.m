@@ -171,11 +171,13 @@ wellRadius = 0.1;
 % Injector
 cellinj = 1:nx*ny:(1+(nz-1)*nx*ny);
 W   = addWell([], G.Matrix, G.Matrix.rock, cellinj,'InnerProduct', 'ip_tpf','Type', ...
-    'rate', 'Val', tpv/totTime*0.7, 'Radius', wellRadius, 'Comp_i', [1, 0, 0], 'Name', 'Injector');
+    'rate', 'Val', tpv/totTime*0.7, 'Radius', wellRadius, 'Comp_i', [1, 0, 0], 'Name', 'Injector', ...
+    'Sign', 1);
 % Producer
 cellprod = nx*ny:nx*ny:nz*nx*ny;
 W   = addWell(W, G.Matrix, G.Matrix.rock, cellprod, 'InnerProduct', 'ip_tpf', 'Type', ...
-    'bhp' , 'Val', 50*barsa, 'Radius', wellRadius, 'Comp_i', [1, 1, 0], 'Name', 'Producer');
+    'bhp' , 'Val', 50*barsa, 'Radius', wellRadius, 'Comp_i', [1, 1, 0] ./ 2, 'Name', 'Producer', ...
+    'Sign', -1);
 
 W(1).components = info.injection;
 W(2).components = info.initial;
