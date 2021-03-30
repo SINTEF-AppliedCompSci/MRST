@@ -8,6 +8,13 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         historyMatchingSubIteration = 1
         esmdaIterations = 1
         
+        method = 'EnKF'
+        % Allowed options: 
+        % 'EnKF': Standard stochastic ensemble Kalman filter/smoother, with
+        %         perturbed observations.
+        % 'wrongEnKF: Same as 'EnKF', but with observation errors added to
+        %         the simulated observations.
+        
         mainDirectory; 
         alpha = [1];
         % Folders are organized as follows:
@@ -74,11 +81,11 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             [obs, ensembleObs, R] = ensemble.applyScaling(obs, ensembleObs, R, scaling);
             [obs, ensembleObs, alphaR] = ensemble.removeObsoleteObservations(obs, ensembleObs, alpha*R);
             
-            ensembleObs = ensemble.perturbEnsembleQoI(ensembleObs, alphaR);
+            obsPerturbations = ensemble.perturbEnsembleQoI(ensembleObs, alphaR, 'returnPerturbations', false);
             
             ensembleParameters = ensemble.getEnsembleSamples();
             
-            analysisParameters = ensemble.enkf(ensembleParameters, obs, ensembleObs, alphaR);
+            analysisParameters = ensemble.enkf(ensembleParameters, obs, ensembleObs, obsPerturbations, alphaR);
             
             updatedSample = ensemble.samples.setSampleVectors(analysisParameters);            
         end
@@ -119,15 +126,21 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         end
 
         %-----------------------------------------------------------------%
-        function xF = enkf(ensemble, xF, obs, obsE, R)
+        function xF = enkf(ensemble, xF, obs, obsE, obsPert, R)
            
             % Mixing the notation of the old EnKF module and the review
             % paper by Vetra-Carvalho et al
-
-            S = obsE - mean(obsE, 2);
-            
             Ny = numel(obs);
             Ne = ensemble.num;
+    
+            S = obsE - mean(obsE, 2);
+            
+            if strcmp(ensemble.method, 'EnKF')
+                obs = repmat(obs, 1, Ne) + obsPert;
+            elseif strcmp(ensemble.method, 'wrongEnKF')
+                S = S + obsPert;
+            end
+            
             
             S = S / sqrt(Ne-1);
             
@@ -162,9 +175,13 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         end
         
         %-----------------------------------------------------------------%
-        function ensembleQoI = perturbEnsembleQoI(ensemble, ensembleQoI, R)
-            % Add unbiased observation error across the ensemle according
-            % to the observation error covariance 
+        function perturbations = perturbEnsembleQoI(ensemble, ensembleQoI, R, varargin)
+            % Sample unbiased observation error across the ensemle according
+            % to the observation error covariance. By default this error is
+            % added to the ensembleQoI, but can also be returned directly
+            
+            opt = struct('returnPerturbations', true);
+            [opt, extra] = merge_options(opt, varargin{:});
             
             obserror = randn(size(ensembleQoI));
 
@@ -172,9 +189,11 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             % the ensemble
             obserror = obserror - mean(obserror, 2);
             obserror = obserror ./ std(obserror, 0, 2);
-
-            ensembleQoI = ensembleQoI ...
-                + sqrt(R)*obserror;
+   
+            perturbations = sqrt(R)*obserror;
+            if opt.returnPerturbations
+                perturbations = ensembleQoI + perturbations;
+            end
         end
         
         %-----------------------------------------------------------------%
