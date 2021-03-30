@@ -17,6 +17,25 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
     %    Either 'wellNames' or 'wellIndices' must be provided. If both are
     %    provided, 'wellIndices' is ignored.
     %
+    % Properties related to history matching
+    %   'observationResultHandler' - Result handler that holds 
+    %                                observations.
+    %   'truthResultHandler'       - Result handler that holds the true 
+    %                                data. 
+    %       The data read by these result handler must be on a format that 
+    %       matches the given QoI class.
+    %
+    %    observationCov - Observation error covariance matrix, several  
+    %                     forms might be valid depending on the relevant
+    %                     QoI implementation. This can be either
+    %                     - scalar: uncorrelated observation with the
+    %                       same variance
+    %                     - vector: Uncorrelated observations with each
+    %                     element refering to each fieldname, fieldname
+    %                     x well, or fieldname x well x timestep, depending
+    %                     on the size of the vector.
+    %                     - matrix: The full error covariance matrix
+    %
     % OPTIONAL PARAMETERS
     %   'fldname' - cell array of the well output fields that we are
     %               interested in. Valid values are well solution field
@@ -163,9 +182,22 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
             
             obs = qoi.getObservationVector('vectorize', false);
             
+            % Apply one scaling per field name
+            fieldScales = cell(1, numel(qoi.fldname));
+            for f = 1:numel(qoi.fldname)
+                fieldScales{f} = 0.0;
+            end
+            
+            % Find scale values based on maximums
             for w = 1:numel(qoi.wellNames)
                 for f = 1:numel(qoi.fldname)
-                    scaling{w}{f} = ones(size(obs{w}{f}(:)))*max(abs(obs{w}{f}(:)));
+                    fieldScales{f} = max(fieldScales{f}, max(abs(obs{w}{f}(:))));
+                end
+            end
+            
+            for w = 1:numel(qoi.wellNames)
+                for f = 1:numel(qoi.fldname)
+                    scaling{w}{f} = ones(size(obs{w}{f}(:)))*fieldScales{f};
                 end
             end
             
@@ -196,18 +228,18 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
             elseif isvector(qoi.observationCov)
                 rdiag = [];
             
-                if numel(qoi.observationCov) == numel(qoi.fldnames)*numel(qoi.wellNames)
+                if numel(qoi.observationCov) == numel(qoi.fldname)*numel(qoi.wellNames)
                     for w = 1:numel(qoi.wellNames)
-                        for f = 1:numel(qoi.fldnames)
-                            covindex = w*(numel(qoi.fldnames)-1) + f;
+                        for f = 1:numel(qoi.fldname)
+                            covindex = w*(numel(qoi.fldname)-1) + f;
                             rdiag = [rdiag ; repmat(qoi.observationCov(covindex), [numel(u{w}{f}), 1])];
                         end
                     end  
-                elseif numel(qoi.observationCov) == numel(qoi.fldnames)
+                elseif numel(qoi.observationCov) == numel(qoi.fldname)
                     % Assume that there are different covariances for each
                     % fieldName
                     for w = 1:numel(qoi.wellNames)
-                        for f = 1:numel(qoi.fldnames)
+                        for f = 1:numel(qoi.fldname)
                             rdiag = [rdiag ; repmat(qoi.observationCov(f), [numel(u{w}{f}), 1])];
                         end
                     end    
