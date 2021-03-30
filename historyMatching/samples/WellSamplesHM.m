@@ -33,6 +33,11 @@ classdef WellSamplesHM < BaseSamplesHM & WellSamples
     %   `RockSamples`, `DeckSamples`, `BaseSamples`, `MRSTExample`, `BaseQoI`
     
 
+    properties
+        WIScale = 0; % If WIScale is zero and transformSampleVectors is true,
+                    % we transform the well production indices using log
+                    % instead.
+    end
     
     methods
         function samples = WellSamplesHM(varargin)
@@ -73,8 +78,14 @@ classdef WellSamplesHM < BaseSamplesHM & WellSamples
                     end
                     
                     if strcmp(field, 'WI') && samples.transformSampleVectors
-                        % Logarithmic transform of well production indices
-                         sampleVectors(startIndex:endIndex, i)= log(fieldData);
+                        
+                        if samples.WIScale > 0
+                            sampleVectors(startIndex:endIndex, i) = ...
+                                fieldData./samples.WIScale;
+                        else
+                            % Logarithmic transform of well production indices
+                             sampleVectors(startIndex:endIndex, i) = log(fieldData);
+                        end
                     else
                         sampleVectors(startIndex:endIndex, i) = fieldData;
                     end
@@ -108,8 +119,12 @@ classdef WellSamplesHM < BaseSamplesHM & WellSamples
                     endIndex   = f*numWells;
 
                     if strcmp(field, 'WI') && samples.transformSampleVectors
-                        % Logarithmic transform of well production indices
-                        fieldData = exp(newSampleVectors(startIndex:endIndex, i));
+                        if samples.WIScale > 0
+                            fieldData = newSampleVectors(startIndex:endIndex, i).*samples.WIScale;
+                        else
+                            % Logarithmic transform of well production indices
+                            fieldData = exp(newSampleVectors(startIndex:endIndex, i));
+                        end
                     else
                         fieldData = newSampleVectors(startIndex:endIndex, i);
                     end

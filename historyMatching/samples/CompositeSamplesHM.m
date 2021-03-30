@@ -16,8 +16,8 @@ classdef CompositeSamplesHM < BaseSamplesHM & CompositeSamples
 
     
     methods
-        function samples = CompositeSamplesHM(varargin)
-            samples = samples@CompositeSamples(varargin{:});
+        function samples = CompositeSamplesHM(parentSamples, varargin)
+            samples = samples@CompositeSamples(parentSamples, varargin{:});
         end
         
         
