@@ -128,14 +128,17 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             
             Ny = numel(obs);
             Ne = ensemble.num;
+            
+            S = S / sqrt(Ne-1);
+            
             if Ny <= Ne
-                C = S*S'/(Ne-1) + R;
+                C = S*S' + R;
                 W = S'/C;
             else 
                 W = (eye(Ne) + (S'/R)*S)  \ S'/R;
             end
             
-            xF = xF + (1/(Ne-1))*(xF - mean(xF, 2))*W*(obs - obsE);
+            xF = xF + (1/sqrt(Ne-1))*(xF - mean(xF, 2))*W*(obs - obsE);
             
         end
         
@@ -195,7 +198,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             % Following the removal structure as the old EnKF module.
             
             remove1 = find(max(abs(repmat(obs,1,ensemble.num) - ensembleObs),[],2) < eps);
-            remove2 = find(std(ensembleObs,[],2) < eps);
+            remove2 = find(std(ensembleObs,[],2) < 10*eps);
             remove3 = find(isnan(obs));
             
             remove  = union(remove1,remove2); 
@@ -210,7 +213,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         
         %-----------------------------------------------------------------%
         function updateHistoryMatchingInterval(ensemble, historyMatchDtRange)
-            % takes a range of step 
+            % Takes a range of step indices as input
             ensemble.qoi.historyMatchDtRange = historyMatchDtRange;
             ensemble.qoi.dt = ensemble.originalSchedule.step.val(1:historyMatchDtRange(end));
             
