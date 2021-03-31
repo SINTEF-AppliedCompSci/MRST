@@ -1,4 +1,4 @@
-classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
+classdef MRSTHistoryMatchingEnsemble < MRSTEnsembleV2
     
     properties
         
@@ -29,11 +29,14 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
     methods
         
         %-----------------------------------------------------------------%
-        %function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
-        % 
-        %    ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, varargin{:});
-        
-        function midConstructor(ensemble)
+        function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
+            
+            opt = struct('prepareSimulation', true);
+            [opt, extra] = merge_options(opt, varargin{:});
+            
+            ensemble = ensemble@MRSTEnsembleV2(mrstExample, samples, qoi, ...
+                                             extra{:}, 'prepareSimulation', false);
+            
             % Check that the history-matching-specific input values make
             % sense
             if ensemble.esmdaIterations == 1
@@ -49,6 +52,11 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
                 '1/alpha does not sum to 1');
             
             ensemble.originalSchedule = ensemble.setup.schedule;
+            
+            % Prepare ensemble
+            if opt.prepareSimulation
+                ensemble.prepareEnsembleSimulation();
+            end
         end
         
   
@@ -265,8 +273,10 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             % and sub-iterations).
             
             % TODO: Align it with reset@MRSTEnsemble somehow...
+            % TODO: Do reset based on opt.prepareSimulation...
             
-            opt = struct('prompt', true);
+            opt = struct('prompt', true, ...
+                         'prepareSimulation', false);
             opt = merge_options(opt, varargin{:});
             if ~exist(ensemble.mainDirectory, 'dir'), return, end
             if opt.prompt
