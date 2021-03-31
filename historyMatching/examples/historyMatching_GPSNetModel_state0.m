@@ -39,11 +39,11 @@ baseExample = MRSTExample(baseProblemName, ...
                       
 %% Create the full model so that we can generate observations
 trueExample = MRSTExample(baseExample.options.fullExampleName, ...
-                          'deleteOldResults', false);
+                          'deleteOldResults', true);
 trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
 
 plotExample = false;
-rerunTrueProblemFromScratch = false;
+rerunTrueProblemFromScratch = true;
 overwriteObservation = true;
 
 if rerunTrueProblemFromScratch
@@ -154,8 +154,6 @@ initSoEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
     'plotTruth', true, ...
     'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});
 
-%%                
-crash
 
 
 
@@ -163,105 +161,3 @@ crash
 
 
 
-%% History match with porevolumes
-FDmean = baseExample.model.operators.pv(baseExample.options.connectionIndices.cells{1}(1));
-pvData = cell(ensembleSize, 1);
-for i = 1:ensembleSize
-    pvData{i}.pv = FDmean + 2000*randn(1, numConnections);
-end
-
-pvSamples = NetworkOperatorSamplesHM('data', pvData, ...
-                                     'connectionIndices', baseExample.options.connectionIndices, ...
-                                     'pvScale', baseExample.model.G.cells.volumes(1)/100)
-
-
-
-%% Create combo ensemble
-pvEnsemble = MRSTHistoryMatchingEnsemble(baseExample, pvSamples, qoi, ...
-    'directory', fullfile(topDirectory, 'pv'), ...
-    'simulationStrategy', 'parallel', ...
-    'maxWorkers', 8, ...
-    'reset', true, ...
-    'verbose', true)
-
-%% Run ensemble
-pvEnsemble.simulateEnsembleMembers();
-
-
-%% Get simulated observations
-disp('simulated observations: ')
-size(pvEnsemble.getEnsembleQoI())
-
-%% Get the matrix of ensemble samples 
-disp('Matrix of ensemble samples (parameters):')
-size(pvEnsemble.getEnsembleSamples())
-
-
-%% Do history matching
-pvEnsemble.doHistoryMatching()
-
-%% Run new ensemble
-pvEnsemble.simulateEnsembleMembers();
-
-
-%% Plot original and updated ensemble results
-pvEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
-    'cmapName', 'lines', ...
-    'plotTruth', true, ...
-    'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});
-
-
-
-
-
-
-
-
-
-
-%% History match with both porevolumes and transmissibilities
-operatorData = cell(ensembleSize, 1);
-for i = 1:ensembleSize
-    operatorData{i}.pv = pvData{i}.pv;
-    operatorData{i}.T = transData{i}.T;
-end
-
-operatorSamples = NetworkOperatorSamplesHM('data', operatorData, ...
-                                     'connectionIndices', baseExample.options.connectionIndices, ...
-                                     'pvScale', baseExample.model.G.cells.volumes(1)/100)
-
-
-                                 
-                                
-%% Create combo ensemble
-operatorEnsemble = MRSTHistoryMatchingEnsemble(baseExample, operatorSamples, qoi, ...
-    'directory', fullfile(topDirectory, 'operator'), ...
-    'simulationStrategy', 'parallel', ...
-    'maxWorkers', 8, ...
-    'reset', true, ...
-    'verbose', true)
-
-%% Run ensemble
-operatorEnsemble.simulateEnsembleMembers();
-
-
-%% Get simulated observations
-disp('simulated observations: ')
-size(operatorEnsemble.getEnsembleQoI())
-
-%% Get the matrix of ensemble samples 
-disp('Matrix of ensemble samples (parameters):')
-size(operatorEnsemble.getEnsembleSamples())
-
-
-%% Do history matching
-operatorEnsemble.doHistoryMatching()
-
-%% Run new ensemble
-operatorEnsemble.simulateEnsembleMembers();
-
-%% Plot original and updated ensemble results
-operatorEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
-    'cmapName', 'lines', ...
-    'plotTruth', true, ...
-    'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});

@@ -137,9 +137,6 @@ transEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
     'legend', {'observations', 'posterior mean', 'prior mean'});
 
 
-%%
-crash
-
 
 
 

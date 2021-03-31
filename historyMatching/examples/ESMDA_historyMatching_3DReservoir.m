@@ -164,12 +164,14 @@ for i = 1:numel(enkfInvervals)
     enkfEnsemble.doHistoryMatching();
 end
 
+
 %% Forecast the posterior
 enkfEnsemble.updateHistoryMatchingInterval(1:15);
 enkfEnsemble.simulateEnsembleMembers();
 
-%% Plot history matching
 
+
+%% Plot history matching
 enkfEnsemble.plotQoI('subplots', true, ...
                      'clearFigure', false, ...
                      'subIterations', true, ...
@@ -178,7 +180,6 @@ enkfEnsemble.plotQoI('subplots', true, ...
                                  'EnKF it 3', 'EnKF it 2', 'EnKF it 1', ...
                                  'prior'});
                      
-                      
 
 
 

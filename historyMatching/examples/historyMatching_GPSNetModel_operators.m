@@ -33,21 +33,21 @@ topDirectory = fullfile(mrstOutputDirectory(), ...
 
 %% Create example
 baseExample = MRSTExample(baseProblemName, ...
-                          'deleteOldResults', false, ...
+                          'deleteOldResults', true, ...
                           'plotNetwork', false);
 
                       
 %% Create the full model so that we can generate observations
 trueExample = MRSTExample(baseExample.options.fullExampleName, ...
-                          'deleteOldResults', false);
+                          'deleteOldResults', true);
 trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
 
 plotExample = false;
-rerunTrueProblemFromScratch = false;
+rerunTrueProblemFromScratch = true;
 overwriteObservation = true;
 
 if rerunTrueProblemFromScratch
-    clearPackedSimulatorOutput(trueProblem);
+    clearPackedSimulatorOutput(trueProblem, 'prompt', false);
 end
 simulatePackedProblem(trueProblem);
 if plotExample
