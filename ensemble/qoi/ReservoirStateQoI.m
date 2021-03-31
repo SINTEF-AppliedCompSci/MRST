@@ -113,9 +113,9 @@ classdef ReservoirStateQoI < BaseQoI
                 cellfun(@(u) qoi.plotQoI(u), u);
                 return
             end
-            if isa(ensemble, 'MRSTEnsemble')
+            if isa(ensemble, 'MRSTEnsemble') || isa(ensemble, 'MRSTEnsembleV2')
                 setup = ensemble.setup;
-            elseif isa(ensemble, 'MRSTExample')
+            elseif isa(ensemble, 'MRSTExample') 
                 setup = ensemble;
             else
                 error(['Input ensemble must either be an instance of ', ...
