@@ -532,10 +532,98 @@ classdef NearWellboreModel
             model = GenericBlackOilModel(G, rock, f, 'water', ph.wat, ...
                 'oil', ph.oil, 'gas', ph.gas, 'vapoil', ph.vapo, 'disgas', ph.disg);
             % Reset the operators
-            model.operators = setupOperatorsTPFA(G, rock, ...
-                'neighbors', N, 'trans', T);
+            model.operators = setupOperatorsTPFA(G, rock, 'neighbors', N, 'trans', T);
             model.operators.N_all = N_all;
             model.operators.T_all = T_all;
+            
+            % Aquifer model
+            [hasAquifer, output] = nwm.handleAquifers();
+            if hasAquifer
+                model.AquiferModel = AquiferModel(model, ...
+                    output.aquifers, output.aquind, output.aquiferprops, output.initval);
+            end
+        end
+        
+        function [hasAquifer, output] = handleAquifers(nwm)
+            % Handle the aquifers: only support the Fetkovich aquifers
+            deck = nwm.inputDeck;
+            hasAquifer = all( isfield(deck.SOLUTION, {'AQUANCON', 'AQUFETP'}) );
+            if ~hasAquifer
+                output = nan;
+                return
+            end
+            [GC, ~, ~] = nwm.assignInputSubGrds ();
+            output = processAquifer(deck, GC);
+            % Map the conn cells
+            aquifers = output.aquifers;
+            aquind = output.aquind;
+            cells = aquifers(:, aquind.conn);
+            mapc = nwm.cellMapFromInputSubGrdsToGloGrd();
+            mapc = mapc{1};
+            cells = arrayfunUniOut(@(c)mapc(mapc(:,1) == c, 2), cells);
+            idx = ~cellfun(@isempty, cells);
+            cells = cell2mat( cells(idx) );
+            aquifers = aquifers(idx, :);
+            aquifers(:, aquind.conn) = cells;
+            output.aquifers = aquifers;
+            % The aquifer connects to the VOI grid
+            if ~all(idx)
+                output = nwm.getAquifersVOIG(output);
+            end
+            
+        end
+        
+        function output = getAquifersVOIG(nwm, output)
+            % Aquifers connected to the VOI grid.
+            % Note that the implementation only support the influx bottom aquifer
+            % Assign data
+            G = nwm.gloGrid;
+            [~, GV] = nwm.assignInputSubGrds();
+            aquifers = output.aquifers;
+            aquind = output.aquind;
+            % Get the connection faces and cells (GV)
+            nSurf = GV.layers.num+1;
+            surfInd = G.faces.surfaces(G.faces.grdID==2);
+            assert(nSurf == max(surfInd));
+            facesV = find( G.faces.surfaces==nSurf & G.faces.grdID==2 );
+            N = G.faces.neighbors(facesV,:);
+            assert( all( ~all(N,2) ) );
+            connV = sum(N, 2);
+            % The connection faces and cells (GC)
+            connC = aquifers(:, aquind.conn);
+            facesC = zeros(size(connC));
+            for i = 1 : numel(connC)
+                facePos = G.cells.facePos(connC(i)) : ...
+                    G.cells.facePos(connC(i)+1)-1;
+                f = G.cells.faces(facePos, :);
+                % Note only support the influx bottom aquifer
+                facesC(i) = f(f(:,2)==6);
+            end
+            N = G.faces.neighbors(facesC,:);
+            assert( all( ~all(N,2) ) );
+            % Get the aquifer alhpa
+            deck = nwm.inputDeck;
+            aquancon = deck.SOLUTION.AQUANCON;
+            influxcoef = cell2mat(aquancon(:, 9));
+            influxmultcoef = cell2mat(aquancon(:, 10));
+            % Use area weighted (aquifer influx coefficient multiplier=1)
+            assert(isnan(influxcoef) & influxmultcoef==-1)
+            facesA = [facesC; facesV];
+            influxcoef = G.faces.areas(facesA);
+            alpha = influxcoef./sum(influxcoef);
+            % Assemble the aquifer
+            aquifersV = nan(numel(connV), 7);
+            aquifersV(:, aquind.conn) = connV;
+            aquifersV(:, aquind.depthconn) = G.cells.centroids(connV, 3);
+            flds = {'aquid', 'pvttbl', 'J', 'C', 'depthaq'};
+            for i = 1 : numel(flds)
+                fld = flds{i};
+                aquifersV(:, aquind.(fld)) = unique(aquifers(:, aquind.(fld)));
+            end
+            aquifers = [aquifers; aquifersV];
+            aquifers(:, aquind.alpha) = alpha;
+            output.aquifers = aquifers;
+            output.connFaces = [facesC; facesV];
         end
         
         function schedule = getSimSchedule(nwm, model, varargin)

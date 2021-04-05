@@ -20,7 +20,7 @@ GRID    ================================================================
 EQUALS
   DX    100   /
   DY    100   /
-  DZ    20    /
+  DZ    6     /
   PERMX 2000  /
   PERMY 2000  /
   PERMZ 2000  /
@@ -109,6 +109,17 @@ EQUIL
 -- Datum    P     woc     Pc    goc    Pc   Rsvd   Rvvd
    1000    234   1100    0.0   950.0   0.0   1*   0   0/   E: Garn
 
+AQUANCON
+-- Aq#   I1  I2   J1  J2   K1  K2 FACE  InfluxCoef Multiplier 
+    1    1   25   1   25   5   5   K+       1*         1*         NO/
+/
+
+AQUFETP
+-- Aq# depth  initPressure initVolume  compressibility      J 
+    1  1030      300        3.75e+10      7.28e-5          500 /
+/
+
+
 SUMMARY ===================================================================
 
 SCHEDULE ==================================================================
@@ -133,8 +144,8 @@ COMPDAT
 /
 
 WCONPROD
---'PROD' 'OPEN'  'BHP'   5*    150/ 
-'PROD' 'OPEN'  'LRAT'   3*    20000/ 
+--'PROD' 'OPEN'  'BHP'   5*    150 / 
+'PROD' 'OPEN'  'LRAT'   3*     20000 / 
 /
 
 TSTEP

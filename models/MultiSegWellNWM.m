@@ -37,9 +37,16 @@ classdef MultiSegWellNWM < NearWellboreModel
             model = ThreePhaseBlackOilModel(G, rock, f, 'water', ph.wat, ...
                 'oil', ph.oil, 'gas', ph.gas, 'vapoil', ph.vapo, 'disgas', ph.disg);
             % Reset the operators
-            model.operators = setupOperatorsTPFA(G, rock, ...
-                'neighbors', N, 'trans', T);
+            model.operators = setupOperatorsTPFA(G, rock, 'neighbors', N, 'trans', T);
+            model.operators.N_all = N_all;
             model.operators.T_all = T_all;
+            
+            % Aquifer model
+            [hasAquifer, output] = nwm.handleAquifers();
+            if hasAquifer
+                model.AquiferModel = AquiferModel(model, ...
+                    output.aquifers, output.aquind, output.aquiferprops, output.initval);
+            end
         end
 
         function schedule = getSimSchedule(msw, model, varargin)

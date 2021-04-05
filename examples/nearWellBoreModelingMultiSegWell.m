@@ -25,10 +25,16 @@ GC = initEclipseGrid(deck);
 GC = computeGeometry(GC);
 
 %% Define basic information of horizontal well (HW)
-% Define the well trajectory
-pWx = 100*linspace(6, 19, 15)';
-pWy = 100*12.5 * ones( size(pWx) );
-pWz = 1050 * ones( size(pWx) );
+% Define the well trajectory from deck
+compi = cell2mat( deck.SCHEDULE.control.COMPDAT(:,2) );
+compj = cell2mat( deck.SCHEDULE.control.COMPDAT(:,3) );
+compk = cell2mat( deck.SCHEDULE.control.COMPDAT(:,4) );
+[dx, dy, dz]   = deal(unique(deck.GRID.DX), unique(deck.GRID.DY), unique(deck.GRID.DZ));
+tops = deck.GRID.TOPS(1);
+
+pWx = dx * linspace(min(compi)-1, max(compi), 15)';
+pWy = dy * ( unique(compj) - 0.5 ) * ones( size(pWx) );
+pWz = dz * ( unique(compk) - 0.5 ) * ones( size(pWx) ) + tops;
 pW = [pWx, pWy, pWz];
 % Number of well segments
 ns = size(pW,1)-1;
@@ -60,7 +66,7 @@ VOI = VolumeOfInterest(GC, well, pbdy, nextra);
 
 % Define parameters for the 2D well region grid 
 VOI.maxWellSegLength2D()
-WR = struct('ly', 120, 'ny', 8, 'na', 5);
+WR = struct('ly', [15, 80], 'ny', [6, 4], 'na', 5);
 
 % Define the number of refinement layers for each VOI layer
 VOI.volumeLayerNumber()
@@ -78,10 +84,15 @@ title('Layers of the VOI grid')
 
 %% Build the layered radial HW grid
 % Define the logical indices of HW region
-regionIndices = [   3,    6,    2,    5];
+regionIndices = [   3,    8,    2,    5];
 
 % Define the HW region according to GV, well, and regionIndices
 HW = HorWellRegion(GV, well, regionIndices);
+
+HW.showWellRegionInVOIGrid('showWellRgionCells', true);
+view([-53, 15]), axis equal off
+title('The HW region in VOI grid')
+
 
 % Define the parameters for building the radial grid
 radPara = struct(...
@@ -185,23 +196,6 @@ scheduleMS = MSW.getSimSchedule(model);
 
 % We can also get the schedule without multi-segment well definition
 schedule = MSW.getSimSchedule(model, 'returnMS', false);
-
-% Add a flux boundary on the bottom of the grid, because there is only one 
-% well in the deck input
-c = find(G.cells.layers==5 & G.cells.grdID==1);
-fPos = mcolon(G.cells.facePos(c), G.cells.facePos(c+1));
-f = G.cells.faces(fPos,:);
-f = f(f(:,2)==6, 1);
-v = -schedule.control.W.val / numel(f);
-bc = addBC([], f, 'flux', v, 'sat', [1, 0, 0]);
-scheduleMS.control.bc = bc;
-schedule.control.bc = bc;
-
-% Show the well and boundary
-figure, axis tight off, view(3)
-plotGrid(G, 'facecolor', 'none')
-plotWell(G, schedule.control.W)
-plotFaces(G, f)
 
 %% Run the simulations with and without multi-segment well
 [wellSolsMS, statesMS, reportMS] = simulateScheduleAD(initState, model, scheduleMS);
