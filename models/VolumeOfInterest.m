@@ -289,10 +289,12 @@ classdef VolumeOfInterest
             pW = volume.well.trajectory;
             nx = volume.well.segmentNum;
             ny = WR.ny;
-            if mod(ny,2) == 1
-                warning(['ny must be an even number, ny+1 (%d) is',...
-                    ' used instead'], ny+1)
-                ny = ny + 1;
+            for i = 1 : numel(ny)
+                if mod(ny(i),2) == 1
+                    warning(['ny must be an even number, ny(%d)+1 [%d] is',...
+                        ' used instead'], i, ny(i)+1)
+                    ny(i) = ny(i) + 1;
+                end
             end
             ly = WR.ly;
             na = WR.na;
@@ -307,7 +309,7 @@ classdef VolumeOfInterest
                 'the size of Cartesian region']);
             
             % Get connectivity list and boundary nodes of WR
-            [t, tC, bn, bnC] = getConnListAndBdyNodeWR2D(p, ny, na);
+            [t, tC, bn, bnC] = getConnListAndBdyNodeWR2D(p, sum(ny), na);
             
             % Asssign data to WR
             WR.points     = p;
@@ -315,7 +317,7 @@ classdef VolumeOfInterest
             WR.connlistC  = tC;
             WR.bdnodes    = bn;
             WR.bdnodesC   = bnC;
-            WR.cartDims   = [nx, ny];
+            WR.cartDims   = [nx, sum(ny)];
         end
         
         function GV = ReConstructToUnstructuredGrid(volume, WR, layerRf, varargin)

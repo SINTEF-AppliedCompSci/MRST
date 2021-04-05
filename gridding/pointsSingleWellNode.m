@@ -24,10 +24,20 @@ function p0 = pointsSingleWellNode(pW, ly, ny, na, ii)
 %
 % SEE ALSO:
 %  `VolumeOfInterest` `getConnListAndBdyNodeWR2D` `nearWellBoreModelingGrids`
-    
+
+    if numel(ny) == 1
+        y0 = linspace(ly/2, 0, ny/2+1)';
+        y0 = y0(1:end-1);
+    else
+        yI = linspace(ly(1)/2, 0, ny(1)/2+1)';
+        yI = yI(1:end-1);
+%         yO = ly(1)/2 + linspace(ly(2)/2, 0, ny(2)/2+1)';
+        yO = logspace(log10(ly(1)/2+ly(2)/2), log10(ly(1)/2), ny(2)/2+1)';
+        yO = yO(1:end-1);
+        y0 = [yO; yI];
+    end
+
     % Compute the angles
-    y0 = linspace(ly/2, 0, ny/2+1)';
-    y0 = y0(1:end-1);
     fTheta = @(x,y)2*pi*double(sign(atan2(y,x))<0) + atan2(y,x);
     pW = pW(:, [1,2]);
     p2 = pW(ii, :);

@@ -119,13 +119,16 @@ VOI.plotVolumeBoundaries(geoV), view(2)
 % ny: The number of Cartesian cells in Y direction
 % na: The number of angular cells in radial region
 VOI.maxWellSegLength2D()
+
+% if numel(ly) == 1 && numel(ny) == 1 :
+% Uniform  distribution
 WR = struct('ly', 15, 'ny', 10, 'na', 5);
+VOI.plot2DWRSubGrid(WR)
 
-% Prepare the 2D well region nodes
-WR = VOI.prepareWellRegionNodes2D(WR);
-
-% Plot the 2D well region grid. This grid will be glued to the unstructured
-% grid.
+% if numel(ly) == 2 && numel(ny) == 2 :
+% ly(1) ny(1) : uniform  distribution in inner region
+% ly(2) ny(2) : logarithmic distribution in outer region
+WR = struct('ly', [5,10], 'ny', [6,4], 'na', 5);
 VOI.plot2DWRSubGrid(WR)
 
 % Next, build the layered unstructured VOI grid. The refinement is allowed

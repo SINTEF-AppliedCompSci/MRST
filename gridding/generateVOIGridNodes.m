@@ -27,7 +27,7 @@ function [pSurfs, t, bdyID] = generateVOIGridNodes(GC, packed, WR, layerRf, opt)
         case 'triangular'
             generator = @triangularPts;
         case 'Voronoi'
-            generator = @VoionoiPts;
+            generator = @VoronoiPts;
         otherwise
             error([mfilename, ': Unknown grid type'])
     end
@@ -79,7 +79,7 @@ function [p, t, bdyID] = triangularPts(G, packed, WR, refSurf, opt)
 end
 
 % -------------------------------------------------------------------------
-function [p, t, bdyID] = VoionoiPts(G, packed, WR, refSurf, opt)
+function [p, t, bdyID] = VoronoiPts(G, packed, WR, refSurf, opt)
     % Get outer boundary points and auxiliary points of VOI
     % see 'gridding examples\connWRCartGrids'
     fV     = packed.faces{refSurf};
@@ -109,31 +109,17 @@ function [p, t, bdyID] = VoionoiPts(G, packed, WR, refSurf, opt)
     pall = [pdis; pauxV; pauxW];
     [pVor, tVor] = voronoin(pall, {'Qbb','Qz'});
     
-    % Remove points outside the region
+    % Clip the diagram
     fdI = @(p)dpoly(p, [pib; pib(1,:)]);
     fdO = @(p)dpoly(p, [pob; pob(1,:)]);
     fd  = @(p)ddiff(fdO(p), fdI(p));
     tol1 = 0.1;
-    in  = find(fd(pVor) < tol1 & all(~isinf(pVor), 2));
-    map = [(1:length(in))', in];
-    pVor = pVor(map(:,2), :);
-    
-    % Remove conflict points (point too close to each other)
-    D = euclideanDistance(pVor, pVor);
-    D = triu(D);
     tol2 = 0.1;
-    [removed, reserved] = find(D < tol2);
-    ii = removed < reserved; 
-    removed = removed(ii);
-    reserved = reserved(ii);
-    map(removed,1) = map(reserved,1);
-    idx  = find(~ismember((1:size(pVor,1))', removed));
-    pVor = pVor(idx, :);
-    map(:,1) = arrayfun(@(x)find(x == idx), map(:,1));
-    
-    % Map the connectivity list
-    tVor = cellfunUniOut(@(x)unique( map(ismember(map(:,2), x), 1)' ), tVor);
-    tVor = tVor( cellfun(@length, tVor) > 3 );
+    try
+        [pVor, tVor] = clipDiagram(pVor, tVor, fd, tol1, tol2);
+    catch
+        [pVor, tVor] = clipDiagram2(pVor, tVor, fd, tol1, tol2);
+    end
     
     % Add WR points, and map the connectivity list again
     D2 = euclideanDistance(pVor, pib);
@@ -206,7 +192,50 @@ function players = getSurfacePoints(GC, packed, layerRf, refSurf, p, bdyID)
     players = arrayfunUniOut(@(L)players( (1:np) + (L-1)*np, : ), (1:nlayer)');
 end
 
+% -------------------------------------------------------------------------
+function [pVor, tVor] = clipDiagram(pVor, tVor, fd, tol1, tol2)
+    % Remove points outside the region
+    in  = find(fd(pVor) < tol1 & all(~isinf(pVor), 2));
+    map = [(1:length(in))', in];
+    pVor = pVor(map(:,2), :);
+    
+    % Remove conflict points (point too close to each other)
+    D = euclideanDistance(pVor, pVor);
+    D = triu(D);
+    
+    [removed, reserved] = find(D < tol2);
+    ii = removed < reserved; 
+    removed = removed(ii);
+    reserved = reserved(ii);
+    map(removed,1) = map(reserved,1);
+    idx  = find(~ismember((1:size(pVor,1))', removed));
+    pVor = pVor(idx, :);
+    map(:,1) = arrayfun(@(x)find(x == idx), map(:,1));
+    
+    % Map the connectivity list
+    tVor = cellfunUniOut(@(x)unique( map(ismember(map(:,2), x), 1)' ), tVor);
+    tVor = tVor( cellfun(@length, tVor) > 3 );
+end
 
+% -------------------------------------------------------------------------
+function [pVor, tVor] = clipDiagram2(pVor, tVor, fd, tol1, tol2)
+    % Remove points outside the region
+    cCenter = cellfunUniOut(@(t)mean(pVor(t, :)), tVor);
+    cCenter = cell2mat(cCenter);
+    in = fd(cCenter) < tol1;
+    t = tVor(in);
+    n = cell2mat(t')';
+    n = unique(n);
+    p = pVor(n, :);
+    t = cellfunUniOut(@(t)find(ismember(n, t)), t);
+    t = sortPtsCounterClockWise(p, t);
+    g = tessellationGrid(p, t);
+    g = removeShortEdges(g, tol2);
+    pVor = g.nodes.coords;
+    tVor = arrayfunUniOut(@(c)gridCellNodes(g, c), (1:g.cells.num)');
+end
+
+% -------------------------------------------------------------------------
 function [pIn, pOut, R] = computeAuxPts(p, bn, m0)
     pib = p(bn, :);
     pib = [pib; pib(1,:)];
@@ -298,6 +327,7 @@ function [p, t] = addEmpCells(p, t, bnW)
     end
 end
 
+% -------------------------------------------------------------------------
 function throwError(L)
     error(['Cannot generate appropriate Voronoi sites, please \n',...
         '   (1) Increase the resolution of well trajectory (add more well points) \n', ...

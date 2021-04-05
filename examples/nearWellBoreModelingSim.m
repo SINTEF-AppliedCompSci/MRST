@@ -230,8 +230,8 @@ W = schedule.control(2).W;
 D = computeTOFandTracer(state, Gtmp, rock, 'wells', W);
 
 % Visualize the TOF of HW subgrid
-figure, axis equal tight off, view([-85, 9])
-plotCellData(G, sum(D.tof,2), G.cells.grdID == 3)
+figure, axis tight off, view([-57, 67])
+plotCellData(G, sum(D.tof,2), G.cells.grdID == 2)
 title('TOF of HW grid')
 
 % Visualize the injector partitioning of HW subgrid
