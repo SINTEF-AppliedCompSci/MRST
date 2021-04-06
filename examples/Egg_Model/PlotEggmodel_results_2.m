@@ -1,4 +1,5 @@
 %load paper_EGG_Model_40.mat
+%load('Egg_network_models','wellSols_0','wellSols_opt')
 
 %close all
 for i = 1:numel(schedule.step.val)
@@ -108,5 +109,33 @@ markersize = 10;
              hl = line([T(end) T(end)],get(hs,'YLim'),'Color', 150*[1 1 1]/255,'LineStyle','--','HandleVisibility','off');
              set(hl,'LineWidth',lineSize)
    end
+
    
+figure('Name','Parameters values','NumberTitle','off')
+
+
+nparam = cellfun(@(x)x.n, parameters);
+p = mat2cell(p_opt, nparam, 1);        
+for k = 1:numel(parameters)
+    values_opt{k} = parameters{k}.unscale(p{k});   
+end 
+
+
+subplot(1,3,1)
+k = 3;
+barh(categorical(1:numel(values{k})) ,[values{k},values_opt{k}])
+set(gca,'YDir','reverse')
+title('transmisibilities')
+subplot(1,3,2)
+
+k = 2;
+barh(categorical(1:numel(values{k})) ,[values{k},values_opt{k}])
+set(gca,'YDir','reverse')
+title('Pore Volume')
+
+subplot(1,3,3)
+k = 1;
+barh(categorical(1:numel(values{k})) ,[values{k},values_opt{k}])
+set(gca,'YDir','reverse')
+title('WI')
   
