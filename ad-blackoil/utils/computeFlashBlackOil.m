@@ -79,8 +79,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         gasPresent = true;
     else
         st1 = status{1};
-        rsSat0 = model.getProp(state0, 'RsMax');
-        rsSat = model.getProp(state, 'RsMax');
+        pvt = model.PVTPropertyFunctions;
+        rsSat0 = pvt.get(model, state0, 'RsMax');
+        rsSat = pvt.get(model, state, 'RsMax');
         gasPresent = or(and( sg > 0 | rs == 0, ~st1), watOnly); % Obvious case
         % Keep oil saturated if previous sg is sufficiently large:
         ix1 = and( sg < 0, sg0 > etol);

@@ -98,7 +98,7 @@ colorbar('SouthOutside')
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', false);
 timer = tic;
-[wellSols, states, iter] = ...
+[wellSols, states, ~, iter] = ...
    runScheduleADI(state, G, rock, system, schedule);
 toc(timer)
 

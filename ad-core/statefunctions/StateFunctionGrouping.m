@@ -149,7 +149,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
         end
         
         function group = subsasgn(group, sub, val)
-            if strcmp(sub.type, '.')
+            if numel(sub) == 1 && strcmp(sub.type, '.')
                 group = group.setStateFunction(sub.subs, val);
             else
                 group = builtin('subsasgn', group, sub, val);

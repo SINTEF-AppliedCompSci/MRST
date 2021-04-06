@@ -8,34 +8,28 @@ classdef InjectionSurfaceDensity < StateFunction
         function gp = InjectionSurfaceDensity(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn('FacilityWellMapping');
+            gp = gp.dependsOn('SurfaceDensity', 'PVTPropertyFunctions');
             gp.label = '\rho_\alpha^{w}';
         end
         function rhoS = evaluateOnDomain(prop, facility, state)
             model = facility.ReservoirModel;
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
+            % rhoSr = prop.getEvaluatedExternals(model, state, 'SurfaceDensity');
+            rhoSr = model.PVTPropertyFunctions.get(model, state, 'SurfaceDensity');
             W = map.W;
-            rhoS = model.getSurfaceDensities();
             % We take the surface density for the first well cell,
             % regardless of active or inactive status for that
             % perforation.
             topcell = arrayfun(@(x) x.cells(1), W);
-            reg = model.PVTPropertyFunctions.Density.regions;
-            if isempty(reg)
-                rhoS = repmat(rhoS, numel(topcell), 1);
-            else
-                rhoS = rhoS(reg(topcell), :);
-            end
+            rhoS = applyFunction(@(x) x(topcell), rhoSr);
             if isfield(W, 'rhoS')
                 % Surface density is given on a per-well-basis for the
                 % injectors
-                rhoS(map.isInjector, :) = vertcat(W(map.isInjector).rhoS);
+                rhoS_inj = vertcat(W(map.isInjector).rhoS);
+                for i = 1:numel(rhoS)
+                    rhoS{i}(map.isInjector) = rhoS_inj(:, i);
+                end
             end
-            nph = size(rhoS, 2);
-            tmp = cell(1, nph);
-            for i = 1:nph
-                tmp{i} = rhoS(:, i);
-            end
-            rhoS = tmp;
         end
     end
 end
