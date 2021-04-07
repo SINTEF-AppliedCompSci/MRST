@@ -121,6 +121,12 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                 color = color.*(1-opt.alpha) + opt.alpha;
             end
             
+            % Invert rate so that production is plotted as positive values.
+            plotScale = 1;
+            if strcmpi(qoi.fldname{opt.subCellNo}, 'qOs') || ...
+               strcmpi(qoi.fldname{opt.subCellNo}, 'qWs')
+                plotScale = -1;
+            end
             
             is_timeseries = true;
             if is_timeseries
@@ -128,20 +134,25 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                 time = cumsum(qoi.dt)./opt.timescale;
                 if opt.isObservation
                     if isempty(opt.observationIndices)
-                        plot(time, u, 'x', 'color', [0 0 0], extra{:});
+                        plot(time, u*opt.scale, ...,
+                             'x', 'color', [0 0 0], extra{:});
                     else
-                        plot(time(opt.observationIndices), u(opt.observationIndices), 'x', 'color', [0 0 0], extra{:});
+                        plot(time(opt.observationIndices), u(opt.observationIndices)*plotScale, ... ...
+                            'x', 'color', [0 0 0], extra{:});
                         unobservedIndices = setdiff(1:numel(u),opt.observationIndices);
                         if ~isempty(unobservedIndices)
-                            plot(time(unobservedIndices), u(unobservedIndices), 'o', 'color', [0 0 0], extra{:});
+                            plot(time(unobservedIndices), u(unobservedIndices)*plotScale, ...
+                                 'o', 'color', [0 0 0], extra{:});
                         end
                     end
                 elseif opt.isTruth
-                    plot(time, u, 'o', 'color', [1 1 1].*0.5, extra{:});
+                    plot(time, u*plotScale, ...
+                         'o', 'color', [1 1 1].*0.5, extra{:});
                 else
-                    plot(time(1:numel(u)), u, 'color'    , color, ...
-                                              'lineWidth', opt.lineWidth, ...
-                                               extra{:}         );
+                    plot(time(1:numel(u)), u*plotScale, ...
+                         'color'    , color, ...
+                         'lineWidth', opt.lineWidth, ...
+                         extra{:}         );
                 end
                 
                 xlim([time(1), time(end)]);

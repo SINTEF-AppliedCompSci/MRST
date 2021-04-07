@@ -188,14 +188,21 @@ classdef WellQoI < BaseQoI
                 color = color.*(1-opt.alpha) + opt.alpha;
             end
             
+            % Invert rate so that production is plotted as positive values.
+            plotScale = 1;
+            if strcmpi(qoi.fldname{opt.subCellNo}, 'qOs') || ...
+               strcmpi(qoi.fldname{opt.subCellNo}, 'qWs')
+                plotScale = -1;
+            end
             
             is_timeseries = true;
             if is_timeseries
                 
                 time = cumsum(qoi.dt)./opt.timescale;
-                plot(time(1:numel(u)), u, 'color'    , color, ...
-                                          'lineWidth', opt.lineWidth, ...
-                                           extra{:}         );
+                plot(time(1:numel(u)), u*plotScale, ...
+                     'color'    , color, ...
+                     'lineWidth', opt.lineWidth, ...
+                     extra{:}         );
                 
                 xlim([time(1), time(end)]);
                 box on, grid on
