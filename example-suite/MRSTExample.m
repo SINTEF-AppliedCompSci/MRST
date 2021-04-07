@@ -321,7 +321,8 @@ classdef MRSTExample
             end
             if ~has_nls
                 % Select default nonlinear solver
-                opt.NonLinearSolver = NonLinearSolver('LinearSolver', opt.LinearSolver);
+                opt.NonLinearSolver = NonLinearSolver('LinearSolver' , opt.LinearSolver, ...
+                                                      'useRelaxation', true            );
             elseif ~has_ls
                 % ... or assign linear solver
                 opt.NonLinearSolver.LinearSolver = opt.LinearSolver;
