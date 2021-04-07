@@ -520,7 +520,9 @@ function G = pMatFracNNCs3D(G,tol, varargin)
     
     %% Compute union area
     %Code to extract the nodes of a list of cells (lines 68-74 in EDFMgrid.m)
-    [cn,cpos]=gridCellNodes(G,mcells(1,2):mcells(end,2));
+    if ~isempty(mcells)
+        [cn,cpos]=gridCellNodes(G,mcells(1,2):mcells(end,2));
+    end
     numFcells = numel(mcells(:,2)); % mcells {matrix_cell,frac_cell}
     mcellnodes_par=cell(numFcells,1);
     for i=1:numFcells
