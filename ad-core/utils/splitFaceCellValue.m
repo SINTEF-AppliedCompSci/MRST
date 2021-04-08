@@ -46,13 +46,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     nf = sz(1);
     nc = sz(2);
-    
-    if isa(x, 'ADI')
-        n = numval(x);
-    else
-        n = numel(x);
-    end
-    
+    n = numelValue(x);
+
     switch n
         case nc
             % Cell-wise values only, use upstream weighting
