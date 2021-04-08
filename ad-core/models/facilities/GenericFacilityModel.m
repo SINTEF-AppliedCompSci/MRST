@@ -367,7 +367,7 @@ classdef GenericFacilityModel < FacilityModel
             [state, report] = updateAfterConvergence@FacilityModel(model, state0, state, dt, drivingForces);
             nw = model.getNumberOfActiveWells(state.wellSol);
             if nw > 0
-                map = state.FacilityFluxProps.FacilityWellMapping;
+                map = model.FacilityFlowDiscretization.get(model, state, 'FacilityWellMapping');
                 phaseq = value(model.getProp(state, 'PhaseFlux'));
                 cf = model.getProp(state, 'ComponentTotalFlux');
                 if iscell(cf)
