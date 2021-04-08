@@ -20,10 +20,12 @@ classdef EquationOfStateComponent < GenericComponent
             c = c.functionDependsOn('getComponentDensity', {'Density','ComponentPhaseMassFractions'}, 'PVTPropertyFunctions');
         end
         
-        function c = getComponentDensity(component, model, state, rho)
+        function c = getComponentDensity(component, model, state, extra)
             c = component.getPhaseComposition(model, state);
             if nargin < 4
                 rho = model.getProps(state, 'Density');
+            else
+                rho = extra.rho;
             end
             for ph = 1:numel(c)
                 if ~isempty(c{ph})
