@@ -13,7 +13,7 @@ function [description, options, state0, model, schedule, plotOptions, connection
 %   using a two-phase flow and initial parameter values based on 
 %   flow-diagnostics. May be used as a stand-alone example definition, or 
 %   to construct an instance of `MRSTExample` as 
-%   example = MRSTExample('ensemble_base_problem_3D_reservoir');
+%   example = MRSTExample('egg_wo_network');
 %
 % OPTIONAL PARAMETERS:
 %   'realization' - There exists 100 realizations of the egg model. Default
