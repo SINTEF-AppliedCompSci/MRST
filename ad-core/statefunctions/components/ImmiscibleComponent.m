@@ -15,13 +15,13 @@ classdef ImmiscibleComponent < GenericComponent
             c = c.functionDependsOn('getComponentDensity', 'Density', 'PVTPropertyFunctions');
         end
         
-        function c = getComponentDensity(component, model, state, extra)
+        function c = getComponentDensity(component, model, state, varargin)
             if nargin < 4
                 rho = model.getProp(state, 'Density');
             else
-                rho = extra.rho;
+                rho = varargin{1}.rho;
             end
-            c = getComponentDensity@GenericComponent(component, model, state, extra);
+            c = getComponentDensity@GenericComponent(component, model, state, varargin{:});
             if numel(c) == 1 && ~iscell(rho)
                 c{1} = rho;
             else
