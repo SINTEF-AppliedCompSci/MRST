@@ -22,7 +22,11 @@ classdef ImmiscibleComponent < GenericComponent
                 rho = extra.rho;
             end
             c = getComponentDensity@GenericComponent(component, model, state, extra);
-            c{component.phaseIndex} = rho{component.phaseIndex};
+            if numel(c) == 1 && ~iscell(rho)
+                c{1} = rho;
+            else
+                c{component.phaseIndex} = rho{component.phaseIndex};
+            end
         end
         
         function c = getPhaseComposition(component, model, state, varargin)
