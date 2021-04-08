@@ -28,7 +28,6 @@ classdef AGMGSolverAD < LinearSolverAD
             solver.reuseSetup = false;
             solver.reduceToCell = true;
             solver = merge_options(solver, varargin{:});
-            solver.verbose = 100
        end
        
        function [result, report] = solveLinearSystem(solver, A, b, varargin)
