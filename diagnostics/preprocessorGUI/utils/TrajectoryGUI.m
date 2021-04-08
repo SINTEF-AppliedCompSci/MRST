@@ -200,9 +200,9 @@ classdef TrajectoryGUI < handle
                     d.WellPlot1.visibleCases = 1;
                     d.WellPlot2.visibleCases = 1;
                 case 'launch'
-                    casenm = d.caseSelector.listbox.String;
+                    casenm = d.caseSelector.listbox.String(d.caseNo);
                     DiagnosticsViewer(repmat({d.model}, [1, numel(casenm)]), ...
-                        d.wellCases, 'modelNames', casenm, 'includeAverage', false, ...
+                        d.wellCases(d.caseNo), 'modelNames', casenm, 'includeAverage', false, ...
                         'state0', repmat({d.state0}, [1, numel(casenm)]));
 
             end
@@ -370,7 +370,7 @@ classdef TrajectoryGUI < handle
                 switch src.Tag
                     case 'objective'
                         % compute any uncomputed objectives
-                        cix = d.caseSelector.ix;
+                        cix = 1:numel(d.caseSelector.names);
                         for k = cix
                             if numel(d.objValues) < k || isempty(d.objValues{k})
                                 % reset wellmodels in case number of wells have changed
@@ -380,7 +380,7 @@ classdef TrajectoryGUI < handle
                         end
                         % plot resulting values
                         plotObjectiveValues(d.Axes(3), d.objValues, d.caseSelector.listbox.String);
-                    case 'gradient'
+                    case {'gradient', 'control'}
                         if numel(d.caseNo) > 1
                             fprintf('Please select single case for gradient computations');
                             return
@@ -402,6 +402,7 @@ classdef TrajectoryGUI < handle
                                     'D',     d.objValues{d.caseNo}.D);
                                 g = tmp.gradient.position{d.wellNo};
                                 d.objValues{d.caseNo}.gradient.position{d.wellNo} = g;
+                                d.objValues{d.caseNo}.gradient.well = tmp.gradient.well;
                             else
                                 d.objValues{d.caseNo} = d.obj.compute(W, 'computeGradient', true);
                                 g = d.objValues{d.caseNo}.gradient.position{d.wellNo};
@@ -410,10 +411,15 @@ classdef TrajectoryGUI < handle
                             d.objValues{d.caseNo}.gradPlotScale{d.wellNo} = ...
                                 getGradPlotScaling(g, get(d.Axes(1), {'XLim', 'YLim', 'ZLim'}));
                         end
-                        d.showGradientVectors();
-                        d.proxySelector.slider.Enable = 'on';
+                        if strcmp(src.Tag, 'gradient')
+                            d.showGradientVectors();
+                            d.proxySelector.slider.Enable = 'on';
+                        else
+                            plotControlGradients(d.Axes(3), d.wellCases{d.caseNo}, d.objValues{d.caseNo}.gradient.well)
+                        end
                     case 'slider'
-                        d.moveTrajAlongGradient(d.proxySelector.slider.Value);
+                        d.moveTrajAlongGradient(d.proxySelector.slider.Value);                        
+                        
                 end
             end
         end
@@ -586,8 +592,8 @@ for k =1:numel(tp)
     set([wp.(tp{k}).label], 'PickableParts', 'none');
 end
 % 'shade' color
-wp.injectorColor = 1-.5*(1-wp.injectorColor);
-wp.producerColor = 1-.5*(1-wp.producerColor);
+%wp.injectorColor = 1-.5*(1-wp.injectorColor);
+%wp.producerColor = 1-.5*(1-wp.producerColor);
 end
 %--------------------------------------------------------------------------
 function w = updateWellTrajectory(model, w, traj)
@@ -611,7 +617,8 @@ end
 %--------------------------------------------------------------------------
 function plotObjectiveValues(ax, res, nms)
 %figure, ax = gca;
-title('Proxy values')
+cla(ax, 'reset')
+title(ax, 'Proxy values')
 v = cellfun(@(r)r.value, res);
 plot(ax, v, '--o', 'MarkerSize', 10, 'LineWidth', 2);
 ax.XTick = 1:numel(v);
@@ -673,8 +680,30 @@ else
     end
 end
 end
-    
-
+% -----------------------------------------------------------------   
+function plotControlGradients(ax, W, g)
+assert(numel(W) == numel(g), 'Non-mathcing gradient')
+isp = strcmp({W.type}, 'bhp');
+cla(ax, 'reset')
+%hold(ax,'on')
+%ax.YAxisLocation = 'right';
+yyaxis(ax, 'right')
+v = g.*isp(:)*barsa;
+bar(ax, v);
+set(ax, 'YLim', [-1 1]*max(abs(v)));
+%xticklabels({W.name});
+%xtickangle(45)
+ylabel(ax,'Gradients [$/bar]');
+yyaxis(ax, 'left')
+%ax.YAxisLocation = 'left';
+v = g.*(~isp(:))/day;
+bar(ax, v);
+ax.YLim = [-1 1]*max(abs(v));
+xticklabels(ax,{W.name});
+ax.XTickLabelRotation = 45;
+ylabel(ax,'Gradients [$(m^3/day)^{-1}]')
+grid(ax, 'on')
+end
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 

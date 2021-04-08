@@ -4,7 +4,7 @@ classdef ProxySelector < UIItem
         objectiveButton
         gradientButton
         slider
-        increaseText
+        controlButton
     end
     
     methods
@@ -30,13 +30,13 @@ classdef ProxySelector < UIItem
             slider       = uicontrol('Parent', [], 'Style', 'slider',...
                                     'Min', 0, 'Max', 1, 'Value', 0, 'Tag', 'slider', ...
                                     'SliderStep', [1/20 1/10]); 
-            incText1     = getuitext('Objective increase [$]:');
-            incText2     = getuitext('0');
+            controlText     = getuitext('Control gradient:');
+            controlButton   = getui('pushbutton', 'Compute/show', [], 'control');
                                  
             controls      = {{objText, objButton}, ...
                              {gradText, gradButton}, ...
                              {sliderText, slider}, ...
-                             {incText1, incText2}};
+                             {controlText, controlButton}};
             controlLayout = {[.5 .5], [.5 .5], [.5 .5], [.5 .5]}; 
             
             s = s@UIItem('Parent', opt.Parent, 'controls', controls, ...
@@ -46,13 +46,14 @@ classdef ProxySelector < UIItem
             s.objectiveButton  = objButton;
             s.gradientButton   = gradButton;
             s.slider           = slider;
-            s.increaseText     = incText2;
+            s.controlButton     = controlButton;
             s.fixedHeight = true;
             % main callback
             s.Callback = opt.Callback;
             s.objectiveButton.Callback = @s.Callback;
             s.gradientButton.Callback  = @s.gradientCallback;
             s.slider.Callback          = @s.Callback;
+            s.controlButton.Callback   = @s.Callback;
             s.slider.Enable = 'off';
             % set visible
             s.Visible = opt.Visible;
