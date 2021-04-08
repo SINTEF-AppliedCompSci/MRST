@@ -6,7 +6,8 @@ function [G, gix, G_slice] = sliceGrid(G, pnts, varargin)
 % computeGridSlicePolygons.m for further info on optional params.
 opt = struct('onlyFaces',  false, ...
              'topoSplit',  true, ...
-             'mcompute',   exist('mcomputeGeometry', 'file') > 0);
+             'mcompute',   exist('mcomputeGeometry', 'file') > 0, ...
+             'gix_input',  []);
 [opt, opt2] = merge_options(opt, varargin{:});
 % others passed on to computeGridSlice
 
@@ -85,7 +86,7 @@ for k = 1:npts
         [isSplit, isCut] = deal([]);
     end
     if k == 1
-        gix = [];
+        gix = opt.gix_input;
     end
     gix = getIndices(ncOld, nfOld, cutCells.ix(isCut), cutFaces.ix(isSplit), sliceFaces, gix);
 end
@@ -418,14 +419,15 @@ if isempty(ixp)
     ix.old    = struct('cells', true(nc,1), 'faces', true(nf,1));
     ix.new    = struct('cells', ones(nc+nc2,1), 'faces', ones(nf+nf2+nc2,1));
     ix.parent = struct('cells', [(1:nc)'; cutCellIx], 'faces', [(1:nf)'; cutFaceIx; zeros(nc2,1)]);
+    previous  = ix.parent;
 else
     [nc_orig, nf_orig] = deal(numel(ixp.old.cells), numel(ixp.old.faces));
     ix.old    = ixp.old;
     ix.new    = struct('cells', [ixp.new.cells; ones(nc2, 1)], ...
                        'faces', [ixp.new.faces; ones(nf2+nc2, 1)]);
-    %ix.parent = struct('cells', [ixp.parent.cells; cutCellIx], ...
-    %                   'faces', [ixp.parent.faces; cutFaceIx; zeros(nc2,1)]);
-    ix.parent = struct('cells', [(1:nc)'; cutCellIx], 'faces', [(1:nf)'; cutFaceIx; zeros(nc2,1)]);
+    ix.parent = struct('cells', [ixp.parent.cells; ixp.parent.cells(cutCellIx)], ...
+                       'faces', [ixp.parent.faces; ixp.parent.faces(cutFaceIx); zeros(nc2,1)]);
+    previous = struct('cells', [(1:nc)'; cutCellIx], 'faces', [(1:nf)'; cutFaceIx; zeros(nc2,1)]);
 end
 
 % set split cells/faces to false
@@ -439,10 +441,12 @@ ix.new.faces([cutFaceIx; nf + (1:nf2)']) = 2;
 ix.new.faces(nf + nf2 + (1:nc2)) = 3;
 ix.new.faces(sliceFaces) = 3;
 if ~isempty(ixp)
-    pfac   = ix.parent.faces;
+    %pfac   = ix.parent.faces;
+    pfac = previous.faces;
     pfacix = pfac > 0; 
     ix.new.faces(pfacix) = max(ix.new.faces(pfacix), ixp.new.faces(pfac(pfacix)));
-    pcel   = ix.parent.cells;
+    %pcel   = ix.parent.cells;
+    pcel   = previous.cells;
     pcelix = pcel > 0;
     ix.new.cells(pcelix) = max(ix.new.cells(pcelix), ixp.new.cells(pcel(pcelix)));
 end
