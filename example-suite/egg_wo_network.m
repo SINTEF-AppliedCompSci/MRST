@@ -1,11 +1,11 @@
 function [description, options, state0, model, schedule, plotOptions, connectionIndices] ...
-    = ensemble_base_problem_simple_gpsnet_model(varargin)
+    = egg_wo_network(varargin)
 % Creates a GPSNET model with two-phase flow between the injectors and
 % producers found in the Egg model.
 %
 % SYNOPSIS:
 %   [description, options, state0, model, schedule, plotOptions, connectionIndices] ...
-%        = ensemble_base_problem_simple_gpsnet_model('pn1', pv1, ...)
+%        = egg_wo_network('pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   
