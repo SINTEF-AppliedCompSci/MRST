@@ -350,7 +350,7 @@ function [val, der, wellSols, states] = ...
 
    % run adjoint:
    if nargout > 1
-      objh = @(tstep)obj_fun(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
+      objh = @(tstep,varargin)obj_fun(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
       g    = computeGradientAdjointAD(initState, states, model, schedule, objh);
       % scale gradient:
       der = scaleGradient(g, schedule, boxLims, objScaling);
