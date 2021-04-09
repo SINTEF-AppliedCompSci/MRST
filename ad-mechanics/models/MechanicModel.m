@@ -151,6 +151,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function forces = getValidDrivingForces(model)
             % The fluid pressure stimulates the mechanical system. It is given as a driving
             % force.
+            forces = getValidDrivingForces@PhysicalModel(model);
             forces.fluidp = [];
         end
 
