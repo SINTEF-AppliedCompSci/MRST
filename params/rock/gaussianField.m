@@ -48,16 +48,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-if nargin==1,
+if nargin==1
    sz = 3; std = 0.65; vals = [-1 1];
 elseif nargin==2
    sz = 3; std = 0.65;
-elseif nargin==3,
+elseif nargin==3
    std = 0.65;
 elseif nargin>4 || nargin==0
    error(id('WrongNumberOfInputs'),'Wrong number of input arguments.');
 end
-if length(sz)==1,
+if length(sz)==1
    sz = [sz sz sz];
 elseif numel(sz)>3 || numel(sz)==0
    error(id('InvalidSizeInput'),'SIZE must be a vector with 1, 2, or 3 elements.');
