@@ -22,12 +22,13 @@ classdef InjectionSurfaceDensity < StateFunction
             % perforation.
             topcell = arrayfun(@(x) x.cells(1), W);
             rhoS = applyFunction(@(x) x(topcell), rhoSr);
-            if isfield(W, 'rhoS')
+            isInj = map.isInjector;
+            if isfield(W, 'rhoS') && any(isInj)
                 % Surface density is given on a per-well-basis for the
                 % injectors
-                rhoS_inj = vertcat(W(map.isInjector).rhoS);
+                rhoS_inj = vertcat(W(isInj).rhoS);
                 for i = 1:numel(rhoS)
-                    rhoS{i}(map.isInjector) = rhoS_inj(:, i);
+                    rhoS{i}(isInj) = rhoS_inj(:, i);
                 end
             end
         end
