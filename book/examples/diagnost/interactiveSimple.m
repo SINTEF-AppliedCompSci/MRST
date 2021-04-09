@@ -1,5 +1,5 @@
 %% Simple 2D reservoir with two injectors and three producers
-% This is an examples discussed in the MRST book, which is a continuation
+% This is an example discussed in the MRST book, which is a continuation
 % of the 'showDiagnostBasics' example, in which we have added two
 % low-porosity regions as a simple representation of two sealing faults,
 % moved the two injectors slightly, and switched all wells from rate to
