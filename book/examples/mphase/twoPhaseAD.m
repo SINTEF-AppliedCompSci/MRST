@@ -178,6 +178,10 @@ for n=1:nstep
 
         % Compute Newton update and update variable
         res = eq.val;
+        % Alternatively, you can use a LU factorization which may be
+        % required for some Matlab versions when isCompr = false
+        % [L, U] = lu(eq.jac{1});
+        % upd = -(U\(L \ res));
         upd = -(eq.jac{1} \ res);
         p.val  = p.val   + upd(pIx);
         sW.val = sW.val + upd(sIx);
