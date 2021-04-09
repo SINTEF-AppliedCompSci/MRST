@@ -74,6 +74,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
                                 solver_prm.transportLinearSolver;
             end
             
+            model.outerCheckParentConvergence = ...
+                model.outerCheckParentConvergence && ~isempty(model.parentModel);
             if model.outerCheckParentConvergence
                 % Parent model decides outer convergence - cutting only
                 % transport does not make sense
