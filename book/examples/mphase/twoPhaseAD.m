@@ -15,7 +15,7 @@
 % condition numbers, and oil production will be added to the same plots.
 
 if exist('isCompr','var')~=1
-    isCompr = false;
+    isCompr = true;
 end
 
 %% Set up model geometry
