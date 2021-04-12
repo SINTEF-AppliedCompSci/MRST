@@ -70,6 +70,10 @@ classdef FlowDiscretizationDG < FlowDiscretization
                     cells = [model.G.faces.neighbors(faces,1); model.G.faces.neighbors(faces,2)];
             end
             
+            pvtprops = model.PVTPropertyFunctions;
+            pvtprops = expandPropsRegions(pvtprops, cells);
+            model.PVTPropertyFunctions = pvtprops;
+            
             fpprops = model.FlowPropertyFunctions;
             fpprops = expandPropsRegions(fpprops, cells);
             model.FlowPropertyFunctions = fpprops;
