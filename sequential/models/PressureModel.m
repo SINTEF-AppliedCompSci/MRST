@@ -204,11 +204,11 @@ classdef PressureModel < WrapperModel
                 % Requires that the pressure reduction factors are scaled
                 % relative to each other between nonlinear iterations.
                 isP = strcmpi(problem.equationNames, 'pressure');
-                [mass, w] = model.parentModel.getProps(value(problem.state), ...
+                [mass, w] = model.parentModel.getProps(problem.state       , ...
                                                  'ComponentTotalMass'      , ...
-                                                 'PressureReductionFactors');                
-                mass = cell2mat(reshape(mass, 1, []));
-                w    = cell2mat(reshape(w, 1, []));
+                                                 'PressureReductionFactors');
+                mass  = value(reshape(mass, 1, []));
+                w     = value(reshape(w, 1, []));
                 scale = problem.dt./sum(mass.*w,2);
                 values(1) = norm(value(problem.equations{isP}).*scale, inf);
                 convergence(1) = values(1) < ptol;
