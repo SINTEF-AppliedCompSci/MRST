@@ -201,10 +201,18 @@ classdef PressureModel < WrapperModel
             assert(usePTol || useITol, 'Pressure model has no valid way of checking convergence!');
             if usePTol
                 % Check the actual value of the pressure equation. Note:
-                % Requires that the equation is actually properly scaled!
-                % The scaling is implicit from the pressure reduction
-                % factors.
+                % Requires that the pressure reduction factors are scaled
+                % relative to each other between nonlinear iterations.
+                isP = strcmpi(problem.equationNames, 'pressure');
+                [mass, w] = model.parentModel.getProps(problem.state       , ...
+                                                 'ComponentTotalMass'      , ...
+                                                 'PressureReductionFactors');
+                mass  = value(reshape(mass, 1, []));
+                w     = value(reshape(w, 1, []));
+                scale = problem.dt./sum(mass.*w,2);
+                values(1) = norm(value(problem.equations{isP}).*scale, inf);
                 convergence(1) = values(1) < ptol;
+                names{1} = 'pressure';
             else
                 % Skip first equation
                 names = names(2:end);

@@ -7,7 +7,6 @@ classdef SequentialPressureTransportModel < ReservoirModel
         pressureNonLinearSolver % NonLinearSolver instance used for pressure updates
         transportNonLinearSolver % NonLinearSolver instance used for saturation/mole fraction updates
 
-
         reupdatePressure % Update pressure based on new mobilities before proceeding to next step
         
         % The following are convergence criteria for the outer loop. To
@@ -20,9 +19,13 @@ classdef SequentialPressureTransportModel < ReservoirModel
         incTolSaturation = 1e-3; % Tolerance for change in saturations in transport for convergence. 
         outerCheckParentConvergence = true; % Use parentModel, if present, to check convergence
         outerCheckPressureConvergence = false; % Check the pressure equation after transport
+        relaxationThreshold = inf; % Outer iteration threshold before we enforce relaxation.
+                                   % Setting this to < inf will relpace any relaxation computed by
+                                   % the outer nonlinear solver with nls.minRelaxation.
     end
     
     methods
+        %-----------------------------------------------------------------%
         function model = SequentialPressureTransportModel(pressureModel, transportModel, varargin)
             model = model@ReservoirModel(transportModel.G);
             model.pressureModel  = pressureModel;
@@ -71,10 +74,21 @@ classdef SequentialPressureTransportModel < ReservoirModel
                                 solver_prm.transportLinearSolver;
             end
             
+            model.outerCheckParentConvergence = ...
+                model.outerCheckParentConvergence && ~isempty(model.parentModel);
+            if model.outerCheckParentConvergence
+                % Parent model decides outer convergence - cutting only
+                % transport does not make sense
+                model.transportNonLinearSolver.maxTimestepCuts = 0;
+                % Checking saturation increment is not necessary
+                model.incTolSaturation = inf;
+            end
+            
             model.transportNonLinearSolver.errorOnFailure = false;
             model.FacilityModel = []; % Handled by subclasses
         end
         
+        %-----------------------------------------------------------------%
         function [state, report] = stepFunction(model, state, state0, dt,...
                                                 drivingForces, linsolve, nls,...
                                                 iteration, varargin)
@@ -85,7 +99,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             converged = converged_step;
             if converged && ~model.stepFunctionIsLinear
                 [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration, pressure_state);
-                if transportReport.Iterations == 0
+                if transportReport.Iterations == 0 && ~model.outerCheckParentConvergence
                     % If the transport did not do anything, we are
                     % effectively converged, even if the values of the
                     % outer residual are not converged. This must be
@@ -133,15 +147,22 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
         end
         
+        %-----------------------------------------------------------------%
         function [state, pressure_state, pressureReport, transportReport, pressure_ok, transport_ok, forceArg] = solvePressureTransport(model, state, state0, dt, drivingForces, nls, iteration)
            % Solve pressure and transport sequentially
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
-            if iteration > 1 && isprop(model.pressureModel, 'FacilityModel') ...
-                             && ~isempty(model.pressureModel.FacilityModel)
-                for i = 1:numel(model.pressureModel.FacilityModel.WellModels)
-                    model.pressureModel.FacilityModel.WellModels{i}.doUpdatePressureDrop = false;
+            % Disable connection pressure drop update after first iteration
+            prmodel = getReservoirModel(model.pressureModel);
+            trmodel = getReservoirModel(model.transportModel);
+            if iteration > 1 && isprop(prmodel, 'FacilityModel') ...
+                             && ~isempty(prmodel.FacilityModel)
+                for i = 1:numel(prmodel.FacilityModel.WellModels)
+                    prmodel.FacilityModel.WellModels{i}.doUpdatePressureDrop = false;
+                    trmodel.FacilityModel.WellModels{i}.doUpdatePressureDrop = false;
                 end
+                model.pressureModel  = setReservoirModel(model.pressureModel, prmodel);
+                model.transportModel = setReservoirModel(model.transportModel, trmodel);
             end
             % Get the forces used in the step
             forceArg = model.pressureModel.getDrivingForces(drivingForces);
@@ -178,15 +199,15 @@ classdef SequentialPressureTransportModel < ReservoirModel
                     tsolver.solveTimestep(state0, dt, model.transportModel,...
                                 'initialGuess', state, ...
                                 forceArg{:});
-                w = nls.relaxationParameter;
+                if iteration > model.relaxationThreshold
+                    % Enforce relaxation if we are past threshold iteration
+                    nls.relaxationParameter = nls.minRelaxation;
+                end
                 if ~model.stepFunctionIsLinear && ... % Outer loop enabled
                     nls.relaxationParameter ~= 1 % And we should relax
                     % Apply relaxation to global increment if outer solver
                     % requires it
-                    state.s = (1-w).*state.s + w.*pressure_state.s;
-                    if isfield(state, 'sT')
-                        state.sT = (1-w).*state.sT + w;
-                    end
+                    state = model.applyRelaxation(state, pressure_state, nls);
                 end
                 transport_ok = transportReport.Converged;
             else
@@ -195,6 +216,43 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end 
         end
         
+        %-----------------------------------------------------------------%
+        function state = applyRelaxation(model, state, pressureState, nls)
+            % Figure out which variables where updated in the transport step
+            [~, names, origin] = model.transportModel.getStateAD(state, false);
+            % Exclude everything that is not reservoir variables
+            keep = strcmpi(origin, class(getReservoirModel(model.transportModel))) ...
+                               | strcmpi(origin, 'TransportModel');    
+            names = names(keep);
+            % Add pressure if we solver well equations during transport
+            if isprop(model.transportModel, 'implicitType') ...
+                && strcmpi(model.transportModel.implicitType, 'wells')
+                names = [names, 'pressure'];
+            end
+            % Make sure all satuartions are relaxed
+            isS = cellfun(@(name) any(strcmpi(name, {'sW', 'sO', 'sG'})), names);
+            if any(isS)
+                names = names(~isS);
+                names = [names, 's'];
+            end
+            % Handle blackoil-specific variable switching
+            isX = strcmpi(names, 'x');
+            if any(isX)
+                names = names(~isX);
+                names = [names, 'rs', 'rv'];
+            end
+            % Apply relaxation
+            w = nls.relaxationParameter;
+            for n = names
+                name = n{1};
+                vp = model.transportModel.getProp(pressureState, name);
+                vt = model.transportModel.getProp(state, name);
+                v  = (1-w)*vp + w*vt;
+                state = model.transportModel.setProp(state, name, v);
+            end
+        end
+        
+        %-----------------------------------------------------------------%
         function [converged, values, state] = checkOuterConvergence(model, state, state0, dt, drivingForces, iteration, pressure_state)
             resnames = {};
             [converged, values] = deal([]);
@@ -227,6 +285,12 @@ classdef SequentialPressureTransportModel < ReservoirModel
             % that the assumption of fixed total velocity is reasonable
             % up to some tolerance.
             if ~isempty(model.parentModel) && model.outerCheckParentConvergence
+                rmodel = getReservoirModel(model.parentModel);
+                if isa(rmodel, 'ThreePhaseCompositionalModel')
+                    % Disable pressure increment convergence measure
+                    rmodel.incTolPressure = inf;
+                    model.parentModel = setReservoirModel(model.parentModel, rmodel);
+                end
                 state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
                 [problem, state] = model.parentModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
                 state = model.parentModel.reduceState(state, false);
@@ -249,10 +313,11 @@ classdef SequentialPressureTransportModel < ReservoirModel
 
             converged = converged | iteration > model.maxOuterIterations;
             if model.verbose
-                printConvergenceReport(resnames, values, converged, iteration);
+                printConvergenceReport(resnames, values, converged, iteration, converged);
             end
         end
         
+        %-----------------------------------------------------------------%
         function varargout = getActivePhases(model)
             % Transport model solves for saturations, so that is where the
             % active phases are defined
@@ -260,24 +325,41 @@ classdef SequentialPressureTransportModel < ReservoirModel
             [varargout{:}] = model.transportModel.getActivePhases();
         end
         
+        %-----------------------------------------------------------------%
         function state = validateState(model, state)
             % Pressure comes first, so validate that.
             state = model.pressureModel.validateState(state);
             state = model.transportModel.validateState(state);
         end
 
+        %-----------------------------------------------------------------%
         function [model, state] = updateForChangedControls(model, state, forces)
             [model.pressureModel, state] = model.pressureModel.updateForChangedControls(state, forces);
+            model.transportModel         = model.transportModel.updateForChangedControls(state, forces);
+            if ~isempty(model.parentModel)
+                model.parentModel = model.parentModel.updateForChangedControls(state, forces);
+            end
         end
 
+        %-----------------------------------------------------------------%
         function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
             [model.pressureModel, state] = model.pressureModel.prepareTimestep(state, state0, dt, drivingForces);
+            model.transportModel         = model.transportModel.prepareTimestep(state, state0, dt, drivingForces);
+            if ~isempty(model.parentModel)
+                model.parentModel = model.parentModel.prepareTimestep(state, state0, dt, drivingForces);
+            end
         end
 
+        %-----------------------------------------------------------------%
         function [model, state] = prepareReportstep(model, state, state0, dt, drivingForces)
             [model.pressureModel, state] = model.pressureModel.prepareReportstep(state, state0, dt, drivingForces);
+            model.transportModel         = model.transportModel.prepareReportstep(state, state0, dt, drivingForces);
+            if ~isempty(model.parentModel)
+                model.parentModel = model.parentModel.prepareReportstep(state, state0, dt, drivingForces);
+            end
         end
 
+        %-----------------------------------------------------------------%
         function model = validateModel(model, varargin)
             if isprop(model.pressureModel, 'extraWellSolOutput')
                 model.pressureModel.extraWellSolOutput = true;
@@ -290,18 +372,31 @@ classdef SequentialPressureTransportModel < ReservoirModel
             return
         end
 
+        %-----------------------------------------------------------------%
         function [fn, index] = getVariableField(model, name, varargin)
             [fn, index] = model.pressureModel.getVariableField(name, varargin{:});
         end
         
+        %-----------------------------------------------------------------%
         function dt = getMaximumTimestep(model, state, state0, dt, drivingForces)
             dt_p = model.pressureModel.getMaximumTimestep(state, state0, dt, drivingForces);
             dt_t = model.transportModel.getMaximumTimestep(state, state0, dt, drivingForces);
             dt = min(dt_p, dt_t);
         end
         
+        %-----------------------------------------------------------------%
         function forces = validateDrivingForces(model, forces, varargin)
            forces = model.pressureModel.validateDrivingForces(forces, varargin{:});
+        end
+        
+        %-----------------------------------------------------------------%
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            if ~isempty(model.parentModel) && ~model.stepFunctionIsLinear ...
+                && model.outerCheckParentConvergence
+                [state, report] = model.parentModel.updateAfterConvergence(state0, state, dt, drivingForces);
+            else
+                report = [];
+            end
         end
         
     end
