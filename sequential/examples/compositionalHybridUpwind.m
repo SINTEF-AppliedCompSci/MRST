@@ -64,6 +64,9 @@ view(0, 0);
 pmodel = PressureModel(model);
 tmodel = TransportModel(model);
 smodel = SequentialPressureTransportModel(pmodel, tmodel);
+% Use residual-based pressure convergence criteria
+smodel.pressureModel.useIncTol   = false;
+smodel.pressureModel.pressureTol = 1e-3;
 seq = packSimulationProblem(state0, smodel, schedule, BaseName, 'NonLinearSolver', nls, 'Name', 'Sequential-PU');
 simulatePackedProblem(seq, 'restartStep', 1, 'continueOnError', false);
 %% Solve with hybrid upwind that treats gravity separately from pressure gradient ("viscous" flow)
