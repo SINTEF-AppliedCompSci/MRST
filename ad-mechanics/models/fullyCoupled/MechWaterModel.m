@@ -133,11 +133,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 fluidModel.FacilityModel.getAllPrimaryVariables(wellSol0);
 
             if opt.reverseMode
-                [p0, wellVars0{:}, xd0] = initVariablesADI(p0, wellVars0{:}, ...
-                                                                xd0);
+                [p0, wellVars0{:}, xd0] = initVariablesADI(p0, wellVars0{:}, xd0);
             else
-                [p, wellVars{:}, xd] = initVariablesADI(p, wellVars{:}, ...
-                                                            xd);
+                [p, wellVars{:}, xd] = initVariablesADI(p, wellVars{:}, xd);
             end
 
             [mechTerm, fluidp] = computeCouplingTerms(model, p0, xd0, p, xd, ...
