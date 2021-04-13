@@ -628,7 +628,7 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
         end
     else
         t_unt = 1;
-        t_str = 'timestep';
+        t_str = 's';
         if isCsum
             warning('mrst:badcumsum', ['Timesteps not provided to plotWellSols,', ...
                     ' cumulative sum will not be accurate']);
