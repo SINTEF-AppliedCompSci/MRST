@@ -18,10 +18,10 @@ The implementation follows the description done in the two following papers:
 
 -   The MPSAW module is included in every MRST release as a *snapshot* of this repository at the time of the
     release. Therefore, the easiest way to install the module is to install the latest release of MRST which can be
-    found [here](https://www.sintef.no/projectweb/mrst/download/), with the installation instructions
+    found [here](https://www.sintef.no/projectweb/mrst/download/) with the installation instructions.
 -   For developpers, it is also possible to use directly the module from this repository. MRST should be installed
-    (either release version of [development version](https://bitbucket.org/mrst/mrst-core/wiki/Home)). Then the module should be registered as described in a example
-    [here](https://bitbucket.org/mrst/mrst-core/wiki/Home) (end of page).
+    (either a release version or a [development version](https://bitbucket.org/mrst/mrst-core/wiki/Home)). Then, the module should be registered as described in an
+    example [here](https://bitbucket.org/mrst/mrst-core/wiki/Home) (end of page).
 
 
 ## Examples
