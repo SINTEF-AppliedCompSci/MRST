@@ -65,11 +65,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     G = model.G;
     W = drivingForces.W;
 
-    [p0, wellSol0] = model.getProps(state0, 'pressure', 'wellSol');
 
-
-    %grav  = gravity;
-    %gdz   = s.Grad(G.cells.centroids) * model.gravity';
+    % grav  = gravity;
+    % gdz   = s.Grad(G.cells.centroids) * model.gravity';
     gdz   = s.Grad(G.cells.centroids) * model.getGravityVector()';
 
     %--------------------
@@ -91,15 +89,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     trans=s.T.*transMult;
     % -------------------------------------------------------------------------
     % water props (calculated at oil pressure OK?)
-    bW     = f.bW(p);
-    rhoW   = bW.*f.rhoWS;
+    bW   = f.bW(p);
+    rhoW = bW.*f.rhoWS;
     % rhoW on face, avarge of neighboring cells (E100, not E300)
-    rhoWf  = s.faceAvg(rhoW);
-    mobW   = trMult./f.muW(p);
-    dpW     = s.Grad(p) - rhoWf.*gdz;
+    rhoWf = s.faceAvg(rhoW);
+    mobW  = trMult./f.muW(p);
+    dpW   = s.Grad(p) - rhoWf.*gdz;
     % water upstream-index
     upcw = (value(dpW)<=0);
-    vW = - s.faceUpstr(upcw, mobW).*trans.*dpW;
+    vW   = - s.faceUpstr(upcw, mobW).*trans.*dpW;
     bWvW = s.faceUpstr(upcw, bW).*vW;
 
     if model.outputFluxes
@@ -114,17 +112,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % EQUATIONS ---------------------------------------------------------------
 
-    effPorVol = G.cells.volumes.*(rock.poro.*pvMult + rock.alpha .* ...
-                                  mechTerm.new);
-    effPorVol0 = G.cells.volumes.*(rock.poro.*pvMult0 + rock.alpha .* ...
-                                   mechTerm.old);
+    effPorVol = G.cells.volumes.*(rock.poro.*pvMult + rock.alpha .* mechTerm.new);
+    effPorVol0 = G.cells.volumes.*(rock.poro.*pvMult0 + rock.alpha .* mechTerm.old);
 
-    eqs{1} = (1 ./ dt) .* (effPorVol .* bW - effPorVol0.* f.bW(p0)) + ...
-             s.Div(bWvW);
+    eqs{1} = (1 ./ dt) .* (effPorVol .* bW - effPorVol0.* f.bW(p0)) + s.Div(bWvW);
 
-    [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, {p}, ...
-                                               {rhoW}, {mobW}, {1}, ...
-                                               drivingForces);
+    [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, {p}, {rhoW}, {mobW}, {1}, drivingForces);
 
     if model.outputFluxes
        state = model.storeBoundaryFluxes(state, qRes, [], [], drivingForces);
@@ -135,8 +128,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Finally, add in and setup well equations
     wellSol = model.getProp(state, 'wellsol');
-    [~, wellVarNames, wellMap] = ...
-        model.FacilityModel.getAllPrimaryVariables(wellSol);
+    [~, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+    wellSol0 = model.getProps(state0, 'wellSol');
+
     [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
                                                       names, types, wellSol0, ...
                                                       wellSol, wellVars, ...

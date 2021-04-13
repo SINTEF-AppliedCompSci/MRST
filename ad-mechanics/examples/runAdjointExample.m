@@ -34,9 +34,7 @@ L       = [30, 10];
 G = cartGrid(cartDim, L);
 G = computeGeometry(G);
 
-
 %% Setup fluid
-%
 
 % We can consider different fluid models
 
@@ -243,13 +241,13 @@ model = model.validateModel(); % setup consistent fields for model (in
 %
 
 clear schedule
-schedule.step.val     = [1*day*ones(1, 1); 10*day*ones(30, 1)];
+schedule.step.val = [1*day*ones(1, 1); 10*day*ones(30, 1)];
 nsteps = numel(schedule.step.val);
 schedule.step.control = (1 : nsteps)';
 valmax = 1*meter^3/day;
 valmin = 1e-1*meter^3/day;
 ctime = cumsum(schedule.step.val);
-flattentime   = 150*day; % Time when we reach the minimal rate value
+flattentime = 150*day; % Time when we reach the minimal rate value
 qW = zeros(nsteps, 1);
 for i = 1 : numel(schedule.step.control)
     if ctime(i) < flattentime
@@ -327,24 +325,20 @@ xlabel('time (in days)');
 
 %% Compute gradients using the adjoint formulation for three different exponents
 
-np               = 3;
-exponents        = cell(np, 1);
-adjointGradients = cell(np, 1);
 
-exponents = {1; 10; 50};
+exponents = {1; 10};
+np = numel(exponents);
+adjointGradients = cell(np, 1);
 
 for p = 1 : np
     C = 1e3; % For large exponents we need to scale the values to avoid very large
              % or very small objective function
-    objUpliftFunc = @(tstep) objUpliftAver(model, states, schedule, topnode, ...
-                                           'tStep', tstep, 'computePartials', true, ...
-                                           'exponent', exponents{p}, ...
-                                           'normalizationConstant', C);
+    objUpliftFunc = @(tstep, ~, state) objUpliftAver(model, [], schedule, topnode, 'computeAllSteps', false, 'tStep', ...
+                                                     tstep, 'state', state, 'computePartials', true, 'exponent', ...
+                                                     exponents{p}, 'normalizationConstant', C);
     fprintf('\n***\n*  Start adjoint simulation for exponent p=%g\n*\n', exponents{p});
-    adjointGradients{p} = computeGradientAdjointAD(initState, states, model, ...
-                                                   schedule, objUpliftFunc);
+    adjointGradients{p} = computeGradientAdjointAD(initState, states, model, schedule, objUpliftFunc);
 end
-
 
 %% We can check the results from the adjoint computation by using finite difference
 %
@@ -355,15 +349,18 @@ end
 
 compute_numerical_derivative = false;
 if compute_numerical_derivative
-    objUpliftFunc2 = @(wellSols, states, schedule) objUplift(model, states, ...
-                                                      schedule, topnode, ...
-                                                      'computePartials', ...
-                                                      false);
-    fdgrad = computeGradientPerturbationAD(initState, model, schedule, ...
-                                           objUpliftFunc2, 'perturbation', ...
-                                           1e-7);
-end
+    p = 3;
+    exponent = exponents{p};
+    objUpliftFunc2 = @(wellSols, states, schedule) objUpliftAver(model, states, schedule, topnode, 'computePartials', ...
+                                                      false, 'exponent', exponent, 'normalizationConstant', C);
+    fdgrad = computeGradientPerturbationAD(initState, model, schedule, objUpliftFunc2, 'perturbation', 1e-7);
+    
+    adjgrad = cell2mat(adjointGradients{p});
+    fdgrad = cell2mat(fdgrad);
+    
+    abs(adjgrad - fdgrad)./(abs(adjgrad) + abs(fdgrad))
 
+end
 
 %% Plots of the results.
 %
@@ -399,7 +396,7 @@ legend(legendtext);
 % decreased. The absolute minimum uplift is of course zero and it is obtained
 % when we do not inject anything. To avoid this trivial case, we impose the
 % extra requirement that, in all cases, we will have the same decrease in the total
-% injection.
+% injection rates (see dcqW).
 
 inituplifts = uplifts;
 initschedule = schedule;
@@ -455,7 +452,7 @@ for p = 1 : np
 
 end
 
-% plot of the results.
+%% plot of the results.
 figure
 set(gcf, 'position', [100, 100, 1500, 600]);
 clf
