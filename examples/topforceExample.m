@@ -1,6 +1,7 @@
 %% Example where we impose a controlled force at the top
 % The intensity of the force is gradually increased (see setup of schedule
 % below).
+clear all
 close all
 
 %% Load required modules

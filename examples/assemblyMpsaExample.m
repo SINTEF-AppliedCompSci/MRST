@@ -5,6 +5,7 @@
 % Keilegavlen, Eirik and Nordbotten, Jan Martin
 % International Journal for Numerical Methods in Engineering 2017
 
+clear all
 close all
 
 % load modules

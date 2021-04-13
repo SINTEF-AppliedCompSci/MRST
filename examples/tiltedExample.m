@@ -1,3 +1,4 @@
+clear all
 close all
 
 mrstModule add mpsaw vemmech mpfa

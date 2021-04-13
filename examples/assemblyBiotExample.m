@@ -2,6 +2,7 @@
 %
 % Simple examples
 
+clear all
 close all
 
 % load modules

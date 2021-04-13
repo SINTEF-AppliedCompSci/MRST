@@ -7,6 +7,7 @@
 
 mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing mpsaw
 
+clear all
 close all
 
 dimcase = 2;

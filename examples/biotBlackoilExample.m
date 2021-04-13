@@ -1,6 +1,9 @@
 % Load modules
 mrstModule add ad-core ad-blackoil compositional ad-props mrst-gui mpsaw mpfa
 
+clear all
+close all
+
 %% Setup geometry
 
 dims = [30, 30];
@@ -24,7 +27,7 @@ pv = sum(poreVolume(G, rock));
 
 pRef = 0*barsa;
 gravity reset off;
-fluid = initSimpleADIFluid('cR', 1, 'pRef', pRef);
+fluid = initSimpleADIFluid('cR', 1, 'pRef', pRef, 'mu', [1, 1, 1]);
 
 % Symmetric well pattern
 [ii, jj] = gridLogicalIndices(G);

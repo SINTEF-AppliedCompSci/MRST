@@ -1,6 +1,9 @@
 % Load modules
 mrstModule add ad-core ad-blackoil compositional ad-props mrst-gui mpsaw mpfa
 
+clear all
+close all
+
 %% Setup geometry
 
 dims = [41, 20];
