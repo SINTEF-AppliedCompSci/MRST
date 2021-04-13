@@ -14,6 +14,16 @@ The implementation follows the description done in the two following papers:
 -   *Stable cell-centered finite volume discretization for Biot equations*, Nordbotten, Jan Martin, SIAM Journal on Numerical Analysis 2016, <https://doi.org/10.1137/15M1014280>
 
 
+## Installation
+
+-   The MPSAW module is included in every MRST release as a *snapshot* of this repository at the time of the
+    release. Therefore, the easiest way to install the module is to install the latest release of MRST which can be
+    found [here](https://www.sintef.no/projectweb/mrst/download/), with the installation instructions
+-   For developpers, it is also possible to use directly the module from this repository. MRST should be installed
+    (either release version of [development version](https://bitbucket.org/mrst/mrst-core/wiki/Home)). Then the module should be registered as described in a example
+    [here](https://bitbucket.org/mrst/mrst-core/wiki/Home) (end of page).
+
+
 ## Examples
 
 Examples can be found in [`examples`](examples/) directory
