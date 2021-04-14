@@ -380,6 +380,9 @@ classdef DiagonalJacobian
                                     % sense
                                     allowDiag = ~isempty(vsub) && u.compareIndices(u, s.subs{1}, vsub);
                                 else
+                                    if isempty(vsub)
+                                        vsub = (1:v.dim(1))';
+                                    end
                                     % u.subset is not zero
                                     allowDiag = u.compareIndices(u, s.subs{1}, usub(s.subs{1})) &&...
                                                 u.compareIndices(u, s.subs{1}, vsub);
