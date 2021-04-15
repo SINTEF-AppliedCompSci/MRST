@@ -65,6 +65,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fprintf(' - Show all examples in all modules: ');
     printMatlabLink(isDesktop, 'mrstExamples(''all'')');
 
+    fprintf(' - Show settings for MRST:           ');
+    printMatlabLink(isDesktop, 'mrstSettings()');
+
     fprintf(' - Display this message:             ');
     printMatlabLink(isDesktop, 'mrstStartupMessage()');
     
