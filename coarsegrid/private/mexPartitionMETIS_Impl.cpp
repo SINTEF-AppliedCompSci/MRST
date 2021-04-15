@@ -1,5 +1,4 @@
-// Copyright 2020 SINTEF Digital, Mathematics & Cybernetics
-
+// Copyright 2020-2021 SINTEF Digital, Mathematics & Cybernetics.
 #include <mex.h>
 
 #include <algorithm>

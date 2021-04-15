@@ -2,7 +2,7 @@ function [A_pp, q_p, A_ww, A_wp, q_w] = eliminateWellEquations(A, q, nc)
 % Eliminate well equations from linear system
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

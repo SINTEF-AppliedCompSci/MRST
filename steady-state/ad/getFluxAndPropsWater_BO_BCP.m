@@ -3,7 +3,7 @@ function [vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO_BCP(...
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

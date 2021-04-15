@@ -3,7 +3,7 @@ function pcow = getExampleCapPres(poro, perm, swir, sor, varargin)
 % of size nreg, where pcow{r} is a matrix of size opt.nsat x 2.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
