@@ -5,7 +5,7 @@ function [description, options, state0, model, schedule, plotOptions] = spe10_la
 %   `MRSTExample`, `example_template`, `exampleSuiteTutorial`.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

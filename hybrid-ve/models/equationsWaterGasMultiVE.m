@@ -1,6 +1,6 @@
 function [problem, state] = equationsWaterGasMultiVE(model, state0, state, dt, drivingForces, varargin)
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

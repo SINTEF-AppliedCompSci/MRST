@@ -69,7 +69,7 @@ function [res, rel_hist, residuals, eqs] = poroParams(phi, uniform, varargin)
 %   poroParams(0.25, false, 'K', 1e9, 'H', 1.1e9, 'R', 1.2e9, 'G', 1.1e9) 
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

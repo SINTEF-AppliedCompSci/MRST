@@ -248,7 +248,7 @@ disp(['Speedup simulation: ', num2str(sum(t1(1:3))/sum(t2(1:3)))])
 %%
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
