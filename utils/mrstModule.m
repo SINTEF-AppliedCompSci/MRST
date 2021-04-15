@@ -76,6 +76,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if isempty(BEHAVIOUR), BEHAVIOUR = 'experimental'; end
 
+   if mrstPlatform('matlab')
+      purge_octave_only();
+   end
+
    if nargin > 0
       assert (iscellstr(varargin), 'All parameters must be strings.');
 
@@ -361,5 +365,28 @@ function pth = split_path(pth)
    catch  %#ok
       % Octave compatiblity.  It is an error to get here in an M run.
       pth = strsplit(pth, pathsep);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function purge_octave_only()
+   octave = fullfile('utils', 'octave_only');
+   pth    = regexp(path, regexptranslate('escape', pathsep), 'split');
+   match  = regexp(pth , regexptranslate('escape', octave));
+   purge  = ~cellfun('isempty', match);
+
+   rmpath(pth{purge});
+
+   if mrstVerbose && any(purge)
+      dstring = sprintf(' * %s\n', pth{purge});
+
+      pl = 'ies were';
+      if sum(purge) == 1, pl = 'y was'; end
+
+      warning('ExlcudeOctave:InMATLAB', ...
+             ['The following Octave compatibility director%s ', ...
+              'removed from the search path due to running ', ...
+              'in MATLAB:\n%s'], pl, dstring);
    end
 end
