@@ -59,7 +59,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     persistent SETTINGS
-    isDesktop = usejava('desktop'); % Check for GUI etc
+    isDesktop = mrstPlatform('desktop'); % Check for GUI etc
     need_save = false;
     if isempty(SETTINGS)
         SETTINGS = loadSettings();
@@ -132,29 +132,49 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             assert(nargout == 0);
             checkSetting(SETTINGS, sarg);
             new = varargin{2};
-            if ischar(new) && islogical(SETTINGS.(sarg).value)
-                switch lower(new)
-                    case {'true', 'on'}
-                        new = true;
-                    case {'false', 'off'}
-                        new = false;
-                    case 'toggle'
-                        new = ~SETTINGS.(sarg).value;
-                    otherwise
-                        error('Operation %s not supported for ''set''', new);
+            if ischar(new) && isstruct(SETTINGS.(sarg))
+                if islogical(SETTINGS.(sarg).value)
+                    switch lower(new)
+                        case {'true', 'on'}
+                            new = true;
+                        case {'false', 'off'}
+                            new = false;
+                        case 'toggle'
+                            new = ~SETTINGS.(sarg).value;
+                        otherwise
+                            error('Operation %s not supported for ''set''', new);
+                    end
                 end
             end
-            SETTINGS.(sarg).value = new;
-            SETTINGS.(sarg).defaulted = false;
-            need_save = true;
+            if ~isempty(regexpi(sarg, '\s*Directory'))                     %#ok
+                assert(ischar(new), 'Directory must be a string.');
+                if isdir(new)                                              %#ok
+                    new = getCanonicalPath(new);
+                    SETTINGS.(sarg) = new;
+                    need_save = true;
+                else
+                    warning(['Supplied directory ''', new, ''' is not a directory. ', ...
+                             sarg, ' has not been changed']);
+                end
+            else
+                SETTINGS.(sarg).value = new;
+                SETTINGS.(sarg).defaulted = false;
+                need_save = true;
+            end
         case 'get'
             if isempty(sarg)
                 varargout{1} = SETTINGS;
             else
                 checkSetting(SETTINGS, sarg);
-                varargout{1} = SETTINGS.(sarg).value;
+                setting =  SETTINGS.(sarg);
+                if ischar(setting)
+                    varargout{1} = setting;
+                else
+                    varargout{1} = setting.value;
+                end
+
                 if nargout > 1
-                    varargout{2} = SETTINGS.(sarg);
+                    varargout{2} = setting;
                 end
             end
         case 'list'
@@ -165,7 +185,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         otherwise
             error('Unknown verb ''%s''.', verb);
     end
-        
+
     if need_save
         storeSettings(SETTINGS);
     end
@@ -176,10 +196,14 @@ function settings = firstTimeSetup(settings, isDesktop, doWizard)
         settings = getDefaultMRSTSettings(true);
     end
     if nargin < 3
-        doWizard = prompt('MRST settings', ...
-            ['MRST has several advanced configuration settings. Would you like to', ...
-            ' set these up now? Otherwise, these settings will use reasonable defaults', ...
-            ' and can be configured by calling ''mrstSettings'' later.'], isDesktop);
+        if mrstPlatform('octave')
+            doWizard = false;
+        else
+            doWizard = prompt('MRST settings', ...
+                ['MRST has several advanced configuration settings. Would you like to', ...
+                ' set these up now? Otherwise, these settings will use reasonable defaults', ...
+                ' and can be configured by calling ''mrstSettings'' later.'], isDesktop);
+        end
     end
     if doWizard
         if isDesktop
@@ -375,9 +399,14 @@ function opts = getDefaultMRSTSettings(setDefaults)
     if nargin == 0
         setDefaults = true;
     end
-    opts = struct('outputDirectory', mrstOutputDirectory(), ...
-                  'dataDirectory',   mrstDataDirectory());
-              
+    out = default_output_dir();
+    data = default_data_dir();
+    ensure_directory_exists(out)
+    ensure_directory_exists(data)
+
+    opts = struct('outputDirectory', out, ...
+                  'dataDirectory',   data);
+    
     useMEX = checkCompiler(setDefaults);
     allowDL = checkDownload(setDefaults);
     useOpenMP = ~strcmpi(mrstPlatform('os'), 'macos');
@@ -415,7 +444,7 @@ end
 function allowDL = checkDownload(setDefaults)
     testurl = 'https://www.sintef.no/contentassets/efe341cda156406aa06bc8e6a149aa26/DL_TEST.zip';
     if setDefaults
-        out = mrstOutputDirectory();
+        out = default_output_dir();
         try
             unzip(testurl, out);
             allowDL = exist(fullfile(out, 'DL_TEST.txt'), 'file') > 0;
@@ -442,6 +471,25 @@ function useMEX = checkCompiler(setDefaults)
             end
         catch
             % useMEX should be false
+        end
+    end
+end
+
+function ddir = default_data_dir()
+    ddir = fullfile(ROOTDIR, 'examples', 'data');
+end
+
+function odir = default_output_dir()
+    odir = fullfile(ROOTDIR, 'output');
+end
+
+function ensure_directory_exists(ddir)
+    if ~isdir(ddir)                                                        %#ok
+        [ok, msg, id] = mkdir(ddir);
+
+        if ~ok
+            error(id, 'Failed to create Data Directory ''%s'': %s', ...
+                  ddir, msg);
         end
     end
 end

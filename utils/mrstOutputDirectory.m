@@ -27,7 +27,7 @@
 %   located under the mrst root directory (see ROOTDIR())
 %
 % SEE ALSO:
-%   `mrstModule`, `mrstOutputDirectory`, `mrstPath`
+%   `mrstModule`, `mrstDataDirectory`, `mrstPath`
 
 %{
 Copyright 2009-2018 SINTEF Digital, Applied Mathematics.
@@ -48,66 +48,17 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    persistent OUTPUTDIR
-
-    if isempty(OUTPUTDIR)
-        OUTPUTDIR = initialize_output_directory(varargin{:});
-
-        mlock
-    end
-
     if nargin == 0 && nargout == 0
         fprintf('The current MRST output directory is set to:\n\t%s\n', ...
-                 OUTPUTDIR);
-    elseif nargin > 0
-        newDir = varargin{1};
-        assert(ischar(newDir), 'Output directory must be a string');
-
-        newDir = getCanonicalPath(newDir);
-        if isdir(newDir)
-            munlock
-            OUTPUTDIR = newDir;
-            mlock
-        else
-            warning(['Supplied directory ''', newDir, ''' is not a directory.', ...
-                     ' Output directory has not been changed']);
-        end
+                 mrstSettings('get', 'outputDirectory'));
+    elseif nargin == 1
+        mrstSettings('set', 'outputDirectory', varargin{1})
+    elseif nargin > 1
+        error('Function must be called with one or zero inputs.');
     end
 
     if nargout > 0
-        varargout{1} = OUTPUTDIR;
+        varargout{1} = mrstSettings('get', 'outputDirectory');
     end
 end
 
-%--------------------------------------------------------------------------
-
-function odir = initialize_output_directory(varargin)
-    if (nargin > 0) && ischar(varargin{1})
-        % Caller requested specific output directory.  Honour request.
-        odir = varargin{1};
-    else
-        % No specific output directory requested.  Use default.
-        odir = default_output_dir();
-    end
-
-    ensure_directory_exists(odir);
-end
-
-%--------------------------------------------------------------------------
-
-function ensure_directory_exists(odir)
-    if ~isdir(odir)
-        [ok, msg, id] = mkdir(odir);
-
-        if ~ok
-            error(id, 'Failed to create Output Directory ''%s'': %s', ...
-                  odir, msg);
-        end
-    end
-end
-
-%--------------------------------------------------------------------------
-
-function odir = default_output_dir()
-    odir = fullfile(ROOTDIR, 'output');
-end
