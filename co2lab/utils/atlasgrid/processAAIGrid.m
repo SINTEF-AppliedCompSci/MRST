@@ -19,7 +19,7 @@ function G = processAAIGrid(meta, data, topgrid, cstrids)
 %       a top-surface grid. If not, G is a 2D grid embedded in 3D
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

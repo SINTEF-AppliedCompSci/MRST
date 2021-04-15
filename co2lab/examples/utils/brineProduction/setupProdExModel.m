@@ -3,7 +3,7 @@ function [model, schedule, initState, seainfo, other] = setupProdExModel( vararg
     % boundaries, 4 CO2 injection wells, and 2 brine production wells.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
