@@ -34,7 +34,7 @@ function [feederCells,feederFaces,feederCellsMap] = findFeederIndicesInGrid(G,fe
 %                  any) a cell belongs to.
 %
 %{
-Copyright 2009-2019 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

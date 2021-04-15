@@ -22,7 +22,7 @@ function varargout = mex_compute_coarse_BI(varargin)
 %   `mex_generate_coarsesystem`, `mex_schur_comp_symm`.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

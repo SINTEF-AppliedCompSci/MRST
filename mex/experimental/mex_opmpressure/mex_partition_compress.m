@@ -19,7 +19,7 @@ function varargout = mex_partition_compress(varargin)
 %   `compressPartition`, `partitionUI`, `mex_partition_ui`.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

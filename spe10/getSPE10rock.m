@@ -41,7 +41,7 @@ function rock = getSPE10rock(varargin)
 %   `getSPE10setup`, `make_spe10_data`.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
