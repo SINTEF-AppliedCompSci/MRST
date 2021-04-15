@@ -488,7 +488,7 @@ function ensure_directory_exists(ddir)
         [ok, msg, id] = mkdir(ddir);
 
         if ~ok
-            error(id, 'Failed to create Data Directory ''%s'': %s', ...
+            error(id, 'Failed to create directory ''%s'': %s', ...
                   ddir, msg);
         end
     end
