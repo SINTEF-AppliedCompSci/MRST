@@ -259,8 +259,14 @@ classdef DomainDecompositionModel < WrapperModel
             % Get subdomain states
             [substateInit, mappings] = getSubState(stateInit, mappings);
             substate0                = getSubState(state0   , mappings);
+            % Get nonlinear solver and ajust minIterations
+            nls = setup.NonlinearSolver;
+            if ~isempty(subforces.W)
+                nls.minIterations = 1;
+            else
+                nls.minIterations = 0;
+            end
             % Solve timestep
-            nls      = setup.NonlinearSolver;
             forceArg = getDrivingForces(submodel, subforces);
             [substate, subreport] = nls.solveTimestep(substate0, dt, submodel, 'initialGuess', substateInit, forceArg{:});
             % Ensure submodel is returned with everything set up
