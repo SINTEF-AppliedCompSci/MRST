@@ -374,12 +374,14 @@ function purge_octave_only()
    octave = fullfile('utils', 'octave_only');
    pth    = regexp(path, regexptranslate('escape', pathsep), 'split');
    match  = regexp(pth , regexptranslate('escape', octave));
-   purge  = ~cellfun('isempty', match);
+   purge  = pth(~cellfun('isempty', match));
 
-   rmpath(pth{purge});
+   if ~isempty(purge)
+      rmpath(purge{:});
+   end
 
-   if mrstVerbose && any(purge)
-      dstring = sprintf(' * %s\n', pth{purge});
+   if mrstVerbose && ~isempty(purge)
+      dstring = sprintf(' * %s\n', purge{:});
 
       pl = 'ies were';
       if sum(purge) == 1, pl = 'y was'; end
