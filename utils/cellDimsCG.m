@@ -14,7 +14,7 @@ function [dx, dy, dz] = cellDimsCG(G,ix)
 %                 [dx(k),dy(k),dz(k)] is Cartesian BB for cell ix(k).
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

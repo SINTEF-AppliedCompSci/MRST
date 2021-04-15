@@ -2,7 +2,7 @@ function [info, present] = dataset_spe10_layer_compositional()
 % Info function for spe10 layer 1 compositional dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
