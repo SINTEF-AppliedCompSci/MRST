@@ -307,8 +307,8 @@ function listSettings(settings, isDesktop)
         n = max(n, numel(v.label));
     end
     fprintf('Current MRST settings (persistent between sessions):\n\n');
-    fprintf('      Setting | Current value  | Description %s | Default\n', repmat(' ', n - 12, 1));
-    fprintf('%s\n', repmat('-', n + 45, 1));
+    nchar = fprintf('      Setting | Current value  | %-*s | Default\n', n, 'Description');
+    fprintf('%s\n', repmat('-', nchar + 1, 1));
     for i = 1:numel(names)
         name = names{i};
         v = settings.(name);
@@ -320,7 +320,7 @@ function listSettings(settings, isDesktop)
         else
             current = formatOption(c);
         end
-        fprintf(' %12s |  %12s  | %s%s | %5s \n', name, current, l, repmat(' ', n - numel(l), 1), formatOption(d));
+        fprintf(' %12s |  %12s  | %-*s | %5s\n', name, current, n, l, formatOption(d));
     end
     fprintf('\nConfigured directories:\n');
     for i = 1:numel(fldrs)
