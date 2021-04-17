@@ -28,5 +28,4 @@ Easiest way to get started with this package is to clone and extract it into the
 Please feel free to leave us any questions using the "Issues" tab above.
 
 Your Badge Markdown:
-[![HitCount](http://hits.dwyl.com/UnconvRS/repo/shale.svg)](http://hits.dwyl.com/UnconvRS/repo/shale)
 [![HitCount](http://hits.dwyl.com/UnconvRS/shale.svg)](http://hits.dwyl.com/UnconvRS/shale)
