@@ -254,7 +254,7 @@ if reverse
 end
 nc = G.cells.num;
 N  = G.faces.neighbors;
-if size(N, 1) ~= numel(state.flux) % flux on interior faces
+if size(N, 1) ~= size(state.flux, 1) % flux on interior faces
     N = N(~any(N==0, 2),:);
 end
 % get index to relevant faces
