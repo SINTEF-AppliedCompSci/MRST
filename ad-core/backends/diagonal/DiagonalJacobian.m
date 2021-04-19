@@ -226,9 +226,7 @@ classdef DiagonalJacobian
         end
         
         function u = repmat(u, varargin)
-            assert(~u.rowMajor, 'Not implemented');
-            u.diagonal = repmat(u.diagonal, varargin{:});
-            u.subset = repmat(u.subset, varargin{:});
+            u = repmat(sparse(u), varargin{:});
         end
 
         function x = subsetPlus(x, v, subs)
