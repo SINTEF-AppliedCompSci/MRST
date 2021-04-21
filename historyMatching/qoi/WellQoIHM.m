@@ -134,7 +134,7 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                 time = cumsum(qoi.dt)./opt.timescale;
                 if opt.isObservation
                     if isempty(opt.observationIndices)
-                        plot(time, u*opt.scale, ...,
+                        plot(time, u*plotScale, ...,
                              'x', 'color', [0 0 0], extra{:});
                     else
                         plot(time(opt.observationIndices), u(opt.observationIndices)*plotScale, ... ...
