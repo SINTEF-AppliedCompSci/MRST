@@ -35,7 +35,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
    done = false;
-   data = [];
+   data = '';
 
    while ~done
       [lin, done] = get_line(fid, done);
@@ -91,17 +91,22 @@ function [data, done] = append_line(data, lin)
    end
 
    S = splitQuotedString(lin);
-   i = find(~ cellfun(@isempty, regexp(S.unquoted, comment)), 1, 'first');
 
+   i = find(~ cellfun('isempty', regexp(S.unquoted, comment)), 1, 'first');
    if ~ isempty(i)
-      S.quoted   = S.quoted  (1 : (i - 1));
-      S.unquoted = S.unquoted(1 : i);
+      S = truncate_quoted_components(S, i);
 
       % Remove comments.
       S.unquoted(end) = regexprep(S.unquoted(end), comment, '');
    end
 
-   done = is_complete(S.unquoted{end});                  % Record complete?
+   spos = strfind(S.unquoted, '/');
+   i    = find(~ cellfun('isempty', spos), 1, 'first');
+   done = ~isempty(i);
+   if done && (i ~= numel(S.unquoted))
+      S    = truncate_quoted_components(S, i);
+      spos = spos(1 : i);
+   end
 
    if done
       % Discard everything after FIRST '/' character in LAST UNquoted
@@ -111,11 +116,9 @@ function [data, done] = append_line(data, lin)
       %      'MULTZ'   0.05  14  25  26  30  10  10  /  C-segm mid/B-2H
       %
       % which features a '/' character in otherwise informational text.
-      p = strfind(S.unquoted{end}, '/');
+      assert (~isempty(spos{end}), 'Internal Logic Error');
 
-      assert (~isempty(p), 'Internal Logic Error');
-
-      S.unquoted{end} = S.unquoted{end}(1 : p(1));
+      S.unquoted{end} = S.unquoted{end}(1 : spos{end}(1));
    end
 
    lin  = assembleString(S);
@@ -124,17 +127,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function tf = is_complete(lin)
-   persistent HAVE_CONTAINS
-
-   if isempty(HAVE_CONTAINS)
-      HAVE_CONTAINS = exist('contains', 'builtin');
-   end
-
-   if HAVE_CONTAINS
-      % Contains was introduced in MATLAB 9.1.0 (R2016b)
-      tf = contains(lin, '/');
-   else
-      tf = ~isempty(strfind(lin, '/'));
-   end
+function S = truncate_quoted_components(S, i)
+   S.quoted   = S.quoted  (1 : (i - 1));
+   S.unquoted = S.unquoted(1 : i);
 end
