@@ -31,14 +31,38 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
         end
         
         function model = updateDiscreteOperators(backend, model)
-            if isa(model, 'ReservoirModel') && backend.modifyOperators ...
-                    && ~isfield(model.operators, 'diag_updated')
-                N = model.operators.N;
-                nc = model.G.cells.num;
-                nf = size(N, 1);
-                n1 = N(:, 1);
-                n2 = N(:, 2);
-                % Discrete divergence
+            ops = model.operators;
+            if isempty(ops) || ~backend.modifyOperators
+                % No need to modify empty operators
+                return
+            end
+            if ~isfield(ops, 'N')
+                % Need neighborship for this to work
+                return
+            end
+            flds = {'useMex', 'deferredAssembly', 'rowMajor'};
+            if isfield(ops, 'operator_parameters')
+                operator_parameters = ops.operator_parameters;
+                ok = true;
+                for i = 1:numel(flds)
+                    f = flds{i};
+                    if backend.(f) ~= operator_parameters.(f)
+                        ok = false;
+                        break
+                    end
+                end
+                if ok
+                    % Operators match settings, we return
+                    return
+                end
+            end
+            N = ops.N;
+            nc = model.G.cells.num;
+            nf = size(N, 1);
+            n1 = N(:, 1);
+            n2 = N(:, 2);
+            % Discrete divergence
+            if isfield(ops, 'Div') || isfield(ops, 'AccDiv')
                 C  = sparse(N, [(1:nf)'; (1:nf)'], ones(nf,1)*[1 -1], nc, nf);
                 gradMat = sparse((1:2*nf), [n1; n2], rldecode([-1; 1], [nf; nf]), 2*nf, nc);
                 [~, sortedN] = sort(repmat(reshape(N, [], 1), 2, 1));
@@ -56,20 +80,33 @@ classdef DiagonalAutoDiffBackend < AutoDiffBackend
                                      'useConservationJac', backend.deferredAssembly, ...
                                      'N', N, 'C', C, 'nf', nf, 'nc', nc);
 
-                model.operators.Div = @(v) discreteDivergence([], v, div_options);
+                ops.Div = @(v) discreteDivergence([], v, div_options);
                 if numel(N)
                     adiv = @(a, v) discreteDivergence(a, v, div_options);
                 else
                     adiv = @(a, v) a;
                 end
-                model.operators.AccDiv = adiv;
-                % Cell -> Face operators: Grad, upstream and face average
-                model.operators.Grad = @(v) twoPointGradient(N, v, gradMat, backend.useMex);
-                model.operators.faceUpstr = @(flag, v) singlePointUpwind(flag, N, v, backend.useMex);
-                model.operators.faceAvg = @(v) faceAverage(N, v, backend.useMex);
-
-                model.operators.diag_updated = true;
+                ops.AccDiv = adiv;
             end
+            % Cell -> Face operators: Grad, upstream and face average
+            if isfield(ops, 'Grad')
+                ops.Grad = @(v) twoPointGradient(N, v, gradMat, backend.useMex);
+            end
+            if isfield(ops, 'faceUpstr')
+                ops.faceUpstr = @(flag, v) singlePointUpwind(flag, N, v, backend.useMex);
+            end
+            if isfield(ops, 'faceAvg')
+                ops.faceAvg = @(v) faceAverage(N, v, backend.useMex);
+            end
+            % Store backend operators settings to be somewhat robust if
+            % someone modifies them and calls this function again.
+            up = struct();
+            for i = 1:numel(flds)
+                f = flds{i};
+                up.(f) = backend.(f);
+            end
+            ops.operator_parameters = up;
+            model.operators = ops;
         end
         
         function out = getBackendDescription(backend)
