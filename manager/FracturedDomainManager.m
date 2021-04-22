@@ -70,8 +70,9 @@ classdef FracturedDomainManager
             model = obj.assembleFluid(model);
             
             %% State function groupings
+            model.PVTPropertyFunctions = FracturedDomainPVTPropertyFunctions(model);
             model.FlowPropertyFunctions = FracturedDomainFlowPropertyFunctions(model);
-            model.FlowDiscretization = FracturedDomainFluxDiscretization(model);
+            model.FlowDiscretization = FracturedDomainFlowDiscretization(model);
             
             %% TODO: there is a problem when outputFluxex = 1
             model.outputFluxes = 0;
