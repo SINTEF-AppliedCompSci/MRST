@@ -111,7 +111,7 @@ nseg = size(seg,1)-1;
 if nseg > 1
     fix0 = getFacesCloseToSegment(G, seg, 'projVec', cutDir, 'faceIx', opt.faceIx);
 else
-    fix0 = [];
+    fix0 = opt.faceIx;
 end
 % prealocate for polygon vertices, p is coord, t length along segment
 intsec = repmat(struct('p', [], 'faceNo', [], 'nodePos', [], ...
@@ -420,6 +420,19 @@ if opt.outputForGridProcessing && opt.removeRepeated
             'processing output was requested');
    opt.removeRepeated = false; 
 end   
+% process cellIx subset
+if ~isempty(opt.cellIx)
+    if ~isempty(opt.faceIx)
+        warning('Disregarding option ''cellIx'' due to non-empty ''faceIx''.')
+    else
+        % derive unique list of faces for given cells
+        N = G.faces.neighbors;
+        tmp = false(G.cells.num,1);
+        tmp(opt.cellIx) = true;
+        N(N>0) = tmp(N(N>0));
+        opt.faceIx = find(any(N,2));
+    end
+end
 end
 
 % -------------------------------------------------------------------------
