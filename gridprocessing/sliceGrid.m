@@ -516,7 +516,8 @@ if ~isempty(rpos)
     r = opt{2*rpos};
     hasRadii = size(r,1) > 1;
     if hasRadii && ~iscell(r)
-        r = mat2cell(r, [ones(numel(r),size(r,2)), 1]);
+       %r = mat2cell(r, [ones(numel(r),size(r,2)), 1]);
+       r = mat2cell(r, ones(numel(r),size(r,2)), 1);
     end
 end 
 if ~iscell(v)
