@@ -92,7 +92,7 @@ if(not(opt.gridfromdeck))
     GRID.DY = ones(model.G.cells.num, 1);
     % aprox TOPS
     depth = model.G.cells.centroids(:,3);
-    if isfield(model.G.faces, 'nodepos')
+    if isfield(model.G.faces, 'nodePos')
         [~,~,dz] = cellDims(model.G, (1:nc)');
     else
         dz = ones(nc,1);
@@ -105,7 +105,7 @@ if(not(opt.gridfromdeck))
     GRID.PERMY = ones(nc,1);
     GRID.PERMZ = ones(nc,1);
     GRID.PORO  = ones(nc,1);
-    GRID.ACTNUM   =int32(ones(nc,1));
+    GRID.ACTNUM   = int32(ones(nc,1));
     GRID.cartDims = RUNSPEC.DIMENS;
     % make NNC - list:
     T = model.operators.T;
@@ -180,8 +180,8 @@ else
     
     if model.water && model.oil
         % PVT table
-        bo = f.bG(p);
-        muo = f.muG(p);
+        bo = f.bO(p);
+        muo = f.muO(p);
         PROPS.PVDO = {[p, 1./bo, muo]};
         % Saturation table
         krw = f.krW(s);
