@@ -1,7 +1,8 @@
 function [partition, cells] = makeGridPartition(model, cells, varargin)
-    opt = struct('type'        , 'metis', ...
-                 'minBlockSize', []     , ...
-                 'pdims'       , []     );
+    opt = struct('type'         , 'metis', ...
+                 'computeTrans' , true   , ...
+                 'minBlockSize' , []     , ...
+                 'pdims'        , []     );
     opt = merge_options(opt, varargin{:});
     G  = model.G;
     Gr = removeCells(G, ~cells);
@@ -15,7 +16,14 @@ function [partition, cells] = makeGridPartition(model, cells, varargin)
             rock = model.rock;
             rock.perm = rock.perm(cells,:);
 %             T = model.operators.T;
-            T = getFaceTransmissibility(Gr, rock);
+            if opt.computeTrans
+                T = getFaceTransmissibility(Gr, rock);
+            else
+                N = G.faces.neighbors + 1;
+                c = [false; cells];
+                keep = any(c(N), 2);
+                T = model.operators.T_all(keep);
+            end
             pg = partitionMETIS(Gr, T, nb);
         case 'cart'
             pdims = opt.pdims;
