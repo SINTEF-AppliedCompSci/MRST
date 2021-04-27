@@ -54,49 +54,6 @@ classdef TwoPhaseWaterGasModel < ThreePhaseBlackOilModel
            state.sGmax = min(1,state.sGmax);
            state.sGmax = max(0,state.sGmax);
         end
-        
-        % --------------------------------------------------------------------%
-        function scaling = getScalingFactorsCPR(model, problem, names, solver)
-            % Get approximate, impes-like pressure scaling factors
-            nNames = numel(names);
-
-            scaling = cell(nNames, 1);
-            handled = false(nNames, 1);
-
-            % Take averaged pressure for scaling factors
-            state = problem.state;
-            fluid = model.fluid;
-            if (isprop(solver, 'trueIMPES') || isfield(solver, 'trueIMPES')) && solver.trueIMPES
-                % Rigorous pressure equation (requires lots of evaluations)
-                p = state.pressure;
-            else
-                % Very simple scaling factors, uniform over grid
-                p = mean(state.pressure);
-            end
-            for iter = 1:nNames
-                nm = lower(names{iter});
-                switch nm
-                    case 'water'
-                        bW = fluid.bW(p);
-                        s = 1./bW;
-                    case 'gas'
-                        bG = fluid.bG(p);
-                        s = 1./bG;
-                    otherwise
-                        continue
-                end
-                sub = strcmpi(problem.equationNames, nm);
-
-                scaling{iter} = s;
-                handled(sub) = true;
-            end
-            if ~all(handled)
-                % Get rest of scaling factors from parent class
-                other = getScalingFactorsCPR@ReservoirModel(model, problem, names(~handled));
-                [scaling{~handled}] = other{:};
-            end
-        end
-
     end
     
 end
