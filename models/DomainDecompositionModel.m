@@ -17,7 +17,7 @@ classdef DomainDecompositionModel < WrapperModel
                              % nonlinear tolerance can be adjusted by using
                              % {'toleranceEOS', fraction}.
         useGlobalPressureRange = true % Use pressure range of entire model
-                                      % for models with relative presure
+                                      % for models with relative pressure
                                       % tolerances
         acceptanceFactor = 1 % Assume converged if we are past iteration 3
                              % and all(values < acceptanceFactor*tolerances)
@@ -261,11 +261,11 @@ classdef DomainDecompositionModel < WrapperModel
             substate0                = getSubState(state0   , mappings);
             % Get nonlinear solver and ajust minIterations
             nls = setup.NonlinearSolver;
-            if ~isempty(subforces.W)
-                nls.minIterations = 1;
-            else
-                nls.minIterations = 0;
-            end
+%             if ~isempty(subforces.W)
+%                 nls.minIterations = 1;
+%             else
+%                 nls.minIterations = 0;
+%             end
             % Solve timestep
             forceArg = getDrivingForces(submodel, subforces);
             [substate, subreport] = nls.solveTimestep(substate0, dt, submodel, 'initialGuess', substateInit, forceArg{:});
