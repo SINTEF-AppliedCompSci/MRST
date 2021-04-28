@@ -36,7 +36,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Get subrock
     subRock = getSubRock(model, cellMap);
     % Make submodel
-    submodel = makeSubModel(model, subG, subRock, subop, cellMap, opt);
+    submodel = makeSubModel(model, subG, subRock, subop, cellMap, faceMap, opt);
     % Trim mappings and make mapping struct
     faceMap  = rmfield(faceMap, 'activeConn');
     faceMap  = rmfield(faceMap, 'neighbors');
@@ -148,7 +148,10 @@ function subG = getSubGrid(model, cellMap, faceMap, opt)
                                        subG.cells.facePos(cells+1)-1, 1)));
     ncf = diff(subG.cells.facePos);
     subG.cells.facePos = cumsum([0; ncf(cellMap.keep)]) + 1;
-    % Grid faces
+    % Grid faces if present
+    if ~isfield(subG.faces, 'centroids')
+        return;
+    end
     subG.faces.num       = nnz(faceMap.keep);
     subG.faces.centroids = subG.faces.centroids(faceMap.keep, :);
     subG.faces.normals   = subG.faces.normals(faceMap.keep, :);
@@ -186,7 +189,7 @@ function subRock = getSubRockFields(rock, cellMap)
 end
 
 %-------------------------------------------------------------------------%
-function submodel = makeSubModel(model, subG, subRock, subop, cellMap, opt)
+function submodel = makeSubModel(model, subG, subRock, subop, cellMap, faceMap, opt)
     % Make submodel
     submodel = model;
     submodel.verbose = opt.verbose;
@@ -201,13 +204,62 @@ function submodel = makeSubModel(model, subG, subRock, subop, cellMap, opt)
     % Restrict state function groupings if already set
     if ~isempty(submodel.getStateFunctionGroupings())
         warning('Assuming default state function groupings.');
-        submodel.FlowPropertyFunctions = submodel.FlowPropertyFunctions.subset(cellMap.keep);
-        submodel.FlowPropertyFunctions = submodel.FlowPropertyFunctions.subset(':');
-        submodel.PVTPropertyFunctions  = submodel.PVTPropertyFunctions.subset(cellMap.keep);
-        submodel.FlowDiscretization    = submodel.FlowDiscretization.subset(cellMap.keep);
-        submodel.FlowDiscretization    = replaceOperators(submodel.FlowDiscretization, submodel);
+        
+%         submodel.FlowPropertyFunctions = submodel.FlowPropertyFunctions.subset(cellMap.keep);
+%         submodel.FlowPropertyFunctions = submodel.FlowPropertyFunctions.subset(':');
+%         if isprop(submodel.FlowPropertyFunctions.RelativePermeability, 'scalers')
+%             submodel.FlowPropertyFunctions.RelativePermeability.scalers = ...
+%                 getScalersSubset(submodel.FlowPropertyFunctions.RelativePermeability.scalers, cellMap.keep);
+%         end
+        
+        % Replace flow property functions
+        submodel.FlowPropertyFunctions ...
+            = replaceFlowProps(submodel.FlowPropertyFunctions, cellMap);
+        % Replace PVT property functions
+        submodel.PVTPropertyFunctions ...
+            = replacePVTProps(submodel.PVTPropertyFunctions, cellMap);
+        % Replace Flow discretization
+        submodel.FlowDiscretization ...
+            = replaceFlowDisc(submodel.FlowDiscretization, cellMap, faceMap, submodel);
+%         
+%         submodel.PVTPropertyFunctions  = submodel.PVTPropertyFunctions.subset(cellMap.keep);
+%         submodel.FlowDiscretization    = submodel.FlowDiscretization.subset(cellMap.keep);
+%         submodel.FlowDiscretization    = replaceOperators(submodel.FlowDiscretization, submodel);
     end
 end
+
+%-------------------------------------------------------------------------%
+function props = replaceFlowProps(props, map)
+    props = props.subset(map.keep);
+    props = props.subset(':');
+    % Update relperm-specific parameters
+    if isprop(props.RelativePermeability, 'scalers') ...
+            && ~isempty(props.RelativePermeability.scalers)
+        props.RelativePermeability.scalers = ...
+            getSubset(props.RelativePermeability.scalers, map.keep);
+    end
+    if isprop(props.RelativePermeability, 'swcon') ...
+            && ~isempty(props.RelativePermeability.swcon)
+        props.RelativePermeability.swcon = ...
+            props.RelativePermeability.swcon(map.keep,:);
+    end
+end
+
+%-------------------------------------------------------------------------%
+function props = replacePVTProps(props, map)
+    props = props.subset(map.keep);
+end
+
+%-------------------------------------------------------------------------%
+function props = replaceFlowDisc(props, cellMap, faceMap, submodel)
+    props = props.subset(cellMap.keep);
+    if isprop(props.PhasePotentialDifference, 'pressureThreshold')
+        props.PhasePotentialDifference.pressureThreshold = ...
+            props.PhasePotentialDifference.pressureThreshold(faceMap.activeConn,:);
+    end
+    props = replaceOperators(props, submodel);
+end
+
 
 %-------------------------------------------------------------------------%
 function discretization = replaceOperators(discretization, submodel)
@@ -236,6 +288,20 @@ function discretization = replaceOperator(discretization, operator, names, fun)
         if isprop(sf, operator)
             sf.(operator) = fun(sf);
             discretization = discretization.setStateFunction(name{1}, sf);
+        end
+    end
+end
+
+%-------------------------------------------------------------------------%
+function prop = getSubset(prop, subs)
+    fnames = reshape(fieldnames(prop), 1, []);
+    for f = fnames
+        if iscell(prop.(f{1}))
+            prop.(f{1}) = cellfun(@(v) v(subs,:), prop.(f{1}), 'UniformOutput', false);
+        elseif size(prop.(f{1}),1) == numel(subs)
+            prop.(f{1}) = prop.(f{1})(subs,:);
+        elseif isstruct(prop.(f{1}))
+            prop.(f{1}) = getSubset(prop.(f{1}), subs);
         end
     end
 end
