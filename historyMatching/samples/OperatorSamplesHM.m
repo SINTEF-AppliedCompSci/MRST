@@ -12,6 +12,11 @@ classdef OperatorSamplesHM < BaseSamplesHM & OperatorSamples
         TScale = 0; % If TScale is zero and transformSampleVectors is true,
                     % we transform the transmissibilities using log
                     % instead.
+                    
+        minPvValue = 0;
+        minTValue = 0;
+        maxPvValue = inf;
+        maxTValue = inf;
     end
     
     methods
@@ -107,6 +112,17 @@ classdef OperatorSamplesHM < BaseSamplesHM & OperatorSamples
                     else
                         samples.data{i}.T(:) = newSampleVectors(1:vectorSizeT, i);
                     end
+                    
+                    % Check/ensure that the new values are acceptable
+                    if any(samples.data{i}.T < samples.minTValue)
+                        samples.data{i}.T(samples.data{i}.T < samples.minTValue) = samples.minTValue;
+                    end
+                    if any(samples.data{i}.T > samples.maxTValue)
+                        samples.data{i}.T(samples.data{i}.T > samples.maxTValue) = samples.maxTValue;
+                    end
+                    if any(isnan(samples.data{i}.T))
+                        error('Got NaN in transmissibility');
+                    end
                 end
                 if porevolumeIsField
                     if samples.transformSampleVectors
@@ -115,6 +131,17 @@ classdef OperatorSamplesHM < BaseSamplesHM & OperatorSamples
                     else
                         samples.data{i}.pv(:) = ...
                             abs(newSampleVectors(vectorSizeT+1:vectorSizeT+vectorSizePv, i));
+                    end
+                    
+                    % Check/ensure that the new values are acceptable
+                    if any(samples.data{i}.pv < samples.minPvValue)
+                        samples.data{i}.pv(samples.data{i}.pv < samples.minPvValue) = samples.minPvValue;
+                    end
+                    if any(samples.data{i}.pv > samples.maxPvValue)
+                        samples.data{i}.pv(samples.data{i}.pv > samples.maxPvValue) = samples.maxPvValue;
+                    end
+                    if any(isnan(samples.data{i}.pv))
+                        error('Got NaN in pore volume');
                     end
                 end
             end

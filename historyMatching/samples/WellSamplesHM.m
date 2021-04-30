@@ -37,6 +37,8 @@ classdef WellSamplesHM < BaseSamplesHM & WellSamples
         WIScale = 0; % If WIScale is zero and transformSampleVectors is true,
                     % we transform the well production indices using log
                     % instead.
+        minWIValue = 0;
+        maxWIValue = inf;
     end
     
     methods
@@ -127,6 +129,11 @@ classdef WellSamplesHM < BaseSamplesHM & WellSamples
                         end
                     else
                         fieldData = newSampleVectors(startIndex:endIndex, i);
+                    end
+                    
+                    if strcmp(field, 'WI')
+                        fieldData(fieldData < samples.minWIValue) = samples.minWIValue;
+                        fieldData(fieldData > samples.maxWIValue) = samples.maxWIValue;
                     end
                     
                     if wellIsField
