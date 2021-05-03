@@ -13,9 +13,8 @@ classdef ComponentMobility < StateFunction & ComponentProperty
             ncomp = model.getNumberOfComponents;
             nph = model.getNumberOfPhases;
             v = cell(ncomp, nph);
-            extra = prop.getExtraArguments(model, state);
             for i = 1:ncomp
-                v(i, :) = model.Components{i}.getComponentMobility(model, state, extra{:});
+                v(i, :) = model.Components{i}.getComponentMobility(model, state);
             end
         end
     end

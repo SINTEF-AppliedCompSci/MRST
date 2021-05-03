@@ -12,10 +12,9 @@ classdef ComponentPhaseMass < StateFunction & ComponentProperty
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents();
             nph = model.getNumberOfPhases();
-            extra = prop.getExtraArguments(model, state);
             v = cell(ncomp, nph);
             for c = 1:ncomp
-                v(c, :) = model.Components{c}.getComponentMass(model, state, extra{:});
+                v(c, :) = model.Components{c}.getComponentMass(model, state);
             end
         end
     end

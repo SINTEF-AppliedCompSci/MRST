@@ -36,11 +36,13 @@ classdef GenericComponent < StateFunctionDependent
             end
         end
         
-        function mass = getComponentMass(component, model, state, varargin)
+        function mass = getComponentMass(component, model, state)
             % Mass of component in each phase
             % saturation * pore-volume * component mass density
-            [s, pv] = component.unpackMassArguments(model, state, varargin);
-            mass = component.getComponentDensity(model, state, varargin{:});
+            s = model.getProp(state, 's');
+            s = expandMatrixToCell(s);
+            pv = model.PVTPropertyFunctions.get(model, state, 'PoreVolume');
+            mass = component.getComponentDensity(model, state);
             % Iterate over phases and weight by pore-volume and saturation
             for i = 1:numel(mass)
                 if ~isempty(mass{i})
@@ -53,7 +55,7 @@ classdef GenericComponent < StateFunctionDependent
             % The amount of mobile mass in the cell. For most models, this
             % is just the mobility multiplied with the component density in
             % the cell.
-            mob = component.unpackMobilityArguments(model, state, varargin);
+            mob = model.FlowPropertyFunctions.get(model, state, 'Mobility', true);
             density = component.getComponentDensity(model, state, varargin{:});
             nphase = numel(density);
             cmob = cell(1, nphase);
@@ -88,36 +90,6 @@ classdef GenericComponent < StateFunctionDependent
             % injecting from outside the domain)
             nph = model.getNumberOfPhases();
             c = cell(nph, 1);
-        end
-        
-        function [s, pv, rho, b] = unpackMassArguments(component, model, state, arg)
-            needb = nargout > 3;
-            if isempty(arg)
-                s = model.getProp(state, 's');
-                pv = model.getProp(state, 'PoreVolume');
-                rho = model.getProp(state, 'Density');
-                if needb
-                    b = model.getProp(state, 'ShrinkageFactors');
-                end
-            else
-                [s, pv, rho] = deal(arg{1}.s, arg{1}.pv, arg{1}.rho);
-                if needb
-                    b = arg{1}.b;
-                end
-            end
-            s = expandMatrixToCell(s);
-            if needb
-                b = expandMatrixToCell(b);
-            end
-        end
-        
-        function mob = unpackMobilityArguments(component, model, state, arg)
-            if isempty(arg)
-                mob = model.getProp(state, 'Mobility');
-            else
-                mob = arg{1}.mob;
-            end
-            mob = expandMatrixToCell(mob);
         end
     end
 end

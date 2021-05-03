@@ -13,9 +13,8 @@ classdef ComponentPhaseDensity < StateFunction & ComponentProperty
             ncomp = model.getNumberOfComponents();
             nph = model.getNumberOfPhases();
             v = cell(ncomp, nph);
-            extra = prop.getExtraArguments(model, state);
             for c = 1:ncomp
-                v(c, :) = model.Components{c}.getComponentDensity(model, state, extra{:});
+                v(c, :) = model.Components{c}.getComponentDensity(model, state);
             end
         end
     end
