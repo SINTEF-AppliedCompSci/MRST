@@ -6,9 +6,9 @@ classdef DiagonalJacobian
         subset % Indices corresponding to the subset (if empty, class contains the full set)
         useMex = false;
         rowMajor = false;
-        allowImplicitExpansion = exist ("OCTAVE_VERSION", "builtin") > 0 || ~verLessThan('matlab','9.1');
+        allowImplicitExpansion = mrstPlatform('octave') || mrstPlatform('major') >= 9
     end
-    
+
     methods
         function D = DiagonalJacobian(d, dim, subset, useMex, useRowMajorMemory)
             if nargin == 0
