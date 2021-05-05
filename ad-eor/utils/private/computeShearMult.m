@@ -58,11 +58,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     if (iter >= maxit) && (resnorm > abstol)
         error('Convergence failure within %d iterations\nFinal residual = %.8e', maxit, resnorm);
-    end
-
-    if(resnorm <= abstol)
+    else
         M = plyshearMult(Vsh.val);
         v = (1 + (muWMultf - 1.).* M) ./ muWMultf;
     end
-
 end

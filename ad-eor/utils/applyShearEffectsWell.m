@@ -72,6 +72,7 @@ rR = vertcat(W.rR);
 % the well bore to save some computation
 % this is where the BUG of E100 is. 
 VwW = bwW .* bwW.*q_w./(poroW .* rR .* thicknessWell * 2 * pi);
+VwW(value(q_w) == 0) = 0;
 % VwW = q_w./(poroW .* rR .* thicknessWell * 2 * pi);
 shearMultW = computeShearMult(fluid, abs(VwW), muWMultW);
 
