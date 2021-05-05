@@ -515,19 +515,28 @@ classdef DomainDecompositionModel < WrapperModel
                 return
             end
             rmodel = getReservoirModel(submodel);
+            hasFacility = ~isempty(rmodel.FacilityModel);
+            isComp      = isa(rmodel, 'ThreePhaseCompositionalModel');
             for i = 1:2:numel(tolerances)
-                if isprop(rmodel, tolerances{i})
-                    assert(tolerances{i+1} <= 1, ...
-                               'Subdomain tolerance fraction must be <= 1')
-                    rmodel.(tolerances{i}) = rmodel.(tolerances{i}).*tolerances{i+1};
+                n = tolerances{i};
+                f = tolerances{i+1};
+                assert(f <= 1, 'Subdomain tolerance fraction must be <= 1')
+                if isprop(rmodel, n)
+                    rmodel.(n) = rmodel.(n).*f;
+                elseif hasFacility && isprop(rmodel.FacilityModel, n)
+                    rmodel.FacilityModel.(n) = rmodel.FacilityModel.(n).*f;
+                elseif isComp && strcmpi(n, 'toleranceEOS')
+                    rmodel.EOSModel.nonlinearTolerance ...
+                        = rmodel.EOSModel.nonlinearTolerance.*f;
                 end
             end
-            % Handle EOS tolerance
-            ix = find(strcmpi(tolerances, 'toleranceEOS'));
-            if any(ix) && isa(rmodel, 'ThreePhaseCompositionalModel')
-                rmodel.EOSModel.nonlinearTolerance ...
-                    = tolerances{ix+1}*rmodel.EOSModel.nonlinearTolerance;
-            end 
+%             % Handle EOS tolerance
+%             ix = find(strcmpi(tolerances, 'toleranceEOS'));
+%             if any(ix) && isa(rmodel, 'ThreePhaseCompositionalModel')
+%                 rmodel.EOSModel.nonlinearTolerance ...
+%                     = tolerances{ix+1}*rmodel.EOSModel.nonlinearTolerance;
+%             end
+            % Update reservoir submodel
             submodel = setReservoirModel(submodel, rmodel);
         end
         
