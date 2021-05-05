@@ -23,6 +23,10 @@ classdef ConcentrationComponent < GenericComponent
                 comp_i = vertcat(force.sat);
             end
             c_inj = component.getInjectionMassFraction(model, force);
+            if isempty(c_inj)
+                % No injection composition provided. Do nothing.
+                return
+            end
             for i = 1:numel(component.phaseIndices)
                 index = component.phaseIndices(i);
                 ci = comp_i(:, index) .* c_inj(i);
