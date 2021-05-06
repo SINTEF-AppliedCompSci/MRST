@@ -92,7 +92,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         if opt.plotWellSols
             ws = problem.OutputHandlers.wellSols;
-            wh = plotWellSols(ws(:), opt.time, opt.wsArg{:});
+            wsd = reshape(ws(:), [], 1);
+            wh = plotWellSols(wsd, opt.time(1:numel(wsd)), opt.wsArg{:});
             set(gcf, 'Name', opt.name);
         else
             wh = nan;
