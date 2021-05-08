@@ -73,11 +73,11 @@ not doing this would result in annoying warnings.
 ## Cite
 If you use ad-micp to write a scientific publication, please cite one of 
 the following papers:
-[A] Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E., 2021. 
+* [A] Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E., 2021. 
 Practical approaches to study microbially induced calcite precipitation 
 at the field scale. Int. J. Greenh. Gas Control 106, 103256.
 https://doi.org/10.1016/j.ijggc.2021.103256.
-[B] Landa-Marbán, D., Kumar, K., Tveit, S., Gasda, S.E. 
+* [B] Landa-Marbán, D., Kumar, K., Tveit, S., Gasda, S.E. 
 Numerical studies of CO2 leakage remediation by micp-based plugging 
 technology. Submitted.
 
