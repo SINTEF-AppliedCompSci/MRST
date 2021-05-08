@@ -8,8 +8,13 @@ the root folder, you will find the following folders:
 In addition, this file (CONTENT.txt), a copy of the license (LICENSE.txt),
 and the README (README.md).
 
-The examples folder contains the scripts to reproduce the numerical results 
-in the paper:
+The examples folder contains two folders for reproducing the numerical 
+results in the publications.
+
+* paper_A
+* paper_B
+
+The paper_A folder contains the following scripts:
 
 * micp_1Dfhs.m,
 * micp_2Dfhcs.m,
@@ -18,8 +23,16 @@ in the paper:
 * micp_2Dfvrs.m, and
 * micp_3Dfls.m.
 
-The models folder contains the two parent classes for declaring the
-CO2 and MICP models:
+The paper_B folder contains the following scripts and folder:
+
+* micp_mrst_opm.m and
+* micp_opm_vtk.
+
+The micp_opm_vtk folder contains the data obtained from the OPM simulations
+to be used for plotting.
+
+The models folder contains the two parent classes for declaring the CO2 and
+MICP models:
 
 * CO2Model.m, and
 * MICPModel.m.
@@ -34,5 +47,6 @@ Finally, in the utility folder, you will find the following functions:
 * getDispersionAnddpWMICP.m,
 * getFluxAndPropsCO2.m,
 * getFluxAndPropsMICP.m,
-* getFluxAndPropsWater.m., and
+* getFluxAndPropsWater.m.,
+* mrsttovtk.m., and
 * simulateScheduleADMICP.m.

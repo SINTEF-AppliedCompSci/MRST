@@ -8,8 +8,8 @@ function [vW, mobW] = getFluxAndPropsWater(model, pW, krW, T, gdz)
 % We refer to that function for a complete commented version of the file. 
 
 %{
-Partial copyright 2009-2020, SINTEF Digital, Mathematics & Cybernetics.
-Partial copyright 2020, NORCE Norwegian Research Centre AS, Computational 
+Partial copyright 2009-2021, SINTEF Digital, Mathematics & Cybernetics.
+Partial copyright 2021, NORCE Norwegian Research Centre AS, Computational 
 Geosciences and Modeling.
 
 This file is part of the ad-micp module.
@@ -32,6 +32,6 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
     dpW    = s.Grad(pW) - fluid.rhoWS*gdz;   
     upcw  = (value(dpW)<=0);
     [krWf, krW] = s.splitFaceCellValue(s, upcw, krW);    
-    mobW   = krW/fluid.muW;    
-    vW = -(krWf/fluid.muW).*T.*dpW;
+    mobW   = krW/fluid.muw;    
+    vW = -(krWf/fluid.muw).*T.*dpW;
 end

@@ -10,8 +10,8 @@ function [problem, state] = equationsMICP(state0, state, model, dt,...
 % In this file we comment on some of the lines. 
 
 %{
-Partial copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
-Partial copyright 2020 NORCE Norwegian Research Centre AS, Computational 
+Partial copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Partial copyright 2021 NORCE Norwegian Research Centre AS, Computational 
 Geosciences and Modeling.
 
 This file is part of the ad-micp module.
@@ -91,7 +91,7 @@ end
 [vW, vO, vU, vM, model] = getFluxAndPropsMICP(model, p,...
                                                        o, u, m, gdz, poro);
 state = model.storeFluxes(state, vW, 0*vW, []);
-[dm, do, du, dpW] = getDispersionAnddpWMICP(model, state, poro);
+[d_m, d_o, d_u, dpW] = getDispersionAnddpWMICP(model, state, poro);
 
 op = model.operators;
 pv = model.G.cells.volumes;
@@ -99,22 +99,24 @@ pv = model.G.cells.volumes;
 water = (pv./dt).*(poro.*sW - poro0.*sW0) + op.Div(vW);
 % Conservation of mass for co2 (possible to extend to two-phase flow)
 oil = sO;
-% Conservation of mass for substrate
-oxygen = (pv./dt).*(poro.*o - poro0.*o0) + op.Div(vO-do.*op.Grad(o))...
-                             + pv.*mu.*F.*(o./(k_o+o)).*(m.*poro+rho_b.*b);
-% Conservation of mass for urea
-urea = (pv./dt).*(poro.*u - poro0.*u0) + op.Div(vU-du.*op.Grad(u)) +...
-                                           pv.*mu_u.*(u./(k_u+u)).*b*rho_b;
 % Conservation of mass for microorganisms
-microorganism = (pv./dt).*(poro.*m - poro0.*m0) +...
-                           op.Div(vM-dm.*op.Grad(m)) + pv.*((k_a + k_d -...
-         Y*mu.*(o./(k_o+o))).*m.*poro-rho_b*poro*k_str.*b.*abs(dpW).^0.58);
-% Conservation of mass for biofilm
-biofilm = (1/dt).*(b - b0) - (k_a.*m/rho_b + (Y*mu.*o./(k_o+o) - k_d...
-                      -b.*Yuc.*mu_u.*rho_b/rho_c.*(u./(k_u+u))./(poro+b)...
-                                          -poro*k_str.*abs(dpW).^0.58).*b);
+microorganism = (pv./dt).*(poro.*m - poro0.*m0) + ...
+                                         op.Div(vM - d_m.*op.Grad(m)) - ...
+                         pv.*(m.*poro.*(Y*mu.*(o./(k_o+o)) - k_d - k_a) ...
+                                  + b.*rho_b.*k_str.*poro.*abs(dpW).^0.58);
+% Conservation of mass for oxygen
+oxygen = (pv./dt).*(poro.*o - poro0.*o0) + op.Div(vO - d_o.*op.Grad(o))+...
+                             pv.*(m.*poro + rho_b.*b).*F.*mu.*(o./(k_o+o));
+% Conservation of mass for urea
+urea = (pv./dt).*(poro.*u - poro0.*u0) + op.Div(vU - d_u.*op.Grad(u)) + ...
+                                           pv.*rho_b.*b*mu_u.*(u./(k_u+u));
 % Conservation of mass for calcite
-calcite = (1/dt).*(c - c0) - Yuc*mu_u*(u./(k_u+u)).*b*rho_b/rho_c;
+calcite = (1/dt).*(c - c0) - rho_b.*b.*Yuc.*mu_u.*(u./(k_u+u))./rho_c;
+% Conservation of mass for biofilm
+biofilm = (1/dt).*(b - b0) - b.*(Y*mu.*o./(k_o+o) - k_d - ...
+                    rho_b.*b.*Yuc.*mu_u.*(u./(k_u+u))./(rho_c.*(poro+b))...
+                                       - k_str.*poro.*abs(dpW).^0.58) - ...
+                                                        m.*poro.*k_a/rho_b;
 
 eqs   = {water, oil, oxygen, urea, microorganism, biofilm, calcite};
 names = {'water', 'oil', 'oxygen', 'urea', 'microorganism',...

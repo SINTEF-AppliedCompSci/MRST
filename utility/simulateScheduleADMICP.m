@@ -10,8 +10,8 @@ function [wellSols, states, schedulereport] = ...
 % In this file we coment on the added lines.
 
 %{
-Partial copyright 2009-2020, SINTEF Digital, Mathematics & Cybernetics.
-Partial copyright 2020, NORCE Norwegian Research Centre AS, Computational 
+Partial copyright 2009-2021, SINTEF Digital, Mathematics & Cybernetics.
+Partial copyright 2021, NORCE Norwegian Research Centre AS, Computational 
 Geosciences and Modeling.
 
 This file is part of the ad-micp module.

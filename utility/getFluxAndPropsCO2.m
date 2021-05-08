@@ -8,8 +8,8 @@ function [vO, mobO] = getFluxAndPropsCO2(model, pO, krO, T, gdz, varargin)
 % We refer to that function for a complete commented version of the file. 
 
 %{
-Partial copyright 2009-2020, SINTEF Digital, Mathematics & Cybernetics.
-Partial copyright 2020, NORCE Norwegian Research Centre AS, Computational 
+Partial copyright 2009-2021, SINTEF Digital, Mathematics & Cybernetics.
+Partial copyright 2021, NORCE Norwegian Research Centre AS, Computational 
 Geosciences and Modeling.
 
 This file is part of the ad-micp module.

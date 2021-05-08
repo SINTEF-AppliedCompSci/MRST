@@ -1,8 +1,8 @@
-function [dm, do, du, dpW] = getDispersionAnddpWMICP(model, state, poro)
+function [d_m, d_o, d_u, dpW] = getDispersionAnddpWMICP(model, state, poro)
 %  Compute the disperison coefficients and "dpW" on the centers.
 
 %{
-Copyright 2020, NORCE Norwegian Research Centre AS, Computational 
+Copyright 2021, NORCE Norwegian Research Centre AS, Computational 
 Geosciences and Modeling. 
 
 This file is part of the ad-micp module.
@@ -48,13 +48,13 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
   Dispm = makeRock(model.G,vm_tensor,1);
   Dispo = makeRock(model.G,vo_tensor,1);
   Dispu = makeRock(model.G,vu_tensor,1);
-  dm = getFaceTransmissibility(model.G, Dispm);
-  do = getFaceTransmissibility(model.G, Dispo);
-  du = getFaceTransmissibility(model.G, Dispu);
+  d_m = getFaceTransmissibility(model.G, Dispm);
+  d_o = getFaceTransmissibility(model.G, Dispo);
+  d_u = getFaceTransmissibility(model.G, Dispu);
   % half-trans -> trans and reduce to interior
   N      = model.G.faces.neighbors;
   intInx = all(N ~= 0, 2);
-  dm     = dm(intInx);
-  do     = do(intInx);
-  du     = du(intInx);
+  d_m     = d_m(intInx);
+  d_o     = d_o(intInx);
+  d_u     = d_u(intInx);
 end
