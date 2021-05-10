@@ -281,6 +281,9 @@ function WCONPROD = makeWCONPROD(WCONPROD_tmp,prodIx,W)
         % control mode and limits
         WCONPROD{pno,3} = upper(W(wno).type);
         lims = W(wno).lims;
+        if isempty(lims)
+            continue
+        end
         % possibly overwrite "target limit"
         lims.(W(wno).type) = W(wno).val;
         fnms = fieldnames(lims);
