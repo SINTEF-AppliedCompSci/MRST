@@ -20,10 +20,11 @@ fluid = fluid;
 fluid .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
 scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
 
-c = 1e-5/barsa;
+c = 5e-5/barsa;
 p_ref = 200*barsa;
 fluid.bO = @(p) exp((p - p_ref)*c);
-model = GenericBlackOilModel(G, rock, fluid, 'gas', false, 'OutputStateFunctions', false);
+model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
+ model.OutputStateFunctions = {};
 model = imposeRelpermScaling(model, scaling{:});
 
 %% wells/schedule
@@ -47,6 +48,7 @@ schedule = simpleSchedule(rampupTimesteps(2*year, 30*day, 5), 'W', W);
 
 %% run simulation
 state0 = initState(G, W, 200*barsa, [0, 1]); 
+model.toleranceCNV = 1e-3;
 [ws, states, r] = simulateScheduleAD(state0, model, schedule);
 
 %% make a perturbed state for reference case
@@ -69,20 +71,21 @@ n_cells =  model.G.cells.num;
 n_faces =  length(model.operators.T);
 
 % Fluid Parameters
-  parameters{1} = ModelParameter(prob, 'name', 'swl','lumping',ones(n_cells,1));
-  parameters{2} = ModelParameter(prob, 'name', 'swcr','lumping',ones(n_cells,1));
-  parameters{3} = ModelParameter(prob, 'name', 'swu','lumping',ones(n_cells,1));
-  parameters{4} = ModelParameter(prob, 'name', 'kro','lumping',ones(n_cells,1));
-  parameters{5} = ModelParameter(prob, 'name', 'krw','lumping',ones(n_cells,1));
+parameters = [];
+nms = {'swl', 'swcr', 'swu', 'kro', 'krw'};
+%for k = 1:numel(nms)
+%    parameters = addParameter(parameters, prob, 'name', nms{k}, 'lumping',ones(n_cells,1));
+%end
+parameters = addParameter(parameters, prob, 'name', 'porevolume');
 
-% Well index, porevolume and transmisibility
-   parameters{6} = ModelParameter(prob, 'name', 'conntrans');
-   parameters{7} = ModelParameter(prob, 'name', 'porevolume');
-   parameters{8} = ModelParameter(prob, 'name', 'transmissibility');
-%   
-% % State0
-   parameters{9} = ModelParameter(prob, 'name', 'initSw','lumping',ones(n_cells,1),'boxLims',[0 1]);
-   parameters{10}= ModelParameter(prob, 'name', 'p0','lumping',ones(n_cells,1),'relativeLimits', [0.90 1.10]);
+% % Well index, porevolume and transmisibility
+%    parameters{6} = ModelParameter(prob, 'name', 'conntrans');
+%    parameters{7} = ModelParameter(prob, 'name', 'porevolume');
+%    parameters{8} = ModelParameter(prob, 'name', 'transmissibility');
+% %   
+% % % State0
+%    parameters{9} = ModelParameter(prob, 'name', 'initSw','lumping',ones(n_cells,1),'boxLims',[0 1]);
+%    parameters{10}= ModelParameter(prob, 'name', 'p0','lumping',ones(n_cells,1),'relativeLimits', [0.90 1.10]);
 
 %% 
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
@@ -105,14 +108,18 @@ obj = @(model, states, schedule, states_ref1, tt, tstep, state) matchObservedOW(
 f = @(u)evaluateMatch_simple(u, obj, state0, model, schedule, 1 ,parameters,  states_ref);       
        
 %% Check gradient in random direction and compare to numerical
+vv = [];
 [v,g] = f(u);
 % optimal perturbation factor depends on combination of parameters 
-fac = 1e-7;
-du  = fac*(rand(size(u))-.5);
-du  = max(du, -u);
-du  = min(du, 1-u);
+%fac = 1e-10;vv
+%du  = fac*(rand(size(u))-.3);
+for fac = 10.^(-13:-4)
+rng(0);
+du  = fac*(rand(size(u)));
+
 vp = f(u+du);       
 fprintf('\nDirectional gradient obtained by perturbation: %e\n', (vp-v)/norm(du));
 fprintf('Directional gradient obtained by adjoint:      %e\n', g'*du/norm(du));
-
+vv = [(vp-v)/norm(du), vv];
+end
 %%

@@ -2,31 +2,33 @@ classdef ModelParameter_V2
     properties
         name
         type          = 'value';    % 'value'/'multiplier'
-        boxLims                     % upper/lower value(s) for parameters
-        distribution  = 'cell';     % not sure we need this one
-        subset        =    ':';     % subset of parameters
+        boxLims                     % upper/lower value(s) for parameters (used for scaling)
+        subset        =    ':';     % subset of parameters (or subset of wells)
         scaling       = 'linear'    % 'linear'/'log'
-        initialValue                % only used for multipliers
+        referenceValue              % parameter reference values (used for type 'multiplier') 
         belongsTo                   % model/well/state0
-        location                    % e.g., {'operators', ''}
+        location                    % e.g., {'operators', 'T'}
         n                           % number of parameters
-        lumping                     %
-        initial_val                 % 
-        setfun                      % possibly custom set-function
+        lumping                     % parameter lumping vector (partition vector) 
+        setfun                      % possibly custom set-function (default is setfield)
     end
     
     methods
         function p = ModelParameter_V2(problem, varargin)
             [p, extra] = merge_options(p, varargin{:});
             assert(~isempty(p.name), 'Parameter name can''t be defaulted');
-            if isempty(p.belongsTo) || isempty(p.location) || isempty(p.setfun)
-                p = setupAddress(p, problem);
+            if isempty(p.belongsTo) || isempty(p.location) 
+                p = setupByName(p, problem);
             end
             opt = struct('relativeLimits', [.5 2]);
             opt = merge_options(opt, extra{:});
             p   = setupDefaults(p, problem, opt);
+            if isempty(p.setfun)
+                % use default
+                p.setfun = @(obj, loc, v)setfield(obj, loc{:}, v);
+            end
         end
-        
+        %------------------------------------------------------------------
         function vs = scale(p, pval)
             % map parameter pval to "control"-vector v \in [0,1]
             if strcmp(p.type, 'multiplier')
@@ -39,7 +41,7 @@ classdef ModelParameter_V2
                 vs = (log(pval)-logLims(:,1))./diff(logLims, [], 2);
             end
         end
-     
+        %------------------------------------------------------------------
         function pval = unscale(p, vs)
             % retrieve parameter pval from "control"-vector v \in [0,1]
             if strcmp(p.scaling, 'linear')
@@ -52,7 +54,7 @@ classdef ModelParameter_V2
                 pval = pval.*p.initialValue;
             end
         end
-        
+        %------------------------------------------------------------------
         function gs = scaleGradient(p, g, pval)
             % map gradient wrt param to gradient vs "control"-vector
             % parameter value pval only needed for log-scalings
@@ -67,17 +69,16 @@ classdef ModelParameter_V2
                 gs = (g.*pval).*log(diff(p.boxLims, [], 2));
             end
         end
-        
+        %------------------------------------------------------------------
         function v = getParameterValue(p, problem)
             if ~strcmp(p.belongsTo, 'well')
                 v = getfield(problem.(p.belongsTo), p.location{:});
-                v = collapseLumps(v(p.subset), p.lumping, 'mean');
+                v = collapseLumps(v(p.subset), p.lumping);
             else % well-parameter (assume constant over control steps)
                 v = p.getWellParameterValue(problem.schedule.control(1).W);
             end
         end
-                
-                
+        %------------------------------------------------------------------       
         function problem = setParameterValue(p, problem, v)
             if ~strcmp(p.belongsTo, 'well')
                 v  = expandLumps(v, p.lumping);
@@ -94,18 +95,19 @@ classdef ModelParameter_V2
                 end
             end
         end
-        
+        %------------------------------------------------------------------       
         function v = getWellParameterValue(p, W)
             assert(strcmp(p.belongsTo, 'well'))
             v = applyFunction(@(x)getfield(x, p.location{:}), W(p.subset));
             if iscell(p.lumping)
-                v = applyFunction(@(vi,lump)collapseLumps(lump, vi, @mean), v, p.lumping);
+                v = applyFunction(@(vi,lump)collapseLumps(lump, vi), v, p.lumping);
             end
             v = vertcat(v{:});
         end
-        
+        %------------------------------------------------------------------       
         function W = setWellParameterValue(p, W, v)
-            if ~isnumeric(p.subset)
+            sub = p.subset;
+            if ~isnumeric(sub)
                 sub = 1:numel(W);
             end 
             nc = arrayfun(@(w)numel(w.cells), W(sub));
@@ -118,23 +120,7 @@ classdef ModelParameter_V2
                 W(k) = setfield(W(k), p.location{:}, v{k});
             end
         end
-        
-%         function v = getState0ParameterValue(p, state0)
-%             assert(strcmp(p.belongsTo, 'state0'))
-%             v = getfield(state0, p.location{:});            
-%             v = collapseLumps(p, v(:,1), @mean);
-%         end
-        
-%         function state0 = setState0ParameterValue(p, state0, v)
-%             assert(strcmp(p.belongsTo, 'state0'))
-%             tmp = getfield(state0, p.location{:});            
-%             v = expandLumps(p,v,tmp(:,1));
-%             if strcmp(p.name, 'initSw')
-%                     v = [v,1-v]; %TODO: extend it to more phases
-%             end
-%             state0 = setfield(state0, p.location{:},v);
-%         end
-        
+        %------------------------------------------------------------------       
         function m = getMultiplerValue(p, problem, doLump)
             if strcmp(p.type, 'multiplier')
                 m = p.getParameterValue(problem)./p.initialValue;
@@ -145,79 +131,54 @@ classdef ModelParameter_V2
                 error('Parameter %s is not of type ''multiplier''', p.name);
             end
         end
-        
-%         function u = convertToOptimVector(p, pval)
-%             % Convert parameter pv in model to control vector
-%             np = numel(pval);
-%             u = cell(np,1);
-%             for k = 1:np
-%                                 u = p.scale(pval);                          
-%             end
-%         end
     end
 end
+
+%--------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 function p = setupDefaults(p, problem, opt)
-% Include special set-functions for perm/saturation
-% switch p.name
-%     case {'permx', 'permy', 'permz'}
-%         p.setfun = @setPermeabilityFun;
-%     case {'sw', 'sg'}
-%         oix = model.getPhaseIndex('O');
-%         assert(~isempty(oix), 'Current assumption is that oil is the dependent phase');
-%         p.setfun = @(state, location, v)setSaturationFun(state, location, v, oix);
-% end
-
-rlim = opt.relativeLimits;
+% Make sure setup makes sense and add boxLims if not provided
+rlim  = opt.relativeLimits;
 range = @(x)[min(min(x)), max(max(x))];
-v   = getParameterValue(p, problem);
-p.n = numel(v);
-if ~strcmp(p.belongsTo, 'well')
-    if isempty(p.boxLims)
-        if strcmp(p.type, 'value')
-            p.boxLims = range(v).*rlim;
-        else
-            p.boxLims = rlim;
-        end
-    end
-    assert(any(size(p.boxLims,1) == [1, p.n]), ...
-        'Property ''boxLims'' does not match number of parameters');
-    % add initial value if multiplier-type
-else % well parameter
-    % we only have WI at the moment so this is a special case
-    
-    assert(strcmp(p.name, 'conntrans'), 'Needs updating for: %s', p.name);
-    W = problem.schedule.control(1).W(p.subset);
-    nconn = arrayfun(@(w)numel(w.cells), W);
-    if isempty(p.boxLims)
-        if strcmp(p.type, 'value')
-            tmp = applyFunction(@(x)range([x.WI]).*rlim, W);
-            p.boxLims = rldecode(vertcat(tmp{:}), nconn);
-        else
-            p.boxLims = repmat(rlim, sum(nconn), 1);
-        end
-    end
-    if strcmp(p.type, 'multiplier')
-        p.initalValue = vertcat(W.WI);
-    end
-    p.n = sum(nconn);
+if islogical(p.subset)
+    p.subset = find(p.subset);
 end
+% check if well-parameter
+if ~strcmp(p.belongsTo, 'well') && ~isempty(p.lumping)
+    % for non-empty lumping, there should be a list of lumping-vectors for
+    % each included well.
+    p.lumping = cell(1, numel(p.subset));
+end
+v    = getParameterValue(p, problem);
+p.n  = numel(v);
+
+if isempty(p.boxLims)
+    if strcmp(p.type, 'value')
+        p.boxLims = range(v).*rlim;
+    else
+        p.boxLims = rlim;
+    end
+end
+
+assert(any(size(p.boxLims,1) == [1, p.n]), ...
+    'Property ''boxLims'' does not match number of parameters');
+
 if strcmp(p.type, 'multiplier')
     p.initialValue = v;
 end
 end
-
-
-function p = setupAddress(p, problem)
+%--------------------------------------------------------------------------
+function p = setupByName(p, problem)
 % setup for typical parameters
-setfun = @(obj, loc, v)setfield(obj, loc{:}, v);
+setfun = [];
 switch lower(p.name)
     case 'transmissibility'
         belongsTo = 'model';
         location = {'operators', 'T'};
     case {'permx', 'permy', 'permz'}
         belongsTo = 'model';
-        col = find(strcmpi(name(end), {'x', 'y', 'z'}));
+        col = find(strcmpi(p.name(end), {'x', 'y', 'z'}));
         location = {'rock', 'perm', {':', col}};
         setfun   = @setPermeabilityFun;
     case 'porevolume'
@@ -228,10 +189,11 @@ switch lower(p.name)
         location = {'WI'};
     case {'sw', 'sg'}
         belongsTo = 'state0';
-        col = model.getPhaseIndex(upper(name(end)));
+        col = problem.model.getPhaseIndex(upper(p.name(end)));
         location = {'s', {':', col}};
-        oix = model.getPhaseIndex('O');
-        assert(~isempty(oix), 'Current assumption is that oil is the dependent phase');
+        oix = problem.model.getPhaseIndex('O');
+        assert(~isempty(oix), ...
+            'Current assumption is that oil is the dependent phase');
         setfun   = @(obj, loc, v)setSaturationFun(obj, loc, v, oix);
     case 'pressure'
         belongsTo = 'state0';
@@ -245,8 +207,7 @@ switch lower(p.name)
         location = {'rock', 'krscale', 'drainage', ph, {':', col}};
         setfun   = @setRelPermScalersFun;
     otherwise
-        error('No default setup for parameter: %s\n', p.name);
-        
+        error('No default setup for parameter: %s\n', p.name);     
 end
 if isempty(p.belongsTo)
     p.belongsTo = belongsTo;
@@ -254,11 +215,12 @@ end
 if isempty(p.location)
     p.location = location;
 end
-if isempty(p.setfun)
+if isempty(p.setfun) && ~isempty(setfun)
     p.setfun = setfun;
 end
 end
-            
+%--------------------------------------------------------------------------            
+
 function map = getScalerMap()
 phOpts = {'w', 'ow', 'g', 'og'};
 kw  = struct('SWL',   [1,1], 'SWCR',  [1,2], 'SWU', [1,3], ...
@@ -267,26 +229,32 @@ kw  = struct('SWL',   [1,1], 'SWCR',  [1,2], 'SWU', [1,3], ...
              'KRW',   [1,4], 'KRO',   [2,4], 'KRG', [3,4]);
 map = struct('ph', {phOpts}, 'kw', kw);
 end
+%--------------------------------------------------------------------------
 
-function v = collapseLumps(v, lump, fstr)
-if ~isempty(lump) && isnumeric(lump)
-    if isa(v, 'double')
-        v = accumarray(lump,v, [], str2func(fstr)); 
+function v = collapseLumps(v, lumps)
+% take mean of each lump
+if ~isempty(lumps) && isnumeric(lumps)
+    if numel(lumps) == 1 && lumps==1
+        % treat as special case (one lump)
+        v = sum(v)/numelValue(v);
     else
-        M = sparse(lump, (1:numel(lump))', 1);
-        v = M*v;
-        strcmp(fstr, 'mean')
-            v = v./sum(M,2);
+        if isa(v, 'double')
+            v = accumarray(lumps,v, [], @mean);
+        else % special treatment in case of ADI
+            M = sparse(lumps, (1:numel(lumps))', 1);
+            v = (M*v)./sum(M,2);
+        end
     end
 end
-end 
+end
+%--------------------------------------------------------------------------
 
-
-function v = expandLumps(v, lump)
-if ~isempty(lump) && isnumeric(lump)
-    v = v(lump);
+function v = expandLumps(v, lumps)
+if ~isempty(lumps) && isnumeric(lumps)
+    v = v(lumps);
 end
 end
+%--------------------------------------------------------------------------
 
 function v = setSubset(v, vi, sub)
 if isa(vi, 'ADI')
@@ -295,22 +263,7 @@ end
 v(sub) = vi;
 end
 
-    
-    
-
-
-% function v = accumarray_nan(subs,val, fn)
-%     if any(isnan(subs))
-%        subs(isnan(subs)) = 0;
-%        for i = 1:length(unique(subs))-1
-%            Indx = find(subs==i);
-%            v(i,1) = fn(val(Indx));
-%        end
-%     else
-%        v = accumarray(subs,val,[],fn);
-%     end
-% end
-
+%--------------------------------------------------------------------------       
 function model = setPermeabilityFun(model, location, v)
 % utility for setting permx/y/z possibly as AD and include effect on
 % transmissibilities
@@ -342,7 +295,7 @@ else
 end
 end
 
-
+%--------------------------------------------------------------------------       
 function state = setSaturationFun(state, location, v, oix)
 assert(isa(v, 'double'), 'Setting saturation to class %s is not supported', class(v));
 pix = location{end}{end};
@@ -351,6 +304,7 @@ state.s(:, pix) = v;
 state.s(:, oix) =  state.s(:, oix) - ds;
 end
 
+%--------------------------------------------------------------------------       
 function model = setRelPermScalersFun(model, location, v)
 if ~isa(v, 'ADI')
     model = setfield(model, location{:}, v);

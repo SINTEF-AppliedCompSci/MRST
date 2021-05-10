@@ -21,14 +21,12 @@ misfitVal  = - sum(vertcat(misfitVals{:}))/objScaling ;
 
 if nargout > 1
     objh = @(tstep,model,state) obj(model, states, prob.schedule, states_ref, true, tstep, state);
-    gradient = computeSensitivitiesAdjointAD(prob.state0, states, prob.model, prob.schedule, objh, ...
-                'Parameters'    , applyFunction(@(x)x.name, {parameters{~ignore_these}}),...
-                'initStateSensitivity',initStateSensitivity);
+    gradient = computeSensitivitiesAdjointAD_V2(prob, states, parameters, objh);
     % do scaling of gradient
-    nms = applyFunction(@(x)x.grad_location, parameters);
+    nms = applyFunction(@(x)x.name, parameters);
     scaledGradient = cell(numel(nms), 1);
     for k = 1:numel(nms)
-            scaledGradient{k} = parameters{k}.scaleGradient( getfield(gradient, nms{k}{:}), p{k});
+       scaledGradient{k} = parameters{k}.scaleGradient( gradient.(nms{k}), p{k});
     end
     varargout{1} = vertcat(scaledGradient{:})/objScaling;
 end
