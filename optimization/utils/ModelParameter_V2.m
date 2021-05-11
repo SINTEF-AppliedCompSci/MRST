@@ -3,7 +3,7 @@ classdef ModelParameter_V2
         name
         type          = 'value';    % 'value'/'multiplier'
         boxLims                     % upper/lower value(s) for parameters (used for scaling)
-        subset        =    ':';     % subset of parameters (or subset of wells)
+        subset                      % subset of parameters (or subset of wells)
         scaling       = 'linear'    % 'linear'/'log'
         referenceValue              % parameter reference values (used for type 'multiplier') 
         belongsTo                   % model/well/state0
@@ -83,7 +83,7 @@ classdef ModelParameter_V2
             if ~strcmp(p.belongsTo, 'well')
                 v  = expandLumps(v, p.lumping);
                 if isnumeric(p.subset)
-                    tmp = p.getParameterValue(problem.(p.belongsTo), p.location{:});
+                    tmp = getfield(problem.(p.belongsTo), p.location{:});
                     v   = setSubset(tmp, v, p.subset);
                 end
                 problem.(p.belongsTo) = ...
@@ -100,7 +100,7 @@ classdef ModelParameter_V2
             assert(strcmp(p.belongsTo, 'well'))
             v = applyFunction(@(x)getfield(x, p.location{:}), W(p.subset));
             if iscell(p.lumping)
-                v = applyFunction(@(vi,lump)collapseLumps(lump, vi), v, p.lumping);
+                v = applyFunction(@(vi,lump)collapseLumps(vi, lump), v, p.lumping);
             end
             v = vertcat(v{:});
         end
@@ -114,7 +114,7 @@ classdef ModelParameter_V2
             [i1, i2] = deal(cumsum([1;nc(1:end-1)]), cumsum(nc));
             v  = applyFunction(@(i1,i2)v(i1:i2), i1, i2);
             if iscell(p.lumping)
-                v = applyFunction(@(vi,lump)expandLumps(lump, vi), v, p.lumping);
+                v = applyFunction(@(vi,lump)expandLumps(vi, lump), v, p.lumping);
             end
             for k = sub
                 W(k) = setfield(W(k), p.location{:}, v{k});
@@ -141,14 +141,22 @@ function p = setupDefaults(p, problem, opt)
 % Make sure setup makes sense and add boxLims if not provided
 rlim  = opt.relativeLimits;
 range = @(x)[min(min(x)), max(max(x))];
+if isempty(p.subset)
+    p.subset = ':';
+end
 if islogical(p.subset)
     p.subset = find(p.subset);
 end
 % check if well-parameter
-if ~strcmp(p.belongsTo, 'well') && ~isempty(p.lumping)
+if strcmp(p.belongsTo, 'well') && isempty(p.lumping)
     % for non-empty lumping, there should be a list of lumping-vectors for
     % each included well.
-    p.lumping = cell(1, numel(p.subset));
+    if ~ischar(p.subset)
+        nw = numel(p.subset);
+    else
+        nw = numel(problem.schedule.control(1).W);
+    end
+    p.lumping = cell(nw, 1);
 end
 v    = getParameterValue(p, problem);
 p.n  = numel(v);
