@@ -135,20 +135,27 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                 if opt.isObservation
                     if isempty(opt.observationIndices)
                         plot(time, u*plotScale, ...,
-                             'x', 'color', [0 0 0], extra{:});
+                             'o', 'color', [0 0 0], extra{:});
                     else
                         plot(time(opt.observationIndices), u(opt.observationIndices)*plotScale, ... ...
-                            'x', 'color', [0 0 0], extra{:});
-                        unobservedIndices = setdiff(1:numel(u),opt.observationIndices);
-                        if ~isempty(unobservedIndices)
-                            plot(time(unobservedIndices), u(unobservedIndices)*plotScale, ...
-                                 'o', 'color', [0 0 0], extra{:});
-                        end
+                            'o', 'color', [0 0 0], extra{:});
+                        % unobservedIndices = setdiff(1:numel(u),opt.observationIndices);
+                        % if ~isempty(unobservedIndices)
+                        %     plot(time(unobservedIndices), u(unobservedIndices)*plotScale, ...
+                        %          'o', 'color', [0 0 0], extra{:});
+                        % end
                     end
                 elseif opt.isTruth
                     plot(time, u*plotScale, ...
-                         'o', 'color', [1 1 1].*0.5, extra{:});
+                         '--', 'color', [1 1 1].*0, extra{:});
                 else
+                    % Check that detects whether qoi.dt is shortened after
+                    % simulation of the qoi (e.g., when you compute the
+                    % full simulation for the prior but only use the first
+                    % half of the timesteps for history matching)
+                    if numel(u) > numel(time) && numel(u) == numel(ensemble.originalSchedule.step.val)
+                        time = cumsum(ensemble.originalSchedule.step.val)./opt.timescale;
+                    end
                     plot(time(1:numel(u)), u*plotScale, ...
                          'color'    , color, ...
                          'lineWidth', opt.lineWidth, ...
