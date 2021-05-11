@@ -10,6 +10,7 @@ mrstVerbose off
 % We will here use an identical twin experiment, where we use the same
 % problem for both generating the truth and as a base for our ensemble.
 
+rng(0);
 
 trueProblemName = 'ensemble_base_problem_1d_reservoir';
 numCells = 10;
@@ -23,16 +24,17 @@ directoryTruth = fullfile(mrstOutputDirectory(), ...
 trueExample = MRSTExample(trueProblemName, trueProblemOptions{:});
 trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
 
-plotExample = false;
-rerunTrueProblemFromScratch = false;
-
+plotExample = true;
+rerunTrueProblemFromScratch = true;
+overwriteObservation = rerunTrueProblemFromScratch || false;
 
 if rerunTrueProblemFromScratch
-    clearPackedSimulatorOutput(trueProblem);
+    clearPackedSimulatorOutput(trueProblem, 'prompt', false);
 end
 simulatePackedProblem(trueProblem);
 if plotExample
     [wellSols, states, reports] = getPackedSimulatorOutput(trueProblem);
+    trueExample.plot();
     trueExample.plot(states);
 end
 
@@ -50,11 +52,20 @@ trueObservations = trueQoI.getQoI(trueProblem);
 observationResultHandler = trueQoI.ResultHandler;
 observationResultHandler.dataPrefix = 'observedQoI';
 
+% Create a separate ResultHandler for the observations.
+% Need to build a new ResultHandler from scratch, so that we do not
+% overwrite the dataPrefix property of observationResultHandler
+truthResultHandler = ResultHandler('dataPrefix', 'trueQoI', ...
+                                   'writeToDisk', observationResultHandler.writeToDisk,...
+                                   'dataDirectory', observationResultHandler.dataDirectory, ...
+                                   'dataFolder', observationResultHandler.dataFolder, ...
+                                   'cleardir', false);
+
 % Define observation uncertainty 
-obsStdDev = 0.0004;
+obsStdDev = 0.00005;
 
 % Add some observation noise and store output
-if numel(observationResultHandler.getValidIds) < 1
+if numel(observationResultHandler.getValidIds) < 1 || overwriteObservation
     for w = 1:numel(trueQoI.wellNames)
         for f = 1:numel(trueQoI.fldname)
             perturbedObservations{w}{f} = trueObservations{w}{f} + randn(size(trueObservations{w}{f}))*obsStdDev;
@@ -62,18 +73,22 @@ if numel(observationResultHandler.getValidIds) < 1
     end
     observationResultHandler{1} = {perturbedObservations};
 end
+if numel(truthResultHandler.getValidIds) < 1 || overwriteObservation
+    truthResultHandler{1} = {trueObservations};
+end
 
 %% Select and populate samples for the stochastic components in the ensemble
 
-ensembleSize = 23;
+ensembleSize = 40;
 
 configData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
-    configData{i}.poro = gaussianField(trueExample.model.G.cartDims, [0.2 0.4]); 
+    configData{i}.poro = gaussianField(trueExample.model.G.cartDims, [0.2 0.6]); 
     configData{i}.perm = configData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-configData{i}.poro).^2);
 end
 
-samples = RockSamplesHM('data', configData)
+samples = RockSamplesHM('data', configData, ...
+                        'minPoroValue', 0.02)
 
 %% Select quantity of interest class matching the what we have as observations
 % We validate the QoI with the trueProblem, since this will be our ensemble
@@ -81,12 +96,14 @@ samples = RockSamplesHM('data', configData)
 
 qoi = WellQoIHM('wellNames', {'P1'}, 'fldname', {'qOs'}, ...
                   'observationResultHandler', observationResultHandler, ...
+                  'truthResultHandler', truthResultHandler, ...
                   'observationCov', obsStdDev^2)
 
 %% Create the ensemble
 
 ensemble = MRSTHistoryMatchingEnsemble(trueExample, samples, qoi, ... 
     ... %'directory', uniqueDirectory, ...
+    ... %'alpha', [28/3 7 4 2], ...
     'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
     'verbose', true, ...
@@ -104,6 +121,22 @@ ensemble.qoi.getObservationErrorCov()
 %% Run ensemble
 ensemble.simulateEnsembleMembers();
 
+%% Plot prior
+ensemble.plotQoI('clearFigure', false, ...
+    'cmapName', 'lines', ...
+    'plotTruth', true, ...
+    'legend', {'observations', 'truth', 'posterior mean'});
+
+%%
+perm_range = [1:10];
+poro_range = [11:20];
+param_ranges = {perm_range, poro_range};
+
+priorDir = fullfile(ensemble.mainDirectory, 'prior');
+mkdir(priorDir);
+samplesStructure = postProcessRockSamples(ensemble.mainDirectory, param_ranges, ...
+    'saveFigFolder', priorDir);
+
 %% Get simulated observations
 disp('simulated observations')
 size(ensemble.getEnsembleQoI())
@@ -120,17 +153,44 @@ ensemble.doHistoryMatching()
 ensemble.simulateEnsembleMembers();
 
 %% Plot 
-ensemble.plotQoI('clearFigure', false);
+if numel(ensemble.alpha) == 1
+    ensemble.plotQoI('clearFigure', false, ...
+        'cmapName', 'lines', ...
+        'plotTruth', true, ...
+        'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});
+else
+    ensemble.plotQoI('subplots', false, 'clearFigure', false, ...
+        'cmapName', 'lines', ...
+        'plotTruth', true, ...
+        'subIterations', true, ...
+        'legend', {'observations', 'truth', 'posterior mean', 'ES-MDA it 3',...
+                   'ES-MDA it 2', 'ES-MDA it 1', 'prior mean'});
+end
+           
+
 
 
 %% Plot diff between the qois
-figure
-hold on
-for i = 1:ensemble.num
-    plot(ensemble.qoi.ResultHandler{i}{1}{1} - ensemble.qoiArchive{1}{1}.ResultHandler{i}{1}{1})
-end
+%figure
+%hold on
+%for i = 1:ensemble.num
+%    plot(ensemble.qoi.ResultHandler{i}{1}{1} - ensemble.qoiArchive{1}{1}.ResultHandler{i}{1}{1})
+%end
+%title('difference in production rates')
 
+%% Plot parameter distribution with trueValues
+posteriorDir = fullfile(ensemble.mainDirectory, 'posterior');
+mkdir(posteriorDir);
 
+samplesStructure = postProcessRockSamples(ensemble.mainDirectory, param_ranges, ...
+    'trueRock', trueProblem.SimulatorSetup.model.rock, ...
+    'saveFigFolder', posteriorDir);
+
+%% Plot parameter distribution with trueValues
+
+%samplesStructure = postProcessRockSamples(ensemble.mainDirectory, param_ranges, ...
+%    'trueRock', trueProblem.SimulatorSetup.model.rock, ...
+%    'includeSubIterations', true);
 
 
 
