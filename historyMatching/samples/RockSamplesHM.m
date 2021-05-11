@@ -27,7 +27,16 @@ classdef RockSamplesHM < BaseSamplesHM & RockSamples
     %
     % SEE ALSO:
     %   `WellSamples`, `DeckSamples`, `BaseSamples`, `MRSTExample`, `BaseQoI`
-  
+    
+    properties
+        
+        minPoroValue = 0;
+        minPermValue = 0;
+        maxPoroValue = inf;
+        maxPermValue = inf;
+    end
+    
+    
     methods
        
         function samples = RockSamplesHM(varargin)
@@ -98,8 +107,15 @@ classdef RockSamplesHM < BaseSamplesHM & RockSamples
                 else
                     permData = newSampleVectors(1:numCells, i);
                 end
+                                
                 poroData = newSampleVectors(numCells+1:numCells*2, i);
 
+                % Check and fix potentially bad values
+                permData(permData < samples.minPermValue) = samples.minPermValue;
+                permData(permData > samples.maxPermValue) = samples.maxPermValue;
+                poroData(poroData < samples.minPoroValue) = samples.minPoroValue;
+                poroData(poroData > samples.maxPoroValue) = samples.maxPoroValue;
+                
                 if rockIsField
                     samples.data{i}.rock.perm(:) = permData;
                     samples.data{i}.rock.poro(:) = poroData;
