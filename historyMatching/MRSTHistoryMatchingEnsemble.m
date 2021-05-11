@@ -22,6 +22,8 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsembleV2
         
         qoiArchive = {{}};
         
+        storeHistoryMatching = true;
+        
         originalSchedule
         
     end
@@ -52,13 +54,32 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsembleV2
                 '1/alpha does not sum to 1');
             
             ensemble.originalSchedule = ensemble.setup.schedule;
+
+            if ensemble.storeHistoryMatching
+                if ~exist(ensemble.mainDirectory, 'dir')
+                    mkdir(ensemble.mainDirectory);
+                end
+                save(fullfile(ensemble.mainDirectory, 'ensemble.mat'), 'ensemble');
+            end
             
             % Prepare ensemble
             if opt.prepareSimulation
                 ensemble.prepareEnsembleSimulation();
             end
+            
         end
         
+        
+        function simulateEnsembleMembers(ensemble, varargin)
+           
+            ensemble.simulateEnsembleMembers@MRSTEnsembleV2(varargin{:});
+            
+            if ensemble.storeHistoryMatching
+                samples = ensemble.samples;
+                save(fullfile(ensemble.directory, 'samples.mat'), 'samples');
+            end
+            
+        end
   
                 
         %-----------------------------------------------------------------%
@@ -99,10 +120,11 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsembleV2
         end
 
         %-----------------------------------------------------------------%
-        function updateHistoryMatchingIterations(ensemble, updatedSamples)
+        function updateHistoryMatchingIterations(ensemble, samples)
             % This function is called after we have update the ensemble 
             
-            ensemble.samples = updatedSamples;
+            % Set new samples to the ensemble class
+            ensemble.samples = samples;
             
             % Store QoI
             ensemble.qoiArchive{ensemble.historyMatchingIteration}{ensemble.historyMatchingSubIteration} = ensemble.qoi;
@@ -122,15 +144,10 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsembleV2
             baseProblem = ensemble.getBaseProblem();
             ensemble.qoi = ensemble.qoi.validateQoI(baseProblem);
             
+            ensemble.setupSimulationStatusHandler('');
+            
             ensemble.prepareEnsembleSimulation('force', true);
             
-            %if numel(ensemble.spmdEnsemble) > 0 && strcmp(ensemble.simulationStrategy, 'parallel')
-            %    % Call recursively on spmdEnsembles (if any)
-            %    spmdEns = ensemble.spmdEnsemble;
-            %    spmd
-            %        spmdEns.updateHistoryMatchingIterations(updatedSamples);
-            %    end
-            %end
         end
 
         %-----------------------------------------------------------------%
