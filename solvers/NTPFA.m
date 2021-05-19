@@ -6,6 +6,7 @@ classdef NTPFA
         scale
         internalConn
         nph
+        lagged
     end
 
     methods
@@ -17,9 +18,12 @@ classdef NTPFA
                          'OSflux', [], ...
                          'interpFace', [], ...
                          'saveOSfluxDir', [], ...
-                         'saveInterpFaceDir', []);
+                         'saveInterpFaceDir', [], ...
+                         'lagged', false);
 
             opt = merge_options(opt, varargin{:});
+
+            ntpfa.lagged = opt.lagged;
 
             % Set up HAP
             if isempty(opt.interpFace)
@@ -64,9 +68,16 @@ classdef NTPFA
             grad = ntpfa.unscaledGradient(pressure);
             grad = grad .* ntpfa.scale;
         end
-        
+
         function grad = unscaledGradient(ntpfa, pressure)
-            T = TransNTPFA(ntpfa.G, pressure, ntpfa.OSflux);
+
+            if ntpfa.lagged
+                fprintf('NTPFA: Using non-AD pressure\n');
+                T = TransNTPFA(ntpfa.G, value(pressure), ntpfa.OSflux);
+            else
+                T = TransNTPFA(ntpfa.G, pressure, ntpfa.OSflux);
+            end
+
             v = computeFlux(ntpfa.G, pressure, T);
             v = v(ntpfa.internalConn, :);
             grad = -v;
