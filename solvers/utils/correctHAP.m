@@ -32,7 +32,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % the locations of the original harmonic averaging points
     HAP = interpFace.coords; 
-    
+    interpFace.corrected = interpFace.fraction;
+
     if (nargin == 2 || (nargin == 3 && isempty(myRatio)))
         if (interpFace.fraction > 0)
             if (G.griddim == 2)
@@ -77,7 +78,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         d = hap - xf;
         d = sqrt(dot(d, d, 2));
         ind = find(d > R);
-        dispif(mrstVerbose, 'correcting %d HAPs using myRatio=%d\n', numel(ind), myRatio);
+        dispif(mrstVerbose, 'correcting %d HAPs using myRatio=%1.1f\n', numel(ind), myRatio);
+        interpFace.corrected = numel(ind)/G.faces.num;
         for i = 1:numel(ind)
             interpFace = correctHAP_local(G, ind(i), interpFace, HAP(ind(i), :)', myRatio);
         end
