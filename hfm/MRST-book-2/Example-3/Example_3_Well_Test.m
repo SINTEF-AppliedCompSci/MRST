@@ -1,5 +1,5 @@
 %% LOAD MRST MODULES
-mrstModule add hfm ad-blackoil ad-core ad-props
+mrstModule add hfm ad-blackoil ad-core ad-props mrst-gui
 
 %% LOAD APODI 2 DATA
 load Apodi2.mat
