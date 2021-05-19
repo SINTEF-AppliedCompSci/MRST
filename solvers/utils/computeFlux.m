@@ -21,8 +21,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     dispif(mrstVerbose, 'computeFlux\n');
-
-    flux = double2ADI(0 * T{1}, getSampleAD(u, T{:}));
+    flux = zeros(numelValue(T{1}), 1);
+    s = getSampleAD(u, T{:});
+    if isa(s, 'ADI')
+        flux = double2ADI(flux, s);
+    end
     ind = all(G.faces.neighbors ~= 0, 2);
     c1 = G.faces.neighbors(ind, 1);
     c2 = G.faces.neighbors(ind, 2);
