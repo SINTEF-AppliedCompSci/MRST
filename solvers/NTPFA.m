@@ -72,7 +72,6 @@ classdef NTPFA
         function grad = unscaledGradient(ntpfa, pressure)
 
             if ntpfa.lagged
-                fprintf('NTPFA: Using non-AD pressure\n');
                 T = TransNTPFA(ntpfa.G, value(pressure), ntpfa.OSflux);
             else
                 T = TransNTPFA(ntpfa.G, pressure, ntpfa.OSflux);
