@@ -14,12 +14,12 @@ classdef AvgMPFA < NTPFA
 
     methods
 
-        function avgtpfa = AvgMPFA(model, varargin)
+        function avgmpfa = AvgMPFA(model, varargin)
 
-            avgtpfa = avgtpfa@NTPFA(model, varargin{:});
+            avgmpfa = avgmpfa@NTPFA(model, varargin{:});
             G = model.G;
-            OSflux = avgtpfa.OSflux;
-            avgtpfa.T = AvgTransNTPFA(G, OSflux);
+            OSflux = avgmpfa.OSflux;
+            avgmpfa.T = AvgTransNTPFA(G, OSflux);
 
         end
 
