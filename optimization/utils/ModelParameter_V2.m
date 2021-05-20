@@ -32,7 +32,7 @@ classdef ModelParameter_V2
         function vs = scale(p, pval)
             % map parameter pval to "control"-vector v \in [0,1]
             if strcmp(p.type, 'multiplier')
-                pval = pval./p.initialValue;
+                pval = pval./p.referenceValue;
             end
             if strcmp(p.scaling, 'linear')
                 vs = (pval-p.boxLims(:,1))./diff(p.boxLims, [], 2);
@@ -51,7 +51,7 @@ classdef ModelParameter_V2
                 pval = exp(vs.*diff(logLims, [], 2) + logLims(:,1));
             end
             if strcmp(p.type, 'multiplier')
-                pval = pval.*p.initialValue;
+                pval = pval.*p.referenceValue;
             end
         end
         %------------------------------------------------------------------
@@ -63,7 +63,7 @@ classdef ModelParameter_V2
                 if strcmp(p.type, 'value')
                     gs = g.*diff(p.boxLims, [], 2);
                 elseif strcmp(p.type, 'multiplier')
-                    gs = (g.*p.initialValue).*diff(p.boxLims, [], 2);
+                    gs = (g.*p.referenceValue).*diff(p.boxLims, [], 2);
                 end
             elseif strcmp(p.scaling, 'log')
                 gs = (g.*pval).*log(diff(p.boxLims, [], 2));
@@ -123,7 +123,7 @@ classdef ModelParameter_V2
         %------------------------------------------------------------------       
         function m = getMultiplerValue(p, problem, doLump)
             if strcmp(p.type, 'multiplier')
-                m = p.getParameterValue(problem)./p.initialValue;
+                m = p.getParameterValue(problem)./p.referenceValue;
                 if nargin == 3 && doLump
                     m = collapseLumps(p, m, @mean);
                 end
@@ -173,7 +173,7 @@ assert(any(size(p.boxLims,1) == [1, p.n]), ...
     'Property ''boxLims'' does not match number of parameters');
 
 if strcmp(p.type, 'multiplier')
-    p.initialValue = v;
+    p.referenceValue = v;
 end
 end
 %--------------------------------------------------------------------------
