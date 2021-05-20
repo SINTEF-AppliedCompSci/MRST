@@ -33,14 +33,18 @@ opt = struct(   'gradTol',             1e-3, ...
                 'safeguardFac',        1e-5, ...
                 'stepIncreaseTol',     10,   ...
                 'useBFGS',             true, ...
-                'linEq',                 [], ...
-                'linIneq',               [], ...
+                'limitedMemory',       false, ...
+                'lbfgsNum',            5, ...
+                'lbfgsStrategy',       'static', ...
+                'linEq',               [], ...
+                'linIneq',             [], ...
                 'plotEvolution',       true);
 opt  = merge_options(opt, varargin{:});
 step = opt.stepInit;
 
-if numel(u0) > 1e3
-    warning('''unitBoxBFGS'' uses non-sparse representation of Hessian and constraints, and is no recommended for large (~>1000) number of controls')
+if numel(u0) > 5e2
+    warning('Switching to L-BFGS with default options due to large number of controls')
+    opt.limitedMemory = true;
 end
 % Perform initial evaluation of objective and gradient:
 [v0, g0] = f(u0);
@@ -48,7 +52,14 @@ end
 % If not provided, set initial step 
 if step <= 0, step = 1; end
 % Initial Hessian-approximation
-Hi = -step*eye(numel(u0));
+if ~opt.limitedMemory
+    Hi = -step*eye(numel(u0));
+else
+    Hi = LimitedMemoryHessian('initScale', step, ...
+                              'm', opt.lbfgsNum, ...
+                              'initStrategy', opt.lbfgsStrategy, ...
+                              'sign', -1);
+end
 HiPrev = Hi;
 % Setup constraint struct
 c = getConstraints(u0, opt); 
@@ -76,9 +87,13 @@ while ~success
             [du, dg] = deal(u-u0, g-g0);
             if abs(du'*dg) > sqrt(eps)*norm(du)*norm(dg)
                 HiPrev = Hi;
-                r = 1/(du'*dg);
-                V = eye(numel(u)) - r*dg*du';
-                Hi = V'*Hi*V + r*(du*du');
+                if isa(Hi, 'LimitedMemoryHessian')
+                    Hi = Hi.update(du, dg);
+                else
+                    r = 1/(du'*dg);
+                    V = eye(numel(u)) - r*dg*du';
+                    Hi = V'*Hi*V + r*(du*du');
+                end
             else
                 fprintf('Hessian not updated during iteration %d.\n', it)
             end
@@ -131,7 +146,7 @@ function hst = gatherInfo(hst, val, u, pg, alpha, lsit, lsfl, hess)
 if isempty(hst)
     hst = struct('val', val, 'u', {{u}}, 'pg', pg, ...
                  'alpha', alpha, 'lsit', lsit, 'lsfl', lsfl, ...
-                 'hess', {hess});
+                 'hess', {{hess}});
 else
     hst.val   = [hst.val  , val  ];
     hst.u     = [hst.u    , {u}  ];
@@ -171,7 +186,11 @@ for k = 1:3
     if k==2
         Hi = HiPrev;
     elseif k==3
-        Hi = -1;
+        if isa(Hi, 'LimitedMemoryHessian')
+            Hi = Hi.reset();
+        else
+            Hi = -1;
+        end
     end
     % Check for active inequality constraints and project
     [na, na_prev] = deal(0, -inf);
@@ -208,7 +227,7 @@ for k = 1:3
     while ~done
         dr      = - projQ(gr, Q, Hi);
         [ix, s] = findNextCons(c.i.A, c.i.b, u0+d, dr, ac);
-        if ~isempty(ix);
+        if ~isempty(ix)
             ac(ix) = true;
                 d  = d + s*dr;
                 gr = (1-s)*gr;
@@ -244,7 +263,7 @@ end
 
 function w = projQ(v, Q, H)
 if nargin < 3
-    H = eye(numel(v));
+    H = 1;
 end
     tmp = H*(v-Q*(Q'*v));
     w   = tmp - Q*(Q'*tmp);
