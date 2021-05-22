@@ -72,8 +72,8 @@ aMax = max(1, aMax);
 p1 = p0;
 p2 = assignPoint(aMax, -inf, -inf);
 % Initial step-length:
-%a  = 1;
-a = min(1, aMax/2);
+a  = 1;
+%a = min(1, aMax/2);
 
 lineSearchDone   = false;
 it = 0;
@@ -86,12 +86,12 @@ while ~lineSearchDone && it < maxIt
         lineSearchDone = true;
         flag = 1;
     else
-        if (p.a > aMax*(1-sqrt(eps))) && ... % max step-length reached
+        if abs(aMax - p.a) < sqrt(eps) && ... % max step-length reached
                (p.v > p0.v) && ... % the step yielded an improvement
                (p.dv > 0) % continuing further would improve (but not allowed)
             lineSearchDone  = true;
             flag = -1;
-            fprintf('Wolfe conditions not satisfied for this step ...\n');
+            fprintf('Line search at max step size, Wolfe conditions not satisfied for this step.\n');
         else % logic for refining/expanding interval of interest [p1 p2]
             if p.a > p2.a
                 if w1(p2)
@@ -106,7 +106,11 @@ while ~lineSearchDone && it < maxIt
                 end
             end
             % Find next candidate-step by interpolation
-            a = argmaxCubic(p1, p2);
+            if p1.v < p2.v && p1.dv <= p2.dv
+                a = inf;
+            else
+                a = argmaxCubic(p1, p2);
+            end
             % Safe-guarding and thresholding:
             if a > p2.a
                 a = max(a, (1+sgf)*p2.a);
@@ -116,7 +120,7 @@ while ~lineSearchDone && it < maxIt
                 a = min(a, p2.a - sgf*(p2.a-p1.a));
             else
                 a = (p1.a+p2.a)/2;
-                fprintf('Cubic interpolation failed, cutting interval in half ...')
+                fprintf('No extremumCubic interpolation failed, cutting interval in half ...')
             end
         end
     end
@@ -147,7 +151,7 @@ ignore_ix(1:2*numel(u)) = [isSmall; isSmall];
 
 s = (b-A*u)./(A*d);
 s = s(~ignore_ix);
-alphaMax = min(s(s>eps));
+alphaMax = min(s(s>sqrt(eps)));
 end
 
    

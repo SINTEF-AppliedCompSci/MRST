@@ -3,7 +3,66 @@ function [v, u, history] = unitBoxBFGS(u0, f, varargin)
 % problems, i.e., 0<=u<=1 and f~O(1) 
 % 
 % SYNOPSIS:
-% [v, u, history] = unitBoxBFGS(u0, f, opt)
+% [v, u, history] = unitBoxBFGS(u0, f, ...)
+%
+% PARAMETERS
+% u0    : inital guess nx1 vector with 0<= u0 <= 1 and feasible wrt
+%         any additional constraints 
+% f     : function handle s.t., [v,g] = f(u) returns
+%           v : objective value
+%           g : objective nx1 gradient vector
+% KEYWORD ARGUMENTS:
+%       'maximize' : Boolean option (false will minimize objective)
+%                    Default: true
+%       'stepInit' : Initial step gradient scaling. If not provided, the 
+%                    following scaling will be used:
+%                    if 0.1 < |initial objective| < 10
+%                        stepInit = 1
+%                    otherwise
+%                        stepInit = 0.1/max(|initial gradient|)
+%   Stopping criteria options
+%       'gradTol'       : Absolute tollerance of inf-norm of projected gradient. 
+%                         Default: 1e-3
+%       'objChangeTol'  : Absolute objective update tollerance. Default: 5e-4
+%       'maxIt'         : Maximal number of iterations. Default: 25
+%   Line-search options
+%       'lineSearchMaxIt' : Maximal number of line-search iterations. Default: 5
+%       'wolfe1',         : Objective improvement condition. Default: 1e-4
+%       'wolfe2',         : Gradient reduction condition. Default: 0.9
+%   Hessian approximation options
+%       'useBFGS'        : If false pure gradient search will be used.
+%                          Deafult: true
+%       'limitedMemory'  : If false, full Hessian approximations will be
+%                          made (in general not recommended), otherwise
+%                          L-BFGS (see LimitedMemoryHessian.m).
+%                          Default: true
+%       'lbfgsNum'       : Number of vector-pairs stored for L-BFGS.
+%                        : Default: 5
+%       'lbfgsStrategy'  : 'static' or 'dynamic' (see LimitedMemoryHessian.m)
+%                          Default: 'dynamic'
+%   Linear constraints options
+%       'linEq'    : Linear equality constraints given as structure with
+%                    fields 'A' and 'b' to enforce A*u=b
+%       'linIneq'  : Linear inequality constraints *in addition to* the default 
+%                    box constraints (0 <= u <= 1). Given as structure with
+%                    fields 'A' and 'b' to enforce A*u<=b
+%   Plotting and output options
+%       'plotEvolution' : Plot progess of optimization in figure. 
+%                         Default: true
+%       'outputHessian' : Output Hessian approximation for each iteration
+%                         in history-structure. Deafault: false 
+% 
+% RETURNS:                          
+% v       : Optimal or best objective value
+% u       : Control/parameter vector corresponding to v
+% history : Structure containing for each iteration:
+%            'val'   : objective value
+%            'u'     : control/parameter vector
+%            'pg'    : norm of projected gradient
+%            'alpha' : line-search step length
+%            'lsit'  : number of line-search iterations
+%            'lsfl'  : line-search flag
+%            'hess'  : Hessian inverse approximation (if requested)
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -23,11 +82,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-opt = struct(   'gradTol',             1e-3, ...
+opt = struct(   'maximize',            true, ...
+                'stepInit',            nan,   ...
+                'gradTol',             1e-3, ...
                 'objChangeTol',        5e-4, ...
                 'maxIt',               100,   ...
-                'lineSearchMaxIt',     5,   ...
-                'stepInit',            -1,   ...
+                'lineSearchMaxIt',     5,   ...       
                 'wolfe1',              1e-3, ...
                 'wolfe2',              0.9,  ...
                 'safeguardFac',        1e-5, ...
@@ -38,27 +98,39 @@ opt = struct(   'gradTol',             1e-3, ...
                 'lbfgsStrategy',       'static', ...
                 'linEq',               [], ...
                 'linIneq',             [], ...
-                'plotEvolution',       true);
+                'plotEvolution',       true, ...
+                'outputHessian',       false);
 opt  = merge_options(opt, varargin{:});
-step = opt.stepInit;
+objSign = 1;
+if ~opt.maximize
+    f = @(u)fNegative(u, f);
+    objSign = -1;
+end
 
 if numel(u0) > 5e2
     warning('Switching to L-BFGS with default options due to large number of controls')
     opt.limitedMemory = true;
 end
 % Perform initial evaluation of objective and gradient:
-[v0, g0] = f(u0);
-[v,u] = deal(v0,u0);
+[v0,g0] = f(u0);
+[v ,u ] = deal(v0,u0);
 % If not provided, set initial step 
-if step <= 0, step = 1; end
+step = opt.stepInit;
+if isnan(step)
+    if v0>.1 && v0 < 10
+        step = 1;
+    else
+        step = 0.1/max(abs(g0));
+    end
+end
 % Initial Hessian-approximation
 if ~opt.limitedMemory
-    Hi = -step*eye(numel(u0));
+    Hi = step*eye(numel(u0));
 else
     Hi = LimitedMemoryHessian('initScale', step, ...
                               'm', opt.lbfgsNum, ...
                               'initStrategy', opt.lbfgsStrategy, ...
-                              'sign', -1);
+                              'sign', 1);
 end
 HiPrev = Hi;
 % Setup constraint struct
@@ -66,7 +138,7 @@ c = getConstraints(u0, opt);
 % Setup struct for gathering optimization history
 history = [];
 % name|obj.val.|contr.|norm proj.grad.|ls-step|ls-its|ls-flag|hessian 
-history = gatherInfo(history, v0, u0, nan, nan, nan, nan, Hi);
+history = gatherInfo(history, objSign*v0, u0, norm(g0), nan, nan, nan, Hi);
 if opt.plotEvolution
     plotInfo(10, history)
 end
@@ -92,17 +164,17 @@ while ~success
                 else
                     r = 1/(du'*dg);
                     V = eye(numel(u)) - r*dg*du';
-                    Hi = V'*Hi*V + r*(du*du');
+                    Hi = V'*Hi*V + r*(du*du')
                 end
             else
                 fprintf('Hessian not updated during iteration %d.\n', it)
             end
         end
         % Update history
-        history = gatherInfo(history, v, u, norm(pg,inf), lsinfo.step, ...
+        history = gatherInfo(history, objSign*v, u, norm(pg,inf), lsinfo.step, ...
                              lsinfo.nits, lsinfo.flag, Hi);
     else
-        history = gatherInfo(history, v, u, norm(pg,inf), 0, 1, 0, Hi);
+        history = gatherInfo(history, objSign*v, u, norm(pg,inf), 0, 1, 0, Hi);
     end
     
     %Check stopping criteria
@@ -129,14 +201,22 @@ if ~isempty(opt.linIneq)
     c.i.A = [c.i.A; opt.linIneq.A/sc];
     c.i.b = [c.i.b; opt.linIneq.b/sc];
 end
+[Q, s] = svd(c.i.A', 0);
+s      = diag(s);
+c.i.Q  = Q(:, s> sqrt(eps) * s(1));
+c.i.isActive = false(size(c.i.b));
 % Equality constraints (always active)
 if ~isempty(opt.linEq)
     sc = norm(opt.linEq.A);
     c.e.A = opt.linEq.A/sc;
     c.e.b = opt.linEq.b/sc;
+    [Q, s] = svd(c.e.A', 0);
+    s      = diag(s);
+    c.e.Q  = Q(:, s> sqrt(eps) * s(1));
 else
     c.e.A = zeros(0, nu);
     c.e.b = [];
+    c.e.Q = zeros(nu, 0);
 end
 end
 %--------------------------------------------------------------------------
@@ -166,12 +246,18 @@ else
     set(0, 'CurrentFigure', fig);
 end
 xt = 0:(numel(hst.val)-1);
-ch = [0, hst.val(2:end)-hst.val(1:end-1)];
+xlim = [-.2, xt(end)+.5];
+ch = [0, abs(hst.val(2:end)-hst.val(1:end-1))];
 subplot(5,1,1), plot(xt, hst.val, '.-','LineWidth', 2, 'MarkerSize', 20), title('Objective');
+set(gca, 'XLim', xlim)
 subplot(5,1,2), semilogy(xt,hst.pg,'.-','LineWidth', 2, 'MarkerSize', 20), title('Gradient norm');
+set(gca, 'XLim', xlim)
 subplot(5,1,3), semilogy(xt,ch,'.-','LineWidth', 2, 'MarkerSize', 20), title('Objective change');
+set(gca, 'XLim', xlim)
 subplot(5,1,4), bar(xt,hst.lsit), title('Line search iterations');
-subplot(5,1,5), bar(hst.u{end}), title('Current scaled controls');
+set(gca, 'XLim', xlim)
+subplot(5,1,5), bar(hst.u{end}, 'FaceColor', 'g'), title('Current scaled controls');
+set(gca, 'YLim', [0, 1])
 drawnow
 end
 %--------------------------------------------------------------------------
@@ -180,7 +266,7 @@ function [d, Hi, pg] = getSearchDirection(u0, g0, Hi, HiPrev, c)
 % Find search-direaction which is the projection of Hi*g0 restricted to
 % controls with non-active constraints. Check that direction is
 % increasing, if not try HiPrev, if still not increasing, set Hi = I.
-
+sgn = 1;
 cnt = 1;
 for k = 1:3
     if k==2
@@ -195,15 +281,13 @@ for k = 1:3
     % Check for active inequality constraints and project
     [na, na_prev] = deal(0, -inf);
 
-    %[Q,~] = qr(c.e.A', 0);
-    
     [Q, s] = svd(c.e.A', 0);
     s = diag(s);
     if ~isempty(s)
        Q = Q(:, s> sqrt(eps) * s(1));
     end
 
-    d = - projQ(g0, Q, Hi);
+    d = sgn*projQ(g0, Q, Hi)
     
     while na > na_prev
         ac = and(c.i.A*u0>=c.i.b-sqrt(eps), c.i.A*d >= -sqrt(eps));
@@ -216,16 +300,16 @@ for k = 1:3
            Q = Q(:, s > sqrt(eps)*s(1));
         end
 
-        d  = - projQ(g0, Q, Hi);
+        d  = sgn*projQ(g0, Q, Hi);
         na_prev = na;
         na = nnz(ac);
     end
-    pg = projQ(g0, Q);
+    pg = sgn*projQ(g0, Q);
     d = 0;
     done = false;
     gr = g0;
     while ~done
-        dr      = - projQ(gr, Q, Hi);
+        dr      = sgn*projQ(gr, Q, Hi);
         [ix, s] = findNextCons(c.i.A, c.i.b, u0+d, dr, ac);
         if ~isempty(ix)
             ac(ix) = true;
@@ -265,8 +349,17 @@ function w = projQ(v, Q, H)
 if nargin < 3
     H = 1;
 end
-    tmp = H*(v-Q*(Q'*v));
-    w   = tmp - Q*(Q'*tmp);
+if isempty(Q)
+    w = H*v;
+else
+    if ~isa(H, 'LimitedMemoryHessian')
+        tmp = H*(v-Q*(Q'*v));
+        w   = tmp - Q*(Q'*tmp);
+    else
+        H = H.setNullspace(Q);
+        w = H*v;
+    end
+end
 end
 %--------------------------------------------------------------------------
 
@@ -290,3 +383,13 @@ else
 end
 end
 %--------------------------------------------------------------------------
+
+function [v, g] = fNegative(u, f)
+if nargout == 1
+    v = -f(u);
+elseif nargout == 2
+    [v, g] = f(u);
+    [v, g] = deal(-v, -g);
+end
+end
+
