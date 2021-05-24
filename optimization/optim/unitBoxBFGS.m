@@ -14,8 +14,8 @@ function [v, u, history] = unitBoxBFGS(u0, f, varargin)
 % KEYWORD ARGUMENTS:
 %       'maximize' : Boolean option (false will minimize objective)
 %                    Default: true
-%       'stepInit' : Initial step gradient scaling. If not provided, the 
-%                    following scaling will be used:
+%       'stepInit' : Initial step gradient scaling. If not provided (or set
+%                    to nan), the following scaling will be used:
 %                    if 0.1 < |initial objective| < 10
 %                        stepInit = 1
 %                    otherwise
@@ -27,6 +27,8 @@ function [v, u, history] = unitBoxBFGS(u0, f, varargin)
 %       'maxIt'         : Maximal number of iterations. Default: 25
 %   Line-search options
 %       'lineSearchMaxIt' : Maximal number of line-search iterations. Default: 5
+%       'stepIncreaseTol' : Maximal step increase factor between line
+%                           search iterations. Deafult: 10
 %       'wolfe1',         : Objective improvement condition. Default: 1e-4
 %       'wolfe2',         : Gradient reduction condition. Default: 0.9
 %   Hessian approximation options
@@ -41,11 +43,16 @@ function [v, u, history] = unitBoxBFGS(u0, f, varargin)
 %       'lbfgsStrategy'  : 'static' or 'dynamic' (see LimitedMemoryHessian.m)
 %                          Default: 'dynamic'
 %   Linear constraints options
-%       'linEq'    : Linear equality constraints given as structure with
-%                    fields 'A' and 'b' to enforce A*u=b
-%       'linIneq'  : Linear inequality constraints *in addition to* the default 
-%                    box constraints (0 <= u <= 1). Given as structure with
-%                    fields 'A' and 'b' to enforce A*u<=b
+%       'linEq'           : Linear equality constraints given as structure with
+%                           fields 'A' and 'b' to enforce A*u=b
+%       'linIneq'         : Linear inequality constraints *in addition to* the default 
+%                           box constraints (0 <= u <= 1). Given as structure with
+%                           fields 'A' and 'b' to enforce A*u<=b
+%       'enforceFeasible' : If true, will attempt to repair problematic 
+%                           constraint handling/violations by projection. A
+%                           NOTE: A non-feasible initial guess, will always be
+%                           attempted to be made feasible.
+%                           Default: false
 %   Plotting and output options
 %       'plotEvolution' : Plot progess of optimization in figure. 
 %                         Default: true
@@ -86,31 +93,32 @@ opt = struct(   'maximize',            true, ...
                 'stepInit',            nan,   ...
                 'gradTol',             1e-3, ...
                 'objChangeTol',        5e-4, ...
-                'maxIt',               100,   ...
+                'maxIt',               25,   ...
                 'lineSearchMaxIt',     5,   ...       
                 'wolfe1',              1e-3, ...
                 'wolfe2',              0.9,  ...
                 'safeguardFac',        1e-5, ...
                 'stepIncreaseTol',     10,   ...
                 'useBFGS',             true, ...
-                'limitedMemory',       false, ...
+                'limitedMemory',       true, ...
                 'lbfgsNum',            5, ...
-                'lbfgsStrategy',       'static', ...
+                'lbfgsStrategy',       'dynamic', ...
                 'linEq',               [], ...
+                'enforceFeasible',     false, ... 
                 'linIneq',             [], ...
                 'plotEvolution',       true, ...
                 'outputHessian',       false);
 opt  = merge_options(opt, varargin{:});
 objSign = 1;
-if ~opt.maximize
+if opt.maximize
     f = @(u)fNegative(u, f);
     objSign = -1;
 end
 
-if numel(u0) > 5e2
-    warning('Switching to L-BFGS with default options due to large number of controls')
-    opt.limitedMemory = true;
-end
+% Setup constraint struct
+c  = getConstraints(u0, opt);
+u0 = checkFeasible(u0, c, true, 'Initial guess'); 
+    
 % Perform initial evaluation of objective and gradient:
 [v0,g0] = f(u0);
 [v ,u ] = deal(v0,u0);
@@ -125,46 +133,45 @@ if isnan(step)
 end
 % Initial Hessian-approximation
 if ~opt.limitedMemory
-    Hi = step*eye(numel(u0));
+    Hi = step;
 else
     Hi = LimitedMemoryHessian('initScale', step, ...
                               'm', opt.lbfgsNum, ...
-                              'initStrategy', opt.lbfgsStrategy, ...
-                              'sign', 1);
+                              'initStrategy', opt.lbfgsStrategy);
 end
 HiPrev = Hi;
-% Setup constraint struct
-c = getConstraints(u0, opt); 
+it = 0;
 % Setup struct for gathering optimization history
-history = [];
-% name|obj.val.|contr.|norm proj.grad.|ls-step|ls-its|ls-flag|hessian 
-history = gatherInfo(history, objSign*v0, u0, norm(g0), nan, nan, nan, Hi);
+history = gatherInfo([], objSign*v0, u0, norm(g0), nan, nan, nan, Hi, opt.outputHessian);
 if opt.plotEvolution
     plotInfo(10, history)
 end
-    
-it = 0;
+printInfo(history, it);
+
 success = false;
 g = g0;
 while ~success
     it = it+1;
-    [d, Hi, pg] = getSearchDirection(u0, g0, Hi, HiPrev, c);
-    if isempty(d), break; end
-    if ~(norm(pg,inf) < opt.gradTol)
+    [d, Hi, pg, opt.maxStep] = getSearchDirection(u0, g0, Hi, HiPrev, c);
+    %if isempty(d), break; end
+    if ~(norm(pg,inf) < opt.gradTol) && ~isempty(d)
         % Perform line-search
-        [u, v, g, lsinfo] = lineSearch(u0, v0, g0, d, f, c, opt);
-        
+        [tmp, flag, fixed]  = checkFeasible(u0+d, c, opt.enforceFeasible);
+        if ~flag && fixed
+            d = tmp - u0;
+        end
+        [u, v, g, lsinfo] = lineSearch(u0, v0, g0, d, f, opt);
         % Update Hessian approximation
-        if opt.useBFGS && lsinfo.flag == 1
+        if opt.useBFGS %&& lsinfo.flag == 1
             [du, dg] = deal(u-u0, g-g0);
-            if abs(du'*dg) > sqrt(eps)*norm(du)*norm(dg)
+            if du'*dg > sqrt(eps)*norm(du)*norm(dg)
                 HiPrev = Hi;
                 if isa(Hi, 'LimitedMemoryHessian')
                     Hi = Hi.update(du, dg);
                 else
                     r = 1/(du'*dg);
                     V = eye(numel(u)) - r*dg*du';
-                    Hi = V'*Hi*V + r*(du*du')
+                    Hi = V'*Hi*V + r*(du*du');
                 end
             else
                 fprintf('Hessian not updated during iteration %d.\n', it)
@@ -172,9 +179,10 @@ while ~success
         end
         % Update history
         history = gatherInfo(history, objSign*v, u, norm(pg,inf), lsinfo.step, ...
-                             lsinfo.nits, lsinfo.flag, Hi);
+                             lsinfo.nits, lsinfo.flag, Hi, opt.outputHessian);
     else
-        history = gatherInfo(history, objSign*v, u, norm(pg,inf), 0, 1, 0, Hi);
+        history = gatherInfo(history, objSign*v, u, norm(pg,inf), 0, 0, 0, ...
+                             Hi, opt.outputHessian);
     end
     
     %Check stopping criteria
@@ -185,88 +193,14 @@ while ~success
     if opt.plotEvolution
         plotInfo(10, history)
     end
+    printInfo(history, it);
 end
 end
 %--------------------------------------------------------------------------
 
-function c = getConstraints(u, opt)
-% Box constraints, always 0<= u <= 1
-nu = numel(u);
-c.i.A = [diag(-ones(nu,1)); diag(ones(nu,1))];
-c.i.b = [zeros(nu,1); ones(nu,1)];
-% Add general linear constraints 
-if ~isempty(opt.linIneq)
-    % scale by norm(A)
-    sc = norm(opt.linIneq.A);
-    c.i.A = [c.i.A; opt.linIneq.A/sc];
-    c.i.b = [c.i.b; opt.linIneq.b/sc];
-end
-[Q, s] = svd(c.i.A', 0);
-s      = diag(s);
-c.i.Q  = Q(:, s> sqrt(eps) * s(1));
-c.i.isActive = false(size(c.i.b));
-% Equality constraints (always active)
-if ~isempty(opt.linEq)
-    sc = norm(opt.linEq.A);
-    c.e.A = opt.linEq.A/sc;
-    c.e.b = opt.linEq.b/sc;
-    [Q, s] = svd(c.e.A', 0);
-    s      = diag(s);
-    c.e.Q  = Q(:, s> sqrt(eps) * s(1));
-else
-    c.e.A = zeros(0, nu);
-    c.e.b = [];
-    c.e.Q = zeros(nu, 0);
-end
-end
-%--------------------------------------------------------------------------
-
-function hst = gatherInfo(hst, val, u, pg, alpha, lsit, lsfl, hess)   
-% obj.val | contr | norm proj.grad | ls-step | ls-its | ls-flag | hessian 
-if isempty(hst)
-    hst = struct('val', val, 'u', {{u}}, 'pg', pg, ...
-                 'alpha', alpha, 'lsit', lsit, 'lsfl', lsfl, ...
-                 'hess', {{hess}});
-else
-    hst.val   = [hst.val  , val  ];
-    hst.u     = [hst.u    , {u}  ];
-    hst.pg    = [hst.pg   , pg   ];
-    hst.alpha = [hst.alpha, alpha];
-    hst.lsit  = [hst.lsit , lsit ];
-    hst.lsfl  = [hst.lsfl , lsfl ];
-    hst.hess  = [hst.hess ,{hess}];
-end
-end
-  
-function [] = plotInfo(fig, hst)
-if ~ishandle(fig)
-    figure(fig)
-else
-    % Avoid stealing focus if figure already exists
-    set(0, 'CurrentFigure', fig);
-end
-xt = 0:(numel(hst.val)-1);
-xlim = [-.2, xt(end)+.5];
-ch = [0, abs(hst.val(2:end)-hst.val(1:end-1))];
-subplot(5,1,1), plot(xt, hst.val, '.-','LineWidth', 2, 'MarkerSize', 20), title('Objective');
-set(gca, 'XLim', xlim)
-subplot(5,1,2), semilogy(xt,hst.pg,'.-','LineWidth', 2, 'MarkerSize', 20), title('Gradient norm');
-set(gca, 'XLim', xlim)
-subplot(5,1,3), semilogy(xt,ch,'.-','LineWidth', 2, 'MarkerSize', 20), title('Objective change');
-set(gca, 'XLim', xlim)
-subplot(5,1,4), bar(xt,hst.lsit), title('Line search iterations');
-set(gca, 'XLim', xlim)
-subplot(5,1,5), bar(hst.u{end}, 'FaceColor', 'g'), title('Current scaled controls');
-set(gca, 'YLim', [0, 1])
-drawnow
-end
-%--------------------------------------------------------------------------
-
-function [d, Hi, pg] = getSearchDirection(u0, g0, Hi, HiPrev, c)
-% Find search-direaction which is the projection of Hi*g0 restricted to
-% controls with non-active constraints. Check that direction is
-% increasing, if not try HiPrev, if still not increasing, set Hi = I.
-sgn = 1;
+function [d, Hi, pg, maxStep] = getSearchDirection(u0, g0, Hi, HiPrev, c)
+% Find search-direction which is (sum of) the projection(s) of Hi*g0 
+% restricted to directions with non-active constraints. 
 cnt = 1;
 for k = 1:3
     if k==2
@@ -275,73 +209,105 @@ for k = 1:3
         if isa(Hi, 'LimitedMemoryHessian')
             Hi = Hi.reset();
         else
-            Hi = -1;
+            Hi = 1;
         end
     end
-    % Check for active inequality constraints and project
-    [na, na_prev] = deal(0, -inf);
-
-    [Q, s] = svd(c.e.A', 0);
-    s = diag(s);
-    if ~isempty(s)
-       Q = Q(:, s> sqrt(eps) * s(1));
-    end
-
-    d = sgn*projQ(g0, Q, Hi)
-    
-    while na > na_prev
-        ac = and(c.i.A*u0>=c.i.b-sqrt(eps), c.i.A*d >= -sqrt(eps));
-    
-        %[Q,~]  = qr([c.i.A(ac,:)', c.e.A'], 0);
-
-        [Q, s] = svd([c.i.A(ac,:)', c.e.A'], 0);
-        s = diag(s);
-        if ~isempty(s)
-           Q = Q(:, s > sqrt(eps)*s(1));
+    % Project gradient and search direction onto nullspace of equality 
+    % constraints
+    Q = c.e.Q;
+    pg = -projQ(g0, Q);
+    d  = -projQ(g0, Q, Hi);
+    % The following loop(s) should project onto nullspace of additional 
+    % active constraints. First for gradient direction, then for search 
+    % direction which may have additional constraints active. While-loop 
+    % will in most cases only be traversed once, so we don't worry too much 
+    % about efficiency
+    isActive = false;
+    for kd = 1:2
+        [na, na_prev] = deal(0, -1);
+        while na > na_prev
+            if kd == 1
+                [~, active_cur] = classifyConstraints(c.i.A, c.i.b, u0, pg);
+            else
+                [~, active_cur] = classifyConstraints(c.i.A, c.i.b, u0, d);
+            end
+            isActive = isActive | active_cur;
+            na_prev  = na;
+            na       = nnz(isActive);
+            if na > na_prev % redo projection for all active 
+                [Q, s] = svd([c.i.A(isActive,:)', c.e.A'], 0);
+                s  = diag(s);
+                Q  = Q(:, s > sqrt(eps)*s(1));
+                if kd == 1 
+                    pg = -projQ(g0, Q);
+                else       
+                    d  = -projQ(g0, Q, Hi);
+                end
+            end
         end
-
-        d  = sgn*projQ(g0, Q, Hi);
-        na_prev = na;
-        na = nnz(ac);
     end
-    pg = sgn*projQ(g0, Q);
-    d = 0;
+    % Check for tiny projected gradient
+    if norm(pg, inf) <= sqrt(eps)*norm(g0, inf) %  nothing more to do
+        [d, maxStep] = deal([]);
+        return
+    end
+    % Iteratively find all constraints that become active from u0 to u0+d,
+    % and project remaining line segments accordingly.
+    [dr, gr] = deal(d, g0);
+    becomesActive = isActive;
+    d    = 0;
     done = false;
-    gr = g0;
     while ~done
-        dr      = sgn*projQ(gr, Q, Hi);
-        [ix, s] = findNextCons(c.i.A, c.i.b, u0+d, dr, ac);
-        if ~isempty(ix)
-            ac(ix) = true;
-                d  = d + s*dr;
-                gr = (1-s)*gr;
-                Q  = expandQ(Q, c.i.A(ix,:)');
+        if norm(dr) > sqrt(eps)
+            sgn     = classifyConstraints(c.i.A, c.i.b, u0+d, dr);
+            [ix, s] = findNextConstraint(c.i.A, c.i.b, u0+d, dr, sgn<=0 | becomesActive);
         else
-            d = d+dr;
+            [ix, s] = deal([], 0);
+        end
+        if ~isempty(ix) && s <= 1+sqrt(eps)
+            becomesActive(ix) = true;
+            d  = d + s*dr;
+            gr = (1-s)*gr;
+            Q  = expandQ(Q, c.i.A(ix,:)');
+            dr = -projQ(gr, Q, Hi);
+        else
+            d    = d+dr;
             done = true;
         end
     end
-    if d'*g0 >= 0 % increasing search direction found, exit
+    % find maximal step length we can take with d before hitting the next
+    % constraint (should be >= 1)
+    sgn           = classifyConstraints(c.i.A, c.i.b, u0, d);
+    [~, maxStep]  = findNextConstraint(c.i.A, c.i.b, u0, d, sgn<=0);
+    if maxStep < .95
+        warning('Problematic constraint handling, relative step length: %6.5f', maxStep);
+    end
+    if maxStep < 1
+        [d, maxStep] = deal(maxStep*d, 1);
+    end
+   
+    isDecreasing  = d'*g0 <= 0;
+    isZero        = norm(d, inf) <= sqrt(eps)*norm(Hi*g0, inf);
+    if  isDecreasing && ~isZero % decreasing search direction found, exit
         break;
     else
-        cnt = cnt+1;
-        if cnt == 2
-            fprintf('Non-increasing search direction, using previous Hessian approximation.\n')
+        % retry with other Hessian approx
+        if ~isZero
+            str = 'Small norm of search direction';
         else
-            fprintf('Non-increasing search direction, resetting Hessian to identity.\n')
+            str = 'Non-inceasing search direction';
+        end
+        switch cnt
+            case 1
+                fprintf('%s, trying previous Hessian approximation.\n', str)
+            case 2
+                fprintf('%s, trying to reset Hessian to identity.\n', str)
+            case 3
+                fprintf('Exiting: %s.\n', str)
+                [d, maxStep] = deal([]);
         end
     end
 end
-if d'*g0 < 0
-    fprintf('All controls on constraints or function decreasing along gradient\n')
-    d = [];
-end
-
-if max(abs(d)) < sqrt(eps)
-   fprintf('Gradient too small to allow computation ot steplength\n');
-   d = [];
-end
-
 end
 %--------------------------------------------------------------------------
 
@@ -363,20 +329,111 @@ end
 end
 %--------------------------------------------------------------------------
 
-function [ix, s] = findNextCons(A, b, u, d, ac)
-s = (b-A*u)./(A*d);
-s(ac)  = inf;
-s(s<eps) = inf;
-[s, ix] = min(s);
-if s >= 1
-    ix = [];
+function c = getConstraints(u, opt)
+% Box constraints, always 0<= u <= 1
+nu = numel(u);
+c.i.A = [diag(-ones(nu,1)); diag(ones(nu,1))];
+c.i.b = [zeros(nu,1); ones(nu,1)];
+% Add general linear constraints 
+if ~isempty(opt.linIneq)
+    % scale by norm(A)
+    sc = norm(opt.linIneq.A);
+    c.i.A = [c.i.A; opt.linIneq.A/sc];
+    c.i.b = [c.i.b; opt.linIneq.b/sc];
+end
+% Equality constraints (always active)
+if ~isempty(opt.linEq)
+    sc = norm(opt.linEq.A);
+    c.e.A = opt.linEq.A/sc;
+    c.e.b = opt.linEq.b/sc;
+    [Q, s] = svd(c.e.A', 0);
+    s      = diag(s);
+    c.e.Q  = Q(:, s> sqrt(eps) * s(1));
+else
+    c.e.A = zeros(0, nu);
+    c.e.b = [];
+    c.e.Q = zeros(nu, 0);
 end
 end
 %--------------------------------------------------------------------------
 
+function [u, flag, fixed] = checkFeasible(u, c, enforce, nm)
+if nargin < 4
+    nm = 'Vector u';
+end
+if nargin < 3
+    enforce = false;
+end
+flag  = true;
+fixed = true;
+for it = 1:100
+    [A, b] = deal([]);
+    if ~isempty(c.e.A)
+        ix = abs(c.e.A*u-c.e.b) > sqrt(eps);
+        [A, b] = deal(c.e.A(ix,:), c.e.b(ix));
+    end
+    ix = c.i.A*u-c.i.b > sqrt(eps);
+    if any(ix)
+        A = [A; c.i.A(ix,:)];   %#ok
+        b = [b; c.i.b(ix)];     %#ok
+    end
+    if ~isempty(A)
+        flag = false;
+        if it == 1
+            if enforce
+                warning('%s is not feasible, attempting to fix ...', nm)
+            else
+                warning('%s is not feasible within tollerance. %s', nm, ...
+                    'Consider running with option ''enforceFeasible''=true')
+                [flag, fixed] = deal(false);
+                return
+            end
+        end
+        % simple ls, no guaranty of conv, intended as quick fix for mild violations
+        damp = 1;
+        if it > 10
+            damp = .5;
+        end
+        du = A\(b-A*u);
+        u  = u + damp*du;
+    else
+        if it > 1
+            fprintf('Feasibility fixed, continuing ...\n')
+        end
+        return;
+    end
+end
+if it == 100
+    fprintf('failed\n')
+    fixed = false;
+    warning('Failed attempt to fix feasibility of %s, continuing anyway ...', nm)
+end
+end
+%--------------------------------------------------------------------------
+
+function [sgn, act] = classifyConstraints(A, b, u, v)
+% classify inequality constraints for point u with direction v
+% sgn: -1: in, 0: parallell, 1: out
+% act: true for active
+sgn = A*v;
+sgn(abs(sgn)<sqrt(eps)) = 0;
+sgn = sign(sgn);
+act = A*u-b > -sqrt(eps) & sgn > 0;
+end
+%--------------------------------------------------------------------------
+
+function [ix, s] = findNextConstraint(A, b, u, d, ac)
+s = (b-A*u)./(A*d);
+s(ac)  = inf;
+s(s<eps) = inf;
+[s, ix] = min(s);
+end
+%--------------------------------------------------------------------------
+
 function Q = expandQ(Q, v)
+n0 = norm(v);
 v = v - Q*(Q'*v);
-if norm(v) > 100*eps
+if norm(v)/n0 > sqrt(eps)
     Q = [Q, v/norm(v)];
 else
     fprintf('Newly active constraint is linear combination of other active constraints ??!!\n')
@@ -392,4 +449,63 @@ elseif nargout == 2
     [v, g] = deal(-v, -g);
 end
 end
+%--------------------------------------------------------------------------
 
+function [] = plotInfo(fig, hst)
+if ~ishandle(fig)
+    figure(fig)
+else
+    % Avoid stealing focus if figure already exists
+    set(0, 'CurrentFigure', fig);
+end
+xt = 0:(numel(hst.val)-1);
+xlim = [-.2, xt(end)+.5];
+ch = abs(hst.val(2:end)-hst.val(1:end-1));
+popt = {'o-', 'LineWidth', 2, 'MarkerSize', 6, ...
+        'MarkerFaceColor', [1 1 1]};
+subplot(5,1,1), plot(xt, hst.val, popt{:}), title('Objective');
+set(gca, 'XLim', xlim)
+subplot(5,1,2), semilogy(xt,hst.pg, popt{:}), title('Gradient norm');
+set(gca, 'XLim', xlim)
+subplot(5,1,3), semilogy(xt(2:end)-.5,ch, popt{:}), title('Objective change');
+set(gca, 'XLim', xlim)
+subplot(5,1,4), bar(xt,hst.lsit), title('Line search iterations');
+set(gca, 'XLim', xlim)
+subplot(5,1,5), col = [0.8500 0.3250 0.0980];
+if numel(hst.u{end}) < 50
+    bar(hst.u{end}, 'FaceColor', col);
+else
+    plot(hst.u{end}, '.-', 'Color', col);
+end
+title('Current scaled controls');
+set(gca, 'YLim', [0, 1])
+drawnow
+end
+%--------------------------------------------------------------------------
+
+function hst = gatherInfo(hst, val, u, pg, alpha, lsit, lsfl, hess, outputH)   
+% obj.val | contr | norm proj.grad | ls-step | ls-its | ls-flag | hessian 
+if ~outputH
+    hess = [];
+end
+if isempty(hst)
+    hst = struct('val', val, 'u', {{u}}, 'pg', pg, ...
+                 'alpha', alpha, 'lsit', lsit, 'lsfl', lsfl, ...
+                 'hess', {{hess}});
+else
+    hst.val   = [hst.val  , val  ];
+    hst.u     = [hst.u    , {u}  ];
+    hst.pg    = [hst.pg   , pg   ];
+    hst.alpha = [hst.alpha, alpha];
+    hst.lsit  = [hst.lsit , lsit ];
+    hst.lsfl  = [hst.lsfl , lsfl ];
+    hst.hess  = [hst.hess ,{hess}];
+end
+end
+%--------------------------------------------------------------------------
+
+function printInfo(history, it)
+fprintf('It: %2.1d | val: %4.3e | ls-its: %3.1d | pgrad: %4.3e\n', ...
+        it, history.val(end), history.lsit(end), ...
+        history.pg(end));
+end

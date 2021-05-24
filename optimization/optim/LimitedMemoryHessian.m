@@ -29,6 +29,7 @@ methods
         end
     end
     % ---------------------------------------------------------------------
+    
     function H = update(H, s ,y)
         % store new vectors
         H.itCount = H.itCount +1;
@@ -45,12 +46,14 @@ methods
             end
         end 
     end
+    
     % ---------------------------------------------------------------------
     function H = reset(H)
         [H.S, H.Y] = deal([]);
         H.itCount    = 0;
         H.nullspace   = [];
     end
+    
     % ---------------------------------------------------------------------
     function r = mtimes(H, v)
         % apply mulitplication H*v 
@@ -85,10 +88,12 @@ methods
             end
         end
     end
+    
     % ---------------------------------------------------------------------
     function H = uminus(H)
         H.sign = -H.sign;
     end 
+    
     % ---------------------------------------------------------------------
     function r = applyInitial(H, v)
         if strcmp(H.initStrategy, 'static')
@@ -100,6 +105,7 @@ methods
             error('Unknown strategy: %s', H.initStrategy);
         end
     end
+    
     % ---------------------------------------------------------------------
     function H = setNullspace(H, Q)
         if nargin < 2
@@ -113,6 +119,7 @@ methods
             H.nullspace = Q;
         end
     end
+    
     % ---------------------------------------------------------------------
     function M = full(H)
         % Create full matrix, only intended for debugging purposes
@@ -136,7 +143,7 @@ function r = subspaceProd(S, Y, th, Q, v)
 % Perform product restricted to nullspace of Q-colunms, i.e.,
 % r = Z * (Z'*Hessian*Z)^-1 * Z'*v
 % with Z = null(Q')
-% Formula from 
+% Formula from: 
 % Byrd, R. H., Lu, P., Nocedal, J., & Zhu, C. (1995). 
 % A limited memory algorithm for bound constrained optimization. 
 % SIAM Journal on scientific computing, 16(5), 1190-1208.
@@ -156,30 +163,30 @@ else
     L   = tril(tmp, -1);
     D   = diag(diag(tmp));
     M   = [-D, L'; L, (S'*S)/th];
+    % projection onto active subspace (u -> Z*Z'*u)
     projSub = @(u)u-Q*(Q'*u);
     r   = M\(W'*projSub(v));
-    r   = (eye(2*n) - th*M\(W'*projSub(W)))\r;
+    r   = (eye(2*n) - th*(M\(W'*projSub(W))))\r;
     r   = projSub(th*v + th^2*(W*r));
 end
 end
 
-
 %{
-% For reference: should be equal to subspaceProd, but at the additional
-% cost of doing null(Q') 
-Q = null(Q');
+% For reference: 
+% should be equal to subspaceProd, but at the additional cost of doing null(Q') 
+Z = null(Q');
 n   = size(S,2);
 W   = [Y, S/th];
 tmp = S'*Y;
 L   = tril(tmp, -1);
 D   = diag(diag(tmp));
 M   = [-D, L'; L, (S'*S)/th];
-WtQ = W'*Q;
-Qtv  = Q'*v; 
-r   = M\(WtQ*Qtv);
-r   = (eye(2*n)-th*M\(WtQ*WtQ'))\r;
-r   = th*Qtv + (th^2)*WtQ'*r;
-r   = Q*r;
+WtZ = W'*Z;
+Ztv  = Z'*v; 
+r   = M\(WtZ*Ztv);
+r   = (eye(2*n)-th*(M\(WtZ*WtZ')))\r;
+r   = th*Ztv + (th^2)*WtZ'*r;
+r   = Z*r;
 %}
 
 %{
