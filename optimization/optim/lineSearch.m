@@ -88,8 +88,8 @@ while ~lineSearchDone && it < maxIt
         else % logic for refining/expanding interval of interest [p1 p2]
             if p.a > p2.a
                 % if we have extrapolated p1.v >= p2.v
-                [p1, p, p2] = deal(p1, p2, p);
-            end
+                [p1, p2] = deal(p2, p);
+            else
             if p.dv >= 0
                 p2 = p;
             else % keep best
@@ -98,6 +98,7 @@ while ~lineSearchDone && it < maxIt
                 else
                     p1 = p;
                 end
+            end
             end
             % Find next candidate-step by interpolation
             if p1.v > p2.v && p1.dv >= p2.dv

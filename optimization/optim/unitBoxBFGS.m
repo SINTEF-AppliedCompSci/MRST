@@ -104,7 +104,7 @@ opt = struct(   'maximize',            true, ...
                 'lbfgsNum',            5, ...
                 'lbfgsStrategy',       'dynamic', ...
                 'linEq',               [], ...
-                'enforceFeasible',     false, ... 
+                'enforceFeasible',     true, ... 
                 'linIneq',             [], ...
                 'plotEvolution',       true, ...
                 'outputHessian',       false);
@@ -117,8 +117,9 @@ end
 
 % Setup constraint struct
 c  = getConstraints(u0, opt);
-u0 = checkFeasible(u0, c, true, 'Initial guess'); 
-    
+[u0, ~, consOK] = checkFeasible(u0, c, opt.enforceFeasible, 'Initial guess');
+assert(consOK, 'Infeasible initial guess')
+
 % Perform initial evaluation of objective and gradient:
 [v0,g0] = f(u0);
 [v ,u ] = deal(v0,u0);
@@ -364,49 +365,66 @@ end
 if nargin < 3
     enforce = false;
 end
-flag  = true;
-fixed = true;
-for it = 1:100
-    [A, b] = deal([]);
-    if ~isempty(c.e.A)
-        ix = abs(c.e.A*u-c.e.b) > sqrt(eps);
-        [A, b] = deal(c.e.A(ix,:), c.e.b(ix));
+hasEC = ~isempty(c.e.A);
+hasIC = ~isempty(c.i.A);
+[ecOK, icOK] = deal(true);
+
+if hasEC
+    [Ae, be] = deal(c.e.A, c.e.b);
+    if any(abs(c.e.A*u-c.e.b) > sqrt(eps))
+        % find closest u that fulfills c.e.
+        u = u + Ae'*((Ae*Ae')\(be-Ae*u));
+        ecOK = false; %now OK, but warn
     end
-    ix = c.i.A*u-c.i.b > sqrt(eps);
-    if any(ix)
-        A = [A; c.i.A(ix,:)];   %#ok
-        b = [b; c.i.b(ix)];     %#ok
+    % nullspace projection
+    Q     = c.e.Q;
+    proj  = @(v)v-Q*(Q'*v);
+else
+    proj = @(v)v;
+end
+
+flag  = ecOK;
+fixed = false;
+maxIt = 1000;
+for it = 1:maxIt
+    if hasIC
+        icIx = find(c.i.A*u-c.i.b > sqrt(eps));
+        icOK = isempty(icIx);
+        flag = flag && icOK;
     end
-    if ~isempty(A)
-        flag = false;
-        if it == 1
-            if enforce
-                warning('%s is not feasible, attempting to fix ...', nm)
-            else
-                warning('%s is not feasible within tollerance. %s', nm, ...
-                    'Consider running with option ''enforceFeasible''=true')
-                [flag, fixed] = deal(false);
-                return
-            end
-        end
-        % simple ls, no guaranty of conv, intended as quick fix for mild violations
-        damp = 1;
-        if it > 10
-            damp = .5;
-        end
-        du = A\(b-A*u);
-        u  = u + damp*du;
+    if ~enforce
+        break
     else
-        if it > 1
-            fprintf('Feasibility fixed, continuing ...\n')
+        if ~icOK
+            % Loop through each violating and project.
+            icIx = circshift(icIx, it);
+            for ki = 1:numel(icIx)
+                ix = icIx(ki);
+                [a, b]  = deal(c.i.A(ix,:)', c.i.b(ix));
+                pa = proj(a);
+                if norm(pa) < sqrt(eps)*norm(a)
+                    % skip
+                else
+                    u = u + pa*((b-a'*u)/(a'*pa));
+                end
+            end
+        else
+            fixed = true;
+            break
         end
-        return;
     end
 end
-if it == 100
-    fprintf('failed\n')
-    fixed = false;
-    warning('Failed attempt to fix feasibility of %s, continuing anyway ...', nm)
+ 
+if it == maxIt
+    warning('Failed attempt to fix feasibility of %s, continuing anyway ...', nm);
+elseif ~flag
+    if ~enforce
+        warning('%s is not feasible within tollerance. %s', nm, ...
+                'Consider running with option ''enforceFeasible''=true');
+    else
+        warning('%s was not feasible, fixed feasibility in %d iteration(s)', ...
+                nm, it-1);
+    end
 end
 end
 %--------------------------------------------------------------------------
