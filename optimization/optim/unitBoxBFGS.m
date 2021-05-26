@@ -359,6 +359,10 @@ end
 %--------------------------------------------------------------------------
 
 function [u, flag, fixed] = checkFeasible(u, c, enforce, nm)
+% Check that u is feasible. If not and enforce == true, try to fix. Ideally
+% should be solved as ||u-u*|| st c.e and c.i, but since we don't have a
+% QP-solver resort to (costly) iterative projections in active subspaces. 
+% Intended for fixing mild violations.
 if nargin < 4
     nm = 'Vector u';
 end
@@ -376,36 +380,56 @@ if hasEC
         u = u + Ae'*((Ae*Ae')\(be-Ae*u));
         ecOK = false; %now OK, but warn
     end
-    % nullspace projection
-    Q     = c.e.Q;
-    proj  = @(v)v-Q*(Q'*v);
-else
-    proj = @(v)v;
 end
 
 flag  = ecOK;
 fixed = false;
-maxIt = 1000;
+maxIt = 100;
 for it = 1:maxIt
     if hasIC
-        icIx = find(c.i.A*u-c.i.b > sqrt(eps));
-        icOK = isempty(icIx);
+        icOK = ~any(c.i.A*u-c.i.b > sqrt(eps));
         flag = flag && icOK;
     end
     if ~enforce
         break
     else
         if ~icOK
-            % Loop through each violating and project.
-            icIx = circshift(icIx, it);
-            for ki = 1:numel(icIx)
-                ix = icIx(ki);
-                [a, b]  = deal(c.i.A(ix,:)', c.i.b(ix));
-                pa = proj(a);
-                if norm(pa) < sqrt(eps)*norm(a)
-                    % skip
+            Q    = zeros(numel(u), 0);
+            proj = @(v)v;
+            if hasEC
+                Q     = c.e.Q;
+                proj  = @(v)v-Q*(Q'*v);
+            end
+            % Loop through each violating and project. If there are no more
+            % availabe directions, restart while-loop from current point
+            done = false;
+            cnt  = 0;
+            while ~done
+                if cnt == 0
+                    icIx = find(c.i.A*u-c.i.b > sqrt(eps));
+                    icIx = circshift(icIx, it);
+                end
+                if isempty(icIx) || cnt == numel(icIx)
+                    done = true;
                 else
-                    u = u + pa*((b-a'*u)/(a'*pa));
+                    %
+                    ix   = icIx(cnt+1);
+                    [a, b]  = deal(c.i.A(ix,:)', c.i.b(ix));
+                    pa = proj(a);
+                    if norm(pa) < sqrt(eps)*norm(a)
+                        % skip
+                        cnt = cnt +1;
+                    else
+                        cnt = 0;
+                        u = u + pa*((b-a'*u)/(a'*pa));
+                        if size(Q,2) < size(Q,1)-1
+                            Q = expandQ(Q, pa);
+                            proj = @(v)v-Q*(Q'*v);
+                        else
+                            % possibly restart while-loop
+                            done = true;
+                        end
+                    end
                 end
             end
         else
@@ -414,6 +438,7 @@ for it = 1:maxIt
         end
     end
 end
+
  
 if it == maxIt
     warning('Failed attempt to fix feasibility of %s, continuing anyway ...', nm);
@@ -428,7 +453,6 @@ elseif ~flag
 end
 end
 %--------------------------------------------------------------------------
-
 function [sgn, act] = classifyConstraints(A, b, u, v)
 % classify inequality constraints for point u with direction v
 % sgn: -1: in, 0: parallell, 1: out
