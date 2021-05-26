@@ -124,7 +124,7 @@ classdef LinearSolverAD < handle
                                 problemPrev.equations{ix(k)}.jac{2}.dim(1) + mismatch/nd;
                         end
                     end
-                    nad = cellfun(@numval, problemPrev.equations(ix));
+                    nad = cellfun(@numelValue, problemPrev.equations(ix));
                     ix = find(cellfun(@(x)isa(x, 'double'), problemPrev.equations));
                     nd  = cellfun(@numel, problemPrev.equations(ix));
                     mismatch = numel(adjVec) - sum(nad) - sum(nd);
