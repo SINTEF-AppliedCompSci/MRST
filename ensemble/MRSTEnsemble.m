@@ -234,12 +234,12 @@ classdef MRSTEnsemble < handle
             [opt, extra] = merge_options(opt, varargin{:});
             ids    = ensemble.qoi.ResultHandler.getValidIds();
             sample = ensemble.qoi.ResultHandler{ids(1)};
+            edges = min(max(ceil(numel(ids)/50), 10), 50);
             if isscalar(sample{1})
                 if ~isempty(opt.h), clf(opt.h); end
-                n = min(ceil(numel(ids)/3), 10);
                 h = ensemble.qoi.plotQoIHistogram(opt.h, ...
-                                                  'edges'      , n   , ...
-                                                  'includeMean', true, ...
+                                                  'includeSTD', true, ...
+                                                  'edges', edges, ...
                                                   extra{:}           );
             else
                 h = ensemble.qoi.plotEnsembleQoI(ensemble, opt.h, extra{:});
@@ -279,7 +279,7 @@ classdef MRSTEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        function simulateEnsembleMembers(ensemble, varargin)
+        function [h_progress, h_qoi] = simulateEnsembleMembers(ensemble, varargin)
             % Run simulations for a set of ensemble members
             %
             % SYNOPSIS:
@@ -296,41 +296,53 @@ classdef MRSTEnsemble < handle
             %               an dditional 'range' number of members will be 
             %               run.
             
-            opt = struct('range', inf);
+            opt = struct('range'    , inf, ...
+                         'batchSize', inf);
             [opt, extraOpt] = merge_options(opt, varargin{:});
-                                    
-            if isinf(opt.range)
+            % Validate optional input
+            has_range = ~all(isinf(opt.range));
+            has_size  = ~isinf(opt.batchSize);
+            assert(~(has_range && has_size), 'Cannot specify both range and batchSize');
+            if ~has_range && ~has_size
+                % Neither range nor batchSize given, simulate full ensemble
                 assert(~isinf(ensemble.num), ...
-                    'Ensemble size not define, please use ensemble.simulateEnsembleMembers(range) instead');
-                opt.range = 1:ensemble.num;
+                    ['Ensemble size not defined, please use '                     , ...
+                     'ensemble.simulateEnsembleMembers(''range'', range) instead']);
+                opt.range     = 1:ensemble.num;
+                opt.batchSize = numel(opt.range);
             end
-            
-            assert(max(opt.range) <= ensemble.num, ...
-                'Requested more simulations than available ensemble members');
-            
-            if isscalar(opt.range)
+            if has_size
+                % Translate batch size to simulation range
                 ids = ensemble.qoi.ResultHandler.getValidIds();
-                if isempty(ids)
-                    ids = 0;
-                elseif ids(end) + opt.range > ensemble.num
-                    warning("requested ensemble members plus already computed ensemble members are more than ensemble size. Proceeding by trying to simulate the last 'range' ensemble members.")
-                    ids = ensemble.num - opt.range;
+                if isempty(ids), ids = 0; end
+                if max(ids) + opt.batchSize > ensemble.num
+                    warning(['Requested ensemble members plus already ' , ...
+                             'computed ensemble members are more than ' , ...
+                             'ensemble size. Proceeding by trying to '  , ...
+                             'simulate the last %d ensemble members.'  ], ...
+                             opt.range)
+                    opt.batchSize = ensemble.num - max(ids);
                 end
-                opt.range = (1:opt.range) + max(ids);
+                opt.range = (1:opt.batchSize) + max(ids);
             end
-            
+            % Validate range
+            assert(max(opt.range) <= ensemble.num, ...
+                'Requested range is outside range of available ensemble members');
+            % Distribute ensemble members among workers/background sessions
             n        = ceil(numel(opt.range)/ensemble.maxWorkers);
             rangePos = repmat(n, ensemble.maxWorkers, 1);
             extra    = sum(rangePos) - numel(opt.range);
             rangePos(end-extra+1:end) = rangePos(end-extra+1:end) - 1;
             rangePos = cumsum([0; rangePos]) + 1;
+            % Simulate with appropriate strategy
+            [h_progress, h_qoi] = deal([]);
             switch ensemble.simulationStrategy
                 case 'serial'
                     ensemble.simulateEnsembleMembersSerial(opt.range, extraOpt{:});
                 case 'parallel'
                     ensemble.simulateEnsembleMembersParallel(opt.range, rangePos, extraOpt{:});
                 case 'background'
-                    ensemble.simulateEnsembleMembersBackground(opt.range, rangePos, extraOpt{:});
+                    [h_progress, h_qoi] = ensemble.simulateEnsembleMembersBackground(opt.range, rangePos, extraOpt{:});
             end
         end
         
@@ -466,7 +478,7 @@ classdef MRSTEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        function simulateEnsembleMembersBackground(ensemble, range, rangePos, varargin)
+        function [h_progress, h_qoi] = simulateEnsembleMembersBackground(ensemble, range, rangePos, varargin)
             % Runs simulation of ensemble members according to range by
             % launching matlab sessions in the background. Each matlab
             % session is responsible of running a subset of the ensemble
@@ -482,6 +494,7 @@ classdef MRSTEnsemble < handle
             % Get active MRST modules
             moduleList = mrstModule();
             n = 0; % Counter number of spawned sessions
+            [h_progress, h_qoi] = deal([]);
             for i = 1:numel(rangePos)-1
                 % Get local range
                 r = range(rangePos(i):rangePos(i+1)-1);
@@ -496,7 +509,7 @@ classdef MRSTEnsemble < handle
             fprintf(['Started %d new Matlab sessions. ', ...
                      'Waiting for simulations ...\n'  ], n);
             if opt.plotProgress
-                ensemble.plotProgress(range);
+                [h_progress, h_qoi] = ensemble.plotProgress(range);
             end
         end
         
@@ -523,7 +536,7 @@ classdef MRSTEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        function plotProgress(ensemble, range)
+        function [h_progress, h_qoi] = plotProgress(ensemble, range)
             % Utility function for showing the progress of simulating a
             % range of ensemble members. Only available for
             % 'simulationStrategy' = 'background'.
@@ -545,7 +558,7 @@ classdef MRSTEnsemble < handle
     end
 end
 
-%% Helpers
+% Helpers
 function matches = folderRegexp(list, expression, outputFormat)
     if size(list, 1) > 1
         % Windows behavior
