@@ -122,7 +122,7 @@ classdef BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function [u_mean, u] = computeMean(qoi, range)
+        function [u_mean, u_var, u] = computeMean(qoi, range)
             % Computes the mean according to the ensemble given by the
             % range of ensemble member IDs (if any).
             %
@@ -152,41 +152,50 @@ classdef BaseQoI
                 % Range given, check for computed QoIs
                 keep = ismember(range, ids);
                 if ~all(keep)
-                    warning(['Only a subset of the QoIs in range have '         , ...
-                             'been computed (%d %%). Computing mean for subset'], ...
-                             nnz(keep)/numel(range)*100                        )
+                    warning(['Only a subset of the QoIs in range have been ' , ...
+                             'computed (%d %%). Computing mean for subset'  ], ...
+                             nnz(keep)/numel(range)*100                      );
                 end
                 range = range(keep);
             end
             % Compute mean of all QoIs in range
-            u_mean = qoi.ResultHandler{range(1)};
+            u_mean  = qoi.ResultHandler{range(1)};
+            numQoIs = numel(u_mean);
+            if iscell(u_mean{1})
+                numSubQoIs = numel(u_mean{1});
+                u_var      = cell(numQoIs);
+                [u_var{:}] = deal(zeros(numSubQoIs,1));
+            else
+                numSubQoIs = 1;
+                u_var      = zeros(numSubQoIs,1);
+            end
             % Return all QoIs if requested
-            if nargout > 1
+            if nargout > 2
                 u    = cell(numel(range),1);
                 u{1} = u_mean;
             end
             for i = 2:numel(range)
                 u_tmp = qoi.ResultHandler{range(i)};
-                
-                if iscell(u_mean{1})
-                    for j = 1:numel(u_mean)
-                        for k = 1:numel(u_mean{j})
+                if numSubQoIs > 1
+                    for j = 1:numQoIs
+                        for k = 1:numSubQoIs
+                            u_var{j}(k)  = computeVariance(u_var{j}(k), 0, u_mean{j}{k}, u_tmp{j}{k}, i-1, 1, @(u) qoi.norm(u));
                             u_mean{j}{k} = computeMean(u_mean{j}{k}, u_tmp{j}{k}, i-1, 1);
                         end
                     end
                 else
-                    for j = 1:numel(u_mean)
+                    for j = 1:numQoIs
+                        u_var(j)  = computeVariance(u_var(j), 0, u_mean{j}, u_tmp{j}, i-1, 1);
                         u_mean{j} = computeMean(u_mean{j}, u_tmp{j}, i-1, 1);
                     end
                 end
                 
-                if nargout > 1
+                if nargout > 2
                     u{i} = u_tmp;
                 end
             end
         end
-        
-        
+
         %-----------------------------------------------------------------%
         function h = plotEnsembleQoI(qoi, ensemble, h, varargin)
             % Create a meaningful plot of the ensemble based on the
@@ -336,11 +345,11 @@ classdef BaseQoI
                          'edges'      , 10   , ...
                          'log10'      , false, ...
                          'includeMean', false, ...
-                         'includeRMSE', false);
+                         'includeSTD' , false);
             [opt, extra] = merge_options(opt, varargin{:});
             % Get QoIs and mean
-            [u_mean, u] = qoi.computeMean(opt.range);
-            numQoIs     = numel(u_mean);
+            [u_mean, u_var, u] = qoi.computeMean(opt.range);
+            numQoIs = numel(u_mean);
             % Compute norm
             n_mean = qoi.norm(u_mean);
             n      = cell2mat(cellfun(@(u) qoi.norm(u), u, 'UniformOutput', false));
@@ -353,16 +362,27 @@ classdef BaseQoI
             for i = 1:numQoIs
                 % Plot each QoI in separate figure
                 set(0, 'CurrentFigure', hf);
-                hh = histogram(n(:,i), opt.edges, extra{:});
+                std = sqrt(u_var(i));
+                nm = n_mean(i);
+                hh = histogram(n(:,i), opt.edges, 'Normalization', 'probability', extra{:});
+                hh.Parent.XLim = max(abs(hh.Parent.XLim - nm)).*[-1,1] + nm;
                 if opt.includeMean
                     % Plot mean as vertical, dashed line
                     hold on
-                    plot([n_mean(i), n_mean(i)], hh.Parent.YLim, '--k', 'lineWidth', 1);
+                    plot(nm.*[1,1], hh.Parent.YLim, '--k', 'lineWidth', 1);
                     hold off
                 end
-                if opt.includeRMSE
-                    error('Not implemented yet')
+                if opt.includeSTD && numel(n) > 1
+                    [~, ix] = max(hh.BinCounts);
+                    nmd = median(n);
+                    hold on
+                    x = linspace(hh.Parent.XLim(1), hh.Parent.XLim(2), 1000);
+                    pdf = estimatePDF(nm, nmd, std, sum(hh.BinWidth));
+                    plot(x, pdf(x), 'k', 'lineWidth', 1);
+                    hold off
                 end
+                
+                grid on; box on;
             end
         end
         
