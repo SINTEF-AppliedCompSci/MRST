@@ -152,11 +152,9 @@ classdef RockSamples < BaseSamples
                 type = 'sampleFromBox';
             end
         end
-        
-        
            
         %-----------------------------------------------------------------%
-        function schedule = updateWellIndices(samples, model, schedule) %#ok
+        function schedule = updateWellIndices(samples, model, schedule)
             % Update well indices for all wells based on sample rock
             % properties.
             updateWI = @(W) computeWellIndex(model.G, model.rock, W.r, W.cells, ...
