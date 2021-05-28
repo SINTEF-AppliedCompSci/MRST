@@ -177,16 +177,25 @@ classdef StateFunctionGrouping < StateFunctionDependent
             end
         end
         % --------------- Evaluation functions ---------------------------%
-        function [v, state] = get(props, model, state, name)
+        function [v, state] = get(props, model, state, name, expand_to_cell)
             % Get value of a property (possibily triggering several function
             % evaluations if required. Repeated calls to get within the
             % same AD-initialization of state for the same property will
             % not result in evaluations (caching)
+            if nargin == 4
+                expand_to_cell = false;
+            end
             if ~props.isStateFunctionEvaluated(model, state, name)
                 state = props.evaluateStateFunctionWithDependencies(model, state, name);
             end
             v = state.(props.structName).(name);
-            v = expandIfUniform(v);
+            if expand_to_cell
+                % Always return a cell array.
+                v = expandMatrixToCell(v);
+            else
+                % Return a cell array if output was a matrix only.
+                v = expandIfUniform(v);
+            end
         end
 
         function state = evaluateStateFunction(sfg, model, state, name)
@@ -477,7 +486,7 @@ classdef StateFunctionGrouping < StateFunctionDependent
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

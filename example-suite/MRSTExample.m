@@ -39,8 +39,9 @@ classdef MRSTExample
                 ex = example.load(false);
                 if ~isempty(ex)
                     % We found it! Early return
+                    ex0 = example;
                     example = ex;
-                    if example.verbose
+                    if ex0.verbose
                         time = toc(timer);
                         fprintf(['Found a saved version of this example. '        , ...
                                 'Example loaded in %s\n\n'], formatTimeRange(time));
@@ -321,7 +322,8 @@ classdef MRSTExample
             end
             if ~has_nls
                 % Select default nonlinear solver
-                opt.NonLinearSolver = NonLinearSolver('LinearSolver', opt.LinearSolver);
+                opt.NonLinearSolver = NonLinearSolver('LinearSolver' , opt.LinearSolver, ...
+                                                      'useRelaxation', true            );
             elseif ~has_ls
                 % ... or assign linear solver
                 opt.NonLinearSolver.LinearSolver = opt.LinearSolver;
@@ -337,7 +339,7 @@ classdef MRSTExample
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

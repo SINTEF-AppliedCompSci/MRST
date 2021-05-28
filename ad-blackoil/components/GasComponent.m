@@ -31,9 +31,10 @@ classdef GasComponent < ImmiscibleComponent
                 c = cell(nph, 1);
                 pvt = model.PVTPropertyFunctions;
                 gix = (phasenames == 'G');
-                rhoS = pvt.get(model, state, 'SurfaceDensity');
+                rho = pvt.get(model, state, 'Density', true);
+                b = pvt.get(model, state, 'ShrinkageFactors', true);
+                rhoS = pvt.get(model, state, 'SurfaceDensity', true);
                 rhoGS = rhoS{gix};
-                [~, ~, rho, b] = component.unpackMassArguments(model, state, varargin);
                 if component.vapoil % Component density is not phase density
                     bG = b{gix};
                     c{gix} = rhoGS.*bG;
@@ -54,7 +55,7 @@ classdef GasComponent < ImmiscibleComponent
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

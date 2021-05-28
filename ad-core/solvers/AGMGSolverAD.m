@@ -28,7 +28,6 @@ classdef AGMGSolverAD < LinearSolverAD
             solver.reuseSetup = false;
             solver.reduceToCell = true;
             solver = merge_options(solver, varargin{:});
-            solver.verbose = 100
        end
        
        function [result, report] = solveLinearSystem(solver, A, b, varargin)
@@ -101,7 +100,7 @@ classdef AGMGSolverAD < LinearSolverAD
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

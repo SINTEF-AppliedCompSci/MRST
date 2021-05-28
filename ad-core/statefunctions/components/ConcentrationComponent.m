@@ -23,6 +23,10 @@ classdef ConcentrationComponent < GenericComponent
                 comp_i = vertcat(force.sat);
             end
             c_inj = component.getInjectionMassFraction(model, force);
+            if isempty(c_inj)
+                % No injection composition provided. Do nothing.
+                return
+            end
             for i = 1:numel(component.phaseIndices)
                 index = component.phaseIndices(i);
                 ci = comp_i(:, index) .* c_inj(i);
@@ -40,7 +44,7 @@ classdef ConcentrationComponent < GenericComponent
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

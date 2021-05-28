@@ -24,6 +24,7 @@ classdef GravityPotentialDifference < StateFunction
                 gdz = -model.getGravityGradient();
                 nm = model.getPhaseNames();
                 rho = prop.getEvaluatedExternals(model, state, 'Density');
+                rho = expandMatrixToCell(rho);
                 avg = model.operators.faceAvg;
                 for i = 1:nph
                     if prop.saturationWeighting
@@ -48,7 +49,7 @@ classdef GravityPotentialDifference < StateFunction
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

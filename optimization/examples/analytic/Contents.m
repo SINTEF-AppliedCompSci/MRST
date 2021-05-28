@@ -4,7 +4,7 @@
 %   optimizeQuad - Gradient-based search for optimium of a quadratic function on unit square
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

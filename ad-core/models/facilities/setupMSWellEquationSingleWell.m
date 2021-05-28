@@ -41,7 +41,7 @@ function [eqs, eqsMS, cq_s, wellSol, mix_s, status, cstatus, cq_r] = setupMSWell
 %   `FacilityModel`
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

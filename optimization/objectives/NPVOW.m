@@ -2,7 +2,7 @@ function obj = NPVOW(model, states, schedule, varargin)
 % Compute net present value of a schedule with well solutions
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -58,8 +58,8 @@ obj = repmat({[]}, numSteps, 1);
 for step = 1:numSteps
     
     state = states{tSteps(step)};
-    nW = numel([state.wellSol.bhp]);
     status = vertcat(state.wellSol.status);
+    nW     = nnz(status);
     if opt.ComputePartials
          %[~, ~, qWs, qOs, bhp] = ...
         %  initVariablesADI(p, sW, qWs, qOs, bhp);

@@ -26,7 +26,7 @@ function obj = objUpliftAver(model, states, schedule, topnode, varargin)
 % SEE ALSO: computeUpliftForState
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -44,29 +44,36 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('tStep', [], ...
-                 'ComputePartials', false, ...
-                 'exponent', 100, ...
+    opt = struct('computeAllSteps'      , true , ...
+                 'tStep'                , []   , ...
+                 'state'                , [], ...
+                 'ComputePartials'      , false, ...
+                 'exponent'             , 1, ...
                  'normalizationConstant', 1);
 
     opt = merge_options(opt, varargin{:});
 
     p = opt.exponent;
 
-    numSteps = numel(schedule.step.val);
-    lastStep = numSteps;
-    tSteps = opt.tStep;
-    if isempty(tSteps)
-        % do all
-        tSteps = (1 : numSteps)';
+    if opt.computeAllSteps
+        % Do all the steps
+        numSteps      = numel(schedule.step.val);
+        tSteps        = (1 : numSteps)';
+        scheduleSteps = tSteps;
     else
+        % Compute for the given step. When 'computePartial' is used, we need state as input as it contained the AD instantiation.
         numSteps = 1;
+        states{1} = opt.state;
+        scheduleSteps = opt.tStep;
+        tSteps = 1;
     end
+    
     obj = repmat({[]}, numSteps, 1);
 
     C = opt.normalizationConstant;
+    
     for step = 1 : numSteps
-        dt = schedule.step.val(tSteps(step));
+        dt = schedule.step.val(scheduleSteps(step));
         obj{step} = computeUpliftForState(model, states{tSteps(step)}, topnode, ...
                                           'ComputePartials', ...
                                           opt.ComputePartials);

@@ -47,7 +47,7 @@ function varargout = plotWellSols(wellsols, varargin)
 %   `simulateScheduleAD`
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -628,7 +628,7 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
         end
     else
         t_unt = 1;
-        t_str = 'timestep';
+        t_str = 's';
         if isCsum
             warning('mrst:badcumsum', ['Timesteps not provided to plotWellSols,', ...
                     ' cumulative sum will not be accurate']);

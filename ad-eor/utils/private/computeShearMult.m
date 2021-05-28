@@ -3,7 +3,7 @@ function v = computeShearMult(fluid, Vw, muWMultf)
 % Description.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -58,11 +58,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     if (iter >= maxit) && (resnorm > abstol)
         error('Convergence failure within %d iterations\nFinal residual = %.8e', maxit, resnorm);
-    end
-
-    if(resnorm <= abstol)
+    else
         M = plyshearMult(Vsh.val);
         v = (1 + (muWMultf - 1.).* M) ./ muWMultf;
     end
-
 end

@@ -12,17 +12,16 @@ classdef ComponentPhaseMass < StateFunction & ComponentProperty
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents();
             nph = model.getNumberOfPhases();
-            extra = prop.getExtraArguments(model, state);
             v = cell(ncomp, nph);
             for c = 1:ncomp
-                v(c, :) = model.Components{c}.getComponentMass(model, state, extra{:});
+                v(c, :) = model.Components{c}.getComponentMass(model, state);
             end
         end
     end
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

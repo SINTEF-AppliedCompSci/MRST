@@ -26,7 +26,7 @@ function [wh, gh] = plotPackedProblem(problem, varargin)
 %   packSimulationProblem, initEclipsePackedProblemAD
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -92,7 +92,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         if opt.plotWellSols
             ws = problem.OutputHandlers.wellSols;
-            wh = plotWellSols(ws(:), opt.time, opt.wsArg{:});
+            wsd = reshape(ws(:), [], 1);
+            wh = plotWellSols(wsd, opt.time(1:numel(wsd)), opt.wsArg{:});
             set(gcf, 'Name', opt.name);
         else
             wh = nan;

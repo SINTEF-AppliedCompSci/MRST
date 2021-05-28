@@ -15,14 +15,14 @@ classdef ImmiscibleComponent < GenericComponent
             c = c.functionDependsOn('getComponentDensity', 'Density', 'PVTPropertyFunctions');
         end
         
-        function c = getComponentDensity(component, model, state, extra)
-            if nargin < 4
-                rho = model.getProp(state, 'Density');
+        function c = getComponentDensity(component, model, state)
+            rho = model.PVTPropertyFunctions.get(model, state, 'Density');
+            c = getComponentDensity@GenericComponent(component, model, state);
+            if numel(c) == 1 && ~iscell(rho)
+                c{1} = rho;
             else
-                rho = extra.rho;
+                c{component.phaseIndex} = rho{component.phaseIndex};
             end
-            c = getComponentDensity@GenericComponent(component, model, state, extra);
-            c{component.phaseIndex} = rho{component.phaseIndex};
         end
         
         function c = getPhaseComposition(component, model, state, varargin)
@@ -56,7 +56,7 @@ classdef ImmiscibleComponent < GenericComponent
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

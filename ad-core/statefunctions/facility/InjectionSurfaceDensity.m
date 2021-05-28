@@ -14,19 +14,21 @@ classdef InjectionSurfaceDensity < StateFunction
         function rhoS = evaluateOnDomain(prop, facility, state)
             model = facility.ReservoirModel;
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
-            rhoSr = prop.getEvaluatedExternals(model, state, 'SurfaceDensity');
+            % rhoSr = prop.getEvaluatedExternals(model, state, 'SurfaceDensity');
+            rhoSr = model.PVTPropertyFunctions.get(model, state, 'SurfaceDensity');
             W = map.W;
             % We take the surface density for the first well cell,
             % regardless of active or inactive status for that
             % perforation.
             topcell = arrayfun(@(x) x.cells(1), W);
             rhoS = applyFunction(@(x) x(topcell), rhoSr);
-            if isfield(W, 'rhoS')
+            isInj = map.isInjector;
+            if isfield(W, 'rhoS') && any(isInj)
                 % Surface density is given on a per-well-basis for the
                 % injectors
-                rhoS_inj = vertcat(W(map.isInjector).rhoS);
+                rhoS_inj = vertcat(W(isInj).rhoS);
                 for i = 1:numel(rhoS)
-                    rhoS{i}(map.isInjector) = rhoS_inj(:, i);
+                    rhoS{i}(isInj) = rhoS_inj(:, i);
                 end
             end
         end
@@ -34,7 +36,7 @@ classdef InjectionSurfaceDensity < StateFunction
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

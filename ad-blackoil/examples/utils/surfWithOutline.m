@@ -2,7 +2,7 @@ function surfWithOutline(x, y, z)
 %Standard surf plot with black outline of perimeter
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

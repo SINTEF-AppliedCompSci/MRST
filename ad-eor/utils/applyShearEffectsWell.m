@@ -2,7 +2,7 @@ function mob = applyShearEffectsWell(mob, q_ph, prop, model, state)
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -72,6 +72,7 @@ rR = vertcat(W.rR);
 % the well bore to save some computation
 % this is where the BUG of E100 is. 
 VwW = bwW .* bwW.*q_w./(poroW .* rR .* thicknessWell * 2 * pi);
+VwW(value(q_w) == 0) = 0;
 % VwW = q_w./(poroW .* rR .* thicknessWell * 2 * pi);
 shearMultW = computeShearMult(fluid, abs(VwW), muWMultW);
 

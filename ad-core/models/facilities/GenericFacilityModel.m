@@ -367,7 +367,7 @@ classdef GenericFacilityModel < FacilityModel
             [state, report] = updateAfterConvergence@FacilityModel(model, state0, state, dt, drivingForces);
             nw = model.getNumberOfActiveWells(state.wellSol);
             if nw > 0
-                map = state.FacilityFluxProps.FacilityWellMapping;
+                map = model.FacilityFlowDiscretization.get(model, state, 'FacilityWellMapping');
                 phaseq = value(model.getProp(state, 'PhaseFlux'));
                 cf = model.getProp(state, 'ComponentTotalFlux');
                 if iscell(cf)
@@ -661,7 +661,7 @@ classdef GenericFacilityModel < FacilityModel
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

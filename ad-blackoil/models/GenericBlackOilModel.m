@@ -103,8 +103,10 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & GenericReservoirModel
                 state.flux(model.operators.internalConn, :) = [f{:}];
 
                 if ~isempty(drivingForces.bc)
-                    [p, s, mob, rho, b] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ShrinkageFactors');
+                    [p, s, mob, r, b] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ShrinkageFactors');
                     sat = expandMatrixToCell(s);
+                    rho = expandMatrixToCell(r);
+
                     [~, ~, ~, fRes] = getBoundaryConditionFluxesAD(model, p, sat, mob, rho, b, drivingForces.bc);
                     idx = model.getActivePhases();
                     fWOG = cell(3, 1);
@@ -118,7 +120,7 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & GenericReservoirModel
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
