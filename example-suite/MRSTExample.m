@@ -39,8 +39,9 @@ classdef MRSTExample
                 ex = example.load(false);
                 if ~isempty(ex)
                     % We found it! Early return
+                    ex0 = example;
                     example = ex;
-                    if example.verbose
+                    if ex0.verbose
                         time = toc(timer);
                         fprintf(['Found a saved version of this example. '        , ...
                                 'Example loaded in %s\n\n'], formatTimeRange(time));
