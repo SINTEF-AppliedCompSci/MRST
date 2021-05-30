@@ -66,7 +66,7 @@ classdef ModelParameter_V2
                     gs = (g.*p.referenceValue).*diff(p.boxLims, [], 2);
                 end
             elseif strcmp(p.scaling, 'log')
-                gs = (g.*pval).*log(diff(p.boxLims, [], 2));
+                gs = (g.*pval).*diff(log(p.boxLims), [], 2);
             end
         end
         %------------------------------------------------------------------
