@@ -12,11 +12,12 @@ function [v, u, history] = unitBoxBFGS(u0, f, varargin)
 %           v : objective value
 %           g : objective nx1 gradient vector
 % KEYWORD ARGUMENTS:
-%       'maximize' : Boolean option (false will minimize objective)
-%                    Default: true
-%       'stepInit' : Initial step gradient scaling. If not provided (or set
-%                    to nan), the following scaling will be used:
-%                        stepInit = 0.05/max(|initial gradient|)
+%       'maximize'         : Boolean option (false will minimize objective)
+%                            Default: true
+%       'stepInit'         : Initial step (gradient scaling). If not provided 
+%                            (or set to nan), the following scaling will be used:
+%                            stepInit = maxInitialUpdate/max(|initial gradient|)
+%       'maxInitialUpdate' : as described above. Default: 0.05
 %   Stopping criteria options
 %       'gradTol'       : Absolute tollerance of inf-norm of projected gradient. 
 %                         Default: 1e-3
@@ -88,6 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 opt = struct(   'maximize',            true, ...
                 'stepInit',            nan,   ...
+                'maxInitialUpdate',    0.05, ...
                 'gradTol',             1e-3, ...
                 'objChangeTol',        5e-4, ...
                 'maxIt',               25,   ...
@@ -123,7 +125,7 @@ assert(consOK, 'Infeasible initial guess')
 % If not provided, set initial step 
 step = opt.stepInit;
 if isnan(step) || step <= 0
-    step = 0.1/max(abs(g0));
+    step = opt.maxInitialUpdate/max(abs(g0));
 end
 % Initial Hessian-approximation
 if ~opt.limitedMemory
