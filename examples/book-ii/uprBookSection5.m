@@ -89,10 +89,10 @@ for i=1:4
             name  = 'mlqtMaxLevel=3';
         case 3
             pargs = {'CCFactor',1/4, 'mlqtMaxLevel',2,'mlqtLevelSteps',[.05,.1]};
-            name  = 'mlqtMaxLevelSteps=[.05,.1]';
+            name  = 'mlqtLevelSteps=[.05,.1]';
         case 4
             pargs = {'CCFactor',1/4, 'mlqtMaxLevel',2,'mlqtLevelSteps',[.1,.2]};
-            name  = 'mlqtMaxLevelSteps=[.1,.2]';
+            name  = 'mlqtLevelSteps=[.1,.2]';
     end
 
     subplot(2,2,i),cla
