@@ -21,7 +21,7 @@ function [model, states] = runNorneExample(varargin)
 %
 % option 'method' :
 %
-%     * 'fully coupled'          : The mechanical and flow equations are solved fully couplde.
+%     * 'fully coupled'          : The mechanical and flow equations are solved fully coupled.
 %     * 'fixed stress splitting' : The mechanical and flow equations are solved
 %                                  sequentially using a fixed stress splitting
 %
