@@ -110,7 +110,7 @@ classdef CompositionalMixture
             end
             fprintf('\n');
             known = {'Pcrit', 'Tcrit', 'Vcrit', 'acentricFactors', 'molarMass', 'names', 'name'};
-            props = properties(mixture);
+            props = get_properties(obj);
             extra = setdiff(props, known);
             if numel(extra)
                 fprintf('\n  Additional properties:\n');
@@ -123,6 +123,13 @@ classdef CompositionalMixture
         end
     end
     
+end
+
+function props = get_properties(obj)
+    % The following wrapper function is a workaround for a compatibility
+    % issue with Octave 6.2.0, which does not support the use of the
+    % 'properties' function within the lexical scope of the classdef itself.
+    props = properties(obj);
 end
 
 %{
