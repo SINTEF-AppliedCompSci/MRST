@@ -126,10 +126,8 @@ classdef WellQoI < BaseQoI
             
             % Read well solutions
             wellSols = reshape(problem.OutputHandlers.wellSols(:), [], 1);
-            % Organize as matrix with dimensions:
-            % (numTimesteps, numWells, numFields)
+            % Get well output (numTimesteps, numWells, numFields)
             uMatrix = getWellOutput(wellSols, qoi.fldname, qoi.wellNames);
-            
             % Compute total or cumulative if requested
             dtProblem = getTimestepsFromProblem(problem);
             if qoi.total
@@ -148,28 +146,65 @@ classdef WellQoI < BaseQoI
             if numel(qoi.dt) ~= numel(dtProblem) && ~qoi.total
                 uMatrix = qoi.interpolateWellOutput(dtProblem, uMatrix);
             end
-            
-            % Organizing u as a cell array per well of cell array per field
-            % E.g, the value for field f at well w at time t will be in 
-            % u{w}{f}(t)
-            numFields = numel(qoi.fldname);
-            numWells = numel(qoi.wellNames);
+            % Return as array of structs with one element per cell. This is
+            % similar to wellSols, but the fileds eqaul to vectors of
+            % length numel(qoi.dt) (unless qoi.total = true)
             if qoi.combined
-                numWells = 1;
+                names = {'combined'};
+            else
+                names = qoi.wellNames;
             end
-
-            u = cell(numWells,1);
-            [u{:}] = deal(cell(numFields,1));
-            for w = 1:numWells
-                for f = 1:numFields
-                    u{w}{f} = uMatrix(:, w, f);
+            u = [];
+            for i = 1:numel(names)
+                fnames = ['name', qoi.fldname];
+                fval   = [names{i}, num2cell(squeeze(uMatrix(:, i, :)), 1)]; 
+                u      = [u; cell2struct(fval, fnames, 2)]; %#ok
+            end
+        end
+        
+        %-----------------------------------------------------------------%
+        function [u_mean, u_var, u] = computeQoIMean(qoi, range)
+            % Get first QoI
+            u_tmp = qoi.ResultHandler{range(1)};
+            if nargout > 2
+                % Output all QoIs if requested
+                u = cell(numel(range), 1);
+                u{1} = u_tmp;
+            end
+            % Initialize mean and variance
+            [u_mean, u_var] = deal(u_tmp);
+            for fn = qoi.fldname
+                [u_var.(fn{1})] = deal(0);
+            end
+            normfn = @(u) qoi.norm(u);
+            for i = 2:numel(range)
+                u_tmp = qoi.ResultHandler{range(i)};
+                for j = 1:numel(u_mean)
+                    for fn = qoi.fldname
+                        ut = u_tmp(j).(fn{1});  % Current QoI
+                        um = u_mean(j).(fn{1}); % Current mean
+                        uv = u_var(j).(fn{1});  % Current variance
+                        % Update variance
+                        u_var(j).(fn{1})  = computeVariance(uv, 0, um, ut, i-1, 1, normfn);
+                        % Update mean
+                        u_mean(j).(fn{1}) = computeMean(um, ut, i, 1);
+                    end
+                end
+                if nargout > 2
+                    % Output all QoIs if requested
+                    u{i} = u_tmp;
                 end
             end
-
         end
         
         %-----------------------------------------------------------------%
         function plotQoI(qoi, ensemble, u, varargin) %#ok
+            if numel(u) > 1
+                for i = 1:numel(u)
+                    figure(); qoi.plotQoI(u(i), varargin{:});
+                end
+                return
+            end
             % Plot a single well QoI u in current figure.
             opt = struct('color'         , [0,0,0], ...
                          'lineWidth'     , 2      , ...
@@ -178,9 +213,10 @@ classdef WellQoI < BaseQoI
                          'timescale'     , day    , ...
                          'labels'        , true   , ...
                          'title'         , true   , ...
+                         'name'          , {qoi.fldname}, ...
                          'cellNo'        , 1      , ...
                          'subCellNo'     , 1);
-            
+                     
             [opt, extra] = merge_options(opt, varargin{:});
             
             color = opt.color; % Plot mean in distinct color
@@ -188,27 +224,29 @@ classdef WellQoI < BaseQoI
                 color = color.*(1-opt.alpha) + opt.alpha;
             end
             
-            
             is_timeseries = true;
             if is_timeseries
                 
                 time = cumsum(qoi.dt)./opt.timescale;
-                plot(time(1:numel(u)), u, 'color'    , color, ...
-                                          'lineWidth', opt.lineWidth, ...
-                                           extra{:}         );
-                
-                xlim([time(1), time(end)]);
-                box on, grid on
-                if opt.title
-                    if qoi.combined
-                        title(sprintf('Combined produced %s', qoi.fldname{opt.subCellNo}));
-                    else
-                        title(sprintf('%s for well %s', qoi.fldname{opt.subCellNo}, qoi.wellNames{opt.cellNo}));
+                for i = 1:numel(opt.name)
+                    subplot(1, numel(opt.name), 1);
+                    ui = u.(opt.name{i});
+                    plot(time(1:numel(ui)), ui, 'color'    , color        , ...
+                                                'lineWidth', opt.lineWidth, ...
+                                                extra{:}                  );
+                    xlim([time(1), time(end)]);
+                    box on, grid on
+                    if opt.title
+                        if qoi.combined
+                            title(sprintf('Combined produced %s', opt.name{i}));
+                        else
+                            title(sprintf('%s for well %s', opt.name{i}, u.name));
+                        end
                     end
-                end
-                if opt.labels
-                    xlabel(sprintf('Time (%s)', formatTime(opt.timescale)));
-                    ylabel(sprintf('%s', qoi.fldname{opt.subCellNo}));
+                    if opt.labels
+                        xlabel(sprintf('Time (%s)', formatTime(opt.timescale)));
+                        ylabel(sprintf('%s', opt.name{i}));
+                    end
                 end
             end
         end
@@ -267,18 +305,22 @@ classdef WellQoI < BaseQoI
             
         end
         
-        
         %-----------------------------------------------------------------%
         function n = norm(qoi, u)
-            % TODO: This function doesn't really work since we have u{well}{field}[t]...
-            
-            if ~qoi.total
-                n = 0;
-                for w = 1:numel(qoi.wellNames)
-                    for f = 1:numel(qoi.fldname)
-                        n = n + sum(u{w}{f}.*qoi.dt);
+            if isstruct(u)
+                % We got a full QoI struct, compute norm for each well and
+                % each field by calling qoi.norm for each of them
+                n = u;
+                for i = 1:numel(u)
+                    for fn = qoi.fldname
+                        n(i).(fn{1}) = qoi.norm(u(i).(fn{1}));
                     end
                 end
+                return;
+            end
+            % Compute norm
+            if ~qoi.total
+                n = sum(u.*qoi.dt);
             else
                 n = norm@BaseQoI(qoi, u);
             end

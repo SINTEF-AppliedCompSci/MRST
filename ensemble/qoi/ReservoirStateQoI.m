@@ -87,14 +87,17 @@ classdef ReservoirStateQoI < BaseQoI
             end
         end
         
-        
         %-----------------------------------------------------------------%
         function n = norm(qoi, u)
-            n = cellfun(@(u) sum(abs(u).*qoi.dx), u);
-            if ~isnan(qoi.dt)
-                n = n.*qoi.dt;
+            if ~iscell(u), u = {u}; end
+            n = 0;
+            for i = 1:numel(u)
+                ni = sum(abs(u{i}).*qoi.dx);
+                if ~isnan(qoi.dt)
+                    ni = ni.*qoi.dt;
+                end
+                n = n + sum(ni);
             end
-            n = sum(n);
         end
         
         %-----------------------------------------------------------------%
