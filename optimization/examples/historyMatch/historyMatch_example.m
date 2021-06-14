@@ -13,12 +13,18 @@
 %   -Transmisibility of each internal faces, 
 %   -Pore volume of each cell
 %   -Well index for each well 
+%   -Fludi parameters related to the scaling of relative permeabilities
+%   functions
 
 mrstModule add agglom upscaling coarsegrid...
                ad-core ad-blackoil ad-props...
-               optimization;
+               optimization deckformat;
 
-use_trans = true;
+use_trans = false;
+user_simulation_time = [1 ,1 ,2 5 10 , 10*ones(1,10)]*day(); 
+user_training_time_steps = 1:10;
+
+user_partition = [3,3,2];
 
 %% Setting up the fine-scale model
 % We make a small model that consists of two different facies with
@@ -46,8 +52,7 @@ set(gca,'Position',[.12 .075 .315 .9])
 drawnow
 
 %% Run simulation for fine-scale model
-dt = [1 ,1 ,2 5 10 , 10*ones(1,10)]*day();
-schedule = simpleSchedule(dt, 'W', W);
+schedule = simpleSchedule(user_simulation_time, 'W', W);
 
 problem = packSimulationProblem(state0, model_fine_scale, schedule, 'model_fine_scale');
 [ok, status] = simulatePackedProblem(problem);
@@ -56,15 +61,9 @@ problem = packSimulationProblem(state0, model_fine_scale, schedule, 'model_fine_
 
 %% Coarse-scale model
 % We make a 3x3x1 coarse grid. 
-% TODO: We are upscailing permeability make the same with transmisibility 
-% and update this comments:
-
-    % Transmissibilities and well indices are upscaled
-    % using two slightly different methods: for the transmissibilities we use
-    % global generic boundary conditions and on each coarse face use the
-    % solution that has the largest flux orthogonal to the face to compute the
-    % upscaled transmissibility. For the wells, we use specific well
-    % conditions and use least squares for the flux.
+    % Permeabilities, pore volumes and well indices are upscaled
+    % For the wells, we use specific well conditions and use least squares
+    % for the flux.
     
     
 G = model_fine_scale.G;
@@ -73,13 +72,15 @@ fluid = model_fine_scale.fluid;
 
 hT = computeTrans(G, rock);
 
-p  = partitionCartGrid(G.cartDims, [3 3 1]);
+p  = partitionCartGrid(G.cartDims, user_partition );
 CG = coarsenGeometry(generateCoarseGrid(G, p));
 
 crock = convertRock2Coarse(G, CG, rock);
 crock.perm = upscalePerm(G, CG, rock);
 [~,~,WC]   = upscaleTrans(CG, hT, 'match_method', 'lsq_flux', ...
-                          'bc_method', 'wells_simple', 'wells', W);                     
+                          'bc_method', 'wells_simple', 'wells', W);    
+                      
+
 
 figure(1), movegui('northwest');
 subplot(1,2,2); cla
@@ -96,8 +97,8 @@ pos = get(hc,'Position'); set(hc,'Position', pos + [.02 0 0 0]);
 set(gca,'Position',[.56 .075 .315 .9])
 drawnow
 
- %% Simulating on coarse-scale model
- % After upscailing we create a coarse model and we compare the production
+ %% Simulating upscaled coarse-scale model
+ % After coarsening we create a coarse model and we compare the production
  % results between the fine scaled and coarse scale models
  
 fluid_2 = fluid;
@@ -108,40 +109,47 @@ scaling = {'SWL', .4, 'SWCR', .4, 'SWU', .8, 'SOWCR', .2, 'KRW', .6, 'KRO', .6};
 model_coarse_scale = GenericBlackOilModel(CG, crock, fluid_2);
 model_coarse_scale.gas=false;
 
+if use_trans
+    %model_coarse_scale= upscaleModelTPFA(model_fine_scale, user_partition, 'transCoarse',CTrans(model_coarse_scale.operators.internalConn));
+    [~,CTrans] = upscaleTrans(CG, hT, 'match_method', 'max_flux', ...
+                          'bc_method', 'bc_simple');
+    model_coarse_scale.operators.T = CTrans(model_coarse_scale.operators.internalConn);
+    model_coarse_scale.AutoDiffBackend = AutoDiffBackend;
+end
+
 % Expanding for fluid parameters calibration. 
 model_coarse_scale = imposeRelpermScaling(model_coarse_scale, scaling{:});
-
 model_coarse_scale.OutputStateFunctions = {};
 model_coarse_scale = model_coarse_scale.validateModel();
- 
-s0 = [0,1];
-p0 = 100*barsa;
-state0  = initState(CG, WC,p0,s0);
+model_coarse_scale.toleranceCNV = 1e-6;
 
-schedule = simpleSchedule(dt, 'W', WC);
-[wellSols_coarse_scale,states_coarse_scale] = simulateScheduleAD(state0, model_coarse_scale, schedule);
+state0_coarse = upscaleState(model_coarse_scale, model_fine_scale, state0);
 
-summary_plots = plotWellSols({wellSols_fine_scale,wellSols_coarse_scale},{schedule.step.val,schedule.step.val});
+% schedule_training = upscaleSchedule(model_coarse_scale, schedule);
+schedule_training = simpleSchedule(user_simulation_time(user_training_time_steps), 'W', WC);
+
+[wellSols_coarse_scale,states_coarse_scale] = simulateScheduleAD(state0_coarse, model_coarse_scale, schedule_training);
+
+summary_plots = plotWellSols({wellSols_fine_scale,wellSols_coarse_scale},{schedule.step.val,schedule_training.step.val});
 movegui('northeast')
 drawnow
 %% Preparing parameters and scaling values for each one
-% We define each parameters well index transmisibility, pore volume, and
-% it's scailing values.
+% We define each parameters it's scailing values.
 
-prob = struct('model', model_coarse_scale, 'schedule', schedule, 'state0', state0);
+prob = struct('model', model_coarse_scale, 'schedule', schedule_training, 'state0', state0_coarse);
 
 n_cells =  model_coarse_scale.G.cells.num;
 % Fluid Parameters
- parameters{1} = ModelParameter(prob, 'name', 'swl','lumping',ones(n_cells,1),'boxLims',[0.00 0.5]);
- parameters{2} = ModelParameter(prob, 'name', 'swcr','lumping',ones(n_cells,1),'boxLims',[0.0 0.5]);
- parameters{3} = ModelParameter(prob, 'name', 'swu','lumping',ones(n_cells,1),'boxLims',[0.55 1.0]);
- parameters{4} = ModelParameter(prob, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
- parameters{5} = ModelParameter(prob, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
+ parameters{1} = ModelParameter_V2(prob, 'name', 'swl','lumping',ones(n_cells,1),'boxLims',[0.00 0.5]);
+ parameters{2} = ModelParameter_V2(prob, 'name', 'swcr','lumping',ones(n_cells,1),'boxLims',[0.0 0.5]);
+ parameters{3} = ModelParameter_V2(prob, 'name', 'swu','lumping',ones(n_cells,1),'boxLims',[0.55 1.0]);
+ parameters{4} = ModelParameter_V2(prob, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
+ parameters{5} = ModelParameter_V2(prob, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
 
  % Well, porevolume and transmisibility
- parameters{6} = ModelParameter(prob, 'name', 'conntrans','relativeLimits', [.01 7]);
- parameters{7} = ModelParameter(prob, 'name', 'porevolume','relativeLimits', [.01 3]);
- parameters{8} = ModelParameter(prob, 'name', 'transmissibility','relativeLimits', [.1 2]);
+ parameters{6} = ModelParameter_V2(prob, 'name', 'conntrans','relativeLimits', [.01 4]);
+ parameters{7} = ModelParameter_V2(prob, 'name', 'porevolume','relativeLimits', [.01 4]);
+ parameters{8} = ModelParameter_V2(prob, 'name', 'transmissibility','relativeLimits', [.01 4]);
 
 
  %% Optimization :  History Matching
@@ -155,29 +163,33 @@ end
 p0_ups = vertcat(u{:});  
   
 % Defining the weights to evaluate the match
-weighting =  {'WaterRateWeight',  (10/day)^-1, ...
-              'OilRateWeight',    (10/day)^-1, ...
-              'BHPWeight',        (100*barsa)^-1};            
+weighting =  {'WaterRateWeight',  (5/day)^-1, ...
+              'OilRateWeight',    (5/day)^-1,...
+              'BHPWeight',        (50*barsa)^-1};            
 
- obj = @(model, states, schedule, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule, states_fine_scale,...
+ obj = @(model, states, schedule_training, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule_training, states_fine_scale,...
            'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
 
  objScaling = 1;       
- [misfitVal_0,gradient_0,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);                                                          
+ [misfitVal_0,gradient_0,wellSols_0,states_0] = evaluateMatch_simple_V2(p0_ups,obj,state0_coarse,model_coarse_scale,schedule_training,objScaling,parameters, states_fine_scale);                                                          
 
   
-obj_scaling     = abs(misfitVal_0);      % objective scaling  
-objh = @(p)evaluateMatch_simple(p, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters,  states_fine_scale);
+obj_scaling     =  1; % objective scaling  
+objh = @(p)evaluateMatch_simple_V2(p, obj, state0_coarse, model_coarse_scale, schedule_training, obj_scaling ,parameters,  states_fine_scale);
 
 figure(10).reset; movegui('south');
-[v, p_opt, history] = unitBoxBFGS(p0_ups, objh)
-[misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple(p_opt, obj, state0, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
- 
+[v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'objChangeTol',  1e-8, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
+
+%% Genereating results for comparing initial model vs calibrated model
+schedule = simpleSchedule(user_simulation_time, 'W', WC);
+[misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple_V2(p_opt, obj, state0_coarse, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
+[misfitVal_0,gradient_0,wellSols_0,states_0] = evaluateMatch_simple_V2(p0_ups,obj,state0_coarse,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);                                                          
+
 figure(summary_plots.Number)
 plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
               {schedule.step.val,schedule.step.val,schedule.step.val},...
               'datasetnames',{'fine scale model','initial upscaled model','history matched upscaled model'},...
-              'linestyles', {'o', '--', '-'},...
+              'linestyles',{'o', '--', '-'},...
               'figure',summary_plots.Number)
 drawnow
 
