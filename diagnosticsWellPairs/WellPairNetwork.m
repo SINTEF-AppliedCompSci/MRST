@@ -96,7 +96,7 @@ classdef WellPairNetwork
                 % To have text indicating values with text                
                 % plot(Graph,'EdgeLabel',compose("%5.2e",Graph.Edges.Weight),'LineWidth',10*TT/max(TT))
                
-                pg.NodeFontSize= 15;
+                %pg.NodeFontSize= 15;
                 axis off ; 
                 title("Transmisibility")
 
@@ -107,7 +107,7 @@ classdef WellPairNetwork
                 hold on, pg=plot(DD.Graph,'r','XData',XData,'YData',YData,'ZData',ZData,'LineWidth',10*pv/max(pv))
                          labelnode(pg,[1:n_wells],{DD.schedule.control(1).W.name})
                 hold off;
-                pg.NodeFontSize= 15;
+                %pg.NodeFontSize= 15;
                 axis off ; 
                 title("Pore volume")
         end
