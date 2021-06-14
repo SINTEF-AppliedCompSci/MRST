@@ -202,7 +202,7 @@ classdef MRSTEnsembleV2 < BaseEnsemble
         end
         
         %-----------------------------------------------------------------%
-        function plotProgress(ensemble, range)
+        function [h_progress, h_qoi] = plotProgress(ensemble, range)
             % Utility function for showing the progress of simulating a
             % range of ensemble members. Only available for
             % 'simulationStrategy' = 'background'.
