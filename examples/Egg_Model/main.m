@@ -4,8 +4,6 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props inco
 %% Run EGG field simulation
 Settup_Egg_simulation 
  
-
-
 wellSols_ref =  wellSols;
 model_ref    = model;
 states_ref   = states;
@@ -59,6 +57,10 @@ end
  cell_lumping(find(cell_lumping==0))=NaN;
 
 
+cell_sub = find(~isnan(cell_lumping));
+cell_lumping = cell_lumping(cell_sub);
+face_sub = find(~isnan(faces_lumping));
+faces_lumping = faces_lumping(face_sub);
 %% Preparing parameters and scaling values for each one
 
 WellIP = [];
@@ -92,9 +94,9 @@ schedule_0=schedule;
 
  prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
  parameters =  {};                          
- parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits',[.01 10]);
- parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'boxLims', Pv_boxlimits);
- parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'boxLims', Tr_boxlimits );
+ parameters{1} = ModelParameter_V2(prob, 'name', 'conntrans','relativeLimits',[.01 10]);
+ parameters{2} = ModelParameter_V2(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'boxLims', Pv_boxlimits);
+ parameters{3} = ModelParameter_V2(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'boxLims', Tr_boxlimits );
 
 
  %% Simulating the initial DD model
@@ -117,14 +119,14 @@ p0_fd = vertcat(u{:});
   obj = @(model, states, schedule, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule, states_ref,...
             'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
        
- [misfitVal_0,gradient,wellSols_0,states_0] = evaluateMatch_simple(p0_fd,obj,state0,model,schedule_0,1,parameters, states_ref);          
+ [misfitVal_0,gradient,wellSols_0,states_0] = evaluateMatch_simple_V2(p0_fd,obj,state0,model,schedule_0,1,parameters, states_ref);          
  
  plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,schedule_0.step.val})
   
   %% Optimization
   
 obj_scaling     = abs(misfitVal_0);      % objective scaling  
-objh = @(p)evaluateMatch_simple(p,obj,state0,model,schedule_0,obj_scaling,parameters,states_ref);
+objh = @(p)evaluateMatch_simple_V2(p,obj,state0,model,schedule_0,obj_scaling,parameters,states_ref);
 
 [v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'gradTol',             1e-2, ...
                                               'objChangeTol',        0.5e-3);
@@ -132,9 +134,9 @@ objh = @(p)evaluateMatch_simple(p,obj,state0,model,schedule_0,obj_scaling,parame
 %% Simulating all simulation time
  schedule = simpleSchedule(dt, 'W', W);
  
- [misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple(p_opt,obj,state0,model,schedule,obj_scaling,parameters, states_ref);
+ [misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple_V2(p_opt,obj,state0,model,schedule,obj_scaling,parameters, states_ref);
 
- [misfitVal_0,gradient_0,wellSols_0] = evaluateMatch_simple(p0_fd,obj,state0,model,schedule,obj_scaling,parameters, states_ref);
+ [misfitVal_0,gradient_0,wellSols_0] = evaluateMatch_simple_V2(p0_fd,obj,state0,model,schedule,obj_scaling,parameters, states_ref);
 
 
 plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,schedule.step.val,schedule.step.val})
