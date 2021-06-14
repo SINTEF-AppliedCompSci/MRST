@@ -188,7 +188,7 @@ classdef MRSTEnsembleV2 < BaseEnsemble
             [opt, extra] = merge_options(opt, varargin{:});
             ids    = ensemble.qoi.ResultHandler.getValidIds();
             sample = ensemble.qoi.ResultHandler{ids(1)};
-            if isscalar(sample{1})
+            if isscalar(sample)
                 if ~isempty(opt.h), clf(opt.h); end
                 n = min(ceil(numel(ids)/3), 10);
                 h = ensemble.qoi.plotQoIHistogram(opt.h, ...
