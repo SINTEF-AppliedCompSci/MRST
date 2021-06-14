@@ -39,20 +39,19 @@ samples = DeckSamples('generatorFn'     , generatorFn     , ... % Generator func
 disp(samples)
 
 %% Set up QoI
-qoi = RecoveryFactorQoI('phase', 'oil');
-% % For our QoI, we choose the total oil production rate
-% is_prod = vertcat(example.schedule.control(1).W.sign) < 0;
-% qoi = WellQoI('wellIndices', is_prod, 'fldname', 'qOs');
+% For our QoI, we choose the total oil production rate
+is_prod = vertcat(example.schedule.control(1).W.sign) < 0;
+qoi = WellQoI('wellIndices', is_prod, 'fldname', 'qOs');
 
 %% Set up ensemble
-ensemble = MRSTEnsemble(example, samples, qoi, ...
+ensemble = MRSTEnsembleV2(example, samples, qoi, ...
                'simulationStrategy', 'background'); % Run in the background
 
 %% Simulate the ensemble members
 % We simulate 8 samples. Each time the code in this block is called, 8 new
 % samples will be simulated until all ensemble memebers have been run. To
 % reset the ensemble data, call ensemble.reset();
-ensemble.simulateEnsembleMembers('range', 10, 'plotProgress', true);
+ensemble.simulateEnsembleMembers('batchSize', 8, 'plotProgress', true);
 
 %% Plot the QoI
 color = lines(7); color = color(end,:);
@@ -70,7 +69,7 @@ ensembleFD = MRSTEnsemble(example, samples, qoi, ...
 
 %%
 ensembleFD.qoi.diagnosticsType = 'tof';
-ensembleFD.simulateEnsembleMembers('range', 50, 'plotProgress', true);
+ensembleFD.simulateEnsembleMembers('batchSize', 8, 'plotProgress', true);
          
 %% References
 % [1] Jansen, J. D., et al., "The egg model–a geological ensemble for
