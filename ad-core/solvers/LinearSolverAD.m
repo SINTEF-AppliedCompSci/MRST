@@ -124,7 +124,7 @@ classdef LinearSolverAD < handle
                                 problemPrev.equations{ix(k)}.jac{2}.dim(1) + mismatch/nd;
                         end
                     end
-                    nad = cellfun(@numval, problemPrev.equations(ix));
+                    nad = cellfun(@numelValue, problemPrev.equations(ix));
                     ix = find(cellfun(@(x)isa(x, 'double'), problemPrev.equations));
                     nd  = cellfun(@numel, problemPrev.equations(ix));
                     mismatch = numel(adjVec) - sum(nad) - sum(nd);
@@ -610,7 +610,7 @@ classdef LinearSolverAD < handle
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

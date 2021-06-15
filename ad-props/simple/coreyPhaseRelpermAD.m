@@ -7,7 +7,7 @@ function fn = coreyPhaseRelpermAD(n, sr, kwm, sr_tot)
 % sr_tot - sum of sr for all phases present
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

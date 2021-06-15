@@ -26,7 +26,7 @@ function [fx, cx] = splitFaceCellValue(operators, flag, x, sz)
 %   `faceUpstr`, `setupOperatorsTPFA`
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -46,13 +46,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     nf = sz(1);
     nc = sz(2);
-    
-    if isa(x, 'ADI')
-        n = numval(x);
-    else
-        n = numel(x);
-    end
-    
+    n = numelValue(x);
+
     switch n
         case nc
             % Cell-wise values only, use upstream weighting

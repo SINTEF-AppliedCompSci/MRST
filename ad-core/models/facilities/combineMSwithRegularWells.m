@@ -2,7 +2,7 @@ function W = combineMSwithRegularWells(W_regular, W_ms)
 % Combine regular and MS wells, accounting for missing fields
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

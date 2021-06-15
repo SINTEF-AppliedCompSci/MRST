@@ -36,7 +36,7 @@ function [eqs, names, types, state] = equationsOilWaterMech(p0, sW0, state0, ...
 %   equationOilWater.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -125,9 +125,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Finally, add in and setup well equations
     wellSol = model.getProp(state, 'wellsol');
-    [~, wellVarNames, wellMap] = ...
-        model.FacilityModel.getAllPrimaryVariables(wellSol);
+    [~, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
     wellSol0 = model.getProp(state0, 'wellsol');
+    
     [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, ...
                                                       types, wellSol0, wellSol, ...
                                                       wellVars, wellMap, p, ...

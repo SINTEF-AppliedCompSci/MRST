@@ -3,7 +3,6 @@ classdef ComponentProperty
     % components
     properties (Access = protected)
         componentFunctionName % Name of member function in component implementation
-        includeStandard = true;
         includeShrinkageFactors = [];
     end
     
@@ -34,39 +33,15 @@ classdef ComponentProperty
                 if isempty(gp.includeShrinkageFactors)
                     gp.includeShrinkageFactors = isa(model, 'ThreePhaseBlackOilModel');
                 end
-                if gp.includeStandard
-                    if gp.includeShrinkageFactors
-                        gp = gp.dependsOn({'ShrinkageFactors'}, 'PVTPropertyFunctions');
-                    end
-                    gp = gp.dependsOn({'Density', 'PoreVolume'}, 'PVTPropertyFunctions');
-                    gp = gp.dependsOn('Mobility', 'FlowPropertyFunctions');
-                end
             else
                 gp.includeShrinkageFactors = false;
-            end
-        end
-
-        function extra = getExtraArguments(prop, model, state)
-            if prop.includeStandard
-                [rho, pv, mob] = prop.getEvaluatedExternals(model, state, 'Density', 'PoreVolume', 'Mobility');
-                s = model.getProp(state, 's');
-                extra = struct('s', [], 'pv', pv, 'rho', [], 'mob', []);
-                extra.s = s;
-                extra.rho = rho;
-                extra.mob = mob;
-                if prop.includeShrinkageFactors
-                    extra.b = prop.getEvaluatedExternals(model, state, 'ShrinkageFactors');
-                end
-                extra = {extra};
-            else
-                extra = {};
             end
         end
     end
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

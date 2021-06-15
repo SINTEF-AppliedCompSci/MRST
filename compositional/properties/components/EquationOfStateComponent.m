@@ -20,10 +20,12 @@ classdef EquationOfStateComponent < GenericComponent
             c = c.functionDependsOn('getComponentDensity', {'Density','ComponentPhaseMassFractions'}, 'PVTPropertyFunctions');
         end
         
-        function c = getComponentDensity(component, model, state, rho)
+        function c = getComponentDensity(component, model, state, extra)
             c = component.getPhaseComposition(model, state);
             if nargin < 4
                 rho = model.getProps(state, 'Density');
+            else
+                rho = extra.rho;
             end
             for ph = 1:numel(c)
                 if ~isempty(c{ph})
@@ -78,7 +80,7 @@ classdef EquationOfStateComponent < GenericComponent
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

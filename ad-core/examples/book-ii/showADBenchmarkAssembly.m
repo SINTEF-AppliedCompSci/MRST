@@ -5,7 +5,11 @@ physics = {'1ph', 'immiscible', 'blackoil', 'overall'};
 backends = {'diagonal-rowmajor-deferred'};
 nphys = numel(physics);
 %% Sizes used in book chapter
-sizes = [20, 25, 30, 35, 50, 75, 100, 126];
+if ~exist('sizes', 'var')
+    sizes = [20, 25, 30, 35];
+    % Uncomment if you want to run bigger stuff
+    % sizes = [20, 25, 30, 35, 50, 75, 100, 126];
+end
 %% Benchmark with and without wells/facility
 well_out = assemblyBenchmarkAD(sizes, backends, physics, 'wells', 10);
 nowell_out = assemblyBenchmarkAD(sizes, backends, physics, 'none', 10);
@@ -137,7 +141,7 @@ end
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

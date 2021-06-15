@@ -1,7 +1,9 @@
 function [misfitVal,varargout] = evaluateMatch_simple_V2(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref)
 
 nparam = cellfun(@(x)x.n, parameters);
+p = max(0, min(1, p));
 p = mat2cell(p, nparam, 1);
+
 prob = struct('model', model_org, 'schedule', schedule_org, 'state0', state0_org);
 initStateSensitivity = false;
 ignore_these = zeros(numel(parameters),1);

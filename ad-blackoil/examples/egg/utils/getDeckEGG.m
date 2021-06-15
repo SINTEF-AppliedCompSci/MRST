@@ -2,7 +2,7 @@ function deck = getDeckEGG(varargin)
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -20,8 +20,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('realization', 0);
+    opt = struct('realization', []);
     opt = merge_options(opt, varargin{:});
+    if isempty(opt.realization)
+        opt.realization = 0;
+    elseif opt.realization == 0
+        fprintf('Realization 0 (base case) explicitly selected.\nNote: The base case is identical to realization 8.\n');
+    end
     
     mrstModule add deckformat ad-props
     % Read and process file.

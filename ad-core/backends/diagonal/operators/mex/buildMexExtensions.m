@@ -2,7 +2,7 @@ function buildMexExtensions(rebuild, names, varargin)
 % (Re)build a set of mex extensions located in a specific folder
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

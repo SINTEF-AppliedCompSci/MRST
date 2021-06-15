@@ -6,9 +6,9 @@ classdef DiagonalJacobian
         subset % Indices corresponding to the subset (if empty, class contains the full set)
         useMex = false;
         rowMajor = false;
-        allowImplicitExpansion = exist ("OCTAVE_VERSION", "builtin") > 0 || ~verLessThan('matlab','9.1');
+        allowImplicitExpansion = mrstPlatform('octave') || mrstPlatform('major') >= 9
     end
-    
+
     methods
         function D = DiagonalJacobian(d, dim, subset, useMex, useRowMajorMemory)
             if nargin == 0
@@ -226,9 +226,7 @@ classdef DiagonalJacobian
         end
         
         function u = repmat(u, varargin)
-            assert(~u.rowMajor, 'Not implemented');
-            u.diagonal = repmat(u.diagonal, varargin{:});
-            u.subset = repmat(u.subset, varargin{:});
+            u = repmat(sparse(u), varargin{:});
         end
 
         function x = subsetPlus(x, v, subs)
@@ -380,6 +378,9 @@ classdef DiagonalJacobian
                                     % sense
                                     allowDiag = ~isempty(vsub) && u.compareIndices(u, s.subs{1}, vsub);
                                 else
+                                    if isempty(vsub)
+                                        vsub = (1:v.dim(1))';
+                                    end
                                     % u.subset is not zero
                                     allowDiag = u.compareIndices(u, s.subs{1}, usub(s.subs{1})) &&...
                                                 u.compareIndices(u, s.subs{1}, vsub);
@@ -763,7 +764,7 @@ classdef DiagonalJacobian
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

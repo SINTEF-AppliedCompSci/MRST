@@ -24,7 +24,7 @@ function rmodel = getReservoirModel(model)
 %   `WrapperModel`, `ReservoirModel`, `setReservoirModel`
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -45,7 +45,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rmodel = model;
     if isa(rmodel, 'SequentialPressureTransportModel')
         % We have a sequential implicit model, use pressure model
-        rmodel = model.pressureModel;
+        if isempty(model.parentModel)
+            rmodel = model.pressureModel;
+        end
     end
     while isprop(rmodel, 'parentModel')
         % We have a WrapperModel - travers to the bottom of the hierarchy

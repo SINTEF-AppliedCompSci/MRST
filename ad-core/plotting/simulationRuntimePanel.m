@@ -3,7 +3,7 @@ function ok = simulationRuntimePanel(model, states, ctrl_reports, solver, schedu
 % getPlotAfterStep.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -214,7 +214,11 @@ function p = createPanel()
         c = [1 1 1];
     end
     df = get(0, 'defaultFigurePosition');
-    p = figure('Tag', 'mrst-simpanel', 'Color', c, 'position', df.*[1 1 1 1.5]);
+    pos = df.*[1 1 1 1.5];
+    ssz = get(0,'ScreenSize');
+    pos(3:4) = min([pos(3:4); ssz(3:4)-[0 90]]);
+    pos(1:2) = min([pos(1:2); ssz(3:4)-pos(3:4)-[0 90]]);
+    p = figure('Tag', 'mrst-simpanel', 'Color', c, 'position', pos);
 end
 
 function h = getPanel()

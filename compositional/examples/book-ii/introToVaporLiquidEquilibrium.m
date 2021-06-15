@@ -4,7 +4,7 @@
 % Cambridge University Press, 2021.
 mrstModule add compositional ad-core
 
-%% ง8.3.1: Show Rachford-Rice
+%% ยง8.3.1: Show Rachford-Rice
 % In the first example, we demonstrate how to use the Rachford-Rice
 % algorithm to determine the vapor-liquid equilibrium for a two-component
 % fluid system consisting of heavy and light molecules. The system has
@@ -47,7 +47,7 @@ ylabel('Objective')
 legend('O_1', 'O_2', 'O_{RR}', 'Solution')
 
 
-%% ง8.3.2: Updating the Thermodynamic Equilibrium
+%% ยง8.3.2: Updating the Thermodynamic Equilibrium
 % To use the Rachford-Rice method to determine the vapor-liquid
 % equilibrium, we must know the K-values and suitable relationships for the
 % densities. In the next example, we show how one can use an equation of
@@ -176,7 +176,7 @@ ylabel('Total time [s]')
 
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -1,4 +1,4 @@
-mrstModule add ad-blackoil ad-core mrst-gui ad-props deckformat sequential
+mrstModule add ad-blackoil ad-core mrst-gui ad-props deckformat sequential linearsolvers
 if ~exist('basename', 'var')
     basename = 'spe1';
 end

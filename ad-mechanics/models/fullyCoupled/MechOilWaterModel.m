@@ -24,7 +24,7 @@ classdef MechOilWaterModel < MechFluidModel
 %   MechBlackOilModel, MechWaterModel, MechFluidModel
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -120,10 +120,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         function [problem, state] = getAdjointEquations(model, state0, state, dt, ...
                                                         drivingForces, varargin)
-            opt = struct('Verbose', mrstVerbose, ...
-                         'reverseMode', true, ...
-                         'resOnly', false,...
-                         'iteration', -1);  % Compatibility only
+            opt = struct('Verbose'    , mrstVerbose, ...
+                         'reverseMode', true       , ...
+                         'resOnly'    , false      , ...
+                         'iteration'  , -1);  % Compatibility only
             opt = merge_options(opt, varargin{:});
 
             % Properties at current timestep
@@ -140,18 +140,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             fluidModel = model.fluidModel; % shortcuts
             mechModel  = model.mechModel;  % shortcuts
 
-            [wellVars, wellVarNames, wellMap] = ...
-                fluidModel.FacilityModel.getAllPrimaryVariables(wellSol);
+            [wellVars, wellVarNames, wellMap] = fluidModel.FacilityModel.getAllPrimaryVariables(wellSol);
 
-            [wellVars0, ~, ~] = ...
-                fluidModel.FacilityModel.getAllPrimaryVariables(wellSol0);
+            [wellVars0, ~, ~] = fluidModel.FacilityModel.getAllPrimaryVariables(wellSol0);
 
             if opt.reverseMode
-                [p0, sW0, wellVars0{:}, xd0] = initVariablesADI(p0, sW0, wellVars0{:}, ...
-                                                                xd0);
+                [p0, sW0, wellVars0{:}, xd0] = initVariablesADI(p0, sW0, wellVars0{:}, xd0);
             else
-                [p, sW, wellVars{:}, xd] = initVariablesADI(p, sW, wellVars{:}, ...
-                                                            xd);
+                [p, sW, wellVars{:}, xd] = initVariablesADI(p, sW, wellVars{:}, xd);
             end
 
             [mechTerm, fluidp] = computeCouplingTerms(model, p0, xd0, p, xd, ...

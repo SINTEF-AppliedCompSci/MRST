@@ -133,7 +133,7 @@ fprintf('Sparse: %1.4fs Diagonal: %1.4fs (%2.1f speed up from diagonal)\n', t_sp
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
