@@ -80,6 +80,7 @@ classdef BaseEnsemble < handle
         
         simulationStrategy = 'serial';
         maxWorkers = maxNumCompThreads();
+        cluster = [];
         
         verbose = true
         verboseSimulation = false
@@ -181,7 +182,9 @@ classdef BaseEnsemble < handle
             if ensemble.hasBaseProblem
                 % Returns the base problem in its pure form, without using any
                 % of the stochastic samples.
-                problem = ensemble.setup.getPackedSimulationProblem('Directory', ensemble.directory, 'Name', 'baseProblem');
+                problem = ensemble.setup.getPackedSimulationProblem(    ...
+                                       'Directory', ensemble.directory, ...
+                                       'Name', 'baseProblem'          );
                 if ~isempty(ensemble.samples.processProblemFn)
                     problem = ensemble.samples.processProblemFn(problem);
                 end
@@ -192,21 +195,21 @@ classdef BaseEnsemble < handle
         
         %-----------------------------------------------------------------%
         function problem = getSampleProblem(ensemble, seed)
-                if ensemble.hasBaseProblem
-                    % setup using base-problem
-                    baseProblem = ensemble.getBaseProblem();
-                    problem     = ensemble.samples.getSampleProblem(baseProblem, seed);
-                else
-                    % setup without base-problem (path for result-handler must 
-                    % be provided
-                    problem = ensemble.samples.getSampleProblem(ensemble.directory, seed);
-                end
+            if ensemble.hasBaseProblem
+                % setup using base-problem
+                baseProblem = ensemble.getBaseProblem();
+                problem     = ensemble.samples.getSampleProblem(baseProblem, seed);
+            else
+                % setup without base-problem (path for result-handler must 
+                % be provided
+                problem = ensemble.samples.getSampleProblem(ensemble.directory, seed);
+            end
         end
         
         %-----------------------------------------------------------------%
         function ensemble = setSolver(ensemble, solve)
             % Updates the function used for simulating the individual
-            % ensemble members.          
+            % ensemble members.
             ensemble.solve = solve;
         end
         
@@ -302,7 +305,8 @@ classdef BaseEnsemble < handle
             if ~doSolve 
                 % simulation is done - nothing to do here!
                 if ensemble.verbose
-                    fprintf('Simulation output for seed %d found on disk (skipping)\n',  seed);
+                    fprintf(['Simulation output for seed %d found on ', ...
+                             'disk (skipping)\n'], seed               );
                 end
                 if outputProblem
                     varargout{1} = ensemble.getSampleProblem(seed);
@@ -325,7 +329,7 @@ classdef BaseEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        function varargout = simulateEnsembleMembers(ensemble, varargin)
+        function simulateEnsembleMembers(ensemble, varargin)
             % Run simulations for a set of ensemble members
             %
             % SYNOPSIS:
@@ -387,36 +391,34 @@ classdef BaseEnsemble < handle
                 case 'parallel'
                     ensemble.simulateEnsembleMembersParallel(opt.range, rangePos, extraOpt{:});
                 case 'background'
-                    [varargout{1}, varargout{2}] = ensemble.simulateEnsembleMembersBackground(opt.range, rangePos, extraOpt{:});
+                    ensemble.simulateEnsembleMembersBackground(opt.range, rangePos, extraOpt{:});
             end
         end
         
         %-----------------------------------------------------------------%
         function simulateEnsembleMembersCore(ensemble, range)
             % Runs simulations according to the given range.
-            
            range = reshape(range, 1, []);
            for i = 1:numel(range)
                seed = range(i);
-               
                % Print info
                if ensemble.verbose
                    progress = floor(100*(i-1)/numel(range));
-                   fprintf('(%d%%)\tSimulating ensemble member %d among ensemble members %d to %d...\n', ...
-                           progress, seed, range(1), range(end))     
+                   fprintf(['(%d%%)\tSimulating ensemble member %d ', ...
+                            'among ensemble members %d to %d...\n' ], ...
+                           progress, seed, range(1), range(end)    );
                end
-               
                % Run simulation
                if ensemble.verboseSimulation
                    ensemble.simulateEnsembleMember(seed);
                else
                    evalc('ensemble.simulateEnsembleMember(seed)');
                end
-           end
-           
+           end      
            % Print info
            if ensemble.verbose
-               fprintf('(100%%)\tDone simulating ensemble members %d to %d \n', range(1), range(end));
+               fprintf(['(100%%)\tDone simulating ensemble members ', ...
+                        '%d to %d \n'], range(1), range(end)        );
            end
         end
         
@@ -437,7 +439,6 @@ classdef BaseEnsemble < handle
                 end
             end
         end
-
         
     end % methods
     
@@ -508,33 +509,18 @@ classdef BaseEnsemble < handle
                 end
             end
             
-            switch ensemble.simulationStrategy
-                case 'parallel'
-                    % Use parallel toolbox. Check if we have started a
-                    % parallel session already, and whether it has the
-                    % correct number of workers
-                    if ensemble.maxWorkers > maxNumCompThreads()
-                        warning(['Requested number of workes is greater ' , ...
-                                 'than maxNumCompThreads (%d) reducing.'  ], ...
-                                 maxNumCompThreads()                       );
-                        ensemble.maxWorkers = maxNumCompThreads();
-                    end
-%                     if isempty(gcp('nocreate'))
-%                         parpool(ensemble.maxWorkers);
-%                     elseif gcp('nocreate').NumWorkers ~= ensemble.maxWorkers
-%                         delete(gcp);
-%                         parpool(ensemble.maxWorkers);
-%                     end
-                    fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
-                    if ~exist(fn, 'file') || opt.force
-                        save(fn, 'ensemble');
-                    end
-                case 'background'
-                    % Run simulations in background sessions
-                    fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
-                    if ~exist(fn, 'file') || opt.force
-                        save(fn, 'ensemble');
-                    end
+            if any(strcmpi(ensemble.simulationStrategy, {'parallel', 'backgrund'}))
+                fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
+                if ~exist(fn, 'file') || opt.force
+                    save(fn, 'ensemble');
+                end
+            end
+            
+            if strcmpi(ensemble.simulationStrategy, {'parallel'})
+                if isempty(ensemble.cluster)
+                    ensemble.cluster = parcluster('local');
+                end
+                ensemble.cluster.Jobs.delete();
             end
         end
         
@@ -560,15 +546,14 @@ classdef BaseEnsemble < handle
             % Check that the parpool and spmdEnsemble is valid
             ensemble.prepareEnsembleSimulation()
             fileName = fullfile(ensemble.getDataPath(), 'ensemble.mat');
-            job = cell(numel(rangePos)-1,1);
             n = 0;
-            c = parcluster();
+            job = cell(ensemble.maxWorkers(), 1);
             for i = 1:numel(rangePos)-1
                 r = range(rangePos(i):rangePos(i+1)-1);
                 if isempty(r), continue; end
                 n = n+1;
-                job{i} = batch(c, ensemble.backgroundEvalFn, 0, {fileName, r}, ...
-                                                'AttachedFiles', fileName);
+                job{i} = batch(ensemble.cluster, ensemble.backgroundEvalFn, 0, {fileName, r}, ...
+                                                    'AttachedFiles', fileName);
             end
             fprintf(['Started %d new Matlab batch jobs. ', ...
                      'Waiting for simulations ...\n'    ], n);
@@ -626,7 +611,6 @@ function matches = folderRegexp(list, expression, outputFormat)
     end
     matches = regexp(list, expression, outputFormat);
 end
-
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
