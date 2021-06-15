@@ -187,17 +187,17 @@ classdef MRSTEnsembleV2 < BaseEnsemble
             opt = struct('h', []);
             [opt, extra] = merge_options(opt, varargin{:});
             ids    = ensemble.qoi.ResultHandler.getValidIds();
-            sample = ensemble.qoi.ResultHandler{ids(1)};
-            if isscalar(sample)
-                if ~isempty(opt.h), clf(opt.h); end
-                n = min(ceil(numel(ids)/3), 10);
-                h = ensemble.qoi.plotQoIHistogram(opt.h, ...
-                                                  'edges'      , n   , ...
-                                                  'includeMean', true, ...
-                                                  extra{:}           );
-            else
+%             sample = ensemble.qoi.ResultHandler{ids(1)};
+%             if isscalar(sample)
+%                 if ~isempty(opt.h), clf(opt.h); end
+%                 n = min(ceil(numel(ids)/3), 10);
+%                 h = ensemble.qoi.plotQoIHistogram(opt.h, ...
+%                                                   'edges'      , n   , ...
+%                                                   'includeMean', true, ...
+%                                                   extra{:}           );
+%             else
                 h = ensemble.qoi.plotEnsembleQoI(ensemble, opt.h, extra{:});
-            end
+%             end
             drawnow
         end
         
@@ -213,7 +213,7 @@ classdef MRSTEnsembleV2 < BaseEnsemble
                 progress = ensemble.getEnsembleMemberProgress(range);
                 h_progress = plotEnsembleProgress(ensemble, progress, range, h_progress);
                 if ensemble.qoi.ResultHandler.numelData > n
-                    h_qoi = ensemble.plotQoI('h', h_qoi);
+                    h_qoi = ensemble.qoi.plotEnsembleQoI('h', h_qoi);
                     n = ensemble.qoi.ResultHandler.numelData;
                 end
                 drawnow
