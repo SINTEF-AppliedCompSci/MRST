@@ -155,50 +155,24 @@ classdef MRSTEnsembleV2 < BaseEnsemble
             if ensemble.qoi.isComputed(seed)
                 % QoI is already computed - nothing to do here!
                 if ensemble.verbose
-                    disp(strcat("Simulation for ", num2str(seed), " found on disk"));
+                    fprintf(['Simulation output for seed %d found on ', ...
+                             'disk (skipping)\n'], seed               );
                 end
-                return;
+                return
             end
             problem = ensemble.simulateEnsembleMember@BaseEnsemble(seed, varargin{:});
             if ensemble.getSimulationStatus(seed) > 0
                 % Compute QoI
                 ensemble.qoi.getQoI(problem);
             else
-                warning('Could not compute QOI for seed %d due to failed simulation', ...
-                        seed);
+                warning(['Could not compute QOI for seed %d due to ', ...
+                         'failed simulation'], seed                 );
             end
             % Clear output if requested
             if ~ensemble.storeOutput
                 clearPackedSimulatorOutput(problem, 'prompt', false);
                 ensemble.simulationStatus.resetData(seed);
             end
-        end
-        
-        %-----------------------------------------------------------------%
-        function h = plotQoI(ensemble, varargin)
-            % Creates plot(s) of the quantity of interest for all simulated
-            % ensemble members
-            %
-            % SYNOPSIS:
-            %   h = ensemble.plotQoI();
-            %
-            % OPTIONAL PARAMETERS:
-            %   'h' - Figure handle 
-            opt = struct('h', []);
-            [opt, extra] = merge_options(opt, varargin{:});
-            ids    = ensemble.qoi.ResultHandler.getValidIds();
-%             sample = ensemble.qoi.ResultHandler{ids(1)};
-%             if isscalar(sample)
-%                 if ~isempty(opt.h), clf(opt.h); end
-%                 n = min(ceil(numel(ids)/3), 10);
-%                 h = ensemble.qoi.plotQoIHistogram(opt.h, ...
-%                                                   'edges'      , n   , ...
-%                                                   'includeMean', true, ...
-%                                                   extra{:}           );
-%             else
-                h = ensemble.qoi.plotEnsembleQoI(ensemble, opt.h, extra{:});
-%             end
-            drawnow
         end
         
         %-----------------------------------------------------------------%
@@ -224,7 +198,6 @@ classdef MRSTEnsembleV2 < BaseEnsemble
     end % methods
     
     methods (Access = protected)
-        
         %-----------------------------------------------------------------%
         function progress = getEnsembleMemberProgress(ensemble, range)
             % Utility function for monitoring the progression of an
@@ -246,9 +219,7 @@ classdef MRSTEnsembleV2 < BaseEnsemble
                 progress(i) = numel(folderRegexp(files, 'state\d+\.mat', 'match'))/nsteps;
             end
         end
-        
-        
-                
+                 
     end
 end
 
