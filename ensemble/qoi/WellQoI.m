@@ -48,7 +48,7 @@ classdef WellQoI < BaseQoI
         
         %-----------------------------------------------------------------%
         function qoi = WellQoI(varargin)
-            qoi = qoi@BaseQoI();
+            qoi = qoi@BaseQoI('names', {'qWs'});
             qoi = merge_options(qoi, varargin{:});
             % Check input
             assert(xor(isempty(qoi.wellIndices), isempty(qoi.wellNames)), ...
@@ -163,45 +163,10 @@ classdef WellQoI < BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function [u_mean, u_var, u] = computeQoIMean(qoi, range)
-            % Get first QoI
-            u_tmp = qoi.ResultHandler{range(1)};
-            if nargout > 2
-                % Output all QoIs if requested
-                u = cell(numel(range), 1);
-                u{1} = u_tmp;
-            end
-            % Initialize mean and variance
-            [u_mean, u_var] = deal(u_tmp);
-            for fn = qoi.names
-                [u_var.(fn{1})] = deal(0);
-            end
-            normfn = @(u) qoi.norm(u);
-            for i = 2:numel(range)
-                u_tmp = qoi.ResultHandler{range(i)};
-                for j = 1:numel(u_mean)
-                    for fn = qoi.names
-                        ut = u_tmp(j).(fn{1});  % Current QoI
-                        um = u_mean(j).(fn{1}); % Current mean
-                        uv = u_var(j).(fn{1});  % Current variance
-                        % Update variance
-                        u_var(j).(fn{1})  = computeVariance(uv, 0, um, ut, i-1, 1, normfn);
-                        % Update mean
-                        u_mean(j).(fn{1}) = computeMean(um, ut, i, 1);
-                    end
-                end
-                if nargout > 2
-                    % Output all QoIs if requested
-                    u{i} = u_tmp;
-                end
-            end
-        end
-        
-        %-----------------------------------------------------------------%
-        function plotQoI(qoi, ensemble, u, varargin) %#ok
+        function plotQoI(qoi, ensemble, u, varargin)
             if numel(u) > 1
                 for i = 1:numel(u)
-                    figure(); qoi.plotQoI(u(i), varargin{:});
+                    figure(); qoi.plotQoI(ensemble, u(i), varargin{:});
                 end
                 return
             end
@@ -213,7 +178,7 @@ classdef WellQoI < BaseQoI
                          'timescale'     , day    , ...
                          'labels'        , true   , ...
                          'title'         , true   , ...
-                         'name'          , {qoi.names}, ...
+                         'names'         , {qoi.names}, ...
                          'cellNo'        , 1      , ...
                          'subCellNo'     , 1);
                      
@@ -228,9 +193,11 @@ classdef WellQoI < BaseQoI
             if is_timeseries
                 
                 time = cumsum(qoi.dt)./opt.timescale;
-                for i = 1:numel(opt.name)
-                    subplot(1, numel(opt.name), 1);
-                    ui = u.(opt.name{i});
+                for i = 1:numel(opt.names)
+                    if numel(opt.names) > 1
+                        subplot(1, numel(opt.names), 1);
+                    end
+                    ui = u.(opt.names{i});
                     plot(time(1:numel(ui)), ui, 'color'    , color        , ...
                                                 'lineWidth', opt.lineWidth, ...
                                                 extra{:}                  );
@@ -238,14 +205,14 @@ classdef WellQoI < BaseQoI
                     box on, grid on
                     if opt.title
                         if qoi.combined
-                            title(sprintf('Combined produced %s', opt.name{i}));
+                            title(sprintf('Combined produced %s', opt.names{i}));
                         else
-                            title(sprintf('%s for well %s', opt.name{i}, u.name));
+                            title(sprintf('%s for well %s', opt.names{i}, u.name));
                         end
                     end
                     if opt.labels
                         xlabel(sprintf('Time (%s)', formatTime(opt.timescale)));
-                        ylabel(sprintf('%s', opt.name{i}));
+                        ylabel(sprintf('%s', opt.names{i}));
                     end
                 end
             end
