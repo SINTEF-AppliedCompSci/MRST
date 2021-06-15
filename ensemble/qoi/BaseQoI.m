@@ -16,6 +16,7 @@ classdef BaseQoI
     properties
         ResultHandler % Handler for writing/reading QoIs to/from file
         names
+        plotAllSamples = true;
     end
     
     methods
@@ -24,6 +25,9 @@ classdef BaseQoI
         function qoi = BaseQoI(varargin)
             % Constructor only parses optional input arguments
             qoi = merge_options(qoi, varargin{:});
+            if ~iscell(qoi.names)
+                qoi.names = {qoi.names};
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -87,7 +91,7 @@ classdef BaseQoI
                 % issue a warning if it is not
                 
                 us = u; % Handle special case when u is a cell array
-                if iscell(us), us = {us}; end
+%                 if iscell(us), us = {us}; end
                 qoi.ResultHandler(seed) = {us};
             end 
         end
@@ -140,7 +144,6 @@ classdef BaseQoI
             %   u_mean - Mean values of the quantity of interest
             %   u      - Cell array of the QoIs for the individual ensemble
             %            members.
-
             
             % Check if we have computed any QoIs so far
             assert(~isempty(qoi.ResultHandler), 'No QoIs computed yet!')
@@ -158,51 +161,43 @@ classdef BaseQoI
                 end
                 range = range(keep);
             end
+            % Let children class decide how to compute mean
             [u_mean, u_var, u] = qoi.computeQoIMean(range);
-%             % Determine layout
-%             u_mean  = qoi.ResultHandler{range(1)};
-%             numQoIs = numel(u_mean);
-%             useCell = iscell(u_mean{1});
-%             if useCell
-%                 % Each QoI given in cell array (possible multiple sub QoIs)
-%                 numSubQoIs = numel(u_mean{1});
-%                 u_var = cell(numQoIs, 1);
-%                 [u_var{:}] = deal(zeros(numSubQoIs, 1));
-%             else
-%                 % Each QoI given as vector
-%                 numSubQoIs = 1;
-%                 u_var = zeros(numQoIs, 1);
-%             end
-%             % Return all QoIs if requested
-%             if nargout > 2
-%                 u    = cell(numel(range),1);
-%                 u{1} = u_mean;
-%             end
-%             normfn = @(u) qoi.norm(u);
-%             for i = 2:numel(range)
-%                 u_tmp = qoi.ResultHandler{range(i)};
-%                 if useCell
-%                     for j = 1:numQoIs
-%                         for k = 1:numSubQoIs
-%                             u_var{j}(k)  = computeVariance(u_var{j}(k), 0, u_mean{j}{k}, u_tmp{j}{k}, i-1, 1, normfn);
-%                             u_mean{j}{k} = computeMean(u_mean{j}{k}, u_tmp{j}{k}, i-1, 1);
-%                         end
-%                     end
-%                 else
-%                     for j = 1:numQoIs
-%                         u_var(j)  = computeVariance(u_var(j), 0, u_mean{j}, u_tmp{j}, i-1, 1, normfn);
-%                         u_mean{j} = computeMean(u_mean{j}, u_tmp{j}, i-1, 1);
-%                     end
-%                 end
-%                 
-%                 if nargout > 2
-%                     u{i} = u_tmp;
-%                 end
-%             end
         end
         
-        function [u_mean, u_var, u] = computeQoIMean()
-            error();
+        %-----------------------------------------------------------------%
+        function [u_mean, u_var, u] = computeQoIMean(qoi, range)
+            % Get first QoI
+            sample = qoi.ResultHandler{range(1)};
+            if nargout > 2
+                % Output all QoIs if requested
+                u = cell(numel(range), 1);
+                u{1} = sample;
+            end
+            % Initialize mean and variance
+            [u_mean, u_var] = deal(sample);
+            for fn = qoi.names
+                [u_var.(fn{1})] = deal(0);
+            end
+            normfn = @(u) qoi.norm(u);
+            for i = 2:numel(range)
+                u_tmp = qoi.ResultHandler{range(i)};
+                for j = 1:qoi.numQoIs
+                    for fn = qoi.names
+                        ut = u_tmp(j).(fn{1});  % Current QoI
+                        um = u_mean(j).(fn{1}); % Current mean
+                        uv = u_var(j).(fn{1});  % Current variance
+                        % Update variance
+                        u_var(j).(fn{1}) = computeVariance(uv, 0, um, ut, i-1, 1, normfn);
+                        % Update mean
+                       u_mean(j).(fn{1}) = computeMean(um, ut, i, 1);
+                    end
+                end
+                if nargout > 2
+                    % Output all QoIs if requested
+                    u{i} = u_tmp;
+                end
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -272,10 +267,12 @@ classdef BaseQoI
                                              extra{:}              );
                     else
                         hold on
-                        for j = 1:numSamples
-                            qoi.plotQoI(ensemble, ui{j}, 'name', qoi.names{k}, 'isMean', false, extra{:});
+                        if qoi.plotAllSamples
+                            for j = 1:numSamples
+                                qoi.plotQoI(ensemble, ui{j}, 'names', qoi.names{k}, 'isMean', false, extra{:});
+                            end
                         end
-                        qoi.plotQoI(ensemble, um, 'name', qoi.names{k}, extra{:}, 'tag', 'mean');
+                        qoi.plotQoI(ensemble, um, 'names', qoi.names{k}, extra{:}, 'tag', 'mean');
                         hold off
                     end
                     % Stack the lines so that the mean(s) come on top
