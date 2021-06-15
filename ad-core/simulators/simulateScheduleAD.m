@@ -339,8 +339,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 break
             end
         end
+        
         if report.EarlyStop
-            dispif(opt.Verbose, 'Termination triggered by stopFunction in control step %d of %d\n', i, nSteps);
             break;
         end
     end
@@ -356,8 +356,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         schedulereport.SimulationTime = simtime;
         schedulereport.Failure = failure;
     end
-    fprintf('*** Simulation complete. Solved %d control steps in %s ***\n',...
-                                  nSteps, formatTimeRange((sum(simtime))));
+    
+    if report.EarlyStop
+        nSteps = numel(reports);
+        earlyStopMsg = ' (termination triggered by stopFunction) ';
+    else
+        earlyStopMsg = '';
+    end
+    
+    fprintf('*** Simulation complete. Solved %d control steps in %s%s ***\n',...
+                                  nSteps, formatTimeRange((sum(simtime))), earlyStopMsg);
+    
 end
 
 %--------------------------------------------------------------------------
