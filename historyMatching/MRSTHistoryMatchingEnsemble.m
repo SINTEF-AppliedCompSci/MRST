@@ -278,9 +278,17 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsembleV2
         
         %-----------------------------------------------------------------%
         function iterationDataPath = getIterationPath(ensemble)
-            iterationDataPath = fullfile(ensemble.mainDirectory, ... 
-                                         num2str(ensemble.historyMatchingIteration), ...
+            mainIterationDataPath = fullfile(ensemble.mainDirectory, ... 
+                                             num2str(ensemble.historyMatchingIteration));
+            iterationDataPath = fullfile(mainIterationDataPath, ...
                                          num2str(ensemble.historyMatchingSubIteration));
+            
+            if ~exist(mainIterationDataPath, 'dir')
+                mkdir(mainIterationDataPath);
+            end
+            if ~exist(iterationDataPath, 'dir')
+                mkdir(iterationDataPath);
+            end
         end
                 
         %-----------------------------------------------------------------%
