@@ -80,7 +80,6 @@ classdef BaseEnsemble < handle
         
         simulationStrategy = 'serial';
         maxWorkers = maxNumCompThreads();
-        spmdEnsemble; % Used for 'simulationStrategy' = 'parallel'
         
         verbose = true
         verboseSimulation = false
@@ -520,12 +519,12 @@ classdef BaseEnsemble < handle
                                  maxNumCompThreads()                       );
                         ensemble.maxWorkers = maxNumCompThreads();
                     end
-                    if isempty(gcp('nocreate'))
-                        parpool(ensemble.maxWorkers);
-                    elseif gcp('nocreate').NumWorkers ~= ensemble.maxWorkers
-                        delete(gcp);
-                        parpool(ensemble.maxWorkers);
-                    end
+%                     if isempty(gcp('nocreate'))
+%                         parpool(ensemble.maxWorkers);
+%                     elseif gcp('nocreate').NumWorkers ~= ensemble.maxWorkers
+%                         delete(gcp);
+%                         parpool(ensemble.maxWorkers);
+%                     end
                     fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
                     if ~exist(fn, 'file') || opt.force
                         save(fn, 'ensemble');
@@ -563,11 +562,12 @@ classdef BaseEnsemble < handle
             fileName = fullfile(ensemble.getDataPath(), 'ensemble.mat');
             job = cell(numel(rangePos)-1,1);
             n = 0;
+            c = parcluster();
             for i = 1:numel(rangePos)-1
                 r = range(rangePos(i):rangePos(i+1)-1);
                 if isempty(r), continue; end
                 n = n+1;
-                job{i} = batch(ensemble.backgroundEvalFn, 0, {fileName, r}, ...
+                job{i} = batch(c, ensemble.backgroundEvalFn, 0, {fileName, r}, ...
                                                 'AttachedFiles', fileName);
             end
             fprintf(['Started %d new Matlab batch jobs. ', ...
@@ -575,6 +575,7 @@ classdef BaseEnsemble < handle
             if opt.plotProgress && ismethod(ensemble, 'plotProgress')
                 [varargout{1}, varargout{2}] = ensemble.plotProgress(range);
             end
+            cellfun(@(job) delete(job), job); clear job;
         end
         
         %-----------------------------------------------------------------%
