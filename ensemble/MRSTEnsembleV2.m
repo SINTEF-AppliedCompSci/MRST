@@ -187,12 +187,19 @@ classdef MRSTEnsembleV2 < BaseEnsemble
                 progress = ensemble.getEnsembleMemberProgress(range);
                 h_progress = plotEnsembleProgress(ensemble, progress, range, h_progress);
                 if ensemble.qoi.ResultHandler.numelData > n
-                    h_qoi = ensemble.qoi.plotEnsembleQoI('h', h_qoi);
+                    h_qoi = ensemble.qoi.plotEnsembleQoI(ensemble, h_qoi);
                     n = ensemble.qoi.ResultHandler.numelData;
                 end
                 drawnow
                 if all(isinf(progress)), break; end
             end
+        end
+        
+        %-----------------------------------------------------------------%
+        function h = plotQoI(ensemble, varargin)
+            opt = struct('h', []);
+            [opt, extra] = merge_options(opt, varargin{:});
+            h = ensemble.qoi.plotEnsembleQoI(ensemble, opt.h, extra{:});
         end
         
     end % methods
