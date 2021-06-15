@@ -509,7 +509,7 @@ classdef BaseEnsemble < handle
                 end
             end
             
-            if any(strcmpi(ensemble.simulationStrategy, {'parallel', 'backgrund'}))
+            if any(strcmpi(ensemble.simulationStrategy, {'parallel', 'background'}))
                 fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
                 if ~exist(fn, 'file') || opt.force
                     save(fn, 'ensemble');
