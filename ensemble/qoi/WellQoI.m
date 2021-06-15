@@ -18,7 +18,7 @@ classdef WellQoI < BaseQoI
     %    provided, 'wellIndices' is ignored.
     %
     % OPTIONAL PARAMETERS
-    %   'fldname' - cell array of the well output fields that we are
+    %   'names' - cell array of the well output fields that we are
     %               interested in. Valid values are well solution field
     %               names. Default: {'qOs'}
     %   'cumulative' - Quantity of interest is cumulative production data
@@ -33,7 +33,6 @@ classdef WellQoI < BaseQoI
     %   `BaseQoI`, `ReservoirStateQoI`, `MRSTExample`, `BaseSamples`
     
     properties
-        fldname      = {'qOs'} % Well output field names
         wellIndices            % Well indices
         wellNames              % Well names
 
@@ -127,7 +126,7 @@ classdef WellQoI < BaseQoI
             % Read well solutions
             wellSols = reshape(problem.OutputHandlers.wellSols(:), [], 1);
             % Get well output (numTimesteps, numWells, numFields)
-            uMatrix = getWellOutput(wellSols, qoi.fldname, qoi.wellNames);
+            uMatrix = getWellOutput(wellSols, qoi.names, qoi.wellNames);
             % Compute total or cumulative if requested
             dtProblem = getTimestepsFromProblem(problem);
             if qoi.total
@@ -155,10 +154,11 @@ classdef WellQoI < BaseQoI
                 names = qoi.wellNames;
             end
             u = [];
+            fnames = ['name', qoi.names]';
             for i = 1:numel(names)
-                fnames = ['name', qoi.fldname];
-                fval   = [names{i}, num2cell(squeeze(uMatrix(:, i, :)), 1)]; 
-                u      = [u; cell2struct(fval, fnames, 2)]; %#ok
+                um = squeeze(num2cell(uMatrix(:, i, :), 1));
+                um = cell2struct([names{i}; um], fnames, 1);
+                u  = [u; um]; %#ok
             end
         end
         
@@ -173,14 +173,14 @@ classdef WellQoI < BaseQoI
             end
             % Initialize mean and variance
             [u_mean, u_var] = deal(u_tmp);
-            for fn = qoi.fldname
+            for fn = qoi.names
                 [u_var.(fn{1})] = deal(0);
             end
             normfn = @(u) qoi.norm(u);
             for i = 2:numel(range)
                 u_tmp = qoi.ResultHandler{range(i)};
                 for j = 1:numel(u_mean)
-                    for fn = qoi.fldname
+                    for fn = qoi.names
                         ut = u_tmp(j).(fn{1});  % Current QoI
                         um = u_mean(j).(fn{1}); % Current mean
                         uv = u_var(j).(fn{1});  % Current variance
@@ -213,7 +213,7 @@ classdef WellQoI < BaseQoI
                          'timescale'     , day    , ...
                          'labels'        , true   , ...
                          'title'         , true   , ...
-                         'name'          , {qoi.fldname}, ...
+                         'name'          , {qoi.names}, ...
                          'cellNo'        , 1      , ...
                          'subCellNo'     , 1);
                      
@@ -268,7 +268,7 @@ classdef WellQoI < BaseQoI
             
             numQoIs = numel(qoi.ResultHandler.getValidIds());
             
-            num_fields = numel(qoi.fldname);
+            num_fields = numel(qoi.names);
             num_wells  = numel(qoi.wellNames);
             if qoi.combined
                 num_wells = 1;
@@ -298,8 +298,8 @@ classdef WellQoI < BaseQoI
                     end
                     plot(t, mean_qoi{w}{fld}, 'color', 'red', extra{:});
                     xlabel(sprintf('Time (%s)', formatTime(opt.timescale)));
-                    ylabel(sprintf('%s', qoi.fldname{fld}))
-                    title(strcat(qoi.fldname{fld}, " for well ", qoi.wellNames{w}));
+                    ylabel(sprintf('%s', qoi.names{fld}))
+                    title(strcat(qoi.names{fld}, " for well ", qoi.wellNames{w}));
                 end
             end
             
@@ -312,7 +312,7 @@ classdef WellQoI < BaseQoI
                 % each field by calling qoi.norm for each of them
                 n = u;
                 for i = 1:numel(u)
-                    for fn = qoi.fldname
+                    for fn = qoi.names
                         n(i).(fn{1}) = qoi.norm(u(i).(fn{1}));
                     end
                 end
@@ -340,8 +340,8 @@ classdef WellQoI < BaseQoI
                     'The observation contains several wells, but the QoI is supposed to be combined values');
             end
             
-            assert(numel(u{1}) == numel(qoi.fldname), ...
-                'The observation does not match the number of fldnames in QoI');
+            assert(numel(u{1}) == numel(qoi.names), ...
+                'The observation does not match the number of namess in QoI');
             
             %assert(numel(u{1}{1}) >= numel(qoi.dt), ...
             %    'The qoi has too few many timesteps to match the QoI class');
@@ -359,7 +359,7 @@ classdef WellQoI < BaseQoI
                 % field2) ...]
                 u_tmp = [];
                 for w = 1:numel(qoi.wellNames)
-                    for f = 1:numel(qoi.fldname)
+                    for f = 1:numel(qoi.names)
                         u_tmp = cat(1, u_tmp, u{w}{f});
                     end
                 end
@@ -401,13 +401,19 @@ classdef WellQoI < BaseQoI
         function u = extractTimestep(qoi, u, dtRange)
             % u is now u{well}{field}(time)
             for w = 1:numel(qoi.wellNames)
-                for f = 1:numel(qoi.fldname)
+                for f = 1:numel(qoi.names)
                     u{w}{f} = u{w}{f}(dtRange);
                 end
             end
         end
-        
        
+    end
+    
+    methods (Access = protected)
+        %-----------------------------------------------------------------%
+        function n = numQoIs(qoi)
+            n = numel(qoi.wellNames);
+        end
     end
     
     
