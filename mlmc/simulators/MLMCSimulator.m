@@ -43,8 +43,8 @@ classdef MLMCSimulator < MCSimulator
             mlmc.estimate   = sum(stat.estimate);
             mlmc.variance   = sum(stat.variance./stat.numSamples);
             mlmc.rmse       = sqrt(mlmc.variance);
-            mlmc.cost       = sum(stat.numSamples.*stat.cost);
             mlmc.numSamples = sum(stat.numSamples);
+            mlmc.cost       = sum(stat.numSamples.*stat.cost)./mlmc.numSamples;
             % Update history
             mlmc.history{end+1} = struct('estimate'  , mlmc.estimate  , ...
                                          'variance'  , mlmc.variance  , ...
@@ -83,7 +83,7 @@ classdef MLMCSimulator < MCSimulator
             stat = mlmc.getLevelStatistics();
             n = tolerance.^(-2).*sum(sqrt(stat.variance.*stat.cost)) ...
                                    .*sqrt(stat.variance./stat.cost);
-            n = ceil(n);
+            n = ceil(n) - stat.numSamples;
             n = min(n, opt.maxSamples - mlmc.numSamples);
             n = max(n, opt.minSamples - mlmc.numSamples);
             n = min(n, opt.batchSize);
