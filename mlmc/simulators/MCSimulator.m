@@ -1,4 +1,5 @@
 classdef MCSimulator < MRSTEnsemble
+    
     properties(Access = protected)
         estimate   = 0
         variance   = 0
@@ -11,7 +12,14 @@ classdef MCSimulator < MRSTEnsemble
     methods
         
         %-----------------------------------------------------------------%
-        function runMonteCarloSimulation(mc, varargin)
+        function mc = MCSimulator(mrstExample, samples, qoi, varargin)
+            assert(numel(qoi.names) == 1, 'MCSimulator only supports one qoi');
+            mc = mc@MRSTEnsemble(mrstExample, samples, qoi, varargin{:});
+            mc.figures.progressMC = [];
+        end
+        
+        %-----------------------------------------------------------------%
+        function runSimulation(mc, varargin)
             opt = struct('range'       , inf , ...
                          'batchSize'   , inf , ...
                          'maxSamples'  , 10  , ...
@@ -21,57 +29,77 @@ classdef MCSimulator < MRSTEnsemble
                          'prompt'      , true, ...
                          'plotProgress', true);
             opt = merge_options(opt, varargin{:});
-            
-            n = mc.qoi.ResultHandler.numelData();
-            
+            assert(xor(isfinite(opt.tolerance), isfinite(opt.relTolerance)), ...
+                   'Choose either relative or absolute tolerance');
+            % Check for computed samples
+            range = mc.getComputedSampleRange();
+            n     = numel(range);
             if n > 0 && opt.prompt
-                prompt = sprintf(['Found %d QoIs for this problem. '              , ...
-                                  'Would you like to include these in '           , ...
-                                  'your estimate (y)? If not, I will delete them ', ...
-                                  'y/n [y]: '], n                                 );
+                % We found computed samples - ask user if they should be
+                % included in the estimate
+                prompt = sprintf(['Found %d QoIs for this problem. '   , ...
+                                  'Would you like to include these in ', ...
+                                  'your estimate (y)? If not, I will ' , ...
+                                  'delete them y/n [y]: '], n          );
                 str = input(prompt,'s');
                 if strcmpi(str, 'y') || isempty(str)
+                    % Include samples in estimate
                     fprintf('Ok, I will include the QoIs in the estimate.\n');
+                    if mc.numSamples ~= n
+                        mc.resetStatistics();
+                        mc.updateStatistics(range);
+                    end
                 else
+                    % Reset simulator. This includes wiping out any samples
+                    % already computed
                     mc.reset('prompt', false);
                 end
             end
-            
-            if mc.numSamples ~= mc.qoi.ResultHandler.numelData()
-                mc.resetStatistics();
-                range = mc.qoi.ResultHandler.getValidIds();
-                if ~isempty(range)
-                    mc.updateStatistics(range);
-                end
-            end
-            
+            % Set tolerance
             tolerance = opt.tolerance;
             if isinf(opt.tolerance)
+                % Set tolerance based on relative reduction target
                 tolerance = opt.relTolerance*mc.estimate;
             end
+            % Compute number of samples needed
             n = mc.computeNumSamples(tolerance, opt);
-            h_mcprogress = [];
-            while (n > 0                           && ...
-                   mc.numSamples < opt.maxSamples) || ...
-                   mc.numSamples < opt.minSamples
-                maxId = max(mc.qoi.ResultHandler.getValidIds());
-                if isempty(maxId), maxId = 0; end
-                range = (1:n) + maxId;
-                [h_progress, h_qoi] = mc.simulateEnsembleMembers('range', range, 'plotProgress', opt.plotProgress);
-                
+            while (any(n > 0) && mc.numSamples < opt.maxSamples) ... 
+                              || mc.numSamples < opt.minSamples
+                % Run batch of n new samples
+                range = mc.runBatch('batchSize', n, 'plotProgress', opt.plotProgress);
+                % Update statistics
                 mc.updateStatistics(range);
                 if isinf(opt.tolerance)
+                    % Adjust tolerance if we aim at relative reduction
                     tolerance = opt.relTolerance*mc.estimate;
                 end
+                % Recompute number of samples needed
                 n = mc.computeNumSamples(tolerance, opt);
                 if opt.plotProgress
+                    % Plot progress of estimate with rmse bounds
                     out = mc.getHistory();
-                    delete(h_progress); delete(h_qoi);
-                    h_mcprogress = plotMonteCarloProgress(out, h_mcprogress);
+                    mc.figures.progressMC = plotMonteCarloProgress(out, ...
+                                                    mc.figures.progressMC);
                     drawnow(); pause(0.1);
                 end
             end
             
+        end
+        
+        %-----------------------------------------------------------------%
+        function range = runBatch(mc, varargin)
+            range = mc.simulateEnsembleMembers(varargin{:});
+        end
+        
+        %-----------------------------------------------------------------%
+        function maxId = getLargestSeed(mc)
+            maxId = max(mc.qoi.ResultHandler.getValidIds());
+            if isempty(maxId), maxId = 0; end
+        end
+        
+        %-----------------------------------------------------------------%
+        function range = getComputedSampleRange(mc)
+            range = mc.qoi.ResultHandler.getValidIds();
         end
         
         %-----------------------------------------------------------------%
@@ -102,8 +130,8 @@ classdef MCSimulator < MRSTEnsemble
             c0 = mc.cost;
             n0 = mc.numSamples;
             % Get batch statistics
-            [m, v] = mc.qoi.computeMean(range); m = m{1};
-            c = 1;
+            [m, v] = mc.qoi.computeQoIMean(range);
+            c = m.cost; m = m.(mc.qoi.names{1}); v = v.(mc.qoi.names{1});
             n = numel(range);
             % Update statistics
             mc.estimate   = computeMean(m0, m, n0, n);
@@ -124,33 +152,33 @@ classdef MCSimulator < MRSTEnsemble
         %-----------------------------------------------------------------%
         function n = computeNumSamples(mc, tolerance, opt)
             n = ceil(mc.variance/tolerance^2) - mc.numSamples;
-            n = min(n, opt.batchSize);
             n = min(n, opt.maxSamples - mc.numSamples);
             n = max(n, opt.minSamples - mc.numSamples);
+            n = min(n, opt.batchSize);
             n = max(n, 0);
         end
         
         %-----------------------------------------------------------------%
         % Getters                                                         %
         %-----------------------------------------------------------------%
-        function out = getStatistics(mc)
-            out = struct();
-            out.estimate   = mc.estimate;
-            out.variance   = mc.variance;
-            out.cost       = mc.cost;
-            out.numSamples = mc.numSamples;
-            out.rmse       = mc.rmse;
+        function stat = getStatistics(mc)
+            stat = struct();
+            stat.estimate   = mc.estimate;
+            stat.variance   = mc.variance;
+            stat.cost       = mc.cost;
+            stat.numSamples = mc.numSamples;
+            stat.rmse       = mc.rmse;
         end
         
         %-----------------------------------------------------------------%
-        function out = getHistory(mc)
+        function history = getHistory(mc)
             get = @(fn) reshape(cellfun(@(h) h.(fn), mc.history), [], 1);
-            out = struct();
-            out.estimate   = get('estimate');
-            out.variance   = get('variance');
-            out.cost       = get('cost');
-            out.numSamples = get('numSamples');
-            out.rmse       = get('rmse');
+            history = struct();
+            history.estimate   = get('estimate');
+            history.variance   = get('variance');
+            history.cost       = get('cost');
+            history.numSamples = get('numSamples');
+            history.rmse       = get('rmse');
         end
 
     end
