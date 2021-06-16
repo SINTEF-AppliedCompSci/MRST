@@ -81,6 +81,7 @@ classdef MRSTEnsemble < BaseEnsemble
     properties
         qoi
         storeOutput
+        figures = struct('progress', [], 'qoi', []);
     end
     
     methods
@@ -176,18 +177,18 @@ classdef MRSTEnsemble < BaseEnsemble
         end
         
         %-----------------------------------------------------------------%
-        function [h_progress, h_qoi] = plotProgress(ensemble, range)
+        function plotProgress(ensemble, range)
             % Utility function for showing the progress of simulating a
             % range of ensemble members. Only available for
             % 'simulationStrategy' = 'background'.
-            [h_progress, h_qoi] = deal([]);
             n = 0;
             while true
                 pause(0.1);
                 progress = ensemble.getEnsembleMemberProgress(range);
-                h_progress = plotEnsembleProgress(ensemble, progress, range, h_progress);
+                ensemble.figures.progress = ...
+                    plotEnsembleProgress(ensemble, progress, range, ensemble.figures.progress);
                 if ensemble.qoi.ResultHandler.numelData > n
-                    h_qoi = ensemble.qoi.plotEnsembleQoI(ensemble, h_qoi);
+                    ensemble.figures.qoi = ensemble.qoi.plotEnsembleQoI(ensemble, ensemble.figures.qoi);
                     n = ensemble.qoi.ResultHandler.numelData;
                 end
                 drawnow
