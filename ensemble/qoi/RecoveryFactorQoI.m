@@ -9,6 +9,12 @@ classdef RecoveryFactorQoI < BaseQoI
     methods
         
         %-----------------------------------------------------------------%
+        function qoi = RecoveryFactorQoI(varargin)
+            qoi = qoi@BaseQoI('names', {'rf'});
+            qoi = merge_options(qoi, varargin{:});
+        end
+        
+        %-----------------------------------------------------------------%
         function qoi = validateQoI(qoi, problem, varargin)
             % Let base class do its thing
             qoi   = validateQoI@BaseQoI(qoi, problem, varargin{:});
@@ -27,10 +33,11 @@ classdef RecoveryFactorQoI < BaseQoI
             model = problem.SimulatorSetup.model.validateModel();
             statei = states{1};
             if isfield(statei, 'singlePressureSolve') && statei.singlePressureSolve
-                u = qoi.computeRecoveryFactorFD(problem, model, states);
+                rf = qoi.computeRecoveryFactorFD(problem, model, states);
             else 
-                u = qoi.computeRecoveryFactor(model, states);
+                rf = qoi.computeRecoveryFactor(model, states);
             end
+            u = struct('rf', rf);
         end
        
         %-----------------------------------------------------------------%
@@ -43,7 +50,7 @@ classdef RecoveryFactorQoI < BaseQoI
             [sf, pvf] = model.getProps(states{numelData(states)}, qoi.phase, 'PoreVolume');
             vf = sum(sf.*pvf);
             % Compute recovery factor
-            u = {(vi-vf)./vi};
+            u = (vi-vf)./vi;
         end
         
         %-----------------------------------------------------------------%
@@ -81,7 +88,7 @@ classdef RecoveryFactorQoI < BaseQoI
             pvi = qoi.computePVI(problem, pv);
             % Find sweep efficiency at pvi
             [~, ix] = min(abs(tD - pvi));
-            u = {Ev(ix)};
+            u = Ev(ix);
         end
         
         %-----------------------------------------------------------------%
