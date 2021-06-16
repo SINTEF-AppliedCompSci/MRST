@@ -7,8 +7,7 @@ classdef MCLevelSimulator < MCSimulator
     
     methods
         function mcl = MCLevelSimulator(setup, samples, qoi, levels, varargin)
-            mcl = mcl@MCSimulator(setup, samples, qoi);
-            mcl = merge_options(mcl, varargin{:});
+            mcl = mcl@MCSimulator(setup, samples, qoi, varargin{:});
             mcl.levels = cell(numel(levels), 1);
             mcl.levelNo = levels{end}.levelNo;
             % Level QoIs will be stored in a subfolder `level-<levelNo>`
