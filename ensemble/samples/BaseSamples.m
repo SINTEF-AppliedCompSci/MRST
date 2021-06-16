@@ -58,7 +58,7 @@ classdef BaseSamples
         end
         
         %-----------------------------------------------------------------%
-        function problem = getSampleProblem(samples, baseProblem, seed)
+        function problem = getSampleProblem(samples, baseProblem, seed, sampleData)
             % Takes a realization of the sample according to the seed and
             % applies it to the baseProblem, thus creating a self standing
             % problem definition of an ensemble member.
@@ -79,7 +79,9 @@ classdef BaseSamples
             
             % Based on the baseProblem, create a problem with sample
             % given by the seed
-            sampleData = samples.getSample(seed, baseProblem);
+            if nargin < 4 || isempty(sampleData)
+                sampleData = samples.getSample(seed, baseProblem);
+            end
             problem    = samples.setSample(sampleData, baseProblem);
             if ~isempty(samples.processProblemFn)
                 % Process problem
