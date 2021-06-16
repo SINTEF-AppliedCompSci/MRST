@@ -1,4 +1,4 @@
-classdef MRSTEnsembleV2 < BaseEnsemble
+classdef MRSTEnsemble < BaseEnsemble
     % Class that facilitates ensembles in MRST.
     %
     % SYNOPSIS:
@@ -85,7 +85,7 @@ classdef MRSTEnsembleV2 < BaseEnsemble
     
     methods
         %-----------------------------------------------------------------%
-        function ensemble = MRSTEnsembleV2(mrstExample, samples, qoi, varargin)
+        function ensemble = MRSTEnsemble(mrstExample, samples, qoi, varargin)
             % handle local options
             opt  = struct('reset',             false, ...
                           'prepareSimulation', true,  ...
