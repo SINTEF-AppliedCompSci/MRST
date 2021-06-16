@@ -334,6 +334,11 @@ classdef WellQoI < BaseQoI
             end
         end
         
+        %-----------------------------------------------------------------%
+        function n = numQoIs(qoi)
+            n = numel(qoi.wellNames);
+        end
+        
     end % methods
     
     
@@ -373,16 +378,8 @@ classdef WellQoI < BaseQoI
                 end
             end
         end
-       
+        
     end
-    
-    methods (Access = protected)
-        %-----------------------------------------------------------------%
-        function n = numQoIs(qoi)
-            n = numel(qoi.wellNames);
-        end
-    end
-    
     
 end
 
