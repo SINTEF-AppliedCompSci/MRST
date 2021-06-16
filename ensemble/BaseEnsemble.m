@@ -67,7 +67,7 @@ classdef BaseEnsemble < handle
     %   Class instance.
     %
     % SEE ALSO:
-    %   `MRSTEnsamble`
+    %   `MRSTEnsemble`
     
     properties
         name
