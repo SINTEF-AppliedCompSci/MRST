@@ -225,8 +225,13 @@ classdef BaseEnsemble < handle
         
         %-----------------------------------------------------------------%
         function flag = hasSimulationOutput(ensemble, range)
-            % check if a seed or range of seeds has stored output 
-            flag = false(ensemble.num, 1);
+            % check if a seed or range of seeds has stored output
+            n = ensemble.num;
+            if isinf(n)
+                assert(nargin >= 2);
+                n = max(range);
+            end
+            flag = false(n, 1);
             flag(ensemble.simulationStatus.getValidIds()) = true;
             if nargin >= 2
                 flag = flag(range);
@@ -564,7 +569,7 @@ classdef BaseEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        function varargout = simulateEnsembleMembersBackground(ensemble, range, rangePos, varargin)
+        function simulateEnsembleMembersBackground(ensemble, range, rangePos, varargin)
             % Runs simulation of ensemble members according to range by
             % launching matlab sessions in the background. Each matlab
             % session is responsible of running a subset of the ensemble
@@ -594,7 +599,7 @@ classdef BaseEnsemble < handle
             fprintf(['Started %d new Matlab sessions. ', ...
                      'Waiting for simulations ...\n'  ], n);
             if opt.plotProgress && ismethod(ensemble, 'plotProgress')
-                [varargout{1}, varargout{2}] = ensemble.plotProgress(range);
+                ensemble.plotProgress(range);
             end
         end        
     end
