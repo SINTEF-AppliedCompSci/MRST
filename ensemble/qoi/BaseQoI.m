@@ -116,13 +116,25 @@ classdef BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function n = norm(qoi, u) %#ok
+        function n = norm(qoi, u)
             % Compute norm n of the quantity of interest u.
             % 
             % SYNOPSIS
             %   n = qoi.norm(u)
             %
-            n = abs(u);
+            if isstruct(u)
+                % We got a full QoI struct, compute norm for each well and
+                % each field by calling qoi.norm for each of them
+                n = u;
+                for i = 1:numel(u)
+                    for fn = qoi.names
+                        n(i).(fn{1}) = qoi.norm(u(i).(fn{1}));
+                    end
+                end
+                return;
+            else
+                n = abs(u);
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -438,6 +450,16 @@ classdef BaseQoI
             error('Template class not meant for direct use!');
         end
         
+        %-----------------------------------------------------------------%
+        function n = numValues(qoi)
+            n = numel(qoi.names);
+        end
+        
+        %-----------------------------------------------------------------%
+        function n = numQoIs(qoi) %#ok
+            n = 1;
+        end
+        
     end % methods
     
     
@@ -453,16 +475,6 @@ classdef BaseQoI
             % Only keep some of the time indices of u as specified by the
             % dtIndices input.
             error('Template class not meant for direct use!');
-        end
-        
-        %-----------------------------------------------------------------%
-        function n = numValues(qoi)
-            n = numel(qoi.names);
-        end
-        
-        %-----------------------------------------------------------------%
-        function n = numQoIs(qoi) %#ok
-            n = 1;
         end
         
     end
