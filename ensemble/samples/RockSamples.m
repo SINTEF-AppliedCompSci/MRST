@@ -120,7 +120,7 @@ classdef RockSamples < BaseSamples
             if size(sampleData.poro, 2) == 1
                 % We are given a vector of cell values
                 nc = numel(sampleData.poro);
-                if nc < model.G.cells.num
+                if nc > model.G.cells.num
                     % Sample data defined on an underlying fine grid. Check
                     % that we have the coarse grid information
                     assert(isfield(model.G, 'partition'), ['Data sample size ', ...
