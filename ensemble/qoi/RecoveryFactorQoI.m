@@ -31,15 +31,16 @@ classdef RecoveryFactorQoI < BaseQoI
             [~, states] = getPackedSimulatorOutput(problem, 'readFromDisk', false);
             % Get model
             model = problem.SimulatorSetup.model.validateModel();
-            statei = states{1};
-            if isfield(statei, 'singlePressureSolve') && statei.singlePressureSolve
-                rf = qoi.computeRecoveryFactorFD(problem, model, states);
-            else 
+            % Get first state
+            state = states{1};
+            if isfield(state, 'flowDiagnostics')
+                rf = qoi.computeRecoveryFactorFD(problem, state);
+            else
                 rf = qoi.computeRecoveryFactor(model, states);
             end
             u = struct('rf', rf);
         end
-       
+        
         %-----------------------------------------------------------------%
         function u = computeRecoveryFactor(qoi, model, states)
             % Compute recovery factor from full simulation
@@ -54,38 +55,13 @@ classdef RecoveryFactorQoI < BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function u = computeRecoveryFactorFD(qoi, problem, model, states)
+        function u = computeRecoveryFactorFD(qoi, problem, state)
             % Compute recovery factor from representative flux field using
             % flow diagnostics
-            require diagnostics
-            % Get state
-            state = states{1};
-            % Get wells
-            W = problem.SimulatorSetup.schedule.control(1).W;
-            % Adjust pore volumes to account for multiphase flow (does
-            % nothing at the moment)
-            model = qoi.adjustPoreVolumes(model);
-            % Get pore volume
-            pv = model.getProp(state, 'PoreVolume');
-            % Compute time of flight
-            maxTOF = sum(problem.SimulatorSetup.schedule.step.val)*10;
-            D      = computeTOFandTracer(state, model.G, model.rock, ...
-                     'wells', W, 'maxTOF', maxTOF, qoi.diagnosticsArgs{:});
-            % Use TOF or residence time distribution (more accurate)
-            switch qoi.diagnosticsType
-                case 'tof'
-                    % Compute flow capacity and storage capacity from tof
-                    [F, Phi] = computeFandPhi(pv, D.tof);
-                case 'rtd'
-                    WP  = computeWellPairs(state, model.G, model.rock, W, D);
-                    rtd = computeRTD(state, model.G, pv, D, WP, W, ...
-                                                     'showWaitbar', false);
-                    [F, Phi] = computeFandPhiFromDist(rtd, 'sum', true);
-            end
-            % Compute sweep efficiency
-            [Ev, tD] = computeSweep(F, Phi);
-            % Estimate total injected pore volumes
-            pvi = qoi.computePVI(problem, pv);
+            tD = state.flowDiagnostics.tD;
+            Ev = state.flowDiagnostics.Ev;
+            pv = state.flowDiagnostics.pv;
+            pvi = qoi.computePVI(problem, state, pv);
             % Find sweep efficiency at pvi
             [~, ix] = min(abs(tD - pvi));
             u = Ev(ix);
@@ -97,10 +73,10 @@ classdef RecoveryFactorQoI < BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function pvi = computePVI(qoi, problem, pv)
+        function pvi = computePVI(qoi, problem, state, pv)
             % Compute pvi for the schedule based on representative wellSol
             % Get well solution
-            wellSol = problem.OutputHandlers.wellSols{1};
+            wellSol = state.wellSol;
             % Find injectors
             injector = [wellSol.sign] > 0;
             % Get injection fluxes at reservoir conditions
