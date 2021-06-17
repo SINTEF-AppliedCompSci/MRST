@@ -171,7 +171,10 @@ classdef MRSTEnsemble < BaseEnsemble
             end
             % Clear output if requested
             if ~ensemble.storeOutput
-                clearPackedSimulatorOutput(problem, 'prompt', false);
+                dataPath = problem.OutputHandlers.states.getDataPath();
+                if exist(dataPath, 'dir')
+                    rmdir(dataPath, 's');
+                end
                 ensemble.simulationStatus.resetData(seed);
             end
         end
