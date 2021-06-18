@@ -100,7 +100,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             kr = s;
         end
         maxSat = max(s, [], 2);
-        referenceImmobile = kr(:, refIx) < 1e-8;
+        referenceImmobile = kr(cells, refIx) < 1e-8;
         
         toReferencePhase = true(size(p, 1), 1);
         if model.gas
