@@ -25,6 +25,7 @@ function h = plotMonteCarloProgress(out, h, varargin)
 
     hold on
     ix = 1+isinf(up(1)):numel(cost);
+    if isempty(ix), ix = 1; end
     if numel(cost) > 1
         patch([cost(ix); flipud(cost(ix))], [up(ix); flipud(lo(ix))], 1, ...
                                'FaceColor', pcolor, 'EdgeColor', 'none');
