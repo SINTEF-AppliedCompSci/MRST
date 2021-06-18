@@ -1,10 +1,10 @@
 classdef MCSimulator < MRSTEnsemble
     
     properties(Access = protected)
+        numSamples = 0
         estimate   = 0
         variance   = 0
         cost       = 0
-        numSamples = 0
         rmse       = inf
         history    = {}
     end
@@ -63,18 +63,22 @@ classdef MCSimulator < MRSTEnsemble
             end
             % Compute number of samples needed
             n = mc.computeNumSamples(tolerance, opt);
+            iteration = 1;
             while (any(n > 0) && mc.numSamples < opt.maxSamples) ... 
                               || mc.numSamples < opt.minSamples
                 % Run batch of n new samples
                 range = mc.runBatch('batchSize', n, 'plotProgress', opt.plotProgress);
                 % Update statistics
-                mc.updateStatistics(range);
+                rangeStatistics = mc.updateStatistics(range);
                 if isinf(opt.tolerance)
                     % Adjust tolerance if we aim at relative reduction
                     tolerance = opt.relTolerance*mc.estimate;
                 end
                 % Recompute number of samples needed
                 n = mc.computeNumSamples(tolerance, opt);
+                if mc.verbose
+                    mc.printIterationReport(iteration, tolerance, n)
+                end
                 if opt.plotProgress
                     % Plot progress of estimate with rmse bounds
                     out = mc.getHistory();
@@ -82,6 +86,8 @@ classdef MCSimulator < MRSTEnsemble
                                                     mc.figures.progressMC);
                     drawnow(); pause(0.1);
                 end
+                % Update iteration count
+                iteration = iteration + 1;
             end
             
         end
@@ -119,7 +125,7 @@ classdef MCSimulator < MRSTEnsemble
         end
         
         %-----------------------------------------------------------------%
-        function updateStatistics(mc, range)
+        function rangeStatistics = updateStatistics(mc, range)
             if nargin < 2 || all(isinf(range))
                 range = mc.qoi.ResultHandler.getValidIds();
                 mc.resetStatistics();
@@ -133,6 +139,11 @@ classdef MCSimulator < MRSTEnsemble
             [m, v] = mc.qoi.computeQoIMean(range);
             c = m.cost; m = m.(mc.qoi.names{1}); v = v.(mc.qoi.names{1});
             n = numel(range);
+            % Return statistics for this range
+            rangeStatistics = struct('estimate'  , m, ...
+                                     'variance'  , v, ...
+                                     'cost'      , c, ...
+                                     'numSamples', n);
             % Update statistics
             mc.estimate   = computeMean(m0, m, n0, n);
             mc.variance   = computeVariance(v0, v, m0, m, n0, n);
@@ -163,10 +174,10 @@ classdef MCSimulator < MRSTEnsemble
         %-----------------------------------------------------------------%
         function stat = getStatistics(mc)
             stat = struct();
+            stat.numSamples = mc.numSamples;
             stat.estimate   = mc.estimate;
             stat.variance   = mc.variance;
             stat.cost       = mc.cost;
-            stat.numSamples = mc.numSamples;
             stat.rmse       = mc.rmse;
         end
         
@@ -174,11 +185,49 @@ classdef MCSimulator < MRSTEnsemble
         function history = getHistory(mc)
             get = @(fn) reshape(cellfun(@(h) h.(fn), mc.history), [], 1);
             history = struct();
+            history.numSamples = get('numSamples');
             history.estimate   = get('estimate');
             history.variance   = get('variance');
             history.cost       = get('cost');
-            history.numSamples = get('numSamples');
             history.rmse       = get('rmse');
+        end
+        
+        %-----------------------------------------------------------------%
+        % Print
+        %-----------------------------------------------------------------%
+        function printIterationReport(mc, iteration, tolerance, n)
+            header = {'Iteration' , ...
+                      '# Samples', ...
+                      'Estimate'  , ...
+                      'Variance'  , ...
+                      'Cost'      , ...
+                      'RMSE'      , ...
+                      'Tolerance' };
+            % Field width
+            w = max(cellfun(@numel, header), 8);
+            % Horizontal line over/under headings and at the end
+            hline = @() fprintf([repmat('=', 1, sum(w) + 3*numel(w) + 2), '\n']);
+            % Format for each report field
+            format = {'u', 'u', '.2e', '.2e', '.2f', '.2e', '.2e'};
+            format = cellfun(@(f,n) ['%' num2str(n), f],  ...
+                              format, num2cell(w), 'UniformOutput', false);
+            if iteration == 1
+                % Print header
+                fprintf('\n'); hline();
+                for i = 1:numel(header)
+                    fprintf(['| %-' num2str(w(i)), 's '], header{i});
+                end
+                fprintf(' |\n'); hline();
+            end
+            % Print field values
+            values = struct2cell(mc.getStatistics);
+            values = [iteration; values; tolerance];
+            for i = 1:numel(header)
+                fprintf(['| ', format{i}, ' '], values{i});
+            end
+            fprintf(' |\n');
+            % Print 
+            if ~any(n > 0), hline(); fprintf('\n'); return; end
         end
 
     end
