@@ -155,9 +155,6 @@ classdef BaseSamples
             error('Template class not meant for direct use!');
         end
 
-
-     
-        
     end
 end
     
