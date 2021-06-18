@@ -161,22 +161,43 @@ classdef MRSTEnsemble < BaseEnsemble
                 end
                 return
             end
-            problem = ensemble.simulateEnsembleMember@BaseEnsemble(seed, varargin{:});
-            if ensemble.getSimulationStatus(seed) > 0
+            [problem, status] = ensemble.simulateEnsembleMember@BaseEnsemble(seed, varargin{:});
+            if status.success
                 % Compute QoI
-                ensemble.qoi.getQoI(problem);
+                try
+                    ensemble.qoi.getQoI(problem);
+                catch me
+                    % QoI computation failed, provide reason
+                    warning(['Failed to compute QoI from simulation ', ...
+                             'results for seed %d\n'], seed          );
+                    status.success = false;
+                    status.message = me;
+                    ensemble.simulationStatus{seed} = status;
+                end
             else
-                warning(['Could not compute QOI for seed %d due to ', ...
-                         'failed simulation'], seed                 );
+                % Simulation failed
+                warning(['Could not compute QoI for seed %d due to ', ...
+                         'failed simulation\n'], seed               );
             end
             % Clear output if requested
             if ~ensemble.storeOutput
-                dataPath = problem.OutputHandlers.states.getDataPath();
-                if exist(dataPath, 'dir')
-                    rmdir(dataPath, 's');
-                end
-                ensemble.simulationStatus.resetData(seed);
+                clearPackedSimulatorOutput(problem, 'prompt', false);
+%                 ensemble.simulationStatus.resetData(seed);
             end
+        end
+        
+        %-----------------------------------------------------------------%
+        function flag = hasSimulationOutput(ensemble, range)
+            flag = hasSimulationOutput@BaseEnsemble(ensemble, range);
+            ids = ensemble.qoi.ResultHandler.getValidIds();
+            flag(ismember(range, ids)) = true;
+        end
+        
+        %-----------------------------------------------------------------%
+        function flag = getSimulationStatus(ensemble, range)
+            flag = getSimulationStatus@BaseEnsemble(ensemble, range);
+            ids = ensemble.qoi.ResultHandler.getValidIds();
+            flag(ismember(range, ids)) = 2;
         end
         
         %-----------------------------------------------------------------%
@@ -195,7 +216,7 @@ classdef MRSTEnsemble < BaseEnsemble
                     n = ensemble.qoi.ResultHandler.numelData;
                 end
                 drawnow
-                if all(isinf(progress)), break; end
+                if all(isinf(progress) | isnan(progress)), break; end
             end
         end
         
@@ -216,18 +237,16 @@ classdef MRSTEnsemble < BaseEnsemble
             if nargin < 2, range = ensemble.num; end
             progress = zeros(numel(range),1);
             nsteps   = numel(ensemble.setup.schedule.step.val);
+            flag = ensemble.getSimulationStatus(range);
             for i = 1:numel(range)
-                if exist(fullfile(ensemble.directory(), ...
-                        [ensemble.qoi.ResultHandler.dataPrefix, num2str(range(i)), '.mat']), 'file')
-                    progress(i) = inf;
-                    continue
+                if flag(i) == -1, progress(i) = nan; continue; end % Failed
+                if flag(i) ==  2, progress(i) = inf; continue; end % Finished
+                % Running - report fraction of completed steps
+                dataDir     = fullfile(ensemble.directory(), num2str(range(i)));
+                if exist(dataDir, 'dir')
+                    files       = ls(dataDir);
+                    progress(i) = numel(folderRegexp(files, 'state\d+\.mat', 'match'))/nsteps;
                 end
-                dataDir = fullfile(ensemble.directory(), num2str(range(i)));
-                if ~exist(dataDir, 'dir')
-                    continue;
-                end
-                files = ls(dataDir);
-                progress(i) = numel(folderRegexp(files, 'state\d+\.mat', 'match'))/nsteps;
             end
         end
                  
