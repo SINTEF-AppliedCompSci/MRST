@@ -1,4 +1,4 @@
-function grdecl = convertInputUnits(grdecl, u)
+function grdecl = convertInputUnits(grdecl, u, varargin)
 %Convert input data to MRST's strict SI conventions
 %
 % SYNOPSIS:
@@ -11,6 +11,9 @@ function grdecl = convertInputUnits(grdecl, u)
 %            'getUnitSystem'.  It is the caller's responsibility to request
 %            a unit system that is compatible with the actual data
 %            represented by 'grdecl'.
+%
+% OPTIONAL PARAMETERS:
+%   exclude - A cell array of keywords to exclude.
 %
 % RETURNS:
 %   grdecl - Input data structure whos fields have values in consistent
@@ -39,35 +42,45 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   for kw = reshape(fieldnames(grdecl), 1, [])
-      key = kw{1};
+    opt = struct('exclude', {{}});
+    opt = merge_options(opt, varargin{:});
 
-      switch key
-         case {'PERMX' , 'PERMXY', 'PERMXZ', ...
-               'PERMYX', 'PERMY' , 'PERMYZ', ...
-               'PERMZX', 'PERMZY', 'PERMZ' , 'PERMH' }
+    keywords = reshape(fieldnames(grdecl), 1, []);
+    [~, idx] = intersect(keywords, opt.exclude);
+    if ~isempty(idx)
+        dispif(mrstVerbose, 'Excluding keyword ''%s''.\n', keywords{idx});
+    end
+    keywords(idx) = [];
+
+    for kw = keywords
+        key = kw{1};
+
+        switch key
+          case {'PERMX' , 'PERMXY', 'PERMXZ', ...
+                'PERMYX', 'PERMY' , 'PERMYZ', ...
+                'PERMZX', 'PERMZY', 'PERMZ' , 'PERMH' }
             grdecl.(key) = convertFrom(grdecl.(key), u.perm);
 
-         case {'DXV'   , 'DYV'   , 'DZV'   , 'DEPTHZ', ...
-               'COORD' , 'ZCORN'                     }
+          case {'DXV'   , 'DYV'   , 'DZV'   , 'DEPTHZ', ...
+                'COORD' , 'ZCORN'                     }
             grdecl.(key) = convertFrom(grdecl.(key), u.length);
 
-         case {'TRANX', 'TRANY', 'TRANZ'}
+          case {'TRANX', 'TRANY', 'TRANZ'}
             grdecl.(key) = convertFrom(grdecl.(key), u.trans);
 
-         case {'cartDims',                        ...  % MRST specific
-               'UnhandledKeywords',               ...  % MRST specific
-               'ROCKTYPE',                        ...  % MRST specific
-               'ACTNUM', 'NTG', 'PORO', 'SATNUM', ...
-               'FAULTS', 'MULTFLT',               ...
-               'MULTX' , 'MULTX_' ,               ...
-               'MULTY' , 'MULTY_' ,               ...
-               'MULTZ' , 'MULTZ_' ,               ...
-               'VSH'   , 'GDORIENT' }
+          case {'cartDims',                        ...  % MRST specific
+                'UnhandledKeywords',               ...  % MRST specific
+                'ROCKTYPE',                        ...  % MRST specific
+                'ACTNUM', 'NTG', 'PORO', 'SATNUM', ...
+                'FAULTS', 'MULTFLT',               ...
+                'MULTX' , 'MULTX_' ,               ...
+                'MULTY' , 'MULTY_' ,               ...
+                'MULTZ' , 'MULTZ_' ,               ...
+                'VSH'   , 'GDORIENT' }
             continue;  % No unit conversion needed.
 
-         otherwise
+          otherwise
             error('No known unit conversion for ''%s''.', key);
-      end
-   end
+        end
+    end
 end
