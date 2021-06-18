@@ -48,7 +48,19 @@ classdef MCLevelSimulator < MCSimulator
             for i = 1:mcl.numLevels
                 mcl.levels{i}.simulateEnsembleMember(seed, 'sample', sample);
             end
-            mcl.qoi.getQoI(seed);
+            status = mcl.levels{end}.simulationStatus{seed};
+            if status.success
+                try
+                    mcl.qoi.getQoI(seed);
+                catch me
+                    % QoI computation failed, provide reason
+                    warning(['Failed to compute QoI from simulation ', ...
+                             'results for seed %d\n'], seed          );
+                    status.success = false;
+                    status.message = me;
+                end
+            end
+            mcl.simulationStatus{seed} = status;
         end
         
         %-----------------------------------------------------------------%
