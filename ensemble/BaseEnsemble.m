@@ -231,13 +231,14 @@ classdef BaseEnsemble < handle
         %-----------------------------------------------------------------%
         function flag = hasSimulationOutput(ensemble, range)
             % check if a seed or range of seeds has stored output
+            ids = ensemble.simulationStatus.getValidIds();
             n = ensemble.num;
             if isinf(n)
-                assert(nargin >= 2);
                 n = max(range);
+                if ~isempty(ids), max(n, max(ids)); end
             end
             flag = false(n, 1);
-            flag(ensemble.simulationStatus.getValidIds()) = true;
+            flag(ids) = true;
             if nargin >= 2
                 flag = flag(range);
             end
@@ -314,7 +315,7 @@ classdef BaseEnsemble < handle
             doSolve       = ~ensemble.hasSimulationOutput(seed);
             outputProblem = nargout > 0;
             
-            if ~doSolve 
+            if ~doSolve
                 % Simulation is done - nothing to do here!
                 if ensemble.verbose
                     fprintf(['Simulation output for seed %d found on ', ...
@@ -336,6 +337,7 @@ classdef BaseEnsemble < handle
                 ensemble.simulationStatus{seed} = status;
                 if outputProblem
                     varargout{1} = problem;
+                    varargout{2} = status;
                 end
             end
         end
@@ -525,6 +527,11 @@ classdef BaseEnsemble < handle
             if any(strcmpi(ensemble.simulationStrategy, {'parallel', 'background'}))
                 fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
                 if ~exist(fn, 'file') || opt.force
+                    if isprop(ensemble, 'figures')
+                        for f = fieldnames(ensemble.figures)'
+                            delete(ensemble.figures.(f{1}));
+                        end
+                    end
                     save(fn, 'ensemble');
                 end
             end
@@ -545,7 +552,7 @@ classdef BaseEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        function varargout = simulateEnsembleMembersParallel(ensemble, range, rangePos, varargin)
+        function simulateEnsembleMembersParallel(ensemble, range, rangePos, varargin)
             % Runs simulation of ensemble members according to range across
             % parallel workers. The subset of range given to each worker is
             % specified by rangePos.
@@ -571,7 +578,7 @@ classdef BaseEnsemble < handle
             fprintf(['Started %d new Matlab batch jobs. ', ...
                      'Waiting for simulations ...\n'    ], n);
             if opt.plotProgress && ismethod(ensemble, 'plotProgress')
-                [varargout{1}, varargout{2}] = ensemble.plotProgress(range);
+                ensemble.plotProgress(range);
             end
             cellfun(@(job) delete(job), job); clear job;
         end
