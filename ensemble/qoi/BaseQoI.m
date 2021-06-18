@@ -210,8 +210,10 @@ classdef BaseQoI
                         % Update variance
                         u_var(j).(fn{1}) = computeVariance(uv, 0, um, ut, i-1, 1, normfn);
                         % Update mean
-                       u_mean(j).(fn{1}) = computeMean(um, ut, i, 1);
+                        u_mean(j).(fn{1}) = computeMean(um, ut, i-1, 1);
                     end
+                    u_mean(j).cost = computeMean(u_mean(j).cost, u_tmp.cost, i-1, 1);
+                    u_var(j).cost  = computeMean(u_var(j).cost, u_tmp.cost, i-1, 1);
                 end
                 if nargout > 2
                     % Output all QoIs if requested
