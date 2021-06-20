@@ -82,15 +82,23 @@ classdef RockSamples < BaseSamples
                     % rock data with sample data
                     model.rock.perm = sampleData.perm;
                     model.rock.poro = sampleData.poro;
+                    if isfield(sampleData, 'ntg')
+                        model.rock.ntg = sampleData.ntg;
+                    end
+                    if isfield(sampleData, 'multiplies')
+                        model.rock.multiplies = sampleData.multiplies;
+                    end
                 case 'upscale'
                     % Permeability and porosity are defined on an
                     % underlying fine grid - upscale to model.G
                     % Averaging matrix
-                    S = sparse(model.G.partition, 1:nc, 1./accumarray(partition, 1));
+                    p  = model.G.partition;
+                    n  = accumarray(p, 1);
+                    S = sparse(p, 1:numel(p), 1./n(p));
                     % Average log10(permeability)
-                    model.rock.perm = zeros(nc, size(sampleData.perm,2));
+                    model.rock.perm = zeros(max(p), size(sampleData.perm,2));
                     for i = 1:size(sampleData.perm,2)
-                        lperm = S*log10(sampleData.rock.perm(:,i));
+                        lperm = S*log10(sampleData.perm(:,i));
                         model.rock.perm(:,i) = 10.^lperm;
                     end
                     % Average porosity
@@ -123,8 +131,10 @@ classdef RockSamples < BaseSamples
                 if nc > model.G.cells.num
                     % Sample data defined on an underlying fine grid. Check
                     % that we have the coarse grid information
-                    assert(isfield(model.G, 'partition'), ['Data sample size ', ...
+                    assert(isfield(model.G, 'partition'), ['Data sample size '    , ...
                         'is greater than G.cells.num, but G is not a coarse grid']);
+                    assert(numel(model.G.partition) == nc,['Data sample size '    , ...
+                        'does not match underlying fine grid size']               );
                     type = 'upscale';
                 else
                     % Data is defined directly on the grid
@@ -134,9 +144,6 @@ classdef RockSamples < BaseSamples
                 assert(all(size(sampleData.perm) == [nc, 1]) ||             ...
                        all(size(sampleData.perm) == [nc, model.G.griddim]), ...
                     'Inconsistent permeability dimensions');
-                % Porosity should be [nc, 1]
-                assert(numel(sampleData.poro) == model.G.cells.num, ...
-                    'Inconsistent porosity dimensions');
             else
                 % Sample data is defined on in a cube assumed to be the
                 % bounding box of model.G
