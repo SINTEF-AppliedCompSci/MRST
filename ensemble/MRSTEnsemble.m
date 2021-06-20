@@ -141,6 +141,12 @@ classdef MRSTEnsemble < BaseEnsemble
                     ensemble.prepareEnsembleSimulation();
                 end
             end
+            for f = fieldnames(ensemble.figures)'
+                if isgraphics(ensemble.figures.(f{1}))%isa(ensemble.figures.(f{1}), 'matlab.ui.Figure')
+                    delete(ensemble.figures.(f{1}));
+                end
+                ensemble.figures.(f{1}) = [];
+            end
         end
         
         %-----------------------------------------------------------------%
