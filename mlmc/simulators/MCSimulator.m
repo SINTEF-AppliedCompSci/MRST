@@ -69,7 +69,7 @@ classdef MCSimulator < MRSTEnsemble
                 % Run batch of n new samples
                 range = mc.runBatch('batchSize', n, 'plotProgress', opt.plotProgress);
                 % Update statistics
-                rangeStatistics = mc.updateStatistics(range);
+                rangeStat = mc.updateStatistics(range);
                 if isinf(opt.tolerance)
                     % Adjust tolerance if we aim at relative reduction
                     tolerance = opt.relTolerance*mc.estimate;
@@ -77,7 +77,7 @@ classdef MCSimulator < MRSTEnsemble
                 % Recompute number of samples needed
                 n = mc.computeNumSamples(tolerance, opt);
                 if mc.verbose
-                    mc.printIterationReport(iteration, tolerance, n)
+                    mc.printIterationReport(iteration, tolerance, n, rangeStat)
                 end
                 if opt.plotProgress
                     % Plot progress of estimate with rmse bounds
@@ -125,7 +125,7 @@ classdef MCSimulator < MRSTEnsemble
         end
         
         %-----------------------------------------------------------------%
-        function rangeStatistics = updateStatistics(mc, range)
+        function rangeStat = updateStatistics(mc, range)
             if nargin < 2 || all(isinf(range))
                 range = mc.qoi.ResultHandler.getValidIds();
                 mc.resetStatistics();
@@ -140,10 +140,10 @@ classdef MCSimulator < MRSTEnsemble
             c = m.cost; m = m.(mc.qoi.names{1}); v = v.(mc.qoi.names{1});
             n = numel(range);
             % Return statistics for this range
-            rangeStatistics = struct('estimate'  , m, ...
-                                     'variance'  , v, ...
-                                     'cost'      , c, ...
-                                     'numSamples', n);
+            rangeStat = struct('numSamples', n, ...
+                               'estimate'  , m, ...
+                               'variance'  , v, ...
+                               'cost'      , c);
             % Update statistics
             mc.estimate   = computeMean(m0, m, n0, n);
             mc.variance   = computeVariance(v0, v, m0, m, n0, n);
@@ -153,10 +153,10 @@ classdef MCSimulator < MRSTEnsemble
                 mc.rmse = sqrt(mc.variance/mc.numSamples);
             end
             % Update history
-            mc.history{end+1} = struct('estimate'  , mc.estimate  , ...
+            mc.history{end+1} = struct('numSamples', mc.numSamples, ...
+                                       'estimate'  , mc.estimate  , ...
                                        'variance'  , mc.variance  , ...
                                        'cost'      , mc.cost      , ...
-                                       'numSamples', mc.numSamples, ...
                                        'rmse'      , mc.rmse      );
         end
         
@@ -195,7 +195,7 @@ classdef MCSimulator < MRSTEnsemble
         %-----------------------------------------------------------------%
         % Print
         %-----------------------------------------------------------------%
-        function printIterationReport(mc, iteration, tolerance, n)
+        function printIterationReport(mc, iteration, tolerance, n, rangeStat)
             header = {'Iteration' , ...
                       '# Samples', ...
                       'Estimate'  , ...
