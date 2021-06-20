@@ -213,15 +213,15 @@ classdef MRSTEnsemble < BaseEnsemble
             % 'simulationStrategy' = 'background'.
             n = 0;
             while true
-                pause(0.1);
                 progress = ensemble.getEnsembleMemberProgress(range);
                 ensemble.figures.progress = ...
                     plotEnsembleProgress(ensemble, progress, range, ensemble.figures.progress);
+                pause(0.05), drawnow();
                 if ensemble.qoi.ResultHandler.numelData > n
                     ensemble.figures.qoi = ensemble.qoi.plotEnsembleQoI(ensemble, ensemble.figures.qoi);
                     n = ensemble.qoi.ResultHandler.numelData;
+                    pause(0.05), drawnow();
                 end
-                drawnow
                 if all(isinf(progress) | isnan(progress)), break; end
             end
         end
