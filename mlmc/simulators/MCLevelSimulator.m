@@ -78,4 +78,20 @@ classdef MCLevelSimulator < MCSimulator
         
     end
     
+    methods (Access = protected)
+        %-----------------------------------------------------------------%
+        function progress = getEnsembleMemberProgress(mcl, range)
+            % Utility function for monitoring the progression of an
+            % ensemble member that is being run right now.
+            progress = zeros(numel(range), mcl.numLevels);
+            for i = 1:mcl.numLevels
+                progress(:, i) = mcl.levels{i}.getEnsembleMemberProgress(range);
+            end
+            progress(progress == inf) = 1;
+            progress = mean(progress, 2);
+            progress(progress == 1) = inf;
+        end
+
+    end
+    
 end
