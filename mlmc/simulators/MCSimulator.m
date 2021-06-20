@@ -7,6 +7,7 @@ classdef MCSimulator < MRSTEnsemble
         cost       = 0
         rmse       = inf
         history    = {}
+        included
     end
     
     methods
@@ -69,15 +70,26 @@ classdef MCSimulator < MRSTEnsemble
                 % Run batch of n new samples
                 range = mc.runBatch('batchSize', n, 'plotProgress', opt.plotProgress);
                 % Update statistics
-                rangeStat = mc.updateStatistics(range);
+                mc.updateStatistics(range);
                 if isinf(opt.tolerance)
                     % Adjust tolerance if we aim at relative reduction
                     tolerance = opt.relTolerance*mc.estimate;
                 end
                 % Recompute number of samples needed
-                n = mc.computeNumSamples(tolerance, opt);
+                [n, n0] = mc.computeNumSamples(tolerance, opt);
                 if mc.verbose
-                    mc.printIterationReport(iteration, tolerance, n, rangeStat)
+                    mc.printIterationReport(iteration, tolerance, n)
+                    if any(n < n0)
+                        if numel(n) == 1
+                            s = 'maximum is';
+                        else
+                            s = 'maxima are';
+                        end
+                        warning(['Requested (%s) samples, but '  , ...
+                                 'prescribed %s (%s). Reducing ' , ...
+                                 'number of samples'            ], ...
+                                 num2str(n0'), s, num2str(opt.batchSize'))
+                    end
                 end
                 if opt.plotProgress
                     % Plot progress of estimate with rmse bounds
@@ -122,6 +134,7 @@ classdef MCSimulator < MRSTEnsemble
             mc.numSamples = 0;
             mc.rmse       = inf;
             mc.history    = {};
+            mc.included   = [];
         end
         
         %-----------------------------------------------------------------%
@@ -130,6 +143,8 @@ classdef MCSimulator < MRSTEnsemble
                 range = mc.qoi.ResultHandler.getValidIds();
                 mc.resetStatistics();
             end
+            range = range(~ismember(range, mc.included));
+            if isempty(range), rangeStat = []; return; end
             % Get current statistics
             m0 = mc.estimate;
             v0 = mc.variance;
@@ -152,6 +167,7 @@ classdef MCSimulator < MRSTEnsemble
             if mc.numSamples > 1
                 mc.rmse = sqrt(mc.variance/mc.numSamples);
             end
+            mc.included = [mc.included, range];
             % Update history
             mc.history{end+1} = struct('numSamples', mc.numSamples, ...
                                        'estimate'  , mc.estimate  , ...
@@ -161,12 +177,12 @@ classdef MCSimulator < MRSTEnsemble
         end
         
         %-----------------------------------------------------------------%
-        function n = computeNumSamples(mc, tolerance, opt)
-            n = ceil(mc.variance/tolerance^2) - mc.numSamples;
-            n = min(n, opt.maxSamples - mc.numSamples);
-            n = max(n, opt.minSamples - mc.numSamples);
-            n = min(n, opt.batchSize);
-            n = max(n, 0);
+        function [n, n0] = computeNumSamples(mc, tolerance, opt)
+            n0 = ceil(mc.variance/tolerance^2) - mc.numSamples;
+            n = min(n0, opt.maxSamples - mc.numSamples);
+            n = max(n , opt.minSamples - mc.numSamples);
+            n = min(n , opt.batchSize);
+            n = max(n , 0);
         end
         
         %-----------------------------------------------------------------%
@@ -195,7 +211,7 @@ classdef MCSimulator < MRSTEnsemble
         %-----------------------------------------------------------------%
         % Print
         %-----------------------------------------------------------------%
-        function printIterationReport(mc, iteration, tolerance, n, rangeStat)
+        function printIterationReport(mc, iteration, tolerance, n, printHeader)
             header = {'Iteration' , ...
                       '# Samples', ...
                       'Estimate'  , ...
@@ -211,7 +227,7 @@ classdef MCSimulator < MRSTEnsemble
             format = {'u', 'u', '.2e', '.2e', '.2f', '.2e', '.2e'};
             format = cellfun(@(f,n) ['%' num2str(n), f],  ...
                               format, num2cell(w), 'UniformOutput', false);
-            if iteration == 1
+            if iteration == 1 || printHeader
                 % Print header
                 fprintf('\n'); hline();
                 for i = 1:numel(header)
