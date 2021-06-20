@@ -91,6 +91,8 @@ classdef BaseEnsemble < handle
         matlabBinary = ''  
 
         hasBaseProblem
+        
+        NonLinearSolver = [];
     end
         
     
@@ -185,9 +187,10 @@ classdef BaseEnsemble < handle
             if ensemble.hasBaseProblem
                 % Returns the base problem in its pure form, without using any
                 % of the stochastic samples.
-                problem = ensemble.setup.getPackedSimulationProblem(    ...
-                                       'Directory', ensemble.directory, ...
-                                       'Name', 'baseProblem'          );
+                problem = ensemble.setup.getPackedSimulationProblem( ...
+                               'Directory'      , ensemble.directory      , ...
+                               'Name'           , 'baseProblem'           , ...
+                               'NonLinearSolver', ensemble.NonLinearSolver);
                 if ~isempty(ensemble.samples.processProblemFn)
                     problem = ensemble.samples.processProblemFn(problem);
                 end
@@ -529,7 +532,10 @@ classdef BaseEnsemble < handle
                 if ~exist(fn, 'file') || opt.force
                     if isprop(ensemble, 'figures')
                         for f = fieldnames(ensemble.figures)'
-                            delete(ensemble.figures.(f{1}));
+                            if isgraphics(ensemble.figures.(f{1}))
+                                delete(ensemble.figures.(f{1}));
+                            end
+                            ensemble.figures.(f{1}) = [];
                         end
                     end
                     save(fn, 'ensemble');
@@ -606,10 +612,10 @@ classdef BaseEnsemble < handle
                 if isempty(r), continue; end
                 n = n+1;
                 % Spawn new MATLAB session
-                evalFunWrapper(ensemble.backgroundEvalFn, {fileName, r} , ...
-                               'progressFileNm', progressFileNm(r)      , ...
-                               'moduleList'    , moduleList             , ...
-                               'matlabBinary'  , ensemble.matlabBinary);
+                evalFunWrapper(ensemble.backgroundEvalFn, {fileName, r}, ...
+                               'progressFileNm', progressFileNm(r)     , ...
+                               'moduleList'    , moduleList            , ...
+                               'matlabBinary'  , ensemble.matlabBinary );
             end
             fprintf(['Started %d new Matlab sessions. ', ...
                      'Waiting for simulations ...\n'  ], n);
