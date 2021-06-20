@@ -212,8 +212,8 @@ classdef BaseQoI
                         % Update mean
                         u_mean(j).(fn{1}) = computeMean(um, ut, i-1, 1);
                     end
-                    u_mean(j).cost = computeMean(u_mean(j).cost, u_tmp.cost, i-1, 1);
-                    u_var(j).cost  = computeMean(u_var(j).cost, u_tmp.cost, i-1, 1);
+                    u_mean(j).cost = computeMean(u_mean(j).cost, u_tmp(j).cost, i-1, 1);
+                    u_var(j).cost  = computeMean(u_var(j).cost, u_tmp(j).cost, i-1, 1);
                 end
                 if nargout > 2
                     % Output all QoIs if requested
@@ -283,7 +283,7 @@ classdef BaseQoI
                         subplot(nr, nc, i);
                     end
                     if isscalar(um.(qoi.names{k}))
-                        qoi.plotQoIHistogram(h(figureId)           , ...
+                        h(figureId) = qoi.plotQoIHistogram(h(figureId)           , ...
                                              'names' , qoi.names{k}, ...
                                              'values', {um, uv, ui}, ...
                                              extra{:}              );
@@ -380,8 +380,13 @@ classdef BaseQoI
                 [u_mean, u_var, u] = deal(opt.values{:});
             end
             % Compute norm
-            n_mean = qoi.norm(u_mean);
-            n      = cellfun(@(u) qoi.norm(u), u, 'UniformOutput', false);
+            if ~isscalar(u_mean.(qoi.names{1}))
+                n_mean = qoi.norm(u_mean);
+                n      = cellfun(@(u) qoi.norm(u), u, 'UniformOutput', false);
+            else
+                n_mean = u_mean;
+                n      = u;
+            end
             if opt.log10
                 % Logarithmic transformation
                 n_mean = log10(abs(n_mean));
