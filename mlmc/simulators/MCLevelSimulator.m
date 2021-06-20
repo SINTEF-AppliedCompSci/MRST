@@ -42,8 +42,8 @@ classdef MCLevelSimulator < MCSimulator
             %   seed - Integer specifying which ensemble member to run.
             %
             % Get sample on finest level
-            problem = mcl.levels{1}.getBaseProblem();
-            sample = mcl.levels{1}.samples.getSample(seed, problem);
+            problem = mcl.levels{end}.getBaseProblem();
+            sample = mcl.levels{end}.samples.getSample(seed, problem);
             % Simulate sample on all levels
             for i = 1:mcl.numLevels
                 mcl.levels{i}.simulateEnsembleMember(seed, 'sample', sample);
