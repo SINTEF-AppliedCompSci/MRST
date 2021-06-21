@@ -545,8 +545,9 @@ classdef BaseEnsemble < handle
             % NOTE:
             %   This function requires the Parallel Computing Toolbox.
             
-            opt = struct('plotProgress', false);
-            opt = merge_options(opt, varargin{:});
+            opt = struct('plotProgress', true, ...
+                         'plotIntermediateQoI', true);
+            [opt, extraOpt] = merge_options(opt, varargin{:});
             
             % Check that the parpool and spmdEnsemble is valid
             ensemble.prepareEnsembleSimulation()
@@ -562,8 +563,11 @@ classdef BaseEnsemble < handle
             end
             fprintf(['Started %d new Matlab batch jobs. ', ...
                      'Waiting for simulations ...\n'    ], n);
-            if opt.plotProgress && ismethod(ensemble, 'plotProgress')
-                [varargout{1}, varargout{2}] = ensemble.plotProgress(range);
+            if ismethod(ensemble, 'plotProgress')
+                %[varargout{1}, varargout{2}] = ensemble.plotProgress(range);
+                ensemble.plotProgress(range, ...
+                                      opt.plotProgress, opt.plotIntermediateQoI, ...
+                                      extraOpt{:});
             end
             cellfun(@(job) delete(job), job); clear job;
         end
@@ -575,8 +579,9 @@ classdef BaseEnsemble < handle
             % session is responsible of running a subset of the ensemble
             % members specified in range according to rangePos.
             
-            opt = struct('plotProgress', false);
-            opt = merge_options(opt, varargin{:});
+            opt = struct('plotProgress', true, ...
+                         'plotIntermediateQoI', true);
+            [opt, extraOpt] = merge_options(opt, varargin{:});
             % Get path to mat file hodling the ensemble
             fileName = fullfile(ensemble.getDataPath(), 'ensemble.mat');
             % Make progress filename
@@ -598,8 +603,10 @@ classdef BaseEnsemble < handle
             end
             fprintf(['Started %d new Matlab sessions. ', ...
                      'Waiting for simulations ...\n'  ], n);
-            if opt.plotProgress && ismethod(ensemble, 'plotProgress')
-                ensemble.plotProgress(range);
+            if ismethod(ensemble, 'plotProgress')
+                ensemble.plotProgress(range, ...
+                                      opt.plotProgress, opt.plotIntermediateQoI, ...
+                                      extraOpt{:});
             end
         end        
     end
