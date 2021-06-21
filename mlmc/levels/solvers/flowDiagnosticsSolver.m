@@ -3,7 +3,6 @@ function flowDiagnosticsSolver(problem, varargin)
                  'LinearSolver'   , []   , ...
                  'diagnosticsType', 'tof');
     [opt, extra] = merge_options(opt, varargin{:});
-    require diagnostics sequential
     if isempty(opt.dt)
         % Set timestep equal to 5% of total simulation time if not given
         opt.dt = sum(problem.SimulatorSetup.schedule.step.val)*0.05;
