@@ -32,12 +32,15 @@ classdef MLMCSimulator < MCSimulator
                          'with (%s) samples\n\n'], s, bs     );
             end
             for i = 1:mlmc.numLevels
-                if opt.batchSize(i) == 0, continue; end
-                maxId = mlmc.getLargestSeed();
-                lrange = (1:opt.batchSize(i)) + maxId;
-                mlmc.levels{i}.runBatch('range', lrange, extra{:});
-                range((1:opt.batchSize(i)) + sum(opt.batchSize(1:i-1))) = lrange;
-                rangeStat = mlmc.levels{i}.updateStatistics(lrange);
+                if opt.batchSize(i) > 0
+                    maxId = mlmc.getLargestSeed();
+                    lrange = (1:opt.batchSize(i)) + maxId;
+                    mlmc.levels{i}.runBatch('range', lrange, extra{:});
+                    range((1:opt.batchSize(i)) + sum(opt.batchSize(1:i-1))) = lrange;
+                    rangeStat = mlmc.levels{i}.updateStatistics(lrange);
+                else
+                    rangeStat = [];
+                end
                 mlmc.printLevelReport(i, rangeStat);
             end
         end
@@ -171,7 +174,11 @@ classdef MLMCSimulator < MCSimulator
             % Print field values
             values = struct2cell(mlmc.levels{levelNo}.getStatistics());
             values = values(1:end-1);
-            valuesIt = struct2cell(rangeStat);
+            if ~isempty(rangeStat)
+                valuesIt = struct2cell(rangeStat);
+            else
+                valuesIt = num2cell(nan(size(values)));
+            end
             values   = reshape([values, valuesIt]', [], 1);
             values = [levelNo; values];
             for j = 1:numel(header)
