@@ -1,4 +1,4 @@
-function [u, v, g, info] = lineSearch(u0, v0, g0, d, f, c, opt)
+function [u, v, g, info] = lineSearch(u0, v0, g0, d, f, opt)
 % lineSearch -- helper function which performs line search based on
 % Wolfe-conditions. 
 % 
@@ -44,14 +44,15 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-c1      = opt.wolfe1;
-c2      = opt.wolfe2;
-sgf     = opt.safeguardFac;
-incTol  = opt.stepIncreaseTol;
-maxIt   = opt.lineSearchMaxIt;
+c1     = opt.wolfe1;
+c2     = opt.wolfe2;
+sgf    = opt.safeguardFac;
+incTol = opt.stepIncreaseTol;
+maxIt  = opt.lineSearchMaxIt;
+aMax   = opt.maxStep;
 
 % Assert search direction is increasing
-assert(d'*g0 >=0)
+assert(d'*g0 <= 0)
 
 % Define convenience-function to gather info for a "point", where a is the 
 % step-length, v is the value and dv is the dirctional derivative:
@@ -59,23 +60,15 @@ assignPoint = @(a,v,dv)struct('a', a, 'v', v, 'dv', dv);
 p0          = assignPoint(0, v0, d'*g0);  % 0-point
 
 % Function handles for wolfe conditions wrt p0
-%w1 = @(p) p.v >= p0.v + c1*p.v*p0.dv;
-w1 = @(p) p.v >= p0.v + c1*p.a*p0.dv;
+w1 = @(p) p.v <= p0.v + c1*p.a*p0.dv;
 w2 = @(p) abs(p.dv) <= c2*abs(p0.dv);
-
-% Maximal step-length s.t. u = u0+aMax*d is feasible (should always be >= 1)
-aMax = getAlphaMax(u0, d, c);
-assert(aMax>1-sqrt(eps)); 
-aMax = max(1, aMax);
 
 % End-points of initial interval
 p1 = p0;
-p2 = assignPoint(aMax, -inf, -inf);
+p2 = assignPoint(aMax, inf, inf);
 % Initial step-length:
-%a  = 1;
-a = min(1, aMax/2);
-
-lineSearchDone   = false;
+a  = 1;
+lineSearchDone = false;
 it = 0;
 while ~lineSearchDone && it < maxIt
     it = it +1;
@@ -86,27 +79,34 @@ while ~lineSearchDone && it < maxIt
         lineSearchDone = true;
         flag = 1;
     else
-        if (p.a > aMax*(1-sqrt(eps))) && ... % max step-length reached
-               (p.v > p0.v) && ... % the step yielded an improvement
-               (p.dv > 0) % continuing further would improve (but not allowed)
+        if abs(aMax - p.a) < sqrt(eps) && ... % max step-length reached
+               (p.v < p0.v) && ...            % the step yielded an improvement
+               (p.dv < 0)                     % continuing further would improve (but not allowed)
             lineSearchDone  = true;
             flag = -1;
-            fprintf('Wolfe conditions not satisfied for this step ...\n');
+            fprintf('Line search at max step size, Wolfe conditions not satisfied for this step.\n');
         else % logic for refining/expanding interval of interest [p1 p2]
             if p.a > p2.a
-                if w1(p2)
-                    p1 = p2;
-                end
-                p2 = p;
+                % if we have extrapolated p1.v >= p2.v
+                [p1, p2] = deal(p2, p);
             else
-                if ~w1(p) || p2.dv < 0
+            if p.dv >= 0
+                p2 = p;
+            else % keep best
+                if p1.v <= p2.v
                     p2 = p;
                 else
                     p1 = p;
                 end
             end
+            end
             % Find next candidate-step by interpolation
-            a = argmaxCubic(p1, p2);
+            if p1.v > p2.v && p1.dv >= p2.dv
+                % Just getting steeper, no need to interpolate
+                a = inf;
+            else
+                a = argmaxCubic(negatePnt(p1), negatePnt(p2));
+            end
             % Safe-guarding and thresholding:
             if a > p2.a
                 a = max(a, (1+sgf)*p2.a);
@@ -128,7 +128,6 @@ if ~lineSearchDone
     % Although line search did not succeed in maxIt iterations, we ensure
     % to return the greater of p1 and p2's objective value none the less.
     if p1.v > p2.v
-        v = p1.v;
         u = u0 + p1.a*d;
         % and we will re-compute the gradients for these controls
         [v, g]  = f(u);
@@ -137,19 +136,9 @@ end
 info = struct('flag', flag, 'step', a, 'nits', it);
 end
 
-function alphaMax = getAlphaMax(u, d, c)
-% Find maximal a s.t. Ai*(u+a*d) <= bi
-[A, b] = deal(c.i.A, c.i.b);
-
-ignore_ix = false(numel(b),1);
-isSmall = (abs(d)<sqrt(eps));
-ignore_ix(1:2*numel(u)) = [isSmall; isSmall];
-
-s = (b-A*u)./(A*d);
-s = s(~ignore_ix);
-alphaMax = min(s(s>eps));
+function p = negatePnt(p)
+[p.v, p.dv] = deal(-p.v, -p.dv);
 end
-
    
     
 
