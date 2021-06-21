@@ -326,6 +326,7 @@ classdef BaseEnsemble < handle
                 end
                 if outputProblem
                     varargout{1} = ensemble.getSampleProblem(seed);
+                    varargout{2} = ensemble.simulationStatus{seed};
                 end
             else
                 problem = ensemble.getSampleProblem(seed, 'sample', opt.sample);
