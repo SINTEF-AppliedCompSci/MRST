@@ -144,6 +144,11 @@ classdef MCSimulator < MRSTEnsemble
                 mc.resetStatistics();
             end
             range = range(~ismember(range, mc.included));
+            ids = inf;
+            while ~all(ismember(range, ids))
+                ids = mc.qoi.ResultHandler.getValidIds();
+                pause(0.05);
+            end
             if isempty(range), rangeStat = []; return; end
             % Get current statistics
             m0 = mc.estimate;
@@ -212,6 +217,7 @@ classdef MCSimulator < MRSTEnsemble
         % Print
         %-----------------------------------------------------------------%
         function printIterationReport(mc, iteration, tolerance, n, printHeader)
+            if nargin < 5, printHeader = false; end
             header = {'Iteration' , ...
                       '# Samples', ...
                       'Estimate'  , ...
