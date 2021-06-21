@@ -1,4 +1,4 @@
-function [model, states] = runNorneExample(varargin)
+function [model, states, initState] = runNorneExample(varargin)
 %% Example: Poroelasticity simulation applied to the Norne case.
 % 
 % The simulation options are gathered in the opt structure. If opt=[] the
@@ -384,7 +384,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         error('fluid_model not recognized.')
     end
     initState.s = ones(G.cells.num, 1)*init_sat;
-    initState   = computeInitDisp(model, initState, []);
+    initState   = computeInitDisp(model, initState, [], 'pressure', initState.pressure);
 
     [wellSols, states, schedulereport] = simulateScheduleAD(initState, model, schedule);
 
