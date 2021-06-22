@@ -84,11 +84,11 @@ classdef BaseQoI
             else
                 % Compute QoI and store to file
                 u      = qoi.computeQoI(problem);
-                u.cost = qoi.computeQoICost(problem, u);
+                %u.cost = qoi.computeQoICost(problem, u);
                 % TODO: Check that problem has been simulated successfully, and
                 % issue a warning if it is not
 
-                qoi.ResultHandler{seed} = u;
+                qoi.ResultHandler{seed} = {u};
             end 
         end
         
@@ -212,8 +212,10 @@ classdef BaseQoI
                         % Update mean
                         u_mean(j).(fn{1}) = computeMean(um, ut, i-1, 1);
                     end
-                    u_mean(j).cost = computeMean(u_mean(j).cost, u_tmp(j).cost, i-1, 1);
-                    u_var(j).cost  = computeMean(u_var(j).cost, u_tmp(j).cost, i-1, 1);
+                    if isfield(u_mean(j), 'cost')
+                        u_mean(j).cost = computeMean(u_mean(j).cost, u_tmp(j).cost, i-1, 1);
+                        u_var(j).cost  = computeMean(u_var(j).cost, u_tmp(j).cost, i-1, 1);
+                    end
                 end
                 if nargout > 2
                     % Output all QoIs if requested
