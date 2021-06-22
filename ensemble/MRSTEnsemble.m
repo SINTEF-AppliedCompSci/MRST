@@ -141,6 +141,12 @@ classdef MRSTEnsemble < BaseEnsemble
                     ensemble.prepareEnsembleSimulation();
                 end
             end
+            for f = fieldnames(ensemble.figures)'
+                if isgraphics(ensemble.figures.(f{1}))%isa(ensemble.figures.(f{1}), 'matlab.ui.Figure')
+                    delete(ensemble.figures.(f{1}));
+                end
+                ensemble.figures.(f{1}) = [];
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -161,43 +167,70 @@ classdef MRSTEnsemble < BaseEnsemble
                 end
                 return
             end
-            problem = ensemble.simulateEnsembleMember@BaseEnsemble(seed, varargin{:});
-            if ensemble.getSimulationStatus(seed) > 0
+            [problem, status] = ensemble.simulateEnsembleMember@BaseEnsemble(seed, varargin{:});
+            if status.success
                 % Compute QoI
-                ensemble.qoi.getQoI(problem);
+                try
+                    ensemble.qoi.getQoI(problem);
+                catch me
+                    % QoI computation failed, provide reason
+                    warning(['Failed to compute QoI from simulation ', ...
+                             'results for seed %d\n'], seed          );
+                    status.success = false;
+                    status.message = me;
+                    ensemble.simulationStatus{seed} = status;
+                end
             else
-                warning(['Could not compute QOI for seed %d due to ', ...
-                         'failed simulation'], seed                 );
+                % Simulation failed
+                warning(['Could not compute QoI for seed %d due to ', ...
+                         'failed simulation\n'], seed               );
             end
             % Clear output if requested
             if ~ensemble.storeOutput
                 clearPackedSimulatorOutput(problem, 'prompt', false);
-                ensemble.simulationStatus.resetData(seed);
+%                 ensemble.simulationStatus.resetData(seed);
             end
         end
         
         %-----------------------------------------------------------------%
-        function plotProgress(ensemble, range, plotProgress, plotProgressQoI, varargin)
+        function flag = hasSimulationOutput(ensemble, range)
+            flag = hasSimulationOutput@BaseEnsemble(ensemble, range);
+            ids = ensemble.qoi.ResultHandler.getValidIds();
+            flag(ismember(range, ids)) = true;
+        end
+        
+        %-----------------------------------------------------------------%
+        function flag = getSimulationStatus(ensemble, range)
+            flag = getSimulationStatus@BaseEnsemble(ensemble, range);
+            ids = ensemble.qoi.ResultHandler.getValidIds();
+            flag(ismember(range, ids)) = 2;
+        end
+        
+        %-----------------------------------------------------------------%
+         function plotProgress(ensemble, range, plotProgress, plotProgressQoI, varargin)
             % Utility function for showing the progress of simulating a
             % range of ensemble members. Only available for
             % 'simulationStrategy' = 'background'.
             
             n = 0;
             while true
-                pause(0.1);
                 progress = ensemble.getEnsembleMemberProgress(range);
+                pause(0.05);
                 if plotProgress
                     ensemble.figures.progress = ...
                         plotEnsembleProgress(ensemble, progress, range, ensemble.figures.progress);
+                    drawnow();
                     if ensemble.qoi.ResultHandler.numelData > n && plotProgressQoI
-                        ensemble.figures.qoi = ensemble.qoi.plotEnsembleQoI(ensemble, ensemble.figures.qoi, varargin{:});
+                        ensemble.figures.qoi = ensemble.qoi.plotEnsembleQoI(ensemble, ensemble.figures.qoi);
                         n = ensemble.qoi.ResultHandler.numelData;
+                        drawnow();
                     end
-                    drawnow
                 end
-                if all(isinf(progress)), break; end
+                if all(isinf(progress) | isnan(progress)), break; end
             end
         end
+        
+ 
         
         %-----------------------------------------------------------------%
         function h = plotQoI(ensemble, varargin)
@@ -216,18 +249,16 @@ classdef MRSTEnsemble < BaseEnsemble
             if nargin < 2, range = ensemble.num; end
             progress = zeros(numel(range),1);
             nsteps   = numel(ensemble.setup.schedule.step.val);
+            flag = ensemble.getSimulationStatus(range);
             for i = 1:numel(range)
-                if exist(fullfile(ensemble.directory(), ...
-                        [ensemble.qoi.ResultHandler.dataPrefix, num2str(range(i)), '.mat']), 'file')
-                    progress(i) = inf;
-                    continue
+                if flag(i) == -1, progress(i) = nan; continue; end % Failed
+                if flag(i) ==  2, progress(i) = inf; continue; end % Finished
+                % Running - report fraction of completed steps
+                dataDir     = fullfile(ensemble.directory(), num2str(range(i)));
+                if exist(dataDir, 'dir')
+                    files       = ls(dataDir);
+                    progress(i) = numel(folderRegexp(files, 'state\d+\.mat', 'match'))/nsteps;
                 end
-                dataDir = fullfile(ensemble.directory(), num2str(range(i)));
-                if ~exist(dataDir, 'dir')
-                    continue;
-                end
-                files = ls(dataDir);
-                progress(i) = numel(folderRegexp(files, 'state\d+\.mat', 'match'))/nsteps;
             end
         end
                  

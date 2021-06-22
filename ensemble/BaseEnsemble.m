@@ -91,6 +91,8 @@ classdef BaseEnsemble < handle
         matlabBinary = ''  
 
         hasBaseProblem
+        
+        NonLinearSolver = [];
     end
         
     
@@ -164,7 +166,10 @@ classdef BaseEnsemble < handle
             samp = folderRegexp(list, '\d+\s', 'match');
             samp = cellfun(@str2num, samp);
             for s = samp
-                rmdir(fullfile(dataPath, num2str(s)), 's');
+                fname = fullfile(dataPath, num2str(s));
+                if exist(fname, 'dir')
+                    rmdir(fname, 's');
+                end
             end
             % Delete log files (background simulations only)
             logs = folderRegexp(list, 'log_\d+_\d+.mat', 'match');
@@ -182,9 +187,10 @@ classdef BaseEnsemble < handle
             if ensemble.hasBaseProblem
                 % Returns the base problem in its pure form, without using any
                 % of the stochastic samples.
-                problem = ensemble.setup.getPackedSimulationProblem(    ...
-                                       'Directory', ensemble.directory, ...
-                                       'Name', 'baseProblem'          );
+                problem = ensemble.setup.getPackedSimulationProblem( ...
+                               'Directory'      , ensemble.directory      , ...
+                               'Name'           , 'baseProblem'           , ...
+                               'NonLinearSolver', ensemble.NonLinearSolver);
                 if ~isempty(ensemble.samples.processProblemFn)
                     problem = ensemble.samples.processProblemFn(problem);
                 end
@@ -194,13 +200,15 @@ classdef BaseEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        function problem = getSampleProblem(ensemble, seed)
+        function problem = getSampleProblem(ensemble, seed, varargin)
             if ensemble.hasBaseProblem
-                % setup using base-problem
+                % Setup using base-problem
+                opt = struct('sample', []);
+                opt = merge_options(opt, varargin{:});
                 baseProblem = ensemble.getBaseProblem();
-                problem     = ensemble.samples.getSampleProblem(baseProblem, seed);
+                problem     = ensemble.samples.getSampleProblem(baseProblem, seed, opt.sample);
             else
-                % setup without base-problem (path for result-handler must 
+                % Setup without base-problem (path for result-handler must 
                 % be provided
                 problem = ensemble.samples.getSampleProblem(ensemble.directory, seed);
             end
@@ -226,13 +234,14 @@ classdef BaseEnsemble < handle
         %-----------------------------------------------------------------%
         function flag = hasSimulationOutput(ensemble, range)
             % check if a seed or range of seeds has stored output
+            ids = ensemble.simulationStatus.getValidIds();
             n = ensemble.num;
             if isinf(n)
-                assert(nargin >= 2);
                 n = max(range);
+                if ~isempty(ids), max(n, max(ids)); end
             end
             flag = false(n, 1);
-            flag(ensemble.simulationStatus.getValidIds()) = true;
+            flag(ids) = true;
             if nargin >= 2
                 flag = flag(range);
             end
@@ -303,21 +312,24 @@ classdef BaseEnsemble < handle
             %
             % PARAMETERS:
             %   seed - Integer specifying which ensemble member to run.
-            %   
-            doSolve       =  ~ensemble.hasSimulationOutput(seed);
+            %
+            opt = struct('sample', []);
+            opt = merge_options(opt, varargin{:});
+            doSolve       = ~ensemble.hasSimulationOutput(seed);
             outputProblem = nargout > 0;
             
-            if ~doSolve 
-                % simulation is done - nothing to do here!
+            if ~doSolve
+                % Simulation is done - nothing to do here!
                 if ensemble.verbose
                     fprintf(['Simulation output for seed %d found on ', ...
                              'disk (skipping)\n'], seed               );
                 end
                 if outputProblem
                     varargout{1} = ensemble.getSampleProblem(seed);
+                    varargout{2} = ensemble.simulationStatus{seed};
                 end
             else
-                problem = ensemble.getSampleProblem(seed);
+                problem = ensemble.getSampleProblem(seed, 'sample', opt.sample);
                 % Solve problem
                 status = struct('success', true, 'message', []);
                 try
@@ -329,12 +341,13 @@ classdef BaseEnsemble < handle
                 ensemble.simulationStatus{seed} = status;
                 if outputProblem
                     varargout{1} = problem;
+                    varargout{2} = status;
                 end
             end
         end
         
         %-----------------------------------------------------------------%
-        function simulateEnsembleMembers(ensemble, varargin)
+        function range = simulateEnsembleMembers(ensemble, varargin)
             % Run simulations for a set of ensemble members
             %
             % SYNOPSIS:
@@ -398,6 +411,7 @@ classdef BaseEnsemble < handle
                 case 'background'
                     ensemble.simulateEnsembleMembersBackground(opt.range, rangePos, extraOpt{:});
             end
+            range = opt.range;
         end
         
         %-----------------------------------------------------------------%
@@ -517,6 +531,14 @@ classdef BaseEnsemble < handle
             if any(strcmpi(ensemble.simulationStrategy, {'parallel', 'background'}))
                 fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
                 if ~exist(fn, 'file') || opt.force
+                    if isprop(ensemble, 'figures')
+                        for f = fieldnames(ensemble.figures)'
+                            if isgraphics(ensemble.figures.(f{1}))
+                                delete(ensemble.figures.(f{1}));
+                            end
+                            ensemble.figures.(f{1}) = [];
+                        end
+                    end
                     save(fn, 'ensemble');
                 end
             end
@@ -537,7 +559,7 @@ classdef BaseEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        function varargout = simulateEnsembleMembersParallel(ensemble, range, rangePos, varargin)
+        function simulateEnsembleMembersParallel(ensemble, range, rangePos, varargin)
             % Runs simulation of ensemble members according to range across
             % parallel workers. The subset of range given to each worker is
             % specified by rangePos.
@@ -596,10 +618,10 @@ classdef BaseEnsemble < handle
                 if isempty(r), continue; end
                 n = n+1;
                 % Spawn new MATLAB session
-                evalFunWrapper(ensemble.backgroundEvalFn, {fileName, r} , ...
-                               'progressFileNm', progressFileNm(r)      , ...
-                               'moduleList'    , moduleList             , ...
-                               'matlabBinary'  , ensemble.matlabBinary);
+                evalFunWrapper(ensemble.backgroundEvalFn, {fileName, r}, ...
+                               'progressFileNm', progressFileNm(r)     , ...
+                               'moduleList'    , moduleList            , ...
+                               'matlabBinary'  , ensemble.matlabBinary );
             end
             fprintf(['Started %d new Matlab sessions. ', ...
                      'Waiting for simulations ...\n'  ], n);
