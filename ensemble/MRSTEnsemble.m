@@ -207,11 +207,11 @@ classdef MRSTEnsemble < BaseEnsemble
         end
         
         %-----------------------------------------------------------------%
-         function plotProgress(ensemble, range, plotProgress, plotProgressQoI, varargin)
+         function plotProgress(ensemble, range, plotProgress, plotIntermediateQoI, varargin)
             % Utility function for showing the progress of simulating a
             % range of ensemble members. Only available for
             % 'simulationStrategy' = 'background'.
-            
+                  
             n = 0;
             while true
                 progress = ensemble.getEnsembleMemberProgress(range);
@@ -220,8 +220,8 @@ classdef MRSTEnsemble < BaseEnsemble
                     ensemble.figures.progress = ...
                         plotEnsembleProgress(ensemble, progress, range, ensemble.figures.progress);
                     drawnow();
-                    if ensemble.qoi.ResultHandler.numelData > n && plotProgressQoI
-                        ensemble.figures.qoi = ensemble.qoi.plotEnsembleQoI(ensemble, ensemble.figures.qoi);
+                    if ensemble.qoi.ResultHandler.numelData > n && plotIntermediateQoI
+                        ensemble.figures.qoi = ensemble.qoi.plotEnsembleQoI(ensemble, ensemble.figures.qoi, varargin{:});
                         n = ensemble.qoi.ResultHandler.numelData;
                         drawnow();
                     end
