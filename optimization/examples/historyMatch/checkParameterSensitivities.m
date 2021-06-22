@@ -127,7 +127,7 @@ fprintf('Directional gradient obtained by adjoint:      %e\n', g'*du/norm(du));
 vv = [vv, (vp-v)/norm(du) ];
 gg = [gg, g'*du/norm(du) ];
 end
-%%
+%% Printing and ploting values
 fprintf('Directionsl gradients values\n')
 fprintf('=======================\n')
 fprintf('Perturbation vs Adjoint\n')
