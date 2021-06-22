@@ -330,6 +330,25 @@ else
     model.rock.krscale.drainage = d;
 end
 end
-        
+       
+
+function ti = perm2directionalTrans(model, p, cdir)
+% special utility function for calculating transmissibility along coordinate direction cdir
+% In particular:
+% trans = t1+t2+t2, where ti = perm2dirtrans(model, perm(:, i), i);
+assert(size(p,2)==1, ...
+       'Input p should be single column representing permeability in direction cdir');
+% make perm represent diag perm tensor with zero perm orthogonal to cdir
+dp = value(p);
+r.perm = zeros(numel(dp), 3);
+r.perm(:, cdir) = dp;
+ti = computeTrans(model.G, r);
+if isa(p, 'ADI')
+    % make ti ADI (note ti is linear function of p)
+    p = p./dp;
+    cellno = rldecode(1 : model.G.cells.num, diff(model.G.cells.facePos), 2).';
+    ti = ti.*p(cellno);
+end
+end
 
 
