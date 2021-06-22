@@ -81,6 +81,8 @@ classdef BaseEnsemble < handle
         simulationStrategy = 'serial';
         maxWorkers = maxNumCompThreads();
         cluster = [];
+        spmdEnsemble; % Used for 'simulationStrategy' = 'spmd'
+
         
         verbose = true
         verboseSimulation = false
@@ -410,6 +412,8 @@ classdef BaseEnsemble < handle
                     ensemble.simulateEnsembleMembersParallel(opt.range, rangePos, extraOpt{:});
                 case 'background'
                     ensemble.simulateEnsembleMembersBackground(opt.range, rangePos, extraOpt{:});
+                case 'spmd'
+                    ensemble.simulateEnsembleMembersSPMD(opt.range, rangePos, extraOpt{:});
             end
             range = opt.range;
         end
@@ -516,10 +520,10 @@ classdef BaseEnsemble < handle
                 warning(['Serial ensemble simulations will take a '     , ...
                          'long time, and should only be used for '      , ...
                          'debugging or small ensembles. Consider '      , ...
-                         'using ''background'' or ''parallel'' instead.'])
+                         'using ''background'', ''parallel'' or ''spmd'' instead.'])
             end
             
-            if strcmpi(ensemble.simulationStrategy, 'parallel')
+            if any(strcmpi(ensemble.simulationStrategy, {'parallel', 'spmd'})) 
                 % Check if parallel toolbox is availiable
                 if isempty(ver('parallel'))
                     warning(['Parallel computing toolbox not available. ', ...
@@ -548,6 +552,33 @@ classdef BaseEnsemble < handle
                     ensemble.cluster = parcluster('local');
                 end
                 ensemble.cluster.Jobs.delete();
+            end
+            
+            if strcmpi(ensemble.simulationStrategy, 'spmd')
+                 % Use parallel toolbox. Check if we have started a
+                % parallel session already, and whether it has the
+                % correct number of workers
+                if ensemble.maxWorkers > maxNumCompThreads()
+                    warning(['Requested number of workes is greater ' , ...
+                             'than maxNumCompThreads (%d) reducing.'  ], ...
+                             maxNumCompThreads()                       );
+                    ensemble.maxWorkers = maxNumCompThreads();
+                end
+                if isempty(gcp('nocreate'))
+                    parpool(ensemble.maxWorkers);
+                elseif gcp('nocreate').NumWorkers ~= ensemble.maxWorkers
+                    delete(gcp);
+                    parpool(ensemble.maxWorkers);
+                end
+
+                if ~all(exist(ensemble.spmdEnsemble)) || opt.force %#ok
+                    % Communicate ensemble to all workers
+                    spmd
+                        spmdEns = ensemble;
+                    end
+                    ensemble.spmdEnsemble = spmdEns;
+                end
+                
             end
         end
         
@@ -630,7 +661,27 @@ classdef BaseEnsemble < handle
                                       opt.plotProgress, opt.plotIntermediateQoI, ...
                                       extraOpt{:});
             end
-        end        
+        end  
+        
+        %-----------------------------------------------------------------%
+        function simulateEnsembleMembersSPMD(ensemble, range, rangePos, varargin)
+            % Runs simulation of ensemble members according to range across
+            % parallel workers. The subset of range given to each worker is
+            % specified by rangePos.
+            %
+            % NOTE:
+            %   This function requires the Parallel Computing Toolbox.
+            
+            % Check that the parpool and spmdEnsemble is valid
+            ensemble.prepareEnsembleSimulation()
+            
+            spmdEns = ensemble.spmdEnsemble;
+            spmd
+                spmdRange = range(rangePos(labindex):rangePos(labindex+1)-1);
+                spmdEns.simulateEnsembleMembersCore(spmdRange);
+            end
+            fprintf('simulateEnsembleMembersParallel completed\n');
+        end
     end
 end
 
