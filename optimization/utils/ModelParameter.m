@@ -1,4 +1,4 @@
-classdef ModelParameter_V2
+classdef ModelParameter
     properties
         name
         type          = 'value';    % 'value'/'multiplier'
@@ -14,7 +14,7 @@ classdef ModelParameter_V2
     end
     
     methods
-        function p = ModelParameter_V2(problem, varargin)
+        function p = ModelParameter(problem, varargin)
             [p, extra] = merge_options(p, varargin{:});
             assert(~isempty(p.name), 'Parameter name can''t be defaulted');
             if isempty(p.belongsTo) || isempty(p.location) 

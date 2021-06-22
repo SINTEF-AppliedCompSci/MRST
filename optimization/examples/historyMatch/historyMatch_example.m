@@ -140,16 +140,16 @@ prob = struct('model', model_coarse_scale, 'schedule', schedule_training, 'state
 
 n_cells =  model_coarse_scale.G.cells.num;
 % Fluid Parameters
- parameters{1} = ModelParameter_V2(prob, 'name', 'swl','lumping',ones(n_cells,1),'boxLims',[0.00 0.5]);
- parameters{2} = ModelParameter_V2(prob, 'name', 'swcr','lumping',ones(n_cells,1),'boxLims',[0.0 0.5]);
- parameters{3} = ModelParameter_V2(prob, 'name', 'swu','lumping',ones(n_cells,1),'boxLims',[0.55 1.0]);
- parameters{4} = ModelParameter_V2(prob, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
- parameters{5} = ModelParameter_V2(prob, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
+ parameters{1} = ModelParameter(prob, 'name', 'swl','lumping',ones(n_cells,1),'boxLims',[0.00 0.5]);
+ parameters{2} = ModelParameter(prob, 'name', 'swcr','lumping',ones(n_cells,1),'boxLims',[0.0 0.5]);
+ parameters{3} = ModelParameter(prob, 'name', 'swu','lumping',ones(n_cells,1),'boxLims',[0.55 1.0]);
+ parameters{4} = ModelParameter(prob, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
+ parameters{5} = ModelParameter(prob, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
 
  % Well, porevolume and transmisibility
- parameters{6} = ModelParameter_V2(prob, 'name', 'conntrans','relativeLimits', [.01 4]);
- parameters{7} = ModelParameter_V2(prob, 'name', 'porevolume','relativeLimits', [.01 4]);
- parameters{8} = ModelParameter_V2(prob, 'name', 'transmissibility','relativeLimits', [.01 4]);
+ parameters{6} = ModelParameter(prob, 'name', 'conntrans','relativeLimits', [.01 4]);
+ parameters{7} = ModelParameter(prob, 'name', 'porevolume','relativeLimits', [.01 4]);
+ parameters{8} = ModelParameter(prob, 'name', 'transmissibility','relativeLimits', [.01 4]);
 
 
  %% Optimization :  History Matching
@@ -171,19 +171,19 @@ weighting =  {'WaterRateWeight',  (5/day)^-1, ...
            'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
 
  objScaling = 1;       
- [misfitVal_0,gradient_0,wellSols_0,states_0] = evaluateMatch_simple_V2(p0_ups,obj,state0_coarse,model_coarse_scale,schedule_training,objScaling,parameters, states_fine_scale);                                                          
+ [misfitVal_0,gradient_0,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0_coarse,model_coarse_scale,schedule_training,objScaling,parameters, states_fine_scale);                                                          
 
   
 obj_scaling     =  1; % objective scaling  
-objh = @(p)evaluateMatch_simple_V2(p, obj, state0_coarse, model_coarse_scale, schedule_training, obj_scaling ,parameters,  states_fine_scale);
+objh = @(p)evaluateMatch_simple(p, obj, state0_coarse, model_coarse_scale, schedule_training, obj_scaling ,parameters,  states_fine_scale);
 
 figure(10).reset; movegui('south');
 [v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'objChangeTol',  1e-8, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Genereating results for comparing initial model vs calibrated model
 schedule = simpleSchedule(user_simulation_time, 'W', WC);
-[misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple_V2(p_opt, obj, state0_coarse, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
-[misfitVal_0,gradient_0,wellSols_0,states_0] = evaluateMatch_simple_V2(p0_ups,obj,state0_coarse,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);                                                          
+[misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple(p_opt, obj, state0_coarse, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
+[misfitVal_0,gradient_0,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0_coarse,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);                                                          
 
 figure(summary_plots.Number)
 plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
