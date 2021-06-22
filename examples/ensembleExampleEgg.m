@@ -44,7 +44,7 @@ is_prod = vertcat(example.schedule.control(1).W.sign) < 0;
 qoi = WellQoI('wellIndices', is_prod, 'fldname', 'qOs');
 
 %% Set up ensemble
-ensemble = MRSTEnsembleV2(example, samples, qoi, ...
+ensemble = MRSTEnsemble(example, samples, qoi, ...
                'simulationStrategy', 'background'); % Run in the background
 
 %% Simulate the ensemble members
@@ -62,13 +62,13 @@ f = gcf; f.Position(4) = f.Position(4)*2;
 mrstModule add sequential diagnostics
 solver = @(problem) pressureSolverAD(problem);
 
-ensembleFD = MRSTEnsembleV2(example, samples, qoi, ...
+ensembleFD = MRSTEnsemble(example, samples, qoi, ...
                'solve'             , solver  , ...
                'directory'         , [ensemble.directory, '_fd'], ...
                'simulationStrategy', 'background'); % Run in the background
 
 %%
-ensembleFD.qoi.diagnosticsType = 'tof';
+%ensembleFD.qoi.diagnosticsType = 'tof';
 ensembleFD.simulateEnsembleMembers('batchSize', 8, 'plotProgress', true);
          
 %% References
