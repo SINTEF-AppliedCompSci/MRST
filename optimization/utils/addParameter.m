@@ -1,7 +1,8 @@
 function params = addParameter(params, problem, varargin)
 % Simple utility function for adding a new parameter to a list of
-% parameters
-% 
+% parameters.
+% See  ModelParameter.m for more information about the parameters class.
+%
 p = ModelParameter(problem, varargin{:});
 if isempty(params)
     params = {p};
