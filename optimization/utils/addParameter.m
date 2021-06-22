@@ -2,7 +2,7 @@ function params = addParameter(params, problem, varargin)
 % Simple utility function for adding a new parameter to a list of
 % parameters
 % 
-p = ModelParameter_V2(problem, varargin{:});
+p = ModelParameter(problem, varargin{:});
 if isempty(params)
     params = {p};
 elseif iscell(params)
