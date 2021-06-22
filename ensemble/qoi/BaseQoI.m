@@ -282,7 +282,10 @@ classdef BaseQoI
                         end
                     end
                     if opt.subplots
-                        subplot(nr, nc, i);
+                        currentSubPlot = subplot(nr, nc, i);
+                        if opt.clearFigure
+                            cla(currentSubPlot);
+                        end
                     end
                     if isscalar(um.(qoi.names{k}))
                         h(figureId) = qoi.plotQoIHistogram(h(figureId)           , ...
