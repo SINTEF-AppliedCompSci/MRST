@@ -70,22 +70,24 @@ prob = struct('model', model, 'schedule', schedule, 'state0', state0);
 n_cells =  model.G.cells.num;
 n_faces =  length(model.operators.T);
 
-% Fluid Parameters
 parameters = [];
-nms = {'swl', 'swcr', 'swu', 'kro', 'krw'};
+
+% Fluid Parameters
+
+%nms = {'swl', 'swcr', 'swu', 'kro', 'krw'};
 %for k = 1:numel(nms)
 %    parameters = addParameter(parameters, prob, 'name', nms{k}, 'lumping',ones(n_cells,1));
 %end
-parameters = addParameter(parameters, prob, 'name', 'porevolume');
 
-% % Well index, porevolume and transmisibility
-%    parameters{6} = ModelParameter(prob, 'name', 'conntrans');
-%    parameters{7} = ModelParameter(prob, 'name', 'porevolume');
-%    parameters{8} = ModelParameter(prob, 'name', 'transmissibility');
-% %   
+% % Porevolume, well index, and transmisibility
+parameters = addParameter(parameters, prob, 'name', 'porevolume');
+parameters = addParameter(parameters, prob, 'name', 'conntrans');
+parameters = addParameter(parameters, prob, 'name', 'transmissibility');
+
+
 % % % State0
-%    parameters{9} = ModelParameter(prob, 'name', 'initSw','lumping',ones(n_cells,1),'boxLims',[0 1]);
-%    parameters{10}= ModelParameter(prob, 'name', 'p0','lumping',ones(n_cells,1),'relativeLimits', [0.90 1.10]);
+%    parameters = addParameter(prob, 'name', 'initSw','lumping',ones(n_cells,1),'boxLims',[0 1]);
+%    parameters = addParameter(prob, 'name', 'p0','lumping',ones(n_cells,1),'relativeLimits', [0.90 1.10]);
 
 %% 
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
@@ -109,17 +111,29 @@ f = @(u)evaluateMatch_simple(u, obj, state0, model, schedule, 1 ,parameters,  st
        
 %% Check gradient in random direction and compare to numerical
 vv = [];
+gg = [];
 [v,g] = f(u);
+
 % optimal perturbation factor depends on combination of parameters 
-%fac = 1e-10;vv
-%du  = fac*(rand(size(u))-.3);
-for fac = 10.^(-13:-4)
+epsilons = 10.^(-13:-4);
+
+for fac = epsilons
 rng(0);
 du  = fac*(rand(size(u)));
 
 vp = f(u+du);       
 fprintf('\nDirectional gradient obtained by perturbation: %e\n', (vp-v)/norm(du));
 fprintf('Directional gradient obtained by adjoint:      %e\n', g'*du/norm(du));
-vv = [(vp-v)/norm(du), vv];
+vv = [vv, (vp-v)/norm(du) ];
+gg = [gg, g'*du/norm(du) ];
 end
 %%
+fprintf('Directionsl gradients values\n')
+fprintf('=======================\n')
+fprintf('Perturbation vs Adjoint\n')
+disp([vv',gg'])
+
+figure, semilogx(epsilons,vv,epsilons,gg);
+legend('Perturbation','Adjoint')
+xlabel('Perturbation size')
+ylabel('Directional gradient')
