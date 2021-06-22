@@ -52,9 +52,8 @@ samples = RockSamples('data', configData);
 disp(samples);
 
 %% Select quantity of interest class
-
 qoi = WellQoI('wellNames', {'P1'}, 'cumulative', true, ...
-    'fldname', {'qOs', 'qWs'});
+    'names', {'qOs', 'qWs'}, 'total', false);
 disp(qoi);
 
 %% Create the ensemble
@@ -68,10 +67,11 @@ ensemble = MRSTEnsemble(baseExample, samples, qoi, ...
 disp(ensemble);
 
 %% Run ensemble
+close all
 ensemble.simulateEnsembleMembers('plotProgress', true);
 
 %% Plot results
-close all, ensemble.plotQoI();
+close all, ensemble.qoi.plotEnsembleQoI();
 
 %% Copyright Notice
 %

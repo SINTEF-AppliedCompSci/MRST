@@ -71,6 +71,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         rng(opt.seed);
     end
     
+    if isstruct(N) && isfield(N, 'cells')
+        % We have a grid instead of dimensions
+        d = mean(N.cells.volumes.^(1/N.griddim));
+        xmax = max(N.cells.centroids) + d/2;
+        xmin = min(N.cells.centroids) - d/2;
+        N = ceil((xmax - xmin)./d);
+    end
     if numel(N) - nnz(N == 1) == 1
         p = GaussianProcess1D(N, fun);
     else
