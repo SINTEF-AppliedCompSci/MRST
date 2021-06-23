@@ -48,7 +48,10 @@ schedule = simpleSchedule(rampupTimesteps(2*year, 30*day, 5), 'W', W);
 
 %% run simulation
 state0 = initState(G, W, 200*barsa, [0, 1]); 
-model.toleranceCNV = 1e-3;
+
+% The accuracy in the gradient depend
+% on the acuracy on the CNV tolerance
+model.toleranceCNV = 1e-6;
 [ws, states, r] = simulateScheduleAD(state0, model, schedule);
 
 %% make a perturbed state for reference case
