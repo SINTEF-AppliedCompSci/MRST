@@ -14,15 +14,15 @@ classdef ModelParameter
     end
     
     methods
-        function p = ModelParameter(problem, varargin)
+        function p = ModelParameter(SimulatorSetup, varargin)
             [p, extra] = merge_options(p, varargin{:});
             assert(~isempty(p.name), 'Parameter name can''t be defaulted');
             if isempty(p.belongsTo) || isempty(p.location) 
-                p = setupByName(p, problem);
+                p = setupByName(p, SimulatorSetup);
             end
             opt = struct('relativeLimits', [.5 2]);
             opt = merge_options(opt, extra{:});
-            p   = setupDefaults(p, problem, opt);
+            p   = setupDefaults(p, SimulatorSetup, opt);
             if isempty(p.setfun)
                 % use default
                 p.setfun = @(obj, loc, v)setfield(obj, loc{:}, v);
@@ -70,28 +70,28 @@ classdef ModelParameter
             end
         end
         %------------------------------------------------------------------
-        function v = getParameterValue(p, problem)
+        function v = getParameterValue(p, SimulatorSetup)
             if ~strcmp(p.belongsTo, 'well')
-                v = getfield(problem.(p.belongsTo), p.location{:});
+                v = getfield(SimulatorSetup.(p.belongsTo), p.location{:});
                 v = collapseLumps(v(p.subset), p.lumping);
             else % well-parameter (assume constant over control steps)
-                v = p.getWellParameterValue(problem.schedule.control(1).W);
+                v = p.getWellParameterValue(SimulatorSetup.schedule.control(1).W);
             end
         end
         %------------------------------------------------------------------       
-        function problem = setParameterValue(p, problem, v)
+        function SimulatorSetup = setParameterValue(p, SimulatorSetup, v)
             if ~strcmp(p.belongsTo, 'well')
                 v  = expandLumps(v, p.lumping);
                 if isnumeric(p.subset)
-                    tmp = getfield(problem.(p.belongsTo), p.location{:});
+                    tmp = getfield(SimulatorSetup.(p.belongsTo), p.location{:});
                     v   = setSubset(tmp, v, p.subset);
                 end
-                problem.(p.belongsTo) = ...
-                    p.setfun(problem.(p.belongsTo), p.location, v);
+                SimulatorSetup.(p.belongsTo) = ...
+                    p.setfun(SimulatorSetup.(p.belongsTo), p.location, v);
             else % well-parameter (assume constant over control steps)
-                for k = 1:numel(problem.schedule.control)
-                    problem.schedule.control(k).W = ...
-                        p.setWellParameterValue(problem.schedule.control(k).W, v);
+                for k = 1:numel(SimulatorSetup.schedule.control)
+                    SimulatorSetup.schedule.control(k).W = ...
+                        p.setWellParameterValue(SimulatorSetup.schedule.control(k).W, v);
                 end
             end
         end
@@ -121,9 +121,9 @@ classdef ModelParameter
             end
         end
         %------------------------------------------------------------------       
-        function m = getMultiplerValue(p, problem, doLump)
+        function m = getMultiplerValue(p, SimulatorSetup, doLump)
             if strcmp(p.type, 'multiplier')
-                m = p.getParameterValue(problem)./p.referenceValue;
+                m = p.getParameterValue(SimulatorSetup)./p.referenceValue;
                 if nargin == 3 && doLump
                     m = collapseLumps(p, m, @mean);
                 end
@@ -137,7 +137,7 @@ end
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
 
-function p = setupDefaults(p, problem, opt)
+function p = setupDefaults(p, SimulatorSetup, opt)
 % Make sure setup makes sense and add boxLims if not provided
 rlim  = opt.relativeLimits;
 range = @(x)[min(min(x)), max(max(x))];
@@ -154,11 +154,11 @@ if strcmp(p.belongsTo, 'well') && isempty(p.lumping)
     if ~ischar(p.subset)
         nw = numel(p.subset);
     else
-        nw = numel(problem.schedule.control(1).W);
+        nw = numel(SimulatorSetup.schedule.control(1).W);
     end
     p.lumping = cell(nw, 1);
 end
-v    = getParameterValue(p, problem);
+v    = getParameterValue(p, SimulatorSetup);
 p.n  = numel(v);
 
 if isempty(p.boxLims)
@@ -177,7 +177,7 @@ if strcmp(p.type, 'multiplier')
 end
 end
 %--------------------------------------------------------------------------
-function p = setupByName(p, problem)
+function p = setupByName(p, SimulatorSetup)
 % setup for typical parameters
 setfun = [];
 switch lower(p.name)
@@ -197,9 +197,9 @@ switch lower(p.name)
         location = {'WI'};
     case {'sw', 'sg'}
         belongsTo = 'state0';
-        col = problem.model.getPhaseIndex(upper(p.name(end)));
+        col = SimulatorSetup.model.getPhaseIndex(upper(p.name(end)));
         location = {'s', {':', col}};
-        oix = problem.model.getPhaseIndex('O');
+        oix = SimulatorSetup.model.getPhaseIndex('O');
         assert(~isempty(oix), ...
             'Current assumption is that oil is the dependent phase');
         setfun   = @(obj, loc, v)setSaturationFun(obj, loc, v, oix);

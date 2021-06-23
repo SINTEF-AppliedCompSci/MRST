@@ -58,24 +58,24 @@ objh = @(tstep,model, state) matchObservedOW(model, states, schedule, states_ref
 % choose parameters, get multiplier sensitivities except for endpoints
 
 model.toleranceCNV = 1e-6;
-prob = struct('model', model, 'schedule', schedule, 'state0', state0);
+SimulatorSetup = struct('model', model, 'schedule', schedule, 'state0', state0);
 parameters = [];
-parameters = addParameter(parameters, prob, 'name', 'porevolume','type','multiplier');
-parameters = addParameter(parameters, prob, 'name', 'permx','type','multiplier');
-parameters = addParameter(parameters, prob, 'name', 'permy','type','multiplier');
-parameters = addParameter(parameters, prob, 'name', 'permz','type','multiplier');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'porevolume','type','multiplier');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'permx','type','multiplier');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'permy','type','multiplier');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'permz','type','multiplier');
 nms_relperm = {'swcr',  'sowcr', 'kro', 'krw'};
 for k = 1:numel(nms_relperm)
-   parameters = addParameter(parameters, prob, 'name', nms_relperm{k}); %, 'lumping',ones(n_cells,1)
+   parameters = addParameter(parameters, SimulatorSetup, 'name', nms_relperm{k}); %, 'lumping',ones(n_cells,1)
 end
 
-raw_sens = computeSensitivitiesAdjointAD_V2(prob, states,parameters, objh);
+raw_sens = computeSensitivitiesAdjointAD_V2(SimulatorSetup, states,parameters, objh);
 
 % do scaling of gradient for Multipliers
 for kp = 1:numel(parameters)
     nm = parameters{kp}.name;
     if strcmp(parameters{kp}.type, 'multiplier')
-        sens.(nm) = (raw_sens.(nm)).*parameters{kp}.getParameterValue(prob);
+        sens.(nm) = (raw_sens.(nm)).*parameters{kp}.getParameterValue(SimulatorSetup);
     else
         sens.(nm) = raw_sens.(nm);
     end
@@ -101,17 +101,17 @@ end
 
 %% Run new adjoint to obtain transmissibility and well connection transmissibilitiy sensitivities 
 
-prob = struct('model', model, 'schedule', schedule, 'state0', state0);
+SimulatorSetup = struct('model', model, 'schedule', schedule, 'state0', state0);
 parameters = [];
-parameters = addParameter(parameters, prob, 'name', 'transmissibility','type','multiplier');
-parameters = addParameter(parameters, prob, 'name', 'conntrans','type','multiplier');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'transmissibility','type','multiplier');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'conntrans','type','multiplier');
 
-raw_sens = computeSensitivitiesAdjointAD_V2(prob, states,parameters, objh);
+raw_sens = computeSensitivitiesAdjointAD_V2(SimulatorSetup, states,parameters, objh);
 % do scaling of gradient for Multipliers
 for kp = 1:numel(parameters)
     nm = parameters{kp}.name;
     if strcmp(parameters{kp}.type, 'multiplier')
-        sens.(nm) = (raw_sens.(nm)).*parameters{kp}.getParameterValue(prob);
+        sens.(nm) = (raw_sens.(nm)).*parameters{kp}.getParameterValue(SimulatorSetup);
     else
         sens.(nm) = raw_sens.(nm);
     end

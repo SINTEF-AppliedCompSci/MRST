@@ -1,4 +1,4 @@
-function sens = computeSensitivitiesAdjointAD_V2(problem, states, param, getObjective, varargin)
+function sens = computeSensitivitiesAdjointAD_V2(SimulatorSetup, states, param, getObjective, varargin)
 %Compute parameter sensitivities using adjoint simulation
 %
 % SYNOPSIS:
@@ -9,7 +9,7 @@ function sens = computeSensitivitiesAdjointAD_V2(problem, states, param, getObje
 %
 % REQUIRED PARAMETERS:
 %
-%   problem      - structure containing:
+%   SimulatorSetup      - structure containing:
 %       state0   - Physical model state at `t = 0`
 %       model    - Subclass of PhysicalModel class such as
 %                  `ThreePhaseBlackOilModel` that models the physical
@@ -61,7 +61,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opt = struct('LinearSolver', []);
 opt = merge_options(opt, varargin{:});
 
-getState = @(i) getStateFromInput(problem.schedule, states, problem.state0, i);
+getState = @(i) getStateFromInput(SimulatorSetup.schedule, states, SimulatorSetup.state0, i);
 
 if isempty(opt.LinearSolver)
     linsolve = BackslashSolverAD();
@@ -77,20 +77,20 @@ pNames = fieldnames(sens);
 isInitStateParam = cellfun(@(p)strcmp(p.belongsTo, 'state0'), param);
 
 % inititialize parameters to ADI
-[modelParam, scheduleParam] = initModelParametersADI(problem, param);
+[modelParam, scheduleParam] = initModelParametersADI(SimulatorSetup, param);
 % reset discretization/flow functions to account for AD-parameters
 modelParam.FlowDiscretization = [];
 modelParam.FlowPropertyFunctions = [];
 modelParam = validateModel(modelParam);
 
 
-nstep = numel(problem.schedule.step.val);
+nstep = numel(SimulatorSetup.schedule.step.val);
 lambda = [];
 nt = nstep;
 for step = nt:-1:1
     fprintf('Solving reverse mode step %d of %d\n', nt - step + 1, nt);
-    [lami, lambda]= problem.model.solveAdjoint(linsolve, getState, ...
-        getObjective, problem.schedule, lambda, step);
+    [lami, lambda]= SimulatorSetup.model.solveAdjoint(linsolve, getState, ...
+        getObjective, SimulatorSetup.schedule, lambda, step);
     eqdth = partialWRTparam(modelParam, getState, scheduleParam, step);
     for kp = 1:numel(param)
         if ~isInitStateParam(kp)
@@ -107,11 +107,11 @@ end
 % compute partial derivative of first eq wrt init state and compute
 % initial state sensitivities
 if any(isInitStateParam)
-    forces = problem.model.getDrivingForces(schedule.control(schedule.step.control(1)));
-    forces = merge_options(problem.model.getValidDrivingForces(), forces{:});
-    model = problem.model.validateModel(forces);
+    forces = SimulatorSetup.model.getDrivingForces(schedule.control(schedule.step.control(1)));
+    forces = merge_options(SimulatorSetup.model.getValidDrivingForces(), forces{:});
+    model = SimulatorSetup.model.validateModel(forces);
     
-    state0 = model.validateState(problem.state0);
+    state0 = model.validateState(SimulatorSetup.state0);
     % set wellSols just to make subsequent function-calls happy, sensitivities wrt wellSols doesn't make sense anyway
     state0.wellSol = states{1}.wellSol;
     dt = schedule.step.val(1);
@@ -166,18 +166,18 @@ else
 end
 end
 %--------------------------------------------------------------------------
-function [modelParam, scheduleParam] = initModelParametersADI(problem, param)
+function [modelParam, scheduleParam] = initModelParametersADI(SimulatorSetup, param)
 % Don't initialize params associated with state0
 ix = find(cellfun(@(x)~strcmp(x.belongsTo, 'state0'), param));
-v  = applyFunction(@(p)p.getParameterValue(problem), param(ix));
+v  = applyFunction(@(p)p.getParameterValue(SimulatorSetup), param(ix));
 % use same backend as problem.model
-if isfield(problem, 'model') && isprop(problem.model, 'AutoDiffBackend')
-    [v{:}] = problem.model.AutoDiffBackend.initVariablesAD(v{:});
+if isfield(SimulatorSetup, 'model') && isprop(SimulatorSetup.model, 'AutoDiffBackend')
+    [v{:}] = SimulatorSetup.model.AutoDiffBackend.initVariablesAD(v{:});
 else
     [v{:}] = initVariablesADI(v{:});
 end
 for k = 1:numel(v)
-    problem = param{ix(k)}.setParameterValue(problem, v{k});
+    SimulatorSetup = param{ix(k)}.setParameterValue(SimulatorSetup, v{k});
 end
-[modelParam, scheduleParam] = deal(problem.model, problem.schedule);
+[modelParam, scheduleParam] = deal(SimulatorSetup.model, SimulatorSetup.schedule);
 end

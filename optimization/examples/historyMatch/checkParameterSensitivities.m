@@ -65,7 +65,7 @@ for tk = 1:numel(schedule.step.val)
     end
 end
 %% parameter options
-prob = struct('model', model, 'schedule', schedule, 'state0', state0);
+SimulatorSetup = struct('model', model, 'schedule', schedule, 'state0', state0);
 
 n_cells =  model.G.cells.num;
 n_faces =  length(model.operators.T);
@@ -76,21 +76,21 @@ parameters = [];
 
 %nms = {'swl', 'swcr', 'swu', 'kro', 'krw'};
 %for k = 1:numel(nms)
-%    parameters = addParameter(parameters, prob, 'name', nms{k}, 'lumping',ones(n_cells,1));
+%    parameters = addParameter(parameters, SimulatorSetup, 'name', nms{k}, 'lumping',ones(n_cells,1));
 %end
 
 % % Porevolume, well index, and transmisibility
-parameters = addParameter(parameters, prob, 'name', 'porevolume');
-parameters = addParameter(parameters, prob, 'name', 'conntrans');
-parameters = addParameter(parameters, prob, 'name', 'transmissibility');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'porevolume');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'conntrans');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'transmissibility');
 
 
 % % % State0
-%    parameters = addParameter(prob, 'name', 'initSw','lumping',ones(n_cells,1),'boxLims',[0 1]);
-%    parameters = addParameter(prob, 'name', 'p0','lumping',ones(n_cells,1),'relativeLimits', [0.90 1.10]);
+%    parameters = addParameter(SimulatorSetup, 'name', 'initSw','lumping',ones(n_cells,1),'boxLims',[0 1]);
+%    parameters = addParameter(SimulatorSetup, 'name', 'p0','lumping',ones(n_cells,1),'relativeLimits', [0.90 1.10]);
 
 %% 
-values = applyFunction(@(p)p.getParameterValue(prob), parameters);
+values = applyFunction(@(p)p.getParameterValue(SimulatorSetup), parameters);
 % scale values
 u = cell(size(values));
 for k = 1:numel(u)
