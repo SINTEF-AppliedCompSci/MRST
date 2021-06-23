@@ -56,13 +56,32 @@ objh = @(tstep,model, state) matchObservedOW(model, states, schedule, states_ref
 
 % run adjoint to compute sensitivities of misfit wrt params
 % choose parameters, get multiplier sensitivities except for endpoints
+
+%%
+
+
 params      = {'porevolume', 'permeability', 'swcr',  'sowcr', 'krw',   'kro'}; 
 paramTypes  = {'multiplier', 'multiplier',   'value', 'value', 'value', 'value'};   
 
 sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
                                      'Parameters'    , params, ...
                                      'ParameterTypes', paramTypes);
+                                 
+%%                                 
+prob = struct('model', model, 'schedule', schedule, 'state0', state0);
+parameters = [];
+parameters = addParameter(parameters, prob, 'name', 'porevolume','type','multiplier');
+parameters = addParameter(parameters, prob, 'name', 'permx','type','multiplier');
+parameters = addParameter(parameters, prob, 'name', 'permy','type','multiplier');
+parameters = addParameter(parameters, prob, 'name', 'permz','type','multiplier');
+nms = {'swcr',  'sowcr', 'kro', 'krw'};
+for k = 1:numel(nms)
+   parameters = addParameter(parameters, prob, 'name', nms{k}); %, 'lumping',ones(n_cells,1)
+end
 
+sens1 = computeSensitivitiesAdjointAD_V2(prob, states,parameters, objh);
+
+                                 
 %% Plot sensitivities on grid:
 figure,
 subplot(2,2,1), plotCellData(G, log(rock.perm(:,1)), 'EdgeColor', 'none'), title('log permeability')
@@ -84,7 +103,17 @@ paramTypes  = {'multiplier', 'multiplier'};
 sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
                                      'Parameters'    , params, ...
                                      'ParameterTypes', paramTypes);
+                                 
+                                 
+%%                                 
+prob = struct('model', model, 'schedule', schedule, 'state0', state0);
+parameters = [];
+parameters = addParameter(parameters, prob, 'name', 'transmissibility','type','multiplier');
+parameters = addParameter(parameters, prob, 'name', 'conntrans','type','multiplier');
 
+sens1 = computeSensitivitiesAdjointAD_V2(prob, states,parameters, objh);
+
+%%
 figure,
 subplot(1,2,1), plotCellData(G,  cellAverage(G, sens.transmissibility), 'EdgeColor', 'none'), colorbar,title('Average trans multiplier sensitivity');
 subplot(1,2,2), plot(sens.conntrans, '--o', 'MarkerSize', 14); title('Well connection trans multiplier sensitivity')
