@@ -129,16 +129,7 @@ if any(isInitStateParam)
             end
         end
     end
-end
-       
-
-% % multiply by value if type is multiplier:
-for kp = 1:numel(param)
-    nm = param{kp}.name;
-    if strcmp(param{kp}.type, 'multiplier')
-        sens.(nm) = (sens.(nm)).*param{kp}.getParameterValue(problem);
-    end
-end
+end       
 
 end
 %--------------------------------------------------------------------------
