@@ -103,7 +103,7 @@ end
 % model.getProp, whereas the 'time' input is the time at which we want the
 % quantity. This may be a vector, and for each element, the class will pick
 % the timestep correponding to the closest timestamp.
-qoiState = ReservoirStateQoI('name', 'sW', 'time', [20, 300, 700]*day);
+qoiState = ReservoirStateQoI('names', 'sW', 'time', [20, 300, 700]*day);
 disp(qoiState);
 
 %% Well output QoIs
@@ -113,7 +113,7 @@ disp(qoiState);
 % 'fldnames' is field name of interest stored on wellSol, whereas 'wellIndices'
 % is a vector with the well number(s). An alternative to 'wellIndices' is to 
 % provide 'wellNames' instead as a cell array of well names.
-qoiWell = WellQoI('fldname', 'qOs', 'wellIndices', 2);
+qoiWell = WellQoI('names', 'qOs', 'wellIndices', 2);
 disp(qoiWell);
 
 %% Running a single sample
@@ -141,30 +141,28 @@ disp(qoiStateValidated);
 disp(qoiWellValidated);
 
 % Quantities of interest are computed from the problem
-sat = qoiStateValidated.computeQoI(problem); % Water saturation after 20, 300, and 700 days
-qOs = qoiWellValidated.computeQoI(problem);  % Producer oil production rate
+stateData = qoiStateValidated.computeQoI(problem); % Water saturation after 20, 300, and 700 days
+wellData  = qoiWellValidated.computeQoI(problem);  % Producer oil production rate
 
 %% Plot the results
 % The results can be plotted using the plotting functionality found in the
 % example, or simply by creating a plot from scratch.
 close all
 % Water saturation
-example.plot(sat); colormap(bone);
+example.plot(stateData); colormap(bone);
 
 % Oil production rate
 time = cumsum(example.schedule.step.val)/day;
-figure(), plot(time, qOs{1}{1}*day, 'LineWidth', 1.5); % Convert to days
+figure(), plot(time, wellData.qOs*day, 'LineWidth', 1.5); % Convert to days
 xlim([0, time(end)]), box on, grid on, xlabel('Time (days)');
 
 %% Plot the results using QoI functionality
 % ... or, we can plot the results using the plotting functions in the QoI
 % classes.
 close all
-qoiWellValidated.plotQoI(example, qOs{1}{1});
-for i = 1:numel(sat)
-    example.figure();
-    qoiStateValidated.plotQoI(example, sat{i});
-end
+qoiWellValidated.plotQoI(example, wellData);
+example.figure();
+qoiStateValidated.plotQoI(example, stateData);
 
 %% Set up the ensemble
 % The MRSTEnsemble class conveniently combines a problem setup, a
@@ -188,7 +186,7 @@ end
 %      system, this option is changed to 'background'.
 % The optional parameter 'reset' is used to delete any existing results and
 % start the ensemble simulation from scratch.
-ensemble = MRSTEnsembleV2(example, samplesRH, qoiState       , ...
+ensemble = MRSTEnsemble(example, samplesRH, qoiState       , ...
                         'directory'         , dataDir     , ...
                         'simulationStrategy', 'background', ...
                         'reset'             , true       );
@@ -201,7 +199,7 @@ close all, ensemble.simulateEnsembleMembers('plotProgress', true);
 
 % It is also possible to run only a subset of the ensemble members by
 % calling the function 
-%      ensemble.simulationEnsembleMembers(20:30 'plotProgress', true);
+%      ensemble.simulationEnsembleMembers(20:30 'plotProress', true);
 % for a given range of ensemble members (here ensemble members 20 to 30).
 
 %% Plot results
@@ -224,7 +222,7 @@ title('Water saturation after 300 days, ensemble avg');
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

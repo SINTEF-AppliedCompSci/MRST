@@ -18,7 +18,6 @@ classdef ReservoirStateQoI < BaseQoI
     % SEE ALSO:
     %   `BaseQoI`, `WellQoI`, `MRSTExample`, `BaseSamples`
     properties
-        name = 'sW'
         cells = ':'
         time  = inf
         
@@ -29,8 +28,9 @@ classdef ReservoirStateQoI < BaseQoI
     methods
         %-----------------------------------------------------------------%
         function qoi = ReservoirStateQoI(varargin)
-            qoi = qoi@BaseQoI();
+            qoi = qoi@BaseQoI('names', 'sW');
             qoi = merge_options(qoi, varargin{:});
+            qoi.plotAllSamples = false;
         end
         
         %-----------------------------------------------------------------%
@@ -75,22 +75,24 @@ classdef ReservoirStateQoI < BaseQoI
             % PARAMETERS:
             %   problem - The specific problem for which to compute the QoI
             
-            nt = numel(qoi.time);
-            u  = cell(nt,1);
             states   = problem.OutputHandlers.states;
             model    = problem.SimulatorSetup.model.setupStateFunctionGroupings();
             schedule = problem.SimulatorSetup.schedule;
+            nt = numel(qoi.time);
+            nc = model.G.cells.num;
+            u = cell2struct(repmat({zeros(nc, nt)}, numel(qoi.names), 1), qoi.names);
             for i = 1:nt
-                n     = qoi.findTimestep(schedule, qoi.time(i));
-                state = states{n};
-                u{i}  = qoi.getStateValue(model, state);
+                n       = qoi.findTimestep(schedule, qoi.time(i));
+                state   = states{n};
+                for fn = qoi.names
+                    u.(fn{1})(:,i) = model.getProps(state, fn{1});
+                end
             end
         end
         
-        
         %-----------------------------------------------------------------%
         function n = norm(qoi, u)
-            n = cellfun(@(u) sum(abs(u).*qoi.dx), u);
+            n = sum(abs(u).*qoi.dx,1);
             if ~isnan(qoi.dt)
                 n = n.*qoi.dt;
             end
@@ -106,8 +108,7 @@ classdef ReservoirStateQoI < BaseQoI
                          'labels'    , true       , ...
                          'title'     , true       , ...
                          'numLines'  , 10         , ...
-                         'cellNo'    , 1          , ...
-                         'subCellNo' , 1);
+                         'names'     , {qoi.names});
             [opt, extra] = merge_options(opt, varargin{:});
             if iscell(u)
                 cellfun(@(u) qoi.plotQoI(u), u);
@@ -121,28 +122,34 @@ classdef ReservoirStateQoI < BaseQoI
                 error(['Input ensemble must either be an instance of ', ...
                       'class ''MRSTEnsemble'' or ''MRSTExample'''     ]);
             end
-            if ~opt.contour
-                subs = u >= opt.threshold(1) & u <= opt.threshold(2);
-                keep = qoi.cells & subs;
-                plotCellData(setup.model.G, u(keep), keep, extra{:});
-            else
-                assert(setup.model.G.griddim == 2 && ...
-                       any(strcmpi(setup.model.G.type, 'cartGrid')), ...
-                       'Contour plotting requires Cartesian 2D grid')
-                uc = nan(setup.model.G.cells.num, 1);
-                uc(qoi.cells) = u;
-                uc = reshape(uc, setup.model.G.cartDims);
-                xMin = min(setup.model.G.cells.centroids);
-                xMax = max(setup.model.G.cells.centroids);
-                x = linspace(xMin(1), xMax(1), setup.model.G.cartDims(1));
-                y = linspace(xMin(2), xMax(2), setup.model.G.cartDims(2));
-                color = [1,1,1]*0.8*(1-opt.isMean); % Plot mean in distinct color
-                contour(x, y, uc, opt.numLines, extra{:}, 'color', color);
+            for i = 1:numel(opt.names)
+                ui = u.(opt.names{i});
+                for j = 1:size(ui,2)
+                    subplot(1,size(ui,2), j);
+                    if ~opt.contour
+                        subs = ui(:,j) >= opt.threshold(1) & ui(:,j) <= opt.threshold(2);
+                        keep = qoi.cells & subs;
+                        plotCellData(setup.model.G, ui(keep,j), keep, extra{:});
+                    else
+                        assert(setup.model.G.griddim == 2 && ...
+                               any(strcmpi(setup.model.G.type, 'cartGrid')), ...
+                               'Contour plotting requires Cartesian 2D grid')
+                        uc = nan(setup.model.G.cells.num, 1);
+                        uc(qoi.cells) = ui(:,j);
+                        uc = reshape(uc, setup.model.G.cartDims);
+                        xMin = min(setup.model.G.cells.centroids);
+                        xMax = max(setup.model.G.cells.centroids);
+                        x = linspace(xMin(1), xMax(1), setup.model.G.cartDims(1));
+                        y = linspace(xMin(2), xMax(2), setup.model.G.cartDims(2));
+                        color = [1,1,1]*0.8*(1-opt.isMean); % Plot mean in distinct color
+                        contour(x, y, uc, opt.numLines, extra{:}, 'color', color);
+                    end
+                    if opt.title
+                        title(sprintf('%s after %d simulation days', qoi.names{i}, qoi.time(j)/day));
+                    end
+                    setup.setAxisProperties(gca);
+                end
             end
-            if opt.title
-                title(sprintf('%s after %d simulation days', qoi.name, qoi.time(opt.cellNo)/day));
-            end
-            setup.setAxisProperties(gca);
         end
         
     end
@@ -155,20 +162,12 @@ classdef ReservoirStateQoI < BaseQoI
             [~, n] = min(abs(cumsum(schedule.step.val) - time));
         end
         
-        %-----------------------------------------------------------------%
-        function u = getStateValue(qoi, model, state)
-            % Utility to function to extract the correct field from a given
-            % state object
-            u = model.getProp(state, qoi.name);
-        end
-        
-
     end
     
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

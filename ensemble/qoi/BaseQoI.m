@@ -15,7 +15,8 @@ classdef BaseQoI
     
     properties
         ResultHandler % Handler for writing/reading QoIs to/from file
-        
+        names
+        plotAllSamples = true;
     end
     
     methods
@@ -24,6 +25,9 @@ classdef BaseQoI
         function qoi = BaseQoI(varargin)
             % Constructor only parses optional input arguments
             qoi = merge_options(qoi, varargin{:});
+            if ~iscell(qoi.names)
+                qoi.names = {qoi.names};
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -54,9 +58,7 @@ classdef BaseQoI
             assert(strcmp(qoi.ResultHandler.dataPrefix(1:3), 'qoi'), ...
                    'ResultHandler data prefix must begin with ''qoi''.');               
         end
-        
 
-        
         %-----------------------------------------------------------------%
         function u = getQoI(qoi, problem)
             % Get quantity of interest (QoI) for a given problem. The 
@@ -81,14 +83,12 @@ classdef BaseQoI
                 u = qoi.ResultHandler{seed};
             else
                 % Compute QoI and store to file
-                u  = qoi.computeQoI(problem);
-
+                u      = qoi.computeQoI(problem);
+                %u.cost = qoi.computeQoICost(problem, u);
                 % TODO: Check that problem has been simulated successfully, and
                 % issue a warning if it is not
-                
-                us = u; % Handle special case when u is a cell array
-                if iscell(us), us = {us}; end 
-                qoi.ResultHandler{seed} = us;
+
+                qoi.ResultHandler{seed} = {u};
             end 
         end
         
@@ -112,17 +112,41 @@ classdef BaseQoI
         end
         
         %-----------------------------------------------------------------%
-        function n = norm(qoi, u) %#ok
+        function cost = computeQoICost(qoi, problem, u) %#ok
+            [~, ~, reports] = getPackedSimulatorOutput(problem,         ...
+                                          'readFromDisk'       , false, ...
+                                          'readReportsFromDisk', true);
+            if isfield(reports{1}, 'SimulationTime')
+                cost = sum(cellfun(@(report) report.SimulationTime, reports));
+            else
+                cost = sum(cellfun(@(report) report.WallTime, reports));
+            end
+        end
+        
+        %-----------------------------------------------------------------%
+        function n = norm(qoi, u)
             % Compute norm n of the quantity of interest u.
             % 
             % SYNOPSIS
             %   n = qoi.norm(u)
             %
-            n = abs(u{1});
+            if isstruct(u)
+                % We got a full QoI struct, compute norm for each well and
+                % each field by calling qoi.norm for each of them
+                n = u;
+                for i = 1:numel(u)
+                    for fn = qoi.names
+                        n(i).(fn{1}) = qoi.norm(u(i).(fn{1}));
+                    end
+                end
+                return;
+            else
+                n = abs(u);
+            end
         end
         
         %-----------------------------------------------------------------%
-        function [u_mean, u] = computeMean(qoi, range)
+        function [u_mean, u_var, u] = getQoIMean(qoi, range)
             % Computes the mean according to the ensemble given by the
             % range of ensemble member IDs (if any).
             %
@@ -140,7 +164,6 @@ classdef BaseQoI
             %   u_mean - Mean values of the quantity of interest
             %   u      - Cell array of the QoIs for the individual ensemble
             %            members.
-
             
             % Check if we have computed any QoIs so far
             assert(~isempty(qoi.ResultHandler), 'No QoIs computed yet!')
@@ -152,41 +175,55 @@ classdef BaseQoI
                 % Range given, check for computed QoIs
                 keep = ismember(range, ids);
                 if ~all(keep)
-                    warning(['Only a subset of the QoIs in range have '         , ...
-                             'been computed (%d %%). Computing mean for subset'], ...
-                             nnz(keep)/numel(range)*100                        )
+                    warning(['Only a subset of the QoIs in range have been ' , ...
+                             'computed (%d %%). Computing mean for subset'  ], ...
+                             nnz(keep)/numel(range)*100                      );
                 end
                 range = range(keep);
             end
-            % Compute mean of all QoIs in range
-            u_mean = qoi.ResultHandler{range(1)};
-            % Return all QoIs if requested
-            if nargout > 1
-                u    = cell(numel(range),1);
-                u{1} = u_mean;
+            % Let children class decide how to compute mean
+            [u_mean, u_var, u] = qoi.computeQoIMean(range);
+        end
+        
+        %-----------------------------------------------------------------%
+        function [u_mean, u_var, u] = computeQoIMean(qoi, range)
+            % Get first QoI
+            sample = qoi.ResultHandler{range(1)};
+            if nargout > 2
+                % Output all QoIs if requested
+                u = cell(numel(range), 1);
+                u{1} = sample;
             end
+            % Initialize mean and variance
+            [u_mean, u_var] = deal(sample);
+            for fn = qoi.names
+                [u_var.(fn{1})] = deal(0);
+            end
+            normfn = @(u) qoi.norm(u);
             for i = 2:numel(range)
                 u_tmp = qoi.ResultHandler{range(i)};
-                
-                if iscell(u_mean{1})
-                    for j = 1:numel(u_mean)
-                        for k = 1:numel(u_mean{j})
-                            u_mean{j}{k} = computeMean(u_mean{j}{k}, u_tmp{j}{k}, i-1, 1);
-                        end
+                for j = 1:qoi.numQoIs
+                    for fn = qoi.names
+                        ut = u_tmp(j).(fn{1});  % Current QoI
+                        um = u_mean(j).(fn{1}); % Current mean
+                        uv = u_var(j).(fn{1});  % Current variance
+                        % Update variance
+                        u_var(j).(fn{1}) = computeVariance(uv, 0, um, ut, i-1, 1, normfn);
+                        % Update mean
+                        u_mean(j).(fn{1}) = computeMean(um, ut, i-1, 1);
                     end
-                else
-                    for j = 1:numel(u_mean)
-                        u_mean{j} = computeMean(u_mean{j}, u_tmp{j}, i-1, 1);
+                    if isfield(u_mean(j), 'cost')
+                        u_mean(j).cost = computeMean(u_mean(j).cost, u_tmp(j).cost, i-1, 1);
+                        u_var(j).cost  = computeMean(u_var(j).cost, u_tmp(j).cost, i-1, 1);
                     end
                 end
-                
-                if nargout > 1
+                if nargout > 2
+                    % Output all QoIs if requested
                     u{i} = u_tmp;
                 end
             end
         end
-        
-        
+
         %-----------------------------------------------------------------%
         function h = plotEnsembleQoI(qoi, ensemble, h, varargin)
             % Create a meaningful plot of the ensemble based on the
@@ -203,49 +240,39 @@ classdef BaseQoI
             %   Extra parameters might depending on the actual QoI and
             %   others acceptable for `plot`.
             
-            opt = struct('range'     , inf         , ...
-                         'subplots'  , false       , ...
-                         'subplotDir', 'horizontal', ...
-                         'clearFigure', true       , ...
-                         'legend'     , {{}} );
+            opt = struct('range'      , inf         , ...
+                         'subplots'   , false       , ...
+                         'subplotDir' , 'horizontal', ...
+                         'clearFigure', true        , ...
+                         'legend'     , {{}}        );
             [opt, extra] = merge_options(opt, varargin{:});
-            [u_mean, u]  = qoi.computeMean(opt.range);
-            numQoIs      = numel(u_mean);
-            numSubQoIs   = 1;
-                        
-            plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u{i}, ...
-                'cellNo', i, varargin{:});
-            
-            if iscell(u_mean{1})
-                numSubQoIs = numel(u_mean{1});
-                plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u{i}{k}, ...
-                    'cellNo', i, 'subCellNo', k, varargin{:});
-            end
+            [u_mean, u_var, u]  = qoi.getQoIMean(opt.range);
             
             numSamples = numel(u);
+
             if nargin < 2, ensemble = []; end
             if nargin < 3 || isempty(h)
                 if opt.subplots
-                    h = nan(numSubQoIs,1);
+                    h = nan(qoi.numValues,1);
                 else
-                    h = nan(numQoIs*numSubQoIs,1);
+                    h = nan(qoi.numQoIs*qoi.numValues,1);
                 end
             end
+            
             if opt.subplots
                 switch opt.subplotDir
                     case 'vertical'
-                        nr = numQoIs; nc = 1;
+                        nr = qoi.numQoIs; nc = 1;
                     case 'horizontal'
-                        nr = 1; nc = numQoIs;
+                        nr = 1; nc = qoi.numQoIs;
                 end
             end
-            for i = 1:numQoIs
-                for k = 1:numSubQoIs
-                    if opt.subplots
-                        figureId = k;
-                    else
-                        figureId = (i-1)*numSubQoIs + k;
-                    end
+            for i = 1:qoi.numQoIs
+                um = u_mean(i);
+                uv = u_var(i);
+                ui = cellfun(@(u) u(i), u, 'UniformOutput', false);
+                for k = 1:qoi.numValues
+                    figureId = k + (i-1)*qoi.numValues*(~opt.subplots);
                     if isnan(h(figureId))
                         h(figureId) = qoi.figure(ensemble);
                     else
@@ -255,16 +282,26 @@ classdef BaseQoI
                         end
                     end
                     if opt.subplots
-                        subplot(nr, nc, i);
+                        currentSubPlot = subplot(nr, nc, i);
+                        if opt.clearFigure
+                            cla(currentSubPlot);
+                        end
                     end
-                    hold on
-                    for j = 1:numSamples
-                        plotQoI(u{j}, i, k, 'isMean', false, extra{:});
+                    if isscalar(um.(qoi.names{k}))
+                        h(figureId) = qoi.plotQoIHistogram(h(figureId)           , ...
+                                             'names' , qoi.names{k}, ...
+                                             'values', {um, uv, ui}, ...
+                                             extra{:}              );
+                    else
+                        hold on
+                        if qoi.plotAllSamples
+                            for j = 1:numSamples
+                                qoi.plotQoI(ensemble, ui{j}, 'names', qoi.names{k}, 'isMean', false, extra{:});
+                            end
+                        end
+                        qoi.plotQoI(ensemble, um, 'names', qoi.names{k}, extra{:}, 'tag', 'mean');
+                        hold off
                     end
-                    plotQoI(u_mean, i, k, extra{:}, 'tag', 'mean');
-                    
-                    hold off
-                    
                     % Stack the lines so that the mean(s) come on top
                     qoi.organizePlots(opt.legend);
                 end
@@ -285,6 +322,7 @@ classdef BaseQoI
             % directly to e.g., plot or plotCellData
             opt = struct('isMean', true, 'cellNo', 1, 'subCellNo', 1);
             [opt, extra] = merge_options(opt, varargin{:});
+            
             color = [1,1,1]*0.8*(1-opt.isMean); % Plot mean in distinct color
             plot(u, 'lineWidth', 2, 'color', color, extra{:});
         end
@@ -307,7 +345,7 @@ classdef BaseQoI
             meansID = [];
             for line=1:numel(lines)
                 if strcmp(lines(line).Tag, 'mean')
-                    meansID = [meansID, line]; 
+                    meansID = [meansID, line]; %#ok
                 end
             end
             uistack(lines(meansID), 'top');
@@ -332,41 +370,73 @@ classdef BaseQoI
             % SYNOPSIS:
             %   h = plotQoIHistogram(egdes, ...)
             %
-            opt = struct('range'      , inf  , ...
-                         'edges'      , 10   , ...
-                         'log10'      , false, ...
-                         'includeMean', false, ...
-                         'includeRMSE', false);
+            opt = struct('range'      , inf        , ...
+                         'names'      , {qoi.names}, ...
+                         'values'     , {{}}       , ...
+                         'edges'      , 10         , ...
+                         'log10'      , false      , ...
+                         'includeMean', true       , ...
+                         'includeSTD' , false      );
             [opt, extra] = merge_options(opt, varargin{:});
             % Get QoIs and mean
-            [u_mean, u] = qoi.computeMean(opt.range);
-            numQoIs     = numel(u_mean);
+            if isempty(opt.values)
+                [u_mean, u_var, u] = qoi.getQoIMean(opt.range);
+            else
+                [u_mean, u_var, u] = deal(opt.values{:});
+            end
             % Compute norm
-            n_mean = qoi.norm(u_mean);
-            n      = cell2mat(cellfun(@(u) qoi.norm(u), u, 'UniformOutput', false));
+            if ~isscalar(u_mean.(qoi.names{1}))
+                n_mean = qoi.norm(u_mean);
+                n      = cellfun(@(u) qoi.norm(u), u, 'UniformOutput', false);
+            else
+                n_mean = u_mean;
+                n      = u;
+            end
             if opt.log10
                 % Logarithmic transformation
                 n_mean = log10(abs(n_mean));
                 n      = log10(abs(n));
             end
-            if isempty(hf), hf = figure(); end
-            for i = 1:numQoIs
+            if isempty(hf)
+                hf = nan(qoi.numQoIs*qoi.numValues,1);
+            end
+            for i = 1:numel(u_mean)
                 % Plot each QoI in separate figure
-                set(0, 'CurrentFigure', hf);
-                hh = histogram(n(:,i), opt.edges, extra{:});
-                if opt.includeMean
-                    % Plot mean as vertical, dashed line
-                    hold on
-                    plot([n_mean(i), n_mean(i)], hh.Parent.YLim, '--k', 'lineWidth', 1);
-                    hold off
-                end
-                if opt.includeRMSE
-                    error('Not implemented yet')
+                for j = 1:numel(opt.names)
+                    figureId = j + (i-1)*numel(opt.names);
+                    if isnan(hf(figureId))
+                        hf(figureId) = figure();
+                    else
+                        set(0, 'CurrentFigure', hf(figureId));
+                    end
+                    nm = n_mean(i).(opt.names{j});
+                    ni = cellfun(@(n) n.(opt.names{j}), n);
+                    hh = histogram(ni, opt.edges, 'Normalization', 'probability', extra{:});
+                    hh.Parent.XLim = max(abs(hh.Parent.XLim - nm)).*[-1,1] + nm;
+                    if opt.includeMean
+                        % Plot mean as vertical, dashed line
+                        hold on
+                        plot(nm.*[1,1], hh.Parent.YLim, '--k', 'lineWidth', 1);
+                        hold off
+                    end
+                    if opt.includeSTD && numel(n) > 1
+                        std = sqrt(u_var(i));
+                        nmd = median(n);
+                        hold on
+                        x = linspace(hh.Parent.XLim(1), hh.Parent.XLim(2), 1000);
+                        pdf = estimatePDF(nm, nmd, std, sum(hh.BinWidth));
+                        plot(x, pdf(x), 'k', 'lineWidth', 1);
+                        hold off
+                    end
+                    grid on; box on;
+                    xl = (opt.names{j});
+                    if isfield(n_mean(i), 'name')
+                        xl = [xl, ', ', n_mean(i).name];
+                    end
+                    xlabel(xl);
                 end
             end
         end
-        
-        
 
         %-----------------------------------------------------------------%
         function u = getQoIVector(qoi, in, varargin)
@@ -400,6 +470,16 @@ classdef BaseQoI
             error('Template class not meant for direct use!');
         end
         
+        %-----------------------------------------------------------------%
+        function n = numValues(qoi)
+            n = numel(qoi.names);
+        end
+        
+        %-----------------------------------------------------------------%
+        function n = numQoIs(qoi) %#ok
+            n = 1;
+        end
+        
     end % methods
     
     
@@ -410,13 +490,10 @@ classdef BaseQoI
             seed = str2double(problem.OutputHandlers.states.dataFolder);
         end
         
-        
-           
         %-----------------------------------------------------------------%
         function u = extractTimesteps(qoi, u, dtIndices)
             % Only keep some of the time indices of u as specified by the
             % dtIndices input.
-        
             error('Template class not meant for direct use!');
         end
         
@@ -424,7 +501,7 @@ classdef BaseQoI
 end
     
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -52,14 +52,13 @@ samples = RockSamples('data', configData);
 disp(samples);
 
 %% Select quantity of interest class
-
 qoi = WellQoI('wellNames', {'P1'}, 'cumulative', true, ...
-    'fldname', {'qOs', 'qWs'});
+    'names', {'qOs', 'qWs'}, 'total', false);
 disp(qoi);
 
 %% Create the ensemble
 
-ensemble = MRSTEnsembleV2(baseExample, samples, qoi, ... 
+ensemble = MRSTEnsemble(baseExample, samples, qoi, ... 
     'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
     'verbose', true, ...
@@ -68,16 +67,17 @@ ensemble = MRSTEnsembleV2(baseExample, samples, qoi, ...
 disp(ensemble);
 
 %% Run ensemble
+close all
 ensemble.simulateEnsembleMembers('plotProgress', true);
 
 %% Plot results
-close all, ensemble.plotQoI();
+close all, ensemble.qoi.plotEnsembleQoI();
 
 %% Copyright Notice
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

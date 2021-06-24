@@ -20,7 +20,7 @@ baseProblemOptions = {};
 
 
 % Change these flags to investigate the baseExample
-simulateExample = false;
+simulateExample = true;
 plotSimulation = false;
 rerunBaseProblemFromScratch = false;
 
@@ -61,7 +61,7 @@ rockSamples = RockSamples('data', rockData);
 
 qoi = WellQoI(...
     'wellNames', {'P1', 'P2'}, ...
-    'fldname', {'qOs', 'qWs'}, ...
+    'names', {'qOs', 'qWs'}, ...
     'cumulative', false);
 
 
@@ -70,14 +70,17 @@ qoi = WellQoI(...
 % We will run the ensemble in parallel across 8 workers, and we choose to
 % delete any existing simulation results and run the ensemble from scratch
 
-rockEnsemble = MRSTEnsembleV2(baseExample, rockSamples, qoi, ...
+rockEnsemble = MRSTEnsemble(baseExample, rockSamples, qoi, ...
     'simulationStrategy', 'background', ...
     'maxWorkers', 8, ...
     'reset', true, ...
-    'verbose', true);
+    'verbose', true, ...
+    'verboseSimulation', true);
 
 %% Run ensemble
-rockEnsemble.simulateEnsembleMembers('plotProgress', true);
+close all
+disp('hei')
+rockEnsemble.simulateEnsembleMembers('plotIntermediateQoI', false);
 
 %% Plot results
 % Set optional input argument `subplots` to `true` to plot each QoI field
@@ -100,13 +103,16 @@ wellSamples = WellSamples('data', wellSampleData);
 
 %% Define new ensemble
 wellEnsemble = MRSTEnsemble(baseExample, wellSamples, qoi, ...
-    'simulationStrategy', 'background', ...
+    'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
     'reset', true, ...
     'verbose', true);
 
 %% Simulate and plot
-wellEnsemble.simulateEnsembleMembers('plotProgress', true);
+close all;
+wellEnsemble.simulateEnsembleMembers('subplots', true,....
+                                     'subplotDir', 'vertical',...
+                                     'clearFigure', true);
 
 %% Plot result
 close all, wellEnsemble.plotQoI('subplots', true, 'subplotDir', 'vertical');
@@ -138,13 +144,13 @@ compSamples = CompositeSamples({rockSamples, wellSamples}, 'tensorProduct', fals
 
 %% Define new ensemble
 compEnsemble = MRSTEnsemble(baseExample, compSamples, qoi, ...
-    'simulationStrategy', 'background', ...
+    'simulationStrategy', 'spmd', ...
     'maxWorkers', 8, ...
     'reset', true, ...
     'verbose', true);
 
 %% Simulate and plot
-compEnsemble.simulateEnsembleMembers('plotProgress', true);
+compEnsemble.simulateEnsembleMembers();
 
 %% Plot results
 color = lines(2); color = color(2,:);
@@ -156,7 +162,7 @@ close all, compEnsemble.plotQoI('subplots'  , true      , ...
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

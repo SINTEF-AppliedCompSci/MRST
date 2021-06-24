@@ -1,5 +1,5 @@
 classdef BaseEnsemble < handle
-    % Base blass that facilitates ensembles in MRST.
+    % Base class that facilitates ensembles in MRST.
     %
     % SYNOPSIS:
     %   ensembles = Ensemble(samples, 'name', name, ...)
@@ -80,7 +80,9 @@ classdef BaseEnsemble < handle
         
         simulationStrategy = 'serial';
         maxWorkers = maxNumCompThreads();
-        spmdEnsemble; % Used for 'simulationStrategy' = 'parallel'
+        cluster = [];
+        spmdEnsemble; % Used for 'simulationStrategy' = 'spmd'
+
         
         verbose = true
         verboseSimulation = false
@@ -91,6 +93,8 @@ classdef BaseEnsemble < handle
         matlabBinary = ''  
 
         hasBaseProblem
+        
+        NonLinearSolver = [];
     end
         
     
@@ -164,7 +168,10 @@ classdef BaseEnsemble < handle
             samp = folderRegexp(list, '\d+\s', 'match');
             samp = cellfun(@str2num, samp);
             for s = samp
-                rmdir(fullfile(dataPath, num2str(s)), 's');
+                fname = fullfile(dataPath, num2str(s));
+                if exist(fname, 'dir')
+                    rmdir(fname, 's');
+                end
             end
             % Delete log files (background simulations only)
             logs = folderRegexp(list, 'log_\d+_\d+.mat', 'match');
@@ -182,7 +189,10 @@ classdef BaseEnsemble < handle
             if ensemble.hasBaseProblem
                 % Returns the base problem in its pure form, without using any
                 % of the stochastic samples.
-                problem = ensemble.setup.getPackedSimulationProblem('Directory', ensemble.directory, 'Name', 'baseProblem');
+                problem = ensemble.setup.getPackedSimulationProblem( ...
+                               'Directory'      , ensemble.directory      , ...
+                               'Name'           , 'baseProblem'           , ...
+                               'NonLinearSolver', ensemble.NonLinearSolver);
                 if ~isempty(ensemble.samples.processProblemFn)
                     problem = ensemble.samples.processProblemFn(problem);
                 end
@@ -192,22 +202,24 @@ classdef BaseEnsemble < handle
         end
         
         %-----------------------------------------------------------------%
-        function problem = getSampleProblem(ensemble, seed)
-                if ensemble.hasBaseProblem
-                    % setup using base-problem
-                    baseProblem = ensemble.getBaseProblem();
-                    problem     = ensemble.samples.getSampleProblem(baseProblem, seed);
-                else
-                    % setup without base-problem (path for result-handler must 
-                    % be provided
-                    problem = ensemble.samples.getSampleProblem(ensemble.directory, seed);
-                end
+        function problem = getSampleProblem(ensemble, seed, varargin)
+            if ensemble.hasBaseProblem
+                % Setup using base-problem
+                opt = struct('sample', []);
+                opt = merge_options(opt, varargin{:});
+                baseProblem = ensemble.getBaseProblem();
+                problem     = ensemble.samples.getSampleProblem(baseProblem, seed, opt.sample);
+            else
+                % Setup without base-problem (path for result-handler must 
+                % be provided
+                problem = ensemble.samples.getSampleProblem(ensemble.directory, seed);
+            end
         end
         
         %-----------------------------------------------------------------%
         function ensemble = setSolver(ensemble, solve)
             % Updates the function used for simulating the individual
-            % ensemble members.          
+            % ensemble members.
             ensemble.solve = solve;
         end
         
@@ -223,9 +235,15 @@ classdef BaseEnsemble < handle
         
         %-----------------------------------------------------------------%
         function flag = hasSimulationOutput(ensemble, range)
-            % check if a seed or range of seeds has stored output 
-            flag = false(ensemble.num, 1);
-            flag(ensemble.simulationStatus.getValidIds()) = true;
+            % check if a seed or range of seeds has stored output
+            ids = ensemble.simulationStatus.getValidIds();
+            n = ensemble.num;
+            if isinf(n)
+                n = max(range);
+                if ~isempty(ids), max(n, max(ids)); end
+            end
+            flag = false(n, 1);
+            flag(ids) = true;
             if nargin >= 2
                 flag = flag(range);
             end
@@ -296,20 +314,24 @@ classdef BaseEnsemble < handle
             %
             % PARAMETERS:
             %   seed - Integer specifying which ensemble member to run.
-            %   
-            doSolve       =  ~ensemble.hasSimulationOutput(seed);
+            %
+            opt = struct('sample', []);
+            opt = merge_options(opt, varargin{:});
+            doSolve       = ~ensemble.hasSimulationOutput(seed);
             outputProblem = nargout > 0;
             
-            if ~doSolve 
-                % simulation is done - nothing to do here!
+            if ~doSolve
+                % Simulation is done - nothing to do here!
                 if ensemble.verbose
-                    fprintf('Simulation output for seed %d found on disk (skipping)\n',  seed);
+                    fprintf(['Simulation output for seed %d found on ', ...
+                             'disk (skipping)\n'], seed               );
                 end
                 if outputProblem
                     varargout{1} = ensemble.getSampleProblem(seed);
+                    varargout{2} = ensemble.simulationStatus{seed};
                 end
             else
-                problem = ensemble.getSampleProblem(seed);
+                problem = ensemble.getSampleProblem(seed, 'sample', opt.sample);
                 % Solve problem
                 status = struct('success', true, 'message', []);
                 try
@@ -321,12 +343,13 @@ classdef BaseEnsemble < handle
                 ensemble.simulationStatus{seed} = status;
                 if outputProblem
                     varargout{1} = problem;
+                    varargout{2} = status;
                 end
             end
         end
         
         %-----------------------------------------------------------------%
-        function simulateEnsembleMembers(ensemble, varargin)
+        function range = simulateEnsembleMembers(ensemble, varargin)
             % Run simulations for a set of ensemble members
             %
             % SYNOPSIS:
@@ -343,34 +366,45 @@ classdef BaseEnsemble < handle
             %               an dditional 'range' number of members will be 
             %               run.
             
-            opt = struct('range', inf);
+            opt = struct('range'    , inf, ...
+                         'batchSize', inf);
             [opt, extraOpt] = merge_options(opt, varargin{:});
-                                    
-            if isinf(opt.range)
+            % Validate optional input
+            has_range = ~all(isinf(opt.range));
+            has_size  = ~isinf(opt.batchSize);
+            assert(~(has_range && has_size), 'Cannot specify both range and batchSize');
+            if ~has_range && ~has_size
+                % Neither range nor batchSize given, simulate full ensemble
                 assert(~isinf(ensemble.num), ...
-                    'Ensemble size not defined, please use ensemble.simulateEnsembleMembers(range) instead');
-                opt.range = 1:ensemble.num;
+                    ['Ensemble size not defined, please use '                     , ...
+                     'ensemble.simulateEnsembleMembers(''range'', range) instead']);
+                opt.range     = 1:ensemble.num;
+                opt.batchSize = numel(opt.range);
             end
-            
-            assert(max(opt.range) <= ensemble.num, ...
-                'Requested more simulations than available ensemble members');
-            
-            if isscalar(opt.range)
-                ids = ensemble.simulationStatus.getValidIds();
-                if isempty(ids)
-                    ids = 0;
-                elseif ids(end) + opt.range > ensemble.num
-                    warning("requested ensemble members plus already computed ensemble members are more than ensemble size. Proceeding by trying to simulate the last 'range' ensemble members.")
-                    ids = ensemble.num - opt.range;
+            if has_size
+                % Translate batch size to simulation range
+                ids = ensemble.qoi.ResultHandler.getValidIds();
+                if isempty(ids), ids = 0; end
+                if max(ids) + opt.batchSize > ensemble.num
+                    warning(['Requested ensemble members plus already ' , ...
+                             'computed ensemble members are more than ' , ...
+                             'ensemble size. Proceeding by trying to '  , ...
+                             'simulate the last %d ensemble members.'  ], ...
+                             opt.range)
+                    opt.batchSize = ensemble.num - max(ids);
                 end
-                opt.range = (1:opt.range) + max(ids);
+                opt.range = (1:opt.batchSize) + max(ids);
             end
-            
+            % Validate range
+            assert(max(opt.range) <= ensemble.num, ...
+                'Requested range is outside range of available ensemble members');
+            % Distribute ensemble members among workers/background sessions
             n        = ceil(numel(opt.range)/ensemble.maxWorkers);
             rangePos = repmat(n, ensemble.maxWorkers, 1);
             extra    = sum(rangePos) - numel(opt.range);
             rangePos(end-extra+1:end) = rangePos(end-extra+1:end) - 1;
             rangePos = cumsum([0; rangePos]) + 1;
+            % Simulate with appropriate strategy
             switch ensemble.simulationStrategy
                 case 'serial'
                     ensemble.simulateEnsembleMembersSerial(opt.range, extraOpt{:});
@@ -378,35 +412,36 @@ classdef BaseEnsemble < handle
                     ensemble.simulateEnsembleMembersParallel(opt.range, rangePos, extraOpt{:});
                 case 'background'
                     ensemble.simulateEnsembleMembersBackground(opt.range, rangePos, extraOpt{:});
+                case 'spmd'
+                    ensemble.simulateEnsembleMembersSPMD(opt.range, rangePos, extraOpt{:});
             end
+            range = opt.range;
         end
         
         %-----------------------------------------------------------------%
         function simulateEnsembleMembersCore(ensemble, range)
             % Runs simulations according to the given range.
-            
            range = reshape(range, 1, []);
            for i = 1:numel(range)
                seed = range(i);
-               
                % Print info
                if ensemble.verbose
                    progress = floor(100*(i-1)/numel(range));
-                   fprintf('(%d%%)\tSimulating ensemble member %d among ensemble members %d to %d...\n', ...
-                           progress, seed, range(1), range(end))     
+                   fprintf(['(%d%%)\tSimulating ensemble member %d ', ...
+                            'among ensemble members %d to %d...\n' ], ...
+                           progress, seed, range(1), range(end)    );
                end
-               
                % Run simulation
                if ensemble.verboseSimulation
                    ensemble.simulateEnsembleMember(seed);
                else
                    evalc('ensemble.simulateEnsembleMember(seed)');
                end
-           end
-           
+           end      
            % Print info
            if ensemble.verbose
-               fprintf('(100%%)\tDone simulating ensemble members %d to %d \n', range(1), range(end));
+               fprintf(['(100%%)\tDone simulating ensemble members ', ...
+                        '%d to %d \n'], range(1), range(end)        );
            end
         end
         
@@ -427,7 +462,6 @@ classdef BaseEnsemble < handle
                 end
             end
         end
-
         
     end % methods
     
@@ -486,10 +520,10 @@ classdef BaseEnsemble < handle
                 warning(['Serial ensemble simulations will take a '     , ...
                          'long time, and should only be used for '      , ...
                          'debugging or small ensembles. Consider '      , ...
-                         'using ''background'' or ''parallel'' instead.'])
+                         'using ''background'', ''parallel'' or ''spmd'' instead.'])
             end
             
-            if strcmpi(ensemble.simulationStrategy, 'parallel')
+            if any(strcmpi(ensemble.simulationStrategy, {'parallel', 'spmd'})) 
                 % Check if parallel toolbox is availiable
                 if isempty(ver('parallel'))
                     warning(['Parallel computing toolbox not available. ', ...
@@ -498,37 +532,53 @@ classdef BaseEnsemble < handle
                 end
             end
             
-            switch ensemble.simulationStrategy
-                case 'parallel'
-                    % Use parallel toolbox. Check if we have started a
-                    % parallel session already, and whether it has the
-                    % correct number of workers
-                    if ensemble.maxWorkers > maxNumCompThreads()
-                        warning(['Requested number of workes is greater ' , ...
-                                 'than maxNumCompThreads (%d) reducing.'  ], ...
-                                 maxNumCompThreads()                       );
-                        ensemble.maxWorkers = maxNumCompThreads();
-                    end
-                    if isempty(gcp('nocreate'))
-                        parpool(ensemble.maxWorkers);
-                    elseif gcp('nocreate').NumWorkers ~= ensemble.maxWorkers
-                        delete(gcp);
-                        parpool(ensemble.maxWorkers);
-                    end
-                    
-                    if ~all(exist(ensemble.spmdEnsemble)) || opt.force %#ok
-                        % Communicate ensemble to all workers
-                        spmd
-                            spmdEns = ensemble;
+            if any(strcmpi(ensemble.simulationStrategy, {'parallel', 'background'}))
+                fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
+                if ~exist(fn, 'file') || opt.force
+                    if isprop(ensemble, 'figures')
+                        for f = fieldnames(ensemble.figures)'
+                            if isgraphics(ensemble.figures.(f{1}))
+                                delete(ensemble.figures.(f{1}));
+                            end
+                            ensemble.figures.(f{1}) = [];
                         end
-                        ensemble.spmdEnsemble = spmdEns;
                     end
-                case 'background'
-                    % Run simulations in background sessions
-                    fn = fullfile(ensemble.getDataPath(), 'ensemble.mat');
-                    if ~exist(fn, 'file') || opt.force
-                        save(fn, 'ensemble');
+                    save(fn, 'ensemble');
+                end
+            end
+            
+            if strcmpi(ensemble.simulationStrategy, {'parallel'})
+                if isempty(ensemble.cluster)
+                    ensemble.cluster = parcluster('local');
+                end
+                ensemble.cluster.Jobs.delete();
+            end
+            
+            if strcmpi(ensemble.simulationStrategy, 'spmd')
+                 % Use parallel toolbox. Check if we have started a
+                % parallel session already, and whether it has the
+                % correct number of workers
+                if ensemble.maxWorkers > maxNumCompThreads()
+                    warning(['Requested number of workes is greater ' , ...
+                             'than maxNumCompThreads (%d) reducing.'  ], ...
+                             maxNumCompThreads()                       );
+                    ensemble.maxWorkers = maxNumCompThreads();
+                end
+                if isempty(gcp('nocreate'))
+                    parpool(ensemble.maxWorkers);
+                elseif gcp('nocreate').NumWorkers ~= ensemble.maxWorkers
+                    delete(gcp);
+                    parpool(ensemble.maxWorkers);
+                end
+
+                if ~all(exist(ensemble.spmdEnsemble)) || opt.force %#ok
+                    % Communicate ensemble to all workers
+                    spmd
+                        spmdEns = ensemble;
                     end
+                    ensemble.spmdEnsemble = spmdEns;
+                end
+                
             end
         end
         
@@ -548,15 +598,31 @@ classdef BaseEnsemble < handle
             % NOTE:
             %   This function requires the Parallel Computing Toolbox.
             
+            opt = struct('plotProgress', true, ...
+                         'plotIntermediateQoI', true);
+            [opt, extraOpt] = merge_options(opt, varargin{:});
+            
             % Check that the parpool and spmdEnsemble is valid
             ensemble.prepareEnsembleSimulation()
-            
-            spmdEns = ensemble.spmdEnsemble;
-            spmd
-                spmdRange = range(rangePos(labindex):rangePos(labindex+1)-1);
-                spmdEns.simulateEnsembleMembersCore(spmdRange);
+            fileName = fullfile(ensemble.getDataPath(), 'ensemble.mat');
+            n = 0;
+            job = cell(ensemble.maxWorkers(), 1);
+            for i = 1:numel(rangePos)-1
+                r = range(rangePos(i):rangePos(i+1)-1);
+                if isempty(r), continue; end
+                n = n+1;
+                job{i} = batch(ensemble.cluster, ensemble.backgroundEvalFn, 0, {fileName, r}, ...
+                                                    'AttachedFiles', fileName);
             end
-            fprintf('simulateEnsembleMembersParallel completed\n');
+            fprintf(['Started %d new Matlab batch jobs. ', ...
+                     'Waiting for simulations ...\n'    ], n);
+            if ismethod(ensemble, 'plotProgress')
+                %[varargout{1}, varargout{2}] = ensemble.plotProgress(range);
+                ensemble.plotProgress(range, ...
+                                      opt.plotProgress, opt.plotIntermediateQoI, ...
+                                      extraOpt{:});
+            end
+            cellfun(@(job) delete(job), job); clear job;
         end
         
         %-----------------------------------------------------------------%
@@ -566,8 +632,9 @@ classdef BaseEnsemble < handle
             % session is responsible of running a subset of the ensemble
             % members specified in range according to rangePos.
             
-            opt = struct('plotProgress', false);
-            opt = merge_options(opt, varargin{:});
+            opt = struct('plotProgress', true, ...
+                         'plotIntermediateQoI', true);
+            [opt, extraOpt] = merge_options(opt, varargin{:});
             % Get path to mat file hodling the ensemble
             fileName = fullfile(ensemble.getDataPath(), 'ensemble.mat');
             % Make progress filename
@@ -582,17 +649,39 @@ classdef BaseEnsemble < handle
                 if isempty(r), continue; end
                 n = n+1;
                 % Spawn new MATLAB session
-                evalFunWrapper(ensemble.backgroundEvalFn, {fileName, r} , ...
-                               'progressFileNm', progressFileNm(r)      , ...
-                               'moduleList'    , moduleList             , ...
-                               'matlabBinary'  , ensemble.matlabBinary);
+                evalFunWrapper(ensemble.backgroundEvalFn, {fileName, r}, ...
+                               'progressFileNm', progressFileNm(r)     , ...
+                               'moduleList'    , moduleList            , ...
+                               'matlabBinary'  , ensemble.matlabBinary );
             end
             fprintf(['Started %d new Matlab sessions. ', ...
                      'Waiting for simulations ...\n'  ], n);
-            if opt.plotProgress && ismethod(ensemble, 'plotProgress')
-                ensemble.plotProgress(range);
+            if ismethod(ensemble, 'plotProgress')
+                ensemble.plotProgress(range, ...
+                                      opt.plotProgress, opt.plotIntermediateQoI, ...
+                                      extraOpt{:});
             end
-        end        
+        end  
+        
+        %-----------------------------------------------------------------%
+        function simulateEnsembleMembersSPMD(ensemble, range, rangePos, varargin)
+            % Runs simulation of ensemble members according to range across
+            % parallel workers. The subset of range given to each worker is
+            % specified by rangePos.
+            %
+            % NOTE:
+            %   This function requires the Parallel Computing Toolbox.
+            
+            % Check that the parpool and spmdEnsemble is valid
+            ensemble.prepareEnsembleSimulation()
+            
+            spmdEns = ensemble.spmdEnsemble;
+            spmd
+                spmdRange = range(rangePos(labindex):rangePos(labindex+1)-1);
+                spmdEns.simulateEnsembleMembersCore(spmdRange);
+            end
+            fprintf('simulateEnsembleMembersParallel completed\n');
+        end
     end
 end
 
@@ -607,7 +696,6 @@ function matches = folderRegexp(list, expression, outputFormat)
     end
     matches = regexp(list, expression, outputFormat);
 end
-
 
 %{
 Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
