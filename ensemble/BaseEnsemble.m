@@ -240,7 +240,7 @@ classdef BaseEnsemble < handle
             n = ensemble.num;
             if isinf(n)
                 n = max(range);
-                if ~isempty(ids), max(n, max(ids)); end
+                if ~isempty(ids), n = max(n, max(ids)); end
             end
             flag = false(n, 1);
             flag(ids) = true;
