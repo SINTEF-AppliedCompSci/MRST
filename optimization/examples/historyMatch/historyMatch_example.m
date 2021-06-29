@@ -38,7 +38,7 @@ user_partition = [3,3,2];
  model_fine_scale = model_fine_scale.validateModel();
 
 
-figure(1), movegui('northwest'); clf,
+figure(1), clf,
 set(gcf,'Position', [860 450 840 400],'PaperPositionMode','auto');
 subplot(1,2,1);
 plotCellData(model_fine_scale.G,model_fine_scale.rock.poro,'EdgeAlpha',.5); view(3);
@@ -82,7 +82,7 @@ crock.perm = upscalePerm(G, CG, rock);
                       
 
 
-figure(1), movegui('northwest');
+figure(1)
 subplot(1,2,2); cla
 
 plotCellData(CG,crock.poro,'EdgeColor','none');
@@ -177,7 +177,7 @@ weighting =  {'WaterRateWeight',  (5/day)^-1, ...
 obj_scaling     =  1; % objective scaling  
 objh = @(p)evaluateMatch_simple(p, obj, state0_coarse, model_coarse_scale, schedule_training, obj_scaling ,parameters,  states_fine_scale);
 
-figure(10).reset; movegui('south');
+clf(figure(10),'reset');
 [v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'objChangeTol',  1e-8, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Genereating results for comparing initial model vs calibrated model
