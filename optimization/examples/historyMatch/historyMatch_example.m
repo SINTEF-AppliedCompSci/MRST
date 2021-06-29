@@ -171,7 +171,7 @@ weighting =  {'WaterRateWeight',  (5/day)^-1, ...
            'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
 
  objScaling = 1;       
- [misfitVal_0,gradient_0,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0_coarse,model_coarse_scale,schedule_training,objScaling,parameters, states_fine_scale);                                                          
+ [misfitVal_0,~,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0_coarse,model_coarse_scale,schedule_training,objScaling,parameters, states_fine_scale,'Gradient','none');                                                          
 
   
 obj_scaling     =  1; % objective scaling  
@@ -182,8 +182,9 @@ figure(10).reset; movegui('south');
 
 %% Genereating results for comparing initial model vs calibrated model
 schedule = simpleSchedule(user_simulation_time, 'W', WC);
-[misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple(p_opt, obj, state0_coarse, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale);
-[misfitVal_0,gradient_0,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0_coarse,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale);                                                          
+[misfitVal_opt,~,wellSols_opt]    = evaluateMatch_simple(p_opt, obj, state0_coarse, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale,'Gradient','none');
+[misfitVal_0,~,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0_coarse,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale,'Gradient','none');                                                          
+
 
 figure(summary_plots.Number)
 plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
