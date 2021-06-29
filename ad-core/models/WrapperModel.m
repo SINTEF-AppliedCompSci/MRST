@@ -69,6 +69,10 @@ classdef WrapperModel < PhysicalModel
             [model.parentModel, state] = model.parentModel.prepareReportstep(state, state0, dt, drivingForces);
         end
         
+        function [vararg, control] = getDrivingForces(model, control)
+            [vararg, control] = model.parentModel.getDrivingForces(control);
+        end
+        
         function [state, report] = updateAfterConvergence(model, varargin)
             [state, report] = model.parentModel.updateAfterConvergence(varargin{:});
         end

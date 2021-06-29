@@ -310,7 +310,7 @@ classdef MRSTExample
             has_nls = ~isempty(opt.NonLinearSolver); % Nonlinear solver given
             if has_nls
                 % Check if nonlinear solver has non-default linear solver
-                has_ls = has_ls || ~isa(opt.NonLinearSolver, 'BackslashSolverAD');
+                has_ls = has_ls || ~isa(opt.NonLinearSolver.LinearSolver, 'BackslashSolverAD');
             end
             if ~has_ls
                 % Select apropriate linear solver
