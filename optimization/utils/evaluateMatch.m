@@ -69,6 +69,11 @@ if nargout > 1
             end
             return
         case 'AdjointAD'
+            if SimulatorSetup.model.toleranceCNV > 1e-6
+                warning(['The accuracy in the gradient depend on the',...
+                         ' acuracy on the CNV tolerance.',...
+                         ' For good accuracy set  model.toleranceCNV <= 1e-6']);
+            end
             gradient = computeSensitivitiesAdjointAD(SimulatorSetup, states, parameters, objh,...
                                                         'LinearSolver',opt.AdjointLinearSolver);            
             % do scaling of gradient
