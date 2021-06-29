@@ -123,8 +123,8 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
             
             % Invert rate so that production is plotted as positive values.
             plotScale = 1;
-            if strcmpi(qoi.fldname{opt.subCellNo}, 'qOs') || ...
-               strcmpi(qoi.fldname{opt.subCellNo}, 'qWs')
+            if strcmpi(qoi.names{opt.subCellNo}, 'qOs') || ...
+               strcmpi(qoi.names{opt.subCellNo}, 'qWs')
                 plotScale = -1;
             end
             
@@ -166,9 +166,9 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                 box on, grid on
                 if opt.title
                     if qoi.combined
-                        title(sprintf('Combined produced %s', qoi.fldname{opt.subCellNo}));
+                        title(sprintf('Combined produced %s', qoi.names{opt.subCellNo}));
                     else
-                        title(sprintf('%s for well %s', qoi.fldname{opt.subCellNo}, qoi.wellNames{opt.cellNo}));
+                        title(sprintf('%s for well %s', qoi.names{opt.subCellNo}, qoi.wellNames{opt.cellNo}));
                     end
                 end
                 if opt.labels
@@ -201,20 +201,20 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
             obs = qoi.getObservationVector('vectorize', false);
             
             % Apply one scaling per field name
-            fieldScales = cell(1, numel(qoi.fldname));
-            for f = 1:numel(qoi.fldname)
+            fieldScales = cell(1, numel(qoi.names));
+            for f = 1:numel(qoi.names)
                 fieldScales{f} = 0.0;
             end
             
             % Find scale values based on maximums
             for w = 1:numel(qoi.wellNames)
-                for f = 1:numel(qoi.fldname)
+                for f = 1:numel(qoi.names)
                     fieldScales{f} = max(fieldScales{f}, max(abs(obs{w}{f}(:))));
                 end
             end
             
             for w = 1:numel(qoi.wellNames)
-                for f = 1:numel(qoi.fldname)
+                for f = 1:numel(qoi.names)
                     scaling{w}{f} = ones(size(obs{w}{f}(:)))*fieldScales{f};
                 end
             end
@@ -246,18 +246,18 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
             elseif isvector(qoi.observationCov)
                 rdiag = [];
             
-                if numel(qoi.observationCov) == numel(qoi.fldname)*numel(qoi.wellNames)
+                if numel(qoi.observationCov) == numel(qoi.names)*numel(qoi.wellNames)
                     for w = 1:numel(qoi.wellNames)
-                        for f = 1:numel(qoi.fldname)
+                        for f = 1:numel(qoi.names)
                             covindex = w*(numel(qoi.fldname)-1) + f;
                             rdiag = [rdiag ; repmat(qoi.observationCov(covindex), [numel(u{w}{f}), 1])];
                         end
                     end  
-                elseif numel(qoi.observationCov) == numel(qoi.fldname)
+                elseif numel(qoi.observationCov) == numel(qoi.names)
                     % Assume that there are different covariances for each
                     % fieldName
                     for w = 1:numel(qoi.wellNames)
-                        for f = 1:numel(qoi.fldname)
+                        for f = 1:numel(qoi.names)
                             rdiag = [rdiag ; repmat(qoi.observationCov(f), [numel(u{w}{f}), 1])];
                         end
                     end    

@@ -26,6 +26,7 @@ trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth
 
 plotExample = false;
 rerunTrueProblemFromScratch = false;
+overwriteObservation = true;
 
 
 if rerunTrueProblemFromScratch
@@ -43,11 +44,12 @@ end
 
 trueQoI = WellQoIHM(...
     'wellNames', {'P1', 'P2'}, ...
-    'fldname', {'qOs', 'qWs'}, ...
+    'names', {'qOs', 'qWs'}, ...
     'cumulative', false);
 
 trueQoI = trueQoI.validateQoI(trueProblem);
 trueObservations = trueQoI.getQoI(trueProblem);
+%% Perturb observations
 
 % Define observation uncertainty 
 obsStdDev = 0.0004*0.1;
@@ -56,14 +58,31 @@ obsStdDev = 0.0004*0.1;
 observationResultHandler = trueQoI.ResultHandler;
 observationResultHandler.dataPrefix = 'observedQoI';
 
-% Add some observation noise and store output
-if numel(observationResultHandler.getValidIds) < 1
-    for w = 1:numel(trueQoI.wellNames)
-        for f = 1:numel(trueQoI.fldname)
-            perturbedObservations{w}{f} = trueObservations{w}{f} + randn(size(trueObservations{w}{f}))*obsStdDev;
+% Create a separate ResultHandler for the observations.
+% Need to build a new ResultHandler from scratch, so that we do not
+% overwrite the dataPrefix property of observationResultHandler
+truthResultHandler = ResultHandler('dataPrefix', 'trueQoI', ...
+                                   'writeToDisk', observationResultHandler.writeToDisk,...
+                                   'dataDirectory', observationResultHandler.dataDirectory, ...
+                                   'dataFolder', observationResultHandler.dataFolder, ...
+                                   'cleardir', false);
+
+%% Add some observation noise and store output
+
+if numel(truthResultHandler.getValidIds) < 1 || overwriteObservation
+    for w=1:numel(trueObservations)
+        perturbedObservations(w) = trueObservations(w);
+        for f=1:numel(trueQoI.names)
+            trueVals = trueObservations(w).(trueQoI.names{w});
+            perturbedVals = trueVals + randn(size(trueVals))*obsStdDev;
+            perturbedObservations(w).(trueQoI.names{f}) = trueVals + randn(size(trueVals))*obsStdDev;
         end
+        observationResultHandler{1} = {perturbedObservations};
     end
-    observationResultHandler{1} = {perturbedObservations};
+end
+
+if numel(truthResultHandler.getValidIds) < 1 || overwriteObservation
+    truthResultHandler{1} = {trueObservations};
 end
 
 
@@ -86,9 +105,10 @@ rockSamples = RockSamplesHM('data', rockData);
 % base problem as well.
 
 qoi = WellQoIHM('wellNames', {'P1', 'P2'}, ...
-              'fldname', {'qOs', 'qWs'}, ...
-              'observationResultHandler', observationResultHandler, ...
-              'observationCov', obsStdDev^2);
+                'names', {'qOs', 'qWs'}, ...
+                'observationResultHandler', observationResultHandler, ...
+                'truthResultHandler', truthResultHandler, ...
+                'observationCov', obsStdDev^2);
 
 
 %% Create the ensemble

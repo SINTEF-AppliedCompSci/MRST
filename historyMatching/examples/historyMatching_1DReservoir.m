@@ -43,9 +43,11 @@ end
 %% Generate observations 
 % Define a QOI for storing the relevant qoi for our problem
 
-trueQoI = WellQoIHM('wellNames', {'P1'}, 'fldname', {'qOs'});
+trueQoI = WellQoIHM('wellNames', {'P1'}, 'names', {'qOs'});
 trueQoI = trueQoI.validateQoI(trueProblem);
 trueObservations = trueQoI.getQoI(trueProblem);
+
+%%
 
 
 % Create a separate ResultHandler for the observations 
@@ -67,7 +69,7 @@ obsStdDev = 0.00005;
 % Add some observation noise and store output
 if numel(observationResultHandler.getValidIds) < 1 || overwriteObservation
     for w = 1:numel(trueQoI.wellNames)
-        for f = 1:numel(trueQoI.fldname)
+        for f = 1:numel(trueQoI.names)
             perturbedObservations{w}{f} = trueObservations{w}{f} + randn(size(trueObservations{w}{f}))*obsStdDev;
         end
     end

@@ -1,4 +1,4 @@
-classdef MRSTHistoryMatchingEnsemble < MRSTEnsembleV2
+classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
     
     properties
         
@@ -36,7 +36,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsembleV2
             opt = struct('prepareSimulation', true);
             [opt, extra] = merge_options(opt, varargin{:});
             
-            ensemble = ensemble@MRSTEnsembleV2(mrstExample, samples, qoi, ...
+            ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, ...
                                              extra{:}, 'prepareSimulation', false);
             
             % Check that the history-matching-specific input values make
@@ -72,7 +72,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsembleV2
         
         function simulateEnsembleMembers(ensemble, varargin)
            
-            ensemble.simulateEnsembleMembers@MRSTEnsembleV2(varargin{:});
+            ensemble.simulateEnsembleMembers@MRSTEnsemble(varargin{:});
             
             if ensemble.storeHistoryMatching
                 samples = ensemble.samples;
