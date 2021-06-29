@@ -9,10 +9,10 @@ function sens = computeSensitivitiesAdjointAD_V2(SimulatorSetup, states, param, 
 %
 % REQUIRED PARAMETERS:
 %
-%   SimulatorSetup      - structure containing:
+%   SimulatorSetup - structure containing:
 %       state0   - Physical model state at `t = 0`
 %       model    - Subclass of PhysicalModel class such as
-%                  `ThreePhaseBlackOilModel` that models the physical
+%                  `GenericBlackOilModel` that models the physical
 %                  effects we want to study.
 %
 %       schedule - Schedule suitable for `simulateScheduleAD`.
@@ -57,6 +57,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+                                 
+assert(isa(SimulatorSetup.model,'GenericBlackOilModel'),... %TODO Ask for GenericReservoirModel?
+       'Only the "GenericBlackOilModel" class of models support ADI adjoint gradients')
+% ASK: we get gradient  for pore volume and T but not for WI ecxat gradient
+% for WI when we use the twophase flow model. Shoulw we add this in the
+% assert message. This should be a warning then righ?
 
 opt = struct('LinearSolver', []);
 opt = merge_options(opt, varargin{:});
