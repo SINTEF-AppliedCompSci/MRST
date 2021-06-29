@@ -69,7 +69,7 @@ for k = 1:numel(nms_relperm)
    parameters = addParameter(parameters, SimulatorSetup, 'name', nms_relperm{k}); %, 'lumping',ones(n_cells,1)
 end
 
-raw_sens = computeSensitivitiesAdjointAD_V2(SimulatorSetup, states,parameters, objh);
+raw_sens = computeSensitivitiesAdjointAD(SimulatorSetup, states,parameters, objh);
 
 % do scaling of gradient for Multipliers
 for kp = 1:numel(parameters)
@@ -106,7 +106,7 @@ parameters = [];
 parameters = addParameter(parameters, SimulatorSetup, 'name', 'transmissibility','type','multiplier');
 parameters = addParameter(parameters, SimulatorSetup, 'name', 'conntrans','type','multiplier');
 
-raw_sens = computeSensitivitiesAdjointAD_V2(SimulatorSetup, states,parameters, objh);
+raw_sens = computeSensitivitiesAdjointAD(SimulatorSetup, states,parameters, objh);
 % do scaling of gradient for Multipliers
 for kp = 1:numel(parameters)
     nm = parameters{kp}.name;

@@ -69,7 +69,7 @@ if nargout > 1
             end
             return
         case 'AdjointAD'
-            gradient = computeSensitivitiesAdjointAD_V2(SimulatorSetup, states, parameters, objh,...
+            gradient = computeSensitivitiesAdjointAD(SimulatorSetup, states, parameters, objh,...
                                                         'LinearSolver',opt.AdjointLinearSolver);            
             % do scaling of gradient
             for k = 1:numel(nms)
