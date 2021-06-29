@@ -83,7 +83,7 @@ crock.perm = upscalePerm(G, CG, rock);
 
 
 figure(1)
-subplot(1,2,2); cla
+subplot(1,2,2); cla;
 
 plotCellData(CG,crock.poro,'EdgeColor','none');
 title('Coarse-scale model porosity')
@@ -131,7 +131,6 @@ schedule_training = simpleSchedule(user_simulation_time(user_training_time_steps
 [wellSols_coarse_scale,states_coarse_scale] = simulateScheduleAD(state0_coarse, model_coarse_scale, schedule_training);
 
 summary_plots = plotWellSols({wellSols_fine_scale,wellSols_coarse_scale},{schedule.step.val,schedule_training.step.val});
-movegui('northeast')
 drawnow
 %% Preparing parameters and scaling values for each one
 % We define each parameters it's scailing values.
