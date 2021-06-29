@@ -132,6 +132,7 @@ schedule_training = simpleSchedule(user_simulation_time(user_training_time_steps
 
 summary_plots = plotWellSols({wellSols_fine_scale,wellSols_coarse_scale},{schedule.step.val,schedule_training.step.val});
 drawnow
+
 %% Preparing parameters and scaling values for each one
 % We define each parameters it's scailing values.
 
@@ -168,24 +169,23 @@ weighting =  {'WaterRateWeight',  (5/day)^-1, ...
 
  obj = @(model, states, schedule_training, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule_training, states_fine_scale,...
            'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
-
- objScaling = 1;       
- [misfitVal_0,~,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0_coarse,model_coarse_scale,schedule_training,objScaling,parameters, states_fine_scale,'Gradient','none');                                                          
-
-  
-obj_scaling     =  1; % objective scaling  
-objh = @(p)evaluateMatch_simple(p, obj, state0_coarse, model_coarse_scale, schedule_training, obj_scaling ,parameters,  states_fine_scale);
+ 
+objScaling     =  1; % objective scaling  
+objh = @(p)evaluateMatch(p, obj, state0_coarse, model_coarse_scale, schedule_training, objScaling ,parameters,  states_fine_scale );
 
 clf(figure(10),'reset');
 [v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'objChangeTol',  1e-8, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
-%% Genereating results for comparing initial model vs calibrated model
+%% Running the simulations to compare initial model vs calibrated model
 schedule = simpleSchedule(user_simulation_time, 'W', WC);
-[misfitVal_opt,~,wellSols_opt]    = evaluateMatch_simple(p_opt, obj, state0_coarse, model_coarse_scale, schedule, obj_scaling ,parameters, states_fine_scale,'Gradient','none');
-[misfitVal_0,~,wellSols_0,states_0] = evaluateMatch_simple(p0_ups,obj,state0_coarse,model_coarse_scale,schedule,objScaling,parameters, states_fine_scale,'Gradient','none');                                                          
+[misfitVal_opt,~,wellSols_opt]    = evaluateMatch(p_opt, obj, state0_coarse, model_coarse_scale, schedule, objScaling ,parameters, states_fine_scale,'Gradient','none');
+[misfitVal_0  ,~,wellSols_0]      = evaluateMatch(p0_ups,obj, state0_coarse, model_coarse_scale, schedule, objScaling, parameters, states_fine_scale,'Gradient','none');                                                          
 
-
-figure(summary_plots.Number)
+try
+    figure(summary_plots.Number)
+catch
+    summary_plots = figure;
+end
 plotWellSols({wellSols_fine_scale,wellSols_0,wellSols_opt},...
               {schedule.step.val,schedule.step.val,schedule.step.val},...
               'datasetnames',{'fine scale model','initial upscaled model','history matched upscaled model'},...
