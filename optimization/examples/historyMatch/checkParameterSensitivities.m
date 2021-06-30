@@ -110,7 +110,7 @@ weighting =  {'WaterRateWeight',  (300/day)^-1, ...
 obj = @(model, states, schedule, states_ref1, tt, tstep, state) matchObservedOW(model, states, schedule, states_ref,...
        'computePartials', tt, 'tstep', tstep, weighting{:}, 'state',state, 'from_states', false);   
 
-f = @(u)evaluateMatch(u, obj, state0, model, schedule, 1 ,parameters,  states_ref);       
+f = @(u)evaluateMatch(u, obj, state0, model, schedule, 1 ,parameters,  states_ref,'Gradient','AdjointAD');       
        
 %% Check gradient in random direction and compare to numerical
 vv = [];
