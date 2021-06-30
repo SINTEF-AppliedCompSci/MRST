@@ -76,21 +76,20 @@ n_faces =  length(model.operators.T);
 parameters = [];
 
 % Fluid Parameters
-
-%nms = {'swl', 'swcr', 'swu', 'kro', 'krw'};
-%for k = 1:numel(nms)
-%    parameters = addParameter(parameters, SimulatorSetup, 'name', nms{k}, 'lumping',ones(n_cells,1));
-%end
+nms = {'swl', 'swcr', 'swu', 'kro', 'krw'};
+for k = 1:numel(nms)
+   parameters = addParameter(parameters, SimulatorSetup, 'name', nms{k}, 'lumping',ones(n_cells,1));
+end
 
 % % Porevolume, well index, and transmisibility
-parameters = addParameter(parameters, SimulatorSetup, 'name', 'porevolume');
-parameters = addParameter(parameters, SimulatorSetup, 'name', 'conntrans');
-parameters = addParameter(parameters, SimulatorSetup, 'name', 'transmissibility');
+% parameters = addParameter(parameters, SimulatorSetup, 'name', 'porevolume','lumping',ones(n_cells,1));
+% parameters = addParameter(parameters, SimulatorSetup, 'name', 'conntrans');
+% parameters = addParameter(parameters, SimulatorSetup, 'name', 'transmissibility');
 
 
 % % % State0
-%    parameters = addParameter(SimulatorSetup, 'name', 'initSw','lumping',ones(n_cells,1),'boxLims',[0 1]);
-%    parameters = addParameter(SimulatorSetup, 'name', 'p0','lumping',ones(n_cells,1),'relativeLimits', [0.90 1.10]);
+% parameters = addParameter(parameters,SimulatorSetup, 'name', 'sW','boxLims',[0 1],'lumping',ones(n_cells,1));
+% parameters = addParameter(parameters,SimulatorSetup, 'name', 'pressure','relativeLimits', [0.90 1.10],'lumping',ones(n_cells,1));
 
 %% 
 values = applyFunction(@(p)p.getParameterValue(SimulatorSetup), parameters);
