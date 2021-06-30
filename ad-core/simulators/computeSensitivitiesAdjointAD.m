@@ -114,6 +114,7 @@ end
 % compute partial derivative of first eq wrt init state and compute
 % initial state sensitivities
 if any(isInitStateParam)
+    schedule = SimulatorSetup.schedule;
     forces = SimulatorSetup.model.getDrivingForces(schedule.control(schedule.step.control(1)));
     forces = merge_options(SimulatorSetup.model.getValidDrivingForces(), forces{:});
     model = SimulatorSetup.model.validateModel(forces);
@@ -135,6 +136,8 @@ if any(isInitStateParam)
                 sens.(nms{k}) = sens.(nms{k}) + linProblem.equations{nl}.jac{kn}'*lami{nl};
             end
         end
+        kp = find(strcmp(nms{k}, pNames));
+        sens.(nms{k}) =  param{kp}.collapseGradient(sens.(nms{k}));
     end
 end       
 
