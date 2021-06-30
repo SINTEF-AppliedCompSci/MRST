@@ -1,5 +1,70 @@
 function [misfitVal,varargout] = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,varargin)
-%Undocumented Utility Function
+% Simulate a model with parameters p and compute mistmatch with respect a reference state
+%
+% SYNOPSIS:
+%   misfitVal = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,varargin)
+%  
+%   [misfitVal,sesitivities] = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,varargin)
+%  
+%   [misfitVal,sesitivities,wellSols,states] = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,varargin)
+%
+%   [misfitVal,~,wellSols,states] = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,'Gradient','none',varargin)
+%
+% DESCRIPTION:
+%   For a given parameter array p, compute mistmach and sesitivities with regards to parameter p
+%
+% REQUIRED PARAMETERS:
+%   p            - An array containing the parameters' values scaled in unit-interval [0 ,1]
+%
+%   obj          - Objective function that evaluates the diferences/match between
+%                  states evaluated at parameters p (states(p)) and the reference state states_ref
+%   
+%   state0_org   - Physical model state at `t = 0`
+%
+%   model_org    - Subclass of PhysicalModel class such as
+%                  `GenericBlackOilModel` that models the physical
+%                  effects we want to study.
+%
+%   schedule_org - Schedule suitable for `simulateScheduleAD`.
+%
+%   objScaling   - scaling value for the objective function obj/objScaling.
+%
+%   states_ref   - Physical model states corresponding to the reference.
+%
+%   parameters   - array of parameters of class ModelParameter
+%
+%
+% OPTIONAL PARAMETERS:
+%   'Gradient'       - Method to calculate the sensitivities/gradient:
+%                      'AdjointAD':        Compute parameter sensitivities
+%                       using adjoint simulation  (default)
+%                      'PerturbationADNUM': Compute parameter sensitivities
+%                       using perturbations (first-order forward finite diferences)
+%                      'none'               Avoind computing parameters sensitivities
+%
+%   'PerturbationSize'- small value <<1 to perturb parameter p (default = 1e-7)
+%
+%   'AdjointLinearSolver' - Subclass of `LinearSolverAD` suitable for solving the
+%                      adjoint systems.
+%
+%   'NonlinearSolver'- Subclass of `NonLinearSolver` suitable for solving the
+%                      non linear sistem systems of the forward model.
+%
+%   'Verbose'         - Indicate if extra output is to be printed such as
+%                       detailed convergence reports and so on.
+% RETURNS:
+%   misfitVal        - Diference between states(p) and states_ref
+%
+%   sesitivities     - Gradient of misfitVal with respect p
+%
+%   wellSols         - Well solution at each control step (or timestep if
+%                      'OutputMinisteps' is enabled.)
+%
+%   states           - State at each control step (or timestep if
+%                      'OutputMinisteps' is enabled.)
+%
+% SEE ALSO:
+% `evalObjective`, `computeSensitivitiesAdjointAD`, `unitBoxBFGS` 
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -24,8 +89,8 @@ opt = struct('Verbose',           mrstVerbose(),...
     'Gradient',   'AdjointAD',...
     'NonlinearSolver', [],...
     'AdjointLinearSolver',[],...
-    'PerturbationSize',1e-7,...
-    'stepchange',false);
+    'PerturbationSize',1e-7);%,...
+    %'stepchange',false);
 
 opt = merge_options(opt, varargin{:});
 
@@ -72,7 +137,8 @@ if nargout > 1
             if SimulatorSetup.model.toleranceCNV > 1e-6
                 warning(['The accuracy in the gradient depend on the',...
                          ' acuracy on the CNV tolerance.',...
-                         ' For good accuracy set  model.toleranceCNV <= 1e-6']);
+                         ' For better accuracy set:'...
+                          'model.toleranceCNV = 1e-6 or lower.']);
             end
             gradient = computeSensitivitiesAdjointAD(SimulatorSetup, states, parameters, objh,...
                                                         'LinearSolver',opt.AdjointLinearSolver);            
@@ -82,30 +148,26 @@ if nargout > 1
             end
         case 'PerturbationADNUM'
             % do manual pertubuation of the defiend control variabels
-            eps_scale = opt.PerturbationSize;            
+            eps_pert = opt.PerturbationSize;            
             val=nan(size(p));
-            try 
+            try  % Try parallel loop
                 parfor i=1:numel(p_org)
-                    val(i) = evaluateMatch(perturb(p_org,i,eps_scale),...
+                    val(i) = evaluateMatch(perturb(p_org,i,eps_pert),...
                          obj,state0_org,model_org,schedule_org,objScaling,parameters, states_ref,...
                         'Gradient', 'none',...
                         'NonlinearSolver',opt.NonlinearSolver );
                 end
-            catch
+            catch % Try serial loop instead
                 for i=1:numel(p_org)
-                    val(i) = evaluateMatch(perturb(p_org,i,eps_scale),...
+                    val(i) = evaluateMatch(perturb(p_org,i,eps_pert),...
                          obj,state0_org,model_org,schedule_org,objScaling,parameters, states_ref,...
                         'Gradient', 'none',...
                         'NonlinearSolver',opt.NonlinearSolver );
                 end
             end 
-            gradient= (val-misfitVal)./eps_scale;
+            gradient= (val-misfitVal)./eps_pert;
             
-            gradient = mat2cell(gradient, nparam, 1);
-            % do scaling of gradient
-            for k = 1:numel(nms)
-               scaledGradient{k} = parameters{k}.scaleGradient(gradient{k}, p{k});
-            end
+            scaledGradient = mat2cell(gradient, nparam, 1);            
         otherwise
             error('Greadient method %s is not implemented',opt.Gradient)
     end
@@ -117,6 +179,9 @@ if nargout > 2
 end
 end
 
+
+% Utility function to perturb the parameter array in coordinate i with
+% eps_pert
 function p_pert = perturb(p_org,i,eps_pert) 
     p_pert = p_org;
     p_pert(i) = p_pert(i) + eps_pert;
