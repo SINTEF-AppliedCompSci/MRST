@@ -1,9 +1,9 @@
-function params = addParameter(params, problem, varargin)
+function params = addParameter(params, SimulatorSetup, varargin)
 % Simple utility function for adding a new parameter to a list of
 % parameters.
 % See  ModelParameter.m for more information about the parameters class.
 %
-p = ModelParameter(problem, varargin{:});
+p = ModelParameter(SimulatorSetup, varargin{:});
 if isempty(params)
     params = {p};
 elseif iscell(params)
