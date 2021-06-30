@@ -1,4 +1,4 @@
-function [misfitVal,varargout] = evaluateMatch_simple(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,varargin)
+function [misfitVal,varargout] = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,varargin)
 %Undocumented Utility Function
 
 %{

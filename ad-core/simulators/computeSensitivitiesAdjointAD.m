@@ -1,4 +1,4 @@
-function sens = computeSensitivitiesAdjointAD_V2(SimulatorSetup, states, param, getObjective, varargin)
+function sens = computeSensitivitiesAdjointAD(SimulatorSetup, states, param, getObjective, varargin)
 %Compute parameter sensitivities using adjoint simulation
 %
 % SYNOPSIS:
