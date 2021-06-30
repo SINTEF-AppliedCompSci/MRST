@@ -40,7 +40,7 @@ function sens = computeSensitivitiesAdjointAD(SimulatorSetup, states, param, get
 %   `computeGradientAD`
 
 %{
-Copyright 2009-2017 SINTEF Digital, Applied Mathematics.
+Copyright 2009-2021 SINTEF Digital, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
