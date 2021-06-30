@@ -139,17 +139,19 @@ drawnow
 SimulatorSetup = struct('model', model_coarse_scale, 'schedule', schedule_training, 'state0', state0_coarse);
 
 n_cells =  model_coarse_scale.G.cells.num;
+parameters = [];
+
 % Fluid Parameters
- parameters{1} = ModelParameter(SimulatorSetup, 'name', 'swl','lumping',ones(n_cells,1),'boxLims',[0.00 0.5]);
- parameters{2} = ModelParameter(SimulatorSetup, 'name', 'swcr','lumping',ones(n_cells,1),'boxLims',[0.0 0.5]);
- parameters{3} = ModelParameter(SimulatorSetup, 'name', 'swu','lumping',ones(n_cells,1),'boxLims',[0.55 1.0]);
- parameters{4} = ModelParameter(SimulatorSetup, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
- parameters{5} = ModelParameter(SimulatorSetup, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'swl','lumping',ones(n_cells,1),'boxLims',[0.00 0.5]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'swcr','lumping',ones(n_cells,1),'boxLims',[0.0 0.5]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'swu','lumping',ones(n_cells,1),'boxLims',[0.55 1.0]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
 
  % Well, porevolume and transmisibility
- parameters{6} = ModelParameter(SimulatorSetup, 'name', 'conntrans','relativeLimits', [.01 4]);
- parameters{7} = ModelParameter(SimulatorSetup, 'name', 'porevolume','relativeLimits', [.01 4]);
- parameters{8} = ModelParameter(SimulatorSetup, 'name', 'transmissibility','relativeLimits', [.01 4]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'conntrans','relativeLimits', [.01 4]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'porevolume','relativeLimits', [.01 4]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'transmissibility','relativeLimits', [.01 4]);
 
 
  %% Optimization :  History Matching
