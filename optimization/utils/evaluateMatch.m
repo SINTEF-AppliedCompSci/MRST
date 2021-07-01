@@ -1,14 +1,14 @@
-function [misfitVal,varargout] = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,varargin)
+function [misfitVal,varargout] = evaluateMatch(p, obj, SimulatorSetup_org,parameters, states_ref,varargin)
 % Simulate a model with parameters p and compute mistmatch with respect a reference state
 %
 % SYNOPSIS:
-%   misfitVal = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,varargin)
+%   misfitVal = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,parameters, states_ref,varargin)
 %  
-%   [misfitVal,sesitivities] = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,varargin)
+%   [misfitVal,sesitivities] = evaluateMatch(p, obj, SimulatorSetup_org,parameters, states_ref,varargin)
 %  
-%   [misfitVal,sesitivities,wellSols,states] = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,varargin)
+%   [misfitVal,sesitivities,wellSols,states] = evaluateMatch(p, obj, SimulatorSetup_org, parameters, states_ref,varargin)
 %
-%   [misfitVal,~,wellSols,states] = evaluateMatch(p, obj, state0_org ,model_org,schedule_org,objScaling,parameters, states_ref,'Gradient','none',varargin)
+%   [misfitVal,~,wellSols,states] = evaluateMatch(p, obj, SimulatorSetup_org ,parameters, states_ref,'Gradient','none',varargin)
 %
 % DESCRIPTION:
 %   For a given parameter array p, compute mistmach and sesitivities with regards to parameter p
@@ -19,16 +19,14 @@ function [misfitVal,varargout] = evaluateMatch(p, obj, state0_org ,model_org,sch
 %   obj          - Objective function that evaluates the diferences/match between
 %                  states evaluated at parameters p (states(p)) and the reference state states_ref
 %   
-%   state0_org   - Physical model state at `t = 0`
-%
-%   model_org    - Subclass of PhysicalModel class such as
+%   SimulatorSetup_org - structure containing:
+%       state0   - Physical model state at `t = 0`
+%       model    - Subclass of PhysicalModel class such as
 %                  `GenericBlackOilModel` that models the physical
 %                  effects we want to study.
 %
-%   schedule_org - Schedule suitable for `simulateScheduleAD`.
-%
-%   objScaling   - scaling value for the objective function obj/objScaling.
-%
+%       schedule - Schedule suitable for `simulateScheduleAD`.
+%%
 %   states_ref   - Physical model states corresponding to the reference.
 %
 %   parameters   - array of parameters of class ModelParameter
@@ -43,6 +41,9 @@ function [misfitVal,varargout] = evaluateMatch(p, obj, state0_org ,model_org,sch
 %                      'none'               Avoind computing parameters sensitivities
 %
 %   'PerturbationSize'- small value <<1 to perturb parameter p (default = 1e-7)
+%
+%   'objScaling'   - scaling value for the objective function obj/objScaling.
+%
 %
 %   'AdjointLinearSolver' - Subclass of `LinearSolverAD` suitable for solving the
 %                      adjoint systems.
@@ -89,7 +90,8 @@ opt = struct('Verbose',           mrstVerbose(),...
     'Gradient',   'AdjointAD',...
     'NonlinearSolver', [],...
     'AdjointLinearSolver',[],...
-    'PerturbationSize',1e-7);%,...
+    'PerturbationSize',1e-7,...
+    'objScaling',1);%,...
     %'stepchange',false);
 
 opt = merge_options(opt, varargin{:});
@@ -100,18 +102,11 @@ p_org=p;
 p = max(0, min(1, p));
 p = mat2cell(p, nparam, 1);
 
-SimulatorSetup = struct('model', model_org, 'schedule', schedule_org, 'state0', state0_org);
-initStateSensitivity = false;
-ignore_these = zeros(numel(parameters),1);
+SimulatorSetup = SimulatorSetup_org;
 for k = 1:numel(parameters)
     pval    = parameters{k}.unscale(p{k});
     SimulatorSetup = parameters{k}.setParameterValue(SimulatorSetup, pval);
-    if (strcmp(parameters{k}.name,'initSw')||strcmp(parameters{k}.name,'p0'))
-        initStateSensitivity = true;
-        ignore_these(k)=1;
-    end    
 end
-% skipping state0 (not yet part of ModelParameter)
 %SimulatorSetup.model.toleranceCNV = 1e-6;
 % figure(1), plot(SimulatorSetup.model.operators.pv)
 % figure(2), plot(SimulatorSetup.model.operators.T)
@@ -121,10 +116,10 @@ end
     'Verbose',opt.Verbose);
 
 misfitVals = obj(SimulatorSetup.model, states, SimulatorSetup.schedule, states_ref, false, [],[]);
-misfitVal  = - sum(vertcat(misfitVals{:}))/objScaling ;
+misfitVal  = - sum(vertcat(misfitVals{:}))/opt.objScaling ;
 
 if nargout > 1
-    objh = @(tstep,model,state) obj(model, states, SimulatorSetup.schedule, states_ref, true, tstep, state);
+    objh = @(tstep,model,state) obj(SimulatorSetup.model, states, SimulatorSetup.schedule, states_ref, true, tstep, state);
     nms = applyFunction(@(x)x.name, parameters);
     scaledGradient = cell(numel(nms), 1);
     
@@ -148,16 +143,18 @@ if nargout > 1
             try  % Try parallel loop
                 parfor i=1:numel(p_org)
                     val(i) = evaluateMatch(perturb(p_org,i,eps_pert),...
-                         obj,state0_org,model_org,schedule_org,objScaling,parameters, states_ref,...
+                         obj,SimulatorSetup_org,parameters, states_ref,...
                         'Gradient', 'none',...
-                        'NonlinearSolver',opt.NonlinearSolver );
+                        'NonlinearSolver',opt.NonlinearSolver,...
+                        'objScaling',opt.objScaling);
                 end
             catch % Try serial loop instead
                 for i=1:numel(p_org)
                     val(i) = evaluateMatch(perturb(p_org,i,eps_pert),...
-                         obj,state0_org,model_org,schedule_org,objScaling,parameters, states_ref,...
+                         obj,state0_org,model_org,schedule_org,parameters, states_ref,...
                         'Gradient', 'none',...
-                        'NonlinearSolver',opt.NonlinearSolver );
+                        'NonlinearSolver',opt.NonlinearSolver,...
+                        'objScaling',opt.objScaling);
                 end
             end 
             gradient= (val-misfitVal)./eps_pert;
@@ -167,7 +164,7 @@ if nargout > 1
             error('Greadient method %s is not implemented',opt.Gradient)
     end
 
-        varargout{1} = vertcat(scaledGradient{:})/objScaling;
+        varargout{1} = vertcat(scaledGradient{:})/opt.objScaling;
 end
 if nargout > 2
     [varargout{2:3}] = deal(wellSols, states);
