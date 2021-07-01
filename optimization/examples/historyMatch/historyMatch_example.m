@@ -60,7 +60,7 @@ problem = packSimulationProblem(state0, model_fine_scale, schedule, 'model_fine_
 
 
 %% Coarse-scale model
-% We make a 3x3x1 coarse grid. 
+% We make a coarse grid defined by user_partition. 
     % Permeabilities, pore volumes and well indices are upscaled
     % For the wells, we use specific well conditions and use least squares
     % for the flux.
