@@ -28,7 +28,7 @@ trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth
 
 plotExample = false;
 rerunTrueProblemFromScratch = false;
-
+overwriteObservation = true;
 
 if rerunTrueProblemFromScratch
     clearPackedSimulatorOutput(trueProblem);
@@ -45,7 +45,7 @@ end
 
 trueQoI = WellQoIHM(...
     'wellNames', {'P1', 'P2'}, ...
-    'fldname', {'qOs', 'qWs'}, ...
+    'names', {'qOs', 'qWs'}, ...
     'cumulative', false);
 
 trueQoI = trueQoI.validateQoI(trueProblem);
@@ -59,10 +59,12 @@ observationResultHandler = trueQoI.ResultHandler;
 observationResultHandler.dataPrefix = 'observedQoI';
 
 % Add some observation noise and store output
-if numel(observationResultHandler.getValidIds) < 1
+if numel(observationResultHandler.getValidIds) < 1 || overwriteObservation
     for w = 1:numel(trueQoI.wellNames)
-        for f = 1:numel(trueQoI.fldname)
-            perturbedObservations{w}{f} = trueObservations{w}{f} + randn(size(trueObservations{w}{f}))*obsStdDev;
+        perturbedObservations(w) = trueObservations(w);
+        for f = 1:numel(trueQoI.names)
+            trueVals = trueObservations(w).(trueQoI.names{f});
+            perturbedObservations(w).(trueQoI.names{f}) = trueVals + randn(size(trueVals))*obsStdDev;
         end
     end
     observationResultHandler{1} = {perturbedObservations};
@@ -99,7 +101,7 @@ initSoSample = State0SamplesHM('data', initSoData)
 % base problem as well.
 
 qoi = WellQoIHM('wellNames', {'P1', 'P2'}, ...
-              'fldname', {'qOs', 'qWs'}, ...
+              'names', {'qOs', 'qWs'}, ...
               'observationResultHandler', observationResultHandler, ...
               'observationCov', obsStdDev^2);
 
@@ -107,7 +109,7 @@ qoi = WellQoIHM('wellNames', {'P1', 'P2'}, ...
 %% Create the ensemble
 initSoEnsemble = MRSTHistoryMatchingEnsemble(trueExample, initSoSample, qoi, ...
     'directory', fullfile(topDirectory, 'initSo'), ...
-    'simulationStrategy', 'parallel', ...
+    'simulationStrategy', 'spmd', ...
     'maxWorkers', 8, ...
     'reset', true, ...
     'verbose', true)
