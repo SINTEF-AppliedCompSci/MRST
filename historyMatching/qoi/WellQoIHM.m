@@ -173,7 +173,7 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                 end
                 if opt.labels
                     xlabel(sprintf('Time (%s)', formatTime(opt.timescale)));
-                    ylabel(sprintf('%s', qoi.fldname{opt.subCellNo}));
+                    ylabel(sprintf('%s', qoi.names{opt.subCellNo}));
                 end
             end
         end
@@ -201,23 +201,26 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
             obs = qoi.getObservationVector('vectorize', false);
             
             % Apply one scaling per field name
-            fieldScales = cell(1, numel(qoi.names));
+            fieldScales = struct();
             for f = 1:numel(qoi.names)
-                fieldScales{f} = 0.0;
+                fieldScales.(qoi.names{f}) = 0.0;
             end
             
             % Find scale values based on maximums
             for w = 1:numel(qoi.wellNames)
                 for f = 1:numel(qoi.names)
-                    fieldScales{f} = max(fieldScales{f}, max(abs(obs{w}{f}(:))));
+                    fieldScales.(qoi.names{f}) = max(fieldScales.(qoi.names{f}), ...
+                                                     max(abs(obs(w).(qoi.names{f}))));
                 end
             end
             
             for w = 1:numel(qoi.wellNames)
+                scaling(w).name = obs(w).name;
                 for f = 1:numel(qoi.names)
-                    scaling{w}{f} = ones(size(obs{w}{f}(:)))*fieldScales{f};
+                    %scaling{w}{f} = ones(size(obs{w}{f}(:)))*fieldScales{f};
+                    scaling(w).(qoi.names{f}) = ones(size(obs(w).(qoi.names{f})))*fieldScales.(qoi.names{f});
                 end
-            end
+            end 
             
             % The call to getObservationVector already extracts the correct
             % time indices, so we must avoid doing the same again here
@@ -250,7 +253,7 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                     for w = 1:numel(qoi.wellNames)
                         for f = 1:numel(qoi.names)
                             covindex = w*(numel(qoi.fldname)-1) + f;
-                            rdiag = [rdiag ; repmat(qoi.observationCov(covindex), [numel(u{w}{f}), 1])];
+                            rdiag = [rdiag ; repmat(qoi.observationCov(covindex), [numel(u(w).(qoi.names{f})), 1])];
                         end
                     end  
                 elseif numel(qoi.observationCov) == numel(qoi.names)
@@ -258,7 +261,7 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                     % fieldName
                     for w = 1:numel(qoi.wellNames)
                         for f = 1:numel(qoi.names)
-                            rdiag = [rdiag ; repmat(qoi.observationCov(f), [numel(u{w}{f}), 1])];
+                            rdiag = [rdiag ; repmat(qoi.observationCov(f), [numel(u(w).(qoi.names{f})), 1])];
                         end
                     end    
                 elseif numel(qoi.observationCov) == numObs

@@ -316,14 +316,14 @@ classdef WellQoI < BaseQoI
                     'The observation contains several wells, but the QoI is supposed to be combined values');
             end
             
-            assert(numel(u{1}) == numel(qoi.names), ...
+            assert((numel(fieldnames(u))-1) == numel(qoi.names), ...
                 'The observation does not match the number of namess in QoI');
             
             %assert(numel(u{1}{1}) >= numel(qoi.dt), ...
             %    'The qoi has too few many timesteps to match the QoI class');
             
             if ~isempty(opt.dtIndices)
-                assert(numel(u{1}{1}) >= opt.dtIndices(end), ...
+                assert(numel(u(1).(qoi.names{1})) >= opt.dtIndices(end), ...
                     'The qoi has too few elements to extract the requested dtIndices');
                 
                 u = qoi.extractTimestep(u, opt.dtIndices);
@@ -336,7 +336,7 @@ classdef WellQoI < BaseQoI
                 u_tmp = [];
                 for w = 1:numel(qoi.wellNames)
                     for f = 1:numel(qoi.names)
-                        u_tmp = cat(1, u_tmp, u{w}{f});
+                        u_tmp = cat(1, u_tmp, u(w).(qoi.names{f}));
                     end
                 end
                 u = u_tmp;
@@ -380,10 +380,9 @@ classdef WellQoI < BaseQoI
         
         %-----------------------------------------------------------------%
         function u = extractTimestep(qoi, u, dtRange)
-            % u is now u{well}{field}(time)
-            for w = 1:numel(qoi.wellNames)
-                for f = 1:numel(qoi.names)
-                    u{w}{f} = u{w}{f}(dtRange);
+           for f = 1:numel(qoi.names)
+                for w = 1:numel(u)
+                    u(w).(qoi.names{f}) = u(w).(qoi.names{f})(dtRange);
                 end
             end
         end

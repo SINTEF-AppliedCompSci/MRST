@@ -148,18 +148,12 @@ classdef BaseQoIHM
                          'plotTruth', false        , ...
                          'legend'     , {{}} );
             [opt, extra] = merge_options(opt, varargin{:});
-            [u_mean, u]  = qoi.computeMean(opt.range);
+            [u_mean, u_var, u]  = qoi.getQoIMean(opt.range);
             numQoIs      = numel(u_mean);
-            numSubQoIs   = 1;
+            numSubQoIs   = numel(fieldnames(u_mean)) - 1;
                         
-            plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u{i}, ...
-                'cellNo', i, varargin{:});
-            
-            if iscell(u_mean{1})
-                numSubQoIs = numel(u_mean{1});
-                plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u{i}{k}, ...
+            plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u(i).(qoi.names{k}), ...
                     'cellNo', i, 'subCellNo', k, varargin{:});
-            end
             
             numSamples = numel(u);
             if nargin < 2, ensemble = []; end

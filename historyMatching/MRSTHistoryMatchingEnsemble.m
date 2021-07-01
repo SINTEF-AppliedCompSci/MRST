@@ -62,6 +62,10 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
                 save(fullfile(ensemble.mainDirectory, 'ensemble.mat'), 'ensemble');
             end
             
+            % if we chose to reset and delete any old results, we need to
+            % rebuild the folder structure
+            ensemble.getIterationPath();
+            
             % Prepare ensemble
             if opt.prepareSimulation
                 ensemble.prepareEnsembleSimulation();
