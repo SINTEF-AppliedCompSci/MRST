@@ -130,7 +130,8 @@ schedule_training = simpleSchedule(user_simulation_time(user_training_time_steps
 
 [wellSols_coarse_scale,states_coarse_scale] = simulateScheduleAD(state0_coarse, model_coarse_scale, schedule_training);
 
-summary_plots = plotWellSols({wellSols_fine_scale,wellSols_coarse_scale},{schedule.step.val,schedule_training.step.val});
+summary_plots = plotWellSols({wellSols_fine_scale,wellSols_coarse_scale},{schedule.step.val,schedule_training.step.val},...
+                            'datasetnames',{'fine scale model','initial upscaled model (training data)'});
 drawnow
 
 %% Preparing parameters and scaling values for each one
@@ -141,18 +142,18 @@ SimulatorSetup = struct('model', model_coarse_scale, 'schedule', schedule_traini
 n_cells =  model_coarse_scale.G.cells.num;
 parameters = [];
 
-% Fluid Parameters
-parameters = addParameter(parameters,SimulatorSetup, 'name', 'swl','lumping',ones(n_cells,1),'boxLims',[0.00 0.5]);
-parameters = addParameter(parameters,SimulatorSetup, 'name', 'swcr','lumping',ones(n_cells,1),'boxLims',[0.0 0.5]);
-parameters = addParameter(parameters,SimulatorSetup, 'name', 'swu','lumping',ones(n_cells,1),'boxLims',[0.55 1.0]);
-parameters = addParameter(parameters,SimulatorSetup, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
-parameters = addParameter(parameters,SimulatorSetup, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
 
  % Well, porevolume and transmisibility
 parameters = addParameter(parameters,SimulatorSetup, 'name', 'conntrans','relativeLimits', [.01 4]);
 parameters = addParameter(parameters,SimulatorSetup, 'name', 'porevolume','relativeLimits', [.01 4]);
 parameters = addParameter(parameters,SimulatorSetup, 'name', 'transmissibility','relativeLimits', [.01 4]);
 
+% Fluid Parameters
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'swl','lumping',ones(n_cells,1),'boxLims',[0.00 0.5]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'swcr','lumping',ones(n_cells,1),'boxLims',[0.0 0.5]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'swu','lumping',ones(n_cells,1),'boxLims',[0.55 1.0]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'kro','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
+parameters = addParameter(parameters,SimulatorSetup, 'name', 'krw','lumping',ones(n_cells,1),'boxLims',[0.6 1.0]);
 
  %% Optimization :  History Matching
 
@@ -175,7 +176,7 @@ weighting =  {'WaterRateWeight',  (5/day)^-1, ...
 objh = @(p)evaluateMatch(p, obj, SimulatorSetup, parameters,  states_fine_scale );
 
 clf(figure(10),'reset');
-[v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'objChangeTol',  1e-3, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
+[v, p_opt, history] = unitBoxBFGS(p0_ups, objh,'objChangeTol',  1e-4, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Running the simulations to compare initial model vs calibrated model
 SimulatorSetup.schedule = simpleSchedule(user_simulation_time, 'W', WC);
