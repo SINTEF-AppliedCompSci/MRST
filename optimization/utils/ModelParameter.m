@@ -70,23 +70,13 @@ classdef ModelParameter
             end
         end
         %------------------------------------------------------------------
-        function gc = collapseGradient(p,g)
+        function g = collapseGradient(p,g)
             assert(strcmp(p.belongsTo, 'state0'),['This function is only',...
                 'intended to colapse gradients arrays from parameters that',...
                 'belongs to state0'])
             % take sum of each lump
             if ~isempty(p.lumping) && isnumeric(p.lumping)
-                if numel(p.lumping) == 1 && p.lumping==1
-                    % treat as special case (one lump)
-                    gc = sum(g);
-                else
-                    if isa(g, 'double')
-                        gc = accumarray(p.lumping,g, [], @sum);
-                    else % special treatment in case of ADI
-                        M = sparse(p.lumping, (1:numel(p.lumping))', 1);
-                        gc = (M*g);
-                    end
-                end
+                    g = accumarray(p.lumping,g, [], @sum); 
             end
         end
         %------------------------------------------------------------------
