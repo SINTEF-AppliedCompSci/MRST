@@ -59,4 +59,7 @@ function model = setAvgMPFA(model, varargin)
 
     model.FlowDiscretization = fd;
 
+    % Gravity
+    model.operators.gdz = setup_gdz(model, dp.Grad);
+
 end

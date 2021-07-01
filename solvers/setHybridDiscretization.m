@@ -66,4 +66,7 @@ function model = setHybrid(model, models, faceblocks, varargin)
 
     model.FlowDiscretization = fd;
 
+    % Gravity
+    model.operators.gdz = setup_gdz(model, dp.Grad);
+
 end
