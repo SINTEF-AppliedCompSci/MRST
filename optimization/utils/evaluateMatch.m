@@ -117,7 +117,8 @@ end
 % figure(2), plot(SimulatorSetup.model.operators.T)
 % figure(3), plot(vertcat(SimulatorSetup.schedule.control.W.WI))
 [wellSols,states] = simulateScheduleAD(SimulatorSetup.state0, SimulatorSetup.model, SimulatorSetup.schedule,...
-    'NonLinearSolver',opt.NonlinearSolver);
+    'NonLinearSolver',opt.NonlinearSolver,...
+    'Verbose',opt.Verbose);
 
 misfitVals = obj(SimulatorSetup.model, states, SimulatorSetup.schedule, states_ref, false, [],[]);
 misfitVal  = - sum(vertcat(misfitVals{:}))/objScaling ;
@@ -134,12 +135,6 @@ if nargout > 1
             end
             return
         case 'AdjointAD'
-            if SimulatorSetup.model.toleranceCNV > 1e-6
-                warning(['The accuracy in the gradient depend on the',...
-                         ' acuracy on the CNV tolerance.',...
-                         ' For better accuracy set:'...
-                          'model.toleranceCNV = 1e-6 or lower.']);
-            end
             gradient = computeSensitivitiesAdjointAD(SimulatorSetup, states, parameters, objh,...
                                                         'LinearSolver',opt.AdjointLinearSolver);            
             % do scaling of gradient

@@ -59,14 +59,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-assert(isa(SimulatorSetup.model,'GenericBlackOilModel'),... %TODO Ask for GenericReservoirModel?
+assert(isa(SimulatorSetup.model,'GenericBlackOilModel'),... 
        'The model must be derived from GenericBlackOilModel.')
-% ASK: we get gradient  for pore volume and T but not for WI ecxat gradient
-% for WI when we use the twophase flow model. Shoulw we add this in the
-% assert message. This should be a warning then righ?
+
 
 opt = struct('LinearSolver', []);
+         
 opt = merge_options(opt, varargin{:});
+%if opt.Verbose
+    dispif(SimulatorSetup.model.toleranceCNV >= 1e-3,...
+           ['\nThe accuracy in the gradient depend on the',...
+            'acuracy on the CNV tolerance.\n',...
+            'For better accuracy set a lower value for '...
+            'model.toleranceCNV. \n \n'] )
+%end
 
 getState = @(i) getStateFromInput(SimulatorSetup.schedule, states, SimulatorSetup.state0, i);
 
