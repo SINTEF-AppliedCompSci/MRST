@@ -46,7 +46,7 @@ classdef NetworkModel
                 % face number index stored
                 if Graph.Nodes.Face_Indx(Node_1)== 0                    
                     
-                    %fprintf(2,'Cell number %i, will have Well %s \n',Cell_1 ,W_in(Node_1).name); 
+                    fprintf(2,'Cell number %i, will have Well %s \n',Cell_1 ,W_in(Node_1).name); 
                         
                     First_Index =  1+(i_ed-1)*nf;  
                     Graph.Nodes.Face_Indx(Node_1) = First_Index;
@@ -69,7 +69,7 @@ classdef NetworkModel
                 % Check if the last node was already defined and has its
                 % face number index stored
                 if Graph.Nodes.Face_Indx(Node_nc) ==0
-                    %fprintf(2,'Cell number %i, will have Well %s \n',Cell_nc ,W_in(Node_nc).name);                     
+                    fprintf(2,'Cell number %i, will have Well %s \n',Cell_nc ,W_in(Node_nc).name);                     
                     Last_Index  =  (nc-1)+(i_ed-1)*nf; 
                     Graph.Nodes.Face_Indx(Node_nc) = Last_Index;
                     Graph.Nodes.Well_cells(Node_nc)= Cell_nc;
@@ -100,12 +100,21 @@ classdef NetworkModel
 %                 W_in(iw).cstatus =W_in(iw).cstatus(1) ;
 %                 W_in(iw).cell_origin =W_in(iw).cell_origin(1) ;
 %                 
-                
-                W = verticalWell(W, model.G, model.rock, model.G.cartDims(1), model.G.cartDims(2), 1, ...      
-                'Type', W_in(iw).type, 'Val', W_in(iw).val, ... %  SAIGUP model
-                'Radius',W_in(iw).r(1),'Name',W_in(iw).name,'Comp_i', W_in(iw).compi,'sign', W_in(iw).sign);
-        
-                W(iw).cells = Graph.Nodes.Well_cells(iw); %TODO: Fix the wells 
+                     W = verticalWell(W, model.G, model.rock, Graph.Nodes.Well_cells(iw),1, ...      
+                         'Type', W_in(iw).type,...
+                         'Val', W_in(iw).val, ... %  SAIGUP model
+                          'Radius',W_in(iw).r(1),...
+                          'Name',W_in(iw).name,...
+                          'Comp_i', W_in(iw).compi,...
+                          'sign', W_in(iw).sign)%,...
+                          %'refDepth',W_in(iw).refDepth);
+                      
+%                      W = addWell(W, model.G, model.rock,  Graph.Nodes.Well_cells(iw), ...      
+%                          'Type', W_in(iw).type, 'Val', W_in(iw).val, ... %  SAIGUP model
+%                           'Radius',W_in(iw).r(1),'Name',W_in(iw).name,'Comp_i', W_in(iw).compi,'sign', W_in(iw).sign);
+%                       
+
+                %W(iw).cells = Graph.Nodes.Well_cells(iw); %TODO: Fix the wells 
 
             end
             
