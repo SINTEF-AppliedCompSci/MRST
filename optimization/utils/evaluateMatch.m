@@ -26,19 +26,21 @@ function [misfitVal,varargout] = evaluateMatch(p, obj, SimulatorSetup_org,parame
 %                  effects we want to study.
 %
 %       schedule - Schedule suitable for `simulateScheduleAD`.
-%%
-%   states_ref   - Physical model states corresponding to the reference.
 %
 %   parameters   - array of parameters of class ModelParameter
+%
+%   states_ref   - Physical model states corresponding to the reference.
 %
 %
 % OPTIONAL PARAMETERS:
 %   'Gradient'       - Method to calculate the sensitivities/gradient:
 %                      'AdjointAD':        Compute parameter sensitivities
-%                       using adjoint simulation  (default)
+%                                          using adjoint simulation  (default)
+%
 %                      'PerturbationADNUM': Compute parameter sensitivities
-%                       using perturbations (first-order forward finite diferences)
-%                      'none'               Avoind computing parameters sensitivities
+%                                           using perturbations (first-order forward finite diferences)
+%
+%                      'none':              Avoind computing parameters sensitivities
 %
 %   'PerturbationSize'- small value <<1 to perturb parameter p (default = 1e-7)
 %
