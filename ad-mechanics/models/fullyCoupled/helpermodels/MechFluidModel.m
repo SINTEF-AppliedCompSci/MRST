@@ -133,7 +133,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         function [model, state] = updateForChangedControls(model, state, forces)
-            model.fluidModel = model.fluidModel.updateForChangedControls(state, forces);
+           [model.fluidModel, state] = model.fluidModel.updateForChangedControls(state, forces);
         end
 
         function state = validateState(model, state)
