@@ -120,7 +120,7 @@ classdef Network
          obj.network.Nodes.XData     = XData;
          obj.network.Nodes.YData     = YData;
          obj.network.Nodes.ZData     = ZData;
-         if any(strcmp('fd_postprocessor',{'fd_preprocessor','fd_postprocessor'}))
+         if any(strcmp(opt.type,{'fd_preprocessor','fd_postprocessor'}))
              obj.network.Edges.Transmissibility = T;  
              obj.network.Edges.PoreVolume = pv;
          end
