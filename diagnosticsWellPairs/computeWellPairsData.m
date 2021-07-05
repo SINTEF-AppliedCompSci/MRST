@@ -66,7 +66,7 @@ for step = 1 : size(states,1)
 %         if step>48
 %             lambda(step,well_pair)                    = -BFPD(step,well_pair) / (T_0(well_pair)*DP(step,well_pair));
 %         else
-            T_0(step,well_pair)                      = -BFPD(step,well_pair) / (DP(1,well_pair) ); %*mob(0)/mob(1)
+            T_0(step,well_pair)                      = -BFPD(step,well_pair) / (DP(step,well_pair) ); %*mob(0)/mob(1)
 %             lambda(1,well_pair) = 1.0 ;       
 %         end
         
