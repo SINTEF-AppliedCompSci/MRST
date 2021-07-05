@@ -29,7 +29,7 @@ markersize = 10;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%555555
  figure
 
- hs =subplot(1,2,1)
+ hs =subplot(1,2,1);
  h3 = plot(hs,tt,qw_T_ref*f_units,'.k',tt,qw_T_0*f_units,tt,qw_T_pred*f_units);
  set(h3,{'LineWidth'},{lineSize;lineSize;lineSize})
 
@@ -44,8 +44,8 @@ markersize = 10;
 
 
  
-  hs = subplot(1,2,2)
-  h4 = plot( hs,tt,-qo_T_ref*f_units,'.k',tt,-qo_T_0*f_units,tt,-qo_T_pred*f_units)
+  hs = subplot(1,2,2);
+  h4 = plot( hs,tt,-qo_T_ref*f_units,'.k',tt,-qo_T_0*f_units,tt,-qo_T_pred*f_units);
   set(h4,{'LineWidth'},{lineSize;lineSize;lineSize})
   xlabel('days'); ylabel('STB'); %ylim([0 4000])
   title('Oil production')
@@ -57,8 +57,8 @@ markersize = 10;
   figure  
   
   for i = 1:4
-      hs  = subplot(2,2,i)
-           h5 = plot(hs,tt,-qw_ref(:,i)*f_units,'.k',tt,-qw_0(:,i)*f_units,tt,-qw_pred(:,i)*f_units)
+      hs  = subplot(2,2,i);
+           h5 = plot(hs,tt,-qw_ref(:,i)*f_units,'.k',tt,-qw_0(:,i)*f_units,tt,-qw_pred(:,i)*f_units);
              set(h5,{'LineWidth'},{2;2;2})
              xlabel('days'); ylabel('STB');
              title(['Water production: producer ', num2str(i)])
@@ -70,8 +70,8 @@ markersize = 10;
   figure
   
   for i = 1:4
-     hs =  subplot(2,2,i)
-           h5 = plot( hs ,tt,-qo_ref(:,i)*f_units,'.k',tt,-qo_0(:,i)*f_units,tt,-qo_pred(:,i)*f_units)
+     hs =  subplot(2,2,i);
+           h5 = plot( hs ,tt,-qo_ref(:,i)*f_units,'.k',tt,-qo_0(:,i)*f_units,tt,-qo_pred(:,i)*f_units);
              set(h5,{'LineWidth'},{2;2;2})
              xlabel('days'); ylabel('STB');
              title(['Oil production: producer ', num2str(i)])
