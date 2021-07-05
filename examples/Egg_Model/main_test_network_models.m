@@ -12,6 +12,9 @@ W_ref        = schedule_ref.control.W;
 
 %% Creating the network
 
+%network_type = 'fd_postprocessor';
+               %'fd_preprocessor' 
+               %'all_to_all'
 % Defining a well structure with only once well cell per well, to impose a
 % Network that has only once well cell per well.
 W_ref_V2 = W_ref;
@@ -19,34 +22,47 @@ for i = 1:numel(W_ref_V2)
     W_ref_V2(i).cells = W_ref_V2(i).cells([1]);
 end
 
-ntwkr =  Network(W_ref_V2,model_ref.G,...
-                         'problem',problem,...
-                         'type','fd_postprocessor',...
-                         'flow_filter',1*stb/day,...
-                         'state_number',40);
-                     
-% Initializing parameters
-TT = ntwkr.network.Edges.Transmissibility;
-pv = ntwkr.network.Edges.PoreVolume;
+% Network derive by flow diagnostics
+% ntwkr =  Network(W_ref_V2,model_ref.G,...
+%                          'problem',problem,...
+%                          'type',network_type,...
+%                          'flow_filter',1*stb/day,...
+%                          'state_number',40);
+                      
 
-figure, subplot(1,2,1)
-ntwkr.plotNetwork('NetworkLineWidth',10*TT/max(TT))
-title('Transmissibility')
-axis off
-
-subplot(1,2,2)
-ntwkr.plotNetwork('NetworkLineWidth',10*pv/max(pv))
-title('PoreVolume')
-axis off
 
  
+network_type = 'injectors_to_producers';
+ntwkr =  Network(W_ref_V2,model_ref.G,...
+                         'injectors',[1:8],...
+                         'producers',[9:12],...
+                         'type',network_type);
+                     
 
 
+% Ploting flow-diagnostics parameters
+if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
+
+    TT = ntwkr.network.Edges.Transmissibility;
+    pv = ntwkr.network.Edges.PoreVolume;
+
+    figure, subplot(1,2,1)
+    ntwkr.plotNetwork('NetworkLineWidth',10*TT/max(TT))
+    title('Transmissibility')
+    axis off
+
+    subplot(1,2,2)
+    ntwkr.plotNetwork('NetworkLineWidth',10*pv/max(pv))
+    title('PoreVolume')
+    axis off
+else
+    ntwkr.plotNetwork()
+end
 
 %% Creatting data driven model (TODO put this section inside Network Model)
 
 L = 435;
-G = cartGrid([10, 1, 16], [L, L/5 ,L/5]*meter^3);
+G = cartGrid([10, 1, numedges(ntwkr.network)], [L, L/5 ,L/5]*meter^3);
 G = computeGeometry(G);
 
 
@@ -92,11 +108,14 @@ faces_lumping = faces_lumping(face_sub);
 
 %% Preparing parameters and scaling values for each one
 
-WellIP = vertcat(W.WI);
-Tr_boxlimits = [0.1*TT , 1.4*TT];
-Pv_boxlimits = [0.01*pv/10 , 2*pv/10];
-well_boxlimits = [ 0.01*WellIP , ...
-                  7*WellIP];
+if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
+    Tr_boxlimits = [0.1*TT , 1.4*TT];
+    Pv_boxlimits = [0.01*pv/10 , 2*pv/10];
+else
+    Tr_boxlimits = [];
+    Pv_boxlimits = [];
+end
+
                
 
 
@@ -111,9 +130,9 @@ schedule_0=schedule;
 
  prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
  parameters =  {};                          
- parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits',[.01 10]);
- parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'boxLims', Pv_boxlimits);
- parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'boxLims', Tr_boxlimits );
+ parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits',[.01 20]);
+ parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'relativeLimits', [.01 20]);
+ parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'relativeLimits', [.01 20]);
 
 
  %% Simulating the initial DD model
@@ -124,9 +143,10 @@ weighting =  {'WaterRateWeight',  (150/day)^-1, ...
  
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
- values{1} =  WellIP;
- values{2} =  pv/10;
- values{3} =  TT;
+if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
+     values{2} =  pv/10;
+     values{3} =  TT;
+end
 u = cell(size(values));
 for k = 1:numel(u)    
     u{k} = parameters{k}.scale(values{k});
@@ -144,7 +164,7 @@ p0_fd = vertcat(u{:});
   
 objh = @(p)evaluateMatch(p,obj,prob,parameters,states_ref);
 
-[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-4, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
+[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Simulating all simulation time
 schedule = simpleSchedule(dt, 'W', W);
