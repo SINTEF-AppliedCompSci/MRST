@@ -12,9 +12,8 @@ W_ref        = schedule_ref.control.W;
 
 %% Creating the network
 
-%network_type = 'fd_postprocessor';
-               %'fd_preprocessor' 
-               %'all_to_all'
+
+               
 % Defining a well structure with only once well cell per well, to impose a
 % Network that has only once well cell per well.
 W_ref_V2 = W_ref;
@@ -22,24 +21,40 @@ for i = 1:numel(W_ref_V2)
     W_ref_V2(i).cells = W_ref_V2(i).cells([1]);
 end
 
+%network_type = 'fd_postprocessor';
+%network_type = 'fd_preprocessor';
+%network_type  = 'injectors_to_producers';
+network_type = 'all_to_all';
+
 % Network derive by flow diagnostics
-% ntwkr =  Network(W_ref_V2,model_ref.G,...
-%                          'problem',problem,...
-%                          'type',network_type,...
-%                          'flow_filter',1*stb/day,...
-%                          'state_number',40);
-                      
+switch network_type
+    case 'all_to_all'
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                'type',network_type);
+    case 'injectors_to_producers'
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                 'injectors',[1:8],...
+                                 'producers',[9:12],...
+                                 'type',network_type);
+    case 'fd_preprocessor'
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                 'problem',problem,...
+                                 'type',network_type,...
+                                 'flow_filter',1*stb/day);
+    case 'fd_postprocessor'    
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                 'problem',problem,...
+                                 'type',network_type,...
+                                 'flow_filter',1*stb/day,...
+                                 'state_number',40);
+    otherwise
+        error('\nType of network: %s is not implemented\n', network_type);     
+        
+end
 
 
- 
-network_type = 'injectors_to_producers';
-ntwkr =  Network(W_ref_V2,model_ref.G,...
-                         'injectors',[1:8],...
-                         'producers',[9:12],...
-                         'type',network_type);
+
                      
-
-
 % Ploting flow-diagnostics parameters
 if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
 
@@ -143,6 +158,7 @@ weighting =  {'WaterRateWeight',  (150/day)^-1, ...
  
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
+     values{1} =  10*values{1};
 if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
      values{2} =  pv/10;
      values{3} =  TT;
