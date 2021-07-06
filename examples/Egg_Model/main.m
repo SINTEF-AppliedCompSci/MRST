@@ -106,15 +106,10 @@ schedule_0=schedule;
 
  prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
  parameters =  {};                          
-<<<<<<< HEAD
- parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits',[.01 10]);
- parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'boxLims', Pv_boxlimits);
- parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'boxLims', Tr_boxlimits );
-=======
+
  parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits',[.01 20], 'scaling', 'log');
  parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'relativeLimits', [.01 5]);
  parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'relativeLimits', [.01 200], 'scaling', 'log');
->>>>>>> New_network_model
 
 
  %% Simulating the initial DD model
