@@ -55,7 +55,7 @@ classdef WellPairNetwork
             Nodes = (1:num_nodes)';
             Nodes =  table(Nodes);
             DD.Graph.Nodes = Nodes;
-            DD.Graph.Nodes.Indx =(1:num_nodes)';%TODO % Adding a Well Index
+            DD.Graph.Nodes.Well =(1:num_nodes)';
             DD.Graph.Nodes.Type =0*(1:num_nodes)'+1; %1:= Well node,  Imaginary node := 0
             for iw = 1 : num_nodes 
                 DD.Graph.Nodes.Well_Name{iw} = DD.schedule.control(1).W(iw).name;

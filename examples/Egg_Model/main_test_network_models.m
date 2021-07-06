@@ -17,18 +17,47 @@ W_ref        = schedule_ref.control.W;
 % Network that has only once well-cell per well.
 W_ref_V2 = W_ref;
 for i = 1:numel(W_ref_V2) % TODO maybe this part should be done more systematically.
-    W_ref_V2(i).cells = W_ref_V2(i).cells([1]);
+    W_ref_V2(i).cells = W_ref_V2(i).cells([1,3,7]);
 end
 
-network_type = 'fd_postprocessor';
+%network_type = 'fd_postprocessor';
+%network_type = 'fd_preprocessor';
+network_type  = 'injectors_to_producers';
+%network_type = 'all_to_all';
 
-ntwkr =  Network(W_ref_V2,model_ref.G,...
+switch network_type
+    case 'all_to_all'
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                'type',network_type);
+    case 'injectors_to_producers'
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
                                  'type',network_type,...
+                                 'injectors',[1:8],...
+                                 'producers',[9:12]);
+    case 'fd_preprocessor'
+        % Network derive by flow diagnostics      
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                 'type',network_type,...
+                                 'problem',problem,...
+                                 'flow_filter',1*stb/day);
+    case 'fd_postprocessor'
+        % Network derive by flow diagnostics
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                  type',network_type,...
                                  'problem',problem,...
                                  'flow_filter',1*stb/day,...
                                  'state_number',40);
-                    
+    otherwise
+        error('\nType of network: %s is not implemented\n', network_type);     
+        
+end
+
+
+
+                     
 % Ploting network
+if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
+
     TT = ntwkr.network.Edges.Transmissibility;
     pv = ntwkr.network.Edges.PoreVolume;
 % Ploting network with flow-diagnostics parameters
@@ -41,7 +70,10 @@ ntwkr =  Network(W_ref_V2,model_ref.G,...
     ntwkr.plotNetwork('NetworkLineWidth',10*pv/max(pv));
     title('PoreVolume');
     axis off;
-
+else
+    ntwkr.plotNetwork()
+    axis off;
+end
 
 %% Creatting data driven model (TODO put this section inside Network Model)
 
@@ -59,9 +91,7 @@ model.gas=false;
 model.OutputStateFunctions = {};
 
 
-<<<<<<< HEAD
-model.toleranceCNV = 1e-6;
-=======
+
 obj = NetworkModel(model,10, ntwkr.network,W_ref);
 
 model = obj.model;
@@ -69,7 +99,6 @@ W     = obj.W;
 indexs.faces = obj.Graph.Edges.Face_Indices;
 indexs.cells = obj.Graph.Edges.Cell_Indices;
 
->>>>>>> New_network_model
 
 
 
@@ -92,9 +121,13 @@ faces_lumping = faces_lumping(face_sub);
 
 %% Preparing parameters and scaling values for each one
 
+if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
     Tr_boxlimits = [0.1*TT , 1.4*TT];
     Pv_boxlimits = [0.01*pv/10 , 2*pv/10];
-         
+else
+    Tr_boxlimits = [];
+    Pv_boxlimits = [];
+end            
 
 %% Prepare the model for simulation.
 
@@ -107,15 +140,9 @@ schedule_0=schedule;
 
  prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
  parameters =  {};                          
-<<<<<<< HEAD
- parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits',[.01 10]);
- parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'boxLims', Pv_boxlimits);
- parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'boxLims', Tr_boxlimits );
-=======
- parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits',[.01 20], 'scaling', 'log');
- parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'relativeLimits', [.01 5]);
- parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'relativeLimits', [.01 200], 'scaling', 'log');
->>>>>>> New_network_model
+ parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits',[.01 20]);
+ parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'relativeLimits', [.01 20]);
+ parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'relativeLimits', [.01 20]);
 
 
  %% Simulating the initial DD model
@@ -127,9 +154,10 @@ weighting =  {'WaterRateWeight',  (150/day)^-1, ...
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
      values{1} =  10*values{1};
+if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
      values{2} =  pv/10;
      values{3} =  TT;
-
+end
 u = cell(size(values));
 for k = 1:numel(u)    
     u{k} = parameters{k}.scale(values{k});
@@ -146,7 +174,6 @@ p0_fd = vertcat(u{:});
   %% Optimization
   
 objh = @(p)evaluateMatch(p,obj,prob,parameters,states_ref);
-
 
 [v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
