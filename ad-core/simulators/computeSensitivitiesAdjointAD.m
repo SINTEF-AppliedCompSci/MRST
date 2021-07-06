@@ -1,4 +1,4 @@
-function sens = computeSensitivitiesAdjointAD(SimulatorSetup, states, param, getObjective, varargin)
+function sens = computeSensitivitiesAdjointAD(setup, states, param, getObjective, varargin)
 %Compute parameter sensitivities using adjoint simulation
 %
 % SYNOPSIS:
@@ -59,22 +59,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-assert(isa(SimulatorSetup.model,'GenericBlackOilModel'),... 
+assert(isa(setup.model,'GenericBlackOilModel'),... 
        'The model must be derived from GenericBlackOilModel.')
+assert(isa(param{1}, 'ModelParameter'), ...
+        'Parameters must be initialized using ''ModelParameter''.')
 
-
-opt = struct('LinearSolver', []);
-         
+opt = struct('LinearSolver', []);       
 opt = merge_options(opt, varargin{:});
-%if opt.Verbose
-    dispif(SimulatorSetup.model.toleranceCNV >= 1e-3,...
-           ['\nThe accuracy in the gradient depend on the',...
+if mrstVerbose && setup.model.toleranceCNV >= 1e-3
+   fprintf(['The accuracy in the gradient depend on the',...
             'acuracy on the CNV tolerance.\n',...
             'For better accuracy set a lower value for '...
-            'model.toleranceCNV. \n \n'] )
-%end
+            'model.toleranceCNV.'] )
+end
 
-getState = @(i) getStateFromInput(SimulatorSetup.schedule, states, SimulatorSetup.state0, i);
+getState = @(i) getStateFromInput(setup.schedule, states, setup.state0, i);
 
 if isempty(opt.LinearSolver)
     linsolve = BackslashSolverAD();
@@ -88,22 +87,20 @@ for k = 1:numel(param)
 end
 pNames = fieldnames(sens);
 isInitStateParam = cellfun(@(p)strcmp(p.belongsTo, 'state0'), param);
-
 % inititialize parameters to ADI
-[modelParam, scheduleParam] = initModelParametersADI(SimulatorSetup, param);
+[modelParam, scheduleParam] = initModelParametersADI(setup, param(~isInitStateParam));
 % reset discretization/flow functions to account for AD-parameters
 modelParam.FlowDiscretization = [];
 modelParam.FlowPropertyFunctions = [];
 modelParam = validateModel(modelParam);
 
-
-nstep = numel(SimulatorSetup.schedule.step.val);
+nstep = numel(setup.schedule.step.val);
 lambda = [];
 nt = nstep;
 for step = nt:-1:1
     fprintf('Solving reverse mode step %d of %d\n', nt - step + 1, nt);
-    [lami, lambda]= SimulatorSetup.model.solveAdjoint(linsolve, getState, ...
-        getObjective, SimulatorSetup.schedule, lambda, step);
+    [lami, lambda]= setup.model.solveAdjoint(linsolve, getState, ...
+        getObjective, setup.schedule, lambda, step);
     eqdth = partialWRTparam(modelParam, getState, scheduleParam, step);
     for kp = 1:numel(param)
         if ~isInitStateParam(kp)
@@ -120,20 +117,20 @@ end
 % compute partial derivative of first eq wrt init state and compute
 % initial state sensitivities
 if any(isInitStateParam)
-    schedule = SimulatorSetup.schedule;
-    forces = SimulatorSetup.model.getDrivingForces(schedule.control(schedule.step.control(1)));
-    forces = merge_options(SimulatorSetup.model.getValidDrivingForces(), forces{:});
-    model = SimulatorSetup.model.validateModel(forces);
+    schedule = setup.schedule;
+    forces = setup.model.getDrivingForces(schedule.control(schedule.step.control(1)));
+    forces = merge_options(setup.model.getValidDrivingForces(), forces{:});
+    model = setup.model.validateModel(forces);
     
-    state0 = model.validateState(SimulatorSetup.state0);
+    state0 = model.validateState(setup.state0);
     % set wellSols just to make subsequent function-calls happy, sensitivities wrt wellSols doesn't make sense anyway
     state0.wellSol = states{1}.wellSol;
     dt = schedule.step.val(1);
     
     linProblem = model.getAdjointEquations(state0, states{1}, dt, forces,...
         'iteration', inf, 'reverseMode', true);
-    nms    = pNames(isInitStateParam);
-    varNms = linProblem.primaryVariables;
+    nms    = applyFunction(@lower, pNames(isInitStateParam));
+    varNms = applyFunction(@lower, linProblem.primaryVariables);
     for k = 1:numel(nms)
         kn = find(strcmp(nms{k}, varNms));
         assert(numel(kn)==1, 'Unable to match initial state parameter name %s\n', nms{k});
@@ -142,7 +139,7 @@ if any(isInitStateParam)
                 sens.(nms{k}) = sens.(nms{k}) + linProblem.equations{nl}.jac{kn}'*lami{nl};
             end
         end
-        kp = find(strcmp(nms{k}, pNames));
+        kp = strcmp(nms{k}, pNames);
         sens.(nms{k}) =  param{kp}.collapseGradient(sens.(nms{k}));
     end
 end       
@@ -166,12 +163,12 @@ if step == 1
     before = model.validateState(before);
 end
 % initialize before-state in case it contains cached properties
-before = model.getStateAD(before, false);
-
+before  = model.getStateAD(before, false);
 problem = model.getEquations(before, current, dt, forces, 'iteration', inf, 'resOnly', true);
 eqdth   = problem.equations;
 end
 %--------------------------------------------------------------------------
+
 function state = getStateFromInput(schedule, states, state0, i)
 if i == 0
     state = state0;
@@ -182,18 +179,17 @@ else
 end
 end
 %--------------------------------------------------------------------------
-function [modelParam, scheduleParam] = initModelParametersADI(SimulatorSetup, param)
-% Don't initialize params associated with state0
-ix = find(cellfun(@(x)~strcmp(x.belongsTo, 'state0'), param));
-v  = applyFunction(@(p)p.getParameterValue(SimulatorSetup), param(ix));
+
+function [modelParam, scheduleParam] = initModelParametersADI(setup, param)
+v  = applyFunction(@(p)p.getParameterValue(setup), param);
 % use same backend as problem.model
-if isfield(SimulatorSetup, 'model') && isprop(SimulatorSetup.model, 'AutoDiffBackend')
-    [v{:}] = SimulatorSetup.model.AutoDiffBackend.initVariablesAD(v{:});
+if isfield(setup, 'model') && isprop(setup.model, 'AutoDiffBackend')
+    [v{:}] = setup.model.AutoDiffBackend.initVariablesAD(v{:});
 else
     [v{:}] = initVariablesADI(v{:});
 end
 for k = 1:numel(v)
-    SimulatorSetup = param{ix(k)}.setParameterValue(SimulatorSetup, v{k});
+    setup = param{k}.setParameterValue(setup, v{k});
 end
-[modelParam, scheduleParam] = deal(SimulatorSetup.model, SimulatorSetup.schedule);
+[modelParam, scheduleParam] = deal(setup.model, setup.schedule);
 end
