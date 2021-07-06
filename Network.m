@@ -1,4 +1,4 @@
-classdef Network
+classdef Network    
    properties
       network
       G
@@ -6,6 +6,85 @@ classdef Network
    end
    methods
       function obj = Network(W,G,varargin)
+% Creates a Network  between nodes defined by all the well-cells W
+%
+% SYNOPSIS:
+%     ntwkr =  Network(W, G, 'type','all_to_all');
+%     
+%     ntwkr =  Network(W, G, 'type','injectors_to_producers',...
+%                            'injectors',[1:n_injectors],...
+%                            'producers',[n_injectors + 1: n_producer]);
+% 
+%
+%   Networks derive by flow diagnostics
+% 
+%     ntwkr =  Network(W ,G, 'type','fd_preprocessor',...
+%                            'problem',problem,...
+%                            'flow_filter',1*stb/day);
+% 
+%     ntwkr =  Network(W, G, 'type','fd_postprocessor',...
+%                            'problem',problem,...
+%                            'flow_filter',1*stb/day,...
+%                            'state_number',40);
+%
+% DESCRIPTION:
+%   Nodes are created from well-cells given W, and the edges of the graph
+%   are created depending on the type of network is required.
+%
+% REQUIRED PARAMETERS:
+%   W            - Wells to be used as nodes in the network. Each well-cell will be cosider as a node.
+%
+%   G            - Grid structure with field cells.centroids defined
+%   
+%
+% OPTIONAL PARAMETERS:
+%   'type'       - Architecture/desing of the network that specify conections between nodes:
+%                      'all_to_all':       Define edges to connect all
+%                                          nodes. Conections
+%                                          between nodes of the same well
+%                                          are not allowed.
+%
+%                      'injectors_to_producers': Defined edges only between
+%                                                nodes from injectors well-cells to  producers
+%                                                well-cells.
+%
+%                      'fd_preprocessor':  Defined edges only between
+%                                          connections discovers by Flow
+%                                          Diagnostics preprosessor.
+%
+%                      'fd_preprocessor': Defined edges only between
+%                                          connections discovers by Flow
+%                                          Diagnostics postprocessor.
+%
+%   'injectors'  - Array on indices that inticates injector wells inside
+%                   W. 
+%
+%   'producers'  - Array on indices that inticates producer wells inside
+%                   W. 
+%                   
+%   'problem'    - A single packed problem from 'packSimulationProblem'
+%
+%   'flow_filter'- Flow value use to filter all conection that has a lower 
+%                  flow allocation. This option is only used when 'type' is
+%                  set 'fd_preprocessor' or 'fd_preprocessor'. 
+%
+%   'state_number'  - Indicate the time step where to read the states to 
+%                     apply flow diagnostics. This option is only used when
+%                     'type' is set 'fd_postprocessor'. 
+%
+%   'Verbose'       - Indicate if extra output is to be printed such as
+%                       reports on how the faces are cell indices are been
+%                       assing to each conection and so on.
+% RETURNS:
+%   obj.network    - Matlab Undirected Graph
+
+
+%
+% SEE ALSO:
+% `graph`, `NetworkModel` 
+          
+          
+          
          obj.G = G;
          obj.W = W;
          opt = struct('Verbose',  mrstVerbose(),...
