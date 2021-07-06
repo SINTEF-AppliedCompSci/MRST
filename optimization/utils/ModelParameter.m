@@ -91,8 +91,9 @@ classdef ModelParameter
             end
             if ~strcmp(p.belongsTo, 'well')
                 v = getfield(setup.(p.belongsTo), p.location{:});
+                v = v(p.subset);
                 if doCollapse
-                    v = collapseLumps(v(p.subset), p.lumping);
+                    v = collapseLumps(v, p.lumping);
                 end
             else % well-parameter (assume constant over control steps)
                 v = p.getWellParameterValue(setup.schedule.control(1).W, doCollapse);
