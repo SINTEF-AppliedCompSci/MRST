@@ -1,7 +1,5 @@
-%% Simple script for validation of parameter sensitivities
-
+%% Simple script for validation of parameter sensitivities by comparing 
 mrstModule add ad-core ad-blackoil ad-props optimization spe10 deckformat
-
 
 %% Setup simple model
 nxyz = [ 10,  10,  2];
@@ -12,11 +10,10 @@ rock = getSPE10rock(1:nxyz(1), 101+(1:nxyz(2)), 1:nxyz(3));
 
 % fluid
 pRef  = 200*barsa;
-fluid = initSimpleADIFluid('phases', 'WO',... %Fluid phase
-                           'mu' , [.3, 3]*centi*poise     , ...%Viscosity
-                           'rho', [1014, 859]*kilogram/meter^3, ...%Surface density [kg/m^3]
+fluid = initSimpleADIFluid('phases', 'WO',... 
+                           'mu' , [.3, 3]*centi*poise,...
+                           'rho', [1014, 859]*kilogram/meter^3, ...
                            'n', [2 2]);
-fluid = fluid;
 fluid .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
 scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
 
@@ -24,7 +21,6 @@ c = 5e-5/barsa;
 p_ref = 200*barsa;
 fluid.bO = @(p) exp((p - p_ref)*c);
 model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
- model.OutputStateFunctions = {};
 model = imposeRelpermScaling(model, scaling{:});
 
 %% wells/schedule
@@ -48,9 +44,7 @@ schedule = simpleSchedule(rampupTimesteps(2*year, 30*day, 5), 'W', W);
 
 %% run simulation
 state0 = initState(G, W, 200*barsa, [0, 1]); 
-
-% The accuracy in the gradient depend
-% on the acuracy on the CNV tolerance
+% The accuracy in the gradient depend on the acuracy on the CNV tolerance
 model.toleranceCNV = 1e-6;
 [ws, states, r] = simulateScheduleAD(state0, model, schedule);
 
@@ -68,75 +62,63 @@ for tk = 1:numel(schedule.step.val)
     end
 end
 %% parameter options
-SimulatorSetup = struct('model', model, 'schedule', schedule, 'state0', state0);
-
-n_cells =  model.G.cells.num;
-n_faces =  length(model.operators.T);
-
+setup = struct('model', model, 'schedule', schedule, 'state0', state0);
+nc =  model.G.cells.num;
+nf =  numel(model.operators.T);
+% select configuration for sensitivity computations
+config = {...%name      include     scaling    boxlims     lumping     subset
+          'porevolume',       1,   'linear',       [],          [],    1:100
+          'conntrans',        1,   'log',          [],          [],       [] 
+          'transmissibility', 1,   'log'   ,       [],          [],       [] 
+          'swl',              1,   'linear',       [],  ones(nc,1),       []
+          'swcr',             1,   'linear',       [],  ones(nc,1),       []
+          'swu',              1,   'linear',       [],  ones(nc,1),       []
+          'sowcr',            1,   'linear',       [],  ones(nc,1),       []
+          'krw',              1,   'linear',       [],  ones(nc,1),       []
+          'kro',              1,   'linear',       [],  ones(nc,1),       []
+          'sw',               1,   'linear',   [0 .3],          [],       []  
+          'pressure'          1,   'linear',       [],          [],       []};
 parameters = [];
-
-% Fluid Parameters
-nms = {'swl', 'swcr', 'swu', 'kro', 'krw'};
-for k = 1:numel(nms)
-   parameters = addParameter(parameters, SimulatorSetup, 'name', nms{k}, 'lumping',ones(n_cells,1));
+for k = 1:size(config,1)
+    if config{k, 2} ~= 0
+        parameters = addParameter(parameters, setup, 'name',    config{k,1}, ...
+                                                     'scaling', config{k,3}, ...
+                                                     'boxLims', config{k,4}, ...
+                                                     'lumping', config{k,5}, ...
+                                                     'subset',  config{k,6});
+    end
 end
 
-% % Porevolume, well index, and transmisibility
-% parameters = addParameter(parameters, SimulatorSetup, 'name', 'porevolume','lumping',ones(n_cells,1));
-% parameters = addParameter(parameters, SimulatorSetup, 'name', 'conntrans');
-% parameters = addParameter(parameters, SimulatorSetup, 'name', 'transmissibility');
-
-
-% % % State0
-% parameters = addParameter(parameters,SimulatorSetup, 'name', 'sW','boxLims',[0 1],'lumping',ones(n_cells,1));
-% parameters = addParameter(parameters,SimulatorSetup, 'name', 'pressure','relativeLimits', [0.90 1.10],'lumping',ones(n_cells,1));
-
-%% 
-values = applyFunction(@(p)p.getParameterValue(SimulatorSetup), parameters);
-% scale values
-u = cell(size(values));
-for k = 1:numel(u)
-    u{k} = parameters{k}.scale(values{k});
-end
-u = vertcat(u{:});
-
-
-% Defining the weights to evaluate the match
+%% Setup function handle to evaluateMatch
+u = getScaledParameterVector(setup, parameters);
+% Define weights for objective
 weighting =  {'WaterRateWeight',  (300/day)^-1, ...
               'OilRateWeight',    (300/day)^-1, ...
               'BHPWeight',        (500*barsa)^-1};
           
 obj = @(model, states, schedule, states_ref1, tt, tstep, state) matchObservedOW(model, states, schedule, states_ref,...
-       'computePartials', tt, 'tstep', tstep, weighting{:}, 'state',state, 'from_states', false);   
+       'computePartials', tt, 'tstep', tstep, weighting{:}, 'state', state, 'from_states', false);   
 
-f = @(u)evaluateMatch(u, obj, SimulatorSetup ,parameters,  states_ref,...
-    'Gradient','AdjointAD');       
+f = @(u)evaluateMatch(u, obj, setup ,parameters,  states_ref, 'enforceBounds', false);       
        
 %% Check gradient in random direction and compare to numerical
-vv = [];
-gg = [];
+gp    = [];
 [v,g] = f(u);
-
-% optimal perturbation factor depends on combination of parameters 
-epsilons = 10.^(-13:-4);
-
+% optimal perturbation factor depends on combination of parameters, run
+% with a few different perturbations
+epsilons = 10.^(-(6:10));
 for fac = epsilons
-rng(0);
-du  = fac*(rand(size(u)));
-
-vp = f(u+du);       
-fprintf('\nDirectional gradient obtained by perturbation: %e\n', (vp-v)/norm(du));
-fprintf('Directional gradient obtained by adjoint:      %e\n', g'*du/norm(du));
-vv = [vv, (vp-v)/norm(du) ];
-gg = [gg, g'*du/norm(du) ];
+    rng(0);
+    du  = fac*(rand(size(u)));
+    vp = f(u+du);
+    fprintf('Directional gradient obtained by perturbation: %e\n', (vp-v)/norm(du));
+    fprintf('Directional gradient obtained by adjoint:      %e\n', g'*du/norm(du));
+    gp = [gp, (vp-v)/norm(du)]; %#ok
 end
-%% Printing and ploting values
-fprintf('Directionsl gradients values\n')
-fprintf('=======================\n')
-fprintf('Perturbation vs Adjoint\n')
-disp([vv',gg'])
+ga =  g'*du/norm(du);
+fprintf('Directional gradients\n')
+fprintf('==============================================\n')
+fprintf('Perturbation:    Relative gradient differences\n')
+fprintf('       %5.0e            %7.2e         \n', [epsilons; abs(ga-gp)/abs(ga)])
 
-figure, semilogx(epsilons,vv,epsilons,gg);
-legend('Perturbation','Adjoint')
-xlabel('Perturbation size')
-ylabel('Directional gradient')
+
