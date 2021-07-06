@@ -7,26 +7,28 @@ classdef ModelParameter
         scaling       = 'linear'    % 'linear'/'log'
         referenceValue              % parameter reference values (used for type 'multiplier') 
         belongsTo                   % model/well/state0
-        location                    % e.g., {'operators', 'T'}
-        n                           % number of parameters
+        location                    % e.g., {'model', 'operators', 'T'}
+        nParam                      % number of parameters
         lumping                     % parameter lumping vector (partition vector) 
         setfun                      % possibly custom set-function (default is setfield)
+        scalingBase = nan;
     end
     
     methods
-        function p = ModelParameter(SimulatorSetup, varargin)
+        function p = ModelParameter(setup, varargin)
             [p, extra] = merge_options(p, varargin{:});
             assert(~isempty(p.name), 'Parameter name can''t be defaulted');
             if isempty(p.belongsTo) || isempty(p.location) 
-                p = setupByName(p, SimulatorSetup);
+                p = setupByName(p, setup);
             end
             opt = struct('relativeLimits', [.5 2]);
             opt = merge_options(opt, extra{:});
-            p   = setupDefaults(p, SimulatorSetup, opt);
+            p   = setupDefaults(p, setup, opt);
             if isempty(p.setfun)
                 % use default
                 p.setfun = @(obj, loc, v)setfield(obj, loc{:}, v);
             end
+            checkSetup(p, setup);
         end
         %------------------------------------------------------------------
         function vs = scale(p, pval)
@@ -34,22 +36,23 @@ classdef ModelParameter
             if strcmp(p.type, 'multiplier')
                 pval = pval./p.referenceValue;
             end
-            if strcmp(p.scaling, 'linear')
-                vs = (pval-p.boxLims(:,1))./diff(p.boxLims, [], 2);
+            vs = (pval-p.boxLims(:,1))./diff(p.boxLims, [], 2);
+            if strcmp(p.scaling, 'exp')
+                vs = expScale(vs, p);
             elseif strcmp(p.scaling, 'log')
-                logLims = log(p.boxLims);
-                vs = (log(pval)-logLims(:,1))./diff(logLims, [], 2);
+                vs = logScale(vs, p);
             end
         end
         %------------------------------------------------------------------
         function pval = unscale(p, vs)
             % retrieve parameter pval from "control"-vector v \in [0,1]
-            if strcmp(p.scaling, 'linear')
-                pval = vs.*diff(p.boxLims, [], 2) + p.boxLims(:,1);
+            pval = vs;
+            if strcmp(p.scaling, 'exp')
+                pval = logScale(pval, p);
             elseif strcmp(p.scaling, 'log')
-                logLims = log(p.boxLims);
-                pval = exp(vs.*diff(logLims, [], 2) + logLims(:,1));
+                pval = expScale(pval, p);
             end
+            pval = pval.*diff(p.boxLims, [], 2) + p.boxLims(:,1);
             if strcmp(p.type, 'multiplier')
                 pval = pval.*p.referenceValue;
             end
@@ -58,58 +61,68 @@ classdef ModelParameter
         function gs = scaleGradient(p, g, pval)
             % map gradient wrt param to gradient vs "control"-vector
             % parameter value pval only needed for log-scalings
-            %g = collapseLumps(g, p.lumping, 'sum');
-            if strcmp(p.scaling, 'linear')
-                if strcmp(p.type, 'value')
-                    gs = g.*diff(p.boxLims, [], 2);
-                elseif strcmp(p.type, 'multiplier')
-                    gs = (g.*p.referenceValue).*diff(p.boxLims, [], 2);
+            gs = g.*diff(p.boxLims, [], 2);
+            if ~strcmp(p.scaling, 'linear')
+                tmp = (pval-p.boxLims(:,1))./diff(p.boxLims, [], 2);
+                if strcmp(p.scaling, 'exp')
+                    gs = gs./dExpScale(tmp, p);
+                elseif(strcmp(p.scaling, 'log'))
+                    gs = gs./dLogScale(tmp, p);
                 end
-            elseif strcmp(p.scaling, 'log')
-                gs = (g.*pval).*diff(log(p.boxLims), [], 2);
+            end
+            if strcmp(p.type, 'multiplier')
+                gs = gs.*p.referenceValue;
             end
         end
         %------------------------------------------------------------------
-        function g = collapseGradient(p,g)
+        function g = collapseGradient(p, g)
             assert(strcmp(p.belongsTo, 'state0'),['This function is only',...
-                'intended to colapse gradients arrays from parameters that',...
+                'intended to collapse gradient arrays from parameters that',...
                 'belongs to state0'])
             % take sum of each lump
             if ~isempty(p.lumping) && isnumeric(p.lumping)
-                    g = accumarray(p.lumping,g, [], @sum); 
+                g = accumarray(p.lumping, g, [], @sum); 
             end
         end
         %------------------------------------------------------------------
-        function v = getParameterValue(p, SimulatorSetup)
+        function v = getParameterValue(p, setup, doCollapse)
+            if nargin < 3
+                doCollapse = true;
+            end
             if ~strcmp(p.belongsTo, 'well')
-                v = getfield(SimulatorSetup.(p.belongsTo), p.location{:});
-                v = collapseLumps(v(p.subset), p.lumping);
+                v = getfield(setup.(p.belongsTo), p.location{:});
+                if doCollapse
+                    v = collapseLumps(v(p.subset), p.lumping);
+                end
             else % well-parameter (assume constant over control steps)
-                v = p.getWellParameterValue(SimulatorSetup.schedule.control(1).W);
+                v = p.getWellParameterValue(setup.schedule.control(1).W, doCollapse);
             end
         end
         %------------------------------------------------------------------       
-        function SimulatorSetup = setParameterValue(p, SimulatorSetup, v)
+        function setup = setParameterValue(p, setup, v)
             if ~strcmp(p.belongsTo, 'well')
                 v  = expandLumps(v, p.lumping);
                 if isnumeric(p.subset)
-                    tmp = getfield(SimulatorSetup.(p.belongsTo), p.location{:});
+                    tmp = getfield(setup.(p.belongsTo), p.location{:});
                     v   = setSubset(tmp, v, p.subset);
                 end
-                SimulatorSetup.(p.belongsTo) = ...
-                    p.setfun(SimulatorSetup.(p.belongsTo), p.location, v);
+                setup.(p.belongsTo) = ...
+                    p.setfun(setup.(p.belongsTo), p.location, v);
             else % well-parameter (assume constant over control steps)
-                for k = 1:numel(SimulatorSetup.schedule.control)
-                    SimulatorSetup.schedule.control(k).W = ...
-                        p.setWellParameterValue(SimulatorSetup.schedule.control(k).W, v);
+                for k = 1:numel(setup.schedule.control)
+                    setup.schedule.control(k).W = ...
+                        p.setWellParameterValue(setup.schedule.control(k).W, v);
                 end
             end
         end
         %------------------------------------------------------------------       
-        function v = getWellParameterValue(p, W)
+        function v = getWellParameterValue(p, W, doCollapse)
+            if nargin < 3
+                doCollapse = true;
+            end
             assert(strcmp(p.belongsTo, 'well'))
             v = applyFunction(@(x)getfield(x, p.location{:}), W(p.subset));
-            if iscell(p.lumping)
+            if doCollapse && iscell(p.lumping)
                 v = applyFunction(@(vi,lump)collapseLumps(vi, lump), v, p.lumping);
             end
             v = vertcat(v{:});
@@ -131,9 +144,9 @@ classdef ModelParameter
             end
         end
         %------------------------------------------------------------------       
-        function m = getMultiplerValue(p, SimulatorSetup, doLump)
+        function m = getMultiplerValue(p, setup, doLump)
             if strcmp(p.type, 'multiplier')
-                m = p.getParameterValue(SimulatorSetup)./p.referenceValue;
+                m = p.getParameterValue(setup)./p.referenceValue;
                 if nargin == 3 && doLump
                     m = collapseLumps(p, m, @mean);
                 end
@@ -146,8 +159,7 @@ end
 
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
-
-function p = setupDefaults(p, SimulatorSetup, opt)
+function p = setupDefaults(p, setup, opt)
 % Make sure setup makes sense and add boxLims if not provided
 rlim  = opt.relativeLimits;
 range = @(x)[min(min(x)), max(max(x))];
@@ -164,12 +176,12 @@ if strcmp(p.belongsTo, 'well') && isempty(p.lumping)
     if ~ischar(p.subset)
         nw = numel(p.subset);
     else
-        nw = numel(SimulatorSetup.schedule.control(1).W);
+        nw = numel(setup.schedule.control(1).W);
     end
     p.lumping = cell(nw, 1);
 end
-v    = getParameterValue(p, SimulatorSetup);
-p.n  = numel(v);
+v    = getParameterValue(p, setup);
+p.nParam  = numel(v);
 
 if isempty(p.boxLims)
     if strcmp(p.type, 'value')
@@ -177,15 +189,20 @@ if isempty(p.boxLims)
     else
         p.boxLims = rlim;
     end
+    % special treatment of saturations
+    if any(strcmp(p.name, {'sw', 'sg'}))
+         p.boxLims = [0, 1];
+    end
 end
 
-assert(any(size(p.boxLims,1) == [1, p.n]), ...
+assert(any(size(p.boxLims,1) == [1, p.nParam]), ...
     'Property ''boxLims'' does not match number of parameters');
 
 if strcmp(p.type, 'multiplier')
     p.referenceValue = v;
 end
 end
+
 %--------------------------------------------------------------------------
 function p = setupByName(p, SimulatorSetup)
 % setup for typical parameters
@@ -237,8 +254,8 @@ if isempty(p.setfun) && ~isempty(setfun)
     p.setfun = setfun;
 end
 end
-%--------------------------------------------------------------------------            
 
+%--------------------------------------------------------------------------            
 function map = getScalerMap()
 phOpts = {'w', 'ow', 'g', 'og'};
 kw  = struct('SWL',   [1,1], 'SWCR',  [1,2], 'SWU', [1,3], ...
@@ -247,33 +264,28 @@ kw  = struct('SWL',   [1,1], 'SWCR',  [1,2], 'SWU', [1,3], ...
              'KRW',   [1,4], 'KRO',   [2,4], 'KRG', [3,4]);
 map = struct('ph', {phOpts}, 'kw', kw);
 end
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function v = collapseLumps(v, lumps)
 % take mean of each lump
 if ~isempty(lumps) && isnumeric(lumps)
-    if numel(lumps) == 1 && lumps==1
-        % treat as special case (one lump)
-        v = sum(v)/numelValue(v);
-    else
-        if isa(v, 'double')
-            v = accumarray(lumps,v, [], @mean);
-        else % special treatment in case of ADI
-            M = sparse(lumps, (1:numel(lumps))', 1);
-            v = (M*v)./sum(M,2);
-        end
+    if isa(v, 'double')
+        v = accumarray(lumps, v, [], @mean);
+    else % special treatment in case of ADI
+        M = sparse(lumps, (1:numel(lumps))', 1);
+        v = (M*v)./sum(M,2);
     end
 end
 end
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function v = expandLumps(v, lumps)
 if ~isempty(lumps) && isnumeric(lumps)
     v = v(lumps);
 end
 end
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 function v = setSubset(v, vi, sub)
 if isa(vi, 'ADI')
     v = double2ADI(v, vi);
@@ -281,7 +293,27 @@ end
 v(sub) = vi;
 end
 
-%--------------------------------------------------------------------------       
+%--------------------------------------------------------------------------
+function checkSetup(p, setup)
+% check lumping/subset
+if ~strcmp(p.belongsTo, 'well')
+    if ~isempty(p.lumping)
+        tmp = p.getParameterValue(setup, false);
+        assert(numel(p.lumping) == numel(tmp));
+        assert(all(tmp >= p.boxLims(:,1) & tmp <= p.boxLims(:,2)))
+    end
+else
+    W = setup.schedule.control(1).W(p.subset);
+    for k = 1:numel(W)
+        if ~isempty(p.lumping{k})
+            tmp = p.getWellParameter(W(k), setup);
+            assert(numel(p.lumping{k}) == numel(tmp));
+        end
+    end
+end
+end
+
+%--------------------------------------------------------------------------    
 function model = setPermeabilityFun(model, location, v)
 % utility for setting permx/y/z possibly as AD and include effect on
 % transmissibilities
@@ -313,7 +345,7 @@ else
 end
 end
 
-%--------------------------------------------------------------------------       
+%--------------------------------------------------------------------------    
 function state = setSaturationFun(state, location, v, oix)
 assert(isa(v, 'double'), 'Setting saturation to class %s is not supported', class(v));
 pix = location{end}{end};
@@ -322,7 +354,7 @@ state.s(:, pix) = v;
 state.s(:, oix) =  state.s(:, oix) - ds;
 end
 
-%--------------------------------------------------------------------------       
+%--------------------------------------------------------------------------   
 function model = setRelPermScalersFun(model, location, v)
 if ~isa(v, 'ADI')
     model = setfield(model, location{:}, v);
@@ -340,8 +372,8 @@ else
     model.rock.krscale.drainage = d;
 end
 end
-       
 
+%--------------------------------------------------------------------------          
 function ti = perm2directionalTrans(model, p, cdir)
 % special utility function for calculating transmissibility along coordinate direction cdir
 % In particular:
@@ -361,4 +393,34 @@ if isa(p, 'ADI')
 end
 end
 
+%--------------------------------------------------------------------------       
+function vs = expScale(v, p)
+base = getScalingBase(p);
+vs = (base.^v - 1)./(base - 1);
+end
 
+%--------------------------------------------------------------------------       
+function ds = dExpScale(v, p)
+base = getScalingBase(p);
+ds = (base.^v).*(log(base)./(base - 1));
+end
+
+%--------------------------------------------------------------------------       
+function vs = logScale(v, p)
+base = getScalingBase(p);
+vs = log((base-1).*v+1)./log(base);
+end
+
+%--------------------------------------------------------------------------       
+function ds = dLogScale(v, p)
+base = getScalingBase(p);
+ds = (base-1)./( ((base-1).*v+1).*log(base) );
+end
+
+%--------------------------------------------------------------------------     
+function base = getScalingBase(p)
+base = p.scalingBase;
+if isnan(base)
+    base = p.boxLims(:,2)./p.boxLims(:,1);
+end
+end
