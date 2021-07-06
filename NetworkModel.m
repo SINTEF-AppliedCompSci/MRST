@@ -11,7 +11,45 @@ classdef NetworkModel
     
     methods
         function obj = NetworkModel(model,nc,Graph,W_in,varargin)
-            
+% Creates a NetworkModel 
+%
+% SYNOPSIS:
+%     ntwkr =  NetworkModel(model,10, ntwkr.network,W_ref);
+%     
+%
+% DESCRIPTION:
+% A network model is created inside model given the Graph
+%
+% REQUIRED PARAMETERS:
+%   model        - Model class created from GenericBlackOilModel
+%
+%   nc           - Number of cell on each conection. TODO: Make it optional
+%                                                    parameter
+%
+%   Graph        - Graph conatining the network elements Nodes and Edges
+%                  created by Network.m
+%
+%  W_in          - Well structure corresponding with the full phisics model
+%   
+%
+% OPTIONAL PARAMETERS:
+%
+%   'Verbose'       - Indicate if extra output is to be printed such as
+%                       reports on how the faces are cell indices are been
+%                       assing to each conection and so on.
+% RETURNS:
+%   obj.model    - Model with zero transmisibility to horizontal faces and
+%                  non neirboring conection
+%
+%   obj.W        - Converted  W_in for the new grid/model 
+%
+%   obj.indexs   - Structure containing the cell indices and faces indices
+%                  for each conection/edge in Graph. This are using as
+%                  lumping parameters inside ModelParameter Class
+%
+% SEE ALSO:
+% `graph`, `Network`             
+
             opt = struct('Verbose',  mrstVerbose());                   
             opt = merge_options(opt, varargin{:});
           
