@@ -10,39 +10,61 @@ states_ref   = states;
 schedule_ref = schedule;
 W_ref        = schedule_ref.control.W;
 
-%%  Compute diagnostics 
+%% Creating the network
 
- DD = WellPairNetwork(model_ref,schedule_ref,states_ref,state,wellSols_ref);
- DD =  DD.filter_wps(1*stb/day);
- DD.plotWellPairConnections()
- DD.plotWellPairsData('subplot',[4,4])
- 
- 
- 
- % Initializing parameters
- for i =  1:numel(DD.wps)
-    pv(i) = DD.wps{i}.volume;
-    TT(i) = DD.wps{i}.Tr;
+              
+% Defining a well structure with only once well cell per well, to impose a
+% Network that has only once well-cell per well.
+W_ref_V2 = W_ref;
+for i = 1:numel(W_ref_V2) % TODO maybe this part should be done more systematically.
+    W_ref_V2(i).cells = W_ref_V2(i).cells([1]);
 end
 
-%% Creatting data driven model
+network_type = 'fd_postprocessor';
+
+ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                 'type',network_type,...
+                                 'problem',problem,...
+                                 'flow_filter',1*stb/day,...
+                                 'state_number',40);
+                    
+% Ploting network
+    TT = ntwkr.network.Edges.Transmissibility;
+    pv = ntwkr.network.Edges.PoreVolume;
+% Ploting network with flow-diagnostics parameters
+    figure, subplot(1,2,1);
+    ntwkr.plotNetwork('NetworkLineWidth',10*TT/max(TT));
+    title('Transmissibility');
+    axis off
+
+    subplot(1,2,2);
+    ntwkr.plotNetwork('NetworkLineWidth',10*pv/max(pv));
+    title('PoreVolume');
+    axis off;
+
+
+%% Creatting data driven model (TODO put this section inside Network Model)
 
 L = 435;
-G = cartGrid([10, 1, 16], [L, L/5 ,L/5]*meter^3);
+G = cartGrid([10, 1, numedges(ntwkr.network)], [L, L/5 ,L/5]*meter^3);
 G = computeGeometry(G);
 
 
 fluid =  model_ref.fluid;
-rock = makeRock(G, 1000*milli*darcy, 0.1);
+rock = makeRock(G, 200*milli*darcy, 0.1);
 
 gravity off
 model = GenericBlackOilModel(G, rock, fluid);
 model.gas=false;
 model.OutputStateFunctions = {};
 
- 
-[model,W,indexs] = createDDmodel_1(model,10,DD.Graph,W_ref);
 
+obj = NetworkModel(model,10, ntwkr.network,W_ref);
+
+model = obj.model;
+W     = obj.W;
+indexs.faces = obj.Graph.Edges.Face_Indices;
+indexs.cells = obj.Graph.Edges.Cell_Indices;
 
 
 
@@ -61,26 +83,14 @@ cell_sub = find(~isnan(cell_lumping));
 cell_lumping = cell_lumping(cell_sub);
 face_sub = find(~isnan(faces_lumping));
 faces_lumping = faces_lumping(face_sub);
+
+
+
 %% Preparing parameters and scaling values for each one
 
-WellIP = [];
-well_index = []; 
-levels = 1;   
-well_index_2 = {};
-for  i = 1:numel(W)
-    for l = 1 : levels
-        well_index = [well_index; i,l];
-    end
-    WellIP = [WellIP; W(i).WI(1)];
-end
-
-
-Tr_boxlimits = [0.1*TT ; 1.4*TT]';
-Pv_boxlimits = [0.01*pv/10 ; 2*pv/10]';
-well_boxlimits = [ 0.01*WellIP , ...
-                  7*WellIP];
-               
-
+    Tr_boxlimits = [0.1*TT , 1.4*TT];
+    Pv_boxlimits = [0.01*pv/10 , 2*pv/10];
+         
 
 %% Prepare the model for simulation.
 
@@ -91,12 +101,11 @@ schedule = simpleSchedule(dt(1:40), 'W', W);
 schedule_0=schedule;
 
 
-
  prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
  parameters =  {};                          
- parameters{1} = ModelParameter_V2(prob, 'name', 'conntrans','relativeLimits',[.01 10]);
- parameters{2} = ModelParameter_V2(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'boxLims', Pv_boxlimits);
- parameters{3} = ModelParameter_V2(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'boxLims', Tr_boxlimits );
+ parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits',[.01 20], 'scaling', 'log');
+ parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'relativeLimits', [.01 5]);
+ parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'relativeLimits', [.01 200], 'scaling', 'log');
 
 
  %% Simulating the initial DD model
@@ -107,9 +116,10 @@ weighting =  {'WaterRateWeight',  (150/day)^-1, ...
  
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
- values{1} =  WellIP;
- values{2} =  pv'/10;
- values{3} =  TT';
+     values{1} =  10*values{1};
+     values{2} =  pv/10;
+     values{3} =  TT;
+
 u = cell(size(values));
 for k = 1:numel(u)    
     u{k} = parameters{k}.scale(values{k});
@@ -119,24 +129,22 @@ p0_fd = vertcat(u{:});
   obj = @(model, states, schedule, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule, states_ref,...
             'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
        
- [misfitVal_0,gradient,wellSols_0,states_0] = evaluateMatch_simple_V2(p0_fd,obj,state0,model,schedule_0,1,parameters, states_ref);          
+ [misfitVal_0,~,wellSols_0,states_0] = evaluateMatch(p0_fd,obj,prob,parameters, states_ref,'Gradient','none');          
  
  plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,schedule_0.step.val})
   
   %% Optimization
   
-obj_scaling     = abs(misfitVal_0);      % objective scaling  
-objh = @(p)evaluateMatch_simple_V2(p,obj,state0,model,schedule_0,obj_scaling,parameters,states_ref);
+objh = @(p)evaluateMatch(p,obj,prob,parameters,states_ref);
 
-[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'gradTol',             1e-2, ...
-                                              'objChangeTol',        0.5e-3);
+[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Simulating all simulation time
- schedule = simpleSchedule(dt, 'W', W);
+schedule = simpleSchedule(dt, 'W', W);
+prob.schedule = schedule;
  
- [misfitVal_opt,gradient_opt,wellSols_opt] = evaluateMatch_simple_V2(p_opt,obj,state0,model,schedule,obj_scaling,parameters, states_ref);
-
- [misfitVal_0,gradient_0,wellSols_0] = evaluateMatch_simple_V2(p0_fd,obj,state0,model,schedule,obj_scaling,parameters, states_ref);
+ [~,~,wellSols_opt] = evaluateMatch(p_opt,obj,prob,parameters, states_ref,'Gradient','none');
+ [~,~,wellSols_0] = evaluateMatch(p0_fd,obj,prob,parameters, states_ref,'Gradient','none');
 
 
 plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,schedule.step.val,schedule.step.val})
