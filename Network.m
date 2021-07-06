@@ -17,6 +17,7 @@ classdef Network
                       'state_number',[]);                   
          opt = merge_options(opt, varargin{:});
          
+         
          if ~isempty(opt.injectors)&&~isempty(opt.producers)
             opt.type = 'injectors_to_producers';            
          end
@@ -37,7 +38,7 @@ classdef Network
                  Well(node,1)      = iw ;
                  SubWell(node,1)   = iw_cell;
                  Well_name{node,1} = W(iw).name;
-                 Well_cell{node,1} = NaN;
+                 Well_cells{node,1} = [];
                  Type(node,1)      = 1;
                  cell_number       = W(iw).cells(iw_cell);
                  XData(node,1)     = obj.G.cells.centroids(cell_number,1);
@@ -71,7 +72,9 @@ classdef Network
                       end 
                      A(iA_row,conections) = 1;
                  end                 
-             case {'fd_preprocessor','fd_postprocessor'}
+             case {'fd_preprocessor','fd_postprocessor'}                 
+                 assert(all(nW_cells==1),['Flow Diagnostics analisys to multiple conections',...
+                                          ' between wells is not yet supported.'])
                  if strcmp(opt.type,'fd_preprocessor')
                      state = [];
                      pressure_field = 'pressure';
@@ -82,7 +85,8 @@ classdef Network
                      state = states{opt.state_number};
                      pressure_field = 'bhp';
                  end
-                 % TODO what happens with more controls in the schedule
+                 % TODO need more work in case with more controls in the
+                 % schedule
                  [state, diagnostics] = computePressureAndDiagnostics(opt.problem.SimulatorSetup.model,...
                      'wells', opt.problem.SimulatorSetup.schedule.control(1).W,...
                      'state',state);
@@ -116,7 +120,7 @@ classdef Network
          obj.network.Nodes.SubWell   = SubWell;
          obj.network.Nodes.Type      = Type;
          obj.network.Nodes.Well_name = Well_name;
-         obj.network.Nodes.Well_cell = Well_cell;
+         obj.network.Nodes.Well_cells = Well_cells;
          obj.network.Nodes.XData     = XData;
          obj.network.Nodes.YData     = YData;
          obj.network.Nodes.ZData     = ZData;
