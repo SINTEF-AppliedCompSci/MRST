@@ -78,6 +78,7 @@ params = addParameter(params,setup, 'name', 'conntrans',       'relativeLimits',
 params = addParameter(params,setup, 'name', 'porevolume',      'relativeLimits', [.5  2]);
 params = addParameter(params,setup, 'name', 'transmissibility','relativeLimits', [.25 4], 'scaling', 'log');
 % Rel-perm scalers
+params = addParameter(params,setup, 'name', 'swl',  'boxLims',[0.0 0.2]);
 params = addParameter(params,setup, 'name', 'swcr', 'boxLims',[0.0 0.2]);
 params = addParameter(params,setup, 'name', 'sowcr','boxLims',[0.0 0.2]);
 params = addParameter(params,setup, 'name', 'swu',  'boxLims',[0.8 1.0]);
@@ -88,9 +89,9 @@ params = addParameter(params,setup, 'name', 'krw',  'boxLims',[0.8 1]);
 %% Coarse model tuning
 p0 = getScaledParameterVector(setup, params);
 % Weight production rates/bhp relative to their magnitudes
-weighting =  {'WaterRateWeight',  (10/day)^-1, ...
-              'OilRateWeight',    (10/day)^-1,...
-              'BHPWeight',        (10*barsa)^-1};            
+weighting =  {'WaterRateWeight',  (5/day)^-1, ...
+              'OilRateWeight',    (5/day)^-1,...
+              'BHPWeight',        (5*barsa)^-1};            
 % define objective
 obj = @(model, states, schedule, states_ref, doPartials, tstep, state)...
     matchObservedOW(model, states, schedule, states_ref, ...
