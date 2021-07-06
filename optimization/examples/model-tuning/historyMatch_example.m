@@ -32,7 +32,7 @@ user_partition = [3,3,2];
 % Two injectors and two producers are
 % placed in the corner at diferent depths.
 
-[model_fine_scale, W, state0] = simpleModelForHMExample();
+[model_fine_scale, W, state0] = simpleModelForTuningExample();
  model_fine_scale.gas=false;
  model_fine_scale.OutputStateFunctions = {};
  model_fine_scale = model_fine_scale.validateModel();

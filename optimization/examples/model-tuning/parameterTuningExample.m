@@ -21,7 +21,7 @@ partition      = [3,3,2];
 % We make a small model that consists of two different facies with
 % contrasting petrophysical properties. Two injectors and two producers are
 % placed in the corner at diferent depths.
-[model_f, W, state0] = simpleModelForHMExample();
+[model_f, W, state0] = simpleModelForTuningExample();
 
 figure(1), clf, subplot(1,2,1)
 plotCellData(model_f.G,model_f.rock.poro,'EdgeAlpha',.5); view(3);
