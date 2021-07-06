@@ -12,39 +12,39 @@ W_ref        = schedule_ref.control.W;
 
 %% Creating the network
 
-
-               
+              
 % Defining a well structure with only once well cell per well, to impose a
-% Network that has only once well cell per well.
+% Network that has only once well-cell per well.
 W_ref_V2 = W_ref;
-for i = 1:numel(W_ref_V2)
-    W_ref_V2(i).cells = W_ref_V2(i).cells([1]);
+for i = 1:numel(W_ref_V2) % TODO maybe this part should be done more systematically.
+    W_ref_V2(i).cells = W_ref_V2(i).cells([1,3,7]);
 end
 
 %network_type = 'fd_postprocessor';
 %network_type = 'fd_preprocessor';
-%network_type  = 'injectors_to_producers';
-network_type = 'all_to_all';
+network_type  = 'injectors_to_producers';
+%network_type = 'all_to_all';
 
-% Network derive by flow diagnostics
 switch network_type
     case 'all_to_all'
         ntwkr =  Network(W_ref_V2,model_ref.G,...
                                 'type',network_type);
     case 'injectors_to_producers'
         ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                 'type',network_type,...
                                  'injectors',[1:8],...
-                                 'producers',[9:12],...
-                                 'type',network_type);
+                                 'producers',[9:12]);
     case 'fd_preprocessor'
+        % Network derive by flow diagnostics      
         ntwkr =  Network(W_ref_V2,model_ref.G,...
-                                 'problem',problem,...
                                  'type',network_type,...
+                                 'problem',problem,...
                                  'flow_filter',1*stb/day);
-    case 'fd_postprocessor'    
+    case 'fd_postprocessor'
+        % Network derive by flow diagnostics
         ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                  type',network_type,...
                                  'problem',problem,...
-                                 'type',network_type,...
                                  'flow_filter',1*stb/day,...
                                  'state_number',40);
     otherwise
@@ -55,23 +55,24 @@ end
 
 
                      
-% Ploting flow-diagnostics parameters
+% Ploting network
 if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
 
     TT = ntwkr.network.Edges.Transmissibility;
     pv = ntwkr.network.Edges.PoreVolume;
-
-    figure, subplot(1,2,1)
-    ntwkr.plotNetwork('NetworkLineWidth',10*TT/max(TT))
-    title('Transmissibility')
+% Ploting network with flow-diagnostics parameters
+    figure, subplot(1,2,1);
+    ntwkr.plotNetwork('NetworkLineWidth',10*TT/max(TT));
+    title('Transmissibility');
     axis off
 
-    subplot(1,2,2)
-    ntwkr.plotNetwork('NetworkLineWidth',10*pv/max(pv))
-    title('PoreVolume')
-    axis off
+    subplot(1,2,2);
+    ntwkr.plotNetwork('NetworkLineWidth',10*pv/max(pv));
+    title('PoreVolume');
+    axis off;
 else
     ntwkr.plotNetwork()
+    axis off;
 end
 
 %% Creatting data driven model (TODO put this section inside Network Model)
@@ -90,9 +91,6 @@ model.gas=false;
 model.OutputStateFunctions = {};
 
 
-
-%%
-%[model,W,indexs] = createDDmodel_1(model,10,DD.Graph,W_ref);
 
 obj = NetworkModel(model,10, ntwkr.network,W_ref);
 
@@ -129,10 +127,7 @@ if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
 else
     Tr_boxlimits = [];
     Pv_boxlimits = [];
-end
-
-               
-
+end            
 
 %% Prepare the model for simulation.
 
