@@ -59,9 +59,9 @@ model.gas=false;
 model.OutputStateFunctions = {};
 
 
-<<<<<<< HEAD
+
 model.toleranceCNV = 1e-6;
-=======
+
 obj = NetworkModel(model,10, ntwkr.network,W_ref);
 
 model = obj.model;
@@ -69,7 +69,6 @@ W     = obj.W;
 indexs.faces = obj.Graph.Edges.Face_Indices;
 indexs.cells = obj.Graph.Edges.Cell_Indices;
 
->>>>>>> New_network_model
 
 
 
