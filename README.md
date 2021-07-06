@@ -13,12 +13,13 @@
 
 * These examples follows steps:
     * Settup and simulate a full resolution resorvior model
-    * Build a network of flowpath base of flow diagnostics
-    * Create the create the ddmodel 
+    * Build a network
+    * Create the create the network-model 
     * Settup parameter and scaling values for the control variables
     * Run initial model
-    * Optimize
+    * Calibrate
 
     
 ### Overview  of the main classes 
-    * Network 
+    * Network: here we create the network and defined the conections between nodes
+    * NetworkModel: here we create the MRST model asociated to a given network
