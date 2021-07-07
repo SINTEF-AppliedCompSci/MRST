@@ -21,7 +21,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 opt.do_patch=false;
-opt=merge_options(opt,varargin{:})
+opt=merge_options(opt,varargin{:});
 
 if(G.griddim==2)
     lindim=3;
