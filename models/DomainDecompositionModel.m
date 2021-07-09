@@ -117,6 +117,7 @@ classdef DomainDecompositionModel < WrapperModel
                                           varargin{:}                    );
             problem.iterationNo   = iteration;
             problem.drivingForces = drivingForces;
+            state = model.reduceState(problem.state, true);
             % Check convergence
             [convergence, values, resnames] = model.parentModel.checkConvergence(problem);
             if problem.iterationNo > 3 && model.acceptanceFactor > 1
@@ -261,14 +262,12 @@ classdef DomainDecompositionModel < WrapperModel
             substate0                = getSubState(state0   , mappings);
             % Get nonlinear solver and ajust minIterations
             nls = setup.NonlinearSolver;
-%             if ~isempty(subforces.W)
-%                 nls.minIterations = 1;
-%             else
-%                 nls.minIterations = 0;
-%             end
+            it0 = nls.minIterations;
+            nls.minIterations = max(nls.minIterations, stateInit.globalIteration == 1);
             % Solve timestep
             forceArg = getDrivingForces(submodel, subforces);
             [substate, subreport] = nls.solveTimestep(substate0, dt, submodel, 'initialGuess', substateInit, forceArg{:});
+            nls.minIterations = it0;
             % Ensure submodel is returned with everything set up
             submodel = submodel.prepareReportstep(substate0, substate0, dt, subforces);
             % Return initial state if we did'nt converge
@@ -391,20 +390,37 @@ classdef DomainDecompositionModel < WrapperModel
             % Get linear solver
             rmodel = getReservoirModel(submodel);
             ncomp  = rmodel.getNumberOfComponents();
-            ndof   = rmodel.G.cells.num*ncomp;
+            nc     = rmodel.G.cells.num;
+            ndof   = nc*ncomp;
             if isa(submodel.parentModel, 'ReservoirModel')
+                % Regular FI model
                 lsol = selectLinearSolverAD(rmodel, 'verbose', verbose > 0);
-            elseif isa(submodel.parentModel, 'PressureModel')
-                if ndof > 1e4
-                    lsol = AMGCLSolverAD('tolerance', 1e-4, 'verbose', verbose > 0);
-                else
-                    lsol = BackslashSolverAD();
-                end
-            else
+            elseif ndof < 1e4
                 lsol = BackslashSolverAD();
+            elseif isa(submodel.parentModel, 'PressureModel')
+                % Pressure model - use BiCGSTAB with AMG preconditioner
+                lsol = AMGCLSolverAD('tolerance'    , 1e-4         , ...
+                                     'maxIterations', 100          , ...
+                                     'solver'       , 'bicgstab'   , ...
+                                     'direct_coarse', true         , ...
+                                     'coarsening'   , 'aggregation', ...
+                                     'verbose'      , verbose > 0  );
+                lsol.applyLeftDiagonalScaling = true;
+            else
+                % Transport model - use BiCGSTAB with ILU(0) preconditioner
+                lsol = AMGCLSolverAD('tolerance'     , 1e-4        , ...
+                                     'maxIterations' , 100         , ...
+                                     'preconditioner', 'relaxation', ...
+                                     'solver'        , 'bicgstab'  , ...
+                                     'block_size'    , ncomp       );
+                lsol.setRelaxation('ilu0');
+                ordering = getCellMajorReordering(nc, ncomp);
+                lsol.equationOrdering = ordering;
+                lsol.variableOrdering = ordering;
             end
+            minIterations = isa(model.parentModel, 'PressureModel')*1;
             % Get nonlinear solver
-            nls = NonLinearSolver('minIterations' , 0                         , ...
+            nls = NonLinearSolver('minIterations' , minIterations             , ...
                                   'maxIterations' , 25                        , ...
                                   'ErrorOnFailure', false                     , ...
                                   'verbose'       , verbose > 0               , ...
