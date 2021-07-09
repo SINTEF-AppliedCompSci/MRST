@@ -98,7 +98,7 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
             kr = cell(1, nph);
             [s{:}] = model.getProps(state, snames{:});
             for i = 1:nph
-                kr{i} = prop.evaluatePhaseRelativePermeability(model, 'g', s{i});
+                kr{i} = prop.evaluatePhaseRelativePermeability(model, phases(i), s{i});
             end
         end
 
