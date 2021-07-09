@@ -20,13 +20,16 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('useNodeMax', false, 'fill', false);
+    opt = struct('useNodeMax', false   , ...
+                 'fill'      , false   , ...
+                 'n'         , [20, 20], ...
+                 'extrapolationMethod', 'none');
     [opt, extra] = merge_options(opt, varargin{:});
 
     if nargin == 2
         nl = 10;
     end
-    fun = scatteredInterpolant(G.cells.centroids(:,1), G.cells.centroids(:,2), val, 'linear', 'none');
+    fun = scatteredInterpolant(G.cells.centroids(:,1), G.cells.centroids(:,2), val, 'linear', opt.extrapolationMethod);
     if opt.useNodeMax
         xMax = max(G.nodes.coords);
         xMin = min(G.nodes.coords); 
@@ -34,9 +37,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         xMax = max(G.cells.centroids);
         xMin = min(G.cells.centroids);
     end
-    n = 100;
-    n = 20;
-    [x, y] = ndgrid(linspace(xMin(1), xMax(1), n), linspace(xMin(2), xMax(2), n));
+    [x, y] = ndgrid(linspace(xMin(1), xMax(1), opt.n(1)), linspace(xMin(2), xMax(2), opt.n(2)));
     val = fun(x, y);
     
     if opt.fill
