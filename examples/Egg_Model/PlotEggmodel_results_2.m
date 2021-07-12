@@ -114,7 +114,7 @@ markersize = 10;
 figure('Name','Parameters values','NumberTitle','off')
 
 
-nparam = cellfun(@(x)x.n, parameters);
+nparam = cellfun(@(x)numel(unique(x.lumping)), parameters);
 p = mat2cell(p_opt, nparam, 1);        
 for k = 1:numel(parameters)
     values_opt{k} = parameters{k}.unscale(p{k});   
