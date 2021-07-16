@@ -205,7 +205,9 @@ classdef NetworkModel
                 end
                 
                 for i =  1: numel(obj.Graph.Nodes.Well)
-                        cell_number =obj.Graph.Nodes.Well_cells(i);
+                   cell_number =obj.Graph.Nodes.Well_cells(i);
+                   cell_number = cell_number{1};
+                   if ~isempty(cell_number)
                         XData = G.cells.centroids(cell_number,1);
                         YData = G.cells.centroids(cell_number,2);
                         ZData = G.cells.centroids(cell_number,3);   
@@ -218,6 +220,7 @@ classdef NetworkModel
                             text(XData+20,YData,ZData,...
                                         obj.Graph.Nodes.Well_name{i});
                         end
+                   end
                 end                 
 
               view(0,0)
