@@ -56,11 +56,17 @@ classdef Network
 %                                          connections discovers by Flow
 %                                          Diagnostics postprocessor.
 %
+%                       'user_defined_edges': Defined edges by the user. 
+%                                             This require parameter
+%                                             'edges'
+%
 %   'injectors'  - Array on indices that inticates injector wells inside
 %                   W. 
 %
 %   'producers'  - Array on indices that inticates producer wells inside
-%                   W. 
+%                   W.
+%
+%   'edges'      - Array to indicates conections between the well nodes.
 %                   
 %   'problem'    - A single packed problem from 'packSimulationProblem'
 %
@@ -89,6 +95,7 @@ classdef Network
          obj.W = W;
          opt = struct('Verbose',  mrstVerbose(),...
                       'type'     ,'all_to_all',...
+                      'edges',[],...
                       'injectors',[],...
                       'producers',[],...
                       'problem',[],...
@@ -96,6 +103,9 @@ classdef Network
                       'state_number',[]);                   
          opt = merge_options(opt, varargin{:});
          
+         if ~isempty(opt.edges)
+            opt.type = 'user_defined_edges';            
+         end
          
          if ~isempty(opt.injectors)&&~isempty(opt.producers)
             opt.type = 'injectors_to_producers';            
@@ -135,9 +145,13 @@ classdef Network
                  for iA_row =  1:num_nodes
                      well_numer  = Well(iA_row);
                      A(iA_row,(Well~=well_numer)) = 1;
-                 end 
+                 end
+             case 'user_defined_edges'
+                 for iA_row = 1:size(opt.edges,1)                     
+                     A(opt.edges(iA_row,1),opt.edges(iA_row,2)) = 1;
+                     A(opt.edges(iA_row,2),opt.edges(iA_row,1)) = 1;
+                 end
              case 'injectors_to_producers'
-                 A =  zeros(num_nodes);
                  for iA_row =  1:num_nodes
                      well_numer  = Well(iA_row);
                      

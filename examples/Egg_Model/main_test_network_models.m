@@ -2,6 +2,7 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props inco
 
  
 %% Run EGG field simulation
+realization = 9;
 Settup_Egg_simulation 
  
 wellSols_ref =  wellSols;
@@ -17,14 +18,17 @@ W_ref        = schedule_ref.control.W;
 % Network that has only once well-cell per well.
 W_ref_V2 = W_ref;
 for i = 1:numel(W_ref_V2) % TODO maybe this part should be done more systematically.
-    W_ref_V2(i).cells = W_ref_V2(i).cells([1,3,7]);
+    W_ref_V2(i).cells = W_ref_V2(i).cells([1]);
 end
 
 %network_type = 'fd_postprocessor';
 %network_type = 'fd_preprocessor';
-network_type  = 'injectors_to_producers';
+%network_type  = 'injectors_to_producers';
 %network_type = 'all_to_all';
-
+network_type = 'user_defined_edges';
+edges        = [1 9;2 9;2 10;3 9;3 11;...
+                4 9; 4 10; 4 11; 4 12;...
+                5 10; 5 12; 6 11; 7 11; 7 12; 8 12];
 switch network_type
     case 'all_to_all'
         ntwkr =  Network(W_ref_V2,model_ref.G,...
@@ -34,6 +38,10 @@ switch network_type
                                  'type',network_type,...
                                  'injectors',[1:8],...
                                  'producers',[9:12]);
+    case 'user_defined_edges'
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                 'type',network_type,...
+                                 'edges',edges);
     case 'fd_preprocessor'
         % Network derive by flow diagnostics      
         ntwkr =  Network(W_ref_V2,model_ref.G,...
@@ -43,7 +51,7 @@ switch network_type
     case 'fd_postprocessor'
         % Network derive by flow diagnostics
         ntwkr =  Network(W_ref_V2,model_ref.G,...
-                                  type',network_type,...
+                                 'type',network_type,...
                                  'problem',problem,...
                                  'flow_filter',1*stb/day,...
                                  'state_number',40);
