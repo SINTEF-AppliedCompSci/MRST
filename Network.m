@@ -90,7 +90,6 @@ classdef Network
 % `graph`, `NetworkModel` 
           
           
-          
          obj.G = G;
          obj.W = W;
          opt = struct('Verbose',  mrstVerbose(),...
@@ -165,7 +164,9 @@ classdef Network
                       end 
                      A(iA_row,conections) = 1;
                  end                 
-             case {'fd_preprocessor','fd_postprocessor'}                 
+             case {'fd_preprocessor','fd_postprocessor'}
+                 require diagnostics          
+
                  assert(all(nW_cells==1),['Flow Diagnostics analisys to multiple conections',...
                                           ' between wells is not yet supported.'])
                  if strcmp(opt.type,'fd_preprocessor')
