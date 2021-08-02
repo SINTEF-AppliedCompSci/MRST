@@ -1,8 +1,8 @@
-mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization kpn-ds example-suite linearsolvers 
+mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization example-suite linearsolvers 
 
- mrstVerbose('off')
+% mrstVerbose('off')
 % 
- load 'Saigup.mat'
+ %load 'Saigup.mat'
 
 % 
 wellSols_ref =  wellSols;
@@ -15,103 +15,126 @@ W_ref        = schedule_ref.control.W;
 
 %  %%  compute diagnostics and create a data driven model  DD
 
-%%  Compute diagnostics 
+%% Creating the network
 
- DD = WellPairNetwork(model_ref,schedule_ref,states_ref,state0_ref,wellSols_ref);
- DD =  DD.filter_wps(150*stb/day);
-       DD.plotWellPairConnections()
-       DD.plotWellPairsData()
+% Defining a well structure with only once well cell per well, to impose a
+% Network that has only once well-cell per well.
+
+W_ref_V2 = W_ref;
+for i = 1:numel(W_ref_V2) % TODO maybe this part should be done more systematically.
+    W_ref_V2(i).cells = W_ref_V2(i).cells([7]);
+end
+
+network_type = 'fd_postprocessor';
+%network_type = 'fd_preprocessor';
+%network_type  = 'injectors_to_producers';
+%network_type = 'all_to_all';
+%network_type = 'user_defined_edges';
+
+switch network_type
+    case 'all_to_all'
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                'type',network_type);
+    case 'injectors_to_producers'
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                 'type',network_type,...
+                                 'injectors',[1:7],...
+                                 'producers',[8:18]);
+    case 'fd_preprocessor'
+        % Network derive by flow diagnostics      
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                 'type',network_type,...
+                                 'problem',problem,...
+                                 'flow_filter',1*stb/day);
+    case 'fd_postprocessor'
+        % Network derive by flow diagnostics
+        ntwkr =  Network(W_ref_V2,model_ref.G,...
+                                 'type',network_type,...
+                                 'problem',problem,...
+                                 'flow_filter',1*stb/day,...
+                                 'state_number',20);
+    otherwise
+        error('\nType of network: %s is not implemented\n', network_type);     
+        
+end
 
 
 
-%% Two parameter per well pair
-k =1;
-for i =  1:numel(DD.wps)
-    pv([k k+1]) = DD.wps{i}.volume;
-    TT([k k+1]) = DD.wps{i}.Tr;
-    Largos(i)= DD.wps{i}.length;
-    k=k+2;
+                     
+% Ploting network
+if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
+
+    TT = ntwkr.network.Edges.Transmissibility;
+    pv = ntwkr.network.Edges.PoreVolume;
+% Ploting network with flow-diagnostics parameters
+    figure, subplot(1,2,1);
+    ntwkr.plotNetwork('NetworkLineWidth',10*TT/max(TT));
+    title('Transmissibility');
+    axis off
+
+    subplot(1,2,2);
+    ntwkr.plotNetwork('NetworkLineWidth',10*pv/max(pv));
+    title('PoreVolume');
+    axis off;
+else
+    ntwkr.plotNetwork()
+    axis off;
 end
 
 %% Creatting data driven model
 
 Total_volume_ref = sum(model_ref.operators.pv);
 
-L = 3000;
-G = cartGrid([10, 1, 36], [L, L/5 ,L/5]*meter^3);
+L= nthroot(sum(model_ref.operators.pv./model_ref.rock.poro)*25,3)  ;                            
+G = cartGrid([10, 1, numedges(ntwkr.network)], [L, L/5 ,L/5]*meter^3);
 G = computeGeometry(G);
 
+
 fluid = example.model.fluid;
+scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
 
 rock = makeRock(G, 200*milli*darcy, 0.12);
 
 gravity off
-model = GenericBlackOilModel(G, rock, fluid);
-model.gas=false;
-model.OutputStateFunctions = {};
- % Internal faces to be off by setting transmisibility to zero  
- 
-Total_volume_DD = sum(model.operators.pv)
+model = GenericBlackOilModel(G, rock, fluid,'gas', false);
+model = imposeRelpermScaling(model, scaling{:});
 
-VolumeRation = Total_volume_DD/Total_volume_ref
- 
-[model,W,indexs] = createDDmodel(model,10,DD.Graph,W_ref,2);
+model.OutputStateFunctions = {};
+
+
+nc = 10;
+
+NetModel = NetworkModel(model,nc,...
+                   ntwkr.network,...
+                   W_ref);
+
+model = NetModel.model;
+W     = NetModel.W;
+indexs.faces = NetModel.Graph.Edges.Face_Indices;
+indexs.cells = NetModel.Graph.Edges.Cell_Indices;
+
+
+
+
+faces_lumping = zeros(size(model.operators.T));
+cell_lumping  = zeros(size(model.operators.pv));
+for i = 1:numel(indexs.faces)
+    faces_lumping(indexs.faces{i}) = i;
+    cell_lumping(indexs.cells{i})  = i;
+end
+ faces_lumping(find(faces_lumping==0))=NaN;
+ cell_lumping(find(cell_lumping==0))=NaN;
+
+
+cell_sub = find(~isnan(cell_lumping));
+cell_lumping = cell_lumping(cell_sub);
+face_sub = find(~isnan(faces_lumping));
+faces_lumping = faces_lumping(face_sub);
 
 
 %% Preparing parameters
 
-WellIP = [];
-cell = [];
-well_index = []; 
-levels = 2;        
-for  i = 1:14
-    for l = 1 : levels
-        well_index = [well_index; i,l];
-    end 
-    WellIP = [WellIP; W(i).WI(1)];
-    WellIP = [WellIP; W(i).WI(2)];  
-end
 
-
-     
-Tr_boxlimits = [0.01*TT/2 ; 3*TT/2]';
-Pv_boxlimits = [0.01*pv/20 ; 4*pv/20]';
-well_boxlimits = [ 0.001*WellIP , ...
-                   5*WellIP];
-               
-          well_IP = struct('name','conntrans',...
-                                   'type','value',...
-                                   'boxLims', well_boxlimits,...
-                                   'distribution','general',...
-                                   'Indx',well_index);
-
-
-          transmisibility_conection = struct('name','transmissibility',...
-                                   'type','value',...
-                                   'boxLims', Tr_boxlimits ,...
-                                   'distribution','connection',...
-                                   'Indx',{indexs.faces});
-                               
-
-          porevolume_conection = struct('name','porevolume',...
-                                   'type','value',...
-                                   'boxLims',Pv_boxlimits,...
-                                   'distribution','connection',...
-                                   'Indx',{indexs.cells});                           
-
-                                         
-          InitalState_cell = struct('name','initSw',...
-                                   'type','value',...
-                                   'boxLims',[0 1],...
-                                   'distribution','cell',...
-                                   'Indx',{model.G.cells.indexMap});
-                               
-
-parameters =  {};   
-parameters{1} = transmisibility_conection;
-parameters{2}  = porevolume_conection ;
-parameters{3}  = well_IP ;
-parameters{4} = InitalState_cell;
 
 % Prepare the model for simulation.
 
@@ -324,54 +347,88 @@ lvl = 340;
  s0((15:20)+lvl,2) = 1;
  
  
+ nc =  model.G.cells.num;
+nf =  numel(model.operators.T);
+% select configuration for sensitivity computations
+state0 = initState(model.G, W , 350*barsa,[0.05,0.95]); 
+dt = schedule_ref.step.val;
+
+ schedule = simpleSchedule(dt(1:70), 'W', W);
+
+ prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
+
+config = {...%name      include     scaling    boxlims     lumping     subset       relativeLimits
+          'porevolume',       1,   'linear',       [],  cell_lumping,   cell_sub,   [.001 2]
+          'conntrans',        1,   'log',          [],          [],       [] ,      [.001 20]
+          'transmissibility', 1,   'log'   ,       [],  faces_lumping, face_sub ,   [.001 20]
+          'swl',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
+          'swcr',             1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
+          'swu',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
+          'sowcr',            1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
+          'krw',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
+          'kro',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
+          'sw',               1,   'linear',   [0 .3],          [],     [],  [0 3]
+          'pressure'          1,   'linear',       [],          [],     [],  [.5 2]};
+parameters = [];
+for k = 1:size(config,1)
+    if config{k, 2} ~= 0
+        parameters = addParameter(parameters, prob, 'name',    config{k,1}, ...
+                                                     'scaling', config{k,3}, ...
+                                                     'boxLims', config{k,4}, ...
+                                                     'lumping', config{k,5}, ...
+                                                     'subset',  config{k,6},...
+                                                     'relativeLimits',config{k,7});
+    end
+end
  
-state0 = initState(model.G, W , 350*barsa,s0); 
 
 figure, plotCellData(model.G, state0.s(:,2)), colorbar, view(0,0);axis equal tight;  daspect([1,0.1,0.1])
 
-dt = schedule_ref.step.val;
 
  %% Simulation of the reference model and Data-driven model
-
- schedule = simpleSchedule(dt(1:70), 'W', W);
 
          weighting =  {'WaterRateWeight',  1e3, ...
                        'OilRateWeight',    1e3, ...
                        'BHPWeight',        1e-6};
  schedule_0=schedule;
-                   
- val{1} = TT/2;
- val{2} = pv/20;
- val{3} = WellIP';
- val{4} = state0.s(:,1);
  
-  p0_fd = value2control(val,parameters);
-   
- [misfitVal_0,gradient,wellSols_0,states_0] = Simulate_BFGS(p0_fd,parameters,model,schedule,state0, wellSols_ref,weighting,1);
-
-          
+values = applyFunction(@(p)p.getParameterValue(prob), parameters);
+% scale values
+      values{2} =  3*values{2};
+ if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
+      values{1} =  pv/10;
+      values{3} =  TT;
+ end
+u = cell(size(values));
+for k = 1:numel(u)    
+    u{k} = parameters{k}.scale(values{k});
+end
+p0_fd = vertcat(u{:});  
+ 
+  obj = @(model, states, schedule, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule, states_ref,...
+            'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
+       
+ [misfitVal_0,~,wellSols_0,states_0] = evaluateMatch(p0_fd,obj,prob,parameters, states_ref,'Gradient','none');          
+ 
  plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,schedule_0.step.val})
-          
-
-legend('reference model','initial DD model')
+  
 
 
 
-%% 
-obj_scaling     = abs(misfitVal_0);      % objective scaling  
+%% Optimization
+  
+objh = @(p)evaluateMatch(p,obj,prob,parameters,states_ref);
 
-objh = @(p)Simulate_BFGS(p,parameters,model,schedule,state0,  wellSols_ref,weighting,obj_scaling);
+[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt',15, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
-[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'gradTol',             1e-2, ...
-                                              'objChangeTol',        5e-3);
-
-
- schedule = simpleSchedule(dt, 'W', W);
-
-
-
- [misfitVal_opt,gradient_opt,wellSols_opt] = Simulate_BFGS(p_opt,parameters,model,schedule,state0, wellSols_ref,weighting,obj_scaling);
- [misfitVal_0,gradient_0,wellSols_0] = Simulate_BFGS(p0_fd,parameters,model,schedule,state0, wellSols_ref,weighting,obj_scaling);
+%% Simulating all simulation time
+schedule = simpleSchedule(dt, 'W', W);
+prob.schedule = schedule;
+ 
+ [~,~,wellSols_opt] = evaluateMatch(p_opt,obj,prob,parameters, states_ref,'Gradient','none');
+ [~,~,wellSols_0] = evaluateMatch(p0_fd,obj,prob,parameters, states_ref,'Gradient','none');
 
 
 plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,schedule.step.val,schedule.step.val})
+legend('reference model','initial DD model','optimize DD model')
+                                       
