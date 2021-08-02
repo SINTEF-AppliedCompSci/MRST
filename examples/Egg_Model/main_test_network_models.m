@@ -85,7 +85,7 @@ end
 
 %% Creatting data driven model (TODO put this section inside Network Model)
 
-L = 435;
+L= nthroot(sum(model_ref.operators.pv./model_ref.rock.poro)*25,3)
 G = cartGrid([10, 1, numedges(ntwkr.network)], [L, L/5 ,L/5]*meter^3);
 G = computeGeometry(G);
 
