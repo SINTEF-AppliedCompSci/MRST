@@ -367,8 +367,8 @@ config = {...%name      include     scaling    boxlims     lumping     subset   
           'sowcr',            1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
           'krw',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
           'kro',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'sw',               1,   'linear',   [0 .3],          [],     [],  [0 3]
-          'pressure'          1,   'linear',       [],          [],     [],  [.5 2]};
+          'sw',               1,   'linear',   [0 .3],  cell_lumping,   cell_sub,  [0 10]};
+          %'pressure'          1,   'linear',       [],  cell_lumping,   cell_sub,  [.5 2]};
 parameters = [];
 for k = 1:size(config,1)
     if config{k, 2} ~= 0
@@ -387,14 +387,14 @@ figure, plotCellData(model.G, state0.s(:,2)), colorbar, view(0,0);axis equal tig
 
  %% Simulation of the reference model and Data-driven model
 
-         weighting =  {'WaterRateWeight',  1e3, ...
-                       'OilRateWeight',    1e3, ...
-                       'BHPWeight',        1e-6};
+         weighting =  {'WaterRateWeight',  (4/day)^-1, ...
+                       'OilRateWeight',    (4/day)^-1, ...
+                       'BHPWeight',        (2*barsa())^-1};
  schedule_0=schedule;
  
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
-      values{2} =  3*values{2};
+      values{2} =  1.5*values{2};
  if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
       values{1} =  pv/10;
       values{3} =  TT;
@@ -419,7 +419,7 @@ p0_fd = vertcat(u{:});
   
 objh = @(p)evaluateMatch(p,obj,prob,parameters,states_ref);
 
-[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt',15, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
+[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt',30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Simulating all simulation time
 schedule = simpleSchedule(dt, 'W', W);
