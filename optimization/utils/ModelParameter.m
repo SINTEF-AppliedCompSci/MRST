@@ -81,7 +81,7 @@ classdef ModelParameter
                 'belongs to state0'])
             % take sum of each lump
             if ~isempty(p.lumping) && isnumeric(p.lumping)
-                g = accumarray(p.lumping, g, [], @sum); 
+                g = accumarray(p.lumping, g(p.subset), [], @sum); 
             end
         end
         %------------------------------------------------------------------
