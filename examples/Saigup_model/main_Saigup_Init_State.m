@@ -25,9 +25,9 @@ for i = 1:numel(W_ref_V2) % TODO maybe this part should be done more systematica
     W_ref_V2(i).cells = W_ref_V2(i).cells([7]);
 end
 
-network_type = 'fd_postprocessor';
+%network_type = 'fd_postprocessor';
 %network_type = 'fd_preprocessor';
-%network_type  = 'injectors_to_producers';
+network_type  = 'injectors_to_producers';
 %network_type = 'all_to_all';
 %network_type = 'user_defined_edges';
 
