@@ -2,7 +2,9 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props inco
 
  
 %% Run EGG field simulation
-realization = 9;
+
+% Run a realization as a reference model 
+realization = 9; 
 Settup_Egg_simulation 
  
 wellSols_ref =  wellSols;
@@ -21,14 +23,14 @@ for i = 1:numel(W_ref_V2) % TODO maybe this part should be done more systematica
     W_ref_V2(i).cells = W_ref_V2(i).cells([1]);
 end
 
-%network_type = 'fd_postprocessor';
+network_type = 'fd_postprocessor';
 %network_type = 'fd_preprocessor';
 %network_type  = 'injectors_to_producers';
 %network_type = 'all_to_all';
-network_type = 'user_defined_edges';
-edges        = [1 9;2 9;2 10;3 9;3 11;...
-                4 9; 4 10; 4 11; 4 12;...
-                5 10; 5 12; 6 11; 7 11; 7 12; 8 12];
+% network_type = 'user_defined_edges';
+% edges        = [1 9;2 9;2 10;3 9;3 11;...
+%                 4 9; 4 10; 4 11; 4 12;...
+%                 5 10; 5 12; 6 11; 7 11; 7 12; 8 12];
 switch network_type
     case 'all_to_all'
         ntwkr =  Network(W_ref_V2,model_ref.G,...
@@ -65,10 +67,10 @@ end
                      
 % Ploting network
 if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
+% Ploting network with flow-diagnostics parameters
 
     TT = ntwkr.network.Edges.Transmissibility;
     pv = ntwkr.network.Edges.PoreVolume;
-% Ploting network with flow-diagnostics parameters
     figure, subplot(1,2,1);
     ntwkr.plotNetwork('NetworkLineWidth',10*TT/max(TT));
     title('Transmissibility');
@@ -83,12 +85,12 @@ else
     axis off;
 end
 
-%% Creatting data driven model (TODO put this section inside Network Model)
+%% Creatting data driven model 
 
-L= nthroot(sum(model_ref.operators.pv./model_ref.rock.poro)*25,3)
+% We first create a simple MRST model
+L= nthroot(sum(model_ref.operators.pv./model_ref.rock.poro)*25,3);
 G = cartGrid([10, 1, numedges(ntwkr.network)], [L, L/5 ,L/5]*meter^3);
 G = computeGeometry(G);
-
 
 fluid =  model_ref.fluid;
 rock = makeRock(G, 200*milli*darcy, 0.1);
@@ -99,17 +101,16 @@ model.gas=false;
 model.OutputStateFunctions = {};
 
 
-
+% Then we maps the Network into the MRST model
 obj = NetworkModel(model,10, ntwkr.network,W_ref);
-
 model = obj.model;
 W     = obj.W;
 indexs.faces = obj.Graph.Edges.Face_Indices;
 indexs.cells = obj.Graph.Edges.Cell_Indices;
 
 
-
-
+% Reorganizing the parameters indices 
+% for lumping in th ModelParameter class
 faces_lumping = zeros(size(model.operators.T));
 cell_lumping  = zeros(size(model.operators.pv));
 for i = 1:numel(indexs.faces)
@@ -124,18 +125,7 @@ cell_sub = find(~isnan(cell_lumping));
 cell_lumping = cell_lumping(cell_sub);
 face_sub = find(~isnan(faces_lumping));
 faces_lumping = faces_lumping(face_sub);
-
-
-
-%% Preparing parameters and scaling values for each one
-
-if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
-    Tr_boxlimits = [0.1*TT , 1.4*TT];
-    Pv_boxlimits = [0.01*pv/10 , 2*pv/10];
-else
-    Tr_boxlimits = [];
-    Pv_boxlimits = [];
-end            
+         
 
 %% Prepare the model for simulation.
 
@@ -145,10 +135,10 @@ dt = schedule.step.val;
 schedule = simpleSchedule(dt(1:40), 'W', W);
 schedule_0=schedule;
 
-
+%% Define the parameter for the calibration
  prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
  parameters =  {};                          
- parameters{1} = ModelParameter(prob, 'name', 'conntrans','relativeLimits',[.01 20]);
+ parameters{1} = ModelParameter(prob, 'name', 'conntrans','scaling','log','relativeLimits',[.01 20]);
  parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'relativeLimits', [.01 20]);
  parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'relativeLimits', [.01 20]);
 
@@ -157,11 +147,11 @@ schedule_0=schedule;
 
 weighting =  {'WaterRateWeight',  (150/day)^-1, ...
               'OilRateWeight',    (150/day)^-1, ...
-              'BHPWeight',        (400*barsa)^-1};    
+              'BHPWeight',        (40*barsa)^-1};    
  
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
-% scale values
-     values{1} =  10*values{1};
+% Initialize well productivity index, pore volume and transmisibility
+values{1} =  10*values{1};
 if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
      values{2} =  pv/10;
      values{3} =  TT;
@@ -179,7 +169,7 @@ p0_fd = vertcat(u{:});
  
  plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,schedule_0.step.val})
   
-  %% Optimization
+  %% Optimization/Calibration/History matching
   
 objh = @(p)evaluateMatch(p,obj,prob,parameters,states_ref);
 
@@ -192,8 +182,6 @@ prob.schedule = schedule;
  [~,~,wellSols_opt] = evaluateMatch(p_opt,obj,prob,parameters, states_ref,'Gradient','none');
  [~,~,wellSols_0] = evaluateMatch(p0_fd,obj,prob,parameters, states_ref,'Gradient','none');
 
-
 plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,schedule.step.val,schedule.step.val})
 legend('reference model','initial DD model','optimize DD model')
 
-PlotEggmodel_results_2

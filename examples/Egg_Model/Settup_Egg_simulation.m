@@ -10,7 +10,7 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics
 
 % Realizations can be set to 0 for base cae, or a number between 1 and 100
 % for different permeabilities.sa
-realization = 99;
+
 [G, rock, fluid, deck] = setupEGG('realization', realization);
 [state, model, schedule, nonlinear] = initEclipseProblemAD(deck, 'G', G, 'TimestepStrategy', 'none');
 
@@ -18,7 +18,7 @@ realization = 99;
 model.getPhaseNames()
 
 
-problem = packSimulationProblem(state, model, schedule, 'EGG_realization_99', 'NonLinearSolver', nonlinear);
+problem = packSimulationProblem(state, model, schedule,['EGG_realization_',num2str(realization),'_paper'], 'NonLinearSolver', nonlinear);
 
 %%
 [ok, status] = simulatePackedProblem(problem);
