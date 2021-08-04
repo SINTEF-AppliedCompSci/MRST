@@ -124,13 +124,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         function model = validateModel(model, varargin)
-           if isempty(model.FacilityModel) || isempty(model.FacilityModel.ReservoirModel)
-               model.FacilityModel = FacilityModel(model);
-               %warning('The MechFluidModel has an empty FacilityModel');
+            if isempty(model.FacilityModel) || isempty(model.FacilityModel.ReservoirModel)
+                model.FacilityModel = FacilityModel(model);
+                %warning('The MechFluidModel has an empty FacilityModel');
             end
-            model.fluidModel = model.fluidModel.validateModel();
             model.fluidModel.FacilityModel = model.FacilityModel;
-            return
+            model.fluidModel = model.fluidModel.validateModel(varargin{:});
+        end
+        
+        function [model, state] = updateForChangedControls(model, state, forces)
+           [model.fluidModel, state] = model.fluidModel.updateForChangedControls(state, forces);
         end
 
         function state = validateState(model, state)
