@@ -14,7 +14,7 @@
 * These examples follows steps:
     * Settup and simulate a full resolution resorvior model
     * Build a network
-    * Create the create the network-model 
+    * Create the network-model 
     * Settup parameter and scaling values for the control variables
     * Run initial model
     * Calibrate
