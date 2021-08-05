@@ -5,7 +5,7 @@ mrstModule add network-models ad-core ad-props ad-blackoil optimization diagnost
 
 %% Run EGG field simulation
 %Setting_up_Olympus 
- 
+ Setting_up_Olympus_for_Experiment_1
 %% Defining reference observations
 
 wellSols_ref = wellSols;
@@ -22,7 +22,8 @@ state0_ref   = problem.SimulatorSetup.state0;
 
 W_ref_V2 = W_ref;
 for i = 1:numel(W_ref_V2) % TODO maybe this part should be done more systematically.
-    W_ref_V2(i).cells = W_ref_V2(i).cells([7]);
+    num_cells = numel(W_ref_V2(i).cells)
+    W_ref_V2(i).cells = W_ref_V2(i).cells([1 round(num_cells/2) num_cells]);
 end
 
 %network_type = 'fd_postprocessor';
@@ -52,7 +53,7 @@ switch network_type
                                  'type',network_type,...
                                  'problem',problem,...
                                  'flow_filter',1*stb/day,...
-                                 'state_number',20);
+                                 'state_number',1);
     otherwise
         error('\nType of network: %s is not implemented\n', network_type);     
         
@@ -100,12 +101,12 @@ fluid = initSimpleADIFluid('phases', 'WO',...
                            'n', [2 2]);
 fluid .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
 scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
-c = 5e-5/barsa;
-p_ref = 200*barsa;
-fluid.bO = @(p) exp((p - p_ref)*c);
+% c = 5e-5/barsa;
+% p_ref = 200*barsa;
+% fluid.bO = @(p) exp((p - p_ref)*c);
 
 
-rock = makeRock(G, 200*milli*darcy, 0.2);
+rock = makeRock(G,500*milli*darcy, 0.2);
 
 gravity off
 model = GenericBlackOilModel(G, rock, fluid,'gas', false);
@@ -145,10 +146,12 @@ faces_lumping = faces_lumping(face_sub);
 %% Prepare the model for simulation.
 
 model = model.validateModel();
-state0 = initState(G, W , 200*barsa,[0.3, 0.7]); 
+model.toleranceCNV = 1e-6;
+state0 = initState(G, W , 215*barsa,[0.1, 0.9]); 
 dt = schedule_ref.step.val;
-schedule = simpleSchedule(dt(1:20), 'W', W);
+schedule = simpleSchedule(dt(1:15), 'W', W);
 schedule_0=schedule;
+
 
 
  prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
@@ -163,16 +166,16 @@ nf =  numel(model.operators.T);
 % select configuration for sensitivity computations
 config = {...%name      include     scaling    boxlims     lumping     subset       relativeLimits
           'porevolume',       1,   'linear',       [],  cell_lumping,   cell_sub,   [.001 2]
-          'conntrans',        1,   'log',          [],          [],       [] ,      [.001 20]
-          'transmissibility', 1,   'log'   ,       [],  faces_lumping, face_sub ,   [.001 20]
+          'conntrans',        1,   'log',          [],          [],       [] ,      [.001 10]
+          'transmissibility', 1,   'log'   ,       [],  faces_lumping, face_sub ,   [.001 4]
           'swl',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
           'swcr',             1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
           'swu',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
           'sowcr',            1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
           'krw',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
           'kro',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'sw',               1,   'linear',   [0 .3],          [],     [],   [0.001 10]
-          'pressure'          1,   'linear',       [],          [],     [],   [0.001 10]};
+          'sw',               1,   'linear',   [0 .99],   cell_lumping,   cell_sub,  [0 9]};
+          %'pressure'          1,   'linear',       [],          [],     [],   [0.001 10]};
 parameters = [];
 for k = 1:size(config,1)
     if config{k, 2} ~= 0
@@ -187,16 +190,18 @@ end
 
  %% Simulating the initial DD model
 
-weighting =  {'WaterRateWeight',  (200/day)^-1, ...
-              'OilRateWeight',    (20/day)^-1};    
+weighting =  {'WaterRateWeight',  (100/day)^-1, ...
+              'OilRateWeight',    (10/day)^-1};    
  
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
-%      values{1} =  10*values{1};
-% if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
-%      values{2} =  pv/10;
-%      values{3} =  TT;
-% end
+      values{2} =  values{2};
+if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
+     values{2} =  pv/10;
+     values{3} =  TT;
+end
+rng(12345)
+values{10} =  rand(size(values{10}));
 u = cell(size(values));
 for k = 1:numel(u)    
     u{k} = parameters{k}.scale(values{k});
@@ -215,7 +220,7 @@ p0_fd = vertcat(u{:});
   
 objh = @(p)evaluateMatch(p,obj,prob,parameters,states_ref);
 
-[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt', 50, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
+[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt', 40, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Simulating all simulation time
 schedule = simpleSchedule(dt, 'W', W);
@@ -224,7 +229,7 @@ prob.schedule = schedule;
  [~,~,wellSols_opt] = evaluateMatch(p_opt,obj,prob,parameters, states_ref,'Gradient','none');
  [~,~,wellSols_0] = evaluateMatch(p0_fd,obj,prob,parameters, states_ref,'Gradient','none');
 
-
-plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,schedule.step.val,schedule.step.val})
+fh = plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,schedule.step.val,schedule.step.val})
+set(fh, 'name','Olympus')
 legend('reference model','initial DD model','optimize DD model')
                                        
