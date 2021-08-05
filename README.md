@@ -65,10 +65,10 @@ remain the same.
 * Move the folder inside the 'modules' folder in MRST.
 * Run the 'startup.m' file in MRST.
 * Open the script 'mrst-2021a/utils/uniqueStable.m' and comment the lines
-104, 112, and 117 (this forces to use the function 'fall_back' in line 110 
-instead of the function 'unique' in line 115). This is necessary for older
-versions of GNU Octave (e.g., 5.2.0) while for recent version (e.g, 6.1.0)
-not doing this would result in annoying warnings.  
+104, 112, 115, and 117 (this forces to use the function 'fall_back' in line
+110 instead of the function 'unique' in line 115). This is necessary for 
+older versions of GNU Octave (e.g., 5.2.0) while for recent version 
+(e.g, 6.1.0)not doing this would result in annoying warnings.  
 
 ## Cite
 If you use ad-micp to write a scientific publication, please cite one of 
