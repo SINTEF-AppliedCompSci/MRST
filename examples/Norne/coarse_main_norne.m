@@ -22,7 +22,7 @@ drawnow
 
 time_steps     = schedule_ref.step.val(1:6); 
 training_steps = 1:6;
-partition      = [6 12 3];
+partition      = [6 8 1];
 
 %% Coarse-scale model
 % We make a coarse grid defined by partition, and perform a simple
