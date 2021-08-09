@@ -44,10 +44,10 @@ L = 75;            % Aquifer length, m
 Wh = 10;           % Aquifer width, m
 if exist('OCTAVE_VERSION', 'builtin') ~= 0 %GNU Octave
     B = 25;        % hmin to hmax transition radius, m
-    hmin = .75;    % Minimum grid size, m
+    hmin = 1;    % Minimum grid size, m
     hmax = 10;     % Maximum grid size, m
     fd=@(p) drectangle(p,-L,L,-Wh,Wh);
-    fh = @(p) hmin+.3*abs(dcircle(p,0,0,0)).* (abs(dcircle(p,0,0,0))<B)+...
+    fh = @(p) min(hmin+.3*abs(dcircle(p,0,0,0)),hmin).* (abs(dcircle(p,0,0,0))<B)+...
       min(hmin+.3*abs(dcircle(p,0,0,B)),hmax).* (abs(dcircle(p,0,0,0))>=B);
     [p,t]=distmesh2d(fd, fh, hmin, [-L,-Wh;L,Wh], ...
                                             [-L,-Wh;L,-Wh;-L,Wh;L,Wh;0,0]);
