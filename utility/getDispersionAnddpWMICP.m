@@ -1,5 +1,5 @@
 function [d_m, d_o, d_u, dpW] = getDispersionAnddpWMICP(model, state, poro)
-%  Compute the disperison coefficients and "dpW" on the centers.
+%  Compute the disperison coefficients and "dpW" on the cell centers.
 
 %{
 Copyright 2021, NORCE Norwegian Research Centre AS, Computational 
@@ -32,6 +32,12 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
   K = model.fluid.K(poro);
   % "dpW" in the center of the cells
   v = faceFlux2cellVelocity(model.G,state.flux(:,1));
+  % Using the previous function to compute v results in half values of
+  % velocity on the injection/free flow boundary. If the injetcion well 
+  % is on the boundary, we correct the values
+  if model.G.injectionwellonboundary == 1
+      v(model.G.cellsinjectionwell,:) = 2*v(model.G.cellsinjectionwell,:);
+  end
   v_norm = sqrt(sum(v.^ 2, 2));
   dpW = muw.*v_norm./K;
   % Dispersion terms for microbes, oxygen, and urea
