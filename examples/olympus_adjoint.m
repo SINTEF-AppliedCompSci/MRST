@@ -1,11 +1,9 @@
 mrstModule add network-models ad-core ad-props ad-blackoil optimization diagnostics
 
-%ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization ddmodel
 
+%% Setting up Olympus field simulation
+setting_up_olympus_model
 
-%% Run EGG field simulation
-%Setting_up_Olympus 
- Setting_up_Olympus_for_Experiment_1
 %% Defining reference observations
 
 wellSols_ref = wellSols;
@@ -89,22 +87,12 @@ L= nthroot(sum(model_ref.operators.pv./model_ref.rock.poro)*25,3)  ;
 G = cartGrid([10, 1, numedges(ntwkr.network)], [L, L/5 ,L/5]*meter^3);
 G = computeGeometry(G);
 
-
-% fluid =  model_ref.fluid;
-% % fluid =  initSimpleADIFluid('phases', 'WO',...
-% %                             'mu' , [ 0.398, 3.5]*centi*poise,...
-% %                             'rho', [1020, 850]*kilogram/meter^3, ...
-% %                             'n' , [ 2, 2]);
 fluid = initSimpleADIFluid('phases', 'WO',... 
                            'mu' , [.3, 3]*centi*poise,...
                            'rho', [1014, 859]*kilogram/meter^3, ...
                            'n', [2 2]);
 fluid .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
 scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
-% c = 5e-5/barsa;
-% p_ref = 200*barsa;
-% fluid.bO = @(p) exp((p - p_ref)*c);
-
 
 rock = makeRock(G,500*milli*darcy, 0.2);
 
@@ -151,16 +139,12 @@ state0 = initState(G, W , 215*barsa,[0.1, 0.9]);
 dt = schedule_ref.step.val;
 schedule = simpleSchedule(dt(1:15), 'W', W);
 schedule_0=schedule;
+prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
 
 
 
- prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
-%  parameters =  {};                          
-%  parameters{1} = ModelParameter(prob, 'name', 'conntrans','scaling','log','relativeLimits',[.01 20]);
-%  parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'scaling','log','relativeLimits', [.001 2]);
-%  parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'scaling','log','relativeLimits', [.001 100]);
+%% Prepare the parameters to be calibrated
 
- 
 nc =  model.G.cells.num;
 nf =  numel(model.operators.T);
 % select configuration for sensitivity computations
@@ -175,7 +159,7 @@ config = {...%name      include     scaling    boxlims     lumping     subset   
           'krw',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
           'kro',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
           'sw',               1,   'linear',   [0 .99],   cell_lumping,   cell_sub,  [0 9]};
-          %'pressure'          1,   'linear',       [],          [],     [],   [0.001 10]};
+          'pressure'          0,   'linear',       [],          [],     [],   [0.001 10]};
 parameters = [];
 for k = 1:size(config,1)
     if config{k, 2} ~= 0
@@ -197,7 +181,7 @@ values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
       values{2} =  values{2};
 if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
-     values{2} =  pv/10;
+     values{1} =  pv/10;
      values{3} =  TT;
 end
 rng(12345)
@@ -216,20 +200,20 @@ p0_fd = vertcat(u{:});
  plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,schedule_0.step.val})
   
  
-%% Optimization
+%% Gradient based Optimization BFGS
   
 objh = @(p)evaluateMatch(p,obj,prob,parameters,states_ref);
 
 [v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt', 40, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
-%% Simulating all simulation time
+%% Simulating based cased and calibrated model for comparison
 schedule = simpleSchedule(dt, 'W', W);
 prob.schedule = schedule;
  
  [~,~,wellSols_opt] = evaluateMatch(p_opt,obj,prob,parameters, states_ref,'Gradient','none');
  [~,~,wellSols_0] = evaluateMatch(p0_fd,obj,prob,parameters, states_ref,'Gradient','none');
 
-fh = plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,schedule.step.val,schedule.step.val})
-set(fh, 'name','Olympus')
-legend('reference model','initial DD model','optimize DD model')
+fh = plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,schedule.step.val,schedule.step.val});
+set(fh, 'name','Olympus Network models, HM adjoin')
+legend('reference model','initial network model','calibrated network model')
                                        
