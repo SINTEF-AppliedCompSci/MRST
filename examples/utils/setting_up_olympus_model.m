@@ -9,6 +9,7 @@ example = MRSTExample(name);
 
 %% Simulate
 problem = example.getPackedSimulationProblem();
+%clearPackedSimulatorOutput(problem)
 simulatePackedProblem(problem);
 
 %% Interactive plotting
