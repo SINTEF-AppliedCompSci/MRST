@@ -136,9 +136,9 @@ schedule_0=schedule;
 %% Define the parameter for the calibration
  prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
  parameters =  {};                          
- parameters{1} = ModelParameter(prob, 'name', 'conntrans','scaling','log','relativeLimits',[.01 20]);
- parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'relativeLimits', [.01 20]);
- parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'relativeLimits', [.01 20]);
+ parameters{1} = ModelParameter(prob, 'name', 'conntrans','scaling','linear','relativeLimits',[.001 20]);
+ parameters{2} = ModelParameter(prob, 'name', 'porevolume','lumping',cell_lumping,'subset', cell_sub,'relativeLimits', [.01 5]);
+ parameters{3} = ModelParameter(prob, 'name', 'transmissibility','lumping',faces_lumping,'subset', face_sub,'scaling','log','relativeLimits', [.001 100]);
 
 
  %% Simulating the initial DD model
@@ -149,7 +149,7 @@ weighting =  {'WaterRateWeight',  (150/day)^-1, ...
  
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % Initialize well productivity index, pore volume and transmisibility
-values{1} =  10*values{1};
+values{1} =  7*values{1};
 if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
      values{2} =  pv/10;
      values{3} =  TT;
