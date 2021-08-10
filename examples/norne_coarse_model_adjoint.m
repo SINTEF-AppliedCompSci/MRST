@@ -4,7 +4,7 @@ mrstModule add ad-core ad-blackoil deckformat ...
                network-models example-suite linearsolvers 
 
 %% Setting up the reference model           
-exampleNorne_FD
+setting_up_simplified_norne_model
 
 wellSols_ref =  wellSols;
 model_ref    = example.model;
