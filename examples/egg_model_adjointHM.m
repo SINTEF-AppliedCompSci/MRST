@@ -4,8 +4,8 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props inco
 %% Run EGG field simulation
 
 % Run a realization as a reference model 
-realization = 9; 
-Settup_Egg_simulation 
+
+setting_up_egg_model
  
 wellSols_ref =  wellSols;
 model_ref    = model;
@@ -65,10 +65,8 @@ end
 
 
                      
-% Ploting network
+% Plotting network
 if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
-% Ploting network with flow-diagnostics parameters
-
     TT = ntwkr.network.Edges.Transmissibility;
     pv = ntwkr.network.Edges.PoreVolume;
     figure, subplot(1,2,1);
@@ -173,7 +171,7 @@ p0_fd = vertcat(u{:});
   
 objh = @(p)evaluateMatch(p,obj,prob,parameters,states_ref);
 
-[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
+[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt', 15, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Simulating all simulation time
 schedule = simpleSchedule(dt, 'W', W);
