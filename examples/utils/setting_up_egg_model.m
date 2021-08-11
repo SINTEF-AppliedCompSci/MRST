@@ -8,22 +8,20 @@
 
 mrstModule add ad-core ad-blackoil deckformat diagnostics
 
+%% Set up the packed simulation problem
 % Realizations can be set to 0 for base cae, or a number between 1 and 100
-% for different permeabilities.sa
+% for different permeabilities.
 realization = 0; 
 [G, rock, fluid, deck] = setupEGG('realization', realization);
-[state, model, schedule, nonlinear] = initEclipseProblemAD(deck, 'G', G, 'TimestepStrategy', 'none');
+[state, model, schedule, nonlinear] = ...
+    initEclipseProblemAD(deck, 'G', G, 'TimestepStrategy', 'none');
+model.getPhaseNames();
 
-
-model.getPhaseNames()
-
-
-problem = packSimulationProblem(state, model, schedule,['EGG_realization_',num2str(realization)], 'NonLinearSolver', nonlinear);
-%%
-[ok, status] = simulatePackedProblem(problem);
-
+problem = packSimulationProblem(state, model, schedule, ...
+    ['EGG_realization_',num2str(realization)], 'NonLinearSolver', nonlinear);
 
 %% Run simulation
- [wellSols, states, reports] = getPackedSimulatorOutput(problem);
-    
-%  d = PostProcessDiagnosticsMRST(problem);
+[ok, status] = simulatePackedProblem(problem);
+
+%% Extract simulation results
+[wellSols, states, reports] = getPackedSimulatorOutput(problem);
