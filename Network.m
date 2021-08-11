@@ -117,20 +117,20 @@ classdef Network
             num_nodes = sum(nW_cells);
             
             % Define everything for each node
-            node = 1;
-            for iw = 1 : numel(W)
-                for iw_cell = 1 : numel(W(iw).cells)
+            node = numel(vertcat(W.cells));
+            for iw = numel(W):-1:1
+                for iw_cell = numel(W(iw).cells):-1:1
                     Nodes(node,1)      = node;
                     Well(node,1)       = iw ;
                     SubWell(node,1)    = iw_cell;
                     Well_name{node,1}  = W(iw).name;
                     Well_cells{node,1} = [];
                     Type(node,1)       = 1;
-                    cell_number        = W(iw).cells(iw_cell);
-                    XData(node,1)      = obj.G.cells.centroids(cell_number,1);
-                    YData(node,1)      = obj.G.cells.centroids(cell_number,2);
-                    ZData(node,1)      = obj.G.cells.centroids(cell_number,3);
-                    node =  node+1;
+                    cellNo             = W(iw).cells(iw_cell);
+                    XData(node,1)      = obj.G.cells.centroids(cellNo,1);
+                    YData(node,1)      = obj.G.cells.centroids(cellNo,2);
+                    ZData(node,1)      = obj.G.cells.centroids(cellNo,3);
+                    node =  node-1;
                 end
             end
             
@@ -192,8 +192,8 @@ classdef Network
                     % case injectors and producers do not follow this order.
                     
                     P_indx = P +size(diagnostics.wellCommunication,1);
-                    for wp = 1:length(IP_indices)
-                        iwp =  IP_indices(wp);
+                    for wp = length(IP_indices):-1:1
+                        iwp          =  IP_indices(wp);
                         fluxes(wp,1) = diagnostics.wellCommunication(I(wp),P(wp));
                         DP(wp,1)     = state.wellSol(I(wp)).(pressure_field)-... % Injector pressure
                                        state.wellSol(P_indx(wp)).(pressure_field);          %
