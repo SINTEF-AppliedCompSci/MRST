@@ -169,6 +169,7 @@ classdef DomainDecompositionModel < WrapperModel
             else
                 [state, report] = model.solveSubDomainsParallel(state0, dt, drivingForces, state);
             end
+            state.globalIteration = state.globalIteration + 1;
         end
         
         %-----------------------------------------------------------------%
@@ -476,6 +477,7 @@ classdef DomainDecompositionModel < WrapperModel
                     model = model.updateSubdomainSetupParallel();
                 end
             end
+            state.globalIteration = 1;
         end
         
         %-----------------------------------------------------------------%
@@ -546,12 +548,6 @@ classdef DomainDecompositionModel < WrapperModel
                         = rmodel.EOSModel.nonlinearTolerance.*f;
                 end
             end
-%             % Handle EOS tolerance
-%             ix = find(strcmpi(tolerances, 'toleranceEOS'));
-%             if any(ix) && isa(rmodel, 'ThreePhaseCompositionalModel')
-%                 rmodel.EOSModel.nonlinearTolerance ...
-%                     = tolerances{ix+1}*rmodel.EOSModel.nonlinearTolerance;
-%             end
             % Update reservoir submodel
             submodel = setReservoirModel(submodel, rmodel);
         end
