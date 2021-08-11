@@ -37,8 +37,7 @@ example.state0 = state0;
 
 %% Simulate transport
 problem = example.getPackedSimulationProblem();
-clearPackedSimulatorOutput(problem, 'prompt', true);
-simulatePackedProblem(problem);
+simulatePackedProblem(problem, 'restartStep', 1);
 
 %% Inspect result
 [wellSols, states, reports] = getPackedSimulatorOutput(problem);
@@ -70,8 +69,7 @@ subexample.plot(subexample.model.parentModel.parentModel.rock, 'log10', true);
 
 %% Simulate subproblem
 subproblem = subexample.getPackedSimulationProblem();
-clearPackedSimulatorOutput(subproblem, 'prompt', true);
-simulatePackedProblem(subproblem);
+simulatePackedProblem(subproblem, 'restartStep', 1);
 
 %% Inspect results
 [wellSolsSub, statesSub, reportsSub] = getPackedSimulatorOutput(subproblem);

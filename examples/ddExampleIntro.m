@@ -57,8 +57,7 @@ subexample.plot(subexample.model.parentModel.rock, 'log10', true);
 % subdomain interfaces that are internal
 subexample.model.noflowBC = true;
 subproblem = subexample.getPackedSimulationProblem();
-clearPackedSimulatorOutput(subproblem, 'prompt', true);
-simulatePackedProblem(subproblem);
+simulatePackedProblem(subproblem, 'restartStep', 1);
 
 %% Inspect resutls
 [~, substates] = getPackedSimulatorOutput(subproblem);
@@ -95,13 +94,11 @@ exampleSeqDD.name  = [exampleSeqDD.name, '-nldd'];
 
 %% Simulate with NLDD in transport
 problemSeqDD = exampleSeqDD.getPackedSimulationProblem();
-clearPackedSimulatorOutput(problemSeqDD, 'prompt', true);
-simulatePackedProblem(problemSeqDD);
+simulatePackedProblem(problemSeqDD, 'restartStep', 1);
 
 %% Simulate withouth NLDD for reference
 problemSeq = exampleSeq.getPackedSimulationProblem();
-clearPackedSimulatorOutput(problemSeq, 'prompt', true);
-simulatePackedProblem(problemSeq);
+simulatePackedProblem(problemSeq, 'restartStep', 1);
 
 %% Inspect results
 % Hint: The number of iterations used in each subdomain are stored in

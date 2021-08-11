@@ -16,12 +16,12 @@ example0 = MRSTExample('qfs_compositional', 'nsteps', 60); example = example0;
 % sequential pressure-transport model
 mrstModule add linearsolvers
 psolve = AMGCLSolverAD('tolerance', 1e-4);
-example.model = getSequentialModelFromFI(example0.model, 'pressureLinearSolver', psolve);
+example.model = getSequentialModelFromFI(example0.model, ...
+                                          'pressureLinearSolver' , psolve);
 
 %% Simulate reference problem
 problem = example.getPackedSimulationProblem();
-clearPackedSimulatorOutput(problem, 'prompt', true);
-simulatePackedProblem(problem);
+simulatePackedProblem(problem, 'restartStep', 1);
 
 %% Inspect results
 [wellSols, states, reports] = getPackedSimulatorOutput(problem);
@@ -60,8 +60,7 @@ exampleADD.name = [exampleADD.name, '-add'];
 
 %% Simulate
 problemADD = exampleADD.getPackedSimulationProblem();
-clearPackedSimulatorOutput(problemADD, 'prompt', true);
-simulatePackedProblem(problemADD);
+simulatePackedProblem(problemADD, 'restartStep', 1);
 
 %% Multiplicative NLDD
 % In multiplicative NLDD, we solve the subdomains in the order defined by
@@ -74,8 +73,7 @@ exampleMDD.name = [exampleMDD.name, '-mdd'];
 
 %% Simulate
 problemMDD = exampleMDD.getPackedSimulationProblem();
-clearPackedSimulatorOutput(problemMDD, 'prompt', true);
-simulatePackedProblem(problemMDD);
+simulatePackedProblem(problemMDD, 'restartStep', 1);
 
 %% Dynamic partitions
 % The effectiveness of multiplicative NLDD will obiously depend on the
@@ -113,8 +111,7 @@ exampleMDD_topo.name = [exampleMDD_topo.name, '-mdd-topo'];
 
 %% Simulate
 problemMDD_topo = exampleMDD_topo.getPackedSimulationProblem();
-clearPackedSimulatorOutput(problemMDD_topo, 'prompt', true);
-simulatePackedProblem(problemMDD_topo);
+simulatePackedProblem(problemMDD_topo, 'restartStep', 1);
 
 %% Multiplicative NLDD with coarse topological ordering
 % We can also choose to topologically sort the original partition by using
@@ -133,8 +130,7 @@ exampleMDD_block_topo.name = [exampleMDD_block_topo.name, '-mdd-block-topo'];
 
 %% Simulate
 problemMDD_block_topo = exampleMDD_block_topo.getPackedSimulationProblem();
-clearPackedSimulatorOutput(problemMDD_block_topo, 'prompt', true);
-simulatePackedProblem(problemMDD_block_topo);
+simulatePackedProblem(problemMDD_block_topo, 'restartStep', 1);
 
 %% Inspect solutions
 [allWellSols, allStates, allReports] ...
