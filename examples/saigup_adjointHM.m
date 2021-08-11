@@ -1,9 +1,7 @@
 mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization example-suite linearsolvers 
 
-% mrstVerbose('off')
-% 
- %load 'Saigup.mat'
-
+%load 'Saigup.mat'
+setting_up_saigup_model
 % 
 wellSols_ref =  wellSols;
 model_ref    = example.model;
@@ -38,8 +36,8 @@ switch network_type
     case 'injectors_to_producers'
         ntwkr =  Network(W_ref_V2,model_ref.G,...
                                  'type',network_type,...
-                                 'injectors',[1:7],...
-                                 'producers',[8:18]);
+                                 'injectors',[1:8],...
+                                 'producers',[9:17]);
     case 'fd_preprocessor'
         % Network derive by flow diagnostics      
         ntwkr =  Network(W_ref_V2,model_ref.G,...
@@ -139,215 +137,11 @@ faces_lumping = faces_lumping(face_sub);
 % Prepare the model for simulation.
 
 model = model.validateModel();
-model.FacilityModel.toleranceWellRate = 1e-4;
-model.FacilityModel.toleranceWellMS  = 1e-4;
-
-s0=zeros(360,2);
-
-
-%I1 -P1
- s0(1:8,1) = 1;
- s0(1:8,2) = 0;
- s0(9:9,1) = 0;
- s0(9:9,2) = 1;
- s0(10,1) = 0;
- s0(10,2) = 1;
-  s0(11:17,1) = 1;
- s0(11:17,2) = 0;
- s0(18:20,1) = 0.5;
- s0(18:20,2) = 0.5;
-
-%I2 -P1
-lvl = 20;
- s0((1:4)+lvl,1) = 1;
- s0((1:4)+lvl,2) = 0;
- s0((5:10)+lvl,1) = 0;
- s0((5:10)+lvl,2) = 1;
+%model.FacilityModel.toleranceWellRate = 1e-4;
+%model.FacilityModel.toleranceWellMS  = 1e-4;
+model.toleranceCNV = 1e-6;
  
- s0((11:15)+lvl,1) = 1;
- s0((11:15)+lvl,2) = 0;
- s0((16:20)+lvl,1) = 0;
- s0((16:20)+lvl,2) = 1;
-
-
-%I3 -P1
-lvl = 40;
- s0((1:5)+lvl,1) = 1;
- s0((1:5)+lvl,2) = 0;
- s0((6:10)+lvl,1) = 0;
- s0((6:10)+lvl,2) = 1;
- 
- s0((11:15)+lvl,1) = 1;
- s0((11:15)+lvl,2) = 0;
- s0((16:20)+lvl,1) = 0.5;
- s0((16:20)+lvl,2) = 0.5;
-
- 
- 
- %I4 -P1
-lvl = 60;
- s0((1:10)+lvl,1) = 0;
- s0((1:10)+lvl,2) = 1;
-
- s0((11:20)+lvl,1) = 0;
- s0((11:20)+lvl,2) = 1;
-
-
-  
- %I3 -P2
-lvl = 80;
- s0((1:3)+lvl,1) = 1;
- s0((1:3)+lvl,2) = 0;
- s0((4:10)+lvl,1) = 0;
- s0((4:10)+lvl,2) = 1;
- 
- s0((11:17)+lvl,1) = 1;
- s0((11:17)+lvl,2) = 0;
- s0((18:20)+lvl,1) = 0.2;
- s0((18:20)+lvl,2) = 0.8;
- 
-  %I4 -P2
-lvl = 100;
- s0((1:10)+lvl,1) = 0;
- s0((1:10)+lvl,2) = 1;
-
- s0((11:20)+lvl,1) = 0;
- s0((11:20)+lvl,2) = 1;
-
-  %I5 -P2
-lvl = 120;
- s0((1:3)+lvl,1) = 1;
- s0((1:3)+lvl,2) = 0;
- s0((4:10)+lvl,1) = 0;
- s0((4:10)+lvl,2) = 1;
- 
- s0((11:17)+lvl,1) = 1;
- s0((11:17)+lvl,2) = 0;
- s0((18:20)+lvl,1) = 0;
- s0((18:20)+lvl,2) = 1;
- 
- 
-   %I4 -P3
-lvl = 140;
- s0((1:10)+lvl,1) = 0;
- s0((1:10)+lvl,2) = 1;
-
- s0((11:20)+lvl,1) = 0;
- s0((11:20)+lvl,2) = 1;
- 
-    %I6 -P3
-lvl = 160;
- s0((1:10)+lvl,1) = 0;
- s0((1:10)+lvl,2) = 1;
-
- s0((11:20)+lvl,1) = 0;
- s0((11:20)+lvl,2) = 1;
- 
-    %I4 -P4
-lvl = 180;
- s0((1:10)+lvl,1) = 0;
- s0((1:10)+lvl,2) = 1;
-
- s0((11:20)+lvl,1) = 0;
- s0((11:20)+lvl,2) = 1; 
- 
- 
- 
-   %I5 -P4
-lvl = 200;
- s0((1:3)+lvl,1) = 1;
- s0((1:3)+lvl,2) = 0;
- s0((4:10)+lvl,1) = 0;
- s0((4:10)+lvl,2) = 1;
- 
- s0((11:14)+lvl,1) = 1;
- s0((11:14)+lvl,2) = 0;
- s0((15:20)+lvl,1) = 0;
- s0((15:20)+lvl,2) = 1;
- 
-     %I6 -P4
-lvl = 220;
- s0((1:10)+lvl,1) = 0;
- s0((1:10)+lvl,2) = 1;
-
- s0((11:20)+lvl,1) = 0;
- s0((11:20)+lvl,2) = 1; 
- 
- 
-
- 
-     %I5 -P6
-
- lvl = 240;
- s0((1:9)+lvl,1) = 1;
- s0((1:9)+lvl,2) = 0;
- s0((10:10)+lvl,1) = 0;
- s0((10:10)+lvl,2) = 1;
- 
- s0((11:20)+lvl,1) = 0;
- s0((11:20)+lvl,2) = 1;
- 
- 
- 
-     %I6 -P6
-
- lvl = 260;
- s0((1:10)+lvl,1) = 0;
- s0((1:10)+lvl,2) = 1;
- 
- 
- s0((11:20)+lvl,1) = 0;
- s0((11:20)+lvl,2) = 1;
- 
- %s0((19:20)+lvl,1) = 1;
- %s0((19:20)+lvl,2) = 0;
- 
-   
- %I7 -P6
-lvl = 280;
- s0((1:8)+lvl,1) = 1;
- s0((1:8)+lvl,2) = 0;
- s0((8:10)+lvl,1) = 0.5;
- s0((8:10)+lvl,2) = 0.5;
- 
- s0((11:20)+lvl,1) = 1;
- s0((11:20)+lvl,2) = 0;
-
-     %I8 -P6
-lvl = 300;
- s0((1:5)+lvl,1) = 1;
- s0((1:5)+lvl,2) = 0;
- s0((6:10)+lvl,1) = 0;
- s0((6:10)+lvl,2) = 1;
- 
- s0((11:14)+lvl,1) = 1;
- s0((11:14)+lvl,2) = 0;
- s0((15:20)+lvl,1) = 0;
- s0((15:20)+lvl,2) = 1;
- 
- 
-       %I6 -P5
-lvl = 320;
- s0((1:10)+lvl,1) = 0;
- s0((1:10)+lvl,2) = 1;
-
- s0((11:20)+lvl,1) = 0;
- s0((11:20)+lvl,2) = 1; 
- 
-    %I8 -P5
-lvl = 340;
- s0((1:3)+lvl,1) = 1;
- s0((1:3)+lvl,2) = 0;
- s0((4:10)+lvl,1) = 0;
- s0((4:10)+lvl,2) = 1;
- 
- s0((11:14)+lvl,1) = 1;
- s0((11:14)+lvl,2) = 0;
- s0((15:20)+lvl,1) = 0;
- s0((15:20)+lvl,2) = 1;
- 
- 
- nc =  model.G.cells.num;
+nc =  model.G.cells.num;
 nf =  numel(model.operators.T);
 % select configuration for sensitivity computations
 state0 = initState(model.G, W , 350*barsa,[0.05,0.95]); 
@@ -394,7 +188,7 @@ figure, plotCellData(model.G, state0.s(:,2)), colorbar, view(0,0);axis equal tig
  
 values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 % scale values
-      values{2} =  1.5*values{2};
+      values{2} =  5*values{2};
  if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
       values{1} =  pv/10;
       values{3} =  TT;
