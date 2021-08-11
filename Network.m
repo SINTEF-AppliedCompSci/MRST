@@ -79,8 +79,8 @@ classdef Network
             %                  only used when 'type' is set 'fd_postprocessor'.
             %
             %   'Verbose'    - Indicates whether extra output is to be printed, such as
-            %                  reports on how the faces are cell indices are been
-            %                  assing to each conection and so on.
+            %                  reports on how the faces and cell indices have been
+            %                  assigned to each connection, and so on.
             % RETURNS:
             %   obj.network    - MATLAB Undirected Graph
             %
@@ -182,7 +182,7 @@ classdef Network
                     [state, diagnostics] = computePressureAndDiagnostics(...
                         opt.problem.SimulatorSetup.model,...
                         'wells', opt.problem.SimulatorSetup.schedule.control(1).W,...
-                        'state',state);
+                        'state',state, 'firstArrival', false);
                     %Determine wellpair indices
                     [IP_indices]=find(diagnostics.wellCommunication > opt.flow_filter);
                     [I,P]=find(diagnostics.wellCommunication > opt.flow_filter);
