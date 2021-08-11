@@ -4,9 +4,7 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
 
 %% Run EGG field simulation
 % Run a realization as a reference model
-
-setting_up_egg_model
-
+setupEggModel;
 wellSols_ref = wellSols;
 model_ref    = model;
 states_ref   = states;
