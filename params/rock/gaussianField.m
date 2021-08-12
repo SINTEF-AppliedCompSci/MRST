@@ -21,7 +21,8 @@ function p = gaussianField(N, vals, sz, std)
 %
 %   SIZE - Sets the size of the convolution kernel. Default value is
 %          `[3,3,3]`. If `SIZE` is a scalar,  the size is interpreted as 
-%          `[SIZE SIZE SIZE].`
+%          `[SIZE SIZE SIZE].` The convolution kernel must be specified so
+%          that numel(SIZE)>=numel(N).
 %
 %   STD  - Standard deviation used in the Gaussian filter (default: 0.65)
 %
@@ -55,12 +56,14 @@ elseif nargin==2
 elseif nargin==3
    std = 0.65;
 elseif nargin>4 || nargin==0
-   error(id('WrongNumberOfInputs'),'Wrong number of input arguments.');
+   error('gaussianField:wrongNumberOfInputs','Wrong number of input arguments.');
 end
 if length(sz)==1
    sz = [sz sz sz];
+elseif numel(sz) < numel(N)
+    error('gaussianField:invalidSizeInput','SIZE must have the same number of components as N');
 elseif numel(sz)>3 || numel(sz)==0
-   error(id('InvalidSizeInput'),'SIZE must be a vector with 1, 2, or 3 elements.');
+   error('gaussianField:invalidSizeInput','SIZE must be a vector with 1, 2, or 3 elements.');
 end
 padSz = (sz-1)/2;
 
