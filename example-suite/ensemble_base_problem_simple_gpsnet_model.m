@@ -86,7 +86,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Define any module dependencies for the example. The following are
     % typically always needed
-    require ad-core ad-props ad-blackoil incomp dd-models ensemble diagnostics
+    require ad-core ad-props ad-blackoil incomp network-models ensemble diagnostics
     
     %% Define model
     % Create full 3D reservoir based on a full 3D example reservoir 
@@ -128,26 +128,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     
     %% Create data-driven graph of well connections
-    gpsnet = WellPairNetwork(fullProblem.SimulatorSetup.model, ...
-                         fullProblem.SimulatorSetup.schedule, ...
-                         fullStates, ...
-                         fullProblem.SimulatorSetup.state0, ...
-                         fullWellSols);
-    gpsnet = gpsnet.filter_wps(1*stb/day);
-    
-    if options.plotNetwork
-        figure;
-        gpsnet.plotWellPairConnections();
+    well_nodes =fullExample.schedule.control.W;
+    for i = 1:numel(well_nodes) % TODO maybe this part should be done more systematically.
+        well_nodes(i).cells = well_nodes(i).cells(1);
     end
+    
+    gpsnet =  Network(well_nodes,fullExample.model.G,...
+                                 'type','injectors_to_producers',...
+                                 'injectors',[1:2],...
+                                 'producers',[3:4]); 
+                             
     
     %% Create the grid and rock representing the gpsnet model
     
     % Compute the required reservoir volume needed to fit all the oil in
     % the original model
-    totalReservoirVolume = sum(fullProblem.SimulatorSetup.model.operators.pv)/options.gpsnetPoro;
+    totalReservoirVolume = sum(fullProblem.SimulatorSetup.model.operators.pv./fullProblem.SimulatorSetup.model.rock.poro);
     
     % Find number of well-pair connections
-    numConnections = size(gpsnet.Graph.Edges, 1);
+    numConnections = size(gpsnet.network.Edges, 1);
     
     % Create 2D grid of 1D connections
     length = (totalReservoirVolume*25)^(1/3);
@@ -165,10 +164,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     model.gas = false;
     model.OutputStateFunctions = {};
     
-    [model, W, connectionIndices] = createDDmodel_1(model, ...
-                                                    options.cellsPerConnection, ...
-                                                    gpsnet.Graph, ...
-                                                    fullProblem.SimulatorSetup.schedule.control.W);
+    evalc("obj = NetworkModel(model,options.cellsPerConnection, gpsnet.network,fullExample.schedule.control.W)");
+    model = obj.model;
+    W     = obj.W;
+    
+    connectionIndices.faces = obj.Graph.Edges.Face_Indices;
+    connectionIndices.cells = obj.Graph.Edges.Cell_Indices;
+    
 
     %% Define the suitable initial state and schedule
     
