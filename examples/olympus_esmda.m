@@ -9,7 +9,7 @@
 % having homogeneous operator properties throughout the connection.
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble network-models diagnostics
+    example-suite incomp ensemble network-models diagnostics linearsolvers
 
 mrstVerbose off
 
@@ -21,9 +21,6 @@ Grid = load('OlympusGrid','G');
 
 baseProblemName = 'network_model_template';
 trueProblemName = 'olympus_field_wo';
-
-baseProblemOptions = {'ModelGrid',Grid,...
-                      'fullExampleName','olympus_field_wo'};
 
 ensembleSize = 100;
 numConnections = 77; % Not a parameter, but hard-coded in the baseProblem
@@ -39,7 +36,7 @@ topDirectory = fullfile(mrstOutputDirectory(), ...
 %% Create example
 baseExample = MRSTExample(baseProblemName, ...
                           'ModelGrid',Grid.G,...
-                          'fullExampleName','olympus_field_wo',...
+                          'fullExampleName',trueProblemName,...
                           'gpsnetPerm', 500*milli*darcy,...
                           'deleteOldResults', false, ...
                           'plotNetwork', false,...
@@ -64,7 +61,9 @@ if plotExample
     trueExample.plot(states);
 end
 
- wellNames={'INJ-1','INJ-2','INJ-3','INJ-4','INJ-5','INJ-6','INJ-7','PROD-1','PROD-10','PROD-11','PROD-2','PROD-3','PROD-4','PROD-5','PROD-6','PROD-7','PROD-8','PROD-9'};
+ wellNames={baseExample.schedule.control.W.name};%{'INJ-1','INJ-2','INJ-3','INJ-4','INJ-5','INJ-6','INJ-7','PROD-1','PROD-10','PROD-11','PROD-2','PROD-3','PROD-4','PROD-5','PROD-6','PROD-7','PROD-8','PROD-9'};
+ numWells = numel(wellNames);
+
 % Read and store the observations in a QoI object
 trueQoI = WellQoIHM('wellNames', wellNames, ...
                     'names', {'qOs', 'qWs'});
@@ -85,14 +84,14 @@ truthResultHandler = ResultHandler('dataPrefix', 'trueQoI', ...
 
 % Define the observation uncertainty and perturb the observations
 % accordingly
-obsStdDev = 0.00004;
+obsStdDev = 0.0004;
 trueObservations  = trueQoI.getQoI(trueProblem); 
 if numel(observationResultHandler.getValidIds) < 1 || overwriteObservation
     for w = 1:numel(trueQoI.wellNames)
         perturbedObservations(w) = trueObservations(w);
         for f = 1:numel(trueQoI.names)
             trueVals = trueObservations(w).(trueQoI.names{f});
-            perturbedObservations(w).(trueQoI.names{f}) = trueVals + randn(size(trueVals))*obsStdDev;
+            perturbedObservations(w).(trueQoI.names{f}) = trueVals + 0*randn(size(trueVals))*obsStdDev; % no perturbation
         end
     end
     observationResultHandler{1} = {perturbedObservations};
@@ -116,55 +115,10 @@ end
 
 
 %% Create sample object
-transSamples = NetworkOperatorSamplesHM('data', transData, ...
+transSamples = NetworkOperatorSamplesHM('data', transData,...
+                                        'TScale',max(transData{i}.T),...
                                         'connectionIndices', baseExample.options.connectionIndices)
-
 %% Create QoI, with the observations
-qoi = WellQoIHM(...
-    'wellNames', wellNames, ...
-    'names', {'qOs', 'qWs'}, ...
-    'observationResultHandler', observationResultHandler, ...
-    'truthResultHandler', truthResultHandler, ...
-    'observationCov', obsStdDev^2);
-
-
-%% Create the ensemble
-transEnsemble = MRSTHistoryMatchingEnsemble(baseExample, transSamples, qoi, ...
-    'alpha', [28/3 7 4 2], ...
-    'directory', fullfile(topDirectory, 'trans'), ...
-    'simulationStrategy', 'parallel', ...
-    'storeOutput', true, ...
-    'maxWorkers', 8, ...
-    'reset', true, ...
-    'verbose', true);
-
-%% Run ensemble
-transEnsemble.simulateEnsembleMembers();
-
-
-%% Get simulated observations
-disp('simulated observations: ')
-size(transEnsemble.getEnsembleQoI())
-
-%% Get the matrix of ensemble samples 
-disp('Matrix of ensemble samples (parameters):')
-size(transEnsemble.getEnsembleSamples())
-
-
-%% Do history matching
-transEnsemble.doHistoryMatching()
-
-%% Run new ensemble
-transEnsemble.simulateEnsembleMembers();
-
-%% Plot original and updated ensemble results
-transEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
-    'cmapName', 'lines', ...
-    'plotTruth', true, ...
-    'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});
-
-                
-
 
 
 
@@ -176,55 +130,22 @@ transEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
 FDmean = baseExample.model.operators.pv(baseExample.options.connectionIndices.cells{1}(1));
 pvData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
-    pvData{i}.pv = FDmean + 2000*randn(1, numConnections);
+    pvData{i}.pv = FDmean + 0.1*FDmean*randn(1, numConnections);
 end
 
-pvSamples = NetworkOperatorSamplesHM('data', pvData, ...
-                                     'connectionIndices', baseExample.options.connectionIndices, ...
-                                     'pvScale', baseExample.model.G.cells.volumes(1)/100)
+%baseExample.schedule.control.W
+wellSampleData = cell(ensembleSize, 1);
+for i = 1:ensembleSize
+    wellSampleData{i}.WI = (randn(numWells,1)*0.01 + 10)*1e-11;   
+    %wellSampleData{i}.WI = precomputedSamples.WI_sum(:, i); 
+end
+minWI = 0.01*min(min(wellSampleData{i}.WI));
+maxWI = 50*max(max(wellSampleData{i}.WI));
 
-
-
-%% Create combo ensemble
-pvEnsemble = MRSTHistoryMatchingEnsemble(baseExample, pvSamples, qoi, ...
-    'directory', fullfile(topDirectory, 'pv'), ...
-    'simulationStrategy', 'spmd', ...
-    'maxWorkers', 8, ...
-    'reset', true, ...
-    'verbose', true)
-
-%% Run ensemble
-pvEnsemble.simulateEnsembleMembers();
-
-
-%% Get simulated observations
-disp('simulated observations: ')
-size(pvEnsemble.getEnsembleQoI())
-
-%% Get the matrix of ensemble samples 
-disp('Matrix of ensemble samples (parameters):')
-size(pvEnsemble.getEnsembleSamples())
-
-
-%% Do history matching
-pvEnsemble.doHistoryMatching()
-
-%% Run new ensemble
-pvEnsemble.simulateEnsembleMembers();
-
-
-%% Plot original and updated ensemble results
-pvEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
-    'cmapName', 'lines', ...
-    'plotTruth', true, ...
-    'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});
-
-
-
-
-
-
-
+wellSamples = WellSamplesHM('data', wellSampleData, ...
+                            'WIScale', 1e-11, ...
+                            'minWIValue', minWI, ...
+                            'maxWIValue', maxWI);
 
 
 
@@ -237,17 +158,58 @@ end
 
 operatorSamples = NetworkOperatorSamplesHM('data', operatorData, ...
                                      'connectionIndices', baseExample.options.connectionIndices, ...
-                                     'pvScale', baseExample.model.G.cells.volumes(1)/100)
+                                     'pvScale', baseExample.model.G.cells.volumes(1),...
+                                     'TScale',max(transData{i}.T))
+
+wellSamples = WellSamplesHM('data', wellSampleData, ...
+                            'WIScale', 1e-11, ...
+                            'minWIValue', minWI, ...
+                            'maxWIValue', maxWI);
+                        
+                        
+%% Define samples that give different initial saturation for each connection
+rng(12345)
+initSoData = cell(ensembleSize, 1);
+for i = 1:ensembleSize
+%     initSoTmp = zeros(1,numConnections);
+%    while((min(initSoTmp(:)) < 0.8) || (max(initSoTmp(:)) > 1))
+        initSoTmp = 0.3*rand(1,numConnections)+0.7;%Uniform distribution
+%          initSoTmp = randn(1,numConnections);
+%         initSoTmp = initSoTmp - mean(initSoTmp(:));
+%         initSoMin = min(initSoTmp(:));
+%         initSoMax = max(initSoTmp(:));
+%         initSoTmp = initSoTmp.*(0.45/(initSoMax - initSoMin)) + 0.9;
+%    end
+    
+    initSoData{i}.initSo = initSoTmp;
+end
 
 
-                                 
-                                
+%% Create sample object
+initSoSample = NetworkState0SamplesHM('data', initSoData, ...
+                                      'connectionIndices', baseExample.options.connectionIndices)
+                        
+%% Making a composite sample object:
+samples = CompositeSamplesHM({initSoSample,operatorSamples,wellSamples});
+   
+%% 
+qoi = WellQoIHM(...
+    'wellNames', wellNames, ...
+    'names', {'qOs', 'qWs'}, ...
+    'observationResultHandler', observationResultHandler, ...
+    'truthResultHandler', truthResultHandler, ...
+    'observationCov', obsStdDev^2);
+
+
 %% Create combo ensemble
-operatorEnsemble = MRSTHistoryMatchingEnsemble(baseExample, operatorSamples, qoi, ...
+operatorEnsemble = MRSTHistoryMatchingEnsemble(baseExample, samples, qoi, ...
+    'alpha', [28/3 7 4 2], ...
     'directory', fullfile(topDirectory, 'operator'), ...
     'simulationStrategy', 'spmd', ...
-    'maxWorkers', 8, ...
+    'maxWorkers', 20, ...
+    'verboseSimulation',false,...
     'reset', true, ...
+    'storeOutput', true,...
     'verbose', true)
 
 %% Run ensemble
@@ -270,7 +232,15 @@ operatorEnsemble.doHistoryMatching()
 operatorEnsemble.simulateEnsembleMembers();
 
 %% Plot original and updated ensemble results
-operatorEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
+operatorEnsemble.plotQoI('subplots', false, 'clearFigure', false, ...
     'cmapName', 'lines', ...
     'plotTruth', true, ...
-    'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});
+    'subIterations', true, ...
+    'legend', {'observations', 'truth', 'posterior mean', 'ES-MDA it 3',...
+               'ES-MDA it 2', 'ES-MDA it 1', 'prior mean'});
+
+
+% operatorEnsemble.plotQoI('subplots', false, 'clearFigure', false, ...
+%     'cmapName', 'lines', ...
+%     'plotTruth', true, ...
+%     'legend', {'observations', 'truth', 'prior mean'});

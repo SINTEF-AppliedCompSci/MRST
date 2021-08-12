@@ -1,3 +1,4 @@
+
 function [description, options, state0, model, schedule, plotOptions, connectionIndices] ...
     = network_model_template(varargin)
 % Creates a GPSNET model with two-phase flow between the injectors and
@@ -108,6 +109,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     W_ref_V2 =fullExample.schedule.control.W;
     for i = 1:numel(W_ref_V2) % TODO maybe this part should be done more systematically.
         W_ref_V2(i).cells = W_ref_V2(i).cells(1);
+        num_cells = numel(W_ref_V2(i).cells);
+       % W_ref_V2(i).cells=W_ref_V2(i).cells([1 num_cells]);
     end    
 
     ntwkr =  Network(W_ref_V2,options.ModelGrid,...
@@ -116,7 +119,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                  'producers',[8:18]);   
     
     %% Creating data driven model
-    L = 435;
+    L= nthroot(sum(fullExample.model.operators.pv./fullExample.model.rock.poro)*25,3)  ;                            
+
     G = cartGrid([options.cellsPerConnection, 1, numedges(ntwkr.network)], ...
                  [L, L/5 ,L/5]*meter^3);
     G = computeGeometry(G);
@@ -145,7 +149,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     ts = fullExample.schedule.step.val;
     schedule = simpleSchedule(ts, 'W', W);
 
-    problem = packSimulationProblem(state0, model, schedule, 'revision_full_egg_network');
+    problem = packSimulationProblem(state0, model, schedule, 'network');
     
     if options.deleteOldResults
         clearPackedSimulatorOutput(problem, 'prompt', false);
