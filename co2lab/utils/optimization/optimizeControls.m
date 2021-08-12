@@ -66,7 +66,7 @@ function [optim, init, history] = optimizeControls(initState, model, schedule, .
 % EXAMPLE:
 %   For an example, refer to the sample script 'optimizeUtsira'.
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -350,7 +350,7 @@ function [val, der, wellSols, states] = ...
 
    % run adjoint:
    if nargout > 1
-      objh = @(tstep)obj_fun(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
+      objh = @(tstep,varargin)obj_fun(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
       g    = computeGradientAdjointAD(initState, states, model, schedule, objh);
       % scale gradient:
       der = scaleGradient(g, schedule, boxLims, objScaling);

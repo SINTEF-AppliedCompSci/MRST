@@ -36,7 +36,7 @@ function [ deck, petroinfo ] = updateWithHeterogeneity( deck, petroinfo, meta_to
 %   `getAtlasGrid`, `convertAtlasTo3D`
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
