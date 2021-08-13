@@ -103,7 +103,7 @@ end
 
                       
 %% Define samples that give different transmissibilise for each connection
-
+rng(12345)
 % Initializing as a log-Gaussian distribution around the value obtained
 % from flow diagnostics 
 % (assuming FD finds the same T for all connections)
@@ -136,7 +136,7 @@ end
 %baseExample.schedule.control.W
 wellSampleData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
-    wellSampleData{i}.WI = (randn(numWells,1)*0.01 + 10)*1e-11;   
+    wellSampleData{i}.WI = (randn(numWells,1)*0.5 + 10)*1e-11;   
     %wellSampleData{i}.WI = precomputedSamples.WI_sum(:, i); 
 end
 minWI = 0.01*min(min(wellSampleData{i}.WI));
@@ -168,7 +168,7 @@ wellSamples = WellSamplesHM('data', wellSampleData, ...
                         
                         
 %% Define samples that give different initial saturation for each connection
-rng(12345)
+
 initSoData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
 %     initSoTmp = zeros(1,numConnections);
