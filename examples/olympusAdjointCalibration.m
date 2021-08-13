@@ -2,7 +2,7 @@ mrstModule add network-models ad-core ad-props ad-blackoil optimization diagnost
 
 
 %% Setting up Olympus field simulation
-setting_up_olympus_model
+setupOlympusModel
 
 %% Defining reference observations
 
