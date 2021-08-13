@@ -109,33 +109,17 @@ NetModel = NetworkModel(model,nc,...
 
 model = NetModel.model;
 W     = NetModel.W;
-indexs.faces = NetModel.Graph.Edges.Face_Indices;
-indexs.cells = NetModel.Graph.Edges.Cell_Indices;
+indices.faces = NetModel.Graph.Edges.Face_Indices;
+indices.cells = NetModel.Graph.Edges.Cell_Indices;
 
-
-
-
-faces_lumping = zeros(size(model.operators.T));
-cell_lumping  = zeros(size(model.operators.pv));
-for i = 1:numel(indexs.faces)
-    faces_lumping(indexs.faces{i}) = i;
-    cell_lumping(indexs.cells{i})  = i;
-end
- faces_lumping(find(faces_lumping==0))=NaN;
- cell_lumping(find(cell_lumping==0))=NaN;
-
-
-cell_sub = find(~isnan(cell_lumping));
-cell_lumping = cell_lumping(cell_sub);
-face_sub = find(~isnan(faces_lumping));
-faces_lumping = faces_lumping(face_sub);
-
+[cell_lumping,cell_sub] = reorganizeIndices(indices.cells);
+[faces_lumping,face_sub] = reorganizeIndices(indices.faces);
 
 %% Prepare the model for simulation.
 
 model = model.validateModel();
 model.toleranceCNV = 1e-6;
-state0 = initState(G, W , 215*barsa,[0.1, 0.9]); 
+state0 = initState(G, W , 215*barsa,[0, 1]); 
 dt = schedule_ref.step.val;
 schedule = simpleSchedule(dt(1:15), 'W', W);
 schedule_0=schedule;
@@ -158,7 +142,7 @@ config = {...%name      include     scaling    boxlims     lumping     subset   
           'sowcr',            1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
           'krw',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
           'kro',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'sw',               1,   'linear',   [0 .99],   cell_lumping,   cell_sub,  [0 9]};
+          'sw',               1,   'linear',   [0 .99], cell_lumping,   cell_sub,  [0 9]
           'pressure'          0,   'linear',       [],          [],     [],   [0.001 10]};
 parameters = [];
 for k = 1:size(config,1)
@@ -183,9 +167,11 @@ values = applyFunction(@(p)p.getParameterValue(prob), parameters);
 if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
      values{1} =  pv/10;
      values{3} =  TT;
+else
+  rng(12345)
+  values{10} =  rand(size(values{10}));  
 end
-rng(12345)
-values{10} =  rand(size(values{10}));
+
 u = cell(size(values));
 for k = 1:numel(u)    
     u{k} = parameters{k}.scale(values{k});

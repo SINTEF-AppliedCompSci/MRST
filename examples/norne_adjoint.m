@@ -110,27 +110,14 @@ NetModel = NetworkModel(model,nc,...
 
 model = NetModel.model;
 W     = NetModel.W;
-indexs.faces = NetModel.Graph.Edges.Face_Indices;
-indexs.cells = NetModel.Graph.Edges.Cell_Indices;
+indices.faces = NetModel.Graph.Edges.Face_Indices;
+indices.cells = NetModel.Graph.Edges.Cell_Indices;
 
 
-
-
-faces_lumping = zeros(size(model.operators.T));
-cell_lumping  = zeros(size(model.operators.pv));
-for i = 1:numel(indexs.faces)
-    faces_lumping(indexs.faces{i}) = i;
-    cell_lumping(indexs.cells{i})  = i;
-end
- faces_lumping(find(faces_lumping==0))=NaN;
- cell_lumping(find(cell_lumping==0))=NaN;
-
-
-cell_sub = find(~isnan(cell_lumping));
-cell_lumping = cell_lumping(cell_sub);
-face_sub = find(~isnan(faces_lumping));
-faces_lumping = faces_lumping(face_sub);
-
+% Reorganizing the parameters indices for lumping in the ModelParameter
+% class
+[cell_lumping,cell_sub] = reorganizeIndices(indices.cells);
+[faces_lumping,face_sub] = reorganizeIndices(indices.faces);
 
 %% Preparing parameters
 

@@ -101,14 +101,9 @@ indices.cells = obj.Graph.Edges.Cell_Indices;
 
 % Reorganizing the parameters indices for lumping in the ModelParameter
 % class
-faces_lumping = zeros(size(model.operators.T));
-cell_lumping  = zeros(size(model.operators.pv));
-for i = 1:numel(indices.faces)
-    faces_lumping(indices.faces{i}) = i;
-    cell_lumping(indices.cells{i})  = i;
-end
-faces_lumping = faces_lumping(faces_lumping~=0);
-cell_lumping  = cell_lumping(cell_lumping~=0);
+[cell_lumping,cell_sub] = reorganizeIndices(indices.cells);
+[faces_lumping,face_sub] = reorganizeIndices(indices.faces);
+
 
 %% Prepare the model for simulation.
 model    = model.validateModel();
