@@ -17,8 +17,6 @@ mrstVerbose off
 % The base problem contains all properties that are common throughout the
 % ensemble
 
-Grid = load('OlympusGrid','G');
-
 baseProblemName = 'network_model_template';
 trueProblemName = 'olympus_field_wo';
 
@@ -35,7 +33,6 @@ topDirectory = fullfile(mrstOutputDirectory(), ...
 
 %% Create example
 baseExample = MRSTExample(baseProblemName, ...
-                          'ModelGrid',Grid.G,...
                           'fullExampleName',trueProblemName,...
                           'gpsnetPerm', 500*milli*darcy,...
                           'deleteOldResults', false, ...
@@ -127,7 +124,7 @@ transSamples = NetworkOperatorSamplesHM('data', transData,...
 
 
 %% History match with porevolumes
-FDmean = baseExample.model.operators.pv(baseExample.options.connectionIndices.cells{1}(1));
+FDmean = 0.3*baseExample.model.operators.pv(baseExample.options.connectionIndices.cells{1}(1));
 pvData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
     pvData{i}.pv = FDmean + 0.1*FDmean*randn(1, numConnections);
