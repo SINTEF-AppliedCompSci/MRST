@@ -414,6 +414,8 @@ classdef BaseEnsemble < handle
                     ensemble.simulateEnsembleMembersBackground(opt.range, rangePos, extraOpt{:});
                 case 'spmd'
                     ensemble.simulateEnsembleMembersSPMD(opt.range, rangePos, extraOpt{:});
+                otherwise
+                    error(['Invalid simulationStrategy "', ensemble.simulationStrategy, '"'])
             end
             range = opt.range;
         end
