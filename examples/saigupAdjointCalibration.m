@@ -1,7 +1,7 @@
 mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ad-props incomp optimization example-suite linearsolvers 
 
 %load 'Saigup.mat'
-setting_up_saigup_model
+setupSaigupModel
 % 
 wellSols_ref =  wellSols;
 model_ref    = example.model;
