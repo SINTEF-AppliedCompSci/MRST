@@ -4,7 +4,7 @@ This repository contains the files for an extension of the available dual porosi
 
 # Examples usage
 
-Copy the files to a folder in the MATLAB search path amd run the example scripts.
+Copy the files to a folder in the MATLAB search path and run the example scripts.
 
 # Dependencies
 
