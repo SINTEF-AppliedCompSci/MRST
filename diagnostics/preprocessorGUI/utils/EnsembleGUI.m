@@ -67,8 +67,7 @@ classdef EnsembleGUI < handle
             ix = opt.diagnosticsNo;
             assert(isa(ensemble, 'ModelEnsemble'));
             if isempty(ensemble.diagnostics)
-                warning('Ensemble has no computed diagnostics, returning ...');
-                d = [];
+                warning('Ensemble has no computed diagnostics. Diagnostics must be precomputed by running ensemble.computeDiagnostics, returning ...');
                 return
             end
             
