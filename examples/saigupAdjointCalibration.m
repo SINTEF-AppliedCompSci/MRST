@@ -15,8 +15,8 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
 
 %% Setup 3D reference model
 % Our reference model is the standard SAIGUP test case from the
-% example-suite tutorial. This specifies a oil-water fluid model with a 5:1
-% viscosity ratio, quadratic relative permeabilities, and slight fluid
+% example-suite tutorial. This specifies an oil-water fluid model with a
+% 5:1 viscosity ratio, quadratic relative permeabilities, and slight fluid
 % compressibilities. Oil and water are initially separated by a sharp
 % interface and the reservoir is produced using six vertical producers
 % supported by eight vertical injectors around the perimeter of the model.
@@ -36,13 +36,9 @@ Wref        = scheduleRef.control.W;
 % example.plot(states);
 
 %% Create the network
-% We start by creating a network that connects injectors and producers. The
-% module supplies four different ways to do this: all to all, injectors to
-% producers (and vice versa), connections determined by a flow diagnostics
-% analysis of the 3D geological model, or connections based on flow
-% diagnostics analysis of the fine-scale reference simulation. This network
-% describes the possible 1D flow paths that each will have an associated
-% pore volume and transmissibility. 
+% We start by creating a network that connects injectors and producers.
+% This network describes the possible 1D flow paths that each will have an
+% associated pore volume and transmissibility.
 
 % To create the network, we only need a single perforation from each well,
 % which we somewhat arbitrarily pick to be the 7th from the top.
@@ -51,7 +47,13 @@ for i = 1:numel(Wnw)
     Wnw(i).cells = Wnw(i).cells(7);
 end
 
-% Select a network type and create the network
+% Select type and create network 
+% The module supplies different ways to do this: all to all, injectors to
+% producers (and vice versa), connections specified manually by the user,
+% connections determined by a flow diagnostics analysis of the 3D
+% geological model, or connections based on flow diagnostics analysis of
+% the fine-scale reference simulation.
+
 %networkType = 'all_to_all';
 networkType  = 'injectors_to_producers';
 %networkType = 'fd_preprocessor';
@@ -120,7 +122,7 @@ rock = makeRock(G, 200*milli*darcy, 0.12);
 
 % Fluid model with endpoint scaling of relative permeabilities
 gravity off
-fluid = example.model.fluid;
+fluid = modelRef.fluid;
 model = GenericBlackOilModel(G, rock, fluid,'gas', false);
 model = imposeRelpermScaling(model, 'SWL', .1, 'SWCR', .2, 'SWU', .9,...
                              'SOWCR', .1, 'KRW', .9, 'KRO', .8);
@@ -131,11 +133,11 @@ model.OutputStateFunctions = {};
 % validate the model to dynamically construct the correct number of phases
 % and components and set up all the necessary state functions.
 cellsPerPath = 10;
-NetModel = NetworkModel(model, cellsPerPath, ntwrk.network, Wref);
-model    = NetModel.model;
-model    = model.validateModel();
-W        = NetModel.W;
-state0 = initState(model.G, W , 350*barsa,[0.05,0.95]);
+ntwrkModel = NetworkModel(model, cellsPerPath, ntwrk.network, Wref);
+model      = ntwrkModel.model;
+model      = model.validateModel();
+W          = ntwrkModel.W;
+state0     = initState(model.G, W , 350*barsa,[0.05,0.95]);
 
 % Simulation tolerances
 model.toleranceCNV = 1e-6;
@@ -167,8 +169,8 @@ prob = struct('model', model, 'schedule', schedule, 'state0', state0);
 % single transmissibility for each network edge. We thus need a mapping
 % between edges and cells/faces in the Cartesian grid to describe the
 % corresponding lumping of parameters in this grid.
-[cellEdgeNo, cellIx] = reorganizeIndices(NetModel.Graph.Edges.Cell_Indices);
-[faceEdgeNo, faceIx] = reorganizeIndices(NetModel.Graph.Edges.Face_Indices);
+[cellEdgeNo, cellIx] = reorganizeIndices(ntwrkModel.Graph.Edges.Cell_Indices);
+[faceEdgeNo, faceIx] = reorganizeIndices(ntwrkModel.Graph.Edges.Face_Indices);
 
 nc =  model.G.cells.num;
 nf =  numel(model.operators.T);
@@ -242,7 +244,7 @@ plotWellSols({wellSolsRef, wellSols_0},...
 
 
 %% Model calibration
-% Calibrate the model using the BFGS method with parameters
+% Calibrate the model using the BFGS method
 objh = @(p) evaluateMatch(p, mismatchFn, prob, parameters, statesRef);
 
 [v, p_opt, history] = unitBoxBFGS(paramVec, objh,'objChangeTol',  1e-8, ...
