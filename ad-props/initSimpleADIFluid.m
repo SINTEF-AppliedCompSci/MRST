@@ -165,6 +165,7 @@ for i = 1:nPh
     end
     if all(opt.smin == 0)
         kr = @(s, varargin) s.^opt.n(i);
+        [sl, su] = deal(0,1);
     else
         sl = opt.smin(i);
         su = 1 - sum(opt.smin) + sl;
@@ -177,8 +178,10 @@ for i = 1:nPh
         fluid.(['mu', n]) = @(p, varargin) constantViscosity(opt.mu(i), p, varargin{:});
     end
     fluid.(['kr', n]) = kr;
+    fluid.krPts.(lower(n)) = [sl, sl, su, 1];
     if strcmpi(n, 'O') && nPh > 2
         [fluid.krOW, fluid.krOG] = deal(kr);
+        [fluid.krPts.ow, fluid.krPts.og] = deal([sl, sl, su, 1]);
     end
 end
 
@@ -190,6 +193,8 @@ if ~isempty(opt.cR)
     fluid.cR = cR;
     fluid.pvMultR = @(p)(1 + cR.*(p-opt.pRef));
 end
+
+
 end
 
 function B = constantReciprocalFVF(p, varargin)

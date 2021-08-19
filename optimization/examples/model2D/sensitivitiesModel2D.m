@@ -24,7 +24,7 @@ state0 = initResSol(G, 200*barsa, [0, 1]);
 % Set up a perturbed model with different pv and perm:
 rock1 = rock;
 rock1.perm = rock.perm*1.1;
-model = TwoPhaseOilWaterModel(G, rock1, fluid);   
+model =  GenericBlackOilModel(G, rock1, fluid, 'gas', false);  % TODO add a warning to only work with generic black oil
 model = imposeRelpermScaling(model, scaling{:});
 model.operators.pv = model_ref.operators.pv.*0.8;
 
@@ -54,15 +54,35 @@ fprintf('Current misfit value: %6.4e\n', misfitVal)
 objh = @(tstep,model, state) matchObservedOW(model, states, schedule, states_ref,...
     'computePartials', true, 'tstep', tstep, weighting{:},'state',state);
 
-% run adjoint to compute sensitivities of misfit wrt params
+%% run adjoint to compute sensitivities of misfit wrt params
 % choose parameters, get multiplier sensitivities except for endpoints
-params      = {'porevolume', 'permeability', 'swcr',  'sowcr', 'krw',   'kro'}; 
-paramTypes  = {'multiplier', 'multiplier',   'value', 'value', 'value', 'value'};   
 
-sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
-                                     'Parameters'    , params, ...
-                                     'ParameterTypes', paramTypes);
+model.toleranceCNV = 1e-6;
+SimulatorSetup = struct('model', model, 'schedule', schedule, 'state0', state0);
+parameters = [];
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'porevolume','type','multiplier');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'permx','type','multiplier');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'permy','type','multiplier');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'permz','type','multiplier');
+nms_relperm = {'swcr',  'sowcr', 'kro', 'krw'};
+for k = 1:numel(nms_relperm)
+   parameters = addParameter(parameters, SimulatorSetup, 'name', nms_relperm{k}); %, 'lumping',ones(n_cells,1)
+end
 
+raw_sens = computeSensitivitiesAdjointAD(SimulatorSetup, states,parameters, objh);
+
+% do scaling of gradient for Multipliers
+for kp = 1:numel(parameters)
+    nm = parameters{kp}.name;
+    if strcmp(parameters{kp}.type, 'multiplier')
+        sens.(nm) = (raw_sens.(nm)).*parameters{kp}.getParameterValue(SimulatorSetup);
+    else
+        sens.(nm) = raw_sens.(nm);
+    end
+end
+    
+    
+    
 %% Plot sensitivities on grid:
 figure,
 subplot(2,2,1), plotCellData(G, log(rock.perm(:,1)), 'EdgeColor', 'none'), title('log permeability')
@@ -74,17 +94,32 @@ subplot(2,2,4), plotCellData(G, sens.permy, 'EdgeColor', 'none'), colorbar,title
 figure,
 nms = {'swcr', 'sowcr', 'krw-max', 'kro-max'};
 for k = 1:4
-    subplot(2,2,k), plotCellData(G, sens.(params{k+2}), 'EdgeColor', 'none'), colorbar,title(nms{k});
+    subplot(2,2,k), plotCellData(G, sens.(parameters{k+2}.name), 'EdgeColor', 'none'), colorbar,title(nms{k});
 end
 
 
-%% Run new adjoint to obtain transmissibility and well connection transmissibilitiy sensitivities 
-params      = {'transmissibility', 'conntrans'};
-paramTypes  = {'multiplier', 'multiplier'};
-sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, objh, ...
-                                     'Parameters'    , params, ...
-                                     'ParameterTypes', paramTypes);
 
+%% Run new adjoint to obtain transmissibility and well connection transmissibilitiy sensitivities 
+
+SimulatorSetup = struct('model', model, 'schedule', schedule, 'state0', state0);
+parameters = [];
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'transmissibility','type','multiplier');
+parameters = addParameter(parameters, SimulatorSetup, 'name', 'conntrans','type','multiplier');
+
+raw_sens = computeSensitivitiesAdjointAD(SimulatorSetup, states,parameters, objh);
+% do scaling of gradient for Multipliers
+for kp = 1:numel(parameters)
+    nm = parameters{kp}.name;
+    if strcmp(parameters{kp}.type, 'multiplier')
+        sens.(nm) = (raw_sens.(nm)).*parameters{kp}.getParameterValue(SimulatorSetup);
+    else
+        sens.(nm) = raw_sens.(nm);
+    end
+end
+
+                                                                                             
+
+%%
 figure,
 subplot(1,2,1), plotCellData(G,  cellAverage(G, sens.transmissibility), 'EdgeColor', 'none'), colorbar,title('Average trans multiplier sensitivity');
 subplot(1,2,2), plot(sens.conntrans, '--o', 'MarkerSize', 14); title('Well connection trans multiplier sensitivity')

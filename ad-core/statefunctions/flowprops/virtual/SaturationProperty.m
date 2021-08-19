@@ -50,7 +50,7 @@ classdef SaturationProperty
                 cix = prop.cell_subset;
                 swcon = model.rock.krscale.drainage.w(cix, 1);
                 % check for defaulted (nan) swcon -> use table values
-                nix = isnan(swcon);
+                nix = isnan(value(swcon));
                 if any(nix)
                     swcon(nix) = reshape(model.fluid.krPts.w(prop.regions(nix), 1), [], 1);
                 end
