@@ -19,8 +19,7 @@
 
 %% Load modules
 
-% mrstModule add ad-blackoil deckformat ad-core diagnostics
-mrstModule add diagnostics ad-core ad-blackoil
+mrstModule add diagnostics ad-core ad-blackoil example-suite
 %% Get the first 10 realisations of the Egg model
 
 % Here we setup the ensemble using the ModelEnsemble class. 

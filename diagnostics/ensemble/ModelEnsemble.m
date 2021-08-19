@@ -198,7 +198,7 @@ classdef ModelEnsemble < handle
                 isComputed = stat.status(:, strcmp(stat.fields, 'RTD'));
                 opt.memberIx = opt.memberIx(~isComputed(opt.memberIx));
                 if isempty(opt.memberIx)
-                    fprintf('Diagnostics already comptued\n');
+                    fprintf('Diagnostics already computed\n');
                     return;
                 end
             end
