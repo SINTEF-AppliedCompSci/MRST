@@ -1,214 +1,259 @@
+%% Norne: calibration of a GPSNet model
+% This example demonstrates how to set up a GPSNet type reduced network
+% model for a geostatistical realization of the Norne field model with
+% simplified flow physics and well placement.
+%
+% To calibrate the model, we use the Broyden–Fletcher–Goldfarb–Shanno
+% (BFGS) algorithm. This is an iterative line-search method that gradually
+% improves an approximation to the Hessian matrix of the mismatch function,
+% obtained only from adjoint gradients via a generalized secant method.
 mrstModule add ad-core ad-blackoil deckformat diagnostics...
                mrst-gui ad-props incomp optimization...
                network-models example-suite linearsolvers 
 
-%% Setting up the reference model           
-setupSimplifiedNorneModel
+%% Setup 3D reference model
+% The reference model is a single stochastic realization of the Norne field
+% model taken from the example-suit module. Compared with the real field,
+% this simulation case has simpler fluid description (an oil-water model)
+% and an idealized field development plan consisting of a simple pattern of
+% eleven vertical wells that run under constant bhp or rate controls.
 
-wellSols_ref =  wellSols;
-model_ref    = example.model;
-states_ref   = states;
-state0_ref   = example.state0;
-schedule_ref = example.schedule;
-W_ref        = schedule_ref.control.W;
+example = MRSTExample('norne_simple_wo');
 
+% Modify the setup to use shorter time steps
+problem  = example.getPackedSimulationProblem();
+schedule = example.schedule;
+ix  = repmat(1:numel(schedule.step.val), [4 1]);
+schedule.step.val     = schedule.step.val(ix(:))/4;
+schedule.step.control = schedule.step.control(ix(:));
+problem.SimulatorSetup.schedule = schedule;
+example.schedule = schedule;
 
-%  %%  compute diagnostics and create a data driven model  DD
+% Simulate
+simulatePackedProblem(problem);
 
-%% Creating the network
+[wellSolsRef, statesRef] = getPackedSimulatorOutput(problem);
+modelRef    = example.model;
+scheduleRef = problem.SimulatorSetup.schedule;
+Wref        = scheduleRef.control.W;
 
-% Defining a well structure with only once well cell per well, to impose a
-% Network that has only once well-cell per well.
+% Plot
+example.plot(statesRef,'step_index',numel(statesRef))
 
-W_ref_V2 = W_ref;
-for i = 1:numel(W_ref_V2) % TODO maybe this part should be done more systematically.
-    num_cells = numel(W_ref_V2(i).cells)
-    %W_ref_V2(i).cells = W_ref_V2(i).cells([1 round(num_cells/2) num_cells]);
-    W_ref_V2(i).cells = W_ref_V2(i).cells([round(num_cells/2)]);
+%% Create the network
+% We start by creating a network that connects injectors and producers.
+% This network describes the possible 1D flow paths that each will have an
+% associated pore volume and transmissibility.
+
+% To create the network, we only need a single perforation from each well,
+% which we somewhat arbitrarily pick to be the middle perforation.
+Wnw = Wref;
+for i = 1:numel(Wnw)
+    num_cells = numel(Wnw(i).cells);
+    Wnw(i).cells = Wnw(i).cells(round(num_cells/2));
 end
 
-network_type = 'fd_postprocessor';
-%network_type = 'fd_preprocessor';
-%network_type  = 'injectors_to_producers';
-%network_type = 'all_to_all';
-%network_type = 'user_defined_edges';
-
-switch network_type
+% Select and create network
+% The module offers different ways to specify the network topology. To
+% choose different ones, you change the networkType variable
+networkType = 'fd_postprocessor';
+switch networkType
     case 'all_to_all'
-        ntwkr =  Network(W_ref_V2,model_ref.G,...
-                                'type',network_type);
+        ntwrk =  Network(Wnw, modelRef.G,...
+                         'type', networkType);
     case 'injectors_to_producers'
-        ntwkr =  Network(W_ref_V2,model_ref.G,...
-                                 'type',network_type,...
-                                 'injectors',[1:6],...
-                                 'producers',[7:11]);
+        ntwrk =  Network(Wnw, modelRef.G,     ...
+                         'type', networkType, ...
+                         'injectors', 1:6,    ...
+                         'producers', 7:11);
     case 'fd_preprocessor'
-        % Network derive by flow diagnostics      
-        ntwkr =  Network(W_ref_V2,model_ref.G,...
-                                 'type',network_type,...
-                                 'problem',problem,...
-                                 'flow_filter',1*stb/day);
+        ntwrk =  Network(Wnw, modelRef.G,     ...
+                         'type', networkType, ...
+                         'problem', problem,  ...
+                         'flow_filter', 1*stb/day);
     case 'fd_postprocessor'
-        % Network derive by flow diagnostics
-        ntwkr =  Network(W_ref_V2,model_ref.G,...
-                                 'type',network_type,...
-                                 'problem',problem,...
-                                 'flow_filter',1*stb/day,...
-                                 'state_number',6);
+        ntwrk =  Network(Wnw, modelRef.G,     ...
+                         'type', networkType, ...
+                         'problem', problem,  ...
+                         'state_number', 6,   ...
+                         'flow_filter',1*stb/day);
     otherwise
-        error('\nType of network: %s is not implemented\n', network_type);     
-        
+        error('\nType of network: %s is not implemented\n', networkType);
 end
 
+% Plot the network.
+% If based on flow diagnostics, we plot the network twice to show the
+% relative magnitude of the associated transmissibilities and pore volumes.
+figure
+if any(strcmp(networkType,{'fd_preprocessor','fd_postprocessor'}))
+    TT = ntwrk.network.Edges.Transmissibility;
+    pv = ntwrk.network.Edges.PoreVolume;
 
-
-                     
-% Ploting network
-if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
-
-    TT = ntwkr.network.Edges.Transmissibility;
-    pv = ntwkr.network.Edges.PoreVolume;
-% Ploting network with flow-diagnostics parameters
-    figure, subplot(1,2,1);
-    ntwkr.plotNetwork('NetworkLineWidth',10*TT/max(TT));
+    subplot(1,2,1);
+    ntwrk.plotNetwork('NetworkLineWidth',10*TT/max(TT));
     title('Transmissibility');
     axis off
 
     subplot(1,2,2);
-    ntwkr.plotNetwork('NetworkLineWidth',10*pv/max(pv));
+    ntwrk.plotNetwork('NetworkLineWidth',10*pv/max(pv));
     title('PoreVolume');
     axis off;
 else
-    ntwkr.plotNetwork()
+    ntwrk.plotNetwork()
     axis off;
 end
 
-%% Creatting data driven model
+%% Create the data-driven model
+% We subgrid each flow path into ten uniform cells and map the resulting
+% network onto a rectangular Cartesian grid having the same number of rows
+% as the number of flow paths.  The fluid model is copied from the model we
+% seek to match.
 
-L= nthroot(sum(model_ref.operators.pv./model_ref.rock.poro)*25,3)  ;                            
-G = cartGrid([10, 1, numedges(ntwkr.network)], [L, L/5 ,L/5]*meter^3);
-G = computeGeometry(G);
-
-
-fluid = example.model.fluid;
-scaling = {'SWL', .1, 'SWCR', .2, 'SWU', .9, 'SOWCR', .1, 'KRW', .9, 'KRO', .8};
-
+% Grid and petrophysics
+% The grid is set to have an aspect ratio of [5 1 1] and a volum that
+% matches the bulk volume of the reservoir. The constant petrophysical
+% properties are dummy values primarily used to compute an initial guess
+% for matching parameters that have not be set by the network type.
+L    = nthroot(sum(modelRef.operators.pv./modelRef.rock.poro)*25,3)  ;                            
+G    = cartGrid([10, 1, numedges(ntwrk.network)], [L, L/5 ,L/5]*meter^3);
+G    = computeGeometry(G);
 rock = makeRock(G, 1000*milli*darcy, 0.2);
 
+% Fluid model with endpoint scaling of relative permeabilities
 gravity off
-model = GenericBlackOilModel(G, rock, fluid,'gas', false);
-model = imposeRelpermScaling(model, scaling{:});
-
+model = GenericBlackOilModel(G, rock, modelRef.fluid,'gas', false);
+model = imposeRelpermScaling(model, 'SWL', .1, 'SWCR', .2, 'SWU', .9, ...
+                             'SOWCR', .1, 'KRW', .9, 'KRO', .8);
 model.OutputStateFunctions = {};
 
+% Create the network model
+% Here, we use a generic black-oil type model and it is thus important to
+% validate the model to dynamically construct the correct number of phases
+% and components and set up all the necessary state functions.
+cellsPerPath = 10;
+ntwrkModel = NetworkModel(model, cellsPerPath, ntwrk.network, Wref);
+model      = ntwrkModel.model;
+model      = model.validateModel();
+W          = ntwrkModel.W;
+state0     = initState(model.G, W, 100*barsa, [0,1]); 
 
-nc = 10;
-
-NetModel = NetworkModel(model,nc,...
-                   ntwkr.network,...
-                   W_ref);
-
-model = NetModel.model;
-W     = NetModel.W;
-indices.faces = NetModel.Graph.Edges.Face_Indices;
-indices.cells = NetModel.Graph.Edges.Cell_Indices;
-
-
-% Reorganizing the parameters indices for lumping in the ModelParameter
-% class
-[cell_lumping,cell_sub] = reorganizeIndices(indices.cells);
-[faces_lumping,face_sub] = reorganizeIndices(indices.faces);
-
-%% Preparing parameters
-
-
-
-% Prepare the model for simulation.
-
-model = model.validateModel();
+% Simulation tolerances
 model.toleranceCNV = 1e-6;
+%model.FacilityModel.toleranceWellRate = 1e-4;
+%model.FacilityModel.toleranceWellMS  = 1e-4;
+
+
+%% Specify training schedule and parameters to be matched
+% We need to specify which of the parameters in the model we wish to match
+% and any scaling and box limits that will applied to these in the BFGS
+% optimization. These are specified through through the ModelParameter
+% class from the optimization module. For the training we use the first
+% half of the reference simulation
+trainSteps    = 1:round(numel(scheduleRef.step.val)/2);
+trainSchedule = simpleSchedule(scheduleRef.step.val(trainSteps), 'W', W);
+trainProb     = struct('model', model, 'schedule', trainSchedule, 'state0', state0);                               
+
+% Parameter lumping
+% In the GPSNet type of models, we only match a single pore volume and a
+% single transmissibility for each network edge. We thus need a mapping
+% between edges and cells/faces in the Cartesian grid to describe the
+% corresponding lumping of parameters in this grid.
+[cellEdgeNo, cellIx] = reorganizeIndices(ntwrkModel.Graph.Edges.Cell_Indices);
+[faceEdgeNo, faceIx] = reorganizeIndices(ntwrkModel.Graph.Edges.Face_Indices);
 
 nc =  model.G.cells.num;
 nf =  numel(model.operators.T);
-state0 = initState(model.G, W , 100*barsa,[0,1]); 
-dt = schedule_ref.step.val;
 
- schedule_training = simpleSchedule(dt(1:6), 'W', W);
- 
 % select configuration for sensitivity computations
- prob_training  = struct('model', model, 'schedule', schedule_training , 'state0', state0);                               
-config = {...%name      include     scaling    boxlims     lumping     subset       relativeLimits
-          'porevolume',       1,   'linear',       [],  cell_lumping,   cell_sub,   [.001 4]
-          'conntrans',        1,   'log',          [],          [],       [] ,      [.001 100]
-          'transmissibility', 1,   'log'   ,       [],  faces_lumping, face_sub ,   [.001 100]
-          'swl',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'swcr',             1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'swu',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'sowcr',            1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'krw',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'kro',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'sw',               1,   'linear',   [0 .6],  cell_lumping,   cell_sub,  [0 10]
-          'pressure'          1,   'linear',       [],  cell_lumping,   cell_sub,  [.1 4]};
+config = {
+    ...%name      include     scaling    boxlims     lumping     subset   relativeLimits
+    'porevolume',       1,   'linear',       [],  cellEdgeNo,   cellIx,   [.001 4]
+    'conntrans',        1,   'log',          [],          [],       [],   [.001 100]
+    'transmissibility', 1,   'log'   ,       [],  faceEdgeNo,   faceIx,   [.001 100]
+    'swl',              1,   'linear',       [],  ones(nc,1),       [],   [.5 2]
+    'swcr',             1,   'linear',       [],  ones(nc,1),       [],   [.5 2]
+    'swu',              1,   'linear',       [],  ones(nc,1),       [],   [.5 2]
+    'sowcr',            1,   'linear',       [],  ones(nc,1),       [],   [.5 2]
+    'krw',              1,   'linear',       [],  ones(nc,1),       [],   [.5 2]
+    'kro',              1,   'linear',       [],  ones(nc,1),       [],   [.5 2]
+    'sw',               1,   'linear',   [0 .6],  cellEdgeNo,   cellIx,   [0 10]
+    'pressure'          1,   'linear',       [],  cellEdgeNo,   cellIx,   [.1 4]};
 parameters = [];
 for k = 1:size(config,1)
-    if config{k, 2} ~= 0
-        parameters = addParameter(parameters, prob_training, 'name',    config{k,1}, ...
-                                                     'scaling', config{k,3}, ...
-                                                     'boxLims', config{k,4}, ...
-                                                     'lumping', config{k,5}, ...
-                                                     'subset',  config{k,6},...
-                                                     'relativeLimits',config{k,7});
-    end
+    if config{k, 2} == 0, continue, end
+    parameters = addParameter(parameters, trainProb, ...
+        'name',    config{k,1}, 'scaling',       config{k,3}, ...
+        'boxLims', config{k,4}, 'lumping',       config{k,5}, ...
+        'subset',  config{k,6}, 'relativeLimits',config{k,7});
 end
- 
-
-figure, plotCellData(model.G, state0.s(:,2)), colorbar, view(0,0);axis equal tight;  daspect([1,0.1,0.1])
 
 
- %% Simulation of the reference model and Data-driven model
+%% Define the mismatch function
+% The mismatch function is defined as a function handle to a library
+% function from the optimization module that computes the mismatch between
+% a given simulation and a reference state. For an oil-water system, the
+% match is computed based on three quantities (water/oil rate and bhp) and
+% these must be given an associated weight.
+weighting  = {'WaterRateWeight',  day/500, ...
+              'OilRateWeight',    day/500, ...
+              'BHPWeight',        1/(50*barsa)};
+mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
+    matchObservedOW(model, states, schedule, states_ref,...
+                   'computePartials', tt, 'tstep', tstep, weighting{:},...
+                   'state',state,'from_states',false);
 
-         weighting =  {'WaterRateWeight',  (500/day)^-1, ...
-                       'OilRateWeight',    (500/day)^-1, ...
-                       'BHPWeight',        (50*barsa())^-1};
- 
-values = applyFunction(@(p)p.getParameterValue(prob_training), parameters);
-% scale values
-      values{2} =  0.5*values{2};
- if any(strcmp(network_type,{'fd_preprocessor','fd_postprocessor'}))
-      values{1} =  pv/10;
-      values{3} =  TT;
- end
-u = cell(size(values));
-for k = 1:numel(u)    
+
+%% Evaluate the mismatch for the initial model
+% To evaluate the initial mismatch, we first extract the network parameters
+% from the initial specification, scale them to the unit interval, and pass
+% them onto a library function from the optimization module that performs
+% the forward simulation and evaluates the mismatch using mismatchFn.
+
+% Extract and scale parameters
+% Remember to overwrite pore volumes and transmissibilities if initial
+% values for these have been computed by flow diagnostics
+values = applyFunction(@(p)p.getParameterValue(trainProb), parameters);
+values{2} =  0.5*values{2};
+if any(strcmp(networkType,{'fd_preprocessor','fd_postprocessor'}))
+    values{1} =  pv/cellsPerPath;
+    values{3} =  TT;
+end
+for k = numel(values):-1:1    
     u{k} = parameters{k}.scale(values{k});
 end
-p0_fd = vertcat(u{:});  
+pvec0 = vertcat(u{:});
  
-  obj = @(model, states, schedule, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule, states_ref,...
-            'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
-       
- [misfitVal_0,~,wellSols_0,states_0] = evaluateMatch(p0_fd,obj,prob_training,parameters, states_ref,'Gradient','none');          
+% Perform a forward simulation and evaluate the mismatch
+[misfitVal_0,~,wellSols_0,states_0] = ...
+    evaluateMatch(pvec0,mismatchFn,trainProb,parameters,statesRef,'Gradient','none');          
+
+% Plot well curves
+fh = plotWellSols({wellSolsRef,wellSols_0}, ...
+    {scheduleRef.step.val,trainProb.schedule.step.val}, ...
+    'datasetnames', {'reference','initial'}, 'zoom', true, ...
+    'field', 'qOs', 'SelectedWells', 7);
+set(fh, 'name','Norne')
+legend('reference model','initial DD model')
+
+%% Model calibration
+% Calibrate the model using the BFGS method
+objh = @(p)evaluateMatch(p,mismatchFn,trainProb,parameters,statesRef);
+
+[v, p_opt, history] = unitBoxBFGS(pvec0, objh,'objChangeTol',  1e-8, ...
+    'maxIt',30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
+
+%% Evaluate mismatch over the full simulation schedule
+prob = trainProb;
+prob.schedule = simpleSchedule(scheduleRef.step.val, 'W', W);
  
- plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,prob_training.schedule.step.val})
-  
+[~,~,wellSols_opt] = evaluateMatch(p_opt,mismatchFn,prob,parameters, statesRef,'Gradient','none');
+[~,~,wellSols_0]   = evaluateMatch(pvec0,mismatchFn,prob,parameters, statesRef,'Gradient','none');
 
-
-
-%% Optimization
-  
-objh = @(p)evaluateMatch(p,obj,prob_training,parameters,states_ref);
-
-[v, p_opt, history] = unitBoxBFGS(p0_fd, objh,'objChangeTol',  1e-8, 'maxIt',30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
-
-%% Simulating all simulation time
-prob = prob_training;
-prob.schedule = simpleSchedule(dt, 'W', W);
- 
- [~,~,wellSols_opt] = evaluateMatch(p_opt,obj,prob,parameters, states_ref,'Gradient','none');
- [~,~,wellSols_0] = evaluateMatch(p0_fd,obj,prob,parameters, states_ref,'Gradient','none');
-
-
-fh = plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,prob.schedule.step.val,prob.schedule.step.val})
+%% Plot well curves
+fh = plotWellSols({wellSolsRef,wellSols_0,wellSols_opt}, ...
+    {scheduleRef.step.val,prob.schedule.step.val,prob.schedule.step.val}, ...
+    'datasetnames', {'reference','initial','optimized'}, 'zoom', true, ...
+    'field', 'qOs', 'SelectedWells', 7);
 set(fh, 'name','Norne')
 legend('reference model','initial DD model','optimize DD model')
                                        
