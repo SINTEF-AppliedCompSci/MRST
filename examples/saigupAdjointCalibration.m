@@ -33,7 +33,7 @@ simulatePackedProblem(problem);
 modelRef    = example.model;
 scheduleRef = problem.SimulatorSetup.schedule;
 Wref        = scheduleRef.control.W;
-% example.plot(states);
+% example.plot(statesRef,'step_index',numel(statesRef));
 
 %% Create the network
 % We start by creating a network that connects injectors and producers.
