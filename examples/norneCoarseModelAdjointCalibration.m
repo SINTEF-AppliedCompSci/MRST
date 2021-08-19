@@ -1,131 +1,164 @@
+%% Norne: calibration of a network model formed from a coarse grid
+% This example demonstrates how to set up a data driven model with 3D type
+% graph topology and corresponding parameters initialized based on a coarse
+% partition of the full corner-point grid of the Norne field model.
+%
+% To calibrate the model, we use the Broyden–Fletcher–Goldfarb–Shanno
+% (BFGS) algorithm. This is an iterative line-search method that gradually
+% improves an approximation to the Hessian matrix of the mismatch function,
+% obtained only from adjoint gradients via a generalized secant method.
 mrstModule add ad-core ad-blackoil deckformat ...
                agglom upscaling coarsegrid...
                mrst-gui ad-props incomp optimization...
                network-models example-suite linearsolvers 
 
-%% Setting up the reference model           
-setupSimplifiedNorneModel
+%% Setup 3D reference model
+% The reference model is a single stochastic realization of the Norne field
+% model taken from the example-suit module. Compared with the real field,
+% this simulation case has simpler fluid description (an oil-water model)
+% and an idealized field development plan consisting of a simple pattern of
+% eleven vertical wells that run under constant bhp or rate controls.
 
-wellSols_ref =  wellSols;
-model_ref    = example.model;
-states_ref   = states;
-state0_ref   = example.state0;
-schedule_ref = example.schedule;
-W_ref        = schedule_ref.control.W;
+example = MRSTExample('norne_simple_wo');
 
+% Modify the setup to use shorter time steps
+problem  = example.getPackedSimulationProblem();
+schedule = example.schedule;
+ix  = repmat(1:numel(schedule.step.val), [4 1]);
+schedule.step.val     = schedule.step.val(ix(:))/4;
+schedule.step.control = schedule.step.control(ix(:));
+problem.SimulatorSetup.schedule = schedule;
+example.schedule = schedule;
 
-figure(1), clf, subplot(1,2,1)
-plotCellData(model_ref.G,model_ref.rock.poro,'EdgeAlpha',.5); view(3);
-title('Fine-scale model porosity')
-plotWell(model_ref.G,W_ref,'Color','k'); axis off tight
-drawnow
+% Simulate
+simulatePackedProblem(problem);
 
-time_steps     = schedule_ref.step.val(1:6); 
-training_steps = 1:6;
-partition      = [6 8 1];
+[wellSolsRef, statesRef] = getPackedSimulatorOutput(problem);
+modelRef    = example.model;
+scheduleRef = problem.SimulatorSetup.schedule;
+Wref        = scheduleRef.control.W;
+
+% Plot
+example.plot(statesRef,'step_index',numel(statesRef))
 
 %% Coarse-scale model
-% We make a coarse grid defined by partition, and perform a simple
-% upscaling to obtain a coarse model
-%p  = partitionCartGrid(model_ref.G.cartDims, partition );
-p = partitionUI(model_ref.G,partition);
-model_c = upscaleModelTPFA(model_ref, p);
-% We want to include rel-perm scalers as tunabale parameters, so include
-% these for the coarse model. Scalers have no effect for the initial coarse 
-% model (they are set equal to the ones given by the rel-perm curves). 
-pts = model_c.fluid.krPts;
+% We make a coarse grid defined by a uniform 6 x 8 x 1 partition and
+% perform a simple upscaling to obtain a coarse model
+cModel = upscaleModelTPFA(modelRef, partitionUI(modelRef.G,[6 8 1]));
+
+% We want to include rel-perm scaling as tunabale parameters, so include
+% these for the coarse model. These parameters have no effect for the
+% initial coarse model (they are set equal to the ones given by the
+% rel-perm curves).
+pts = cModel.fluid.krPts;
 scaling = {'SWL',   pts.w(1), 'SWCR', pts.w(2), 'SWU', pts.w(3), ...
            'SOWCR', pts.o(2), 'KRW',  pts.w(4), 'KRO', pts.o(4)};
-model_c = imposeRelpermScaling(model_c, scaling{:});
-% use a tighter tollerance for improved gradient accuracy
-model_c.toleranceCNV = 1e-6;
-% perform a simple upscaling of the schedule for the training runs
-schedule_training   = simpleSchedule(time_steps(training_steps), 'W', W_ref);
-schedule_training_c = upscaleSchedule(model_c, schedule_training);
+cModel = imposeRelpermScaling(cModel, scaling{:});
+cModel.toleranceCNV = 1e-6;  % tighter tolerance to improve gradient accuracy
 
+%% Plot comparison of the coarse and fine model
+figure('position',[100 100 1000 400])
+axes('position',[.02 .05 .48 .9]);
+plotCellData(modelRef.G,modelRef.rock.poro,'EdgeAlpha',.1); 
+view(174,60);
+title('Fine-scale model porosity')
+plotWell(modelRef.G,Wref,'Color','k'); axis off tight
+mrstColorbar(modelRef.rock.poro,'South'); cax = caxis;
 
-figure(1)
-subplot(1,2,2); cla;
-plotCellData(model_c.G, model_c.rock.poro,'EdgeColor','none');
+axes('position',[.5 .05 .48 .9]);
+plotCellData(cModel.G, cModel.rock.poro,'EdgeColor','none');
 title('Coarse-scale model porosity')
-plotFaces(model_c.G, boundaryFaces(model_c.G), 'EdgeColor', [0.4 0.4 0.4], ...
-         'EdgeAlpha',.5, 'FaceColor', 'none'); view(3);
-plotWell(model_ref.G, W_ref, 'Color', 'k'); axis off tight
+plotFaces(cModel.G, boundaryFaces(cModel.G), 'EdgeColor', [0.4 0.4 0.4], ...
+         'EdgeAlpha',.5, 'FaceColor', 'none');
+view(174,60); caxis(cax);
+plotWell(modelRef.G, Wref, 'Color', 'k'); axis off tight
+mrstColorbar(cModel.rock.poro,'South');
 
-
- %% Simulate initial upscaled coarse model for full time
-state0_c   = upscaleState(model_c, model_ref, state0_ref);
-schedule_c = upscaleSchedule(model_c, schedule_ref);
-[wellSols_c, states_c] = simulateScheduleAD(state0_c, model_c, schedule_c);
-summary_plots = plotWellSols({wellSols_ref, wellSols_c} ,{schedule_ref.step.val, schedule_c.step.val},...
-                            'datasetnames',{'fine scale model','initial upscaled model'});
+%% Simulate initial upscaled coarse model for full time
+cState0   = upscaleState(cModel, modelRef, example.state0);
+cSchedule = upscaleSchedule(cModel, scheduleRef);
+[cWellSols, cStates] = simulateScheduleAD(cState0, cModel, cSchedule);
+plotWellSols({wellSolsRef, cWellSols}, ...
+    {scheduleRef.step.val, cSchedule.step.val},...
+    'datasetnames',{'fine scale model','initial upscaled model'}, ...
+    'zoom', true, 'field', 'qOs', 'SelectedWells', 7);
 drawnow
 
- %% Preparing parameters
-nc =  model_c.G.cells.num;
+%% Specify training schedule and parameters to be matched
+% We use the first half of the given data for training. In this setup, we
+% use all pore volumes, transmissibilities, and well connections in the
+% coarse grid as calibration parameters.
+trainSteps = 1:round(numel(scheduleRef.step.val)/2);
+timeSteps  = scheduleRef.step.val(trainSteps); 
+trainSched = upscaleSchedule(cModel, simpleSchedule(timeSteps, 'W', Wref));
+trainProbl = struct('model', cModel, 'schedule', trainSched, 'state0', cState0);
 
-% select configuration for sensitivity computations
-prob_training = struct('model', model_c, 'schedule', schedule_training_c, 'state0', state0_c);
-config = {...%name      include     scaling    boxlims     lumping     subset       relativeLimits
-          'porevolume',       1,   'linear',       [],  [],   [],   [.001 4]
-          'conntrans',        1,   'log',          [],          [],       [] ,      [.001 100]
-          'transmissibility', 1,   'log'   ,       [],  [], [] ,   [.001 100]
-          'swl',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'swcr',             1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'swu',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'sowcr',            1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'krw',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'kro',              1,   'linear',       [],  ones(nc,1),       [],       [.5 2]
-          'sw',               1,   'linear',   [0 .6],  [],   [],  [0 10]
-          'pressure'          1,   'linear',       [],  [],   [],  [.1 4]};
+cellIx =  ones(cModel.G.cells.num,1);
+config = {
+    ...%name      include     scaling    boxlims  lumping   subset  relativeLimits
+    'porevolume',       1,   'linear',       [],    [],      [],      [.001 4]
+    'conntrans',        1,   'log',          [],    [],      [],      [.001 100]
+    'transmissibility', 1,   'log'   ,       [],    [],      [],      [.001 100]
+    'swl',              1,   'linear',       [],  cellIx,    [],       [.5 2]
+    'swcr',             1,   'linear',       [],  cellIx,    [],       [.5 2]
+    'swu',              1,   'linear',       [],  cellIx,    [],       [.5 2]
+    'sowcr',            1,   'linear',       [],  cellIx,    [],       [.5 2]
+    'krw',              1,   'linear',       [],  cellIx,    [],       [.5 2]
+    'kro',              1,   'linear',       [],  cellIx,    [],       [.5 2]
+    'sw',               1,   'linear',   [0 .6],    [],      [],       [0 10]
+    'pressure'          1,   'linear',       [],    [],      [],       [.1 4]};
 parameters = [];
 for k = 1:size(config,1)
-    if config{k, 2} ~= 0
-        parameters = addParameter(parameters, prob_training, 'name',    config{k,1}, ...
-                                                     'scaling', config{k,3}, ...
-                                                     'boxLims', config{k,4}, ...
-                                                     'lumping', config{k,5}, ...
-                                                     'subset',  config{k,6},...
-                                                     'relativeLimits',config{k,7});
-    end
+    if config{k, 2} == 0, continue, end
+    parameters = addParameter(parameters, trainProbl, ...
+        'name',    config{k,1}, 'scaling', config{k,3}, ...
+        'boxLims', config{k,4}, 'lumping', config{k,5}, ...
+        'subset',  config{k,6}, 'relativeLimits',config{k,7});
 end
- 
 
-
-
- %% Simulation of the reference model and Data-driven model
-
-         weighting =  {'WaterRateWeight',  (500/day)^-1, ...
-                       'OilRateWeight',    (500/day)^-1, ...
-                       'BHPWeight',        (50*barsa())^-1};
- 
-p0 = getScaledParameterVector(prob_training, parameters);
- 
-  obj = @(model, states, schedule, states_ref, tt, tstep, state) matchObservedOW(model, states, schedule, states_ref,...
-            'computePartials', tt, 'tstep', tstep, weighting{:},'state',state,'from_states',false);
+%% Define the mismatch function
+% The mismatch function is defined as a function handle to a library
+% function from the optimization module that computes the mismatch between
+% a given simulation and a reference state. For an oil-water system, the
+% match is computed based on three quantities (water/oil rate and bhp) and
+% these must be given an associated weight.
+weighting  = {'WaterRateWeight',  day/500, ...
+              'OilRateWeight',    day/500, ...
+              'BHPWeight',        1/(50*barsa)};
+mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
+    matchObservedOW(model, states, schedule, states_ref,...
+                   'computePartials', tt, 'tstep', tstep, weighting{:},...
+                   'state', state, 'from_states', false);
        
- [misfitVal_0,~,wellSols_0,states_0] = evaluateMatch(p0,obj,prob_training,parameters, states_ref,'Gradient','none');          
+%% Evaluate the mismatch for the initial model
+% We extract and scale the initial parameter set and use this to evaluate
+% the forward model and then measure the mismatch
+%[misfitVal0,~,wellSols0,states0] = ...
+%    evaluateMatch(pvec,obj,trainProbl,parameters, statesRef,'Gradient','none');          
  
- plotWellSols({wellSols_ref,wellSols_0},{schedule_ref.step.val,prob_training.schedule.step.val})
-  
+% Plot solution
+%plotWellSols({wellSolsRef,wellSols0},{scheduleRef.step.val,trainProbl.schedule.step.val})
 
 
+%% Model calibration
+pvec = getScaledParameterVector(trainProbl, parameters);
+objh = @(p) evaluateMatch(p,mismatchFn,trainProbl,parameters,statesRef);
 
-%% Optimization
-  
-objh = @(p)evaluateMatch(p,obj,prob_training,parameters,states_ref);
+[v, p_opt, history] = unitBoxBFGS(pvec, objh, 'objChangeTol', 1e-8, ...
+    'maxIt',30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
-[v, p_opt, history] = unitBoxBFGS(p0, objh,'objChangeTol',  1e-8, 'maxIt',30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
-
-%% Simulating all simulation time
-prob = prob_training;
-prob.schedule = simpleSchedule(schedule_ref.step.val, 'W', prob.schedule.control.W);
+%% Evaluate mismatch over the full simulation schedule
+prob = trainProbl;
+prob.schedule = simpleSchedule(scheduleRef.step.val, 'W', prob.schedule.control.W);
  
- [~,~,wellSols_opt] = evaluateMatch(p_opt,obj,prob,parameters, states_ref,'Gradient','none');
- [~,~,wellSols_0] = evaluateMatch(p0,obj,prob,parameters, states_ref,'Gradient','none');
+[~,~,wellSols_opt] = evaluateMatch(p_opt,mismatchFn,prob,parameters,statesRef,'Gradient','none');
+[~,~,wellSols0]    = evaluateMatch(pvec, mismatchFn,prob,parameters,statesRef,'Gradient','none');
 
-
-fh = plotWellSols({wellSols_ref,wellSols_0,wellSols_opt},{schedule_ref.step.val,prob.schedule.step.val,prob.schedule.step.val})
+%% Plot well curves
+fh = plotWellSols({wellSolsRef,wellSols0,wellSols_opt}, ...
+    {scheduleRef.step.val,prob.schedule.step.val,prob.schedule.step.val}, ...
+    'datasetnames', {'reference','initial','optimized'}, 'zoom', true, ...
+    'field', 'qOs', 'SelectedWells', 7);
 set(fh, 'name','Norne')
 legend('reference model','initial DD model','optimize DD model')
                                        
