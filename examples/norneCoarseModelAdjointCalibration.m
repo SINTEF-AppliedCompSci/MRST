@@ -62,7 +62,7 @@ axes('position',[.02 .05 .48 .9]);
 plotCellData(modelRef.G,modelRef.rock.poro,'EdgeAlpha',.1); 
 view(174,60);
 title('Fine-scale model porosity')
-plotWell(modelRef.G,Wref,'Color','k'); axis off tight
+plotWell(modelRef.G,Wref,'Color','k','FontSize',10); axis off tight
 mrstColorbar(modelRef.rock.poro,'South'); cax = caxis;
 
 axes('position',[.5 .05 .48 .9]);
@@ -71,7 +71,7 @@ title('Coarse-scale model porosity')
 plotFaces(cModel.G, boundaryFaces(cModel.G), 'EdgeColor', [0.4 0.4 0.4], ...
          'EdgeAlpha',.5, 'FaceColor', 'none');
 view(174,60); caxis(cax);
-plotWell(modelRef.G, Wref, 'Color', 'k'); axis off tight
+plotWell(modelRef.G, Wref, 'Color', 'k','FontSize',10); axis off tight
 mrstColorbar(cModel.rock.poro,'South');
 
 %% Simulate initial upscaled coarse model for full time
@@ -129,16 +129,6 @@ mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
     matchObservedOW(model, states, schedule, states_ref,...
                    'computePartials', tt, 'tstep', tstep, weighting{:},...
                    'state', state, 'from_states', false);
-       
-%% Evaluate the mismatch for the initial model
-% We extract and scale the initial parameter set and use this to evaluate
-% the forward model and then measure the mismatch
-%[misfitVal0,~,wellSols0,states0] = ...
-%    evaluateMatch(pvec,obj,trainProbl,parameters, statesRef,'Gradient','none');          
- 
-% Plot solution
-%plotWellSols({wellSolsRef,wellSols0},{scheduleRef.step.val,trainProbl.schedule.step.val})
-
 
 %% Model calibration
 pvec = getScaledParameterVector(trainProbl, parameters);
