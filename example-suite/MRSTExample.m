@@ -104,8 +104,12 @@ classdef MRSTExample
             names = fieldnames(example.figureProperties);
             for i = 1:numel(names)
                 if strcmpi(names{i}, 'Size')
-                    position = [h.Position(1:2), example.figureProperties.(names{i})];
-                    set(h, 'Position', position);
+                    screensize = get(groot, 'ScreenSize');
+                    wsize      = example.figureProperties.(names{i});
+                    wsize      = min([wsize; screensize(3:4) - [0 80]]);
+                    pos        = get(h,'Position');
+                    pos        = min([pos(1:2); screensize(3:4)-wsize-[0 80]]);
+                    set(h, 'Position', [pos, wsize]);
                 else
                     set(h, names{i}, example.figureProperties.(names{i}));
                 end
