@@ -161,4 +161,17 @@ fh = plotWellSols({wellSolsRef,wellSols0,wellSols_opt}, ...
     'field', 'qOs', 'SelectedWells', 7);
 set(fh, 'name','Norne')
 legend('reference model','initial DD model','optimize DD model')
+
+%% Plot the matched porosities
+% In a network model, the calibrated parameters cannot generally be
+% interpreted as in their original physical sense, e.g., because we do not
+% make any attempts to preserve any geological realism. We nonetheless plot
+% the calibrated porosities for comparison. 
+figure
+plotCellData(cModel.G, p_opt(1:cModel.G.cells.num),'EdgeColor','none');
+plotFaces(cModel.G, boundaryFaces(cModel.G), 'EdgeColor', [0.4 0.4 0.4], ...
+         'EdgeAlpha',.5, 'FaceColor', 'none');
+view(174,60); caxis(cax);
+plotWell(modelRef.G, Wref, 'Color', 'k'); axis off tight
+mrstColorbar(p_opt(1:cModel.G.cells.num),'South');
                                        
