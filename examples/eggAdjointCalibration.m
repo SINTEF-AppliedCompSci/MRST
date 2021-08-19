@@ -23,11 +23,11 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
 % and 100.
 realization = 0; 
 [G, ~, ~, deck] = setupEGG('realization', realization);
-[state0, modelRef, schedule, nonlinear] = ...
+[state0, modelRef, scheduleRef, nonlinear] = ...
     initEclipseProblemAD(deck, 'G', G, 'TimestepStrategy', 'none');
 modelRef.getPhaseNames();
 
-problem = packSimulationProblem(state0, modelRef, schedule, ...
+problem = packSimulationProblem(state0, modelRef, scheduleRef, ...
     ['EGG_realization_',num2str(realization)], 'NonLinearSolver', nonlinear);
 simulatePackedProblem(problem);
 
@@ -143,19 +143,17 @@ model      = model.validateModel();
 W          = ntwrkModel.W;
 state0     = initState(G, W , 400*barsa,[0.2, 0.8]);
 
-% Simulation schedule
-% We use the first 40 time steps from the fine-scale simulation to train
-% the network model. The remaining time steps will be used for prediction.
-schedule = simpleSchedule(scheduleRef.step.val(1:40), 'W', W);
-
-% Set up the problem structure
-prob = struct('model', model, 'schedule', schedule, 'state0', state0);
-
-%% Specify the parameters to be matched
+%% Specify the training problem and parameters to be matched
 % We need to specify which of the parameters in the model we wish to match
 % and any scaling and box limits that will applied to these in the BFGS
 % optimization. These are specified through through the ModelParameter
 % class from the optimization module.
+
+% Training problem
+% We use the first 40 time steps from the fine-scale simulation to train
+% the network model. The remaining time steps will be used for prediction.
+trainSchedule = simpleSchedule(scheduleRef.step.val(1:40), 'W', W);
+trainProb = struct('model', model, 'schedule', trainSchedule, 'state0', state0);
 
 % Parameter lumping
 % In the GPSNet type of models, we only match a single pore volume and a
@@ -167,12 +165,12 @@ prob = struct('model', model, 'schedule', schedule, 'state0', state0);
 
 % Set parameters                             
 parameters =  {};                          
-parameters{1} = ModelParameter(prob, 'name', 'conntrans', 'scaling', ...
+parameters{1} = ModelParameter(trainProb, 'name', 'conntrans', 'scaling', ...
                                'linear', 'relativeLimits', [.001 20]);
-parameters{2} = ModelParameter(prob, 'name', 'porevolume', 'lumping', ...
+parameters{2} = ModelParameter(trainProb, 'name', 'porevolume', 'lumping', ...
                                cellEdgeNo,'subset', cellIx, ...
                                'relativeLimits', [.01 5]);
-parameters{3} = ModelParameter(prob, 'name', 'transmissibility', ...
+parameters{3} = ModelParameter(trainProb, 'name', 'transmissibility', ...
                                'lumping', faceEdgeNo, 'subset', ...
                                faceIx, 'scaling', 'log', ...
                                'relativeLimits', [.001 100]);
@@ -200,7 +198,7 @@ mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
 % Extract and scale parameters
 % Remember to overwrite pore volumes and transmissibilities if initial
 % values for these have been computed by flow diagnostics
-values    = applyFunction(@(p)p.getParameterValue(prob), parameters);
+values    = applyFunction(@(p)p.getParameterValue(trainProb), parameters);
 values{1} =  7*values{1};
 if any(strcmp(networkType,{'fd_preprocessor','fd_postprocessor'}))
      values{2} =  pv/cellsPerPath;
@@ -209,36 +207,41 @@ end
 for k = numel(values):-1:1    
     u{k} = parameters{k}.scale(values{k});
 end
-paramVec = vertcat(u{:});  
+pvec0 = vertcat(u{:});  
  
-% Perform a forward simulation and evaluate the mismatch       
+%{
+% Perform a forward simulation and evaluate the mismatch
+% This forward simulation is redundant because the same simulation is
+% performed inside the model calibration routine. It is only included here
+% to illustrate the mismatch.
 [misfitVal0,~,wellSols0,states0] = ...
-    evaluateMatch(paramVec,mismatchFn,prob,parameters, statesRef,'Gradient','none');
+    evaluateMatch(pvec0,mismatchFn,trainProb,parameters,statesRef,'Gradient','none');
  
 % Plot well curves for the reference and the initial model
 plotWellSols({wellSolsRef,wellSols0}, ...
-    {scheduleRef.step.val,schedule.step.val}, ...
+    {scheduleRef.step.val,trainProb.schedule.step.val}, ...
     'datasetnames', {'reference','initial'}, 'zoom', true, ...
     'field', 'qOs', 'SelectedWells', 9)
-  
+%}
+
 %% Model calibration
 % Calibrate the model using the BFGS method with parameters
-objh = @(p) evaluateMatch(p, mismatchFn, prob, parameters, statesRef);
+objh = @(p) evaluateMatch(p, mismatchFn, trainProb, parameters, statesRef);
 
-[v, p_opt, history] = unitBoxBFGS(paramVec, objh,'objChangeTol', 1e-8, ...
+[v, p_opt, history] = unitBoxBFGS(pvec0, objh,'objChangeTol', 1e-8, ...
     'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Evaluate mismatch over the full simulation schedule
-schedule = simpleSchedule(scheduleRef.step.val, 'W', W);
-prob.schedule = schedule;
+prob = trainProb;
+prob.schedule = simpleSchedule(scheduleRef.step.val, 'W', W);
 [~,~,wellSols_opt] = ...
-    evaluateMatch(p_opt,mismatchFn,prob,parameters, statesRef,'Gradient','none');
+    evaluateMatch(p_opt,mismatchFn,prob,parameters,statesRef,'Gradient','none');
 [~,~,wellSols0] = ...
-    evaluateMatch(paramVec,mismatchFn,prob,parameters, statesRef,'Gradient','none');
+    evaluateMatch(pvec0,mismatchFn,prob,parameters,statesRef,'Gradient','none');
 
 %% Plot well curves
 plotWellSols({wellSolsRef,wellSols0,wellSols_opt}, ...
-    {scheduleRef.step.val,schedule.step.val,schedule.step.val}, ...
+    {scheduleRef.step.val,prob.schedule.step.val,prob.schedule.step.val}, ...
     'datasetnames',{'reference','initial','calibrated'},'zoom', true, ...
     'field', 'qOs', 'SelectedWells', 9)
 legend('reference model','initial DD model','calibrated model')
