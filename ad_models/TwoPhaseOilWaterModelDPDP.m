@@ -46,49 +46,7 @@ classdef TwoPhaseOilWaterModelDPDP < TwoPhaseOilWaterModelDP
                             varargin{:});
 
         end
-        
-%         % --------------------------------------------------------------------%
-%         function rhoS = getSurfaceDensities(model)
-%             % Get the surface densities of the active phases in canonical
-%             % ordering (WOG, with any inactive phases removed).
-%             %
-%             % RETURNS:
-%             %   rhoS - 1 x n double array of surface densities.
-%             names = model.getPhaseNames();
-%             rhoS = arrayfun(@(x) model.fluid.(['rho', x, 'S']), names);
-%             rhoS = [rhoS, rhoS];    % Quick fix
-%         end
-               
-        
-%         %--------------------------------------------------------------------%
-%         function [phNames, longNames] = getPhaseNames(model)
-%             Get short and long names of the present phases.
-%             
-%             SYNOPSIS:
-%               [phNames, longNames] = model.getPhaseNames();
-%             
-%             PARAMETERS:
-%               model    - Class instance
-%             
-%             RETURNS:
-%               phNames   - Cell array containing the short hanes ('W', 'O',
-%                           G') of the phases present
-%               
-%               longNames - Longer names ('water', 'oil', 'gas') of the phases
-%                           present.            
-%                        
-%             phNames = 'WO';
-%             longNames = {'water', 'oil', 'water_matrix', 'oil_matrix'};
-%         end
-
-
-%         %--------------------------------------------------------------------%      
-%         function names = getComponentNames(model)
-%             names = getComponentNames@TwoPhaseOilWaterDPModel(model);
-%             names{end+1} = 'water_matrix';
-%             names{end+1} = 'oil_matrix';
-%         end
-        
+             
         
         %--------------------------------------------------------------------%  
         function [eq, src] = addComponentContributions(model, cname, eq, component, src, force)
@@ -118,37 +76,7 @@ classdef TwoPhaseOilWaterModelDPDP < TwoPhaseOilWaterModelDP
             %            field defining the component in question, so that the
             %            inflow of the component through the boundary condition
             %            or source terms can accurately by estimated.
-            
-            
-%             % test
-%             cells = src.sourceCells;
-%             qW = src.phaseMass{1}./model.fluid.rhoWS;
-%             qW.val = ones( length(qW.val), 1);
-%             qC = qW;
-%             %isInj = qW > 0;
-%             %qC = (isInj.*1 + ~isInj.*1).*qW;
-%             eq(cells) = eq(cells) - qC;            
-%             src.components{end+1} = qC; 
-            
-            %{
-            if isempty(force)
-                return
-            end
-            c = model.getProp(force, cname);
-            cells = src.sourceCells;
-            switch lower(cname)
-              case {'polymer'}
-                % Water based EOR, multiply by water flux divided by
-                % density and add into corresponding equation
-                qW = src.phaseMass{1}./model.fluid.rhoWS;
-                isInj = qW > 0;
-                qC = (isInj.*c + ~isInj.*component(cells)).*qW;
-              otherwise
-                error(['Unknown component ''', cname, '''. BC not implemented.']);
-            end
-            eq(cells) = eq(cells) - qC;
-            src.components{end+1} = qC;                    
-            %}
+           
         end
 
 
