@@ -178,30 +178,6 @@ bWm0 = model.fluid_matrix.bW(pom0);
 [vOm, bOm, mobOm, rhoOm, pom, upcom] = getFluxAndPropsOil_BO(model, pom, som, krOm, Tm, gdzm);
 bOm0 = getbO_BO(model, pom0);
 
-%{
-% Original DP
-% Using capillary pressure information
-pcOWm = 0;
-pcOWm0 = 0;
-
-if isfield(model.fluid_matrix, 'pcOW') && ~isempty(swm)
-    pcOWm  = model.fluid_matrix.pcOW(swm);
-    pcOWm0  = model.fluid_matrix.pcOW(swm0);
-end
-
-pwm = pom - pcOWm;
-pwm0 = pom0 - pcOWm0;
-
-som = 1-swm;
-som0 = 1-swm0;
-bWm = f.bW(pwm);
-bOm = f.bO(pom);
-
-bWm0 = f.bW(pwm0);
-bOm0 = f.bO(pom0);
-%}
-
-
 %% Transfer
 vb = model.G.cells.volumes;
 
@@ -210,9 +186,6 @@ matrix_fields.swm = swm;
 fracture_fields.pof = p;
 fracture_fields.swf = sW;
 
-% Pass the fracture cell indices to calculate the transfer funstion
-%fracture_fields.fracind = model.G.fracind;
-
 transfer_model = model.transfer_model_object;
 
 [Talpha] = transfer_model.calculate_transfer(model,fracture_fields,matrix_fields);
@@ -220,12 +193,10 @@ transfer_model = model.transfer_model_object;
 Twm = vb.*Talpha{1};
 Tom = vb.*Talpha{2};
 
-% Twm = Talpha{1};
-% Tom = Talpha{2};
-
-
 %% Output Additional Info
 if model.outputFluxes
+    
+    if ~isempty(drivingForces.bc)
     % Since the parent class ReservoirModel only knows of state.flux
     % (interpreted as the fracture flux here), we explicitly save matrix 
     % fluxes in state.flux_matrix
@@ -249,6 +220,8 @@ if model.outputFluxes
         {pW, p}, {sW, sO}, {mobW, mobO}, {rhoW, rhoO}, {bW, bO}, ...
         drivingForces.bc);
     state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
+    
+    end
 
 end
 
@@ -279,16 +252,6 @@ bWvWm = s.faceUpstr(upcwm, bWm).*vWm;
 water_fracture = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 water_fracture = water_fracture + Twm;
 
-% % debug
-% dd = s.Div(bWvW);
-% figure(1)
-% semilogx(state.time, abs(dd.val(6)), 'or')
-% hold on
-% semilogx(state.time, abs(Twm.val(6)), 'xk')
-% xlabel('Time')
-% title('div vs Twm')
-
-
 % Conservation of mass for oil - fracture
 oil_fracture = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
 oil_fracture = oil_fracture + Tom;
@@ -315,21 +278,7 @@ types = {'cell', 'cell', 'cell', 'cell'};
 rho = {rhoW, rhoO};
 mob = {mobW, mobO};
 sat = {sW, sO};
-
-%{
-rho = {rhoW, rhoO, rhoWm, rhoOm};
-mob = {mobW, mobO, mobWm, mobOm};
-sat = {sW, sO}; %, swm, som};
-%}
-
-%components = {'water_matrix', 'oil_matrix'};
-
-% Include BC and sources in fracture equations 
-% [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...                                                                 
-%                                                                  {pW, p}, sat, mob, rho, ...    % orig: %{pW, p}, sat, mob, rho, ...   % new:  {pW, p, pwm, pom}
-%                                                                  {}, components, ...
-%                                                                  drivingForces);
-           
+          
 
 % Compute the contribution from BC whil avoiding the capillary jump
 pcOW = 0;
@@ -346,43 +295,40 @@ end
 
 eqs(1:2) = eqsfrac;
 
-% debug
+if ~isempty(drivingForces.bc)
 
-% Compute the contribution from BC whil avoiding the capillary jump
-pcOW = 0;
-if isfield(model.fluid, 'pcOW')
-    pcOW  = model.fluid.pcOW(swm);
+    % Compute the contribution from BC while avoiding the capillary jump
+    pcOW = 0;
+    if isfield(model.fluid, 'pcOW')
+        pcOW  = model.fluid.pcOW(swm);
+    end
+
+    % Store the fracture operators and BC values
+    frop = model.operators;
+    frbc = drivingForces.bc.value;
+
+    % Set up the boundary conditions using the matrix operators and BC values
+    model.operators = model.operators_matrix;
+    drivingForces.bc.value = drivingForces.bc.value_matrix;
+
+    [eqsmat, state] = addBoundaryConditionsAndSources(model, ...
+                    eqs(3:4), {'water', 'oil'}, types(3:4), state, ...                                                              
+                    {pwm + pcOW, pom}, {swm, som}, {mobWm, mobOm}, {rhoWm, rhoOm}, ...    
+                    {}, {}, ...
+                    drivingForces);                                                           
+
+    eqs(3:4) = eqsmat;
+
+    % Restore the fracture operators and BC values
+    model.operators = frop;
+    drivingForces.bc.value = frbc;
+
 end
-
-% Store the fracture operators and BC values
-frop = model.operators;
-frbc = drivingForces.bc.value;
-
-% Set up the boundary conditions using the matrix operators and BC values
-model.operators = model.operators_matrix;
-drivingForces.bc.value = drivingForces.bc.value_matrix;
-
-[eqsmat, state] = addBoundaryConditionsAndSources(model, ...
-                eqs(3:4), {'water', 'oil'}, types(3:4), state, ...                                                              
-                {pwm + pcOW, pom}, {swm, som}, {mobWm, mobOm}, {rhoWm, rhoOm}, ...    
-                {}, {}, ...
-                drivingForces);                                                           
-
-eqs(3:4) = eqsmat;
-
-% Restore the fracture operators and BC values
-model.operators = frop;
-drivingForces.bc.value = frbc;
 
 % Finally, add in and setup well equations
 [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-
-% Output the inverse condition number for the linearized system
-%[A, b] = problem.getLinearSystem();
-%disp(['Inverse conditon number is :   ', num2str(1 / condest(A))]);
-
 
 end
 

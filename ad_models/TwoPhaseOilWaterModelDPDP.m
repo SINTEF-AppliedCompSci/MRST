@@ -17,15 +17,25 @@ classdef TwoPhaseOilWaterModelDPDP < TwoPhaseOilWaterModelDP
             % Blackoil -> use CNV style convergence
             model.useCNVConvergence = true;
 
-            % Comment for 2020a
-            %model.matrixVarNames = {'pom', 'swm'};
-
             model.extraStateOutput = 1;
-
-            % model = merge_options(model, varargin{:});
             
-            % Set up the operators for the matrix
-            model.operators_matrix = setupOperatorsTPFA(G, model.rock_matrix, 'deck', model.inputdata);
+            % Set up the operators for the matrix with potentially 
+            % provided options
+            if isempty(model.inputdata)
+                model.operators_matrix = setupOperatorsTPFA(G, model.rock_matrix); 
+            else
+                % Interpret inputdata as an Eclipse deck structure with
+                % the additional fields 'neighbors' 'trans', and 'porv'.
+                fields = {'neighbors', 'trans', 'porv'};
+                opts_matrix = {};
+                for i = 1:numel(fields)
+                    if isfield(model.inputdata, fields{i})
+                        opts_matrix{end + 1} = fields{i};
+                        opts_matrix{end + 1} = model.inputdata.(fields{i}){2};
+                    end
+                end
+                model.operators_matrix = setupOperatorsTPFA(G, model.rock_matrix, opts_matrix{:});                  
+            end
         end
 
         % --------------------------------------------------------------------%

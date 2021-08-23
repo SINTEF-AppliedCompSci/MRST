@@ -23,7 +23,7 @@ classdef VariableShapeFactor < ShapeFactor
             smin = par(:, 1);
             block_dimension = par(:, 2:4);
             
-            % Call superclass constructor to satisfy the syntax of EclipseTransferFunction
+            % Call superclass constructor to set the block_dimension
             shapefactor = shapefactor@ShapeFactor(block_dimension);
 
             % Initialize class properties 
@@ -31,30 +31,22 @@ classdef VariableShapeFactor < ShapeFactor
             
         end
         
-%                 % Constructor
-%         function shapefactor = VariableShapeFactor(smin) %, qmax, pow)
-%             
-%             % Initialize class properties 
-%             shapefactor.smin = smin;
-%             
-%         end
-        
-        
-        
-
         % Return the shape factors times matrix permeability for all cells
         function [sigma] = calculate_shape_factor(sf, model)      
                     
             % Use the average matrix permeability
-            kxx = model.rock_matrix.perm(:,1);
+            kx = model.rock_matrix.perm(:,1);
             try
-                kyy = model.rock_matrix.perm(:,3);
+                ky = model.rock_matrix.perm(:,2);
+                kz = model.rock_matrix.perm(:,3);
             catch
-                kyy = model.rock_matrix.perm(:,1);
-            end
-            k = 0.5*(kxx + kyy);
+                ky = model.rock_matrix.perm(:,1);
+                kz = model.rock_matrix.perm(:,1);
+            end      
+            k = (kx + ky + kz) / 3;
             
             sigma = sf.smin .* k;
+          
         end
         
     end
