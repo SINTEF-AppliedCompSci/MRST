@@ -12,7 +12,7 @@ solution is injected to stimulate the development of biofilm, cementation
 solution is injected which is used by the biofilm for production of
 calcite, and the calcite reduce the pore space which in turn decreases the
 rock permeability. Further information on the mathematical model can be
-found in [A,B].
+found in the two publications [A,B] in the "Cite" part of this README.
 
 The numerical examples accompanying this module are:
 * run1DCase.m
@@ -36,16 +36,25 @@ https://doi.org/10.1007/s10596-017-9624-5.
 ## Changes respect to the 2021a release
 * Adding new commented numerical examples to show complete workflow for
 creating, running, and analyzing 1D, 2D, and 3D flow systems using this module.
-* Deleting the 'co2_2Dfls' and 'co2_3Dfls' scripts from the utility folder
-(these have been included inside the numerical examples/papers scripts).
 * Deleting the 'addWellMICP' script from the utility folder (the scripts have
 been modified accordingly to use the 'addWell' script in MRST).
+* Deleting the 'co2_2Dfls' and 'co2_3Dfls' scripts from the utility folder
+(these have been included inside the corresponding scripts in the
+publications/paper_A folder).
 * Deleting the 'simulateScheduleADMICP' script from the utility folder (the
 scripts have been modified accordingly to use the 'simulateScheduleAD' script
 in MRST, and a new function 'checkCloggingMicp' has been added to check the
 clogging criterium that was checked before in 'simulateScheduleADMICP').
 * Adding new functions 'getPlotAfterStepCO2' and 'getPlotAfterStepMICP' to live
 plot the numerical results while the simulator is running.
+* Moving the 'CO2Model', 'equationsCO2', 'getFluxAndPropsCO2', and
+'getFluxAndPropsWater' scripts into the co2_assesment folder in the
+publications/paper_A folder (these scripts are kept to run the corresponding
+scripts described in publication [A], where a very simple CO2-water model is
+used, while in the new added numerical examples ('run2DLeakageCase' and
+'run3DCase') the 'TwoPhaseWaterGasModel' script in the MRST co2lab module, a
+more comprehensive CO2-water model, is used to asses the CO2 leakage prior and
+after MICP treatment).
 
 ## Requirements
 * MRST (Tested version: 2021a)

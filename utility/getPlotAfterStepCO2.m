@@ -34,10 +34,12 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
     G = model.G; 
     df = get(0, 'defaultFigurePosition');
     resfig = figure('position', [df(1:2), 800, 1200]);
-    c=flipud(jet);
+    c = flipud(jet);
+    sz = size(c,1);
     sco2 = plotCellData(G, state0.s(:,2), 'edgeColor', 'none');
     title('CO2 [-]','Interpreter','latex');
-    colorbar; view(az,el); colormap(c(70:1:100,:));
+    colorbar; view(az,el); 
+    colormap(c((round(70*sz/256)):1:(round(100*sz/256)),:));
     caxis([0 1]);
     
     fn = @(model, states, reports, solver, schedule, simtime) ... 

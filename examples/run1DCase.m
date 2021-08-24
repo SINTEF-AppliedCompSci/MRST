@@ -7,7 +7,7 @@ mrstModule add deckformat ad-core ad-blackoil ad-micp ad-props mrst-gui
 
 %% Reservoir geometry/properties and model parameters
 % The domain has a length of 100 m and the grid is discretized in equal 
-% size elements (1 m). The model parameters are set as in [A].
+% size elements (1 m).
 
 % Grid 
 L = 100;                     % Aquifer length, m
@@ -23,9 +23,7 @@ rock = makeRock(G, K0, porosity);
 % Fluid properties
 fluid.muw = 2.535e-4;        % Water viscocity, Pa s                            
 fluid.bW   =  @(p) 0*p + 1;  % Water formation volume factor, [-]
-fluid.bO   =  @(p) 0*p + 1;  % CO2 formation volume factor, [-]
 fluid.rhoWS = 1045;          % Water density, kg/m^3
-fluid.rhoOS = 479;           % CO2 density, kg/m^3
 
 % Remaining model parameters (we put them on the fluid structure)
 fluid.rho_b = 35;            % Density (biofilm), kg/m^3
@@ -49,7 +47,7 @@ fluid.F = 0.5;               % Oxygen consumption factor, [-]
 fluid.crit = .1;             % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
-fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation  
+fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation 
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
@@ -63,6 +61,13 @@ fluid.mmax = 105;                 % Maximum value of biomass concentration
 fluid.bmax = porosity-fluid.ptol; % Maximum biofilm volume fraction
 fluid.cmax = porosity-fluid.ptol; % Maximum calcite volume fraction 
 
+% The two following lines are not really used in these simulations since 
+% the current MICP implementation only considers single-phase flow (it is 
+% possible to extend to two-phase flow), but since the implementation is 
+% based on the 'equationsOilWaterPolymer' script (two-phase flow), they are
+% required to avoid errors.
+fluid.bO   = fluid.bW;  
+fluid.rhoOS = fluid.rhoWS;
 %% Define wells and simulation schedule
 % The components are injected from the left side of the reservoir and the
 % free-flow boundary on the right side is approximated by a production well
