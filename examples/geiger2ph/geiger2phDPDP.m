@@ -81,6 +81,10 @@ Kf_yy = T(:, 13);
 % Read the shape factors
 rock.smin(ind) = T(:, 14);
 
+% Dimensionalize the shape factors
+vb = G.cells.volumes;
+rock.smin = rock.smin ./ vb;
+
 % Set zero fracture porosities to a small value
 izp = find(rock.phif == 0);
 if ~isempty(izp)
@@ -103,11 +107,10 @@ if ~isempty(ink)
 end       
 
 % Remove the rows with negative shape factor
-smin = T(:, 14);
-insf = find(smin < 0);
+insf = find(rock.smin < 0);
 if ~isempty(insf)
     disp(['Replacing ' num2str(length(insf)) ' rows of negative parameters of the transfer function with zeros..'])
-    smin(insf) = 0;
+    rock.smin(insf) = 0;
 end    
 
 % Approximate the off-diagonal permeabilities using arithmetic average
@@ -126,7 +129,6 @@ if ~isempty(izp)
     rock.Kf(izp, :) = perm0; 
 end
  
-
 
 %% Set up the DPDP model
 
@@ -444,11 +446,11 @@ for i = 1:nSteps
     % Plot the DPDP results together with the reference DFM solutions
     figure(5)
     hold on
-    plot([time_prev state.time]/timescale, [Qo_o_prev Qo_o], 'r')  
+    plot([time_prev state.time]/timescale, [Qo_o_prev Qo_o], 'b')  
     
     figure(6)
     hold on
-    plot([time_prev state.time]/timescale, [Qw_o_prev Qw_o], 'r')  
+    plot([time_prev state.time]/timescale, [Qw_o_prev Qw_o], 'b')  
     
     time_prev = state.time;
     Qw_o_prev = Qw_o;   
