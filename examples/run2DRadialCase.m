@@ -16,9 +16,8 @@ mrstModule add deckformat ad-core ad-blackoil ad-micp ad-props mrst-gui ...
                                                                
 %% Reservoir geometry/properties and model parameters
 % The domain has a radius of 75 m and the grid is discretized in different
-% size elements (polyhedrals). The model parameters are set as in [A]. If
-% the example is run in MATLAB, then we build a grid using the cylinder
-% function.
+% size elements (polyhedrals). If the example is run in MATLAB, then we 
+% build a grid using the cylinder function.
 
 % Grid 
 R = 75;       % Reservoir radius, m  
@@ -62,9 +61,7 @@ rock = makeRock(G, K0, porosity);
 % Fluid properties
 fluid.muw = 2.535e-4;        % Water viscocity, Pa s                            
 fluid.bW   =  @(p) 0*p + 1;  % Water formation volume factor, [-]
-fluid.bO   =  @(p) 0*p + 1;  % CO2 formation volume factor, [-]
 fluid.rhoWS = 1045;          % Water density, kg/m^3
-fluid.rhoOS = 479;           % CO2 density, kg/m^3
 
 % Remaining model parameters (we put them on the fluid structure)
 fluid.rho_b = 35;            % Density (biofilm), kg/m^3
@@ -102,6 +99,13 @@ fluid.mmax = 105;                 % Maximum value of biomass concentration
 fluid.bmax = porosity-fluid.ptol; % Maximum biofilm volume fraction
 fluid.cmax = porosity-fluid.ptol; % Maximum calcite volume fraction
 
+% The two following lines are not really used in these simulations since 
+% the current MICP implementation only considers single-phase flow (it is 
+% possible to extend to two-phase flow), but since the implementation is 
+% based on the 'equationsOilWaterPolymer' script (two-phase flow), they are
+% required to avoid errors.
+fluid.bO   = fluid.bW;  
+fluid.rhoOS = fluid.rhoWS;
 %% Define well, boundary conditions, and simulation schedule
 % The components are injected from the middle point of the reservoir and 
 % the free-flow boundary on the boundary domain is approximated by constant
