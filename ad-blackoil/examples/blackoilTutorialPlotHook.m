@@ -4,7 +4,7 @@
 % panel showing simulation progress.
 %
 % We first set up a simulation model of SPE1 in the standard manner.
-mrstModule add ad-core ad-blackoil ad-props mrst-gui deckformat
+mrstModule add ad-core ad-blackoil ad-props mrst-gui deckformat example-suite
 
 [G, rock, fluid, deck, state0] = setupSPE1();
 model = selectModelFromDeck(G, rock, fluid, deck);

@@ -14,7 +14,7 @@
 % this example, we will use the SPE1 benchmark to demonstrate this time
 % step control.
 
-mrstModule add ad-props deckformat mrst-gui ad-core ad-blackoil
+mrstModule add ad-props deckformat mrst-gui ad-core ad-blackoil example-suite
 
 %% Load and run the SPE1 model
 % Because several examples use the SPE1 dataset, the initial setup is

@@ -21,7 +21,7 @@
 % Reservoir Simulation Problem. J Pet Technol 33 (1): 13–25. SPE-9723-PA.
 % http://dx.doi.org/10.2118/9723-PA 
 %
-mrstModule add ad-props deckformat mrst-gui ad-core ad-blackoil
+mrstModule add ad-props deckformat mrst-gui ad-core ad-blackoil example-suite
 
 %% Set up the problem
 % Because several examples use the SPE1 dataset, the initial setup is

@@ -1,4 +1,4 @@
-mrstModule add ad-core ad-blackoil deckformat ad-props linearsolvers
+mrstModule add ad-core ad-blackoil deckformat ad-props linearsolvers example-suite
 mrstVerbose on
 if ~exist('name', 'var')
     name = 'spe1';
