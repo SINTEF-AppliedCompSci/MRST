@@ -87,24 +87,7 @@ end
 % Plot the network.
 % If based on flow diagnostics, we plot the network twice to show the
 % relative magnitude of the associated transmissibilities and pore volumes.
-figure
-if any(strcmp(networkType,{'fd_preprocessor','fd_postprocessor'}))
-    TT = ntwrk.network.Edges.Transmissibility;
-    pv = ntwrk.network.Edges.PoreVolume;
-
-    subplot(1,2,1);
-    ntwrk.plotNetwork('NetworkLineWidth',10*TT/max(TT));
-    title('Transmissibility');
-    axis off
-
-    subplot(1,2,2);
-    ntwrk.plotNetwork('NetworkLineWidth',10*pv/max(pv));
-    title('PoreVolume');
-    axis off;
-else
-    ntwrk.plotNetwork()
-    axis off;
-end
+figure; ntwrk.plotNetwork()
 
 
 %% Create the data-driven model

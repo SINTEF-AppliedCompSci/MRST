@@ -55,7 +55,7 @@ end
 % the fine-scale reference simulation. Here, we use the second last
 % approach but supply code for all other options as well.
 
-networkType = 'fd_preprocessor';
+networkType = 'user_defined_edges';
 switch networkType
     case 'all_to_all'
         ntwrk =  Network(Wnw, modelRef.G, 'type', networkType);
@@ -84,24 +84,7 @@ end
 % Plot the network
 % If based on flow diagnostics, we plot the network twice to show the
 % relative magnitude of the associated transmissibilities and pore volumes.
-figure
-if any(strcmp(networkType,{'fd_preprocessor','fd_postprocessor'}))
-    TT = ntwrk.network.Edges.Transmissibility;
-    pv = ntwrk.network.Edges.PoreVolume;
-
-    subplot(1,2,1);
-    ntwrk.plotNetwork('NetworkLineWidth',10*TT/max(TT));
-    title('Transmissibility');
-    axis off
-
-    subplot(1,2,2);
-    ntwrk.plotNetwork('NetworkLineWidth',10*pv/max(pv));
-    title('Pore volume');
-    axis off;
-else
-    ntwrk.plotNetwork()
-    axis off;
-end
+figure; ntwrk.plotNetwork()
 
 %% Create the data-driven model
 % We subgrid each flow path into ten uniform cells and map the resulting

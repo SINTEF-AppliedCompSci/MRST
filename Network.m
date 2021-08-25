@@ -172,9 +172,6 @@ classdef Network
                         pressure_field = 'pressure';
                         ctrlNo = 1;
                     else
-                        %[~, states, ~] = getPackedSimulatorOutput(opt.problem,...
-                        %    'readWellSolsFromDisk',false,...
-                        %    'readReportsFromDisk',false);
                         state = opt.problem.OutputHandlers.states{opt.state_number};
                         pressure_field = 'bhp';
                         ctrlNo = opt.problem.SimulatorSetup.schedule.step.control(opt.state_number);
@@ -199,8 +196,7 @@ classdef Network
                 otherwise
                     error('\nType of network: %s is not implemented\n', opt.type);
             end
-            
-            
+                        
             obj.network = graph(A);
             obj.network.Nodes.Nodes     = Nodes;
             obj.network.Nodes.Well      = Well;
@@ -217,24 +213,36 @@ classdef Network
             end
         end
         
-        function f = plotNetwork(obj,varargin)
-            opt = struct('FaceColor', 'none',...
-                'EdgeAlpha'   ,'0.1',...
-                'NetworkLineWidth',2*ones(numedges(obj.network),1));
+        function plotNetwork(obj,varargin)
+            opt = struct('FaceColor', 'none', 'EdgeAlpha', 0.1);
             opt = merge_options(opt, varargin{:});
             
-            f= plotGrid(obj.G, 'FaceColor',opt.FaceColor,...
-                'EdgeAlpha',opt.EdgeAlpha); view(2);
+            if size(obj.network.Edges,2)==4
+                TT = obj.network.Edges.Transmissibility;
+                pv = obj.network.Edges.PoreVolume;
+                lineWidth = [10*TT/max(TT), 10*pv/max(pv)];
+                names = {'Transmissibility', 'Pore volume'};
+                n = 2;
+            else
+                lineWidth = 2*ones(numedges(obj.network),1);
+                names = {''};
+                n = 1;
+            end
+            clf
+            for i=1:n
+                subplot(1,n,i,'replace')
+                f= plotGrid(obj.G, 'FaceColor',opt.FaceColor,...
+                    'EdgeAlpha',opt.EdgeAlpha); view(2);
             
-            hold on, pg =  plot(obj.network,...
-                'XData',obj.network.Nodes.XData,...
-                'YData',obj.network.Nodes.YData,...
-                'ZData',obj.network.Nodes.ZData,...
-                'LineWidth',opt.NetworkLineWidth);
-            labelnode(pg,obj.network.Nodes.Well,obj.network.Nodes.Well_name)
-            hold off;
-            
-            
+                hold on, pg =  plot(obj.network,...
+                    'XData',obj.network.Nodes.XData,...
+                    'YData',obj.network.Nodes.YData,...
+                    'ZData',obj.network.Nodes.ZData,...
+                    'LineWidth',lineWidth(:,i));
+                labelnode(pg,obj.network.Nodes.Well,obj.network.Nodes.Well_name);
+                title(names{i})
+                hold off; axis off
+            end
         end
         
     end
