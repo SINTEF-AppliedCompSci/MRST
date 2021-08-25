@@ -170,38 +170,32 @@ classdef Network
                     if strcmp(opt.type,'fd_preprocessor')
                         state = [];
                         pressure_field = 'pressure';
+                        ctrlNo = 1;
                     else
                         %[~, states, ~] = getPackedSimulatorOutput(opt.problem,...
                         %    'readWellSolsFromDisk',false,...
                         %    'readReportsFromDisk',false);
                         state = opt.problem.OutputHandlers.states{opt.state_number};
                         pressure_field = 'bhp';
+                        ctrlNo = opt.problem.SimulatorSetup.schedule.step.control(opt.state_number);
                     end
-                    ctrlNo = opt.problem.SimulatorSetup.schedule.step.control(opt.state_number);
                     [state, diagnostics] = computePressureAndDiagnostics(...
                         opt.problem.SimulatorSetup.model,...
                         'wells', opt.problem.SimulatorSetup.schedule.control(ctrlNo).W,...
                         'state',state, 'firstArrival', false);
                     
                     % Use diagnostics to define the graph
-                    [IP_indices]=find(diagnostics.wellCommunication > opt.flow_filter);
-                    [I,P]=find(diagnostics.wellCommunication > opt.flow_filter);
-                    
-                    % TODO: The code assumes that injector are first and
-                    % then comes producers. This may cause some problem in
-                    % case injectors and producers do not follow this order.
-                    
-                    P_indx = P +size(diagnostics.wellCommunication,1);
-                    for wp = length(IP_indices):-1:1
-                        iwp          = IP_indices(wp);
-                        fluxes(wp,1) = diagnostics.wellCommunication(I(wp),P(wp));
-                        DP(wp,1)     = state.wellSol(I(wp)).(pressure_field)-... % Injector pressure
-                                       state.wellSol(P_indx(wp)).(pressure_field);          %
-                        T(wp,1)      = fluxes(wp,1)/DP(wp,1);
-                        pv(wp,1)     = diagnostics.WP.vols(iwp);
-                        A(I(wp),P_indx(wp)) = 1;
-                        A(P_indx(wp),I(wp)) = 1;
-                    end
+                    ix   = diagnostics.wellCommunication(:) > opt.flow_filter;
+                    I    = diagnostics.WP.pairIx(ix,1);
+                    P    = diagnostics.WP.pairIx(ix,2);
+                    iWno = diagnostics.D.inj(I)';
+                    pWno = diagnostics.D.prod(P)';
+                    flux = diagnostics.wellCommunication(ix);
+                    dP   = vertcat(state.wellSol(iWno).(pressure_field)) - ...
+                        vertcat(state.wellSol(pWno).(pressure_field));
+                    T    = flux./dP;
+                    pv   = diagnostics.WP.vols(ix)';
+                    A    = sparse([iWno; pWno],[pWno; iWno],ones(2*sum(ix(:)),1));
                 otherwise
                     error('\nType of network: %s is not implemented\n', opt.type);
             end
