@@ -171,10 +171,10 @@ classdef Network
                         state = [];
                         pressure_field = 'pressure';
                     else
-                        [~, states, ~] = getPackedSimulatorOutput(opt.problem,...
-                            'readWellSolsFromDisk',false,...
-                            'readReportsFromDisk',false);
-                        state = states{opt.state_number};
+                        %[~, states, ~] = getPackedSimulatorOutput(opt.problem,...
+                        %    'readWellSolsFromDisk',false,...
+                        %    'readReportsFromDisk',false);
+                        state = opt.problem.OutputHandlers.states{opt.state_number};
                         pressure_field = 'bhp';
                     end
                     % TODO: need more work for cases with more controls in the
@@ -193,7 +193,7 @@ classdef Network
                     
                     P_indx = P +size(diagnostics.wellCommunication,1);
                     for wp = length(IP_indices):-1:1
-                        iwp          =  IP_indices(wp);
+                        iwp          = IP_indices(wp);
                         fluxes(wp,1) = diagnostics.wellCommunication(I(wp),P(wp));
                         DP(wp,1)     = state.wellSol(I(wp)).(pressure_field)-... % Injector pressure
                                        state.wellSol(P_indx(wp)).(pressure_field);          %
