@@ -307,8 +307,10 @@ else
     W = setup.schedule.control(1).W(p.subset);
     for k = 1:numel(W)
         if ~isempty(p.lumping{k})
-            tmp = p.getWellParameter(W(k), setup);
-            assert(numel(p.lumping{k}) == numel(tmp));
+            [nc, nl] = deal(numel(W(k).cells), numel(p.lumping{k}));
+            assert(nc==nl, ...
+                'Well %s has %d connections but lumping vector has %d elements.', ...
+                W(k).name, nc, nl);
         end
     end
 end
