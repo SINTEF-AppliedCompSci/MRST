@@ -9,23 +9,22 @@ classdef Network
             % Creates a network between nodes defined by a set of wells
             %
             % SYNOPSIS:
-            %     ntwkr =  Network(W, G, 'type','all_to_all');
+            %     ntwrk =  Network(W, G, 'type', 'all_to_all');
             %
-            %     ntwkr =  Network(W, G, 'type','injectors_to_producers',...
-            %                            'injectors',[1:n_injectors],...
-            %                            'producers',[n_injectors + 1: n_producer]);
-            %
+            %     ntwrk =  Network(W, G, 'type', 'injectors_to_producers',...
+            %                            'injectors', 1:n_injectors,...
+            %                            'producers', n_injectors + 1:n_producer);
             %
             %   Networks derived by flow diagnostics
             %
-            %     ntwkr =  Network(W ,G, 'type','fd_preprocessor',...
-            %                            'problem',problem,...
-            %                            'flow_filter',1*stb/day);
+            %     ntwrk =  Network(W, G, 'type', 'fd_preprocessor',...
+            %                            'problem', problem,...
+            %                            'flow_filter', 1*stb/day);
             %
-            %     ntwkr =  Network(W, G, 'type','fd_postprocessor',...
-            %                            'problem',problem,...
-            %                            'flow_filter',1*stb/day,...
-            %                            'state_number',40);
+            %     ntwrk =  Network(W, G, 'type', 'fd_postprocessor',...
+            %                            'problem', problem,...
+            %                            'flow_filter', 1*stb/day,...
+            %                            'state_number', 40);
             %
             % DESCRIPTION:
             %   Nodes are created from well cells given in the well structure W, and
@@ -41,26 +40,26 @@ classdef Network
             %
             %
             % OPTIONAL PARAMETERS:
-            %   'type'       - Architecture/design of the network that specifies connections between nodes:
-            %                      'all_to_all':       Define edges to connect all
-            %                                          nodes. Connections between nodes
-            %                                          of the same well are not
-            %                                          allowed.
+            %   'type' - Architecture/design of the network that specifies connections between nodes:
+            %               'all_to_all':       Define edges to connect all
+            %                                   nodes. Connections between nodes
+            %                                   of the same well are not
+            %                                   allowed.
             %
-            %                      'injectors_to_producers': Define edges only between
-            %                                          nodes from injector well cells
-            %                                          to producer well cells.
+            %               'injectors_to_producers': Define edges only between
+            %                                   nodes from injector well cells
+            %                                   to producer well cells.
             %
-            %                      'fd_preprocessor':  Define edges only between
-            %                                          connections discovered by the flow
-            %                                          diagnostics preprosessor.
+            %               'fd_preprocessor':  Define edges only between
+            %                                   connections discovered by the flow
+            %                                   diagnostics preprosessor.
             %
-            %                      'fd_postprocessor': Define edges only between
-            %                                          connections discovers by the flow
-            %                                          diagnostics postprocessor.
+            %               'fd_postprocessor': Define edges only between
+            %                                   connections discovers by the flow
+            %                                   diagnostics postprocessor.
             %
-            %                       'user_defined_edges': Defined edges by the user.
-            %                                          This requires parameter 'edges'
+            %               'user_defined_edges': Defined edges by the user.
+            %                                   This requires parameter 'edges'
             %
             %   'injectors'  - Indices for the injector wells inside the W structure
             %
@@ -82,7 +81,7 @@ classdef Network
             %                  reports on how the faces and cell indices have been
             %                  assigned to each connection, and so on.
             % RETURNS:
-            %   obj.network    - MATLAB Undirected Graph
+            %   obj.network  - MATLAB Undirected Graph
             %
             % SEE ALSO:
             % `graph`, `NetworkModel`
@@ -165,6 +164,7 @@ classdef Network
                 case {'fd_preprocessor','fd_postprocessor'}
                     require diagnostics
                     
+                    % Compute flow diagnostics for the chosen state
                     assert(all(nW_cells==1),['Flow diagnostics analysis to multiple connections',...
                         ' between wells is not yet supported.'])
                     if strcmp(opt.type,'fd_preprocessor')
@@ -177,13 +177,13 @@ classdef Network
                         state = opt.problem.OutputHandlers.states{opt.state_number};
                         pressure_field = 'bhp';
                     end
-                    % TODO: need more work for cases with more controls in the
-                    % schedule
+                    ctrlNo = opt.problem.SimulatorSetup.schedule.step.control(opt.state_number);
                     [state, diagnostics] = computePressureAndDiagnostics(...
                         opt.problem.SimulatorSetup.model,...
-                        'wells', opt.problem.SimulatorSetup.schedule.control(1).W,...
+                        'wells', opt.problem.SimulatorSetup.schedule.control(ctrlNo).W,...
                         'state',state, 'firstArrival', false);
-                    %Determine wellpair indices
+                    
+                    % Use diagnostics to define the graph
                     [IP_indices]=find(diagnostics.wellCommunication > opt.flow_filter);
                     [I,P]=find(diagnostics.wellCommunication > opt.flow_filter);
                     
