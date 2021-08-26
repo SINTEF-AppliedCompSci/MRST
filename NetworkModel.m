@@ -172,7 +172,7 @@ classdef NetworkModel
             if isempty(data)
                 linewidth = 5;
             else
-                assert (size(data, 2) == numedges(obj.Graph), ...
+                assert (numel(data) == numedges(obj.Graph), ...
                     'The DATA should have one value for each grid cell in output.');
                 linewidth = 10*data/max(data);
             end
@@ -184,10 +184,7 @@ classdef NetworkModel
                 'LineWidth',linewidth);
             labelnode(pg,1:numnodes(obj.Graph),obj.Graph.Nodes.Well_name);
             hold off;
-            % To have text indicating values with text
-            % plot(Graph,'EdgeLabel',compose("%5.2e",Graph.Edges.Weight),'LineWidth',10*TT/max(TT))
-
-            pg.NodeFontSize= 15;
+            pg.NodeFontSize= 10;
             axis off ;
             title("Initial Transmisibility");
         end
@@ -195,17 +192,20 @@ classdef NetworkModel
 
         function plotGPSNetGrid(obj,data,varargin)
             %% Plotting the data driven model
-            G =   obj.model.G;
-            plotGrid(G,'FaceColor', 'none')
+            G = obj.model.G;
+            [I,~,K] = gridLogicalIndices(G);
 
             if isempty(data)
-                plotWell(G,obj.W)
+                plotCellData(G,K);
+                plotGrid(G,I==1 | I==max(I), 'FaceColor',[.9 .9 .9]);
+                plotGrid(G,vertcat(obj.W.cells),'FaceColor',[.7 .7 .7]);
             else
-                assert (size(data,1) == G.cells.num, ...
+                assert (numel(data) == G.cells.num, ...
                     'The DATA should have one value for each grid cell in output.');
-
                 plotCellData(G,data, 'EdgeAlpha', 0.1)
-            end
+                plotGrid(G,I==1 | I==max(I), 'FaceColor','none','linewidth',1);
+                plotGrid(G,vertcat(obj.W.cells),'FaceColor','none','linewidth',2);
+             end
 
             for i =  1: numel(obj.Graph.Nodes.Well)
                 cell_number =obj.Graph.Nodes.Well_cells(i);
@@ -225,8 +225,7 @@ classdef NetworkModel
                     end
                 end
             end
-
-            view(0,0)
+            view(0,0), axis off
         end
     end
 end
