@@ -55,7 +55,7 @@ end
 % the fine-scale reference simulation. Here, we use the second last
 % approach but supply code for all other options as well.
 
-networkType = 'user_defined_edges';
+networkType = 'fd_preprocessor';
 switch networkType
     case 'all_to_all'
         ntwrk =  Network(Wnw, modelRef.G, 'type', networkType);
