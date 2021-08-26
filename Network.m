@@ -135,36 +135,23 @@ classdef Network
             
             % Create edges of the graph. Only rule is:
             % self-connections among wells are forbidden
-            A =  zeros(num_nodes);
             switch opt.type
                 case 'all_to_all'
-                    for iA_row =  1:num_nodes
-                        well_numer  = Well(iA_row);
-                        A(iA_row,(Well~=well_numer)) = 1;
-                    end
+                    A = ones(num_nodes)- eye([num_nodes,num_nodes]);
                 case 'user_defined_edges'
-                    for iA_row = 1:size(opt.edges,1)
-                        A(opt.edges(iA_row,1),opt.edges(iA_row,2)) = 1;
-                        A(opt.edges(iA_row,2),opt.edges(iA_row,1)) = 1;
-                    end
+                    A = sparse([opt.edges(:,1); opt.edges(:,2)], ...
+                               [opt.edges(:,2); opt.edges(:,1)], ...
+                               ones(2*size(opt.edges,1),1));
                 case 'injectors_to_producers'
-                    for iA_row =  1:num_nodes
-                        well_numer  = Well(iA_row);
-                        
-                        if any(opt.injectors==well_numer)
-                            conections = all(Well~=opt.injectors,2);
-                        elseif any(opt.producers==well_numer)
-                            conections = all(Well~=opt.producers,2);
-                        else
-                            warning(['\n Well %s is not in injector or producer list.\n',...
-                                'This well is thus ignored'], Well_name{iA_row});
-                        end
-                        A(iA_row,conections) = 1;
-                    end
+                    A =  zeros(num_nodes);
+                    inj  = any(Well==opt.injectors,2);
+                    prod = any(Well==opt.producers,2);
+                    A(inj,prod) = 1;
+                    A(prod,inj) = 1;
+                    figure, spy(A);
                 case {'fd_preprocessor','fd_postprocessor'}
-                    require diagnostics
-                    
                     % Compute flow diagnostics for the chosen state
+                    require diagnostics
                     assert(all(nW_cells==1),['Flow diagnostics analysis to multiple connections',...
                         ' between wells is not yet supported.'])
                     if strcmp(opt.type,'fd_preprocessor')
@@ -228,10 +215,9 @@ classdef Network
                 names = {''};
                 n = 1;
             end
-            clf
             for i=1:n
                 subplot(1,n,i,'replace')
-                f= plotGrid(obj.G, 'FaceColor',opt.FaceColor,...
+                plotGrid(obj.G, 'FaceColor',opt.FaceColor,...
                     'EdgeAlpha',opt.EdgeAlpha); view(2);
             
                 hold on, pg =  plot(obj.network,...
