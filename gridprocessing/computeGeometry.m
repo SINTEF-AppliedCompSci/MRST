@@ -614,37 +614,58 @@ end
 %--------------------------------------------------------------------------
 
 function G = findNormalDirections(G)
-   assert (all([G.griddim, size(G.nodes.coords, 2)] == 3), ...
-          ['Detecting neighbourship based on normal directions ', ...
-           'is only supported in 3D grids.']);
 
-   % Assume convex faces.   Compute average of node coordinates.
-   fcenters = ...
-      averageCoordinates(diff(G.faces.nodePos), ...
-                         G.nodes.coords(G.faces.nodes, :));
+    assert (all([G.griddim, size(G.nodes.coords, 2)] >= 2), ...
+            ['Detecting neighbourship based on normal directions ', ...
+             'is only supported in 2D or 3D grids.']);
 
-   % Assume convex cells.   Compute average of face centre coordinates.
-   [ccenters, cellno] = ...
-      averageCoordinates(diff(G.cells.facePos), ...
-                         fcenters(G.cells.faces(:,1), :));
+    % Assume convex faces. Compute average of node coordinates.
+    fcenters = ...
+        averageCoordinates(diff(G.faces.nodePos), ...
+                           G.nodes.coords(G.faces.nodes, :));
 
-   % Compute triple product v1 x v2 · v3 of vectors v1 = fc-cc, v2 = n1-fc,
-   % and v3 = n2-n1 --- cc and fc being cell centres and face centres, n1
-   % and n2 being the first and second node of the face.  Triple product
-   % should be positive for half-faces with positive sign.
+    % Assume convex cells. Compute average of face centre coordinates.
+    [ccenters, cellno] = ...
+        averageCoordinates(diff(G.cells.facePos), ...
+                           fcenters(G.cells.faces(:,1), :));
 
-   n1 = G.nodes.coords(G.faces.nodes(G.faces.nodePos(1:end-1)    ), :);
-   n2 = G.nodes.coords(G.faces.nodes(G.faces.nodePos(1:end-1) + 1), :);
+    if G.griddim == 2
 
-   v1 = fcenters(G.cells.faces(:,1), :) - ccenters(cellno, :);
-   v2 = n1(G.cells.faces(:,1), :) - fcenters(G.cells.faces(:,1), :);
-   v3 = n2(G.cells.faces(:,1), :) - n1(G.cells.faces(:,1), :);
+        % Compute dot product of vector v1 and normal n. The dot
+        % product should be positive for half-faces with positive
+        % sign.
+        
+        edges = reshape(G.faces.nodes, 2, []) .';
+        [n1, n2] = deal(G.nodes.coords(edges(:,1), :), ...
+                        G.nodes.coords(edges(:,2), :));
+        L = n2 - n1;
+        n = [L(:,2), -L(:,1)];
 
-   a   = sum(cross(v1, v2) .* v3, 2);
-   sgn = 2*(G.faces.neighbors(G.cells.faces(:,1), 1) == cellno) - 1;
+        v1 = fcenters(G.cells.faces(:,1), :) - ccenters(cellno, :);
 
-   i   = accumarray(G.cells.faces(:,1), a .* sgn) < 0;
-   G.faces.neighbors(i, :) = G.faces.neighbors(i, [2, 1]);
+        a = dot(v1, n(G.cells.faces(:,1), :), 2);
+
+    else
+
+        % Compute triple product v1 x v2 · v3 of vectors v1 = fc-cc, v2 = n1-fc,
+        % and v3 = n2-n1 --- cc and fc being cell centres and face centres, n1
+        % and n2 being the first and second node of the face.  Triple product
+        % should be positive for half-faces with positive sign.
+
+        n1 = G.nodes.coords(G.faces.nodes(G.faces.nodePos(1:end-1)    ), :);
+        n2 = G.nodes.coords(G.faces.nodes(G.faces.nodePos(1:end-1) + 1), :);
+
+        v1 = fcenters(G.cells.faces(:,1), :) - ccenters(cellno, :);
+        v2 = n1(G.cells.faces(:,1), :) - fcenters(G.cells.faces(:,1), :);
+        v3 = n2(G.cells.faces(:,1), :) - n1(G.cells.faces(:,1), :);
+
+        a   = sum(cross(v1, v2) .* v3, 2);
+    end
+
+    sgn = 2*(G.faces.neighbors(G.cells.faces(:,1), 1) == cellno) - 1;
+    
+    i = accumarray(G.cells.faces(:,1), a .* sgn) < 0;
+    G.faces.neighbors(i, :) = G.faces.neighbors(i, [2, 1]);
 end
 
 %--------------------------------------------------------------------------
