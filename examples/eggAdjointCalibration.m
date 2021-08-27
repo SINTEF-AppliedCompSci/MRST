@@ -11,6 +11,8 @@
 % algorithm. This is an iterative line-search method that gradually
 % improves an approximation to the Hessian matrix of the mismatch function,
 % obtained only from adjoint gradients via a generalized secant method.
+%
+% This example was first introduced in MRST 2021b.
 mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
     ad-props incomp optimization network-models
 
