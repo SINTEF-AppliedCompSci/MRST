@@ -13,14 +13,14 @@ pth = fullfile(ROOTDIR,'utils','3rdparty','distmesh');
 mrstPath('reregister','distmesh', pth);
 mrstModule add deckformat ad-core ad-blackoil ad-micp ad-props mrst-gui ...
                                                                    distmesh
-                                                               
+
 %% Reservoir geometry/properties and model parameters
 % The domain has a radius of 75 m and the grid is discretized in different
-% size elements (polyhedrals). If the example is run in MATLAB, then we 
+% size elements (polyhedrals). If the example is run in MATLAB, then we
 % build a grid using the cylinder function.
 
-% Grid 
-R = 75;       % Reservoir radius, m  
+% Grid
+R = 75;       % Reservoir radius, m
 
 if exist('OCTAVE_VERSION', 'builtin') ~= 0 % GNU Octave
     % The grid is coarser in order to run the example in couple of minutes.
@@ -37,13 +37,13 @@ if exist('OCTAVE_VERSION', 'builtin') ~= 0 % GNU Octave
     G = makeLayeredGrid(pebi(triangleGrid(p, t)),1);
     close
 else % MATLAB
-    nc = 20;                  % Number of partitions around the circle 
+    nc = 20;                  % Number of partitions around the circle
     P = [];
     rr = -1.25:0.25:0;
     hmin = 1;                                   % Minimum grid size, m
     hmax = R*(exp(rr(end))-exp(rr(end-1)));     % Maximum grid size, m
     for r = [hmin:3:18 R*exp(rr)]
-        [x,y,z] = cylinder(r,nc); 
+        [x,y,z] = cylinder(r,nc);
     P = [P [x(1,:); y(1,:)]];
     end
     P = unique([P'; 0 0],'rows');
@@ -59,7 +59,7 @@ porosity = 0.2;             % Aquifer porosity, [-]
 rock = makeRock(G, K0, porosity);
 
 % Fluid properties
-fluid.muw = 2.535e-4;        % Water viscocity, Pa s                            
+fluid.muw = 2.535e-4;        % Water viscocity, Pa s
 fluid.bW   =  @(p) 0*p + 1;  % Water formation volume factor, [-]
 fluid.rhoWS = 1045;          % Water density, kg/m^3
 
@@ -77,7 +77,7 @@ fluid.k_o = 2e-5;            % Half-velocity constant (oxygen), kg/m^3
 fluid.k_u = 21.3;            % Half-velocity constant (urea), kg/m^3
 fluid.mu = 4.17e-5;          % Maximum specific growth rate, 1/s
 fluid.mu_u = 0.0161;         % Maximum rate of urease utilization, 1/s
-fluid.k_a = 8.51e-7;         % Microbial attachment rate, 1/s                                         
+fluid.k_a = 8.51e-7;         % Microbial attachment rate, 1/s
 fluid.k_d = 3.18e-7;         % Microbial death rate, 1/s
 fluid.Y = 0.5;               % Yield growth coefficient, [-]
 fluid.Yuc = 1.67;            % Yield coeccifient (calcite/urea), [-]
@@ -85,7 +85,7 @@ fluid.F = 0.5;               % Oxygen consumption factor, [-]
 fluid.crit = .1;             % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
-fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation  
+fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
@@ -93,21 +93,21 @@ fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
                                             fluid.kmin.*(poro<=fluid.crit);
 
 % Maximum values (to ease the convergence of the solution)
-fluid.omax = .04;                 % Maximum injected oxygen concentration 
+fluid.omax = .04;                 % Maximum injected oxygen concentration
 fluid.umax = 60;                  % Maximum injected urea concentration
 fluid.mmax = 105;                 % Maximum value of biomass concentration
 fluid.bmax = porosity-fluid.ptol; % Maximum biofilm volume fraction
 fluid.cmax = porosity-fluid.ptol; % Maximum calcite volume fraction
 
-% The two following lines are not really used in these simulations since 
-% the current MICP implementation only considers single-phase flow (it is 
-% possible to extend to two-phase flow), but since the implementation is 
+% The two following lines are not really used in these simulations since
+% the current MICP implementation only considers single-phase flow (it is
+% possible to extend to two-phase flow), but since the implementation is
 % based on the 'equationsOilWaterPolymer' script (two-phase flow), they are
 % required to avoid errors.
-fluid.bO   = fluid.bW;  
+fluid.bO   = fluid.bW;
 fluid.rhoOS = fluid.rhoWS;
 %% Define well, boundary conditions, and simulation schedule
-% The components are injected from the middle point of the reservoir and 
+% The components are injected from the middle point of the reservoir and
 % the free-flow boundary on the boundary domain is approximated by constant
 % pressure.
 
@@ -117,10 +117,10 @@ Cm = 0.01;    % Injected microbial concentration, kg/m^3
 r = 0.15;     % Well radius, m
 cellsW =  G.cells.indexMap;
 cellsW = cellsW(c(:,1).^2 + c(:,2).^2<(hmin/2)^2);
-% Injector                                   
+% Injector
 W = addWell([], G, rock, cellsW, 'Type', 'rate', 'Comp_i', [1,0], ...
                                                     'Val', Q, 'Radius', r);
-% Add the fields to the wells for the additional injected components    
+% Add the fields to the wells for the additional injected components
 W.o = 0;
 W.u = 0;
 W.m = Cm;   % Microbes are injected since the beggining
@@ -148,24 +148,24 @@ timesteps = repmat(dt, nt, 1);
 % Well different tates and times
 N = 8; % Number of injection changes
 M = zeros(N,5); % Matrix where entries per row are:time, rate, o, u, m.
-M(1,1) = 20*hour/dt; 
+M(1,1) = 20*hour/dt;
 M(1,2) = Q;
-M(2,1) = 40*hour/dt; 
-M(2,2) = eps; 
-M(3,1) = 140*hour/dt; 
+M(2,1) = 40*hour/dt;
+M(2,2) = eps;
+M(3,1) = 140*hour/dt;
 M(3,2) = Q;
 M(3,3) = fluid.omax;
 M(4,1) = 160*hour/dt;
 M(4,2) = Q;
-M(5,1) = 180*hour/dt; 
-M(5,2) = eps; 
-M(6,1) = 230*hour/dt; 
+M(5,1) = 180*hour/dt;
+M(5,2) = eps;
+M(6,1) = 230*hour/dt;
 M(6,2) = Q;
 M(6,4) = fluid.umax;
-M(7,1) = 250*hour/dt; 
+M(7,1) = 250*hour/dt;
 M(7,2) = Q;
-M(8,1) = 270*hour/dt; 
-M(8,2) = eps; 
+M(8,1) = 270*hour/dt;
+M(8,2) = eps;
 
 % Make schedule
 schedule = simpleSchedule(timesteps,'W',W,'bc',bc);
@@ -176,7 +176,7 @@ for i=1:N
     schedule.control(i+1).W(1).u = M(i,4);
     schedule.control(i+1).W(1).m = M(i,5);
     schedule.step.control(M(i,1):end) = i+1;
-end    
+end
 
 %% Set up simulation model
 model = MICPModel(G, rock, fluid);
@@ -206,7 +206,7 @@ end
 
 %% Process the data
 % If Octave is used, then the results are printed in vtk format to be
-% visualize in Paraview. If MATLAB is used, then the plootToolbar is
+% visualize in Paraview. If MATLAB is used, then the plotToolbar is
 % used to show the results.
 
 % Write the results to be read in ParaView (GNU Octave)
@@ -226,8 +226,8 @@ colorbar; caxis([0 1]);
 
 %% Copyright notice
 %{
-Copyright 2021, NORCE Norwegian Research Centre AS, Computational 
-Geosciences and Modeling. 
+Copyright 2021, NORCE Norwegian Research Centre AS, Computational
+Geosciences and Modeling.
 
 This file is part of the ad-micp module.
 

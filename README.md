@@ -15,10 +15,10 @@ rock permeability. Further information on the mathematical model can be
 found in the two publications [A,B] in the "Cite" part of this README.
 
 The numerical examples accompanying this module are:
-* run1DCase.m
-* run2DLeakageCase.m
-* run2DRadialCase.m
-* run3DCase.m
+* run1DCase.m,
+* run2DLeakageCase.m,
+* run2DRadialCase.m, and
+* run3DCase.m.
 
 In addition, this module includes scripts to run the studies in [A,B].
 
@@ -48,7 +48,7 @@ clogging criterium that was checked before in 'simulateScheduleADMICP').
 * Adding new functions 'getPlotAfterStepCO2' and 'getPlotAfterStepMICP' to live
 plot the numerical results while the simulator is running.
 * Moving the 'CO2Model', 'equationsCO2', 'getFluxAndPropsCO2', and
-'getFluxAndPropsWater' scripts into the co2_assesment folder in the
+'getFluxAndPropsWater' scripts into the co2_assessment folder in the
 publications/paper_A folder (these scripts are kept to run the corresponding
 scripts described in publication [A], where a very simple CO2-water model is
 used, while in the new added numerical examples ('run2DLeakageCase' and
@@ -58,7 +58,19 @@ after MICP treatment).
 
 ## Requirements
 * MRST (Tested version: 2021a)
-* MATLAB (Tested version: R2021a) or GNU Octave (Tested version: 6.1.0)
+* MATLAB (Tested version: R2021a) or GNU Octave (Tested version: 6.3.0)
+
+Regarding GNU Octave, all scripts have been successfully run in GNU/Linux
+(e.g., using Ubuntu 20.04 in Octave version 6.3.0).
+
+In macOs using GNU Octave, it is possible to run some of the examples, but the
+latest version (6.3.0) fails to run the scripts where distmesh is used to build
+the grids (in Octave blogs it is written this issue in macs might be fixed soon)
+while an older version (6.1.0) can sucessfully run distmesh but it fails to run
+the CO2 assessment using the 'TwoPhaseWaterGasModel'. Then, for running ad-micp
+in macOs using Octave, for now we recommend to use the version 6.1.0, and for
+assessing the CO2 distribution using the simple 'CO2Model' in the co2_assessment
+folder (see/run e.g., publications/paper_A/micp_3Dfls).
 
 ## MRST dependencies
 * [distmesh](http://persson.berkeley.edu/distmesh/)
@@ -74,9 +86,10 @@ after MICP treatment).
 * Run the 'startup.m' file in MRST.
 * Open the script 'mrst-2021a/utils/uniqueStable.m' and comment the lines 104,
 112, 115, and 117 (this forces to use the function 'fall_back' in line 110
-instead of the function 'unique' in line 115). This is necessary for older
-versions of GNU Octave (e.g., 5.2.0) while for recent version (e.g, 6.1.0)
-not doing this would result in annoying warnings.  
+instead of the function 'unique' in line 115).
+* Open the scripts 'mrst-2021a/models/co2lab/utils/co2props/CO2props.m' and
+'mrst-2021a/models/co2lab/utils/co2props/SampleProp2D.m' and change the name of
+the function 'fields' to 'fieldnames' in lines 120 and 484 respectively.
 
 ## Cite
 If you use ad-micp to write a scientific publication, please cite one of
