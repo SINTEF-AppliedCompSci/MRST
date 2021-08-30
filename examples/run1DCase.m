@@ -6,18 +6,18 @@
 mrstModule add deckformat ad-core ad-blackoil ad-micp ad-props mrst-gui
 
 %% Reservoir geometry/properties and model parameters
-% The domain has a length of 75 m and the grid is discretized in equal
-% size elements (0.5 m).
+% The domain has a length of 100 m and the grid is discretized in equal
+% size elements (1 m).
 
 % Grid
-L = 75;                     % Aquifer length, m
-G = tensorGrid(0:0.5:L, [0 1], [0 1]);
+L = 100;                     % Aquifer length, m
+G = tensorGrid(0:L, [0 1], [0 1]);
 G = computeGeometry(G);
 C = ones(G.cells.num,1);
 
 % Rock properties
-K0 = 1e-12*C;                % Aquifer permeability, m^2
-porosity = 0.2;              % Aquifer porosity, [-]
+K0 = 1e-14 * C;              % Aquifer permeability, m^2
+porosity = 0.15;             % Aquifer porosity, [-]
 rock = makeRock(G, K0, porosity);
 
 % Fluid properties
@@ -98,7 +98,7 @@ G.cellsinjectionwell = 1;
 
 % Setup some schedule
 dt = hour;
-nt = 300*hour/dt;
+nt = 500*hour/dt;
 clear schedule
 timesteps = repmat(dt, nt, 1);
 
