@@ -1,20 +1,20 @@
 %% Workflow example for ad-micp
 % This example aims to show complete workflow for creating, running, and
-% analyzing a 2D flow system with a leakage path using the MICP 
+% analyzing a 2D flow system with a leakage path using the MICP
 % mathematical model. To asses the co2 distribution before and after
 % treatment, we use the TwoPhaseWaterGasModel in the MRST co2lab module (we
-% use the system relationships/properties as in the basic_3D_example in 
-% the co2lab module). 
+% use the system relationships/properties as in the basic_3D_example in
+% the co2lab module).
 
 % Required modules
 mrstModule add deckformat ad-core ad-blackoil ad-micp ad-props mrst-gui ...
                                                                      co2lab
 
 %% Reservoir geometry/properties and model parameters
-% The domain has a length of 100 m and a height of 40 m. We remove the 
-% domain cells where there is caprock. The grid is coarser in order to run 
+% The domain has a length of 100 m and a height of 40 m. We remove the
+% domain cells where there is caprock. The grid is coarser in order to run
 % the example in couple of minutes. You should try with finer grids (see
-% https://doi.org/10.1016/j.ijggc.2021.103256). 
+% https://doi.org/10.1016/j.ijggc.2021.103256).
 
 % Grid
 L = 100;        % Reservoir length, m
@@ -31,7 +31,7 @@ G = tensorGrid(X,[0 1],Z, 'depthz', repmat(D, 1, 2*size(X,2)));
 G = computeGeometry(G);
 c = G.cells.centroids;
 G = removeCells(G,(c(:,1)<l-a/2 | c(:,1)>l+a/2) & c(:,3)<D+H-hb & ...
-                                                              c(:,3)>D+ht); 
+                                                              c(:,3)>D+ht);
 G = computeGeometry(G);
 c = G.cells.centroids;
 C = ones(G.cells.num,1);
@@ -47,9 +47,9 @@ porosity = 0.15;             % Aquifer/leakage porosity, [-]
 rock = makeRock(G, K0, porosity);
 
 % Fluid properties
-fluid.muw = 2.535e-4;        % Water viscocity, Pa s                            
+fluid.muw = 2.535e-4;        % Water viscocity, Pa s
 fluid.bW = @(p) 0*p + 1;     % Water formation volume factor, [-]
-fluid.rhoWS = 1045;          % Water density, kg/m^3          
+fluid.rhoWS = 1045;          % Water density, kg/m^3
 
 % Remaining model parameters (we put them on the fluid structure)
 fluid.rho_b = 35;            % Density (biofilm), kg/m^3
@@ -65,7 +65,7 @@ fluid.k_o = 2e-5;            % Half-velocity constant (oxygen), kg/m^3
 fluid.k_u = 21.3;            % Half-velocity constant (urea), kg/m^3
 fluid.mu = 4.17e-5;          % Maximum specific growth rate, 1/s
 fluid.mu_u = 0.0161;         % Maximum rate of urease utilization, 1/s
-fluid.k_a = 8.51e-7;         % Microbial attachment rate, 1/s                                         
+fluid.k_a = 8.51e-7;         % Microbial attachment rate, 1/s
 fluid.k_d = 3.18e-7;         % Microbial death rate, 1/s
 fluid.Y = 0.5;               % Yield growth coefficient, [-]
 fluid.Yuc = 1.67;            % Yield coeccifient (calcite/urea), [-]
@@ -73,7 +73,7 @@ fluid.F = 0.5;               % Oxygen consumption factor, [-]
 fluid.crit = .1;             % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
-fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation   
+fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
@@ -81,18 +81,18 @@ fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
                                             fluid.kmin.*(poro<=fluid.crit);
 
 % Maximum values (to ease the convergence of the solution)
-fluid.omax = 0.04;                % Maximum injected oxygen concentration 
+fluid.omax = 0.04;                % Maximum injected oxygen concentration
 fluid.umax = 60;                  % Maximum injected urea concentration
 fluid.mmax = 105;                 % Maximum value of biomass concentration
 fluid.bmax = porosity-fluid.ptol; % Maximum biofilm volume fraction
 fluid.cmax = porosity-fluid.ptol; % Maximum calcite volume fraction
 
-% The two following lines are not really used in these simulations since 
-% the current MICP implementation only considers single-phase flow (it is 
-% possible to extend to two-phase flow), but since the implementation is 
+% The two following lines are not really used in these simulations since
+% the current MICP implementation only considers single-phase flow (it is
+% possible to extend to two-phase flow), but since the implementation is
 % based on the 'equationsOilWaterPolymer' script (two-phase flow), they are
 % required to avoid errors.
-fluid.bO   = fluid.bW;  
+fluid.bO   = fluid.bW;
 fluid.rhoOS = fluid.rhoWS;
 
 % Gravity
@@ -140,7 +140,7 @@ QCO2 = 1/day;    % Injection rate, m^3/day
 r = 0.15;        % Well radius, m
 cellsW = 1:1:G.cells.num;
 cellsW = cellsW(c(:,1)<X(2) & c(:,3)>D+H-hb);
-% Injector                                          
+% Injector
 WCO2 = addWell([], G, rock, cellsW, 'Type', 'rate', 'Comp_i', [0,1], ...
                                                   'Val', QCO2, 'Radius',r);
 
@@ -149,13 +149,13 @@ f = boundaryFaces(G);
 f = f(abs(G.faces.normals(f,1)) > eps & G.faces.centroids(f,1) > X(end-1));
 fp = G.faces.centroids(f,3) * fluid.rhoWS * norm(gravity);
 bc = addBC([], f, 'pressure', fp, 'sat', [0 0]);
-    
+
 % Setup some schedule
 dt = hour;
 nt = 10*day/dt;
 clear schedule
 timestepsCO2 = repmat(dt, nt, 1);
-    
+
 % Make schedule
 schedule = simpleSchedule(timestepsCO2, 'W', WCO2, 'bc', bc);
 
@@ -173,7 +173,7 @@ lrbeforeMICP = zeros(nt,1);
 fc = G.faces.centroids;
 facel =  1:1:G.faces.num;
 facel = facel(fc(:,3)<D+hl+ht+.01 & fc(:,3)>D+hl+ht-.01 & ...
-                                            fc(:,1)>l-a/2 & fc(:,1)<l+a/2);       
+                                            fc(:,1)>l-a/2 & fc(:,1)<l+a/2);
 for i=1:1:nt
     lrbeforeMICP(i)=abs(statesCO2beforeMICP{i}.flux(facel,2));
 end
@@ -193,17 +193,17 @@ cellsWb =cellsW(c(:,1)<X(2) & c(:,3)>D+H-Whb*hb);
 % Lower injector
 W = addWell(W, G, rock, cellsWb, 'Type', 'rate', 'Comp_i', [1,0], ...
                                                 'Val', Whb*Q, 'Radius', r);
-% The injection well is on the boundary                                 
+% The injection well is on the boundary
 G.injectionwellonboundary = 1;
-G.cellsinjectionwell = cellsW; 
-                                            
+G.cellsinjectionwell = cellsW;
+
 % Add the fields to the wells/bc for the additional components
 bc.o = zeros(size(bc.sat,1), 1);
 bc.u = zeros(size(bc.sat,1), 1);
 bc.m = zeros(size(bc.sat,1), 1);
 bc.b = zeros(size(bc.sat,1), 1);
 bc.c = zeros(size(bc.sat,1), 1);
-for i=1:2    
+for i=1:2
     W(i).o = 0;
     W(i).u = 0;
     W(i).m = 0;
@@ -222,24 +222,24 @@ timesteps = repmat(dt, nt, 1);
 % Well different rates and times
 N = 8; % Number of injection changes
 M = zeros(N,5); % Matrix where entries per row are: time, rate, o, u, m.
-M(1,1) = 15*hour/dt; 
+M(1,1) = 15*hour/dt;
 M(1,2) = Q;
-M(2,1) = 26*hour/dt; 
-M(2,2) = eps; 
-M(3,1) = 100*hour/dt; 
+M(2,1) = 26*hour/dt;
+M(2,2) = eps;
+M(3,1) = 100*hour/dt;
 M(3,2) = Q;
 M(3,3) = fluid.omax;
 M(4,1) = 130*hour/dt;
 M(4,2) = Q;
-M(5,1) = 135*hour/dt; 
-M(5,2) = eps; 
-M(6,1) = 160*hour/dt; 
+M(5,1) = 135*hour/dt;
+M(5,2) = eps;
+M(6,1) = 160*hour/dt;
 M(6,2) = Q;
 M(6,4) = fluid.umax;
-M(7,1) = 200*hour/dt; 
+M(7,1) = 200*hour/dt;
 M(7,2) = Q;
-M(8,1) = 210*hour/dt; 
-M(8,2) = eps; 
+M(8,1) = 210*hour/dt;
+M(8,2) = eps;
 
 % Make schedule
 schedule = simpleSchedule(timesteps,'W',W,'bc',bc);
@@ -251,7 +251,7 @@ for i=1:N
     schedule.control(i+1).W(1).u = M(i,4);
     schedule.control(i+1).W(1).m = M(i,5);
     schedule.step.control(M(i,1):end) = i+1;
-end    
+end
 
 % Initial condition
 state0.o = zeros(G.cells.num,1);
@@ -271,14 +271,14 @@ end
 [~,statesMICP] = simulateScheduleAD(state0, model, schedule, ...
                                                          'afterStepFn',fn);
 %% CO2 assesment after MICP treatment
-% Compute porosity and permeability after MICP treatment                                    
+% Compute porosity and permeability after MICP treatment
 porosityafterMICP = porosity - statesMICP{end}.c - statesMICP{end}.b;
 KafterMICP = fluid.K(porosityafterMICP);
 rock = makeRock(G, KafterMICP, porosityafterMICP);
 
 % Create model
 model = TwoPhaseWaterGasModel(G, rock, fluidH2OCO2, 0, 0);
-    
+
 % Make schedule
 schedule = simpleSchedule(timestepsCO2, 'W', WCO2, 'bc', bc);
 
@@ -300,8 +300,8 @@ end
 %% Process the data
 % Plot the comparison of CO2 leakage before and after micp treatment. Using
 % the default example setting, we observe the leakage is reduced after MICP
-% treatment but still there is significant leakage. Then more MICP 
-% treatments could be applied to reduce the leakage as reported in 
+% treatment but still there is significant leakage. Then more MICP
+% treatments could be applied to reduce the leakage as reported in
 % https://doi.org/10.1016/j.ijggc.2021.103256
 figure;
 hold on
@@ -311,12 +311,12 @@ plot((1:size(timestepsCO2)) * dt / day, lrafterMICP * 100 / QCO2, ...
                       'color', [1 .5 0], 'LineWidth', 9, 'LineStyle', '-');
 hold off
 legend('Before MICP','After MICP','Location','best');
-xlabel('Time [d]');        
+xlabel('Time [d]');
 ylabel('CO2 leakage rate/injection rate [%]');
 grid on
 
 % If Octave is used, then the results are printed in vtk format to be
-% visualize in Paraview. If MATLAB is used, then the plootToolbar is
+% visualize in Paraview. If MATLAB is used, then the plotToolbar is
 % used to show the results.
 
 % Write the results to be read in ParaView (GNU Octave)
@@ -339,8 +339,8 @@ colorbar; caxis([0 1]);
 %% Copyright notice
 %{
 Partial copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
-Partial copyright 2021 NORCE Norwegian Research Centre AS, Computational 
-Geosciences and Modeling. 
+Partial copyright 2021 NORCE Norwegian Research Centre AS, Computational
+Geosciences and Modeling.
 
 This file is part of the ad-micp module.
 
