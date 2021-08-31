@@ -1,5 +1,7 @@
 %% Example demonstrating AMGCL on a few test problems
-mrstModule add msrsb incomp coarsegrid spe10 linearsolvers ad-core ad-blackoil ad-props
+mrstModule add msrsb incomp coarsegrid spe10 ...
+   linearsolvers ad-core ad-blackoil ad-props example-suite
+
 %% Setup problem
 testcase = 'spe10';
 switch lower(testcase)
