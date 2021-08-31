@@ -81,25 +81,20 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 
             [state, report] = updateState@TwoPhaseOilWaterModel(model, ...
                state, problem,  dx, drivingForces);
-            % Limit the variables to [0, Xmax]
+            % Limit the variables to >= 0
             o = model.getProp(state, 'oxygen');
-            o = min(o, model.fluid.omax);
             state = model.setProp(state, 'oxygen', max(o, 0) );
             state.o_prev = o_prev;
             u = model.getProp(state, 'urea');
-            u = min(u, model.fluid.umax);
             state = model.setProp(state, 'urea', max(u, 0) );
             state.u_prev = u_prev;
             m = model.getProp(state, 'microorganism');
-            m = min(m, model.fluid.mmax);
             state = model.setProp(state, 'microorganism', max(m, 0) );
             state.m_prev = m_prev;
             b = model.getProp(state, 'biofilm');
-            b = min(b, model.fluid.bmax);
             state = model.setProp(state, 'biofilm', max(b, 0) );
             state.b_prev = b_prev;
             c = model.getProp(state, 'calcite');
-            c = min(c, model.fluid.cmax);
             state = model.setProp(state, 'calcite', max(c, 0) );
             state.c_prev = c_prev;
         end

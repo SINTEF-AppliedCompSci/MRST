@@ -6,12 +6,11 @@ the root folder, you will find the following folders:
 * models, and
 * utility.
 
-In addition, this file (Contents.txt), the content of the ad-micp module in MRST
-type format (Contents.m), a copy of the license (LICENSE.txt), and the README
-(README.md for the github site and README.txt in MRST type format).
+In addition, this file (Contents.txt), a copy of the license (LICENSE.txt),
+and the README (README.md).
 
-The example folder contains four commented scripts to demonstrate how to set up
-different flow system simulations using this module:
+The example folder contains four commented scripts to demonstrate how to 
+set up different flow system simulations using this module:
 
 * run1DCase.m,
 * run2DLeakageCase.m,

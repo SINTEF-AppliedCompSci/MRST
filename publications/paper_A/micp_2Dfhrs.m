@@ -47,8 +47,9 @@ if exist('OCTAVE_VERSION', 'builtin') ~= 0 %GNU Octave
     hmin = 1;    % Minimum grid size, m
     hmax = 10;     % Maximum grid size, m
     fd=@(p) drectangle(p,-L,L,-Wh,Wh);
-    fh = @(p) min(hmin+.3*abs(dcircle(p,0,0,0)),hmin).* (abs(dcircle(p,0,0,0))<B)+...
-      min(hmin+.3*abs(dcircle(p,0,0,B)),hmax).* (abs(dcircle(p,0,0,0))>=B);
+    fh = @(p) min(hmin+.3*abs(dcircle(p,0,0,0)),hmin).* ...
+     (abs(dcircle(p,0,0,0))<B)+min(hmin+.3*abs(dcircle(p,0,0,B)),hmax).*...
+                                                (abs(dcircle(p,0,0,0))>=B);
     [p,t]=distmesh2d(fd, fh, hmin, [-L,-Wh;L,Wh], ...
                                             [-L,-Wh;L,-Wh;-L,Wh;L,Wh;0,0]);
     G = makeLayeredGrid(pebi(triangleGrid(p, t)),1);
@@ -105,22 +106,18 @@ fluid.k_d = 3.18e-7;         % Microbial death rate, 1/s
 fluid.Y = 0.5;               % Yield growth coefficient, [-]
 fluid.Yuc = 1.67;            % Yield coeccifient (calcite/urea), [-]
 fluid.F = 0.5;               % Oxygen consumption factor, [-]
-fluid.crit = .1;             % Critical porosity, [-]
+fluid.crit = 0.1;            % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
-fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation 
+fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
+fluid.Cm = 0.01;             % Injected microbial concentration, kg/m^3
+fluid.Co = 0.04;             % Injected oxygen concentration, kg/m^3
+fluid.Cu = 300;              % Injected urea concentration, kg/m^3
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
         .^fluid.eta+fluid.kmin).*K0./(K0+fluid.kmin).*(poro>fluid.crit)+...
                                             fluid.kmin.*(poro<=fluid.crit);
-
-% Maximum values (to ease the convergence of the solution)
-fluid.omax = .04;                 % Maximum injected oxygen concentration 
-fluid.umax = 300;                 % Maximum injected urea concentration
-fluid.mmax = 105;                 % Maximum value of biomass concentration
-fluid.bmax = porosity-fluid.ptol; % Maximum biofilm volume fraction
-fluid.cmax = porosity-fluid.ptol; % Maximum calcite volume fraction
 
 % Create Well
 Q = 7.2e-4;   % Injection rate m^3/s
@@ -162,14 +159,14 @@ M(2,1) = 40*hour/dt;
 M(2,2) = eps; 
 M(3,1) = 140*hour/dt; 
 M(3,2) = Q;
-M(3,3) = fluid.omax;
+M(3,3) = fluid.Co;
 M(4,1) = 160*hour/dt;
 M(4,2) = Q;
 M(5,1) = 180*hour/dt; 
 M(5,2) = eps; 
 M(6,1) = 230*hour/dt; 
 M(6,2) = Q;
-M(6,4) = fluid.umax;
+M(6,4) = fluid.Cu;
 M(7,1) = 250*hour/dt; 
 M(7,2) = Q;
 M(8,1) = 270*hour/dt; 
@@ -183,14 +180,14 @@ M(11,1) = 540*hour/dt;
 M(11,2) = eps; 
 M(12,1) = 640*hour/dt; 
 M(12,2) = Q;
-M(12,3) = fluid.omax;
+M(12,3) = fluid.Co;
 M(13,1) = 660*hour/dt;
 M(13,2) = Q;
 M(14,1) = 680*hour/dt; 
 M(14,2) = eps; 
 M(15,1) = 730*hour/dt; 
 M(15,2) = Q;
-M(15,4) = fluid.umax;
+M(15,4) = fluid.Cu;
 M(16,1) = 750*hour/dt; 
 M(16,2) = Q;
 M(17,1) = 770*hour/dt; 
