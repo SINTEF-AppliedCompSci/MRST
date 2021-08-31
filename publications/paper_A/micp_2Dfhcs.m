@@ -28,10 +28,10 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 % To get distmesh for first time, uncomment and run the following lines
-% pth = fullfile(ROOTDIR,'utils','3rdparty','distmesh');
-% mkdir(pth)
-% unzip('http://persson.berkeley.edu/distmesh/distmesh.zip', pth);
-% mrstPath('reregister','distmesh', pth);
+pth = fullfile(ROOTDIR,'utils','3rdparty','distmesh');
+mkdir(pth)
+unzip('http://persson.berkeley.edu/distmesh/distmesh.zip', pth);
+mrstPath('reregister','distmesh', pth);
 
 % Required modules
 pth = fullfile(ROOTDIR,'utils','3rdparty','distmesh');
@@ -89,23 +89,18 @@ fluid.F = 0.5;               % Oxygen consumption factor, [-]
 fluid.crit = .1;             % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
-fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation  
+fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation 
+fluid.Cm = 0.01;             % Injected microbial concentration, kg/m^3
+fluid.Co = 0.04;             % Injected oxygen concentration, kg/m^3
+fluid.Cu = 300;              % Injected urea concentration, kg/m^3
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
         .^fluid.eta+fluid.kmin).*K0./(K0+fluid.kmin).*(poro>fluid.crit)+...
                                             fluid.kmin.*(poro<=fluid.crit);
 
-% Maximum values (to ease the convergence of the solution)
-fluid.omax = .04;                 % Maximum injected oxygen concentration 
-fluid.umax = 300;                 % Maximum injected urea concentration
-fluid.mmax = 105;                 % Maximum value of biomass concentration
-fluid.bmax = porosity-fluid.ptol; % Maximum biofilm volume fraction
-fluid.cmax = porosity-fluid.ptol; % Maximum calcite volume fraction
-
 % Create Well
 Q = 1.2e-3;   % Injection rate m^3/s
-Cm = 0.01;    % Injected microbial concentration kg/m^3
 r = 0.15;     % Well radius, m
 cellsW =  G.cells.indexMap;
 cellsW = cellsW(c(:,1).^2 + c(:,2).^2<(hmin/2)^2);
@@ -113,7 +108,7 @@ W = addWell([], G, rock, cellsW, 'Type', 'rate', 'Comp_i', [1,0], ...
                                                     'Val', Q, 'Radius', r);
 W.o = 0;
 W.u = 0;
-W.m = Cm;  
+W.m = fluid.Cm;  
 G.injectionwellonboundary = 0; 
                                                 
 % Create model
@@ -145,14 +140,14 @@ M(2,1) = 40*hour/dt;
 M(2,2) = eps; 
 M(3,1) = 140*hour/dt; 
 M(3,2) = Q;
-M(3,3) = fluid.omax;
+M(3,3) = fluid.Co;
 M(4,1) = 160*hour/dt;
 M(4,2) = Q;
 M(5,1) = 180*hour/dt; 
 M(5,2) = eps; 
 M(6,1) = 230*hour/dt; 
 M(6,2) = Q;
-M(6,4) = fluid.umax;
+M(6,4) = fluid.Cu;
 M(7,1) = 250*hour/dt; 
 M(7,2) = Q;
 M(8,1) = 270*hour/dt; 

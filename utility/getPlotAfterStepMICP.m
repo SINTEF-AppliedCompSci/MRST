@@ -46,7 +46,7 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
     title('Oxygen [kg/m$^3$]','Interpreter','latex');
     colorbar; view(az,el);
     colormap(n2,c((round(70*sz/256)):1:(round(180*sz/256)),:));
-    caxis([0 model.fluid.omax]);
+    caxis([0 model.fluid.Co]);
     n3=subplot(3,2,3);
     sb = plotCellData(G, state0.b, 'edgeColor', 'none');
     title('Biofilm [-]','Interpreter','latex');
@@ -57,7 +57,7 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
     title('Urea [kg/m$^3$]','Interpreter','latex');
     colorbar; view(az,el);
     colormap(n4,c((round(70*sz/256)):1:(round(100*sz/256)),:));
-    caxis([0 model.fluid.umax]);
+    caxis([0 model.fluid.Cu]);
     n5=subplot(3,2,5); 
     sc = plotCellData(G, state0.c, 'edgeColor', 'none');
     title('Calcite [-]','Interpreter','latex');

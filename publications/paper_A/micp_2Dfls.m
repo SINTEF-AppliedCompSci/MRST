@@ -126,26 +126,21 @@ fluid.k_d = 3.18e-7;         % Microbial death rate, 1/s
 fluid.Y = 0.5;               % Yield growth coefficient, [-]
 fluid.Yuc = 1.67;            % Yield coeccifient (calcite/urea), [-]
 fluid.F = 0.5;               % Oxygen consumption factor, [-]
-fluid.crit = .1;             % Critical porosity, [-]
+fluid.crit = 0.1;            % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
-fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation   
+fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation 
+fluid.Cm = 0.01;             % Injected microbial concentration, kg/m^3
+fluid.Co = 0.04;             % Injected oxygen concentration, kg/m^3
+fluid.Cu = 300;              % Injected urea concentration, kg/m^3
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
         .^fluid.eta+fluid.kmin).*K0./(K0+fluid.kmin).*(poro>fluid.crit)+...
                                             fluid.kmin.*(poro<=fluid.crit);
 
-% Maximum values (to ease the convergence of the solution)
-fluid.omax = 0.04;                % Maximum injected oxygen concentration 
-fluid.umax = 300;                 % Maximum injected urea concentration
-fluid.mmax = 105;                 % Maximum value of biomass concentration
-fluid.bmax = porosity-fluid.ptol; % Maximum biofilm volume fraction
-fluid.cmax = porosity-fluid.ptol; % Maximum calcite volume fraction
-
 % Create well
 Q = 6e-3;    % Injection rate, m^3/s
-Cm = 0.01;   % Injected microbial concentration, kg/m^3
 r = 0.15;    % Well radius, m
 Whu = 1/10;    
 Whb = 1 - Whu;
@@ -161,7 +156,7 @@ for i=1:2
     W(i).u = 0;
     W(i).m = 0;
 end
-W(1).m = Cm;
+W(1).m = fluid.Cm;
 G.injectionwellonboundary = 1;
 G.cellsinjectionwell = [cellsWu cellsWb];
 
@@ -199,35 +194,35 @@ M(2,1) = 26*hour/dt;
 M(2,2) = eps; 
 M(3,1) = 100*hour/dt; 
 M(3,2) = Q;
-M(3,3) = fluid.omax;
+M(3,3) = fluid.Co;
 M(4,1) = 130*hour/dt;
 M(4,2) = Q;
 M(5,1) = 135*hour/dt; 
 M(5,2) = eps; 
 M(6,1) = 160*hour/dt; 
 M(6,2) = Q;
-M(6,4) = fluid.umax;
+M(6,4) = fluid.Cu;
 M(7,1) = 200*hour/dt; 
 M(7,2) = Q;
 M(8,1) = 210*hour/dt; 
 M(8,2) = eps;
 M(9,1) = 600*hour/dt;
 M(9,2) = Q;
-M(9,3) = fluid.omax;
+M(9,3) = fluid.Co;
 M(10,1) = 630*hour/dt; 
 M(10,2) = Q;
 M(11,1) = 650*hour/dt; 
 M(11,2) = eps; 
 M(12,1) = 670*hour/dt; 
 M(12,2) = Q;
-M(12,4) = fluid.umax;
+M(12,4) = fluid.Cu;
 M(13,1) = 690*hour/dt;
 M(13,2) = Q;
 M(14,1) = 710*hour/dt; 
 M(14,2) = eps; 
 M(15,1) = 800*hour/dt; 
 M(15,2) = Q;
-M(15,4) = fluid.umax;
+M(15,4) = fluid.Cu;
 M(16,1) = 820*hour/dt; 
 M(16,2) = Q;
 M(17,1) = 840*hour/dt; 

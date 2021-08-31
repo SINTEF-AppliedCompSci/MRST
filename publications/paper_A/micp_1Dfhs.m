@@ -68,32 +68,27 @@ fluid.k_d = 3.18e-7;         % Microbial death rate, 1/s
 fluid.Y = 0.5;               % Yield growth coefficient, [-]
 fluid.Yuc = 1.67;            % Yield coeccifient (calcite/urea), [-]
 fluid.F = 0.5;               % Oxygen consumption factor, [-]
-fluid.crit = .1;             % Critical porosity, [-]
+fluid.crit = 0.1;            % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
-fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation  
+fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
+fluid.Cm = 0.01;             % Injected microbial concentration, kg/m^3
+fluid.Co = 0.04;             % Injected oxygen concentration, kg/m^3
+fluid.Cu = 300;              % Injected urea concentration, kg/m^3
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
         .^fluid.eta+fluid.kmin).*K0./(K0+fluid.kmin).*(poro>fluid.crit)+...
                                             fluid.kmin.*(poro<=fluid.crit);
 
-% Maximum values (to ease the convergence of the solution)
-fluid.omax = .04;                 % Maximum injected oxygen concentration 
-fluid.umax = 300;                 % Maximum injected urea concentration
-fluid.mmax = 105;                 % Maximum value of biomass concentration
-fluid.bmax = porosity-fluid.ptol; % Maximum biofilm volume fraction
-fluid.cmax = porosity-fluid.ptol; % Maximum calcite volume fraction 
-
 % Create well
 Q = 2.4e-05;  % Injection rate, m^3/s
-Cm = 0.01;    % Injected microbial concentration, kg/m^3
 r = 0.15;     % Well radius, m
 W = addWell([], G, rock, 1, 'Type', 'rate', 'Comp_i', [1,0], 'Val', Q, ...
                                                               'Radius', r);
 W.o = 0;
 W.u = 0;
-W.m = Cm;
+W.m = fluid.Cm;
 G.injectionwellonboundary = 1;
 G.cellsinjectionwell = 1; 
 
@@ -125,7 +120,7 @@ M(2,1) = 40*hour/dt;
 M(2,2) = eps; 
 M(3,1) = 140*hour/dt; 
 M(3,2) = Q;
-M(3,3) = fluid.omax;
+M(3,3) = fluid.Co;
 M(4,1) = 160*hour/dt;
 M(4,2) = Q;
 M(5,1) = 180*hour/dt; 
@@ -199,19 +194,20 @@ plot(G.cells.centroids(:,1),states{M(8,1)-1}.m,'color',[0 .74 1], ...
                                            'LineWidth',2,'LineStyle','--');
 plot(G.cells.centroids(:,1),states{end}.m,'color',[0 0 0],'LineWidth', ...
                                                        2,'LineStyle','--');
-line([10 10], [0 Cm],'Color','red','LineStyle',':','LineWidth',2);
-line([15 15], [0 Cm],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [Cm Cm],'Color','red','LineStyle',':','LineWidth',2);
+line([10 10], [0 fluid.Cm],'Color','red','LineStyle',':','LineWidth',2);
+line([15 15], [0 fluid.Cm],'Color','red','LineStyle',':','LineWidth',2);
+line([10 15], [fluid.Cm fluid.Cm],'Color','red','LineStyle',':',...
+                                                            'LineWidth',2);
 line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
 hold off
 xlim([0 L]);
-ylim([0 Cm]);
+ylim([0 fluid.Cm]);
 xlabel({'x [m]';'(a)'},'FontSize',9,'Interpreter','latex');        
 ylabel('$c_m$ [kg/m$^3$]','FontSize',9,'Interpreter','latex');
 grid on
 title('Microbes','FontSize',9,'FontName','Arial','Interpreter','latex');
 set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick', ...
-                                                            (0:.002:.01));
+                                                        (0:.002:fluid.Cm));
 n2=subplot(3,3,5);
 hold on
 plot(G.cells.centroids(:,1),states{M(1,1)-1}.o,'color',[0 .8 0], ...
@@ -232,20 +228,20 @@ plot(G.cells.centroids(:,1),states{M(8,1)-1}.o,'color',[0 .74 1], ...
                                            'LineWidth',2,'LineStyle','--');
 plot(G.cells.centroids(:,1),states{end}.o,'color',[0 0 0],'LineWidth', ...
                                                        2,'LineStyle','--');
-line([10 10], [0 fluid.omax],'Color','red','LineStyle',':','LineWidth',2);
-line([15 15], [0 fluid.omax],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [fluid.omax fluid.omax],'Color','red','LineStyle',':', ...
+line([10 10], [0 fluid.Co],'Color','red','LineStyle',':','LineWidth',2);
+line([15 15], [0 fluid.Co],'Color','red','LineStyle',':','LineWidth',2);
+line([10 15], [fluid.Co fluid.Co],'Color','red','LineStyle',':', ...
                                                             'LineWidth',2);
 line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
 hold off
 xlim([0 L]);
-ylim([0 fluid.omax]);
+ylim([0 fluid.Co]);
 xlabel({'x [m]';'(b)'},'FontSize',9,'Interpreter','latex');        
 ylabel('$c_o$ [kg/m$^3$]','FontSize',9,'Interpreter','latex');
 grid on
 title('Oxygen','FontSize',9,'FontName','Arial','Interpreter','latex');
 set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick', ...
-                                                       (0:.01:fluid.omax));
+                                                         (0:.01:fluid.Co));
 n3=subplot(3,3,6);
 hold on
 plot(G.cells.centroids(:,1),states{M(1,1)-1}.u,'color',[0 .8 0], ... 
@@ -266,20 +262,20 @@ plot(G.cells.centroids(:,1),states{M(8,1)-1}.u,'color',[0 .74 1], ...
                                            'LineWidth',2,'LineStyle','--');
 plot(G.cells.centroids(:,1),states{end}.u,'color',[0 0 0],'LineWidth', ...
                                                        2,'LineStyle','--');
-line([10 10], [0 fluid.umax],'Color','red','LineStyle',':','LineWidth',2);
-line([15 15], [0 fluid.umax],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [fluid.umax fluid.umax],'Color','red','LineStyle',':', ...
+line([10 10], [0 fluid.Cu],'Color','red','LineStyle',':','LineWidth',2);
+line([15 15], [0 fluid.Cu],'Color','red','LineStyle',':','LineWidth',2);
+line([10 15], [fluid.Cu fluid.Cu],'Color','red','LineStyle',':', ...
                                                             'LineWidth',2);
 line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
 hold off
 xlim([0 L]);
-ylim([0 fluid.umax]);
+ylim([0 fluid.Cu]);
 xlabel({'x [m]';'(c)'},'FontSize',9,'Interpreter','latex');        
 ylabel('$c_u$ [kg/m$^3$]','FontSize',9,'Interpreter','latex');
 grid on
 title('Urea','FontSize',9,'FontName','Arial','Interpreter','latex');
 set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick', ...
-                                                        (0:60:fluid.umax));
+                                                          (0:60:fluid.Cu));
 n4=subplot(3,3,7);
 hold on
 plot(G.cells.centroids(:,1),states{M(1,1)-1}.b,'color',[0 .8 0], ...

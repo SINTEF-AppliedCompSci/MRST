@@ -86,18 +86,14 @@ fluid.crit = .1;             % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
 fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
+fluid.Cm = 0.01;             % Injected microbial concentration, kg/m^3
+fluid.Co = 0.04;             % Injected oxygen concentration, kg/m^3
+fluid.Cu = 60;               % Injected urea concentration, kg/m^3
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
         .^fluid.eta+fluid.kmin).*K0./(K0+fluid.kmin).*(poro>fluid.crit)+...
                                             fluid.kmin.*(poro<=fluid.crit);
-
-% Maximum values (to ease the convergence of the solution)
-fluid.omax = .04;                 % Maximum injected oxygen concentration
-fluid.umax = 60;                  % Maximum injected urea concentration
-fluid.mmax = 105;                 % Maximum value of biomass concentration
-fluid.bmax = porosity-fluid.ptol; % Maximum biofilm volume fraction
-fluid.cmax = porosity-fluid.ptol; % Maximum calcite volume fraction
 
 % The two following lines are not really used in these simulations since
 % the current MICP implementation only considers single-phase flow (it is
@@ -113,7 +109,6 @@ fluid.rhoOS = fluid.rhoWS;
 
 % Create Well
 Q = 1.2e-3;   % Injection rate, m^3/s
-Cm = 0.01;    % Injected microbial concentration, kg/m^3
 r = 0.15;     % Well radius, m
 cellsW =  G.cells.indexMap;
 cellsW = cellsW(c(:,1).^2 + c(:,2).^2<(hmin/2)^2);
@@ -123,7 +118,7 @@ W = addWell([], G, rock, cellsW, 'Type', 'rate', 'Comp_i', [1,0], ...
 % Add the fields to the wells for the additional injected components
 W.o = 0;
 W.u = 0;
-W.m = Cm;   % Microbes are injected since the beggining
+W.m = fluid.Cm;   % Microbes are injected since the beggining
 
 % The injection well is not on the boundary
 G.injectionwellonboundary = 0;
@@ -154,14 +149,14 @@ M(2,1) = 40*hour/dt;
 M(2,2) = eps;
 M(3,1) = 140*hour/dt;
 M(3,2) = Q;
-M(3,3) = fluid.omax;
+M(3,3) = fluid.Co;
 M(4,1) = 160*hour/dt;
 M(4,2) = Q;
 M(5,1) = 180*hour/dt;
 M(5,2) = eps;
 M(6,1) = 230*hour/dt;
 M(6,2) = Q;
-M(6,4) = fluid.umax;
+M(6,4) = fluid.Cu;
 M(7,1) = 250*hour/dt;
 M(7,2) = Q;
 M(8,1) = 270*hour/dt;
