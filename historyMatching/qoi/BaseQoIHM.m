@@ -258,11 +258,32 @@ classdef BaseQoIHM
                 end
             end    
         end
-            
+    
+        function n = norm(qoi, u)
+            % Compute norm n of the quantity of interest u.
+            % 
+            % SYNOPSIS
+            %   n = qoi.norm(u)
+            %
+            if isstruct(u)
+                % We got a full QoI struct, compute norm for each well and
+                % each field by calling qoi.norm for each of them
+                n = u;
+                for i = 1:numel(u)
+                    for fn = qoi.names
+                        n(i).(fn{1}) = qoi.norm(u(i).(fn{1}));
+                    end
+                end
+                return;
+            else
+                n = sqrt(sum(u.*u));
+            end
+        end
         
         
         
     end
+    
 end
     
 %{
