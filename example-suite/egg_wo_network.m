@@ -140,27 +140,35 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     
     %% Create data-driven graph of well connections
-    gpsnet = WellPairNetwork(fullProblem.SimulatorSetup.model, ...
-                         fullProblem.SimulatorSetup.schedule, ...
-                         fullStates, ...
-                         fullProblem.SimulatorSetup.state0, ...
-                         fullWellSols);
-    gpsnet = gpsnet.filter_wps(1*stb/day);
-    
-    if options.plotNetwork
-        figure;
-        gpsnet.plotWellPairConnections();
+    well_nodes = fullExample.schedule.control.W;
+    for i = 1:numel(well_nodes) % TODO maybe this part should be done more systematically.
+        well_nodes(i).cells = well_nodes(i).cells(1);
     end
     
+    % Create a network derived by flow diagnostics postprocessor
+    gpsnet =  Network(well_nodes, fullExample.model.G,...
+                      'type', 'fd_postprocessor',...
+                      'problem', fullProblem,...
+                      'flow_filter', 1*stb/day,...
+                      'state_number', 40);
+
     % Initializing parameters
-    for i =  1:numel(gpsnet.wps)
-        pv(i,1) = gpsnet.wps{i}.volume;
-        TT(i,1) = gpsnet.wps{i}.Tr;
+    for i =  1:size(gpsnet.network.Edges, 1)
+        pv(i,1) = gpsnet.network.Edges.PoreVolume(i);
+        TT(i,1) = gpsnet.network.Edges.Transmissibility(i);
     end
+
     
     %% Creating data driven model
-    L = 435;
-    G = cartGrid([options.cellsPerConnection, 1, numedges(gpsnet.Graph)], [L, L/5 ,L/5]*meter^3);
+    totalReservoirVolume = sum(fullProblem.SimulatorSetup.model.operators.pv./fullProblem.SimulatorSetup.model.rock.poro);
+    
+    % Find number of well-pair connections
+    numConnections = size(gpsnet.network.Edges, 1);
+    
+    % Create 2D grid of 1D connections
+    length = (totalReservoirVolume*25)^(1/3);
+    G = cartGrid([options.cellsPerConnection, 1, numConnections], ...
+                 [length, length/5, length/5]*meter^3);
     G = computeGeometry(G);
 
 
@@ -173,9 +181,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     model.OutputStateFunctions = {};
 
 
-    [model, W, connectionIndices] = createDDmodel_1(model, 10, gpsnet.Graph, ...
-        fullProblem.SimulatorSetup.schedule.control.W);
-
+    evalc("obj = NetworkModel(model, options.cellsPerConnection, gpsnet.network,fullExample.schedule.control.W)");
+    model = obj.model;
+    W     = obj.W;
+    
+    connectionIndices.faces = obj.Graph.Edges.Face_Indices;
+    connectionIndices.cells = obj.Graph.Edges.Cell_Indices;
+    
     %
     ts = fullProblem.SimulatorSetup.schedule.step.val;
 

@@ -9,7 +9,7 @@
 % having homogeneous operator properties throughout the connection.
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble dd-models diagnostics
+    example-suite incomp ensemble network-models diagnostics
 
 mrstVerbose off
 
@@ -47,7 +47,7 @@ rerunTrueProblemFromScratch = true;
 overwriteObservation = true;
 
 if rerunTrueProblemFromScratch
-    clearPackedSimulatorOutput(trueProblem);
+    clearPackedSimulatorOutput(trueProblem, 'prompt', false);
 end
 simulatePackedProblem(trueProblem);
 if plotExample

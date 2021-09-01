@@ -128,12 +128,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     
     %% Create data-driven graph of well connections
-    well_nodes =fullExample.schedule.control.W;
+    well_nodes = fullExample.schedule.control.W;
     for i = 1:numel(well_nodes) % TODO maybe this part should be done more systematically.
         well_nodes(i).cells = well_nodes(i).cells(1);
     end
     
-    gpsnet =  Network(well_nodes,fullExample.model.G,...
+    gpsnet =  Network(well_nodes, fullExample.model.G,...
                                  'type','injectors_to_producers',...
                                  'injectors',[1:2],...
                                  'producers',[3:4]); 

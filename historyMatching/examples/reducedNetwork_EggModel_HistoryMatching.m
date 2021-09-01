@@ -1,7 +1,7 @@
 %% History matching of reduced network model of the Egg model
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble dd-models diagnostics
+    example-suite incomp ensemble network-models diagnostics
 
 mrstVerbose off
 
@@ -17,7 +17,7 @@ trueProblemName = 'egg_wo';
 baseProblemOptions = {'realization', egg_realization, ...
                       'fullSchedule', false};
 
-ensembleSize = 80;
+ensembleSize = 100;
 %ensembleSize = 160;
 
 %% Define where to store truth and ensemble simulations
@@ -42,7 +42,7 @@ trueExample = MRSTExample(baseExample.options.fullExampleName);
 trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
 
 plotExample = false;
-rerunTrueProblemFromScratch = true;
+rerunTrueProblemFromScratch = false;
 overwriteObservation = true;
 
 if rerunTrueProblemFromScratch
@@ -89,7 +89,7 @@ if numel(observationResultHandler.getValidIds) < 1 || overwriteObservation
         perturbedObservations(w) = trueObservations(w);
         for f = 1:numel(trueQoI.names)
             trueVals = trueObservations(w).(trueQoI.names{f});
-            perturbedObservations(w).(trueQoI.names{f}) = trueVals + randn(size(trueVals))*obsStdDev;
+            perturbedObservations(w).(trueQoI.names{f}) = trueVals; %  + randn(size(trueVals))*obsStdDev;
         end
     end
     observationResultHandler{1} = {perturbedObservations};
