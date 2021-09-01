@@ -148,7 +148,7 @@ classdef Network
                     prod = any(Well==opt.producers,2);
                     A(inj,prod) = 1;
                     A(prod,inj) = 1;
-                    figure, spy(A);
+                    %figure, spy(A);
                 case {'fd_preprocessor','fd_postprocessor'}
                     % Compute flow diagnostics for the chosen state
                     require diagnostics
