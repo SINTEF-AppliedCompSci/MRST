@@ -114,11 +114,17 @@ classdef MLMCSimulator < MCSimulator
         end
         
         %-----------------------------------------------------------------%
+        function resetStatistics(mlmc)
+            resetStatistics@MCSimulator(mlmc);
+            cellfun(@(level) level.resetStatistics(), mlmc.levels);
+        end
+        
+        %-----------------------------------------------------------------%
         function [n, n0] = computeNumSamples(mlmc, tolerance, opt)
             stat = mlmc.getLevelStatistics();
             n0 = tolerance.^(-2).*sum(sqrt(stat.variance.*stat.cost)) ...
                                     .*sqrt(stat.variance./stat.cost);
-            n0 = ceil(n0) - stat.numSamples;
+            n0 = max(ceil(n0) - stat.numSamples, 0);
             n  = min(n0, opt.maxSamples - mlmc.numSamples);
             n  = max(n , opt.minSamples - mlmc.numSamples);
             n  = min(n , opt.batchSize);

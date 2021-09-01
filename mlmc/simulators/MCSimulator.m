@@ -26,7 +26,7 @@ classdef MCSimulator < MRSTEnsemble
                          'maxSamples'  , 10  , ...
                          'minSamples'  , 2   , ...
                          'tolerance'   , -inf, ...
-                         'relTolerance', 1e-2, ...
+                         'relTolerance', -inf, ...
                          'prompt'      , true, ...
                          'plotProgress', true);
             opt = merge_options(opt, varargin{:});
@@ -144,6 +144,7 @@ classdef MCSimulator < MRSTEnsemble
                 mc.resetStatistics();
             end
             range = range(~ismember(range, mc.included));
+            range = range(mc.getSimulationStatus(range)>0);
             ids = inf;
             while ~all(ismember(range, ids))
                 ids = mc.qoi.ResultHandler.getValidIds();
@@ -172,7 +173,7 @@ classdef MCSimulator < MRSTEnsemble
             if mc.numSamples > 1
                 mc.rmse = sqrt(mc.variance/mc.numSamples);
             end
-            mc.included = [mc.included, range];
+            mc.included = [mc.included, reshape(range, 1, [])];
             % Update history
             mc.history{end+1} = struct('numSamples', mc.numSamples, ...
                                        'estimate'  , mc.estimate  , ...
@@ -203,7 +204,10 @@ classdef MCSimulator < MRSTEnsemble
         end
         
         %-----------------------------------------------------------------%
-        function history = getHistory(mc)
+        function history = getHistory(mc, batchSize)
+            if nargin > 1
+                mc.assembleHistory(batchSize);
+            end
             get = @(fn) reshape(cellfun(@(h) h.(fn), mc.history), [], 1);
             history = struct();
             history.numSamples = get('numSamples');
@@ -211,6 +215,19 @@ classdef MCSimulator < MRSTEnsemble
             history.variance   = get('variance');
             history.cost       = get('cost');
             history.rmse       = get('rmse');
+        end
+        
+         %-----------------------------------------------------------------% 
+        function assembleHistory(mc, batchSize)
+            mc.resetStatistics();
+            stat = {nan};
+            i = 0;
+            while ~all(cellfun(@isempty, stat))
+                range = (1:batchSize) + i*batchSize;
+                stat = mc.updateStatistics(range);
+                if ~iscell(stat), stat = {stat}; end
+                i = i + 1;
+            end
         end
         
         %-----------------------------------------------------------------%

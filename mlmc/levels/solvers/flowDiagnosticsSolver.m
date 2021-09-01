@@ -8,9 +8,11 @@ function flowDiagnosticsSolver(problem, varargin)
         opt.dt = sum(problem.SimulatorSetup.schedule.step.val)*0.05;
     end
     % Get pressure model
-    model = PressureModel(problem.SimulatorSetup.model);
+    model  = PressureModel(problem.SimulatorSetup.model);
+    pmodel = model.parentModel.validateModel();
+    ndof   = pmodel.G.cells.num*pmodel.getNumberOfComponents();
     % Set solver
-    if isempty(opt.LinearSolver)
+    if isempty(opt.LinearSolver) && ndof > 1e4
         opt.LinearSolver = AMGCLSolverAD('tolerance', 1e-4);
     end
     % Solve a single pressure step
