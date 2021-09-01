@@ -336,7 +336,7 @@ classdef WellQoI < BaseQoI
                 u_tmp = [];
                 for w = 1:numel(qoi.wellNames)
                     for f = 1:numel(qoi.names)
-                        u_tmp = cat(1, u_tmp, u(w).(qoi.names{f}));
+                        u_tmp = cat(1, u_tmp, u(w).(qoi.names{f})(:));
                     end
                 end
                 u = u_tmp;
