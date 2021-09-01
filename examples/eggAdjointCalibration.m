@@ -14,7 +14,7 @@
 %
 % This example was first introduced in MRST 2021b.
 mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
-    ad-props incomp optimization network-models
+    ad-props incomp optimization network-models example-suite
 
 %% Setup 3D reference model
 % The Egg data set consists of a base case and an ensemble of one hundred
@@ -99,8 +99,9 @@ figure; ntwrk.plotNetwork()
 % matches the bulk volume of the reservoir. The constant petrophysical
 % properties are dummy values primarily used to compute an initial guess
 % for matching parameters that have not be set by the network type.
+cellsPerPath = 10;
 L    = nthroot(sum(modelRef.operators.pv./modelRef.rock.poro)*25,3);
-G    = cartGrid([10, 1, numedges(ntwrk.network)], [L, L/5 ,L/5]*meter^3);
+G    = cartGrid([cellsPerPath, 1, numedges(ntwrk.network)], [L, L/5 ,L/5]*meter^3);
 G    = computeGeometry(G);
 rock = makeRock(G, 200*milli*darcy, 0.1);
 
@@ -111,7 +112,6 @@ model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
 model.OutputStateFunctions = {};
 
 % Then we map the Network into the MRST model
-cellsPerPath = 10;
 ntwrkModel = NetworkModel(model, cellsPerPath, ntwrk.network, Wref);
 model      = ntwrkModel.model;
 model      = model.validateModel();
@@ -177,8 +177,8 @@ mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
 values    = applyFunction(@(p)p.getParameterValue(trainProb), parameters);
 values{1} =  7*values{1};
 if any(strcmp(networkType,{'fd_preprocessor','fd_postprocessor'}))
-     values{2} =  pv/cellsPerPath;
-     values{3} =  TT;
+    values{2} = ntwrk.network.Edges.PoreVolume/cellsPerPath;
+    values{3} = ntwrk.network.Edges.Transmissibility;
 end
 for k = numel(values):-1:1    
     u{k} = parameters{k}.scale(values{k});
