@@ -14,7 +14,7 @@
 %
 % This example was first introduced in MRST 2021b.
 mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
-    ad-props incomp optimization network-models
+    ad-props incomp optimization network-models example-suite
 
 %% Setup 3D reference model
 % The Egg data set consists of a base case and an ensemble of one hundred
