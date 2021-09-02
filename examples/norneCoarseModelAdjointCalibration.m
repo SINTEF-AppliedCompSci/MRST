@@ -18,17 +18,8 @@ mrstModule add ad-core ad-blackoil deckformat ...
 % this simulation case has simpler fluid description (an oil-water model)
 % and an idealized field development plan consisting of a simple pattern of
 % eleven vertical wells that run under constant bhp or rate controls.
-
 example = MRSTExample('norne_simple_wo');
-
-% Modify the setup to use shorter time steps
-problem  = example.getPackedSimulationProblem();
-schedule = example.schedule;
-ix  = repmat(1:numel(schedule.step.val), [4 1]);
-schedule.step.val     = schedule.step.val(ix(:))/4;
-schedule.step.control = schedule.step.control(ix(:));
-problem.SimulatorSetup.schedule = schedule;
-example.schedule = schedule;
+problem = example.getPackedSimulationProblem();
 
 % Simulate
 simulatePackedProblem(problem);
@@ -135,7 +126,7 @@ pvec = getScaledParameterVector(trainProbl, parameters);
 objh = @(p) evaluateMatch(p,mismatchFn,trainProbl,parameters,statesRef);
 
 [v, p_opt, history] = unitBoxBFGS(pvec, objh, 'objChangeTol', 1e-8, ...
-    'maxIt',30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
+    'maxIt', 30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Evaluate mismatch over the full simulation schedule
 prob = trainProbl;
