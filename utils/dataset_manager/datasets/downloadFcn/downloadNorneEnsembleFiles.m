@@ -56,9 +56,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       ok = download(repo, rev, idir) && available();
       
       scriptdir = fullfile(mrstPath('example-suite'), 'setupFunctions','norne','external');
+
       if ~exist(scriptdir,'dir')
-          mkdir(scriptdir);
-      end      
+          [stat, msg, id] = mkdir(scriptdir);
+          if stat ~= 1
+              error(id, 'Unable to create setup function script directory: ''%s''', msg);
+          end
+      end    
+      
       copyfile(fullfile(idir,'NorneGeostat.m'), scriptdir);
       copyfile(fullfile(idir,'FastGaussian.m'), scriptdir);
    end
