@@ -19,17 +19,8 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics...
 % this simulation case has simpler fluid description (an oil-water model)
 % and an idealized field development plan consisting of a simple pattern of
 % eleven vertical wells that run under constant bhp or rate controls.
-
 example = MRSTExample('norne_simple_wo');
-
-% Modify the setup to use shorter time steps
-problem  = example.getPackedSimulationProblem();
-schedule = example.schedule;
-ix  = repmat(1:numel(schedule.step.val), [4 1]);
-schedule.step.val     = schedule.step.val(ix(:))/4;
-schedule.step.control = schedule.step.control(ix(:));
-problem.SimulatorSetup.schedule = schedule;
-example.schedule = schedule;
+problem = example.getPackedSimulationProblem();
 
 % Simulate
 simulatePackedProblem(problem);
@@ -195,8 +186,8 @@ mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
 values = applyFunction(@(p)p.getParameterValue(trainProb), parameters);
 values{2} =  0.5*values{2};
 if any(strcmp(networkType,{'fd_preprocessor','fd_postprocessor'}))
-    values{1} =  pv/cellsPerPath;
-    values{3} =  TT;
+    values{1} =  ntwrk.network.Edges.PoreVolume/cellsPerPath;
+    values{3} =  ntwrk.network.Edges.Transmissibility;
 end
 for k = numel(values):-1:1    
     u{k} = parameters{k}.scale(values{k});
@@ -222,7 +213,7 @@ legend('reference model','initial DD model')
 objh = @(p)evaluateMatch(p,mismatchFn,trainProb,parameters,statesRef);
 
 [v, pvecOpt, history] = unitBoxBFGS(pvec0, objh,'objChangeTol',  1e-8, ...
-    'maxIt',30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
+    'maxIt', 30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Evaluate mismatch over the full simulation schedule
 prob = trainProb;
