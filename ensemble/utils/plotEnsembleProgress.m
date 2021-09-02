@@ -22,10 +22,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('width' , 800, ...
                  'height', 50 , ...
-                 'onlyActive', true);
+                 'onlyActive', true, ...
+                 'title', '');
     opt = merge_options(opt, varargin{:});
     if nargin < 3 || isempty(h)
-        name = sprintf('Ensemble simulation: %s', ensemble.setup.name);
+        figureName = 'Ensemble simulation';
+        if ~isempty(opt.title)
+            figureName = opt.title;
+        end
+        name = sprintf('%s: %s', figureName, ensemble.setup.name);
         h = figure('Name', name);
     end
     clf(h);
@@ -48,4 +53,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     h.Position(3) = opt.width;
     h.Position(4) = opt.height*n;
+    title(opt.title);
 end

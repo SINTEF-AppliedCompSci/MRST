@@ -75,8 +75,11 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         
         
         function simulateEnsembleMembers(ensemble, varargin)
+            opt = struct('plotIntermediateQoI', false);
+            [opt, extra] = merge_options(opt, varargin{:});
            
-            ensemble.simulateEnsembleMembers@MRSTEnsemble(varargin{:});
+            ensemble.simulateEnsembleMembers@MRSTEnsemble( ...
+                'plotIntermediateQoI', opt.plotIntermediateQoI, varargin{:});
             
             if ensemble.storeHistoryMatching
                 samples = ensemble.samples;
@@ -91,7 +94,8 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             
             for i = 1:ensemble.esmdaIterations
                 if i > 1
-                    ensemble.simulateEnsembleMembers();
+                    progressTitle = sprintf('Simulating intermediate ensemble %d out of %d', i-1, ensemble.esmdaIterations-1);
+                    ensemble.simulateEnsembleMembers('progressTitle', progressTitle);
                 end
                 
                 if ensemble.verbose, fprintf('Starting history matching iteration (%d, %d)\n', ensemble.historyMatchingIteration, ensemble.historyMatchingSubIteration); end

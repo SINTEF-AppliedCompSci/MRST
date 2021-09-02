@@ -211,17 +211,20 @@ classdef MRSTEnsemble < BaseEnsemble
             % Utility function for showing the progress of simulating a
             % range of ensemble members. Only available for
             % 'simulationStrategy' = 'background'.
-                  
+            
+            opt = struct('progressTitle', 'Simulating ensemble');
+            [opt, extra] = merge_options(opt, varargin{:});
             n = 0;
             while true
                 progress = ensemble.getEnsembleMemberProgress(range);
                 pause(0.05);
                 if plotProgress
                     ensemble.figures.progress = ...
-                        plotEnsembleProgress(ensemble, progress, range, ensemble.figures.progress);
+                        plotEnsembleProgress(ensemble, progress, range, ensemble.figures.progress, ...
+                                             'title', opt.progressTitle);
                     drawnow();
                     if ensemble.qoi.ResultHandler.numelData > n && plotIntermediateQoI
-                        ensemble.figures.qoi = ensemble.qoi.plotEnsembleQoI(ensemble, ensemble.figures.qoi, varargin{:});
+                        ensemble.figures.qoi = ensemble.qoi.plotEnsembleQoI(ensemble, ensemble.figures.qoi, extra{:});
                         n = ensemble.qoi.ResultHandler.numelData;
                         drawnow();
                     end
