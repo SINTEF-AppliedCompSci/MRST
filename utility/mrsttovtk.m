@@ -1,4 +1,4 @@
-function mrsttovtk(G,states,name,formatn)
+function mrsttovtk(G, states, name, formatn)
 %  Write one or more data sets into the files name.pvd and name-n.vtu 
 %  for visualization in ParaView.
 %

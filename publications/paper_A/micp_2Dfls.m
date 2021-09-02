@@ -28,7 +28,7 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 % Required modules
-mrstModule add deckformat ad-core ad-blackoil ad-micp ad-props mrst-gui
+mrstModule add ad-blackoil ad-core ad-micp
 
 % Grid
 L = 500;        % Reservoir length, m
@@ -130,9 +130,6 @@ fluid.crit = 0.1;            % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
 fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation 
-fluid.Cm = 0.01;             % Injected microbial concentration, kg/m^3
-fluid.Co = 0.04;             % Injected oxygen concentration, kg/m^3
-fluid.Cu = 300;              % Injected urea concentration, kg/m^3
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
@@ -156,16 +153,13 @@ for i=1:2
     W(i).u = 0;
     W(i).m = 0;
 end
-W(1).m = fluid.Cm;
+W(1).m = 0.01;   % Injected microbial concentration kg/m^3
 G.injectionwellonboundary = 1;
 G.cellsinjectionwell = [cellsWu cellsWb];
 
 % Gravity
 gravity on
 gravity y
-
-% Create model
-model = MICPModel(G, rock, fluid);
 
 % Boundary condition
 f = boundaryFaces(G);
@@ -187,42 +181,42 @@ timesteps = repmat(dt, nt, 1);
 
 % Well different rates and times
 N = 17; % Number of injection changes
-M = zeros(N,5); % Matrix where entries per row are: time, rate, o, u, m.
+M = zeros(N,5); % Matrix where entries per row are: time, rate, m, o, u.
 M(1,1) = 15*hour/dt; 
 M(1,2) = Q;
 M(2,1) = 26*hour/dt; 
 M(2,2) = eps; 
 M(3,1) = 100*hour/dt; 
 M(3,2) = Q;
-M(3,3) = fluid.Co;
+M(3,4) = 0.04;
 M(4,1) = 130*hour/dt;
 M(4,2) = Q;
 M(5,1) = 135*hour/dt; 
 M(5,2) = eps; 
 M(6,1) = 160*hour/dt; 
 M(6,2) = Q;
-M(6,4) = fluid.Cu;
+M(6,5) = 300;
 M(7,1) = 200*hour/dt; 
 M(7,2) = Q;
 M(8,1) = 210*hour/dt; 
 M(8,2) = eps;
 M(9,1) = 600*hour/dt;
 M(9,2) = Q;
-M(9,3) = fluid.Co;
+M(9,4) = 0.04;
 M(10,1) = 630*hour/dt; 
 M(10,2) = Q;
 M(11,1) = 650*hour/dt; 
 M(11,2) = eps; 
 M(12,1) = 670*hour/dt; 
 M(12,2) = Q;
-M(12,4) = fluid.Cu;
+M(12,5) = 300;
 M(13,1) = 690*hour/dt;
 M(13,2) = Q;
 M(14,1) = 710*hour/dt; 
 M(14,2) = eps; 
 M(15,1) = 800*hour/dt; 
 M(15,2) = Q;
-M(15,4) = fluid.Cu;
+M(15,5) = 300;
 M(16,1) = 820*hour/dt; 
 M(16,2) = Q;
 M(17,1) = 840*hour/dt; 
@@ -234,11 +228,18 @@ for i=1:N
     schedule.control(i+1)=schedule.control(i);
     schedule.control(i+1).W(1).val=Whu*M(i,2);
     schedule.control(i+1).W(2).val=Whb*M(i,2);
-    schedule.control(i+1).W(1).o=M(i,3);
-    schedule.control(i+1).W(1).u=M(i,4);
-    schedule.control(i+1).W(1).m=M(i,5);
+    schedule.control(i+1).W(1).m=M(i,3);
+    schedule.control(i+1).W(1).o=M(i,4);
+    schedule.control(i+1).W(1).u=M(i,5);
     schedule.step.control(M(i,1):end)=i+1;
 end    
+
+% Maximum injected oxygen and urea concentrations.
+fluid.Comax = max(M(:, 4));             
+fluid.Cumax = max(M(:, 5));
+
+% Create model
+model = MICPModel(G, rock, fluid);
 
 % Initial condition
 state0   = initState(G, W, c(:,2) * fluid.rhoWS * norm(gravity), [1, 0]);
@@ -271,7 +272,7 @@ timesteps = repmat(dt, ntco2, 1);
 
 % Create CO2 Well
 QCO2 = (1600/day)/L; % Injection rate, m^3/day
-cellsW =  1:1:G.cells.num;
+cellsW =  1:G.cells.num;
 cellsW = cellsW(c(:,1)<min(c(:,1))+.1 & c(:,2)>130);
 W = addWell([], G, rock, cellsW, 'Type', 'rate', 'Comp_i', ...
                         [eps,1-eps], 'Val', QCO2, 'Radius', r, 'dir', 'y');
@@ -322,7 +323,7 @@ else
 end
 
 % Compute leakage rate
-cellsfa =  1:1:G.faces.num;
+cellsfa =  1:G.faces.num;
 cellsfac = cellsfa(G.faces.centroids(:,2)<80.6 & ...
                G.faces.centroids(:,2)>80.3 & abs(G.faces.normals(:,2))>.1);
 for i=1:ntco2

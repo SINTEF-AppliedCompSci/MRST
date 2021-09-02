@@ -33,43 +33,43 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
     
     G = model.G; 
     df = get(0, 'defaultFigurePosition');
-    resfig = figure('position', [df(1:2), 800, 1200]);
-    c=flipud(jet);
-    sz = size(c,1);
-    n1=subplot(3,2,1);
+    resfig = figure('position', [df(1 : 2), 800, 1200]);
+    c = flipud(jet);
+    sz = size(c, 1);
+    n1 = subplot(3, 2, 1);
     sm = plotCellData(G, state0.m, 'edgeColor', 'none');
-    title('Microbes [kg/m$^3$]','Interpreter','latex');
-    colorbar; view(az,el);
-    colormap(n1,c((round(70*sz/256)):1:(round(120*sz/256)),:));
-    n2=subplot(3,2,2);
+    title('Microbes [kg/m$^3$]', 'Interpreter', 'latex');
+    colorbar; view(az, el);
+    colormap(n1, c((round( 70 * sz / 256)) : (round(120 * sz / 256)), :));
+    n2 = subplot(3, 2, 2);
     so = plotCellData(G, state0.o, 'edgeColor', 'none');
-    title('Oxygen [kg/m$^3$]','Interpreter','latex');
-    colorbar; view(az,el);
-    colormap(n2,c((round(70*sz/256)):1:(round(180*sz/256)),:));
-    caxis([0 model.fluid.Co]);
-    n3=subplot(3,2,3);
+    title('Oxygen [kg/m$^3$]', 'Interpreter', 'latex');
+    colorbar; view(az, el);
+    colormap(n2, c((round( 70 * sz / 256)) : (round(180 * sz / 256)), :));
+    caxis([0 model.fluid.Comax]);
+    n3 = subplot(3, 2, 3);
     sb = plotCellData(G, state0.b, 'edgeColor', 'none');
-    title('Biofilm [-]','Interpreter','latex');
-    colorbar; view(az,el);
-    colormap(n3,c((round(70*sz/256)):1:(round(120*sz/256)),:));
-    n4=subplot(3,2,4);
+    title('Biofilm [-]', 'Interpreter', 'latex');
+    colorbar; view(az, el);
+    colormap(n3, c((round( 70 * sz / 256)) : (round(120 * sz / 256)), :));
+    n4 = subplot(3, 2, 4);
     su = plotCellData(G, state0.u, 'edgeColor', 'none');
-    title('Urea [kg/m$^3$]','Interpreter','latex');
-    colorbar; view(az,el);
-    colormap(n4,c((round(70*sz/256)):1:(round(100*sz/256)),:));
-    caxis([0 model.fluid.Cu]);
-    n5=subplot(3,2,5); 
+    title('Urea [kg/m$^3$]', 'Interpreter', 'latex');
+    colorbar; view(az, el);
+    colormap(n4, c((round(70 * sz / 256)) : (round(100 * sz / 256)), :));
+    caxis([0 model.fluid.Cumax]);
+    n5 = subplot(3, 2, 5); 
     sc = plotCellData(G, state0.c, 'edgeColor', 'none');
-    title('Calcite [-]','Interpreter','latex');
-    colorbar; view(az,el);  
-    colormap(n5,c((round(70*sz/256)):1:end,:));
+    title('Calcite [-]', 'Interpreter', 'latex');
+    colorbar; view(az, el);  
+    colormap(n5, c((round(70 * sz / 256)) : end, :));
     caxis([0 model.fluid.crit]);
-    n6=subplot(3,2,6);
-    sk = plotCellData(G, 100*(1-model.fluid.K(model.rock.poro-state0.b- ...
-                         state0.c)./model.rock.perm), 'edgeColor', 'none');
-    title('Permeability [\%]','Interpreter','latex');
-    colorbar; view(az,el);
-    colormap(n6,c((round(70*sz/256)):1:end,:));
+    n6 = subplot(3, 2, 6);
+    sk = plotCellData(G, 100 * (1 - model.fluid.K(model.rock.poro - ...
+            state0.b - state0.c) ./ model.rock.perm), 'edgeColor', 'none');
+    title('Permeability [\%]', 'Interpreter', 'latex');
+    colorbar; view(az, el);
+    colormap(n6, c((round(70 * sz / 256)) : end, :));
     caxis([0 100]);
     
     fn = @(model, states, reports, solver, schedule, simtime) ... 
@@ -77,9 +77,9 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
                                   simtime, resfig, sm, so, sb, su, sc, sk);
 end
 
-function [model, states, reports, solver, ok] = afterStepFunction(model,...
-    states, reports, solver, schedule, simtime, resfig, sm, so, sb, su, ...
-                                                                    sc, sk)
+function [model, states, reports, solver, ok] = afterStepFunction( ...
+ model, states, reports, solver, schedule, simtime, resfig, sm, so, sb, ...
+                                                                su, sc, sk)
     computed = cellfun(@(x) ~isempty(x), states);
     ctrl_computed = cellfun(@(x) ~isempty(x), reports);
     
@@ -91,13 +91,14 @@ function [model, states, reports, solver, ok] = afterStepFunction(model,...
     [~, bc] = boundaryFaces(model.G);
     
     set(0, 'CurrentFigure', resfig);
-    sm.CData = st{current}.m(bc,1);
-    so.CData = st{current}.o(bc,1);
-    sb.CData = st{current}.b(bc,1);
-    su.CData = st{current}.u(bc,1);
-    sc.CData = st{current}.c(bc,1);
-    st{current}.k=100*(1-model.fluid.K(model.rock.poro-st{current}.b-st{current}.c)./model.rock.perm);
-    sk.CData = st{current}.k(bc,1);
+    sm.CData = st{current}.m(bc, 1);
+    so.CData = st{current}.o(bc, 1);
+    sb.CData = st{current}.b(bc, 1);
+    su.CData = st{current}.u(bc, 1);
+    sc.CData = st{current}.c(bc, 1);
+    st{current}.k = 100 * (1 - model.fluid.K(model.rock.poro - ...
+                        st{current}.b - st{current}.c) ./ model.rock.perm);
+    sk.CData = st{current}.k(bc, 1);
     
     ok = true;
     if 1

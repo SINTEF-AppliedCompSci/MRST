@@ -1,11 +1,11 @@
 classdef MICPModel < TwoPhaseOilWaterModel
-% Function to implement the MICP model.
+% Script to implement the MICP model.
 % 
-% This function is modified from a file in The MATLAB Reservoir Simulation
+% This script is modified from a file in The MATLAB Reservoir Simulation
 % Toolbox (MRST), see
 %   mrst/modules/ad-eor/models/OilWaterPolymerModel.m
 %
-% We refer to that function for a complete commented version of the file. 
+% We refer to that script for a complete commented version of the file. 
 
 %{ 
 Partial copyright 2009-2021, SINTEF Digital, Mathematics & Cybernetics.
@@ -28,13 +28,13 @@ You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
     properties
-        % Substrate present
+        % Microorganism present
+        microorganism
+        % Oxygen present
         oxygen
         % Urea present
         urea
-        % Microorganism present
-        microorganism
-        % Biofilm presebt
+        % Biofilm present
         biofilm
         % Calcite present
         calcite
@@ -43,10 +43,10 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
     methods
         function model = MICPModel(G, rock, fluid, varargin)
             model = model@TwoPhaseOilWaterModel(G, rock, fluid);
-            % This is the model parameters for MICP
+            % These are the model variables for MICP
+            model.microorganism = true;
             model.oxygen = true;
             model.urea = true;
-            model.microorganism = true;
             model.biofilm = true;
             model.calcite = true;
             model = merge_options(model, varargin{:});
@@ -61,10 +61,10 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
         function state = validateState(model, state)
             state = validateState@TwoPhaseOilWaterModel(model, state);
             % Components must be present
-            model.checkProperty(state, 'Oxygen', model.G.cells.num, 1);
-            model.checkProperty(state, 'Urea', model.G.cells.num, 1);
             model.checkProperty(state, 'Microorganism', ...
                                                      model.G.cells.num, 1);
+            model.checkProperty(state, 'Oxygen', model.G.cells.num, 1);
+            model.checkProperty(state, 'Urea', model.G.cells.num, 1);
             model.checkProperty(state, 'Biofilm', model.G.cells.num, 1);
             model.checkProperty(state, 'Calcite', model.G.cells.num, 1);
         end
@@ -73,28 +73,38 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
                 dx, drivingForces)
             % Store the variables from previous iteration temporarily to
             % use in convergence criteria
+            m_prev = model.getProp(state, 'microorganism');
             o_prev = model.getProp(state, 'oxygen');
             u_prev = model.getProp(state, 'urea');
-            m_prev = model.getProp(state, 'microorganism');
             b_prev = model.getProp(state, 'biofilm');
             c_prev = model.getProp(state, 'calcite');
 
             [state, report] = updateState@TwoPhaseOilWaterModel(model, ...
-               state, problem,  dx, drivingForces);
-            % Limit the variables to >= 0
+                                       state, problem,  dx, drivingForces);
+            % Limit the variables to [0, cmax]. For the microorganisms we 
+            % set this value equal to the maximum biomass density value
+            % we found in literature (105 kg/m^3). For the oxygen and urea
+            % we set this value to the maximum injected concentration. For
+            % the biofilm and calcite, we set this value equal to the
+            % porosity minus the tolerance for the clogging criteria. 
+            m = model.getProp(state, 'microorganism');
+            m = min(m, 105);
+            state = model.setProp(state, 'microorganism', max(m, 0) );
+            state.m_prev = m_prev;
             o = model.getProp(state, 'oxygen');
+            o = min(o, model.fluid.Comax);
             state = model.setProp(state, 'oxygen', max(o, 0) );
             state.o_prev = o_prev;
             u = model.getProp(state, 'urea');
+            u = min(u, model.fluid.Cumax);
             state = model.setProp(state, 'urea', max(u, 0) );
             state.u_prev = u_prev;
-            m = model.getProp(state, 'microorganism');
-            state = model.setProp(state, 'microorganism', max(m, 0) );
-            state.m_prev = m_prev;
             b = model.getProp(state, 'biofilm');
+            b = min(b, model.rock.poro - model.fluid.ptol);
             state = model.setProp(state, 'biofilm', max(b, 0) );
             state.b_prev = b_prev;
             c = model.getProp(state, 'calcite');
+            c = min(c, model.rock.poro - model.fluid.ptol);
             state = model.setProp(state, 'calcite', max(c, 0) );
             state.c_prev = c_prev;
         end
@@ -105,9 +115,9 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
             updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, ...
                                                  state, dt, drivingForces);
                     % Remove the temporary field used for convergence
+                    state = rmfield(state, 'm_prev');
                     state = rmfield(state, 'o_prev');
                     state = rmfield(state, 'u_prev');
-                    state = rmfield(state, 'm_prev');
                     state = rmfield(state, 'b_prev');
                     state = rmfield(state, 'c_prev');
         end
@@ -115,25 +125,25 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
         function [fn, index] = getVariableField(model, name, varargin)
             % Get the index/name mapping for the model
             switch(lower(name))
+                case {'microorganism'}
+                    m = model.getComponentNames();
+                    index = find(strcmpi(m, 'microorganism'));
+                    fn = 'm';
                 case {'oxygen'}
                     o = model.getComponentNames();
-                    index = find(strcmpi(o, 'oxygen'));
+                    index = find(strcmpi(o, 'oxygen')) - 1;
                     fn = 'o';
                 case {'urea'}
                     u = model.getComponentNames();
-                    index = find(strcmpi(u, 'urea'))-1;
+                    index = find(strcmpi(u, 'urea')) - 2;
                     fn = 'u';
-                case {'microorganism'}
-                    m = model.getComponentNames();
-                    index = find(strcmpi(m, 'microorganism'))-2;
-                    fn = 'm';
                 case {'biofilm'}
                     b = model.getComponentNames();
-                    index = find(strcmpi(b, 'biofilm'))-3;
+                    index = find(strcmpi(b, 'biofilm')) - 3;
                     fn = 'b';
                 case {'calcite'}
                     c = model.getComponentNames();
-                    index = find(strcmpi(c, 'calcite'))-4;
+                    index = find(strcmpi(c, 'calcite')) - 4;
                     fn = 'c';
                 otherwise
                     [fn, index] = ...
@@ -144,9 +154,9 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 
         function names = getComponentNames(model)
             names = getComponentNames@TwoPhaseOilWaterModel(model);
+            names{end+1} = 'microorganism';
             names{end+1} = 'oxygen';
             names{end+1} = 'urea';
-            names{end+1} = 'microorganism';
             names{end+1} = 'biofilm';
             names{end+1} = 'calcite';
         end
@@ -156,15 +166,15 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
             nNames = numel(names);
             scaling = cell(nNames, 1);
             handled = false(nNames, 1);
-            for iter = 1:nNames
+            for iter = 1 : nNames
                 name = lower(names{iter});
                 switch name
+                    case 'microorganism'
+                        s = 0;
                     case 'oxygen'
                         s = 0;
                     case 'urea'
                         s = 0; 
-                    case 'microorganism'
-                        s = 0;
                     case 'biofilm'
                         s = 0;
                     case 'calcite'
@@ -191,18 +201,18 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
             c = model.getProp(force, cname);
             cells = src.sourceCells;
             switch lower(cname)
-              case {'oxygen'}
-                qW = src.phaseMass{1}./model.fluid.rhoWS;
-                isInj = qW > 0;
-                qC = (isInj.*c + ~isInj.*component(cells)).*qW;
-              case {'urea'}
-                qW = src.phaseMass{1}./model.fluid.rhoWS;
-                isInj = qW > 0;
-                qC = (isInj.*c + ~isInj.*component(cells)).*qW;
               case {'microorganism'}
-                qW = src.phaseMass{1}./model.fluid.rhoWS;
+                qW = src.phaseMass{1} ./ model.fluid.rhoWS;
                 isInj = qW > 0;
-                qC = (isInj.*c + ~isInj.*component(cells)).*qW;
+                qC = (isInj .* c + ~isInj .* component(cells)) .* qW;  
+              case {'oxygen'}
+                qW = src.phaseMass{1} ./ model.fluid.rhoWS;
+                isInj = qW > 0;
+                qC = (isInj .* c + ~isInj .* component(cells)) .* qW;
+              case {'urea'}
+                qW = src.phaseMass{1} ./ model.fluid.rhoWS;
+                isInj = qW > 0;
+                qC = (isInj .* c + ~isInj .* component(cells)) .* qW;
               case {'biofilm'}
                 qC = 0;
               case {'calcite'}
@@ -224,55 +234,55 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
                                                             dt, iteration);
             f = model.fluid;
             wix = 1; 
-            cqWs = qMass{wix}./f.rhoWS; 
+            cqWs = qMass{wix} ./ f.rhoWS; 
             q_sw = q_s{wix};  
             isInj = (cqWs > 0);
             qWout = sum(cqWs(isInj));
             if (q_sw < 0) 
                 qWout = qWout - q_sw;
             end
-            concpolyCtrl = model.getProp(well.W, 'oxygen');
-            pix = strcmpi(model.getComponentNames(), 'oxygen');
-            concpolyRes = packed.components{pix};
-            qP = sum(-concpolyRes(~isInj).*cqWs(~isInj));
-            if (q_sw > 0) 
-                qP = qP + concpolyCtrl*q_sw;
-            end               
-            cqP   = concpolyRes.*cqWs;
-            if any(isInj)
-                cqP(isInj) = (qP./qWout).*cqWs(isInj);
-            end                               
-            compSrc{end+1} = cqP;
-            concpolyCtrl = model.getProp(well.W, 'urea');
-            pix = strcmpi(model.getComponentNames(), 'urea');
-            concpolyRes = packed.components{pix};
-            qP = sum(-concpolyRes(~isInj).*cqWs(~isInj));
-            if (q_sw > 0) 
-                qP = qP + concpolyCtrl*q_sw;
-            end               
-            cqP   = concpolyRes.*cqWs;
-            if any(isInj)
-                cqP(isInj) = (qP./qWout).*cqWs(isInj);
-            end                               
-            compSrc{end+1} = cqP;
-            concpolyCtrl = model.getProp(well.W, 'microorganism');
+            conccompCtrl = model.getProp(well.W, 'microorganism');
             pix = strcmpi(model.getComponentNames(), 'microorganism');
-            concpolyRes = packed.components{pix};
-            qP = sum(-concpolyRes(~isInj).*cqWs(~isInj));
+            conccompRes = packed.components{pix};
+            qC = sum(-conccompRes(~isInj) .* cqWs(~isInj));
             if (q_sw > 0) 
-                qP = qP + concpolyCtrl*q_sw;
+                qC = qC + conccompCtrl * q_sw;
             end               
-            cqP   = concpolyRes.*cqWs;
+            cqC   = conccompRes .* cqWs;
             if any(isInj)
-                cqP(isInj) = (qP./qWout).*cqWs(isInj);
+                cqC(isInj) = (qC ./ qWout) .* cqWs(isInj);
             end                               
-            compSrc{end+1} = cqP;
+            compSrc{end+1} = cqC;
+            conccompCtrl = model.getProp(well.W, 'oxygen');
+            pix = strcmpi(model.getComponentNames(), 'oxygen');
+            conccompRes = packed.components{pix};
+            qC = sum(-conccompRes(~isInj) .* cqWs(~isInj));
+            if (q_sw > 0) 
+                qC = qC + conccompCtrl * q_sw;
+            end               
+            cqC   = conccompRes .* cqWs;
+            if any(isInj)
+                cqC(isInj) = (qC ./ qWout) .* cqWs(isInj);
+            end                               
+            compSrc{end+1} = cqC;
+            conccompCtrl = model.getProp(well.W, 'urea');
+            pix = strcmpi(model.getComponentNames(), 'urea');
+            conccompRes = packed.components{pix};
+            qC = sum(-conccompRes(~isInj) .* cqWs(~isInj));
+            if (q_sw > 0) 
+                qC = qC + conccompCtrl * q_sw;
+            end               
+            cqC   = conccompRes .* cqWs;
+            if any(isInj)
+                cqC(isInj) = (qC ./ qWout) .* cqWs(isInj);
+            end                               
+            compSrc{end+1} = cqC;
             pix = strcmpi(model.getComponentNames(), 'biofilm');
-            concpolyRes = packed.components{pix};
-            compSrc{end+1} = concpolyRes.*0;
+            conccompRes = packed.components{pix};
+            compSrc{end+1} = conccompRes .* 0;
             pix = strcmpi(model.getComponentNames(), 'calcite');
-            concpolyRes = packed.components{pix};
-            compSrc{end+1} = concpolyRes.*0;
+            conccompRes = packed.components{pix};
+            compSrc{end+1} = conccompRes .* 0;
         end
     end
 end

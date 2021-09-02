@@ -28,11 +28,11 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 % Required modules
-mrstModule add deckformat ad-core ad-blackoil ad-micp ad-props mrst-gui
+mrstModule add ad-blackoil ad-core ad-micp
 
 % Grid 
-L = 75;                      % Aquifer length, m
-X = 0:.5:L;                  % X discretization
+L = 75;                                       % Aquifer length, m
+X = [0 0.5 0.55 : 0.05 : L];                  % X discretization
 G = tensorGrid(X, [0 1], [0 1]);
 G = computeGeometry(G);
 C = ones(G.cells.num,1);
@@ -72,9 +72,6 @@ fluid.crit = 0.1;            % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
 fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
-fluid.Cm = 0.01;             % Injected microbial concentration, kg/m^3
-fluid.Co = 0.04;             % Injected oxygen concentration, kg/m^3
-fluid.Cu = 300;              % Injected urea concentration, kg/m^3
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
@@ -88,12 +85,9 @@ W = addWell([], G, rock, 1, 'Type', 'rate', 'Comp_i', [1,0], 'Val', Q, ...
                                                               'Radius', r);
 W.o = 0;
 W.u = 0;
-W.m = fluid.Cm;
+W.m = 0.01;
 G.injectionwellonboundary = 1;
 G.cellsinjectionwell = 1; 
-
-% Create model
-model = MICPModel(G, rock, fluid);
 
 % Boundary condition
 f = boundaryFaces(G);
@@ -106,28 +100,28 @@ bc.b = zeros(size(bc.sat,1), 1);
 bc.c = zeros(size(bc.sat,1), 1);
 
 % Setup some schedule
-dt = hour;
+dt = minute;
 nt = 500*hour/dt;
 clear schedule
 timesteps = repmat(dt, nt, 1);
 
 % Well different rates and times
 N = 8; % Number of injection changes
-M = zeros(N,5); % Matrix where entries per row are: time, rate, o, u, m.
+M = zeros(N,5); % Matrix where entries per row are: time, rate, m, o, u.
 M(1,1) = 20*hour/dt; 
 M(1,2) = Q;
 M(2,1) = 40*hour/dt; 
 M(2,2) = eps; 
 M(3,1) = 140*hour/dt; 
 M(3,2) = Q;
-M(3,3) = fluid.Co;
+M(3,4) = 0.04;
 M(4,1) = 160*hour/dt;
 M(4,2) = Q;
 M(5,1) = 180*hour/dt; 
 M(5,2) = eps; 
 M(6,1) = 230*hour/dt; 
 M(6,2) = Q;
-M(6,4) = fluid.umax;
+M(6,5) = 300;
 M(7,1) = 250*hour/dt; 
 M(7,2) = Q;
 M(8,1) = 270*hour/dt; 
@@ -138,17 +132,24 @@ schedule = simpleSchedule(timesteps,'W',W,'bc',bc);
 for i=1:N
     schedule.control(i+1) = schedule.control(i);
     schedule.control(i+1).W.val = M(i,2);
-    schedule.control(i+1).W.o = M(i,3);
-    schedule.control(i+1).W.u = M(i,4);
-    schedule.control(i+1).W.m = M(i,5);
+    schedule.control(i+1).W.m = M(i,3);
+    schedule.control(i+1).W.o = M(i,4);
+    schedule.control(i+1).W.u = M(i,5);
     schedule.step.control(M(i,1):end) = i+1;
 end    
 
+% Maximum injected oxygen and urea concentrations.
+fluid.Comax = max(M(:, 4));             
+fluid.Cumax = max(M(:, 5));
+
+% Create model
+model = MICPModel(G, rock, fluid);
+
 % Initial condition
 state0      = initState(G, W, atm, [1, 0]);
+state0.m    = zeros(G.cells.num,1);
 state0.o    = zeros(G.cells.num,1);
 state0.u    = zeros(G.cells.num,1);
-state0.m    = zeros(G.cells.num,1);
 state0.b    = zeros(G.cells.num,1);
 state0.c    = zeros(G.cells.num,1);
 
@@ -194,20 +195,20 @@ plot(G.cells.centroids(:,1),states{M(8,1)-1}.m,'color',[0 .74 1], ...
                                            'LineWidth',2,'LineStyle','--');
 plot(G.cells.centroids(:,1),states{end}.m,'color',[0 0 0],'LineWidth', ...
                                                        2,'LineStyle','--');
-line([10 10], [0 fluid.Cm],'Color','red','LineStyle',':','LineWidth',2);
-line([15 15], [0 fluid.Cm],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [fluid.Cm fluid.Cm],'Color','red','LineStyle',':',...
+line([10 10], [0 0.01],'Color','red','LineStyle',':','LineWidth',2);
+line([15 15], [0 0.01],'Color','red','LineStyle',':','LineWidth',2);
+line([10 15], [0.01 0.01],'Color','red','LineStyle',':',...
                                                             'LineWidth',2);
 line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
 hold off
 xlim([0 L]);
-ylim([0 fluid.Cm]);
+ylim([0 0.01]);
 xlabel({'x [m]';'(a)'},'FontSize',9,'Interpreter','latex');        
 ylabel('$c_m$ [kg/m$^3$]','FontSize',9,'Interpreter','latex');
 grid on
 title('Microbes','FontSize',9,'FontName','Arial','Interpreter','latex');
 set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick', ...
-                                                        (0:.002:fluid.Cm));
+                                                        (0:.002:0.01));
 n2=subplot(3,3,5);
 hold on
 plot(G.cells.centroids(:,1),states{M(1,1)-1}.o,'color',[0 .8 0], ...
@@ -228,20 +229,20 @@ plot(G.cells.centroids(:,1),states{M(8,1)-1}.o,'color',[0 .74 1], ...
                                            'LineWidth',2,'LineStyle','--');
 plot(G.cells.centroids(:,1),states{end}.o,'color',[0 0 0],'LineWidth', ...
                                                        2,'LineStyle','--');
-line([10 10], [0 fluid.Co],'Color','red','LineStyle',':','LineWidth',2);
-line([15 15], [0 fluid.Co],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [fluid.Co fluid.Co],'Color','red','LineStyle',':', ...
+line([10 10], [0 0.04],'Color','red','LineStyle',':','LineWidth',2);
+line([15 15], [0 0.04],'Color','red','LineStyle',':','LineWidth',2);
+line([10 15], [0.04 0.04],'Color','red','LineStyle',':', ...
                                                             'LineWidth',2);
 line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
 hold off
 xlim([0 L]);
-ylim([0 fluid.Co]);
+ylim([0 0.04]);
 xlabel({'x [m]';'(b)'},'FontSize',9,'Interpreter','latex');        
 ylabel('$c_o$ [kg/m$^3$]','FontSize',9,'Interpreter','latex');
 grid on
 title('Oxygen','FontSize',9,'FontName','Arial','Interpreter','latex');
 set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick', ...
-                                                         (0:.01:fluid.Co));
+                                                         (0:.01:0.04));
 n3=subplot(3,3,6);
 hold on
 plot(G.cells.centroids(:,1),states{M(1,1)-1}.u,'color',[0 .8 0], ... 
@@ -262,20 +263,20 @@ plot(G.cells.centroids(:,1),states{M(8,1)-1}.u,'color',[0 .74 1], ...
                                            'LineWidth',2,'LineStyle','--');
 plot(G.cells.centroids(:,1),states{end}.u,'color',[0 0 0],'LineWidth', ...
                                                        2,'LineStyle','--');
-line([10 10], [0 fluid.Cu],'Color','red','LineStyle',':','LineWidth',2);
-line([15 15], [0 fluid.Cu],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [fluid.Cu fluid.Cu],'Color','red','LineStyle',':', ...
+line([10 10], [0 300],'Color','red','LineStyle',':','LineWidth',2);
+line([15 15], [0 300],'Color','red','LineStyle',':','LineWidth',2);
+line([10 15], [300 300],'Color','red','LineStyle',':', ...
                                                             'LineWidth',2);
 line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
 hold off
 xlim([0 L]);
-ylim([0 fluid.Cu]);
+ylim([0 300]);
 xlabel({'x [m]';'(c)'},'FontSize',9,'Interpreter','latex');        
 ylabel('$c_u$ [kg/m$^3$]','FontSize',9,'Interpreter','latex');
 grid on
 title('Urea','FontSize',9,'FontName','Arial','Interpreter','latex');
 set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick', ...
-                                                          (0:60:fluid.Cu));
+                                                          (0:60:300));
 n4=subplot(3,3,7);
 hold on
 plot(G.cells.centroids(:,1),states{M(1,1)-1}.b,'color',[0 .8 0], ...

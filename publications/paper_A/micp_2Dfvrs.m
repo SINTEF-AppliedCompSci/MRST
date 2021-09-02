@@ -28,7 +28,7 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 % Required modules
-mrstModule add deckformat ad-core ad-blackoil ad-micp ad-props mrst-gui
+mrstModule add ad-blackoil ad-core ad-micp
 
 % Grid
 L = 500;                   % Aquifer length, m
@@ -73,9 +73,6 @@ fluid.crit = .1;             % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
 fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
-fluid.Cm = 0.01;             % Injected microbial concentration, kg/m^3
-fluid.Co = 0.04;             % Injected oxygen concentration, kg/m^3
-fluid.Cu = 300;              % Injected urea concentration, kg/m^3
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
@@ -93,9 +90,9 @@ f = boundaryFaces(G);
 f = f(abs(G.faces.normals(f,1))>eps & G.faces.centroids(f,1)>L-.01);
 fp = G.faces.centroids(f,2) * fluid.rhoWS * norm(gravity);
 bc = addBC([], f, 'pressure', fp, 'sat', [0 0]);
+bc.m = zeros(size(bc.sat,1), 1);
 bc.o = zeros(size(bc.sat,1), 1);
 bc.u = zeros(size(bc.sat,1), 1);
-bc.m = zeros(size(bc.sat,1), 1);
 bc.b = zeros(size(bc.sat,1), 1);
 bc.c = zeros(size(bc.sat,1), 1);
 
@@ -106,9 +103,9 @@ cellsW =  1:1:G.cells.num;
 cellsW = cellsW(c(:,1)<1.1*c(1,1) & c(:,2)<H/10);
 W = addWell([], G, rock, cellsW, 'Type', 'rate', 'Comp_i', [1,0], ...
                                            'Val', Q, 'Radius',r,'dir','y');
+W.m = 0.01;
 W.o = 0;
 W.u = 0;
-W.m = fluid.Cm;
 G.injectionwellonboundary = 1;
 G.cellsinjectionwell = cellsW; 
                                        
@@ -120,45 +117,49 @@ timesteps = repmat(dt, nt, 1);
                                       
 % Well different rates and times
 N = 8; % Number of injection changes
-M = zeros(N,5); % Matrix where entries per row are:time, rate, o, u, m.
+M = zeros(N,5); % Matrix where entries per row are:time, rate, m, o, u.
 M(1,1) = 15*hour/dt; 
 M(1,2) = Q;
 M(2,1) = 26*hour/dt; 
 M(2,2) = eps; 
 M(3,1) = 100*hour/dt; 
 M(3,2) = Q;
-M(3,3) = fluid.Co;
+M(3,4) = 0.04;
 M(4,1) = 130*hour/dt;
 M(4,2) = Q;
 M(5,1) = 135*hour/dt; 
 M(5,2) = eps; 
 M(6,1) = 160*hour/dt; 
 M(6,2) = Q;
-M(6,4) = fluid.Cu;
+M(6,5) = 300;
 M(7,1) = 200*hour/dt; 
 M(7,2) = Q;
 M(8,1) = 210*hour/dt; 
 M(8,2) = eps; 
+
+% Maximum injected oxygen and urea concentrations.
+fluid.Comax = max(M(:, 4));             
+fluid.Cumax = max(M(:, 5));
+
+% Create model
+model = MICPModel(G, rock, fluid);
 
 % Make schedule
 schedule = simpleSchedule(timesteps,'W',W,'bc',bc);
 for i=1:N
     schedule.control(i+1) = schedule.control(i);
     schedule.control(i+1).W.val = M(i,2);
-    schedule.control(i+1).W.o = M(i,3);
-    schedule.control(i+1).W.u = M(i,4);
-    schedule.control(i+1).W.m = M(i,5);
+    schedule.control(i+1).W.m = M(i,3);
+    schedule.control(i+1).W.o = M(i,4);
+    schedule.control(i+1).W.u = M(i,5);
     schedule.step.control(M(i,1):end) = i+1;
 end    
 
-% Create model
-model = MICPModel(G, rock, fluid);
-
 % Initial condition
 state0 = initState(G, W, c(:,2) * fluid.rhoWS * norm(gravity), [1, 0]);
+state0.m = zeros(G.cells.num,1);
 state0.o = zeros(G.cells.num,1);
 state0.u = zeros(G.cells.num,1);
-state0.m = zeros(G.cells.num,1);
 state0.b = zeros(G.cells.num,1);
 state0.c = zeros(G.cells.num,1);
 
@@ -190,7 +191,7 @@ for i=1:2
     W(i).u = 0;
     W(i).m = 0;
 end
-W(1).m = fluid.Cm;                                 
+W(1).m = 0.01;                                 
 G.injectionwellonboundary = 1;
 G.cellsinjectionwell = [cellsWu cellsWb]; 
 
@@ -203,17 +204,17 @@ for i=1:N
     schedule.control(i+1) = schedule.control(i);
     schedule.control(i+1).W(1).val = Whu*M(i,2);
     schedule.control(i+1).W(2).val = Whb*M(i,2);
-    schedule.control(i+1).W(1).o = M(i,3);
-    schedule.control(i+1).W(1).u = M(i,4);
-    schedule.control(i+1).W(1).m = M(i,5);
+    schedule.control(i+1).W(1).m = M(i,3);
+    schedule.control(i+1).W(1).o = M(i,4);
+    schedule.control(i+1).W(1).u = M(i,5);
     schedule.step.control(M(i,1):end) = i+1;
 end    
 
 % Initial condition
 state0   = initState(G, W, c(:,2) * fluid.rhoWS * norm(gravity), [1, 0]);
+state0.m = zeros(G.cells.num,1);
 state0.o = zeros(G.cells.num,1);
 state0.u = zeros(G.cells.num,1);
-state0.m = zeros(G.cells.num,1);
 state0.b = zeros(G.cells.num,1);
 state0.c = zeros(G.cells.num,1);
 

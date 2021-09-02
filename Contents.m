@@ -1,10 +1,8 @@
 % AD-MICP
 %
 % Files
-%   examples/run1DCase - 1D MICP injection case
-%   examples/run2DLeakageCase - 2D MICP injection case and CO2 assessment including a leakage path
-%   examples/run2DRadialCase - 2D MICP radial injection case
-%   examples/run3DCase - 3D MICP injection case and CO2 assessment including a leakage path
+%   examples/runMICP1DCase - 1D MICP injection case
+%   examples/runMICP3DCase - 3D MICP injection case and CO2 assessment including a leakage path
 %   models/MICPModel - MICP type model
 %   utility/checkCloggingMICP - Check if clogging as been reached in any cell
 %   utility/equationsMICP - Assemble the linearized equations for the MICP system

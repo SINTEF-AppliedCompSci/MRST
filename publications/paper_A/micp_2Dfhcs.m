@@ -28,16 +28,15 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 % To get distmesh for first time, uncomment and run the following lines
-pth = fullfile(ROOTDIR,'utils','3rdparty','distmesh');
-mkdir(pth)
-unzip('http://persson.berkeley.edu/distmesh/distmesh.zip', pth);
-mrstPath('reregister','distmesh', pth);
+% pth = fullfile(ROOTDIR,'utils','3rdparty','distmesh');
+% mkdir(pth)
+% unzip('http://persson.berkeley.edu/distmesh/distmesh.zip', pth);
+% mrstPath('reregister','distmesh', pth);
 
 % Required modules
-pth = fullfile(ROOTDIR,'utils','3rdparty','distmesh');
-mrstPath('reregister','distmesh', pth);
-mrstModule add deckformat ad-core ad-blackoil ad-micp ad-props mrst-gui ...
-                                                                   distmesh
+pth = fullfile(ROOTDIR, 'utils', '3rdparty', 'distmesh');
+mrstPath('reregister', 'distmesh', pth);
+mrstModule add ad-blackoil ad-core ad-micp distmesh
                                                                
 % Grid 
 R = 75;        % Reservoir radius, m  
@@ -86,13 +85,10 @@ fluid.k_d = 3.18e-7;         % Microbial death rate, 1/s
 fluid.Y = 0.5;               % Yield growth coefficient, [-]
 fluid.Yuc = 1.67;            % Yield coeccifient (calcite/urea), [-]
 fluid.F = 0.5;               % Oxygen consumption factor, [-]
-fluid.crit = .1;             % Critical porosity, [-]
+fluid.crit = 0.1;            % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
 fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation 
-fluid.Cm = 0.01;             % Injected microbial concentration, kg/m^3
-fluid.Co = 0.04;             % Injected oxygen concentration, kg/m^3
-fluid.Cu = 300;              % Injected urea concentration, kg/m^3
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
@@ -108,11 +104,8 @@ W = addWell([], G, rock, cellsW, 'Type', 'rate', 'Comp_i', [1,0], ...
                                                     'Val', Q, 'Radius', r);
 W.o = 0;
 W.u = 0;
-W.m = fluid.Cm;  
-G.injectionwellonboundary = 0; 
-                                                
-% Create model
-model = MICPModel(G, rock, fluid);
+W.m = 0.01;  
+G.injectionwellonboundary = 0;                                              
 
 % Boundary condition
 f = boundaryFaces(G);
@@ -133,21 +126,21 @@ timesteps = repmat(dt, nt, 1);
 
 % Well different tates and times
 N = 8; % Number of injection changes
-M = zeros(N,5); % Matrix where entries per row are:time, rate, o, u, m.
+M = zeros(N,5); % Matrix where entries per row are:time, rate, m, o, u.
 M(1,1) = 20*hour/dt; 
 M(1,2) = Q;
 M(2,1) = 40*hour/dt; 
 M(2,2) = eps; 
 M(3,1) = 140*hour/dt; 
 M(3,2) = Q;
-M(3,3) = fluid.Co;
+M(3,4) = 0.04;
 M(4,1) = 160*hour/dt;
 M(4,2) = Q;
 M(5,1) = 180*hour/dt; 
 M(5,2) = eps; 
 M(6,1) = 230*hour/dt; 
 M(6,2) = Q;
-M(6,4) = fluid.Cu;
+M(6,5) = 300;
 M(7,1) = 250*hour/dt; 
 M(7,2) = Q;
 M(8,1) = 270*hour/dt; 
@@ -158,17 +151,24 @@ schedule = simpleSchedule(timesteps,'W',W,'bc',bc);
 for i=1:N
     schedule.control(i+1) = schedule.control(i);
     schedule.control(i+1).W(1).val = M(i,2);
-    schedule.control(i+1).W(1).o = M(i,3);
-    schedule.control(i+1).W(1).u = M(i,4);
-    schedule.control(i+1).W(1).m = M(i,5);
+    schedule.control(i+1).W(1).m = M(i,3);
+    schedule.control(i+1).W(1).o = M(i,4);
+    schedule.control(i+1).W(1).u = M(i,5);
     schedule.step.control(M(i,1):end) = i+1;
 end    
 
+% Maximum injected oxygen and urea concentrations.
+fluid.Comax = max(M(:, 4));             
+fluid.Cumax = max(M(:, 5));
+
+% Create model
+model = MICPModel(G, rock, fluid);
+
 % Initial condition
 state0      = initState(G, W, atm, [1, 0]);
+state0.m    = zeros(G.cells.num,1);
 state0.o    = zeros(G.cells.num,1);
 state0.u    = zeros(G.cells.num,1);
-state0.m    = zeros(G.cells.num,1);
 state0.b    = zeros(G.cells.num,1);
 state0.c    = zeros(G.cells.num,1);
 
