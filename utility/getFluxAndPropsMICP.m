@@ -1,5 +1,5 @@
-function [vW, vO, vU, vM, model] =...
-                      getFluxAndPropsMICP(model, pW, o, u, m, gdz, poro)
+function [vW, vM, vO, vU, model] = ...
+                         getFluxAndPropsMICP(model, pW, m, o, u, gdz, poro)
 % Function to compute the water and component fluxes and water mobility
 % 
 % This function is modified from a file in The MATLAB Reservoir Simulation
@@ -38,17 +38,17 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
     fluid = model.fluid;
     s = model.operators;
 
-    dpW    = s.Grad(pW) - fluid.rhoWS*gdz;    
-    upcw  = (value(dpW)<=0);   
+    dpW    = s.Grad(pW) - fluid.rhoWS * gdz;    
+    upcw  = (value(dpW) <= 0);   
     % Water
-    vW = -(1/fluid.muw)*s.T.*dpW;
-    % Oxygen
-    [of, ~] = s.splitFaceCellValue(s, upcw, o);
-    vO = -(1/fluid.muw)*of.*s.T.*dpW;
+    vW = -(1 / fluid.muw) * s.T .* dpW;
     % Microbes
     [mf, ~] = s.splitFaceCellValue(s, upcw, m);
-    vM = -(1/fluid.muw)*mf.*s.T.*dpW;
+    vM = -(1 / fluid.muw) * mf .* s.T .* dpW;
+    % Oxygen
+    [of, ~] = s.splitFaceCellValue(s, upcw, o);
+    vO = -(1 / fluid.muw) * of .* s.T .* dpW;
     % Urea
     [uf, ~] = s.splitFaceCellValue(s, upcw, u);
-    vU = -(1/fluid.muw)*uf.*s.T.*dpW;
+    vU = -(1 / fluid.muw) * uf .* s.T .* dpW;
 end

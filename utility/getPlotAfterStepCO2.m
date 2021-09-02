@@ -1,6 +1,6 @@
 function fn = getPlotAfterStepCO2(state0, model, az, el)
 % Get a function that allows for dynamic plotting in `simulateScheduleAD`
-% for the assesment of co2 in the ad-micp module. The parameters az and 
+% for the assesment of CO2 in the ad-micp module. The parameters az and 
 % el are the azimuth and elevation angles for view of the current axes.
 % 
 % This function is modified from a file in The MATLAB Reservoir Simulation
@@ -33,13 +33,13 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
     
     G = model.G; 
     df = get(0, 'defaultFigurePosition');
-    resfig = figure('position', [df(1:2), 800, 1200]);
+    resfig = figure('position', [df(1 : 2), 800, 1200]);
     c = flipud(jet);
     sz = size(c,1);
-    sco2 = plotCellData(G, state0.s(:,2), 'edgeColor', 'none');
-    title('CO2 [-]','Interpreter','latex');
-    colorbar; view(az,el); 
-    colormap(c((round(70*sz/256)):1:(round(100*sz/256)),:));
+    sco2 = plotCellData(G, state0.s(:, 2), 'edgeColor', 'none');
+    title('CO2 [-]', 'Interpreter','latex');
+    colorbar; view(az, el); 
+    colormap(c((round( 70 * sz / 256)):(round(100 * sz / 256)), :));
     caxis([0 1]);
     
     fn = @(model, states, reports, solver, schedule, simtime) ... 
@@ -47,8 +47,8 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
                                   simtime, resfig, sco2);
 end
 
-function [model, states, reports, solver, ok] = afterStepFunction(model,...
-    states, reports, solver, schedule, simtime, resfig, sco2)
+function [model, states, reports, solver, ok] = afterStepFunction( ...
+           model, states, reports, solver, schedule, simtime, resfig, sco2)
     computed = cellfun(@(x) ~isempty(x), states);
     ctrl_computed = cellfun(@(x) ~isempty(x), reports);
     
@@ -60,7 +60,7 @@ function [model, states, reports, solver, ok] = afterStepFunction(model,...
     [~, bc] = boundaryFaces(model.G);
     
     set(0, 'CurrentFigure', resfig);
-    sco2.CData = st{current}.s(bc,2);
+    sco2.CData = st{current}.s(bc, 2);
     
     ok = true;
     if 1

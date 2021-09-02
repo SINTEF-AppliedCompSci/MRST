@@ -36,8 +36,7 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 % Required modules
 pth = fullfile(ROOTDIR,'utils','3rdparty','distmesh');
 mrstPath('reregister','distmesh', pth);
-mrstModule add deckformat ad-core ad-blackoil ad-micp ad-props mrst-gui ...
-                                                                   distmesh
+mrstModule add ad-blackoil ad-core ad-micp distmesh
 
 % Grid 
 L = 75;            % Aquifer length, m
@@ -110,9 +109,6 @@ fluid.crit = 0.1;            % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
 fluid.cells = C;             % Array with all cells, [-]
 fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
-fluid.Cm = 0.01;             % Injected microbial concentration, kg/m^3
-fluid.Co = 0.04;             % Injected oxygen concentration, kg/m^3
-fluid.Cu = 300;              % Injected urea concentration, kg/m^3
 
 % Porosity-permeability relationship
 fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
@@ -121,18 +117,14 @@ fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
 
 % Create Well
 Q = 7.2e-4;   % Injection rate m^3/s
-Cm = 0.01;    % Injected microbial concentration kg/m^3
 r = 0.15;     % Well radius, m
 [~,iw]= min(abs(c(:,1).^2+c(:,2).^2));
 W = addWell([], G, rock, iw, 'Type', 'rate', 'Comp_i', [1,0],'Val', Q, ...
                                                               'Radius', r);
 W.o = 0;
 W.u = 0;
-W.m = Cm;
+W.m = 0.01;   % Injected microbial concentration kg/m^3
 G.injectionwellonboundary = 0; 
-
-% Create model
-model = MICPModel(G, rock, fluid);
 
 % Boundary condition
 f = boundaryFaces(G);
@@ -152,42 +144,42 @@ timesteps = repmat(dt, nt, 1);
 
 % Well different rates and times
 N = 17; % Number of injection changes
-M = zeros(N,5); % Matrix where entries per row are:time, rate, o, u, m.
+M = zeros(N,5); % Matrix where entries per row are:time, rate, m, o, u.
 M(1,1) = 20*hour/dt; 
 M(1,2) = Q;
 M(2,1) = 40*hour/dt; 
 M(2,2) = eps; 
 M(3,1) = 140*hour/dt; 
 M(3,2) = Q;
-M(3,3) = fluid.Co;
+M(3,4) = 0.04;
 M(4,1) = 160*hour/dt;
 M(4,2) = Q;
 M(5,1) = 180*hour/dt; 
 M(5,2) = eps; 
 M(6,1) = 230*hour/dt; 
 M(6,2) = Q;
-M(6,4) = fluid.Cu;
+M(6,5) = 300;
 M(7,1) = 250*hour/dt; 
 M(7,2) = Q;
 M(8,1) = 270*hour/dt; 
 M(8,2) = eps;
 M(9,1) = 500*hour/dt; 
 M(9,2) = Q;
-M(9,5) = Cm;
+M(9,3) = 0.01;
 M(10,1) = 520*hour/dt; 
 M(10,2) = Q;
 M(11,1) = 540*hour/dt; 
 M(11,2) = eps; 
 M(12,1) = 640*hour/dt; 
 M(12,2) = Q;
-M(12,3) = fluid.Co;
+M(12,4) = 0.04;
 M(13,1) = 660*hour/dt;
 M(13,2) = Q;
 M(14,1) = 680*hour/dt; 
 M(14,2) = eps; 
 M(15,1) = 730*hour/dt; 
 M(15,2) = Q;
-M(15,4) = fluid.Cu;
+M(15,5) = 300;
 M(16,1) = 750*hour/dt; 
 M(16,2) = Q;
 M(17,1) = 770*hour/dt; 
@@ -198,11 +190,18 @@ schedule = simpleSchedule(timesteps,'W',W,'bc',bc);
 for i=1:N
     schedule.control(i+1) = schedule.control(i);
     schedule.control(i+1).W.val = M(i,2);
-    schedule.control(i+1).W.o = M(i,3);
-    schedule.control(i+1).W.u = M(i,4);
-    schedule.control(i+1).W.m = M(i,5);
+    schedule.control(i+1).W.m = M(i,3);
+    schedule.control(i+1).W.o = M(i,4);
+    schedule.control(i+1).W.u = M(i,5);
     schedule.step.control(M(i,1):end) = i+1;
 end    
+
+% Maximum injected oxygen and urea concentrations.
+fluid.Comax = max(M(:, 4));             
+fluid.Cumax = max(M(:, 5));
+
+% Create model
+model = MICPModel(G, rock, fluid);
 
 % Initial condition
 state0      = initState(G, W, atm, [1, 0]);

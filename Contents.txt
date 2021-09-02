@@ -9,13 +9,11 @@ the root folder, you will find the following folders:
 In addition, this file (Contents.txt), a copy of the license (LICENSE.txt),
 and the README (README.md).
 
-The example folder contains four commented scripts to demonstrate how to 
+The example folder contains two commented scripts to demonstrate how to
 set up different flow system simulations using this module:
 
-* run1DCase.m,
-* run2DLeakageCase.m,
-* run2DRadialCase.m, and
-* run3DCase.m.
+* runMICP1DCase.m and
+* runMICP3DCase.m.
 
 The publications folder contains two folders for reproducing the numerical
 results in the manuscripts:

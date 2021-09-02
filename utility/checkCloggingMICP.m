@@ -32,16 +32,17 @@ fn = @(model, states, reports, solver, schedule, simtime) ...
                      afterStepFunction(model, states, reports, solver, ok);                                           
 end
 
-function [model, states, reports, solver, ok] = afterStepFunction(model,...
-                                               states, reports, solver, ok)
+function [model, states, reports, solver, ok] = ...
+                      afterStepFunction(model, states, reports, solver, ok)
     computed = cellfun(@(x) ~isempty(x), states);
     
     st = states(computed);
     
     current = find(computed, 1, 'last');
     
-    % The simulator stops if clogging has been reached in any of the cells 
-    if any(model.rock.poro-st{current}.c-st{current}.b<model.fluid.ptol)
+    % The simulator stops if clogging has been reached in any of the cells
+    if any(model.rock.poro - st{current}.c - st{current}.b < ...
+                                                          model.fluid.ptol)
         fprintf(['External function: Clogging has been reached in at ', ...
                                                       'least one cell\n']);
         ok = false; 
