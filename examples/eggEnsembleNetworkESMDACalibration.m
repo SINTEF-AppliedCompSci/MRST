@@ -18,6 +18,8 @@ mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
 
 mrstVerbose off
 
+warning('This example requires some time to run')
+
 % Some options for running the example
 rerunReferenceModel = false; 
 plotReferenceModel = true;
@@ -350,14 +352,14 @@ qoi = WellQoIHM('wellNames', wellNames, ...
 ensemble = MRSTHistoryMatchingEnsemble(baseNetworkModel, samples, qoi, ...
     'alpha', [28/3 7 4 2], ...
     'directory', historyMatchingDirectory, ...
-    'simulationStrategy', 'spmd', ...
+    'simulationStrategy', 'background', ...
     'maxWorkers', 8, ...
     'reset', true, ...
     'verbose', true, ...
     'verboseSimulation', false);
 
 %% Run prior ensemble 
-ensemble.simulateEnsembleMembers();
+ensemble.simulateEnsembleMembers('progressTitle', 'Simulating prior ensemble');
 
 %% Configure the schedule used during history matching
 % During the calibration, we only use every second observation, and we only
@@ -378,7 +380,7 @@ ensemble.doHistoryMatching()
 % We specify that we want to run the posterior for the complete simulation
 % time span.
 ensemble.updateHistoryMatchingInterval(1:totalNumberOfTimesteps);
-ensemble.simulateEnsembleMembers();
+ensemble.simulateEnsembleMembers('progressTitle', 'Simulating posterior ensemble');
 
 %% Plot prior and posterior ensemble results
 close all
@@ -395,7 +397,5 @@ disp('Plotting completed');
 
 
 
-
-
-
+ 
 
