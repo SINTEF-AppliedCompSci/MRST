@@ -110,7 +110,7 @@ classdef CompositionalMixture
             end
             fprintf('\n');
             known = {'Pcrit', 'Tcrit', 'Vcrit', 'acentricFactors', 'molarMass', 'names', 'name'};
-            props = get_properties(obj);
+            props = get_properties(mixture);
             extra = setdiff(props, known);
             if numel(extra)
                 fprintf('\n  Additional properties:\n');
