@@ -17,6 +17,25 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
     %    Either 'wellNames' or 'wellIndices' must be provided. If both are
     %    provided, 'wellIndices' is ignored.
     %
+    % Properties related to history matching
+    %   'observationResultHandler' - Result handler that holds 
+    %                                observations.
+    %   'truthResultHandler'       - Result handler that holds the true 
+    %                                data. 
+    %       The data read by these result handler must be on a format that 
+    %       matches the given QoI class.
+    %
+    %    observationCov - Observation error covariance matrix, several  
+    %                     forms might be valid depending on the relevant
+    %                     QoI implementation. This can be either
+    %                     - scalar: uncorrelated observation with the
+    %                       same variance
+    %                     - vector: Uncorrelated observations with each
+    %                     element refering to each fieldname, fieldname
+    %                     x well, or fieldname x well x timestep, depending
+    %                     on the size of the vector.
+    %                     - matrix: The full error covariance matrix
+    %
     % OPTIONAL PARAMETERS
     %   'fldname' - cell array of the well output fields that we are
     %               interested in. Valid values are well solution field
@@ -102,6 +121,12 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                 color = color.*(1-opt.alpha) + opt.alpha;
             end
             
+            % Invert rate so that production is plotted as positive values.
+            plotScale = 1;
+            if strcmpi(qoi.names{opt.subCellNo}, 'qOs') || ...
+               strcmpi(qoi.names{opt.subCellNo}, 'qWs')
+                plotScale = -1;
+            end
             
             is_timeseries = true;
             if is_timeseries
@@ -109,34 +134,46 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                 time = cumsum(qoi.dt)./opt.timescale;
                 if opt.isObservation
                     if isempty(opt.observationIndices)
-                        plot(time, u, 'x', 'color', [0 0 0], extra{:});
+                        plot(time, u*plotScale, ...,
+                             'o', 'color', [0 0 0], extra{:});
                     else
-                        plot(time(opt.observationIndices), u(opt.observationIndices), 'x', 'color', [0 0 0], extra{:});
-                        unobservedIndices = setdiff(1:numel(u),opt.observationIndices);
-                        if ~isempty(unobservedIndices)
-                            plot(time(unobservedIndices), u(unobservedIndices), 'o', 'color', [0 0 0], extra{:});
-                        end
+                        plot(time(opt.observationIndices), u(opt.observationIndices)*plotScale, ... ...
+                            'o', 'color', [0 0 0], extra{:});
+                        % unobservedIndices = setdiff(1:numel(u),opt.observationIndices);
+                        % if ~isempty(unobservedIndices)
+                        %     plot(time(unobservedIndices), u(unobservedIndices)*plotScale, ...
+                        %          'o', 'color', [0 0 0], extra{:});
+                        % end
                     end
                 elseif opt.isTruth
-                    plot(time, u, 'o', 'color', [1 1 1].*0.5, extra{:});
+                    plot(time, u*plotScale, ...
+                         '--', 'color', [1 1 1].*0, extra{:});
                 else
-                    plot(time(1:numel(u)), u, 'color'    , color, ...
-                                              'lineWidth', opt.lineWidth, ...
-                                               extra{:}         );
+                    % Check that detects whether qoi.dt is shortened after
+                    % simulation of the qoi (e.g., when you compute the
+                    % full simulation for the prior but only use the first
+                    % half of the timesteps for history matching)
+                    if numel(u) > numel(time) && numel(u) == numel(ensemble.originalSchedule.step.val)
+                        time = cumsum(ensemble.originalSchedule.step.val)./opt.timescale;
+                    end
+                    plot(time(1:numel(u)), u*plotScale, ...
+                         'color'    , color, ...
+                         'lineWidth', opt.lineWidth, ...
+                         extra{:}         );
                 end
                 
                 xlim([time(1), time(end)]);
                 box on, grid on
                 if opt.title
                     if qoi.combined
-                        title(sprintf('Combined produced %s', qoi.fldname{opt.subCellNo}));
+                        title(sprintf('Combined produced %s', qoi.names{opt.subCellNo}));
                     else
-                        title(sprintf('%s for well %s', qoi.fldname{opt.subCellNo}, qoi.wellNames{opt.cellNo}));
+                        title(sprintf('%s for well %s', qoi.names{opt.subCellNo}, qoi.wellNames{opt.cellNo}));
                     end
                 end
                 if opt.labels
                     xlabel(sprintf('Time (%s)', formatTime(opt.timescale)));
-                    ylabel(sprintf('%s', qoi.fldname{opt.subCellNo}));
+                    ylabel(sprintf('%s', qoi.names{opt.subCellNo}));
                 end
             end
         end
@@ -163,11 +200,27 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
             
             obs = qoi.getObservationVector('vectorize', false);
             
+            % Apply one scaling per field name
+            fieldScales = struct();
+            for f = 1:numel(qoi.names)
+                fieldScales.(qoi.names{f}) = 0.0;
+            end
+            
+            % Find scale values based on maximums
             for w = 1:numel(qoi.wellNames)
-                for f = 1:numel(qoi.fldname)
-                    scaling{w}{f} = ones(size(obs{w}{f}(:)))*max(abs(obs{w}{f}(:)));
+                for f = 1:numel(qoi.names)
+                    fieldScales.(qoi.names{f}) = max(fieldScales.(qoi.names{f}), ...
+                                                     max(abs(obs(w).(qoi.names{f}))));
                 end
             end
+            
+            for w = 1:numel(qoi.wellNames)
+                scaling(w).name = obs(w).name;
+                for f = 1:numel(qoi.names)
+                    %scaling{w}{f} = ones(size(obs{w}{f}(:)))*fieldScales{f};
+                    scaling(w).(qoi.names{f}) = ones(size(obs(w).(qoi.names{f})))*fieldScales.(qoi.names{f});
+                end
+            end 
             
             % The call to getObservationVector already extracts the correct
             % time indices, so we must avoid doing the same again here
@@ -196,19 +249,19 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
             elseif isvector(qoi.observationCov)
                 rdiag = [];
             
-                if numel(qoi.observationCov) == numel(qoi.fldnames)*numel(qoi.wellNames)
+                if numel(qoi.observationCov) == numel(qoi.names)*numel(qoi.wellNames)
                     for w = 1:numel(qoi.wellNames)
-                        for f = 1:numel(qoi.fldnames)
-                            covindex = w*(numel(qoi.fldnames)-1) + f;
-                            rdiag = [rdiag ; repmat(qoi.observationCov(covindex), [numel(u{w}{f}), 1])];
+                        for f = 1:numel(qoi.names)
+                            covindex = w*(numel(qoi.fldname)-1) + f;
+                            rdiag = [rdiag ; repmat(qoi.observationCov(covindex), [numel(u(w).(qoi.names{f})), 1])];
                         end
                     end  
-                elseif numel(qoi.observationCov) == numel(qoi.fldnames)
+                elseif numel(qoi.observationCov) == numel(qoi.names)
                     % Assume that there are different covariances for each
                     % fieldName
                     for w = 1:numel(qoi.wellNames)
-                        for f = 1:numel(qoi.fldnames)
-                            rdiag = [rdiag ; repmat(qoi.observationCov(f), [numel(u{w}{f}), 1])];
+                        for f = 1:numel(qoi.names)
+                            rdiag = [rdiag ; repmat(qoi.observationCov(f), [numel(u(w).(qoi.names{f})), 1])];
                         end
                     end    
                 elseif numel(qoi.observationCov) == numObs

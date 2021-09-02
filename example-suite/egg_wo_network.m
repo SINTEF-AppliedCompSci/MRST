@@ -1,24 +1,26 @@
 function [description, options, state0, model, schedule, plotOptions, connectionIndices] ...
-    = ensemble_base_problem_simple_gpsnet_model(varargin)
-% Creates a GPSNET model with two-phase flow between two injectors and two
-% producers.
+    = egg_wo_network(varargin)
+% Creates a GPSNET model with two-phase flow between the injectors and
+% producers found in the Egg model.
 %
 % SYNOPSIS:
 %   [description, options, state0, model, schedule, plotOptions, connectionIndices] ...
-%        = ensemble_base_problem_simple_gpsnet_model('pn1', pv1, ...)
+%        = egg_wo_network('pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   
-%   Very simple example that generates a 3D reservoir with a two-phase flow
-%   problem. It has two injectors and two producers, of which one of the
-%   injectors are not in a corner. May be used as a stand-alone example 
-%   definition, or to construct an instance of `MRSTExample` as 
-%   example = MRSTExample('ensemble_base_problem_3D_reservoir');
-%   At the time of writing, the main purpose is to use this example for a
-%   base in an example ensemble simulation.
+%   Network model connecting the injectors and producors of the Egg model,
+%   using a two-phase flow and initial parameter values based on 
+%   flow-diagnostics. May be used as a stand-alone example definition, or 
+%   to construct an instance of `MRSTExample` as 
+%   example = MRSTExample('egg_wo_network');
 %
 % OPTIONAL PARAMETERS:
-%   This example currently does not take any optional inputs
+%   'realization' - There exists 100 realizations of the egg model. Default
+%                   is realization 0.
+%   'cellsPerConnection'
+%   'gpsnetPerm'
+%   'gpsnetPoro'
 %
 % RETURNS:
 %   description - One-line example description, displayed in list-examples,
@@ -48,7 +50,7 @@ function [description, options, state0, model, schedule, plotOptions, connection
 %   `MRSTExample`, `listExamples`, `exampleSuiteTutorial`
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -69,7 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Each example must start with the description and options, followed by
     % an nargout check that returns if we only asked for the description
     % and options
-    description = 'two-phase flow in fixed GPSNET reservoir connecting two injectors and two producers';
+    description = 'two-phase flow in a fixed network reduced version of the Egg model';
     
     % Each example can have any number of optional input arguments, and
     % must return a (possibly empy) options struct
@@ -78,7 +80,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      'gpsnetPoro', 0.2, ...
                      'gpsnetPerm', 1000*milli*darcy, ...
                      'plotNetwork', false, ...
-                     'fullExampleName', 'ensemble_base_problem_3d_reservoir');
+                     'realization', 0, ...
+                     'fullSchedule', true, ...
+                     'fullExampleName', 'egg_wo');
     options = merge_options(options, varargin{:});
     
     if nargout <= 2, return; end
@@ -90,13 +94,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     %% Define model
     % Create full 3D reservoir based on a full 3D example reservoir 
-    fullExample = MRSTExample(options.fullExampleName);
+    fullExample = MRSTExample(options.fullExampleName, ...
+                              'realization', options.realization);
     
+    % Use a simpler schedule 
+    if ~options.fullSchedule
+        fullExample.schedule = simpleSchedule(fullExample.schedule.step.val(5:52), 'W', fullExample.schedule.control.W);
+    end
+                          
     % Simulate the example so that we can do flow diagnostics
     fullProblem = fullExample.getPackedSimulationProblem();
     if options.deleteOldResults
         clearPackedSimulatorOutput(fullProblem, 'prompt', false);
     end
+    
+    
     
     [ok, status] = simulatePackedProblem(fullProblem);
     [fullWellSols, fullStates, reports] = getPackedSimulatorOutput(fullProblem);
@@ -133,16 +145,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         well_nodes(i).cells = well_nodes(i).cells(1);
     end
     
+    % Create a network derived by flow diagnostics postprocessor
     gpsnet =  Network(well_nodes, fullExample.model.G,...
-                                 'type','injectors_to_producers',...
-                                 'injectors',[1:2],...
-                                 'producers',[3:4]); 
-                             
+                      'type', 'fd_postprocessor',...
+                      'problem', fullProblem,...
+                      'flow_filter', 1*stb/day,...
+                      'state_number', 40);
+
+    % Initializing parameters
+    for i =  1:size(gpsnet.network.Edges, 1)
+        pv(i,1) = gpsnet.network.Edges.PoreVolume(i);
+        TT(i,1) = gpsnet.network.Edges.Transmissibility(i);
+    end
+
     
-    %% Create the grid and rock representing the gpsnet model
-    
-    % Compute the required reservoir volume needed to fit all the oil in
-    % the original model
+    %% Creating data driven model
     totalReservoirVolume = sum(fullProblem.SimulatorSetup.model.operators.pv./fullProblem.SimulatorSetup.model.rock.poro);
     
     % Find number of well-pair connections
@@ -153,33 +170,40 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     G = cartGrid([options.cellsPerConnection, 1, numConnections], ...
                  [length, length/5, length/5]*meter^3);
     G = computeGeometry(G);
-    
-    rock = makeRock(G, options.gpsnetPerm, options.gpsnetPoro);
-    
-    %% Create fluid and physical model
-    fluid = fullProblem.SimulatorSetup.model.fluid;
-    
+
+
+    fluid =  fullProblem.SimulatorSetup.model.fluid;
+    rock = makeRock(G, 1000*milli*darcy, 0.1);
+
     gravity off
     model = GenericBlackOilModel(G, rock, fluid);
     model.gas = false;
     model.OutputStateFunctions = {};
-    
-    evalc("obj = NetworkModel(model,options.cellsPerConnection, gpsnet.network,fullExample.schedule.control.W)");
+
+
+    evalc("obj = NetworkModel(model, options.cellsPerConnection, gpsnet.network,fullExample.schedule.control.W)");
     model = obj.model;
     W     = obj.W;
     
     connectionIndices.faces = obj.Graph.Edges.Face_Indices;
     connectionIndices.cells = obj.Graph.Edges.Cell_Indices;
     
+    %
+    ts = fullProblem.SimulatorSetup.schedule.step.val;
 
-    %% Define the suitable initial state and schedule
+    state0 = initState(model.G, W , 400*barsa,[0.2, 0.8]); 
+
+    schedule = simpleSchedule(ts, 'W', W);
+
+    problem = packSimulationProblem(state0, model, schedule, 'egg_wo_network');
     
-    state0 = initState(G, W, ...
-                       fullProblem.SimulatorSetup.state0.pressure(1), ...
-                       fullProblem.SimulatorSetup.state0.s(1,:));
-                   
-    schedule = simpleSchedule(fullProblem.SimulatorSetup.schedule.step.val, ...
-                              'W', W);
+    if options.deleteOldResults
+        clearPackedSimulatorOutput(problem, 'prompt', false);
+    end
+    
+    [ok, status] = simulatePackedProblem(problem);
+    [wellSols, states, reports] = getPackedSimulatorOutput(problem);
+
     
 
     %% Plot options
@@ -187,7 +211,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % MRSTExample will attempt to set reasonable defaults
     plotOptions = {};
     
-    %% Output connectionIndices
+    %% Output connectionIndices ++
     %  To be able to run optimization algorithms or history matching on
     %  this model, we need to output the connectionIndices (lists of grid
     %  indices to identify each connection in G).
@@ -198,5 +222,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %  parameter.
     
     options.connectionIndices = connectionIndices;
+    options.pv = pv;
+    options.TT = TT;
     
 end

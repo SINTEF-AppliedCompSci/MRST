@@ -5,8 +5,8 @@
 % edges and the 1D reservoirs connecting the wells are edges.
 % 
 % In this example we set up an ensemble of such models, and we run ensemble
-% simulations with uncertain rock properties (each connection has
-% homogeneous rock properties) and well production indices.
+% simulations with uncertain operator properties with each connection
+% having homogeneous operator properties throughout the connection.
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
     example-suite incomp ensemble network-models diagnostics
@@ -20,29 +20,30 @@ mrstVerbose off
 baseProblemName = 'ensemble_base_problem_simple_gpsnet_model';
 baseProblemOptions = {};
 
-ensembleSize = 80;
+ensembleSize = 70;
+numConnections = 4; % Not a parameter, but hard-coded in the baseProblem
 
 %% Define where to store truth and ensemble simulations
 directoryTruth = fullfile(mrstOutputDirectory(), ...
-                          'historyMatching', 'truth', ...
+                          'historyMatching', 'truth','network_operator', ...
                           baseProblemName);
                       
 topDirectory = fullfile(mrstOutputDirectory(), ...
-                        'historyMatching', 'tutorial', baseProblemName);
+                        'historyMatching', 'tutorial', 'network_operator', baseProblemName);
 
 %% Create example
 baseExample = MRSTExample(baseProblemName, ...
-                          'deleteOldResults', false, ...
+                          'deleteOldResults', true, ...
                           'plotNetwork', false);
 
                       
 %% Create the full model so that we can generate observations
 trueExample = MRSTExample(baseExample.options.fullExampleName, ...
-                          'deleteOldResults', false);
+                          'deleteOldResults', true);
 trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
 
 plotExample = false;
-rerunTrueProblemFromScratch = true;
+rerunTrueProblemFromScratch = false;
 overwriteObservation = true;
 
 if rerunTrueProblemFromScratch
@@ -92,23 +93,21 @@ end
 
 
                       
-%% Define samples that give different rock properties for each connection
+%% Define samples that give different transmissibilise for each connection
 
-rockData = cell(ensembleSize, 1);
+% Initializing as a log-Gaussian distribution around the value obtained
+% from flow diagnostics 
+% (assuming FD finds the same T for all connections)
+logMean = log(baseExample.model.operators.T(baseExample.options.connectionIndices.faces{1}(1)));
+transData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
-    tmpPoro = zeros(1,4);
-    for j = 1:4
-        while tmpPoro(j) > 0.4 || tmpPoro(j) < 0.2
-            tmpPoro(j) = 0.3 + randn(1)*0.1;
-        end
-    end
-    rockData{i}.poro = tmpPoro;
-    rockData{i}.perm = rockData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-rockData{i}.poro).^2);
+    transData{i}.T = exp(logMean + 1*randn(1, numConnections));
 end
 
+
 %% Create sample object
-rockSamples = NetworkRockSamplesHM('data', rockData, ...
-                                   'connectionIndices', baseExample.options.connectionIndices)
+transSamples = NetworkOperatorSamplesHM('data', transData, ...
+                                        'connectionIndices', baseExample.options.connectionIndices)
 
 %% Create QoI, with the observations
 qoi = WellQoIHM(...
@@ -120,34 +119,34 @@ qoi = WellQoIHM(...
 
 
 %% Create the ensemble
-rockEnsemble = MRSTHistoryMatchingEnsemble(baseExample, rockSamples, qoi, ...
-    'directory', fullfile(topDirectory, 'rock'), ...
+transEnsemble = MRSTHistoryMatchingEnsemble(baseExample, transSamples, qoi, ...
+    'directory', fullfile(topDirectory, 'trans'), ...
     'simulationStrategy', 'spmd', ...
     'maxWorkers', 8, ...
     'reset', true, ...
-    'verbose', true, ...
-    'verboseSimulation', true);
+    'verbose', true);
 
 %% Run ensemble
-rockEnsemble.simulateEnsembleMembers();
+transEnsemble.simulateEnsembleMembers();
+
 
 %% Get simulated observations
 disp('simulated observations: ')
-size(rockEnsemble.getEnsembleQoI())
+size(transEnsemble.getEnsembleQoI())
 
 %% Get the matrix of ensemble samples 
 disp('Matrix of ensemble samples (parameters):')
-size(rockEnsemble.getEnsembleSamples())
+size(transEnsemble.getEnsembleSamples())
 
 
 %% Do history matching
-rockEnsemble.doHistoryMatching()
+transEnsemble.doHistoryMatching()
 
 %% Run new ensemble
-rockEnsemble.simulateEnsembleMembers();
+transEnsemble.simulateEnsembleMembers();
 
 %% Plot original and updated ensemble results
-rockEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
+transEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
     'cmapName', 'lines', ...
     'plotTruth', true, ...
     'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});
@@ -161,21 +160,22 @@ rockEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
 
 
 
-%% History match with both rock properties and well indices
-
-
-wellSampleData = cell(ensembleSize, 1);
+%% History match with porevolumes
+FDmean = baseExample.model.operators.pv(baseExample.options.connectionIndices.cells{1}(1));
+pvData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
-    wellSampleData{i}.WI = rand(1,4)*1e-11;
+    pvData{i}.pv = abs(FDmean + 2000*randn(1, numConnections));
 end
-wellSamples = WellSamplesHM('data', wellSampleData);
 
-compSamples = CompositeSamplesHM({rockSamples, wellSamples}, 'tensorProduct', false);
+pvSamples = NetworkOperatorSamplesHM('data', pvData, ...
+                                     'connectionIndices', baseExample.options.connectionIndices, ...
+                                     'pvScale', baseExample.model.G.cells.volumes(1)/100)
+
 
 
 %% Create combo ensemble
-compEnsemble = MRSTHistoryMatchingEnsemble(baseExample, compSamples, qoi, ...
-    'directory', fullfile(topDirectory, 'compRockWI'), ...
+pvEnsemble = MRSTHistoryMatchingEnsemble(baseExample, pvSamples, qoi, ...
+    'directory', fullfile(topDirectory, 'pv'), ...
     'simulationStrategy', 'spmd', ...
     'maxWorkers', 8, ...
     'reset', true, ...
@@ -183,54 +183,83 @@ compEnsemble = MRSTHistoryMatchingEnsemble(baseExample, compSamples, qoi, ...
     'verboseSimulation', false)
 
 %% Run ensemble
-compEnsemble.simulateEnsembleMembers();
+pvEnsemble.simulateEnsembleMembers();
+
 
 %% Get simulated observations
 disp('simulated observations: ')
-size(compEnsemble.getEnsembleQoI())
+size(pvEnsemble.getEnsembleQoI())
 
 %% Get the matrix of ensemble samples 
 disp('Matrix of ensemble samples (parameters):')
-size(compEnsemble.getEnsembleSamples())
+size(pvEnsemble.getEnsembleSamples())
 
 
 %% Do history matching
-compEnsemble.doHistoryMatching()
+pvEnsemble.doHistoryMatching()
 
 %% Run new ensemble
-compEnsemble.simulateEnsembleMembers();
+pvEnsemble.simulateEnsembleMembers();
 
 
 %% Plot original and updated ensemble results
-compEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
+pvEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
     'cmapName', 'lines', ...
     'plotTruth', true, ...
     'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});
 
-%% Copyright Notice
-%
-% <html>
-% <p><font size="-1">
-% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
-% </font></p>
-% <p><font size="-1">
-% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-% </font></p>
-% <p><font size="-1">
-% MRST is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% </font></p>
-% <p><font size="-1">
-% MRST is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% </font></p>
-% <p><font size="-1">
-% You should have received a copy of the GNU General Public License
-% along with MRST.  If not, see
-% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
-% </font></p>
-% </html>
+
+
+
+
+
+
+
+
+
+%% History match with both porevolumes and transmissibilities
+operatorData = cell(ensembleSize, 1);
+for i = 1:ensembleSize
+    operatorData{i}.pv = pvData{i}.pv;
+    operatorData{i}.T = transData{i}.T;
+end
+
+operatorSamples = NetworkOperatorSamplesHM('data', operatorData, ...
+                                     'connectionIndices', baseExample.options.connectionIndices, ...
+                                     'pvScale', baseExample.model.G.cells.volumes(1)/100)
+
+
+                                 
+                                
+%% Create combo ensemble
+operatorEnsemble = MRSTHistoryMatchingEnsemble(baseExample, operatorSamples, qoi, ...
+    'directory', fullfile(topDirectory, 'operator'), ...
+    'simulationStrategy', 'spmd', ...
+    'maxWorkers', 8, ...
+    'reset', true, ...
+    'verbose', true)
+
+%% Run ensemble
+operatorEnsemble.simulateEnsembleMembers();
+
+
+%% Get simulated observations
+disp('simulated observations: ')
+size(operatorEnsemble.getEnsembleQoI())
+
+%% Get the matrix of ensemble samples 
+disp('Matrix of ensemble samples (parameters):')
+size(operatorEnsemble.getEnsembleSamples())
+
+
+%% Do history matching
+operatorEnsemble.doHistoryMatching()
+
+%% Run new ensemble
+operatorEnsemble.simulateEnsembleMembers();
+
+%% Plot original and updated ensemble results
+operatorEnsemble.plotQoI('subplots', true, 'clearFigure', false, ...
+    'cmapName', 'lines', ...
+    'plotTruth', true, ...
+    'legend', {'observations', 'truth', 'posterior mean', 'prior mean'});

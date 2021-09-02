@@ -8,12 +8,21 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         historyMatchingSubIteration = 1
         esmdaIterations = 1
         
+        method = 'EnKF'
+        % Allowed options: 
+        % 'EnKF': Standard stochastic ensemble Kalman filter/smoother, with
+        %         perturbed observations.
+        % 'wrongEnKF: Same as 'EnKF', but with observation errors added to
+        %         the simulated observations.
+        
         mainDirectory; 
         alpha = [1];
         % Folders are organized as follows:
         % mainDirectory/historyMatchingIteration/historyMatchingSubIteration/<ensemble_data>
         
         qoiArchive = {{}};
+        
+        storeHistoryMatching = true;
         
         originalSchedule
         
@@ -22,11 +31,14 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
     methods
         
         %-----------------------------------------------------------------%
-        %function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
-        % 
-        %    ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, varargin{:});
-        
-        function midConstructor(ensemble)
+        function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
+            
+            opt = struct('prepareSimulation', true);
+            [opt, extra] = merge_options(opt, varargin{:});
+            
+            ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, ...
+                                             extra{:}, 'prepareSimulation', false);
+            
             % Check that the history-matching-specific input values make
             % sense
             if ensemble.esmdaIterations == 1
@@ -42,8 +54,36 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
                 '1/alpha does not sum to 1');
             
             ensemble.originalSchedule = ensemble.setup.schedule;
+
+            if ensemble.storeHistoryMatching
+                if ~exist(ensemble.mainDirectory, 'dir')
+                    mkdir(ensemble.mainDirectory);
+                end
+                save(fullfile(ensemble.mainDirectory, 'ensemble.mat'), 'ensemble');
+            end
+            
+            % if we chose to reset and delete any old results, we need to
+            % rebuild the folder structure
+            ensemble.getIterationPath();
+            
+            % Prepare ensemble
+            if opt.prepareSimulation
+                ensemble.prepareEnsembleSimulation();
+            end
+            
         end
         
+        
+        function simulateEnsembleMembers(ensemble, varargin)
+           
+            ensemble.simulateEnsembleMembers@MRSTEnsemble(varargin{:});
+            
+            if ensemble.storeHistoryMatching
+                samples = ensemble.samples;
+                save(fullfile(ensemble.directory, 'samples.mat'), 'samples');
+            end
+            
+        end
   
                 
         %-----------------------------------------------------------------%
@@ -74,20 +114,21 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             [obs, ensembleObs, R] = ensemble.applyScaling(obs, ensembleObs, R, scaling);
             [obs, ensembleObs, alphaR] = ensemble.removeObsoleteObservations(obs, ensembleObs, alpha*R);
             
-            ensembleObs = ensemble.perturbEnsembleQoI(ensembleObs, alphaR);
+            obsPerturbations = ensemble.perturbEnsembleQoI(ensembleObs, alphaR, 'returnPerturbations', false);
             
             ensembleParameters = ensemble.getEnsembleSamples();
             
-            analysisParameters = ensemble.enkf(ensembleParameters, obs, ensembleObs, alphaR);
+            analysisParameters = ensemble.enkf(ensembleParameters, obs, ensembleObs, obsPerturbations, alphaR);
             
             updatedSample = ensemble.samples.setSampleVectors(analysisParameters);            
         end
 
         %-----------------------------------------------------------------%
-        function updateHistoryMatchingIterations(ensemble, updatedSamples)
+        function updateHistoryMatchingIterations(ensemble, samples)
             % This function is called after we have update the ensemble 
             
-            ensemble.samples = updatedSamples;
+            % Set new samples to the ensemble class
+            ensemble.samples = samples;
             
             % Store QoI
             ensemble.qoiArchive{ensemble.historyMatchingIteration}{ensemble.historyMatchingSubIteration} = ensemble.qoi;
@@ -107,35 +148,39 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             baseProblem = ensemble.getBaseProblem();
             ensemble.qoi = ensemble.qoi.validateQoI(baseProblem);
             
+            ensemble.setupSimulationStatusHandler('');
+            
             ensemble.prepareEnsembleSimulation('force', true);
             
-            %if numel(ensemble.spmdEnsemble) > 0 && strcmp(ensemble.simulationStrategy, 'parallel')
-            %    % Call recursively on spmdEnsembles (if any)
-            %    spmdEns = ensemble.spmdEnsemble;
-            %    spmd
-            %        spmdEns.updateHistoryMatchingIterations(updatedSamples);
-            %    end
-            %end
         end
 
         %-----------------------------------------------------------------%
-        function xF = enkf(ensemble, xF, obs, obsE, R)
+        function xF = enkf(ensemble, xF, obs, obsE, obsPert, R)
            
             % Mixing the notation of the old EnKF module and the review
             % paper by Vetra-Carvalho et al
-
-            S = obsE - mean(obsE, 2);
-            
             Ny = numel(obs);
             Ne = ensemble.num;
+    
+            S = obsE - mean(obsE, 2);
+            
+            if strcmp(ensemble.method, 'EnKF')
+                obs = repmat(obs, 1, Ne) + obsPert;
+            elseif strcmp(ensemble.method, 'wrongEnKF')
+                S = S + obsPert;
+            end
+            
+            
+            S = S / sqrt(Ne-1);
+            
             if Ny <= Ne
-                C = S*S'/(Ne-1) + R;
+                C = S*S' + R;
                 W = S'/C;
             else 
                 W = (eye(Ne) + (S'/R)*S)  \ S'/R;
             end
             
-            xF = xF + (1/(Ne-1))*(xF - mean(xF, 2))*W*(obs - obsE);
+            xF = xF + (1/sqrt(Ne-1))*(xF - mean(xF, 2))*W*(obs - obsE);
             
         end
         
@@ -159,9 +204,13 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         end
         
         %-----------------------------------------------------------------%
-        function ensembleQoI = perturbEnsembleQoI(ensemble, ensembleQoI, R)
-            % Add unbiased observation error across the ensemle according
-            % to the observation error covariance 
+        function perturbations = perturbEnsembleQoI(ensemble, ensembleQoI, R, varargin)
+            % Sample unbiased observation error across the ensemle according
+            % to the observation error covariance. By default this error is
+            % added to the ensembleQoI, but can also be returned directly
+            
+            opt = struct('returnPerturbations', true);
+            [opt, extra] = merge_options(opt, varargin{:});
             
             obserror = randn(size(ensembleQoI));
 
@@ -169,9 +218,11 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             % the ensemble
             obserror = obserror - mean(obserror, 2);
             obserror = obserror ./ std(obserror, 0, 2);
-
-            ensembleQoI = ensembleQoI ...
-                + sqrt(R)*obserror;
+   
+            perturbations = sqrt(R)*obserror;
+            if opt.returnPerturbations
+                perturbations = ensembleQoI + perturbations;
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -195,7 +246,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             % Following the removal structure as the old EnKF module.
             
             remove1 = find(max(abs(repmat(obs,1,ensemble.num) - ensembleObs),[],2) < eps);
-            remove2 = find(std(ensembleObs,[],2) < eps);
+            remove2 = find(std(ensembleObs,[],2) < 10*eps);
             remove3 = find(isnan(obs));
             
             remove  = union(remove1,remove2); 
@@ -210,7 +261,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         
         %-----------------------------------------------------------------%
         function updateHistoryMatchingInterval(ensemble, historyMatchDtRange)
-            % takes a range of step 
+            % Takes a range of step indices as input
             ensemble.qoi.historyMatchDtRange = historyMatchDtRange;
             ensemble.qoi.dt = ensemble.originalSchedule.step.val(1:historyMatchDtRange(end));
             
@@ -231,9 +282,17 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         
         %-----------------------------------------------------------------%
         function iterationDataPath = getIterationPath(ensemble)
-            iterationDataPath = fullfile(ensemble.mainDirectory, ... 
-                                         num2str(ensemble.historyMatchingIteration), ...
+            mainIterationDataPath = fullfile(ensemble.mainDirectory, ... 
+                                             num2str(ensemble.historyMatchingIteration));
+            iterationDataPath = fullfile(mainIterationDataPath, ...
                                          num2str(ensemble.historyMatchingSubIteration));
+            
+            if ~exist(mainIterationDataPath, 'dir')
+                mkdir(mainIterationDataPath);
+            end
+            if ~exist(iterationDataPath, 'dir')
+                mkdir(iterationDataPath);
+            end
         end
                 
         %-----------------------------------------------------------------%
@@ -243,8 +302,10 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             % and sub-iterations).
             
             % TODO: Align it with reset@MRSTEnsemble somehow...
+            % TODO: Do reset based on opt.prepareSimulation...
             
-            opt = struct('prompt', true);
+            opt = struct('prompt', true, ...
+                         'prepareSimulation', false);
             opt = merge_options(opt, varargin{:});
             if ~exist(ensemble.mainDirectory, 'dir'), return, end
             if opt.prompt
@@ -289,7 +350,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             if opt.iterations && ~isempty(ensemble.qoiArchive{1})
                 for i = 1:numel(ensemble.qoiArchive)
                     for j = 1:ensemble.esmdaIterations 
-                        if opt.subIterations || j == ensemble.esmdaIterations 
+                        if opt.subIterations || j == 1 
                             h = ensemble.qoiArchive{i}{j}.plotEnsembleQoI(ensemble, h, ...
                                                                           'color', cmap(ci, :), ...
                                                                           'plotObservation', false, ...

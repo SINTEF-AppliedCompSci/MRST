@@ -148,18 +148,12 @@ classdef BaseQoIHM
                          'plotTruth', false        , ...
                          'legend'     , {{}} );
             [opt, extra] = merge_options(opt, varargin{:});
-            [u_mean, u]  = qoi.computeMean(opt.range);
+            [u_mean, u_var, u]  = qoi.getQoIMean(opt.range);
             numQoIs      = numel(u_mean);
-            numSubQoIs   = 1;
+            numSubQoIs   = numel(fieldnames(u_mean)) - 1;
                         
-            plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u{i}, ...
-                'cellNo', i, varargin{:});
-            
-            if iscell(u_mean{1})
-                numSubQoIs = numel(u_mean{1});
-                plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u{i}{k}, ...
+            plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u(i).(qoi.names{k}), ...
                     'cellNo', i, 'subCellNo', k, varargin{:});
-            end
             
             numSamples = numel(u);
             if nargin < 2, ensemble = []; end
@@ -264,11 +258,32 @@ classdef BaseQoIHM
                 end
             end    
         end
-            
+    
+        function n = norm(qoi, u)
+            % Compute norm n of the quantity of interest u.
+            % 
+            % SYNOPSIS
+            %   n = qoi.norm(u)
+            %
+            if isstruct(u)
+                % We got a full QoI struct, compute norm for each well and
+                % each field by calling qoi.norm for each of them
+                n = u;
+                for i = 1:numel(u)
+                    for fn = qoi.names
+                        n(i).(fn{1}) = qoi.norm(u(i).(fn{1}));
+                    end
+                end
+                return;
+            else
+                n = sqrt(sum(u.*u));
+            end
+        end
         
         
         
     end
+    
 end
     
 %{
