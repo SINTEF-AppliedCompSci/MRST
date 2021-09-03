@@ -137,10 +137,12 @@ classdef MRSTExample
             for i = 1:G.griddim
                 props.([xyz(i), 'Lim']) = [xmin(i), xmax(i)];
             end
-            W = example.schedule.control(1).W;
-            if ~isempty(W) && G.griddim == 3
-                dz = xmax(3) - xmin(3);
-                props.ZLim(1) = props.ZLim(1) - dz*0.2;
+            if isfield(example.schedule.control(1), 'W')
+                W = example.schedule.control(1).W;
+                if ~isempty(W) && G.griddim == 3
+                    dz = xmax(3) - xmin(3);
+                    props.ZLim(1) = props.ZLim(1) - dz*0.2;
+                end
             end
             % Set aspect ratio
             props.PlotBoxAspectRatio = [1,1,1];
@@ -223,6 +225,9 @@ classdef MRSTExample
         
         %-----------------------------------------------------------------%
         function varargout = plotWells(example, varargin)
+            if ~isfield(example.schedule.control(1), 'W')
+                return;
+            end
             W = example.schedule.control(1).W;
             if ~isempty(W)
                 G = example.getVisualizationGrid();
