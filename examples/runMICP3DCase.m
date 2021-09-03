@@ -26,7 +26,7 @@ mrstModule add ad-blackoil ad-core ad-micp ad-props co2lab distmesh
 
 %% Reservoir geometry/properties and model parameters
 %
-% The domain has a length of 200 m, a height of 160 m and width of 180 m.
+% The domain has a length of 200 m, a height of 160 m, and width of 180 m.
 % We remove the domain cells where there is caprock. The leakage
 % xy-position is set to the origin (0, 0). The grid is coarser in order to
 % run the example in couple of minutes. You should try with larger domains
@@ -228,26 +228,40 @@ for i = 1 : nt
 end
 
 %% MICP treatment
-% 
-% For the injection of the MICP components, we create a well with an upper
-% and lower parts, where the components are injected in the top part and
-% only water on the lower part.
 
-% Create Well
-Q =  0.3;       % Injection rate, m^3/s
+% Set the injection strategy.
+N = 9; % Number of injection phases in the injection strategy
+M = zeros(N, 6); % The entries per row are: time, dt, rate, m, o, and u.
+dt_on = hour; % Time step when the well is on
+dt_off = 5 * hour;  % Time step when the well is off
+
+M(1, :) = [15 * hour,   dt_on,  0.3, 0.01, 0,      0];
+M(2, :) = [11 * hour,   dt_on,  0.3, 0,    0,      0];
+M(3, :) = [75 * hour,   dt_off, 0,   0,    0,      0];
+M(4, :) = [30 * hour,   dt_on,  0.3, 0,    0.04,   0];
+M(5, :) = [5 * hour,    dt_on,  0.3, 0,    0,      0];
+M(6, :) = [25 * hour,   dt_off, 0,   0,    0,      0];
+M(7, :) = [40 * hour,   dt_on,  0.3, 0,    0,     60];
+M(8, :) = [10 * hour,   dt_on,  0.3, 0,    0,      0];
+M(9, :) = [40 * hour,   dt_off, 0,   0,    0,      0];
+
+% Create Well. For the injection of the MICP components, we create a well 
+% with an upper and lower parts, where the components are injected in the 
+% top part and only water on the lower part (hb is the bottom aquifer 
+% heigth).
 Whu = 3 / hb;   % Upper fraction part of the well to inject the components
 Whb = 1 - Whu;  % Bottom fraction part of the well to inject the components
 cellsW =  1 : G.cells.num;
 cellsWu = cellsW(abs(c(:, 1) - c(iw, 1)) < eps & abs(c(:, 2)-c(iw, 2)) ...
-                 < eps & c(:, 3) > D + H - hb & c(:, 3) < D + H -Whb * hb);
+                < eps & c(:, 3) > D + H - hb & c(:, 3) < D + H - Whb * hb);
 % Upper injector
 W = addWell([],G, rock, cellsWu, 'Type', 'rate', 'Comp_i', [1,0], ...
-                                              'Val', Whu * Q, 'Radius', r);
+                                        'Val', Whu * M(1, 3), 'Radius', r);
 cellsWb = cellsW(abs(c(:, 1) - c(iw, 1)) < eps & ...
                abs(c(:, 2) - c(iw, 2)) < eps & c(:, 3) > D + H - Whb * hb);
 % Lower injector
 W = addWell(W, G, rock, cellsWb, 'Type', 'rate', 'Comp_i', [1,0], ...
-                                              'Val', Whb * Q, 'Radius', r);
+                                        'Val', Whb * M(1, 3), 'Radius', r);
 
 % Add the fields to the wells/bc for the additional components
 bc.m = zeros(size(bc.sat, 1), 1);
@@ -260,62 +274,43 @@ for i = 1 : 2
     W(i).u = 0;
     W(i).m = 0;
 end
-W(1).m = 0.01;  % Initial injected microbial concentration, kg/m^3
+W(1).m = M(1, 4);  % Injected microbial concentration, kg/m^3
+W(1).o = M(1, 5);  % Injected oxygen concentration, kg/m^3
+W(1).u = M(1, 6);  % Injected urea concentration, kg/m^3
 % The injection well is not on the boundary
 G.injectionwellonboundary = 0;
 
 % Setup some schedule
-dt = hour;
-nt = 250 * hour / dt;
-timesteps = repmat(dt, nt, 1);
-
-% Well different rates and times
-N = 8; % Number of injection changes
-M = zeros(N, 5); % Matrix where entries per row are: time, rate, m, o, u.
-M(1, 1) = 15 * hour / dt;
-M(1, 2) = Q;
-M(2, 1) = 26 * hour / dt;
-M(2, 2) = eps;
-M(3, 1) = 100 * hour / dt;
-M(3, 2) = Q;
-M(3, 4) = 0.04;             % Injected oxygen concentration, kg/m^3
-M(4, 1) = 130 * hour / dt;
-M(4, 2) = Q;
-M(5, 1) = 135 * hour / dt;
-M(5, 2) = eps;
-M(6, 1) = 160 * hour / dt;
-M(6, 2) = Q;
-M(6, 5) = 60;               % Injected urea concentration, kg/m^3
-M(7, 1) = 200 * hour / dt;
-M(7, 2) = Q;
-M(8, 1) = 210 * hour / dt;
-M(8, 2) = eps;
-
-% Make Schedule
+nt = sum(M(:, 1) ./ M(:, 2)); 
+timesteps = repmat(dt_on, nt, 1);
 schedule = simpleSchedule(timesteps, 'W', W, 'bc', bc);
-for i = 1 : N
-    schedule.control(i + 1) = schedule.control(i);
-    schedule.control(i + 1).W(1).val = Whu * M(i, 2);
-    schedule.control(i + 1).W(2).val = Whb * M(i, 2);
-    schedule.control(i + 1).W(1).m = M(i, 3);
-    schedule.control(i + 1).W(1).o = M(i, 4);
-    schedule.control(i + 1).W(1).u = M(i, 5);
-    schedule.step.control(M(i, 1) : end) = i + 1;
+for i = 2 : N 
+    schedule.control(i) = schedule.control(i - 1);
+    schedule.step.control(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
+                                                                  end) = i;
+    schedule.step.val(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
+                                                            end) = M(i, 2);
+    schedule.control(i).W(1).val = Whu * M(i, 3);
+    schedule.control(i).W(2).val = Whb * M(i, 3);
+    schedule.control(i).W(1).m = M(i, 4);
+    schedule.control(i).W(1).o = M(i, 5);
+    schedule.control(i).W(1).u = M(i, 6);
 end
 
 % Maximum injected oxygen and urea concentrations.
-fluid.Comax = max(M(:, 4));             
-fluid.Cumax = max(M(:, 5));
+fluid.Comax = max(M(:, 5));             
+fluid.Cumax = max(M(:, 6));
 
 % Create model
 model = MICPModel(G, rock, fluid);
 
 % Initial Condition
-state0.m = zeros(G.cells.num, 1);
-state0.o = zeros(G.cells.num, 1);
-state0.u = zeros(G.cells.num, 1);
-state0.b = zeros(G.cells.num, 1);
-state0.c = zeros(G.cells.num, 1);
+state0_micp = state0;
+state0_micp.m = zeros(G.cells.num, 1);
+state0_micp.o = zeros(G.cells.num, 1);
+state0_micp.u = zeros(G.cells.num, 1);
+state0_micp.b = zeros(G.cells.num, 1);
+state0_micp.c = zeros(G.cells.num, 1);
 
 % If MATLAB is used, we use the getPlotAfterStepMICP function to visualize
 % the results at each time step.
@@ -323,9 +318,9 @@ if exist('OCTAVE_VERSION', 'builtin') ~= 0
     ok = 'true';
     fn = checkCloggingMICP(ok);
 else
-    fn = getPlotAfterStepMICP(state0, model, 340, 20);
+    fn = getPlotAfterStepMICP(state0_micp, model, 340, 20);
 end
-[~,statesMICP] = simulateScheduleAD(state0, model, schedule, ...
+[~,statesMICP] = simulateScheduleAD(state0_micp, model, schedule, ...
                                                         'afterStepFn', fn);
 
 %% CO2 assesment after MICP treatment
@@ -379,7 +374,7 @@ ylabel('CO2 leakage rate/injection rate [%]');
 grid on
 
 % If Octave is used, then the results are printed in vtk format to be
-% visualize in Paraview and the 'return' command is executed as currently
+% visualized in Paraview and the 'return' command is executed as currently
 % it is not possible to run 'plotToolbar' in Octave.
 
 % Write the results to be read in ParaView (GNU Octave)
