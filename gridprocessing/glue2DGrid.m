@@ -32,7 +32,7 @@ function G = glue2DGrid(G1, G2, varargin)
 %   through a subsequent call to function `computeGeometry`.
 %
 % SEE ALSO:
-%   `computeGeometry`
+%   `computeGeometry`.
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -98,10 +98,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    mergefaces = identify_mergefaces(loop1, loop2, cnodes, G1_conformal.faces.num);
 
    if ~isempty(mergefaces)
-       G = merge_all_faces(G, mergefaces);
+      G = merge_all_faces(G, mergefaces);
    end
-   
-   %% Purging remaining, unused faces
+
+   % Purging remaining, unused faces
    G = cleanup_unused_faces(G);
 end
 
@@ -304,29 +304,28 @@ function G = cleanup_unused_faces(G)
    G.cells.faces = new_ixs(G.cells.faces);
 end
 
-% ----------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 function G = merge_all_faces(G, mfaces)
-% Merge grid faces given in first column of 'mfaces' with the corresponding ones
-% in the second column.  Leave both faces in place (although the ones in the
-% first column will remain unused).  Unused faces can be purged later by a
-% call to 'cleanup_unused_faces'.
+% Merge grid faces given in first column of 'mfaces' with the corresponding
+% ones in the second column.  Leave both faces in place (although the ones
+% in the first column will remain unused).  Unused faces can be purged
+% later by a call to 'cleanup_unused_faces'.
 
    cells = sum(G.faces.neighbors(mfaces(:,1), :), 2);
-   
-   %% Update faces.neighbors
+
+   % Update faces.neighbors
    tmp = G.faces.neighbors(mfaces(:,2), :);
    tmp = reshape(tmp', [], 1);
    assert(numel(cells) == sum(tmp==0));
    tmp(tmp==0) = cells;
    tmp = reshape(tmp, 2, [])';
    G.faces.neighbors(mfaces(:,2), :) = tmp;
-   
-   %% update G.cells.faces
+
+   % update G.cells.faces
    reindex = (1:max(G.cells.faces(:)))';
    reindex(mfaces(:, 1)) = mfaces(:,2);
    G.cells.faces = reindex(G.cells.faces);
-   
 end
 
 %--------------------------------------------------------------------------

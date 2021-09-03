@@ -57,6 +57,7 @@ function build_mrst_path_tree
 
    m = fullfile(d, 'modules');
    p = split_path(genpath(d));
+
    % Remove octave_only folders from path
    oct_only = ~cellfun(@isempty, regexp(p, 'octave_only'));
 
@@ -68,6 +69,7 @@ function build_mrst_path_tree
    i = i | oct_only;
 
    addpath(p{~i});
+
    if mrstPlatform('octave')
        % If we are on Octave, we add in the octave_only paths at the end to
        % ensure that they can overwrite any of the core files where needed.
@@ -101,7 +103,7 @@ function activate_3rdparty_modules(mod_3rdparty)
    d          = rootdir();
    thirdparty = @(m) fullfile(d, 'utils', '3rdparty', m);
 
-   for mod = reshape(mod_3rdparty, 1, []),
+   for mod = reshape(mod_3rdparty, 1, [])
       mrstPath('add', mod{1}, thirdparty(mod{1}));
    end
 end
@@ -133,20 +135,23 @@ end
 
 %--------------------------------------------------------------------------
 
-function run_local
-   local = fullfile(rootdir, 'startup_user.m');
-
-   if exist(local, 'file') == 2
-      run(local);
-   end
+function run_local()
+   do_run_local(fullfile(rootdir(), 'startup_user.m'));
 end
+
+%--------------------------------------------------------------------------
 
 function run_platform_specific()
    if mrstPlatform('octave')
-       local = fullfile(rootdir, 'utils', 'octave_only', 'startup_octave.m');
+      do_run_local(fullfile(rootdir(), 'utils', ...
+                            'octave_only', 'startup_octave.m'));
+   end
+end
 
-       if exist(local, 'file') == 2
-          run(local);
-       end
+%--------------------------------------------------------------------------
+
+function do_run_local(local)
+   if exist(local, 'file') == 2
+      run(local);
    end
 end

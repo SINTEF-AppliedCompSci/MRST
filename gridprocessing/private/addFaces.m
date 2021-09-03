@@ -2,7 +2,8 @@ function [H, newfaces] = addFaces (G, facenodes, numnodes, neighbors, tags)
 %Add faces F from grid structure
 %
 % SYNOPSIS:
-%   H = addFaces(G, facenodes, numnodes, neighbors, tags)
+%   H             = addFaces(G, facenodes, numnodes, neighbors, tags)
+%   [H, newfaces] = addFaces(...)
 %
 % PARAMETERS:
 %   G       - Grid structure as described by grid_structure.
@@ -31,16 +32,11 @@ function [H, newfaces] = addFaces (G, facenodes, numnodes, neighbors, tags)
 %  newfaces - Numbering of new faces.
 %
 % COMMENTS:
-%  Cells may not be closed polygons/polyhedra after this call.
-%
-% SEE ALSO:
-%
+%   Cells may not be closed polygons/polyhedra after this call.
 
 % BUG
 %
 % o Does not preserve orientation in 2D
-
-
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -63,30 +59,35 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    assert(numel(numnodes) == size(neighbors, 1));
    assert(sum(numnodes) == numel(facenodes));
+
    G.faces.neighbors = [G.faces.neighbors; neighbors];
    %G.faces.tag       = [G.faces.tag; tags];
-   G.faces.nodes       = [G.faces.nodes; facenodes];
+   G.faces.nodes     = [G.faces.nodes; facenodes];
 
    numf        = numel(numnodes);
-   newfaces    = G.faces.num +(1:numf)';
-   G.faces.num = double(G.faces.num +numf);
+   newfaces    = G.faces.num + (1 : numf)';
+   G.faces.num = double(G.faces.num + numf);
    clear numf
 
-   if isfield(G.faces, 'numNodes'),
+   if isfield(G.faces, 'numNodes')
       G.faces.numNodes = [G.faces.numNodes; numnodes];
-      G.faces.nodePos =  cumsum([1;double(G.faces.numNodes)]);
+      G.faces.nodePos = cumsum([1; double(G.faces.numNodes)]);
    else
       G.faces.nodePos = cumsum([1; double(diff(G.faces.nodePos)); ...
-                                      double(numnodes)]);
+                                double(numnodes)]);
    end
 
-   faces     = repmat(newfaces, [2,1]);
-   k         = neighbors(:)~=0;
-   if nargin ==5, tags      = tags(k);end
+   faces = repmat(newfaces, [2,1]);
+   k     = neighbors(:) ~= 0;
+
+   if nargin == 5
+      tags = tags(k);
+   end
+
    faces     = faces(k);
    neighbors = neighbors(k);
 
-   if nargin == 4,
+   if nargin == 4
       [G.cells.faces,G.cells.facePos] = ...
          insertInPackedData(G.cells.facePos, G.cells.faces, ...
                             neighbors(:), faces(:));
@@ -95,8 +96,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          insertInPackedData(G.cells.facePos, G.cells.faces, ...
                             neighbors(:), [faces(:), tags(:)]);
    end
+
    % keep for the time being
-   if isfield(G.faces, 'tag'),
+   if isfield(G.faces, 'tag')
       G.faces.tag = [G.faces.tag; zeros(numel(numnodes), size(G.faces.tag, 2))];
    end
-   H=G;
+
+   H = G;
+end

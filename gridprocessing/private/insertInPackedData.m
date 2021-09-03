@@ -45,7 +45,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    new = tmp(:,2:end);
    t   = accumarray(r, 1, [n, 1]);
    num = diff(pos);
-   pos = cumsum([1;double(diff(pos))+t]);
+   pos = cumsum([1;double(num)+t]);
 
    r   = unique(r);
    ix  = mcolon(pos(r)+num(r), pos(r+1)-1);
@@ -55,4 +55,4 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    newData(i, :) = data;
    newData(ix,1:size(new,2)) = new;
    data = newData;
-
+end
