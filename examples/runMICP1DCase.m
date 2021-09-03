@@ -28,7 +28,7 @@ dw = 0.5;             % Size of the element for the well, m
 dl = 0.25;            % Size of the elements inside l, m
 % The values inside the exponent in the following line set how the coarsing
 % of the grid will be (they should be changed if the above values change).
-X = [0 dw dw + dl : dl : l  L * exp(-1.05 : 0.05 : 0)];
+X = [0 dw dw + dl : dl : l  L * exp(-1.075 : 0.025 : 0)];
 G = tensorGrid(X, [0 1], [0 1]);
 G = computeGeometry(G);
 C = ones(G.cells.num, 1);
@@ -80,20 +80,47 @@ fluid.K = @(poro) (K0 .* ((poro - fluid.crit) / (porosity - fluid.crit))...
 fluid.bO   = fluid.bW;
 fluid.rhoOS = fluid.rhoWS;
 
-%% Define the injection well, outflow boundary, and simulation schedule
-%
-% The components are injected from the left side of the aquifer.
+%% Injection strategy, well, outflow boundary, and simulation schedule
 
-% Create well
-Q = 2 / day;    % Injection rate, m^3/s
+% Set the injection strategy. Here we use two different time steps, one for
+% when the well is active (dt_on) and a larger one when the well is shut. 
+% (dt_off). This is store in the matrix M, where the entries per row are:
+% total time of phase injection [s], time step for the simulation schedule
+% [s], injection rate [m^3/s], microbial concentration [kg/m^3] 
+% (rate-limiting component in the microbial solution), oxygen concentration
+% [kg/m^3] (rate-limiting component in the growth solution), and urea 
+% concentration [kg/m^3] (rate-limiting component in the cementation
+% solution). The injection strategy in this example was set after running 
+% simulations and changuing manually the values to aim for permeability 
+% reduction c.a. 10 meters from the well; then one could use optimization 
+% methods to chose a better strategy.
+
+N = 9; % Number of injection phases in the injection strategy
+M = zeros(N, 6); % The entries per row are: time, dt, rate, m, o, and u.
+dt_on = 20 * minute; % Time step when the well is on
+dt_off = hour;  % Time step when the well is off
+
+M(1, :) = [20 * hour,   dt_on,  2 / day , 0.01, 0,      0];
+M(2, :) = [20 * hour,   dt_on,  2 / day , 0,    0,      0];
+M(3, :) = [100 * hour,  dt_off, 0       , 0,    0,      0];
+M(4, :) = [20 * hour,   dt_on,  2 / day , 0,    0.04,   0];
+M(5, :) = [20 * hour,   dt_on,  2 / day , 0,    0,      0];
+M(6, :) = [30 * hour,   dt_off, 0       , 0,    0,      0];
+M(7, :) = [20 * hour,   dt_on,  2 / day , 0,    0,     60];
+M(8, :) = [20 * hour,   dt_on,  2 / day , 0,    0,      0];
+M(9, :) = [30 * hour,   dt_off, 0       , 0,    0,      0];
+
+% Create injection well. The components are injected from the left side of 
+% the aquifer. Here we use entry M(1,3) in the inection strategy matrix to 
+% set the well injection rate. 
 r = 0.15;       % Well radius, m
-
-% Injector
 W = addWell([], G, rock, 1, 'Type', 'rate', 'Comp_i', [1, 0], ...
-                                                    'Val', Q, 'Radius', r);
-W.m = 0.01;  % Initial injected microbial concentration, kg/m^3
-W.o = 0;
-W.u = 0;
+                                              'Val', M(1, 3), 'Radius', r);
+% The MICP component fields need to be added to the well structure. We use 
+% the entries from the inection strategy matrix
+W.m = M(1, 4);      
+W.o = M(1, 5);
+W.u = M(1, 6);
 
 % If the injection well is on the boundary, the well cells are save in G
 % to correct the velocity field when computing dispersion/detachment (see
@@ -113,59 +140,30 @@ bc.u = zeros(size(bc.sat, 1), 1);
 bc.b = zeros(size(bc.sat, 1), 1);
 bc.c = zeros(size(bc.sat, 1), 1);
 
-% Setup some schedule. Here we use two different time steps, one for when
-% the well is active and a larger one when the well is shut. In this 
-% example the total time of the well active is 120 h and the total time for
-% simulation is 300 h.  
-dt_on = 20 * minute;
-dt_off = hour;
-nt = 120 * hour / dt_on + (300 - 120) * hour / dt_off;
-timesteps = repmat(dt_on, nt, 1);
-
-% Well different rates and times
-N = 8; % Number of injection changes
-M = zeros(N + 1, 5); % The entries per row are: time, rate, m, o, and u.
-M(1, 1) = 20 * hour / dt_on;              % Time of microbial injection, h
-M(1, 2) = Q;                              % Well is on, m^3/s
-M(2, 1) = M(1, 1) + 20 * hour / dt_on;    % Time of water injection, h
-M(2, 2) = 0;                              % Well is closed
-M(3, 1) = M(2, 1) + 100 * hour / dt_off;  % Time of closing of the well, h
-M(3, 2) = Q;                              % Well is on, m^3/s
-M(3, 4) = 0.04;                           % Oxygen concentration, kg/m^3
-M(4, 1) = M(3, 1) + 20 * hour / dt_on;    % Time of oxygen injection, h
-M(4, 2) = Q;                              % Well is on, m^3/s
-M(5, 1) = M(4, 1) + 20 * hour / dt_on;    % Time of water injection, h
-M(5, 2) = 0;                              % Well is closed
-M(6, 1) = M(5, 1) + 50 * hour / dt_off;   % Time of closing of the well, h
-M(6, 2) = Q;                              % Well is on, m^3/s
-M(6, 5) = 60;                             % Urea concentration, kg/m^3
-M(7, 1) = M(6, 1) + 20 * hour / dt_on;    % Time of urea injection, h
-M(7, 2) = Q;                              % Well is on, m^3/s
-M(8, 1) = M(7, 1) + 20 * hour / dt_on;    % Starting time for
-M(8, 2) = 0;                              % Well is closed
-M(9, 1) = M(8, 1) + 30 * hour / dt_on;    % Time left for the simulation, h
-
-% For making the schedule, we first call the 'simpleSchedule' function and
+% Setup some schedule. We first call the 'simpleSchedule' function and
 % after we edit the different entries using the M matrix containing the 
 % injection strategy.
+nt = sum(M(:, 1) ./ M(:, 2));  % Sum of injection times over time steps
+timesteps = repmat(dt_on, nt, 1);
 schedule = simpleSchedule(timesteps, 'W', W, 'bc', bc);
-for i = 1 : N
-    schedule.control(i + 1) = schedule.control(i);
-    schedule.step.control(M(i, 1) : end) = i + 1;
-    schedule.step.val(M(i, 1) : end) = (M(i, 2) == 0) * dt_off + ...
-                                                     (M(i, 2) > 0) * dt_on;
-    schedule.control(i + 1).W.val = M(i, 2);
-    schedule.control(i + 1).W.m = M(i, 3);
-    schedule.control(i + 1).W.o = M(i, 4);
-    schedule.control(i + 1).W.u = M(i, 5);
+for i = 2 : N 
+    schedule.control(i) = schedule.control(i - 1);
+    schedule.step.control(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
+                                                                  end) = i;
+    schedule.step.val(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
+                                                            end) = M(i, 2);
+    schedule.control(i).W.val = M(i, 3);
+    schedule.control(i).W.m = M(i, 4);
+    schedule.control(i).W.o = M(i, 5);
+    schedule.control(i).W.u = M(i, 6);
 end
 
 % We store the maximum injected oxygen and urea concentrations in the fluid
 % structure. They are use for the dynamical plotting of the solution (see
 % 'getPlotAfterStepMICP') and so that the computed oxygen and urea values 
 % are within these during the solution step (see 'MICPModel').
-fluid.Comax = max(M(:, 4));             
-fluid.Cumax = max(M(:, 5));               
+fluid.Comax = max(M(:, 5));             
+fluid.Cumax = max(M(:, 6));               
 
 %% Set up simulation model
 %
@@ -219,7 +217,7 @@ end
 
 %% Process the data
 % If Octave is used, then the results are printed in vtk format to be
-% visualize in Paraview and the 'return' command is executed as currently
+% visualized in Paraview and the 'return' command is executed as currently
 % it is not possible to run 'plotToolbar' in Octave.
 
 % Write the results to be read in ParaView (GNU Octave)
