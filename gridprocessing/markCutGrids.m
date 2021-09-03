@@ -87,18 +87,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
     else
-        % Use graph
+        % Remove the faces with specific faceStatus
         faces = (1:G.faces.num)';
         faces(faceStatus == opt.facesAlongPlane) = [];
 
         % Get neighboring cells
         neighs = G.faces.neighbors(faces, :);
         idx = all(neighs > 0, 2);
-        neighs = neighs(idx, :);
 
-        % Form adjacency matrix
-        g = graph(neighs(:,1), neighs(:,2));
-        m = conncomp(g)';
+        if any(idx)
+            neighs = neighs(idx, :);
+
+            % Form adjacency matrix
+            g = graph(neighs(:,1), neighs(:,2));
+            m = conncomp(g)';
+        else
+            % The cuts are the only internal faces
+            m = (1:G.cells.num)';
+        end
 
     end
 end
