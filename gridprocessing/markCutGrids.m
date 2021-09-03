@@ -12,7 +12,8 @@ function m = markCutGrids(G, faceStatus, varargin)
 %                     sliceGrid as [G, gix] = sliceGrid(...), then
 %                     faceStatus = gix.new.faces.
 %   facesAlongPlane - Optional number indicating faceStatus value of
-%                     the internal boundary. Default is 3.
+%                     the internal boundary. Default is 3, since this
+%                     is the default value in sliceGrid.m.
 %   legacy          - Optional force of older code without graph.
 %   start           - Legacy code requires starting position
 %
@@ -20,6 +21,10 @@ function m = markCutGrids(G, faceStatus, varargin)
 %   m - Vector with marked cells
 %
 % EXAMPLE:
+%   G = computeGeometry(cartGrid([5,4,3]);
+%   [G2, gix] = sliceGrid(G, [2,1,1], 'normal', [1,1,0]);
+%   m = markCutGrids(G2, gix.new.faces);
+%   plotCellData(G2, m), view(3)
 %
 % SEE ALSO: sliceGrid.m
 %
