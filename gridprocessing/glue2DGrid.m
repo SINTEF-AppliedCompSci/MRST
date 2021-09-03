@@ -97,7 +97,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Result array 'mergefaces' is m-by-2.
    mergefaces = identify_mergefaces(loop1, loop2, cnodes, G1_conformal.faces.num);
 
-   G = merge_all_faces(G, mergefaces);
+   if ~isempty(mergefaces)
+       G = merge_all_faces(G, mergefaces);
+   end
    
    %% Purging remaining, unused faces
    G = cleanup_unused_faces(G);
