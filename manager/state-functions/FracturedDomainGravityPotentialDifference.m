@@ -6,7 +6,7 @@ classdef FracturedDomainGravityPotentialDifference < StateFunction
     methods
         function gp = FracturedDomainGravityPotentialDifference(varargin)
             gp@StateFunction(varargin{:});
-            gp = gp.dependsOn('Density', 'FlowPropertyFunctions');
+            gp = gp.dependsOn('Density', 'PVTPropertyFunctions');
             if gp.saturationWeighting
                 gp = gp.dependsOn('s', 'state');
             end
