@@ -47,14 +47,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
   
     try
-        pth = fileparts(mfilename('fullpath'));
+        pth = getDatasetPath('norne_ensemble');
         norne=load(fullfile(pth,'data','NorneInitEns.mat'));
         assert(realNo<numel(norne.ensemble));
         data = norne.ensemble(realNo);
     catch
-
+        addpath(fullfile(pth,'data'));
         generateNorneEnsemble(max(50,realNo));
-
+        rmpath(fullfile(pth,'data'));
+        
         norne = load(fullfile(pth,'data','NorneInitEns.mat'));
         data  = norne.ensemble(realNo);
     end

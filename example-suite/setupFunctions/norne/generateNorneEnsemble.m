@@ -173,7 +173,8 @@ for I = 1:N
 end
 
 % Save the ensemble
-save(fullfile(fileparts(mfilename('fullpath')),'data','NorneInitEns.mat'), 'ensemble');
+
+save(fullfile(getDatasetPath('norne_ensemble'),'data','NorneInitEns.mat'), 'ensemble');
 
 
 %-----------------------------------------------

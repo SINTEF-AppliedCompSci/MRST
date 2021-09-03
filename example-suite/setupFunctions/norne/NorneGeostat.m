@@ -35,17 +35,15 @@ dim=[46,112,22]; % field dimension
 ldim=dim(1)*dim(2); % layer dimension
 norne.dim = dim;
 
-pth = fileparts(mfilename('fullpath'));
-
 % actnum
-str = fileread(fullfile(pth,'data','ACTNUM_0704.prop'));
+str = fileread('ACTNUM_0704.prop');
 matchStr = regexp(str,'(?<=ACTNUM)(.*)(?=/)','match');
 s = regexprep(matchStr{1},'\s+',' ');
 act = str2num(s)'; %#ok<*ST2NM>
 norne.actnum = act;
 
 % porosity
-str = fileread(fullfile(pth,'data','PORO_0704.prop'));
+str = fileread('PORO_0704.prop');
 matchStr = regexp(str,'(?<=PORO)(.*)(?=/)','match');
 s = regexprep(matchStr{1},'\s+',' ');
 p = str2num(s)'; %#ok<*ST2NM>
@@ -65,7 +63,7 @@ norne.poroUB=0.4;
 norne.poroRange=26;
 
 % permeability
-str = fileread(fullfile(pth,'data','PERM_0704.prop'));
+str = fileread('PERM_0704.prop');
 matchStr = regexp(str,'(?<=PERMX)(.*)(?=/)','match');
 s = regexprep(matchStr{1},'\s+',' ');
 k = str2num(s)';
@@ -109,7 +107,7 @@ norne.corrWithNextLayer=corrWithNextLayer';
 norne.poroPermxCorr=0.7; 
 
 % net-to-gross
-str = fileread(fullfile(pth,'data','NTG_0704.prop'));
+str = fileread('NTG_0704.prop');
 matchStr = regexp(str,'(?<=NTG)(.*)(?=/)','match');
 s = regexprep(matchStr{1},'\s+',' ');
 ntg = str2num(s)';
@@ -165,7 +163,7 @@ norne.zUB=0;
 norne.multzRange = 26;
 
 % fault multipliers
-str = fileread(fullfile(pth,'data','FAULTMULT_AUG-2006.INC'));
+str = fileread('FAULTMULT_AUG-2006.INC');
 matchStr = regexp(str,'''(.[^'']*)/','tokens');
 v = zeros(53,1);
 for I = 1:53
