@@ -2,7 +2,7 @@ mrstModule add example-suite ad-core ad-props ad-blackoil mrst-gui
 mrstVerbose on
 
 %% List examples
-listExamples();
+listExampleSuite();
 
 %% Get and plot example
 name = 'qfs_wo'; % Choose a name from the table

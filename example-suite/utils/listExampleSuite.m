@@ -1,4 +1,4 @@
-function listExamples()
+function examples = listExampleSuite()
     % List examples in suite
 
 %{
@@ -21,27 +21,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     pth = mrstPath('example-suite');
-    [names, desc] = getExamplesInPath(fullfile(pth, 'examples-mrst'));
+    
+    examples_mrst = getExamplesInPath(fullfile(pth, 'examples-mrst'),'MRST');
+    names = cellfun(@(x) x.name,examples_mrst,'UniformOutput',false);
+    desc = cellfun(@(x) x.description,examples_mrst,'UniformOutput',false);
     
     printTable(names, desc, 'MRST');
-    [names, desc] = getExamplesInPath(fullfile(pth, 'examples-user'));
-    if isempty(names)
+    
+    examples_user = getExamplesInPath(fullfile(pth, 'examples-user'),'USER-DEFINED');
+    
+    if isempty(examples_user)
         names = {'user_example'};
         desc  = {'No user-defined examples'};
+    else 
+        names = cellfun(@(x) x.name,examples_user,'UniformOutput',false);
+        desc = cellfun(@(x) x.description,examples_user,'UniformOutput',false);
     end
+     
     printTable(names, desc, 'USER-DEFINED');
+    examples = [examples_mrst; examples_user];
+    
 end
 
 %-------------------------------------------------------------------------%
-function [names, descriptions] = getExamplesInPath(pth)
+function examples = getExamplesInPath(pth,grp)
     list = dir(fullfile(pth, '*.m'));
     list = list(~[list.isdir]);
-    [names, descriptions] = deal(cell(numel(list),1));
+    examples = cell(numel(list),1);
     for i = 1:numel(list)
         name = list(i).name(1:end-2);
         desc = feval(name);
-        names{i} = name;
-        descriptions{i} = desc;
+        examples{i}.name = name;
+        examples{i}.description = desc;
+        examples{i}.group = grp;
     end
 end
 
