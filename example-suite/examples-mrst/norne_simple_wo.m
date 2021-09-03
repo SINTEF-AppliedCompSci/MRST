@@ -26,11 +26,12 @@ function  [description, options, state0, model, schedule, plotOptions] = norne_s
     description ...
             = ['The Norne field model used in the paper:  ', ...
                'Flow Diagnostics for Model Ensembles , https://doi.org/10.3997/2214-4609.202035133'];
-    % Module dependencies
-    require ad-core ad-props ad-blackoil
+    % Optional input arguments
     options = struct('realization', 1);
     options = merge_options(options, varargin{:});
     if nargout <= 2, return; end
+    % Module dependencies
+    require ad-core ad-props ad-blackoil
     % Get ensemble
     out      = setupNorneFn(options.realization); 
     state0   = out.state0;
