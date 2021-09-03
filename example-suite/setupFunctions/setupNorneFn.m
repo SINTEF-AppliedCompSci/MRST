@@ -54,9 +54,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     model = GenericBlackOilModel(G, rock, fluid, 'water', true, 'oil', true, 'gas', false, 'inputdata', deck);
 
     W = setupNorneWells(G,rock);    
-    timesteps = rampupTimesteps(12*year,1*year,0);
-    schedule = simpleSchedule(timesteps, 'W', W);
-    state0  = initState(G, W, 100*barsa, [0, 1]);
+    yr        = [31 28 31 30 31 30 31 31 30 31 30 31]*day;
+    lpyr      = repmat(yr',1,4); lpyr(2,4)=29;
+    timesteps = repmat(lpyr(:),3,1);
+    schedule  = simpleSchedule(timesteps, 'W', W);
+    state0    = initState(G, W, 100*barsa, [0, 1]);
     
     nonlinear = NonLinearSolver();
     

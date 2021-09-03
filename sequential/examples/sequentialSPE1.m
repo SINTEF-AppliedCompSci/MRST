@@ -8,7 +8,7 @@
 % pressure solution if the mobilities change significantly, in order to
 % convergence to the fully implicit solution.
 
-mrstModule add ad-core ad-blackoil ad-props sequential
+mrstModule add ad-core ad-blackoil ad-props sequential example-suite
 
 %% Set up the initial simulation model
 % We use the existing setupSPE1 routine to handle the setup of all
