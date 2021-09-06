@@ -47,12 +47,10 @@ end
 function examples = getExamplesInPath(pth,grp)
     list = dir(fullfile(pth, '*.m'));
     list = list(~[list.isdir]);
-    examples = cell(numel(list),1);
-    for i = 1:numel(list)
-        [~, name] = cellfun(@fileparts, {list.name}, 'UniformOutput', false);
-        desc = cellfun(@feval, name, 'UniformOutput', false);
-        examples = struct('name', name, 'description', desc, 'group', grp);
-    end
+
+    [~, name] = cellfun(@fileparts, {list.name}, 'UniformOutput', false);
+    desc = cellfun(@feval, name, 'UniformOutput', false);
+    examples = struct('name', name, 'description', desc, 'group', grp);
 end
 
 %-------------------------------------------------------------------------%
