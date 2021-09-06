@@ -23,8 +23,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     pth = mrstPath('example-suite');
     
     examples_mrst = getExamplesInPath(fullfile(pth, 'examples-mrst'),'MRST');
-    names = cellfun(@(x) x.name,examples_mrst,'UniformOutput',false);
-    desc = cellfun(@(x) x.description,examples_mrst,'UniformOutput',false);
+    names = {examples_mrst.name};
+    desc = {examples_mrst.description};
     
     printTable(names, desc, 'MRST');
     
@@ -34,12 +34,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         names = {'user_example'};
         desc  = {'No user-defined examples'};
     else 
-        names = cellfun(@(x) x.name,examples_user,'UniformOutput',false);
-        desc = cellfun(@(x) x.description,examples_user,'UniformOutput',false);
+        names = {examples_user.name};
+        desc = {examples_user.description};
     end
      
     printTable(names, desc, 'USER-DEFINED');
-    examples = [examples_mrst; examples_user];
+    examples = [examples_mrst, examples_user];
     
 end
 
@@ -49,11 +49,9 @@ function examples = getExamplesInPath(pth,grp)
     list = list(~[list.isdir]);
     examples = cell(numel(list),1);
     for i = 1:numel(list)
-        name = list(i).name(1:end-2);
-        desc = feval(name);
-        examples{i}.name = name;
-        examples{i}.description = desc;
-        examples{i}.group = grp;
+        [~, name] = cellfun(@fileparts, {list.name}, 'UniformOutput', false);
+        desc = cellfun(@feval, name, 'UniformOutput', false);
+        examples = struct('name', name, 'description', desc, 'group', grp);
     end
 end
 
