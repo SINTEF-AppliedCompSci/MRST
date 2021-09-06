@@ -31,7 +31,7 @@ m = ModelEnsemble('egg', 'nMembers', 50, 'setupFn', @setupEggFn);
 
 % Input to the diagnostics viewer is generated using the ensemble class
 % setup function.
-realizations = [1:10];
+realizations = 1:10;
 
 [models, wells] = deal(cell(1, numel(realizations)));
 for k = 1: numel(realizations)
