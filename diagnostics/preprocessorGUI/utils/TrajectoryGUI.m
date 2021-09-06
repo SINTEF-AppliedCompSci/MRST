@@ -118,12 +118,6 @@ classdef TrajectoryGUI < handle
             ssel.Callback        = @d.sliceControlCallback;
             psel.Callback        = @d.propertySelectorCallback;
             xsel.Callback        = @d.proxySelectorCallback;
-               
-            if ~hasObj
-                d.proxySelector.Visible = 'off';
-            else
-                d.Axes(3) = axes('Parent', d.Figure, 'Units', 'pixels');
-            end
             
             d.Figure.SizeChangedFcn        = @d.layout;
             d.layout();
@@ -134,6 +128,12 @@ classdef TrajectoryGUI < handle
             d.sliceSelector = ssel;
             d.propertySelector = psel;
             d.proxySelector = xsel;
+            
+            if ~hasObj
+                d.proxySelector.Visible = 'off';
+            else
+                d.Axes(3) = axes('Parent', d.Figure, 'Units', 'pixels');
+            end
             
             % run callback for first selection
             d.wellSelectorCallback();
