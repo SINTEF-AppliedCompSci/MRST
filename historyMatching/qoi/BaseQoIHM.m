@@ -146,11 +146,38 @@ classdef BaseQoIHM
                          'clearFigure', true       , ...
                          'plotObservation', true   , ...
                          'plotTruth', false        , ...
-                         'legend'     , {{}} );
+                         'legend'     , {{}}       , ...
+                         'plotWells'  , []         , ...
+                         'alreadyOpenFigures', 0);
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u_var, u]  = qoi.getQoIMean(opt.range);
             numQoIs      = numel(u_mean);
             numSubQoIs   = numel(fieldnames(u_mean)) - 1;
+            
+            % The plotWells parameter is a boolean structure to show which
+            % wells and which fields should be plotted. Should follow the
+            % same structure as the qoi. If empty, we create an all true
+            % structure:
+            if isempty(opt.plotWells)
+                for w = 1:numQoIs
+                    for f = 1:numel(qoi.names)
+                        opt.plotWells(w).(qoi.names{f}) = true;
+                    end
+                end
+            end
+            % Make similar structure to keep track of figure IDs
+            figIds = [];
+            figIdCounter = opt.alreadyOpenFigures + 1; 
+            for w = 1:numQoIs
+                for f = 1:numel(qoi.names)
+                    if opt.plotWells(w).(qoi.names{f})
+                        figIds(w).(qoi.names{f}) = figIdCounter;
+                        figIdCounter = figIdCounter + 1;
+                    else
+                        figIds(w).(qoi.names{f}) = 0;
+                    end
+                end
+            end
                         
             plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u(i).(qoi.names{k}), ...
                     'cellNo', i, 'subCellNo', k, varargin{:});
@@ -177,7 +204,10 @@ classdef BaseQoIHM
                     if opt.subplots
                         figureId = k;
                     else
-                        figureId = (i-1)*numSubQoIs + k;
+                        if ~opt.plotWells(i).(qoi.names{k})
+                            continue;
+                        end
+                        figureId = figIds(i).(qoi.names{k});
                     end
                     if isnan(h(figureId))
                         h(figureId) = qoi.figure(ensemble);
