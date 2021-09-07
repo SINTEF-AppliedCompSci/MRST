@@ -11,6 +11,8 @@
 % 
 % Note that this example builds heavily on the ensemble module in MRST, and
 % could just as well have been placed in that module. 
+%
+% This example was first introduced in MRST 2021b.
 
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
@@ -18,7 +20,7 @@ mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
 
 mrstVerbose off
 
-warning('This example requires some time to run')
+warning('This example requires some time to run.')
 
 % Some options for running the example
 rerunReferenceModel = false; 
@@ -49,10 +51,10 @@ referenceExample = MRSTExample('egg_wo', 'realization', referenceEggRealization)
 % We consider only the first 48 time steps from the reference model, since
 % most of the model dynamics play out during that periode.
 numTotalTimesteps = 48;
-%referenceExample.schedule = simpleSchedule(referenceExample.schedule.step.val(1:48), ...
-%                                           'W', referenceExample.schedule.control.W);
+
 referenceExample.schedule = simpleSchedule(referenceExample.schedule.step.val(5:53), ...
                                            'W', referenceExample.schedule.control.W);
+                                       
 referenceProblem = referenceExample.getPackedSimulationProblem('Directory', referenceDirectory);
 
 if rerunReferenceModel
@@ -122,6 +124,7 @@ truthResultHandler{1} = {referenceObservations};
 % The model is structured according to the MRSTExample class, which
 % integrates directly into the ensemble module.
 % For details, see the function injector_to_producer_network.m
+
 baseNetworkModel = MRSTExample('injector_to_producer_network', ...
                                'cellsPerConnection', 10, ...
                                'referenceExample', referenceExample, ...
@@ -182,6 +185,7 @@ if exist(initParamFile, 'file') && ~regenerateInitialEnsemble
     
 else
     % Use flow diagnostic analysis to obtain initial parameters
+    fprintf('Running flow diagnostics analysis. This may take some time.');
     
     % Start with values that correspond to "closed" connections only.
     transmissibilities = ones(numel(eggRealizations), numConnections).*transMin;
@@ -250,7 +254,7 @@ else
             connection = tmpNetwork.network.Edges(connectionID,:);
             inj  = connection.EndNodes(1);
             prod = connection.EndNodes(2);
-            %[inj, prod, (numProducers*(inj-1) + prod-numInjectors)]
+
             rowInFullNetwork = numProducers*(inj-1) + prod-numInjectors;
             
             transmissibilities(eggRealization, rowInFullNetwork) = connection.Transmissibility;
@@ -347,19 +351,39 @@ qoi = WellQoIHM('wellNames', wellNames, ...
 % consists of the baseExample that defines everything all the ensemble
 % members have in common (geological model, grid, fluid, simulation
 % methods, and so on). We also specify the alpha parameters for ES-MDA,
-% choose parallel simulation strategy, etc.
+% choose parallel simulation strategy, etc. More information about input
+% parameters can be found in the base class MRSTEnsemble.m.
+
+% The maxWorkers argument determines the maximum number of simultaneous 
+% processes which will be used to simulate the ensemble. Increasing this
+% number will increase the number of processes used, but care must be taken
+% to ensure that your computer is capable of handling this number of 
+% processes. Specifying too high a number will result in high memory usage 
+% which could drastically slow down your computer.
 
 ensemble = MRSTHistoryMatchingEnsemble(baseNetworkModel, samples, qoi, ...
     'alpha', [28/3 7 4 2], ...
     'directory', historyMatchingDirectory, ...
     'simulationStrategy', 'spmd', ...
-    'maxWorkers', 8, ...
+    'maxWorkers', 2, ...
     'reset', true, ...
     'verbose', true, ...
     'verboseSimulation', false);
 
 %% Run prior ensemble 
-ensemble.simulateEnsembleMembers('progressTitle', 'Simulating prior ensemble');
+% Running simulations for all ensemble members will take a long time,
+% prompt the user before beginning simulations. 
+
+prompt = sprintf(['Do you want to simulate %d ensemble members?',...
+                  '\nThis action may take a long time. y/n [n]: '], ...
+                  ensemble.num);
+str = input(prompt,'s');
+if ~strcmpi(str, 'y')
+    fprintf(['\nSimulations will not be run. \nYou will need to run ',...
+    'these simulations for the rest of the example to work.\n']);
+else
+    ensemble.simulateEnsembleMembers('progressTitle', 'Simulating prior ensemble');
+end
 
 %% Configure the schedule used during history matching
 % During the calibration, we only use every second observation, and we only
@@ -374,26 +398,32 @@ ensemble.updateHistoryMatchingInterval(observationIndices);
 % This function performs ES-MDA updates with the relaxation parameters
 % given as 'alpha' to the ensemble, running intermediate ensemble 
 % simulations as it goes.
-ensemble.doHistoryMatching()
+
+prompt = sprintf(['Do you want to run history matching for %d ensemble members?',...
+                  '\nThis action may take a long time. y/n [n]: '], ...
+                  ensemble.num);
+str = input(prompt,'s');
+if ~strcmpi(str, 'y')
+    fprintf(['\nHistory matching will not be run. \nYou will need to run ',...
+    'the history matching for the rest of the example to work\n']);
+else
+    ensemble.doHistoryMatching()
+end
 
 %% Run the posterior ensemble using the calibrated parameters
 % We specify that we want to run the posterior for the complete simulation
 % time span.
-ensemble.updateHistoryMatchingInterval(1:totalNumberOfTimesteps);
-ensemble.simulateEnsembleMembers('progressTitle', 'Simulating posterior ensemble');
 
-%% Plot prior and posterior ensemble results
-if true
-    close all
-    disp('Plotting in progress, please wait...');
-    ensemble.plotQoI('subplots', false, 'clearFigure', false, ...
-        'cmapName', 'lines', ...
-        'plotTruth', true, ...
-        'subIterations', true, ...
-        'observationIndices', observationIndices, ...
-        'legend', {'observations', 'truth', 'posterior mean', 'ES-MDA it 3',...
-                   'ES-MDA it 2', 'ES-MDA it 1', 'prior mean'});
-    disp('Plotting completed');
+prompt = sprintf(['Do you want to simulate %d ensemble members?',...
+                  '\nThis action may take a long time. y/n [n]: '], ...
+                  ensemble.num);
+str = input(prompt,'s');
+if ~strcmpi(str, 'y')
+    fprintf(['\nSimulations will not be run.\nYou will need to run ',...
+    'these simulations for the rest of the example to work.\n']);
+else
+    ensemble.updateHistoryMatchingInterval(1:totalNumberOfTimesteps);
+    ensemble.simulateEnsembleMembers('progressTitle', 'Simulating posterior ensemble');
 end
 
 
@@ -414,19 +444,18 @@ plotWells(5).bhp = true;
 plotWells(12).qOs = true;
 plotWells(12).qWs = true;
 
-% To plot all injector bhp and all producer rates, use this:
-if false
-    for w = 1:numWells
-        if w < 9
-            plotWells(w).bhp = true;
-        else
-            plotWells(w).qOs = true;
-            plotWells(w).qWs = true;
-        end
-    end
-end
+% To plot all injector bhp and all producer rates, uncomment the following
+% lines:
+% for w = 1:numWells
+%     if w < 9
+%         plotWells(w).bhp = true;
+%     else
+%         plotWells(w).qOs = true;
+%         plotWells(w).qWs = true;
+%     end
+% end
 
-%close all
+close all
 disp('Plotting in progress, please wait...');
 ensemble.plotQoI('subplots', false, 'clearFigure', false, ...
     'cmapName', 'lines', ...
@@ -438,4 +467,29 @@ ensemble.plotQoI('subplots', false, 'clearFigure', false, ...
                'ES-MDA it 2', 'ES-MDA it 1', 'prior mean'});
 disp('Plotting completed');
 
-
+%%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
