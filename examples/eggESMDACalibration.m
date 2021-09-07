@@ -20,7 +20,7 @@ mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
 
 mrstVerbose off
 
-warning('This example requires some time to run')
+warning('This example requires some time to run.')
 
 % Some options for running the example
 rerunReferenceModel = false; 
@@ -185,6 +185,7 @@ if exist(initParamFile, 'file') && ~regenerateInitialEnsemble
     
 else
     % Use flow diagnostic analysis to obtain initial parameters
+    fprintf('Running flow diagnostics analysis. This may take some time.');
     
     % Start with values that correspond to "closed" connections only.
     transmissibilities = ones(numel(eggRealizations), numConnections).*transMin;
@@ -350,7 +351,8 @@ qoi = WellQoIHM('wellNames', wellNames, ...
 % consists of the baseExample that defines everything all the ensemble
 % members have in common (geological model, grid, fluid, simulation
 % methods, and so on). We also specify the alpha parameters for ES-MDA,
-% choose parallel simulation strategy, etc.
+% choose parallel simulation strategy, etc. More information about input
+% parameters can be found in the base class MRSTEnsemble.m.
 
 % The maxWorkers argument determines the maximum number of simultaneous 
 % processes which will be used to simulate the ensemble. Increasing this
@@ -377,8 +379,8 @@ prompt = sprintf(['Do you want to simulate %d ensemble members?',...
                   ensemble.num);
 str = input(prompt,'s');
 if ~strcmpi(str, 'y')
-    fprintf(['\nSimulations will not be run. \nThis may prevent subsequent ',...
-    'parts of the example from running properly.\n']);
+    fprintf(['\nSimulations will not be run. \nYou will need to run ',...
+    'these simulations for the rest of the example to work.\n']);
 else
     ensemble.simulateEnsembleMembers('progressTitle', 'Simulating prior ensemble');
 end
@@ -402,8 +404,8 @@ prompt = sprintf(['Do you want to run history matching for %d ensemble members?'
                   ensemble.num);
 str = input(prompt,'s');
 if ~strcmpi(str, 'y')
-    fprintf(['\nHistory matching will not be run. \nThis may prevent subsequent ',...
-    'parts of the example from running properly.\n']);
+    fprintf(['\nHistory matching will not be run. \nYou will need to run ',...
+    'the history matching for the rest of the example to work\n']);
 else
     ensemble.doHistoryMatching()
 end
@@ -417,8 +419,8 @@ prompt = sprintf(['Do you want to simulate %d ensemble members?',...
                   ensemble.num);
 str = input(prompt,'s');
 if ~strcmpi(str, 'y')
-    fprintf(['\nSimulations will not be run. \nThis may prevent subsequent ',...
-    'parts of the example from running properly.\n']);
+    fprintf(['\nSimulations will not be run.\nYou will need to run ',...
+    'these simulations for the rest of the example to work.\n']);
 else
     ensemble.updateHistoryMatchingInterval(1:totalNumberOfTimesteps);
     ensemble.simulateEnsembleMembers('progressTitle', 'Simulating posterior ensemble');
