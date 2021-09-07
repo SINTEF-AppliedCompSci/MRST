@@ -371,6 +371,13 @@ ensemble = MRSTHistoryMatchingEnsemble(baseNetworkModel, samples, qoi, ...
     'verboseSimulation', false);
 
 %% Run prior ensemble 
+% If simulations are run in parallel (i.e. maxWorkers > 1) but you do not
+% have the MATLAB Parallel toolbox, then maxWorkers number of individual
+% MATLAB processes will be started in the background. These processes will
+% be killed automatically when the simulation is finished, however, if the
+% simulation fails then you will need to manually kill these processes via
+% your system task manager.
+
 % Running simulations for all ensemble members will take a long time,
 % prompt the user before beginning simulations. 
 
