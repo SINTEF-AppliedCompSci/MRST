@@ -138,7 +138,7 @@ rock_matrix = makeRock(G, rock.Km, rock.phim);
 
 
 %% Plot the upscaled fracture permeabilities and shape factors together with the fracture geometry 
-plot_rock = false;
+plot_rock = true;
 if plot_rock
     fracsfile = 'geiger_fracs.csv';
     fid = fopen(fracsfile);
@@ -168,11 +168,12 @@ if plot_rock
 
     % Plot the upscaled properties
     for k = 1:3
-        figure(k)
+        subplot(2, 2, k)
         plotCellData(G, rock_fracture.perm(:,k)/darcy,  'EdgeColor', 'none')
     end
-    figure(4)
-    plotCellData(G, rock.smin,  'EdgeColor', 'none')
+    subplot(2, 2, 4)
+    % Plot the dimensionless shape factor
+    plotCellData(G, rock.smin.*vb,  'EdgeColor', 'none')
 
     % Plot the fracture geometry
     tit = {'Upscaled fracture K_{xx} (D)', ...
@@ -180,7 +181,7 @@ if plot_rock
            'Upscaled fracture K_{yy} (D)', ...
            'Shape factor'};
     for k = 1:4
-        figure(k)
+        subplot(2, 2, k)
         hold on
         for i = 1:Nseg
            hh = line([SegXStart(i) SegXMid(i) SegXEnd(i)], ...
@@ -234,15 +235,16 @@ end
 
 % Reference solutions for cumulative produced oil and water volumes
 timescale = day;
-figure(5)
-plot(t/timescale, Qo_p, '-k')
+figure(2)
+subplot(2, 1, 1)
+plot(t/timescale, Qo_p, '-b')
 hold on
 xlabel('Time');
 ylabel('Produced oil volume (m3)')
 title('Produced oil volume')
 
-figure(6)
-plot(t/timescale, Qw_p, '-k')
+subplot(2, 1, 2)
+plot(t/timescale, Qw_p, '-b')
 hold on
 xlabel('Time');
 ylabel('Produced water volume (m3)')
@@ -444,13 +446,17 @@ for i = 1:nSteps
     state.Qo_o = Qo_o;
 
     % Plot the DPDP results together with the reference DFM solutions
-    figure(5)
+    subplot(2, 1, 1)
     hold on
-    plot([time_prev state.time]/timescale, [Qo_o_prev Qo_o], 'b')  
+    plot([time_prev state.time]/timescale, [Qo_o_prev Qo_o], 'r')
+    if i == 1, legend('Fine-scale simulation', 'MRST'); end
     
-    figure(6)
+    subplot(2, 1, 2)
     hold on
-    plot([time_prev state.time]/timescale, [Qw_o_prev Qw_o], 'b')  
+    plot([time_prev state.time]/timescale, [Qw_o_prev Qw_o], 'r')  
+    if i == 1, legend('Fine-scale simulation', 'MRST'); end
+    
+    drawnow
     
     time_prev = state.time;
     Qw_o_prev = Qw_o;   
