@@ -96,8 +96,9 @@ function [pass] = testEDFMNFR()
     fprintf('Number of nonplanar sets in sets 1 and 2 are : %d and %d respectively\n',...
         numel(nonPlanarSets1),numel(nonPlanarSets2));
 
-    figure; 
-    if (opt.shouldPlot) %ADFNE Plot funcs     
+     
+    if (opt.shouldPlot) %ADFNE Plot funcs  
+
         try      
         % Plot stereonet if ADFNE is available
             figure;          

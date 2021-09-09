@@ -155,7 +155,7 @@ function [pass] = testSorption()
         W1(wi).components = info.initial;
     end
 
-    totTime = 15*year;
+    totTime = 2*year;
     nSteps = 15;
     dt = rampupTimesteps(totTime, 30*day, nSteps);
 

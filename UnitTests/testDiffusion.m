@@ -166,7 +166,7 @@ function [pass] = testDiffusion()
         W1(wi).components = info.initial;
     end
 
-    totTime = 1*year;
+    totTime = 2*year;
     nSteps = 15;
     dt = rampupTimesteps(totTime, 30*day, nSteps);
 
@@ -212,6 +212,7 @@ function [pass] = testDiffusion()
     schedule2= simpleSchedule(dt, 'W', W2);
 
     [ws2, states2, reports2] = simulateScheduleAD(state2, model, schedule2, 'Verbose', true);
+    
     
     %% compare with reference solution
     load('ws1diff.mat')
