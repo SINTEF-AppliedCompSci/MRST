@@ -3,8 +3,9 @@ function [a,b] = elasticModuloTransform(c,d,from,to)
 %http://en.wikipedia.org/wiki/Lam%C3%A9_parameters
 
 %{ 
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics
-%} 
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+%}
+
 if(strcmp(from,'E_nu') && strcmp(to,'lam_mu'))
     E=c;nu=d;
     lam=E.*nu./((1+nu).*(1-2*nu));
@@ -22,4 +23,3 @@ else
 end
 
 end
-

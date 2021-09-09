@@ -1,8 +1,10 @@
 function [cno, nno, hfno, fno,w]  = createVEMappings(g)
+%Undocumented Utilty Function
 
 %{ 
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics
-%} 
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+%}
+
    %% Create mapping from sub-half-face to cell, node, face, half-face and
    %% sub-face
    cellno   = rldecode(1:g.cells.num, diff(g.cells.facePos), 2) .';

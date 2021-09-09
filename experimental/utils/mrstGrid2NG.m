@@ -1,9 +1,10 @@
 function geometry=mrstGrid2NG(G)
-
+%Undocumented Utility Function
 
 %{ 
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics
-%} 
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+%}
+
 geometry = struct(); 
 geometry.Nc = G.cells.num;
 geometry.Nf = G.faces.num;
