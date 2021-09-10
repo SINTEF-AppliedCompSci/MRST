@@ -45,8 +45,8 @@ function G = pMatFracNNCs3D(G,tol, varargin)
         distRight = norm(faceCentroids(2,:)-fraccellcentroid);
         distFront = norm(faceCentroids(3,:)-fraccellcentroid);
         distBack = norm(faceCentroids(4,:)-fraccellcentroid);
-        distBottom = norm(faceCentroids(5,:)-fraccellcentroid);
-        distTop = norm(faceCentroids(6,:)-fraccellcentroid);
+        distTop = norm(faceCentroids(5,:)-fraccellcentroid);
+        distBottom = norm(faceCentroids(6,:)-fraccellcentroid);
         
         isEquiDist = zeros(3,1); %initialize isEquiDist to 0 in all 3 directions
         projectionCell = zeros(3,1); %initialize selected projection cell in all 3 directions
@@ -100,14 +100,14 @@ function G = pMatFracNNCs3D(G,tol, varargin)
             isEquiDist(2) = 1;
         end
 
-        if (distBottom+tol)<distTop 
-            %bottom
+        if (distTop+tol)<distBottom 
+            %top
             currFaceID = 5;
             faceSelected(currFaceID) = 1;                        
             localIdx = 3*(i-1)+ceil(currFaceID/2);
             p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);  
-        elseif (distTop+tol)<distBottom
-            %top
+        elseif (distBottom+tol)<distTop
+            %bottom
             currFaceID = 6;
             faceSelected(currFaceID) = 1;                        
             localIdx = 3*(i-1)+ceil(currFaceID/2);
@@ -154,11 +154,11 @@ function G = pMatFracNNCs3D(G,tol, varargin)
             idx1to6 = 2*(equiDistDir-1)+idxMaxDist;
 %             localIdxNonEqui = 3*(i-1)+selectedDir;
             if (idxMaxDist==1)
-                %this means cell to the left, front or bottom is selected      
+                %this means cell to the left, front or top is selected      
                 projectionCell(equiDistDir) = projectionCells(idx1to6,1);         
                 p.MMneighs(localIdxEqui,:) = [projectionCell(equiDistDir),mcells(i,1)];
             elseif (idxMaxDist==2)
-                %this means cell to the right, back or top is selected
+                %this means cell to the right, back or bottom is selected
                 projectionCell(equiDistDir) = projectionCells(idx1to6,2);         
                 p.MMneighs(localIdxEqui,:) = [mcells(i,1), projectionCell(equiDistDir)];
             else
@@ -198,17 +198,17 @@ function G = pMatFracNNCs3D(G,tol, varargin)
             %selected left face at the selected node at index idxMaxDist
             if (selectedDir==1)              
                 if (idxMaxDist==1)
-                    %select front and bottom 
+                    %select front and top 
                     %front
                     currFaceID = 3;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                    %bottom
+                    %top
                     currFaceID = 5;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells); 
                 elseif (idxMaxDist==2)
-                    %select back and bottom
+                    %select back and top
                     %back
                     currFaceID = 4;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
@@ -218,24 +218,24 @@ function G = pMatFracNNCs3D(G,tol, varargin)
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
                 elseif (idxMaxDist==3)
-                    %select back and top
+                    %select back and bottom
                     %back
                     currFaceID = 4;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                    %top
+                    %bottom
                     currFaceID = 6;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
                     
                 elseif (idxMaxDist==4)
-                    %select front and top
+                    %select front and bottom
                     %front
                     currFaceID = 3;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                    %top
-                    currFaceID =6;                        
+                    %bottom
+                    currFaceID = 6;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells); 
                 else
@@ -244,42 +244,42 @@ function G = pMatFracNNCs3D(G,tol, varargin)
                 
             elseif (selectedDir==2)
                 if (idxMaxDist==1)
-                    %select left and bottom 
+                    %select left and top 
                     %left
                     currFaceID = 1;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                    %bottom
+                    %top
                     currFaceID = 5;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
                 elseif (idxMaxDist==2)
-                    %select left and top
+                    %select left and bottom
                     %left 
                     currFaceID = 1;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                    %top
+                    %bottom
                     currFaceID = 6;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
                 elseif (idxMaxDist==3)
-                    %select right and top
-                    %right
-                    currFaceID = 2;                        
-                    localIdx = 3*(i-1)+ceil(currFaceID/2);
-                    p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                    %top
-                    currFaceID = 6;                        
-                    localIdx = 3*(i-1)+ceil(currFaceID/2);
-                    p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                elseif (idxMaxDist==4)
                     %select right and bottom
                     %right
                     currFaceID = 2;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
                     %bottom
+                    currFaceID = 6;                        
+                    localIdx = 3*(i-1)+ceil(currFaceID/2);
+                    p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
+                elseif (idxMaxDist==4)
+                    %select right and top
+                    %right
+                    currFaceID = 2;                        
+                    localIdx = 3*(i-1)+ceil(currFaceID/2);
+                    p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
+                    %top
                     currFaceID = 5;                        
                     localIdx = 3*(i-1)+ceil(currFaceID/2);
                     p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
@@ -368,44 +368,44 @@ function G = pMatFracNNCs3D(G,tol, varargin)
                     %compute nnc data for the other two sides that meet with the
                     %selected left face at the selected node at index idxMaxDist
                     if (idxMaxDist==1)
-                        %select front and bottom 
-                        %front
-                        currFaceID = 3;                        
-                        localIdx = 3*(i-1)+ceil(currFaceID/2);
-                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                        %bottom
-                        currFaceID = 5;                        
-                        localIdx = 3*(i-1)+ceil(currFaceID/2);
-                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells); 
-                    elseif (idxMaxDist==2)
-                        %select back and bottom
-                        %back
-                        currFaceID = 4;                        
-                        localIdx = 3*(i-1)+ceil(currFaceID/2);
-                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                        %bottom
-                        currFaceID = 5;                        
-                        localIdx = 3*(i-1)+ceil(currFaceID/2);
-                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                        
-                    elseif (idxMaxDist==3)
-                        %select back and top
-                        %back
-                        currFaceID = 4;                        
-                        localIdx = 3*(i-1)+ceil(currFaceID/2);
-                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                        %top
-                        currFaceID = 6;                        
-                        localIdx = 3*(i-1)+ceil(currFaceID/2);
-                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
-                        
-                    elseif (idxMaxDist==4)
                         %select front and top
                         %front
                         currFaceID = 3;                        
                         localIdx = 3*(i-1)+ceil(currFaceID/2);
                         p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
                         %top
+                        currFaceID = 5;                        
+                        localIdx = 3*(i-1)+ceil(currFaceID/2);
+                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells); 
+                    elseif (idxMaxDist==2)
+                        %select back and top
+                        %back
+                        currFaceID = 4;                        
+                        localIdx = 3*(i-1)+ceil(currFaceID/2);
+                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
+                        %top
+                        currFaceID = 5;                        
+                        localIdx = 3*(i-1)+ceil(currFaceID/2);
+                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
+                        
+                    elseif (idxMaxDist==3)
+                        %select back and bottom
+                        %back
+                        currFaceID = 4;                        
+                        localIdx = 3*(i-1)+ceil(currFaceID/2);
+                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
+                        %bottom
+                        currFaceID = 6;                        
+                        localIdx = 3*(i-1)+ceil(currFaceID/2);
+                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
+                        
+                    elseif (idxMaxDist==4)
+                        %select front and bottom
+                        %front
+                        currFaceID = 3;                        
+                        localIdx = 3*(i-1)+ceil(currFaceID/2);
+                        p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
+                        %bottom
                         currFaceID = 6;                        
                         localIdx = 3*(i-1)+ceil(currFaceID/2);
                         p = prepareFaceCalcs(p,localIdx,G,mcells(i,:),fracMatAreas(i),currFaceID, projectionCells);
@@ -421,7 +421,7 @@ function G = pMatFracNNCs3D(G,tol, varargin)
                     faceSelected(3) = 1;
                 case 'bottom'
                     isEquiDist(3) = 0; %randomly select bottom side as the selected side
-                    faceSelected(5) = 1;
+                    faceSelected(6) = 1;
                     
                     selectedDir = find(~isEquiDist); %non-equidistant face direction from frac centroid
                     projFaceIdx = find(faceSelected); %index of the selected projection face
@@ -438,8 +438,8 @@ function G = pMatFracNNCs3D(G,tol, varargin)
 
                     %compute nnc data for the randomly selected bottom face
                     localIdxEqui = 3*(i-1)+selectedDir;     
-                    projectionCell(selectedDir) = projectionCells(5,1);         
-                    p.MMneighs(localIdxEqui,:) = [projectionCell(selectedDir),mcells(i,1)];
+                    projectionCell(selectedDir) = projectionCells(6,2);         
+                    p.MMneighs(localIdxEqui,:) = [mcells(i,1), projectionCell(selectedDir)];
                     p.MFcells(localIdxEqui,:) = [projectionCell(selectedDir), mcells(i,2)];
                     [p.Type{localIdxEqui}, p.Area(localIdxEqui), p.Trans(localIdxEqui), p.Dir(localIdxEqui)] = ...
                             computeNNCprojArea_n_Trans(G,p.MMneighs(localIdxEqui,:),p.MFcells(localIdxEqui,:),mcells(i,:),fracMatAreas(i));
@@ -507,6 +507,8 @@ function G = pMatFracNNCs3D(G,tol, varargin)
     
     toc
     
+    G.nnc.T = [G.nnc.T; p.Trans];
+    
     %Modification to remove projection matrices on domain boundaries
     idx2keep = all(p.MMneighs~=0, 2);
     p.MMneighs = p.MMneighs(idx2keep,:);
@@ -515,8 +517,6 @@ function G = pMatFracNNCs3D(G,tol, varargin)
     p.Area = p.Area(idx2keep,:);
     p.Dir = p.Dir(idx2keep,:);
     
-    p.Trans = p.Trans(idx2keep,:);
-    G.nnc.T = [G.nnc.T; p.Trans];
     
     %% Compute union area
     %Code to extract the nodes of a list of cells (lines 68-74 in EDFMgrid.m)
@@ -594,7 +594,7 @@ function [pType, pArea, pTrans, projDir] = computeNNCprojArea_n_Trans(G,pMMneigh
         dist_pMF = norm(G.cells.centroids(pMFcells(1),:)-G.cells.centroids(mcells(2),:));
 %       K_MpF = 2.0*G.rock.perm(pMFcells(localIdx,1))*G.rock.perm(pMFcells(localIdx,2))/(G.rock.perm(pMFcells(localIdx,1))+G.rock.perm(pMFcells(localIdx,2)));
 %        K_pMF = harmmean(G.rock.perm(pMFcells));
-        K_pMF = length(pMFcells)/sum(1./G.rock.perm(pMFcells)); %is this right?
+        K_pMF = length(pMFcells)/sum(1./G.rock.perm(pMFcells));
         pTrans = K_pMF*pArea/dist_pMF; %pTrans is T_pM-F
         projDir = find(G.faces.normals(globalIdx4pMM,:));
     else
@@ -610,12 +610,12 @@ end
 
 function [p] = prepareFaceCalcs(p,localIdx,G,mcells,fracMatArea,currFaceID,projectionCells)                  
     if (mod(currFaceID,2)==1)
-        %this means cell to the left, front or bottom is selected
+        %this means cell to the left, front or top is selected
         projectionCell = projectionCells(currFaceID, 1);
         p.MFcells(localIdx,:) = [projectionCell, mcells(2)];
         p.MMneighs(localIdx,:) = [projectionCell, mcells(1)];
     else
-        %this means cell to the right, back or top is selected
+        %this means cell to the right, back or bottom is selected
         projectionCell = projectionCells(currFaceID, 2);
         p.MFcells(localIdx,:) = [projectionCell, mcells(2)];
         p.MMneighs(localIdx,:) = [mcells(1), projectionCell];
