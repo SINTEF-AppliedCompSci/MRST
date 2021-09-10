@@ -1,6 +1,6 @@
-function [problem, state] = equationsCO2(state0, state, model, dt,...
+function [problem, state] = equationsCO2(state0, state, model, dt, ...
                                                    drivingForces, varargin)
-% Function to assemble the linearized equations for the co2-water system.
+% Assemble the linearized equations for the co2-water system.
 %
 % This function is modified from a file in The MATLAB Reservoir Simulation
 % Toolbox (MRST), see
@@ -29,12 +29,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
-opt = struct('Verbose', mrstVerbose, 'reverseMode', false, 'resOnly',...
+opt = struct('Verbose', mrstVerbose, 'reverseMode', false, 'resOnly', ...
                                                    false, 'iteration', -1);
 opt = merge_options(opt, varargin{:});
 op = model.operators;
-rhoW = model.fluid.rhoWS*model.fluid.cells;
-rhoO = model.fluid.rhoOS*model.fluid.cells;
+rhoW = model.fluid.rhoWS * model.fluid.cells;
+rhoO = model.fluid.rhoOS * model.fluid.cells;
 
 % Properties at current timestep
 [p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellSol');
@@ -72,13 +72,13 @@ gdz = model.getGravityGradient();
 [vO, mobO] = getFluxAndPropsCO2(model, p, krO, T, gdz);
 
 if model.outputFluxes
-    state = model.storeFluxes(state, vW, vO, 0*vW);
+    state = model.storeFluxes(state, vW, vO, []);
 end
 
 % Conservation of mass for water
-water = (op.pv/dt).*(sW - sW0) + op.Div(vW);
+water = (op.pv / dt) .* (sW - sW0) + op.Div(vW);
 % Conservation of mass for co2
-oil = (op.pv/dt).*(sO - sO0) + op.Div(vO);
+oil = (op.pv / dt) .* (sO - sO0) + op.Div(vO);
 
 eqs   = {water, oil};
 names = {'water', 'oil'};
@@ -88,11 +88,11 @@ rho = {rhoW, rhoO};
 mob = {mobW, mobO};
 sat = {sW, sO};
 
-[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types,...
-                     state, {p, p}, sat, mob, rho, {}, {}, drivingForces);
+[eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, ...
+               types, state, {p, p}, sat, mob, rho, {}, {}, drivingForces);
 
-[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs,...
-                              names, types, wellSol0, wellSol, wellVars,...
+[eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, ...
+                             names, types, wellSol0, wellSol, wellVars, ...
                                     wellMap, p, mob, rho, {}, {}, dt, opt);
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);

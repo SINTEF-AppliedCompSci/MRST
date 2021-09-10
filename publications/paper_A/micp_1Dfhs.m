@@ -1,11 +1,17 @@
 % Setting up and solving the 1D flow horizontal system (1Dfhs).
-% In MATLAB, this file produces Figure 5 in [A]. In GNU Octave, this file
-% creates and prints the results in the folder vtk_micp_1Dfhs which can
-% be visualized using ParaView.
+% In MATLAB, this file produces Figure 5 in:
 %
-% The example assumes MRST is the Matlab/Octave path. For information on
+% Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E., 2021. Practical 
+% approaches to study microbially induced calcite precipitation at the 
+% field scale. Int. J. Greenh. Gas Control 106, 103256.
+% https://doi.org/10.1016/j.ijggc.2021.103256. 
+%
+% In GNU Octave, this file creates and prints the results in the folder 
+% vtk_micp_1Dfhs which can be visualized using ParaView. The example 
+% assumes MRST is the Matlab/Octave path. For information on 
 % MRST-functions, confer the MRST documentation at
-%   http://www.sintef.no/projectweb/mrst/
+%
+% http://www.sintef.no/projectweb/mrst/
 %
 %{
 Copyright 2021, NORCE Norwegian Research Centre AS, Computational 
@@ -31,21 +37,24 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 mrstModule add ad-blackoil ad-core ad-micp
 
 % Grid 
-L = 75;                                       % Aquifer length, m
-X = [0 0.5 0.55 : 0.05 : L];                  % X discretization
+L = 75;                  % Aquifer length, m
+l = 25;                  % Region where MICP processes are more relevant, m
+dw = 0.5;                % Size of the element for the well, m
+dl = 0.05;               % Size of the elements inside l, m
+X = [0 dw dw + dl : dl : l  L * exp(-1.075 : 0.025 : 0)];
 G = tensorGrid(X, [0 1], [0 1]);
 G = computeGeometry(G);
-C = ones(G.cells.num,1);
+C = ones(G.cells.num, 1);
 
 % Rock
-K0 = 1e-12*C;                % Aquifer permeability, m^2
+K0 = 1e-12 * C;              % Aquifer permeability, m^2
 porosity = 0.2;              % Aquifer porosity, [-]
 rock = makeRock(G, K0, porosity);
 
 % Fluid properties
 fluid.muw = 2.535e-4;        % Water viscocity, Pa s                            
-fluid.bW   =  @(p) 0*p + 1;  % Water formation volume factor, [-]
-fluid.bO   =  @(p) 0*p + 1;  % CO2 formation volume factor, [-]
+fluid.bW = @(p) 0 * p + 1;   % Water formation volume factor, [-]
+fluid.bO = @(p) 0 * p + 1;   % CO2 formation volume factor, [-]
 fluid.rhoWS = 1045;          % Water density, kg/m^3
 fluid.rhoOS = 479;           % CO2 density, kg/m^3
 
@@ -74,322 +83,267 @@ fluid.cells = C;             % Array with all cells, [-]
 fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
 
 % Porosity-permeability relationship
-fluid.K = @(poro) (K0.*((poro-fluid.crit)/(porosity-fluid.crit))...
-        .^fluid.eta+fluid.kmin).*K0./(K0+fluid.kmin).*(poro>fluid.crit)+...
-                                            fluid.kmin.*(poro<=fluid.crit);
+fluid.K = @(poro) (K0 .* ((poro - fluid.crit) / (porosity - fluid.crit))...
+               .^ fluid.eta + fluid.kmin) .* K0 ./ (K0 + fluid.kmin) .* ...
+                  (poro > fluid.crit) + fluid.kmin .* (poro <= fluid.crit); 
 
+% Injection strategy
+N = 9; % Number of injection phases in the injection strategy
+M = zeros(N, 6); % The entries per row are: time, dt, rate, m, o, and u.
+dt_on = 20 * minute; % Time step when the well is on
+dt_off = 5 * hour;   % Time step when the well is off
+
+M(1, :) = [20 * hour,   dt_on,  2.4e-05 , 0.01, 0,      0];
+M(2, :) = [20 * hour,   dt_on,  2.4e-05 , 0,    0,      0];
+M(3, :) = [100 * hour,  dt_off, 0       , 0,    0,      0];
+M(4, :) = [20 * hour,   dt_on,  2.4e-05 , 0,    0.04,   0];
+M(5, :) = [20 * hour,   dt_on,  2.4e-05 , 0,    0,      0];
+M(6, :) = [50 * hour,   dt_off, 0       , 0,    0,      0];
+M(7, :) = [20 * hour,   dt_on,  2.4e-05 , 0,    0,    300];
+M(8, :) = [20 * hour,   dt_on,  2.4e-05 , 0,    0,      0];
+M(9, :) = [230 * hour,  dt_off, 0       , 0,    0,      0];
+              
 % Create well
-Q = 2.4e-05;  % Injection rate, m^3/s
-r = 0.15;     % Well radius, m
-W = addWell([], G, rock, 1, 'Type', 'rate', 'Comp_i', [1,0], 'Val', Q, ...
-                                                              'Radius', r);
-W.o = 0;
-W.u = 0;
-W.m = 0.01;
+r = 0.15;    
+W = addWell([], G, rock, 1, 'Type', 'rate', 'Comp_i', [1, 0], ...
+                                             'Val',  M(1, 3), 'Radius', r);
 G.injectionwellonboundary = 1;
-G.cellsinjectionwell = 1; 
+G.cellsinjectionwell = 1;
+W.m = M(1, 4);      
+W.o = M(1, 5);
+W.u = M(1, 6); 
 
 % Boundary condition
 f = boundaryFaces(G);
-f = f(abs(G.faces.normals(f,1))>eps & G.faces.centroids(f,1) > X(end-1));
+f = f(abs(G.faces.normals(f, 1)) > 0 & G.faces.centroids(f, 1) > ...
+                                                               X(end - 1));
 bc = addBC([], f, 'pressure', atm, 'sat', [0 0]);
-bc.o = zeros(size(bc.sat,1), 1);
-bc.u = zeros(size(bc.sat,1), 1);
-bc.m = zeros(size(bc.sat,1), 1);
-bc.b = zeros(size(bc.sat,1), 1);
-bc.c = zeros(size(bc.sat,1), 1);
+bc.m = zeros(size(bc.sat, 1), 1);
+bc.o = zeros(size(bc.sat, 1), 1);
+bc.u = zeros(size(bc.sat, 1), 1);
+bc.b = zeros(size(bc.sat, 1), 1);
+bc.c = zeros(size(bc.sat, 1), 1);
 
 % Setup some schedule
-dt = minute;
-nt = 500*hour/dt;
-clear schedule
-timesteps = repmat(dt, nt, 1);
-
-% Well different rates and times
-N = 8; % Number of injection changes
-M = zeros(N,5); % Matrix where entries per row are: time, rate, m, o, u.
-M(1,1) = 20*hour/dt; 
-M(1,2) = Q;
-M(2,1) = 40*hour/dt; 
-M(2,2) = eps; 
-M(3,1) = 140*hour/dt; 
-M(3,2) = Q;
-M(3,4) = 0.04;
-M(4,1) = 160*hour/dt;
-M(4,2) = Q;
-M(5,1) = 180*hour/dt; 
-M(5,2) = eps; 
-M(6,1) = 230*hour/dt; 
-M(6,2) = Q;
-M(6,5) = 300;
-M(7,1) = 250*hour/dt; 
-M(7,2) = Q;
-M(8,1) = 270*hour/dt; 
-M(8,2) = eps; 
-
-% Make schedule
-schedule = simpleSchedule(timesteps,'W',W,'bc',bc);
-for i=1:N
-    schedule.control(i+1) = schedule.control(i);
-    schedule.control(i+1).W.val = M(i,2);
-    schedule.control(i+1).W.m = M(i,3);
-    schedule.control(i+1).W.o = M(i,4);
-    schedule.control(i+1).W.u = M(i,5);
-    schedule.step.control(M(i,1):end) = i+1;
-end    
+nt = sum(M(:, 1) ./ M(:, 2));
+timesteps = repmat(dt_on, nt, 1);
+schedule = simpleSchedule(timesteps, 'W', W, 'bc', bc);
+for i = 2 : N 
+    schedule.control(i) = schedule.control(i - 1);
+    schedule.step.control(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
+                                                                  end) = i;
+    schedule.step.val(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
+                                                            end) = M(i, 2);
+    schedule.control(i).W.val = M(i, 3);
+    schedule.control(i).W.m = M(i, 4);
+    schedule.control(i).W.o = M(i, 5);
+    schedule.control(i).W.u = M(i, 6);
+end
 
 % Maximum injected oxygen and urea concentrations.
-fluid.Comax = max(M(:, 4));             
-fluid.Cumax = max(M(:, 5));
+fluid.Comax = max(M(:, 5));             
+fluid.Cumax = max(M(:, 6));  
 
 % Create model
 model = MICPModel(G, rock, fluid);
+model.toleranceMB = 1e-14;
+model.nonlinearTolerance = 1e-14;
+
+% Solver
+solver = getNonLinearSolver(model);
+solver.LinearSolver.tolerance = 1e-14;
 
 % Initial condition
-state0      = initState(G, W, atm, [1, 0]);
-state0.m    = zeros(G.cells.num,1);
-state0.o    = zeros(G.cells.num,1);
-state0.u    = zeros(G.cells.num,1);
-state0.b    = zeros(G.cells.num,1);
-state0.c    = zeros(G.cells.num,1);
+state0 = initState(G, W, atm, [1, 0]);
+state0.m = zeros(G.cells.num, 1);
+state0.o = zeros(G.cells.num, 1);
+state0.u = zeros(G.cells.num, 1);
+state0.b = zeros(G.cells.num, 1);
+state0.c = zeros(G.cells.num, 1);
 
 % Simulate case (GNU Octave/MATLAB)
 if exist('OCTAVE_VERSION', 'builtin') ~= 0
     ok = 'true';
     fn = checkCloggingMICP(ok);
 else
-    fn = getPlotAfterStepMICP(state0, model, 0, 270);
+    fn = getPlotAfterStepMICP(state0, model, 0, 90);
 end
-[~, states] = simulateScheduleAD(state0, model, schedule,'afterStepFn',fn);
+[~, states] = simulateScheduleAD(state0, model, schedule, ...
+                             'NonLinearSolver', solver, 'afterStepFn', fn);
 
 % Write the results to be read in ParaView (GNU Octave)
 if exist('OCTAVE_VERSION', 'builtin') ~= 0
     mkdir vtk_micp_1Dfhs;
     cd vtk_micp_1Dfhs;
-    mrsttovtk(G,states,'states','%f');
+    mrsttovtk(G, states, 'states', '%f');
     return
 end
 
 % Figure 5 paper (MATLAB)
+lW = 2;
+fS = 9;
+pL = [10 15];
+lS = {'-', ':', ':', '-', '-.', '-.', '-', '--', '--'};
+pltCls = {[0 0.8 0], [0 0.74 1], [0 0 0], [1 0.5 0.9], [0 0.74 1], ...
+                                  [0 0 0], [1 0.9 0], [0 0.74 1], [0 0 0]};
 figure;
-set(gcf,'PaperUnits','inches','PaperSize',[6.83 6],'PaperPosition', ...
-                                                             [0 0 6.83 6]);
-set(gca,'FontName','Arial','FontSize',9);
-n1=subplot(3,3,4);
+set(gcf, 'PaperUnits', 'inches', 'PaperPosition', [0 0 6.83 6]);
+n1 = subplot(3, 3, 4);
 hold on
-plot(G.cells.centroids(:,1),states{M(1,1)-1}.m,'color',[0 .8 0], ...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(2,1)-1}.m,'color',[0 .74 1], ...
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),states{M(3,1)-1}.m,'color',[0 0 0], ...
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),states{M(4,1)-1}.m,'color',[1 .5 .9], ...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(5,1)-1}.m,'color',[0 .74 1], ...
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),states{M(6,1)-1}.m,'color',[0 0 0], ...
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),states{M(7,1)-1}.m,'color',[1 .9 0], ... 
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(8,1)-1}.m,'color',[0 .74 1], ...
-                                           'LineWidth',2,'LineStyle','--');
-plot(G.cells.centroids(:,1),states{end}.m,'color',[0 0 0],'LineWidth', ...
-                                                       2,'LineStyle','--');
-line([10 10], [0 0.01],'Color','red','LineStyle',':','LineWidth',2);
-line([15 15], [0 0.01],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [0.01 0.01],'Color','red','LineStyle',':',...
-                                                            'LineWidth',2);
-line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
+for i = 1 : N 
+    plot(G.cells.centroids(:, 1), ...
+         states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.m, 'color', pltCls{i}, ...
+                                      'LineWidth', lW, 'LineStyle', lS{i});                   
+end  
+line([pL(1) pL(1)], [0 W(1).m], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(2) pL(2)], [0 W(1).m], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [W(1).m W(1).m], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [0 0], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
 hold off
 xlim([0 L]);
-ylim([0 0.01]);
-xlabel({'x [m]';'(a)'},'FontSize',9,'Interpreter','latex');        
-ylabel('$c_m$ [kg/m$^3$]','FontSize',9,'Interpreter','latex');
+ylim([0 W(1).m]);
+xlabel({'x [m]' ; '(a)'}, 'FontSize', fS, 'Interpreter', 'latex');        
+ylabel('$c_m$ [kg/m$^3$]', 'FontSize', fS, 'Interpreter', 'latex');
 grid on
-title('Microbes','FontSize',9,'FontName','Arial','Interpreter','latex');
-set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick', ...
-                                                        (0:.002:0.01));
-n2=subplot(3,3,5);
+title('Microbes', 'FontSize', fS, 'FontName', 'Arial', ...
+                                                   'Interpreter', 'latex');
+set(gca,'FontSize', fS, 'FontName', 'Arial', ...
+                       'XTick', (0 : 10 : L), 'YTick', (0 : 0.002 : 0.01));
+n2 = subplot(3, 3, 5);
 hold on
-plot(G.cells.centroids(:,1),states{M(1,1)-1}.o,'color',[0 .8 0], ...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(2,1)-1}.o,'color',[0 .74 1], ...
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),states{M(3,1)-1}.o,'color',[0 0 0], ... 
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),states{M(4,1)-1}.o,'color',[1 .5 .9], ... 
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(5,1)-1}.o,'color',[0 .74 1], ... 
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),states{M(6,1)-1}.o,'color',[0 0 0], ... 
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),states{M(7,1)-1}.o,'color',[1 .9 0], ... 
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(8,1)-1}.o,'color',[0 .74 1], ... 
-                                           'LineWidth',2,'LineStyle','--');
-plot(G.cells.centroids(:,1),states{end}.o,'color',[0 0 0],'LineWidth', ...
-                                                       2,'LineStyle','--');
-line([10 10], [0 0.04],'Color','red','LineStyle',':','LineWidth',2);
-line([15 15], [0 0.04],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [0.04 0.04],'Color','red','LineStyle',':', ...
-                                                            'LineWidth',2);
-line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
+for i = 1 : N 
+    plot(G.cells.centroids(:, 1), ...
+         states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.o, 'color', pltCls{i}, ...
+                                      'LineWidth', lW, 'LineStyle', lS{i});                   
+end
+line([pL(1) pL(1)], [0 fluid.Comax], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(2) pL(2)], [0 fluid.Comax], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [fluid.Comax fluid.Comax], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [0 0], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
 hold off
 xlim([0 L]);
 ylim([0 0.04]);
-xlabel({'x [m]';'(b)'},'FontSize',9,'Interpreter','latex');        
-ylabel('$c_o$ [kg/m$^3$]','FontSize',9,'Interpreter','latex');
+xlabel({'x [m]' ; '(b)'}, 'FontSize', fS, 'Interpreter', 'latex');        
+ylabel('$c_o$ [kg/m$^3$]', 'FontSize', fS, 'Interpreter', 'latex');
 grid on
-title('Oxygen','FontSize',9,'FontName','Arial','Interpreter','latex');
-set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick', ...
-                                                         (0:.01:0.04));
-n3=subplot(3,3,6);
+title('Oxygen', 'FontSize', fS, 'FontName', 'Arial', ...
+                                                   'Interpreter', 'latex');
+set(gca,'FontSize', fS, 'FontName', 'Arial', ...
+                        'XTick', (0 : 10 : L), 'YTick', (0 : 0.01 : 0.04));
+n3 = subplot(3, 3, 6);
 hold on
-plot(G.cells.centroids(:,1),states{M(1,1)-1}.u,'color',[0 .8 0], ... 
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(2,1)-1}.u,'color',[0 .74 1], ...
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),states{M(3,1)-1}.u,'color',[0 0 0], ...
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),states{M(4,1)-1}.u,'color',[1 .5 .9], ...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(5,1)-1}.u,'color',[0 .74 1], ...
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),states{M(6,1)-1}.u,'color',[0 0 0], ... 
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),states{M(7,1)-1}.u,'color',[1 .9 0], ...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(8,1)-1}.u,'color',[0 .74 1], ... 
-                                           'LineWidth',2,'LineStyle','--');
-plot(G.cells.centroids(:,1),states{end}.u,'color',[0 0 0],'LineWidth', ...
-                                                       2,'LineStyle','--');
-line([10 10], [0 300],'Color','red','LineStyle',':','LineWidth',2);
-line([15 15], [0 300],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [300 300],'Color','red','LineStyle',':', ...
-                                                            'LineWidth',2);
-line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
+for i = 1 : N 
+    plot(G.cells.centroids(:, 1), ...
+         states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.u, 'color', pltCls{i}, ...
+                                      'LineWidth', lW, 'LineStyle', lS{i});                   
+end  
+line([pL(1) pL(1)], [0 fluid.Cumax], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(2) pL(2)], [0 fluid.Cumax], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [fluid.Cumax fluid.Cumax], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [0 0], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
 hold off
 xlim([0 L]);
 ylim([0 300]);
-xlabel({'x [m]';'(c)'},'FontSize',9,'Interpreter','latex');        
-ylabel('$c_u$ [kg/m$^3$]','FontSize',9,'Interpreter','latex');
+xlabel({'x [m]' ; '(c)'}, 'FontSize', fS, 'Interpreter', 'latex');        
+ylabel('$c_u$ [kg/m$^3$]', 'FontSize', fS, 'Interpreter', 'latex');
 grid on
-title('Urea','FontSize',9,'FontName','Arial','Interpreter','latex');
-set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick', ...
-                                                          (0:60:300));
-n4=subplot(3,3,7);
+title('Urea', 'FontSize', fS, 'FontName', 'Arial', ...
+                                                   'Interpreter', 'latex');
+set(gca, 'FontSize', fS, 'FontName', 'Arial', ...
+                           'XTick', (0 : 10 : L), 'YTick', (0 : 60 : 300));
+n4 = subplot(3, 3, 7);
 hold on
-plot(G.cells.centroids(:,1),states{M(1,1)-1}.b,'color',[0 .8 0], ...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(2,1)-1}.b,'color',[0 .74 1], ...
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),states{M(3,1)-1}.b,'color',[0 0 0], ... 
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),states{M(4,1)-1}.b,'color',[1 .5 .9], ... 
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(5,1)-1}.b,'color',[0 .74 1], ... 
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),states{M(6,1)-1}.b,'color',[0 0 0], ... 
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),states{M(7,1)-1}.b,'color',[1 .9 0], ...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(8,1)-1}.b,'color',[0 .74 1], ...
-                                           'LineWidth',2,'LineStyle','--');
-plot(G.cells.centroids(:,1),states{end}.b,'color',[0 0 0],'LineWidth', ...
-                                                       2,'LineStyle','--');
-line([10 10], [0 .003],'Color','red','LineStyle',':','LineWidth',2);
-line([15 15], [0 .003],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [.003 .003],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
+for i = 1 : N 
+    plot(G.cells.centroids(:, 1), ...
+         states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.b, 'color', pltCls{i}, ...
+                                      'LineWidth', lW, 'LineStyle', lS{i});                   
+end 
+line([pL(1) pL(1)], [0 0.0003], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(2) pL(2)], [0 0.0003], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [0.0003 0.0003], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [0 0], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
 hold off
 xlim([0 L]);
-ylim([0 .0003]);
-xlabel({'x [m]';'(d)'},'FontSize',9,'Interpreter','latex');        
-ylabel('$\phi_b$ [$-$]','FontSize',9,'Interpreter','latex');
+ylim([0 0.0003]);
+xlabel({'x [m]' ; '(d)'}, 'FontSize', fS,'Interpreter', 'latex');        
+ylabel('$\phi_b$ [$-$]', 'FontSize', fS, 'Interpreter', 'latex');
 grid on
-title('Biofilm','FontSize',9,'FontName','Arial','Interpreter','latex');
-set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick', ...
-                                                          (0:.0001:.0003));
-n5=subplot(3,3,8);
+title('Biofilm', 'FontSize', fS, 'FontName', 'Arial', ...
+                                                   'Interpreter', 'latex');
+set(gca, 'FontSize', fS, 'FontName', 'Arial', ...
+                    'XTick', (0 : 10 : L), 'YTick', (0 : 0.0001 : 0.0003));
+n5 = subplot(3, 3, 8);
 hold on
-plot(G.cells.centroids(:,1),states{M(1,1)-1}.c,'color',[0 .8 0], ...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(2,1)-1}.c,'color',[0 .74 1], ...
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),states{M(3,1)-1}.c,'color',[0 0 0], ...
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),states{M(4,1)-1}.c,'color',[1 .5 .9], ...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(5,1)-1}.c,'color',[0 .74 1], ...
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),states{M(6,1)-1}.c,'color',[0 0 0], ...
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),states{M(7,1)-1}.c,'color',[1 .9 0], ...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),states{M(8,1)-1}.c,'color',[0 .74 1], ...
-                                           'LineWidth',2,'LineStyle','--');
-plot(G.cells.centroids(:,1),states{end}.c,'color',[0 0 0],'LineWidth', ...
-                                                       2,'LineStyle','--');
-line([10 10], [0 0.04],'Color','red','LineStyle',':','LineWidth',2);                                                  
-line([15 15], [0 0.04],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [0.04 0.04],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
+for i = 1 : N 
+    plot(G.cells.centroids(:, 1), ...
+         states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.c, 'color', pltCls{i}, ...
+                                      'LineWidth', lW, 'LineStyle', lS{i});                   
+end 
+line([pL(1) pL(1)], [0 0.04], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(2) pL(2)], [0 0.04], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [0.04 0.04], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [0 0], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
 hold off
 xlim([0 L]);
-ylim([0 .04]);
-xlabel({'x [m]';'(e)'}','FontSize',9,'Interpreter','latex');        
-ylabel('$\phi_c$ [$-$]','FontSize',9,'Interpreter','latex');
+ylim([0 0.04]);
+xlabel({'x [m]' ; '(e)'}', 'FontSize', fS, 'Interpreter', 'latex');        
+ylabel('$\phi_c$ [$-$]', 'FontSize', fS, 'Interpreter', 'latex');
 grid on
-title('Calcite','FontSize',9,'FontName','Arial','Interpreter','latex');
-set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick', ...
-                                                              (0:.01:.05));                                                        
-n6=subplot(3,3,9);
+title('Calcite', 'FontSize', fS, 'FontName', 'Arial', ...
+                                                   'Interpreter', 'latex');
+set(gca, 'FontSize', fS,'FontName', 'Arial', ...
+                         'XTick', (0 : 10 : L), 'YTick', (0 : 0.01 :0.05));                                                        
+n6 = subplot(3, 3, 9);
 hold on
-plot(G.cells.centroids(:,1),(1-fluid.K(porosity-states{M(1,1)-1}.b...
-                      -states{M(1,1)-1}.c)./K0)*100,'color',[0 .8 0],...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),(1-fluid.K(porosity-states{M(2,1)-1}.b...
-                     -states{M(2,1)-1}.c)./K0)*100,'color',[0 .74 1],...
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),(1-fluid.K(porosity-states{M(3,1)-1}.b...
-                       -states{M(3,1)-1}.c)./K0)*100,'color',[0 0 0],...
-                                            'LineWidth',2,'LineStyle',':');
-plot(G.cells.centroids(:,1),(1-fluid.K(porosity-states{M(4,1)-1}.b...
-                     -states{M(4,1)-1}.c)./K0)*100,'color',[1 .5 .9],...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),(1-fluid.K(porosity-states{M(5,1)-1}.b...
-                     -states{M(5,1)-1}.c)./K0)*100,'color',[0 .74 1],...
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),(1-fluid.K(porosity-states{M(6,1)-1}.b...
-                      -states{M(6,1)-1}.c)./K0)*100,'color',[0 0 0], ...
-                                           'LineWidth',2,'LineStyle','-.');
-plot(G.cells.centroids(:,1),(1-fluid.K(porosity-states{M(7,1)-1}.b...
-                     -states{M(7,1)-1}.c)./K0)*100,'color',[1 .9 0], ...
-                                            'LineWidth',2,'LineStyle','-');
-plot(G.cells.centroids(:,1),(1-fluid.K(porosity-states{M(8,1)-1}.b...
-                    -states{M(8,1)-1}.c)./K0)*100,'color',[0 .74 1], ...
-                                           'LineWidth',2,'LineStyle','--');
-plot(G.cells.centroids(:,1),(1-fluid.K(porosity-states{end}.b...
-                               -states{end}.c)./K0)*100,'color',[0 0 0],...
-                                           'LineWidth',2,'LineStyle','--');
-line([10 10], [0 100],'Color','red','LineStyle',':','LineWidth',2);                                                  
-line([15 15], [0 100],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [100 100],'Color','red','LineStyle',':','LineWidth',2);
-line([10 15], [0 0],'Color','red','LineStyle',':','LineWidth',2);
+for i = 1 : N 
+    plot(G.cells.centroids(:, 1), 100 * (1 - fluid.K(porosity - ...
+     states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.b - states{sum(M(1 : i, 1) ...
+       ./ M(1 : i, 2))}.c) ./ K0), 'color', pltCls{i}, 'LineWidth', lW, ...
+                                                       'LineStyle', lS{i});                   
+end
+line([pL(1) pL(1)], [0 100], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(2) pL(2)], [0 100], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [100 100], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
+line([pL(1) pL(2)], [0 0], 'color', 'red', ...
+                                        'LineStyle', ':', 'LineWidth', lW);
 hold off
 xlim([0 L]);
 ylim([0 100]);
-xlabel({'x [m]';'(f)'}','FontSize',9,'Interpreter','latex');        
-ylabel('$|\Delta K/K_0|$ [$\%$]','FontSize',9,'Interpreter','latex');
+xlabel({'x [m]' ; '(f)'}', 'FontSize', fS, 'Interpreter', 'latex');        
+ylabel('$|\Delta K/K_0|$ [$\%$]', 'FontSize', fS, 'Interpreter', 'latex');
 grid on
-title('Permeability','FontSize',9,'FontName','Arial','Interpreter','latex')
+title('Permeability', 'FontSize', fS, 'FontName', 'Arial', ...
+                                                     'Interpreter','latex')
 cb=legend('$t^I_1=\;\;20\;$h','$t^I_2=\;\;40\;$h', ...
                '$t^I_3=140\;$h$\qquad \qquad \qquad$','$t^I_4=160\;$h', ...
                '$t^I_5=180\;$h','$t^I_6=230\;$h$\qquad \qquad \qquad$', ...
                     '$t^I_7=250\;$h','$t^I_8=270\;$h','$t^I_9=500\;$h', ...
-                     'Location','best','Interpreter','latex','FontSize',9);
-set(cb,'position',[.5 .67 .01 .15]);
+                   'Location','best','Interpreter','latex','FontSize', fS);
+set(cb, 'position', [0.5 0.67 0.01 0.15]);
 cb.NumColumns = 3;
-set(gca,'FontSize',9,'FontName','Arial','XTick',(0:10:L),'YTick',...
-                                                               (0:20:100));
+set(gca, 'FontSize', fS, 'FontName', 'Arial', ...
+                             'XTick',(0 : 10 : L), 'YTick',(0 : 20 : 100));
 %print -depsc2 Fig5.eps

@@ -3,14 +3,14 @@
 % This example aims to show complete workflow for creating, running, and
 % analyzing a 3D-flow system with a leakage path using the MICP
 % mathematical model. To asses the CO2 distribution before and after
-% treatment, we use the 'TwoPhaseWaterGasModel' in the MRST co2lab module 
+% treatment, we use the 'TwoPhaseWaterGasModel' in the MRST co2lab module
 % (we use the system relationships/properties as in the 'basic_3D_example'
 % in the co2lab module).
 %
 % For details on the MICP model, see
-% Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E., 2021. Practical 
-% approaches to study microbially induced calcite precipitation at the 
-% field scale. Int. J. Greenh. Gas Control 106, 103256. 
+% Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E., 2021. Practical
+% approaches to study microbially induced calcite precipitation at the
+% field scale. Int. J. Greenh. Gas Control 106, 103256.
 % https://doi.org/10.1016/j.ijggc.2021.103256
 
 % To get distmesh for first time, uncomment and run the 4 following lines
@@ -131,9 +131,9 @@ gravity on
 
 %% CO2 assesment
 %
-% We simulate the CO2 distribution on the domain before MICP treatment. 
-% We use the 'TwoPhaseWaterGasModel' in the MRST co2lab module (the system 
-% relationships/properties are set as in the 'basic_3D_example' in the 
+% We simulate the CO2 distribution on the domain before MICP treatment.
+% We use the 'TwoPhaseWaterGasModel' in the MRST co2lab module (the system
+% relationships/properties are set as in the 'basic_3D_example' in the
 % co2lab module.
 
 state0.pressure = fluid.rhoWS * norm(gravity) * c(:, 3); % Initial pressure
@@ -175,13 +175,13 @@ QCO2 = 80 / day;      % Injection rate, m^3/day
 r = 0.15;             % Well radius, m
 [~, iw] = min(abs((c(:, 1) - w) .^ 2 + c(:, 2) .^ 2));
 cellsW =  1 : G.cells.num;
-cellsW = cellsW(abs(c(:, 1) - c(iw, 1)) < eps & ... 
+cellsW = cellsW(abs(c(:, 1) - c(iw, 1)) < eps & ...
                      abs(c(:, 2) - c(iw, 2)) < eps & c(:, 3) > D + H - hb);
 % Injector
 WCO2 = addWell([], G, rock, cellsW, 'Type', 'rate', 'Comp_i', [0, 1], ...
                                                  'Val', QCO2, 'Radius', r);
 
-% We set a constant hydrostatic pressure on the left and right side of the 
+% We set a constant hydrostatic pressure on the left and right side of the
 % domain to model open boundaries.
 f = boundaryFaces(G);
 f = f(abs(G.faces.normals(f, 1)) > eps & (G.faces.centroids(f, 1) < ...
@@ -207,7 +207,8 @@ if exist('OCTAVE_VERSION', 'builtin') == 0
   % line 145 is replaced by the three following lines:
   % mrstModule add ad-micp
   % fn = getPlotAfterStepCO2(initState, model, 340, 20);
-  % [wellSol, states] = simulateScheduleAD(initState, model, schedule);
+  % [wellSol, states] = simulateScheduleAD(initState, model, schedule, ...
+  % 'afterStepFn', fn);
   fn = getPlotAfterStepCO2(state0, model, 340, 20);
   [~, statesCO2beforeMICP] = simulateScheduleAD(state0, model, ...
                                               schedule, 'afterStepFn', fn);
@@ -215,9 +216,9 @@ else
   [~, statesCO2beforeMICP] = simulateScheduleAD(state0, model, schedule);
 end
 
-% Compute leakage rate (CO2 rate through the lowest grid face on the 
+% Compute leakage rate (CO2 rate through the lowest grid face on the
 % leakage path). If the grid properties are modified, then it could be
-% necessary to also modify the choosen value 0.01 in L 224-225.
+% necessary to also modify the choosen value 0.01 in L 225-226.
 lrbeforeMICP = zeros(nt, 1);
 fc = G.faces.centroids;
 facel =  1 : G.faces.num;
@@ -245,9 +246,9 @@ M(7, :) = [40 * hour,   dt_on,  0.3, 0,    0,     60];
 M(8, :) = [10 * hour,   dt_on,  0.3, 0,    0,      0];
 M(9, :) = [40 * hour,   dt_off, 0,   0,    0,      0];
 
-% Create Well. For the injection of the MICP components, we create a well 
-% with an upper and lower parts, where the components are injected in the 
-% top part and only water on the lower part (hb is the bottom aquifer 
+% Create Well. For the injection of the MICP components, we create a well
+% with an upper and lower parts, where the components are injected in the
+% top part and only water on the lower part (hb is the bottom aquifer
 % heigth).
 Whu = 3 / hb;   % Upper fraction part of the well to inject the components
 Whb = 1 - Whu;  % Bottom fraction part of the well to inject the components
@@ -255,12 +256,12 @@ cellsW =  1 : G.cells.num;
 cellsWu = cellsW(abs(c(:, 1) - c(iw, 1)) < eps & abs(c(:, 2)-c(iw, 2)) ...
                 < eps & c(:, 3) > D + H - hb & c(:, 3) < D + H - Whb * hb);
 % Upper injector
-W = addWell([],G, rock, cellsWu, 'Type', 'rate', 'Comp_i', [1,0], ...
+W = addWell([],G, rock, cellsWu, 'Type', 'rate', 'Comp_i', [1, 0], ...
                                         'Val', Whu * M(1, 3), 'Radius', r);
 cellsWb = cellsW(abs(c(:, 1) - c(iw, 1)) < eps & ...
                abs(c(:, 2) - c(iw, 2)) < eps & c(:, 3) > D + H - Whb * hb);
 % Lower injector
-W = addWell(W, G, rock, cellsWb, 'Type', 'rate', 'Comp_i', [1,0], ...
+W = addWell(W, G, rock, cellsWb, 'Type', 'rate', 'Comp_i', [1, 0], ...
                                         'Val', Whb * M(1, 3), 'Radius', r);
 
 % Add the fields to the wells/bc for the additional components
@@ -281,10 +282,10 @@ W(1).u = M(1, 6);  % Injected urea concentration, kg/m^3
 G.injectionwellonboundary = 0;
 
 % Setup some schedule
-nt = sum(M(:, 1) ./ M(:, 2)); 
+nt = sum(M(:, 1) ./ M(:, 2));
 timesteps = repmat(dt_on, nt, 1);
 schedule = simpleSchedule(timesteps, 'W', W, 'bc', bc);
-for i = 2 : N 
+for i = 2 : N
     schedule.control(i) = schedule.control(i - 1);
     schedule.step.control(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
                                                                   end) = i;
@@ -298,7 +299,7 @@ for i = 2 : N
 end
 
 % Maximum injected oxygen and urea concentrations.
-fluid.Comax = max(M(:, 5));             
+fluid.Comax = max(M(:, 5));
 fluid.Cumax = max(M(:, 6));
 
 % Create model
@@ -324,8 +325,8 @@ end
                                                         'afterStepFn', fn);
 
 %% CO2 assesment after MICP treatment
-% 
-% We simulate the CO2 distribution on the domain after MICP treatment. 
+%
+% We simulate the CO2 distribution on the domain after MICP treatment.
 
 % Compute porosity and permeability after MICP treatment
 porosityafterMICP = porosity - statesMICP{end}.c - statesMICP{end}.b;
@@ -363,10 +364,10 @@ end
 
 figure;
 hold on
-plot((1 : size(timestepsCO2)) * dt_co2 / day, lrbeforeMICP * 100 / QCO2, ...
-                   'color', [1 0.2 0.2], 'LineWidth', 9, 'LineStyle', '-');
-plot((1 : size(timestepsCO2)) * dt_co2 / day, lrafterMICP * 100 / QCO2, ...
-                     'color', [1 0.5 0], 'LineWidth', 9, 'LineStyle', '-');
+plot((1 : size(timestepsCO2)) * dt_co2 / day, lrbeforeMICP * 100 /...
+             QCO2, 'color', [1 0.2 0.2], 'LineWidth', 9, 'LineStyle', '-');
+plot((1 : size(timestepsCO2)) * dt_co2 / day, lrafterMICP * 100 / ...
+               QCO2, 'color', [1 0.5 0], 'LineWidth', 9, 'LineStyle', '-');
 hold off
 legend('Before MICP', 'After MICP', 'Location', 'southeast');
 xlabel('Time [d]');

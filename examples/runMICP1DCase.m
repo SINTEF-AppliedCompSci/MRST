@@ -165,22 +165,22 @@ end
 fluid.Comax = max(M(:, 5));             
 fluid.Cumax = max(M(:, 6));               
 
-%% Set up simulation model
+%% Set up simulation model and solver
 %
 % We remark that originally the implementation of this MICP model was based
 % on the polymer model in the ad-eor module; then the different model 
 % property values are given as in that model. Thus, one can change here
 % the default properties after calling the MICPModel function, e.g., here
-% we set stricter values for the model tolerances. 
+% we set stricter values for the tolerances. 
 
 % Model
 model = MICPModel(G, rock, fluid);
-model.toleranceMB = 1e-15;
-model.nonlinearTolerance = 1e-12;
+model.toleranceMB = 1e-14;
+model.nonlinearTolerance = 1e-14;
 
-%% Set up solver
-
+%Solver
 solver = getNonLinearSolver(model);
+solver.LinearSolver.tolerance = 1e-14;
 
 %% Define initial state
 

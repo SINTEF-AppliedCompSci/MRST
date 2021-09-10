@@ -1,11 +1,11 @@
 classdef CO2Model < TwoPhaseOilWaterModel
-% Function to implement the two-phase flow model to asses the co2 leakage.
+% Script to implement the CO2 model.
 % 
-% This function is modified from a file in The MATLAB Reservoir Simulation
+% This script is modified from a file in The MATLAB Reservoir Simulation
 % Toolbox (MRST), see
 %   mrst/modules/ad-eor/models/OilWaterPolymerModel.m
 %
-% We refer to that function for a complete commented version of the file. 
+% We refer to that script for a complete commented version of the file. 
 
 %{ 
 Partial copyright 2009-2021, SINTEF Digital, Mathematics & Cybernetics.

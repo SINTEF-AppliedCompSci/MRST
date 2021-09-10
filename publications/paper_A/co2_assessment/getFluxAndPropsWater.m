@@ -29,9 +29,9 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
     fluid = model.fluid;
     s = model.operators;
-    dpW    = s.Grad(pW) - fluid.rhoWS*gdz;   
-    upcw  = (value(dpW)<=0);
+    dpW    = s.Grad(pW) - fluid.rhoWS .* gdz;   
+    upcw  = (value(dpW) <= 0);
     [krWf, krW] = s.splitFaceCellValue(s, upcw, krW);    
-    mobW   = krW/fluid.muw;    
-    vW = -(krWf/fluid.muw).*T.*dpW;
+    mobW   = krW / fluid.muw;    
+    vW = -(krWf / fluid.muw) .* T .* dpW;
 end

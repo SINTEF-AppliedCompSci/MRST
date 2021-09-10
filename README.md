@@ -12,13 +12,13 @@ solution is injected to stimulate the development of biofilm, cementation
 solution is injected which is used by the biofilm for production of
 calcite, and the calcite reduce the pore space which in turn decreases the
 rock permeability. Further information on the mathematical model can be
-found in the two publications [A,B] in the "Cite" part of this README.
+found in the two publications [A, B] in the "Cite" part of this README.
 
 The numerical examples accompanying this module are:
 * runMICP1DCase.m and
 * runMICP3DCase.m.
 
-In addition, this module includes scripts to run the studies in [A,B].
+In addition, this module includes scripts to run the studies in [A, B].
 
 The ad-micp module is compatible with the (freely available) MATLAB
 Reservoir Simulation Toolbox (MRST) provided by SINTEF Digital, see
@@ -51,16 +51,31 @@ live plot the numerical results while the simulator is running.
 publications/paper_A folder (these scripts are kept to run the
 corresponding scripts described in publication [A], where a very simple
 CO2-water model is used, while in the new added numerical example
-('runMICP3DCase') the 'TwoPhaseWaterGasModel' script in the MRST co2lab 
-module, a more comprehensive CO2-water model, is used to asses the CO2 
+('runMICP3DCase') the 'TwoPhaseWaterGasModel' script in the MRST co2lab
+module, a more comprehensive CO2-water model, is used to asses the CO2
 leakage prior and after MICP treatment).
+* Improving the code presentation of all scripts in the publications folder.
+
+## Changes respect to the first release 
+* Adding the numerical example to produce the MRST figure in paper B.
+* Bug fixed (adding the porosity for the attachment in the biofilm term).
+* Setting the attachment rate 'ka' to 8.51e-7 1/s.
+* Adding new grids which can be built using available commands in GNU Octave,
+while still using the original ones (in [A]) when ad-micp is run in MATLAB.
+* Adding a new function 'mrsttovtk' to write the simulation results into
+files 'name'.pvd and 'name'-n.vtu for visualization in ParaView when
+ad-micp is run in GNU Octave, while still plotting the results in the
+original format (in [A]) when ad-micp is run in MATLAB.   
+The previous changes result in slight deviations from prior numerical
+results and Figures in [A]; however, the main results and conclusions
+remain the same.
 
 ## Requirements
 * MRST (Tested version: 2021a)
 * MATLAB (Tested version: R2021a) or GNU Octave (Tested version: 6.3.0)
 
-Regarding GNU Octave, all scripts have been successfully run in GNU/Linux
-(e.g., using Ubuntu 20.04 in Octave version 6.3.0).
+Regarding GNU Octave, all scripts have been successfully run in GNU/Linux and
+Windows (tested in Ubuntu 20.04 and Windows 10 using Octave version 6.3.0).
 
 In macOs using GNU Octave, it is possible to run some of the examples, but
 the latest version (6.3.0) fails to run the scripts where distmesh is used

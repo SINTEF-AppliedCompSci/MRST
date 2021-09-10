@@ -29,9 +29,9 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
     fluid = model.fluid;
     s = model.operators;   
-    dpO    = s.Grad(pO) - fluid.rhoOS.*gdz;    
-    upco  = (value(dpO)<=0);
+    dpO    = s.Grad(pO) - fluid.rhoOS .* gdz;    
+    upco  = (value(dpO) <= 0);
     [krOf, krO] = s.splitFaceCellValue(s, upco, krO);    
-    mobO   = krO/fluid.muO;    
-    vO = -(krOf/fluid.muO).*T.*dpO;
+    mobO   = krO / fluid.muO;    
+    vO = -(krOf / fluid.muO) .* T .* dpO;
 end
