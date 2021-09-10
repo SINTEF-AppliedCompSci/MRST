@@ -1,3 +1,5 @@
+%% This will generate Figures 10 to 13 in SPE-201243-PA when the fractures 
+%  are highly conductive
 %% PEDFM Validation case of + fracture of single phase flow
 % This code is used to generate the plots in Figures 10 to 13 of 
 % Olorode et al., 2020, which are based on Tene et al., 2017 Figures 3 & 4
