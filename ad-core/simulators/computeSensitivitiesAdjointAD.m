@@ -181,7 +181,7 @@ end
 %--------------------------------------------------------------------------
 
 function [modelParam, scheduleParam] = initModelParametersADI(setup, param)
-v  = applyFunction(@(p)p.getParameterValue(setup), param);
+v  = applyFunction(@(p)p.getParameter(setup), param);
 % use same backend as problem.model
 if isfield(setup, 'model') && isprop(setup.model, 'AutoDiffBackend')
     [v{:}] = setup.model.AutoDiffBackend.initVariablesAD(v{:});
@@ -189,7 +189,7 @@ else
     [v{:}] = initVariablesADI(v{:});
 end
 for k = 1:numel(v)
-    setup = param{k}.setParameterValue(setup, v{k});
+    setup = param{k}.setParameter(setup, v{k});
 end
 [modelParam, scheduleParam] = deal(setup.model, setup.schedule);
 end

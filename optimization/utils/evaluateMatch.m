@@ -89,7 +89,7 @@ setupNew.model.FlowDiscretization = [];
 setupNew.model.FlowPropertyFunctions = [];
 for k = 1:numel(parameters)
     pval{k}  = parameters{k}.unscale(pvec{k});
-    setupNew = parameters{k}.setParameterValue(setupNew, pval{k});
+    setupNew = parameters{k}.setParameter(setupNew, pval{k});
 end
 [wellSols,states] = simulateScheduleAD(setupNew.state0, setupNew.model, setupNew.schedule,...
                                        'NonLinearSolver',opt.NonlinearSolver,...

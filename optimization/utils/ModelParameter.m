@@ -11,7 +11,8 @@ classdef ModelParameter
         nParam                      % number of parameters
         lumping                     % parameter lumping vector (partition vector) 
         setfun                      % possibly custom set-function (default is setfield)
-        scalingBase = nan;
+        scalingBase = nan;          
+        controlSteps = [];          % Default set/get for all control steps
     end
     
     methods
@@ -33,9 +34,6 @@ classdef ModelParameter
         %------------------------------------------------------------------
         function vs = scale(p, pval)
             % map parameter pval to "control"-vector v \in [0,1]
-            if strcmp(p.type, 'multiplier')
-                pval = pval./p.referenceValue;
-            end
             vs = (pval-p.boxLims(:,1))./diff(p.boxLims, [], 2);
             if strcmp(p.scaling, 'exp')
                 vs = expScale(vs, p);
@@ -53,9 +51,6 @@ classdef ModelParameter
                 pval = expScale(pval, p);
             end
             pval = pval.*diff(p.boxLims, [], 2) + p.boxLims(:,1);
-            if strcmp(p.type, 'multiplier')
-                pval = pval.*p.referenceValue;
-            end
         end
         %------------------------------------------------------------------
         function gs = scaleGradient(p, g, pval)
@@ -70,9 +65,6 @@ classdef ModelParameter
                     gs = gs./dLogScale(tmp, p);
                 end
             end
-            if strcmp(p.type, 'multiplier')
-                gs = gs.*p.referenceValue;
-            end
         end
         %------------------------------------------------------------------
         function g = collapseGradient(p, g)
@@ -85,6 +77,25 @@ classdef ModelParameter
             end
         end
         %------------------------------------------------------------------
+        function v = getParameter(p, setup)
+            if ~strcmp(p.type, 'multiplier')
+                v = p.getParameterValue(setup);
+            else
+                v = p.getParameterValue(setup, false)./p.referenceValue;
+                v = collapseLumps(v, p.lumping);
+            end
+        end
+        %------------------------------------------------------------------
+        function setup = setParameter(p, setup, v)
+            if ~strcmp(p.type, 'multiplier')
+                setup = p.setParameterValue(setup, v);
+            else
+                v  = expandLumps(v, p.lumping).*p.referenceValue;
+                setup = p.setParameterValue(setup, v, false);
+            end
+        end
+        
+        %------------------------------------------------------------------
         function v = getParameterValue(p, setup, doCollapse)
             if nargin < 3
                 doCollapse = true;
@@ -95,24 +106,32 @@ classdef ModelParameter
                 if doCollapse
                     v = collapseLumps(v, p.lumping);
                 end
-            else % well-parameter (assume constant over control steps)
-                v = p.getWellParameterValue(setup.schedule.control(1).W, doCollapse);
+            else % well-parameter (assume constant selection of control steps)
+                W = setup.schedule.control(p.controlSteps(1)).W;
+                v  = p.getWellParameterValue(W, doCollapse);
             end
         end
         %------------------------------------------------------------------       
-        function setup = setParameterValue(p, setup, v)
-            if ~strcmp(p.belongsTo, 'well')
+        function setup = setParameterValue(p, setup, v, doExpand)
+            if nargin < 4
+                doExpand = true;
+            end
+            if doExpand
                 v  = expandLumps(v, p.lumping);
+            end
+            if ~strcmp(p.belongsTo, 'well')
                 if isnumeric(p.subset)
                     tmp = getfield(setup.(p.belongsTo), p.location{:});
                     v   = setSubset(tmp, v, p.subset);
                 end
                 setup.(p.belongsTo) = ...
                     p.setfun(setup.(p.belongsTo), p.location, v);
-            else % well-parameter (assume constant over control steps)
-                for k = 1:numel(setup.schedule.control)
-                    setup.schedule.control(k).W = ...
-                        p.setWellParameterValue(setup.schedule.control(k).W, v);
+            else % well-parameter (assume constant over selected control steps)
+                nc = numel(p.controlSteps);
+                for k = 1:nc
+                    step = p.controlSteps(k);
+                    setup.schedule.control(step).W = ...
+                        p.setWellParameterValue(setup.schedule.control(step).W, v);
                 end
             end
         end
@@ -123,10 +142,10 @@ classdef ModelParameter
             end
             assert(strcmp(p.belongsTo, 'well'))
             v = applyFunction(@(x)getfield(x, p.location{:}), W(p.subset));
-            if doCollapse && iscell(p.lumping)
-                v = applyFunction(@(vi,lump)collapseLumps(vi, lump), v, p.lumping);
-            end
             v = vertcat(v{:});
+            if doCollapse
+                v = collapseLumps(v, p.lumping);
+            end
         end
         %------------------------------------------------------------------       
         function W = setWellParameterValue(p, W, v)
@@ -137,22 +156,8 @@ classdef ModelParameter
             nc = arrayfun(@(w)numel(w.cells), W(sub));
             [i1, i2] = deal(cumsum([1;nc(1:end-1)]), cumsum(nc));
             v  = applyFunction(@(i1,i2)v(i1:i2), i1, i2);
-            if iscell(p.lumping)
-                v = applyFunction(@(vi,lump)expandLumps(vi, lump), v, p.lumping);
-            end
-            for k = sub
-                W(k) = setfield(W(k), p.location{:}, v{k});
-            end
-        end
-        %------------------------------------------------------------------       
-        function m = getMultiplerValue(p, setup, doLump)
-            if strcmp(p.type, 'multiplier')
-                m = p.getParameterValue(setup)./p.referenceValue;
-                if nargin == 3 && doLump
-                    m = collapseLumps(p, m, @mean);
-                end
-            else
-                error('Parameter %s is not of type ''multiplier''', p.name);
+            for k = 1:numel(sub)
+                W(k) = setfield(W(sub(k)), p.location{:}, v{sub(k)});
             end
         end
     end
@@ -162,29 +167,34 @@ end
 %--------------------------------------------------------------------------
 function p = setupDefaults(p, setup, opt)
 % Make sure setup makes sense and add boxLims if not provided
-rlim  = opt.relativeLimits;
-range = @(x)[min(min(x)), max(max(x))];
 if isempty(p.subset)
     p.subset = ':';
 end
 if islogical(p.subset)
     p.subset = find(p.subset);
 end
-% check if well-parameter
-if strcmp(p.belongsTo, 'well') && isempty(p.lumping)
-    % for non-empty lumping, there should be a list of lumping-vectors for
-    % each included well.
-    if ~ischar(p.subset)
-        nw = numel(p.subset);
-    else
-        nw = numel(setup.schedule.control(1).W);
-    end
-    p.lumping = cell(nw, 1);
-end
-v    = getParameterValue(p, setup);
-p.nParam  = numel(v);
 
+if isempty(p.controlSteps) && strcmp(p.belongsTo, 'well')
+    p.controlSteps = (1:numel(setup.schedule.control));
+else
+    p.name = sprintf('%s_step%d', p.name, p.controlSteps(1));
+end
+
+v = getParameterValue(p, setup, false);
+
+if ~isempty(p.lumping)
+    p.nParam = max(p.lumping);
+else
+    p.nParam = numel(v);
+end
+   
+if strcmp(p.type, 'multiplier')
+    p.referenceValue = v;
+end
+
+range = @(x)[min(min(x)), max(max(x))];
 if isempty(p.boxLims)
+    rlim  = opt.relativeLimits;
     if strcmp(p.type, 'value')
         p.boxLims = range(v).*rlim;
     else
@@ -198,10 +208,6 @@ end
 
 assert(any(size(p.boxLims,1) == [1, p.nParam]), ...
     'Property ''boxLims'' does not match number of parameters');
-
-if strcmp(p.type, 'multiplier')
-    p.referenceValue = v;
-end
 end
 
 %--------------------------------------------------------------------------
@@ -296,24 +302,16 @@ end
 
 %--------------------------------------------------------------------------
 function checkSetup(p, setup)
-% check lumping/subset
-if ~strcmp(p.belongsTo, 'well')
-    if ~isempty(p.lumping)
-        tmp = p.getParameterValue(setup, false);
-        assert(numel(p.lumping) == numel(tmp));
-        assert(all(tmp >= p.boxLims(:,1) & tmp <= p.boxLims(:,2)))
-    end
-else
-    W = setup.schedule.control(1).W(p.subset);
-    for k = 1:numel(W)
-        if ~isempty(p.lumping{k})
-            [nc, nl] = deal(numel(W(k).cells), numel(p.lumping{k}));
-            assert(nc==nl, ...
-                'Well %s has %d connections but lumping vector has %d elements.', ...
-                W(k).name, nc, nl);
-        end
-    end
+if ~isempty(p.lumping)
+     tmp = p.getParameterValue(setup, false);
+     assert(numel(p.lumping) == numel(tmp), 'Lumping vector has incorrect size');
 end
+tmp = p.getParameter(setup);
+assert(numel(tmp)==p.nParam, 'Report error to develolper')
+assert(any(size(p.boxLims,1) == [1, p.nParam]), ...
+       'The number of upper/lower limits should be 1 or nParam');
+assert(all(tmp >= p.boxLims(:,1) & tmp <= p.boxLims(:,2)), ...
+       'Parameter values are not within given limits')
 end
 
 %--------------------------------------------------------------------------    
