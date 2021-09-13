@@ -54,6 +54,8 @@ classdef MRSTEnsemble < BaseEnsemble
     %                           the Parallel Computing Toolbox,
     %                       'background' - Run ensemble members by spawning
     %                           new matlab sessions in the background.
+    %                       'spmd' - Run ensemble in parallel using     
+    %                           the Parallel Computing Toolbox
     %   'maxWorkers' - Maximum number of parallel workers to use for
     %                  processing the ensemble members (default is system
     %                  dependent)
