@@ -7,6 +7,12 @@ mrstModule add ad-core ad-props ad-blackoil sequential example-suite ...
     mrst-gui compositional
 mrstVerbose on
 
+%% Notice on Computational Cost
+warning('ComputationalCost:High', ...
+       ['Please be advised that this example often takes a long time ', ...
+        'to run (e.g., more than 2 hours of CPU time)']);
+pause(10)
+
 %% Get example
 % We consider a slightly modified version of an example from Klemetsdal et.
 % al, SPE RSC 2019, doi: 10.2118/193934-ms. The setup consists of a
