@@ -7,6 +7,12 @@
 % Press, 2021.
 mrstModule add ad-core compositional deckformat ad-props
 
+%% Notice on Computational Cost
+warning('ComputationalCost:High', ...
+       ['Please be advised that this example often takes a long time ', ...
+        'to run (e.g., more than 1 hour of CPU time)']);
+pause(10)
+
 %% Setup simulation models
 % We set up simulation models for both the natural-variable and overall-
 % composition formulation and organize these as so-called packed simulation
