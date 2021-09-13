@@ -11,6 +11,12 @@ mrstModule add coarsegrid
 mrstModule add compositional
 mrstModule add linearsolvers
 
+%% Notice on Computational Cost
+warning('ComputationalCost:High', ...
+       ['Please be advised that this example often takes a long time ', ...
+        'to run (e.g., more than 1 hour of CPU time)']);
+pause(10)
+
 %% Build grid
 % Name tags for fluid model and case
 fluid_name = 'simple';
