@@ -152,12 +152,13 @@ validforces = model.getValidDrivingForces();
 current = getState(step);
 before  = getState(step - 1);
 dt_steps = schedule.step.val;
-dt = dt_steps(step);
-lookupCtrl = @(step) schedule.control(schedule.step.control(step));
-% get forces and merge with valid forces
-forces = model.getDrivingForces(lookupCtrl(step));
-forces = merge_options(validforces, forces{:});
-model = model.validateModel(forces);
+dt       = dt_steps(step);
+cNo      = schedule.step.control(step);
+
+control = schedule.control(cNo);
+forces  = model.getDrivingForces(control);
+forces  = merge_options(validforces, forces{:});
+model   = model.validateModel(forces);
 % Initial state typically lacks wellSol-field, so add if needed
 if step == 1
     before = model.validateState(before);
@@ -165,6 +166,15 @@ end
 % initialize before-state in case it contains cached properties
 before  = model.getStateAD(before, false);
 problem = model.getEquations(before, current, dt, forces, 'iteration', inf, 'resOnly', true);
+% experimental support for policies:
+if isfield(control, 'policy') && step > 1
+    % direct-set jacobian to avoid misc logic in well equations
+    % NOTE: fix scaling of bhp-controls
+    eqNo  = strcmp('closureWells', problem.equationNames);
+    isAct = vertcat(current.wellSol.status);
+    tmp   = control.policy.function(before, schedule, [], step-1);
+    problem.equations{eqNo} = -vertcat(tmp.control(cNo).W(isAct).val);
+end
 eqdth   = problem.equations;
 end
 %--------------------------------------------------------------------------
