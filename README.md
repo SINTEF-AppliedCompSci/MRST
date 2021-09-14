@@ -5,7 +5,7 @@ MICP is a new and sustainable technology which utilizes biochemical
 processes to create barriers by calcium carbonate cementation; therefore,
 this technology has a potential to be used for sealing leakage zones in
 geological formations. We have implemented a mathematical model for MICP
-suitable for field-scale studies. The main mechanisms in the conceptual
+suitable for field-scale studies. The main mechanisms in the conceptual
 model are as follow: microbial solution is injected which results in
 microbes attaching themselves to the pore walls to form biofilm, growth
 solution is injected to stimulate the development of biofilm, cementation
@@ -71,7 +71,7 @@ results and Figures in [A]; however, the main results and conclusions
 remain the same.
 
 ## Requirements
-* MRST (Tested version: 2021a)
+* MRST (Tested version: 2021b)
 * MATLAB (Tested version: R2021a) or GNU Octave (Tested version: 6.3.0)
 
 Regarding GNU Octave, all scripts have been successfully run in GNU/Linux and
