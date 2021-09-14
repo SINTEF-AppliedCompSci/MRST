@@ -73,7 +73,7 @@ opt = struct('Verbose',           mrstVerbose(),...
              'objScaling',1, ...
              'enforceBounds',  true);
 
-opt = merge_options(opt, varargin{:});
+[opt, extra] = merge_options(opt, varargin{:});
 
 nparam = cellfun(@(x)x.nParam, parameters);
 p_org = pvec;
@@ -93,7 +93,7 @@ for k = 1:numel(parameters)
 end
 [wellSols,states] = simulateScheduleAD(setupNew.state0, setupNew.model, setupNew.schedule,...
                                        'NonLinearSolver',opt.NonlinearSolver,...
-                                       'Verbose',opt.Verbose);
+                                       'Verbose',opt.Verbose, extra{:});
 
 misfitVals = obj(setupNew.model, states, setupNew.schedule, states_ref, false, [],[]);
 misfitVal  = - sum(vertcat(misfitVals{:}))/opt.objScaling ;
