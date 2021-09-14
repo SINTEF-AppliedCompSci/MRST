@@ -6,7 +6,7 @@ classdef ModelParameter
         subset                      % subset of parameters (or subset of wells)
         scaling       = 'linear'    % 'linear'/'log'
         referenceValue              % parameter reference values (used for type 'multiplier') 
-        belongsTo                   % model/well/state0
+        belongsTo                   % model/shcedule/state0/
         location                    % e.g., {'model', 'operators', 'T'}
         nParam                      % number of parameters
         lumping                     % parameter lumping vector (partition vector) 
@@ -100,15 +100,15 @@ classdef ModelParameter
             if nargin < 3
                 doCollapse = true;
             end
-            if ~strcmp(p.belongsTo, 'well')
+            if ~(strcmp(p.belongsTo, 'schedule') && strcmp(p.location{1}, 'control'))
                 v = getfield(setup.(p.belongsTo), p.location{:});
                 v = v(p.subset);
                 if doCollapse
                     v = collapseLumps(v, p.lumping);
                 end
-            else % well-parameter (assume constant selection of control steps)
-                W = setup.schedule.control(p.controlSteps(1)).W;
-                v  = p.getWellParameterValue(W, doCollapse);
+            else % control-parameter (assume constant selection of control steps)
+                control = setup.schedule.control(p.controlSteps(1));
+                v  = p.getControlParameterValue(control, doCollapse);
             end
         end
         %------------------------------------------------------------------       
@@ -119,45 +119,65 @@ classdef ModelParameter
             if doExpand
                 v  = expandLumps(v, p.lumping);
             end
-            if ~strcmp(p.belongsTo, 'well')
+            if ~(strcmp(p.belongsTo, 'schedule') && strcmp(p.location{1}, 'control'))
                 if isnumeric(p.subset)
                     tmp = getfield(setup.(p.belongsTo), p.location{:});
                     v   = setSubset(tmp, v, p.subset);
                 end
                 setup.(p.belongsTo) = ...
                     p.setfun(setup.(p.belongsTo), p.location, v);
-            else % well-parameter (assume constant over selected control steps)
+            else % control-parameter (assume constant over selected control steps)
                 nc = numel(p.controlSteps);
                 for k = 1:nc
                     step = p.controlSteps(k);
-                    setup.schedule.control(step).W = ...
-                        p.setWellParameterValue(setup.schedule.control(step).W, v);
+                    setup.schedule.control(step) = ...
+                        p.setControlParameterValue(setup.schedule.control(step), v);
                 end
             end
         end
         %------------------------------------------------------------------       
-        function v = getWellParameterValue(p, W, doCollapse)
+        function v = getControlParameterValue(p, control, doCollapse)
             if nargin < 3
                 doCollapse = true;
             end
-            assert(strcmp(p.belongsTo, 'well'))
-            v = applyFunction(@(x)getfield(x, p.location{:}), W(p.subset));
-            v = vertcat(v{:});
+            if strcmp(p.location{2}, 'W') 
+                % well-parameter subset applies to well numbers 
+                loc = p.location(3:end);
+                v = applyFunction(@(x)getfield(x, loc{:}), control.W(p.subset));
+                v = vertcat(v{:});
+            else
+                % apply subset to parameter
+                loc = p.location(2:end);
+                v = getfield(control, loc{:});
+                v = v(p.subset);
+            end      
             if doCollapse
                 v = collapseLumps(v, p.lumping);
             end
         end
-        %------------------------------------------------------------------       
-        function W = setWellParameterValue(p, W, v)
-            sub = p.subset;
-            if ~isnumeric(sub)
-                sub = 1:numel(W);
-            end 
-            nc = arrayfun(@(w)numel(w.cells), W(sub));
-            [i1, i2] = deal(cumsum([1;nc(1:end-1)]), cumsum(nc));
-            v  = applyFunction(@(i1,i2)v(i1:i2), i1, i2);
-            for k = 1:numel(sub)
-                W(k) = setfield(W(sub(k)), p.location{:}, v{sub(k)});
+        %------------------------------------------------------------------
+        function control = setControlParameterValue(p, control, v)
+            if strcmp(p.location{2}, 'W')
+                % well-parameter special treatment
+                sub = p.subset;
+                if ~isnumeric(sub)
+                    sub = 1:numel(control.W);
+                end
+                nc = arrayfun(@(w)numel(w.cells), control.W(sub));
+                [i1, i2] = deal(cumsum([1;nc(1:end-1)]), cumsum(nc));
+                v  = applyFunction(@(i1,i2)v(i1:i2), i1, i2);
+                loc = p.location(3:end);
+                for k = 1:numel(sub)
+                    control.W(sub(k)) = p.setfun(control.W(sub(k)), loc, v{k});
+                end
+            else
+                % other parameter (set subset of parameter)
+                loc = p.location(2:end);
+                if isnumeric(p.subset)
+                    tmp = getfield(control, loc{:});
+                    v   = setSubset(tmp, v, p.subset);
+                end
+                control = p.setfun(control, loc, v);
             end
         end
     end
@@ -174,10 +194,13 @@ if islogical(p.subset)
     p.subset = find(p.subset);
 end
 
-if isempty(p.controlSteps) && strcmp(p.belongsTo, 'well')
-    p.controlSteps = (1:numel(setup.schedule.control));
-else
-    p.name = sprintf('%s_step%d', p.name, p.controlSteps(1));
+if strcmp(p.belongsTo, 'schedule')
+    if isempty(p.controlSteps)
+        p.controlSteps = (1:numel(setup.schedule.control));
+    else
+        % set name depending on first selected control step
+        p.name = sprintf('%s_step%d', p.name, p.controlSteps(1));
+    end
 end
 
 v = getParameterValue(p, setup, false);
@@ -227,8 +250,8 @@ switch lower(p.name)
         belongsTo = 'model';
         location = {'operators', 'pv'};
     case 'conntrans'
-        belongsTo = 'well';
-        location = {'WI'};
+        belongsTo = 'schedule';
+        location = {'control', 'W', 'WI'};
     case {'sw', 'sg'}
         belongsTo = 'state0';
         col = SimulatorSetup.model.getPhaseIndex(upper(p.name(end)));
