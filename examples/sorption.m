@@ -156,8 +156,8 @@ for wi=1:numel(wells)
 end
 
 totTime = 15*year;
-nSteps = 15;
-dt = rampupTimesteps(totTime, 30*day, nSteps);
+nSteps = 45;
+dt = rampupTimesteps(totTime, 1*year, nSteps);
 
 
 
