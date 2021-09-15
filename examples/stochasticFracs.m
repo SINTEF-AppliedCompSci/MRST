@@ -51,7 +51,7 @@ view(-5,60)
 try      
     % Plot stereonet if ADFNE is available
     
-    o = Orientation([set1_;set2_]);
+    o = Orientation([set1;set2]);
     figure,
     Stereonet([o.Dip],[o.Dir],'density',true,'marker','*','ndip',6,...
         'ndir',24,'cmap',@jet,'color','y');
