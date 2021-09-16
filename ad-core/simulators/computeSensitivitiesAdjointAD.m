@@ -87,8 +87,12 @@ for k = 1:numel(param)
 end
 pNames = fieldnames(sens);
 isInitStateParam = cellfun(@(p)strcmp(p.belongsTo, 'state0'), param);
+if any(isInitStateParam)
+    [initparam, param] = deal(param(isInitStateParam), param(~isInitStateParam));
+end
+
 % inititialize parameters to ADI
-[modelParam, scheduleParam] = initModelParametersADI(setup, param(~isInitStateParam));
+[modelParam, scheduleParam] = initModelParametersADI(setup, param);
 % reset discretization/flow functions to account for AD-parameters
 modelParam.FlowDiscretization = [];
 modelParam.FlowPropertyFunctions = [];
@@ -101,16 +105,16 @@ for step = nt:-1:1
     fprintf('Solving reverse mode step %d of %d\n', nt - step + 1, nt);
     [lami, lambda]= setup.model.solveAdjoint(linsolve, getState, ...
         getObjective, setup.schedule, lambda, step);
-    eqdth = partialWRTparam(modelParam, getState, scheduleParam, step);
+    eqdth = partialWRTparam(modelParam, getState, scheduleParam, step, param);
     for kp = 1:numel(param)
-        if ~isInitStateParam(kp)
+        %if ~isInitStateParam(kp)
             nm = param{kp}.name;
             for nl = 1:numel(lami)
                 if isa(eqdth{nl}, 'ADI')
                     sens.(nm) = sens.(nm) + eqdth{nl}.jac{kp}'*lami{nl};
                 end
             end
-        end        
+        %end        
     end
 end
 
@@ -139,15 +143,15 @@ if any(isInitStateParam)
                 sens.(nms{k}) = sens.(nms{k}) + linProblem.equations{nl}.jac{kn}'*lami{nl};
             end
         end
-        kp = strcmp(nms{k}, pNames);
-        sens.(nms{k}) =  param{kp}.collapseGradient(sens.(nms{k}));
+        %kp = strcmp(nms{k}, pNames);
+        sens.(nms{k}) =  initparam{k}.collapseGradient(sens.(nms{k}));
     end
 end       
 
 end
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
-function eqdth = partialWRTparam(model, getState, schedule, step)
+function eqdth = partialWRTparam(model, getState, schedule, step, params)
 validforces = model.getValidDrivingForces();
 current = getState(step);
 before  = getState(step - 1);
@@ -166,17 +170,51 @@ end
 % initialize before-state in case it contains cached properties
 before  = model.getStateAD(before, false);
 problem = model.getEquations(before, current, dt, forces, 'iteration', inf, 'resOnly', true);
-% experimental support for policies:
-if isfield(control, 'policy') && step > 1
-    % direct-set jacobian to avoid misc logic in well equations
-    % NOTE: fix scaling of bhp-controls
-    eqNo  = strcmp('closureWells', problem.equationNames);
-    isAct = vertcat(current.wellSol.status);
-    tmp   = control.policy.function(before, schedule, [], step-1);
-    problem.equations{eqNo} = -vertcat(tmp.control(cNo).W(isAct).val);
+
+%special treatment of well-controls (if present) due to non-diff misc logic 
+% in well equations
+isPolicy      = cellfun(@(p)strcmp(p.controlType, 'policy'), params);
+isWellControl = cellfun(@(p)any(strcmp(p.controlType, ...
+                {'bhp', 'rate', 'wrat', 'orat', 'grat'})), params);
+if any(isPolicy | isWellControl)
+    ws     = current.wellSol;
+    %nw     = numel(ws);
+    isOpen = vertcat(ws.status);
+    nOpen  = nnz(isOpen);
+    eqNo   = strcmp('closureWells', problem.equationNames);
+    ceq    = problem.equations{eqNo};
+    assert(~isa(ceq, 'ADI'));
+    if any(isPolicy) && step > 1
+        % experimental support for policies: 
+        assert(isfield(control, 'policy'));
+        tmp = control.policy.function(before, schedule, [], step-1);
+        ceq = -vertcat(tmp.control(cNo).W(isOpen).val);
+    end
+    if any(isWellControl)
+        % set to AD if not already
+        ceq = setEqToADI(ceq, params);
+        ix = find(isWellControl);
+        for k = 1:numel(ix)
+            pnum     = ix(k);
+            assert(strcmp(params{pnum}.type, 'value'), ...
+                'Well control parameter of non-value type not supported');
+            cntr     = params{pnum}.controlType;
+            % non-zero gradient only if control is active
+            isActive = isOpen & reshape(strcmp(cntr, {ws.type}), [], 1);
+            jac = - spdiags(double(isActive(isOpen)), 0, nOpen, nOpen);
+            jac = jac(:, params{pnum}.subset);
+            assert(all(size(ceq.jac{pnum}) == size(jac)), 'Problem requires debugging')
+            ceq.jac{pnum} = jac;
+        end
+    end
+    % scaling (idntical to scaling of well eqs)
+    scale = getControlEqScaling({ws.type}, model.FacilityModel);
+    scale = scale(isOpen);
+    problem.equations{eqNo} = scale.*ceq;
+end             
+eqdth = problem.equations;
 end
-eqdth   = problem.equations;
-end
+
 %--------------------------------------------------------------------------
 
 function state = getStateFromInput(schedule, states, state0, i)
@@ -199,7 +237,38 @@ else
     [v{:}] = initVariablesADI(v{:});
 end
 for k = 1:numel(v)
-    setup = param{k}.setParameter(setup, v{k});
+    % don't set for well controls
+    if ~any(strcmp(param{k}.controlType, 'wellControl'))
+        setup = param{k}.setParameter(setup, v{k});
+    end
 end
 [modelParam, scheduleParam] = deal(setup.model, setup.schedule);
 end
+%--------------------------------------------------------------------------
+function eq = setEqToADI(eq, p)
+if ~isa(eq, 'ADI')
+    % we don't necessarily have sample, so create from scratch 
+    np  = cellfun(@(p)p.nParam, p);
+    neq = numel(eq);
+    jac = applyFunction(@(npk)sparse([],[],[],neq, npk ), np);
+    % use default ADI
+    eq  = ADI(eq, jac);
+end
+end
+
+%--------------------------------------------------------------------------
+function sc = getControlEqScaling(tp, facility)
+% In order to produce correct gradients, this scaling must be precisely the
+% same as in the control equation. This is rather shaky!
+sc    = ones(numel(tp), 1);
+is_bhp = strcmp('bhp', tp);
+if any(is_bhp)
+    if isfinite(facility.toleranceWellRate) && isfinite(facility.toleranceWellBHP)
+        eqScale = facility.toleranceWellRate/facility.toleranceWellBHP;
+    else
+        eqScale = 1/(day()*barsa());
+    end
+    sc(is_bhp) = eqScale;
+end
+end
+
