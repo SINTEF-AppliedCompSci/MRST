@@ -11,8 +11,12 @@ classdef ModelParameter
         nParam                      % number of parameters
         lumping                     % parameter lumping vector (partition vector) 
         setfun                      % possibly custom set-function (default is setfield)
-        scalingBase = nan;          
-        controlSteps = [];          % Default set/get for all control steps
+        getfun                      % (deafult getfield)
+        scalingBase   = nan;          
+        controlSteps  = [];         % Default set/get for all control steps
+        controlType   = 'none';     % types 'bhp', 'rate', 'orat', ... and 'policy' requires special 
+                                    % treatment 
+                                    % for sensitivitry computations 
     end
     
     methods
@@ -22,13 +26,15 @@ classdef ModelParameter
             if isempty(p.belongsTo) || isempty(p.location) 
                 p = setupByName(p, setup);
             end
+            if isempty(p.setfun)% use default
+                p.setfun = @setfield;
+            end
+            if isempty(p.getfun)% use default
+                p.getfun = @getfield;
+            end
             opt = struct('relativeLimits', [.5 2]);
             opt = merge_options(opt, extra{:});
             p   = setupDefaults(p, setup, opt);
-            if isempty(p.setfun)
-                % use default
-                p.setfun = @(obj, loc, v)setfield(obj, loc{:}, v);
-            end
             checkSetup(p, setup);
         end
         %------------------------------------------------------------------
@@ -101,7 +107,7 @@ classdef ModelParameter
                 doCollapse = true;
             end
             if ~(strcmp(p.belongsTo, 'schedule') && strcmp(p.location{1}, 'control'))
-                v = getfield(setup.(p.belongsTo), p.location{:});
+                v = p.getfun(setup.(p.belongsTo), p.location{:});
                 v = v(p.subset);
                 if doCollapse
                     v = collapseLumps(v, p.lumping);
@@ -121,11 +127,11 @@ classdef ModelParameter
             end
             if ~(strcmp(p.belongsTo, 'schedule') && strcmp(p.location{1}, 'control'))
                 if isnumeric(p.subset)
-                    tmp = getfield(setup.(p.belongsTo), p.location{:});
+                    tmp = p.getfun(setup.(p.belongsTo), p.location{:});
                     v   = setSubset(tmp, v, p.subset);
                 end
                 setup.(p.belongsTo) = ...
-                    p.setfun(setup.(p.belongsTo), p.location, v);
+                    p.setfun(setup.(p.belongsTo), p.location{:}, v);
             else % control-parameter (assume constant over selected control steps)
                 nc = numel(p.controlSteps);
                 for k = 1:nc
@@ -143,12 +149,12 @@ classdef ModelParameter
             if strcmp(p.location{2}, 'W') 
                 % well-parameter subset applies to well numbers 
                 loc = p.location(3:end);
-                v = applyFunction(@(x)getfield(x, loc{:}), control.W(p.subset));
+                v = applyFunction(@(x)p.getfun(x, loc{:}), control.W(p.subset));
                 v = vertcat(v{:});
             else
                 % apply subset to parameter
                 loc = p.location(2:end);
-                v = getfield(control, loc{:});
+                v = p.getfun(control, loc{:});
                 v = v(p.subset);
             end      
             if doCollapse
@@ -163,21 +169,26 @@ classdef ModelParameter
                 if ~isnumeric(sub)
                     sub = 1:numel(control.W);
                 end
-                nc = arrayfun(@(w)numel(w.cells), control.W(sub));
-                [i1, i2] = deal(cumsum([1;nc(1:end-1)]), cumsum(nc));
+                % scalar param per well or connection
+                if numelValue(v) == numel(sub)
+                    np = ones(p.nParam, 1);
+                else
+                    np = arrayfun(@(w)numel(w.cells), control.W(sub));
+                end
+                [i1, i2] = deal(cumsum([1;np(1:end-1)]), cumsum(np));
                 v  = applyFunction(@(i1,i2)v(i1:i2), i1, i2);
                 loc = p.location(3:end);
                 for k = 1:numel(sub)
-                    control.W(sub(k)) = p.setfun(control.W(sub(k)), loc, v{k});
+                    control.W(sub(k)) = p.setfun(control.W(sub(k)), loc{:}, v{k});
                 end
             else
                 % other parameter (set subset of parameter)
                 loc = p.location(2:end);
                 if isnumeric(p.subset)
-                    tmp = getfield(control, loc{:});
+                    tmp = p.getfun(control, loc{:});
                     v   = setSubset(tmp, v, p.subset);
                 end
-                control = p.setfun(control, loc, v);
+                control = p.setfun(control, loc{:}, v);
             end
         end
     end
@@ -236,7 +247,7 @@ end
 %--------------------------------------------------------------------------
 function p = setupByName(p, SimulatorSetup)
 % setup for typical parameters
-setfun = [];
+[getfun, setfun] = deal([]);
 switch lower(p.name)
     case 'transmissibility'
         belongsTo = 'model';
@@ -259,7 +270,8 @@ switch lower(p.name)
         oix = SimulatorSetup.model.getPhaseIndex('O');
         assert(~isempty(oix), ...
             'Current assumption is that oil is the dependent phase');
-        setfun   = @(obj, loc, v)setSaturationFun(obj, loc, v, oix);
+        %setfun   = @(obj, loc, v)setSaturationFun(obj, loc, v, oix);
+        setfun   = @(obj, varargin)setSaturationFun(obj, varargin{:}, oix);
     case 'pressure'
         belongsTo = 'state0';
         location = {'pressure'};
@@ -271,6 +283,17 @@ switch lower(p.name)
         [ph, col] = deal(map.ph{ix(1)}, ix(2));
         location = {'rock', 'krscale', 'drainage', ph, {':', col}};
         setfun   = @setRelPermScalersFun;
+    case {'bhp', 'rate', 'wrat', 'orat', 'grat'}
+        belongsTo = 'schedule';
+        % there are two potential locations, this is taken care of in 
+        % custom set/get-functions
+        location = {'control', 'W', 'val'};
+        getfun = @(obj, varargin)getWellControlValue(obj, varargin{:}, ...
+                                                     lower(p.name));
+        setfun = @(obj, varargin)setWellControlValue(obj, varargin{:}, ...
+                                                     lower(p.name));
+        p.controlType = lower(p.name);
+        %warning('Parameter "%s" not yet fully incorporated', p.name);
     otherwise
         error('No default setup for parameter: %s\n', p.name);     
 end
@@ -282,6 +305,9 @@ if isempty(p.location)
 end
 if isempty(p.setfun) && ~isempty(setfun)
     p.setfun = setfun;
+end
+if isempty(p.getfun) && ~isempty(getfun)
+    p.getfun = getfun;
 end
 end
 
@@ -333,14 +359,15 @@ tmp = p.getParameter(setup);
 assert(numel(tmp)==p.nParam, 'Report error to develolper')
 assert(any(size(p.boxLims,1) == [1, p.nParam]), ...
        'The number of upper/lower limits should be 1 or nParam');
-assert(all(tmp >= p.boxLims(:,1) & tmp <= p.boxLims(:,2)), ...
-       'Parameter values are not within given limits')
+chk = tmp >= p.boxLims(:,1) & tmp <= p.boxLims(:,2);
+assert(all(chk(~isnan(tmp))), 'Parameter values are not within given limits');
 end
 
 %--------------------------------------------------------------------------    
-function model = setPermeabilityFun(model, location, v)
+function model = setPermeabilityFun(model, varargin)
 % utility for setting permx/y/z possibly as AD and include effect on
 % transmissibilities
+[location, v] = deal(varargin(1:end-1), varargin{end});
 [nc, nd] = size(model.rock.perm);
 perm = model.rock.perm;
 if ~iscell(perm)
@@ -370,23 +397,26 @@ end
 end
 
 %--------------------------------------------------------------------------    
-function state = setSaturationFun(state, location, v, oix)
+function state = setSaturationFun(state, varargin)
+assert(nargin >= 3, 'Insufficient input')
+[loc, v, oix] = deal(varargin(1:end-2), varargin{end-1}, varargin{end});
 assert(isa(v, 'double'), 'Setting saturation to class %s is not supported', class(v));
-pix = location{end}{end};
+pix = loc{end}{end};
 ds = v-state.s(:, pix);
 state.s(:, pix) = v;
 state.s(:, oix) =  state.s(:, oix) - ds;
 end
 
 %--------------------------------------------------------------------------   
-function model = setRelPermScalersFun(model, location, v)
+function model = setRelPermScalersFun(model, varargin)
+[loc, v] = deal(varargin(1:end-1), varargin{end});
 if ~isa(v, 'ADI')
-    model = setfield(model, location{:}, v);
+    model = setfield(model, loc{:}, v);
 else
     % last location is column no, second last is phase
-    col = location{end}{end};
-    ph  = location{end-1};
-    d   = getfield(model, location{1:end-2});  %#ok
+    col = loc{end}{end};
+    ph  = loc{end-1};
+    d   = getfield(model, loc{1:end-2});  %#ok
     if ~isfield(d, 'tmp') || ~isfield(d.tmp, ph)
         nc = model.G.cells.num;
         d.tmp.(ph) = mat2cell(d.(ph), nc, ones(1,4));
@@ -394,6 +424,42 @@ else
     d.tmp.(ph){col} = v;
     d.(ph) = @(cells, col)d.tmp.(ph){col}(cells);
     model.rock.krscale.drainage = d;
+end
+end
+
+%--------------------------------------------------------------------------   
+function v = getWellControlValue(w, varargin)
+% don't use location
+cntr = varargin{end};
+if strcmp(w.type, cntr)
+    v = w.val;
+else
+    %return limit-value if exists
+    if isfield(w, 'lims') && isfield(w.lims, cntr)
+        v = w.lims.(cntr);
+    else
+        v = nan;
+        warning('Request to get %s for well %s failed.', cntr, w.name);
+    end
+end
+end
+
+%--------------------------------------------------------------------------   
+function w = setWellControlValue(w, varargin)
+% don't use location
+[v, cntr] = deal(varargin{end-1}, varargin{end});
+ok = false;
+% set both value and limit fields
+if strcmp(w.type, cntr)
+    w.val = v;
+    ok = true;
+end
+if isfield(w, 'lims') && isfield(w.lims, cntr)
+    w.lims.(cntr) = v;
+    ok = true;
+end
+if ~ok
+    warning('Request to set %s for well %s failed.', cntr, w.name);
 end
 end
 
