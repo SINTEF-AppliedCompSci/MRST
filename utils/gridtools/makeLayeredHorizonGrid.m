@@ -4,7 +4,7 @@ function G = makeLayeredHorizonGrid(G2D, horizons, varargin)
 %
 % SYNOPSIS:
 %   G = makeLayeredHorizonGrid(G2D, horizons)
-%   G = makeLayeredHorizonGrid(horizons, 'pn', pv)
+%   G = makeLayeredHorizonGrid(G2D, horizons, 'pn', pv)
 %
 % PARAMETERS:
 %  G        - A 2D grid to be extruded to 3D

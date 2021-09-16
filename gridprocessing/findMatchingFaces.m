@@ -20,6 +20,7 @@ function N = findMatchingFaces(G)
 %   G = makeInternalBoundary(G, 13);
 %   N = findMatchingFaces(G);
 %   G = removeInternalBoundary(G, N);
+
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
