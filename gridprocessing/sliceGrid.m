@@ -47,11 +47,13 @@ for k = 1:npts
     if G.griddim == 2
         [opt.topoSplit, opt.mcompute] = deal(false);
     end
-    
+    if k == 1
+        gix = opt.gix_input;
+    end
     if isempty(poly)
         warning('Slicing produced empty set, grid unchanged')
-        [gix, G_slice] = deal([]);
-        return
+        G_slice = [];
+        continue
     end
     if nargout >= 3 && G.griddim == 2
         warning('Output of 1D slice-grid not supported');
@@ -105,14 +107,11 @@ for k = 1:npts
     else
         [isSplit, isCut] = deal([]);
     end
-    if k == 1
-        gix = opt.gix_input;
-    end
     gix = getIndices(ncOld, nfOld, cutCells.ix(isCut), cutFaces.ix(isSplit), sliceFaces, gix);
 end
 dispif(mrstVerbose(), 'Performed %d slices in %fs\n', npts, toc(timer));
 % create 2D slice-grid if requested
-if nargout >= 3 && G.griddim == 3
+if nargout >= 3 && G.griddim == 3 && ~isempty(gix)
     G_slice = get2DGridFromFaces(G, gix.new.faces == 3);
 end
 end
