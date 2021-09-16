@@ -168,8 +168,6 @@ model.nonlinearTolerance = 1e-14;
 
 % Solver
 solver = getNonLinearSolver(model);
-solver.LinearSolver.tolerance = 1e-14;
-solver.LinearSolver.maxIterations = 100;
 
 % Initial condition
 state0 = initState(G, W, atm, [1, 0]);

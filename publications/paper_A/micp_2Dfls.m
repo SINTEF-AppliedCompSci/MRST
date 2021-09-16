@@ -42,8 +42,8 @@ H = 160;        % Reservoir heigth, m
 if exist('OCTAVE_VERSION', 'builtin') ~= 0 % GNU Octave
     Y = [0 : 0.25 : 135  H * exp(-0.16 : 0.02 : 0)];
     X = [0 1 50 * exp(-3.6 : 0.25 : 0) 100 - 50 * exp(0 : -0.25 : ...
-       -4.75)  99.85 100.15 100.5 101 102 105 : 5 : 210 L * ...
-                                                    exp(-0.85 : 0.05 : 0)];
+             -4.75) 99.7 99.85 100.15 100.3 100.5 101 102 105 : 5 : 210 ...
+                                                 L * exp(-0.8 : 0.05 : 0)];
     G = tensorGrid(X, Y, [0 1]);
     G = computeGeometry(G);
     c = G.cells.centroids;
@@ -733,4 +733,4 @@ legend('Without MICP', 'Phase I MICP', 'Phase II MICP', ...
                                      'Phase III MICP', 'Location', 'best');
 set(gca, 'FontSize', fS, 'FontName', 'Arial', 'XTick', 0 : 20 : 100, ...
                                                      'YTick', 0 : 10 : 60);
-%print -depsc2 Fig11b.eps
+%print -depsc2 Fig11b.eps 

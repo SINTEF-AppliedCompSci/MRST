@@ -41,7 +41,7 @@ mrstModule add ad-blackoil ad-core ad-micp
 L = 100;                     % Aquifer length, m
 G = tensorGrid(0 : L, [0 1], [0 1]);
 G = computeGeometry(G);
-C = ones(G.cells.num, 1);
+C = ones(G.cells.num, 1); 
 
 % Rock
 K0 = 1e-14 * C;              % Aquifer permeability, m^2
