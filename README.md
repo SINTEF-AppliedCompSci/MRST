@@ -1,5 +1,4 @@
-# ad-micp: A module to study CO2 leakage remediation by microbially induced 
-calcite precipitation (MICP)
+# ad-micp: A module to study CO2 leakage remediation by microbially induced calcite precipitation (MICP)
 
 <img src="micp-gif.gif" width="900" height="400">
 
