@@ -59,8 +59,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-assert(isa(setup.model,'GenericBlackOilModel'),... 
-       'The model must be derived from GenericBlackOilModel.')
+assert(isa(setup.model,'GenericReservoirModel'),... 
+       'The model must be derived from GenericReservoirModel.')
 assert(isa(param{1}, 'ModelParameter'), ...
         'Parameters must be initialized using ''ModelParameter''.')
 
