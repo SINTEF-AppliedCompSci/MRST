@@ -126,7 +126,7 @@ if nargout > 1
                          obj,setup,parameters, states_ref,...
                         'Gradient', 'none',...
                         'NonlinearSolver',opt.NonlinearSolver,...
-                        'objScaling',opt.objScaling);
+                        'objScaling',opt.objScaling,'enforceBounds',  false);
                 end
             catch % Try serial loop instead
                 for i=1:numel(p_org)
@@ -134,7 +134,7 @@ if nargout > 1
                          obj,state0_org,model_org,schedule_org,parameters, states_ref,...
                         'Gradient', 'none',...
                         'NonlinearSolver',opt.NonlinearSolver,...
-                        'objScaling',opt.objScaling);
+                        'objScaling',opt.objScaling, 'enforceBounds',  false);
                 end
             end 
             gradient= (val-misfitVal)./eps_pert;
@@ -148,6 +148,9 @@ if nargout > 1
 end
 if nargout > 2
     [varargout{2:3}] = deal(wellSols, states);
+end
+if nargout > 4
+   varargout{4} =  setupNew;
 end
 end
 
