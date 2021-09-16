@@ -1,7 +1,7 @@
-# ad-micp: A module to study CO2 leakage remediation by microbially induced
-# calcite precipitation (MICP)
+# ad-micp: A module to study CO2 leakage remediation by microbially induced 
+calcite precipitation (MICP)
 
-<img src="micp-gif.gif" width="800" height="400">
+<img src="micp-gif.gif" width="900" height="400">
 
 ## Description
 MICP is a new and sustainable technology which utilizes biochemical
@@ -25,9 +25,6 @@ http://www.sintef.no/projectweb/mrst/.
 See the Wiki for an extended description, information regarding changes
 respect to previous releases, and using this module in macOS with GNU
 Octave.
-
-## Release
-* 2021b
 
 ## Requirements
 * MRST (Tested version: 2021b)
