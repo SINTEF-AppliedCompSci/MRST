@@ -1423,7 +1423,8 @@ methods
         %   forces - A struct with any number of fields. The fields must be
         %            present, but they can be empty.
         %
-        forces = struct('stopFunction', @(model, state, state_prev) false);
+        forces = struct('stopFunction', @(model, state, state_prev) false, ...
+                        'misc', []);
     end
 
 
