@@ -73,8 +73,6 @@ if mrstVerbose && setup.model.toleranceCNV >= 1e-3
             'model.toleranceCNV.'] )
 end
 
-getState = @(i) getStateFromInput(setup.schedule, states, setup.state0, i);
-
 if isempty(opt.LinearSolver)
     linsolve = BackslashSolverAD();
 else
@@ -86,9 +84,11 @@ for k = 1:numel(param)
     sens.(param{k}.name) = 0;
 end
 pNames = fieldnames(sens);
-isInitStateParam = cellfun(@(p)strcmp(p.belongsTo, 'state0'), param);
-if any(isInitStateParam)
-    [initparam, param] = deal(param(isInitStateParam), param(~isInitStateParam));
+% split parameters in inital state/non-initial state due to different
+% handling
+isInitParam = cellfun(@(p)strcmp(p.belongsTo, 'state0'), param);
+if any(isInitParam)
+    [initparam, param] = deal(param(isInitParam), param(~isInitParam));
 end
 
 % inititialize parameters to ADI
@@ -98,11 +98,12 @@ modelParam.FlowDiscretization = [];
 modelParam.FlowPropertyFunctions = [];
 modelParam = validateModel(modelParam);
 
-nstep = numel(setup.schedule.step.val);
-lambda = [];
-nt = nstep;
-for step = nt:-1:1
-    fprintf('Solving reverse mode step %d of %d\n', nt - step + 1, nt);
+nstep    = numel(setup.schedule.step.val);
+lambda   = [];
+getState = @(i) getStateFromInput(setup.schedule, states, setup.state0, i);
+% run adjoint
+for step = nstep:-1:1
+    fprintf('Solving reverse mode step %d of %d\n', nstep - step + 1, nstep);
     [lami, lambda]= setup.model.solveAdjoint(linsolve, getState, ...
         getObjective, setup.schedule, lambda, step);
     eqdth = partialWRTparam(modelParam, getState, scheduleParam, step, param);
@@ -120,7 +121,7 @@ end
 
 % compute partial derivative of first eq wrt init state and compute
 % initial state sensitivities
-if any(isInitStateParam)
+if any(isInitParam)
     schedule = setup.schedule;
     forces = setup.model.getDrivingForces(schedule.control(schedule.step.control(1)));
     forces = merge_options(setup.model.getValidDrivingForces(), forces{:});
@@ -133,7 +134,7 @@ if any(isInitStateParam)
     
     linProblem = model.getAdjointEquations(state0, states{1}, dt, forces,...
         'iteration', inf, 'reverseMode', true);
-    nms    = applyFunction(@lower, pNames(isInitStateParam));
+    nms    = applyFunction(@lower, pNames(isInitParam));
     varNms = applyFunction(@lower, linProblem.primaryVariables);
     for k = 1:numel(nms)
         kn = find(strcmp(nms{k}, varNms));
@@ -171,8 +172,8 @@ end
 before  = model.getStateAD(before, false);
 problem = model.getEquations(before, current, dt, forces, 'iteration', inf, 'resOnly', true);
 
-%special treatment of well-controls (if present) due to non-diff misc logic 
-% in well equations
+% We need special treatment of well-control parameters (if present) due to 
+% non-diff misc logic in well equations
 isPolicy      = cellfun(@(p)strcmp(p.controlType, 'policy'), params);
 isWellControl = cellfun(@(p)any(strcmp(p.controlType, ...
                 {'bhp', 'rate', 'wrat', 'orat', 'grat'})), params);
@@ -186,8 +187,8 @@ if any(isPolicy | isWellControl)
     assert(~isa(ceq, 'ADI'));
     if any(isPolicy) && step > 1
         % experimental support for policies: 
-        assert(isfield(control, 'policy'));
-        tmp = control.policy.function(before, schedule, [], step-1);
+        assert(isfield(control.misc, 'policy'));
+        tmp = control.misc.policy.function(before, schedule, [], step-1);
         ceq = -vertcat(tmp.control(cNo).W(isOpen).val);
     end
     if any(isWellControl)
@@ -238,7 +239,7 @@ else
 end
 for k = 1:numel(v)
     % don't set for well controls
-    if ~any(strcmp(param{k}.controlType, 'wellControl'))
+    if ~any(strcmp(param{k}.controlType, {'bhp', 'rate', 'wrat', 'orat', 'grat'}))
         setup = param{k}.setParameter(setup, v{k});
     end
 end

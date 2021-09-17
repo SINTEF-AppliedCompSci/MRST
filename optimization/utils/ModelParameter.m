@@ -223,6 +223,9 @@ else
 end
    
 if strcmp(p.type, 'multiplier')
+    if any(v==0)
+        error('Can''t set parameter-type ''multiplier'' for zero-value parameter');
+    end
     p.referenceValue = v;
 end
 
@@ -293,7 +296,6 @@ switch lower(p.name)
         setfun = @(obj, varargin)setWellControlValue(obj, varargin{:}, ...
                                                      lower(p.name));
         p.controlType = lower(p.name);
-        %warning('Parameter "%s" not yet fully incorporated', p.name);
     otherwise
         error('No default setup for parameter: %s\n', p.name);     
 end
@@ -361,6 +363,10 @@ assert(any(size(p.boxLims,1) == [1, p.nParam]), ...
        'The number of upper/lower limits should be 1 or nParam');
 chk = tmp >= p.boxLims(:,1) & tmp <= p.boxLims(:,2);
 assert(all(chk(~isnan(tmp))), 'Parameter values are not within given limits');
+if ~strcmp(p.controlType, 'none')
+    assert(any(strcmp(p.controlType, {'bhp', 'rate', 'wrat', 'orat', 'grat', 'policy'})), ...
+        'Well control of type "%s" is not supported', p.controlType);
+end
 end
 
 %--------------------------------------------------------------------------    
@@ -438,8 +444,7 @@ else
     if isfield(w, 'lims') && isfield(w.lims, cntr)
         v = w.lims.(cntr);
     else
-        v = nan;
-        warning('Request to get %s for well %s failed.', cntr, w.name);
+        error('Request to set non-existing control/limit %s for well %s.', cntr, w.name);
     end
 end
 end
@@ -459,7 +464,7 @@ if isfield(w, 'lims') && isfield(w.lims, cntr)
     ok = true;
 end
 if ~ok
-    warning('Request to set %s for well %s failed.', cntr, w.name);
+    error('Request to set non-existing control/limit %s for well %s.', cntr, w.name);
 end
 end
 
