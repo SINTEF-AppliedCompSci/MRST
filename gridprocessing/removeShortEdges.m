@@ -1,4 +1,4 @@
-function G = removeShortEdges(G, tol)
+function [G, cellmap] = removeShortEdges(G, tol)
 %Replace short edges in grid G by a single node.
 %
 % SYNOPSIS:
@@ -45,8 +45,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 %}
 
-
-
    if nargin == 1
       tol = 0.0;
    end
@@ -60,13 +58,17 @@ THE SOFTWARE.
    
    G = removeEdges(G, E(i,:));
    G = removeCollapsedFaces(G);
-   G = removeCollapsedCells(G);
+   [G, cellmap] = removeCollapsedCells(G);
+   
 end
 
 function G = removeCollapsedFaces(G)
-   % remove repeated nodes in G.faces.nodes
+   % Remove repeated nodes in G.faces.nodes
    faceno = rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)';
-   tmp = rlencode([faceno, G.faces.nodes]);
+   tmp     = [faceno, G.faces.nodes];
+   [~, ia] = unique(tmp, 'rows');
+   keep    = false(size(tmp,1),1); keep(ia) = true;
+   tmp     = tmp(keep,:);
    [n,n] = rlencode(tmp(:,1));
    G.faces.nodePos = cumsum([1;n]);
    G.faces.nodes = tmp(:,2);
@@ -77,9 +79,18 @@ function G = removeCollapsedFaces(G)
    
 end
    
-function G = removeCollapsedCells(G)
+function [G, cellmap] = removeCollapsedCells(G)
+    % Find collapsed faces
    c = find(diff(G.cells.facePos)<G.griddim+1);
-   if any(c),G = removeCells(G, c);end
+   if ~any(c)
+       cellmap = (1:G.cells.num)';
+       return
+   end
+   % Remove collapsed cells
+   [G, cellmap] = removeCells(G, c);
+   % Fix topology
+   N = findMatchingFaces(G);
+   G = removeInternalBoundary(G, N);   
 end
 
 function G = removeEdges(G, E)
