@@ -40,31 +40,23 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    % Reshape face nodes to matrix with nan-padding
-    nodes = G.faces.nodes;
-    n     = diff(G.faces.nodePos);
-    stop  = cumsum(n);
-    start = stop - n + 1;
-    nmax  = max(n);
-    % Get index and map for values to be replaced by nans
-    ix     = bsxfun(@plus, start, 0:nmax-1);
-    nanmap = bsxfun(@gt, ix, stop);
-    % Pad imssing dimension at the end with nans
-    nodes(end+1:end+1+nmax-1) = nan;
-    % Expand to matrix
-    nodes = nodes(ix);
-    % Replace extra values with nan
-    nodes(nanmap) = nan;
+    % Reshape face nodes to matrix with zero-padding
+    n     = reshape(diff(G.faces.nodePos), [], 1);
+    nodes = zeros([G.faces.num, max(n)]);
+    ix    = sub2ind(size(nodes)                 , ...
+                 rldecode(1:G.faces.num, n, 2).', ...
+                 reshape(mcolon(1, n), [], 1)   );
+    nodes(ix) = G.faces.nodes(:,1);
+    % Ensure equal node ordering for all faces
+    nodes = sort(nodes, 2);
     % Find matching rows
-    [tmp, i  ] = sortrows(nodes);
-    [tmp, num] = rlencode(tmp,1); %#ok
+    [tmp, faces] = sortrows(nodes);
+    [tmp, num  ] = rlencode(tmp,1); %#ok
     % Check that at most two faces share the same set of nodes
     assert(max(num) <= 2, ['This function currently does not support ', ...
          'the case when more than two faces share the same set of nodes']);
     fix = rldecode(num==2, num, 1);
-    % Find correspoing face numbers
-    faces = (1:G.faces.num)'; faces = faces(i); faces = faces(fix);
-    % Reshape to adjacency list
-    N = reshape(faces, 2, [])';
+    % Reshape to pairs of matching faces
+    N = reshape(faces(fix), 2, [])';
     
 end
