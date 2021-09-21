@@ -317,7 +317,7 @@ function mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, varargin)
    
    F = Aver*F;
    
-   %% Assemble the system matrix operaror: The degrees of freedom are the pressure
+   %% Assemble the system matrix operator: The degrees of freedom are the pressure
    % values at the cell center and at the external facenode.
    %
    % We have u = iB*div'*p - iB*Pext'*pe
