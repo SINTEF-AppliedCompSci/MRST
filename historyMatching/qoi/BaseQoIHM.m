@@ -148,7 +148,8 @@ classdef BaseQoIHM
                          'plotTruth', false        , ...
                          'legend'     , {{}}       , ...
                          'plotWells'  , []         , ...
-                         'alreadyOpenFigures', 0);
+                         'alreadyOpenFigures', 0   , ...
+                         'Position',  get(0, 'DefaultFigurePosition'));
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u_var, u]  = qoi.getQoIMean(opt.range);
             numQoIs      = numel(u_mean);
@@ -210,7 +211,7 @@ classdef BaseQoIHM
                         figureId = figIds(i).(qoi.names{k});
                     end
                     if isnan(h(figureId))
-                        h(figureId) = qoi.figure(ensemble);
+                        h(figureId) = qoi.figure(ensemble, 'Position', opt.Position);
                     else
                         set(0, 'CurrentFigure', h(figureId));
                         if ~opt.subplots && opt.clearFigure
