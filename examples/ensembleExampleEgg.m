@@ -1,4 +1,4 @@
-%% Egg ensamble example
+%% Egg ensemble example
 % In this example, we show how to set up an ensemble from a collection of
 % deck files, exemplified by the Egg model [1]
 
@@ -41,8 +41,8 @@ disp(samples)
 %% Set up QoI
 % For our QoI, we choose the total oil production rate
 is_prod = vertcat(example.schedule.control(1).W.sign) < 0;
-qoi = WellQoI('wellIndices', is_prod, 'fldname', 'qOs');
-
+qoi = WellQoI('wellIndices', is_prod, 'names', 'qOs');
+    
 %% Set up ensemble
 ensemble = MRSTEnsemble(example, samples, qoi, ...
                'simulationStrategy', 'background'); % Run in the background
