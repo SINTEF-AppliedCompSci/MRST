@@ -154,7 +154,42 @@ classdef BaseSamples
             % this function depends on the type of sample
             error('Template class not meant for direct use!');
         end
+        
+        function meanSample = getMeanSample(sample)
+            % Computes the mean of the sample distributions and structure
+            % the output in the same form as the relevant sample object.
+            %
+            % SYNOPSIS:
+            %   meanSamples = sample.getMeanSamples()
+            %
+            % RETURNS:
+            %   meanSamples - same object type as sample but with one num
+            %   only.
+            %
+            % NOTE:
+            %   This function ust be implemented by each specific sample
+            %   type.
+                        
+            if isinf(sample.num)
+                error('Function cannot be used when generating samples on the fly');
+            elseif ~iscell(sample.data)
+                error('Function currently only implemented for cell array samples');
+            end
 
+            fields = fieldnames(sample.data{1});
+            meanData = sample.data{1};
+            for f = 1:numel(fields)
+                for i = 2:sample.num
+                    meanData.(fields{f}) = meanData.(fields{f})+1;
+                end
+                meanData.(fields{f}) = meanData.(fields{f})/sample.num;
+            end
+            
+            meanSample = sample;
+            meanSample.data = {meanData};
+            meanSample.num = 1;
+            
+        end
     end
 end
     
