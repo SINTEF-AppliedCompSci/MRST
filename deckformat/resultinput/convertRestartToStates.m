@@ -51,8 +51,7 @@ opt     = struct('additionalFields',    {{}}, ...
                  'addTrajectory',       true, ...
                  'removeClosedWells',   true, ...
                  'removeCrossflow',     true, ...
-                 'setToClosedTol',      0*meter^3/day,...
-                 'use_opm',false);
+                 'setToClosedTol',      0*meter^3/day);
 opt     = merge_options(opt, varargin{:});
 
 N    = opt.neighbors;
@@ -60,97 +59,60 @@ if isempty(N)
     N = G(1).faces.neighbors;
 end
 
-[dr,nm] = fileparts(fn);
-fn = fullfile(dr,nm);
+[dd, nm, ext] = fileparts(fn);
+if strcmp(ext, '.UNRST')
+    fn = fullfile(dd, nm);
+end
 
-%[rstrt, info] = readRestart(fn, 'steps', opt.steps);
+% check if we have rsspec-file available
+hasInfo = true;
+if isempty(opt.restartInfo)
+    if exist([fn, '.RSSPEC'], 'file')
+        opt.restartInfo = processEclipseRestartSpec(fn);
+    else
+        hasInfo = false;
+    end
+end
 
-if(~opt.use_opm)
+if hasInfo
     rstrt = readEclipseRestartUnFmt(fn, opt.restartInfo, opt.steps);
 else
-    % hack to do reading from OPM which do not have RSTR
-    out = [fn,'.UNRST'];
-    opm = readEclipseOutputFileUnFmt(out);
-    ns  = numel(opm.SEQNUM.values);
-
-    %{
-    fnames = {'SEQNUM'  , ...
-              'INTEHEAD', ...
-              'LOGIHEAD', ...
-              'DOUBHEAD', ...
-              'IWEL'    , ...
-              'SWEL'    , ...
-              'XWEL'    , ...
-              'ZWEL'    , ...
-              'ICON'    , ...
-              'SCON'    , ...
-              'XCON'    , ...
-              'PRESSURE', ...
-              'SWAT'    , ...
-              'SGAS'    , ...
-              'RS'      , ...
-              'RV' };
-    %}
-
-    %{
-    fnames = {'INTEHEAD', ...
-              'LOGIHEAD', ...
-              'DOUBHEAD', ...
-              'IWEL'    , ...
-              'SWEL'    , ...
-              'XWEL'    , ...
-              'ZWEL'    , ...
-              'ICON'    , ...
-              'SCON'    , ...
-              'XCON'    , ...
-              'PRESSURE', ...
-              'SWAT'    , ...
-              'SGAS'    , ...
-              'RS'      , ...
-              'RV' };
-    %}
-
-    warning('Using OPM restart files some will infor is not pressent')
-
-    %opt.wellSolsFromRestart=false;
-    %opt.includeWellSols=false;
-    %opt.consistentWellSols=false;
-    opt.addTrajectory=false;
-
-    fnames = fieldnames(opm);
-    opm_s  = [];
-
+    dispif(mrstVerbose, ...
+        'Restart specification missing, this may potentially increase processing time\n');
+    isUnified = exist([fn,'.UNRST'], 'file');
+    if isUnified
+        tmp = readEclipseOutputFileUnFmt([fn,'.UNRST']);
+        ns  = numel(tmp.SEQNUM.values);
+    else
+       % assume the file is for a single restart step  
+       tmp = readEclipseOutputFileUnFmt(fn);
+       ns  = 1;
+    end
+    fnames = fieldnames(tmp);
+    rstrt  = [];
     for i = 1 : numel(fnames)
-        if ~strcmp(opm.(fnames{i}).type, 'MESS')
-            V = opm.(fnames{i}).values;
+        if ~strcmp(tmp.(fnames{i}).type, 'MESS')
+            V = tmp.(fnames{i}).values;
             if  mod(numel(V), ns) ~= 0
                 if mrstVerbose()
                     fprintf('Skipping entry %s\n', fnames{i});
                 end
                 continue
             end
-            tmp = reshape(V,[],ns);
-            %tmp = reshape(V,ns,[]);
-
+            V = reshape(V,[],ns);
             if isempty(opt.steps)
                 opt.steps=1:ns;
             end
-
-            nsl = numel(opt.steps);
-            tmp = tmp(:,opt.steps);
-
-            tmpc = mat2cell(tmp, size(tmp,1), ones([1, nsl]));
-            opm_s.(fnames{i}) = reshape(tmpc,[],1);
+            nsout = numel(opt.steps);
+            V = V(:,opt.steps);
+            V = mat2cell(V, size(V,1), ones([1, nsout]));
+            rstrt.(fnames{i}) = reshape(V,[],1);
         end
     end
-    %% for old opm
-    if isfield(opm_s,'XCON')
-        for i=1:numel(opm_s.XCON)
-            opm_s.XCON{i}=opm_s.XCON{i}';
-        end
+    % for old opm (???)
+    if isfield(rstrt,'XCON') && size(rstrt.XCON{1}, 1) == 1
+        rstrt.XCON = applyFunction(@transpose, rstrt.XCON);
     end
-    
-    rstrt = opm_s;
 end
 
 [opt, phn, unit, tr, na, isECLIPSE] = checkAndProcessInput(fn, rstrt, opt);

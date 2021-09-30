@@ -102,12 +102,17 @@ else
 end
 G.cells.eMap = eMap;
 G.cells.eMapInv = eMapInv;
-
-G.cells.centroids(:,3) = convertFrom(init.DEPTH.values(eMap), u.length);
-G.cells.PORV           = convertFrom(init.PORV.values(G.cells.indexMap), u.resvolume);
-G.cells.DX    = convertFrom(init.DX.values(eMap), u.length);
-G.cells.DY    = convertFrom(init.DY.values(eMap), u.length);
-G.cells.DZ    = convertFrom(init.DZ.values(eMap), u.length);
+if isfield(init, 'DEPTH')
+    G.cells.centroids(:,3) = convertFrom(init.DEPTH.values(eMap), u.length);
+end
+if isfield(init, 'PORV')
+    G.cells.PORV = convertFrom(init.PORV.values(G.cells.indexMap), u.resvolume);
+end
+if all(isfield(init, {'DX', 'DY', 'DZ'}))
+    G.cells.DX    = convertFrom(init.DX.values(eMap), u.length);
+    G.cells.DY    = convertFrom(init.DY.values(eMap), u.length);
+    G.cells.DZ    = convertFrom(init.DZ.values(eMap), u.length);
+end
 
 % if we are outputting simgrid or we have consistency between G and
 % ECLIPSE-grid, rock is directly given by init
