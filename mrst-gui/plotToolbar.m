@@ -666,10 +666,13 @@ function limitLogical(src, event)
             logicalsubset.(f{i}) = 1:Mv(i);
         end
     end
-    si = uicontrol(fi, 'Position', [0,   40, 100, 300], 'String', 1:Mv(1) , 'Style', 'listbox', 'Max', Mv(1), 'Value', logicalsubset.i, 'TooltipString', 'I');
-    sj = uicontrol(fi, 'Position', [100, 40, 100, 300], 'String', 1:Mv(2) , 'Style', 'listbox', 'Max', Mv(2), 'Value', logicalsubset.j, 'TooltipString', 'J');
+
+    integer_labels = @(arr) arrayfun(@(i) sprintf('%d', i), arr, 'UniformOutput', false);
+
+    si = uicontrol(fi, 'Position', [0,   40, 100, 300], 'String', integer_labels(1:Mv(1)) , 'Style', 'listbox', 'Max', Mv(1), 'Value', logicalsubset.i, 'TooltipString', 'I');
+    sj = uicontrol(fi, 'Position', [100, 40, 100, 300], 'String', integer_labels(1:Mv(2)) , 'Style', 'listbox', 'Max', Mv(2), 'Value', logicalsubset.j, 'TooltipString', 'J');
     if G.griddim == 3
-        sk = uicontrol(fi, 'Position', [200, 40, 100, 300], 'String', 1:Mv(3) , 'Style', 'listbox', 'Max', Mv(3), 'Value', logicalsubset.k, 'TooltipString', 'K');
+        sk = uicontrol(fi, 'Position', [200, 40, 100, 300], 'String', integer_labels(1:Mv(3)) , 'Style', 'listbox', 'Max', Mv(3), 'Value', logicalsubset.k, 'TooltipString', 'K');
     end
 
     uicontrol(fi, 'Style', 'pushbutton', 'Position', [100, 0, 100, 40], 'string', 'Apply', 'callback', @(src, event) uiresume(fi))
