@@ -919,13 +919,8 @@ function handleFigureResize(src, event)
 end
 
 function cdata = geticon(name)
-    n = mfilename('fullpath');
-    if exist('strsplit', 'file')
-        tmp = strsplit(n, filesep);
-    else
-        tmp = regexp(n, filesep, 'split');
-    end
-    icon = fullfile(tmp{1:end-1}, 'icons', [name '.gif']);
+    this_dir = fileparts(mfilename('fullpath'));
+    icon = fullfile(this_dir, 'icons', [name '.gif']);
     [cdata, map] = imread(icon);
     if islogical(cdata)
         cdata = uint8(255*cdata);
