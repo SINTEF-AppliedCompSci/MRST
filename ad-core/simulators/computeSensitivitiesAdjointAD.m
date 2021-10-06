@@ -144,7 +144,9 @@ if any(isInitParam)
                 sens.(nms{k}) = sens.(nms{k}) + linProblem.equations{nl}.jac{kn}'*lami{nl};
             end
         end
-        %kp = strcmp(nms{k}, pNames);
+        if strcmp(initparam{k}.type, 'multiplier')
+            sens.(nms{k}) = sens.(nms{k}).*initparam{k}.referenceValue;
+        end
         sens.(nms{k}) =  initparam{k}.collapseGradient(sens.(nms{k}));
     end
 end       
@@ -188,7 +190,7 @@ if any(isPolicy | isWellControl)
     if any(isPolicy) && step > 1
         % experimental support for policies: 
         assert(isfield(control.misc, 'policy'));
-        tmp = control.misc.policy.function(before, schedule, [], step-1);
+        tmp = control.extra.policy.function(before, schedule, [], step-1);
         ceq = -vertcat(tmp.control(cNo).W(isOpen).val);
     end
     if any(isWellControl)

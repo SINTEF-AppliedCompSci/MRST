@@ -11,7 +11,7 @@ classdef ModelParameter
         nParam                      % number of parameters
         lumping                     % parameter lumping vector (partition vector) 
         setfun                      % possibly custom set-function (default is setfield)
-        getfun                      % (deafult getfield)
+        getfun                      % (default getfield)
         scalingBase   = nan;          
         controlSteps  = [];         % Default set/get for all control steps
         controlType   = 'none';     % types 'bhp', 'rate', 'orat', ... and 'policy' requires special 
@@ -32,7 +32,8 @@ classdef ModelParameter
             if isempty(p.getfun)% use default
                 p.getfun = @getfield;
             end
-            opt = struct('relativeLimits', [.5 2]);
+            opt = struct('relativeLimits', [.5 2], ...
+                         'uniformLimits',  true);
             opt = merge_options(opt, extra{:});
             p   = setupDefaults(p, setup, opt);
             checkSetup(p, setup);
@@ -229,18 +230,35 @@ if strcmp(p.type, 'multiplier')
     p.referenceValue = v;
 end
 
-range = @(x)[min(min(x)), max(max(x))];
+% handle default parameter limits
+limsOK = false; 
 if isempty(p.boxLims)
     rlim  = opt.relativeLimits;
     if strcmp(p.type, 'value')
-        p.boxLims = range(v).*rlim;
+        if opt.uniformLimits
+            tmp = [min(min(v)), max(max(v))];
+            ii  = [1+(tmp(1)<0), 2-(tmp(2)<0)];
+            p.boxLims = tmp.*rlim(ii);
+            limsOK = ~all(tmp==0);
+        else
+            p.boxLims = bsxfun(@times, v, rlim);
+        end
+        isNeg = p.boxLims(:,1) < 0;
+        p.boxLims(isNeg,:) = p.boxLims(isNeg, [2, 1]);
     else
         p.boxLims = rlim;
     end
     % special treatment of saturations
     if any(strcmp(p.name, {'sw', 'sg'}))
          p.boxLims = [0, 1];
+    elseif any(v==0) && ~limsOK 
+    % check if relative limits are set for zero-value params
+        p.boxLims(v==0, 1) = -1; 
+        p.boxLims(v==0, 2) =  1;
+        warning('Parameter %s contains zero-values. %s',  p.name, ...
+         'Defaulting lower/upper limits (''boxLims'') to [-1 1]');
     end
+    
 end
 
 assert(any(size(p.boxLims,1) == [1, p.nParam]), ...
