@@ -1,8 +1,6 @@
 %% Parameter tuning of a very coarse upscaling of the Egg model   
-mrstModule add ad-core ad-blackoil deckformat ...
-               agglom upscaling coarsegrid...
-               mrst-gui ad-props incomp optimization...
-               example-suite linearsolvers 
+mrstModule add ad-core ad-blackoil deckformat agglom upscaling coarsegrid...
+        mrst-gui ad-props incomp optimization example-suite linearsolvers 
 
 %% Setup reference model
 example  = MRSTExample('egg_wo', 'realization', 1);
@@ -10,7 +8,7 @@ problem  = example.getPackedSimulationProblem();
 
 % We focus on the first 60 steps
 schedule = problem.SimulatorSetup.schedule;
-schedule.step.val = schedule.step.val(1:60);
+schedule.step.val     = schedule.step.val(1:60);
 schedule.step.control = schedule.step.control(1:60);
 Wref     = schedule.control.W;
 dt       = schedule.step.val;
@@ -26,71 +24,53 @@ problem.SimulatorSetup.schedule = schedule;
 % Simulate
 simulatePackedProblem(problem);
 
-[wellSolsRef, statesRef] = getPackedSimulatorOutput(problem);
+[wsRef, statesRef] = getPackedSimulatorOutput(problem);
 modelRef    = problem.SimulatorSetup.model;
 
-
-
-% Plot
-%example.plot(statesRef, 'step_index', numel(statesRef))
-%plotWellSols(wellSolsRef)
 %% Coarse-scale model
 % We make a coarse grid defined by a uniform 6 x 6 x 1 partition 
 blockIx = partitionUI(modelRef.G, [6, 6, 1]);
 blockIx = processPartition(modelRef.G, blockIx);
 blockIx = compressPartition(blockIx);
 % Perform a simple upscaling to obtain a coarse model
-cModel = upscaleModelTPFA(modelRef, blockIx);
-cModel.AutoDiffBackend = AutoDiffBackend();
+modelCoarse = upscaleModelTPFA(modelRef, blockIx);
+modelCoarse.AutoDiffBackend = AutoDiffBackend();
 % We want to include rel-perm scaling as tunabale parameters, so include
 % these for the coarse model. These parameters have no effect for the
 % initial coarse model (they are set equal to the ones given by the
 % rel-perm curves).
-pts = cModel.fluid.krPts;
+pts = modelCoarse.fluid.krPts;
 scaling = {'SWL',   pts.w(1), 'SWCR', pts.w(2), 'SWU', pts.w(3), ...
            'SOWCR', pts.ow(2), 'KRW',  pts.w(4), 'KRO', pts.ow(4)};
-cModel = imposeRelpermScaling(cModel, scaling{:});
-cModel.toleranceCNV = 1e-6;  % tighter tolerance to improve gradient accuracy
+modelCoarse = imposeRelpermScaling(modelCoarse, scaling{:});
+modelCoarse.toleranceCNV = 1e-6;  % tighter tolerance to improve gradient accuracy
 
-%% Plot comparison of simulation oputput from the coarse and fine model
-figure('position',[100 100 1000 400])
-axes('position',[.02 .05 .48 .9]);
+%% Plot reference and coarse model grids with wells
+figure, subplot(1,2,1)
 plotGrid(modelRef.G, 'EdgeAlpha',.2); 
-view(174,60);
 title('Fine-scale grid (18553 cells)')
-plotWell(modelRef.G, Wref, 'Color', 'k', 'FontSize', 10); axis off tight
-camlight headlight
-
-axes('position',[.5 .05 .48 .9]);
-%plotCellData(cModel.G, cModel.rock.poro, 'EdgeColor', 'none');
-plotGrid(cModel.G, 'EdgeAlpha',.8);
+plotWell(modelRef.G, Wref, 'Color', 'k', 'FontSize', 10);
+axis off tight, view(174,60), camlight headlight
+subplot(1,2,2)
+plotGrid(modelCoarse.G, 'EdgeAlpha',.8);
+plotWell(modelRef.G, Wref, 'Color', 'k', 'FontSize', 10);
+axis off tight, view(174,60), camlight headlight
 title('Coarse-scale grid (33 cells)')
-view(174,60); 
-plotWell(modelRef.G, Wref, 'Color', 'k', 'FontSize', 10); axis off tight
-camlight headlight
 
-%% Simulate initial upscaled coarse model for full time
-cState0   = upscaleState(cModel, modelRef, example.state0);
-cSchedule = upscaleSchedule(cModel, schedule, 'wellUpscaleMethod', 'sum');
-[cWellSols, cStates] = simulateScheduleAD(cState0, cModel, cSchedule);
+%% Simulate initial upscaled coarse model and compare to reference
+stateCoarse0   = upscaleState(modelCoarse, modelRef, example.state0);
+scheduleCoarse = upscaleSchedule(modelCoarse, schedule, 'wellUpscaleMethod', 'sum');
+[wsCoarse, statesCoarse] = simulateScheduleAD(stateCoarse0, modelCoarse, scheduleCoarse);
 
-plotWellSols({wellSolsRef, cWellSols}, ...
-    {schedule.step.val, cSchedule.step.val},...
-    'datasetnames',{'fine scale model','initial upscaled model'}, ...
-    'zoom', true, 'field', 'qOs', 'SelectedWells', 7);
+plotWellSols({wsRef, wsCoarse}, ...
+    {schedule.step.val, scheduleCoarse.step.val},...
+    'datasetnames',{'fine scale model','initial upscaled model'});
 
-%% Specify training schedule and parameters to be matched
-% We use the first half of the given data for training. In this setup, we
-% use all pore volumes, transmissibilities, and well connections in the
-% coarse grid as calibration parameters.
-% trainSteps = 1:round(numel(schedule.step.val)/2);
-% timeSteps  = schedule.step.val(trainSteps); 
-% trainSched = upscaleSchedule(cModel, simpleSchedule(timeSteps, 'W', Wref));
-setup_init = struct('model', cModel, 'schedule', cSchedule, 'state0', cState0);
-
-pv = cModel.operators.pv;
+%% Specify parameters for tuning
+setup_init = struct('model', modelCoarse, 'schedule', scheduleCoarse, 'state0', stateCoarse0);
+pv = modelCoarse.operators.pv;
 % set up 'matrix' for parameter options for easier editing. The specific
-% limits set for the various parameters, influences the tuning/optimization 
+% limits set for the various parameters influences the tuning/optimization 
 % procedure to a large extent
 config = {...
      %name           include    scaling              boxlims   relativeLimits  
@@ -114,19 +94,16 @@ end
 
 
 %% Define the mismatch function
-% The mismatch function is defined as a function handle to a library
-% function from the optimization module that computes the mismatch between
-% a given simulation and a reference state. For an oil-water system, the
-% match is computed based on three quantities (water/oil rate and bhp) and
-% these should be given an associated weight. Weights on the order the
-% reciprocal of rate magnitudes/pressure variations result in a properly 
-% scaled mismatch function 
+% Function weighting influences the match of each quantity. Rate-weighting
+% should be on the same order as (inverse of) rates. BHP-weighting on the
+% order of pressure drop in the model.
 weighting  = {'WaterRateWeight',  1/(150/day), ...
               'OilRateWeight',    1/(80/day), ...
               'BHPWeight',        1/(20*barsa)};
-mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
+% make handle          
+mismatchFn = @(model, states, schedule, states_ref, compDer, tstep, state) ...
     matchObservedOW(model, states, schedule, states_ref,...
-                   'computePartials', tt, 'tstep', tstep, weighting{:},...
+                   'computePartials', compDer, 'tstep', tstep, weighting{:},...
                    'state', state, 'from_states', false);
 
 %% Model calibration
@@ -137,52 +114,27 @@ objh = @(p) evaluateMatch(p, mismatchFn, setup_init, parameters, statesRef);
 [v, p_opt, history] = unitBoxBFGS(pvec, objh, 'objChangeTol', 1e-5, ...
     'maxIt', 30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
-%% Create a new coarse model setup with the optimal parameters, 
-%% and rerun the simulation for full time horizon
+%% Create a new coarse model setup with the optimized parameters, and rerun 
+%  for the optimized parameters
 setup_opt = updateSetupFromScaledParameters(setup_init, parameters, p_opt); 
-% reset time-steps to full schedule
-% setup_opt.schedule.step = schedule.step;
 [wellSols_opt, states_opt] = simulateScheduleAD(setup_opt.state0, setup_opt.model, setup_opt.schedule);
-
-%% Plot well curves for reference fine, initial coarse and tuned coarse models 
-fh = plotWellSols({wellSolsRef,cWellSols,wellSols_opt}, ...
-    repmat({schedule.step.val}, 1, 3), ...
-    'datasetnames', {'reference','coarse initial','coarse tuned'}, 'zoom', true, ...
-    'field', 'qOs', 'SelectedWells', 7);
+% compare reference, initial coarse and optimized coarse model outputs
+plotWellSols({wsRef,wsCoarse,wellSols_opt}, ...
+              repmat({schedule.step.val}, 1, 3), ...
+              'datasetnames', {'reference','coarse initial','coarse tuned'});
 
 %% Plot the pore volume updates
 % fetch pore volume differences in initial and tuned coarse models
 dpv = setup_opt.model.operators.pv - setup_init.model.operators.pv;
 figure
-plotCellData(cModel.G, dpv, 'EdgeColor','none');
-plotFaces(cModel.G, boundaryFaces(cModel.G), 'EdgeColor', [0.4 0.4 0.4], ...
+plotCellData(modelCoarse.G, dpv, 'EdgeColor','none');
+plotFaces(modelCoarse.G, boundaryFaces(modelCoarse.G), 'EdgeColor', [0.4 0.4 0.4], ...
          'EdgeAlpha',.5, 'FaceColor', 'none');
 view(174,60);
 plotWell(modelRef.G, Wref, 'Color', 'k', 'FontSize', 10); axis off tight
 colorbar('south');
                         
-% %% rerun new schedule
-% rng(100);
-% schedule_new = perturbedSimpleSchedule(dt, 'W', Wref, ...
-%     'pressureFac', .01, 'rateFac', .4, 'perturbStep', perturbStep);
-% ws_new = simulateScheduleAD(problem.SimulatorSetup.state0, modelRef, schedule_new, ...
-%     'NonLinearSolver', problem.SimulatorSetup.NonLinearSolver);
-% 
-% schedule_new_coarse = setup_opt.schedule;
-% schedule_new_old    = cSchedule;
-% % set new values
-% for kc = 1:numel(schedule_new.control)
-%     for kw = 1:numel(Wref)
-%         schedule_new_coarse.control(kc).W(kw).val = schedule_new.control(kc).W(kw).val;
-%         schedule_new_old.control(kc).W(kw).val = schedule_new.control(kc).W(kw).val;
-%     end
-% end
-% ws_coarse_new = simulateScheduleAD(setup_opt.state0, setup_opt.model, schedule_new_coarse);
-% ws_coarse_old = simulateScheduleAD(cState0, cModel, schedule_new_old);
-%  plotWellSols({ws_new, ws_coarse_new, ws_coarse_old}, ...
-%     repmat({schedule.step.val}, 1, 3), ...
-%     'datasetnames', {'reference','tuned', 'original'});
-%%
+%% Compare reference, initial coarse and optimizes coarse for a different schedule 
 rng(100);
 W = example.schedule.control.W;
 s_new = perturbedSimpleSchedule(dt, 'W', Wref, ...
@@ -191,7 +143,7 @@ ws_new1 = simulateScheduleAD(problem.SimulatorSetup.state0, modelRef, s_new, ...
     'NonLinearSolver', problem.SimulatorSetup.NonLinearSolver);
 
 w_opt = setup_opt.schedule.control(1).W;
-w_old = cSchedule.control(1).W;   
+w_old = scheduleCoarse.control(1).W;   
 s_opt = simpleSchedule(dt, 'W', w_opt);
 s_old = simpleSchedule(dt, 'W', w_old);
 for kw = 1:numel(Wref)
@@ -199,7 +151,7 @@ for kw = 1:numel(Wref)
     s_old.control.W(kw).val = s_new.control.W(kw).val;
 end
 ws_coarse_new1 = simulateScheduleAD(setup_opt.state0, setup_opt.model, s_opt);
-ws_coarse_old1 = simulateScheduleAD(cState0, cModel, s_old);
+ws_coarse_old1 = simulateScheduleAD(stateCoarse0, modelCoarse, s_old);
 plotWellSols({ws_new1,  ws_coarse_old1, ws_coarse_new1}, ...
     repmat({schedule.step.val}, 1, 3), ...
     'datasetnames', {'reference','coarse initial','coarse tuned'});
