@@ -1424,7 +1424,7 @@ methods
         %            present, but they can be empty.
         %
         forces = struct('stopFunction', @(model, state, state_prev) false, ...
-                        'misc', []);
+                        'extra', []);
     end
 
 
