@@ -18,6 +18,9 @@ function [v, u, history] = unitBoxBFGS(u0, f, varargin)
 %                            (or set to nan), the following scaling will be used:
 %                            stepInit = maxInitialUpdate/max(|initial gradient|)
 %       'maxInitialUpdate' : as described above. Default: 0.05
+%       'history'          : Option for 'warm starting' based on previous
+%                            optimization (must have been run with option 
+%                            'outputHessian' = true)
 %   Stopping criteria options
 %       'gradTol'       : Absolute tollerance of inf-norm of projected gradient. 
 %                         Default: 1e-3
@@ -54,6 +57,8 @@ function [v, u, history] = unitBoxBFGS(u0, f, varargin)
 %   Plotting and output options
 %       'plotEvolution' : Plot progess of optimization in figure. 
 %                         Default: true
+%       'logPlot'       : Use logarithmic y-axis when plotting objective
+%                         Default: false
 %       'outputHessian' : Output Hessian approximation for each iteration
 %                         in history-structure. Deafault: false 
 % 
@@ -106,41 +111,55 @@ opt = struct(   'maximize',            true, ...
                 'enforceFeasible',     true, ... 
                 'linIneq',             [], ...
                 'plotEvolution',       true, ...
-                'outputHessian',       false);
+                'logPlot',             false, ... 
+                'outputHessian',       false, ...
+                'history',             [] );
 opt  = merge_options(opt, varargin{:});
 objSign = 1;
 if opt.maximize
     f = @(u)fNegative(u, f);
     objSign = -1;
 end
-
-% Setup constraint struct
 c  = getConstraints(u0, opt);
-[u0, ~, consOK] = checkFeasible(u0, c, opt.enforceFeasible, 'Initial guess');
-assert(consOK, 'Infeasible initial guess')
-
-% Perform initial evaluation of objective and gradient:
-[v0,g0] = f(u0);
-[v ,u ] = deal(v0,u0);
-% If not provided, set initial step 
-step = opt.stepInit;
-if isnan(step) || step <= 0
-    step = opt.maxInitialUpdate/max(abs(g0));
-end
-% Initial Hessian-approximation
-if ~opt.limitedMemory
-    Hi = step;
+if isempty(opt.history)
+    % Setup constraint struct
+    [u0, ~, consOK] = checkFeasible(u0, c, opt.enforceFeasible, 'Initial guess');
+    assert(consOK, 'Infeasible initial guess')
+    
+    % Perform initial evaluation of objective and gradient:
+    [v0,g0] = f(u0);
+    [v ,u ] = deal(v0,u0);
+    % If not provided, set initial step
+    step = opt.stepInit;
+    if isnan(step) || step <= 0
+        step = opt.maxInitialUpdate/max(abs(g0));
+    end
+    % Initial Hessian-approximation
+    if ~opt.limitedMemory
+        Hi = step;
+    else
+        Hi = LimitedMemoryHessian('initScale', step, ...
+            'm', opt.lbfgsNum, ...
+            'initStrategy', opt.lbfgsStrategy);
+    end
+    HiPrev = Hi;
+    it = 0;
+    % Setup struct for gathering optimization history
+    history = gatherInfo([], objSign*v0, u0, norm(g0), nan, nan, nan, Hi, opt.outputHessian);
 else
-    Hi = LimitedMemoryHessian('initScale', step, ...
-                              'm', opt.lbfgsNum, ...
-                              'initStrategy', opt.lbfgsStrategy);
+    history = opt.history;
+    it = numel(history.val);
+    Hi  = history.hess{it};
+    assert(~isempty(Hi), ...
+        'Warm start based on history requires Hessian approximations');
+    u0 = history.u{it};
+    [v0, g0] = f(u0);
+    HiPrev = history.hess{max(it-1,1)};
+    opt.maxIt = opt.maxIt + it;
 end
-HiPrev = Hi;
-it = 0;
-% Setup struct for gathering optimization history
-history = gatherInfo([], objSign*v0, u0, norm(g0), nan, nan, nan, Hi, opt.outputHessian);
-if opt.plotEvolution
-    plotInfo(10, history)
+if opt.plotEvolution >0
+    evFig = figure;
+    plotInfo(evFig, history, opt.logPlot)
 end
 printInfo(history, it);
 
@@ -186,8 +205,8 @@ while ~success
               (abs(v-v0) < opt.objChangeTol);
 
     [u0, v0, g0] = deal(u, v, g);
-    if opt.plotEvolution
-        plotInfo(10, history)
+    if opt.plotEvolution > 0
+        plotInfo(evFig, history, opt.logPlot)
     end
     printInfo(history, it);
 end
@@ -488,7 +507,7 @@ end
 end
 %--------------------------------------------------------------------------
 
-function [] = plotInfo(fig, hst)
+function [] = plotInfo(fig, hst, logPlot)
 if ~ishandle(fig)
     figure(fig)
 else
@@ -500,7 +519,13 @@ xlim = [-.2, xt(end)+.5];
 ch = abs(hst.val(2:end)-hst.val(1:end-1));
 popt = {'o-', 'LineWidth', 2, 'MarkerSize', 6, ...
         'MarkerFaceColor', [1 1 1]};
-subplot(5,1,1), plot(xt, hst.val, popt{:}), title('Objective');
+subplot(5,1,1), 
+if ~logPlot
+    plot(xt, hst.val, popt{:});
+else
+    semilogy(xt, abs(hst.val), popt{:});
+end
+title('Objective');
 set(gca, 'XLim', xlim)
 subplot(5,1,2), semilogy(xt,hst.pg, popt{:}), title('Gradient norm');
 set(gca, 'XLim', xlim)
