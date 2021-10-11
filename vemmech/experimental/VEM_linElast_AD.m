@@ -11,28 +11,32 @@ function [uu, extra] = VEM_linElast_AD(G, E, nu, el_bc, load, varargin)
 %   E        - Young's modulus, for all cells in the grid (may be AD)
 %   nu       - Poisson's ratio, for all cells in the grid (may be AD)
 %   el_bc    - Elastic boundary condition structure. It contains the fields
-%             'disp_bc'  : displacement boundary condition. It contains the
-%                          fields
-%                  'nodes'    : nodes where the displacement condition is applied
-%                  'uu'       : value for the displacement
-%                  'mask'     : if false then displacement values that are
-%                               imposed in given Cartesian directions are in
-%                               fact ignored.
-%             'force_bc'  : force boundary condition applied on faces. It contains the
-%                           fields
-%                  'faces' : faces where the force is applied
-%                  'force' : value of the force that is applied
-%
-%   load     - loading term
+%             'disp_bc'  : displacement boundary condition, expressed as a
+%                          SparseMultiArray indexed in the two variables 'n'
+%                          (node index) and 'd' (spatial dimension).  An
+%                          entry at (n, d) specifies the imposed displacement
+%                          for node n along dimension d.  If the value is
+%                          NaN, it is ignored. 
+%             'force_bc'  : force boundary condition applied on faces,
+%                           expressed as a SparseMultiArray indexed in the
+%                           two variables 'f' (face index) and 'd' (spatial
+%                           dimension).  An entry at (f, d) specifies the
+%                           'd'-component of the force applied at face 'f'.
+%   load     - loading term, given as a SparseMultiArray indexed in the two
+%              variables 'cn' (cell-node index) and 'd' (spatial dimension).
+%              An entry at ('cn', 'd') speficies the d-component of the
+%              body force acting on cell-node 'cn'.
 %
 % OPTIONAL PARAMETERS:
 %  'linsolve'             - Linear solver
 %  'blocksize'            - block size used in the assembly
 %  'add_operators'        - Add operator in output
-%  'force_method'         - Method for computing the loading term, see function calculateVolumeTerm below for
+%  'force_method'         - Method for computing the loading term, see
+%                           function calculateVolumeTerm below for 
 %                           a list of the possible alternatives.
 %  'alpha_scaling'        - Coefficient of the stabilisation term (default 1)
-%  'S'                    - Stabilization matrix to use (used only in very special cases, experimental feature)
+%  'S'                    - Stabilization matrix to use (used only in very
+%                           special cases, experimental feature) 
 %  'experimental_scaling' - Scaling proposed in [Andersen et al: http://arxiv.org/abs/1606.09508v1]
 %  'pressure'             - Pressure field, used at loading term
 %  'extra'                - If system was already previously discretized, the

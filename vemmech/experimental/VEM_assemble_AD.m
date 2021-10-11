@@ -1,5 +1,50 @@
 function [S, operators] = VEM_assemble_AD(G, E, nu,  varargin)
-
+% Assemble the virtual element stiffness matrix and intermediate operators.
+% The function is similar to `VEM_assemble`, but material properties 'E' and
+% 'nu' are allowed to be ADI-variables, and the matrix and operators are
+% returned in the form of SparseMultiArrays.
+%
+% SYNOPSIS:
+%   function [S, operators] = VEM_assemble_AD(G, C, varargin)
+%
+% DESCRIPTION:
+%   Compute the full VEM stiffness matrix; optionally returns intermediate
+%   operators
+% 
+%   Assembly based on Paulino's paper in 3D. The notations follow Paulino's
+%   paper.
+%
+%   Vectorized version. 
+% 
+%   S = |E| W_c D W_c^T + (I - P_P)^T s (I - P_P)
+%
+% PARAMETERS:
+%   G        - Grid (2D or 3D) 
+%   C        - matrix where each row represents the elasticity tensor for 
+%              the grid cell corresponding to that row
+%   varargin - options are:
+%              'blocksize' - size of blocks (# of cells) for vectorized
+%              calc.
+%              'alpha_scaling' - scaling of the stabilization term.  Default
+%              is 1.
+%              'extra' - a previously computed version of the 'operators'
+%              structure can be passed back in to this function for re-use,
+%              to avoid having to re-assemble the parts that do not depend on
+%              material properties E and nu.
+%
+% RETURNS:
+%   S         - full VEM system matrix, including rows/columns for
+%   Dirichlet nodes. operators - will contain the fields:
+%               - D      - matrix of normalized strain energies for each
+%                          cell
+%               - WC     - matrix for projection of basis functions onto
+%                          space of constant strain modes 'c' 
+%               - assemb -
+%
+% EXAMPLE:
+%
+% SEE ALSO: `VEM_linElast`
+   
    opt = merge_options(struct('extra'        , [], ...
                               'alpha_scaling', 1 ), ...
                        varargin{:});
