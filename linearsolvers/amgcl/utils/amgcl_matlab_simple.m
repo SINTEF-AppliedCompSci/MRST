@@ -66,7 +66,7 @@ function varargout = amgcl_matlab_simple(varargin)
 %   `callAMGCL`, `getAMGCLMexStruct`.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

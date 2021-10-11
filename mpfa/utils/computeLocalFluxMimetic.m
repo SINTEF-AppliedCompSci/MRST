@@ -39,7 +39,7 @@ function [B, tbls] = computeLocalFluxMimetic(G, rock, varargin)
 %   `computeMultiPointTrans`.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -93,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % We setup the cell-face-node table, cellnodefacetbl. Each entry determine a
     % unique facet in a corner
-    % We order cellnodeface in cell-node-face order. This is node to optimize
+    % We order cellnodeface in cell-node-face order. This is done to optimize
     % for-end loop below.
     cellnodefacetbl = sortIndexArray(cellnodefacetbl, {'cells', 'nodes', 'faces'});
     cellnodefacetbl = cellnodefacetbl.addLocInd('cnfind');    

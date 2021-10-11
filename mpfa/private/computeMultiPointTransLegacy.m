@@ -78,7 +78,7 @@ function [T, T_noflow] = computeMultiPointTransLegacy(g, rock, varargin)
 %   `incompMPFA`, `computeMultiPointTrans`, `computeMultiPointTransTensorAssembly`
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -202,19 +202,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % define div operaor
    e_div =  [C, -D(:,sb)]'*Do;
    % multiply fluxes with harmonic mean of mobility
-   % this to avid for re asssembly
+   % this to avoid for re-asssembly
    % to be equivalent coupled reservoir simulation the value of
    % sum of upwind mobility should be used.
-   %cf_trans_g=Do'*Do*iDoBDo*Do';
+   % cf_trans_g=Do'*Do*iDoBDo*Do';
    cf_trans_g=iDoBDo*Do';
-   T=struct('cf_trans',cf_mtrans,...% transmisibility calculate K\grad on mpfa faces form cell pressures and boundary pressures
-            'e_div',e_div,...%calulate div on cells and mpfa fluxes at boundary from mpfa fluxes
-            'cf_trans_g',cf_trans_g,... %calulate gravity contribution form gravity diferences from mpfa half faces
-            'd1',d1,...%mapp from mpfa faces to faces
-            'R',R,...% the continuity points fo for calculating gravity contricutions
-            'cno',cno,...%cno for mpfa faces
-            'counts', counts, ...
-            'sb',sb...%defines the mpfa boundary faces
+   T=struct('cf_trans'  , cf_mtrans , ... % transmisibility calculate K\grad on mpfa faces from cell pressures and boundary pressures
+            'e_div'     , e_div     , ... % calculate div on cells and mpfa fluxes at boundary from mpfa fluxes
+            'cf_trans_g', cf_trans_g, ... % calculate gravity contribution from gravity differences from mpfa half-faces
+            'd1'        , d1        , ... % map from mpfa faces to faces
+            'R'         , R         , ... % the continuity points for calculating gravity contributions
+            'cno'       , cno       , ... % cno for mpfa faces
+            'counts'    , counts    , ...
+            'sb'        , sb          ... % defines the mpfa boundary faces
             );
    %
    if nargout > 1

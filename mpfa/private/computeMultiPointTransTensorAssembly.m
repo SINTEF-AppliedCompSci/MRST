@@ -105,7 +105,7 @@ function mpfastruct = computeMultiPointTransTensorAssembly(G, rock, varargin)
 % SEE ALSO:
 % `computeMultiPointTrans`, `private/computeMultiPointTransLegacy`
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -317,7 +317,7 @@ function mpfastruct = computeMultiPointTransNaturalBcTA(G, rock, varargin)
    
    F = Aver*F;
    
-   %% Assemble the system matrix operaror: The degrees of freedom are the pressure
+   %% Assemble the system matrix operator: The degrees of freedom are the pressure
    % values at the cell center and at the external facenode.
    %
    % We have u = iB*div'*p - iB*Pext'*pe
