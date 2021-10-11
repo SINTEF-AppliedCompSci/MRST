@@ -45,8 +45,7 @@ end
 switch grid_case_number
   case 1
     grid_case = 'box';
-    %opt.cartDims     = [[1 1]*3 10]; % set the Cartesian dimension for the box case
-    opt.cartDims     = [20,20,20]; % set the Cartesian dimension for the box case
+    opt.cartDims     = [[1 1]*3 10]; % set the Cartesian dimension for the box case
   case 2
     grid_case = 'sbed';
   case 3
