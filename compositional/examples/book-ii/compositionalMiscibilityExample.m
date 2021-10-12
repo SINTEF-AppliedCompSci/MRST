@@ -22,6 +22,12 @@
 % Cambridge University Press, 2021. 
 mrstModule add compositional ad-core ad-props linearsolvers
 
+%% Notice on Computational Cost
+warning('ComputationalCost:High', ...
+       ['Please be advised that this example often takes a long time ', ...
+        'to run (e.g., more than 2 hours of CPU time)']);
+pause(10)
+
 %% Setup the cases as packed problems
 pressures = [70, 90, 100, 110, 120, 130, 150];
 np        = numel(pressures);

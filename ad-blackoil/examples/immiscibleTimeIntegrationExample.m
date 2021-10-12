@@ -1,3 +1,10 @@
+%% Notice on Computational Cost
+warning('ComputationalCost:High', ...
+       ['Please be advised that this example often takes a long time ', ...
+        'to run (e.g., more than 30 minutes of CPU time)']);
+pause(10)
+
+%%
 mrstModule add ad-core ad-blackoil deckformat ad-props linearsolvers
 mrstVerbose on
 L = 1000*meter;
