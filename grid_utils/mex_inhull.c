@@ -175,6 +175,8 @@ void inhull(const double* const* testpts,
             for (d = 0; d < 3; ++d)
                 s[d] = xyzmeans[i][d] - testpts[j][d];
             dotp = dot(s, nrmls[i]);
+            if (verbose)
+                printf("dotp=%f\n", dotp);
             if (dotp > tol) {
                 is_inside[j] = 0;
                 break;
