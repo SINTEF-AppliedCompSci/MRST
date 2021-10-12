@@ -6,28 +6,28 @@
 #include <math.h>
 #include <stdio.h>
 
-void printer(double a[3]);
-double** dalloc(int rows, int cols, double init);
-void dfree(int rows, double **mat);
-void dreshape(const double* a, int r, int c, double** b);
-void cross(const double u[3], const double v[3], double w[3]);
-double norm(const double w[3]);
-double dot(const double a[3], const double b[3]);
-void mean(const double* const* a, int r, double* m);
-void mean3(const double a[3], const double b[3], const double c[3], double* m);
-void inhull(const double* const* testpts,
-            mwSize ntestpts,
-            const double* const* xyz,
-            mwSize nxyz,
-            const double* const* tess,
-            mwSize ntess,
-            double tol,
-            int *is_inside,
-            int verbose);
-
-void printer(double a[3])
+void printvec(const double a[3])
 {
     printf("%f %f %f\n", a[0], a[1], a[2]);
+}
+
+void printmtx(const double *a, size_t n)
+{
+  int i, j;
+  for (i = 0; i < n; ++i) {
+    for (j = 0; j < 3; ++j)
+      printf("%f ", a[i*3+j]);
+    printf("\n");
+  }
+}
+void printmtxi(const double *a, size_t n)
+{
+  int i, j;
+  for (i = 0; i < n; ++i) {
+    for (j = 0; j < 3; ++j)
+      printf("%i ", (int)a[i*3+j]);
+    printf("\n");
+  }
 }
 
 double** dalloc(int rows, int cols, double init)
@@ -157,9 +157,9 @@ void inhull(const double* const* testpts,
             if (verbose)
             {
                 printf("mex_inhull found degenerate triangle %d:\n", i);
-                printer(ab);
-                printer(ac);
-                printer(nrmls[i]);
+                printvec(ab);
+                printvec(ac);
+                printvec(nrmls[i]);
             }
         }
     }
@@ -176,7 +176,7 @@ void inhull(const double* const* testpts,
                 s[d] = xyzmeans[i][d] - testpts[j][d];
             dotp = dot(s, nrmls[i]);
             if (verbose)
-                printf("dotp=%f\n", dotp);
+                printf("%d dotp=%f\n", i, dotp);
             if (dotp > tol) {
                 is_inside[j] = 0;
                 break;
@@ -241,17 +241,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
     if (verbose) {
         printf("ntestpts %i\n", ntestpts);
-        for (i = 0; i < ntestpts*dim; ++i)
-            printf("%f ", testpts[i]);
-        printf("\n");
+        printmtx(testpts, ntestpts);
         printf("nxyz %i\n", nxyz);
-        for (i = 0; i < nxyz*dim; ++i)
-            printf("%f ", xyz[i]);
-        printf("\n");
+        printmtx(xyz, nxyz);
         printf("ntess %i\n", ntess);
-        for (i = 0; i < ntess*dim; ++i)
-            printf("%i ", (int)tess[i]);
-        printf("\n");
+        printmtxi(tess, ntess);
+        printf("tol=%f\n", tol);
     }
 
 
