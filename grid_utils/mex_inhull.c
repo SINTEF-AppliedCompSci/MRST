@@ -16,7 +16,7 @@ void printmtx(const double *a, size_t n)
   int i, j;
   for (i = 0; i < n; ++i) {
     for (j = 0; j < 3; ++j)
-      printf("%f ", a[i*3+j]);
+      printf("%f ", a[i+j*n]);
     printf("\n");
   }
 }
@@ -25,7 +25,7 @@ void printmtxi(const double *a, size_t n)
   int i, j;
   for (i = 0; i < n; ++i) {
     for (j = 0; j < 3; ++j)
-      printf("%i ", (int)a[i*3+j]);
+      printf("%i ", (int)a[i+j*n]);
     printf("\n");
   }
 }
