@@ -229,12 +229,12 @@ function D = compute_moduli_dependent_tensor(G, E, nu)
    end
 
    % C is the elasticity tensor
-   C = (SparseTensor(nufac, {'i', 'j'}) * SparseTensor(nu, {'cell'}) + ...
-        ( SparseTensor(cdiag, {'i', 'j'}) * SparseTensor([], (1:G.cells.num)', {'cell'}))) ^ ...
-       SparseTensor(E ./ (1 + nu) ./ (1 - 2 * nu), {'cell'});
+   C = (SparseMultiArray(nufac, {'i', 'j'}) * SparseMultiArray(nu, {'cell'}) + ...
+        ( SparseMultiArray(cdiag, {'i', 'j'}) * SparseMultiArray([], (1:G.cells.num)', {'cell'}))) ^ ...
+       SparseMultiArray(E ./ (1 + nu) ./ (1 - 2 * nu), {'cell'});
    
    % D is the material property tensor used in the VEM formulation
-   D = C ^ SparseTensor(fac, 'i') ^ SparseTensor(fac, 'j');
+   D = C ^ SparseMultiArray(fac, 'i') ^ SparseMultiArray(fac, 'j');
 
 end
 
@@ -271,7 +271,7 @@ function [S, op] = final_assembly(G, op, D, alpha_scaling)
    alpha = alpha .* alpha_scaling;
    
    fprintf('----Compute SE\n')
-   SE_AD = SparseTensor(alpha, [(1:nldofs)', (1:nldofs)'], {'i', 'j'}); 
+   SE_AD = SparseMultiArray(alpha, [(1:nldofs)', (1:nldofs)'], {'i', 'j'}); 
    SE = SE_AD.asMatrix({'i', 'j'});
 
    fprintf('----Compute D\n')

@@ -1,28 +1,28 @@
-classdef SparseTensor
+classdef SparseMultiArray
     % Sparse tensor class
     %   
     % SYNOPSIS:
-    %   SparseTensor represents a sparse, multi-indexed array, which can be
+    %   SparseMultiArray represents a sparse, multi-indexed array, which can be
     %   seen as a multidimensional generalization of a sparse matrix.
     % 
     % DESCRIPTION:
     % 
-    %   SparseTensor is written to allow simple and efficient manipulation of
+    %   SparseMultiArray is written to allow simple and efficient manipulation of
     %   multiindexed, sparse arrays, including arithmetic operations, tensor
     %   products and tensor contractions.  Tensor products and tensor
     %   contractions are lazily evaluated; the internal data structure of
-    %   SparseTensor is a set of factors ("components") that can be
+    %   SparseMultiArray is a set of factors ("components") that can be
     %   multiplied together or contracted in one or more indices to produce
     %   the actual multidimensional tensor elements.
     %
-    %   A SparseTensor is characterized by its number of indices (zero or more),
+    %   A SparseMultiArray is characterized by its number of indices (zero or more),
     %   which each has a name (e.g. 'i', 'j', but also longer names are
     %   possible).  Each index runs from 1 and upwards.  For certain index
-    %   combinations (e.g. ('i', 'j') = (34, 22)), the SparseTensor may have a
+    %   combinations (e.g. ('i', 'j') = (34, 22)), the SparseMultiArray may have a
     %   nonzero value.  The upper bound of each indices is practically defined
     %   as its highest index value for which there is a nonzero tensor value.
     %  
-    %   A SparseTensor with zero indices represents a single scalar value,
+    %   A SparseMultiArray with zero indices represents a single scalar value,
     %   sometimes referred to as an 'intrinsic scalar'.
     %    
     %   Note that indices are referred to by name, not by order, so two
@@ -45,31 +45,31 @@ classdef SparseTensor
    
    methods
       
-      function self = SparseTensor(varargin)
+      function self = SparseMultiArray(varargin)
          
-      % The SparseTensor can be constructed in various ways, depending on the
+      % The SparseMultiArray can be constructed in various ways, depending on the
       % number and nature of arguments passed to its constructor.  The
       % possibilites are:
       % 
       % * Single input: (scalar value)
-      %     This creates a SparseTensor representing a scalar value (zero
+      %     This creates a SparseMultiArray representing a scalar value (zero
       %     indices)
       %
       % * Single input: (struct)
       %      It is assumed that the struct is on the form of a 'component' (see
       %      documentation of 'components' in the property section above).  The
-      %      SparseTensor will be constructed directly from this component.
+      %      SparseMultiArray will be constructed directly from this component.
       %
       % * Two inputs (matrix, cell array)
       %      This constructor is used to convert a matrix (or vector) to a
-      %      SparseTensor.  The cell array provides the corresponding index
+      %      SparseMultiArray.  The cell array provides the corresponding index
       %      names.  If the matrix (or vector) is sparse, only nonzero
       %      elements will be preserved.  Example of use, where 'm' is a 2d
       %      matrix: 
-      %         a = SparseTensor(m, {'i', 'j'})
+      %         a = SparseMultiArray(m, {'i', 'j'})
       % 
       % * Three inputs (vector, matrix, cell array)
-      %      The SparseTensor is constructed directly from a vector of
+      %      The SparseMultiArray is constructed directly from a vector of
       %      the nonzero coefficients (first argument), a matrix representing
       %      the corresponding multiindices (rows equal to length of
       %      coefficient vector, columns equal to number of indices), and a
@@ -99,7 +99,7 @@ classdef SparseTensor
                 coefs.val = full(coefs.val);
              end
              indexnames = varargin{2}';
-             self.components = SparseTensor.make_matrix_tensor(coefs, indexnames);
+             self.components = SparseMultiArray.make_matrix_tensor(coefs, indexnames);
            case 3
              % input is in the form of coefs, ixs and indexnames.  Coefs may
              % be empty, for indicator tensors
@@ -118,7 +118,7 @@ classdef SparseTensor
                 comp.coefs.val = full(comp.coefs.val); % avoid sparse ADI 
              end
              
-             self = SparseTensor(comp);
+             self = SparseMultiArray(comp);
            otherwise
              error('Unsupported arguments to constructor.');
          end
@@ -220,7 +220,7 @@ classdef SparseTensor
             % Simple contraction in one index.  
             comp_ix = self.component_with_ix(ixname1);
             self.components{comp_ix} = ...
-                SparseTensor.single_component_contraction(self.components{comp_ix}, ...
+                SparseMultiArray.single_component_contraction(self.components{comp_ix}, ...
                                                          ixname1);
             return
          
@@ -253,7 +253,7 @@ classdef SparseTensor
          if numel(comp_ix) == 1
             % if the contraction only involves a single component, carry it out
             comp = self.components{comp_ix};
-            comp = SparseTensor.single_component_contraction(comp, [], false);
+            comp = SparseMultiArray.single_component_contraction(comp, [], false);
             self.components{comp_ix} = comp;
          else
             % do only semicontractions, since we need to keep the index around to do the
@@ -261,7 +261,7 @@ classdef SparseTensor
             assert(numel(comp_ix) ~= 0);
             for cix = comp_ix
                comp = self.components{cix};
-               comp = SparseTensor.single_component_contraction(comp, [], true);
+               comp = SparseMultiArray.single_component_contraction(comp, [], true);
                self.components{cix} = comp;
             end
          end
@@ -270,25 +270,25 @@ classdef SparseTensor
       function self = plus(self, other)
       % Add two tensors.  This is only allowed if the tensors have the same number of
       % indices, with the same names.
-         self = SparseTensor.apply_binary_operator(self, other, @plus);
+         self = SparseMultiArray.apply_binary_operator(self, other, @plus);
       end
       
       function self = minus(self, other)
       % Subtract two tensors.  This is only allowed if the tensors have the same
       % number of indices, with the same names.
-         self = SparseTensor.apply_binary_operator(self, other, @minus);
+         self = SparseMultiArray.apply_binary_operator(self, other, @minus);
       end
       
       function self = rdivide(self, other)
       % Element-wise divide two tensors.  This is only allowed if the tensors have the
       % same number of indices, with the same names.
-         self = SparseTensor.apply_binary_operator(self, other, @rdivide);
+         self = SparseMultiArray.apply_binary_operator(self, other, @rdivide);
       end
       
       function self = times(self, other)
       % Element-wise multiply two tensors.  This is only allowed if the tensors have
       % the same number of indices, with the same names.
-         self = SparseTensor.apply_binary_operator(self, other, @times);
+         self = SparseMultiArray.apply_binary_operator(self, other, @times);
       end
       
       function self = mpower(self, other)
@@ -311,13 +311,13 @@ classdef SparseTensor
       % A_ijkl with the ixset_order = [1324], the resulting tensor would be
       % A_ikjl.
       %  
-      % Note that this method requires SparseTensor to do an explicit
+      % Note that this method requires SparseMultiArray to do an explicit
       % multiplication of all its components, which may be computationally expensive.
          self = self.expandall();
 
-         assert(SparseTensor.is_permutation(ixset_order, self.indexNames()));
+         assert(SparseMultiArray.is_permutation(ixset_order, self.indexNames()));
 
-         perm = SparseTensor.get_permutation(self.indexNames(), ixset_order);
+         perm = SparseMultiArray.get_permutation(self.indexNames(), ixset_order);
 
          [self.components{1}.ixs, I] = sortrows(self.components{1}.ixs, perm);
 
@@ -339,7 +339,7 @@ classdef SparseTensor
       % Return the tensor resulting from fixing one index to one index value.  For
       % instance, if applying this method with the arguments ('i', 3) to the
       % tensor A_ijk, the result is  B_jk = A_{i=3}jk
-         self = self.product(SparseTensor([], ixval, {ixname}));
+         self = self.product(SparseMultiArray([], ixval, {ixname}));
       end
       
       function self = duplicateIndex(self, name, newname)
@@ -383,7 +383,7 @@ classdef SparseTensor
       % Change  the tensor to an 'indicator tensor', where all nonzero
       % elements are 1.  
       %  
-      % Note that this method requires SparseTensor to do an explicit
+      % Note that this method requires SparseMultiArray to do an explicit
       % multiplication of all its components, which may be computationally
       % expensive.
          self = self.expandall();
@@ -399,7 +399,7 @@ classdef SparseTensor
             c = c{:};  %#ok
             for name = c.indexnames
                name = name{:}; %#ok
-               if SparseTensor.is_contracting_ix(name)
+               if SparseMultiArray.is_contracting_ix(name)
                   cixnames = [cixnames, name]; %#ok
                else
                   % regular index name
@@ -438,7 +438,7 @@ classdef SparseTensor
       % should be defined by values higher than the highest value for each index.
          
          % ensure the user has actually provided a permutation of all index names
-         assert(SparseTensor.is_permutation(self.indexNames(), ixnames));
+         assert(SparseMultiArray.is_permutation(self.indexNames(), ixnames));
          
          % if tensor is empty, return empty vector
          if self.isempty()
@@ -453,7 +453,7 @@ classdef SparseTensor
          % compute index order
          %num_entries = size(self.components{1}.ixs, 1);
          num_entries = numel(value(self.components{1}.coefs));
-         perm = SparseTensor.get_permutation(self.components{1}.indexnames,...
+         perm = SparseMultiArray.get_permutation(self.components{1}.indexnames,...
                                              ixnames);
          
          % determine size of vector
@@ -462,7 +462,7 @@ classdef SparseTensor
             shape = shape(perm);
          end
          
-         ix = SparseTensor.compute_1D_index(self.components{1}.ixs(:,perm), ...
+         ix = SparseMultiArray.compute_1D_index(self.components{1}.ixs(:,perm), ...
                                             shape);
          M = sparse(ix, (1:num_entries)', 1, prod(shape), num_entries);
          
@@ -517,9 +517,9 @@ classdef SparseTensor
          end
          % check that all index names are covered, and compute the
          % permutation
-         perm = SparseTensor.get_permutation(self.components{1}.indexnames,...
+         perm = SparseMultiArray.get_permutation(self.components{1}.indexnames,...
                                             horzcat(ixnames{:}));
-         % perm = SparseTensor.get_permutation(self.indexNames(),...
+         % perm = SparseMultiArray.get_permutation(self.indexNames(),...
          %                                    horzcat(ixnames{:}));
          vals = self.components{1}.coefs;
          if isa(vals, 'ADI')
@@ -528,7 +528,7 @@ classdef SparseTensor
          end
          
          if numel(ixnames) == 1
-            ix = SparseTensor.compute_1D_index(self.components{1}.ixs(:, perm), ...
+            ix = SparseMultiArray.compute_1D_index(self.components{1}.ixs(:, perm), ...
                                               shape(perm));
             M = sparse(ix, 1, vals, prod(shape), 1);
             %M = zeros(max(ix), 1);
@@ -537,9 +537,9 @@ classdef SparseTensor
             nix1 = numel(ixnames{1});
             shape1 = shape(perm(1:nix1));
             shape2 = shape(perm(nix1+1:end));
-            ix1 = SparseTensor.compute_1D_index(self.components{1}.ixs(:, perm(1:nix1)), ...
+            ix1 = SparseMultiArray.compute_1D_index(self.components{1}.ixs(:, perm(1:nix1)), ...
                                                shape1);
-            ix2 = SparseTensor.compute_1D_index(self.components{1}.ixs(:,perm(nix1+1:end)),...
+            ix2 = SparseMultiArray.compute_1D_index(self.components{1}.ixs(:,perm(nix1+1:end)),...
                                                shape2);
             M = sparse(ix1, ix2, vals, prod(shape1), prod(shape2));
          end
@@ -550,8 +550,8 @@ classdef SparseTensor
 
       function self = expandall_mex(self, expand_tensor)
       % Explicitly carry out all tensor products, contractions and
-      % semi-contractions implied by the components in the SparseTensor
-      % (these operations are usually not carried out since SparseTensor
+      % semi-contractions implied by the components in the SparseMultiArray
+      % (these operations are usually not carried out since SparseMultiArray
       % employs lazy evaluation).  
       % Note that an explicit multiplication of all the tensor components may
       % be computationally expensive.
@@ -581,18 +581,18 @@ classdef SparseTensor
                sum_comps{i}.coefs = full(sum_comps{i}.coefs);%#ok
             end
             sumcomp = tcontract(sum_comps);
-            self = SparseTensor([indep_comps, sumcomp]);   
+            self = SparseMultiArray([indep_comps, sumcomp]);   
          else
-            self = SparseTensor(indep_comps);
+            self = SparseMultiArray(indep_comps);
          end
          
          if expand_tensor
             expanded_comp = self.components{1};
             for i = 2:numel(self.components)
-               expanded_comp = SparseTensor.tensor_product(expanded_comp, ...
+               expanded_comp = SparseMultiArray.tensor_product(expanded_comp, ...
                                                            self.components{i});
             end
-            self = SparseTensor(expanded_comp);
+            self = SparseMultiArray(expanded_comp);
          end
       end
 
@@ -625,10 +625,10 @@ classdef SparseTensor
          if expand_tensor
             expanded_comp = self.components{1};
             for i = 2:numel(self.components)
-               expanded_comp = SparseTensor.tensor_product(expanded_comp, ...
+               expanded_comp = SparseMultiArray.tensor_product(expanded_comp, ...
                                                           self.components{i});
             end
-            self = SparseTensor(expanded_comp);
+            self = SparseMultiArray(expanded_comp);
          end
       end
       
@@ -639,7 +639,7 @@ classdef SparseTensor
          
          for i = 1:numel(self.components)
             self.components{i} = ...
-                SparseTensor.single_component_contraction(self.components{i}, ...
+                SparseMultiArray.single_component_contraction(self.components{i}, ...
                                                           [], false);
          end
       end
@@ -789,7 +789,7 @@ classdef SparseTensor
          
          contracted_comp = tcontract(comps);
 
-         self = SparseTensor([contracted_comp, other_comps]);
+         self = SparseMultiArray([contracted_comp, other_comps]);
          
       end
             
@@ -803,7 +803,7 @@ classdef SparseTensor
       %    comps = self.components(comp_ixs);
 
       %    % @@ TEST
-      %    contracted_comp = SparseTensor.contract_components(comps{1}, comps{2});
+      %    contracted_comp = SparseMultiArray.contract_components(comps{1}, comps{2});
       %    self.components(comp_ixs) = [];
       %    self.components = [self.components, contracted_comp];
          
@@ -824,15 +824,15 @@ classdef SparseTensor
          comps = self.components(comp_ixs);
          
          [c1_keep_ix, stride1, c1_contract_ix, c1_vals, c1_keep_ixnames] = ...
-             SparseTensor.prepare_for_contraction(comps{1}, ixname, true);
+             SparseMultiArray.prepare_for_contraction(comps{1}, ixname, true);
          [c2_keep_ix, stride2, c2_contract_ix, c2_vals, c2_keep_ixnames] = ...
-             SparseTensor.prepare_for_contraction(comps{2}, ixname, false);
+             SparseMultiArray.prepare_for_contraction(comps{2}, ixname, false);
          
          [row, col, vals] = ssparsemul([c1_keep_ix, c1_contract_ix], c1_vals,...
                                        [c2_contract_ix, c2_keep_ix], c2_vals);
          
-         row = SparseTensor.compute_subs(row, stride1);
-         col = SparseTensor.compute_subs(col, stride2);
+         row = SparseMultiArray.compute_subs(row, stride1);
+         col = SparseMultiArray.compute_subs(col, stride2);
           
          comp.coefs = vals;
          comp.indexnames = [c1_keep_ixnames, c2_keep_ixnames];
@@ -855,13 +855,13 @@ classdef SparseTensor
          
       %    ind1 = strcmp(ixname, comps{1}.indexnames);
       %    rownames = comps{1}.indexnames(~ind1);
-      %    m1 = SparseTensor(comps{1}).asMatrix({rownames,{ixname}}, true);
+      %    m1 = SparseMultiArray(comps{1}).asMatrix({rownames,{ixname}}, true);
       %    m1rix = find(sum(abs(m1), 2));
       %    m1reduced = m1(m1rix,:);
          
       %    ind2 = strcmp(ixname, comps{2}.indexnames);
       %    colnames = comps{2}.indexnames(~ind2);
-      %    m2 = SparseTensor(comps{2}).asMatrix({{ixname}, colnames}, true);
+      %    m2 = SparseMultiArray(comps{2}).asMatrix({{ixname}, colnames}, true);
       %    m2cix = (find(sum(abs(m2), 1)))';
       %    m2reduced = m2(:, m2cix);
          
@@ -965,7 +965,7 @@ classdef SparseTensor
       % 'other' is an optional argument.  If provided, the produced ixname
       % should not be an existing contracting index of 'other' either.
 
-         basename = SparseTensor.contracting_name_base();
+         basename = SparseMultiArray.contracting_name_base();
          [~, current_contr_names] = self.indexNames();
          
          if nargin > 1
@@ -1010,9 +1010,9 @@ classdef SparseTensor
       function [self, duplicate_ixname] = ensure_has_duplicate(self, ixname)
       % ensure that the tensor component with the index named ixname has a duplicate
       % of this index
-         assert(~SparseTensor.is_contracting_ix(ixname));
+         assert(~SparseMultiArray.is_contracting_ix(ixname));
          comp = self.components{self.component_with_ix(ixname)};
-         idix = SparseTensor.identical_indices(comp, ixname);
+         idix = SparseMultiArray.identical_indices(comp, ixname);
          if numel(idix) == 1 || isempty(comp.coefs)
             dupname = self.next_unused_contr_ix_name();
             self = self.duplicateIndex(ixname, dupname);
@@ -1031,10 +1031,10 @@ classdef SparseTensor
       function [self, unique_ixname] = ensure_no_duplicate(self, ixname)
       % ensure that the tensor component with the index named ixname has no duplicate
       % of this index
-         assert(~SparseTensor.is_contracting_ix(ixname));
+         assert(~SparseMultiArray.is_contracting_ix(ixname));
          comp_ix = self.component_with_ix(ixname);
          comp = self.components{comp_ix};
-         idix = SparseTensor.identical_indices(comp, ixname);
+         idix = SparseMultiArray.identical_indices(comp, ixname);
          if numel(idix) == 1
             unique_ixname = ixname;
             return
@@ -1049,7 +1049,7 @@ classdef SparseTensor
             keep_ix = idix(1);
          end
          
-         if ~SparseTensor.is_contracting_ix(comp.indexnames{keep_ix})
+         if ~SparseMultiArray.is_contracting_ix(comp.indexnames{keep_ix})
             % a duplicate would always be a contracting index.  
             % @@ However, it may be that a contracting index could still not be a duplicate,
             % so this may still fail!
@@ -1090,8 +1090,8 @@ classdef SparseTensor
 
          maxixs = max(vertcat(multiix, ixs));
          
-         multi_ixs_1d = SparseTensor.compute_1D_index(multiix, maxixs);
-         ixs_1d = SparseTensor.compute_1D_index(ixs, maxixs);
+         multi_ixs_1d = SparseMultiArray.compute_1D_index(multiix, maxixs);
+         ixs_1d = SparseMultiArray.compute_1D_index(ixs, maxixs);
    
          % ---- new try ---
          
@@ -1123,7 +1123,7 @@ classdef SparseTensor
       function [comps, num_cix, max_cix, indep_comps] = set_common_form(comps)
          
          % identify all contracting indices
-         [~, cix] = SparseTensor(comps).indexNames();
+         [~, cix] = SparseMultiArray(comps).indexNames();
          num_cix = numel(cix);
          
          % split components into those that participate in the contraction, and those who
@@ -1195,8 +1195,8 @@ classdef SparseTensor
          maxind2 = max(comp2.ixs(:, cix2));
          maxind = max(maxind1, maxind2);
          
-         cix1_1d = SparseTensor.compute_1D_index(comp1.ixs(:, cix1), maxind);
-         cix2_1d = SparseTensor.compute_1D_index(comp2.ixs(:, cix2), maxind);
+         cix1_1d = SparseMultiArray.compute_1D_index(comp1.ixs(:, cix1), maxind);
+         cix2_1d = SparseMultiArray.compute_1D_index(comp2.ixs(:, cix2), maxind);
 
          % replace contracting indices with 1D variant
          cname = cixnames{1};
@@ -1215,15 +1215,15 @@ classdef SparseTensor
          % carry out the contraction, by reinterpreting tensors as sparse 2D
          % matrices
          [c1_keep_ix, stride1, c1_contract_ix, c1_vals, c1_keep_ixnames] = ...
-             SparseTensor.prepare_for_contraction(comp1, cname, true);
+             SparseMultiArray.prepare_for_contraction(comp1, cname, true);
          [c2_keep_ix, stride2, c2_contract_ix, c2_vals, c2_keep_ixnames] = ...
-             SparseTensor.prepare_for_contraction(comp2, cname, false);
+             SparseMultiArray.prepare_for_contraction(comp2, cname, false);
          
          [row, col, vals] = ssparsemul([c1_keep_ix, c1_contract_ix], c1_vals, ...
                                        [c2_contract_ix, c2_keep_ix], c2_vals);
          
-         row = SparseTensor.compute_subs(row, stride1);
-         col = SparseTensor.compute_subs(col, stride2);
+         row = SparseMultiArray.compute_subs(row, stride1);
+         col = SparseMultiArray.compute_subs(col, stride2);
          comp.indexnames = [c1_keep_ixnames, c2_keep_ixnames];
          comp.ixs = [row, col];
          comp.coefs = vals;
@@ -1236,7 +1236,7 @@ classdef SparseTensor
          keep_indices = ~strcmp(ixname, comp.indexnames);
          ixnames = comp.indexnames(keep_indices);
 
-         keep_ix = SparseTensor.compute_1D_index(comp.ixs(:, keep_indices));
+         keep_ix = SparseMultiArray.compute_1D_index(comp.ixs(:, keep_indices));
          keep_stride = max(comp.ixs(:, keep_indices));
          contract_ix = comp.ixs(:,~keep_indices);
 
@@ -1257,7 +1257,7 @@ classdef SparseTensor
       
       function yesno = is_contracting_ix(ixname)
          % returns true if ixname starts with the contracting name root
-         cname = SparseTensor.contracting_name_base();
+         cname = SparseMultiArray.contracting_name_base();
          yesno = (numel(cname) < numel(ixname)) && ...
                  strcmp(cname, ixname(1:numel(cname)));
       end
@@ -1336,7 +1336,7 @@ classdef SparseTensor
          end
          
          % sum up other elements at the correct place
-         index1d = SparseTensor.compute_1D_index(comp.ixs);
+         index1d = SparseMultiArray.compute_1D_index(comp.ixs);
          [uindex, ~, ic] = unique(index1d);
          map = accumarray([ic, (1:size(comp.ixs, 1))'], 1, [], [], [], true);
          
@@ -1346,13 +1346,13 @@ classdef SparseTensor
          
          logical_size = max(comp.ixs);
          
-         comp.ixs = SparseTensor.compute_subs(uindex, logical_size);
+         comp.ixs = SparseMultiArray.compute_subs(uindex, logical_size);
       end
       
       function [t1, t2] = make_tensors_compatible(t1, t2)
 
          % verify that they have the same index sets
-         if ~SparseTensor.is_permutation(t1.indexNames(), t2.indexNames())
+         if ~SparseMultiArray.is_permutation(t1.indexNames(), t2.indexNames())
             error(['Tensors cannot be made compatible as they have different ' ...
                    'index sets.']);
          end
@@ -1362,7 +1362,7 @@ classdef SparseTensor
          t2 = t2.expandall();
 
          % make sure the order of indices is the same in both tensors
-         perm = SparseTensor.get_permutation(t2.indexNames(), t1.indexNames());
+         perm = SparseMultiArray.get_permutation(t2.indexNames(), t1.indexNames());
          t2.components{1}.indexnames = t1.components{1}.indexnames;
          t2.components{1}.ixs = t2.components{1}.ixs(:, perm);
          
@@ -1378,8 +1378,8 @@ classdef SparseTensor
          % t2.components{1}.coefs = [t2.components{1}.coefs; zeros(size(I1))];
          
          % % sort all indices
-         % t1.components{1} = SparseTensor.sort_indices(t1.components{1});
-         % t2.components{1} = SparseTensor.sort_indices(t2.components{1});
+         % t1.components{1} = SparseMultiArray.sort_indices(t1.components{1});
+         % t2.components{1} = SparseMultiArray.sort_indices(t2.components{1});
          
          % tensors should now have exactly the same indices and thus be compatible
       end
@@ -1391,12 +1391,12 @@ classdef SparseTensor
 
          
       function tensor = apply_binary_operator(t1, t2, op)
-         [t1, t2] = SparseTensor.make_tensors_compatible(t1, t2);
+         [t1, t2] = SparseMultiArray.make_tensors_compatible(t1, t2);
          assert(numel(t1.components) == 1); % should also be the case for t2 by now
 
          % if the tensors are scalars, we avoid calling 'tbinaroyop'
          if numel(t1.indexNames()) == 0
-            tensor = SparseTensor(op(t1.components{1}.coefs, ...
+            tensor = SparseMultiArray(op(t1.components{1}.coefs, ...
                                      t2.components{1}.coefs));
             return;
          end
@@ -1415,19 +1415,19 @@ classdef SparseTensor
 
          comp = tbinaryop([t1.components, t2.components], optxt);
          
-         tensor = SparseTensor(comp);
+         tensor = SparseMultiArray(comp);
       end      
 
       
       function tensor = apply_binary_operator_orig(t1, t2, op)
-         [t1, t2] = SparseTensor.make_tensors_compatible(t1, t2);
+         [t1, t2] = SparseMultiArray.make_tensors_compatible(t1, t2);
          assert(numel(t1.components) == 1); % should also be the case for t2 by now
          
          % determine common tensor shape
          shape = max(max(t1.components{1}.ixs), max(t2.components{1}.ixs));
          
-         m1_ix1D = SparseTensor.compute_1D_index(t1.components{1}.ixs, shape);
-         m2_ix1D = SparseTensor.compute_1D_index(t2.components{1}.ixs, shape);
+         m1_ix1D = SparseMultiArray.compute_1D_index(t1.components{1}.ixs, shape);
+         m2_ix1D = SparseMultiArray.compute_1D_index(t2.components{1}.ixs, shape);
          
          [all_ixs, ~, ic] = unique([m1_ix1D; m2_ix1D]);
          m1_ic = ic(1:numel(m1_ix1D));
@@ -1443,14 +1443,14 @@ classdef SparseTensor
          
          res = t1.components{1};
          res.coefs = op(v1, v2);
-         res.ixs = SparseTensor.compute_subs(all_ixs, shape);
+         res.ixs = SparseMultiArray.compute_subs(all_ixs, shape);
          
-         tensor = SparseTensor(res);
+         tensor = SparseMultiArray(res);
       end      
       
       % % The following function works well for doubles, but not for ADI
       % function tensor = apply_binary_operator(t1, t2, op)
-      %    [t1, t2] = SparseTensor.make_tensors_compatible(t1, t2);
+      %    [t1, t2] = SparseMultiArray.make_tensors_compatible(t1, t2);
       %    assert(numel(t1.components) == 1); % should also be the case for t2 by now
          
       %    % determine common tensor shape
@@ -1478,10 +1478,10 @@ classdef SparseTensor
       %    res.coefs = val(:);
       %    res.ixs = [reindex{:}];
       %    %res.ixs = cell2mat(reindex');
-      %    tensor = SparseTensor(res);
+      %    tensor = SparseMultiArray(res);
       %    % res = t1.components{1};
       %    % res.coefs = op(t1.components{1}.coefs, t2.components{1}.coefs);
-      %    % tensor = SparseTensor(res);
+      %    % tensor = SparseMultiArray(res);
       % end
       
       function ix = compute_1D_index(multiix, shape)
@@ -1520,7 +1520,7 @@ classdef SparseTensor
       
       function perm = get_permutation(cells1, cells2)
          % check that this actually is a permutation
-         if ~SparseTensor.is_permutation(cells1, cells2)
+         if ~SparseMultiArray.is_permutation(cells1, cells2)
             error('provided indices do not constitute a permutation of tensor indices.');
          end
          perm = zeros(1, numel(cells1));

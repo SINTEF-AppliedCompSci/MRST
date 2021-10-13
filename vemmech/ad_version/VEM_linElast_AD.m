@@ -141,7 +141,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        if G.griddim == 2
           % qf_all has only been computed for faces, so we expand it to
           % face-node space
-          QF = SparseTensor(qf_all, 'f') ^ ...
+          QF = SparseMultiArray(qf_all, 'f') ^ ...
                face_node_tensor(G, 'f', 'n', 'boundary_only', true);
        else
           % qf_all is already in face-node space, but we need to convert
@@ -151,7 +151,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                 'boundary_only', true);
        end
        % extend weight tensor to face-node-dim space ('f', 'n', 'd')
-       QF = QF * SparseTensor(ones(G.griddim, 1), 'd');
+       QF = QF * SparseMultiArray(ones(G.griddim, 1), 'd');
        
        % expand face forces tensor to face-node-dim space (only boundary)
        F = el_bc.force_bc ^ face_node_tensor(G, 'f', 'n', 'boundary_only', true);
@@ -468,7 +468,7 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
             w = (vols ./ rldecode(nlc, nlc) + sum(qc_all(inodes, :) .* (XB), 2));
         end
         %ll   = bsxfun(@times, load(X), w)';
-        ll = load ^ SparseTensor(w, {'cn'});
+        ll = load ^ SparseMultiArray(w, {'cn'});
 
       case 'cell_force'
         % Evaluate the force at the cell centroids. Then, for each node, sum up each
@@ -479,7 +479,7 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
         %X   = rldecode(G.cells.centroids(cells, :), nlc);
         w   = qcvol;
         %ll  = bsxfun(@times, load(X), w)';
-        ll = load ^ SparseTensor(w, {'cn'});
+        ll = load ^ SparseMultiArray(w, {'cn'});
 
       case 'dual_grad_type'
         % For the virtual basis, there exists a natural divergence operator (from node
@@ -500,8 +500,8 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
         rel_vec = -(X-G.nodes.coords(nodes, :));
         
         w = qc_all .* rel_vec;
-        ll = load ^ SparseTensor(w, {'cn', 'd'});
-        %ll = load ^ SparseTensor(reshape(w', [], 1), {'cn'});
+        ll = load ^ SparseMultiArray(w, {'cn', 'd'});
+        %ll = load ^ SparseMultiArray(reshape(w', [], 1), {'cn'});
         %ll      = bsxfun(@times, load(X), qc_all.*rel_vec)';
 
       otherwise

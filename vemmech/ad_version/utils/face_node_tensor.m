@@ -50,4 +50,4 @@ end
 
 
 
-tensor = SparseTensor(opt.values, ixs, {fname, nname});
+tensor = SparseMultiArray(opt.values, ixs, {fname, nname});
