@@ -179,6 +179,9 @@ while ~success
         % Update Hessian approximation
         if opt.useBFGS %&& lsinfo.flag == 1
             [du, dg] = deal(u-u0, g-g0);
+            % if any of the gradient entries are not defined, we set 
+            % the difference to zero 
+            dg(~isfinite(dg)) = 0;
             if du'*dg > sqrt(eps)*norm(du)*norm(dg)
                 HiPrev = Hi;
                 if isa(Hi, 'LimitedMemoryHessian')
