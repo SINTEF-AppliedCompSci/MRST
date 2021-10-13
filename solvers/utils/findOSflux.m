@@ -256,8 +256,7 @@ function [a, faceA, faceB, faceC] = findABC(G, interpFace, c, Kn)
     end
 
     % Error
-    if ~exist('faceA', 'var') %|| nf == 4
-
+    if ~exist('faceA', 'var') & mrstVerbose
         figure, hold on
         plotGrid(G, 'facealpha', 0.1);
         plotGrid(G, c)
@@ -270,8 +269,10 @@ function [a, faceA, faceB, faceC] = findABC(G, interpFace, c, Kn)
         plot3(xc(1), xc(2), xc(3), 'ko', 'markersize', 14)
         ind = convhull(hap);
         trisurf(ind, hap(:, 1), hap(:, 2), hap(:, 3), 'Facecolor', 'cyan', 'facealpha', 0.5)
-        in_convex_hull = mex_inhull(xc, hap, ind, 1e-5);
-        disp(['in_convex_hull', num2str(in_convex_hull)])
+
+        tol = -1e-5;
+        in_convex_hull = mex_inhull(xc, hap, ind, tol);
+        fprintf('mex_inhull for cell %d with tol=%f: %d\n', c, tol, in_convex_hull);
 
         % Plot Kn.
         Gc = extractSubgrid(G, c);
@@ -280,12 +281,10 @@ function [a, faceA, faceB, faceC] = findABC(G, interpFace, c, Kn)
         h = xmax - xmin;
         vec = [xc; xc + Kn_unit' .* h];
         line(vec(:, 1), vec(:, 2), vec(:, 3))
-
-        assert(logical(exist('faceA', 'var')), ...
-               ['decomposition failed for cell ', num2str(c)]);
-
     end
 
+    assert(exist('faceA', 'var'), ...
+           sprintf('decomposition failed for cell %d\n', c));
 end
 
 function [a, xD] = findDnode(G, mycell, myface, Kn)
