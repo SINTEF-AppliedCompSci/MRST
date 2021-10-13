@@ -27,13 +27,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         m = model;
     end
 
-    m = setHybrid(m, models, faceblocks, varargin{:});
+    m2 = models;
+    for k = 1:numel(models)
+        if isa(models{k}, 'WrapperModel')
+            m2{k} = models{k}.parentModel;
+        end
+    end
+
+    m = setHybrid(m, m2, faceblocks, varargin{:});
 
     if isWrapper
         model.parentModel = m;
     else
         model = m;
     end
+
 end
 
 function model = setHybrid(model, models, faceblocks, varargin)
