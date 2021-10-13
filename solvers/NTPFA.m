@@ -28,6 +28,10 @@ classdef NTPFA
             % Set up HAP
             if isempty(opt.interpFace)
                 interpFace = findHAP(model.G, model.rock);
+                dispif(mrstVerbose, ...
+                       'fraction of cells with centroids outside convex hull is %d\n', ...
+                       interpFace.fraction);
+
                 interpFace = correctHAP(model.G, interpFace, opt.myRatio);
 
                 if ~isempty(opt.saveInterpFaceDir)
@@ -38,10 +42,10 @@ classdef NTPFA
                 ntpfa.interpFace = interpFace;
             else
                 ntpfa.interpFace = opt.interpFace;
+                dispif(mrstVerbose, ...
+                       'fraction of faces with HAPs outside convex hull is %d\n', ...
+                       ntpfa.interpFace.fraction);
             end
-            dispif(mrstVerbose, ...
-                   'fraction of faces with HAPs outside convex hull is %d\n', ...
-                   ntpfa.interpFace.fraction);
 
             % Set up one-sided fluxes
             if isempty(opt.OSflux)
