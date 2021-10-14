@@ -6,7 +6,7 @@ function [v, u, history, status] = optimizeSR1(u0, f, varargin)
 % Nocedal and Wright.
 % 
 % SYNOPSIS:
-%   function [v, u, history, status] = sr1_optimize(u0, f, varargin)
+%   function [v, u, history, status] = optimizeSR1(u0, f, varargin)
 %
 % DESCRIPTION:
 %
