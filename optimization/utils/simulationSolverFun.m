@@ -23,7 +23,7 @@ if iscell(objective)
     objective = objective{problem.seed};
 end
 vals = objective(setup.model, states, setup.schedule);
-obj.value = -sum(vertcat(vals{:}));
+obj.value = sum(vertcat(vals{:}));
 
 % compute gradient
 if opt.computeGradient || nargout == 2
@@ -52,7 +52,7 @@ if opt.computeGradient || nargout == 2
             end
             scaledGradient{k} = params{k}.scaleGradient( gradient.(nms{k}), pval);
         end
-        obj.gradient = vertcat(scaledGradient{:});
+        obj.gradient = -vertcat(scaledGradient{:});
     end
     if opt.clearStatesAfterAdjoint
         states.resetData();

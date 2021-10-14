@@ -705,6 +705,9 @@ if isfield(problem, 'OutputHandlers')
     for k = 1:numel(fn)
         h = problem.OutputHandlers.(fn{k});
         if isa(h, 'ResultHandler')
+            if ~exist(fullfile(directory, folder), 'dir')
+                mkdir(fullfile(directory, folder));
+            end
             h.dataDirectory = directory;
             h.dataFolder    = folder;
             problem.OutputHandlers.(fn{k}) = h;
