@@ -24,6 +24,6 @@ nparam = cellfun(@(x)x.nParam, params);
 p      = mat2cell(p, nparam, 1);
 for k = 1:numel(params)
     pu  = params{k}.unscale(p{k});
-    setup = params{k}.setParameterValue(setup, pu);
+    setup = params{k}.setParameter(setup, pu);
 end
 end

@@ -73,7 +73,7 @@ opt = struct('Verbose',           mrstVerbose(),...
              'objScaling',1, ...
              'enforceBounds',  true);
 
-opt = merge_options(opt, varargin{:});
+[opt, extra] = merge_options(opt, varargin{:});
 
 nparam = cellfun(@(x)x.nParam, parameters);
 p_org = pvec;
@@ -89,11 +89,11 @@ setupNew.model.FlowDiscretization = [];
 setupNew.model.FlowPropertyFunctions = [];
 for k = 1:numel(parameters)
     pval{k}  = parameters{k}.unscale(pvec{k});
-    setupNew = parameters{k}.setParameterValue(setupNew, pval{k});
+    setupNew = parameters{k}.setParameter(setupNew, pval{k});
 end
 [wellSols,states] = simulateScheduleAD(setupNew.state0, setupNew.model, setupNew.schedule,...
                                        'NonLinearSolver',opt.NonlinearSolver,...
-                                       'Verbose',opt.Verbose);
+                                       'Verbose',opt.Verbose, extra{:});
 
 misfitVals = obj(setupNew.model, states, setupNew.schedule, states_ref, false, [],[]);
 misfitVal  = - sum(vertcat(misfitVals{:}))/opt.objScaling ;
@@ -126,7 +126,7 @@ if nargout > 1
                          obj,setup,parameters, states_ref,...
                         'Gradient', 'none',...
                         'NonlinearSolver',opt.NonlinearSolver,...
-                        'objScaling',opt.objScaling);
+                        'objScaling',opt.objScaling,'enforceBounds',  false);
                 end
             catch % Try serial loop instead
                 for i=1:numel(p_org)
@@ -134,7 +134,7 @@ if nargout > 1
                          obj,state0_org,model_org,schedule_org,parameters, states_ref,...
                         'Gradient', 'none',...
                         'NonlinearSolver',opt.NonlinearSolver,...
-                        'objScaling',opt.objScaling);
+                        'objScaling',opt.objScaling, 'enforceBounds',  false);
                 end
             end 
             gradient= (val-misfitVal)./eps_pert;
@@ -148,6 +148,9 @@ if nargout > 1
 end
 if nargout > 2
     [varargout{2:3}] = deal(wellSols, states);
+end
+if nargout > 4
+   varargout{4} =  setupNew;
 end
 end
 

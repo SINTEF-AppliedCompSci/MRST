@@ -20,11 +20,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-values = applyFunction(@(p)p.getParameterValue(setup), params);
+val = applyFunction(@(p)p.getParameter(setup), params);
 % scale values
-u = cell(size(values));
+u = cell(size(val));
 for k = 1:numel(u)
-    u{k} = params{k}.scale(values{k});
+    u{k} = params{k}.scale(val{k});
 end
 pvec = vertcat(u{:});  
 end
