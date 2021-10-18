@@ -307,7 +307,7 @@ ch = [0, hst.val(2:end)-hst.val(1:end-1)];
 subplot(5,1,1), plot(xt, hst.val, '.-','LineWidth', 2, 'MarkerSize', 20), title('Objective');
 subplot(5,1,2), semilogy(xt,hst.pg,'.-','LineWidth', 2, 'MarkerSize', 20), title('Gradient norm');
 subplot(5,1,3), semilogy(xt,abs(ch),'.-','LineWidth', 2, 'MarkerSize', 20), title('Objective change');
-subplot(5,1,4), bar(xt,hst.lsit), title('Line search iterations');
+subplot(5,1,4), bar(xt,hst.lsit), title('Trust region size iterations');
 subplot(5,1,5), bar(hst.u{end}), title('Current scaled controls');
 drawnow
 end
