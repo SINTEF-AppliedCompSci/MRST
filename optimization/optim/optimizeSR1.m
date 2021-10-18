@@ -20,10 +20,10 @@ function [v, u, history, status] = optimizeSR1(u0, f, varargin)
 %              - 'delta' - initial trust region radius 
 %              - 'eta' - parameter for when to update 
 %              - 'epsilon' - convergence tolerance
-%              - 'funval_top' - function change  tolerance
+%              - 'funval_tol' - function change  tolerance
 %              - 'r' - threshold for when to update quasi-Hessian
 %              - 'maxIt' - maximum number of search directions
-%              - 'backup_file' - file ot backup (save) temporary result along
+%              - 'backup_file' - file to backup (save) temporary result along
 %                                the way
 %              - 'plotEvolution' - if true, a progress window will appear and
 %                                  stay updated during simulation
@@ -165,9 +165,9 @@ function [v, u, history, status] = optimizeSR1(u0, f, varargin)
          skipped_last_update = true;
       end
       
-      fprintf(['iteration is: %i.  Norm of B is %f.  min(eig) is: %f; max(eig) ' ...
-               'is %f; cond is: %f\n\n'], iter_count, norm(B), min(eig(B)), ...
-              max(eig(B)), cond(B));
+      % fprintf(['iteration is: %i.  Norm of B is %f.  min(eig) is: %f; max(eig) ' ...
+      %          'is %f; cond is: %f\n\n'], iter_count, norm(B), min(eig(B)), ...
+      %         max(eig(B)), cond(B));
       
    end
 end
@@ -185,6 +185,7 @@ function [e1, e2, Bstar] = determine_subspace(g, B)
       Bstar = Bstar + abs(lmin) * factor * eye(size(Bstar)); 
    end
    
+   g = full(g); % avoid sparse vectors (not handled by 'orth' below)
    v1 = g(:);
    v2 = Bstar\g(:); 
    if any(isinf(v2))

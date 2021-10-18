@@ -24,7 +24,8 @@ opt = struct('x0', .5, ...
              'y0', .5, ...
              'rx',  1, ...
              'ry',  1, ...
-             'th',  0);
+             'th',  0, ...
+             'invertSign', false);
 opt = merge_options(opt, varargin{:});
 
 outputDerivatives = nargout > 1;
@@ -42,6 +43,11 @@ xx =  cos(th)*(x-x0) + sin(th)*(y-y0);
 yy = -sin(th)*(x-x0) + cos(th)*(y-y0);
 
 z  = -(xx/rx).^2 - (yy/ry).^2;
+
+if opt.invertSign
+   z = -z;
+end
+
 if outputDerivatives
     dz = [z.jac{1}, z.jac{2}]';
     z  = z.val;
