@@ -201,9 +201,16 @@ classdef Network
         end
         
         function plotNetwork(obj,varargin)
-            opt = struct('FaceColor', 'none', 'EdgeAlpha', 0.1);
+            opt = struct('FaceColor', 'none', 'EdgeAlpha', 0.1, 'Colors',false);
             opt = merge_options(opt, varargin{:});
             
+            if opt.Colors
+                ne = size(obj.network.Edges,1);
+                edgeCol = {'EdgeCData', 1:ne};
+                colormap(tatarizeMap(ne));
+            else
+                edgeCol = {};
+            end
             if size(obj.network.Edges,2)==4
                 TT = obj.network.Edges.Transmissibility;
                 pv = obj.network.Edges.PoreVolume;
@@ -224,7 +231,8 @@ classdef Network
                     'XData',obj.network.Nodes.XData,...
                     'YData',obj.network.Nodes.YData,...
                     'ZData',obj.network.Nodes.ZData,...
-                    'LineWidth',lineWidth(:,i));
+                    'LineWidth',lineWidth(:,i), ...
+                    edgeCol{:});
                 labelnode(pg,obj.network.Nodes.Well,obj.network.Nodes.Well_name);
                 title(names{i})
                 hold off; axis off
