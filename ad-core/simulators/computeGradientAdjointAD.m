@@ -152,7 +152,7 @@ function g = getRequestedGradients(dg, report, wantGradFor)
         g = cell(1, ng);
         for i = 1:ng
             n = wantGradFor{i};
-            g{i} = vertcat(dg{strcmpi(report.Types, n)});
+            g{i} = -vertcat(dg{strcmpi(report.Types, n)});
         end
     end
 end
