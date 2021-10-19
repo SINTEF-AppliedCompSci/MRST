@@ -64,7 +64,7 @@ for step = 1:numSteps
     else
         matchCases = true(nw,1);
     end
-    
+    matchCases = matchCases([sol_obs.wellSol.status]);
     [ww, wo, wp] = getWeights(qWs_obs, qOs_obs, bhp_obs, opt);
                                    
      if opt.ComputePartials
@@ -100,8 +100,9 @@ function v = vertcatIfPresent(sol, fn, nw)
 if isfield(sol, fn)
     v = vertcat(sol.(fn));
     assert(numel(v)==nw);
+    v = v(vertcat(sol.status));
 else
-    v = zeros(nw,1);
+    v = 0;
 end
 end
 
