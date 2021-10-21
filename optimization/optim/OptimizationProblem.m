@@ -519,6 +519,10 @@ classdef OptimizationProblem < BaseEnsemble
                 plotWellSols(wss(ix), tms(ix), 'Datasetnames', nms(ix));
             end
         end
+        
+        function problem = resetHandlers(p, problem, directory,folder)
+            problem = resetHandlers(problem, directory, folder);
+        end
     end
 end
 
@@ -544,7 +548,7 @@ for k = 1:nc
     end
 end
 problem.SimulatorSetup.schedule = schedule;
-if isfield(schedule.control.W(1), 'posControl') && nc < numel(u)
+if isfield(schedule.control(1).W(1), 'posControl') && nc < numel(u)
     % trajectory controls
     W = schedule.control(1).W;
     pcix = arrayfun(@(w)~isempty(w.posControl), W);
@@ -572,7 +576,8 @@ for k = 1:numel(u)
         u(k) = schedule.control(sno).W(wno).lims.(tp);
     end
 end
-if isfield(schedule.control.W(1), 'posControl')
+
+if isfield(schedule.control(1).W(1), 'posControl')
     % position is same over all steps
     W = schedule.control(1).W;
     ix = arrayfun(@(w)~isempty(w.posControl), W);
@@ -673,6 +678,8 @@ if ~isempty(opt.setupType)
         p.bounds = [];
     end
 end
+
+
 end
 
 % -------------------------------------------------------------------------
