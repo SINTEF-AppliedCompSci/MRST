@@ -114,7 +114,7 @@ if nargout > 1
                                                         'LinearSolver',opt.AdjointLinearSolver);            
             % do scaling of gradient
             for k = 1:numel(nms)
-               scaledGradient{k} = parameters{k}.scaleGradient( gradient.(nms{k}), pval{k});
+               scaledGradient{k} = -parameters{k}.scaleGradient( gradient.(nms{k}), pval{k});
             end
         case 'PerturbationADNUM'
             % do manual pertubuation of the defiend control variabels

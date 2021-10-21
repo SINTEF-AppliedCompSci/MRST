@@ -52,7 +52,7 @@ if opt.computeGradient || nargout == 2
             end
             scaledGradient{k} = params{k}.scaleGradient( gradient.(nms{k}), pval);
         end
-        obj.gradient = -vertcat(scaledGradient{:});
+        obj.gradient = vertcat(scaledGradient{:});
     end
     if opt.clearStatesAfterAdjoint
         states.resetData();

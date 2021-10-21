@@ -24,6 +24,7 @@ classdef OptimizationProblem < BaseEnsemble
         memberConstraintValues
         iterationConstraintValues
         realizations
+        regularization 
     end
     
     methods
@@ -46,7 +47,8 @@ classdef OptimizationProblem < BaseEnsemble
                          'updateProblemFun',  [], ...
                          'fetchVariablesFun', [], ...
                          'plotProgress',    true, ...
-                         'setupType',         '');
+                         'setupType',         '', ...
+                         'regularization',    0);
             [opt, rest] = merge_options(opt, rest{:});
             
             p = p@BaseEnsemble(samples, rest{:}, ...
@@ -72,7 +74,7 @@ classdef OptimizationProblem < BaseEnsemble
             
             if isempty(p.realizations)
                 p.realizations = 1:p.samples.num;
-            end            
+            end   
         end
         
         %------------------------------------------------------------------
@@ -124,6 +126,13 @@ classdef OptimizationProblem < BaseEnsemble
                 varargout{1} = v/objScaling;
                 [lower, upper] = p.getControlVectorLimits();
                 varargout{2} = (dv.*(upper-lower))/objScaling;
+            end
+            if ~isempty(p.regularization)
+                [r, gr] = p.regularization(us);
+                varargout{1} = varargout{1} + r;
+                if nargout > 1
+                    varargout{2} = varargout{2} + gr;
+                end
             end
         end
         
@@ -364,12 +373,19 @@ classdef OptimizationProblem < BaseEnsemble
         %------------------------------------------------------------------
         %------- OPTIMIZATION  --------------------------------------------
         %------------------------------------------------------------------
+        function [u, extra] = maximizeObjective(p, varargin)
+            [u, extra] = optimize(p, varargin{:}, 'maximize', true);
+        end
+        
+        function [u, extra] = minimizeObjective(p, varargin)
+            [u, extra] = optimize(p, varargin{:}, 'maximize', false);
+        end
         
         function [u, extra] = optimize(p, varargin)
             if mod(nargin, 2) == 0 % first argument is initial guess
                 initialGuess = varargin{1};
                 varargin     = varargin(2:end);
-                % initialGuess is either assumed to be an unscaled vector 
+                % initialGuess is either assumed to be an unscaled vector
                 % of decision varables, or a problem structure
                 if ~isa(initialGuess, 'double')
                     try
@@ -387,42 +403,53 @@ classdef OptimizationProblem < BaseEnsemble
                 us0 = p.iterationControls{1};
             end
             assert(all(-sqrt(eps)<us0 & us0 < 1+sqrt(eps)), ...
-                   'Initial guess is not within bounds');
-            opt = struct('optimizer',   'default', ...
-                         'background',     false);
+                'Initial guess is not within bounds');
+            opt = struct('optimizer',      'default', ...
+                         'background',     false, ...
+                         'maximize',       true,  ...
+                         'regularizationParam', 0);
             [opt, optimopts] = merge_options(opt, varargin{:});
-            if ~opt.background
-            switch lower(opt.optimizer)
-                case 'default'
-                    [~, us, hist] = unitBoxBFGS(us0, @p.getScaledObjective, optimopts{:});
-                    if nargout == 2
-                        extra = hist;
-                    end
-                    
-                case 'ipopt'
-                    nu = numel(us0);
-                    funcs = struct('objective',    @(u)-p.getScaledObjective(u'), ...
-                                  'gradient',     @(u)-p.getScaledObjectiveGradient(u').');
-                    if ~isempty(p.constraints)
-                        funcs.constraints = @(u)p.getScaledObjective(u, p.constraint, true);
-                        funcs.jacobian    = @(u)p.getScaledObjectiveGradient(u, p.constraint, true).';
-                    end
-                    options = struct('lb', zeros(1, nu), 'ub', ones(1, nu));
-
-                    ipopt_opts = struct('hessian_approximation', 'limited-memory', ...
-                                        'tol',                   1e-4, ...
-                                        'max_iter',              25);
-                    ipopt_opts = merge_options(ipopt_opts, optimopts{:});
-                    options.ipopt = ipopt_opts;
-                    [us, info] = ipopt(us0.',funcs , options);
-                    us = us(:);
-                    if nargout == 2
-                        extra = info;
-                    end
-                otherwise
-                    error('Unsupported optimizer: %s', opt.optimizer)
+            if opt.regularizationParam > 0
+               p.regularization = getRegularizationFun(us0, opt.regularizationParam);
+            else
+               p.regularization = [];
             end
-            u = p.unscaleVariables(us);
+            if ~opt.background
+                switch lower(opt.optimizer)
+                    case 'default'
+                        [~, us, hist] = unitBoxBFGS(us0, @p.getScaledObjective, optimopts{:}, 'maximize', opt.maximize);
+                        if nargout == 2
+                            extra = hist;
+                        end
+                        
+                    case 'ipopt'
+                        nu = numel(us0);
+                        objSign = 1;
+                        if opt.maximize
+                            objSign = -1;
+                        end
+                        funcs = struct('objective',    @(u)objSign*p.getScaledObjective(u'), ...
+                                       'gradient',     @(u)objSign*p.getScaledObjectiveGradient(u').');
+                        if ~isempty(p.constraints)
+                            funcs.constraints = @(u)p.getScaledObjective(u, p.constraint, true);
+                            funcs.jacobian    = @(u)p.getScaledObjectiveGradient(u, p.constraint, true).';
+                        end
+                        options = struct('lb', zeros(1, nu), 'ub', ones(1, nu));
+                        
+                        ipopt_opts = struct('hessian_approximation', 'limited-memory', ...
+                                            'tol',                   1e-4, ...
+                                            'max_iter',              25);
+                        ipopt_opts = merge_options(ipopt_opts, optimopts{:});
+                        options.ipopt = ipopt_opts;
+                        [us, info] = ipopt(us0.',funcs , options);
+                        us = us(:);
+                        if nargout == 2
+                            extra = info;
+                        end
+                    otherwise
+                        error('Unsupported optimizer: %s', opt.optimizer)
+                end
+                u = p.unscaleVariables(us);
             else
                 p.optimizeBackground(us0, [{'optimizer', opt.optimizer}, optimopts]);
                 [u, extra] = deal(true, 'Started optimization in seperate session');
@@ -613,13 +640,14 @@ end
 
 
 % -------------------------------------------------------------------------
-% Setup of deafault simulation/diagnsotics problems
+% Setup of default simulation/diagnsotics problems
 % -------------------------------------------------------------------------
 function p = setupProblem(p, opt)
 props = intersect(properties(p), fieldnames(opt));
 for k = 1:numel(props)
     p.(props{k}) = opt.(props{k});
 end
+
 if ~isempty(opt.setupType)
     % setup simulation/diagnostics problem
     isWellType  = ~isempty(p.maps);
@@ -723,3 +751,17 @@ if isfield(problem, 'OutputHandlers')
 end
 end
     
+% -------------------------------------------------------------------------
+% Regularization
+% -------------------------------------------------------------------------
+
+function fn = getRegularizationFun(us0, alpha)
+fn = @(us)regularizationFn(us, us0, alpha);
+end
+
+function varargout = regularizationFn(us, us0, alpha)
+varargout{1} = alpha*sum( (us-us0).^2 );
+if nargout > 1
+    varargout{2} = 2*alpha*(us-us0);
+end
+end
