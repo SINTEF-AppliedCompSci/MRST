@@ -341,7 +341,9 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
                          'plotTruth',           false, ...
                          'cmapName',            'tatarizeMap', ...
                          'cmapRealizationsMin', 6, ...
-                         'legend',              {{}});
+                         'legend',              {{}}, ...
+                         'savefig',             false, ...
+                         'savefolder',          '');
             [opt, extra] = merge_options(opt, varargin{:});
             
             ci = 1;
@@ -362,6 +364,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
                                                                           'plotObservation', false, ...
                                                                           'plotTruth', false, ...
                                                                           'alreadyOpenFigures', alreadyOpenFigures, ...
+                                                                          'savefig', false, ...
                                                                           extra{:});
                             ci = ci + 1;
                         end
@@ -374,9 +377,14 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
                                              'plotTruth', opt.plotTruth, ...
                                              'legend', opt.legend, ...
                                              'alreadyOpenFigures', alreadyOpenFigures, ...
-                                             extra{:});
+                                             'savefig', opt.savefig, ...
+                                             extra{:});                               
+
+
+        
         end
-    
+        
+        
     end % public methods
     
     methods (Access = protected)
@@ -391,6 +399,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             ensemble.mainDirectory = ensemble.directory;
             ensemble.directory = ensemble.getIterationPath();
        end
+       
     end
 end
 

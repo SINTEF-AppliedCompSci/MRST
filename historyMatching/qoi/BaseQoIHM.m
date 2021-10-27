@@ -149,7 +149,9 @@ classdef BaseQoIHM
                          'legend'     , {{}}       , ...
                          'plotWells'  , []         , ...
                          'alreadyOpenFigures', 0   , ...
-                         'Position',  get(0, 'DefaultFigurePosition'));
+                         'Position',  get(0, 'DefaultFigurePosition'), ...
+                         'savefig', false          , ...
+                         'savefolder', ''          );
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u_var, u]  = qoi.getQoIMean(opt.range);
             numQoIs      = numel(u_mean);
@@ -178,6 +180,18 @@ classdef BaseQoIHM
                         figIds(w).(qoi.names{f}) = 0;
                     end
                 end
+            end
+            
+            if opt.savefig 
+                if strcmp(opt.savefolder, '')
+                    opt.savefolder = fullfile(ensemble.mainDirectory(), ...
+                                              strcat('history_matching_figures_', ...
+                                                     datestr(now,'yyyy_mm_dd_HHMMSS')));
+                end
+                if ~exist(opt.savefolder, 'dir')
+                    mkdir(opt.savefolder);
+                end
+                fprintf('Saving figures to %s\n', opt.savefolder);    
             end
                         
             plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u(i).(qoi.names{k}), ...
@@ -241,6 +255,10 @@ classdef BaseQoIHM
                     
                     % Stack the lines so that the mean(s) come on top
                     qoi.organizePlots(opt.legend);
+                    if opt.savefig
+                        qoi.saveFigure(h(figureId), opt.savefolder, ...
+                                       qoi.wellNames{i}, qoi.names{k});
+                    end
                 end
             end
         end
@@ -279,6 +297,9 @@ classdef BaseQoIHM
                 if numel(legendText) == numel(meansID)+1 && ~isempty(obsID)
                     legend([lines(obsID(1)); lines(meansID)], ...
                            legendText, 'Location', 'Best');
+                elseif numel(legendText) == numel(meansID)+1 && ~isempty(truthID)
+                    legend([lines(truthID(1)); lines(meansID)], ...
+                           legendText, 'Location', 'Best');
                 elseif numel(legendText) == numel(meansID)+2 && ~isempty(obsID) && ~isempty(truthID)
                     legend([lines(obsID(1)); lines(truthID(1)); lines(meansID)], ...
                            legendText, 'Location', 'Best');
@@ -315,6 +336,36 @@ classdef BaseQoIHM
         
     end
     
+    methods (Access = protected, Sealed = true)
+        function saveFigure(qoi, figNr, folderName, wellName, field)
+            
+            %figHandles = findobj('Type', 'figure')
+            %figHandle = figHandles(figNr);
+            figHandle = gcf;
+            
+            fileExt = {'.fig', '.png', '.eps'}; %, '.pdf'};
+            formats = {'fig', 'png', 'epsc'}; %, 'pdf'};
+            
+            filenameBase = strcat(wellName, '_', field);
+
+            for showLegend = 0:1
+                legendText = '';
+                if showLegend
+                    figHandle.CurrentAxes.Legend.Visible = 1;
+                    legendText = '_legend';
+                else
+                    figHandle.CurrentAxes.Legend.Visible = 0;
+                end
+
+                for fe = 1:numel(fileExt)
+                    savefilename = fullfile(folderName, strcat(filenameBase, legendText, fileExt{fe}))
+                    saveas(figHandle, savefilename, formats{fe});
+                end
+
+            end      
+        end
+
+    end
 end
     
 %{
