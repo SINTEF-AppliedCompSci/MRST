@@ -29,14 +29,12 @@ regenerateInitialEnsemble = false;
 
 referenceEggRealization = 0;
 
-topDirectory = fullfile(mrstOutputDirectory(), 'upscaled_network_models', 'eggEnsembleESMDACalibration');
-referenceDirectory = fullfile(topDirectory, 'random_schedule_truth', ...
+topDirectory = fullfile(mrstOutputDirectory(), 'upscaled_network_models', 'eggEnsembleESMDA');
+referenceDirectory = fullfile(topDirectory, 'truth', ...
     ['egg_realization_', num2str(referenceEggRealization)]);
 fullEnsembleDirectory = fullfile(topDirectory, 'full_models');
 historyMatchingDirectory = fullfile(topDirectory, ...
     ['upscaled_ensemble_egg_', num2str(referenceEggRealization)]);
-originalScheduleDirectory = fullfile(topDirectory, 'original_schedule_truth', ...
-    ['egg_realization_', num2str(referenceEggRealization)]);
 
 %% Setup full 3D reference model
 % The reference model is one of the realizations from the Egg ensemble. It
@@ -54,33 +52,6 @@ numTotalTimesteps = 48;
 referenceExample.schedule = simpleSchedule(referenceExample.schedule.step.val(1:48), ...
                                            'W', referenceExample.schedule.control.W);
     
-%% Random schedule
-
-originalSchedule = referenceExample.schedule;
-schedule = referenceExample.schedule;
-schedule.step.control= ceil(0.25*(1:numel(schedule.step.val))');
-
-rng(0)
-for n=2:max(schedule.step.control)
-    schedule.control(n) = schedule.control(1);
-    for i=1:numel(schedule.control(n).W)
-        W = schedule.control(n).W(i);
-        switch W.type
-            case 'rate'
-                W.val = (.75 + .5*rand)*W.val;
-            case 'bhp'
-                %if rand < 0.2
-                %    W.status = false;
-                % else
-                    W.val = (.95 + 0.1*rand)*W.val;
-                %end
-        end
-        schedule.control(n).W(i) = W;
-    end
-end
-referenceExample.schedule = schedule;
-
-%% Pack and run reference problem
 referenceProblem = referenceExample.getPackedSimulationProblem('Directory', referenceDirectory);
 
 if rerunReferenceModel
@@ -366,8 +337,7 @@ ensemble.simulateEnsembleMembers('progressTitle', 'Simulating prior ensemble');
 % be used to look at predictive qualities of the results.
 
 totalNumberOfTimesteps = numel(ensemble.originalSchedule.step.val);
-%observationIndices = (2:2:floor(totalNumberOfTimesteps/2));
-observationIndices = (1:totalNumberOfTimesteps);
+observationIndices = (2:2:floor(totalNumberOfTimesteps/2));
 ensemble.updateHistoryMatchingInterval(observationIndices);
 
 %% Do history matching
@@ -414,115 +384,83 @@ if true
 end
 %%
 %close all
-plotSubIterations = false;
-esmdaLegend = {'observations', 'truth', 'posterior mean', 'prior mean'};
-if plotSubIterations
-    esmdaLegend = {'observations', 'truth', 'posterior mean', 'ES-MDA it 3',...
-                   'ES-MDA it 2', 'ES-MDA it 1', 'prior mean'}; %#ok
+if false
+    disp('Plotting in progress, please wait...');
+    ensemble.plotQoI('subplots', false, 'clearFigure', false, ...
+        'cmapName', 'lines', ...
+        'plotTruth', true, ...
+        'subIterations', true, ...
+        'observationIndices', observationIndices, ...
+        'plotWells', plotWells, ... 
+        'legend', {'observations', 'truth', 'posterior mean', 'ES-MDA it 3',...
+                   'ES-MDA it 2', 'ES-MDA it 1', 'prior mean'}, ...
+        'Position', [50 200 560 420]);
+
+    disp('Plotting completed');
 end
 
+%%
+close all
 disp('Plotting in progress, please wait...');
 ensemble.plotQoI('subplots', false, 'clearFigure', false, ...
     'cmapName', 'lines', ...
     'plotTruth', true, ...
-    'subIterations', plotSubIterations, ...
+    'subIterations', false, ...
     'observationIndices', observationIndices, ...
     'plotWells', plotWells, ... 
-    'legend', esmdaLegend, ...
+    'legend', {'observations', 'truth', 'posterior mean', 'prior mean'}, ...
     'Position', [50 200 560 420]);
 disp('Plotting completed');
 
 
+%% Running model using the mean parameter values
+%  Often with model calibration, we wish to have a model with a single set
+%  of parameters at the end. We therefore compute the mean of the prior and
+%  the posterior and run the network model to compare the usefulness of the
+%  mean parameter distributions.
+%
+%  Start by obtaining the mean prior and posterior parameters
 
+meanPriorSample = samples.getMeanSample();
+meanPosteriorSample = ensemble.samples.getMeanSample();
 
+%% Define new ensemble object 
+%  Even though we now are interested in single simulations of the prior and
+%  posterior means, respectively, we use the history matching ensemble
+%  class to easily run the simulation and get the plotting.
+%  We also reuse the QoI object from before.
 
+meanSimulationsDirectory = fullfile(topDirectory, ...
+    ['means_upscale_ensemble_egg_', num2str(referenceEggRealization)]);
 
-
-%% Compare with original schedule
-% Setup a new reference case using the original schedule, and then run the
-% same schedule using the calibrated parameters
-
-orginalReferenceExample = MRSTExample('egg_wo', 'realization', referenceEggRealization);
-orginalReferenceExample.schedule = originalSchedule;
-
-originalReferenceProblem = orginalReferenceExample.getPackedSimulationProblem('Directory', originalScheduleDirectory);
-
-rerunOriginalSchedule = true;
-if rerunOriginalSchedule
-    clearPackedSimulatorOutput(originalReferenceProblem, 'prompt',  false);
-end
-simulatePackedProblem(originalReferenceProblem);
-
-%% Create QoI using the original schedule as reference data
-originalScheduleQoI = WellQoIHM('wellNames', wellNames, ...
-                                'names', fieldNames);
-
-originalScheduleQoI = originalScheduleQoI.validateQoI(originalReferenceProblem);
-originalScheduleReferenceObservations = originalScheduleQoI.getQoI(originalReferenceProblem);
-
-originalScheduleQoI.ResultHandler.dataPrefix = 'originalScheduleObservedQoI';
-
-% Fill the the first resulthandler with the reference data
-originalScheduleQoI.ResultHandler{1} = {originalScheduleReferenceObservations};
-
-% Store the reference data in a dedicated result handler for comparing
-% predictive performance of the calibrated models 
-originalScheduleTruthResultHandler = ResultHandler('dataPrefix', 'trueQoI', ...
-                                   'writeToDisk', originalScheduleQoI.ResultHandler.writeToDisk,...
-                                   'dataDirectory', originalScheduleQoI.ResultHandler.dataDirectory, ...
-                                   'dataFolder', originalScheduleQoI.ResultHandler.dataFolder, ...
-                                   'cleardir', false);
-originalScheduleTruthResultHandler{1} = {originalScheduleReferenceObservations};
-
-
-%% Create ensemble using the calibrated samples
-% Here, we also need to redefine the QoI to use the original schedule
-% output as reference data so that the plotting becomes easy
-
-calibratedSamples = ensemble.samples; %.getMeanSample();
-
-% Quantity of interest
-calibratedQoi = WellQoIHM('wellNames', wellNames, ...
-                'names', fieldNames, ...
-                'observationResultHandler', originalScheduleQoI.ResultHandler, ...
-                'truthResultHandler', originalScheduleTruthResultHandler, ...
-                'observationCov', obsStdDev.^2);
-
-calibratedSimulationsDirectory = fullfile(topDirectory, ...
-    ['original_schedule_upscale_ensemble_egg_', num2str(referenceEggRealization)]);
-
-origSchedbaseUpscaledModel = MRSTExample('upscaled_coarse_network', ...
-                                'partition', [6 6 1], ...
-                                'referenceExample', orginalReferenceExample, ...
-                                'plotCoarseModel', false);
-%%
-originalScheduleEnsemble = MRSTHistoryMatchingEnsemble(...
-    origSchedbaseUpscaledModel, calibratedSamples, calibratedQoi, ...
-    'directory', calibratedSimulationsDirectory, ...
-    'simulationStrategy', 'spmd', ...
+meanEnsemble = MRSTHistoryMatchingEnsemble(baseUpscaledModel, meanPriorSample, qoi, ...
+    'directory', meanSimulationsDirectory, ...
+    'simulationStrategy', 'serial', ...
     'reset', true, ...
-    'verboseSimulation', false);
+    'verboseSimulation', true);
 
+% Run simulation with the mean of the prior parameters
+meanEnsemble.simulateEnsembleMembers();
 
-%% Simulate 
-originalScheduleEnsemble.simulateEnsembleMembers();
-%originalScheduleEnsemble.updateHistoryMatchingInterval((1));
+%% Manually update the ensemble samples to the posterior mean
+%  When doing history matching, the ensemble class computes a new set of
+%  parameters and updates the ensemble samples behind the scenes. Here, we
+%  already have the new sample and update the ensemble samples directly.
+meanEnsemble.updateHistoryMatchingIterations(meanPosteriorSample);
 
+% Run simulation with the mean of the posterior parameters
+meanEnsemble.simulateEnsembleMembers();
 
 %% Plot the results
-disp('Plotting in progress...');
-originalScheduleEnsemble.plotQoI('subplots', false, 'clearFigure', false, ...
+meanEnsemble.plotQoI('subplots', false, 'clearFigure', false, ...
     'cmapName', 'lines', ...
     'plotTruth', true, ...
-    'observationIndices', [1], ...
+    'observationIndices', observationIndices, ...
     'plotWells', plotWells, ... 
     'legend', {'observations', 'truth', ...
-    'calibrated parameters'}, ...
+    'posterior parameters mean', 'prior parameters mean'}, ...
     'Position', [700 200 560 420]);
-    %'Position', [700 200 560 420]);
 disp('Plotting completed');
-
-
 
 
 

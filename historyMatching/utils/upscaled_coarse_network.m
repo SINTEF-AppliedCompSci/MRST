@@ -125,7 +125,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         view(174,60);
         title('Fine-scale grid (18553 cells)')
         plotWell(options.referenceExample.model.G, ...
-                 options.referenceExample.schedule.control.W, ...
+                 options.referenceExample.schedule.control(1).W, ...
                  'Color', 'k', 'FontSize', 10); 
         axis off tight
         camlight headlight
@@ -136,7 +136,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         title('Coarse-scale grid (33 cells)')
         view(174,60); 
         plotWell(options.referenceExample.model.G, ...
-                 options.referenceExample.schedule.control.W, ...
+                 options.referenceExample.schedule.control(1).W, ...
                  'Color', 'k', 'FontSize', 10); 
         axis off tight
         camlight headlight
@@ -156,7 +156,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         tmpSchedule = upscaleSchedule(model, ...
                                options.referenceExample.schedule, ...
                                'wellUpscaleMethod', wellUpscalingMethods{i});
-        options.(wellUpscalingMethods{i}) = [tmpSchedule.control.W.WI];
+        options.(wellUpscalingMethods{i}) = [tmpSchedule.control(1).W.WI];
     end
 
     % plotOptions are only by MRSTExample. In case of empty plotOptions,
