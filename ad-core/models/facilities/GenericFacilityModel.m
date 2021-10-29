@@ -324,7 +324,7 @@ classdef GenericFacilityModel < FacilityModel
             nw = numel(actWellIx);
             if nw > 0
                 rho = model.ReservoirModel.getProps(state, 'Density');
-                rho = [rho{:}];
+                rho = value(rho);
                 [wc, perf2well] = model.getActiveWellCells(wellSol);
                 rho = rho(wc, :);
                 % Use mobility in well-cells if no connection fluxes are
