@@ -423,7 +423,7 @@ classdef FacilityModel < PhysicalModel
                 case {'standard', 'explicit'}
                     phNames = model.ReservoirModel.getPhaseNames();
                     names = arrayfun(@(x) ['q', x, 's'], phNames, 'UniformOutput', false);
-                    names = [names, 'bhp'];
+                    names = {names{:}, 'bhp'};
                 case 'bhp'
                     names = {'bhp'};
                 case 'bhp_massfractions'

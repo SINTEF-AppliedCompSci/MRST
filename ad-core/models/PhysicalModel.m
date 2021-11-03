@@ -178,7 +178,8 @@ methods
 
         % Define primary variables
         if opt.reverseMode
-            [state0, primaryVars] = model.getReverseStateAD(state0);
+        %    [state0, primaryVars] = model.getReverseStateAD(state0);
+            primaryVars = state0.primaryVars;
             state = model.getStateAD(state, false);
         else
             [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
@@ -862,7 +863,9 @@ methods
 
         % Initial state typically lacks wellSol-field, so add if needed
         if stepNo == 1
-            before = model.validateState(before);
+            %% 
+            model_init = model; %??
+            before = model_init.validateState(before);
         end
 
         % We get the forward equations via the reverseMode flag. This is
@@ -879,6 +882,10 @@ methods
             % get forces and merge with valid forces
             forces_p = model.getDrivingForces(lookupCtrl(stepNo + 1));
             forces_p = merge_options(validforces, forces_p{:});
+            model_p = model;
+            [current, primaryVars] = model_p.getReverseStateAD(current);
+            current.primaryVars =primaryVars;
+            model = model.validateModel(forces_p);
             problem_p = model.getAdjointEquations(current, after, dt_next, forces_p,...
                                 'iteration', inf, 'reverseMode', true);
         else

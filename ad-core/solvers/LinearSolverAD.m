@@ -108,8 +108,12 @@ classdef LinearSolverAD < handle
                 objective = objective{:};
             end
             objective = combineEquations(objective);
-            assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
-            b = -objective.jac{1}';
+            if isempty(objective)
+                b = zeros(size(problemCurr.A,1),1);
+            else
+                assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
+                b = -objective.jac{1}';
+            end
             if ~isempty(adjVec)
                 % hack
                 ix = find(cellfun(@(x)isa(x, 'GenericAD'), problemPrev.equations));

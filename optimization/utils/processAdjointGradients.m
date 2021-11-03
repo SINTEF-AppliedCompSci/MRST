@@ -29,17 +29,16 @@ end
 
 [nw, ns] = deal(numel(ws{1}), numel(ws));
 ng = cellfun(@numel, grad);
-if any(diff(ng(:))) %numel(grad{1}) ~= numel(grad{end}) 
-    % some wells have been switced off, fill in zeros
-    for k = 1:numel(grad)
-        wellstats = [ws{k}.status];
-        if ~all(wellstats)
-            tmp = zeros(nw, 1);
-            tmp(wellstats) = grad{k};
-            grad{k} = tmp;
-        end
-    end
+% some wells have may bee switced off, fill in zeros
+for k = 1:numel(grad)
+     wellstats = [ws{k}.status];
+       if ~all(wellstats)
+          tmp = zeros(nw, 1);
+          tmp(wellstats) = grad{k};
+          grad{k} = tmp;
+       end
 end
+
 grad = horzcat(grad{:});
 
 controls = cellfun(@(x){x.type}', ws, 'UniformOutput', false);
