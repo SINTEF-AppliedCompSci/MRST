@@ -4,7 +4,7 @@ mrstModule add ad-core ad-blackoil ad-props optimization spe10
 setupModel2D
 
 % Create model-object of class TwoPhaseOilWaterModel
-model  = TwoPhaseOilWaterModel(G, rock, fluid);
+model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
 % Set initial state and run simulation:
 state0 = initResSol(G, 200*barsa, [0, 1]);
 

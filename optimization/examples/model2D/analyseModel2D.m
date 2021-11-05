@@ -39,7 +39,7 @@ plotSchedules(schedule_opt, 'singlePlot', true, 'boxConst', [li;li;lp;lp] )
 %% Run forward simulation for base and optimal schedule
 
 % Create model-object of class TwoPhaseOilWaterModel
-model  = TwoPhaseOilWaterModel(G, rock, fluid);
+model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
 % Set initial state and run simulations:
 state0 = initResSol(G, 200*barsa, [0, 1]);
 [wellSols, states]         = simulateScheduleAD(state0, model, schedule);
