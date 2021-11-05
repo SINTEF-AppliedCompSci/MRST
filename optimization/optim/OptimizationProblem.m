@@ -48,7 +48,8 @@ classdef OptimizationProblem < BaseEnsemble
                          'fetchVariablesFun', [], ...
                          'plotProgress',    true, ...
                          'setupType',         '', ...
-                         'regularization',    []);
+                         'regularization',    [], ...
+                         'clearStates',   false);
             [opt, rest] = merge_options(opt, rest{:});
             
             p = p@BaseEnsemble(samples, rest{:}, ...
@@ -87,9 +88,10 @@ classdef OptimizationProblem < BaseEnsemble
             else
                 % assume problem(s) are given explicitly
                 problem = p.samples.problem{seed};
+                % If problem has handlers, reset these to current directory
                 problem = resetHandlers(problem, p.directory, num2str(seed));
             end
-            % Setup problem for current iteration. 
+            % Setup problem for current iteration.
             problem = p.updateProblemForCurrentIteration(problem);
         end
         
@@ -538,10 +540,10 @@ classdef OptimizationProblem < BaseEnsemble
             end
             ix = ~cellfun(@isempty, wss);
             if ~any(ix)
-                warning('No well-solutions found for the requested controls/realizations\n')
+                warning('No well-solutions found for the requested controls/realizations')
             else
                 if ~all(ix)
-                    fprintf('Found well-solutions from only some of the requested controls/realizations\n')
+                    fprintf('Found well-solutions from only some of the requested controls/realizations')
                 end
                 plotWellSols(wss(ix), tms(ix), 'Datasetnames', nms(ix));
             end
@@ -664,7 +666,8 @@ if ~isempty(opt.setupType)
             p.solverFun = @(problem, obj, h, computeGradient) ...
                 simulationSolverFun(problem, obj, 'objectiveHandler', h, ...
                 'computeGradient', computeGradient, ...
-                'parameters', p.parameters, 'maps', p.maps);
+                'parameters', p.parameters, 'maps', p.maps, ...
+                'clearStatesAfterAdjoint', opt.clearStates);
         elseif strcmp(opt.setupType, 'diagnostics')
             p.solverFun = @(problem, obj, h, computeGradient) ...
                 diagnosticsSolverFun(problem, obj, 'objectiveHandler', h, ...
