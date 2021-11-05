@@ -21,6 +21,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 [nw, ns] = deal(numel(schedule.control(1).W), numel(schedule.control));
+if ~iscell(bounds)
+    bounds = {bounds};
+end
+if numel(bounds) ~= ns
+    assert(numel(bounds)==1);
+    bounds = repmat(bounds, [1, ns]);
+end
+
 if nargin < 3 || isempty(controllableWells)
     % use first control
     controllableWells = true(nw, 1);
@@ -31,11 +39,17 @@ if ~any(controllableWells)
     return;
 end
 
-isControl = getControls(schedule.control(1).W, controllableWells);
-contrNms = fieldnames(isControl);
-nc = ns*sum(structfun(@nnz, isControl));
+[isControl, contrNms, nc, nc_bnds] = deal(cell(1, ns));
+for kc = 1:ns
+   isControl{kc} = getControls(schedule.control(kc).W, controllableWells);
+   contrNms{kc}  = fieldnames(isControl{kc});
+   nc{kc}        = sum(structfun(@nnz, isControl{kc}));
+   nc_bnds{kc}   = sum(structfun(@(x)nnz(isfinite(x(:,1))), bounds{kc}));
+end
 
-nc_bnds = ns*sum(structfun(@(x)nnz(isfinite(x(:,1))), bounds));
+nc      = sum(vertcat(nc{:}));
+nc_bnds = sum(vertcat(nc_bnds{:}));
+
 
 if nc_bnds > nc
     warning('Bounds were given for %d controls/limits of non-finite value in schedule, these will be ignored', nc_bnds-nc);
@@ -44,29 +58,30 @@ elseif nc_bnds < nc
 end
 
 maps = struct('type', {repmat({''}, [nc,1])}, 'wellNo', nan(nc,1), ...
-              'stepNo', rldecode((1:ns)', nc/ns), 'isTarget', false(nc,1), ...
+              'stepNo', nan(nc,1), 'isTarget', false(nc,1), ...
               'bounds', nan(nc, 2));
 u = nan(nc,1);
 
 scale = @(v, bnds)(v-bnds(1))/(bnds(2)-bnds(1));
-[ix, offset] = deal(0, nc/ns);
-for k = 1:numel(contrNms)
-    cnm = contrNms{k};
-    for wno = 1:nw
-        if isControl.(cnm)(wno)
-            ix = ix +1;
-            for step = 1:ns
+[ix, offset] = deal(0, 0);
+for step = 1:ns
+    for k = 1:numel(contrNms{step})
+        cnm = contrNms{step}{k};
+        for wno = 1:nw
+            if isControl{step}.(cnm)(wno)
+                ix = ix +1;
                 w = schedule.control(step).W(wno);
                 ixs = ix + (step-1)*offset;
                 maps.type{ixs}   = cnm;
                 maps.wellNo(ixs) = wno;
-                if ~isfield(bounds, cnm)
+                maps.stepNo(ixs) = step;    
+                if ~isfield(bounds{step}, cnm)
                     if ~strcmp(cnm, 'thp')
                         warning('Schedule contains finite limits on %s, but no bounds were given');
                     end
                 else
-                    bnds = bounds.(cnm)(wno,:);
-                    assert(all(isfinite(bnds)), 'No bounds given for ...')
+                    bnds = bounds{step}.(cnm)(wno,:);
+                    assert(all(isfinite(bnds)), 'No %s-bounds given for well %d at step %d', cnm, wno, step)
                     maps.bounds(ixs,:) = bnds;
                 end
                 if strcmp(w.type, cnm)
@@ -79,20 +94,20 @@ for k = 1:numel(contrNms)
         end
     end
 end
-
+%end
 assert(~any(isnan(u)), 'Unable to produce controls, probably missing some bounds');
 if any(u < -sqrt(eps) | u > 1 + sqrt(eps))
     warning('Initial controls are not within bounds ...')
 end
 end
 
-function contr = getControls(W, cix)
+function contr = getControls(W, wix)
 nw   = numel(W);
 flds = {'bhp', 'wrat', 'orat', 'grat', 'lrat', 'rate'};
 inp  = [flds; repmat({false(nw,1)}, [1, numel(flds)]) ];
 contr = struct(inp{:});
 for k = 1:nw
-    if cix(k)
+    if wix(k) && W(k).status
         contr.(W(k).type)(k) = true;
         if isfield(W(k), 'lims') && ~isempty(W(k).lims)
             nms = fieldnames(W(k).lims);
