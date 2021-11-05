@@ -1,4 +1,4 @@
-function problem = setupFnEggEnsemble(memberIx)
+function problem = setupFnEggEnsemble(seed, directory, subset)
 %Undocumented Utility Function
 
 %{
@@ -19,6 +19,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+if nargin < 3
+    memberIx = seed;
+else
+    memberIx = subset(seed);
+end
+if nargin < 2
+    directory = '';
+end
 
 [G, ~, ~, deck] = setupEGG('realization', memberIx);
 [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, 'G', G, 'TimestepStrategy', 'none', 'useMex', true);
@@ -37,7 +45,6 @@ schedule.step.control = controlNo;
 schedule.step.val     = schedule.step.val(ix);
 schedule.control = repmat(control, [1, max(controlNo)]);
 
-
 nonlinear.useLinesearch = true;
 
 % We set up a control-logic function below such that wells are shut down
@@ -46,10 +53,14 @@ nonlinear.useLinesearch = true;
 %   * producers become injectors and vice versa
 %   * well-rates drop below 0.1 m^3/day
 
-problem = packSimulationProblem(state0, model, schedule, 'tmp', ...
-                                'Name',             num2str(memberIx), ...
+nm = ['egg', num2str(seed)];
+
+problem = packSimulationProblem(state0, model, schedule, nm , ...
+                                'Name',             num2str(seed), ...
                                 'NonLinearSolver',  nonlinear, ...
+                                'Directory',        directory, ...
                                 'ExtraArguments',   {'controlLogicFn', @exampleLogicFunc});
+problem.seed = seed;                            
 
 end
 
