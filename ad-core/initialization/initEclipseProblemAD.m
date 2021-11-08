@@ -24,7 +24,7 @@ function [state0, model, schedule, nonlinear] = initEclipseProblemAD(deck, varar
 %   getSchedule        - Can be disabled to avoid processing schedule.
 %   getInitialState    - Create initial state from deck (EQUIL or direct
 %                        assignment of initial conditions)
-%   splitDisconnected  - Passed onto processGRDECl.
+%   splitDisconnected  - Passed onto processGRDECL.
 %   useLegacyModels    - Whether or not to construct the original,
 %                        monolithic physical models.  Stop-gap solution
 %                        until all examples have been ported to the

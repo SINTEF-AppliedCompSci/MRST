@@ -261,9 +261,9 @@ classdef GenericNaturalVariablesModel < NaturalVariablesCompositionalModel & Gen
             end
             % EoS values
             [sL, sV] = model.getProps(state, 'sL', 'sV');
+            sL = model.AutoDiffBackend.convertToAD(sL, s);
+            sV = model.AutoDiffBackend.convertToAD(sV, s);
             if any(twoPhase)
-                sL = model.AutoDiffBackend.convertToAD(sL, s);
-                sV = model.AutoDiffBackend.convertToAD(sV, s);
                 if nph > 2
                     if any(pureLiquid)
                         sL(pureLiquid) = 1 - sE(pureLiquid);
