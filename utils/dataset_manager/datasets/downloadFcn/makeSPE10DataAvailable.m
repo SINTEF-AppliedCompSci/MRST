@@ -52,19 +52,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
    if nargin == 0
-       do_build = false;
+      do_build = false;
    end
+
    if do_build
-       % Build .mat files
-       ok =        output_exists(model1_data()) || download_model1();
-       ok = ok && (output_exists(model2_matfile_name()) || download_model2());
+      % Build .mat files
+      ok = download_and_build();
    else
-       % Download pre-built files (default)
-       getDatasetPath('spe10', 'askBeforeDownload', false,...
-                               'download', true);
-       ok =       output_exists(model1_data());
-       ok = ok && output_exists(model2_matfile_name());
+      % Download pre-built files (default)
+      ok = use_prebuilt_data();
    end
+end
+
+%--------------------------------------------------------------------------
+
+function ok = download_and_build()
+   ok =        output_exists(model1_data()) || download_model1();
+   ok = ok && (output_exists(model2_matfile_name()) || download_model2());
+end
+
+%--------------------------------------------------------------------------
+
+function ok = use_prebuilt_data()
+   getDatasetPath('spe10',                    ...
+                  'askBeforeDownload', false, ...
+                  'download',          true);
+
+   ok =       output_exists(model1_data());
+   ok = ok && output_exists(model2_matfile_name());
 end
 
 %--------------------------------------------------------------------------
