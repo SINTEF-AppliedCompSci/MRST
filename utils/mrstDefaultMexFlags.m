@@ -4,15 +4,19 @@ function [CXXFLAGS, LINK, LIBS] = mrstDefaultMexFlags(varargin)
 % SYNOPSIS:
 %   CXXFLAGS               = mrstDefaultMexFlags()
 %   CXXFLAGS               = mrstDefaultMexFlags(defines)
+%   CXXFLAGS               = mrstDefaultMexFlags('pn1', pv1, ...)
+%   CXXFLAGS               = mrstDefaultMexFlags(defines, 'pn1', pv1, ...)
 %   [CXXFLAGS, LINK]       = mrstDefaultMexFlags(...)
 %   [CXXFLAGS, LINK, LIBS] = mrstDefaultMexFlags(...)
 %
 % PARAMETERS:
-%   defines - Character vector, or cell-array of character vectors, of
-%             user-specified preprocessor symbols that will be included in
-%             the list of compiler flags and passed on to the compiler as
-%             '#define'-d symbols.  OPTIONAL.  No additional preprocessor
-%             symbols defined if this parameter is not specified.
+%   defines   - Character vector, or cell-array of character vectors, of
+%               user-specified preprocessor symbols that will be included
+%               in the list of compiler flags and passed on to the compiler
+%               as '#define'-d symbols.  OPTIONAL.  We define no additional
+%               preprocessor symbols if this parameter is not specified.
+%
+%   'pn1'/pv1 - List of 'key'/value pairs 
 %
 % RETURNS:
 %   CXXFLAGS - Compiler flags, including flags to enable OpenMP if
@@ -63,18 +67,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-   if mod(nargin, 2) == 1
-       defines = varargin{1};
-       varargin = varargin(2:end);
-   else
-       defines = {};
-   end
-   opt = struct('mwlibs', {{'lapack', 'blas'}});
-   opt = merge_options(opt, varargin{:});
-   
-   if ischar(defines)
-       defines = {defines};
-   end
+
+   [defines, opt] = parse_inputs(varargin{:});
 
    [LINK, mwlib, iomp5] = link_libraries();
 
@@ -96,28 +90,58 @@ end
 
 %--------------------------------------------------------------------------
 
+function [defines, opt] = parse_inputs(varargin)
+   if mod(nargin, 2) == 1
+      defines = varargin{1};
+      varargin = varargin(2:end);
+   else
+      defines = {};
+   end
+
+   if ischar(defines)
+      defines = {defines};
+   end
+
+   opt = struct('mwlibs', {{'lapack', 'blas'}});
+   opt = merge_options(opt, varargin{:});
+end
+
+%--------------------------------------------------------------------------
+
 function [LINK, mwlib, iomp5] = link_libraries()
+   if mrstPlatform('matlab')
+      [LINK, mwlib, iomp5] = link_libraries_matlab();
+   else
+      [LINK, mwlib, iomp5] = link_libraries_other();
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function [LINK, mwlib, iomp5] = link_libraries_matlab()
    arch = computer('arch');
 
-   if mrstPlatform('matlab')
-       if ispc()
-          mwlib = @(lib) ...
-             fullfile(matlabroot, 'extern', 'lib', arch, ...
-                      'microsoft', ['libmw', lib, '.lib']);
+   if ispc()
+      mwlib = @(lib) ...
+         fullfile(matlabroot, 'extern', 'lib', arch, ...
+                  'microsoft', ['libmw', lib, '.lib']);
 
-          LINK  = { ['-L', fullfile(matlabroot, 'bin', arch) ] };
-          iomp5 = { 'libiomp5md.lib' };
+      LINK  = { ['-L', fullfile(matlabroot, 'bin', arch) ] };
+      iomp5 = { 'libiomp5md.lib' };
 
-       else
-          mwlib = @(lib) ['-lmw', lib];
-          LINK  = { ['-L', fullfile(matlabroot, 'sys', 'os', arch)] };
-          iomp5 = { '-liomp5' };
-       end
    else
-        mwlib = @(lib) ['-l', lib];
-        LINK = {};
-        iomp5 = { '-liomp5' };
+      mwlib = @(lib) ['-lmw', lib];
+      LINK  = { ['-L', fullfile(matlabroot, 'sys', 'os', arch)] };
+      iomp5 = { '-liomp5' };
    end
+end
+
+%--------------------------------------------------------------------------
+
+function [LINK, mwlib, iomp5] = link_libraries_other()
+   mwlib = @(lib) ['-l', lib];
+   LINK = {};
+   iomp5 = { '-liomp5' };
 end
 
 %--------------------------------------------------------------------------
@@ -153,39 +177,40 @@ end
 %--------------------------------------------------------------------------
 
 function [CXXFLAGS, LINK, iomp5] = compile_flags_gcc(defines, LINK, iomp5)
-    compile_native = '-march=native';
-    omp = mrstSettings('get', 'useOMP');
-    if omp
-        omp_str = '-fopenmp';
-        compile_native = [compile_native, ' '];
-    else
-        omp_str = '';
-        iomp5 = {};
-    end
-    if ispc()
-        compile_native = '';
-    end
-    CXXFLAGS = ...
-        { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE -DNDEBUG ', ...
-        formatDefs('-', defines), ' -fPIC -O3 -std=c++11 ', ...
-        '-ffast-math ', compile_native, omp_str] };
-    if mrstPlatform('matlab')
-        need_builtin_openmp = ispc() || gcc_need_builtin_openmp();
-    else
-        need_builtin_openmp = true;
-    end
-    if need_builtin_openmp
-        % Could be MinGW or similar on Windows or a GCC version that's too
-        % new to integrate nicely with MATLAB's bundled copy of Intel's
-        % OpenMP runtime libraries.  Use compiler's OpenMP runtime library.
-        if mrstPlatform('matlab')
-            LINK  = [ LINK, sprintf('LDFLAGS="$LDFLAGS %s"', omp_str)];
-        else
-            % Octave uses different setup, drop LDFLAGS
-            LINK  = [ LINK, omp_str ];
-        end
-        iomp5 = {};
-    end
+   compile_native = '-march=native';
+   if mrstSettings('get', 'useOMP')
+      omp_str = '-fopenmp';
+      compile_native = [compile_native, ' '];
+   else
+      omp_str = '';
+      iomp5 = {};
+   end
+
+   if ispc()
+      compile_native = '';
+   end
+
+   CXXFLAGS = ...
+      { ['CXXFLAGS=$CXXFLAGS -D_GNU_SOURCE -DNDEBUG ', ...
+         formatDefs('-', defines), ' -fPIC -O3 -std=c++11 ', ...
+         '-ffast-math ', compile_native, omp_str] };
+
+   is_matlab = mrstPlatform('matlab');
+
+   if ~is_matlab || ispc() || gcc_need_builtin_openmp()
+      if ~is_matlab
+         % Octave uses different setup, drop LDFLAGS
+         LINK  = [ LINK, omp_str ];
+      else
+         % Could be MinGW or similar on Windows or a GCC version that's too
+         % new to integrate nicely with MATLAB's bundled copy of Intel's
+         % OpenMP runtime libraries.  Use compiler's OpenMP runtime
+         % library.
+         LINK  = [ LINK, sprintf('LDFLAGS="$LDFLAGS %s"', omp_str)];
+      end
+
+      iomp5 = {};
+   end
 end
 
 %--------------------------------------------------------------------------
