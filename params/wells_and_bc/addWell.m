@@ -174,7 +174,6 @@ if islogical(cellInx)
 end
 numC = numel(cellInx);
 
-
 opt = struct('InnerProduct', 'ip_tpf',                     ...
              'Dir'         , 'z',                          ...
              'Name'        , sprintf('W%d', numel(W) + 1), ...
@@ -242,19 +241,22 @@ end
 
 % Set reference depth default value.
 if isempty(opt.refDepth)
-   dispif(mrstVerbose(), ...
-       ['Defaulting reference depth to top of formation for well %s. Please', ...
-       ' specify ''refDepth'' optional argument to ''addWell'' if you require bhp', ...
-       ' at a specific depth.\n'], opt.Name);
+   opt.refDepth = 0;
+
    g_vec = gravity();
    dims  = G.griddim;
    if norm(g_vec(1:dims)) > 0
+      dispif(mrstVerbose(), ...
+            ['Defaulting reference depth to top of formation for well ', ...
+             '''%s''.  Please specify ''refDepth'' optional argument ', ...
+             'to ''%s'' if you require bhp at a ', ...
+             'specific depth.\n'], opt.Name, mfilename());
+
       g_vec = g_vec ./ norm(g_vec);
       opt.refDepth = min(G.nodes.coords * g_vec(1:dims)');
-   else
-      opt.refDepth = 0;
    end
 end
+
 ip = opt.InnerProduct;
 
 if opt.calcReprRad
