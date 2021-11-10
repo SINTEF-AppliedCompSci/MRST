@@ -3,6 +3,7 @@ function grdecl = convertInputUnits(grdecl, u, varargin)
 %
 % SYNOPSIS:
 %   grdecl = convertInputUnits(grdecl, u)
+%   grdecl = convertInputUnits(grdecl, u, 'pn1', pv1, ...)
 %
 % PARAMETERS:
 %   grdecl - Input data structure as defined by function 'readGRDECL'.
@@ -42,45 +43,93 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('exclude', {{}});
-    opt = merge_options(opt, varargin{:});
+   opt = struct('exclude', {{}});
+   opt = merge_options(opt, varargin{:});
 
-    keywords = reshape(fieldnames(grdecl), 1, []);
-    [~, idx] = intersect(keywords, opt.exclude);
-    if ~isempty(idx)
-        dispif(mrstVerbose, 'Excluding keyword ''%s''.\n', keywords{idx});
-    end
-    keywords(idx) = [];
+   keywords = reshape(fieldnames(grdecl), 1, []);
+   [~, idx] = intersect(keywords, opt.exclude);
+   if ~isempty(idx)
+      dispif(mrstVerbose, 'Excluding keyword ''%s''.\n', keywords{idx});
+   end
+   keywords(idx) = [];
 
-    for kw = keywords
-        key = kw{1};
+   for kw = keywords
+      key = kw{1};
 
-        switch key
-          case {'PERMX' , 'PERMXY', 'PERMXZ', ...
-                'PERMYX', 'PERMY' , 'PERMYZ', ...
-                'PERMZX', 'PERMZY', 'PERMZ' , 'PERMH' }
+      switch key
+         case {'PERMX' , 'PERMXY', 'PERMXZ', ...
+               'PERMYX', 'PERMY' , 'PERMYZ', ...
+               'PERMZX', 'PERMZY', 'PERMZ' , 'PERMH' }
             grdecl.(key) = convertFrom(grdecl.(key), u.perm);
 
-          case {'DXV'   , 'DYV'   , 'DZV'   , 'DEPTHZ', ...
-                'COORD' , 'ZCORN'                     }
-            grdecl.(key) = convertFrom(grdecl.(key), u.length);
+         case {'DXV'   , 'DYV'   , 'DZV'   , 'DEPTHZ', ...
+               'COORD' , 'ZCORN'                     }
+            grdecl.(key) = convertFrom(grdecl.(key), ...
+                                       length_unit(grdecl, u));
 
-          case {'TRANX', 'TRANY', 'TRANZ'}
+         case {'TRANX', 'TRANY', 'TRANZ'}
             grdecl.(key) = convertFrom(grdecl.(key), u.trans);
 
-          case {'cartDims',                        ...  % MRST specific
-                'UnhandledKeywords',               ...  % MRST specific
-                'ROCKTYPE',                        ...  % MRST specific
-                'ACTNUM', 'NTG', 'PORO', 'SATNUM', ...
-                'FAULTS', 'MULTFLT',               ...
-                'MULTX' , 'MULTX_' ,               ...
-                'MULTY' , 'MULTY_' ,               ...
-                'MULTZ' , 'MULTZ_' ,               ...
-                'VSH'   , 'GDORIENT' }
+         case 'MAPAXES'
+            grdecl.(key) = convertFrom(grdecl.(key), map_units(grdecl, u));
+
+         case {'cartDims',                        ...  % MRST specific
+               'UnhandledKeywords',               ...  % MRST specific
+               'ROCKTYPE',                        ...  % MRST specific
+               'ACTNUM', 'NTG', 'PORO', 'SATNUM', ...
+               'FAULTS', 'MULTFLT',               ...
+               'MULTX' , 'MULTX_' ,               ...
+               'MULTY' , 'MULTY_' ,               ...
+               'MULTZ' , 'MULTZ_' ,               ...
+               'VSH'   , 'GDORIENT',              ...
+               'MAPUNITS', 'GRIDUNIT' }
             continue;  % No unit conversion needed.
 
-          otherwise
-            error('No known unit conversion for ''%s''.', key);
-        end
-    end
+         otherwise
+            error('Unknown:Unit', ...
+                  'No known unit conversion for ''%s''.', key);
+      end
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function unit = length_unit(grdecl, u)
+   unit = u.length;
+   if isfield(grdecl, 'GRIDUNIT') && ~isempty(grdecl.GRIDUNIT) && ...
+         ~isempty(grdecl.GRIDUNIT{1})
+      unit = umap(grdecl.GRIDUNIT{1});
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function unit = map_units(grdecl, u)
+   unit = u.length;
+   if isfield(grdecl, 'MAPUNITS')
+      unit = umap(grdecl.MAPUNITS);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function u = umap(mapunits)
+   if ischar(mapunits)
+      switch lower(mapunits)
+         case { 'metres', 'meters' }
+            u = meter;
+         case { 'foot', 'feet', 'ft' }
+            u = ft;
+         case { 'centimetre', 'centimeter', 'cm' }
+            u = centi*meter;
+         otherwise
+            warning('MAPUNITS:Unsupported', ...
+                    'Unsupported MAPUNITS ''%s'' - Using ''metre''', ...
+                    mapunits);
+
+            u = meter;
+      end
+   else
+      u = 1;
+   end
 end
