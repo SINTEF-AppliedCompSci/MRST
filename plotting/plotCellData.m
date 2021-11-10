@@ -112,7 +112,7 @@ assert (size(data, 1) == G.cells.num || ...
 if G.griddim == 3
    % Define the boundary to be the boundary faces of the selected subset
    % where the values are not nan.
-   selectcells = cells;
+   selectcells = reshape(cells, [], 1);
    data_nan = any(isnan(data), 2);
 
    if any(data_nan)
@@ -197,12 +197,22 @@ function [cells, varargin] = parse_arguments(G, varargin)
       %
       if isnumeric(varargin{1})
 
-         cells = varargin{1};
+         cells = reshape(varargin{1}, [], 1);
+
+         if min(cells) < 1
+            error('Minimum ID in cell subset (%d) is below 1', min(cells));
+         end
+
+         if max(cells) > G.cells.num
+            error(['Maximum ID in cell subset (%d) exceeds ', ...
+                   'number of active grid cells (%d)'], ...
+                   max(cells), G.cells.num);
+         end
 
       elseif islogical(varargin{1}) && ...
             (numel(varargin{1}) == G.cells.num)
 
-         cells = find(varargin{1});
+         cells = reshape(find(varargin{1}), [], 1);
 
       else
          error(['Third parameter ''cells'' must either be a list of ', ...
