@@ -137,23 +137,27 @@ classdef Network
             % self-connections among wells are forbidden
             switch opt.type
                 case 'all_to_all'
-                    A = ones(num_nodes)- eye([num_nodes,num_nodes]);
+                    obj.network = graph(ones(num_nodes) - eye([num_nodes,num_nodes]));
                 case 'user_defined_edges'
-                    A = sparse([opt.edges(:,1); opt.edges(:,2)], ...
-                               [opt.edges(:,2); opt.edges(:,1)], ...
-                               ones(2*size(opt.edges,1),1));
+                    % Check that all nodes have at least one edge and that
+                    % no edges involve non-existing nodes
+                    a = accumarray(opt.edges(:),1);
+                    assert(numel(a)<=num_nodes,'Edges refer to non-existing node(s)');
+                    assert((numel(a)==num_nodes) && all(a>0),...
+                        'Each node must have at least one edge');
+                    obj.network = graph(opt.edges(:,1),opt.edges(:,2));
                 case 'injectors_to_producers'
-                    A =  zeros(num_nodes);
-                    inj  = any(Well==opt.injectors,2);
-                    prod = any(Well==opt.producers,2);
-                    A(inj,prod) = 1;
-                    A(prod,inj) = 1;
-                    %figure, spy(A);
+                    ni = numel(opt.injectors);
+                    np = numel(opt.producers);
+                    obj.network = graph(...
+                        rldecode(opt.injectors',np*ones(ni,1)), ...
+                        repmat(opt.producers',ni, 1));
                 case {'fd_preprocessor','fd_postprocessor'}
                     % Compute flow diagnostics for the chosen state
                     require diagnostics
-                    assert(all(nW_cells==1),['Flow diagnostics analysis to multiple connections',...
-                        ' between wells is not yet supported.'])
+                    assert(all(nW_cells==1),...
+                        ['Flow diagnostics analysis to multiple ',...
+                         'connections between wells is not yet supported.'])
                     if strcmp(opt.type,'fd_preprocessor')
                         state = [];
                         pressure_field = 'pressure';
@@ -166,7 +170,7 @@ classdef Network
                     [state, diagnostics] = computePressureAndDiagnostics(...
                         opt.problem.SimulatorSetup.model,...
                         'wells', opt.problem.SimulatorSetup.schedule.control(ctrlNo).W,...
-                        'state',state, 'firstArrival', false);
+                        'state', state, 'firstArrival', false);
                     
                     % Use diagnostics to define the graph
                     ix   = diagnostics.wellCommunication(:) > opt.flow_filter;
@@ -179,12 +183,11 @@ classdef Network
                         vertcat(state.wellSol(pWno).(pressure_field));
                     T    = flux./dP;
                     pv   = diagnostics.WP.vols(ix)';
-                    A    = sparse([iWno; pWno],[pWno; iWno],ones(2*sum(ix(:)),1));
+                    obj.network = graph(iWno, pWno);
                 otherwise
                     error('\nType of network: %s is not implemented\n', opt.type);
             end
                         
-            obj.network = graph(A);
             obj.network.Nodes.Nodes     = Nodes;
             obj.network.Nodes.Well      = Well;
             obj.network.Nodes.SubWell   = SubWell;
