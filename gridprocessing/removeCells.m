@@ -108,31 +108,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
   clear n
 
   % Alter cells
-  numFaces(cells)         = [];
-  G.cells.num             = G.cells.num-numel(cells);
-  G.cells.facePos         = cumsum([1; double(numFaces)]);
-  if isfield(G.cells, 'indexMap'), G.cells.indexMap(cells) = []; end
+  numFaces(cells) = [];
+  G.cells.num     = G.cells.num-numel(cells);
+  G.cells.facePos = cumsum([1; double(numFaces)]);
+  if isfield(G.cells, 'indexMap')
+     G.cells.indexMap(cells) = [];
+  end
 
-  %new numbering of faces.
+  % new numbering of faces.
   ind     = all(G.faces.neighbors(:,1:2)==0,2);
   facemap = mapExcluding(ind);
 
   % remove and renumber faces in faceNodes
-  if isfield(G.faces, 'numNodes')
-     warning('MRST:deprecated', ...
-            ['The field ''numNodes'' will be removed in a', ...
-             'future release of MRST.'])
-     % 'numNodes' exists.  Preserve.
-     numNodes              = G.faces.numNodes;
-     G.faces.numNodes(ind) = [];
-  else
-     numNodes = diff(G.faces.nodePos);
+  if isfield(G.faces, 'nodes')
+     if isfield(G.faces, 'numNodes')
+        warning('MRST:deprecated', ...
+               ['The field ''numNodes'' will be removed in a', ...
+                'future release of MRST.'])
+        % 'numNodes' exists.  Preserve.
+        numNodes              = G.faces.numNodes;
+        G.faces.numNodes(ind) = [];
+     else
+        numNodes = diff(G.faces.nodePos);
+     end
+     G.faces.nodes(rldecode(ind, numNodes)) = [];
   end
-  G.faces.nodes(rldecode(ind, numNodes)) = [];
 
   % remove and renumber faces in cellFaces
   G.cells.faces(:,1) = facemap(G.cells.faces(:,1));
-
 
   if any(G.cells.faces(:,1) == 0)
       error('In removeCells: Too many faces removed!');
@@ -150,27 +153,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       G.faces.centroids(ind,:)   = [];
       G.faces.normals(ind,:)     = [];
   end
-
-  numNodes(ind)            = [];
+  
   G.faces.neighbors(ind,:) = [];
-  G.faces.nodePos = cumsum([1; double(numNodes)]);
-  if isfield(G.faces, 'tag')
-     G.faces.tag      (ind,:) = [];
+
+  if isfield(G.faces, 'nodes')
+     numNodes(ind)   = [];
+     G.faces.nodePos = cumsum([1; double(numNodes)]);
   end
-  G.faces.num              = G.faces.num - sum(ind);
+
+  if isfield(G.faces, 'tag')
+     G.faces.tag(ind,:) = [];
+  end
+
+  G.faces.num = G.faces.num - sum(ind);
 
   % Construct node map:
-  ind = true(G.nodes.num, 1);
-  ind(G.faces.nodes) = false;
-  nodemap = mapExcluding(ind);
+  if isfield(G.faces, 'nodes')
+     ind = true(G.nodes.num, 1);
+     ind(G.faces.nodes) = false;
+     nodemap = mapExcluding(ind);
+     
+     % Remove nodes
+     G.nodes.coords(ind,:) = [];
+     G.nodes.num           = G.nodes.num - sum(ind);
+     G.faces.nodes         = nodemap(G.faces.nodes);
 
-  % Remove nodes
-  G.nodes.coords(ind,:) = [];
-  G.nodes.num           = G.nodes.num - sum(ind);
-  G.faces.nodes           = nodemap(G.faces.nodes);
-
-  if any(G.faces.nodes==0)
-      error('In removeCells: Too many nodes removed!');
+     if any(G.faces.nodes == 0)
+        error('In removeCells: Too many nodes removed!');
+     end
+  else
+     nodemap = [];
   end
 
   if isfield(G.cells, 'cpnodes')
