@@ -18,7 +18,7 @@ classdef ReservoirStateQoI < BaseQoI
     % SEE ALSO:
     %   `BaseQoI`, `WellQoI`, `MRSTExample`, `BaseSamples`
     properties
-        cells = ':'
+        cells = inf
         time  = inf
         
         dt = nan
@@ -52,11 +52,11 @@ classdef ReservoirStateQoI < BaseQoI
             %   the ensemble constructor.
             qoi = validateQoI@BaseQoI(qoi, problem);
             qoi.dx = problem.SimulatorSetup.model.G.cells.volumes;
-            if strcmpi(qoi.time, ':')
+            if isinf(qoi.time)
                 qoi.time = cumsum(problem.SimulatorSetup.schedule.step.val);
             end
             if numel(qoi.time) == 1
-                if isinf(qoi.time)
+                if qoi.time == -1
                     qoi.time = sum(problem.SimulatorSetup.schedule.step.val);
                 end
             else
@@ -79,13 +79,16 @@ classdef ReservoirStateQoI < BaseQoI
             model    = problem.SimulatorSetup.model.setupStateFunctionGroupings();
             schedule = problem.SimulatorSetup.schedule;
             nt = numel(qoi.time);
-            nc = model.G.cells.num;
+            subs = qoi.cells;
+            if isinf(qoi.cells), subs = 1:G.cells.num; end
+            nc = numel(subs);
             u = cell2struct(repmat({zeros(nc, nt)}, numel(qoi.names), 1), qoi.names);
             for i = 1:nt
                 n       = qoi.findTimestep(schedule, qoi.time(i));
                 state   = states{n};
                 for fn = qoi.names
-                    u.(fn{1})(:,i) = model.getProps(state, fn{1});
+                    prop = model.getProps(state, fn{1});
+                    u.(fn{1})(:,i) = prop(subs,:);
                 end
             end
         end
