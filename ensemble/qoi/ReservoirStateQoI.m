@@ -81,7 +81,7 @@ classdef ReservoirStateQoI < BaseQoI
             schedule = problem.SimulatorSetup.schedule;
             nt = numel(qoi.time);
             subs = qoi.cells;
-            if isinf(qoi.cells), subs = 1:G.cells.num; end
+            if isinf(qoi.cells), subs = 1:model.G.cells.num; end
             nc = numel(subs);
             u = cell2struct(repmat({zeros(nc, nt)}, numel(qoi.names), 1), qoi.names);
             for i = 1:nt
