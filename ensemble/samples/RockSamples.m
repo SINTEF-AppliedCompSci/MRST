@@ -128,6 +128,8 @@ classdef RockSamples < BaseSamples
             if size(sampleData.poro, 2) == 1
                 % We are given a vector of cell values
                 nc = numel(sampleData.poro);
+                assert(size(sampleData.perm, 1) == nc, ['Rock sample ', ...
+                            'perm/poro must have the same number of rows']);
                 if nc > model.G.cells.num
                     % Sample data defined on an underlying fine grid. Check
                     % that we have the coarse grid information
@@ -138,6 +140,12 @@ classdef RockSamples < BaseSamples
                     type = 'upscale';
                 else
                     % Data is defined directly on the grid
+                    if nc == 1
+                        % Homogeneous poro/perm
+                        sampleData.poro = repmat(sampleData.poro, model.G.cells.num, 1);
+                        sampleData.perm = repmat(sampleData.perm, model.G.cells.num, 1);
+                        nc              = model.G.cells.num;
+                    end
                     type = 'standard';
                 end
                 % Permeability should be [nc, 1] or [nc, G.griddim]
