@@ -55,12 +55,13 @@ classdef ReservoirStateQoI < BaseQoI
             if isinf(qoi.time)
                 qoi.time = cumsum(problem.SimulatorSetup.schedule.step.val);
             end
+            qoi.time = reshape(qoi.time, [], 1);
             if numel(qoi.time) == 1
                 if qoi.time == -1
                     qoi.time = sum(problem.SimulatorSetup.schedule.step.val);
                 end
             else
-                qoi.dt = diff([0,qoi.time]);
+                qoi.dt = diff([0; qoi.time]);
             end
         end
         
@@ -80,7 +81,7 @@ classdef ReservoirStateQoI < BaseQoI
             schedule = problem.SimulatorSetup.schedule;
             nt = numel(qoi.time);
             subs = qoi.cells;
-            if isinf(qoi.cells), subs = 1:G.cells.num; end
+            if isinf(qoi.cells), subs = 1:model.G.cells.num; end
             nc = numel(subs);
             u = cell2struct(repmat({zeros(nc, nt)}, numel(qoi.names), 1), qoi.names);
             for i = 1:nt
