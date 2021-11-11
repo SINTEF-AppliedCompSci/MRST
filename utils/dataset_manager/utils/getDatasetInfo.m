@@ -37,7 +37,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     dname = ['dataset_', lower(name)];
     if exist(dname, 'file') == 2
-        [info, present] = eval([dname, '()']);
+        [info, present] = feval(dname);
     else
         error(['Dataset ''', name, ''' is not known to MRST.']);
     end
