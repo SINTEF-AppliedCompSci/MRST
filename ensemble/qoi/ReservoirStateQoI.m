@@ -55,13 +55,13 @@ classdef ReservoirStateQoI < BaseQoI
             if isinf(qoi.time)
                 qoi.time = cumsum(problem.SimulatorSetup.schedule.step.val);
             end
-            qoi.time = reshape(qoi.time, [], 1);
+            qoi.time = reshape(qoi.time, 1, []);
             if numel(qoi.time) == 1
                 if qoi.time == -1
                     qoi.time = sum(problem.SimulatorSetup.schedule.step.val);
                 end
             else
-                qoi.dt = diff([0; qoi.time]);
+                qoi.dt = diff([0, qoi.time]);
             end
         end
         
@@ -98,7 +98,7 @@ classdef ReservoirStateQoI < BaseQoI
         function n = norm(qoi, u)
             n = sum(abs(u).*qoi.dx,1);
             if ~isnan(qoi.dt)
-                n = n.*qoi.dt;
+                n = bsxfun(n, qoi.dt);
             end
             n = sum(n);
         end
