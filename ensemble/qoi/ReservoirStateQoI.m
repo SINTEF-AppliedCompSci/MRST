@@ -60,7 +60,7 @@ classdef ReservoirStateQoI < BaseQoI
                     qoi.time = sum(problem.SimulatorSetup.schedule.step.val);
                 end
             else
-                qoi.dt = diff([0,qoi.time]);
+                qoi.dt = diff([0; qoi.time]);
             end
         end
         
