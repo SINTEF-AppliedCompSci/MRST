@@ -55,6 +55,7 @@ classdef ReservoirStateQoI < BaseQoI
             if isinf(qoi.time)
                 qoi.time = cumsum(problem.SimulatorSetup.schedule.step.val);
             end
+            qoi.time = reshape(qoi.time, [], 1);
             if numel(qoi.time) == 1
                 if qoi.time == -1
                     qoi.time = sum(problem.SimulatorSetup.schedule.step.val);
