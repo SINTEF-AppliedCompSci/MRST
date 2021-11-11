@@ -87,7 +87,7 @@ classdef ADI
       end
 
       %--------------------------------------------------------------------
-      function h = value(u)
+      function h = value(u, varargin)
           % Cast to double and thereby remove derivatives:
           h = u.val;
       end
