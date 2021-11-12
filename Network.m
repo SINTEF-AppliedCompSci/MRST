@@ -3,6 +3,7 @@ classdef Network
         network
         G
         W
+        type
     end
     methods
         function obj = Network(W,G,varargin)
@@ -187,6 +188,7 @@ classdef Network
                 otherwise
                     error('\nType of network: %s is not implemented\n', opt.type);
             end
+            obj.type = opt.type;
                         
             obj.network.Nodes.Nodes     = Nodes;
             obj.network.Nodes.Well      = Well;
