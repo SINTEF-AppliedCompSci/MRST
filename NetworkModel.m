@@ -8,6 +8,7 @@ classdef NetworkModel
         W_in
         model
         state0
+        type
     end
 
     methods
@@ -106,8 +107,6 @@ classdef NetworkModel
             wCells = nodes.cells;
             nf =  nc-1;
             en = graph.Edges.EndNodes;
-            count = 0;
-            disp(numel(T))
             for i =  1:numEdges
                 
                 % Saving cell indices
@@ -146,7 +145,6 @@ classdef NetworkModel
                     
                     firstIx = length(T); % This the index of a new face
                     % between cells nodes.cells(nodeL) and cellL+1
-                    count = count+1;
                 end
                 
                 % Internal faces number
@@ -171,13 +169,10 @@ classdef NetworkModel
                     
                     lastIx = length(T); % This the index of a new face
                     % between cells cellR-1 and nodes.cells(nodeR)
-                    count = count+1;
                 end
                 dispif(opt.Verbose,'\n');
                 graph.Edges.faceIx{i} = [firstIx,internIx,lastIx];
             end
-            disp(count);
-            disp(numel(T))
             
             % Creating the new well structure.
             W = [];
@@ -198,10 +193,11 @@ classdef NetworkModel
             
             % Assign data objects
             graph.Nodes = nodes;
-            obj.graph =  graph;
-            obj.W     =  W;
-            obj.W_in  =  W_in;
-            obj.state0 = state0;
+            obj.graph   =  graph;
+            obj.W       =  W;
+            obj.W_in    =  W_in;
+            obj.state0  = state0;
+            obj.type    = network.type;
             
             obj.model.operators = ...
                 setupOperatorsTPFA(obj.model.G,  obj.model.rock, ...
