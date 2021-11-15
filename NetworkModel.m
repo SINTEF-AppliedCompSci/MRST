@@ -237,6 +237,17 @@ classdef NetworkModel
         
         
         function plotGrid(obj,data,varargin)
+        %Plot the grid used in the GPSNet with or without data.
+        %
+        % SYNOPSIS:
+        %       plotGrid([])
+        %       plotGrid(data, 'pn1', pv1, ...)
+        %
+        % PARAMETERS:
+        %   data - Scalar cell data with which to colour the grid.  One
+        %          scalar, indexed colour value for each cell in the grid.
+        %          If empty, the routine will plot each row in the grid
+        %          with a unique color. 
             %% Plotting the data driven model
             G = obj.model.G;
             [I,~,K] = gridLogicalIndices(G);
@@ -273,6 +284,18 @@ classdef NetworkModel
         end
         
         function [edge,subset] = getMapping(obj,type)
+        %Get mapping between graph edges and cell/faces in the grid.
+        %
+        % SYNOPSIS:
+        %   [edges,subset] = getMapping(type)
+        %       plotGrid(data, 'pn1', pv1, ...)
+        %
+        % PARAMETERS:
+        %   type - Mapping type, either 'cells' or 'faces'
+        %
+        % OUTPUT:
+        %   edges  - list of (repeated) edge numbers
+        %   subset - list of cell/face indices for each edge 
             
             switch type
                 case 'cells'
