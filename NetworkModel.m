@@ -9,6 +9,7 @@ classdef NetworkModel
         model
         state0
         type
+        nc
     end
 
     methods
@@ -198,6 +199,7 @@ classdef NetworkModel
             obj.W_in    =  W_in;
             obj.state0  = state0;
             obj.type    = network.type;
+            obj.nc      = nc;
             
             obj.model.operators = ...
                 setupOperatorsTPFA(obj.model.G,  obj.model.rock, ...
@@ -207,17 +209,17 @@ classdef NetworkModel
         end
                
         function plotGrid(obj,data,varargin)
-        %Plot the grid used in the GPSNet with or without data.
-        %
-        % SYNOPSIS:
-        %       plotGrid([])
-        %       plotGrid(data, 'pn1', pv1, ...)
-        %
-        % PARAMETERS:
-        %   data - Scalar cell data with which to colour the grid.  One
-        %          scalar, indexed colour value for each cell in the grid.
-        %          If empty, the routine will plot each row in the grid
-        %          with a unique color. 
+            %Plot the grid used in the GPSNet with or without data.
+            %
+            % SYNOPSIS:
+            %       plotGrid([])
+            %       plotGrid(data, 'pn1', pv1, ...)
+            %
+            % PARAMETERS:
+            %   data - Scalar cell data with which to colour the grid.  One
+            %          scalar, indexed colour value for each cell in the
+            %          grid. If empty, the routine will plot each row in
+            %          the grid with a unique color.
             %% Plotting the data driven model
             G = obj.model.G;
             [I,~,K] = gridLogicalIndices(G);
@@ -254,18 +256,18 @@ classdef NetworkModel
         end
         
         function [edge,subset] = getMapping(obj,type)
-        %Get mapping between graph edges and cell/faces in the grid.
-        %
-        % SYNOPSIS:
-        %   [edges,subset] = getMapping(type)
-        %       plotGrid(data, 'pn1', pv1, ...)
-        %
-        % PARAMETERS:
-        %   type - Mapping type, either 'cells' or 'faces'
-        %
-        % OUTPUT:
-        %   edges  - list of (repeated) edge numbers
-        %   subset - list of cell/face indices for each edge 
+            %Get mapping between graph edges and cell/faces in the grid.
+            %
+            % SYNOPSIS:
+            %   [edges,subset] = getMapping(type)
+            %       plotGrid(data, 'pn1', pv1, ...)
+            %
+            % PARAMETERS:
+            %   type - Mapping type, either 'cells' or 'faces'
+            %
+            % OUTPUT:
+            %   edges  - list of (repeated) edge numbers
+            %   subset - list of cell/face indices for each edge
             
             switch type
                 case 'cells'
@@ -289,6 +291,56 @@ classdef NetworkModel
                 edge(reel:n+reel-1)= i;
                 reel = reel+ n;
             end
+        end
+        
+        function pvec = getScaledParameterVector(obj, setup, params, varargin)
+            %Get parameters scaled to the unit interval
+            %
+            % SYNOPSIS:
+            %   pvec = getScaledParameterVector(setup, params)
+            %   pvec = getScaledParameterVector(setup, params, connscale)
+            %
+            % DESCRIPTION:
+            %   The function does the same as getScaledParameterVector from
+            %   tha optimization module. The two exceptsion are in the case
+            %   of a network created from flow diagnostics, in which the
+            %   pore volumes and transmissibilities are overwritten by
+            %   quantities stored in the network graph, and for well
+            %   transmissibilities, for which the user can specify a
+            %   multiplier value.
+            %
+            % PARAMETERS:
+            %   setup  - simulation setup structure
+            %   params - cell array of ModelParameter instances
+            %   connscale - optional parameter, scales well connectivities
+            %
+            % OUTPUT:
+            %   pvec - array containing scaled parameters
+            
+            if nargin==3
+                connscale = 1;
+            else
+                connscale = varargin{1};
+            end
+            values = applyFunction(@(p)p.getParameterValue(setup), params);
+            
+            isdiagnost = any(strcmp(obj.type,{'fd_preprocessor','fd_postprocessor'}));
+            for k=numel(params):-1:1
+                switch params{k}.name
+                    case 'porevolume'
+                        if isdiagnost
+                            values{k} = obj.graph.Edges.pv/obj.nc;
+                        end
+                    case 'transmissibility'
+                        if isdiagnost
+                            values{k} = obj.graph.Edges.T;
+                        end
+                    case 'conntrans'
+                        values{k} = connscale*values{k};
+                end
+                u{k} = params{k}.scale(values{k});
+            end
+            pvec = vertcat(u{:});   
         end
     end
 end
