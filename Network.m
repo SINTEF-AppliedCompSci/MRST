@@ -208,42 +208,100 @@ classdef Network
             end
         end
         
-        function plotNetwork(obj,varargin)
-            opt = struct('FaceColor', 'none', 'EdgeAlpha', 0.1, 'Colors',false);
+        function omap=plotNetwork(obj,varargin)
+            %Plot the grid used in the GPSNet with or without data.
+            %
+            % SYNOPSIS:
+            %          plotGrid()
+            %   cmap = plotGrid(type, 'pn1', pv1, ...)
+            %
+            % PARAMETERS:
+            %   type is a string that determines the layout of the plot
+            %     'default' - plot in 3D space with uniform edge width
+            %     'circle'  - plot the network with all nodes on a circle
+            %     'transmissibility' - 3D space with edge width scaled
+            %                  according to the transmissibilities
+            %                  associated with each edge
+            %     'porevolume' - 3D space with edge width scaled according
+            %                  to pore volumes associated with each edge
+            %   The last two layouts presume that the network has been computed
+            %   using flow diagnostics
+            %
+            % OPTIONAL PARAMETERS:
+            %  'Colors'   - use a unique color for each edge. The resulting
+            %               colormap can be returned in the 'cmap'
+            %  'onGrid'   - plot the underlying 3D grid
+            %  'maxWidth' - the maximum line width for the edges
+            %  'data'     - array with one element per edge, used to scale
+            %               the line width of the edges
+            %  'FaceColor' - for the 3D grid
+            %  'EdgeAlpha' - for the 3D grid
+            %
+            if ~mod(nargin,2)
+                plottype = varargin{1};
+                varargin = varargin(2:end);
+            else
+                plottype = 'default';
+            end
+            opt = struct('Colors',    true,    ...
+                         'onGrid',    true,    ...
+                         'data',      [],      ...
+                         'maxWidth',  6,      ...
+                         'FaceColor', 'none',  ...
+                         'EdgeAlpha', 0.05);
             opt = merge_options(opt, varargin{:});
             
+            lineWidth = 2;
+            ne = numedges(obj.network);
             if opt.Colors
-                ne = size(obj.network.Edges,1);
                 edgeCol = {'EdgeCData', 1:ne};
-                colormap(tatarizeMap(ne));
+                cmap = max(tatarizeMap(ne+2)-.1,0); cmap=cmap(3:end,:);
+                lineWidth = 3;
             else
                 edgeCol = {};
+                cmap = colormap;
             end
-            if size(obj.network.Edges,2)==4
-                T = obj.network.Edges.T;
-                pv = obj.network.Edges.pv;
-                lineWidth = [10*T/max(T), 10*pv/max(pv)];
-                names = {'Transmissibility', 'Pore volume'};
-                n = 2;
-            else
-                lineWidth = 2*ones(numedges(obj.network),1);
-                names = {''};
-                n = 1;
+            if ~isempty(opt.data)
+                assert(numel(opt.data)==ne, ...
+                    'Size of data does not match number of edges');
+                lineWidth = opt.maxWidth*opt.data/max(opt.data);
             end
-            for i=1:n
-                subplot(1,n,i,'replace')
-                plotGrid(obj.G, 'FaceColor',opt.FaceColor,...
-                    'EdgeAlpha',opt.EdgeAlpha); view(2);
             
-                hold on, pg =  plot(obj.network,...
-                    'XData',obj.network.Nodes.XData,...
+            args = {'XData',obj.network.Nodes.XData,...
                     'YData',obj.network.Nodes.YData,...
-                    'ZData',obj.network.Nodes.ZData,...
-                    'LineWidth',lineWidth(:,i), ...
-                    edgeCol{:});
-                labelnode(pg,obj.network.Nodes.well,obj.network.Nodes.name);
-                title(names{i})
-                hold off; axis off
+                    'ZData',obj.network.Nodes.ZData };
+            switch plottype
+                case {'default', 'spacegraph'}
+                    % default, do nothing special
+                case 'circle'
+                    args = {'Layout','circle'};
+                    opt.onGrid = false;
+                case 'transmissibility'
+                    assert(size(obj.network.Edges,2)==4, ...
+                        'Network contains no transmissibilities');
+                    data = obj.network.Edges.T;
+                    lineWidth = opt.maxWidth*data/max(data);
+                case 'porevolume'
+                    assert(size(obj.network.Edges,2)==4, ...
+                        'Network contains no pore volumes');
+                    data = obj.network.Edges.pv;
+                    lineWidth = opt.maxWidth*data/max(data);
+                case 'otherwise'
+                    error('Plot type not defined');
+            end
+            
+            pg = plot(obj.network, args{:}, ...
+                'LineWidth', lineWidth', edgeCol{:});
+            labelnode(pg,obj.network.Nodes.well,obj.network.Nodes.name);
+            pg.NodeFontSize = 10;
+            colormap(gca, cmap);
+            if opt.onGrid
+                plotGrid(obj.G, 'FaceColor',opt.FaceColor,...
+                    'EdgeAlpha',opt.EdgeAlpha);
+            end
+            axis off, view(2)
+            if nargout==1
+                omap = cmap;
             end
         end
         
