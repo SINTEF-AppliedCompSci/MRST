@@ -173,8 +173,8 @@ mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
 values = applyFunction(@(p)p.getParameterValue(trainSetup), prmsTrain);
 values{2} =  0.5*values{2};
 if any(strcmp(networkType,{'fd_preprocessor','fd_postprocessor'}))
-    values{1} =  ntwrk.network.Edges.PoreVolume/cellsPerPath;
-    values{3} =  ntwrk.network.Edges.Transmissibility;
+    values{1} =  ntwrk.network.Edges.pv/cellsPerPath;
+    values{3} =  ntwrk.network.Edges.T;
 end
 for k = numel(values):-1:1    
     u{k} = prmsTrain{k}.scale(values{k});

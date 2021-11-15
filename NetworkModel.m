@@ -64,6 +64,8 @@ classdef NetworkModel
             % Get the network graph and extract properties
             graph = network.network;
             numEdges = numedges(graph);
+            numNodes = numnodes(graph);
+            nodes    = graph.Nodes;
             
             % We subgrid each flow path into ten uniform cells and map the
             % resulting network onto a rectangular Cartesian grid having
@@ -73,7 +75,7 @@ classdef NetworkModel
             % petrophysical properties are dummy values primarily used to
             % compute an initial guess for matching parameters that have
             % not be set by the network type.
-            L = nthroot(sum(modelTrue.operators.pv./modelTrue.rock.poro)*25,3)  ;
+            L = nthroot(sum(modelTrue.operators.pv./modelTrue.rock.poro)*25,3);
             G = cartGrid([nc, 1, numEdges], [L, L/5 ,L/5]*meter^3);
             G = computeGeometry(G);
 
@@ -93,88 +95,100 @@ classdef NetworkModel
             T  = model.operators.T;
             pv = model.operators.pv;
             
-            number_of_vertical_faces = (nc-1)*numEdges; %Internal faces
-            T(number_of_vertical_faces+1 :end) = 0;
-            graph.Nodes.Face_Indx =0*(1:numnodes(graph))';%TODO: check this, include general counts for nodes
+            % Set all transmissibility to zero except in the x-direction.
+            % In a Cartesian grid, the faces are stored first in
+            % x-direction, then in y and z. The T-vector only contains
+            % values for the internal faces and thus only the
+            % (nc-1)*numEdges values will be nonzero
+            T((nc-1)*numEdges+1 :end) = 0;
+            nodes.faceIx =zeros(numNodes, 1);
             
-            Well_cells = graph.Nodes.Well_cells; %TODO Initialize better
-            nf =  nc -1;
+            wCells = nodes.cells;
+            nf =  nc-1;
             en = graph.Edges.EndNodes;
-            for i_ed =  1:numEdges
+            count = 0;
+            disp(numel(T))
+            for i =  1:numEdges
                 
                 % Saving cell indices
-                dispif(opt.Verbose,'Cell indices Edge %i, %i-%i \n',i_ed,en(i_ed,1),en(i_ed,2));
-                cellL   = 1+(i_ed-1)*nc;
-                cellR = nc+(i_ed-1)*nc;
-                graph.Edges.Cell_Indices{i_ed} = cellL+1 : cellR-1;
+                dispif(opt.Verbose,'Cell indices (edge %i): %i-%i \n',i,en(i,1),en(i,2));
+                cellL = 1+(i-1)*nc;
+                cellR = nc+(i-1)*nc;
+                graph.Edges.cellIx{i} = cellL+1 : cellR-1;
                 
                 % Saving internal faces indices
-                dispif(opt.Verbose,'in-Faces indices Edge %i, %i-%i \n',i_ed,...
-                    en(i_ed,1),en(i_ed,2));
+                dispif(opt.Verbose,'in-Faces indices (edge %i): %i-%i \n',i,en(i,1),en(i,2));
                 
-                nodeL  = en(i_ed,1);
-                nodeR = en(i_ed,2);
+                nodeL = en(i,1);
+                nodeR = en(i,2);
                 
-                % Check if the first node was already defined and has its
-                % face number index stored
-                if graph.Nodes.Face_Indx(nodeL)== 0
+                % Check if the first node was already defined and thus is
+                % already connected to one or more rows in the 2D grid that
+                % defines edges. If not, we assign this node to the first
+                % cell of the next available row in the grid. If the node
+                % is defined, we introduce a non-neighboring connection
+                % between the cell it is defined in and the second cell in
+                % the next available cell row.
+                if nodes.faceIx(nodeL)== 0
                     
                     dispif(opt.Verbose,2,'Cell number %i, will have Well %s \n',...
-                        cellL ,W_in(graph.Nodes.Well(nodeL)).name);
+                        cellL ,W_in(nodes.well(nodeL)).name);
                     
-                    First_Index =  1+(i_ed-1)*nf;
-                    graph.Nodes.Face_Indx(nodeL) = First_Index;
-                    Well_cells{graph.Nodes.Well(nodeL)} = [Well_cells{graph.Nodes.Well(nodeL)},cellL];
-                    graph.Nodes.Well_cells{nodeL}= [graph.Nodes.Well_cells{nodeL},cellL];
+                    firstIx =  1+(i-1)*nf;
+                    nodes.faceIx(nodeL) = firstIx;
+                    wCells{nodes.well(nodeL)} = [wCells{nodes.well(nodeL)},cellL];
+                    nodes.cells{nodeL}= [nodes.cells{nodeL},cellL];
+
                 else
-                    %Create New connectivity
-                    N = [N;...
-                        graph.Nodes.Well_cells{nodeL}(end), cellL+1]; % New artificial face
-                    T = [T;T(1)];
+                    %Create new connectivity by adding artifical face
+                    N = [N; nodes.cells{nodeL}(end), cellL+1];             %#ok<AGROW>
+                    T = [T;T(1)];                                          %#ok<AGROW>
                     
-                    First_Index = length(T); % This the index of a new face
-                    % between cells
-                    % graph.Nodes.Well_cells(Node_1)
-                    % and  Cell_1+1
+                    firstIx = length(T); % This the index of a new face
+                    % between cells nodes.cells(nodeL) and cellL+1
+                    count = count+1;
                 end
                 
                 % Internal faces number
-                Internal = (2+(i_ed-1)*nf:(nc-2)+(i_ed-1)*nf) ;
+                internIx = (2+(i-1)*nf:(nc-2)+(i-1)*nf) ;
                 
-                % Check if the last node was already defined and has its
-                % face number index stored
-                if graph.Nodes.Face_Indx(nodeR) ==0
+                % Same as for the first node: check if node is assigned to
+                % a cell. If not, assign it to the last cell of the current
+                % cell row. If it exists, introduce a non-neighboring
+                % connection between the second last cell in the current
+                % row and the cell in which the node is defined already.
+                if nodes.faceIx(nodeR)==0
                     dispif(opt.Verbose,2,'Cell number %i, will have Well %s \n', ...
-                        cellR ,W_in(graph.Nodes.Well(nodeR)).name);
-                    Last_Index  =  (nc-1)+(i_ed-1)*nf;
-                    graph.Nodes.Face_Indx(nodeR) = Last_Index;
-                    Well_cells{graph.Nodes.Well(nodeR)} = [Well_cells{graph.Nodes.Well(nodeR)},cellR];
-                    graph.Nodes.Well_cells{nodeR}= [graph.Nodes.Well_cells{nodeR},cellR];
+                        cellR ,W_in(nodes.well(nodeR)).name);
+                    lastIx  =  (nc-1)+(i-1)*nf;
+                    nodes.faceIx(nodeR) = lastIx;
+                    wCells{nodes.well(nodeR)} = [wCells{nodes.well(nodeR)},cellR];
+                    nodes.cells{nodeR}= [nodes.cells{nodeR},cellR];
                 else
-                    %Create new conectivity
-                    N = [N;...
-                        cellR-1, graph.Nodes.Well_cells{nodeR}(end)]; % New artificial face
-                    T = [T;T(1)];
+                    %Create new connectivity by adding a new artifical face
+                    N = [N; cellR-1, nodes.cells{nodeR}(end)];             %#ok<AGROW>
+                    T = [T;T(1)];                                          %#ok<AGROW>
                     
-                    Last_Index = length(T); % This the index of a new face
-                    % between cells
-                    % graph.Nodes.Well_cells(Node_1)
-                    % and  Cell_1+1
+                    lastIx = length(T); % This the index of a new face
+                    % between cells cellR-1 and nodes.cells(nodeR)
+                    count = count+1;
                 end
                 dispif(opt.Verbose,'\n');
-                graph.Edges.Face_Indices{i_ed} = [First_Index,Internal,Last_Index];
+                graph.Edges.faceIx{i} = [firstIx,internIx,lastIx];
             end
+            disp(count);
+            disp(numel(T))
             
             % Creating the new well structure.
             W = [];
-            for iw = 1 : numel(W_in)
-                W = addWell(W, model.G, model.rock,  Well_cells{iw}, ...
-                    'Type', W_in(iw).type,...
-                    'Val', W_in(iw).val, ...
-                    'Radius',W_in(iw).r(1:numel(Well_cells{iw})),...
-                    'Name',W_in(iw).name,...
-                    'Comp_i',W_in(iw).compi,...
-                    'sign', W_in(iw).sign);
+            for iw=1:numel(W_in)
+                W = addWell(W, model.G, model.rock,  wCells{iw}, ...
+                    'Type',   W_in(iw).type,...
+                    'Val',    W_in(iw).val, ...
+                    'Radius', W_in(iw).r(1:numel(wCells{iw})),...
+                    'Name',   W_in(iw).name,...
+                    'Comp_i', W_in(iw).compi,...
+                    'sign',   W_in(iw).sign);
             end
             
             % Initialize the model
@@ -182,6 +196,8 @@ classdef NetworkModel
             S0(model.getPhaseIndex('O')) = 1;
             state0 = initState(model.G, W, 100*barsa, S0);
             
+            % Assign data objects
+            graph.Nodes = nodes;
             obj.graph =  graph;
             obj.W     =  W;
             obj.W_in  =  W_in;
@@ -213,7 +229,7 @@ classdef NetworkModel
                 'YData',obj.graph.Nodes.YData,...
                 'ZData',obj.graph.Nodes.ZData,...
                 'LineWidth',linewidth);
-            labelnode(pg,1:numnodes(obj.graph),obj.graph.Nodes.Well_name);
+            labelnode(pg,1:numnodes(obj.graph),obj.graph.Nodes.name);
             hold off;
             pg.NodeFontSize= 10;
             axis off ;
@@ -235,21 +251,21 @@ classdef NetworkModel
                 plotGrid(G,vertcat(obj.W.cells),'FaceColor','none','linewidth',2);
             end
             
-            for i =  1: numel(obj.graph.Nodes.Well)
-                cell_number =obj.graph.Nodes.Well_cells(i);
-                cell_number = cell_number{1};
-                if ~isempty(cell_number)
-                    XData = G.cells.centroids(cell_number,1);
-                    YData = G.cells.centroids(cell_number,2);
-                    ZData = G.cells.centroids(cell_number,3);
+            for i =  1: numel(obj.graph.Nodes.well)
+                cellNo =obj.graph.Nodes.cells(i);
+                cellNo = cellNo{1};
+                if ~isempty(cellNo)
+                    XData = G.cells.centroids(cellNo,1);
+                    YData = G.cells.centroids(cellNo,2);
+                    ZData = G.cells.centroids(cellNo,3);
                     
                     if (abs(XData-G.cells.centroids(1,1)) < ...
                             abs(XData-G.cells.centroids(end,1)))
                         text(XData-70,YData,ZData,...
-                            obj.graph.Nodes.Well_name{i});
+                            obj.graph.Nodes.name{i});
                     else
                         text(XData+20,YData,ZData,...
-                            obj.graph.Nodes.Well_name{i});
+                            obj.graph.Nodes.name{i});
                     end
                 end
             end
@@ -260,9 +276,9 @@ classdef NetworkModel
             
             switch type
                 case 'cells'
-                    indices = obj.graph.Edges.Cell_Indices;
+                    indices = obj.graph.Edges.cellIx;
                 case 'faces'
-                    indices = obj.graph.Edges.Face_Indices;
+                    indices = obj.graph.Edges.faceIx;
                 otherwise
                     error('Unknown mapping type');
             end

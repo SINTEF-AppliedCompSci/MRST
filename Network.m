@@ -87,7 +87,6 @@ classdef Network
             % SEE ALSO:
             % `graph`, `NetworkModel`
             
-            
             obj.G = G;
             obj.W = W;
             opt = struct('Verbose',      mrstVerbose(),...
@@ -113,23 +112,23 @@ classdef Network
             end
             
             
-            nW_cells  = arrayfun(@(x)numel(x.cells), W);
-            num_nodes = sum(nW_cells);
+            nWcells  = arrayfun(@(x)numel(x.cells), W);
+            numNodes = sum(nWcells);
             
             % Define everything for each node
             node = numel(vertcat(W.cells));
             for iw = numel(W):-1:1
-                for iw_cell = numel(W(iw).cells):-1:1
-                    Nodes(node,1)      = node;
-                    Well(node,1)       = iw ;
-                    SubWell(node,1)    = iw_cell;
-                    Well_name{node,1}  = W(iw).name;
-                    Well_cells{node,1} = [];
-                    Type(node,1)       = 1;
-                    cellNo             = W(iw).cells(iw_cell);
-                    XData(node,1)      = obj.G.cells.centroids(cellNo,1);
-                    YData(node,1)      = obj.G.cells.centroids(cellNo,2);
-                    ZData(node,1)      = obj.G.cells.centroids(cellNo,3);
+                for i = numel(W(iw).cells):-1:1
+                    nodes(node,1)   = node;
+                    well(node,1)    = iw ;
+                    subwell(node,1) = i;
+                    name{node,1}    = W(iw).name;
+                    cells{node,1}   = [];
+                    type(node,1)    = 1;
+                    cellNo          = W(iw).cells(i);
+                    XData(node,1)   = obj.G.cells.centroids(cellNo,1);
+                    YData(node,1)   = obj.G.cells.centroids(cellNo,2);
+                    ZData(node,1)   = obj.G.cells.centroids(cellNo,3);
                     node =  node-1;
                 end
             end
@@ -138,25 +137,28 @@ classdef Network
             % self-connections among wells are forbidden
             switch opt.type
                 case 'all_to_all'
-                    obj.network = graph(ones(num_nodes) - eye([num_nodes,num_nodes]));
+                    obj.network = graph(ones(numNodes) - eye([numNodes,numNodes]));
+                    
                 case 'user_defined_edges'
                     % Check that all nodes have at least one edge and that
                     % no edges involve non-existing nodes
                     a = accumarray(opt.edges(:),1);
-                    assert(numel(a)<=num_nodes,'Edges refer to non-existing node(s)');
-                    assert((numel(a)==num_nodes) && all(a>0),...
+                    assert(numel(a)<=numNodes,'Edges refer to non-existing node(s)');
+                    assert((numel(a)==numNodes) && all(a>0),...
                         'Each node must have at least one edge');
                     obj.network = graph(opt.edges(:,1),opt.edges(:,2));
+                    
                 case 'injectors_to_producers'
                     ni = numel(opt.injectors);
                     np = numel(opt.producers);
                     obj.network = graph(...
                         rldecode(opt.injectors',np*ones(ni,1)), ...
                         repmat(opt.producers',ni, 1));
+                    
                 case {'fd_preprocessor','fd_postprocessor'}
                     % Compute flow diagnostics for the chosen state
                     require diagnostics
-                    assert(all(nW_cells==1),...
+                    assert(all(nWcells==1),...
                         ['Flow diagnostics analysis to multiple ',...
                          'connections between wells is not yet supported.'])
                     if strcmp(opt.type,'fd_preprocessor')
@@ -185,23 +187,24 @@ classdef Network
                     T    = flux./dP;
                     pv   = diagnostics.WP.vols(ix)';
                     obj.network = graph(iWno, pWno);
+                    
                 otherwise
                     error('\nType of network: %s is not implemented\n', opt.type);
             end
             obj.type = opt.type;
                         
-            obj.network.Nodes.Nodes     = Nodes;
-            obj.network.Nodes.Well      = Well;
-            obj.network.Nodes.SubWell   = SubWell;
-            obj.network.Nodes.Type      = Type;
-            obj.network.Nodes.Well_name = Well_name;
-            obj.network.Nodes.Well_cells = Well_cells;
-            obj.network.Nodes.XData     = XData;
-            obj.network.Nodes.YData     = YData;
-            obj.network.Nodes.ZData     = ZData;
+            obj.network.Nodes.nodes   = nodes;
+            obj.network.Nodes.well    = well;
+            obj.network.Nodes.subwell = subwell;
+            obj.network.Nodes.type    = type;
+            obj.network.Nodes.name    = name;
+            obj.network.Nodes.cells   = cells;
+            obj.network.Nodes.XData   = XData;
+            obj.network.Nodes.YData   = YData;
+            obj.network.Nodes.ZData   = ZData;
             if any(strcmp(opt.type,{'fd_preprocessor','fd_postprocessor'}))
-                obj.network.Edges.Transmissibility = T;
-                obj.network.Edges.PoreVolume = pv;
+                obj.network.Edges.T  = T;
+                obj.network.Edges.pv = pv;
             end
         end
         
@@ -217,9 +220,9 @@ classdef Network
                 edgeCol = {};
             end
             if size(obj.network.Edges,2)==4
-                TT = obj.network.Edges.Transmissibility;
-                pv = obj.network.Edges.PoreVolume;
-                lineWidth = [10*TT/max(TT), 10*pv/max(pv)];
+                T = obj.network.Edges.T;
+                pv = obj.network.Edges.pv;
+                lineWidth = [10*T/max(T), 10*pv/max(pv)];
                 names = {'Transmissibility', 'Pore volume'};
                 n = 2;
             else
@@ -238,7 +241,7 @@ classdef Network
                     'ZData',obj.network.Nodes.ZData,...
                     'LineWidth',lineWidth(:,i), ...
                     edgeCol{:});
-                labelnode(pg,obj.network.Nodes.Well,obj.network.Nodes.Well_name);
+                labelnode(pg,obj.network.Nodes.well,obj.network.Nodes.name);
                 title(names{i})
                 hold off; axis off
             end
