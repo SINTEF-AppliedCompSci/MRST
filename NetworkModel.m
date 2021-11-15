@@ -205,33 +205,7 @@ classdef NetworkModel
             obj.model = obj.model.validateModel();
             obj.model.toleranceCNV = 1e-6;
         end
-        
-        
-        function plotNetwork(obj,G,data,varargin)
-            plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', 0.1), view(2);
-            
-            plotWell(G,obj.W_in, 'color', 'k','fontsize',0);
-            
-            if isempty(data)
-                linewidth = 5;
-            else
-                assert (numel(data) == numedges(obj.graph), ...
-                    'The DATA should have one value for each grid cell in output.');
-                linewidth = 10*data/max(data);
-            end
-            
-            hold on, pg =  plot(obj.graph,...
-                'XData',obj.graph.Nodes.XData,...
-                'YData',obj.graph.Nodes.YData,...
-                'ZData',obj.graph.Nodes.ZData,...
-                'LineWidth',linewidth);
-            labelnode(pg,1:numnodes(obj.graph),obj.graph.Nodes.name);
-            hold off;
-            pg.NodeFontSize= 10;
-            axis off ;
-        end
-        
-        
+               
         function plotGrid(obj,data,varargin)
         %Plot the grid used in the GPSNet with or without data.
         %
