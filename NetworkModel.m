@@ -11,12 +11,12 @@ classdef NetworkModel
     end
 
     methods
-        function obj = NetworkModel(modelTrue, nc, network, W_in, varargin)
+        function obj = NetworkModel(modelTrue, network, W_in, varargin)
             % Creates a NetworkModel
             %
             % SYNOPSIS:
-            %     obj =  NetworkModel(model, nc, network, W);
-            %
+            %     obj =  NetworkModel(model, network, W);
+            %     obj =  NetworkModel(model, network, W, nc);
             %
             % DESCRIPTION:
             % The function creates a GPSNet model starting from a model class that
@@ -27,14 +27,14 @@ classdef NetworkModel
             %                 provides relevant description of fluid properties etc
             %                 from the flow model to be matched.
             %
-            %   nc          - Number of cells in each conection.
-            %                 TODO: Make it optional parameter
-            %
             %   network     - graph containing the network elements nodes and edges,
             %                 typically found in the 'network' subfield of a Network
             %                 model.
             %
-            %  W            - Well structure corresponding for the full-physics model
+            %   W           - Well structure corresponding for the full-physics model
+            %
+            %   nc          - Number of cells in each conection.
+            %                 Optional parameter. Default value: 10
             %
             %
             % OPTIONAL PARAMETERS:
@@ -52,6 +52,12 @@ classdef NetworkModel
             % SEE ALSO:
             % `graph`, `Network`
 
+            if mod(nargin,2)
+                nc = 10;
+            else
+                nc = varargin{1};
+                varargin = varargin(2:end);
+            end
             opt = struct('Verbose',  mrstVerbose());
             opt = merge_options(opt, varargin{:});
 

@@ -107,7 +107,7 @@ figure; ntwrk.plotNetwork('Colors',true)
 % validate the model to dynamically construct the correct number of phases
 % and components and set up all the necessary state functions.
 gravity off
-gpsNet = NetworkModel(modelTrue, 10, ntwrk, WTrain);
+gpsNet = NetworkModel(modelTrue, ntwrk, WTrain);
 
 %% Specify training schedule and parameters to be matched
 % We need to specify which of the parameters in the model we wish to match
