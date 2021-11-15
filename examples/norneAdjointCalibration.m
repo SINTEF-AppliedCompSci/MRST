@@ -180,30 +180,17 @@ mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
                    'state',state,'from_states',false);
 
 
-%% Set parameters defining the initial model
+%% Evaluate the initial misfit in training data and prediction data
 % To define the initial model, we extract the network parameters from the
 % initial specification, scale them to the unit interval, and organize them
-% into a vector that can be passed onto a library function from the
-% optimization module that performs the forward simulation and evaluates
-% the mismatch using mismatchFn.
-
-% Extract and scale parameters
-% Remember to overwrite pore volumes and transmissibilities if initial
-% values for these have been computed by flow diagnostics
-values = applyFunction(@(p)p.getParameterValue(trainSetup), prmsTrain);
-values{2} =  0.5*values{2};
-if any(strcmp(networkType,{'fd_preprocessor','fd_postprocessor'}))
-    values{1} =  ntwrk.network.Edges.pv/cellsPerPath;
-    values{3} =  ntwrk.network.Edges.T;
-end
-for k = numel(values):-1:1    
-    u{k} = prmsTrain{k}.scale(values{k});
-end
-pinit = vertcat(u{:});
+% into a vector that can be passed onto mismatchFn
+pinit = gpsNet.getScaledParameterVector(trainSetup, prmsTrain, 0.5);
  
 % Evaluate the initial mismatch for the training data
 [misfitT0,~,wellSolsT0] = ...
     evaluateMatch(pinit,mismatchFn,trainSetup,prmsTrain,statesTrain,'Gradient','none');
+[misfitE0,~,wellSolsE0] = ...
+    evaluateMatch(pinit,mismatchFn,predSetup,prmsTrue,statesTrue,'Gradient','none');
 
 %% Model calibration
 % Calibrate the model using the BFGS method. This is a computationally
@@ -214,10 +201,7 @@ objh = @(p)evaluateMatch(p,mismatchFn,trainSetup,prmsTrain,statesTrain);
     'maxIt', 2, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5, ...
     'outputHessian', true, 'logPlot', true);
 
-
 %% Evaluate mismatch over the full simulation schedule 
-[misfitE0,~,wellSolsE0] = ...
-    evaluateMatch(pinit,mismatchFn,predSetup,prmsTrue,statesTrue,'Gradient','none');
 [misfitE, ~,wellSolsE] = ...
     evaluateMatch(popt,mismatchFn,predSetup,prmsTrue,statesTrue,'Gradient','none');
 [misfitT,~,wellSolsT] = ...
@@ -234,7 +218,7 @@ set(fh, 'name','Norne: GPSNet training')
 
 %% Plot well responses for prediction case
 predSteps = scheduleTrue.step.val;
-fh = plotWellSols({wellSolTrue,data.wellSolsE, wellSolsE}, ...
+fh = plotWellSols({wellSolTrue,wellSolsE0, wellSolsE}, ...
     {predSteps, predSteps, predSteps}, ...
     'datasetnames', {'reference','initial','predicted'}, 'zoom', true, ...
     'field', 'qOs', 'SelectedWells', 7:8);
