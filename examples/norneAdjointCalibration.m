@@ -97,17 +97,37 @@ switch networkType
         error('\nType of network: %s is not implemented\n', networkType);
 end
 
-% Plot the network.
-% If based on flow diagnostics, we plot the network twice to show the
-% relative magnitude of the associated transmissibilities and pore volumes.
-figure; ntwrk.plotNetwork('Colors',true)
-
 %% Create the data-driven model
 % Here, we use a generic black-oil type model and it is thus important to
 % validate the model to dynamically construct the correct number of phases
 % and components and set up all the necessary state functions.
 gravity off
 gpsNet = NetworkModel(modelTrue, ntwrk, WTrain);
+
+%% Plot the GPSNet model: network and simulation grid
+fig1 = figure;
+subplot(2,2,1)
+G = trueEx.getVisualizationGrid();
+plotCellData(G, trueEx.model.rock.poro,'EdgeColor','none');
+plotWell(G, trueEx.schedule.control(1).W,'color','k','FontSize',10);
+view(85,65); 
+axis tight off; set(gca,'Clipping',false); zoom(1.2);
+
+subplot(2,2,3), ax=gca;
+cmap=ntwrk.plotNetwork();
+axis tight off; set(ax,'Clipping',false); zoom(1.3); 
+
+subplot(2,2,4), ax=gca;
+ntwrk.plotNetwork('circle'); 
+axis equal tight off; set(ax,'Clipping',false); zoom(1.3); 
+
+subplot(2,2,2), ax=gca;
+gpsNet.plotGrid([]);
+colormap(ax,min(cmap+.2,1));
+for i=1:5, ax.Children(i).Position(1:2) =  [4050,-10]; end
+for i=6:11, ax.Children(i).Position(1:2) = [-125,-10]; end
+set(ax.Children(1:11),'FontSize',8);
+ax.Position([2 4]) = ax.Position([2 4])+[-.075 .1];
 
 %% Specify training schedule and parameters to be matched
 % We need to specify which of the parameters in the model we wish to match
