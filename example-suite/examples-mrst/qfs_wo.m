@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = qfs_wo(varargin)
+function setup = qfs_wo(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -22,6 +22,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    optOnly = false;
+    if nargin > 0 && islogical(varargin{1})
+        optOnly = varargin{1}; varargin = varargin(2:end);
+    end
     % One-line description
     description = 'Quarter five-spot example with two-phase fluid on Cartesian grid';
     % Optional input arguments
@@ -31,13 +35,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      'pvi'   , 1     , ... % Pore volumes injected
                      'nkr'   , 2     );    % Brooks-Corey relperm exponent
     options = merge_options(options, varargin{:});
-    if nargout <= 2, return; end
+    if optOnly
+        setup = packTestCaseSetup(mfilename,                  ...
+                                  'description', description, ...
+                                  'options'    , options    );
+        return;
+    end
     % Define module dependencies
     require ad-core ad-props ad-blackoil
     % Model
     G     = computeGeometry(cartGrid([1,1]*options.ncells, [1000, 1000]*meter));
     rock  = makeRock(G, 100*milli*darcy, 0.4);
-    fluid = initSimpleADIFluid('phases', 'WO', 'n', [1,1]*options.nkr, 'mu', [1,1]*centi*poise, 'rho', [1,1]);
+    fluid = initSimpleADIFluid('phases', 'WO'             , ...
+                               'n'     , [1,1]*options.nkr, ...
+                               'mu'    , [1,1]*centi*poise, ...
+                               'rho'   , [1,1]            );
     model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
     % Wells
     rate = options.pvi*sum(poreVolume(G, rock))/options.time;
@@ -48,7 +60,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Schedule
     schedule = simpleSchedule(rampupTimesteps(options.time, options.dt), 'W', W);
     % Initial state
-    state0      = initResSol(G, 10*barsa, [0,1]);
-    % Default plotting
-    plotOptions = {};
+    state0 = initResSol(G, 10*barsa, [0,1]);
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   );
 end
