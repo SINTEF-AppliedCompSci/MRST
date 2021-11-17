@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = spe9_bo(varargin)
+function setup = spe9_bo(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -22,6 +22,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    optOnly = false;
+    if nargin > 0 && islogical(varargin{1})
+        optOnly = varargin{1}; varargin = varargin(2:end);
+    end
     % One-line description
     description = ...
         ['SPE9 benchmark, see Killough, J.E., "Ninth SPE comparative  ' , ...
@@ -31,7 +35,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Optional input arguments
     options = struct();
     options = merge_options(options, varargin{:});
-    if nargout <= 2, return; end
+    if optOnly
+        setup = packTestCaseSetup(mfilename,                  ...
+                                  'description', description, ...
+                                  'options'    , options    );
+        return;
+    end
     % Define module dependencies
     require ad-core ad-props ad-blackoil deckformat
     % Get initial state, model and schedule
@@ -41,4 +50,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Set plot options
     plotOptions = {'PlotBoxAspectRatio', [1,1,0.25], ...
                    'View'              , [120, 20] };
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end

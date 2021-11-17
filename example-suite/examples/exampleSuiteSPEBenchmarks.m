@@ -7,12 +7,15 @@ mrstModule add mrst-gui
 mrstVerbose on
 
 %% Simulate three SPE benchmarks
-examples = {'spe1_bo', 'spe3_bo', 'spe9_bo'};
-for ex = examples
-    example = MRSTExample(ex{1});
+names = {'spe1_bo', 'spe3_bo', 'spe9_bo'};
+for name = names
+    example = MRSTExample(name{1});
     example.plot(); drawnow, pause(1);
     problem = example.getPackedSimulationProblem();
     simulatePackedProblem(problem);
+    % Plot results
+    [wellSols, states] = getPackedSimulatorOutput(problem);
+    example.plot(states); plotWellSols(wellSols);
 end
 
 %% Copyright Notice

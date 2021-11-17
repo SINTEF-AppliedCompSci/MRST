@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = spe10_wo(varargin)
+function setup = spe10_wo(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -22,6 +22,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    optOnly = false;
+    if nargin > 0 && islogical(varargin{1})
+        optOnly = varargin{1}; varargin = varargin(2:end);
+    end
     % One-line description
     description = ...
         ['SPE10 Model 2 (Christie & Blunt, 2008, SPE Res. Eval. & Eng., ', ...
@@ -30,7 +34,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     options = struct('layers', []); % Layer subset. Either subset of 1:85, 
                                     % 'tarbert', or 'upper_ness'
     [options, spe10Args] = merge_options(options, varargin{:});
-    if nargout <= 2, return; end
+    options.spe10Args = spe10Args;
+    if optOnly
+        setup = packTestCaseSetup(mfilename,                  ...
+                                  'description', description, ...
+                                  'options'    , options    );
+        return;
+    end
     % Define module dependencies
     require ad-core ad-props ad-blackoil spe10
     % Pick layer subset
@@ -63,4 +73,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'Projection'        , proj        , ...
                    'View'              , view        , ...
                    'Size'              , size        };
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end
