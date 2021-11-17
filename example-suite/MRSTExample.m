@@ -18,112 +18,125 @@ classdef MRSTExample
     
     methods
         %-----------------------------------------------------------------%
-        function example = MRSTExample(name, varargin)
+        function test = MRSTExample(name, varargin)
             if nargin == 0, return; end
             % Set example name
-            example.name = lower(name);
+            test.name = lower(name);
             % Merge options
             opt = struct('plot', false, 'verbose', [], 'readFromDisk', true);
             [opt, varargin]  = merge_options(opt, varargin{:});
-            example.verbose = opt.verbose;
-            if isempty(opt.verbose), example.verbose = mrstVerbose(); end
-            if example.verbose
-                fprintf('Setting up %s example \n\n', example.name);
+            test.verbose = opt.verbose;
+            if isempty(opt.verbose), test.verbose = mrstVerbose(); end
+            if test.verbose
+                fprintf('Setting up %s example \n\n', test.name);
                 timer = tic();
             end
-            [example, extra] = merge_options(example, varargin{:});
+            [test, extra] = merge_options(test, varargin{:});
             if opt.readFromDisk
-                % Check if example is already stored on disk
-                [example.description, ...
-                 example.options    ] = feval(lower(name), extra{:});
-                ex = example.load(false);
-                if ~isempty(ex)
+                % Get example options and description
+                setup = feval(lower(name), true, extra{:});
+                test.options     = setup.options;
+                test.description = setup.description;
+                % Check if example exists on disk and load it
+                tc = test.load(false);
+                if ~isempty(tc)
                     % We found it! Early return
-                    ex0 = example;
-                    example = ex;
-                    if ex0.verbose
+                    test = tc;
+                    if test.verbose
                         time = toc(timer);
-                        fprintf(['Found a saved version of this example. '        , ...
-                                'Example loaded in %s\n\n'], formatTimeRange(time));
+                        fprintf('Example loaded in %s\n\n', formatTimeRange(time));
                     end
                     return
-                elseif example.verbose
+                elseif test.verbose
                     % No luck, we need to set up from scratch
                     fprintf(['Did not find a saved version of this ', ...
                              'example, setting up from scratch \n\n']);
                 end
             end
-            [example.description, ... % Example description
-             example.options    , ... % Options for reference
-             example.state0     , ... % Initial state
-             example.model      , ... % Model
-             example.schedule   , ... % Simulation schedule
-             plotOptions        ] ... % Plotting options
-                = feval(lower(name), extra{:});
-            if example.verbose
+            % Set up test case and set properties
+            setup = feval(lower(name), extra{:});
+            test.description = setup.description;
+            test.state0      = setup.state0;
+            test.model       = setup.model;
+            test.schedule    = setup.schedule;
+            test.options     = setup.options;
+            if test.verbose
                 time = toc(timer);
                 fprintf('Example set up in %s\n\n', formatTimeRange(time));
             end
             % Set visualization grid if given
-            [example, plotOptions] = merge_options(example, plotOptions{:});
+            [test, plotOptions] = merge_options(test, setup.plotOptions{:});
             % Set figure properties
-            [example.figureProperties, plotOptions]                ...
-                = merge_options(example.defaultFigureProperties(), ...
+            [test.figureProperties, plotOptions]                ...
+                = merge_options(test.defaultFigureProperties(), ...
                                 plotOptions{:}                   );
             % Set axis properties
-            [example.axisProperties, plotOptions]                ...
-                = merge_options(example.defaultAxisProperties(), ...
+            [test.axisProperties, plotOptions]                ...
+                = merge_options(test.defaultAxisProperties(), ...
                                 plotOptions{:}                 );
             % Set toolbar options
-            example.toolbarOptions ...
-                = merge_options(example.defaultToolbarOptions(), ...
+            test.toolbarOptions ...
+                = merge_options(test.defaultToolbarOptions(), ...
                                 plotOptions{:}                 );
-            names  = fieldnames(example.toolbarOptions);
-            values = struct2cell(example.toolbarOptions);
-            example.toolbarOptions = cell(1, 2*numel(names));
-            example.toolbarOptions([1:2:end, 2:2:end]) = horzcat(names, values);
+            names  = fieldnames(test.toolbarOptions);
+            values = struct2cell(test.toolbarOptions);
+            test.toolbarOptions = cell(1, 2*numel(names));
+            test.toolbarOptions([1:2:end, 2:2:end]) = horzcat(names, values);
             if opt.plot
                 % Plot example
-                example.plot(example.model.rock, 'Name', 'rock'  , 'log10', true);
-                example.plot(example.state0    , 'Name', 'state0'               );
+                test.plot(test.model.rock, 'Name', 'rock'  , 'log10', true);
+                test.plot(test.state0    , 'Name', 'state0'               );
             end
-        end
-                
-        %-----------------------------------------------------------------%
-        function props = defaultFigureProperties(example) %#ok
-            % Set default figure properties
-            props = struct();
-            pos   = get(0, 'DefaultFigurePosition');
-            props.Size = pos(3:4);
         end
         
         %-----------------------------------------------------------------%
-        function h = figure(example, varargin)
-            % Get example figure
+        function props = defaultProperties(test, name) %#ok
+        % Get default properties for given object
+            name  = ['factory', name];
+            props = get(groot, name);
+            names = cellfun(@(pname) pname(numel(name)+1:end)        , ...
+                             fieldnames(props), 'UniformOutput', false);
+            props = cell2struct(struct2cell(props), names);
+        end
+                
+        %-----------------------------------------------------------------%
+        function props = defaultFigureProperties(test)
+        % Set default figure properties
+            % Get default properties
+            props = test.defaultProperties('Figure');
+            % Remove read-only properties
+            props = rmfield(props, 'XDisplay');
+            % Set extra property Size
+            props.Size = props.Position(3:4);
+        end
+        
+        %-----------------------------------------------------------------%
+        function h = figure(test, varargin)
+        % Get example figure
             h     = figure(varargin{:});
-            names = fieldnames(example.figureProperties);
+            names = fieldnames(test.figureProperties);
             for i = 1:numel(names)
                 if strcmpi(names{i}, 'Size')
                     screensize = get(groot, 'ScreenSize');
-                    wsize      = example.figureProperties.(names{i});
+                    wsize      = test.figureProperties.(names{i});
                     wsize      = min([wsize; screensize(3:4) - [0 80]]);
                     pos        = get(h,'Position');
                     pos        = min([pos(1:2); screensize(3:4)-wsize-[0 80]]);
                     set(h, 'Position', [pos, wsize]);
                 else
-                    set(h, names{i}, example.figureProperties.(names{i}));
+                    set(h, names{i}, test.figureProperties.(names{i}));
                 end
             end
         end
         
         %-----------------------------------------------------------------%
-        function props = defaultAxisProperties(example)
-            % Get default axis properties
-            props = struct();
+        function props = defaultAxisProperties(test)
+        % Get default axis properties
+            props = test.defaultProperties('Axes');
             % Get grid
-            G = example.model.G;
-            if ~isempty(example.visualizationGrid)
-                G = example.visualizationGrid;
+            G = test.model.G;
+            if ~isempty(test.visualizationGrid)
+                G = test.visualizationGrid;
             end
             % Set XYZLim
             if isfield(G, 'nodes')
@@ -135,17 +148,18 @@ classdef MRSTExample
             xmax = max(x);
             xyz = 'XYZ';
             for i = 1:G.griddim
-                props.([xyz(i), 'Lim']) = [xmin(i), xmax(i)];
+                props.([xyz(i), 'LimitMethod']) = 'tight';
+                props.([xyz(i), 'LimMode'])     = 'auto';
             end
-            if isfield(example.schedule.control(1), 'W')
-                W = example.schedule.control(1).W;
+            if isfield(test.schedule.control(1), 'W')
+                W = test.schedule.control(1).W;
                 if ~isempty(W) && G.griddim == 3
                     dz = xmax(3) - xmin(3);
                     props.ZLim(1) = props.ZLim(1) - dz*0.2;
                 end
             end
             % Set aspect ratio
-            props.PlotBoxAspectRatio = [1,1,1];
+            props.PlotBoxAspectRatio = [1,1,0.5];
             % Set viewpoint
             if G.griddim == 2
                 props.View = [0, 90];
@@ -159,14 +173,26 @@ classdef MRSTExample
                 props.Projection = 'perspective';
             end
             props.Box = false;
+            % Remove read-only and other properties
+            props = rmfield(props, 'Legend');
+            props = rmfield(props, 'Colormap');
+            pv = struct2cell(props);
+            pn = fieldnames(props);
+            rmtypes = {'matlab.graphics.GraphicsPlaceholder'};
+            keep = true;
+            for t = rmtypes
+                keep = keep & cellfun(@(prop) ~isa(prop, t{1}), pv);
+            end
+            pv = pv(keep); pn = pn(keep);
+            props = cell2struct(pv, pn);
         end
         
         %-----------------------------------------------------------------%
-        function ax = setAxisProperties(example, ax)
+        function ax = setAxisProperties(test, ax)
             % Set properties to example figure axis
-            names = fieldnames(example.axisProperties);
+            names = fieldnames(test.axisProperties);
             for i = 1:numel(names)
-                set(ax, names{i}, example.axisProperties.(names{i}));
+                set(ax, names{i}, test.axisProperties.(names{i}));
             end
         end
         
@@ -251,33 +277,14 @@ classdef MRSTExample
         end
         
         %-----------------------------------------------------------------%
-        function hash = getExampleHash(example)
-            % Get example options as string
-            optnames    = fieldnames(example.options);
-            optval      = struct2cell(example.options);
-            keep        = cellfun(@(v) ischar(v) | isnumeric(v), optval);
-            optval      = optval(keep);
-            optnames    = optnames(keep);
-            fix         = cellfun(@(v) ~ischar(v), optval);
-            optval(fix) = cellfun(@num2str, optval(fix), 'UniformOutput', false);
-            % Prepend with example name
-            str = cell(1, 1 + 2*numel(optval));
-            str([1, 2:2:end, 3:2:end]) = [{example.name}; optnames; optval];
-            str = horzcat(str{:});
-            try
-                % Calculate hash value
-                md = java.security.MessageDigest.getInstance('SHA-256');
-                hash = sprintf('%2.2x', typecast(md.digest(uint8(str)), 'uint8')');
-            catch
-                % ... fallback using example string
-                hash = str;
-            end
+        function hash = getTestCaseHash(test)
+            hash = struct2hash(test.options);
         end
         
         %-----------------------------------------------------------------%
         function ok = save(example)
             % Get example hash value
-            hash = example.getExampleHash();
+            hash = example.getTestCaseHash();
             % Store in default data directory under 'example-suite'
             pth = fullfile(mrstDataDirectory(), 'example-suite');
             if ~exist(pth, 'dir')
@@ -288,30 +295,33 @@ classdef MRSTExample
         end
         
         %-----------------------------------------------------------------%
-        function ex = load(example, throwError)
-            % Attempt to load example
+        function tc = load(test, throwError)
+            % Attempt to load test case
             if nargin < 2
                 throwError = true;
             end
-            % Example is stored with a filename equal to its hash value
-            hash = example.getExampleHash();
-            pth = fullfile(mrstDataDirectory(), 'example-suite');
-            fn = [fullfile(pth, hash), '.mat'];
-            ex = [];
+            % Test case is stored with a filename equal to its hash value
+            hash = test.getTestCaseHash();
+            pth  = fullfile(mrstDataDirectory(), 'test-suite', test.name);
+            fn   = [fullfile(pth, hash), '.mat'];
+            tc   = [];
             if isfile(fn)
                 % The file exists - load it
+                if test.verbose
+                    fprintf('Found a saved version of this example. Loading, ...');
+                end
                 data = load(fn);
-                ex   = data.example;
+                tc   = data.example;
             elseif throwError
                 % The file does no exists - throw an error
                 error(['Could not find example '   , ...
-                       'named %s with hash key %s'], example.name, hash);
+                       'named %s with hash key %s'], test.name, hash);
             end
         end
         
         %-----------------------------------------------------------------%
         function problem = getPackedSimulationProblem(example, varargin)
-            % Make packed problem with reasonable simulation setup
+        % Make packed problem with reasonable simulation setup
             opt = struct('LinearSolver'   , [], ...
                          'NonLinearSolver', []);
             [opt, extra] = merge_options(opt, varargin{:});
