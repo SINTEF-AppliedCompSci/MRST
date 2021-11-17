@@ -277,8 +277,24 @@ classdef MRSTExample
         end
         
         %-----------------------------------------------------------------%
-        function hash = getTestCaseHash(test)
-            hash = struct2hash(test.options);
+        function hash = getTestCaseHash(test, fullHash)
+            % Get hash of options struct, prepended with test case name
+            hashOpt = struct2hash(test.options, test.name);
+            if nargin < 2 || ~fullHash
+                hash = hashOpt; return;
+            else
+                % Get hash of selected test case properties
+                hashG        = struct2hash(test.model.G);
+                hashRock     = struct2hash(test.model.rock);
+                hashFluid    = struct2hash(test.model.fluid);
+                hashState0   = struct2hash(test.state0);
+                hashSchedule = struct2hash(test.schedule);
+                % Concatenate and compute hash of combined hashes
+                str = strjoin({hashOpt, hashG, hashRock, hashFluid, ...
+                                           hashState0, hashSchedule}, '_');
+                hash = str2hash(str);
+            end
+            
         end
         
         %-----------------------------------------------------------------%
@@ -320,20 +336,25 @@ classdef MRSTExample
         end
         
         %-----------------------------------------------------------------%
-        function problem = getPackedSimulationProblem(example, varargin)
+        function problem = getPackedSimulationProblem(test, varargin)
         % Make packed problem with reasonable simulation setup
-            opt = struct('LinearSolver'   , [], ...
+            opt = struct('Name'           , [], ...
+                         'LinearSolver'   , [], ...
                          'NonLinearSolver', []);
             [opt, extra] = merge_options(opt, varargin{:});
+            if isempty(opt.Name)
+                opt.Name = test.getTestCaseHash(true);
+            end
             has_ls  = ~isempty(opt.LinearSolver);    % Linear solver given
             has_nls = ~isempty(opt.NonLinearSolver); % Nonlinear solver given
             if has_nls
                 % Check if nonlinear solver has non-default linear solver
-                has_ls = has_ls || ~isa(opt.NonLinearSolver.LinearSolver, 'BackslashSolverAD');
+                has_ls = has_ls || ...
+                    ~isa(opt.NonLinearSolver.LinearSolver, 'BackslashSolverAD');
             end
             if ~has_ls
                 % Select apropriate linear solver
-                rmodel = example.model;
+                rmodel = test.model;
                 if isa(rmodel, 'WrapperModel')
                     rmodel = rmodel.getReservoirModel;
                 end
@@ -341,16 +362,20 @@ classdef MRSTExample
             end
             if ~has_nls
                 % Select default nonlinear solver
-                opt.NonLinearSolver = NonLinearSolver('LinearSolver' , opt.LinearSolver, ...
-                                                      'useRelaxation', true            );
+                opt.NonLinearSolver = NonLinearSolver( ...
+                                    'LinearSolver' , opt.LinearSolver, ...
+                                    'useRelaxation', true            );
             elseif ~has_ls
                 % ... or assign linear solver
                 opt.NonLinearSolver.LinearSolver = opt.LinearSolver;
             end
             % Pack problem
-            problem = packSimulationProblem(                                   ...
-                example.state0, example.model, example.schedule, example.name, ...
-                'NonLinearSolver', opt.NonLinearSolver, extra{:}             );
+            desc = test.description(1:min(numel(test.description), 113));
+            problem = packSimulationProblem(                          ...
+                test.state0, test.model, test.schedule, test.name,    ...
+                    'Name'           , opt.Name                     , ...
+                    'Description'    , desc                         , ...
+                    'NonLinearSolver', opt.NonLinearSolver, extra{:});
         end
         
     end
