@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = buckley_leverett_wo(varargin)
+function setup = buckley_leverett_wo(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -22,6 +22,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    optOnly = false;
+    if nargin > 0 && islogical(varargin{1})
+        optOnly = varargin{1}; varargin = varargin(2:end);
+    end
     % One-line description
     description = 'Two-phase Buckley Leverett displacement';
     % Optional input arguments
@@ -29,7 +33,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      'nkr'   , 2  , ... % Brooks-Corey relperm exponent
                      'cfl'   , 1  );    % CFL number
     options = merge_options(options, varargin{:});
-    if nargout <= 2, return; end
+    if optOnly
+        setup = packTestCaseSetup(mfilename,                  ...
+                                  'description', description, ...
+                                  'options'    , options    );
+        return;
+    end
     % Define module dependencies
     require ad-core ad-props ad-blackoil
     % Model
@@ -54,4 +63,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'PlotBoxAspectRatio', [2.5,1,1]         , ...
                    'XLim'              , [0,options.ncells], ...
                    'YLim'              , [0,1]             };
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end

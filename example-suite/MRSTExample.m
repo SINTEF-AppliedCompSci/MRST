@@ -174,12 +174,11 @@ classdef MRSTExample
             end
             props.Box = false;
             % Remove read-only and other properties
-            props = rmfield(props, 'Legend');
-            props = rmfield(props, 'Colormap');
             pv = struct2cell(props);
             pn = fieldnames(props);
+            rmnames = {'Legend', 'Colormap', 'ZDir', 'PlotBoxAspectRatioMode'};
             rmtypes = {'matlab.graphics.GraphicsPlaceholder'};
-            keep = true;
+            keep = ~ismember(pn, rmnames);
             for t = rmtypes
                 keep = keep & cellfun(@(prop) ~isa(prop, t{1}), pv);
             end

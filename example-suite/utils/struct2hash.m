@@ -4,11 +4,12 @@ function hash = struct2hash(opt, varargin)
     optnames = fieldnames(opt);
     optval   = struct2cell(opt);
     % Keep only fields that are character or numeric arrays
-    keep = true(numel(optval), 1);
     for i = 1:numel(optval)
         v = optval{i};
-        if ischar(v) || isnumeric(v)
-            % Nothing to do
+        if isempty(v)
+            v = '[]';
+        elseif ischar(v) || isnumeric(v) || islogical(v)
+            v = v(:)';
         elseif isstruct(v)
             v = arrayfun(@(v) struct2hash(v), v, 'UniformOutput', false);
             v = strjoin(v, '_');
@@ -17,12 +18,9 @@ function hash = struct2hash(opt, varargin)
         end
         optval{i} = v;
     end
-%     keep     = cellfun(@(v) ischar(v) | isnumeric(v), optval);
-    optval   = optval(keep);
-    optnames = optnames(keep);
     % Convert numeric arrays to strings
     fix         = cellfun(@(v) ~ischar(v), optval);
-    optval(fix) = cellfun(@(v) num2str(v(:)'), optval(fix), ...
+    optval(fix) = cellfun(@(v) num2str(v), optval(fix), ...
                                     'UniformOutput', false);
     % Indices and values
     ix  = [1:2:2*numel(optnames), 2:2:2*numel(optnames)];
