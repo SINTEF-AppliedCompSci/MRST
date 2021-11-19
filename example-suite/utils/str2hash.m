@@ -1,4 +1,4 @@
-function hash = string2hash(str)
+function hash = str2hash(str)
     try
         % Calculate hash value
         md   = java.security.MessageDigest.getInstance('SHA-256');
