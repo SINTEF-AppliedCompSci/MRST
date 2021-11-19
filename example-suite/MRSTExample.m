@@ -1,13 +1,13 @@
 classdef MRSTExample
     
     properties
-        % Core example properties
+        % Core test case properties
         name        % Example name
-        description % One-line example description
+        description % One-line test case description
         state0      % Initial state
         model       % Model
         schedule    % Simulation schedule
-        options     % Options passed to example get (stored for reference)
+        options     % Options passed to test case get (stored for reference)
         verbose     % Verbose flag
         % Properties for plotting
         figureProperties  % Figure propreties (defaults set by constructor)
@@ -20,7 +20,7 @@ classdef MRSTExample
         %-----------------------------------------------------------------%
         function test = MRSTExample(name, varargin)
             if nargin == 0, return; end
-            % Set example name
+            % Set test name
             test.name = lower(name);
             % Merge options
             opt = struct('plot', false, 'verbose', [], 'readFromDisk', true);
@@ -28,29 +28,29 @@ classdef MRSTExample
             test.verbose = opt.verbose;
             if isempty(opt.verbose), test.verbose = mrstVerbose(); end
             if test.verbose
-                fprintf('Setting up %s example \n\n', test.name);
+                fprintf('Setting up %s test \n\n', test.name);
                 timer = tic();
             end
             [test, extra] = merge_options(test, varargin{:});
             if opt.readFromDisk
-                % Get example options and description
+                % Get test options and description
                 setup = feval(lower(name), true, extra{:});
                 test.options     = setup.options;
                 test.description = setup.description;
-                % Check if example exists on disk and load it
+                % Check if test exists on disk and load it
                 tc = test.load(false);
                 if ~isempty(tc)
                     % We found it! Early return
                     test = tc;
                     if test.verbose
                         time = toc(timer);
-                        fprintf('Example loaded in %s\n\n', formatTimeRange(time));
+                        fprintf('Test case loaded in %s\n\n', formatTimeRange(time));
                     end
                     return
                 elseif test.verbose
                     % No luck, we need to set up from scratch
                     fprintf(['Did not find a saved version of this ', ...
-                             'example, setting up from scratch \n\n']);
+                             'test case, setting up from scratch \n\n']);
                 end
             end
             % Set up test case and set properties
@@ -62,7 +62,7 @@ classdef MRSTExample
             test.options     = setup.options;
             if test.verbose
                 time = toc(timer);
-                fprintf('Example set up in %s\n\n', formatTimeRange(time));
+                fprintf('Test case set up in %s\n\n', formatTimeRange(time));
             end
             % Set visualization grid if given
             [test, plotOptions] = merge_options(test, setup.plotOptions{:});
@@ -83,7 +83,7 @@ classdef MRSTExample
             test.toolbarOptions = cell(1, 2*numel(names));
             test.toolbarOptions([1:2:end, 2:2:end]) = horzcat(names, values);
             if opt.plot
-                % Plot example
+                % Plot test case
                 test.plot(test.model.rock, 'Name', 'rock'  , 'log10', true);
                 test.plot(test.state0    , 'Name', 'state0'               );
             end
@@ -112,7 +112,7 @@ classdef MRSTExample
         
         %-----------------------------------------------------------------%
         function h = figure(test, varargin)
-        % Get example figure
+        % Get test case figure
             h     = figure(varargin{:});
             names = fieldnames(test.figureProperties);
             for i = 1:numel(names)
@@ -188,7 +188,7 @@ classdef MRSTExample
         
         %-----------------------------------------------------------------%
         function ax = setAxisProperties(test, ax)
-            % Set properties to example figure axis
+            % Set properties to test case figure axis
             names = fieldnames(test.axisProperties);
             for i = 1:numel(names)
                 set(ax, names{i}, test.axisProperties.(names{i}));
@@ -196,7 +196,7 @@ classdef MRSTExample
         end
         
         %-----------------------------------------------------------------%
-        function opt = defaultToolbarOptions(example) %#ok
+        function opt = defaultToolbarOptions(test) %#ok
             % Get default toolbar options
             opt = struct('log10'        , false, ...
                          'exp'          , false, ...
@@ -215,50 +215,50 @@ classdef MRSTExample
         end
         
         %-----------------------------------------------------------------%
-        function h = plot(example, v, varargin)
-            % Plot filed v on example grid using plotToolbar
+        function h = plot(test, v, varargin)
+            % Plot filed v on test case grid using plotToolbar
             opt = struct('Name', '', 'plotWells', true, 'camlight', true);
             [opt, extra] = merge_options(opt, varargin{:});
-            Name = example.name;
+            Name = test.name;
             if ~isempty(opt.Name)
                 Name = [Name, ' ', opt.Name];
             end
             if nargin == 1
-                v = example.model.rock;
+                v = test.model.rock;
             end
-            h = example.figure('Name', Name);
-            G = example.getVisualizationGrid();
-            plotToolbar(G, v, example.toolbarOptions{:}, extra{:});
+            h = test.figure('Name', Name);
+            G = test.getVisualizationGrid();
+            plotToolbar(G, v, test.toolbarOptions{:}, extra{:});
             if opt.plotWells
-                example.plotWells();
+                test.plotWells();
             end
-            example.setAxisProperties(gca);
+            test.setAxisProperties(gca);
             if opt.camlight && G.griddim == 3 ...
-                    && ~all(example.axisProperties.View == [0,90])
+                    && ~all(test.axisProperties.View == [0,90])
                 camlight;
             end
         end
         
         %-----------------------------------------------------------------%
-        function G = getVisualizationGrid(example)
-            if isempty(example.visualizationGrid)
-                G = example.model.G;
+        function G = getVisualizationGrid(test)
+            if isempty(test.visualizationGrid)
+                G = test.model.G;
             else
-                G = example.visualizationGrid;
+                G = test.visualizationGrid;
             end
         end
         
         %-----------------------------------------------------------------%
-        function varargout = plotWells(example, varargin)
-            if ~isfield(example.schedule.control(1), 'W')
+        function varargout = plotWells(test, varargin)
+            if ~isfield(test.schedule.control(1), 'W')
                 return;
             end
-            W = example.schedule.control(1).W;
+            W = test.schedule.control(1).W;
             if ~isempty(W)
-                G = example.getVisualizationGrid();
+                G = test.getVisualizationGrid();
                 if G.griddim == 3
-                    dz = example.axisProperties.ZLim(2) ...
-                       - example.axisProperties.ZLim(1);
+                    dz = test.axisProperties.ZLim(2) ...
+                       - test.axisProperties.ZLim(1);
                     varargout = cell(nargout, 1);
                     [varargout{:}] = plotWell(G, W, 'color' , 'k'    , ...
                                        'height', 0.15*dz, ...
@@ -293,19 +293,18 @@ classdef MRSTExample
                                            hashState0, hashSchedule}, '_');
                 hash = str2hash(str);
             end
-            
         end
         
         %-----------------------------------------------------------------%
-        function ok = save(example)
-            % Get example hash value
-            hash = example.getTestCaseHash();
+        function ok = save(test)
+            % Get test case hash value
+            hash = test.getTestCaseHash();
             % Store in default data directory under 'example-suite'
             pth = fullfile(mrstDataDirectory(), 'example-suite');
             if ~exist(pth, 'dir')
                 mkdir(pth)
             end
-            save(fullfile(pth, hash), 'example', '-v7.3');
+            save(fullfile(pth, hash), 'test', '-v7.3');
             ok = true;
         end
         
@@ -323,13 +322,13 @@ classdef MRSTExample
             if isfile(fn)
                 % The file exists - load it
                 if test.verbose
-                    fprintf('Found a saved version of this example. Loading, ...');
+                    fprintf('Found a saved version of this test case. Loading, ...');
                 end
                 data = load(fn);
                 tc   = data.example;
             elseif throwError
                 % The file does no exists - throw an error
-                error(['Could not find example '   , ...
+                error(['Could not find test case '   , ...
                        'named %s with hash key %s'], test.name, hash);
             end
         end
