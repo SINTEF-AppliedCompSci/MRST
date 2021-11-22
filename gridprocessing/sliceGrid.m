@@ -82,13 +82,14 @@ for k = 1:npts
         cutCells.nodes(~nix) =  cutCells.nodes(~nix) + nNodesOrig;
         
         % Perform actual grid splitting/cutting
-        [G, isSplit]  = splitFaces(G, cutFaces, cutCells);
+        [G, isSplit, cutFaces, nFacesRemoved]  = splitFaces(G, cutFaces, cutCells);
         if ~opt.onlyFaces
             [G, isCut, sliceFaces] = splitCells(G, cutCells, sliceFaces, opt.topoSplit);
         else
             isCut      = [];
             sliceFaces = [];
         end
+        
         % reset type
         G.type = {'cutCellGrid'};
         % recompute geometry / bbox
@@ -107,7 +108,7 @@ for k = 1:npts
     else
         [isSplit, isCut] = deal([]);
     end
-    gix = getIndices(ncOld, nfOld, cutCells.ix(isCut), cutFaces.ix(isSplit), sliceFaces, gix);
+    gix = getIndices(ncOld, nfOld-nFacesRemoved, cutCells.ix(isCut), cutFaces.ix(isSplit), sliceFaces, gix);
 end
 dispif(mrstVerbose(), 'Performed %d slices in %fs\n', npts, toc(timer));
 % create 2D slice-grid if requested
@@ -252,7 +253,7 @@ G.cells.faces   = [f1; vertcat(cfn{validIx})];
 end
 
 %--------------------------------------------------------------------------
-function [G, validIx] = splitFaces(G, cutFaces, cutCells)
+function [G, validIx, cutFaces, nRemoved] = splitFaces(G, cutFaces, cutCells)
 [fix, cix] = deal(cutFaces.ix, cutCells.ix);
 [nf , nc ] = deal(numel(fix), numel(cix));
 % Need to update original and create new face-nodes for cutfaces
@@ -344,7 +345,30 @@ end
 % reduce list of influenced 'non-cutcell' cells/cellfaces
 ri = cellfun(@isempty, cixe);
 [cfe, cixe] = deal(cfe(~ri), vertcat(cixe{~ri}));
-
+% check for repeated cell-indices, could happen for partly collapsed cells
+% identify candidate pairs of faces that might be duplicate/collapsed
+[~, ia, ib] = unique(cixe, 'stable');
+duplicatesExist = false;
+if numel(ia) ~= numel(ib)
+    duplicatesExist = true;
+    [~, occurance] = rlencode(ib);
+    if any(occurance>2)
+        warning('Not able to resolve potential duplicate faces');
+    end
+    ii = find(occurance==2);
+    duplicateCandidates = repmat({nan(numel(ii), 2)}, [1,2]);
+    adjecentFaces = fix(~ri);
+    for k = 1:numel(ii)
+        cc = find(ib==ii(k));
+        % include all potential faces, remove duplicate later
+        cfNew = union(cfe{cc(1)}, cfe{cc(2)});
+        duplicateCandidates{1}(k,:) = reshape(adjecentFaces(cc), [1,2]);
+        duplicateCandidates{2}(k,:) = setxor(cfe{cc(1)}, cfe{cc(2)});
+        % set both, first occuring will be overwritten
+        [cfe{cc}] = deal(cfNew);
+    end
+end
+    
 validIx = find(~cellfun(@isempty, fnn));
 nf = numel(validIx);
 
@@ -362,6 +386,11 @@ G.faces.nodes   = [n1; vertcat(fnn{validIx})];
 % update cellfaces/facepos for cutcells and potenial extras
 [G.cells.faces, G.cells.facePos] = ...
     replaceEntries(G.cells.faces(:,1), [cfo;cfe], [cix; cixe], G.cells.facePos);
+nRemoved = 0;
+if duplicatesExist
+   [G, reindex, nRemoved] = removeDuplicateFaces(G, duplicateCandidates);
+   cutFaces.ix = reindex(cutFaces.ix); 
+end
 end
 
 %--------------------------------------------------------------------------
@@ -431,6 +460,80 @@ end
 end
 
 %--------------------------------------------------------------------------
+function [G, reindex, nd] = removeDuplicateFaces(G, fcand)
+% Partly collpased cells that are cut might result in a degenerate cut
+% polygon, this function identifies pairs of collapsed faces from a list 
+% of candidates and removes them from the cell that contains both
+nd = size(fcand{1},1);
+isDuplicate = true(nd,1);
+fdup = nan(nd, 2);
+% find duplicates from candidates
+for k = 1:nd
+    for kc = 1:2
+        [f1, f2] = deal(fcand{kc}(k,1), fcand{kc}(k,2));
+        np1  = G.faces.nodePos([f1, f1+1]) - [0 1]';
+        nix1 = G.faces.nodes(np1(1):np1(2));
+        np2 = G.faces.nodePos([f2, f2+1]) - [0 1]';
+        nix2 = G.faces.nodes(np2(1):np2(2));
+        if ~all(sort(nix1) == sort(nix2) )
+            isDuplicate(k) = false;
+%             Might want to check coordinates for non-unique nodes?
+%             cc1 = sortrows(G.nodes.coords(nix1,:));
+%             cc2 = sortrows(G.nodes.coords(nix2,:));
+%             if ~all(all(abs(cc1-cc2)<sqrt(eps)))
+%                 isDuplicate(k) = false;
+%             end
+        else
+            isDuplicate(k) = true;
+            fdup(k,:) = [f1, f2];
+            break;
+        end
+    end
+end
+if ~all(isDuplicate)
+    warning('Potention problem with handling duplicate faces')
+end
+f = fdup(isDuplicate,:);
+nd = size(f,1);
+cfNew = cell(nd,1);
+cellUpdate = nan(nd, 1);
+for k = 1:nd
+    [f1, f2] = deal(f(k,1), f(k,2));
+    n1 = G.faces.neighbors(f1,:);
+    n2 = G.faces.neighbors(f2,:);
+    common = intersect(n1, n2);
+    assert(numel(common)==1);
+    n1(n1 == common) = n2(n2 ~= common);
+    G.faces.neighbors(f1, :) = n1;
+    G.faces.neighbors(f2, :) = [nan, nan];
+    % remove both collapsed faces from cell
+    fpos = G.cells.facePos(common:(common+1)) - [0 1]';
+    cfNew{k} = G.cells.faces(fpos(1):fpos(2));
+    cfNew{k} = setdiff(cfNew{k}, [f1; f2]);
+    cellUpdate(k) = common;
+end
+keepIx = true(G.faces.num,1);
+keepIx(f(:,2)) = false;
+reindex = cumsum(keepIx);
+reindex(f(:,2)) = reindex(f(:,1));
+fldnm = fieldnames(G.faces);
+for k = 1:numel(fldnm)
+    nm = fldnm{k};
+    if size(G.faces.(nm), 1) == G.faces.num
+        G.faces.(nm) = G.faces.(nm)(keepIx,:);
+    end
+end
+G.faces.num = G.faces.num - nd;
+[cellFaces, G.cells.facePos] = ...
+    replaceEntries(G.cells.faces, cfNew, cellUpdate, G.cells.facePos);
+G.cells.faces = reindex(cellFaces);
+
+emptyFaceNodes = cell(size(f,1), 1);
+[G.faces.nodes, G.faces.nodePos] = ...
+    replaceEntries(G.faces.nodes, emptyFaceNodes, f(:,2), G.faces.nodePos);
+end
+
+%--------------------------------------------------------------------------
 function ix = getIndices(nc, nf, cutCellIx, cutFaceIx, sliceFaces, ixp)
 [nc2, nf2] = deal(numel(cutCellIx), numel(cutFaceIx));
 if isempty(ixp)
@@ -490,6 +593,9 @@ ixn = mcolon(posNew(ix),  posNew(ix+1)-1);
 w  = zeros(nw,1);
 w(ix2) = v(ix1);
 w(ixn) = vertcat(vi{:});
+% if set is empty, reduce posNew
+remove = cellfun(@isempty, vi);
+posNew(ix(remove)) = [];
 end
 
 %--------------------------------------------------------------------------

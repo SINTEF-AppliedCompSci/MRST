@@ -456,7 +456,7 @@ l  = norm(v);
 vu = v/l;
 t = p*vu - segProj(1,:)*vu;
 ixf = t < -sqrt(eps);
-if isFirst
+if isFirst && ~deleteOutside
     % project along v to t = 0
     p(ixf,:) = p(ixf,:) - t(ixf)*vu';
     t(ixf)   = 0;
@@ -465,7 +465,7 @@ else
     removed = removed | ixf;
 end
 ixl = t > l+sqrt(eps);
-if isLast
+if isLast && ~deleteOutside
     % project along v to t = l
     p(ixl,:) = p(ixl,:) - (t(ixl)-l)*vu';
     t(ixl)   = l;
