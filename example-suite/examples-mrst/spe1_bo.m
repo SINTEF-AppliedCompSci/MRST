@@ -22,10 +22,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    optOnly = false;
-    if nargin > 0 && islogical(varargin{1})
-        optOnly = varargin{1}; varargin = varargin(2:end);
-    end
     % One-line description
     description = ...
         ['SPE1 benchmark, see Odeh, A.S., "Comparison of Solutions to '            , ...
@@ -33,13 +29,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          'J. Pet. Technol. 33 (1): 13–25. SPE-9723-PA. 1981, doi: 10.2118/9723-PA '];
     % Optional input arguments
     options = struct();
-    options = merge_options(options, varargin{:});
-    if optOnly
-        setup = packTestCaseSetup(mfilename,                  ...
-                                  'description', description, ...
-                                  'options'    , options    );
-        return;
-    end
+    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
+    if optOnly, return; end
     % Define module dependencies
     require ad-core ad-props ad-blackoil deckformat
     % Get initial state, model and schedule

@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = norne_field_bo(varargin)
+function setup = norne_field_bo(varargin)
 %Example from the example suite, see description below. Warning: This
 %example will likely not run without tweaking the solvers (see
 %`fieldModelNorneExample`).
@@ -30,7 +30,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            'Open Porous Media Project, https://opm-project.org/'    ];
     % Optional input arguments
     options = struct();
-    if nargout <= 2, return; end
+    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
+    if optOnly, return; end
     % Define module dependencies
     require ad-core ad-blackoil ad-props deckformat
     gravity reset on
@@ -96,4 +97,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'PlotBoxAspectRatio', [1,1,0.3] , ...
                    'Size'              , [700, 600], ...
                    'visualizationGrid' , Gviz      };
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end

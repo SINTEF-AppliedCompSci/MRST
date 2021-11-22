@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = gravity_barriers_wog(varargin)
+function setup = gravity_barriers_wog(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -30,8 +30,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Optional input arguments
     options = struct('nsteps'   , 100 , ...
                      'useRampup', true);
-    options = merge_options(options, varargin{:});
-    if nargout <= 2, return; end
+    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
+    if optOnly, return; end
     % Define module dependencies
     require ad-core ad-props ad-blackoil
     % Grid
@@ -127,4 +127,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     plotOptions = {'PlotBoxAspectRatio', [1,1,1]       , ...
                    'Projection'        , 'orthographic', ...
                    'View'              , [0, 0]        };
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end

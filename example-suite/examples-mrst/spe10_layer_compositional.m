@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = spe10_layer_compositional(varargin)    
+function setup = spe10_layer_compositional(varargin)    
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -29,8 +29,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            'J. Comput. Phys., 2018, doi: 10.1016/j.jcp.2018.05.048'      ];
     % Optional input arguments
     options = struct('dt', 25*day); % Target timestep length
-    options = merge_options(options, varargin{:});
-    if nargout <= 2, return; end
+    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
+    if optOnly, return; end
     % Define module dependencies
     require spe10 ad-core ad-props compositional deckformat
     % Load deck
@@ -86,4 +86,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'Projection'        , 'orthographic', ...
                    'View'              , [0, 90]       , ...
                    'Size'              , [500, 800]    };
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end

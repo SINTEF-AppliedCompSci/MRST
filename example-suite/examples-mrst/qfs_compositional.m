@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = qfs_compositional(varargin)
+function setup = qfs_compositional(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -29,8 +29,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Optional input arguments
     options = struct('ncells', 60, ... % Number of cells in x- and y-directions
                      'nsteps', 100);   % Number of timesteps
-    options = merge_options(options, varargin{:});
-    if nargout <= 2, return; end
+    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
+    if optOnly, return; end
     % Define module dependencies
     require ad-core ad-props compositional
     % Model
@@ -58,4 +58,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     plotOptions = {'PlotBoxAspectRatio', [1,1,1]       , ...
                    'View'              , [0, 90]       , ...
                    'Projection'        , 'orthographic'};
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end

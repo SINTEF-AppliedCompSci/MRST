@@ -22,23 +22,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    optOnly = false;
-    if nargin > 0 && islogical(varargin{1})
-        optOnly = varargin{1}; varargin = varargin(2:end);
-    end
     % One-line description
     description = 'Two-phase Buckley Leverett displacement';
     % Optional input arguments
     options = struct('ncells', 100, ... % Number of cells
                      'nkr'   , 2  , ... % Brooks-Corey relperm exponent
                      'cfl'   , 1  );    % CFL number
-    options = merge_options(options, varargin{:});
-    if optOnly
-        setup = packTestCaseSetup(mfilename,                  ...
-                                  'description', description, ...
-                                  'options'    , options    );
-        return;
-    end
+    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
+    if optOnly, return; end
     % Define module dependencies
     require ad-core ad-props ad-blackoil
     % Model

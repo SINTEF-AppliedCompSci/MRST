@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = validation_1d_compositional(varargin)
+function setup = validation_1d_compositional(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -28,8 +28,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            'into 1D reservoir filled with Decane, CO2 and Methane'    ];
     % Optional input arguments
     options = struct();
-    if nargout <= 2, return; end
-    % Define module dependencies
+    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
+    if optOnly, return; end    % Define module dependencies
     require ad-core ad-props compositional deckformat
     pth = getDatasetPath('simplecomp');
     fn  = fullfile(pth, 'SIMPLE_COMP.DATA');
@@ -75,4 +75,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'Projection'        , 'Orthographic', ...
                    'YLim'              , [0,1]         , ...
                    'View'              , [0,90]        };
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end

@@ -22,10 +22,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    optOnly = false;
-    if nargin > 0 && islogical(varargin{1})
-        optOnly = varargin{1}; varargin = varargin(2:end);
-    end
     % One-line description
     description = ...
         ['SPE10 Model 2 (Christie & Blunt, 2008, SPE Res. Eval. & Eng., ', ...
@@ -33,14 +29,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Optional input arguments
     options = struct('layers', []); % Layer subset. Either subset of 1:85, 
                                     % 'tarbert', or 'upper_ness'
-    [options, spe10Args] = merge_options(options, varargin{:});
-    options.spe10Args = spe10Args;
-    if optOnly
-        setup = packTestCaseSetup(mfilename,                  ...
-                                  'description', description, ...
-                                  'options'    , options    );
-        return;
-    end
+    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
     % Define module dependencies
     require ad-core ad-props ad-blackoil spe10
     % Pick layer subset
@@ -56,9 +45,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         assert(min(options.layers) >= 1 && max(options.layers) <= 85);
     end
+    if optOnly, setup.options = options; return; end
     % Get state0, model and schedule
     gravity reset on  
-    [state0, model, schedule] = setupSPE10_AD(spe10Args{:}, 'layers', options.layers);
+    [state0, model, schedule] = setupSPE10_AD(options.extra{:}, 'layers', options.layers);
     % Plotting
     if model.G.cartDims(3) > 2
         view = [120,26];

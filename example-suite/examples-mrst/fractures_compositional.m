@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = fractures_compositional(varargin)
+function setup = fractures_compositional(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -29,7 +29,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            '23(6), doi: 10.2118/182679-PA'                         ];
     % Optional input arguments
     options = struct();
-    if nargout <= 2, return; end
+    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
+    if optOnly, return; end
     % Define module dependencies
     require ad-core ad-props compositional
     % Name tags for fluid model and case
@@ -74,13 +75,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     state0   = initResSol(G, resP, [1 0]);
     state0.T = repmat(info.temp, G.cells.num, 1);    
     state0.components = repmat(info.initial, G.cells.num, 1);
-    % Build the simulation schedule: we run with uniform time steps of 20 days,
-    % which give a reasonable compromise between having too high CFL numbers in
-    % the fractures and too low CFL numbers in the background matrix. In
-    % addition, we add a standard rampup to stabilize the displacement fronts
-    % as they move into the reservoir.
+    % Build the simulation schedule: we run with uniform time steps of 20
+    % days, which give a reasonable compromise between having too high CFL
+    % numbers in the fractures and too low CFL numbers in the background
+    % matrix. In addition, we add a standard rampup to stabilize the
+    % displacement fronts as they move into the reservoir.
     dt       = rampupTimesteps(totTime, 20*day);
     schedule = simpleSchedule(dt, 'W', W);
     % Plotting
     plotOptions = {'PlotBoxAspectRatio', [2,1,1], 'Size', [800, 500]};
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end

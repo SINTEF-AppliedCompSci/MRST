@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = saigup_wo(varargin)
+function setup = saigup_wo(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -27,7 +27,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'with water injection into reservoir filled with oil and water'      ];
     % Optional input arguments
     options = struct();
-    if nargout <= 2, return; end
+    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
+    if optOnly, return; end
     % Define module dependencies
     require ad-core ad-props ad-blackoil
     % Read grdecl
@@ -84,4 +85,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     'View'              , [-70, 30] , ...
                     'Size'              , [800, 400], ...
                     'field'             , 's:1'     };
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end

@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = ifs_peaks_wo(varargin)
+function setup = ifs_peaks_wo(varargin)
 %Example from the example suite, see description below.
 %
 % SEE ALSO:
@@ -25,15 +25,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % One-line description
     description ...
         = ['Inverted five-spot pattern with two-phase fluid and ', ...
-           'perm/poro made from repeated pattern of peaks'       ];
+           'perm/poro made from repeated patteern of peaks'       ];
     % Optional input arguments
     options = struct('ncells', 51, ... % Number of cells in xy for each tile
                      'tiles' , 1 , ... % Number of tiles using peaks (tiles x tiles)
                      'nkr'   , 2 );    % Brooks-Corey relperm exponent
-    options = merge_options(options, varargin{:});
+    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
     % Adjust so that center well can be placed exactly in model center
     options.ncells = options.ncells - rem(options.ncells,2) + 1;
-    if nargout <= 2, return; end
+    if optOnly, setup.options = options; return; end
     % Define module dependencies
     require ad-core ad-props ad-blackoil coarsegrid
     % We generate perm/poro by combining multiple tiles of peaks
@@ -98,4 +98,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     state0      = initResSol(G, bhp, [0,1]);
     % Defaul plotting
     plotOptions = {};
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end
